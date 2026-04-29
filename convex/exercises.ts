@@ -40,8 +40,8 @@ export const getById = query({
 })
 
 export const getHistory = query({
-  args: { id: v.id('exercises') },
-  handler: async (ctx, { id }) => {
+  args: { exerciseId: v.id('exercises') },
+  handler: async (ctx, { exerciseId: id }) => {
     const userId = await requireUser(ctx)
     const sets = await ctx.db
       .query('sets')
