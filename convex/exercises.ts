@@ -29,7 +29,14 @@ export const list = query({
 
 export const getById = query({
   args: { id: v.id('exercises') },
-  handler: async (ctx, { id }) => ctx.db.get(id),
+  handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    const exercise = await ctx.db.get(id)
+    if (!exercise) return null
+    if (exercise.isDefault) return exercise
+    if (!identity || exercise.userId !== identity.subject) return null
+    return exercise
+  },
 })
 
 export const getHistory = query({
@@ -87,9 +94,10 @@ export const remove = mutation({
     if (exercise.userId !== userId) throw new Error('Unauthorized')
     const sets = await ctx.db
       .query('sets')
-      .withIndex('by_exercise', (q) => q.eq('exerciseId', id))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .filter((q) => q.eq(q.field('exerciseId'), id))
       .collect()
-    for (const set of sets.filter((s) => s.userId === userId)) {
+    for (const set of sets) {
       await ctx.db.delete(set._id)
     }
     const orms = await ctx.db

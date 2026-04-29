@@ -39,6 +39,8 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
+    const session = await ctx.db.get(args.sessionId)
+    if (!session || session.userId !== userId) throw new Error('Unauthorized')
     const setId = await ctx.db.insert('sets', {
       ...args,
       userId,
@@ -101,7 +103,7 @@ export const remove = mutation({
         .query('sets')
         .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
         .collect()
-    ).filter((s) => s.userId === userId)
+    ).filter((s) => s.userId === userId && s.weight > 0)
     if (remaining.length > 0) {
       let bestValue = 0
       let bestSet = remaining[0]

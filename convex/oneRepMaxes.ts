@@ -13,13 +13,14 @@ export const getCurrentForExercise = query({
   args: { exerciseId: v.id('exercises') },
   handler: async (ctx, { exerciseId }) => {
     const userId = await requireUser(ctx)
-    return ctx.db
+    const all = await ctx.db
       .query('oneRepMaxes')
       .withIndex('by_user_exercise', (q) =>
         q.eq('userId', userId).eq('exerciseId', exerciseId),
       )
-      .order('desc')
-      .first()
+      .collect()
+    if (all.length === 0) return null
+    return all.reduce((best, cur) => (cur.date > best.date ? cur : best))
   },
 })
 

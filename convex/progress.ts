@@ -21,14 +21,18 @@ export const weeklyVolume = query({
     const weekMap = new Map<string, number>()
     for (const set of sets) {
       const date = new Date(set.loggedAt)
-      const year = date.getFullYear()
-      const startOfYear = new Date(year, 0, 1)
-      const week = Math.ceil(
-        ((date.getTime() - startOfYear.getTime()) / 86400000 +
-          startOfYear.getDay() +
-          1) /
-          7,
-      )
+      const thursday = new Date(date)
+      thursday.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+      const yearStart = new Date(thursday.getFullYear(), 0, 4)
+      const week =
+        1 +
+        Math.round(
+          ((thursday.getTime() - yearStart.getTime()) / 86400000 -
+            3 +
+            ((yearStart.getDay() + 6) % 7)) /
+            7,
+        )
+      const year = thursday.getFullYear()
       const key = `${year}-W${String(week).padStart(2, '0')}`
       weekMap.set(key, (weekMap.get(key) ?? 0) + set.weight * set.reps)
     }

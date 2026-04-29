@@ -27,11 +27,12 @@ export const listRecent = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit = 5 }) => {
     const userId = await requireUser(ctx)
+    const safeLimit = Math.min(limit, 50)
     return ctx.db
       .query('workoutSessions')
       .withIndex('by_user_date', (q) => q.eq('userId', userId))
       .order('desc')
-      .take(limit)
+      .take(safeLimit)
   },
 })
 
@@ -115,7 +116,7 @@ export const remove = mutation({
           .query('sets')
           .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
           .collect()
-      ).filter((s) => s.userId === userId)
+      ).filter((s) => s.userId === userId && s.weight > 0)
       if (remaining.length > 0) {
         let bestValue = 0
         let bestSet = remaining[0]
