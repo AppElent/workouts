@@ -14,7 +14,7 @@ import {
 import { format } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
 import { calculateOneRepMax } from '#/lib/oneRepMax';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/exercises/$id')({
   component: ExerciseDetailPageGuarded,
@@ -26,7 +26,9 @@ function ExerciseDetailPageGuarded() {
       <SignedIn>
         <ExerciseDetailPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }
