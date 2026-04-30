@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { Plus, CheckCircle, XCircle } from 'lucide-react';
 import { AddExerciseModal } from '#/components/session/AddExerciseModal';
 import { ExerciseSection } from '#/components/session/ExerciseSection';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/log/$sessionId')({
   component: ActiveSessionPageGuarded,
@@ -19,7 +19,9 @@ function ActiveSessionPageGuarded() {
       <SignedIn>
         <ActiveSessionPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }

@@ -15,7 +15,7 @@ import {
 import { format } from 'date-fns';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/progress/')({
   component: ProgressPageGuarded,
@@ -27,7 +27,9 @@ function ProgressPageGuarded() {
       <SignedIn>
         <ProgressPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }

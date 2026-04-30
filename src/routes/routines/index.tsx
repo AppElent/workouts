@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { RoutineCard } from '#/components/routines/RoutineCard';
 import { CreateRoutineForm } from '#/components/routines/CreateRoutineForm';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/routines/')({
   component: RoutinesPageGuarded,
@@ -15,7 +15,9 @@ function RoutinesPageGuarded() {
       <SignedIn>
         <RoutinesPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }

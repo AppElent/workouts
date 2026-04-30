@@ -14,7 +14,7 @@ import { api } from '@convex/_generated/api';
 import type { Doc } from '@convex/_generated/dataModel';
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { AddExerciseForm } from '#/components/exercises/AddExerciseForm';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 const MUSCLE_GROUPS = [
   'chest', 'back', 'lats', 'traps', 'quads', 'hamstrings', 'glutes', 'calves',
@@ -36,7 +36,9 @@ function ExercisesPageGuarded() {
       <SignedIn>
         <ExercisesPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }

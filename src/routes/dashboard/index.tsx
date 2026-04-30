@@ -4,7 +4,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Dumbbell } from 'lucide-react';
 import { format } from 'date-fns';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPageGuarded,
@@ -16,7 +16,9 @@ function DashboardPageGuarded() {
       <SignedIn>
         <DashboardPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { format } from 'date-fns';
 import { Dumbbell, Play, Clock } from 'lucide-react';
-import { SignedIn, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/log/')({
   component: LogPageGuarded,
@@ -16,7 +16,9 @@ function LogPageGuarded() {
       <SignedIn>
         <LogPage />
       </SignedIn>
-      <RedirectToSignIn />
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }
