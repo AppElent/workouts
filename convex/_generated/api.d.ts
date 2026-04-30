@@ -15,7 +15,6 @@ import type * as progress from "../progress.js";
 import type * as routines from "../routines.js";
 import type * as seed from "../seed.js";
 import type * as sets from "../sets.js";
-import type * as todos from "../todos.js";
 import type * as workoutSessions from "../workoutSessions.js";
 
 import type {
@@ -32,7 +31,6 @@ declare const fullApi: ApiFromModules<{
   routines: typeof routines;
   seed: typeof seed;
   sets: typeof sets;
-  todos: typeof todos;
   workoutSessions: typeof workoutSessions;
 }>;
 

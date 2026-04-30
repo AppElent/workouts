@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
 import { Route as ProgressIndexRouteImport } from './routes/progress/index'
+import { Route as ProfileIndexRouteImport } from './routes/profile/index'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as LogIndexRouteImport } from './routes/log/index'
 import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
@@ -33,6 +35,16 @@ const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
 const ProgressIndexRoute = ProgressIndexRouteImport.update({
   id: '/progress/',
   path: '/progress/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileIndexRoute = ProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/login/',
+  path: '/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogIndexRoute = LogIndexRouteImport.update({
@@ -80,6 +92,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
   '/log/': typeof LogIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/profile/': typeof ProfileIndexRoute
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
 }
@@ -92,6 +106,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/exercises': typeof ExercisesIndexRoute
   '/log': typeof LogIndexRoute
+  '/login': typeof LoginIndexRoute
+  '/profile': typeof ProfileIndexRoute
   '/progress': typeof ProgressIndexRoute
   '/routines': typeof RoutinesIndexRoute
 }
@@ -105,6 +121,8 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
   '/log/': typeof LogIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/profile/': typeof ProfileIndexRoute
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
 }
@@ -119,6 +137,8 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/exercises/'
     | '/log/'
+    | '/login/'
+    | '/profile/'
     | '/progress/'
     | '/routines/'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +151,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/exercises'
     | '/log'
+    | '/login'
+    | '/profile'
     | '/progress'
     | '/routines'
   id:
@@ -143,6 +165,8 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/exercises/'
     | '/log/'
+    | '/login/'
+    | '/profile/'
     | '/progress/'
     | '/routines/'
   fileRoutesById: FileRoutesById
@@ -156,6 +180,8 @@ export interface RootRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   ExercisesIndexRoute: typeof ExercisesIndexRoute
   LogIndexRoute: typeof LogIndexRoute
+  LoginIndexRoute: typeof LoginIndexRoute
+  ProfileIndexRoute: typeof ProfileIndexRoute
   ProgressIndexRoute: typeof ProgressIndexRoute
   RoutinesIndexRoute: typeof RoutinesIndexRoute
 }
@@ -181,6 +207,20 @@ declare module '@tanstack/react-router' {
       path: '/progress'
       fullPath: '/progress/'
       preLoaderRoute: typeof ProgressIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/': {
+      id: '/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/': {
+      id: '/login/'
+      path: '/login'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/log/': {
@@ -244,6 +284,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   ExercisesIndexRoute: ExercisesIndexRoute,
   LogIndexRoute: LogIndexRoute,
+  LoginIndexRoute: LoginIndexRoute,
+  ProfileIndexRoute: ProfileIndexRoute,
   ProgressIndexRoute: ProgressIndexRoute,
   RoutinesIndexRoute: RoutinesIndexRoute,
 }
