@@ -81,31 +81,29 @@ function ActiveSessionPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-white">
-            {session.name ?? 'Workout Session'}
-          </h1>
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            Started {format(new Date(session.startTime), 'h:mm a · MMM d')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => void handleCancel()}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-xs hover:text-red-400 hover:border-red-400/30 transition-colors"
-          >
-            <XCircle size={14} />
-            Cancel
-          </button>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-white">
+          {session.name ?? 'Workout Session'}
+        </h1>
+        <p className="text-xs text-[var(--text-muted)] mt-1">
+          Started {format(new Date(session.startTime), 'h:mm a · MMM d')}
+        </p>
+        <div className="flex items-center gap-2 mt-4">
           <button
             type="button"
             onClick={() => void handleFinish()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--accent)] text-black text-xs font-bold hover:bg-[var(--accent-hover)] transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
           >
-            <CheckCircle size={14} />
+            <CheckCircle size={15} />
             Finish Workout
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleCancel()}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-red-400 hover:border-red-400/30 transition-colors"
+          >
+            <XCircle size={15} />
+            Cancel
           </button>
         </div>
       </div>

@@ -1,0 +1,22 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "All (dev:all)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:all"],
+      "port": 3000
+    },
+    {
+      "name": "Vite (frontend)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "Convex (backend)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["convex", "dev"]
+    }
+  ]
+}

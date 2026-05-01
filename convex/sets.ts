@@ -82,6 +82,19 @@ export const add = mutation({
   },
 })
 
+export const getLastForExercise = query({
+  args: { exerciseId: v.id('exercises') },
+  handler: async (ctx, { exerciseId }) => {
+    const userId = await requireUser(ctx)
+    return ctx.db
+      .query('sets')
+      .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
+      .order('desc')
+      .filter((q) => q.eq(q.field('userId'), userId))
+      .first()
+  },
+})
+
 export const remove = mutation({
   args: { id: v.id('sets') },
   handler: async (ctx, { id }) => {
