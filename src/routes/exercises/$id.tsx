@@ -10,6 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
 import { format } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
@@ -60,6 +61,17 @@ function ExerciseDetailPage() {
       value: r.value,
       source: r.source,
     }));
+
+  const unit = history[0]?.unit ?? currentOrm?.unit ?? 'kg';
+  const repRangeData = Array.from({ length: 10 }, (_, i) => {
+    const reps = i + 1;
+    const maxWeight = history
+      .filter((s) => s.reps === reps && s.unit === unit)
+      .reduce<number | null>((max, s) => (max === null || s.weight > max ? s.weight : max), null);
+    const theoretical1RM = maxWeight !== null ? calculateOneRepMax(maxWeight, reps).value : null;
+    return { label: `${reps}RM`, reps, maxWeight, theoretical1RM };
+  });
+  const hasRepRangeData = repRangeData.some((d) => d.maxWeight !== null);
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
@@ -159,6 +171,68 @@ function ExerciseDetailPage() {
         ) : (
           <p className="text-sm text-[var(--text-muted)] py-6 text-center">
             Log at least 2 sessions to see the 1RM trend.
+          </p>
+        )}
+      </div>
+
+      <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-6">
+        <h2 className="text-sm font-semibold text-white mb-1">Strength Curve</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-4">Max weight logged vs. theoretical 1RM per rep count</p>
+        {hasRepRangeData ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={repRangeData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: '#b3b3b3', fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: '#b3b3b3', fontSize: 11 }}
+                unit={unit}
+                axisLine={false}
+                tickLine={false}
+                width={52}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: 12,
+                }}
+                formatter={((value: number | null, name: string) =>
+                  value !== null ? [`${value} ${unit}`, name] : [null, name]) as any}
+              />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#b3b3b3', paddingTop: 8 }} />
+              <Line
+                type="monotone"
+                dataKey="maxWeight"
+                name="Max weight logged"
+                stroke="#1DB954"
+                strokeWidth={2}
+                dot={{ fill: '#1DB954', r: 4, strokeWidth: 0 }}
+                activeDot={{ r: 6, fill: '#1ed760' }}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="theoretical1RM"
+                name="Theoretical 1RM"
+                stroke="#b3b3b3"
+                strokeWidth={2}
+                strokeDasharray="4 2"
+                dot={{ fill: '#b3b3b3', r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+                connectNulls={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)] py-6 text-center">
+            Log sets for this exercise to see the strength curve.
           </p>
         )}
       </div>
