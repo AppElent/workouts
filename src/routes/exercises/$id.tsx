@@ -6,8 +6,8 @@ import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import {
-<<<<<<< HEAD
 	CartesianGrid,
+	Legend,
 	Line,
 	LineChart,
 	ResponsiveContainer,
@@ -16,21 +16,6 @@ import {
 	YAxis,
 } from "recharts";
 import { calculateOneRepMax } from "#/lib/oneRepMax";
-=======
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
-import { format } from 'date-fns';
-import { ArrowLeft } from 'lucide-react';
-import { calculateOneRepMax } from '#/lib/oneRepMax';
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
->>>>>>> 0733daa551aaa8d60d307bddf517feddf7b08885
 
 export const Route = createFileRoute("/exercises/$id")({
 	component: ExerciseDetailPageGuarded,
@@ -80,7 +65,24 @@ function ExerciseDetailPage() {
 			source: r.source,
 		}));
 
-<<<<<<< HEAD
+	const unit = history[0]?.unit ?? currentOrm?.unit ?? "kg";
+	const repRangeData = Array.from({ length: 10 }, (_, i) => {
+		const reps = i + 1;
+		const maxWeight = history
+			.filter((s) => s.reps === reps && s.unit === unit)
+			.reduce<number | null>(
+				(max, s) => (max === null || s.weight > max ? s.weight : max),
+				null,
+			);
+		const theoretical1RM =
+			maxWeight !== null ? calculateOneRepMax(maxWeight, reps).value : null;
+		return { label: `${reps}RM`, reps, maxWeight, theoretical1RM };
+	});
+	const hasRepRangeData = repRangeData.some((d) => d.maxWeight !== null);
+	// biome-ignore lint/suspicious/noExplicitAny: Recharts formatter type mismatch
+	const strengthCurveFormatter: any = (value: number | null, name: string) =>
+		value !== null ? [`${value} ${unit}`, name] : [null, name];
+
 	return (
 		<div className="p-4 sm:p-6 max-w-3xl mx-auto">
 			<Link
@@ -90,28 +92,6 @@ function ExerciseDetailPage() {
 				<ArrowLeft size={14} />
 				Back to exercises
 			</Link>
-=======
-  const unit = history[0]?.unit ?? currentOrm?.unit ?? 'kg';
-  const repRangeData = Array.from({ length: 10 }, (_, i) => {
-    const reps = i + 1;
-    const maxWeight = history
-      .filter((s) => s.reps === reps && s.unit === unit)
-      .reduce<number | null>((max, s) => (max === null || s.weight > max ? s.weight : max), null);
-    const theoretical1RM = maxWeight !== null ? calculateOneRepMax(maxWeight, reps).value : null;
-    return { label: `${reps}RM`, reps, maxWeight, theoretical1RM };
-  });
-  const hasRepRangeData = repRangeData.some((d) => d.maxWeight !== null);
-
-  return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
-      <Link
-        to="/exercises"
-        className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-white mb-5 transition-colors"
-      >
-        <ArrowLeft size={14} />
-        Back to exercises
-      </Link>
->>>>>>> 0733daa551aaa8d60d307bddf517feddf7b08885
 
 			<div className="mb-6">
 				<h1 className="text-2xl font-bold text-white">{exercise.name}</h1>
@@ -219,7 +199,80 @@ function ExerciseDetailPage() {
 				)}
 			</div>
 
-<<<<<<< HEAD
+			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-6">
+				<h2 className="text-sm font-semibold text-white mb-1">
+					Strength Curve
+				</h2>
+				<p className="text-xs text-[var(--text-muted)] mb-4">
+					Max weight logged vs. theoretical 1RM per rep count
+				</p>
+				{hasRepRangeData ? (
+					<ResponsiveContainer width="100%" height={220}>
+						<LineChart data={repRangeData}>
+							<CartesianGrid
+								strokeDasharray="3 3"
+								stroke="rgba(255,255,255,0.06)"
+							/>
+							<XAxis
+								dataKey="label"
+								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								axisLine={false}
+								tickLine={false}
+							/>
+							<YAxis
+								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								unit={unit}
+								axisLine={false}
+								tickLine={false}
+								width={52}
+							/>
+							<Tooltip
+								contentStyle={{
+									background: "var(--surface)",
+									border: "1px solid var(--border)",
+									borderRadius: 8,
+									color: "#fff",
+									fontSize: 12,
+								}}
+								formatter={strengthCurveFormatter}
+							/>
+							<Legend
+								wrapperStyle={{
+									fontSize: 11,
+									color: "#b3b3b3",
+									paddingTop: 8,
+								}}
+							/>
+							<Line
+								type="monotone"
+								dataKey="maxWeight"
+								name="Max weight logged"
+								stroke="#1DB954"
+								strokeWidth={2}
+								dot={{ fill: "#1DB954", r: 4, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "#1ed760" }}
+								connectNulls={false}
+							/>
+							<Line
+								type="monotone"
+								dataKey="theoretical1RM"
+								name="Theoretical 1RM"
+								stroke="#b3b3b3"
+								strokeWidth={2}
+								strokeDasharray="4 2"
+								dot={{ fill: "#b3b3b3", r: 3, strokeWidth: 0 }}
+								activeDot={{ r: 5 }}
+								connectNulls={false}
+							/>
+						</LineChart>
+					</ResponsiveContainer>
+				) : (
+					<p className="text-sm text-[var(--text-muted)] py-6 text-center">
+						Log sets for this exercise to see the strength curve.
+					</p>
+				)}
+			</div>
+
 			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 				<h2 className="text-sm font-semibold text-white mb-4">
 					Set History ({history.length} sets)
@@ -292,134 +345,4 @@ function ExerciseDetailPage() {
 			</div>
 		</div>
 	);
-=======
-      <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-6">
-        <h2 className="text-sm font-semibold text-white mb-1">Strength Curve</h2>
-        <p className="text-xs text-[var(--text-muted)] mb-4">Max weight logged vs. theoretical 1RM per rep count</p>
-        {hasRepRangeData ? (
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={repRangeData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: '#b3b3b3', fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: '#b3b3b3', fontSize: 11 }}
-                unit={unit}
-                axisLine={false}
-                tickLine={false}
-                width={52}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  color: '#fff',
-                  fontSize: 12,
-                }}
-                formatter={((value: number | null, name: string) =>
-                  value !== null ? [`${value} ${unit}`, name] : [null, name]) as any}
-              />
-              <Legend wrapperStyle={{ fontSize: 11, color: '#b3b3b3', paddingTop: 8 }} />
-              <Line
-                type="monotone"
-                dataKey="maxWeight"
-                name="Max weight logged"
-                stroke="#1DB954"
-                strokeWidth={2}
-                dot={{ fill: '#1DB954', r: 4, strokeWidth: 0 }}
-                activeDot={{ r: 6, fill: '#1ed760' }}
-                connectNulls={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="theoretical1RM"
-                name="Theoretical 1RM"
-                stroke="#b3b3b3"
-                strokeWidth={2}
-                strokeDasharray="4 2"
-                dot={{ fill: '#b3b3b3', r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5 }}
-                connectNulls={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="text-sm text-[var(--text-muted)] py-6 text-center">
-            Log sets for this exercise to see the strength curve.
-          </p>
-        )}
-      </div>
-
-      <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-        <h2 className="text-sm font-semibold text-white mb-4">
-          Set History ({history.length} sets)
-        </h2>
-        {history.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  {['Date', 'Set', 'Type', 'Weight', 'Reps', 'RPE', 'Est. 1RM'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-4 whitespace-nowrap"
-                      >
-                        {h}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {[...history].reverse().map((set) => {
-                  const orm = calculateOneRepMax(set.weight, set.reps);
-                  return (
-                    <tr
-                      key={set._id}
-                      className="border-b border-[var(--border)] last:border-0"
-                    >
-                      <td className="py-2 pr-4 text-[var(--text-muted)] whitespace-nowrap">
-                        {format(new Date(set.sessionDate), 'MMM d')}
-                      </td>
-                      <td className="py-2 pr-4 text-white">#{set.setNumber}</td>
-                      <td className="py-2 pr-4 text-[var(--text-muted)] capitalize">
-                        {set.setType}
-                      </td>
-                      <td className="py-2 pr-4 text-white font-medium">
-                        {set.weight}
-                        <span className="text-[var(--text-muted)] text-xs ml-0.5">
-                          {set.unit}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-4 text-white">{set.reps}</td>
-                      <td className="py-2 pr-4 text-[var(--text-muted)]">
-                        {set.rpe ?? '—'}
-                      </td>
-                      <td className="py-2 text-[var(--text-muted)] text-xs">
-                        {orm.value}
-                        {orm.source === 'calculated' && (
-                          <span className="ml-0.5 text-[10px]">est.</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-[var(--text-muted)]">
-            No sets logged for this exercise yet.
-          </p>
-        )}
-      </div>
-    </div>
-  );
->>>>>>> 0733daa551aaa8d60d307bddf517feddf7b08885
 }
