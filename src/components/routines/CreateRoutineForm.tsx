@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Plus, X } from 'lucide-react';
+import { Stepper } from '#/components/ui/Stepper';
 
 interface ExerciseEntry {
   exerciseId: Id<'exercises'>;
@@ -75,57 +76,46 @@ export function CreateRoutineForm() {
       />
 
       {entries.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {entries.map((entry, i) => (
             <div
               key={i}
-              className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]"
+              className="flex flex-col gap-2.5 p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]"
             >
-              <span className="text-sm font-medium text-white flex-1 min-w-[120px]">
-                {entry.name}
-              </span>
-              <label className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                Sets
-                <input
-                  type="number"
-                  min={1}
-                  value={entry.defaultSets}
-                  onChange={(e) => updateEntry(i, { defaultSets: Number(e.target.value) })}
-                  className="w-12 h-7 rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 text-xs text-white text-center"
-                />
-              </label>
-              <label className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                Reps
-                <input
-                  type="number"
-                  min={1}
-                  value={entry.defaultReps}
-                  onChange={(e) => updateEntry(i, { defaultReps: Number(e.target.value) })}
-                  className="w-12 h-7 rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 text-xs text-white text-center"
-                />
-              </label>
-              <label className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                kg
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  value={entry.defaultWeight ?? ''}
-                  onChange={(e) =>
-                    updateEntry(i, {
-                      defaultWeight: e.target.value ? Number(e.target.value) : undefined,
-                    })
-                  }
-                  className="w-14 h-7 rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 text-xs text-white text-center"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => removeEntry(i)}
-                className="p-1 text-[var(--text-muted)] hover:text-red-400 transition-colors"
-              >
-                <X size={14} />
-              </button>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-white">{entry.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeEntry(i)}
+                  className="p-1 text-[var(--text-muted)] hover:text-red-400 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <Stepper
+                value={entry.defaultSets}
+                onChange={(v) => updateEntry(i, { defaultSets: v })}
+                min={1}
+                max={20}
+                step={1}
+                label="Sets"
+              />
+              <Stepper
+                value={entry.defaultReps}
+                onChange={(v) => updateEntry(i, { defaultReps: v })}
+                min={1}
+                max={100}
+                step={1}
+                label="Reps"
+              />
+              <Stepper
+                value={entry.defaultWeight ?? 0}
+                onChange={(v) => updateEntry(i, { defaultWeight: v === 0 ? undefined : v })}
+                min={0}
+                step={2.5}
+                unit="kg"
+                label="Weight"
+              />
             </div>
           ))}
         </div>
