@@ -78,9 +78,11 @@ function DashboardPage() {
 					{recentSessions.length > 0 ? (
 						<div className="flex flex-col divide-y divide-[var(--border)]">
 							{recentSessions.map((session) => (
-								<div
+								<Link
 									key={session._id}
-									className="py-3 flex items-center justify-between"
+									to="/log/$sessionId"
+									params={{ sessionId: session._id }}
+									className="py-3 flex items-center justify-between hover:bg-white/5 rounded-lg px-2 -mx-2 transition-colors"
 								>
 									<div>
 										<p className="text-sm font-medium text-white">
@@ -102,7 +104,7 @@ function DashboardPage() {
 									>
 										{session.status}
 									</span>
-								</div>
+								</Link>
 							))}
 						</div>
 					) : (
