@@ -83,7 +83,7 @@ function ActiveSessionPage() {
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-white">
-          {session.name ?? 'Workout Session'}
+          {session.name ?? `Session ${format(new Date(session.startTime), 'MMM d')}`}
         </h1>
         <p className="text-xs text-[var(--text-muted)] mt-1">
           Started {format(new Date(session.startTime), 'h:mm a · MMM d')}
