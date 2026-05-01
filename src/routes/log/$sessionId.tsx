@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useMutation } from 'convex/react';
 import { useState } from 'react';
 import { api } from '@convex/_generated/api';
@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Plus, CheckCircle, XCircle } from 'lucide-react';
 import { AddExerciseModal } from '#/components/session/AddExerciseModal';
 import { ExerciseSection } from '#/components/session/ExerciseSection';
+import { SessionSummary } from '#/components/session/SessionSummary';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 export const Route = createFileRoute('/log/$sessionId')({
@@ -28,7 +29,6 @@ function ActiveSessionPageGuarded() {
 
 function ActiveSessionPage() {
   const { sessionId } = Route.useParams();
-  const navigate = useNavigate();
 
   const session = useQuery(api.workoutSessions.getById, {
     id: sessionId as Id<'workoutSessions'>,
@@ -63,13 +63,11 @@ function ActiveSessionPage() {
 
   async function handleFinish() {
     await finishSession({ id: sessionId as Id<'workoutSessions'> });
-    void navigate({ to: '/dashboard' });
   }
 
   async function handleCancel() {
     if (!confirm('Cancel this workout? All logged sets will be kept.')) return;
     await cancelSession({ id: sessionId as Id<'workoutSessions'> });
-    void navigate({ to: '/log' });
   }
 
   if (session === undefined) {
@@ -77,6 +75,16 @@ function ActiveSessionPage() {
   }
   if (session === null) {
     return <div className="p-6 text-red-400 text-sm">Session not found.</div>;
+  }
+
+  if (session.status !== 'active') {
+    return (
+      <SessionSummary
+        session={session}
+        sets={sets}
+        exerciseMap={exerciseMap}
+      />
+    );
   }
 
   return (
