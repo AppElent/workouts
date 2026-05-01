@@ -44,7 +44,7 @@ function DashboardPage() {
 							</p>
 						</div>
 						<p className="text-xs text-[var(--text-muted)] mt-0.5">
-							{activeSession.name ?? "Untitled"} · started{" "}
+							{activeSession.name ?? `Session ${format(new Date(activeSession.startTime), "MMM d")}`} · started{" "}
 							{format(new Date(activeSession.startTime), "h:mm a")}
 						</p>
 					</div>
@@ -84,7 +84,7 @@ function DashboardPage() {
 								>
 									<div>
 										<p className="text-sm font-medium text-white">
-											{session.name ?? "Untitled Session"}
+											{session.name ?? `Session ${format(new Date(session.date), "MMM d")}`}
 										</p>
 										<p className="text-xs text-[var(--text-muted)] mt-0.5">
 											{format(new Date(session.date), "EEE, MMM d · h:mm a")}

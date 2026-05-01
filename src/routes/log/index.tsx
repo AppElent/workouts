@@ -61,7 +61,7 @@ function LogPage() {
               </p>
             </div>
             <p className="text-xs text-[var(--text-muted)]">
-              {activeSession.name ?? 'Untitled session'} · started{' '}
+              {activeSession.name ?? `Session ${format(new Date(activeSession.startTime), 'MMM d')}`} · started{' '}
               {format(new Date(activeSession.startTime), 'h:mm a')}
             </p>
           </div>
