@@ -1,14 +1,22 @@
-import { useNavigate, Link } from '@tanstack/react-router';
-import { useMutation } from 'convex/react';
-import { api } from '@convex/_generated/api';
-import type { Doc } from '@convex/_generated/dataModel';
-import { format } from 'date-fns';
-import { CheckCircle2, XCircle, Clock, Dumbbell, Trash2, LayoutDashboard, ListChecks } from 'lucide-react';
+import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
+import { format } from "date-fns";
+import {
+	CheckCircle2,
+	Clock,
+	Dumbbell,
+	LayoutDashboard,
+	ListChecks,
+	Trash2,
+	XCircle,
+} from "lucide-react";
 
 interface Props {
-	session: Doc<'workoutSessions'>;
-	sets: Doc<'sets'>[];
-	exerciseMap: Map<string, Doc<'exercises'>>;
+	session: Doc<"workoutSessions">;
+	sets: Doc<"sets">[];
+	exerciseMap: Map<string, Doc<"exercises">>;
 }
 
 function formatDuration(ms: number): string {
@@ -23,11 +31,12 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const navigate = useNavigate();
 	const removeSession = useMutation(api.workoutSessions.remove);
 
-	const isCompleted = session.status === 'completed';
-	const durationMs =
-		session.endTime ? session.endTime - session.startTime : null;
+	const isCompleted = session.status === "completed";
+	const durationMs = session.endTime
+		? session.endTime - session.startTime
+		: null;
 
-	const workingSets = sets.filter((s) => s.setType === 'working');
+	const workingSets = sets.filter((s) => s.setType === "working");
 	const totalVolume = workingSets.reduce(
 		(acc, s) => acc + s.weight * s.reps,
 		0,
@@ -48,16 +57,16 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 		);
 		return {
 			id,
-			name: exerciseMap.get(id)?.name ?? 'Unknown',
+			name: exerciseMap.get(id)?.name ?? "Unknown",
 			sets: exerciseSets,
 			bestSet,
 		};
 	});
 
 	async function handleDelete() {
-		if (!confirm('Delete this workout? This cannot be undone.')) return;
+		if (!confirm("Delete this workout? This cannot be undone.")) return;
 		await removeSession({ id: session._id });
-		void navigate({ to: '/log' });
+		void navigate({ to: "/log" });
 	}
 
 	return (
@@ -82,10 +91,12 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 					)}
 				</div>
 				<h1 className="text-xl font-bold text-white">
-					{session.name ?? 'Workout Session'}
+					{session.name ?? "Workout Session"}
 				</h1>
 				<div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
-					<span>{format(new Date(session.startTime), 'h:mm a · MMM d, yyyy')}</span>
+					<span>
+						{format(new Date(session.startTime), "h:mm a · MMM d, yyyy")}
+					</span>
 					{durationMs !== null && (
 						<span className="flex items-center gap-1">
 							<Clock size={11} />
@@ -104,9 +115,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				<div className="rounded-xl bg-white/5 p-4">
 					<p className="text-xs text-[var(--text-muted)] mb-1">Volume</p>
 					<p className="text-2xl font-bold text-white">
-						{totalVolume > 0
-							? `${totalVolume.toLocaleString()} kg`
-							: '—'}
+						{totalVolume > 0 ? `${totalVolume.toLocaleString()} kg` : "—"}
 					</p>
 				</div>
 			</div>
@@ -122,9 +131,11 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 					exerciseBreakdown.map((ex) => (
 						<div key={ex.id} className="rounded-xl bg-white/5 p-4">
 							<div className="flex items-center justify-between mb-2">
-								<span className="text-sm font-semibold text-white">{ex.name}</span>
+								<span className="text-sm font-semibold text-white">
+									{ex.name}
+								</span>
 								<span className="text-xs text-[var(--text-muted)]">
-									{ex.sets.length} {ex.sets.length === 1 ? 'set' : 'sets'}
+									{ex.sets.length} {ex.sets.length === 1 ? "set" : "sets"}
 								</span>
 							</div>
 							<div className="flex flex-wrap gap-2">
@@ -132,12 +143,12 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 									<span
 										key={s._id}
 										className={`text-xs px-2 py-1 rounded-md ${
-											s.setType === 'warmup'
-												? 'bg-yellow-500/10 text-yellow-400'
-												: 'bg-white/5 text-[var(--text-muted)]'
+											s.setType === "warmup"
+												? "bg-yellow-500/10 text-yellow-400"
+												: "bg-white/5 text-[var(--text-muted)]"
 										}`}
 									>
-										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : 'BW'} × {s.reps}
+										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : "BW"} × {s.reps}
 									</span>
 								))}
 							</div>

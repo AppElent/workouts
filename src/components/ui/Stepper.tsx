@@ -1,4 +1,4 @@
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from "lucide-react";
 
 export interface StepperProps {
 	value: number;
@@ -19,8 +19,10 @@ export function Stepper({
 	unit,
 	label,
 }: StepperProps) {
-	const dec = () => onChange(Math.max(min, parseFloat((value - step).toFixed(2))));
-	const inc = () => onChange(Math.min(max, parseFloat((value + step).toFixed(2))));
+	const dec = () =>
+		onChange(Math.max(min, parseFloat((value - step).toFixed(2))));
+	const inc = () =>
+		onChange(Math.min(max, parseFloat((value + step).toFixed(2))));
 
 	return (
 		<div className="flex items-center gap-3">

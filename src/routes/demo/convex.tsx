@@ -47,7 +47,10 @@ function ConvexDemo() {
 					) : (
 						<div className="divide-y divide-green-100">
 							{exercises.map((ex) => (
-								<div key={ex._id} className="p-4 flex items-center justify-between hover:bg-green-50/50 transition-colors">
+								<div
+									key={ex._id}
+									className="p-4 flex items-center justify-between hover:bg-green-50/50 transition-colors"
+								>
 									<span className="text-gray-800 font-medium">{ex.name}</span>
 									<div className="flex items-center gap-2 text-xs text-gray-500">
 										<span className="capitalize">{ex.category}</span>

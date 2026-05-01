@@ -1,30 +1,35 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@convex/_generated/api';
-import type { Doc, Id } from '@convex/_generated/dataModel';
-import { Plus } from 'lucide-react';
-import { SetRow } from './SetRow';
-import { SetCard } from './SetCard';
-import { Stepper } from '#/components/ui/Stepper';
+import { api } from "@convex/_generated/api";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Stepper } from "#/components/ui/Stepper";
+import { SetCard } from "./SetCard";
+import { SetRow } from "./SetRow";
 
 interface Props {
-	exerciseId: Id<'exercises'>;
+	exerciseId: Id<"exercises">;
 	exerciseName: string;
-	sessionId: Id<'workoutSessions'>;
-	sets: Doc<'sets'>[];
+	sessionId: Id<"workoutSessions">;
+	sets: Doc<"sets">[];
 }
 
-const SET_TYPES = ['warmup', 'working', 'drop', 'failure'] as const;
+const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
 type SetType = (typeof SET_TYPES)[number];
 
-export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: Props) {
+export function ExerciseSection({
+	exerciseId,
+	exerciseName,
+	sessionId,
+	sets,
+}: Props) {
 	const addSet = useMutation(api.sets.add);
 	const lastExerciseSet = useQuery(api.sets.getLastForExercise, { exerciseId });
 
 	const [weight, setWeight] = useState(sets[sets.length - 1]?.weight ?? 0);
 	const [reps, setReps] = useState(8);
 	const [rpe, setRpe] = useState(8);
-	const [setType, setSetType] = useState<SetType>('working');
+	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
 
 	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
@@ -43,7 +48,7 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 			setNumber: sets.length + 1,
 			reps,
 			weight,
-			unit: 'kg',
+			unit: "kg",
 			rpe,
 			setType,
 		});
@@ -51,7 +56,9 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 
 	return (
 		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5">
-			<h3 className="text-base font-semibold text-white mb-4">{exerciseName}</h3>
+			<h3 className="text-base font-semibold text-white mb-4">
+				{exerciseName}
+			</h3>
 
 			{/* Desktop: table */}
 			{sets.length > 0 && (
@@ -59,14 +66,16 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 					<table className="w-full text-sm">
 						<thead>
 							<tr className="border-b border-[var(--border)]">
-								{['#', 'Type', 'Weight', 'Reps', 'RPE', 'Est. 1RM', ''].map((h) => (
-									<th
-										key={h}
-										className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-3 first:pl-2 whitespace-nowrap"
-									>
-										{h}
-									</th>
-								))}
+								{["#", "Type", "Weight", "Reps", "RPE", "Est. 1RM", ""].map(
+									(h) => (
+										<th
+											key={h}
+											className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-3 first:pl-2 whitespace-nowrap"
+										>
+											{h}
+										</th>
+									),
+								)}
 							</tr>
 						</thead>
 						<tbody>
@@ -89,11 +98,33 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 
 			{/* Mobile: stepper form */}
 			<div className="flex flex-col gap-2.5 sm:hidden">
-				<p className="text-xs text-[var(--text-muted)]">Set {sets.length + 1}</p>
+				<p className="text-xs text-[var(--text-muted)]">
+					Set {sets.length + 1}
+				</p>
 
-				<Stepper value={weight} onChange={setWeight} step={2.5} unit="kg" label="Weight" />
-				<Stepper value={reps} onChange={setReps} step={1} min={1} max={100} label="Reps" />
-				<Stepper value={rpe} onChange={setRpe} step={0.5} min={1} max={10} label="RPE" />
+				<Stepper
+					value={weight}
+					onChange={setWeight}
+					step={2.5}
+					unit="kg"
+					label="Weight"
+				/>
+				<Stepper
+					value={reps}
+					onChange={setReps}
+					step={1}
+					min={1}
+					max={100}
+					label="Reps"
+				/>
+				<Stepper
+					value={rpe}
+					onChange={setRpe}
+					step={0.5}
+					min={1}
+					max={10}
+					label="RPE"
+				/>
 
 				<div className="flex gap-1.5 mt-1">
 					{SET_TYPES.map((type) => (
@@ -102,11 +133,11 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 							type="button"
 							onClick={() => setSetType(type)}
 							className={[
-								'flex-1 h-9 rounded-lg text-xs font-medium capitalize transition-all touch-manipulation',
+								"flex-1 h-9 rounded-lg text-xs font-medium capitalize transition-all touch-manipulation",
 								setType === type
-									? 'bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50'
-									: 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white',
-							].join(' ')}
+									? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
+									: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
+							].join(" ")}
 						>
 							{type}
 						</button>
@@ -133,8 +164,14 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 				className="hidden sm:flex flex-wrap items-end gap-2"
 			>
 				<div className="flex flex-col gap-1">
-					<label className="text-[10px] text-[var(--text-muted)] uppercase">Type</label>
+					<label
+						htmlFor="set-type"
+						className="text-[10px] text-[var(--text-muted)] uppercase"
+					>
+						Type
+					</label>
 					<select
+						id="set-type"
 						value={setType}
 						onChange={(e) => setSetType(e.target.value as SetType)}
 						className="h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
@@ -147,8 +184,14 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 					</select>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-[10px] text-[var(--text-muted)] uppercase">kg</label>
+					<label
+						htmlFor="set-weight"
+						className="text-[10px] text-[var(--text-muted)] uppercase"
+					>
+						kg
+					</label>
 					<input
+						id="set-weight"
 						type="number"
 						min="0"
 						step="0.5"
@@ -158,8 +201,14 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-[10px] text-[var(--text-muted)] uppercase">Reps</label>
+					<label
+						htmlFor="set-reps"
+						className="text-[10px] text-[var(--text-muted)] uppercase"
+					>
+						Reps
+					</label>
 					<input
+						id="set-reps"
 						type="number"
 						min="1"
 						value={reps}
@@ -168,8 +217,14 @@ export function ExerciseSection({ exerciseId, exerciseName, sessionId, sets }: P
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-[10px] text-[var(--text-muted)] uppercase">RPE</label>
+					<label
+						htmlFor="set-rpe"
+						className="text-[10px] text-[var(--text-muted)] uppercase"
+					>
+						RPE
+					</label>
 					<input
+						id="set-rpe"
 						type="number"
 						min="1"
 						max="10"

@@ -1,11 +1,11 @@
-import { useMutation } from 'convex/react';
-import { api } from '@convex/_generated/api';
-import type { Doc } from '@convex/_generated/dataModel';
-import { Trash2 } from 'lucide-react';
-import { calculateOneRepMax } from '#/lib/oneRepMax';
+import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { Trash2 } from "lucide-react";
+import { calculateOneRepMax } from "#/lib/oneRepMax";
 
 interface Props {
-	set: Doc<'sets'>;
+	set: Doc<"sets">;
 }
 
 export function SetCard({ set }: Props) {
@@ -15,19 +15,27 @@ export function SetCard({ set }: Props) {
 	return (
 		<div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] flex items-stretch">
 			<div className="flex items-center gap-3 flex-1 px-3 py-3 min-w-0 overflow-hidden">
-				<span className="text-xs text-[var(--text-muted)] w-5 shrink-0">#{set.setNumber}</span>
-				<span className="text-xs text-[var(--text-muted)] capitalize shrink-0">{set.setType}</span>
+				<span className="text-xs text-[var(--text-muted)] w-5 shrink-0">
+					#{set.setNumber}
+				</span>
+				<span className="text-xs text-[var(--text-muted)] capitalize shrink-0">
+					{set.setType}
+				</span>
 				<span className="text-sm text-white font-medium shrink-0">
 					{set.weight}
-					<span className="text-xs text-[var(--text-muted)] ml-0.5">{set.unit}</span>
+					<span className="text-xs text-[var(--text-muted)] ml-0.5">
+						{set.unit}
+					</span>
 				</span>
 				<span className="text-sm text-white shrink-0">×{set.reps}</span>
 				{set.rpe !== undefined && (
-					<span className="text-xs text-[var(--text-muted)] shrink-0">RPE {set.rpe}</span>
+					<span className="text-xs text-[var(--text-muted)] shrink-0">
+						RPE {set.rpe}
+					</span>
 				)}
 				<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto">
 					{orm.value}
-					{orm.source === 'calculated' ? ' est.' : ''} 1RM
+					{orm.source === "calculated" ? " est." : ""} 1RM
 				</span>
 			</div>
 			<button

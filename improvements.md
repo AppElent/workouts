@@ -20,4 +20,10 @@
 
 8. Add instructions (and simple pictures if possible) to exercise detail screen
 
-9. Routines should be edittable
+9. Routines should be edittable. Work with default routines (not editabble), no weight set
+
+10. Use https://github.com/wrkout/exercises.json for exercise json
+
+11. When starting from a routine, it should not be fixed.
+
+12. Data scripts: wipe data, seed test data, etc.

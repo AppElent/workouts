@@ -1,15 +1,11 @@
-import { api } from "@convex/_generated/api";
 import {
 	createRootRoute,
 	HeadContent,
 	Outlet,
 	Scripts,
-	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { useQuery } from "convex/react";
-import { useEffect } from "react";
 import { AppShell } from "#/components/AppShell";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
@@ -35,6 +31,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
+				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: intentional inline theme init script */}
 				<script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
 				<HeadContent />
 			</head>
@@ -59,18 +56,6 @@ function RootLayout() {
 
 function AppContent() {
 	const { location } = useRouterState();
-	const navigate = useNavigate();
-	const activeSession = useQuery(api.workoutSessions.getActive);
-
-	useEffect(() => {
-		if (activeSession) {
-			void navigate({
-				to: "/log/$sessionId",
-				params: { sessionId: activeSession._id },
-				replace: true,
-			});
-		}
-	}, [activeSession, navigate]);
 
 	if (location.pathname === "/" || location.pathname.startsWith("/login")) {
 		return <Outlet />;
