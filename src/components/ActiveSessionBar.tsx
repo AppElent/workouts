@@ -30,7 +30,7 @@ export function ActiveSessionBar() {
 	}, [activeSession]);
 
 	if (!activeSession) return null;
-	if (location.pathname.startsWith("/log/")) return null;
+	if (location.pathname === `/log/${activeSession._id}`) return null;
 
 	const label = activeSession.name ?? "Active Workout";
 
