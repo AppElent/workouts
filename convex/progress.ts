@@ -34,7 +34,7 @@ export const weeklyVolume = query({
         )
       const year = thursday.getFullYear()
       const key = `${year}-W${String(week).padStart(2, '0')}`
-      weekMap.set(key, (weekMap.get(key) ?? 0) + (set.weight ?? 0) * set.reps)
+      weekMap.set(key, (weekMap.get(key) ?? 0) + set.weight * set.reps)
     }
     return Array.from(weekMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
