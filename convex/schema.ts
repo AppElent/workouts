@@ -57,7 +57,7 @@ export default defineSchema({
     exerciseId: v.id('exercises'),
     setNumber: v.number(),
     reps: v.number(),
-    weight: v.optional(v.number()),
+    weight: v.number(),
     unit: v.union(v.literal('kg'), v.literal('lbs')),
     rpe: v.optional(v.number()),
     setType: v.union(

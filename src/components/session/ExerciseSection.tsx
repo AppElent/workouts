@@ -40,14 +40,14 @@ export function ExerciseSection({
 	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
 	const [showWeight, setShowWeight] = useState(
-		!isBodyweight || sets[sets.length - 1]?.weight !== undefined,
+		!isBodyweight || (sets[sets.length - 1]?.weight ?? 0) > 0,
 	);
 
 	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
 	useEffect(() => {
 		if (!weightInitialized && lastExerciseSet !== undefined) {
 			setWeight(lastExerciseSet?.weight ?? 0);
-			if (isBodyweight && lastExerciseSet?.weight !== undefined) {
+			if (isBodyweight && (lastExerciseSet?.weight ?? 0) > 0) {
 				setShowWeight(true);
 			}
 			setWeightInitialized(true);
@@ -61,7 +61,7 @@ export function ExerciseSection({
 			exerciseId,
 			setNumber: sets.length + 1,
 			reps,
-			weight: showWeight ? weight : undefined,
+			weight: showWeight ? weight : 0,
 			unit: "kg",
 			rpe,
 			setType,
@@ -123,7 +123,7 @@ export function ExerciseSection({
 							onChange={setWeight}
 							step={weightStep}
 							unit="kg"
-							label="Weight"
+							label={isBodyweight ? "Added weight" : "Weight"}
 						/>
 						{isBodyweight && (
 							<button
@@ -227,7 +227,7 @@ export function ExerciseSection({
 								htmlFor="set-weight"
 								className="text-[10px] text-[var(--text-muted)] uppercase"
 							>
-								kg
+								{isBodyweight ? "added kg" : "kg"}
 							</label>
 							{isBodyweight && (
 								<button

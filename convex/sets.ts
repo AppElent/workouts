@@ -27,7 +27,7 @@ export const add = mutation({
     exerciseId: v.id('exercises'),
     setNumber: v.number(),
     reps: v.number(),
-    weight: v.optional(v.number()),
+    weight: v.number(),
     unit: v.union(v.literal('kg'), v.literal('lbs')),
     rpe: v.optional(v.number()),
     setType: v.union(
@@ -53,7 +53,7 @@ export const add = mutation({
       )
       .filter((q) => q.eq(q.field('source'), 'manual'))
       .first()
-    if (!manualOrm && args.weight !== undefined && args.weight > 0) {
+    if (!manualOrm && args.weight > 0) {
       const { value, source, formula } = calculateOneRepMax(
         args.weight,
         args.reps,
@@ -116,19 +116,19 @@ export const remove = mutation({
         .query('sets')
         .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
         .collect()
-    ).filter((s) => s.userId === userId && (s.weight ?? 0) > 0)
+    ).filter((s) => s.userId === userId && s.weight > 0)
     if (remaining.length > 0) {
       let bestValue = 0
       let bestSet = remaining[0]
       for (const s of remaining) {
-        const { value } = calculateOneRepMax(s.weight ?? 0, s.reps)
+        const { value } = calculateOneRepMax(s.weight, s.reps)
         if (value > bestValue) {
           bestValue = value
           bestSet = s
         }
       }
       const { value, source, formula } = calculateOneRepMax(
-        bestSet.weight ?? 0,
+        bestSet.weight,
         bestSet.reps,
       )
       await ctx.db.insert('oneRepMaxes', {

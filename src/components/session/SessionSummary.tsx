@@ -38,7 +38,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 
 	const workingSets = sets.filter((s) => s.setType === "working");
 	const totalVolume = workingSets.reduce(
-		(acc, s) => acc + (s.weight ?? 0) * s.reps,
+		(acc, s) => acc + s.weight * s.reps,
 		0,
 	);
 
@@ -52,7 +52,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const exerciseBreakdown = exerciseIds.map((id) => {
 		const exerciseSets = sets.filter((s) => (s.exerciseId as string) === id);
 		const bestSet = exerciseSets.reduce(
-			(best, s) => ((s.weight ?? 0) > (best.weight ?? 0) ? s : best),
+			(best, s) => (s.weight > best.weight ? s : best),
 			exerciseSets[0],
 		);
 		return {

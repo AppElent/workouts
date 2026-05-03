@@ -10,8 +10,7 @@ interface Props {
 
 export function SetCard({ set }: Props) {
 	const removeSet = useMutation(api.sets.remove);
-	const orm =
-		set.weight !== undefined ? calculateOneRepMax(set.weight, set.reps) : null;
+	const orm = set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
 
 	return (
 		<div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] flex items-stretch">
@@ -22,7 +21,7 @@ export function SetCard({ set }: Props) {
 				<span className="text-xs text-[var(--text-muted)] capitalize shrink-0">
 					{set.setType}
 				</span>
-				{set.weight !== undefined ? (
+				{set.weight > 0 ? (
 					<span className="text-sm text-white font-medium shrink-0">
 						{set.weight}
 						<span className="text-xs text-[var(--text-muted)] ml-0.5">
