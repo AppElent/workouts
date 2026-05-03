@@ -10,7 +10,8 @@ interface Props {
 
 export function SetCard({ set }: Props) {
 	const removeSet = useMutation(api.sets.remove);
-	const orm = calculateOneRepMax(set.weight, set.reps);
+	const orm =
+		set.weight !== undefined ? calculateOneRepMax(set.weight, set.reps) : null;
 
 	return (
 		<div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] flex items-stretch">
@@ -21,22 +22,28 @@ export function SetCard({ set }: Props) {
 				<span className="text-xs text-[var(--text-muted)] capitalize shrink-0">
 					{set.setType}
 				</span>
-				<span className="text-sm text-white font-medium shrink-0">
-					{set.weight}
-					<span className="text-xs text-[var(--text-muted)] ml-0.5">
-						{set.unit}
+				{set.weight !== undefined ? (
+					<span className="text-sm text-white font-medium shrink-0">
+						{set.weight}
+						<span className="text-xs text-[var(--text-muted)] ml-0.5">
+							{set.unit}
+						</span>
 					</span>
-				</span>
+				) : (
+					<span className="text-sm text-[var(--text-muted)] shrink-0">BW</span>
+				)}
 				<span className="text-sm text-white shrink-0">×{set.reps}</span>
 				{set.rpe !== undefined && (
 					<span className="text-xs text-[var(--text-muted)] shrink-0">
 						RPE {set.rpe}
 					</span>
 				)}
-				<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto">
-					{orm.value}
-					{orm.source === "calculated" ? " est." : ""} 1RM
-				</span>
+				{orm && (
+					<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto">
+						{orm.value}
+						{orm.source === "calculated" ? " est." : ""} 1RM
+					</span>
+				)}
 			</div>
 			<button
 				type="button"

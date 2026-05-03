@@ -77,6 +77,7 @@ export const create = mutation({
       v.literal('other'),
     ),
     notes: v.optional(v.string()),
+    weightIncrement: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
