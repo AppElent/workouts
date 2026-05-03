@@ -1,5 +1,5 @@
 import { api } from "@convex/_generated/api";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Dumbbell } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ function formatElapsed(startTime: number): string {
 
 export function ActiveSessionBar() {
 	const activeSession = useQuery(api.workoutSessions.getActive);
+	const { location } = useRouterState();
 	const [elapsed, setElapsed] = useState("");
 
 	useEffect(() => {
@@ -29,6 +30,7 @@ export function ActiveSessionBar() {
 	}, [activeSession]);
 
 	if (!activeSession) return null;
+	if (location.pathname === `/log/${activeSession._id}`) return null;
 
 	const label = activeSession.name ?? "Active Workout";
 
