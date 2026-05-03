@@ -5,7 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { CheckCircle, Plus, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddExerciseModal } from "#/components/session/AddExerciseModal";
 import { ExerciseSection } from "#/components/session/ExerciseSection";
 import { SessionSummary } from "#/components/session/SessionSummary";
@@ -44,6 +44,9 @@ function ActiveSessionPage() {
 	const [showAddExercise, setShowAddExercise] = useState(false);
 	const [exerciseOrder, setExerciseOrder] = useState<Id<"exercises">[]>([]);
 
+	const bottomRef = useRef<HTMLDivElement>(null);
+	const prevCountRef = useRef<number | null>(null);
+
 	const exerciseIds: Id<"exercises">[] = [];
 	for (const set of sets) {
 		if (!exerciseIds.includes(set.exerciseId)) {
@@ -53,6 +56,13 @@ function ActiveSessionPage() {
 	for (const id of exerciseOrder) {
 		if (!exerciseIds.includes(id)) exerciseIds.push(id);
 	}
+
+	useEffect(() => {
+		if (prevCountRef.current !== null && exerciseIds.length > prevCountRef.current) {
+			bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+		}
+		prevCountRef.current = exerciseIds.length;
+	}, [exerciseIds.length]);
 
 	const exercises = useQuery(api.exercises.list) ?? [];
 	const exerciseMap = new Map(exercises.map((ex) => [ex._id as string, ex]));
@@ -132,6 +142,8 @@ function ActiveSessionPage() {
 					);
 				})}
 			</div>
+
+			<div ref={bottomRef} />
 
 			<button
 				type="button"
