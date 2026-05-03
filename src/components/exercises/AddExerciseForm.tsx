@@ -18,6 +18,7 @@ const schema = z.object({
 		"other",
 	]),
 	notes: z.string().optional(),
+	weightIncrement: z.number().positive().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -33,6 +34,15 @@ const equipmentOptions = [
 	"other",
 ] as const;
 
+const equipmentWithWeight = new Set([
+	"barbell",
+	"dumbbell",
+	"cable",
+	"machine",
+	"kettlebell",
+	"other",
+]);
+
 export function AddExerciseForm() {
 	const createExercise = useMutation(api.exercises.create);
 
@@ -43,6 +53,7 @@ export function AddExerciseForm() {
 			category: "compound" as "compound" | "isolation",
 			equipment: "barbell" as FormValues["equipment"],
 			notes: "",
+			weightIncrement: undefined as number | undefined,
 		},
 		onSubmit: async ({ value }) => {
 			const parsed = schema.parse(value);
@@ -56,6 +67,7 @@ export function AddExerciseForm() {
 				category: parsed.category,
 				equipment: parsed.equipment,
 				notes: parsed.notes || undefined,
+				weightIncrement: parsed.weightIncrement,
 			});
 			form.reset();
 		},
@@ -169,6 +181,41 @@ export function AddExerciseForm() {
 						</div>
 					)}
 				</form.Field>
+
+				<form.Subscribe selector={(s) => s.values.equipment}>
+					{(equipment) =>
+						equipmentWithWeight.has(equipment) ? (
+							<form.Field name="weightIncrement">
+								{(field) => (
+									<div className="flex flex-col gap-1">
+										<label
+											htmlFor="exercise-weight-increment"
+											className="text-xs text-[var(--text-muted)]"
+										>
+											Weight increment kg (optional)
+										</label>
+										<input
+											id="exercise-weight-increment"
+											type="number"
+											min="0.25"
+											step="0.25"
+											className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+											value={field.state.value ?? ""}
+											onChange={(e) =>
+												field.handleChange(
+													e.target.value
+														? parseFloat(e.target.value)
+														: undefined,
+												)
+											}
+											placeholder="e.g. 2.5"
+										/>
+									</div>
+								)}
+							</form.Field>
+						) : null
+					}
+				</form.Subscribe>
 
 				<form.Field name="notes">
 					{(field) => (

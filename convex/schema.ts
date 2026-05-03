@@ -26,6 +26,7 @@ export default defineSchema({
       v.literal('other'),
     ),
     notes: v.optional(v.string()),
+    weightIncrement: v.optional(v.number()),
     isDefault: v.boolean(),
     userId: v.optional(v.string()),
   })
@@ -56,7 +57,7 @@ export default defineSchema({
     exerciseId: v.id('exercises'),
     setNumber: v.number(),
     reps: v.number(),
-    weight: v.number(),
+    weight: v.optional(v.number()),
     unit: v.union(v.literal('kg'), v.literal('lbs')),
     rpe: v.optional(v.number()),
     setType: v.union(

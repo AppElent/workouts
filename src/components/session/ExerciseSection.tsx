@@ -4,12 +4,15 @@ import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { getWeightStep } from "#/lib/exerciseWeightConfig";
 import { SetCard } from "./SetCard";
 import { SetRow } from "./SetRow";
 
 interface Props {
 	exerciseId: Id<"exercises">;
 	exerciseName: string;
+	equipment: Doc<"exercises">["equipment"];
+	weightIncrement?: number;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];
 }
@@ -20,25 +23,36 @@ type SetType = (typeof SET_TYPES)[number];
 export function ExerciseSection({
 	exerciseId,
 	exerciseName,
+	equipment,
+	weightIncrement,
 	sessionId,
 	sets,
 }: Props) {
 	const addSet = useMutation(api.sets.add);
 	const lastExerciseSet = useQuery(api.sets.getLastForExercise, { exerciseId });
 
+	const isBodyweight = equipment === "bodyweight";
+	const weightStep = getWeightStep(equipment, weightIncrement);
+
 	const [weight, setWeight] = useState(sets[sets.length - 1]?.weight ?? 0);
 	const [reps, setReps] = useState(8);
 	const [rpe, setRpe] = useState(8);
 	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
+	const [showWeight, setShowWeight] = useState(
+		!isBodyweight || sets[sets.length - 1]?.weight !== undefined,
+	);
 
 	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
 	useEffect(() => {
 		if (!weightInitialized && lastExerciseSet !== undefined) {
 			setWeight(lastExerciseSet?.weight ?? 0);
+			if (isBodyweight && lastExerciseSet?.weight !== undefined) {
+				setShowWeight(true);
+			}
 			setWeightInitialized(true);
 		}
-	}, [lastExerciseSet, weightInitialized]);
+	}, [lastExerciseSet, weightInitialized, isBodyweight]);
 
 	async function handleLogSet() {
 		if (reps < 1) return;
@@ -47,7 +61,7 @@ export function ExerciseSection({
 			exerciseId,
 			setNumber: sets.length + 1,
 			reps,
-			weight,
+			weight: showWeight ? weight : undefined,
 			unit: "kg",
 			rpe,
 			setType,
@@ -102,13 +116,35 @@ export function ExerciseSection({
 					Set {sets.length + 1}
 				</p>
 
-				<Stepper
-					value={weight}
-					onChange={setWeight}
-					step={2.5}
-					unit="kg"
-					label="Weight"
-				/>
+				{showWeight ? (
+					<>
+						<Stepper
+							value={weight}
+							onChange={setWeight}
+							step={weightStep}
+							unit="kg"
+							label="Weight"
+						/>
+						{isBodyweight && (
+							<button
+								type="button"
+								onClick={() => setShowWeight(false)}
+								className="text-xs text-[var(--text-muted)] hover:text-white self-start transition-colors"
+							>
+								Remove added weight
+							</button>
+						)}
+					</>
+				) : (
+					<button
+						type="button"
+						onClick={() => setShowWeight(true)}
+						className="self-start text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+					>
+						+ Add weight
+					</button>
+				)}
+
 				<Stepper
 					value={reps}
 					onChange={setReps}
@@ -183,23 +219,48 @@ export function ExerciseSection({
 						))}
 					</select>
 				</div>
-				<div className="flex flex-col gap-1">
-					<label
-						htmlFor="set-weight"
-						className="text-[10px] text-[var(--text-muted)] uppercase"
-					>
-						kg
-					</label>
-					<input
-						id="set-weight"
-						type="number"
-						min="0"
-						step="0.5"
-						value={weight}
-						onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-						className="w-16 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-					/>
-				</div>
+
+				{showWeight ? (
+					<div className="flex flex-col gap-1">
+						<div className="flex items-center gap-2">
+							<label
+								htmlFor="set-weight"
+								className="text-[10px] text-[var(--text-muted)] uppercase"
+							>
+								kg
+							</label>
+							{isBodyweight && (
+								<button
+									type="button"
+									onClick={() => setShowWeight(false)}
+									className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors"
+								>
+									remove
+								</button>
+							)}
+						</div>
+						<input
+							id="set-weight"
+							type="number"
+							min="0"
+							step={weightStep}
+							value={weight}
+							onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+							className="w-16 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						/>
+					</div>
+				) : (
+					<div className="flex items-end pb-0.5">
+						<button
+							type="button"
+							onClick={() => setShowWeight(true)}
+							className="h-8 px-2 text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] border border-dashed border-[var(--accent)]/40 rounded transition-colors"
+						>
+							+ Add weight
+						</button>
+					</div>
+				)}
+
 				<div className="flex flex-col gap-1">
 					<label
 						htmlFor="set-reps"

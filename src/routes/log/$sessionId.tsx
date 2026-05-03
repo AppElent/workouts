@@ -124,6 +124,8 @@ function ActiveSessionPage() {
 							key={exerciseId}
 							exerciseId={exerciseId}
 							exerciseName={exercise.name}
+							equipment={exercise.equipment}
+							weightIncrement={exercise.weightIncrement}
 							sessionId={sessionId as Id<"workoutSessions">}
 							sets={exerciseSets}
 						/>
