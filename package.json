@@ -13,7 +13,11 @@
     "test": "vitest run",
     "format": "biome format",
     "lint": "biome lint",
-    "check": "biome check"
+    "check": "biome check",
+    "docker:build": "bash scripts/docker-build.sh",
+    "docker:push": "docker push ghcr.io/$REGISTRY_OWNER/workouts:$npm_package_version && docker push ghcr.io/$REGISTRY_OWNER/workouts:latest",
+    "docker:build-push": "npm run docker:build && npm run docker:push",
+    "docker:run": "docker run --rm -p 3000:3000 -e VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY -e VITE_CONVEX_URL=$VITE_CONVEX_URL ghcr.io/$REGISTRY_OWNER/workouts:latest"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
