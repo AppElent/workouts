@@ -2,7 +2,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
 	onSelect: (exerciseId: Id<"exercises">) => void;
@@ -12,6 +12,11 @@ interface Props {
 export function AddExerciseModal({ onSelect, onClose }: Props) {
 	const exercises = useQuery(api.exercises.list) ?? [];
 	const [search, setSearch] = useState("");
+	const searchRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		searchRef.current?.focus();
+	}, []);
 
 	const filtered = exercises.filter((ex) =>
 		ex.name.toLowerCase().includes(search.toLowerCase()),
@@ -33,6 +38,7 @@ export function AddExerciseModal({ onSelect, onClose }: Props) {
 
 				<div className="p-3 border-b border-[var(--border)]">
 					<input
+						ref={searchRef}
 						type="search"
 						placeholder="Search exercises…"
 						value={search}
