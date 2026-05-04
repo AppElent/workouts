@@ -1,0 +1,10 @@
+# Copy this file to .dev.vars and fill in your local/dev values.
+# Used by: npm run preview  (wrangler dev against a local build)
+# NOT used by: npm run dev  (that reads .env.local via Vite directly)
+# .dev.vars is git-ignored — never commit it.
+
+# Clerk publishable key (dev/test key — starts with pk_test_)
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_YOUR_CLERK_DEV_KEY
+
+# Convex deployment URL for your local dev deployment
+VITE_CONVEX_URL=https://YOUR_CONVEX_DEV_DEPLOYMENT.convex.cloud

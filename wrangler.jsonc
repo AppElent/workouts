@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "workouts",
+  "compatibility_date": "2026-05-04",
+  "observability": {
+    "enabled": true
+  },
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+
+  // Production runtime vars — documentation + SSR runtime fallback.
+  // Build-time VITE_* substitution requires these set in the shell before `vite build`.
+  "vars": {
+    "VITE_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuYXBwZWxlbnQubmwk",
+    "VITE_CONVEX_URL": "https://fine-akita-444.eu-west-1.convex.cloud"
+  },
+
+  "env": {
+    // Deploys to workouts-dev.<subdomain>.workers.dev
+    // Usage: export VITE_* vars, then npm run deploy:dev
+    "dev": {
+      "workers_dev": true,
+      "vars": {
+        "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_Y2FsbS1jcmlja2V0LTgyLmNsZXJrLmFjY291bnRzLmRldiQ",
+        "VITE_CONVEX_URL": "https://colorless-sturgeon-704.eu-west-1.convex.cloud"
+      }
+    },
+
+    // Deploys to workouts-preview.<subdomain>.workers.dev
+    // Triggered manually or via GitHub Actions on PRs
+    "preview": {
+      "workers_dev": true,
+      "vars": {
+        "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_Y2FsbS1jcmlja2V0LTgyLmNsZXJrLmFjY291bnRzLmRldiQ",
+        "VITE_CONVEX_URL": "https://colorless-sturgeon-704.eu-west-1.convex.cloud"
+      }
+    }
+  }
+}
