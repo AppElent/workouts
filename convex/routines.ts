@@ -12,11 +12,22 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUser(ctx)
-    return ctx.db
+    const routines = await ctx.db
       .query('routines')
       .withIndex('by_user', (q) => q.eq('userId', userId))
       .order('desc')
       .collect()
+    return Promise.all(
+      routines.map(async (routine) => ({
+        ...routine,
+        exercises: await Promise.all(
+          routine.exercises.map(async (ex) => {
+            const exercise = await ctx.db.get(ex.exerciseId)
+            return { ...ex, exerciseName: exercise?.name ?? 'Unknown' }
+          }),
+        ),
+      })),
+    )
   },
 })
 

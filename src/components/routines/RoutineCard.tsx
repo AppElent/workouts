@@ -1,12 +1,15 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
+import { useNavigate } from "@tanstack/react-router";
 import { Play, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+type RoutineExercise = Doc<"routines">["exercises"][number] & { exerciseName: string };
+type RoutineWithNames = Omit<Doc<"routines">, "exercises"> & { exercises: RoutineExercise[] };
+
 interface Props {
-	routine: Doc<"routines">;
+	routine: RoutineWithNames;
 }
 
 export function RoutineCard({ routine }: Props) {
@@ -52,7 +55,7 @@ export function RoutineCard({ routine }: Props) {
 						key={ex.exerciseId}
 						className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)]"
 					>
-						{ex.defaultSets}×{ex.defaultReps}
+						{ex.exerciseName} {ex.defaultSets}×{ex.defaultReps}
 					</span>
 				))}
 				{routine.exercises.length > 4 && (
