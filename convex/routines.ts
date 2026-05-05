@@ -69,6 +69,30 @@ export const remove = mutation({
   },
 })
 
+export const update = mutation({
+  args: {
+    id: v.id('routines'),
+    name: v.string(),
+    exercises: v.array(
+      v.object({
+        exerciseId: v.id('exercises'),
+        defaultSets: v.number(),
+        defaultReps: v.number(),
+        defaultWeight: v.optional(v.number()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+    const routine = await ctx.db.get(args.id)
+    if (!routine || routine.userId !== userId) throw new Error('Unauthorized')
+    await ctx.db.patch(args.id, {
+      name: args.name,
+      exercises: args.exercises,
+    })
+  },
+})
+
 export const startSession = mutation({
   args: { routineId: v.id('routines') },
   handler: async (ctx, { routineId }) => {
