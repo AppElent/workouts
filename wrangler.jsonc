@@ -9,14 +9,13 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-
   // Production runtime vars — documentation + SSR runtime fallback.
   // Build-time VITE_* substitution requires these set in the shell before `vite build`.
   "vars": {
     "VITE_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuYXBwZWxlbnQubmwk",
-    "VITE_CONVEX_URL": "https://fine-akita-444.eu-west-1.convex.cloud"
+    "VITE_CONVEX_URL": "https://fine-akita-444.eu-west-1.convex.cloud",
+    "environment_name": "production"
   },
-
   "env": {
     // Deploys to workouts-dev.<subdomain>.workers.dev
     // Usage: export VITE_* vars, then npm run deploy:dev
@@ -24,17 +23,18 @@
       "workers_dev": true,
       "vars": {
         "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_Y2FsbS1jcmlja2V0LTgyLmNsZXJrLmFjY291bnRzLmRldiQ",
-        "VITE_CONVEX_URL": "https://colorless-sturgeon-704.eu-west-1.convex.cloud"
+        "VITE_CONVEX_URL": "https://colorless-sturgeon-704.eu-west-1.convex.cloud",
+        "environment_name": "development"
       }
     },
-
     // Deploys to workouts-preview.<subdomain>.workers.dev
     // Triggered manually or via GitHub Actions on PRs
-    "preview": {
+    "stg": {
       "workers_dev": true,
       "vars": {
         "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_Y2FsbS1jcmlja2V0LTgyLmNsZXJrLmFjY291bnRzLmRldiQ",
-        "VITE_CONVEX_URL": "https://colorless-sturgeon-704.eu-west-1.convex.cloud"
+        "VITE_CONVEX_URL": "https://colorless-sturgeon-704.eu-west-1.convex.cloud",
+        "environment_name": "staging"
       }
     }
   }
