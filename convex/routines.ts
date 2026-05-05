@@ -12,11 +12,22 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUser(ctx)
-    return ctx.db
+    const routines = await ctx.db
       .query('routines')
       .withIndex('by_user', (q) => q.eq('userId', userId))
       .order('desc')
       .collect()
+    return Promise.all(
+      routines.map(async (routine) => ({
+        ...routine,
+        exercises: await Promise.all(
+          routine.exercises.map(async (ex) => {
+            const exercise = await ctx.db.get(ex.exerciseId)
+            return { ...ex, exerciseName: exercise?.name ?? 'Unknown' }
+          }),
+        ),
+      })),
+    )
   },
 })
 
@@ -55,6 +66,30 @@ export const remove = mutation({
     const routine = await ctx.db.get(id)
     if (!routine || routine.userId !== userId) throw new Error('Unauthorized')
     await ctx.db.delete(id)
+  },
+})
+
+export const update = mutation({
+  args: {
+    id: v.id('routines'),
+    name: v.string(),
+    exercises: v.array(
+      v.object({
+        exerciseId: v.id('exercises'),
+        defaultSets: v.number(),
+        defaultReps: v.number(),
+        defaultWeight: v.optional(v.number()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+    const routine = await ctx.db.get(args.id)
+    if (!routine || routine.userId !== userId) throw new Error('Unauthorized')
+    await ctx.db.patch(args.id, {
+      name: args.name,
+      exercises: args.exercises,
+    })
   },
 })
 

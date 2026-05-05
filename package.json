@@ -11,7 +11,7 @@
     "build": "vite build",
     "build:development": "vite build --mode development",
     "build:staging": "vite build --mode staging",
-    "preview": "npm run build && wrangler dev",
+    "preview": "npm run build:development && wrangler dev",
     "test": "vitest run",
     "format": "biome format",
     "lint": "biome lint",
