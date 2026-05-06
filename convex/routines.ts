@@ -23,7 +23,10 @@ export const list = query({
         exercises: await Promise.all(
           routine.exercises.map(async (ex) => {
             const exercise = await ctx.db.get(ex.exerciseId)
-            return { ...ex, exerciseName: exercise?.name ?? 'Unknown' }
+            const canRead =
+              exercise !== null &&
+              (exercise.isDefault === true || exercise.userId === userId)
+            return { ...ex, exerciseName: canRead ? exercise.name : 'Unknown' }
           }),
         ),
       })),
