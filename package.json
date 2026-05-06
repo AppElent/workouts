@@ -9,7 +9,9 @@
     "dev": "vite dev --port 3000 --host",
     "dev:all": "concurrently --kill-others \"npx convex dev\" \"npm run dev\"",
     "build": "vite build",
-    "preview": "vite preview",
+    "build:development": "vite build --mode development",
+    "build:staging": "vite build --mode staging",
+    "preview": "npm run build:development && wrangler dev",
     "test": "vitest run",
     "format": "biome format",
     "lint": "biome lint",
@@ -18,6 +20,11 @@
     "seed:test": "npx convex run seed:seedTestData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
     "seed:clear": "npx convex run seed:clearUserData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
     "seed:reset": "npm run seed:exercises && npm run seed:clear && npm run seed:test"
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:dev": "npm run build:development && wrangler deploy --env dev",
+    "deploy:staging": "npm run build:staging && wrangler deploy --env stg",
+    "deploy:prod": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -46,6 +53,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
+    "@cloudflare/vite-plugin": "^1.35.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@testing-library/dom": "^10.4.1",
@@ -58,7 +66,8 @@
     "jsdom": "^28.1.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "wrangler": "^4.87.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
