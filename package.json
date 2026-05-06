@@ -16,6 +16,10 @@
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
+    "seed:exercises": "npx convex run seed:seedExercises",
+    "seed:test": "npx convex run seed:seedTestData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
+    "seed:clear": "npx convex run seed:clearUserData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
+    "seed:reset": "npm run seed:exercises && npm run seed:clear && npm run seed:test"
     "deploy": "npm run build && wrangler deploy",
     "deploy:dev": "npm run build:development && wrangler deploy --env dev",
     "deploy:staging": "npm run build:staging && wrangler deploy --env stg",
