@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Model routing
+
+- Architecture, debugging, security review: Opus
+- Implementation, content, standard coding: Sonnet
+- File search, formatting, renaming, exploration: Haiku
+- Always escalate security-sensitive changes to Opus for review
+
 ## Commands
 
 ```bash
@@ -38,21 +45,21 @@ The app is server-side rendered via TanStack React Start and deployed as a Cloud
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| UI Framework | React 19 + TanStack React Start (SSR) |
-| Routing | TanStack Router (file-based, part of React Start) |
-| Hosting | Cloudflare Workers (via Wrangler) |
-| Backend | Convex (serverless, real-time) |
-| Auth | Clerk |
-| Styling | Tailwind CSS v4 + CVA |
-| UI Primitives | Base UI (unstyled, accessible) |
-| Charts | Recharts |
-| Forms | TanStack Form + Zod |
-| Date utilities | date-fns |
-| Icons | Lucide React |
-| Linter/Formatter | Biome |
-| Test Runner | Vitest |
+| Layer            | Technology                                        |
+| ---------------- | ------------------------------------------------- |
+| UI Framework     | React 19 + TanStack React Start (SSR)             |
+| Routing          | TanStack Router (file-based, part of React Start) |
+| Hosting          | Cloudflare Workers (via Wrangler)                 |
+| Backend          | Convex (serverless, real-time)                    |
+| Auth             | Clerk                                             |
+| Styling          | Tailwind CSS v4 + CVA                             |
+| UI Primitives    | Base UI (unstyled, accessible)                    |
+| Charts           | Recharts                                          |
+| Forms            | TanStack Form + Zod                               |
+| Date utilities   | date-fns                                          |
+| Icons            | Lucide React                                      |
+| Linter/Formatter | Biome                                             |
+| Test Runner      | Vitest                                            |
 
 ### Data Flow
 
@@ -101,6 +108,7 @@ The root layout (`__root.tsx`) handles the active session redirect: if a user ha
 - **`routines`** — preset sequences; fields: userId, name, exercises array (with default sets/reps/weight)
 
 Convex API files:
+
 - `convex/exercises.ts` — list/fetch/create exercises
 - `convex/workoutSessions.ts` — start/end/manage sessions
 - `convex/sets.ts` — log and manage individual sets
@@ -118,6 +126,7 @@ Convex API files:
 Design uses a Spotify-inspired dark theme with green accent (`#1DB954`). CSS custom properties are defined in `src/styles.css`.
 
 Component organization:
+
 ```
 src/components/
 ├── AppShell.tsx          # Root layout wrapper
@@ -161,11 +170,11 @@ Variable sources differ by context:
 - **Local Workers preview** (`npm run preview`): vars injected by Wrangler from `wrangler.jsonc`
 - **Deployed envs**: vars live in `wrangler.jsonc` under `[env.production]`, `[env.dev]`, `[env.stg]`
 
-| Variable | Purpose |
-|----------|---------|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk public key for frontend auth |
-| `VITE_CONVEX_URL` | Convex deployment URL for the frontend client |
-| `environment_name` | Set by Wrangler: `"production"`, `"development"`, or `"staging"` |
+| Variable                     | Purpose                                                          |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk public key for frontend auth                               |
+| `VITE_CONVEX_URL`            | Convex deployment URL for the frontend client                    |
+| `environment_name`           | Set by Wrangler: `"production"`, `"development"`, or `"staging"` |
 
 The Convex backend reads `CLERK_JWT_ISSUER_DOMAIN` from its own environment (set via `npx convex env set` or the Convex dashboard), configured in `convex/auth.config.ts`.
 
