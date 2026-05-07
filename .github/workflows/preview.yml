@@ -41,10 +41,13 @@ jobs:
       # CONVEX_URL into $GITHUB_ENV so the next step can re-use it.
       - name: Convex preview deploy + build + seed
         run: |
-          : "${VITE_CLERK_PUBLISHABLE_KEY:?VITE_CLERK_PUBLISHABLE_KEY is empty — build would silently bake an unconditional throw into the SSR bundle}"
+          if [ -z "$VITE_CLERK_PUBLISHABLE_KEY" ]; then
+            echo "VITE_CLERK_PUBLISHABLE_KEY is empty - build would silently bake an unconditional throw into the SSR bundle." >&2
+            exit 1
+          fi
           npx convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
-            --cmd 'set -e; : "${CONVEX_URL:?CONVEX_URL not set by convex deploy}"; VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build && echo "CONVEX_URL=$CONVEX_URL" >> "$GITHUB_ENV"' \
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build && echo "CONVEX_URL=$CONVEX_URL" >> "$GITHUB_ENV"' \
             --preview-run seedPreview:seedPreview
 
       - name: Deploy Worker (per-PR)
