@@ -32,12 +32,13 @@ jobs:
       # Convex provisions/refreshes preview backend pr-<N>, exposes its URL as
       # $CONVEX_URL inside --cmd, runs the build (we bridge CONVEX_URL ->
       # VITE_CONVEX_URL since the app reads VITE_CONVEX_URL at build time), then
-      # runs the seed against the fresh backend.
+      # runs the seed against the fresh backend. The --cmd tail also pipes
+      # CONVEX_URL into $GITHUB_ENV so the next step can re-use it.
       - name: Convex preview deploy + build + seed
         run: |
           npx convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
-            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build' \
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build && echo "CONVEX_URL=$CONVEX_URL" >> "$GITHUB_ENV"' \
             --preview-run seedPreview:seedPreview
 
       - name: Deploy Worker (per-PR)
@@ -49,7 +50,15 @@ jobs:
           set -o pipefail
           # Stream wrangler output live (so failures are visible in the log)
           # while also tee-ing to a file so we can grep the URL afterward.
-          npx wrangler deploy --name "$WORKER_NAME" 2>&1 | tee /tmp/wrangler-deploy.log
+          # --var overrides runtime bindings so the per-PR Worker runtime matches
+          # the per-PR bundle (otherwise top-level wrangler.jsonc bakes the
+          # production Clerk/Convex values onto the preview Worker).
+          npx wrangler deploy \
+            --name "$WORKER_NAME" \
+            --var "VITE_CONVEX_URL:$CONVEX_URL" \
+            --var "VITE_CLERK_PUBLISHABLE_KEY:$VITE_CLERK_PUBLISHABLE_KEY" \
+            --var "environment_name:preview" \
+            2>&1 | tee /tmp/wrangler-deploy.log
           URL=$(grep -oE 'https://[^ ]+workers\.dev' /tmp/wrangler-deploy.log | head -1)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
