@@ -10,7 +10,6 @@
     "dev:all": "concurrently --kill-others \"npx convex dev\" \"npm run dev\"",
     "build": "vite build",
     "build:development": "vite build --mode development",
-    "build:staging": "vite build --mode staging",
     "preview": "npm run build:development && wrangler dev",
     "test": "vitest run",
     "format": "biome format",
@@ -22,7 +21,6 @@
     "seed:reset": "npm run seed:exercises && npm run seed:clear && npm run seed:test",
     "deploy": "npm run build && wrangler deploy",
     "deploy:dev": "npm run build:development && wrangler deploy --env dev",
-    "deploy:staging": "npm run build:staging && wrangler deploy --env stg",
     "deploy:prod": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types"
   },

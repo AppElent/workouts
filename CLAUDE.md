@@ -16,7 +16,6 @@ npm run dev:all    # Start both Convex dev server and Vite concurrently (recomme
 npm run dev        # Start Vite dev server only (port 3000, all interfaces)
 npm run build      # Production build (Vite)
 npm run build:development  # Vite build with --mode development
-npm run build:staging      # Vite build with --mode staging
 npm run preview    # Build (dev mode) + start local Cloudflare Workers dev server
 npm run test       # Run all tests with Vitest
 npm run lint       # Biome linter
@@ -24,7 +23,6 @@ npm run format     # Biome formatter
 npm run check      # Biome lint + format check combined
 npm run deploy           # Production build + deploy to Cloudflare (prod)
 npm run deploy:dev       # Dev build + deploy to Cloudflare (dev env)
-npm run deploy:staging   # Staging build + deploy to Cloudflare (stg env)
 npm run cf-typegen       # Generate Cloudflare Workers TypeScript types
 ```
 
@@ -41,7 +39,7 @@ Single codebase split into two layers:
 - **`src/`** — React 19 frontend with TanStack React Start (SSR, file-based routing via TanStack Router)
 - **`convex/`** — Serverless backend: database schema, queries, mutations, actions
 
-The app is server-side rendered via TanStack React Start and deployed as a Cloudflare Worker. The server entry point is `@tanstack/react-start/server-entry`. Deployment environments (production, dev, stg) are defined in `wrangler.jsonc`.
+The app is server-side rendered via TanStack React Start and deployed as a Cloudflare Worker. The server entry point is `@tanstack/react-start/server-entry`. Deployment environments (production, dev) are defined in `wrangler.jsonc`. PR previews are provisioned per-PR by `.github/workflows/preview.yml` (per-PR Convex backend + per-PR Worker named `workouts-pr-<N>`).
 
 ### Tech Stack
 
@@ -168,7 +166,7 @@ Variable sources differ by context:
 
 - **Local dev** (`npm run dev:all`): vars come from `.env` / `.env.local`
 - **Local Workers preview** (`npm run preview`): vars injected by Wrangler from `wrangler.jsonc`
-- **Deployed envs**: vars live in `wrangler.jsonc` under `[env.production]`, `[env.dev]`, `[env.stg]`
+- **Deployed envs**: vars live in `wrangler.jsonc` under top-level (production) and `[env.dev]`. PR previews get `VITE_CONVEX_URL` from the Convex CLI per-PR and `VITE_CLERK_PUBLISHABLE_KEY` from the `PREVIEW_CLERK_PUBLISHABLE_KEY` GitHub secret.
 
 | Variable                     | Purpose                                                          |
 | ---------------------------- | ---------------------------------------------------------------- |
