@@ -1,15 +1,24 @@
-name: Preview Deployment
+name: PR Preview
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  deploy-preview:
+  deploy:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-
+      contents: read
+    env:
+      WORKER_NAME: workouts-pr-${{ github.event.pull_request.number }}
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -20,34 +29,76 @@ jobs:
 
       - run: npm ci
 
-      - name: Build (preview)
-        env:
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
-          VITE_CONVEX_URL: ${{ secrets.PREVIEW_CONVEX_URL }}
-        run: npm run build
+      # Convex provisions/refreshes preview backend pr-<N>, exposes its URL as
+      # $CONVEX_URL inside --cmd, runs the build (we bridge CONVEX_URL ->
+      # VITE_CONVEX_URL since the app reads VITE_CONVEX_URL at build time), then
+      # runs the seed against the fresh backend.
+      - name: Convex preview deploy + build + seed
+        run: |
+          npx convex deploy \
+            --preview-create pr-${{ github.event.pull_request.number }} \
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build' \
+            --preview-run seedPreview:seedPreview
 
-      - name: Deploy to preview worker
+      - name: Deploy Worker (per-PR)
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          OUTPUT=$(npx wrangler deploy --name workouts-preview 2>&1)
-          echo "$OUTPUT"
-          URL=$(echo "$OUTPUT" | grep -oE 'https://[^ ]+workers\.dev' | head -1)
+          OUT=$(npx wrangler deploy --name "$WORKER_NAME" 2>&1)
+          echo "$OUT"
+          URL=$(echo "$OUT" | grep -oE 'https://[^ ]+workers\.dev' | head -1)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Comment PR with preview URL
+      - name: Upsert PR comment
         uses: actions/github-script@v7
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+          PR: ${{ github.event.pull_request.number }}
         with:
           script: |
-            const url = '${{ steps.deploy.outputs.url }}';
-            const body = url
-              ? `### Preview deployment\n\n${url}`
-              : '### Preview deployment\n\nDeployed to \`workouts-preview\` worker (URL not captured — check Actions log).';
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            const marker = '<!-- pr-preview-comment -->';
+            const body = `${marker}\n### Preview\n- App: ${process.env.URL}\n- Convex preview: \`pr-${process.env.PR}\``;
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body
+              issue_number: context.issue.number,
             });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Delete Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler delete --name "workouts-pr-${{ github.event.pull_request.number }}" || true
+      # Convex preview deployments idle-expire automatically (~14 days).
+      # No stable CLI delete command today; prune from the dashboard if needed.
