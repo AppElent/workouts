@@ -24,7 +24,13 @@ npm run check      # Biome lint + format check combined
 npm run deploy           # Production build + deploy to Cloudflare (prod)
 npm run deploy:dev       # Dev build + deploy to Cloudflare (dev env)
 npm run cf-typegen       # Generate Cloudflare Workers TypeScript types
+npm run seed:exercises   # Seed default exercise library (idempotent)
+npm run seed:test        # Seed test data for the hardcoded test userId
+npm run seed:clear       # Clear all per-user data for the hardcoded test userId
+npm run seed:reset       # seed:exercises → seed:clear → seed:test
 ```
+
+The `seed:test` and `seed:clear` scripts target a hardcoded `userId` in `package.json` — change it before running against your own Clerk user.
 
 To run a single test file: `npx vitest run src/path/to/test.ts`
 
@@ -113,7 +119,8 @@ Convex API files:
 - `convex/oneRepMaxes.ts` — store and retrieve 1RM records
 - `convex/routines.ts` — create and manage routines
 - `convex/progress.ts` — analytics and progress tracking
-- `convex/seed.ts` — seed default exercise data
+- `convex/seed.ts` — seed default exercise data and per-user test data; **maintenance contract** at the top of the file: when adding tables or required fields, update `seedExercises`, `seedTestData`, and `clearUserData` accordingly
+- `convex/seedPreview.ts` — preview-environment seed data (used by per-PR Convex backends)
 
 `convex/_generated/` is **auto-generated** from schema — never edit manually.
 
@@ -132,12 +139,11 @@ src/components/
 ├── BottomTabBar.tsx      # Mobile bottom navigation
 ├── ActiveSessionBar.tsx  # Active workout session indicator
 ├── OfflineBanner.tsx     # Offline status indicator
-├── Stepper.tsx           # Step indicator UI
-├── button.tsx            # Base button component
 ├── exercises/
 │   └── AddExerciseForm.tsx
 ├── routines/
 │   ├── CreateRoutineForm.tsx
+│   ├── EditRoutineModal.tsx
 │   └── RoutineCard.tsx
 ├── session/
 │   ├── AddExerciseModal.tsx
@@ -145,7 +151,7 @@ src/components/
 │   ├── SessionSummary.tsx
 │   ├── SetCard.tsx
 │   └── SetRow.tsx
-└── ui/                   # Base UI primitives
+└── ui/                   # Base UI primitives (button.tsx, Stepper.tsx, …)
 ```
 
 ## Key Conventions
