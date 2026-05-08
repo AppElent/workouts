@@ -14,6 +14,7 @@ import type * as oneRepMaxes from "../oneRepMaxes.js";
 import type * as progress from "../progress.js";
 import type * as routines from "../routines.js";
 import type * as seed from "../seed.js";
+import type * as seedPreview from "../seedPreview.js";
 import type * as sets from "../sets.js";
 import type * as workoutSessions from "../workoutSessions.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   progress: typeof progress;
   routines: typeof routines;
   seed: typeof seed;
+  seedPreview: typeof seedPreview;
   sets: typeof sets;
   workoutSessions: typeof workoutSessions;
 }>;
