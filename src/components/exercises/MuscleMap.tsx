@@ -30,6 +30,8 @@ function FrontSVG({
 }: { g: string[]; dims: (typeof DIMS)[keyof typeof DIMS] }) {
 	return (
 		<svg
+			role="img"
+			aria-label="Front muscle diagram"
 			width={dims.w}
 			height={dims.h}
 			viewBox={dims.vb}
@@ -63,6 +65,8 @@ function BackSVG({
 }: { g: string[]; dims: (typeof DIMS)[keyof typeof DIMS] }) {
 	return (
 		<svg
+			role="img"
+			aria-label="Back muscle diagram"
 			width={dims.w}
 			height={dims.h}
 			viewBox={dims.vb}
