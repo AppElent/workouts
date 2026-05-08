@@ -9,6 +9,7 @@ import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { calculateOneRepMax } from './lib/oneRepMax'
+import { DEFAULT_EXERCISES } from './seedData/exercises'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -51,139 +52,45 @@ async function getExerciseId(ctx: MutationCtx, name: string): Promise<Id<'exerci
 export const seedExercises = mutation({
 	args: {},
 	handler: async (ctx) => {
-		const existing = await ctx.db
-			.query('exercises')
-			.withIndex('by_default', (q) => q.eq('isDefault', true))
-			.collect()
-		if (existing.length > 0) return { seeded: false, reason: 'already seeded' }
+		let inserted = 0
+		let updated = 0
+		let skipped = 0
 
-		const exercises = [
-			{
-				name: 'Barbell Back Squat',
-				muscleGroups: ['quadriceps', 'glutes', 'hamstrings'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Barbell Bench Press',
-				muscleGroups: ['chest', 'triceps', 'shoulders'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Barbell Deadlift',
-				muscleGroups: ['hamstrings', 'glutes', 'back', 'traps'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Barbell Overhead Press',
-				muscleGroups: ['shoulders', 'triceps'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 1.25,
-			},
-			{
-				name: 'Barbell Row',
-				muscleGroups: ['back', 'biceps', 'rear delts'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Pull-Up',
-				muscleGroups: ['back', 'biceps'],
-				category: 'compound' as const,
-				equipment: 'bodyweight' as const,
-				isDefault: true,
-			},
-			{
-				name: 'Dumbbell Curl',
-				muscleGroups: ['biceps'],
-				category: 'isolation' as const,
-				equipment: 'dumbbell' as const,
-				isDefault: true,
-				weightIncrement: 2,
-			},
-			{
-				name: 'Tricep Pushdown',
-				muscleGroups: ['triceps'],
-				category: 'isolation' as const,
-				equipment: 'cable' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Leg Press',
-				muscleGroups: ['quadriceps', 'glutes'],
-				category: 'compound' as const,
-				equipment: 'machine' as const,
-				isDefault: true,
-				weightIncrement: 5,
-			},
-			{
-				name: 'Romanian Deadlift',
-				muscleGroups: ['hamstrings', 'glutes'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Dumbbell Lateral Raise',
-				muscleGroups: ['shoulders'],
-				category: 'isolation' as const,
-				equipment: 'dumbbell' as const,
-				isDefault: true,
-				weightIncrement: 2,
-			},
-			{
-				name: 'Cable Row',
-				muscleGroups: ['back', 'biceps'],
-				category: 'compound' as const,
-				equipment: 'cable' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Dumbbell Bench Press',
-				muscleGroups: ['chest', 'triceps', 'shoulders'],
-				category: 'compound' as const,
-				equipment: 'dumbbell' as const,
-				isDefault: true,
-				weightIncrement: 2,
-			},
-			{
-				name: 'Incline Barbell Press',
-				muscleGroups: ['chest', 'shoulders', 'triceps'],
-				category: 'compound' as const,
-				equipment: 'barbell' as const,
-				isDefault: true,
-				weightIncrement: 2.5,
-			},
-			{
-				name: 'Kettlebell Swing',
-				muscleGroups: ['glutes', 'hamstrings', 'core'],
-				category: 'compound' as const,
-				equipment: 'kettlebell' as const,
-				isDefault: true,
-				weightIncrement: 4,
-			},
-		]
+		for (const ex of DEFAULT_EXERCISES) {
+			const existing = await ctx.db
+				.query('exercises')
+				.withIndex('by_name', (q) => q.eq('name', ex.name))
+				.first()
 
-		for (const exercise of exercises) {
-			await ctx.db.insert('exercises', exercise)
+			if (!existing) {
+				await ctx.db.insert('exercises', { ...ex, isDefault: true })
+				inserted++
+				continue
+			}
+
+			const patch: {
+				instructions?: string[]
+				notes?: string
+				muscleGroups?: string[]
+				category?: 'compound' | 'isolation'
+				equipment?: typeof ex.equipment
+				weightIncrement?: number
+			} = {}
+			if (!existing.instructions || existing.instructions.length === 0) {
+				patch.instructions = ex.instructions
+			}
+			if (ex.notes !== undefined && existing.notes === undefined) {
+				patch.notes = ex.notes
+			}
+			if (Object.keys(patch).length > 0) {
+				await ctx.db.patch(existing._id, patch)
+				updated++
+			} else {
+				skipped++
+			}
 		}
 
-		return { seeded: true, count: exercises.length }
+		return { inserted, updated, skipped, total: DEFAULT_EXERCISES.length }
 	},
 })
 
