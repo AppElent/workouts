@@ -26,6 +26,7 @@ export default defineSchema({
       v.literal('other'),
     ),
     notes: v.optional(v.string()),
+    instructions: v.optional(v.array(v.string())),
     weightIncrement: v.optional(v.number()),
     isDefault: v.boolean(),
     userId: v.optional(v.string()),

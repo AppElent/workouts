@@ -118,6 +118,18 @@ function ExerciseDetailPage() {
 				)}
 			</div>
 
+			{exercise.instructions && exercise.instructions.length > 0 && (
+				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-6">
+					<h2 className="text-sm font-semibold text-white mb-3">Instructions</h2>
+					<ol className="list-decimal list-outside pl-5 space-y-2 text-sm text-[var(--text-muted)]">
+						{exercise.instructions.map((step, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: instructions are stable
+							<li key={i}>{step}</li>
+						))}
+					</ol>
+				</div>
+			)}
+
 			{currentOrm && (
 				<div className="mb-6 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 flex items-center justify-between">
 					<div>
