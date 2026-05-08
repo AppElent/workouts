@@ -1,15 +1,13 @@
-import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { useMutation } from "convex/react";
-import { Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { calculateOneRepMax } from "#/lib/oneRepMax";
 
 interface Props {
 	set: Doc<"sets">;
+	onEdit: (set: Doc<"sets">) => void;
 }
 
-export function SetRow({ set }: Props) {
-	const removeSet = useMutation(api.sets.remove);
+export function SetRow({ set, onEdit }: Props) {
 	const orm = set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
 
 	return (
@@ -50,11 +48,11 @@ export function SetRow({ set }: Props) {
 			<td className="py-2 pr-2 w-10">
 				<button
 					type="button"
-					onClick={() => void removeSet({ id: set._id })}
-					className="p-1.5 text-[var(--text-muted)] hover:text-red-400 transition-colors"
-					aria-label="Delete set"
+					onClick={() => onEdit(set)}
+					className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+					aria-label={`Edit set ${set.setNumber}`}
 				>
-					<Trash2 size={13} />
+					<Pencil size={13} />
 				</button>
 			</td>
 		</tr>

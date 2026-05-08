@@ -15,6 +15,7 @@ interface Props {
 	weightIncrement?: number;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];
+	onEditSet: (set: Doc<"sets">, exerciseName: string, weightStep: number) => void;
 }
 
 const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
@@ -27,12 +28,16 @@ export function ExerciseSection({
 	weightIncrement,
 	sessionId,
 	sets,
+	onEditSet,
 }: Props) {
 	const addSet = useMutation(api.sets.add);
 	const lastExerciseSet = useQuery(api.sets.getLastForExercise, { exerciseId });
 
 	const isBodyweight = equipment === "bodyweight";
 	const weightStep = getWeightStep(equipment, weightIncrement);
+
+	const handleEdit = (set: Doc<"sets">) =>
+		onEditSet(set, exerciseName, weightStep);
 
 	const [weight, setWeight] = useState(sets[sets.length - 1]?.weight ?? 0);
 	const [reps, setReps] = useState(8);
@@ -88,7 +93,7 @@ export function ExerciseSection({
 						</thead>
 						<tbody>
 							{sets.map((set) => (
-								<SetRow key={set._id} set={set} />
+								<SetRow key={set._id} set={set} onEdit={handleEdit} />
 							))}
 						</tbody>
 					</table>
@@ -99,7 +104,7 @@ export function ExerciseSection({
 			{sets.length > 0 && (
 				<div className="flex sm:hidden flex-col gap-2 mb-4">
 					{sets.map((set) => (
-						<SetCard key={set._id} set={set} />
+						<SetCard key={set._id} set={set} onEdit={handleEdit} />
 					))}
 				</div>
 			)}
