@@ -1,28 +1,43 @@
-import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { useMutation } from "convex/react";
-import { Trash2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { calculateOneRepMax } from "#/lib/oneRepMax";
 
 interface Props {
 	set: Doc<"sets">;
+	onEdit: (set: Doc<"sets">) => void;
 }
 
-export function SetCard({ set }: Props) {
-	const removeSet = useMutation(api.sets.remove);
+const TYPE_DOT_COLOR: Record<Doc<"sets">["setType"], string> = {
+	warmup: "var(--text-faint)",
+	working: "var(--accent)",
+	drop: "#fbbf24",
+	failure: "#f87171",
+};
+
+export function SetCard({ set, onEdit }: Props) {
 	const orm = set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
+	const dotColor = TYPE_DOT_COLOR[set.setType];
 
 	return (
-		<div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] flex items-stretch">
-			<div className="flex items-center gap-3 flex-1 px-3 py-3 min-w-0 overflow-hidden">
-				<span className="text-xs text-[var(--text-muted)] w-5 shrink-0">
+		<button
+			type="button"
+			onClick={() => onEdit(set)}
+			className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] flex items-center px-3 py-3 text-left hover:border-[var(--border-strong)] transition-colors"
+			aria-label={`Edit set ${set.setNumber}`}
+		>
+			<div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+				<span
+					className="w-1.5 h-1.5 rounded-full shrink-0"
+					style={{ background: dotColor }}
+				/>
+				<span className="text-xs text-[var(--text-muted)] shrink-0 font-semibold">
 					#{set.setNumber}
 				</span>
 				<span className="text-xs text-[var(--text-muted)] capitalize shrink-0">
 					{set.setType}
 				</span>
 				{set.weight > 0 ? (
-					<span className="text-sm text-white font-medium shrink-0">
+					<span className="text-sm text-white font-medium shrink-0 tabular-nums">
 						{set.weight}
 						<span className="text-xs text-[var(--text-muted)] ml-0.5">
 							{set.unit}
@@ -31,27 +46,25 @@ export function SetCard({ set }: Props) {
 				) : (
 					<span className="text-sm text-[var(--text-muted)] shrink-0">BW</span>
 				)}
-				<span className="text-sm text-white shrink-0">×{set.reps}</span>
+				<span className="text-sm text-white shrink-0 tabular-nums">
+					×{set.reps}
+				</span>
 				{set.rpe !== undefined && (
 					<span className="text-xs text-[var(--text-muted)] shrink-0">
 						RPE {set.rpe}
 					</span>
 				)}
 				{orm && (
-					<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto">
+					<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto tabular-nums">
 						{orm.value}
 						{orm.source === "calculated" ? " est." : ""} 1RM
 					</span>
 				)}
 			</div>
-			<button
-				type="button"
-				onClick={() => void removeSet({ id: set._id })}
-				className="px-5 flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 active:text-red-500 border-l border-[var(--border)] transition-colors touch-manipulation rounded-r-lg"
-				aria-label="Delete set"
-			>
-				<Trash2 size={16} />
-			</button>
-		</div>
+			<ChevronRight
+				size={14}
+				className="text-[var(--text-faint)] ml-2 shrink-0"
+			/>
+		</button>
 	);
 }

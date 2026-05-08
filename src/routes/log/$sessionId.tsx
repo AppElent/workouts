@@ -5,10 +5,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { CheckCircle, Plus, XCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AddExerciseModal } from "#/components/session/AddExerciseModal";
 import { ExerciseSection } from "#/components/session/ExerciseSection";
 import { SessionSummary } from "#/components/session/SessionSummary";
+import { SetEditSheet } from "#/components/session/SetEditSheet";
 
 export const Route = createFileRoute("/log/$sessionId")({
 	component: ActiveSessionPageGuarded,
@@ -43,6 +44,20 @@ function ActiveSessionPage() {
 
 	const [showAddExercise, setShowAddExercise] = useState(false);
 	const [exerciseOrder, setExerciseOrder] = useState<Id<"exercises">[]>([]);
+	const [editing, setEditing] = useState<{
+		setId: Id<"sets">;
+		exerciseName: string;
+		weightStep: number;
+	} | null>(null);
+
+	const editingSet = useMemo(() => {
+		if (!editing) return null;
+		return sets.find((s) => s._id === editing.setId) ?? null;
+	}, [editing, sets]);
+
+	useEffect(() => {
+		if (editing && !editingSet) setEditing(null);
+	}, [editing, editingSet]);
 
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const prevCountRef = useRef<number | null>(null);
@@ -138,6 +153,13 @@ function ActiveSessionPage() {
 							weightIncrement={exercise.weightIncrement}
 							sessionId={sessionId as Id<"workoutSessions">}
 							sets={exerciseSets}
+							onEditSet={(s, name, step) =>
+								setEditing({
+									setId: s._id,
+									exerciseName: name,
+									weightStep: step,
+								})
+							}
 						/>
 					);
 				})}
@@ -160,6 +182,13 @@ function ActiveSessionPage() {
 					onClose={() => setShowAddExercise(false)}
 				/>
 			)}
+
+			<SetEditSheet
+				set={editingSet}
+				exerciseName={editing?.exerciseName ?? ""}
+				weightStep={editing?.weightStep ?? 2.5}
+				onClose={() => setEditing(null)}
+			/>
 		</div>
 	);
 }
