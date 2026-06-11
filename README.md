@@ -94,3 +94,4 @@ Clerk (auth) → JWT → Convex backend → real-time subscriptions → React co
 | `/routines` | Routine management |
 | `/progress` | Progress charts |
 | `/profile` | User settings |
+
