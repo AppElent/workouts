@@ -40,18 +40,11 @@ jobs:
             --cmd-url-env-var-name CONVEX_URL \
             --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build' \
             --preview-run seedPreview:seedPreview
-      - name: Get Convex preview URL
-        id: convex
-        run: |
-          CONVEX_URL=$(npx convex deployment url pr-${{ github.event.pull_request.number }})
-          echo "CONVEX_URL=$CONVEX_URL" >> $GITHUB_OUTPUT
       - name: Deploy Worker (per-PR)
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          VITE_CONVEX_URL: ${{ steps.convex.outputs.CONVEX_URL }}
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ steps.convex.outputs.PREVIEW_CLERK_PUBLISHABLE_KEY }}
         run: |
           set -o pipefail
           # Stream wrangler output live (so failures are visible in the log)
@@ -61,7 +54,6 @@ jobs:
           # production Clerk/Convex values onto the preview Worker).
           npx wrangler deploy \
             --name "$WORKER_NAME" \
-            --var "VITE_CONVEX_URL:$CONVEX_URL" \
             --var "VITE_CLERK_PUBLISHABLE_KEY:$VITE_CLERK_PUBLISHABLE_KEY" \
             --var "environment_name:preview" \
             2>&1 | tee /tmp/wrangler-deploy.log
