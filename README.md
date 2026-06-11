@@ -1,4 +1,4 @@
-# Workouts
+# Workouts (track workouts)
 
 Personal workout tracker with real-time session logging, exercise library, 1RM tracking, and routine management.
 
