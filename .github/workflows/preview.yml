@@ -37,9 +37,9 @@ jobs:
         run: |
           npx convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
+            --cmd-url-env-var-name CONVEX_URL \
             --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY npm run build' \
             --preview-run seedPreview:seedPreview
-
       - name: Deploy Worker (per-PR)
         id: deploy
         env:
@@ -54,7 +54,6 @@ jobs:
           # production Clerk/Convex values onto the preview Worker).
           npx wrangler deploy \
             --name "$WORKER_NAME" \
-            --var "VITE_CONVEX_URL:$CONVEX_URL" \
             --var "VITE_CLERK_PUBLISHABLE_KEY:$VITE_CLERK_PUBLISHABLE_KEY" \
             --var "environment_name:preview" \
             2>&1 | tee /tmp/wrangler-deploy.log
