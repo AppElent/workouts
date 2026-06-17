@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AddExerciseModal } from "#/components/exercises/AddExerciseModal";
+import { Select } from "#/components/ui/Select";
 import { cn } from "#/lib/utils";
 
 const CHIP_FILTERS = [
@@ -132,30 +133,30 @@ function ExercisesPage() {
 
 			{/* Category + Equipment dropdowns */}
 			<div className="flex gap-2 mb-4">
-				<select
+				<Select
+					aria-label="Filter by category"
+					className="flex-1"
 					value={filterCategory}
-					onChange={(e) => setFilterCategory(e.target.value)}
-					className="flex-1 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-				>
-					<option value="">Category</option>
-					{CATEGORIES.map((c) => (
-						<option key={c} value={c} className="capitalize">
-							{c.charAt(0).toUpperCase() + c.slice(1)}
-						</option>
-					))}
-				</select>
-				<select
+					onValueChange={setFilterCategory}
+					placeholder="Category"
+					allLabel="All categories"
+					options={CATEGORIES.map((c) => ({
+						value: c,
+						label: c.charAt(0).toUpperCase() + c.slice(1),
+					}))}
+				/>
+				<Select
+					aria-label="Filter by equipment"
+					className="flex-1"
 					value={filterEquipment}
-					onChange={(e) => setFilterEquipment(e.target.value)}
-					className="flex-1 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-				>
-					<option value="">Equipment</option>
-					{EQUIPMENT.map((eq) => (
-						<option key={eq} value={eq} className="capitalize">
-							{eq.charAt(0).toUpperCase() + eq.slice(1)}
-						</option>
-					))}
-				</select>
+					onValueChange={setFilterEquipment}
+					placeholder="Equipment"
+					allLabel="All equipment"
+					options={EQUIPMENT.map((eq) => ({
+						value: eq,
+						label: eq.charAt(0).toUpperCase() + eq.slice(1),
+					}))}
+				/>
 			</div>
 
 			{/* Card grid */}
