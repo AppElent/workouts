@@ -17,6 +17,7 @@ todos.json
 CLAUDE.local.md
 docs/.generated
 .superpowers/
+.playwright-mcp/
 
 .dev.vars*
 !.dev.vars.example
