@@ -85,3 +85,13 @@ a {
     font-size: 16px !important;
   }
 }
+
+/* Horizontally scrollable rows without a visible scrollbar track */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
