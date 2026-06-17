@@ -99,6 +99,22 @@ export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) 
 		// biome-ignore lint/correctness/useExhaustiveDependencies: requestClose reads latest dirty/draft via closure refresh
 	}, [set, dirty]);
 
+	// While the sheet is open, lock background scroll and disable the browser's
+	// pull-to-refresh so a near-miss on the drag handle can't reload the page.
+	useEffect(() => {
+		if (!set) return;
+		const { body } = document;
+		const html = document.documentElement;
+		const prevBodyOverflow = body.style.overflow;
+		const prevHtmlOverscroll = html.style.overscrollBehaviorY;
+		body.style.overflow = "hidden";
+		html.style.overscrollBehaviorY = "contain";
+		return () => {
+			body.style.overflow = prevBodyOverflow;
+			html.style.overscrollBehaviorY = prevHtmlOverscroll;
+		};
+	}, [set]);
+
 	if (!set || !draft) return null;
 
 	const inc = weightStep;
@@ -223,6 +239,7 @@ export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) 
 					<button
 						type="button"
 						onClick={requestClose}
+						onPointerDown={(e) => e.stopPropagation()}
 						className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
 						aria-label="Close"
 					>
