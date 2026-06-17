@@ -8,6 +8,10 @@ import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 const config = defineConfig({
+	server: {
+		host: true,
+		port: process.env.PORT ? Number(process.env.PORT) : 3000,
+	},
 	resolve: {
 		tsconfigPaths: true,
 		alias: {

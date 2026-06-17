@@ -6,7 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000 --host",
+    "dev": "vite dev --host",
     "dev:all": "concurrently --kill-others \"npx convex dev\" \"npm run dev\"",
     "build": "vite build",
     "build:development": "vite build --mode development",
