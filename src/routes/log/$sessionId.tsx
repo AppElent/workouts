@@ -73,7 +73,10 @@ function ActiveSessionPage() {
 	}
 
 	useEffect(() => {
-		if (prevCountRef.current !== null && exerciseIds.length > prevCountRef.current) {
+		if (
+			prevCountRef.current !== null &&
+			exerciseIds.length > prevCountRef.current
+		) {
 			bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 		}
 		prevCountRef.current = exerciseIds.length;

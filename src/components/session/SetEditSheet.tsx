@@ -58,7 +58,12 @@ function isDirty(set: Doc<"sets">, d: Draft) {
 	);
 }
 
-export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) {
+export function SetEditSheet({
+	set,
+	exerciseName,
+	weightStep,
+	onClose,
+}: Props) {
 	const updateSet = useMutation(api.sets.update);
 	const removeSet = useMutation(api.sets.remove);
 	const duplicateSet = useMutation(api.sets.duplicate);
@@ -89,6 +94,7 @@ export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) 
 		onClose();
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: requestClose reads latest dirty/draft via closure refresh
 	useEffect(() => {
 		if (!set) return;
 		const onKey = (e: KeyboardEvent) => {
@@ -96,7 +102,6 @@ export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) 
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-		// biome-ignore lint/correctness/useExhaustiveDependencies: requestClose reads latest dirty/draft via closure refresh
 	}, [set, dirty]);
 
 	// While the sheet is open, lock background scroll and disable the browser's
@@ -192,7 +197,8 @@ export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) 
 			aria-modal="true"
 			aria-label={`Edit set ${set.setNumber}`}
 		>
-			{/** biome-ignore lint/a11y/useKeyWithClickEvents: backdrop only — keyboard close via Esc */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop only — keyboard close via Esc */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop only — keyboard close via Esc */}
 			<div
 				onClick={requestClose}
 				className="absolute inset-0 bg-black/70"
@@ -203,7 +209,9 @@ export function SetEditSheet({ set, exerciseName, weightStep, onClose }: Props) 
 				className="relative w-full sm:max-w-md sm:mx-4 bg-[var(--surface)] border border-[var(--border)] rounded-t-2xl sm:rounded-2xl p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.6)]"
 				style={{
 					transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
-					transition: dragging ? "none" : "transform 200ms cubic-bezier(0.4, 0, 0.2, 1)",
+					transition: dragging
+						? "none"
+						: "transform 200ms cubic-bezier(0.4, 0, 0.2, 1)",
 					touchAction: dragging ? "none" : undefined,
 				}}
 			>
@@ -403,7 +411,13 @@ interface BigStepperProps {
 	onChange: (v: number) => void;
 }
 
-function BigStepper({ value, step, min = 0, quickJumps, onChange }: BigStepperProps) {
+function BigStepper({
+	value,
+	step,
+	min = 0,
+	quickJumps,
+	onChange,
+}: BigStepperProps) {
 	const clamp = (v: number) => Math.max(min, +v.toFixed(2));
 	return (
 		<div>

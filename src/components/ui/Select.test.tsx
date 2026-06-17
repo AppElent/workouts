@@ -22,7 +22,9 @@ const OPTIONS = [
 	{ value: "isolation", label: "Isolation" },
 ];
 
-function renderSelect(props: Partial<React.ComponentProps<typeof Select>> = {}) {
+function renderSelect(
+	props: Partial<React.ComponentProps<typeof Select>> = {},
+) {
 	return render(
 		<Select
 			value=""

@@ -59,14 +59,10 @@ function ExerciseDetailPage() {
 		}) ?? [];
 
 	if (exercise === undefined) {
-		return (
-			<div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>
-		);
+		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
 	}
 	if (exercise === null) {
-		return (
-			<div className="p-6 text-red-400 text-sm">Exercise not found.</div>
-		);
+		return <div className="p-6 text-red-400 text-sm">Exercise not found.</div>;
 	}
 
 	const ormChartData = [...ormHistory]
@@ -354,16 +350,22 @@ function ExerciseDetailPage() {
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b border-[var(--border)]">
-										{["Date", "Set", "Type", "Weight", "Reps", "RPE", "Est. 1RM"].map(
-											(h) => (
-												<th
-													key={h}
-													className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-4 whitespace-nowrap"
-												>
-													{h}
-												</th>
-											),
-										)}
+										{[
+											"Date",
+											"Set",
+											"Type",
+											"Weight",
+											"Reps",
+											"RPE",
+											"Est. 1RM",
+										].map((h) => (
+											<th
+												key={h}
+												className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-4 whitespace-nowrap"
+											>
+												{h}
+											</th>
+										))}
 									</tr>
 								</thead>
 								<tbody>
@@ -377,7 +379,9 @@ function ExerciseDetailPage() {
 												<td className="py-2 pr-4 text-[var(--text-muted)] whitespace-nowrap">
 													{format(new Date(set.sessionDate), "MMM d")}
 												</td>
-												<td className="py-2 pr-4 text-white">#{set.setNumber}</td>
+												<td className="py-2 pr-4 text-white">
+													#{set.setNumber}
+												</td>
 												<td className="py-2 pr-4 text-[var(--text-muted)] capitalize">
 													{set.setType}
 												</td>

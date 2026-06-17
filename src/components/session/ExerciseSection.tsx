@@ -1,10 +1,10 @@
-import { Stepper } from "#/components/ui/Stepper";
-import { getWeightStep } from "#/lib/exerciseWeightConfig";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Stepper } from "#/components/ui/Stepper";
+import { getWeightStep } from "#/lib/exerciseWeightConfig";
 import { SetCard } from "./SetCard";
 import { SetRow } from "./SetRow";
 
@@ -15,7 +15,11 @@ interface Props {
 	weightIncrement?: number;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];
-	onEditSet: (set: Doc<"sets">, exerciseName: string, weightStep: number) => void;
+	onEditSet: (
+		set: Doc<"sets">,
+		exerciseName: string,
+		weightStep: number,
+	) => void;
 }
 
 const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;

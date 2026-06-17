@@ -43,7 +43,11 @@ const equipmentWithWeight = new Set([
 	"other",
 ]);
 
-export function AddExerciseForm({ onSuccess }: { onSuccess?: () => void } = {}) {
+export function AddExerciseForm({
+	onSuccess,
+}: {
+	onSuccess?: () => void;
+} = {}) {
 	const createExercise = useMutation(api.exercises.create);
 
 	const form = useForm({
