@@ -73,6 +73,7 @@ export function Sidebar() {
 				<SignedOut>
 					<Link
 						to="/login"
+						aria-label="Sign In"
 						className="w-full text-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-bold text-black hover:bg-[var(--accent-hover)] transition-colors"
 					>
 						{collapsed ? "→" : "Sign In"}
