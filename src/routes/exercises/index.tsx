@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { SignedIn } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -34,21 +34,8 @@ const EQUIPMENT = [
 ] as const;
 
 export const Route = createFileRoute("/exercises/")({
-	component: ExercisesPageGuarded,
+	component: ExercisesPage,
 });
-
-function ExercisesPageGuarded() {
-	return (
-		<>
-			<SignedIn>
-				<ExercisesPage />
-			</SignedIn>
-			<SignedOut>
-				<RedirectToSignIn />
-			</SignedOut>
-		</>
-	);
-}
 
 function ExercisesPage() {
 	const exercises = useQuery(api.exercises.list) ?? [];
@@ -178,17 +165,19 @@ function ExercisesPage() {
 									{ex.name}
 								</p>
 								{!ex.isDefault && (
-									<button
-										type="button"
-										onClick={(e) => {
-											e.preventDefault();
-											void removeExercise({ id: ex._id });
-										}}
-										className="p-0.5 text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
-										aria-label={`Delete ${ex.name}`}
-									>
-										<Trash2 size={12} />
-									</button>
+									<SignedIn>
+										<button
+											type="button"
+											onClick={(e) => {
+												e.preventDefault();
+												void removeExercise({ id: ex._id });
+											}}
+											className="p-0.5 text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
+											aria-label={`Delete ${ex.name}`}
+										>
+											<Trash2 size={12} />
+										</button>
+									</SignedIn>
 								)}
 							</div>
 							<p className="text-[10px] text-[var(--text-muted)] mb-2 capitalize">
@@ -214,17 +203,19 @@ function ExercisesPage() {
 				</div>
 			)}
 
-			{/* FAB */}
-			<button
-				type="button"
-				onClick={() => setModalOpen(true)}
-				className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-30 w-[52px] h-[52px] rounded-full bg-[var(--accent)] text-black flex items-center justify-center shadow-lg hover:bg-[var(--accent-hover)] transition-colors"
-				aria-label="Add exercise"
-			>
-				<Plus size={24} strokeWidth={2.5} />
-			</button>
+			{/* FAB (auth only) */}
+			<SignedIn>
+				<button
+					type="button"
+					onClick={() => setModalOpen(true)}
+					className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-30 w-[52px] h-[52px] rounded-full bg-[var(--accent)] text-black flex items-center justify-center shadow-lg hover:bg-[var(--accent-hover)] transition-colors"
+					aria-label="Add exercise"
+				>
+					<Plus size={24} strokeWidth={2.5} />
+				</button>
 
-			<AddExerciseModal open={modalOpen} onOpenChange={setModalOpen} />
+				<AddExerciseModal open={modalOpen} onOpenChange={setModalOpen} />
+			</SignedIn>
 		</div>
 	);
 }
