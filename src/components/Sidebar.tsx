@@ -1,29 +1,13 @@
-import { UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-	BookOpen,
-	ChevronLeft,
-	ChevronRight,
-	ClipboardList,
-	Dumbbell,
-	LayoutDashboard,
-	TrendingUp,
-	User,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useState } from "react";
-
-const navItems = [
-	{ to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-	{ to: "/log", label: "Log Workout", Icon: Dumbbell },
-	{ to: "/exercises", label: "Exercises", Icon: BookOpen },
-	{ to: "/routines", label: "Routines", Icon: ClipboardList },
-	{ to: "/progress", label: "Progress", Icon: TrendingUp },
-	{ to: "/profile", label: "Profile", Icon: User },
-] as const;
+import { isNavItemLocked, NAV_ITEMS } from "./navItems";
 
 export function Sidebar() {
 	const [collapsed, setCollapsed] = useState(false);
 	const { location } = useRouterState();
+	const { isSignedIn } = useAuth();
 
 	return (
 		<aside
@@ -49,18 +33,21 @@ export function Sidebar() {
 
 			{/* Nav */}
 			<nav className="flex-1 py-4 flex flex-col gap-1 px-2">
-				{navItems.map(({ to, label, Icon }) => {
-					const active = location.pathname.startsWith(to);
+				{NAV_ITEMS.map(({ to, label, Icon, gated }) => {
+					const locked = isNavItemLocked({ gated }, Boolean(isSignedIn));
+					const active = !locked && location.pathname.startsWith(to);
 					return (
 						<Link
 							key={to}
-							to={to}
+							to={locked ? "/login" : to}
 							title={collapsed ? label : undefined}
 							className={[
 								"flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
 								active
 									? "bg-[var(--accent-dim)] text-[var(--accent)]"
-									: "text-[var(--text-muted)] hover:text-white hover:bg-white/5",
+									: locked
+										? "text-[var(--text-muted)]/60 hover:text-white hover:bg-white/5"
+										: "text-[var(--text-muted)] hover:text-white hover:bg-white/5",
 							].join(" ")}
 							aria-current={active ? "page" : undefined}
 						>
@@ -69,15 +56,29 @@ export function Sidebar() {
 								strokeWidth={active ? 2.5 : 1.75}
 								className="shrink-0"
 							/>
-							{!collapsed && label}
+							{!collapsed && <span className="flex-1">{label}</span>}
+							{!collapsed && locked && (
+								<Lock size={13} className="shrink-0 opacity-70" />
+							)}
 						</Link>
 					);
 				})}
 			</nav>
 
-			{/* User button */}
+			{/* User / Sign in */}
 			<div className="flex items-center justify-center p-3 border-t border-[var(--border)]">
-				<UserButton />
+				<SignedIn>
+					<UserButton />
+				</SignedIn>
+				<SignedOut>
+					<Link
+						to="/login"
+						aria-label="Sign In"
+						className="w-full text-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-bold text-black hover:bg-[var(--accent-hover)] transition-colors"
+					>
+						{collapsed ? "→" : "Sign In"}
+					</Link>
+				</SignedOut>
 			</div>
 
 			{/* Collapse toggle */}

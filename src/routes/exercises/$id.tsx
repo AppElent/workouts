@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -23,19 +23,20 @@ import { cn } from "#/lib/utils";
 type Tab = "overview" | "progress" | "history";
 
 export const Route = createFileRoute("/exercises/$id")({
-	component: ExerciseDetailPageGuarded,
+	component: ExerciseDetailPage,
 });
 
-function ExerciseDetailPageGuarded() {
+function SignInPrompt({ message }: { message: string }) {
 	return (
-		<>
-			<SignedIn>
-				<ExerciseDetailPage />
-			</SignedIn>
-			<SignedOut>
-				<RedirectToSignIn />
-			</SignedOut>
-		</>
+		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-6 flex flex-col items-center gap-3 text-center">
+			<p className="text-sm text-[var(--text-muted)]">{message}</p>
+			<Link
+				to="/login"
+				className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-bold text-black hover:bg-[var(--accent-hover)] transition-colors"
+			>
+				Sign In
+			</Link>
+		</div>
 	);
 }
 
@@ -43,20 +44,26 @@ function ExerciseDetailPage() {
 	const { id } = Route.useParams();
 	const [activeTab, setActiveTab] = useState<Tab>("overview");
 
+	const { isSignedIn } = useAuth();
+	const signedIn = Boolean(isSignedIn);
+
 	const exercise = useQuery(api.exercises.getById, {
 		id: id as Id<"exercises">,
 	});
 	const history =
-		useQuery(api.exercises.getHistory, {
-			exerciseId: id as Id<"exercises">,
-		}) ?? [];
-	const currentOrm = useQuery(api.oneRepMaxes.getCurrentForExercise, {
-		exerciseId: id as Id<"exercises">,
-	});
+		useQuery(
+			api.exercises.getHistory,
+			signedIn ? { exerciseId: id as Id<"exercises"> } : "skip",
+		) ?? [];
+	const currentOrm = useQuery(
+		api.oneRepMaxes.getCurrentForExercise,
+		signedIn ? { exerciseId: id as Id<"exercises"> } : "skip",
+	);
 	const ormHistory =
-		useQuery(api.oneRepMaxes.listForExercise, {
-			exerciseId: id as Id<"exercises">,
-		}) ?? [];
+		useQuery(
+			api.oneRepMaxes.listForExercise,
+			signedIn ? { exerciseId: id as Id<"exercises"> } : "skip",
+		) ?? [];
 
 	if (exercise === undefined) {
 		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
@@ -191,16 +198,21 @@ function ExerciseDetailPage() {
 						</div>
 					)}
 
-					{!currentOrm && !exercise.notes && (
-						<p className="text-sm text-[var(--text-muted)] text-center py-8">
-							No data yet. Log sets for this exercise to see your 1RM.
-						</p>
-					)}
+					{!exercise.notes &&
+						(signedIn ? (
+							!currentOrm && (
+								<p className="text-sm text-[var(--text-muted)] text-center py-8">
+									No data yet. Log sets for this exercise to see your 1RM.
+								</p>
+							)
+						) : (
+							<SignInPrompt message="Sign in to track your 1RM for this exercise." />
+						))}
 				</div>
 			)}
 
 			{/* Progress tab */}
-			{activeTab === "progress" && (
+			{activeTab === "progress" && signedIn && (
 				<div className="flex flex-col gap-4">
 					<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 						<h2 className="text-sm font-semibold text-white mb-4">
@@ -339,8 +351,12 @@ function ExerciseDetailPage() {
 				</div>
 			)}
 
+			{activeTab === "progress" && !signedIn && (
+				<SignInPrompt message="Sign in to track your 1RM progress and strength curve." />
+			)}
+
 			{/* History tab */}
-			{activeTab === "history" && (
+			{activeTab === "history" && signedIn && (
 				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 					<h2 className="text-sm font-semibold text-white mb-4">
 						Set History ({history.length} sets)
@@ -413,6 +429,10 @@ function ExerciseDetailPage() {
 						</p>
 					)}
 				</div>
+			)}
+
+			{activeTab === "history" && !signedIn && (
+				<SignInPrompt message="Sign in to see your set history for this exercise." />
 			)}
 		</div>
 	);

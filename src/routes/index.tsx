@@ -146,23 +146,36 @@ function IntroPage() {
 						session.
 					</p>
 
-					<Link
-						to="/log"
-						className="inline-flex items-center px-8 py-3 font-bold text-black text-sm transition-colors"
-						style={{
-							background: "#1DB954",
-							borderRadius: 9999,
-							fontWeight: 700,
-						}}
-						onMouseEnter={(e) => {
-							(e.currentTarget as HTMLElement).style.background = "#1ed760";
-						}}
-						onMouseLeave={(e) => {
-							(e.currentTarget as HTMLElement).style.background = "#1DB954";
-						}}
-					>
-						Start Logging →
-					</Link>
+					<div className="flex flex-wrap items-center justify-center gap-3">
+						<Link
+							to="/log"
+							className="inline-flex items-center px-8 py-3 font-bold text-black text-sm transition-colors"
+							style={{
+								background: "#1DB954",
+								borderRadius: 9999,
+								fontWeight: 700,
+							}}
+							onMouseEnter={(e) => {
+								(e.currentTarget as HTMLElement).style.background = "#1ed760";
+							}}
+							onMouseLeave={(e) => {
+								(e.currentTarget as HTMLElement).style.background = "#1DB954";
+							}}
+						>
+							Start Logging →
+						</Link>
+						<Link
+							to="/exercises"
+							className="inline-flex items-center px-8 py-3 text-white text-sm border transition-colors"
+							style={{
+								borderColor: "var(--border)",
+								borderRadius: 9999,
+								fontWeight: 700,
+							}}
+						>
+							Browse exercises
+						</Link>
+					</div>
 				</div>
 			</section>
 
