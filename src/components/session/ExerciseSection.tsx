@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Plus } from "lucide-react";
+import { ChevronUp, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
 import { getWeightStep } from "#/lib/exerciseWeightConfig";
@@ -48,6 +48,7 @@ export function ExerciseSection({
 	const [rpe, setRpe] = useState(8);
 	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
+	const [expanded, setExpanded] = useState(false);
 
 	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
 	useEffect(() => {
@@ -113,11 +114,46 @@ export function ExerciseSection({
 				</div>
 			)}
 
+			{/* Mobile: collapsed trigger */}
+			{!expanded && (
+				<button
+					type="button"
+					onClick={() => setExpanded(true)}
+					aria-expanded={false}
+					className="sm:hidden w-full h-12 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center gap-2 px-4 text-left active:scale-[0.98] transition-transform"
+				>
+					<Plus size={18} className="text-[var(--accent)] shrink-0" />
+					<span className="text-sm font-semibold text-white shrink-0">
+						Add set
+					</span>
+					<span className="text-xs text-[var(--text-muted)] truncate ml-1 tabular-nums">
+						{isBodyweight
+							? weight > 0
+								? `BW +${weight} kg`
+								: "BW"
+							: `${weight} kg`}{" "}
+						· {reps} reps · <span className="capitalize">{setType}</span>
+					</span>
+				</button>
+			)}
+
 			{/* Mobile: stepper form */}
-			<div className="flex flex-col gap-2.5 sm:hidden">
-				<p className="text-xs text-[var(--text-muted)]">
-					Set {sets.length + 1}
-				</p>
+			<div
+				className={`flex-col gap-2.5 sm:hidden ${expanded ? "flex" : "hidden"}`}
+			>
+				<div className="flex items-center justify-between">
+					<p className="text-xs text-[var(--text-muted)]">
+						Set {sets.length + 1}
+					</p>
+					<button
+						type="button"
+						onClick={() => setExpanded(false)}
+						aria-label="Collapse add set form"
+						className="p-1 text-[var(--text-muted)] hover:text-white transition-colors"
+					>
+						<ChevronUp size={16} />
+					</button>
+				</div>
 
 				<Stepper
 					value={weight}
