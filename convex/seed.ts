@@ -10,6 +10,7 @@ import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { calculateOneRepMax } from './lib/oneRepMax'
 import { DEFAULT_EXERCISES } from './seedData/exercises'
+import { DEFAULT_WODS } from './seedData/wods'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,16 @@ async function deleteUserData(ctx: MutationCtx, userId: string): Promise<void> {
 		.withIndex('by_user', (q) => q.eq('userId', userId))
 		.collect()
 	for (const routine of routines) await ctx.db.delete(routine._id)
+	const wodResults = await ctx.db
+		.query('wodResults')
+		.withIndex('by_user', (q) => q.eq('userId', userId))
+		.collect()
+	for (const r of wodResults) await ctx.db.delete(r._id)
+	const userWods = await ctx.db
+		.query('wods')
+		.withIndex('by_user', (q) => q.eq('userId', userId))
+		.collect()
+	for (const w of userWods) await ctx.db.delete(w._id)
 }
 
 async function getExerciseId(ctx: MutationCtx, name: string): Promise<Id<'exercises'>> {
@@ -91,6 +102,29 @@ export const seedExercises = mutation({
 		}
 
 		return { inserted, updated, skipped, total: DEFAULT_EXERCISES.length }
+	},
+})
+
+// ─── seedWods ────────────────────────────────────────────────────────────────
+
+export const seedWods = mutation({
+	args: {},
+	handler: async (ctx) => {
+		let inserted = 0
+		let skipped = 0
+		for (const wod of DEFAULT_WODS) {
+			const existing = await ctx.db
+				.query('wods')
+				.withIndex('by_name', (q) => q.eq('name', wod.name))
+				.first()
+			if (existing) {
+				skipped++
+				continue
+			}
+			await ctx.db.insert('wods', { ...wod, isDefault: true, userId: '' })
+			inserted++
+		}
+		return { inserted, skipped, total: DEFAULT_WODS.length }
 	},
 })
 
