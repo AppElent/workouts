@@ -10,6 +10,7 @@
 
 import type * as exercises from "../exercises.js";
 import type * as lib_oneRepMax from "../lib/oneRepMax.js";
+import type * as lib_wodScore from "../lib/wodScore.js";
 import type * as oneRepMaxes from "../oneRepMaxes.js";
 import type * as progress from "../progress.js";
 import type * as routines from "../routines.js";
@@ -28,6 +29,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   exercises: typeof exercises;
   "lib/oneRepMax": typeof lib_oneRepMax;
+  "lib/wodScore": typeof lib_wodScore;
   oneRepMaxes: typeof oneRepMaxes;
   progress: typeof progress;
   routines: typeof routines;
