@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
 	CheckCircle2,
@@ -12,6 +12,7 @@ import {
 	Trash2,
 	XCircle,
 } from "lucide-react";
+import { formatScore } from "#/lib/wodScore";
 
 interface Props {
 	session: Doc<"workoutSessions">;
@@ -30,6 +31,10 @@ function formatDuration(ms: number): string {
 export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const navigate = useNavigate();
 	const removeSession = useMutation(api.workoutSessions.remove);
+	const wodResults =
+		useQuery(api.wodResults.listForSession, { sessionId: session._id }) ?? [];
+	const wods = useQuery(api.wods.list) ?? [];
+	const wodMap = new Map(wods.map((w) => [w._id as string, w]));
 
 	const isCompleted = session.status === "completed";
 	const durationMs = session.endTime
@@ -161,6 +166,30 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 					))
 				)}
 			</div>
+
+			{wodResults.length > 0 && (
+				<div className="mt-4 flex flex-col gap-2">
+					<h3 className="text-sm font-semibold text-white">WODs</h3>
+					{wodResults.map((r) => {
+						const wod = wodMap.get(r.wodId as string);
+						if (!wod) return null;
+						return (
+							<div
+								key={r._id}
+								className="flex items-center justify-between rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-4 py-2.5"
+							>
+								<span className="text-sm text-white">{wod.name}</span>
+								<span className="text-sm text-[var(--accent)] tabular-nums">
+									{formatScore(wod.type, r)}{" "}
+									<span className="text-[10px] uppercase text-[var(--text-muted)]">
+										{r.rxScaled}
+									</span>
+								</span>
+							</div>
+						);
+					})}
+				</div>
+			)}
 
 			{/* Actions */}
 			<div className="flex flex-col sm:flex-row gap-3">
