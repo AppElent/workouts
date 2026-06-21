@@ -20,7 +20,7 @@
     "seed:clear": "npx convex run seed:clearUserData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
     "seed:reset": "npm run seed:exercises && npm run seed:clear && npm run seed:test",
     "deploy": "npm run build && wrangler deploy",
-    "deploy:dev": "npm run build:development && wrangler deploy --env dev",
+    "deploy:dev": "npx convex dev --once && npm run build:development && wrangler deploy --env dev",
     "deploy:prod": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types"
   },
