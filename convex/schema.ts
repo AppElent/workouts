@@ -103,4 +103,60 @@ export default defineSchema({
       }),
     ),
   }).index('by_user', ['userId']),
+
+  wods: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    type: v.union(
+      v.literal('forTime'),
+      v.literal('amrap'),
+      v.literal('emom'),
+      v.literal('load'),
+    ),
+    description: v.optional(v.string()),
+    repScheme: v.optional(v.string()),
+    timeCapSeconds: v.optional(v.number()),
+    durationSeconds: v.optional(v.number()),
+    movements: v.array(
+      v.object({
+        name: v.string(),
+        reps: v.optional(v.number()),
+        weight: v.optional(v.number()),
+        unit: v.optional(v.union(v.literal('kg'), v.literal('lbs'))),
+        distance: v.optional(v.number()),
+        distanceUnit: v.optional(
+          v.union(
+            v.literal('m'),
+            v.literal('km'),
+            v.literal('mi'),
+            v.literal('cal'),
+          ),
+        ),
+        notes: v.optional(v.string()),
+      }),
+    ),
+    isDefault: v.boolean(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_default', ['isDefault'])
+    .index('by_name', ['name']),
+
+  wodResults: defineTable({
+    userId: v.string(),
+    wodId: v.id('wods'),
+    sessionId: v.optional(v.id('workoutSessions')),
+    date: v.number(),
+    rxScaled: v.union(v.literal('rx'), v.literal('scaled')),
+    timeSeconds: v.optional(v.number()),
+    rounds: v.optional(v.number()),
+    reps: v.optional(v.number()),
+    timeCapped: v.optional(v.boolean()),
+    load: v.optional(v.number()),
+    loadUnit: v.optional(v.union(v.literal('kg'), v.literal('lbs'))),
+    notes: v.optional(v.string()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_wod', ['wodId'])
+    .index('by_user_wod', ['userId', 'wodId'])
+    .index('by_session', ['sessionId']),
 })

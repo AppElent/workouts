@@ -13,6 +13,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WodsIndexRouteImport } from './routes/wods/index'
 import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
 import { Route as ProgressIndexRouteImport } from './routes/progress/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
@@ -21,6 +22,7 @@ import { Route as LogIndexRouteImport } from './routes/log/index'
 import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
 import { Route as DemoConvexRouteImport } from './routes/demo/convex'
@@ -44,6 +46,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WodsIndexRoute = WodsIndexRouteImport.update({
+  id: '/wods/',
+  path: '/wods/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
@@ -86,6 +93,11 @@ const AccountIndexRoute = AccountIndexRouteImport.update({
   path: '/account/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WodsIdRoute = WodsIdRouteImport.update({
+  id: '/wods/$id',
+  path: '/wods/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LogSessionIdRoute = LogSessionIdRouteImport.update({
   id: '/log/$sessionId',
   path: '/log/$sessionId',
@@ -116,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
@@ -124,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/profile/': typeof ProfileIndexRoute
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
+  '/wods/': typeof WodsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +148,7 @@ export interface FileRoutesByTo {
   '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/wods/$id': typeof WodsIdRoute
   '/account': typeof AccountIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/exercises': typeof ExercisesIndexRoute
@@ -142,6 +157,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileIndexRoute
   '/progress': typeof ProgressIndexRoute
   '/routines': typeof RoutinesIndexRoute
+  '/wods': typeof WodsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -153,6 +169,7 @@ export interface FileRoutesById {
   '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
@@ -161,6 +178,7 @@ export interface FileRoutesById {
   '/profile/': typeof ProfileIndexRoute
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
+  '/wods/': typeof WodsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,6 +191,7 @@ export interface FileRouteTypes {
     | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
+    | '/wods/$id'
     | '/account/'
     | '/dashboard/'
     | '/exercises/'
@@ -181,6 +200,7 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/progress/'
     | '/routines/'
+    | '/wods/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -191,6 +211,7 @@ export interface FileRouteTypes {
     | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
+    | '/wods/$id'
     | '/account'
     | '/dashboard'
     | '/exercises'
@@ -199,6 +220,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/progress'
     | '/routines'
+    | '/wods'
   id:
     | '__root__'
     | '/'
@@ -209,6 +231,7 @@ export interface FileRouteTypes {
     | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
+    | '/wods/$id'
     | '/account/'
     | '/dashboard/'
     | '/exercises/'
@@ -217,6 +240,7 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/progress/'
     | '/routines/'
+    | '/wods/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -228,6 +252,7 @@ export interface RootRouteChildren {
   DemoConvexRoute: typeof DemoConvexRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
+  WodsIdRoute: typeof WodsIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ExercisesIndexRoute: typeof ExercisesIndexRoute
@@ -236,6 +261,7 @@ export interface RootRouteChildren {
   ProfileIndexRoute: typeof ProfileIndexRoute
   ProgressIndexRoute: typeof ProgressIndexRoute
   RoutinesIndexRoute: typeof RoutinesIndexRoute
+  WodsIndexRoute: typeof WodsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -266,6 +292,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wods/': {
+      id: '/wods/'
+      path: '/wods'
+      fullPath: '/wods/'
+      preLoaderRoute: typeof WodsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/routines/': {
@@ -324,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wods/$id': {
+      id: '/wods/$id'
+      path: '/wods/$id'
+      fullPath: '/wods/$id'
+      preLoaderRoute: typeof WodsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/log/$sessionId': {
       id: '/log/$sessionId'
       path: '/log/$sessionId'
@@ -364,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoConvexRoute: DemoConvexRoute,
   ExercisesIdRoute: ExercisesIdRoute,
   LogSessionIdRoute: LogSessionIdRoute,
+  WodsIdRoute: WodsIdRoute,
   AccountIndexRoute: AccountIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ExercisesIndexRoute: ExercisesIndexRoute,
@@ -372,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileIndexRoute: ProfileIndexRoute,
   ProgressIndexRoute: ProgressIndexRoute,
   RoutinesIndexRoute: RoutinesIndexRoute,
+  WodsIndexRoute: WodsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

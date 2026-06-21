@@ -94,6 +94,13 @@ export const remove = mutation({
     const userId = await requireUser(ctx)
     const session = await ctx.db.get(id)
     if (!session || session.userId !== userId) throw new Error('Unauthorized')
+    const sessionWodResults = await ctx.db
+      .query('wodResults')
+      .withIndex('by_session', (q) => q.eq('sessionId', id))
+      .collect()
+    for (const r of sessionWodResults) {
+      if (r.userId === userId) await ctx.db.delete(r._id)
+    }
     const sets = await ctx.db
       .query('sets')
       .withIndex('by_session', (q) => q.eq('sessionId', id))

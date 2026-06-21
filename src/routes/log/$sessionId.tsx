@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AddExerciseModal } from "#/components/session/AddExerciseModal";
 import { ExerciseSection } from "#/components/session/ExerciseSection";
 import { SessionSummary } from "#/components/session/SessionSummary";
+import { SessionWods } from "#/components/session/SessionWods";
 import { SetEditSheet } from "#/components/session/SetEditSheet";
 
 export const Route = createFileRoute("/log/$sessionId")({
@@ -185,6 +186,8 @@ function ActiveSessionPage() {
 					onClose={() => setShowAddExercise(false)}
 				/>
 			)}
+
+			<SessionWods sessionId={sessionId as Id<"workoutSessions">} />
 
 			<SetEditSheet
 				set={editingSet}

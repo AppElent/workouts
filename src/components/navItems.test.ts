@@ -13,6 +13,12 @@ describe("NAV_ITEMS", () => {
 			expect(item.shortLabel.length).toBeGreaterThan(0);
 		}
 	});
+
+	it("includes a gated WODs item pointing at /wods", () => {
+		const wods = NAV_ITEMS.find((i) => i.to === "/wods");
+		expect(wods).toBeDefined();
+		expect(wods?.gated).toBe(true);
+	});
 });
 
 describe("isNavItemLocked", () => {
