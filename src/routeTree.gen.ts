@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WodsIndexRouteImport } from './routes/wods/index'
 import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
 import { Route as ProgressIndexRouteImport } from './routes/progress/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
@@ -25,6 +26,11 @@ import { Route as DemoClerkRouteImport } from './routes/demo/clerk'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WodsIndexRoute = WodsIndexRouteImport.update({
+  id: '/wods/',
+  path: '/wods/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/profile/': typeof ProfileIndexRoute
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
+  '/wods/': typeof WodsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileIndexRoute
   '/progress': typeof ProgressIndexRoute
   '/routines': typeof RoutinesIndexRoute
+  '/wods': typeof WodsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/profile/': typeof ProfileIndexRoute
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
+  '/wods/': typeof WodsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/progress/'
     | '/routines/'
+    | '/wods/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/progress'
     | '/routines'
+    | '/wods'
   id:
     | '__root__'
     | '/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/progress/'
     | '/routines/'
+    | '/wods/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   ProfileIndexRoute: typeof ProfileIndexRoute
   ProgressIndexRoute: typeof ProgressIndexRoute
   RoutinesIndexRoute: typeof RoutinesIndexRoute
+  WodsIndexRoute: typeof WodsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -193,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wods/': {
+      id: '/wods/'
+      path: '/wods'
+      fullPath: '/wods/'
+      preLoaderRoute: typeof WodsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/routines/': {
@@ -288,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileIndexRoute: ProfileIndexRoute,
   ProgressIndexRoute: ProgressIndexRoute,
   RoutinesIndexRoute: RoutinesIndexRoute,
+  WodsIndexRoute: WodsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
