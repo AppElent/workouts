@@ -4,6 +4,7 @@ import {
 	Dumbbell,
 	LayoutDashboard,
 	type LucideIcon,
+	Timer,
 	TrendingUp,
 	User,
 } from "lucide-react";
@@ -43,6 +44,13 @@ export const NAV_ITEMS = [
 		label: "Routines",
 		shortLabel: "Routines",
 		Icon: ClipboardList,
+		gated: true,
+	},
+	{
+		to: "/wods",
+		label: "WODs",
+		shortLabel: "WODs",
+		Icon: Timer,
 		gated: true,
 	},
 	{
