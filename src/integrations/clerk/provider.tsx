@@ -18,7 +18,8 @@ export default function AppClerkProvider({
 		<ClerkProvider
 			publishableKey={PUBLISHABLE_KEY}
 			afterSignOutUrl="/"
-			signInUrl="/login"
+			signInUrl="/sign-in"
+			signUpUrl="/sign-up"
 		>
 			{children}
 		</ClerkProvider>

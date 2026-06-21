@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@appelent/auth/tokens.css";
+@source "../node_modules/@appelent/auth/dist";
 
 :root {
   /* Spotify dark design tokens */
@@ -51,6 +53,20 @@
   --input: 0 0% 14%;
   --ring: 141 73% 42%;
   --radius: 0.5rem;
+
+  /* @appelent/auth brand overrides — map the shared auth UI onto the
+     Spotify dark palette so it always matches the app's dark-only theme,
+     regardless of the .light/.dark class the theme-init script applies. */
+  --auth-bg: var(--bg);
+  --auth-fg: var(--text);
+  --auth-muted: var(--text-muted);
+  --auth-card-bg: var(--surface);
+  --auth-border: var(--border);
+  --auth-radius: var(--r-lg);
+  --auth-field-bg: var(--surface-2);
+  --auth-accent: var(--accent);
+  --auth-accent-fg: #000000;
+  --auth-error: var(--danger);
 }
 
 * {

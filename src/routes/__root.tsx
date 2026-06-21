@@ -1,4 +1,9 @@
 import {
+	AuthConfigProvider,
+	DEFAULT_AUTH_CONFIG,
+	THEME_INIT_SCRIPT,
+} from "@appelent/auth";
+import {
 	createRootRoute,
 	HeadContent,
 	Outlet,
@@ -12,7 +17,13 @@ import AppConvexProvider from "#/integrations/convex/provider";
 
 import appCss from "../styles.css?url";
 
-const THEME_INIT = `(function(){try{var s=window.localStorage.getItem('theme');var m=s==='light'||s==='dark'||s==='auto'?s:'auto';var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var r=m==='auto'?(d?'dark':'light'):m;var e=document.documentElement;e.classList.remove('light','dark');e.classList.add(r);m==='auto'?e.removeAttribute('data-theme'):e.setAttribute('data-theme',m);e.style.colorScheme=r;}catch(e){}})();`;
+const AUTH_CONFIG = {
+	...DEFAULT_AUTH_CONFIG,
+	appName: "Workout Tracker",
+};
+
+// Routes that render without the AppShell chrome (sidebar / bottom nav).
+const BARE_ROUTES = ["/sign-in", "/sign-up", "/forgot-password", "/login"];
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -32,7 +43,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: intentional inline theme init script */}
-				<script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 				<HeadContent />
 			</head>
 			<body>
@@ -47,8 +58,10 @@ function RootLayout() {
 	return (
 		<AppClerkProvider>
 			<AppConvexProvider>
-				<AppContent />
-				{import.meta.env.DEV && <TanStackRouterDevtools />}
+				<AuthConfigProvider config={AUTH_CONFIG}>
+					<AppContent />
+					{import.meta.env.DEV && <TanStackRouterDevtools />}
+				</AuthConfigProvider>
 			</AppConvexProvider>
 		</AppClerkProvider>
 	);
@@ -57,7 +70,10 @@ function RootLayout() {
 function AppContent() {
 	const { location } = useRouterState();
 
-	if (location.pathname === "/" || location.pathname.startsWith("/login")) {
+	if (
+		location.pathname === "/" ||
+		BARE_ROUTES.some((route) => location.pathname.startsWith(route))
+	) {
 		return <Outlet />;
 	}
 

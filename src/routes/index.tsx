@@ -1,3 +1,4 @@
+import { HeaderUser } from "@appelent/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Dumbbell, TrendingUp } from "lucide-react";
 
@@ -84,18 +85,7 @@ function IntroPage() {
 							{label}
 						</span>
 					))}
-					<Link
-						to="/login"
-						className="text-[var(--text-muted)] hover:text-white transition-colors"
-						style={{
-							fontSize: 11,
-							fontWeight: 700,
-							textTransform: "uppercase",
-							letterSpacing: "1.2px",
-						}}
-					>
-						Sign In
-					</Link>
+					<HeaderUser />
 				</nav>
 			</header>
 

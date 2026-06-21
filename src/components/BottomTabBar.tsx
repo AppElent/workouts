@@ -15,7 +15,7 @@ export function BottomTabBar() {
 					return (
 						<Link
 							key={to}
-							to={locked ? "/login" : to}
+							to={locked ? "/sign-in" : to}
 							className={[
 								"flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
 								active

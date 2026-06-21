@@ -53,7 +53,7 @@ export const NAV_ITEMS = [
 		gated: true,
 	},
 	{
-		to: "/profile",
+		to: "/account",
 		label: "Profile",
 		shortLabel: "Profile",
 		Icon: User,

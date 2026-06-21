@@ -1,4 +1,5 @@
-import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
+import { HeaderUser } from "@appelent/auth";
+import { useAuth } from "@clerk/clerk-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useState } from "react";
@@ -39,7 +40,7 @@ export function Sidebar() {
 					return (
 						<Link
 							key={to}
-							to={locked ? "/login" : to}
+							to={locked ? "/sign-in" : to}
 							title={collapsed ? label : undefined}
 							className={[
 								"flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -67,18 +68,7 @@ export function Sidebar() {
 
 			{/* User / Sign in */}
 			<div className="flex items-center justify-center p-3 border-t border-[var(--border)]">
-				<SignedIn>
-					<UserButton />
-				</SignedIn>
-				<SignedOut>
-					<Link
-						to="/login"
-						aria-label="Sign In"
-						className="w-full text-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-bold text-black hover:bg-[var(--accent-hover)] transition-colors"
-					>
-						{collapsed ? "→" : "Sign In"}
-					</Link>
-				</SignedOut>
+				<HeaderUser />
 			</div>
 
 			{/* Collapse toggle */}
