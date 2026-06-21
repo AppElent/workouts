@@ -18,6 +18,7 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as LogIndexRouteImport } from './routes/log/index'
 import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
 import { Route as DemoConvexRouteImport } from './routes/demo/convex'
@@ -68,6 +69,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WodsIdRoute = WodsIdRouteImport.update({
+  id: '/wods/$id',
+  path: '/wods/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LogSessionIdRoute = LogSessionIdRouteImport.update({
   id: '/log/$sessionId',
   path: '/log/$sessionId',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/wods/$id': typeof WodsIdRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
   '/log/': typeof LogIndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/wods/$id': typeof WodsIdRoute
   '/dashboard': typeof DashboardIndexRoute
   '/exercises': typeof ExercisesIndexRoute
   '/log': typeof LogIndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/wods/$id': typeof WodsIdRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
   '/log/': typeof LogIndexRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
+    | '/wods/$id'
     | '/dashboard/'
     | '/exercises/'
     | '/log/'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
+    | '/wods/$id'
     | '/dashboard'
     | '/exercises'
     | '/log'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
+    | '/wods/$id'
     | '/dashboard/'
     | '/exercises/'
     | '/log/'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   DemoConvexRoute: typeof DemoConvexRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
+  WodsIdRoute: typeof WodsIdRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ExercisesIndexRoute: typeof ExercisesIndexRoute
   LogIndexRoute: typeof LogIndexRoute
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wods/$id': {
+      id: '/wods/$id'
+      path: '/wods/$id'
+      fullPath: '/wods/$id'
+      preLoaderRoute: typeof WodsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/log/$sessionId': {
       id: '/log/$sessionId'
       path: '/log/$sessionId'
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoConvexRoute: DemoConvexRoute,
   ExercisesIdRoute: ExercisesIdRoute,
   LogSessionIdRoute: LogSessionIdRoute,
+  WodsIdRoute: WodsIdRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ExercisesIndexRoute: ExercisesIndexRoute,
   LogIndexRoute: LogIndexRoute,
