@@ -1,6 +1,6 @@
 import path from "node:path";
 import viteReact from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
 	plugins: [viteReact()],
@@ -14,5 +14,8 @@ export default defineConfig({
 	test: {
 		environment: "jsdom",
 		globals: true,
+		// Skip stale git worktrees under .claude/ — they carry their own
+		// node_modules and pollute the run with phantom failures.
+		exclude: [...configDefaults.exclude, "**/.claude/**"],
 	},
 });
