@@ -11,26 +11,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+This repo uses **pnpm** (see `packageManager` in `package.json`). Use `pnpm`, not `npm`/`npx`.
+
 ```bash
-npm run dev:all    # Start both Convex dev server and Vite concurrently (recommended)
-npm run dev        # Start Vite dev server only (port 3000, all interfaces)
-npm run build      # Production build (Vite)
-npm run build:development  # Vite build with --mode development
-npm run preview    # Build (dev mode) + start local Cloudflare Workers dev server
-npm run test       # Run all tests with Vitest
-npm run lint       # Biome linter
-npm run format     # Biome formatter
-npm run check      # Biome lint + format check combined
-npm run deploy           # Production build + deploy to Cloudflare (prod)
-npm run deploy:dev       # Dev build + deploy to Cloudflare (dev env)
-npm run cf-typegen       # Generate Cloudflare Workers TypeScript types
+pnpm dev:all    # Start both Convex dev server and Vite concurrently (recommended)
+pnpm dev        # Start Vite dev server only (port 3000, all interfaces)
+pnpm build      # Production build (Vite)
+pnpm build:development  # Vite build with --mode development
+pnpm preview    # Build (dev mode) + start local Cloudflare Workers dev server
+pnpm test       # Run all tests with Vitest
+pnpm lint       # Biome linter
+pnpm format     # Biome formatter
+pnpm check      # Biome lint + format check combined
+pnpm deploy           # Production build + deploy to Cloudflare (prod)
+pnpm deploy:dev       # Dev build + deploy to Cloudflare (dev env)
+pnpm cf-typegen       # Generate Cloudflare Workers TypeScript types
 ```
 
-To run a single test file: `npx vitest run src/path/to/test.ts`
+To run a single test file: `pnpm exec vitest run src/path/to/test.ts`
 
-**Development note**: `npm run dev:all` is the recommended way to start development — it runs `npx convex dev` and `vite dev` concurrently. Both must be running for full functionality; Convex won't be available with `npm run dev` alone.
+**Install note**: `pnpm install` needs auth for the private `@appelent` scope. The token is **not** in the committed `.npmrc` (pnpm refuses to expand env vars there); put `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}` in your user-level `~/.npmrc` and export `NODE_AUTH_TOKEN`.
 
-**Preview note**: `npm run preview` does a full `build:development` then launches a local Cloudflare Workers dev server via `wrangler dev`. It is not a quick Vite preview — it simulates the production Workers runtime locally. Environment variables are injected by Wrangler from `wrangler.jsonc`.
+**Supply-chain settings** live in `pnpm-workspace.yaml`: a build-script allowlist (`onlyBuiltDependencies`), a publish cooldown (`minimumReleaseAge`), and `overrides` for security pins. See the comments there before changing dependencies.
+
+**Development note**: `pnpm dev:all` is the recommended way to start development — it runs `pnpm exec convex dev` and `vite dev` concurrently. Both must be running for full functionality; Convex won't be available with `pnpm dev` alone.
+
+**Preview note**: `pnpm preview` does a full `build:development` then launches a local Cloudflare Workers dev server via `wrangler dev`. It is not a quick Vite preview — it simulates the production Workers runtime locally. Environment variables are injected by Wrangler from `wrangler.jsonc`.
 
 ## Architecture
 
@@ -164,8 +170,8 @@ src/components/
 
 Variable sources differ by context:
 
-- **Local dev** (`npm run dev:all`): vars come from `.env` / `.env.local`
-- **Local Workers preview** (`npm run preview`): vars injected by Wrangler from `wrangler.jsonc`
+- **Local dev** (`pnpm dev:all`): vars come from `.env` / `.env.local`
+- **Local Workers preview** (`pnpm preview`): vars injected by Wrangler from `wrangler.jsonc`
 - **Deployed envs**: vars live in `wrangler.jsonc` under top-level (production) and `[env.dev]`. PR previews get `VITE_CONVEX_URL` from the Convex CLI per-PR and `VITE_CLERK_PUBLISHABLE_KEY` from the `PREVIEW_CLERK_PUBLISHABLE_KEY` GitHub secret.
 
 | Variable                     | Purpose                                                          |

@@ -14,8 +14,15 @@ export default defineConfig({
 	test: {
 		environment: "jsdom",
 		globals: true,
-		// Skip stale git worktrees under .claude/ — they carry their own
-		// node_modules and pollute the run with phantom failures.
-		exclude: [...configDefaults.exclude, "**/.claude/**"],
+		// Skip stale git worktrees under .claude/ and any leftover module-backup
+		// dirs (e.g. node_modules_OLD from a prior package-manager migration) —
+		// they carry their own sources/node_modules and pollute the run with
+		// thousands of phantom test files and failures.
+		exclude: [
+			...configDefaults.exclude,
+			"**/.claude/**",
+			"**/node_modules_OLD/**",
+			"**/node_modules.*/**",
+		],
 	},
 });
