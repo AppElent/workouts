@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "vite dev --host",
-    "dev:all": "concurrently --kill-others \"pnpm exec convex dev\" \"pnpm dev\"",
+    "dev:all": "pnpm exec convex dev --once && pnpm dev",
     "build": "vite build",
     "build:development": "vite build --mode development",
     "preview": "pnpm build:development && wrangler dev",
