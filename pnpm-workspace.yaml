@@ -1,0 +1,47 @@
+# pnpm settings. In pnpm 11 the old package.json "pnpm" field is no longer
+# read — these settings live here instead.
+
+# Supply-chain hardening: only these packages may run install/build lifecycle
+# scripts. Everything else is install-script-sandboxed (default-deny), which
+# neutralizes the postinstall-RCE vector used by recent npm worm attacks.
+# Each entry is a trusted native-binary build:
+#   esbuild / lightningcss — bundler + Tailwind v4 CSS engine
+#   workerd / sharp        — Cloudflare Workers runtime + miniflare image dep
+# Intentionally NOT allowed: @clerk/shared (its published dist works without
+# running its install script).
+onlyBuiltDependencies:
+  - esbuild
+  - lightningcss
+  - workerd
+  - sharp
+
+# Supply-chain cooldown: refuse to install/resolve any package version
+# published less than 3 days ago. Newly published malicious versions are
+# typically caught and unpublished within hours-to-days, so a cooldown blocks
+# the window most worm/account-takeover attacks rely on. 3 days (not 7) so the
+# current latest-version lockfile stays installable while still covering the
+# high-risk same-day/next-day window. Raise once deps settle onto pinned ranges.
+minimumReleaseAge: 4320
+
+# Packages exempt from the cooldown.
+#   @appelent/*  — our own private packages; we control their publishes, so a
+#                  cooldown on them is counterproductive (always permanent).
+#   es-toolkit, nanoid — third-party transitives that were <3 days old when the
+#                  lockfile was first generated; grandfathered so the current
+#                  pinned versions stay installable. Safe to remove on a future
+#                  `pnpm update` once they've aged past the cutoff.
+minimumReleaseAgeExclude:
+  - "@appelent/*"
+  - es-toolkit
+  - nanoid
+
+# Force-patch a transitive vuln without downgrading the direct dependency.
+# ws <8.21.0 has a memory-exhaustion DoS (GHSA-96hv-2xvq-fx4p); convex still
+# pulls a vulnerable range, so pin ws here.
+overrides:
+  ws: ">=8.21.0"
+  # Clerk authorization-bypass (GHSA-w24r-5266-9c3c): <=5.61.5 is vulnerable
+  # when combining org/billing/reverification checks. @appelent/auth and convex
+  # both pull a vulnerable range transitively; force the patched line. (npm's
+  # hoisting masked this; pnpm's stricter layout surfaced it.)
+  "@clerk/clerk-react": ">=5.61.6"
