@@ -2,6 +2,7 @@ import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
 import { bestScore } from './lib/wodScore'
+import { assertOptionalRange } from './lib/validate'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -29,6 +30,10 @@ export const log = mutation({
   },
   handler: async (ctx, { wodId, sessionId, date, ...score }) => {
     const userId = await requireUser(ctx)
+    assertOptionalRange(score.timeSeconds, 0, 86400, 'Time')
+    assertOptionalRange(score.rounds, 0, 10000, 'Rounds')
+    assertOptionalRange(score.reps, 0, 100000, 'Reps')
+    assertOptionalRange(score.load, 0, 2000, 'Load')
     const wod = await ctx.db.get(wodId)
     if (!wod) throw new Error('WOD not found')
     if (!wod.isDefault && wod.userId !== userId) throw new Error('Unauthorized')

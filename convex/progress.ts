@@ -12,12 +12,12 @@ export const weeklyVolume = query({
   args: { exerciseId: v.id('exercises') },
   handler: async (ctx, { exerciseId }) => {
     const userId = await requireUser(ctx)
-    const sets = (
-      await ctx.db
-        .query('sets')
-        .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
-        .collect()
-    ).filter((s) => s.userId === userId)
+    const sets = await ctx.db
+      .query('sets')
+      .withIndex('by_user_exercise', (q) =>
+        q.eq('userId', userId).eq('exerciseId', exerciseId),
+      )
+      .collect()
     const weekMap = new Map<string, number>()
     for (const set of sets) {
       const date = new Date(set.loggedAt)

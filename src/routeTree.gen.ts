@@ -25,8 +25,6 @@ import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
-import { Route as DemoConvexRouteImport } from './routes/demo/convex'
-import { Route as DemoClerkRouteImport } from './routes/demo/clerk'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -108,24 +106,12 @@ const ExercisesIdRoute = ExercisesIdRouteImport.update({
   path: '/exercises/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoConvexRoute = DemoConvexRouteImport.update({
-  id: '/demo/convex',
-  path: '/demo/convex',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoClerkRoute = DemoClerkRouteImport.update({
-  id: '/demo/clerk',
-  path: '/demo/clerk',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/demo/clerk': typeof DemoClerkRoute
-  '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
@@ -144,8 +130,6 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/demo/clerk': typeof DemoClerkRoute
-  '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
@@ -165,8 +149,6 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/demo/clerk': typeof DemoClerkRoute
-  '/demo/convex': typeof DemoConvexRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
@@ -187,8 +169,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/sign-in'
     | '/sign-up'
-    | '/demo/clerk'
-    | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
     | '/wods/$id'
@@ -207,8 +187,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/sign-in'
     | '/sign-up'
-    | '/demo/clerk'
-    | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
     | '/wods/$id'
@@ -227,8 +205,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/sign-in'
     | '/sign-up'
-    | '/demo/clerk'
-    | '/demo/convex'
     | '/exercises/$id'
     | '/log/$sessionId'
     | '/wods/$id'
@@ -248,8 +224,6 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
-  DemoClerkRoute: typeof DemoClerkRoute
-  DemoConvexRoute: typeof DemoConvexRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
   WodsIdRoute: typeof WodsIdRoute
@@ -378,20 +352,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExercisesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/convex': {
-      id: '/demo/convex'
-      path: '/demo/convex'
-      fullPath: '/demo/convex'
-      preLoaderRoute: typeof DemoConvexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo/clerk': {
-      id: '/demo/clerk'
-      path: '/demo/clerk'
-      fullPath: '/demo/clerk'
-      preLoaderRoute: typeof DemoClerkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -400,8 +360,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
-  DemoClerkRoute: DemoClerkRoute,
-  DemoConvexRoute: DemoConvexRoute,
   ExercisesIdRoute: ExercisesIdRoute,
   LogSessionIdRoute: LogSessionIdRoute,
   WodsIdRoute: WodsIdRoute,

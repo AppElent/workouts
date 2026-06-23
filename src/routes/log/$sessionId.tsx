@@ -8,6 +8,7 @@ import { CheckCircle, Plus, XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AddExerciseModal } from "#/components/session/AddExerciseModal";
 import { ExerciseSection } from "#/components/session/ExerciseSection";
+import { RestTimerProvider } from "#/components/session/RestTimer";
 import { SessionSummary } from "#/components/session/SessionSummary";
 import { SessionWods } from "#/components/session/SessionWods";
 import { SetEditSheet } from "#/components/session/SetEditSheet";
@@ -114,6 +115,7 @@ function ActiveSessionPage() {
 	}
 
 	return (
+		<RestTimerProvider>
 		<div className="p-4 sm:p-6 max-w-3xl mx-auto">
 			<div className="mb-6">
 				<h1 className="text-xl font-bold text-white">
@@ -196,5 +198,6 @@ function ActiveSessionPage() {
 				onClose={() => setEditing(null)}
 			/>
 		</div>
+		</RestTimerProvider>
 	);
 }

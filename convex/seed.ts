@@ -37,6 +37,11 @@ async function deleteUserData(ctx: MutationCtx, userId: string): Promise<void> {
 		.withIndex('by_user', (q) => q.eq('userId', userId))
 		.collect()
 	for (const routine of routines) await ctx.db.delete(routine._id)
+	const bodyMetrics = await ctx.db
+		.query('bodyMetrics')
+		.withIndex('by_user', (q) => q.eq('userId', userId))
+		.collect()
+	for (const m of bodyMetrics) await ctx.db.delete(m._id)
 	const wodResults = await ctx.db
 		.query('wodResults')
 		.withIndex('by_user', (q) => q.eq('userId', userId))

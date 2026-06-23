@@ -28,7 +28,15 @@ function DashboardPage() {
 		useQuery(api.workoutSessions.listRecent, { limit: 5 }) ?? [];
 	const activeSession = useQuery(api.workoutSessions.getActive);
 	const exercises = useQuery(api.exercises.list) ?? [];
-	const topExercises = exercises.slice(0, 10);
+	const currentOrms = useQuery(api.oneRepMaxes.listCurrentForUser) ?? [];
+
+	const exerciseNameById = new Map(
+		exercises.map((ex) => [ex._id as string, ex.name]),
+	);
+	const topOrms = [...currentOrms]
+		.sort((a, b) => b.value - a.value)
+		.slice(0, 10)
+		.filter((orm) => exerciseNameById.has(orm.exerciseId as string));
 
 	return (
 		<div className="p-4 sm:p-6 max-w-4xl mx-auto">
@@ -121,15 +129,26 @@ function DashboardPage() {
 
 				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 					<h2 className="text-sm font-semibold text-white mb-4">Top 1RMs</h2>
-					<div className="flex flex-col divide-y divide-[var(--border)]">
-						{topExercises.map((ex) => (
-							<ExerciseOrmRow
-								key={ex._id}
-								exerciseId={ex._id as Id<"exercises">}
-								exerciseName={ex.name}
-							/>
-						))}
-					</div>
+					{topOrms.length > 0 ? (
+						<div className="flex flex-col divide-y divide-[var(--border)]">
+							{topOrms.map((orm) => (
+								<ExerciseOrmRow
+									key={orm._id}
+									exerciseId={orm.exerciseId as Id<"exercises">}
+									exerciseName={
+										exerciseNameById.get(orm.exerciseId as string) ?? ""
+									}
+									value={orm.value}
+									unit={orm.unit}
+									source={orm.source}
+								/>
+							))}
+						</div>
+					) : (
+						<p className="text-sm text-[var(--text-muted)]">
+							No 1RMs yet. Log some sets to see your top lifts here.
+						</p>
+					)}
 				</div>
 			</div>
 		</div>
@@ -139,13 +158,16 @@ function DashboardPage() {
 function ExerciseOrmRow({
 	exerciseId,
 	exerciseName,
+	value,
+	unit,
+	source,
 }: {
 	exerciseId: Id<"exercises">;
 	exerciseName: string;
+	value: number;
+	unit: "kg" | "lbs";
+	source: "manual" | "calculated" | "actual";
 }) {
-	const orm = useQuery(api.oneRepMaxes.getCurrentForExercise, { exerciseId });
-	if (!orm) return null;
-
 	return (
 		<div className="py-2.5 flex items-center justify-between">
 			<Link
@@ -157,14 +179,14 @@ function ExerciseOrmRow({
 			</Link>
 			<div className="flex items-center gap-1.5">
 				<span className="text-base font-bold text-[var(--accent)]">
-					{orm.value}
+					{value}
 				</span>
-				<span className="text-xs text-[var(--text-muted)]">{orm.unit}</span>
+				<span className="text-xs text-[var(--text-muted)]">{unit}</span>
 				<span
 					className="text-[10px] ml-1 capitalize"
 					style={{ color: "var(--text-faint)" }}
 				>
-					{orm.source === "calculated" ? "est." : orm.source}
+					{source === "calculated" ? "est." : source}
 				</span>
 			</div>
 		</div>

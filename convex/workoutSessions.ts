@@ -121,9 +121,11 @@ export const remove = mutation({
       const remaining = (
         await ctx.db
           .query('sets')
-          .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
+          .withIndex('by_user_exercise', (q) =>
+            q.eq('userId', userId).eq('exerciseId', exerciseId),
+          )
           .collect()
-      ).filter((s) => s.userId === userId && s.weight > 0)
+      ).filter((s) => s.weight > 0)
       if (remaining.length > 0) {
         let bestValue = 0
         let bestSet = remaining[0]

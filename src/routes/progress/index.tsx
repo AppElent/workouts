@@ -16,6 +16,8 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { BodyMetricsPanel } from "#/components/progress/BodyMetricsPanel";
+import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/progress/")({
 	component: ProgressPageGuarded,
@@ -34,38 +36,70 @@ function ProgressPageGuarded() {
 	);
 }
 
+type ProgressTab = "exercises" | "body";
+
 function ProgressPage() {
 	const exercises = useQuery(api.exercises.list) ?? [];
 	const [selectedId, setSelectedId] = useState<Id<"exercises"> | "">("");
+	const [tab, setTab] = useState<ProgressTab>("exercises");
+
+	const tabs: { id: ProgressTab; label: string }[] = [
+		{ id: "exercises", label: "Exercises" },
+		{ id: "body", label: "Body" },
+	];
 
 	return (
 		<div className="p-4 sm:p-6 max-w-4xl mx-auto">
-			<h1 className="text-2xl font-bold text-white mb-6">Progress</h1>
+			<h1 className="text-2xl font-bold text-white mb-4">Progress</h1>
 
-			<div className="mb-6">
-				<select
-					value={selectedId}
-					onChange={(e) => setSelectedId(e.target.value as Id<"exercises">)}
-					className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-white min-w-[240px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-				>
-					<option value="">Select an exercise…</option>
-					{exercises.map((ex) => (
-						<option key={ex._id} value={ex._id}>
-							{ex.name}
-						</option>
-					))}
-				</select>
+			<div className="flex border-b border-[var(--border)] mb-6">
+				{tabs.map((t) => (
+					<button
+						key={t.id}
+						type="button"
+						onClick={() => setTab(t.id)}
+						className={cn(
+							"flex-1 sm:flex-none sm:px-6 py-2.5 text-sm font-semibold transition-colors",
+							tab === t.id
+								? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
+								: "text-[var(--text-muted)] hover:text-white",
+						)}
+					>
+						{t.label}
+					</button>
+				))}
 			</div>
 
-			{selectedId ? (
-				<ExerciseCharts exerciseId={selectedId as Id<"exercises">} />
-			) : (
-				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-10 text-center">
-					<p className="text-[var(--text-muted)] text-sm">
-						Select an exercise to view your progress charts.
-					</p>
-				</div>
+			{tab === "exercises" && (
+				<>
+					<div className="mb-6">
+						<select
+							value={selectedId}
+							onChange={(e) => setSelectedId(e.target.value as Id<"exercises">)}
+							className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-white min-w-[240px] w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						>
+							<option value="">Select an exercise…</option>
+							{exercises.map((ex) => (
+								<option key={ex._id} value={ex._id}>
+									{ex.name}
+								</option>
+							))}
+						</select>
+					</div>
+
+					{selectedId ? (
+						<ExerciseCharts exerciseId={selectedId as Id<"exercises">} />
+					) : (
+						<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-10 text-center">
+							<p className="text-[var(--text-muted)] text-sm">
+								Select an exercise to view your progress charts.
+							</p>
+						</div>
+					)}
+				</>
 			)}
+
+			{tab === "body" && <BodyMetricsPanel />}
 		</div>
 	);
 }
