@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { QueryCtx, MutationCtx } from './_generated/server'
 import { calculateOneRepMax } from './lib/oneRepMax'
+import { assertOptionalRange, assertRange } from './lib/validate'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -36,9 +37,11 @@ async function recalcOneRepMax(
   const remaining = (
     await ctx.db
       .query('sets')
-      .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
+      .withIndex('by_user_exercise', (q) =>
+        q.eq('userId', userId).eq('exerciseId', exerciseId),
+      )
       .collect()
-  ).filter((s) => s.userId === userId && s.weight > 0)
+  ).filter((s) => s.weight > 0)
   if (remaining.length === 0) return
 
   let bestValue = 0
@@ -95,6 +98,9 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
+    assertRange(args.reps, 0, 1000, 'Reps')
+    assertRange(args.weight, 0, 2000, 'Weight')
+    assertOptionalRange(args.rpe, 1, 10, 'RPE')
     const session = await ctx.db.get(args.sessionId)
     if (!session || session.userId !== userId) throw new Error('Unauthorized')
     const setId = await ctx.db.insert('sets', {
@@ -156,6 +162,9 @@ export const update = mutation({
   },
   handler: async (ctx, { id, ...patch }) => {
     const userId = await requireUser(ctx)
+    assertOptionalRange(patch.reps, 0, 1000, 'Reps')
+    assertOptionalRange(patch.weight, 0, 2000, 'Weight')
+    assertOptionalRange(patch.rpe, 1, 10, 'RPE')
     const set = await ctx.db.get(id)
     if (!set || set.userId !== userId) throw new Error('Unauthorized')
     await ctx.db.patch(id, patch)
@@ -206,9 +215,10 @@ export const getLastForExercise = query({
     const userId = await requireUser(ctx)
     return ctx.db
       .query('sets')
-      .withIndex('by_exercise', (q) => q.eq('exerciseId', exerciseId))
+      .withIndex('by_user_exercise', (q) =>
+        q.eq('userId', userId).eq('exerciseId', exerciseId),
+      )
       .order('desc')
-      .filter((q) => q.eq(q.field('userId'), userId))
       .first()
   },
 })

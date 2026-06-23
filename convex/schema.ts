@@ -2,15 +2,6 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 export default defineSchema({
-  products: defineTable({
-    title: v.string(),
-    imageId: v.string(),
-    price: v.number(),
-  }),
-  todos: defineTable({
-    text: v.string(),
-    completed: v.boolean(),
-  }),
   exercises: defineTable({
     name: v.string(),
     muscleGroups: v.array(v.string()),
@@ -72,6 +63,7 @@ export default defineSchema({
     .index('by_session', ['sessionId'])
     .index('by_exercise', ['exerciseId'])
     .index('by_user', ['userId'])
+    .index('by_user_exercise', ['userId', 'exerciseId'])
     .index('by_session_exercise', ['sessionId', 'exerciseId']),
 
   oneRepMaxes: defineTable({
@@ -90,6 +82,25 @@ export default defineSchema({
     .index('by_exercise', ['exerciseId'])
     .index('by_user', ['userId'])
     .index('by_user_exercise', ['userId', 'exerciseId']),
+
+  bodyMetrics: defineTable({
+    userId: v.string(),
+    date: v.number(),
+    weight: v.optional(v.number()),
+    unit: v.union(v.literal('kg'), v.literal('lbs')),
+    bodyFatPct: v.optional(v.number()),
+    measurements: v.optional(
+      v.object({
+        chest: v.optional(v.number()),
+        waist: v.optional(v.number()),
+        arms: v.optional(v.number()),
+        thighs: v.optional(v.number()),
+      }),
+    ),
+    notes: v.optional(v.string()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_date', ['userId', 'date']),
 
   routines: defineTable({
     userId: v.string(),

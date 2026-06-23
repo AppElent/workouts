@@ -57,6 +57,48 @@ export function scoreRank(type: WodType, score: WodScoreInput): number {
 	}
 }
 
+/**
+ * Human-readable improvement of `current` over the `previousBest` score, or
+ * null when there's no meaningful scalar delta to show. Used to surface the
+ * "beat your Fran time by 0:22" hook when a result is a new PR.
+ */
+export function prImprovement(
+	type: WodType,
+	current: WodScoreInput,
+	previousBest: WodScoreInput,
+): string | null {
+	switch (type) {
+		case "forTime": {
+			// Only comparable when both finished (uncapped).
+			if (current.timeCapped || previousBest.timeCapped) return null;
+			const delta = (previousBest.timeSeconds ?? 0) - (current.timeSeconds ?? 0);
+			return delta > 0 ? `−${formatSeconds(delta)}` : null;
+		}
+		case "emom": {
+			const delta = (current.reps ?? 0) - (previousBest.reps ?? 0);
+			return delta > 0 ? `+${delta} reps` : null;
+		}
+		case "load": {
+			const cur = scoreRank(type, current);
+			const prev = scoreRank(type, previousBest);
+			const delta = cur - prev;
+			const unit = current.loadUnit ?? "kg";
+			// scoreRank normalizes load to kg; show delta in the result's own unit.
+			const shown = unit === "lbs" ? delta / KG_PER_LB : delta;
+			return delta > 0 ? `+${Math.round(shown * 10) / 10} ${unit}` : null;
+		}
+		case "amrap": {
+			const delta = scoreRank(type, current) - scoreRank(type, previousBest);
+			if (delta <= 0) return null;
+			const rounds = Math.floor(delta / AMRAP_ROUND_MULT);
+			const reps = delta % AMRAP_ROUND_MULT;
+			if (rounds > 0)
+				return `+${rounds} round${rounds > 1 ? "s" : ""}${reps ? ` ${reps}` : ""}`;
+			return `+${reps} reps`;
+		}
+	}
+}
+
 /** Returns the highest-ranked score, or null if the list is empty. */
 export function bestScore<T extends WodScoreInput>(
 	type: WodType,

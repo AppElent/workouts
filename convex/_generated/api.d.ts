@@ -8,8 +8,11 @@
  * @module
  */
 
+import type * as bodyMetrics from "../bodyMetrics.js";
 import type * as exercises from "../exercises.js";
+import type * as exportData from "../exportData.js";
 import type * as lib_oneRepMax from "../lib/oneRepMax.js";
+import type * as lib_validate from "../lib/validate.js";
 import type * as lib_wodScore from "../lib/wodScore.js";
 import type * as oneRepMaxes from "../oneRepMaxes.js";
 import type * as progress from "../progress.js";
@@ -30,8 +33,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  bodyMetrics: typeof bodyMetrics;
   exercises: typeof exercises;
+  exportData: typeof exportData;
   "lib/oneRepMax": typeof lib_oneRepMax;
+  "lib/validate": typeof lib_validate;
   "lib/wodScore": typeof lib_wodScore;
   oneRepMaxes: typeof oneRepMaxes;
   progress: typeof progress;

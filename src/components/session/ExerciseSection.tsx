@@ -1,10 +1,12 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronUp, Plus } from "lucide-react";
+import { ChevronUp, Plus, Weight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
 import { getWeightStep } from "#/lib/exerciseWeightConfig";
+import { PlateSheet } from "./PlateSheet";
+import { useRestTimer } from "./RestTimer";
 import { SetCard } from "./SetCard";
 import { SetRow } from "./SetRow";
 
@@ -35,6 +37,7 @@ export function ExerciseSection({
 	onEditSet,
 }: Props) {
 	const addSet = useMutation(api.sets.add);
+	const { start: startRest } = useRestTimer();
 	const lastExerciseSet = useQuery(api.sets.getLastForExercise, { exerciseId });
 
 	const isBodyweight = equipment === "bodyweight";
@@ -49,6 +52,9 @@ export function ExerciseSection({
 	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
 	const [expanded, setExpanded] = useState(false);
+	const [showPlates, setShowPlates] = useState(false);
+
+	const isBarbell = equipment === "barbell";
 
 	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
 	useEffect(() => {
@@ -70,13 +76,25 @@ export function ExerciseSection({
 			rpe,
 			setType,
 		});
+		// Auto-start the rest timer after a working/failure/drop set (skip warmups).
+		if (setType !== "warmup") startRest();
 	}
 
 	return (
 		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5">
-			<h3 className="text-base font-semibold text-white mb-4">
-				{exerciseName}
-			</h3>
+			<div className="flex items-center justify-between gap-2 mb-4">
+				<h3 className="text-base font-semibold text-white">{exerciseName}</h3>
+				{isBarbell && (
+					<button
+						type="button"
+						onClick={() => setShowPlates(true)}
+						className="flex items-center gap-1.5 shrink-0 px-2.5 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-xs font-medium text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-colors"
+					>
+						<Weight size={14} />
+						Plates
+					</button>
+				)}
+			</div>
 
 			{/* Desktop: table */}
 			{sets.length > 0 && (
@@ -299,6 +317,15 @@ export function ExerciseSection({
 					Log set
 				</button>
 			</form>
+
+			{showPlates && (
+				<PlateSheet
+					weight={weight}
+					unit="kg"
+					exerciseName={exerciseName}
+					onClose={() => setShowPlates(false)}
+				/>
+			)}
 		</div>
 	);
 }

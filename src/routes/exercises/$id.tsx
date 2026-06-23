@@ -17,6 +17,7 @@ import {
 	YAxis,
 } from "recharts";
 import { MuscleMap } from "#/components/exercises/MuscleMap";
+import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { calculateOneRepMax } from "#/lib/oneRepMax";
 import { cn } from "#/lib/utils";
 
@@ -185,6 +186,10 @@ function ExerciseDetailPage() {
 									: currentOrm.source}
 							</span>
 						</div>
+					)}
+
+					{signedIn && history.length > 0 && (
+						<PersonalRecords history={history} />
 					)}
 
 					{exercise.notes && (
