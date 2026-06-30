@@ -44,6 +44,9 @@ export function validateHostedScore(
 		if (score.timeSeconds === undefined) {
 			return { ok: false, message: "Time is required for this WOD." };
 		}
+		if (score.timeCapped && score.reps === undefined) {
+			return { ok: false, message: "Reps are required for capped scores." };
+		}
 		return { ok: true };
 	}
 	if (type === "amrap") {
@@ -76,7 +79,11 @@ export function formatHostedScore(type: HostedWodType, score: HostedScore) {
 		return formatSeconds(score.timeSeconds ?? 0);
 	}
 	if (type === "amrap") return `${score.rounds ?? 0} + ${score.reps ?? 0}`;
-	if (type === "emom") return `${score.reps ?? score.rounds ?? 0} reps`;
+	if (type === "emom") {
+		if (score.reps !== undefined) return `${score.reps} reps`;
+		if (score.rounds !== undefined) return `${score.rounds} rounds`;
+		return "0 reps";
+	}
 	return `${score.load ?? 0} ${score.loadUnit ?? "kg"}`;
 }
 

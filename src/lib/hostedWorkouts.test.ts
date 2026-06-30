@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	formatHostedScore,
 	getHostedLevelLabel,
+	scoreRank,
 	sortHostedLeaderboard,
 	validateHostedScore,
 } from "./hostedWorkouts";
@@ -23,6 +24,18 @@ describe("validateHostedScore", () => {
 				timeCapped: false,
 			}),
 		).toEqual({ ok: true });
+	});
+
+	it("rejects a capped for-time score without reps", () => {
+		expect(
+			validateHostedScore("forTime", {
+				timeSeconds: 600,
+				timeCapped: true,
+			}),
+		).toEqual({
+			ok: false,
+			message: "Reps are required for capped scores.",
+		});
 	});
 
 	it("rejects a for-time score without time", () => {
@@ -58,10 +71,32 @@ describe("formatHostedScore", () => {
 		).toBe("CAP + 18");
 	});
 
-	it("formats AMRAP and load scores", () => {
+	it("formats AMRAP, EMOM, and load scores", () => {
 		expect(formatHostedScore("amrap", { rounds: 5, reps: 9 })).toBe("5 + 9");
+		expect(formatHostedScore("emom", { reps: 180 })).toBe("180 reps");
+		expect(formatHostedScore("emom", { rounds: 12 })).toBe("12 rounds");
 		expect(formatHostedScore("load", { load: 225, loadUnit: "lbs" })).toBe(
 			"225 lbs",
+		);
+	});
+});
+
+describe("scoreRank", () => {
+	it("ranks AMRAP scores by rounds before reps", () => {
+		expect(scoreRank("amrap", { rounds: 3, reps: 10 })).toBeGreaterThan(
+			scoreRank("amrap", { rounds: 2, reps: 99 }),
+		);
+	});
+
+	it("ranks load scores by normalized load", () => {
+		expect(scoreRank("load", { load: 100, loadUnit: "kg" })).toBeGreaterThan(
+			scoreRank("load", { load: 200, loadUnit: "lbs" }),
+		);
+	});
+
+	it("ranks EMOM reps above rounds-only scores", () => {
+		expect(scoreRank("emom", { reps: 120 })).toBeGreaterThan(
+			scoreRank("emom", { rounds: 10 }),
 		);
 	});
 });
