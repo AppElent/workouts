@@ -19,6 +19,7 @@ todos.json
 CLAUDE.local.md
 docs/.generated
 .superpowers/
+.worktrees/
 .playwright-mcp/
 
 .dev.vars*
@@ -28,3 +29,4 @@ docs/.generated
 .env.dev
 .env.preview
 .env.prod
+
