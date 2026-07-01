@@ -70,11 +70,29 @@ const template = v.object({
 
 function createJoinToken() {
   const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const randomValues = new Uint32Array(18)
+  const cryptoApi = globalThis.crypto?.getRandomValues?.bind(globalThis.crypto)
+  if (!cryptoApi) {
+    throw new Error('Crypto randomness is unavailable.')
+  }
+  cryptoApi(randomValues)
   let token = ''
   for (let i = 0; i < 18; i++) {
-    token += alphabet[Math.floor(Math.random() * alphabet.length)]
+    token += alphabet[randomValues[i] % alphabet.length]
   }
   return token
+}
+
+async function createUniqueJoinToken(ctx: QueryCtx | MutationCtx) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const token = createJoinToken()
+    const existing = await ctx.db
+      .query('hostedWorkouts')
+      .withIndex('by_join_token', (q) => q.eq('joinToken', token))
+      .first()
+    if (!existing) return token
+  }
+  throw new Error('Unable to create a unique join link.')
 }
 
 function assertTemplateIsUsable(input: {
@@ -119,7 +137,7 @@ export const createDraft = mutation({
       notes: args.notes?.trim() || undefined,
       scheduledAt: args.scheduledAt,
       status: 'draft',
-      joinToken: createJoinToken(),
+      joinToken: await createUniqueJoinToken(ctx),
       hostParticipation: args.hostParticipation,
       createdAt: now,
       template: args.template,
@@ -171,7 +189,29 @@ export const getByJoinToken = query({
         q.eq('hostedWorkoutId', hosted._id),
       )
       .collect()
-    return { hosted, submissions }
+    return {
+      hosted: {
+        title: hosted.title,
+        notes: hosted.notes,
+        scheduledAt: hosted.scheduledAt,
+        status: hosted.status,
+        template: hosted.template,
+      },
+      submissions: submissions.map((submission) => ({
+        guestName: submission.guestName,
+        wodBlockId: submission.wodBlockId,
+        level: submission.level,
+        rxScaled: submission.rxScaled,
+        timeSeconds: submission.timeSeconds,
+        rounds: submission.rounds,
+        reps: submission.reps,
+        timeCapped: submission.timeCapped,
+        load: submission.load,
+        loadUnit: submission.loadUnit,
+        notes: submission.notes,
+        submittedAt: submission.submittedAt,
+      })),
+    }
   },
 })
 
