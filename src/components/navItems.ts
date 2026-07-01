@@ -3,6 +3,7 @@ import {
 	ClipboardList,
 	Dumbbell,
 	LayoutDashboard,
+	Radio,
 	type LucideIcon,
 	Timer,
 	TrendingUp,
@@ -51,6 +52,13 @@ export const NAV_ITEMS = [
 		label: "WODs",
 		shortLabel: "WODs",
 		Icon: Timer,
+		gated: true,
+	},
+	{
+		to: "/hosted-workouts",
+		label: "Host Workout",
+		shortLabel: "Host",
+		Icon: Radio,
 		gated: true,
 	},
 	{
