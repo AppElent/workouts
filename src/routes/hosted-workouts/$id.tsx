@@ -10,9 +10,9 @@ import { useMemo, useState } from "react";
 import {
 	formatHostedScore,
 	getHostedLevelLabel,
-	sortHostedLeaderboard,
 	type HostedLeaderboardRow,
 	type HostedWodType,
+	sortHostedLeaderboard,
 } from "#/lib/hostedWorkouts";
 
 export const Route = createFileRoute("/hosted-workouts/$id")({

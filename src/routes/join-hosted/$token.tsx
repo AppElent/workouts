@@ -9,9 +9,9 @@ import { HostedScoreForm } from "#/components/hosted/HostedScoreForm";
 import {
 	formatHostedScore,
 	getHostedLevelLabel,
-	sortHostedLeaderboard,
 	type HostedLeaderboardRow,
 	type HostedWodType,
+	sortHostedLeaderboard,
 } from "#/lib/hostedWorkouts";
 
 export const Route = createFileRoute("/join-hosted/$token")({

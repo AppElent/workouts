@@ -19,9 +19,7 @@ export type HostedLeaderboardRow = {
 	score: HostedScore;
 };
 
-export type ValidationResult =
-	| { ok: true }
-	| { ok: false; message: string };
+export type ValidationResult = { ok: true } | { ok: false; message: string };
 
 const KG_PER_LB = 0.45359237;
 const AMRAP_ROUND_SIZE = 100_000;
@@ -51,7 +49,10 @@ export function validateHostedScore(
 	}
 	if (type === "amrap") {
 		if (score.rounds === undefined && score.reps === undefined) {
-			return { ok: false, message: "Rounds or reps are required for this WOD." };
+			return {
+				ok: false,
+				message: "Rounds or reps are required for this WOD.",
+			};
 		}
 		return { ok: true };
 	}

@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
 import {
 	getHostedLevelLabel,
-	validateHostedScore,
 	type HostedLevel,
 	type HostedScore,
 	type HostedWodType,
+	validateHostedScore,
 } from "#/lib/hostedWorkouts";
 
 type WodBlock = {

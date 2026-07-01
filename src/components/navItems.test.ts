@@ -42,4 +42,3 @@ describe("isNavItemLocked", () => {
 		expect(isNavItemLocked({ gated: false }, true)).toBe(false);
 	});
 });
-
