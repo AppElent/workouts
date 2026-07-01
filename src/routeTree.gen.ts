@@ -25,6 +25,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
+import { Route as JoinHostedTokenRouteImport } from './routes/join-hosted/$token'
 import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
 import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
@@ -109,6 +110,11 @@ const LogSessionIdRoute = LogSessionIdRouteImport.update({
   path: '/log/$sessionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinHostedTokenRoute = JoinHostedTokenRouteImport.update({
+  id: '/join-hosted/$token',
+  path: '/join-hosted/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HostedWorkoutsNewRoute = HostedWorkoutsNewRouteImport.update({
   id: '/hosted-workouts/new',
   path: '/hosted-workouts/new',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
+  '/join-hosted/$token': typeof JoinHostedTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
+  '/join-hosted/$token': typeof JoinHostedTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
   '/account': typeof AccountIndexRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
+  '/join-hosted/$token': typeof JoinHostedTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
+    | '/join-hosted/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account/'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
+    | '/join-hosted/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
+    | '/join-hosted/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account/'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   ExercisesIdRoute: typeof ExercisesIdRoute
   HostedWorkoutsIdRoute: typeof HostedWorkoutsIdRoute
   HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
+  JoinHostedTokenRoute: typeof JoinHostedTokenRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
   WodsIdRoute: typeof WodsIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join-hosted/$token': {
+      id: '/join-hosted/$token'
+      path: '/join-hosted/$token'
+      fullPath: '/join-hosted/$token'
+      preLoaderRoute: typeof JoinHostedTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/hosted-workouts/new': {
       id: '/hosted-workouts/new'
       path: '/hosted-workouts/new'
@@ -423,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExercisesIdRoute: ExercisesIdRoute,
   HostedWorkoutsIdRoute: HostedWorkoutsIdRoute,
   HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,
+  JoinHostedTokenRoute: JoinHostedTokenRoute,
   LogSessionIdRoute: LogSessionIdRoute,
   WodsIdRoute: WodsIdRoute,
   AccountIndexRoute: AccountIndexRoute,
