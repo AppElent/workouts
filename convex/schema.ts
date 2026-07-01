@@ -279,7 +279,6 @@ export default defineSchema({
       v.literal('l2'),
       v.literal('l3'),
     ),
-    rxScaled: v.optional(v.union(v.literal('rx'), v.literal('scaled'))),
     timeSeconds: v.optional(v.number()),
     rounds: v.optional(v.number()),
     reps: v.optional(v.number()),

@@ -18,14 +18,13 @@ type WodBlock = {
 type SubmitPayload = {
 	wodBlockId: string;
 	level: HostedLevel;
-	rxScaled: "rx" | "scaled";
 	notes?: string;
 } & HostedScore;
 
 type Props = {
 	wodBlocks: WodBlock[];
 	submitLabel?: string;
-	onSubmit: (payload: SubmitPayload) => Promise<void>;
+	onSubmit: (payload: SubmitPayload) => Promise<unknown>;
 };
 
 export function HostedScoreForm({
@@ -37,7 +36,6 @@ export function HostedScoreForm({
 	const selectedWod =
 		wodBlocks.find((block) => block.blockId === wodBlockId) ?? wodBlocks[0];
 	const [level, setLevel] = useState<HostedLevel>("rx");
-	const [rxScaled, setRxScaled] = useState<"rx" | "scaled">("rx");
 	const [minutes, setMinutes] = useState(5);
 	const [seconds, setSeconds] = useState(0);
 	const [timeCapped, setTimeCapped] = useState(false);
@@ -76,7 +74,6 @@ export function HostedScoreForm({
 			await onSubmit({
 				wodBlockId: selectedWod.blockId,
 				level,
-				rxScaled,
 				notes: notes.trim() || undefined,
 				...score,
 			});
@@ -124,10 +121,7 @@ export function HostedScoreForm({
 					<button
 						key={entry.level}
 						type="button"
-						onClick={() => {
-							setLevel(entry.level);
-							setRxScaled(entry.level === "rx" ? "rx" : "scaled");
-						}}
+						onClick={() => setLevel(entry.level)}
 						className={[
 							"h-10 rounded-lg border text-xs font-semibold",
 							level === entry.level

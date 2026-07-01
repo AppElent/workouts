@@ -1,6 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { MutationCtx, QueryCtx } from './_generated/server'
+import { toHostedSessionDto } from './lib/hostedDto'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -78,7 +79,7 @@ export const getBySession = query({
     if (!participant || participant.userId !== userId) return null
     const hosted = await ctx.db.get(participant.hostedWorkoutId)
     if (!hosted) return null
-    return { participant, hosted }
+    return { hosted: toHostedSessionDto(hosted) }
   },
 })
 

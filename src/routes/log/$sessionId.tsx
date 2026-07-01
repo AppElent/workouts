@@ -52,7 +52,7 @@ function ActiveSessionPage() {
 	const finishSession = useMutation(api.workoutSessions.finish);
 	const cancelSession = useMutation(api.workoutSessions.cancel);
 	const submitHostedScore = useMutation(
-		api.hostedWorkoutSubmissions.submitForParticipant,
+		api.hostedWorkoutSubmissions.submitForSession,
 	);
 
 	const [showAddExercise, setShowAddExercise] = useState(false);
@@ -243,7 +243,7 @@ function ActiveSessionPage() {
 							submitLabel="Submit hosted score"
 							onSubmit={(payload) =>
 								submitHostedScore({
-									participantId: hostedParticipant.participant._id,
+									sessionId: sessionId as Id<"workoutSessions">,
 									...payload,
 								})
 							}

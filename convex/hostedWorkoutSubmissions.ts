@@ -10,9 +10,15 @@ async function requireUser(ctx: QueryCtx | MutationCtx) {
   return identity.subject
 }
 
+const level = v.union(
+  v.literal('rx'),
+  v.literal('l1'),
+  v.literal('l2'),
+  v.literal('l3'),
+)
+
 const scoreFields = {
-  level: v.union(v.literal('rx'), v.literal('l1'), v.literal('l2'), v.literal('l3')),
-  rxScaled: v.optional(v.union(v.literal('rx'), v.literal('scaled'))),
+  level,
   timeSeconds: v.optional(v.number()),
   rounds: v.optional(v.number()),
   reps: v.optional(v.number()),
@@ -22,9 +28,10 @@ const scoreFields = {
   notes: v.optional(v.string()),
 }
 
+type HostedLevel = 'rx' | 'l1' | 'l2' | 'l3'
+
 type Score = {
-  level: 'rx' | 'l1' | 'l2' | 'l3'
-  rxScaled?: 'rx' | 'scaled'
+  level: HostedLevel
   timeSeconds?: number
   rounds?: number
   reps?: number
@@ -35,7 +42,6 @@ type Score = {
 }
 
 type WodBlock = Doc<'hostedWorkouts'>['template']['wodBlocks'][number]
-type HostedSubmission = Doc<'hostedWorkoutSubmissions'>
 
 function assertScoreRanges(score: {
   timeSeconds?: number
@@ -50,15 +56,17 @@ function assertScoreRanges(score: {
 }
 
 function assertScoreMatchesWod(type: WodBlock['type'], score: Score) {
-  if (type === 'forTime' && score.timeSeconds === undefined) {
-    throw new Error('Time is required for this WOD.')
-  }
-  if (
-    type === 'forTime' &&
-    score.timeCapped === true &&
-    score.reps === undefined
-  ) {
-    throw new Error('Reps are required for capped scores.')
+  if (type === 'forTime') {
+    if (score.timeCapped === true) {
+      if (score.reps === undefined) {
+        throw new Error('Reps are required for capped scores.')
+      }
+      return
+    }
+    if (score.timeSeconds === undefined) {
+      throw new Error('Time is required for this WOD.')
+    }
+    return
   }
   if (
     type === 'amrap' &&
@@ -89,8 +97,12 @@ function findWodBlock(hosted: Doc<'hostedWorkouts'>, wodBlockId: string) {
   )
 }
 
-function findLevel(block: WodBlock, level: Score['level']) {
-  return block.levels.find((entry) => entry.level === level) ?? null
+function findLevel(block: WodBlock, selectedLevel: HostedLevel) {
+  return block.levels.find((entry) => entry.level === selectedLevel) ?? null
+}
+
+function rxScaledForLevel(selectedLevel: HostedLevel) {
+  return selectedLevel === 'rx' ? 'rx' : 'scaled'
 }
 
 async function getHostedForHost(
@@ -105,33 +117,94 @@ async function getHostedForHost(
   return hosted
 }
 
-async function toPublicSubmission(
-  ctx: QueryCtx,
-  submission: HostedSubmission,
+async function getOwnedParticipantBySession(
+  ctx: QueryCtx | MutationCtx,
+  sessionId: Id<'workoutSessions'>,
+  userId: string,
 ) {
-  let athleteName = 'Unknown athlete'
-  if (submission.guestName) {
-    athleteName = submission.guestName
-  } else if (submission.participantId) {
-    const participant = await ctx.db.get(submission.participantId)
-    athleteName = participant?.displayName ?? 'Signed-in athlete'
+  const participant = await ctx.db
+    .query('hostedWorkoutParticipants')
+    .withIndex('by_session', (q) => q.eq('sessionId', sessionId))
+    .first()
+  if (!participant || participant.userId !== userId) {
+    throw new Error('Unauthorized')
   }
-  return {
-    athleteName,
-    guestName: submission.guestName,
-    wodBlockId: submission.wodBlockId,
-    level: submission.level,
-    rxScaled: submission.rxScaled,
-    timeSeconds: submission.timeSeconds,
-    rounds: submission.rounds,
-    reps: submission.reps,
-    timeCapped: submission.timeCapped,
-    load: submission.load,
-    loadUnit: submission.loadUnit,
-    notes: submission.notes,
-    submittedAt: submission.submittedAt,
-  }
+  return participant
 }
+
+async function insertSignedInSubmission(
+  ctx: MutationCtx,
+  participant: Doc<'hostedWorkoutParticipants'>,
+  userId: string,
+  wodBlockId: string,
+  score: Score,
+) {
+  assertScoreRanges(score)
+  const hosted = await ctx.db.get(participant.hostedWorkoutId)
+  if (!hosted) throw new Error('Hosted workout not found.')
+  if (hosted.status !== 'open') throw new Error('This hosted workout is closed.')
+  const wodBlock = findWodBlock(hosted, wodBlockId)
+  if (!wodBlock) throw new Error('WOD block not found.')
+  const selectedLevel = findLevel(wodBlock, score.level)
+  if (!selectedLevel) throw new Error('Level not found for this WOD.')
+  assertScoreMatchesWod(wodBlock.type, score)
+
+  const now = Date.now()
+  const wodId = await ctx.db.insert('wods', {
+    userId,
+    name: wodBlock.name,
+    type: wodBlock.type,
+    description: wodBlock.description,
+    repScheme: wodBlock.repScheme,
+    timeCapSeconds: wodBlock.timeCapSeconds,
+    durationSeconds: wodBlock.durationSeconds,
+    movements: selectedLevel.movements,
+    isDefault: false,
+  })
+
+  await ctx.db.insert('wodResults', {
+    userId,
+    wodId,
+    sessionId: participant.sessionId,
+    date: now,
+    rxScaled: rxScaledForLevel(score.level),
+    timeSeconds: score.timeSeconds,
+    rounds: score.rounds,
+    reps: score.reps,
+    timeCapped: score.timeCapped,
+    load: score.load,
+    loadUnit: score.loadUnit,
+    notes: score.notes,
+  })
+
+  return ctx.db.insert('hostedWorkoutSubmissions', {
+    hostedWorkoutId: participant.hostedWorkoutId,
+    participantId: participant._id,
+    wodBlockId,
+    level: score.level,
+    timeSeconds: score.timeSeconds,
+    rounds: score.rounds,
+    reps: score.reps,
+    timeCapped: score.timeCapped,
+    load: score.load,
+    loadUnit: score.loadUnit,
+    notes: score.notes,
+    submittedAt: now,
+  })
+}
+
+export const submitForSession = mutation({
+  args: {
+    sessionId: v.id('workoutSessions'),
+    wodBlockId: v.string(),
+    ...scoreFields,
+  },
+  handler: async (ctx, { sessionId, wodBlockId, ...score }) => {
+    const userId = await requireUser(ctx)
+    const participant = await getOwnedParticipantBySession(ctx, sessionId, userId)
+    return insertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
+  },
+})
 
 export const submitForParticipant = mutation({
   args: {
@@ -141,58 +214,11 @@ export const submitForParticipant = mutation({
   },
   handler: async (ctx, { participantId, wodBlockId, ...score }) => {
     const userId = await requireUser(ctx)
-    assertScoreRanges(score)
     const participant = await ctx.db.get(participantId)
     if (!participant || participant.userId !== userId) {
       throw new Error('Unauthorized')
     }
-    const hosted = await ctx.db.get(participant.hostedWorkoutId)
-    if (!hosted) throw new Error('Hosted workout not found.')
-    if (hosted.status !== 'open') throw new Error('This hosted workout is closed.')
-    const wodBlock = findWodBlock(hosted, wodBlockId)
-    if (!wodBlock) throw new Error('WOD block not found.')
-    const selectedLevel = findLevel(wodBlock, score.level)
-    if (!selectedLevel) throw new Error('Level not found for this WOD.')
-    assertScoreMatchesWod(wodBlock.type, score)
-
-    const now = Date.now()
-    let wodId = wodBlock.wodId
-    if (!wodId) {
-      wodId = await ctx.db.insert('wods', {
-        userId,
-        name: wodBlock.name,
-        type: wodBlock.type,
-        description: wodBlock.description,
-        repScheme: wodBlock.repScheme,
-        timeCapSeconds: wodBlock.timeCapSeconds,
-        durationSeconds: wodBlock.durationSeconds,
-        movements: selectedLevel.movements,
-        isDefault: false,
-      })
-    }
-
-    await ctx.db.insert('wodResults', {
-      userId,
-      wodId,
-      sessionId: participant.sessionId,
-      date: now,
-      rxScaled: score.rxScaled ?? (score.level === 'rx' ? 'rx' : 'scaled'),
-      timeSeconds: score.timeSeconds,
-      rounds: score.rounds,
-      reps: score.reps,
-      timeCapped: score.timeCapped,
-      load: score.load,
-      loadUnit: score.loadUnit,
-      notes: score.notes,
-    })
-
-    return ctx.db.insert('hostedWorkoutSubmissions', {
-      hostedWorkoutId: participant.hostedWorkoutId,
-      participantId,
-      wodBlockId,
-      submittedAt: now,
-      ...score,
-    })
+    return insertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
   },
 })
 
@@ -225,8 +251,15 @@ export const submitGuest = mutation({
       hostedWorkoutId: hosted._id,
       guestName: cleanName,
       wodBlockId,
+      level: score.level,
+      timeSeconds: score.timeSeconds,
+      rounds: score.rounds,
+      reps: score.reps,
+      timeCapped: score.timeCapped,
+      load: score.load,
+      loadUnit: score.loadUnit,
+      notes: score.notes,
       submittedAt: Date.now(),
-      ...score,
     })
   },
 })
@@ -245,23 +278,6 @@ export const listForHost = query({
   },
 })
 
-export const listPublicLeaderboard = query({
-  args: { hostedWorkoutId: v.id('hostedWorkouts') },
-  handler: async (ctx, { hostedWorkoutId }) => {
-    const hosted = await ctx.db.get(hostedWorkoutId)
-    if (!hosted || hosted.status === 'draft') return []
-    const submissions = await ctx.db
-      .query('hostedWorkoutSubmissions')
-      .withIndex('by_hosted_workout', (q) =>
-        q.eq('hostedWorkoutId', hostedWorkoutId),
-      )
-      .collect()
-    return Promise.all(
-      submissions.map((submission) => toPublicSubmission(ctx, submission)),
-    )
-  },
-})
-
 export const remove = mutation({
   args: { id: v.id('hostedWorkoutSubmissions') },
   handler: async (ctx, { id }) => {
@@ -275,4 +291,3 @@ export const remove = mutation({
     await ctx.db.delete(id)
   },
 })
-

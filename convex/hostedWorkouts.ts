@@ -1,6 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { MutationCtx, QueryCtx } from './_generated/server'
+import { toPublicHostedTemplate } from './lib/hostedDto'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -203,7 +204,6 @@ export const getByJoinToken = query({
           guestName: submission.guestName,
           wodBlockId: submission.wodBlockId,
           level: submission.level,
-          rxScaled: submission.rxScaled,
           timeSeconds: submission.timeSeconds,
           rounds: submission.rounds,
           reps: submission.reps,
@@ -221,7 +221,7 @@ export const getByJoinToken = query({
         notes: hosted.notes,
         scheduledAt: hosted.scheduledAt,
         status: hosted.status,
-        template: hosted.template,
+        template: toPublicHostedTemplate(hosted.template),
       },
       submissions: publicSubmissions,
     }
@@ -267,6 +267,39 @@ export const open = mutation({
     if (hosted.status !== 'draft')
       throw new Error('Only draft workouts can be opened.')
     await ctx.db.patch(id, { status: 'open', openedAt: Date.now() })
+    if (hosted.hostParticipation === 'hostAndParticipate') {
+      const existing = await ctx.db
+        .query('hostedWorkoutParticipants')
+        .withIndex('by_hosted_workout_user', (q) =>
+          q.eq('hostedWorkoutId', id).eq('userId', hostUserId),
+        )
+        .first()
+      if (!existing) {
+        const active = await ctx.db
+          .query('workoutSessions')
+          .withIndex('by_user_status', (q) =>
+            q.eq('userId', hostUserId).eq('status', 'active'),
+          )
+          .first()
+        if (active)
+          throw new Error('Finish or cancel your active workout before opening.')
+        const now = Date.now()
+        const sessionId = await ctx.db.insert('workoutSessions', {
+          userId: hostUserId,
+          date: hosted.scheduledAt ?? now,
+          startTime: now,
+          name: hosted.title,
+          status: 'active',
+        })
+        await ctx.db.insert('hostedWorkoutParticipants', {
+          hostedWorkoutId: id,
+          userId: hostUserId,
+          sessionId,
+          joinedAt: now,
+          displayName: 'Host',
+        })
+      }
+    }
   },
 })
 
