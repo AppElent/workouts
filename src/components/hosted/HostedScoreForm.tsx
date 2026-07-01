@@ -187,7 +187,13 @@ export function HostedScoreForm({
 
 			{selectedWod?.type === "load" && (
 				<div className="grid grid-cols-[1fr_84px] gap-2">
-					<Stepper value={load} onChange={setLoad} min={0} step={2.5} label="Load" />
+					<Stepper
+						value={load}
+						onChange={setLoad}
+						min={0}
+						step={2.5}
+						label="Load"
+					/>
 					<select
 						value={loadUnit}
 						onChange={(event) =>

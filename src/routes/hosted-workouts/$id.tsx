@@ -44,16 +44,21 @@ function HostedWorkoutDetailPage() {
 
 	const joinUrl = useMemo(() => {
 		if (!data?.hosted.joinToken) return "";
-		if (typeof window === "undefined") return `/join-hosted/${data.hosted.joinToken}`;
+		if (typeof window === "undefined")
+			return `/join-hosted/${data.hosted.joinToken}`;
 		return `${window.location.origin}/join-hosted/${data.hosted.joinToken}`;
 	}, [data?.hosted.joinToken]);
 
 	if (data === undefined) {
-		return <div className="p-6 text-sm text-[var(--text-muted)]">Loading...</div>;
+		return (
+			<div className="p-6 text-sm text-[var(--text-muted)]">Loading...</div>
+		);
 	}
 
 	if (data === null) {
-		return <div className="p-6 text-sm text-red-400">Hosted workout not found.</div>;
+		return (
+			<div className="p-6 text-sm text-red-400">Hosted workout not found.</div>
+		);
 	}
 
 	const { hosted, participants, submissions } = data;
@@ -235,7 +240,9 @@ function HostedWorkoutDetailPage() {
 						>
 							<div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
 								<div>
-									<h2 className="text-sm font-semibold text-white">{block.name}</h2>
+									<h2 className="text-sm font-semibold text-white">
+										{block.name}
+									</h2>
 									{block.repScheme && (
 										<p className="text-xs text-[var(--accent)]">
 											{block.repScheme}
@@ -262,8 +269,9 @@ function HostedWorkoutDetailPage() {
 											{level.label || getHostedLevelLabel(level.level)}
 										</p>
 										<p className="mt-1 text-xs text-[var(--text-muted)]">
-											{level.movements.map((movement) => movement.name).join(", ") ||
-												"No movements"}
+											{level.movements
+												.map((movement) => movement.name)
+												.join(", ") || "No movements"}
 										</p>
 									</div>
 								))}
@@ -287,13 +295,18 @@ function HostedWorkoutDetailPage() {
 										key={row.id}
 										className="grid grid-cols-[44px_1fr_76px_92px_44px] items-center gap-2 border-b border-[var(--border)] px-3 py-2 text-sm last:border-0"
 									>
-										<span className="text-[var(--text-muted)]">{index + 1}</span>
+										<span className="text-[var(--text-muted)]">
+											{index + 1}
+										</span>
 										<span className="font-medium text-white">{row.name}</span>
 										<span className="text-[var(--text-muted)]">
 											{getHostedLevelLabel(row.level)}
 										</span>
 										<span className="text-white">
-											{formatHostedScore(block.type as HostedWodType, row.score)}
+											{formatHostedScore(
+												block.type as HostedWodType,
+												row.score,
+											)}
 										</span>
 										<button
 											type="button"

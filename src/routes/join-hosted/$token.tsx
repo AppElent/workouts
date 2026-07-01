@@ -51,17 +51,23 @@ function JoinHostedWorkoutPage() {
 			const sessionId = await join({ token });
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setJoinError(err instanceof Error ? err.message : "Failed to join workout.");
+			setJoinError(
+				err instanceof Error ? err.message : "Failed to join workout.",
+			);
 			setJoining(false);
 		}
 	}
 
 	if (data === undefined) {
-		return <div className="p-6 text-sm text-[var(--text-muted)]">Loading...</div>;
+		return (
+			<div className="p-6 text-sm text-[var(--text-muted)]">Loading...</div>
+		);
 	}
 
 	if (data === null) {
-		return <div className="p-6 text-sm text-red-400">Hosted workout not found.</div>;
+		return (
+			<div className="p-6 text-sm text-red-400">Hosted workout not found.</div>
+		);
 	}
 
 	const { hosted, submissions } = data;
@@ -213,13 +219,18 @@ function JoinHostedWorkoutPage() {
 											key={row.id}
 											className="grid grid-cols-[32px_1fr_52px_86px] items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
 										>
-											<span className="text-[var(--text-muted)]">{index + 1}</span>
+											<span className="text-[var(--text-muted)]">
+												{index + 1}
+											</span>
 											<span className="font-medium text-white">{row.name}</span>
 											<span className="text-[var(--text-muted)]">
 												{getHostedLevelLabel(row.level)}
 											</span>
 											<span className="text-white">
-												{formatHostedScore(block.type as HostedWodType, row.score)}
+												{formatHostedScore(
+													block.type as HostedWodType,
+													row.score,
+												)}
 											</span>
 										</div>
 									))}
