@@ -26,6 +26,7 @@ import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
+import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -113,6 +114,11 @@ const HostedWorkoutsNewRoute = HostedWorkoutsNewRouteImport.update({
   path: '/hosted-workouts/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HostedWorkoutsIdRoute = HostedWorkoutsIdRouteImport.update({
+  id: '/hosted-workouts/$id',
+  path: '/hosted-workouts/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExercisesIdRoute = ExercisesIdRouteImport.update({
   id: '/exercises/$id',
   path: '/exercises/$id',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
+  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
+  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
+  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
+    | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
     | '/log/$sessionId'
     | '/wods/$id'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
+    | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
     | '/log/$sessionId'
     | '/wods/$id'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
+    | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
     | '/log/$sessionId'
     | '/wods/$id'
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
+  HostedWorkoutsIdRoute: typeof HostedWorkoutsIdRoute
   HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
   WodsIdRoute: typeof WodsIdRoute
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HostedWorkoutsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hosted-workouts/$id': {
+      id: '/hosted-workouts/$id'
+      path: '/hosted-workouts/$id'
+      fullPath: '/hosted-workouts/$id'
+      preLoaderRoute: typeof HostedWorkoutsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exercises/$id': {
       id: '/exercises/$id'
       path: '/exercises/$id'
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ExercisesIdRoute: ExercisesIdRoute,
+  HostedWorkoutsIdRoute: HostedWorkoutsIdRoute,
   HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,
   LogSessionIdRoute: LogSessionIdRoute,
   WodsIdRoute: WodsIdRoute,
