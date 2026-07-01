@@ -1,31 +1,20 @@
 import { SignedIn, SignedOut, useAuth } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { LogIn, Play } from "lucide-react";
 import { useMemo, useState } from "react";
-import { HostedScoreForm } from "#/components/hosted/HostedScoreForm";
-import {
-	formatHostedScore,
-	getHostedLevelLabel,
-	type HostedLeaderboardRow,
-	type HostedWodType,
-	sortHostedLeaderboard,
-} from "#/lib/hostedWorkouts";
+import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
+import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
+import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 
-export const Route = createFileRoute("/join-hosted/$token")({
-	component: JoinHostedWorkoutPage,
-});
-
-function JoinHostedWorkoutPage() {
-	const { token } = Route.useParams();
+export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
 	const { isSignedIn } = useAuth();
 	const data = useQuery(api.hostedWorkouts.getByJoinToken, { token });
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const submitGuest = useMutation(api.hostedWorkoutSubmissions.submitGuest);
-	const [guestName, setGuestName] = useState("");
 	const [joining, setJoining] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
 
@@ -142,29 +131,16 @@ function JoinHostedWorkoutPage() {
 			)}
 
 			<section className="grid gap-4 lg:grid-cols-[320px_1fr]">
-				<div className="flex flex-col gap-3">
-					<label className="flex flex-col gap-1 text-xs font-medium uppercase text-[var(--text-muted)]">
-						Guest name
-						<input
-							type="text"
-							value={guestName}
-							onChange={(event) => setGuestName(event.target.value)}
-							placeholder="Name on leaderboard"
-							className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm normal-case text-white placeholder:text-[var(--text-muted)]"
-						/>
-					</label>
-					<HostedScoreForm
-						wodBlocks={wodBlocks}
-						submitLabel="Submit guest score"
-						onSubmit={(payload) =>
-							submitGuest({
-								token,
-								guestName,
-								...payload,
-							})
-						}
-					/>
-				</div>
+				<GuestSubmissionForm
+					wodBlocks={wodBlocks}
+					onSubmit={({ guestName, ...payload }) =>
+						submitGuest({
+							token,
+							guestName,
+							...payload,
+						})
+					}
+				/>
 
 				<div className="flex flex-col gap-4">
 					{hosted.template.wodBlocks.map((block) => {
@@ -184,10 +160,7 @@ function JoinHostedWorkoutPage() {
 									loadUnit: submission.loadUnit,
 								},
 							}));
-						const sortedRows = sortHostedLeaderboard(
-							block.type as HostedWodType,
-							rows,
-						);
+
 						return (
 							<section
 								key={block.blockId}
@@ -208,33 +181,10 @@ function JoinHostedWorkoutPage() {
 										{block.type}
 									</span>
 								</div>
-								<div className="mt-3 space-y-2">
-									{sortedRows.length === 0 && (
-										<p className="text-sm text-[var(--text-muted)]">
-											No scores yet.
-										</p>
-									)}
-									{sortedRows.map((row, index) => (
-										<div
-											key={row.id}
-											className="grid grid-cols-[32px_1fr_52px_86px] items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
-										>
-											<span className="text-[var(--text-muted)]">
-												{index + 1}
-											</span>
-											<span className="font-medium text-white">{row.name}</span>
-											<span className="text-[var(--text-muted)]">
-												{getHostedLevelLabel(row.level)}
-											</span>
-											<span className="text-white">
-												{formatHostedScore(
-													block.type as HostedWodType,
-													row.score,
-												)}
-											</span>
-										</div>
-									))}
-								</div>
+								<HostedLeaderboard
+									type={block.type as HostedWodType}
+									rows={rows}
+								/>
 							</section>
 						);
 					})}

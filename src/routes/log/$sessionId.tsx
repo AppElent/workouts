@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { HostedScoreForm } from "#/components/hosted/HostedScoreForm";
 import { AddExerciseModal } from "#/components/session/AddExerciseModal";
 import { ExerciseSection } from "#/components/session/ExerciseSection";
+import { HostedSessionPlan } from "#/components/session/HostedSessionPlan";
 import { RestTimerProvider } from "#/components/session/RestTimer";
 import { SessionSummary } from "#/components/session/SessionSummary";
 import { SessionWods } from "#/components/session/SessionWods";
@@ -189,23 +190,11 @@ function ActiveSessionPage() {
 							/>
 						);
 					})}
-					{hostedParticipant?.hosted.template.strengthBlocks
-						.filter((block) => !block.exerciseId)
-						.map((block) => (
-							<div
-								key={block.blockId}
-								className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
-							>
-								<h3 className="text-base font-semibold text-white">
-									{block.exerciseName}
-								</h3>
-								{block.instructions && (
-									<p className="mt-2 text-sm text-[var(--text-muted)]">
-										{block.instructions}
-									</p>
-								)}
-							</div>
-						))}
+					{hostedParticipant && (
+						<HostedSessionPlan
+							strengthBlocks={hostedParticipant.hosted.template.strengthBlocks}
+						/>
+					)}
 				</div>
 
 				<div ref={bottomRef} />
