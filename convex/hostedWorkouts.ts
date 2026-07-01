@@ -189,6 +189,32 @@ export const getByJoinToken = query({
         q.eq('hostedWorkoutId', hosted._id),
       )
       .collect()
+    const publicSubmissions = await Promise.all(
+      submissions.map(async (submission) => {
+        let athleteName = 'Unknown athlete'
+        if (submission.guestName) {
+          athleteName = submission.guestName
+        } else if (submission.participantId) {
+          const participant = await ctx.db.get(submission.participantId)
+          athleteName = participant?.displayName ?? 'Signed-in athlete'
+        }
+        return {
+          athleteName,
+          guestName: submission.guestName,
+          wodBlockId: submission.wodBlockId,
+          level: submission.level,
+          rxScaled: submission.rxScaled,
+          timeSeconds: submission.timeSeconds,
+          rounds: submission.rounds,
+          reps: submission.reps,
+          timeCapped: submission.timeCapped,
+          load: submission.load,
+          loadUnit: submission.loadUnit,
+          notes: submission.notes,
+          submittedAt: submission.submittedAt,
+        }
+      }),
+    )
     return {
       hosted: {
         title: hosted.title,
@@ -197,20 +223,7 @@ export const getByJoinToken = query({
         status: hosted.status,
         template: hosted.template,
       },
-      submissions: submissions.map((submission) => ({
-        guestName: submission.guestName,
-        wodBlockId: submission.wodBlockId,
-        level: submission.level,
-        rxScaled: submission.rxScaled,
-        timeSeconds: submission.timeSeconds,
-        rounds: submission.rounds,
-        reps: submission.reps,
-        timeCapped: submission.timeCapped,
-        load: submission.load,
-        loadUnit: submission.loadUnit,
-        notes: submission.notes,
-        submittedAt: submission.submittedAt,
-      })),
+      submissions: publicSubmissions,
     }
   },
 })
@@ -290,3 +303,4 @@ export const remove = mutation({
     await ctx.db.delete(id)
   },
 })
+
