@@ -12,6 +12,13 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["dev"],
       "port": 3000
+    },
+    {
+      "name": "review (dev:watch 3100)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev:watch"],
+      "port": 3100,
+      "env": { "PORT": "3100" }
     }
   ]
 }
