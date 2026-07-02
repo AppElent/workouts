@@ -272,6 +272,11 @@ export default defineSchema({
     hostedWorkoutId: v.id('hostedWorkouts'),
     participantId: v.optional(v.id('hostedWorkoutParticipants')),
     guestName: v.optional(v.string()),
+    // Personal-library records created for a signed-in athlete's submission.
+    // Linked so re-submits reuse (never duplicate) them and removal can clean
+    // them up. Absent for guest submissions.
+    wodId: v.optional(v.id('wods')),
+    wodResultId: v.optional(v.id('wodResults')),
     wodBlockId: v.string(),
     level: v.union(
       v.literal('rx'),

@@ -101,7 +101,7 @@ function findLevel(block: WodBlock, selectedLevel: HostedLevel) {
   return block.levels.find((entry) => entry.level === selectedLevel) ?? null
 }
 
-function rxScaledForLevel(selectedLevel: HostedLevel) {
+function rxScaledForLevel(selectedLevel: HostedLevel): 'rx' | 'scaled' {
   return selectedLevel === 'rx' ? 'rx' : 'scaled'
 }
 
@@ -132,7 +132,25 @@ async function getOwnedParticipantBySession(
   return participant
 }
 
-async function insertSignedInSubmission(
+async function findParticipantSubmission(
+  ctx: MutationCtx,
+  hostedWorkoutId: Id<'hostedWorkouts'>,
+  wodBlockId: string,
+  participantId: Id<'hostedWorkoutParticipants'>,
+) {
+  const rows = await ctx.db
+    .query('hostedWorkoutSubmissions')
+    .withIndex('by_hosted_workout_wod', (q) =>
+      q.eq('hostedWorkoutId', hostedWorkoutId).eq('wodBlockId', wodBlockId),
+    )
+    .collect()
+  return rows.find((row) => row.participantId === participantId) ?? null
+}
+
+// One submission per participant per WOD block. Re-submitting updates the
+// existing leaderboard row (no duplicates) and reuses the athlete's personal
+// wods/wodResults records rather than creating a fresh WOD each time.
+async function upsertSignedInSubmission(
   ctx: MutationCtx,
   participant: Doc<'hostedWorkoutParticipants'>,
   userId: string,
@@ -150,8 +168,7 @@ async function insertSignedInSubmission(
   assertScoreMatchesWod(wodBlock.type, score)
 
   const now = Date.now()
-  const wodId = await ctx.db.insert('wods', {
-    userId,
+  const wodDefinition = {
     name: wodBlock.name,
     type: wodBlock.type,
     description: wodBlock.description,
@@ -159,13 +176,18 @@ async function insertSignedInSubmission(
     timeCapSeconds: wodBlock.timeCapSeconds,
     durationSeconds: wodBlock.durationSeconds,
     movements: selectedLevel.movements,
-    isDefault: false,
-  })
-
-  await ctx.db.insert('wodResults', {
-    userId,
-    wodId,
-    sessionId: participant.sessionId,
+  }
+  const scoreFieldsPatch = {
+    level: score.level,
+    timeSeconds: score.timeSeconds,
+    rounds: score.rounds,
+    reps: score.reps,
+    timeCapped: score.timeCapped,
+    load: score.load,
+    loadUnit: score.loadUnit,
+    notes: score.notes,
+  }
+  const resultPatch = {
     date: now,
     rxScaled: rxScaledForLevel(score.level),
     timeSeconds: score.timeSeconds,
@@ -175,20 +197,64 @@ async function insertSignedInSubmission(
     load: score.load,
     loadUnit: score.loadUnit,
     notes: score.notes,
-  })
+  }
 
+  const existing = await findParticipantSubmission(
+    ctx,
+    participant.hostedWorkoutId,
+    wodBlockId,
+    participant._id,
+  )
+
+  if (existing) {
+    let wodId = existing.wodId
+    if (wodId) {
+      await ctx.db.patch(wodId, wodDefinition)
+    } else {
+      wodId = await ctx.db.insert('wods', {
+        userId,
+        isDefault: false,
+        ...wodDefinition,
+      })
+    }
+    let wodResultId = existing.wodResultId
+    if (wodResultId) {
+      await ctx.db.patch(wodResultId, resultPatch)
+    } else {
+      wodResultId = await ctx.db.insert('wodResults', {
+        userId,
+        wodId,
+        sessionId: participant.sessionId,
+        ...resultPatch,
+      })
+    }
+    await ctx.db.patch(existing._id, {
+      ...scoreFieldsPatch,
+      wodId,
+      wodResultId,
+      submittedAt: now,
+    })
+    return existing._id
+  }
+
+  const wodId = await ctx.db.insert('wods', {
+    userId,
+    isDefault: false,
+    ...wodDefinition,
+  })
+  const wodResultId = await ctx.db.insert('wodResults', {
+    userId,
+    wodId,
+    sessionId: participant.sessionId,
+    ...resultPatch,
+  })
   return ctx.db.insert('hostedWorkoutSubmissions', {
     hostedWorkoutId: participant.hostedWorkoutId,
     participantId: participant._id,
     wodBlockId,
-    level: score.level,
-    timeSeconds: score.timeSeconds,
-    rounds: score.rounds,
-    reps: score.reps,
-    timeCapped: score.timeCapped,
-    load: score.load,
-    loadUnit: score.loadUnit,
-    notes: score.notes,
+    ...scoreFieldsPatch,
+    wodId,
+    wodResultId,
     submittedAt: now,
   })
 }
@@ -202,7 +268,7 @@ export const submitForSession = mutation({
   handler: async (ctx, { sessionId, wodBlockId, ...score }) => {
     const userId = await requireUser(ctx)
     const participant = await getOwnedParticipantBySession(ctx, sessionId, userId)
-    return insertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
+    return upsertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
   },
 })
 
@@ -218,7 +284,7 @@ export const submitForParticipant = mutation({
     if (!participant || participant.userId !== userId) {
       throw new Error('Unauthorized')
     }
-    return insertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
+    return upsertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
   },
 })
 
@@ -247,10 +313,7 @@ export const submitGuest = mutation({
     if (!selectedLevel) throw new Error('Level not found for this WOD.')
     assertScoreMatchesWod(wodBlock.type, score)
 
-    return ctx.db.insert('hostedWorkoutSubmissions', {
-      hostedWorkoutId: hosted._id,
-      guestName: cleanName,
-      wodBlockId,
+    const scoreFieldsPatch = {
       level: score.level,
       timeSeconds: score.timeSeconds,
       rounds: score.rounds,
@@ -259,6 +322,30 @@ export const submitGuest = mutation({
       load: score.load,
       loadUnit: score.loadUnit,
       notes: score.notes,
+    }
+
+    // One submission per guest name per WOD block: re-submitting updates the
+    // existing leaderboard row instead of adding a duplicate.
+    const rows = await ctx.db
+      .query('hostedWorkoutSubmissions')
+      .withIndex('by_hosted_workout_wod', (q) =>
+        q.eq('hostedWorkoutId', hosted._id).eq('wodBlockId', wodBlockId),
+      )
+      .collect()
+    const existing = rows.find((row) => row.guestName === cleanName)
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...scoreFieldsPatch,
+        submittedAt: Date.now(),
+      })
+      return existing._id
+    }
+
+    return ctx.db.insert('hostedWorkoutSubmissions', {
+      hostedWorkoutId: hosted._id,
+      guestName: cleanName,
+      wodBlockId,
+      ...scoreFieldsPatch,
       submittedAt: Date.now(),
     })
   },
