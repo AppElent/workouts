@@ -1,9 +1,9 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { ArrowLeft, Dumbbell, Lock, Pencil, Play } from "lucide-react";
+import { ArrowLeft, Dumbbell, Lock, Pencil, Play, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
@@ -19,7 +19,9 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	);
 	const openHostedWorkout = useMutation(api.hostedWorkouts.open);
 	const closeHostedWorkout = useMutation(api.hostedWorkouts.close);
+	const removeHostedWorkout = useMutation(api.hostedWorkouts.remove);
 	const removeSubmission = useMutation(api.hostedWorkoutSubmissions.remove);
+	const navigate = useNavigate();
 	const [error, setError] = useState<string | null>(null);
 
 	const joinUrl = useMemo(() => {
@@ -50,6 +52,20 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 		} catch (err) {
 			setError(getConvexErrorMessage(err, "Something went wrong."));
 		}
+	}
+
+	function handleDelete() {
+		if (
+			!window.confirm(
+				"Delete this hosted workout? Its scores and participants will be removed.",
+			)
+		) {
+			return;
+		}
+		void runAction(async () => {
+			await removeHostedWorkout({ id });
+			await navigate({ to: "/hosted-workouts" });
+		});
 	}
 
 	return (
@@ -118,6 +134,13 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 								<Lock size={15} /> Close
 							</button>
 						)}
+						<button
+							type="button"
+							onClick={handleDelete}
+							className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-red-400 hover:border-red-400/40"
+						>
+							<Trash2 size={15} /> Delete
+						</button>
 					</div>
 				</div>
 				{error && <p className="mt-3 text-sm text-red-400">{error}</p>}
