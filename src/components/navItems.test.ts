@@ -19,6 +19,13 @@ describe("NAV_ITEMS", () => {
 		expect(wods).toBeDefined();
 		expect(wods?.gated).toBe(true);
 	});
+
+	it("includes a gated host item pointing at /hosted-workouts", () => {
+		const host = NAV_ITEMS.find((i) => i.to === "/hosted-workouts");
+		expect(host).toBeDefined();
+		expect(host?.shortLabel).toBe("Host");
+		expect(host?.gated).toBe(true);
+	});
 });
 
 describe("isNavItemLocked", () => {

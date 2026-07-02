@@ -19,11 +19,15 @@ import { Route as ProgressIndexRouteImport } from './routes/progress/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as LogIndexRouteImport } from './routes/log/index'
+import { Route as HostedWorkoutsIndexRouteImport } from './routes/hosted-workouts/index'
 import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
+import { Route as JoinTokenRouteImport } from './routes/join/$token'
+import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
+import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -76,6 +80,11 @@ const LogIndexRoute = LogIndexRouteImport.update({
   path: '/log/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HostedWorkoutsIndexRoute = HostedWorkoutsIndexRouteImport.update({
+  id: '/hosted-workouts/',
+  path: '/hosted-workouts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExercisesIndexRoute = ExercisesIndexRouteImport.update({
   id: '/exercises/',
   path: '/exercises/',
@@ -101,6 +110,21 @@ const LogSessionIdRoute = LogSessionIdRouteImport.update({
   path: '/log/$sessionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinTokenRoute = JoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostedWorkoutsNewRoute = HostedWorkoutsNewRouteImport.update({
+  id: '/hosted-workouts/new',
+  path: '/hosted-workouts/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostedWorkoutsIdRoute = HostedWorkoutsIdRouteImport.update({
+  id: '/hosted-workouts/$id',
+  path: '/hosted-workouts/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExercisesIdRoute = ExercisesIdRouteImport.update({
   id: '/exercises/$id',
   path: '/exercises/$id',
@@ -113,11 +137,15 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
+  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
+  '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
+  '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
+  '/hosted-workouts/': typeof HostedWorkoutsIndexRoute
   '/log/': typeof LogIndexRoute
   '/login/': typeof LoginIndexRoute
   '/profile/': typeof ProfileIndexRoute
@@ -131,11 +159,15 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
+  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
+  '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
+  '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
   '/account': typeof AccountIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/exercises': typeof ExercisesIndexRoute
+  '/hosted-workouts': typeof HostedWorkoutsIndexRoute
   '/log': typeof LogIndexRoute
   '/login': typeof LoginIndexRoute
   '/profile': typeof ProfileIndexRoute
@@ -150,11 +182,15 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
+  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
+  '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
+  '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/exercises/': typeof ExercisesIndexRoute
+  '/hosted-workouts/': typeof HostedWorkoutsIndexRoute
   '/log/': typeof LogIndexRoute
   '/login/': typeof LoginIndexRoute
   '/profile/': typeof ProfileIndexRoute
@@ -170,11 +206,15 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
+    | '/hosted-workouts/$id'
+    | '/hosted-workouts/new'
+    | '/join/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
     | '/exercises/'
+    | '/hosted-workouts/'
     | '/log/'
     | '/login/'
     | '/profile/'
@@ -188,11 +228,15 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
+    | '/hosted-workouts/$id'
+    | '/hosted-workouts/new'
+    | '/join/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account'
     | '/dashboard'
     | '/exercises'
+    | '/hosted-workouts'
     | '/log'
     | '/login'
     | '/profile'
@@ -206,11 +250,15 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
+    | '/hosted-workouts/$id'
+    | '/hosted-workouts/new'
+    | '/join/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
     | '/exercises/'
+    | '/hosted-workouts/'
     | '/log/'
     | '/login/'
     | '/profile/'
@@ -225,11 +273,15 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
+  HostedWorkoutsIdRoute: typeof HostedWorkoutsIdRoute
+  HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
+  JoinTokenRoute: typeof JoinTokenRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
   WodsIdRoute: typeof WodsIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ExercisesIndexRoute: typeof ExercisesIndexRoute
+  HostedWorkoutsIndexRoute: typeof HostedWorkoutsIndexRoute
   LogIndexRoute: typeof LogIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
@@ -310,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hosted-workouts/': {
+      id: '/hosted-workouts/'
+      path: '/hosted-workouts'
+      fullPath: '/hosted-workouts/'
+      preLoaderRoute: typeof HostedWorkoutsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exercises/': {
       id: '/exercises/'
       path: '/exercises'
@@ -345,6 +404,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join/$token': {
+      id: '/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof JoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hosted-workouts/new': {
+      id: '/hosted-workouts/new'
+      path: '/hosted-workouts/new'
+      fullPath: '/hosted-workouts/new'
+      preLoaderRoute: typeof HostedWorkoutsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hosted-workouts/$id': {
+      id: '/hosted-workouts/$id'
+      path: '/hosted-workouts/$id'
+      fullPath: '/hosted-workouts/$id'
+      preLoaderRoute: typeof HostedWorkoutsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exercises/$id': {
       id: '/exercises/$id'
       path: '/exercises/$id'
@@ -361,11 +441,15 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ExercisesIdRoute: ExercisesIdRoute,
+  HostedWorkoutsIdRoute: HostedWorkoutsIdRoute,
+  HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,
+  JoinTokenRoute: JoinTokenRoute,
   LogSessionIdRoute: LogSessionIdRoute,
   WodsIdRoute: WodsIdRoute,
   AccountIndexRoute: AccountIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ExercisesIndexRoute: ExercisesIndexRoute,
+  HostedWorkoutsIndexRoute: HostedWorkoutsIndexRoute,
   LogIndexRoute: LogIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,

@@ -170,4 +170,125 @@ export default defineSchema({
     .index('by_wod', ['wodId'])
     .index('by_user_wod', ['userId', 'wodId'])
     .index('by_session', ['sessionId']),
+
+  hostedWorkouts: defineTable({
+    hostUserId: v.string(),
+    title: v.string(),
+    notes: v.optional(v.string()),
+    scheduledAt: v.optional(v.number()),
+    status: v.union(
+      v.literal('draft'),
+      v.literal('open'),
+      v.literal('closed'),
+    ),
+    joinToken: v.string(),
+    hostParticipation: v.union(
+      v.literal('hostOnly'),
+      v.literal('hostAndParticipate'),
+    ),
+    createdAt: v.number(),
+    openedAt: v.optional(v.number()),
+    closedAt: v.optional(v.number()),
+    template: v.object({
+      strengthBlocks: v.array(
+        v.object({
+          blockId: v.string(),
+          exerciseId: v.optional(v.id('exercises')),
+          exerciseName: v.string(),
+          instructions: v.optional(v.string()),
+          defaultSets: v.optional(v.number()),
+          defaultReps: v.optional(v.number()),
+          defaultWeight: v.optional(v.number()),
+          unit: v.optional(v.union(v.literal('kg'), v.literal('lbs'))),
+          percentageOfOneRepMax: v.optional(v.number()),
+        }),
+      ),
+      wodBlocks: v.array(
+        v.object({
+          blockId: v.string(),
+          wodId: v.optional(v.id('wods')),
+          name: v.string(),
+          type: v.union(
+            v.literal('forTime'),
+            v.literal('amrap'),
+            v.literal('emom'),
+            v.literal('load'),
+          ),
+          description: v.optional(v.string()),
+          repScheme: v.optional(v.string()),
+          timeCapSeconds: v.optional(v.number()),
+          durationSeconds: v.optional(v.number()),
+          levels: v.array(
+            v.object({
+              level: v.union(
+                v.literal('rx'),
+                v.literal('l1'),
+                v.literal('l2'),
+                v.literal('l3'),
+              ),
+              label: v.string(),
+              description: v.optional(v.string()),
+              movements: v.array(
+                v.object({
+                  name: v.string(),
+                  reps: v.optional(v.number()),
+                  weight: v.optional(v.number()),
+                  unit: v.optional(v.union(v.literal('kg'), v.literal('lbs'))),
+                  distance: v.optional(v.number()),
+                  distanceUnit: v.optional(
+                    v.union(
+                      v.literal('m'),
+                      v.literal('km'),
+                      v.literal('mi'),
+                      v.literal('cal'),
+                    ),
+                  ),
+                  notes: v.optional(v.string()),
+                }),
+              ),
+            }),
+          ),
+        }),
+      ),
+    }),
+  })
+    .index('by_host', ['hostUserId'])
+    .index('by_status', ['status'])
+    .index('by_join_token', ['joinToken']),
+
+  hostedWorkoutParticipants: defineTable({
+    hostedWorkoutId: v.id('hostedWorkouts'),
+    userId: v.string(),
+    sessionId: v.id('workoutSessions'),
+    joinedAt: v.number(),
+    displayName: v.optional(v.string()),
+  })
+    .index('by_hosted_workout', ['hostedWorkoutId'])
+    .index('by_user', ['userId'])
+    .index('by_hosted_workout_user', ['hostedWorkoutId', 'userId'])
+    .index('by_session', ['sessionId']),
+
+  hostedWorkoutSubmissions: defineTable({
+    hostedWorkoutId: v.id('hostedWorkouts'),
+    participantId: v.optional(v.id('hostedWorkoutParticipants')),
+    guestName: v.optional(v.string()),
+    wodBlockId: v.string(),
+    level: v.union(
+      v.literal('rx'),
+      v.literal('l1'),
+      v.literal('l2'),
+      v.literal('l3'),
+    ),
+    timeSeconds: v.optional(v.number()),
+    rounds: v.optional(v.number()),
+    reps: v.optional(v.number()),
+    timeCapped: v.optional(v.boolean()),
+    load: v.optional(v.number()),
+    loadUnit: v.optional(v.union(v.literal('kg'), v.literal('lbs'))),
+    notes: v.optional(v.string()),
+    submittedAt: v.number(),
+  })
+    .index('by_hosted_workout', ['hostedWorkoutId'])
+    .index('by_participant', ['participantId'])
+    .index('by_hosted_workout_wod', ['hostedWorkoutId', 'wodBlockId']),
 })

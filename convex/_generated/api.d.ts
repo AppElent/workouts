@@ -11,6 +11,9 @@
 import type * as bodyMetrics from "../bodyMetrics.js";
 import type * as exercises from "../exercises.js";
 import type * as exportData from "../exportData.js";
+import type * as hostedWorkoutParticipants from "../hostedWorkoutParticipants.js";
+import type * as hostedWorkoutSubmissions from "../hostedWorkoutSubmissions.js";
+import type * as hostedWorkouts from "../hostedWorkouts.js";
 import type * as lib_oneRepMax from "../lib/oneRepMax.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as lib_wodScore from "../lib/wodScore.js";
@@ -36,6 +39,9 @@ declare const fullApi: ApiFromModules<{
   bodyMetrics: typeof bodyMetrics;
   exercises: typeof exercises;
   exportData: typeof exportData;
+  hostedWorkoutParticipants: typeof hostedWorkoutParticipants;
+  hostedWorkoutSubmissions: typeof hostedWorkoutSubmissions;
+  hostedWorkouts: typeof hostedWorkouts;
   "lib/oneRepMax": typeof lib_oneRepMax;
   "lib/validate": typeof lib_validate;
   "lib/wodScore": typeof lib_wodScore;
