@@ -1,6 +1,47 @@
 export type HostedLevel = "rx" | "l1" | "l2" | "l3";
 export type HostedWodType = "forTime" | "amrap" | "emom" | "load";
 export type LoadUnit = "kg" | "lbs";
+export type DistanceUnit = "m" | "km" | "mi" | "cal";
+
+export type HostedMovement = {
+	name: string;
+	reps?: number;
+	weight?: number;
+	unit?: LoadUnit;
+	distance?: number;
+	distanceUnit?: DistanceUnit;
+	notes?: string;
+};
+
+/**
+ * A content-derived React key for a movement in a read-only list. Persisted
+ * movements have no id, so this avoids array-index keys for immutable display
+ * lists (which never reorder within a render).
+ */
+export function movementKey(prefix: string, movement: HostedMovement): string {
+	return `${prefix}:${movement.name}:${movement.reps ?? ""}:${
+		movement.weight ?? ""
+	}:${movement.unit ?? ""}`;
+}
+
+/**
+ * Render a single movement's prescription line, e.g. "21 Thrusters @ 43 kg",
+ * "Run 400 m", or just "Pull-ups". Weights are per movement (per item), not a
+ * single load for the whole WOD.
+ */
+export function formatMovement(movement: HostedMovement): string {
+	const parts: string[] = [];
+	if (movement.reps !== undefined) parts.push(String(movement.reps));
+	parts.push(movement.name);
+	if (movement.distance !== undefined) {
+		parts.push(`${movement.distance} ${movement.distanceUnit ?? "m"}`);
+	}
+	let text = parts.join(" ").trim();
+	if (movement.weight !== undefined) {
+		text += ` @ ${movement.weight} ${movement.unit ?? "kg"}`;
+	}
+	return text;
+}
 
 export type HostedScore = {
 	timeSeconds?: number;

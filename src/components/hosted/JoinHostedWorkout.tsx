@@ -7,6 +7,7 @@ import { LogIn, Play } from "lucide-react";
 import { useMemo, useState } from "react";
 import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
+import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
 import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
@@ -27,6 +28,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				levels: block.levels.map((level) => ({
 					level: level.level,
 					label: level.label,
+					movements: level.movements,
 				})),
 			})) ?? [],
 		[data?.hosted.template.wodBlocks],
@@ -181,6 +183,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 										{block.type}
 									</span>
 								</div>
+								<HostedWodLevels levels={block.levels} />
 								<HostedLeaderboard
 									type={block.type as HostedWodType}
 									rows={rows}

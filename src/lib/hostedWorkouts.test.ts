@@ -1,11 +1,36 @@
 import { describe, expect, it } from "vitest";
 import {
 	formatHostedScore,
+	formatMovement,
 	getHostedLevelLabel,
 	scoreRank,
 	sortHostedLeaderboard,
 	validateHostedScore,
 } from "./hostedWorkouts";
+
+describe("formatMovement", () => {
+	it("renders reps, name, and a per-movement weight", () => {
+		expect(
+			formatMovement({ name: "Thrusters", reps: 21, weight: 43, unit: "kg" }),
+		).toBe("21 Thrusters @ 43 kg");
+	});
+
+	it("renders a bare movement name with no reps or weight", () => {
+		expect(formatMovement({ name: "Pull-ups" })).toBe("Pull-ups");
+	});
+
+	it("defaults the weight unit to kg", () => {
+		expect(formatMovement({ name: "Deadlift", weight: 100 })).toBe(
+			"Deadlift @ 100 kg",
+		);
+	});
+
+	it("renders a distance with its unit", () => {
+		expect(
+			formatMovement({ name: "Run", distance: 400, distanceUnit: "m" }),
+		).toBe("Run 400 m");
+	});
+});
 
 describe("getHostedLevelLabel", () => {
 	it("formats canonical hosted workout levels", () => {

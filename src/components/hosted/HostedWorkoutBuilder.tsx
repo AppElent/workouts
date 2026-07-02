@@ -16,6 +16,17 @@ type StrengthBlock = {
 
 type Level = "rx" | "l1" | "l2" | "l3";
 
+type Movement = {
+	// Client-only stable id so editable movement rows keep focus/state when
+	// siblings are added or removed. Stripped before persisting (see handleSubmit).
+	id: string;
+	name: string;
+	reps?: number;
+	weight?: number;
+	unit?: "kg" | "lbs";
+	notes?: string;
+};
+
 type WodBlock = {
 	blockId: string;
 	name: string;
@@ -25,19 +36,29 @@ type WodBlock = {
 		level: Level;
 		label: string;
 		description?: string;
-		movements: { name: string; notes?: string }[];
+		movements: Movement[];
 	}[];
 };
 
+function emptyMovement(): Movement {
+	return { id: crypto.randomUUID(), name: "" };
+}
+
 const defaultLevels: WodBlock["levels"] = [
-	{ level: "rx", label: "Rx", movements: [{ name: "" }] },
-	{ level: "l1", label: "L1", movements: [{ name: "" }] },
-	{ level: "l2", label: "L2", movements: [{ name: "" }] },
-	{ level: "l3", label: "L3", movements: [{ name: "" }] },
+	{ level: "rx", label: "Rx", movements: [emptyMovement()] },
+	{ level: "l1", label: "L1", movements: [emptyMovement()] },
+	{ level: "l2", label: "L2", movements: [emptyMovement()] },
+	{ level: "l3", label: "L3", movements: [emptyMovement()] },
 ];
 
 function newBlockId() {
 	return crypto.randomUUID();
+}
+
+function parseOptionalNumber(value: string): number | undefined {
+	if (value.trim() === "") return undefined;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 export function HostedWorkoutBuilder({
@@ -80,12 +101,14 @@ export function HostedWorkoutBuilder({
 							...level,
 							description: level.description?.trim() || undefined,
 							movements: level.movements
+								.filter((movement) => movement.name.trim().length > 0)
 								.map((movement) => ({
-									...movement,
 									name: movement.name.trim(),
+									reps: movement.reps,
+									weight: movement.weight,
+									unit: movement.unit,
 									notes: movement.notes?.trim() || undefined,
-								}))
-								.filter((movement) => movement.name.length > 0),
+								})),
 						})),
 					})),
 				},
@@ -96,6 +119,59 @@ export function HostedWorkoutBuilder({
 		} finally {
 			setSaving(false);
 		}
+	}
+
+	function mutateLevel(
+		blockIndex: number,
+		levelKey: Level,
+		mutator: (movements: Movement[]) => Movement[],
+	) {
+		setWodBlocks((prev) =>
+			prev.map((block, bi) =>
+				bi === blockIndex
+					? {
+							...block,
+							levels: block.levels.map((entry) =>
+								entry.level === levelKey
+									? { ...entry, movements: mutator(entry.movements) }
+									: entry,
+							),
+						}
+					: block,
+			),
+		);
+	}
+
+	function updateMovement(
+		blockIndex: number,
+		levelKey: Level,
+		movementIndex: number,
+		patch: Partial<Movement>,
+	) {
+		mutateLevel(blockIndex, levelKey, (movements) =>
+			movements.map((movement, mi) =>
+				mi === movementIndex ? { ...movement, ...patch } : movement,
+			),
+		);
+	}
+
+	function addMovement(blockIndex: number, levelKey: Level) {
+		mutateLevel(blockIndex, levelKey, (movements) => [
+			...movements,
+			emptyMovement(),
+		]);
+	}
+
+	function removeMovement(
+		blockIndex: number,
+		levelKey: Level,
+		movementIndex: number,
+	) {
+		mutateLevel(blockIndex, levelKey, (movements) =>
+			movements.length > 1
+				? movements.filter((_, mi) => mi !== movementIndex)
+				: movements,
+		);
 	}
 
 	return (
@@ -280,35 +356,86 @@ export function HostedWorkoutBuilder({
 								<p className="text-xs font-semibold text-[var(--accent)]">
 									{level.label}
 								</p>
-								<input
-									value={level.movements[0]?.name ?? ""}
-									onChange={(event) =>
-										setWodBlocks((prev) =>
-											prev.map((item, itemIndex) =>
-												itemIndex === index
-													? {
-															...item,
-															levels: item.levels.map((entry) =>
-																entry.level === level.level
-																	? {
-																			...entry,
-																			movements: [
-																				{
-																					...(entry.movements[0] ?? {}),
-																					name: event.target.value,
-																				},
-																			],
-																		}
-																	: entry,
-															),
-														}
-													: item,
-											),
-										)
-									}
-									className="mt-2 h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
-									placeholder={`${level.label} prescription`}
-								/>
+								<div className="mt-2 flex flex-col gap-2">
+									{level.movements.map((movement, movementIndex) => (
+										<div
+											key={movement.id}
+											className="grid grid-cols-[1fr_56px_64px_60px_28px] items-center gap-1.5"
+										>
+											<input
+												value={movement.name}
+												onChange={(event) =>
+													updateMovement(index, level.level, movementIndex, {
+														name: event.target.value,
+													})
+												}
+												aria-label={`${level.label} movement ${movementIndex + 1} name`}
+												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+												placeholder="Movement"
+											/>
+											<input
+												type="number"
+												inputMode="numeric"
+												min={0}
+												value={movement.reps ?? ""}
+												onChange={(event) =>
+													updateMovement(index, level.level, movementIndex, {
+														reps: parseOptionalNumber(event.target.value),
+													})
+												}
+												aria-label={`${level.label} movement ${movementIndex + 1} reps`}
+												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-2 text-xs text-white placeholder:text-[var(--text-muted)]"
+												placeholder="reps"
+											/>
+											<input
+												type="number"
+												inputMode="decimal"
+												min={0}
+												step={2.5}
+												value={movement.weight ?? ""}
+												onChange={(event) =>
+													updateMovement(index, level.level, movementIndex, {
+														weight: parseOptionalNumber(event.target.value),
+													})
+												}
+												aria-label={`${level.label} movement ${movementIndex + 1} weight`}
+												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-2 text-xs text-white placeholder:text-[var(--text-muted)]"
+												placeholder="kg"
+											/>
+											<select
+												value={movement.unit ?? "kg"}
+												onChange={(event) =>
+													updateMovement(index, level.level, movementIndex, {
+														unit: event.target.value as "kg" | "lbs",
+													})
+												}
+												aria-label={`${level.label} movement ${movementIndex + 1} unit`}
+												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-1 text-xs text-white"
+											>
+												<option value="kg">kg</option>
+												<option value="lbs">lbs</option>
+											</select>
+											<button
+												type="button"
+												onClick={() =>
+													removeMovement(index, level.level, movementIndex)
+												}
+												disabled={level.movements.length <= 1}
+												aria-label={`Remove ${level.label} movement ${movementIndex + 1}`}
+												className="flex h-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-red-400 disabled:opacity-30"
+											>
+												<Trash2 size={13} />
+											</button>
+										</div>
+									))}
+								</div>
+								<button
+									type="button"
+									onClick={() => addMovement(index, level.level)}
+									className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)]"
+								>
+									<Plus size={12} /> Add movement
+								</button>
 							</div>
 						))}
 						<button

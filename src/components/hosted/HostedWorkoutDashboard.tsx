@@ -6,12 +6,9 @@ import { format } from "date-fns";
 import { ArrowLeft, Lock, Play } from "lucide-react";
 import { useMemo, useState } from "react";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
+import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
-import {
-	getHostedLevelLabel,
-	type HostedLeaderboardRow,
-	type HostedWodType,
-} from "#/lib/hostedWorkouts";
+import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const data = useQuery(api.hostedWorkouts.getMine, { id });
@@ -202,23 +199,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 								</span>
 							</div>
 
-							<div className="mt-4 grid gap-2 sm:grid-cols-4">
-								{block.levels.map((level) => (
-									<div
-										key={level.level}
-										className="rounded-lg border border-[var(--border)] px-3 py-2"
-									>
-										<p className="text-xs font-semibold text-white">
-											{level.label || getHostedLevelLabel(level.level)}
-										</p>
-										<p className="mt-1 text-xs text-[var(--text-muted)]">
-											{level.movements
-												.map((movement) => movement.name)
-												.join(", ") || "No movements"}
-										</p>
-									</div>
-								))}
-							</div>
+							<HostedWodLevels levels={block.levels} />
 
 							<HostedLeaderboard
 								type={block.type as HostedWodType}

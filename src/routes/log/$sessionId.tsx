@@ -226,6 +226,7 @@ function ActiveSessionPage() {
 									levels: block.levels.map((level) => ({
 										level: level.level,
 										label: level.label,
+										movements: level.movements,
 									})),
 								}),
 							)}

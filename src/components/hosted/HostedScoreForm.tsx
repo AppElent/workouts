@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
 import {
+	formatMovement,
 	getHostedLevelLabel,
 	type HostedLevel,
+	type HostedMovement,
 	type HostedScore,
 	type HostedWodType,
+	movementKey,
 	validateHostedScore,
 } from "#/lib/hostedWorkouts";
 
@@ -12,7 +15,7 @@ type WodBlock = {
 	blockId: string;
 	name: string;
 	type: HostedWodType;
-	levels: { level: HostedLevel; label: string }[];
+	levels: { level: HostedLevel; label: string; movements?: HostedMovement[] }[];
 };
 
 type SubmitPayload = {
@@ -36,6 +39,8 @@ export function HostedScoreForm({
 	const selectedWod =
 		wodBlocks.find((block) => block.blockId === wodBlockId) ?? wodBlocks[0];
 	const [level, setLevel] = useState<HostedLevel>("rx");
+	const selectedLevelMovements =
+		selectedWod?.levels.find((entry) => entry.level === level)?.movements ?? [];
 	const [minutes, setMinutes] = useState(5);
 	const [seconds, setSeconds] = useState(0);
 	const [timeCapped, setTimeCapped] = useState(false);
@@ -133,6 +138,16 @@ export function HostedScoreForm({
 					</button>
 				))}
 			</div>
+
+			{selectedLevelMovements.length > 0 && (
+				<ul className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-muted)]">
+					{selectedLevelMovements.map((movement) => (
+						<li key={movementKey(level, movement)}>
+							{formatMovement(movement)}
+						</li>
+					))}
+				</ul>
+			)}
 
 			{selectedWod?.type === "forTime" && (
 				<>
