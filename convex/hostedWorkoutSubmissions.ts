@@ -375,6 +375,10 @@ export const remove = mutation({
     if (!hosted || hosted.hostUserId !== hostUserId) {
       throw new Error('Unauthorized')
     }
+    // Clean up the personal records created for this submission so removing a
+    // score doesn't leave orphaned wods/wodResults in the athlete's library.
+    if (submission.wodResultId) await ctx.db.delete(submission.wodResultId)
+    if (submission.wodId) await ctx.db.delete(submission.wodId)
     await ctx.db.delete(id)
   },
 })
