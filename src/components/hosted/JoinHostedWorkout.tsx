@@ -181,6 +181,9 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 								id: `${submission.athleteName}-${submission.submittedAt}-${index}`,
 								name: submission.athleteName,
 								level: submission.level,
+								levelLabel: block.levels.find(
+									(entry) => entry.level === submission.level,
+								)?.label,
 								submittedAt: submission.submittedAt,
 								score: {
 									timeSeconds: submission.timeSeconds,

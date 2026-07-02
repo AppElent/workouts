@@ -208,6 +208,9 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 									: undefined) ||
 								"Signed-in athlete",
 							level: submission.level,
+							levelLabel: block.levels.find(
+								(entry) => entry.level === submission.level,
+							)?.label,
 							submittedAt: submission.submittedAt,
 							score: {
 								timeSeconds: submission.timeSeconds,

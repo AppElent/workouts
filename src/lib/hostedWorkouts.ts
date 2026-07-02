@@ -56,6 +56,9 @@ export type HostedLeaderboardRow = {
 	id: string;
 	name: string;
 	level: HostedLevel;
+	/** The block's authored label for this level; falls back to the canonical
+	 * Rx/L1/L2/L3 label when absent. */
+	levelLabel?: string;
 	submittedAt: number;
 	score: HostedScore;
 };

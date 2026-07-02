@@ -45,7 +45,7 @@ export function HostedLeaderboard({
 					<span className="text-[var(--text-muted)]">{index + 1}</span>
 					<span className="font-medium text-white">{row.name}</span>
 					<span className="text-[var(--text-muted)]">
-						{getHostedLevelLabel(row.level)}
+						{row.levelLabel || getHostedLevelLabel(row.level)}
 					</span>
 					<span className="text-white">
 						{formatHostedScore(type, row.score)}
