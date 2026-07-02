@@ -13,10 +13,12 @@
   "scripts": {
     "dev": "vite dev --host",
     "dev:all": "pnpm exec convex dev --once && pnpm dev",
+    "dev:watch": "concurrently -n convex,vite -c blue,green \"pnpm exec convex dev\" \"pnpm dev\"",
     "build": "vite build",
     "build:development": "vite build --mode development",
     "preview": "pnpm build:development && wrangler dev",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
@@ -24,9 +26,9 @@
     "seed:test": "pnpm exec convex run seed:seedTestData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
     "seed:clear": "pnpm exec convex run seed:clearUserData '{\"userId\":\"user_2tTlbmSTh4kbXmg9v6EN7YW3B4d\"}'",
     "seed:reset": "pnpm seed:exercises && pnpm seed:clear && pnpm seed:test",
-    "deploy": "pnpm build && wrangler deploy",
+    "deploy": "pnpm run deploy:prod",
     "deploy:dev": "pnpm exec convex dev --once && pnpm build:development && wrangler deploy --env dev",
-    "deploy:prod": "pnpm build && wrangler deploy",
+    "deploy:prod": "pnpm exec convex deploy && pnpm build && wrangler deploy",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

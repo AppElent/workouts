@@ -20,6 +20,7 @@
     // Deploys to workouts-dev.<subdomain>.workers.dev
     // Usage: export VITE_* vars, then npm run deploy:dev
     "dev": {
+      "name": "workouts-dev",
       "workers_dev": true,
       "vars": {
         "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_Y2FsbS1jcmlja2V0LTgyLmNsZXJrLmFjY291bnRzLmRldiQ",

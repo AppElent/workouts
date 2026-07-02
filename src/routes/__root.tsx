@@ -32,7 +32,17 @@ export const Route = createRootRoute({
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
 			{ title: "Workout Tracker" },
 		],
-		links: [{ rel: "stylesheet", href: appCss }],
+		links: [
+			{
+				rel: "icon",
+				type: "image/png",
+				sizes: "192x192",
+				href: "/logo192.png",
+			},
+			{ rel: "apple-touch-icon", sizes: "192x192", href: "/logo192.png" },
+			{ rel: "manifest", href: "/manifest.json" },
+			{ rel: "stylesheet", href: appCss },
+		],
 	}),
 	shellComponent: RootDocument,
 	component: RootLayout,

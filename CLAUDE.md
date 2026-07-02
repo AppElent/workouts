@@ -14,17 +14,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repo uses **pnpm** (see `packageManager` in `package.json`). Use `pnpm`, not `npm`/`npx`.
 
 ```bash
-pnpm dev:all    # Start both Convex dev server and Vite concurrently (recommended)
+pnpm dev:watch  # Convex dev server (watch mode) + Vite, concurrently (recommended)
+pnpm dev:all    # Push Convex functions once, then start Vite — Convex won't re-sync after that
 pnpm dev        # Start Vite dev server only (port 3000, all interfaces)
 pnpm build      # Production build (Vite)
 pnpm build:development  # Vite build with --mode development
 pnpm preview    # Build (dev mode) + start local Cloudflare Workers dev server
+pnpm typecheck  # tsc --noEmit
 pnpm test       # Run all tests with Vitest
 pnpm lint       # Biome linter
 pnpm format     # Biome formatter
 pnpm check      # Biome lint + format check combined
-pnpm deploy           # Production build + deploy to Cloudflare (prod)
-pnpm deploy:dev       # Dev build + deploy to Cloudflare (dev env)
+pnpm deploy           # Full prod flow: convex deploy + build + Cloudflare deploy
+pnpm deploy:dev       # Push Convex dev functions + dev build + deploy to Cloudflare (dev env)
 pnpm cf-typegen       # Generate Cloudflare Workers TypeScript types
 ```
 
@@ -34,7 +36,7 @@ To run a single test file: `pnpm exec vitest run src/path/to/test.ts`
 
 **Supply-chain settings** live in `pnpm-workspace.yaml`: a build-script allowlist (`onlyBuiltDependencies`), a publish cooldown (`minimumReleaseAge`), and `overrides` for security pins. See the comments there before changing dependencies.
 
-**Development note**: `pnpm dev:all` is the recommended way to start development — it runs `pnpm exec convex dev` and `vite dev` concurrently. Both must be running for full functionality; Convex won't be available with `pnpm dev` alone.
+**Development note**: `pnpm dev:watch` is the recommended way to start development — it runs `convex dev` (continuous, re-pushing on every change) and `vite dev` concurrently via `concurrently`. Both must be running for full functionality; Convex won't be available with `pnpm dev` alone. `pnpm dev:all` only pushes Convex functions once at startup — use it for a quick one-off session, not while actively editing `convex/`.
 
 **Preview note**: `pnpm preview` does a full `build:development` then launches a local Cloudflare Workers dev server via `wrangler dev`. It is not a quick Vite preview — it simulates the production Workers runtime locally. Environment variables are injected by Wrangler from `wrangler.jsonc`.
 
@@ -55,7 +57,7 @@ The app is server-side rendered via TanStack React Start and deployed as a Cloud
 | Routing          | TanStack Router (file-based, part of React Start) |
 | Hosting          | Cloudflare Workers (via Wrangler)                 |
 | Backend          | Convex (serverless, real-time)                    |
-| Auth             | Clerk                                             |
+| Auth             | Clerk (+ `@appelent/auth`, shared internal glue)  |
 | Styling          | Tailwind CSS v4 + CVA                             |
 | UI Primitives    | Base UI (unstyled, accessible)                    |
 | Charts           | Recharts                                          |
@@ -162,6 +164,7 @@ src/components/
 - **Path aliases**: `#/*` and `@/*` both resolve to `src/`. `@convex/*` resolves to `convex/`.
 - **1RM calculations**: Shared logic in both `src/lib/oneRepMax.ts` (client) and `convex/lib/oneRepMax.ts` (server) using the Epley formula (`weight × (1 + reps/30)`). Keep them in sync — single-rep sets are treated as actual 1RMs. Auto-update behavior (in `convex/sets.ts`): logging a set auto-stores a new 1RM if it beats the existing record; if a manual 1RM exists, auto-calculation is skipped entirely; deleting a set clears all non-manual 1RMs for that exercise and recalculates from remaining sets.
 - **Auth guards**: Use Clerk's `<SignedIn>` / `<RedirectToSignIn>` components for protected UI. All Convex functions enforce auth server-side.
+- **Dev test login**: `@appelent/auth` renders a "▶ Dev: log in as test user" button on the sign-in screen whenever `VITE_CLERK_PUBLISHABLE_KEY` is a Clerk *test* key (`pk_test_...`) and `VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set — both conditions must hold, so it's structurally impossible on production (`pk_live_...`). Use it to authenticate when testing auth-gated pages locally or on a non-prod preview.
 - **Biome excludes**: `src/routeTree.gen.ts` and `src/styles.css` are excluded from linting — do not add lint-disable comments in those files.
 - **Forms**: Use TanStack Form with Zod schemas for validation.
 - **Data fetching**: Use Convex's `useQuery` / `useMutation` hooks for all backend data. The `@convex-dev/react-query` adapter is available for TanStack Query integration.
@@ -170,7 +173,7 @@ src/components/
 
 Variable sources differ by context:
 
-- **Local dev** (`pnpm dev:all`): vars come from `.env` / `.env.local`
+- **Local dev** (`pnpm dev:watch`/`dev:all`): vars come from `.env` / `.env.local`
 - **Local Workers preview** (`pnpm preview`): vars injected by Wrangler from `wrangler.jsonc`
 - **Deployed envs**: vars live in `wrangler.jsonc` under top-level (production) and `[env.dev]`. PR previews get `VITE_CONVEX_URL` from the Convex CLI per-PR and `VITE_CLERK_PUBLISHABLE_KEY` from the `PREVIEW_CLERK_PUBLISHABLE_KEY` GitHub secret.
 
@@ -178,7 +181,8 @@ Variable sources differ by context:
 | ---------------------------- | ---------------------------------------------------------------- |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk public key for frontend auth                               |
 | `VITE_CONVEX_URL`            | Convex deployment URL for the frontend client                    |
-| `environment_name`           | Set by Wrangler: `"production"`, `"development"`, or `"staging"` |
+| `environment_name`           | Set by Wrangler: `"production"`, `"development"`, or `"preview"` (PR previews) |
+| `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` | Enable `@appelent/auth`'s dev test-login button (see Key Conventions) — only takes effect on a Clerk test key |
 
 The Convex backend reads `CLERK_JWT_ISSUER_DOMAIN` from its own environment (set via `npx convex env set` or the Convex dashboard), configured in `convex/auth.config.ts`.
 
