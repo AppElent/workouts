@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -13,11 +13,18 @@ import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
 	const { isSignedIn } = useAuth();
+	const { user } = useUser();
 	const data = useQuery(api.hostedWorkouts.getByJoinToken, { token });
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const submitGuest = useMutation(api.hostedWorkoutSubmissions.submitGuest);
 	const [joining, setJoining] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
+	// Prefill the leaderboard name from the Clerk identity, but let the athlete
+	// override it. `nameInput === null` means "not yet edited" so the default
+	// tracks the loaded user.
+	const defaultName = user?.fullName || user?.username || user?.firstName || "";
+	const [nameInput, setNameInput] = useState<string | null>(null);
+	const displayName = nameInput ?? defaultName;
 
 	const wodBlocks = useMemo(
 		() =>
@@ -39,7 +46,10 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 		setJoining(true);
 		setJoinError(null);
 		try {
-			const sessionId = await join({ token });
+			const sessionId = await join({
+				token,
+				displayName: displayName.trim() || undefined,
+			});
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
 			setJoinError(
@@ -88,15 +98,27 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 					</div>
 
 					<SignedIn>
-						<button
-							type="button"
-							onClick={() => void handleJoin()}
-							disabled={!isOpen || joining}
-							className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
-						>
-							<Play size={15} />
-							{joining ? "Joining..." : "Join workout"}
-						</button>
+						<div className="flex flex-col gap-2 sm:w-56">
+							<label className="flex flex-col gap-1 text-xs font-medium uppercase text-[var(--text-muted)]">
+								Your name
+								<input
+									type="text"
+									value={displayName}
+									onChange={(event) => setNameInput(event.target.value)}
+									placeholder="Name on leaderboard"
+									className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm normal-case text-white placeholder:text-[var(--text-muted)]"
+								/>
+							</label>
+							<button
+								type="button"
+								onClick={() => void handleJoin()}
+								disabled={!isOpen || joining}
+								className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
+							>
+								<Play size={15} />
+								{joining ? "Joining..." : "Join workout"}
+							</button>
+						</div>
 					</SignedIn>
 					<SignedOut>
 						<Link
