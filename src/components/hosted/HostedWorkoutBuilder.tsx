@@ -310,6 +310,7 @@ export function HostedWorkoutBuilder({
 									),
 								)
 							}
+							aria-label={`Strength block ${index + 1} exercise`}
 							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
 							placeholder="Exercise"
 						/>
@@ -379,6 +380,7 @@ export function HostedWorkoutBuilder({
 									),
 								)
 							}
+							aria-label={`WOD ${index + 1} name`}
 							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
 							placeholder="WOD name"
 						/>
