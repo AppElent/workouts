@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { getConvexErrorMessage } from "#/lib/convexError";
 
 type StrengthBlock = {
 	blockId: string;
@@ -115,7 +116,7 @@ export function HostedWorkoutBuilder({
 			});
 			onCreated(id);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to save workout");
+			setError(getConvexErrorMessage(err, "Failed to save workout"));
 		} finally {
 			setSaving(false);
 		}

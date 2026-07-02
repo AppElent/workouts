@@ -1,12 +1,12 @@
 import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { toPublicHostedTemplate } from './lib/hostedDto'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
-  if (!identity) throw new Error('Unauthenticated')
+  if (!identity) throw new ConvexError('Unauthenticated')
   return identity.subject
 }
 
@@ -75,7 +75,7 @@ function createJoinToken() {
   const randomValues = new Uint32Array(18)
   const cryptoApi = globalThis.crypto?.getRandomValues?.bind(globalThis.crypto)
   if (!cryptoApi) {
-    throw new Error('Crypto randomness is unavailable.')
+    throw new ConvexError('Crypto randomness is unavailable.')
   }
   cryptoApi(randomValues)
   let token = ''
@@ -94,7 +94,7 @@ async function createUniqueJoinToken(ctx: QueryCtx | MutationCtx) {
       .first()
     if (!existing) return token
   }
-  throw new Error('Unable to create a unique join link.')
+  throw new ConvexError('Unable to create a unique join link.')
 }
 
 function assertTemplateIsUsable(input: {
@@ -102,17 +102,17 @@ function assertTemplateIsUsable(input: {
   wodBlocks: { name: string; levels: { level: string }[] }[]
 }) {
   if (input.strengthBlocks.length === 0 && input.wodBlocks.length === 0) {
-    throw new Error('Add at least one strength block or WOD.')
+    throw new ConvexError('Add at least one strength block or WOD.')
   }
   for (const block of input.strengthBlocks) {
-    if (!block.exerciseName.trim()) throw new Error('Exercise name is required.')
+    if (!block.exerciseName.trim()) throw new ConvexError('Exercise name is required.')
   }
   for (const block of input.wodBlocks) {
-    if (!block.name.trim()) throw new Error('WOD name is required.')
+    if (!block.name.trim()) throw new ConvexError('WOD name is required.')
     const levels = new Set(block.levels.map((l) => l.level))
     for (const required of ['rx', 'l1', 'l2', 'l3']) {
       if (!levels.has(required))
-        throw new Error('Each WOD needs Rx, L1, L2, and L3.')
+        throw new ConvexError('Each WOD needs Rx, L1, L2, and L3.')
     }
   }
 }
@@ -130,7 +130,7 @@ export const createDraft = mutation({
   },
   handler: async (ctx, args) => {
     const hostUserId = await requireUser(ctx)
-    if (!args.title.trim()) throw new Error('Title is required.')
+    if (!args.title.trim()) throw new ConvexError('Title is required.')
     assertTemplateIsUsable(args.template)
     const now = Date.now()
     return ctx.db.insert('hostedWorkouts', {
@@ -245,10 +245,10 @@ export const updateDraft = mutation({
     const hostUserId = await requireUser(ctx)
     const hosted = await ctx.db.get(id)
     if (!hosted || hosted.hostUserId !== hostUserId)
-      throw new Error('Unauthorized')
+      throw new ConvexError('Unauthorized')
     if (hosted.status !== 'draft')
-      throw new Error('Only draft workouts can be edited.')
-    if (!patch.title.trim()) throw new Error('Title is required.')
+      throw new ConvexError('Only draft workouts can be edited.')
+    if (!patch.title.trim()) throw new ConvexError('Title is required.')
     assertTemplateIsUsable(patch.template)
     await ctx.db.patch(id, {
       ...patch,
@@ -264,9 +264,9 @@ export const open = mutation({
     const hostUserId = await requireUser(ctx)
     const hosted = await ctx.db.get(id)
     if (!hosted || hosted.hostUserId !== hostUserId)
-      throw new Error('Unauthorized')
+      throw new ConvexError('Unauthorized')
     if (hosted.status !== 'draft')
-      throw new Error('Only draft workouts can be opened.')
+      throw new ConvexError('Only draft workouts can be opened.')
     await ctx.db.patch(id, { status: 'open', openedAt: Date.now() })
     if (hosted.hostParticipation === 'hostAndParticipate') {
       const existing = await ctx.db
@@ -283,7 +283,7 @@ export const open = mutation({
           )
           .first()
         if (active)
-          throw new Error('Finish or cancel your active workout before opening.')
+          throw new ConvexError('Finish or cancel your active workout before opening.')
         const now = Date.now()
         const sessionId = await ctx.db.insert('workoutSessions', {
           userId: hostUserId,
@@ -338,9 +338,9 @@ export const close = mutation({
     const hostUserId = await requireUser(ctx)
     const hosted = await ctx.db.get(id)
     if (!hosted || hosted.hostUserId !== hostUserId)
-      throw new Error('Unauthorized')
+      throw new ConvexError('Unauthorized')
     if (hosted.status !== 'open')
-      throw new Error('Only open workouts can be closed.')
+      throw new ConvexError('Only open workouts can be closed.')
     await ctx.db.patch(id, { status: 'closed', closedAt: Date.now() })
     await finishParticipantSessions(ctx, id)
   },
@@ -352,7 +352,7 @@ export const remove = mutation({
     const hostUserId = await requireUser(ctx)
     const hosted = await ctx.db.get(id)
     if (!hosted || hosted.hostUserId !== hostUserId)
-      throw new Error('Unauthorized')
+      throw new ConvexError('Unauthorized')
     await finishParticipantSessions(ctx, id)
     const submissions = await ctx.db
       .query('hostedWorkoutSubmissions')

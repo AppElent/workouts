@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { getConvexErrorMessage } from "#/lib/convexError";
 import {
 	formatMovement,
 	getHostedLevelLabel,
@@ -85,7 +86,7 @@ export function HostedScoreForm({
 			setNotes("");
 			setMessage("Score submitted.");
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to submit score.");
+			setError(getConvexErrorMessage(err, "Failed to submit score."));
 		} finally {
 			setSaving(false);
 		}

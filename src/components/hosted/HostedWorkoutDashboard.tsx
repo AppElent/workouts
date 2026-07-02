@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
+import { getConvexErrorMessage } from "#/lib/convexError";
 import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
@@ -43,7 +44,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 		try {
 			await action();
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Something went wrong.");
+			setError(getConvexErrorMessage(err, "Something went wrong."));
 		}
 	}
 

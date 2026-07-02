@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
+import { getConvexErrorMessage } from "#/lib/convexError";
 import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
@@ -52,9 +53,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 			});
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setJoinError(
-				err instanceof Error ? err.message : "Failed to join workout.",
-			);
+			setJoinError(getConvexErrorMessage(err, "Failed to join workout."));
 			setJoining(false);
 		}
 	}

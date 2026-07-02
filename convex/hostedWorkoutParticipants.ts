@@ -1,11 +1,11 @@
 import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { toHostedSessionDto } from './lib/hostedDto'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
-  if (!identity) throw new Error('Unauthenticated')
+  if (!identity) throw new ConvexError('Unauthenticated')
   return identity.subject
 }
 
@@ -17,8 +17,8 @@ export const join = mutation({
       .query('hostedWorkouts')
       .withIndex('by_join_token', (q) => q.eq('joinToken', token))
       .first()
-    if (!hosted) throw new Error('Hosted workout not found.')
-    if (hosted.status !== 'open') throw new Error('This hosted workout is not open.')
+    if (!hosted) throw new ConvexError('Hosted workout not found.')
+    if (hosted.status !== 'open') throw new ConvexError('This hosted workout is not open.')
 
     const existing = await ctx.db
       .query('hostedWorkoutParticipants')
@@ -34,7 +34,7 @@ export const join = mutation({
         q.eq('userId', userId).eq('status', 'active'),
       )
       .first()
-    if (active) throw new Error('Finish or cancel your active workout before joining.')
+    if (active) throw new ConvexError('Finish or cancel your active workout before joining.')
 
     const now = Date.now()
     const sessionId = await ctx.db.insert('workoutSessions', {
@@ -88,7 +88,7 @@ export const listForHost = query({
   handler: async (ctx, { hostedWorkoutId }) => {
     const hostUserId = await requireUser(ctx)
     const hosted = await ctx.db.get(hostedWorkoutId)
-    if (!hosted || hosted.hostUserId !== hostUserId) throw new Error('Unauthorized')
+    if (!hosted || hosted.hostUserId !== hostUserId) throw new ConvexError('Unauthorized')
     return ctx.db
       .query('hostedWorkoutParticipants')
       .withIndex('by_hosted_workout', (q) =>

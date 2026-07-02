@@ -1,12 +1,23 @@
 import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { assertOptionalRange } from './lib/validate'
 
+// A non-open workout can't be scored. Word it for the actual status so a draft
+// that was never opened doesn't say it is "closed".
+function assertOpenForScoring(status: 'draft' | 'open' | 'closed') {
+  if (status === 'open') return
+  throw new ConvexError(
+    status === 'closed'
+      ? 'This workout has closed.'
+      : "This workout hasn't opened yet.",
+  )
+}
+
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
-  if (!identity) throw new Error('Unauthenticated')
+  if (!identity) throw new ConvexError('Unauthenticated')
   return identity.subject
 }
 
@@ -59,12 +70,12 @@ function assertScoreMatchesWod(type: WodBlock['type'], score: Score) {
   if (type === 'forTime') {
     if (score.timeCapped === true) {
       if (score.reps === undefined) {
-        throw new Error('Reps are required for capped scores.')
+        throw new ConvexError('Reps are required for capped scores.')
       }
       return
     }
     if (score.timeSeconds === undefined) {
-      throw new Error('Time is required for this WOD.')
+      throw new ConvexError('Time is required for this WOD.')
     }
     return
   }
@@ -73,20 +84,20 @@ function assertScoreMatchesWod(type: WodBlock['type'], score: Score) {
     score.rounds === undefined &&
     score.reps === undefined
   ) {
-    throw new Error('Rounds or reps are required for this WOD.')
+    throw new ConvexError('Rounds or reps are required for this WOD.')
   }
   if (
     type === 'emom' &&
     score.reps === undefined &&
     score.rounds === undefined
   ) {
-    throw new Error('Completed reps or rounds are required for this WOD.')
+    throw new ConvexError('Completed reps or rounds are required for this WOD.')
   }
   if (type === 'load' && score.load === undefined) {
-    throw new Error('Load is required for this WOD.')
+    throw new ConvexError('Load is required for this WOD.')
   }
   if (type === 'load' && score.loadUnit === undefined) {
-    throw new Error('Load unit is required for this WOD.')
+    throw new ConvexError('Load unit is required for this WOD.')
   }
 }
 
@@ -112,7 +123,7 @@ async function getHostedForHost(
 ) {
   const hosted = await ctx.db.get(hostedWorkoutId)
   if (!hosted || hosted.hostUserId !== hostUserId) {
-    throw new Error('Unauthorized')
+    throw new ConvexError('Unauthorized')
   }
   return hosted
 }
@@ -127,7 +138,7 @@ async function getOwnedParticipantBySession(
     .withIndex('by_session', (q) => q.eq('sessionId', sessionId))
     .first()
   if (!participant || participant.userId !== userId) {
-    throw new Error('Unauthorized')
+    throw new ConvexError('Unauthorized')
   }
   return participant
 }
@@ -159,12 +170,12 @@ async function upsertSignedInSubmission(
 ) {
   assertScoreRanges(score)
   const hosted = await ctx.db.get(participant.hostedWorkoutId)
-  if (!hosted) throw new Error('Hosted workout not found.')
-  if (hosted.status !== 'open') throw new Error('This hosted workout is closed.')
+  if (!hosted) throw new ConvexError('Hosted workout not found.')
+  assertOpenForScoring(hosted.status)
   const wodBlock = findWodBlock(hosted, wodBlockId)
-  if (!wodBlock) throw new Error('WOD block not found.')
+  if (!wodBlock) throw new ConvexError('WOD block not found.')
   const selectedLevel = findLevel(wodBlock, score.level)
-  if (!selectedLevel) throw new Error('Level not found for this WOD.')
+  if (!selectedLevel) throw new ConvexError('Level not found for this WOD.')
   assertScoreMatchesWod(wodBlock.type, score)
 
   const now = Date.now()
@@ -282,7 +293,7 @@ export const submitForParticipant = mutation({
     const userId = await requireUser(ctx)
     const participant = await ctx.db.get(participantId)
     if (!participant || participant.userId !== userId) {
-      throw new Error('Unauthorized')
+      throw new ConvexError('Unauthorized')
     }
     return upsertSignedInSubmission(ctx, participant, userId, wodBlockId, score)
   },
@@ -299,18 +310,18 @@ export const submitGuest = mutation({
     assertScoreRanges(score)
     const cleanName = guestName.trim()
     if (cleanName.length < 2 || cleanName.length > 80) {
-      throw new Error('Enter a display name between 2 and 80 characters.')
+      throw new ConvexError('Enter a display name between 2 and 80 characters.')
     }
     const hosted = await ctx.db
       .query('hostedWorkouts')
       .withIndex('by_join_token', (q) => q.eq('joinToken', token))
       .first()
-    if (!hosted) throw new Error('Hosted workout not found.')
-    if (hosted.status !== 'open') throw new Error('This hosted workout is closed.')
+    if (!hosted) throw new ConvexError('Hosted workout not found.')
+    assertOpenForScoring(hosted.status)
     const wodBlock = findWodBlock(hosted, wodBlockId)
-    if (!wodBlock) throw new Error('WOD block not found.')
+    if (!wodBlock) throw new ConvexError('WOD block not found.')
     const selectedLevel = findLevel(wodBlock, score.level)
-    if (!selectedLevel) throw new Error('Level not found for this WOD.')
+    if (!selectedLevel) throw new ConvexError('Level not found for this WOD.')
     assertScoreMatchesWod(wodBlock.type, score)
 
     const scoreFieldsPatch = {
@@ -370,10 +381,10 @@ export const remove = mutation({
   handler: async (ctx, { id }) => {
     const hostUserId = await requireUser(ctx)
     const submission = await ctx.db.get(id)
-    if (!submission) throw new Error('Submission not found.')
+    if (!submission) throw new ConvexError('Submission not found.')
     const hosted = await ctx.db.get(submission.hostedWorkoutId)
     if (!hosted || hosted.hostUserId !== hostUserId) {
-      throw new Error('Unauthorized')
+      throw new ConvexError('Unauthorized')
     }
     // Clean up the personal records created for this submission so removing a
     // score doesn't leave orphaned wods/wodResults in the athlete's library.
