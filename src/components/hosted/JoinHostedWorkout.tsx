@@ -9,7 +9,11 @@ import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
+import {
+	formatWodTiming,
+	type HostedLeaderboardRow,
+	type HostedWodType,
+} from "#/lib/hostedWorkouts";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
@@ -208,6 +212,19 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 										{block.repScheme && (
 											<p className="text-xs text-[var(--accent)]">
 												{block.repScheme}
+											</p>
+										)}
+										{formatWodTiming(
+											block.type as HostedWodType,
+											block.timeCapSeconds,
+											block.durationSeconds,
+										) && (
+											<p className="text-xs text-[var(--text-muted)]">
+												{formatWodTiming(
+													block.type as HostedWodType,
+													block.timeCapSeconds,
+													block.durationSeconds,
+												)}
 											</p>
 										)}
 									</div>

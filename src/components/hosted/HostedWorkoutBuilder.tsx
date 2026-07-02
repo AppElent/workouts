@@ -34,6 +34,9 @@ type WodBlock = {
 	name: string;
 	type: "forTime" | "amrap" | "emom" | "load";
 	description?: string;
+	repScheme?: string;
+	timeCapSeconds?: number;
+	durationSeconds?: number;
 	levels: {
 		level: Level;
 		label: string;
@@ -194,6 +197,33 @@ export function HostedWorkoutBuilder({
 		} finally {
 			setSaving(false);
 		}
+	}
+
+	function updateBlock(blockIndex: number, patch: Partial<WodBlock>) {
+		setWodBlocks((prev) =>
+			prev.map((block, bi) =>
+				bi === blockIndex ? { ...block, ...patch } : block,
+			),
+		);
+	}
+
+	function updateLevelDescription(
+		blockIndex: number,
+		levelKey: Level,
+		description: string,
+	) {
+		setWodBlocks((prev) =>
+			prev.map((block, bi) =>
+				bi === blockIndex
+					? {
+							...block,
+							levels: block.levels.map((entry) =>
+								entry.level === levelKey ? { ...entry, description } : entry,
+							),
+						}
+					: block,
+			),
+		);
 	}
 
 	function mutateLevel(
@@ -438,6 +468,60 @@ export function HostedWorkoutBuilder({
 								</button>
 							))}
 						</div>
+						<div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+							<input
+								value={block.repScheme ?? ""}
+								onChange={(event) =>
+									updateBlock(index, {
+										repScheme: event.target.value.trim()
+											? event.target.value
+											: undefined,
+									})
+								}
+								aria-label={`WOD ${index + 1} rep scheme`}
+								className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+								placeholder="Rep scheme (e.g. 21-15-9)"
+							/>
+							{block.type !== "load" && (
+								<div className="flex items-center gap-2">
+									<input
+										type="number"
+										inputMode="numeric"
+										min={0}
+										value={
+											block.type === "forTime"
+												? block.timeCapSeconds
+													? block.timeCapSeconds / 60
+													: ""
+												: block.durationSeconds
+													? block.durationSeconds / 60
+													: ""
+										}
+										onChange={(event) => {
+											const minutes = parseOptionalNumber(event.target.value);
+											const seconds =
+												minutes === undefined ? undefined : minutes * 60;
+											updateBlock(
+												index,
+												block.type === "forTime"
+													? { timeCapSeconds: seconds }
+													: { durationSeconds: seconds },
+											);
+										}}
+										aria-label={`WOD ${index + 1} ${
+											block.type === "forTime" ? "time cap" : "duration"
+										} in minutes`}
+										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+										placeholder={
+											block.type === "forTime"
+												? "Time cap (min)"
+												: "Duration (min)"
+										}
+									/>
+									<span className="text-xs text-[var(--text-muted)]">min</span>
+								</div>
+							)}
+						</div>
 						{block.levels.map((level) => (
 							<div
 								key={level.level}
@@ -526,6 +610,19 @@ export function HostedWorkoutBuilder({
 								>
 									<Plus size={12} /> Add movement
 								</button>
+								<input
+									value={level.description ?? ""}
+									onChange={(event) =>
+										updateLevelDescription(
+											index,
+											level.level,
+											event.target.value,
+										)
+									}
+									aria-label={`${level.label} notes`}
+									className="mt-2 h-8 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+									placeholder="Level notes (optional)"
+								/>
 							</div>
 						))}
 						<button

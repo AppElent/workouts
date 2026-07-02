@@ -2,11 +2,28 @@ import { describe, expect, it } from "vitest";
 import {
 	formatHostedScore,
 	formatMovement,
+	formatWodTiming,
 	getHostedLevelLabel,
 	scoreRank,
 	sortHostedLeaderboard,
 	validateHostedScore,
 } from "./hostedWorkouts";
+
+describe("formatWodTiming", () => {
+	it("formats a for-time time cap as a clock", () => {
+		expect(formatWodTiming("forTime", 600)).toBe("Time cap 10:00");
+	});
+
+	it("formats an AMRAP/EMOM duration in minutes", () => {
+		expect(formatWodTiming("amrap", undefined, 720)).toBe("12 min");
+		expect(formatWodTiming("emom", undefined, 600)).toBe("10 min");
+	});
+
+	it("returns null when the timing does not apply", () => {
+		expect(formatWodTiming("load")).toBeNull();
+		expect(formatWodTiming("forTime")).toBeNull();
+	});
+});
 
 describe("formatMovement", () => {
 	it("renders reps, name, and a per-movement weight", () => {

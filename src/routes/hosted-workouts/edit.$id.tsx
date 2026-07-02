@@ -70,6 +70,9 @@ function EditHostedWorkoutPage() {
 				name: block.name,
 				type: block.type,
 				description: block.description,
+				repScheme: block.repScheme,
+				timeCapSeconds: block.timeCapSeconds,
+				durationSeconds: block.durationSeconds,
 				levels: block.levels.map((level) => ({
 					level: level.level,
 					label: level.label,

@@ -132,6 +132,24 @@ export function formatHostedScore(type: HostedWodType, score: HostedScore) {
 	return `${score.load ?? 0} ${score.loadUnit ?? "kg"}`;
 }
 
+/**
+ * A short timing label for a WOD block header: a time cap for for-time WODs,
+ * or a duration for AMRAP/EMOM. Returns null when the block has no timing.
+ */
+export function formatWodTiming(
+	type: HostedWodType,
+	timeCapSeconds?: number,
+	durationSeconds?: number,
+): string | null {
+	if (type === "forTime" && timeCapSeconds) {
+		return `Time cap ${formatSeconds(timeCapSeconds)}`;
+	}
+	if ((type === "amrap" || type === "emom") && durationSeconds) {
+		return `${Math.round(durationSeconds / 60)} min`;
+	}
+	return null;
+}
+
 export function sortHostedLeaderboard(
 	type: HostedWodType,
 	rows: HostedLeaderboardRow[],

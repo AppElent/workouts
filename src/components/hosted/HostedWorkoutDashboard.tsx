@@ -9,7 +9,11 @@ import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
+import {
+	formatWodTiming,
+	type HostedLeaderboardRow,
+	type HostedWodType,
+} from "#/lib/hostedWorkouts";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const data = useQuery(api.hostedWorkouts.getMine, { id });
@@ -245,6 +249,19 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 									{block.repScheme && (
 										<p className="text-xs text-[var(--accent)]">
 											{block.repScheme}
+										</p>
+									)}
+									{formatWodTiming(
+										block.type as HostedWodType,
+										block.timeCapSeconds,
+										block.durationSeconds,
+									) && (
+										<p className="text-xs text-[var(--text-muted)]">
+											{formatWodTiming(
+												block.type as HostedWodType,
+												block.timeCapSeconds,
+												block.durationSeconds,
+											)}
 										</p>
 									)}
 									{block.description && (
