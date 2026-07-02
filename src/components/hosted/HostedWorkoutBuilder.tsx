@@ -1,12 +1,13 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { getConvexErrorMessage } from "#/lib/convexError";
 
 type StrengthBlock = {
 	blockId: string;
+	exerciseId?: Id<"exercises">;
 	exerciseName: string;
 	instructions?: string;
 	defaultSets?: number;
@@ -121,6 +122,7 @@ export function HostedWorkoutBuilder({
 }) {
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
+	const exercises = useQuery(api.exercises.list) ?? [];
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [notes, setNotes] = useState(initial?.notes ?? "");
 	const [scheduledAt, setScheduledAt] = useState(
@@ -376,6 +378,40 @@ export function HostedWorkoutBuilder({
 							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
 							placeholder="Exercise"
 						/>
+						<select
+							value={block.exerciseId ?? ""}
+							onChange={(event) => {
+								const value = event.target.value;
+								const linked = exercises.find((ex) => ex._id === value);
+								setStrengthBlocks((prev) =>
+									prev.map((item, itemIndex) =>
+										itemIndex === index
+											? {
+													...item,
+													exerciseId: linked?._id,
+													exerciseName: linked
+														? linked.name
+														: item.exerciseName,
+												}
+											: item,
+									),
+								);
+							}}
+							aria-label={`Strength block ${index + 1} link to a logged exercise`}
+							className="mt-2 h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white"
+						>
+							<option value="">Not linked (info only)</option>
+							{exercises.map((ex) => (
+								<option key={ex._id} value={ex._id}>
+									{ex.name}
+								</option>
+							))}
+						</select>
+						{block.exerciseId && (
+							<p className="mt-1 text-xs text-[var(--text-muted)]">
+								Participants can log sets for this exercise in their session.
+							</p>
+						)}
 						<textarea
 							value={block.instructions ?? ""}
 							onChange={(event) =>

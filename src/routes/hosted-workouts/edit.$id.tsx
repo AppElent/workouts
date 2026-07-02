@@ -57,6 +57,7 @@ function EditHostedWorkoutPage() {
 		template: {
 			strengthBlocks: hosted.template.strengthBlocks.map((block) => ({
 				blockId: block.blockId,
+				exerciseId: block.exerciseId,
 				exerciseName: block.exerciseName,
 				instructions: block.instructions,
 				defaultSets: block.defaultSets,
