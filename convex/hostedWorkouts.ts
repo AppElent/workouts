@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { toPublicHostedTemplate } from './lib/hostedDto'
 
@@ -303,6 +304,34 @@ export const open = mutation({
   },
 })
 
+// Joining a hosted workout (via `join`, or `open` for host-and-participate)
+// creates a `workoutSessions` row with status 'active'. The app enforces a
+// single active session per user, so an active hosted session that is never
+// finished would lock the participant out of starting/joining anything else.
+// Whenever a hosted workout ends (closed or removed), finish every linked
+// session that is still active so no participant (nor the host) is stranded.
+async function finishParticipantSessions(
+  ctx: MutationCtx,
+  hostedWorkoutId: Id<'hostedWorkouts'>,
+) {
+  const participants = await ctx.db
+    .query('hostedWorkoutParticipants')
+    .withIndex('by_hosted_workout', (q) =>
+      q.eq('hostedWorkoutId', hostedWorkoutId),
+    )
+    .collect()
+  const now = Date.now()
+  for (const participant of participants) {
+    const session = await ctx.db.get(participant.sessionId)
+    if (session && session.status === 'active') {
+      await ctx.db.patch(participant.sessionId, {
+        status: 'completed',
+        endTime: now,
+      })
+    }
+  }
+}
+
 export const close = mutation({
   args: { id: v.id('hostedWorkouts') },
   handler: async (ctx, { id }) => {
@@ -313,6 +342,7 @@ export const close = mutation({
     if (hosted.status !== 'open')
       throw new Error('Only open workouts can be closed.')
     await ctx.db.patch(id, { status: 'closed', closedAt: Date.now() })
+    await finishParticipantSessions(ctx, id)
   },
 })
 
@@ -323,6 +353,7 @@ export const remove = mutation({
     const hosted = await ctx.db.get(id)
     if (!hosted || hosted.hostUserId !== hostUserId)
       throw new Error('Unauthorized')
+    await finishParticipantSessions(ctx, id)
     const submissions = await ctx.db
       .query('hostedWorkoutSubmissions')
       .withIndex('by_hosted_workout', (q) => q.eq('hostedWorkoutId', id))
