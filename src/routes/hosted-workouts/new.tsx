@@ -25,7 +25,7 @@ function NewHostedWorkoutPage() {
 		<div className="mx-auto max-w-3xl p-4 sm:p-6">
 			<h1 className="mb-6 text-2xl font-bold text-white">Host Workout</h1>
 			<HostedWorkoutBuilder
-				onCreated={(id) =>
+				onSaved={(id) =>
 					void navigate({ to: "/hosted-workouts/$id", params: { id } })
 				}
 			/>

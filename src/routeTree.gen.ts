@@ -29,6 +29,7 @@ import { Route as JoinTokenRouteImport } from './routes/join/$token'
 import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
 import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
+import { Route as HostedWorkoutsEditIdRouteImport } from './routes/hosted-workouts/edit.$id'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -130,6 +131,11 @@ const ExercisesIdRoute = ExercisesIdRouteImport.update({
   path: '/exercises/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HostedWorkoutsEditIdRoute = HostedWorkoutsEditIdRouteImport.update({
+  id: '/hosted-workouts/edit/$id',
+  path: '/hosted-workouts/edit/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
   '/wods/': typeof WodsIndexRoute
+  '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/progress': typeof ProgressIndexRoute
   '/routines': typeof RoutinesIndexRoute
   '/wods': typeof WodsIndexRoute
+  '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/progress/': typeof ProgressIndexRoute
   '/routines/': typeof RoutinesIndexRoute
   '/wods/': typeof WodsIndexRoute
+  '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/progress/'
     | '/routines/'
     | '/wods/'
+    | '/hosted-workouts/edit/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/progress'
     | '/routines'
     | '/wods'
+    | '/hosted-workouts/edit/$id'
   id:
     | '__root__'
     | '/'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/progress/'
     | '/routines/'
     | '/wods/'
+    | '/hosted-workouts/edit/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   ProgressIndexRoute: typeof ProgressIndexRoute
   RoutinesIndexRoute: typeof RoutinesIndexRoute
   WodsIndexRoute: typeof WodsIndexRoute
+  HostedWorkoutsEditIdRoute: typeof HostedWorkoutsEditIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExercisesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hosted-workouts/edit/$id': {
+      id: '/hosted-workouts/edit/$id'
+      path: '/hosted-workouts/edit/$id'
+      fullPath: '/hosted-workouts/edit/$id'
+      preLoaderRoute: typeof HostedWorkoutsEditIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -456,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProgressIndexRoute: ProgressIndexRoute,
   RoutinesIndexRoute: RoutinesIndexRoute,
   WodsIndexRoute: WodsIndexRoute,
+  HostedWorkoutsEditIdRoute: HostedWorkoutsEditIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

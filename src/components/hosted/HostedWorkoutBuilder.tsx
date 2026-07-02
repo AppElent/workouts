@@ -1,4 +1,5 @@
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -56,6 +57,37 @@ function newBlockId() {
 	return crypto.randomUUID();
 }
 
+// Persisted movements have no client id; add one when seeding edit state.
+type PersistedMovement = Omit<Movement, "id">;
+type PersistedWodBlock = Omit<WodBlock, "levels"> & {
+	levels: (Omit<WodBlock["levels"][number], "movements"> & {
+		movements: PersistedMovement[];
+	})[];
+};
+
+export type HostedWorkoutBuilderInitial = {
+	title: string;
+	notes?: string;
+	hostParticipation: "hostOnly" | "hostAndParticipate";
+	template: {
+		strengthBlocks: StrengthBlock[];
+		wodBlocks: PersistedWodBlock[];
+	};
+};
+
+function withMovementIds(blocks: PersistedWodBlock[]): WodBlock[] {
+	return blocks.map((block) => ({
+		...block,
+		levels: block.levels.map((level) => ({
+			...level,
+			movements: level.movements.map((movement) => ({
+				id: crypto.randomUUID(),
+				...movement,
+			})),
+		})),
+	}));
+}
+
 function parseOptionalNumber(value: string): number | undefined {
 	if (value.trim() === "") return undefined;
 	const parsed = Number(value);
@@ -63,18 +95,29 @@ function parseOptionalNumber(value: string): number | undefined {
 }
 
 export function HostedWorkoutBuilder({
-	onCreated,
+	hostedWorkoutId,
+	initial,
+	onSaved,
 }: {
-	onCreated: (id: string) => void;
+	// When provided, the builder edits an existing draft via updateDraft;
+	// otherwise it creates a new draft via createDraft.
+	hostedWorkoutId?: Id<"hostedWorkouts">;
+	initial?: HostedWorkoutBuilderInitial;
+	onSaved: (id: string) => void;
 }) {
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
-	const [title, setTitle] = useState("");
-	const [notes, setNotes] = useState("");
+	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
+	const [title, setTitle] = useState(initial?.title ?? "");
+	const [notes, setNotes] = useState(initial?.notes ?? "");
 	const [hostParticipation, setHostParticipation] = useState<
 		"hostOnly" | "hostAndParticipate"
-	>("hostOnly");
-	const [strengthBlocks, setStrengthBlocks] = useState<StrengthBlock[]>([]);
-	const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([]);
+	>(initial?.hostParticipation ?? "hostOnly");
+	const [strengthBlocks, setStrengthBlocks] = useState<StrengthBlock[]>(
+		initial?.template.strengthBlocks ?? [],
+	);
+	const [wodBlocks, setWodBlocks] = useState<WodBlock[]>(() =>
+		initial ? withMovementIds(initial.template.wodBlocks) : [],
+	);
 	const [error, setError] = useState("");
 	const [saving, setSaving] = useState(false);
 
@@ -84,37 +127,49 @@ export function HostedWorkoutBuilder({
 		setSaving(true);
 		setError("");
 		try {
-			const id = await createDraft({
-				title,
-				notes: notes.trim() || undefined,
-				hostParticipation,
-				template: {
-					strengthBlocks: strengthBlocks.map((block) => ({
-						...block,
-						exerciseName: block.exerciseName.trim(),
-						instructions: block.instructions?.trim() || undefined,
+			const template = {
+				strengthBlocks: strengthBlocks.map((block) => ({
+					...block,
+					exerciseName: block.exerciseName.trim(),
+					instructions: block.instructions?.trim() || undefined,
+				})),
+				wodBlocks: wodBlocks.map((block) => ({
+					...block,
+					name: block.name.trim(),
+					description: block.description?.trim() || undefined,
+					levels: block.levels.map((level) => ({
+						...level,
+						description: level.description?.trim() || undefined,
+						movements: level.movements
+							.filter((movement) => movement.name.trim().length > 0)
+							.map((movement) => ({
+								name: movement.name.trim(),
+								reps: movement.reps,
+								weight: movement.weight,
+								unit: movement.unit,
+								notes: movement.notes?.trim() || undefined,
+							})),
 					})),
-					wodBlocks: wodBlocks.map((block) => ({
-						...block,
-						name: block.name.trim(),
-						description: block.description?.trim() || undefined,
-						levels: block.levels.map((level) => ({
-							...level,
-							description: level.description?.trim() || undefined,
-							movements: level.movements
-								.filter((movement) => movement.name.trim().length > 0)
-								.map((movement) => ({
-									name: movement.name.trim(),
-									reps: movement.reps,
-									weight: movement.weight,
-									unit: movement.unit,
-									notes: movement.notes?.trim() || undefined,
-								})),
-						})),
-					})),
-				},
-			});
-			onCreated(id);
+				})),
+			};
+			if (hostedWorkoutId) {
+				await updateDraft({
+					id: hostedWorkoutId,
+					title,
+					notes: notes.trim() || undefined,
+					hostParticipation,
+					template,
+				});
+				onSaved(hostedWorkoutId);
+			} else {
+				const id = await createDraft({
+					title,
+					notes: notes.trim() || undefined,
+					hostParticipation,
+					template,
+				});
+				onSaved(id);
+			}
 		} catch (err) {
 			setError(getConvexErrorMessage(err, "Failed to save workout"));
 		} finally {
@@ -460,7 +515,8 @@ export function HostedWorkoutBuilder({
 				disabled={saving}
 				className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-bold text-black disabled:opacity-50"
 			>
-				<Save size={15} /> {saving ? "Saving..." : "Save draft"}
+				<Save size={15} />{" "}
+				{saving ? "Saving..." : hostedWorkoutId ? "Save changes" : "Save draft"}
 			</button>
 		</form>
 	);

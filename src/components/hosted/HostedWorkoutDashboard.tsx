@@ -3,7 +3,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { ArrowLeft, Dumbbell, Lock, Play } from "lucide-react";
+import { ArrowLeft, Dumbbell, Lock, Pencil, Play } from "lucide-react";
 import { useMemo, useState } from "react";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
@@ -83,13 +83,22 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 					</div>
 					<div className="flex flex-wrap gap-2">
 						{hosted.status === "draft" && (
-							<button
-								type="button"
-								onClick={() => runAction(() => openHostedWorkout({ id }))}
-								className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black"
-							>
-								<Play size={15} /> Open
-							</button>
+							<>
+								<Link
+									to="/hosted-workouts/edit/$id"
+									params={{ id }}
+									className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-white"
+								>
+									<Pencil size={15} /> Edit
+								</Link>
+								<button
+									type="button"
+									onClick={() => runAction(() => openHostedWorkout({ id }))}
+									className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black"
+								>
+									<Play size={15} /> Open
+								</button>
+							</>
 						)}
 						{hosted.status === "open" && myParticipant && (
 							<Link
