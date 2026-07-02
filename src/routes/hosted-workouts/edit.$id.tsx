@@ -52,6 +52,7 @@ function EditHostedWorkoutPage() {
 	const initial: HostedWorkoutBuilderInitial = {
 		title: hosted.title,
 		notes: hosted.notes,
+		scheduledAt: hosted.scheduledAt,
 		hostParticipation: hosted.hostParticipation,
 		template: {
 			strengthBlocks: hosted.template.strengthBlocks.map((block) => ({

@@ -68,6 +68,7 @@ type PersistedWodBlock = Omit<WodBlock, "levels"> & {
 export type HostedWorkoutBuilderInitial = {
 	title: string;
 	notes?: string;
+	scheduledAt?: number;
 	hostParticipation: "hostOnly" | "hostAndParticipate";
 	template: {
 		strengthBlocks: StrengthBlock[];
@@ -94,6 +95,16 @@ function parseOptionalNumber(value: string): number | undefined {
 	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+// Convert an epoch-ms timestamp to a local "YYYY-MM-DDTHH:mm" value for a
+// datetime-local input, and back.
+function toDateTimeLocal(ms: number): string {
+	const date = new Date(ms);
+	const pad = (n: number) => String(n).padStart(2, "0");
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+		date.getDate(),
+	)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function HostedWorkoutBuilder({
 	hostedWorkoutId,
 	initial,
@@ -109,6 +120,9 @@ export function HostedWorkoutBuilder({
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [notes, setNotes] = useState(initial?.notes ?? "");
+	const [scheduledAt, setScheduledAt] = useState(
+		initial?.scheduledAt ? toDateTimeLocal(initial.scheduledAt) : "",
+	);
 	const [hostParticipation, setHostParticipation] = useState<
 		"hostOnly" | "hostAndParticipate"
 	>(initial?.hostParticipation ?? "hostOnly");
@@ -152,11 +166,15 @@ export function HostedWorkoutBuilder({
 					})),
 				})),
 			};
+			const scheduledMs = scheduledAt
+				? new Date(scheduledAt).getTime()
+				: undefined;
 			if (hostedWorkoutId) {
 				await updateDraft({
 					id: hostedWorkoutId,
 					title,
 					notes: notes.trim() || undefined,
+					scheduledAt: scheduledMs,
 					hostParticipation,
 					template,
 				});
@@ -165,6 +183,7 @@ export function HostedWorkoutBuilder({
 				const id = await createDraft({
 					title,
 					notes: notes.trim() || undefined,
+					scheduledAt: scheduledMs,
 					hostParticipation,
 					template,
 				});
@@ -251,6 +270,19 @@ export function HostedWorkoutBuilder({
 					onChange={(event) => setNotes(event.target.value)}
 					className="mt-3 min-h-20 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-white placeholder:text-[var(--text-muted)]"
 					placeholder="Workout notes"
+				/>
+				<label
+					htmlFor="hosted-scheduled-at"
+					className="mt-3 block text-xs font-semibold text-[var(--text-muted)]"
+				>
+					Scheduled time (optional)
+				</label>
+				<input
+					id="hosted-scheduled-at"
+					type="datetime-local"
+					value={scheduledAt}
+					onChange={(event) => setScheduledAt(event.target.value)}
+					className="mt-2 h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
 				/>
 				<div className="mt-3 grid grid-cols-2 gap-2">
 					<button
