@@ -3,7 +3,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { ArrowLeft, Lock, Play } from "lucide-react";
+import { ArrowLeft, Dumbbell, Lock, Play } from "lucide-react";
 import { useMemo, useState } from "react";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
@@ -13,6 +13,10 @@ import type { HostedLeaderboardRow, HostedWodType } from "#/lib/hostedWorkouts";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const data = useQuery(api.hostedWorkouts.getMine, { id });
+	const myParticipant = useQuery(
+		api.hostedWorkoutParticipants.getMyParticipant,
+		{ hostedWorkoutId: id },
+	);
 	const openHostedWorkout = useMutation(api.hostedWorkouts.open);
 	const closeHostedWorkout = useMutation(api.hostedWorkouts.close);
 	const removeSubmission = useMutation(api.hostedWorkoutSubmissions.remove);
@@ -86,6 +90,15 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 							>
 								<Play size={15} /> Open
 							</button>
+						)}
+						{hosted.status === "open" && myParticipant && (
+							<Link
+								to="/log/$sessionId"
+								params={{ sessionId: myParticipant.sessionId }}
+								className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black"
+							>
+								<Dumbbell size={15} /> Go to my session
+							</Link>
 						)}
 						{hosted.status === "open" && (
 							<button
