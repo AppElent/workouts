@@ -185,6 +185,9 @@ export const getByJoinToken = query({
       .withIndex('by_join_token', (q) => q.eq('joinToken', token))
       .first()
     if (!hosted) return null
+    // Don't expose a draft's plan to arbitrary token holders; the join link
+    // only resolves once the host opens the workout.
+    if (hosted.status === 'draft') return null
     const submissions = await ctx.db
       .query('hostedWorkoutSubmissions')
       .withIndex('by_hosted_workout', (q) =>

@@ -147,7 +147,17 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-				<HostedWorkoutQr url={joinUrl} />
+				{hosted.status === "draft" ? (
+					<div className="flex h-fit flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+						<p className="font-semibold text-white">Join link</p>
+						<p>
+							The QR code and join link become active once you open this
+							workout.
+						</p>
+					</div>
+				) : (
+					<HostedWorkoutQr url={joinUrl} />
+				)}
 
 				<section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
 					<h2 className="text-sm font-semibold text-white">Participants</h2>
