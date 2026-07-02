@@ -154,16 +154,24 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 			)}
 
 			<section className="grid gap-4 lg:grid-cols-[320px_1fr]">
-				<GuestSubmissionForm
-					wodBlocks={wodBlocks}
-					onSubmit={({ guestName, ...payload }) =>
-						submitGuest({
-							token,
-							guestName,
-							...payload,
-						})
-					}
-				/>
+				{isOpen ? (
+					<GuestSubmissionForm
+						wodBlocks={wodBlocks}
+						onSubmit={({ guestName, ...payload }) =>
+							submitGuest({
+								token,
+								guestName,
+								...payload,
+							})
+						}
+					/>
+				) : (
+					<div className="h-fit rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+						{hosted.status === "closed"
+							? "This workout has closed. Scores are final."
+							: "This workout hasn't started yet. Check back once the host opens it."}
+					</div>
+				)}
 
 				<div className="flex flex-col gap-4">
 					{hosted.template.wodBlocks.map((block) => {
