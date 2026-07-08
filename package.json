@@ -18,7 +18,9 @@
     "build:development": "vite build --mode development",
     "preview": "pnpm build:development && wrangler dev",
     "test": "vitest run",
+    "test:cli": "vitest run cli/src",
     "typecheck": "tsc --noEmit",
+    "typecheck:cli": "tsc --noEmit",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
@@ -29,7 +31,8 @@
     "deploy": "pnpm run deploy:prod",
     "deploy:dev": "pnpm exec convex dev --once && pnpm build:development && wrangler deploy --env dev",
     "deploy:prod": "pnpm exec convex deploy && pnpm build && wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "workouts": "tsx cli/src/index.ts"
   },
   "dependencies": {
     "@appelent/auth": "^0.1.0",
@@ -71,6 +74,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^10.0.3",
     "jsdom": "^29.1.1",
+    "tsx": "4.8.1",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5",

@@ -9,10 +9,13 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**/src/**/*",
+			"**/cli/**/*",
+			"**/convex/**/*",
 			"**/.vscode/**/*",
 			"**/index.html",
 			"**/vite.config.ts",
-			"!.claude",
+			"**/vitest.config.ts",
+			"!**/.worktrees/**/*",
 			"!**/src/routeTree.gen.ts",
 			"!**/src/styles.css"
 		]
