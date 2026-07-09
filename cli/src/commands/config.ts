@@ -1,7 +1,6 @@
-import { getStringFlag } from "../args";
 import { CliError } from "../errors";
 import { formatDetail, formatJson } from "../output";
-import { loadConfig, saveConfig } from "../config";
+import { loadConfig, saveConfig, toPublicConfig } from "../config";
 import type { CliRuntime } from "../run";
 
 export async function handleConfigCommand(
@@ -12,19 +11,20 @@ export async function handleConfigCommand(
 	const subcommand = positionals[1];
 	if (subcommand === "get") {
 		const config = await loadConfig(runtime);
+		const publicConfig = toPublicConfig(config);
 		runtime.writeOut(
-			flags.json === true ? formatJson(config) : formatDetail(config),
+			flags.json === true ? formatJson(publicConfig) : formatDetail(publicConfig),
 		);
 		return 0;
 	}
 
 	if (subcommand === "set") {
-		const key = positionals[2];
-		const value = positionals[3] ?? getStringFlag(flags, "value");
-		if (!key || !value) {
+		if (positionals.length !== 4) {
 			throw new CliError("Usage", "Usage: workouts config set <key> <value>");
 		}
 
+		const key = positionals[2];
+		const value = positionals[3];
 		const config = await loadConfig(runtime);
 		if (key === "api-url") {
 			await saveConfig({ ...config, apiUrl: value }, runtime);
