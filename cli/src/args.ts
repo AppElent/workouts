@@ -1,0 +1,50 @@
+export type ParsedArgs = {
+	positionals: string[];
+	flags: Record<string, string | boolean>;
+};
+
+export function parseArgs(args: string[]): ParsedArgs {
+	const positionals: string[] = [];
+	const flags: Record<string, string | boolean> = {};
+
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (!arg.startsWith("--")) {
+			positionals.push(arg);
+			continue;
+		}
+
+		const raw = arg.slice(2);
+		const [key, inlineValue] = raw.split("=", 2);
+		if (inlineValue !== undefined) {
+			flags[key] = inlineValue;
+			continue;
+		}
+
+		const next = args[i + 1];
+		if (next !== undefined && !next.startsWith("-")) {
+			flags[key] = next;
+			i++;
+			continue;
+		}
+
+		flags[key] = true;
+	}
+
+	return { positionals, flags };
+}
+
+export function getStringFlag(
+	flags: Record<string, string | boolean>,
+	name: string,
+): string | undefined {
+	const value = flags[name];
+	return typeof value === "string" ? value : undefined;
+}
+
+export function hasFlag(
+	flags: Record<string, string | boolean>,
+	name: string,
+): boolean {
+	return flags[name] === true;
+}

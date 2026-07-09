@@ -1,3 +1,6 @@
+import { parseArgs } from "./args";
+import { formatError } from "./errors";
+
 export type CliRuntime = {
 	writeOut: (value: string) => void;
 	writeErr: (value: string) => void;
@@ -30,11 +33,21 @@ export async function runCli(
 	args: string[],
 	runtime: CliRuntime,
 ): Promise<CliResult> {
-	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-		runtime.writeOut(HELP);
-		return { exitCode: 0 };
-	}
+	try {
+		const parsed = parseArgs(args);
+		if (
+			args.length === 0 ||
+			parsed.flags.help === true ||
+			parsed.flags.h === true
+		) {
+			runtime.writeOut(HELP);
+			return { exitCode: 0 };
+		}
 
-	runtime.writeErr(`Unknown command: ${args.join(" ")}`);
-	return { exitCode: 1 };
+		runtime.writeErr(`Unknown command: ${parsed.positionals.join(" ")}`);
+		return { exitCode: 1 };
+	} catch (error) {
+		runtime.writeErr(formatError(error));
+		return { exitCode: 1 };
+	}
 }
