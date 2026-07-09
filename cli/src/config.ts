@@ -26,39 +26,50 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function normalizeCredential(value: unknown): Credential | undefined {
+function parseCredential(value: unknown, path: string): Credential | undefined {
+	if (value === undefined) return undefined;
 	if (!isRecord(value) || typeof value.token !== "string" || value.token.length === 0) {
-		return undefined;
+		throw new CliError("Usage", `Invalid config file at ${path}: credential must include a token string.`);
 	}
-
+	if (
+		value.expiresAt !== undefined &&
+		typeof value.expiresAt !== "number"
+	) {
+		throw new CliError("Usage", `Invalid config file at ${path}: credential expiresAt must be a number.`);
+	}
 	const credential: Credential = { token: value.token };
-	if (typeof value.expiresAt === "number" && Number.isFinite(value.expiresAt)) {
+	if (typeof value.expiresAt === "number") {
 		credential.expiresAt = value.expiresAt;
 	}
-
 	return credential;
 }
 
-function normalizeConfig(value: unknown): CliConfig {
-	if (!isRecord(value)) {
-		return { apiUrl: DEFAULT_API_URL };
+function parseConfigFile(text: string, path: string): CliConfig {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new CliError("Usage", `Invalid config file at ${path}: ${message}`);
 	}
 
-	const apiUrl =
-		typeof value.apiUrl === "string" && value.apiUrl.length > 0
-			? value.apiUrl
-			: DEFAULT_API_URL;
-	const convexUrl =
-		typeof value.convexUrl === "string" && value.convexUrl.length > 0
-			? value.convexUrl
-			: undefined;
-	const credential = normalizeCredential(value.credential);
-
-	if (credential === undefined) {
-		return { apiUrl, convexUrl };
+	if (!isRecord(parsed)) {
+		throw new CliError("Usage", `Invalid config file at ${path}: expected a JSON object.`);
 	}
 
-	return { apiUrl, convexUrl, credential };
+	if (typeof parsed.apiUrl !== "string" || parsed.apiUrl.length === 0) {
+		throw new CliError("Usage", `Invalid config file at ${path}: apiUrl must be a non-empty string.`);
+	}
+
+	if (parsed.convexUrl !== undefined && typeof parsed.convexUrl !== "string") {
+		throw new CliError("Usage", `Invalid config file at ${path}: convexUrl must be a string.`);
+	}
+
+	return {
+		apiUrl: parsed.apiUrl,
+		convexUrl: parsed.convexUrl,
+		credential: parseCredential(parsed.credential, path),
+	};
 }
 
 export function configDir(runtime: ConfigRuntime): string {
@@ -78,15 +89,7 @@ export async function loadConfig(runtime: ConfigRuntime): Promise<CliConfig> {
 
 	try {
 		const text = await readFile(path, "utf8");
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(text);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			throw new CliError("Usage", `Invalid config file at ${path}: ${message}`);
-		}
-
-		return normalizeConfig(parsed);
+		return parseConfigFile(text, path);
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 			return { apiUrl: DEFAULT_API_URL };
@@ -111,4 +114,3 @@ export async function clearCredential(runtime: ConfigRuntime): Promise<void> {
 	const { credential: _credential, ...rest } = config;
 	await saveConfig(rest, runtime);
 }
-
