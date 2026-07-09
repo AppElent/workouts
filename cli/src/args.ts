@@ -30,10 +30,6 @@ export function parseArgs(args: string[]): ParsedArgs {
 						continue;
 					}
 
-					if (next !== undefined && !next.startsWith("-")) {
-						throw new ArgsError(`Invalid value for --${key}: ${next}`);
-					}
-
 					flags[key] = true;
 					continue;
 				}

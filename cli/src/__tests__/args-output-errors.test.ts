@@ -31,10 +31,11 @@ describe("parseArgs", () => {
 		});
 	});
 
-	it("keeps boolean long flags from swallowing the next positional", () => {
-		expect(() => parseArgs(["--json", "bogus"])).toThrow(
-			"Invalid value for --json: bogus",
-		);
+	it("keeps boolean long flags from swallowing command tokens", () => {
+		expect(parseArgs(["--json", "exercise", "list"])).toEqual({
+			positionals: ["exercise", "list"],
+			flags: { json: true },
+		});
 	});
 
 	it("accepts inline and separated boolean values for known boolean flags", () => {
