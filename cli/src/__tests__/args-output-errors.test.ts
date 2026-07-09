@@ -39,10 +39,16 @@ describe("parseArgs", () => {
 	});
 
 	it("accepts inline boolean values for known boolean flags", () => {
-		expect(parseArgs(["--json=true", "--help=true"])).toEqual({
+		expect(parseArgs(["--json=true", "--help=false"])).toEqual({
 			positionals: [],
-			flags: { json: true, help: true },
+			flags: { json: true, help: false },
 		});
+	});
+
+	it("rejects invalid inline values for known boolean flags", () => {
+		expect(() => parseArgs(["--json=0"])).toThrow(
+			"Invalid value for --json: 0",
+		);
 	});
 });
 

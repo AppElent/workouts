@@ -1,3 +1,5 @@
+import { CliError } from "./errors";
+
 const BOOLEAN_FLAGS = new Set(["help", "json"]);
 
 export type ParsedArgs = {
@@ -15,8 +17,22 @@ export function parseArgs(args: string[]): ParsedArgs {
 			const raw = arg.slice(2);
 			const [key, inlineValue] = raw.split("=", 2);
 			if (BOOLEAN_FLAGS.has(key)) {
-				flags[key] = inlineValue === undefined ? true : inlineValue !== "false";
-				continue;
+				if (inlineValue === undefined) {
+					flags[key] = true;
+					continue;
+				}
+
+				if (inlineValue === "true") {
+					flags[key] = true;
+					continue;
+				}
+
+				if (inlineValue === "false") {
+					flags[key] = false;
+					continue;
+				}
+
+				throw new CliError("Usage", `Invalid value for --${key}: ${inlineValue}`);
 			}
 			if (inlineValue !== undefined) {
 				flags[key] = inlineValue;

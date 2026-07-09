@@ -46,6 +46,13 @@ describe("runCli", () => {
 		expect(stdout.join("\n")).toContain("workouts auth login");
 	});
 
+	it("returns an error for invalid boolean flag values", async () => {
+		const { runtime, stderr } = createRuntime();
+		const result = await runCli(["--json=0"], runtime);
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("\n")).toContain("Invalid value for --json: 0");
+	});
+
 	it("returns an error for unknown commands", async () => {
 		const { runtime, stderr } = createRuntime();
 		const result = await runCli(["bogus"], runtime);
