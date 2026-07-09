@@ -92,6 +92,18 @@ describe("config store", () => {
 		).rejects.toThrow(/apiUrl must be a non-empty string/i);
 	});
 
+	it("rejects padded api urls in stored config", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			JSON.stringify({ apiUrl: " http://localhost:3000 " }),
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).rejects.toThrow(/apiUrl must be a non-empty string/i);
+	});
+
 	it("rejects empty convex urls in stored config", async () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
@@ -104,13 +116,13 @@ describe("config store", () => {
 		).rejects.toThrow(/convexUrl must be a non-empty string/i);
 	});
 
-	it("rejects whitespace-only credential tokens in stored config", async () => {
+	it("rejects padded credential tokens in stored config", async () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
 			JSON.stringify({
 				apiUrl: "http://localhost:3000",
-				credential: { token: "   ", expiresAt: 123 },
+				credential: { token: " secret-token ", expiresAt: 123 },
 			}),
 		);
 
