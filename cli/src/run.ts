@@ -44,7 +44,9 @@ export async function runCli(
 			return { exitCode: 0 };
 		}
 
-		throw new CliError("Usage", `Unknown command: ${parsed.positionals.join(" ")}`);
+		const commandText =
+			parsed.positionals.length > 0 ? parsed.positionals.join(" ") : args.join(" ");
+		throw new CliError("Usage", `Unknown command: ${commandText}`);
 	} catch (error) {
 		runtime.writeErr(formatError(error));
 		return { exitCode: 1 };

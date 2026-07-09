@@ -45,4 +45,11 @@ describe("runCli", () => {
 		expect(result.exitCode).toBe(1);
 		expect(stderr.join("\n")).toContain("Unknown command: bogus");
 	});
+
+	it("includes flag-only invocations in the error message", async () => {
+		const { runtime, stderr } = createRuntime();
+		const result = await runCli(["--json"], runtime);
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("\n")).toContain("Unknown command: --json");
+	});
 });

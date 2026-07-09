@@ -28,8 +28,8 @@ export function parseArgs(args: string[]): ParsedArgs {
 			continue;
 		}
 
-		if (arg.startsWith("-") && arg.length === 2) {
-			flags[arg.slice(1)] = true;
+		if (arg === "-h") {
+			flags.h = true;
 			continue;
 		}
 

@@ -20,10 +20,14 @@ describe("parseArgs", () => {
 		});
 	});
 
-	it("parses the short help flag", () => {
+	it("parses the short help flag without broadening other single-dash tokens", () => {
 		expect(parseArgs(["-h"])).toEqual({
 			positionals: [],
 			flags: { h: true },
+		});
+		expect(parseArgs(["-1"])).toEqual({
+			positionals: ["-1"],
+			flags: {},
 		});
 	});
 });
