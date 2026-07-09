@@ -1,4 +1,5 @@
 import { parseArgs, ArgsError } from "./args";
+import { handleConfigCommand } from "./commands/config";
 import { CliError, formatError } from "./errors";
 
 export type CliRuntime = {
@@ -18,6 +19,8 @@ Usage:
   workouts auth status
   workouts auth logout
   workouts config get
+  workouts config set api-url <value>
+  workouts config set convex-url <value>
   workouts exercise list
   workouts workout list
   workouts set list --workout <id>
@@ -42,6 +45,15 @@ export async function runCli(
 		) {
 			runtime.writeOut(HELP);
 			return { exitCode: 0 };
+		}
+
+		if (parsed.positionals[0] === "config") {
+			const exitCode = await handleConfigCommand(
+				parsed.positionals,
+				parsed.flags,
+				runtime,
+			);
+			return { exitCode };
 		}
 
 		const commandText =

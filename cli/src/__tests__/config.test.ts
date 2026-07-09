@@ -1,0 +1,138 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { afterEach, describe, expect, it } from "vitest";
+import { clearCredential, loadConfig, saveConfig } from "../config";
+import { runCli } from "../run";
+
+let tempDir: string | undefined;
+
+async function createTempConfigDir() {
+	tempDir = await mkdtemp(join(tmpdir(), "workouts-cli-"));
+	return tempDir;
+}
+
+afterEach(async () => {
+	if (tempDir) {
+		await rm(tempDir, { recursive: true, force: true });
+		tempDir = undefined;
+	}
+});
+
+describe("config store", () => {
+	it("loads the default api url when the config file is missing", async () => {
+		const configDir = await createTempConfigDir();
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).resolves.toEqual({ apiUrl: "http://localhost:3000" });
+	});
+
+	it("saves and loads config under WORKOUTS_CONFIG_DIR", async () => {
+		const configDir = await createTempConfigDir();
+		await saveConfig(
+			{
+				apiUrl: "http://localhost:3000",
+				convexUrl: "https://example.convex.cloud",
+				credential: { token: "abc", expiresAt: 123 },
+			},
+			{ env: { WORKOUTS_CONFIG_DIR: configDir } },
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).resolves.toEqual({
+			apiUrl: "http://localhost:3000",
+			convexUrl: "https://example.convex.cloud",
+			credential: { token: "abc", expiresAt: 123 },
+		});
+	});
+
+	it("clears only the credential field", async () => {
+		const configDir = await createTempConfigDir();
+		await saveConfig(
+			{
+				apiUrl: "http://localhost:3000",
+				convexUrl: "https://example.convex.cloud",
+				credential: { token: "abc", expiresAt: 123 },
+			},
+			{ env: { WORKOUTS_CONFIG_DIR: configDir } },
+		);
+
+		await clearCredential({ env: { WORKOUTS_CONFIG_DIR: configDir } });
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).resolves.toEqual({
+			apiUrl: "http://localhost:3000",
+			convexUrl: "https://example.convex.cloud",
+		});
+	});
+});
+
+describe("config command", () => {
+	it("prints config as json", async () => {
+		const configDir = await createTempConfigDir();
+		await saveConfig(
+			{
+				apiUrl: "http://localhost:3000",
+				convexUrl: "https://example.convex.cloud",
+			},
+			{ env: { WORKOUTS_CONFIG_DIR: configDir } },
+		);
+
+		const stdout: string[] = [];
+		const result = await runCli(["config", "get", "--json"], {
+			writeOut: (value) => stdout.push(value),
+			writeErr: () => undefined,
+			env: { WORKOUTS_CONFIG_DIR: configDir },
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(JSON.parse(stdout.join(""))).toEqual({
+			apiUrl: "http://localhost:3000",
+			convexUrl: "https://example.convex.cloud",
+		});
+	});
+
+	it("sets the api url", async () => {
+		const configDir = await createTempConfigDir();
+		const stdout: string[] = [];
+		const result = await runCli(
+			["config", "set", "api-url", "https://api.example.test"],
+			{
+				writeOut: (value) => stdout.push(value),
+				writeErr: () => undefined,
+				env: { WORKOUTS_CONFIG_DIR: configDir },
+			},
+		);
+
+		expect(result.exitCode).toBe(0);
+		expect(stdout.join("")).toContain("Saved api-url.");
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).resolves.toMatchObject({
+			apiUrl: "https://api.example.test",
+		});
+	});
+
+	it("sets the convex url", async () => {
+		const configDir = await createTempConfigDir();
+		const stdout: string[] = [];
+		const result = await runCli(
+			["config", "set", "convex-url", "https://convex.example.test"],
+			{
+				writeOut: (value) => stdout.push(value),
+				writeErr: () => undefined,
+				env: { WORKOUTS_CONFIG_DIR: configDir },
+			},
+		);
+
+		expect(result.exitCode).toBe(0);
+		expect(stdout.join("")).toContain("Saved convex-url.");
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).resolves.toMatchObject({
+			convexUrl: "https://convex.example.test",
+		});
+	});
+});
