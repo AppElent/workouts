@@ -22,9 +22,15 @@ export async function handleConfigCommand(
 		if (positionals.length !== 4) {
 			throw new CliError("Usage", "Usage: workouts config set <key> <value>");
 		}
+		if (Object.keys(flags).length > 0) {
+			throw new CliError("Usage", "Usage: workouts config set <key> <value>");
+		}
 
 		const key = positionals[2];
 		const value = positionals[3];
+		if (value.trim().length === 0) {
+			throw new CliError("Usage", "Usage: workouts config set <key> <value>");
+		}
 
 		const config = await loadConfig(runtime);
 		if (key === "api-url") {

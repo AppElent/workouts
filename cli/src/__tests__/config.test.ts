@@ -67,6 +67,18 @@ describe("config store", () => {
 			convexUrl: "https://example.convex.cloud",
 		});
 	});
+
+	it("rejects malformed config files", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			"{ not json",
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).rejects.toThrow(/Invalid config file/i);
+	});
 });
 
 describe("config command", () => {
@@ -94,6 +106,24 @@ describe("config command", () => {
 			convexUrl: "https://example.convex.cloud",
 		});
 		expect(stdout.join("")).not.toContain("credential");
+	});
+
+	it("reports malformed config files through runCli", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			JSON.stringify({ apiUrl: 123 }),
+		);
+
+		const stderr: string[] = [];
+		const result = await runCli(["config", "get"], {
+			writeOut: () => undefined,
+			writeErr: (value) => stderr.push(value),
+			env: { WORKOUTS_CONFIG_DIR: configDir },
+		});
+
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("")).toContain("Invalid config file");
 	});
 
 	it("sets the api url", async () => {
@@ -138,6 +168,22 @@ describe("config command", () => {
 		});
 	});
 
+	it("rejects empty config values", async () => {
+		const configDir = await createTempConfigDir();
+		const stderr: string[] = [];
+		const result = await runCli(
+			["config", "set", "api-url", ""],
+			{
+				writeOut: () => undefined,
+				writeErr: (value) => stderr.push(value),
+				env: { WORKOUTS_CONFIG_DIR: configDir },
+			},
+		);
+
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("")).toContain("Usage: workouts config set <key> <value>");
+	});
+
 	it("rejects extra args for config set", async () => {
 		const configDir = await createTempConfigDir();
 		const stdout: string[] = [];
@@ -154,17 +200,5 @@ describe("config command", () => {
 		expect(result.exitCode).toBe(1);
 		expect(stdout).toHaveLength(0);
 		expect(stderr.join("")).toContain("Usage: workouts config set <key> <value>");
-	});
-
-	it("reports malformed config files with a friendly error", async () => {
-		const configDir = await createTempConfigDir();
-		await writeFile(
-			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
-			"{ not json",
-		);
-
-		await expect(
-			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
-		).rejects.toThrow(/Invalid config file/i);
 	});
 });
