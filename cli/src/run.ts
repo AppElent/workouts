@@ -37,6 +37,7 @@ export async function runCli(
 		const parsed = parseArgs(args);
 		if (
 			args.length === 0 ||
+			args.includes("-h") ||
 			parsed.flags.help === true ||
 			parsed.flags.h === true
 		) {

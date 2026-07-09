@@ -23,4 +23,12 @@ describe("runCli", () => {
 		expect(stdout.join("\n")).toContain("workouts auth login");
 		expect(stdout.join("\n")).toContain("workouts exercise list");
 	});
+
+	it("prints top-level help for short help flag", async () => {
+		const { runtime, stdout } = createRuntime();
+		const result = await runCli(["-h"], runtime);
+		expect(result.exitCode).toBe(0);
+		expect(stdout.join("\n")).toContain("workouts auth login");
+		expect(stdout.join("\n")).toContain("workouts exercise list");
+	});
 });
