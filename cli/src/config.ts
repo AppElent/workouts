@@ -26,9 +26,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isTrimmedNonEmptyString(value: unknown): value is string {
+	return typeof value === "string" && value.trim().length > 0 && value.trim() === value;
+}
+
 function parseCredential(value: unknown, path: string): Credential | undefined {
 	if (value === undefined) return undefined;
-	if (!isRecord(value) || typeof value.token !== "string" || value.token.length === 0) {
+	if (!isRecord(value) || !isTrimmedNonEmptyString(value.token)) {
 		throw new CliError("Usage", `Invalid config file at ${path}: credential must include a token string.`);
 	}
 	if (
@@ -57,14 +61,11 @@ function parseConfigFile(text: string, path: string): CliConfig {
 		throw new CliError("Usage", `Invalid config file at ${path}: expected a JSON object.`);
 	}
 
-	if (typeof parsed.apiUrl !== "string" || parsed.apiUrl.length === 0) {
+	if (!isTrimmedNonEmptyString(parsed.apiUrl)) {
 		throw new CliError("Usage", `Invalid config file at ${path}: apiUrl must be a non-empty string.`);
 	}
 
-	if (
-		parsed.convexUrl !== undefined &&
-		(typeof parsed.convexUrl !== "string" || parsed.convexUrl.length === 0)
-	) {
+	if (parsed.convexUrl !== undefined && !isTrimmedNonEmptyString(parsed.convexUrl)) {
 		throw new CliError("Usage", `Invalid config file at ${path}: convexUrl must be a non-empty string.`);
 	}
 

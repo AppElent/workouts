@@ -80,6 +80,18 @@ describe("config store", () => {
 		).rejects.toThrow(/Invalid config file/i);
 	});
 
+	it("rejects whitespace-only values in stored config", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			JSON.stringify({ apiUrl: "   " }),
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).rejects.toThrow(/apiUrl must be a non-empty string/i);
+	});
+
 	it("rejects empty convex urls in stored config", async () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
@@ -90,6 +102,21 @@ describe("config store", () => {
 		await expect(
 			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
 		).rejects.toThrow(/convexUrl must be a non-empty string/i);
+	});
+
+	it("rejects whitespace-only credential tokens in stored config", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			JSON.stringify({
+				apiUrl: "http://localhost:3000",
+				credential: { token: "   ", expiresAt: 123 },
+			}),
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).rejects.toThrow(/credential must include a token string/i);
 	});
 });
 
