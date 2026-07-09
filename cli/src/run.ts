@@ -8,7 +8,7 @@ export type CliResult = {
 	exitCode: number;
 };
 
-const HELP = `workouts
+export const HELP = `workouts
 
 Usage:
   workouts auth login
