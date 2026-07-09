@@ -1,4 +1,9 @@
-import { CliError } from "./errors";
+export class ArgsError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "ArgsError";
+	}
+}
 
 const BOOLEAN_FLAGS = new Set(["help", "json"]);
 
@@ -18,6 +23,17 @@ export function parseArgs(args: string[]): ParsedArgs {
 			const [key, inlineValue] = raw.split("=", 2);
 			if (BOOLEAN_FLAGS.has(key)) {
 				if (inlineValue === undefined) {
+					const next = args[i + 1];
+					if (next === "true" || next === "false") {
+						flags[key] = next === "true";
+						i++;
+						continue;
+					}
+
+					if (next !== undefined && !next.startsWith("-")) {
+						throw new ArgsError(`Invalid value for --${key}: ${next}`);
+					}
+
 					flags[key] = true;
 					continue;
 				}
@@ -32,7 +48,7 @@ export function parseArgs(args: string[]): ParsedArgs {
 					continue;
 				}
 
-				throw new CliError("Usage", `Invalid value for --${key}: ${inlineValue}`);
+				throw new ArgsError(`Invalid value for --${key}: ${inlineValue}`);
 			}
 			if (inlineValue !== undefined) {
 				flags[key] = inlineValue;

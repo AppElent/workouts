@@ -32,14 +32,17 @@ describe("parseArgs", () => {
 	});
 
 	it("keeps boolean long flags from swallowing the next positional", () => {
-		expect(parseArgs(["--json", "bogus"])).toEqual({
-			positionals: ["bogus"],
-			flags: { json: true },
-		});
+		expect(() => parseArgs(["--json", "bogus"])).toThrow(
+			"Invalid value for --json: bogus",
+		);
 	});
 
-	it("accepts inline boolean values for known boolean flags", () => {
+	it("accepts inline and separated boolean values for known boolean flags", () => {
 		expect(parseArgs(["--json=true", "--help=false"])).toEqual({
+			positionals: [],
+			flags: { json: true, help: false },
+		});
+		expect(parseArgs(["--json", "true", "--help", "false"])).toEqual({
 			positionals: [],
 			flags: { json: true, help: false },
 		});

@@ -1,4 +1,4 @@
-import { parseArgs } from "./args";
+import { parseArgs, ArgsError } from "./args";
 import { CliError, formatError } from "./errors";
 
 export type CliRuntime = {
@@ -48,6 +48,9 @@ export async function runCli(
 			parsed.positionals.length > 0 ? parsed.positionals.join(" ") : args.join(" ");
 		throw new CliError("Usage", `Unknown command: ${commandText}`);
 	} catch (error) {
+		if (error instanceof ArgsError) {
+			error = new CliError("Usage", error.message);
+		}
 		runtime.writeErr(formatError(error));
 		return { exitCode: 1 };
 	}

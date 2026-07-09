@@ -53,6 +53,13 @@ describe("runCli", () => {
 		expect(stderr.join("\n")).toContain("Invalid value for --json: 0");
 	});
 
+	it("returns an error for invalid separated boolean values", async () => {
+		const { runtime, stderr } = createRuntime();
+		const result = await runCli(["--json", "bogus"], runtime);
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("\n")).toContain("Invalid value for --json: bogus");
+	});
+
 	it("returns an error for unknown commands", async () => {
 		const { runtime, stderr } = createRuntime();
 		const result = await runCli(["bogus"], runtime);
@@ -65,12 +72,5 @@ describe("runCli", () => {
 		const result = await runCli(["--json"], runtime);
 		expect(result.exitCode).toBe(1);
 		expect(stderr.join("\n")).toContain("Unknown command: --json");
-	});
-
-	it("keeps boolean flags from consuming values", async () => {
-		const { runtime, stderr } = createRuntime();
-		const result = await runCli(["--json", "bogus"], runtime);
-		expect(result.exitCode).toBe(1);
-		expect(stderr.join("\n")).toContain("Unknown command: bogus");
 	});
 });
