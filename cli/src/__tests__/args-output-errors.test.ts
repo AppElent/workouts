@@ -30,6 +30,13 @@ describe("parseArgs", () => {
 			flags: {},
 		});
 	});
+
+	it("keeps boolean long flags from swallowing the next positional", () => {
+		expect(parseArgs(["--json", "bogus"])).toEqual({
+			positionals: ["bogus"],
+			flags: { json: true },
+		});
+	});
 });
 
 describe("flag helpers", () => {

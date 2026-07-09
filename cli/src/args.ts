@@ -1,3 +1,5 @@
+const BOOLEAN_FLAGS = new Set(["help", "json"]);
+
 export type ParsedArgs = {
 	positionals: string[];
 	flags: Record<string, string | boolean>;
@@ -18,7 +20,7 @@ export function parseArgs(args: string[]): ParsedArgs {
 			}
 
 			const next = args[i + 1];
-			if (next !== undefined && !next.startsWith("-")) {
+			if (next !== undefined && !next.startsWith("-") && !BOOLEAN_FLAGS.has(key)) {
 				flags[key] = next;
 				i++;
 				continue;

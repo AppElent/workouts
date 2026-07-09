@@ -52,4 +52,11 @@ describe("runCli", () => {
 		expect(result.exitCode).toBe(1);
 		expect(stderr.join("\n")).toContain("Unknown command: --json");
 	});
+
+	it("keeps boolean flags from swallowing the next positional", async () => {
+		const { runtime, stderr } = createRuntime();
+		const result = await runCli(["--json", "bogus"], runtime);
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("\n")).toContain("Unknown command: bogus");
+	});
 });
