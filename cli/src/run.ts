@@ -1,4 +1,5 @@
 import { parseArgs, ArgsError } from "./args";
+import { handleAuthCommand } from "./commands/auth";
 import { handleConfigCommand } from "./commands/config";
 import { CliError, formatError } from "./errors";
 
@@ -45,6 +46,15 @@ export async function runCli(
 		) {
 			runtime.writeOut(HELP);
 			return { exitCode: 0 };
+		}
+
+		if (parsed.positionals[0] === "auth") {
+			const exitCode = await handleAuthCommand(
+				parsed.positionals,
+				parsed.flags,
+				runtime,
+			);
+			return { exitCode };
 		}
 
 		if (parsed.positionals[0] === "config") {
