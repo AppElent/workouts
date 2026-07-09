@@ -28,7 +28,7 @@ export async function handleConfigCommand(
 
 		const key = positionals[2];
 		const value = positionals[3];
-		if (value.trim().length === 0) {
+		if (value.trim().length === 0 || value.trim() !== value) {
 			throw new CliError("Usage", "Usage: workouts config set <key> <value>");
 		}
 

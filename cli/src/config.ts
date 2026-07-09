@@ -61,8 +61,11 @@ function parseConfigFile(text: string, path: string): CliConfig {
 		throw new CliError("Usage", `Invalid config file at ${path}: apiUrl must be a non-empty string.`);
 	}
 
-	if (parsed.convexUrl !== undefined && typeof parsed.convexUrl !== "string") {
-		throw new CliError("Usage", `Invalid config file at ${path}: convexUrl must be a string.`);
+	if (
+		parsed.convexUrl !== undefined &&
+		(typeof parsed.convexUrl !== "string" || parsed.convexUrl.length === 0)
+	) {
+		throw new CliError("Usage", `Invalid config file at ${path}: convexUrl must be a non-empty string.`);
 	}
 
 	return {

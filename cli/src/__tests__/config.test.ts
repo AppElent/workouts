@@ -79,6 +79,18 @@ describe("config store", () => {
 			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
 		).rejects.toThrow(/Invalid config file/i);
 	});
+
+	it("rejects empty convex urls in stored config", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			JSON.stringify({ apiUrl: "http://localhost:3000", convexUrl: "" }),
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).rejects.toThrow(/convexUrl must be a non-empty string/i);
+	});
 });
 
 describe("config command", () => {
@@ -166,6 +178,22 @@ describe("config command", () => {
 		).resolves.toMatchObject({
 			convexUrl: "https://convex.example.test",
 		});
+	});
+
+	it("rejects whitespace-padded values", async () => {
+		const configDir = await createTempConfigDir();
+		const stderr: string[] = [];
+		const result = await runCli(
+			["config", "set", "api-url", " https://api.example.test "],
+			{
+				writeOut: () => undefined,
+				writeErr: (value) => stderr.push(value),
+				env: { WORKOUTS_CONFIG_DIR: configDir },
+			},
+		);
+
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("")).toContain("Usage: workouts config set <key> <value>");
 	});
 
 	it("rejects empty config values", async () => {
