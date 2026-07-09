@@ -14,13 +14,17 @@ export function parseArgs(args: string[]): ParsedArgs {
 		if (arg.startsWith("--")) {
 			const raw = arg.slice(2);
 			const [key, inlineValue] = raw.split("=", 2);
+			if (BOOLEAN_FLAGS.has(key)) {
+				flags[key] = inlineValue === undefined ? true : inlineValue !== "false";
+				continue;
+			}
 			if (inlineValue !== undefined) {
 				flags[key] = inlineValue;
 				continue;
 			}
 
 			const next = args[i + 1];
-			if (next !== undefined && !next.startsWith("-") && !BOOLEAN_FLAGS.has(key)) {
+			if (next !== undefined && !next.startsWith("-")) {
 				flags[key] = next;
 				i++;
 				continue;

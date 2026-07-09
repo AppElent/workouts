@@ -39,6 +39,13 @@ describe("runCli", () => {
 		expect(stdout.join("\n")).toContain("workouts auth login");
 	});
 
+	it("prints top-level help for inline boolean flags", async () => {
+		const { runtime, stdout } = createRuntime();
+		const result = await runCli(["--help=true"], runtime);
+		expect(result.exitCode).toBe(0);
+		expect(stdout.join("\n")).toContain("workouts auth login");
+	});
+
 	it("returns an error for unknown commands", async () => {
 		const { runtime, stderr } = createRuntime();
 		const result = await runCli(["bogus"], runtime);
@@ -53,7 +60,7 @@ describe("runCli", () => {
 		expect(stderr.join("\n")).toContain("Unknown command: --json");
 	});
 
-	it("keeps boolean flags from swallowing the next positional", async () => {
+	it("keeps boolean flags from consuming values", async () => {
 		const { runtime, stderr } = createRuntime();
 		const result = await runCli(["--json", "bogus"], runtime);
 		expect(result.exitCode).toBe(1);

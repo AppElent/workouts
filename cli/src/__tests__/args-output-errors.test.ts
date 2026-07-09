@@ -37,6 +37,13 @@ describe("parseArgs", () => {
 			flags: { json: true },
 		});
 	});
+
+	it("accepts inline boolean values for known boolean flags", () => {
+		expect(parseArgs(["--json=true", "--help=true"])).toEqual({
+			positionals: [],
+			flags: { json: true, help: true },
+		});
+	});
 });
 
 describe("flag helpers", () => {
