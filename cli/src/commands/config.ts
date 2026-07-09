@@ -1,6 +1,6 @@
 import { CliError } from "../errors";
 import { formatDetail, formatJson } from "../output";
-import { loadConfig, saveConfig, toPublicConfig } from "../config";
+import { loadConfig, saveConfig } from "../config";
 import type { CliRuntime } from "../run";
 
 export async function handleConfigCommand(
@@ -11,7 +11,7 @@ export async function handleConfigCommand(
 	const subcommand = positionals[1];
 	if (subcommand === "get") {
 		const config = await loadConfig(runtime);
-		const publicConfig = toPublicConfig(config);
+		const { credential: _credential, ...publicConfig } = config;
 		runtime.writeOut(
 			flags.json === true ? formatJson(publicConfig) : formatDetail(publicConfig),
 		);

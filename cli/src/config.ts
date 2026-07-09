@@ -2,7 +2,6 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { platform } from "node:process";
-import { CliError } from "./errors";
 
 export type ConfigRuntime = {
 	env: Record<string, string | undefined>;
@@ -19,52 +18,55 @@ export type CliConfig = {
 	credential?: Credential;
 };
 
-export type PublicConfig = {
-	apiUrl: string;
-	convexUrl?: string;
-};
-
 const DEFAULT_API_URL = "http://localhost:3000";
-const INVALID_CONFIG_MESSAGE =
-	"Invalid config file. Run `workouts config set api-url <value>` to rewrite it.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isString(value: unknown): value is string {
-	return typeof value === "string";
-}
-
-function normalizeConfig(raw: unknown): CliConfig {
-	if (!isRecord(raw)) {
-		return { apiUrl: DEFAULT_API_URL };
+function parseConfigFile(text: string): CliConfig {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text);
+	} catch {
+		throw new Error("Invalid config file: expected valid JSON.");
 	}
 
-	const config: CliConfig = {
-		apiUrl: isString(raw.apiUrl) ? raw.apiUrl : DEFAULT_API_URL,
-	};
-
-	if (isString(raw.convexUrl)) {
-		config.convexUrl = raw.convexUrl;
+	if (!isRecord(parsed)) {
+		throw new Error("Invalid config file: expected a JSON object.");
 	}
 
-	if (isRecord(raw.credential) && isString(raw.credential.token)) {
-		const credential: Credential = { token: raw.credential.token };
-		if (typeof raw.credential.expiresAt === "number" && Number.isFinite(raw.credential.expiresAt)) {
-			credential.expiresAt = raw.credential.expiresAt;
+	const apiUrl = parsed.apiUrl;
+	if (typeof apiUrl !== "string" || apiUrl.length === 0) {
+		throw new Error("Invalid config file: apiUrl must be a non-empty string.");
+	}
+
+	const config: CliConfig = { apiUrl };
+
+	if (parsed.convexUrl !== undefined) {
+		if (typeof parsed.convexUrl !== "string") {
+			throw new Error("Invalid config file: convexUrl must be a string.");
 		}
-		config.credential = credential;
+		config.convexUrl = parsed.convexUrl;
+	}
+
+	if (parsed.credential !== undefined) {
+		if (!isRecord(parsed.credential) || typeof parsed.credential.token !== "string") {
+			throw new Error("Invalid config file: credential is malformed.");
+		}
+		if (
+			parsed.credential.expiresAt !== undefined &&
+			typeof parsed.credential.expiresAt !== "number"
+		) {
+			throw new Error("Invalid config file: credential expiresAt must be a number.");
+		}
+		config.credential = {
+			token: parsed.credential.token,
+			expiresAt: parsed.credential.expiresAt as number | undefined,
+		};
 	}
 
 	return config;
-}
-
-export function toPublicConfig(config: CliConfig): PublicConfig {
-	return {
-		apiUrl: config.apiUrl,
-		...(config.convexUrl !== undefined ? { convexUrl: config.convexUrl } : {}),
-	};
 }
 
 export function configDir(runtime: ConfigRuntime): string {
@@ -82,13 +84,7 @@ export function configPath(runtime: ConfigRuntime): string {
 export async function loadConfig(runtime: ConfigRuntime): Promise<CliConfig> {
 	try {
 		const text = await readFile(configPath(runtime), "utf8");
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(text) as unknown;
-		} catch {
-			throw new CliError("Usage", INVALID_CONFIG_MESSAGE);
-		}
-		return normalizeConfig(parsed);
+		return parseConfigFile(text);
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 			return { apiUrl: DEFAULT_API_URL };
