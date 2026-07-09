@@ -25,6 +25,7 @@ export async function handleConfigCommand(
 
 		const key = positionals[2];
 		const value = positionals[3];
+
 		const config = await loadConfig(runtime);
 		if (key === "api-url") {
 			await saveConfig({ ...config, apiUrl: value }, runtime);

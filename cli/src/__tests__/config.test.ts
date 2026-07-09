@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearCredential, loadConfig, saveConfig } from "../config";
+import { clearCredential, configPath, loadConfig, saveConfig } from "../config";
 import { runCli } from "../run";
 
 let tempDir: string | undefined;
@@ -67,28 +67,16 @@ describe("config store", () => {
 			convexUrl: "https://example.convex.cloud",
 		});
 	});
-
-	it("rejects malformed config files", async () => {
-		const configDir = await createTempConfigDir();
-		await writeFile(
-			join(configDir, "config.json"),
-			JSON.stringify({ apiUrl: 123, convexUrl: true }),
-		);
-
-		await expect(
-			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
-		).rejects.toThrow("Invalid config file: apiUrl must be a non-empty string.");
-	});
 });
 
 describe("config command", () => {
-	it("prints config as json without credential secrets", async () => {
+	it("prints config as json without the credential", async () => {
 		const configDir = await createTempConfigDir();
 		await saveConfig(
 			{
 				apiUrl: "http://localhost:3000",
 				convexUrl: "https://example.convex.cloud",
-				credential: { token: "secret-token", expiresAt: 123 },
+				credential: { token: "abc", expiresAt: 123 },
 			},
 			{ env: { WORKOUTS_CONFIG_DIR: configDir } },
 		);
@@ -105,7 +93,7 @@ describe("config command", () => {
 			apiUrl: "http://localhost:3000",
 			convexUrl: "https://example.convex.cloud",
 		});
-		expect(stdout.join("")).not.toContain("secret-token");
+		expect(stdout.join("")).not.toContain("credential");
 	});
 
 	it("sets the api url", async () => {
@@ -150,19 +138,33 @@ describe("config command", () => {
 		});
 	});
 
-	it("rejects extra arguments for config set", async () => {
+	it("rejects extra args for config set", async () => {
 		const configDir = await createTempConfigDir();
+		const stdout: string[] = [];
 		const stderr: string[] = [];
 		const result = await runCli(
 			["config", "set", "api-url", "https://api.example.test", "extra"],
 			{
-				writeOut: () => undefined,
+				writeOut: (value) => stdout.push(value),
 				writeErr: (value) => stderr.push(value),
 				env: { WORKOUTS_CONFIG_DIR: configDir },
 			},
 		);
 
 		expect(result.exitCode).toBe(1);
+		expect(stdout).toHaveLength(0);
 		expect(stderr.join("")).toContain("Usage: workouts config set <key> <value>");
+	});
+
+	it("reports malformed config files with a friendly error", async () => {
+		const configDir = await createTempConfigDir();
+		await writeFile(
+			configPath({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+			"{ not json",
+		);
+
+		await expect(
+			loadConfig({ env: { WORKOUTS_CONFIG_DIR: configDir } }),
+		).rejects.toThrow(/Invalid config file/i);
 	});
 });
