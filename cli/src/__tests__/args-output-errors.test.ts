@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseArgs } from "../args";
+import { getStringFlag, hasFlag, parseArgs } from "../args";
 import { CliError, formatError } from "../errors";
 import { formatJson, formatTable } from "../output";
 
@@ -18,6 +18,23 @@ describe("parseArgs", () => {
 			positionals: ["set", "add"],
 			flags: { workout: "abc", json: true, unit: "kg" },
 		});
+	});
+
+	it("parses the short help flag", () => {
+		expect(parseArgs(["-h"])).toEqual({
+			positionals: [],
+			flags: { h: true },
+		});
+	});
+});
+
+describe("flag helpers", () => {
+	it("reads string and boolean flags", () => {
+		const parsed = parseArgs(["--workout", "abc", "--json"]);
+		expect(getStringFlag(parsed.flags, "workout")).toBe("abc");
+		expect(getStringFlag(parsed.flags, "missing")).toBeUndefined();
+		expect(hasFlag(parsed.flags, "json")).toBe(true);
+		expect(hasFlag(parsed.flags, "missing")).toBe(false);
 	});
 });
 

@@ -1,5 +1,5 @@
 import { parseArgs } from "./args";
-import { formatError } from "./errors";
+import { CliError, formatError } from "./errors";
 
 export type CliRuntime = {
 	writeOut: (value: string) => void;
@@ -37,7 +37,6 @@ export async function runCli(
 		const parsed = parseArgs(args);
 		if (
 			args.length === 0 ||
-			args.includes("-h") ||
 			parsed.flags.help === true ||
 			parsed.flags.h === true
 		) {
@@ -45,8 +44,7 @@ export async function runCli(
 			return { exitCode: 0 };
 		}
 
-		runtime.writeErr(`Unknown command: ${parsed.positionals.join(" ")}`);
-		return { exitCode: 1 };
+		throw new CliError("Usage", `Unknown command: ${parsed.positionals.join(" ")}`);
 	} catch (error) {
 		runtime.writeErr(formatError(error));
 		return { exitCode: 1 };

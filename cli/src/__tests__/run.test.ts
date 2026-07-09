@@ -31,4 +31,18 @@ describe("runCli", () => {
 		expect(stdout.join("\n")).toContain("workouts auth login");
 		expect(stdout.join("\n")).toContain("workouts exercise list");
 	});
+
+	it("prints top-level help for empty argv", async () => {
+		const { runtime, stdout } = createRuntime();
+		const result = await runCli([], runtime);
+		expect(result.exitCode).toBe(0);
+		expect(stdout.join("\n")).toContain("workouts auth login");
+	});
+
+	it("returns an error for unknown commands", async () => {
+		const { runtime, stderr } = createRuntime();
+		const result = await runCli(["bogus"], runtime);
+		expect(result.exitCode).toBe(1);
+		expect(stderr.join("\n")).toContain("Unknown command: bogus");
+	});
 });

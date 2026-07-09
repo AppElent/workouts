@@ -9,26 +9,31 @@ export function parseArgs(args: string[]): ParsedArgs {
 
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];
-		if (!arg.startsWith("--")) {
-			positionals.push(arg);
+		if (arg.startsWith("--")) {
+			const raw = arg.slice(2);
+			const [key, inlineValue] = raw.split("=", 2);
+			if (inlineValue !== undefined) {
+				flags[key] = inlineValue;
+				continue;
+			}
+
+			const next = args[i + 1];
+			if (next !== undefined && !next.startsWith("-")) {
+				flags[key] = next;
+				i++;
+				continue;
+			}
+
+			flags[key] = true;
 			continue;
 		}
 
-		const raw = arg.slice(2);
-		const [key, inlineValue] = raw.split("=", 2);
-		if (inlineValue !== undefined) {
-			flags[key] = inlineValue;
+		if (arg.startsWith("-") && arg.length === 2) {
+			flags[arg.slice(1)] = true;
 			continue;
 		}
 
-		const next = args[i + 1];
-		if (next !== undefined && !next.startsWith("-")) {
-			flags[key] = next;
-			i++;
-			continue;
-		}
-
-		flags[key] = true;
+		positionals.push(arg);
 	}
 
 	return { positionals, flags };
