@@ -1,4 +1,4 @@
-﻿import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -30,6 +30,14 @@ function createRuntime(configDir: string) {
 	};
 }
 
+function createConfigRuntime(configDir: string) {
+	return {
+		writeOut: () => {},
+		writeErr: () => {},
+		env: { WORKOUTS_CONFIG_DIR: configDir },
+	};
+}
+
 function unsignedJwt(exp: number) {
 	const body = Buffer.from(JSON.stringify({ exp }), "utf8").toString("base64url");
 	return `header.${body}.signature`;
@@ -54,39 +62,36 @@ describe("auth helpers", () => {
 
 	it("requires a stored credential", async () => {
 		const configDir = await createConfigDir();
+		const runtime = createConfigRuntime(configDir);
 		await saveConfig(
 			{
 				apiUrl: "http://localhost:3000",
 				credential: { token: "abc" },
 			},
-			{ env: { WORKOUTS_CONFIG_DIR: configDir } },
+			runtime,
 		);
 
-		await expect(requireCredential({ env: { WORKOUTS_CONFIG_DIR: configDir } })).resolves.toBe(
-			"abc",
-		);
+		await expect(requireCredential(runtime)).resolves.toBe("abc");
 	});
 
 	it("rejects missing credentials", async () => {
 		const configDir = await createConfigDir();
-		await expect(requireCredential({ env: { WORKOUTS_CONFIG_DIR: configDir } })).rejects.toThrow(
-			"MissingAuth",
-		);
+		const runtime = createConfigRuntime(configDir);
+		await expect(requireCredential(runtime)).rejects.toThrow("MissingAuth");
 	});
 
 	it("rejects expired credentials", async () => {
 		const configDir = await createConfigDir();
+		const runtime = createConfigRuntime(configDir);
 		await saveConfig(
 			{
 				apiUrl: "http://localhost:3000",
 				credential: { token: "abc", expiresAt: Date.now() - 1 },
 			},
-			{ env: { WORKOUTS_CONFIG_DIR: configDir } },
+			runtime,
 		);
 
-		await expect(requireCredential({ env: { WORKOUTS_CONFIG_DIR: configDir } })).rejects.toThrow(
-			"ExpiredAuth",
-		);
+		await expect(requireCredential(runtime)).rejects.toThrow("ExpiredAuth");
 	});
 });
 
