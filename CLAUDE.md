@@ -187,3 +187,25 @@ Variable sources differ by context:
 The Convex backend reads `CLERK_JWT_ISSUER_DOMAIN` from its own environment (set via `npx convex env set` or the Convex dashboard), configured in `convex/auth.config.ts`.
 
 `CONVEX_DEPLOYMENT` is written to `.env.local` automatically by `npx convex dev`.
+
+<!-- appelent-managed:start -->
+## Appelent Managed Project
+
+This repo follows the shared Appelent project baseline.
+
+Source of truth:
+- `C:\Users\ericj\.claude\appelent\projects.json`
+- `C:\Users\ericj\.claude\appelent\capabilities.json`
+- `C:\Users\ericj\.claude\skills`
+
+Web/browser fallback:
+- `.claude\appelent`
+- `.claude\skills`
+
+Before adding functionality that could apply to multiple apps, check whether it belongs in:
+- an existing or new `@appelent/*` package
+- `custom-bootstrap`
+- a capability skill such as `add-cli` or `add-i18n`
+
+If you add, remove, or generalize cross-app functionality, update the Appelent registry files or explain why no registry change is needed.
+<!-- appelent-managed:end -->
