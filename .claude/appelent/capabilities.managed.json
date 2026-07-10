@@ -7,10 +7,9 @@
       "status": "active"
     },
     "cli": {
-      "owner": "capability-skill",
-      "skill": "add-cli",
+      "owner": "package",
       "package": "@appelent/cli",
-      "status": "candidate"
+      "status": "active"
     },
     "i18n": {
       "owner": "capability-skill",

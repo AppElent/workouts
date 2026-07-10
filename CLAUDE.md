@@ -168,6 +168,7 @@ src/components/
 - **Biome excludes**: `src/routeTree.gen.ts` and `src/styles.css` are excluded from linting — do not add lint-disable comments in those files.
 - **Forms**: Use TanStack Form with Zod schemas for validation.
 - **Data fetching**: Use Convex's `useQuery` / `useMutation` hooks for all backend data. The `@convex-dev/react-query` adapter is available for TanStack Query integration.
+- **CLI**: The `pnpm workouts` command runs [cli/index.ts](cli/index.ts), a thin wrapper around the shared `@appelent/cli` package (`createCli({ appName: "workouts" })`). Generic `auth`/`config` commands live in the package — do **not** re-implement or fork them here. App-specific domain commands (e.g. a future `exercise`/`workout list`) belong in this repo, registered via the package's `commands: CliCommand[]` option so each hits this app's own Convex functions/API. See the package README (`@appelent/cli`) for the API and the `add-cli` skill for the integration pattern.
 
 ## Environment Variables
 
@@ -206,6 +207,8 @@ Before adding functionality that could apply to multiple apps, check whether it 
 - an existing or new `@appelent/*` package
 - `custom-bootstrap`
 - a capability skill such as `add-cli` or `add-i18n`
+
+When functionality lives in an `@appelent/*` package, that package's own README is the tool-agnostic source of truth for using it — Codex and humans read it, and skills are Claude-only pointers to it, never the source.
 
 If you add, remove, or generalize cross-app functionality, update the Appelent registry files or explain why no registry change is needed.
 <!-- appelent-managed:end -->
