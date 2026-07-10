@@ -18,9 +18,7 @@
     "build:development": "vite build --mode development",
     "preview": "pnpm build:development && wrangler dev",
     "test": "vitest run",
-    "test:cli": "vitest run cli/src",
     "typecheck": "tsc --noEmit",
-    "typecheck:cli": "tsc --noEmit",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
@@ -32,10 +30,11 @@
     "deploy:dev": "pnpm exec convex dev --once && pnpm build:development && wrangler deploy --env dev",
     "deploy:prod": "pnpm exec convex deploy && pnpm build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "workouts": "tsx cli/src/index.ts"
+    "workouts": "tsx cli/index.ts"
   },
   "dependencies": {
     "@appelent/auth": "^0.1.0",
+    "@appelent/cli": "^0.1.0",
     "@base-ui/react": "^1.4.1",
     "@clerk/clerk-react": "^5.61.3",
     "@convex-dev/react-query": "0.1.0",
