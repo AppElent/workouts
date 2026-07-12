@@ -30,6 +30,7 @@ import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/
 import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
 import { Route as HostedWorkoutsEditIdRouteImport } from './routes/hosted-workouts/edit.$id'
+import { Route as ApiCliAuthLoginRouteImport } from './routes/api/cli/auth/login'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -136,6 +137,11 @@ const HostedWorkoutsEditIdRoute = HostedWorkoutsEditIdRouteImport.update({
   path: '/hosted-workouts/edit/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCliAuthLoginRoute = ApiCliAuthLoginRouteImport.update({
+  id: '/api/cli/auth/login',
+  path: '/api/cli/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/routines/': typeof RoutinesIndexRoute
   '/wods/': typeof WodsIndexRoute
   '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
+  '/api/cli/auth/login': typeof ApiCliAuthLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/routines': typeof RoutinesIndexRoute
   '/wods': typeof WodsIndexRoute
   '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
+  '/api/cli/auth/login': typeof ApiCliAuthLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/routines/': typeof RoutinesIndexRoute
   '/wods/': typeof WodsIndexRoute
   '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
+  '/api/cli/auth/login': typeof ApiCliAuthLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/routines/'
     | '/wods/'
     | '/hosted-workouts/edit/$id'
+    | '/api/cli/auth/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/routines'
     | '/wods'
     | '/hosted-workouts/edit/$id'
+    | '/api/cli/auth/login'
   id:
     | '__root__'
     | '/'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/routines/'
     | '/wods/'
     | '/hosted-workouts/edit/$id'
+    | '/api/cli/auth/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   RoutinesIndexRoute: typeof RoutinesIndexRoute
   WodsIndexRoute: typeof WodsIndexRoute
   HostedWorkoutsEditIdRoute: typeof HostedWorkoutsEditIdRoute
+  ApiCliAuthLoginRoute: typeof ApiCliAuthLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HostedWorkoutsEditIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cli/auth/login': {
+      id: '/api/cli/auth/login'
+      path: '/api/cli/auth/login'
+      fullPath: '/api/cli/auth/login'
+      preLoaderRoute: typeof ApiCliAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -477,16 +497,20 @@ const rootRouteChildren: RootRouteChildren = {
   RoutinesIndexRoute: RoutinesIndexRoute,
   WodsIndexRoute: WodsIndexRoute,
   HostedWorkoutsEditIdRoute: HostedWorkoutsEditIdRoute,
+  ApiCliAuthLoginRoute: ApiCliAuthLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
+
 import type { createStart } from '@tanstack/react-start'
+
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
+
     router: Awaited<ReturnType<typeof getRouter>>
   }
 }

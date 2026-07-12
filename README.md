@@ -27,7 +27,7 @@ Personal workout tracker with real-time session logging, exercise library, 1RM t
 - [Clerk](https://clerk.com) account (auth)
 - [Convex](https://convex.dev) account (backend)
 - [Cloudflare](https://cloudflare.com) account (hosting, for deploys)
-- Read access to the private `@appelent` GitHub Packages scope (ask a maintainer) — required to install `@appelent/auth`
+- Read access to the private `@appelent` GitHub Packages scope (ask a maintainer) — required to install `@appelent/auth` and `@appelent/cli`
 
 ## Setup
 
@@ -80,9 +80,25 @@ pnpm test         # Run Vitest tests
 pnpm lint         # Biome lint
 pnpm format       # Biome format
 pnpm check        # Biome lint + format check
+pnpm workouts     # Run the repo-local Workouts CLI
+pnpm cli:smoke    # Smoke-test the CLI wrapper
 pnpm deploy       # Full prod flow: convex deploy + build + Cloudflare deploy
 pnpm deploy:dev   # Push Convex dev functions + dev build + deploy to Cloudflare (dev env)
 ```
+
+## CLI
+
+Use the CLI locally from this repo:
+
+```bash
+pnpm workouts --help
+pnpm workouts config get
+pnpm workouts config set api-url http://localhost:3000
+pnpm workouts auth status
+pnpm workouts auth login
+```
+
+`auth login` uses the browser login flow from `@appelent/cli`; `auth login --token <token>` is the manual fallback. You do not need to publish this app to use the repo-local CLI. Generic CLI behavior ships in the shared `@appelent/cli` package, so new shared CLI features must be published there and then consumed here through the normal dependency update.
 
 ## Deployment
 
