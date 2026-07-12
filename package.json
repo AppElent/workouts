@@ -30,11 +30,12 @@
     "deploy:dev": "pnpm exec convex dev --once && pnpm build:development && wrangler deploy --env dev",
     "deploy:prod": "pnpm exec convex deploy && pnpm build && wrangler deploy",
     "cf-typegen": "wrangler types",
+    "cli:smoke": "tsx cli/index.ts --help && tsx cli/index.ts config get --json && tsx cli/index.ts auth status",
     "workouts": "tsx cli/index.ts"
   },
   "dependencies": {
     "@appelent/auth": "^0.1.0",
-    "@appelent/cli": "^0.1.0",
+    "@appelent/cli": "^0.2.0",
     "@base-ui/react": "^1.4.1",
     "@clerk/clerk-react": "^5.61.3",
     "@convex-dev/react-query": "0.1.0",

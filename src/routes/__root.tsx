@@ -23,7 +23,13 @@ const AUTH_CONFIG = {
 };
 
 // Routes that render without the AppShell chrome (sidebar / bottom nav).
-const BARE_ROUTES = ["/sign-in", "/sign-up", "/forgot-password", "/login"];
+const BARE_ROUTES = [
+	"/sign-in",
+	"/sign-up",
+	"/forgot-password",
+	"/login",
+	"/api/cli/auth",
+];
 
 export const Route = createRootRoute({
 	head: () => ({

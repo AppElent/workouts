@@ -16,8 +16,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@clerk/clerk-react@5.61.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@appelent/cli':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@base-ui/react':
         specifier: ^1.4.1
         version: 1.6.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -152,8 +152,8 @@ packages:
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@appelent/cli@0.1.0':
-    resolution: {integrity: sha512-8udQKtBVWAHqphaQsT1yjjjDZEgeKo/YMn+vn1/TFEZPeqH0KSFunA7z08VqW4vB9qP/RYRDn2KquRbVhCH74g==, tarball: https://npm.pkg.github.com/download/@appelent/cli/0.1.0/78e344369185c6d49bed538a82784322c690031d}
+  '@appelent/cli@0.2.0':
+    resolution: {integrity: sha512-DZFeV1PiKVeor1x7jcXVwOZTvldthkmHzVLctn06p2KBHpt9rarxNGOgDQPiIQE2bkc2dWOiF83o205K3CRbbw==, tarball: https://npm.pkg.github.com/download/@appelent/cli/0.2.0/e70db0e8139667e8f8f5bf846f354e7b1cc24e28}
 
   '@asamuzakjp/css-color@5.1.11':
     resolution: {integrity: sha512-KVw6qIiCTUQhByfTd78h2yD1/00waTmm9uy/R7Ck/ctUyAPj+AEDLkQIdJW0T8+qGgj3j5bpNKK7Q3G+LedJWg==}
@@ -2725,7 +2725,7 @@ snapshots:
       react-dom: 19.2.7(react@19.2.7)
       tailwind-merge: 3.6.0
 
-  '@appelent/cli@0.1.0': {}
+  '@appelent/cli@0.2.0': {}
 
   '@asamuzakjp/css-color@5.1.11':
     dependencies:

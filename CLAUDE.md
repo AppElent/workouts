@@ -25,6 +25,8 @@ pnpm test       # Run all tests with Vitest
 pnpm lint       # Biome linter
 pnpm format     # Biome formatter
 pnpm check      # Biome lint + format check combined
+pnpm workouts   # Run the repo-local Workouts CLI
+pnpm cli:smoke  # Smoke-test the CLI wrapper
 pnpm deploy           # Full prod flow: convex deploy + build + Cloudflare deploy
 pnpm deploy:dev       # Push Convex dev functions + dev build + deploy to Cloudflare (dev env)
 pnpm cf-typegen       # Generate Cloudflare Workers TypeScript types
@@ -168,7 +170,7 @@ src/components/
 - **Biome excludes**: `src/routeTree.gen.ts` and `src/styles.css` are excluded from linting — do not add lint-disable comments in those files.
 - **Forms**: Use TanStack Form with Zod schemas for validation.
 - **Data fetching**: Use Convex's `useQuery` / `useMutation` hooks for all backend data. The `@convex-dev/react-query` adapter is available for TanStack Query integration.
-- **CLI**: The `pnpm workouts` command runs [cli/index.ts](cli/index.ts), a thin wrapper around the shared `@appelent/cli` package (`createCli({ appName: "workouts" })`). Generic `auth`/`config` commands live in the package — do **not** re-implement or fork them here. App-specific domain commands (e.g. a future `exercise`/`workout list`) belong in this repo, registered via the package's `commands: CliCommand[]` option so each hits this app's own Convex functions/API. See the package README (`@appelent/cli`) for the API and the `add-cli` skill for the integration pattern.
+- **CLI**: The `pnpm workouts` command runs [cli/index.ts](cli/index.ts), a thin wrapper around the shared `@appelent/cli` package (`createCli({ appName: "workouts" })`). Generic `auth`/`config` commands live in the package — do **not** re-implement or fork them here. App-specific domain commands (e.g. a future `exercise`/`workout list`) belong in this repo, registered via the package's `commands: CliCommand[]` option so each hits this app's own Convex functions/API. Use `pnpm cli:smoke` to verify the wrapper in CI/local checks. You do not need to publish this app to use the repo-local CLI; publish `@appelent/cli` only when changing shared CLI behavior, then bump the consuming app dependency. See the package README (`@appelent/cli`) for the API and the `add-cli` skill for the integration pattern.
 
 ## Environment Variables
 

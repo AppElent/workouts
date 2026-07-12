@@ -1,0 +1,40 @@
+name: CLI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: cli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      WORKOUTS_CONFIG_DIR: ${{ runner.temp }}/workouts-cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # @appelent/* is a private GitHub Packages scope. pnpm does not expand
+      # env vars in the committed project .npmrc, so write the token to the
+      # runner's user-level ~/.npmrc (where pnpm does expand it).
+      - name: Configure GitHub Packages auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm cli:smoke
