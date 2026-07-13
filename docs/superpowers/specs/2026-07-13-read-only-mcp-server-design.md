@@ -56,7 +56,7 @@ All personal-data tools require authentication.
 Initial auth model:
 
 - MCP clients send `Authorization: Bearer <Clerk JWT>`.
-- Clients obtain that JWT from a dedicated MCP auth endpoint at `/api/mcp/auth/login`.
+- Clients obtain that JWT from a dedicated MCP auth endpoint at `/mcp/auth`.
 - The MCP auth endpoint uses the same browser-mediated mechanism as the existing CLI auth flow: validate a loopback `redirect_uri` plus `state`, require the user to sign in through the webapp, call Clerk's `getToken({ template: "convex" })`, then redirect the token back to the local client callback.
 - The MCP route extracts the token and creates an authenticated Convex HTTP client for the request.
 - Convex queries continue to enforce the existing user ownership rules.
@@ -71,7 +71,7 @@ Long-lived Clerk API keys or app-managed MCP tokens are intentionally out of sco
 ## Data Flow
 
 1. MCP client connects to `/mcp`.
-2. If the client does not already have a usable token, it starts the MCP auth flow at `/api/mcp/auth/login?redirect_uri=http://127.0.0.1:<port>/callback&state=<nonce>`.
+2. If the client does not already have a usable token, it starts the MCP auth flow at `/mcp/auth?redirect_uri=http://127.0.0.1:<port>/callback&state=<nonce>`.
 3. The browser-mediated auth endpoint returns a Convex-compatible Clerk JWT to the local callback.
 4. The client retries or starts the MCP request with `Authorization: Bearer <token>`.
 5. TanStack server route receives the Streamable HTTP request.
