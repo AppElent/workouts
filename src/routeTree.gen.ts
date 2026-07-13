@@ -24,6 +24,7 @@ import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WodsIdRouteImport } from './routes/wods/$id'
+import { Route as McpAuthRouteImport } from './routes/mcp/auth'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as JoinTokenRouteImport } from './routes/join/$token'
 import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
@@ -107,6 +108,11 @@ const WodsIdRoute = WodsIdRouteImport.update({
   path: '/wods/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpAuthRoute = McpAuthRouteImport.update({
+  id: '/mcp/auth',
+  path: '/mcp/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LogSessionIdRoute = LogSessionIdRouteImport.update({
   id: '/log/$sessionId',
   path: '/log/$sessionId',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account': typeof AccountIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
+    | '/mcp/auth'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
+    | '/mcp/auth'
     | '/wods/$id'
     | '/account'
     | '/dashboard'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
+    | '/mcp/auth'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
   JoinTokenRoute: typeof JoinTokenRoute
   LogSessionIdRoute: typeof LogSessionIdRoute
+  McpAuthRoute: typeof McpAuthRoute
   WodsIdRoute: typeof WodsIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -423,6 +436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WodsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp/auth': {
+      id: '/mcp/auth'
+      path: '/mcp/auth'
+      fullPath: '/mcp/auth'
+      preLoaderRoute: typeof McpAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/log/$sessionId': {
       id: '/log/$sessionId'
       path: '/log/$sessionId'
@@ -485,6 +505,7 @@ const rootRouteChildren: RootRouteChildren = {
   HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,
   JoinTokenRoute: JoinTokenRoute,
   LogSessionIdRoute: LogSessionIdRoute,
+  McpAuthRoute: McpAuthRoute,
   WodsIdRoute: WodsIdRoute,
   AccountIndexRoute: AccountIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
@@ -504,13 +525,10 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-
 import type { createStart } from '@tanstack/react-start'
-
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
-
     router: Awaited<ReturnType<typeof getRouter>>
   }
 }

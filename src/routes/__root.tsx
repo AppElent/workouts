@@ -29,6 +29,7 @@ const BARE_ROUTES = [
 	"/forgot-password",
 	"/login",
 	"/api/cli/auth",
+	"/mcp/auth",
 ];
 
 export const Route = createRootRoute({
