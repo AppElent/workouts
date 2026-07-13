@@ -39,6 +39,7 @@
     "@base-ui/react": "^1.4.1",
     "@clerk/clerk-react": "^5.61.3",
     "@convex-dev/react-query": "0.1.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "^0.10.7",
     "@tanstack/react-form": "^1.29.1",
