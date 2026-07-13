@@ -36,7 +36,7 @@
 - Create `src/lib/mcp/handler.ts`: Streamable HTTP request handler for the `/mcp` server route.
 - Create `src/lib/mcp/*.test.ts`: focused unit/protocol tests for data shaping, auth denial, tool registration, and JSON-RPC flow.
 - Create `src/routes/mcp.ts`: TanStack Start server route for `/mcp`.
-- Create `src/lib/mcpRoutes.test.ts`: route-tree guard for `/mcp` and `/mcp/auth`.
+- Create `src/lib/mcpRoutes.test.ts`: route-tree guard for `/mcp` and `/mcp/auth` after both routes exist.
 - Create `docs/mcp.md`: endpoint, auth, and client notes.
 - Modify `package.json` and `pnpm-lock.yaml`: add MCP dependencies.
 - Modify `C:\Users\ericj\.claude\appelent\projects.json` and `.claude/appelent/projects.managed.json`: add `mcp` to Workouts capabilities.
@@ -312,7 +312,6 @@ git commit -m "feat: add mcp auth redirect helpers"
 
 **Files:**
 - Create: `src/routes/mcp/auth.tsx`
-- Create: `src/lib/mcpRoutes.test.ts`
 - Modify: `src/routes/__root.tsx`
 
 **Interfaces:**
@@ -323,31 +322,7 @@ git commit -m "feat: add mcp auth redirect helpers"
 - Produces:
   - TanStack route path `/mcp/auth`
 
-- [ ] **Step 1: Add route-tree guard test**
-
-Create `src/lib/mcpRoutes.test.ts`:
-
-```ts
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-
-const routeTreeSource = readFileSync("src/routeTree.gen.ts", "utf8");
-
-describe("MCP routes", () => {
-	it("exposes MCP protocol and auth routes", () => {
-		expect(routeTreeSource).toContain("'/mcp'");
-		expect(routeTreeSource).toContain("'/mcp/auth'");
-	});
-});
-```
-
-- [ ] **Step 2: Run route test to verify it fails**
-
-Run: `pnpm exec vitest run src/lib/mcpRoutes.test.ts`
-
-Expected: FAIL because `/mcp` and `/mcp/auth` are not in `src/routeTree.gen.ts`.
-
-- [ ] **Step 3: Add `/mcp/auth` route**
+- [ ] **Step 1: Add `/mcp/auth` route**
 
 Create `src/routes/mcp/auth.tsx`:
 
@@ -474,7 +449,7 @@ function McpAuthLoginPage() {
 }
 ```
 
-- [ ] **Step 4: Keep MCP auth route outside app shell chrome**
+- [ ] **Step 2: Keep MCP auth route outside app shell chrome**
 
 Modify the `BARE_ROUTES` array in `src/routes/__root.tsx`:
 
@@ -489,28 +464,28 @@ const BARE_ROUTES = [
 ];
 ```
 
-- [ ] **Step 5: Regenerate TanStack route tree**
+- [ ] **Step 3: Regenerate TanStack route tree**
 
 Run: `pnpm build:development`
 
-Expected: build may continue far enough to regenerate `src/routeTree.gen.ts`. If the full build fails because MCP protocol route is not created yet, run Task 3 before retrying this exact command.
+Expected: build passes and regenerates `src/routeTree.gen.ts` with `'/mcp/auth'`.
 
-- [ ] **Step 6: Run route and helper tests**
+- [ ] **Step 4: Run MCP helper tests**
 
-Run: `pnpm exec vitest run src/lib/mcpRoutes.test.ts src/lib/mcpAuthRedirect.test.ts`
+Run: `pnpm exec vitest run src/lib/mcpAuthRedirect.test.ts`
 
-Expected: PASS after `src/routeTree.gen.ts` contains `/mcp/auth`. The `/mcp` assertion may still fail until Task 4 creates `src/routes/mcp.ts`; if so, keep this test staged with the route implementation task and do not commit it separately.
+Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 Run:
 
 ```bash
-git add src/routes/mcp/auth.tsx src/routes/__root.tsx src/routeTree.gen.ts src/lib/mcpRoutes.test.ts
+git add src/routes/mcp/auth.tsx src/routes/__root.tsx src/routeTree.gen.ts
 git commit -m "feat: add mcp auth route"
 ```
 
-Commit only when the route-tree test passes. If `/mcp` is not implemented yet, defer `src/lib/mcpRoutes.test.ts` to Task 4.
+Commit only the MCP auth route and route tree changes.
 
 ---
 
@@ -938,8 +913,8 @@ git commit -m "feat: add read-only mcp tool server"
 **Files:**
 - Create: `src/lib/mcp/handler.ts`
 - Create: `src/lib/mcp/handler.test.ts`
+- Create: `src/lib/mcpRoutes.test.ts`
 - Create: `src/routes/mcp.ts`
-- Modify: `src/lib/mcpRoutes.test.ts`
 - Modify: `src/routeTree.gen.ts`
 
 **Interfaces:**
@@ -1135,7 +1110,25 @@ export const Route = createFileRoute("/mcp")({
 });
 ```
 
-- [ ] **Step 5: Regenerate route tree and run route guard**
+- [ ] **Step 5: Add route-tree guard**
+
+Create `src/lib/mcpRoutes.test.ts`:
+
+```ts
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const routeTreeSource = readFileSync("src/routeTree.gen.ts", "utf8");
+
+describe("MCP routes", () => {
+	it("exposes MCP protocol and auth routes", () => {
+		expect(routeTreeSource).toContain("'/mcp'");
+		expect(routeTreeSource).toContain("'/mcp/auth'");
+	});
+});
+```
+
+- [ ] **Step 6: Regenerate route tree and run route guard**
 
 Run: `pnpm build:development`
 
@@ -1145,13 +1138,13 @@ Run: `pnpm exec vitest run src/lib/mcpRoutes.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Run protocol tests**
+- [ ] **Step 7: Run protocol tests**
 
 Run: `pnpm exec vitest run src/lib/mcp/handler.test.ts src/lib/mcp/server.test.ts`
 
 Expected: PASS. If `tools/list` fails before initialization because the SDK requires initialized state, change that test to send an initialize request first and then call `tools/list` with a fresh handler call only if stateless mode permits it; otherwise keep a single batch JSON-RPC request containing initialize and tools/list.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 Run:
 
@@ -1289,15 +1282,16 @@ Run: `git diff -- C:/Users/ericj/.claude/appelent/projects.json`
 
 Expected: diff shows only `mcp` added to Workouts capabilities in the global registry.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Commit repo-local docs and registry mirror**
 
 Run:
 
 ```bash
 git add docs/mcp.md .claude/appelent/projects.managed.json
-git add C:/Users/ericj/.claude/appelent/projects.json
 git commit -m "docs: document workouts mcp endpoint"
 ```
+
+The global registry file `C:\Users\ericj\.claude\appelent\projects.json` is outside this repository. Update it in Step 2, but do not attempt to add it to this repo commit.
 
 ---
 
