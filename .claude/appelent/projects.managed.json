@@ -39,7 +39,8 @@
       "baseline": "tanstack-convex-clerk-cloudflare",
       "capabilities": [
         "auth",
-        "cli"
+        "cli",
+        "mcp"
       ]
     }
   }
