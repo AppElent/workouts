@@ -70,6 +70,7 @@ export class McpAuthRequiredError extends Error {
 	constructor() {
 		super("Authentication is required for Workouts MCP tools.");
 		this.name = "McpAuthRequiredError";
+		Object.setPrototypeOf(this, McpAuthRequiredError.prototype);
 	}
 }
 
@@ -80,13 +81,18 @@ export function createConvexWorkoutsMcpDataClient({
 	convexUrl: string;
 	token?: string;
 }): WorkoutsMcpDataClient {
-	if (!token) throw new McpAuthRequiredError();
-
 	const client = new ConvexHttpClient(convexUrl);
-	client.setAuth(token);
+	if (token) {
+		client.setAuth(token);
+	}
+
+	function requireAuth() {
+		if (!token) throw new McpAuthRequiredError();
+	}
 
 	return {
 		async listExercises() {
+			requireAuth();
 			const exercises = await client.query(api.exercises.list, {});
 			return exercises.map((exercise) => ({
 				id: exercise._id,
@@ -99,6 +105,7 @@ export function createConvexWorkoutsMcpDataClient({
 			}));
 		},
 		async listRecentWorkouts({ limit }) {
+			requireAuth();
 			const sessions = await client.query(api.workoutSessions.listRecent, {
 				limit,
 			});
@@ -112,6 +119,7 @@ export function createConvexWorkoutsMcpDataClient({
 			}));
 		},
 		async getWorkoutSets({ sessionId }) {
+			requireAuth();
 			const sets = await client.query(api.sets.listForSession, {
 				sessionId: sessionId as Id<"workoutSessions">,
 			});
@@ -128,6 +136,7 @@ export function createConvexWorkoutsMcpDataClient({
 			}));
 		},
 		async listPersonalRecords() {
+			requireAuth();
 			const records = await client.query(
 				api.oneRepMaxes.listCurrentForUser,
 				{},
@@ -143,6 +152,7 @@ export function createConvexWorkoutsMcpDataClient({
 			}));
 		},
 		async getExerciseVolume({ exerciseId }) {
+			requireAuth();
 			return client.query(api.progress.weeklyVolume, {
 				exerciseId: exerciseId as Id<"exercises">,
 			});

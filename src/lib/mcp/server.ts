@@ -91,9 +91,16 @@ async function withToolErrors(load: () => Promise<unknown>) {
 	try {
 		return jsonText(await load());
 	} catch (error) {
-		if (error instanceof McpAuthRequiredError) {
+		if (isMcpAuthRequiredError(error)) {
 			return errorText("Authentication is required. Start at /mcp/auth.");
 		}
 		return errorText("The Workouts MCP tool failed.");
 	}
+}
+
+function isMcpAuthRequiredError(error: unknown) {
+	return (
+		error instanceof McpAuthRequiredError ||
+		(error instanceof Error && error.name === "McpAuthRequiredError")
+	);
 }
