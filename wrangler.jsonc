@@ -18,7 +18,7 @@
   },
   "env": {
     // Deploys to workouts-dev.<subdomain>.workers.dev
-    // Usage: export VITE_* vars, then npm run deploy:dev
+    // Usage: export VITE_* vars, then pnpm run deploy:dev
     "dev": {
       "name": "workouts-dev",
       "workers_dev": true,

@@ -23,10 +23,16 @@ pnpm preview    # Build (dev mode) + start local Cloudflare Workers dev server
 pnpm typecheck  # tsc --noEmit
 pnpm test       # Run all tests with Vitest
 pnpm lint       # Biome linter
+pnpm lint:fix   # Biome lint + format, auto-fix (biome check --write)
 pnpm format     # Biome formatter
 pnpm check      # Biome lint + format check combined
 pnpm workouts   # Run the repo-local Workouts CLI
 pnpm cli:smoke  # Smoke-test the CLI wrapper
+pnpm seed:exercises  # Seed the default exercise library (idempotent)
+pnpm seed:wods       # Seed the default benchmark WODs (idempotent)
+pnpm seed:test        # Seed demo workout history for the fixed test user
+pnpm seed:clear        # Clear the fixed test user's workout history
+pnpm seed:reset         # exercises + wods + clear + test, in order
 pnpm deploy           # Full prod flow: convex deploy + build + Cloudflare deploy
 pnpm deploy:dev       # Push Convex dev functions + dev build + deploy to Cloudflare (dev env)
 pnpm cf-typegen       # Generate Cloudflare Workers TypeScript types
@@ -41,6 +47,10 @@ To run a single test file: `pnpm exec vitest run src/path/to/test.ts`
 **Development note**: `pnpm dev:watch` is the recommended way to start development — it runs `convex dev` (continuous, re-pushing on every change) and `vite dev` concurrently via `concurrently`. Both must be running for full functionality; Convex won't be available with `pnpm dev` alone. `pnpm dev:all` only pushes Convex functions once at startup — use it for a quick one-off session, not while actively editing `convex/`.
 
 **Preview note**: `pnpm preview` does a full `build:development` then launches a local Cloudflare Workers dev server via `wrangler dev`. It is not a quick Vite preview — it simulates the production Workers runtime locally. Environment variables are injected by Wrangler from `wrangler.jsonc`.
+
+**CI**: `.github/workflows/ci.yml` runs `check`/`typecheck`/`test`/`build` on every push to `main` and every PR — the only automated guard, since most commits land on `main` directly. `.github/workflows/preview.yml` provisions per-PR Convex + Cloudflare Worker previews; `.github/workflows/cli.yml` smoke-tests the CLI wrapper.
+
+**Claude Code workflow layer**: `.claude/skills/review-app`, `.claude/skills/review-session`, `.claude/commands/upgrade-deps.md`, and `.claude/commands/review-session.md` are project-local copies of the global `~/.claude/skills/custom-review-app` / `custom-review-session` / `~/.claude/commands/custom-upgrade-deps.md` / `custom-review-session.md` templates (renamed to avoid the duplicate-skill collision). The global copies are the source of truth — port non-project-specific fixes back there rather than letting the copies drift. `.claude/skills/verify/SKILL.md` is the one exception: it's project-specific by design (route→module map) and has no global counterpart.
 
 ## Architecture
 
@@ -123,7 +133,7 @@ Convex API files:
 - `convex/oneRepMaxes.ts` — store and retrieve 1RM records
 - `convex/routines.ts` — create and manage routines
 - `convex/progress.ts` — analytics and progress tracking
-- `convex/seed.ts` — seed default exercise data
+- `convex/seed.ts` — seed default exercise data and benchmark WODs (`seedExercises`, `seedWods`; `seedTestData`/`clearUserData` are internal, demo-data only)
 
 `convex/_generated/` is **auto-generated** from schema — never edit manually.
 
@@ -194,23 +204,11 @@ The Convex backend reads `CLERK_JWT_ISSUER_DOMAIN` from its own environment (set
 <!-- appelent-managed:start -->
 ## Appelent Managed Project
 
-This repo follows the shared Appelent project baseline.
+This is an Appelent-managed app. Opted-in features and their options are
+recorded in `appelent.json`. Feature definitions live in the `appelent`
+plugin (locally installed) or https://github.com/AppElent/appelent-packages
+(`skills/<feature>/FEATURE.md`).
 
-Source of truth:
-- `C:\Users\ericj\.claude\appelent\projects.json`
-- `C:\Users\ericj\.claude\appelent\capabilities.json`
-- `C:\Users\ericj\.claude\skills`
-
-Web/browser fallback:
-- `.claude\appelent`
-- `.claude\skills`
-
-Before adding functionality that could apply to multiple apps, check whether it belongs in:
-- an existing or new `@appelent/*` package
-- `custom-bootstrap`
-- a capability skill such as `add-cli` or `add-i18n`
-
-When functionality lives in an `@appelent/*` package, that package's own README is the tool-agnostic source of truth for using it — Codex and humans read it, and skills are Claude-only pointers to it, never the source.
-
-If you add, remove, or generalize cross-app functionality, update the Appelent registry files or explain why no registry change is needed.
+Before adding functionality that could apply to multiple apps, check the
+feature catalog first. To add or update a feature, use `/appelent`.
 <!-- appelent-managed:end -->
