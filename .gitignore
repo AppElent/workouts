@@ -20,6 +20,7 @@ CLAUDE.local.md
 docs/.generated
 .superpowers/
 .worktrees/
+.claude/worktrees/
 .playwright-mcp/
 
 .dev.vars*
