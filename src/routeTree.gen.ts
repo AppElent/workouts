@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WodsIndexRouteImport } from './routes/wods/index'
@@ -24,6 +25,7 @@ import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WodsIdRouteImport } from './routes/wods/$id'
+import { Route as McpAuthRouteImport } from './routes/mcp/auth'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as JoinTokenRouteImport } from './routes/join/$token'
 import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
@@ -40,6 +42,11 @@ const SignUpRoute = SignUpRouteImport.update({
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -107,6 +114,11 @@ const WodsIdRoute = WodsIdRouteImport.update({
   path: '/wods/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpAuthRoute = McpAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => McpRoute,
+} as any)
 const LogSessionIdRoute = LogSessionIdRouteImport.update({
   id: '/log/$sessionId',
   path: '/log/$sessionId',
@@ -146,6 +158,7 @@ const ApiCliAuthLoginRoute = ApiCliAuthLoginRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/mcp': typeof McpRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
@@ -153,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -170,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/mcp': typeof McpRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
@@ -177,6 +192,7 @@ export interface FileRoutesByTo {
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account': typeof AccountIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -195,6 +211,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/mcp': typeof McpRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/exercises/$id': typeof ExercisesIdRoute
@@ -202,6 +219,7 @@ export interface FileRoutesById {
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
+  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -221,6 +239,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/forgot-password'
+    | '/mcp'
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
@@ -228,6 +247,7 @@ export interface FileRouteTypes {
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
+    | '/mcp/auth'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
@@ -245,6 +265,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/forgot-password'
+    | '/mcp'
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
@@ -252,6 +273,7 @@ export interface FileRouteTypes {
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
+    | '/mcp/auth'
     | '/wods/$id'
     | '/account'
     | '/dashboard'
@@ -269,6 +291,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/forgot-password'
+    | '/mcp'
     | '/sign-in'
     | '/sign-up'
     | '/exercises/$id'
@@ -276,6 +299,7 @@ export interface FileRouteTypes {
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
+    | '/mcp/auth'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
@@ -294,6 +318,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  McpRoute: typeof McpRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
@@ -330,6 +355,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -423,6 +455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WodsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp/auth': {
+      id: '/mcp/auth'
+      path: '/auth'
+      fullPath: '/mcp/auth'
+      preLoaderRoute: typeof McpAuthRouteImport
+      parentRoute: typeof McpRoute
+    }
     '/log/$sessionId': {
       id: '/log/$sessionId'
       path: '/log/$sessionId'
@@ -475,9 +514,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface McpRouteChildren {
+  McpAuthRoute: typeof McpAuthRoute
+}
+
+const McpRouteChildren: McpRouteChildren = {
+  McpAuthRoute: McpAuthRoute,
+}
+
+const McpRouteWithChildren = McpRoute._addFileChildren(McpRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  McpRoute: McpRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ExercisesIdRoute: ExercisesIdRoute,
@@ -504,13 +554,10 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-
 import type { createStart } from '@tanstack/react-start'
-
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
-
     router: Awaited<ReturnType<typeof getRouter>>
   }
 }
