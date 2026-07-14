@@ -45,3 +45,14 @@ overrides:
   # both pull a vulnerable range transitively; force the patched line. (npm's
   # hoisting masked this; pnpm's stricter layout surfaced it.)
   "@clerk/clerk-react": ">=5.61.6"
+
+# pnpm 11's actual per-install approval ledger for build scripts — without
+# a committed entry here, `pnpm install` (including CI's
+# `--frozen-lockfile`) fails non-interactively with ERR_PNPM_IGNORED_BUILDS
+# instead of prompting, even though the packages are already listed in
+# onlyBuiltDependencies above. Booleans mirror that same decision.
+allowBuilds:
+  '@clerk/shared': false
+  esbuild: true
+  sharp: true
+  workerd: true
