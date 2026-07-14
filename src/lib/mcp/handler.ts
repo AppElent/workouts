@@ -18,9 +18,10 @@ export async function handleWorkoutsMcpRequest(
 	options: WorkoutsMcpRequestOptions = {},
 ): Promise<Response> {
 	const token = parseBearerToken(request.headers.get("authorization"));
-	const convexUrl = options.convexUrl ?? getConvexUrl();
 	const createDataClient =
 		options.createDataClient ?? createConvexWorkoutsMcpDataClient;
+	const convexUrl =
+		options.convexUrl ?? (options.createDataClient ? "" : getConvexUrl());
 	const dataClient = createDataClient({ convexUrl, token });
 	const server = createWorkoutsMcpServer({ dataClient });
 	const transport = new WebStandardStreamableHTTPServerTransport({
