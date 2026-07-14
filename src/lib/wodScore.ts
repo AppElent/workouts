@@ -71,7 +71,8 @@ export function prImprovement(
 		case "forTime": {
 			// Only comparable when both finished (uncapped).
 			if (current.timeCapped || previousBest.timeCapped) return null;
-			const delta = (previousBest.timeSeconds ?? 0) - (current.timeSeconds ?? 0);
+			const delta =
+				(previousBest.timeSeconds ?? 0) - (current.timeSeconds ?? 0);
 			return delta > 0 ? `−${formatSeconds(delta)}` : null;
 		}
 		case "emom": {
