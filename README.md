@@ -78,12 +78,16 @@ pnpm build        # Production build
 pnpm typecheck    # tsc --noEmit
 pnpm test         # Run Vitest tests
 pnpm lint         # Biome lint
+pnpm lint:fix     # Biome lint + format, auto-fix
 pnpm format       # Biome format
 pnpm check        # Biome lint + format check
 pnpm workouts     # Run the repo-local Workouts CLI
 pnpm cli:smoke    # Smoke-test the CLI wrapper
+pnpm seed:exercises  # Seed the default exercise library (idempotent)
+pnpm seed:wods       # Seed the default benchmark WODs (idempotent)
 pnpm deploy       # Full prod flow: convex deploy + build + Cloudflare deploy
 pnpm deploy:dev   # Push Convex dev functions + dev build + deploy to Cloudflare (dev env)
+pnpm cf-typegen   # Generate Cloudflare Workers TypeScript types
 ```
 
 ## CLI
