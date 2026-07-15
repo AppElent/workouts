@@ -14,8 +14,8 @@
     "dev": "vite dev --host",
     "dev:all": "pnpm exec convex dev --once && pnpm dev",
     "dev:watch": "concurrently -n convex,vite -c blue,green \"pnpm exec convex dev\" \"pnpm dev\"",
-    "build": "vite build",
-    "build:development": "vite build --mode development",
+    "build": "vite build && node scripts/generate-sw.mjs",
+    "build:development": "vite build --mode development && node scripts/generate-sw.mjs",
     "preview": "pnpm build:development && wrangler dev",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -81,6 +81,7 @@
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5",
+    "workbox-build": "^7.4.1",
     "wrangler": "^4.87.0"
   }
 }

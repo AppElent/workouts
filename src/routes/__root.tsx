@@ -11,6 +11,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { useEffect } from "react";
 import { AppShell } from "#/components/AppShell";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
@@ -38,6 +39,9 @@ export const Route = createRootRoute({
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
 			{ title: "Workout Tracker" },
+			{ name: "theme-color", content: "#000000" },
+			{ name: "apple-mobile-web-app-capable", content: "yes" },
+			{ name: "apple-mobile-web-app-status-bar-style", content: "default" },
 		],
 		links: [
 			{
@@ -46,8 +50,12 @@ export const Route = createRootRoute({
 				sizes: "192x192",
 				href: "/logo192.png",
 			},
-			{ rel: "apple-touch-icon", sizes: "192x192", href: "/logo192.png" },
-			{ rel: "manifest", href: "/manifest.json" },
+			{
+				rel: "apple-touch-icon",
+				sizes: "180x180",
+				href: "/apple-touch-icon.png",
+			},
+			{ rel: "manifest", href: "/manifest.webmanifest" },
 			{ rel: "stylesheet", href: appCss },
 		],
 	}),
@@ -72,6 +80,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayout() {
+	useEffect(() => {
+		if (typeof window === "undefined" || !("serviceWorker" in navigator))
+			return;
+		navigator.serviceWorker.register("/sw.js").catch(() => {
+			// non-fatal: app still works without offline/installable support
+		});
+	}, []);
+
 	return (
 		<AppClerkProvider>
 			<AppConvexProvider>
