@@ -173,6 +173,7 @@ src/components/
 - **Linter/formatter**: Biome (not ESLint/Prettier). Tab indentation, double quotes for JS/TS strings.
 - **Styling**: Tailwind CSS v4 + CVA for component variants. No CSS modules. Use `cn()` from `src/lib/utils.ts` to merge class names.
 - **Icons**: Lucide React only. Do not add other icon libraries.
+- **UI hygiene**: Shared mechanisms live in `src/components/ui/` — `useToast()` (toast.tsx), `useConfirm()` (confirm-dialog.tsx), `Skeleton`, `EmptyState` — plus `RouteErrorFallback` as the router's `defaultErrorComponent` and `Button`'s `loading` prop. The rules for when to use them are in the managed block's "UI hygiene" checklist at the end of this file (baseline step 16).
 - **Path aliases**: `#/*` and `@/*` both resolve to `src/`. `@convex/*` resolves to `convex/`.
 - **1RM calculations**: Shared logic in both `src/lib/oneRepMax.ts` (client) and `convex/lib/oneRepMax.ts` (server) using the Epley formula (`weight × (1 + reps/30)`). Keep them in sync — single-rep sets are treated as actual 1RMs. Auto-update behavior (in `convex/sets.ts`): logging a set auto-stores a new 1RM if it beats the existing record; if a manual 1RM exists, auto-calculation is skipped entirely; deleting a set clears all non-manual 1RMs for that exercise and recalculates from remaining sets.
 - **Auth guards**: Use Clerk's `<SignedIn>` / `<RedirectToSignIn>` components for protected UI. All Convex functions enforce auth server-side.
@@ -211,4 +212,22 @@ plugin (locally installed) or https://github.com/AppElent/appelent-packages
 
 Before adding functionality that could apply to multiple apps, check the
 feature catalog first. To add or update a feature, use `/appelent`.
+
+### UI hygiene
+
+- Async views render a skeleton (`ui/skeleton.tsx`) matching the final
+  layout — never a blank page or a spinner-only screen.
+- Destructive actions go through `useConfirm()` (`ui/confirm-dialog.tsx`) —
+  never `window.confirm`. Confirm buttons use verb-specific labels
+  ("Delete workout", not "OK").
+- Mutations: the trigger button shows a pending state (`Button loading`);
+  errors always surface an error toast (`useToast().error`); success toasts
+  only when the result isn't already visible on screen. Forms keep the
+  user's input on failure.
+- List/dashboard views define an `EmptyState` (`ui/empty-state.tsx`) —
+  never an unexplained blank region.
+- Every route defines a document title (route `head`); route errors render
+  the shared error fallback with retry, not a white screen.
+- Icon-only buttons get an `aria-label`. Dialogs/popovers use Base UI
+  primitives only.
 <!-- appelent-managed:end -->

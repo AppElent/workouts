@@ -4,10 +4,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft, Dumbbell, Lock, Pencil, Play, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
 import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
+import { useConfirm } from "#/components/ui/confirm-dialog";
+import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import {
 	formatWodTiming,
@@ -26,7 +28,8 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const removeHostedWorkout = useMutation(api.hostedWorkouts.remove);
 	const removeSubmission = useMutation(api.hostedWorkoutSubmissions.remove);
 	const navigate = useNavigate();
-	const [error, setError] = useState<string | null>(null);
+	const confirm = useConfirm();
+	const toast = useToast();
 
 	const joinUrl = useMemo(() => {
 		if (!data?.hosted.joinToken) return "";
@@ -50,22 +53,24 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const participantById = new Map(participants.map((p) => [p._id, p]));
 
 	async function runAction(action: () => Promise<unknown>) {
-		setError(null);
 		try {
 			await action();
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Something went wrong."));
+			toast.error(
+				"Action failed",
+				getConvexErrorMessage(err, "Something went wrong."),
+			);
 		}
 	}
 
-	function handleDelete() {
-		if (
-			!window.confirm(
-				"Delete this hosted workout? Its scores and participants will be removed.",
-			)
-		) {
-			return;
-		}
+	async function handleDelete() {
+		const ok = await confirm({
+			title: "Delete this hosted workout?",
+			description: "Its scores and participants will be removed.",
+			confirmLabel: "Delete hosted workout",
+			destructive: true,
+		});
+		if (!ok) return;
 		void runAction(async () => {
 			await removeHostedWorkout({ id });
 			await navigate({ to: "/hosted-workouts" });
@@ -147,7 +152,6 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 						</button>
 					</div>
 				</div>
-				{error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-[280px_1fr]">

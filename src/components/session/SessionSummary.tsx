@@ -12,6 +12,9 @@ import {
 	Trash2,
 	XCircle,
 } from "lucide-react";
+import { useConfirm } from "#/components/ui/confirm-dialog";
+import { useToast } from "#/components/ui/toast";
+import { getConvexErrorMessage } from "#/lib/convexError";
 import { formatScore } from "#/lib/wodScore";
 
 interface Props {
@@ -31,6 +34,8 @@ function formatDuration(ms: number): string {
 export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const navigate = useNavigate();
 	const removeSession = useMutation(api.workoutSessions.remove);
+	const confirm = useConfirm();
+	const toast = useToast();
 	const wodResults =
 		useQuery(api.wodResults.listForSession, { sessionId: session._id }) ?? [];
 	const wods = useQuery(api.wods.list) ?? [];
@@ -69,8 +74,22 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	});
 
 	async function handleDelete() {
-		if (!confirm("Delete this workout? This cannot be undone.")) return;
-		await removeSession({ id: session._id });
+		const ok = await confirm({
+			title: "Delete this workout?",
+			description: "This cannot be undone.",
+			confirmLabel: "Delete workout",
+			destructive: true,
+		});
+		if (!ok) return;
+		try {
+			await removeSession({ id: session._id });
+		} catch (err) {
+			toast.error(
+				"Couldn't delete workout",
+				getConvexErrorMessage(err, "Please try again."),
+			);
+			return;
+		}
 		void navigate({ to: "/log" });
 	}
 
