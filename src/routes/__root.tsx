@@ -13,6 +13,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
 import { AppShell } from "#/components/AppShell";
+import { ConfirmDialogProvider } from "#/components/ui/confirm-dialog";
 import { ToastHost } from "#/components/ui/toast";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
@@ -94,7 +95,9 @@ function RootLayout() {
 			<AppConvexProvider>
 				<AuthConfigProvider config={AUTH_CONFIG}>
 					<ToastHost>
-						<AppContent />
+						<ConfirmDialogProvider>
+							<AppContent />
+						</ConfirmDialogProvider>
 					</ToastHost>
 					{import.meta.env.DEV && <TanStackRouterDevtools />}
 				</AuthConfigProvider>
