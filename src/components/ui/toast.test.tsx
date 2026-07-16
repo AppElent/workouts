@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { LocaleProvider } from "#/lib/i18n";
 import { ToastHost, useToast } from "./toast";
 
 // Base UI mirrors each toast's title/description into a visually-hidden
@@ -30,44 +31,38 @@ function Harness() {
 	);
 }
 
-describe("ToastHost / useToast", () => {
-	it("shows an error toast with title and description", async () => {
-		render(
+function renderHost() {
+	render(
+		<LocaleProvider initialLocale="en">
 			<ToastHost>
 				<Harness />
-			</ToastHost>,
-		);
+			</ToastHost>
+		</LocaleProvider>,
+	);
+}
+
+describe("ToastHost / useToast", () => {
+	it("shows an error toast with title and description", async () => {
+		renderHost();
 		fireEvent.click(screen.getByText("fire error"));
 		expect(await toastRegion().findByText("Save failed")).toBeTruthy();
 		expect(toastRegion().getByText("Please try again.")).toBeTruthy();
 	});
 
 	it("shows a success toast with title only", async () => {
-		render(
-			<ToastHost>
-				<Harness />
-			</ToastHost>,
-		);
+		renderHost();
 		fireEvent.click(screen.getByText("fire success"));
 		expect(await toastRegion().findByText("Workout saved")).toBeTruthy();
 	});
 
 	it("shows an info toast with title only", async () => {
-		render(
-			<ToastHost>
-				<Harness />
-			</ToastHost>,
-		);
+		renderHost();
 		fireEvent.click(screen.getByText("fire info"));
 		expect(await toastRegion().findByText("Heads up")).toBeTruthy();
 	});
 
 	it("renders a dismiss control that removes the toast", async () => {
-		render(
-			<ToastHost>
-				<Harness />
-			</ToastHost>,
-		);
+		renderHost();
 		fireEvent.click(screen.getByText("fire error"));
 		await toastRegion().findByText("Save failed");
 		expect(screen.getByLabelText("Dismiss notification")).toBeTruthy();

@@ -17,6 +17,9 @@ import { ConfirmDialogProvider } from "#/components/ui/confirm-dialog";
 import { ToastHost } from "#/components/ui/toast";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
+import { type Locale, LocaleProvider, readClientLocale } from "#/lib/i18n";
+import { LanguageSync } from "#/lib/i18n/LanguageSync";
+import { getSsrLocale } from "#/lib/i18n/server";
 
 import appCss from "../styles.css?url";
 
@@ -36,6 +39,20 @@ const BARE_ROUTES = [
 ];
 
 export const Route = createRootRoute({
+	loader: async () => {
+		try {
+			if (typeof document !== "undefined") {
+				return { locale: readClientLocale() };
+			}
+			const { locale } = (await getSsrLocale()) as { locale: Locale };
+			return { locale };
+		} catch {
+			// SSR locale resolution is best-effort; the client corrects it
+			// from the cookie/navigator.language once the loader re-runs
+			// after hydration.
+			return { locale: "en" as Locale };
+		}
+	},
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
@@ -82,6 +99,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayout() {
+	const { locale } = Route.useLoaderData() ?? { locale: "en" as Locale };
+
 	useEffect(() => {
 		if (typeof window === "undefined" || !("serviceWorker" in navigator))
 			return;
@@ -90,19 +109,29 @@ function RootLayout() {
 		});
 	}, []);
 
+	// Shell's <html lang> is a static SSR fallback (shellComponent renders
+	// outside the router match tree, so it has no loader access); sync the
+	// resolved locale onto the document once the route data is available.
+	useEffect(() => {
+		document.documentElement.lang = locale;
+	}, [locale]);
+
 	return (
-		<AppClerkProvider>
-			<AppConvexProvider>
-				<AuthConfigProvider config={AUTH_CONFIG}>
-					<ToastHost>
-						<ConfirmDialogProvider>
-							<AppContent />
-						</ConfirmDialogProvider>
-					</ToastHost>
-					{import.meta.env.DEV && <TanStackRouterDevtools />}
-				</AuthConfigProvider>
-			</AppConvexProvider>
-		</AppClerkProvider>
+		<LocaleProvider initialLocale={locale}>
+			<AppClerkProvider>
+				<AppConvexProvider>
+					<AuthConfigProvider config={AUTH_CONFIG}>
+						<LanguageSync />
+						<ToastHost>
+							<ConfirmDialogProvider>
+								<AppContent />
+							</ConfirmDialogProvider>
+						</ToastHost>
+						{import.meta.env.DEV && <TanStackRouterDevtools />}
+					</AuthConfigProvider>
+				</AppConvexProvider>
+			</AppClerkProvider>
+		</LocaleProvider>
 	);
 }
 

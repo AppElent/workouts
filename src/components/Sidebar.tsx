@@ -3,12 +3,16 @@ import { useAuth } from "@clerk/clerk-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useState } from "react";
-import { isNavItemLocked, NAV_ITEMS } from "./navItems";
+import { LanguageToggle } from "#/components/LanguageToggle";
+import { useMessages } from "#/lib/i18n";
+import { isNavItemLocked, useNavItems } from "./navItems";
 
 export function Sidebar() {
 	const [collapsed, setCollapsed] = useState(false);
 	const { location } = useRouterState();
 	const { isSignedIn } = useAuth();
+	const { nav } = useMessages();
+	const navItems = useNavItems();
 
 	return (
 		<aside
@@ -27,14 +31,14 @@ export function Sidebar() {
 				</div>
 				{!collapsed && (
 					<span className="font-bold text-sm text-white truncate">
-						Workout Tracker
+						{nav.appName}
 					</span>
 				)}
 			</div>
 
 			{/* Nav */}
 			<nav className="flex-1 py-4 flex flex-col gap-1 px-2">
-				{NAV_ITEMS.map(({ to, label, Icon, gated }) => {
+				{navItems.map(({ to, label, Icon, gated }) => {
 					const locked = isNavItemLocked({ gated }, Boolean(isSignedIn));
 					const active = !locked && location.pathname.startsWith(to);
 					return (
@@ -71,12 +75,19 @@ export function Sidebar() {
 				<HeaderUser />
 			</div>
 
+			{/* Language toggle */}
+			{!collapsed && (
+				<div className="flex items-center justify-center border-t border-[var(--border)]">
+					<LanguageToggle />
+				</div>
+			)}
+
 			{/* Collapse toggle */}
 			<button
 				type="button"
 				onClick={() => setCollapsed((c) => !c)}
 				className="flex items-center justify-center p-3 border-t border-[var(--border)] text-[var(--text-muted)] hover:text-white transition-colors"
-				aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+				aria-label={collapsed ? nav.expandSidebar : nav.collapseSidebar}
 			>
 				{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
 			</button>

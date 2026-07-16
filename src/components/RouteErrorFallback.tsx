@@ -2,6 +2,7 @@ import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { EmptyState } from "#/components/ui/empty-state";
+import { useMessages } from "#/lib/i18n";
 
 /**
  * Default route-level error boundary: explains the failure and offers a
@@ -10,15 +11,16 @@ import { EmptyState } from "#/components/ui/empty-state";
  */
 export function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
 	const router = useRouter();
+	const { common, shell } = useMessages();
 	return (
 		<div className="mx-auto max-w-md p-6">
 			<EmptyState
 				icon={AlertTriangle}
-				title="Something went wrong"
+				title={shell.routeError.title}
 				description={
 					error instanceof Error && error.message
 						? error.message
-						: "An unexpected error occurred."
+						: shell.routeError.genericMessage
 				}
 				action={
 					<Button
@@ -28,7 +30,7 @@ export function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
 							void router.invalidate();
 						}}
 					>
-						Try again
+						{common.actions.retry}
 					</Button>
 				}
 			/>
