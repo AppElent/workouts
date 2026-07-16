@@ -14,6 +14,9 @@ import { RestTimerProvider } from "#/components/session/RestTimer";
 import { SessionSummary } from "#/components/session/SessionSummary";
 import { SessionWods } from "#/components/session/SessionWods";
 import { SetEditSheet } from "#/components/session/SetEditSheet";
+import { useConfirm } from "#/components/ui/confirm-dialog";
+import { useToast } from "#/components/ui/toast";
+import { getConvexErrorMessage } from "#/lib/convexError";
 import type { HostedWodType } from "#/lib/hostedWorkouts";
 
 export const Route = createFileRoute("/log/$sessionId")({
@@ -52,6 +55,8 @@ function ActiveSessionPage() {
 
 	const finishSession = useMutation(api.workoutSessions.finish);
 	const cancelSession = useMutation(api.workoutSessions.cancel);
+	const confirm = useConfirm();
+	const toast = useToast();
 	const submitHostedScore = useMutation(
 		api.hostedWorkoutSubmissions.submitForSession,
 	);
@@ -112,12 +117,33 @@ function ActiveSessionPage() {
 	}
 
 	async function handleFinish() {
-		await finishSession({ id: sessionId as Id<"workoutSessions"> });
+		try {
+			await finishSession({ id: sessionId as Id<"workoutSessions"> });
+		} catch (err) {
+			toast.error(
+				"Couldn't finish workout",
+				getConvexErrorMessage(err, "Please try again."),
+			);
+		}
 	}
 
 	async function handleCancel() {
-		if (!confirm("Cancel this workout? All logged sets will be kept.")) return;
-		await cancelSession({ id: sessionId as Id<"workoutSessions"> });
+		const ok = await confirm({
+			title: "Cancel this workout?",
+			description: "All logged sets will be kept.",
+			confirmLabel: "Cancel workout",
+			cancelLabel: "Keep going",
+			destructive: true,
+		});
+		if (!ok) return;
+		try {
+			await cancelSession({ id: sessionId as Id<"workoutSessions"> });
+		} catch (err) {
+			toast.error(
+				"Couldn't cancel workout",
+				getConvexErrorMessage(err, "Please try again."),
+			);
+		}
 	}
 
 	if (session === undefined) {
