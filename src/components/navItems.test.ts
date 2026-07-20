@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { en } from "#/lib/i18n/messages/en";
 import { isNavItemLocked, NAV_ITEMS } from "./navItems";
 
 describe("NAV_ITEMS", () => {
@@ -7,10 +8,11 @@ describe("NAV_ITEMS", () => {
 		expect(publicRoutes).toEqual(["/exercises"]);
 	});
 
-	it("has a label and shortLabel for every item", () => {
+	it("has a message key with a label and shortLabel for every item", () => {
 		for (const item of NAV_ITEMS) {
-			expect(item.label.length).toBeGreaterThan(0);
-			expect(item.shortLabel.length).toBeGreaterThan(0);
+			const messages = en.nav[item.key];
+			expect(messages.label.length).toBeGreaterThan(0);
+			expect(messages.shortLabel.length).toBeGreaterThan(0);
 		}
 	});
 
@@ -23,7 +25,7 @@ describe("NAV_ITEMS", () => {
 	it("includes a gated host item pointing at /hosted-workouts", () => {
 		const host = NAV_ITEMS.find((i) => i.to === "/hosted-workouts");
 		expect(host).toBeDefined();
-		expect(host?.shortLabel).toBe("Host");
+		expect(en.nav[host?.key as "hostedWorkouts"].shortLabel).toBe("Host");
 		expect(host?.gated).toBe(true);
 	});
 });

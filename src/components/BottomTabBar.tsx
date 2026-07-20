@@ -1,15 +1,16 @@
 import { useAuth } from "@clerk/clerk-react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { isNavItemLocked, NAV_ITEMS } from "./navItems";
+import { isNavItemLocked, useNavItems } from "./navItems";
 
 export function BottomTabBar() {
 	const { location } = useRouterState();
 	const { isSignedIn } = useAuth();
+	const navItems = useNavItems();
 
 	return (
 		<nav className="fixed bottom-0 inset-x-0 z-40 border-t border-[var(--border)] bg-[var(--surface)] sm:hidden">
 			<div className="flex items-stretch">
-				{NAV_ITEMS.map(({ to, shortLabel, Icon, gated }) => {
+				{navItems.map(({ to, shortLabel, Icon, gated }) => {
 					const locked = isNavItemLocked({ gated }, Boolean(isSignedIn));
 					const active = !locked && location.pathname.startsWith(to);
 					return (

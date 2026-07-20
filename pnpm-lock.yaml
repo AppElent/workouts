@@ -18,6 +18,9 @@ importers:
       '@appelent/cli':
         specifier: ^0.2.0
         version: 0.2.0
+      '@appelent/i18n':
+        specifier: ^0.1.0
+        version: 0.1.0(@clerk/clerk-react@5.61.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@tanstack/react-start@1.168.27(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.0)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vitest@4.1.10(@types/node@26.1.1)(jsdom@29.1.1)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.0)))
       '@base-ui/react':
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -166,6 +169,15 @@ packages:
 
   '@appelent/cli@0.2.0':
     resolution: {integrity: sha512-DZFeV1PiKVeor1x7jcXVwOZTvldthkmHzVLctn06p2KBHpt9rarxNGOgDQPiIQE2bkc2dWOiF83o205K3CRbbw==, tarball: https://npm.pkg.github.com/download/@appelent/cli/0.2.0/e70db0e8139667e8f8f5bf846f354e7b1cc24e28}
+
+  '@appelent/i18n@0.1.0':
+    resolution: {integrity: sha512-5luhxfz0mREoAs9hvrgVdrjZgJn3KdCHJFBgyBZVbTXPSDRlB6X6sonANdHWJJrZMJ/lsLecnTgED7+ORjU9gg==, tarball: https://npm.pkg.github.com/download/@appelent/i18n/0.1.0/a8bc39d04dc799a659f81b9191fece66d83091be}
+    peerDependencies:
+      '@clerk/clerk-react': '>=5.61.6'
+      '@tanstack/react-start': ^1.0.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+      vitest: ^3.0.0 || ^4.0.0
 
   '@asamuzakjp/css-color@5.1.11':
     resolution: {integrity: sha512-KVw6qIiCTUQhByfTd78h2yD1/00waTmm9uy/R7Ck/ctUyAPj+AEDLkQIdJW0T8+qGgj3j5bpNKK7Q3G+LedJWg==}
@@ -4373,6 +4385,14 @@ snapshots:
       tailwind-merge: 3.6.0
 
   '@appelent/cli@0.2.0': {}
+
+  '@appelent/i18n@0.1.0(@clerk/clerk-react@5.61.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@tanstack/react-start@1.168.27(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.0)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vitest@4.1.10(@types/node@26.1.1)(jsdom@29.1.1)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.0)))':
+    dependencies:
+      '@clerk/clerk-react': 5.61.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@tanstack/react-start': 1.168.27(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.0))
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+      vitest: 4.1.10(@types/node@26.1.1)(jsdom@29.1.1)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.0))
 
   '@asamuzakjp/css-color@5.1.11':
     dependencies:

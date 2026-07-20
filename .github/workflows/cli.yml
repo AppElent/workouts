@@ -15,8 +15,6 @@ jobs:
     permissions:
       contents: read
       packages: read
-    env:
-      WORKOUTS_CONFIG_DIR: ${{ runner.temp }}/workouts-cli
     steps:
       - uses: actions/checkout@v4
 
@@ -38,3 +36,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm cli:smoke
+        env:
+          WORKOUTS_CONFIG_DIR: ${{ runner.temp }}/workouts-cli

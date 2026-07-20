@@ -1,5 +1,6 @@
 import { Toast } from "@base-ui/react/toast";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
+import { useMessages } from "#/lib/i18n";
 import { cn } from "#/lib/utils";
 
 type ToastType = "success" | "error" | "info";
@@ -35,6 +36,7 @@ export function useToast() {
 
 function ToastList() {
 	const { toasts } = Toast.useToastManager();
+	const { shell } = useMessages();
 	return toasts.map((toast) => {
 		const type: ToastType =
 			toast.type && toast.type in TOAST_ICONS
@@ -68,7 +70,7 @@ function ToastList() {
 				</div>
 				<Toast.Close
 					className="shrink-0 rounded p-1 text-[var(--text-muted)] transition-colors hover:text-white"
-					aria-label="Dismiss notification"
+					aria-label={shell.toast.dismiss}
 				>
 					<X size={14} />
 				</Toast.Close>

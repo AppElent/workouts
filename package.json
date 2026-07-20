@@ -38,6 +38,7 @@
   "dependencies": {
     "@appelent/auth": "^0.1.0",
     "@appelent/cli": "^0.2.0",
+    "@appelent/i18n": "^0.1.0",
     "@base-ui/react": "^1.6.0",
     "@clerk/clerk-react": "^5.61.8",
     "@convex-dev/react-query": "0.1.0",

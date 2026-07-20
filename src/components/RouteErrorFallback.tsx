@@ -7,6 +7,12 @@ import { EmptyState } from "#/components/ui/empty-state";
  * Default route-level error boundary: explains the failure and offers a
  * retry instead of a white screen. `reset` clears the boundary;
  * `router.invalidate()` re-runs loaders so the retry actually refetches.
+ *
+ * Deliberately not localized: this is the router's `defaultErrorComponent`,
+ * so it can render in place of the root route itself (e.g. a provider
+ * throwing during initial render) — outside the `LocaleProvider` that
+ * `RootLayout` mounts. Depending on `useMessages()` here would turn a
+ * recoverable error into a second, unrelated crash.
  */
 export function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
 	const router = useRouter();

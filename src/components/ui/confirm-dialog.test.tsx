@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "#/lib/i18n";
 import { ConfirmDialogProvider, useConfirm } from "./confirm-dialog";
 
 // Base UI dialogs rely on browser APIs jsdom doesn't implement (same
@@ -41,9 +42,11 @@ function Harness({ onResult }: { onResult: (value: boolean) => void }) {
 function setup() {
 	const onResult = vi.fn();
 	render(
-		<ConfirmDialogProvider>
-			<Harness onResult={onResult} />
-		</ConfirmDialogProvider>,
+		<LocaleProvider initialLocale="en">
+			<ConfirmDialogProvider>
+				<Harness onResult={onResult} />
+			</ConfirmDialogProvider>
+		</LocaleProvider>,
 	);
 	fireEvent.click(screen.getByText("trigger"));
 	return onResult;
@@ -112,9 +115,11 @@ describe("useConfirm", () => {
 		const onResultA = vi.fn();
 		const onResultB = vi.fn();
 		render(
-			<ConfirmDialogProvider>
-				<DoubleHarness onResultA={onResultA} onResultB={onResultB} />
-			</ConfirmDialogProvider>,
+			<LocaleProvider initialLocale="en">
+				<ConfirmDialogProvider>
+					<DoubleHarness onResultA={onResultA} onResultB={onResultB} />
+				</ConfirmDialogProvider>
+			</LocaleProvider>,
 		);
 		fireEvent.click(screen.getByText("trigger A"));
 		fireEvent.click(screen.getByText("trigger B"));

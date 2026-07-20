@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Dumbbell } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useMessages } from "#/lib/i18n";
 
 function formatElapsed(startTime: number): string {
 	const ms = Date.now() - startTime;
@@ -20,6 +21,7 @@ export function ActiveSessionBar() {
 	const activeSession = useQuery(api.workoutSessions.getActive);
 	const { location } = useRouterState();
 	const [elapsed, setElapsed] = useState("");
+	const { shell } = useMessages();
 
 	useEffect(() => {
 		if (!activeSession) return;
@@ -32,7 +34,7 @@ export function ActiveSessionBar() {
 	if (!activeSession) return null;
 	if (location.pathname === `/log/${activeSession._id}`) return null;
 
-	const label = activeSession.name ?? "Active Workout";
+	const label = activeSession.name ?? shell.activeSession.fallbackName;
 
 	return (
 		<div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface)] border-t border-[var(--accent)]/30">
@@ -50,7 +52,7 @@ export function ActiveSessionBar() {
 				params={{ sessionId: activeSession._id }}
 				className="flex-shrink-0 px-4 py-1.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
 			>
-				Resume →
+				{shell.activeSession.resume} →
 			</Link>
 		</div>
 	);

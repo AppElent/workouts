@@ -7,6 +7,7 @@ import {
 	useState,
 } from "react";
 import { Button } from "#/components/ui/button";
+import { useMessages } from "#/lib/i18n";
 
 export interface ConfirmOptions {
 	title: string;
@@ -43,6 +44,7 @@ export function ConfirmDialogProvider({
 }) {
 	const [options, setOptions] = useState<ConfirmOptions | null>(null);
 	const resolveRef = useRef<((value: boolean) => void) | null>(null);
+	const { common } = useMessages();
 
 	const confirm = useCallback<ConfirmFn>((opts) => {
 		return new Promise<boolean>((resolve) => {
@@ -82,7 +84,7 @@ export function ConfirmDialogProvider({
 							)}
 							<div className="mt-5 flex justify-end gap-2">
 								<Button variant="outline" onClick={() => settle(false)}>
-									{options?.cancelLabel ?? "Cancel"}
+									{options?.cancelLabel ?? common.actions.cancel}
 								</Button>
 								<Button
 									variant={options?.destructive ? "destructive" : "default"}
