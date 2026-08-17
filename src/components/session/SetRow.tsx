@@ -1,6 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
+import { calculateOneRepMax } from "@workouts/core";
 import { Pencil } from "lucide-react";
-import { calculateOneRepMax } from "#/lib/oneRepMax";
 
 interface Props {
 	set: Doc<"sets">;

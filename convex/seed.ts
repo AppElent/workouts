@@ -8,7 +8,7 @@ import { internalMutation, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from './lib/oneRepMax'
+import { calculateOneRepMax } from '@workouts/core'
 import { DEFAULT_EXERCISES } from './seedData/exercises'
 import { DEFAULT_WODS } from './seedData/wods'
 

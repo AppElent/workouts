@@ -1,0 +1,25 @@
+{
+	"expo": {
+		"name": "Workouts",
+		"slug": "workouts-mobile",
+		"version": "0.1.0",
+		"orientation": "portrait",
+		"scheme": "workoutsmobile",
+		"userInterfaceStyle": "automatic",
+		"newArchEnabled": true,
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "com.appelent.workoutsmobile"
+		},
+		"android": {
+			"package": "com.appelent.workoutsmobile"
+		},
+		"web": {
+			"bundler": "metro"
+		},
+		"plugins": ["expo-router", "@clerk/expo", "expo-secure-store"],
+		"experiments": {
+			"typedRoutes": true
+		}
+	}
+}

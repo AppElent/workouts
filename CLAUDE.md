@@ -54,12 +54,16 @@ To run a single test file: `pnpm exec vitest run src/path/to/test.ts`
 
 ## Architecture
 
-Single codebase split into two layers:
+A pnpm workspace (`pnpm-workspace.yaml`: `apps/*`, `packages/*`) built around one Convex backend and one Clerk tenant:
 
 - **`src/`** — React 19 frontend with TanStack React Start (SSR, file-based routing via TanStack Router)
 - **`convex/`** — Serverless backend: database schema, queries, mutations, actions
+- **`apps/mobile`** — Expo (React Native) client, a second frontend against the same `convex/`. Clerk rides `@clerk/expo` (Core 3) here vs. `@clerk/clerk-react` (Core 2) for the web — see that app's source comments for the generation split and why route guards key off Clerk's `isSignedIn`, never Convex's `isAuthenticated`.
+- **`packages/core`** — Shared, dependency-free logic between the web app, `convex/`, and `apps/mobile` (currently: the 1RM formula). Private, built with tsup to ESM in `dist/` — not published, not raw `.ts` subpath exports, because Convex's esbuild bundler needs a real build to resolve it.
 
-The app is server-side rendered via TanStack React Start and deployed as a Cloudflare Worker. The server entry point is `@tanstack/react-start/server-entry`. Deployment environments (production, dev) are defined in `wrangler.jsonc`. PR previews are provisioned per-PR by `.github/workflows/preview.yml` (per-PR Convex backend + per-PR Worker named `workouts-pr-<N>`).
+`src/` and `convex/` stay at the repo root; they are not nested under `apps/web` or similar.
+
+The web app is server-side rendered via TanStack React Start and deployed as a Cloudflare Worker. The server entry point is `@tanstack/react-start/server-entry`. Deployment environments (production, dev) are defined in `wrangler.jsonc`. PR previews are provisioned per-PR by `.github/workflows/preview.yml` (per-PR Convex backend + per-PR Worker named `workouts-pr-<N>`).
 
 ### Tech Stack
 
@@ -175,7 +179,7 @@ src/components/
 - **Icons**: Lucide React only. Do not add other icon libraries.
 - **UI hygiene**: Shared mechanisms live in `src/components/ui/` — `useToast()` (toast.tsx), `useConfirm()` (confirm-dialog.tsx), `Skeleton`, `EmptyState` — plus `RouteErrorFallback` as the router's `defaultErrorComponent` and `Button`'s `loading` prop. The rules for when to use them are in the managed block's "UI hygiene" checklist at the end of this file (baseline step 16).
 - **Path aliases**: `#/*` and `@/*` both resolve to `src/`. `@convex/*` resolves to `convex/`.
-- **1RM calculations**: Shared logic in both `src/lib/oneRepMax.ts` (client) and `convex/lib/oneRepMax.ts` (server) using the Epley formula (`weight × (1 + reps/30)`). Keep them in sync — single-rep sets are treated as actual 1RMs. Auto-update behavior (in `convex/sets.ts`): logging a set auto-stores a new 1RM if it beats the existing record; if a manual 1RM exists, auto-calculation is skipped entirely; deleting a set clears all non-manual 1RMs for that exercise and recalculates from remaining sets.
+- **1RM calculations**: `calculateOneRepMax` lives in `packages/core` (`@workouts/core`) and is imported from there by both `src/` and `convex/` — a single implementation, not two copies to keep in sync. Uses the Epley formula (`weight × (1 + reps/30)`); single-rep sets are treated as actual 1RMs. Auto-update behavior (in `convex/sets.ts`): logging a set auto-stores a new 1RM if it beats the existing record; if a manual 1RM exists, auto-calculation is skipped entirely; deleting a set clears all non-manual 1RMs for that exercise and recalculates from remaining sets.
 - **Auth guards**: Use Clerk's `<SignedIn>` / `<RedirectToSignIn>` components for protected UI. All Convex functions enforce auth server-side.
 - **Dev test login**: `@appelent/auth` renders a "▶ Dev: log in as test user" button on the sign-in screen whenever `VITE_CLERK_PUBLISHABLE_KEY` is a Clerk *test* key (`pk_test_...`) and `VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set — both conditions must hold, so it's structurally impossible on production (`pk_live_...`). Use it to authenticate when testing auth-gated pages locally or on a non-prod preview.
 - **Biome excludes**: `src/routeTree.gen.ts` and `src/styles.css` are excluded from linting — do not add lint-disable comments in those files.

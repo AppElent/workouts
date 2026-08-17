@@ -1,6 +1,13 @@
 # pnpm settings. In pnpm 11 the old package.json "pnpm" field is no longer
 # read — these settings live here instead.
 
+# Monorepo layout: the TanStack Start web app + convex/ stay at the repo
+# root (unchanged); apps/mobile (Expo) and packages/core (shared, private,
+# zero-dependency) are workspace members alongside them.
+packages:
+  - "apps/*"
+  - "packages/*"
+
 # Supply-chain hardening: only these packages may run install/build lifecycle
 # scripts. Everything else is install-script-sandboxed (default-deny), which
 # neutralizes the postinstall-RCE vector used by recent npm worm attacks.
@@ -53,6 +60,13 @@ overrides:
 # onlyBuiltDependencies above. Booleans mirror that same decision.
 allowBuilds:
   '@clerk/shared': false
+  # @clerk/expo (apps/mobile) pulls these in transitively. None run native
+  # binary compiles — all false, but they still need a ledger entry or
+  # --frozen-lockfile installs fail with ERR_PNPM_IGNORED_BUILDS.
+  browser-tabs-lock: false # postinstall just prints a SuperTokens notice
+  bufferutil: false # optional native speed-up for `ws`; falls back to JS without it
+  core-js: false # postinstall is just a sponsorship notice, no native binary
+  utf-8-validate: false # optional native `ws` accelerator, not needed to run
   esbuild: true
   sharp: true
   workerd: true

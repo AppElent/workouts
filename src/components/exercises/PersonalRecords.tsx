@@ -1,4 +1,4 @@
-import { calculateOneRepMax } from "#/lib/oneRepMax";
+import { calculateOneRepMax } from "@workouts/core";
 
 interface HistorySet {
 	weight: number;
