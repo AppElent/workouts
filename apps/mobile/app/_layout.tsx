@@ -7,23 +7,52 @@
  * up (`preventAutoHideAsync`) until Clerk resolves, so the router never
  * mounts a route before it knows which one is right.
  *
- * This is a deliberately trimmed version of the cold-start dance: no
- * escape-hatch timeout, no shell/theme/i18n providers layered in — those are
- * other tickets (#46 shell, #49 i18n). If Clerk genuinely can't be reached
- * (dead network), this screen holds the splash indefinitely; that's a real
- * gap the app shell should close, not one this scaffold papers over.
+ * #46 adds the native chrome the scaffold left out. Three surfaces sit outside
+ * React's reach and each will show white on a black app unless told otherwise:
+ *
+ * 1. expo-router ships react-navigation's **light** theme by default, which
+ *    paints the screen background and the header behind every route.
+ * 2. The status bar's icons are dark unless the bar is told the app is dark.
+ * 3. The window behind the React tree flashes its own background during the
+ *    handoff from splash to first frame.
+ *
+ * Still deliberately missing (an honest gap, not an oversight): the escape
+ * hatch for a Clerk that never resolves. On a dead network this holds the
+ * splash indefinitely. That belongs with the offline/availability work, not
+ * with the shell.
  */
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
-import { Stack } from "expo-router";
+import { DarkTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
+import { colors } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * react-navigation's dark theme, repainted in the app's own palette. Spread
+ * first so the `fonts` block (which react-navigation requires and we have no
+ * opinion about) survives.
+ */
+const navigationTheme = {
+	...DarkTheme,
+	colors: {
+		...DarkTheme.colors,
+		primary: colors.accent,
+		background: colors.bg,
+		card: colors.surface,
+		text: colors.text,
+		border: colors.border,
+		notification: colors.accent,
+	},
+};
 
 export default function RootLayout() {
 	return (
@@ -34,7 +63,12 @@ export default function RootLayout() {
 			    never query. */}
 			<AppConvexProvider>
 				<SafeAreaProvider>
-					<RootNavigator />
+					<ThemeProvider value={navigationTheme}>
+						<View style={styles.window}>
+							<StatusBar style="light" />
+							<RootNavigator />
+						</View>
+					</ThemeProvider>
 				</SafeAreaProvider>
 			</AppConvexProvider>
 		</ClerkProvider>
@@ -55,9 +89,18 @@ function RootNavigator() {
 	if (!isLoaded) return null;
 
 	return (
-		<Stack screenOptions={{ headerShown: false }}>
+		<Stack
+			screenOptions={{
+				headerShown: false,
+				contentStyle: { backgroundColor: colors.bg },
+			}}
+		>
 			<Stack.Screen name="(auth)" />
 			<Stack.Screen name="(app)" />
 		</Stack>
 	);
 }
+
+const styles = StyleSheet.create({
+	window: { flex: 1, backgroundColor: colors.bg },
+});

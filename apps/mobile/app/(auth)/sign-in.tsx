@@ -1,24 +1,25 @@
 /**
- * Email and password. The one screen a signed-out user gets in this
- * scaffold — no sign-up, no password reset, no OAuth. Those are shell/UX
- * tickets, not this one.
+ * Email and password — the whole signed-out surface. No sign-up, no reset, no
+ * OAuth: #41 scopes V1 to an app you sign into with an account you already
+ * have, and every one of those is a Clerk flow with its own screens.
  *
  * The submit does not navigate: `finalize()` (in `usePasswordSignIn`) flips
  * `isSignedIn`, the `(auth)` layout above redirects to `/`, and this screen
  * unmounts.
+ *
+ * Rewritten off hardcoded hex onto `src/theme` (#46). The values are the same
+ * ones it already used — the point is that they now come from one place, so
+ * this screen cannot drift away from the app behind it.
  */
 import { useRef, useState } from "react";
-import {
-	ActivityIndicator,
-	Pressable,
-	StyleSheet,
-	Text,
-	TextInput,
-	View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, TextInput, View } from "react-native";
 
 import { devLogin } from "../../src/auth/config";
 import { usePasswordSignIn } from "../../src/auth/usePasswordSignIn";
+import { colors, radius, spacing } from "../../src/theme";
+import { PrimaryButton } from "../../src/ui/button";
+import { Screen } from "../../src/ui/screen";
+import { AppText } from "../../src/ui/text";
 
 export default function SignIn() {
 	const { submit, busy, error } = usePasswordSignIn();
@@ -29,58 +30,69 @@ export default function SignIn() {
 	const ready = email.trim().length > 0 && password.length > 0;
 
 	return (
-		<View style={styles.root}>
-			<Text style={styles.heading}>Sign in</Text>
+		<Screen>
+			<View style={styles.root}>
+				<View style={styles.brand}>
+					<View style={styles.mark} />
+					<AppText variant="display">Workouts</AppText>
+					<AppText variant="caption">Log the set. Nothing else.</AppText>
+				</View>
 
-			<TextInput
-				style={styles.input}
-				placeholder="Email"
-				placeholderTextColor="#8a8a8a"
-				value={email}
-				onChangeText={setEmail}
-				autoCapitalize="none"
-				autoCorrect={false}
-				keyboardType="email-address"
-				autoComplete="email"
-				textContentType="username"
-				returnKeyType="next"
-				onSubmitEditing={() => passwordRef.current?.focus()}
-			/>
-			<TextInput
-				ref={passwordRef}
-				style={styles.input}
-				placeholder="Password"
-				placeholderTextColor="#8a8a8a"
-				value={password}
-				onChangeText={setPassword}
-				secureTextEntry
-				autoCapitalize="none"
-				autoComplete="current-password"
-				textContentType="password"
-				returnKeyType="go"
-				onSubmitEditing={() => ready && submit(email, password)}
-			/>
+				<TextInput
+					style={styles.input}
+					placeholder="Email"
+					placeholderTextColor={colors.textFaint}
+					value={email}
+					onChangeText={setEmail}
+					autoCapitalize="none"
+					autoCorrect={false}
+					keyboardType="email-address"
+					autoComplete="email"
+					textContentType="username"
+					returnKeyType="next"
+					onSubmitEditing={() => passwordRef.current?.focus()}
+				/>
+				<TextInput
+					ref={passwordRef}
+					style={styles.input}
+					placeholder="Password"
+					placeholderTextColor={colors.textFaint}
+					value={password}
+					onChangeText={setPassword}
+					secureTextEntry
+					autoCapitalize="none"
+					autoComplete="current-password"
+					textContentType="password"
+					returnKeyType="go"
+					onSubmitEditing={() => ready && submit(email, password)}
+				/>
 
-			{error ? <Text style={styles.error}>{error}</Text> : null}
+				{error ? (
+					<AppText variant="caption" style={{ color: colors.danger }}>
+						{error}
+					</AppText>
+				) : null}
 
-			<Pressable
-				style={[styles.button, (!ready || busy) && styles.buttonDisabled]}
-				disabled={!ready || busy}
-				onPress={() => submit(email, password)}
-			>
 				{busy ? (
-					<ActivityIndicator color="#000" />
+					<View style={styles.busy}>
+						<ActivityIndicator color={colors.onAccent} />
+					</View>
 				) : (
-					<Text style={styles.buttonLabel}>Sign in</Text>
+					<PrimaryButton
+						label="Sign in"
+						disabled={!ready}
+						style={!ready && styles.disabled}
+						onPress={() => submit(email, password)}
+					/>
 				)}
-			</Pressable>
 
-			{devLogin ? (
-				<Text style={styles.devNote}>
-					Dev build: test credentials pre-filled (EXPO_PUBLIC_TEST_USER_*).
-				</Text>
-			) : null}
-		</View>
+				{devLogin ? (
+					<AppText variant="caption" style={styles.devNote}>
+						Dev build: test credentials pre-filled (EXPO_PUBLIC_TEST_USER_*).
+					</AppText>
+				) : null}
+			</View>
+		</Screen>
 	);
 }
 
@@ -88,49 +100,34 @@ const styles = StyleSheet.create({
 	root: {
 		flex: 1,
 		justifyContent: "center",
-		padding: 24,
-		gap: 12,
-		backgroundColor: "#000000",
+		paddingHorizontal: spacing.lg,
+		gap: spacing.sm,
 	},
-	heading: {
-		fontSize: 28,
-		fontWeight: "800",
-		color: "#ffffff",
-		marginBottom: 12,
+	brand: { gap: spacing.xs, marginBottom: spacing.lg },
+	mark: {
+		width: 40,
+		height: 40,
+		borderRadius: radius.pill,
+		backgroundColor: colors.accent,
+		marginBottom: spacing.sm,
 	},
 	input: {
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.1)",
-		backgroundColor: "#1a1a1a",
-		borderRadius: 12,
-		paddingHorizontal: 16,
+		borderColor: colors.border,
+		backgroundColor: colors.surface,
+		borderRadius: radius.lg,
+		paddingHorizontal: spacing.md,
 		paddingVertical: 14,
 		fontSize: 16,
-		color: "#ffffff",
+		color: colors.text,
 	},
-	error: {
-		color: "#ff6b6b",
-		fontSize: 13,
-	},
-	button: {
-		backgroundColor: "#1DB954",
-		borderRadius: 999,
+	// Matches PrimaryButton's height so the layout does not jump on submit.
+	busy: {
+		backgroundColor: colors.accent,
+		borderRadius: radius.pill,
 		paddingVertical: 14,
 		alignItems: "center",
-		marginTop: 8,
 	},
-	buttonDisabled: {
-		opacity: 0.5,
-	},
-	buttonLabel: {
-		color: "#000000",
-		fontWeight: "700",
-		fontSize: 16,
-	},
-	devNote: {
-		color: "#b3b3b3",
-		fontSize: 11,
-		textAlign: "center",
-		marginTop: 8,
-	},
+	disabled: { opacity: 0.5 },
+	devNote: { textAlign: "center", marginTop: spacing.sm },
 });
