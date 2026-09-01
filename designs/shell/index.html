@@ -1,0 +1,783 @@
+<!doctype html><html><head><!-- frame-runtime --><base href="/_f/1787763247-e297/"><script>window.__FRAME_PREAMBLE={"v":1,"capabilities":{"artifact":"artifact.Cg566fpb.js","assets":"assets.8Gk803W0.js","comments":"comments.GLuHR3zP.js","db":"db.CRhVHzSt.js","downloads":"downloads.C3GSvEDP.js","embed":"embed.CxGAyc-v.js","mcp":"mcp.Bvma3qD7.js","network":"network.B5UA9Su4.js","permissions":"permissions.BNySkLV5.js","room":"room.BMMoe2BY.js","sample":"sample.BW2Uysoh.js","self":"artifact.Cg566fpb.js","user":"user.BpKav-Rf.js"},"transforms":"_transforms.CQm3TZ9K.js","comments":"_comments.PBVy184F.js","translate":"_translate.5HCW4BJh.js"}</script><script>(()=> {"use strict";var J=["light","dark","system"],Q=/^[A-Za-z0-9_-]{1,64}$/,H=/^[a-zA-Z_:][a-zA-Z0-9_:.-]{0,127}$/,ee=new Set(["class","hidden","value","checked"]);function te(e){const t=e.toLowerCase();return t.startsWith("data-")||t.startsWith("aria-")||ee.has(t)}var Me="http://www.w3.org/1999/xhtml",re="http://www.w3.org/2000/svg",ne=new Set(["script","style","iframe","noscript","noframes","noembed","xmp","plaintext","template","title","textarea","object","embed"]),oe=new Set(["script","style"]);function se(e){const t=e.localName.toLowerCase();return e.namespaceURI==="http://www.w3.org/1999/xhtml"?!ne.has(t):e.namespaceURI===re?!oe.has(t):!1}var ae=new Set(["html","head","body","frameset"]);function ie(e){return e.namespaceURI==="http://www.w3.org/1999/xhtml"&&ae.has(e.localName)}function ce(e){if(e===null||typeof e!="object")return!1;const t=e;if(typeof t.target!="string"||!Q.test(t.target)||t.text!==void 0&&typeof t.text!="string")return!1;if(t.attrsSet!==void 0){if(t.attrsSet===null||typeof t.attrsSet!="object")return!1;for(const[r,n]of Object.entries(t.attrsSet))if(!H.test(r)||typeof n!="string")return!1}if(t.attrsRemoved!==void 0){if(!Array.isArray(t.attrsRemoved))return!1;for(const r of t.attrsRemoved)if(typeof r!="string"||!H.test(r))return!1}return!0}function le(e,t){if(e===null||typeof e!="object")return!1;const{seq:r,elements:n}=e;if(typeof r!="number"||!Number.isSafeInteger(r)||!Array.isArray(n)||n.length===0||n.length>64)return!1;for(let s=0;s<n.length;s++)if(!t(n[s]))return!1;return!0}function ue(e){return e===null||typeof e!="object"?!1:le(e.__frame_patch,ce)}function fe(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function pe(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function de(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const r=t.theme;return typeof r=="string"&&J.includes(r)}var A=/^[\w.-]+\.js$/;function me(e,t,r){return r?"inert":typeof t=="string"&&A.test(t)?e?[t]:"inert":e?"inert":"framed"}function he(){return{post(e,t){parent.postMessage(e,t)},on(e){const t=r=>{r.source===parent&&e(r.data,r.origin)};return addEventListener("message",t),()=>removeEventListener("message",t)}}}function _e(){return{post:()=>{},on:()=>()=>{}}}var O="__frame_scroll",ve=150,ye=310,we=160,be=3e4;function Ee(){let e=0,t=!1,r=!1,n=!1,s=0,a=null;const l=i=>{try{sessionStorage.setItem(O,JSON.stringify({y:i}))}catch{}},d=()=>{if(clearTimeout(e),a===null)return;const i=a;a=null,l(i)},v=()=>{if(t){t=!1;return}r=!0,a=scrollY,clearTimeout(e),e=setTimeout(d,ve)};try{addEventListener("scroll",v,{passive:!0}),addEventListener("pagehide",d)}catch{}const y=()=>{let i;try{i=sessionStorage.getItem(O)}catch{return null}if(i===null)return null;let m;try{m=JSON.parse(i)}catch{m=null}const u=m?.y;if(!(typeof u=="number"&&Number.isFinite(u)&&u>=0)){try{sessionStorage.removeItem(O)}catch{}return null}return u};let S=!1;const h=i=>{try{const m=scrollY;scrollTo({top:i,left:0,behavior:"instant"}),s=i,n=!0,clearTimeout(e),a=null,l(i);const u=scrollY;u!==m&&(t=!0),u!==i&&!S&&(S=!0,addEventListener("load",()=>{try{if(scrollY===u){const k=y();h(k!==null?k:s)}}catch{}},{once:!0}))}catch{}},w=()=>{try{return!!location.hash}catch{return!0}};let o=!1;const f=()=>{try{if(o||innerWidth>ye||innerHeight>we)return;o=!0;const i=Date.now(),m=()=>{try{removeEventListener("resize",m)}catch{}if(Date.now()-i>be||r||w())return;const u=y();h(u!==null?u:s)};addEventListener("resize",m)}catch{}};let _=!1,b=!1;return{restore(){if(_||(_=!0,w()))return;const i=y();i!==null&&(h(i),f())},promoted(){if(b||(b=!0,w()))return;const i=y();i!==null?(h(i),f()):n&&h(s)}}}function ge(e,t,r,n){let s=null;try{s=window.trustedTypes?.createPolicy("frame-runtime",{createScriptURL:v=>v})??null}catch{}const a=window.Worker,l=a?.prototype,d=Object.freeze({Worker:a,workerOn:l?.addEventListener,workerPost:l?.postMessage,workerTerminate:l?.terminate,fetch:window.fetch.bind(window),preventDefault:Event.prototype.preventDefault,policy:s,origins:t});r(e).then(v=>v?.bootTopLevel?v.bootTopLevel(d,n):n.settle()).catch(()=>n.settle())}var Oe="modulepreload",Ce=(e)=> "/"+e,je={},Ae=(t,r,n)=> {const s=Promise.resolve();function a(l){const d=new Event("vite:preloadError",{cancelable:!0});if(d.payload=l,window.dispatchEvent(d),!d.defaultPrevented)throw l}return s.then(l=>{for(const d of l||[])d.status==="rejected"&&a(d.reason);return t().catch(a)})},Re=window===top,q=Object.getOwnPropertyDescriptor(window,"claude"),T=me(Re,window.__FRAME_PREAMBLE?.topLevel,q?.writable===!1),C=typeof T=="object"&&T[0],p=C?_e():he();(()=> {const e=Object.defineProperty,t=globalThis,r=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let n=0;for(let s=0;s<r.length;s++){const a=r[s];try{e(t,a,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[a]}catch{}try{e(t,a,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[a]=="function"&&n++}if(n&&T==="framed")try{p.post({__frame_rtc_lockdown_failed:n},"*")}catch{}})();var Se=1e4,W=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function $(e){for(const t of W)if(t.endsWith(":*"))try{const r=new URL(e);if(`${r.protocol}//${r.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}var L=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),j=window.__FRAME_PREAMBLE?.transforms,N=window.__FRAME_PREAMBLE?.comments,I=window.__FRAME_PREAMBLE?.translate;function R(e){return Ae(()=>import("/_runtime/"+e),void 0)}function K(e,t){return{contract:e.contract,changes:new Set(e.changes??[]),flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:new Map,shellOrigin:t,mount:D,pipe:()=>({wrap:(r,n)=>(...s)=>{try{return n(...s)}catch(a){return Promise.reject(a)}}})}}var P=null,E=null;function Y(e,t,r){try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var B=!1;function ke(e,t){const r=[];for(const n of e.elements){const s=document.querySelector(`[data-id="${n.target}"]`);if(!s){p.post({__frame_patch_miss:{seq:e.seq}},t);return}if([...Object.keys(n.attrsSet??{}),...n.attrsRemoved??[]].some(a=>!te(a))){p.post({__frame_patch_miss:{seq:e.seq}},t);return}if(n.text!==void 0&&(!se(s)||ie(s))){p.post({__frame_patch_miss:{seq:e.seq}},t);return}for(const[a,l]of Object.entries(n.attrsSet??{}))if(!G(s,a)){try{s.setAttribute(a,l)}catch{}X(s,a,l)}for(const a of n.attrsRemoved??[])G(s,a)||(s.removeAttribute(a),X(s,a,null));typeof n.text=="string"&&(s.textContent=n.text),r.push(n.target)}try{document.dispatchEvent(new CustomEvent("claude:edit",{detail:{seq:e.seq,targets:r}}))}catch{}}function X(e,t,r){if(!(e instanceof HTMLInputElement))return;const n=t.toLowerCase();n==="checked"?e.checked=r!==null:n==="value"&&e.type!=="file"&&(e.value=r??"")}function G(e,t){const r=t.toLowerCase(),n=e;return r==="data-id"||(r==="value"||r==="checked")&&(n.__artifactSecret===!0||/^(password|hidden|file)$/.test(n.type??"")||/(^|\s)(cc-|one-time-code|current-password|new-password)/i.test(`${e.getAttribute("autocomplete")??""} ${n.autocomplete??""}`))}function V(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,B=!0):B&&(delete t.dataset.theme,t.style.colorScheme="",B=!1)}var M=new Map;function Te(){let e;const t={u:new Promise(r=>{e=r}),r:r=>{t.done=!0,e(r)},done:!1,nulled:!1};return t}function U(){for(const e of M.values())e.done||(e.nulled=!0,e.r(null))}var Le=Object.freeze(Object.assign(Object.create(null),{call:Function.prototype.call,apply:Function.prototype.apply,bind:Function.prototype.bind})),D=(e,t)=>{const r=M.get(e);if(!r||r.done){r?.nulled&&E&&p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:e}},E);return}const n=typeof t=="function"?Object.setPrototypeOf(t,Le):Object.assign(Object.create(null),t);typeof n.then=="function"&&delete n.then,r.r(Object.freeze(n))};function Z(){const e=q?.value??{};Y(window,"claude",e);for(const t of Object.keys(L)){if(e[t]!==void 0){Y(e,t,e[t]);continue}M.set(t,Te())}if(e.use===void 0){const t=r=>{if(typeof r!="string"||!Object.hasOwn(L,r))return Promise.resolve(null);const n=M.get(r);return n?n.u:Promise.resolve(e[r]??null)};try{Object.defineProperty(e,"use",{value:t,writable:!0,configurable:!0,enumerable:!1})}catch{}}}if(T==="framed"){const e=j&&A.test(j)?R(j).catch(()=>{}):Promise.resolve(void 0),t=o=>{if(o.type==="auxclick"&&o.button!==1)return;const f=o.target,_=f&&f.closest?f.closest("a[href],area[href]"):null;if(!_)return;const b=_.getAttribute("href");if(!b)return;let i;try{i=new URL(b,document.baseURI)}catch{return}if((i.protocol==="http:"||i.protocol==="https:")&&i.origin!==location.origin){o.preventDefault();const m=(_.getAttribute("target")??"").toLowerCase(),u=o.type==="auxclick"||o.metaKey||o.ctrlKey||o.shiftKey||o.altKey||!["","_self","_top","_parent"].includes(m);p.post({__frame_nav:!0,url:i.href,newTab:u},"*")}};addEventListener("click",t,!0),addEventListener("auxclick",t,!0);const r={},n=o=>{o.isTrusted&&(r.pointer=!0)},s=o=>{o.isTrusted&&(r.click=!0)};addEventListener("pointermove",n,{capture:!0,passive:!0}),addEventListener("click",s,{capture:!0,passive:!0}),e.then(o=>{o?.wireNav&&(o.wireNav(),removeEventListener("click",t,!0),removeEventListener("auxclick",t,!0),removeEventListener("pointermove",n,!0),removeEventListener("click",s,!0),o.wireEngagement?.(r))});let a=null;try{a=Ee()}catch{}Z();let l=null,d=null,v=0;const y=p.on((o,f)=>{$(f)&&fe(o)&&(l=o.__frame_init,E=f,y(),clearTimeout(v),d?.())});p.post({__frame_connect:!0},"*");const S=new Promise(o=>{d=o,v=setTimeout(()=>{y(),o()},Se)}),h=document.readyState==="loading"?new Promise(o=>document.addEventListener("DOMContentLoaded",()=>o(),{once:!0})):Promise.resolve();h.then(()=>{try{a?.restore()}catch{}});const w={cb:null};p.on((o,f)=>{if($(f)&&pe(o)){try{a?.promoted()}catch{}w.cb?.()}}),S.then(async()=>{if(!l||!E){U();return}V(l.theme);const o=E;let f=!1,_=!1;p.on((c,x)=>{if(x!==o)return;de(c)&&V(c.__frame_theme.theme),ue(c)&&ke(c.__frame_patch,o);const g=c?.__fc_mode;g&&typeof g=="object"&&!f&&N&&A.test(N)&&(f=!0,R(N).then(z=>z.install?.(o,g.on===!0)).catch(()=>{}));const F=c?.__ft_cmd;F&&typeof F=="object"&&!_&&I&&A.test(I)&&(_=!0,R(I).then(z=>z.install?.(o,F)).catch(()=>{}))});const b=Object.keys(l.capabilities??{}).filter(c=>Object.hasOwn(L,c)).map(c=>[c,L[c]]).filter(c=>typeof c[1]=="string"&&A.test(c[1])),i=await Promise.allSettled(b.map(([,c])=>R(c))),m=await e,u=E;if(m?.buildBoot||p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},u),m?.buildBoot)try{P=m.buildBoot(l,m.TRANSFORMS??{},{shellOrigin:u,mount:D},c=>p.post({__frame_cap_telemetry:c},u))}catch{p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},u),P=K(l,u)}else P=K(l,u);const k=c=>p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:c}},u),Pe=P;i.forEach((c,x)=>{const g=b[x][0];if(c.status!=="fulfilled"){k(g);return}try{c.value?.install?.(Pe)}catch{k(g)}}),U(),await h,p.post({__frame_ready:!0},E),e.then(c=>c?.installSizeReporter?.(u,w))})}else C&&(Z(),ge(C,W,R,{settle:U,mount:D}))})();</script><!-- /frame-runtime --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Coach Shell</title>
+<style>
+  :root{
+    --bg:#0a0b09; --surface:#141613; --surface2:#1d201b; --surface3:#20241c;
+    --border:rgba(255,255,255,0.07); --border-strong:rgba(255,255,255,0.14);
+    --text:#f2f4ef; --muted:#9ba095; --faint:#5c6156;
+    --accent:#c8f73c; --accent-dim:rgba(200,247,60,0.13); --accent-ink:#0a0b09;
+    --strength:#c8f73c; --strength-dim:rgba(200,247,60,0.14);
+    --running:#ff8a4c; --running-dim:rgba(255,138,76,0.14);
+    --cycling:#4fd1e3; --cycling-dim:rgba(79,209,227,0.14);
+    --wod:#ff5d73; --wod-dim:rgba(255,93,115,0.14);
+    --danger:#ff6b6b; --danger-dim:rgba(255,107,107,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg);}
+  body{
+    margin:0; color:var(--text); background:var(--bg);
+    font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:0 0 80px 0;
+  }
+  .num{font-variant-numeric:tabular-nums;}
+
+  .topbar{
+    position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+    background:rgba(10,11,9,0.86); border-bottom:1px solid var(--border);
+    padding:18px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand .mark{font-size:13px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted);}
+  .brand .title{font-size:17px; font-weight:800; letter-spacing:-0.01em;}
+  .jumpnav{display:flex; gap:6px; flex-wrap:wrap;}
+  .jumpnav a{
+    font-size:12px; font-weight:700; color:var(--muted); text-decoration:none;
+    padding:8px 14px; border-radius:9999px; border:1px solid var(--border);
+  }
+  .jumpnav a:hover{color:var(--text); border-color:var(--border-strong);}
+
+  .intro{max-width:900px; padding:44px 28px 8px 28px;}
+  .intro h1{font-size:clamp(28px,4vw,38px); font-weight:800; letter-spacing:-0.03em; line-height:1.08; margin:0 0 14px 0; text-wrap:balance;}
+  .intro p{font-size:15px; line-height:1.6; color:var(--muted); margin:0 0 4px 0; max-width:64ch;}
+  .intro .accent{color:var(--accent);}
+
+  .section{padding:48px 0 20px 0; border-top:1px solid var(--border); margin-top:8px;}
+  .section-head{padding:0 28px; max-width:900px; margin-bottom:24px;}
+  .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--faint); margin-bottom:10px;}
+  .section-head h2{font-size:23px; font-weight:800; letter-spacing:-0.02em; margin:0 0 8px 0;}
+  .section-head p{font-size:14px; line-height:1.6; color:var(--muted); margin:0; max-width:64ch;}
+
+  .filmstrip{display:flex; gap:26px; padding:6px 28px 22px 28px; overflow-x:auto; scroll-snap-type:x proximity;}
+  .screen-block{flex-shrink:0; scroll-snap-align:start; display:flex; flex-direction:column; gap:12px; width:272px;}
+  .screen-label{font-size:12px; font-weight:700; color:var(--muted); padding-left:4px;}
+  .screen-label b{color:var(--text); font-weight:800;}
+
+  .phone{
+    width:272px; height:588px; border-radius:34px; padding:9px;
+    background:linear-gradient(160deg,#1b1e18,#0d0f0c); border:1px solid var(--border-strong);
+    box-shadow:0 24px 48px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+  .screen{position:relative; width:100%; height:100%; border-radius:26px; overflow:hidden; background:var(--bg); display:flex; flex-direction:column;}
+  .screen::after{content:""; position:absolute; left:50%; bottom:6px; transform:translateX(-50%); width:120px; height:5px; border-radius:9999px; background:rgba(255,255,255,0.55); pointer-events:none; z-index:5;}
+  .statusbar{display:flex; align-items:center; justify-content:space-between; padding:11px 18px 0 18px; font-size:11px; font-weight:700; color:var(--text); flex-shrink:0;}
+  .content{flex-grow:1; overflow:hidden; padding:14px 16px 14px 16px; display:flex; flex-direction:column; gap:11px; min-height:0;}
+  .content.tight{gap:8px;}
+
+  .tabbar{
+    position:absolute; left:14px; right:14px; bottom:14px; z-index:4;
+    height:60px; border-radius:9999px; padding:0 6px;
+    background:rgba(20,22,18,0.68); backdrop-filter:blur(22px) saturate(1.5); -webkit-backdrop-filter:blur(22px) saturate(1.5);
+    border:1px solid rgba(255,255,255,0.14);
+    box-shadow:0 14px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:space-around;
+  }
+  .tab{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--faint); flex:1; height:46px; border-radius:9999px;}
+  .tab.active{color:var(--accent); background:var(--accent-dim);}
+  .tab .lbl{font-size:8.5px; font-weight:800;}
+  .tab svg{width:18px; height:18px;}
+
+  .row{display:flex; align-items:center; gap:10px;}
+  .between{display:flex; align-items:center; justify-content:space-between;}
+  .col{display:flex; flex-direction:column;}
+  .grow{flex-grow:1; min-width:0;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px;}
+  .avatar{width:32px; height:32px; border-radius:9999px; background:var(--surface2); border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:var(--muted); flex-shrink:0;}
+  .h1{font-size:19px; font-weight:800; letter-spacing:-0.02em; line-height:1.12;}
+  .h2{font-size:15px; font-weight:800; letter-spacing:-0.01em;}
+  .eyebrow-sm{font-size:9px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);}
+  .muted{color:var(--muted);} .faint{color:var(--faint);}
+  .fs9{font-size:8.5px;} .fs10{font-size:9.5px;} .fs11{font-size:10.5px;} .fs12{font-size:11.5px;} .fs13{font-size:12.5px;}
+  .fw7{font-weight:700;} .fw8{font-weight:800;}
+
+  .icon-tile{width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .icon-tile svg{width:17px; height:17px;}
+  .chip{display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:6px; font-size:9.5px; font-weight:700; background:var(--surface2); color:var(--muted); white-space:nowrap;}
+  .chip.active{background:var(--accent); color:var(--accent-ink);}
+  .btn{height:40px; border-radius:9999px; display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; font-weight:800; border:none;}
+  .btn-primary{background:var(--accent); color:var(--accent-ink);}
+  .btn-outline{background:transparent; border:1px solid var(--border-strong); color:var(--text);}
+  .btn-danger{background:var(--danger-dim); color:var(--danger);}
+  .back-chev{
+    width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--text);
+    margin-left:-4px; flex-shrink:0; border-radius:9999px; background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1);
+  }
+  .back-chev svg{width:16px; height:16px;}
+  .dropdown-pill{display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 14px; border-radius:9999px; background:rgba(255,255,255,0.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,0.14); font-size:12px; font-weight:700; color:var(--text); width:fit-content;}
+  .dropdown-menu{position:absolute; z-index:8; min-width:172px; border-radius:16px; background:rgba(28,31,25,0.94); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.14); box-shadow:0 18px 40px rgba(0,0,0,0.55); overflow:hidden;}
+  .dropdown-menu .item{display:flex; align-items:center; gap:8px; padding:11px 14px; font-size:12.5px; font-weight:700;}
+  .dropdown-menu .item + .item{border-top:1px solid rgba(255,255,255,0.08);}
+  .dropdown-menu .check{width:14px; flex-shrink:0;}
+
+  .t-strength{color:var(--strength);} .bg-strength{background:var(--strength-dim);}
+  .t-running{color:var(--running);} .bg-running{background:var(--running-dim);}
+  .t-cycling{color:var(--cycling);} .bg-cycling{background:var(--cycling-dim);}
+  .t-wod{color:var(--wod);} .bg-wod{background:var(--wod-dim);}
+
+  .ring-wrap{position:relative; width:64px; height:64px; flex-shrink:0;}
+  .ring-wrap .center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .stat-grid.x3{grid-template-columns:1fr 1fr 1fr;}
+  .stat-box{background:var(--surface); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:3px;}
+  .stat-box.tight{padding:10px 6px; align-items:center; text-align:center;}
+  .stat-box .val{font-size:21px; font-weight:800; letter-spacing:-0.02em;}
+  .stat-box .val.sm{font-size:17px;}
+  .stat-box .lbl{font-size:9px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);}
+
+  .segrow{display:flex; gap:6px; overflow-x:auto; padding-bottom:1px;}
+  .segrow::-webkit-scrollbar{display:none;}
+
+  .barlist{display:flex; flex-direction:column; gap:9px;}
+  .barlist .item{display:flex; align-items:center; gap:9px;}
+  .barlist .track{flex-grow:1; height:8px; border-radius:9999px; background:var(--surface2); overflow:hidden;}
+  .barlist .fill{height:100%; border-radius:9999px;}
+
+  footer.note{padding:36px 28px 10px 28px; max-width:640px; font-size:12.5px; color:var(--faint); line-height:1.6;}
+
+  .scrim{position:absolute; inset:0; background:rgba(0,0,0,0.55); z-index:6;}
+  .ctx-menu{position:absolute; z-index:8; width:184px; border-radius:14px; background:rgba(28,31,25,0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.12); box-shadow:0 18px 40px rgba(0,0,0,0.55); overflow:hidden;}
+  .ctx-menu .item{display:flex; align-items:center; justify-content:space-between; padding:11px 14px; font-size:12.5px; font-weight:700;}
+  .ctx-menu .item + .item{border-top:1px solid rgba(255,255,255,0.08);}
+  .ctx-menu .item.danger{color:var(--danger);}
+  .sheet{position:absolute; left:0; right:0; bottom:0; z-index:7; background:var(--bg); border-top:1px solid var(--border-strong); border-radius:22px 22px 0 0; box-shadow:0 -14px 34px rgba(0,0,0,0.55); display:flex; flex-direction:column; padding-bottom:14px;}
+  .grabber{width:36px; height:5px; border-radius:9999px; background:rgba(255,255,255,0.28); margin:9px auto 4px auto; flex-shrink:0;}
+  .swipe-wrap{position:relative; border-radius:13px; overflow:hidden;}
+  .swipe-reveal{position:absolute; inset:0; display:flex; justify-content:flex-end;}
+  .swipe-action{width:74px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:var(--danger); color:#3a0d0d;}
+</style>
+
+<div class="topbar">
+  <div class="brand"><span class="mark">Workouts</span><span class="title">Coach — full screen set</span></div>
+  <div class="jumpnav">
+    <a href="#home">Home</a><a href="#train">Train</a><a href="#progress">Progress</a><a href="#profile">Profile</a><a href="#flows">Flows</a><a href="#native">Native feel</a>
+  </div>
+</div>
+
+<div class="intro">
+  <h1>Coach, fleshed out.</h1>
+  <p>The four tabs in full, plus the flows that hang off them: the generic activity picker, a type-specific active session for both a set-and-rep sport and a distance sport, and the post-session recap. Same tokens as the option pass — <span class="accent">strength stays the visual anchor</span>, running/cycling/WOD read as first-class peers rather than an afterthought bolted onto the dashboard.</p>
+</div>
+
+<!-- ============================= TAB 1 — HOME ============================= -->
+<div class="section" id="home">
+  <div class="section-head">
+    <div class="eyebrow"><span style="color:var(--accent)">●</span> Tab 1 of 4</div>
+    <h2>Home</h2>
+    <p>Unchanged from the option pass — the weekly ring now counts activities, not just workouts, and the up-next card can hand off to any of the four types.</p>
+  </div>
+  <div class="filmstrip">
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content">
+          <div class="between">
+            <div class="col" style="gap:2px;">
+              <span class="fs10 fw8 faint" style="letter-spacing:0.08em; text-transform:uppercase;">Tuesday 26 Aug</span>
+              <span class="h1">Ready to move.</span>
+            </div>
+            <div class="avatar">EJ</div>
+          </div>
+
+          <div class="card row" style="gap:12px;">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 64 64" style="display:block; transform:rotate(-90deg);">
+                <circle cx="32" cy="32" r="27" fill="none" stroke="#242822" stroke-width="6"/>
+                <circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="135 170"/>
+              </svg>
+              <div class="center"><span class="num fw8" style="font-size:15px;">4</span><span class="fs10 muted">of 5</span></div>
+            </div>
+            <div class="col grow" style="gap:7px;">
+              <span class="fs12 fw8">This week</span>
+              <div class="row" style="gap:14px;">
+                <div class="col" style="gap:0;"><span class="num fw8 fs13">5h 12m</span><span class="fs10 muted">Active time</span></div>
+                <div class="col" style="gap:0;"><span class="num fw8 fs13">3</span><span class="fs10 muted">Sports</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col" style="gap:10px; background:var(--surface);">
+            <div class="between"><span class="eyebrow-sm">Up next</span><span class="fs11 fw8 t-running">Change</span></div>
+            <div class="col" style="gap:2px;"><span class="h2">Easy Run · 5K</span><span class="fs11 muted">Zone 2 · nice and easy</span></div>
+            <div class="row" style="gap:6px;"><span class="chip">~28 min</span><span class="chip">5.0 km target</span></div>
+            <div class="btn btn-primary" style="height:44px; font-size:13.5px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+              Start Easy Run
+            </div>
+          </div>
+
+          <div class="row" style="gap:8px;">
+            <div class="col bg-strength" style="flex:1; align-items:center; gap:5px; padding:9px 2px; border-radius:12px;">
+              <div class="t-strength"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <span class="fs10 fw7 muted">Strength</span>
+            </div>
+            <div class="col bg-running" style="flex:1; align-items:center; gap:5px; padding:9px 2px; border-radius:12px;">
+              <div class="t-running"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <span class="fs10 fw7 muted">Running</span>
+            </div>
+            <div class="col bg-cycling" style="flex:1; align-items:center; gap:5px; padding:9px 2px; border-radius:12px;">
+              <div class="t-cycling"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17" r="3.1"/><circle cx="17.5" cy="17" r="3.1"/><path d="M6.5 17 10 8.5h4l3.5 8.5M10 8.5 8 12h6.5M10 8.5l2-2.3h2.3"/></svg></div>
+              <span class="fs10 fw7 muted">Cycling</span>
+            </div>
+            <div class="col bg-wod" style="flex:1; align-items:center; gap:5px; padding:9px 2px; border-radius:12px;">
+              <div class="t-wod"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+              <span class="fs10 fw7 muted">WOD</span>
+            </div>
+          </div>
+
+          <div class="between" style="margin-top:2px;"><span class="eyebrow-sm">Recent</span><span class="fs11 fw8 muted">See all</span></div>
+          <div class="col" style="gap:6px;">
+            <div class="row card" style="padding:9px 10px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Push Day</span><span class="fs10 muted">6 exercises · 14 sets</span></div>
+              <span class="num fs11 fw7 muted">52m</span>
+            </div>
+            <div class="row card" style="padding:9px 10px;">
+              <div class="icon-tile bg-cycling t-cycling"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17" r="3.1"/><circle cx="17.5" cy="17" r="3.1"/><path d="M6.5 17 10 8.5h4l3.5 8.5M10 8.5 8 12h6.5M10 8.5l2-2.3h2.3"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Morning Ride</span><span class="fs10 muted">32.4 km · 27.1 km/h avg</span></div>
+              <span class="num fs11 fw7 muted">1h 12m</span>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-4v-6h-7v6h-4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><polygon points="6 3 20 12 6 21 6 3"/></svg><span class="lbl">Train</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-6M22 19H2"/></svg><span class="lbl">Progress</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg><span class="lbl">Profile</span></div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Home</b> — dashboard, mixed types</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= TAB 2 — TRAIN ============================= -->
+<div class="section" id="train">
+  <div class="section-head">
+    <div class="eyebrow"><span style="color:var(--accent)">●●</span> Tab 2 of 4</div>
+    <h2>Train</h2>
+    <p>The always-available launch surface — same "Start activity" entry point as Home's hero card, plus every saved routine regardless of sport, plus the one thing only strength actually needs: an exercise library.</p>
+  </div>
+  <div class="filmstrip">
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content tight">
+          <span class="h1" style="font-size:19px;">Train</span>
+          <div class="segrow">
+            <div class="chip active" style="height:26px; padding:0 12px; font-size:11px;">All</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--strength);">Strength</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--running);">Running</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--cycling);">Cycling</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--wod);">WOD</div>
+          </div>
+
+          <div class="btn btn-primary" style="height:46px; font-size:13.5px; margin-top:2px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            Start activity
+          </div>
+
+          <div class="between" style="margin-top:4px;"><span class="eyebrow-sm">Routines</span><span class="fs11 fw8 muted">4</span></div>
+          <div class="col" style="gap:6px;">
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Push Day</span><span class="fs10 muted">8 exercises · ~45 min</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Leg Day</span><span class="fs10 muted">6 exercises · ~50 min</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-running t-running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">5K loop</span><span class="fs10 muted">Riverside route · easy pace</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-wod t-wod"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Fran</span><span class="fs10 muted">21-15-9 · thrusters/pull-ups</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+          </div>
+
+          <div class="row card" style="padding:11px 12px; margin-top:2px;">
+            <div class="icon-tile" style="background:var(--surface2); color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+            <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Exercise library</span><span class="fs10 muted">55 exercises · 8 you use most</span></div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-4v-6h-7v6h-4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><polygon points="6 3 20 12 6 21 6 3"/></svg><span class="lbl">Train</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-6M22 19H2"/></svg><span class="lbl">Progress</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg><span class="lbl">Profile</span></div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Train</b> — routines across every sport, one library</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= TAB 3 — PROGRESS ============================= -->
+<div class="section" id="progress">
+  <div class="section-head">
+    <div class="eyebrow"><span style="color:var(--accent)">●●●</span> Tab 3 of 4</div>
+    <h2>Progress</h2>
+    <p>Filters by sport rather than assuming one metric fits all — "All" shows a session-count breakdown by type; picking a sport swaps in that sport's own chart (volume for strength, pace trend for running).</p>
+  </div>
+  <div class="filmstrip">
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content tight">
+          <div class="between"><span class="h1" style="font-size:19px;">Progress</span><span class="chip" style="height:26px; padding:0 12px; font-size:11px;">This month</span></div>
+          <div class="segrow">
+            <div class="chip active" style="height:26px; padding:0 12px; font-size:11px;">All</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--strength);">Strength</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--running);">Running</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--cycling);">Cycling</div>
+          </div>
+
+          <div class="stat-grid x3">
+            <div class="stat-box tight"><span class="num val sm">16</span><span class="lbl">Sessions</span></div>
+            <div class="stat-box tight"><span class="num val sm">14h 20m</span><span class="lbl">Active</span></div>
+            <div class="stat-box tight"><span class="num val sm t-accent" style="color:var(--accent);">3</span><span class="lbl">PRs</span></div>
+          </div>
+
+          <div class="card col" style="gap:11px;">
+            <span class="eyebrow-sm">Sessions by sport</span>
+            <div class="barlist">
+              <div class="item"><span class="fs11 fw7" style="width:56px;">Strength</span><div class="track"><div class="fill" style="width:88%; background:var(--strength);"></div></div><span class="num fs11 fw8" style="width:14px; text-align:right;">7</span></div>
+              <div class="item"><span class="fs11 fw7" style="width:56px;">Running</span><div class="track"><div class="fill" style="width:63%; background:var(--running);"></div></div><span class="num fs11 fw8" style="width:14px; text-align:right;">5</span></div>
+              <div class="item"><span class="fs11 fw7" style="width:56px;">Cycling</span><div class="track"><div class="fill" style="width:25%; background:var(--cycling);"></div></div><span class="num fs11 fw8" style="width:14px; text-align:right;">2</span></div>
+              <div class="item"><span class="fs11 fw7" style="width:56px;">WOD</span><div class="track"><div class="fill" style="width:25%; background:var(--wod);"></div></div><span class="num fs11 fw8" style="width:14px; text-align:right;">2</span></div>
+            </div>
+          </div>
+
+          <div class="between" style="margin-top:2px;"><span class="eyebrow-sm">Recent PRs</span></div>
+          <div class="col" style="gap:6px;">
+            <div class="row card" style="padding:9px 10px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Back Squat</span><span class="fs10 muted">1RM</span></div>
+              <span class="num fs12 fw8 t-strength">102.5 kg</span>
+            </div>
+            <div class="row card" style="padding:9px 10px;">
+              <div class="icon-tile bg-running t-running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">5K</span><span class="fs10 muted">Fastest time</span></div>
+              <span class="num fs12 fw8 t-running">23:48</span>
+            </div>
+            <div class="row card" style="padding:9px 10px;">
+              <div class="icon-tile bg-wod t-wod"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Fran</span><span class="fs10 muted">Rx, fastest</span></div>
+              <span class="num fs12 fw8 t-wod">4:02</span>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-4v-6h-7v6h-4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><polygon points="6 3 20 12 6 21 6 3"/></svg><span class="lbl">Train</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-6M22 19H2"/></svg><span class="lbl">Progress</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg><span class="lbl">Profile</span></div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Progress</b> — one dashboard, filterable by sport</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= TAB 4 — PROFILE ============================= -->
+<div class="section" id="profile">
+  <div class="section-head">
+    <div class="eyebrow"><span style="color:var(--accent)">●●●●</span> Tab 4 of 4</div>
+    <h2>Profile</h2>
+    <p>Lifetime totals now roll up across sports instead of just lifting, and unit preference covers both weight and distance since the app has both now.</p>
+  </div>
+  <div class="filmstrip">
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content tight">
+          <div class="col" style="align-items:center; gap:8px; padding:10px 0 4px 0;">
+            <div class="avatar" style="width:56px; height:56px; font-size:16px;">EJ</div>
+            <div class="col" style="align-items:center; gap:1px;"><span class="h2" style="font-size:16px;">Eric Jansen</span><span class="fs11 muted">Member since Mar 2025</span></div>
+          </div>
+
+          <div class="stat-grid x3">
+            <div class="stat-box tight"><span class="num val sm">142</span><span class="lbl">Sessions</span></div>
+            <div class="stat-box tight"><span class="num val sm">312 km</span><span class="lbl">Distance</span></div>
+            <div class="stat-box tight"><span class="num val sm">18</span><span class="lbl">PRs</span></div>
+          </div>
+
+          <span class="eyebrow-sm" style="margin-top:2px;">Preferences</span>
+          <div class="col" style="gap:1px; border-radius:14px; overflow:hidden; border:1px solid var(--border);">
+            <div class="between" style="padding:12px 12px; background:var(--surface);">
+              <span class="fs12 fw7">Units</span><span class="fs11 fw7 t-strength">kg · km</span>
+            </div>
+            <div class="between" style="padding:12px 12px; background:var(--surface); border-top:1px solid var(--border);">
+              <span class="fs12 fw7">Notifications</span><span class="fs11 muted">On</span>
+            </div>
+            <div class="between" style="padding:12px 12px; background:var(--surface); border-top:1px solid var(--border);">
+              <span class="fs12 fw7">Connected apps</span><span class="fs11 muted">None</span>
+            </div>
+          </div>
+
+          <span class="eyebrow-sm" style="margin-top:2px;">Account</span>
+          <div class="col" style="gap:1px; border-radius:14px; overflow:hidden; border:1px solid var(--border);">
+            <div class="row" style="padding:12px 12px; background:var(--surface); gap:9px;">
+              <span class="fs12 fw7 grow">Edit profile</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="row" style="padding:12px 12px; background:var(--surface); border-top:1px solid var(--border); gap:9px;">
+              <span class="fs12 fw7 grow">Privacy</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+          </div>
+
+          <div class="btn btn-danger" style="height:44px; font-size:12.5px; margin-top:2px;">Sign out</div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-4v-6h-7v6h-4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><polygon points="6 3 20 12 6 21 6 3"/></svg><span class="lbl">Train</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-6M22 19H2"/></svg><span class="lbl">Progress</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg><span class="lbl">Profile</span></div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Profile</b> — lifetime totals across sports</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= FLOWS ============================= -->
+<div class="section" id="flows">
+  <div class="section-head">
+    <div class="eyebrow">Pushed flows</div>
+    <h2>Start → log → finish</h2>
+    <p>The generic picker, then two genuinely different logging shapes side by side — a set-and-rep table for strength, a live stat grid for a run — closing with a recap that carries the sport's own metrics into the summary.</p>
+  </div>
+  <div class="filmstrip">
+
+    <!-- Start Activity -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content">
+          <div class="row"><div class="back-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></div><span class="h1" style="font-size:17px;">Start activity</span></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px;">
+            <div class="col bg-strength" style="border-radius:14px; padding:12px; gap:8px;">
+              <div class="icon-tile t-strength" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <span class="h2">Strength</span><span class="fs10 muted">Log sets &amp; reps</span>
+            </div>
+            <div class="col bg-running" style="border-radius:14px; padding:12px; gap:8px;">
+              <div class="icon-tile t-running" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <span class="h2">Running</span><span class="fs10 muted">Distance &amp; pace</span>
+            </div>
+            <div class="col bg-cycling" style="border-radius:14px; padding:12px; gap:8px;">
+              <div class="icon-tile t-cycling" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17" r="3.1"/><circle cx="17.5" cy="17" r="3.1"/><path d="M6.5 17 10 8.5h4l3.5 8.5M10 8.5 8 12h6.5M10 8.5l2-2.3h2.3"/></svg></div>
+              <span class="h2">Cycling</span><span class="fs10 muted">Distance &amp; speed</span>
+            </div>
+            <div class="col bg-wod" style="border-radius:14px; padding:12px; gap:8px;">
+              <div class="icon-tile t-wod" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+              <span class="h2">WOD</span><span class="fs10 muted">Timed metcon</span>
+            </div>
+          </div>
+          <div class="between" style="margin-top:6px;"><span class="eyebrow-sm">Routines</span></div>
+          <div class="col" style="gap:6px;">
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Push Day</span><span class="fs10 muted">8 exercises · ~45 min</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-running t-running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">5K loop</span><span class="fs10 muted">Riverside route</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Start activity</b> — the generic picker (ADR-0002)</div>
+    </div>
+
+    <!-- Strength session -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content" style="gap:9px;">
+          <div class="row" style="height:auto;">
+            <div class="back-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></div>
+            <div class="col grow" style="gap:1px;"><span class="h2">Push Day</span><div class="row" style="gap:6px;"><div style="width:6px; height:6px; border-radius:9999px; background:var(--strength);"></div><span class="num fs11 fw7 muted">42:15</span></div></div>
+            <div class="btn btn-outline" style="height:30px; padding:0 12px; font-size:11px;">Finish</div>
+          </div>
+          <div class="row" style="gap:10px;">
+            <div style="flex-grow:1; height:4px; border-radius:9999px; background:var(--surface2); overflow:hidden;"><div style="width:72%; height:4px; background:var(--accent);"></div></div>
+            <span class="num fs10 fw7 muted">6 / 8</span>
+          </div>
+          <div class="col" style="gap:2px;">
+            <div class="between"><span class="h2" style="font-size:17px;">Barbell Bench Press</span><span class="num fs11 fw7 muted">3 / 4</span></div>
+            <div class="row" style="gap:6px;"><span class="chip">Last: 80 × 8</span><span class="chip">1RM 102.5 kg</span></div>
+          </div>
+          <div class="col" style="gap:1px;">
+            <div style="display:grid; grid-template-columns:26px 1fr 50px 40px 26px; gap:6px; padding:0 2px 4px 2px;">
+              <span class="fs9 fw8 faint" style="letter-spacing:0.05em; text-transform:uppercase;">Set</span>
+              <span class="fs9 fw8 faint" style="letter-spacing:0.05em; text-transform:uppercase;">Prev</span>
+              <span class="fs9 fw8 faint" style="letter-spacing:0.05em; text-transform:uppercase; text-align:center;">kg</span>
+              <span class="fs9 fw8 faint" style="letter-spacing:0.05em; text-transform:uppercase; text-align:center;">Reps</span>
+              <span></span>
+            </div>
+            <div style="display:grid; grid-template-columns:26px 1fr 50px 40px 26px; gap:6px; align-items:center; height:34px;">
+              <span class="num fs11 fw8 muted">1</span><span class="num fs11 muted">60 × 10</span><span class="num fs12 fw7 muted" style="text-align:center;">60</span><span class="num fs12 fw7 muted" style="text-align:center;">10</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--strength)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 7"/></svg>
+            </div>
+            <div style="display:grid; grid-template-columns:26px 1fr 50px 40px 26px; gap:6px; align-items:center; height:34px;">
+              <span class="num fs11 fw8 muted">2</span><span class="num fs11 muted">80 × 8</span><span class="num fs12 fw7 muted" style="text-align:center;">80</span><span class="num fs12 fw7 muted" style="text-align:center;">8</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--strength)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 7"/></svg>
+            </div>
+            <div style="display:grid; grid-template-columns:26px 1fr 50px 40px 26px; gap:6px; align-items:center; height:38px; background:var(--surface2); border-radius:9px; padding:0 4px;">
+              <span class="num fs11 fw8 t-strength">4</span><span class="num fs11 muted">82.5 × 6</span><span class="num fs13 fw8" style="text-align:center;">82.5</span><span class="num fs13 fw8" style="text-align:center;">6</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 7"/></svg>
+            </div>
+          </div>
+          <div style="flex-grow:1;"></div>
+          <div class="btn btn-primary" style="height:46px; font-size:13.5px; background:var(--strength);">Log set 4</div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Strength session</b> — set-and-rep table</div>
+    </div>
+
+    <!-- Running session -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content">
+          <div class="row">
+            <div class="back-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></div>
+            <div class="col grow" style="gap:0;"><span class="h2">Easy Run</span><div class="row" style="gap:5px;"><div style="width:6px; height:6px; border-radius:9999px; background:var(--running);"></div><span class="num fs11 fw7 muted">17:42</span></div></div>
+            <div class="btn btn-outline" style="height:30px; padding:0 12px; font-size:11px;">Finish</div>
+          </div>
+          <div class="stat-grid" style="margin-top:4px;">
+            <div class="stat-box"><span class="num val t-running">3.42<span class="fs11 muted"> km</span></span><span class="lbl">Distance</span></div>
+            <div class="stat-box"><span class="num val">5:12<span class="fs11 muted">/km</span></span><span class="lbl">Pace</span></div>
+            <div class="stat-box"><span class="num val">17:42</span><span class="lbl">Duration</span></div>
+            <div class="stat-box"><span class="num val">+24<span class="fs11 muted">m</span></span><span class="lbl">Elevation</span></div>
+          </div>
+          <div class="card col" style="gap:8px;">
+            <span class="eyebrow-sm">Pace, last 3 km</span>
+            <svg width="100%" height="42" viewBox="0 0 220 42" preserveAspectRatio="none">
+              <polyline points="0,30 30,26 60,28 90,14 120,18 150,10 180,16 220,8" fill="none" stroke="var(--running)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div style="flex-grow:1;"></div>
+          <div class="btn btn-primary" style="height:48px; font-size:14px; background:var(--running); margin-bottom:2px;">Finish run</div>
+          <div class="btn btn-outline" style="height:42px; font-size:12.5px; margin-bottom:10px;">Pause</div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Running session</b> — live stat grid</div>
+    </div>
+
+    <!-- Run Summary -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content" style="align-items:center; gap:14px;">
+          <div class="col" style="align-items:center; gap:10px; margin-top:18px;">
+            <div class="icon-tile t-running bg-running" style="width:52px; height:52px; border-radius:16px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+            <div class="col" style="align-items:center; gap:2px;"><span class="h1" style="font-size:20px;">Run complete</span><span class="fs11 muted">Easy Run · Riverside loop</span></div>
+            <span class="chip" style="background:var(--running-dim); color:var(--running); height:24px; padding:0 12px; font-size:11px;">New 5K PR — 23:48</span>
+          </div>
+
+          <div class="stat-grid" style="width:100%;">
+            <div class="stat-box"><span class="num val t-running">5.02<span class="fs11 muted"> km</span></span><span class="lbl">Distance</span></div>
+            <div class="stat-box"><span class="num val">4:45<span class="fs11 muted">/km</span></span><span class="lbl">Avg pace</span></div>
+            <div class="stat-box"><span class="num val">23:48</span><span class="lbl">Duration</span></div>
+            <div class="stat-box"><span class="num val">+62<span class="fs11 muted">m</span></span><span class="lbl">Elevation</span></div>
+          </div>
+
+          <div style="flex-grow:1;"></div>
+          <div class="btn btn-primary" style="width:100%; height:48px; font-size:14px; background:var(--running); margin-bottom:2px;">Done</div>
+          <div class="btn btn-outline" style="width:100%; height:42px; font-size:12.5px; margin-bottom:10px;">Share</div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Summary</b> — recap carries the sport's own metrics</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================= NATIVE FEEL ============================= -->
+<div class="section" id="native">
+  <div class="section-head">
+    <div class="eyebrow">iOS affordances</div>
+    <h2>Reads native, keeps the brand</h2>
+    <p>The home indicator now sits on every screen (it's the pale bar at the very bottom — a CSS overlay here, the real system bar on device). The tab bar (visible back on every earlier screen in this set) is now the floating glass capsule from Apple's own current apps — Developer, App Store, Music — rather than an edge-to-edge bar pinned to the screen edge; back buttons are the same frosted circle. Four interaction patterns layered on top of the existing look, no chrome rebuild: swipe-to-delete on list rows, long-press context menus instead of a fourth icon button per row, the type picker as a bottom sheet, and a filter dropdown pill lifted straight from the Developer app's search-results menu.</p>
+    <p style="margin-top:10px;"><b style="color:var(--text);">One flag:</b> raw iOS swipe-to-delete deletes immediately (undo via toast) — that's a different pattern from this project's baseline, which routes every destructive action through <code>useConfirm()</code>. Mocked below as a middle ground: the swipe reveals the action, but tapping it still opens the confirm sheet rather than deleting on the spot.</p>
+  </div>
+
+  <div class="filmstrip">
+
+    <!-- Swipe to delete -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content tight">
+          <span class="h1" style="font-size:19px;">Train</span>
+          <div class="segrow">
+            <div class="chip active" style="height:26px; padding:0 12px; font-size:11px;">All</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--strength);">Strength</div>
+            <div class="chip" style="height:26px; padding:0 12px; font-size:11px; color:var(--running);">Running</div>
+          </div>
+          <div class="between" style="margin-top:6px;"><span class="eyebrow-sm">Routines</span><span class="fs11 fw8 muted">4</span></div>
+          <div class="col" style="gap:6px;">
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Push Day</span><span class="fs10 muted">8 exercises · ~45 min</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-running t-running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">5K loop</span><span class="fs10 muted">Riverside route</span></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="swipe-wrap">
+              <div class="swipe-reveal"><div class="swipe-action">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg>
+                <span class="fs9 fw8">Delete</span>
+              </div></div>
+              <div class="row" style="padding:10px 12px; background:var(--surface); transform:translateX(-74px); position:relative;">
+                <div class="icon-tile bg-wod t-wod"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+                <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Fran</span><span class="fs10 muted">21-15-9 · thrusters/pull-ups</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Swipe to delete</b> — reveal, then confirm on tap</div>
+    </div>
+
+    <!-- Long-press context menu -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content">
+          <div class="between">
+            <div class="col" style="gap:2px;"><span class="fs10 fw8 faint" style="letter-spacing:0.08em; text-transform:uppercase;">Tuesday 26 Aug</span><span class="h1">Ready to move.</span></div>
+            <div class="avatar">EJ</div>
+          </div>
+          <div class="between" style="margin-top:6px;"><span class="eyebrow-sm">Recent</span><span class="fs11 fw8 muted">See all</span></div>
+          <div class="col" style="gap:6px;">
+            <div class="row card" style="padding:9px 10px; transform:scale(1.03); box-shadow:0 14px 30px rgba(0,0,0,0.5); border-color:var(--border-strong);">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Push Day</span><span class="fs10 muted">6 exercises · 14 sets</span></div>
+              <span class="num fs11 fw7 muted">52m</span>
+            </div>
+            <div class="row card" style="padding:9px 10px; opacity:0.35;">
+              <div class="icon-tile bg-cycling t-cycling"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17" r="3.1"/><circle cx="17.5" cy="17" r="3.1"/><path d="M6.5 17 10 8.5h4l3.5 8.5M10 8.5 8 12h6.5M10 8.5l2-2.3h2.3"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Morning Ride</span><span class="fs10 muted">32.4 km</span></div>
+            </div>
+          </div>
+          <div class="scrim" style="top:auto; height:70%;"></div>
+          <div class="ctx-menu" style="top:150px; left:24px;">
+            <div class="item">Repeat workout<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg></div>
+            <div class="item">Edit<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+            <div class="item danger">Delete<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Long-press</b> — context menu instead of a 4th row icon</div>
+    </div>
+
+    <!-- Start Activity as a sheet -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content">
+          <div class="between">
+            <div class="col" style="gap:2px;"><span class="fs10 fw8 faint" style="letter-spacing:0.08em; text-transform:uppercase;">Tuesday 26 Aug</span><span class="h1">Ready to move.</span></div>
+            <div class="avatar">EJ</div>
+          </div>
+          <div class="card row" style="gap:12px;">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 64 64" style="display:block; transform:rotate(-90deg);">
+                <circle cx="32" cy="32" r="27" fill="none" stroke="#242822" stroke-width="6"/>
+                <circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="135 170"/>
+              </svg>
+              <div class="center"><span class="num fw8" style="font-size:15px;">4</span><span class="fs10 muted">of 5</span></div>
+            </div>
+            <div class="col grow" style="gap:7px;"><span class="fs12 fw8">This week</span></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="height:64%;">
+            <div class="grabber"></div>
+            <div class="content" style="padding-top:6px;">
+              <span class="h1" style="font-size:17px;">Start activity</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div class="col bg-strength" style="border-radius:14px; padding:12px; gap:6px;">
+                  <div class="icon-tile t-strength" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+                  <span class="h2" style="font-size:13px;">Strength</span>
+                </div>
+                <div class="col bg-running" style="border-radius:14px; padding:12px; gap:6px;">
+                  <div class="icon-tile t-running" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+                  <span class="h2" style="font-size:13px;">Running</span>
+                </div>
+                <div class="col bg-cycling" style="border-radius:14px; padding:12px; gap:6px;">
+                  <div class="icon-tile t-cycling" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17" r="3.1"/><circle cx="17.5" cy="17" r="3.1"/><path d="M6.5 17 10 8.5h4l3.5 8.5M10 8.5 8 12h6.5M10 8.5l2-2.3h2.3"/></svg></div>
+                  <span class="h2" style="font-size:13px;">Cycling</span>
+                </div>
+                <div class="col bg-wod" style="border-radius:14px; padding:12px; gap:6px;">
+                  <div class="icon-tile t-wod" style="background:rgba(0,0,0,0.22);"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+                  <span class="h2" style="font-size:13px;">WOD</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Bottom sheet</b> — picker floats over Home, doesn't push</div>
+    </div>
+
+    <!-- Filter dropdown pill -->
+    <div class="screen-block">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><div class="dots"></div></div>
+        <div class="content tight">
+          <div class="between">
+            <span class="h1" style="font-size:19px;">Train</span>
+            <div class="dropdown-pill">
+              All types (4)
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="between" style="margin-top:8px;"><span class="eyebrow-sm">Routines</span><span class="fs11 fw8 muted">4</span></div>
+          <div class="col" style="gap:6px; opacity:0.4;">
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-strength t-strength"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">Push Day</span><span class="fs10 muted">8 exercises · ~45 min</span></div>
+            </div>
+            <div class="row card" style="padding:10px 12px;">
+              <div class="icon-tile bg-running t-running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.2" r="1.7"/><path d="M14.5 6.5 12 9l1 3.2 3 2.6M12 9 8.7 11l-2.4 5.8M9.3 12.3l-3 1.4M14.5 6.5l3 .8.6 3.2"/></svg></div>
+              <div class="col grow" style="gap:1px;"><span class="fs12 fw8">5K loop</span><span class="fs10 muted">Riverside route</span></div>
+            </div>
+          </div>
+
+          <div class="scrim" style="top:auto; height:80%;"></div>
+          <div class="dropdown-menu" style="top:52px; right:16px;">
+            <div class="item"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 7"/></svg>All types (4)</div>
+            <div class="item"><span class="check"></span><span class="t-strength">Strength (1)</span></div>
+            <div class="item"><span class="check"></span><span class="t-running">Running (1)</span></div>
+            <div class="item"><span class="check"></span><span class="t-cycling">Cycling (1)</span></div>
+            <div class="item"><span class="check"></span><span class="t-wod">WOD (1)</span></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="screen-label"><b>Filter dropdown</b> — same pill-menu pattern as App Store search</div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="note">
+  Same tokens throughout: Archivo, <code>#0a0b09</code> ground, <code>#c8f73c</code> accent for every interactive/CTA surface, a semantic tint per activity type for identification only. Every "Start" still resolves through the picker (ADR-0002); every activity type keeps its own detail screen and its own logging shape (ADR-0001) rather than forcing running or cycling into the strength set-table.
+</footer>
+
+</body></html>

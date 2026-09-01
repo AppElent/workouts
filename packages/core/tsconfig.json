@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		// tsup's dts step (rollup-plugin-dts) injects its own `baseUrl` for
+		// module resolution regardless of whether this file sets one, and
+		// TypeScript 6's TS5101 turns that into a hard build error. Same
+		// silence root tsconfig.json already needs for the same TS 6 change.
+		"ignoreDeprecations": "6.0",
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": ["ES2022"],
+		"declaration": true,
+		"outDir": "dist",
+		"rootDir": "src",
+		"strict": true,
+		"skipLibCheck": true,
+		"verbatimModuleSyntax": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noEmit": true
+	},
+	"include": ["src"]
+}

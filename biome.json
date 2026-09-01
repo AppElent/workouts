@@ -14,6 +14,9 @@
 			"**/index.html",
 			"**/vite.config.ts",
 			"**/vitest.config.ts",
+			"apps/mobile/app/**/*",
+			"apps/mobile/*.{ts,tsx,js}",
+			"packages/*/tsup.config.ts",
 			"!**/src/routeTree.gen.ts",
 			"!**/src/styles.css"
 		]

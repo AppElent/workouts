@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { calculateOneRepMax } from "@workouts/core";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
@@ -18,7 +19,6 @@ import {
 } from "recharts";
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
-import { calculateOneRepMax } from "#/lib/oneRepMax";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";

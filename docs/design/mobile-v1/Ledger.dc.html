@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..112,400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #c8f73c; text-decoration: none; } a:hover { color: #d9ff63; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0a0b09; color: #f2f4ef; position: relative; overflow: hidden;">
+
+  <div style="position: absolute; inset: 0; padding: 54px 20px 0 20px; display: flex; flex-direction: column; gap: 14px;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">Training log</div>
+      <div style="width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: flex-end; color: #9ba095;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 9999px; background: #141613; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="display: flex; align-items: center; justify-content: center; height: 38px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 13px; font-weight: 800;">Log</div>
+      <div style="display: flex; align-items: center; justify-content: center; height: 38px; border-radius: 9999px; color: #9ba095; font-size: 13px; font-weight: 700;">Library</div>
+    </div>
+
+    <sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; border-radius: 16px; border: 1.5px dashed rgba(255,255,255,0.16); background: rgba(255,255,255,0.015);">
+        <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #6d7268;">Today · Sat 22 Aug</div>
+          <div style="font-size: 15px; font-weight: 700; color: #9ba095;">Nothing logged yet</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 22px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 14px; font-weight: 800;">Start</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasActive }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; border-radius: 16px; border: 1.5px solid {{accent}}; background: {{accentDim}};">
+        <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 7px; height: 7px; border-radius: 9999px; background: {{accent}};"></div>
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: {{accent}};">Today · in progress</div>
+          </div>
+          <div style="font-size: 15px; font-weight: 700;">Push Day · <span class="num">42:15</span> · 14 sets</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 14px; font-weight: 800;">Resume</div>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 2px;">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #9ba095;">This week</div>
+      <div class="num" style="font-size: 11px; font-weight: 700; color: #6d7268;">3 sessions · 31,840 kg</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: -6px;">
+
+      <div style="display: flex; gap: 12px; padding: 12px; border-radius: 14px; background: #141613;">
+        <div style="width: 42px; display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; padding-top: 2px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6d7268;">Thu</div>
+          <div class="num" style="font-size: 19px; font-weight: 800; line-height: 1;">18</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+            <div style="font-size: 15px; font-weight: 700;">Pull Day</div>
+            <div class="num" style="font-size: 12px; font-weight: 700; color: #9ba095;">52m · 9,120 kg</div>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Deadlift</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Barbell Row</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #6d7268; display: flex; align-items: center;">+5</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; padding: 12px; border-radius: 14px; background: #141613;">
+        <div style="width: 42px; display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; padding-top: 2px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6d7268;">Tue</div>
+          <div class="num" style="font-size: 19px; font-weight: 800; line-height: 1;">16</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <div style="font-size: 15px; font-weight: 700;">Leg Day</div>
+              <div style="height: 18px; padding: 0 6px; border-radius: 5px; background: {{accentDim}}; border: 1px solid {{accent}}; color: {{accent}}; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; display: flex; align-items: center;">PR</div>
+            </div>
+            <div class="num" style="font-size: 12px; font-weight: 700; color: #9ba095;">1h 04m · 14,300 kg</div>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Back Squat</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Leg Press</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #6d7268; display: flex; align-items: center;">+3</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; padding: 12px; border-radius: 14px; background: #141613;">
+        <div style="width: 42px; display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; padding-top: 2px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6d7268;">Mon</div>
+          <div class="num" style="font-size: 19px; font-weight: 800; line-height: 1;">15</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+            <div style="font-size: 15px; font-weight: 700;">Push Day</div>
+            <div class="num" style="font-size: 12px; font-weight: 700; color: #9ba095;">48m · 8,420 kg</div>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Bench Press</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Overhead</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #6d7268; display: flex; align-items: center;">+6</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #9ba095;">Week of 4 Aug</div>
+      <div class="num" style="font-size: 11px; font-weight: 700; color: #6d7268;">4 sessions · 38,600 kg</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: -6px;">
+      <div style="display: flex; gap: 12px; padding: 12px; border-radius: 14px; background: #141613;">
+        <div style="width: 42px; display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; padding-top: 2px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6d7268;">Fri</div>
+          <div class="num" style="font-size: 19px; font-weight: 800; line-height: 1;">08</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+            <div style="font-size: 15px; font-weight: 700;">Free session</div>
+            <div class="num" style="font-size: 12px; font-weight: 700; color: #9ba095;">36m · 4,100 kg</div>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Pull-Up</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Face Pull</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; padding: 12px; border-radius: 14px; background: #141613;">
+        <div style="width: 42px; display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; padding-top: 2px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6d7268;">Wed</div>
+          <div class="num" style="font-size: 19px; font-weight: 800; line-height: 1;">06</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+            <div style="font-size: 15px; font-weight: 700;">Leg Day</div>
+            <div class="num" style="font-size: 12px; font-weight: 700; color: #9ba095;">58m · 12,900 kg</div>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">Front Squat</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #9ba095; display: flex; align-items: center;">RDL</div>
+            <div style="height: 22px; padding: 0 8px; border-radius: 6px; background: #1d201b; font-size: 11px; font-weight: 600; color: #6d7268; display: flex; align-items: center;">+2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position: absolute; right: 20px; bottom: 48px; width: 60px; height: 60px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 28px rgba(0,0,0,0.55);">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(to top, #0a0b09 45%, rgba(10,11,9,0));"></div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#c8f73c","options":["#c8f73c","#1db954","#ff6a2b"],"section":"Theme"},"hasActiveSession":{"editor":"boolean","default":false,"section":"State"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c8f73c';
+    const hasActive = this.props.hasActiveSession ?? false;
+    return {
+      accent: accent,
+      accentDim: 'color-mix(in srgb, ' + accent + ' 12%, transparent)',
+      hasActive: hasActive,
+      idle: !hasActive
+    };
+  }
+}
+</script>
+</body>
+</html>

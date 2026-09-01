@@ -1,0 +1,288 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..112,400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #c8f73c; text-decoration: none; } a:hover { color: #d9ff63; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 760px; min-height: 1440px; background: #0a0b09; color: #f2f4ef; padding: 36px; display: flex; flex-direction: column; gap: 28px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">Component vocabulary</div>
+    <div style="font-size: 14px; font-weight: 500; color: #9ba095;">Every part the shell and screens are built from. Sizes are real device px — controls never go below a 44px hit target.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Type ramp — Archivo</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="width: 62px; font-size: 10px; font-weight: 700; color: #4a4f45; flex-shrink: 0;">display</div>
+          <div style="font-size: 30px; font-weight: 800; letter-spacing: -0.03em;">Push Day done</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="width: 62px; font-size: 10px; font-weight: 700; color: #4a4f45; flex-shrink: 0;">title</div>
+          <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">Exercises</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="width: 62px; font-size: 10px; font-weight: 700; color: #4a4f45; flex-shrink: 0;">metric</div>
+          <div class="num" style="font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">102.5 kg</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="width: 62px; font-size: 10px; font-weight: 700; color: #4a4f45; flex-shrink: 0;">heading</div>
+          <div style="font-size: 17px; font-weight: 800;">Barbell Bench Press</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="width: 62px; font-size: 10px; font-weight: 700; color: #4a4f45; flex-shrink: 0;">body</div>
+          <div style="font-size: 14px; font-weight: 500;">Chest · Barbell · Compound</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="width: 62px; font-size: 10px; font-weight: 700; color: #4a4f45; flex-shrink: 0;">label</div>
+          <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #9ba095;">This week</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Surfaces &amp; accent</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 56px; border-radius: 12px; background: #0a0b09; border: 1px solid rgba(255,255,255,0.1);"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">bg</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 56px; border-radius: 12px; background: #141613;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">surface</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 56px; border-radius: 12px; background: #1d201b;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">surface2</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 56px; border-radius: 12px; background: {{accent}};"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">accent</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 34px; border-radius: 10px; background: #f2f4ef;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">text</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 34px; border-radius: 10px; background: #9ba095;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">muted</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 34px; border-radius: 10px; background: #ff6b6b;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">danger</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 34px; border-radius: 10px; background: #fbbf24;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #9ba095;">warn</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+    <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Buttons — 56px primary, 48px secondary, capsule</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; padding: 0 30px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 16px; font-weight: 800;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+        Start workout
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; height: 48px; padding: 0 26px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.16); font-size: 14px; font-weight: 700;">Add exercise</div>
+      <div style="display: flex; align-items: center; justify-content: center; height: 48px; padding: 0 26px; border-radius: 9999px; background: rgba(255,107,107,0.12); color: #ff6b6b; font-size: 14px; font-weight: 800;">Discard workout</div>
+      <div style="display: flex; align-items: center; justify-content: center; height: 48px; padding: 0 26px; border-radius: 9999px; background: #1d201b; color: #4a4f45; font-size: 14px; font-weight: 700;">Disabled</div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 9px; height: 48px; padding: 0 26px; border-radius: 9999px; background: {{accentDim}}; color: {{accent}}; font-size: 14px; font-weight: 800;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5"></path></svg>
+        Saving
+      </div>
+      <div style="width: 56px; height: 56px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Chips &amp; filters</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+        <div style="height: 34px; padding: 0 14px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 12px; font-weight: 800; display: flex; align-items: center;">All</div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 9999px; background: #1d201b; color: #9ba095; font-size: 12px; font-weight: 700; display: flex; align-items: center;">Chest</div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 9999px; background: #1d201b; color: #9ba095; font-size: 12px; font-weight: 700; display: flex; align-items: center;">Barbell</div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <div style="height: 26px; padding: 0 10px; border-radius: 7px; background: #1d201b; color: #9ba095; font-size: 11px; font-weight: 600; display: flex; align-items: center;">Last: 80 kg × 8</div>
+        <div style="height: 26px; padding: 0 10px; border-radius: 7px; background: {{accentDim}}; border: 1px solid {{accent}}; color: {{accent}}; font-size: 11px; font-weight: 700; display: flex; align-items: center;">Compound</div>
+        <div style="height: 26px; padding: 0 10px; border-radius: 7px; background: rgba(255,107,107,0.12); color: #ff6b6b; font-size: 11px; font-weight: 700; display: flex; align-items: center;">Cancelled</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 9999px; background: #141613; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="display: flex; align-items: center; justify-content: center; height: 38px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 13px; font-weight: 800;">Log</div>
+        <div style="display: flex; align-items: center; justify-content: center; height: 38px; border-radius: 9999px; color: #9ba095; font-size: 13px; font-weight: 700;">Library</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Inputs &amp; steppers</div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 13px; background: #141613; border: 1px solid rgba(255,255,255,0.08);">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6d7268" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+        <div style="font-size: 14px; font-weight: 500; color: #6d7268;">Search exercises</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 13px; background: #141613; border: 1.5px solid {{accent}};">
+        <div style="font-size: 14px; font-weight: 600;">Push Day</div>
+        <div style="width: 1.5px; height: 18px; background: {{accent}};"></div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 6px; border-radius: 14px; background: #141613; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: #9ba095;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"></path></svg>
+        </div>
+        <div class="num" style="font-size: 22px; font-weight: 800;">82.5</div>
+        <div style="width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: #9ba095;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Rows</div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 62px; padding: 0 12px; border-radius: 13px; background: #141613;">
+        <div style="width: 40px; height: 40px; border-radius: 11px; background: #1d201b; display: flex; align-items: center; justify-content: center; color: {{accent}}; flex-shrink: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <div style="font-size: 14px; font-weight: 700;">Barbell Bench Press</div>
+          <div style="font-size: 11px; font-weight: 500; color: #9ba095;">Chest · Barbell</div>
+        </div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4a4f45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"></path></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 62px; padding: 0 12px; border-radius: 13px; background: #141613;">
+        <div style="width: 40px; height: 40px; border-radius: 11px; background: #1d201b; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+          <div class="num" style="font-size: 15px; font-weight: 800; line-height: 1;">18</div>
+          <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #9ba095;">Aug</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <div style="font-size: 14px; font-weight: 700;">Pull Day</div>
+          <div class="num" style="font-size: 11px; font-weight: 500; color: #9ba095;">7 exercises · 9,120 kg</div>
+        </div>
+        <div class="num" style="font-size: 13px; font-weight: 700; color: #9ba095;">52m</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 34px 1fr 76px 60px 44px; gap: 8px; align-items: center; height: 50px; padding: 0 8px; border-radius: 10px; background: #1d201b; border: 1px solid rgba(255,255,255,0.1);">
+        <div class="num" style="font-size: 14px; font-weight: 800; color: {{accent}};">4</div>
+        <div class="num" style="font-size: 13px; font-weight: 500; color: #6d7268;">82.5 × 6</div>
+        <div class="num" style="font-size: 17px; font-weight: 800; text-align: center;">82.5</div>
+        <div class="num" style="font-size: 17px; font-weight: 800; text-align: center;">6</div>
+        <div style="display: flex; align-items: center; justify-content: center; color: #4a4f45;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 7"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Metrics</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 15px 13px; border-radius: 16px; background: #141613;">
+          <div class="num" style="font-size: 21px; font-weight: 800; letter-spacing: -0.02em;">48<span style="font-size: 12px; font-weight: 700; color: #9ba095;">m</span></div>
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ba095;">Duration</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 15px 13px; border-radius: 16px; background: #141613;">
+          <div class="num" style="font-size: 21px; font-weight: 800; letter-spacing: -0.02em;">16</div>
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ba095;">Sets</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 15px 13px; border-radius: 16px; background: #141613;">
+          <div class="num" style="font-size: 21px; font-weight: 800; letter-spacing: -0.02em; color: {{accent}};">2</div>
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ba095;">PRs</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="position: relative; width: 76px; height: 76px; flex-shrink: 0;">
+          <svg width="76" height="76" viewBox="0 0 76 76" style="display: block; transform: rotate(-90deg);">
+            <circle cx="38" cy="38" r="32" fill="none" stroke="#26291f" stroke-width="7"></circle>
+            <circle cx="38" cy="38" r="32" fill="none" stroke="{{accent}}" stroke-width="7" stroke-linecap="round" stroke-dasharray="150.8 201.1"></circle>
+          </svg>
+          <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="num" style="font-size: 20px; font-weight: 800; line-height: 1;">3</div>
+            <div style="font-size: 10px; font-weight: 600; color: #9ba095;">of 4</div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+          <div style="font-size: 12px; font-weight: 700; color: #9ba095;">Progress bar</div>
+          <div style="height: 4px; border-radius: 9999px; background: #1d201b; overflow: hidden;">
+            <div style="width: 72%; height: 4px; border-radius: 9999px; background: {{accent}};"></div>
+          </div>
+          <svg width="100%" height="38" viewBox="0 0 200 38" preserveAspectRatio="none" style="display: block;">
+            <polyline points="0,32 33,28 66,30 100,20 133,22 166,12 200,6" fill="none" stroke="{{accent}}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: #101210; border: 1px solid rgba(255,255,255,0.06);">
+    <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6d7268;">Navigation</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start;">
+      <div style="border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="height: 64px; padding: 0 8px; background: #101210; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: {{accent}};">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-4v-6h-7v6h-4a1 1 0 0 1-1-1z"></path></svg>
+            <div style="font-size: 10px; font-weight: 700;">Home</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #6d7268;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v5M17.5 6.5v11M20.5 9v5M6.5 12h11"></path></svg>
+            <div style="font-size: 10px; font-weight: 700;">Workouts</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #6d7268;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-6M22 19H2"></path></svg>
+            <div style="font-size: 10px; font-weight: 700;">Progress</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #6d7268;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>
+            <div style="font-size: 10px; font-weight: 700;">Profile</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 68px; padding: 0 8px 0 18px; border-radius: 9999px; background: #161913; border: 1.5px solid {{accent}};">
+        <div style="width: 9px; height: 9px; border-radius: 9999px; background: {{accent}}; flex-shrink: 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1;">
+          <div style="font-size: 14px; font-weight: 800;">Push Day</div>
+          <div style="font-size: 12px; font-weight: 600; color: #9ba095;"><span class="num">42:15</span> · 14 sets</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; height: 52px; padding: 0 22px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 15px; font-weight: 800;">Resume</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#c8f73c","options":["#c8f73c","#1db954","#ff6a2b"],"section":"Theme"},"$preview":{"width":760,"height":1440}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c8f73c';
+    return {
+      accent: accent,
+      accentDim: 'color-mix(in srgb, ' + accent + ' 14%, transparent)'
+    };
+  }
+}
+</script>
+</body>
+</html>

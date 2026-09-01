@@ -1,7 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from './lib/oneRepMax'
+import { calculateOneRepMax } from '@workouts/core'
 import { assertRange } from './lib/validate'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {

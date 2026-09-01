@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { formatScore } from "@workouts/core";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
@@ -15,7 +16,6 @@ import {
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import { formatScore } from "#/lib/wodScore";
 
 interface Props {
 	session: Doc<"workoutSessions">;

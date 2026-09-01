@@ -1,0 +1,64 @@
+{
+  "pages": [
+    { "id": "shells", "name": "Shells" },
+    { "id": "screens", "name": "Screens" },
+    { "id": "components", "name": "Components" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Shell 1 — Coach", "page": "shells", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Dock.dc.html", "title": "Shell 2 — Dock", "page": "shells", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "Ledger.dc.html", "title": "Shell 3 — Ledger", "page": "shells", "x": 940, "y": 0, "w": 390, "h": 844 },
+
+    { "file": "Session.dc.html", "title": "Active session", "page": "screens", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Library.dc.html", "title": "Exercise library", "page": "screens", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "Exercise.dc.html", "title": "Exercise detail", "page": "screens", "x": 940, "y": 0, "w": 390, "h": 844 },
+    { "file": "History.dc.html", "title": "History", "page": "screens", "x": 1410, "y": 0, "w": 390, "h": 844 },
+    { "file": "Summary.dc.html", "title": "Session summary", "page": "screens", "x": 1880, "y": 0, "w": 390, "h": 844 },
+
+    { "file": "Components.dc.html", "title": "Component vocabulary", "page": "components", "x": 0, "y": 0, "w": 760, "h": 1440 },
+    { "file": "States.dc.html", "title": "States", "page": "components", "x": 830, "y": 0, "w": 760, "h": 790 }
+  ],
+  "annotations": [
+    {
+      "id": "note-coach",
+      "page": "shells",
+      "x": 0,
+      "y": -232,
+      "w": 390,
+      "text": "SHELL 1 — COACH\nA dashboard is the front door. Four tabs: Home, Workouts, Progress, Profile.\n\nFor: the app has something to say on rest days, so it earns a reason to open. Density justifies a tab bar, and the bar makes the other screens discoverable without a tour.\n\nAgainst: it promises four destinations V1 does not have yet. Starting a workout is a button among many, not the point of the screen.\n\nResume: banner on Home, you choose."
+    },
+    {
+      "id": "note-dock",
+      "page": "shells",
+      "x": 470,
+      "y": -232,
+      "w": 390,
+      "text": "SHELL 2 — DOCK\nNo tab bar. One scroll of cards, and a dock pinned above the home indicator that is always the next action.\n\nFor: one persistent affordance instead of stub destinations. The dock changes state rather than the screen changing — idle it starts a workout, live it is the session controller, visible from anywhere.\n\nAgainst: everything except Start is a card you must scroll to. Adding a fifth destination later means redesigning the stack.\n\nResume: the dock becomes the session bar."
+    },
+    {
+      "id": "note-ledger",
+      "page": "shells",
+      "x": 940,
+      "y": -232,
+      "w": 390,
+      "text": "SHELL 3 — LEDGER\nThe record is the app. Home is the training log, reverse-chronological, with today as the first actionable row.\n\nFor: a tracker's value is what it has already recorded. Every row carries real numbers, so the screen is useful rather than decorative, and 'what did I lift last Thursday' is answered without navigating.\n\nAgainst: least motivational of the three, and it leans on a FAB for the primary action, which is the weakest place to put a verb.\n\nResume: today's row goes live in place."
+    },
+    {
+      "id": "note-screens",
+      "page": "screens",
+      "x": 0,
+      "y": -150,
+      "w": 860,
+      "text": "These screens are drawn against Shell 1's chrome, since it is the only option with a tab bar to draw. Library and History show the bar because they are destinations; Session, Exercise detail and Summary are pushed, so they have none. Under Shell 2 or 3 the same screens keep their content and lose or swap the bar — the choice of shell does not change these layouts.\n\nActive session is the screen that matters most: the set table shows previous values inline, and the two steppers put weight and reps under a thumb without a keyboard. Both the rest banner and the active-session state are toggles on the artboard."
+    },
+    {
+      "id": "note-components",
+      "page": "components",
+      "x": 0,
+      "y": -138,
+      "w": 760,
+      "text": "The vocabulary every artboard is built from, plus the states the UI-hygiene checklist in CLAUDE.md requires — skeletons that match their row, empty states that offer a way out, error states with retry, toasts, and a confirm dialog with a verb-specific label instead of OK.\n\nThe accent is a single token. Flip it on any artboard to compare the lime direction against the web app's existing Spotify green."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "shells" }
+}
