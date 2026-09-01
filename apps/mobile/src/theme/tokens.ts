@@ -1,23 +1,19 @@
 /**
  * The phone's palette, radii and type ramp (#46, following gather's ADR-0017).
  *
- * ADR-0017 says the phone owns its look and shares its words. Here the phone
- * chooses to look *exactly* like the web, and that is a decision rather than a
- * default: the web palette in `src/styles.css` is 12 hex literals and a handful
- * of `rgba()` values — both formats React Native's colour parser accepts — so
- * agreeing with the web costs nothing. (The research inventory on #42 claimed
- * these tokens were `oklch()` and unportable; they are not. See the correction
- * on that issue.)
+ * ADR-0017 says the phone owns its look and shares its words, and as of the
+ * shell decision the phone exercises that: these colours come from
+ * `designs/shell/index.html` (the "Coach" multi-sport direction), not from the
+ * web's `src/styles.css`. The web is still Spotify-green on true black; the
+ * phone is lime on a warmer near-black, with a semantic tint per activity type.
+ * The two are meant to disagree until the web catches up — do not "fix" this
+ * file by transcribing the web palette back over it.
  *
- * What does *not* cross is the mechanism: CSS custom properties cascade, these
- * do not. Every value here is transcribed, not imported, and the two will drift
- * unless someone keeps them honest. That is the accepted cost of one accent
- * colour in two runtimes — a shared package for six hex strings would be worse.
+ * The mechanism never crossed anyway: CSS custom properties cascade, these do
+ * not. Every value here is typed out, not imported.
  *
- * Dark-only, on purpose. The web app has no light palette to port: `:root` is
- * the Spotify-dark set and there is no `.light` block behind it. Inventing a
- * light scheme for the phone would mean designing a palette the web has never
- * had, which is a bigger decision than this ticket. `app.json` therefore pins
+ * Dark-only, on purpose. There is no light palette on either side to port, and
+ * inventing one is a bigger decision than any one ticket. `app.json` pins
  * `userInterfaceStyle: "dark"` so the keyboard and sheet grabbers match; the
  * day a light theme exists, `useTokens()` grows a `useColorScheme()` read and
  * every call site keeps working.
@@ -25,34 +21,78 @@
 
 /** Every colour the app is allowed to use. */
 export const colors = {
-	/** Page background. True black, as on the web. */
-	bg: "#000000",
+	/** Page background. Near-black, warmed slightly off true black. */
+	bg: "#0a0b09",
 	/** Raised surface: cards, rows, sheets. */
-	surface: "#1a1a1a",
+	surface: "#141613",
 	/** One step above `surface`: inputs, pressed states. */
-	surface2: "#242424",
+	surface2: "#1d201b",
 
-	/** The one accent. Everything interactive that matters is this green. */
-	accent: "#1db954",
+	/** The one accent. Everything interactive that matters is this lime. */
+	accent: "#c8f73c",
 	/** Accent under a finger. */
-	accentPressed: "#1ed760",
-	/** Accent at 8% — tinted backdrops behind accent content. */
-	accentDim: "rgba(29, 185, 84, 0.08)",
-	/** Ink on an accent-filled surface. Black, not white — the green is bright. */
-	onAccent: "#000000",
+	accentPressed: "#d6ff5c",
+	/** Accent at 13% — tinted backdrops behind accent content. */
+	accentDim: "rgba(200, 247, 60, 0.13)",
+	/** Ink on an accent-filled surface. Near-black, not white — the lime is bright. */
+	onAccent: "#0a0b09",
 
-	text: "#ffffff",
-	textMuted: "#b3b3b3",
-	textFaint: "rgba(255, 255, 255, 0.5)",
+	text: "#f2f4ef",
+	textMuted: "#9ba095",
+	textFaint: "#5c6156",
 
-	border: "rgba(255, 255, 255, 0.1)",
-	borderStrong: "rgba(255, 255, 255, 0.18)",
+	border: "rgba(255, 255, 255, 0.07)",
+	borderStrong: "rgba(255, 255, 255, 0.14)",
 
-	danger: "#f87171",
-	dangerSoft: "rgba(248, 113, 113, 0.12)",
+	danger: "#ff6b6b",
+	dangerSoft: "rgba(255, 107, 107, 0.12)",
 	success: "#4ade80",
 	warn: "#fbbf24",
 } as const;
+
+/**
+ * One entry per Activity type. A closed set of code literals per ADR-0004 —
+ * not a user-extensible catalog, because each type needs its own detail schema
+ * and logging UI that a data row cannot supply.
+ *
+ * ADR-0003 puts the canonical catalog in `packages/core` so Convex validators
+ * and both clients share it. It lives here until that package grows an activity
+ * module; `color`/`dim` would stay phone-side even then, since they are look
+ * rather than words.
+ */
+export const sportMeta = {
+	strength: {
+		label: "Strength",
+		glyph: "S",
+		color: "#c8f73c",
+		dim: "rgba(200, 247, 60, 0.14)",
+		/** The only type with a real Convex-backed implementation today. */
+		implemented: true,
+	},
+	running: {
+		label: "Running",
+		glyph: "R",
+		color: "#ff8a4c",
+		dim: "rgba(255, 138, 76, 0.14)",
+		implemented: false,
+	},
+	cycling: {
+		label: "Cycling",
+		glyph: "C",
+		color: "#4fd1e3",
+		dim: "rgba(79, 209, 227, 0.14)",
+		implemented: false,
+	},
+	wod: {
+		label: "WOD",
+		glyph: "W",
+		color: "#ff5d73",
+		dim: "rgba(255, 93, 115, 0.14)",
+		implemented: false,
+	},
+} as const;
+
+export type SportKey = keyof typeof sportMeta;
 
 /**
  * Corner radii, transcribed from the web's `--r-*`. `pill` is the capsule used

@@ -28,6 +28,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
@@ -56,22 +57,27 @@ const navigationTheme = {
 
 export default function RootLayout() {
 	return (
-		<ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-			{/* Convex sits above the router, not below it: the client holds one
-			    websocket whose auth follows the session, and it must not be torn
-			    down and rebuilt as screens come and go. Signed-out screens simply
-			    never query. */}
-			<AppConvexProvider>
-				<SafeAreaProvider>
-					<ThemeProvider value={navigationTheme}>
-						<View style={styles.window}>
-							<StatusBar style="light" />
-							<RootNavigator />
-						</View>
-					</ThemeProvider>
-				</SafeAreaProvider>
-			</AppConvexProvider>
-		</ClerkProvider>
+		// Gesture handler wraps everything: the pan-driven sheets deeper in the
+		// tree need a native root, and it has to be the outermost view to receive
+		// touches before React Native's own responder system does.
+		<GestureHandlerRootView style={styles.window}>
+			<ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+				{/* Convex sits above the router, not below it: the client holds one
+				    websocket whose auth follows the session, and it must not be torn
+				    down and rebuilt as screens come and go. Signed-out screens simply
+				    never query. */}
+				<AppConvexProvider>
+					<SafeAreaProvider>
+						<ThemeProvider value={navigationTheme}>
+							<View style={styles.window}>
+								<StatusBar style="light" />
+								<RootNavigator />
+							</View>
+						</ThemeProvider>
+					</SafeAreaProvider>
+				</AppConvexProvider>
+			</ClerkProvider>
+		</GestureHandlerRootView>
 	);
 }
 

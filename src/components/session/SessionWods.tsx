@@ -1,10 +1,10 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { formatScore } from "@workouts/core";
 import { useQuery } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { LogWodResultForm } from "#/components/wods/LogWodResultForm";
-import { formatScore } from "#/lib/wodScore";
 
 export function SessionWods({
 	sessionId,
