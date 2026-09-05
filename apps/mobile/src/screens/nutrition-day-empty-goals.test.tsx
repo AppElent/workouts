@@ -34,9 +34,7 @@ describe("a day with no goals", () => {
 
 		fireEvent.press(screen.getByText("Set up goals"));
 
-		expect(
-			await screen.findByText("Goal setup arrives in the next update."),
-		).toBeTruthy();
+		expect(await screen.findByText("Your nutrition goals")).toBeTruthy();
 	});
 
 	it("still shows every nutrient, since none of them is targeted", async () => {

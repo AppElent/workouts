@@ -60,12 +60,12 @@ export const en = {
 
 		goals: {
 			heading: "Goals",
+			edit: "Edit goals",
 			empty: {
 				title: "No goals yet",
 				body: "Set a daily amount for the nutrients you care about, and the day fills in against them.",
 				action: "Set up goals",
 			},
-			unavailable: "Goal setup arrives in the next update.",
 			/** "1,426 of 2,100 kcal" */
 			progress: "{total} of {target} {unit}",
 			state: {
@@ -74,6 +74,37 @@ export const en = {
 				met: "Met",
 				within: "Within",
 				exceeded: "Over",
+			},
+		},
+		goalEditor: {
+			title: "Your nutrition goals",
+			intro:
+				"Choose a static starting point or set any minimum or maximum yourself. These values do not use Activity or body data.",
+			loading: "Loading goals",
+			amount: "Daily amount",
+			remove: "Remove",
+			save: "Save goals",
+			saving: "Saving goals…",
+			validation: "Enter an amount greater than zero.",
+			failure: "Your goals could not be saved. Your changes are still here.",
+			edited: "{count} edited",
+			directions: { min: "Minimum", max: "Maximum" },
+			presets: {
+				reference: {
+					name: "Reference intake",
+					provenance:
+						"EU Regulation 1169/2011 Annex XIII and EFSA fibre guidance.",
+				},
+				loseWeight: {
+					name: "Lose weight",
+					provenance:
+						"Fixed Reference intake variant: energy −300 kcal. Not personalised advice.",
+				},
+				buildMuscle: {
+					name: "Build muscle",
+					provenance:
+						"Fixed Reference intake variant: energy +300 kcal and protein +50 g. Not personalised advice.",
+				},
 			},
 		},
 

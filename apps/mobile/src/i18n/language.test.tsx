@@ -60,4 +60,21 @@ describe("the app's language", () => {
 		fireEvent.press(screen.getByText("Appel"));
 		expect(await screen.findByText("Appel × 1")).toBeTruthy();
 	});
+
+	it("renders the goal editor and validation in Dutch", async () => {
+		renderApp("/language");
+		fireEvent.press(await screen.findByLabelText("Nederlands"));
+		testRouter.navigate("/nutrition-goals");
+
+		expect(await screen.findByText("Jouw voedingsdoelen")).toBeTruthy();
+		expect(screen.getByText("Referentie-inname")).toBeTruthy();
+		fireEvent.changeText(
+			screen.getByLabelText("Energie Minimum Dagelijkse hoeveelheid"),
+			"0",
+		);
+		fireEvent.press(screen.getByText("Doelen opslaan"));
+		expect(
+			await screen.findByText("Vul een hoeveelheid groter dan nul in."),
+		).toBeTruthy();
+	});
 });

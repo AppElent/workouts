@@ -40,6 +40,16 @@ export {
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
 export {
+	editedGoalCount,
+	GOAL_DIRECTIONS,
+	GOAL_PRESET_KEYS,
+	type GoalDirection,
+	type GoalPresetKey,
+	NUTRIENT_DEFAULT_DIRECTIONS,
+	NUTRITION_GOAL_PRESETS,
+	type NutritionGoalValue,
+} from "./goals";
+export {
 	allShippedFoods,
 	getShippedFood,
 	getShippedFoodByNevoCode,

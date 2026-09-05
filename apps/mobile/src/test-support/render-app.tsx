@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as LanguageRoute from "../../app/(app)/language";
+import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import { LocaleProvider } from "../i18n";
 import { ToastProvider } from "../ui/toast";
 
@@ -41,6 +42,7 @@ export function renderApp(
 		{
 			_layout: TestLayout as never,
 			nutrition: NutritionRoute as never,
+			"nutrition-goals": NutritionGoalsRoute as never,
 			language: LanguageRoute as never,
 			profile: ProfileRoute as never,
 			...(overrides as Record<string, never>),

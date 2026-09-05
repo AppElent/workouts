@@ -17,6 +17,7 @@
  * says that it belongs to a later update; each meal's plus now opens #71's
  * shipped-food browser and serving preview.
  */
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -42,7 +43,6 @@ import { Card, Eyebrow } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
-import { useToast } from "../ui/toast";
 import { NutritionFoodBrowser } from "./nutrition-food-browser";
 
 /** State word first, colour second — colour is never the only signal. */
@@ -56,7 +56,7 @@ const STATE_COLOR: Record<GoalState, string> = {
 
 export function NutritionDayScreen() {
 	const { t, locale } = useI18n();
-	const toast = useToast();
+	const router = useRouter();
 
 	// Read once per mount rather than per render: a day that changes underneath
 	// the user mid-scroll because midnight passed is worse than one that is
@@ -116,7 +116,7 @@ export function NutritionDayScreen() {
 						t={t}
 						goals={state.day.goals}
 						totals={state.day.totals}
-						onSetUpGoals={() => toast.error(t.nutrition.goals.unavailable)}
+						onSetUpGoals={() => router.push("/nutrition-goals")}
 					/>
 
 					{MEAL_SLOTS.map((slot) => (
@@ -247,14 +247,25 @@ function GoalSection({
 						}}
 					/>
 				) : (
-					goals.map((goal) => (
-						<GoalRow
-							key={`${goal.nutrient}-${goal.direction}`}
-							t={t}
-							goal={goal}
-							total={totals[goal.nutrient]}
-						/>
-					))
+					<>
+						{goals.map((goal) => (
+							<GoalRow
+								key={`${goal.nutrient}-${goal.direction}`}
+								t={t}
+								goal={goal}
+								total={totals[goal.nutrient]}
+							/>
+						))}
+						<Pressable
+							onPress={onSetUpGoals}
+							accessibilityRole="button"
+							style={styles.editGoals}
+						>
+							<AppText variant="caption" style={{ color: colors.accent }}>
+								{t.nutrition.goals.edit}
+							</AppText>
+						</Pressable>
+					</>
 				)}
 			</Card>
 		</View>
@@ -475,6 +486,11 @@ const styles = StyleSheet.create({
 	},
 
 	goalCard: { gap: spacing.md },
+	editGoals: {
+		minHeight: 44,
+		justifyContent: "center",
+		alignItems: "flex-end",
+	},
 	goalRow: { gap: 6 },
 	goalHeader: {
 		flexDirection: "row",

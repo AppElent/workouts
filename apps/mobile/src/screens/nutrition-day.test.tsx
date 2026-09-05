@@ -23,8 +23,7 @@ describe("the nutrition day", () => {
 		renderApp();
 
 		expect(await screen.findByText("Goals")).toBeTruthy();
-		// Four targeted nutrients, none of them logged against yet.
-		expect(screen.getAllByText("Nothing logged")).toHaveLength(4);
+		expect(screen.getByText("No goals yet")).toBeTruthy();
 	});
 
 	it("gives each meal slot's icon-only plus a spoken name", async () => {

@@ -30,6 +30,15 @@ jest.mock("@clerk/expo", () => ({
 
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: undefined }));
 
+jest.mock("convex/react", () => {
+	const emptyQueryResult: never[] = [];
+	return {
+		...jest.requireActual("convex/react"),
+		useQuery: jest.fn(() => emptyQueryResult),
+		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+	};
+});
+
 jest.mock("expo-sqlite/kv-store", () => {
 	const store = new Map<string, string>();
 	return {

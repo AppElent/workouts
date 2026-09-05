@@ -52,12 +52,12 @@ export const nl = {
 
 		goals: {
 			heading: "Doelen",
+			edit: "Doelen bewerken",
 			empty: {
 				title: "Nog geen doelen",
 				body: "Stel een dagelijkse hoeveelheid in voor de voedingsstoffen die jij belangrijk vindt; de dag vult zich daarna vanzelf.",
 				action: "Doelen instellen",
 			},
-			unavailable: "Doelen instellen komt in de volgende update.",
 			progress: "{total} van {target} {unit}",
 			state: {
 				neutral: "Niets gelogd",
@@ -65,6 +65,38 @@ export const nl = {
 				met: "Gehaald",
 				within: "Binnen",
 				exceeded: "Over",
+			},
+		},
+		goalEditor: {
+			title: "Jouw voedingsdoelen",
+			intro:
+				"Kies een statisch startpunt of stel zelf een minimum of maximum in. Deze waarden gebruiken geen Activiteit- of lichaamsgegevens.",
+			loading: "Doelen worden geladen",
+			amount: "Dagelijkse hoeveelheid",
+			remove: "Verwijderen",
+			save: "Doelen opslaan",
+			saving: "Doelen opslaan…",
+			validation: "Vul een hoeveelheid groter dan nul in.",
+			failure:
+				"Je doelen konden niet worden opgeslagen. Je wijzigingen staan er nog.",
+			edited: "{count} bewerkt",
+			directions: { min: "Minimum", max: "Maximum" },
+			presets: {
+				reference: {
+					name: "Referentie-inname",
+					provenance:
+						"EU-verordening 1169/2011 bijlage XIII en EFSA-richtlijn voor vezels.",
+				},
+				loseWeight: {
+					name: "Afvallen",
+					provenance:
+						"Vaste variant van Referentie-inname: energie −300 kcal. Geen persoonlijk advies.",
+				},
+				buildMuscle: {
+					name: "Spiermassa opbouwen",
+					provenance:
+						"Vaste variant van Referentie-inname: energie +300 kcal en eiwit +50 g. Geen persoonlijk advies.",
+				},
 			},
 		},
 

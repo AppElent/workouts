@@ -2,6 +2,16 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 export default defineSchema({
+  nutritionGoals: defineTable({
+    userId: v.string(),
+    nutrient: v.union(v.literal('energy'), v.literal('protein'), v.literal('carbs'), v.literal('fat'), v.literal('saturatedFat'), v.literal('fibre'), v.literal('sugars'), v.literal('salt')),
+    direction: v.union(v.literal('min'), v.literal('max')),
+    target: v.number(),
+    sourcePreset: v.optional(v.union(v.literal('reference'), v.literal('loseWeight'), v.literal('buildMuscle'))),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_nutrient_direction', ['userId', 'nutrient', 'direction']),
+
   exercises: defineTable({
     name: v.string(),
     muscleGroups: v.array(v.string()),

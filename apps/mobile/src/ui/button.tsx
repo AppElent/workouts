@@ -7,7 +7,13 @@
  * animation: on a phone held at arm's length mid-set, a colour change reads
  * and a fade does not.
  */
-import { Pressable, type PressableProps, StyleSheet, View } from "react-native";
+import {
+	ActivityIndicator,
+	Pressable,
+	type PressableProps,
+	StyleSheet,
+	View,
+} from "react-native";
 import { colors, radius, spacing } from "../theme";
 import { AppText } from "./text";
 
@@ -16,18 +22,27 @@ type Props = Omit<PressableProps, "children"> & {
 	/** Rendered to the left of the label — an icon, usually. */
 	icon?: React.ReactNode;
 	size?: "md" | "lg";
+	loading?: boolean;
 };
 
 export function PrimaryButton({
 	label,
 	icon,
 	size = "md",
+	loading = false,
 	style,
+	disabled,
 	...rest
 }: Props) {
 	return (
 		<Pressable
 			{...rest}
+			disabled={disabled || loading}
+			accessibilityState={{
+				...rest.accessibilityState,
+				busy: loading,
+				disabled: disabled || loading,
+			}}
 			style={(state) => [
 				styles.base,
 				size === "lg" && styles.lg,
@@ -37,7 +52,11 @@ export function PrimaryButton({
 				typeof style === "function" ? style(state) : style,
 			]}
 		>
-			{icon ? <View style={styles.icon}>{icon}</View> : null}
+			{loading ? (
+				<ActivityIndicator color={colors.onAccent} />
+			) : icon ? (
+				<View style={styles.icon}>{icon}</View>
+			) : null}
 			<AppText
 				variant={size === "lg" ? "heading" : "body"}
 				style={{ color: colors.onAccent, fontWeight: "800" }}
@@ -52,12 +71,20 @@ export function GhostButton({
 	label,
 	icon,
 	size = "md",
+	loading = false,
 	style,
+	disabled,
 	...rest
 }: Props) {
 	return (
 		<Pressable
 			{...rest}
+			disabled={disabled || loading}
+			accessibilityState={{
+				...rest.accessibilityState,
+				busy: loading,
+				disabled: disabled || loading,
+			}}
 			style={(state) => [
 				styles.base,
 				size === "lg" && styles.lg,
@@ -66,7 +93,11 @@ export function GhostButton({
 				typeof style === "function" ? style(state) : style,
 			]}
 		>
-			{icon ? <View style={styles.icon}>{icon}</View> : null}
+			{loading ? (
+				<ActivityIndicator color={colors.text} />
+			) : icon ? (
+				<View style={styles.icon}>{icon}</View>
+			) : null}
 			<AppText variant={size === "lg" ? "heading" : "body"}>{label}</AppText>
 		</Pressable>
 	);
