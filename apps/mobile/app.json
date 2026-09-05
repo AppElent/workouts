@@ -1,0 +1,28 @@
+{
+	"expo": {
+		"name": "Workouts",
+		"slug": "workouts-mobile",
+		"version": "0.1.0",
+		"orientation": "portrait",
+		"scheme": "workoutsmobile",
+		"_comment_userInterfaceStyle": "Pinned dark, not automatic (#46): src/theme has one palette because the web app has one — there is no light scheme to fall back to, and 'automatic' would hand the OS a light keyboard and light sheet grabbers on a black app.",
+		"userInterfaceStyle": "dark",
+		"backgroundColor": "#000000",
+		"newArchEnabled": true,
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "com.appelent.workoutsmobile"
+		},
+		"android": {
+			"package": "com.appelent.workoutsmobile",
+			"backgroundColor": "#000000"
+		},
+		"web": {
+			"bundler": "metro"
+		},
+		"plugins": ["expo-router", "@clerk/expo", "expo-secure-store"],
+		"experiments": {
+			"typedRoutes": true
+		}
+	}
+}

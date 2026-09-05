@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..112,400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #c8f73c; text-decoration: none; } a:hover { color: #d9ff63; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0a0b09; color: #f2f4ef; position: relative; overflow: hidden;">
+
+  <div style="position: absolute; inset: 0; padding: 54px 20px 0 20px; display: flex; flex-direction: column; gap: 14px;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; height: 44px;">
+      <div style="width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"></path></svg>
+      </div>
+      <div style="width: 44px; height: 44px; margin-right: -12px; display: flex; align-items: center; justify-content: center; color: #9ba095;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-9.6a4.3 4.3 0 0 1 7.5-2.9 4.3 4.3 0 0 1 7.5 2.9c0 5-7.5 9.6-7.5 9.6z"></path></svg>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 9px;">
+      <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1;">Barbell Bench Press</div>
+      <div style="display: flex; gap: 6px;">
+        <div style="height: 26px; padding: 0 10px; border-radius: 7px; background: {{accentDim}}; border: 1px solid {{accent}}; color: {{accent}}; font-size: 11px; font-weight: 700; display: flex; align-items: center;">Compound</div>
+        <div style="height: 26px; padding: 0 10px; border-radius: 7px; background: #1d201b; color: #9ba095; font-size: 11px; font-weight: 600; display: flex; align-items: center;">Barbell</div>
+        <div style="height: 26px; padding: 0 10px; border-radius: 7px; background: #1d201b; color: #9ba095; font-size: 11px; font-weight: 600; display: flex; align-items: center;">Chest · Triceps</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 18px; background: #141613; border: 1px solid rgba(255,255,255,0.08);">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #9ba095;">Estimated 1RM</div>
+          <div style="display: flex; align-items: baseline; gap: 5px;">
+            <div class="num" style="font-size: 36px; font-weight: 800; letter-spacing: -0.03em; line-height: 1;">102.5</div>
+            <div style="font-size: 14px; font-weight: 700; color: #9ba095;">kg</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; height: 26px; padding: 0 9px; border-radius: 7px; background: {{accentDim}}; color: {{accent}}; font-size: 12px; font-weight: 800;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"></path></svg>
+          <span class="num">+5.0</span>
+        </div>
+      </div>
+      <svg width="100%" height="56" viewBox="0 0 318 56" preserveAspectRatio="none" style="display: block;">
+        <polyline points="0,46 45,44 90,38 136,40 181,28 227,24 272,14 318,8" fill="none" stroke="{{accent}}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      </svg>
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 11px; font-weight: 600; color: #6d7268;">Mar</div>
+        <div style="font-size: 11px; font-weight: 600; color: #6d7268;">Aug</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+      <div style="display: flex; flex-direction: column; gap: 3px; padding: 13px 12px; border-radius: 14px; background: #141613;">
+        <div class="num" style="font-size: 17px; font-weight: 800;">90×5</div>
+        <div style="font-size: 10px; font-weight: 600; color: #9ba095;">Best set</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px; padding: 13px 12px; border-radius: 14px; background: #141613;">
+        <div class="num" style="font-size: 17px; font-weight: 800;">42.8<span style="font-size: 11px; color: #9ba095;">t</span></div>
+        <div style="font-size: 10px; font-weight: 600; color: #9ba095;">Volume</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px; padding: 13px 12px; border-radius: 14px; background: #141613;">
+        <div class="num" style="font-size: 17px; font-weight: 800;">31</div>
+        <div style="font-size: 10px; font-weight: 600; color: #9ba095;">Sessions</div>
+      </div>
+    </div>
+
+    <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #9ba095; margin-top: 2px;">How to</div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: -6px;">
+      <div style="display: flex; gap: 11px;">
+        <div class="num" style="width: 20px; flex-shrink: 0; font-size: 12px; font-weight: 800; color: {{accent}}; padding-top: 1px;">01</div>
+        <div style="font-size: 13px; font-weight: 500; line-height: 1.45; color: #c9cec3; text-wrap: pretty;">Lie on a flat bench with eyes under the bar; grip slightly wider than shoulder width.</div>
+      </div>
+      <div style="display: flex; gap: 11px;">
+        <div class="num" style="width: 20px; flex-shrink: 0; font-size: 12px; font-weight: 800; color: {{accent}}; padding-top: 1px;">02</div>
+        <div style="font-size: 13px; font-weight: 500; line-height: 1.45; color: #c9cec3; text-wrap: pretty;">Plant your feet, arch slightly, and pull your shoulder blades down and back into the bench.</div>
+      </div>
+      <div style="display: flex; gap: 11px;">
+        <div class="num" style="width: 20px; flex-shrink: 0; font-size: 12px; font-weight: 800; color: {{accent}}; padding-top: 1px;">03</div>
+        <div style="font-size: 13px; font-weight: 500; line-height: 1.45; color: #c9cec3; text-wrap: pretty;">Unrack and lower the bar under control to the lower chest, keeping elbows at roughly 45–70°.</div>
+      </div>
+      <div style="display: flex; gap: 11px;">
+        <div class="num" style="width: 20px; flex-shrink: 0; font-size: 12px; font-weight: 800; color: {{accent}}; padding-top: 1px;">04</div>
+        <div style="font-size: 13px; font-weight: 500; line-height: 1.45; color: #c9cec3; text-wrap: pretty;">Press the bar back up and slightly toward the rack until the elbows are locked out.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 20px 40px 20px; background: linear-gradient(to top, #0a0b09 65%, rgba(10,11,9,0));">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 54px; border-radius: 9999px; background: {{accent}}; color: #0a0b09; font-size: 16px; font-weight: 800;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      Add to workout
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#c8f73c","options":["#c8f73c","#1db954","#ff6a2b"],"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c8f73c';
+    return {
+      accent: accent,
+      accentDim: 'color-mix(in srgb, ' + accent + ' 12%, transparent)'
+    };
+  }
+}
+</script>
+</body>
+</html>

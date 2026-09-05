@@ -36,9 +36,9 @@
     "workouts": "tsx cli/index.ts"
   },
   "dependencies": {
-    "@appelent/auth": "^0.1.0",
+    "@appelent/auth": "^0.2.0",
     "@appelent/cli": "^0.2.0",
-    "@appelent/i18n": "^0.1.0",
+    "@appelent/i18n": "^0.2.0",
     "@base-ui/react": "^1.6.0",
     "@clerk/clerk-react": "^5.61.8",
     "@convex-dev/react-query": "0.1.0",
@@ -63,7 +63,8 @@
     "recharts": "^3.9.2",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.2",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@workouts/core": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.3",

@@ -1,11 +1,11 @@
-import { X } from "lucide-react";
-import { useEffect } from "react";
 import {
 	calcPlates,
 	DEFAULT_BAR,
 	generateWarmup,
 	type Unit,
-} from "#/lib/plates";
+} from "@workouts/core";
+import { X } from "lucide-react";
+import { useEffect } from "react";
 
 interface Props {
 	weight: number;

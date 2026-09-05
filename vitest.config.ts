@@ -43,6 +43,19 @@ export default defineConfig({
 					globals: true,
 				},
 			},
+			{
+				extends: true,
+				test: {
+					name: "core",
+					// `packages/core` is dependency-free logic shared by the web app,
+					// Convex and the phone. Without this project its tests match no
+					// pattern and are silently skipped — which is how `oneRepMax.test.ts`
+					// went unrun until the plate maths moved here beside it.
+					include: ["packages/core/src/**/*.test.ts"],
+					environment: "node",
+					globals: true,
+				},
+			},
 		],
 	},
 });

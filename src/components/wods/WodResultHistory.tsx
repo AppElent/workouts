@@ -1,4 +1,10 @@
 import type { Doc } from "@convex/_generated/dataModel";
+import {
+	bestScore,
+	formatScore,
+	prImprovement,
+	scoreRank,
+} from "@workouts/core";
 import { format } from "date-fns";
 import { Trophy } from "lucide-react";
 import {
@@ -9,12 +15,6 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import {
-	bestScore,
-	formatScore,
-	prImprovement,
-	scoreRank,
-} from "#/lib/wodScore";
 
 interface Props {
 	type: Doc<"wods">["type"];
