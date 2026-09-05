@@ -84,8 +84,18 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍌",
 		category: "fruit",
 		servings: [
-			{ en: "Banana (medium)", nl: "Banaan (middel)", amount: 120, note: "peeled" },
-			{ en: "Banana (large)", nl: "Banaan (groot)", amount: 150, note: "peeled" },
+			{
+				en: "Banana (medium)",
+				nl: "Banaan (middel)",
+				amount: 120,
+				note: "peeled",
+			},
+			{
+				en: "Banana (large)",
+				nl: "Banaan (groot)",
+				amount: 150,
+				note: "peeled",
+			},
 		],
 	},
 	{
@@ -106,7 +116,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Sinaasappel",
 		emoji: "🍊",
 		category: "fruit",
-		servings: [{ en: "Orange", nl: "Sinaasappel", amount: 140, note: "peeled" }],
+		servings: [
+			{ en: "Orange", nl: "Sinaasappel", amount: 140, note: "peeled" },
+		],
 	},
 	{
 		code: 148,
@@ -203,7 +215,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Kersen",
 		emoji: "🍒",
 		category: "fruit",
-		servings: [{ en: "Handful", nl: "Handje", amount: 80, note: "without stones" }],
+		servings: [
+			{ en: "Handful", nl: "Handje", amount: 80, note: "without stones" },
+		],
 	},
 	{
 		code: 158,
@@ -286,7 +300,11 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		category: "vegetables",
 		servings: [
 			{ en: "Tomato", nl: "Tomaat", amount: 90 },
-			{ en: "Handful of cherry tomatoes", nl: "Handje cherrytomaatjes", amount: 100 },
+			{
+				en: "Handful of cherry tomatoes",
+				nl: "Handje cherrytomaatjes",
+				amount: 100,
+			},
 		],
 	},
 	{
@@ -906,8 +924,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["milk"],
 		aliasNl: ["melk"],
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 206, ml: 200, basis: "density", note: "milk 1.03 g/ml" },
-			{ en: "Mug (250 ml)", nl: "Beker (250 ml)", amount: 258, ml: 250, basis: "density", note: "milk 1.03 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 206,
+				ml: 200,
+				basis: "density",
+				note: "milk 1.03 g/ml",
+			},
+			{
+				en: "Mug (250 ml)",
+				nl: "Beker (250 ml)",
+				amount: 258,
+				ml: 250,
+				basis: "density",
+				note: "milk 1.03 g/ml",
+			},
 		],
 	},
 	{
@@ -917,7 +949,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🥛",
 		category: "dairy",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 206, ml: 200, basis: "density", note: "milk 1.03 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 206,
+				ml: 200,
+				basis: "density",
+				note: "milk 1.03 g/ml",
+			},
 		],
 	},
 	{
@@ -927,7 +966,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🥛",
 		category: "dairy",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 207, ml: 200, basis: "density", note: "skimmed milk 1.035 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 207,
+				ml: 200,
+				basis: "density",
+				note: "skimmed milk 1.035 g/ml",
+			},
 		],
 	},
 	{
@@ -937,7 +983,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🥛",
 		category: "dairy",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 207, ml: 200, basis: "density", note: "buttermilk 1.035 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 207,
+				ml: 200,
+				basis: "density",
+				note: "buttermilk 1.035 g/ml",
+			},
 		],
 	},
 	{
@@ -947,8 +1000,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🥛",
 		category: "dairy",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 208, ml: 200, basis: "density", note: "chocolate milk 1.04 g/ml" },
-			{ en: "Carton (300 ml)", nl: "Pakje (300 ml)", amount: 312, ml: 300, basis: "density", note: "chocolate milk 1.04 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 208,
+				ml: 200,
+				basis: "density",
+				note: "chocolate milk 1.04 g/ml",
+			},
+			{
+				en: "Carton (300 ml)",
+				nl: "Pakje (300 ml)",
+				amount: 312,
+				ml: 300,
+				basis: "density",
+				note: "chocolate milk 1.04 g/ml",
+			},
 		],
 	},
 	{
@@ -1100,7 +1167,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Ongezouten roomboter",
 		emoji: "🧈",
 		category: "fats",
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 7 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 7 },
+		],
 	},
 	{
 		code: 2063,
@@ -1108,7 +1177,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Margarine",
 		emoji: "🧈",
 		category: "fats",
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 7 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 7 },
+		],
 	},
 	{
 		code: 2059,
@@ -1116,7 +1187,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Halvarine",
 		emoji: "🧈",
 		category: "fats",
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 7 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 7 },
+		],
 	},
 	{
 		code: 601,
@@ -1125,8 +1198,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🫒",
 		category: "fats",
 		servings: [
-			{ en: "Tablespoon (15 ml)", nl: "Eetlepel (15 ml)", amount: 14, ml: 15, basis: "density", note: "olive oil 0.92 g/ml" },
-			{ en: "Teaspoon (5 ml)", nl: "Theelepel (5 ml)", amount: 5, ml: 5, basis: "density", note: "olive oil 0.92 g/ml" },
+			{
+				en: "Tablespoon (15 ml)",
+				nl: "Eetlepel (15 ml)",
+				amount: 14,
+				ml: 15,
+				basis: "density",
+				note: "olive oil 0.92 g/ml",
+			},
+			{
+				en: "Teaspoon (5 ml)",
+				nl: "Theelepel (5 ml)",
+				amount: 5,
+				ml: 5,
+				basis: "density",
+				note: "olive oil 0.92 g/ml",
+			},
 		],
 	},
 	{
@@ -1136,7 +1223,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🌻",
 		category: "fats",
 		servings: [
-			{ en: "Tablespoon (15 ml)", nl: "Eetlepel (15 ml)", amount: 14, ml: 15, basis: "density", note: "sunflower oil 0.92 g/ml" },
+			{
+				en: "Tablespoon (15 ml)",
+				nl: "Eetlepel (15 ml)",
+				amount: 14,
+				ml: 15,
+				basis: "density",
+				note: "sunflower oil 0.92 g/ml",
+			},
 		],
 	},
 	{
@@ -1169,8 +1263,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["water"],
 		aliasNl: ["water"],
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 200, ml: 200, basis: "one-to-one", note: "water-like: 1 ml ≈ 1 g" },
-			{ en: "Bottle (500 ml)", nl: "Fles (500 ml)", amount: 500, ml: 500, basis: "one-to-one", note: "water-like: 1 ml ≈ 1 g" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 200,
+				ml: 200,
+				basis: "one-to-one",
+				note: "water-like: 1 ml ≈ 1 g",
+			},
+			{
+				en: "Bottle (500 ml)",
+				nl: "Fles (500 ml)",
+				amount: 500,
+				ml: 500,
+				basis: "one-to-one",
+				note: "water-like: 1 ml ≈ 1 g",
+			},
 		],
 	},
 	{
@@ -1182,8 +1290,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["sparkling water", "still water"],
 		aliasNl: ["spa", "bruisend water"],
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 200, ml: 200, basis: "one-to-one", note: "water-like: 1 ml ≈ 1 g" },
-			{ en: "Bottle (500 ml)", nl: "Fles (500 ml)", amount: 500, ml: 500, basis: "one-to-one", note: "water-like: 1 ml ≈ 1 g" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 200,
+				ml: 200,
+				basis: "one-to-one",
+				note: "water-like: 1 ml ≈ 1 g",
+			},
+			{
+				en: "Bottle (500 ml)",
+				nl: "Fles (500 ml)",
+				amount: 500,
+				ml: 500,
+				basis: "one-to-one",
+				note: "water-like: 1 ml ≈ 1 g",
+			},
 		],
 	},
 	{
@@ -1195,8 +1317,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["coffee"],
 		aliasNl: ["koffie"],
 		servings: [
-			{ en: "Cup (125 ml)", nl: "Kopje (125 ml)", amount: 125, ml: 125, basis: "one-to-one", note: "water-like: brewed coffee is ~99% water" },
-			{ en: "Mug (250 ml)", nl: "Beker (250 ml)", amount: 250, ml: 250, basis: "one-to-one", note: "water-like: brewed coffee is ~99% water" },
+			{
+				en: "Cup (125 ml)",
+				nl: "Kopje (125 ml)",
+				amount: 125,
+				ml: 125,
+				basis: "one-to-one",
+				note: "water-like: brewed coffee is ~99% water",
+			},
+			{
+				en: "Mug (250 ml)",
+				nl: "Beker (250 ml)",
+				amount: 250,
+				ml: 250,
+				basis: "one-to-one",
+				note: "water-like: brewed coffee is ~99% water",
+			},
 		],
 	},
 	{
@@ -1206,7 +1342,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍵",
 		category: "drinks",
 		servings: [
-			{ en: "Cup (150 ml)", nl: "Kopje (150 ml)", amount: 150, ml: 150, basis: "one-to-one", note: "water-like: brewed tea is ~99.7% water" },
+			{
+				en: "Cup (150 ml)",
+				nl: "Kopje (150 ml)",
+				amount: 150,
+				ml: 150,
+				basis: "one-to-one",
+				note: "water-like: brewed tea is ~99.7% water",
+			},
 		],
 	},
 	{
@@ -1218,7 +1361,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["juice"],
 		aliasNl: ["jus d'orange", "sap"],
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 208, ml: 200, basis: "density", note: "orange juice 1.04 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 208,
+				ml: 200,
+				basis: "density",
+				note: "orange juice 1.04 g/ml",
+			},
 		],
 	},
 	{
@@ -1228,7 +1378,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍊",
 		category: "drinks",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 208, ml: 200, basis: "density", note: "orange juice 1.04 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 208,
+				ml: 200,
+				basis: "density",
+				note: "orange juice 1.04 g/ml",
+			},
 		],
 	},
 	{
@@ -1238,7 +1395,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🧃",
 		category: "drinks",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 209, ml: 200, basis: "density", note: "apple juice 1.045 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 209,
+				ml: 200,
+				basis: "density",
+				note: "apple juice 1.045 g/ml",
+			},
 		],
 	},
 	{
@@ -1250,8 +1414,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["soft drink", "soda"],
 		aliasNl: ["frisdrank"],
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 207, ml: 200, basis: "density", note: "sugared cola 1.037 g/ml" },
-			{ en: "Can (330 ml)", nl: "Blikje (330 ml)", amount: 342, ml: 330, basis: "density", note: "sugared cola 1.037 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 207,
+				ml: 200,
+				basis: "density",
+				note: "sugared cola 1.037 g/ml",
+			},
+			{
+				en: "Can (330 ml)",
+				nl: "Blikje (330 ml)",
+				amount: 342,
+				ml: 330,
+				basis: "density",
+				note: "sugared cola 1.037 g/ml",
+			},
 		],
 	},
 	{
@@ -1261,7 +1439,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🥤",
 		category: "drinks",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 206, ml: 200, basis: "density", note: "sugared ice tea 1.03 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 206,
+				ml: 200,
+				basis: "density",
+				note: "sugared ice tea 1.03 g/ml",
+			},
 		],
 	},
 	{
@@ -1271,7 +1456,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🥤",
 		category: "drinks",
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 200, ml: 200, basis: "one-to-one", note: "water-like: sweetened without sugar" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 200,
+				ml: 200,
+				basis: "one-to-one",
+				note: "water-like: sweetened without sugar",
+			},
 		],
 	},
 	{
@@ -1283,7 +1475,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["sports drink"],
 		aliasNl: ["sportdrank"],
 		servings: [
-			{ en: "Bottle (500 ml)", nl: "Bidon (500 ml)", amount: 515, ml: 500, basis: "density", note: "isotonic sports drink 1.03 g/ml" },
+			{
+				en: "Bottle (500 ml)",
+				nl: "Bidon (500 ml)",
+				amount: 515,
+				ml: 500,
+				basis: "density",
+				note: "isotonic sports drink 1.03 g/ml",
+			},
 		],
 	},
 	{
@@ -1295,7 +1494,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["soy milk"],
 		aliasNl: ["sojamelk"],
 		servings: [
-			{ en: "Glass (200 ml)", nl: "Glas (200 ml)", amount: 206, ml: 200, basis: "density", note: "soy drink 1.03 g/ml" },
+			{
+				en: "Glass (200 ml)",
+				nl: "Glas (200 ml)",
+				amount: 206,
+				ml: 200,
+				basis: "density",
+				note: "soy drink 1.03 g/ml",
+			},
 		],
 	},
 	{
@@ -1307,8 +1513,22 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["beer", "lager"],
 		aliasNl: ["pils", "biertje"],
 		servings: [
-			{ en: "Glass (250 ml)", nl: "Glas (250 ml)", amount: 253, ml: 250, basis: "density", note: "pilsner 1.01 g/ml" },
-			{ en: "Bottle (300 ml)", nl: "Flesje (300 ml)", amount: 303, ml: 300, basis: "density", note: "pilsner 1.01 g/ml" },
+			{
+				en: "Glass (250 ml)",
+				nl: "Glas (250 ml)",
+				amount: 253,
+				ml: 250,
+				basis: "density",
+				note: "pilsner 1.01 g/ml",
+			},
+			{
+				en: "Bottle (300 ml)",
+				nl: "Flesje (300 ml)",
+				amount: 303,
+				ml: 300,
+				basis: "density",
+				note: "pilsner 1.01 g/ml",
+			},
 		],
 	},
 	{
@@ -1318,7 +1538,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍺",
 		category: "drinks",
 		servings: [
-			{ en: "Glass (250 ml)", nl: "Glas (250 ml)", amount: 255, ml: 250, basis: "density", note: "alcohol-free beer 1.02 g/ml — more residual sugar than pilsner" },
+			{
+				en: "Glass (250 ml)",
+				nl: "Glas (250 ml)",
+				amount: 255,
+				ml: 250,
+				basis: "density",
+				note: "alcohol-free beer 1.02 g/ml — more residual sugar than pilsner",
+			},
 		],
 	},
 	{
@@ -1330,7 +1557,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		aliasEn: ["wine"],
 		aliasNl: ["wijn"],
 		servings: [
-			{ en: "Glass (150 ml)", nl: "Glas (150 ml)", amount: 148, ml: 150, basis: "density", note: "wine 0.99 g/ml — alcohol is lighter than water" },
+			{
+				en: "Glass (150 ml)",
+				nl: "Glas (150 ml)",
+				amount: 148,
+				ml: 150,
+				basis: "density",
+				note: "wine 0.99 g/ml — alcohol is lighter than water",
+			},
 		],
 	},
 	{
@@ -1340,7 +1574,14 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍷",
 		category: "drinks",
 		servings: [
-			{ en: "Glass (150 ml)", nl: "Glas (150 ml)", amount: 148, ml: 150, basis: "density", note: "wine 0.99 g/ml — alcohol is lighter than water" },
+			{
+				en: "Glass (150 ml)",
+				nl: "Glas (150 ml)",
+				amount: 148,
+				ml: 150,
+				basis: "density",
+				note: "wine 0.99 g/ml — alcohol is lighter than water",
+			},
 		],
 	},
 
@@ -1649,7 +1890,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍫",
 		category: "other",
 		aliasEn: ["sprinkles"],
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 12 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 12 },
+		],
 	},
 	{
 		code: 1964,
@@ -1658,7 +1901,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍫",
 		category: "other",
 		aliasEn: ["hazelnut spread"],
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 },
+		],
 	},
 	{
 		code: 2489,
@@ -1666,7 +1911,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Speculoospasta",
 		emoji: "🍪",
 		category: "other",
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 },
+		],
 	},
 	{
 		code: 445,
@@ -1675,7 +1922,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		emoji: "🍓",
 		category: "other",
 		aliasNl: ["confiture"],
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 },
+		],
 	},
 	{
 		code: 443,
@@ -1694,7 +1943,9 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		nl: "Appelstroop",
 		emoji: "🍯",
 		category: "other",
-		servings: [{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 }],
+		servings: [
+			{ en: "For a slice of bread", nl: "Op een boterham", amount: 15 },
+		],
 	},
 	{
 		code: 3207,

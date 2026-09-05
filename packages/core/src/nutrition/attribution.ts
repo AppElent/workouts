@@ -24,7 +24,8 @@
  * "Any output from software for nutritional calculations produced by the user
  * must contain one of the following references."
  */
-export const NEVO_ATTRIBUTION = "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven";
+export const NEVO_ATTRIBUTION =
+	"Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven";
 
 /**
  * The variant to use as soon as anything that is not a shipped food can enter
@@ -64,4 +65,5 @@ export const NEVO_LICENCE_CONSTRAINTS: readonly string[] = Object.freeze([
 ]);
 
 /** Where a future reader can check all of the above. */
-export const NEVO_LICENCE_SOURCE = "data/nevo/Conditions of use NEVO-online 2025 dataset.pdf";
+export const NEVO_LICENCE_SOURCE =
+	"data/nevo/Conditions of use NEVO-online 2025 dataset.pdf";

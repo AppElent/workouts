@@ -1,6 +1,16 @@
+import {
+	artifactGroups,
+	artifactMeta,
+	decodeArtifact,
+	type ShippedArtifact,
+} from "./artifact";
 import rawArtifact from "./shipped-foods.json";
-import { artifactGroups, artifactMeta, decodeArtifact, type ShippedArtifact } from "./artifact";
-import type { ShippedFood, ShippedFoodGroup, ShippedFoodId, ShippedLibraryMeta } from "./types";
+import type {
+	ShippedFood,
+	ShippedFoodGroup,
+	ShippedFoodId,
+	ShippedLibraryMeta,
+} from "./types";
 
 export type ShippedLibrary = {
 	readonly meta: ShippedLibraryMeta;
@@ -23,7 +33,9 @@ export const SHIPPED_ARTIFACT: ShippedArtifact = rawArtifact;
  * Exported unmemoized so the benchmark can time a cold build; application code
  * should call {@link shippedLibrary}, which does this once.
  */
-export function loadShippedLibrary(artifact: ShippedArtifact = rawArtifact): ShippedLibrary {
+export function loadShippedLibrary(
+	artifact: ShippedArtifact = rawArtifact,
+): ShippedLibrary {
 	const foods = decodeArtifact(artifact);
 	const byId = new Map<string, ShippedFood>();
 	const byNevoCode = new Map<number, ShippedFood>();
@@ -66,7 +78,9 @@ export function promotedShippedFoods(): readonly ShippedFood[] {
 	return shippedLibrary().promoted;
 }
 
-export function getShippedFood(id: ShippedFoodId | string): ShippedFood | undefined {
+export function getShippedFood(
+	id: ShippedFoodId | string,
+): ShippedFood | undefined {
 	return shippedLibrary().byId.get(id);
 }
 
@@ -75,7 +89,9 @@ export function getShippedFood(id: ShippedFoodId | string): ShippedFood | undefi
  * stored reference must always use the `shipped:` id, because NEVO codes can
  * retire and reappear.
  */
-export function getShippedFoodByNevoCode(code: number): ShippedFood | undefined {
+export function getShippedFoodByNevoCode(
+	code: number,
+): ShippedFood | undefined {
 	return shippedLibrary().byNevoCode.get(code);
 }
 

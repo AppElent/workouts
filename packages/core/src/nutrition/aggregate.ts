@@ -1,4 +1,8 @@
-import { NUTRIENT_KEYS, type NutrientKey, type NutrientValue } from "./nutrients";
+import {
+	NUTRIENT_KEYS,
+	type NutrientKey,
+	type NutrientValue,
+} from "./nutrients";
 
 /**
  * A summed nutrient, plus everything the UI needs to say how trustworthy the
@@ -80,11 +84,15 @@ export type NutrientContribution = Partial<Record<NutrientKey, NutrientValue>>;
  * never mentions fibre is an entry whose fibre is unknown, which is exactly the
  * state the spec wants preserved.
  */
-export function totalNutrients(contributions: readonly NutrientContribution[]): Record<NutrientKey, NutrientTotal> {
+export function totalNutrients(
+	contributions: readonly NutrientContribution[],
+): Record<NutrientKey, NutrientTotal> {
 	const totals = {} as Record<NutrientKey, NutrientTotal>;
 	for (const key of NUTRIENT_KEYS) {
 		totals[key] = totalNutrient(
-			contributions.map((contribution) => contribution[key] ?? { kind: "absent" as const }),
+			contributions.map(
+				(contribution) => contribution[key] ?? { kind: "absent" as const },
+			),
 		);
 	}
 	return totals;

@@ -17,7 +17,11 @@ const bilingualString = z.string().min(1);
  * spelled out rather than "just leave the slot empty" so a truncated array
  * cannot silently read as a row of absences.
  */
-export const nutrientCellSchema = z.union([z.number().finite().nonnegative(), z.literal("t"), z.null()]);
+export const nutrientCellSchema = z.union([
+	z.number().finite().nonnegative(),
+	z.literal("t"),
+	z.null(),
+]);
 
 export const servingSchema = z
 	.object({
@@ -28,10 +32,13 @@ export const servingSchema = z
 		basis: z.enum(["one-to-one", "density"]).optional(),
 		note: z.string().min(1).optional(),
 	})
-	.refine((serving) => serving.ml === undefined || serving.basis !== undefined, {
-		message:
-			"a volume-labelled serving must declare how the volume became an amount (basis: one-to-one | density)",
-	});
+	.refine(
+		(serving) => serving.ml === undefined || serving.basis !== undefined,
+		{
+			message:
+				"a volume-labelled serving must declare how the volume became an amount (basis: one-to-one | density)",
+		},
+	);
 
 export const promotionSchema = z.object({
 	en: bilingualString,
@@ -86,7 +93,11 @@ export const shippedArtifactSchema = z
 		categories: z.array(z.enum(FOOD_CATEGORIES)),
 		groups: z.record(
 			z.string(),
-			z.object({ en: bilingualString, nl: bilingualString, category: z.enum(FOOD_CATEGORIES) }),
+			z.object({
+				en: bilingualString,
+				nl: bilingualString,
+				category: z.enum(FOOD_CATEGORIES),
+			}),
 		),
 		foods: z.array(wireFoodSchema).min(1),
 	})
@@ -102,13 +113,22 @@ export const shippedArtifactSchema = z
 				});
 			}
 			if (seenIds.has(food.id)) {
-				ctx.addIssue({ code: "custom", message: `duplicate shipped id ${food.id}` });
+				ctx.addIssue({
+					code: "custom",
+					message: `duplicate shipped id ${food.id}`,
+				});
 			}
 			if (seenCodes.has(food.code)) {
-				ctx.addIssue({ code: "custom", message: `duplicate NEVO code ${food.code}` });
+				ctx.addIssue({
+					code: "custom",
+					message: `duplicate NEVO code ${food.code}`,
+				});
 			}
 			if (!(food.grp in artifact.groups)) {
-				ctx.addIssue({ code: "custom", message: `food ${food.id} references unknown group ${food.grp}` });
+				ctx.addIssue({
+					code: "custom",
+					message: `food ${food.id} references unknown group ${food.grp}`,
+				});
 			}
 			// A drink nobody can portion is a bad search result, so the spec makes
 			// a practical serving the price of promotion.
@@ -127,7 +147,8 @@ export const shippedArtifactSchema = z
 			if (previous && current && previous.code > current.code) {
 				ctx.addIssue({
 					code: "custom",
-					message: "foods must be ordered by NEVO code so regeneration produces a stable diff",
+					message:
+						"foods must be ordered by NEVO code so regeneration produces a stable diff",
 				});
 			}
 		}
@@ -156,7 +177,10 @@ export const shippedLockSchema = z
 		const activeCodes = new Set<number>();
 		for (const entry of lock.entries) {
 			if (seenIds.has(entry.id)) {
-				ctx.addIssue({ code: "custom", message: `id ${entry.id} appears twice; ids are never reused` });
+				ctx.addIssue({
+					code: "custom",
+					message: `id ${entry.id} appears twice; ids are never reused`,
+				});
 			}
 			seenIds.add(entry.id);
 			if (entry.status === "active") {

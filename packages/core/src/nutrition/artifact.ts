@@ -1,9 +1,9 @@
 import {
 	ABSENT,
 	type NutrientValue,
+	nutrientValue,
 	type ShippedNutrientKey,
 	TRACE,
-	nutrientValue,
 } from "./nutrients";
 import type {
 	FoodCategory,
@@ -94,7 +94,16 @@ export type ShippedArtifact = {
 	readonly nutrientOrder: readonly ShippedNutrientKey[];
 	readonly nutrientUnits: Readonly<Record<string, string>>;
 	readonly categories: readonly FoodCategory[];
-	readonly groups: Readonly<Record<string, { readonly en: string; readonly nl: string; readonly category: FoodCategory }>>;
+	readonly groups: Readonly<
+		Record<
+			string,
+			{
+				readonly en: string;
+				readonly nl: string;
+				readonly category: FoodCategory;
+			}
+		>
+	>;
 	readonly foods: readonly WireFood[];
 };
 
@@ -114,7 +123,9 @@ function decodeNutrients(
 	return nutrients;
 }
 
-function decodeServings(wire: readonly WireServing[] | undefined): ShippedServing[] {
+function decodeServings(
+	wire: readonly WireServing[] | undefined,
+): ShippedServing[] {
 	if (!wire) return [];
 	return wire.map((serving) => ({
 		label: { en: serving.en, nl: serving.nl },
@@ -125,7 +136,10 @@ function decodeServings(wire: readonly WireServing[] | undefined): ShippedServin
 	}));
 }
 
-export function decodeFood(wire: WireFood, order: readonly ShippedNutrientKey[]): ShippedFood {
+export function decodeFood(
+	wire: WireFood,
+	order: readonly ShippedNutrientKey[],
+): ShippedFood {
 	const sourceName = { en: wire.en, nl: wire.nl };
 	return {
 		id: wire.id as ShippedFoodId,

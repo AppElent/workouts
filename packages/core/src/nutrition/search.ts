@@ -79,7 +79,11 @@ export function normaliseForSearch(text: string): string {
 	for (const character of text.toLowerCase()) {
 		const folded = FOLD[character];
 		if (folded !== undefined) out += folded;
-		else if ((character >= "a" && character <= "z") || (character >= "0" && character <= "9")) out += character;
+		else if (
+			(character >= "a" && character <= "z") ||
+			(character >= "0" && character <= "9")
+		)
+			out += character;
 		else out += " ";
 	}
 	return out.trim().replace(/\s+/g, " ");
@@ -137,12 +141,17 @@ const FIELD_WEIGHT: Record<SearchMatch, number> = {
 };
 
 /** Score one field against a normalised query. 0 means no match. */
-function scoreField(haystack: string, query: string, tokens: readonly string[]): number {
+function scoreField(
+	haystack: string,
+	query: string,
+	tokens: readonly string[],
+): number {
 	if (haystack === query) return 100;
 	if (haystack.startsWith(query)) return 80;
 	if (haystack.includes(` ${query}`)) return 65;
 	if (haystack.includes(query)) return 40;
-	if (tokens.length > 1 && tokens.every((token) => haystack.includes(token))) return 30;
+	if (tokens.length > 1 && tokens.every((token) => haystack.includes(token)))
+		return 30;
 	return 0;
 }
 
@@ -153,18 +162,27 @@ function scoreField(haystack: string, query: string, tokens: readonly string[]):
  * promoted list; in `all` scope it returns nothing, because dumping 2,328 NEVO
  * rows at someone who has typed nothing is not a search result.
  */
-export function searchShippedFoods(query: string, options: SearchOptions = {}): FoodSearchResult[] {
+export function searchShippedFoods(
+	query: string,
+	options: SearchOptions = {},
+): FoodSearchResult[] {
 	const locale = options.locale ?? "en";
 	const scope = options.scope ?? "promoted";
 	const limit = options.limit ?? 50;
 	const normalised = normaliseForSearch(query);
-	const entries = scope === "promoted" ? ensureIndex().promoted : ensureIndex().all;
+	const entries =
+		scope === "promoted" ? ensureIndex().promoted : ensureIndex().all;
 
 	if (normalised.length === 0) {
 		if (scope !== "promoted") return [];
 		return entries
 			.slice(0, limit)
-			.map((entry) => ({ food: entry.food, score: 0, matched: "name" as const, matchedText: entry.food.name[locale] }))
+			.map((entry) => ({
+				food: entry.food,
+				score: 0,
+				matched: "name" as const,
+				matchedText: entry.food.name[locale],
+			}))
 			.sort((a, b) => a.food.name[locale].localeCompare(b.food.name[locale]));
 	}
 
@@ -177,7 +195,8 @@ export function searchShippedFoods(query: string, options: SearchOptions = {}): 
 		for (const field of entry.fields) {
 			const raw = scoreField(field.normalised, normalised, tokens);
 			if (raw === 0) continue;
-			const score = raw * FIELD_WEIGHT[field.kind] + (field.locale === locale ? 4 : 0);
+			const score =
+				raw * FIELD_WEIGHT[field.kind] + (field.locale === locale ? 4 : 0);
 			if (score > best) {
 				best = score;
 				bestField = field;
@@ -205,7 +224,10 @@ export function searchShippedFoods(query: string, options: SearchOptions = {}): 
 }
 
 /** Promoted foods in one category, for browsing rather than searching. */
-export function browsePromotedByCategory(category: string, locale: Locale = "en"): ShippedFood[] {
+export function browsePromotedByCategory(
+	category: string,
+	locale: Locale = "en",
+): ShippedFood[] {
 	return shippedLibrary()
 		.promoted.filter((food) => food.category === category)
 		.sort((a, b) => a.name[locale].localeCompare(b.name[locale]));

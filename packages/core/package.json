@@ -26,7 +26,8 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"generate:foods": "tsx scripts/generate-shipped-foods.ts",
-		"bench:foods": "tsx scripts/benchmark-shipped-foods.ts"
+		"bench:foods": "tsx scripts/benchmark-shipped-foods.ts",
+		"check:foods": "tsx scripts/generate-shipped-foods.ts --check"
 	},
 	"devDependencies": {
 		"tsup": "^8.3.0",

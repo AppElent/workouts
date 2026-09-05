@@ -31,7 +31,9 @@ export type ShippedNutrientKey = (typeof SHIPPED_NUTRIENT_KEYS)[number];
 
 export type NutrientUnit = "kcal" | "g" | "mg";
 
-export const NUTRIENT_UNITS: Readonly<Record<ShippedNutrientKey, NutrientUnit>> = Object.freeze({
+export const NUTRIENT_UNITS: Readonly<
+	Record<ShippedNutrientKey, NutrientUnit>
+> = Object.freeze({
 	energy: "kcal",
 	protein: "g",
 	carbs: "g",
@@ -68,7 +70,9 @@ export function nutrientValue(amount: number): NutrientValue {
 	return Object.freeze({ kind: "value" as const, amount });
 }
 
-export function isValue(value: NutrientValue): value is { kind: "value"; amount: number } {
+export function isValue(
+	value: NutrientValue,
+): value is { kind: "value"; amount: number } {
 	return value.kind === "value";
 }
 
@@ -86,7 +90,9 @@ export function numericAmount(value: NutrientValue): number | undefined {
  * Decimal places for presentation only. Storage stays unrounded: rounding at
  * generation would compound across a day's worth of entries.
  */
-export const NUTRIENT_DISPLAY_DECIMALS: Readonly<Record<ShippedNutrientKey, number>> = Object.freeze({
+export const NUTRIENT_DISPLAY_DECIMALS: Readonly<
+	Record<ShippedNutrientKey, number>
+> = Object.freeze({
 	energy: 0,
 	protein: 1,
 	carbs: 1,
@@ -101,7 +107,10 @@ export const NUTRIENT_DISPLAY_DECIMALS: Readonly<Record<ShippedNutrientKey, numb
 });
 
 /** Round a stored amount for display. Returns a number, not a string. */
-export function roundForDisplay(key: ShippedNutrientKey, amount: number): number {
+export function roundForDisplay(
+	key: ShippedNutrientKey,
+	amount: number,
+): number {
 	const factor = 10 ** NUTRIENT_DISPLAY_DECIMALS[key];
 	return Math.round(amount * factor) / factor;
 }

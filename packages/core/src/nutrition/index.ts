@@ -15,6 +15,12 @@
  */
 
 export {
+	type NutrientContribution,
+	type NutrientTotal,
+	totalNutrient,
+	totalNutrients,
+} from "./aggregate";
+export {
 	artifactGroups,
 	artifactMeta,
 	decodeArtifact,
@@ -26,70 +32,64 @@ export {
 	type WireServing,
 } from "./artifact";
 export {
-	type NutrientContribution,
-	type NutrientTotal,
-	totalNutrient,
-	totalNutrients,
-} from "./aggregate";
-export {
 	NEVO_ATTRIBUTION,
 	NEVO_ATTRIBUTION_MIXED,
 	NEVO_LICENCE_CONSTRAINTS,
 	NEVO_LICENCE_SOURCE,
-	SALT_DERIVATION_DISCLOSURE,
 	nevoAttribution,
+	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
 export {
-	SHIPPED_ARTIFACT,
-	type ShippedLibrary,
 	allShippedFoods,
 	getShippedFood,
 	getShippedFoodByNevoCode,
 	loadShippedLibrary,
 	promotedShippedFoods,
+	SHIPPED_ARTIFACT,
+	type ShippedLibrary,
 	shippedFoodGroups,
 	shippedLibrary,
 	shippedLibraryMeta,
 } from "./library";
 export {
 	ABSENT,
+	isValue,
 	NUTRIENT_DISPLAY_DECIMALS,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientUnit,
 	type NutrientValue,
-	SHIPPED_NUTRIENT_KEYS,
-	type ShippedNutrientKey,
-	TRACE,
-	isValue,
 	numericAmount,
 	nutrientValue,
 	roundForDisplay,
+	SHIPPED_NUTRIENT_KEYS,
+	type ShippedNutrientKey,
+	TRACE,
 } from "./nutrients";
 export {
+	isDerivedNutrient,
 	SALT_DERIVATION,
 	SALT_FROM_SODIUM_DIVISOR,
 	SALT_FROM_SODIUM_FACTOR,
-	isDerivedNutrient,
 	saltFromSodium,
 } from "./salt";
 export {
+	browsePromotedByCategory,
 	type FoodSearchResult,
+	normaliseForSearch,
+	resetSearchIndex,
 	type SearchMatch,
 	type SearchOptions,
 	type SearchScope,
-	browsePromotedByCategory,
-	normaliseForSearch,
-	resetSearchIndex,
 	searchShippedFoods,
 } from "./search";
 export {
-	type ServingOption,
-	type ServingPreview,
 	formatQuantity,
 	formatServingSelection,
 	previewServing,
+	type ServingOption,
+	type ServingPreview,
 	scaleNutrients,
 	servingAmount,
 	servingOptions,

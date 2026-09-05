@@ -1,10 +1,10 @@
 import {
 	ABSENT,
 	type NutrientValue,
+	nutrientValue,
 	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
 	TRACE,
-	nutrientValue,
 } from "./nutrients";
 import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
 
@@ -78,7 +78,11 @@ export function formatQuantity(quantity: number, locale: Locale): string {
  * The unambiguous rendering of a selection: `Glass (200 ml) × 1` (story 39).
  * Always name × quantity, never a bare gram figure, and never quantity first.
  */
-export function formatServingSelection(option: ServingOption, quantity: number, locale: Locale): string {
+export function formatServingSelection(
+	option: ServingOption,
+	quantity: number,
+	locale: Locale,
+): string {
 	return `${option.label[locale]} × ${formatQuantity(quantity, locale)}`;
 }
 
@@ -143,10 +147,16 @@ export function previewServing(
  * Every NEVO beverage is per 100 g, so `Glass (250 ml)` of milk stores a mass.
  * Returns `undefined` when the serving is not volume-labelled.
  */
-export function servingVolumeMapping(
-	serving: ShippedServing,
-): { volumeMl: number; grams: number; basis: NonNullable<ShippedServing["basis"]>; note?: string } | undefined {
-	if (serving.volumeMl === undefined || serving.basis === undefined) return undefined;
+export function servingVolumeMapping(serving: ShippedServing):
+	| {
+			volumeMl: number;
+			grams: number;
+			basis: NonNullable<ShippedServing["basis"]>;
+			note?: string;
+	  }
+	| undefined {
+	if (serving.volumeMl === undefined || serving.basis === undefined)
+		return undefined;
 	return {
 		volumeMl: serving.volumeMl,
 		grams: serving.amount,

@@ -69,7 +69,10 @@ export type ShippedFood = {
 	 * "search all" shows this even when a friendlier name exists.
 	 */
 	readonly sourceName: Bilingual;
-	readonly aliases: { readonly en: readonly string[]; readonly nl: readonly string[] };
+	readonly aliases: {
+		readonly en: readonly string[];
+		readonly nl: readonly string[];
+	};
 	readonly category: FoodCategory;
 	/** Key into the artifact's NEVO food-group table. */
 	readonly group: string;

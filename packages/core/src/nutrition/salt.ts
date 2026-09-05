@@ -1,4 +1,4 @@
-import { ABSENT, type NutrientValue, TRACE, nutrientValue } from "./nutrients";
+import { ABSENT, type NutrientValue, nutrientValue, TRACE } from "./nutrients";
 
 /**
  * NEVO ships sodium (`NA`, mg) and no salt column at all. Where NEVO takes a
@@ -31,7 +31,9 @@ export const SALT_DERIVATION = Object.freeze({
 export function saltFromSodium(sodium: NutrientValue): NutrientValue {
 	if (sodium.kind === "absent") return ABSENT;
 	if (sodium.kind === "trace") return TRACE;
-	return nutrientValue((sodium.amount * SALT_FROM_SODIUM_FACTOR) / SALT_FROM_SODIUM_DIVISOR);
+	return nutrientValue(
+		(sodium.amount * SALT_FROM_SODIUM_FACTOR) / SALT_FROM_SODIUM_DIVISOR,
+	);
 }
 
 /** True for nutrients Workouts derives rather than reads from the source. */
