@@ -1,20 +1,30 @@
 /**
  * Profile tab. Laid out from `designs/shell/index.html#profile`.
  *
- * Sign-out is real. Lifetime totals and preferences are still static: neither
- * a distance unit nor a cross-sport rollup exists in the schema yet.
+ * Sign-out is real. Lifetime totals are still static, and so are the first
+ * three preference rows: neither a distance unit nor a cross-sport rollup
+ * exists in the schema yet.
+ *
+ * Language is the exception and the reason this file changed in #69 — it is a
+ * real setting with a real pushed screen. It lives here rather than on the
+ * sign-in screen because a signed-out person has stated no preference and the
+ * device decides for them.
  *
  * Note this is not a port of the web's `/profile` — that route only redirects
  * to `@appelent/auth`'s account panel. The phone keeps its own screen.
  */
 import { useAuth } from "@clerk/expo";
+import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
+import { useI18n } from "../i18n";
 import { colors } from "../theme";
 import { Eyebrow, StatBox } from "../ui/coach";
 import { AppText } from "../ui/text";
 
 export function ProfileScreen() {
 	const { signOut } = useAuth();
+	const router = useRouter();
+	const { t, locale } = useI18n();
 
 	return (
 		<View style={styles.root}>
@@ -33,22 +43,40 @@ export function ProfileScreen() {
 					<StatBox value="18" label="PRs" />
 				</View>
 
-				<Eyebrow>Preferences</Eyebrow>
+				<Eyebrow>{t.preferences.heading}</Eyebrow>
 				<View style={styles.group}>
 					<View style={styles.groupRow}>
-						<AppText style={styles.label}>Units</AppText>
+						<AppText style={styles.label}>{t.preferences.units}</AppText>
 						<AppText style={[styles.value, { color: colors.accent }]}>
 							kg · km
 						</AppText>
 					</View>
 					<View style={[styles.groupRow, styles.divider]}>
-						<AppText style={styles.label}>Notifications</AppText>
+						<AppText style={styles.label}>
+							{t.preferences.notifications}
+						</AppText>
 						<AppText style={styles.muted}>On</AppText>
 					</View>
 					<View style={[styles.groupRow, styles.divider]}>
-						<AppText style={styles.label}>Connected apps</AppText>
+						<AppText style={styles.label}>
+							{t.preferences.connectedApps}
+						</AppText>
 						<AppText style={styles.muted}>None</AppText>
 					</View>
+					<Pressable
+						onPress={() => router.push("/language")}
+						accessibilityRole="button"
+						style={({ pressed }) => [
+							styles.groupRow,
+							styles.divider,
+							pressed ? { backgroundColor: colors.surface2 } : null,
+						]}
+					>
+						<AppText style={styles.label}>{t.preferences.language}</AppText>
+						<AppText style={[styles.value, { color: colors.accent }]}>
+							{t.language.names[locale]} ›
+						</AppText>
+					</Pressable>
 				</View>
 
 				<Pressable onPress={() => signOut()} style={styles.signOutBtn}>

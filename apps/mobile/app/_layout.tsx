@@ -33,6 +33,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
+import { LocaleProvider } from "../src/i18n";
 import { colors } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -61,22 +62,30 @@ export default function RootLayout() {
 		// tree need a native root, and it has to be the outermost view to receive
 		// touches before React Native's own responder system does.
 		<GestureHandlerRootView style={styles.window}>
-			<ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-				{/* Convex sits above the router, not below it: the client holds one
-				    websocket whose auth follows the session, and it must not be torn
-				    down and rebuilt as screens come and go. Signed-out screens simply
-				    never query. */}
-				<AppConvexProvider>
-					<SafeAreaProvider>
-						<ThemeProvider value={navigationTheme}>
-							<View style={styles.window}>
-								<StatusBar style="light" />
-								<RootNavigator />
-							</View>
-						</ThemeProvider>
-					</SafeAreaProvider>
-				</AppConvexProvider>
-			</ClerkProvider>
+			{/* Language sits outside Clerk and Convex on purpose. It is a property
+			    of this phone rather than of the account, so it has to apply to the
+			    sign-in screen, to the offline banner, and to whatever is on screen
+			    while the service cannot be reached at all. It also resolves
+			    synchronously (see `src/i18n/index.tsx`), so the first frame is
+			    already in the right language. */}
+			<LocaleProvider>
+				<ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+					{/* Convex sits above the router, not below it: the client holds one
+					    websocket whose auth follows the session, and it must not be torn
+					    down and rebuilt as screens come and go. Signed-out screens simply
+					    never query. */}
+					<AppConvexProvider>
+						<SafeAreaProvider>
+							<ThemeProvider value={navigationTheme}>
+								<View style={styles.window}>
+									<StatusBar style="light" />
+									<RootNavigator />
+								</View>
+							</ThemeProvider>
+						</SafeAreaProvider>
+					</AppConvexProvider>
+				</ClerkProvider>
+			</LocaleProvider>
 		</GestureHandlerRootView>
 	);
 }
