@@ -5,23 +5,35 @@
 	"type": "module",
 	"license": "UNLICENSED",
 	"description": "Shared, dependency-free logic between the workouts web app, its Convex backend, and apps/mobile. Built with tsup to ESM in dist/ — Convex's esbuild bundler cannot resolve raw .ts subpath exports the way Vite/Metro can (see issue #43).",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
 			"react-native": "./src/index.ts",
 			"import": "./dist/index.js"
+		},
+		"./nutrition": {
+			"types": "./dist/nutrition/index.d.ts",
+			"react-native": "./src/nutrition/index.ts",
+			"import": "./dist/nutrition/index.js"
 		}
 	},
 	"scripts": {
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"generate:foods": "tsx scripts/generate-shipped-foods.ts",
+		"bench:foods": "tsx scripts/benchmark-shipped-foods.ts",
+		"check:foods": "tsx scripts/generate-shipped-foods.ts --check"
 	},
 	"devDependencies": {
 		"tsup": "^8.3.0",
+		"tsx": "^4.23.0",
 		"typescript": "^6.0.2",
-		"vitest": "^4.1.10"
+		"vitest": "^4.1.10",
+		"zod": "^4.4.3"
 	}
 }

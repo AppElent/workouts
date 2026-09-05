@@ -17,10 +17,13 @@
 			"apps/mobile/app/**/*",
 			"apps/mobile/*.{ts,tsx,js}",
 			"packages/*/tsup.config.ts",
+			"packages/*/scripts/**/*",
 			"!**/src/routeTree.gen.ts",
 			"!designs",
 			"!apps/mobile/expo-env.d.ts",
-			"!**/src/styles.css"
+			"!**/src/styles.css",
+			"!packages/core/src/nutrition/shipped-foods.json",
+			"!packages/core/src/nutrition/shipped-foods.lock.json"
 		]
 	},
 	"formatter": {
