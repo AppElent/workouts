@@ -31,7 +31,6 @@ const mustTransform = [
 	"jest-expo",
 	"react-native",
 	"react-native-.*",
-	"gifted-charts-core",
 	"standard-navigation",
 ].join("|");
 

@@ -47,7 +47,8 @@ export function shiftIsoDate(iso: IsoDate, days: number): IsoDate {
 
 /** Whole days from `from` to `to`: -1 is yesterday, +1 is tomorrow. */
 export function isoDayOffset(from: IsoDate, to: IsoDate): number {
-	const ms = isoDateToLocalDate(to).getTime() - isoDateToLocalDate(from).getTime();
+	const ms =
+		isoDateToLocalDate(to).getTime() - isoDateToLocalDate(from).getTime();
 	return Math.round(ms / 86_400_000);
 }
 

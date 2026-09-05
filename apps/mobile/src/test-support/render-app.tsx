@@ -16,13 +16,13 @@
 import { Slot } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ReactNode } from "react";
-import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
+import * as LanguageRoute from "../../app/(app)/language";
 import { LocaleProvider } from "../i18n";
 import { ToastProvider } from "../ui/toast";
 
-function TestLayout(): ReactNode {
+export function TestLayout(): ReactNode {
 	return (
 		<LocaleProvider>
 			<ToastProvider>
@@ -32,13 +32,18 @@ function TestLayout(): ReactNode {
 	);
 }
 
-export function renderApp(initialUrl = "/nutrition") {
+export function renderApp(
+	initialUrl = "/nutrition",
+	/** Replace a route module — used to make a route throw on purpose. */
+	overrides: Record<string, unknown> = {},
+) {
 	return renderRouter(
 		{
 			_layout: TestLayout as never,
 			nutrition: NutritionRoute as never,
 			language: LanguageRoute as never,
 			profile: ProfileRoute as never,
+			...(overrides as Record<string, never>),
 		},
 		{ initialUrl },
 	);

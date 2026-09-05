@@ -49,7 +49,9 @@ export function Segmented<Value extends string>({
 								backgroundColor: selected ? colors.accent : colors.surface,
 								borderColor: selected ? colors.accent : colors.border,
 							},
-							pressed && !selected ? { backgroundColor: colors.surface2 } : null,
+							pressed && !selected
+								? { backgroundColor: colors.surface2 }
+								: null,
 						]}
 					>
 						<AppText

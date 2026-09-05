@@ -51,3 +51,16 @@ jest.mock("expo-sqlite/kv-store", () => {
 jest.mock("expo-localization", () => ({
 	getLocales: () => [{ languageTag: "en-GB", languageCode: "en" }],
 }));
+
+/**
+ * React 19 reports an error an error boundary recovered from by dispatching a
+ * global `ErrorEvent`. jest-expo's environment supplies a `window` with an
+ * `ErrorEvent` constructor but no `dispatchEvent`, so React's own reporting
+ * throws and buries the error the boundary was busy handling. A no-op restores
+ * the real behaviour under test: the boundary renders, and retry works.
+ */
+const maybeWindow = (globalThis as { window?: { dispatchEvent?: unknown } })
+	.window;
+if (maybeWindow && typeof maybeWindow.dispatchEvent !== "function") {
+	maybeWindow.dispatchEvent = () => true;
+}

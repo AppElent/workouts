@@ -28,12 +28,12 @@ import {
 } from "../data/calendar-day";
 import {
 	type GoalState,
+	goalState,
 	MEAL_SLOTS,
 	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientGoal,
 	type NutrientKey,
-	goalState,
 	nutrientUnit,
 	useNutritionDay,
 } from "../data/nutrition-day";
@@ -396,7 +396,9 @@ function OtherNutrients({
 				<Card>
 					{others.map((key) => (
 						<View key={key} style={styles.entryRow}>
-							<AppText style={styles.flex}>{t.nutrition.nutrients[key]}</AppText>
+							<AppText style={styles.flex}>
+								{t.nutrition.nutrients[key]}
+							</AppText>
 							<AppText variant="caption">
 								{totals[key] ?? 0} {t.nutrition.units[nutrientUnit(key)]}
 							</AppText>

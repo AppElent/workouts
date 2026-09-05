@@ -44,10 +44,12 @@ describe("message trees", () => {
 
 	it("use the same placeholders in both languages", () => {
 		for (const [key, template] of english) {
-			expect({ key, placeholders: placeholders(dutch.get(key) ?? "") }).toEqual({
-				key,
-				placeholders: placeholders(template),
-			});
+			expect({ key, placeholders: placeholders(dutch.get(key) ?? "") }).toEqual(
+				{
+					key,
+					placeholders: placeholders(template),
+				},
+			);
 		}
 	});
 
