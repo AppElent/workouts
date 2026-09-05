@@ -1,7 +1,11 @@
 {
 	"extends": "expo/tsconfig.base",
 	"compilerOptions": {
-		"strict": true
+		"strict": true,
+		// TypeScript 6 no longer picks every `@types/*` package up on its own, so
+		// the test runner's globals (`describe`, `expect`, `jest`) have to be named
+		// here or `jest.setup.ts` and every `*.test.ts` fail to typecheck.
+		"types": ["jest", "react"]
 	},
 	"include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

@@ -31,11 +31,23 @@ const mustTransform = [
 	"jest-expo",
 	"react-native",
 	"react-native-.*",
+	"gifted-charts-core",
+	"standard-navigation",
 ].join("|");
 
 module.exports = {
 	preset: "jest-expo",
 	setupFiles: ["<rootDir>/jest.setup.ts"],
+	// `@appelent/i18n` publishes an `import`-only exports map. Metro reads it
+	// fine; Jest resolves with the `require` condition and gives up. Adding
+	// `import` to `customExportConditions` fixes this one package and breaks
+	// `@babel/runtime`, which then hands Jest its ESM helpers — so the narrower
+	// fix is to point at the built file directly. `transformIgnorePatterns`
+	// below already lets Babel convert it.
+	moduleNameMapper: {
+		"^@appelent/i18n/core$":
+			"<rootDir>/node_modules/@appelent/i18n/dist/core.js",
+	},
 	testMatch: ["<rootDir>/src/**/*.test.ts", "<rootDir>/src/**/*.test.tsx"],
 	// Both separators everywhere: on Windows these patterns are tested against
 	// backslash paths, and a `node_modules/` written with a forward slash alone
