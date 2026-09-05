@@ -18,6 +18,8 @@
 			"apps/mobile/*.{ts,tsx,js}",
 			"packages/*/tsup.config.ts",
 			"!**/src/routeTree.gen.ts",
+			"!designs",
+			"!apps/mobile/expo-env.d.ts",
 			"!**/src/styles.css"
 		]
 	},

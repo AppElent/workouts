@@ -24,8 +24,11 @@ source citations and a spreadsheet copy of the same rows.
 
 - **Delimiter `|`**, quote char `"`. Quoting is inconsistent — the first 11 columns are unquoted
   in data rows, the nutrient columns are quoted. A normal CSV reader handles both.
-- **Encoding is cp1252**, not UTF-8, and there is no BOM. Reading it as UTF-8 mangles
-  `Vetten en oliën` and `Energie en macronutriënten`.
+- **Encoding is UTF-8**, no BOM. The RIVM download ships cp1252; the copy committed here was
+  re-encoded to UTF-8 when it was unpacked, and it decodes cleanly as UTF-8 end to end. Read the
+  committed file as UTF-8 — reading it as cp1252 mangles `Vetten en oliën` and
+  `Energie en macronutriënten`. If you re-download from RIVM, re-encode before replacing these
+  files, or the extract generator will need the opposite decoder.
 - **Decimal comma**: `1,8` is 1.8. Thousands are never separated, so a plain
   `replace(",", ".")` is safe.
 
