@@ -4,8 +4,10 @@
  * navigator cannot share a route with the `Stack` that pushes the session and
  * summary screens over it. See `docs/prototypes/46-shell/README.md`.
  *
- * Native tabs mean real `UITabBarItem`/`BottomNavigationView` chrome, which is
- * also why this app cannot run in Expo Go — it needs a dev client.
+ * Native tabs mean real `UITabBarItem`/`BottomNavigationView` chrome. That used
+ * to imply a custom dev client; as of SDK 57 it does not — #69 drove this tab
+ * bar on an Android emulator through plain Expo Go, which is also what makes
+ * `expo-sqlite` and `expo-localization` usable without a native rebuild.
  *
  * **Five is the ceiling.** UIKit collapses a sixth tab into a system "More"
  * tab, which would change this app's navigation semantics without anybody
