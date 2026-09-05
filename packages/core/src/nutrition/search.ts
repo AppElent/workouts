@@ -176,14 +176,14 @@ export function searchShippedFoods(
 	if (normalised.length === 0) {
 		if (scope !== "promoted") return [];
 		return entries
-			.slice(0, limit)
 			.map((entry) => ({
 				food: entry.food,
 				score: 0,
 				matched: "name" as const,
 				matchedText: entry.food.name[locale],
 			}))
-			.sort((a, b) => a.food.name[locale].localeCompare(b.food.name[locale]));
+			.sort((a, b) => a.food.name[locale].localeCompare(b.food.name[locale]))
+			.slice(0, limit);
 	}
 
 	const tokens = normalised.split(" ");
