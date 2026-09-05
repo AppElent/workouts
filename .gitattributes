@@ -1,1 +1,6 @@
 * text=auto eol=lf
+
+# NEVO 2025/9.0 source extract. Its licence permits redistribution only unchanged,
+# so keep these byte-identical to the RIVM download: no eol conversion, no diffing.
+# The CSVs are cp1252-encoded with CRLF line endings — see data/nevo/README.md.
+data/nevo/** -text -diff
