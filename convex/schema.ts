@@ -1,7 +1,16 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { diarySnapshotFields } from './nutritionDiaryModel'
 
 export default defineSchema({
+  nutritionDiaryEntries: defineTable({
+    userId: v.string(),
+    ...diarySnapshotFields,
+    loggedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_date', ['userId', 'date']),
+
   nutritionGoals: defineTable({
     userId: v.string(),
     nutrient: v.union(v.literal('energy'), v.literal('protein'), v.literal('carbs'), v.literal('fat'), v.literal('saturatedFat'), v.literal('fibre'), v.literal('sugars'), v.literal('salt')),

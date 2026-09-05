@@ -1,5 +1,6 @@
 import {
 	allShippedFoods,
+	formatServingSelection,
 	NEVO_ATTRIBUTION,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
@@ -10,7 +11,10 @@ import {
 	type ShippedFood,
 	searchShippedFoods,
 	servingOptions,
+	shippedLibraryMeta,
 } from "@workouts/core/nutrition";
+import { useMutation } from "convex/react";
+import * as Haptics from "expo-haptics";
 import { useMemo, useState } from "react";
 import {
 	Pressable,
@@ -19,14 +23,16 @@ import {
 	TextInput,
 	View,
 } from "react-native";
+import { api } from "../convex/api";
 import { formatLongDate } from "../data/calendar-day";
 import type { MealSlot } from "../data/nutrition-day";
 import { fmt, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
-import { GhostButton } from "../ui/button";
+import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
 import { AppText } from "../ui/text";
+import { useToast } from "../ui/toast";
 
 const RESULT_PAGE_SIZE = 50;
 
@@ -65,7 +71,10 @@ export function NutritionFoodBrowser({
 		return (
 			<ServingDetail
 				food={selectedFood}
+				meal={meal}
+				date={date}
 				onBack={() => setSelectedFood(undefined)}
+				onLogged={onClose}
 			/>
 		);
 	}
@@ -86,19 +95,22 @@ export function NutritionFoodBrowser({
 				</AppText>
 				<AppText variant="caption">{formatLongDate(date, locale)}</AppText>
 			</View>
-			<TextInput
-				value={query}
-				onChangeText={(value) => {
-					setQuery(value);
-					setSearchAll(false);
-					setVisibleCount(RESULT_PAGE_SIZE);
-				}}
-				placeholder={t.nutrition.foodBrowser.searchPlaceholder}
-				placeholderTextColor={colors.textFaint}
-				accessibilityLabel={t.nutrition.foodBrowser.searchPlaceholder}
-				style={styles.input}
-				autoCorrect={false}
-			/>
+			<View style={styles.findControls}>
+				<TextInput
+					value={query}
+					onChangeText={(value) => {
+						setQuery(value);
+						setSearchAll(false);
+						setVisibleCount(RESULT_PAGE_SIZE);
+					}}
+					placeholder={t.nutrition.foodBrowser.searchPlaceholder}
+					placeholderTextColor={colors.textFaint}
+					accessibilityLabel={t.nutrition.foodBrowser.searchPlaceholder}
+					style={[styles.input, styles.flex]}
+					autoCorrect={false}
+				/>
+				<GhostButton label={t.nutrition.foodBrowser.scanBarcode} />
+			</View>
 			{!searchAll ? (
 				<GhostButton
 					label={t.nutrition.foodBrowser.searchAll}
@@ -152,12 +164,21 @@ export function NutritionFoodBrowser({
 
 function ServingDetail({
 	food,
+	meal,
+	date,
 	onBack,
+	onLogged,
 }: {
 	food: ShippedFood;
+	meal: MealSlot;
+	date: string;
 	onBack: () => void;
+	onLogged: () => void;
 }) {
 	const { t, locale } = useI18n();
+	const toast = useToast();
+	const log = useMutation(api.nutritionDiary.log);
+	const [logging, setLogging] = useState(false);
 	const choices = useMemo(() => servingOptions(food), [food]);
 	const [selectedServing, setSelectedServing] = useState<ServingOption>(
 		choices[0],
@@ -166,6 +187,47 @@ function ServingDetail({
 	const parsed = Number(quantityText.replace(",", "."));
 	const quantity = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 	const preview = previewServing(food, selectedServing, quantity, locale);
+	const canLog = quantity > 0;
+
+	async function logFood() {
+		if (!canLog || logging) return;
+		setLogging(true);
+		try {
+			const meta = shippedLibraryMeta();
+			await log({
+				date,
+				meal,
+				name: food.name,
+				serving: {
+					en: formatServingSelection(selectedServing, quantity, "en"),
+					nl: formatServingSelection(selectedServing, quantity, "nl"),
+				},
+				quantity,
+				amount: preview.amount,
+				baseUnit: food.baseUnit,
+				nutrients: Object.fromEntries(
+					NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
+				) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
+				provenance: {
+					source: "shipped",
+					sourceId: food.id,
+					dataset: meta.dataset.name,
+					edition: meta.dataset.edition,
+					sourceCode: food.code,
+					sourceName: food.sourceName,
+					saltDerived: true,
+				},
+			});
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+				() => undefined,
+			);
+			onLogged();
+		} catch {
+			toast.error(t.nutrition.foodBrowser.logFailure);
+		} finally {
+			setLogging(false);
+		}
+	}
 
 	return (
 		<ScrollView
@@ -231,6 +293,16 @@ function ServingDetail({
 					{SALT_DERIVATION_DISCLOSURE[locale]}
 				</AppText>
 			</View>
+			<PrimaryButton
+				label={
+					logging
+						? t.nutrition.foodBrowser.logging
+						: t.nutrition.foodBrowser.log
+				}
+				onPress={logFood}
+				loading={logging}
+				disabled={!canLog}
+			/>
 		</ScrollView>
 	);
 }
@@ -271,6 +343,7 @@ const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
 	content: { padding: 20, paddingTop: 12, paddingBottom: 40, gap: spacing.md },
 	flex: { flex: 1 },
+	findControls: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	heading: { gap: spacing.xs },
 	strong: { fontWeight: "700" },
 	back: {

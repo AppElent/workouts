@@ -112,6 +112,7 @@ export const nl = {
 		foodBrowser: {
 			title: "Zoek eten voor {meal}",
 			searchPlaceholder: "Zoek eten",
+			scanBarcode: "Scan barcode",
 			searchAll: "Doorzoek alle 2.328 voedingsmiddelen",
 			showMore: "Toon meer voedingsmiddelen",
 			promotedResults: "Alledaagse voeding",
@@ -122,6 +123,9 @@ export const nl = {
 			quantity: "Aantal",
 			trace: "Spoor",
 			absent: "Niet beschikbaar",
+			log: "Eten loggen",
+			logging: "Eten loggen…",
+			logFailure: "Dit eten kon niet worden gelogd. Je selectie staat er nog.",
 		},
 
 		otherNutrients: {

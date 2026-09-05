@@ -6,8 +6,17 @@
  * placeholder data module returned — those are all replaced by #70 and #72, and
  * a test that noticed would be a test that has to be rewritten for no reason.
  */
+import { useQuery } from "convex/react";
+import { getFunctionName } from "convex/server";
 import { fireEvent, screen } from "expo-router/testing-library";
+import {
+	formatLongDate,
+	shiftIsoDate,
+	todayIsoDate,
+} from "../data/calendar-day";
 import { renderApp } from "../test-support/render-app";
+
+const mockUseQuery = jest.mocked(useQuery);
 
 describe("the nutrition day", () => {
 	it("opens on today, with the four meal slots in order", async () => {
@@ -69,7 +78,11 @@ describe("the nutrition day", () => {
 		fireEvent.press(screen.getByLabelText("Previous day"));
 		fireEvent.press(screen.getByLabelText("Add food to Breakfast"));
 
-		expect(await screen.findByText("Friday, September 4")).toBeTruthy();
+		expect(
+			await screen.findByText(
+				formatLongDate(shiftIsoDate(todayIsoDate(), -1), "en"),
+			),
+		).toBeTruthy();
 	});
 
 	it("keeps the non-targeted nutrients collapsed until asked for them", async () => {
@@ -95,5 +108,69 @@ describe("the nutrition day", () => {
 		expect(
 			screen.getByText("Salt is derived by Appelent from the source's sodium."),
 		).toBeTruthy();
+	});
+
+	it("shows a logged snapshot immediately and qualifies incomplete totals", async () => {
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:list") {
+				return [{ nutrient: "energy", direction: "max", target: 2000 }];
+			}
+			return {
+				entries: [
+					{
+						_id: "entry-1",
+						meal: "lunch",
+						name: { en: "Apple", nl: "Appel" },
+						serving: { en: "Piece × 1", nl: "Stuk × 1" },
+						nutrients: {
+							energy: { kind: "value", amount: 76 },
+							protein: { kind: "trace" },
+							carbs: { kind: "value", amount: 15 },
+							fat: { kind: "absent" },
+							saturatedFat: { kind: "value", amount: 0.1 },
+							fibre: { kind: "value", amount: 2.7 },
+							sugars: { kind: "value", amount: 13.5 },
+							salt: { kind: "value", amount: 0.01 },
+						},
+					},
+				],
+				totals: {
+					energy: {
+						amount: 76,
+						entryCount: 1,
+						valueCount: 1,
+						traceCount: 0,
+						absentCount: 0,
+						incomplete: false,
+						qualified: false,
+					},
+					protein: {
+						amount: 0,
+						entryCount: 1,
+						valueCount: 0,
+						traceCount: 1,
+						absentCount: 0,
+						incomplete: false,
+						qualified: true,
+					},
+					fat: {
+						amount: 0,
+						entryCount: 1,
+						valueCount: 0,
+						traceCount: 0,
+						absentCount: 1,
+						incomplete: true,
+						qualified: true,
+					},
+				},
+			};
+		});
+		renderApp();
+
+		expect(await screen.findByText("Apple")).toBeTruthy();
+		expect(screen.getByText("Piece × 1")).toBeTruthy();
+		fireEvent.press(screen.getByLabelText("Show other nutrients"));
+		expect(await screen.findByText("~ 0 g")).toBeTruthy();
+		expect(screen.getByText("≥ 0 g")).toBeTruthy();
 	});
 });

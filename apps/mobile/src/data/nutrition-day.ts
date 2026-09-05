@@ -10,6 +10,8 @@ import {
 	type GoalPresetKey,
 	NUTRIENT_KEYS,
 	type NutrientKey,
+	type NutrientTotal,
+	type NutrientValue,
 	type NutritionGoalValue,
 } from "@workouts/core/nutrition";
 import { useQuery } from "convex/react";
@@ -33,17 +35,17 @@ export interface NutrientGoal extends NutritionGoalValue {
 
 export interface DiaryEntry {
 	id: string;
-	name: string;
+	name: { en: string; nl: string };
 	/** "1 bowl (250 g)" — serving name × quantity, already formatted. */
-	serving: string;
-	energy: number;
+	serving: { en: string; nl: string };
+	nutrients: Record<NutrientKey, NutrientValue>;
 }
 
 export interface NutritionDay {
 	date: IsoDate;
 	goals: NutrientGoal[];
 	/** Day totals per nutrient. Absent from the map means "nothing logged". */
-	totals: Partial<Record<NutrientKey, number>>;
+	totals: Partial<Record<NutrientKey, NutrientTotal>>;
 	entries: Record<MealSlot, DiaryEntry[]>;
 }
 
@@ -77,13 +79,6 @@ export function nutrientUnit(nutrient: NutrientKey): "kcal" | "g" {
 	return nutrient === "energy" ? "kcal" : "g";
 }
 
-const NO_ENTRIES: Record<MealSlot, DiaryEntry[]> = {
-	breakfast: [],
-	lunch: [],
-	dinner: [],
-	snacks: [],
-};
-
 /**
  * Resolves on the render after mount, which is the shape `useQuery` has: it
  * returns `undefined` first and data second. Building the screen against that
@@ -91,9 +86,24 @@ const NO_ENTRIES: Record<MealSlot, DiaryEntry[]> = {
  */
 export function useNutritionDay(date: IsoDate): NutritionDayState {
 	const goals = useQuery(api.nutritionGoals.list, {});
-	if (goals === undefined) return { status: "loading" };
+	const diary = useQuery(api.nutritionDiary.day, { date });
+	if (goals === undefined || diary === undefined) return { status: "loading" };
+	const entries = {
+		breakfast: [],
+		lunch: [],
+		dinner: [],
+		snacks: [],
+	} as Record<MealSlot, DiaryEntry[]>;
+	for (const entry of diary.entries) {
+		entries[entry.meal].push({
+			id: entry._id,
+			name: entry.name,
+			serving: entry.serving,
+			nutrients: entry.nutrients,
+		});
+	}
 	return {
 		status: "ready",
-		day: { date, goals, totals: {}, entries: NO_ENTRIES },
+		day: { date, goals, totals: diary.totals, entries },
 	};
 }

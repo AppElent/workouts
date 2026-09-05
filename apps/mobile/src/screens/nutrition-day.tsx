@@ -17,6 +17,8 @@
  * says that it belongs to a later update; each meal's plus now opens #71's
  * shipped-food browser and serving preview.
  */
+
+import { type NutrientTotal, roundForDisplay } from "@workouts/core/nutrition";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -125,6 +127,7 @@ export function NutritionDayScreen() {
 							t={t}
 							slot={slot}
 							entries={state.day.entries[slot]}
+							locale={locale}
 							onAdd={() => setAddingTo(slot)}
 						/>
 					))}
@@ -230,7 +233,7 @@ function GoalSection({
 }: {
 	t: Messages;
 	goals: NutrientGoal[];
-	totals: Partial<Record<NutrientKey, number>>;
+	totals: Partial<Record<NutrientKey, NutrientTotal>>;
 	onSetUpGoals: () => void;
 }) {
 	return (
@@ -279,18 +282,19 @@ function GoalRow({
 }: {
 	t: Messages;
 	goal: NutrientGoal;
-	total: number | undefined;
+	total: NutrientTotal | undefined;
 }) {
-	const state = goalState(goal.direction, total, goal.target);
+	const amount = total?.amount;
+	const state = goalState(goal.direction, amount, goal.target);
 	const unit = t.nutrition.units[nutrientUnit(goal.nutrient)];
 	const name = t.nutrition.nutrients[goal.nutrient];
 	const progress = fmt(t.nutrition.goals.progress, {
-		total: total ?? 0,
+		total: qualifiedAmount(goal.nutrient, total),
 		target: goal.target,
 		unit,
 	});
 	const stateWord = t.nutrition.goals.state[state];
-	const fraction = Math.max(0, Math.min(1, (total ?? 0) / goal.target));
+	const fraction = Math.max(0, Math.min(1, (amount ?? 0) / goal.target));
 
 	return (
 		<View
@@ -324,11 +328,13 @@ function MealSection({
 	t,
 	slot,
 	entries,
+	locale,
 	onAdd,
 }: {
 	t: Messages;
 	slot: MealSlot;
-	entries: { id: string; name: string; serving: string; energy: number }[];
+	entries: import("../data/nutrition-day").DiaryEntry[];
+	locale: "en" | "nl";
 	onAdd: () => void;
 }) {
 	const mealName = t.nutrition.meals[slot];
@@ -359,11 +365,16 @@ function MealSection({
 					entries.map((entry) => (
 						<View key={entry.id} style={styles.entryRow}>
 							<View style={styles.flex}>
-								<AppText style={styles.goalName}>{entry.name}</AppText>
-								<AppText variant="caption">{entry.serving}</AppText>
+								<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
+								<AppText variant="caption">{entry.serving[locale]}</AppText>
 							</View>
 							<AppText style={styles.goalName}>
-								{entry.energy} {t.nutrition.units.kcal}
+								{entry.nutrients.energy.kind === "value"
+									? roundForDisplay("energy", entry.nutrients.energy.amount)
+									: entry.nutrients.energy.kind === "trace"
+										? t.nutrition.foodBrowser.trace
+										: t.nutrition.foodBrowser.absent}{" "}
+								{t.nutrition.units.kcal}
 							</AppText>
 						</View>
 					))
@@ -382,7 +393,7 @@ function OtherNutrients({
 }: {
 	t: Messages;
 	goals: NutrientGoal[];
-	totals: Partial<Record<NutrientKey, number>>;
+	totals: Partial<Record<NutrientKey, NutrientTotal>>;
 	expanded: boolean;
 	onToggle: () => void;
 }) {
@@ -422,7 +433,8 @@ function OtherNutrients({
 								{t.nutrition.nutrients[key]}
 							</AppText>
 							<AppText variant="caption">
-								{totals[key] ?? 0} {t.nutrition.units[nutrientUnit(key)]}
+								{qualifiedAmount(key, totals[key])}{" "}
+								{t.nutrition.units[nutrientUnit(key)]}
 							</AppText>
 						</View>
 					))}
@@ -430,6 +442,17 @@ function OtherNutrients({
 			) : null}
 		</View>
 	);
+}
+
+function qualifiedAmount(
+	key: NutrientKey,
+	total: NutrientTotal | undefined,
+): string | number {
+	if (!total) return 0;
+	const amount = roundForDisplay(key, total.amount);
+	if (total.incomplete) return `≥ ${amount}`;
+	if (total.qualified) return `~ ${amount}`;
+	return amount;
 }
 
 /**

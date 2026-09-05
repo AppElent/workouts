@@ -6,10 +6,14 @@ const mockUseQuery = jest.mocked(useQuery);
 const mockUseMutation = jest.mocked(useMutation);
 const asMutation = (fn: jest.Mock) =>
 	fn as unknown as ReturnType<typeof useMutation>;
+const emptyDiary = { entries: [], totals: {} };
+const emptyGoals: never[] = [];
 
 describe("nutrition goal editor", () => {
 	beforeEach(() => {
-		mockUseQuery.mockReturnValue([]);
+		mockUseQuery.mockImplementation((_reference, args?) =>
+			args && args !== "skip" && "date" in args ? emptyDiary : emptyGoals,
+		);
 		mockUseMutation.mockReturnValue(
 			asMutation(jest.fn().mockResolvedValue(undefined)),
 		);

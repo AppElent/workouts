@@ -121,6 +121,7 @@ export const en = {
 		foodBrowser: {
 			title: "Find food for {meal}",
 			searchPlaceholder: "Search foods",
+			scanBarcode: "Scan barcode",
 			searchAll: "Search all 2,328 foods",
 			showMore: "Show more foods",
 			promotedResults: "Everyday foods",
@@ -131,6 +132,10 @@ export const en = {
 			quantity: "Quantity",
 			trace: "Trace",
 			absent: "Not available",
+			log: "Log food",
+			logging: "Logging food…",
+			logFailure:
+				"This food could not be logged. Your selection is still here.",
 		},
 
 		otherNutrients: {

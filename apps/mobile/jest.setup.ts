@@ -32,9 +32,15 @@ jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: undefined }));
 
 jest.mock("convex/react", () => {
 	const emptyQueryResult: never[] = [];
+	const emptyDiary = { entries: [], totals: {} };
+	const { getFunctionName } = jest.requireActual("convex/server");
 	return {
 		...jest.requireActual("convex/react"),
-		useQuery: jest.fn(() => emptyQueryResult),
+		useQuery: jest.fn((reference) =>
+			getFunctionName(reference) === "nutritionDiary:day"
+				? emptyDiary
+				: emptyQueryResult,
+		),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
 	};
 });
