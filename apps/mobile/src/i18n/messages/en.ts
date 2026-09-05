@@ -86,8 +86,21 @@ export const en = {
 
 		/** The accessible name of a meal slot's icon-only plus control. */
 		addTo: "Add food to {meal}",
-		addUnavailable: "Adding food arrives in the next update.",
 		mealEmpty: "Nothing logged yet. Use + to add a food.",
+		foodBrowser: {
+			title: "Find food for {meal}",
+			searchPlaceholder: "Search foods",
+			searchAll: "Search all 2,328 foods",
+			showMore: "Show more foods",
+			promotedResults: "Everyday foods",
+			allResults: "All NEVO foods",
+			empty: "No foods match this search.",
+			per100: "Nutrition per 100",
+			serving: "Serving",
+			quantity: "Quantity",
+			trace: "Trace",
+			absent: "Not available",
+		},
 
 		otherNutrients: {
 			heading: "Other nutrients",

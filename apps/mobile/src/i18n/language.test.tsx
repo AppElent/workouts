@@ -49,4 +49,15 @@ describe("the app's language", () => {
 
 		expect(screen.getByText("Voeding")).toBeTruthy();
 	});
+
+	it("uses Dutch food names and serving labels in the browser", async () => {
+		renderApp("/language");
+		fireEvent.press(await screen.findByLabelText("Nederlands"));
+		testRouter.navigate("/nutrition");
+		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
+
+		expect(await screen.findByText("Zoek eten voor Lunch")).toBeTruthy();
+		fireEvent.press(screen.getByText("Appel"));
+		expect(await screen.findByText("Appel × 1")).toBeTruthy();
+	});
 });

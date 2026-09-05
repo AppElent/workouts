@@ -33,9 +33,7 @@ describe("the nutrition day", () => {
 
 		fireEvent.press(screen.getByLabelText("Add food to Lunch"));
 
-		expect(
-			await screen.findByText("Adding food arrives in the next update."),
-		).toBeTruthy();
+		expect(await screen.findByText("Find food for Lunch")).toBeTruthy();
 	});
 
 	it("explains an empty meal slot rather than leaving it blank", async () => {
@@ -64,6 +62,15 @@ describe("the nutrition day", () => {
 		fireEvent.press(screen.getByLabelText("Next day"));
 
 		expect(await screen.findByText("Tomorrow")).toBeTruthy();
+	});
+
+	it("carries the selected date into Find Food", async () => {
+		renderApp();
+		await screen.findByText("Today");
+		fireEvent.press(screen.getByLabelText("Previous day"));
+		fireEvent.press(screen.getByLabelText("Add food to Breakfast"));
+
+		expect(await screen.findByText("Friday, September 4")).toBeTruthy();
 	});
 
 	it("keeps the non-targeted nutrients collapsed until asked for them", async () => {

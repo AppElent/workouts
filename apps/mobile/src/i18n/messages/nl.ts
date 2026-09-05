@@ -76,8 +76,21 @@ export const nl = {
 		},
 
 		addTo: "Voeg eten toe aan {meal}",
-		addUnavailable: "Eten toevoegen komt in de volgende update.",
 		mealEmpty: "Nog niets gelogd. Gebruik + om eten toe te voegen.",
+		foodBrowser: {
+			title: "Zoek eten voor {meal}",
+			searchPlaceholder: "Zoek eten",
+			searchAll: "Doorzoek alle 2.328 voedingsmiddelen",
+			showMore: "Toon meer voedingsmiddelen",
+			promotedResults: "Alledaagse voeding",
+			allResults: "Alle NEVO-voedingsmiddelen",
+			empty: "Geen voedingsmiddelen gevonden.",
+			per100: "Voedingswaarde per 100",
+			serving: "Portie",
+			quantity: "Aantal",
+			trace: "Spoor",
+			absent: "Niet beschikbaar",
+		},
 
 		otherNutrients: {
 			heading: "Overige voedingsstoffen",

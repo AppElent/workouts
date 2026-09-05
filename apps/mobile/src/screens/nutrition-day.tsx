@@ -13,10 +13,9 @@
  * timestamp).
  *
  * Goals and entries come from `src/data/nutrition-day.ts`, which is a marked
- * placeholder that #70 and #72 replace with Convex queries. The two controls
- * that would open screens those tickets own — "Set up goals" and each slot's
- * plus — say so rather than doing nothing when pressed. A control that responds
- * with nothing at all is indistinguishable from a broken one.
+ * placeholder that #70 and #72 replace with Convex queries. Goal setup still
+ * says that it belongs to a later update; each meal's plus now opens #71's
+ * shipped-food browser and serving preview.
  */
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -44,6 +43,7 @@ import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { NutritionFoodBrowser } from "./nutrition-food-browser";
 
 /** State word first, colour second — colour is never the only signal. */
 const STATE_COLOR: Record<GoalState, string> = {
@@ -64,6 +64,7 @@ export function NutritionDayScreen() {
 	const [today] = useState(todayIsoDate);
 	const [date, setDate] = useState(today);
 	const [showOther, setShowOther] = useState(false);
+	const [addingTo, setAddingTo] = useState<MealSlot>();
 
 	const state = useNutritionDay(date);
 	const offset = isoDayOffset(today, date);
@@ -76,6 +77,16 @@ export function NutritionDayScreen() {
 				: offset === 1
 					? t.nutrition.day.tomorrow
 					: formatLongDate(date, locale);
+
+	if (addingTo) {
+		return (
+			<NutritionFoodBrowser
+				meal={addingTo}
+				date={date}
+				onClose={() => setAddingTo(undefined)}
+			/>
+		);
+	}
 
 	return (
 		<ScrollView
@@ -114,7 +125,7 @@ export function NutritionDayScreen() {
 							t={t}
 							slot={slot}
 							entries={state.day.entries[slot]}
-							onAdd={() => toast.error(t.nutrition.addUnavailable)}
+							onAdd={() => setAddingTo(slot)}
 						/>
 					))}
 
