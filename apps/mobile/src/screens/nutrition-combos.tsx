@@ -1,3 +1,4 @@
+import { useForm } from "@tanstack/react-form";
 import {
 	getShippedFood,
 	NUTRIENT_KEYS,
@@ -13,6 +14,7 @@ import {
 	TextInput,
 	View,
 } from "react-native";
+import { z } from "zod";
 import { api } from "../convex/api";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import { MEAL_SLOTS } from "../data/nutrition-day";
@@ -33,6 +35,8 @@ import { EmptyState } from "../ui/empty-state";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
+const comboNameSchema = z.object({ name: z.string().trim().min(1) });
+
 export function NutritionComboBuilder({
 	entries,
 	onClose,
@@ -45,38 +49,35 @@ export function NutritionComboBuilder({
 	const { t, locale } = useI18n();
 	const foods = usePersonalFoods();
 	const toast = useToast();
-	const [name, setName] = useState("");
-	const [saving, setSaving] = useState(false);
-
-	async function save() {
-		if (!name.trim() || saving) return;
-		setSaving(true);
-		try {
-			// Yield a paint so synchronous SQLite work still has a visible pending state.
-			await Promise.resolve();
-			foods.createCombo({
-				name,
-				parts: entries.map((entry) => ({
-					reference: referenceFor(entry),
-					snapshot: {
-						name: entry.name,
-						serving: entry.serving,
-						quantity: entry.quantity,
-						amount: entry.amount,
-						baseUnit: entry.baseUnit,
-						nutrients: entry.nutrients,
-						provenance: entry.provenance,
-					},
-				})),
-			});
-			toast.success(t.nutrition.combos.saved);
-			onSaved();
-		} catch {
-			toast.error(t.nutrition.combos.saveFailure);
-		} finally {
-			setSaving(false);
-		}
-	}
+	const form = useForm({
+		defaultValues: { name: "" },
+		onSubmit: async ({ value }) => {
+			const parsed = comboNameSchema.parse(value);
+			try {
+				// Yield a paint so synchronous SQLite work still has a visible pending state.
+				await Promise.resolve();
+				foods.createCombo({
+					name: parsed.name,
+					parts: entries.map((entry) => ({
+						reference: referenceFor(entry),
+						snapshot: {
+							name: entry.name,
+							serving: entry.serving,
+							quantity: entry.quantity,
+							amount: entry.amount,
+							baseUnit: entry.baseUnit,
+							nutrients: entry.nutrients,
+							provenance: entry.provenance,
+						},
+					})),
+				});
+				toast.success(t.nutrition.combos.saved);
+				onSaved();
+			} catch {
+				toast.error(t.nutrition.combos.saveFailure);
+			}
+		},
+	});
 
 	return (
 		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -88,13 +89,17 @@ export function NutritionComboBuilder({
 				<AppText variant="caption">{t.nutrition.combos.storageBody}</AppText>
 			</Card>
 			<AppText variant="label">{t.nutrition.combos.name}</AppText>
-			<TextInput
-				value={name}
-				onChangeText={setName}
-				accessibilityLabel={t.nutrition.combos.name}
-				style={styles.input}
-				autoFocus
-			/>
+			<form.Field name="name">
+				{(field) => (
+					<TextInput
+						value={field.state.value}
+						onChangeText={field.handleChange}
+						accessibilityLabel={t.nutrition.combos.name}
+						style={styles.input}
+						autoFocus
+					/>
+				)}
+			</form.Field>
 			<Card>
 				{entries.map((entry) => (
 					<View key={entry.id} style={styles.row}>
@@ -103,12 +108,18 @@ export function NutritionComboBuilder({
 					</View>
 				))}
 			</Card>
-			<PrimaryButton
-				label={saving ? t.nutrition.combos.saving : t.nutrition.combos.save}
-				onPress={save}
-				disabled={!name.trim()}
-				loading={saving}
-			/>
+			<form.Subscribe
+				selector={(state) => [state.values.name, state.isSubmitting] as const}
+			>
+				{([name, saving]) => (
+					<PrimaryButton
+						label={saving ? t.nutrition.combos.saving : t.nutrition.combos.save}
+						onPress={() => void form.handleSubmit()}
+						disabled={!name.trim()}
+						loading={saving}
+					/>
+				)}
+			</form.Subscribe>
 		</ScrollView>
 	);
 }
