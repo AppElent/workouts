@@ -18,6 +18,7 @@
 		"@workouts/core": "workspace:*",
 		"convex": "^1.42.1",
 		"expo": "~57.0.11",
+		"expo-camera": "~57.0.4",
 		"expo-constants": "~57.0.9",
 		"expo-haptics": "^57.0.1",
 		"expo-linear-gradient": "~57.0.1",

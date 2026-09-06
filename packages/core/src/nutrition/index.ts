@@ -87,6 +87,10 @@ export {
 	saltFromSodium,
 } from "./salt";
 export {
+	parseProviderNumber,
+	parseProviderNutrient,
+} from "./provider";
+export {
 	browsePromotedByCategory,
 	type FoodSearchResult,
 	normaliseForSearch,

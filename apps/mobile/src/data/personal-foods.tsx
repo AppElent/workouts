@@ -17,6 +17,7 @@ type PersonalFoodsValue = {
 	revision: number;
 	list(): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
+	findByBarcode(barcode: string): PersonalFood | undefined;
 	search(query: string, locale: "en" | "nl"): PersonalFood[];
 	create(draft: PersonalFoodDraft): PersonalFood;
 	update(id: string, draft: PersonalFoodDraft): PersonalFood;
@@ -43,6 +44,7 @@ export function PersonalFoodsProvider({
 			revision,
 			list: () => repository.list(),
 			find: (id) => repository.find(id),
+			findByBarcode: (barcode) => repository.findByBarcode(barcode),
 			search: (query, locale) => repository.search(query, locale),
 			create: (draft) => {
 				const food = repository.create(draft);
