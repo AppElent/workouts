@@ -489,12 +489,10 @@ function ServingDetail({
 						</View>
 					) : null}
 					<View style={styles.options}>
+						{/* A correction is stored as a Personal Food, so editing one is
+						    the same action under the same name. */}
 						<GhostButton
-							label={
-								correctedSource
-									? t.nutrition.fork.title
-									: t.nutrition.personalFood.editTitle
-							}
+							label={t.nutrition.personalFood.editTitle}
 							onPress={onEdit}
 						/>
 						<GhostButton
