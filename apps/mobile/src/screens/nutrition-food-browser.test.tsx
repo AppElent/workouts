@@ -6,6 +6,66 @@ import { renderApp } from "../test-support/render-app";
 const mockUseMutation = jest.mocked(useMutation);
 
 describe("browsing shipped foods", () => {
+	it("creates a Personal Food and finds it ahead of shipped foods in ordinary search", async () => {
+		const { repository } = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(screen.getByText("Create Personal Food"));
+		fireEvent.changeText(screen.getByLabelText("English name"), "Training gel");
+		fireEvent.changeText(screen.getByLabelText("Dutch name"), "Trainingsgel");
+		fireEvent.press(screen.getByLabelText("Energy: Amount"));
+		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "260");
+		fireEvent.press(screen.getByText("Add Serving"));
+		fireEvent.changeText(
+			screen.getByLabelText("Serving 1 English label"),
+			"Pouch",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Serving 1 Dutch label"),
+			"Zakje",
+		);
+		fireEvent.changeText(screen.getByLabelText("Serving 1 amount in g"), "40");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+
+		expect(await screen.findByText("Pouch × 1")).toBeTruthy();
+		expect(screen.getByText("104 kcal")).toBeTruthy();
+		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"training gel",
+		);
+
+		const labels = await screen.findAllByText("Personal Food");
+		expect(labels).toHaveLength(1);
+		expect(screen.getByText("Training gel")).toBeTruthy();
+		expect(repository.search("training gel", "en")).toHaveLength(1);
+	});
+
+	it("edits and deletes a Personal Food without changing its stable id", async () => {
+		const { repository } = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		fireEvent.press(screen.getByText("Create Personal Food"));
+		fireEvent.changeText(screen.getByLabelText("English name"), "Morning mix");
+		fireEvent.changeText(screen.getByLabelText("Dutch name"), "Ochtendmix");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await screen.findByText("Morning mix");
+		const originalId = repository.list()[0].id;
+
+		fireEvent.press(screen.getByText("Edit Personal Food"));
+		fireEvent.changeText(screen.getByLabelText("English name"), "Morning oats");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		expect(await screen.findByText("Morning oats")).toBeTruthy();
+		expect(repository.list()[0].id).toBe(originalId);
+
+		fireEvent.press(screen.getByText("Delete Personal Food"));
+		expect(await screen.findByText("Delete this Personal Food?")).toBeTruthy();
+		const deleteButtons = screen.getAllByText("Delete Personal Food", {
+			exact: true,
+		});
+		fireEvent.press(deleteButtons[deleteButtons.length - 1]);
+		await waitFor(() => expect(repository.find(originalId)).toBeUndefined());
+		expect(screen.queryByText("Morning oats")).toBeNull();
+	});
+
 	it("opens the promoted library for the chosen meal and searches pooled aliases", async () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));

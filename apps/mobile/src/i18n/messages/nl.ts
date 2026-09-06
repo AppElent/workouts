@@ -130,6 +130,7 @@ export const nl = {
 		personalFood: {
 			createTitle: "Persoonlijk voedingsmiddel maken",
 			editTitle: "Persoonlijk voedingsmiddel bewerken",
+			resultLabel: "Persoonlijk voedingsmiddel",
 			storageTitle: "Alleen op dit apparaat opgeslagen",
 			storageBody:
 				"Persoonlijke voedingsmiddelen verschijnen niet op een tweede apparaat en kunnen verloren gaan als je Workouts verwijdert. Platformback-up wordt alleen naar beste vermogen uitgevoerd.",
@@ -155,6 +156,12 @@ export const nl = {
 			save: "Persoonlijk voedingsmiddel opslaan",
 			saving: "Persoonlijk voedingsmiddel opslaan…",
 			cancel: "Annuleren",
+			deleteTitle: "Dit persoonlijke voedingsmiddel verwijderen?",
+			deleteBody:
+				"Bestaande dagboekitems behouden hun opgeslagen momentopname.",
+			delete: "Persoonlijk voedingsmiddel verwijderen",
+			deleteFailure:
+				"Dit persoonlijke voedingsmiddel kon niet worden verwijderd.",
 			validation: "Controleer de waarden van het persoonlijke voedingsmiddel.",
 			saveFailure:
 				"Dit persoonlijke voedingsmiddel kon niet worden opgeslagen. Je wijzigingen staan er nog.",

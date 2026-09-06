@@ -140,6 +140,7 @@ export const en = {
 		personalFood: {
 			createTitle: "Create Personal Food",
 			editTitle: "Edit Personal Food",
+			resultLabel: "Personal Food",
 			storageTitle: "Stored only on this device",
 			storageBody:
 				"Personal Foods do not appear on a second device and may be lost if you uninstall Workouts. Platform backup is best effort only.",
@@ -160,6 +161,11 @@ export const en = {
 			save: "Save Personal Food",
 			saving: "Saving Personal Food…",
 			cancel: "Cancel",
+			deleteTitle: "Delete this Personal Food?",
+			deleteBody:
+				"Its existing Diary Entries keep their saved nutrition snapshot.",
+			delete: "Delete Personal Food",
+			deleteFailure: "This Personal Food could not be deleted.",
 			validation: "Check the highlighted Personal Food values.",
 			saveFailure:
 				"This Personal Food could not be saved. Your changes are still here.",
