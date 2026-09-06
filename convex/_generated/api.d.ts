@@ -16,6 +16,7 @@ import type * as hostedWorkoutSubmissions from "../hostedWorkoutSubmissions.js";
 import type * as hostedWorkouts from "../hostedWorkouts.js";
 import type * as lib_hostedDto from "../lib/hostedDto.js";
 import type * as lib_validate from "../lib/validate.js";
+import type * as nutritionActivityMarker from "../nutritionActivityMarker.js";
 import type * as nutritionDiary from "../nutritionDiary.js";
 import type * as nutritionDiaryModel from "../nutritionDiaryModel.js";
 import type * as nutritionGoals from "../nutritionGoals.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   hostedWorkouts: typeof hostedWorkouts;
   "lib/hostedDto": typeof lib_hostedDto;
   "lib/validate": typeof lib_validate;
+  nutritionActivityMarker: typeof nutritionActivityMarker;
   nutritionDiary: typeof nutritionDiary;
   nutritionDiaryModel: typeof nutritionDiaryModel;
   nutritionGoals: typeof nutritionGoals;

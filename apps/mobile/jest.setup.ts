@@ -41,6 +41,14 @@ jest.mock("convex/react", () => {
 				? emptyDiary
 				: emptyQueryResult,
 		),
+		// The training marker's own, non-throwing query form (see
+		// `src/data/training-marker.ts`). Defaults to "no completed Activity
+		// found" so every existing screen test keeps its current behaviour;
+		// marker-specific tests override this per case.
+		useQuery_experimental: jest.fn(() => ({
+			status: "success" as const,
+			data: false,
+		})),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
 	};
 });

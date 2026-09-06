@@ -58,6 +58,16 @@ export const en = {
 			loading: "Loading the day",
 		},
 
+		/**
+		 * A purely decorative acknowledgement — see spec #68. Never mentions
+		 * duration, intensity, calories, or energy balance, because the marker
+		 * carries none of those and never will.
+		 */
+		trainingMarker: {
+			label: "Trained",
+			description: "You completed a training session on this day.",
+		},
+
 		goals: {
 			heading: "Goals",
 			edit: "Edit goals",

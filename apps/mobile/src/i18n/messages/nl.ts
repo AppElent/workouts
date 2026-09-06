@@ -50,6 +50,11 @@ export const nl = {
 			loading: "Dag wordt geladen",
 		},
 
+		trainingMarker: {
+			label: "Getraind",
+			description: "Je hebt op deze dag een training voltooid.",
+		},
+
 		goals: {
 			heading: "Doelen",
 			edit: "Doelen bewerken",
