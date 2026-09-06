@@ -206,4 +206,85 @@ describe("public nutrition diary operations", () => {
 		expect(day.entries).toHaveLength(0);
 		expect(day.totals.energy).toMatchObject({ amount: 0, entryCount: 0 });
 	});
+
+	it("logs every fixed Combo part in one action with one shared snapshotted group stamp", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const { date: _date, meal: _meal, ...applePart } = snapshot;
+		const oatsPart = {
+			...applePart,
+			name: { en: "Training oats", nl: "Trainingshavermout" },
+			serving: { en: "Bowl × 1", nl: "Kom × 1" },
+			quantity: 1,
+			amount: 75,
+			provenance: {
+				source: "personal" as const,
+				sourceId: "5b129704-22d0-4af4-aeee-ee7388cc70df",
+				nutritionSource: "manual" as const,
+				locallyEdited: false,
+			},
+		};
+
+		await alice.mutation(api.nutritionDiary.logCombo, {
+			date: "2026-09-07",
+			meal: "breakfast",
+			combo: {
+				id: "6cbf4311-dca6-4917-aef0-40fe81345c0b",
+				name: "Post-workout breakfast",
+			},
+			parts: [applePart, oatsPart],
+		});
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-07",
+		});
+
+		expect(day.entries).toHaveLength(2);
+		expect(day.entries.map((entry) => entry.meal)).toEqual([
+			"breakfast",
+			"breakfast",
+		]);
+		expect(new Set(day.entries.map((entry) => entry.comboGroup?.id)).size).toBe(
+			1,
+		);
+		expect(day.entries[0].comboGroup).toMatchObject({
+			comboId: "6cbf4311-dca6-4917-aef0-40fe81345c0b",
+			name: "Post-workout breakfast",
+		});
+	});
+
+	it("keeps grouped snapshots independently correctable after their local sources disappear", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const { date: _date, meal: _meal, ...part } = snapshot;
+
+		await alice.mutation(api.nutritionDiary.logCombo, {
+			date: snapshot.date,
+			meal: "lunch",
+			combo: { id: "deleted-local-combo", name: "Apple duo" },
+			parts: [part, { ...part, name: { en: "Pear", nl: "Peer" } }],
+		});
+		let day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		const firstId = day.entries[0]._id;
+		const secondId = day.entries[1]._id;
+
+		await alice.mutation(api.nutritionDiary.update, {
+			id: firstId,
+			quantity: 2,
+		});
+		await alice.mutation(api.nutritionDiary.remove, { id: secondId });
+		day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+
+		expect(day.entries).toHaveLength(1);
+		expect(day.entries[0]).toMatchObject({
+			name: { en: "Apple", nl: "Appel" },
+			quantity: 2,
+			comboGroup: {
+				comboId: "deleted-local-combo",
+				name: "Apple duo",
+			},
+		});
+		expect(day.totals.energy).toMatchObject({ amount: 151.2, entryCount: 1 });
+	});
 });

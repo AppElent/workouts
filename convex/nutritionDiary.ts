@@ -3,7 +3,11 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { diarySnapshotFields } from "./nutritionDiaryModel";
+import {
+	diaryPartSnapshotFields,
+	diarySnapshotFields,
+	mealSlot,
+} from "./nutritionDiaryModel";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
 	const identity = await ctx.auth.getUserIdentity();
@@ -49,6 +53,53 @@ export const log = mutation({
 			...snapshot,
 			loggedAt: Date.now(),
 		});
+	},
+});
+
+/**
+ * Materializes a device-local Combo in one atomic mutation. The group stamp is
+ * minted once and copied onto every immutable diary snapshot; it is never a
+ * parent record and therefore cannot make an entry depend on the local Combo.
+ */
+export const logCombo = mutation({
+	args: {
+		date: v.string(),
+		meal: mealSlot,
+		combo: v.object({ id: v.string(), name: v.string() }),
+		parts: v.array(v.object(diaryPartSnapshotFields)),
+	},
+	handler: async (ctx, { date, meal, combo, parts }) => {
+		const userId = await requireUser(ctx);
+		assertDiaryDate(date);
+		if (combo.id.trim().length === 0 || combo.name.trim().length === 0) {
+			throw new Error("Combo identity and name are required.");
+		}
+		if (parts.length === 0) throw new Error("A Combo needs at least one part.");
+		for (const part of parts) {
+			if (!(part.quantity > 0) || !(part.amount > 0)) {
+				throw new Error("Quantity must be greater than zero.");
+			}
+		}
+		const loggedAt = Date.now();
+		const comboGroup = {
+			id: crypto.randomUUID(),
+			comboId: combo.id,
+			name: combo.name.trim(),
+		};
+		const ids: Id<"nutritionDiaryEntries">[] = [];
+		for (const part of parts) {
+			ids.push(
+				await ctx.db.insert("nutritionDiaryEntries", {
+					userId,
+					date,
+					meal,
+					...part,
+					comboGroup,
+					loggedAt,
+				}),
+			);
+		}
+		return ids;
 	},
 });
 
