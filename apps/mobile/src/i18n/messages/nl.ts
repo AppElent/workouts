@@ -128,6 +128,24 @@ export const nl = {
 			logFailure: "Dit eten kon niet worden gelogd. Je selectie staat er nog.",
 		},
 
+		entryEditor: {
+			title: "Item bewerken",
+			editEntry: "Item bewerken: {name}",
+			meal: "Maaltijd",
+			date: "Datum",
+			save: "Wijzigingen opslaan",
+			saving: "Opslaan…",
+			saveFailure:
+				"Dit item kon niet worden bijgewerkt. Je wijzigingen staan er nog.",
+			delete: "Item verwijderen",
+			deleting: "Verwijderen…",
+			deleteFailure:
+				"Dit item kon niet worden verwijderd. Het staat nog in je dagboek.",
+			deleteConfirmTitle: "Dit item verwijderen?",
+			deleteConfirmMessage: "{name} wordt verwijderd uit {meal} op {date}.",
+			keepEntry: "Item behouden",
+		},
+
 		otherNutrients: {
 			heading: "Overige voedingsstoffen",
 			show: "Toon overige voedingsstoffen",

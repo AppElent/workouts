@@ -138,6 +138,25 @@ export const en = {
 				"This food could not be logged. Your selection is still here.",
 		},
 
+		entryEditor: {
+			title: "Edit entry",
+			/** Icon-free row, so this is the whole accessible name. */
+			editEntry: "Edit entry: {name}",
+			meal: "Meal",
+			date: "Date",
+			save: "Save changes",
+			saving: "Saving…",
+			saveFailure:
+				"This entry could not be updated. Your changes are still here.",
+			delete: "Delete entry",
+			deleting: "Deleting…",
+			deleteFailure:
+				"This entry could not be deleted. It is still in your diary.",
+			deleteConfirmTitle: "Delete this entry?",
+			deleteConfirmMessage: "{name} will be removed from {meal} on {date}.",
+			keepEntry: "Keep entry",
+		},
+
 		otherNutrients: {
 			heading: "Other nutrients",
 			show: "Show other nutrients",

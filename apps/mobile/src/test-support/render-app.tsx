@@ -6,7 +6,9 @@
  * drags the chart library, the Convex client and the whole session stack into a
  * test about a meal slot. So the map below is the tree the Nutrition work
  * actually spans: the two real route modules, the real Profile route they are
- * reached from, and a layout carrying the two providers those screens need.
+ * reached from, and a layout carrying the three providers those screens need
+ * — `ConfirmProvider` included, since #73's delete confirmation is real UI
+ * under test here, not a mock.
  *
  * The route *modules* are passed rather than their default exports, so a
  * route's `ErrorBoundary` is registered here exactly as expo-router registers
@@ -21,13 +23,16 @@ import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import { LocaleProvider } from "../i18n";
+import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
 
 export function TestLayout(): ReactNode {
 	return (
 		<LocaleProvider>
 			<ToastProvider>
-				<Slot />
+				<ConfirmProvider>
+					<Slot />
+				</ConfirmProvider>
 			</ToastProvider>
 		</LocaleProvider>
 	);

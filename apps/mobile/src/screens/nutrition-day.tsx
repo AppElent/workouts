@@ -25,10 +25,10 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
 	formatLongDate,
 	isoDayOffset,
-	shiftIsoDate,
 	todayIsoDate,
 } from "../data/calendar-day";
 import {
+	type DiaryEntry,
 	type GoalState,
 	goalState,
 	MEAL_SLOTS,
@@ -42,9 +42,11 @@ import {
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { Card, Eyebrow } from "../ui/coach";
+import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
+import { NutritionEntryEditor } from "./nutrition-entry-editor";
 import { NutritionFoodBrowser } from "./nutrition-food-browser";
 
 /** State word first, colour second — colour is never the only signal. */
@@ -67,6 +69,10 @@ export function NutritionDayScreen() {
 	const [date, setDate] = useState(today);
 	const [showOther, setShowOther] = useState(false);
 	const [addingTo, setAddingTo] = useState<MealSlot>();
+	const [editing, setEditing] = useState<{
+		entry: DiaryEntry;
+		meal: MealSlot;
+	}>();
 
 	const state = useNutritionDay(date);
 	const offset = isoDayOffset(today, date);
@@ -90,6 +96,17 @@ export function NutritionDayScreen() {
 		);
 	}
 
+	if (editing) {
+		return (
+			<NutritionEntryEditor
+				entry={editing.entry}
+				meal={editing.meal}
+				date={date}
+				onClose={() => setEditing(undefined)}
+			/>
+		);
+	}
+
 	return (
 		<ScrollView
 			style={styles.root}
@@ -101,7 +118,7 @@ export function NutritionDayScreen() {
 				<AppText variant="title">{dayLabel}</AppText>
 			</View>
 
-			<DateStepper
+			<DayDateStepper
 				date={date}
 				locale={locale}
 				t={t}
@@ -129,6 +146,7 @@ export function NutritionDayScreen() {
 							entries={state.day.entries[slot]}
 							locale={locale}
 							onAdd={() => setAddingTo(slot)}
+							onEdit={(entry) => setEditing({ entry, meal: slot })}
 						/>
 					))}
 
@@ -153,7 +171,7 @@ export function NutritionDayScreen() {
 	);
 }
 
-function DateStepper({
+function DayDateStepper({
 	date,
 	locale,
 	t,
@@ -170,19 +188,15 @@ function DateStepper({
 }) {
 	return (
 		<View style={styles.stepper}>
-			<StepperButton
-				label={t.nutrition.day.previousDay}
-				glyph="‹"
-				onPress={() => onChange(shiftIsoDate(date, -1))}
-			/>
-			<AppText style={styles.stepperDate}>
-				{formatLongDate(date, locale)}
-			</AppText>
-			<StepperButton
-				label={t.nutrition.day.nextDay}
-				glyph="›"
-				onPress={() => onChange(shiftIsoDate(date, 1))}
-			/>
+			<View style={styles.flex}>
+				<DateStepper
+					date={date}
+					locale={locale}
+					previousLabel={t.nutrition.day.previousDay}
+					nextLabel={t.nutrition.day.nextDay}
+					onChange={onChange}
+				/>
+			</View>
 			{isToday ? null : (
 				<Pressable
 					onPress={onToday}
@@ -196,32 +210,6 @@ function DateStepper({
 				</Pressable>
 			)}
 		</View>
-	);
-}
-
-function StepperButton({
-	label,
-	glyph,
-	onPress,
-}: {
-	label: string;
-	glyph: string;
-	onPress: () => void;
-}) {
-	return (
-		<Pressable
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityLabel={label}
-			style={({ pressed }) => [
-				styles.iconButton,
-				pressed ? { backgroundColor: colors.surface2 } : null,
-			]}
-		>
-			<AppText variant="heading" style={{ color: colors.accent }}>
-				{glyph}
-			</AppText>
-		</Pressable>
 	);
 }
 
@@ -330,12 +318,14 @@ function MealSection({
 	entries,
 	locale,
 	onAdd,
+	onEdit,
 }: {
 	t: Messages;
 	slot: MealSlot;
-	entries: import("../data/nutrition-day").DiaryEntry[];
+	entries: DiaryEntry[];
 	locale: "en" | "nl";
 	onAdd: () => void;
+	onEdit: (entry: DiaryEntry) => void;
 }) {
 	const mealName = t.nutrition.meals[slot];
 
@@ -363,7 +353,18 @@ function MealSection({
 					<EmptyState body={t.nutrition.mealEmpty} />
 				) : (
 					entries.map((entry) => (
-						<View key={entry.id} style={styles.entryRow}>
+						<Pressable
+							key={entry.id}
+							onPress={() => onEdit(entry)}
+							accessibilityRole="button"
+							accessibilityLabel={fmt(t.nutrition.entryEditor.editEntry, {
+								name: entry.name[locale],
+							})}
+							style={({ pressed }) => [
+								styles.entryRow,
+								pressed ? { backgroundColor: colors.surface2 } : null,
+							]}
+						>
 							<View style={styles.flex}>
 								<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
 								<AppText variant="caption">{entry.serving[locale]}</AppText>
@@ -376,7 +377,7 @@ function MealSection({
 										: t.nutrition.foodBrowser.absent}{" "}
 								{t.nutrition.units.kcal}
 							</AppText>
-						</View>
+						</Pressable>
 					))
 				)}
 			</Card>
@@ -490,15 +491,6 @@ const styles = StyleSheet.create({
 	section: { gap: spacing.sm },
 
 	stepper: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	stepperDate: { flex: 1, textAlign: "center", fontWeight: "700" },
-	iconButton: {
-		// 44pt minimum touch target, per the platform's own guidance.
-		width: 44,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-	},
 	todayPill: {
 		height: 32,
 		paddingHorizontal: spacing.md,
