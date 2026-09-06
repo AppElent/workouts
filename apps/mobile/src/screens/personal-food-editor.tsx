@@ -22,12 +22,15 @@ import { useToast } from "../ui/toast";
 type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 type ServingInput = { key: string; en: string; nl: string; amount: string };
 
+/** The fields a Food Import review seeds from, before any local edit. */
+type EditorSeed = Pick<PersonalFoodDraft, "name" | "baseUnit" | "nutrients" | "servings">;
+
 function initialNutrients(
-	food?: PersonalFood,
+	seed?: EditorSeed,
 ): Record<NutrientKey, NutrientInput> {
 	return Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => {
-			const value = food?.nutrients[key] ?? { kind: "absent" as const };
+			const value = seed?.nutrients[key] ?? { kind: "absent" as const };
 			return [
 				key,
 				{
@@ -39,14 +42,25 @@ function initialNutrients(
 	) as Record<NutrientKey, NutrientInput>;
 }
 
-function initialServings(food?: PersonalFood): ServingInput[] {
+function initialServings(seed?: EditorSeed): ServingInput[] {
 	return (
-		food?.servings.map((serving, index) => ({
+		seed?.servings.map((serving, index) => ({
 			key: `existing-${index}`,
 			en: serving.label.en,
 			nl: serving.label.nl,
 			amount: String(serving.amount),
 		})) ?? []
+	);
+}
+
+/** Same figures, name, unit and Servings — used to decide whether a Food Import review counted as a local edit. */
+function draftUnchanged(a: EditorSeed, b: EditorSeed): boolean {
+	return (
+		a.name.en === b.name.en &&
+		a.name.nl === b.name.nl &&
+		a.baseUnit === b.baseUnit &&
+		JSON.stringify(a.nutrients) === JSON.stringify(b.nutrients) &&
+		JSON.stringify(a.servings) === JSON.stringify(b.servings)
 	);
 }
 
@@ -56,21 +70,28 @@ function parseNumber(text: string): number {
 
 export function PersonalFoodEditor({
 	food,
+	initialDraft,
+	reviewNotice,
 	onSaved,
 	onCancel,
 }: {
 	food?: PersonalFood;
+	/** Seeds a brand-new draft — a Food Import review pre-fills from here instead of starting blank. Ignored when `food` is set. */
+	initialDraft?: PersonalFoodDraft;
+	/** Shown as a banner above the form when reviewing a remote import rather than authoring from scratch. */
+	reviewNotice?: { title: string; body: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
 }) {
 	const { t } = useI18n();
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
-	const [nameEn, setNameEn] = useState(food?.name.en ?? "");
-	const [nameNl, setNameNl] = useState(food?.name.nl ?? "");
-	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(food?.baseUnit ?? "g");
-	const [nutrients, setNutrients] = useState(() => initialNutrients(food));
-	const [servings, setServings] = useState(() => initialServings(food));
+	const seed = food ?? initialDraft;
+	const [nameEn, setNameEn] = useState(seed?.name.en ?? "");
+	const [nameNl, setNameNl] = useState(seed?.name.nl ?? "");
+	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(seed?.baseUnit ?? "g");
+	const [nutrients, setNutrients] = useState(() => initialNutrients(seed));
+	const [servings, setServings] = useState(() => initialServings(seed));
 	const nextServingKey = useRef(servings.length);
 	const [validationError, setValidationError] = useState<string>();
 	const [saving, setSaving] = useState(false);
@@ -98,7 +119,7 @@ export function PersonalFoodEditor({
 				values[key] = { kind: input.kind };
 			}
 		}
-		return {
+		const editable: EditorSeed = {
 			name: { en: nameEn, nl: nameNl },
 			baseUnit,
 			nutrients: values,
@@ -106,12 +127,21 @@ export function PersonalFoodEditor({
 				label: { en: serving.en, nl: serving.nl },
 				amount: parseNumber(serving.amount),
 			})),
-			provenance: food?.provenance ?? {
-				recordOrigin: "personal",
-				nutritionSource: "manual",
-				locallyEdited: false,
-			},
 		};
+		let provenance = food?.provenance ??
+			initialDraft?.provenance ?? {
+				recordOrigin: "personal" as const,
+				nutritionSource: "manual" as const,
+				locallyEdited: false,
+			};
+		// A Food Import review that saves without touching anything stays an
+		// unedited import; changing any field before saving is what earns
+		// `locallyEdited: true` — the provenance the diary snapshot inherits
+		// later has to say which happened (spec #68).
+		if (!food && initialDraft && !draftUnchanged(editable, initialDraft)) {
+			provenance = { ...provenance, locallyEdited: true };
+		}
+		return { ...editable, provenance };
 	}
 
 	async function save() {
@@ -149,10 +179,20 @@ export function PersonalFoodEditor({
 			keyboardShouldPersistTaps="handled"
 		>
 			<AppText variant="title">
-				{food
-					? t.nutrition.personalFood.editTitle
-					: t.nutrition.personalFood.createTitle}
+				{reviewNotice
+					? reviewNotice.title
+					: food
+						? t.nutrition.personalFood.editTitle
+						: t.nutrition.personalFood.createTitle}
 			</AppText>
+			{reviewNotice ? (
+				<Card style={styles.disclosure}>
+					<AppText variant="caption">{reviewNotice.body}</AppText>
+					{reviewNotice.attribution ? (
+						<AppText variant="caption">{reviewNotice.attribution}</AppText>
+					) : null}
+				</Card>
+			) : null}
 			<Card style={styles.disclosure}>
 				<AppText variant="heading">
 					{t.nutrition.personalFood.storageTitle}

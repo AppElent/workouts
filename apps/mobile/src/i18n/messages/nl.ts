@@ -119,6 +119,9 @@ export const nl = {
 			searchPlaceholder: "Zoek eten",
 			scanBarcode: "Scan barcode",
 			searchAll: "Doorzoek alle 2.328 voedingsmiddelen",
+			searchOnline: "Zoek in Open Food Facts",
+			searchingOnline: "Zoeken in Open Food Facts…",
+			onlineResults: "Resultaten uit Open Food Facts",
 			showMore: "Toon meer voedingsmiddelen",
 			promotedResults: "Alledaagse voeding",
 			allResults: "Alle NEVO-voedingsmiddelen",
@@ -131,6 +134,33 @@ export const nl = {
 			log: "Eten loggen",
 			logging: "Eten loggen…",
 			logFailure: "Dit eten kon niet worden gelogd. Je selectie staat er nog.",
+		},
+		barcode: {
+			scanTitle: "Scan barcode",
+			purpose:
+				"Geef cameratoegang om voedingsbarcodes te scannen en voedingswaarden te vinden.",
+			allow: "Cameratoegang toestaan",
+			requesting: "Cameratoegang aanvragen…",
+			denied:
+				"Cameratoegang is geweigerd. Je kunt eten nog steeds vinden via Zoeken of Handmatig invoeren.",
+			restricted:
+				"Cameratoegang is beperkt op dit apparaat. Je kunt eten nog steeds vinden via Zoeken of Handmatig invoeren.",
+			hint: "Richt je camera op een barcode.",
+			lookingUp: "Barcode wordt opgezocht…",
+		},
+		foodImport: {
+			reviewTitle: "Geïmporteerd eten controleren",
+			reviewBody:
+				"Gegevens van Open Food Facts kunnen onvolledig zijn of andere namen gebruiken — controleer deze waarden voordat je opslaat. Opslaan maakt een persoonlijk voedingsmiddel dat je altijd kunt bewerken.",
+			notFound: "Er is geen product gevonden voor deze barcode.",
+			searchNotFound: "Geen Open Food Facts-producten gevonden voor deze zoekopdracht.",
+			rateLimited:
+				"Open Food Facts krijgt op dit moment te veel verzoeken. Probeer het straks opnieuw.",
+			timeout: "Het verzoek aan Open Food Facts duurde te lang.",
+			networkError:
+				"Open Food Facts kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",
+			incomplete: "Dit product heeft te weinig voedingsgegevens om te importeren.",
+			invalid: "De gegevens van dit product konden niet worden gelezen.",
 		},
 		personalFood: {
 			createTitle: "Persoonlijk voedingsmiddel maken",

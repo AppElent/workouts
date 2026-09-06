@@ -133,6 +133,9 @@ export const en = {
 			searchPlaceholder: "Search foods",
 			scanBarcode: "Scan barcode",
 			searchAll: "Search all 2,328 foods",
+			searchOnline: "Search Open Food Facts",
+			searchingOnline: "Searching Open Food Facts…",
+			onlineResults: "Open Food Facts results",
 			showMore: "Show more foods",
 			promotedResults: "Everyday foods",
 			allResults: "All NEVO foods",
@@ -146,6 +149,39 @@ export const en = {
 			logging: "Logging food…",
 			logFailure:
 				"This food could not be logged. Your selection is still here.",
+		},
+		/**
+		 * Every message here is a failure exit, not just a status line — spec #68
+		 * requires local Search and Enter manually to stay reachable behind each
+		 * one, so none of these ever block the screen; they surface as a toast
+		 * and return to the ordinary Find Food view.
+		 */
+		barcode: {
+			scanTitle: "Scan barcode",
+			purpose:
+				"Allow camera access to scan food barcodes and find nutrition information.",
+			allow: "Allow camera access",
+			requesting: "Requesting camera access…",
+			denied:
+				"Camera access was refused. You can still find food with Search or Enter manually.",
+			restricted:
+				"Camera access is restricted on this device. You can still find food with Search or Enter manually.",
+			hint: "Point your camera at a barcode.",
+			lookingUp: "Looking up this barcode…",
+		},
+		foodImport: {
+			reviewTitle: "Review imported food",
+			reviewBody:
+				"Open Food Facts data can be incomplete or use different names — check these figures before saving. Saving creates a Personal Food you can edit any time.",
+			notFound: "No product was found for this barcode.",
+			searchNotFound: "No Open Food Facts products matched your search.",
+			rateLimited:
+				"Open Food Facts is receiving too many requests right now. Try again shortly.",
+			timeout: "The Open Food Facts request timed out.",
+			networkError:
+				"Could not reach Open Food Facts. Check your connection and try again.",
+			incomplete: "This product has too little nutrition data to import.",
+			invalid: "This product's data could not be read.",
 		},
 		personalFood: {
 			createTitle: "Create Personal Food",
