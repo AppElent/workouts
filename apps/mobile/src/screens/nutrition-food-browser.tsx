@@ -267,15 +267,13 @@ function ServingDetail({
 	const parsed = Number(quantityText.replace(",", "."));
 	const quantity = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 	const preview = servingPreview(selection, selectedServing, quantity, locale);
-	const canLog = quantity > 0 && selection.kind === "shipped";
+	const canLog = quantity > 0;
 
 	async function logFood() {
 		if (!canLog || logging) return;
 		setLogging(true);
 		try {
-			if (selection.kind !== "shipped") return;
-			const meta = shippedLibraryMeta();
-			await log({
+			const common = {
 				date,
 				meal,
 				name: selection.food.name,
@@ -289,16 +287,41 @@ function ServingDetail({
 				nutrients: Object.fromEntries(
 					NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
 				) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
-				provenance: {
-					source: "shipped",
-					sourceId: selection.food.id,
-					dataset: meta.dataset.name,
-					edition: meta.dataset.edition,
-					sourceCode: selection.food.code,
-					sourceName: selection.food.sourceName,
-					saltDerived: true,
-				},
-			});
+			};
+			if (selection.kind === "shipped") {
+				const meta = shippedLibraryMeta();
+				await log({
+					...common,
+					provenance: {
+						source: "shipped",
+						sourceId: selection.food.id,
+						dataset: meta.dataset.name,
+						edition: meta.dataset.edition,
+						sourceCode: selection.food.code,
+						sourceName: selection.food.sourceName,
+						saltDerived: true,
+					},
+				});
+			} else {
+				const provenance = selection.food.provenance;
+				await log({
+					...common,
+					provenance: {
+						source: provenance.recordOrigin,
+						sourceId: selection.food.id,
+						nutritionSource: provenance.nutritionSource,
+						locallyEdited: provenance.locallyEdited,
+						...(provenance.forkedFrom
+							? { forkedFrom: provenance.forkedFrom }
+							: {}),
+						...(provenance.provider ? { provider: provenance.provider } : {}),
+						...(provenance.barcode ? { barcode: provenance.barcode } : {}),
+						...(provenance.attribution
+							? { attribution: provenance.attribution }
+							: {}),
+					},
+				});
+			}
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
 				() => undefined,
 			);

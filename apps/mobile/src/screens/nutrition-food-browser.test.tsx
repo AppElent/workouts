@@ -6,6 +6,64 @@ import { renderApp } from "../test-support/render-app";
 const mockUseMutation = jest.mocked(useMutation);
 
 describe("browsing shipped foods", () => {
+	it("logs an unrounded Personal Food snapshot with its stable local provenance", async () => {
+		const log = jest.fn().mockResolvedValue(undefined);
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		const { repository } = renderApp();
+		const personalFood = repository.create({
+			name: { en: "Training oats", nl: "Trainingshavermout" },
+			baseUnit: "g",
+			nutrients: {
+				energy: { kind: "value", amount: 371.25 },
+				protein: { kind: "trace" },
+				carbs: { kind: "absent" },
+				fat: { kind: "value", amount: 7.5 },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "value", amount: 12 },
+				sugars: { kind: "value", amount: 0 },
+				salt: { kind: "value", amount: 0.01 },
+			},
+			servings: [{ label: { en: "Scoop", nl: "Schep" }, amount: 30 }],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"training oats",
+		);
+		fireEvent.press(await screen.findByText("Training oats"));
+		fireEvent.press(screen.getByText("Log food"));
+
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		expect(log.mock.calls[0][0]).toMatchObject({
+			date: todayIsoDate(),
+			meal: "lunch",
+			name: { en: "Training oats", nl: "Trainingshavermout" },
+			serving: { en: "Scoop × 1", nl: "Schep × 1" },
+			quantity: 1,
+			amount: 30,
+			baseUnit: "g",
+			nutrients: {
+				energy: { kind: "value", amount: 111.375 },
+				protein: { kind: "trace" },
+				carbs: { kind: "absent" },
+				sugars: { kind: "value", amount: 0 },
+			},
+			provenance: {
+				source: "personal",
+				sourceId: personalFood.id,
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+	});
+
 	it("creates a Personal Food and finds it ahead of shipped foods in ordinary search", async () => {
 		const { repository } = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));

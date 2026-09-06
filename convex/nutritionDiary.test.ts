@@ -57,4 +57,48 @@ describe("public nutrition diary operations", () => {
 			entries: [],
 		});
 	});
+
+	it("keeps a Personal Food snapshot renderable when its device reference is unavailable", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const personalSnapshot = {
+			...snapshot,
+			name: { en: "Training oats", nl: "Trainingshavermout" },
+			serving: { en: "Scoop × 1", nl: "Schep × 1" },
+			amount: 30,
+			nutrients: {
+				energy: { kind: "value" as const, amount: 111.375 },
+				protein: { kind: "trace" as const },
+				carbs: { kind: "absent" as const },
+				fat: { kind: "value" as const, amount: 2.25 },
+				saturatedFat: { kind: "absent" as const },
+				fibre: { kind: "value" as const, amount: 3.6 },
+				sugars: { kind: "value" as const, amount: 0 },
+				salt: { kind: "value" as const, amount: 0.003 },
+			},
+			provenance: {
+				source: "personal" as const,
+				sourceId: "58b7a219-67e5-42fc-9400-d740e8837df8",
+				nutritionSource: "manual" as const,
+				locallyEdited: false,
+			},
+		};
+
+		await alice.mutation(api.nutritionDiary.log, personalSnapshot);
+		personalSnapshot.name.en = "Changed only on the phone";
+		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+
+		expect(day.entries[0]).toMatchObject({
+			name: { en: "Training oats", nl: "Trainingshavermout" },
+			serving: { en: "Scoop × 1", nl: "Schep × 1" },
+			provenance: {
+				source: "personal",
+				sourceId: "58b7a219-67e5-42fc-9400-d740e8837df8",
+			},
+		});
+		expect(day.totals.energy).toMatchObject({ amount: 111.375, incomplete: false });
+		expect(day.totals.protein).toMatchObject({ amount: 0, traceCount: 1, qualified: true });
+		expect(day.totals.carbs).toMatchObject({ amount: 0, absentCount: 1, incomplete: true });
+		expect(day.totals.sugars).toMatchObject({ amount: 0, valueCount: 1, incomplete: false });
+	});
 });
