@@ -37,6 +37,7 @@ export {
 	NEVO_LICENCE_CONSTRAINTS,
 	NEVO_LICENCE_SOURCE,
 	nevoAttribution,
+	OPEN_FOOD_FACTS_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
 export {

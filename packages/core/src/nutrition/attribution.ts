@@ -67,3 +67,14 @@ export const NEVO_LICENCE_CONSTRAINTS: readonly string[] = Object.freeze([
 /** Where a future reader can check all of the above. */
 export const NEVO_LICENCE_SOURCE =
 	"data/nevo/Conditions of use NEVO-online 2025 dataset.pdf";
+
+/**
+ * Required wherever an Open Food Facts import's figures contribute to
+ * calculation output — the import review, the resulting Personal Food's
+ * detail, and any total that includes it (spec #68). Open Food Facts data is
+ * published under the Open Database License (ODbL); unlike NEVO_ATTRIBUTION
+ * this is not quoted from a licence PDF held in this repo, so re-confirm the
+ * exact wording OFF's own terms ask for before this ships to production.
+ */
+export const OPEN_FOOD_FACTS_ATTRIBUTION =
+	"Product data from Open Food Facts (openfoodfacts.org), available under the Open Database License (ODbL).";
