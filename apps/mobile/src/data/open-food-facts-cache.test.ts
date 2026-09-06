@@ -41,7 +41,9 @@ describe("OpenFoodFactsCache public behavior", () => {
 		// under it, not merely stop returning it from `get`.
 		cache.set("fresh", "barcode", { fresh: true });
 		expect(
-			database.database.prepare("SELECT COUNT(*) as count FROM off_cache").get(),
+			database.database
+				.prepare("SELECT COUNT(*) as count FROM off_cache")
+				.get(),
 		).toEqual({ count: 1 });
 
 		for (let index = 0; index < OFF_CACHE_MAX_ENTRIES + 5; index += 1) {

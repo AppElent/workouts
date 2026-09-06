@@ -73,12 +73,17 @@ jest.mock("expo-camera", () => {
 				expires: "never",
 			}),
 		]),
-		CameraView: ({ onBarcodeScanned }: { onBarcodeScanned?: (r: { data: string; type: string }) => void }) =>
+		CameraView: ({
+			onBarcodeScanned,
+		}: {
+			onBarcodeScanned?: (r: { data: string; type: string }) => void;
+		}) =>
 			React.createElement(
 				Pressable,
 				{
 					accessibilityLabel: "Simulated camera preview",
-					onPress: () => onBarcodeScanned?.({ data: "5000112637922", type: "ean13" }),
+					onPress: () =>
+						onBarcodeScanned?.({ data: "5000112637922", type: "ean13" }),
 				},
 				React.createElement(Text, null, "Simulated camera preview"),
 			),

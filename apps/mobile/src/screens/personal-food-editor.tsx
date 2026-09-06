@@ -23,7 +23,10 @@ type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 type ServingInput = { key: string; en: string; nl: string; amount: string };
 
 /** The fields a Food Import review seeds from, before any local edit. */
-type EditorSeed = Pick<PersonalFoodDraft, "name" | "baseUnit" | "nutrients" | "servings">;
+type EditorSeed = Pick<
+	PersonalFoodDraft,
+	"name" | "baseUnit" | "nutrients" | "servings"
+>;
 
 function initialNutrients(
 	seed?: EditorSeed,
@@ -53,13 +56,23 @@ function initialServings(seed?: EditorSeed): ServingInput[] {
 	);
 }
 
-/** Same figures, name, unit and Servings — used to decide whether a Food Import review counted as a local edit. */
+/**
+ * Same figures, name, unit and Servings — used to decide whether a Food
+ * Import review counted as a local edit. Nutrients are compared key by key
+ * via `NUTRIENT_KEYS` rather than by stringifying the whole object: the
+ * import draft and the rebuilt form draft can list the same eight nutrients
+ * in different insertion orders, which `JSON.stringify` would wrongly read
+ * as a change.
+ */
 function draftUnchanged(a: EditorSeed, b: EditorSeed): boolean {
 	return (
 		a.name.en === b.name.en &&
 		a.name.nl === b.name.nl &&
 		a.baseUnit === b.baseUnit &&
-		JSON.stringify(a.nutrients) === JSON.stringify(b.nutrients) &&
+		NUTRIENT_KEYS.every(
+			(key) =>
+				JSON.stringify(a.nutrients[key]) === JSON.stringify(b.nutrients[key]),
+		) &&
 		JSON.stringify(a.servings) === JSON.stringify(b.servings)
 	);
 }

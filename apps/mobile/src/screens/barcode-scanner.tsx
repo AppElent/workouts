@@ -87,7 +87,9 @@ export function BarcodeScanner({
 					<AppText style={styles.overlayText}>{t.common.back}</AppText>
 				</Pressable>
 				<View style={styles.hintBar}>
-					<AppText style={styles.overlayText}>{t.nutrition.barcode.hint}</AppText>
+					<AppText style={styles.overlayText}>
+						{t.nutrition.barcode.hint}
+					</AppText>
 				</View>
 			</View>
 		</View>

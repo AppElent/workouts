@@ -153,13 +153,15 @@ export const nl = {
 			reviewBody:
 				"Gegevens van Open Food Facts kunnen onvolledig zijn of andere namen gebruiken — controleer deze waarden voordat je opslaat. Opslaan maakt een persoonlijk voedingsmiddel dat je altijd kunt bewerken.",
 			notFound: "Er is geen product gevonden voor deze barcode.",
-			searchNotFound: "Geen Open Food Facts-producten gevonden voor deze zoekopdracht.",
+			searchNotFound:
+				"Geen Open Food Facts-producten gevonden voor deze zoekopdracht.",
 			rateLimited:
 				"Open Food Facts krijgt op dit moment te veel verzoeken. Probeer het straks opnieuw.",
 			timeout: "Het verzoek aan Open Food Facts duurde te lang.",
 			networkError:
 				"Open Food Facts kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",
-			incomplete: "Dit product heeft te weinig voedingsgegevens om te importeren.",
+			incomplete:
+				"Dit product heeft te weinig voedingsgegevens om te importeren.",
 			invalid: "De gegevens van dit product konden niet worden gelezen.",
 		},
 		personalFood: {

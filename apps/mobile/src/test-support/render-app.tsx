@@ -22,8 +22,12 @@ import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
+import type { FetchLike } from "../data/open-food-facts";
+import { OpenFoodFactsProvider } from "../data/open-food-facts-context";
 import {
+	createOpenFoodFactsCache,
 	createPersonalFoodRepository,
+	type OpenFoodFactsCache,
 	type PersonalFoodRepository,
 } from "../data/personal-food-repository";
 import { PersonalFoodsProvider } from "../data/personal-foods";
@@ -34,15 +38,21 @@ import { SQLiteTestDatabase } from "./sqlite-test-database";
 
 export function TestLayout({
 	repository,
+	offCache,
+	fetchImpl,
 }: {
 	repository: PersonalFoodRepository;
+	offCache: OpenFoodFactsCache;
+	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
 		<LocaleProvider>
 			<ToastProvider>
 				<ConfirmProvider>
 					<PersonalFoodsProvider repository={repository}>
-						<Slot />
+						<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
+							<Slot />
+						</OpenFoodFactsProvider>
 					</PersonalFoodsProvider>
 				</ConfirmProvider>
 			</ToastProvider>
@@ -54,10 +64,19 @@ export function renderApp(
 	initialUrl = "/nutrition",
 	/** Replace a route module — used to make a route throw on purpose. */
 	overrides: Record<string, unknown> = {},
+	/** A fake fetch for tests that exercise the Open Food Facts network boundary. */
+	fetchImpl?: FetchLike,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 	function Layout() {
-		return <TestLayout repository={repository} />;
+		return (
+			<TestLayout
+				repository={repository}
+				offCache={offCache}
+				fetchImpl={fetchImpl}
+			/>
+		);
 	}
 	const rendered = renderRouter(
 		{
@@ -70,5 +89,5 @@ export function renderApp(
 		},
 		{ initialUrl },
 	);
-	return Object.assign(rendered, { repository });
+	return Object.assign(rendered, { repository, offCache });
 }

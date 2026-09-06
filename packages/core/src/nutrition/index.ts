@@ -81,16 +81,16 @@ export {
 	TRACE,
 } from "./nutrients";
 export {
+	parseProviderNumber,
+	parseProviderNutrient,
+} from "./provider";
+export {
 	isDerivedNutrient,
 	SALT_DERIVATION,
 	SALT_FROM_SODIUM_DIVISOR,
 	SALT_FROM_SODIUM_FACTOR,
 	saltFromSodium,
 } from "./salt";
-export {
-	parseProviderNumber,
-	parseProviderNutrient,
-} from "./provider";
 export {
 	browsePromotedByCategory,
 	type FoodSearchResult,

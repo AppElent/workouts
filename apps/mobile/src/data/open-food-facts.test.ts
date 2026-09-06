@@ -15,7 +15,9 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 function fakeFetch(
-	impl: (url: string) => ReturnType<FetchLike> | ReturnType<typeof jsonResponse>,
+	impl: (
+		url: string,
+	) => ReturnType<FetchLike> | ReturnType<typeof jsonResponse>,
 ): jest.Mock {
 	return jest.fn(async (url: string) => impl(url));
 }
@@ -40,7 +42,9 @@ const bakedBeans = {
 describe("lookupOffBarcode", () => {
 	it("checks the cache before the network and maps a found product", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-		const fetchImpl = fakeFetch(() => jsonResponse(200, { status: 1, product: bakedBeans }));
+		const fetchImpl = fakeFetch(() =>
+			jsonResponse(200, { status: 1, product: bakedBeans }),
+		);
 
 		const first = await lookupOffBarcode("5000112637922", { cache, fetchImpl });
 		expect(first).toMatchObject({ kind: "found", fromCache: false });
@@ -62,7 +66,10 @@ describe("lookupOffBarcode", () => {
 		});
 		expect(first.draft.provenance.attribution).toMatch(/Open Food Facts/);
 
-		const second = await lookupOffBarcode("5000112637922", { cache, fetchImpl });
+		const second = await lookupOffBarcode("5000112637922", {
+			cache,
+			fetchImpl,
+		});
 		expect(second).toMatchObject({ kind: "found", fromCache: true });
 		expect(fetchImpl).toHaveBeenCalledTimes(1);
 	});
@@ -74,19 +81,32 @@ describe("lookupOffBarcode", () => {
 				status: 1,
 				product: {
 					...bakedBeans,
-					nutriments: { ...bakedBeans.nutriments, salt_100g: undefined, sodium_100g: 0.36 },
+					nutriments: {
+						...bakedBeans.nutriments,
+						salt_100g: undefined,
+						sodium_100g: 0.36,
+					},
 				},
 			}),
 		);
-		const outcome = await lookupOffBarcode("5000112637922", { cache, fetchImpl });
+		const outcome = await lookupOffBarcode("5000112637922", {
+			cache,
+			fetchImpl,
+		});
 		if (outcome.kind !== "found") throw new Error("expected found");
-		expect(outcome.draft.nutrients.salt).toEqual({ kind: "value", amount: 0.9 });
+		expect(outcome.draft.nutrients.salt).toEqual({
+			kind: "value",
+			amount: 0.9,
+		});
 	});
 
 	it("reports an unknown barcode as not-found without caching it", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() => jsonResponse(200, { status: 0 }));
-		const outcome = await lookupOffBarcode("0000000000000", { cache, fetchImpl });
+		const outcome = await lookupOffBarcode("0000000000000", {
+			cache,
+			fetchImpl,
+		});
 		expect(outcome).toEqual({ kind: "not-found" });
 		expect(cache.get("barcode:0000000000000")).toBeUndefined();
 	});
@@ -110,7 +130,11 @@ describe("lookupOffBarcode", () => {
 				});
 			});
 		});
-		const outcome = await lookupOffBarcode("123", { cache, fetchImpl, timeoutMs: 5 });
+		const outcome = await lookupOffBarcode("123", {
+			cache,
+			fetchImpl,
+			timeoutMs: 5,
+		});
 		expect(outcome).toEqual({ kind: "timeout" });
 	});
 
@@ -154,7 +178,9 @@ describe("lookupOffBarcode", () => {
 describe("searchOffProducts", () => {
 	it("maps multiple results and reuses the cache on a repeat query", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-		const fetchImpl = fakeFetch(() => jsonResponse(200, { products: [bakedBeans] }));
+		const fetchImpl = fakeFetch(() =>
+			jsonResponse(200, { products: [bakedBeans] }),
+		);
 
 		const first = await searchOffProducts("baked beans", { cache, fetchImpl });
 		expect(first).toMatchObject({ kind: "found", fromCache: false });
@@ -178,7 +204,9 @@ describe("searchOffProducts", () => {
 	it("reports zero matches as not-found", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() => jsonResponse(200, { products: [] }));
-		expect(await searchOffProducts("xyzzyunknown", { cache, fetchImpl })).toEqual({
+		expect(
+			await searchOffProducts("xyzzyunknown", { cache, fetchImpl }),
+		).toEqual({
 			kind: "not-found",
 		});
 	});

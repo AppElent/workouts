@@ -10,16 +10,18 @@
  * exceptions.
  */
 import {
-	type NutrientKey,
 	NUTRIENT_KEYS,
+	type NutrientKey,
 	type NutrientValue,
 	OPEN_FOOD_FACTS_ATTRIBUTION,
 	parseProviderNumber,
 	parseProviderNutrient,
 	saltFromSodium,
 } from "@workouts/core/nutrition";
-import type { PersonalFoodDraft } from "./personal-food-repository";
-import type { OpenFoodFactsCache } from "./personal-food-repository";
+import type {
+	OpenFoodFactsCache,
+	PersonalFoodDraft,
+} from "./personal-food-repository";
 
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 const OFF_SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
@@ -29,7 +31,11 @@ const PRODUCT_FIELDS =
 	"code,product_name,product_name_en,product_name_nl,brands,quantity,product_quantity_unit,nutriments";
 
 export type OffLookupOutcome =
-	| { readonly kind: "found"; readonly draft: PersonalFoodDraft; readonly fromCache: boolean }
+	| {
+			readonly kind: "found";
+			readonly draft: PersonalFoodDraft;
+			readonly fromCache: boolean;
+	  }
 	| { readonly kind: "not-found" }
 	| { readonly kind: "rate-limited" }
 	| { readonly kind: "timeout" }
@@ -38,7 +44,11 @@ export type OffLookupOutcome =
 	| { readonly kind: "invalid" };
 
 export type OffSearchOutcome =
-	| { readonly kind: "found"; readonly drafts: readonly PersonalFoodDraft[]; readonly fromCache: boolean }
+	| {
+			readonly kind: "found";
+			readonly drafts: readonly PersonalFoodDraft[];
+			readonly fromCache: boolean;
+	  }
 	| { readonly kind: "not-found" }
 	| { readonly kind: "rate-limited" }
 	| { readonly kind: "timeout" }
@@ -88,13 +98,18 @@ function baseUnitOf(product: OffRawProduct): "g" | "ml" {
 	const unit = product.product_quantity_unit?.toLowerCase();
 	if (unit === "ml" || unit === "l" || unit === "cl") return "ml";
 	if (unit === "g" || unit === "kg") return "g";
-	if (product.quantity && /\b(ml|milliliter|millilitre|liter|litre)\b/i.test(product.quantity)) {
+	if (
+		product.quantity &&
+		/\b(ml|milliliter|millilitre|liter|litre)\b/i.test(product.quantity)
+	) {
 		return "ml";
 	}
 	return "g";
 }
 
-function nameOf(product: OffRawProduct): { en: string; nl: string } | undefined {
+function nameOf(
+	product: OffRawProduct,
+): { en: string; nl: string } | undefined {
 	const fallback = product.product_name?.trim();
 	const en = product.product_name_en?.trim() || fallback;
 	const nl = product.product_name_nl?.trim() || fallback;
@@ -124,12 +139,14 @@ function energyNutrient(
 ): NutrientValue {
 	const kcal = readNutrient(nutriments, "energy-kcal_100g");
 	if (kcal.kind !== "absent") return kcal;
-	const kilojoules = parseProviderNumber(nutriments?.["energy_100g"]);
+	const kilojoules = parseProviderNumber(nutriments?.energy_100g);
 	if (kilojoules === undefined) return kcal;
 	return { kind: "value", amount: Math.round((kilojoules / 4.184) * 10) / 10 };
 }
 
-const OFF_FIELD_BY_NUTRIENT: Readonly<Record<Exclude<NutrientKey, "energy" | "salt">, string>> = {
+const OFF_FIELD_BY_NUTRIENT: Readonly<
+	Record<Exclude<NutrientKey, "energy" | "salt">, string>
+> = {
 	protein: "proteins_100g",
 	carbs: "carbohydrates_100g",
 	fat: "fat_100g",
@@ -147,7 +164,9 @@ const OFF_FIELD_BY_NUTRIENT: Readonly<Record<Exclude<NutrientKey, "energy" | "sa
  */
 export function mapOffProductToDraft(
 	product: OffRawProduct,
-): { readonly draft: PersonalFoodDraft } | { readonly error: "invalid" | "incomplete" } {
+):
+	| { readonly draft: PersonalFoodDraft }
+	| { readonly error: "invalid" | "incomplete" } {
 	const name = nameOf(product);
 	if (!name) return { error: "invalid" };
 
@@ -155,11 +174,18 @@ export function mapOffProductToDraft(
 		energy: energyNutrient(product.nutriments),
 		salt: saltNutrient(product.nutriments),
 	} as Record<NutrientKey, NutrientValue>;
-	for (const key of Object.keys(OFF_FIELD_BY_NUTRIENT) as (keyof typeof OFF_FIELD_BY_NUTRIENT)[]) {
-		nutrients[key] = readNutrient(product.nutriments, OFF_FIELD_BY_NUTRIENT[key]);
+	for (const key of Object.keys(
+		OFF_FIELD_BY_NUTRIENT,
+	) as (keyof typeof OFF_FIELD_BY_NUTRIENT)[]) {
+		nutrients[key] = readNutrient(
+			product.nutriments,
+			OFF_FIELD_BY_NUTRIENT[key],
+		);
 	}
 
-	const hasAnyFigure = NUTRIENT_KEYS.some((key) => nutrients[key].kind !== "absent");
+	const hasAnyFigure = NUTRIENT_KEYS.some(
+		(key) => nutrients[key].kind !== "absent",
+	);
 	if (!hasAnyFigure) return { error: "incomplete" };
 
 	const draft: PersonalFoodDraft = {
@@ -183,7 +209,12 @@ async function fetchJson(
 	url: string,
 	fetchImpl: FetchLike,
 	timeoutMs: number,
-): Promise<{ kind: "ok"; body: unknown } | { kind: "rate-limited" } | { kind: "timeout" } | { kind: "network-error" }> {
+): Promise<
+	| { kind: "ok"; body: unknown }
+	| { kind: "rate-limited" }
+	| { kind: "timeout" }
+	| { kind: "network-error" }
+> {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), timeoutMs);
 	try {
@@ -223,7 +254,11 @@ export async function lookupOffBarcode(
 	}
 
 	const url = `${OFF_PRODUCT_URL}/${encodeURIComponent(barcode)}.json?fields=${PRODUCT_FIELDS}`;
-	const result = await fetchJson(url, fetchImpl, options.timeoutMs ?? REQUEST_TIMEOUT_MS);
+	const result = await fetchJson(
+		url,
+		fetchImpl,
+		options.timeoutMs ?? REQUEST_TIMEOUT_MS,
+	);
 	if (result.kind !== "ok") return { kind: result.kind };
 
 	const body = result.body as OffProductResponse;
@@ -251,7 +286,9 @@ export async function searchOffProducts(
 	if (cached) {
 		const drafts = (cached.response as OffRawProduct[])
 			.map(mapOffProductToDraft)
-			.filter((mapped): mapped is { draft: PersonalFoodDraft } => "draft" in mapped)
+			.filter(
+				(mapped): mapped is { draft: PersonalFoodDraft } => "draft" in mapped,
+			)
 			.map((mapped) => mapped.draft);
 		return drafts.length > 0
 			? { kind: "found", drafts, fromCache: true }
@@ -278,7 +315,9 @@ export async function searchOffProducts(
 	options.cache.set(cacheKey, "search", products);
 	const drafts = products
 		.map(mapOffProductToDraft)
-		.filter((mapped): mapped is { draft: PersonalFoodDraft } => "draft" in mapped)
+		.filter(
+			(mapped): mapped is { draft: PersonalFoodDraft } => "draft" in mapped,
+		)
 		.map((mapped) => mapped.draft);
 	return drafts.length > 0
 		? { kind: "found", drafts, fromCache: false }
