@@ -127,6 +127,45 @@ export const nl = {
 			logging: "Eten loggen…",
 			logFailure: "Dit eten kon niet worden gelogd. Je selectie staat er nog.",
 		},
+		personalFood: {
+			createTitle: "Persoonlijk voedingsmiddel maken",
+			editTitle: "Persoonlijk voedingsmiddel bewerken",
+			resultLabel: "Persoonlijk voedingsmiddel",
+			storageTitle: "Alleen op dit apparaat opgeslagen",
+			storageBody:
+				"Persoonlijke voedingsmiddelen verschijnen niet op een tweede apparaat en kunnen verloren gaan als je Workouts verwijdert. Platformback-up wordt alleen naar beste vermogen uitgevoerd.",
+			nameEn: "Engelse naam",
+			nameNl: "Nederlandse naam",
+			baseUnit: "Basiseenheid voedingswaarde",
+			grams: "Gram",
+			millilitres: "Milliliter",
+			per100: "Voedingswaarde per 100",
+			states: {
+				absent: "Niet beschikbaar",
+				trace: "Spoor",
+				value: "Hoeveelheid",
+			},
+			servings: "Porties",
+			servingsHelp:
+				"Voeg maximaal drie bekende hoeveelheden in de basiseenheid toe.",
+			englishLabel: "Engels label",
+			dutchLabel: "Nederlands label",
+			amountIn: "hoeveelheid in",
+			addServing: "Portie toevoegen",
+			removeServing: "Portie verwijderen",
+			save: "Persoonlijk voedingsmiddel opslaan",
+			saving: "Persoonlijk voedingsmiddel opslaan…",
+			cancel: "Annuleren",
+			deleteTitle: "Dit persoonlijke voedingsmiddel verwijderen?",
+			deleteBody:
+				"Bestaande dagboekitems behouden hun opgeslagen momentopname.",
+			delete: "Persoonlijk voedingsmiddel verwijderen",
+			deleteFailure:
+				"Dit persoonlijke voedingsmiddel kon niet worden verwijderd.",
+			validation: "Controleer de waarden van het persoonlijke voedingsmiddel.",
+			saveFailure:
+				"Dit persoonlijke voedingsmiddel kon niet worden opgeslagen. Je wijzigingen staan er nog.",
+		},
 
 		otherNutrients: {
 			heading: "Overige voedingsstoffen",

@@ -4,6 +4,8 @@ import {
 	NEVO_ATTRIBUTION,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
+	type NutrientKey,
+	type NutrientValue,
 	previewServing,
 	roundForDisplay,
 	SALT_DERIVATION_DISCLOSURE,
@@ -26,15 +28,23 @@ import {
 import { api } from "../convex/api";
 import { formatLongDate } from "../data/calendar-day";
 import type { MealSlot } from "../data/nutrition-day";
+import type { PersonalFood } from "../data/personal-food-repository";
+import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
+import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { PersonalFoodEditor } from "./personal-food-editor";
 
 const RESULT_PAGE_SIZE = 50;
+
+type FoodSelection =
+	| { readonly kind: "shipped"; readonly food: ShippedFood }
+	| { readonly kind: "personal"; readonly food: PersonalFood };
 
 export function NutritionFoodBrowser({
 	meal,
@@ -46,35 +56,88 @@ export function NutritionFoodBrowser({
 	onClose: () => void;
 }) {
 	const { t, locale } = useI18n();
+	const personalFoods = usePersonalFoods();
+	const confirm = useConfirm();
+	const toast = useToast();
 	const [query, setQuery] = useState("");
 	const [searchAll, setSearchAll] = useState(false);
 	const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
-	const [selectedFood, setSelectedFood] = useState<ShippedFood>();
+	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
+	const [editingFood, setEditingFood] = useState<PersonalFood>();
+	const [creatingFood, setCreatingFood] = useState(false);
 	const allResults = useMemo(() => {
+		const local = personalFoods.search(query, locale).map((food) => ({
+			kind: "personal" as const,
+			food,
+		}));
 		if (searchAll && query.trim().length === 0) {
-			return allShippedFoods()
+			const shipped = allShippedFoods()
 				.filter((candidate) => !candidate.retired)
 				.sort((a, b) =>
 					a.sourceName[locale].localeCompare(b.sourceName[locale]),
 				)
-				.map((candidate) => ({ food: candidate }));
+				.map((food) => ({ kind: "shipped" as const, food }));
+			return [...local, ...shipped];
 		}
-		return searchShippedFoods(query, {
+		const shipped = searchShippedFoods(query, {
 			locale,
 			scope: searchAll ? "all" : "promoted",
 			limit: searchAll ? 2328 : RESULT_PAGE_SIZE,
-		});
-	}, [locale, query, searchAll]);
+		}).map(({ food }) => ({ kind: "shipped" as const, food }));
+		return [...local, ...shipped];
+	}, [locale, personalFoods, query, searchAll]);
 	const results = allResults.slice(0, visibleCount);
+
+	if (creatingFood || editingFood) {
+		return (
+			<PersonalFoodEditor
+				food={editingFood}
+				onCancel={() => {
+					setCreatingFood(false);
+					setEditingFood(undefined);
+				}}
+				onSaved={(food) => {
+					setCreatingFood(false);
+					setEditingFood(undefined);
+					setSelectedFood({ kind: "personal", food });
+				}}
+			/>
+		);
+	}
 
 	if (selectedFood) {
 		return (
 			<ServingDetail
-				food={selectedFood}
+				selection={selectedFood}
 				meal={meal}
 				date={date}
 				onBack={() => setSelectedFood(undefined)}
 				onLogged={onClose}
+				onEdit={
+					selectedFood.kind === "personal"
+						? () => setEditingFood(selectedFood.food)
+						: undefined
+				}
+				onDelete={
+					selectedFood.kind === "personal"
+						? async () => {
+								const approved = await confirm({
+									title: t.nutrition.personalFood.deleteTitle,
+									message: t.nutrition.personalFood.deleteBody,
+									confirmLabel: t.nutrition.personalFood.delete,
+									cancelLabel: t.nutrition.personalFood.cancel,
+									destructive: true,
+								});
+								if (!approved) return;
+								try {
+									personalFoods.remove(selectedFood.food.id);
+									setSelectedFood(undefined);
+								} catch {
+									toast.error(t.nutrition.personalFood.deleteFailure);
+								}
+							}
+						: undefined
+				}
 			/>
 		);
 	}
@@ -111,6 +174,10 @@ export function NutritionFoodBrowser({
 				/>
 				<GhostButton label={t.nutrition.foodBrowser.scanBarcode} />
 			</View>
+			<GhostButton
+				label={t.nutrition.personalFood.createTitle}
+				onPress={() => setCreatingFood(true)}
+			/>
 			{!searchAll ? (
 				<GhostButton
 					label={t.nutrition.foodBrowser.searchAll}
@@ -129,9 +196,9 @@ export function NutritionFoodBrowser({
 				<EmptyState body={t.nutrition.foodBrowser.empty} />
 			) : (
 				<Card style={styles.results}>
-					{results.map(({ food: result }) => (
+					{results.map((result) => (
 						<Pressable
-							key={result.id}
+							key={`${result.kind}:${result.food.id}`}
 							onPress={() => setSelectedFood(result)}
 							accessibilityRole="button"
 							style={({ pressed }) => [
@@ -139,13 +206,21 @@ export function NutritionFoodBrowser({
 								pressed && styles.pressed,
 							]}
 						>
-							<AppText variant="heading">{result.emoji ?? "•"}</AppText>
+							<AppText variant="heading">
+								{result.kind === "shipped" ? (result.food.emoji ?? "•") : "◇"}
+							</AppText>
 							<View style={styles.flex}>
 								<AppText style={styles.strong}>
-									{(searchAll ? result.sourceName : result.name)[locale]}
+									{result.kind === "personal"
+										? result.food.name[locale]
+										: (searchAll ? result.food.sourceName : result.food.name)[
+												locale
+											]}
 								</AppText>
 								<AppText variant="caption">
-									{t.nutrition.foodBrowser.per100} {result.baseUnit}
+									{result.kind === "personal"
+										? t.nutrition.personalFood.resultLabel
+										: `${t.nutrition.foodBrowser.per100} ${result.food.baseUnit}`}
 								</AppText>
 							</View>
 						</Pressable>
@@ -163,61 +238,90 @@ export function NutritionFoodBrowser({
 }
 
 function ServingDetail({
-	food,
+	selection,
 	meal,
 	date,
 	onBack,
 	onLogged,
+	onEdit,
+	onDelete,
 }: {
-	food: ShippedFood;
+	selection: FoodSelection;
 	meal: MealSlot;
 	date: string;
 	onBack: () => void;
 	onLogged: () => void;
+	onEdit?: () => void;
+	onDelete?: () => void;
 }) {
 	const { t, locale } = useI18n();
 	const toast = useToast();
 	const log = useMutation(api.nutritionDiary.log);
 	const [logging, setLogging] = useState(false);
-	const choices = useMemo(() => servingOptions(food), [food]);
+	const food = selection.food;
+	const choices = useMemo(() => servingChoices(selection), [selection]);
 	const [selectedServing, setSelectedServing] = useState<ServingOption>(
 		choices[0],
 	);
 	const [quantityText, setQuantityText] = useState("1");
 	const parsed = Number(quantityText.replace(",", "."));
 	const quantity = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-	const preview = previewServing(food, selectedServing, quantity, locale);
+	const preview = servingPreview(selection, selectedServing, quantity, locale);
 	const canLog = quantity > 0;
 
 	async function logFood() {
 		if (!canLog || logging) return;
 		setLogging(true);
 		try {
-			const meta = shippedLibraryMeta();
-			await log({
+			const common = {
 				date,
 				meal,
-				name: food.name,
+				name: selection.food.name,
 				serving: {
 					en: formatServingSelection(selectedServing, quantity, "en"),
 					nl: formatServingSelection(selectedServing, quantity, "nl"),
 				},
 				quantity,
 				amount: preview.amount,
-				baseUnit: food.baseUnit,
+				baseUnit: selection.food.baseUnit,
 				nutrients: Object.fromEntries(
 					NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
 				) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
-				provenance: {
-					source: "shipped",
-					sourceId: food.id,
-					dataset: meta.dataset.name,
-					edition: meta.dataset.edition,
-					sourceCode: food.code,
-					sourceName: food.sourceName,
-					saltDerived: true,
-				},
-			});
+			};
+			if (selection.kind === "shipped") {
+				const meta = shippedLibraryMeta();
+				await log({
+					...common,
+					provenance: {
+						source: "shipped",
+						sourceId: selection.food.id,
+						dataset: meta.dataset.name,
+						edition: meta.dataset.edition,
+						sourceCode: selection.food.code,
+						sourceName: selection.food.sourceName,
+						saltDerived: true,
+					},
+				});
+			} else {
+				const provenance = selection.food.provenance;
+				await log({
+					...common,
+					provenance: {
+						source: provenance.recordOrigin,
+						sourceId: selection.food.id,
+						nutritionSource: provenance.nutritionSource,
+						locallyEdited: provenance.locallyEdited,
+						...(provenance.forkedFrom
+							? { forkedFrom: provenance.forkedFrom }
+							: {}),
+						...(provenance.provider ? { provider: provenance.provider } : {}),
+						...(provenance.barcode ? { barcode: provenance.barcode } : {}),
+						...(provenance.attribution
+							? { attribution: provenance.attribution }
+							: {}),
+					},
+				});
+			}
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
 				() => undefined,
 			);
@@ -237,9 +341,15 @@ function ServingDetail({
 		>
 			<Header backLabel={t.common.back} onBack={onBack} />
 			<View style={styles.heading}>
-				<AppText variant="display">{food.emoji ?? "🍽️"}</AppText>
+				<AppText variant="display">
+					{selection.kind === "shipped" ? (selection.food.emoji ?? "🍽️") : "◇"}
+				</AppText>
 				<AppText variant="title">{food.name[locale]}</AppText>
-				<AppText variant="caption">{food.sourceName[locale]}</AppText>
+				<AppText variant="caption">
+					{selection.kind === "shipped"
+						? selection.food.sourceName[locale]
+						: t.nutrition.personalFood.resultLabel}
+				</AppText>
 			</View>
 			<AppText variant="label">{t.nutrition.foodBrowser.serving}</AppText>
 			<View style={styles.options}>
@@ -287,12 +397,25 @@ function ServingDetail({
 					</View>
 				))}
 			</Card>
-			<View style={styles.attribution}>
-				<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
-				<AppText variant="caption">
-					{SALT_DERIVATION_DISCLOSURE[locale]}
-				</AppText>
-			</View>
+			{selection.kind === "shipped" ? (
+				<View style={styles.attribution}>
+					<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
+					<AppText variant="caption">
+						{SALT_DERIVATION_DISCLOSURE[locale]}
+					</AppText>
+				</View>
+			) : (
+				<View style={styles.options}>
+					<GhostButton
+						label={t.nutrition.personalFood.editTitle}
+						onPress={onEdit}
+					/>
+					<GhostButton
+						label={t.nutrition.personalFood.delete}
+						onPress={onDelete}
+					/>
+				</View>
+			)}
 			<PrimaryButton
 				label={
 					logging
@@ -308,13 +431,69 @@ function ServingDetail({
 }
 
 function formatNutrient(
-	value: ShippedFood["nutrients"][keyof ShippedFood["nutrients"]],
+	value: NutrientValue,
 	key: (typeof NUTRIENT_KEYS)[number],
 	messages: { trace: string; absent: string },
 ): string {
 	if (value.kind === "trace") return messages.trace;
 	if (value.kind === "absent") return messages.absent;
 	return `${roundForDisplay(key, value.amount)} ${NUTRIENT_UNITS[key]}`;
+}
+
+function servingChoices(selection: FoodSelection): ServingOption[] {
+	if (selection.kind === "shipped") return servingOptions(selection.food);
+	const options: ServingOption[] = selection.food.servings.map(
+		(serving, index) => ({
+			kind: "authored",
+			index,
+			label: serving.label,
+			amount: serving.amount,
+		}),
+	);
+	options.push({
+		kind: "base-unit",
+		label:
+			selection.food.baseUnit === "g"
+				? { en: "Gram (g)", nl: "Gram (g)" }
+				: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
+		amount: 1,
+		unit: selection.food.baseUnit,
+	});
+	return options;
+}
+
+function scalePersonalValue(
+	value: NutrientValue,
+	factor: number,
+): NutrientValue {
+	return value.kind === "value"
+		? { kind: "value", amount: value.amount * factor }
+		: { kind: value.kind };
+}
+
+function servingPreview(
+	selection: FoodSelection,
+	option: ServingOption,
+	quantity: number,
+	locale: "en" | "nl",
+) {
+	if (selection.kind === "shipped") {
+		return previewServing(selection.food, option, quantity, locale);
+	}
+	const amount = option.amount * quantity;
+	const nutrients = {} as Record<NutrientKey, NutrientValue>;
+	for (const key of NUTRIENT_KEYS) {
+		nutrients[key] = scalePersonalValue(
+			selection.food.nutrients[key],
+			amount / 100,
+		);
+	}
+	return {
+		amount,
+		baseUnit: selection.food.baseUnit,
+		label: formatServingSelection(option, quantity, locale),
+		nutrients,
+	};
 }
 
 function Header({

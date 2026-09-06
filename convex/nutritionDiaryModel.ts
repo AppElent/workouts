@@ -6,6 +6,31 @@ const nutrientValue = v.union(
 	v.object({ kind: v.literal("trace") }),
 	v.object({ kind: v.literal("absent") }),
 );
+const shippedProvenance = v.object({
+	source: v.literal("shipped"),
+	sourceId: v.string(),
+	dataset: v.string(),
+	edition: v.string(),
+	sourceCode: v.number(),
+	sourceName: bilingual,
+	saltDerived: v.boolean(),
+});
+const personalProvenance = v.object({
+	source: v.union(v.literal("personal"), v.literal("import")),
+	// Stable device-minted UUID. It deliberately remains valid when the SQLite
+	// row is unavailable or deleted; the surrounding Diary Entry is a snapshot.
+	sourceId: v.string(),
+	nutritionSource: v.union(
+		v.literal("manual"),
+		v.literal("nevo"),
+		v.literal("openfoodfacts"),
+	),
+	locallyEdited: v.boolean(),
+	forkedFrom: v.optional(v.string()),
+	provider: v.optional(v.string()),
+	barcode: v.optional(v.string()),
+	attribution: v.optional(v.string()),
+});
 
 export const diarySnapshotFields = {
 	date: v.string(),
@@ -30,13 +55,5 @@ export const diarySnapshotFields = {
 		sugars: nutrientValue,
 		salt: nutrientValue,
 	}),
-	provenance: v.object({
-		source: v.literal("shipped"),
-		sourceId: v.string(),
-		dataset: v.string(),
-		edition: v.string(),
-		sourceCode: v.number(),
-		sourceName: bilingual,
-		saltDerived: v.boolean(),
-	}),
+	provenance: v.union(shippedProvenance, personalProvenance),
 };

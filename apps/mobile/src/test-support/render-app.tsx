@@ -20,14 +20,29 @@ import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
+import {
+	createPersonalFoodRepository,
+	type PersonalFoodRepository,
+} from "../data/personal-food-repository";
+import { PersonalFoodsProvider } from "../data/personal-foods";
 import { LocaleProvider } from "../i18n";
+import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
+import { SQLiteTestDatabase } from "./sqlite-test-database";
 
-export function TestLayout(): ReactNode {
+export function TestLayout({
+	repository,
+}: {
+	repository: PersonalFoodRepository;
+}): ReactNode {
 	return (
 		<LocaleProvider>
 			<ToastProvider>
-				<Slot />
+				<ConfirmProvider>
+					<PersonalFoodsProvider repository={repository}>
+						<Slot />
+					</PersonalFoodsProvider>
+				</ConfirmProvider>
 			</ToastProvider>
 		</LocaleProvider>
 	);
@@ -38,9 +53,13 @@ export function renderApp(
 	/** Replace a route module — used to make a route throw on purpose. */
 	overrides: Record<string, unknown> = {},
 ) {
-	return renderRouter(
+	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+	function Layout() {
+		return <TestLayout repository={repository} />;
+	}
+	const rendered = renderRouter(
 		{
-			_layout: TestLayout as never,
+			_layout: Layout as never,
 			nutrition: NutritionRoute as never,
 			"nutrition-goals": NutritionGoalsRoute as never,
 			language: LanguageRoute as never,
@@ -49,4 +68,5 @@ export function renderApp(
 		},
 		{ initialUrl },
 	);
+	return Object.assign(rendered, { repository });
 }
