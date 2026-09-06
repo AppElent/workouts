@@ -1,10 +1,8 @@
 import {
-	ABSENT,
 	type NutrientValue,
-	nutrientValue,
+	scaleNutrient,
 	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
-	TRACE,
 } from "./nutrients";
 import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
 
@@ -86,14 +84,6 @@ export function formatServingSelection(
 	return `${option.label[locale]} × ${formatQuantity(quantity, locale)}`;
 }
 
-function scaleValue(value: NutrientValue, factor: number): NutrientValue {
-	if (value.kind === "absent") return ABSENT;
-	// A trace of something stays a trace however much of it you eat: the source
-	// never said how much, so scaling would invent precision.
-	if (value.kind === "trace") return TRACE;
-	return nutrientValue(value.amount * factor);
-}
-
 /**
  * The nutrients in `amount` base units of a food.
  *
@@ -107,7 +97,7 @@ export function scaleNutrients(
 	const factor = amount / 100;
 	const scaled = {} as Record<ShippedNutrientKey, NutrientValue>;
 	for (const key of SHIPPED_NUTRIENT_KEYS) {
-		scaled[key] = scaleValue(food.nutrients[key], factor);
+		scaled[key] = scaleNutrient(food.nutrients[key], factor);
 	}
 	return scaled;
 }

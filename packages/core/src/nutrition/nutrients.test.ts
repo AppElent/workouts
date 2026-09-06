@@ -9,7 +9,9 @@ import {
 	NUTRIENT_KEYS,
 	numericAmount,
 	nutrientValue,
+	rescaleNutrients,
 	roundForDisplay,
+	scaleNutrient,
 	SHIPPED_NUTRIENT_KEYS,
 	TRACE,
 } from "./nutrients";
@@ -81,6 +83,36 @@ describe("deriving salt from sodium", () => {
 		expect(isDerivedNutrient("salt")).toBe(true);
 		expect(isDerivedNutrient("sodium")).toBe(false);
 		expect(isDerivedNutrient("protein")).toBe(false);
+	});
+});
+
+describe("rescaling a stored nutrient snapshot", () => {
+	test("scales a value by the ratio, without touching the source", () => {
+		expect(scaleNutrient(nutrientValue(10), 2.5)).toEqual({
+			kind: "value",
+			amount: 25,
+		});
+	});
+
+	test("leaves absent absent at any ratio — a quantity edit cannot invent a figure", () => {
+		expect(scaleNutrient(ABSENT, 3)).toEqual({ kind: "absent" });
+		expect(scaleNutrient(ABSENT, 0)).toEqual({ kind: "absent" });
+	});
+
+	test("leaves trace trace at any ratio — a quantity edit cannot invent precision", () => {
+		expect(scaleNutrient(TRACE, 3)).toEqual({ kind: "trace" });
+	});
+
+	test("rescales every key in a snapshot by the same ratio", () => {
+		const rescaled = rescaleNutrients(
+			{ energy: nutrientValue(100), protein: TRACE, fat: ABSENT },
+			2,
+		);
+		expect(rescaled).toEqual({
+			energy: { kind: "value", amount: 200 },
+			protein: { kind: "trace" },
+			fat: { kind: "absent" },
+		});
 	});
 });
 

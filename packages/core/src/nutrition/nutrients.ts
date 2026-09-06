@@ -114,3 +114,29 @@ export function roundForDisplay(
 	const factor = 10 ** NUTRIENT_DISPLAY_DECIMALS[key];
 	return Math.round(amount * factor) / factor;
 }
+
+/**
+ * Scale a stored nutrient reading by a positive ratio.
+ *
+ * `trace` and `absent` are invariant under scaling: the source never gave a
+ * number for either, so no ratio can produce one. Only `value` carries an
+ * amount to rescale. This is what lets a diary entry's quantity change without
+ * ever consulting the food it came from (spec #68, ticket #73) — the snapshot
+ * scales itself.
+ */
+export function scaleNutrient(value: NutrientValue, factor: number): NutrientValue {
+	if (value.kind !== "value") return value;
+	return nutrientValue(value.amount * factor);
+}
+
+/** `scaleNutrient` across a full set of nutrient readings, keyed any way. */
+export function rescaleNutrients<K extends string>(
+	nutrients: Readonly<Record<K, NutrientValue>>,
+	factor: number,
+): Record<K, NutrientValue> {
+	const scaled = {} as Record<K, NutrientValue>;
+	for (const key of Object.keys(nutrients) as K[]) {
+		scaled[key] = scaleNutrient(nutrients[key], factor);
+	}
+	return scaled;
+}
