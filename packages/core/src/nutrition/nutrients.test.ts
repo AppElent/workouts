@@ -11,8 +11,8 @@ import {
 	nutrientValue,
 	rescaleNutrients,
 	roundForDisplay,
-	scaleNutrient,
 	SHIPPED_NUTRIENT_KEYS,
+	scaleNutrient,
 	TRACE,
 } from "./nutrients";
 import { isDerivedNutrient, saltFromSodium } from "./salt";

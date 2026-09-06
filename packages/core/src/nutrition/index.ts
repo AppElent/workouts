@@ -74,9 +74,9 @@ export {
 	nutrientValue,
 	rescaleNutrients,
 	roundForDisplay,
-	scaleNutrient,
 	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
+	scaleNutrient,
 	TRACE,
 } from "./nutrients";
 export {

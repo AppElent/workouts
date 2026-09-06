@@ -1,8 +1,8 @@
 import {
 	type NutrientValue,
-	scaleNutrient,
 	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
+	scaleNutrient,
 } from "./nutrients";
 import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
 

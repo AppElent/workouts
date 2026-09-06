@@ -124,7 +124,10 @@ export function roundForDisplay(
  * ever consulting the food it came from (spec #68, ticket #73) — the snapshot
  * scales itself.
  */
-export function scaleNutrient(value: NutrientValue, factor: number): NutrientValue {
+export function scaleNutrient(
+	value: NutrientValue,
+	factor: number,
+): NutrientValue {
 	if (value.kind !== "value") return value;
 	return nutrientValue(value.amount * factor);
 }
