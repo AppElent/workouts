@@ -115,4 +115,3 @@
 - [ ] Start Expo on an unused port other than occupied 8081/8082, configure `adb reverse`, then begin device automation with `agent-device open <app> --foreground`.
 - [ ] Use `snapshot -i`, click/fill, and `wait text` to create a bilingual Personal Food with a custom Serving, find it in ordinary local search, log it to a meal, and confirm the Diary Entry is visible.
 - [ ] Close the device session and make a final corrective commit only if verification exposed a tested defect.
-
