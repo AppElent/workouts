@@ -18,6 +18,7 @@ import { useQuery } from "convex/react";
 import type { Id } from "../convex/api";
 import { api } from "../convex/api";
 import type { IsoDate } from "./calendar-day";
+import type { ComboSnapshotProvenance } from "./personal-food-repository";
 
 /** The eight nutrients the module stores and shows. Order is display order. */
 export { NUTRIENT_KEYS, type NutrientKey };
@@ -42,6 +43,10 @@ export interface DiaryEntry {
 	nutrients: Record<NutrientKey, NutrientValue>;
 	/** The number of servings logged — what a quantity edit rescales from. */
 	quantity: number;
+	amount: number;
+	baseUnit: "g" | "ml";
+	provenance: ComboSnapshotProvenance;
+	comboGroup?: { id: string; comboId: string; name: string };
 }
 
 export interface NutritionDay {
@@ -104,6 +109,10 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			serving: entry.serving,
 			nutrients: entry.nutrients,
 			quantity: entry.quantity,
+			amount: entry.amount,
+			baseUnit: entry.baseUnit,
+			provenance: entry.provenance,
+			comboGroup: entry.comboGroup,
 		});
 	}
 	return {

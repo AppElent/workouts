@@ -180,6 +180,46 @@ export const en = {
 			saveFailure:
 				"This Personal Food could not be saved. Your changes are still here.",
 		},
+		combos: {
+			create: "Create Combo",
+			log: "Log Combo",
+			storageTitle: "Stored only on this device",
+			storageBody:
+				"Combos are available offline on this device, do not appear on a second device, and may be lost if you uninstall Workouts. Logging syncs with your diary when connected.",
+			name: "Combo name",
+			save: "Save Combo",
+			saving: "Saving Combo…",
+			saved: "Combo saved.",
+			saveFailure:
+				"This Combo could not be saved. Your name and selection are still here.",
+			selectionHelp:
+				"Choose individual diary entries. Meal slots are never selected automatically.",
+			selectEntry: "Select {name} for Combo",
+			cancel: "Cancel",
+			continueOne: "Continue with 1 part",
+			continueMany: "Continue with {count} parts",
+			destination: "Log to meal",
+			logOne: "Log 1 part",
+			logMany: "Log {count} parts",
+			logging: "Logging Combo…",
+			logFailure:
+				"This Combo could not be logged. Your selection is still here.",
+			partsOne: "1 part",
+			partsMany: "{count} parts",
+			needsAttention: "Needs attention",
+			missing: "Missing source",
+			missingBody:
+				"A saved food is no longer on this device. It was not replaced automatically. Delete this Combo or recreate it from the entries you want.",
+			emptyTitle: "No Combos yet",
+			emptyBody: "Create one by selecting individual entries from your diary.",
+			deleteTitle: "Delete this Combo?",
+			deleteBody:
+				"Previously logged groups keep their saved nutrition snapshots.",
+			delete: "Delete Combo",
+			deleteFailure: "This Combo could not be deleted.",
+			expandGroup: "Expand Combo {name}",
+			collapseGroup: "Collapse Combo {name}",
+		},
 
 		entryEditor: {
 			title: "Edit entry",

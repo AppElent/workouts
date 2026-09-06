@@ -42,11 +42,16 @@ import {
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
+import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
 import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
+import {
+	NutritionComboBuilder,
+	NutritionComboLibrary,
+} from "./nutrition-combos";
 import { NutritionEntryEditor } from "./nutrition-entry-editor";
 import { NutritionFoodBrowser } from "./nutrition-food-browser";
 
@@ -74,6 +79,11 @@ export function NutritionDayScreen() {
 		entry: DiaryEntry;
 		meal: MealSlot;
 	}>();
+	const [comboMode, setComboMode] = useState<"select" | "library">();
+	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const [comboEntries, setComboEntries] = useState<DiaryEntry[]>();
 
 	const state = useNutritionDay(date);
 	const marker = useTrainingMarker(date);
@@ -105,6 +115,29 @@ export function NutritionDayScreen() {
 				meal={editing.meal}
 				date={date}
 				onClose={() => setEditing(undefined)}
+			/>
+		);
+	}
+
+	if (comboEntries) {
+		return (
+			<NutritionComboBuilder
+				entries={comboEntries}
+				onClose={() => setComboEntries(undefined)}
+				onSaved={() => {
+					setComboEntries(undefined);
+					setComboMode(undefined);
+					setSelectedEntryIds(new Set());
+				}}
+			/>
+		);
+	}
+
+	if (comboMode === "library") {
+		return (
+			<NutritionComboLibrary
+				date={date}
+				onClose={() => setComboMode(undefined)}
 			/>
 		);
 	}
@@ -143,6 +176,24 @@ export function NutritionDayScreen() {
 						onSetUpGoals={() => router.push("/nutrition-goals")}
 					/>
 
+					<ComboControls
+						t={t}
+						selecting={comboMode === "select"}
+						selectedCount={selectedEntryIds.size}
+						onCreate={() => setComboMode("select")}
+						onLog={() => setComboMode("library")}
+						onCancel={() => {
+							setComboMode(undefined);
+							setSelectedEntryIds(new Set());
+						}}
+						onContinue={() => {
+							const selected = MEAL_SLOTS.flatMap(
+								(slot) => state.day.entries[slot],
+							).filter((entry) => selectedEntryIds.has(entry.id));
+							if (selected.length > 0) setComboEntries(selected);
+						}}
+					/>
+
 					{MEAL_SLOTS.map((slot) => (
 						<MealSection
 							key={slot}
@@ -152,6 +203,16 @@ export function NutritionDayScreen() {
 							locale={locale}
 							onAdd={() => setAddingTo(slot)}
 							onEdit={(entry) => setEditing({ entry, meal: slot })}
+							selecting={comboMode === "select"}
+							selectedEntryIds={selectedEntryIds}
+							onToggleEntry={(entry) =>
+								setSelectedEntryIds((current) => {
+									const next = new Set(current);
+									if (next.has(entry.id)) next.delete(entry.id);
+									else next.add(entry.id);
+									return next;
+								})
+							}
 						/>
 					))}
 
@@ -339,6 +400,53 @@ function GoalRow({
 	);
 }
 
+function ComboControls({
+	t,
+	selecting,
+	selectedCount,
+	onCreate,
+	onLog,
+	onCancel,
+	onContinue,
+}: {
+	t: Messages;
+	selecting: boolean;
+	selectedCount: number;
+	onCreate: () => void;
+	onLog: () => void;
+	onCancel: () => void;
+	onContinue: () => void;
+}) {
+	if (selecting) {
+		return (
+			<Card style={styles.comboControls}>
+				<AppText>{t.nutrition.combos.selectionHelp}</AppText>
+				<View style={styles.comboActions}>
+					<GhostButton label={t.nutrition.combos.cancel} onPress={onCancel} />
+					<PrimaryButton
+						label={
+							selectedCount === 1
+								? t.nutrition.combos.continueOne
+								: fmt(t.nutrition.combos.continueMany, {
+										count: selectedCount,
+									})
+						}
+						onPress={onContinue}
+						disabled={selectedCount === 0}
+					/>
+				</View>
+			</Card>
+		);
+	}
+
+	return (
+		<View style={styles.comboActions}>
+			<GhostButton label={t.nutrition.combos.create} onPress={onCreate} />
+			<GhostButton label={t.nutrition.combos.log} onPress={onLog} />
+		</View>
+	);
+}
+
 function MealSection({
 	t,
 	slot,
@@ -346,6 +454,9 @@ function MealSection({
 	locale,
 	onAdd,
 	onEdit,
+	selecting,
+	selectedEntryIds,
+	onToggleEntry,
 }: {
 	t: Messages;
 	slot: MealSlot;
@@ -353,8 +464,15 @@ function MealSection({
 	locale: "en" | "nl";
 	onAdd: () => void;
 	onEdit: (entry: DiaryEntry) => void;
+	selecting: boolean;
+	selectedEntryIds: ReadonlySet<string>;
+	onToggleEntry: (entry: DiaryEntry) => void;
 }) {
 	const mealName = t.nutrition.meals[slot];
+	const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const consumedGroups = new Set<string>();
 
 	return (
 		<View style={styles.section}>
@@ -379,36 +497,139 @@ function MealSection({
 				{entries.length === 0 ? (
 					<EmptyState body={t.nutrition.mealEmpty} />
 				) : (
-					entries.map((entry) => (
-						<Pressable
-							key={entry.id}
-							onPress={() => onEdit(entry)}
-							accessibilityRole="button"
-							accessibilityLabel={fmt(t.nutrition.entryEditor.editEntry, {
-								name: entry.name[locale],
-							})}
-							style={({ pressed }) => [
-								styles.entryRow,
-								pressed ? { backgroundColor: colors.surface2 } : null,
-							]}
-						>
-							<View style={styles.flex}>
-								<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
-								<AppText variant="caption">{entry.serving[locale]}</AppText>
+					entries.map((entry) => {
+						const group = entry.comboGroup;
+						if (!group) {
+							return (
+								<EntryRow
+									key={entry.id}
+									t={t}
+									entry={entry}
+									locale={locale}
+									selecting={selecting}
+									selected={selectedEntryIds.has(entry.id)}
+									onPress={() =>
+										selecting ? onToggleEntry(entry) : onEdit(entry)
+									}
+								/>
+							);
+						}
+						if (consumedGroups.has(group.id)) return null;
+						consumedGroups.add(group.id);
+						const parts = entries.filter(
+							(candidate) => candidate.comboGroup?.id === group.id,
+						);
+						const expanded = selecting || expandedGroups.has(group.id);
+						return (
+							<View key={group.id}>
+								<Pressable
+									onPress={() =>
+										setExpandedGroups((current) => {
+											const next = new Set(current);
+											if (next.has(group.id)) next.delete(group.id);
+											else next.add(group.id);
+											return next;
+										})
+									}
+									accessibilityRole="button"
+									accessibilityState={{ expanded }}
+									accessibilityLabel={fmt(
+										expanded
+											? t.nutrition.combos.collapseGroup
+											: t.nutrition.combos.expandGroup,
+										{ name: group.name },
+									)}
+									style={styles.entryRow}
+								>
+									<View style={styles.flex}>
+										<AppText style={styles.goalName}>{group.name}</AppText>
+										<AppText variant="caption">
+											{parts.length === 1
+												? t.nutrition.combos.partsOne
+												: fmt(t.nutrition.combos.partsMany, {
+														count: parts.length,
+													})}
+										</AppText>
+									</View>
+									<AppText variant="heading">{expanded ? "⌃" : "⌄"}</AppText>
+								</Pressable>
+								{expanded
+									? parts.map((part) => (
+											<EntryRow
+												key={part.id}
+												t={t}
+												entry={part}
+												locale={locale}
+												selecting={selecting}
+												selected={selectedEntryIds.has(part.id)}
+												onPress={() =>
+													selecting ? onToggleEntry(part) : onEdit(part)
+												}
+											/>
+										))
+									: null}
 							</View>
-							<AppText style={styles.goalName}>
-								{entry.nutrients.energy.kind === "value"
-									? roundForDisplay("energy", entry.nutrients.energy.amount)
-									: entry.nutrients.energy.kind === "trace"
-										? t.nutrition.foodBrowser.trace
-										: t.nutrition.foodBrowser.absent}{" "}
-								{t.nutrition.units.kcal}
-							</AppText>
-						</Pressable>
-					))
+						);
+					})
 				)}
 			</Card>
 		</View>
+	);
+}
+
+function EntryRow({
+	t,
+	entry,
+	locale,
+	selecting,
+	selected,
+	onPress,
+}: {
+	t: Messages;
+	entry: DiaryEntry;
+	locale: "en" | "nl";
+	selecting: boolean;
+	selected: boolean;
+	onPress: () => void;
+}) {
+	return (
+		<Pressable
+			onPress={onPress}
+			accessibilityRole={selecting ? "checkbox" : "button"}
+			accessibilityState={selecting ? { checked: selected } : undefined}
+			accessibilityLabel={
+				selecting
+					? fmt(t.nutrition.combos.selectEntry, {
+							name: entry.name[locale],
+						})
+					: fmt(t.nutrition.entryEditor.editEntry, {
+							name: entry.name[locale],
+						})
+			}
+			style={({ pressed }) => [
+				styles.entryRow,
+				styles.comboPart,
+				pressed ? { backgroundColor: colors.surface2 } : null,
+			]}
+		>
+			{selecting ? (
+				<AppText style={{ color: selected ? colors.accent : colors.textMuted }}>
+					{selected ? "☑" : "☐"}
+				</AppText>
+			) : null}
+			<View style={styles.flex}>
+				<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
+				<AppText variant="caption">{entry.serving[locale]}</AppText>
+			</View>
+			<AppText style={styles.goalName}>
+				{entry.nutrients.energy.kind === "value"
+					? roundForDisplay("energy", entry.nutrients.energy.amount)
+					: entry.nutrients.energy.kind === "trace"
+						? t.nutrition.foodBrowser.trace
+						: t.nutrition.foodBrowser.absent}{" "}
+				{t.nutrition.units.kcal}
+			</AppText>
+		</Pressable>
 	);
 }
 
@@ -556,6 +777,8 @@ const styles = StyleSheet.create({
 		gap: spacing.sm,
 	},
 	goalName: { fontWeight: "700" },
+	comboControls: { gap: spacing.sm },
+	comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 	track: {
 		height: 8,
 		borderRadius: radius.pill,
@@ -584,6 +807,7 @@ const styles = StyleSheet.create({
 		gap: spacing.sm,
 		paddingVertical: 6,
 	},
+	comboPart: { paddingLeft: spacing.sm },
 
 	disclosure: {
 		flexDirection: "row",
