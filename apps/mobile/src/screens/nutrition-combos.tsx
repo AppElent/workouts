@@ -1,3 +1,9 @@
+import {
+	getShippedFood,
+	NUTRIENT_KEYS,
+	type NutrientValue,
+	shippedLibraryMeta,
+} from "@workouts/core/nutrition";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import {
@@ -12,7 +18,10 @@ import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import { MEAL_SLOTS } from "../data/nutrition-day";
 import type {
 	Combo,
+	ComboPart,
 	ComboPartReference,
+	ComboPartSnapshot,
+	PersonalFood,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
@@ -119,6 +128,7 @@ export function NutritionComboLibrary({
 	const [selected, setSelected] = useState<Combo>();
 	const [meal, setMeal] = useState<MealSlot>("breakfast");
 	const [logging, setLogging] = useState(false);
+	const [deleting, setDeleting] = useState(false);
 	const combos = foods.listCombos();
 	const hasMissing =
 		selected?.parts.some((part) => part.status === "missing") ?? false;
@@ -131,7 +141,7 @@ export function NutritionComboLibrary({
 				date,
 				meal,
 				combo: { id: selected.id, name: selected.name },
-				parts: selected.parts.map((part) => part.snapshot),
+				parts: selected.parts.map((part) => resolvePart(part, foods.find)),
 			});
 			onClose();
 		} catch {
@@ -150,11 +160,43 @@ export function NutritionComboLibrary({
 			destructive: true,
 		});
 		if (!approved) return;
+		setDeleting(true);
 		try {
-			foods.removeCombo(selected.id);
+			await Promise.resolve();
+			if (!foods.removeCombo(selected.id)) {
+				throw new Error("Combo not found.");
+			}
 			setSelected(undefined);
 		} catch {
 			toast.error(t.nutrition.combos.deleteFailure);
+		} finally {
+			setDeleting(false);
+		}
+	}
+
+	async function removeMissingParts() {
+		if (!selected) return;
+		const remaining = selected.parts.filter(
+			(part) => part.status === "available",
+		);
+		if (remaining.length === 0) return;
+		const approved = await confirm({
+			title: t.nutrition.combos.resolveTitle,
+			message: t.nutrition.combos.resolveBody,
+			confirmLabel: t.nutrition.combos.resolve,
+			cancelLabel: t.nutrition.combos.cancel,
+			destructive: true,
+		});
+		if (!approved) return;
+		try {
+			setSelected(
+				foods.updateCombo(selected.id, {
+					name: selected.name,
+					parts: remaining,
+				}),
+			);
+		} catch {
+			toast.error(t.nutrition.combos.resolveFailure);
 		}
 	}
 
@@ -225,10 +267,24 @@ export function NutritionComboLibrary({
 										})
 						}
 						onPress={log}
-						disabled={hasMissing}
+						disabled={hasMissing || deleting}
 						loading={logging}
 					/>
-					<GhostButton label={t.nutrition.combos.delete} onPress={remove} />
+					<GhostButton
+						label={
+							deleting ? t.nutrition.combos.deleting : t.nutrition.combos.delete
+						}
+						onPress={remove}
+						loading={deleting}
+						disabled={logging}
+					/>
+					{hasMissing &&
+					selected.parts.some((part) => part.status === "available") ? (
+						<GhostButton
+							label={t.nutrition.combos.resolve}
+							onPress={removeMissingParts}
+						/>
+					) : null}
 				</>
 			) : combos.length === 0 ? (
 				<EmptyState
@@ -274,6 +330,76 @@ function referenceFor(entry: DiaryEntry): ComboPartReference {
 		return { kind: "personal", foodId: entry.provenance.sourceId };
 	}
 	return { kind: "oneOff" };
+}
+
+/** Resolve only the same stable source id at log time; never search for a substitute. */
+function resolvePart(
+	part: ComboPart,
+	findPersonalFood: (id: string) => PersonalFood | undefined,
+): ComboPartSnapshot {
+	if (part.reference.kind === "oneOff") return part.snapshot;
+	const amount = part.snapshot.amount;
+	if (part.reference.kind === "shipped") {
+		const food = getShippedFood(part.reference.foodId);
+		if (!food) throw new Error("Combo source is missing.");
+		const meta = shippedLibraryMeta();
+		return {
+			...part.snapshot,
+			name: food.name,
+			baseUnit: food.baseUnit,
+			nutrients: scaledNutrients(food.nutrients, amount),
+			provenance: {
+				source: "shipped",
+				sourceId: food.id,
+				dataset: meta.dataset.name,
+				edition: meta.dataset.edition,
+				sourceCode: food.code,
+				sourceName: food.sourceName,
+				saltDerived: true,
+			},
+		};
+	}
+	const food = findPersonalFood(part.reference.foodId);
+	if (!food) throw new Error("Combo source is missing.");
+	return {
+		...part.snapshot,
+		name: food.name,
+		baseUnit: food.baseUnit,
+		nutrients: scaledNutrients(food.nutrients, amount),
+		provenance: {
+			source: food.provenance.recordOrigin,
+			sourceId: food.id,
+			nutritionSource: food.provenance.nutritionSource,
+			locallyEdited: food.provenance.locallyEdited,
+			...(food.provenance.forkedFrom
+				? { forkedFrom: food.provenance.forkedFrom }
+				: {}),
+			...(food.provenance.provider
+				? { provider: food.provenance.provider }
+				: {}),
+			...(food.provenance.barcode ? { barcode: food.provenance.barcode } : {}),
+			...(food.provenance.attribution
+				? { attribution: food.provenance.attribution }
+				: {}),
+		},
+	};
+}
+
+function scaledNutrients(
+	per100: Readonly<Record<string, NutrientValue>>,
+	amount: number,
+): Record<(typeof NUTRIENT_KEYS)[number], NutrientValue> {
+	return Object.fromEntries(
+		NUTRIENT_KEYS.map((key) => {
+			const value = per100[key];
+			return [
+				key,
+				value.kind === "value"
+					? { kind: "value", amount: value.amount * (amount / 100) }
+					: { kind: value.kind },
+			];
+		}),
+	) as Record<(typeof NUTRIENT_KEYS)[number], NutrientValue>;
 }
 
 function Header({ label, onPress }: { label: string; onPress: () => void }) {

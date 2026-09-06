@@ -1,7 +1,10 @@
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { fireEvent, screen } from "expo-router/testing-library";
-import type { ComboDraft } from "../data/personal-food-repository";
+import { fireEvent, screen, testRouter } from "expo-router/testing-library";
+import type {
+	ComboDraft,
+	PersonalFoodDraft,
+} from "../data/personal-food-repository";
 import { renderApp } from "../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -78,6 +81,20 @@ function oneOffCombo(): ComboDraft {
 	};
 }
 
+function personalFoodDraft(name: string, energy: number): PersonalFoodDraft {
+	return {
+		name: { en: name, nl: name },
+		baseUnit: "g",
+		nutrients: { ...nutrients, energy: { kind: "value", amount: energy } },
+		servings: [],
+		provenance: {
+			recordOrigin: "personal",
+			nutritionSource: "manual",
+			locallyEdited: true,
+		},
+	};
+}
+
 describe("Nutrition Combos", () => {
 	it("saves individually selected diary entries as a named device-local Combo", async () => {
 		showDiary([
@@ -107,6 +124,29 @@ describe("Nutrition Combos", () => {
 				],
 			}),
 		]);
+	});
+
+	it("keeps the Combo name and selection visible when device saving fails", async () => {
+		showDiary([diaryEntry("entry-1", "Oats", "lunch")]);
+		const app = renderApp();
+		jest.spyOn(app.repository, "createCombo").mockImplementation(() => {
+			throw new Error("disk full");
+		});
+		await screen.findByText("Oats");
+
+		fireEvent.press(screen.getByText("Create Combo"));
+		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
+		fireEvent.press(screen.getByText("Continue with 1 part"));
+		fireEvent.changeText(screen.getByLabelText("Combo name"), "My oats");
+		fireEvent.press(screen.getByText("Save Combo"));
+
+		expect(
+			await screen.findByText(
+				"This Combo could not be saved. Your name and selection are still here.",
+			),
+		).toBeTruthy();
+		expect(screen.getByDisplayValue("My oats")).toBeTruthy();
+		expect(screen.getByText("Oats")).toBeTruthy();
 	});
 
 	it("logs all saved parts to the selected day and meal with one action", async () => {
@@ -139,6 +179,92 @@ describe("Nutrition Combos", () => {
 				],
 			}),
 		);
+	});
+
+	it("resolves the same Personal Food id at logging time without chasing replacements", async () => {
+		showDiary([]);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionDiary:logCombo"
+					? logCombo
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
+		const app = renderApp();
+		const food = app.repository.create(personalFoodDraft("Old oats", 100));
+		app.repository.createCombo({
+			name: "Current oats",
+			parts: [
+				{
+					reference: { kind: "personal", foodId: food.id },
+					snapshot: {
+						name: food.name,
+						serving: { en: "100 g × 1", nl: "100 g × 1" },
+						quantity: 1,
+						amount: 100,
+						baseUnit: "g",
+						nutrients: food.nutrients,
+						provenance: {
+							source: "personal",
+							sourceId: food.id,
+							nutritionSource: "manual",
+							locallyEdited: true,
+						},
+					},
+				},
+			],
+		});
+		app.repository.update(food.id, personalFoodDraft("Updated oats", 200));
+		await screen.findByText("Today");
+
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Current oats"));
+		fireEvent.press(screen.getByText("Log 1 part"));
+		await screen.findByText("Today");
+
+		expect(logCombo).toHaveBeenCalledWith(
+			expect.objectContaining({
+				parts: [
+					expect.objectContaining({
+						name: { en: "Updated oats", nl: "Updated oats" },
+						nutrients: expect.objectContaining({
+							energy: { kind: "value", amount: 200 },
+						}),
+						provenance: expect.objectContaining({ sourceId: food.id }),
+					}),
+				],
+			}),
+		);
+	});
+
+	it("shows pending and failure feedback without losing the chosen Combo", async () => {
+		showDiary([]);
+		let rejectLog: (reason: Error) => void = () => undefined;
+		const pending = new Promise<never>((_resolve, reject) => {
+			rejectLog = reject;
+		});
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionDiary:logCombo"
+					? jest.fn(() => pending)
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
+		const app = renderApp();
+		app.repository.createCombo(oneOffCombo());
+		await screen.findByText("Today");
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Morning Combo"));
+
+		fireEvent.press(screen.getByText("Log 1 part"));
+		expect(await screen.findByText("Logging Combo…")).toBeTruthy();
+		rejectLog(new Error("offline"));
+
+		expect(
+			await screen.findByText(
+				"This Combo could not be logged. Your selection is still here.",
+			),
+		).toBeTruthy();
+		expect(screen.getByText("Morning Combo")).toBeTruthy();
 	});
 
 	it("renders a logged Combo collapsed, then exposes each normal entry editor", async () => {
@@ -191,5 +317,55 @@ describe("Nutrition Combos", () => {
 		expect(screen.getByText("Needs attention")).toBeTruthy();
 		expect(screen.getByText("Log 1 part")).toBeDisabled();
 		expect(screen.getByText("Delete Combo")).toBeTruthy();
+	});
+
+	it("explicitly resolves a partial dangling Combo by removing unavailable parts", async () => {
+		showDiary([]);
+		const app = renderApp();
+		const oneOff = oneOffCombo().parts[0];
+		const combo = app.repository.createCombo({
+			name: "Repair me",
+			parts: [
+				oneOff,
+				{
+					...oneOff,
+					reference: { kind: "personal", foodId: "deleted-food" },
+					snapshot: {
+						...oneOff.snapshot,
+						provenance: {
+							source: "personal",
+							sourceId: "deleted-food",
+							nutritionSource: "manual",
+							locallyEdited: false,
+						},
+					},
+				},
+			],
+		});
+		await screen.findByText("Today");
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Repair me"));
+
+		fireEvent.press(screen.getByText("Remove unavailable parts"));
+		expect(await screen.findByText("Remove unavailable parts?")).toBeTruthy();
+		const removeButtons = screen.getAllByText("Remove unavailable parts");
+		fireEvent.press(removeButtons[removeButtons.length - 1]);
+
+		expect(await screen.findByText("Log 1 part")).toBeEnabled();
+		expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(1);
+	});
+
+	it("offers the device-local Combo flow in Dutch", async () => {
+		showDiary([]);
+		renderApp("/language");
+		fireEvent.press(await screen.findByLabelText("Nederlands"));
+		testRouter.navigate("/nutrition");
+
+		expect(await screen.findByText("Combo maken")).toBeTruthy();
+		fireEvent.press(screen.getByText("Combo loggen"));
+		expect(
+			await screen.findByText("Alleen op dit apparaat opgeslagen"),
+		).toBeTruthy();
+		expect(screen.getByText("Nog geen Combo's")).toBeTruthy();
 	});
 });

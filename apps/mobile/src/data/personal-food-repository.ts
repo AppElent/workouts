@@ -330,6 +330,12 @@ function validateComboProvenance(
 		if (candidate.source !== "shipped") {
 			throw new Error("A shipped Combo part must keep shipped provenance.");
 		}
+		if (!Number.isFinite(candidate.sourceCode)) {
+			throw new Error("A shipped Combo part needs a source code.");
+		}
+		if (typeof candidate.saltDerived !== "boolean") {
+			throw new Error("A shipped Combo part must preserve salt provenance.");
+		}
 		return {
 			source: "shipped",
 			sourceId: candidate.sourceId,
@@ -345,6 +351,18 @@ function validateComboProvenance(
 	}
 	if (candidate.source !== "personal" && candidate.source !== "import") {
 		throw new Error("A Personal Food Combo part has invalid provenance.");
+	}
+	if (
+		candidate.nutritionSource !== "manual" &&
+		candidate.nutritionSource !== "nevo" &&
+		candidate.nutritionSource !== "openfoodfacts"
+	) {
+		throw new Error(
+			"A Personal Food Combo part has an invalid nutrition source.",
+		);
+	}
+	if (typeof candidate.locallyEdited !== "boolean") {
+		throw new Error("A Personal Food Combo part must preserve its edit state.");
 	}
 	return {
 		source: candidate.source,
@@ -380,13 +398,18 @@ function validateComboDraft(draft: ComboDraft): ComboDraft {
 		) {
 			throw new Error(`Combo part ${index + 1} has an invalid reference.`);
 		}
-		if (
-			(reference.kind === "shipped" || reference.kind === "personal") &&
-			(!("foodId" in reference) || !reference.foodId)
-		) {
-			throw new Error(`Combo part ${index + 1} needs a source id.`);
+		let typedReference: ComboPartReference;
+		if (reference.kind === "oneOff") {
+			typedReference = { kind: "oneOff" };
+		} else {
+			if (!("foodId" in reference)) {
+				throw new Error(`Combo part ${index + 1} needs a source id.`);
+			}
+			typedReference = {
+				kind: reference.kind,
+				foodId: validateText(reference.foodId, "Combo source id"),
+			};
 		}
-		const typedReference = reference as ComboPartReference;
 		const snapshot = (part as ComboPartDraft).snapshot;
 		if (!snapshot || typeof snapshot !== "object") {
 			throw new Error(`Combo part ${index + 1} needs a snapshot.`);

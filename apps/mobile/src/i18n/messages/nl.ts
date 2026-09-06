@@ -200,7 +200,13 @@ export const nl = {
 			needsAttention: "Aandacht nodig",
 			missing: "Bron ontbreekt",
 			missingBody:
-				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Het is niet automatisch vervangen. Verwijder deze Combo of maak hem opnieuw met de gewenste items.",
+				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Het is niet automatisch vervangen. Verwijder niet-beschikbare onderdelen, verwijder deze Combo of maak hem opnieuw met de gewenste items.",
+			resolveTitle: "Niet-beschikbare onderdelen verwijderen?",
+			resolveBody:
+				"Alleen onderdelen waarvan de oorspronkelijke bron nog beschikbaar is, blijven in deze Combo staan.",
+			resolve: "Niet-beschikbare onderdelen verwijderen",
+			resolveFailure:
+				"De niet-beschikbare onderdelen konden niet worden verwijderd.",
 			emptyTitle: "Nog geen Combo's",
 			emptyBody:
 				"Maak er een door afzonderlijke items in je dagboek te selecteren.",
@@ -208,6 +214,7 @@ export const nl = {
 			deleteBody:
 				"Eerder gelogde groepen behouden hun opgeslagen voedingswaarden.",
 			delete: "Combo verwijderen",
+			deleting: "Combo verwijderen…",
 			deleteFailure: "Deze Combo kon niet worden verwijderd.",
 			expandGroup: "Klap Combo {name} uit",
 			collapseGroup: "Klap Combo {name} in",

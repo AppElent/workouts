@@ -209,13 +209,19 @@ export const en = {
 			needsAttention: "Needs attention",
 			missing: "Missing source",
 			missingBody:
-				"A saved food is no longer on this device. It was not replaced automatically. Delete this Combo or recreate it from the entries you want.",
+				"A saved food is no longer on this device. It was not replaced automatically. Remove unavailable parts, delete this Combo, or recreate it from the entries you want.",
+			resolveTitle: "Remove unavailable parts?",
+			resolveBody:
+				"Only the parts whose original sources are still available will remain in this Combo.",
+			resolve: "Remove unavailable parts",
+			resolveFailure: "The unavailable parts could not be removed.",
 			emptyTitle: "No Combos yet",
 			emptyBody: "Create one by selecting individual entries from your diary.",
 			deleteTitle: "Delete this Combo?",
 			deleteBody:
 				"Previously logged groups keep their saved nutrition snapshots.",
 			delete: "Delete Combo",
+			deleting: "Deleting Combo…",
 			deleteFailure: "This Combo could not be deleted.",
 			expandGroup: "Expand Combo {name}",
 			collapseGroup: "Collapse Combo {name}",

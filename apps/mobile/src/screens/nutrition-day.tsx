@@ -523,6 +523,8 @@ function MealSection({
 						return (
 							<View key={group.id}>
 								<Pressable
+									disabled={selecting}
+									accessible={!selecting}
 									onPress={() =>
 										setExpandedGroups((current) => {
 											const next = new Set(current);
@@ -531,14 +533,18 @@ function MealSection({
 											return next;
 										})
 									}
-									accessibilityRole="button"
-									accessibilityState={{ expanded }}
-									accessibilityLabel={fmt(
-										expanded
-											? t.nutrition.combos.collapseGroup
-											: t.nutrition.combos.expandGroup,
-										{ name: group.name },
-									)}
+									accessibilityRole={selecting ? undefined : "button"}
+									accessibilityState={selecting ? undefined : { expanded }}
+									accessibilityLabel={
+										selecting
+											? undefined
+											: fmt(
+													expanded
+														? t.nutrition.combos.collapseGroup
+														: t.nutrition.combos.expandGroup,
+													{ name: group.name },
+												)
+									}
 									style={styles.entryRow}
 								>
 									<View style={styles.flex}>
