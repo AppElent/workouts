@@ -15,6 +15,7 @@ import {
 	type NutritionGoalValue,
 } from "@workouts/core/nutrition";
 import { useQuery } from "convex/react";
+import type { Id } from "../convex/api";
 import { api } from "../convex/api";
 import type { IsoDate } from "./calendar-day";
 
@@ -34,11 +35,13 @@ export interface NutrientGoal extends NutritionGoalValue {
 }
 
 export interface DiaryEntry {
-	id: string;
+	id: Id<"nutritionDiaryEntries">;
 	name: { en: string; nl: string };
 	/** "1 bowl (250 g)" — serving name × quantity, already formatted. */
 	serving: { en: string; nl: string };
 	nutrients: Record<NutrientKey, NutrientValue>;
+	/** The number of servings logged — what a quantity edit rescales from. */
+	quantity: number;
 }
 
 export interface NutritionDay {
@@ -100,6 +103,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			name: entry.name,
 			serving: entry.serving,
 			nutrients: entry.nutrients,
+			quantity: entry.quantity,
 		});
 	}
 	return {

@@ -72,9 +72,11 @@ export {
 	type NutrientValue,
 	numericAmount,
 	nutrientValue,
+	rescaleNutrients,
 	roundForDisplay,
 	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
+	scaleNutrient,
 	TRACE,
 } from "./nutrients";
 export {

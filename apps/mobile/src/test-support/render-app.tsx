@@ -6,7 +6,9 @@
  * drags the chart library, the Convex client and the whole session stack into a
  * test about a meal slot. So the map below is the tree the Nutrition work
  * actually spans: the two real route modules, the real Profile route they are
- * reached from, and a layout carrying the two providers those screens need.
+ * reached from, and a layout carrying the three providers those screens need
+ * — `ConfirmProvider` included, since #73's delete confirmation is real UI
+ * under test here, not a mock.
  *
  * The route *modules* are passed rather than their default exports, so a
  * route's `ErrorBoundary` is registered here exactly as expo-router registers
