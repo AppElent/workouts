@@ -1,4 +1,6 @@
 import {
+	forkHasLocalEdits,
+	forkSource,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -11,7 +13,7 @@ import {
 	validatePersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
-import { useI18n } from "../i18n";
+import { fmt, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card } from "../ui/coach";
@@ -23,7 +25,7 @@ type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 type ServingInput = { key: string; en: string; nl: string; amount: string };
 
 function initialNutrients(
-	food?: PersonalFood,
+	food?: PersonalFoodDraft,
 ): Record<NutrientKey, NutrientInput> {
 	return Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => {
@@ -39,7 +41,7 @@ function initialNutrients(
 	) as Record<NutrientKey, NutrientInput>;
 }
 
-function initialServings(food?: PersonalFood): ServingInput[] {
+function initialServings(food?: PersonalFoodDraft): ServingInput[] {
 	return (
 		food?.servings.map((serving, index) => ({
 			key: `existing-${index}`,
@@ -56,24 +58,40 @@ function parseNumber(text: string): number {
 
 export function PersonalFoodEditor({
 	food,
+	seed,
 	onSaved,
 	onCancel,
 }: {
 	food?: PersonalFood;
+	/**
+	 * A pre-populated draft to author from rather than a blank form — how
+	 * correcting a shipped food enters this screen (#75). Ignored when `food` is
+	 * given, because that is an edit of something already saved.
+	 */
+	seed?: PersonalFoodDraft;
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
 }) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
-	const [nameEn, setNameEn] = useState(food?.name.en ?? "");
-	const [nameNl, setNameNl] = useState(food?.name.nl ?? "");
-	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(food?.baseUnit ?? "g");
-	const [nutrients, setNutrients] = useState(() => initialNutrients(food));
-	const [servings, setServings] = useState(() => initialServings(food));
+	const initial = food ?? seed;
+	const [nameEn, setNameEn] = useState(initial?.name.en ?? "");
+	const [nameNl, setNameNl] = useState(initial?.name.nl ?? "");
+	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
+		initial?.baseUnit ?? "g",
+	);
+	const [nutrients, setNutrients] = useState(() => initialNutrients(initial));
+	const [servings, setServings] = useState(() => initialServings(initial));
 	const nextServingKey = useRef(servings.length);
 	const [validationError, setValidationError] = useState<string>();
 	const [saving, setSaving] = useState(false);
+
+	/** The shipped record behind this food, when it is a correction of one. */
+	const source = useMemo(
+		() => (initial ? forkSource(initial) : undefined),
+		[initial],
+	);
 
 	const stateOptions = useMemo(
 		() => [
@@ -98,7 +116,7 @@ export function PersonalFoodEditor({
 				values[key] = { kind: input.kind };
 			}
 		}
-		return {
+		const authored = {
 			name: { en: nameEn, nl: nameNl },
 			baseUnit,
 			nutrients: values,
@@ -106,10 +124,21 @@ export function PersonalFoodEditor({
 				label: { en: serving.en, nl: serving.nl },
 				amount: parseNumber(serving.amount),
 			})),
-			provenance: food?.provenance ?? {
-				recordOrigin: "personal",
-				nutritionSource: "manual",
-				locallyEdited: false,
+		};
+		const provenance = initial?.provenance ?? {
+			recordOrigin: "personal" as const,
+			nutritionSource: "manual" as const,
+			locallyEdited: false,
+		};
+		if (!source) return { ...authored, provenance };
+		// `locallyEdited` is recomputed against the shipped source on every save
+		// rather than latched, so a figure changed and changed back is honestly
+		// reported as unchanged.
+		return {
+			...authored,
+			provenance: {
+				...provenance,
+				locallyEdited: forkHasLocalEdits(authored, source),
 			},
 		};
 	}
@@ -149,10 +178,22 @@ export function PersonalFoodEditor({
 			keyboardShouldPersistTaps="handled"
 		>
 			<AppText variant="title">
-				{food
-					? t.nutrition.personalFood.editTitle
-					: t.nutrition.personalFood.createTitle}
+				{source
+					? t.nutrition.fork.title
+					: food
+						? t.nutrition.personalFood.editTitle
+						: t.nutrition.personalFood.createTitle}
 			</AppText>
+			{source ? (
+				<Card style={styles.disclosure}>
+					<AppText variant="heading">
+						{fmt(t.nutrition.fork.forkedFrom, {
+							name: source.sourceName[locale],
+						})}
+					</AppText>
+					<AppText variant="caption">{t.nutrition.fork.intro}</AppText>
+				</Card>
+			) : null}
 			<Card style={styles.disclosure}>
 				<AppText variant="heading">
 					{t.nutrition.personalFood.storageTitle}

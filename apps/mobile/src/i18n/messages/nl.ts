@@ -172,6 +172,22 @@ export const nl = {
 				"Dit persoonlijke voedingsmiddel kon niet worden opgeslagen. Je wijzigingen staan er nog.",
 		},
 
+		/** Zie de Engelse toelichting bij `fork`. */
+		fork: {
+			correct: "Dit voedingsmiddel corrigeren",
+			title: "Meegeleverd voedingsmiddel corrigeren",
+			intro:
+				"Dit slaat je eigen kopie op. Het meegeleverde voedingsmiddel blijft zoals het is gepubliceerd en jouw kopie vervangt het in de gewone zoekresultaten.",
+			resultLabel: "Jouw correctie",
+			forkedFrom: "Jouw correctie van {name}",
+			locallyEdited: "Je hebt deze waarden aangepast.",
+			unchanged: "Je hebt deze waarden nog niet aangepast.",
+			shadowed: "Vervangen door jouw correctie",
+			deleteTitle: "Deze correctie verwijderen?",
+			deleteBody:
+				"Het meegeleverde voedingsmiddel komt terug in de zoekresultaten. Dagboekitems behouden de voedingswaarde waarmee ze zijn vastgelegd.",
+		},
+
 		entryEditor: {
 			title: "Item bewerken",
 			editEntry: "Item bewerken: {name}",

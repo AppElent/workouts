@@ -181,6 +181,29 @@ export const en = {
 				"This Personal Food could not be saved. Your changes are still here.",
 		},
 
+		/**
+		 * Correcting a shipped food (#75). A correction never edits the shipped
+		 * record: it creates the user's own food that stands in front of it. The
+		 * copy says "your correction", never "the fixed version", because nothing
+		 * here claims the user is right and NEVO is wrong.
+		 */
+		fork: {
+			correct: "Correct this food",
+			title: "Correct a shipped food",
+			intro:
+				"This saves your own copy. The bundled food is left as published, and your copy replaces it in ordinary search.",
+			/** Caption under a fork, wherever it appears. */
+			resultLabel: "Your correction",
+			forkedFrom: "Your correction of {name}",
+			locallyEdited: "You changed these figures.",
+			unchanged: "You have not changed these figures yet.",
+			/** Caption on the original, in the deliberate broader view only. */
+			shadowed: "Replaced by your correction",
+			deleteTitle: "Delete this correction?",
+			deleteBody:
+				"The bundled food returns to search. Diary entries keep the nutrition they were logged with.",
+		},
+
 		entryEditor: {
 			title: "Edit entry",
 			/** Icon-free row, so this is the whole accessible name. */

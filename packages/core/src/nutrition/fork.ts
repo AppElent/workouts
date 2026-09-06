@@ -61,11 +61,14 @@ export type ForkProvenance = {
  * the repository's types (it must stay dependency-free and platform-free), so
  * the two shapes meet structurally and the repository validates the result.
  */
-export type ForkedFoodDraft = {
+export type ForkedFoodValues = {
 	readonly name: Bilingual;
 	readonly baseUnit: "g" | "ml";
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly servings: readonly ForkedServing[];
+};
+
+export type ForkedFoodDraft = ForkedFoodValues & {
 	readonly provenance: ForkProvenance;
 };
 
@@ -105,14 +108,16 @@ export function forkShippedFood(food: ShippedFood): ForkedFoodDraft {
 	};
 }
 
-/** The least a local food has to expose for shadowing to work. */
-export type LocalFoodLike = {
-	readonly id: string;
+/** The least anything has to carry to say which shipped food it corrects. */
+export type ForkRef = {
 	readonly provenance: { readonly forkedFrom?: string };
 };
 
+/** The least a local food has to expose for shadowing to work. */
+export type LocalFoodLike = ForkRef & { readonly id: string };
+
 /** Whether a local food was created by correcting a shipped one. */
-export function isFork(food: LocalFoodLike): boolean {
+export function isFork(food: ForkRef): boolean {
 	return typeof food.provenance.forkedFrom === "string";
 }
 
@@ -123,7 +128,7 @@ export function isFork(food: LocalFoodLike): boolean {
  * been withdrawn from a later release — ids are never reused, so a missing
  * source means gone, never "something else now".
  */
-export function forkSource(food: LocalFoodLike): ShippedFood | undefined {
+export function forkSource(food: ForkRef): ShippedFood | undefined {
 	const id = food.provenance.forkedFrom;
 	return id === undefined ? undefined : getShippedFood(id);
 }
@@ -262,7 +267,7 @@ function shippedCandidates(
  * changes it back has not, in the end, edited anything.
  */
 export function forkHasLocalEdits(
-	draft: ForkedFoodDraft,
+	draft: ForkedFoodValues,
 	source: ShippedFood,
 ): boolean {
 	if (draft.name.en !== source.name.en || draft.name.nl !== source.name.nl)
