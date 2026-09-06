@@ -137,6 +137,33 @@ export const en = {
 			logFailure:
 				"This food could not be logged. Your selection is still here.",
 		},
+		personalFood: {
+			createTitle: "Create Personal Food",
+			editTitle: "Edit Personal Food",
+			storageTitle: "Stored only on this device",
+			storageBody:
+				"Personal Foods do not appear on a second device and may be lost if you uninstall Workouts. Platform backup is best effort only.",
+			nameEn: "English name",
+			nameNl: "Dutch name",
+			baseUnit: "Nutrition base unit",
+			grams: "Grams",
+			millilitres: "Millilitres",
+			per100: "Nutrition per 100",
+			states: { absent: "Not available", trace: "Trace", value: "Amount" },
+			servings: "Servings",
+			servingsHelp: "Add up to three familiar amounts in the base unit.",
+			englishLabel: "English label",
+			dutchLabel: "Dutch label",
+			amountIn: "amount in",
+			addServing: "Add Serving",
+			removeServing: "Remove Serving",
+			save: "Save Personal Food",
+			saving: "Saving Personal Food…",
+			cancel: "Cancel",
+			validation: "Check the highlighted Personal Food values.",
+			saveFailure:
+				"This Personal Food could not be saved. Your changes are still here.",
+		},
 
 		otherNutrients: {
 			heading: "Other nutrients",
