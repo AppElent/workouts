@@ -39,6 +39,7 @@ import {
 	nutrientUnit,
 	useNutritionDay,
 } from "../data/nutrition-day";
+import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { Card, Eyebrow } from "../ui/coach";
@@ -75,6 +76,7 @@ export function NutritionDayScreen() {
 	}>();
 
 	const state = useNutritionDay(date);
+	const marker = useTrainingMarker(date);
 	const offset = isoDayOffset(today, date);
 
 	const dayLabel =
@@ -113,9 +115,12 @@ export function NutritionDayScreen() {
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
-			<View>
-				<Eyebrow>{t.nutrition.title}</Eyebrow>
-				<AppText variant="title">{dayLabel}</AppText>
+			<View style={styles.headerRow}>
+				<View style={styles.flex}>
+					<Eyebrow>{t.nutrition.title}</Eyebrow>
+					<AppText variant="title">{dayLabel}</AppText>
+				</View>
+				{marker === "visible" ? <TrainingMarker t={t} /> : null}
 			</View>
 
 			<DayDateStepper
@@ -168,6 +173,28 @@ export function NutritionDayScreen() {
 				</AppText>
 			</View>
 		</ScrollView>
+	);
+}
+
+/**
+ * Deliberately decorative: a glyph plus a word, never colour alone (spec
+ * §"Day view and navigation", §"Native interaction and accessibility"). It
+ * carries no number and reads no differently regardless of what the Activity
+ * involved — there is nothing here about duration, intensity, or calories to
+ * show even if the design changes later.
+ */
+function TrainingMarker({ t }: { t: Messages }) {
+	return (
+		<View
+			accessible
+			accessibilityLabel={t.nutrition.trainingMarker.description}
+			style={styles.trainingMarker}
+		>
+			<AppText style={styles.trainingMarkerGlyph}>●</AppText>
+			<AppText variant="caption" style={styles.trainingMarkerLabel}>
+				{t.nutrition.trainingMarker.label}
+			</AppText>
+		</View>
 	);
 }
 
@@ -489,6 +516,21 @@ const styles = StyleSheet.create({
 	content: { padding: 20, paddingTop: 12, gap: spacing.md, paddingBottom: 40 },
 	flex: { flex: 1 },
 	section: { gap: spacing.sm },
+
+	headerRow: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		justifyContent: "space-between",
+		gap: spacing.sm,
+	},
+	trainingMarker: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		height: 44,
+	},
+	trainingMarkerGlyph: { color: colors.accent, fontSize: 8 },
+	trainingMarkerLabel: { color: colors.textMuted },
 
 	stepper: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	todayPill: {

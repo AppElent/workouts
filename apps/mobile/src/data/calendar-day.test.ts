@@ -3,6 +3,7 @@
  */
 import {
 	formatLongDate,
+	isoDateToLocalDayRangeMs,
 	isoDayOffset,
 	shiftIsoDate,
 	todayIsoDate,
@@ -43,5 +44,18 @@ describe("calendar days", () => {
 	it("writes the day out in the active language", () => {
 		expect(formatLongDate("2026-09-04", "en")).toContain("September");
 		expect(formatLongDate("2026-09-04", "nl")).toContain("september");
+	});
+
+	it("gives a day's range as local midnight to the next local midnight", () => {
+		const { from, to } = isoDateToLocalDayRangeMs("2026-09-04");
+		expect(new Date(from)).toEqual(new Date(2026, 8, 4, 0, 0, 0, 0));
+		expect(new Date(to)).toEqual(new Date(2026, 8, 5, 0, 0, 0, 0));
+		expect(to - from).toBe(86_400_000);
+	});
+
+	it("carries a day range across a month boundary", () => {
+		const { from, to } = isoDateToLocalDayRangeMs("2026-08-31");
+		expect(new Date(from)).toEqual(new Date(2026, 7, 31, 0, 0, 0, 0));
+		expect(new Date(to)).toEqual(new Date(2026, 8, 1, 0, 0, 0, 0));
 	});
 });

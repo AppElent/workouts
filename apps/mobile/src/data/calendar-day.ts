@@ -53,6 +53,25 @@ export function isoDayOffset(from: IsoDate, to: IsoDate): number {
 }
 
 /**
+ * The `[from, to)` epoch-ms bounds of this local calendar day, midnight to
+ * midnight. For range-querying tables that (unlike the diary) still store
+ * epoch-ms instants, such as `workoutSessions` — see the training marker in
+ * `src/data/training-marker.ts`. Built from midnight rather than the noon
+ * anchor `isoDateToLocalDate` uses elsewhere: a range needs the true day
+ * boundary, and `Date` normalizes the day-plus-one overflow correctly across a
+ * DST transition.
+ */
+export function isoDateToLocalDayRangeMs(iso: IsoDate): {
+	from: number;
+	to: number;
+} {
+	const [year, month, day] = iso.split("-").map(Number);
+	const from = new Date(year, month - 1, day, 0, 0, 0, 0).getTime();
+	const to = new Date(year, month - 1, day + 1, 0, 0, 0, 0).getTime();
+	return { from, to };
+}
+
+/**
  * The day written out for a human, in the active language.
  *
  * Wrapped because `Intl` is the one API that differs between JS engines: a
