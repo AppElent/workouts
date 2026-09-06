@@ -1,5 +1,5 @@
 import { useMutation } from "convex/react";
-import { useCameraPermissions } from "expo-camera";
+import { PermissionStatus, useCameraPermissions } from "expo-camera";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import type { FetchLike } from "../data/open-food-facts";
 import { renderApp } from "../test-support/render-app";
@@ -34,7 +34,13 @@ const bakedBeans = {
 
 beforeEach(() => {
 	mockUseCameraPermissions.mockReturnValue([
-		{ status: "granted", granted: true, canAskAgain: true, expires: "never" },
+		{
+			status: PermissionStatus.GRANTED,
+			granted: true,
+			canAskAgain: true,
+			expires: "never",
+		},
+		jest.fn(),
 		jest.fn(),
 	]);
 });
@@ -132,7 +138,13 @@ describe("scanning a barcode", () => {
 
 	it("keeps Search and Enter manually reachable when camera permission is refused", async () => {
 		mockUseCameraPermissions.mockReturnValue([
-			{ status: "denied", granted: false, canAskAgain: true, expires: "never" },
+			{
+				status: PermissionStatus.DENIED,
+				granted: false,
+				canAskAgain: true,
+				expires: "never",
+			},
+			jest.fn(),
 			jest.fn(),
 		]);
 		renderApp();
@@ -149,11 +161,12 @@ describe("scanning a barcode", () => {
 	it("keeps Search and Enter manually reachable when camera access is restricted", async () => {
 		mockUseCameraPermissions.mockReturnValue([
 			{
-				status: "denied",
+				status: PermissionStatus.DENIED,
 				granted: false,
 				canAskAgain: false,
 				expires: "never",
 			},
+			jest.fn(),
 			jest.fn(),
 		]);
 		renderApp();

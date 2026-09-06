@@ -63,15 +63,29 @@ jest.mock("convex/react", () => {
 jest.mock("expo-camera", () => {
 	const React = jest.requireActual("react");
 	const { Pressable, Text } = jest.requireActual("react-native");
+	// Mirrors expo-modules-core's real enum values so a test can import
+	// `PermissionStatus` from "expo-camera" the same way production code does.
+	const PermissionStatus = {
+		GRANTED: "granted",
+		UNDETERMINED: "undetermined",
+		DENIED: "denied",
+	} as const;
 	return {
+		PermissionStatus,
 		useCameraPermissions: jest.fn(() => [
-			{ status: "granted", granted: true, canAskAgain: true, expires: "never" },
+			{
+				status: PermissionStatus.GRANTED,
+				granted: true,
+				canAskAgain: true,
+				expires: "never",
+			},
 			jest.fn().mockResolvedValue({
-				status: "granted",
+				status: PermissionStatus.GRANTED,
 				granted: true,
 				canAskAgain: true,
 				expires: "never",
 			}),
+			jest.fn(),
 		]),
 		CameraView: ({
 			onBarcodeScanned,
