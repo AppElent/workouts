@@ -18,6 +18,8 @@ type PersonalFoodsValue = {
 	list(): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
 	search(query: string, locale: "en" | "nl"): PersonalFood[];
+	forks(): PersonalFood[];
+	findForkOf(shippedId: string): PersonalFood | undefined;
 	create(draft: PersonalFoodDraft): PersonalFood;
 	update(id: string, draft: PersonalFoodDraft): PersonalFood;
 	remove(id: string): boolean;
@@ -44,6 +46,8 @@ export function PersonalFoodsProvider({
 			list: () => repository.list(),
 			find: (id) => repository.find(id),
 			search: (query, locale) => repository.search(query, locale),
+			forks: () => repository.forks(),
+			findForkOf: (shippedId) => repository.findForkOf(shippedId),
 			create: (draft) => {
 				const food = repository.create(draft);
 				changed();

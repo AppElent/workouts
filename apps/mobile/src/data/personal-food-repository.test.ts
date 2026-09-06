@@ -1,4 +1,10 @@
-import type { NUTRIENT_KEYS, NutrientValue } from "@workouts/core/nutrition";
+import {
+	forkShippedFood,
+	forkSource,
+	getShippedFood,
+	type NUTRIENT_KEYS,
+	type NutrientValue,
+} from "@workouts/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	createPersonalFoodRepository,
@@ -37,6 +43,15 @@ function draft(overrides: Partial<PersonalFoodDraft> = {}): PersonalFoodDraft {
 			locallyEdited: false,
 		},
 		...overrides,
+	};
+}
+
+/** Distinct, increasing timestamps so "most recent first" is unambiguous. */
+function stepwiseClock(): () => number {
+	let tick = 1_000;
+	return () => {
+		tick += 1_000;
+		return tick;
 	};
 }
 
@@ -168,5 +183,100 @@ describe("PersonalFoodRepository public behavior", () => {
 			name: { en: "Legacy oats", nl: "Bestaande havermout" },
 			nutrients: nutrientStates(),
 		});
+	});
+});
+
+describe("forks of shipped foods", () => {
+	function shippedApple() {
+		const food = getShippedFood("shipped:apple-w-skin-av");
+		if (!food) throw new Error("Expected the promoted apple in the library.");
+		return food;
+	}
+
+	it("stores a fork under a new id that is not its shipped source", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const source = shippedApple();
+
+		const fork = repository.create(forkShippedFood(source));
+
+		expect(fork.id).not.toBe(source.id);
+		expect(fork.id).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+		);
+		expect(repository.find(source.id)).toBeUndefined();
+	});
+
+	it("keeps the shipped source, NEVO provenance and edited state retrievable", () => {
+		const database = new SQLiteTestDatabase();
+		const source = shippedApple();
+		const fork = createPersonalFoodRepository(database).create(
+			forkShippedFood(source),
+		);
+
+		// A fresh repository over the same database — provenance is stored, not
+		// held in memory.
+		const reopened = createPersonalFoodRepository(database);
+		const reloaded = reopened.find(fork.id);
+
+		expect(reloaded?.provenance).toEqual({
+			recordOrigin: "personal",
+			nutritionSource: "nevo",
+			locallyEdited: false,
+			forkedFrom: source.id,
+		});
+		expect(reloaded && forkSource(reloaded)?.sourceName).toEqual(
+			source.sourceName,
+		);
+	});
+
+	it("lists forks most recently updated first and finds one by its source", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase(), {
+			now: stepwiseClock(),
+		});
+		const source = shippedApple();
+		const own = repository.create(draft());
+		const first = repository.create(forkShippedFood(source));
+		const second = repository.create({
+			...forkShippedFood(source),
+			name: { en: "Market apple", nl: "Marktappel" },
+		});
+
+		expect(repository.forks().map((food) => food.id)).toEqual([
+			second.id,
+			first.id,
+		]);
+		expect(repository.findForkOf(source.id)?.id).toBe(second.id);
+		expect(repository.forks().map((food) => food.id)).not.toContain(own.id);
+		expect(repository.findForkOf("shipped:banana")).toBeUndefined();
+	});
+
+	it("records a corrected figure without touching the shipped food", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const source = shippedApple();
+		const base = forkShippedFood(source);
+
+		const fork = repository.create({
+			...base,
+			nutrients: { ...base.nutrients, energy: { kind: "value", amount: 41 } },
+			provenance: { ...base.provenance, locallyEdited: true },
+		});
+
+		expect(fork.nutrients.energy).toEqual({ kind: "value", amount: 41 });
+		expect(fork.provenance.locallyEdited).toBe(true);
+		expect(getShippedFood(source.id)?.nutrients.energy).toEqual(
+			source.nutrients.energy,
+		);
+		expect(source.nutrients.energy).not.toEqual({ kind: "value", amount: 41 });
+	});
+
+	it("stops shadowing once the fork is deleted, leaving the source untouched", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const source = shippedApple();
+		const fork = repository.create(forkShippedFood(source));
+
+		expect(repository.remove(fork.id)).toBe(true);
+		expect(repository.forks()).toEqual([]);
+		expect(repository.findForkOf(source.id)).toBeUndefined();
+		expect(getShippedFood(source.id)?.name).toEqual(source.name);
 	});
 });
