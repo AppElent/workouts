@@ -72,6 +72,14 @@ function asSelection(result: FoodResult<PersonalFood>): FoodSelection {
  * Two of the four cases exist for #75: a correction says so, and — in the
  * deliberate broader view, the only place it is still listed — so does the
  * shipped record it replaced. Neither ever hides the other.
+ *
+ * #75 left a rule for whoever came next: if this reaches six cases it should
+ * become a core function returning a caption *kind* that the screen
+ * translates, rather than a screen-local function handed the whole message
+ * tree. Checked at #79 — still four. #76's import captions went to the online
+ * results list, which renders its provider line directly and never comes
+ * through here, so the count did not move. Left as it is: at four one-line
+ * branches the indirection would cost a hop through core and buy nothing.
  */
 function resultCaption(
 	result: FoodResult<PersonalFood>,
