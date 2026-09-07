@@ -50,12 +50,6 @@ import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
-import {
-	NutritionComboBuilder,
-	NutritionComboLibrary,
-} from "./nutrition-combos";
-import { NutritionEntryEditor } from "./nutrition-entry-editor";
-import { NutritionFoodBrowser } from "./nutrition-food-browser";
 
 /** State word first, colour second — colour is never the only signal. */
 const STATE_COLOR: Record<GoalState, string> = {
@@ -76,16 +70,10 @@ export function NutritionDayScreen() {
 	const [today] = useState(todayIsoDate);
 	const [date, setDate] = useState(today);
 	const [showOther, setShowOther] = useState(false);
-	const [addingTo, setAddingTo] = useState<MealSlot>();
-	const [editing, setEditing] = useState<{
-		entry: DiaryEntry;
-		meal: MealSlot;
-	}>();
-	const [comboMode, setComboMode] = useState<"select" | "library">();
+	const [selecting, setSelecting] = useState(false);
 	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
 		() => new Set(),
 	);
-	const [comboEntries, setComboEntries] = useState<DiaryEntry[]>();
 
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
@@ -100,50 +88,6 @@ export function NutritionDayScreen() {
 				: offset === 1
 					? t.nutrition.day.tomorrow
 					: formatLongDate(date, locale);
-
-	if (addingTo) {
-		return (
-			<NutritionFoodBrowser
-				meal={addingTo}
-				date={date}
-				onClose={() => setAddingTo(undefined)}
-			/>
-		);
-	}
-
-	if (editing) {
-		return (
-			<NutritionEntryEditor
-				entry={editing.entry}
-				meal={editing.meal}
-				date={date}
-				onClose={() => setEditing(undefined)}
-			/>
-		);
-	}
-
-	if (comboEntries) {
-		return (
-			<NutritionComboBuilder
-				entries={comboEntries}
-				onClose={() => setComboEntries(undefined)}
-				onSaved={() => {
-					setComboEntries(undefined);
-					setComboMode(undefined);
-					setSelectedEntryIds(new Set());
-				}}
-			/>
-		);
-	}
-
-	if (comboMode === "library") {
-		return (
-			<NutritionComboLibrary
-				date={date}
-				onClose={() => setComboMode(undefined)}
-			/>
-		);
-	}
 
 	return (
 		<ScrollView
@@ -181,19 +125,30 @@ export function NutritionDayScreen() {
 
 					<ComboControls
 						t={t}
-						selecting={comboMode === "select"}
+						selecting={selecting}
 						selectedCount={selectedEntryIds.size}
-						onCreate={() => setComboMode("select")}
-						onLog={() => setComboMode("library")}
+						onCreate={() => setSelecting(true)}
+						onLog={() =>
+							router.push({
+								pathname: "/nutrition-combos",
+								params: { date },
+							})
+						}
 						onCancel={() => {
-							setComboMode(undefined);
+							setSelecting(false);
 							setSelectedEntryIds(new Set());
 						}}
 						onContinue={() => {
-							const selected = MEAL_SLOTS.flatMap(
-								(slot) => state.day.entries[slot],
-							).filter((entry) => selectedEntryIds.has(entry.id));
-							if (selected.length > 0) setComboEntries(selected);
+							if (selectedEntryIds.size === 0) return;
+							setSelecting(false);
+							router.push({
+								pathname: "/nutrition-combo-new",
+								params: {
+									date,
+									entryIds: [...selectedEntryIds].join(","),
+								},
+							});
+							setSelectedEntryIds(new Set());
 						}}
 					/>
 
@@ -204,10 +159,20 @@ export function NutritionDayScreen() {
 							slot={slot}
 							entries={state.day.entries[slot]}
 							locale={locale}
-							onAdd={() => setAddingTo(slot)}
-							onEdit={(entry) => setEditing({ entry, meal: slot })}
+							onAdd={() =>
+								router.push({
+									pathname: "/nutrition-food",
+									params: { meal: slot, date },
+								})
+							}
+							onEdit={(entry) =>
+								router.push({
+									pathname: "/nutrition-entry",
+									params: { id: entry.id, meal: slot, date },
+								})
+							}
 							onDelete={(entry) => deleteEntry({ entry, meal: slot, date })}
-							selecting={comboMode === "select"}
+							selecting={selecting}
 							selectedEntryIds={selectedEntryIds}
 							onToggleEntry={(entry) =>
 								setSelectedEntryIds((current) => {

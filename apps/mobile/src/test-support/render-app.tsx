@@ -5,7 +5,8 @@
  * truest thing it can do — but it then loads every route in the tree, which
  * drags the chart library, the Convex client and the whole session stack into a
  * test about a meal slot. So the map below is the tree the Nutrition work
- * actually spans: the two real route modules, the real Profile route they are
+ * actually spans: the real route modules — the tab plus the four Nutrition
+ * sub-screens now pushed over it — the real Profile route they are
  * reached from, and a layout carrying the three providers those screens need
  * — `ConfirmProvider` included, since #73's delete confirmation is real UI
  * under test here, not a mock.
@@ -21,6 +22,10 @@ import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as LanguageRoute from "../../app/(app)/language";
+import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
+import * as NutritionCombosRoute from "../../app/(app)/nutrition-combos";
+import * as NutritionEntryRoute from "../../app/(app)/nutrition-entry";
+import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import type { FetchLike } from "../data/open-food-facts";
 import { OpenFoodFactsProvider } from "../data/open-food-facts-context";
@@ -82,6 +87,10 @@ export function renderApp(
 		{
 			_layout: Layout as never,
 			nutrition: NutritionRoute as never,
+			"nutrition-food": NutritionFoodRoute as never,
+			"nutrition-entry": NutritionEntryRoute as never,
+			"nutrition-combos": NutritionCombosRoute as never,
+			"nutrition-combo-new": NutritionComboNewRoute as never,
 			"nutrition-goals": NutritionGoalsRoute as never,
 			language: LanguageRoute as never,
 			profile: ProfileRoute as never,
