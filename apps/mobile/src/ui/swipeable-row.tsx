@@ -21,9 +21,19 @@
  * On the Nutrition day that is the entry editor, which every row opens on a
  * plain tap and which carries its own visible Delete.
  *
- * Motion is `Animated` from React Native core rather than Reanimated. The drag
- * follows the finger — direct manipulation, not decoration — but the snap at
- * the end of it is animation, so Reduce Motion cuts it to an instant move.
+ * Motion is `Animated` from React Native core, and the gesture is declared
+ * `.runOnJS(true)`. That pairing is deliberate. By default gesture-handler
+ * runs its callbacks as worklets on the UI thread, and a worklet cannot
+ * capture a legacy `Animated.Value` — it throws "Cannot copy value of type
+ * `AnimatedValue`" the moment a row is drawn, which is invisible to the test
+ * renderer and fatal on a device. The alternative is Reanimated shared values,
+ * as `ui/set-edit-sheet.tsx` uses; that costs a library whose Jest mock does
+ * not load standalone here, and buys UI-thread smoothness this row does not
+ * need. The travel is at most two button widths and ends in a spring.
+ *
+ * The drag itself follows the finger — direct manipulation, not decoration —
+ * but the snap at the end of it is animation, so Reduce Motion cuts it to an
+ * instant move.
  */
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -77,9 +87,10 @@ export function SwipeableRow({
 }) {
 	const reduceMotion = useReduceMotion();
 	const [menuOpen, setMenuOpen] = useState(false);
-	const translateX = useRef(new Animated.Value(0)).current;
 	const openWidth = ACTION_WIDTH * actions.length;
-	// Read and written inside gesture callbacks, which are not React renders.
+	const translateX = useRef(new Animated.Value(0)).current;
+	// Plain refs: the gesture callbacks run on the JS thread, so these are
+	// ordinary reads and writes rather than anything shared across threads.
 	const offset = useRef(0);
 	const passedThreshold = useRef(false);
 
@@ -119,6 +130,9 @@ export function SwipeableRow({
 	const pan = useMemo(
 		() =>
 			Gesture.Pan()
+				// JS thread, so the callbacks below may touch `Animated.Value` and
+				// the refs around it. See the note at the top of this file.
+				.runOnJS(true)
 				// Only claim a drag that is clearly horizontal, so the diary keeps
 				// scrolling normally under a vertical finger.
 				.activeOffsetX([-12, 12])
