@@ -17,6 +17,8 @@ export const nl = {
 	common: {
 		back: "Terug",
 		retry: "Opnieuw proberen",
+		offline:
+			"Offline — wijzigingen worden gesynchroniseerd zodra je weer verbinding hebt",
 	},
 
 	preferences: {
@@ -268,6 +270,12 @@ export const nl = {
 			deleteTitle: "Deze correctie verwijderen?",
 			deleteBody:
 				"Het meegeleverde voedingsmiddel komt terug in de zoekresultaten. Dagboekitems behouden de voedingswaarde waarmee ze zijn vastgelegd.",
+		},
+
+		offline: {
+			title: "Je dagboek voor deze dag staat nog niet op deze telefoon",
+			body: "Het verschijnt zodra je weer online bent. Je kunt nu al eten zoeken en toevoegen — items worden verstuurd zodra je weer verbinding hebt.",
+			slot: "Niet beschikbaar zonder verbinding",
 		},
 
 		entryActions: {

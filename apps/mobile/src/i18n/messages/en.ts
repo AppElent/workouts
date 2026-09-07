@@ -25,6 +25,7 @@ export const en = {
 	common: {
 		back: "Go back",
 		retry: "Try again",
+		offline: "Offline — changes will sync when you reconnect",
 	},
 
 	preferences: {
@@ -286,6 +287,12 @@ export const en = {
 			deleteTitle: "Delete this correction?",
 			deleteBody:
 				"The bundled food returns to search. Diary entries keep the nutrition they were logged with.",
+		},
+
+		offline: {
+			title: "Your diary for this day is not on this phone yet",
+			body: "It will appear as soon as you are back online. You can still search foods and log them now — entries are sent when you reconnect.",
+			slot: "Not available offline",
 		},
 
 		entryActions: {

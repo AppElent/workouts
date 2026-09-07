@@ -19,6 +19,7 @@
  */
 
 import { type NutrientTotal, roundForDisplay } from "@workouts/core/nutrition";
+import { useConvexConnectionState } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -77,8 +78,16 @@ export function NutritionDayScreen() {
 
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
+	// A day that has never been downloaded cannot arrive while the socket is
+	// down, so a skeleton there is a promise the app cannot keep.
+	const { isWebSocketConnected } = useConvexConnectionState();
+	const stalled = state.status === "loading" && !isWebSocketConnected;
 	const marker = useTrainingMarker(date);
 	const offset = isoDayOffset(today, date);
+
+	function openFoodBrowser(slot: MealSlot) {
+		router.push({ pathname: "/nutrition-food", params: { meal: slot, date } });
+	}
 
 	const dayLabel =
 		offset === 0
@@ -112,7 +121,9 @@ export function NutritionDayScreen() {
 				onToday={() => setDate(today)}
 			/>
 
-			{state.status === "loading" ? (
+			{stalled ? (
+				<OfflineDay t={t} onAdd={(slot) => openFoodBrowser(slot)} />
+			) : state.status === "loading" ? (
 				<DaySkeleton label={t.nutrition.day.loading} />
 			) : (
 				<>
@@ -159,12 +170,7 @@ export function NutritionDayScreen() {
 							slot={slot}
 							entries={state.day.entries[slot]}
 							locale={locale}
-							onAdd={() =>
-								router.push({
-									pathname: "/nutrition-food",
-									params: { meal: slot, date },
-								})
-							}
+							onAdd={() => openFoodBrowser(slot)}
 							onEdit={(entry) =>
 								router.push({
 									pathname: "/nutrition-entry",
@@ -719,6 +725,65 @@ function qualifiedAmount(
 	if (total.incomplete) return `≥ ${amount}`;
 	if (total.qualified) return `~ ${amount}`;
 	return amount;
+}
+
+/**
+ * What the day shows when it is offline and has nothing cached for this date.
+ *
+ * Not a skeleton: a skeleton promises content is arriving, and while the
+ * socket is down for a day this device has never held, none is. Saying so is
+ * the coherent behaviour spec #68 asks for.
+ *
+ * The four slots keep their plus controls, because logging offline genuinely
+ * works — the shipped library is in the bundle, Personal Foods and Combos are
+ * in SQLite, and Convex queues the write and replays it on reconnect. The
+ * slots read "not available offline" rather than the usual empty-slot
+ * sentence, because "nothing logged here" would be a claim this screen is in
+ * no position to make.
+ */
+function OfflineDay({
+	t,
+	onAdd,
+}: {
+	t: Messages;
+	onAdd: (slot: MealSlot) => void;
+}) {
+	return (
+		<>
+			<Card style={styles.goalCard}>
+				<EmptyState
+					title={t.nutrition.offline.title}
+					body={t.nutrition.offline.body}
+				/>
+			</Card>
+			{MEAL_SLOTS.map((slot) => {
+				const mealName = t.nutrition.meals[slot];
+				return (
+					<View key={slot} style={styles.section}>
+						<View style={styles.mealHeader}>
+							<AppText variant="heading">{mealName}</AppText>
+							<Pressable
+								onPress={() => onAdd(slot)}
+								accessibilityRole="button"
+								accessibilityLabel={fmt(t.nutrition.addTo, { meal: mealName })}
+								style={({ pressed }) => [
+									styles.addButton,
+									pressed ? { backgroundColor: colors.accentPressed } : null,
+								]}
+							>
+								<AppText variant="heading" style={{ color: colors.onAccent }}>
+									+
+								</AppText>
+							</Pressable>
+						</View>
+						<Card>
+							<EmptyState body={t.nutrition.offline.slot} />
+						</Card>
+					</View>
+				);
+			})}
+		</>
+	);
 }
 
 /**
