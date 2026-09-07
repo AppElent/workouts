@@ -26,7 +26,7 @@ import { api } from "../convex/api";
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import type { DiaryEntry } from "../data/nutrition-day";
 import { MEAL_SLOTS, type MealSlot } from "../data/nutrition-day";
-import { fmt, useI18n } from "../i18n";
+import { useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
