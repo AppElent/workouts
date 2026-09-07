@@ -52,16 +52,20 @@ beforeEach(() => {
 	});
 	jest
 		.mocked(useMutation)
-		.mockReturnValue(jest.fn().mockResolvedValue(undefined));
+		.mockReturnValue(
+			jest.fn().mockResolvedValue(undefined) as unknown as ReturnType<
+				typeof useMutation
+			>,
+		);
 });
 
 describe("Nutrition navigation", () => {
 	it("pushes the food browser with the meal and day it was opened from", async () => {
-		renderApp();
+		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition-food"));
-		expect(screen.getSearchParams()).toMatchObject({
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		expect(app.getSearchParams()).toMatchObject({
 			meal: "dinner",
 			date: todayIsoDate(),
 		});
@@ -70,58 +74,56 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {
-		renderApp();
+		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition-food"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 
 		// The same navigation iOS's edge swipe and Android's back button perform.
 		expect(testRouter.canGoBack()).toBe(true);
 		testRouter.back();
 
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
 	it("pushes the entry editor addressed by the entry it edits", async () => {
-		renderApp();
+		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("Edit entry: Apple"));
 
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition-entry"));
-		expect(screen.getSearchParams()).toMatchObject({
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-entry"));
+		expect(app.getSearchParams()).toMatchObject({
 			id: "entry-1",
 			meal: "lunch",
 		});
 		expect(await screen.findByText("Edit entry")).toBeTruthy();
 
 		testRouter.back();
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 
 	it("pushes the Combo library for the day being viewed", async () => {
-		renderApp();
+		const app = renderApp();
 		fireEvent.press(await screen.findByText("Log Combo"));
 
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition-combos"));
-		expect(screen.getSearchParams()).toMatchObject({ date: todayIsoDate() });
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combos"));
+		expect(app.getSearchParams()).toMatchObject({ date: todayIsoDate() });
 
 		testRouter.back();
-		await waitFor(() => expect(screen.getPathname()).toBe("/nutrition"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 
 	it("carries the chosen entries to the Combo builder by id", async () => {
-		renderApp();
+		const app = renderApp();
 		fireEvent.press(await screen.findByText("Create Combo"));
 		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
 		fireEvent.press(await screen.findByText("Continue with 1 part"));
 
-		await waitFor(() =>
-			expect(screen.getPathname()).toBe("/nutrition-combo-new"),
-		);
-		expect(screen.getSearchParams()).toMatchObject({ entryIds: "entry-1" });
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combo-new"));
+		expect(app.getSearchParams()).toMatchObject({ entryIds: "entry-1" });
 	});
 
 	it("leaves the diary itself at the root, with nothing behind it", async () => {
-		renderApp();
+		const app = renderApp();
 		await screen.findByText("Today");
 		// The tab is the bottom of the stack: back from here must not unwind
 		// out of Nutrition into some other screen.
