@@ -123,7 +123,7 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("leaves the diary itself at the root, with nothing behind it", async () => {
-		const app = renderApp();
+		renderApp();
 		await screen.findByText("Today");
 		// The tab is the bottom of the stack: back from here must not unwind
 		// out of Nutrition into some other screen.
