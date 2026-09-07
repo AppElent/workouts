@@ -24,6 +24,7 @@ import {
 	useState,
 } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { haptics } from "../feedback/haptics";
 import { colors, radius, spacing } from "../theme";
 import { AppText } from "./text";
 
@@ -49,6 +50,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const resolveRef = useRef<((answer: boolean) => void) | null>(null);
 
 	const confirm = useCallback<ConfirmFn>((next) => {
+		// The one place a destructive warning is played. Putting it here rather
+		// than at each delete button is what keeps the vocabulary restrained:
+		// every destructive confirmation warns exactly once, and no ordinary
+		// confirmation can acquire a buzz by being copied from a destructive one.
+		if (next.destructive) haptics.destructiveWarning();
 		return new Promise<boolean>((resolve) => {
 			resolveRef.current = resolve;
 			setOptions(next);

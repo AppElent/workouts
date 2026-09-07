@@ -18,7 +18,6 @@ import {
 	shippedLibraryMeta,
 } from "@workouts/core/nutrition";
 import { useMutation } from "convex/react";
-import * as Haptics from "expo-haptics";
 import { useMemo, useState } from "react";
 import {
 	Pressable,
@@ -40,6 +39,7 @@ import type {
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
+import { haptics } from "../feedback/haptics";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
@@ -527,9 +527,7 @@ function ServingDetail({
 					},
 				});
 			}
-			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
-				() => undefined,
-			);
+			haptics.entryLogged();
 			onLogged();
 		} catch {
 			toast.error(t.nutrition.foodBrowser.logFailure);
@@ -564,6 +562,9 @@ function ServingDetail({
 					<Pressable
 						key={candidate.kind === "authored" ? candidate.index : "base"}
 						onPress={() => {
+							// A meaningful selection: it changes the figures below and the
+							// numbers that will be written. The list itself is silent.
+							if (candidate !== selectedServing) haptics.selectionChanged();
 							setSelectedServing(candidate);
 							setQuantityText(candidate.kind === "base-unit" ? "100" : "1");
 						}}
