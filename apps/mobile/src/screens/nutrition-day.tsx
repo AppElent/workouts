@@ -41,6 +41,7 @@ import {
 	nutrientUnit,
 	useNutritionDay,
 } from "../data/nutrition-day";
+import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
@@ -79,9 +80,15 @@ export function NutritionDayScreen() {
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
 	// A day that has never been downloaded cannot arrive while the socket is
-	// down, so a skeleton there is a promise the app cannot keep.
+	// down, so a skeleton there is a promise the app cannot keep — but only
+	// after a grace period, because the socket is briefly down on every cold
+	// start and flashing "you are offline" at someone who is not would be a
+	// worse lie than the skeleton.
 	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalled = state.status === "loading" && !isWebSocketConnected;
+	const stalled = useStalledOffline(
+		state.status === "loading",
+		isWebSocketConnected,
+	);
 	const marker = useTrainingMarker(date);
 	const offset = isoDayOffset(today, date);
 

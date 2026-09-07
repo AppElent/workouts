@@ -18,7 +18,8 @@
  */
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { OFFLINE_GRACE_MS } from "../data/stalled-offline";
 import { renderApp } from "../test-support/render-app";
 
 function setConnected(isWebSocketConnected: boolean) {
@@ -63,11 +64,23 @@ function cachedDay() {
 	});
 }
 
+/** The screen waits before calling it offline; these tests wait with it. */
+async function passTheGracePeriod() {
+	await act(async () => {
+		jest.advanceTimersByTime(OFFLINE_GRACE_MS);
+	});
+}
+
 beforeEach(() => {
 	jest.clearAllMocks();
+	jest.useFakeTimers();
 	// `clearAllMocks` forgets calls, not `mockReturnValue`, so the connection
 	// has to be put back deliberately or one offline test makes the next one.
 	setConnected(true);
+});
+
+afterEach(() => {
+	jest.useRealTimers();
 });
 
 describe("the Nutrition day with no connection", () => {
@@ -75,11 +88,10 @@ describe("the Nutrition day with no connection", () => {
 		goOffline();
 		noCachedDay();
 		renderApp();
+		await passTheGracePeriod();
 
 		expect(
-			await screen.findByText(
-				"Your diary for this day is not on this phone yet",
-			),
+			screen.getByText("Your diary for this day is not on this phone yet"),
 		).toBeTruthy();
 		// The skeleton would have promised something was coming. Nothing is.
 		expect(screen.queryByLabelText("Loading the day")).toBeNull();
@@ -89,7 +101,7 @@ describe("the Nutrition day with no connection", () => {
 		goOffline();
 		noCachedDay();
 		renderApp();
-		await screen.findByText("Your diary for this day is not on this phone yet");
+		await passTheGracePeriod();
 
 		expect(screen.getAllByText("Not available offline")).toHaveLength(4);
 		// The usual empty-slot sentence would be a claim about the diary.
@@ -100,7 +112,7 @@ describe("the Nutrition day with no connection", () => {
 		goOffline();
 		noCachedDay();
 		const app = renderApp();
-		await screen.findByText("Your diary for this day is not on this phone yet");
+		await passTheGracePeriod();
 
 		for (const meal of ["Breakfast", "Lunch", "Dinner", "Snacks"]) {
 			expect(screen.getByLabelText(`Add food to ${meal}`)).toBeTruthy();
@@ -116,8 +128,9 @@ describe("the Nutrition day with no connection", () => {
 		goOffline();
 		cachedDay();
 		renderApp();
+		await passTheGracePeriod();
 
-		expect(await screen.findByText("Oatmeal")).toBeTruthy();
+		expect(screen.getByText("Oatmeal")).toBeTruthy();
 		expect(
 			screen.queryByText("Your diary for this day is not on this phone yet"),
 		).toBeNull();
@@ -126,8 +139,39 @@ describe("the Nutrition day with no connection", () => {
 	it("keeps waiting normally when the socket is up and the day is merely slow", async () => {
 		noCachedDay();
 		renderApp();
+		await passTheGracePeriod();
+
+		expect(screen.getByLabelText("Loading the day")).toBeTruthy();
+		expect(
+			screen.queryByText("Your diary for this day is not on this phone yet"),
+		).toBeNull();
+	});
+
+	it("does not flash the notice during the moment the socket takes to connect", async () => {
+		// Every cold start looks exactly like being offline for a few hundred
+		// milliseconds. Saying so would be a worse lie than the skeleton.
+		goOffline();
+		noCachedDay();
+		renderApp();
 
 		expect(await screen.findByLabelText("Loading the day")).toBeTruthy();
+		expect(
+			screen.queryByText("Your diary for this day is not on this phone yet"),
+		).toBeNull();
+	});
+
+	it("goes back to waiting if the socket comes up before the notice does", async () => {
+		goOffline();
+		noCachedDay();
+		renderApp();
+		await screen.findByLabelText("Loading the day");
+
+		setConnected(true);
+		// Re-render with the connection restored, then let the old grace period
+		// have elapsed: the notice must never arrive.
+		fireEvent.press(screen.getAllByLabelText("Next day")[0]);
+		await passTheGracePeriod();
+
 		expect(
 			screen.queryByText("Your diary for this day is not on this phone yet"),
 		).toBeNull();
