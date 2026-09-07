@@ -33,6 +33,11 @@
 				}
 			]
 		],
+		"_comment_locales": "iOS reads its permission prompts from Info.plist, not from the JS message tree, so the camera purpose string has to be localized here or it stays English on a Dutch phone (#79). Android's permission dialog text is supplied by the system and cannot be set by the app; its Dutch equivalent is the in-app purpose line the scanner shows before asking, which comes from the message tree like everything else.",
+		"locales": {
+			"en": "./locales/en.json",
+			"nl": "./locales/nl.json"
+		},
 		"experiments": {
 			"typedRoutes": true
 		}
