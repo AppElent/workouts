@@ -25,6 +25,7 @@ import {
 } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { haptics } from "../feedback/haptics";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { AppText } from "./text";
 
@@ -45,6 +46,7 @@ const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const [options, setOptions] = useState<ConfirmOptions | null>(null);
+	const reduceMotion = useReduceMotion();
 	// Held across renders so the promise opened in `confirm` is the one settled
 	// by the buttons. State would re-create it and strand the caller.
 	const resolveRef = useRef<((answer: boolean) => void) | null>(null);
@@ -73,7 +75,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 			<Modal
 				visible={options !== null}
 				transparent
-				animationType="fade"
+				animationType={modalAnimation(reduceMotion, "fade")}
 				// Android's back button must answer "no", not leave the promise
 				// pending forever behind a dismissed dialog.
 				onRequestClose={() => settle(false)}
