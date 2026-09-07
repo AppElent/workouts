@@ -92,6 +92,19 @@ export function NutritionDayScreen() {
 	const marker = useTrainingMarker(date);
 	const offset = isoDayOffset(today, date);
 
+	/**
+	 * A Combo is built from entries on one day, so leaving that day ends the
+	 * selection. Keeping it would let the count say "3 parts" while only the
+	 * ids that happen to exist on the day you ended up on survive the
+	 * resolution — silently dropping the rest, or in the worst case leaving an
+	 * enabled button that resolves to nothing at all.
+	 */
+	function changeDate(next: string) {
+		setDate(next);
+		setSelecting(false);
+		setSelectedEntryIds(new Set());
+	}
+
 	function openFoodBrowser(slot: MealSlot) {
 		router.push({ pathname: "/nutrition-food", params: { meal: slot, date } });
 	}
@@ -124,8 +137,8 @@ export function NutritionDayScreen() {
 				locale={locale}
 				t={t}
 				isToday={offset === 0}
-				onChange={setDate}
-				onToday={() => setDate(today)}
+				onChange={changeDate}
+				onToday={() => changeDate(today)}
 			/>
 
 			{stalled ? (
@@ -553,6 +566,7 @@ function MealSection({
 												locale={locale}
 												selecting={selecting}
 												selected={selectedEntryIds.has(part.id)}
+												inGroup
 												onPress={() =>
 													selecting ? onToggleEntry(part) : onEdit(part)
 												}
@@ -588,6 +602,7 @@ function EntryRow({
 	locale,
 	selecting,
 	selected,
+	inGroup = false,
 	onPress,
 	onDelete,
 }: {
@@ -596,6 +611,8 @@ function EntryRow({
 	locale: "en" | "nl";
 	selecting: boolean;
 	selected: boolean;
+	/** Indents the row under its Combo header. Only a part is ever nested. */
+	inGroup?: boolean;
 	onPress: () => void;
 	onDelete: () => void;
 }) {
@@ -616,7 +633,7 @@ function EntryRow({
 			{...accessibility}
 			style={({ pressed }) => [
 				styles.entryRow,
-				styles.comboPart,
+				inGroup ? styles.comboPart : null,
 				pressed ? { backgroundColor: colors.surface2 } : null,
 			]}
 		>

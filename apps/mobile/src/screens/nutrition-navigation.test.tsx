@@ -122,6 +122,24 @@ describe("Nutrition navigation", () => {
 		expect(app.getSearchParams()).toMatchObject({ entryIds: "entry-1" });
 	});
 
+	it("ends a Combo selection when the day it was made on is left", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByText("Create Combo"));
+		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
+		expect(screen.getByText("Continue with 1 part")).toBeTruthy();
+
+		fireEvent.press(screen.getAllByLabelText("Previous day")[0]);
+
+		// The selection was of entries on the day just left, so it is over: no
+		// count that outlives the entries behind it, and no enabled Continue
+		// that would resolve to nothing.
+		await waitFor(() =>
+			expect(screen.queryByText("Continue with 1 part")).toBeNull(),
+		);
+		expect(screen.getByText("Create Combo")).toBeTruthy();
+		expect(app.getPathname()).toBe("/nutrition");
+	});
+
 	it("leaves the diary itself at the root, with nothing behind it", async () => {
 		renderApp();
 		await screen.findByText("Today");
