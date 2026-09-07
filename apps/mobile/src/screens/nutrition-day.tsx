@@ -27,6 +27,7 @@ import {
 	isoDayOffset,
 	todayIsoDate,
 } from "../data/calendar-day";
+import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import {
 	type DiaryEntry,
 	type GoalState,
@@ -47,6 +48,7 @@ import { Card, Eyebrow } from "../ui/coach";
 import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
+import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import {
 	NutritionComboBuilder,
@@ -85,6 +87,7 @@ export function NutritionDayScreen() {
 	);
 	const [comboEntries, setComboEntries] = useState<DiaryEntry[]>();
 
+	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
 	const marker = useTrainingMarker(date);
 	const offset = isoDayOffset(today, date);
@@ -203,6 +206,7 @@ export function NutritionDayScreen() {
 							locale={locale}
 							onAdd={() => setAddingTo(slot)}
 							onEdit={(entry) => setEditing({ entry, meal: slot })}
+							onDelete={(entry) => deleteEntry({ entry, meal: slot, date })}
 							selecting={comboMode === "select"}
 							selectedEntryIds={selectedEntryIds}
 							onToggleEntry={(entry) =>
@@ -454,6 +458,7 @@ function MealSection({
 	locale,
 	onAdd,
 	onEdit,
+	onDelete,
 	selecting,
 	selectedEntryIds,
 	onToggleEntry,
@@ -464,6 +469,7 @@ function MealSection({
 	locale: "en" | "nl";
 	onAdd: () => void;
 	onEdit: (entry: DiaryEntry) => void;
+	onDelete: (entry: DiaryEntry) => void;
 	selecting: boolean;
 	selectedEntryIds: ReadonlySet<string>;
 	onToggleEntry: (entry: DiaryEntry) => void;
@@ -511,6 +517,7 @@ function MealSection({
 									onPress={() =>
 										selecting ? onToggleEntry(entry) : onEdit(entry)
 									}
+									onDelete={() => onDelete(entry)}
 								/>
 							);
 						}
@@ -571,6 +578,7 @@ function MealSection({
 												onPress={() =>
 													selecting ? onToggleEntry(part) : onEdit(part)
 												}
+												onDelete={() => onDelete(part)}
 											/>
 										))
 									: null}
@@ -583,6 +591,19 @@ function MealSection({
 	);
 }
 
+/**
+ * One logged entry.
+ *
+ * Tapping opens the editor — the visible, always-present route to every
+ * correction including deletion. Swipe and long press are accelerators layered
+ * on top by `SwipeableRow`, and delete through either of them still goes
+ * through the same confirmation the editor's own Delete does; there is no path
+ * from a gesture to a removed entry without an explicit yes.
+ *
+ * While a Combo selection is in progress the row is a checkbox instead, and
+ * the accelerators come off: a swipe that edited an entry mid-selection would
+ * be acting on something the user is in the middle of choosing.
+ */
 function EntryRow({
 	t,
 	entry,
@@ -590,6 +611,7 @@ function EntryRow({
 	selecting,
 	selected,
 	onPress,
+	onDelete,
 }: {
 	t: Messages;
 	entry: DiaryEntry;
@@ -597,8 +619,9 @@ function EntryRow({
 	selecting: boolean;
 	selected: boolean;
 	onPress: () => void;
+	onDelete: () => void;
 }) {
-	return (
+	const content = (accessibility?: RowAccessibilityProps) => (
 		<Pressable
 			onPress={onPress}
 			accessibilityRole={selecting ? "checkbox" : "button"}
@@ -612,6 +635,7 @@ function EntryRow({
 							name: entry.name[locale],
 						})
 			}
+			{...accessibility}
 			style={({ pressed }) => [
 				styles.entryRow,
 				styles.comboPart,
@@ -636,6 +660,28 @@ function EntryRow({
 				{t.nutrition.units.kcal}
 			</AppText>
 		</Pressable>
+	);
+
+	if (selecting) return content();
+
+	return (
+		<SwipeableRow
+			menuTitle={fmt(t.nutrition.entryActions.menuTitle, {
+				name: entry.name[locale],
+			})}
+			closeMenuLabel={t.nutrition.entryActions.close}
+			actions={[
+				{ key: "edit", label: t.nutrition.entryActions.edit, onPress },
+				{
+					key: "delete",
+					label: t.nutrition.entryActions.delete,
+					onPress: onDelete,
+					destructive: true,
+				},
+			]}
+		>
+			{content}
+		</SwipeableRow>
 	);
 }
 

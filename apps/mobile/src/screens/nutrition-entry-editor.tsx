@@ -23,14 +23,14 @@ import {
 	View,
 } from "react-native";
 import { api } from "../convex/api";
-import { formatLongDate } from "../data/calendar-day";
+import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import type { DiaryEntry } from "../data/nutrition-day";
 import { MEAL_SLOTS, type MealSlot } from "../data/nutrition-day";
 import { fmt, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { convexErrorMessage } from "../ui/confirm-dialog";
 import { DateStepper } from "../ui/date-stepper";
 import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
@@ -49,15 +49,13 @@ export function NutritionEntryEditor({
 }) {
 	const { t, locale } = useI18n();
 	const toast = useToast();
-	const confirm = useConfirm();
 	const updateEntry = useMutation(api.nutritionDiary.update);
-	const removeEntry = useMutation(api.nutritionDiary.remove);
+	const { deleteEntry, deleting } = useDeleteDiaryEntry();
 
 	const [quantityText, setQuantityText] = useState(String(entry.quantity));
 	const [nextMeal, setNextMeal] = useState<MealSlot>(meal);
 	const [nextDate, setNextDate] = useState(date);
 	const [saving, setSaving] = useState(false);
-	const [deleting, setDeleting] = useState(false);
 
 	const parsedQuantity = Number(quantityText.replace(",", "."));
 	const quantity =
@@ -86,28 +84,10 @@ export function NutritionEntryEditor({
 
 	async function remove() {
 		if (busy) return;
-		const confirmed = await confirm({
-			title: t.nutrition.entryEditor.deleteConfirmTitle,
-			message: fmt(t.nutrition.entryEditor.deleteConfirmMessage, {
-				name: entry.name[locale],
-				meal: t.nutrition.meals[nextMeal],
-				date: formatLongDate(nextDate, locale),
-			}),
-			confirmLabel: t.nutrition.entryEditor.delete,
-			cancelLabel: t.nutrition.entryEditor.keepEntry,
-			destructive: true,
-		});
-		if (!confirmed) return;
-		setDeleting(true);
-		try {
-			await removeEntry({ id: entry.id });
+		// One confirmation, shared with the diary row's swipe and long-press
+		// routes, so none of the three can drift into deleting silently.
+		if (await deleteEntry({ entry, meal: nextMeal, date: nextDate })) {
 			onClose();
-		} catch (error) {
-			toast.error(
-				convexErrorMessage(error, t.nutrition.entryEditor.deleteFailure),
-			);
-		} finally {
-			setDeleting(false);
 		}
 	}
 

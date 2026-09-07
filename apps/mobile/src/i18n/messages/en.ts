@@ -286,6 +286,15 @@ export const en = {
 				"The bundled food returns to search. Diary entries keep the nutrition they were logged with.",
 		},
 
+		entryActions: {
+			/** Names the subject so the menu is not two verbs with no object. */
+			menuTitle: "{name}",
+			close: "Close",
+			/** Short: this label also rides an 88pt swipe button. */
+			edit: "Edit",
+			delete: "Delete",
+		},
+
 		entryEditor: {
 			title: "Edit entry",
 			/** Icon-free row, so this is the whole accessible name. */

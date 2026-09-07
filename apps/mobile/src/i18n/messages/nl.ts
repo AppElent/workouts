@@ -268,6 +268,13 @@ export const nl = {
 				"Het meegeleverde voedingsmiddel komt terug in de zoekresultaten. Dagboekitems behouden de voedingswaarde waarmee ze zijn vastgelegd.",
 		},
 
+		entryActions: {
+			menuTitle: "{name}",
+			close: "Sluiten",
+			edit: "Wijzig",
+			delete: "Verwijder",
+		},
+
 		entryEditor: {
 			title: "Item bewerken",
 			editEntry: "Item bewerken: {name}",
