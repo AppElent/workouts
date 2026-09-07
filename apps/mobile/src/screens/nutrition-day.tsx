@@ -765,14 +765,19 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 4,
-		height: 44,
+		// `minHeight`, not `height`: at the largest dynamic type sizes a fixed
+		// box crops its own label, and a marker that reads "Traine" is worse
+		// than one that is taller than the design intended.
+		minHeight: 44,
 	},
 	trainingMarkerGlyph: { color: colors.accent, fontSize: 8 },
 	trainingMarkerLabel: { color: colors.textMuted },
 
 	stepper: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	todayPill: {
-		height: 32,
+		// 44pt so the target meets platform guidance without relying on hitSlop
+		// to make up the difference, and so the label has room to grow.
+		minHeight: 44,
 		paddingHorizontal: spacing.md,
 		borderRadius: radius.pill,
 		alignItems: "center",
@@ -793,7 +798,10 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		gap: spacing.sm,
 	},
-	goalName: { fontWeight: "700" },
+	// The nutrient's name yields before its number does. Spec #68 is explicit
+	// that dynamic type must not clip nutrition values, and in a row with one
+	// of each there has to be a rule about which one gives way.
+	goalName: { fontWeight: "700", flexShrink: 1 },
 	comboControls: { gap: spacing.sm },
 	comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 	track: {
@@ -810,8 +818,9 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	addButton: {
-		width: 44,
-		height: 44,
+		minWidth: 44,
+		minHeight: 44,
+		padding: 4,
 		borderRadius: radius.pill,
 		alignItems: "center",
 		justifyContent: "center",
