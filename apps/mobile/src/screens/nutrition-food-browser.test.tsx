@@ -86,7 +86,7 @@ describe("browsing shipped foods", () => {
 
 		expect(await screen.findByText("Pouch × 1")).toBeTruthy();
 		expect(screen.getByText("104 kcal")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(screen.getByLabelText("Close serving options"));
 		fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"training gel",
@@ -105,13 +105,17 @@ describe("browsing shipped foods", () => {
 		fireEvent.changeText(screen.getByLabelText("English name"), "Morning mix");
 		fireEvent.changeText(screen.getByLabelText("Dutch name"), "Ochtendmix");
 		fireEvent.press(screen.getByText("Save Personal Food"));
-		await screen.findByText("Morning mix");
+		// The serving sheet opens over the results, so the new food's name is
+		// both the sheet's title and the row behind it.
+		await screen.findAllByText("Morning mix");
 		const originalId = repository.list()[0].id;
 
 		fireEvent.press(screen.getByText("Edit Personal Food"));
 		fireEvent.changeText(screen.getByLabelText("English name"), "Morning oats");
 		fireEvent.press(screen.getByText("Save Personal Food"));
-		expect(await screen.findByText("Morning oats")).toBeTruthy();
+		expect((await screen.findAllByText("Morning oats")).length).toBeGreaterThan(
+			0,
+		);
 		expect(repository.list()[0].id).toBe(originalId);
 
 		fireEvent.press(screen.getByText("Delete Personal Food"));

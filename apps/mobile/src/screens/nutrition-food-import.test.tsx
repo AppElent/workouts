@@ -76,7 +76,12 @@ describe("scanning a barcode", () => {
 		fireEvent.press(screen.getByText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
-		expect(await screen.findByText("Scanned Soup")).toBeTruthy();
+		// The serving sheet opens over the results, so the name is both the
+		// sheet's title and the row it came from.
+		expect((await screen.findAllByText("Scanned Soup")).length).toBeGreaterThan(
+			0,
+		);
+		expect(screen.getByText("Log food")).toBeTruthy();
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
@@ -99,7 +104,9 @@ describe("scanning a barcode", () => {
 		expect(screen.getByText(/Product data from Open Food Facts/)).toBeTruthy();
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
-		expect(await screen.findByText("Baked Beans")).toBeTruthy();
+		expect((await screen.findAllByText("Baked Beans")).length).toBeGreaterThan(
+			0,
+		);
 		fireEvent.press(screen.getByText("Log food"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));

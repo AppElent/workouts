@@ -127,6 +127,8 @@ export const nl = {
 			allResults: "Alle NEVO-voedingsmiddelen",
 			empty: "Geen voedingsmiddelen gevonden.",
 			per100: "Voedingswaarde per 100",
+			closeServingLabel: "Sluit portiekeuze",
+			closeServing: "Klaar",
 			serving: "Portie",
 			quantity: "Aantal",
 			trace: "Spoor",

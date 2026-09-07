@@ -141,6 +141,8 @@ export const en = {
 			allResults: "All NEVO foods",
 			empty: "No foods match this search.",
 			per100: "Nutrition per 100",
+			closeServingLabel: "Close serving options",
+			closeServing: "Done",
 			serving: "Serving",
 			quantity: "Quantity",
 			trace: "Trace",
