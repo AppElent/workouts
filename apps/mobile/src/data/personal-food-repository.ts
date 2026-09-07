@@ -1,4 +1,5 @@
 import {
+	getShippedFood,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -7,7 +8,7 @@ import {
 import { openDatabaseSync } from "expo-sqlite";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export type SQLiteValue = string | number | null | Uint8Array;
 
@@ -56,6 +57,67 @@ export type PersonalFood = PersonalFoodDraft & {
 	readonly updatedAt: number;
 };
 
+export type ComboSnapshotProvenance =
+	| {
+			readonly source: "shipped";
+			readonly sourceId: string;
+			readonly dataset: string;
+			readonly edition: string;
+			readonly sourceCode: number;
+			readonly sourceName: { readonly en: string; readonly nl: string };
+			readonly saltDerived: boolean;
+	  }
+	| {
+			readonly source: "personal" | "import";
+			readonly sourceId: string;
+			readonly nutritionSource: "manual" | "nevo" | "openfoodfacts";
+			readonly locallyEdited: boolean;
+			readonly forkedFrom?: string;
+			readonly provider?: string;
+			readonly barcode?: string;
+			readonly attribution?: string;
+	  }
+	| { readonly source: "oneOff" };
+
+/** A date- and meal-free diary snapshot saved as one fixed Combo part. */
+export type ComboPartSnapshot = {
+	readonly name: { readonly en: string; readonly nl: string };
+	readonly serving: { readonly en: string; readonly nl: string };
+	readonly quantity: number;
+	readonly amount: number;
+	readonly baseUnit: "g" | "ml";
+	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
+	readonly provenance: ComboSnapshotProvenance;
+};
+
+export type ComboPartReference =
+	| { readonly kind: "shipped"; readonly foodId: string }
+	| { readonly kind: "personal"; readonly foodId: string }
+	| { readonly kind: "oneOff" };
+
+export type ComboPartDraft = {
+	readonly id?: string;
+	readonly reference: ComboPartReference;
+	readonly snapshot: ComboPartSnapshot;
+};
+
+export type ComboDraft = {
+	readonly name: string;
+	readonly parts: readonly ComboPartDraft[];
+};
+
+export type ComboPart = Omit<ComboPartDraft, "id"> & {
+	readonly id: string;
+	readonly status: "available" | "missing";
+};
+
+export type Combo = Omit<ComboDraft, "parts"> & {
+	readonly id: string;
+	readonly parts: readonly ComboPart[];
+	readonly createdAt: number;
+	readonly updatedAt: number;
+};
+
 export type PersonalFoodRepository = {
 	list(): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
@@ -76,6 +138,11 @@ export type PersonalFoodRepository = {
 	create(draft: PersonalFoodDraft): PersonalFood;
 	update(id: string, draft: PersonalFoodDraft): PersonalFood;
 	remove(id: string): boolean;
+	listCombos(): Combo[];
+	findCombo(id: string): Combo | undefined;
+	createCombo(draft: ComboDraft): Combo;
+	updateCombo(id: string, draft: ComboDraft): Combo;
+	removeCombo(id: string): boolean;
 };
 
 type PersonalFoodRow = {
@@ -86,6 +153,14 @@ type PersonalFoodRow = {
 	nutrients_json: string;
 	servings_json: string;
 	provenance_json: string;
+	created_at: number;
+	updated_at: number;
+};
+
+type ComboRow = {
+	id: string;
+	name: string;
+	parts_json: string;
 	created_at: number;
 	updated_at: number;
 };
@@ -141,6 +216,19 @@ function migrate(database: SyncSQLiteDatabase): void {
 				);
 				CREATE INDEX IF NOT EXISTS off_cache_by_expiry
 					ON off_cache(expires_at ASC);
+			`);
+		}
+		if (current < 3) {
+			database.execSync(`
+				CREATE TABLE IF NOT EXISTS nutrition_combos (
+					id TEXT PRIMARY KEY NOT NULL,
+					name TEXT NOT NULL,
+					parts_json TEXT NOT NULL,
+					created_at INTEGER NOT NULL,
+					updated_at INTEGER NOT NULL
+				);
+				CREATE INDEX IF NOT EXISTS nutrition_combos_by_updated
+					ON nutrition_combos(updated_at DESC);
 			`);
 		}
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
@@ -249,6 +337,150 @@ export function validatePersonalFoodDraft(
 	};
 }
 
+function validateComboProvenance(
+	value: unknown,
+	reference: ComboPartReference,
+): ComboSnapshotProvenance {
+	if (!value || typeof value !== "object" || !("source" in value)) {
+		throw new Error("Combo part provenance is required.");
+	}
+	const candidate = value as ComboSnapshotProvenance;
+	if (reference.kind === "oneOff") {
+		if (candidate.source !== "oneOff") {
+			throw new Error("A one-off Combo part must keep one-off provenance.");
+		}
+		return { source: "oneOff" };
+	}
+	if (candidate.source === "oneOff" || !("sourceId" in candidate)) {
+		throw new Error("A referenced Combo part must keep its source id.");
+	}
+	if (candidate.sourceId !== reference.foodId) {
+		throw new Error("A Combo reference must match its saved snapshot.");
+	}
+	if (reference.kind === "shipped") {
+		if (candidate.source !== "shipped") {
+			throw new Error("A shipped Combo part must keep shipped provenance.");
+		}
+		if (!Number.isFinite(candidate.sourceCode)) {
+			throw new Error("A shipped Combo part needs a source code.");
+		}
+		if (typeof candidate.saltDerived !== "boolean") {
+			throw new Error("A shipped Combo part must preserve salt provenance.");
+		}
+		return {
+			source: "shipped",
+			sourceId: candidate.sourceId,
+			dataset: validateText(candidate.dataset, "Dataset"),
+			edition: validateText(candidate.edition, "Dataset edition"),
+			sourceCode: candidate.sourceCode,
+			sourceName: {
+				en: validateText(candidate.sourceName.en, "English source name"),
+				nl: validateText(candidate.sourceName.nl, "Dutch source name"),
+			},
+			saltDerived: candidate.saltDerived,
+		};
+	}
+	if (candidate.source !== "personal" && candidate.source !== "import") {
+		throw new Error("A Personal Food Combo part has invalid provenance.");
+	}
+	if (
+		candidate.nutritionSource !== "manual" &&
+		candidate.nutritionSource !== "nevo" &&
+		candidate.nutritionSource !== "openfoodfacts"
+	) {
+		throw new Error(
+			"A Personal Food Combo part has an invalid nutrition source.",
+		);
+	}
+	if (typeof candidate.locallyEdited !== "boolean") {
+		throw new Error("A Personal Food Combo part must preserve its edit state.");
+	}
+	return {
+		source: candidate.source,
+		sourceId: candidate.sourceId,
+		nutritionSource: candidate.nutritionSource,
+		locallyEdited: candidate.locallyEdited,
+		...(candidate.forkedFrom ? { forkedFrom: candidate.forkedFrom } : {}),
+		...(candidate.provider ? { provider: candidate.provider } : {}),
+		...(candidate.barcode ? { barcode: candidate.barcode } : {}),
+		...(candidate.attribution ? { attribution: candidate.attribution } : {}),
+	};
+}
+
+function validateComboDraft(draft: ComboDraft): ComboDraft {
+	const name = validateText(draft.name, "Combo name");
+	if (!Array.isArray(draft.parts) || draft.parts.length === 0) {
+		throw new Error("A Combo needs at least one part.");
+	}
+	const parts = draft.parts.map((part, index) => {
+		if (!part || typeof part !== "object" || !("reference" in part)) {
+			throw new Error(`Combo part ${index + 1} is invalid.`);
+		}
+		const reference = (part as ComboPartDraft).reference as
+			| ComboPartReference
+			| { kind?: string };
+		if (reference?.kind === "combo") {
+			throw new Error("A Combo cannot contain another Combo.");
+		}
+		if (
+			reference?.kind !== "shipped" &&
+			reference?.kind !== "personal" &&
+			reference?.kind !== "oneOff"
+		) {
+			throw new Error(`Combo part ${index + 1} has an invalid reference.`);
+		}
+		let typedReference: ComboPartReference;
+		if (reference.kind === "oneOff") {
+			typedReference = { kind: "oneOff" };
+		} else {
+			if (!("foodId" in reference)) {
+				throw new Error(`Combo part ${index + 1} needs a source id.`);
+			}
+			typedReference = {
+				kind: reference.kind,
+				foodId: validateText(reference.foodId, "Combo source id"),
+			};
+		}
+		const snapshot = (part as ComboPartDraft).snapshot;
+		if (!snapshot || typeof snapshot !== "object") {
+			throw new Error(`Combo part ${index + 1} needs a snapshot.`);
+		}
+		if (!(snapshot.quantity > 0) || !(snapshot.amount > 0)) {
+			throw new Error("Combo part quantities must be greater than zero.");
+		}
+		if (snapshot.baseUnit !== "g" && snapshot.baseUnit !== "ml") {
+			throw new Error("Combo part base unit must be grams or millilitres.");
+		}
+		const nutrients = {} as Record<NutrientKey, NutrientValue>;
+		for (const key of NUTRIENT_KEYS) {
+			nutrients[key] = validateNutrient(snapshot.nutrients[key], key);
+		}
+		return {
+			...(part.id ? { id: validateText(part.id, "Combo part id") } : {}),
+			reference: typedReference,
+			snapshot: {
+				name: {
+					en: validateText(snapshot.name.en, "English Combo part name"),
+					nl: validateText(snapshot.name.nl, "Dutch Combo part name"),
+				},
+				serving: {
+					en: validateText(snapshot.serving.en, "English serving"),
+					nl: validateText(snapshot.serving.nl, "Dutch serving"),
+				},
+				quantity: snapshot.quantity,
+				amount: snapshot.amount,
+				baseUnit: snapshot.baseUnit,
+				nutrients,
+				provenance: validateComboProvenance(
+					snapshot.provenance,
+					typedReference,
+				),
+			},
+		};
+	});
+	return { name, parts };
+}
+
 function rowToFood(row: PersonalFoodRow): PersonalFood {
 	const draft = validatePersonalFoodDraft({
 		name: { en: row.name_en, nl: row.name_nl },
@@ -294,6 +526,46 @@ export function createPersonalFoodRepository(
 			id,
 		);
 		return row ? rowToFood(row) : undefined;
+	}
+
+	function comboFromRow(row: ComboRow): Combo {
+		const valid = validateComboDraft({
+			name: row.name,
+			parts: JSON.parse(row.parts_json),
+		});
+		return {
+			id: row.id,
+			name: valid.name,
+			parts: valid.parts.map((part) => {
+				if (!part.id) throw new Error("A stored Combo part has no stable id.");
+				const status =
+					part.reference.kind === "oneOff" ||
+					(part.reference.kind === "shipped" &&
+						getShippedFood(part.reference.foodId) !== undefined) ||
+					(part.reference.kind === "personal" &&
+						find(part.reference.foodId) !== undefined)
+						? "available"
+						: "missing";
+				return { ...part, id: part.id, status };
+			}),
+			createdAt: row.created_at,
+			updatedAt: row.updated_at,
+		};
+	}
+
+	function findCombo(id: string): Combo | undefined {
+		const row = database.getFirstSync<ComboRow>(
+			"SELECT * FROM nutrition_combos WHERE id = ?",
+			id,
+		);
+		return row ? comboFromRow(row) : undefined;
+	}
+
+	function storedComboParts(draft: ComboDraft): ComboPartDraft[] {
+		return validateComboDraft(draft).parts.map((part) => ({
+			...part,
+			id: part.id ?? nextUuid(),
+		}));
 	}
 
 	return {
@@ -389,6 +661,58 @@ export function createPersonalFoodRepository(
 		remove(id) {
 			return (
 				database.runSync("DELETE FROM personal_foods WHERE id = ?", id)
+					.changes > 0
+			);
+		},
+		listCombos() {
+			return database
+				.getAllSync<ComboRow>(
+					"SELECT * FROM nutrition_combos ORDER BY updated_at DESC, id ASC",
+				)
+				.map(comboFromRow);
+		},
+		findCombo,
+		createCombo(draft) {
+			const name = validateText(draft.name, "Combo name");
+			const parts = storedComboParts(draft);
+			const id = nextUuid();
+			const timestamp = now();
+			database.runSync(
+				`INSERT INTO nutrition_combos
+					(id, name, parts_json, created_at, updated_at)
+				 VALUES (?, ?, ?, ?, ?)`,
+				id,
+				name,
+				JSON.stringify(parts),
+				timestamp,
+				timestamp,
+			);
+			const created = findCombo(id);
+			if (!created) throw new Error("Combo could not be saved.");
+			return created;
+		},
+		updateCombo(id, draft) {
+			const existing = findCombo(id);
+			if (!existing) throw new Error("Combo not found.");
+			const name = validateText(draft.name, "Combo name");
+			const parts = storedComboParts(draft);
+			const timestamp = now();
+			database.runSync(
+				`UPDATE nutrition_combos
+				 SET name = ?, parts_json = ?, updated_at = ?
+				 WHERE id = ?`,
+				name,
+				JSON.stringify(parts),
+				timestamp,
+				id,
+			);
+			const updated = findCombo(id);
+			if (!updated) throw new Error("Combo could not be saved.");
+			return updated;
+		},
+		removeCombo(id) {
+			return (
+				database.runSync("DELETE FROM nutrition_combos WHERE id = ?", id)
 					.changes > 0
 			);
 		},

@@ -6,6 +6,13 @@ export default defineSchema({
   nutritionDiaryEntries: defineTable({
     userId: v.string(),
     ...diarySnapshotFields,
+    // A Combo is only provenance/rendering: every row remains an ordinary
+    // independently editable diary snapshot even if the local Combo vanishes.
+    comboGroup: v.optional(v.object({
+      id: v.string(),
+      comboId: v.string(),
+      name: v.string(),
+    })),
     loggedAt: v.number(),
   })
     .index('by_user', ['userId'])

@@ -7,6 +7,7 @@ import {
 } from "@workouts/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
+	type ComboDraft,
 	createPersonalFoodRepository,
 	type PersonalFoodDraft,
 } from "./personal-food-repository";
@@ -52,6 +53,65 @@ function stepwiseClock(): () => number {
 	return () => {
 		tick += 1_000;
 		return tick;
+	};
+}
+
+function comboDraft(
+	personalFoodId: string,
+	overrides: Partial<ComboDraft> = {},
+): ComboDraft {
+	const snapshot = {
+		name: { en: "Training oats", nl: "Trainingshavermout" },
+		serving: { en: "Bowl × 1", nl: "Kom × 1" },
+		quantity: 1,
+		amount: 75.5,
+		baseUnit: "g" as const,
+		nutrients: nutrientStates(),
+	};
+	return {
+		name: "Post-workout breakfast",
+		parts: [
+			{
+				reference: { kind: "shipped", foodId: "shipped:missing-test-food" },
+				snapshot: {
+					...snapshot,
+					provenance: {
+						source: "shipped",
+						sourceId: "shipped:missing-test-food",
+						dataset: "NEVO",
+						edition: "2025/9.0",
+						sourceCode: 1,
+						sourceName: snapshot.name,
+						saltDerived: true,
+					},
+				},
+			},
+			{
+				reference: { kind: "personal", foodId: personalFoodId },
+				snapshot: {
+					...snapshot,
+					quantity: 2,
+					amount: 151,
+					provenance: {
+						source: "personal",
+						sourceId: personalFoodId,
+						nutritionSource: "manual",
+						locallyEdited: false,
+					},
+				},
+			},
+			{
+				reference: { kind: "oneOff" },
+				snapshot: {
+					...snapshot,
+					name: { en: "Pinch of cinnamon", nl: "Snuf kaneel" },
+					quantity: 0.5,
+					amount: 1,
+					provenance: { source: "oneOff" },
+				},
+			},
+		],
+		...overrides,
 	};
 }
 
@@ -278,5 +338,82 @@ describe("forks of shipped foods", () => {
 		expect(repository.forks()).toEqual([]);
 		expect(repository.findForkOf(source.id)).toBeUndefined();
 		expect(getShippedFood(source.id)?.name).toEqual(source.name);
+	});
+});
+
+describe("Combo behavior through the device nutrition repository", () => {
+	it("migrates a v1 database and persists a stable named Combo without a meal", () => {
+		const database = new SQLiteTestDatabase();
+		const firstRepository = createPersonalFoodRepository(database);
+		const food = firstRepository.create(draft());
+		const created = firstRepository.createCombo(comboDraft(food.id));
+		const reopened = createPersonalFoodRepository(database);
+
+		expect(created.id).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+		);
+		expect(reopened.findCombo(created.id)).toEqual(created);
+		expect(created).not.toHaveProperty("meal");
+		expect(reopened.find(food.id)?.name.en).toBe("Training oats");
+	});
+
+	it("keeps fixed quantities for shipped, Personal Food, and one-off parts", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const food = repository.create(draft());
+
+		const combo = repository.createCombo(comboDraft(food.id));
+
+		expect(combo.parts.map((part) => part.reference.kind)).toEqual([
+			"shipped",
+			"personal",
+			"oneOff",
+		]);
+		expect(combo.parts.map((part) => part.snapshot.quantity)).toEqual([
+			1, 2, 0.5,
+		]);
+	});
+
+	it("rejects an empty Combo and a nested Combo part", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+
+		expect(() => repository.createCombo({ name: "Empty", parts: [] })).toThrow(
+			"at least one",
+		);
+		expect(() =>
+			repository.createCombo({
+				name: "Nested",
+				parts: [
+					{
+						reference: { kind: "combo", comboId: "another" },
+						snapshot: {},
+					},
+				] as unknown as ComboDraft["parts"],
+			}),
+		).toThrow("cannot contain another Combo");
+	});
+
+	it("marks deleted and unknown references without following a replacement", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const original = repository.create(draft());
+		const combo = repository.createCombo(comboDraft(original.id));
+		const replacement = repository.create(
+			draft({ name: { en: "Replacement oats", nl: "Vervangende havermout" } }),
+		);
+
+		repository.remove(original.id);
+		const reopened = repository.findCombo(combo.id);
+
+		expect(reopened?.parts.map((part) => part.status)).toEqual([
+			"missing",
+			"missing",
+			"available",
+		]);
+		expect(reopened?.parts[1].reference).toEqual({
+			kind: "personal",
+			foodId: original.id,
+		});
+		expect(reopened?.parts[1].reference).not.toEqual(
+			expect.objectContaining({ foodId: replacement.id }),
+		);
 	});
 });

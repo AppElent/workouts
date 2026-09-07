@@ -203,6 +203,54 @@ export const nl = {
 			saveFailure:
 				"Dit persoonlijke voedingsmiddel kon niet worden opgeslagen. Je wijzigingen staan er nog.",
 		},
+		combos: {
+			create: "Combo maken",
+			log: "Combo loggen",
+			storageTitle: "Alleen op dit apparaat opgeslagen",
+			storageBody:
+				"Combo's zijn offline beschikbaar op dit apparaat, verschijnen niet op een tweede apparaat en kunnen verloren gaan als je Workouts verwijdert. Loggen synchroniseert met je dagboek zodra je verbonden bent.",
+			name: "Naam van Combo",
+			save: "Combo opslaan",
+			saving: "Combo opslaan…",
+			saved: "Combo opgeslagen.",
+			saveFailure:
+				"Deze Combo kon niet worden opgeslagen. Je naam en selectie staan er nog.",
+			selectionHelp:
+				"Kies afzonderlijke dagboekitems. Maaltijdvakken worden nooit automatisch geselecteerd.",
+			selectEntry: "Selecteer {name} voor Combo",
+			cancel: "Annuleren",
+			continueOne: "Ga verder met 1 onderdeel",
+			continueMany: "Ga verder met {count} onderdelen",
+			destination: "Loggen bij maaltijd",
+			logOne: "Log 1 onderdeel",
+			logMany: "Log {count} onderdelen",
+			logging: "Combo loggen…",
+			logFailure:
+				"Deze Combo kon niet worden gelogd. Je selectie staat er nog.",
+			partsOne: "1 onderdeel",
+			partsMany: "{count} onderdelen",
+			needsAttention: "Aandacht nodig",
+			missing: "Bron ontbreekt",
+			missingBody:
+				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Het is niet automatisch vervangen. Verwijder niet-beschikbare onderdelen, verwijder deze Combo of maak hem opnieuw met de gewenste items.",
+			resolveTitle: "Niet-beschikbare onderdelen verwijderen?",
+			resolveBody:
+				"Alleen onderdelen waarvan de oorspronkelijke bron nog beschikbaar is, blijven in deze Combo staan.",
+			resolve: "Niet-beschikbare onderdelen verwijderen",
+			resolveFailure:
+				"De niet-beschikbare onderdelen konden niet worden verwijderd.",
+			emptyTitle: "Nog geen Combo's",
+			emptyBody:
+				"Maak er een door afzonderlijke items in je dagboek te selecteren.",
+			deleteTitle: "Deze Combo verwijderen?",
+			deleteBody:
+				"Eerder gelogde groepen behouden hun opgeslagen voedingswaarden.",
+			delete: "Combo verwijderen",
+			deleting: "Combo verwijderen…",
+			deleteFailure: "Deze Combo kon niet worden verwijderd.",
+			expandGroup: "Klap Combo {name} uit",
+			collapseGroup: "Klap Combo {name} in",
+		},
 
 		/** Zie de Engelse toelichting bij `fork`. */
 		fork: {

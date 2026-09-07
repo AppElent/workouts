@@ -31,15 +31,16 @@ const personalProvenance = v.object({
 	barcode: v.optional(v.string()),
 	attribution: v.optional(v.string()),
 });
+const oneOffProvenance = v.object({ source: v.literal("oneOff") });
 
-export const diarySnapshotFields = {
-	date: v.string(),
-	meal: v.union(
-		v.literal("breakfast"),
-		v.literal("lunch"),
-		v.literal("dinner"),
-		v.literal("snacks"),
-	),
+export const mealSlot = v.union(
+	v.literal("breakfast"),
+	v.literal("lunch"),
+	v.literal("dinner"),
+	v.literal("snacks"),
+);
+
+export const diaryPartSnapshotFields = {
 	name: bilingual,
 	serving: bilingual,
 	quantity: v.number(),
@@ -55,5 +56,15 @@ export const diarySnapshotFields = {
 		sugars: nutrientValue,
 		salt: nutrientValue,
 	}),
-	provenance: v.union(shippedProvenance, personalProvenance),
+	provenance: v.union(
+		shippedProvenance,
+		personalProvenance,
+		oneOffProvenance,
+	),
+};
+
+export const diarySnapshotFields = {
+	date: v.string(),
+	meal: mealSlot,
+	...diaryPartSnapshotFields,
 };

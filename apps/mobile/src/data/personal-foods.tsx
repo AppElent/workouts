@@ -7,6 +7,8 @@ import {
 	useState,
 } from "react";
 import {
+	type Combo,
+	type ComboDraft,
 	openPersonalFoodRepository,
 	type PersonalFood,
 	type PersonalFoodDraft,
@@ -24,6 +26,11 @@ type PersonalFoodsValue = {
 	create(draft: PersonalFoodDraft): PersonalFood;
 	update(id: string, draft: PersonalFoodDraft): PersonalFood;
 	remove(id: string): boolean;
+	listCombos(): Combo[];
+	findCombo(id: string): Combo | undefined;
+	createCombo(draft: ComboDraft): Combo;
+	updateCombo(id: string, draft: ComboDraft): Combo;
+	removeCombo(id: string): boolean;
 };
 
 const PersonalFoodsContext = createContext<PersonalFoodsValue | null>(null);
@@ -62,6 +69,23 @@ export function PersonalFoodsProvider({
 			},
 			remove: (id) => {
 				const removed = repository.remove(id);
+				if (removed) changed();
+				return removed;
+			},
+			listCombos: () => repository.listCombos(),
+			findCombo: (id) => repository.findCombo(id),
+			createCombo: (draft) => {
+				const combo = repository.createCombo(draft);
+				changed();
+				return combo;
+			},
+			updateCombo: (id, draft) => {
+				const combo = repository.updateCombo(id, draft);
+				changed();
+				return combo;
+			},
+			removeCombo: (id) => {
+				const removed = repository.removeCombo(id);
 				if (removed) changed();
 				return removed;
 			},
