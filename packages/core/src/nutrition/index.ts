@@ -40,6 +40,23 @@ export {
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
 export {
+	type FoodResult,
+	type FoodResultsInput,
+	type ForkedFoodDraft,
+	type ForkedFoodValues,
+	type ForkedServing,
+	type ForkProvenance,
+	type ForkRef,
+	foodResults,
+	forkHasLocalEdits,
+	forkShadows,
+	forkShippedFood,
+	forkSource,
+	isFork,
+	type LocalFoodLike,
+	MAX_FORK_SERVINGS,
+} from "./fork";
+export {
 	editedGoalCount,
 	GOAL_DIRECTIONS,
 	GOAL_PRESET_KEYS,

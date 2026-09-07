@@ -1,5 +1,8 @@
 import {
-	allShippedFoods,
+	type FoodResult,
+	foodResults,
+	forkShippedFood,
+	forkSource,
 	formatServingSelection,
 	NEVO_ATTRIBUTION,
 	NUTRIENT_KEYS,
@@ -11,7 +14,6 @@ import {
 	SALT_DERIVATION_DISCLOSURE,
 	type ServingOption,
 	type ShippedFood,
-	searchShippedFoods,
 	servingOptions,
 	shippedLibraryMeta,
 } from "@workouts/core/nutrition";
@@ -28,9 +30,12 @@ import {
 import { api } from "../convex/api";
 import { formatLongDate } from "../data/calendar-day";
 import type { MealSlot } from "../data/nutrition-day";
-import type { PersonalFood } from "../data/personal-food-repository";
+import type {
+	PersonalFood,
+	PersonalFoodDraft,
+} from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
-import { fmt, useI18n } from "../i18n";
+import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
@@ -45,6 +50,36 @@ const RESULT_PAGE_SIZE = 50;
 type FoodSelection =
 	| { readonly kind: "shipped"; readonly food: ShippedFood }
 	| { readonly kind: "personal"; readonly food: PersonalFood };
+
+function asSelection(result: FoodResult<PersonalFood>): FoodSelection {
+	return result.kind === "local"
+		? { kind: "personal", food: result.food }
+		: { kind: "shipped", food: result.food };
+}
+
+/**
+ * The line under a result's name.
+ *
+ * Two of the four cases exist for #75: a correction says so, and — in the
+ * deliberate broader view, the only place it is still listed — so does the
+ * shipped record it replaced. Neither ever hides the other.
+ */
+function resultCaption(
+	result: FoodResult<PersonalFood>,
+	messages: Messages["nutrition"],
+	locale: "en" | "nl",
+): string {
+	if (result.kind === "local") {
+		return result.shadows
+			? fmt(messages.fork.forkedFrom, {
+					name: result.shadows.sourceName[locale],
+				})
+			: messages.personalFood.resultLabel;
+	}
+	return result.shadowedBy
+		? messages.fork.shadowed
+		: `${messages.foodBrowser.per100} ${result.food.baseUnit}`;
+}
 
 export function NutritionFoodBrowser({
 	meal,
@@ -64,41 +99,41 @@ export function NutritionFoodBrowser({
 	const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
+	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
 	const [creatingFood, setCreatingFood] = useState(false);
-	const allResults = useMemo(() => {
-		const local = personalFoods.search(query, locale).map((food) => ({
-			kind: "personal" as const,
-			food,
-		}));
-		if (searchAll && query.trim().length === 0) {
-			const shipped = allShippedFoods()
-				.filter((candidate) => !candidate.retired)
-				.sort((a, b) =>
-					a.sourceName[locale].localeCompare(b.sourceName[locale]),
-				)
-				.map((food) => ({ kind: "shipped" as const, food }));
-			return [...local, ...shipped];
-		}
-		const shipped = searchShippedFoods(query, {
-			locale,
-			scope: searchAll ? "all" : "promoted",
-			limit: searchAll ? 2328 : RESULT_PAGE_SIZE,
-		}).map(({ food }) => ({ kind: "shipped" as const, food }));
-		return [...local, ...shipped];
-	}, [locale, personalFoods, query, searchAll]);
+	/**
+	 * Ranking and shadowing both live in core (#75). All this screen decides is
+	 * which tier the person asked for; which of their corrections stands in
+	 * front of which shipped record is not a rendering question.
+	 */
+	const allResults = useMemo(
+		() =>
+			foodResults<PersonalFood>({
+				query,
+				locale,
+				scope: searchAll ? "all" : "promoted",
+				localMatches: personalFoods.search(query, locale),
+				localFoods: personalFoods.forks(),
+				limit: searchAll ? 2328 : RESULT_PAGE_SIZE,
+			}),
+		[locale, personalFoods, query, searchAll],
+	);
 	const results = allResults.slice(0, visibleCount);
 
-	if (creatingFood || editingFood) {
+	function closeEditor() {
+		setCreatingFood(false);
+		setEditingFood(undefined);
+		setForkDraft(undefined);
+	}
+
+	if (creatingFood || editingFood || forkDraft) {
 		return (
 			<PersonalFoodEditor
 				food={editingFood}
-				onCancel={() => {
-					setCreatingFood(false);
-					setEditingFood(undefined);
-				}}
+				seed={forkDraft}
+				onCancel={closeEditor}
 				onSaved={(food) => {
-					setCreatingFood(false);
-					setEditingFood(undefined);
+					closeEditor();
 					setSelectedFood({ kind: "personal", food });
 				}}
 			/>
@@ -118,12 +153,32 @@ export function NutritionFoodBrowser({
 						? () => setEditingFood(selectedFood.food)
 						: undefined
 				}
+				onCorrect={
+					selectedFood.kind === "shipped"
+						? () => {
+								// A correction is a new local food, never an edit of the
+								// shipped record — so this seeds the authoring screen
+								// rather than opening the shipped row for editing.
+								setForkDraft(forkShippedFood(selectedFood.food));
+								setSelectedFood(undefined);
+							}
+						: undefined
+				}
 				onDelete={
 					selectedFood.kind === "personal"
 						? async () => {
+								// Deleting a correction restores the shipped food to search,
+								// which is a different promise from deleting a Personal Food
+								// that stands alone.
+								const isCorrection =
+									selectedFood.food.provenance.forkedFrom !== undefined;
 								const approved = await confirm({
-									title: t.nutrition.personalFood.deleteTitle,
-									message: t.nutrition.personalFood.deleteBody,
+									title: isCorrection
+										? t.nutrition.fork.deleteTitle
+										: t.nutrition.personalFood.deleteTitle,
+									message: isCorrection
+										? t.nutrition.fork.deleteBody
+										: t.nutrition.personalFood.deleteBody,
 									confirmLabel: t.nutrition.personalFood.delete,
 									cancelLabel: t.nutrition.personalFood.cancel,
 									destructive: true,
@@ -199,7 +254,7 @@ export function NutritionFoodBrowser({
 					{results.map((result) => (
 						<Pressable
 							key={`${result.kind}:${result.food.id}`}
-							onPress={() => setSelectedFood(result)}
+							onPress={() => setSelectedFood(asSelection(result))}
 							accessibilityRole="button"
 							style={({ pressed }) => [
 								styles.foodRow,
@@ -211,16 +266,14 @@ export function NutritionFoodBrowser({
 							</AppText>
 							<View style={styles.flex}>
 								<AppText style={styles.strong}>
-									{result.kind === "personal"
+									{result.kind === "local"
 										? result.food.name[locale]
 										: (searchAll ? result.food.sourceName : result.food.name)[
 												locale
 											]}
 								</AppText>
 								<AppText variant="caption">
-									{result.kind === "personal"
-										? t.nutrition.personalFood.resultLabel
-										: `${t.nutrition.foodBrowser.per100} ${result.food.baseUnit}`}
+									{resultCaption(result, t.nutrition, locale)}
 								</AppText>
 							</View>
 						</Pressable>
@@ -245,6 +298,7 @@ function ServingDetail({
 	onLogged,
 	onEdit,
 	onDelete,
+	onCorrect,
 }: {
 	selection: FoodSelection;
 	meal: MealSlot;
@@ -253,6 +307,8 @@ function ServingDetail({
 	onLogged: () => void;
 	onEdit?: () => void;
 	onDelete?: () => void;
+	/** Start a correction of this shipped food. Absent for a local food. */
+	onCorrect?: () => void;
 }) {
 	const { t, locale } = useI18n();
 	const toast = useToast();
@@ -268,6 +324,9 @@ function ServingDetail({
 	const quantity = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 	const preview = servingPreview(selection, selectedServing, quantity, locale);
 	const canLog = quantity > 0;
+	/** The shipped record behind a correction — the original, still nameable. */
+	const correctedSource =
+		selection.kind === "personal" ? forkSource(selection.food) : undefined;
 
 	async function logFood() {
 		if (!canLog || logging) return;
@@ -348,7 +407,9 @@ function ServingDetail({
 				<AppText variant="caption">
 					{selection.kind === "shipped"
 						? selection.food.sourceName[locale]
-						: t.nutrition.personalFood.resultLabel}
+						: correctedSource
+							? t.nutrition.fork.resultLabel
+							: t.nutrition.personalFood.resultLabel}
 				</AppText>
 			</View>
 			<AppText variant="label">{t.nutrition.foodBrowser.serving}</AppText>
@@ -403,18 +464,43 @@ function ServingDetail({
 					<AppText variant="caption">
 						{SALT_DERIVATION_DISCLOSURE[locale]}
 					</AppText>
+					<GhostButton label={t.nutrition.fork.correct} onPress={onCorrect} />
 				</View>
 			) : (
-				<View style={styles.options}>
-					<GhostButton
-						label={t.nutrition.personalFood.editTitle}
-						onPress={onEdit}
-					/>
-					<GhostButton
-						label={t.nutrition.personalFood.delete}
-						onPress={onDelete}
-					/>
-				</View>
+				<>
+					{correctedSource ? (
+						// NEVO attribution follows the figures, not the record: these
+						// started as NEVO's and are still shown wherever they are used.
+						<View style={styles.attribution}>
+							<AppText variant="caption">
+								{fmt(t.nutrition.fork.forkedFrom, {
+									name: correctedSource.sourceName[locale],
+								})}
+							</AppText>
+							<AppText variant="caption">
+								{selection.food.provenance.locallyEdited
+									? t.nutrition.fork.locallyEdited
+									: t.nutrition.fork.unchanged}
+							</AppText>
+							<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
+							<AppText variant="caption">
+								{SALT_DERIVATION_DISCLOSURE[locale]}
+							</AppText>
+						</View>
+					) : null}
+					<View style={styles.options}>
+						{/* A correction is stored as a Personal Food, so editing one is
+						    the same action under the same name. */}
+						<GhostButton
+							label={t.nutrition.personalFood.editTitle}
+							onPress={onEdit}
+						/>
+						<GhostButton
+							label={t.nutrition.personalFood.delete}
+							onPress={onDelete}
+						/>
+					</View>
+				</>
 			)}
 			<PrimaryButton
 				label={

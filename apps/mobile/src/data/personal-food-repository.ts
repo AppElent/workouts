@@ -60,6 +60,17 @@ export type PersonalFoodRepository = {
 	list(): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
 	search(query: string, locale: "en" | "nl"): PersonalFood[];
+	/**
+	 * Every Personal Food that was forked from a shipped one, most recently
+	 * updated first — the order `forkShadows` reads to decide which of two
+	 * corrections of the same food stands in front of it.
+	 *
+	 * Search needs all of them, not just the ones matching the query: a fork
+	 * renamed away from its source still has to shadow that source.
+	 */
+	forks(): PersonalFood[];
+	/** The correction standing in front of a shipped food, if there is one. */
+	findForkOf(shippedId: string): PersonalFood | undefined;
 	create(draft: PersonalFoodDraft): PersonalFood;
 	update(id: string, draft: PersonalFoodDraft): PersonalFood;
 	remove(id: string): boolean;
@@ -286,6 +297,16 @@ export function createPersonalFoodRepository(
 				.sort((left, right) =>
 					left.name[locale].localeCompare(right.name[locale], locale),
 				);
+		},
+		forks() {
+			return this.list().filter(
+				(food) => food.provenance.forkedFrom !== undefined,
+			);
+		},
+		findForkOf(shippedId) {
+			return this.forks().find(
+				(food) => food.provenance.forkedFrom === shippedId,
+			);
 		},
 		create(draft) {
 			const valid = validatePersonalFoodDraft(draft);
