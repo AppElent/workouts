@@ -19,6 +19,7 @@
 import { useAuth } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
 import { View } from "react-native";
+import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
 import { colors } from "../../src/theme";
 import { ActiveSessionBar } from "../../src/ui/active-session-bar";
@@ -39,16 +40,18 @@ export default function AppLayout() {
 			<ConfirmProvider>
 				<RestTimerProvider>
 					<PersonalFoodsProvider>
-						<View style={{ flex: 1, backgroundColor: colors.bg }}>
-							<Stack
-								screenOptions={{
-									headerShown: false,
-									contentStyle: { backgroundColor: colors.bg },
-								}}
-							/>
-							<ActiveSessionBar />
-							<OfflineBanner />
-						</View>
+						<OpenFoodFactsProvider>
+							<View style={{ flex: 1, backgroundColor: colors.bg }}>
+								<Stack
+									screenOptions={{
+										headerShown: false,
+										contentStyle: { backgroundColor: colors.bg },
+									}}
+								/>
+								<ActiveSessionBar />
+								<OfflineBanner />
+							</View>
+						</OpenFoodFactsProvider>
 					</PersonalFoodsProvider>
 				</RestTimerProvider>
 			</ConfirmProvider>

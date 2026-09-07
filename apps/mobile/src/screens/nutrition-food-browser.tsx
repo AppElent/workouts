@@ -31,6 +31,11 @@ import { api } from "../convex/api";
 import { formatLongDate } from "../data/calendar-day";
 import type { MealSlot } from "../data/nutrition-day";
 import type {
+	OffLookupOutcome,
+	OffSearchOutcome,
+} from "../data/open-food-facts";
+import { useOpenFoodFacts } from "../data/open-food-facts-context";
+import type {
 	PersonalFood,
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
@@ -43,6 +48,7 @@ import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { BarcodeScanner } from "./barcode-scanner";
 import { PersonalFoodEditor } from "./personal-food-editor";
 
 const RESULT_PAGE_SIZE = 50;
@@ -81,6 +87,28 @@ function resultCaption(
 		: `${messages.foodBrowser.per100} ${result.food.baseUnit}`;
 }
 
+/** Every non-"found" outcome is a failure exit: report it and leave Search and Enter manually where they already are. */
+function offFailureMessage(
+	kind: Exclude<OffLookupOutcome["kind"] | OffSearchOutcome["kind"], "found">,
+	foodImport: Messages["nutrition"]["foodImport"],
+	isSearch: boolean,
+): string {
+	switch (kind) {
+		case "not-found":
+			return isSearch ? foodImport.searchNotFound : foodImport.notFound;
+		case "rate-limited":
+			return foodImport.rateLimited;
+		case "timeout":
+			return foodImport.timeout;
+		case "network-error":
+			return foodImport.networkError;
+		case "incomplete":
+			return foodImport.incomplete;
+		case "invalid":
+			return foodImport.invalid;
+	}
+}
+
 export function NutritionFoodBrowser({
 	meal,
 	date,
@@ -92,6 +120,7 @@ export function NutritionFoodBrowser({
 }) {
 	const { t, locale } = useI18n();
 	const personalFoods = usePersonalFoods();
+	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
 	const toast = useToast();
 	const [query, setQuery] = useState("");
@@ -101,6 +130,12 @@ export function NutritionFoodBrowser({
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
 	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
 	const [creatingFood, setCreatingFood] = useState(false);
+	const [scanning, setScanning] = useState(false);
+	const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
+	const [reviewingImport, setReviewingImport] = useState<PersonalFoodDraft>();
+	const [onlineSearching, setOnlineSearching] = useState(false);
+	const [onlineResults, setOnlineResults] =
+		useState<readonly PersonalFoodDraft[]>();
 	/**
 	 * Ranking and shadowing both live in core (#75). All this screen decides is
 	 * which tier the person asked for; which of their corrections stands in
@@ -124,6 +159,73 @@ export function NutritionFoodBrowser({
 		setCreatingFood(false);
 		setEditingFood(undefined);
 		setForkDraft(undefined);
+	}
+
+	async function handleBarcodeScanned(barcode: string) {
+		setScanning(false);
+		// Local foods are checked before any network call reaches Open Food
+		// Facts (spec #68) — a Personal Food carrying this barcode wins outright.
+		const localMatch = personalFoods.findByBarcode(barcode);
+		if (localMatch) {
+			setSelectedFood({ kind: "personal", food: localMatch });
+			return;
+		}
+		setLookingUpBarcode(true);
+		const outcome = await openFoodFacts.lookupBarcode(barcode);
+		setLookingUpBarcode(false);
+		if (outcome.kind === "found") {
+			setReviewingImport(outcome.draft);
+			return;
+		}
+		toast.error(offFailureMessage(outcome.kind, t.nutrition.foodImport, false));
+	}
+
+	async function runOnlineSearch() {
+		if (onlineSearching || query.trim().length === 0) return;
+		setOnlineSearching(true);
+		setOnlineResults(undefined);
+		const outcome = await openFoodFacts.search(query);
+		setOnlineSearching(false);
+		if (outcome.kind === "found") {
+			setOnlineResults(outcome.drafts);
+			return;
+		}
+		toast.error(offFailureMessage(outcome.kind, t.nutrition.foodImport, true));
+	}
+
+	if (scanning) {
+		return (
+			<BarcodeScanner
+				onScanned={handleBarcodeScanned}
+				onCancel={() => setScanning(false)}
+			/>
+		);
+	}
+
+	if (lookingUpBarcode) {
+		return (
+			<View style={[styles.root, styles.center]}>
+				<AppText>{t.nutrition.barcode.lookingUp}</AppText>
+			</View>
+		);
+	}
+
+	if (reviewingImport) {
+		return (
+			<PersonalFoodEditor
+				seed={reviewingImport}
+				reviewNotice={{
+					title: t.nutrition.foodImport.reviewTitle,
+					body: t.nutrition.foodImport.reviewBody,
+					attribution: reviewingImport.provenance.attribution,
+				}}
+				onCancel={() => setReviewingImport(undefined)}
+				onSaved={(food) => {
+					setReviewingImport(undefined);
+					setSelectedFood({ kind: "personal", food });
+				}}
+			/>
+		);
 	}
 
 	if (creatingFood || editingFood || forkDraft) {
@@ -220,6 +322,7 @@ export function NutritionFoodBrowser({
 						setQuery(value);
 						setSearchAll(false);
 						setVisibleCount(RESULT_PAGE_SIZE);
+						setOnlineResults(undefined);
 					}}
 					placeholder={t.nutrition.foodBrowser.searchPlaceholder}
 					placeholderTextColor={colors.textFaint}
@@ -227,7 +330,10 @@ export function NutritionFoodBrowser({
 					style={[styles.input, styles.flex]}
 					autoCorrect={false}
 				/>
-				<GhostButton label={t.nutrition.foodBrowser.scanBarcode} />
+				<GhostButton
+					label={t.nutrition.foodBrowser.scanBarcode}
+					onPress={() => setScanning(true)}
+				/>
 			</View>
 			<GhostButton
 				label={t.nutrition.personalFood.createTitle}
@@ -240,6 +346,17 @@ export function NutritionFoodBrowser({
 						setSearchAll(true);
 						setVisibleCount(RESULT_PAGE_SIZE);
 					}}
+				/>
+			) : null}
+			{query.trim().length > 0 ? (
+				<GhostButton
+					label={
+						onlineSearching
+							? t.nutrition.foodBrowser.searchingOnline
+							: t.nutrition.foodBrowser.searchOnline
+					}
+					loading={onlineSearching}
+					onPress={runOnlineSearch}
 				/>
 			) : null}
 			<AppText variant="label">
@@ -285,6 +402,35 @@ export function NutritionFoodBrowser({
 					label={t.nutrition.foodBrowser.showMore}
 					onPress={() => setVisibleCount((count) => count + RESULT_PAGE_SIZE)}
 				/>
+			) : null}
+			{onlineResults && onlineResults.length > 0 ? (
+				<>
+					<AppText variant="label">
+						{t.nutrition.foodBrowser.onlineResults}
+					</AppText>
+					<Card style={styles.results}>
+						{onlineResults.map((draft, index) => (
+							<Pressable
+								// biome-ignore lint/suspicious/noArrayIndexKey: an online search result has no stable id until it is imported
+								key={`off:${index}`}
+								onPress={() => setReviewingImport(draft)}
+								accessibilityRole="button"
+								style={({ pressed }) => [
+									styles.foodRow,
+									pressed && styles.pressed,
+								]}
+							>
+								<AppText variant="heading">◈</AppText>
+								<View style={styles.flex}>
+									<AppText style={styles.strong}>{draft.name[locale]}</AppText>
+									<AppText variant="caption">
+										{draft.provenance.provider}
+									</AppText>
+								</View>
+							</Pressable>
+						))}
+					</Card>
+				</>
 			) : null}
 		</ScrollView>
 	);
@@ -487,6 +633,13 @@ function ServingDetail({
 								{SALT_DERIVATION_DISCLOSURE[locale]}
 							</AppText>
 						</View>
+					) : selection.food.provenance.attribution ? (
+						// An imported food carries its provider's attribution instead (#76).
+						<View style={styles.attribution}>
+							<AppText variant="caption">
+								{selection.food.provenance.attribution}
+							</AppText>
+						</View>
 					) : null}
 					<View style={styles.options}>
 						{/* A correction is stored as a Personal Food, so editing one is
@@ -606,6 +759,7 @@ function Header({
 
 const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
+	center: { alignItems: "center", justifyContent: "center" },
 	content: { padding: 20, paddingTop: 12, paddingBottom: 40, gap: spacing.md },
 	flex: { flex: 1 },
 	findControls: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

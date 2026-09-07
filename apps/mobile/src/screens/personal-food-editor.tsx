@@ -24,12 +24,18 @@ import { useToast } from "../ui/toast";
 type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 type ServingInput = { key: string; en: string; nl: string; amount: string };
 
+/** The fields a Food Import review seeds from, before any local edit. */
+type EditorSeed = Pick<
+	PersonalFoodDraft,
+	"name" | "baseUnit" | "nutrients" | "servings"
+>;
+
 function initialNutrients(
-	food?: PersonalFoodDraft,
+	seed?: EditorSeed,
 ): Record<NutrientKey, NutrientInput> {
 	return Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => {
-			const value = food?.nutrients[key] ?? { kind: "absent" as const };
+			const value = seed?.nutrients[key] ?? { kind: "absent" as const };
 			return [
 				key,
 				{
@@ -41,14 +47,35 @@ function initialNutrients(
 	) as Record<NutrientKey, NutrientInput>;
 }
 
-function initialServings(food?: PersonalFoodDraft): ServingInput[] {
+function initialServings(seed?: EditorSeed): ServingInput[] {
 	return (
-		food?.servings.map((serving, index) => ({
+		seed?.servings.map((serving, index) => ({
 			key: `existing-${index}`,
 			en: serving.label.en,
 			nl: serving.label.nl,
 			amount: String(serving.amount),
 		})) ?? []
+	);
+}
+
+/**
+ * Same figures, name, unit and Servings — used to decide whether a Food
+ * Import review counted as a local edit. Nutrients are compared key by key
+ * via `NUTRIENT_KEYS` rather than by stringifying the whole object: the
+ * import draft and the rebuilt form draft can list the same eight nutrients
+ * in different insertion orders, which `JSON.stringify` would wrongly read
+ * as a change.
+ */
+function draftUnchanged(a: EditorSeed, b: EditorSeed): boolean {
+	return (
+		a.name.en === b.name.en &&
+		a.name.nl === b.name.nl &&
+		a.baseUnit === b.baseUnit &&
+		NUTRIENT_KEYS.every(
+			(key) =>
+				JSON.stringify(a.nutrients[key]) === JSON.stringify(b.nutrients[key]),
+		) &&
+		JSON.stringify(a.servings) === JSON.stringify(b.servings)
 	);
 }
 
@@ -59,16 +86,20 @@ function parseNumber(text: string): number {
 export function PersonalFoodEditor({
 	food,
 	seed,
+	reviewNotice,
 	onSaved,
 	onCancel,
 }: {
 	food?: PersonalFood;
 	/**
 	 * A pre-populated draft to author from rather than a blank form — how
-	 * correcting a shipped food enters this screen (#75). Ignored when `food` is
-	 * given, because that is an edit of something already saved.
+	 * correcting a shipped food (#75) and reviewing a Food Import (#76) both
+	 * enter this screen. Ignored when `food` is given, because that is an edit
+	 * of something already saved.
 	 */
 	seed?: PersonalFoodDraft;
+	/** Shown as a banner above the form when reviewing a remote import rather than authoring from scratch. */
+	reviewNotice?: { title: string; body: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
 }) {
@@ -116,7 +147,7 @@ export function PersonalFoodEditor({
 				values[key] = { kind: input.kind };
 			}
 		}
-		const authored = {
+		const editable: EditorSeed = {
 			name: { en: nameEn, nl: nameNl },
 			baseUnit,
 			nutrients: values,
@@ -125,22 +156,27 @@ export function PersonalFoodEditor({
 				amount: parseNumber(serving.amount),
 			})),
 		};
-		const provenance = initial?.provenance ?? {
+		let provenance = initial?.provenance ?? {
 			recordOrigin: "personal" as const,
 			nutritionSource: "manual" as const,
 			locallyEdited: false,
 		};
-		if (!source) return { ...authored, provenance };
-		// `locallyEdited` is recomputed against the shipped source on every save
-		// rather than latched, so a figure changed and changed back is honestly
-		// reported as unchanged.
-		return {
-			...authored,
-			provenance: {
+		if (source) {
+			// A fork of a shipped food is measured against the shipped record, and
+			// `locallyEdited` is recomputed on every save rather than latched, so a
+			// figure changed and changed back is honestly reported as unchanged (#75).
+			provenance = {
 				...provenance,
-				locallyEdited: forkHasLocalEdits(authored, source),
-			},
-		};
+				locallyEdited: forkHasLocalEdits(editable, source),
+			};
+		} else if (!food && seed && !draftUnchanged(editable, seed)) {
+			// A Food Import review that saves without touching anything stays an
+			// unedited import; changing any field before saving is what earns
+			// `locallyEdited: true` — the provenance the diary snapshot inherits
+			// later has to say which happened (#76).
+			provenance = { ...provenance, locallyEdited: true };
+		}
+		return { ...editable, provenance };
 	}
 
 	async function save() {
@@ -180,9 +216,11 @@ export function PersonalFoodEditor({
 			<AppText variant="title">
 				{source
 					? t.nutrition.fork.title
-					: food
-						? t.nutrition.personalFood.editTitle
-						: t.nutrition.personalFood.createTitle}
+					: reviewNotice
+						? reviewNotice.title
+						: food
+							? t.nutrition.personalFood.editTitle
+							: t.nutrition.personalFood.createTitle}
 			</AppText>
 			{source ? (
 				<Card style={styles.disclosure}>
@@ -192,6 +230,14 @@ export function PersonalFoodEditor({
 						})}
 					</AppText>
 					<AppText variant="caption">{t.nutrition.fork.intro}</AppText>
+				</Card>
+			) : null}
+			{reviewNotice ? (
+				<Card style={styles.disclosure}>
+					<AppText variant="caption">{reviewNotice.body}</AppText>
+					{reviewNotice.attribution ? (
+						<AppText variant="caption">{reviewNotice.attribution}</AppText>
+					) : null}
 				</Card>
 			) : null}
 			<Card style={styles.disclosure}>

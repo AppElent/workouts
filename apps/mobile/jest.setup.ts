@@ -53,6 +53,57 @@ jest.mock("convex/react", () => {
 	};
 });
 
+/**
+ * jest-expo has no native camera to mount, so `CameraView` becomes a tappable
+ * stand-in a test can "scan" by pressing, and `useCameraPermissions` starts
+ * already granted — the common case — with each test free to override both
+ * the permission tuple and the scan trigger via `jest.mocked(...)`, exactly
+ * like the `convex/react` mock above.
+ */
+jest.mock("expo-camera", () => {
+	const React = jest.requireActual("react");
+	const { Pressable, Text } = jest.requireActual("react-native");
+	// Mirrors expo-modules-core's real enum values so a test can import
+	// `PermissionStatus` from "expo-camera" the same way production code does.
+	const PermissionStatus = {
+		GRANTED: "granted",
+		UNDETERMINED: "undetermined",
+		DENIED: "denied",
+	} as const;
+	return {
+		PermissionStatus,
+		useCameraPermissions: jest.fn(() => [
+			{
+				status: PermissionStatus.GRANTED,
+				granted: true,
+				canAskAgain: true,
+				expires: "never",
+			},
+			jest.fn().mockResolvedValue({
+				status: PermissionStatus.GRANTED,
+				granted: true,
+				canAskAgain: true,
+				expires: "never",
+			}),
+			jest.fn(),
+		]),
+		CameraView: ({
+			onBarcodeScanned,
+		}: {
+			onBarcodeScanned?: (r: { data: string; type: string }) => void;
+		}) =>
+			React.createElement(
+				Pressable,
+				{
+					accessibilityLabel: "Simulated camera preview",
+					onPress: () =>
+						onBarcodeScanned?.({ data: "5000112637922", type: "ean13" }),
+				},
+				React.createElement(Text, null, "Simulated camera preview"),
+			),
+	};
+});
+
 jest.mock("expo-sqlite/kv-store", () => {
 	const store = new Map<string, string>();
 	return {

@@ -7,7 +7,7 @@ import {
 import { openDatabaseSync } from "expo-sqlite";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 export type SQLiteValue = string | number | null | Uint8Array;
 
@@ -59,6 +59,8 @@ export type PersonalFood = PersonalFoodDraft & {
 export type PersonalFoodRepository = {
 	list(): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
+	/** The Personal Food whose provenance carries this barcode, if any. */
+	findByBarcode(barcode: string): PersonalFood | undefined;
 	search(query: string, locale: "en" | "nl"): PersonalFood[];
 	/**
 	 * Every Personal Food that was forked from a shipped one, most recently
@@ -121,6 +123,24 @@ function migrate(database: SyncSQLiteDatabase): void {
 				);
 				CREATE INDEX IF NOT EXISTS personal_foods_by_updated
 					ON personal_foods(updated_at DESC);
+			`);
+		}
+		if (current < 2) {
+			// The bounded Open Food Facts request cache (spec #68 D23): its own
+			// table in this same database and migration sequence, with a lifetime
+			// wholly separate from Personal Foods — rows expire and are pruned
+			// (see `openFoodFactsCache`), so this can never grow into a local
+			// mirror of the provider's catalogue.
+			database.execSync(`
+				CREATE TABLE IF NOT EXISTS off_cache (
+					cache_key TEXT PRIMARY KEY NOT NULL,
+					kind TEXT NOT NULL CHECK (kind IN ('barcode', 'search')),
+					response_json TEXT NOT NULL,
+					fetched_at INTEGER NOT NULL,
+					expires_at INTEGER NOT NULL
+				);
+				CREATE INDEX IF NOT EXISTS off_cache_by_expiry
+					ON off_cache(expires_at ASC);
 			`);
 		}
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
@@ -285,6 +305,13 @@ export function createPersonalFoodRepository(
 				.map(rowToFood);
 		},
 		find,
+		findByBarcode(barcode) {
+			// Barcodes live inside the JSON provenance blob rather than their own
+			// column, so this filters in JS like `search` does — consistent with
+			// the rest of the repository. A barcode lookup is one row against a
+			// small on-device table, not a hot path that needs its own index.
+			return this.list().find((food) => food.provenance.barcode === barcode);
+		},
 		search(query, locale) {
 			const needle = query.trim().toLocaleLowerCase(locale);
 			if (needle.length === 0) return this.list();
@@ -371,6 +398,130 @@ export function createPersonalFoodRepository(
 /** Open the one device database shared by Personal Foods and later local Nutrition data. */
 export function openPersonalFoodRepository(): PersonalFoodRepository {
 	return createPersonalFoodRepository(
+		openDatabaseSync(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
+	);
+}
+
+export type OffCacheKind = "barcode" | "search";
+
+export type OffCacheEntry = {
+	readonly key: string;
+	readonly kind: OffCacheKind;
+	readonly response: unknown;
+	readonly fetchedAt: number;
+	readonly expiresAt: number;
+};
+
+export type OpenFoodFactsCache = {
+	get(key: string): OffCacheEntry | undefined;
+	set(key: string, kind: OffCacheKind, response: unknown): OffCacheEntry;
+	/**
+	 * Deletes expired rows, then — if still over the bound — the oldest
+	 * survivors. Returns the number of rows removed.
+	 */
+	cleanup(): number;
+};
+
+/** Spec #68: "cached for seven days", with bounded cleanup so this table can never grow into a provider mirror. */
+export const OFF_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const OFF_CACHE_MAX_ENTRIES = 200;
+
+type OffCacheRow = {
+	cache_key: string;
+	kind: OffCacheKind;
+	response_json: string;
+	fetched_at: number;
+	expires_at: number;
+};
+
+function rowToCacheEntry(row: OffCacheRow): OffCacheEntry {
+	return {
+		key: row.cache_key,
+		kind: row.kind,
+		response: JSON.parse(row.response_json),
+		fetchedAt: row.fetched_at,
+		expiresAt: row.expires_at,
+	};
+}
+
+/**
+ * The bounded Open Food Facts request cache (spec #68 D23). It shares its
+ * migration sequence and its underlying database with Personal Foods, but has
+ * its own table and its own lifetime: every row expires after
+ * `OFF_CACHE_TTL_MS`, and `set` prunes both expired rows and, past
+ * `OFF_CACHE_MAX_ENTRIES`, the oldest survivors — so it stays a short-lived
+ * request cache, never an offline mirror of the provider's catalogue.
+ */
+export function createOpenFoodFactsCache(
+	database: SyncSQLiteDatabase,
+	options: RepositoryOptions = {},
+): OpenFoodFactsCache {
+	migrate(database);
+	const now = options.now ?? Date.now;
+
+	function cleanup(): number {
+		const timestamp = now();
+		let removed = database.runSync(
+			"DELETE FROM off_cache WHERE expires_at <= ?",
+			timestamp,
+		).changes;
+		const remaining =
+			database.getFirstSync<{ count: number }>(
+				"SELECT COUNT(*) as count FROM off_cache",
+			)?.count ?? 0;
+		const overflow = remaining - OFF_CACHE_MAX_ENTRIES;
+		if (overflow > 0) {
+			removed += database.runSync(
+				`DELETE FROM off_cache WHERE cache_key IN (
+					SELECT cache_key FROM off_cache ORDER BY fetched_at ASC LIMIT ?
+				)`,
+				overflow,
+			).changes;
+		}
+		return removed;
+	}
+
+	return {
+		get(key) {
+			const timestamp = now();
+			const row = database.getFirstSync<OffCacheRow>(
+				"SELECT * FROM off_cache WHERE cache_key = ?",
+				key,
+			);
+			if (!row) return undefined;
+			if (row.expires_at <= timestamp) {
+				database.runSync("DELETE FROM off_cache WHERE cache_key = ?", key);
+				return undefined;
+			}
+			return rowToCacheEntry(row);
+		},
+		set(key, kind, response) {
+			const timestamp = now();
+			const expiresAt = timestamp + OFF_CACHE_TTL_MS;
+			database.runSync(
+				`INSERT INTO off_cache (cache_key, kind, response_json, fetched_at, expires_at)
+				 VALUES (?, ?, ?, ?, ?)
+				 ON CONFLICT(cache_key) DO UPDATE SET
+					kind = excluded.kind,
+					response_json = excluded.response_json,
+					fetched_at = excluded.fetched_at,
+					expires_at = excluded.expires_at`,
+				key,
+				kind,
+				JSON.stringify(response),
+				timestamp,
+				expiresAt,
+			);
+			cleanup();
+			return { key, kind, response, fetchedAt: timestamp, expiresAt };
+		},
+		cleanup,
+	};
+}
+
+/** Open the same on-device database `openPersonalFoodRepository` uses, for the Open Food Facts request cache. */
+export function openOpenFoodFactsCache(): OpenFoodFactsCache {
+	return createOpenFoodFactsCache(
 		openDatabaseSync(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
 	);
 }
