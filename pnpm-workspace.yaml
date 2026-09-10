@@ -8,6 +8,12 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# pnpm 11 otherwise tries to install dependencies before it runs any package
+# script. EAS invokes eas-build-pre-install through pnpm, so that default creates
+# a bootstrap cycle: the install needs the authentication that the hook sets up.
+# Explicit install commands still run every supply-chain policy check.
+verifyDepsBeforeRun: false
+
 # Supply-chain hardening: only these packages may run install/build lifecycle
 # scripts. Everything else is install-script-sandboxed (default-deny), which
 # neutralizes the postinstall-RCE vector used by recent npm worm attacks.
@@ -70,3 +76,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+  # dtrace-provider is an optional native tracing binding pulled in
+  # transitively by eas-cli (apps/mobile devDependency); not required for
+  # anything we use, so its build script stays sandboxed.
+  dtrace-provider: false
