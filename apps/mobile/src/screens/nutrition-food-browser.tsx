@@ -18,15 +18,16 @@ import {
 	shippedLibraryMeta,
 } from "@workouts/core/nutrition";
 import { useMutation } from "convex/react";
-import * as Haptics from "expo-haptics";
 import { useMemo, useState } from "react";
 import {
+	Modal,
 	Pressable,
 	ScrollView,
 	StyleSheet,
 	TextInput,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../convex/api";
 import { formatLongDate } from "../data/calendar-day";
 import type { MealSlot } from "../data/nutrition-day";
@@ -40,6 +41,8 @@ import type {
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
+import { haptics } from "../feedback/haptics";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
@@ -69,6 +72,14 @@ function asSelection(result: FoodResult<PersonalFood>): FoodSelection {
  * Two of the four cases exist for #75: a correction says so, and — in the
  * deliberate broader view, the only place it is still listed — so does the
  * shipped record it replaced. Neither ever hides the other.
+ *
+ * #75 left a rule for whoever came next: if this reaches six cases it should
+ * become a core function returning a caption *kind* that the screen
+ * translates, rather than a screen-local function handed the whole message
+ * tree. Checked at #79 — still four. #76's import captions went to the online
+ * results list, which renders its provider line directly and never comes
+ * through here, so the count did not move. Left as it is: at four one-line
+ * branches the indirection would cost a hop through core and buy nothing.
  */
 function resultCaption(
 	result: FoodResult<PersonalFood>,
@@ -242,62 +253,60 @@ export function NutritionFoodBrowser({
 		);
 	}
 
-	if (selectedFood) {
-		return (
-			<ServingDetail
-				selection={selectedFood}
-				meal={meal}
-				date={date}
-				onBack={() => setSelectedFood(undefined)}
-				onLogged={onClose}
-				onEdit={
-					selectedFood.kind === "personal"
-						? () => setEditingFood(selectedFood.food)
-						: undefined
-				}
-				onCorrect={
-					selectedFood.kind === "shipped"
-						? () => {
-								// A correction is a new local food, never an edit of the
-								// shipped record — so this seeds the authoring screen
-								// rather than opening the shipped row for editing.
-								setForkDraft(forkShippedFood(selectedFood.food));
+	const servingSheet = selectedFood ? (
+		<ServingDetail
+			selection={selectedFood}
+			meal={meal}
+			date={date}
+			onBack={() => setSelectedFood(undefined)}
+			onLogged={onClose}
+			onEdit={
+				selectedFood.kind === "personal"
+					? () => setEditingFood(selectedFood.food)
+					: undefined
+			}
+			onCorrect={
+				selectedFood.kind === "shipped"
+					? () => {
+							// A correction is a new local food, never an edit of the
+							// shipped record — so this seeds the authoring screen
+							// rather than opening the shipped row for editing.
+							setForkDraft(forkShippedFood(selectedFood.food));
+							setSelectedFood(undefined);
+						}
+					: undefined
+			}
+			onDelete={
+				selectedFood.kind === "personal"
+					? async () => {
+							// Deleting a correction restores the shipped food to search,
+							// which is a different promise from deleting a Personal Food
+							// that stands alone.
+							const isCorrection =
+								selectedFood.food.provenance.forkedFrom !== undefined;
+							const approved = await confirm({
+								title: isCorrection
+									? t.nutrition.fork.deleteTitle
+									: t.nutrition.personalFood.deleteTitle,
+								message: isCorrection
+									? t.nutrition.fork.deleteBody
+									: t.nutrition.personalFood.deleteBody,
+								confirmLabel: t.nutrition.personalFood.delete,
+								cancelLabel: t.nutrition.personalFood.cancel,
+								destructive: true,
+							});
+							if (!approved) return;
+							try {
+								personalFoods.remove(selectedFood.food.id);
 								setSelectedFood(undefined);
+							} catch {
+								toast.error(t.nutrition.personalFood.deleteFailure);
 							}
-						: undefined
-				}
-				onDelete={
-					selectedFood.kind === "personal"
-						? async () => {
-								// Deleting a correction restores the shipped food to search,
-								// which is a different promise from deleting a Personal Food
-								// that stands alone.
-								const isCorrection =
-									selectedFood.food.provenance.forkedFrom !== undefined;
-								const approved = await confirm({
-									title: isCorrection
-										? t.nutrition.fork.deleteTitle
-										: t.nutrition.personalFood.deleteTitle,
-									message: isCorrection
-										? t.nutrition.fork.deleteBody
-										: t.nutrition.personalFood.deleteBody,
-									confirmLabel: t.nutrition.personalFood.delete,
-									cancelLabel: t.nutrition.personalFood.cancel,
-									destructive: true,
-								});
-								if (!approved) return;
-								try {
-									personalFoods.remove(selectedFood.food.id);
-									setSelectedFood(undefined);
-								} catch {
-									toast.error(t.nutrition.personalFood.deleteFailure);
-								}
-							}
-						: undefined
-				}
-			/>
-		);
-	}
+						}
+					: undefined
+			}
+		/>
+	) : null;
 
 	return (
 		<ScrollView
@@ -305,6 +314,7 @@ export function NutritionFoodBrowser({
 			contentContainerStyle={styles.content}
 			keyboardShouldPersistTaps="handled"
 		>
+			{servingSheet}
 			<Header backLabel={t.common.back} onBack={onClose} />
 			<View style={styles.heading}>
 				<Eyebrow>{t.nutrition.title}</Eyebrow>
@@ -436,6 +446,17 @@ export function NutritionFoodBrowser({
 	);
 }
 
+/**
+ * Choosing a serving, presented as a sheet over the results (spec #68: "Choosing
+ * a food opens a serving sheet").
+ *
+ * A sheet rather than another pushed screen because the search you came from is
+ * still the context: you are checking a number against a food you just found,
+ * and half the time you dismiss and pick a different one. It keeps the results
+ * visible behind it, dismisses on a backdrop tap and on Android's back button,
+ * and slides from the bottom edge — which is where dismissing sends it — unless
+ * the person has asked for reduced motion, in which case it cuts.
+ */
 function ServingDetail({
 	selection,
 	meal,
@@ -458,6 +479,8 @@ function ServingDetail({
 }) {
 	const { t, locale } = useI18n();
 	const toast = useToast();
+	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 	const log = useMutation(api.nutritionDiary.log);
 	const [logging, setLogging] = useState(false);
 	const food = selection.food;
@@ -527,9 +550,7 @@ function ServingDetail({
 					},
 				});
 			}
-			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
-				() => undefined,
-			);
+			haptics.entryLogged();
 			onLogged();
 		} catch {
 			toast.error(t.nutrition.foodBrowser.logFailure);
@@ -539,133 +560,189 @@ function ServingDetail({
 	}
 
 	return (
-		<ScrollView
-			style={styles.root}
-			contentContainerStyle={styles.content}
-			keyboardShouldPersistTaps="handled"
+		<Modal
+			visible
+			transparent
+			animationType={modalAnimation(reduceMotion, "slide")}
+			// Android's back button dismisses the sheet rather than the screen
+			// underneath it.
+			onRequestClose={onBack}
 		>
-			<Header backLabel={t.common.back} onBack={onBack} />
-			<View style={styles.heading}>
-				<AppText variant="display">
-					{selection.kind === "shipped" ? (selection.food.emoji ?? "🍽️") : "◇"}
-				</AppText>
-				<AppText variant="title">{food.name[locale]}</AppText>
-				<AppText variant="caption">
-					{selection.kind === "shipped"
-						? selection.food.sourceName[locale]
-						: correctedSource
-							? t.nutrition.fork.resultLabel
-							: t.nutrition.personalFood.resultLabel}
-				</AppText>
-			</View>
-			<AppText variant="label">{t.nutrition.foodBrowser.serving}</AppText>
-			<View style={styles.options}>
-				{choices.map((candidate) => (
-					<Pressable
-						key={candidate.kind === "authored" ? candidate.index : "base"}
-						onPress={() => {
-							setSelectedServing(candidate);
-							setQuantityText(candidate.kind === "base-unit" ? "100" : "1");
-						}}
-						accessibilityRole="radio"
-						accessibilityState={{ checked: selectedServing === candidate }}
-						style={[
-							styles.option,
-							selectedServing === candidate && styles.optionSelected,
-						]}
-					>
-						<AppText>{candidate.label[locale]}</AppText>
-					</Pressable>
-				))}
-			</View>
-			<AppText variant="label">{t.nutrition.foodBrowser.quantity}</AppText>
-			<TextInput
-				value={quantityText}
-				onChangeText={setQuantityText}
-				accessibilityLabel={t.nutrition.foodBrowser.quantity}
-				keyboardType="decimal-pad"
-				style={styles.input}
-			/>
-			<Card style={styles.preview}>
-				<AppText variant="heading">{preview.label}</AppText>
-				<AppText variant="caption">
-					{preview.amount} {preview.baseUnit}
-				</AppText>
-				{NUTRIENT_KEYS.map((key) => (
-					<View key={key} style={styles.nutrientRow}>
-						<AppText style={styles.flex}>{t.nutrition.nutrients[key]}</AppText>
-						<AppText style={styles.strong}>
-							{formatNutrient(
-								preview.nutrients[key],
-								key,
-								t.nutrition.foodBrowser,
-							)}
+			<Pressable style={styles.sheetBackdrop} onPress={onBack}>
+				{/* Swallows taps so pressing the sheet itself does not dismiss it. */}
+				<Pressable
+					style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+					onPress={() => {}}
+				>
+					<View style={styles.grabber} />
+					<View style={styles.sheetHeader}>
+						<AppText variant="heading" style={styles.flex} numberOfLines={2}>
+							{food.name[locale]}
 						</AppText>
+						<Pressable
+							onPress={onBack}
+							hitSlop={12}
+							accessibilityRole="button"
+							// Its own name, not "Go back": the browser's header back is
+							// still on screen behind the sheet, and two controls called
+							// the same thing is two controls a screen reader cannot tell
+							// apart.
+							accessibilityLabel={t.nutrition.foodBrowser.closeServingLabel}
+							style={styles.sheetClose}
+						>
+							<AppText style={{ color: colors.accent, fontWeight: "800" }}>
+								{t.nutrition.foodBrowser.closeServing}
+							</AppText>
+						</Pressable>
 					</View>
-				))}
-			</Card>
-			{selection.kind === "shipped" ? (
-				<View style={styles.attribution}>
-					<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
-					<AppText variant="caption">
-						{SALT_DERIVATION_DISCLOSURE[locale]}
-					</AppText>
-					<GhostButton label={t.nutrition.fork.correct} onPress={onCorrect} />
-				</View>
-			) : (
-				<>
-					{correctedSource ? (
-						// NEVO attribution follows the figures, not the record: these
-						// started as NEVO's and are still shown wherever they are used.
-						<View style={styles.attribution}>
-							<AppText variant="caption">
-								{fmt(t.nutrition.fork.forkedFrom, {
-									name: correctedSource.sourceName[locale],
-								})}
+					<ScrollView
+						contentContainerStyle={styles.sheetContent}
+						keyboardShouldPersistTaps="handled"
+						showsVerticalScrollIndicator={false}
+					>
+						<View style={styles.heading}>
+							<AppText variant="display">
+								{selection.kind === "shipped"
+									? (selection.food.emoji ?? "🍽️")
+									: "◇"}
 							</AppText>
+							{/* The sheet header already carries the name and keeps it in
+							    place while this scrolls, so the body shows what the header
+							    cannot: the glyph, and where the figures came from. */}
 							<AppText variant="caption">
-								{selection.food.provenance.locallyEdited
-									? t.nutrition.fork.locallyEdited
-									: t.nutrition.fork.unchanged}
-							</AppText>
-							<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
-							<AppText variant="caption">
-								{SALT_DERIVATION_DISCLOSURE[locale]}
+								{selection.kind === "shipped"
+									? selection.food.sourceName[locale]
+									: correctedSource
+										? t.nutrition.fork.resultLabel
+										: t.nutrition.personalFood.resultLabel}
 							</AppText>
 						</View>
-					) : selection.food.provenance.attribution ? (
-						// An imported food carries its provider's attribution instead (#76).
-						<View style={styles.attribution}>
-							<AppText variant="caption">
-								{selection.food.provenance.attribution}
-							</AppText>
+						<AppText variant="label">{t.nutrition.foodBrowser.serving}</AppText>
+						<View style={styles.options}>
+							{choices.map((candidate) => (
+								<Pressable
+									key={candidate.kind === "authored" ? candidate.index : "base"}
+									onPress={() => {
+										// A meaningful selection: it changes the figures below and the
+										// numbers that will be written. The list itself is silent.
+										if (candidate !== selectedServing)
+											haptics.selectionChanged();
+										setSelectedServing(candidate);
+										setQuantityText(
+											candidate.kind === "base-unit" ? "100" : "1",
+										);
+									}}
+									accessibilityRole="radio"
+									accessibilityState={{
+										checked: selectedServing === candidate,
+									}}
+									style={[
+										styles.option,
+										selectedServing === candidate && styles.optionSelected,
+									]}
+								>
+									<AppText>{candidate.label[locale]}</AppText>
+								</Pressable>
+							))}
 						</View>
-					) : null}
-					<View style={styles.options}>
-						{/* A correction is stored as a Personal Food, so editing one is
+						<AppText variant="label">
+							{t.nutrition.foodBrowser.quantity}
+						</AppText>
+						<TextInput
+							value={quantityText}
+							onChangeText={setQuantityText}
+							accessibilityLabel={t.nutrition.foodBrowser.quantity}
+							keyboardType="decimal-pad"
+							style={styles.input}
+						/>
+						<Card style={styles.preview}>
+							<AppText variant="heading">{preview.label}</AppText>
+							<AppText variant="caption">
+								{preview.amount} {preview.baseUnit}
+							</AppText>
+							{NUTRIENT_KEYS.map((key) => (
+								<View key={key} style={styles.nutrientRow}>
+									<AppText style={styles.flex}>
+										{t.nutrition.nutrients[key]}
+									</AppText>
+									<AppText style={styles.strong}>
+										{formatNutrient(
+											preview.nutrients[key],
+											key,
+											t.nutrition.foodBrowser,
+										)}
+									</AppText>
+								</View>
+							))}
+						</Card>
+						{selection.kind === "shipped" ? (
+							<View style={styles.attribution}>
+								<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
+								<AppText variant="caption">
+									{SALT_DERIVATION_DISCLOSURE[locale]}
+								</AppText>
+								<GhostButton
+									label={t.nutrition.fork.correct}
+									onPress={onCorrect}
+								/>
+							</View>
+						) : (
+							<>
+								{correctedSource ? (
+									// NEVO attribution follows the figures, not the record: these
+									// started as NEVO's and are still shown wherever they are used.
+									<View style={styles.attribution}>
+										<AppText variant="caption">
+											{fmt(t.nutrition.fork.forkedFrom, {
+												name: correctedSource.sourceName[locale],
+											})}
+										</AppText>
+										<AppText variant="caption">
+											{selection.food.provenance.locallyEdited
+												? t.nutrition.fork.locallyEdited
+												: t.nutrition.fork.unchanged}
+										</AppText>
+										<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
+										<AppText variant="caption">
+											{SALT_DERIVATION_DISCLOSURE[locale]}
+										</AppText>
+									</View>
+								) : selection.food.provenance.attribution ? (
+									// An imported food carries its provider's attribution instead (#76).
+									<View style={styles.attribution}>
+										<AppText variant="caption">
+											{selection.food.provenance.attribution}
+										</AppText>
+									</View>
+								) : null}
+								<View style={styles.options}>
+									{/* A correction is stored as a Personal Food, so editing one is
 						    the same action under the same name. */}
-						<GhostButton
-							label={t.nutrition.personalFood.editTitle}
-							onPress={onEdit}
+									<GhostButton
+										label={t.nutrition.personalFood.editTitle}
+										onPress={onEdit}
+									/>
+									<GhostButton
+										label={t.nutrition.personalFood.delete}
+										onPress={onDelete}
+									/>
+								</View>
+							</>
+						)}
+						<PrimaryButton
+							label={
+								logging
+									? t.nutrition.foodBrowser.logging
+									: t.nutrition.foodBrowser.log
+							}
+							onPress={logFood}
+							loading={logging}
+							disabled={!canLog}
 						/>
-						<GhostButton
-							label={t.nutrition.personalFood.delete}
-							onPress={onDelete}
-						/>
-					</View>
-				</>
-			)}
-			<PrimaryButton
-				label={
-					logging
-						? t.nutrition.foodBrowser.logging
-						: t.nutrition.foodBrowser.log
-				}
-				onPress={logFood}
-				loading={logging}
-				disabled={!canLog}
-			/>
-		</ScrollView>
+					</ScrollView>
+				</Pressable>
+			</Pressable>
+		</Modal>
 	);
 }
 
@@ -809,4 +886,37 @@ const styles = StyleSheet.create({
 	preview: { gap: spacing.sm },
 	nutrientRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	attribution: { gap: spacing.xs },
+
+	sheetBackdrop: {
+		flex: 1,
+		justifyContent: "flex-end",
+		backgroundColor: "rgba(0, 0, 0, 0.6)",
+	},
+	sheet: {
+		// Tall, because eight nutrients and a serving picker do not fit in a
+		// peek — but never the full height, so the results stay visible behind
+		// it and the sheet still reads as something laid over them.
+		maxHeight: "90%",
+		gap: spacing.sm,
+		backgroundColor: colors.bg,
+		borderTopLeftRadius: radius.sheet,
+		borderTopRightRadius: radius.sheet,
+		paddingHorizontal: spacing.md,
+		paddingTop: spacing.sm,
+	},
+	grabber: {
+		alignSelf: "center",
+		width: 36,
+		height: 4,
+		borderRadius: radius.pill,
+		backgroundColor: colors.borderStrong,
+	},
+	sheetHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: spacing.sm,
+		minHeight: 44,
+	},
+	sheetClose: { minHeight: 44, justifyContent: "center" },
+	sheetContent: { gap: spacing.md, paddingBottom: spacing.md },
 });

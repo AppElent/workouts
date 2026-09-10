@@ -50,6 +50,20 @@ jest.mock("convex/react", () => {
 			data: false,
 		})),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+		// Connected by default, so every existing test keeps the behaviour it
+		// was written against. The Nutrition day reads this to tell "still
+		// loading" apart from "will never load because the socket is down", and
+		// the offline tests override it per case.
+		useConvexConnectionState: jest.fn(() => ({
+			isWebSocketConnected: true,
+			hasInflightRequests: false,
+			hasEverConnected: true,
+			connectionCount: 1,
+			connectionRetries: 0,
+			timeOfOldestInflightRequest: null,
+			inflightMutations: 0,
+			inflightActions: 0,
+		})),
 	};
 });
 

@@ -55,7 +55,11 @@ export function Segmented<Value extends string>({
 						]}
 					>
 						<AppText
-							numberOfLines={1}
+							// Two lines, not one. Four options across a phone is tight
+							// already, and at large text sizes a single line turns
+							// "Breakfast" into "Break…" — a choice the user cannot read
+							// is not a choice.
+							numberOfLines={2}
 							style={{
 								fontWeight: "700",
 								color: selected ? colors.onAccent : colors.text,

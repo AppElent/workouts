@@ -24,6 +24,8 @@ import {
 	useState,
 } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { haptics } from "../feedback/haptics";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { AppText } from "./text";
 
@@ -44,11 +46,17 @@ const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const [options, setOptions] = useState<ConfirmOptions | null>(null);
+	const reduceMotion = useReduceMotion();
 	// Held across renders so the promise opened in `confirm` is the one settled
 	// by the buttons. State would re-create it and strand the caller.
 	const resolveRef = useRef<((answer: boolean) => void) | null>(null);
 
 	const confirm = useCallback<ConfirmFn>((next) => {
+		// The one place a destructive warning is played. Putting it here rather
+		// than at each delete button is what keeps the vocabulary restrained:
+		// every destructive confirmation warns exactly once, and no ordinary
+		// confirmation can acquire a buzz by being copied from a destructive one.
+		if (next.destructive) haptics.destructiveWarning();
 		return new Promise<boolean>((resolve) => {
 			resolveRef.current = resolve;
 			setOptions(next);
@@ -67,7 +75,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 			<Modal
 				visible={options !== null}
 				transparent
-				animationType="fade"
+				animationType={modalAnimation(reduceMotion, "fade")}
 				// Android's back button must answer "no", not leave the promise
 				// pending forever behind a dismissed dialog.
 				onRequestClose={() => settle(false)}

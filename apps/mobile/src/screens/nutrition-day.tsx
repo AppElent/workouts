@@ -19,6 +19,7 @@
  */
 
 import { type NutrientTotal, roundForDisplay } from "@workouts/core/nutrition";
+import { useConvexConnectionState } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -27,6 +28,7 @@ import {
 	isoDayOffset,
 	todayIsoDate,
 } from "../data/calendar-day";
+import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import {
 	type DiaryEntry,
 	type GoalState,
@@ -39,6 +41,7 @@ import {
 	nutrientUnit,
 	useNutritionDay,
 } from "../data/nutrition-day";
+import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
@@ -47,13 +50,8 @@ import { Card, Eyebrow } from "../ui/coach";
 import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
+import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
-import {
-	NutritionComboBuilder,
-	NutritionComboLibrary,
-} from "./nutrition-combos";
-import { NutritionEntryEditor } from "./nutrition-entry-editor";
-import { NutritionFoodBrowser } from "./nutrition-food-browser";
 
 /** State word first, colour second — colour is never the only signal. */
 const STATE_COLOR: Record<GoalState, string> = {
@@ -74,20 +72,42 @@ export function NutritionDayScreen() {
 	const [today] = useState(todayIsoDate);
 	const [date, setDate] = useState(today);
 	const [showOther, setShowOther] = useState(false);
-	const [addingTo, setAddingTo] = useState<MealSlot>();
-	const [editing, setEditing] = useState<{
-		entry: DiaryEntry;
-		meal: MealSlot;
-	}>();
-	const [comboMode, setComboMode] = useState<"select" | "library">();
+	const [selecting, setSelecting] = useState(false);
 	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
 		() => new Set(),
 	);
-	const [comboEntries, setComboEntries] = useState<DiaryEntry[]>();
 
+	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
+	// A day that has never been downloaded cannot arrive while the socket is
+	// down, so a skeleton there is a promise the app cannot keep — but only
+	// after a grace period, because the socket is briefly down on every cold
+	// start and flashing "you are offline" at someone who is not would be a
+	// worse lie than the skeleton.
+	const { isWebSocketConnected } = useConvexConnectionState();
+	const stalled = useStalledOffline(
+		state.status === "loading",
+		isWebSocketConnected,
+	);
 	const marker = useTrainingMarker(date);
 	const offset = isoDayOffset(today, date);
+
+	/**
+	 * A Combo is built from entries on one day, so leaving that day ends the
+	 * selection. Keeping it would let the count say "3 parts" while only the
+	 * ids that happen to exist on the day you ended up on survive the
+	 * resolution — silently dropping the rest, or in the worst case leaving an
+	 * enabled button that resolves to nothing at all.
+	 */
+	function changeDate(next: string) {
+		setDate(next);
+		setSelecting(false);
+		setSelectedEntryIds(new Set());
+	}
+
+	function openFoodBrowser(slot: MealSlot) {
+		router.push({ pathname: "/nutrition-food", params: { meal: slot, date } });
+	}
 
 	const dayLabel =
 		offset === 0
@@ -97,50 +117,6 @@ export function NutritionDayScreen() {
 				: offset === 1
 					? t.nutrition.day.tomorrow
 					: formatLongDate(date, locale);
-
-	if (addingTo) {
-		return (
-			<NutritionFoodBrowser
-				meal={addingTo}
-				date={date}
-				onClose={() => setAddingTo(undefined)}
-			/>
-		);
-	}
-
-	if (editing) {
-		return (
-			<NutritionEntryEditor
-				entry={editing.entry}
-				meal={editing.meal}
-				date={date}
-				onClose={() => setEditing(undefined)}
-			/>
-		);
-	}
-
-	if (comboEntries) {
-		return (
-			<NutritionComboBuilder
-				entries={comboEntries}
-				onClose={() => setComboEntries(undefined)}
-				onSaved={() => {
-					setComboEntries(undefined);
-					setComboMode(undefined);
-					setSelectedEntryIds(new Set());
-				}}
-			/>
-		);
-	}
-
-	if (comboMode === "library") {
-		return (
-			<NutritionComboLibrary
-				date={date}
-				onClose={() => setComboMode(undefined)}
-			/>
-		);
-	}
 
 	return (
 		<ScrollView
@@ -161,11 +137,13 @@ export function NutritionDayScreen() {
 				locale={locale}
 				t={t}
 				isToday={offset === 0}
-				onChange={setDate}
-				onToday={() => setDate(today)}
+				onChange={changeDate}
+				onToday={() => changeDate(today)}
 			/>
 
-			{state.status === "loading" ? (
+			{stalled ? (
+				<OfflineDay t={t} onAdd={(slot) => openFoodBrowser(slot)} />
+			) : state.status === "loading" ? (
 				<DaySkeleton label={t.nutrition.day.loading} />
 			) : (
 				<>
@@ -178,19 +156,30 @@ export function NutritionDayScreen() {
 
 					<ComboControls
 						t={t}
-						selecting={comboMode === "select"}
+						selecting={selecting}
 						selectedCount={selectedEntryIds.size}
-						onCreate={() => setComboMode("select")}
-						onLog={() => setComboMode("library")}
+						onCreate={() => setSelecting(true)}
+						onLog={() =>
+							router.push({
+								pathname: "/nutrition-combos",
+								params: { date },
+							})
+						}
 						onCancel={() => {
-							setComboMode(undefined);
+							setSelecting(false);
 							setSelectedEntryIds(new Set());
 						}}
 						onContinue={() => {
-							const selected = MEAL_SLOTS.flatMap(
-								(slot) => state.day.entries[slot],
-							).filter((entry) => selectedEntryIds.has(entry.id));
-							if (selected.length > 0) setComboEntries(selected);
+							if (selectedEntryIds.size === 0) return;
+							setSelecting(false);
+							router.push({
+								pathname: "/nutrition-combo-new",
+								params: {
+									date,
+									entryIds: [...selectedEntryIds].join(","),
+								},
+							});
+							setSelectedEntryIds(new Set());
 						}}
 					/>
 
@@ -201,9 +190,15 @@ export function NutritionDayScreen() {
 							slot={slot}
 							entries={state.day.entries[slot]}
 							locale={locale}
-							onAdd={() => setAddingTo(slot)}
-							onEdit={(entry) => setEditing({ entry, meal: slot })}
-							selecting={comboMode === "select"}
+							onAdd={() => openFoodBrowser(slot)}
+							onEdit={(entry) =>
+								router.push({
+									pathname: "/nutrition-entry",
+									params: { id: entry.id, meal: slot, date },
+								})
+							}
+							onDelete={(entry) => deleteEntry({ entry, meal: slot, date })}
+							selecting={selecting}
 							selectedEntryIds={selectedEntryIds}
 							onToggleEntry={(entry) =>
 								setSelectedEntryIds((current) => {
@@ -454,6 +449,7 @@ function MealSection({
 	locale,
 	onAdd,
 	onEdit,
+	onDelete,
 	selecting,
 	selectedEntryIds,
 	onToggleEntry,
@@ -464,6 +460,7 @@ function MealSection({
 	locale: "en" | "nl";
 	onAdd: () => void;
 	onEdit: (entry: DiaryEntry) => void;
+	onDelete: (entry: DiaryEntry) => void;
 	selecting: boolean;
 	selectedEntryIds: ReadonlySet<string>;
 	onToggleEntry: (entry: DiaryEntry) => void;
@@ -511,6 +508,7 @@ function MealSection({
 									onPress={() =>
 										selecting ? onToggleEntry(entry) : onEdit(entry)
 									}
+									onDelete={() => onDelete(entry)}
 								/>
 							);
 						}
@@ -568,9 +566,11 @@ function MealSection({
 												locale={locale}
 												selecting={selecting}
 												selected={selectedEntryIds.has(part.id)}
+												inGroup
 												onPress={() =>
 													selecting ? onToggleEntry(part) : onEdit(part)
 												}
+												onDelete={() => onDelete(part)}
 											/>
 										))
 									: null}
@@ -583,22 +583,40 @@ function MealSection({
 	);
 }
 
+/**
+ * One logged entry.
+ *
+ * Tapping opens the editor — the visible, always-present route to every
+ * correction including deletion. Swipe and long press are accelerators layered
+ * on top by `SwipeableRow`, and delete through either of them still goes
+ * through the same confirmation the editor's own Delete does; there is no path
+ * from a gesture to a removed entry without an explicit yes.
+ *
+ * While a Combo selection is in progress the row is a checkbox instead, and
+ * the accelerators come off: a swipe that edited an entry mid-selection would
+ * be acting on something the user is in the middle of choosing.
+ */
 function EntryRow({
 	t,
 	entry,
 	locale,
 	selecting,
 	selected,
+	inGroup = false,
 	onPress,
+	onDelete,
 }: {
 	t: Messages;
 	entry: DiaryEntry;
 	locale: "en" | "nl";
 	selecting: boolean;
 	selected: boolean;
+	/** Indents the row under its Combo header. Only a part is ever nested. */
+	inGroup?: boolean;
 	onPress: () => void;
+	onDelete: () => void;
 }) {
-	return (
+	const content = (accessibility?: RowAccessibilityProps) => (
 		<Pressable
 			onPress={onPress}
 			accessibilityRole={selecting ? "checkbox" : "button"}
@@ -612,9 +630,10 @@ function EntryRow({
 							name: entry.name[locale],
 						})
 			}
+			{...accessibility}
 			style={({ pressed }) => [
 				styles.entryRow,
-				styles.comboPart,
+				inGroup ? styles.comboPart : null,
 				pressed ? { backgroundColor: colors.surface2 } : null,
 			]}
 		>
@@ -636,6 +655,28 @@ function EntryRow({
 				{t.nutrition.units.kcal}
 			</AppText>
 		</Pressable>
+	);
+
+	if (selecting) return content();
+
+	return (
+		<SwipeableRow
+			menuTitle={fmt(t.nutrition.entryActions.menuTitle, {
+				name: entry.name[locale],
+			})}
+			closeMenuLabel={t.nutrition.entryActions.close}
+			actions={[
+				{ key: "edit", label: t.nutrition.entryActions.edit, onPress },
+				{
+					key: "delete",
+					label: t.nutrition.entryActions.delete,
+					onPress: onDelete,
+					destructive: true,
+				},
+			]}
+		>
+			{content}
+		</SwipeableRow>
 	);
 }
 
@@ -711,6 +752,65 @@ function qualifiedAmount(
 }
 
 /**
+ * What the day shows when it is offline and has nothing cached for this date.
+ *
+ * Not a skeleton: a skeleton promises content is arriving, and while the
+ * socket is down for a day this device has never held, none is. Saying so is
+ * the coherent behaviour spec #68 asks for.
+ *
+ * The four slots keep their plus controls, because logging offline genuinely
+ * works — the shipped library is in the bundle, Personal Foods and Combos are
+ * in SQLite, and Convex queues the write and replays it on reconnect. The
+ * slots read "not available offline" rather than the usual empty-slot
+ * sentence, because "nothing logged here" would be a claim this screen is in
+ * no position to make.
+ */
+function OfflineDay({
+	t,
+	onAdd,
+}: {
+	t: Messages;
+	onAdd: (slot: MealSlot) => void;
+}) {
+	return (
+		<>
+			<Card style={styles.goalCard}>
+				<EmptyState
+					title={t.nutrition.offline.title}
+					body={t.nutrition.offline.body}
+				/>
+			</Card>
+			{MEAL_SLOTS.map((slot) => {
+				const mealName = t.nutrition.meals[slot];
+				return (
+					<View key={slot} style={styles.section}>
+						<View style={styles.mealHeader}>
+							<AppText variant="heading">{mealName}</AppText>
+							<Pressable
+								onPress={() => onAdd(slot)}
+								accessibilityRole="button"
+								accessibilityLabel={fmt(t.nutrition.addTo, { meal: mealName })}
+								style={({ pressed }) => [
+									styles.addButton,
+									pressed ? { backgroundColor: colors.accentPressed } : null,
+								]}
+							>
+								<AppText variant="heading" style={{ color: colors.onAccent }}>
+									+
+								</AppText>
+							</Pressable>
+						</View>
+						<Card>
+							<EmptyState body={t.nutrition.offline.slot} />
+						</Card>
+					</View>
+				);
+			})}
+		</>
+	);
+}
+
+/**
  * The same boxes the loaded day draws, in the same places: one goal card with
  * four rows, then four meal sections. A spinner would tell the user nothing
  * about what is coming.
@@ -754,14 +854,19 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 4,
-		height: 44,
+		// `minHeight`, not `height`: at the largest dynamic type sizes a fixed
+		// box crops its own label, and a marker that reads "Traine" is worse
+		// than one that is taller than the design intended.
+		minHeight: 44,
 	},
 	trainingMarkerGlyph: { color: colors.accent, fontSize: 8 },
 	trainingMarkerLabel: { color: colors.textMuted },
 
 	stepper: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	todayPill: {
-		height: 32,
+		// 44pt so the target meets platform guidance without relying on hitSlop
+		// to make up the difference, and so the label has room to grow.
+		minHeight: 44,
 		paddingHorizontal: spacing.md,
 		borderRadius: radius.pill,
 		alignItems: "center",
@@ -782,7 +887,10 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		gap: spacing.sm,
 	},
-	goalName: { fontWeight: "700" },
+	// The nutrient's name yields before its number does. Spec #68 is explicit
+	// that dynamic type must not clip nutrition values, and in a row with one
+	// of each there has to be a rule about which one gives way.
+	goalName: { fontWeight: "700", flexShrink: 1 },
 	comboControls: { gap: spacing.sm },
 	comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 	track: {
@@ -799,8 +907,9 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	addButton: {
-		width: 44,
-		height: 44,
+		minWidth: 44,
+		minHeight: 44,
+		padding: 4,
 		borderRadius: radius.pill,
 		alignItems: "center",
 		justifyContent: "center",

@@ -71,9 +71,12 @@ const styles = StyleSheet.create({
 	stepper: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	stepperDate: { flex: 1, textAlign: "center", fontWeight: "700" },
 	iconButton: {
-		// 44pt minimum touch target, per the platform's own guidance.
-		width: 44,
-		height: 44,
+		// 44pt minimum touch target, per the platform's own guidance — as a
+		// minimum rather than a fixed size, so the glyph still fits when the
+		// person has turned text size up.
+		minWidth: 44,
+		minHeight: 44,
+		padding: 4,
 		alignItems: "center",
 		justifyContent: "center",
 		borderRadius: radius.pill,

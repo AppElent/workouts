@@ -330,6 +330,25 @@ export function NutritionComboLibrary({
 	);
 }
 
+/**
+ * Which food, if any, a Combo part points back at.
+ *
+ * The `oneOff` branch is reachable by type and unreachable in the shipped app,
+ * and that is a deliberate state rather than an oversight (#79). Spec #68
+ * routes manual entry through the Personal Food authoring flow — "Manual entry
+ * and shipped-food editing share the Personal Food authoring flow" — so every
+ * log path the UI offers produces a shipped, personal or import provenance.
+ * Nothing writes a diary entry with `source: "oneOff"`.
+ *
+ * The model keeps the case because user story 63 says a Combo may contain one,
+ * and because a wire format that cannot express it would have to be migrated
+ * the day a producer is added. Adding that producer — a "log this once without
+ * saving it" path — would be a second manual-entry route the spec does not
+ * describe, competing with the Personal Food flow it deliberately chose, so it
+ * is a product decision rather than a gap to quietly fill. Nothing in the UI
+ * promises one-offs today: there is no copy for them and no control that makes
+ * one, so the absence misleads nobody.
+ */
 function referenceFor(entry: DiaryEntry): ComboPartReference {
 	if (entry.provenance.source === "shipped") {
 		return { kind: "shipped", foodId: entry.provenance.sourceId };

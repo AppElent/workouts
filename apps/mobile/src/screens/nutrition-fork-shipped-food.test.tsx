@@ -91,7 +91,7 @@ describe("correcting a shipped food", () => {
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await screen.findByText("Your correction of Apple w skin av");
-		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(screen.getByLabelText("Close serving options"));
 
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 
@@ -106,7 +106,7 @@ describe("correcting a shipped food", () => {
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await screen.findByText("Your correction of Apple w skin av");
-		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(screen.getByLabelText("Close serving options"));
 
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		fireEvent.press(screen.getByText("Search all 2,328 foods"));
@@ -218,7 +218,7 @@ describe("correcting a shipped food offline", () => {
 		expect(repository.list()[0].provenance.forkedFrom).toBe(
 			"shipped:apple-w-skin-av",
 		);
-		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(screen.getByLabelText("Close serving options"));
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect(
 			await screen.findByText("Your correction of Apple w skin av"),
@@ -244,7 +244,7 @@ describe("correcting a shipped food in Dutch", () => {
 		expect(
 			await screen.findByText("Jouw correctie van Appel m schil gem"),
 		).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Terug"));
+		fireEvent.press(screen.getByLabelText("Sluit portiekeuze"));
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
 		fireEvent.press(screen.getByText("Doorzoek alle 2.328 voedingsmiddelen"));
 
