@@ -22,11 +22,13 @@
 		"@workouts/core": "workspace:*",
 		"convex": "^1.42.1",
 		"expo": "~57.0.11",
+		"expo-asset": "~57.0.10",
 		"expo-audio": "~57.0.4",
 		"expo-camera": "~57.0.4",
-		"expo-constants": "~57.0.9",
+		"expo-constants": "~57.0.17",
 		"expo-dev-client": "~57.0.18",
 		"expo-file-system": "~57.0.6",
+		"expo-font": "~57.0.1",
 		"expo-haptics": "^57.0.1",
 		"expo-image": "~57.0.4",
 		"expo-image-manipulator": "~57.0.16",
@@ -60,7 +62,6 @@
 	},
 	"devDependencies": {
 		"@types/react": "~19.2.17",
-		"eas-cli": "^16.32.0",
 		"typescript": "~6.0.3"
 	}
 }

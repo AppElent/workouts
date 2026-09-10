@@ -5,10 +5,8 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "foundry",
-    "_comment_userInterfaceStyle": "Pinned dark, not automatic (#46): src/theme has one palette because the web app has one — there is no light scheme to fall back to, and 'automatic' would hand the OS a light keyboard and light sheet grabbers on a black app.",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#000000",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.appelent.foundry",
@@ -79,7 +77,6 @@
         }
       ]
     ],
-    "_comment_locales": "iOS permission prompts are compiled into the native app, so the camera purpose string is localized here for both languages Foundry ships.",
     "locales": {
       "en": "./locales/en.json",
       "nl": "./locales/nl.json"
