@@ -8,6 +8,18 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Keep platform-specific optional binaries for local Windows development and
+# EAS' macOS builders. Without this, sharp can fall back to a source build on
+# EAS even though its Darwin prebuilt packages are present in the lockfile.
+supportedArchitectures:
+  os:
+    - win32
+    - darwin
+    - current
+  cpu:
+    - x64
+    - arm64
+
 # pnpm 11 otherwise tries to install dependencies before it runs any package
 # script. EAS invokes eas-build-pre-install through pnpm, so that default creates
 # a bootstrap cycle: the install needs the authentication that the hook sets up.
@@ -74,7 +86,10 @@ allowBuilds:
   core-js: false # postinstall is just a sponsorship notice, no native binary
   utf-8-validate: false # optional native `ws` accelerator, not needed to run
   esbuild: true
-  sharp: true
+  # sharp is only pulled in by the web development toolchain. Its optional
+  # platform package supplies the binary; compiling a fallback is unnecessary
+  # for either the web app or EAS' mobile build.
+  sharp: false
   workerd: true
   # dtrace-provider is an optional native tracing binding pulled in
   # transitively by eas-cli (apps/mobile devDependency); not required for
