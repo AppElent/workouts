@@ -91,7 +91,3 @@ allowBuilds:
   # for either the web app or EAS' mobile build.
   sharp: false
   workerd: true
-  # dtrace-provider is an optional native tracing binding pulled in
-  # transitively by eas-cli (apps/mobile devDependency); not required for
-  # anything we use, so its build script stays sandboxed.
-  dtrace-provider: false
