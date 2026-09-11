@@ -35,6 +35,9 @@ export function HomeScreen() {
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
@@ -159,7 +162,7 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 16, paddingBottom: 140 },
+	content: { padding: 20, paddingTop: 12, gap: 16, paddingBottom: 24 },
 	between: {
 		flexDirection: "row",
 		alignItems: "center",

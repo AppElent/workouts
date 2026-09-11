@@ -1,7 +1,33 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { diarySnapshotFields } from './nutritionDiaryModel'
 
 export default defineSchema({
+  nutritionDiaryEntries: defineTable({
+    userId: v.string(),
+    ...diarySnapshotFields,
+    // A Combo is only provenance/rendering: every row remains an ordinary
+    // independently editable diary snapshot even if the local Combo vanishes.
+    comboGroup: v.optional(v.object({
+      id: v.string(),
+      comboId: v.string(),
+      name: v.string(),
+    })),
+    loggedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_date', ['userId', 'date']),
+
+  nutritionGoals: defineTable({
+    userId: v.string(),
+    nutrient: v.union(v.literal('energy'), v.literal('protein'), v.literal('carbs'), v.literal('fat'), v.literal('saturatedFat'), v.literal('fibre'), v.literal('sugars'), v.literal('salt')),
+    direction: v.union(v.literal('min'), v.literal('max')),
+    target: v.number(),
+    sourcePreset: v.optional(v.union(v.literal('reference'), v.literal('loseWeight'), v.literal('buildMuscle'))),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_nutrient_direction', ['userId', 'nutrient', 'direction']),
+
   exercises: defineTable({
     name: v.string(),
     muscleGroups: v.array(v.string()),

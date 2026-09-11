@@ -11,16 +11,15 @@
  * per route and crashes if a route's navigator type changes underneath it, so
  * `NativeTabs` gets its own route rather than replacing this one.
  *
- * The chrome (offline banner, active-session bar) is mounted here rather than
- * inside the tab group so it floats over the tabs *and* over anything pushed on
- * top of them. Both absolutely position themselves; the `box-none` wrapper
- * inside each is what stops them swallowing touches meant for the screen.
  */
 import { useAuth } from "@clerk/expo";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, useSegments } from "expo-router";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
+import { PersonalFoodsProvider } from "../../src/data/personal-foods";
+import { useI18n } from "../../src/i18n";
 import { colors } from "../../src/theme";
-import { ActiveSessionBar } from "../../src/ui/active-session-bar";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
 import { RestTimerProvider } from "../../src/ui/rest-timer";
@@ -28,6 +27,26 @@ import { ToastProvider } from "../../src/ui/toast";
 
 export default function AppLayout() {
 	const { isSignedIn } = useAuth();
+	const { t } = useI18n();
+	const segments = useSegments();
+	const tab = segments[segments.length - 1];
+	const selectedTab =
+		tab === "train"
+			? "train"
+			: tab === "nutrition"
+				? "nutrition"
+				: tab === "progress"
+					? "progress"
+					: tab === "profile"
+						? "profile"
+						: "home";
+	const inTabs = segments.includes("(coach)" as never);
+	const [lastTab, setLastTab] = useState<keyof typeof t.tabs>("home");
+	useEffect(() => {
+		if (inTabs) setLastTab(selectedTab);
+	}, [inTabs, selectedTab]);
+	// A pushed screen must keep the previous tab's title for the native Back menu.
+	const tabTitle = t.tabs[inTabs ? selectedTab : lastTab];
 
 	if (!isSignedIn) {
 		return <Redirect href="/sign-in" />;
@@ -37,16 +56,84 @@ export default function AppLayout() {
 		<ToastProvider>
 			<ConfirmProvider>
 				<RestTimerProvider>
-					<View style={{ flex: 1, backgroundColor: colors.bg }}>
-						<Stack
-							screenOptions={{
-								headerShown: false,
-								contentStyle: { backgroundColor: colors.bg },
-							}}
-						/>
-						<ActiveSessionBar />
-						<OfflineBanner />
-					</View>
+					<PersonalFoodsProvider>
+						<OpenFoodFactsProvider>
+							<View style={{ flex: 1, backgroundColor: colors.bg }}>
+								<OfflineBanner />
+								<Stack
+									screenOptions={{
+										headerShown: true,
+										headerStyle: { backgroundColor: colors.bg },
+										headerTintColor: colors.accent,
+										headerTitleStyle: { color: colors.text },
+										headerShadowVisible: false,
+										gestureEnabled: true,
+										contentStyle: { backgroundColor: colors.bg },
+									}}
+								>
+									<Stack.Screen
+										name="(coach)"
+										options={{ title: tabTitle, headerBackVisible: false }}
+									/>
+									<Stack.Screen
+										name="exercises"
+										options={{ title: "Exercises" }}
+									/>
+									<Stack.Screen
+										name="exercise/[id]"
+										options={{ title: "Exercise" }}
+									/>
+									<Stack.Screen
+										name="hosted"
+										options={{ title: "Hosted workouts" }}
+									/>
+									<Stack.Screen
+										name="hosted/[id]"
+										options={{ title: "Hosted workout" }}
+									/>
+									<Stack.Screen name="wods" options={{ title: "WODs" }} />
+									<Stack.Screen name="wod/[id]" options={{ title: "WOD" }} />
+									<Stack.Screen
+										name="start-activity"
+										options={{ title: "Start activity" }}
+									/>
+									<Stack.Screen name="session" options={{ title: "Workout" }} />
+									<Stack.Screen
+										name="summary"
+										options={{
+											title: "Summary",
+											headerBackVisible: false,
+											gestureEnabled: false,
+										}}
+									/>
+									<Stack.Screen
+										name="language"
+										options={{ title: t.language.title }}
+									/>
+									<Stack.Screen
+										name="nutrition-food"
+										options={{ title: t.nutrition.title }}
+									/>
+									<Stack.Screen
+										name="nutrition-entry"
+										options={{ title: t.nutrition.entryEditor.title }}
+									/>
+									<Stack.Screen
+										name="nutrition-combos"
+										options={{ title: t.nutrition.combos.log }}
+									/>
+									<Stack.Screen
+										name="nutrition-combo-new"
+										options={{ title: t.nutrition.combos.create }}
+									/>
+									<Stack.Screen
+										name="nutrition-goals"
+										options={{ title: t.nutrition.goalEditor.title }}
+									/>
+								</Stack>
+							</View>
+						</OpenFoodFactsProvider>
+					</PersonalFoodsProvider>
 				</RestTimerProvider>
 			</ConfirmProvider>
 		</ToastProvider>

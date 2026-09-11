@@ -11,8 +11,16 @@
  * Views sized by plate weight, so it needs no SVG.
  */
 import { calcPlates, DEFAULT_BAR, generateWarmup } from "@workouts/core";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+	Modal,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { Eyebrow } from "./coach";
 import { AppText } from "./text";
@@ -32,6 +40,7 @@ export function PlateSheet({
 	onClose: () => void;
 }) {
 	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 	// Only kg is offered anywhere in the app today — `sets.add` hardcodes it and
 	// so does `routines.startSession`. When a unit preference exists, it threads
 	// through here.
@@ -43,16 +52,31 @@ export function PlateSheet({
 	return (
 		<Modal
 			visible={visible}
-			transparent
-			animationType="slide"
+			transparent={Platform.OS !== "ios"}
+			presentationStyle={Platform.OS === "ios" ? "pageSheet" : "overFullScreen"}
+			allowSwipeDismissal
+			animationType={modalAnimation(reduceMotion, "slide")}
 			onRequestClose={onClose}
 		>
-			<Pressable style={styles.backdrop} onPress={onClose}>
+			<Pressable
+				style={[
+					styles.backdrop,
+					Platform.OS === "ios" && {
+						backgroundColor: colors.bg,
+						justifyContent: "flex-start",
+					},
+				]}
+				onPress={onClose}
+			>
 				<Pressable
-					style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+					style={[
+						styles.sheet,
+						{ paddingBottom: insets.bottom + spacing.lg },
+						Platform.OS === "ios" && { flex: 1, borderRadius: 0 },
+					]}
 					onPress={() => {}}
 				>
-					<View style={styles.grabber} />
+					{Platform.OS !== "ios" ? <View style={styles.grabber} /> : null}
 
 					<View style={styles.header}>
 						<AppText variant="heading">{weight} kg</AppText>
@@ -68,7 +92,12 @@ export function PlateSheet({
 						</Pressable>
 					</View>
 
-					<ScrollView showsVerticalScrollIndicator={false}>
+					<ScrollView
+						contentInsetAdjustmentBehavior="automatic"
+						automaticallyAdjustKeyboardInsets
+						keyboardDismissMode="interactive"
+						showsVerticalScrollIndicator={false}
+					>
 						<Eyebrow>Per side</Eyebrow>
 						{result.belowBar ? (
 							<AppText variant="caption">

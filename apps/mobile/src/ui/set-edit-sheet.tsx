@@ -2,10 +2,8 @@
  * Edit, duplicate or delete a logged set. Ported from the web's
  * `src/components/session/SetEditSheet.tsx`.
  *
- * Drag-to-dismiss is built on `react-native-gesture-handler` + `reanimated`
- * (both already dependencies) rather than `PanResponder`: the pan runs on the
- * UI thread, so the sheet tracks the finger even while Convex is re-rendering
- * the table underneath.
+ * The OS owns sheet presentation and scrolling. Interactive dismissal is
+ * disabled while edits are unsaved; Close still asks before discarding them.
  *
  * Dismissing with unsaved edits asks first, matching the web. Deleting asks
  * too — the web deletes on a single tap here, which is a gap in it rather than
@@ -18,17 +16,10 @@
  */
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-	runOnJS,
-	useAnimatedStyle,
-	useSharedValue,
-	withSpring,
-	withTiming,
-} from "react-native-reanimated";
+import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Doc } from "../convex/api";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { Chip } from "./coach";
 import { convexErrorMessage, useConfirm } from "./confirm-dialog";
@@ -37,11 +28,6 @@ import { useToast } from "./toast";
 
 const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
 type SetType = (typeof SET_TYPES)[number];
-
-/** Past this many pixels down, releasing dismisses instead of springing back. */
-const DISMISS_DISTANCE = 120;
-/** A fast flick dismisses even if it never travelled that far. */
-const DISMISS_VELOCITY = 800;
 
 export function SetEditSheet({
 	set,
@@ -58,6 +44,7 @@ export function SetEditSheet({
 	const toast = useToast();
 	const confirm = useConfirm();
 	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 
 	const updateSet = useMutation(api.sets.update);
 	const duplicateSet = useMutation(api.sets.duplicate);
@@ -71,9 +58,8 @@ export function SetEditSheet({
 	const dirty =
 		weight !== set.weight || reps !== set.reps || setType !== set.setType;
 
-	const translateY = useSharedValue(0);
-
 	const requestClose = async () => {
+		if (busy) return;
 		if (dirty) {
 			const discard = await confirm({
 				title: "Discard changes?",
@@ -83,33 +69,11 @@ export function SetEditSheet({
 				destructive: true,
 			});
 			if (!discard) {
-				translateY.value = withSpring(0);
 				return;
 			}
 		}
 		onClose();
 	};
-
-	const pan = Gesture.Pan()
-		.onChange((event) => {
-			// Downward only — dragging up should not lift the sheet off the screen.
-			translateY.value = Math.max(0, translateY.value + event.changeY);
-		})
-		.onEnd((event) => {
-			const shouldDismiss =
-				translateY.value > DISMISS_DISTANCE ||
-				event.velocityY > DISMISS_VELOCITY;
-			if (shouldDismiss) {
-				translateY.value = withTiming(600, { duration: 180 });
-				runOnJS(requestClose)();
-			} else {
-				translateY.value = withSpring(0);
-			}
-		});
-
-	const sheetStyle = useAnimatedStyle(() => ({
-		transform: [{ translateY: translateY.value }],
-	}));
 
 	const save = async () => {
 		if (!dirty || busy) return;
@@ -157,93 +121,95 @@ export function SetEditSheet({
 	};
 
 	return (
-		<View style={styles.overlay}>
-			<Pressable style={styles.backdrop} onPress={() => void requestClose()} />
-
-			<GestureDetector gesture={pan}>
-				<Animated.View
-					style={[
-						styles.sheet,
-						{ paddingBottom: insets.bottom + spacing.lg },
-						sheetStyle,
-					]}
-				>
-					<View style={styles.grabber} />
-
-					<View style={styles.header}>
-						<View style={styles.flex}>
-							<AppText variant="heading">Set {set.setNumber}</AppText>
-							<AppText variant="caption">{exerciseName}</AppText>
-						</View>
-						<Pressable
-							onPress={() => void requestClose()}
-							hitSlop={12}
-							accessibilityRole="button"
-							accessibilityLabel="Close"
-						>
-							<AppText variant="body" style={styles.close}>
-								Close
-							</AppText>
-						</Pressable>
+		<Modal
+			visible
+			presentationStyle="pageSheet"
+			animationType={modalAnimation(reduceMotion, "slide")}
+			allowSwipeDismissal={!dirty && !busy}
+			onRequestClose={() => void requestClose()}
+		>
+			<ScrollView
+				style={{ flex: 1, backgroundColor: colors.surface }}
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				contentContainerStyle={[
+					styles.sheet,
+					{ paddingBottom: insets.bottom + spacing.lg },
+				]}
+			>
+				<View style={styles.header}>
+					<View style={styles.flex}>
+						<AppText variant="heading">Set {set.setNumber}</AppText>
+						<AppText variant="caption">{exerciseName}</AppText>
 					</View>
-
-					<View style={styles.typeRow}>
-						{SET_TYPES.map((t) => (
-							<Pressable
-								key={t}
-								onPress={() => setSetType(t)}
-								style={styles.flex}
-							>
-								<Chip label={t} active={t === setType} />
-							</Pressable>
-						))}
-					</View>
-
-					<View style={styles.steppers}>
-						<Stepper
-							label="kg"
-							value={weight}
-							step={weightStep}
-							onChange={setWeight}
-						/>
-						<Stepper
-							label="reps"
-							value={reps}
-							step={1}
-							min={1}
-							onChange={setReps}
-						/>
-					</View>
-
 					<Pressable
-						onPress={() => void save()}
-						disabled={!dirty || busy}
-						style={[styles.save, (!dirty || busy) && styles.dimmed]}
+						onPress={() => void requestClose()}
+						hitSlop={12}
+						accessibilityRole="button"
+						accessibilityLabel="Close"
 					>
-						<AppText style={styles.saveText}>
-							{busy ? "Saving…" : dirty ? "Save changes" : "No changes"}
+						<AppText variant="body" style={styles.close}>
+							Close
 						</AppText>
 					</Pressable>
+				</View>
 
-					<View style={styles.secondaryRow}>
+				<View style={styles.typeRow}>
+					{SET_TYPES.map((t) => (
 						<Pressable
-							onPress={() => void duplicate()}
-							disabled={busy}
-							style={[styles.ghost, busy && styles.dimmed]}
+							key={t}
+							onPress={() => setSetType(t)}
+							style={styles.flex}
 						>
-							<AppText style={styles.ghostText}>Duplicate</AppText>
+							<Chip label={t} active={t === setType} />
 						</Pressable>
-						<Pressable
-							onPress={() => void remove()}
-							disabled={busy}
-							style={[styles.ghost, busy && styles.dimmed]}
-						>
-							<AppText style={styles.deleteText}>Delete</AppText>
-						</Pressable>
-					</View>
-				</Animated.View>
-			</GestureDetector>
-		</View>
+					))}
+				</View>
+
+				<View style={styles.steppers}>
+					<Stepper
+						label="kg"
+						value={weight}
+						step={weightStep}
+						onChange={setWeight}
+					/>
+					<Stepper
+						label="reps"
+						value={reps}
+						step={1}
+						min={1}
+						onChange={setReps}
+					/>
+				</View>
+
+				<Pressable
+					onPress={() => void save()}
+					disabled={!dirty || busy}
+					style={[styles.save, (!dirty || busy) && styles.dimmed]}
+				>
+					<AppText style={styles.saveText}>
+						{busy ? "Saving…" : dirty ? "Save changes" : "No changes"}
+					</AppText>
+				</Pressable>
+
+				<View style={styles.secondaryRow}>
+					<Pressable
+						onPress={() => void duplicate()}
+						disabled={busy}
+						style={[styles.ghost, busy && styles.dimmed]}
+					>
+						<AppText style={styles.ghostText}>Duplicate</AppText>
+					</Pressable>
+					<Pressable
+						onPress={() => void remove()}
+						disabled={busy}
+						style={[styles.ghost, busy && styles.dimmed]}
+					>
+						<AppText style={styles.deleteText}>Delete</AppText>
+					</Pressable>
+				</View>
+			</ScrollView>
+		</Modal>
 	);
 }
 
@@ -291,40 +257,13 @@ function Stepper({
 }
 
 const styles = StyleSheet.create({
-	overlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		zIndex: 70,
-	},
-	backdrop: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.6)",
-	},
 	sheet: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
 		gap: spacing.sm,
 		backgroundColor: colors.surface,
 		borderTopLeftRadius: radius.sheet,
 		borderTopRightRadius: radius.sheet,
 		paddingHorizontal: spacing.md,
 		paddingTop: spacing.sm,
-	},
-	grabber: {
-		alignSelf: "center",
-		width: 36,
-		height: 4,
-		borderRadius: radius.pill,
-		backgroundColor: colors.borderStrong,
 	},
 	header: { flexDirection: "row", alignItems: "center", minHeight: 44 },
 	flex: { flex: 1 },

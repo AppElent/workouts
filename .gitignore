@@ -31,3 +31,6 @@ docs/.generated
 .env.preview
 .env.prod
 
+
+# NEVO source archive — the unpacked extract under data/nevo/ is committed instead (27 MB zip)
+data/*.zip

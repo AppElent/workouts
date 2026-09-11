@@ -28,6 +28,15 @@ export default defineConfig({
 			{
 				extends: true,
 				test: {
+					name: "convex",
+					include: ["convex/**/*.test.ts"],
+					environment: "edge-runtime",
+					globals: true,
+				},
+			},
+			{
+				extends: true,
+				test: {
 					name: "app",
 					include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
 					environment: "jsdom",

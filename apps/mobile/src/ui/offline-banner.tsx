@@ -8,16 +8,22 @@
  * signal: a basement gym.
  *
  * No dismiss button, deliberately. It disappears when the condition does.
+ *
+ * The sentence comes from the message tree: this banner floats over every
+ * screen including the Nutrition ones, and an English strip across a Dutch app
+ * is exactly the kind of gap #79 exists to close.
  */
 import { useConvexConnectionState } from "convex/react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useI18n } from "../i18n";
 import { colors, spacing } from "../theme";
 import { AppText } from "./text";
 
 export function OfflineBanner() {
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const insets = useSafeAreaInsets();
+	const { t } = useI18n();
 
 	if (isWebSocketConnected) return null;
 
@@ -27,7 +33,7 @@ export function OfflineBanner() {
 			pointerEvents="none"
 		>
 			<AppText variant="caption" style={styles.text}>
-				Offline — changes will sync when you reconnect
+				{t.common.offline}
 			</AppText>
 		</View>
 	);
@@ -35,11 +41,6 @@ export function OfflineBanner() {
 
 const styles = StyleSheet.create({
 	wrap: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 60,
 		alignItems: "center",
 		paddingBottom: spacing.xs,
 		paddingHorizontal: spacing.md,

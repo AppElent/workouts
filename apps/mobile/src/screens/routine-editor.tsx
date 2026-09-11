@@ -17,6 +17,7 @@ import { useMutation } from "convex/react";
 import { useState } from "react";
 import {
 	Modal,
+	Platform,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -26,6 +27,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Doc, type Id } from "../convex/api";
 import type { useRoutines } from "../data/session-data";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
@@ -62,6 +64,7 @@ export function RoutineEditor({
 }) {
 	const toast = useToast();
 	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 	const createRoutine = useMutation(api.routines.create);
 	const updateRoutine = useMutation(api.routines.update);
 
@@ -119,8 +122,22 @@ export function RoutineEditor({
 	const canSave = name.trim() !== "" && entries.length > 0 && !busy;
 
 	return (
-		<Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-			<View style={[styles.root, { paddingTop: insets.top + spacing.sm }]}>
+		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal={!busy}
+			visible={visible}
+			animationType={modalAnimation(reduceMotion, "slide")}
+			onRequestClose={onClose}
+		>
+			<View
+				style={[
+					styles.root,
+					{
+						paddingTop:
+							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
+					},
+				]}
+			>
 				<View style={styles.header}>
 					<AppText variant="heading">
 						{routine ? "Edit routine" : "New routine"}
@@ -138,6 +155,9 @@ export function RoutineEditor({
 				</View>
 
 				<ScrollView
+					contentInsetAdjustmentBehavior="automatic"
+					automaticallyAdjustKeyboardInsets
+					keyboardDismissMode="interactive"
 					contentContainerStyle={styles.content}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}

@@ -37,14 +37,18 @@ const STORAGE_KEY = "restTimer.defaultSeconds";
 const PRESETS = [60, 90, 120, 180];
 const FALLBACK_SECONDS = 90;
 
-/** Sits above the tab bar and the active-session bar, not under them. */
-const BOTTOM_ALLOWANCE = 128;
-
 type RestTimerApi = {
 	/** Starts (or restarts) a countdown. Defaults to the saved preference. */
 	start: (seconds?: number) => void;
 	stop: () => void;
 };
+
+const RestTimerBarContext = createContext<ReactNode>(null);
+
+/** Rendered in the workout layout, so the scroll view reserves its full height. */
+export function RestTimerBar() {
+	return useContext(RestTimerBarContext);
+}
 
 const RestTimerContext = createContext<RestTimerApi | null>(null);
 
@@ -145,75 +149,77 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 
 	const running = endsAt !== null;
 
+	const bar = running ? (
+		<View
+			style={[styles.wrap, { paddingBottom: insets.bottom + spacing.xs }]}
+			pointerEvents="box-none"
+		>
+			<View style={[styles.pill, remaining <= 0 && styles.done]}>
+				<Pressable
+					onPress={() => adjust(-15)}
+					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Subtract 15 seconds"
+				>
+					<AppText style={styles.adjust}>−15</AppText>
+				</Pressable>
+
+				<Pressable onPress={togglePause} style={styles.readout}>
+					<AppText style={styles.time}>
+						{remaining <= 0 ? "Rest over" : format(remaining)}
+					</AppText>
+					{paused !== null ? (
+						<AppText style={styles.pausedLabel}>paused</AppText>
+					) : null}
+				</Pressable>
+
+				<Pressable
+					onPress={() => adjust(15)}
+					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Add 15 seconds"
+				>
+					<AppText style={styles.adjust}>+15</AppText>
+				</Pressable>
+
+				<Pressable
+					onPress={api.stop}
+					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Dismiss rest timer"
+				>
+					<AppText style={styles.dismiss}>✕</AppText>
+				</Pressable>
+			</View>
+
+			<View style={styles.presets}>
+				{PRESETS.map((seconds) => (
+					<Pressable
+						key={seconds}
+						onPress={() => chooseDefault(seconds)}
+						style={[
+							styles.preset,
+							seconds === defaultSeconds && styles.presetActive,
+						]}
+					>
+						<AppText
+							style={[
+								styles.presetText,
+								seconds === defaultSeconds && styles.presetTextActive,
+							]}
+						>
+							{seconds}s
+						</AppText>
+					</Pressable>
+				))}
+			</View>
+		</View>
+	) : null;
 	return (
 		<RestTimerContext.Provider value={api}>
-			{children}
-			{running ? (
-				<View
-					style={[styles.wrap, { bottom: insets.bottom + BOTTOM_ALLOWANCE }]}
-					pointerEvents="box-none"
-				>
-					<View style={[styles.pill, remaining <= 0 && styles.done]}>
-						<Pressable
-							onPress={() => adjust(-15)}
-							hitSlop={8}
-							accessibilityRole="button"
-							accessibilityLabel="Subtract 15 seconds"
-						>
-							<AppText style={styles.adjust}>−15</AppText>
-						</Pressable>
-
-						<Pressable onPress={togglePause} style={styles.readout}>
-							<AppText style={styles.time}>
-								{remaining <= 0 ? "Rest over" : format(remaining)}
-							</AppText>
-							{paused !== null ? (
-								<AppText style={styles.pausedLabel}>paused</AppText>
-							) : null}
-						</Pressable>
-
-						<Pressable
-							onPress={() => adjust(15)}
-							hitSlop={8}
-							accessibilityRole="button"
-							accessibilityLabel="Add 15 seconds"
-						>
-							<AppText style={styles.adjust}>+15</AppText>
-						</Pressable>
-
-						<Pressable
-							onPress={api.stop}
-							hitSlop={8}
-							accessibilityRole="button"
-							accessibilityLabel="Dismiss rest timer"
-						>
-							<AppText style={styles.dismiss}>✕</AppText>
-						</Pressable>
-					</View>
-
-					<View style={styles.presets}>
-						{PRESETS.map((seconds) => (
-							<Pressable
-								key={seconds}
-								onPress={() => chooseDefault(seconds)}
-								style={[
-									styles.preset,
-									seconds === defaultSeconds && styles.presetActive,
-								]}
-							>
-								<AppText
-									style={[
-										styles.presetText,
-										seconds === defaultSeconds && styles.presetTextActive,
-									]}
-								>
-									{seconds}s
-								</AppText>
-							</Pressable>
-						))}
-					</View>
-				</View>
-			) : null}
+			<RestTimerBarContext.Provider value={bar}>
+				{children}
+			</RestTimerBarContext.Provider>
 		</RestTimerContext.Provider>
 	);
 }
@@ -232,11 +238,10 @@ const NOOP_TIMER: RestTimerApi = { start: () => {}, stop: () => {} };
 
 const styles = StyleSheet.create({
 	wrap: {
-		position: "absolute",
-		left: spacing.md,
-		right: spacing.md,
+		paddingHorizontal: spacing.md,
+		paddingTop: spacing.xs,
 		gap: spacing.xs,
-		zIndex: 55,
+		backgroundColor: colors.bg,
 	},
 	pill: {
 		flexDirection: "row",

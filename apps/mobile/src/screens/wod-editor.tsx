@@ -15,6 +15,7 @@ import { useMutation } from "convex/react";
 import { useState } from "react";
 import {
 	Modal,
+	Platform,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -23,6 +24,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Doc } from "../convex/api";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
@@ -54,6 +56,7 @@ export function WodEditor({
 }) {
 	const toast = useToast();
 	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 	const createWod = useMutation(api.wods.create);
 	const updateWod = useMutation(api.wods.update);
 
@@ -128,8 +131,22 @@ export function WodEditor({
 	const canSave = name.trim() !== "" && !busy;
 
 	return (
-		<Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-			<View style={[styles.root, { paddingTop: insets.top + spacing.sm }]}>
+		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal={!busy}
+			visible={visible}
+			animationType={modalAnimation(reduceMotion, "slide")}
+			onRequestClose={onClose}
+		>
+			<View
+				style={[
+					styles.root,
+					{
+						paddingTop:
+							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
+					},
+				]}
+			>
 				<View style={styles.header}>
 					<AppText variant="heading">{wod ? "Edit WOD" : "New WOD"}</AppText>
 					<Pressable
@@ -145,6 +162,9 @@ export function WodEditor({
 				</View>
 
 				<ScrollView
+					contentInsetAdjustmentBehavior="automatic"
+					automaticallyAdjustKeyboardInsets
+					keyboardDismissMode="interactive"
 					contentContainerStyle={styles.content}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}

@@ -9,9 +9,15 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"lib": ["ES2022"],
+		// Node globals are here for scripts/ only. Nothing under src/ may use them:
+		// that code runs on Hermes, where `process` and `Buffer` do not exist.
+		"types": ["node"],
+		// Off so `import artifact from "./shipped-foods.json"` picks up the hand-
+		// written ambient declaration instead of TypeScript inferring a literal
+		// type for all ~2,300 records, which costs seconds and a lot of memory.
+		"resolveJsonModule": false,
 		"declaration": true,
 		"outDir": "dist",
-		"rootDir": "src",
 		"strict": true,
 		"skipLibCheck": true,
 		"verbatimModuleSyntax": true,
@@ -19,5 +25,8 @@
 		"noUnusedParameters": true,
 		"noEmit": true
 	},
-	"include": ["src"]
+	// `scripts` is included so the generator is held to the same typecheck as
+	// the shipped source. tsup decides what gets emitted; nothing under
+	// scripts/ reaches dist.
+	"include": ["src", "scripts"]
 }

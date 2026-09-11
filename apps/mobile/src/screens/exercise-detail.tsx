@@ -15,7 +15,7 @@
  */
 import { calculateOneRepMax } from "@workouts/core";
 import { useQuery } from "convex/react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
@@ -23,6 +23,7 @@ import { formatSessionDate } from "../data/session-data";
 import { colors, radius, spacing } from "../theme";
 import { TrendChart } from "../ui/chart";
 import { Card, Chip, Eyebrow, StatBox } from "../ui/coach";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 
 const TABS = ["Overview", "Progress", "History"] as const;
@@ -32,7 +33,6 @@ type Tab = (typeof TABS)[number];
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export function ExerciseDetailScreen() {
-	const router = useRouter();
 	const params = useLocalSearchParams<{ id?: string }>();
 	const exerciseId = params.id as Id<"exercises"> | undefined;
 
@@ -83,32 +83,22 @@ export function ExerciseDetailScreen() {
 				<AppText variant="caption" style={styles.centeredText}>
 					It may have been deleted, or belong to someone else.
 				</AppText>
-				<Pressable onPress={() => router.back()} style={styles.ghostBtn}>
-					<AppText style={styles.ghostText}>Go back</AppText>
-				</Pressable>
 			</View>
 		);
 	}
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
 			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Go back"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						‹
-					</AppText>
-				</Pressable>
 				<View style={styles.flex}>
-					<AppText variant="title">{exercise.name}</AppText>
+					<ScreenHeader title={exercise.name} />
 					<AppText variant="caption" style={styles.meta}>
 						{exercise.category} · {exercise.equipment}
 					</AppText>

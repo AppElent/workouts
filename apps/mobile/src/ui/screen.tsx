@@ -1,7 +1,6 @@
 /**
- * Page ground: the app background plus whatever the notch and home indicator
- * demand. Deliberately not a layout — it sets no padding, no header and no
- * structure, so each shell variant is free to disagree about all three.
+ * Non-scrolling screen ground. The native stack owns the top inset and header;
+ * this wrapper reserves the home indicator for fixed controls at the bottom.
  */
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
@@ -10,7 +9,7 @@ import { colors } from "../theme";
 
 export function Screen({
 	children,
-	edges = ["top", "bottom"],
+	edges = ["bottom"],
 }: {
 	children: ReactNode;
 	edges?: readonly Edge[];
