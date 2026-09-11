@@ -19,7 +19,6 @@ import { api } from "../convex/api";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import { MEAL_SLOTS } from "../data/nutrition-day";
 import type {
-	Combo,
 	ComboPart,
 	ComboPartReference,
 	ComboPartSnapshot,
@@ -39,7 +38,6 @@ const comboNameSchema = z.object({ name: z.string().trim().min(1) });
 
 export function NutritionComboBuilder({
 	entries,
-	onClose,
 	onSaved,
 }: {
 	entries: readonly DiaryEntry[];
@@ -80,8 +78,13 @@ export function NutritionComboBuilder({
 	});
 
 	return (
-		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
-			<Header label={t.common.back} onPress={onClose} />
+		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
+			style={styles.root}
+			contentContainerStyle={styles.content}
+		>
 			<Eyebrow>{t.nutrition.title}</Eyebrow>
 			<AppText variant="title">{t.nutrition.combos.create}</AppText>
 			<Card style={styles.storageDisclosure}>
@@ -125,10 +128,16 @@ export function NutritionComboBuilder({
 }
 
 export function NutritionComboLibrary({
+	selectedComboId,
+	onSelectCombo,
+	onBack,
 	date,
 	onClose,
 }: {
 	date: string;
+	selectedComboId?: string;
+	onSelectCombo: (id: string) => void;
+	onBack: () => void;
 	onClose: () => void;
 }) {
 	const { t, locale } = useI18n();
@@ -136,11 +145,11 @@ export function NutritionComboLibrary({
 	const toast = useToast();
 	const confirm = useConfirm();
 	const logCombo = useMutation(api.nutritionDiary.logCombo);
-	const [selected, setSelected] = useState<Combo>();
 	const [meal, setMeal] = useState<MealSlot>("breakfast");
 	const [logging, setLogging] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const combos = foods.listCombos();
+	const selected = combos.find((combo) => combo.id === selectedComboId);
 	const hasMissing =
 		selected?.parts.some((part) => part.status === "missing") ?? false;
 
@@ -177,7 +186,7 @@ export function NutritionComboLibrary({
 			if (!foods.removeCombo(selected.id)) {
 				throw new Error("Combo not found.");
 			}
-			setSelected(undefined);
+			onBack();
 		} catch {
 			toast.error(t.nutrition.combos.deleteFailure);
 		} finally {
@@ -200,23 +209,20 @@ export function NutritionComboLibrary({
 		});
 		if (!approved) return;
 		try {
-			setSelected(
-				foods.updateCombo(selected.id, {
-					name: selected.name,
-					parts: remaining,
-				}),
-			);
+			foods.updateCombo(selected.id, { name: selected.name, parts: remaining });
 		} catch {
 			toast.error(t.nutrition.combos.resolveFailure);
 		}
 	}
 
 	return (
-		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
-			<Header
-				label={t.common.back}
-				onPress={() => (selected ? setSelected(undefined) : onClose())}
-			/>
+		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
+			style={styles.root}
+			contentContainerStyle={styles.content}
+		>
 			<Eyebrow>{t.nutrition.title}</Eyebrow>
 			<AppText variant="title">{t.nutrition.combos.log}</AppText>
 			<Card style={styles.storageDisclosure}>
@@ -307,7 +313,7 @@ export function NutritionComboLibrary({
 					{combos.map((combo) => (
 						<Pressable
 							key={combo.id}
-							onPress={() => setSelected(combo)}
+							onPress={() => onSelectCombo(combo.id)}
 							accessibilityRole="button"
 							style={styles.row}
 						>
@@ -430,22 +436,6 @@ function scaledNutrients(
 			];
 		}),
 	) as Record<(typeof NUTRIENT_KEYS)[number], NutrientValue>;
-}
-
-function Header({ label, onPress }: { label: string; onPress: () => void }) {
-	return (
-		<Pressable
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityLabel={label}
-			style={styles.back}
-		>
-			<AppText variant="heading" style={{ color: colors.accent }}>
-				‹
-			</AppText>
-			<AppText>{label}</AppText>
-		</Pressable>
-	);
 }
 
 const styles = StyleSheet.create({

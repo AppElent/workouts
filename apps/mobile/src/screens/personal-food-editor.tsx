@@ -209,6 +209,9 @@ export function PersonalFoodEditor({
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			keyboardShouldPersistTaps="handled"

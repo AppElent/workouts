@@ -28,8 +28,10 @@ import { colors } from "../theme";
 import { Chip } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { PlateSheet } from "../ui/plate-sheet";
-import { useRestTimer } from "../ui/rest-timer";
+import { RestTimerBar, useRestTimer } from "../ui/rest-timer";
+import { ScreenHeader } from "../ui/screen-header";
 import { SetEditSheet } from "../ui/set-edit-sheet";
+import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { AddExercisePicker } from "./add-exercise-picker";
@@ -172,24 +174,23 @@ export function StrengthSessionScreen() {
 	return (
 		<View style={styles.root}>
 			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				keyboardDismissMode="interactive"
 				contentContainerStyle={styles.content}
 				showsVerticalScrollIndicator={false}
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.header}>
-					<Pressable
-						onPress={() => router.back()}
-						hitSlop={12}
-						style={styles.back}
-						accessibilityRole="button"
-						accessibilityLabel="Go back"
-					>
-						<AppText style={styles.backText}>‹</AppText>
-					</Pressable>
 					<View style={styles.flex}>
-						<AppText style={styles.h2}>
-							{active?.name ?? "Free session"}
-						</AppText>
+						<ScreenHeader
+							title={active?.name ?? "Free session"}
+							action={{
+								label: busy ? "Finishing…" : "Finish",
+								onPress: () => void finish(),
+								disabled: busy,
+							}}
+						/>
 						<View style={styles.row}>
 							<View style={styles.dot} />
 							<AppText style={styles.elapsed}>
@@ -197,13 +198,6 @@ export function StrengthSessionScreen() {
 							</AppText>
 						</View>
 					</View>
-					<Pressable
-						onPress={() => void finish()}
-						disabled={busy}
-						style={[styles.finishBtn, busy && styles.dimmed]}
-					>
-						<AppText style={styles.finishText}>Finish</AppText>
-					</Pressable>
 				</View>
 
 				{order.length === 0 ? (
@@ -250,6 +244,7 @@ export function StrengthSessionScreen() {
 					<AppText style={styles.cancelText}>Cancel workout</AppText>
 				</Pressable>
 			</ScrollView>
+			<RestTimerBar />
 
 			<AddExercisePicker
 				visible={picking}
@@ -366,28 +361,55 @@ function ExerciseLogger({
 					sets.map((s) => (
 						// Tapping a logged row opens the edit sheet — the same
 						// affordance the web gives its set cards.
-						<Pressable
+						<SwipeableRow
 							key={s._id}
-							onPress={() => setEditing(s)}
-							style={styles.tableRow}
-							accessibilityRole="button"
-							accessibilityLabel={`Edit set ${s.setNumber}`}
+							menuTitle={`Set ${s.setNumber}`}
+							closeMenuLabel="Close"
+							actions={[
+								{
+									key: "edit",
+									label: "Edit set",
+									onPress: () => setEditing(s),
+								},
+							]}
 						>
-							<AppText style={[styles.td, styles.bold, { width: 26 }]}>
-								{s.setNumber}
-							</AppText>
-							<AppText style={[styles.td, styles.flex]}>{s.setType}</AppText>
-							<AppText
-								style={[styles.td, styles.center, styles.bold, { width: 60 }]}
-							>
-								{s.weight}
-							</AppText>
-							<AppText
-								style={[styles.td, styles.center, styles.bold, { width: 44 }]}
-							>
-								{s.reps}
-							</AppText>
-						</Pressable>
+							{(accessibility) => (
+								<Pressable
+									{...accessibility}
+									onPress={() => setEditing(s)}
+									style={styles.tableRow}
+									accessibilityRole="button"
+									accessibilityLabel={`Edit set ${s.setNumber}`}
+								>
+									<AppText style={[styles.td, styles.bold, { width: 26 }]}>
+										{s.setNumber}
+									</AppText>
+									<AppText style={[styles.td, styles.flex]}>
+										{s.setType}
+									</AppText>
+									<AppText
+										style={[
+											styles.td,
+											styles.center,
+											styles.bold,
+											{ width: 60 },
+										]}
+									>
+										{s.weight}
+									</AppText>
+									<AppText
+										style={[
+											styles.td,
+											styles.center,
+											styles.bold,
+											{ width: 44 },
+										]}
+									>
+										{s.reps}
+									</AppText>
+								</Pressable>
+							)}
+						</SwipeableRow>
 					))
 				)}
 			</View>
@@ -563,7 +585,13 @@ const styles = StyleSheet.create({
 		color: colors.textFaint,
 	},
 	center: { textAlign: "center" },
-	tableRow: { flexDirection: "row", alignItems: "center", gap: 6, height: 34 },
+	tableRow: {
+		backgroundColor: colors.surface,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		height: 34,
+	},
 	td: { fontSize: 12, fontWeight: "500", color: colors.textMuted },
 	bold: { fontWeight: "800", color: colors.text },
 	typeRow: { flexDirection: "row", gap: 6 },

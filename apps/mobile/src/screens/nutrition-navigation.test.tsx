@@ -147,4 +147,38 @@ describe("Nutrition navigation", () => {
 		// out of Nutrition into some other screen.
 		expect(testRouter.canGoBack()).toBe(false);
 	});
+
+	it("pushes a Combo's options so back returns to the library before the diary", async () => {
+		const app = renderApp();
+		const combo = app.repository.createCombo({
+			name: "Breakfast",
+			parts: [
+				{
+					reference: { kind: "oneOff" },
+					snapshot: {
+						name: { en: "Oats", nl: "Haver" },
+						serving: { en: "Bowl", nl: "Kom" },
+						quantity: 1,
+						amount: 100,
+						baseUnit: "g",
+						provenance: { source: "oneOff" },
+						nutrients: loggedEntry.nutrients,
+					},
+				},
+			],
+		});
+		fireEvent.press(await screen.findByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Breakfast"));
+		await waitFor(() =>
+			expect(app.getSearchParams()).toMatchObject({
+				comboId: combo.id,
+				date: todayIsoDate(),
+			}),
+		);
+		testRouter.back();
+		await waitFor(() => expect(app.getSearchParams().comboId).toBeUndefined());
+		expect(app.getPathname()).toBe("/nutrition-combos");
+		testRouter.back();
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+	});
 });

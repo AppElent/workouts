@@ -3,10 +3,8 @@
  * `src/components/ui/confirm-dialog.tsx`, and the only way a destructive action
  * is allowed to ask.
  *
- * Built on RN's `Modal` rather than `Alert.alert` on purpose. `Alert` cannot be
- * themed: it renders the platform's own light-mode sheet, which on this palette
- * arrives as a white rectangle in the middle of a near-black app. It also has
- * no notion of a destructive-styled confirm button on Android.
+ * iOS uses a system alert; the shared promise API keeps destructive actions
+ * consistent across screens. Other platforms retain their existing presentation.
  *
  * The API is a promise, so a caller reads top to bottom:
  *
@@ -20,10 +18,18 @@ import {
 	type ReactNode,
 	useCallback,
 	useContext,
+	useEffect,
 	useRef,
 	useState,
 } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import {
+	Alert,
+	Modal,
+	Platform,
+	Pressable,
+	StyleSheet,
+	View,
+} from "react-native";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
@@ -56,12 +62,46 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		// than at each delete button is what keeps the vocabulary restrained:
 		// every destructive confirmation warns exactly once, and no ordinary
 		// confirmation can acquire a buzz by being copied from a destructive one.
+		if (resolveRef.current) return Promise.resolve(false);
 		if (next.destructive) haptics.destructiveWarning();
 		return new Promise<boolean>((resolve) => {
 			resolveRef.current = resolve;
-			setOptions(next);
+			if (Platform.OS === "ios") {
+				const finish = (answer: boolean) => {
+					if (resolveRef.current !== resolve) return;
+					resolveRef.current = null;
+					resolve(answer);
+				};
+				Alert.alert(
+					next.title,
+					next.message,
+					[
+						{
+							text: next.cancelLabel ?? "Keep",
+							style: "cancel",
+							onPress: () => finish(false),
+						},
+						{
+							text: next.confirmLabel,
+							style: next.destructive ? "destructive" : "default",
+							onPress: () => finish(true),
+						},
+					],
+					{ cancelable: true, onDismiss: () => finish(false) },
+				);
+			} else {
+				setOptions(next);
+			}
 		});
 	}, []);
+
+	useEffect(
+		() => () => {
+			resolveRef.current?.(false);
+			resolveRef.current = null;
+		},
+		[],
+	);
 
 	const settle = useCallback((answer: boolean) => {
 		setOptions(null);

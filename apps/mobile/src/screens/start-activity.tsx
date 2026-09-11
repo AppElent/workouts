@@ -28,6 +28,7 @@ import { useRoutines } from "../data/session-data";
 import { colors, type SportKey, sportMeta } from "../theme";
 import { Eyebrow, SportIcon } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
@@ -104,23 +105,15 @@ export function StartActivityScreen() {
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 			keyboardShouldPersistTaps="handled"
 		>
-			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					style={styles.back}
-					accessibilityRole="button"
-					accessibilityLabel="Go back"
-				>
-					<AppText style={styles.backText}>‹</AppText>
-				</Pressable>
-				<AppText style={styles.h1}>Start activity</AppText>
-			</View>
+			<ScreenHeader title={"Start activity"} />
 
 			<View style={styles.grid}>
 				{(Object.keys(sportMeta) as SportKey[]).map((key) => (

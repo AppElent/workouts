@@ -39,6 +39,9 @@ export function ProgressScreen() {
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
@@ -171,7 +174,7 @@ function ExerciseProgress({
 
 const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 140 },
+	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
 	h1: { fontSize: 22, fontWeight: "800", color: colors.text },
 	tabRow: { flexDirection: "row", gap: 7 },
 	flex: { flex: 1 },

@@ -120,6 +120,9 @@ export function NutritionDayScreen() {
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
@@ -188,6 +191,7 @@ export function NutritionDayScreen() {
 							key={slot}
 							t={t}
 							slot={slot}
+							date={date}
 							entries={state.day.entries[slot]}
 							locale={locale}
 							onAdd={() => openFoodBrowser(slot)}
@@ -443,6 +447,7 @@ function ComboControls({
 }
 
 function MealSection({
+	date,
 	t,
 	slot,
 	entries,
@@ -456,6 +461,7 @@ function MealSection({
 }: {
 	t: Messages;
 	slot: MealSlot;
+	date: string;
 	entries: DiaryEntry[];
 	locale: "en" | "nl";
 	onAdd: () => void;
@@ -502,6 +508,8 @@ function MealSection({
 									key={entry.id}
 									t={t}
 									entry={entry}
+									meal={slot}
+									date={date}
 									locale={locale}
 									selecting={selecting}
 									selected={selectedEntryIds.has(entry.id)}
@@ -563,6 +571,8 @@ function MealSection({
 												key={part.id}
 												t={t}
 												entry={part}
+												meal={slot}
+												date={date}
 												locale={locale}
 												selecting={selecting}
 												selected={selectedEntryIds.has(part.id)}
@@ -597,6 +607,8 @@ function MealSection({
  * be acting on something the user is in the middle of choosing.
  */
 function EntryRow({
+	meal,
+	date,
 	t,
 	entry,
 	locale,
@@ -608,6 +620,8 @@ function EntryRow({
 }: {
 	t: Messages;
 	entry: DiaryEntry;
+	meal: MealSlot;
+	date: string;
 	locale: "en" | "nl";
 	selecting: boolean;
 	selected: boolean;
@@ -661,6 +675,10 @@ function EntryRow({
 
 	return (
 		<SwipeableRow
+			href={{
+				pathname: "/nutrition-entry",
+				params: { id: entry.id, meal, date },
+			}}
 			menuTitle={fmt(t.nutrition.entryActions.menuTitle, {
 				name: entry.name[locale],
 			})}

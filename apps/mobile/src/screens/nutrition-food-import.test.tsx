@@ -159,7 +159,7 @@ describe("scanning a barcode", () => {
 		fireEvent.press(screen.getByText("Scan barcode"));
 
 		expect(await screen.findByText(/Camera access was refused/)).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(screen.getByLabelText("Close"));
 
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
 		expect(screen.getByText("Create Personal Food")).toBeTruthy();
@@ -182,7 +182,7 @@ describe("scanning a barcode", () => {
 
 		expect(await screen.findByText(/Camera access is restricted/)).toBeTruthy();
 		expect(screen.queryByText("Allow camera access")).toBeNull();
-		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(screen.getByLabelText("Close"));
 
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
 	});

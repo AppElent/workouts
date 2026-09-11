@@ -19,45 +19,62 @@
  * labels and one Dutch is worse than either extreme.
  */
 import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { Platform, View } from "react-native";
+import { useActiveSession } from "../../../src/data/session-data";
 import { useI18n } from "../../../src/i18n";
 import { colors } from "../../../src/theme";
+import { ActiveSessionBar } from "../../../src/ui/active-session-bar";
 
 export default function CoachTabsLayout() {
 	const { t } = useI18n();
+	const active = useActiveSession();
+	const hasAccessory =
+		Platform.OS === "ios" &&
+		Number.parseInt(String(Platform.Version), 10) >= 26;
 
 	return (
-		<NativeTabs
-			backgroundColor={colors.surface}
-			tintColor={colors.accent}
-			iconColor={{
-				default: colors.textMuted,
-				selected: colors.accent,
-			}}
-		>
-			<NativeTabs.Trigger name="index">
-				<NativeTabs.Trigger.Label>{t.tabs.home}</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf="house.fill" md="home" />
-			</NativeTabs.Trigger>
+		<View style={{ flex: 1 }}>
+			{!hasAccessory && active ? <ActiveSessionBar /> : null}
+			<NativeTabs
+				backgroundColor={colors.surface}
+				tintColor={colors.accent}
+				iconColor={{
+					default: colors.textMuted,
+					selected: colors.accent,
+				}}
+			>
+				{hasAccessory && active ? (
+					<NativeTabs.BottomAccessory>
+						<ActiveSessionBar />
+					</NativeTabs.BottomAccessory>
+				) : null}
+				<NativeTabs.Trigger name="index">
+					<NativeTabs.Trigger.Label>{t.tabs.home}</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Icon sf="house.fill" md="home" />
+				</NativeTabs.Trigger>
 
-			<NativeTabs.Trigger name="train">
-				<NativeTabs.Trigger.Label>{t.tabs.train}</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf="play.fill" md="play_arrow" />
-			</NativeTabs.Trigger>
+				<NativeTabs.Trigger name="train">
+					<NativeTabs.Trigger.Label>{t.tabs.train}</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Icon sf="play.fill" md="play_arrow" />
+				</NativeTabs.Trigger>
 
-			<NativeTabs.Trigger name="nutrition">
-				<NativeTabs.Trigger.Label>{t.tabs.nutrition}</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf="fork.knife" md="restaurant" />
-			</NativeTabs.Trigger>
+				<NativeTabs.Trigger name="nutrition">
+					<NativeTabs.Trigger.Label>
+						{t.tabs.nutrition}
+					</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Icon sf="fork.knife" md="restaurant" />
+				</NativeTabs.Trigger>
 
-			<NativeTabs.Trigger name="progress">
-				<NativeTabs.Trigger.Label>{t.tabs.progress}</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf="chart.bar.fill" md="bar_chart" />
-			</NativeTabs.Trigger>
+				<NativeTabs.Trigger name="progress">
+					<NativeTabs.Trigger.Label>{t.tabs.progress}</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Icon sf="chart.bar.fill" md="bar_chart" />
+				</NativeTabs.Trigger>
 
-			<NativeTabs.Trigger name="profile">
-				<NativeTabs.Trigger.Label>{t.tabs.profile}</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf="person.fill" md="person" />
-			</NativeTabs.Trigger>
-		</NativeTabs>
+				<NativeTabs.Trigger name="profile">
+					<NativeTabs.Trigger.Label>{t.tabs.profile}</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Icon sf="person.fill" md="person" />
+				</NativeTabs.Trigger>
+			</NativeTabs>
+		</View>
 	);
 }

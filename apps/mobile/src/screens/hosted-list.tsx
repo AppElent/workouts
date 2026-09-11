@@ -33,6 +33,7 @@ import { colors, radius, spacing } from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { Screen } from "../ui/screen";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
@@ -69,22 +70,13 @@ export function HostedListScreen() {
 	};
 
 	return (
-		<Screen edges={["top", "bottom"]}>
-			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Go back"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						‹
-					</AppText>
-				</Pressable>
-				<AppText variant="title">Hosted workouts</AppText>
-			</View>
+		<Screen edges={["bottom"]}>
+			<ScreenHeader title={"Hosted workouts"} />
 
 			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				keyboardDismissMode="interactive"
 				contentContainerStyle={styles.content}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}

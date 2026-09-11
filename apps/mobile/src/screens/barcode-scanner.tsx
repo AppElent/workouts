@@ -12,6 +12,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton } from "../ui/button";
@@ -77,21 +78,23 @@ export function BarcodeScanner({
 					onScanned(result.data);
 				}}
 			/>
-			<View style={styles.overlay} pointerEvents="box-none">
+			<SafeAreaView style={styles.overlay} pointerEvents="box-none">
 				<Pressable
 					onPress={onCancel}
 					accessibilityRole="button"
-					accessibilityLabel={t.common.back}
+					accessibilityLabel={t.nutrition.entryActions.close}
 					style={styles.overlayBack}
 				>
-					<AppText style={styles.overlayText}>{t.common.back}</AppText>
+					<AppText style={styles.overlayText}>
+						{t.nutrition.entryActions.close}
+					</AppText>
 				</Pressable>
 				<View style={styles.hintBar}>
 					<AppText style={styles.overlayText}>
 						{t.nutrition.barcode.hint}
 					</AppText>
 				</View>
-			</View>
+			</SafeAreaView>
 		</View>
 	);
 }
@@ -107,21 +110,18 @@ function Shell({
 }) {
 	const { t } = useI18n();
 	return (
-		<View style={styles.shell}>
+		<SafeAreaView style={styles.shell}>
 			<Pressable
 				onPress={onCancel}
 				accessibilityRole="button"
-				accessibilityLabel={t.common.back}
+				accessibilityLabel={t.nutrition.entryActions.close}
 				style={styles.back}
 			>
-				<AppText variant="heading" style={{ color: colors.accent }}>
-					‹
-				</AppText>
-				<AppText>{t.common.back}</AppText>
+				<AppText>{t.nutrition.entryActions.close}</AppText>
 			</Pressable>
 			<AppText variant="title">{title}</AppText>
 			{children}
-		</View>
+		</SafeAreaView>
 	);
 }
 

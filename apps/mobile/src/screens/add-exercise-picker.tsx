@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import {
 	FlatList,
 	Modal,
+	Platform,
 	Pressable,
 	StyleSheet,
 	TextInput,
@@ -20,6 +21,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Doc, Id } from "../convex/api";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { AppText } from "../ui/text";
 
@@ -37,6 +39,7 @@ export function AddExercisePicker({
 }) {
 	const [search, setSearch] = useState("");
 	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 
 	const filtered = useMemo(() => {
 		const term = search.trim().toLowerCase();
@@ -47,12 +50,22 @@ export function AddExercisePicker({
 
 	return (
 		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal
 			visible={visible}
-			animationType="slide"
+			animationType={modalAnimation(reduceMotion, "slide")}
 			transparent={false}
 			onRequestClose={onClose}
 		>
-			<View style={[styles.root, { paddingTop: insets.top + spacing.sm }]}>
+			<View
+				style={[
+					styles.root,
+					{
+						paddingTop:
+							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
+					},
+				]}
+			>
 				<View style={styles.header}>
 					<AppText variant="heading">Add exercise</AppText>
 					<Pressable
@@ -84,6 +97,7 @@ export function AddExercisePicker({
 					</AppText>
 				) : (
 					<FlatList
+						contentInsetAdjustmentBehavior="automatic"
 						data={filtered}
 						keyExtractor={(item) => item._id}
 						keyboardShouldPersistTaps="handled"

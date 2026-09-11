@@ -10,18 +10,11 @@
  *
  * Delete is a visible, non-gesture control with a verb-specific destructive
  * confirmation, per the spec's swipe-is-an-accelerator-not-the-only-route
- * rule — there is no swipe gesture on the diary yet, so this is the sole route
- * today and stays valid once one is added later.
+ * rule. It remains available alongside the diary's swipe and context menu.
  */
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import {
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { api } from "../convex/api";
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import type { DiaryEntry } from "../data/nutrition-day";
@@ -93,22 +86,13 @@ export function NutritionEntryEditor({
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			keyboardShouldPersistTaps="handled"
 		>
-			<Pressable
-				onPress={onClose}
-				accessibilityRole="button"
-				accessibilityLabel={t.common.back}
-				style={styles.back}
-			>
-				<AppText variant="heading" style={{ color: colors.accent }}>
-					‹
-				</AppText>
-				<AppText>{t.common.back}</AppText>
-			</Pressable>
-
 			<View style={styles.heading}>
 				<Eyebrow>{t.nutrition.entryEditor.title}</Eyebrow>
 				<AppText variant="title">{entry.name[locale]}</AppText>

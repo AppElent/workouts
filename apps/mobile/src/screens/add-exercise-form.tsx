@@ -15,6 +15,7 @@ import { useMutation } from "convex/react";
 import { useState } from "react";
 import {
 	Modal,
+	Platform,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -23,6 +24,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../convex/api";
+import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
@@ -63,6 +65,7 @@ export function AddExerciseForm({
 }) {
 	const toast = useToast();
 	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 	const createExercise = useMutation(api.exercises.create);
 
 	const [name, setName] = useState("");
@@ -129,8 +132,22 @@ export function AddExerciseForm({
 	};
 
 	return (
-		<Modal visible={visible} animationType="slide" onRequestClose={close}>
-			<View style={[styles.root, { paddingTop: insets.top + spacing.sm }]}>
+		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal={!busy}
+			visible={visible}
+			animationType={modalAnimation(reduceMotion, "slide")}
+			onRequestClose={close}
+		>
+			<View
+				style={[
+					styles.root,
+					{
+						paddingTop:
+							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
+					},
+				]}
+			>
 				<View style={styles.header}>
 					<AppText variant="heading">New exercise</AppText>
 					<Pressable
@@ -146,6 +163,9 @@ export function AddExerciseForm({
 				</View>
 
 				<ScrollView
+					contentInsetAdjustmentBehavior="automatic"
+					automaticallyAdjustKeyboardInsets
+					keyboardDismissMode="interactive"
 					contentContainerStyle={styles.content}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}

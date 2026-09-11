@@ -5,5 +5,5 @@
 import { ExercisesScreen } from "../../src/screens/exercises-list";
 
 export default function Exercises() {
-	return <ExercisesScreen showBack />;
+	return <ExercisesScreen />;
 }

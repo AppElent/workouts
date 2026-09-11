@@ -1,3 +1,4 @@
+import { type Href, Link } from "expo-router";
 /**
  * A row whose actions can be reached three ways, none of which is the only way.
  *
@@ -21,15 +22,8 @@
  * On the Nutrition day that is the entry editor, which every row opens on a
  * plain tap and which carries its own visible Delete.
  *
- * Motion is `Animated` from React Native core, and the gesture is declared
- * `.runOnJS(true)`. That pairing is deliberate. By default gesture-handler
- * runs its callbacks as worklets on the UI thread, and a worklet cannot
- * capture a legacy `Animated.Value` — it throws "Cannot copy value of type
- * `AnimatedValue`" the moment a row is drawn, which is invisible to the test
- * renderer and fatal on a device. The alternative is Reanimated shared values,
- * as `ui/set-edit-sheet.tsx` uses; that costs a library whose Jest mock does
- * not load standalone here, and buys UI-thread smoothness this row does not
- * need. The travel is at most two button widths and ends in a spring.
+ * The pan runs on JS because it updates a core Animated.Value. Native-driver
+ * springs settle the row; a worklet must not capture that Animated.Value.
  *
  * The drag itself follows the finger — direct manipulation, not decoration —
  * but the snap at the end of it is animation, so Reduce Motion cuts it to an
@@ -38,8 +32,10 @@
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
 	type AccessibilityActionEvent,
+	ActionSheetIOS,
 	Animated,
 	Modal,
+	Platform,
 	Pressable,
 	StyleSheet,
 	View,
@@ -64,7 +60,8 @@ export interface RowAction {
 export interface RowAccessibilityProps {
 	accessibilityActions: readonly { name: string; label: string }[];
 	onAccessibilityAction: (event: AccessibilityActionEvent) => void;
-	onLongPress: () => void;
+	onLongPress?: () => void;
+	onPress?: () => void;
 }
 
 /** One action button's width, and therefore how far the row can travel. */
@@ -74,11 +71,13 @@ const ACTION_WIDTH = 88;
 const OPEN_THRESHOLD = 0.4;
 
 export function SwipeableRow({
+	href,
 	actions,
 	menuTitle,
 	closeMenuLabel,
 	children,
 }: {
+	href?: Href;
 	actions: readonly RowAction[];
 	/** Names the thing being acted on, so the menu is not four verbs with no subject. */
 	menuTitle: string;
@@ -123,9 +122,26 @@ export function SwipeableRow({
 	);
 
 	const openMenu = useCallback(() => {
-		haptics.menuOpened();
-		setMenuOpen(true);
-	}, []);
+		if (Platform.OS === "ios") {
+			ActionSheetIOS.showActionSheetWithOptions(
+				{
+					title: menuTitle,
+					options: [...actions.map((action) => action.label), closeMenuLabel],
+					cancelButtonIndex: actions.length,
+					destructiveButtonIndex: actions.flatMap((action, index) =>
+						action.destructive ? [index] : [],
+					),
+				},
+				(index) => {
+					const action = actions[index];
+					if (action) runAction(action);
+				},
+			);
+		} else {
+			haptics.menuOpened();
+			setMenuOpen(true);
+		}
+	}, [actions, menuTitle, closeMenuLabel, runAction]);
 
 	const pan = useMemo(
 		() =>
@@ -171,8 +187,11 @@ export function SwipeableRow({
 				if (action) runAction(action);
 			},
 			onLongPress: openMenu,
+			...(Platform.OS === "ios" && href
+				? { onPress: undefined, onLongPress: undefined }
+				: {}),
 		}),
-		[actions, openMenu, runAction],
+		[actions, openMenu, runAction, href],
 	);
 
 	return (
@@ -212,7 +231,23 @@ export function SwipeableRow({
 			<GestureDetector gesture={pan}>
 				{/* The row's own opaque background is what hides the actions. */}
 				<Animated.View style={[styles.row, { transform: [{ translateX }] }]}>
-					{children(accessibility)}
+					{Platform.OS === "ios" && href ? (
+						<Link href={href} asChild>
+							<Link.Trigger>{children(accessibility)}</Link.Trigger>
+							<Link.Menu title={menuTitle}>
+								{actions.map((action) => (
+									<Link.MenuAction
+										key={action.key}
+										title={action.label}
+										destructive={action.destructive}
+										onPress={() => runAction(action)}
+									/>
+								))}
+							</Link.Menu>
+						</Link>
+					) : (
+						children(accessibility)
+					)}
 				</Animated.View>
 			</GestureDetector>
 
@@ -232,11 +267,7 @@ export function SwipeableRow({
 /**
  * The long-press menu.
  *
- * A themed `Modal` for the same reason `confirm-dialog.tsx` is one rather than
- * `Alert.alert`: this app has a single dark palette and a platform sheet
- * cannot take it. The actions are the row's actions verbatim — a menu that
- * offered a different set from the swipe would be a second list to keep in
- * step, and a place for a route to go quietly missing.
+ * Non-iOS fallback. iOS uses Link.Menu or the system action sheet.
  */
 function ActionMenu({
 	visible,

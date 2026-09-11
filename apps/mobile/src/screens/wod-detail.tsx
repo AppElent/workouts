@@ -27,6 +27,7 @@ import { formatSessionDate } from "../data/session-data";
 import { colors, radius, spacing } from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { WodEditor } from "./wod-editor";
@@ -114,33 +115,23 @@ export function WodDetailScreen() {
 		return (
 			<View style={[styles.root, styles.centered]}>
 				<AppText variant="heading">WOD not found</AppText>
-				<Pressable onPress={() => router.back()} style={styles.ghostBtn}>
-					<AppText style={styles.ghostText}>Go back</AppText>
-				</Pressable>
 			</View>
 		);
 	}
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 			keyboardShouldPersistTaps="handled"
 		>
 			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Go back"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						‹
-					</AppText>
-				</Pressable>
 				<View style={styles.flex}>
-					<AppText variant="title">{wod.name}</AppText>
+					<ScreenHeader title={wod.name} />
 					<AppText variant="caption">
 						{WOD_TYPE_LABEL[wod.type]}
 						{wod.isDefault ? " · benchmark" : ""}

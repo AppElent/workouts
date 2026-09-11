@@ -41,11 +41,6 @@ export function OfflineBanner() {
 
 const styles = StyleSheet.create({
 	wrap: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 60,
 		alignItems: "center",
 		paddingBottom: spacing.xs,
 		paddingHorizontal: spacing.md,

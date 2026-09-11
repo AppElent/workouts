@@ -19,6 +19,7 @@ import { useRoutines, useShellData } from "../data/session-data";
 import { colors } from "../theme";
 import { Chip, Eyebrow, SportIcon } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { RoutineEditor } from "./routine-editor";
@@ -78,6 +79,9 @@ export function TrainScreen() {
 	return (
 		<View style={styles.root}>
 			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				keyboardDismissMode="interactive"
 				contentContainerStyle={styles.content}
 				showsVerticalScrollIndicator={false}
 			>
@@ -124,58 +128,88 @@ export function TrainScreen() {
 				) : (
 					<View style={styles.list}>
 						{routines.map((r) => (
-							<View key={r._id} style={styles.card}>
-								<View style={styles.row}>
-									<SportIcon sport="strength" size={40} />
-									<View style={styles.flex}>
-										<AppText style={styles.rowTitle}>{r.name}</AppText>
-										<AppText style={styles.rowSub}>
-											{r.exercises.length} exercise
-											{r.exercises.length === 1 ? "" : "s"}
-										</AppText>
-									</View>
-								</View>
+							<SwipeableRow
+								key={r._id}
+								menuTitle={r.name}
+								closeMenuLabel="Close"
+								actions={[
+									{
+										key: "edit",
+										label: "Edit routine",
+										onPress: () => setEditing(r),
+									},
+									{
+										key: "delete",
+										label: "Delete routine",
+										destructive: true,
+										onPress: () => void remove(r),
+									},
+								]}
+							>
+								{(accessibility) => (
+									<View style={styles.card}>
+										<Pressable
+											style={styles.row}
+											onPress={() => setEditing(r)}
+											{...accessibility}
+											accessibilityRole="button"
+											accessibilityLabel={r.name}
+										>
+											<SportIcon sport="strength" size={40} />
+											<View style={styles.flex}>
+												<AppText style={styles.rowTitle}>{r.name}</AppText>
+												<AppText style={styles.rowSub}>
+													{r.exercises.length} exercise
+													{r.exercises.length === 1 ? "" : "s"}
+												</AppText>
+											</View>
+										</Pressable>
 
-								{r.exercises.length > 0 ? (
-									<View style={styles.chipWrap}>
-										{r.exercises.slice(0, 4).map((e) => (
-											<Chip
-												key={e.exerciseId}
-												label={`${e.exerciseName} ${e.defaultSets}×${e.defaultReps}`}
-											/>
-										))}
-										{r.exercises.length > 4 ? (
-											<Chip label={`+${r.exercises.length - 4} more`} />
+										{r.exercises.length > 0 ? (
+											<View style={styles.chipWrap}>
+												{r.exercises.slice(0, 4).map((e) => (
+													<Chip
+														key={e.exerciseId}
+														label={`${e.exerciseName} ${e.defaultSets}×${e.defaultReps}`}
+													/>
+												))}
+												{r.exercises.length > 4 ? (
+													<Chip label={`+${r.exercises.length - 4} more`} />
+												) : null}
+											</View>
 										) : null}
-									</View>
-								) : null}
 
-								<View style={styles.actions}>
-									<Pressable
-										onPress={() => void start(r)}
-										disabled={busy !== null}
-										style={[styles.primaryBtn, busy !== null && styles.dimmed]}
-									>
-										<AppText style={styles.primaryBtnText}>
-											{busy === r._id ? "Starting…" : "Start"}
-										</AppText>
-									</Pressable>
-									<Pressable
-										onPress={() => setEditing(r)}
-										style={styles.ghostBtn}
-									>
-										<AppText style={styles.ghostBtnText}>Edit</AppText>
-									</Pressable>
-									<Pressable
-										onPress={() => void remove(r)}
-										style={styles.ghostBtn}
-										accessibilityRole="button"
-										accessibilityLabel={`Delete ${r.name}`}
-									>
-										<AppText style={styles.deleteText}>Delete</AppText>
-									</Pressable>
-								</View>
-							</View>
+										<View style={styles.actions}>
+											<Pressable
+												onPress={() => void start(r)}
+												disabled={busy !== null}
+												style={[
+													styles.primaryBtn,
+													busy !== null && styles.dimmed,
+												]}
+											>
+												<AppText style={styles.primaryBtnText}>
+													{busy === r._id ? "Starting…" : "Start"}
+												</AppText>
+											</Pressable>
+											<Pressable
+												onPress={() => setEditing(r)}
+												style={styles.ghostBtn}
+											>
+												<AppText style={styles.ghostBtnText}>Edit</AppText>
+											</Pressable>
+											<Pressable
+												onPress={() => void remove(r)}
+												style={styles.ghostBtn}
+												accessibilityRole="button"
+												accessibilityLabel={`Delete ${r.name}`}
+											>
+												<AppText style={styles.deleteText}>Delete</AppText>
+											</Pressable>
+										</View>
+									</View>
+								)}
+							</SwipeableRow>
 						))}
 					</View>
 				)}
@@ -232,7 +266,7 @@ export function TrainScreen() {
 
 const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 140 },
+	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
 	h1: { fontSize: 22, fontWeight: "800", color: colors.text },
 	filterRow: { flexDirection: "row", gap: 7 },
 	between: {

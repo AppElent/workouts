@@ -39,6 +39,7 @@ import { PersonalFoodsProvider } from "../data/personal-foods";
 import { LocaleProvider } from "../i18n";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
+import { NativeAlertHost } from "./native-alert-host";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
 
 export function TestLayout({
@@ -52,15 +53,17 @@ export function TestLayout({
 }): ReactNode {
 	return (
 		<LocaleProvider>
-			<ToastProvider>
-				<ConfirmProvider>
-					<PersonalFoodsProvider repository={repository}>
-						<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
-							<Slot />
-						</OpenFoodFactsProvider>
-					</PersonalFoodsProvider>
-				</ConfirmProvider>
-			</ToastProvider>
+			<NativeAlertHost>
+				<ToastProvider>
+					<ConfirmProvider>
+						<PersonalFoodsProvider repository={repository}>
+							<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
+								<Slot />
+							</OpenFoodFactsProvider>
+						</PersonalFoodsProvider>
+					</ConfirmProvider>
+				</ToastProvider>
+			</NativeAlertHost>
 		</LocaleProvider>
 	);
 }

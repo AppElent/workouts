@@ -11,11 +11,23 @@ import { NutritionComboLibrary } from "../../src/screens/nutrition-combos";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionCombosRoute() {
-	const { date } = useLocalSearchParams<{ date?: string }>();
+	const { date, comboId } = useLocalSearchParams<{
+		date?: string;
+		comboId?: string;
+	}>();
+	const day = date ?? todayIsoDate();
 	return (
 		<NutritionComboLibrary
-			date={date ?? todayIsoDate()}
-			onClose={() => router.back()}
+			date={day}
+			selectedComboId={comboId}
+			onSelectCombo={(id) =>
+				router.push({
+					pathname: "/nutrition-combos",
+					params: { date: day, comboId: id },
+				})
+			}
+			onBack={() => router.back()}
+			onClose={() => router.dismissTo("/nutrition")}
 		/>
 	);
 }

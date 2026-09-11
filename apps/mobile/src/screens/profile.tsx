@@ -15,7 +15,7 @@
  */
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useI18n } from "../i18n";
 import { colors } from "../theme";
 import { Eyebrow, StatBox } from "../ui/coach";
@@ -27,63 +27,61 @@ export function ProfileScreen() {
 	const { t, locale } = useI18n();
 
 	return (
-		<View style={styles.root}>
-			<View style={styles.content}>
-				<View style={styles.header}>
-					<View style={styles.avatar}>
-						<AppText style={styles.avatarText}>EJ</AppText>
-					</View>
-					<AppText style={styles.name}>Eric Jansen</AppText>
-					<AppText style={styles.muted}>Member since Mar 2025</AppText>
+		<ScrollView
+			style={styles.root}
+			contentContainerStyle={styles.content}
+			contentInsetAdjustmentBehavior="automatic"
+		>
+			<View style={styles.header}>
+				<View style={styles.avatar}>
+					<AppText style={styles.avatarText}>EJ</AppText>
 				</View>
+				<AppText style={styles.name}>Eric Jansen</AppText>
+				<AppText style={styles.muted}>Member since Mar 2025</AppText>
+			</View>
 
-				<View style={styles.statRow}>
-					<StatBox value="142" label="Sessions" />
-					<StatBox value="312 km" label="Distance" />
-					<StatBox value="18" label="PRs" />
+			<View style={styles.statRow}>
+				<StatBox value="142" label="Sessions" />
+				<StatBox value="312 km" label="Distance" />
+				<StatBox value="18" label="PRs" />
+			</View>
+
+			<Eyebrow>{t.preferences.heading}</Eyebrow>
+			<View style={styles.group}>
+				<View style={styles.groupRow}>
+					<AppText style={styles.label}>{t.preferences.units}</AppText>
+					<AppText style={[styles.value, { color: colors.accent }]}>
+						kg · km
+					</AppText>
 				</View>
-
-				<Eyebrow>{t.preferences.heading}</Eyebrow>
-				<View style={styles.group}>
-					<View style={styles.groupRow}>
-						<AppText style={styles.label}>{t.preferences.units}</AppText>
-						<AppText style={[styles.value, { color: colors.accent }]}>
-							kg · km
-						</AppText>
-					</View>
-					<View style={[styles.groupRow, styles.divider]}>
-						<AppText style={styles.label}>
-							{t.preferences.notifications}
-						</AppText>
-						<AppText style={styles.muted}>On</AppText>
-					</View>
-					<View style={[styles.groupRow, styles.divider]}>
-						<AppText style={styles.label}>
-							{t.preferences.connectedApps}
-						</AppText>
-						<AppText style={styles.muted}>None</AppText>
-					</View>
-					<Pressable
-						onPress={() => router.push("/language")}
-						accessibilityRole="button"
-						style={({ pressed }) => [
-							styles.groupRow,
-							styles.divider,
-							pressed ? { backgroundColor: colors.surface2 } : null,
-						]}
-					>
-						<AppText style={styles.label}>{t.preferences.language}</AppText>
-						<AppText style={[styles.value, { color: colors.accent }]}>
-							{t.language.names[locale]} ›
-						</AppText>
-					</Pressable>
+				<View style={[styles.groupRow, styles.divider]}>
+					<AppText style={styles.label}>{t.preferences.notifications}</AppText>
+					<AppText style={styles.muted}>On</AppText>
 				</View>
-
-				<Pressable onPress={() => signOut()} style={styles.signOutBtn}>
-					<AppText style={styles.signOutText}>Sign out</AppText>
+				<View style={[styles.groupRow, styles.divider]}>
+					<AppText style={styles.label}>{t.preferences.connectedApps}</AppText>
+					<AppText style={styles.muted}>None</AppText>
+				</View>
+				<Pressable
+					onPress={() => router.push("/language")}
+					accessibilityRole="button"
+					style={({ pressed }) => [
+						styles.groupRow,
+						styles.divider,
+						pressed ? { backgroundColor: colors.surface2 } : null,
+					]}
+				>
+					<AppText style={styles.label}>{t.preferences.language}</AppText>
+					<AppText style={[styles.value, { color: colors.accent }]}>
+						{t.language.names[locale]} ›
+					</AppText>
 				</Pressable>
 			</View>
-		</View>
+
+			<Pressable onPress={() => signOut()} style={styles.signOutBtn}>
+				<AppText style={styles.signOutText}>Sign out</AppText>
+			</Pressable>
+		</ScrollView>
 	);
 }
 

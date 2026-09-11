@@ -10,37 +10,25 @@
  * changed them — which is the point, and the fastest way to see the switch
  * worked.
  */
-import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { type Locale, SUPPORTED_LOCALES, useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
+import { spacing } from "../theme";
 import { Screen } from "../ui/screen";
+import { ScreenHeader } from "../ui/screen-header";
 import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
 
 export function LanguageScreen() {
-	const router = useRouter();
 	const { t, locale, setLocale } = useI18n();
 
 	return (
 		<Screen>
-			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel={t.common.back}
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						‹
-					</AppText>
-				</Pressable>
-				<AppText variant="title" style={styles.flex}>
-					{t.language.title}
-				</AppText>
-			</View>
+			<ScreenHeader title={t.language.title} />
 
-			<View style={styles.body}>
+			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				contentContainerStyle={styles.body}
+			>
 				<Segmented<Locale>
 					value={locale}
 					onChange={setLocale}
@@ -50,7 +38,7 @@ export function LanguageScreen() {
 					}))}
 				/>
 				<AppText variant="caption">{t.language.description}</AppText>
-			</View>
+			</ScrollView>
 		</Screen>
 	);
 }

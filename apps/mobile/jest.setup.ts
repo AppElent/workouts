@@ -17,6 +17,65 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// UIKit's menu host is absent in Jest. Keep Expo's real Link, routing and menu
+// declarations; drive only the native presentation/selection boundary here.
+jest.mock("expo-router/build/link/preview/native", () => {
+	const React = jest.requireActual("react");
+	const { View, Text, Pressable } = jest.requireActual("react-native");
+	const MenuContext = React.createContext(null);
+	return {
+		...jest.requireActual("expo-router/build/link/preview/native"),
+		NativeLinkPreview: ({ children }: { children: React.ReactNode }) => {
+			const [open, setOpen] = React.useState(false);
+			return React.createElement(
+				MenuContext.Provider,
+				{ value: { open, setOpen } },
+				React.createElement(
+					View,
+					{ onLongPress: () => setOpen(true) },
+					children,
+				),
+			);
+		},
+		NativeLinkPreviewAction: ({
+			children,
+			title,
+			onSelected,
+		}: {
+			children?: React.ReactNode;
+			title: string;
+			onSelected: () => void;
+		}) => {
+			const menu = React.useContext(MenuContext);
+			if (!menu?.open) return null;
+			if (children)
+				return React.createElement(
+					View,
+					null,
+					React.createElement(Text, null, title),
+					children,
+					React.createElement(
+						Pressable,
+						{ accessibilityLabel: "Close", onPress: () => menu.setOpen(false) },
+						React.createElement(Text, null, "Close"),
+					),
+				);
+			return React.createElement(
+				Pressable,
+				{
+					accessibilityRole: "button",
+					accessibilityLabel: title,
+					onPress: () => {
+						menu.setOpen(false);
+						onSelected();
+					},
+				},
+				React.createElement(Text, null, title),
+			);
+		},
+	};
+});
+
 jest.mock("@clerk/expo", () => ({
 	ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
 	useAuth: () => ({

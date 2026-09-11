@@ -27,6 +27,8 @@ import { colors, radius, spacing } from "../theme";
 import { Chip } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { Screen } from "../ui/screen";
+import { ScreenHeader } from "../ui/screen-header";
+import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { AddExerciseForm } from "./add-exercise-form";
@@ -62,7 +64,7 @@ const EQUIPMENT = [
 	"other",
 ] as const;
 
-export function ExercisesScreen({ showBack }: { showBack: boolean }) {
+export function ExercisesScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -108,34 +110,11 @@ export function ExercisesScreen({ showBack }: { showBack: boolean }) {
 	};
 
 	return (
-		<Screen edges={showBack ? ["top", "bottom"] : ["top"]}>
-			<View style={styles.header}>
-				{showBack ? (
-					<Pressable
-						onPress={() => router.back()}
-						hitSlop={12}
-						accessibilityRole="button"
-						accessibilityLabel="Go back"
-					>
-						<AppText variant="heading" style={{ color: colors.accent }}>
-							‹
-						</AppText>
-					</Pressable>
-				) : null}
-				<AppText variant="title" style={styles.flex}>
-					Exercises
-				</AppText>
-				<Pressable
-					onPress={() => setCreating(true)}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Add exercise"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						+
-					</AppText>
-				</Pressable>
-			</View>
+		<Screen edges={["bottom"]}>
+			<ScreenHeader
+				title={"Exercises"}
+				action={{ label: "Add exercise", onPress: () => setCreating(true) }}
+			/>
 
 			<View style={styles.filters}>
 				<TextInput
@@ -185,6 +164,7 @@ export function ExercisesScreen({ showBack }: { showBack: boolean }) {
 				</AppText>
 			) : (
 				<FlatList
+					contentInsetAdjustmentBehavior="automatic"
 					data={filtered}
 					keyExtractor={(item) => item._id}
 					contentContainerStyle={styles.list}
@@ -203,39 +183,74 @@ export function ExercisesScreen({ showBack }: { showBack: boolean }) {
 						</View>
 					}
 					renderItem={({ item }) => (
-						<Pressable
-							onPress={() =>
-								router.push({
-									pathname: "/exercise/[id]",
-									params: { id: item._id },
-								})
-							}
-							style={({ pressed }) => [
-								styles.row,
-								pressed && { backgroundColor: colors.surface2 },
+						<SwipeableRow
+							href={{ pathname: "/exercise/[id]", params: { id: item._id } }}
+							menuTitle={item.name}
+							closeMenuLabel="Close"
+							actions={[
+								{
+									key: "open",
+									label: "View exercise",
+									onPress: () =>
+										router.push({
+											pathname: "/exercise/[id]",
+											params: { id: item._id },
+										}),
+								},
+								...(!item.isDefault
+									? [
+											{
+												key: "delete",
+												label: "Delete",
+												destructive: true,
+												onPress: () => void remove(item),
+											},
+										]
+									: []),
 							]}
 						>
-							<View style={styles.flex}>
-								<AppText variant="body" style={styles.name}>
-									{item.name}
-								</AppText>
-								<AppText variant="caption" style={styles.meta}>
-									{item.category} · {item.equipment}
-								</AppText>
-							</View>
-							{item.isDefault ? null : (
+							{(accessibility) => (
 								<Pressable
-									onPress={() => void remove(item)}
-									hitSlop={12}
+									onPress={() =>
+										router.push({
+											pathname: "/exercise/[id]",
+											params: { id: item._id },
+										})
+									}
+									{...accessibility}
 									accessibilityRole="button"
-									accessibilityLabel={`Delete ${item.name}`}
+									accessibilityLabel={item.name}
+									style={({ pressed }) => [
+										styles.row,
+										pressed && { backgroundColor: colors.surface2 },
+									]}
 								>
-									<AppText variant="body" style={styles.delete}>
-										Delete
-									</AppText>
+									<View style={styles.flex}>
+										<AppText variant="body" style={styles.name}>
+											{item.name}
+										</AppText>
+										<AppText variant="caption" style={styles.meta}>
+											{item.category} · {item.equipment}
+										</AppText>
+									</View>
+									{item.isDefault ? null : (
+										<Pressable
+											onPress={(event) => {
+												event.stopPropagation();
+												void remove(item);
+											}}
+											hitSlop={12}
+											accessibilityRole="button"
+											accessibilityLabel={`Delete ${item.name}`}
+										>
+											<AppText variant="body" style={styles.delete}>
+												Delete
+											</AppText>
+										</Pressable>
+									)}
 								</Pressable>
 							)}
-						</Pressable>
+						</SwipeableRow>
 					)}
 				/>
 			)}

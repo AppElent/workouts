@@ -21,6 +21,7 @@ import { formatSessionDate } from "../data/session-data";
 import { colors, radius, spacing } from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
@@ -108,9 +109,6 @@ export function HostedDetailScreen() {
 				<AppText variant="caption" style={styles.centeredText}>
 					It may have been deleted, or you may not be its host.
 				</AppText>
-				<Pressable onPress={() => router.back()} style={styles.ghostBtn}>
-					<AppText style={styles.ghostText}>Go back</AppText>
-				</Pressable>
 			</View>
 		);
 	}
@@ -119,23 +117,16 @@ export function HostedDetailScreen() {
 
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
 			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Go back"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						‹
-					</AppText>
-				</Pressable>
 				<View style={styles.flex}>
-					<AppText variant="title">{hosted.title}</AppText>
+					<ScreenHeader title={hosted.title} />
 					<AppText variant="caption">
 						{hosted.scheduledAt
 							? formatSessionDate(hosted.scheduledAt)

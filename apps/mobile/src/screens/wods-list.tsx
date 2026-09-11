@@ -27,6 +27,7 @@ import { api, type Doc } from "../convex/api";
 import { colors, radius, spacing } from "../theme";
 import { Chip } from "../ui/coach";
 import { Screen } from "../ui/screen";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { WodEditor } from "./wod-editor";
 
@@ -41,7 +42,6 @@ export const WOD_TYPE_LABEL: Record<Doc<"wods">["type"], string> = {
 };
 
 export function WodsScreen() {
-	const router = useRouter();
 	const wods = useQuery(api.wods.list, {});
 
 	const [search, setSearch] = useState("");
@@ -58,32 +58,11 @@ export function WodsScreen() {
 	}, [wods, search, type]);
 
 	return (
-		<Screen edges={["top", "bottom"]}>
-			<View style={styles.header}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Go back"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						‹
-					</AppText>
-				</Pressable>
-				<AppText variant="title" style={styles.flex}>
-					WODs
-				</AppText>
-				<Pressable
-					onPress={() => setCreating(true)}
-					hitSlop={12}
-					accessibilityRole="button"
-					accessibilityLabel="Add WOD"
-				>
-					<AppText variant="heading" style={{ color: colors.accent }}>
-						+
-					</AppText>
-				</Pressable>
-			</View>
+		<Screen edges={["bottom"]}>
+			<ScreenHeader
+				title={"WODs"}
+				action={{ label: "Add WOD", onPress: () => setCreating(true) }}
+			/>
 
 			<View style={styles.filters}>
 				<TextInput

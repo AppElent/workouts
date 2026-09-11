@@ -139,7 +139,13 @@ export function NutritionGoalsScreen() {
 			</SkeletonGroup>
 		);
 	return (
-		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
+		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
+			style={styles.root}
+			contentContainerStyle={styles.content}
+		>
 			<Eyebrow>{t.nutrition.goals.heading}</Eyebrow>
 			<AppText variant="title">{t.nutrition.goalEditor.title}</AppText>
 			<AppText>{t.nutrition.goalEditor.intro}</AppText>
