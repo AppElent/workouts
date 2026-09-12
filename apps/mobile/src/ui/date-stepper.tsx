@@ -15,12 +15,20 @@ export function DateStepper({
 	previousLabel,
 	nextLabel,
 	onChange,
+	onChooseDate,
+	chooseDateLabel,
+	displayLabel,
+	secondaryLabel,
 }: {
 	date: string;
 	locale: string;
 	previousLabel: string;
 	nextLabel: string;
 	onChange: (next: string) => void;
+	onChooseDate?: () => void;
+	chooseDateLabel?: string;
+	displayLabel?: string;
+	secondaryLabel?: string;
 }) {
 	return (
 		<View style={styles.stepper}>
@@ -29,9 +37,28 @@ export function DateStepper({
 				glyph="‹"
 				onPress={() => onChange(shiftIsoDate(date, -1))}
 			/>
-			<AppText style={styles.stepperDate}>
-				{formatLongDate(date, locale)}
-			</AppText>
+			{onChooseDate ? (
+				<Pressable
+					style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+					accessibilityRole="button"
+					accessibilityLabel={chooseDateLabel ?? formatLongDate(date, locale)}
+					accessibilityValue={{ text: formatLongDate(date, locale) }}
+					onPress={onChooseDate}
+				>
+					<AppText style={[styles.stepperDate, { flex: 0 }]}>
+						{displayLabel ?? formatLongDate(date, locale)}
+					</AppText>
+					{secondaryLabel ? (
+						<AppText variant="caption" style={{ textAlign: "center" }}>
+							{secondaryLabel}
+						</AppText>
+					) : null}
+				</Pressable>
+			) : (
+				<AppText style={styles.stepperDate}>
+					{formatLongDate(date, locale)}
+				</AppText>
+			)}
 			<StepperButton
 				label={nextLabel}
 				glyph="›"

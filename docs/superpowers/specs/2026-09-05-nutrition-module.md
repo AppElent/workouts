@@ -152,7 +152,7 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 ### Day view and navigation
 
 - Nutrition is a persistent fifth native tab. The canonical prototype is goals-first Variant A from prototype issue #67.
-- The day view orders: date navigation, prominent goal progress, four explicit meal slots, then the collapsed non-targeted nutrient detail and required attribution/disclosures.
+- The day view orders: date navigation and the decorative training marker, a compact energy plus protein/carbohydrates/fat summary, a collapsed count of additional active goals with an always-reachable Edit goals action, four explicit meal slots with subtotals, then the collapsed non-targeted nutrient detail and required attribution/disclosures.
 - Each meal slot has an icon-only plus control with a localized accessible label.
 - The selected date is editable for both the day and individual diary entries. Day boundaries use the device's local calendar date.
 - A training event may appear as a decorative marker only. It cannot modify targets, compute expenditure, or imply energy balance.
@@ -163,8 +163,8 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 - Opening a meal's plus control presents Find Food for that meal and date.
 - Search and barcode scan are peer controls. Ordinary search performs no provider request.
 - Search ranks Personal Foods and promoted shipped foods before the raw catalogue. Users explicitly expand to “search all” or choose the Open Food Facts online action.
-- Choosing a food opens a serving sheet. Users choose an authored serving or exact base units, set quantity, review scaled nutrition, and log.
-- A successful log writes one immutable nutritional snapshot to Convex and returns to the updated diary.
+- Choosing a food opens a keyboard-aware native form sheet with a visible grabber and X close control. Users choose an authored serving or exact base units, set quantity, review scaled nutrition, and use the persistent Add & continue or Add & close action.
+- A successful log writes one immutable nutritional snapshot to Convex. Add & continue dismisses only the serving sheet and preserves the browser's date, meal, search scope, and results; the browser keeps a removable receipt of foods added during the visit and exposes a visible meal selector and Done control for multi-food logging. Add & close returns to the updated diary.
 - Users may edit quantity, meal slot, or date. Safe quantity-only edits rescale the snapshot rather than re-reading the source food.
 - Deletion is confirmed with a verb-specific destructive action. Swipe may reveal edit/delete, but destructive full-swipe is disabled because confirmation is required. Visible non-gesture actions remain available.
 
@@ -201,7 +201,7 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 
 ### Native interaction and accessibility
 
-- Use iOS-native tab, navigation, sheet, edge-back, context-menu, and haptic semantics where supported. Android delivers equivalent outcomes using its native conventions.
+- Use iOS-native tab, navigation-header action, sheet, edge-back, context-menu, and haptic semantics where supported. Android delivers equivalent outcomes using its native conventions.
 - Swipes and long press are accelerators only. Every action has a visible or conventionally discoverable non-gesture route.
 - Haptics are restrained: selection feedback for meaningful picker changes, success for completed logging, and warning for destructive confirmation—not on every tap.
 - Respect Reduce Motion and platform accessibility settings. Icon-only buttons have localized accessible names, hit targets meet platform guidance, dynamic type does not clip nutrition values, and color is never the sole state signal.
@@ -238,6 +238,41 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 - Arbitrary density conversion or arbitrary millilitre input for mass-based NEVO beverages.
 - Removing Gather's deprecated nutrition module.
 - Building the EAS/OTA delivery pipeline as part of Nutrition.
+
+## Release 2 consistency and offline behavior
+
+### Subsequent release amendments (September 2026)
+
+These amendments supersede the original v1 exclusions and current-goals-only behavior above; unchanged v1 constraints still apply.
+
+- **Release 3:** The mobile goals editor supports progressive nutrient selection and minimum/maximum ranges. Goal sets have effective calendar dates; the diary resolves the selected date's version, with explicitly labeled reference goals before known history. Cached goals remain available offline. A month calendar complements day stepping. Personal Foods and Combos gain explicit opt-in account backup, revision-aware conflicts, tombstones and a separate legacy-device import. No automatic association/upload of an unclaimed device library is permitted.
+- **Release 4:** Device-local, account-scoped recipes store frozen ingredient snapshots, a named version and cooked yield in grams or portions. Logging scales ingredient snapshots into one durable diary batch; subsequent source changes do not rewrite it. Combos support a per-log multiplier without changing saved defaults. Direct one-off estimated entries do not create library records. Capture-later notes remain excluded from intake until reviewed and converted using stable submission identity.
+- **Release 5:** Assistance parses explicitly quantified English/Dutch text against the existing food catalog and requires food selection and batch review. Pasted per-100 g/ml label text becomes editable nutrient fields; missing values remain absent. This is deterministic text assistance, not unrestricted natural-language understanding, photo recognition or a new external AI service. Weekly review distinguishes missing, partial and explicitly completed days and does not treat missing days as zero intake.
+- **Deliberate gates:** Automatic label-photo/OCR and meal-photo calorie estimation remain unimplemented experiments pending provider/privacy choices and accuracy evaluation. No speed or accuracy gain is claimed without device measurement. Recipe/draft cloud backup is not included in the Personal Food/Combo backup contract.
+- **Verification boundary:** Automated tests, typechecks and builds cover implementation invariants. Device feel, real two-device recovery, accessibility and production migration acceptance require the separate checklist in `qa/triage/2026-09-11-virtuafood/remaining/VERIFY-ON-DEVICE.md`.
+
+Release 2 adds a retry-safe diary operation boundary without changing the
+existing public logging endpoints. Each authenticated account gets durable,
+indefinitely retained operation receipts keyed by operation ID and a
+date-scoped revision for cache reconciliation. The client stores immutable
+queued envelopes, ordered local projections, acknowledged day snapshots, and
+device-only food shortcuts in a versioned SQLite database. Queue replay is
+serialized, retries reuse the same envelope, dependent edits wait for a
+pending create, and stale `sending` rows recover after restart. Account
+subjects scope every operation, cache, shortcut, and late response; sign-out
+leaves the prior account's local state dormant.
+
+The Nutrition UI reads the shared cache/query path and overlays pending local
+creates, updates, moves, and deletes with an explicit “saved on this device,
+waiting to sync” state. Recent foods and favorites are bounded, account-local
+shortcuts keyed by stable source and semantic serving identity; remembered
+portions fall back to a matching base unit when an authored serving changes.
+Copy meal uses the selected diary date, defaults to the previous calendar day,
+is additive, writes one durable batch with fresh entry and Combo-group IDs,
+and refuses incomplete or uncached offline sources. Existing Combo logging is
+on the same batch operation path, while legacy mutation compatibility remains
+available for older clients during the transition. No source catalogue or
+Personal Food mutation can rewrite a logged snapshot.
 
 ## Further Notes
 

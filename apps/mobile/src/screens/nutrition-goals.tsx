@@ -1,16 +1,14 @@
 import {
 	editedGoalCount,
-	GOAL_DIRECTIONS,
 	GOAL_PRESET_KEYS,
-	type GoalDirection,
 	type GoalPresetKey,
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@workouts/core/nutrition";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Pressable,
 	ScrollView,
@@ -19,125 +17,215 @@ import {
 	View,
 } from "react-native";
 import { api } from "../convex/api";
+import { type IsoDate, todayIsoDate } from "../data/calendar-day";
+import {
+	draftFromGoals,
+	draftToGoals,
+	emptyGoalDraft,
+	enabledGoalNutrients,
+	type GoalDraft,
+	goalHistoryLabel,
+} from "../data/nutrition-goal-history";
+import { getNutritionGoalsCopy } from "../data/nutrition-goals-copy";
+import { useStalledOffline } from "../data/stalled-offline";
 import { fmt, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
+import { EmptyState } from "../ui/empty-state";
+import { NutritionCalendar } from "../ui/nutrition-calendar";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
-type DraftGoal = {
-	nutrient: NutrientKey;
-	direction: GoalDirection;
-	target: string;
-	sourcePreset?: GoalPresetKey;
-};
-
 export function NutritionGoalsScreen() {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
+	const copy = getNutritionGoalsCopy(locale);
 	const router = useRouter();
 	const toast = useToast();
-	const current = useQuery(api.nutritionGoals.list, {});
+	const today = todayIsoDate();
+	const [retryNonce, setRetryNonce] = useState(0);
+	const queryArgs = retryNonce % 2 === 0 ? {} : "skip";
+	const current = useQuery(api.nutritionGoals.list, queryArgs);
 	const replace = useMutation(api.nutritionGoals.replace);
-	const [draft, setDraft] = useState<DraftGoal[]>(() =>
-		NUTRIENT_KEYS.flatMap((nutrient) =>
-			GOAL_DIRECTIONS.map((direction) => ({ nutrient, direction, target: "" })),
-		),
+	const [effectiveFrom, setEffectiveFrom] = useState<IsoDate>(today);
+	const selectedResponse = useQuery(
+		api.nutritionGoals.forDate,
+		retryNonce % 2 === 0 ? { date: effectiveFrom } : "skip",
 	);
+	const { isWebSocketConnected } = useConvexConnectionState();
+	const serverGoals =
+		selectedResponse?.goals ?? (effectiveFrom === today ? current : undefined);
+	const stalledOffline = useStalledOffline(
+		serverGoals === undefined,
+		isWebSocketConnected,
+	);
+	const [draft, setDraft] = useState<GoalDraft>(emptyGoalDraft);
+	const [sourcePresets, setSourcePresets] = useState<
+		Record<string, GoalPresetKey | undefined>
+	>({});
+	const [revealedBounds, setRevealedBounds] = useState<Set<string>>(
+		() => new Set(["energy.max"]),
+	);
+	const [dirty, setDirty] = useState(false);
+	const [showExtras, setShowExtras] = useState(false);
+	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [pending, setPending] = useState(false);
 	const [activePreset, setActivePreset] = useState<GoalPresetKey>();
+	const saveInFlight = useRef(false);
+
+	const retry = () => {
+		setRetryNonce((value) => value + 1);
+		setTimeout(() => setRetryNonce((value) => value + 1), 0);
+	};
 
 	useEffect(() => {
-		if (!current) return;
-		const next = NUTRIENT_KEYS.flatMap((nutrient) =>
-			GOAL_DIRECTIONS.map((direction) => {
-				const goal = current.find(
-					(item) => item.nutrient === nutrient && item.direction === direction,
-				);
-				return {
-					nutrient,
-					direction,
-					target: goal ? String(goal.target) : "",
-					sourcePreset: goal?.sourcePreset,
-				};
-			}),
+		if (!serverGoals || dirty) return;
+		setDraft(draftFromGoals(serverGoals));
+		const nextSources: Record<string, GoalPresetKey | undefined> = {};
+		for (const goal of serverGoals) {
+			nextSources[`${goal.nutrient}.${goal.direction}`] = goal.sourcePreset;
+		}
+		setSourcePresets(nextSources);
+		setRevealedBounds(
+			new Set([
+				"energy.max",
+				...serverGoals.map((goal) => `${goal.nutrient}.${goal.direction}`),
+			]),
 		);
-		setDraft(next);
 		const sources = new Set(
-			next.map((row) => row.sourcePreset).filter(Boolean),
+			serverGoals.map((goal) => goal.sourcePreset).filter(Boolean),
 		);
 		setActivePreset(
 			sources.size === 1
-				? next.find((row) => row.sourcePreset)?.sourcePreset
+				? (serverGoals.find((goal) => goal.sourcePreset)
+						?.sourcePreset as GoalPresetKey)
 				: undefined,
 		);
-	}, [current]);
+	}, [dirty, serverGoals]);
+
+	const setBound = (
+		nutrient: NutrientKey,
+		direction: "min" | "max",
+		target: string,
+	) => {
+		setDraft((currentDraft) => ({
+			...currentDraft,
+			[nutrient]: { ...currentDraft[nutrient], [direction]: target },
+		}));
+		setSourcePresets((currentSources) => ({
+			...currentSources,
+			[`${nutrient}.${direction}`]: undefined,
+		}));
+		setDirty(true);
+		setErrors((currentErrors) => {
+			const next = { ...currentErrors };
+			delete next[`${nutrient}.${direction}`];
+			delete next[`${nutrient}.range`];
+			return next;
+		});
+	};
 
 	const applyPreset = (key: GoalPresetKey) => {
 		setActivePreset(key);
-		setDraft(
-			NUTRIENT_KEYS.flatMap((nutrient) =>
-				GOAL_DIRECTIONS.map((direction) => {
-					const goal = NUTRITION_GOAL_PRESETS[key].goals.find(
-						(item) =>
-							item.nutrient === nutrient && item.direction === direction,
-					);
-					return {
-						nutrient,
-						direction,
-						target: goal ? String(goal.target) : "",
-						sourcePreset: goal ? key : undefined,
-					};
-				}),
+		const next = emptyGoalDraft();
+		const nextSources: Record<string, GoalPresetKey | undefined> = {};
+		for (const goal of NUTRITION_GOAL_PRESETS[key].goals) {
+			next[goal.nutrient][goal.direction] = String(goal.target);
+			nextSources[`${goal.nutrient}.${goal.direction}`] = key;
+		}
+		setDraft(next);
+		setSourcePresets(nextSources);
+		setRevealedBounds(
+			new Set(
+				NUTRIENT_KEYS.flatMap((nutrient) => [
+					`${nutrient}.min`,
+					`${nutrient}.max`,
+				]),
 			),
 		);
+		setDirty(true);
 	};
-	const update = (
-		nutrient: NutrientKey,
-		direction: GoalDirection,
-		change: Partial<DraftGoal>,
-	) =>
-		setDraft((rows) =>
-			rows.map((row) =>
-				row.nutrient === nutrient && row.direction === direction
-					? { ...row, ...change, sourcePreset: undefined }
-					: row,
-			),
+
+	const addBound = (nutrient: NutrientKey, direction: "min" | "max") => {
+		setRevealedBounds((currentBounds) =>
+			new Set(currentBounds).add(`${nutrient}.${direction}`),
 		);
+		setDirty(true);
+	};
+
 	const save = async () => {
-		const goals = draft
-			.filter((row) => row.target.trim())
-			.map((row) => ({
-				nutrient: row.nutrient,
-				direction: row.direction,
-				target: Number(row.target),
-				sourcePreset: row.sourcePreset,
-			}));
-		if (
-			goals.some((goal) => !Number.isFinite(goal.target) || goal.target <= 0)
-		) {
-			toast.error(t.nutrition.goalEditor.validation);
+		if (saveInFlight.current) return;
+		const parsed = draftToGoals(draft);
+		if (parsed.errors.length > 0) {
+			const nextErrors: Record<string, string> = {};
+			for (const error of parsed.errors) {
+				nextErrors[error.key] =
+					error.message === "range" ? copy.range : copy.invalid;
+			}
+			setErrors(nextErrors);
+			toast.error(
+				parsed.errors.some((error) => error.message === "range")
+					? copy.range
+					: copy.invalid,
+			);
 			return;
 		}
+		const goals = parsed.goals.map((goal) => ({
+			...goal,
+			sourcePreset: sourcePresets[`${goal.nutrient}.${goal.direction}`],
+		}));
+		saveInFlight.current = true;
 		setPending(true);
 		try {
-			await replace({ goals });
+			await replace({ goals, effectiveFrom });
+			setDirty(false);
 			router.back();
 		} catch {
 			toast.error(t.nutrition.goalEditor.failure);
 		} finally {
+			saveInFlight.current = false;
 			setPending(false);
 		}
 	};
 
-	if (current === undefined)
+	if (serverGoals === undefined && !dirty)
 		return (
-			<SkeletonGroup label={t.nutrition.goalEditor.loading}>
-				<SkeletonBlock height={100} />
-				<SkeletonBlock height={300} />
-			</SkeletonGroup>
+			<>
+				{stalledOffline ? (
+					<Card style={styles.offlineCard}>
+						<EmptyState
+							title={copy.offlineTitle}
+							body={copy.offlineBody}
+							action={{ label: copy.retry, onPress: retry }}
+						/>
+					</Card>
+				) : (
+					<SkeletonGroup label={t.nutrition.goalEditor.loading}>
+						<SkeletonBlock height={160} />
+						<SkeletonBlock height={220} />
+						<SkeletonBlock height={220} />
+					</SkeletonGroup>
+				)}
+			</>
 		);
+	const enabled = enabledGoalNutrients(draft);
+	const hiddenNutrients = NUTRIENT_KEYS.filter(
+		(nutrient) => !enabled.includes(nutrient),
+	);
+	const presetEditedCount = activePreset
+		? editedGoalCount(
+				activePreset,
+				NUTRIENT_KEYS.flatMap((nutrient) =>
+					(["min", "max"] as const).map((direction) => ({
+						nutrient,
+						direction,
+						sourcePreset: sourcePresets[`${nutrient}.${direction}`],
+					})),
+				),
+			)
+		: 0;
+	const preview = draftToGoals(draft).goals;
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
@@ -146,9 +234,38 @@ export function NutritionGoalsScreen() {
 			style={styles.root}
 			contentContainerStyle={styles.content}
 		>
+			{stalledOffline ? (
+				<Card style={styles.offlineCard}>
+					<EmptyState
+						title={copy.offlineTitle}
+						body={copy.offlineBody}
+						action={{ label: copy.retry, onPress: retry }}
+					/>
+				</Card>
+			) : null}
 			<Eyebrow>{t.nutrition.goals.heading}</Eyebrow>
 			<AppText variant="title">{t.nutrition.goalEditor.title}</AppText>
 			<AppText>{t.nutrition.goalEditor.intro}</AppText>
+			<Card style={styles.dateCard}>
+				<AppText variant="heading">{copy.applyFrom}</AppText>
+				<AppText variant="caption">{copy.applyFromHint}</AppText>
+				<AppText style={styles.dateValue}>{effectiveFrom}</AppText>
+				<NutritionCalendar
+					selectedDate={effectiveFrom}
+					onSelect={setEffectiveFrom}
+					locale={locale}
+					labels={{ today: t.nutrition.day.goToToday }}
+				/>
+				{selectedResponse ? (
+					<AppText variant="caption">
+						{goalHistoryLabel({
+							basis: selectedResponse.basis,
+							effectiveFrom: selectedResponse.effectiveFrom,
+							locale,
+						})}
+					</AppText>
+				) : null}
+			</Card>
 			<View style={styles.presets}>
 				{GOAL_PRESET_KEYS.map((key) => (
 					<Pressable
@@ -167,44 +284,125 @@ export function NutritionGoalsScreen() {
 					</Pressable>
 				))}
 			</View>
-			{activePreset ? (
+			{activePreset && presetEditedCount > 0 ? (
 				<AppText variant="caption">
 					{fmt(t.nutrition.goalEditor.edited, {
-						count: editedGoalCount(activePreset, draft),
+						count: presetEditedCount,
 					})}
 				</AppText>
 			) : null}
-			{draft.map((row) => (
-				<Card key={`${row.nutrient}-${row.direction}`} style={styles.row}>
-					<AppText variant="heading">
-						{t.nutrition.nutrients[row.nutrient]} ·{" "}
-						{t.nutrition.goalEditor.directions[row.direction]}
-					</AppText>
-					<View style={styles.direction}>
-						<TextInput
-							accessibilityLabel={`${t.nutrition.nutrients[row.nutrient]} ${t.nutrition.goalEditor.directions[row.direction]} ${t.nutrition.goalEditor.amount}`}
-							keyboardType="decimal-pad"
-							value={row.target}
-							onChangeText={(target) =>
-								update(row.nutrient, row.direction, { target })
-							}
-							placeholder={t.nutrition.goalEditor.amount}
-							placeholderTextColor={colors.textMuted}
-							style={[styles.input, styles.flex]}
-						/>
-						<Pressable
-							accessibilityRole="button"
-							onPress={() =>
-								update(row.nutrient, row.direction, { target: "" })
-							}
-						>
-							<AppText style={{ color: colors.textMuted }}>
-								{t.nutrition.goalEditor.remove}
+			{enabled.map((nutrient) => {
+				const directions = (["min", "max"] as const).filter(
+					(direction) =>
+						nutrient === "energy" ||
+						draft[nutrient][direction].trim() ||
+						revealedBounds.has(`${nutrient}.${direction}`),
+				);
+				return (
+					<Card key={nutrient} style={styles.row}>
+						<AppText variant="heading">
+							{t.nutrition.nutrients[nutrient]}
+						</AppText>
+						{directions.map((direction) => (
+							<View key={direction} style={styles.bound}>
+								<TextInput
+									accessibilityLabel={`${t.nutrition.nutrients[nutrient]} ${t.nutrition.goalEditor.directions[direction]} ${t.nutrition.goalEditor.amount}`}
+									keyboardType="decimal-pad"
+									value={draft[nutrient][direction]}
+									onChangeText={(target) =>
+										setBound(nutrient, direction, target)
+									}
+									placeholder={t.nutrition.goalEditor.directions[direction]}
+									placeholderTextColor={colors.textMuted}
+									style={styles.input}
+								/>
+								<AppText variant="caption">
+									{t.nutrition.goalEditor.directions[direction]}
+								</AppText>
+								<Pressable
+									accessibilityRole="button"
+									onPress={() => setBound(nutrient, direction, "")}
+								>
+									<AppText style={styles.remove}>{copy.removeBound}</AppText>
+								</Pressable>
+								{errors[`${nutrient}.${direction}`] ? (
+									<AppText style={styles.error}>
+										{errors[`${nutrient}.${direction}`]}
+									</AppText>
+								) : null}
+							</View>
+						))}
+						{errors[`${nutrient}.range`] ? (
+							<AppText style={styles.error}>
+								{errors[`${nutrient}.range`]}
 							</AppText>
-						</Pressable>
-					</View>
+						) : null}
+						<View style={styles.addBounds}>
+							{(["min", "max"] as const).map((direction) =>
+								directions.includes(direction) ? null : (
+									<Pressable
+										key={direction}
+										accessibilityRole="button"
+										onPress={() => addBound(nutrient, direction)}
+									>
+										<AppText style={styles.add}>
+											{direction === "min" ? copy.addMinimum : copy.addMaximum}
+										</AppText>
+									</Pressable>
+								),
+							)}
+						</View>
+					</Card>
+				);
+			})}
+			{hiddenNutrients.length > 0 ? (
+				<Card style={styles.extraCard}>
+					<Pressable
+						accessibilityRole="button"
+						onPress={() => setShowExtras((value) => !value)}
+					>
+						<AppText style={styles.add}>
+							{showExtras ? copy.showLessNutrients : copy.showMoreNutrients}
+						</AppText>
+					</Pressable>
+					{showExtras ? (
+						<View style={styles.extraList}>
+							{hiddenNutrients.map((nutrient) => (
+								<Pressable
+									key={nutrient}
+									accessibilityRole="button"
+									onPress={() => {
+										addBound(nutrient, "min");
+										setDraft((currentDraft) => ({
+											...currentDraft,
+											[nutrient]: { ...currentDraft[nutrient], min: "" },
+										}));
+										setDirty(true);
+									}}
+								>
+									<AppText>{t.nutrition.nutrients[nutrient]}</AppText>
+								</Pressable>
+							))}
+						</View>
+					) : null}
 				</Card>
-			))}
+			) : null}
+			<Card style={styles.preview}>
+				<AppText variant="heading">{copy.preview}</AppText>
+				{preview.length === 0 ? (
+					<AppText variant="caption">{copy.previewEmpty}</AppText>
+				) : (
+					preview.map((goal) => (
+						<AppText
+							key={`${goal.nutrient}.${goal.direction}`}
+							variant="caption"
+						>
+							{t.nutrition.nutrients[goal.nutrient]} · {goal.target}
+						</AppText>
+					))
+				)}
+			</Card>
+			{dirty ? <AppText variant="caption">{copy.unsaved}</AppText> : null}
 			<PrimaryButton
 				accessibilityRole="button"
 				loading={pending}
@@ -222,18 +420,20 @@ const styles = StyleSheet.create({
 	content: { padding: 20, gap: spacing.md, paddingBottom: 40 },
 	presets: { gap: spacing.sm },
 	preset: { gap: 4 },
+	dateCard: { gap: spacing.sm },
+	dateValue: { color: colors.accent, fontWeight: "800" },
 	row: { gap: spacing.sm },
-	flex: { flex: 1 },
-	direction: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	choice: {
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.pill,
-		paddingHorizontal: spacing.md,
-		paddingVertical: spacing.sm,
-	},
-	selected: { borderColor: colors.accent, backgroundColor: colors.accentDim },
+	bound: { gap: spacing.xs },
+	addBounds: { flexDirection: "row", gap: spacing.md, flexWrap: "wrap" },
+	add: { color: colors.accent, fontWeight: "800" },
+	remove: { color: colors.textMuted },
+	error: { color: colors.danger },
+	extraCard: { gap: spacing.sm },
+	extraList: { gap: spacing.md },
+	preview: { gap: spacing.xs },
+	offlineCard: { gap: spacing.sm },
 	input: {
+		width: "100%",
 		color: colors.text,
 		borderWidth: 1,
 		borderColor: colors.borderStrong,

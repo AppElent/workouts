@@ -13,7 +13,7 @@
  * route closes itself rather than showing an editor for nothing.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";
 import {
 	MEAL_SLOTS,
@@ -37,11 +37,17 @@ export default function NutritionEntryRoute() {
 	const day = date ?? todayIsoDate();
 	const slot = asMealSlot(meal);
 	const state = useNutritionDay(day);
-	const entry =
+	const currentEntry =
 		state.status === "ready"
 			? state.day.entries[slot].find((candidate) => candidate.id === id)
 			: undefined;
-	const missing = state.status === "ready" && entry === undefined;
+	const lastEntry = useRef<typeof currentEntry>(undefined);
+	if (currentEntry) lastEntry.current = currentEntry;
+	const entry = currentEntry ?? lastEntry.current;
+	const missing =
+		state.status === "ready" &&
+		entry === undefined &&
+		state.day.pendingOperationIds.length === 0;
 
 	// Closing during a render would fight the router; do it as an effect once
 	// the day has actually loaded and the entry is genuinely not in it.

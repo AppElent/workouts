@@ -19,9 +19,18 @@ import { renderApp } from "../test-support/render-app";
 const mockUseMutation = jest.mocked(useMutation);
 
 /** Open Find Food for a meal and start correcting the promoted apple. */
-async function correctTheApple(meal = "Lunch") {
+async function correctTheApple(meal = "Lunch", allFoods = "All foods") {
 	fireEvent.press(await screen.findByLabelText(`Add food to ${meal}`));
-	fireEvent.press(await screen.findByText("Apple"));
+	fireEvent.press(await screen.findByRole("tab", { name: allFoods }));
+	fireEvent.changeText(
+		screen.getByPlaceholderText(
+			allFoods === "Alle voeding" ? "Zoek eten" : "Search foods",
+		),
+		allFoods === "Alle voeding" ? "appel" : "apple",
+	);
+	fireEvent.press(
+		await screen.findByText(allFoods === "Alle voeding" ? "Appel" : "Apple"),
+	);
 	fireEvent.press(await screen.findByText("Correct this food"));
 }
 
@@ -31,7 +40,8 @@ describe("correcting a shipped food", () => {
 		await correctTheApple();
 
 		expect(await screen.findByText("Correct a shipped food")).toBeTruthy();
-		expect(screen.getByLabelText("English name").props.value).toBe("Apple");
+		expect(screen.getByLabelText("Name").props.value).toBe("Apple");
+		fireEvent.press(screen.getByLabelText("Edit Dutch name (optional)"));
 		expect(screen.getByLabelText("Dutch name").props.value).toBe("Appel");
 		expect(
 			Number(screen.getByLabelText("Energy per 100 g").props.value),
@@ -87,7 +97,7 @@ describe("correcting a shipped food", () => {
 	it("replaces the shipped food in ordinary search", async () => {
 		renderApp();
 		await correctTheApple();
-		fireEvent.changeText(screen.getByLabelText("English name"), "Elstar apple");
+		fireEvent.changeText(screen.getByLabelText("Name"), "Elstar apple");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await screen.findByText("Your correction of Apple w skin av");
@@ -96,12 +106,13 @@ describe("correcting a shipped food", () => {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 
 		expect(await screen.findByText("Elstar apple")).toBeTruthy();
-		// The corrected original is gone from the tier that shows it by default,
-		// even though the correction no longer carries its name.
-		expect(screen.queryByText("Apple")).toBeNull();
+		// All foods is the deliberate broader library: it retains the source and
+		// marks it as replaced while the correction wins the normal result.
+		expect(screen.getByText("Replaced by your correction")).toBeTruthy();
+		expect(screen.getAllByText("Apple").length).toBeGreaterThan(0);
 	});
 
-	it("still identifies the original in the deliberate broader view", async () => {
+	it("keeps the replaced-source provenance visible in All foods", async () => {
 		renderApp();
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save Personal Food"));
@@ -109,9 +120,7 @@ describe("correcting a shipped food", () => {
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent.press(screen.getByText("Search all 2,328 foods"));
-
-		expect(await screen.findByText("Apple w skin av")).toBeTruthy();
+		expect((await screen.findAllByText("Apple")).length).toBeGreaterThan(0);
 		expect(screen.getByText("Replaced by your correction")).toBeTruthy();
 	});
 
@@ -151,7 +160,7 @@ describe("what a correction does to the diary", () => {
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await screen.findByText("Your correction of Apple w skin av");
 
-		fireEvent.press(screen.getByText("Log food"));
+		fireEvent.press(screen.getByText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -174,10 +183,13 @@ describe("what a correction does to the diary", () => {
 		);
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		fireEvent.press(await screen.findByText("Apple"));
-		fireEvent.press(screen.getByText("Log food"));
+		fireEvent.press(screen.getByText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		const before = structuredClone(log.mock.calls[0][0]);
+		fireEvent.press(screen.getByText("Done"));
 
 		await correctTheApple("Dinner");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
@@ -208,7 +220,7 @@ describe("correcting a shipped food offline", () => {
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await screen.findByText("Your correction of Apple w skin av");
 
-		fireEvent.press(screen.getByText("Log food"));
+		fireEvent.press(screen.getByText("Add & continue"));
 
 		expect(
 			await screen.findByText(
@@ -233,6 +245,8 @@ describe("correcting a shipped food in Dutch", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition");
 		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
+		fireEvent.press(await screen.findByRole("tab", { name: "Alle voeding" }));
+		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
 		fireEvent.press(await screen.findByText("Appel"));
 
 		fireEvent.press(await screen.findByText("Dit voedingsmiddel corrigeren"));
@@ -246,7 +260,7 @@ describe("correcting a shipped food in Dutch", () => {
 		).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Sluit portiekeuze"));
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
-		fireEvent.press(screen.getByText("Doorzoek alle 2.328 voedingsmiddelen"));
+		fireEvent.press(screen.getByRole("tab", { name: "Alle voeding" }));
 
 		expect(
 			await screen.findByText("Vervangen door jouw correctie"),

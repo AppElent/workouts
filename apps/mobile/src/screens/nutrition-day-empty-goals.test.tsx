@@ -44,7 +44,7 @@ describe("a day with no goals", () => {
 		fireEvent.press(screen.getByLabelText("Show other nutrients"));
 
 		expect(await screen.findByText("Energy")).toBeTruthy();
-		expect(screen.getByText("Protein")).toBeTruthy();
+		expect(screen.getAllByText("Protein").length).toBeGreaterThan(0);
 		expect(screen.getByText("Salt")).toBeTruthy();
 	});
 });

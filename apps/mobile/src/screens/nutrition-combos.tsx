@@ -5,8 +5,7 @@ import {
 	type NutrientValue,
 	shippedLibraryMeta,
 } from "@workouts/core/nutrition";
-import { useMutation } from "convex/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	Pressable,
 	ScrollView,
@@ -15,9 +14,14 @@ import {
 	View,
 } from "react-native";
 import { z } from "zod";
-import { api } from "../convex/api";
+import { nutritionCookingCopy } from "../data/nutrition-cooking-copy";
+import { scaleComboSnapshot } from "../data/nutrition-cooking-helpers";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import { MEAL_SLOTS } from "../data/nutrition-day";
+import {
+	mintNutritionUuid,
+	useNutritionOperations,
+} from "../data/nutrition-operation-service";
 import type {
 	ComboPart,
 	ComboPartReference,
@@ -132,9 +136,11 @@ export function NutritionComboLibrary({
 	onSelectCombo,
 	onBack,
 	date,
+	meal: initialMeal,
 	onClose,
 }: {
 	date: string;
+	meal: MealSlot;
 	selectedComboId?: string;
 	onSelectCombo: (id: string) => void;
 	onBack: () => void;
@@ -142,31 +148,56 @@ export function NutritionComboLibrary({
 }) {
 	const { t, locale } = useI18n();
 	const foods = usePersonalFoods();
+	const operations = useNutritionOperations();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const logCombo = useMutation(api.nutritionDiary.logCombo);
-	const [meal, setMeal] = useState<MealSlot>("breakfast");
+	const [meal, setMeal] = useState<MealSlot>(initialMeal);
+	const [scaleInput, setScaleInput] = useState("");
 	const [logging, setLogging] = useState(false);
+	const loggingRef = useRef(false);
 	const [deleting, setDeleting] = useState(false);
 	const combos = foods.listCombos();
 	const selected = combos.find((combo) => combo.id === selectedComboId);
+	const cookingCopy = nutritionCookingCopy(locale);
+	const scale = scaleInput.trim() ? Number(scaleInput.replace(",", ".")) : 1;
+	const scaleValid = Number.isFinite(scale) && scale > 0;
 	const hasMissing =
 		selected?.parts.some((part) => part.status === "missing") ?? false;
 
 	async function log() {
-		if (!selected || hasMissing || logging) return;
+		if (!selected || hasMissing || loggingRef.current) return;
+		loggingRef.current = true;
 		setLogging(true);
 		try {
-			await logCombo({
+			const subject = operations.getSubject();
+			if (!subject) throw new Error("Not signed in.");
+			const comboGroup = {
+				id: mintNutritionUuid(),
+				comboId: selected.id,
+				name: selected.name,
+			};
+			operations.createBatch(
+				subject,
 				date,
 				meal,
-				combo: { id: selected.id, name: selected.name },
-				parts: selected.parts.map((part) => resolvePart(part, foods.find)),
-			});
-			onClose();
+				selected.parts.map((part) => ({
+					...scaleComboSnapshot(resolvePart(part, foods.find), scale),
+					date,
+					meal,
+					comboGroup,
+					clientEntryId: mintNutritionUuid(),
+				})),
+				() => {
+					toast.error(t.nutrition.combos.logFailure);
+					setLogging(false);
+					loggingRef.current = false;
+				},
+				() => onClose(),
+			);
 		} catch {
 			toast.error(t.nutrition.combos.logFailure);
 			setLogging(false);
+			loggingRef.current = false;
 		}
 	}
 
@@ -259,6 +290,20 @@ export function NutritionComboLibrary({
 							</View>
 						))}
 					</Card>
+					<AppText variant="label">{cookingCopy.comboScale}</AppText>
+					<TextInput
+						value={scaleInput}
+						onChangeText={setScaleInput}
+						placeholder="1"
+						keyboardType="decimal-pad"
+						accessibilityLabel={cookingCopy.comboScale}
+						style={styles.input}
+					/>
+					<AppText variant="caption">
+						{scaleValid
+							? cookingCopy.comboScaleHelp
+							: cookingCopy.comboScaleInvalid}
+					</AppText>
 					<AppText variant="label">{t.nutrition.combos.destination}</AppText>
 					<View style={styles.meals}>
 						{MEAL_SLOTS.map((slot) => (
@@ -284,7 +329,7 @@ export function NutritionComboLibrary({
 										})
 						}
 						onPress={log}
-						disabled={hasMissing || deleting}
+						disabled={hasMissing || deleting || !scaleValid}
 						loading={logging}
 					/>
 					<GhostButton

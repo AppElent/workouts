@@ -6,24 +6,30 @@
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/data/calendar-day";
+import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
 import { useI18n } from "../../src/i18n";
 import { NutritionComboLibrary } from "../../src/screens/nutrition-combos";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionCombosRoute() {
-	const { date, comboId } = useLocalSearchParams<{
+	const { date, comboId, meal } = useLocalSearchParams<{
 		date?: string;
 		comboId?: string;
+		meal?: string;
 	}>();
 	const day = date ?? todayIsoDate();
+	const targetMeal: MealSlot = MEAL_SLOTS.includes(meal as MealSlot)
+		? (meal as MealSlot)
+		: "breakfast";
 	return (
 		<NutritionComboLibrary
 			date={day}
+			meal={targetMeal}
 			selectedComboId={comboId}
 			onSelectCombo={(id) =>
 				router.push({
 					pathname: "/nutrition-combos",
-					params: { date: day, comboId: id },
+					params: { date: day, meal: targetMeal, comboId: id },
 				})
 			}
 			onBack={() => router.back()}

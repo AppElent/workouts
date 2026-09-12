@@ -15,7 +15,8 @@
 import { useAuth } from "@clerk/expo";
 import { Redirect, Stack, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
+import { NutritionOperationsProvider } from "../../src/data/nutrition-operation-service";
 import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
 import { useI18n } from "../../src/i18n";
@@ -27,7 +28,7 @@ import { ToastProvider } from "../../src/ui/toast";
 
 export default function AppLayout() {
 	const { isSignedIn } = useAuth();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const segments = useSegments();
 	const tab = segments[segments.length - 1];
 	const selectedTab =
@@ -58,80 +59,130 @@ export default function AppLayout() {
 				<RestTimerProvider>
 					<PersonalFoodsProvider>
 						<OpenFoodFactsProvider>
-							<View style={{ flex: 1, backgroundColor: colors.bg }}>
-								<OfflineBanner />
-								<Stack
-									screenOptions={{
-										headerShown: true,
-										headerStyle: { backgroundColor: colors.bg },
-										headerTintColor: colors.accent,
-										headerTitleStyle: { color: colors.text },
-										headerShadowVisible: false,
-										gestureEnabled: true,
-										contentStyle: { backgroundColor: colors.bg },
-									}}
-								>
-									<Stack.Screen
-										name="(coach)"
-										options={{ title: tabTitle, headerBackVisible: false }}
-									/>
-									<Stack.Screen
-										name="exercises"
-										options={{ title: "Exercises" }}
-									/>
-									<Stack.Screen
-										name="exercise/[id]"
-										options={{ title: "Exercise" }}
-									/>
-									<Stack.Screen
-										name="hosted"
-										options={{ title: "Hosted workouts" }}
-									/>
-									<Stack.Screen
-										name="hosted/[id]"
-										options={{ title: "Hosted workout" }}
-									/>
-									<Stack.Screen name="wods" options={{ title: "WODs" }} />
-									<Stack.Screen name="wod/[id]" options={{ title: "WOD" }} />
-									<Stack.Screen
-										name="start-activity"
-										options={{ title: "Start activity" }}
-									/>
-									<Stack.Screen name="session" options={{ title: "Workout" }} />
-									<Stack.Screen
-										name="summary"
-										options={{
-											title: "Summary",
-											headerBackVisible: false,
-											gestureEnabled: false,
+							<NutritionOperationsProvider>
+								<View style={{ flex: 1, backgroundColor: colors.bg }}>
+									<OfflineBanner />
+									<Stack
+										screenOptions={{
+											headerShown: true,
+											headerTintColor: colors.accent,
+											gestureEnabled: true,
+											contentStyle: { backgroundColor: colors.bg },
+											...(Platform.OS === "android"
+												? {
+														headerStyle: { backgroundColor: colors.bg },
+														headerTitleStyle: { color: colors.text },
+														headerShadowVisible: false,
+													}
+												: {}),
 										}}
-									/>
-									<Stack.Screen
-										name="language"
-										options={{ title: t.language.title }}
-									/>
-									<Stack.Screen
-										name="nutrition-food"
-										options={{ title: t.nutrition.title }}
-									/>
-									<Stack.Screen
-										name="nutrition-entry"
-										options={{ title: t.nutrition.entryEditor.title }}
-									/>
-									<Stack.Screen
-										name="nutrition-combos"
-										options={{ title: t.nutrition.combos.log }}
-									/>
-									<Stack.Screen
-										name="nutrition-combo-new"
-										options={{ title: t.nutrition.combos.create }}
-									/>
-									<Stack.Screen
-										name="nutrition-goals"
-										options={{ title: t.nutrition.goalEditor.title }}
-									/>
-								</Stack>
-							</View>
+									>
+										<Stack.Screen
+											name="(coach)"
+											options={{
+												title: tabTitle,
+												headerBackVisible: false,
+											}}
+										/>
+										<Stack.Screen
+											name="exercises"
+											options={{ title: "Exercises" }}
+										/>
+										<Stack.Screen
+											name="exercise/[id]"
+											options={{ title: "Exercise" }}
+										/>
+										<Stack.Screen
+											name="hosted"
+											options={{ title: "Hosted workouts" }}
+										/>
+										<Stack.Screen
+											name="hosted/[id]"
+											options={{ title: "Hosted workout" }}
+										/>
+										<Stack.Screen name="wods" options={{ title: "WODs" }} />
+										<Stack.Screen name="wod/[id]" options={{ title: "WOD" }} />
+										<Stack.Screen
+											name="start-activity"
+											options={{ title: "Start activity" }}
+										/>
+										<Stack.Screen
+											name="session"
+											options={{ title: "Workout" }}
+										/>
+										<Stack.Screen
+											name="summary"
+											options={{
+												title: "Summary",
+												headerBackVisible: false,
+												gestureEnabled: false,
+											}}
+										/>
+										<Stack.Screen
+											name="language"
+											options={{ title: t.language.title }}
+										/>
+										<Stack.Screen
+											name="nutrition-food"
+											options={{ title: t.nutrition.foodBrowser.addFood }}
+										/>
+										<Stack.Screen
+											name="nutrition-entry"
+											options={{ title: t.nutrition.entryEditor.title }}
+										/>
+										<Stack.Screen
+											name="nutrition-combos"
+											options={{ title: t.nutrition.combos.log }}
+										/>
+										<Stack.Screen
+											name="nutrition-copy"
+											options={{ title: t.nutrition.copyMeal.title }}
+										/>
+										<Stack.Screen
+											name="nutrition-combo-new"
+											options={{ title: t.nutrition.combos.create }}
+										/>
+										<Stack.Screen
+											name="nutrition-goals"
+											options={{ title: t.nutrition.goalEditor.title }}
+										/>
+										<Stack.Screen
+											name="nutrition-cooking"
+											options={{
+												title:
+													locale === "nl"
+														? "Koken en snel vastleggen"
+														: "Cooking and quick capture",
+											}}
+										/>
+										<Stack.Screen
+											name="nutrition-assistance"
+											options={{
+												title:
+													locale === "nl"
+														? "Hulp bij invoeren"
+														: "Logging assistance",
+											}}
+										/>
+										<Stack.Screen
+											name="nutrition-weekly-review"
+											options={{
+												title:
+													locale === "nl" ? "Weekoverzicht" : "Weekly review",
+											}}
+										/>
+										<Stack.Screen
+											name="nutrition-library"
+											options={{
+												title:
+													locale === "nl"
+														? "Voedingsbibliotheek"
+														: "Food library",
+											}}
+										/>
+									</Stack>
+								</View>
+							</NutritionOperationsProvider>
 						</OpenFoodFactsProvider>
 					</PersonalFoodsProvider>
 				</RestTimerProvider>

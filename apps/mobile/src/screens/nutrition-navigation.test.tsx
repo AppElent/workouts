@@ -48,6 +48,8 @@ beforeEach(() => {
 	jest.clearAllMocks();
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
 		if (getFunctionName(reference) === "nutritionGoals:list") return [];
+		if (getFunctionName(reference) === "nutritionGoals:forDate")
+			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [loggedEntry], totals: {} };
 	});
 	jest
@@ -60,6 +62,21 @@ beforeEach(() => {
 });
 
 describe("Nutrition navigation", () => {
+	it("opens assisted logging from the diary tools and returns to the diary", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		fireEvent.press(await screen.findByText("Text and nutrition label"));
+		await waitFor(() =>
+			expect(app.getPathname()).toBe("/nutrition-assistance"),
+		);
+		expect(app.getSearchParams()).toMatchObject({
+			date: todayIsoDate(),
+			meal: "breakfast",
+		});
+		expect(testRouter.canGoBack()).toBe(true);
+		testRouter.back();
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+	});
 	it("pushes the food browser with the meal and day it was opened from", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
@@ -69,8 +86,34 @@ describe("Nutrition navigation", () => {
 			meal: "dinner",
 			date: todayIsoDate(),
 		});
-		// Opened for that meal, and says so.
-		expect(await screen.findByText("Find food for Dinner")).toBeTruthy();
+		// The compact meal/date picker retains the route's meal context.
+		expect(await screen.findByLabelText("Find food for Dinner")).toBeTruthy();
+	});
+	it("preserves Dinner when switching from Add food to Log once", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		fireEvent.press(await screen.findByLabelText("More food actions"));
+		fireEvent.press(await screen.findByText("Log once"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
+		expect(app.getSearchParams()).toMatchObject({
+			date: todayIsoDate(),
+			meal: "dinner",
+			mode: "oneoff-log",
+		});
+	});
+
+	it("routes Capture later directly to its cooking mode", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(await screen.findByLabelText("More food actions"));
+		fireEvent.press(await screen.findByText("Capture later"));
+
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
+		expect(app.getSearchParams()).toMatchObject({
+			date: todayIsoDate(),
+			meal: "lunch",
+			mode: "draft-new",
+		});
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {
@@ -103,6 +146,7 @@ describe("Nutrition navigation", () => {
 
 	it("pushes the Combo library for the day being viewed", async () => {
 		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Log Combo"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combos"));
@@ -114,6 +158,7 @@ describe("Nutrition navigation", () => {
 
 	it("carries the chosen entries to the Combo builder by id", async () => {
 		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Create Combo"));
 		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
 		fireEvent.press(await screen.findByText("Continue with 1 part"));
@@ -124,6 +169,7 @@ describe("Nutrition navigation", () => {
 
 	it("ends a Combo selection when the day it was made on is left", async () => {
 		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Create Combo"));
 		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
 		expect(screen.getByText("Continue with 1 part")).toBeTruthy();
@@ -136,7 +182,8 @@ describe("Nutrition navigation", () => {
 		await waitFor(() =>
 			expect(screen.queryByText("Continue with 1 part")).toBeNull(),
 		);
-		expect(screen.getByText("Create Combo")).toBeTruthy();
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		expect(await screen.findByText("Create Combo")).toBeTruthy();
 		expect(app.getPathname()).toBe("/nutrition");
 	});
 
@@ -167,6 +214,7 @@ describe("Nutrition navigation", () => {
 				},
 			],
 		});
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Log Combo"));
 		fireEvent.press(await screen.findByText("Breakfast"));
 		await waitFor(() =>

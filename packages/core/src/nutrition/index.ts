@@ -40,6 +40,7 @@ export {
 	OPEN_FOOD_FACTS_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
+export * from "./cooking";
 export {
 	type FoodResult,
 	type FoodResultsInput,

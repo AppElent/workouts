@@ -12,13 +12,12 @@
  * confirmation, per the spec's swipe-is-an-accelerator-not-the-only-route
  * rule. It remains available alongside the diary's swipe and context menu.
  */
-import { useMutation } from "convex/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { api } from "../convex/api";
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import type { DiaryEntry } from "../data/nutrition-day";
 import { MEAL_SLOTS, type MealSlot } from "../data/nutrition-day";
+import { useNutritionOperations } from "../data/nutrition-operation-service";
 import { useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
@@ -42,13 +41,14 @@ export function NutritionEntryEditor({
 }) {
 	const { t, locale } = useI18n();
 	const toast = useToast();
-	const updateEntry = useMutation(api.nutritionDiary.update);
+	const operations = useNutritionOperations();
 	const { deleteEntry, deleting } = useDeleteDiaryEntry();
 
 	const [quantityText, setQuantityText] = useState(String(entry.quantity));
 	const [nextMeal, setNextMeal] = useState<MealSlot>(meal);
 	const [nextDate, setNextDate] = useState(date);
 	const [saving, setSaving] = useState(false);
+	const saveLock = useRef(false);
 
 	const parsedQuantity = Number(quantityText.replace(",", "."));
 	const quantity =
@@ -56,22 +56,53 @@ export function NutritionEntryEditor({
 	const busy = saving || deleting;
 
 	async function save() {
-		if (busy || quantity <= 0) return;
+		if (busy || saveLock.current || quantity <= 0) return;
+		saveLock.current = true;
 		setSaving(true);
 		try {
-			await updateEntry({
-				id: entry.id,
-				quantity,
-				meal: nextMeal,
-				date: nextDate,
-			});
-			onClose();
+			const subject = operations.getSubject();
+			if (!subject) throw new Error("Not signed in.");
+			operations.update(
+				subject,
+				{ kind: "serverId", id: entry.id },
+				{
+					quantity,
+					meal: nextMeal,
+					date: nextDate,
+				},
+				{
+					targetEntry: {
+						_id: entry.id,
+						date,
+						meal,
+						name: entry.name,
+						serving: entry.serving,
+						quantity: entry.quantity,
+						amount: entry.amount,
+						baseUnit: entry.baseUnit,
+						nutrients: entry.nutrients,
+						provenance: entry.provenance,
+						...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
+					},
+				},
+				(error) => {
+					saveLock.current = false;
+					setSaving(false);
+					toast.error(
+						convexErrorMessage(error, t.nutrition.entryEditor.saveFailure),
+					);
+				},
+				() => {
+					setSaving(false);
+					onClose();
+				},
+			);
 		} catch (error) {
+			saveLock.current = false;
+			setSaving(false);
 			toast.error(
 				convexErrorMessage(error, t.nutrition.entryEditor.saveFailure),
 			);
-		} finally {
-			setSaving(false);
 		}
 	}
 

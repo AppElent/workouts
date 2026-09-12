@@ -92,13 +92,20 @@ jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: undefined }));
 jest.mock("convex/react", () => {
 	const emptyQueryResult: never[] = [];
 	const emptyDiary = { entries: [], totals: {} };
+	const emptyGoalHistory = {
+		goals: [],
+		basis: "reference",
+		effectiveFrom: null,
+	};
 	const { getFunctionName } = jest.requireActual("convex/server");
 	return {
 		...jest.requireActual("convex/react"),
 		useQuery: jest.fn((reference) =>
 			getFunctionName(reference) === "nutritionDiary:day"
 				? emptyDiary
-				: emptyQueryResult,
+				: getFunctionName(reference) === "nutritionGoals:forDate"
+					? emptyGoalHistory
+					: emptyQueryResult,
 		),
 		// The training marker's own, non-throwing query form (see
 		// `src/data/training-marker.ts`). Defaults to "no completed Activity

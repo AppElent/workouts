@@ -36,8 +36,8 @@ describe("the app's language", () => {
 		renderApp("/nutrition");
 
 		// No `await`, deliberately: this is the first committed frame.
-		expect(screen.getByText("Voeding")).toBeTruthy();
-		expect(screen.queryByText("Nutrition")).toBeNull();
+		expect(screen.getByText("Vandaag")).toBeTruthy();
+		expect(screen.queryByText("Today")).toBeNull();
 	});
 
 	it("keeps a chosen language for the next launch", async () => {
@@ -47,7 +47,7 @@ describe("the app's language", () => {
 
 		renderApp("/nutrition");
 
-		expect(screen.getByText("Voeding")).toBeTruthy();
+		expect(screen.getByText("Vandaag")).toBeTruthy();
 	});
 
 	it("uses Dutch food names and serving labels in the browser", async () => {
@@ -56,7 +56,8 @@ describe("the app's language", () => {
 		testRouter.navigate("/nutrition");
 		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
 
-		expect(await screen.findByText("Zoek eten voor Lunch")).toBeTruthy();
+		fireEvent.press(await screen.findByText("Alle voeding"));
+		fireEvent.changeText(screen.getByLabelText("Zoek eten"), "appel");
 		fireEvent.press(screen.getByText("Appel"));
 		expect(await screen.findByText("Appel × 1")).toBeTruthy();
 	});
@@ -74,7 +75,7 @@ describe("the app's language", () => {
 		);
 		fireEvent.press(screen.getByText("Doelen opslaan"));
 		expect(
-			await screen.findByText("Vul een hoeveelheid groter dan nul in."),
-		).toBeTruthy();
+			await screen.findAllByText("Voer een getal groter dan nul in."),
+		).toHaveLength(2);
 	});
 });

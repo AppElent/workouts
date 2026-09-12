@@ -37,10 +37,12 @@ import {
 	Modal,
 	Platform,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { colors, radius, spacing } from "../theme";
@@ -54,6 +56,8 @@ export interface RowAction {
 	onPress: () => void;
 	/** Draws in the danger colour and reads as destructive. Never skips confirmation. */
 	destructive?: boolean;
+	/** Keep secondary actions in the menu without making a swipe wider than the row. */
+	swipe?: boolean;
 }
 
 /** Spread onto the row's own focusable element so the actions reach a screen reader. */
@@ -75,6 +79,7 @@ export function SwipeableRow({
 	actions,
 	menuTitle,
 	closeMenuLabel,
+	showMenuButton = false,
 	children,
 }: {
 	href?: Href;
@@ -82,11 +87,13 @@ export function SwipeableRow({
 	/** Names the thing being acted on, so the menu is not four verbs with no subject. */
 	menuTitle: string;
 	closeMenuLabel: string;
+	showMenuButton?: boolean;
 	children: (accessibility: RowAccessibilityProps) => ReactNode;
 }) {
 	const reduceMotion = useReduceMotion();
 	const [menuOpen, setMenuOpen] = useState(false);
-	const openWidth = ACTION_WIDTH * actions.length;
+	const swipeActions = actions.filter((action) => action.swipe !== false);
+	const openWidth = ACTION_WIDTH * swipeActions.length;
 	const translateX = useRef(new Animated.Value(0)).current;
 	// Plain refs: the gesture callbacks run on the JS thread, so these are
 	// ordinary reads and writes rather than anything shared across threads.
@@ -199,7 +206,7 @@ export function SwipeableRow({
 			{/* Drawn behind the row and uncovered by it, so it is out of reach
 			    until the swipe has actually revealed it. */}
 			<View style={[styles.actionsLayer, { width: openWidth }]}>
-				{actions.map((action) => (
+				{swipeActions.map((action) => (
 					<Pressable
 						key={action.key}
 						onPress={() => runAction(action)}
@@ -231,23 +238,35 @@ export function SwipeableRow({
 			<GestureDetector gesture={pan}>
 				{/* The row's own opaque background is what hides the actions. */}
 				<Animated.View style={[styles.row, { transform: [{ translateX }] }]}>
-					{Platform.OS === "ios" && href ? (
-						<Link href={href} asChild>
-							<Link.Trigger>{children(accessibility)}</Link.Trigger>
-							<Link.Menu title={menuTitle}>
-								{actions.map((action) => (
-									<Link.MenuAction
-										key={action.key}
-										title={action.label}
-										destructive={action.destructive}
-										onPress={() => runAction(action)}
-									/>
-								))}
-							</Link.Menu>
-						</Link>
-					) : (
-						children(accessibility)
-					)}
+					<View style={{ flex: 1, minWidth: 0 }}>
+						{Platform.OS === "ios" && href ? (
+							<Link href={href} asChild>
+								<Link.Trigger>{children(accessibility)}</Link.Trigger>
+								<Link.Menu title={menuTitle}>
+									{actions.map((action) => (
+										<Link.MenuAction
+											key={action.key}
+											title={action.label}
+											destructive={action.destructive}
+											onPress={() => runAction(action)}
+										/>
+									))}
+								</Link.Menu>
+							</Link>
+						) : (
+							children(accessibility)
+						)}
+					</View>
+					{showMenuButton ? (
+						<Pressable
+							onPress={openMenu}
+							accessibilityRole="button"
+							accessibilityLabel={menuTitle}
+							style={styles.menuButton}
+						>
+							<AppText style={{ color: colors.textMuted }}>···</AppText>
+						</Pressable>
+					) : null}
 				</Animated.View>
 			</GestureDetector>
 
@@ -286,6 +305,7 @@ function ActionMenu({
 	onSelect: (action: RowAction) => void;
 	onClose: () => void;
 }) {
+	const insets = useSafeAreaInsets();
 	return (
 		<Modal
 			visible={visible}
@@ -294,31 +314,46 @@ function ActionMenu({
 			// Android's back button closes the menu rather than leaving the screen.
 			onRequestClose={onClose}
 		>
-			<Pressable style={styles.backdrop} onPress={onClose}>
+			<Pressable
+				style={[
+					styles.backdrop,
+					{
+						paddingBottom: insets.bottom + spacing.md,
+						paddingTop: insets.top + spacing.md,
+					},
+				]}
+				onPress={onClose}
+			>
 				{/* Swallows taps so pressing the card itself does not dismiss it. */}
-				<Pressable style={styles.menu} onPress={() => {}}>
+				<Pressable
+					style={styles.menu}
+					onPress={() => {}}
+					accessibilityViewIsModal
+				>
 					<AppText variant="heading">{title}</AppText>
-					{actions.map((action) => (
-						<Pressable
-							key={action.key}
-							onPress={() => onSelect(action)}
-							accessibilityRole="button"
-							accessibilityLabel={action.label}
-							style={({ pressed }) => [
-								styles.menuItem,
-								pressed && styles.actionPressed,
-							]}
-						>
-							<AppText
-								style={{
-									fontWeight: "700",
-									color: action.destructive ? colors.danger : colors.text,
-								}}
+					<ScrollView>
+						{actions.map((action) => (
+							<Pressable
+								key={action.key}
+								onPress={() => onSelect(action)}
+								accessibilityRole="button"
+								accessibilityLabel={action.label}
+								style={({ pressed }) => [
+									styles.menuItem,
+									pressed && styles.actionPressed,
+								]}
 							>
-								{action.label}
-							</AppText>
-						</Pressable>
-					))}
+								<AppText
+									style={{
+										fontWeight: "700",
+										color: action.destructive ? colors.danger : colors.text,
+									}}
+								>
+									{action.label}
+								</AppText>
+							</Pressable>
+						))}
+					</ScrollView>
 					<Pressable
 						onPress={onClose}
 						accessibilityRole="button"
@@ -355,7 +390,17 @@ const styles = StyleSheet.create({
 		paddingHorizontal: spacing.xs,
 	},
 	actionPressed: { opacity: 0.7 },
-	row: { backgroundColor: colors.surface },
+	row: {
+		backgroundColor: colors.surface,
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	menuButton: {
+		minWidth: 44,
+		minHeight: 44,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 
 	backdrop: {
 		flex: 1,
@@ -364,6 +409,7 @@ const styles = StyleSheet.create({
 		padding: spacing.md,
 	},
 	menu: {
+		maxHeight: "90%",
 		backgroundColor: colors.surface,
 		borderRadius: radius.sheet,
 		borderWidth: 1,

@@ -50,6 +50,12 @@ const goals = [
 
 function mockDay(withGoals: boolean) {
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
+		if (getFunctionName(reference) === "nutritionGoals:forDate")
+			return {
+				goals: withGoals ? goals : [],
+				basis: "reference",
+				effectiveFrom: null,
+			};
 		if (getFunctionName(reference) === "nutritionGoals:list")
 			return withGoals ? goals : [];
 		return {
@@ -96,6 +102,7 @@ describe("Nutrition accessibility", () => {
 		// A minimum that has been reached and a maximum that has been passed are
 		// two different sentences, and both are spoken as part of the row.
 		expect(screen.getByLabelText(/Protein: .*\. Met\./)).toBeTruthy();
+		fireEvent.press(screen.getByLabelText("Show additional goals"));
 		expect(screen.getByLabelText(/Salt: .*\. Over\./)).toBeTruthy();
 		// And the words are on screen too, not only in the accessible name.
 		expect(screen.getByText("Met")).toBeTruthy();
@@ -115,6 +122,7 @@ describe("Nutrition accessibility", () => {
 
 	it("announces a Combo selection as a checkbox that is checked", async () => {
 		renderApp();
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Create Combo"));
 
 		const row = await screen.findByLabelText("Select Oatmeal for Combo");

@@ -8,7 +8,11 @@ import type { SQLiteValue } from "../data/personal-food-repository";
  * Repository tests therefore exercise SQLite itself, not a SQL-shaped mock.
  */
 export class SQLiteTestDatabase {
-	readonly database = new DatabaseSync(":memory:");
+	readonly database: DatabaseSync;
+
+	constructor(path = ":memory:") {
+		this.database = new DatabaseSync(path);
+	}
 
 	execSync(source: string): void {
 		this.database.exec(source);

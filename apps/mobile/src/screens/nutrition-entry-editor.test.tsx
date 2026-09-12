@@ -24,6 +24,9 @@ const loggedEntry = {
 	name: { en: "Apple", nl: "Appel" },
 	serving: { en: "Piece × 1", nl: "Stuk × 1" },
 	quantity: 1,
+	amount: 135,
+	baseUnit: "g" as const,
+	provenance: { source: "oneOff" as const },
 	nutrients: {
 		energy: { kind: "value", amount: 76 },
 		protein: { kind: "value", amount: 0.3 },
@@ -39,6 +42,8 @@ const loggedEntry = {
 function mockDayWithLoggedEntry() {
 	mockUseQuery.mockImplementation((reference, _args?) => {
 		if (getFunctionName(reference) === "nutritionGoals:list") return [];
+		if (getFunctionName(reference) === "nutritionGoals:forDate")
+			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [loggedEntry], totals: {} };
 	});
 }
@@ -118,23 +123,19 @@ describe("editing a diary entry", () => {
 		});
 	});
 
-	it("prevents duplicate saves and keeps the entry editable after a failure", async () => {
+	it("accepts the edit locally once and offers sync retry after a network failure", async () => {
 		// A non-`Error` rejection, so the assertion is on the localized fallback
 		// text rather than convexErrorMessage's Convex-specific pass-through.
 		const update = jest.fn().mockRejectedValue("offline");
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		const button = screen.getByText("Save changes");
 		fireEvent.press(button);
 		fireEvent.press(button);
 
-		expect(
-			await screen.findByText(
-				"This entry could not be updated. Your changes are still here.",
-			),
-		).toBeTruthy();
-		expect(screen.getByText("Edit entry")).toBeTruthy();
+		expect(await screen.findByText("Today")).toBeTruthy();
+		expect(await screen.findByText("Retry sync")).toBeTruthy();
 		expect(update).toHaveBeenCalledTimes(1);
 	});
 
@@ -168,9 +169,9 @@ describe("editing a diary entry", () => {
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
-	it("keeps the entry visible and surfaces a recoverable error when delete fails", async () => {
+	it("keeps a durable deletion and offers sync retry when the network fails", async () => {
 		const remove = jest.fn().mockRejectedValue("offline");
-		mockMutations("remove", remove);
+		mockMutations("applyOperation", remove);
 		await openEditor();
 
 		fireEvent.press(screen.getByText("Delete entry"));
@@ -178,12 +179,9 @@ describe("editing a diary entry", () => {
 		const confirmButtons = screen.getAllByText("Delete entry");
 		fireEvent.press(confirmButtons[confirmButtons.length - 1]);
 
-		expect(
-			await screen.findByText(
-				"This entry could not be deleted. It is still in your diary.",
-			),
-		).toBeTruthy();
-		expect(screen.getByText("Edit entry")).toBeTruthy();
+		expect(await screen.findByText("Today")).toBeTruthy();
+		expect(await screen.findByText("Retry sync")).toBeTruthy();
+		expect(screen.queryByLabelText("Edit entry: Apple")).toBeNull();
 		expect(remove).toHaveBeenCalledTimes(1);
 	});
 });

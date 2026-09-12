@@ -15,9 +15,13 @@ import {
 	type NutritionGoalValue,
 } from "@workouts/core/nutrition";
 import { useQuery } from "convex/react";
-import type { Id } from "../convex/api";
+import { useEffect } from "react";
 import { api } from "../convex/api";
 import type { IsoDate } from "./calendar-day";
+import {
+	useNutritionOperations,
+	useNutritionOperationVersion,
+} from "./nutrition-operation-service";
 import type { ComboSnapshotProvenance } from "./personal-food-repository";
 
 /** The eight nutrients the module stores and shows. Order is display order. */
@@ -36,7 +40,8 @@ export interface NutrientGoal extends NutritionGoalValue {
 }
 
 export interface DiaryEntry {
-	id: Id<"nutritionDiaryEntries">;
+	id: string;
+	pendingOperationId?: string;
 	name: { en: string; nl: string };
 	/** "1 bowl (250 g)" — serving name × quantity, already formatted. */
 	serving: { en: string; nl: string };
@@ -51,10 +56,14 @@ export interface DiaryEntry {
 
 export interface NutritionDay {
 	date: IsoDate;
+	complete: boolean;
 	goals: NutrientGoal[];
+	goalBasis?: "effective" | "reference";
+	goalsCached?: boolean;
 	/** Day totals per nutrient. Absent from the map means "nothing logged". */
 	totals: Partial<Record<NutrientKey, NutrientTotal>>;
 	entries: Record<MealSlot, DiaryEntry[]>;
+	pendingOperationIds: readonly string[];
 }
 
 export type NutritionDayState =
@@ -93,18 +102,51 @@ export function nutrientUnit(nutrient: NutrientKey): "kcal" | "g" {
  * from the start is what makes the skeleton a real branch instead of a mock-up.
  */
 export function useNutritionDay(date: IsoDate): NutritionDayState {
-	const goals = useQuery(api.nutritionGoals.list, {});
+	const goalHistory = useQuery(api.nutritionGoals.forDate, { date });
 	const diary = useQuery(api.nutritionDiary.day, { date });
-	if (goals === undefined || diary === undefined) return { status: "loading" };
+	const operations = useNutritionOperations();
+	useNutritionOperationVersion();
+	const subject = operations.getSubject();
+	const cachedGoals = subject ? operations.getGoals(subject, date) : undefined;
+	const history = goalHistory ?? cachedGoals;
+	const goals = history?.goals;
+	const local = subject ? operations.getProjectedDay(subject, date) : undefined;
+	const remoteRevision = diary?.revision ?? 0;
+	useEffect(() => {
+		if (subject && goalHistory)
+			operations.cacheGoals(subject, date, goalHistory);
+	}, [operations, subject, date, goalHistory]);
+	useEffect(() => {
+		if (!subject || !diary) return;
+		operations.cacheServerDay(subject, {
+			date,
+			revision: remoteRevision,
+			entries: diary.entries as never,
+			totals: diary.totals,
+		});
+	}, [date, diary, operations, remoteRevision, subject]);
+	if (goals === undefined && !local?.complete && !local?.entries.length)
+		return { status: "loading" };
+	if (diary === undefined && !local?.complete && !local?.entries.length) {
+		return { status: "loading" };
+	}
 	const entries = {
 		breakfast: [],
 		lunch: [],
 		dinner: [],
 		snacks: [],
 	} as Record<MealSlot, DiaryEntry[]>;
-	for (const entry of diary.entries) {
+	const hasPendingOperations = (local?.pendingOperationIds.length ?? 0) > 0;
+	const useLocal =
+		hasPendingOperations ||
+		diary === undefined ||
+		(local?.revision ?? -1) > remoteRevision;
+	const sourceEntries = useLocal
+		? (local?.entries ?? [])
+		: (diary?.entries ?? []);
+	for (const entry of sourceEntries) {
 		entries[entry.meal].push({
-			id: entry._id,
+			id: String(entry._id),
 			name: entry.name,
 			serving: entry.serving,
 			nutrients: entry.nutrients,
@@ -113,10 +155,21 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			baseUnit: entry.baseUnit,
 			provenance: entry.provenance,
 			comboGroup: entry.comboGroup,
+			pendingOperationId:
+				"pendingOperationId" in entry ? entry.pendingOperationId : undefined,
 		});
 	}
 	return {
 		status: "ready",
-		day: { date, goals, totals: diary.totals, entries },
+		day: {
+			date,
+			complete: local?.complete || diary !== undefined,
+			goals: goals ?? [],
+			goalBasis: history?.basis,
+			goalsCached: !goalHistory && !!cachedGoals,
+			totals: useLocal ? (local?.totals ?? {}) : (diary?.totals ?? {}),
+			entries,
+			pendingOperationIds: local?.pendingOperationIds ?? [],
+		},
 	};
 }

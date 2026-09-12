@@ -11,14 +11,13 @@
  * The confirmation is what makes the swipe safe rather than the swipe being
  * restrained enough to be safe on its own — `ui/swipeable-row.tsx` does both.
  */
-import { useMutation } from "convex/react";
 import { useCallback, useState } from "react";
-import { api } from "../convex/api";
 import { fmt, useI18n } from "../i18n";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { useToast } from "../ui/toast";
 import { formatLongDate } from "./calendar-day";
 import type { DiaryEntry, MealSlot } from "./nutrition-day";
+import { useNutritionOperations } from "./nutrition-operation-service";
 
 export interface DeleteDiaryEntryRequest {
 	entry: DiaryEntry;
@@ -45,7 +44,7 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 	const { t, locale } = useI18n();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const removeEntry = useMutation(api.nutritionDiary.remove);
+	const operations = useNutritionOperations();
 	const [deleting, setDeleting] = useState(false);
 
 	const deleteEntry = useCallback(
@@ -66,8 +65,44 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 			if (!confirmed) return false;
 			setDeleting(true);
 			try {
-				await removeEntry({ id: entry.id });
-				return true;
+				const subject = operations.getSubject();
+				if (!subject) throw new Error("Not signed in.");
+				const removed = await new Promise<boolean>((resolve) =>
+					operations.remove(
+						subject,
+						{ kind: "serverId", id: entry.id },
+						{
+							targetEntry: {
+								_id: entry.id,
+								date,
+								meal,
+								name: entry.name,
+								serving: entry.serving,
+								quantity: entry.quantity,
+								amount: entry.amount,
+								baseUnit: entry.baseUnit,
+								nutrients: entry.nutrients,
+								provenance: entry.provenance,
+								...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
+							},
+						},
+						(error) => {
+							setDeleting(false);
+							toast.error(
+								convexErrorMessage(
+									error,
+									t.nutrition.entryEditor.deleteFailure,
+								),
+							);
+							resolve(false);
+						},
+						() => {
+							setDeleting(false);
+							resolve(true);
+						},
+					),
+				);
+				return removed;
 			} catch (error) {
 				toast.error(
 					convexErrorMessage(error, t.nutrition.entryEditor.deleteFailure),
@@ -77,7 +112,7 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 				setDeleting(false);
 			}
 		},
-		[confirm, locale, removeEntry, t, toast],
+		[confirm, locale, operations, t, toast],
 	);
 
 	return { deleteEntry, deleting };

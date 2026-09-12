@@ -73,7 +73,7 @@ describe("scanning a barcode", () => {
 		});
 
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
 		// The serving sheet opens over the results, so the name is both the
@@ -81,7 +81,7 @@ describe("scanning a barcode", () => {
 		expect((await screen.findAllByText("Scanned Soup")).length).toBeGreaterThan(
 			0,
 		);
-		expect(screen.getByText("Log food")).toBeTruthy();
+		expect(screen.getByText("Add & continue")).toBeTruthy();
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
@@ -96,7 +96,7 @@ describe("scanning a barcode", () => {
 		renderApp("/nutrition", {}, fetchImpl);
 
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
 		expect(await screen.findByText("Review imported food")).toBeTruthy();
@@ -107,7 +107,7 @@ describe("scanning a barcode", () => {
 		expect((await screen.findAllByText("Baked Beans")).length).toBeGreaterThan(
 			0,
 		);
-		fireEvent.press(screen.getByText("Log food"));
+		fireEvent.press(screen.getByText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0].provenance).toMatchObject({
@@ -129,12 +129,12 @@ describe("scanning a barcode", () => {
 		const { repository } = renderApp("/nutrition", {}, fetchImpl);
 
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 		await screen.findByText("Review imported food");
 
 		fireEvent.changeText(
-			screen.getByLabelText("English name"),
+			screen.getByLabelText("Name"),
 			"Baked Beans in Tomato Sauce",
 		);
 		fireEvent.press(screen.getByText("Save Personal Food"));
@@ -156,13 +156,13 @@ describe("scanning a barcode", () => {
 		]);
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 
 		expect(await screen.findByText(/Camera access was refused/)).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Close"));
 
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
-		expect(screen.getByText("Create Personal Food")).toBeTruthy();
+		expect(screen.getByLabelText("More food actions")).toBeTruthy();
 	});
 
 	it("keeps Search and Enter manually reachable when camera access is restricted", async () => {
@@ -178,7 +178,7 @@ describe("scanning a barcode", () => {
 		]);
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 
 		expect(await screen.findByText(/Camera access is restricted/)).toBeTruthy();
 		expect(screen.queryByText("Allow camera access")).toBeNull();
@@ -215,12 +215,12 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () => impl());
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
 		expect(await screen.findByText(message)).toBeTruthy();
 		expect(screen.getByPlaceholderText("Search foods")).toBeTruthy();
-		expect(screen.getByText("Create Personal Food")).toBeTruthy();
+		expect(screen.getByLabelText("More food actions")).toBeTruthy();
 	});
 
 	it("reports a timed-out lookup distinctly and still leaves local exits reachable", async () => {
@@ -233,7 +233,7 @@ describe("scanning a barcode", () => {
 		});
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByText("Scan barcode"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
 		expect(
@@ -244,10 +244,32 @@ describe("scanning a barcode", () => {
 });
 
 describe("the explicit Open Food Facts search", () => {
+	it("shows downtime inline, preserves the query, and allows retry", async () => {
+		const fetchImpl = jest
+			.fn()
+			.mockResolvedValueOnce(jsonResponse(503, {}))
+			.mockResolvedValueOnce(jsonResponse(200, { hits: [bakedBeans] }));
+		renderApp("/nutrition", {}, fetchImpl);
+		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"baked beans",
+		);
+		fireEvent.press(screen.getByText("Search Open Food Facts"));
+		expect(await screen.findByTestId("off-search-feedback")).toHaveTextContent(
+			/Open Food Facts is temporarily unavailable/,
+		);
+		expect(screen.getByDisplayValue("baked beans")).toBeTruthy();
+		expect(screen.queryByText("No foods found")).toBeNull();
+		fireEvent.press(screen.getByText("Search Open Food Facts"));
+		expect(await screen.findByText("Baked Beans")).toBeTruthy();
+		expect(screen.queryByTestId("off-search-feedback")).toBeNull();
+	});
 	it("is hidden until a query is typed and never fires on ordinary local search", async () => {
 		const fetchImpl: FetchLike = jest.fn();
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
 
 		expect(screen.queryByText("Search Open Food Facts")).toBeNull();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
@@ -258,17 +280,18 @@ describe("the explicit Open Food Facts search", () => {
 
 	it("finds an online result and opens it for review before it can be logged", async () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
-			jsonResponse(200, { products: [bakedBeans] }),
+			jsonResponse(200, { hits: [bakedBeans] }),
 		);
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
 		fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"baked beans",
 		);
 		fireEvent.press(await screen.findByText("Search Open Food Facts"));
 
-		expect(await screen.findByText("Open Food Facts results")).toBeTruthy();
+		expect(await screen.findByText(/Open Food Facts results/)).toBeTruthy();
 		fireEvent.press(screen.getByText("Baked Beans"));
 
 		expect(await screen.findByText("Review imported food")).toBeTruthy();
@@ -276,10 +299,11 @@ describe("the explicit Open Food Facts search", () => {
 
 	it("reports no online matches without disturbing local Search or Enter manually", async () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
-			jsonResponse(200, { products: [] }),
+			jsonResponse(200, { hits: [] }),
 		);
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
 		fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"zzzznotfound",
@@ -292,6 +316,6 @@ describe("the explicit Open Food Facts search", () => {
 			),
 		).toBeTruthy();
 		expect(screen.getByPlaceholderText("Search foods")).toBeTruthy();
-		expect(screen.getByText("Create Personal Food")).toBeTruthy();
+		expect(screen.getByLabelText("More food actions")).toBeTruthy();
 	});
 });

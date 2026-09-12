@@ -24,13 +24,16 @@ import type {
 } from "./personal-food-repository";
 
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
-const OFF_SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
+// Legacy /cgi/search.pl requires authentication and returns 503 anonymously.
+// Search-a-licious is OFF's public full-text API; v2 search is filters only.
+const OFF_SEARCH_URL = "https://search.openfoodfacts.org/search";
 const REQUEST_TIMEOUT_MS = 8000;
 const OFF_PROVIDER_LABEL = "Open Food Facts";
 const PRODUCT_FIELDS =
 	"code,product_name,product_name_en,product_name_nl,brands,quantity,product_quantity_unit,nutriments";
 
 export type OffLookupOutcome =
+	| { readonly kind: "unavailable" }
 	| {
 			readonly kind: "found";
 			readonly draft: PersonalFoodDraft;
@@ -44,6 +47,7 @@ export type OffLookupOutcome =
 	| { readonly kind: "invalid" };
 
 export type OffSearchOutcome =
+	| { readonly kind: "unavailable" }
 	| {
 			readonly kind: "found";
 			readonly drafts: readonly PersonalFoodDraft[];
@@ -59,7 +63,7 @@ type OffRawProduct = {
 	readonly product_name?: string;
 	readonly product_name_en?: string;
 	readonly product_name_nl?: string;
-	readonly brands?: string;
+	readonly brands?: string | readonly string[];
 	readonly quantity?: string;
 	readonly product_quantity_unit?: string;
 	readonly nutriments?: Readonly<Record<string, unknown>>;
@@ -71,7 +75,9 @@ type OffProductResponse = {
 };
 
 type OffSearchResponse = {
-	readonly products?: readonly OffRawProduct[];
+	readonly hits?: readonly OffRawProduct[];
+	readonly errors?: readonly unknown[];
+	readonly timed_out?: boolean;
 };
 
 /** A fetch-shaped dependency, injected so tests exercise the real network boundary rather than an internal mock (spec #68 testing decisions). */
@@ -139,7 +145,9 @@ function energyNutrient(
 ): NutrientValue {
 	const kcal = readNutrient(nutriments, "energy-kcal_100g");
 	if (kcal.kind !== "absent") return kcal;
-	const kilojoules = parseProviderNumber(nutriments?.energy_100g);
+	const kilojoules =
+		parseProviderNumber(nutriments?.["energy-kj_100g"]) ??
+		parseProviderNumber(nutriments?.energy_100g);
 	if (kilojoules === undefined) return kcal;
 	return { kind: "value", amount: Math.round((kilojoules / 4.184) * 10) / 10 };
 }
@@ -214,6 +222,7 @@ async function fetchJson(
 	| { kind: "rate-limited" }
 	| { kind: "timeout" }
 	| { kind: "network-error" }
+	| { kind: "unavailable" }
 > {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -223,6 +232,7 @@ async function fetchJson(
 			signal: controller.signal,
 		});
 		if (response.status === 429) return { kind: "rate-limited" };
+		if (response.status >= 500) return { kind: "unavailable" };
 		if (!response.ok) return { kind: "network-error" };
 		return { kind: "ok", body: await response.json() };
 	} catch (error) {
@@ -281,7 +291,7 @@ export async function searchOffProducts(
 	const trimmed = query.trim();
 	if (trimmed.length === 0) return { kind: "not-found" };
 	const fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike);
-	const cacheKey = `search:${trimmed.toLocaleLowerCase()}`;
+	const cacheKey = `searchalicious:nl,en:${trimmed.toLocaleLowerCase()}`;
 	const cached = options.cache.get(cacheKey);
 	if (cached) {
 		const drafts = (cached.response as OffRawProduct[])
@@ -296,10 +306,8 @@ export async function searchOffProducts(
 	}
 
 	const params = new URLSearchParams({
-		search_terms: trimmed,
-		search_simple: "1",
-		action: "process",
-		json: "1",
+		q: trimmed,
+		langs: "nl,en",
 		page_size: "20",
 		fields: PRODUCT_FIELDS,
 	});
@@ -310,8 +318,13 @@ export async function searchOffProducts(
 	);
 	if (result.kind !== "ok") return { kind: result.kind };
 
-	const body = result.body as OffSearchResponse;
-	const products = body.products ?? [];
+	const body = result.body as OffSearchResponse | null;
+	if (!body || body.errors?.length || !Array.isArray(body.hits))
+		return { kind: "unavailable" };
+	if (body.timed_out) return { kind: "timeout" };
+	const products = body.hits.filter(
+		(product) => product !== null && typeof product === "object",
+	);
 	options.cache.set(cacheKey, "search", products);
 	const drafts = products
 		.map(mapOffProductToDraft)

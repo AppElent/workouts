@@ -1,22 +1,38 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
+import { nutritionGoalTables } from './nutritionGoalTables'
+import { nutritionReviewTables } from './nutritionReviewModel'
+import { nutritionLibraryTables } from './nutritionLibraryTables'
 
 export default defineSchema({
+  ...nutritionGoalTables,
+  ...nutritionReviewTables,
+  ...nutritionLibraryTables,
   nutritionDiaryEntries: defineTable({
     userId: v.string(),
     ...diarySnapshotFields,
     // A Combo is only provenance/rendering: every row remains an ordinary
     // independently editable diary snapshot even if the local Combo vanishes.
-    comboGroup: v.optional(v.object({
-      id: v.string(),
-      comboId: v.string(),
-      name: v.string(),
-    })),
     loggedAt: v.number(),
   })
     .index('by_user', ['userId'])
-    .index('by_user_date', ['userId', 'date']),
+    .index('by_user_date', ['userId', 'date'])
+    .index('by_user_client_entry', ['userId', 'clientEntryId']),
+
+  nutritionDiaryOperationReceipts: defineTable({
+    userId: v.string(),
+    operationId: v.string(),
+    payload: v.string(),
+    result: v.string(),
+    createdAt: v.number(),
+  }).index('by_user_operation', ['userId', 'operationId']),
+
+  nutritionDiaryDayVersions: defineTable({
+    userId: v.string(),
+    date: v.string(),
+    revision: v.number(),
+  }).index('by_user_date', ['userId', 'date']),
 
   nutritionGoals: defineTable({
     userId: v.string(),

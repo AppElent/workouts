@@ -53,11 +53,20 @@ function showDiary(
 		}
 	>,
 ) {
-	mockUseQuery.mockImplementation((reference, _args?) =>
-		getFunctionName(reference) === "nutritionDiary:day"
-			? { entries, totals: {} }
-			: [],
-	);
+	mockUseQuery.mockImplementation((reference, args?) => {
+		const name = getFunctionName(reference);
+		if (name === "nutritionDiary:day") return { entries, totals: {} };
+		if (name === "nutritionGoals:forDate") {
+			return {
+				goals: [],
+				basis: "reference",
+				effectiveFrom: (args as { date?: string } | undefined)?.date,
+			};
+		}
+		// Keep the legacy list query available for the goal editor's route tests.
+		if (name === "nutritionGoals:list") return [];
+		return [];
+	});
 }
 
 function oneOffCombo(): ComboDraft {
@@ -104,6 +113,7 @@ describe("Nutrition Combos", () => {
 		const app = renderApp();
 		await screen.findByText("Apple");
 
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Create Combo"));
 		expect(screen.queryByLabelText("Select Lunch for Combo")).toBeNull();
 		fireEvent.press(screen.getByLabelText("Select Apple for Combo"));
@@ -134,6 +144,7 @@ describe("Nutrition Combos", () => {
 		});
 		await screen.findByText("Oats");
 
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Create Combo"));
 		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
 		fireEvent.press(screen.getByText("Continue with 1 part"));
@@ -162,6 +173,7 @@ describe("Nutrition Combos", () => {
 		const combo = app.repository.createCombo(oneOffCombo());
 		await screen.findByText("Today");
 
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Log Combo"));
 		fireEvent.press(await screen.findByText("Morning Combo"));
 		fireEvent.press(screen.getByText("Dinner"));
@@ -217,6 +229,7 @@ describe("Nutrition Combos", () => {
 		app.repository.update(food.id, personalFoodDraft("Updated oats", 200));
 		await screen.findByText("Today");
 
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Log Combo"));
 		fireEvent.press(await screen.findByText("Current oats"));
 		fireEvent.press(screen.getByText("Log 1 part"));
@@ -237,7 +250,7 @@ describe("Nutrition Combos", () => {
 		);
 	});
 
-	it("shows pending and failure feedback without losing the chosen Combo", async () => {
+	it("closes after local acceptance and keeps sync status visible after a network failure", async () => {
 		showDiary([]);
 		let rejectLog: (reason: Error) => void = () => undefined;
 		const pending = new Promise<never>((_resolve, reject) => {
@@ -252,19 +265,22 @@ describe("Nutrition Combos", () => {
 		const app = renderApp();
 		app.repository.createCombo(oneOffCombo());
 		await screen.findByText("Today");
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Log Combo"));
 		fireEvent.press(await screen.findByText("Morning Combo"));
 
 		fireEvent.press(screen.getByText("Log 1 part"));
-		expect(await screen.findByText("Logging Combo…")).toBeTruthy();
+		// The release-two service closes at the local SQLite acceptance boundary;
+		// it must not hold the form open while the network request is pending.
+		expect(await screen.findByText("Today")).toBeTruthy();
 		rejectLog(new Error("offline"));
 
 		expect(
 			await screen.findByText(
-				"This Combo could not be logged. Your selection is still here.",
+				"1 changes saved on this device; waiting to sync.",
 			),
 		).toBeTruthy();
-		expect(screen.getByText("Morning Combo")).toBeTruthy();
+		expect(screen.getByText("Retry sync")).toBeTruthy();
 	});
 
 	it("renders a logged Combo collapsed, then exposes each normal entry editor", async () => {
@@ -311,6 +327,7 @@ describe("Nutrition Combos", () => {
 		});
 		await screen.findByText("Today");
 
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Log Combo"));
 		fireEvent.press(await screen.findByText("Old breakfast"));
 
@@ -343,6 +360,7 @@ describe("Nutrition Combos", () => {
 			],
 		});
 		await screen.findByText("Today");
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Log Combo"));
 		fireEvent.press(await screen.findByText("Repair me"));
 
@@ -361,10 +379,11 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition");
 
+		fireEvent.press(await screen.findByLabelText("Meer voedingsfuncties"));
 		expect(await screen.findByText("Combo maken")).toBeTruthy();
 		fireEvent.press(screen.getByText("Combo loggen"));
 		expect(
-			await screen.findByText("Alleen op dit apparaat opgeslagen"),
+			await screen.findByText("Lokale opslag en optionele reservekopie"),
 		).toBeTruthy();
 		expect(screen.getByText("Nog geen Combo's")).toBeTruthy();
 	});

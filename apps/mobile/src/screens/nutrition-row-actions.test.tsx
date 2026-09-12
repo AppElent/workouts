@@ -45,6 +45,8 @@ beforeEach(() => {
 	remove.mockResolvedValue(undefined);
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
 		if (getFunctionName(reference) === "nutritionGoals:list") return [];
+		if (getFunctionName(reference) === "nutritionGoals:forDate")
+			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [oatmeal], totals: {} };
 	});
 	jest
@@ -66,6 +68,24 @@ function pressConfirm(label: string) {
 }
 
 describe("diary row accelerators", () => {
+	it("keeps meal copy in the meal's visible actions menu", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
+		fireEvent.press(await screen.findByText("Copy meal"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-copy"));
+		expect(app.getSearchParams()).toMatchObject({ targetMeal: "breakfast" });
+	});
+
+	it("starts a Combo from the selected meal's entries", async () => {
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
+		fireEvent.press(await screen.findByText("Create Combo"));
+		expect(
+			screen.getByLabelText("Select Oatmeal for Combo").props.accessibilityState
+				.checked,
+		).toBe(true);
+		expect(screen.getByText("Continue with 1 part")).toBeEnabled();
+	});
 	it("asks before deleting an entry reached through the revealed swipe action", async () => {
 		renderApp();
 		// The revealed action is in the tree behind the row from the start; the
@@ -106,6 +126,31 @@ describe("diary row accelerators", () => {
 		expect(await screen.findByLabelText("Close")).toBeTruthy();
 		expect(screen.getAllByLabelText("Edit")).toHaveLength(2);
 		expect(screen.getAllByLabelText("Delete")).toHaveLength(2);
+		expect(screen.getByLabelText("Copy")).toBeTruthy();
+		expect(screen.getByLabelText("Move")).toBeTruthy();
+	});
+
+	it("opens Copy from the visible row menu without a gesture", async () => {
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Actions for Oatmeal"));
+		fireEvent.press(await screen.findByText("Copy"));
+		expect((await screen.findAllByText("Copy entry")).length).toBeGreaterThan(
+			0,
+		);
+	});
+
+	it("opens Move from the row's screen-reader action", async () => {
+		renderApp();
+		fireEvent(
+			await screen.findByLabelText("Edit entry: Oatmeal"),
+			"accessibilityAction",
+			{ nativeEvent: { actionName: "move" } },
+		);
+		const buttons = await screen.findAllByText("Move entry");
+		expect(buttons[buttons.length - 1]).toBeDisabled();
+		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
+		const enabled = screen.getAllByText("Move entry");
+		expect(enabled[enabled.length - 1]).toBeEnabled();
 	});
 
 	it("gives a screen reader the row's actions without any gesture", async () => {
@@ -114,6 +159,8 @@ describe("diary row accelerators", () => {
 
 		expect(row.props.accessibilityActions).toEqual([
 			{ name: "edit", label: "Edit" },
+			{ name: "copy", label: "Copy" },
+			{ name: "move", label: "Move" },
 			{ name: "delete", label: "Delete" },
 		]);
 

@@ -118,6 +118,12 @@ export type Combo = Omit<ComboDraft, "parts"> & {
 	readonly updatedAt: number;
 };
 
+/** A complete portable library snapshot. IDs intentionally belong to the data. */
+export type PersonalLibraryBackup = {
+	readonly foods: readonly PersonalFood[];
+	readonly combos: readonly Combo[];
+};
+
 export type PersonalFoodRepository = {
 	list(): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
@@ -135,14 +141,20 @@ export type PersonalFoodRepository = {
 	forks(): PersonalFood[];
 	/** The correction standing in front of a shipped food, if there is one. */
 	findForkOf(shippedId: string): PersonalFood | undefined;
-	create(draft: PersonalFoodDraft): PersonalFood;
+	create(draft: PersonalFoodDraft, id?: string): PersonalFood;
 	update(id: string, draft: PersonalFoodDraft): PersonalFood;
 	remove(id: string): boolean;
 	listCombos(): Combo[];
 	findCombo(id: string): Combo | undefined;
-	createCombo(draft: ComboDraft): Combo;
+	createCombo(draft: ComboDraft, id?: string): Combo;
 	updateCombo(id: string, draft: ComboDraft): Combo;
 	removeCombo(id: string): boolean;
+	/**
+	 * Used only by the account-library sync layer. It preserves every food,
+	 * Combo and Combo-part ID, and never touches diary snapshots.
+	 */
+	exportBackup(): PersonalLibraryBackup;
+	replaceFromBackup(backup: PersonalLibraryBackup): void;
 };
 
 type PersonalFoodRow = {
@@ -607,9 +619,9 @@ export function createPersonalFoodRepository(
 				(food) => food.provenance.forkedFrom === shippedId,
 			);
 		},
-		create(draft) {
+		create(draft, suppliedId) {
 			const valid = validatePersonalFoodDraft(draft);
-			const id = nextUuid();
+			const id = suppliedId ? validateText(suppliedId, "Food ID") : nextUuid();
 			const timestamp = now();
 			database.runSync(
 				`INSERT INTO personal_foods
@@ -672,10 +684,10 @@ export function createPersonalFoodRepository(
 				.map(comboFromRow);
 		},
 		findCombo,
-		createCombo(draft) {
+		createCombo(draft, suppliedId) {
 			const name = validateText(draft.name, "Combo name");
 			const parts = storedComboParts(draft);
-			const id = nextUuid();
+			const id = suppliedId ? validateText(suppliedId, "Combo ID") : nextUuid();
 			const timestamp = now();
 			database.runSync(
 				`INSERT INTO nutrition_combos
@@ -716,13 +728,98 @@ export function createPersonalFoodRepository(
 					.changes > 0
 			);
 		},
+		exportBackup() {
+			return {
+				foods: this.list(),
+				combos: this.listCombos(),
+			};
+		},
+		replaceFromBackup(backup) {
+			const foodIds = new Set<string>();
+			const comboIds = new Set<string>();
+			const foods = backup.foods.map((food) => {
+				if (foodIds.has(food.id))
+					throw new Error("Backup has duplicate food IDs.");
+				foodIds.add(food.id);
+				return {
+					id: validateText(food.id, "Food ID"),
+					...validatePersonalFoodDraft(food),
+					createdAt: food.createdAt,
+					updatedAt: food.updatedAt,
+				};
+			});
+			const combos = backup.combos.map((combo) => {
+				if (comboIds.has(combo.id))
+					throw new Error("Backup has duplicate Combo IDs.");
+				comboIds.add(combo.id);
+				const parts = validateComboDraft({
+					name: combo.name,
+					parts: combo.parts,
+				});
+				if (parts.parts.some((part) => !part.id))
+					throw new Error("Backup Combo part IDs are required.");
+				return {
+					id: validateText(combo.id, "Combo ID"),
+					name: parts.name,
+					parts: parts.parts,
+					createdAt: combo.createdAt,
+					updatedAt: combo.updatedAt,
+				};
+			});
+			for (const record of [...foods, ...combos]) {
+				if (
+					!Number.isFinite(record.createdAt) ||
+					!Number.isFinite(record.updatedAt)
+				) {
+					throw new Error("Backup timestamps are invalid.");
+				}
+			}
+			database.execSync("BEGIN IMMEDIATE");
+			try {
+				database.execSync(
+					"DELETE FROM nutrition_combos; DELETE FROM personal_foods;",
+				);
+				for (const food of foods) {
+					database.runSync(
+						`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+						food.id,
+						food.name.en,
+						food.name.nl,
+						food.baseUnit,
+						JSON.stringify(food.nutrients),
+						JSON.stringify(food.servings),
+						JSON.stringify(food.provenance),
+						food.createdAt,
+						food.updatedAt,
+					);
+				}
+				for (const combo of combos) {
+					database.runSync(
+						`INSERT INTO nutrition_combos (id, name, parts_json, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?)`,
+						combo.id,
+						combo.name,
+						JSON.stringify(combo.parts),
+						combo.createdAt,
+						combo.updatedAt,
+					);
+				}
+				database.execSync("COMMIT");
+			} catch (error) {
+				database.execSync("ROLLBACK");
+				throw error;
+			}
+		},
 	};
 }
 
 /** Open the one device database shared by Personal Foods and later local Nutrition data. */
-export function openPersonalFoodRepository(): PersonalFoodRepository {
+export function openPersonalFoodRepository(
+	databaseName = PERSONAL_FOOD_DATABASE_NAME,
+): PersonalFoodRepository {
 	return createPersonalFoodRepository(
-		openDatabaseSync(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
+		openDatabaseSync(databaseName) as SyncSQLiteDatabase,
 	);
 }
 

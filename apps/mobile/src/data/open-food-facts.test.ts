@@ -176,10 +176,85 @@ describe("lookupOffBarcode", () => {
 });
 
 describe("searchOffProducts", () => {
+	it("uses public Search-a-licious and maps its hits without credentials", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch((url) => {
+			const request = new URL(url);
+			expect(request.origin + request.pathname).toBe(
+				"https://search.openfoodfacts.org/search",
+			);
+			expect(request.searchParams.get("q")).toBe("hagelslag");
+			expect(request.searchParams.get("langs")).toBe("nl,en");
+			expect(request.searchParams.get("fields")).toContain("nutriments");
+			return jsonResponse(200, {
+				hits: [
+					{
+						code: "8710400002970",
+						product_name: "Puur Hagelslag",
+						brands: ["Albert Heijn"],
+						nutriments: { "energy-kj_100g": 1835, proteins_100g: 5 },
+					},
+				],
+				timed_out: false,
+			});
+		});
+		const result = await searchOffProducts("hagelslag", { cache, fetchImpl });
+		expect(result).toMatchObject({
+			kind: "found",
+			drafts: [
+				{
+					name: { nl: "Puur Hagelslag" },
+					nutrients: { energy: { kind: "value", amount: 438.6 } },
+					provenance: { barcode: "8710400002970" },
+				},
+			],
+		});
+	});
+	it.each([
+		{ errors: [{ title: "Invalid query" }] },
+		{},
+		{ hits: null },
+	])("does not cache an invalid response as no matches: %j", async (body) => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch(() => jsonResponse(200, body));
+		expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
+			kind: "unavailable",
+		});
+		expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
+			kind: "unavailable",
+		});
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+	it("reports a provider-side timeout rather than caching partial results", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch(() =>
+			jsonResponse(200, { hits: [], timed_out: true }),
+		);
+		expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
+			kind: "timeout",
+		});
+	});
+	it("reports provider downtime without parsing HTML or caching the failure", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const json = jest.fn(async () => {
+			throw new SyntaxError("HTML");
+		});
+		const fetchImpl = jest
+			.fn()
+			.mockResolvedValueOnce({ ok: false, status: 503, json })
+			.mockResolvedValueOnce(jsonResponse(200, { hits: [bakedBeans] }));
+		expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
+			kind: "unavailable",
+		});
+		expect(json).not.toHaveBeenCalled();
+		expect(
+			await searchOffProducts("beans", { cache, fetchImpl }),
+		).toMatchObject({ kind: "found" });
+	});
 	it("maps multiple results and reuses the cache on a repeat query", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() =>
-			jsonResponse(200, { products: [bakedBeans] }),
+			jsonResponse(200, { hits: [bakedBeans] }),
 		);
 
 		const first = await searchOffProducts("baked beans", { cache, fetchImpl });
@@ -194,7 +269,7 @@ describe("searchOffProducts", () => {
 
 	it("treats an empty query as not-found without calling the network", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-		const fetchImpl = fakeFetch(() => jsonResponse(200, { products: [] }));
+		const fetchImpl = fakeFetch(() => jsonResponse(200, { hits: [] }));
 		expect(await searchOffProducts("   ", { cache, fetchImpl })).toEqual({
 			kind: "not-found",
 		});
@@ -203,7 +278,7 @@ describe("searchOffProducts", () => {
 
 	it("reports zero matches as not-found", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-		const fetchImpl = fakeFetch(() => jsonResponse(200, { products: [] }));
+		const fetchImpl = fakeFetch(() => jsonResponse(200, { hits: [] }));
 		expect(
 			await searchOffProducts("xyzzyunknown", { cache, fetchImpl }),
 		).toEqual({

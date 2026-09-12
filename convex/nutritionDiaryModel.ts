@@ -66,5 +66,13 @@ export const diaryPartSnapshotFields = {
 export const diarySnapshotFields = {
 	date: v.string(),
 	meal: mealSlot,
+	comboGroup: v.optional(v.object({
+		id: v.string(),
+		comboId: v.string(),
+		name: v.string(),
+	})),
+	// Optional for release-one rows and legacy callers. Release-two operations
+	// always supply a device UUID so local and server identities can reconcile.
+	clientEntryId: v.optional(v.string()),
 	...diaryPartSnapshotFields,
 };

@@ -22,11 +22,25 @@ import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as LanguageRoute from "../../app/(app)/language";
+import * as NutritionAssistanceRoute from "../../app/(app)/nutrition-assistance";
 import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
 import * as NutritionCombosRoute from "../../app/(app)/nutrition-combos";
+import * as NutritionCookingRoute from "../../app/(app)/nutrition-cooking";
+import * as NutritionCopyRoute from "../../app/(app)/nutrition-copy";
 import * as NutritionEntryRoute from "../../app/(app)/nutrition-entry";
 import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
+import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
+import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
+import {
+	createNutritionCookingRepository,
+	type NutritionCookingRepository,
+} from "../data/nutrition-cooking-repository";
+import {
+	createNutritionLocalRepository,
+	type NutritionLocalRepository,
+} from "../data/nutrition-local-repository";
+import { NutritionOperationsProvider } from "../data/nutrition-operation-service";
 import type { FetchLike } from "../data/open-food-facts";
 import { OpenFoodFactsProvider } from "../data/open-food-facts-context";
 import {
@@ -37,6 +51,7 @@ import {
 } from "../data/personal-food-repository";
 import { PersonalFoodsProvider } from "../data/personal-foods";
 import { LocaleProvider } from "../i18n";
+import { FoodBrowserCookingRepositoryProvider } from "../screens/nutrition-food-browser";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
 import { NativeAlertHost } from "./native-alert-host";
@@ -45,10 +60,14 @@ import { SQLiteTestDatabase } from "./sqlite-test-database";
 export function TestLayout({
 	repository,
 	offCache,
+	nutritionRepository,
+	cookingRepository,
 	fetchImpl,
 }: {
 	repository: PersonalFoodRepository;
 	offCache: OpenFoodFactsCache;
+	nutritionRepository: NutritionLocalRepository;
+	cookingRepository: NutritionCookingRepository;
 	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
@@ -58,7 +77,16 @@ export function TestLayout({
 					<ConfirmProvider>
 						<PersonalFoodsProvider repository={repository}>
 							<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
-								<Slot />
+								<NutritionOperationsProvider
+									repository={nutritionRepository}
+									subject="test-user"
+								>
+									<FoodBrowserCookingRepositoryProvider
+										repository={cookingRepository}
+									>
+										<Slot />
+									</FoodBrowserCookingRepositoryProvider>
+								</NutritionOperationsProvider>
 							</OpenFoodFactsProvider>
 						</PersonalFoodsProvider>
 					</ConfirmProvider>
@@ -77,11 +105,19 @@ export function renderApp(
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+	const nutritionRepository = createNutritionLocalRepository(
+		new SQLiteTestDatabase(),
+	);
+	const cookingRepository = createNutritionCookingRepository(
+		new SQLiteTestDatabase(),
+	);
 	function Layout() {
 		return (
 			<TestLayout
 				repository={repository}
 				offCache={offCache}
+				nutritionRepository={nutritionRepository}
+				cookingRepository={cookingRepository}
 				fetchImpl={fetchImpl}
 			/>
 		);
@@ -93,8 +129,13 @@ export function renderApp(
 			"nutrition-food": NutritionFoodRoute as never,
 			"nutrition-entry": NutritionEntryRoute as never,
 			"nutrition-combos": NutritionCombosRoute as never,
+			"nutrition-copy": NutritionCopyRoute as never,
 			"nutrition-combo-new": NutritionComboNewRoute as never,
 			"nutrition-goals": NutritionGoalsRoute as never,
+			"nutrition-cooking": NutritionCookingRoute as never,
+			"nutrition-assistance": NutritionAssistanceRoute as never,
+			"nutrition-weekly-review": NutritionWeeklyReviewRoute as never,
+			"nutrition-library": NutritionLibraryRoute as never,
 			language: LanguageRoute as never,
 			profile: ProfileRoute as never,
 			...(overrides as Record<string, never>),

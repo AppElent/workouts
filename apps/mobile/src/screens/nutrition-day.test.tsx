@@ -20,6 +20,19 @@ const mockUseQuery = jest.mocked(useQuery);
 const mockUseTrainingMarkerQuery = jest.mocked(useQuery_experimental);
 
 describe("the nutrition day", () => {
+	it("opens the calendar from the date and can browse another month", async () => {
+		renderApp();
+		await screen.findByText("Today");
+		fireEvent.press(screen.getByLabelText("Choose date"));
+		fireEvent.press(await screen.findByLabelText("Next month"));
+		const today = new Date();
+		const next = new Date(today.getFullYear(), today.getMonth() + 1, 1, 12);
+		expect(
+			await screen.findByText(
+				next.toLocaleDateString("en", { month: "long", year: "numeric" }),
+			),
+		).toBeTruthy();
+	});
 	it("opens on today, with the four meal slots in order", async () => {
 		renderApp();
 
@@ -42,7 +55,7 @@ describe("the nutrition day", () => {
 
 		fireEvent.press(screen.getByLabelText("Add food to Lunch"));
 
-		expect(await screen.findByText("Find food for Lunch")).toBeTruthy();
+		expect(await screen.findByLabelText("Find food for Lunch")).toBeTruthy();
 	});
 
 	it("explains an empty meal slot rather than leaving it blank", async () => {
@@ -102,6 +115,8 @@ describe("the nutrition day", () => {
 
 	it("carries the NEVO and derived-salt disclosures on the day itself", async () => {
 		renderApp();
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		fireEvent.press(await screen.findByText("Data sources"));
 
 		expect(
 			await screen.findByText("Nutrition figures include NEVO 2025/9.0 data."),
@@ -113,8 +128,12 @@ describe("the nutrition day", () => {
 
 	it("shows a logged snapshot immediately and qualifies incomplete totals", async () => {
 		mockUseQuery.mockImplementation((reference, _args?) => {
-			if (getFunctionName(reference) === "nutritionGoals:list") {
-				return [{ nutrient: "energy", direction: "max", target: 2000 }];
+			if (getFunctionName(reference) === "nutritionGoals:forDate") {
+				return {
+					goals: [{ nutrient: "energy", direction: "max", target: 2000 }],
+					basis: "reference",
+					effectiveFrom: null,
+				};
 			}
 			return {
 				entries: [
@@ -171,7 +190,7 @@ describe("the nutrition day", () => {
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(screen.getByText("Piece × 1")).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Show other nutrients"));
-		expect(await screen.findByText("~ 0 g")).toBeTruthy();
+		expect((await screen.findAllByText("~ 0 g")).length).toBeGreaterThan(0);
 		expect(screen.getByText("≥ 0 g")).toBeTruthy();
 	});
 
@@ -191,8 +210,12 @@ describe("the nutrition day", () => {
 			data: true,
 		});
 		mockUseQuery.mockImplementation((reference, _args?) => {
-			if (getFunctionName(reference) === "nutritionGoals:list") {
-				return [{ nutrient: "energy", direction: "max", target: 2000 }];
+			if (getFunctionName(reference) === "nutritionGoals:forDate") {
+				return {
+					goals: [{ nutrient: "energy", direction: "max", target: 2000 }],
+					basis: "reference",
+					effectiveFrom: null,
+				};
 			}
 			return {
 				entries: [
@@ -240,7 +263,7 @@ describe("the nutrition day", () => {
 		// Activity at all would show for this exact diary and goal data — the
 		// completed session contributes nothing to either number.
 		expect(await screen.findByText("Apple")).toBeTruthy();
-		expect(screen.getByText("76 of 2000 kcal")).toBeTruthy();
-		expect(screen.getByText("Within")).toBeTruthy();
+		expect(screen.getByText("1924 kcal remaining")).toBeTruthy();
+		expect(screen.getByText("76 logged / 2000 target")).toBeTruthy();
 	});
 });
