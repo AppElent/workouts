@@ -6,7 +6,7 @@ import {
 	type NutrientValue,
 } from "@workouts/core/nutrition";
 
-export function positiveCookingNumber(value: string, label: string): number {
+export function positiveOneOffNumber(value: string, label: string): number {
 	const parsed = Number(value.replace(",", ".").trim());
 	if (!Number.isFinite(parsed) || parsed <= 0) {
 		throw new Error(`${label} must be greater than zero.`);

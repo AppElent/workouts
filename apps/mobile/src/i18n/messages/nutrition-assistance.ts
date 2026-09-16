@@ -2,6 +2,16 @@ export type AssistanceLocale = "en" | "nl";
 
 export type AssistanceMessages = {
 	title: string;
+	estimateMode: string;
+	reviewEstimate: string;
+	estimateReviewHelp: string;
+	estimateName: string;
+	servingName: string;
+	servingNameDefault: string;
+	estimateFailure: string;
+	estimateSaved: string;
+	logEstimate: string;
+
 	intro: string;
 	textMode: string;
 	labelMode: string;
@@ -77,6 +87,17 @@ export const nutritionAssistanceMessages: Record<
 	AssistanceMessages
 > = {
 	en: {
+		estimateMode: "Nutrition estimate",
+		reviewEstimate: "Review estimate",
+		estimateReviewHelp:
+			"Enter approximate figures for one serving. Review the food, category and values before saving. Nothing is logged automatically.",
+		estimateName: "Estimated food name",
+		servingName: "Serving name",
+		servingNameDefault: "Serving",
+		estimateFailure:
+			"The estimate could not be saved. Your values are still here.",
+		estimateSaved: "Reviewed food saved to your Personal Library.",
+		logEstimate: "Log reviewed amount",
 		title: "Nutrition assistance",
 		intro: "Review every match before anything is added to your diary.",
 		textMode: "Text log",
@@ -93,7 +114,8 @@ export const nutritionAssistanceMessages: Record<
 		selected: "Selected",
 		noMatch: "No local match. Edit the row or choose another food.",
 		ambiguous: "Several local matches. Choose one explicitly.",
-		unsupportedQuantity: "Use an explicit quantity such as 250 g or 200 ml.",
+		unsupportedQuantity:
+			"Use an explicit quantity such as 250 g, 200 ml or 1 serving.",
 		tooLong: "Shorten the text before parsing it.",
 		tooManyRows: "Review up to 100 foods per batch.",
 		unitMismatch:
@@ -156,6 +178,18 @@ export const nutritionAssistanceMessages: Record<
 			"Some saved meals are still waiting to sync; this review shows synced diary data only.",
 	},
 	nl: {
+		estimateMode: "Voedingsschatting",
+		reviewEstimate: "Schatting controleren",
+		estimateReviewHelp:
+			"Vul geschatte waarden voor één portie in. Controleer de voeding, categorie en waarden vóór het opslaan. Er wordt niets automatisch gelogd.",
+		estimateName: "Naam geschatte voeding",
+		servingName: "Naam portie",
+		servingNameDefault: "Portie",
+		estimateFailure:
+			"De schatting kon niet worden opgeslagen. Je waarden staan er nog.",
+		estimateSaved:
+			"Gecontroleerde voeding opgeslagen in je persoonlijke bibliotheek.",
+		logEstimate: "Gecontroleerde hoeveelheid loggen",
 		title: "Voedingshulp",
 		intro:
 			"Controleer elke match voordat er iets aan je dagboek wordt toegevoegd.",
@@ -174,7 +208,7 @@ export const nutritionAssistanceMessages: Record<
 		noMatch: "Geen lokale match. Bewerk de rij of kies andere voeding.",
 		ambiguous: "Meerdere lokale matches. Kies er één expliciet.",
 		unsupportedQuantity:
-			"Gebruik een expliciete hoeveelheid, zoals 250 g of 200 ml.",
+			"Gebruik een expliciete hoeveelheid, zoals 250 g, 200 ml of 1 portie.",
 		tooLong: "Maak de tekst korter voordat je hem ontleedt.",
 		tooManyRows: "Controleer maximaal 100 voedingsmiddelen per batch.",
 		unitMismatch:

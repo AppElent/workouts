@@ -4,7 +4,6 @@ export {
 	totalNutrient,
 	totalNutrients,
 } from "./nutrition/aggregate";
-export * from "./nutrition/cooking";
 export {
 	NUTRIENT_KEYS,
 	type NutrientKey,

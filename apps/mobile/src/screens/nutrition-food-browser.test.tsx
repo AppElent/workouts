@@ -13,6 +13,70 @@ async function showAllFoods(query?: string) {
 }
 
 describe("browsing shipped foods", () => {
+	it("finds Recipes in the Personal Library and logs a per-serving estimate through the ordinary serving sheet", async () => {
+		const log = jest.fn().mockResolvedValue(undefined);
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		const { repository } = renderApp();
+		const nutrients = {
+			energy: { kind: "value" as const, amount: 550 },
+			protein: { kind: "trace" as const },
+			carbs: { kind: "absent" as const },
+			fat: { kind: "absent" as const },
+			saturatedFat: { kind: "absent" as const },
+			fibre: { kind: "absent" as const },
+			sugars: { kind: "absent" as const },
+			salt: { kind: "absent" as const },
+		};
+		const recipe = repository.create({
+			name: { en: "Pasta bowl", nl: "Pastakom" },
+			baseUnit: "serving",
+			classification: "recipe",
+			estimated: true,
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Kom" } },
+			nutrients,
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		repository.create({
+			name: { en: "Ordinary shake", nl: "Shake" },
+			baseUnit: "g",
+			nutrients,
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		fireEvent.press(await screen.findByRole("tab", { name: "Recipes" }));
+		expect(screen.queryByText("Ordinary shake")).toBeNull();
+		fireEvent.press(await screen.findByText("Pasta bowl"));
+		expect(screen.getByLabelText("Quantity").props.value).toBe("1");
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "");
+		expect(screen.queryByText("550 kcal")).toBeNull();
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		fireEvent.press(screen.getByText("Add & continue"));
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		expect(log.mock.calls[0][0]).toMatchObject({
+			estimated: true,
+			amount: 2,
+			baseUnit: "serving",
+			nutrients: {
+				energy: { kind: "value", amount: 1100 },
+				protein: { kind: "trace" },
+				carbs: { kind: "absent" },
+			},
+			provenance: { source: "personal", sourceId: recipe.id },
+		});
+	});
+
 	it("defaults a base-only Personal Food to 100 base units", async () => {
 		const log = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(
