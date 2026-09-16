@@ -1,7 +1,6 @@
 /**
- * The Start Activity picker — the app's primary CTA per ADR-0002, a type
- * picker rather than a privileged "Start Workout" button. Laid out from
- * `designs/shell/index.html#flows`.
+ * The Start Activity picker — a type picker rather than a privileged "Start
+ * Workout" button. Laid out from `designs/shell/index.html#flows`.
  *
  * Only Strength goes anywhere; it is the only type with a logging screen. The
  * other three stay visible so the picker reads as multi-sport, but pressing one
@@ -140,8 +139,8 @@ export function StartActivityScreen() {
 				<View style={styles.stubNote}>
 					<AppText style={styles.stubNoteText}>
 						{sportMeta[pickedStub].label} logging doesn't exist yet — strength
-						is the only activity type with a backend so far (ADR-0002). The
-						picker is built for four so adding one is a screen, not a redesign.
+						is the only activity type with a backend so far. The picker is built
+						for four so adding one is a screen, not a redesign.
 					</AppText>
 				</View>
 			) : null}

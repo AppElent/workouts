@@ -1,6 +1,6 @@
 # Ship NEVO as a generated read-only core dataset
 
-The standard Nutrition food library ships as one generated, schema-validated JSON artifact in `@workouts/core`. Generation combines the unchanged NEVO 2025/9.0 extract, a hand-authored bilingual promotion overlay, and an append-only internal-ID lockfile. Runtime clients read this data but never mutate it; correcting a shipped food creates a device-local Personal Food fork.
+The standard Nutrition food library ships as one generated, schema-validated JSON artifact in `@workouts/core`. Generation combines the unchanged NEVO 2025/9.0 extract, a hand-authored bilingual promotion overlay, and an append-only internal-ID lockfile. Runtime clients read this data but never mutate it; correcting a shipped food creates a Personal Food fork.
 
 We chose this design because NEVO supplies a broad Dutch food table with English names and per-100 values, works offline, and avoids a new catalogue service. Generation keeps source extraction and human additions auditable. Application IDs remain stable even though NEVO codes may retire and later reactivate. A changed or returning source code must be explicitly reconciled during generation rather than silently inheriting identity.
 

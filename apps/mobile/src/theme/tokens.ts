@@ -51,14 +51,14 @@ export const colors = {
 } as const;
 
 /**
- * One entry per Activity type. A closed set of code literals per ADR-0004 —
+ * One entry per proposed Activity type. A closed set of code literals per
+ * ADR-0001 —
  * not a user-extensible catalog, because each type needs its own detail schema
  * and logging UI that a data row cannot supply.
  *
- * ADR-0003 puts the canonical catalog in `packages/core` so Convex validators
- * and both clients share it. It lives here until that package grows an activity
- * module; `color`/`dim` would stay phone-side even then, since they are look
- * rather than words.
+ * This remains phone-local while Strength is the only implemented type. A
+ * future shared catalog belongs to the Activity migration; `color`/`dim` stay
+ * phone-side because they are presentation rather than domain language.
  */
 export const sportMeta = {
 	strength: {

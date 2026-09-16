@@ -4,8 +4,8 @@
  * Active and recent sessions are real; the weekly ring counts real sessions in
  * the last seven days. Strength is the only activity type with a backend, so
  * the sport quick-links and the "Up next" card are still shape rather than
- * substance — per ADR-0002 every one of them lands on the same Start Activity
- * picker, which is where the type actually gets chosen.
+ * substance. Every one of them lands on the same Start Activity picker, which
+ * is where the type actually gets chosen.
  */
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";

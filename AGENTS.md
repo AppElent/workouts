@@ -7,6 +7,12 @@ Read `CLAUDE.md` for all project conventions (pnpm always, Biome, commands, test
 Follow the steps in `.claude/commands/upgrade-deps.md` (readable as plain markdown).
 Never weaken or skip tests to make an upgrade pass; stop and report instead.
 
+## Domain documentation
+
+- `CONTEXT.md` is the single canonical domain glossary. Keep it free of implementation details; do not create local glossary overlays.
+- Add an ADR only when a decision is hard to reverse, surprising without context, and the result of a genuine trade-off.
+- Prefer one ADR per durable architectural boundary or commitment. Fold related consequences into that ADR instead of recording individual UI, library-placement, or implementation choices separately.
+
 <!-- appelent-managed:start -->
 ## Appelent Managed Project
 
