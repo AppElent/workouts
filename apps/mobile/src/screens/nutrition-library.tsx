@@ -2,6 +2,12 @@ import { useConvexConnectionState, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
+import { useOpenFoodFacts } from "../data/open-food-facts-context";
+import {
+	type OffRefreshProgress,
+	openFoodFactsImports,
+	refreshOpenFoodFactsImports,
+} from "../data/open-food-facts-sync";
 import { usePersonalFoods } from "../data/personal-foods";
 import { useI18n } from "../i18n";
 import { colors, spacing } from "../theme";
@@ -56,11 +62,14 @@ export function NutritionLibraryScreen() {
 	const { locale } = useI18n();
 	const copy = nutritionLibraryCopy[locale];
 	const foods = usePersonalFoods();
+	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
 	const confirm = useConfirm();
 	const resolveWithServer = foods.backup.useServerCopy;
 	const [cursor, setCursor] = useState<string | null>(null);
 	const [restoreVersion, setRestoreVersion] = useState(0);
+	const [offRefreshing, setOffRefreshing] = useState(false);
+	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
 	const received = useRef(new Set<string>());
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const result = useQuery(
@@ -154,6 +163,32 @@ export function NutritionLibraryScreen() {
 			toast.error(copy.failure);
 		}
 	};
+	const importedFoods = openFoodFactsImports(foods.list());
+	const refreshImports = async () => {
+		if (offRefreshing || importedFoods.length === 0) return;
+		if (
+			!(await confirm({
+				title: copy.offConfirmTitle,
+				message: copy.offConfirmBody(importedFoods.length),
+				confirmLabel: copy.offConfirm,
+			}))
+		)
+			return;
+		setOffRefreshing(true);
+		setOffProgress(undefined);
+		try {
+			await refreshOpenFoodFactsImports({
+				foods: importedFoods,
+				refreshBarcode: openFoodFacts.refreshBarcode,
+				update: foods.update,
+				onProgress: setOffProgress,
+			});
+		} catch {
+			toast.error(copy.failure);
+		} finally {
+			setOffRefreshing(false);
+		}
+	};
 
 	if (foods.backup.enabled && result === undefined) {
 		return (
@@ -176,6 +211,34 @@ export function NutritionLibraryScreen() {
 			<Eyebrow>{copy.eyebrow}</Eyebrow>
 			<AppText variant="title">{copy.title}</AppText>
 			<AppText>{copy.intro}</AppText>
+			<Card style={styles.card}>
+				<AppText variant="heading">{copy.offTitle}</AppText>
+				<AppText variant="caption">
+					{importedFoods.length ? copy.offHelp : copy.offEmpty}
+				</AppText>
+				<PrimaryButton
+					label={offRefreshing ? copy.offRefreshing : copy.offRefresh}
+					loading={offRefreshing}
+					disabled={importedFoods.length === 0}
+					onPress={() => void refreshImports()}
+				/>
+				{offProgress ? (
+					<View style={styles.offStatus} accessibilityLiveRegion="polite">
+						<AppText variant="caption">
+							{copy.offProgress(offProgress.completed, offProgress.total)}
+						</AppText>
+						{offProgress.completed === offProgress.total ? (
+							<AppText variant="caption">
+								{copy.offSummary(
+									offProgress.updated,
+									offProgress.unchanged,
+									offProgress.failed,
+								)}
+							</AppText>
+						) : null}
+					</View>
+				) : null}
+			</Card>
 			{!foods.backup.enabled ? (
 				<Card style={styles.card}>
 					<AppText>{copy.disabled}</AppText>
@@ -241,4 +304,5 @@ const styles = StyleSheet.create({
 		borderTopColor: colors.border,
 		paddingTop: spacing.sm,
 	},
+	offStatus: { gap: spacing.xs },
 });

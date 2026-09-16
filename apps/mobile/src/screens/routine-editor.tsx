@@ -15,22 +15,20 @@
  */
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import {
-	Modal,
-	Platform,
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Modal, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
 import type { useRoutines } from "../data/session-data";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
-import { Eyebrow } from "../ui/coach";
+import { spacing } from "../theme";
 import { convexErrorMessage } from "../ui/confirm-dialog";
+import {
+	AddRow,
+	FormScreen,
+	FormSection,
+	FormTextField,
+	StepperField,
+	TextAction,
+} from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { AddExercisePicker } from "./add-exercise-picker";
@@ -51,19 +49,20 @@ type Entry = {
 type RoutineWithNames = NonNullable<ReturnType<typeof useRoutines>>[number];
 
 export function RoutineEditor({
-	visible,
+	visible = true,
+	presentation = "modal",
 	routine,
 	exercises,
 	onClose,
 }: {
-	visible: boolean;
+	visible?: boolean;
+	presentation?: "modal" | "screen";
 	/** Omit to create a new routine; pass one to edit it in place. */
 	routine?: RoutineWithNames | null;
 	exercises: Doc<"exercises">[] | undefined;
 	onClose: () => void;
 }) {
 	const toast = useToast();
-	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
 	const createRoutine = useMutation(api.routines.create);
 	const updateRoutine = useMutation(api.routines.update);
@@ -121,120 +120,82 @@ export function RoutineEditor({
 
 	const canSave = name.trim() !== "" && entries.length > 0 && !busy;
 
-	return (
-		<Modal
-			presentationStyle="pageSheet"
-			allowSwipeDismissal={!busy}
-			visible={visible}
-			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={onClose}
-		>
-			<View
-				style={[
-					styles.root,
-					{
-						paddingTop:
-							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
-					},
-				]}
+	const content = (
+		<>
+			<FormScreen
+				title={
+					presentation === "modal"
+						? routine
+							? "Edit routine"
+							: "New routine"
+						: undefined
+				}
+				onCancel={presentation === "modal" && !busy ? onClose : undefined}
+				primaryAction={{
+					label: busy ? "Saving…" : routine ? "Save changes" : "Create routine",
+					onPress: () => void submit(),
+					loading: busy,
+					disabled: !canSave,
+				}}
 			>
-				<View style={styles.header}>
-					<AppText variant="heading">
-						{routine ? "Edit routine" : "New routine"}
-					</AppText>
-					<Pressable
-						onPress={onClose}
-						hitSlop={12}
-						accessibilityRole="button"
-						accessibilityLabel="Cancel"
-					>
-						<AppText variant="body" style={styles.cancel}>
-							Cancel
-						</AppText>
-					</Pressable>
-				</View>
-
-				<ScrollView
-					contentInsetAdjustmentBehavior="automatic"
-					automaticallyAdjustKeyboardInsets
-					keyboardDismissMode="interactive"
-					contentContainerStyle={styles.content}
-					keyboardShouldPersistTaps="handled"
-					showsVerticalScrollIndicator={false}
-				>
-					<Eyebrow>Name</Eyebrow>
-					<TextInput
+				<FormSection>
+					<FormTextField
+						label="Routine name"
 						value={name}
 						onChangeText={setName}
 						placeholder="Push day"
-						placeholderTextColor={colors.textFaint}
-						style={styles.input}
+						autoCorrect={false}
+						returnKeyType="next"
 					/>
+				</FormSection>
 
-					<Eyebrow>Exercises</Eyebrow>
-					{entries.length === 0 ? (
-						<AppText variant="caption">
-							Add at least one exercise to save.
-						</AppText>
-					) : (
-						entries.map((entry, index) => (
-							<View key={entry.exerciseId} style={styles.entry}>
-								<View style={styles.entryHead}>
-									<AppText variant="body" style={styles.entryName}>
-										{entry.name}
-									</AppText>
-									<Pressable
-										onPress={() =>
-											setEntries((prev) => prev.filter((_, i) => i !== index))
-										}
-										hitSlop={12}
-										accessibilityRole="button"
-										accessibilityLabel={`Remove ${entry.name}`}
-									>
-										<AppText variant="caption" style={styles.remove}>
-											Remove
-										</AppText>
-									</Pressable>
-								</View>
-								<View style={styles.numberRow}>
-									<NumberField
-										label="sets"
-										value={entry.defaultSets}
-										min={1}
-										onChange={(v) => patch(index, { defaultSets: v })}
-									/>
-									<NumberField
-										label="reps"
-										value={entry.defaultReps}
-										min={1}
-										onChange={(v) => patch(index, { defaultReps: v })}
-									/>
-									<NumberField
-										label="kg"
-										value={entry.defaultWeight}
-										step={2.5}
-										onChange={(v) => patch(index, { defaultWeight: v })}
-									/>
-								</View>
+				<FormSection
+					title="Exercises"
+					footer={
+						entries.length === 0
+							? "Add at least one exercise to save."
+							: undefined
+					}
+				>
+					{entries.map((entry, index) => (
+						<View key={entry.exerciseId} style={styles.entry}>
+							<View style={styles.entryHead}>
+								<AppText style={styles.entryName}>{entry.name}</AppText>
+								<TextAction
+									label="Remove"
+									tone="destructive"
+									onPress={() =>
+										setEntries((current) =>
+											current.filter((_, itemIndex) => itemIndex !== index),
+										)
+									}
+								/>
 							</View>
-						))
-					)}
-
-					<Pressable onPress={() => setPicking(true)} style={styles.addBtn}>
-						<AppText style={styles.addBtnText}>+ Add exercise</AppText>
-					</Pressable>
-
-					<Pressable
-						onPress={() => void submit()}
-						disabled={!canSave}
-						style={[styles.submit, !canSave && styles.dimmed]}
-					>
-						<AppText style={styles.submitText}>
-							{busy ? "Saving…" : routine ? "Save changes" : "Create routine"}
-						</AppText>
-					</Pressable>
-				</ScrollView>
-			</View>
+							<View style={styles.numberRow}>
+								<StepperField
+									label="sets"
+									value={entry.defaultSets}
+									min={1}
+									onChange={(value) => patch(index, { defaultSets: value })}
+								/>
+								<StepperField
+									label="reps"
+									value={entry.defaultReps}
+									min={1}
+									onChange={(value) => patch(index, { defaultReps: value })}
+								/>
+								<StepperField
+									label="kg"
+									value={entry.defaultWeight}
+									step={2.5}
+									onChange={(value) => patch(index, { defaultWeight: value })}
+								/>
+							</View>
+						</View>
+					))}
+					<AddRow label="Add exercise" onPress={() => setPicking(true)} />
+				</FormSection>
+			</FormScreen>
 
 			<AddExercisePicker
 				visible={picking}
@@ -259,78 +220,28 @@ export function RoutineEditor({
 					setPicking(false);
 				}}
 			/>
+		</>
+	);
+
+	if (presentation === "screen") return content;
+
+	return (
+		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal={!busy}
+			visible={visible}
+			animationType={modalAnimation(reduceMotion, "slide")}
+			onRequestClose={onClose}
+		>
+			{content}
 		</Modal>
 	);
 }
 
-function NumberField({
-	label,
-	value,
-	step = 1,
-	min = 0,
-	onChange,
-}: {
-	label: string;
-	value: number;
-	step?: number;
-	min?: number;
-	onChange: (v: number) => void;
-}) {
-	const round = (n: number) => Math.round(n * 10) / 10;
-
-	return (
-		<View style={styles.numberField}>
-			<Pressable
-				onPress={() => onChange(round(Math.max(min, value - step)))}
-				hitSlop={6}
-				style={styles.numberBtn}
-				accessibilityRole="button"
-				accessibilityLabel={`Decrease ${label}`}
-			>
-				<AppText style={styles.numberGlyph}>–</AppText>
-			</Pressable>
-			<View style={styles.numberValueWrap}>
-				<AppText style={styles.numberValue}>{value}</AppText>
-				<AppText style={styles.numberLabel}>{label}</AppText>
-			</View>
-			<Pressable
-				onPress={() => onChange(round(value + step))}
-				hitSlop={6}
-				style={styles.numberBtn}
-				accessibilityRole="button"
-				accessibilityLabel={`Increase ${label}`}
-			>
-				<AppText style={styles.numberGlyph}>+</AppText>
-			</Pressable>
-		</View>
-	);
-}
-
 const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.md },
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		minHeight: 44,
-	},
-	cancel: { color: colors.accent, fontWeight: "700" },
-	content: { gap: spacing.sm, paddingBottom: spacing.xxl },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
 	entry: {
 		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		padding: spacing.sm + 2,
+		padding: spacing.md,
 	},
 	entryHead: {
 		flexDirection: "row",
@@ -338,45 +249,5 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	entryName: { fontWeight: "700" },
-	remove: { color: colors.danger, fontWeight: "700" },
-	numberRow: { flexDirection: "row", gap: spacing.xs + 2 },
-	numberField: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		height: 48,
-		paddingHorizontal: 2,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-	},
-	numberBtn: {
-		width: 36,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	numberGlyph: { fontSize: 18, fontWeight: "800", color: colors.textMuted },
-	numberValueWrap: { alignItems: "center" },
-	numberValue: { fontSize: 16, fontWeight: "800", color: colors.text },
-	numberLabel: { fontSize: 9, color: colors.textMuted },
-	addBtn: {
-		minHeight: 44,
-		borderRadius: radius.pill,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	addBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
-	submit: {
-		height: 48,
-		marginTop: spacing.sm,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-	dimmed: { opacity: 0.5 },
+	numberRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 });

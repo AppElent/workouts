@@ -16,7 +16,7 @@
  * it in the app. Nothing is stubbed in between: this is the real router, the
  * real screens, the real locale provider, driven through user-visible actions.
  */
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
@@ -84,7 +84,7 @@ export function TestLayout({
 									<FoodBrowserCookingRepositoryProvider
 										repository={cookingRepository}
 									>
-										<Slot />
+										<Stack />
 									</FoodBrowserCookingRepositoryProvider>
 								</NutritionOperationsProvider>
 							</OpenFoodFactsProvider>

@@ -29,7 +29,6 @@ import { Chip } from "../ui/coach";
 import { Screen } from "../ui/screen";
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
-import { WodEditor } from "./wod-editor";
 
 const TYPES = ["forTime", "amrap", "emom", "load"] as const;
 
@@ -46,7 +45,7 @@ export function WodsScreen() {
 
 	const [search, setSearch] = useState("");
 	const [type, setType] = useState<Doc<"wods">["type"] | null>(null);
-	const [creating, setCreating] = useState(false);
+	const router = useRouter();
 
 	const filtered = useMemo(() => {
 		const term = search.trim().toLowerCase();
@@ -61,7 +60,7 @@ export function WodsScreen() {
 		<Screen edges={["bottom"]}>
 			<ScreenHeader
 				title={"WODs"}
-				action={{ label: "Add WOD", onPress: () => setCreating(true) }}
+				action={{ label: "Add WOD", onPress: () => router.push("/wod-editor") }}
 			/>
 
 			<View style={styles.filters}>
@@ -110,10 +109,6 @@ export function WodsScreen() {
 					renderItem={({ item }) => <WodRow wod={item} />}
 				/>
 			)}
-
-			{creating ? (
-				<WodEditor visible onClose={() => setCreating(false)} />
-			) : null}
 		</Screen>
 	);
 }

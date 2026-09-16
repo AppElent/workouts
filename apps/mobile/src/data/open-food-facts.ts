@@ -29,8 +29,9 @@ const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 const OFF_SEARCH_URL = "https://search.openfoodfacts.org/search";
 const REQUEST_TIMEOUT_MS = 8000;
 const OFF_PROVIDER_LABEL = "Open Food Facts";
+const OFF_CACHE_SCHEMA = "details-v2";
 const PRODUCT_FIELDS =
-	"code,product_name,product_name_en,product_name_nl,brands,quantity,product_quantity_unit,nutriments";
+	"code,product_name,product_name_en,product_name_nl,brands,quantity,product_quantity_unit,serving_size,serving_quantity,serving_quantity_unit,image_front_small_url,image_front_url,nutriments";
 
 export type OffLookupOutcome =
 	| { readonly kind: "unavailable" }
@@ -66,6 +67,11 @@ type OffRawProduct = {
 	readonly brands?: string | readonly string[];
 	readonly quantity?: string;
 	readonly product_quantity_unit?: string;
+	readonly serving_size?: string;
+	readonly serving_quantity?: number | string;
+	readonly serving_quantity_unit?: string;
+	readonly image_front_small_url?: string;
+	readonly image_front_url?: string;
 	readonly nutriments?: Readonly<Record<string, unknown>>;
 };
 
@@ -99,6 +105,80 @@ export type OpenFoodFactsClientOptions = {
 	readonly now?: () => number;
 	readonly timeoutMs?: number;
 };
+
+export type OffLookupOptions = {
+	/** Ignore a still-valid request cache entry and replace it with provider data. */
+	readonly fresh?: boolean;
+};
+
+function brandOf(product: OffRawProduct): string | undefined {
+	const values =
+		typeof product.brands === "string"
+			? product.brands.split(",")
+			: product.brands;
+	const brands = [
+		...new Set(values?.map((brand) => brand.trim()).filter(Boolean)),
+	];
+	return brands.length ? brands.join(", ") : undefined;
+}
+
+function imageOf(product: OffRawProduct): string | undefined {
+	for (const candidate of [
+		product.image_front_small_url,
+		product.image_front_url,
+	]) {
+		if (!candidate) continue;
+		try {
+			const url = new URL(candidate);
+			if (
+				url.protocol === "https:" &&
+				url.hostname === "images.openfoodfacts.org"
+			) {
+				return url.toString();
+			}
+		} catch {
+			// Ignore malformed provider image fields; nutrition remains usable.
+		}
+	}
+	return undefined;
+}
+
+function normalizedAmount(
+	value: unknown,
+	unit: string | undefined,
+): { amount: number; unit: "g" | "ml" } | undefined {
+	const amount = parseProviderNumber(value);
+	if (amount === undefined || amount <= 0 || !unit) return undefined;
+	switch (unit.trim().toLowerCase()) {
+		case "g":
+			return { amount, unit: "g" };
+		case "kg":
+			return { amount: amount * 1000, unit: "g" };
+		case "ml":
+			return { amount, unit: "ml" };
+		case "cl":
+			return { amount: amount * 10, unit: "ml" };
+		case "l":
+			return { amount: amount * 1000, unit: "ml" };
+		default:
+			return undefined;
+	}
+}
+
+function servingOf(product: OffRawProduct) {
+	const rawLabel = product.serving_size?.trim();
+	const parsedLabel = rawLabel?.match(/([\d.,]+)\s*(kg|g|ml|cl|l)\b/i);
+	const normalized =
+		normalizedAmount(product.serving_quantity, product.serving_quantity_unit) ??
+		(parsedLabel
+			? normalizedAmount(parsedLabel[1], parsedLabel[2])
+			: undefined);
+	if (!normalized) return undefined;
+	return {
+		label: rawLabel || `${normalized.amount} ${normalized.unit}`,
+		...normalized,
+	};
+}
 
 function baseUnitOf(product: OffRawProduct): "g" | "ml" {
 	const unit = product.product_quantity_unit?.toLowerCase();
@@ -195,12 +275,29 @@ export function mapOffProductToDraft(
 		(key) => nutrients[key].kind !== "absent",
 	);
 	if (!hasAnyFigure) return { error: "incomplete" };
+	const baseUnit = baseUnitOf(product);
+	const providerServing = servingOf(product);
+	const compatibleServing =
+		providerServing?.unit === baseUnit ? providerServing : undefined;
+	const brand = brandOf(product);
+	const quantity = product.quantity?.trim();
+	const imageUrl = imageOf(product);
 
 	const draft: PersonalFoodDraft = {
 		name,
-		baseUnit: baseUnitOf(product),
+		baseUnit,
 		nutrients,
-		servings: [],
+		servings: compatibleServing
+			? [
+					{
+						label: {
+							en: compatibleServing.label,
+							nl: compatibleServing.label,
+						},
+						amount: compatibleServing.amount,
+					},
+				]
+			: [],
 		provenance: {
 			recordOrigin: "import",
 			nutritionSource: "openfoodfacts",
@@ -208,6 +305,10 @@ export function mapOffProductToDraft(
 			provider: OFF_PROVIDER_LABEL,
 			attribution: OPEN_FOOD_FACTS_ATTRIBUTION,
 			...(product.code ? { barcode: product.code } : {}),
+			...(brand ? { brand } : {}),
+			...(quantity ? { quantity } : {}),
+			...(imageUrl ? { imageUrl } : {}),
+			...(providerServing ? { providerServing } : {}),
 		},
 	};
 	return { draft };
@@ -228,7 +329,10 @@ async function fetchJson(
 	const timer = setTimeout(() => controller.abort(), timeoutMs);
 	try {
 		const response = await fetchImpl(url, {
-			headers: { Accept: "application/json" },
+			headers: {
+				Accept: "application/json",
+				"User-Agent": "Foundry/0.1.0 (https://github.com/AppElent/workouts)",
+			},
 			signal: controller.signal,
 		});
 		if (response.status === 429) return { kind: "rate-limited" };
@@ -253,10 +357,11 @@ async function fetchJson(
 export async function lookupOffBarcode(
 	barcode: string,
 	options: OpenFoodFactsClientOptions,
+	lookupOptions: OffLookupOptions = {},
 ): Promise<OffLookupOutcome> {
 	const fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike);
-	const cacheKey = `barcode:${barcode}`;
-	const cached = options.cache.get(cacheKey);
+	const cacheKey = `barcode:${OFF_CACHE_SCHEMA}:${barcode}`;
+	const cached = lookupOptions.fresh ? undefined : options.cache.get(cacheKey);
 	if (cached) {
 		const mapped = mapOffProductToDraft(cached.response as OffRawProduct);
 		if ("error" in mapped) return { kind: mapped.error };
@@ -291,7 +396,7 @@ export async function searchOffProducts(
 	const trimmed = query.trim();
 	if (trimmed.length === 0) return { kind: "not-found" };
 	const fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike);
-	const cacheKey = `searchalicious:nl,en:${trimmed.toLocaleLowerCase()}`;
+	const cacheKey = `searchalicious:${OFF_CACHE_SCHEMA}:nl,en:${trimmed.toLocaleLowerCase()}`;
 	const cached = options.cache.get(cacheKey);
 	if (cached) {
 		const drafts = (cached.response as OffRawProduct[])

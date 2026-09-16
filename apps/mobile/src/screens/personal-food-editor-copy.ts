@@ -20,6 +20,9 @@ export type PersonalFoodEditorCopy = {
 	customServings: string;
 	customServingsHelp: string;
 	addServing: string;
+	saveServing: string;
+	updateServing: string;
+	remove: string;
 	removeServing: string;
 	servingName: string;
 	servingAmount: string;
@@ -46,6 +49,9 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 		customServings: "Custom servings",
 		customServingsHelp: "Optional amounts you use often.",
 		addServing: "Add serving",
+		saveServing: "Add portion",
+		updateServing: "Save portion",
+		remove: "Remove",
 		removeServing: "Remove serving",
 		servingName: "Serving {number} name",
 		servingAmount: "Serving {number} amount in {unit}",
@@ -70,6 +76,9 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 		customServings: "Aangepaste porties",
 		customServingsHelp: "Optionele hoeveelheden die je vaak gebruikt.",
 		addServing: "Portie toevoegen",
+		saveServing: "Portie toevoegen",
+		updateServing: "Portie opslaan",
+		remove: "Verwijder",
 		removeServing: "Portie verwijderen",
 		servingName: "Naam van portie {number}",
 		servingAmount: "Hoeveelheid van portie {number} in {unit}",

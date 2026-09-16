@@ -17,6 +17,114 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// Expo UI is native-only. These thin host shims keep tests focused on the
+// React contract (callbacks, roles and presentation options), not SwiftUI.
+jest.mock("@expo/ui/swift-ui", () => {
+	const React = jest.requireActual("react");
+	const { Pressable, Text, View } = jest.requireActual("react-native");
+	const Container = ({ children, ...props }: { children?: React.ReactNode }) =>
+		React.createElement(View, props, children);
+	const Actions = ({ children, ...props }: { children?: React.ReactNode }) =>
+		React.createElement(
+			View,
+			{ ...props, testID: "swiftui-swipe-actions" },
+			children,
+		);
+	const SwipeActions = Object.assign(Container, { Actions });
+	return {
+		BottomSheet: ({
+			children,
+			anchor,
+			isPresented,
+		}: {
+			children?: React.ReactNode;
+			anchor?: React.ReactNode;
+			isPresented: boolean;
+		}) =>
+			React.createElement(View, null, anchor, isPresented ? children : null),
+		Button: ({
+			label,
+			children,
+			onPress,
+			role,
+		}: {
+			label?: string;
+			children?: React.ReactNode;
+			onPress?: () => void;
+			role?: string;
+		}) =>
+			React.createElement(
+				Pressable,
+				{
+					accessibilityLabel: label,
+					accessibilityRole: "button",
+					onPress,
+					testID: role ? `swiftui-button-${role}` : undefined,
+				},
+				children ?? React.createElement(Text, null, label),
+			),
+		Divider: Container,
+		Group: ({
+			children,
+			modifiers,
+		}: {
+			children?: React.ReactNode;
+			modifiers?: unknown;
+		}) =>
+			React.createElement(
+				View,
+				{ modifiers, testID: "swiftui-group" },
+				children,
+			),
+		Host: Container,
+		Image: ({ systemName }: { systemName?: string }) =>
+			React.createElement(Text, null, systemName),
+		Menu: ({
+			label,
+			children,
+			modifiers,
+		}: {
+			label: React.ReactNode;
+			children?: React.ReactNode;
+			modifiers?: { type: string; args: unknown[] }[];
+		}) => {
+			const [open, setOpen] = React.useState(false);
+			const spokenLabel = modifiers?.find(
+				(modifier) => modifier.type === "accessibilityLabel",
+			)?.args[0];
+			return React.createElement(
+				View,
+				null,
+				React.createElement(
+					Pressable,
+					{
+						accessibilityLabel: spokenLabel,
+						accessibilityRole: "button",
+						onPress: () => setOpen(true),
+					},
+					label,
+				),
+				open ? children : null,
+			);
+		},
+		RNHostView: Container,
+		SwipeActions,
+	};
+});
+
+jest.mock(
+	"@expo/ui/swift-ui/modifiers",
+	() =>
+		new Proxy(
+			{},
+			{
+				get:
+					(_target, name) =>
+					(...args: unknown[]) => ({ type: String(name), args }),
+			},
+		),
+);
+
 // UIKit's menu host is absent in Jest. Keep Expo's real Link, routing and menu
 // declarations; drive only the native presentation/selection boundary here.
 jest.mock("expo-router/build/link/preview/native", () => {

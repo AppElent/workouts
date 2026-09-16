@@ -26,12 +26,11 @@ import { useShellData } from "../data/session-data";
 import { colors, radius, spacing } from "../theme";
 import { Chip } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { NativeSwipeableRow } from "../ui/native-swipeable-row";
 import { Screen } from "../ui/screen";
 import { ScreenHeader } from "../ui/screen-header";
-import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { AddExerciseForm } from "./add-exercise-form";
 
 /**
  * Muscle-group shortcuts, transcribed from the web. Several map to more than
@@ -75,7 +74,6 @@ export function ExercisesScreen() {
 	const [chip, setChip] = useState("All");
 	const [category, setCategory] = useState<string | null>(null);
 	const [equipment, setEquipment] = useState<string | null>(null);
-	const [creating, setCreating] = useState(false);
 
 	const filtered = useMemo(() => {
 		const term = search.trim().toLowerCase();
@@ -113,7 +111,10 @@ export function ExercisesScreen() {
 		<Screen edges={["bottom"]}>
 			<ScreenHeader
 				title={"Exercises"}
-				action={{ label: "Add exercise", onPress: () => setCreating(true) }}
+				action={{
+					label: "Add exercise",
+					onPress: () => router.push("/exercise-new"),
+				}}
 			/>
 
 			<View style={styles.filters}>
@@ -183,7 +184,7 @@ export function ExercisesScreen() {
 						</View>
 					}
 					renderItem={({ item }) => (
-						<SwipeableRow
+						<NativeSwipeableRow
 							href={{ pathname: "/exercise/[id]", params: { id: item._id } }}
 							menuTitle={item.name}
 							closeMenuLabel="Close"
@@ -250,12 +251,10 @@ export function ExercisesScreen() {
 									)}
 								</Pressable>
 							)}
-						</SwipeableRow>
+						</NativeSwipeableRow>
 					)}
 				/>
 			)}
-
-			<AddExerciseForm visible={creating} onClose={() => setCreating(false)} />
 		</Screen>
 	);
 }

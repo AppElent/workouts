@@ -9,7 +9,7 @@ import {
 	totalNutrients,
 } from "@workouts/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -35,14 +35,15 @@ import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card } from "../ui/coach";
 import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
+import { DisclosureRow, FormSection, GroupedSurface } from "../ui/form";
 import { NutritionCalendar } from "../ui/nutrition-calendar";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { NutritionEntryTransfer } from "./nutrition-entry-transfer";
+import { NutritionHeaderMenu } from "./nutrition-header-menu";
 import { NutritionMenu } from "./nutrition-menu";
 import { NutritionSyncStatus } from "./nutrition-sync-status";
 
@@ -128,12 +129,12 @@ export function NutritionDayScreen() {
 					: formatLongDate(date, locale);
 
 	return (
-		<View style={styles.root}>
+		<>
 			<ScrollView
 				contentInsetAdjustmentBehavior="automatic"
 				automaticallyAdjustKeyboardInsets
 				keyboardDismissMode="interactive"
-				style={styles.scroll}
+				style={[styles.root, styles.scroll]}
 				contentContainerStyle={styles.content}
 				showsVerticalScrollIndicator={false}
 			>
@@ -180,63 +181,6 @@ export function NutritionDayScreen() {
 							))}
 						</View>
 					</Pressable>
-					<NutritionMenu
-						label={
-							locale === "nl" ? "Meer voedingsfuncties" : "More nutrition tools"
-						}
-						closeLabel={t.nutrition.entryActions.close}
-						actions={[
-							{
-								label: t.nutrition.combos.create,
-								onPress: () => setSelecting(true),
-							},
-							{
-								label: t.nutrition.combos.log,
-								onPress: () =>
-									router.push({
-										pathname: "/nutrition-combos",
-										params: { date },
-									}),
-							},
-							{
-								label:
-									locale === "nl"
-										? "Recepten en onvoltooide invoer"
-										: "Recipes and unfinished logs",
-								onPress: () =>
-									router.push({
-										pathname: "/nutrition-cooking",
-										params: { date, meal: "breakfast" },
-									}),
-							},
-							{
-								label:
-									locale === "nl"
-										? "Tekst en voedingsetiket"
-										: "Text and nutrition label",
-								onPress: () =>
-									router.push({
-										pathname: "/nutrition-assistance",
-										params: { date, meal: "breakfast" },
-									}),
-							},
-							{
-								label:
-									locale === "nl"
-										? "Back-up van voedingsbibliotheek"
-										: "Food library backup",
-								onPress: () => router.push("/nutrition-library"),
-							},
-							{
-								label: t.nutrition.goals.edit,
-								onPress: () => router.push("/nutrition-goals"),
-							},
-							{
-								label: locale === "nl" ? "Gegevensbronnen" : "Data sources",
-								onPress: () => setShowTools((open) => !open),
-							},
-						]}
-					/>
 				</View>
 
 				{marker === "visible" ? <TrainingMarker t={t} /> : null}
@@ -390,6 +334,63 @@ export function NutritionDayScreen() {
 					</>
 				)}
 			</ScrollView>
+			<Stack.Screen
+				options={{
+					headerRight: () => (
+						<NutritionHeaderMenu
+							label={
+								locale === "nl"
+									? "Meer voedingsfuncties"
+									: "More nutrition tools"
+							}
+							closeLabel={t.nutrition.entryActions.close}
+							createComboLabel={t.nutrition.combos.create}
+							logComboLabel={t.nutrition.combos.log}
+							recipesLabel={
+								locale === "nl"
+									? "Recepten en onvoltooide invoer"
+									: "Recipes and unfinished logs"
+							}
+							assistanceLabel={
+								locale === "nl"
+									? "Tekst en voedingsetiket"
+									: "Text and nutrition label"
+							}
+							backupLabel={
+								locale === "nl"
+									? "Back-up van voedingsbibliotheek"
+									: "Food library backup"
+							}
+							goalsLabel={t.nutrition.goals.edit}
+							dataSourcesLabel={
+								locale === "nl" ? "Gegevensbronnen" : "Data sources"
+							}
+							onCreateCombo={() => setSelecting(true)}
+							onLogCombo={() =>
+								router.push({
+									pathname: "/nutrition-combos",
+									params: { date },
+								})
+							}
+							onOpenRecipes={() =>
+								router.push({
+									pathname: "/nutrition-cooking",
+									params: { date, meal: "breakfast" },
+								})
+							}
+							onOpenAssistance={() =>
+								router.push({
+									pathname: "/nutrition-assistance",
+									params: { date, meal: "breakfast" },
+								})
+							}
+							onOpenBackup={() => router.push("/nutrition-library")}
+							onOpenGoals={() => router.push("/nutrition-goals")}
+							onToggleDataSources={() => setShowTools((open) => !open)}
+						/>
+					),
+				}}
+			/>
 			{transfer ? (
 				<NutritionEntryTransfer
 					{...transfer}
@@ -397,7 +398,7 @@ export function NutritionDayScreen() {
 					onClose={() => setTransfer(null)}
 				/>
 			) : null}
-		</View>
+		</>
 	);
 }
 
@@ -505,7 +506,7 @@ function GoalSection({
 				onSetUpGoals={onSetUpGoals}
 			/>
 			{goals.length === 0 ? (
-				<Card>
+				<GroupedSurface>
 					<EmptyState
 						title={t.nutrition.goals.empty.title}
 						body={t.nutrition.goals.empty.body}
@@ -514,41 +515,33 @@ function GoalSection({
 							onPress: onSetUpGoals,
 						}}
 					/>
-				</Card>
+				</GroupedSurface>
 			) : null}
 			{goals.length > 0 && extraNutrients.size > 0 ? (
-				<View style={styles.goalCard}>
-					<Pressable
-						onPress={() => setExpanded((open) => !open)}
-						accessibilityRole="button"
-						accessibilityState={{ expanded }}
+				<FormSection>
+					<DisclosureRow
+						label={fmt(t.nutrition.day.additionalGoals, {
+							count: extraNutrients.size,
+						})}
+						expanded={expanded}
 						accessibilityLabel={
 							expanded
 								? t.nutrition.day.hideAdditionalGoals
 								: t.nutrition.day.showAdditionalGoals
 						}
-						style={styles.disclosure}
-					>
-						<AppText style={styles.flex}>
-							{fmt(t.nutrition.day.additionalGoals, {
-								count: extraNutrients.size,
-							})}
-						</AppText>
-						<AppText variant="heading" style={{ color: colors.accent }}>
-							{expanded ? "⌃" : "⌄"}
-						</AppText>
-					</Pressable>
+						onPress={() => setExpanded((open) => !open)}
+					/>
 					{expanded
 						? extraGoals.map((goal) => (
-								<GoalRow
+								<View
 									key={`${goal.nutrient}-${goal.direction}`}
-									t={t}
-									goal={goal}
-									total={totals[goal.nutrient]}
-								/>
+									style={styles.groupedRow}
+								>
+									<GoalRow t={t} goal={goal} total={totals[goal.nutrient]} />
+								</View>
 							))
 						: null}
-				</View>
+				</FormSection>
 			) : null}
 		</View>
 	);
@@ -602,7 +595,7 @@ function DailySummary({
 	const energyDisplay = describeEnergy(t, energy, min, max);
 
 	return (
-		<Card style={styles.summaryCard}>
+		<GroupedSurface style={styles.summaryCard}>
 			<View style={styles.summaryHeader}>
 				<AppText variant="caption">{t.nutrition.goals.heading}</AppText>
 				<Pressable
@@ -647,7 +640,7 @@ function DailySummary({
 					/>
 				))}
 			</View>
-		</Card>
+		</GroupedSurface>
 	);
 }
 
@@ -908,7 +901,7 @@ function ComboControls({
 }) {
 	if (selecting) {
 		return (
-			<Card style={styles.comboControls}>
+			<GroupedSurface style={styles.comboControls}>
 				<AppText>{t.nutrition.combos.selectionHelp}</AppText>
 				<View style={styles.comboActions}>
 					<GhostButton label={t.nutrition.combos.cancel} onPress={onCancel} />
@@ -924,7 +917,7 @@ function ComboControls({
 						disabled={selectedCount === 0}
 					/>
 				</View>
-			</Card>
+			</GroupedSurface>
 		);
 	}
 
@@ -1011,7 +1004,7 @@ function MealSection({
 					</Pressable>
 				</View>
 			</View>
-			<Card>
+			<GroupedSurface>
 				{entries.length === 0 ? (
 					<EmptyState body={t.nutrition.mealEmpty} />
 				) : (
@@ -1114,7 +1107,7 @@ function MealSection({
 						);
 					})
 				)}
-			</Card>
+			</GroupedSurface>
 		</View>
 	);
 }
@@ -1264,29 +1257,20 @@ function OtherNutrients({
 	if (others.length === 0) return null;
 
 	return (
-		<View style={styles.section}>
-			<Pressable
+		<FormSection>
+			<DisclosureRow
+				label={t.nutrition.otherNutrients.heading}
 				onPress={onToggle}
-				accessibilityRole="button"
-				accessibilityState={{ expanded }}
+				expanded={expanded}
 				accessibilityLabel={
 					expanded
 						? t.nutrition.otherNutrients.hide
 						: t.nutrition.otherNutrients.show
 				}
-				style={styles.disclosure}
-			>
-				<AppText variant="heading" style={styles.flex}>
-					{t.nutrition.otherNutrients.heading}
-				</AppText>
-				<AppText variant="heading" style={{ color: colors.accent }}>
-					{expanded ? "⌃" : "⌄"}
-				</AppText>
-			</Pressable>
-			{expanded ? (
-				<Card>
-					{others.map((key) => (
-						<View key={key} style={styles.entryRow}>
+			/>
+			{expanded
+				? others.map((key) => (
+						<View key={key} style={[styles.entryRow, styles.groupedEntryRow]}>
 							<AppText style={styles.flex}>
 								{t.nutrition.nutrients[key]}
 							</AppText>
@@ -1295,10 +1279,9 @@ function OtherNutrients({
 								{t.nutrition.units[nutrientUnit(key)]}
 							</AppText>
 						</View>
-					))}
-				</Card>
-			) : null}
-		</View>
+					))
+				: null}
+		</FormSection>
 	);
 }
 
@@ -1336,12 +1319,12 @@ function OfflineDay({
 }) {
 	return (
 		<>
-			<Card style={styles.goalCard}>
+			<GroupedSurface style={styles.goalCard}>
 				<EmptyState
 					title={t.nutrition.offline.title}
 					body={t.nutrition.offline.body}
 				/>
-			</Card>
+			</GroupedSurface>
 			{MEAL_SLOTS.map((slot) => {
 				const mealName = t.nutrition.meals[slot];
 				return (
@@ -1362,9 +1345,9 @@ function OfflineDay({
 								</AppText>
 							</Pressable>
 						</View>
-						<Card>
+						<GroupedSurface>
 							<EmptyState body={t.nutrition.offline.slot} />
-						</Card>
+						</GroupedSurface>
 					</View>
 				);
 			})}
@@ -1380,7 +1363,7 @@ function OfflineDay({
 function DaySkeleton({ label }: { label: string }) {
 	return (
 		<SkeletonGroup label={label}>
-			<Card style={styles.goalCard}>
+			<GroupedSurface style={styles.goalCard}>
 				<SkeletonBlock width="65%" height={28} />
 				<SkeletonBlock height={8} />
 				<View style={styles.macros}>
@@ -1391,13 +1374,13 @@ function DaySkeleton({ label }: { label: string }) {
 						</View>
 					))}
 				</View>
-			</Card>
+			</GroupedSurface>
 			{MEAL_SLOTS.map((slot) => (
 				<View key={slot} style={styles.section}>
 					<SkeletonBlock width="35%" height={18} />
-					<Card>
+					<GroupedSurface>
 						<SkeletonBlock width="70%" height={13} />
-					</Card>
+					</GroupedSurface>
 				</View>
 			))}
 		</SkeletonGroup>
@@ -1532,12 +1515,10 @@ const styles = StyleSheet.create({
 		flexShrink: 1,
 	},
 	comboPart: { paddingLeft: spacing.sm },
-
-	disclosure: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		minHeight: 44,
+	groupedRow: { padding: spacing.md },
+	groupedEntryRow: {
+		paddingHorizontal: spacing.md,
+		borderBottomWidth: 0,
 	},
 
 	attribution: { gap: 2, paddingTop: spacing.sm },

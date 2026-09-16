@@ -20,6 +20,13 @@ const bakedBeans = {
 	product_name: "Baked Beans",
 	product_name_en: "Baked Beans",
 	product_name_nl: "Witte bonen in tomatensaus",
+	brands: "Heinz",
+	quantity: "415 g",
+	serving_size: "Half can (207.5 g)",
+	serving_quantity: 207.5,
+	serving_quantity_unit: "g",
+	image_front_small_url:
+		"https://images.openfoodfacts.org/images/products/500/011/263/7922/front_en.40.200.jpg",
 	nutriments: {
 		"energy-kcal_100g": 75,
 		proteins_100g: 4.8,
@@ -260,7 +267,7 @@ describe("the explicit Open Food Facts search", () => {
 			/Open Food Facts is temporarily unavailable/,
 		);
 		expect(screen.getByDisplayValue("baked beans")).toBeTruthy();
-		expect(screen.queryByText("No foods found")).toBeNull();
+		expect(screen.queryByText("No matches")).toBeNull();
 		fireEvent.press(screen.getByText("Search Open Food Facts"));
 		expect(await screen.findByText("Baked Beans")).toBeTruthy();
 		expect(screen.queryByTestId("off-search-feedback")).toBeNull();
@@ -292,6 +299,9 @@ describe("the explicit Open Food Facts search", () => {
 		fireEvent.press(await screen.findByText("Search Open Food Facts"));
 
 		expect(await screen.findByText(/Open Food Facts results/)).toBeTruthy();
+		expect(
+			screen.getByText(/Heinz · 415 g · Half can \(207\.5 g\)/),
+		).toBeTruthy();
 		fireEvent.press(screen.getByText("Baked Beans"));
 
 		expect(await screen.findByText("Review imported food")).toBeTruthy();

@@ -65,8 +65,9 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		combosEmptyBody: "Save foods from a meal as a Combo, then log it here.",
 		recipesEmptyTitle: "No saved recipes",
 		recipesEmptyBody: "Create recipes in Cooking and they will appear here.",
-		noFoodsTitle: "No foods found",
-		noFoodsBody: "Try another search, scan a barcode, or add a Personal Food.",
+		noFoodsTitle: "No matches",
+		noFoodsBody:
+			"Try a different name, scan a barcode, or add a Personal Food.",
 		quickLog: (food) => `Quick log ${food}`,
 		quickPortion: (portion, energy) =>
 			energy ? `${portion} · ${energy} kcal` : portion,
@@ -102,7 +103,7 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 			"Sla voeding uit een maaltijd op als Combo en log hem hier.",
 		recipesEmptyTitle: "Geen opgeslagen recepten",
 		recipesEmptyBody: "Maak recepten in Koken; ze verschijnen hier.",
-		noFoodsTitle: "Geen voeding gevonden",
+		noFoodsTitle: "Geen resultaten",
 		noFoodsBody:
 			"Probeer een andere zoekopdracht, scan een barcode of voeg een persoonlijk voedingsmiddel toe.",
 		quickLog: (food) => `${food} snel loggen`,

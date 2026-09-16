@@ -227,6 +227,7 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(screen.getByText("Add serving"));
 		fireEvent.changeText(screen.getByLabelText("Serving 1 name"), "Pouch");
 		fireEvent.changeText(screen.getByLabelText("Serving 1 amount in g"), "40");
+		fireEvent.press(screen.getByText("Add portion"));
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
 		expect(await screen.findByText("Pouch × 1")).toBeTruthy();

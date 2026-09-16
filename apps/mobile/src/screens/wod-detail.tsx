@@ -30,7 +30,6 @@ import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { WodEditor } from "./wod-editor";
 import { WOD_TYPE_LABEL } from "./wods-list";
 
 /** "12:30" or "750" both mean 750 seconds. */
@@ -70,7 +69,6 @@ export function WodDetailScreen() {
 
 	const removeWod = useMutation(api.wods.remove);
 	const removeResult = useMutation(api.wodResults.remove);
-	const [editing, setEditing] = useState(false);
 
 	const deleteWod = async () => {
 		if (!wodId) return;
@@ -217,7 +215,12 @@ export function WodDetailScreen() {
 
 			{wod.isDefault ? null : (
 				<View style={styles.actions}>
-					<Pressable onPress={() => setEditing(true)} style={styles.ghostBtn}>
+					<Pressable
+						onPress={() =>
+							router.push({ pathname: "/wod-editor", params: { id: wod._id } })
+						}
+						style={styles.ghostBtn}
+					>
 						<AppText style={styles.ghostText}>Edit</AppText>
 					</Pressable>
 					<Pressable onPress={() => void deleteWod()} style={styles.ghostBtn}>
@@ -225,10 +228,6 @@ export function WodDetailScreen() {
 					</Pressable>
 				</View>
 			)}
-
-			{editing ? (
-				<WodEditor visible wod={wod} onClose={() => setEditing(false)} />
-			) : null}
 		</ScrollView>
 	);
 }

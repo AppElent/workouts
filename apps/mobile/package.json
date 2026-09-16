@@ -21,6 +21,7 @@
 		"@appelent/i18n": "^0.2.0",
 		"@clerk/expo": "^4.2.3",
 		"@expo/metro-runtime": "~57.0.8",
+		"@expo/ui": "~57.0.18",
 		"@tanstack/react-form": "^1.33.1",
 		"@workouts/core": "workspace:*",
 		"convex": "^1.42.1",

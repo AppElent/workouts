@@ -45,11 +45,13 @@ function minutesToSeconds(raw: string) {
 }
 
 export function WodEditor({
-	visible,
+	visible = true,
+	presentation = "modal",
 	wod,
 	onClose,
 }: {
-	visible: boolean;
+	visible?: boolean;
+	presentation?: "modal" | "screen";
 	/** Omit to create; pass one to edit it in place. */
 	wod?: Doc<"wods"> | null;
 	onClose: () => void;
@@ -130,23 +132,21 @@ export function WodEditor({
 
 	const canSave = name.trim() !== "" && !busy;
 
-	return (
-		<Modal
-			presentationStyle="pageSheet"
-			allowSwipeDismissal={!busy}
-			visible={visible}
-			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={onClose}
+	const content = (
+		<View
+			style={[
+				styles.root,
+				{
+					paddingTop:
+						presentation === "screen"
+							? 0
+							: Platform.OS === "ios"
+								? spacing.md
+								: insets.top + spacing.sm,
+				},
+			]}
 		>
-			<View
-				style={[
-					styles.root,
-					{
-						paddingTop:
-							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
-					},
-				]}
-			>
+			{presentation === "modal" ? (
 				<View style={styles.header}>
 					<AppText variant="heading">{wod ? "Edit WOD" : "New WOD"}</AppText>
 					<Pressable
@@ -160,141 +160,155 @@ export function WodEditor({
 						</AppText>
 					</Pressable>
 				</View>
+			) : null}
 
-				<ScrollView
-					contentInsetAdjustmentBehavior="automatic"
-					automaticallyAdjustKeyboardInsets
-					keyboardDismissMode="interactive"
-					contentContainerStyle={styles.content}
-					keyboardShouldPersistTaps="handled"
-					showsVerticalScrollIndicator={false}
-				>
-					<Eyebrow>Name</Eyebrow>
-					<TextInput
-						value={name}
-						onChangeText={setName}
-						placeholder="Fran"
-						placeholderTextColor={colors.textFaint}
-						style={styles.input}
-						autoFocus
-					/>
+			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				keyboardDismissMode="interactive"
+				contentContainerStyle={styles.content}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+			>
+				<Eyebrow>Name</Eyebrow>
+				<TextInput
+					value={name}
+					onChangeText={setName}
+					placeholder="Fran"
+					placeholderTextColor={colors.textFaint}
+					style={styles.input}
+					autoFocus
+				/>
 
-					<Eyebrow>Type</Eyebrow>
-					<View style={styles.chipWrap}>
-						{TYPES.map((t) => (
-							<Pressable key={t} onPress={() => setType(t)}>
-								<Chip label={WOD_TYPE_LABEL[t]} active={type === t} />
-							</Pressable>
-						))}
-					</View>
-
-					{type === "forTime" ? (
-						<>
-							<Eyebrow>Time cap (minutes)</Eyebrow>
-							<TextInput
-								value={cap}
-								onChangeText={setCap}
-								placeholder="12"
-								placeholderTextColor={colors.textFaint}
-								style={styles.input}
-								keyboardType="decimal-pad"
-							/>
-						</>
-					) : null}
-
-					{type === "amrap" || type === "emom" ? (
-						<>
-							<Eyebrow>Duration (minutes)</Eyebrow>
-							<TextInput
-								value={duration}
-								onChangeText={setDuration}
-								placeholder="20"
-								placeholderTextColor={colors.textFaint}
-								style={styles.input}
-								keyboardType="decimal-pad"
-							/>
-						</>
-					) : null}
-
-					<Eyebrow>Rep scheme</Eyebrow>
-					<TextInput
-						value={repScheme}
-						onChangeText={setRepScheme}
-						placeholder="21-15-9"
-						placeholderTextColor={colors.textFaint}
-						style={styles.input}
-					/>
-
-					<Eyebrow>Movements</Eyebrow>
-					{movements.map((m, index) => (
-						<View
-							// Movement rows have no id and can hold identical text while
-							// being typed; position is the only thing that distinguishes
-							// them, and rows are only ever appended or removed at the end.
-							// biome-ignore lint/suspicious/noArrayIndexKey: positional rows, no stable id
-							key={index}
-							style={styles.movementRow}
-						>
-							<TextInput
-								value={m.name}
-								onChangeText={(v) => patchMovement(index, { name: v })}
-								placeholder="Thruster"
-								placeholderTextColor={colors.textFaint}
-								style={[styles.input, styles.flex]}
-							/>
-							<TextInput
-								value={m.reps}
-								onChangeText={(v) => patchMovement(index, { reps: v })}
-								placeholder="reps"
-								placeholderTextColor={colors.textFaint}
-								style={[styles.input, styles.repsInput]}
-								keyboardType="number-pad"
-							/>
-							{movements.length > 1 ? (
-								<Pressable
-									onPress={() =>
-										setMovements((prev) => prev.filter((_, i) => i !== index))
-									}
-									hitSlop={8}
-									style={styles.removeBtn}
-									accessibilityRole="button"
-									accessibilityLabel={`Remove movement ${index + 1}`}
-								>
-									<AppText style={styles.remove}>✕</AppText>
-								</Pressable>
-							) : null}
-						</View>
+				<Eyebrow>Type</Eyebrow>
+				<View style={styles.chipWrap}>
+					{TYPES.map((t) => (
+						<Pressable key={t} onPress={() => setType(t)}>
+							<Chip label={WOD_TYPE_LABEL[t]} active={type === t} />
+						</Pressable>
 					))}
-					<Pressable
-						onPress={() =>
-							setMovements((prev) => [...prev, { name: "", reps: "" }])
-						}
-						style={styles.addBtn}
-					>
-						<AppText style={styles.addBtnText}>+ Add movement</AppText>
-					</Pressable>
+				</View>
 
-					<Eyebrow>Description (optional)</Eyebrow>
-					<TextInput
-						value={description}
-						onChangeText={setDescription}
-						placeholder="Scaling notes, standards, anything else"
-						placeholderTextColor={colors.textFaint}
-						style={[styles.input, styles.multiline]}
-						multiline
-					/>
+				{type === "forTime" ? (
+					<>
+						<Eyebrow>Time cap (minutes)</Eyebrow>
+						<TextInput
+							value={cap}
+							onChangeText={setCap}
+							placeholder="12"
+							placeholderTextColor={colors.textFaint}
+							style={styles.input}
+							keyboardType="decimal-pad"
+						/>
+					</>
+				) : null}
 
-					<Pressable
-						onPress={() => void submit()}
-						disabled={!canSave}
-						style={[styles.submit, !canSave && styles.dimmed]}
+				{type === "amrap" || type === "emom" ? (
+					<>
+						<Eyebrow>Duration (minutes)</Eyebrow>
+						<TextInput
+							value={duration}
+							onChangeText={setDuration}
+							placeholder="20"
+							placeholderTextColor={colors.textFaint}
+							style={styles.input}
+							keyboardType="decimal-pad"
+						/>
+					</>
+				) : null}
+
+				<Eyebrow>Rep scheme</Eyebrow>
+				<TextInput
+					value={repScheme}
+					onChangeText={setRepScheme}
+					placeholder="21-15-9"
+					placeholderTextColor={colors.textFaint}
+					style={styles.input}
+				/>
+
+				<Eyebrow>Movements</Eyebrow>
+				{movements.map((m, index) => (
+					<View
+						// Movement rows have no id and can hold identical text while
+						// being typed; position is the only thing that distinguishes
+						// them, and rows are only ever appended or removed at the end.
+						// biome-ignore lint/suspicious/noArrayIndexKey: positional rows, no stable id
+						key={index}
+						style={styles.movementRow}
 					>
-						<AppText style={styles.submitText}>
-							{busy ? "Saving…" : wod ? "Save changes" : "Create WOD"}
-						</AppText>
-					</Pressable>
-				</ScrollView>
-			</View>
+						<TextInput
+							value={m.name}
+							onChangeText={(v) => patchMovement(index, { name: v })}
+							placeholder="Thruster"
+							placeholderTextColor={colors.textFaint}
+							style={[styles.input, styles.flex]}
+						/>
+						<TextInput
+							value={m.reps}
+							onChangeText={(v) => patchMovement(index, { reps: v })}
+							placeholder="reps"
+							placeholderTextColor={colors.textFaint}
+							style={[styles.input, styles.repsInput]}
+							keyboardType="number-pad"
+						/>
+						{movements.length > 1 ? (
+							<Pressable
+								onPress={() =>
+									setMovements((prev) => prev.filter((_, i) => i !== index))
+								}
+								hitSlop={8}
+								style={styles.removeBtn}
+								accessibilityRole="button"
+								accessibilityLabel={`Remove movement ${index + 1}`}
+							>
+								<AppText style={styles.remove}>✕</AppText>
+							</Pressable>
+						) : null}
+					</View>
+				))}
+				<Pressable
+					onPress={() =>
+						setMovements((prev) => [...prev, { name: "", reps: "" }])
+					}
+					style={styles.addBtn}
+				>
+					<AppText style={styles.addBtnText}>+ Add movement</AppText>
+				</Pressable>
+
+				<Eyebrow>Description (optional)</Eyebrow>
+				<TextInput
+					value={description}
+					onChangeText={setDescription}
+					placeholder="Scaling notes, standards, anything else"
+					placeholderTextColor={colors.textFaint}
+					style={[styles.input, styles.multiline]}
+					multiline
+				/>
+
+				<Pressable
+					onPress={() => void submit()}
+					disabled={!canSave}
+					style={[styles.submit, !canSave && styles.dimmed]}
+				>
+					<AppText style={styles.submitText}>
+						{busy ? "Saving…" : wod ? "Save changes" : "Create WOD"}
+					</AppText>
+				</Pressable>
+			</ScrollView>
+		</View>
+	);
+
+	if (presentation === "screen") return content;
+
+	return (
+		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal={!busy}
+			visible={visible}
+			animationType={modalAnimation(reduceMotion, "slide")}
+			onRequestClose={onClose}
+		>
+			{content}
 		</Modal>
 	);
 }

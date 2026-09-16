@@ -18,6 +18,7 @@ import {
 	servingOptions,
 	shippedLibraryMeta,
 } from "@workouts/core/nutrition";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import {
@@ -78,6 +79,7 @@ import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
+import { FoodEditorSheet } from "../ui/food-editor-sheet";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { BarcodeScanner } from "./barcode-scanner";
@@ -182,6 +184,18 @@ function resultEnergyCaption(
 	return energy.kind === "trace"
 		? fmt(messages.foodBrowser.energyTracePer100, { unit })
 		: fmt(messages.foodBrowser.energyUnavailablePer100, { unit });
+}
+
+function offProductCaption(
+	provenance: PersonalFood["provenance"],
+	fallback: string,
+): string {
+	const details = [
+		provenance.brand,
+		provenance.quantity,
+		provenance.providerServing?.label,
+	].filter(Boolean);
+	return details.length ? [fallback, ...details].join(" · ") : fallback;
 }
 
 function quickEnergyAmount(
@@ -462,7 +476,6 @@ export function NutritionFoodBrowser({
 				seed={reviewingImport}
 				reviewNotice={{
 					title: t.nutrition.foodImport.reviewTitle,
-					body: t.nutrition.foodImport.reviewBody,
 					attribution: reviewingImport.provenance.attribution,
 				}}
 				onCancel={() => setReviewingImport(undefined)}
@@ -651,19 +664,26 @@ export function NutritionFoodBrowser({
 
 	return (
 		<>
+			<FoodEditorSheet
+				visible={Boolean(editor)}
+				onClose={() => {
+					setReviewingImport(undefined);
+					closeEditor();
+				}}
+			>
+				{editor}
+			</FoodEditorSheet>
 			<Modal
-				visible={Boolean(servingSheet || editor)}
-				presentationStyle={servingSheet ? "formSheet" : "pageSheet"}
+				visible={Boolean(servingSheet)}
+				presentationStyle="formSheet"
 				animationType={modalAnimation(reduceMotion, "slide")}
 				allowSwipeDismissal={!servingPending}
 				onRequestClose={() => {
 					if (servingPendingRef.current) return;
-					setReviewingImport(undefined);
-					closeEditor();
 					setSelectedFood(undefined);
 				}}
 			>
-				{editor ?? servingSheet}
+				{servingSheet}
 			</Modal>
 			<FlatList
 				data={visibleItems}
@@ -939,13 +959,26 @@ export function NutritionFoodBrowser({
 								accessibilityRole="button"
 								style={styles.foodRow}
 							>
-								<AppText variant="heading">◈</AppText>
+								{item.draft.provenance.imageUrl ? (
+									<Image
+										source={item.draft.provenance.imageUrl}
+										accessibilityLabel={item.draft.name[locale]}
+										cachePolicy="memory-disk"
+										contentFit="contain"
+										style={styles.foodImage}
+									/>
+								) : (
+									<AppText variant="heading">◈</AppText>
+								)}
 								<View style={styles.flex}>
 									<AppText style={styles.strong}>
 										{item.draft.name[locale]}
 									</AppText>
 									<AppText variant="caption">
-										{copy.onlineResults} · {item.draft.provenance.provider}
+										{offProductCaption(
+											item.draft.provenance,
+											`${copy.onlineResults} · ${item.draft.provenance.provider}`,
+										)}
 									</AppText>
 									<AppText variant="caption">
 										{resultEnergyCaption(item.draft, t.nutrition)}
@@ -1036,6 +1069,10 @@ function FoodRow({
 	onPress: () => void;
 	onQuickLog: () => void;
 }) {
+	const imageUrl =
+		selection.kind === "personal"
+			? selection.food.provenance.imageUrl
+			: undefined;
 	return (
 		<View style={styles.foodRow}>
 			<Pressable
@@ -1043,12 +1080,26 @@ function FoodRow({
 				onPress={onPress}
 				style={styles.foodOpen}
 			>
-				<AppText variant="heading">
-					{selection.kind === "shipped" ? (selection.food.emoji ?? "•") : "◇"}
-				</AppText>
+				{imageUrl ? (
+					<Image
+						source={imageUrl}
+						accessibilityLabel={selection.food.name[locale]}
+						cachePolicy="memory-disk"
+						contentFit="contain"
+						style={styles.foodImage}
+					/>
+				) : (
+					<AppText variant="heading">
+						{selection.kind === "shipped" ? (selection.food.emoji ?? "•") : "◇"}
+					</AppText>
+				)}
 				<View style={styles.flex}>
 					<AppText style={styles.strong}>{selection.food.name[locale]}</AppText>
-					<AppText variant="caption">{caption}</AppText>
+					<AppText variant="caption">
+						{selection.kind === "personal"
+							? offProductCaption(selection.food.provenance, caption)
+							: caption}
+					</AppText>
 					<AppText variant="caption">{energy}</AppText>
 				</View>
 			</Pressable>
@@ -1127,7 +1178,13 @@ function BrowserEmptyState({
 	copy: ReturnType<typeof nutritionFoodBrowserCopy>;
 }) {
 	if (query.trim())
-		return <EmptyState title={copy.noFoodsTitle} body={copy.noFoodsBody} />;
+		return (
+			<EmptyState
+				title={copy.noFoodsTitle}
+				body={copy.noFoodsBody}
+				appearance="search"
+			/>
+		);
 	if (tab === "recent")
 		return (
 			<EmptyState title={copy.recentEmptyTitle} body={copy.recentEmptyBody} />
@@ -1318,11 +1375,22 @@ function ServingDetail({
 					showsVerticalScrollIndicator={false}
 				>
 					<View style={styles.heading}>
-						<AppText variant="display">
-							{selection.kind === "shipped"
-								? (selection.food.emoji ?? "🍽️")
-								: "◇"}
-						</AppText>
+						{selection.kind === "personal" &&
+						selection.food.provenance.imageUrl ? (
+							<Image
+								source={selection.food.provenance.imageUrl}
+								accessibilityLabel={food.name[locale]}
+								cachePolicy="memory-disk"
+								contentFit="contain"
+								style={styles.detailImage}
+							/>
+						) : (
+							<AppText variant="display">
+								{selection.kind === "shipped"
+									? (selection.food.emoji ?? "🍽️")
+									: "◇"}
+							</AppText>
+						)}
 						{/* The sheet header already carries the name and keeps it in
 							    place while this scrolls, so the body shows what the header
 							    cannot: the glyph, and where the figures came from. */}
@@ -1760,6 +1828,18 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: spacing.md,
+	},
+	foodImage: {
+		width: 52,
+		height: 52,
+		borderRadius: radius.sm,
+		backgroundColor: colors.surface2,
+	},
+	detailImage: {
+		width: 112,
+		height: 112,
+		borderRadius: radius.lg,
+		backgroundColor: colors.surface2,
 	},
 	quickAdd: {
 		width: 44,

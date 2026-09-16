@@ -36,7 +36,8 @@ export default function CoachTabsLayout() {
 		<View style={{ flex: 1 }}>
 			{!hasAccessory && active ? <ActiveSessionBar /> : null}
 			<NativeTabs
-				backgroundColor={colors.surface}
+				backgroundColor={Platform.OS === "ios" ? undefined : colors.surface}
+				minimizeBehavior="onScrollDown"
 				tintColor={colors.accent}
 				iconColor={{
 					default: colors.textMuted,
@@ -48,7 +49,7 @@ export default function CoachTabsLayout() {
 						<ActiveSessionBar />
 					</NativeTabs.BottomAccessory>
 				) : null}
-				<NativeTabs.Trigger name="index">
+				<NativeTabs.Trigger name="(home)">
 					<NativeTabs.Trigger.Label>{t.tabs.home}</NativeTabs.Trigger.Label>
 					<NativeTabs.Trigger.Icon sf="house.fill" md="home" />
 				</NativeTabs.Trigger>

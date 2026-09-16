@@ -13,8 +13,7 @@
  *
  */
 import { useAuth } from "@clerk/expo";
-import { Redirect, Stack, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
+import { Redirect, Stack } from "expo-router";
 import { Platform, View } from "react-native";
 import { NutritionOperationsProvider } from "../../src/data/nutrition-operation-service";
 import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
@@ -29,26 +28,6 @@ import { ToastProvider } from "../../src/ui/toast";
 export default function AppLayout() {
 	const { isSignedIn } = useAuth();
 	const { t, locale } = useI18n();
-	const segments = useSegments();
-	const tab = segments[segments.length - 1];
-	const selectedTab =
-		tab === "train"
-			? "train"
-			: tab === "nutrition"
-				? "nutrition"
-				: tab === "progress"
-					? "progress"
-					: tab === "profile"
-						? "profile"
-						: "home";
-	const inTabs = segments.includes("(coach)" as never);
-	const [lastTab, setLastTab] = useState<keyof typeof t.tabs>("home");
-	useEffect(() => {
-		if (inTabs) setLastTab(selectedTab);
-	}, [inTabs, selectedTab]);
-	// A pushed screen must keep the previous tab's title for the native Back menu.
-	const tabTitle = t.tabs[inTabs ? selectedTab : lastTab];
-
 	if (!isSignedIn) {
 		return <Redirect href="/sign-in" />;
 	}
@@ -68,6 +47,7 @@ export default function AppLayout() {
 											headerTintColor: colors.accent,
 											gestureEnabled: true,
 											contentStyle: { backgroundColor: colors.bg },
+											headerBackButtonDisplayMode: "minimal",
 											...(Platform.OS === "android"
 												? {
 														headerStyle: { backgroundColor: colors.bg },
@@ -80,8 +60,7 @@ export default function AppLayout() {
 										<Stack.Screen
 											name="(coach)"
 											options={{
-												title: tabTitle,
-												headerBackVisible: false,
+												headerShown: false,
 											}}
 										/>
 										<Stack.Screen
@@ -91,6 +70,13 @@ export default function AppLayout() {
 										<Stack.Screen
 											name="exercise/[id]"
 											options={{ title: "Exercise" }}
+										/>
+										<Stack.Screen
+											name="exercise-new"
+											options={{
+												title: "New exercise",
+												presentation: "formSheet",
+											}}
 										/>
 										<Stack.Screen
 											name="hosted"
@@ -103,8 +89,16 @@ export default function AppLayout() {
 										<Stack.Screen name="wods" options={{ title: "WODs" }} />
 										<Stack.Screen name="wod/[id]" options={{ title: "WOD" }} />
 										<Stack.Screen
+											name="wod-editor"
+											options={{ title: "WOD", presentation: "formSheet" }}
+										/>
+										<Stack.Screen
 											name="start-activity"
 											options={{ title: "Start activity" }}
+										/>
+										<Stack.Screen
+											name="routine-editor"
+											options={{ title: "Routine", presentation: "formSheet" }}
 										/>
 										<Stack.Screen
 											name="session"
@@ -128,7 +122,10 @@ export default function AppLayout() {
 										/>
 										<Stack.Screen
 											name="nutrition-entry"
-											options={{ title: t.nutrition.entryEditor.title }}
+											options={{
+												title: t.nutrition.entryEditor.title,
+												presentation: "formSheet",
+											}}
 										/>
 										<Stack.Screen
 											name="nutrition-combos"

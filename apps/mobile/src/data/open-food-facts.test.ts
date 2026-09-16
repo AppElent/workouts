@@ -27,6 +27,13 @@ const bakedBeans = {
 	product_name: "Baked Beans",
 	product_name_en: "Baked Beans",
 	product_name_nl: "Witte bonen in tomatensaus",
+	brands: ["Heinz", "Heinz"],
+	quantity: "415 g",
+	serving_size: "Half can (207.5 g)",
+	serving_quantity: 207.5,
+	serving_quantity_unit: "g",
+	image_front_small_url:
+		"https://images.openfoodfacts.org/images/products/500/011/263/7922/front_en.40.200.jpg",
 	nutriments: {
 		"energy-kcal_100g": 75,
 		proteins_100g: 4.8,
@@ -62,8 +69,24 @@ describe("lookupOffBarcode", () => {
 				locallyEdited: false,
 				provider: "Open Food Facts",
 				barcode: "5000112637922",
+				brand: "Heinz",
+				quantity: "415 g",
+				providerServing: {
+					label: "Half can (207.5 g)",
+					amount: 207.5,
+					unit: "g",
+				},
 			},
+			servings: [
+				{
+					label: { en: "Half can (207.5 g)", nl: "Half can (207.5 g)" },
+					amount: 207.5,
+				},
+			],
 		});
+		expect(first.draft.provenance.imageUrl).toContain(
+			"images.openfoodfacts.org",
+		);
 		expect(first.draft.provenance.attribution).toMatch(/Open Food Facts/);
 
 		const second = await lookupOffBarcode("5000112637922", {
@@ -100,6 +123,60 @@ describe("lookupOffBarcode", () => {
 		});
 	});
 
+	it("keeps incompatible provider serving metadata without making it loggable", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch(() =>
+			jsonResponse(200, {
+				status: 1,
+				product: {
+					...bakedBeans,
+					quantity: "330 ml",
+					product_quantity_unit: "ml",
+					serving_size: "330 g",
+					serving_quantity: 330,
+					serving_quantity_unit: "g",
+				},
+			}),
+		);
+		const outcome = await lookupOffBarcode("5000112637922", {
+			cache,
+			fetchImpl,
+		});
+		if (outcome.kind !== "found") throw new Error("expected found");
+		expect(outcome.draft.baseUnit).toBe("ml");
+		expect(outcome.draft.servings).toEqual([]);
+		expect(outcome.draft.provenance.providerServing).toMatchObject({
+			amount: 330,
+			unit: "g",
+		});
+	});
+
+	it("bypasses and replaces a cached barcode when refreshing", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		cache.set("barcode:details-v2:5000112637922", "barcode", bakedBeans);
+		const fetchImpl = fakeFetch(() =>
+			jsonResponse(200, {
+				status: 1,
+				product: {
+					...bakedBeans,
+					product_name: "Updated Beans",
+					product_name_en: "Updated Beans",
+				},
+			}),
+		);
+		const outcome = await lookupOffBarcode(
+			"5000112637922",
+			{ cache, fetchImpl },
+			{ fresh: true },
+		);
+		expect(outcome).toMatchObject({
+			kind: "found",
+			fromCache: false,
+			draft: { name: { en: "Updated Beans" } },
+		});
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+	});
+
 	it("reports an unknown barcode as not-found without caching it", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() => jsonResponse(200, { status: 0 }));
@@ -108,7 +185,7 @@ describe("lookupOffBarcode", () => {
 			fetchImpl,
 		});
 		expect(outcome).toEqual({ kind: "not-found" });
-		expect(cache.get("barcode:0000000000000")).toBeUndefined();
+		expect(cache.get("barcode:details-v2:0000000000000")).toBeUndefined();
 	});
 
 	it("reports a 429 as rate-limited", async () => {

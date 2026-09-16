@@ -4,6 +4,20 @@ export const nutritionLibraryCopy = {
 		title: "Back up and restore your foods and Combos",
 		intro:
 			"Diary history is saved as independent snapshots. Background sync uploads local library changes; opening this screen explicitly restores the latest reusable Personal Foods and fixed Combos.",
+		offTitle: "Open Food Facts",
+		offHelp:
+			"Refresh imported products from their barcodes. Your edited names, nutrition values, and custom portions stay unchanged.",
+		offRefresh: "Refresh imported foods",
+		offRefreshing: "Refreshing imported foods…",
+		offEmpty: "No barcode-backed Open Food Facts foods are saved locally.",
+		offConfirmTitle: "Refresh imported foods?",
+		offConfirmBody: (count: number) =>
+			`Foundry will check ${count} saved ${count === 1 ? "food" : "foods"}. Open Food Facts limits product lookups, so this can take about ${Math.max(1, Math.ceil(count / 15))} minute${count > 15 ? "s" : ""}.`,
+		offConfirm: "Refresh foods",
+		offProgress: (completed: number, total: number) =>
+			`${completed} of ${total} checked`,
+		offSummary: (updated: number, unchanged: number, failed: number) =>
+			`${updated} updated · ${unchanged} unchanged · ${failed} not refreshed`,
 		disabled:
 			"Backup is off. Existing device foods remain private to this device until you explicitly import them.",
 		enable: "Enable backup for this account",
@@ -44,6 +58,21 @@ export const nutritionLibraryCopy = {
 			"Maak een reservekopie van je voedingsmiddelen en Combo's en herstel ze",
 		intro:
 			"Dagboekgeschiedenis wordt als onafhankelijke snapshots opgeslagen. Achtergrondsynchronisatie uploadt lokale bibliotheekwijzigingen; door dit scherm te openen herstel je expliciet de nieuwste herbruikbare Persoonlijke Voedingsmiddelen en vaste Combo's.",
+		offTitle: "Open Food Facts",
+		offHelp:
+			"Vernieuw geïmporteerde producten via hun barcode. Je aangepaste namen, voedingswaarden en eigen porties blijven ongewijzigd.",
+		offRefresh: "Geïmporteerde voeding vernieuwen",
+		offRefreshing: "Geïmporteerde voeding vernieuwen…",
+		offEmpty:
+			"Er is lokaal geen Open Food Facts-voeding met barcode opgeslagen.",
+		offConfirmTitle: "Geïmporteerde voeding vernieuwen?",
+		offConfirmBody: (count: number) =>
+			`Foundry controleert ${count} opgeslagen ${count === 1 ? "voedingsmiddel" : "voedingsmiddelen"}. Open Food Facts beperkt productopvragingen, dus dit kan ongeveer ${Math.max(1, Math.ceil(count / 15))} ${count > 15 ? "minuten" : "minuut"} duren.`,
+		offConfirm: "Voeding vernieuwen",
+		offProgress: (completed: number, total: number) =>
+			`${completed} van ${total} gecontroleerd`,
+		offSummary: (updated: number, unchanged: number, failed: number) =>
+			`${updated} vernieuwd · ${unchanged} ongewijzigd · ${failed} niet vernieuwd`,
 		disabled:
 			"Reservekopie staat uit. Bestaande voedingsmiddelen blijven op dit apparaat totdat je ze expliciet importeert.",
 		enable: "Reservekopie voor dit account inschakelen",

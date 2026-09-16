@@ -111,6 +111,7 @@ describe("Personal Food compact authoring", () => {
 			screen.getByLabelText("Serving 1 amount in ml"),
 			"500",
 		);
+		fireEvent.press(screen.getByText("Add portion"));
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
@@ -169,6 +170,64 @@ describe("Personal Food compact authoring", () => {
 		expect(repository.find(food.id)?.nutrients.protein).toEqual({
 			kind: "trace",
 		});
+	});
+
+	it("keeps saved servings compact until the user chooses one to edit", async () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const food = repository.create({
+			name: { en: "Training drink", nl: "Trainingsdrank" },
+			baseUnit: "ml",
+			nutrients: {
+				energy: { kind: "value", amount: 10 },
+				protein: { kind: "absent" },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			servings: [{ label: { en: "Bottle", nl: "Fles" }, amount: 500 }],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		const onSaved = jest.fn<void, [PersonalFood]>();
+		render(
+			<PersonalFoodEditor food={food} onSaved={onSaved} onCancel={jest.fn()} />,
+			{
+				wrapper: ({ children }) => (
+					<Providers repository={repository}>{children}</Providers>
+				),
+			},
+		);
+
+		expect(screen.getByText("Bottle")).toBeTruthy();
+		expect(screen.getByText("500 ml")).toBeTruthy();
+		expect(screen.queryByLabelText("Serving 1 name")).toBeNull();
+
+		fireEvent.press(screen.getByText("Bottle"));
+		fireEvent.changeText(
+			screen.getByLabelText("Serving 1 name"),
+			"Large bottle",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Serving 1 amount in ml"),
+			"750",
+		);
+		fireEvent.press(screen.getByText("Save portion"));
+
+		expect(screen.getByText("Large bottle")).toBeTruthy();
+		expect(screen.getByText("750 ml")).toBeTruthy();
+		expect(screen.queryByLabelText("Serving 1 name")).toBeNull();
+
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(food.id)?.servings).toEqual([
+			{ label: { en: "Large bottle", nl: "Fles" }, amount: 750 },
+		]);
 	});
 
 	it("keeps invalid input in place and explains what must change", async () => {

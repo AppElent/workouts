@@ -242,6 +242,7 @@ export function SwipeableRow({
 						{Platform.OS === "ios" && href ? (
 							<Link href={href} asChild>
 								<Link.Trigger>{children(accessibility)}</Link.Trigger>
+								<Link.Preview />
 								<Link.Menu title={menuTitle}>
 									{actions.map((action) => (
 										<Link.MenuAction

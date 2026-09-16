@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { Alert, Modal } from "react-native";
+import { Alert } from "react-native";
 import type { Doc, Id } from "../convex/api";
 import { ConfirmProvider } from "./confirm-dialog";
 import { SetEditSheet } from "./set-edit-sheet";
@@ -28,7 +28,7 @@ afterEach(() => jest.restoreAllMocks());
 it("allows native dismissal of a clean sheet but protects unsaved edits", async () => {
 	const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 	const onClose = jest.fn();
-	const app = render(
+	render(
 		<ConfirmProvider>
 			<SetEditSheet
 				set={loggedSet}
@@ -38,14 +38,17 @@ it("allows native dismissal of a clean sheet but protects unsaved edits", async 
 			/>
 		</ConfirmProvider>,
 	);
-	const nativeSheet = () =>
-		app
-			.UNSAFE_getAllByType(Modal)
-			.find((modal) => modal.props.presentationStyle === "pageSheet");
-	expect(nativeSheet()?.props.allowSwipeDismissal).toBe(true);
+	const interactiveDismissDisabled = () =>
+		screen
+			.getByTestId("swiftui-group")
+			.props.modifiers.find(
+				(modifier: { type: string }) =>
+					modifier.type === "interactiveDismissDisabled",
+			)?.args[0];
+	expect(interactiveDismissDisabled()).toBe(false);
 	fireEvent.press(screen.getByLabelText("Increase kg"));
 	expect(screen.getByText("32.5")).toBeTruthy();
-	expect(nativeSheet()?.props.allowSwipeDismissal).toBe(false);
+	expect(interactiveDismissDisabled()).toBe(true);
 	fireEvent.press(screen.getByLabelText("Close"));
 	expect(alert).toHaveBeenCalledWith(
 		"Discard changes?",

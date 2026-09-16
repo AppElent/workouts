@@ -13,6 +13,7 @@ import {
 
 type OpenFoodFactsValue = {
 	lookupBarcode(barcode: string): Promise<OffLookupOutcome>;
+	refreshBarcode(barcode: string): Promise<OffLookupOutcome>;
 	search(query: string): Promise<OffSearchOutcome>;
 };
 
@@ -33,6 +34,8 @@ export function OpenFoodFactsProvider({
 	);
 	const [value] = useState<OpenFoodFactsValue>(() => ({
 		lookupBarcode: (barcode) => lookupOffBarcode(barcode, { cache, fetchImpl }),
+		refreshBarcode: (barcode) =>
+			lookupOffBarcode(barcode, { cache, fetchImpl }, { fresh: true }),
 		search: (query) => searchOffProducts(query, { cache, fetchImpl }),
 	}));
 

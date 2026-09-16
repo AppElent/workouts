@@ -41,6 +41,16 @@ export type PersonalFoodProvenance = {
 	readonly provider?: string;
 	readonly barcode?: string;
 	readonly attribution?: string;
+	readonly brand?: string;
+	/** Provider-authored package quantity, retained verbatim for display. */
+	readonly quantity?: string;
+	readonly imageUrl?: string;
+	/** Provider serving metadata; user-editable serving shortcuts remain separate. */
+	readonly providerServing?: {
+		readonly label: string;
+		readonly amount: number;
+		readonly unit: "g" | "ml";
+	};
 };
 
 export type PersonalFoodDraft = {
@@ -298,6 +308,41 @@ function validateProvenance(value: unknown): PersonalFoodProvenance {
 	if (typeof candidate.locallyEdited !== "boolean") {
 		throw new Error("Food provenance must say whether it was edited locally.");
 	}
+	let providerServing: PersonalFoodProvenance["providerServing"];
+	if (candidate.providerServing !== undefined) {
+		const serving = candidate.providerServing;
+		if (
+			!serving ||
+			typeof serving !== "object" ||
+			typeof serving.label !== "string" ||
+			serving.label.trim().length === 0 ||
+			!Number.isFinite(serving.amount) ||
+			serving.amount <= 0 ||
+			(serving.unit !== "g" && serving.unit !== "ml")
+		) {
+			throw new Error("Food provenance has invalid provider serving data.");
+		}
+		providerServing = {
+			label: serving.label.trim(),
+			amount: serving.amount,
+			unit: serving.unit,
+		};
+	}
+	const imageUrl = candidate.imageUrl?.trim();
+	if (imageUrl) {
+		let parsed: URL;
+		try {
+			parsed = new URL(imageUrl);
+		} catch {
+			throw new Error("Food provenance has an invalid image URL.");
+		}
+		if (
+			parsed.protocol !== "https:" ||
+			parsed.hostname !== "images.openfoodfacts.org"
+		) {
+			throw new Error("Food provenance has an invalid image URL.");
+		}
+	}
 	return {
 		recordOrigin: candidate.recordOrigin,
 		nutritionSource: candidate.nutritionSource,
@@ -306,6 +351,12 @@ function validateProvenance(value: unknown): PersonalFoodProvenance {
 		...(candidate.provider ? { provider: candidate.provider } : {}),
 		...(candidate.barcode ? { barcode: candidate.barcode } : {}),
 		...(candidate.attribution ? { attribution: candidate.attribution } : {}),
+		...(candidate.brand?.trim() ? { brand: candidate.brand.trim() } : {}),
+		...(candidate.quantity?.trim()
+			? { quantity: candidate.quantity.trim() }
+			: {}),
+		...(imageUrl ? { imageUrl } : {}),
+		...(providerServing ? { providerServing } : {}),
 	};
 }
 

@@ -121,6 +121,15 @@ export const spacing = {
 	xxl: 48,
 } as const;
 
+/** Layout decisions shared by screens and the form design-system seam. */
+export const metrics = {
+	screenGutter: 20,
+	rowMinHeight: 52,
+	fieldMinHeight: 48,
+	hitTarget: 44,
+	sectionGap: spacing.lg,
+} as const;
+
 /**
  * Named text styles. Screens pick a name; nothing outside this file sets a
  * `fontSize`. No custom fonts are bundled, so weights are numeric and the

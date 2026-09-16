@@ -6,14 +6,7 @@ import {
 	type NutrientValue,
 } from "@workouts/core/nutrition";
 import { useMemo, useRef, useState } from "react";
-import {
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, View } from "react-native";
 import {
 	type PersonalFood,
 	type PersonalFoodDraft,
@@ -21,9 +14,20 @@ import {
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card } from "../ui/coach";
+import { colors, spacing } from "../theme";
+import { PrimaryButton } from "../ui/button";
+import {
+	AddRow,
+	DisclosureRow,
+	EditableValueRow,
+	FormScreen,
+	FormSection,
+	FormTextField,
+	GroupedSurface,
+	InlineActionRow,
+	InlineNumberFieldRow,
+	TextAction,
+} from "../ui/form";
 import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
@@ -105,13 +109,12 @@ export function PersonalFoodEditorForm({
 }: {
 	food?: PersonalFood;
 	seed?: PersonalFoodDraft;
-	reviewNotice?: { title: string; body: string; attribution?: string };
+	reviewNotice?: { title: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
 }) {
 	const { t, locale } = useI18n();
 	const copy = personalFoodEditorCopy[locale];
-	const insets = useSafeAreaInsets();
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
 	const initial = food ?? seed;
@@ -127,6 +130,10 @@ export function PersonalFoodEditorForm({
 	const [servings, setServings] = useState(() => initialServings(initial));
 	const [servingsOpen, setServingsOpen] = useState(() => servings.length > 0);
 	const nextServingKey = useRef(servings.length);
+	const [addingServing, setAddingServing] = useState(false);
+	const [editingServingIndex, setEditingServingIndex] = useState<number>();
+	const [newServingName, setNewServingName] = useState("");
+	const [newServingAmount, setNewServingAmount] = useState("");
 	const [validationError, setValidationError] = useState<string>();
 	const [saving, setSaving] = useState(false);
 	const saveLock = useRef(false);
@@ -230,396 +237,279 @@ export function PersonalFoodEditorForm({
 		}
 	}
 
+	function saveServing() {
+		const name = newServingName.trim();
+		const amount = parseNumber(newServingAmount);
+		if (!name || !Number.isFinite(amount) || amount <= 0) {
+			setValidationError(t.nutrition.personalFood.validation);
+			return;
+		}
+		if (editingServingIndex === undefined) {
+			nextServingKey.current += 1;
+			setServings((current) => [
+				...current,
+				{
+					key: `new-${nextServingKey.current}`,
+					en: name,
+					nl: name,
+					amount: newServingAmount,
+				},
+			]);
+		} else {
+			setServings((current) =>
+				current.map((serving, index) => {
+					if (index !== editingServingIndex) return serving;
+					return locale === "en"
+						? { ...serving, en: name, amount: newServingAmount }
+						: { ...serving, nl: name, amount: newServingAmount };
+				}),
+			);
+		}
+		setNewServingName("");
+		setNewServingAmount("");
+		setAddingServing(false);
+		setEditingServingIndex(undefined);
+		setServingsOpen(true);
+		setValidationError(undefined);
+	}
+
+	function beginAddingServing() {
+		setEditingServingIndex(undefined);
+		setNewServingName("");
+		setNewServingAmount("");
+		setAddingServing(true);
+	}
+
+	function beginEditingServing(index: number) {
+		const serving = servings[index];
+		setEditingServingIndex(index);
+		setNewServingName(locale === "en" ? serving.en : serving.nl);
+		setNewServingAmount(serving.amount);
+		setAddingServing(true);
+	}
+
+	function closeServingEditor() {
+		setAddingServing(false);
+		setEditingServingIndex(undefined);
+		setNewServingName("");
+		setNewServingAmount("");
+	}
+
 	const visibleNutrients = [
 		...PRIMARY_NUTRIENTS,
 		...(moreNutrientsOpen ? MORE_NUTRIENTS : []),
 	];
 
+	const title = source
+		? t.nutrition.fork.title
+		: reviewNotice
+			? reviewNotice.title
+			: food
+				? t.nutrition.personalFood.editTitle
+				: t.nutrition.personalFood.createTitle;
+	const servingNumber = (editingServingIndex ?? servings.length) + 1;
+
 	return (
-		<ScrollView
-			contentInsetAdjustmentBehavior="automatic"
-			automaticallyAdjustKeyboardInsets
-			keyboardDismissMode="interactive"
-			style={styles.root}
-			contentContainerStyle={[
-				styles.content,
-				{ paddingBottom: insets.bottom + spacing.xxl },
-			]}
-			keyboardShouldPersistTaps="handled"
+		<FormScreen
+			title={title}
+			cancelLabel={t.nutrition.personalFood.cancel}
+			onCancel={saving ? undefined : onCancel}
+			primaryAction={{
+				label: saving
+					? t.nutrition.personalFood.saving
+					: t.nutrition.personalFood.save,
+				loading: saving,
+				onPress: save,
+			}}
 		>
-			<AppText variant="title" style={styles.title}>
-				{source
-					? t.nutrition.fork.title
-					: reviewNotice
-						? reviewNotice.title
-						: food
-							? t.nutrition.personalFood.editTitle
-							: t.nutrition.personalFood.createTitle}
-			</AppText>
 			{source ? (
-				<Card style={styles.disclosure}>
+				<GroupedSurface style={styles.notice}>
 					<AppText variant="heading">
 						{fmt(t.nutrition.fork.forkedFrom, {
 							name: source.sourceName[locale],
 						})}
 					</AppText>
 					<AppText variant="caption">{t.nutrition.fork.intro}</AppText>
-				</Card>
+				</GroupedSurface>
 			) : null}
-			{reviewNotice ? (
-				<Card style={styles.disclosure}>
-					<AppText variant="caption">{reviewNotice.body}</AppText>
-					{reviewNotice.attribution ? (
-						<AppText variant="caption">{reviewNotice.attribution}</AppText>
-					) : null}
-				</Card>
+			{reviewNotice?.attribution ? (
+				<GroupedSurface>
+					<AppText variant="caption">{reviewNotice.attribution}</AppText>
+				</GroupedSurface>
 			) : null}
 
-			<LabeledInput
-				label={copy.name}
-				value={primaryName}
-				onChangeText={setPrimaryName}
-			/>
-			<DisclosureButton
-				label={copy.otherName}
-				actionLabel={
-					otherNameOpen
-						? copy.hideOtherName
-						: otherName.trim()
-							? copy.editOtherName
-							: copy.addOtherName
-				}
-				expanded={otherNameOpen}
-				onPress={() => setOtherNameOpen((open) => !open)}
-			/>
-			{otherNameOpen ? (
-				<LabeledInput
+			<FormSection>
+				<FormTextField
+					label={copy.name}
+					value={primaryName}
+					onChangeText={setPrimaryName}
+					autoCorrect={false}
+				/>
+				<DisclosureRow
 					label={copy.otherName}
-					value={otherName}
-					onChangeText={setOtherName}
-				/>
-			) : null}
-
-			<View style={styles.unitSection}>
-				<AppText variant="label">{copy.per100}</AppText>
-				<Segmented
-					value={baseUnit}
-					onChange={setBaseUnit}
-					options={[
-						{
-							value: "g",
-							label: copy.grams,
-							accessibilityLabel: `${copy.per100} ${copy.grams}`,
-						},
-						{
-							value: "ml",
-							label: copy.millilitres,
-							accessibilityLabel: `${copy.per100} ${copy.millilitres}`,
-						},
-					]}
-				/>
-			</View>
-
-			<View style={styles.sectionHeading}>
-				<AppText variant="heading" style={styles.headingText}>
-					{copy.nutrition} {copy.per100.toLowerCase()} {baseUnit}
-				</AppText>
-				<AppText variant="caption">{copy.nutrientHelper}</AppText>
-			</View>
-			{visibleNutrients.map((key) => (
-				<NutrientRow
-					key={key}
-					label={t.nutrition.nutrients[key]}
-					baseUnit={baseUnit}
-					unit={key === "energy" ? "kcal" : "g"}
-					input={nutrients[key]}
-					valueOptionsLabel={copyWithLabel(
-						copy.valueOptions,
-						t.nutrition.nutrients[key],
-					)}
-					onAmountChange={(amount) => setAmount(key, amount)}
-					onStateChange={(kind) =>
-						updateNutrient(key, {
-							kind,
-							amount: kind === "value" ? nutrients[key].amount : "",
-						})
+					accessibilityLabel={
+						otherNameOpen
+							? copy.hideOtherName
+							: otherName.trim()
+								? copy.editOtherName
+								: copy.addOtherName
 					}
-					unknownLabel={copy.unknown}
-					traceLabel={copy.trace}
-					closeLabel={copy.close}
+					expanded={otherNameOpen}
+					onPress={() => setOtherNameOpen((open) => !open)}
 				/>
-			))}
-			<GhostButton
-				label={moreNutrientsOpen ? copy.fewerNutrients : copy.moreNutrients}
-				onPress={() => setMoreNutrientsOpen((open) => !open)}
-			/>
+				{otherNameOpen ? (
+					<FormTextField
+						label={copy.otherName}
+						value={otherName}
+						onChangeText={setOtherName}
+						autoCorrect={false}
+					/>
+				) : null}
+			</FormSection>
 
-			<DisclosureButton
-				label={copy.customServings}
-				actionLabel={copy.customServings}
-				expanded={servingsOpen}
-				onPress={() => setServingsOpen((open) => !open)}
-			/>
-			{servingsOpen ? (
-				<View style={styles.servingsSection}>
-					<AppText variant="caption">{copy.customServingsHelp}</AppText>
-					{servings.map((serving, index) => (
-						<Card key={serving.key} style={styles.serving}>
-							<LabeledInput
-								label={copyWithServing(copy.servingName, index + 1)}
-								value={locale === "en" ? serving.en : serving.nl}
-								onChangeText={(value) =>
-									setServings((current) =>
-										current.map((item, itemIndex) =>
-											itemIndex === index
-												? locale === "en"
-													? { ...item, en: value }
-													: { ...item, nl: value }
-												: item,
-										),
-									)
-								}
+			<FormSection title={copy.per100}>
+				<View style={styles.segmentedRow}>
+					<Segmented
+						value={baseUnit}
+						onChange={setBaseUnit}
+						options={[
+							{
+								value: "g",
+								label: copy.grams,
+								accessibilityLabel: `${copy.per100} ${copy.grams}`,
+							},
+							{
+								value: "ml",
+								label: copy.millilitres,
+								accessibilityLabel: `${copy.per100} ${copy.millilitres}`,
+							},
+						]}
+					/>
+				</View>
+			</FormSection>
+
+			<FormSection
+				title={`${copy.nutrition} ${copy.per100.toLowerCase()} ${baseUnit}`}
+				footer={copy.nutrientHelper}
+			>
+				{visibleNutrients.map((key) => (
+					<InlineNumberFieldRow
+						key={key}
+						label={t.nutrition.nutrients[key]}
+						suffix={key === "energy" ? "kcal" : "g"}
+						value={nutrients[key].amount}
+						onChangeText={(amount) => setAmount(key, amount)}
+						accessibilityLabel={`${t.nutrition.nutrients[key]} per 100 ${baseUnit}`}
+						placeholder={nutrients[key].kind === "trace" ? copy.trace : "—"}
+						keyboardType="decimal-pad"
+						accessory={
+							<NutritionMenu
+								label={copyWithLabel(
+									copy.valueOptions,
+									t.nutrition.nutrients[key],
+								)}
+								closeLabel={copy.close}
+								actions={[
+									{
+										label: copy.unknown,
+										onPress: () =>
+											updateNutrient(key, { kind: "absent", amount: "" }),
+									},
+									{
+										label: copy.trace,
+										onPress: () =>
+											updateNutrient(key, { kind: "trace", amount: "" }),
+									},
+								]}
 							/>
-							<LabeledInput
-								label={copyWithServing(copy.servingAmount, index + 1, baseUnit)}
-								value={serving.amount}
-								onChangeText={(amount) =>
-									setServings((current) =>
-										current.map((item, itemIndex) =>
-											itemIndex === index ? { ...item, amount } : item,
-										),
-									)
-								}
-								keyboardType="decimal-pad"
-							/>
-							<GhostButton
-								label={`${copy.removeServing} ${index + 1}`}
-								onPress={() =>
+						}
+					/>
+				))}
+				<DisclosureRow
+					label={moreNutrientsOpen ? copy.fewerNutrients : copy.moreNutrients}
+					expanded={moreNutrientsOpen}
+					onPress={() => setMoreNutrientsOpen((open) => !open)}
+				/>
+			</FormSection>
+
+			<FormSection footer={servingsOpen ? copy.customServingsHelp : undefined}>
+				<DisclosureRow
+					label={copy.customServings}
+					expanded={servingsOpen}
+					onPress={() => setServingsOpen((open) => !open)}
+				/>
+				{servingsOpen
+					? servings.map((serving, index) => (
+							<EditableValueRow
+								key={serving.key}
+								label={locale === "en" ? serving.en : serving.nl}
+								value={`${serving.amount} ${baseUnit}`}
+								deleteLabel={copy.remove}
+								deleteAccessibilityLabel={`${copy.removeServing} ${index + 1}`}
+								onPress={() => beginEditingServing(index)}
+								onDelete={() =>
 									setServings((current) =>
 										current.filter((_, itemIndex) => itemIndex !== index),
 									)
 								}
 							/>
-						</Card>
-					))}
-					{servings.length < 3 ? (
-						<GhostButton
-							label={copy.addServing}
-							onPress={() =>
-								setServings((current) => {
-									nextServingKey.current += 1;
-									return [
-										...current,
-										{
-											key: `new-${nextServingKey.current}`,
-											en: "",
-											nl: "",
-											amount: "",
-										},
-									];
-								})
-							}
+						))
+					: null}
+				{servingsOpen && servings.length < 3 && !addingServing ? (
+					<AddRow label={copy.addServing} onPress={beginAddingServing} />
+				) : null}
+				{servingsOpen && addingServing ? (
+					<View style={styles.servingEditor}>
+						<FormTextField
+							autoFocus
+							label={copyWithServing(copy.servingName, servingNumber)}
+							value={newServingName}
+							onChangeText={setNewServingName}
+							autoCorrect={false}
 						/>
-					) : null}
-				</View>
-			) : null}
+						<FormTextField
+							label={copyWithServing(
+								copy.servingAmount,
+								servingNumber,
+								baseUnit,
+							)}
+							placeholder={`100 ${baseUnit}`}
+							keyboardType="decimal-pad"
+							value={newServingAmount}
+							onChangeText={setNewServingAmount}
+							onSubmitEditing={saveServing}
+						/>
+						<InlineActionRow>
+							<TextAction
+								label={t.nutrition.personalFood.cancel}
+								tone="neutral"
+								onPress={closeServingEditor}
+							/>
+							<PrimaryButton
+								label={
+									editingServingIndex === undefined
+										? copy.saveServing
+										: copy.updateServing
+								}
+								onPress={saveServing}
+							/>
+						</InlineActionRow>
+					</View>
+				) : null}
+			</FormSection>
 
 			{validationError ? (
-				<AppText accessibilityRole="alert" style={styles.error}>
+				<AppText selectable accessibilityRole="alert" style={styles.error}>
 					{validationError}
 				</AppText>
 			) : null}
-			<PrimaryButton
-				label={
-					saving
-						? t.nutrition.personalFood.saving
-						: t.nutrition.personalFood.save
-				}
-				loading={saving}
-				onPress={save}
-			/>
-			<GhostButton
-				label={t.nutrition.personalFood.cancel}
-				onPress={onCancel}
-				disabled={saving}
-			/>
-		</ScrollView>
-	);
-}
-
-function DisclosureButton({
-	label,
-	actionLabel,
-	expanded,
-	onPress,
-}: {
-	label: string;
-	actionLabel: string;
-	expanded: boolean;
-	onPress: () => void;
-}) {
-	return (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityLabel={actionLabel}
-			accessibilityState={{ expanded }}
-			onPress={onPress}
-			style={({ pressed }) => [
-				styles.disclosureButton,
-				pressed ? { backgroundColor: colors.surface2 } : null,
-			]}
-		>
-			<AppText variant="label">{label}</AppText>
-			<AppText variant="body" style={styles.disclosureIcon}>
-				{expanded ? "−" : "+"}
-			</AppText>
-		</Pressable>
-	);
-}
-
-function NutrientRow({
-	label,
-	baseUnit,
-	unit,
-	input,
-	valueOptionsLabel,
-	unknownLabel,
-	traceLabel,
-	closeLabel,
-	onAmountChange,
-	onStateChange,
-}: {
-	label: string;
-	baseUnit: "g" | "ml";
-	unit: string;
-	input: NutrientInput;
-	valueOptionsLabel: string;
-	unknownLabel: string;
-	traceLabel: string;
-	closeLabel: string;
-	onAmountChange: (value: string) => void;
-	onStateChange: (kind: NutrientValue["kind"]) => void;
-}) {
-	return (
-		<View style={styles.nutrientRow}>
-			<AppText variant="label" style={styles.nutrientLabel}>
-				{label}
-			</AppText>
-			<View style={styles.nutrientControls}>
-				<TextInput
-					value={input.amount}
-					onChangeText={onAmountChange}
-					accessibilityLabel={`${label} per 100 ${baseUnit}`}
-					placeholder={input.kind === "trace" ? traceLabel : "—"}
-					placeholderTextColor={colors.textFaint}
-					keyboardType="decimal-pad"
-					style={styles.nutrientInput}
-				/>
-				<AppText variant="caption" style={styles.nutrientUnit}>
-					{unit}
-				</AppText>
-				<NutritionMenu
-					label={valueOptionsLabel}
-					closeLabel={closeLabel}
-					actions={[
-						{ label: unknownLabel, onPress: () => onStateChange("absent") },
-						{ label: traceLabel, onPress: () => onStateChange("trace") },
-					]}
-				/>
-			</View>
-		</View>
-	);
-}
-
-function LabeledInput({
-	label,
-	...props
-}: {
-	label: string;
-	value: string;
-	onChangeText: (value: string) => void;
-	keyboardType?: "decimal-pad";
-}) {
-	return (
-		<View style={styles.field}>
-			<AppText variant="label">{label}</AppText>
-			<TextInput
-				{...props}
-				accessibilityLabel={label}
-				style={styles.input}
-				autoCorrect={false}
-			/>
-		</View>
+		</FormScreen>
 	);
 }
 
 const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: {
-		alignSelf: "center",
-		width: "100%",
-		maxWidth: 640,
-		padding: 20,
-		gap: spacing.md,
-	},
-	title: { maxWidth: "100%" },
-	disclosure: { gap: spacing.xs },
-	field: { gap: spacing.xs },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		paddingHorizontal: spacing.md,
-		color: colors.text,
-		fontSize: 15,
-	},
-	disclosureButton: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: spacing.sm,
-		borderRadius: radius.md,
-	},
-	disclosureIcon: { color: colors.accent, fontWeight: "800" },
-	unitSection: { gap: spacing.xs },
-	sectionHeading: { gap: spacing.xs },
-	headingText: { maxWidth: "100%" },
-	nutrientRow: {
-		minHeight: 52,
-		flexDirection: "row",
-		alignItems: "flex-start",
-		flexWrap: "wrap",
-		gap: spacing.sm,
-	},
-	nutrientLabel: {
-		flex: 1,
-		minWidth: 120,
-		paddingTop: spacing.md,
-		paddingRight: spacing.xs,
-	},
-	nutrientControls: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		flexShrink: 0,
-	},
-	nutrientInput: {
-		width: 82,
-		minHeight: 44,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		paddingHorizontal: spacing.sm,
-		color: colors.text,
-		fontSize: 15,
-		textAlign: "right",
-	},
-	nutrientUnit: { width: 30, textAlign: "left" },
-	servingsSection: { gap: spacing.sm },
-	serving: { gap: spacing.sm },
+	notice: { gap: spacing.xs },
+	segmentedRow: { padding: spacing.md },
+	servingEditor: { gap: spacing.sm, backgroundColor: colors.surface2 },
 	error: { color: colors.danger },
 });

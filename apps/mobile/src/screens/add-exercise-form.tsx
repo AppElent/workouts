@@ -57,10 +57,12 @@ const LOADED: ReadonlySet<Equipment> = new Set<Equipment>([
 ]);
 
 export function AddExerciseForm({
-	visible,
+	visible = true,
+	presentation = "modal",
 	onClose,
 }: {
-	visible: boolean;
+	visible?: boolean;
+	presentation?: "modal" | "screen";
 	onClose: () => void;
 }) {
 	const toast = useToast();
@@ -131,23 +133,21 @@ export function AddExerciseForm({
 		}
 	};
 
-	return (
-		<Modal
-			presentationStyle="pageSheet"
-			allowSwipeDismissal={!busy}
-			visible={visible}
-			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={close}
+	const content = (
+		<View
+			style={[
+				styles.root,
+				{
+					paddingTop:
+						presentation === "screen"
+							? 0
+							: Platform.OS === "ios"
+								? spacing.md
+								: insets.top + spacing.sm,
+				},
+			]}
 		>
-			<View
-				style={[
-					styles.root,
-					{
-						paddingTop:
-							Platform.OS === "ios" ? spacing.md : insets.top + spacing.sm,
-					},
-				]}
-			>
+			{presentation === "modal" ? (
 				<View style={styles.header}>
 					<AppText variant="heading">New exercise</AppText>
 					<Pressable
@@ -161,97 +161,108 @@ export function AddExerciseForm({
 						</AppText>
 					</Pressable>
 				</View>
+			) : null}
 
-				<ScrollView
-					contentInsetAdjustmentBehavior="automatic"
-					automaticallyAdjustKeyboardInsets
-					keyboardDismissMode="interactive"
-					contentContainerStyle={styles.content}
-					keyboardShouldPersistTaps="handled"
-					showsVerticalScrollIndicator={false}
-				>
-					<Eyebrow>Name</Eyebrow>
-					<TextInput
-						value={name}
-						onChangeText={setName}
-						placeholder="Bulgarian split squat"
-						placeholderTextColor={colors.textFaint}
-						style={styles.input}
-						autoFocus
-					/>
+			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				keyboardDismissMode="interactive"
+				contentContainerStyle={styles.content}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+			>
+				<Eyebrow>Name</Eyebrow>
+				<TextInput
+					value={name}
+					onChangeText={setName}
+					placeholder="Bulgarian split squat"
+					placeholderTextColor={colors.textFaint}
+					style={styles.input}
+					autoFocus
+				/>
 
-					<Eyebrow>Muscle groups</Eyebrow>
-					<TextInput
-						value={muscleGroups}
-						onChangeText={setMuscleGroups}
-						placeholder="quads, glutes"
-						placeholderTextColor={colors.textFaint}
-						style={styles.input}
-						autoCapitalize="none"
-						autoCorrect={false}
-					/>
-					<AppText variant="caption">Separate with commas.</AppText>
+				<Eyebrow>Muscle groups</Eyebrow>
+				<TextInput
+					value={muscleGroups}
+					onChangeText={setMuscleGroups}
+					placeholder="quads, glutes"
+					placeholderTextColor={colors.textFaint}
+					style={styles.input}
+					autoCapitalize="none"
+					autoCorrect={false}
+				/>
+				<AppText variant="caption">Separate with commas.</AppText>
 
-					<Eyebrow>Category</Eyebrow>
-					<View style={styles.chipRow}>
-						{CATEGORIES.map((c) => (
-							<Pressable key={c} onPress={() => setCategory(c)}>
-								<Chip label={c} active={category === c} />
-							</Pressable>
-						))}
-					</View>
+				<Eyebrow>Category</Eyebrow>
+				<View style={styles.chipRow}>
+					{CATEGORIES.map((c) => (
+						<Pressable key={c} onPress={() => setCategory(c)}>
+							<Chip label={c} active={category === c} />
+						</Pressable>
+					))}
+				</View>
 
-					<Eyebrow>Equipment</Eyebrow>
-					<View style={styles.chipWrap}>
-						{EQUIPMENT.map((e) => (
-							<Pressable key={e} onPress={() => setEquipment(e)}>
-								<Chip label={e} active={equipment === e} />
-							</Pressable>
-						))}
-					</View>
+				<Eyebrow>Equipment</Eyebrow>
+				<View style={styles.chipWrap}>
+					{EQUIPMENT.map((e) => (
+						<Pressable key={e} onPress={() => setEquipment(e)}>
+							<Chip label={e} active={equipment === e} />
+						</Pressable>
+					))}
+				</View>
 
-					{LOADED.has(equipment) ? (
-						<>
-							<Eyebrow>Weight step (optional)</Eyebrow>
-							<TextInput
-								value={increment}
-								onChangeText={setIncrement}
-								placeholder="2.5"
-								placeholderTextColor={colors.textFaint}
-								style={styles.input}
-								keyboardType="decimal-pad"
-							/>
-							<AppText variant="caption">
-								How much the load jumps by. Defaults to the usual step for{" "}
-								{equipment}.
-							</AppText>
-						</>
-					) : null}
-
-					<Eyebrow>Notes (optional)</Eyebrow>
-					<TextInput
-						value={notes}
-						onChangeText={setNotes}
-						placeholder="Cues, setup, anything worth remembering"
-						placeholderTextColor={colors.textFaint}
-						style={[styles.input, styles.multiline]}
-						multiline
-					/>
-
-					<Pressable
-						onPress={() => void submit()}
-						disabled={busy || name.trim() === ""}
-						style={[
-							styles.submit,
-							(busy || name.trim() === "") && styles.dimmed,
-						]}
-					>
-						<AppText style={styles.submitText}>
-							{busy ? "Creating…" : "Create exercise"}
+				{LOADED.has(equipment) ? (
+					<>
+						<Eyebrow>Weight step (optional)</Eyebrow>
+						<TextInput
+							value={increment}
+							onChangeText={setIncrement}
+							placeholder="2.5"
+							placeholderTextColor={colors.textFaint}
+							style={styles.input}
+							keyboardType="decimal-pad"
+						/>
+						<AppText variant="caption">
+							How much the load jumps by. Defaults to the usual step for{" "}
+							{equipment}.
 						</AppText>
-					</Pressable>
-				</ScrollView>
-			</View>
+					</>
+				) : null}
+
+				<Eyebrow>Notes (optional)</Eyebrow>
+				<TextInput
+					value={notes}
+					onChangeText={setNotes}
+					placeholder="Cues, setup, anything worth remembering"
+					placeholderTextColor={colors.textFaint}
+					style={[styles.input, styles.multiline]}
+					multiline
+				/>
+
+				<Pressable
+					onPress={() => void submit()}
+					disabled={busy || name.trim() === ""}
+					style={[styles.submit, (busy || name.trim() === "") && styles.dimmed]}
+				>
+					<AppText style={styles.submitText}>
+						{busy ? "Creating…" : "Create exercise"}
+					</AppText>
+				</Pressable>
+			</ScrollView>
+		</View>
+	);
+
+	if (presentation === "screen") return content;
+
+	return (
+		<Modal
+			presentationStyle="pageSheet"
+			allowSwipeDismissal={!busy}
+			visible={visible}
+			animationType={modalAnimation(reduceMotion, "slide")}
+			onRequestClose={close}
+		>
+			{content}
 		</Modal>
 	);
 }

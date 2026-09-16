@@ -94,8 +94,24 @@ function assertPersonalProvenance(value: unknown) {
 		throw new Error("Food provenance is invalid.");
 	}
 	if (typeof provenance.locallyEdited !== "boolean") throw new Error("Food provenance is invalid.");
-	for (const key of ["forkedFrom", "provider", "barcode", "attribution"]) {
+	for (const key of [
+		"forkedFrom",
+		"provider",
+		"barcode",
+		"attribution",
+		"brand",
+		"quantity",
+		"imageUrl",
+	]) {
 		if (provenance[key] !== undefined) assertText(provenance[key], `Food provenance ${key}`);
+	}
+	if (provenance.providerServing !== undefined) {
+		const serving = asObject(provenance.providerServing, "Provider serving");
+		assertText(serving.label, "Provider serving label");
+		assertFinite(serving.amount, "Provider serving amount", true);
+		if (serving.unit !== "g" && serving.unit !== "ml") {
+			throw new Error("Provider serving unit is invalid.");
+		}
 	}
 }
 
