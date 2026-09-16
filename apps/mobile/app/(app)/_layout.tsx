@@ -15,6 +15,7 @@
 import { useAuth } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
 import { Platform, View } from "react-native";
+import { NutritionDraftsProvider } from "../../src/data/nutrition-drafts";
 import { NutritionOperationsProvider } from "../../src/data/nutrition-operation-service";
 import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
@@ -39,6 +40,7 @@ export default function AppLayout() {
 					<PersonalFoodsProvider>
 						<OpenFoodFactsProvider>
 							<NutritionOperationsProvider>
+								<NutritionDraftsProvider>
 								<View style={{ flex: 1, backgroundColor: colors.bg }}>
 									<OfflineBanner />
 									<Stack
@@ -179,6 +181,7 @@ export default function AppLayout() {
 										/>
 									</Stack>
 								</View>
+								</NutritionDraftsProvider>
 							</NutritionOperationsProvider>
 						</OpenFoodFactsProvider>
 					</PersonalFoodsProvider>

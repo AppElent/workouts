@@ -168,6 +168,32 @@ export const en = {
 		/** The accessible name of a meal slot's icon-only plus control. */
 		addTo: "Add food to {meal}",
 		mealEmpty: "Nothing logged yet. Use + to add a food.",
+		/** Capture Drafts: notes filed under a meal that are not intake yet. */
+		drafts: {
+			onDevice: "Note · on this device",
+			/** Tap = the fast path: reopen the search with the note as the query. */
+			resolve: "Resolve note: {note}",
+			edit: "Edit note",
+			delete: "Delete note",
+			deleteTitle: "Delete this note?",
+			deleteBody: "It has not been logged as food.",
+			deleteConfirm: "Delete note",
+			otherDaysOne: "1 unresolved note on another day",
+			otherDaysMany: "{count} unresolved notes on other days",
+			otherDaysAction: "Go to oldest",
+			saveAsNote: "Save as note",
+			editTitle: "Edit note",
+			noteLabel: "Note",
+			mealLabel: "Meal",
+			save: "Save note",
+			saveFailure: "This note could not be saved. Your text is still here.",
+			cancel: "Cancel",
+			countOne: "1 note",
+			countMany: "{count} notes",
+			completeWithNotesTitle: "Mark complete with unresolved notes?",
+			completeWithNotesBody:
+				"{count} note(s) on this day have not been logged as food. They stay on this device.",
+		},
 		foodBrowser: {
 			title: "Find food for {meal}",
 			searchPlaceholder: "Search foods",

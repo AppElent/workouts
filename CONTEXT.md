@@ -128,8 +128,8 @@ A Personal Food categorized as a prepared dish so it can be found and logged as 
 _Avoid_: Combo, Recipe Version
 
 **Capture Draft**:
-A note about food intake saved for later review. It does not count as intake until converted into one or more Diary Entries.
-_Avoid_: Diary Entry
+A note about food intake, placed in the Nutrition Diary under its date and Meal Slot, saved for later review. It does not count as intake until converted into one or more Diary Entries.
+_Avoid_: Diary Entry, unfinished log
 
 **Complete Day**:
 A Nutrition Diary day that a person has explicitly marked as finished, including a deliberately empty day.

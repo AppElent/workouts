@@ -37,6 +37,11 @@ import {
 	type NutritionCookingRepository,
 } from "../data/nutrition-cooking-repository";
 import {
+	createNutritionDraftRepository,
+	type NutritionDraftRepository,
+} from "../data/nutrition-draft-repository";
+import { NutritionDraftsProvider } from "../data/nutrition-drafts";
+import {
 	createNutritionLocalRepository,
 	type NutritionLocalRepository,
 } from "../data/nutrition-local-repository";
@@ -62,12 +67,14 @@ export function TestLayout({
 	offCache,
 	nutritionRepository,
 	cookingRepository,
+	draftRepository,
 	fetchImpl,
 }: {
 	repository: PersonalFoodRepository;
 	offCache: OpenFoodFactsCache;
 	nutritionRepository: NutritionLocalRepository;
 	cookingRepository: NutritionCookingRepository;
+	draftRepository: NutritionDraftRepository;
 	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
@@ -81,11 +88,13 @@ export function TestLayout({
 									repository={nutritionRepository}
 									subject="test-user"
 								>
-									<FoodBrowserCookingRepositoryProvider
-										repository={cookingRepository}
-									>
-										<Stack />
-									</FoodBrowserCookingRepositoryProvider>
+									<NutritionDraftsProvider repository={draftRepository}>
+										<FoodBrowserCookingRepositoryProvider
+											repository={cookingRepository}
+										>
+											<Stack />
+										</FoodBrowserCookingRepositoryProvider>
+									</NutritionDraftsProvider>
 								</NutritionOperationsProvider>
 							</OpenFoodFactsProvider>
 						</PersonalFoodsProvider>
@@ -102,6 +111,8 @@ export function renderApp(
 	overrides: Record<string, unknown> = {},
 	/** A fake fetch for tests that exercise the Open Food Facts network boundary. */
 	fetchImpl?: FetchLike,
+	/** Runs against the device stores before the first render, for tests that start mid-life. */
+	seed?: (stores: { draftRepository: NutritionDraftRepository }) => void,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
@@ -111,6 +122,10 @@ export function renderApp(
 	const cookingRepository = createNutritionCookingRepository(
 		new SQLiteTestDatabase(),
 	);
+	const draftRepository = createNutritionDraftRepository(
+		new SQLiteTestDatabase(),
+	);
+	seed?.({ draftRepository });
 	function Layout() {
 		return (
 			<TestLayout
@@ -118,6 +133,7 @@ export function renderApp(
 				offCache={offCache}
 				nutritionRepository={nutritionRepository}
 				cookingRepository={cookingRepository}
+				draftRepository={draftRepository}
 				fetchImpl={fetchImpl}
 			/>
 		);
@@ -142,5 +158,5 @@ export function renderApp(
 		},
 		{ initialUrl },
 	);
-	return Object.assign(rendered, { repository, offCache });
+	return Object.assign(rendered, { repository, offCache, draftRepository });
 }

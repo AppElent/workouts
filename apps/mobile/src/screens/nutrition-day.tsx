@@ -18,6 +18,8 @@ import {
 	todayIsoDate,
 } from "../data/calendar-day";
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
+import type { CaptureDraft } from "../data/nutrition-draft-repository";
+import { useNutritionDrafts } from "../data/nutrition-drafts";
 import {
 	type DiaryEntry,
 	type GoalState,
@@ -42,6 +44,8 @@ import { NutritionCalendar } from "../ui/nutrition-calendar";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
+import { useConfirm } from "../ui/confirm-dialog";
+import { NutritionDraftEditor } from "./nutrition-draft-editor";
 import { NutritionEntryTransfer } from "./nutrition-entry-transfer";
 import { NutritionHeaderMenu } from "./nutrition-header-menu";
 import { NutritionMenu } from "./nutrition-menu";
@@ -79,6 +83,9 @@ export function NutritionDayScreen() {
 	);
 
 	const { deleteEntry } = useDeleteDiaryEntry();
+	const drafts = useNutritionDrafts();
+	const confirm = useConfirm();
+	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const state = useNutritionDay(date);
 	// A day that has never been downloaded cannot arrive while the socket is
 	// down, so a skeleton there is a promise the app cannot keep — but only
@@ -117,6 +124,29 @@ export function NutritionDayScreen() {
 
 	function openFoodBrowser(slot: MealSlot) {
 		router.push({ pathname: "/nutrition-food", params: { meal: slot, date } });
+	}
+
+	/** A note is a paused search: reopen the browser with the note as the query. */
+	function resolveDraft(draft: CaptureDraft) {
+		router.push({
+			pathname: "/nutrition-food",
+			params: {
+				meal: draft.meal,
+				date: draft.date,
+				draftId: draft.id,
+				query: draft.note,
+			},
+		});
+	}
+
+	async function deleteDraft(draft: CaptureDraft) {
+		const approved = await confirm({
+			title: t.nutrition.drafts.deleteTitle,
+			message: t.nutrition.drafts.deleteBody,
+			confirmLabel: t.nutrition.drafts.deleteConfirm,
+			destructive: true,
+		});
+		if (approved) drafts.remove(draft.id);
 	}
 
 	const dayLabel =
@@ -284,8 +314,14 @@ export function NutritionDayScreen() {
 								slot={slot}
 								date={date}
 								entries={state.day.entries[slot]}
+								drafts={drafts.listForDate(date).filter(
+									(draft) => draft.meal === slot,
+								)}
 								locale={locale}
 								onAdd={() => openFoodBrowser(slot)}
+								onResolveDraft={resolveDraft}
+								onEditDraft={setEditingDraft}
+								onDeleteDraft={(draft) => void deleteDraft(draft)}
 								onCopy={() =>
 									router.push({
 										pathname: "/nutrition-copy",
@@ -391,6 +427,12 @@ export function NutritionDayScreen() {
 					),
 				}}
 			/>
+			{editingDraft ? (
+				<NutritionDraftEditor
+					draft={editingDraft}
+					onClose={() => setEditingDraft(undefined)}
+				/>
+			) : null}
 			{transfer ? (
 				<NutritionEntryTransfer
 					{...transfer}
@@ -929,8 +971,12 @@ function MealSection({
 	t,
 	slot,
 	entries,
+	drafts,
 	locale,
 	onAdd,
+	onResolveDraft,
+	onEditDraft,
+	onDeleteDraft,
 	onCopy,
 	onTransfer,
 	onCreateCombo,
@@ -944,8 +990,12 @@ function MealSection({
 	slot: MealSlot;
 	date: string;
 	entries: DiaryEntry[];
+	drafts: CaptureDraft[];
 	locale: "en" | "nl";
 	onAdd: () => void;
+	onResolveDraft: (draft: CaptureDraft) => void;
+	onEditDraft: (draft: CaptureDraft) => void;
+	onDeleteDraft: (draft: CaptureDraft) => void;
 	onCopy: () => void;
 	onTransfer: (entry: DiaryEntry, mode: "copy" | "move") => void;
 	onCreateCombo: () => void;
@@ -1005,7 +1055,7 @@ function MealSection({
 				</View>
 			</View>
 			<GroupedSurface>
-				{entries.length === 0 ? (
+				{entries.length === 0 && drafts.length === 0 ? (
 					<EmptyState body={t.nutrition.mealEmpty} />
 				) : (
 					entries.map((entry) => {
@@ -1107,8 +1157,81 @@ function MealSection({
 						);
 					})
 				)}
+				{drafts.map((draft) => (
+					<DraftRow
+						key={draft.id}
+						t={t}
+						draft={draft}
+						locale={locale}
+						onPress={() => onResolveDraft(draft)}
+						onEdit={() => onEditDraft(draft)}
+						onDelete={() => onDeleteDraft(draft)}
+					/>
+				))}
 			</GroupedSurface>
 		</View>
+	);
+}
+
+/**
+ * One Capture Draft: a note that is not intake yet, so no figures and no
+ * share of the subtotal. Tapping reopens the search with the note as the
+ * query; edit and delete ride the same swipe/long-press/menu as an entry.
+ */
+function DraftRow({
+	t,
+	draft,
+	locale,
+	onPress,
+	onEdit,
+	onDelete,
+}: {
+	t: Messages;
+	draft: CaptureDraft;
+	locale: "en" | "nl";
+	onPress: () => void;
+	onEdit: () => void;
+	onDelete: () => void;
+}) {
+	return (
+		<SwipeableRow
+			showMenuButton
+			menuTitle={`${locale === "nl" ? "Acties voor" : "Actions for"} ${draft.note}`}
+			closeMenuLabel={t.nutrition.entryActions.close}
+			actions={[
+				{ key: "edit", label: t.nutrition.drafts.edit, onPress: onEdit },
+				{
+					key: "delete",
+					label: t.nutrition.drafts.delete,
+					onPress: onDelete,
+					destructive: true,
+				},
+			]}
+		>
+			{(accessibility) => (
+				<Pressable
+					onPress={onPress}
+					accessibilityRole="button"
+					accessibilityLabel={fmt(t.nutrition.drafts.resolve, {
+						note: draft.note,
+					})}
+					{...accessibility}
+					style={({ pressed }) => [
+						pressed ? { backgroundColor: colors.surface2 } : null,
+					]}
+				>
+					<View style={[styles.entryRow, styles.draftRow]}>
+						<View style={styles.flex}>
+							<AppText style={styles.draftNote}>{draft.note}</AppText>
+							<AppText variant="caption">{t.nutrition.drafts.onDevice}</AppText>
+						</View>
+						<AppText variant="heading" style={{ color: colors.textMuted }}>
+							›
+						</AppText>
+					</View>
+				</Pressable>
+			)}
+		</SwipeableRow>
 	);
 }
 
@@ -1388,6 +1511,8 @@ function DaySkeleton({ label }: { label: string }) {
 }
 
 const styles = StyleSheet.create({
+	draftRow: { borderLeftWidth: 3, borderLeftColor: colors.border },
+	draftNote: { fontStyle: "italic" },
 	root: { flex: 1, backgroundColor: colors.bg },
 	scroll: { flex: 1 },
 	content: { padding: 20, paddingTop: 12, gap: spacing.md, paddingBottom: 40 },
