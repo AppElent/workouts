@@ -22,10 +22,33 @@ import {
 	type OtherDaysSummary,
 	openNutritionDraftRepository,
 } from "./nutrition-draft-repository";
+import type { NutritionLocalOperation } from "./nutrition-local-repository";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
 } from "./nutrition-operation-service";
+
+/**
+ * Whether any Diary Entry was accepted for the draft's day and meal at or
+ * after `since`. This is the whole removal rule: a resolving session that
+ * logged at least one entry has done the note's job, however many items the
+ * note listed; one that logged nothing leaves the reminder in place.
+ */
+export function intakeLoggedSince(
+	operations: readonly NutritionLocalOperation[],
+	draft: Pick<CaptureDraft, "date" | "meal">,
+	since: number,
+): boolean {
+	return operations.some((operation) => {
+		if (operation.createdAt < since) return false;
+		const change = operation.envelope.operation;
+		if (change.kind === "create")
+			return change.entry.date === draft.date && change.entry.meal === draft.meal;
+		if (change.kind === "createBatch")
+			return change.date === draft.date && change.meal === draft.meal;
+		return false;
+	});
+}
 
 export type NutritionDraftsValue = {
 	readonly revision: number;

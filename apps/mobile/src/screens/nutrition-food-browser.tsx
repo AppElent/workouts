@@ -49,7 +49,7 @@ import {
 	type NutritionCookingRepository,
 	openNutritionCookingRepository,
 } from "../data/nutrition-cooking-repository";
-import { useNutritionDrafts } from "../data/nutrition-drafts";
+import { intakeLoggedSince, useNutritionDrafts } from "../data/nutrition-drafts";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
@@ -296,6 +296,29 @@ export function NutritionFoodBrowser({
 	useEffect(
 		() => () => ownedCookingRepository?.close(),
 		[ownedCookingRepository],
+	);
+	// A resolving session ends when this screen leaves the stack. Read through
+	// a ref so the cleanup sees the store as it is then, not as it was mounted.
+	const sessionStartedAt = useRef(Date.now());
+	const resolveRef = useRef({ draftId, drafts, operations });
+	resolveRef.current = { draftId, drafts, operations };
+	useEffect(
+		() => () => {
+			const current = resolveRef.current;
+			if (!current.draftId) return;
+			const draft = current.drafts.get(current.draftId);
+			const account = current.operations.getSubject();
+			if (!draft || !account) return;
+			if (
+				intakeLoggedSince(
+					current.operations.getOperations(account),
+					draft,
+					sessionStartedAt.current,
+				)
+			)
+				current.drafts.remove(draft.id);
+		},
+		[],
 	);
 	/**
 	 * Ranking and shadowing both live in core (#75). All this screen decides is

@@ -58,4 +58,61 @@ describe("Capture Drafts in the diary", () => {
 			[{ meal: "lunch", note: "wrap from the station" }],
 		);
 	});
+
+	function seedLunchNote(note = "apple") {
+		return renderApp(undefined, undefined, undefined, ({ draftRepository }) =>
+			draftRepository.create("test-user", {
+				date: todayIsoDate(),
+				meal: "lunch",
+				note,
+			}),
+		);
+	}
+
+	it("tapping a note reopens the search with the note as the query", async () => {
+		const app = seedLunchNote("apple");
+		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
+
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		expect(app.getSearchParams()).toMatchObject({
+			meal: "lunch",
+			date: todayIsoDate(),
+			query: "apple",
+		});
+		expect(screen.getByPlaceholderText("Search foods").props.value).toBe(
+			"apple",
+		);
+		expect(await screen.findByText("Apple")).toBeTruthy();
+		// Resolving a note never offers to file the same text as a second note.
+		expect(screen.queryByText("Save as note")).toBeNull();
+	});
+
+	it("removes the note once the resolving session logged something for that meal", async () => {
+		const app = seedLunchNote("apple");
+		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
+		fireEvent.press(await screen.findByText("Apple"));
+		fireEvent.press(await screen.findByText("Add & continue"));
+		await screen.findByText("Added Apple to Lunch");
+
+		testRouter.back();
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+
+		await waitFor(() =>
+			expect(
+				app.draftRepository.listForDate("test-user", todayIsoDate()),
+			).toEqual([]),
+		);
+		expect(screen.queryByLabelText("Resolve note: apple")).toBeNull();
+	});
+
+	it("keeps the note when the resolving session logged nothing", async () => {
+		const app = seedLunchNote("apple");
+		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
+		await screen.findByText("Apple");
+
+		testRouter.back();
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+
+		expect(await screen.findByLabelText("Resolve note: apple")).toBeTruthy();
+	});
 });
