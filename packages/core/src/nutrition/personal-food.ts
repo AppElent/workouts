@@ -184,7 +184,8 @@ export function validatePersonalFoodDraft(
 	draft: PersonalFoodDraft,
 ): NormalizedPersonalFoodDraft {
 	const name = bilingual(draft?.name, "Food name");
-	const classification = draft.classification ?? "ordinary";
+	const classification =
+		draft.classification === undefined ? "ordinary" : draft.classification;
 	if (classification !== "ordinary" && classification !== "recipe") {
 		throw new Error("Personal Food classification is invalid.");
 	}

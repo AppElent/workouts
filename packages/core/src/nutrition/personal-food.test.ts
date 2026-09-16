@@ -183,4 +183,16 @@ describe("Personal Food normalization and diary selections", () => {
 			"Quantity",
 		);
 	});
+
+	it.each([
+		["classification", "classification"],
+		["estimated", "estimate status"],
+		["nutritionBasis", "nutrition basis"],
+	] as const)("rejects explicit null %s instead of treating it as a legacy omission", (key, message) => {
+		const malformed = {
+			...legacy,
+			[key]: null,
+		} as unknown as PersonalFoodDraft;
+		expect(() => validatePersonalFoodDraft(malformed)).toThrow(message);
+	});
 });

@@ -79,7 +79,10 @@ function assertNutrients(value: unknown) {
 	const nutrients = asObject(value, "Nutrients");
 	for (const key of NUTRIENT_KEYS) {
 		const nutrient = asObject(nutrients[key], `Nutrient ${key}`);
-		if (nutrient.kind === "value") assertFinite(nutrient.amount, `Nutrient ${key}`);
+		if (nutrient.kind === "value") {
+			assertFinite(nutrient.amount, `Nutrient ${key}`);
+			if ((nutrient.amount as number) < 0) throw new Error(`Nutrient ${key} must be zero or greater.`);
+		}
 		else if (nutrient.kind !== "trace" && nutrient.kind !== "absent") {
 			throw new Error(`Nutrient ${key} is invalid.`);
 		}
@@ -110,7 +113,7 @@ function assertComboProvenance(value: unknown, reference: Record<string, unknown
 	if (provenance.source !== "personal" && provenance.source !== "import") {
 		throw new Error("Combo provenance is invalid.");
 	}
-	if (!["manual", "nevo", "openfoodfacts"].includes(String(provenance.nutritionSource))) {
+	if (typeof provenance.nutritionSource !== "string" || !["manual", "nevo", "openfoodfacts"].includes(provenance.nutritionSource)) {
 		throw new Error("Combo provenance is invalid.");
 	}
 	if (typeof provenance.locallyEdited !== "boolean") throw new Error("Combo provenance is invalid.");
@@ -124,7 +127,7 @@ function assertComboPayload(payload: Record<string, unknown>, id: string) {
 		const candidate = asObject(part, "Combo part");
 		assertText(candidate.id, "Combo part ID");
 		const reference = asObject(candidate.reference, "Combo reference");
-		if (!["shipped", "personal", "oneOff"].includes(String(reference.kind))) {
+		if (typeof reference.kind !== "string" || !["shipped", "personal", "oneOff"].includes(reference.kind)) {
 			throw new Error("Combo reference is invalid.");
 		}
 		if (reference.kind !== "oneOff") assertText(reference.foodId, "Combo reference ID");
