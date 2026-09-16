@@ -224,6 +224,11 @@ jest.mock("convex/react", () => {
 			data: false,
 		})),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+		usePaginatedQuery: jest.fn(() => ({
+			results: [],
+			status: "Exhausted",
+			loadMore: jest.fn(),
+		})),
 		// Connected by default, so every existing test keeps the behaviour it
 		// was written against. The Nutrition day reads this to tell "still
 		// loading" apart from "will never load because the socket is down", and

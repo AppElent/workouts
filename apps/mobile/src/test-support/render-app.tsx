@@ -32,6 +32,7 @@ import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
+import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import { CaptureDraftRepositoryProvider } from "../data/capture-draft-context";
 import {
 	createNutritionCookingRepository,
@@ -51,6 +52,7 @@ import {
 	type PersonalFoodRepository,
 } from "../data/personal-food-repository";
 import { PersonalFoodsProvider } from "../data/personal-foods";
+import { PersonalMeasuresProvider } from "../data/personal-measures";
 import { LocaleProvider } from "../i18n";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
@@ -81,11 +83,13 @@ export function TestLayout({
 									repository={nutritionRepository}
 									subject="test-user"
 								>
-									<CaptureDraftRepositoryProvider
-										repository={captureDraftRepository}
-									>
-										<Stack />
-									</CaptureDraftRepositoryProvider>
+									<PersonalMeasuresProvider>
+										<CaptureDraftRepositoryProvider
+											repository={captureDraftRepository}
+										>
+											<Stack />
+										</CaptureDraftRepositoryProvider>
+									</PersonalMeasuresProvider>
 								</NutritionOperationsProvider>
 							</OpenFoodFactsProvider>
 						</PersonalFoodsProvider>
@@ -136,11 +140,12 @@ export function renderApp(
 			"nutrition-assistance": NutritionAssistanceRoute as never,
 			"nutrition-weekly-review": NutritionWeeklyReviewRoute as never,
 			"nutrition-library": NutritionLibraryRoute as never,
+			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,
 			profile: ProfileRoute as never,
 			...(overrides as Record<string, never>),
 		},
 		{ initialUrl },
 	);
-	return Object.assign(rendered, { repository, offCache });
+	return Object.assign(rendered, { repository, offCache, nutritionRepository });
 }

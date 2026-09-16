@@ -122,6 +122,7 @@ export {
 export {
 	formatQuantity,
 	formatServingSelection,
+	type PersonalMeasure,
 	previewServing,
 	type ServingOption,
 	type ServingPreview,
@@ -129,6 +130,7 @@ export {
 	servingAmount,
 	servingOptions,
 	servingVolumeMapping,
+	withPersonalMeasures,
 } from "./servings";
 export {
 	type Bilingual,

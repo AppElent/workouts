@@ -302,6 +302,12 @@ export const update = mutation({
 	args: {
 		id: v.id("nutritionDiaryEntries"),
 		quantity: v.optional(v.number()),
+		selection: v.optional(v.object({
+			serving: v.object({ en: v.string(), nl: v.string() }),
+			quantity: v.number(),
+			amount: v.number(),
+			personalMeasureId: v.union(v.string(), v.null()),
+		})),
 		meal: v.optional(
 			v.union(
 				v.literal("breakfast"),
@@ -312,7 +318,7 @@ export const update = mutation({
 		),
 		date: v.optional(v.string()),
 	},
-	handler: async (ctx, { id, quantity, meal, date }) => {
+	handler: async (ctx, { id, quantity, selection, meal, date }) => {
 		const userId = await requireUser(ctx);
 		const entry = await requireOwnedEntry(ctx, userId, id);
 
@@ -321,7 +327,19 @@ export const update = mutation({
 		const patch: Partial<typeof entry> = {};
 		if (meal !== undefined) patch.meal = meal;
 		if (date !== undefined) patch.date = date;
-		if (quantity !== undefined) {
+		if (selection !== undefined) {
+			if (quantity !== undefined) {
+				throw new Error("Choose either quantity or a serving selection.");
+			}
+			assertFinitePositive(selection.quantity, "Quantity");
+			assertFinitePositive(selection.amount, "Amount");
+			const factor = selection.amount / entry.amount;
+			patch.quantity = selection.quantity;
+			patch.amount = selection.amount;
+			patch.nutrients = rescaleNutrients(entry.nutrients, factor);
+			patch.serving = selection.serving;
+			patch.personalMeasureId = selection.personalMeasureId ?? undefined;
+		} else if (quantity !== undefined) {
 			if (!(quantity > 0)) throw new Error("Quantity must be greater than zero.");
 			const factor = quantity / entry.quantity;
 			patch.quantity = quantity;
@@ -439,7 +457,20 @@ export const applyOperation = mutation({
 			const patch: Partial<typeof entry> = {};
 			if (operation.meal !== undefined) patch.meal = operation.meal;
 			if (operation.date !== undefined) patch.date = operation.date;
-			if (operation.quantity !== undefined) {
+			if (operation.selection !== undefined) {
+				if (operation.quantity !== undefined) {
+					throw new Error("Choose either quantity or a serving selection.");
+				}
+				assertFinitePositive(operation.selection.quantity, "Quantity");
+				assertFinitePositive(operation.selection.amount, "Amount");
+				const factor = operation.selection.amount / entry.amount;
+				patch.quantity = operation.selection.quantity;
+				patch.amount = operation.selection.amount;
+				patch.nutrients = rescaleNutrients(entry.nutrients, factor);
+				patch.serving = operation.selection.serving;
+				patch.personalMeasureId =
+					operation.selection.personalMeasureId ?? undefined;
+			} else if (operation.quantity !== undefined) {
 				assertFinitePositive(operation.quantity, "Quantity");
 				const factor = operation.quantity / entry.quantity;
 				patch.quantity = operation.quantity;

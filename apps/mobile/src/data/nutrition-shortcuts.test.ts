@@ -55,6 +55,55 @@ describe("nutrition portion memory", () => {
 		expect(result).toMatchObject({ option: base, quantity: 60, reset: true });
 	});
 
+	it("remembers a Personal Measure by stable id after it is edited", () => {
+		const original: ServingOption = {
+			kind: "personal-measure",
+			id: "glass",
+			label: { en: "Glass (250 ml)", nl: "Glas (250 ml)" },
+			amount: 250,
+			unit: "ml",
+		};
+		const edited: ServingOption = {
+			...original,
+			label: { en: "Big glass (450 ml)", nl: "Groot glas (450 ml)" },
+			amount: 450,
+		};
+		const mlBase: ServingOption = {
+			kind: "base-unit",
+			label: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
+			amount: 1,
+			unit: "ml",
+		};
+
+		expect(
+			rememberedSelection(
+				[edited, mlBase],
+				"ml",
+				portionMemoryFor(original, 2, "ml"),
+			),
+		).toMatchObject({ option: edited, quantity: 2, reset: false });
+	});
+
+	it("falls back to the exact remembered total when a Personal Measure is deleted", () => {
+		const measure: ServingOption = {
+			kind: "personal-measure",
+			id: "glass",
+			label: { en: "Glass (250 ml)", nl: "Glas (250 ml)" },
+			amount: 250,
+			unit: "ml",
+		};
+		const mlBase: ServingOption = {
+			kind: "base-unit",
+			label: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
+			amount: 1,
+			unit: "ml",
+		};
+
+		expect(
+			rememberedSelection([mlBase], "ml", portionMemoryFor(measure, 1.5, "ml")),
+		).toMatchObject({ option: mlBase, quantity: 375, reset: true });
+	});
+
 	it("does not translate a remembered amount across a mismatched base unit", () => {
 		const remembered = portionMemoryFor(authored("Glass", 200), 1, "ml");
 		expect(rememberedSelection([base], "g", remembered)).toBeUndefined();

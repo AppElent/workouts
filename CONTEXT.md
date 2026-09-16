@@ -87,7 +87,7 @@ A person's record of food intake, organized by date and Meal Slot.
 _Avoid_: Food Library
 
 **Diary Entry**:
-A snapshot of nutrition figures logged at a particular time. Later changes to its source never alter the entry.
+A snapshot of a chosen amount and its nutrition figures logged at a particular time. Later changes to its Food, Serving, or Personal Measure never alter the entry.
 _Avoid_: Food log
 
 **Meal Slot**:
@@ -118,6 +118,10 @@ _Avoid_: Recipe, manually entered Food
 **Serving**:
 A named amount of a Food, such as one banana or one slice. A Food may offer several Servings.
 _Avoid_: Portion, serving size
+
+**Personal Measure**:
+A person-defined, account-synced exact amount in grams or millilitres with a name, reusable when logging a Food with the same base unit. It supplements rather than replaces a Food's Servings.
+_Avoid_: Portion, custom Serving
 
 **Combo**:
 A named reusable collection of Foods and One-off Entries that are logged together. Future logs use current figures from referenced Foods, while the resulting Diary Entries remain frozen snapshots.

@@ -5,7 +5,7 @@
  * arguments it was actually given, which is the observable contract #73's
  * acceptance criteria are about.
  */
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import {
@@ -17,6 +17,7 @@ import { renderApp } from "../test-support/render-app";
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseMutation = jest.mocked(useMutation);
+const mockUsePaginatedQuery = jest.mocked(usePaginatedQuery);
 
 const loggedEntry = {
 	_id: "entry-1",
@@ -68,6 +69,11 @@ async function openEditor() {
 
 beforeEach(() => {
 	mockDayWithLoggedEntry();
+	mockUsePaginatedQuery.mockReturnValue({
+		results: [],
+		status: "Exhausted",
+		loadMore: jest.fn(),
+	} as never);
 });
 
 describe("editing a diary entry", () => {
@@ -95,6 +101,69 @@ describe("editing a diary entry", () => {
 		});
 		// Closes back to the day.
 		expect(await screen.findByText("Today")).toBeTruthy();
+	});
+
+	it("switches to a compatible Personal Measure and stores its exact snapshot", async () => {
+		mockUsePaginatedQuery.mockReturnValue({
+			results: [
+				{
+					id: "large-portion",
+					name: "Large portion",
+					amount: 450,
+					unit: "g",
+					order: 0,
+				},
+			],
+			status: "Exhausted",
+			loadMore: jest.fn(),
+		} as never);
+		const update = jest.fn().mockResolvedValue(undefined);
+		mockMutations("update", update);
+		await openEditor();
+
+		fireEvent.press(screen.getByText("Large portion (450 g)"));
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		fireEvent.press(screen.getByText("Save changes"));
+
+		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+		expect(update.mock.calls[0][0]).toMatchObject({
+			id: "entry-1",
+			selection: {
+				serving: {
+					en: "Large portion (450 g) × 2",
+					nl: "Large portion (450 g) × 2",
+				},
+				quantity: 2,
+				amount: 900,
+			},
+		});
+	});
+
+	it("keeps a deleted Personal Measure snapshot available as history", async () => {
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:list") return [];
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return { goals: [], basis: "reference", effectiveFrom: null };
+			return {
+				entries: [
+					{
+						...loggedEntry,
+						serving: {
+							en: "Large portion (450 g) × 1",
+							nl: "Large portion (450 g) × 1",
+						},
+						amount: 450,
+						personalMeasureId: "deleted-measure",
+					},
+				],
+				totals: {},
+			};
+		});
+		await openEditor();
+
+		expect(
+			screen.getByText("Large portion (450 g) × 1 · No longer available"),
+		).toBeTruthy();
 	});
 
 	it("moves an entry to another meal", async () => {

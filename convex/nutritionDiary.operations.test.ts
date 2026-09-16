@@ -167,6 +167,48 @@ describe("retry-safe nutrition diary operations", () => {
 		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
 	});
 
+	it("switches serving snapshots without re-reading the source food", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
+			...envelope("op-selection-create", {
+				kind: "create",
+				entry: snapshot({ clientEntryId: "selection-entry" }),
+			}),
+		});
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			...envelope("op-selection-update", {
+				kind: "update",
+				target: { kind: "serverId", id: created.entryIds[0] },
+				selection: {
+					serving: {
+						en: "Large portion (450 g) × 2",
+						nl: "Grote portie (450 g) × 2",
+					},
+					quantity: 2,
+					amount: 900,
+					personalMeasureId: "large-portion",
+				},
+			}),
+		});
+
+		const entry = (await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		})).entries[0];
+		expect(entry).toMatchObject({
+			quantity: 2,
+			amount: 900,
+			personalMeasureId: "large-portion",
+			serving: {
+				en: "Large portion (450 g) × 2",
+				nl: "Grote portie (450 g) × 2",
+			},
+		});
+		expect(entry.nutrients.energy).toEqual({ kind: "value", amount: 504 });
+		expect(entry.provenance).toEqual(snapshot().provenance);
+	});
+
 	it("rejects a bad batch atomically and isolates subjects", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });

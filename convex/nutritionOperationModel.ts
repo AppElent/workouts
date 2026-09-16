@@ -12,6 +12,13 @@ const operationEntry = v.object({
 	clientEntryId: v.string(),
 });
 
+const servingSelection = v.object({
+	serving: v.object({ en: v.string(), nl: v.string() }),
+	quantity: v.number(),
+	amount: v.number(),
+	personalMeasureId: v.union(v.string(), v.null()),
+});
+
 const operationPart = v.object({
 	...diaryPartSnapshotFields,
 	comboGroup: v.optional(v.object({
@@ -38,6 +45,7 @@ export const operationArgs = {
 			kind: v.literal("update"),
 			target: operationTarget,
 			quantity: v.optional(v.number()),
+			selection: v.optional(servingSelection),
 			date: v.optional(v.string()),
 			meal: v.optional(mealSlot),
 		}),

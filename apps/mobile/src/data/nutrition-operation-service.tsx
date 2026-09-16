@@ -287,6 +287,23 @@ export class NutritionOperationService {
 		return this.repository.getGoals(subject, date);
 	}
 
+	getPersonalMeasures(subject: string) {
+		return this.repository.getPersonalMeasures(subject);
+	}
+
+	cachePersonalMeasures(
+		subject: string,
+		measures: readonly import("@workouts/core/nutrition").PersonalMeasure[],
+	) {
+		if (
+			canonicalJson(this.repository.getPersonalMeasures(subject)) ===
+			canonicalJson(measures)
+		)
+			return;
+		this.repository.putPersonalMeasures(subject, measures);
+		this.notify();
+	}
+
 	cacheGoals(subject: string, date: string, history: CachedGoalHistory) {
 		if (
 			canonicalJson(this.repository.getGoals(subject, date)) ===
@@ -429,6 +446,12 @@ export class NutritionOperationService {
 			| { kind: "clientEntryId"; id: string },
 		patch: {
 			quantity?: number;
+			selection?: {
+				serving: { en: string; nl: string };
+				quantity: number;
+				amount: number;
+				personalMeasureId: string | null;
+			};
 			date?: string;
 			meal?: "breakfast" | "lunch" | "dinner" | "snacks";
 		},

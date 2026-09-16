@@ -17,6 +17,9 @@ export function foodSourceKey(
 }
 
 export function servingKey(option: ServingOption): string {
+	if (option.kind === "personal-measure") {
+		return canonicalJson({ kind: option.kind, id: option.id });
+	}
 	return canonicalJson({
 		kind: option.kind,
 		amount: option.amount,
@@ -58,7 +61,7 @@ export function rememberedSelection(
 	}
 	const authored = options.find(
 		(option) =>
-			option.kind === "authored" && servingKey(option) === memory.servingKey,
+			option.kind !== "base-unit" && servingKey(option) === memory.servingKey,
 	);
 	if (authored) {
 		return {

@@ -256,6 +256,7 @@ export function EditableValueRow({
 	deleteAccessibilityLabel,
 	onPress,
 	onDelete,
+	disabled,
 }: {
 	label: string;
 	value: string;
@@ -263,15 +264,19 @@ export function EditableValueRow({
 	deleteAccessibilityLabel?: string;
 	onPress: () => void;
 	onDelete?: () => void;
+	disabled?: boolean;
 }) {
 	return (
 		<View style={styles.editableRow}>
 			<Pressable
 				onPress={onPress}
+				disabled={disabled}
 				accessibilityRole="button"
+				accessibilityState={{ disabled }}
 				style={({ pressed }) => [
 					styles.editableMain,
 					pressed && styles.pressedRow,
+					disabled && styles.disabled,
 				]}
 			>
 				<View style={styles.editableCopy}>
@@ -283,7 +288,9 @@ export function EditableValueRow({
 			{onDelete && deleteLabel ? (
 				<Pressable
 					onPress={onDelete}
+					disabled={disabled}
 					accessibilityRole="button"
+					accessibilityState={{ disabled }}
 					accessibilityLabel={deleteAccessibilityLabel ?? deleteLabel}
 					style={({ pressed }) => [
 						styles.deleteAction,

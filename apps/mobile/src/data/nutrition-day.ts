@@ -50,6 +50,7 @@ export interface DiaryEntry {
 	quantity: number;
 	amount: number;
 	baseUnit: "g" | "ml" | "serving";
+	personalMeasureId?: string;
 	estimated?: true;
 	provenance: ComboSnapshotProvenance;
 	comboGroup?: { id: string; comboId: string; name: string };
@@ -154,6 +155,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			quantity: entry.quantity,
 			amount: entry.amount,
 			baseUnit: entry.baseUnit,
+			personalMeasureId: entry.personalMeasureId,
 			provenance: entry.provenance,
 			...(entry.estimated ? { estimated: true as const } : {}),
 			comboGroup: entry.comboGroup,

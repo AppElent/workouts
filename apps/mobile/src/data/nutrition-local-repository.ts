@@ -6,12 +6,15 @@ import {
 	rescaleNutrients,
 	totalNutrients,
 } from "@workouts/core";
-import type { NutritionGoalValue } from "@workouts/core/nutrition";
+import type {
+	NutritionGoalValue,
+	PersonalMeasure,
+} from "@workouts/core/nutrition";
 import { openDatabaseSync } from "expo-sqlite";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
@@ -49,7 +52,7 @@ export type LocalProjectionHint = {
 };
 
 export type PortionMemory = {
-	readonly kind: "authored" | "base-unit";
+	readonly kind: "authored" | "base-unit" | "personal-measure";
 	readonly servingKey: string;
 	readonly baseUnit: "g" | "ml" | "serving";
 	readonly amount: number;
@@ -111,6 +114,11 @@ export type NutritionOperationResult = {
 export type NutritionLocalRepository = {
 	getGoals(subject: string, date: string): CachedGoalHistory | undefined;
 	putGoals(subject: string, date: string, history: CachedGoalHistory): void;
+	getPersonalMeasures(subject: string): PersonalMeasure[];
+	putPersonalMeasures(
+		subject: string,
+		measures: readonly PersonalMeasure[],
+	): void;
 	accept(
 		subject: string,
 		envelope: NutritionOperationEnvelope,
@@ -234,6 +242,10 @@ function migrate(database: SyncSQLiteDatabase): void {
 			database.execSync(
 				"CREATE TABLE nutrition_cached_goals (subject TEXT NOT NULL, date TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, date))",
 			);
+		if (current < 4)
+			database.execSync(
+				"CREATE TABLE nutrition_cached_personal_measures (subject TEXT PRIMARY KEY NOT NULL, payload TEXT NOT NULL)",
+			);
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -329,19 +341,30 @@ function applyUpdate(
 	}
 	if (!entry) return;
 	const oldQuantity = entry.quantity;
-	const quantity = operation.quantity ?? oldQuantity;
-	const factor = quantity / oldQuantity;
+	const quantity =
+		operation.selection?.quantity ?? operation.quantity ?? oldQuantity;
+	const factor = operation.selection
+		? operation.selection.amount / entry.amount
+		: quantity / oldQuantity;
 	const next = {
 		...entry,
 		...(operation.date ? { date: operation.date } : {}),
 		...(operation.meal ? { meal: operation.meal } : {}),
-		...(operation.quantity
+		...(operation.selection
 			? {
 					quantity,
-					amount: entry.amount * factor,
+					amount: operation.selection.amount,
+					serving: operation.selection.serving,
+					personalMeasureId: operation.selection.personalMeasureId ?? undefined,
 					nutrients: rescaleNutrients(entry.nutrients, factor),
 				}
-			: {}),
+			: operation.quantity
+				? {
+						quantity,
+						amount: entry.amount * factor,
+						nutrients: rescaleNutrients(entry.nutrients, factor),
+					}
+				: {}),
 		pendingOperationId: operationId,
 	};
 	const index = entries.indexOf(entry);
@@ -580,6 +603,20 @@ export function createNutritionLocalRepository(
 				subject,
 				date,
 				JSON.stringify(history),
+			);
+		},
+		getPersonalMeasures(subject) {
+			const row = database.getFirstSync<{ payload: string }>(
+				"SELECT payload FROM nutrition_cached_personal_measures WHERE subject = ?",
+				subject,
+			);
+			return row ? (JSON.parse(row.payload) as PersonalMeasure[]) : [];
+		},
+		putPersonalMeasures(subject, measures) {
+			database.runSync(
+				"INSERT INTO nutrition_cached_personal_measures(subject, payload) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET payload = excluded.payload",
+				subject,
+				JSON.stringify(measures),
 			);
 		},
 		listRecent(subject, limit = 50) {

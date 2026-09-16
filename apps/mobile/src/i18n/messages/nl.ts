@@ -26,6 +26,7 @@ export const nl = {
 		units: "Eenheden",
 		notifications: "Meldingen",
 		connectedApps: "Gekoppelde apps",
+		personalMeasures: "Persoonlijke maten",
 		language: "Taal",
 	},
 
@@ -41,6 +42,47 @@ export const nl = {
 
 	nutrition: {
 		title: "Voeding",
+		personalMeasures: {
+			title: "Persoonlijke maten",
+			emptyTitle: "Nog geen persoonlijke maten",
+			emptyBody:
+				"Bewaar herbruikbare exacte hoeveelheden, zoals Klein glas · 250 ml of Eiwitschep · 35 g.",
+			add: "Persoonlijke maat toevoegen",
+			edit: "Persoonlijke maat bewerken",
+			name: "Naam",
+			amount: "Hoeveelheid",
+			unit: "Eenheid",
+			unitChangeTitle: "Eenheid van deze maat wijzigen?",
+			unitChangeBody:
+				"De maat verdwijnt bij voedingsmiddelen met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
+			unitChangeConfirm: "Eenheid wijzigen",
+			grams: "Gram",
+			millilitres: "Milliliter",
+			save: "Maat opslaan",
+			cancel: "Annuleren",
+			delete: "Persoonlijke maat verwijderen",
+			deleteTitle: "Persoonlijke maat verwijderen?",
+			deleteBody:
+				"Eerdere dagboekitems veranderen niet. Deze maat verdwijnt uit toekomstige keuzes.",
+			deleteFailure: "Deze persoonlijke maat kon niet worden verwijderd.",
+			saveFailure:
+				"Deze persoonlijke maat kon niet worden opgeslagen. Je wijzigingen staan er nog.",
+			reorderFailure: "De persoonlijke maten konden niet worden herschikt.",
+			validation:
+				"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met maximaal één decimaal in.",
+			formHelp: "Persoonlijke namen blijven in elke app-taal hetzelfde.",
+			compatibilityHelp:
+				"Een persoonlijke maat verschijnt alleen bij voeding met dezelfde basiseenheid g of ml.",
+			offlineTitle: "Maak verbinding om persoonlijke maten te beheren",
+			offlineBody:
+				"Opgeslagen maten blijven beschikbaar bij het loggen, maar wijzigingen vereisen nu een verbinding.",
+			moveUp: "Omhoog",
+			moveDown: "Omlaag",
+			manage: "Persoonlijke maten beheren",
+			incompatibleReturn:
+				"Deze maat gebruikt een andere eenheid; de vorige portiekeuze bleef staan.",
+			loading: "Persoonlijke maten laden",
+		},
 
 		day: {
 			today: "Vandaag",
@@ -354,6 +396,9 @@ export const nl = {
 
 		entryEditor: {
 			title: "Item bewerken",
+			serving: "Portie",
+			previousValue: "Vorige waarde",
+			noLongerAvailable: "Niet meer beschikbaar",
 			editEntry: "Item bewerken: {name}",
 			meal: "Maaltijd",
 			date: "Datum",

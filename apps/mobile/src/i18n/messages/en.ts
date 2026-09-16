@@ -33,6 +33,7 @@ export const en = {
 		units: "Units",
 		notifications: "Notifications",
 		connectedApps: "Connected apps",
+		personalMeasures: "Personal measures",
 		language: "Language",
 	},
 
@@ -48,6 +49,47 @@ export const en = {
 
 	nutrition: {
 		title: "Nutrition",
+		personalMeasures: {
+			title: "Personal measures",
+			emptyTitle: "No personal measures yet",
+			emptyBody:
+				"Save reusable exact amounts such as Small glass · 250 ml or Protein scoop · 35 g.",
+			add: "Add personal measure",
+			edit: "Edit personal measure",
+			name: "Name",
+			amount: "Amount",
+			unit: "Unit",
+			unitChangeTitle: "Change this measure's unit?",
+			unitChangeBody:
+				"It will stop appearing for foods that use the previous unit. Past diary entries will not change.",
+			unitChangeConfirm: "Change unit",
+			grams: "Grams",
+			millilitres: "Millilitres",
+			save: "Save measure",
+			cancel: "Cancel",
+			delete: "Delete personal measure",
+			deleteTitle: "Delete personal measure?",
+			deleteBody:
+				"Past diary entries will not change. This measure will disappear from future choices.",
+			deleteFailure: "This personal measure could not be deleted.",
+			saveFailure:
+				"This personal measure could not be saved. Your changes are still here.",
+			reorderFailure: "The personal measures could not be reordered.",
+			validation:
+				"Enter a unique name and an amount from 0.1 to 10,000 with at most one decimal place.",
+			formHelp: "Names are personal and stay the same in every app language.",
+			compatibilityHelp:
+				"A personal measure appears only for foods with the same g or ml base unit.",
+			offlineTitle: "Connect to manage personal measures",
+			offlineBody:
+				"Cached measures remain available while logging, but changes require a connection for now.",
+			moveUp: "Move up",
+			moveDown: "Move down",
+			manage: "Manage personal measures",
+			incompatibleReturn:
+				"This measure uses a different unit, so the previous serving choice was kept.",
+			loading: "Loading personal measures",
+		},
 
 		day: {
 			today: "Today",
@@ -370,6 +412,9 @@ export const en = {
 
 		entryEditor: {
 			title: "Edit entry",
+			serving: "Serving",
+			previousValue: "Previous value",
+			noLongerAvailable: "No longer available",
 			/** Icon-free row, so this is the whole accessible name. */
 			editEntry: "Edit entry: {name}",
 			meal: "Meal",

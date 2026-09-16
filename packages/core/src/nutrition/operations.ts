@@ -34,6 +34,8 @@ export type NutritionDiarySnapshot = {
 	readonly quantity: number;
 	readonly amount: number;
 	readonly baseUnit: "g" | "ml" | "serving";
+	/** Stable identity when the selected amount came from a Personal Measure. */
+	readonly personalMeasureId?: string;
 	/** Omitted for historical entries and figures that are not estimated. */
 	readonly estimated?: true;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
@@ -74,6 +76,13 @@ export type NutritionDiaryOperation =
 			readonly kind: "update";
 			readonly target: NutritionOperationTarget;
 			readonly quantity?: number;
+			/** A newly chosen serving, captured as a durable diary snapshot. */
+			readonly selection?: {
+				readonly serving: NutritionBilingual;
+				readonly quantity: number;
+				readonly amount: number;
+				readonly personalMeasureId: string | null;
+			};
 			readonly date?: string;
 			readonly meal?: NutritionMealSlot;
 	  }

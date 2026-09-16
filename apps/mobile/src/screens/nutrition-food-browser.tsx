@@ -19,11 +19,18 @@ import {
 	type ShippedFood,
 	servingOptions,
 	shippedLibraryMeta,
+	withPersonalMeasures,
 } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { type ComponentProps, useMemo, useRef, useState } from "react";
+import {
+	type ComponentProps,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	FlatList,
 	KeyboardAvoidingView,
@@ -59,6 +66,10 @@ import type {
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
+import {
+	usePersonalMeasureActions,
+	usePersonalMeasures,
+} from "../data/personal-measures";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, type Messages, useI18n } from "../i18n";
@@ -229,6 +240,7 @@ export function NutritionFoodBrowser({
 	const subject = operations.getSubject();
 	const reduceMotion = useReduceMotion();
 	const personalFoods = usePersonalFoods();
+	const personalMeasures = usePersonalMeasures();
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
 	const toast = useToast();
@@ -614,7 +626,7 @@ export function NutritionFoodBrowser({
 	}
 
 	function resolveQuickSelection(selection: FoodSelection) {
-		const choices = servingChoices(selection);
+		const choices = servingChoices(selection, personalMeasures);
 		const sourceKey = foodSourceKey(
 			selection.kind === "shipped" ? "shipped" : "personal",
 			selection.food.id,
@@ -624,7 +636,9 @@ export function NutritionFoodBrowser({
 			selection.food.baseUnit,
 			subject ? operations.getShortcut(subject, sourceKey)?.portion : undefined,
 		);
-		const option = remembered?.option ?? choices[0];
+		const option =
+			remembered?.option ??
+			choices.find((choice) => choice.kind !== "personal-measure");
 		const quantity =
 			remembered?.quantity ??
 			(option?.kind === "base-unit" && option.unit !== "serving" ? 100 : 1);
@@ -1187,12 +1201,18 @@ function ServingDetail({
 	onCorrect?: () => void;
 }) {
 	const { t, locale } = useI18n();
+	const router = useRouter();
 	const operations = useNutritionOperations();
+	const personalMeasures = usePersonalMeasures();
+	const measureActions = usePersonalMeasureActions();
 	const toast = useToast();
 	const [logging, setLogging] = useState(false);
 	const loggingRef = useRef(false);
 	const food = selection.food;
-	const choices = useMemo(() => servingChoices(selection), [selection]);
+	const choices = useMemo(
+		() => servingChoices(selection, personalMeasures),
+		[personalMeasures, selection],
+	);
 	const subject = operations.getSubject();
 	const sourceKey = foodSourceKey(
 		selection.kind === "shipped" ? "shipped" : "personal",
@@ -1209,13 +1229,17 @@ function ServingDetail({
 			),
 		[choices, food.baseUnit, operations, sourceKey, subject],
 	);
-	const [selectedServing, setSelectedServing] = useState<ServingOption>(
-		() => remembered?.option ?? choices[0],
-	);
+	const defaultServing =
+		remembered?.option ??
+		choices.find((choice) => choice.kind !== "personal-measure") ??
+		choices[0];
+	const [selectedServing, setSelectedServing] =
+		useState<ServingOption>(defaultServing);
 	const [quantityText, setQuantityText] = useState(() =>
 		String(
 			remembered?.quantity ??
-				(choices[0]?.kind === "base-unit" && choices[0].unit !== "serving"
+				(defaultServing?.kind === "base-unit" &&
+				defaultServing.unit !== "serving"
 					? 100
 					: 1),
 		),
@@ -1223,6 +1247,19 @@ function ServingDetail({
 	const [favorite, setFavorite] = useState(() =>
 		subject ? operations.getShortcut(subject, sourceKey)?.favorite : false,
 	);
+	useEffect(() => {
+		if (!measureActions.lastCreatedId) return;
+		const created = choices.find(
+			(option) =>
+				option.kind === "personal-measure" &&
+				option.id === measureActions.lastCreatedId,
+		);
+		if (created) {
+			setSelectedServing(created);
+			setQuantityText("1");
+			measureActions.consumeCreated();
+		}
+	}, [choices, measureActions]);
 	const parsed =
 		quantityText.trim() === ""
 			? Number.NaN
@@ -1383,34 +1420,73 @@ function ServingDetail({
 					</View>
 					<AppText variant="label">{t.nutrition.foodBrowser.serving}</AppText>
 					<View style={styles.options}>
-						{choices.map((candidate) => (
-							<Pressable
-								key={candidate.kind === "authored" ? candidate.index : "base"}
-								onPress={() => {
-									// A meaningful selection: it changes the figures below and the
-									// numbers that will be written. The list itself is silent.
-									if (candidate !== selectedServing) haptics.selectionChanged();
-									setSelectedServing(candidate);
-									setQuantityText(
-										candidate.kind === "base-unit" &&
-											candidate.unit !== "serving"
-											? "100"
-											: "1",
-									);
-								}}
-								accessibilityRole="radio"
-								accessibilityState={{
-									checked: selectedServing === candidate,
-								}}
-								style={[
-									styles.option,
-									selectedServing === candidate && styles.optionSelected,
-								]}
-							>
-								<AppText>{candidate.label[locale]}</AppText>
-							</Pressable>
-						))}
+						{[
+							{
+								label: t.nutrition.personalMeasures.title,
+								choices: choices.filter(
+									(choice) => choice.kind === "personal-measure",
+								),
+							},
+							{
+								label: t.nutrition.foodBrowser.serving,
+								choices: choices.filter(
+									(choice) => choice.kind !== "personal-measure",
+								),
+							},
+						]
+							.filter((group) => group.choices.length > 0)
+							.map((group) => (
+								<View key={group.label} style={styles.optionGroup}>
+									<AppText variant="caption">{group.label}</AppText>
+									<View style={styles.optionChoices}>
+										{group.choices.map((candidate) => (
+											<Pressable
+												key={
+													candidate.kind === "authored"
+														? `authored:${candidate.index}`
+														: candidate.kind === "personal-measure"
+															? `measure:${candidate.id}`
+															: "base"
+												}
+												onPress={() => {
+													// A meaningful selection: it changes the figures below and the
+													// numbers that will be written. The list itself is silent.
+													if (candidate !== selectedServing)
+														haptics.selectionChanged();
+													setSelectedServing(candidate);
+													setQuantityText(
+														candidate.kind === "base-unit" &&
+															candidate.unit !== "serving"
+															? "100"
+															: "1",
+													);
+												}}
+												accessibilityRole="radio"
+												accessibilityState={{
+													checked: selectedServing === candidate,
+												}}
+												style={[
+													styles.option,
+													selectedServing === candidate &&
+														styles.optionSelected,
+												]}
+											>
+												<AppText>{candidate.label[locale]}</AppText>
+											</Pressable>
+										))}
+									</View>
+								</View>
+							))}
 					</View>
+					<GhostButton
+						label={t.nutrition.personalMeasures.manage}
+						onPress={() =>
+							router.push({
+								pathname: "/personal-measures",
+								params: { returnTo: "picker", baseUnit: food.baseUnit },
+							})
+						}
+					/>
 					<AppText variant="label">{t.nutrition.foodBrowser.quantity}</AppText>
 					<TextInput
 						value={quantityText}
@@ -1419,7 +1495,7 @@ function ServingDetail({
 						keyboardType="decimal-pad"
 						style={styles.input}
 					/>
-					{selectedServing.kind === "authored" ? (
+					{selectedServing.kind !== "base-unit" ? (
 						<View style={styles.quantityShortcuts}>
 							{[
 								[t.nutrition.foodBrowser.quantityHalf, "0.5"],
@@ -1546,9 +1622,19 @@ function formatNutrient(
 	return `${roundForDisplay(key, value.amount)} ${NUTRIENT_UNITS[key]}`;
 }
 
-function servingChoices(selection: FoodSelection): ServingOption[] {
-	if (selection.kind === "shipped") return servingOptions(selection.food);
-	return personalFoodServingOptions(selection.food);
+function servingChoices(
+	selection: FoodSelection,
+	personalMeasures: readonly import("@workouts/core/nutrition").PersonalMeasure[],
+): ServingOption[] {
+	const foodOptions =
+		selection.kind === "shipped"
+			? servingOptions(selection.food)
+			: personalFoodServingOptions(selection.food);
+	return withPersonalMeasures(
+		foodOptions,
+		selection.food.baseUnit,
+		personalMeasures,
+	);
 }
 
 function servingPreview(
@@ -1588,7 +1674,16 @@ function createFoodSnapshot(
 			date,
 			meal,
 		});
-		return { common: { ...snapshot, clientEntryId }, provenance };
+		return {
+			common: {
+				...snapshot,
+				clientEntryId,
+				...(selectedServing.kind === "personal-measure"
+					? { personalMeasureId: selectedServing.id }
+					: {}),
+			},
+			provenance,
+		};
 	}
 	const preview = servingPreview(selection, selectedServing, quantity, locale);
 	const common = {
@@ -1603,6 +1698,9 @@ function createFoodSnapshot(
 		quantity,
 		amount: preview.amount,
 		baseUnit: selection.food.baseUnit,
+		...(selectedServing.kind === "personal-measure"
+			? { personalMeasureId: selectedServing.id }
+			: {}),
 		nutrients: Object.fromEntries(
 			NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
 		) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
@@ -1775,7 +1873,9 @@ const styles = StyleSheet.create({
 	},
 	quickPortion: { maxWidth: 104, color: colors.textMuted, textAlign: "right" },
 	quickAddText: { color: colors.onAccent, fontWeight: "800", fontSize: 12 },
-	options: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+	options: { gap: spacing.md },
+	optionGroup: { gap: spacing.xs },
+	optionChoices: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 	option: {
 		minHeight: 44,
 		justifyContent: "center",
