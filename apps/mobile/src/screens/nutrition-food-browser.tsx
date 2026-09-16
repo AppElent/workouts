@@ -49,6 +49,7 @@ import {
 	type NutritionCookingRepository,
 	openNutritionCookingRepository,
 } from "../data/nutrition-cooking-repository";
+import { useNutritionDrafts } from "../data/nutrition-drafts";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
@@ -234,10 +235,16 @@ function offFailureMessage(
 export function NutritionFoodBrowser({
 	meal,
 	date,
+	draftId,
+	initialQuery,
 	onClose,
 }: {
 	meal: MealSlot;
 	date: string;
+	/** Set when the browser was opened to resolve a Capture Draft. */
+	draftId?: string;
+	/** The draft's note, prefilled as the search so a note is a paused search. */
+	initialQuery?: string;
 	onClose: () => void;
 }) {
 	const { t, locale } = useI18n();
@@ -255,10 +262,13 @@ export function NutritionFoodBrowser({
 	const [ownedCookingRepository, setOwnedCookingRepository] =
 		useState<NutritionCookingRepository>();
 	const cookingRepository = suppliedCookingRepository ?? ownedCookingRepository;
-	const [query, setQuery] = useState("");
+	const drafts = useNutritionDrafts();
+	const [query, setQuery] = useState(initialQuery ?? "");
 	const [showCaptureTools, setShowCaptureTools] = useState(false);
 	const [showMealChoices, setShowMealChoices] = useState(false);
-	const [filter, setFilter] = useState<FoodFilter>("recent");
+	const [filter, setFilter] = useState<FoodFilter>(() =>
+		initialQuery?.trim() ? "all" : "recent",
+	);
 	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(meal);
 	const [addedFeedback, setAddedFeedback] = useState<string>();
 	const servingPendingRef = useRef(false);
@@ -499,6 +509,16 @@ export function NutritionFoodBrowser({
 				}}
 			/>
 		);
+	}
+
+	/** Capture is the exit for "no time now": file the note and leave. */
+	function saveAsNote() {
+		try {
+			drafts.create({ date, meal: selectedMeal, note: query.trim() });
+			onClose();
+		} catch {
+			toast.error(t.nutrition.drafts.saveFailure);
+		}
 	}
 
 	const servingSheet =
@@ -817,18 +837,6 @@ export function NutritionFoodBrowser({
 								>
 									<AppText>{copy.newPersonalFood}</AppText>
 								</Pressable>
-								<Pressable
-									accessibilityRole="menuitem"
-									onPress={() =>
-										router.push({
-											pathname: "/nutrition-cooking",
-											params: { date, meal: selectedMeal, mode: "draft-new" },
-										})
-									}
-									style={styles.actionMenuItem}
-								>
-									<AppText>{copy.captureLater}</AppText>
-								</Pressable>
 							</View>
 						) : null}
 						<ScrollView
@@ -854,17 +862,34 @@ export function NutritionFoodBrowser({
 								</Pressable>
 							))}
 						</ScrollView>
-						{query.trim().length > 0 && filter === "all" ? (
-							<Pressable
-								onPress={runOnlineSearch}
-								disabled={onlineSearching}
-								accessibilityRole="button"
-								style={styles.onlineSearch}
-							>
-								<AppText style={styles.onlineSearchText}>
-									{onlineSearching ? copy.searchingOnline : copy.searchOnline}
-								</AppText>
-							</Pressable>
+						{query.trim().length > 0 ? (
+							<View style={styles.queryActions}>
+								{filter === "all" ? (
+									<Pressable
+										onPress={runOnlineSearch}
+										disabled={onlineSearching}
+										accessibilityRole="button"
+										style={styles.onlineSearch}
+									>
+										<AppText style={styles.onlineSearchText}>
+											{onlineSearching
+												? copy.searchingOnline
+												: copy.searchOnline}
+										</AppText>
+									</Pressable>
+								) : null}
+								{draftId ? null : (
+									<Pressable
+										onPress={saveAsNote}
+										accessibilityRole="button"
+										style={styles.onlineSearch}
+									>
+										<AppText style={styles.onlineSearchText}>
+											{t.nutrition.drafts.saveAsNote}
+										</AppText>
+									</Pressable>
+								)}
+							</View>
 						) : null}
 						{filter === "all" && onlineFeedback ? (
 							<View
@@ -1779,6 +1804,11 @@ const styles = StyleSheet.create({
 	},
 	tabSelected: { borderBottomColor: colors.accent },
 	tabTextSelected: { color: colors.accent, fontWeight: "800" },
+	queryActions: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: spacing.md,
+	},
 	onlineSearch: {
 		minHeight: 36,
 		alignSelf: "flex-start",

@@ -24,14 +24,18 @@ function asMealSlot(value: string | undefined): MealSlot {
 }
 
 export default function NutritionFoodRoute() {
-	const { meal, date } = useLocalSearchParams<{
+	const { meal, date, draftId, query } = useLocalSearchParams<{
 		meal?: string;
 		date?: string;
+		draftId?: string;
+		query?: string;
 	}>();
 	return (
 		<NutritionFoodBrowser
 			meal={asMealSlot(meal)}
 			date={date ?? todayIsoDate()}
+			draftId={draftId || undefined}
+			initialQuery={query || undefined}
 			onClose={() => router.back()}
 		/>
 	);

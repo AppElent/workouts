@@ -12,7 +12,6 @@ type FoodBrowserCopy = {
 	readonly moreActions: string;
 	readonly logOnce: string;
 	readonly newPersonalFood: string;
-	readonly captureLater: string;
 	readonly recent: string;
 	readonly favorites: string;
 	readonly combos: string;
@@ -50,7 +49,6 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		moreActions: "More food actions",
 		logOnce: "Log once",
 		newPersonalFood: "New Personal Food",
-		captureLater: "Capture later",
 		recent: "Recent",
 		favorites: "Favorites",
 		combos: "Combos",
@@ -86,7 +84,6 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		moreActions: "Meer eetacties",
 		logOnce: "Eenmalig loggen",
 		newPersonalFood: "Nieuw persoonlijk voedingsmiddel",
-		captureLater: "Later vastleggen",
 		recent: "Recent",
 		favorites: "Favorieten",
 		combos: "Combo's",

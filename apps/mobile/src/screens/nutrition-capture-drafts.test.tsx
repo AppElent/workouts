@@ -40,4 +40,22 @@ describe("Capture Drafts in the diary", () => {
 		).toHaveLength(3);
 		expect(screen.queryByText(/^\d+ kcal$/)).toBeNull();
 	});
+
+	it("saves the search text as a note and lands back on the diary", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		expect(screen.queryByText("Save as note")).toBeNull();
+
+		fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"  wrap from the station ",
+		);
+		fireEvent.press(await screen.findByText("Save as note"));
+
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+		expect(await screen.findByText("wrap from the station")).toBeTruthy();
+		expect(app.draftRepository.listForDate("test-user", todayIsoDate())).toMatchObject(
+			[{ meal: "lunch", note: "wrap from the station" }],
+		);
+	});
 });

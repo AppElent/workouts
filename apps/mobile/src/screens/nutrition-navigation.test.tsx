@@ -102,18 +102,13 @@ describe("Nutrition navigation", () => {
 		});
 	});
 
-	it("routes Capture later directly to its cooking mode", async () => {
-		const app = renderApp();
+	it("no longer offers Capture later — a note is saved from the search itself", async () => {
+		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 		fireEvent.press(await screen.findByLabelText("More food actions"));
-		fireEvent.press(await screen.findByText("Capture later"));
 
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
-		expect(app.getSearchParams()).toMatchObject({
-			date: todayIsoDate(),
-			meal: "lunch",
-			mode: "draft-new",
-		});
+		expect(await screen.findByText("Log once")).toBeTruthy();
+		expect(screen.queryByText("Capture later")).toBeNull();
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {
