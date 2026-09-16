@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQuery_experimental } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import * as ReactNative from "react-native";
 import {
 	formatLongDate,
 	shiftIsoDate,
@@ -207,6 +208,71 @@ describe("the nutrition day", () => {
 		expect(await screen.findByText("1950 / 1800–2100 kcal")).toBeTruthy();
 		expect(screen.getByText("Within range")).toBeTruthy();
 		expect(screen.queryByText(/more$/)).toBeNull();
+	});
+
+	it("keeps both complete goal rows readable at accessibility text sizes", async () => {
+		const dimensions = jest
+			.spyOn(ReactNative, "useWindowDimensions")
+			.mockReturnValue({ width: 320, height: 800, scale: 3, fontScale: 2 });
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return {
+					goals: [
+						{ nutrient: "energy", direction: "min", target: 1800 },
+						{ nutrient: "energy", direction: "max", target: 2100 },
+						{ nutrient: "protein", direction: "min", target: 120 },
+					],
+					basis: "effective",
+					effectiveFrom: "2026-01-01",
+					displayOrder: [
+						"energy",
+						"protein",
+						"carbs",
+						"fat",
+						"saturatedFat",
+						"fibre",
+						"sugars",
+						"salt",
+					],
+				};
+			return {
+				entries: [],
+				totals: {
+					energy: {
+						amount: 1950,
+						entryCount: 1,
+						valueCount: 1,
+						traceCount: 0,
+						absentCount: 0,
+						incomplete: false,
+						qualified: false,
+					},
+					protein: {
+						amount: 80,
+						entryCount: 1,
+						valueCount: 1,
+						traceCount: 0,
+						absentCount: 0,
+						incomplete: false,
+						qualified: false,
+					},
+				},
+			};
+		});
+
+		try {
+			renderApp();
+			expect(
+				await screen.findByLabelText(
+					"Energy: 1950 / 1800–2100 kcal. Within range.",
+				),
+			).toBeTruthy();
+			expect(
+				screen.getByLabelText("Protein: 80 / ≥120 g. 40 g to minimum."),
+			).toBeTruthy();
+		} finally {
+			dimensions.mockRestore();
+		}
 	});
 
 	it("keeps a failed reorder draft open and explains that it was not saved", async () => {
