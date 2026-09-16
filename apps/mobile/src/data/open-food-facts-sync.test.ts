@@ -24,6 +24,9 @@ function importedFood(id: string, locallyEdited = false): PersonalFood {
 		id,
 		name: { en: `Local ${id}`, nl: `Lokaal ${id}` },
 		baseUnit: "g",
+		classification: "ordinary",
+		nutritionBasis: { kind: "per100", unit: "g" },
+		estimated: false,
 		nutrients,
 		servings: [{ label: { en: "My portion", nl: "Mijn portie" }, amount: 30 }],
 		provenance: {
@@ -58,6 +61,37 @@ function latestDraft(id: string): PersonalFoodDraft {
 }
 
 describe("refreshOpenFoodFactsImports", () => {
+	it("retains recipe metadata and a locally edited serving estimate through provider refresh", async () => {
+		const food: PersonalFood = {
+			...importedFood("111", true),
+			classification: "recipe",
+			estimated: true,
+			baseUnit: "serving",
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Kom" } },
+			description: { en: "My soup", nl: "Mijn soep" },
+		};
+		const update = jest.fn((_id: string, draft: PersonalFoodDraft) => ({
+			...food,
+			...draft,
+		}));
+		await refreshOpenFoodFactsImports({
+			foods: [food],
+			update,
+			refreshBarcode: async () => ({
+				kind: "found",
+				draft: latestDraft("111"),
+				fromCache: false,
+			}),
+		});
+		expect(update.mock.calls[0][1]).toMatchObject({
+			classification: "recipe",
+			estimated: true,
+			baseUnit: "serving",
+			nutritionBasis: food.nutritionBasis,
+			description: food.description,
+			nutrients: food.nutrients,
+		});
+	});
 	it("fully refreshes untouched imports and paces provider requests", async () => {
 		const foods = [importedFood("111"), importedFood("222")];
 		const update = jest.fn((_id: string, draft: PersonalFoodDraft) => ({

@@ -24,9 +24,9 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 				/>
 				<Divider />
 				<Button
-					label={props.recipesLabel}
+					label={props.captureDraftsLabel}
 					systemImage="frying.pan"
-					onPress={props.onOpenRecipes}
+					onPress={props.onOpenCaptureDrafts}
 				/>
 				<Button
 					label={props.assistanceLabel}

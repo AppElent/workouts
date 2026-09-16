@@ -3,14 +3,14 @@ export interface NutritionHeaderMenuProps {
 	closeLabel: string;
 	createComboLabel: string;
 	logComboLabel: string;
-	recipesLabel: string;
+	captureDraftsLabel: string;
 	assistanceLabel: string;
 	backupLabel: string;
 	goalsLabel: string;
 	dataSourcesLabel: string;
 	onCreateCombo: () => void;
 	onLogCombo: () => void;
-	onOpenRecipes: () => void;
+	onOpenCaptureDrafts: () => void;
 	onOpenAssistance: () => void;
 	onOpenBackup: () => void;
 	onOpenGoals: () => void;

@@ -20,6 +20,20 @@ const base: ServingOption = {
 };
 
 describe("nutrition portion memory", () => {
+	it("remembers servings without converting them to a weight", () => {
+		const serving: ServingOption = {
+			kind: "base-unit",
+			label: { en: "Bowl", nl: "Kom" },
+			amount: 1,
+			unit: "serving",
+		};
+		const memory = portionMemoryFor(serving, 1.5, "serving");
+		expect(rememberedSelection([serving], "serving", memory)).toMatchObject({
+			quantity: 1.5,
+			option: serving,
+		});
+		expect(rememberedSelection([base], "g", memory)).toBeUndefined();
+	});
 	it("matches an authored serving by semantic identity, not its array index", () => {
 		const remembered = portionMemoryFor(authored("Scoop", 30), 2, "g");
 		const reordered = [

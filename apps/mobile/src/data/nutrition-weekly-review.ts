@@ -14,6 +14,7 @@ export type WeeklyReviewDay = {
 	readonly date: IsoDate;
 	readonly entries: readonly {
 		readonly name?: { readonly en: string; readonly nl: string };
+		readonly estimated?: true;
 		readonly nutrients: Record<NutrientKey, { kind: string; amount?: number }>;
 	}[];
 	readonly totals: Record<NutrientKey, NutrientTotal>;

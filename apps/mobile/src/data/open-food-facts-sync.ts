@@ -51,6 +51,10 @@ function editableDraft(food: PersonalFood): PersonalFoodDraft {
 		nutrients: food.nutrients,
 		servings: food.servings,
 		provenance: food.provenance,
+		classification: food.classification,
+		nutritionBasis: food.nutritionBasis,
+		estimated: food.estimated,
+		...(food.description ? { description: food.description } : {}),
 	};
 }
 
@@ -58,7 +62,13 @@ function refreshedDraft(
 	food: PersonalFood,
 	latest: PersonalFoodDraft,
 ): PersonalFoodDraft {
-	if (!food.provenance.locallyEdited) return latest;
+	if (!food.provenance.locallyEdited)
+		return {
+			...latest,
+			classification: food.classification,
+			estimated: food.estimated,
+			...(food.description ? { description: food.description } : {}),
+		};
 	return {
 		...editableDraft(food),
 		provenance: replaceProviderMetadata(food.provenance, latest.provenance),

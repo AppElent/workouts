@@ -10,7 +10,7 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 			actions={[
 				{ label: props.createComboLabel, onPress: props.onCreateCombo },
 				{ label: props.logComboLabel, onPress: props.onLogCombo },
-				{ label: props.recipesLabel, onPress: props.onOpenRecipes },
+				{ label: props.captureDraftsLabel, onPress: props.onOpenCaptureDrafts },
 				{ label: props.assistanceLabel, onPress: props.onOpenAssistance },
 				{ label: props.backupLabel, onPress: props.onOpenBackup },
 				{ label: props.goalsLabel, onPress: props.onOpenGoals },
