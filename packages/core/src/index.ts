@@ -24,6 +24,7 @@ export {
 	type NutritionOperationTarget,
 	type NutritionProvenance,
 } from "./nutrition/operations";
+export * from "./nutrition/personal-food";
 export { formatQuantity } from "./nutrition/servings";
 export * from "./oneRepMax";
 export * from "./plates";

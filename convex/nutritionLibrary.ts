@@ -1,10 +1,11 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { canonicalJson } from "@workouts/core";
+import { canonicalJson, normalizePersonalFood, type PersonalFood } from "@workouts/core";
 import { mutation, query } from "./_generated/server";
-import { libraryRecordKind } from "./nutritionLibraryTables";
+import { libraryRecordKind, librarySchemaVersion } from "./nutritionLibraryTables";
 
 const libraryRecord = v.object({
+	schemaVersion: v.optional(librarySchemaVersion),
 	id: v.string(),
 	kind: libraryRecordKind,
 	payload: v.union(v.string(), v.null()),
@@ -15,7 +16,7 @@ const libraryRecord = v.object({
 const operation = v.union(
 	v.object({
 		kind: v.literal("upsert"),
-		record: v.object({ id: v.string(), kind: libraryRecordKind, payload: v.string() }),
+		record: v.object({ id: v.string(), kind: libraryRecordKind, payload: v.string(), schemaVersion: v.optional(librarySchemaVersion) }),
 		expectedRevision: v.number(),
 	}),
 	v.object({
@@ -85,52 +86,9 @@ function assertNutrients(value: unknown) {
 	}
 }
 
-function assertPersonalProvenance(value: unknown) {
-	const provenance = asObject(value, "Food provenance");
-	if (provenance.recordOrigin !== "personal" && provenance.recordOrigin !== "import") {
-		throw new Error("Food provenance is invalid.");
-	}
-	if (!["manual", "nevo", "openfoodfacts"].includes(String(provenance.nutritionSource))) {
-		throw new Error("Food provenance is invalid.");
-	}
-	if (typeof provenance.locallyEdited !== "boolean") throw new Error("Food provenance is invalid.");
-	for (const key of [
-		"forkedFrom",
-		"provider",
-		"barcode",
-		"attribution",
-		"brand",
-		"quantity",
-		"imageUrl",
-	]) {
-		if (provenance[key] !== undefined) assertText(provenance[key], `Food provenance ${key}`);
-	}
-	if (provenance.providerServing !== undefined) {
-		const serving = asObject(provenance.providerServing, "Provider serving");
-		assertText(serving.label, "Provider serving label");
-		assertFinite(serving.amount, "Provider serving amount", true);
-		if (serving.unit !== "g" && serving.unit !== "ml") {
-			throw new Error("Provider serving unit is invalid.");
-		}
-	}
-}
-
 function assertFoodPayload(payload: Record<string, unknown>, id: string) {
 	if (payload.id !== id) throw new Error("Food payload identity is invalid.");
-	assertBilingual(payload.name, "Food name");
-	if (payload.baseUnit !== "g" && payload.baseUnit !== "ml") throw new Error("Food unit is invalid.");
-	assertNutrients(payload.nutrients);
-	if (!Array.isArray(payload.servings) || payload.servings.length > 3) {
-		throw new Error("Food servings are invalid.");
-	}
-	for (const serving of payload.servings) {
-		const candidate = asObject(serving, "Food serving");
-		assertBilingual(candidate.label, "Food serving label");
-		assertFinite(candidate.amount, "Food serving amount", true);
-	}
-	assertPersonalProvenance(payload.provenance);
-	assertFinite(payload.createdAt, "Food creation timestamp");
-	assertFinite(payload.updatedAt, "Food update timestamp");
+	normalizePersonalFood(payload as PersonalFood);
 }
 
 function assertComboProvenance(value: unknown, reference: Record<string, unknown>) {
@@ -175,7 +133,8 @@ function assertComboPayload(payload: Record<string, unknown>, id: string) {
 		assertBilingual(snapshot.serving, "Combo snapshot serving");
 		assertFinite(snapshot.quantity, "Combo quantity", true);
 		assertFinite(snapshot.amount, "Combo amount", true);
-		if (snapshot.baseUnit !== "g" && snapshot.baseUnit !== "ml") throw new Error("Combo unit is invalid.");
+		if (snapshot.baseUnit !== "g" && snapshot.baseUnit !== "ml" && snapshot.baseUnit !== "serving") throw new Error("Combo unit is invalid.");
+		if (snapshot.estimated !== undefined && snapshot.estimated !== true) throw new Error("Combo estimate status is invalid.");
 		assertNutrients(snapshot.nutrients);
 		assertComboProvenance(snapshot.provenance, reference);
 	}
@@ -184,7 +143,7 @@ function assertComboPayload(payload: Record<string, unknown>, id: string) {
 }
 
 /** Full server validation keeps malformed JSON from becoming a future restore. */
-function assertPayload(id: string, kind: "food" | "combo", payload: string) {
+function assertPayload(id: string, kind: "food" | "combo", payload: string, schemaVersion: 1 | 2) {
 	if (payload.length === 0 || payload.length > 200_000) {
 		throw new Error("Library payload is invalid.");
 	}
@@ -197,6 +156,12 @@ function assertPayload(id: string, kind: "food" | "combo", payload: string) {
 	const candidate = asObject(parsed, "Library payload");
 	if (kind === "food") assertFoodPayload(candidate, id);
 	else assertComboPayload(candidate, id);
+	const needsCurrentVersion = kind === "food"
+		? ["classification", "nutritionBasis", "estimated", "description"].some((key) => candidate[key] !== undefined)
+		: (candidate.parts as { snapshot: { estimated?: true; baseUnit: string } }[]).some(({ snapshot }) => snapshot.estimated !== undefined || snapshot.baseUnit === "serving");
+	if (schemaVersion < 2 && needsCurrentVersion) {
+		throw new Error("These library fields require payload schema version 2.");
+	}
 }
 
 function canonicalPayload(args: { version: 1; expectedSubject: string; operation: unknown }) {
@@ -211,11 +176,13 @@ function asRecord(row: {
 	recordId: string;
 	recordKind: "food" | "combo";
 	payload?: string;
+	schemaVersion?: 1 | 2;
 	revision: number;
 	deleted: boolean;
 }) {
 	return {
 		id: row.recordId,
+		schemaVersion: row.schemaVersion ?? 1,
 		kind: row.recordKind,
 		payload: row.payload ?? null,
 		revision: row.revision,
@@ -280,7 +247,7 @@ export const applyOperation = mutation({
 			throw new Error("Expected revision is invalid.");
 		}
 		if (args.operation.kind === "upsert") {
-			assertPayload(target.id, target.kind, args.operation.record.payload);
+			assertPayload(target.id, target.kind, args.operation.record.payload, args.operation.record.schemaVersion ?? 1);
 		}
 		const current = await ctx.db
 			.query("nutritionLibraryRecords")
@@ -295,11 +262,18 @@ export const applyOperation = mutation({
 		if (currentRevision !== args.operation.expectedRevision) {
 			throw new Error("Conflict: this library record changed on another device.");
 		}
+		const schemaVersion = args.operation.kind === "upsert"
+			? args.operation.record.schemaVersion ?? 1
+			: current?.schemaVersion ?? 1;
+		if (schemaVersion < (current?.schemaVersion ?? 1)) {
+			throw new Error("This library record requires a newer app; payload schema downgrade rejected.");
+		}
 		const revision = currentRevision + 1;
 		const next = {
 			userId,
 			recordId: target.id,
 			recordKind: target.kind,
+			schemaVersion,
 			revision,
 			deleted: args.operation.kind === "remove",
 			...(args.operation.kind === "upsert" ? { payload: args.operation.record.payload } : {}),

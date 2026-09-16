@@ -98,6 +98,7 @@ export {
 	scaleNutrient,
 	TRACE,
 } from "./nutrients";
+export * from "./personal-food";
 export {
 	parseProviderNumber,
 	parseProviderNutrient,

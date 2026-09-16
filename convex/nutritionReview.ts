@@ -55,6 +55,7 @@ function publicEntry(entry: Doc<"nutritionDiaryEntries">) {
 		quantity: entry.quantity,
 		amount: entry.amount,
 		baseUnit: entry.baseUnit,
+		...(entry.estimated ? { estimated: true as const } : {}),
 		nutrients: entry.nutrients,
 		provenance: entry.provenance,
 		loggedAt: entry.loggedAt,
