@@ -210,7 +210,7 @@ describe("the nutrition day", () => {
 		expect(screen.queryByText(/more$/)).toBeNull();
 	});
 
-	it("keeps both complete goal rows readable at accessibility text sizes", async () => {
+	it("keeps full goal descriptions available at accessibility text sizes", async () => {
 		const dimensions = jest
 			.spyOn(ReactNative, "useWindowDimensions")
 			.mockReturnValue({ width: 320, height: 800, scale: 3, fontScale: 2 });
