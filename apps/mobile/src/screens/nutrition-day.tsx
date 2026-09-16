@@ -214,6 +214,11 @@ export function NutritionDayScreen() {
 				</View>
 
 				{marker === "visible" ? <TrainingMarker t={t} /> : null}
+				<OtherDaysDraftsBanner
+					t={t}
+					summary={drafts.summariseOtherDays(date)}
+					onJump={(target) => changeDate(target)}
+				/>
 				{showTools ? (
 					<View style={styles.attribution}>
 						<AppText variant="caption">{t.nutrition.attribution.nevo}</AppText>
@@ -451,6 +456,43 @@ export function NutritionDayScreen() {
  * involved — there is nothing here about duration, intensity, or calories to
  * show even if the design changes later.
  */
+/**
+ * The reminder that a note is for: a draft filed on a day you are not looking
+ * at would otherwise be invisible until you happened back onto that day.
+ */
+function OtherDaysDraftsBanner({
+	t,
+	summary,
+	onJump,
+}: {
+	t: Messages;
+	summary: { count: number; oldestDate: string | undefined };
+	onJump: (date: string) => void;
+}) {
+	if (summary.count === 0 || !summary.oldestDate) return null;
+	const target = summary.oldestDate;
+	return (
+		<Pressable
+			onPress={() => onJump(target)}
+			accessibilityRole="button"
+			accessibilityHint={t.nutrition.drafts.otherDaysAction}
+			style={({ pressed }) => [
+				styles.draftBanner,
+				pressed ? { backgroundColor: colors.surface2 } : null,
+			]}
+		>
+			<AppText style={styles.flex}>
+				{summary.count === 1
+					? t.nutrition.drafts.otherDaysOne
+					: fmt(t.nutrition.drafts.otherDaysMany, { count: summary.count })}
+			</AppText>
+			<AppText style={{ color: colors.accent, fontWeight: "700" }}>
+				{t.nutrition.drafts.otherDaysAction}
+			</AppText>
+		</Pressable>
+	);
+}
+
 function TrainingMarker({ t }: { t: Messages }) {
 	return (
 		<View
@@ -1512,6 +1554,18 @@ function DaySkeleton({ label }: { label: string }) {
 
 const styles = StyleSheet.create({
 	draftRow: { borderLeftWidth: 3, borderLeftColor: colors.border },
+	draftBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: spacing.sm,
+		minHeight: 44,
+		paddingHorizontal: spacing.md,
+		paddingVertical: spacing.sm,
+		borderRadius: radius.md,
+		borderWidth: 1,
+		borderColor: colors.border,
+		backgroundColor: colors.surface,
+	},
 	draftNote: { fontStyle: "italic" },
 	root: { flex: 1, backgroundColor: colors.bg },
 	scroll: { flex: 1 },

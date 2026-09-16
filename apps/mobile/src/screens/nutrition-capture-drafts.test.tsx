@@ -115,4 +115,28 @@ describe("Capture Drafts in the diary", () => {
 
 		expect(await screen.findByLabelText("Resolve note: apple")).toBeTruthy();
 	});
+
+	it("points at unresolved notes on other days and jumps to the oldest", async () => {
+		renderApp(undefined, undefined, undefined, ({ draftRepository }) => {
+			draftRepository.create("test-user", {
+				date: shiftIsoDate(todayIsoDate(), -1),
+				meal: "dinner",
+				note: "Pizza",
+			});
+			draftRepository.create("test-user", {
+				date: shiftIsoDate(todayIsoDate(), -3),
+				meal: "snacks",
+				note: "Stroopwafel",
+			});
+		});
+		await screen.findByText("Today");
+		expect(screen.queryByText("Pizza")).toBeNull();
+
+		fireEvent.press(
+			await screen.findByText("2 unresolved notes on other days"),
+		);
+
+		expect(await screen.findByText("Stroopwafel")).toBeTruthy();
+		expect(screen.getByText("1 unresolved note on another day")).toBeTruthy();
+	});
 });
