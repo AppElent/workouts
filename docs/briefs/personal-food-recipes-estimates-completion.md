@@ -14,8 +14,11 @@ Combo logs, offline reconciliation, and weekly review preserve the snapshot mark
 
 ## Storage and rollout
 
-- Deploy the additive Convex schema/functions before releasing the mobile client.
-  This task changes local source only; it does not deploy either client or backend.
+- The additive Convex schema/functions were deployed to production
+  (`fine-akita-444`) on 2026-09-16 after fixing a stray leading replacement
+  character in `convex/nutritionEstimates.test.ts` that caused TypeScript TS1490.
+  Both `pnpm exec convex deploy --dry-run -y` and the actual deployment passed,
+  including schema validation. The mobile client has not been released.
 - New Personal Library writes use payload schema version 2. Existing rows and
   outbox operations remain readable. Old pending operations retain their original
   wire envelope for receipt replay. A version-1 overwrite or restore cannot replace
