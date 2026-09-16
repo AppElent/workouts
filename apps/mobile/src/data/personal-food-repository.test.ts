@@ -9,6 +9,7 @@ import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	type ComboDraft,
 	createPersonalFoodRepository,
+	FOOD_VISUAL_PRESET_IDS,
 	type PersonalFoodDraft,
 } from "./personal-food-repository";
 
@@ -116,6 +117,111 @@ function comboDraft(
 }
 
 describe("PersonalFoodRepository public behavior", () => {
+	it("persists preset icons and managed local photos outside provenance", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createPersonalFoodRepository(database);
+		const icon = repository.create(
+			draft({ visual: { kind: "icon", preset: "fruit" } }),
+		);
+		const photo = repository.create(
+			draft({
+				name: { en: "Photo oats", nl: "Fotohavermout" },
+				visual: {
+					kind: "photo",
+					uri: "file:///food-photos/photo-oats.jpg",
+				},
+			}),
+		);
+
+		const reopened = createPersonalFoodRepository(database);
+		expect(reopened.find(icon.id)?.visual).toEqual({
+			kind: "icon",
+			preset: "fruit",
+		});
+		expect(reopened.find(photo.id)?.visual).toEqual({
+			kind: "photo",
+			uri: "file:///food-photos/photo-oats.jpg",
+		});
+		expect(reopened.find(photo.id)?.provenance).not.toHaveProperty("visual");
+	});
+
+	it("accepts every curated preset and rejects unknown icons and remote photos", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		for (const preset of FOOD_VISUAL_PRESET_IDS) {
+			expect(
+				repository.create(
+					draft({
+						name: { en: preset, nl: preset },
+						visual: { kind: "icon", preset },
+					}),
+				).visual,
+			).toEqual({ kind: "icon", preset });
+		}
+		expect(() =>
+			repository.create(
+				draft({
+					visual: { kind: "icon", preset: "pizza" } as never,
+				}) as PersonalFoodDraft,
+			),
+		).toThrow("invalid Food Visual icon");
+		expect(() =>
+			repository.create(
+				draft({
+					visual: {
+						kind: "photo",
+						uri: "https://images.openfoodfacts.org/product.jpg",
+					},
+				}) as PersonalFoodDraft,
+			),
+		).toThrow("managed local file");
+	});
+
+	it("backs up icons but restores photo-backed Foods with an unset visual", () => {
+		const source = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const icon = source.create(
+			draft({ visual: { kind: "icon", preset: "grains" } }),
+		);
+		const photo = source.create(
+			draft({
+				name: { en: "Photo oats", nl: "Fotohavermout" },
+				visual: {
+					kind: "photo",
+					uri: "file:///food-photos/photo-oats.jpg",
+				},
+			}),
+		);
+
+		const backup = source.exportBackup();
+		expect(backup.foods.find((food) => food.id === icon.id)?.visual).toEqual({
+			kind: "icon",
+			preset: "grains",
+		});
+		expect(
+			backup.foods.find((food) => food.id === photo.id)?.visual,
+		).toBeUndefined();
+
+		const restored = createPersonalFoodRepository(new SQLiteTestDatabase());
+		restored.replaceFromBackup({
+			...backup,
+			foods: backup.foods.map((food) =>
+				food.id === photo.id
+					? {
+							...photo,
+							visual: {
+								kind: "photo" as const,
+								uri: "file:///another-device/private.jpg",
+							},
+						}
+					: food,
+			),
+		});
+		expect(restored.find(icon.id)?.visual).toEqual({
+			kind: "icon",
+			preset: "grains",
+		});
+		expect(restored.find(photo.id)?.visual).toBeUndefined();
+	});
+
 	it("mints a stable UUID and preserves zero, trace, absent, and three Servings", () => {
 		const database = new SQLiteTestDatabase();
 		const repository = createPersonalFoodRepository(database);

@@ -6,6 +6,12 @@ export type NutritionCookingCopy = {
 	storageBody: string;
 	recipes: string;
 	newRecipe: string;
+	editRecipe: string;
+	deleteRecipe: string;
+	deleteRecipeTitle: string;
+	deleteRecipeBody: string;
+	deleteRecipeConfirm: string;
+	deleteRecipeFailure: string;
 	noRecipes: string;
 	recipeNameEn: string;
 	recipeNameNl: string;
@@ -66,6 +72,14 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 			"Recipes and unfinished notes stay on this device and are scoped to this account. Recipe sync is not available yet. Diary logs sync through the normal diary path when connected.",
 		recipes: "Recipes",
 		newRecipe: "New recipe",
+		editRecipe: "Edit recipe",
+		deleteRecipe: "Delete recipe",
+		deleteRecipeTitle: "Delete this recipe?",
+		deleteRecipeBody:
+			"The recipe and its local photo will be removed from this device.",
+		deleteRecipeConfirm: "Delete recipe",
+		deleteRecipeFailure:
+			"This recipe could not be completely removed. Try again.",
 		noRecipes: "No recipes yet. Add ingredients and save a named version.",
 		recipeNameEn: "Recipe name in English",
 		recipeNameNl: "Recipe name in Dutch",
@@ -127,6 +141,14 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 			"Recepten en onafgemaakte notities blijven op dit apparaat en zijn aan dit account gekoppeld. Receptsync is nog niet beschikbaar. Dagboekitems gebruiken de normale synchronisatie zodra je verbonden bent.",
 		recipes: "Recepten",
 		newRecipe: "Nieuw recept",
+		editRecipe: "Recept bewerken",
+		deleteRecipe: "Recept verwijderen",
+		deleteRecipeTitle: "Dit recept verwijderen?",
+		deleteRecipeBody:
+			"Het recept en de lokale foto worden van dit apparaat verwijderd.",
+		deleteRecipeConfirm: "Recept verwijderen",
+		deleteRecipeFailure:
+			"Dit recept kon niet volledig worden verwijderd. Probeer het opnieuw.",
 		noRecipes:
 			"Nog geen recepten. Voeg ingrediënten toe en sla een benoemde versie op.",
 		recipeNameEn: "Naam recept in het Engels",

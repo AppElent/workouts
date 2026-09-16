@@ -110,6 +110,49 @@ describe("Nutrition cooking screen", () => {
 		repository.close();
 	});
 
+	it("saves and displays a Recipe Food Visual", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createNutritionCookingRepository(database, {
+			mintId: () => "recipe-1",
+		});
+		renderCooking(repository, mockOperations());
+
+		fireEvent.press(screen.getByText("New recipe"));
+		fireEvent.press(screen.getByRole("radio", { name: "Prepared meal" }));
+		fireEvent.changeText(
+			screen.getByLabelText("Recipe name in English"),
+			"Apple bowl",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Recipe name in Dutch"),
+			"Appelkom",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Search shipped or personal foods"),
+			"apple",
+		);
+		fireEvent.press(screen.getByText("Apple wo skin av"));
+		fireEvent.changeText(screen.getByLabelText("Amount"), "100");
+		fireEvent.press(screen.getByText("Add ingredient"));
+		fireEvent.changeText(screen.getByLabelText("Total grams"), "100");
+		fireEvent.press(screen.getByText("Save recipe"));
+
+		expect(repository.listRecipes("account-a")[0].visual).toEqual({
+			kind: "icon",
+			preset: "meal",
+		});
+		expect(screen.getByLabelText("Apple bowl visual")).toBeTruthy();
+
+		fireEvent.press(screen.getByText("Edit recipe"));
+		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByText("Save recipe"));
+		expect(repository.listRecipes("account-a")[0]).toMatchObject({
+			id: "recipe-1",
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		repository.close();
+	});
+
 	it("reuses the persisted conversion identity after same-mounted local failure", () => {
 		const database = new SQLiteTestDatabase();
 		const repository = createNutritionCookingRepository(database, {

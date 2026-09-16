@@ -6,10 +6,14 @@ import {
 } from "@workouts/core/nutrition";
 import { openDatabaseSync } from "expo-sqlite";
 import { mintNutritionUuid } from "./nutrition-operation-service";
-import type { SyncSQLiteDatabase } from "./personal-food-repository";
+import {
+	type FoodVisual,
+	type SyncSQLiteDatabase,
+	validateFoodVisual,
+} from "./personal-food-repository";
 
 export const NUTRITION_COOKING_DATABASE_NAME = "workouts-nutrition-cooking.db";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 export type CookingBilingual = { readonly en: string; readonly nl: string };
 
@@ -34,6 +38,7 @@ export type CookingRecipeDraft = {
 	readonly versionName: CookingBilingual;
 	readonly ingredients: readonly CookingIngredientSnapshot[];
 	readonly yield: CookingYield;
+	readonly visual?: FoodVisual;
 };
 
 export type CookingRecipe = CookingRecipeDraft & {
@@ -59,6 +64,11 @@ export type NutritionCookingRepository = {
 	listRecipes(subject: string): CookingRecipe[];
 	getRecipe(subject: string, id: string): CookingRecipe | undefined;
 	createRecipe(subject: string, draft: CookingRecipeDraft): CookingRecipe;
+	updateRecipe(
+		subject: string,
+		id: string,
+		draft: CookingRecipeDraft,
+	): CookingRecipe;
 	removeRecipe(subject: string, id: string): boolean;
 	listDrafts(subject: string): CaptureDraft[];
 	getDraft(subject: string, id: string): CaptureDraft | undefined;
@@ -95,6 +105,7 @@ type RecipeRow = {
 	version_nl: string;
 	ingredients_json: string;
 	yield_json: string;
+	visual_json?: string | null;
 	created_at: number;
 	updated_at: number;
 };
@@ -163,6 +174,11 @@ function migrate(database: SyncSQLiteDatabase): void {
 				CREATE INDEX IF NOT EXISTS nutrition_capture_drafts_by_date
 					ON nutrition_capture_drafts(subject, date ASC, created_at ASC, id ASC);
 			`);
+		}
+		if (current < 2) {
+			database.execSync(
+				"ALTER TABLE nutrition_cooking_recipes ADD COLUMN visual_json TEXT;",
+			);
 		}
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 	});
@@ -241,6 +257,7 @@ function validateRecipe(draft: CookingRecipeDraft): CookingRecipeDraft {
 	if (draft.yield.kind !== "grams" && draft.yield.kind !== "portions") {
 		throw new Error("Recipe yield must be grams or portions.");
 	}
+	const visual = validateFoodVisual(draft.visual);
 	return {
 		name: {
 			en: text(draft.name.en, "Recipe English name"),
@@ -255,6 +272,7 @@ function validateRecipe(draft: CookingRecipeDraft): CookingRecipeDraft {
 			kind: draft.yield.kind,
 			amount: positive(draft.yield.amount, "Recipe yield"),
 		},
+		...(visual ? { visual } : {}),
 	};
 }
 
@@ -264,6 +282,7 @@ function recipeFromRow(row: RecipeRow): CookingRecipe {
 		versionName: { en: row.version_en, nl: row.version_nl },
 		ingredients: JSON.parse(row.ingredients_json),
 		yield: JSON.parse(row.yield_json),
+		...(row.visual_json ? { visual: JSON.parse(row.visual_json) } : {}),
 	});
 	return {
 		...draft,
@@ -335,8 +354,8 @@ export function createNutritionCookingRepository(
 			transaction(database, () => {
 				database.runSync(
 					`INSERT INTO nutrition_cooking_recipes
-					 (subject, id, name_en, name_nl, version_en, version_nl, ingredients_json, yield_json, created_at, updated_at)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					 (subject, id, name_en, name_nl, version_en, version_nl, ingredients_json, yield_json, visual_json, created_at, updated_at)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 					subject,
 					id,
 					valid.name.en,
@@ -345,10 +364,34 @@ export function createNutritionCookingRepository(
 					valid.versionName.nl,
 					JSON.stringify(valid.ingredients),
 					JSON.stringify(valid.yield),
+					valid.visual ? JSON.stringify(valid.visual) : null,
 					timestamp,
 					timestamp,
 				);
 			});
+			const recipe = getRecipe(subject, id);
+			if (!recipe) throw new Error("Recipe was not saved.");
+			return recipe;
+		},
+		updateRecipe(subject, id, draft) {
+			const valid = validateRecipe(draft);
+			const result = database.runSync(
+				`UPDATE nutrition_cooking_recipes
+				 SET name_en = ?, name_nl = ?, version_en = ?, version_nl = ?,
+				     ingredients_json = ?, yield_json = ?, visual_json = ?, updated_at = ?
+				 WHERE subject = ? AND id = ?`,
+				valid.name.en,
+				valid.name.nl,
+				valid.versionName.en,
+				valid.versionName.nl,
+				JSON.stringify(valid.ingredients),
+				JSON.stringify(valid.yield),
+				valid.visual ? JSON.stringify(valid.visual) : null,
+				now(),
+				subject,
+				id,
+			);
+			if (result.changes === 0) throw new Error("Recipe was not found.");
 			const recipe = getRecipe(subject, id);
 			if (!recipe) throw new Error("Recipe was not saved.");
 			return recipe;

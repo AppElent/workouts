@@ -44,6 +44,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatLongDate } from "../data/calendar-day";
+import { foodPhotos } from "../data/food-photo-manager";
 import {
 	type CookingRecipe,
 	type NutritionCookingRepository,
@@ -70,6 +71,7 @@ import type {
 	PersonalFood,
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
+import { foodVisualForShippedFood } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
@@ -80,6 +82,7 @@ import { Card } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { FoodEditorSheet } from "../ui/food-editor-sheet";
+import { FoodVisualView } from "../ui/food-visual";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { BarcodeScanner } from "./barcode-scanner";
@@ -539,7 +542,12 @@ export function NutritionFoodBrowser({
 								// A correction is a new local food, never an edit of the
 								// shipped record — so this seeds the authoring screen
 								// rather than opening the shipped row for editing.
-								setForkDraft(forkShippedFood(selectedFood.food));
+								const draft = forkShippedFood(selectedFood.food);
+								const visual = foodVisualForShippedFood(selectedFood.food);
+								setForkDraft({
+									...draft,
+									...(visual ? { visual } : {}),
+								});
 								setSelectedFood(undefined);
 							}
 						: undefined
@@ -565,7 +573,8 @@ export function NutritionFoodBrowser({
 								});
 								if (!approved) return;
 								try {
-									personalFoods.remove(selectedFood.food.id);
+									const removed = personalFoods.remove(selectedFood.food.id);
+									if (removed) foodPhotos.remove(selectedFood.food.visual);
 									setSelectedFood(undefined);
 								} catch {
 									toast.error(t.nutrition.personalFood.deleteFailure);
@@ -926,6 +935,8 @@ export function NutritionFoodBrowser({
 							<LibraryRow
 								name={item.recipe.name[locale]}
 								caption={item.recipe.versionName[locale]}
+								visual={item.recipe.visual}
+								showVisual
 								detailLabel={copy.recipeDetail(item.recipe.name[locale])}
 								onDetail={() =>
 									router.push({
@@ -1069,8 +1080,10 @@ function FoodRow({
 	onPress: () => void;
 	onQuickLog: () => void;
 }) {
-	const imageUrl =
-		selection.kind === "personal"
+	const legacyImageUrl =
+		selection.kind === "personal" &&
+		selection.food.visualMigrationPending &&
+		!selection.food.visual
 			? selection.food.provenance.imageUrl
 			: undefined;
 	return (
@@ -1080,18 +1093,21 @@ function FoodRow({
 				onPress={onPress}
 				style={styles.foodOpen}
 			>
-				{imageUrl ? (
+				{legacyImageUrl ? (
 					<Image
-						source={imageUrl}
+						source={legacyImageUrl}
 						accessibilityLabel={selection.food.name[locale]}
 						cachePolicy="memory-disk"
 						contentFit="contain"
 						style={styles.foodImage}
 					/>
+				) : selection.kind === "personal" ? (
+					<FoodVisualView
+						visual={selection.food.visual}
+						label={selection.food.name[locale]}
+					/>
 				) : (
-					<AppText variant="heading">
-						{selection.kind === "shipped" ? (selection.food.emoji ?? "•") : "◇"}
-					</AppText>
+					<AppText variant="heading">{selection.food.emoji ?? "•"}</AppText>
 				)}
 				<View style={styles.flex}>
 					<AppText style={styles.strong}>{selection.food.name[locale]}</AppText>
@@ -1131,6 +1147,8 @@ function FoodRow({
 function LibraryRow({
 	name,
 	caption,
+	visual,
+	showVisual = false,
 	detailLabel,
 	onDetail,
 	logLabel,
@@ -1138,6 +1156,8 @@ function LibraryRow({
 }: {
 	name: string;
 	caption: string;
+	visual?: PersonalFood["visual"];
+	showVisual?: boolean;
 	detailLabel: string;
 	onDetail: () => void;
 	logLabel: string;
@@ -1151,6 +1171,7 @@ function LibraryRow({
 				onPress={onDetail}
 				style={styles.foodOpen}
 			>
+				{showVisual ? <FoodVisualView visual={visual} label={name} /> : null}
 				<View style={styles.flex}>
 					<AppText style={styles.strong}>{name}</AppText>
 					<AppText variant="caption">{caption}</AppText>
@@ -1376,6 +1397,8 @@ function ServingDetail({
 				>
 					<View style={styles.heading}>
 						{selection.kind === "personal" &&
+						selection.food.visualMigrationPending &&
+						!selection.food.visual &&
 						selection.food.provenance.imageUrl ? (
 							<Image
 								source={selection.food.provenance.imageUrl}
@@ -1384,12 +1407,14 @@ function ServingDetail({
 								contentFit="contain"
 								style={styles.detailImage}
 							/>
+						) : selection.kind === "personal" ? (
+							<FoodVisualView
+								visual={selection.food.visual}
+								label={food.name[locale]}
+								size={112}
+							/>
 						) : (
-							<AppText variant="display">
-								{selection.kind === "shipped"
-									? (selection.food.emoji ?? "🍽️")
-									: "◇"}
-							</AppText>
+							<AppText variant="display">{selection.food.emoji ?? "🍽️"}</AppText>
 						)}
 						{/* The sheet header already carries the name and keeps it in
 							    place while this scrolls, so the body shows what the header

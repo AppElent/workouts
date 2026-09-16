@@ -15,6 +15,7 @@ import {
 	TextInput,
 	View,
 } from "react-native";
+import { type FoodPhotoSource, foodPhotos } from "../data/food-photo-manager";
 import { nutritionCookingCopy } from "../data/nutrition-cooking-copy";
 import {
 	oneOffLogSnapshot,
@@ -36,6 +37,11 @@ import {
 	mintNutritionUuid,
 	useNutritionOperations,
 } from "../data/nutrition-operation-service";
+import {
+	FOOD_VISUAL_PRESET_IDS,
+	type FoodVisual,
+	type FoodVisualPresetId,
+} from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
@@ -43,8 +49,16 @@ import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
+import { FoodVisualView } from "../ui/food-visual";
+import {
+	FormChoiceChips,
+	FormPreview,
+	InlineActionRow,
+	TextAction,
+} from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { personalFoodEditorCopy } from "./personal-food-editor-copy";
 
 type ScreenProps = {
 	readonly date: string;
@@ -58,6 +72,7 @@ type ScreenProps = {
 type Mode =
 	| "hub"
 	| "recipe-new"
+	| "recipe-edit"
 	| "recipe-log"
 	| "draft-new"
 	| "draft-edit"
@@ -70,6 +85,8 @@ type FoodChoice = {
 	readonly baseUnit: "g" | "ml";
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
+	readonly visual?: FoodVisual;
+	readonly personal?: true;
 };
 
 const EMPTY_NUTRIENT_INPUTS = Object.fromEntries(
@@ -128,6 +145,8 @@ function choiceFromPersonalFood(
 				? { attribution: food.provenance.attribution }
 				: {}),
 		},
+		...(food.visual ? { visual: food.visual } : {}),
+		personal: true,
 	};
 }
 
@@ -191,6 +210,29 @@ export function NutritionCookingScreen({
 						setSelectedRecipeId(id);
 						setMode("recipe-log");
 					}}
+					onEditRecipe={(id) => {
+						setSelectedRecipeId(id);
+						setMode("recipe-edit");
+					}}
+					onDeleteRecipe={async (id) => {
+						const recipe = repository.getRecipe(subject, id);
+						const approved = await confirm({
+							title: copy.deleteRecipeTitle,
+							message: copy.deleteRecipeBody,
+							confirmLabel: copy.deleteRecipeConfirm,
+							cancelLabel: copy.cancel,
+							destructive: true,
+						});
+						if (!approved) return;
+						try {
+							if (!repository.removeRecipe(subject, id)) return;
+							bump();
+							if (recipe?.visual?.kind === "photo")
+								foodPhotos.remove(recipe.visual);
+						} catch {
+							toast.error(copy.deleteRecipeFailure);
+						}
+					}}
 					onEditDraft={(id) => {
 						setSelectedDraftId(id);
 						setMode("draft-edit");
@@ -215,6 +257,21 @@ export function NutritionCookingScreen({
 					copy={copy}
 					locale={locale}
 					foods={foods}
+					onCancel={() => setMode("hub")}
+					onSaved={() => {
+						bump();
+						setMode("hub");
+					}}
+					repository={repository}
+					subject={subject}
+					toast={toast}
+				/>
+			) : mode === "recipe-edit" ? (
+				<RecipeEditor
+					copy={copy}
+					locale={locale}
+					foods={foods}
+					recipe={recipes.find((recipe) => recipe.id === selectedRecipeId)}
 					onCancel={() => setMode("hub")}
 					onSaved={() => {
 						bump();
@@ -315,6 +372,8 @@ function Hub({
 	onNewDraft,
 	onLogOnce,
 	onLogRecipe,
+	onEditRecipe,
+	onDeleteRecipe,
 	onEditDraft,
 	onLogDraft,
 	onDeleteDraft,
@@ -327,6 +386,8 @@ function Hub({
 	onNewDraft: () => void;
 	onLogOnce: () => void;
 	onLogRecipe: (id: string) => void;
+	onEditRecipe: (id: string) => void;
+	onDeleteRecipe: (id: string) => Promise<void>;
 	onEditDraft: (id: string) => void;
 	onLogDraft: (draft: CaptureDraft) => void;
 	onDeleteDraft: (id: string) => Promise<void>;
@@ -351,6 +412,11 @@ function Hub({
 				<Card>
 					{recipes.map((recipe) => (
 						<View key={recipe.id} style={styles.row}>
+							<FoodVisualView
+								visual={recipe.visual}
+								label={nameForLocale(recipe.name, locale)}
+								size={44}
+							/>
 							<View style={styles.flex}>
 								<AppText variant="body" style={styles.strong}>
 									{nameForLocale(recipe.name, locale)}
@@ -361,10 +427,21 @@ function Hub({
 									{locale === "nl" ? "ingrediënten" : "ingredients"}
 								</AppText>
 							</View>
-							<GhostButton
-								label={copy.logRecipe}
-								onPress={() => onLogRecipe(recipe.id)}
-							/>
+							<View style={styles.inlineActions}>
+								<TextAction
+									label={copy.editRecipe}
+									onPress={() => onEditRecipe(recipe.id)}
+								/>
+								<TextAction
+									label={copy.deleteRecipe}
+									onPress={() => void onDeleteRecipe(recipe.id)}
+									tone="destructive"
+								/>
+								<TextAction
+									label={copy.logRecipe}
+									onPress={() => onLogRecipe(recipe.id)}
+								/>
+							</View>
 						</View>
 					))}
 				</Card>
@@ -410,6 +487,7 @@ function RecipeEditor({
 	copy,
 	locale,
 	foods,
+	recipe,
 	onCancel,
 	onSaved,
 	repository,
@@ -419,6 +497,7 @@ function RecipeEditor({
 	copy: ReturnType<typeof nutritionCookingCopy>;
 	locale: "en" | "nl";
 	foods: ReturnType<typeof usePersonalFoods>;
+	recipe?: CookingRecipe;
 	onCancel: () => void;
 	onSaved: () => void;
 	repository: NutritionCookingRepository;
@@ -428,20 +507,46 @@ function RecipeEditor({
 		success: (message: string) => void;
 	};
 }) {
-	const [nameEn, setNameEn] = useState("");
-	const [nameNl, setNameNl] = useState("");
-	const [versionEn, setVersionEn] = useState("v1");
-	const [versionNl, setVersionNl] = useState("v1");
+	const [nameEn, setNameEn] = useState(recipe?.name.en ?? "");
+	const [nameNl, setNameNl] = useState(recipe?.name.nl ?? "");
+	const [versionEn, setVersionEn] = useState(recipe?.versionName.en ?? "v1");
+	const [versionNl, setVersionNl] = useState(recipe?.versionName.nl ?? "v1");
 	const [search, setSearch] = useState("");
 	const [selected, setSelected] = useState<FoodChoice>();
 	const [amount, setAmount] = useState("");
 	const [ingredients, setIngredients] = useState<CookingIngredientSnapshot[]>(
-		[],
+		() => [...(recipe?.ingredients ?? [])],
 	);
-	const [yieldKind, setYieldKind] = useState<CookingYield["kind"]>("grams");
-	const [yieldAmount, setYieldAmount] = useState("");
+	const [yieldKind, setYieldKind] = useState<CookingYield["kind"]>(
+		recipe?.yield.kind ?? "grams",
+	);
+	const [yieldAmount, setYieldAmount] = useState(
+		() => recipe?.yield.amount.toString() ?? "",
+	);
 	const [saving, setSaving] = useState(false);
 	const savingRef = useRef(false);
+	const [visual, setVisual] = useState<FoodVisual | undefined>(recipe?.visual);
+	const [visualError, setVisualError] = useState<string>();
+	const [photoPreparationFailed, setPhotoPreparationFailed] = useState(false);
+	const [photoBusy, setPhotoBusy] = useState(false);
+	const stagedPhoto = useRef<string | undefined>(undefined);
+	const photoSaved = useRef(false);
+	const visualCopy = personalFoodEditorCopy[locale];
+	const visualChoices = [
+		{ id: "default" as const, label: visualCopy.defaultVisual },
+		...FOOD_VISUAL_PRESET_IDS.map((preset) => ({
+			id: preset,
+			label: visualCopy.visualPresets[preset],
+		})),
+	];
+	useEffect(
+		() => () => {
+			if (!photoSaved.current && stagedPhoto.current) {
+				foodPhotos.remove({ kind: "photo", uri: stagedPhoto.current });
+			}
+		},
+		[],
+	);
 	const personalChoices = foods.list().map(choiceFromPersonalFood);
 	const shippedChoices: FoodChoice[] = allShippedFoods()
 		.filter((food) => !food.retired && foodMatches(food.name, search))
@@ -467,6 +572,47 @@ function RecipeEditor({
 		...personalChoices.filter((choice) => foodMatches(choice.name, search)),
 		...shippedChoices,
 	].slice(0, 12);
+
+	function replaceVisual(next: FoodVisual | undefined) {
+		if (
+			stagedPhoto.current &&
+			(next?.kind !== "photo" || next.uri !== stagedPhoto.current)
+		) {
+			foodPhotos.remove({ kind: "photo", uri: stagedPhoto.current });
+			stagedPhoto.current = undefined;
+		}
+		setVisual(next);
+		setVisualError(undefined);
+		setPhotoPreparationFailed(false);
+	}
+
+	async function choosePhoto(source: FoodPhotoSource) {
+		setPhotoBusy(true);
+		setVisualError(undefined);
+		try {
+			const choice = await foodPhotos.choose(source);
+			if (choice.kind === "denied") {
+				setVisualError(visualCopy.photoPermissionDenied);
+				setPhotoPreparationFailed(false);
+			} else if (choice.kind === "selected") {
+				replaceVisual(choice.visual);
+				stagedPhoto.current = choice.visual.uri;
+			}
+		} catch {
+			setVisualError(visualCopy.photoFailure);
+			setPhotoPreparationFailed(true);
+		} finally {
+			setPhotoBusy(false);
+		}
+	}
+
+	function cancel() {
+		if (stagedPhoto.current) {
+			foodPhotos.remove({ kind: "photo", uri: stagedPhoto.current });
+			stagedPhoto.current = undefined;
+		}
+		onCancel();
+	}
 
 	function addIngredient() {
 		if (!selected) return;
@@ -499,6 +645,7 @@ function RecipeEditor({
 
 	function save() {
 		if (savingRef.current) return;
+		if (photoPreparationFailed) return;
 		try {
 			const draft: CookingRecipeDraft = {
 				name: { en: nameEn.trim(), nl: nameNl.trim() },
@@ -508,10 +655,19 @@ function RecipeEditor({
 					kind: yieldKind,
 					amount: positiveCookingNumber(yieldAmount, copy.yield),
 				},
+				...(visual ? { visual } : {}),
 			};
 			savingRef.current = true;
 			setSaving(true);
-			repository.createRecipe(subject, draft);
+			if (recipe) repository.updateRecipe(subject, recipe.id, draft);
+			else repository.createRecipe(subject, draft);
+			photoSaved.current = true;
+			if (
+				recipe?.visual?.kind === "photo" &&
+				(visual?.kind !== "photo" || visual.uri !== recipe.visual.uri)
+			) {
+				foodPhotos.remove(recipe.visual);
+			}
 			toast.success(copy.recipeSaved);
 			onSaved();
 		} catch {
@@ -523,7 +679,68 @@ function RecipeEditor({
 
 	return (
 		<>
-			<AppText variant="title">{copy.newRecipe}</AppText>
+			<AppText variant="title">
+				{recipe ? copy.editRecipe : copy.newRecipe}
+			</AppText>
+			<AppText variant="heading">{visualCopy.visual}</AppText>
+			<FormPreview>
+				<FoodVisualView
+					visual={visual}
+					label={visualCopy.visual}
+					accessibilityLabel={visualCopy.visual}
+					size={112}
+				/>
+				{visual?.kind === "photo" ? (
+					<InlineActionRow>
+						<TextAction
+							label={visualCopy.replacePhoto}
+							onPress={() => void choosePhoto("library")}
+							disabled={photoBusy}
+						/>
+						<TextAction
+							label={visualCopy.removePhoto}
+							onPress={() => replaceVisual(undefined)}
+							disabled={photoBusy}
+							tone="destructive"
+						/>
+					</InlineActionRow>
+				) : (
+					<InlineActionRow>
+						<TextAction
+							label={visualCopy.takePhoto}
+							onPress={() => void choosePhoto("camera")}
+							disabled={photoBusy}
+						/>
+						<TextAction
+							label={visualCopy.choosePhoto}
+							onPress={() => void choosePhoto("library")}
+							disabled={photoBusy}
+						/>
+					</InlineActionRow>
+				)}
+			</FormPreview>
+			{visualError ? (
+				<AppText accessibilityRole="alert" style={styles.error}>
+					{visualError}
+				</AppText>
+			) : null}
+			<FormChoiceChips
+				options={visualChoices}
+				selectedId={
+					visual?.kind === "icon"
+						? visual.preset
+						: visual === undefined
+							? "default"
+							: undefined
+				}
+				onSelect={(id) =>
+					replaceVisual(
+						id === "default"
+							? undefined
+							: { kind: "icon", preset: id as FoodVisualPresetId },
+					)
+				}
+			/>
 			<Field
 				label={copy.recipeNameEn}
 				value={nameEn}
@@ -560,8 +777,17 @@ function RecipeEditor({
 						selected?.sourceKey === choice.sourceKey && styles.choiceSelected,
 					]}
 				>
-					<AppText>{nameForLocale(choice.name, locale)}</AppText>
-					<AppText variant="caption">{choice.baseUnit}</AppText>
+					{choice.personal ? (
+						<FoodVisualView
+							visual={choice.visual}
+							label={nameForLocale(choice.name, locale)}
+							size={40}
+						/>
+					) : null}
+					<View style={styles.flex}>
+						<AppText>{nameForLocale(choice.name, locale)}</AppText>
+						<AppText variant="caption">{choice.baseUnit}</AppText>
+					</View>
 				</Pressable>
 			))}
 			{selected ? (
@@ -625,7 +851,12 @@ function RecipeEditor({
 					onPress={save}
 					loading={saving}
 				/>
-				<GhostButton label={copy.cancel} onPress={onCancel} disabled={saving} />
+				<TextAction
+					label={copy.cancel}
+					onPress={cancel}
+					disabled={saving}
+					tone="neutral"
+				/>
 			</View>
 		</>
 	);
@@ -698,6 +929,11 @@ function RecipeLogger({
 	return (
 		<>
 			<AppText variant="title">{copy.logRecipe}</AppText>
+			<FoodVisualView
+				visual={recipe.visual}
+				label={nameForLocale(recipe.name, locale)}
+				size={112}
+			/>
 			<AppText variant="heading">{nameForLocale(recipe.name, locale)}</AppText>
 			<AppText variant="caption">
 				{nameForLocale(recipe.versionName, locale)} · {mealLabel(meal, locale)}
@@ -1033,6 +1269,7 @@ const styles = StyleSheet.create({
 	content: { padding: 20, paddingTop: 12, paddingBottom: 40, gap: spacing.md },
 	flex: { flex: 1 },
 	strong: { fontWeight: "700" },
+	error: { color: colors.danger },
 	storageDisclosure: { gap: spacing.xs },
 	actions: { gap: spacing.sm },
 	inlineActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },

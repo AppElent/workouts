@@ -74,6 +74,10 @@ _Avoid_: Standard food, built-in food
 A reusable Food saved by a person, whether entered manually, imported, or forked from a Shipped Food.
 _Avoid_: Custom food
 
+**Food Visual**:
+An optional icon or photo owned by a Personal Food to help a person recognize it. It is separate from Food Provenance; when unset, the interface supplies a default fallback.
+_Avoid_: Food image, provenance image
+
 **Food Import**:
 A proposal created from an external food database that must be reviewed before it can become a Personal Food or Diary Entry.
 _Avoid_: Synced food, downloaded food

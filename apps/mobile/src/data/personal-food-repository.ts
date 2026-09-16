@@ -3,12 +3,81 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
+	type ShippedFood,
 	type ShippedFoodId,
 } from "@workouts/core/nutrition";
 import { openDatabaseSync } from "expo-sqlite";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 5;
+
+export const FOOD_VISUAL_PRESET_IDS = [
+	"fruit",
+	"vegetable",
+	"grains",
+	"dairy",
+	"egg",
+	"meat",
+	"fish",
+	"meal",
+	"snack",
+	"drink",
+	"supplement",
+	"condiment",
+] as const;
+
+export type FoodVisualPresetId = (typeof FOOD_VISUAL_PRESET_IDS)[number];
+
+export type FoodVisual =
+	| { readonly kind: "icon"; readonly preset: FoodVisualPresetId }
+	| { readonly kind: "photo"; readonly uri: string };
+
+const SHIPPED_EMOJI_VISUALS: Readonly<Record<string, FoodVisualPresetId>> = {
+	"🍎": "fruit",
+	"🍇": "fruit",
+	"🍓": "fruit",
+	"🍍": "fruit",
+	"🍌": "fruit",
+	"🫐": "fruit",
+	"🍋": "fruit",
+	"🍒": "fruit",
+	"🍑": "fruit",
+	"🍊": "fruit",
+	"🥬": "vegetable",
+	"🍄": "vegetable",
+	"🍅": "vegetable",
+	"🧅": "vegetable",
+	"🥕": "vegetable",
+	"🍞": "grains",
+	"🍚": "grains",
+	"🍝": "grains",
+	"🥣": "grains",
+	"🍘": "grains",
+	"🥛": "dairy",
+	"🍮": "dairy",
+	"🥚": "egg",
+	"🥩": "meat",
+	"🍗": "meat",
+	"🌭": "meat",
+	"🐟": "fish",
+	"🍣": "fish",
+	"🍰": "snack",
+	"🍩": "snack",
+	"🎂": "snack",
+	"🍪": "snack",
+	"🍨": "snack",
+	"☕": "drink",
+	"🧃": "drink",
+	"🧈": "condiment",
+	"🌻": "condiment",
+};
+
+export function foodVisualForShippedFood(
+	food: Pick<ShippedFood, "emoji">,
+): FoodVisual | undefined {
+	const preset = food.emoji ? SHIPPED_EMOJI_VISUALS[food.emoji] : undefined;
+	return preset ? { kind: "icon", preset } : undefined;
+}
 
 export type SQLiteValue = string | number | null | Uint8Array;
 
@@ -59,6 +128,9 @@ export type PersonalFoodDraft = {
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly servings: readonly PersonalServing[];
 	readonly provenance: PersonalFoodProvenance;
+	readonly visual?: FoodVisual;
+	/** Internal lazy-migration state; never serialized into account backup. */
+	readonly visualMigrationPending?: true;
 };
 
 export type PersonalFood = PersonalFoodDraft & {
@@ -175,6 +247,8 @@ type PersonalFoodRow = {
 	nutrients_json: string;
 	servings_json: string;
 	provenance_json: string;
+	visual_json?: string | null;
+	visual_migration_pending?: number;
 	created_at: number;
 	updated_at: number;
 };
@@ -253,6 +327,16 @@ function migrate(database: SyncSQLiteDatabase): void {
 					ON nutrition_combos(updated_at DESC);
 			`);
 		}
+		if (current < 4) {
+			database.execSync(
+				"ALTER TABLE personal_foods ADD COLUMN visual_json TEXT;",
+			);
+		}
+		if (current < 5) {
+			database.execSync(
+				"ALTER TABLE personal_foods ADD COLUMN visual_migration_pending INTEGER NOT NULL DEFAULT 1;",
+			);
+		}
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -266,6 +350,40 @@ function validateText(value: unknown, label: string): string {
 		throw new Error(`${label} is required.`);
 	}
 	return value.trim();
+}
+
+export function validateFoodVisual(value: unknown): FoodVisual | undefined {
+	if (value === undefined) return undefined;
+	if (!value || typeof value !== "object" || !("kind" in value)) {
+		throw new Error("Food Visual is invalid.");
+	}
+	const candidate = value as {
+		kind?: unknown;
+		preset?: unknown;
+		uri?: unknown;
+	};
+	if (candidate.kind === "icon") {
+		if (
+			typeof candidate.preset !== "string" ||
+			!FOOD_VISUAL_PRESET_IDS.includes(candidate.preset as FoodVisualPresetId)
+		) {
+			throw new Error("Food has an invalid Food Visual icon.");
+		}
+		return {
+			kind: "icon",
+			preset: candidate.preset as FoodVisualPresetId,
+		};
+	}
+	if (candidate.kind === "photo") {
+		if (
+			typeof candidate.uri !== "string" ||
+			!candidate.uri.startsWith("file:///")
+		) {
+			throw new Error("A Food Visual photo must be a managed local file.");
+		}
+		return { kind: "photo", uri: candidate.uri };
+	}
+	throw new Error("Food Visual is invalid.");
 }
 
 function validateNutrient(value: unknown, label: string): NutrientValue {
@@ -388,6 +506,7 @@ export function validatePersonalFoodDraft(
 			amount: serving.amount,
 		};
 	});
+	const visual = validateFoodVisual(draft.visual);
 	return {
 		name: {
 			en: validateText(draft.name.en, "English name"),
@@ -397,6 +516,8 @@ export function validatePersonalFoodDraft(
 		nutrients,
 		servings,
 		provenance: validateProvenance(draft.provenance),
+		...(visual ? { visual } : {}),
+		...(draft.visualMigrationPending ? { visualMigrationPending: true } : {}),
 	};
 }
 
@@ -551,13 +672,25 @@ function rowToFood(row: PersonalFoodRow): PersonalFood {
 		nutrients: JSON.parse(row.nutrients_json),
 		servings: JSON.parse(row.servings_json),
 		provenance: JSON.parse(row.provenance_json),
+		...(row.visual_json ? { visual: JSON.parse(row.visual_json) } : {}),
 	});
 	return {
 		id: row.id,
 		...draft,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
+		...(row.visual_migration_pending === 1
+			? { visualMigrationPending: true as const }
+			: {}),
 	};
+}
+
+/** A Personal Food safe to move to another device through account backup. */
+export function portablePersonalFood(food: PersonalFood): PersonalFood {
+	const { visualMigrationPending: _migrationState, ...resolved } = food;
+	if (resolved.visual?.kind !== "photo") return resolved;
+	const { visual: _devicePhoto, ...portable } = resolved;
+	return portable;
 }
 
 function mintUuid(): string {
@@ -676,8 +809,8 @@ export function createPersonalFoodRepository(
 			const timestamp = now();
 			database.runSync(
 				`INSERT INTO personal_foods
-					(id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, created_at, updated_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					(id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, visual_json, visual_migration_pending, created_at, updated_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
 				id,
 				valid.name.en,
 				valid.name.nl,
@@ -685,6 +818,7 @@ export function createPersonalFoodRepository(
 				JSON.stringify(valid.nutrients),
 				JSON.stringify(valid.servings),
 				JSON.stringify(valid.provenance),
+				valid.visual ? JSON.stringify(valid.visual) : null,
 				timestamp,
 				timestamp,
 			);
@@ -703,7 +837,7 @@ export function createPersonalFoodRepository(
 			database.runSync(
 				`UPDATE personal_foods
 				 SET name_en = ?, name_nl = ?, base_unit = ?, nutrients_json = ?,
-				     servings_json = ?, provenance_json = ?, updated_at = ?
+				     servings_json = ?, provenance_json = ?, visual_json = ?, visual_migration_pending = ?, updated_at = ?
 				 WHERE id = ?`,
 				valid.name.en,
 				valid.name.nl,
@@ -711,6 +845,8 @@ export function createPersonalFoodRepository(
 				JSON.stringify(valid.nutrients),
 				JSON.stringify(valid.servings),
 				JSON.stringify(valid.provenance),
+				valid.visual ? JSON.stringify(valid.visual) : null,
+				valid.visualMigrationPending ? 1 : 0,
 				timestamp,
 				id,
 			);
@@ -781,7 +917,7 @@ export function createPersonalFoodRepository(
 		},
 		exportBackup() {
 			return {
-				foods: this.list(),
+				foods: this.list().map(portablePersonalFood),
 				combos: this.listCombos(),
 			};
 		},
@@ -792,9 +928,10 @@ export function createPersonalFoodRepository(
 				if (foodIds.has(food.id))
 					throw new Error("Backup has duplicate food IDs.");
 				foodIds.add(food.id);
+				const portable = portablePersonalFood(food);
 				return {
 					id: validateText(food.id, "Food ID"),
-					...validatePersonalFoodDraft(food),
+					...validatePersonalFoodDraft(portable),
 					createdAt: food.createdAt,
 					updatedAt: food.updatedAt,
 				};
@@ -832,8 +969,8 @@ export function createPersonalFoodRepository(
 				);
 				for (const food of foods) {
 					database.runSync(
-						`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, created_at, updated_at)
-						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+						`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, visual_json, visual_migration_pending, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
 						food.id,
 						food.name.en,
 						food.name.nl,
@@ -841,6 +978,7 @@ export function createPersonalFoodRepository(
 						JSON.stringify(food.nutrients),
 						JSON.stringify(food.servings),
 						JSON.stringify(food.provenance),
+						food.visual ? JSON.stringify(food.visual) : null,
 						food.createdAt,
 						food.updatedAt,
 					);

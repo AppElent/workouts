@@ -5,6 +5,7 @@ import type {
 	PersonalFoodRepository,
 	SyncSQLiteDatabase,
 } from "./personal-food-repository";
+import { portablePersonalFood } from "./personal-food-repository";
 
 export const NUTRITION_LIBRARY_STATE_DATABASE_NAME =
 	"workouts-nutrition-library-state.db";
@@ -634,7 +635,7 @@ export function libraryRecordFromFood(
 	return {
 		id: food.id,
 		kind: "food",
-		payload: JSON.stringify(food),
+		payload: JSON.stringify(portablePersonalFood(food)),
 		revision,
 		deleted: false,
 	};

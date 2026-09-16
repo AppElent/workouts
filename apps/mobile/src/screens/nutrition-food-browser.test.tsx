@@ -13,6 +13,44 @@ async function showAllFoods(query?: string) {
 }
 
 describe("browsing shipped foods", () => {
+	it("shows a Personal Food's selected visual and the neutral fallback in search", async () => {
+		const { repository } = renderApp();
+		const base = {
+			baseUnit: "g" as const,
+			nutrients: {
+				energy: { kind: "value" as const, amount: 42 },
+				protein: { kind: "absent" as const },
+				carbs: { kind: "absent" as const },
+				fat: { kind: "absent" as const },
+				saturatedFat: { kind: "absent" as const },
+				fibre: { kind: "absent" as const },
+				sugars: { kind: "absent" as const },
+				salt: { kind: "absent" as const },
+			},
+			servings: [],
+			provenance: {
+				recordOrigin: "personal" as const,
+				nutritionSource: "manual" as const,
+				locallyEdited: false,
+			},
+		};
+		repository.create({
+			...base,
+			name: { en: "Icon apple", nl: "Icoonappel" },
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		repository.create({
+			...base,
+			name: { en: "Plain apple", nl: "Gewone appel" },
+		});
+
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await showAllFoods("apple");
+
+		expect(screen.getByLabelText("Icon apple visual")).toBeTruthy();
+		expect(screen.getByLabelText("Plain apple visual")).toBeTruthy();
+	});
+
 	it("defaults a base-only Personal Food to 100 base units", async () => {
 		const log = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(

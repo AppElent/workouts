@@ -7,6 +7,7 @@ import {
 import type { ReactNode } from "react";
 import { ActionSheetIOS } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import type { FoodPhotoManager } from "../data/food-photo-manager";
 import {
 	createPersonalFoodRepository,
 	type PersonalFood,
@@ -50,13 +51,21 @@ function Providers({
 
 function renderEditor(
 	repository = createPersonalFoodRepository(new SQLiteTestDatabase()),
+	photoManager?: FoodPhotoManager,
 ) {
 	const onSaved = jest.fn<void, [PersonalFood]>();
-	render(<PersonalFoodEditor onSaved={onSaved} onCancel={jest.fn()} />, {
-		wrapper: ({ children }) => (
-			<Providers repository={repository}>{children}</Providers>
-		),
-	});
+	render(
+		<PersonalFoodEditor
+			onSaved={onSaved}
+			onCancel={jest.fn()}
+			photoManager={photoManager}
+		/>,
+		{
+			wrapper: ({ children }) => (
+				<Providers repository={repository}>{children}</Providers>
+			),
+		},
+	);
 	return { onSaved, repository };
 }
 
@@ -66,10 +75,161 @@ function mockNutritionMenuSelect(index: number) {
 		.mockImplementation((_options, onSelect) => onSelect(index));
 }
 
+function testPhotoManager(
+	overrides: Partial<FoodPhotoManager> = {},
+): FoodPhotoManager {
+	return {
+		choose: jest.fn().mockResolvedValue({ kind: "cancelled" }),
+		importRemote: jest.fn(),
+		remove: jest.fn(),
+		isAvailable: jest.fn().mockReturnValue(true),
+		removeOrphans: jest.fn(),
+		...overrides,
+	};
+}
+
+function testFoodDraft() {
+	return {
+		name: { en: "Apple", nl: "Appel" },
+		baseUnit: "g" as const,
+		nutrients: {
+			energy: { kind: "absent" as const },
+			protein: { kind: "absent" as const },
+			carbs: { kind: "absent" as const },
+			fat: { kind: "absent" as const },
+			saturatedFat: { kind: "absent" as const },
+			fibre: { kind: "absent" as const },
+			sugars: { kind: "absent" as const },
+			salt: { kind: "absent" as const },
+		},
+		servings: [],
+		provenance: {
+			recordOrigin: "personal" as const,
+			nutritionSource: "manual" as const,
+			locallyEdited: false,
+		},
+	};
+}
+
 describe("Personal Food compact authoring", () => {
 	afterEach(() => {
 		clearPreference(PREFERENCE_KEYS.locale);
 		jest.restoreAllMocks();
+	});
+
+	it("stores a curated Food Visual icon while leaving the default unstored", async () => {
+		const first = renderEditor();
+		expect(screen.getByText("Food visual")).toBeTruthy();
+		expect(screen.getByText("Default")).toBeTruthy();
+		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
+		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(first.onSaved).toHaveBeenCalledTimes(1));
+		expect(
+			first.repository.find(first.onSaved.mock.calls[0][0].id)?.visual,
+		).toEqual({ kind: "icon", preset: "fruit" });
+
+		const second = renderEditor();
+		fireEvent.changeText(screen.getByLabelText("Name"), "Plain oats");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(second.onSaved).toHaveBeenCalledTimes(1));
+		expect(
+			second.repository.find(second.onSaved.mock.calls[0][0].id)?.visual,
+		).toBeUndefined();
+	});
+
+	it("stores a manually cropped photo selected from the library", async () => {
+		const photoManager = testPhotoManager({
+			choose: jest.fn().mockResolvedValue({
+				kind: "selected",
+				visual: {
+					kind: "photo",
+					uri: "file:///documents/food-photos/apple.jpg",
+				},
+			}),
+		});
+		const { onSaved, repository } = renderEditor(undefined, photoManager);
+		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
+		fireEvent.press(screen.getByText("Choose photo"));
+		await screen.findByLabelText("Food visual");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(photoManager.choose).toHaveBeenCalledWith("library");
+		expect(repository.find(onSaved.mock.calls[0][0].id)?.visual).toEqual({
+			kind: "photo",
+			uri: "file:///documents/food-photos/apple.jpg",
+		});
+	});
+
+	it("blocks saving after photo preparation fails until the visual is changed", async () => {
+		const photoManager = testPhotoManager({
+			choose: jest.fn().mockRejectedValue(new Error("cannot prepare image")),
+		});
+		const { onSaved, repository } = renderEditor(undefined, photoManager);
+		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
+		fireEvent.press(screen.getByText("Choose photo"));
+
+		expect(
+			await screen.findByText(
+				"That photo could not be prepared. Your current visual is unchanged.",
+			),
+		).toBeTruthy();
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		expect(onSaved).not.toHaveBeenCalled();
+		expect(repository.list()).toEqual([]);
+
+		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+	});
+
+	it("deletes the previous managed photo only after its replacement is saved", async () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const oldPhoto = {
+			kind: "photo" as const,
+			uri: "file:///documents/food-photos/old.jpg",
+		};
+		const food = repository.create({ ...testFoodDraft(), visual: oldPhoto });
+		const photoManager = testPhotoManager({
+			choose: jest.fn().mockResolvedValue({
+				kind: "selected",
+				visual: {
+					kind: "photo",
+					uri: "file:///documents/food-photos/new.jpg",
+				},
+			}),
+		});
+		const onSaved = jest.fn<void, [PersonalFood]>();
+		render(
+			<PersonalFoodEditor
+				food={food}
+				onSaved={onSaved}
+				onCancel={jest.fn()}
+				photoManager={photoManager}
+			/>,
+			{
+				wrapper: ({ children }) => (
+					<Providers repository={repository}>{children}</Providers>
+				),
+			},
+		);
+
+		fireEvent.press(screen.getByText("Replace photo"));
+		await waitFor(() =>
+			expect(screen.getByLabelText("Food visual").props.source).toEqual([
+				{ uri: "file:///documents/food-photos/new.jpg" },
+			]),
+		);
+		expect(photoManager.remove).not.toHaveBeenCalledWith(oldPhoto);
+		fireEvent.press(screen.getByText("Save Personal Food"));
+
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(food.id)?.visual).toEqual({
+			kind: "photo",
+			uri: "file:///documents/food-photos/new.jpg",
+		});
+		expect(photoManager.remove).toHaveBeenCalledWith(oldPhoto);
 	});
 
 	it("uses one primary name, falls back to it, and keeps zero, trace, absent, and a custom serving", async () => {

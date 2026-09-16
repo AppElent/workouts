@@ -1,6 +1,7 @@
 import { useMutation } from "convex/react";
 import { PermissionStatus, useCameraPermissions } from "expo-camera";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { foodPhotos } from "../data/food-photo-manager";
 import type { FetchLike } from "../data/open-food-facts";
 import { renderApp } from "../test-support/render-app";
 
@@ -40,6 +41,10 @@ const bakedBeans = {
 };
 
 beforeEach(() => {
+	jest.spyOn(foodPhotos, "importRemote").mockResolvedValue({
+		kind: "photo",
+		uri: "file:///documents/food-photos/baked-beans.jpg",
+	});
 	mockUseCameraPermissions.mockReturnValue([
 		{
 			status: PermissionStatus.GRANTED,
@@ -51,6 +56,8 @@ beforeEach(() => {
 		jest.fn(),
 	]);
 });
+
+afterEach(() => jest.restoreAllMocks());
 
 describe("scanning a barcode", () => {
 	it("checks local Personal Foods before calling Open Food Facts", async () => {
@@ -100,7 +107,7 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 1, product: bakedBeans }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = renderApp("/nutrition", {}, fetchImpl);
 
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 		fireEvent.press(screen.getByLabelText("Scan barcode"));
@@ -109,10 +116,20 @@ describe("scanning a barcode", () => {
 		expect(await screen.findByText("Review imported food")).toBeTruthy();
 		expect(screen.getByDisplayValue("Baked Beans")).toBeTruthy();
 		expect(screen.getByText(/Product data from Open Food Facts/)).toBeTruthy();
+		expect(screen.getByText("Crop position")).toBeTruthy();
+		fireEvent.press(screen.getByRole("radio", { name: "Right" }));
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
 		expect((await screen.findAllByText("Baked Beans")).length).toBeGreaterThan(
 			0,
+		);
+		expect(repository.list()[0].visual).toEqual({
+			kind: "photo",
+			uri: "file:///documents/food-photos/baked-beans.jpg",
+		});
+		expect(foodPhotos.importRemote).toHaveBeenCalledWith(
+			bakedBeans.image_front_small_url,
+			"right",
 		);
 		fireEvent.press(screen.getByText("Add & continue"));
 
@@ -127,6 +144,31 @@ describe("scanning a barcode", () => {
 		expect(log.mock.calls[0][0].provenance.attribution).toMatch(
 			/Open Food Facts/,
 		);
+	});
+
+	it("still saves an imported food when its proposed photo cannot be downloaded", async () => {
+		jest
+			.mocked(foodPhotos.importRemote)
+			.mockRejectedValueOnce(new Error("offline"));
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, { status: 1, product: bakedBeans }),
+		);
+		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
+		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await screen.findByText("Review imported food");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+
+		await waitFor(() => expect(repository.list()).toHaveLength(1));
+		expect(repository.list()[0].visual).toBeUndefined();
+		expect(await screen.findByLabelText("Baked Beans visual")).toBeTruthy();
+		expect(
+			await screen.findByText(
+				"The product was saved, but its photo could not be downloaded.",
+			),
+		).toBeTruthy();
 	});
 
 	it("marks a Food Import as locally edited only when the reviewer changes a field", async () => {

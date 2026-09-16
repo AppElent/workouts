@@ -48,6 +48,7 @@ function recipeDraft(): CookingRecipeDraft {
 		versionName: { en: "Weekday", nl: "Doordeweeks" },
 		ingredients: [ingredient()],
 		yield: { kind: "grams", amount: 250 },
+		visual: { kind: "icon", preset: "meal" },
 	};
 }
 
@@ -88,6 +89,7 @@ describe("nutrition cooking SQLite repository", () => {
 				name: { en: "Porridge", nl: "Havermoutpap" },
 				versionName: { en: "Weekday", nl: "Doordeweeks" },
 				ingredients: [expect.objectContaining({ nutrients })],
+				visual: { kind: "icon", preset: "meal" },
 			});
 			expect(reopened.listDrafts("account-a")).toMatchObject([
 				{ id: draft.id, note: "Restaurant noodles", meal: "dinner" },
@@ -156,6 +158,31 @@ describe("nutrition cooking SQLite repository", () => {
 			}),
 		).toThrow("salt");
 		expect(repo.listRecipes("account-a")).toEqual([]);
+	});
+
+	it("updates a recipe visual without changing its identity", () => {
+		const database = new SQLiteTestDatabase();
+		let timestamp = 10;
+		const repo = createNutritionCookingRepository(database, {
+			mintId: () => "recipe-1",
+			now: () => timestamp,
+		});
+		const created = repo.createRecipe("account-a", recipeDraft());
+		timestamp = 20;
+		const updated = repo.updateRecipe("account-a", created.id, {
+			...recipeDraft(),
+			visual: { kind: "icon", preset: "fruit" },
+		});
+
+		expect(updated).toMatchObject({
+			id: created.id,
+			createdAt: 10,
+			updatedAt: 20,
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		expect(() =>
+			repo.updateRecipe("account-b", created.id, recipeDraft()),
+		).toThrow("not found");
 	});
 
 	it("deletes only the requested account's draft", () => {

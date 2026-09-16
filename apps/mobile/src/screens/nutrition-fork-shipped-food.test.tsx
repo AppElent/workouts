@@ -58,6 +58,7 @@ describe("correcting a shipped food", () => {
 		const [fork] = repository.list();
 		expect(fork.id).not.toBe("shipped:apple-w-skin-av");
 		expect(fork.nutrients.energy).toEqual({ kind: "value", amount: 41 });
+		expect(fork.visual).toEqual({ kind: "icon", preset: "fruit" });
 		expect(repository.find("shipped:apple-w-skin-av")).toBeUndefined();
 	});
 
