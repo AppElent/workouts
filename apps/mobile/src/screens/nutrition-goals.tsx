@@ -7,9 +7,10 @@ import {
 	type NutrientKey,
 } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+	type LayoutChangeEvent,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -42,13 +43,21 @@ export function NutritionGoalsScreen() {
 	const { t, locale } = useI18n();
 	const copy = getNutritionGoalsCopy(locale);
 	const router = useRouter();
+	const params = useLocalSearchParams<{
+		date?: string;
+		nutrient?: NutrientKey;
+	}>();
 	const toast = useToast();
 	const today = todayIsoDate();
+	const requestedDate =
+		typeof params.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
+			? params.date
+			: today;
 	const [retryNonce, setRetryNonce] = useState(0);
 	const queryArgs = retryNonce % 2 === 0 ? {} : "skip";
 	const current = useQuery(api.nutritionGoals.list, queryArgs);
 	const replace = useMutation(api.nutritionGoals.replace);
-	const [effectiveFrom, setEffectiveFrom] = useState<IsoDate>(today);
+	const [effectiveFrom, setEffectiveFrom] = useState<IsoDate>(requestedDate);
 	const selectedResponse = useQuery(
 		api.nutritionGoals.forDate,
 		retryNonce % 2 === 0 ? { date: effectiveFrom } : "skip",
@@ -73,6 +82,22 @@ export function NutritionGoalsScreen() {
 	const [pending, setPending] = useState(false);
 	const [activePreset, setActivePreset] = useState<GoalPresetKey>();
 	const saveInFlight = useRef(false);
+	const scrollRef = useRef<ScrollView>(null);
+	const focusedInputRef = useRef<TextInput>(null);
+	const focusedNutrientHandled = useRef(false);
+
+	const focusRequestedNutrient = (
+		nutrient: NutrientKey,
+		event: LayoutChangeEvent,
+	) => {
+		if (params.nutrient !== nutrient || focusedNutrientHandled.current) return;
+		focusedNutrientHandled.current = true;
+		const y = Math.max(0, event.nativeEvent.layout.y - spacing.md);
+		requestAnimationFrame(() => {
+			scrollRef.current?.scrollTo({ y, animated: true });
+			requestAnimationFrame(() => focusedInputRef.current?.focus());
+		});
+	};
 
 	const retry = () => {
 		setRetryNonce((value) => value + 1);
@@ -228,6 +253,7 @@ export function NutritionGoalsScreen() {
 	const preview = draftToGoals(draft).goals;
 	return (
 		<ScrollView
+			ref={scrollRef}
 			contentInsetAdjustmentBehavior="automatic"
 			automaticallyAdjustKeyboardInsets
 			keyboardDismissMode="interactive"
@@ -299,60 +325,77 @@ export function NutritionGoalsScreen() {
 						revealedBounds.has(`${nutrient}.${direction}`),
 				);
 				return (
-					<Card key={nutrient} style={styles.row}>
-						<AppText variant="heading">
-							{t.nutrition.nutrients[nutrient]}
-						</AppText>
-						{directions.map((direction) => (
-							<View key={direction} style={styles.bound}>
-								<TextInput
-									accessibilityLabel={`${t.nutrition.nutrients[nutrient]} ${t.nutrition.goalEditor.directions[direction]} ${t.nutrition.goalEditor.amount}`}
-									keyboardType="decimal-pad"
-									value={draft[nutrient][direction]}
-									onChangeText={(target) =>
-										setBound(nutrient, direction, target)
-									}
-									placeholder={t.nutrition.goalEditor.directions[direction]}
-									placeholderTextColor={colors.textMuted}
-									style={styles.input}
-								/>
-								<AppText variant="caption">
-									{t.nutrition.goalEditor.directions[direction]}
-								</AppText>
-								<Pressable
-									accessibilityRole="button"
-									onPress={() => setBound(nutrient, direction, "")}
-								>
-									<AppText style={styles.remove}>{copy.removeBound}</AppText>
-								</Pressable>
-								{errors[`${nutrient}.${direction}`] ? (
-									<AppText style={styles.error}>
-										{errors[`${nutrient}.${direction}`]}
-									</AppText>
-								) : null}
-							</View>
-						))}
-						{errors[`${nutrient}.range`] ? (
-							<AppText style={styles.error}>
-								{errors[`${nutrient}.range`]}
+					<View
+						key={nutrient}
+						onLayout={(event) => focusRequestedNutrient(nutrient, event)}
+						accessibilityLabel={
+							params.nutrient === nutrient
+								? `${t.nutrition.nutrients[nutrient]} ${t.nutrition.goals.edit}`
+								: undefined
+						}
+					>
+						<Card style={styles.row}>
+							<AppText variant="heading">
+								{t.nutrition.nutrients[nutrient]}
 							</AppText>
-						) : null}
-						<View style={styles.addBounds}>
-							{(["min", "max"] as const).map((direction) =>
-								directions.includes(direction) ? null : (
+							{directions.map((direction, index) => (
+								<View key={direction} style={styles.bound}>
+									<TextInput
+										ref={
+											params.nutrient === nutrient && index === 0
+												? focusedInputRef
+												: undefined
+										}
+										accessibilityLabel={`${t.nutrition.nutrients[nutrient]} ${t.nutrition.goalEditor.directions[direction]} ${t.nutrition.goalEditor.amount}`}
+										keyboardType="decimal-pad"
+										value={draft[nutrient][direction]}
+										onChangeText={(target) =>
+											setBound(nutrient, direction, target)
+										}
+										placeholder={t.nutrition.goalEditor.directions[direction]}
+										placeholderTextColor={colors.textMuted}
+										style={styles.input}
+									/>
+									<AppText variant="caption">
+										{t.nutrition.goalEditor.directions[direction]}
+									</AppText>
 									<Pressable
-										key={direction}
 										accessibilityRole="button"
-										onPress={() => addBound(nutrient, direction)}
+										onPress={() => setBound(nutrient, direction, "")}
 									>
-										<AppText style={styles.add}>
-											{direction === "min" ? copy.addMinimum : copy.addMaximum}
-										</AppText>
+										<AppText style={styles.remove}>{copy.removeBound}</AppText>
 									</Pressable>
-								),
-							)}
-						</View>
-					</Card>
+									{errors[`${nutrient}.${direction}`] ? (
+										<AppText style={styles.error}>
+											{errors[`${nutrient}.${direction}`]}
+										</AppText>
+									) : null}
+								</View>
+							))}
+							{errors[`${nutrient}.range`] ? (
+								<AppText style={styles.error}>
+									{errors[`${nutrient}.range`]}
+								</AppText>
+							) : null}
+							<View style={styles.addBounds}>
+								{(["min", "max"] as const).map((direction) =>
+									directions.includes(direction) ? null : (
+										<Pressable
+											key={direction}
+											accessibilityRole="button"
+											onPress={() => addBound(nutrient, direction)}
+										>
+											<AppText style={styles.add}>
+												{direction === "min"
+													? copy.addMinimum
+													: copy.addMaximum}
+											</AppText>
+										</Pressable>
+									),
+								)}
+							</View>
+						</Card>
+					</View>
 				);
 			})}
 			{hiddenNutrients.length > 0 ? (

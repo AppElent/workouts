@@ -10,6 +10,12 @@ import {
 	type EffectiveGoalVersion,
 	type NutritionGoal,
 } from "./nutritionGoalModel";
+import {
+	NUTRITION_NUTRIENTS,
+	nutritionDisplayOrderValidator,
+} from "./nutritionGoalTables";
+
+type NutritionNutrient = (typeof NUTRITION_NUTRIENTS)[number];
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
 	const identity = await ctx.auth.getUserIdentity();
@@ -40,6 +46,28 @@ const goalValidator = v.object({
 });
 
 const goalsValidator = v.array(goalValidator);
+
+async function readDisplayOrder(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+): Promise<NutritionNutrient[]> {
+	const preference = await ctx.db
+		.query("nutritionGoalPreferences")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.unique();
+	return preference?.displayOrder ?? [...NUTRITION_NUTRIENTS];
+}
+
+function validateDisplayOrder(displayOrder: readonly NutritionNutrient[]): void {
+	if (
+		displayOrder.length !== NUTRITION_NUTRIENTS.length ||
+		new Set(displayOrder).size !== NUTRITION_NUTRIENTS.length ||
+		NUTRITION_NUTRIENTS.some((nutrient) => !displayOrder.includes(nutrient))
+	)
+		throw new Error(
+			"Nutrition goal display order must contain every nutrient once.",
+		);
+}
 
 async function readLegacyGoals(
 	ctx: QueryCtx | MutationCtx,
@@ -121,20 +149,45 @@ export const forDate = query({
 		goals: goalsValidator,
 		basis: v.union(v.literal("effective"), v.literal("reference")),
 		effectiveFrom: v.union(v.string(), v.null()),
+		displayOrder: nutritionDisplayOrderValidator,
 	}),
 	handler: async (ctx, { date }) => {
 		assertCalendarDate(date);
 		const userId = await requireUser(ctx);
-		const [{ version, firstVersion }, legacyGoals] = await Promise.all([
+		const [{ version, firstVersion }, legacyGoals, displayOrder] = await Promise.all([
 			readEffectiveVersion(ctx, userId, date),
 			readLegacyGoals(ctx, userId),
+			readDisplayOrder(ctx, userId),
 		]);
-		return resolveGoalHistory({
-			date,
-			legacyGoals,
-			versions: version ? [version] : [],
-			referenceGoals: firstVersion?.referenceGoals,
-		});
+		return {
+			...resolveGoalHistory({
+				date,
+				legacyGoals,
+				versions: version ? [version] : [],
+				referenceGoals: firstVersion?.referenceGoals,
+			}),
+			displayOrder,
+		};
+	},
+});
+
+export const setDisplayOrder = mutation({
+	args: { displayOrder: nutritionDisplayOrderValidator },
+	returns: v.null(),
+	handler: async (ctx, { displayOrder }) => {
+		const userId = await requireUser(ctx);
+		validateDisplayOrder(displayOrder);
+		const existing = await ctx.db
+			.query("nutritionGoalPreferences")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.unique();
+		if (existing) await ctx.db.patch(existing._id, { displayOrder });
+		else
+			await ctx.db.insert("nutritionGoalPreferences", {
+				userId,
+				displayOrder,
+			});
+		return null;
 	},
 });
 

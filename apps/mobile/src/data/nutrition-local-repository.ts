@@ -6,7 +6,7 @@ import {
 	rescaleNutrients,
 	totalNutrients,
 } from "@workouts/core";
-import type { NutritionGoalValue } from "@workouts/core/nutrition";
+import type { NutrientKey, NutritionGoalValue } from "@workouts/core/nutrition";
 import { openDatabaseSync } from "expo-sqlite";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
@@ -17,6 +17,7 @@ export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
 	basis: "effective" | "reference";
 	effectiveFrom: string | null;
+	displayOrder?: NutrientKey[];
 };
 
 export type LocalOperationStatus =

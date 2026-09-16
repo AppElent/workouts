@@ -152,6 +152,16 @@ describe("durable nutrition local repository", () => {
 			goals: [{ nutrient: "energy", direction: "max", target: 2000 }],
 			basis: "effective",
 			effectiveFrom: "2026-09-01",
+			displayOrder: [
+				"protein",
+				"energy",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+				"salt",
+			],
 		});
 		firstDatabase.closeSync();
 
@@ -161,6 +171,9 @@ describe("durable nutrition local repository", () => {
 		expect(saved?.envelope).toEqual(operation);
 		expect(reopened.getGoals("alice", "2026-09-05")?.goals[0].target).toBe(
 			2000,
+		);
+		expect(reopened.getGoals("alice", "2026-09-05")?.displayOrder?.[0]).toBe(
+			"protein",
 		);
 		expect(reopened.getGoals("bob", "2026-09-05")).toBeUndefined();
 		expect(reopened.projectDay("alice", "2026-09-05").entries).toHaveLength(1);

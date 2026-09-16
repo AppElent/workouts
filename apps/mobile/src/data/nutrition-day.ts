@@ -59,6 +59,7 @@ export interface NutritionDay {
 	date: IsoDate;
 	complete: boolean;
 	goals: NutrientGoal[];
+	displayOrder: NutrientKey[];
 	goalBasis?: "effective" | "reference";
 	goalsCached?: boolean;
 	/** Day totals per nutrient. Absent from the map means "nothing logged". */
@@ -167,6 +168,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			date,
 			complete: local?.complete || diary !== undefined,
 			goals: goals ?? [],
+			displayOrder: history?.displayOrder ?? [...NUTRIENT_KEYS],
 			goalBasis: history?.basis,
 			goalsCached: !goalHistory && !!cachedGoals,
 			totals: useLocal ? (local?.totals ?? {}) : (diary?.totals ?? {}),

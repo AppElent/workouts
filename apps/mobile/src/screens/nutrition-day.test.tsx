@@ -6,9 +6,9 @@
  * placeholder data module returned — those are all replaced by #70 and #72, and
  * a test that noticed would be a test that has to be rewritten for no reason.
  */
-import { useQuery, useQuery_experimental } from "convex/react";
+import { useMutation, useQuery, useQuery_experimental } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { fireEvent, screen } from "expo-router/testing-library";
+import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import {
 	formatLongDate,
 	shiftIsoDate,
@@ -17,6 +17,7 @@ import {
 import { renderApp } from "../test-support/render-app";
 
 const mockUseQuery = jest.mocked(useQuery);
+const mockUseMutation = jest.mocked(useMutation);
 const mockUseTrainingMarkerQuery = jest.mocked(useQuery_experimental);
 
 describe("the nutrition day", () => {
@@ -45,8 +46,272 @@ describe("the nutrition day", () => {
 	it("puts the goals above the meal slots", async () => {
 		renderApp();
 
-		expect(await screen.findByText("Goals")).toBeTruthy();
-		expect(screen.getByText("No goals yet")).toBeTruthy();
+		expect(await screen.findByText("No nutrition goals")).toBeTruthy();
+		expect(screen.getByText("Set up goals")).toBeTruthy();
+	});
+
+	it("reorders goals from a row menu and saves the global order", async () => {
+		const saveOrder = jest.fn().mockResolvedValue(null);
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionGoals:setDisplayOrder"
+					? saveOrder
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return {
+					goals: [
+						{ nutrient: "energy", direction: "max", target: 2000 },
+						{ nutrient: "protein", direction: "min", target: 120 },
+						{ nutrient: "carbs", direction: "max", target: 260 },
+					],
+					basis: "effective",
+					effectiveFrom: "2026-01-01",
+					displayOrder: [
+						"energy",
+						"protein",
+						"carbs",
+						"fat",
+						"saturatedFat",
+						"fibre",
+						"sugars",
+						"salt",
+					],
+				};
+			return { entries: [], totals: {} };
+		});
+		renderApp();
+
+		fireEvent(
+			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
+			"longPress",
+		);
+		fireEvent.press(await screen.findByText("Reorder goals"));
+		fireEvent(screen.getByLabelText("Move Energy"), "accessibilityAction", {
+			nativeEvent: { actionName: "increment" },
+		});
+		fireEvent.press(screen.getByText("Done"));
+
+		expect(saveOrder).toHaveBeenCalledWith({
+			displayOrder: [
+				"protein",
+				"energy",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+				"salt",
+			],
+		});
+		await waitFor(() => expect(screen.queryByText("Cancel")).toBeNull());
+	});
+
+	it("shows two priority goals and expands the hidden goals", async () => {
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return {
+					goals: [
+						{ nutrient: "energy", direction: "max", target: 2000 },
+						{ nutrient: "protein", direction: "min", target: 120 },
+						{ nutrient: "carbs", direction: "max", target: 260 },
+						{ nutrient: "fat", direction: "max", target: 70 },
+					],
+					basis: "effective",
+					effectiveFrom: "2026-01-01",
+					displayOrder: [
+						"energy",
+						"protein",
+						"carbs",
+						"fat",
+						"saturatedFat",
+						"fibre",
+						"sugars",
+						"salt",
+					],
+				};
+			return { entries: [], totals: {} };
+		});
+		renderApp();
+
+		expect(await screen.findByText("Energy")).toBeTruthy();
+		expect(screen.getByText("Protein")).toBeTruthy();
+		expect(screen.queryByText("Carbohydrates")).toBeNull();
+		expect(screen.queryByText("Fat")).toBeNull();
+		expect(screen.getByText("2 more")).toBeTruthy();
+
+		fireEvent.press(screen.getByLabelText("Expand goals"));
+
+		expect(await screen.findByText("Carbohydrates")).toBeTruthy();
+		expect(screen.getByText("Fat")).toBeTruthy();
+		expect(screen.getByText("Show less")).toBeTruthy();
+
+		fireEvent.press(screen.getByLabelText("Previous day"));
+		expect(await screen.findByText("Fat")).toBeTruthy();
+	});
+
+	it("combines minimum and maximum bounds into one range row", async () => {
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return {
+					goals: [
+						{ nutrient: "energy", direction: "min", target: 1800 },
+						{ nutrient: "energy", direction: "max", target: 2100 },
+						{ nutrient: "protein", direction: "min", target: 120 },
+					],
+					basis: "effective",
+					effectiveFrom: "2026-01-01",
+					displayOrder: [
+						"energy",
+						"protein",
+						"carbs",
+						"fat",
+						"saturatedFat",
+						"fibre",
+						"sugars",
+						"salt",
+					],
+				};
+			return {
+				entries: [],
+				totals: {
+					energy: {
+						amount: 1950,
+						entryCount: 1,
+						valueCount: 1,
+						traceCount: 0,
+						absentCount: 0,
+						incomplete: false,
+						qualified: false,
+					},
+				},
+			};
+		});
+		renderApp();
+
+		expect(await screen.findByText("1950 / 1800–2100 kcal")).toBeTruthy();
+		expect(screen.getByText("Within range")).toBeTruthy();
+		expect(screen.queryByText(/more$/)).toBeNull();
+	});
+
+	it("keeps a failed reorder draft open and explains that it was not saved", async () => {
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionGoals:setDisplayOrder"
+					? jest.fn().mockRejectedValue(new Error("offline"))
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return {
+					goals: [
+						{ nutrient: "energy", direction: "max", target: 2000 },
+						{ nutrient: "protein", direction: "min", target: 120 },
+					],
+					basis: "effective",
+					effectiveFrom: "2026-01-01",
+					displayOrder: [
+						"energy",
+						"protein",
+						"carbs",
+						"fat",
+						"saturatedFat",
+						"fibre",
+						"sugars",
+						"salt",
+					],
+				};
+			return { entries: [], totals: {} };
+		});
+		renderApp();
+
+		fireEvent(
+			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
+			"longPress",
+		);
+		fireEvent.press(await screen.findByText("Reorder goals"));
+		fireEvent.press(screen.getByText("Done"));
+
+		expect(
+			await screen.findByText(
+				"Your goal order could not be saved. Your changes are still here.",
+			),
+		).toBeTruthy();
+		expect(screen.getByText("Cancel")).toBeTruthy();
+	});
+
+	it("edits the Nutrition Goals for the selected Diary date", async () => {
+		const goal = {
+			nutrient: "energy",
+			direction: "max",
+			target: 2000,
+		} as const;
+		const goals = [goal];
+		const history = {
+			goals,
+			basis: "effective" as const,
+			effectiveFrom: "2026-01-01",
+			displayOrder: [
+				"energy",
+				"protein",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+				"salt",
+			],
+		};
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			const name = getFunctionName(reference);
+			if (name === "nutritionGoals:list") return goals;
+			if (name === "nutritionGoals:forDate") return history;
+			return { entries: [], totals: {} };
+		});
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Previous day"));
+		fireEvent.press(screen.getByLabelText("Edit goals"));
+
+		expect(
+			await screen.findByText(shiftIsoDate(todayIsoDate(), -1)),
+		).toBeTruthy();
+	});
+
+	it("opens a row's Edit action at that nutrient", async () => {
+		const goals = [
+			{ nutrient: "energy", direction: "max", target: 2000 },
+			{ nutrient: "protein", direction: "min", target: 120 },
+		] as const;
+		const history = {
+			goals: [...goals],
+			basis: "effective" as const,
+			effectiveFrom: "2026-01-01",
+			displayOrder: [
+				"energy",
+				"protein",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+				"salt",
+			],
+		};
+		mockUseQuery.mockImplementation((reference, _args?) => {
+			const name = getFunctionName(reference);
+			if (name === "nutritionGoals:list") return [...goals];
+			if (name === "nutritionGoals:forDate") return history;
+			return { entries: [], totals: {} };
+		});
+		renderApp();
+		fireEvent(
+			await screen.findByLabelText("Protein: 0 / ≥120 g. Nothing logged."),
+			"accessibilityAction",
+			{ nativeEvent: { actionName: "edit" } },
+		);
+
+		expect(await screen.findByLabelText("Protein Edit goals")).toBeTruthy();
 	});
 
 	it("gives each meal slot's icon-only plus a spoken name", async () => {
@@ -264,6 +529,6 @@ describe("the nutrition day", () => {
 		// completed session contributes nothing to either number.
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(screen.getByText("1924 kcal remaining")).toBeTruthy();
-		expect(screen.getByText("76 logged / 2000 target")).toBeTruthy();
+		expect(screen.getByText("76 / ≤2000 kcal")).toBeTruthy();
 	});
 });
