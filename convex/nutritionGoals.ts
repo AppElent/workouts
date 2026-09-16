@@ -13,6 +13,7 @@ import {
 import {
 	NUTRITION_NUTRIENTS,
 	nutritionDisplayOrderValidator,
+	nutritionNutrientValidator,
 } from "./nutritionGoalTables";
 
 type NutritionNutrient = (typeof NUTRITION_NUTRIENTS)[number];
@@ -24,16 +25,7 @@ async function requireUser(ctx: QueryCtx | MutationCtx) {
 }
 
 const goalValidator = v.object({
-	nutrient: v.union(
-		v.literal("energy"),
-		v.literal("protein"),
-		v.literal("carbs"),
-		v.literal("fat"),
-		v.literal("saturatedFat"),
-		v.literal("fibre"),
-		v.literal("sugars"),
-		v.literal("salt"),
-	),
+	nutrient: nutritionNutrientValidator,
 	direction: v.union(v.literal("min"), v.literal("max")),
 	target: v.number(),
 	sourcePreset: v.optional(

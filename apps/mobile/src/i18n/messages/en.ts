@@ -114,7 +114,7 @@ export const en = {
 			more: "{count} more",
 			showMore: "Show {count} more goals",
 			showLess: "Show less",
-			expandPreview: "Expand goals",
+			expandPreview: "Expand {count} hidden goals",
 			incomplete: "Incomplete",
 			approximate: "Approximate",
 			toMinimum: "{amount} {unit} to minimum",

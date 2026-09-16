@@ -3,7 +3,6 @@ import {
 	type NutrientTotal,
 	roundForDisplay,
 } from "@workouts/core/nutrition";
-import { useMutation } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,11 +15,14 @@ import {
 	Platform,
 	Pressable,
 	StyleSheet,
+	useWindowDimensions,
 	View,
 } from "react-native";
-import { api } from "../convex/api";
 import type { NutrientGoal, NutrientKey } from "../data/nutrition-day";
-import { nutrientUnit } from "../data/nutrition-day";
+import {
+	nutrientUnit,
+	useSetNutritionDisplayOrder,
+} from "../data/nutrition-day";
 import { haptics } from "../feedback/haptics";
 import { useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, type Messages } from "../i18n";
@@ -173,6 +175,7 @@ function GoalProgressRow({
 	onLongPress,
 	onEdit,
 	onReorder,
+	stacked,
 }: {
 	t: Messages;
 	group: GoalGroup;
@@ -180,6 +183,7 @@ function GoalProgressRow({
 	onLongPress?: () => void;
 	onEdit?: () => void;
 	onReorder?: () => void;
+	stacked: boolean;
 }) {
 	const unit = t.nutrition.units[nutrientUnit(group.nutrient)];
 	const value = `${displayAmount(group.nutrient, total)} / ${targetLabel(group, unit)}`;
@@ -208,7 +212,9 @@ function GoalProgressRow({
 			onLongPress={onLongPress}
 			style={styles.goalRow}
 		>
-			<View style={styles.rowHeader}>
+			<View
+				style={[styles.rowHeader, stacked ? styles.rowHeaderStacked : null]}
+			>
 				<AppText style={styles.goalName}>
 					{t.nutrition.nutrients[group.nutrient]}
 				</AppText>
@@ -230,56 +236,73 @@ function ReorderHandle({
 	canMoveUp,
 	canMoveDown,
 	onMove,
+	disabled,
 }: {
 	t: Messages;
 	nutrient: NutrientKey;
 	canMoveUp: boolean;
 	canMoveDown: boolean;
-	onMove: (direction: -1 | 1) => void;
+	onMove: (direction: -1 | 1) => boolean;
+	disabled: boolean;
 }) {
 	const step = useRef(0);
 	const pan = useMemo(
 		() =>
 			PanResponder.create({
-				onStartShouldSetPanResponder: () => true,
+				onStartShouldSetPanResponder: () => !disabled,
 				onMoveShouldSetPanResponder: (_event, gesture) =>
-					Math.abs(gesture.dy) > 4,
+					!disabled && Math.abs(gesture.dy) > 4,
 				onPanResponderGrant: () => {
 					step.current = 0;
 					haptics.selectionChanged();
 				},
 				onPanResponderMove: (_event, gesture) => {
 					const nextStep = Math.trunc(gesture.dy / 52);
-					if (nextStep === step.current) return;
-					const direction = nextStep > step.current ? 1 : -1;
-					step.current = nextStep;
-					onMove(direction);
-					haptics.selectionChanged();
+					while (nextStep !== step.current) {
+						const direction = nextStep > step.current ? 1 : -1;
+						if (!onMove(direction)) break;
+						step.current += direction;
+						haptics.selectionChanged();
+					}
 				},
 				onPanResponderRelease: () => haptics.selectionChanged(),
 				onPanResponderTerminate: () => haptics.selectionChanged(),
 			}),
-		[onMove],
+		[disabled, onMove],
 	);
 	return (
 		<Pressable
 			{...pan.panHandlers}
 			accessibilityRole="adjustable"
+			accessibilityState={{ disabled }}
+			disabled={disabled}
 			accessibilityLabel={fmt(t.nutrition.goals.move, {
 				nutrient: t.nutrition.nutrients[nutrient],
 			})}
-			accessibilityActions={[
-				...(canMoveUp
-					? [{ name: "decrement", label: t.nutrition.goals.moveUp }]
-					: []),
-				...(canMoveDown
-					? [{ name: "increment", label: t.nutrition.goals.moveDown }]
-					: []),
-			]}
+			accessibilityActions={
+				disabled
+					? []
+					: [
+							...(canMoveUp
+								? [{ name: "decrement", label: t.nutrition.goals.moveUp }]
+								: []),
+							...(canMoveDown
+								? [{ name: "increment", label: t.nutrition.goals.moveDown }]
+								: []),
+						]
+			}
 			onAccessibilityAction={(event) => {
-				if (event.nativeEvent.actionName === "decrement" && canMoveUp)
+				if (
+					!disabled &&
+					event.nativeEvent.actionName === "decrement" &&
+					canMoveUp
+				)
 					onMove(-1);
-				if (event.nativeEvent.actionName === "increment" && canMoveDown)
+				if (
+					!disabled &&
+					event.nativeEvent.actionName === "increment" &&
+					canMoveDown
+				)
 					onMove(1);
 			}}
 			style={styles.reorderHandle}
@@ -303,18 +326,28 @@ export function NutritionGoalCard({
 	t: Messages;
 	goals: NutrientGoal[];
 	totals: Partial<Record<NutrientKey, NutrientTotal>>;
-	displayOrder: NutrientKey[];
+	displayOrder: readonly NutrientKey[];
 	onEdit: (nutrient?: NutrientKey) => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
 	const [reordering, setReordering] = useState(false);
-	const [savedOrder, setSavedOrder] = useState<NutrientKey[]>(displayOrder);
-	const [draftOrder, setDraftOrder] = useState<NutrientKey[]>(displayOrder);
+	const [savedOrder, setSavedOrder] = useState<NutrientKey[]>(() => [
+		...displayOrder,
+	]);
+	const [draftOrder, setDraftOrder] = useState<NutrientKey[]>(() => [
+		...displayOrder,
+	]);
+	const draftOrderRef = useRef(draftOrder);
+	const incomingOrderKey = displayOrder.join("|");
+	const appliedIncomingOrderKey = useRef(incomingOrderKey);
 	const [menuNutrient, setMenuNutrient] = useState<NutrientKey>();
 	const [pending, setPending] = useState(false);
+	const saveInFlight = useRef(false);
 	const reduceMotion = useReduceMotion();
+	const { fontScale } = useWindowDimensions();
 	const toast = useToast();
-	const setDisplayOrder = useMutation(api.nutritionGoals.setDisplayOrder);
+	const setDisplayOrder = useSetNutritionDisplayOrder();
+	const stackedRows = fontScale >= 1.6;
 	const activeOrder = reordering ? draftOrder : savedOrder;
 	const groups = useMemo(
 		() => groupGoals(goals, activeOrder),
@@ -325,15 +358,21 @@ export function NutritionGoalCard({
 	const preview = !reordering && !expanded ? groups[2] : undefined;
 
 	useEffect(() => {
-		if (reordering) return;
-		setSavedOrder(displayOrder);
-		setDraftOrder(displayOrder);
-	}, [displayOrder, reordering]);
+		if (reordering || appliedIncomingOrderKey.current === incomingOrderKey)
+			return;
+		const nextOrder = [...displayOrder];
+		appliedIncomingOrderKey.current = incomingOrderKey;
+		draftOrderRef.current = nextOrder;
+		setSavedOrder(nextOrder);
+		setDraftOrder(nextOrder);
+	}, [displayOrder, incomingOrderKey, reordering]);
 
 	useEffect(() => {
 		if (!reordering) return;
 		return BackHandler.addEventListener("hardwareBackPress", () => {
+			if (saveInFlight.current) return true;
 			setReordering(false);
+			draftOrderRef.current = savedOrder;
 			setDraftOrder(savedOrder);
 			return true;
 		}).remove;
@@ -352,6 +391,7 @@ export function NutritionGoalCard({
 	function beginReorder() {
 		animateLayout();
 		setMenuNutrient(undefined);
+		draftOrderRef.current = savedOrder;
 		setDraftOrder(savedOrder);
 		setExpanded(true);
 		setReordering(true);
@@ -384,35 +424,41 @@ export function NutritionGoalCard({
 		);
 	}
 
-	function move(nutrient: NutrientKey, direction: -1 | 1) {
+	function move(nutrient: NutrientKey, direction: -1 | 1): boolean {
+		if (saveInFlight.current) return false;
+		const current = draftOrderRef.current;
+		const visibleNutrients = groupGoals(goals, current).map(
+			(group) => group.nutrient,
+		);
+		const visibleIndex = visibleNutrients.indexOf(nutrient);
+		const neighbor = visibleNutrients[visibleIndex + direction];
+		if (!neighbor) return false;
+		const next = [...current];
+		const index = next.indexOf(nutrient);
+		const neighborIndex = next.indexOf(neighbor);
+		[next[index], next[neighborIndex]] = [next[neighborIndex], next[index]];
 		animateLayout();
-		setDraftOrder((current) => {
-			const visibleNutrients = groupGoals(goals, current).map(
-				(group) => group.nutrient,
-			);
-			const visibleIndex = visibleNutrients.indexOf(nutrient);
-			const neighbor = visibleNutrients[visibleIndex + direction];
-			if (!neighbor) return current;
-			const next = [...current];
-			const index = next.indexOf(nutrient);
-			const neighborIndex = next.indexOf(neighbor);
-			[next[index], next[neighborIndex]] = [next[neighborIndex], next[index]];
-			return next;
-		});
+		draftOrderRef.current = next;
+		setDraftOrder(next);
+		return true;
 	}
 
 	async function saveOrder() {
-		if (pending) return;
+		if (saveInFlight.current) return;
+		const submittedOrder = [...draftOrderRef.current];
+		saveInFlight.current = true;
 		setPending(true);
 		try {
-			await setDisplayOrder({ displayOrder: draftOrder });
+			await setDisplayOrder(submittedOrder);
 			animateLayout();
-			setSavedOrder(draftOrder);
+			setSavedOrder(submittedOrder);
+			draftOrderRef.current = submittedOrder;
 			setExpanded(false);
 			setReordering(false);
 		} catch {
 			toast.error(t.nutrition.goals.reorderFailure);
 		} finally {
+			saveInFlight.current = false;
 			setPending(false);
 		}
 	}
@@ -448,8 +494,12 @@ export function NutritionGoalCard({
 							<>
 								<Pressable
 									accessibilityRole="button"
+									accessibilityState={{ disabled: pending }}
+									disabled={pending}
 									onPress={() => {
+										if (saveInFlight.current) return;
 										animateLayout();
+										draftOrderRef.current = savedOrder;
 										setDraftOrder(savedOrder);
 										setReordering(false);
 									}}
@@ -461,9 +511,14 @@ export function NutritionGoalCard({
 								</Pressable>
 								<Pressable
 									accessibilityRole="button"
+									accessibilityState={{ disabled: pending }}
+									disabled={pending}
 									onPress={() => {
+										if (saveInFlight.current) return;
 										animateLayout();
-										setDraftOrder([...NUTRIENT_KEYS]);
+										const defaultOrder = [...NUTRIENT_KEYS];
+										draftOrderRef.current = defaultOrder;
+										setDraftOrder(defaultOrder);
 									}}
 									style={styles.headerTextButton}
 								>
@@ -534,6 +589,7 @@ export function NutritionGoalCard({
 								onReorder={
 									reordering || groups.length < 2 ? undefined : beginReorder
 								}
+								stacked={stackedRows}
 							/>
 						</View>
 						{reordering ? (
@@ -543,6 +599,7 @@ export function NutritionGoalCard({
 								canMoveUp={index > 0}
 								canMoveDown={index < visible.length - 1}
 								onMove={(direction) => move(group.nutrient, direction)}
+								disabled={pending}
 							/>
 						) : null}
 					</View>
@@ -550,7 +607,10 @@ export function NutritionGoalCard({
 				{preview ? (
 					<Pressable
 						accessibilityRole="button"
-						accessibilityLabel={t.nutrition.goals.expandPreview}
+						accessibilityLabel={fmt(t.nutrition.goals.expandPreview, {
+							count: hiddenCount,
+						})}
+						accessibilityState={{ expanded: false }}
 						onPress={toggle}
 						style={styles.teaser}
 					>
@@ -580,12 +640,14 @@ export function NutritionGoalCard({
 				animationType={reduceMotion ? "none" : "fade"}
 				onRequestClose={() => setMenuNutrient(undefined)}
 			>
-				<Pressable
-					accessibilityRole="button"
-					accessibilityLabel={t.nutrition.goals.cancel}
-					onPress={() => setMenuNutrient(undefined)}
-					style={styles.menuBackdrop}
-				>
+				<View style={styles.menuBackdrop}>
+					<Pressable
+						accessible={false}
+						accessibilityElementsHidden
+						importantForAccessibility="no-hide-descendants"
+						onPress={() => setMenuNutrient(undefined)}
+						style={StyleSheet.absoluteFill}
+					/>
 					<View accessibilityViewIsModal style={styles.menuCard}>
 						{menuNutrient ? (
 							<AppText variant="heading">
@@ -614,8 +676,15 @@ export function NutritionGoalCard({
 						>
 							<AppText>{t.nutrition.goals.edit}</AppText>
 						</Pressable>
+						<Pressable
+							accessibilityRole="button"
+							onPress={() => setMenuNutrient(undefined)}
+							style={styles.menuItem}
+						>
+							<AppText>{t.nutrition.goals.cancel}</AppText>
+						</Pressable>
 					</View>
-				</Pressable>
+				</View>
 			</Modal>
 		</>
 	);
@@ -673,6 +742,11 @@ const styles = StyleSheet.create({
 		alignItems: "baseline",
 		justifyContent: "space-between",
 		gap: spacing.sm,
+	},
+	rowHeaderStacked: {
+		flexDirection: "column",
+		alignItems: "stretch",
+		gap: 2,
 	},
 	goalName: { fontWeight: "700", flexShrink: 1 },
 	numbers: { fontVariant: ["tabular-nums"], flexShrink: 0 },

@@ -92,7 +92,9 @@ describe("the nutrition day", () => {
 			nativeEvent: { actionName: "increment" },
 		});
 		fireEvent.press(screen.getByText("Done"));
+		fireEvent.press(screen.getByText(/Done/));
 
+		expect(saveOrder).toHaveBeenCalledTimes(1);
 		expect(saveOrder).toHaveBeenCalledWith({
 			displayOrder: [
 				"protein",
@@ -106,6 +108,9 @@ describe("the nutrition day", () => {
 			],
 		});
 		await waitFor(() => expect(screen.queryByText("Cancel")).toBeNull());
+		const collapsedRows = screen.getAllByLabelText(/Nothing logged\.$/);
+		expect(collapsedRows[0]?.props.accessibilityLabel).toMatch(/^Protein:/);
+		expect(collapsedRows[1]?.props.accessibilityLabel).toMatch(/^Energy:/);
 	});
 
 	it("shows two priority goals and expands the hidden goals", async () => {
@@ -141,11 +146,20 @@ describe("the nutrition day", () => {
 		expect(screen.queryByText("Fat")).toBeNull();
 		expect(screen.getByText("2 more")).toBeTruthy();
 
-		fireEvent.press(screen.getByLabelText("Expand goals"));
+		fireEvent.press(screen.getByLabelText("Expand 2 hidden goals"));
 
 		expect(await screen.findByText("Carbohydrates")).toBeTruthy();
 		expect(screen.getByText("Fat")).toBeTruthy();
 		expect(screen.getByText("Show less")).toBeTruthy();
+		fireEvent.press(
+			screen.getByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
+		);
+		expect(screen.getByText("Fat")).toBeTruthy();
+
+		fireEvent.press(screen.getByLabelText("Show less"));
+		expect(screen.queryByText("Fat")).toBeNull();
+		fireEvent.press(screen.getByLabelText("Show 2 more goals"));
+		expect(await screen.findByText("Fat")).toBeTruthy();
 
 		fireEvent.press(screen.getByLabelText("Previous day"));
 		expect(await screen.findByText("Fat")).toBeTruthy();
@@ -405,6 +419,7 @@ describe("the nutrition day", () => {
 					{
 						_id: "entry-1",
 						meal: "lunch",
+						estimated: true,
 						name: { en: "Apple", nl: "Appel" },
 						serving: { en: "Piece × 1", nl: "Stuk × 1" },
 						nutrients: {
@@ -454,6 +469,8 @@ describe("the nutrition day", () => {
 
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(screen.getByText("Piece × 1")).toBeTruthy();
+		expect(screen.getByText("Approximate")).toBeTruthy();
+		expect(screen.queryByText("1924 kcal remaining")).toBeNull();
 		fireEvent.press(screen.getByLabelText("Show other nutrients"));
 		expect((await screen.findAllByText("~ 0 g")).length).toBeGreaterThan(0);
 		expect(screen.getByText("≥ 0 g")).toBeTruthy();

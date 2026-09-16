@@ -105,7 +105,7 @@ export const nl = {
 			more: "Nog {count}",
 			showMore: "Nog {count} doelen tonen",
 			showLess: "Minder tonen",
-			expandPreview: "Doelen uitklappen",
+			expandPreview: "{count} verborgen doelen uitklappen",
 			incomplete: "Onvolledig",
 			approximate: "Bij benadering",
 			toMinimum: "Nog {amount} {unit} tot minimum",

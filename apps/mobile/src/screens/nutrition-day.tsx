@@ -86,10 +86,20 @@ export function NutritionDayScreen() {
 	const totals = useMemo(() => {
 		if (state.status !== "ready") return {};
 		const entries = MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]);
-		return {
+		const combined: Partial<Record<NutrientKey, NutrientTotal>> = {
 			...totalNutrients(entries.map((entry) => entry.nutrients)),
 			...state.day.totals,
 		};
+		for (const nutrient of NUTRIENT_KEYS) {
+			const hasEstimatedContribution = entries.some(
+				(entry) =>
+					entry.estimated && entry.nutrients[nutrient].kind !== "absent",
+			);
+			const total = combined[nutrient];
+			if (hasEstimatedContribution && total)
+				combined[nutrient] = { ...total, qualified: true };
+		}
+		return combined;
 	}, [state]);
 
 	/**

@@ -11,7 +11,7 @@ import { openDatabaseSync } from "expo-sqlite";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
@@ -112,6 +112,8 @@ export type NutritionOperationResult = {
 export type NutritionLocalRepository = {
 	getGoals(subject: string, date: string): CachedGoalHistory | undefined;
 	putGoals(subject: string, date: string, history: CachedGoalHistory): void;
+	getGoalDisplayOrder(subject: string): NutrientKey[] | undefined;
+	putGoalDisplayOrder(subject: string, displayOrder: NutrientKey[]): void;
 	accept(
 		subject: string,
 		envelope: NutritionOperationEnvelope,
@@ -234,6 +236,10 @@ function migrate(database: SyncSQLiteDatabase): void {
 		if (current < 3)
 			database.execSync(
 				"CREATE TABLE nutrition_cached_goals (subject TEXT NOT NULL, date TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, date))",
+			);
+		if (current < 4)
+			database.execSync(
+				"CREATE TABLE nutrition_goal_preferences (subject TEXT PRIMARY KEY, display_order_json TEXT NOT NULL)",
 			);
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");
@@ -573,14 +579,41 @@ export function createNutritionLocalRepository(
 				subject,
 				date,
 			);
-			return row ? (JSON.parse(row.payload) as CachedGoalHistory) : undefined;
+			if (!row) return undefined;
+			const history = JSON.parse(row.payload) as CachedGoalHistory;
+			const displayOrder = this.getGoalDisplayOrder(subject);
+			return displayOrder ? { ...history, displayOrder } : history;
 		},
 		putGoals(subject, date, history) {
-			database.runSync(
-				"INSERT INTO nutrition_cached_goals(subject, date, payload) VALUES (?, ?, ?) ON CONFLICT(subject, date) DO UPDATE SET payload = excluded.payload",
+			transaction(database, () => {
+				database.runSync(
+					"INSERT INTO nutrition_cached_goals(subject, date, payload) VALUES (?, ?, ?) ON CONFLICT(subject, date) DO UPDATE SET payload = excluded.payload",
+					subject,
+					date,
+					JSON.stringify(history),
+				);
+				if (history.displayOrder)
+					database.runSync(
+						"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
+						subject,
+						JSON.stringify(history.displayOrder),
+					);
+			});
+		},
+		getGoalDisplayOrder(subject) {
+			const row = database.getFirstSync<{ display_order_json: string }>(
+				"SELECT display_order_json FROM nutrition_goal_preferences WHERE subject = ?",
 				subject,
-				date,
-				JSON.stringify(history),
+			);
+			return row
+				? (JSON.parse(row.display_order_json) as NutrientKey[])
+				: undefined;
+		},
+		putGoalDisplayOrder(subject, displayOrder) {
+			database.runSync(
+				"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
+				subject,
+				JSON.stringify(displayOrder),
 			);
 		},
 		listRecent(subject, limit = 50) {
