@@ -76,6 +76,15 @@ export type NutritionDiaryOperation =
 			readonly meal?: NutritionMealSlot;
 	  }
 	| {
+			readonly kind: "group";
+			readonly targets: readonly NutritionOperationTarget[];
+			readonly comboGroup: {
+				readonly id: string;
+				readonly comboId: string;
+				readonly name: string;
+			};
+	  }
+	| {
 			readonly kind: "remove";
 			readonly target: NutritionOperationTarget;
 	  };

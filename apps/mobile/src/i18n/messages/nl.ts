@@ -287,7 +287,7 @@ export const nl = {
 			saveFailure:
 				"Deze Combo kon niet worden opgeslagen. Je naam en selectie staan er nog.",
 			selectionHelp:
-				"Kies afzonderlijke dagboekitems. Maaltijdvakken worden nooit automatisch geselecteerd.",
+				"Kies dagboekitems of een hele gelogde Combo uit één maaltijd.",
 			selectEntry: "Selecteer {name} voor Combo",
 			cancel: "Annuleren",
 			continueOne: "Ga verder met 1 onderdeel",
@@ -303,7 +303,7 @@ export const nl = {
 			needsAttention: "Aandacht nodig",
 			missing: "Bron ontbreekt",
 			missingBody:
-				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Het is niet automatisch vervangen. Verwijder niet-beschikbare onderdelen, verwijder deze Combo of maak hem opnieuw met de gewenste items.",
+				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Sluit het voor deze log uit, verwijder niet-beschikbare onderdelen uit de opgeslagen Combo of maak de Combo opnieuw.",
 			resolveTitle: "Niet-beschikbare onderdelen verwijderen?",
 			resolveBody:
 				"Alleen onderdelen waarvan de oorspronkelijke bron nog beschikbaar is, blijven in deze Combo staan.",

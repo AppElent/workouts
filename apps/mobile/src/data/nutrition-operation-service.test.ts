@@ -108,6 +108,113 @@ describe("nutrition replay service", () => {
 		service.dispose();
 		db.closeSync();
 	});
+	it("groups pending entries locally and replays only after their create batch", async () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		const remote = jest.fn().mockResolvedValue({
+			entryIds: [],
+			clientEntryIds: [],
+			days: [],
+		});
+		const service = new NutritionOperationService(repo, remote);
+		service.setOnline(false);
+		service.setSubject("alice");
+		service.createBatch("alice", snapshot.date, snapshot.meal, [
+			{ ...snapshot, clientEntryId: "apple-entry" },
+			{
+				...snapshot,
+				name: { en: "Oats", nl: "Havermout" },
+				clientEntryId: "oats-entry",
+			},
+		]);
+		service.group(
+			"alice",
+			snapshot.date,
+			snapshot.meal,
+			[
+				{ kind: "clientEntryId", id: "apple-entry" },
+				{ kind: "clientEntryId", id: "oats-entry" },
+			],
+			{ id: "logged-combo-1", comboId: "combo-1", name: "Apple oats" },
+		);
+
+		expect(
+			service
+				.getProjectedDay("alice", snapshot.date)
+				.entries.map((entry) => entry.comboGroup?.name),
+		).toEqual(["Apple oats", "Apple oats"]);
+		service.setOnline(true);
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(
+			remote.mock.calls.map(([envelope]) => envelope.operation.kind),
+		).toEqual(["createBatch", "group"]);
+		service.dispose();
+		db.closeSync();
+	});
+	it("rejects a group locally without accepting any partial grouping", () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		const service = new NutritionOperationService(repo, jest.fn());
+		service.setOnline(false);
+		service.setSubject("alice");
+		service.create("alice", { ...snapshot, clientEntryId: "apple-entry" });
+
+		expect(() =>
+			service.group(
+				"alice",
+				snapshot.date,
+				snapshot.meal,
+				[
+					{ kind: "clientEntryId", id: "apple-entry" },
+					{ kind: "clientEntryId", id: "missing-entry" },
+				],
+				{ id: "logged-combo-1", comboId: "combo-1", name: "Apple oats" },
+			),
+		).toThrow("available in the same Meal Slot");
+		expect(repo.listOperations("alice")).toHaveLength(1);
+		expect(repo.projectDay("alice", snapshot.date).entries[0].comboGroup).toBe(
+			undefined,
+		);
+		service.dispose();
+		db.closeSync();
+	});
+	it("rejects regrouping only part of an existing Logged Combo", () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		const service = new NutritionOperationService(repo, jest.fn());
+		service.setOnline(false);
+		service.setSubject("alice");
+		const existingGroup = {
+			id: "old-group",
+			comboId: "old-combo",
+			name: "Old combo",
+		};
+		service.createBatch("alice", snapshot.date, snapshot.meal, [
+			{ ...snapshot, clientEntryId: "apple-entry", comboGroup: existingGroup },
+			{ ...snapshot, clientEntryId: "oats-entry", comboGroup: existingGroup },
+		]);
+
+		expect(() =>
+			service.group(
+				"alice",
+				snapshot.date,
+				snapshot.meal,
+				[{ kind: "clientEntryId", id: "apple-entry" }],
+				{ id: "new-group", comboId: "new-combo", name: "New combo" },
+			),
+		).toThrow("selected as a whole");
+		expect(repo.listOperations("alice")).toHaveLength(1);
+		expect(
+			repo
+				.projectDay("alice", snapshot.date)
+				.entries.map((entry) => entry.comboGroup),
+		).toEqual([existingGroup, existingGroup]);
+		service.dispose();
+		db.closeSync();
+	});
 	it("automatically retries a transient error with the same envelope", async () => {
 		jest.useFakeTimers();
 		const db = new SQLiteTestDatabase();

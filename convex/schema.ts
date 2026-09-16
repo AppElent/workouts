@@ -18,6 +18,7 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_date', ['userId', 'date'])
+    .index('by_user_combo_group', ['userId', 'comboGroup.id'])
     .index('by_user_client_entry', ['userId', 'clientEntryId']),
 
   nutritionDiaryOperationReceipts: defineTable({

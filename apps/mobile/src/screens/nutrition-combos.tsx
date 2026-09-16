@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import {
+	formatQuantity,
 	getShippedFood,
 	NUTRIENT_KEYS,
 	type NutrientValue,
@@ -40,16 +41,38 @@ import { useToast } from "../ui/toast";
 
 const comboNameSchema = z.object({ name: z.string().trim().min(1) });
 
+type PartAdjustment = {
+	included: boolean;
+	scaleInput: string;
+	scaleValue?: number;
+};
+
+function parsedScale(input: string): number {
+	return input.trim() ? Number(input.replace(",", ".")) : 1;
+}
+
+function displayedScale(value: number, locale: "en" | "nl"): string {
+	return new Intl.NumberFormat(locale, {
+		useGrouping: false,
+		maximumFractionDigits: 3,
+	}).format(value);
+}
+
 export function NutritionComboBuilder({
 	entries,
+	date,
+	meal,
 	onSaved,
 }: {
 	entries: readonly DiaryEntry[];
+	date: string;
+	meal: MealSlot;
 	onClose: () => void;
 	onSaved: () => void;
 }) {
 	const { t, locale } = useI18n();
 	const foods = usePersonalFoods();
+	const operations = useNutritionOperations();
 	const toast = useToast();
 	const form = useForm({
 		defaultValues: { name: "" },
@@ -58,7 +81,9 @@ export function NutritionComboBuilder({
 			try {
 				// Yield a paint so synchronous SQLite work still has a visible pending state.
 				await Promise.resolve();
-				foods.createCombo({
+				const subject = operations.getSubject();
+				if (!subject) throw new Error("Not signed in.");
+				const combo = foods.createCombo({
 					name: parsed.name,
 					parts: entries.map((entry) => ({
 						reference: referenceFor(entry),
@@ -73,6 +98,22 @@ export function NutritionComboBuilder({
 						},
 					})),
 				});
+				try {
+					operations.group(
+						subject,
+						date,
+						meal,
+						entries.map((entry) => ({ kind: "serverId", id: entry.id })),
+						{
+							id: mintNutritionUuid(),
+							comboId: combo.id,
+							name: combo.name,
+						},
+					);
+				} catch (error) {
+					foods.removeCombo(combo.id);
+					throw error;
+				}
 				toast.success(t.nutrition.combos.saved);
 				onSaved();
 			} catch {
@@ -153,19 +194,67 @@ export function NutritionComboLibrary({
 	const confirm = useConfirm();
 	const [meal, setMeal] = useState<MealSlot>(initialMeal);
 	const [scaleInput, setScaleInput] = useState("");
+	const [scaleValue, setScaleValue] = useState<number>();
 	const [logging, setLogging] = useState(false);
 	const loggingRef = useRef(false);
 	const [deleting, setDeleting] = useState(false);
 	const combos = foods.listCombos();
 	const selected = combos.find((combo) => combo.id === selectedComboId);
+	const [partAdjustments, setPartAdjustments] = useState<
+		Record<string, PartAdjustment>
+	>(() =>
+		Object.fromEntries(
+			(selected?.parts ?? []).map((part) => [
+				part.id,
+				{ included: true, scaleInput: "" },
+			]),
+		),
+	);
 	const cookingCopy = nutritionCookingCopy(locale);
-	const scale = scaleInput.trim() ? Number(scaleInput.replace(",", ".")) : 1;
+	const scale = scaleValue ?? parsedScale(scaleInput);
 	const scaleValid = Number.isFinite(scale) && scale > 0;
 	const hasMissing =
 		selected?.parts.some((part) => part.status === "missing") ?? false;
+	const adjustedParts =
+		selected?.parts.map((part) => {
+			const adjustment = partAdjustments[part.id] ?? {
+				included: true,
+				scaleInput: "",
+			};
+			const partScale =
+				adjustment.scaleValue ?? parsedScale(adjustment.scaleInput);
+			const partScaleValid = Number.isFinite(partScale) && partScale > 0;
+			const resolved =
+				part.status === "available" ? resolvePart(part, foods.find) : undefined;
+			const previewSnapshot = resolved ?? part.snapshot;
+			const preview =
+				scaleValid && partScaleValid
+					? scaleComboSnapshot(previewSnapshot, scale * partScale)
+					: undefined;
+			return {
+				part,
+				...adjustment,
+				partScale,
+				partScaleValid,
+				preview,
+			};
+		}) ?? [];
+	const includedParts = adjustedParts.filter((part) => part.included);
+	const hasIncludedMissing = includedParts.some(
+		({ part }) => part.status === "missing",
+	);
+	const adjustmentsValid = includedParts.every((part) => part.partScaleValid);
 
 	async function log() {
-		if (!selected || hasMissing || loggingRef.current) return;
+		if (
+			!selected ||
+			hasIncludedMissing ||
+			includedParts.length === 0 ||
+			!scaleValid ||
+			!adjustmentsValid ||
+			loggingRef.current
+		)
+			return;
 		loggingRef.current = true;
 		setLogging(true);
 		try {
@@ -180,8 +269,11 @@ export function NutritionComboLibrary({
 				subject,
 				date,
 				meal,
-				selected.parts.map((part) => ({
-					...scaleComboSnapshot(resolvePart(part, foods.find), scale),
+				includedParts.map(({ part, partScale }) => ({
+					...scaleComboSnapshot(
+						resolvePart(part, foods.find),
+						scale * partScale,
+					),
 					date,
 					meal,
 					comboGroup,
@@ -246,6 +338,48 @@ export function NutritionComboLibrary({
 		}
 	}
 
+	function updatePart(partId: string, patch: Partial<PartAdjustment>) {
+		setPartAdjustments((current) => ({
+			...current,
+			[partId]: {
+				included: current[partId]?.included ?? true,
+				scaleInput: current[partId]?.scaleInput ?? "",
+				...patch,
+			},
+		}));
+	}
+
+	function commitPartScale(partId: string) {
+		const adjustment = partAdjustments[partId];
+		const input = adjustment?.scaleInput ?? "";
+		const value = adjustment?.scaleValue ?? parsedScale(input);
+		if (!input.trim() || !Number.isFinite(value) || value <= 0) return;
+		updatePart(partId, {
+			scaleInput: displayedScale(value, locale),
+			scaleValue: value,
+		});
+	}
+
+	function commitWholeScale() {
+		const value = scaleValue ?? parsedScale(scaleInput);
+		if (!scaleInput.trim() || !Number.isFinite(value) || value <= 0) return;
+		setScaleValue(value);
+		setScaleInput(displayedScale(value, locale));
+	}
+
+	function resetAdjustments() {
+		setScaleInput("");
+		setScaleValue(undefined);
+		setPartAdjustments(
+			Object.fromEntries(
+				(selected?.parts ?? []).map((part) => [
+					part.id,
+					{ included: true, scaleInput: "" },
+				]),
+			),
+		);
+	}
+
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
@@ -274,26 +408,94 @@ export function NutritionComboLibrary({
 						</Card>
 					) : null}
 					<Card>
-						{selected.parts.map((part) => (
-							<View key={part.id} style={styles.row}>
-								<AppText style={styles.flex}>
-									{part.snapshot.name[locale]}
-								</AppText>
-								<AppText
-									variant="caption"
-									style={part.status === "missing" ? styles.missing : undefined}
-								>
-									{part.status === "missing"
-										? t.nutrition.combos.missing
-										: part.snapshot.serving[locale]}
-								</AppText>
-							</View>
-						))}
+						{adjustedParts.map(
+							({
+								part,
+								included,
+								scaleInput: partInput,
+								partScaleValid,
+								preview,
+							}) => {
+								const name = part.snapshot.name[locale];
+								return (
+									<View key={part.id} style={styles.partRow}>
+										<View style={styles.row}>
+											<Pressable
+												onPress={() =>
+													updatePart(part.id, { included: !included })
+												}
+												accessibilityRole="checkbox"
+												accessibilityState={{ checked: included }}
+												accessibilityLabel={
+													locale === "nl"
+														? `${included ? "Sluit uit" : "Voeg toe"}: ${name}`
+														: `${included ? "Exclude" : "Include"} ${name}`
+												}
+												style={styles.includeToggle}
+											>
+												<AppText
+													style={{
+														color: included ? colors.accent : colors.textMuted,
+													}}
+												>
+													{included ? "☑" : "☐"}
+												</AppText>
+											</Pressable>
+											<View style={styles.flex}>
+												<AppText style={styles.strong}>{name}</AppText>
+												<AppText
+													variant="caption"
+													style={
+														part.status === "missing"
+															? styles.missing
+															: undefined
+													}
+												>
+													{part.status === "missing"
+														? t.nutrition.combos.missing
+														: part.snapshot.serving[locale]}
+												</AppText>
+											</View>
+										</View>
+										<View style={styles.partControls}>
+											<TextInput
+												value={partInput}
+												onChangeText={(value) =>
+													updatePart(part.id, {
+														scaleInput: value,
+														scaleValue: undefined,
+													})
+												}
+												onBlur={() => commitPartScale(part.id)}
+												placeholder="1"
+												keyboardType="decimal-pad"
+												accessibilityLabel={
+													locale === "nl" ? `Schaal ${name}` : `Scale ${name}`
+												}
+												style={[styles.input, styles.partInput]}
+											/>
+											<AppText
+												variant="caption"
+												style={!partScaleValid ? styles.missing : undefined}
+											>
+												{preview
+													? `${locale === "nl" ? "Eindhoeveelheid" : "Final amount"}: ${formatQuantity(preview.amount, locale)} ${preview.baseUnit}`
+													: cookingCopy.comboScaleInvalid}
+											</AppText>
+										</View>
+									</View>
+								);
+							},
+						)}
 					</Card>
 					<AppText variant="label">{cookingCopy.comboScale}</AppText>
 					<TextInput
 						value={scaleInput}
-						onChangeText={setScaleInput}
+						onChangeText={(value) => {
+							setScaleInput(value);
+							setScaleValue(undefined);
+						}}
+						onBlur={commitWholeScale}
 						placeholder="1"
 						keyboardType="decimal-pad"
 						accessibilityLabel={cookingCopy.comboScale}
@@ -304,6 +506,12 @@ export function NutritionComboLibrary({
 							? cookingCopy.comboScaleHelp
 							: cookingCopy.comboScaleInvalid}
 					</AppText>
+					<GhostButton
+						label={
+							locale === "nl" ? "Aanpassingen herstellen" : "Reset adjustments"
+						}
+						onPress={resetAdjustments}
+					/>
 					<AppText variant="label">{t.nutrition.combos.destination}</AppText>
 					<View style={styles.meals}>
 						{MEAL_SLOTS.map((slot) => (
@@ -322,14 +530,20 @@ export function NutritionComboLibrary({
 						label={
 							logging
 								? t.nutrition.combos.logging
-								: selected.parts.length === 1
+								: includedParts.length === 1
 									? t.nutrition.combos.logOne
 									: fmt(t.nutrition.combos.logMany, {
-											count: selected.parts.length,
+											count: includedParts.length,
 										})
 						}
 						onPress={log}
-						disabled={hasMissing || deleting || !scaleValid}
+						disabled={
+							hasIncludedMissing ||
+							includedParts.length === 0 ||
+							deleting ||
+							!scaleValid ||
+							!adjustmentsValid
+						}
 						loading={logging}
 					/>
 					<GhostButton
@@ -513,6 +727,25 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: spacing.sm,
 		paddingVertical: spacing.sm,
+	},
+	partRow: {
+		paddingVertical: spacing.sm,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: colors.border,
+		gap: spacing.sm,
+	},
+	partControls: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: spacing.sm,
+		paddingLeft: 44,
+	},
+	partInput: { width: 88 },
+	includeToggle: {
+		minWidth: 44,
+		minHeight: 44,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	meals: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 	meal: {

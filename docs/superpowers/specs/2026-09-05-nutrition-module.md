@@ -82,9 +82,9 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 59. As a user, I want lookup failure, poor coverage, or invalid imported data to leave Search and Enter manually available, so that online failure never blocks logging.
 60. As a user, I want repeated online lookups cached briefly, so that the provider is not queried unnecessarily.
 61. As a user, I want the request cache to expire rather than become a local provider mirror, so that licensing and storage boundaries stay clear.
-62. As a user, I want to save selected diary entries as a named Combo, so that I can log foods I commonly eat together in one step.
+62. As a user, I want to save selected Diary Entries from one Meal Slot as a named Combo and see those entries replaced by one Logged Combo, so that the shortcut and current diary occurrence stay aligned.
 63. As a user, I want a Combo to contain shipped foods, Personal Foods, and one-off entries, so that common combinations are flexible.
-64. As a user, I want Combo quantities fixed at creation, so that logging remains one tap.
+64. As a user, I want Combo quantities saved as defaults while allowing temporary whole-Combo and per-part scaling when logging, so that the shortcut stays reusable when today's amounts differ.
 65. As a user, I want logging a Combo to create individual diary entries shown as one collapsed group, so that the diary is compact without losing item-level control.
 66. As a user, I want to expand a logged Combo and adjust each part, so that today's portion can differ from the shortcut.
 67. As a user, I want a Combo to be independent of a meal slot, so that I can choose its destination when logging.
@@ -182,9 +182,9 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 
 ### Combos
 
-- A Combo is created by selecting existing diary entries, not by saving an entire meal slot.
+- A Combo is created by selecting existing Diary Entries from one Meal Slot. Saving groups those exact entries in place as one Logged Combo; selecting an existing Logged Combo selects and flattens all of its parts.
 - It stores a name and references plus fixed quantities for shipped foods, Personal Foods, and one-off entries. It has no meal slot and cannot contain another Combo.
-- Logging a Combo writes one diary entry per part with a shared snapshotted group stamp.
+- Logging a Combo writes one Diary Entry per included part with a shared snapshotted group stamp. A whole-Combo scale and each included part's scale combine multiplicatively for that log without changing the saved defaults; parts may be temporarily excluded, but at least one part must remain.
 - The day view renders those entries as one collapsed row. Expansion exposes each underlying entry for normal adjustment or deletion.
 - Combo references do not silently follow a Personal Food fork. Missing/deleted references are marked and require user resolution.
 - The logged diary snapshots remain valid even if the device-only Combo or one of its source foods later disappears.
@@ -234,7 +234,7 @@ All eight supported nutrients are stored and visible: energy, protein, carbohydr
 - Synchronization of Personal Foods and Combos between devices.
 - Web Nutrition UI.
 - Adaptive goals, expenditure calculation, training-load-based targets, or medical/personalized dietary recommendations.
-- Nested Combos or arbitrary Combo scaling at log time.
+- Nested Combos or editing saved Combo defaults from the logging flow.
 - Arbitrary density conversion or arbitrary millilitre input for mass-based NEVO beverages.
 - Removing Gather's deprecated nutrition module.
 - Building the EAS/OTA delivery pipeline as part of Nutrition.

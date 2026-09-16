@@ -120,8 +120,16 @@ A named amount of a Food, such as one banana or one slice. A Food may offer seve
 _Avoid_: Portion, serving size
 
 **Combo**:
-A named reusable collection of Foods and One-off Entries that are logged together. Future logs use current figures from referenced Foods, while the resulting Diary Entries remain frozen snapshots.
+A named reusable ordered collection of Foods and One-off Entries that are logged together. Future logs use current figures from referenced Foods, while the resulting Diary Entries remain frozen snapshots.
 _Avoid_: Meal, Routine, preset
+
+**Logged Combo**:
+A named group of Diary Entries representing one occurrence of a Combo in the Nutrition Diary. Its entries remain frozen snapshots even when the reusable Combo later changes or becomes unavailable.
+_Avoid_: Combo when distinguishing diary history from the reusable definition
+
+**Combo Scale**:
+A temporary multiplier used while logging a Combo. A whole-Combo scale combines multiplicatively with each included part's scale without changing the reusable Combo.
+_Avoid_: Serving, saved quantity
 
 **Recipe**:
 A Personal Food categorized as a prepared dish so it can be found and logged as such. Recipe is a classification, not a separate record type or a claim about the precision of its nutrition figures.

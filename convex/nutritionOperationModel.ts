@@ -41,6 +41,15 @@ export const operationArgs = {
 			date: v.optional(v.string()),
 			meal: v.optional(mealSlot),
 		}),
+		v.object({
+			kind: v.literal("group"),
+			targets: v.array(operationTarget),
+			comboGroup: v.object({
+				id: v.string(),
+				comboId: v.string(),
+				name: v.string(),
+			}),
+		}),
 		v.object({ kind: v.literal("remove"), target: operationTarget }),
 	),
 } satisfies Record<keyof NutritionOperationEnvelope, unknown>;

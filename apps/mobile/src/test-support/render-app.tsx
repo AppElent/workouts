@@ -142,5 +142,5 @@ export function renderApp(
 		},
 		{ initialUrl },
 	);
-	return Object.assign(rendered, { repository, offCache });
+	return Object.assign(rendered, { repository, offCache, nutritionRepository });
 }

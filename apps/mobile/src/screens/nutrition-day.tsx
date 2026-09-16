@@ -77,6 +77,7 @@ export function NutritionDayScreen() {
 	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
 		() => new Set(),
 	);
+	const [selectedMeal, setSelectedMeal] = useState<MealSlot | null>(null);
 
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
@@ -113,6 +114,7 @@ export function NutritionDayScreen() {
 		setShowCalendar(false);
 		setSelecting(false);
 		setSelectedEntryIds(new Set());
+		setSelectedMeal(null);
 	}
 
 	function openFoodBrowser(slot: MealSlot) {
@@ -252,6 +254,13 @@ export function NutritionDayScreen() {
 							t={t}
 							selecting={selecting}
 							selectedCount={selectedEntryIds.size}
+							selectionConstraint={
+								selectedMeal
+									? locale === "nl"
+										? `Alleen invoer uit ${t.nutrition.meals[selectedMeal]} kan worden geselecteerd.`
+										: `Only entries from ${t.nutrition.meals[selectedMeal]} can be selected.`
+									: undefined
+							}
 							onCreate={() => setSelecting(true)}
 							onLog={() =>
 								router.push({
@@ -262,6 +271,7 @@ export function NutritionDayScreen() {
 							onCancel={() => {
 								setSelecting(false);
 								setSelectedEntryIds(new Set());
+								setSelectedMeal(null);
 							}}
 							onContinue={() => {
 								if (selectedEntryIds.size === 0) return;
@@ -274,6 +284,7 @@ export function NutritionDayScreen() {
 									},
 								});
 								setSelectedEntryIds(new Set());
+								setSelectedMeal(null);
 							}}
 						/>
 
@@ -309,18 +320,31 @@ export function NutritionDayScreen() {
 									setSelectedEntryIds(
 										new Set(state.day.entries[slot].map((entry) => entry.id)),
 									);
+									setSelectedMeal(slot);
 									setSelecting(true);
 								}}
 								selecting={selecting}
+								selectionLocked={selectedMeal !== null && selectedMeal !== slot}
 								selectedEntryIds={selectedEntryIds}
-								onToggleEntry={(entry) =>
-									setSelectedEntryIds((current) => {
-										const next = new Set(current);
-										if (next.has(entry.id)) next.delete(entry.id);
-										else next.add(entry.id);
-										return next;
-									})
-								}
+								onToggleEntry={(entry) => {
+									if (selectedMeal !== null && selectedMeal !== slot) return;
+									const next = new Set(selectedEntryIds);
+									if (next.has(entry.id)) next.delete(entry.id);
+									else next.add(entry.id);
+									setSelectedEntryIds(next);
+									setSelectedMeal(next.size === 0 ? null : slot);
+								}}
+								onToggleGroup={(parts) => {
+									if (selectedMeal !== null && selectedMeal !== slot) return;
+									const next = new Set(selectedEntryIds);
+									const allSelected = parts.every((part) => next.has(part.id));
+									for (const part of parts) {
+										if (allSelected) next.delete(part.id);
+										else next.add(part.id);
+									}
+									setSelectedEntryIds(next);
+									setSelectedMeal(next.size === 0 ? null : slot);
+								}}
 							/>
 						))}
 
@@ -888,12 +912,14 @@ function ComboControls({
 	t,
 	selecting,
 	selectedCount,
+	selectionConstraint,
 	onCancel,
 	onContinue,
 }: {
 	t: Messages;
 	selecting: boolean;
 	selectedCount: number;
+	selectionConstraint?: string;
 	onCreate: () => void;
 	onLog: () => void;
 	onCancel: () => void;
@@ -903,6 +929,9 @@ function ComboControls({
 		return (
 			<GroupedSurface style={styles.comboControls}>
 				<AppText>{t.nutrition.combos.selectionHelp}</AppText>
+				{selectionConstraint ? (
+					<AppText variant="caption">{selectionConstraint}</AppText>
+				) : null}
 				<View style={styles.comboActions}>
 					<GhostButton label={t.nutrition.combos.cancel} onPress={onCancel} />
 					<PrimaryButton
@@ -937,8 +966,10 @@ function MealSection({
 	onEdit,
 	onDelete,
 	selecting,
+	selectionLocked,
 	selectedEntryIds,
 	onToggleEntry,
+	onToggleGroup,
 }: {
 	t: Messages;
 	slot: MealSlot;
@@ -952,8 +983,10 @@ function MealSection({
 	onEdit: (entry: DiaryEntry) => void;
 	onDelete: (entry: DiaryEntry) => void;
 	selecting: boolean;
+	selectionLocked: boolean;
 	selectedEntryIds: ReadonlySet<string>;
 	onToggleEntry: (entry: DiaryEntry) => void;
+	onToggleGroup: (entries: readonly DiaryEntry[]) => void;
 }) {
 	const mealName = t.nutrition.meals[slot];
 	const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
@@ -1020,6 +1053,7 @@ function MealSection({
 									date={date}
 									locale={locale}
 									selecting={selecting}
+									disabled={selectionLocked}
 									selected={selectedEntryIds.has(entry.id)}
 									onPress={() =>
 										selecting ? onToggleEntry(entry) : onEdit(entry)
@@ -1034,25 +1068,35 @@ function MealSection({
 						const parts = entries.filter(
 							(candidate) => candidate.comboGroup?.id === group.id,
 						);
-						const expanded = selecting || expandedGroups.has(group.id);
+						const groupSelected = parts.every((part) =>
+							selectedEntryIds.has(part.id),
+						);
+						const expanded = !selecting && expandedGroups.has(group.id);
 						return (
 							<View key={group.id}>
 								<Pressable
-									disabled={selecting}
-									accessible={!selecting}
-									onPress={() =>
-										setExpandedGroups((current) => {
-											const next = new Set(current);
-											if (next.has(group.id)) next.delete(group.id);
-											else next.add(group.id);
-											return next;
-										})
+									disabled={selecting && selectionLocked}
+									onPress={() => {
+										if (selecting) onToggleGroup(parts);
+										else
+											setExpandedGroups((current) => {
+												const next = new Set(current);
+												if (next.has(group.id)) next.delete(group.id);
+												else next.add(group.id);
+												return next;
+											});
+									}}
+									accessibilityRole={selecting ? "checkbox" : "button"}
+									accessibilityState={
+										selecting
+											? { checked: groupSelected, disabled: selectionLocked }
+											: { expanded }
 									}
-									accessibilityRole={selecting ? undefined : "button"}
-									accessibilityState={selecting ? undefined : { expanded }}
 									accessibilityLabel={
 										selecting
-											? undefined
+											? locale === "nl"
+												? `Selecteer gelogde Combo ${group.name} voor Combo`
+												: `Select Logged Combo ${group.name} for Combo`
 											: fmt(
 													expanded
 														? t.nutrition.combos.collapseGroup
@@ -1060,9 +1104,25 @@ function MealSection({
 													{ name: group.name },
 												)
 									}
-									style={styles.entryRow}
+									style={[
+										styles.entryRow,
+										selecting && selectionLocked
+											? styles.selectionUnavailable
+											: null,
+									]}
 								>
 									<View style={styles.flex}>
+										{selecting ? (
+											<AppText
+												style={{
+													color: groupSelected
+														? colors.accent
+														: colors.textMuted,
+												}}
+											>
+												{groupSelected ? "☑" : "☐"}
+											</AppText>
+										) : null}
 										<AppText style={styles.goalName}>{group.name}</AppText>
 										<AppText variant="caption">
 											{parts.length === 1
@@ -1081,7 +1141,9 @@ function MealSection({
 										)}{" "}
 										{t.nutrition.units.kcal}
 									</AppText>
-									<AppText variant="heading">{expanded ? "⌃" : "⌄"}</AppText>
+									{selecting ? null : (
+										<AppText variant="heading">{expanded ? "⌃" : "⌄"}</AppText>
+									)}
 								</Pressable>
 								{expanded
 									? parts.map((part) => (
@@ -1093,6 +1155,7 @@ function MealSection({
 												date={date}
 												locale={locale}
 												selecting={selecting}
+												disabled={selectionLocked}
 												selected={selectedEntryIds.has(part.id)}
 												inGroup
 												onPress={() =>
@@ -1133,6 +1196,7 @@ function EntryRow({
 	locale,
 	selecting,
 	selected,
+	disabled = false,
 	inGroup = false,
 	onPress,
 	onDelete,
@@ -1145,6 +1209,7 @@ function EntryRow({
 	locale: "en" | "nl";
 	selecting: boolean;
 	selected: boolean;
+	disabled?: boolean;
 	/** Indents the row under its Combo header. Only a part is ever nested. */
 	inGroup?: boolean;
 	onPress: () => void;
@@ -1154,8 +1219,11 @@ function EntryRow({
 	const content = (accessibility?: RowAccessibilityProps) => (
 		<Pressable
 			onPress={onPress}
+			disabled={disabled}
 			accessibilityRole={selecting ? "checkbox" : "button"}
-			accessibilityState={selecting ? { checked: selected } : undefined}
+			accessibilityState={
+				selecting ? { checked: selected, disabled } : undefined
+			}
 			accessibilityLabel={
 				selecting
 					? fmt(t.nutrition.combos.selectEntry, {
@@ -1167,6 +1235,7 @@ function EntryRow({
 			}
 			{...accessibility}
 			style={({ pressed }) => [
+				disabled ? styles.selectionUnavailable : null,
 				pressed ? { backgroundColor: colors.surface2 } : null,
 			]}
 		>
@@ -1514,6 +1583,7 @@ const styles = StyleSheet.create({
 		maxWidth: "38%",
 		flexShrink: 1,
 	},
+	selectionUnavailable: { opacity: 0.45 },
 	comboPart: { paddingLeft: spacing.sm },
 	groupedRow: { padding: spacing.md },
 	groupedEntryRow: {
