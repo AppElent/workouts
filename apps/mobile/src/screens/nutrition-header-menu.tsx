@@ -8,6 +8,11 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 			label={props.label}
 			closeLabel={props.closeLabel}
 			actions={[
+				{
+					label: props.weekOverviewLabel,
+					onPress: props.onOpenWeekOverview,
+					dividerAfter: true,
+				},
 				{ label: props.createComboLabel, onPress: props.onCreateCombo },
 				{ label: props.logComboLabel, onPress: props.onLogCombo },
 				{ label: props.recipesLabel, onPress: props.onOpenRecipes },

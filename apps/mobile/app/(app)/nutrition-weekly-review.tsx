@@ -8,7 +8,9 @@ export default function NutritionWeeklyReviewRoute() {
 	return (
 		<NutritionWeeklyReviewScreen
 			startDate={startDate}
-			onClose={() => router.back()}
+			onSelectDay={(date) =>
+				router.dismissTo({ pathname: "/nutrition", params: { date } })
+			}
 		/>
 	);
 }
