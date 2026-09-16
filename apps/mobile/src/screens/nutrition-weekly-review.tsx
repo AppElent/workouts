@@ -8,6 +8,7 @@ import {
 	shiftIsoDate,
 	todayIsoDate,
 } from "../data/calendar-day";
+import { useNutritionDrafts } from "../data/nutrition-drafts";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
@@ -18,11 +19,12 @@ import {
 	weekStartMonday,
 } from "../data/nutrition-weekly-review";
 import { useStalledOffline } from "../data/stalled-offline";
-import { useI18n } from "../i18n";
+import { fmt, useI18n } from "../i18n";
 import { getNutritionAssistanceMessages } from "../i18n/messages/nutrition-assistance";
 import { colors, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
+import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
@@ -35,9 +37,11 @@ export function NutritionWeeklyReviewScreen({
 	startDate?: string;
 	onClose: () => void;
 }) {
-	const { locale } = useI18n();
+	const { locale, t } = useI18n();
 	const messages = getNutritionAssistanceMessages(locale);
 	const toast = useToast();
+	const confirm = useConfirm();
+	const drafts = useNutritionDrafts();
 	const operations = useNutritionOperations();
 	useNutritionOperationVersion();
 	const initial = isDate(startDate)
@@ -69,6 +73,19 @@ export function NutritionWeeklyReviewScreen({
 
 	async function toggle(day: WeeklyReviewDay) {
 		if (pendingDate) return;
+		// Completeness is a claim about intake, and a note is not intake — so
+		// notes never block the mark, but nobody should make it unaware of them.
+		const noteCount = drafts.listForDate(day.date).length;
+		if (!day.markedComplete && noteCount > 0) {
+			const approved = await confirm({
+				title: t.nutrition.drafts.completeWithNotesTitle,
+				message: fmt(t.nutrition.drafts.completeWithNotesBody, {
+					count: noteCount,
+				}),
+				confirmLabel: messages.markComplete,
+			});
+			if (!approved) return;
+		}
 		setPendingDate(day.date);
 		try {
 			await toggleComplete({ date: day.date, completed: !day.markedComplete });
@@ -151,6 +168,10 @@ export function NutritionWeeklyReviewScreen({
 							day={day}
 							locale={locale}
 							messages={messages}
+							noteLabel={noteCountLabel(
+								drafts.listForDate(day.date).length,
+								t.nutrition.drafts,
+							)}
 							pending={pendingDate === day.date}
 							onToggle={() => toggle(day)}
 						/>
@@ -165,16 +186,27 @@ export function NutritionWeeklyReviewScreen({
 	);
 }
 
+function noteCountLabel(
+	count: number,
+	copy: { countOne: string; countMany: string },
+): string | undefined {
+	if (count === 0) return undefined;
+	return count === 1 ? copy.countOne : fmt(copy.countMany, { count });
+}
+
 function ReviewDayCard({
 	day,
 	locale,
 	messages,
+	noteLabel,
 	pending,
 	onToggle,
 }: {
 	day: WeeklyReviewDay;
 	locale: "en" | "nl";
 	messages: ReturnType<typeof getNutritionAssistanceMessages>;
+	/** "2 notes" — Capture Drafts on this day that are not intake yet. */
+	noteLabel?: string;
 	pending: boolean;
 	onToggle: () => void;
 }) {
@@ -197,6 +229,7 @@ function ReviewDayCard({
 					) : (
 						<AppText variant="caption">{messages.dayUnknown}</AppText>
 					)}
+					{noteLabel ? <AppText variant="caption">{noteLabel}</AppText> : null}
 				</View>
 				<GhostButton
 					label={
