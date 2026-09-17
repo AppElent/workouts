@@ -3,19 +3,21 @@ import {
 	type NutrientKey,
 	type NutrientTotal,
 } from "@workouts/core";
-import { mutation, query } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import {
-	nutritionReviewToggleArgs,
-	nutritionReviewToggleResult,
+	resolveGoalHistory,
+	type EffectiveGoalVersion,
+	type NutritionGoal,
+} from "./nutritionGoalModel";
+import {
 	nutritionReviewWeekArgs,
 	nutritionReviewWeekResult,
 } from "./nutritionReviewModel";
 
 const MAX_ENTRIES_PER_DAY = 500;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-async function requireUser(ctx: QueryCtx | MutationCtx) {
+async function requireUser(ctx: QueryCtx) {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
@@ -34,6 +36,13 @@ function assertRealDate(date: string) {
 	}
 }
 
+function assertMonday(date: string) {
+	const [year, month, day] = date.split("-").map(Number);
+	if (new Date(Date.UTC(year, month - 1, day)).getUTCDay() !== 1) {
+		throw new Error("A Week overview must start on Monday.");
+	}
+}
+
 function addDays(date: string, days: number) {
 	const [year, month, day] = date.split("-").map(Number);
 	const result = new Date(Date.UTC(year, month - 1, day + days));
@@ -44,57 +53,91 @@ function addDays(date: string, days: number) {
 	].join("-");
 }
 
-function publicEntry(entry: Doc<"nutritionDiaryEntries">) {
-	return {
-		date: entry.date,
-		meal: entry.meal,
-		...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
-		...(entry.clientEntryId ? { clientEntryId: entry.clientEntryId } : {}),
-		name: entry.name,
-		serving: entry.serving,
-		quantity: entry.quantity,
-		amount: entry.amount,
-		baseUnit: entry.baseUnit,
-		...(entry.estimated ? { estimated: true as const } : {}),
-		nutrients: entry.nutrients,
-		provenance: entry.provenance,
-		loggedAt: entry.loggedAt,
-	};
-}
-
-async function markerFor(ctx: QueryCtx | MutationCtx, userId: string, date: string) {
-	return ctx.db
-		.query("nutritionReviewDayMarkers")
-		.withIndex("by_user_date", (q) =>
-			q.eq("userId", userId).eq("date", date),
-		)
-		.first();
-}
-
 function knownAverage(
-	days: readonly { entries: readonly unknown[]; totals: Record<NutrientKey, NutrientTotal> }[],
+	days: readonly {
+		date: string;
+		entryCount: number;
+		totals: Record<NutrientKey, NutrientTotal>;
+	}[],
 	key: "energy" | "protein",
+	throughDate: string,
 ) {
 	const known = days.filter(
 		(day) =>
-			day.entries.length > 0 &&
-			!day.totals[key].incomplete &&
-			!day.totals[key].qualified,
+			day.date <= throughDate &&
+			day.entryCount > 0 &&
+			!day.totals[key].incomplete,
 	);
-	if (known.length === 0) return { days: 0 };
+	if (known.length === 0) return { days: 0, qualified: false };
 	return {
 		value: known.reduce((sum, day) => sum + day.totals[key].amount, 0) / known.length,
 		days: known.length,
+		qualified: known.some((day) => day.totals[key].qualified),
 	};
+}
+
+async function goalsForWeek(
+	ctx: QueryCtx,
+	userId: string,
+	startDate: string,
+	endDate: string,
+) {
+	const versions = ctx.db.query("nutritionGoalVersions");
+	const [beforeWeek, duringWeek, firstVersion, legacyRows] = await Promise.all([
+		versions
+			.withIndex("by_user_effectiveFrom", (q) =>
+				q.eq("userId", userId).lt("effectiveFrom", startDate),
+			)
+			.order("desc")
+			.first(),
+		versions
+			.withIndex("by_user_effectiveFrom", (q) =>
+				q
+					.eq("userId", userId)
+					.gte("effectiveFrom", startDate)
+					.lte("effectiveFrom", endDate),
+			)
+			.order("asc")
+			.take(8),
+		versions
+			.withIndex("by_user_effectiveFrom", (q) => q.eq("userId", userId))
+			.order("asc")
+			.first(),
+		ctx.db
+			.query("nutritionGoals")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.take(16),
+	]);
+	const relevantVersions: EffectiveGoalVersion[] = [
+		...(beforeWeek ? [beforeWeek] : []),
+		...duringWeek,
+	];
+	const legacyGoals: NutritionGoal[] = legacyRows.map(
+		({ nutrient, direction, target, sourcePreset }) => ({
+			nutrient,
+			direction,
+			target,
+			...(sourcePreset ? { sourcePreset } : {}),
+		}),
+	);
+	return { relevantVersions, firstVersion, legacyGoals };
 }
 
 export const week = query({
 	args: nutritionReviewWeekArgs,
 	returns: nutritionReviewWeekResult,
-	handler: async (ctx, { startDate }) => {
+	handler: async (ctx, { startDate, today }) => {
 		const userId = await requireUser(ctx);
 		assertRealDate(startDate);
+		assertMonday(startDate);
+		if (today !== undefined) assertRealDate(today);
 		const dates = Array.from({ length: 7 }, (_, index) => addDays(startDate, index));
+		const goalHistory = await goalsForWeek(
+			ctx,
+			userId,
+			startDate,
+			dates[6] as string,
+		);
 		const days = [];
 		for (const date of dates) {
 			const entries = await ctx.db
@@ -104,55 +147,37 @@ export const week = query({
 			if (entries.length > MAX_ENTRIES_PER_DAY) {
 				throw new Error("This review day contains too many entries.");
 			}
-			const marker = await markerFor(ctx, userId, date);
+			const resolvedGoals = resolveGoalHistory({
+				date,
+				legacyGoals: goalHistory.legacyGoals,
+				versions: goalHistory.relevantVersions,
+				referenceGoals: goalHistory.firstVersion?.referenceGoals,
+			});
 			days.push({
 				date,
-				entries: entries.map(publicEntry),
+				entryCount: entries.length,
 				totals: totalNutrients(entries.map((entry) => entry.nutrients)),
-				markedComplete: marker?.completed ?? false,
+				goals:
+					resolvedGoals.basis === "effective" ? resolvedGoals.goals : [],
+				goalBasis: resolvedGoals.basis,
+				effectiveFrom: resolvedGoals.effectiveFrom,
 			});
 		}
-		const energy = knownAverage(days, "energy");
-		const protein = knownAverage(days, "protein");
+		const throughDate = today ?? (dates[6] as string);
+		const energy = knownAverage(days, "energy", throughDate);
+		const protein = knownAverage(days, "protein", throughDate);
 		return {
 			startDate,
 			endDate: dates[6] as string,
 			days,
-			coverage: {
-				loggedDayCount: days.filter((day) => day.entries.length > 0).length,
-				markedCompleteCount: days.filter((day) => day.markedComplete).length,
-			},
 			averages: {
 				...(energy.value === undefined ? {} : { energy: energy.value }),
 				...(protein.value === undefined ? {} : { protein: protein.value }),
 				energyDays: energy.days,
 				proteinDays: protein.days,
+				energyQualified: energy.qualified,
+				proteinQualified: protein.qualified,
 			},
 		};
-	},
-});
-
-export const toggleComplete = mutation({
-	args: nutritionReviewToggleArgs,
-	returns: nutritionReviewToggleResult,
-	handler: async (ctx, { date, completed }) => {
-		const userId = await requireUser(ctx);
-		assertRealDate(date);
-		const existing = await markerFor(ctx, userId, date);
-		if (completed) {
-			if (existing) {
-				await ctx.db.patch(existing._id, { completed: true, updatedAt: Date.now() });
-			} else {
-				await ctx.db.insert("nutritionReviewDayMarkers", {
-					userId,
-					date,
-					completed: true,
-					updatedAt: Date.now(),
-				});
-			}
-		} else if (existing) {
-			await ctx.db.delete(existing._id);
-		}
-		return { date, completed };
 	},
 });

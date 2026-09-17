@@ -138,6 +138,36 @@ function device(subject: string, remote: ReturnType<typeof remoteServer>) {
 }
 
 describe("NutritionLibraryService", () => {
+	it("syncs preset icons without ever sending device-local photo paths", async () => {
+		const remote = remoteServer();
+		const first = device("account-a", remote);
+		const icon = first.foods.create({
+			...foodDraft("Apple"),
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		const photo = first.foods.create({
+			...foodDraft("Private photo"),
+			visual: {
+				kind: "photo",
+				uri: "file:///food-photos/private.jpg",
+			},
+		});
+
+		first.service.recordFood(icon);
+		first.service.recordFood(photo);
+		await first.service.replay();
+
+		const iconPayload = JSON.parse(
+			remote.records.get(icon.id)?.payload ?? "{}",
+		);
+		const photoPayload = JSON.parse(
+			remote.records.get(photo.id)?.payload ?? "{}",
+		);
+		expect(iconPayload.visual).toEqual({ kind: "icon", preset: "fruit" });
+		expect(photoPayload).not.toHaveProperty("visual");
+		expect(JSON.stringify(photoPayload)).not.toContain("file://");
+		expect(first.foods.find(photo.id)?.visual).toEqual(photo.visual);
+	});
 	it("replays a pre-upgrade outbox payload without adding fields to its receipt identity", async () => {
 		const database = new SQLiteTestDatabase();
 		const state = createNutritionLibraryStateRepository(database);

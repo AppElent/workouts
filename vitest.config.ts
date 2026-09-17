@@ -28,6 +28,15 @@ export default defineConfig({
 			{
 				extends: true,
 				test: {
+					name: "scripts",
+					include: ["scripts/**/*.test.mjs"],
+					environment: "node",
+					globals: true,
+				},
+			},
+			{
+				extends: true,
+				test: {
 					name: "convex",
 					include: ["convex/**/*.test.ts"],
 					environment: "edge-runtime",

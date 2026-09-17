@@ -91,7 +91,10 @@ function assertNutrients(value: unknown) {
 
 function assertFoodPayload(payload: Record<string, unknown>, id: string) {
 	if (payload.id !== id) throw new Error("Food payload identity is invalid.");
-	normalizePersonalFood(payload as PersonalFood);
+	const food = normalizePersonalFood(payload as PersonalFood);
+	if (food.visual?.kind === "photo") {
+		throw new Error("Device-local Food photos cannot be backed up.");
+	}
 }
 
 function assertComboProvenance(value: unknown, reference: Record<string, unknown>) {
@@ -160,7 +163,7 @@ function assertPayload(id: string, kind: "food" | "combo", payload: string, sche
 	if (kind === "food") assertFoodPayload(candidate, id);
 	else assertComboPayload(candidate, id);
 	const needsCurrentVersion = kind === "food"
-		? ["classification", "nutritionBasis", "estimated", "description"].some((key) => candidate[key] !== undefined)
+		? ["classification", "nutritionBasis", "estimated", "description", "visual"].some((key) => candidate[key] !== undefined)
 		: (candidate.parts as { snapshot: { estimated?: true; baseUnit: string } }[]).some(({ snapshot }) => snapshot.estimated !== undefined || snapshot.baseUnit === "serving");
 	if (schemaVersion < 2 && needsCurrentVersion) {
 		throw new Error("These library fields require payload schema version 2.");

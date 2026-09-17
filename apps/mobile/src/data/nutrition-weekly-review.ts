@@ -7,19 +7,32 @@ import {
 	type IsoDate,
 	isoDateToLocalDate,
 	shiftIsoDate,
+	todayIsoDate,
 	toIsoDate,
 } from "./calendar-day";
 
 export type WeeklyReviewDay = {
 	readonly date: IsoDate;
-	readonly entries: readonly {
-		readonly name?: { readonly en: string; readonly nl: string };
-		readonly estimated?: true;
-		readonly nutrients: Record<NutrientKey, { kind: string; amount?: number }>;
-	}[];
+	readonly entryCount: number;
 	readonly totals: Record<NutrientKey, NutrientTotal>;
-	readonly markedComplete: boolean;
+	readonly goals: readonly WeeklyGoal[];
+	readonly goalBasis?: "effective" | "reference";
+	readonly effectiveFrom?: string | null;
 };
+
+export type WeeklyGoal = {
+	readonly nutrient: NutrientKey;
+	readonly direction: "min" | "max";
+	readonly target: number;
+};
+
+export type WeeklyGoalStatus =
+	| "noGoal"
+	| "below"
+	| "met"
+	| "within"
+	| "exceeded"
+	| "incomplete";
 
 export function weekStartMonday(date: IsoDate): IsoDate {
 	const local = isoDateToLocalDate(date);
@@ -43,29 +56,49 @@ export function isRealIsoDate(date: string): date is IsoDate {
 	return !Number.isNaN(value.getTime()) && toIsoDate(value) === date;
 }
 
-export function reviewCoverage(days: readonly WeeklyReviewDay[]) {
-	return {
-		loggedDayCount: days.filter((day) => day.entries.length > 0).length,
-		markedCompleteCount: days.filter((day) => day.markedComplete).length,
-	};
+export function canGoToNextWeek(
+	weekStart: IsoDate,
+	today: IsoDate = todayIsoDate(),
+): boolean {
+	return weekStart < weekStartMonday(today);
 }
 
-export function averageKnownNutrient(
-	days: readonly WeeklyReviewDay[],
-	key: "energy" | "protein",
-): { readonly average: number | undefined; readonly dayCount: number } {
-	const knownDays = days.filter(
-		(day) =>
-			day.entries.length > 0 &&
-			!day.totals[key].incomplete &&
-			!day.totals[key].qualified,
-	);
-	if (knownDays.length === 0) return { average: undefined, dayCount: 0 };
+export function evaluateNutrientGoal(
+	amount: number,
+	incomplete: boolean,
+	goals: readonly Pick<WeeklyGoal, "nutrient" | "direction" | "target">[],
+): {
+	readonly status: WeeklyGoalStatus;
+	readonly minimum?: number;
+	readonly maximum?: number;
+} {
+	const minimum = goals.find((goal) => goal.direction === "min")?.target;
+	const maximum = goals.find((goal) => goal.direction === "max")?.target;
+	const bounds = {
+		...(minimum === undefined ? {} : { minimum }),
+		...(maximum === undefined ? {} : { maximum }),
+	};
+	if (incomplete) {
+		return {
+			status:
+				maximum !== undefined && amount > maximum ? "exceeded" : "incomplete",
+			...bounds,
+		};
+	}
+	if (minimum === undefined && maximum === undefined) {
+		return { status: "noGoal" };
+	}
+	if (minimum !== undefined && maximum !== undefined) {
+		if (amount < minimum) return { status: "below", ...bounds };
+		if (amount > maximum) return { status: "exceeded", ...bounds };
+		return { status: "within", ...bounds };
+	}
+	if (minimum !== undefined) {
+		return { status: amount >= minimum ? "met" : "below", ...bounds };
+	}
 	return {
-		average:
-			knownDays.reduce((sum, day) => sum + day.totals[key].amount, 0) /
-			knownDays.length,
-		dayCount: knownDays.length,
+		status: amount > (maximum as number) ? "exceeded" : "within",
+		...bounds,
 	};
 }
 

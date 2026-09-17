@@ -5,21 +5,34 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 } from "@workouts/core/nutrition";
-import { useMemo, useRef, useState } from "react";
+import { Image } from "expo-image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
+	type FoodPhotoCropPosition,
+	type FoodPhotoManager,
+	type FoodPhotoSource,
+	foodPhotos,
+} from "../data/food-photo-manager";
+import {
+	FOOD_VISUAL_PRESET_IDS,
+	type FoodVisual,
+	type FoodVisualPresetId,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	validatePersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
+import { colors, radius, spacing } from "../theme";
 import { PrimaryButton } from "../ui/button";
+import { FoodVisualView } from "../ui/food-visual";
 import {
 	AddRow,
 	DisclosureRow,
 	EditableValueRow,
+	FormChoiceChips,
+	FormPreview,
 	FormScreen,
 	FormSection,
 	FormTextField,
@@ -121,6 +134,7 @@ export function PersonalFoodEditorForm({
 	defaultClassification = "ordinary",
 	onSaved,
 	onCancel,
+	photoManager = foodPhotos,
 }: {
 	food?: PersonalFood;
 	defaultClassification?: "ordinary" | "recipe";
@@ -128,12 +142,29 @@ export function PersonalFoodEditorForm({
 	reviewNotice?: { title: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
+	photoManager?: FoodPhotoManager;
 }) {
 	const { t, locale } = useI18n();
 	const copy = personalFoodEditorCopy[locale];
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
 	const initial = food ?? seed;
+	type EditorVisual =
+		| FoodVisual
+		| { readonly kind: "remote"; readonly uri: string };
+	const [visual, setVisual] = useState<EditorVisual | undefined>(() =>
+		initial?.visual
+			? initial.visual
+			: initial?.provenance.imageUrl && (!food || food.visualMigrationPending)
+				? { kind: "remote", uri: initial.provenance.imageUrl }
+				: undefined,
+	);
+	const [visualError, setVisualError] = useState<string>();
+	const [photoPreparationFailed, setPhotoPreparationFailed] = useState(false);
+	const [photoBusy, setPhotoBusy] = useState(false);
+	const [remoteCrop, setRemoteCrop] = useState<FoodPhotoCropPosition>("center");
+	const stagedPhoto = useRef<string | undefined>(undefined);
+	const savedPhoto = useRef(false);
 	const otherLocale = locale === "en" ? "nl" : "en";
 	const [primaryName, setPrimaryName] = useState(initial?.name[locale] ?? "");
 	const [otherName, setOtherName] = useState(initial?.name[otherLocale] ?? "");
@@ -168,6 +199,15 @@ export function PersonalFoodEditorForm({
 	const [validationError, setValidationError] = useState<string>();
 	const [saving, setSaving] = useState(false);
 	const saveLock = useRef(false);
+
+	useEffect(
+		() => () => {
+			if (!savedPhoto.current && stagedPhoto.current) {
+				photoManager.remove({ kind: "photo", uri: stagedPhoto.current });
+			}
+		},
+		[photoManager],
+	);
 
 	const source = useMemo(
 		() => (initial ? forkSource(initial) : undefined),
@@ -280,11 +320,59 @@ export function PersonalFoodEditorForm({
 		} else if (initial && !draftUnchanged(editable, initial)) {
 			provenance = { ...provenance, locallyEdited: true };
 		}
-		return { ...editable, provenance };
+		const storedVisual = visual?.kind === "remote" ? undefined : visual;
+		return {
+			...editable,
+			provenance,
+			...(storedVisual ? { visual: storedVisual } : {}),
+		};
+	}
+
+	function replaceVisual(next: EditorVisual | undefined) {
+		if (
+			stagedPhoto.current &&
+			(next?.kind !== "photo" || next.uri !== stagedPhoto.current)
+		) {
+			photoManager.remove({ kind: "photo", uri: stagedPhoto.current });
+			stagedPhoto.current = undefined;
+		}
+		setVisual(next);
+		setVisualError(undefined);
+		setPhotoPreparationFailed(false);
+	}
+
+	async function choosePhoto(source: FoodPhotoSource) {
+		if (photoBusy) return;
+		setPhotoBusy(true);
+		setVisualError(undefined);
+		try {
+			const choice = await photoManager.choose(source);
+			if (choice.kind === "denied") {
+				setVisualError(copy.photoPermissionDenied);
+				setPhotoPreparationFailed(false);
+			} else if (choice.kind === "selected") {
+				replaceVisual(choice.visual);
+				stagedPhoto.current = choice.visual.uri;
+			}
+		} catch {
+			setVisualError(copy.photoFailure);
+			setPhotoPreparationFailed(true);
+		} finally {
+			setPhotoBusy(false);
+		}
+	}
+
+	function cancel() {
+		if (stagedPhoto.current) {
+			photoManager.remove({ kind: "photo", uri: stagedPhoto.current });
+			stagedPhoto.current = undefined;
+		}
+		onCancel();
 	}
 
 	async function save() {
 		if (saving || saveLock.current) return;
+		if (photoPreparationFailed) return;
 		setValidationError(undefined);
 		let draft: PersonalFoodDraft;
 		try {
@@ -300,17 +388,38 @@ export function PersonalFoodEditorForm({
 		saveLock.current = true;
 		setSaving(true);
 		await Promise.resolve();
+		let importedPhoto: FoodVisual | undefined;
+		let saved: PersonalFood | undefined;
 		try {
-			const saved = food
+			if (visual?.kind === "remote") {
+				try {
+					importedPhoto = await photoManager.importRemote(
+						visual.uri,
+						remoteCrop,
+					);
+					draft = { ...draft, visual: importedPhoto };
+				} catch {
+					toast.error(copy.importPhotoFailure);
+				}
+			}
+			saved = food
 				? personalFoods.update(food.id, draft)
 				: personalFoods.create(draft);
-			onSaved(saved);
+			if (
+				food?.visual?.kind === "photo" &&
+				(saved.visual?.kind !== "photo" || food.visual.uri !== saved.visual.uri)
+			) {
+				photoManager.remove(food.visual);
+			}
+			savedPhoto.current = true;
 		} catch {
+			if (importedPhoto) photoManager.remove(importedPhoto);
 			toast.error(t.nutrition.personalFood.saveFailure);
 		} finally {
 			saveLock.current = false;
 			setSaving(false);
 		}
+		if (saved) onSaved(saved);
 	}
 
 	function saveServing() {
@@ -388,12 +497,21 @@ export function PersonalFoodEditorForm({
 			? `${copy.perServing.toLowerCase()} (${servingLabel})`
 			: `${copy.per100.toLowerCase()} ${baseUnit}`;
 	const servingNumber = (editingServingIndex ?? servings.length) + 1;
+	const photoUnavailable =
+		visual?.kind === "photo" && !photoManager.isAvailable(visual);
+	const visualChoices = [
+		{ id: "default" as const, label: copy.defaultVisual },
+		...FOOD_VISUAL_PRESET_IDS.map((preset) => ({
+			id: preset,
+			label: copy.visualPresets[preset],
+		})),
+	];
 
 	return (
 		<FormScreen
 			title={title}
 			cancelLabel={t.nutrition.personalFood.cancel}
-			onCancel={saving ? undefined : onCancel}
+			onCancel={saving || photoBusy ? undefined : cancel}
 			primaryAction={{
 				label: saving
 					? t.nutrition.personalFood.saving
@@ -417,6 +535,103 @@ export function PersonalFoodEditorForm({
 					<AppText variant="caption">{reviewNotice.attribution}</AppText>
 				</GroupedSurface>
 			) : null}
+
+			<FormSection title={copy.visual}>
+				<FormPreview>
+					{photoUnavailable ? (
+						<>
+							<FoodVisualView
+								label={copy.visual}
+								accessibilityLabel={copy.visual}
+								size={112}
+							/>
+							<AppText accessibilityRole="alert" style={styles.error}>
+								{copy.photoUnavailable}
+							</AppText>
+						</>
+					) : visual?.kind === "remote" ? (
+						<Image
+							source={visual.uri}
+							accessibilityLabel={copy.visual}
+							contentFit="cover"
+							contentPosition={remoteCrop}
+							style={styles.visualImage}
+						/>
+					) : (
+						<FoodVisualView
+							visual={visual}
+							label={copy.visual}
+							accessibilityLabel={copy.visual}
+							size={112}
+						/>
+					)}
+					{visual?.kind === "photo" || visual?.kind === "remote" ? (
+						<InlineActionRow>
+							<TextAction
+								label={copy.replacePhoto}
+								onPress={() => void choosePhoto("library")}
+								disabled={photoBusy}
+							/>
+							<TextAction
+								label={copy.removePhoto}
+								onPress={() => replaceVisual(undefined)}
+								disabled={photoBusy}
+								tone="destructive"
+							/>
+						</InlineActionRow>
+					) : (
+						<InlineActionRow>
+							<TextAction
+								label={copy.takePhoto}
+								onPress={() => void choosePhoto("camera")}
+								disabled={photoBusy}
+							/>
+							<TextAction
+								label={copy.choosePhoto}
+								onPress={() => void choosePhoto("library")}
+								disabled={photoBusy}
+							/>
+						</InlineActionRow>
+					)}
+				</FormPreview>
+				{visual?.kind === "remote" ? (
+					<>
+						<AppText variant="caption">{copy.cropPosition}</AppText>
+						<FormChoiceChips
+							options={(
+								["center", "top", "bottom", "left", "right"] as const
+							).map((position) => ({
+								id: position,
+								label: copy.cropPositions[position],
+							}))}
+							selectedId={remoteCrop}
+							onSelect={setRemoteCrop}
+						/>
+					</>
+				) : null}
+				{visualError ? (
+					<AppText selectable accessibilityRole="alert" style={styles.error}>
+						{visualError}
+					</AppText>
+				) : null}
+				<FormChoiceChips
+					options={visualChoices}
+					selectedId={
+						visual?.kind === "icon"
+							? visual.preset
+							: visual === undefined
+								? "default"
+								: undefined
+					}
+					onSelect={(id) =>
+						replaceVisual(
+							id === "default"
+								? undefined
+								: { kind: "icon", preset: id as FoodVisualPresetId },
+						)
+					}
+				/>
+			</FormSection>
 
 			<FormSection>
 				<FormTextField
@@ -641,6 +856,12 @@ export function PersonalFoodEditorForm({
 
 const styles = StyleSheet.create({
 	notice: { gap: spacing.xs },
+	visualImage: {
+		width: 112,
+		height: 112,
+		borderRadius: radius.lg,
+		backgroundColor: colors.surface2,
+	},
 	segmentedRow: { padding: spacing.md },
 	servingEditor: { gap: spacing.sm, backgroundColor: colors.surface2 },
 	error: { color: colors.danger },

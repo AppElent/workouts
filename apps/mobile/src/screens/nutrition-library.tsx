@@ -2,6 +2,7 @@ import { useConvexConnectionState, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
+import { foodPhotos } from "../data/food-photo-manager";
 import { useOpenFoodFacts } from "../data/open-food-facts-context";
 import {
 	type OffRefreshProgress,
@@ -180,8 +181,10 @@ export function NutritionLibraryScreen() {
 			await refreshOpenFoodFactsImports({
 				foods: importedFoods,
 				refreshBarcode: openFoodFacts.refreshBarcode,
+				importPhoto: foodPhotos.importRemote,
 				update: foods.update,
 				onProgress: setOffProgress,
+				onPhotoFailure: () => toast.error(copy.offPhotoFailure),
 			});
 		} catch {
 			toast.error(copy.failure);
@@ -211,6 +214,9 @@ export function NutritionLibraryScreen() {
 			<Eyebrow>{copy.eyebrow}</Eyebrow>
 			<AppText variant="title">{copy.title}</AppText>
 			<AppText>{copy.intro}</AppText>
+			<Card style={styles.card}>
+				<AppText variant="caption">{copy.photoNotice}</AppText>
+			</Card>
 			<Card style={styles.card}>
 				<AppText variant="heading">{copy.offTitle}</AppText>
 				<AppText variant="caption">

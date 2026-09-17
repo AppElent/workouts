@@ -361,7 +361,7 @@ describe("Personal Food estimate compatibility", () => {
 		).rejects.toThrow("invalid");
 	});
 
-	it("preserves estimates through legacy and queued logging, edit, move, copy and weekly review", async () => {
+	it("preserves estimates through logging workflows and aggregates their nutrient states in weekly review", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const snapshot = personalFoodSnapshot(estimated, {
@@ -436,18 +436,18 @@ describe("Personal Food estimate compatibility", () => {
 		const week = await alice.query(api.nutritionReview.week, {
 			startDate: "2026-09-14",
 		});
-		const entries = week.days.flatMap((entry) => entry.entries);
-		expect(entries).toHaveLength(4);
+		const loggedDays = week.days.filter((entry) => entry.entryCount > 0);
+		expect(loggedDays.reduce((sum, entry) => sum + entry.entryCount, 0)).toBe(4);
 		expect(
-			entries.every(
-				(entry) => entry.estimated === true && entry.baseUnit === "serving",
-			),
-		).toBe(true);
-		expect(
-			entries.every(
+			loggedDays.every(
 				(entry) =>
-					entry.nutrients.protein.kind === "trace" &&
-					entry.nutrients.carbs.kind === "absent",
+					entry.totals.energy.incomplete === false &&
+					entry.totals.energy.qualified === false &&
+					entry.totals.protein.traceCount === entry.entryCount &&
+					entry.totals.protein.qualified === true &&
+					entry.totals.protein.incomplete === false &&
+					entry.totals.carbs.absentCount === entry.entryCount &&
+					entry.totals.carbs.incomplete === true,
 			),
 		).toBe(true);
 	});

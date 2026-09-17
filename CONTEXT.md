@@ -74,6 +74,10 @@ _Avoid_: Standard food, built-in food
 A reusable Food saved by a person, whether entered manually, imported, or forked from a Shipped Food.
 _Avoid_: Custom food
 
+**Food Visual**:
+An optional icon or photo owned by a Personal Food to help a person recognize it. It is separate from Food Provenance; when unset, the interface supplies a default fallback.
+_Avoid_: Food image, provenance image
+
 **Food Import**:
 A proposal created from an external food database that must be reviewed before it can become a Personal Food or Diary Entry.
 _Avoid_: Synced food, downloaded food
@@ -130,10 +134,6 @@ _Avoid_: Combo, Recipe Version
 **Capture Draft**:
 A note about food intake saved for later review. It does not count as intake until converted into one or more Diary Entries.
 _Avoid_: Diary Entry
-
-**Complete Day**:
-A Nutrition Diary day that a person has explicitly marked as finished, including a deliberately empty day.
-_Avoid_: Logged day
 
 **Shipped Food ID**:
 The permanent identity of a Shipped Food. It never changes or gets reused, even when the Food is renamed, corrected, or retired.

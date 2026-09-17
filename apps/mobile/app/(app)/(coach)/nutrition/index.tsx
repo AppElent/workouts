@@ -1,8 +1,12 @@
+import { useLocalSearchParams } from "expo-router";
 import { useI18n } from "../../../../src/i18n";
 import { NutritionDayScreen } from "../../../../src/screens/nutrition-day";
 import { RouteError } from "../../../../src/ui/route-error";
 
-export default NutritionDayScreen;
+export default function NutritionRoute() {
+	const { date } = useLocalSearchParams<{ date?: string }>();
+	return <NutritionDayScreen initialDate={date} />;
+}
 
 export function ErrorBoundary({
 	error,

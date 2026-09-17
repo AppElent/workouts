@@ -1,6 +1,7 @@
 export interface NutritionHeaderMenuProps {
 	label: string;
 	closeLabel: string;
+	weekOverviewLabel: string;
 	createComboLabel: string;
 	logComboLabel: string;
 	captureDraftsLabel: string;
@@ -9,6 +10,7 @@ export interface NutritionHeaderMenuProps {
 	goalsLabel: string;
 	dataSourcesLabel: string;
 	onCreateCombo: () => void;
+	onOpenWeekOverview: () => void;
 	onLogCombo: () => void;
 	onOpenCaptureDrafts: () => void;
 	onOpenAssistance: () => void;

@@ -1,16 +1,4 @@
-import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { diarySnapshotFields } from "./nutritionDiaryModel";
-
-/** Tables owned by the weekly nutrition review slice. */
-export const nutritionReviewTables = {
-	nutritionReviewDayMarkers: defineTable({
-		userId: v.string(),
-		date: v.string(),
-		completed: v.boolean(),
-		updatedAt: v.number(),
-	}).index("by_user_date", ["userId", "date"]),
-};
 
 const nutrientTotal = () =>
 	v.object({
@@ -34,13 +22,31 @@ export const nutritionReviewTotals = v.object({
 	salt: nutrientTotal(),
 });
 
-export const nutritionReviewEntry = v.object({
-	...diarySnapshotFields,
-	loggedAt: v.number(),
+const goal = v.object({
+	nutrient: v.union(
+		v.literal("energy"),
+		v.literal("protein"),
+		v.literal("carbs"),
+		v.literal("fat"),
+		v.literal("saturatedFat"),
+		v.literal("fibre"),
+		v.literal("sugars"),
+		v.literal("salt"),
+	),
+	direction: v.union(v.literal("min"), v.literal("max")),
+	target: v.number(),
+	sourcePreset: v.optional(
+		v.union(
+			v.literal("reference"),
+			v.literal("loseWeight"),
+			v.literal("buildMuscle"),
+		),
+	),
 });
 
 export const nutritionReviewWeekArgs = {
 	startDate: v.string(),
+	today: v.optional(v.string()),
 };
 
 export const nutritionReviewWeekResult = v.object({
@@ -49,29 +55,19 @@ export const nutritionReviewWeekResult = v.object({
 	days: v.array(
 		v.object({
 			date: v.string(),
-			entries: v.array(nutritionReviewEntry),
+			entryCount: v.number(),
 			totals: nutritionReviewTotals,
-			markedComplete: v.boolean(),
+			goals: v.array(goal),
+			goalBasis: v.union(v.literal("effective"), v.literal("reference")),
+			effectiveFrom: v.union(v.string(), v.null()),
 		}),
 	),
-	coverage: v.object({
-		loggedDayCount: v.number(),
-		markedCompleteCount: v.number(),
-	}),
 	averages: v.object({
 		energy: v.optional(v.number()),
 		protein: v.optional(v.number()),
 		energyDays: v.number(),
 		proteinDays: v.number(),
+		energyQualified: v.boolean(),
+		proteinQualified: v.boolean(),
 	}),
-});
-
-export const nutritionReviewToggleArgs = {
-	date: v.string(),
-	completed: v.boolean(),
-};
-
-export const nutritionReviewToggleResult = v.object({
-	date: v.string(),
-	completed: v.boolean(),
 });

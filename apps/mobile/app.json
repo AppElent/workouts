@@ -53,14 +53,14 @@
 			[
 				"expo-camera",
 				{
-					"cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan food barcodes and find nutrition information, take progress photos, and record form-check videos."
+					"cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan food barcodes for nutrition data, take Food and progress photos, and record form-check videos."
 				}
 			],
 			[
 				"expo-image-picker",
 				{
-					"photosPermission": "Foundry uses your photos so you can attach a progress photo to a session.",
-					"cameraPermission": "Foundry uses the camera so you can take a progress photo."
+					"photosPermission": "Foundry uses your photos so you can choose Food and progress photos.",
+					"cameraPermission": "Foundry uses the camera so you can take Food and progress photos."
 				}
 			],
 			[

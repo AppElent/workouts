@@ -1,3 +1,4 @@
 {
-	"NSCameraUsageDescription": "Geef Foundry toegang tot je camera om barcodes van voedingsmiddelen te scannen en voedingswaarden op te zoeken, voortgangsfoto's te maken en techniekvideo's op te nemen."
+	"NSCameraUsageDescription": "Geef Foundry toegang tot je camera om barcodes voor voedingswaarden te scannen, voedings- en voortgangsfoto's te maken en techniekvideo's op te nemen.",
+	"NSPhotoLibraryUsageDescription": "Geef Foundry toegang om voedings- en voortgangsfoto's uit je bibliotheek te kiezen."
 }

@@ -21,6 +21,7 @@ type LegacyRecipeRow = {
 	version_nl: string;
 	ingredients_json: string;
 	yield_json: string;
+	visual_json?: string | null;
 	created_at: number;
 	updated_at: number;
 };
@@ -83,6 +84,7 @@ function migratedFood(row: LegacyRecipeRow, id: string): PersonalFood {
 				nutritionSource: "manual",
 				locallyEdited: false,
 			},
+			...(row.visual_json ? { visual: JSON.parse(row.visual_json) } : {}),
 		}),
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
@@ -162,10 +164,16 @@ export function migrateLegacyRecipes(
 		if (!foods.has(id)) foods.set(id, migratedFood(row, id));
 	}
 	if (rows.length) {
-		repository.replaceFromBackup({
-			foods: [...foods.values()],
-			combos: backup.combos,
-		});
+		repository.replaceFromBackup(
+			{
+				foods: [
+					...repository.list(),
+					...[...foods.values()].filter((food) => !repository.find(food.id)),
+				],
+				combos: backup.combos,
+			},
+			{ preserveLocalPhotos: true },
+		);
 	}
 	database.runSync(
 		`INSERT INTO nutrition_recipe_migration_accounts(subject, completed) VALUES (?, 1)

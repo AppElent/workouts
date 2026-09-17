@@ -5,6 +5,7 @@ import type {
 	PersonalFoodRepository,
 	SyncSQLiteDatabase,
 } from "./personal-food-repository";
+import { portablePersonalFood } from "./personal-food-repository";
 
 export const NUTRITION_LIBRARY_STATE_DATABASE_NAME =
 	"workouts-nutrition-library-state.db";
@@ -657,7 +658,7 @@ export function libraryRecordFromFood(
 	return {
 		id: food.id,
 		kind: "food",
-		payload: JSON.stringify(food),
+		payload: JSON.stringify(portablePersonalFood(food)),
 		schemaVersion: 2,
 		revision,
 		deleted: false,
@@ -682,20 +683,31 @@ export function applyLibraryRecord(
 	repository: PersonalFoodRepository,
 	record: LibraryRecord,
 ) {
-	const backup = repository.exportBackup();
-	const foods = new Map(backup.foods.map((food) => [food.id, food]));
-	const combos = new Map(backup.combos.map((combo) => [combo.id, combo]));
+	const foods = new Map(repository.list().map((food) => [food.id, food]));
+	const combos = new Map(
+		repository.listCombos().map((combo) => [combo.id, combo]),
+	);
 	if (record.kind === "food") {
 		if (record.deleted) foods.delete(record.id);
-		else
-			foods.set(
-				record.id,
+		else {
+			const current = foods.get(record.id);
+			const incoming = portablePersonalFood(
 				JSON.parse(record.payload ?? "null") as PersonalFood,
 			);
+			foods.set(
+				record.id,
+				!incoming.visual && current?.visual?.kind === "photo"
+					? { ...incoming, visual: current.visual }
+					: incoming,
+			);
+		}
 	} else if (record.deleted) combos.delete(record.id);
 	else combos.set(record.id, JSON.parse(record.payload ?? "null") as Combo);
-	repository.replaceFromBackup({
-		foods: [...foods.values()],
-		combos: [...combos.values()],
-	});
+	repository.replaceFromBackup(
+		{
+			foods: [...foods.values()],
+			combos: [...combos.values()],
+		},
+		{ preserveLocalPhotos: true },
+	);
 }

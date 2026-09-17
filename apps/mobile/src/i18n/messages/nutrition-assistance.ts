@@ -57,24 +57,30 @@ export type AssistanceMessages = {
 	previousWeek: string;
 	nextWeek: string;
 	loading: string;
-	coverage: string;
-	loggedDays: string;
-	completeDays: string;
-	missingUnknown: string;
-	averages: string;
 	averageEnergy: string;
 	averageProtein: string;
-	notEnoughKnown: string;
+	noAverage: string;
+	day: string;
 	days: string;
 	factualOnly: string;
-	noEntries: string;
+	entry: string;
 	entries: string;
-	dayUnknown: string;
-	markComplete: string;
-	markIncomplete: string;
-	completeFailure: string;
+	noEntries: string;
+	today: string;
+	upcoming: string;
+	openDay: string;
+	noGoal: string;
+	below: string;
+	met: string;
+	within: string;
+	exceeded: string;
+	incomplete: string;
+	atLeast: string;
+	upTo: string;
 	energy: string;
 	protein: string;
+	carbs: string;
+	fat: string;
 	close: string;
 	offlineTitle: string;
 	offlineBody: string;
@@ -146,36 +152,42 @@ export const nutritionAssistanceMessages: Record<
 		mealPhotoGated:
 			"Meal-photo estimation is a separate gated experiment and is not implemented.",
 		allNutrients: "All eight nutrients; blank means not supplied",
-		weeklyTitle: "Weekly review",
+		weeklyTitle: "Week overview",
 		previousWeek: "Previous week",
 		nextWeek: "Next week",
-		loading: "Loading weekly review",
-		coverage: "Coverage",
-		loggedDays: "logged days",
-		completeDays: "marked complete",
-		missingUnknown: "Missing days are unknown, not zero intake.",
-		averages: "Known logged averages",
-		averageEnergy: "Average energy",
-		averageProtein: "Average protein",
-		notEnoughKnown: "Not enough complete values",
+		loading: "Loading Week overview",
+		averageEnergy: "Energy average",
+		averageProtein: "Protein average",
+		noAverage: "No average available",
+		day: "day",
 		days: "days",
 		factualOnly:
 			"This is a factual summary of logged values, not dietary advice.",
-		noEntries: "No entries were logged in this week.",
+		entry: "entry",
 		entries: "entries",
-		dayUnknown: "No entries; intake is unknown.",
-		markComplete: "Mark complete",
-		markIncomplete: "Mark incomplete",
-		completeFailure: "This day could not be updated. Try again.",
+		noEntries: "No entries",
+		today: "Today",
+		upcoming: "Upcoming",
+		openDay: "Open",
+		noGoal: "No goal",
+		below: "Below",
+		met: "Met",
+		within: "Within",
+		exceeded: "Exceeded",
+		incomplete: "Incomplete",
+		atLeast: "At least",
+		upTo: "Up to",
 		energy: "Energy",
 		protein: "Protein",
+		carbs: "Carbohydrates",
+		fat: "Fat",
 		close: "Close",
-		offlineTitle: "This week's review is not on this phone yet",
+		offlineTitle: "This Week overview is not on this phone yet",
 		offlineBody:
-			"Reconnect to load the seven-day review. Missing data is unknown, not zero.",
+			"Reconnect to load the seven-day overview. Missing data is unknown, not zero.",
 		retry: "Try again",
 		pendingNotice:
-			"Some saved meals are still waiting to sync; this review shows synced diary data only.",
+			"Some saved meals are still waiting to sync; this overview shows synced diary data only.",
 	},
 	nl: {
 		estimateMode: "Voedingsschatting",
@@ -246,25 +258,31 @@ export const nutritionAssistanceMessages: Record<
 		previousWeek: "Vorige week",
 		nextWeek: "Volgende week",
 		loading: "Weekoverzicht wordt geladen",
-		coverage: "Dekking",
-		loggedDays: "gelogde dagen",
-		completeDays: "gemarkeerd als compleet",
-		missingUnknown: "Ontbrekende dagen zijn onbekend, niet nul inname.",
-		averages: "Bekende gelogde gemiddelden",
 		averageEnergy: "Gemiddelde energie",
 		averageProtein: "Gemiddeld eiwit",
-		notEnoughKnown: "Niet genoeg complete waarden",
+		noAverage: "Geen gemiddelde beschikbaar",
+		day: "dag",
 		days: "dagen",
 		factualOnly:
 			"Dit is een feitelijk overzicht van gelogde waarden, geen voedingsadvies.",
-		noEntries: "Er zijn deze week geen items gelogd.",
+		entry: "item",
 		entries: "items",
-		dayUnknown: "Geen items; inname is onbekend.",
-		markComplete: "Markeer compleet",
-		markIncomplete: "Markeer incompleet",
-		completeFailure: "Deze dag kon niet worden bijgewerkt. Probeer opnieuw.",
+		noEntries: "Geen items",
+		today: "Vandaag",
+		upcoming: "Binnenkort",
+		openDay: "Open",
+		noGoal: "Geen doel",
+		below: "Onder doel",
+		met: "Behaald",
+		within: "Binnen doel",
+		exceeded: "Overschreden",
+		incomplete: "Onvolledig",
+		atLeast: "Minimaal",
+		upTo: "Maximaal",
 		energy: "Energie",
 		protein: "Eiwit",
+		carbs: "Koolhydraten",
+		fat: "Vet",
 		close: "Sluiten",
 		offlineTitle: "Dit weekoverzicht staat nog niet op dit apparaat",
 		offlineBody:
