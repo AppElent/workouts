@@ -51,7 +51,7 @@ export type LocalProjectionHint = {
 export type PortionMemory = {
 	readonly kind: "authored" | "base-unit";
 	readonly servingKey: string;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: "g" | "ml" | "serving";
 	readonly amount: number;
 	readonly quantity: number;
 	readonly label: { readonly en: string; readonly nl: string };

@@ -9,6 +9,8 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
+	personalFoodServingOptions,
+	personalFoodSnapshot,
 	type ShippedFood,
 	searchShippedFoods,
 	shippedLibraryMeta,
@@ -24,7 +26,8 @@ export type AssistanceFood = {
 	readonly id: string;
 	readonly kind: "shipped" | "personal";
 	readonly name: { readonly en: string; readonly nl: string };
-	readonly baseUnit: BaseUnit;
+	readonly baseUnit: BaseUnit | "serving";
+	readonly personalFood?: PersonalFood;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
 };
@@ -40,7 +43,7 @@ export type AssistanceRow = {
 	readonly raw: string;
 	readonly query: string;
 	readonly quantity: number | undefined;
-	readonly unit: BaseUnit | undefined;
+	readonly unit: BaseUnit | "serving" | undefined;
 	readonly candidates: readonly AssistanceFood[];
 	readonly selectedCandidateId: string | undefined;
 	readonly status: AssistanceRowStatus;
@@ -65,7 +68,7 @@ export type ParsedNutritionLabel = {
 };
 
 const QUANTITY_PATTERN =
-	/^\s*(\d+(?:[.,]\d+)?)\s*(g|gram|grams|grammen|ml|millilitre|millilitres|milliliter|milliliters)\s+(.+?)\s*$/i;
+	/^\s*(\d+(?:[.,]\d+)?)\s*(g|gram|grams|grammen|ml|millilitre|millilitres|milliliter|milliliters|serving|servings|portie|porties)\s+(.+?)\s*$/i;
 const DECIMAL_PATTERN = /^\d+(?:[.,]\d+)?$/;
 
 function parseDecimal(value: string): number | undefined {
@@ -83,8 +86,12 @@ function normalise(value: string): string {
 		.trim();
 }
 
-function unitOf(value: string): BaseUnit {
-	return value.toLowerCase().startsWith("m") ? "ml" : "g";
+function unitOf(value: string): BaseUnit | "serving" {
+	return /^(serving|portie)/i.test(value)
+		? "serving"
+		: value.toLowerCase().startsWith("m")
+			? "ml"
+			: "g";
 }
 
 function candidateFromShipped(food: ShippedFood): AssistanceFood {
@@ -111,25 +118,15 @@ function candidateFromShipped(food: ShippedFood): AssistanceFood {
 }
 
 function candidateFromPersonal(food: PersonalFood): AssistanceFood {
-	const provenance = food.provenance;
+	const snapshot = personalFoodSnapshot(food, { quantity: 1 });
 	return {
 		id: food.id,
 		kind: "personal",
 		name: food.name,
 		baseUnit: food.baseUnit,
 		nutrients: food.nutrients,
-		provenance: {
-			source: provenance.recordOrigin,
-			sourceId: food.id,
-			nutritionSource: provenance.nutritionSource,
-			locallyEdited: provenance.locallyEdited,
-			...(provenance.forkedFrom ? { forkedFrom: provenance.forkedFrom } : {}),
-			...(provenance.provider ? { provider: provenance.provider } : {}),
-			...(provenance.barcode ? { barcode: provenance.barcode } : {}),
-			...(provenance.attribution
-				? { attribution: provenance.attribution }
-				: {}),
-		},
+		provenance: snapshot.provenance,
+		personalFood: food,
 	};
 }
 
@@ -361,6 +358,21 @@ export function buildAssistanceBatchEntries(
 		if (!candidate || row.quantity === undefined || row.unit === undefined) {
 			throw new Error("Every food needs an explicit selection.");
 		}
+		if (candidate.personalFood) {
+			const baseServing = personalFoodServingOptions(
+				candidate.personalFood,
+			).find((option) => option.kind === "base-unit");
+
+			return {
+				...personalFoodSnapshot(candidate.personalFood, {
+					quantity: row.quantity,
+					serving: baseServing,
+					date,
+					meal,
+				}),
+				clientEntryId: mintId(),
+			};
+		}
 		const formatted = formatQuantity(row.quantity, "en");
 		const formattedNl = formatQuantity(row.quantity, "nl");
 		return {
@@ -531,4 +543,26 @@ export function personalFoodDraftFromLabel(
 export function shippedCandidate(id: string): AssistanceFood | undefined {
 	const food = getShippedFood(id);
 	return food ? candidateFromShipped(food) : undefined;
+}
+
+/** A proposal remains an editable draft until the person explicitly saves the review. */
+export function estimatedPersonalFoodProposal(
+	name: string,
+	serving: string,
+	inputs: Readonly<Record<NutrientKey, string>>,
+): PersonalFoodDraft {
+	return {
+		name: { en: name, nl: name },
+		baseUnit: "serving",
+		classification: "ordinary",
+		estimated: true,
+		nutritionBasis: { kind: "perServing", label: { en: serving, nl: serving } },
+		nutrients: nutrientsFromLabelInputs(inputs),
+		servings: [],
+		provenance: {
+			recordOrigin: "personal",
+			nutritionSource: "manual",
+			locallyEdited: false,
+		},
+	};
 }

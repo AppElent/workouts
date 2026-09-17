@@ -35,6 +35,34 @@ function entry(id: string, comboGroup?: DiaryEntry["comboGroup"]): DiaryEntry {
 }
 
 describe("nutrition copy", () => {
+	it("preserves estimate status and serving-based amounts on copies", () => {
+		const estimated = {
+			...entry("estimate"),
+			estimated: true as const,
+			baseUnit: "serving" as const,
+			amount: 1.5,
+		};
+		const [copied] = copyMealEntries(
+			[estimated],
+			"2026-09-16",
+			"lunch",
+			() => "copy",
+		);
+		expect(copied).toMatchObject({
+			estimated: true,
+			baseUnit: "serving",
+			amount: 1.5,
+			nutrients,
+		});
+		expect(
+			copyMealEntries(
+				[entry("legacy")],
+				"2026-09-16",
+				"lunch",
+				() => "copy",
+			)[0],
+		).not.toHaveProperty("estimated");
+	});
 	it("uses calendar arithmetic across month, year, and leap-day boundaries", () => {
 		expect(previousCalendarDay("2026-01-01")).toBe("2025-12-31");
 		expect(previousCalendarDay("2026-03-01")).toBe("2026-02-28");

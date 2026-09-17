@@ -13,6 +13,8 @@
  * diary. `testRouter.back()` is the same navigation the edge swipe and the
  * hardware button perform.
  */
+
+import { totalNutrients } from "@workouts/core/nutrition";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -21,7 +23,8 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { todayIsoDate } from "../data/calendar-day";
+import { shiftIsoDate, todayIsoDate } from "../data/calendar-day";
+import { weekDates, weekStartMonday } from "../data/nutrition-weekly-review";
 import { renderApp } from "../test-support/render-app";
 
 const value = (amount: number) => ({ kind: "value" as const, amount });
@@ -46,10 +49,31 @@ const loggedEntry = {
 
 beforeEach(() => {
 	jest.clearAllMocks();
-	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
+	jest.mocked(useQuery).mockImplementation((reference, args?) => {
 		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
+		if (getFunctionName(reference) === "nutritionReview:week") {
+			const startDate = (args as { startDate: string }).startDate;
+			return {
+				startDate,
+				endDate: shiftIsoDate(startDate, 6),
+				days: weekDates(startDate).map((date) => ({
+					date,
+					entryCount: 0,
+					totals: totalNutrients([]),
+					goals: [],
+					goalBasis: "reference",
+					effectiveFrom: null,
+				})),
+				averages: {
+					energyDays: 0,
+					proteinDays: 0,
+					energyQualified: false,
+					proteinQualified: false,
+				},
+			};
+		}
 		return { entries: [loggedEntry], totals: {} };
 	});
 	jest
@@ -62,6 +86,35 @@ beforeEach(() => {
 });
 
 describe("Nutrition navigation", () => {
+	it("opens Week overview first from the menu and returns to the selected day", async () => {
+		const app = renderApp();
+		const selectedDate = shiftIsoDate(todayIsoDate(), -1);
+		fireEvent.press(await screen.findByLabelText("Previous day"));
+		expect(screen.queryByLabelText("Week overview")).toBeNull();
+
+		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		const menuActions = screen.getAllByRole("button");
+		const weekAction = await screen.findByText("Week overview");
+		expect(
+			menuActions.indexOf(screen.getByLabelText("Week overview")),
+		).toBeLessThan(menuActions.indexOf(screen.getByLabelText("Create Combo")));
+		fireEvent.press(weekAction);
+
+		await waitFor(() =>
+			expect(app.getPathname()).toBe("/nutrition-weekly-review"),
+		);
+		expect(app.getSearchParams()).toMatchObject({ startDate: selectedDate });
+		const monday = weekStartMonday(selectedDate);
+		fireEvent.press(
+			await screen.findByLabelText(
+				new RegExp(`Open .*${Number(monday.slice(-2))}`),
+			),
+		);
+
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+		expect(app.getSearchParams()).toMatchObject({ date: monday });
+	});
+
 	it("opens assisted logging from the diary tools and returns to the diary", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
@@ -100,6 +153,8 @@ describe("Nutrition navigation", () => {
 			meal: "dinner",
 			mode: "oneoff-log",
 		});
+		expect(await screen.findByLabelText("Food name in English")).toBeTruthy();
+		expect(screen.getByText("Servings")).toBeTruthy();
 	});
 
 	it("routes Capture later directly to its cooking mode", async () => {
@@ -114,6 +169,12 @@ describe("Nutrition navigation", () => {
 			meal: "lunch",
 			mode: "draft-new",
 		});
+		expect(await screen.findByText("Save for later")).toBeTruthy();
+		expect(
+			screen.getByLabelText(
+				"What did you eat? Add a short note to finish later.",
+			),
+		).toBeTruthy();
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {

@@ -32,6 +32,7 @@ import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
+import { CaptureDraftRepositoryProvider } from "../data/capture-draft-context";
 import {
 	createNutritionCookingRepository,
 	type NutritionCookingRepository,
@@ -51,7 +52,6 @@ import {
 } from "../data/personal-food-repository";
 import { PersonalFoodsProvider } from "../data/personal-foods";
 import { LocaleProvider } from "../i18n";
-import { FoodBrowserCookingRepositoryProvider } from "../screens/nutrition-food-browser";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
 import { NativeAlertHost } from "./native-alert-host";
@@ -61,13 +61,13 @@ export function TestLayout({
 	repository,
 	offCache,
 	nutritionRepository,
-	cookingRepository,
+	captureDraftRepository,
 	fetchImpl,
 }: {
 	repository: PersonalFoodRepository;
 	offCache: OpenFoodFactsCache;
 	nutritionRepository: NutritionLocalRepository;
-	cookingRepository: NutritionCookingRepository;
+	captureDraftRepository: NutritionCookingRepository;
 	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
@@ -81,11 +81,11 @@ export function TestLayout({
 									repository={nutritionRepository}
 									subject="test-user"
 								>
-									<FoodBrowserCookingRepositoryProvider
-										repository={cookingRepository}
+									<CaptureDraftRepositoryProvider
+										repository={captureDraftRepository}
 									>
 										<Stack />
-									</FoodBrowserCookingRepositoryProvider>
+									</CaptureDraftRepositoryProvider>
 								</NutritionOperationsProvider>
 							</OpenFoodFactsProvider>
 						</PersonalFoodsProvider>
@@ -108,7 +108,7 @@ export function renderApp(
 	const nutritionRepository = createNutritionLocalRepository(
 		new SQLiteTestDatabase(),
 	);
-	const cookingRepository = createNutritionCookingRepository(
+	const captureDraftRepository = createNutritionCookingRepository(
 		new SQLiteTestDatabase(),
 	);
 	function Layout() {
@@ -117,7 +117,7 @@ export function renderApp(
 				repository={repository}
 				offCache={offCache}
 				nutritionRepository={nutritionRepository}
-				cookingRepository={cookingRepository}
+				captureDraftRepository={captureDraftRepository}
 				fetchImpl={fetchImpl}
 			/>
 		);

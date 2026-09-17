@@ -1,58 +1,11 @@
 import { unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { NutrientKey, NutrientValue } from "@workouts/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
-import {
-	type CookingIngredientSnapshot,
-	type CookingRecipeDraft,
-	createNutritionCookingRepository,
-} from "./nutrition-cooking-repository";
-
-const nutrients: Record<NutrientKey, NutrientValue> = {
-	energy: { kind: "value", amount: 100 },
-	protein: { kind: "trace" },
-	carbs: { kind: "absent" },
-	fat: { kind: "value", amount: 2 },
-	saturatedFat: { kind: "absent" },
-	fibre: { kind: "value", amount: 1 },
-	sugars: { kind: "trace" },
-	salt: { kind: "value", amount: 0.2 },
-};
-
-function ingredient(id = "oats"): CookingIngredientSnapshot {
-	return {
-		ingredientId: id,
-		sourceKey: `shipped:${id}`,
-		name: { en: id, nl: id },
-		serving: { en: "100 g", nl: "100 g" },
-		quantity: 1,
-		amount: 100,
-		baseUnit: "g",
-		nutrients,
-		provenance: {
-			source: "shipped",
-			sourceId: `shipped:${id}`,
-			dataset: "NEVO",
-			edition: "2025/9.0",
-			sourceCode: 1,
-			sourceName: { en: id, nl: id },
-			saltDerived: true,
-		},
-	};
-}
-
-function recipeDraft(): CookingRecipeDraft {
-	return {
-		name: { en: "Porridge", nl: "Havermoutpap" },
-		versionName: { en: "Weekday", nl: "Doordeweeks" },
-		ingredients: [ingredient()],
-		yield: { kind: "grams", amount: 250 },
-	};
-}
+import { createNutritionCookingRepository } from "./nutrition-cooking-repository";
 
 describe("nutrition cooking SQLite repository", () => {
-	it("keeps recipes and drafts isolated by account and durable across reopen", () => {
+	it("keeps drafts isolated by account and durable across reopen", () => {
 		const path = join(
 			tmpdir(),
 			`workouts-cooking-${Date.now()}-${Math.random()}.db`,
@@ -66,7 +19,6 @@ describe("nutrition cooking SQLite repository", () => {
 				})(),
 				now: () => 10,
 			});
-			const recipe = repo.createRecipe("account-a", recipeDraft());
 			const draft = repo.createDraft("account-a", {
 				date: "2026-09-12",
 				meal: "dinner",
@@ -77,18 +29,12 @@ describe("nutrition cooking SQLite repository", () => {
 				meal: "dinner",
 				note: "B's note",
 			});
-			expect(repo.listRecipes("account-b")).toEqual([]);
 			expect(repo.listDrafts("account-b")).toHaveLength(1);
 			expect(repo.getDraft("account-b", draft.id)).toBeUndefined();
 			repo.close();
 
 			const reopenedDatabase = new SQLiteTestDatabase(path);
 			const reopened = createNutritionCookingRepository(reopenedDatabase);
-			expect(reopened.getRecipe("account-a", recipe.id)).toMatchObject({
-				name: { en: "Porridge", nl: "Havermoutpap" },
-				versionName: { en: "Weekday", nl: "Doordeweeks" },
-				ingredients: [expect.objectContaining({ nutrients })],
-			});
 			expect(reopened.listDrafts("account-a")).toMatchObject([
 				{ id: draft.id, note: "Restaurant noodles", meal: "dinner" },
 			]);
@@ -136,26 +82,6 @@ describe("nutrition cooking SQLite repository", () => {
 		expect(repo.getDraft("account-a", draft.id)).not.toMatchObject({
 			conversionClientEntryId: expect.any(String),
 		});
-	});
-
-	it("rejects incomplete recipes and does not write a partial row", () => {
-		const database = new SQLiteTestDatabase();
-		const repo = createNutritionCookingRepository(database);
-		expect(() =>
-			repo.createRecipe("account-a", {
-				...recipeDraft(),
-				ingredients: [
-					{
-						...ingredient(),
-						nutrients: {
-							...nutrients,
-							salt: undefined as unknown as NutrientValue,
-						},
-					},
-				],
-			}),
-		).toThrow("salt");
-		expect(repo.listRecipes("account-a")).toEqual([]);
 	});
 
 	it("deletes only the requested account's draft", () => {

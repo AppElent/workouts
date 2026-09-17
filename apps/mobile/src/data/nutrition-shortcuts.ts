@@ -30,7 +30,7 @@ export function servingKey(option: ServingOption): string {
 export function portionMemoryFor(
 	option: ServingOption,
 	quantity: number,
-	baseUnit: "g" | "ml",
+	baseUnit: "g" | "ml" | "serving",
 ): PortionMemory {
 	return {
 		kind: option.kind,
@@ -44,7 +44,7 @@ export function portionMemoryFor(
 
 export function rememberedSelection(
 	options: readonly ServingOption[],
-	baseUnit: "g" | "ml",
+	baseUnit: "g" | "ml" | "serving",
 	memory: PortionMemory | undefined,
 ): RememberedSelection | undefined {
 	if (!memory || memory.baseUnit !== baseUnit) return undefined;

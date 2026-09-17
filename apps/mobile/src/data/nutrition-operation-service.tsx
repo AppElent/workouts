@@ -716,6 +716,7 @@ export function snapshotFromDiaryEntry(
 		baseUnit: entry.baseUnit,
 		nutrients: entry.nutrients,
 		provenance: entry.provenance,
+		...(entry.estimated ? { estimated: true as const } : {}),
 		...(entry.id.startsWith("client:")
 			? { clientEntryId: entry.id.slice("client:".length) }
 			: {}),

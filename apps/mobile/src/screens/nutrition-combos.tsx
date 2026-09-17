@@ -1,11 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import {
-	formatQuantity,
-	getShippedFood,
-	NUTRIENT_KEYS,
-	type NutrientValue,
-	shippedLibraryMeta,
-} from "@workouts/core/nutrition";
+import { formatQuantity } from "@workouts/core/nutrition";
 import { useRef, useState } from "react";
 import {
 	Pressable,
@@ -15,20 +9,15 @@ import {
 	View,
 } from "react-native";
 import { z } from "zod";
-import { nutritionCookingCopy } from "../data/nutrition-cooking-copy";
-import { scaleComboSnapshot } from "../data/nutrition-cooking-helpers";
+import { resolveComboPart, scaleComboSnapshot } from "../data/nutrition-combo";
+import { nutritionComboCopy } from "../data/nutrition-combo-copy";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import { MEAL_SLOTS } from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
 } from "../data/nutrition-operation-service";
-import type {
-	ComboPart,
-	ComboPartReference,
-	ComboPartSnapshot,
-	PersonalFood,
-} from "../data/personal-food-repository";
+import type { ComboPartReference } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
@@ -95,6 +84,7 @@ export function NutritionComboBuilder({
 							baseUnit: entry.baseUnit,
 							nutrients: entry.nutrients,
 							provenance: entry.provenance,
+							...(entry.estimated ? { estimated: true as const } : {}),
 						},
 					})),
 				});
@@ -210,7 +200,7 @@ export function NutritionComboLibrary({
 			]),
 		),
 	);
-	const cookingCopy = nutritionCookingCopy(locale);
+	const cookingCopy = nutritionComboCopy(locale);
 	const scale = scaleValue ?? parsedScale(scaleInput);
 	const scaleValid = Number.isFinite(scale) && scale > 0;
 	const hasMissing =
@@ -225,7 +215,9 @@ export function NutritionComboLibrary({
 				adjustment.scaleValue ?? parsedScale(adjustment.scaleInput);
 			const partScaleValid = Number.isFinite(partScale) && partScale > 0;
 			const resolved =
-				part.status === "available" ? resolvePart(part, foods.find) : undefined;
+				part.status === "available"
+					? resolveComboPart(part, foods.find)
+					: undefined;
 			const previewSnapshot = resolved ?? part.snapshot;
 			const preview =
 				scaleValid && partScaleValid
@@ -271,7 +263,7 @@ export function NutritionComboLibrary({
 				meal,
 				includedParts.map(({ part, partScale }) => ({
 					...scaleComboSnapshot(
-						resolvePart(part, foods.find),
+						resolveComboPart(part, foods.find),
 						scale * partScale,
 					),
 					date,
@@ -595,25 +587,7 @@ export function NutritionComboLibrary({
 	);
 }
 
-/**
- * Which food, if any, a Combo part points back at.
- *
- * The `oneOff` branch is reachable by type and unreachable in the shipped app,
- * and that is a deliberate state rather than an oversight (#79). Spec #68
- * routes manual entry through the Personal Food authoring flow — "Manual entry
- * and shipped-food editing share the Personal Food authoring flow" — so every
- * log path the UI offers produces a shipped, personal or import provenance.
- * Nothing writes a diary entry with `source: "oneOff"`.
- *
- * The model keeps the case because user story 63 says a Combo may contain one,
- * and because a wire format that cannot express it would have to be migrated
- * the day a producer is added. Adding that producer — a "log this once without
- * saving it" path — would be a second manual-entry route the spec does not
- * describe, competing with the Personal Food flow it deliberately chose, so it
- * is a product decision rather than a gap to quietly fill. Nothing in the UI
- * promises one-offs today: there is no copy for them and no control that makes
- * one, so the absence misleads nobody.
- */
+/** Keep the stable Food reference, or the one-off snapshot. */
 function referenceFor(entry: DiaryEntry): ComboPartReference {
 	if (entry.provenance.source === "shipped") {
 		return { kind: "shipped", foodId: entry.provenance.sourceId };
@@ -625,76 +599,6 @@ function referenceFor(entry: DiaryEntry): ComboPartReference {
 		return { kind: "personal", foodId: entry.provenance.sourceId };
 	}
 	return { kind: "oneOff" };
-}
-
-/** Resolve only the same stable source id at log time; never search for a substitute. */
-function resolvePart(
-	part: ComboPart,
-	findPersonalFood: (id: string) => PersonalFood | undefined,
-): ComboPartSnapshot {
-	if (part.reference.kind === "oneOff") return part.snapshot;
-	const amount = part.snapshot.amount;
-	if (part.reference.kind === "shipped") {
-		const food = getShippedFood(part.reference.foodId);
-		if (!food) throw new Error("Combo source is missing.");
-		const meta = shippedLibraryMeta();
-		return {
-			...part.snapshot,
-			name: food.name,
-			baseUnit: food.baseUnit,
-			nutrients: scaledNutrients(food.nutrients, amount),
-			provenance: {
-				source: "shipped",
-				sourceId: food.id,
-				dataset: meta.dataset.name,
-				edition: meta.dataset.edition,
-				sourceCode: food.code,
-				sourceName: food.sourceName,
-				saltDerived: true,
-			},
-		};
-	}
-	const food = findPersonalFood(part.reference.foodId);
-	if (!food) throw new Error("Combo source is missing.");
-	return {
-		...part.snapshot,
-		name: food.name,
-		baseUnit: food.baseUnit,
-		nutrients: scaledNutrients(food.nutrients, amount),
-		provenance: {
-			source: food.provenance.recordOrigin,
-			sourceId: food.id,
-			nutritionSource: food.provenance.nutritionSource,
-			locallyEdited: food.provenance.locallyEdited,
-			...(food.provenance.forkedFrom
-				? { forkedFrom: food.provenance.forkedFrom }
-				: {}),
-			...(food.provenance.provider
-				? { provider: food.provenance.provider }
-				: {}),
-			...(food.provenance.barcode ? { barcode: food.provenance.barcode } : {}),
-			...(food.provenance.attribution
-				? { attribution: food.provenance.attribution }
-				: {}),
-		},
-	};
-}
-
-function scaledNutrients(
-	per100: Readonly<Record<string, NutrientValue>>,
-	amount: number,
-): Record<(typeof NUTRIENT_KEYS)[number], NutrientValue> {
-	return Object.fromEntries(
-		NUTRIENT_KEYS.map((key) => {
-			const value = per100[key];
-			return [
-				key,
-				value.kind === "value"
-					? { kind: "value", amount: value.amount * (amount / 100) }
-					: { kind: value.kind },
-			];
-		}),
-	) as Record<(typeof NUTRIENT_KEYS)[number], NutrientValue>;
 }
 
 const styles = StyleSheet.create({

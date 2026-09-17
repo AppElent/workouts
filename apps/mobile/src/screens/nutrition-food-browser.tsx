@@ -10,6 +10,8 @@ import {
 	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
+	personalFoodServingOptions,
+	personalFoodSnapshot,
 	previewServing,
 	roundForDisplay,
 	SALT_DERIVATION_DISCLOSURE,
@@ -21,16 +23,7 @@ import {
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import {
-	type ComponentProps,
-	createContext,
-	type ReactNode,
-	use,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type ComponentProps, useMemo, useRef, useState } from "react";
 import {
 	FlatList,
 	KeyboardAvoidingView,
@@ -44,11 +37,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatLongDate } from "../data/calendar-day";
-import {
-	type CookingRecipe,
-	type NutritionCookingRepository,
-	openNutritionCookingRepository,
-} from "../data/nutrition-cooking-repository";
+import { foodPhotos } from "../data/food-photo-manager";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
@@ -70,6 +59,7 @@ import type {
 	PersonalFood,
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
+import { foodVisualForShippedFood } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
@@ -80,6 +70,7 @@ import { Card } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { FoodEditorSheet } from "../ui/food-editor-sheet";
+import { FoodVisualView } from "../ui/food-visual";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { BarcodeScanner } from "./barcode-scanner";
@@ -105,31 +96,11 @@ type BrowserItem =
 			readonly caption: string;
 	  }
 	| { readonly kind: "combo"; readonly combo: Combo }
-	| { readonly kind: "recipe"; readonly recipe: CookingRecipe }
 	| {
 			readonly kind: "online";
 			readonly draft: PersonalFoodDraft;
 			readonly id: number;
 	  };
-
-const FoodBrowserCookingRepositoryContext = createContext<
-	NutritionCookingRepository | undefined
->(undefined);
-
-/** Test and host seam: production opens the device store only when Recipes is visited. */
-export function FoodBrowserCookingRepositoryProvider({
-	repository,
-	children,
-}: {
-	repository: NutritionCookingRepository;
-	children: ReactNode;
-}) {
-	return (
-		<FoodBrowserCookingRepositoryContext value={repository}>
-			{children}
-		</FoodBrowserCookingRepositoryContext>
-	);
-}
 
 function asSelection(result: FoodResult<PersonalFood>): FoodSelection {
 	return result.kind === "local"
@@ -170,11 +141,24 @@ function resultCaption(
 }
 
 function resultEnergyCaption(
-	food: { nutrients: Record<NutrientKey, NutrientValue>; baseUnit: "g" | "ml" },
+	food: {
+		nutrients: Record<NutrientKey, NutrientValue>;
+		baseUnit: "g" | "ml" | "serving";
+	},
 	messages: Messages["nutrition"],
+	locale: "en" | "nl",
 ): string {
 	const energy = food.nutrients.energy;
 	const unit = food.baseUnit;
+	if (unit === "serving") {
+		const amount =
+			energy.kind === "value"
+				? `${roundForDisplay("energy", energy.amount)} kcal`
+				: energy.kind === "trace"
+					? "~0 kcal"
+					: "— kcal";
+		return `${amount} / ${locale === "nl" ? "portie" : "serving"}`;
+	}
 	if (energy.kind === "value") {
 		return fmt(messages.foodBrowser.energyPer100, {
 			amount: roundForDisplay("energy", energy.amount),
@@ -251,10 +235,6 @@ export function NutritionFoodBrowser({
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const suppliedCookingRepository = use(FoodBrowserCookingRepositoryContext);
-	const [ownedCookingRepository, setOwnedCookingRepository] =
-		useState<NutritionCookingRepository>();
-	const cookingRepository = suppliedCookingRepository ?? ownedCookingRepository;
 	const [query, setQuery] = useState("");
 	const [showCaptureTools, setShowCaptureTools] = useState(false);
 	const [showMealChoices, setShowMealChoices] = useState(false);
@@ -278,14 +258,6 @@ export function NutritionFoodBrowser({
 	const quickLoggingRef = useRef(new Set<string>());
 	const [quickLoggingKeys, setQuickLoggingKeys] = useState<ReadonlySet<string>>(
 		() => new Set(),
-	);
-	useEffect(() => {
-		if (filter !== "recipes" || cookingRepository) return;
-		setOwnedCookingRepository(openNutritionCookingRepository());
-	}, [cookingRepository, filter]);
-	useEffect(
-		() => () => ownedCookingRepository?.close(),
-		[ownedCookingRepository],
 	);
 	/**
 	 * Ranking and shadowing both live in core (#75). All this screen decides is
@@ -332,8 +304,9 @@ export function NutritionFoodBrowser({
 		[personalFoods, shortcuts],
 	);
 	const combos = personalFoods.listCombos();
-	const recipes =
-		subject && cookingRepository ? cookingRepository.listRecipes(subject) : [];
+	const recipes = personalFoods.search(query, locale, {
+		classification: "recipe",
+	});
 	const visibleItems = useMemo<readonly BrowserItem[]>(() => {
 		const normalizedQuery = query.trim().toLocaleLowerCase();
 		if (filter === "combos") {
@@ -346,15 +319,11 @@ export function NutritionFoodBrowser({
 				.map((combo) => ({ kind: "combo" as const, combo }));
 		}
 		if (filter === "recipes") {
-			return recipes
-				.filter(
-					(recipe) =>
-						!normalizedQuery ||
-						`${recipe.name.en} ${recipe.name.nl}`
-							.toLocaleLowerCase()
-							.includes(normalizedQuery),
-				)
-				.map((recipe) => ({ kind: "recipe" as const, recipe }));
+			return recipes.map((food) => ({
+				kind: "food" as const,
+				selection: { kind: "personal" as const, food },
+				caption: copy.recipes,
+			}));
 		}
 		const foods =
 			filter === "recent" || filter === "favorites"
@@ -387,6 +356,7 @@ export function NutritionFoodBrowser({
 	}, [
 		allResults,
 		combos,
+		copy.recipes,
 		filter,
 		locale,
 		onlineResults,
@@ -492,6 +462,7 @@ export function NutritionFoodBrowser({
 			<PersonalFoodEditor
 				food={editingFood}
 				seed={forkDraft}
+				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
 				onCancel={closeEditor}
 				onSaved={(food) => {
 					closeEditor();
@@ -539,7 +510,12 @@ export function NutritionFoodBrowser({
 								// A correction is a new local food, never an edit of the
 								// shipped record — so this seeds the authoring screen
 								// rather than opening the shipped row for editing.
-								setForkDraft(forkShippedFood(selectedFood.food));
+								const draft = forkShippedFood(selectedFood.food);
+								const visual = foodVisualForShippedFood(selectedFood.food);
+								setForkDraft({
+									...draft,
+									...(visual ? { visual } : {}),
+								});
 								setSelectedFood(undefined);
 							}
 						: undefined
@@ -565,7 +541,8 @@ export function NutritionFoodBrowser({
 								});
 								if (!approved) return;
 								try {
-									personalFoods.remove(selectedFood.food.id);
+									const removed = personalFoods.remove(selectedFood.food.id);
+									if (removed) foodPhotos.remove(selectedFood.food.visual);
 									setSelectedFood(undefined);
 								} catch {
 									toast.error(t.nutrition.personalFood.deleteFailure);
@@ -658,7 +635,8 @@ export function NutritionFoodBrowser({
 		);
 		const option = remembered?.option ?? choices[0];
 		const quantity =
-			remembered?.quantity ?? (option?.kind === "base-unit" ? 100 : 1);
+			remembered?.quantity ??
+			(option?.kind === "base-unit" && option.unit !== "serving" ? 100 : 1);
 		return option && quantity > 0 ? { option, quantity } : undefined;
 	}
 
@@ -697,9 +675,7 @@ export function NutritionFoodBrowser({
 						? `food:${item.selection.kind}:${item.selection.food.id}`
 						: item.kind === "combo"
 							? `combo:${item.combo.id}`
-							: item.kind === "recipe"
-								? `recipe:${item.recipe.id}`
-								: `online:${item.id}`
+							: `online:${item.id}`
 				}
 				ListHeaderComponent={
 					<View style={styles.headerContent}>
@@ -854,6 +830,12 @@ export function NutritionFoodBrowser({
 								</Pressable>
 							))}
 						</ScrollView>
+						{filter === "recipes" ? (
+							<GhostButton
+								label={copy.newRecipe}
+								onPress={() => setCreatingFood(true)}
+							/>
+						) : null}
 						{query.trim().length > 0 && filter === "all" ? (
 							<Pressable
 								onPress={runOnlineSearch}
@@ -921,37 +903,6 @@ export function NutritionFoodBrowser({
 								}
 							/>
 						);
-					if (item.kind === "recipe")
-						return (
-							<LibraryRow
-								name={item.recipe.name[locale]}
-								caption={item.recipe.versionName[locale]}
-								detailLabel={copy.recipeDetail(item.recipe.name[locale])}
-								onDetail={() =>
-									router.push({
-										pathname: "/nutrition-cooking",
-										params: {
-											date,
-											meal: selectedMeal,
-											mode: "recipe-log",
-											recipeId: item.recipe.id,
-										},
-									})
-								}
-								logLabel={copy.log}
-								onLog={() =>
-									router.push({
-										pathname: "/nutrition-cooking",
-										params: {
-											date,
-											meal: selectedMeal,
-											mode: "recipe-log",
-											recipeId: item.recipe.id,
-										},
-									})
-								}
-							/>
-						);
 					if (item.kind === "online")
 						return (
 							<Pressable
@@ -981,7 +932,7 @@ export function NutritionFoodBrowser({
 										)}
 									</AppText>
 									<AppText variant="caption">
-										{resultEnergyCaption(item.draft, t.nutrition)}
+										{resultEnergyCaption(item.draft, t.nutrition, locale)}
 									</AppText>
 								</View>
 							</Pressable>
@@ -1003,7 +954,11 @@ export function NutritionFoodBrowser({
 						<FoodRow
 							selection={item.selection}
 							caption={item.caption}
-							energy={resultEnergyCaption(item.selection.food, t.nutrition)}
+							energy={resultEnergyCaption(
+								item.selection.food,
+								t.nutrition,
+								locale,
+							)}
 							locale={locale}
 							quickLabel={copy.quickLog(item.selection.food.name[locale])}
 							quickPortion={
@@ -1069,8 +1024,10 @@ function FoodRow({
 	onPress: () => void;
 	onQuickLog: () => void;
 }) {
-	const imageUrl =
-		selection.kind === "personal"
+	const legacyImageUrl =
+		selection.kind === "personal" &&
+		selection.food.visualMigrationPending &&
+		!selection.food.visual
 			? selection.food.provenance.imageUrl
 			: undefined;
 	return (
@@ -1080,18 +1037,21 @@ function FoodRow({
 				onPress={onPress}
 				style={styles.foodOpen}
 			>
-				{imageUrl ? (
+				{legacyImageUrl ? (
 					<Image
-						source={imageUrl}
+						source={legacyImageUrl}
 						accessibilityLabel={selection.food.name[locale]}
 						cachePolicy="memory-disk"
 						contentFit="contain"
 						style={styles.foodImage}
 					/>
+				) : selection.kind === "personal" ? (
+					<FoodVisualView
+						visual={selection.food.visual}
+						label={selection.food.name[locale]}
+					/>
 				) : (
-					<AppText variant="heading">
-						{selection.kind === "shipped" ? (selection.food.emoji ?? "•") : "◇"}
-					</AppText>
+					<AppText variant="heading">{selection.food.emoji ?? "•"}</AppText>
 				)}
 				<View style={styles.flex}>
 					<AppText style={styles.strong}>{selection.food.name[locale]}</AppText>
@@ -1131,6 +1091,8 @@ function FoodRow({
 function LibraryRow({
 	name,
 	caption,
+	visual,
+	showVisual = false,
 	detailLabel,
 	onDetail,
 	logLabel,
@@ -1138,6 +1100,8 @@ function LibraryRow({
 }: {
 	name: string;
 	caption: string;
+	visual?: PersonalFood["visual"];
+	showVisual?: boolean;
 	detailLabel: string;
 	onDetail: () => void;
 	logLabel: string;
@@ -1151,6 +1115,7 @@ function LibraryRow({
 				onPress={onDetail}
 				style={styles.foodOpen}
 			>
+				{showVisual ? <FoodVisualView visual={visual} label={name} /> : null}
 				<View style={styles.flex}>
 					<AppText style={styles.strong}>{name}</AppText>
 					<AppText variant="caption">{caption}</AppText>
@@ -1268,7 +1233,10 @@ function ServingDetail({
 	);
 	const [quantityText, setQuantityText] = useState(() =>
 		String(
-			remembered?.quantity ?? (choices[0]?.kind === "base-unit" ? 100 : 1),
+			remembered?.quantity ??
+				(choices[0]?.kind === "base-unit" && choices[0].unit !== "serving"
+					? 100
+					: 1),
 		),
 	);
 	const [favorite, setFavorite] = useState(() =>
@@ -1279,7 +1247,12 @@ function ServingDetail({
 			? Number.NaN
 			: Number(quantityText.replace(",", "."));
 	const quantity = Number.isFinite(parsed) ? parsed : 0;
-	const preview = servingPreview(selection, selectedServing, quantity, locale);
+	const preview = servingPreview(
+		selection,
+		selectedServing,
+		quantity > 0 ? quantity : 1,
+		locale,
+	);
 	const canLog = quantity > 0;
 	/** The shipped record behind a correction — the original, still nameable. */
 	const correctedSource =
@@ -1376,6 +1349,8 @@ function ServingDetail({
 				>
 					<View style={styles.heading}>
 						{selection.kind === "personal" &&
+						selection.food.visualMigrationPending &&
+						!selection.food.visual &&
 						selection.food.provenance.imageUrl ? (
 							<Image
 								source={selection.food.provenance.imageUrl}
@@ -1384,12 +1359,14 @@ function ServingDetail({
 								contentFit="contain"
 								style={styles.detailImage}
 							/>
+						) : selection.kind === "personal" ? (
+							<FoodVisualView
+								visual={selection.food.visual}
+								label={food.name[locale]}
+								size={112}
+							/>
 						) : (
-							<AppText variant="display">
-								{selection.kind === "shipped"
-									? (selection.food.emoji ?? "🍽️")
-									: "◇"}
-							</AppText>
+							<AppText variant="display">{selection.food.emoji ?? "🍽️"}</AppText>
 						)}
 						{/* The sheet header already carries the name and keeps it in
 							    place while this scrolls, so the body shows what the header
@@ -1437,7 +1414,12 @@ function ServingDetail({
 									// numbers that will be written. The list itself is silent.
 									if (candidate !== selectedServing) haptics.selectionChanged();
 									setSelectedServing(candidate);
-									setQuantityText(candidate.kind === "base-unit" ? "100" : "1");
+									setQuantityText(
+										candidate.kind === "base-unit" &&
+											candidate.unit !== "serving"
+											? "100"
+											: "1",
+									);
 								}}
 								accessibilityRole="radio"
 								accessibilityState={{
@@ -1478,26 +1460,28 @@ function ServingDetail({
 							))}
 						</View>
 					) : null}
-					<Card style={styles.preview}>
-						<AppText variant="heading">{preview.label}</AppText>
-						<AppText variant="caption">
-							{preview.amount} {preview.baseUnit}
-						</AppText>
-						{NUTRIENT_KEYS.map((key) => (
-							<View key={key} style={styles.nutrientRow}>
-								<AppText style={styles.flex}>
-									{t.nutrition.nutrients[key]}
-								</AppText>
-								<AppText style={styles.strong}>
-									{formatNutrient(
-										preview.nutrients[key],
-										key,
-										t.nutrition.foodBrowser,
-									)}
-								</AppText>
-							</View>
-						))}
-					</Card>
+					{canLog ? (
+						<Card style={styles.preview}>
+							<AppText variant="heading">{preview.label}</AppText>
+							<AppText variant="caption">
+								{preview.amount} {preview.baseUnit}
+							</AppText>
+							{NUTRIENT_KEYS.map((key) => (
+								<View key={key} style={styles.nutrientRow}>
+									<AppText style={styles.flex}>
+										{t.nutrition.nutrients[key]}
+									</AppText>
+									<AppText style={styles.strong}>
+										{formatNutrient(
+											preview.nutrients[key],
+											key,
+											t.nutrition.foodBrowser,
+										)}
+									</AppText>
+								</View>
+							))}
+						</Card>
+					) : null}
 					{selection.kind === "shipped" ? (
 						<View style={styles.attribution}>
 							<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
@@ -1587,33 +1571,7 @@ function formatNutrient(
 
 function servingChoices(selection: FoodSelection): ServingOption[] {
 	if (selection.kind === "shipped") return servingOptions(selection.food);
-	const options: ServingOption[] = selection.food.servings.map(
-		(serving, index) => ({
-			kind: "authored",
-			index,
-			label: serving.label,
-			amount: serving.amount,
-		}),
-	);
-	options.push({
-		kind: "base-unit",
-		label:
-			selection.food.baseUnit === "g"
-				? { en: "Gram (g)", nl: "Gram (g)" }
-				: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
-		amount: 1,
-		unit: selection.food.baseUnit,
-	});
-	return options;
-}
-
-function scalePersonalValue(
-	value: NutrientValue,
-	factor: number,
-): NutrientValue {
-	return value.kind === "value"
-		? { kind: "value", amount: value.amount * factor }
-		: { kind: value.kind };
+	return personalFoodServingOptions(selection.food);
 }
 
 function servingPreview(
@@ -1625,19 +1583,15 @@ function servingPreview(
 	if (selection.kind === "shipped") {
 		return previewServing(selection.food, option, quantity, locale);
 	}
-	const amount = option.amount * quantity;
-	const nutrients = {} as Record<NutrientKey, NutrientValue>;
-	for (const key of NUTRIENT_KEYS) {
-		nutrients[key] = scalePersonalValue(
-			selection.food.nutrients[key],
-			amount / 100,
-		);
-	}
+	const snapshot = personalFoodSnapshot(selection.food, {
+		quantity,
+		serving: option,
+	});
 	return {
-		amount,
-		baseUnit: selection.food.baseUnit,
-		label: formatServingSelection(option, quantity, locale),
-		nutrients,
+		amount: snapshot.amount,
+		baseUnit: snapshot.baseUnit,
+		label: snapshot.serving[locale],
+		nutrients: snapshot.nutrients,
 	};
 }
 
@@ -1650,6 +1604,15 @@ function createFoodSnapshot(
 	clientEntryId: string,
 	locale: "en" | "nl",
 ) {
+	if (selection.kind === "personal") {
+		const { provenance, ...snapshot } = personalFoodSnapshot(selection.food, {
+			quantity,
+			serving: selectedServing,
+			date,
+			meal,
+		});
+		return { common: { ...snapshot, clientEntryId }, provenance };
+	}
 	const preview = servingPreview(selection, selectedServing, quantity, locale);
 	const common = {
 		date,
@@ -1667,38 +1630,16 @@ function createFoodSnapshot(
 			NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
 		) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
 	};
-	const provenance: DiaryEntry["provenance"] =
-		selection.kind === "shipped"
-			? (() => {
-					const meta = shippedLibraryMeta();
-					return {
-						source: "shipped" as const,
-						sourceId: selection.food.id,
-						dataset: meta.dataset.name,
-						edition: meta.dataset.edition,
-						sourceCode: selection.food.code,
-						sourceName: selection.food.sourceName,
-						saltDerived: true,
-					};
-				})()
-			: {
-					source: selection.food.provenance.recordOrigin,
-					sourceId: selection.food.id,
-					nutritionSource: selection.food.provenance.nutritionSource,
-					locallyEdited: selection.food.provenance.locallyEdited,
-					...(selection.food.provenance.forkedFrom
-						? { forkedFrom: selection.food.provenance.forkedFrom }
-						: {}),
-					...(selection.food.provenance.provider
-						? { provider: selection.food.provenance.provider }
-						: {}),
-					...(selection.food.provenance.barcode
-						? { barcode: selection.food.provenance.barcode }
-						: {}),
-					...(selection.food.provenance.attribution
-						? { attribution: selection.food.provenance.attribution }
-						: {}),
-				};
+	const meta = shippedLibraryMeta();
+	const provenance: DiaryEntry["provenance"] = {
+		source: "shipped",
+		sourceId: selection.food.id,
+		dataset: meta.dataset.name,
+		edition: meta.dataset.edition,
+		sourceCode: selection.food.code,
+		sourceName: selection.food.sourceName,
+		saltDerived: true,
+	};
 	return { common, provenance };
 }
 

@@ -21,7 +21,11 @@ export function NutritionMenu({
 }: {
 	label: string;
 	closeLabel: string;
-	actions: readonly { label: string; onPress: () => void }[];
+	actions: readonly {
+		label: string;
+		onPress: () => void;
+		dividerAfter?: boolean;
+	}[];
 }) {
 	const [open, setOpen] = useState(false);
 	const insets = useSafeAreaInsets();
@@ -73,17 +77,19 @@ export function NutritionMenu({
 						<AppText variant="heading">{label}</AppText>
 						<ScrollView>
 							{actions.map((action) => (
-								<Pressable
-									key={action.label}
-									accessibilityRole="button"
-									onPress={() => {
-										setOpen(false);
-										action.onPress();
-									}}
-									style={styles.item}
-								>
-									<AppText>{action.label}</AppText>
-								</Pressable>
+								<View key={action.label}>
+									<Pressable
+										accessibilityRole="button"
+										onPress={() => {
+											setOpen(false);
+											action.onPress();
+										}}
+										style={styles.item}
+									>
+										<AppText>{action.label}</AppText>
+									</Pressable>
+									{action.dividerAfter ? <View style={styles.divider} /> : null}
+								</View>
 							))}
 						</ScrollView>
 						<Pressable
@@ -125,4 +131,5 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		paddingVertical: spacing.sm,
 	},
+	divider: { height: 1, backgroundColor: colors.borderStrong },
 });

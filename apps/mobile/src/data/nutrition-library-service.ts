@@ -25,6 +25,7 @@ export type NutritionLibraryOperationEnvelope = {
 					readonly id: string;
 					readonly kind: "food" | "combo";
 					readonly payload: string;
+					readonly schemaVersion?: 1 | 2;
 				};
 				readonly expectedRevision: number;
 		  }
@@ -41,7 +42,7 @@ export type NutritionLibraryRemote = (
 ) => Promise<{ readonly record: LibraryRecord }>;
 
 function isPermanent(error: unknown) {
-	return /conflict|invalid|unauthenticated|unauthorized|subject|different payload/i.test(
+	return /conflict|invalid|unauthenticated|unauthorized|subject|different payload|schema|downgrade/i.test(
 		error instanceof Error ? error.message : String(error),
 	);
 }
@@ -337,6 +338,11 @@ export class NutritionLibraryService {
 						id: operation.recordId,
 						kind: operation.recordKind,
 						payload: operation.payload,
+						// Pre-upgrade retries must retain the original receipt payload,
+						// where version 1 was represented by an absent field.
+						...(operation.schemaVersion === 2
+							? { schemaVersion: 2 as const }
+							: {}),
 					},
 					expectedRevision: operation.expectedRevision,
 				},
@@ -372,9 +378,23 @@ export class NutritionLibraryService {
 	keepDeviceCopy(conflict: LibraryConflict) {
 		const local = this.state.getRecord(this.subject, conflict.record.id);
 		if (!local) throw new Error("The local conflict copy is unavailable.");
+		// A pending legacy payload may conflict with a record written by a newer
+		// client. The selected device copy is normalized by the library before it
+		// is requeued at this client's schema version.
+		const food =
+			local.kind === "food" ? this.repository.find(local.id) : undefined;
+		const combo =
+			local.kind === "combo" ? this.repository.findCombo(local.id) : undefined;
+		const selected = local.deleted
+			? { ...local, schemaVersion: 2 as const }
+			: food
+				? libraryRecordFromFood(food, local.revision)
+				: combo
+					? libraryRecordFromCombo(combo, local.revision)
+					: local;
 		this.state.resolveLocalConflict(
 			this.subject,
-			local,
+			selected,
 			conflict.serverRevision,
 			mintNutritionUuid(),
 		);
@@ -389,6 +409,7 @@ export class NutritionLibraryService {
 			payload: conflict.serverPayload,
 			revision: conflict.serverRevision,
 			deleted: conflict.serverDeleted,
+			schemaVersion: conflict.serverSchemaVersion ?? 1,
 		};
 		applyLibraryRecord(this.repository, record);
 		this.state.adoptServerConflict(this.subject, record);

@@ -86,6 +86,12 @@ function remoteServer() {
 				? operation.record.kind
 				: operation.recordKind;
 		const current = records.get(id);
+		if (
+			operation.kind === "upsert" &&
+			(operation.record.schemaVersion ?? 1) < (current?.schemaVersion ?? 1)
+		) {
+			throw new Error("Invalid payload schema downgrade");
+		}
 		const expected = operation.expectedRevision;
 		if ((current?.revision ?? 0) !== expected)
 			throw new Error("Conflict: changed elsewhere");
@@ -95,6 +101,10 @@ function remoteServer() {
 			payload: operation.kind === "upsert" ? operation.record.payload : null,
 			revision: expected + 1,
 			deleted: operation.kind === "remove",
+			schemaVersion:
+				operation.kind === "upsert"
+					? (operation.record.schemaVersion ?? 1)
+					: (current?.schemaVersion ?? 1),
 		};
 		records.set(id, record);
 		const result = { record };
@@ -128,6 +138,154 @@ function device(subject: string, remote: ReturnType<typeof remoteServer>) {
 }
 
 describe("NutritionLibraryService", () => {
+	it("syncs preset icons without ever sending device-local photo paths", async () => {
+		const remote = remoteServer();
+		const first = device("account-a", remote);
+		const icon = first.foods.create({
+			...foodDraft("Apple"),
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		const photo = first.foods.create({
+			...foodDraft("Private photo"),
+			visual: {
+				kind: "photo",
+				uri: "file:///food-photos/private.jpg",
+			},
+		});
+
+		first.service.recordFood(icon);
+		first.service.recordFood(photo);
+		await first.service.replay();
+
+		const iconPayload = JSON.parse(
+			remote.records.get(icon.id)?.payload ?? "{}",
+		);
+		const photoPayload = JSON.parse(
+			remote.records.get(photo.id)?.payload ?? "{}",
+		);
+		expect(iconPayload.visual).toEqual({ kind: "icon", preset: "fruit" });
+		expect(photoPayload).not.toHaveProperty("visual");
+		expect(JSON.stringify(photoPayload)).not.toContain("file://");
+		expect(first.foods.find(photo.id)?.visual).toEqual(photo.visual);
+	});
+	it("replays a pre-upgrade outbox payload without adding fields to its receipt identity", async () => {
+		const database = new SQLiteTestDatabase();
+		const state = createNutritionLibraryStateRepository(database);
+		const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const created = foods.create(foodDraft());
+		const legacyRecord: LibraryRecord = {
+			id: created.id,
+			kind: "food",
+			payload: JSON.stringify({
+				...foodDraft(),
+				id: created.id,
+				createdAt: created.createdAt,
+				updatedAt: created.updatedAt,
+			}),
+			revision: 0,
+			deleted: false,
+		};
+		state.queueUpsert("account-a", legacyRecord, "legacy-retry");
+		state.markSending("account-a", "legacy-retry");
+		database.execSync(`
+			ALTER TABLE nutrition_library_records DROP COLUMN schema_version;
+			ALTER TABLE nutrition_library_operations DROP COLUMN schema_version;
+			ALTER TABLE nutrition_library_conflicts DROP COLUMN server_schema_version;
+			PRAGMA user_version = 2;
+		`);
+		const reopened = createNutritionLibraryStateRepository(database);
+		const expected: NutritionLibraryOperationEnvelope = {
+			version: 1,
+			operationId: "legacy-retry",
+			expectedSubject: "account-a",
+			operation: {
+				kind: "upsert",
+				expectedRevision: 0,
+				record: {
+					id: created.id,
+					kind: "food",
+					payload: legacyRecord.payload ?? "",
+				},
+			},
+		};
+		const remote = jest.fn(
+			async (envelope: NutritionLibraryOperationEnvelope) => {
+				expect(canonicalJson(envelope)).toBe(canonicalJson(expected));
+				return { record: { ...legacyRecord, revision: 1 } };
+			},
+		);
+		const service = new NutritionLibraryService(
+			"account-a",
+			reopened,
+			foods,
+			remote,
+		);
+		service.setOnline(true);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(remote).toHaveBeenCalledTimes(1);
+		expect(reopened.listOperations("account-a")).toEqual([]);
+	});
+
+	it("preserves classification, estimates, serving basis and description through restore, conflicts, restart and tombstones", async () => {
+		const remote = remoteServer();
+		const first = device("account-a", remote);
+		const food = first.foods.create({
+			...foodDraft("Soup"),
+			classification: "recipe",
+			estimated: true,
+			baseUnit: "serving",
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Kom" } },
+			description: { en: "Reviewed estimate", nl: "Beoordeelde schatting" },
+			servings: [],
+		});
+		first.service.recordFood(food);
+		await first.service.replay();
+		expect(remote.records.get(food.id)?.schemaVersion).toBe(2);
+		const second = device("account-a", remote);
+		second.service.receiveServerPage([...remote.records.values()]);
+		expect(second.foods.find(food.id)).toEqual(food);
+		first.service.recordFood(
+			first.foods.update(food.id, {
+				...food,
+				description: { en: "Server recipe", nl: "Serverrecept" },
+			}),
+		);
+		await first.service.replay();
+		second.service.recordFood(
+			second.foods.update(food.id, { ...food, estimated: false }),
+		);
+		await second.service.replay();
+		second.service.receiveServerPage([...remote.records.values()]);
+		const conflict = second.service.getConflicts()[0];
+		if (!conflict) throw new Error("Expected conflict");
+		expect(conflict.serverSchemaVersion).toBe(2);
+		second.service.resolveServerConflict(conflict);
+		expect(second.foods.find(food.id)).toMatchObject({
+			classification: "recipe",
+			estimated: true,
+			nutritionBasis: food.nutritionBasis,
+			description: { en: "Server recipe" },
+		});
+		second.service.setOnline(false);
+		second.foods.remove(food.id);
+		second.service.remove(food.id, "food");
+		const restarted = new NutritionLibraryService(
+			"account-a",
+			second.state,
+			second.foods,
+			remote.apply,
+		);
+		restarted.setOnline(true);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(remote.records.get(food.id)).toMatchObject({
+			deleted: true,
+			schemaVersion: 2,
+			payload: null,
+		});
+		first.service.receiveServerPage([...remote.records.values()]);
+		expect(first.foods.find(food.id)).toBeUndefined();
+	});
+
 	it("syncs stable food and Combo identities to a second device without touching diary data", async () => {
 		const remote = remoteServer();
 		const first = device("account-a", remote);

@@ -33,7 +33,9 @@ export type NutritionDiarySnapshot = {
 	readonly serving: NutritionBilingual;
 	readonly quantity: number;
 	readonly amount: number;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: "g" | "ml" | "serving";
+	/** Omitted for historical entries and figures that are not estimated. */
+	readonly estimated?: true;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
 	readonly comboGroup?: {

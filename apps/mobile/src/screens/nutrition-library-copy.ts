@@ -4,10 +4,14 @@ export const nutritionLibraryCopy = {
 		title: "Back up and restore your foods and Combos",
 		intro:
 			"Diary history is saved as independent snapshots. Background sync uploads local library changes; opening this screen explicitly restores the latest reusable Personal Foods and fixed Combos.",
+		photoNotice:
+			"Food photos stay on this device and are not backed up. Restored Foods keep preset icons and use the default visual where a photo was omitted.",
 		offTitle: "Open Food Facts",
 		offHelp:
-			"Refresh imported products from their barcodes. Your edited names, nutrition values, and custom portions stay unchanged.",
+			"Refresh imported products from their barcodes. Your edited names, nutrition values, custom portions, and chosen Food Visual stay unchanged.",
 		offRefresh: "Refresh imported foods",
+		offPhotoFailure:
+			"Nutrition was refreshed, but one product photo could not be saved. It will be retried next time.",
 		offRefreshing: "Refreshing imported foods…",
 		offEmpty: "No barcode-backed Open Food Facts foods are saved locally.",
 		offConfirmTitle: "Refresh imported foods?",
@@ -58,10 +62,14 @@ export const nutritionLibraryCopy = {
 			"Maak een reservekopie van je voedingsmiddelen en Combo's en herstel ze",
 		intro:
 			"Dagboekgeschiedenis wordt als onafhankelijke snapshots opgeslagen. Achtergrondsynchronisatie uploadt lokale bibliotheekwijzigingen; door dit scherm te openen herstel je expliciet de nieuwste herbruikbare Persoonlijke Voedingsmiddelen en vaste Combo's.",
+		photoNotice:
+			"Voedingsfoto's blijven op dit apparaat en worden niet opgenomen in de reservekopie. Herstelde voedingsmiddelen behouden gekozen iconen en gebruiken de standaardafbeelding waar een foto is weggelaten.",
 		offTitle: "Open Food Facts",
 		offHelp:
-			"Vernieuw geïmporteerde producten via hun barcode. Je aangepaste namen, voedingswaarden en eigen porties blijven ongewijzigd.",
+			"Vernieuw geïmporteerde producten via hun barcode. Je aangepaste namen, voedingswaarden, eigen porties en gekozen voedingsvisual blijven ongewijzigd.",
 		offRefresh: "Geïmporteerde voeding vernieuwen",
+		offPhotoFailure:
+			"De voedingswaarden zijn vernieuwd, maar één productfoto kon niet worden opgeslagen. Bij de volgende keer proberen we het opnieuw.",
 		offRefreshing: "Geïmporteerde voeding vernieuwen…",
 		offEmpty:
 			"Er is lokaal geen Open Food Facts-voeding met barcode opgeslagen.",

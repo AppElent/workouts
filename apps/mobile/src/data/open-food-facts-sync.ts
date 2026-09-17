@@ -1,6 +1,7 @@
 import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
 import type { OffLookupOutcome } from "./open-food-facts";
 import type {
+	FoodVisual,
 	PersonalFood,
 	PersonalFoodDraft,
 	PersonalFoodProvenance,
@@ -20,8 +21,12 @@ type RefreshDependencies = {
 	readonly foods: readonly PersonalFood[];
 	readonly refreshBarcode: (barcode: string) => Promise<OffLookupOutcome>;
 	readonly update: (id: string, draft: PersonalFoodDraft) => PersonalFood;
+	readonly importPhoto?: (
+		url: string,
+	) => Promise<Extract<FoodVisual, { kind: "photo" }>>;
 	readonly wait?: (milliseconds: number) => Promise<void>;
 	readonly onProgress?: (progress: OffRefreshProgress) => void;
+	readonly onPhotoFailure?: (food: PersonalFood) => void;
 };
 
 const PROVIDER_METADATA_KEYS = [
@@ -51,6 +56,12 @@ function editableDraft(food: PersonalFood): PersonalFoodDraft {
 		nutrients: food.nutrients,
 		servings: food.servings,
 		provenance: food.provenance,
+		classification: food.classification,
+		nutritionBasis: food.nutritionBasis,
+		estimated: food.estimated,
+		...(food.description ? { description: food.description } : {}),
+		...(food.visual ? { visual: food.visual } : {}),
+		...(food.visualMigrationPending ? { visualMigrationPending: true } : {}),
 	};
 }
 
@@ -58,7 +69,16 @@ function refreshedDraft(
 	food: PersonalFood,
 	latest: PersonalFoodDraft,
 ): PersonalFoodDraft {
-	if (!food.provenance.locallyEdited) return latest;
+	if (!food.provenance.locallyEdited) {
+		return {
+			...latest,
+			classification: food.classification,
+			estimated: food.estimated,
+			...(food.description ? { description: food.description } : {}),
+			...(food.visual ? { visual: food.visual } : {}),
+			...(food.visualMigrationPending ? { visualMigrationPending: true } : {}),
+		};
+	}
 	return {
 		...editableDraft(food),
 		provenance: replaceProviderMetadata(food.provenance, latest.provenance),
@@ -75,7 +95,14 @@ function sameDraft(left: PersonalFoodDraft, right: PersonalFoodDraft): boolean {
 				JSON.stringify(right.nutrients[key]),
 		) &&
 		JSON.stringify(left.servings) === JSON.stringify(right.servings) &&
-		JSON.stringify(left.provenance) === JSON.stringify(right.provenance)
+		JSON.stringify(left.provenance) === JSON.stringify(right.provenance) &&
+		left.classification === right.classification &&
+		JSON.stringify(left.nutritionBasis) ===
+			JSON.stringify(right.nutritionBasis) &&
+		left.estimated === right.estimated &&
+		JSON.stringify(left.description) === JSON.stringify(right.description) &&
+		JSON.stringify(left.visual) === JSON.stringify(right.visual) &&
+		left.visualMigrationPending === right.visualMigrationPending
 	);
 }
 
@@ -94,9 +121,11 @@ export async function refreshOpenFoodFactsImports({
 	foods,
 	refreshBarcode,
 	update,
+	importPhoto,
 	wait = (milliseconds) =>
 		new Promise((resolve) => setTimeout(resolve, milliseconds)),
 	onProgress,
+	onPhotoFailure,
 }: RefreshDependencies): Promise<OffRefreshProgress> {
 	const imports = openFoodFactsImports(foods);
 	let progress: OffRefreshProgress = {
@@ -118,8 +147,29 @@ export async function refreshOpenFoodFactsImports({
 			outcome = { kind: "network-error" };
 		}
 		if (outcome.kind === "found") {
-			const draft = refreshedDraft(food, outcome.draft);
-			if (sameDraft(editableDraft(food), draft)) {
+			let draft = refreshedDraft(food, outcome.draft);
+			const imageUrl = draft.provenance.imageUrl;
+			if (
+				food.visualMigrationPending &&
+				!food.visual &&
+				imageUrl &&
+				importPhoto
+			) {
+				try {
+					draft = {
+						...draft,
+						visual: await importPhoto(imageUrl),
+						visualMigrationPending: undefined,
+					};
+				} catch {
+					draft = { ...draft, visualMigrationPending: true };
+					onPhotoFailure?.(food);
+				}
+			}
+			if (
+				sameDraft(editableDraft(food), draft) &&
+				!food.visualMigrationPending
+			) {
 				progress = { ...progress, unchanged: progress.unchanged + 1 };
 			} else {
 				update(food.id, draft);
