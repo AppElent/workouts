@@ -9,6 +9,7 @@ import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	type ComboDraft,
 	createPersonalFoodRepository,
+	FOOD_VISUAL_PRESET_IDS,
 	type PersonalFoodDraft,
 } from "./personal-food-repository";
 
@@ -116,6 +117,110 @@ function comboDraft(
 }
 
 describe("PersonalFoodRepository public behavior", () => {
+	it("persists preset icons and managed local photos outside provenance", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createPersonalFoodRepository(database);
+		const icon = repository.create(
+			draft({ visual: { kind: "icon", preset: "fruit" } }),
+		);
+		const photo = repository.create(
+			draft({
+				name: { en: "Photo oats", nl: "Fotohavermout" },
+				visual: {
+					kind: "photo",
+					uri: "file:///food-photos/photo-oats.jpg",
+				},
+			}),
+		);
+
+		const reopened = createPersonalFoodRepository(database);
+		expect(reopened.find(icon.id)?.visual).toEqual({
+			kind: "icon",
+			preset: "fruit",
+		});
+		expect(reopened.find(photo.id)?.visual).toEqual({
+			kind: "photo",
+			uri: "file:///food-photos/photo-oats.jpg",
+		});
+		expect(reopened.find(photo.id)?.provenance).not.toHaveProperty("visual");
+	});
+
+	it("accepts every curated preset and rejects unknown icons and remote photos", () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		for (const preset of FOOD_VISUAL_PRESET_IDS) {
+			expect(
+				repository.create(
+					draft({
+						name: { en: preset, nl: preset },
+						visual: { kind: "icon", preset },
+					}),
+				).visual,
+			).toEqual({ kind: "icon", preset });
+		}
+		expect(() =>
+			repository.create(
+				draft({
+					visual: { kind: "icon", preset: "pizza" } as never,
+				}) as PersonalFoodDraft,
+			),
+		).toThrow("invalid Food Visual icon");
+		expect(() =>
+			repository.create(
+				draft({
+					visual: {
+						kind: "photo",
+						uri: "https://images.openfoodfacts.org/product.jpg",
+					},
+				}) as PersonalFoodDraft,
+			),
+		).toThrow("managed local file");
+	});
+
+	it("backs up icons but restores photo-backed Foods with an unset visual", () => {
+		const source = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const icon = source.create(
+			draft({ visual: { kind: "icon", preset: "grains" } }),
+		);
+		const photo = source.create(
+			draft({
+				name: { en: "Photo oats", nl: "Fotohavermout" },
+				visual: {
+					kind: "photo",
+					uri: "file:///food-photos/photo-oats.jpg",
+				},
+			}),
+		);
+
+		const backup = source.exportBackup();
+		expect(backup.foods.find((food) => food.id === icon.id)?.visual).toEqual({
+			kind: "icon",
+			preset: "grains",
+		});
+		expect(
+			backup.foods.find((food) => food.id === photo.id)?.visual,
+		).toBeUndefined();
+
+		const restored = createPersonalFoodRepository(new SQLiteTestDatabase());
+		restored.replaceFromBackup({
+			...backup,
+			foods: backup.foods.map((food) =>
+				food.id === photo.id
+					? {
+							...photo,
+							visual: {
+								kind: "photo" as const,
+								uri: "file:///another-device/private.jpg",
+							},
+						}
+					: food,
+			),
+		});
+		expect(restored.find(icon.id)?.visual).toEqual({
+			kind: "icon",
+			preset: "grains",
+		});
+		expect(restored.find(photo.id)?.visual).toBeUndefined();
+	});
 	it("migrates legacy persisted foods to required defaults without changing their identity or nutrition", () => {
 		const database = new SQLiteTestDatabase();
 		database.execSync(`
@@ -153,6 +258,47 @@ describe("PersonalFoodRepository public behavior", () => {
 		expect(createPersonalFoodRepository(database).find("legacy")).toEqual(
 			repository.find("legacy"),
 		);
+	});
+
+	it("merges the visual-only schema into the unified Personal Food model", () => {
+		const database = new SQLiteTestDatabase();
+		database.execSync(`
+			CREATE TABLE personal_foods (
+				id TEXT PRIMARY KEY, name_en TEXT, name_nl TEXT,
+				base_unit TEXT CHECK (base_unit IN ('g', 'ml')),
+				nutrients_json TEXT, servings_json TEXT, provenance_json TEXT,
+				visual_json TEXT, visual_migration_pending INTEGER NOT NULL DEFAULT 1,
+				created_at INTEGER, updated_at INTEGER
+			);
+			CREATE INDEX personal_foods_by_updated ON personal_foods(updated_at DESC);
+			PRAGMA user_version = 5;
+		`);
+		const old = draft({ visual: { kind: "icon", preset: "fruit" } });
+		database.runSync(
+			"INSERT INTO personal_foods VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			"visual-v5",
+			old.name.en,
+			old.name.nl,
+			old.baseUnit,
+			JSON.stringify(old.nutrients),
+			JSON.stringify(old.servings),
+			JSON.stringify(old.provenance),
+			JSON.stringify(old.visual),
+			0,
+			10,
+			20,
+		);
+
+		expect(
+			createPersonalFoodRepository(database).find("visual-v5"),
+		).toMatchObject({
+			classification: "ordinary",
+			nutritionBasis: { kind: "per100", unit: "g" },
+			estimated: false,
+			visual: { kind: "icon", preset: "fruit" },
+			createdAt: 10,
+			updatedAt: 20,
+		});
 	});
 
 	it("persists per-serving estimates and filters recipes through the Personal Food query", () => {

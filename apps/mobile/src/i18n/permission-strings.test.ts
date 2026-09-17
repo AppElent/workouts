@@ -30,12 +30,22 @@ describe("the camera permission prompt", () => {
 	it("explains the same purpose in each language", () => {
 		for (const copy of [enPermissions, nlPermissions]) {
 			expect(copy.NSCameraUsageDescription.trim().length).toBeGreaterThan(0);
+			expect(copy.NSPhotoLibraryUsageDescription.trim().length).toBeGreaterThan(
+				0,
+			);
 		}
 		// Not the same sentence in two languages — that would mean one of them
 		// was never translated.
 		expect(nlPermissions.NSCameraUsageDescription).not.toBe(
 			enPermissions.NSCameraUsageDescription,
 		);
+	});
+
+	it("names Food photos in both native permission prompts", () => {
+		expect(enPermissions.NSCameraUsageDescription).toContain("Food");
+		expect(enPermissions.NSPhotoLibraryUsageDescription).toContain("Food");
+		expect(nlPermissions.NSCameraUsageDescription).toContain("voedings");
+		expect(nlPermissions.NSPhotoLibraryUsageDescription).toContain("voedings");
 	});
 
 	it("names barcodes and nutrition, so the request is not an unexplained camera grab", () => {

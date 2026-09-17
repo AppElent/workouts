@@ -177,7 +177,7 @@ export default function AppLayout() {
 												name="nutrition-weekly-review"
 												options={{
 													title:
-														locale === "nl" ? "Weekoverzicht" : "Weekly review",
+														locale === "nl" ? "Weekoverzicht" : "Week overview",
 												}}
 											/>
 											<Stack.Screen

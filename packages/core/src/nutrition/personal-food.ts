@@ -14,6 +14,27 @@ import type { ShippedFoodId } from "./types";
 
 export type PersonalFoodClassification = "ordinary" | "recipe";
 
+export const FOOD_VISUAL_PRESET_IDS = [
+	"fruit",
+	"vegetable",
+	"grains",
+	"dairy",
+	"egg",
+	"meat",
+	"fish",
+	"meal",
+	"snack",
+	"drink",
+	"supplement",
+	"condiment",
+] as const;
+
+export type FoodVisualPresetId = (typeof FOOD_VISUAL_PRESET_IDS)[number];
+
+export type FoodVisual =
+	| { readonly kind: "icon"; readonly preset: FoodVisualPresetId }
+	| { readonly kind: "photo"; readonly uri: string };
+
 export type PersonalFoodNutritionBasis =
 	| { readonly kind: "per100"; readonly unit: "g" | "ml" }
 	| { readonly kind: "perServing"; readonly label: NutritionBilingual };
@@ -53,6 +74,9 @@ export type PersonalFoodDraft = {
 	readonly nutritionBasis?: PersonalFoodNutritionBasis;
 	readonly estimated?: boolean;
 	readonly description?: NutritionBilingual;
+	readonly visual?: FoodVisual;
+	/** Internal lazy-migration state; never serialized into account backup. */
+	readonly visualMigrationPending?: true;
 };
 
 export type NormalizedPersonalFoodDraft = PersonalFoodDraft & {
@@ -179,6 +203,34 @@ function validateProvenance(
 	};
 }
 
+export function validateFoodVisual(value: unknown): FoodVisual | undefined {
+	if (value === undefined || value === null) return undefined;
+	if (!value || typeof value !== "object" || !("kind" in value)) {
+		throw new Error("Food visual is invalid.");
+	}
+	if (value.kind === "icon") {
+		if (
+			!("preset" in value) ||
+			typeof value.preset !== "string" ||
+			!FOOD_VISUAL_PRESET_IDS.includes(value.preset as FoodVisualPresetId)
+		) {
+			throw new Error("An invalid Food Visual icon was selected.");
+		}
+		return { kind: "icon", preset: value.preset as FoodVisualPresetId };
+	}
+	if (value.kind === "photo") {
+		if (!("uri" in value) || typeof value.uri !== "string") {
+			throw new Error("Food photo is invalid.");
+		}
+		const uri = value.uri.trim();
+		if (!uri.startsWith("file://") || uri.length <= "file://".length) {
+			throw new Error("Food photos must use managed local files.");
+		}
+		return { kind: "photo", uri };
+	}
+	throw new Error("Food visual kind is invalid.");
+}
+
 /** Normalize once at the library boundary, retaining absent and trace readings. */
 export function validatePersonalFoodDraft(
 	draft: PersonalFoodDraft,
@@ -226,6 +278,7 @@ export function validatePersonalFoodDraft(
 	for (const key of NUTRIENT_KEYS) {
 		nutrients[key] = validateNutrient(draft.nutrients?.[key], key);
 	}
+	const visual = validateFoodVisual(draft.visual);
 	return {
 		name,
 		baseUnit: draft.baseUnit,
@@ -241,6 +294,8 @@ export function validatePersonalFoodDraft(
 			amount: positive(serving?.amount, `Serving ${index + 1} amount`),
 		})),
 		provenance: validateProvenance(draft.provenance),
+		...(visual ? { visual } : {}),
+		...(draft.visualMigrationPending ? { visualMigrationPending: true } : {}),
 	};
 }
 

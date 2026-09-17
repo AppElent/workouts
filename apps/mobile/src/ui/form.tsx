@@ -310,6 +310,39 @@ export function InlineActionRow({ children }: { children: ReactNode }) {
 	return <View style={styles.inlineActions}>{children}</View>;
 }
 
+export function FormPreview({ children }: { children: ReactNode }) {
+	return <View style={styles.preview}>{children}</View>;
+}
+
+export function FormChoiceChips<const Id extends string>({
+	options,
+	selectedId,
+	onSelect,
+}: {
+	options: readonly { id: Id; label: string }[];
+	selectedId?: Id;
+	onSelect: (id: Id) => void;
+}) {
+	return (
+		<View style={styles.choiceChips} accessibilityRole="radiogroup">
+			{options.map((option) => (
+				<Pressable
+					key={option.id}
+					onPress={() => onSelect(option.id)}
+					accessibilityRole="radio"
+					accessibilityState={{ checked: selectedId === option.id }}
+					style={[
+						styles.choiceChip,
+						selectedId === option.id && styles.choiceChipSelected,
+					]}
+				>
+					<AppText>{option.label}</AppText>
+				</Pressable>
+			))}
+		</View>
+	);
+}
+
 export function TextAction({
 	label,
 	tone = "accent",
@@ -510,6 +543,25 @@ const styles = StyleSheet.create({
 		justifyContent: "flex-end",
 		alignItems: "center",
 		gap: spacing.sm,
+	},
+	preview: { gap: spacing.sm, padding: spacing.md },
+	choiceChips: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: spacing.sm,
+		padding: spacing.md,
+	},
+	choiceChip: {
+		minHeight: metrics.hitTarget,
+		justifyContent: "center",
+		paddingHorizontal: spacing.md,
+		borderWidth: 1,
+		borderColor: colors.borderStrong,
+		borderRadius: radius.pill,
+	},
+	choiceChipSelected: {
+		borderColor: colors.accent,
+		backgroundColor: colors.accentDim,
 	},
 	textAction: {
 		minHeight: metrics.hitTarget,

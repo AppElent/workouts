@@ -2,13 +2,11 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
 import { nutritionGoalTables } from './nutritionGoalTables'
-import { nutritionReviewTables } from './nutritionReviewModel'
 import { nutritionLibraryTables } from './nutritionLibraryTables'
 import { personalMeasureTables } from './personalMeasureTables'
 
 export default defineSchema({
   ...nutritionGoalTables,
-  ...nutritionReviewTables,
   ...nutritionLibraryTables,
   ...personalMeasureTables,
   nutritionDiaryEntries: defineTable({
