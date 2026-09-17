@@ -35,6 +35,7 @@ export function copyMealEntries(
 			baseUnit: entry.baseUnit,
 			nutrients: entry.nutrients,
 			provenance: entry.provenance,
+			...(entry.estimated ? { estimated: true as const } : {}),
 			...(copiedGroup ? { comboGroup: copiedGroup } : {}),
 			date: targetDate,
 			meal: targetMeal,

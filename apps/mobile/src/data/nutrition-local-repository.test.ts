@@ -75,6 +75,69 @@ function cachedDay(
 }
 
 describe("durable nutrition local repository", () => {
+	it("keeps serving estimates through create, edit, move and acknowledged cache reconciliation", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createNutritionLocalRepository(database);
+		const original = {
+			...snapshot("estimate"),
+			clientEntryId: "estimate",
+			estimated: true as const,
+			baseUnit: "serving" as const,
+			amount: 1,
+		};
+		repository.accept(
+			"alice",
+			envelope("create-estimate", { kind: "create", entry: original }),
+		);
+		expect(
+			repository.projectDay("alice", original.date).entries[0],
+		).toMatchObject({ estimated: true, baseUnit: "serving", amount: 1 });
+		repository.accept(
+			"alice",
+			envelope("edit-estimate", {
+				kind: "update",
+				target: { kind: "clientEntryId", id: "estimate" },
+				quantity: 2,
+				date: "2026-09-06",
+				meal: "dinner",
+			}),
+			{ targetEntry: { _id: "client:estimate", ...original } },
+		);
+		const projected = repository.projectDay("alice", "2026-09-06").entries[0];
+		expect(projected).toMatchObject({
+			estimated: true,
+			baseUnit: "serving",
+			amount: 2,
+			quantity: 2,
+			nutrients: { protein: { kind: "trace" }, fat: { kind: "absent" } },
+		});
+		expect(repository.projectDay("alice", original.date).entries).toHaveLength(
+			0,
+		);
+		const serverEntry = { ...projected, _id: "server-estimate" };
+		for (const operationId of ["create-estimate", "edit-estimate"])
+			repository.acknowledge("alice", operationId, {
+				entryIds: ["server-estimate"],
+				clientEntryIds: ["estimate"],
+				days: [
+					{
+						date: "2026-09-06",
+						revision: 2,
+						entries: [serverEntry],
+						totals: {},
+					},
+				],
+			});
+		expect(repository.projectDay("alice", "2026-09-06").entries).toHaveLength(
+			1,
+		);
+		expect(repository.getDay("alice", "2026-09-06")?.entries[0]).toMatchObject({
+			estimated: true,
+			baseUnit: "serving",
+			amount: 2,
+		});
+		database.closeSync();
+	});
 	it("keeps the immutable envelope and local projection across a real SQLite reopen", () => {
 		const directory = mkdtempSync(join(tmpdir(), "workouts-nutrition-"));
 		const path = join(directory, "state.db");

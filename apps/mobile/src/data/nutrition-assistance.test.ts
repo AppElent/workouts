@@ -1,4 +1,7 @@
-import { totalNutrients } from "@workouts/core/nutrition";
+import {
+	normalizePersonalFood,
+	totalNutrients,
+} from "@workouts/core/nutrition";
 import {
 	type AssistanceFood,
 	allAssistanceRowsSelected,
@@ -161,6 +164,54 @@ describe("text assistance and label review helpers", () => {
 		).toBe("too-many-rows");
 	});
 
+	it("requires selection for a per-serving estimate and freezes its marker and nutrient states", () => {
+		const personal = normalizePersonalFood({
+			id: "p",
+			name: { en: "Pasta", nl: "Pasta" },
+			baseUnit: "serving",
+			classification: "recipe",
+			estimated: true,
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Kom" } },
+			nutrients: {
+				...food("p", "Pasta").nutrients,
+				protein: { kind: "trace" },
+			},
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+			createdAt: 1,
+			updatedAt: 1,
+		});
+		const [row] = parseTextAssistedLog(
+			"2 servings Pasta",
+			buildAssistanceFoodCatalog([], [personal]),
+			"en",
+		);
+		expect(() =>
+			buildAssistanceBatchEntries([row], "2026-09-12", "dinner", () => "entry"),
+		).toThrow("Every food needs an explicit selection.");
+		const [snapshot] = buildAssistanceBatchEntries(
+			[selectAssistanceFood(row, "p")],
+			"2026-09-12",
+			"dinner",
+			() => "entry",
+		);
+		expect(snapshot).toMatchObject({
+			baseUnit: "serving",
+			amount: 2,
+			estimated: true,
+			serving: { en: "Bowl × 2", nl: "Kom × 2" },
+			nutrients: {
+				energy: { kind: "value", amount: 200 },
+				protein: { kind: "trace" },
+				fat: { kind: "absent" },
+			},
+		});
+	});
+
 	it("keeps an edited label base unit in the personal-food draft", () => {
 		const label = parseNutritionLabel(
 			"Name: Drink\nPer 100 g\nEnergy 100 kcal",
@@ -181,6 +232,9 @@ describe("text assistance and label review helpers", () => {
 			id: "p",
 			name: { en: "Food", nl: "Voedsel" },
 			baseUnit: "g" as const,
+			classification: "ordinary" as const,
+			nutritionBasis: { kind: "per100" as const, unit: "g" as const },
+			estimated: false,
 			nutrients: food("p", "Food").nutrients,
 			provenance: {
 				recordOrigin: "personal" as const,

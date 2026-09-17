@@ -221,6 +221,136 @@ describe("PersonalFoodRepository public behavior", () => {
 		});
 		expect(restored.find(photo.id)?.visual).toBeUndefined();
 	});
+	it("migrates legacy persisted foods to required defaults without changing their identity or nutrition", () => {
+		const database = new SQLiteTestDatabase();
+		database.execSync(`
+			CREATE TABLE personal_foods (
+				id TEXT PRIMARY KEY, name_en TEXT, name_nl TEXT,
+				base_unit TEXT CHECK (base_unit IN ('g', 'ml')),
+				nutrients_json TEXT, servings_json TEXT, provenance_json TEXT,
+				created_at INTEGER, updated_at INTEGER
+			);
+			PRAGMA user_version = 3;
+		`);
+		const old = draft({ baseUnit: "ml" });
+		database.runSync(
+			"INSERT INTO personal_foods VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			"legacy",
+			old.name.en,
+			old.name.nl,
+			old.baseUnit,
+			JSON.stringify(old.nutrients),
+			JSON.stringify(old.servings),
+			JSON.stringify(old.provenance),
+			10,
+			20,
+		);
+		const repository = createPersonalFoodRepository(database);
+		expect(repository.find("legacy")).toMatchObject({
+			id: "legacy",
+			classification: "ordinary",
+			nutritionBasis: { kind: "per100", unit: "ml" },
+			estimated: false,
+			nutrients: old.nutrients,
+			createdAt: 10,
+			updatedAt: 20,
+		});
+		expect(createPersonalFoodRepository(database).find("legacy")).toEqual(
+			repository.find("legacy"),
+		);
+	});
+
+	it("merges the visual-only schema into the unified Personal Food model", () => {
+		const database = new SQLiteTestDatabase();
+		database.execSync(`
+			CREATE TABLE personal_foods (
+				id TEXT PRIMARY KEY, name_en TEXT, name_nl TEXT,
+				base_unit TEXT CHECK (base_unit IN ('g', 'ml')),
+				nutrients_json TEXT, servings_json TEXT, provenance_json TEXT,
+				visual_json TEXT, visual_migration_pending INTEGER NOT NULL DEFAULT 1,
+				created_at INTEGER, updated_at INTEGER
+			);
+			CREATE INDEX personal_foods_by_updated ON personal_foods(updated_at DESC);
+			PRAGMA user_version = 5;
+		`);
+		const old = draft({ visual: { kind: "icon", preset: "fruit" } });
+		database.runSync(
+			"INSERT INTO personal_foods VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			"visual-v5",
+			old.name.en,
+			old.name.nl,
+			old.baseUnit,
+			JSON.stringify(old.nutrients),
+			JSON.stringify(old.servings),
+			JSON.stringify(old.provenance),
+			JSON.stringify(old.visual),
+			0,
+			10,
+			20,
+		);
+
+		expect(
+			createPersonalFoodRepository(database).find("visual-v5"),
+		).toMatchObject({
+			classification: "ordinary",
+			nutritionBasis: { kind: "per100", unit: "g" },
+			estimated: false,
+			visual: { kind: "icon", preset: "fruit" },
+			createdAt: 10,
+			updatedAt: 20,
+		});
+	});
+
+	it("persists per-serving estimates and filters recipes through the Personal Food query", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createPersonalFoodRepository(database);
+		const ordinary = repository.create(draft());
+		const recipe = repository.create(
+			draft({
+				classification: "recipe",
+				estimated: true,
+				baseUnit: "serving",
+				nutritionBasis: {
+					kind: "perServing",
+					label: { en: "Bowl", nl: "Kom" },
+				},
+				description: { en: "Restaurant bowl", nl: "Kom van restaurant" },
+				servings: [],
+			}),
+		);
+		const reopened = createPersonalFoodRepository(database);
+		expect(reopened.find(recipe.id)).toEqual(recipe);
+		expect(reopened.list({ classification: "recipe" })).toEqual([recipe]);
+		expect(
+			reopened.search("trainings", "en", { classification: "recipe" }),
+		).toEqual([recipe]);
+		expect(reopened.list({ classification: "ordinary" })).toEqual([ordinary]);
+		const originalPart = comboDraft(recipe.id).parts[1];
+		const combo = reopened.createCombo({
+			name: "Estimated serving Combo",
+			parts: [
+				{
+					...originalPart,
+					snapshot: {
+						...originalPart.snapshot,
+						baseUnit: "serving",
+						estimated: true,
+						quantity: 2,
+						amount: 2,
+					},
+				},
+			],
+		});
+		const restored = createPersonalFoodRepository(new SQLiteTestDatabase());
+		restored.replaceFromBackup(reopened.exportBackup());
+		expect(restored.find(recipe.id)).toEqual(recipe);
+		expect(restored.findCombo(combo.id)?.parts[0].snapshot).toMatchObject({
+			baseUnit: "serving",
+			estimated: true,
+			quantity: 2,
+			amount: 2,
+		});
+	});
 
 	it("mints a stable UUID and preserves zero, trace, absent, and three Servings", () => {
 		const database = new SQLiteTestDatabase();

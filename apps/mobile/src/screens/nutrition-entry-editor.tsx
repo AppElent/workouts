@@ -82,6 +82,7 @@ export function NutritionEntryEditor({
 						baseUnit: entry.baseUnit,
 						nutrients: entry.nutrients,
 						provenance: entry.provenance,
+						...(entry.estimated ? { estimated: true as const } : {}),
 						...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
 					},
 				},

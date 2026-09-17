@@ -38,21 +38,24 @@ it("keeps native swipe deletion tap-only and screen-reader reachable", () => {
 
 it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 	const onCreateCombo = jest.fn();
+	const onOpenWeekOverview = jest.fn();
 	const onToggleDataSources = jest.fn();
 	render(
 		<NutritionHeaderMenu
 			label="More nutrition tools"
 			closeLabel="Close"
+			weekOverviewLabel="Week overview"
 			createComboLabel="Create Combo"
 			logComboLabel="Log Combo"
-			recipesLabel="Recipes"
+			captureDraftsLabel="Unfinished logs"
 			assistanceLabel="Assistance"
 			backupLabel="Backup"
 			goalsLabel="Goals"
 			dataSourcesLabel="Data sources"
 			onCreateCombo={onCreateCombo}
+			onOpenWeekOverview={onOpenWeekOverview}
 			onLogCombo={jest.fn()}
-			onOpenRecipes={jest.fn()}
+			onOpenCaptureDrafts={jest.fn()}
 			onOpenAssistance={jest.fn()}
 			onOpenBackup={jest.fn()}
 			onOpenGoals={jest.fn()}
@@ -61,8 +64,10 @@ it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 	);
 
 	fireEvent.press(screen.getByLabelText("More nutrition tools"));
+	fireEvent.press(screen.getByLabelText("Week overview"));
 	fireEvent.press(screen.getByLabelText("Create Combo"));
 	fireEvent.press(screen.getByLabelText("Data sources"));
+	expect(onOpenWeekOverview).toHaveBeenCalledTimes(1);
 	expect(onCreateCombo).toHaveBeenCalledTimes(1);
 	expect(onToggleDataSources).toHaveBeenCalledTimes(1);
 });

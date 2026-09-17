@@ -9,13 +9,14 @@ import { portablePersonalFood } from "./personal-food-repository";
 
 export const NUTRITION_LIBRARY_STATE_DATABASE_NAME =
 	"workouts-nutrition-library-state.db";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export type LibraryRecordKind = "food" | "combo";
 export type LibraryRecord = {
 	readonly id: string;
 	readonly kind: LibraryRecordKind;
 	readonly payload: string | null;
+	readonly schemaVersion?: 1 | 2;
 	readonly revision: number;
 	readonly deleted: boolean;
 };
@@ -27,6 +28,7 @@ export type LibraryOperation = {
 	readonly recordId: string;
 	readonly recordKind: LibraryRecordKind;
 	readonly payload: string | null;
+	readonly schemaVersion?: 1 | 2;
 	readonly expectedRevision: number;
 	readonly status: "queued" | "sending" | "needs-attention";
 	readonly attempts: number;
@@ -39,6 +41,7 @@ export type LibraryConflict = {
 	readonly serverPayload: string | null;
 	readonly serverRevision: number;
 	readonly serverDeleted: boolean;
+	readonly serverSchemaVersion?: 1 | 2;
 };
 
 export type PreparedLibraryMutation = {
@@ -52,6 +55,7 @@ type Row = {
 	record_id: string;
 	record_kind: LibraryRecordKind;
 	payload_json: string | null;
+	schema_version: 1 | 2;
 	revision: number;
 	deleted: number;
 };
@@ -63,6 +67,7 @@ type OperationRow = {
 	record_id: string;
 	record_kind: LibraryRecordKind;
 	payload_json: string | null;
+	schema_version: 1 | 2;
 	expected_revision: number;
 	status: "queued" | "sending" | "needs-attention";
 	attempts: number;
@@ -72,6 +77,7 @@ type OperationRow = {
 type ConflictRow = Row & {
 	local_payload_json: string | null;
 	server_payload_json: string | null;
+	server_schema_version: 1 | 2;
 	server_revision: number;
 	server_deleted: number;
 };
@@ -143,6 +149,14 @@ function migrate(database: SyncSQLiteDatabase) {
 				);
 			`);
 		}
+		if (version < 3) {
+			database.execSync(`
+				ALTER TABLE nutrition_library_records ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1;
+				ALTER TABLE nutrition_library_operations ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1;
+				ALTER TABLE nutrition_library_conflicts ADD COLUMN server_schema_version INTEGER NOT NULL DEFAULT 1;
+			`);
+		}
+
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION};`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -156,6 +170,7 @@ function recordFromRow(row: Row): LibraryRecord {
 		id: row.record_id,
 		kind: row.record_kind,
 		payload: row.payload_json,
+		schemaVersion: row.schema_version,
 		revision: row.revision,
 		deleted: row.deleted === 1,
 	};
@@ -169,6 +184,7 @@ function operationFromRow(row: OperationRow): LibraryOperation {
 		recordId: row.record_id,
 		recordKind: row.record_kind,
 		payload: row.payload_json,
+		schemaVersion: row.schema_version,
 		expectedRevision: row.expected_revision,
 		status: row.status,
 		attempts: row.attempts,
@@ -240,17 +256,18 @@ export function createNutritionLibraryStateRepository(
 	migrate(database);
 	const saveRecord = (subject: string, record: LibraryRecord) => {
 		database.runSync(
-			`INSERT INTO nutrition_library_records(subject, record_id, record_kind, payload_json, revision, deleted)
-			 VALUES (?, ?, ?, ?, ?, ?)
+			`INSERT INTO nutrition_library_records(subject, record_id, record_kind, payload_json, revision, deleted, schema_version)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)
 			 ON CONFLICT(subject, record_id) DO UPDATE SET
 			 record_kind = excluded.record_kind, payload_json = excluded.payload_json,
-			 revision = excluded.revision, deleted = excluded.deleted`,
+			 revision = excluded.revision, deleted = excluded.deleted, schema_version = excluded.schema_version`,
 			subject,
 			record.id,
 			record.kind,
 			record.payload,
 			record.revision,
 			record.deleted ? 1 : 0,
+			record.schemaVersion ?? 1,
 		);
 	};
 	const getRecord = (subject: string, id: string) => {
@@ -322,34 +339,37 @@ export function createNutritionLibraryStateRepository(
 			);
 			if (replaceable) {
 				database.runSync(
-					"UPDATE nutrition_library_operations SET kind = 'upsert', payload_json = ?, record_kind = ? WHERE sequence = ?",
+					"UPDATE nutrition_library_operations SET kind = 'upsert', payload_json = ?, record_kind = ?, schema_version = ? WHERE sequence = ?",
 					record.payload,
 					record.kind,
+					record.schemaVersion ?? 1,
 					replaceable.sequence,
 				);
 				return;
 			}
 			database.runSync(
-				`INSERT INTO nutrition_library_operations(subject, operation_id, kind, record_id, record_kind, payload_json, expected_revision, status, attempts)
-				 VALUES (?, ?, 'upsert', ?, ?, ?, ?, 'queued', 0)`,
+				`INSERT INTO nutrition_library_operations(subject, operation_id, kind, record_id, record_kind, payload_json, expected_revision, status, attempts, schema_version)
+				 VALUES (?, ?, 'upsert', ?, ?, ?, ?, 'queued', 0, ?)`,
 				subject,
 				operationId,
 				record.id,
 				record.kind,
 				record.payload,
 				record.revision,
+				record.schemaVersion ?? 1,
 			);
 		},
 		queueRemove(subject, record, operationId) {
 			saveRecord(subject, { ...record, payload: null, deleted: true });
 			database.runSync(
-				`INSERT INTO nutrition_library_operations(subject, operation_id, kind, record_id, record_kind, payload_json, expected_revision, status, attempts)
-				 VALUES (?, ?, 'remove', ?, ?, NULL, ?, 'queued', 0)`,
+				`INSERT INTO nutrition_library_operations(subject, operation_id, kind, record_id, record_kind, payload_json, expected_revision, status, attempts, schema_version)
+				 VALUES (?, ?, 'remove', ?, ?, NULL, ?, 'queued', 0, ?)`,
 				subject,
 				operationId,
 				record.id,
 				record.kind,
 				record.revision,
+				record.schemaVersion ?? 1,
 			);
 		},
 		prepare(subject, mutation) {
@@ -518,11 +538,11 @@ export function createNutritionLibraryStateRepository(
 				)?.count ?? 0;
 			if (dirty > 0) {
 				database.runSync(
-					`INSERT INTO nutrition_library_conflicts(subject, record_id, record_kind, local_payload_json, server_payload_json, server_revision, server_deleted)
-					 VALUES (?, ?, ?, ?, ?, ?, ?)
+					`INSERT INTO nutrition_library_conflicts(subject, record_id, record_kind, local_payload_json, server_payload_json, server_revision, server_deleted, server_schema_version)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 					 ON CONFLICT(subject, record_id) DO UPDATE SET
 					 local_payload_json = excluded.local_payload_json, server_payload_json = excluded.server_payload_json,
-					 server_revision = excluded.server_revision, server_deleted = excluded.server_deleted`,
+					 server_revision = excluded.server_revision, server_deleted = excluded.server_deleted, server_schema_version = excluded.server_schema_version`,
 					subject,
 					record.id,
 					record.kind,
@@ -530,6 +550,7 @@ export function createNutritionLibraryStateRepository(
 					record.payload,
 					record.revision,
 					record.deleted ? 1 : 0,
+					record.schemaVersion ?? 1,
 				);
 				return "conflict";
 			}
@@ -549,7 +570,7 @@ export function createNutritionLibraryStateRepository(
 		listConflicts(subject) {
 			return database
 				.getAllSync<ConflictRow>(
-					"SELECT c.*, r.payload_json, r.revision, r.deleted FROM nutrition_library_conflicts c LEFT JOIN nutrition_library_records r ON r.subject = c.subject AND r.record_id = c.record_id WHERE c.subject = ? ORDER BY c.record_id ASC",
+					"SELECT c.*, r.payload_json, r.revision, r.deleted, r.schema_version FROM nutrition_library_conflicts c LEFT JOIN nutrition_library_records r ON r.subject = c.subject AND r.record_id = c.record_id WHERE c.subject = ? ORDER BY c.record_id ASC",
 					subject,
 				)
 				.map((row) => ({
@@ -557,6 +578,7 @@ export function createNutritionLibraryStateRepository(
 						id: row.record_id,
 						kind: row.record_kind,
 						payload: row.payload_json,
+						schemaVersion: row.schema_version,
 						revision: row.revision ?? 0,
 						deleted: row.deleted === 1,
 					},
@@ -564,6 +586,7 @@ export function createNutritionLibraryStateRepository(
 					serverPayload: row.server_payload_json,
 					serverRevision: row.server_revision,
 					serverDeleted: row.server_deleted === 1,
+					serverSchemaVersion: row.server_schema_version,
 				}));
 		},
 		clearConflict(subject, recordId) {
@@ -636,6 +659,7 @@ export function libraryRecordFromFood(
 		id: food.id,
 		kind: "food",
 		payload: JSON.stringify(portablePersonalFood(food)),
+		schemaVersion: 2,
 		revision,
 		deleted: false,
 	};
@@ -649,6 +673,7 @@ export function libraryRecordFromCombo(
 		id: combo.id,
 		kind: "combo",
 		payload: JSON.stringify(combo),
+		schemaVersion: 2,
 		revision,
 		deleted: false,
 	};
@@ -658,20 +683,31 @@ export function applyLibraryRecord(
 	repository: PersonalFoodRepository,
 	record: LibraryRecord,
 ) {
-	const backup = repository.exportBackup();
-	const foods = new Map(backup.foods.map((food) => [food.id, food]));
-	const combos = new Map(backup.combos.map((combo) => [combo.id, combo]));
+	const foods = new Map(repository.list().map((food) => [food.id, food]));
+	const combos = new Map(
+		repository.listCombos().map((combo) => [combo.id, combo]),
+	);
 	if (record.kind === "food") {
 		if (record.deleted) foods.delete(record.id);
-		else
-			foods.set(
-				record.id,
+		else {
+			const current = foods.get(record.id);
+			const incoming = portablePersonalFood(
 				JSON.parse(record.payload ?? "null") as PersonalFood,
 			);
+			foods.set(
+				record.id,
+				!incoming.visual && current?.visual?.kind === "photo"
+					? { ...incoming, visual: current.visual }
+					: incoming,
+			);
+		}
 	} else if (record.deleted) combos.delete(record.id);
 	else combos.set(record.id, JSON.parse(record.payload ?? "null") as Combo);
-	repository.replaceFromBackup({
-		foods: [...foods.values()],
-		combos: [...combos.values()],
-	});
+	repository.replaceFromBackup(
+		{
+			foods: [...foods.values()],
+			combos: [...combos.values()],
+		},
+		{ preserveLocalPhotos: true },
+	);
 }

@@ -28,7 +28,7 @@ export type ServingOption =
 			readonly label: Bilingual;
 			/** One gram or one millilitre; quantity does the rest. */
 			readonly amount: 1;
-			readonly unit: "g" | "ml";
+			readonly unit: "g" | "ml" | "serving";
 	  };
 
 const BASE_UNIT_LABELS: Record<"g" | "ml", Bilingual> = {

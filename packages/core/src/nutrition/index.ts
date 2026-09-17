@@ -40,7 +40,6 @@ export {
 	OPEN_FOOD_FACTS_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
-export * from "./cooking";
 export {
 	type FoodResult,
 	type FoodResultsInput,
@@ -98,6 +97,7 @@ export {
 	scaleNutrient,
 	TRACE,
 } from "./nutrients";
+export * from "./personal-food";
 export {
 	parseProviderNumber,
 	parseProviderNutrient,

@@ -16,6 +16,18 @@ export type PersonalFoodEditorCopy = {
 	cropPosition: string;
 	cropPositions: Record<"center" | "top" | "bottom" | "left" | "right", string>;
 	name: string;
+	classification: string;
+	ordinary: string;
+	recipe: string;
+	description: string;
+	precision: string;
+	estimateHelp: string;
+	provided: string;
+	estimated: string;
+	basis: string;
+	perServing: string;
+	servingLabel: string;
+	serving: string;
 	otherName: string;
 	addOtherName: string;
 	editOtherName: string;
@@ -78,6 +90,18 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 			left: "Left",
 			right: "Right",
 		},
+		classification: "Food category",
+		ordinary: "Food",
+		recipe: "Recipe",
+		description: "Description (optional)",
+		precision: "Nutrition figures",
+		estimateHelp: "Choose Estimated only when these figures are approximate.",
+		provided: "Provided values",
+		estimated: "Estimated",
+		basis: "Nutrition basis",
+		perServing: "Per serving",
+		servingLabel: "Serving name",
+		serving: "Serving",
 		name: "Name",
 		otherName: "Dutch name",
 		addOtherName: "Add Dutch name (optional)",
@@ -139,6 +163,19 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 			left: "Links",
 			right: "Rechts",
 		},
+		classification: "Voedingscategorie",
+		ordinary: "Voeding",
+		recipe: "Recept",
+		description: "Beschrijving (optioneel)",
+		precision: "Voedingscijfers",
+		estimateHelp:
+			"Kies Geschat alleen wanneer deze waarden bij benadering zijn.",
+		provided: "Opgegeven waarden",
+		estimated: "Geschat",
+		basis: "Voedingsbasis",
+		perServing: "Per portie",
+		servingLabel: "Naam portie",
+		serving: "Portie",
 		name: "Naam",
 		otherName: "Engelse naam",
 		addOtherName: "Engelse naam toevoegen (optioneel)",

@@ -10,7 +10,8 @@ import {
 } from "@workouts/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { SymbolView } from "expo-symbols";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
 	formatLongDate,
@@ -30,6 +31,7 @@ import {
 	nutrientUnit,
 	useNutritionDay,
 } from "../data/nutrition-day";
+import { isRealIsoDate } from "../data/nutrition-weekly-review";
 import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
@@ -56,7 +58,11 @@ const STATE_COLOR: Record<GoalState, string> = {
 	exceeded: colors.danger,
 };
 
-export function NutritionDayScreen() {
+export function NutritionDayScreen({
+	initialDate,
+}: {
+	initialDate?: string;
+} = {}) {
 	const { t, locale } = useI18n();
 	const router = useRouter();
 
@@ -64,7 +70,9 @@ export function NutritionDayScreen() {
 	// the user mid-scroll because midnight passed is worse than one that is
 	// right again on the next visit.
 	const [today] = useState(todayIsoDate);
-	const [date, setDate] = useState(today);
+	const [date, setDate] = useState(() =>
+		isRealDate(initialDate) ? initialDate : today,
+	);
 	const [showOther, setShowOther] = useState(false);
 	const [showCalendar, setShowCalendar] = useState(false);
 	const [showTools, setShowTools] = useState(false);
@@ -77,6 +85,13 @@ export function NutritionDayScreen() {
 	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
 		() => new Set(),
 	);
+	useEffect(() => {
+		if (!isRealDate(initialDate)) return;
+		setDate(initialDate);
+		setShowCalendar(false);
+		setSelecting(false);
+		setSelectedEntryIds(new Set());
+	}, [initialDate]);
 
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const state = useNutritionDay(date);
@@ -151,36 +166,6 @@ export function NutritionDayScreen() {
 							onChooseDate={() => setShowCalendar((open) => !open)}
 						/>
 					</View>
-					<Pressable
-						style={styles.toolbarButton}
-						accessibilityRole="button"
-						accessibilityLabel={
-							locale === "nl" ? "Weekoverzicht" : "Weekly review"
-						}
-						onPress={() =>
-							router.push({
-								pathname: "/nutrition-weekly-review",
-								params: { startDate: date },
-							})
-						}
-					>
-						<View
-							accessible={false}
-							style={{ flexDirection: "row", alignItems: "flex-end", gap: 3 }}
-						>
-							{[10, 19, 15].map((height) => (
-								<View
-									key={height}
-									style={{
-										width: 4,
-										height,
-										borderRadius: 2,
-										backgroundColor: colors.accent,
-									}}
-								/>
-							))}
-						</View>
-					</Pressable>
 				</View>
 
 				{marker === "visible" ? <TrainingMarker t={t} /> : null}
@@ -344,12 +329,13 @@ export function NutritionDayScreen() {
 									: "More nutrition tools"
 							}
 							closeLabel={t.nutrition.entryActions.close}
+							weekOverviewLabel={
+								locale === "nl" ? "Weekoverzicht" : "Week overview"
+							}
 							createComboLabel={t.nutrition.combos.create}
 							logComboLabel={t.nutrition.combos.log}
-							recipesLabel={
-								locale === "nl"
-									? "Recepten en onvoltooide invoer"
-									: "Recipes and unfinished logs"
+							captureDraftsLabel={
+								locale === "nl" ? "Onvoltooide invoer" : "Unfinished logs"
 							}
 							assistanceLabel={
 								locale === "nl"
@@ -366,13 +352,19 @@ export function NutritionDayScreen() {
 								locale === "nl" ? "Gegevensbronnen" : "Data sources"
 							}
 							onCreateCombo={() => setSelecting(true)}
+							onOpenWeekOverview={() =>
+								router.push({
+									pathname: "/nutrition-weekly-review",
+									params: { startDate: date },
+								})
+							}
 							onLogCombo={() =>
 								router.push({
 									pathname: "/nutrition-combos",
 									params: { date },
 								})
 							}
-							onOpenRecipes={() =>
+							onOpenCaptureDrafts={() =>
 								router.push({
 									pathname: "/nutrition-cooking",
 									params: { date, meal: "breakfast" },
@@ -1151,19 +1143,21 @@ function EntryRow({
 	onDelete: () => void;
 	onTransfer: (mode: "copy" | "move") => void;
 }) {
+	const estimateLabel =
+		locale === "nl" ? "Geschatte voedingswaarden" : "Estimated nutrition";
 	const content = (accessibility?: RowAccessibilityProps) => (
 		<Pressable
 			onPress={onPress}
 			accessibilityRole={selecting ? "checkbox" : "button"}
 			accessibilityState={selecting ? { checked: selected } : undefined}
 			accessibilityLabel={
-				selecting
+				(selecting
 					? fmt(t.nutrition.combos.selectEntry, {
 							name: entry.name[locale],
 						})
 					: fmt(t.nutrition.entryEditor.editEntry, {
 							name: entry.name[locale],
-						})
+						})) + (entry.estimated ? `. ${estimateLabel}` : "")
 			}
 			{...accessibility}
 			style={({ pressed }) => [
@@ -1179,7 +1173,30 @@ function EntryRow({
 					</AppText>
 				) : null}
 				<View style={styles.flex}>
-					<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
+					<View
+						style={{
+							flexDirection: "row",
+							alignItems: "center",
+							gap: spacing.xs,
+						}}
+					>
+						<AppText style={[styles.goalName, { flexShrink: 1 }]}>
+							{entry.name[locale]}
+						</AppText>
+						{entry.estimated ? (
+							<SymbolView
+								name={{
+									ios: "plus.forwardslash.minus",
+									android: "calculate",
+									web: "calculate",
+								}}
+								size={14}
+								tintColor={colors.textMuted}
+								accessibilityLabel={estimateLabel}
+								accessibilityRole="image"
+							/>
+						) : null}
+					</View>
 					<AppText variant="caption">{entry.serving[locale]}</AppText>
 					{entry.pendingOperationId ? (
 						<AppText variant="caption">{t.nutrition.day.syncPending}</AppText>
@@ -1387,17 +1404,15 @@ function DaySkeleton({ label }: { label: string }) {
 	);
 }
 
+function isRealDate(value: string | undefined): value is string {
+	return value !== undefined && isRealIsoDate(value);
+}
+
 const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
 	scroll: { flex: 1 },
 	content: { padding: 20, paddingTop: 12, gap: spacing.md, paddingBottom: 40 },
 	flex: { flex: 1, minWidth: 0 },
-	toolbarButton: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
 	section: { gap: spacing.sm },
 	strong: { fontWeight: "700" },
 

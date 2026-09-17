@@ -56,6 +56,10 @@ function editableDraft(food: PersonalFood): PersonalFoodDraft {
 		nutrients: food.nutrients,
 		servings: food.servings,
 		provenance: food.provenance,
+		classification: food.classification,
+		nutritionBasis: food.nutritionBasis,
+		estimated: food.estimated,
+		...(food.description ? { description: food.description } : {}),
 		...(food.visual ? { visual: food.visual } : {}),
 		...(food.visualMigrationPending ? { visualMigrationPending: true } : {}),
 	};
@@ -68,6 +72,9 @@ function refreshedDraft(
 	if (!food.provenance.locallyEdited) {
 		return {
 			...latest,
+			classification: food.classification,
+			estimated: food.estimated,
+			...(food.description ? { description: food.description } : {}),
 			...(food.visual ? { visual: food.visual } : {}),
 			...(food.visualMigrationPending ? { visualMigrationPending: true } : {}),
 		};
@@ -89,6 +96,11 @@ function sameDraft(left: PersonalFoodDraft, right: PersonalFoodDraft): boolean {
 		) &&
 		JSON.stringify(left.servings) === JSON.stringify(right.servings) &&
 		JSON.stringify(left.provenance) === JSON.stringify(right.provenance) &&
+		left.classification === right.classification &&
+		JSON.stringify(left.nutritionBasis) ===
+			JSON.stringify(right.nutritionBasis) &&
+		left.estimated === right.estimated &&
+		JSON.stringify(left.description) === JSON.stringify(right.description) &&
 		JSON.stringify(left.visual) === JSON.stringify(right.visual) &&
 		left.visualMigrationPending === right.visualMigrationPending
 	);

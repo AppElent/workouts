@@ -147,9 +147,7 @@ export default function AppLayout() {
 											name="nutrition-cooking"
 											options={{
 												title:
-													locale === "nl"
-														? "Koken en snel vastleggen"
-														: "Cooking and quick capture",
+													locale === "nl" ? "Snel vastleggen" : "Quick capture",
 											}}
 										/>
 										<Stack.Screen
@@ -165,7 +163,7 @@ export default function AppLayout() {
 											name="nutrition-weekly-review"
 											options={{
 												title:
-													locale === "nl" ? "Weekoverzicht" : "Weekly review",
+													locale === "nl" ? "Weekoverzicht" : "Week overview",
 											}}
 										/>
 										<Stack.Screen

@@ -11,6 +11,7 @@ import {
 	useSyncExternalStore,
 } from "react";
 import { api } from "../convex/api";
+import { migrateDeviceRecipes } from "./legacy-recipe-migration";
 import {
 	type LibraryConflict,
 	type LibraryRecord,
@@ -23,21 +24,27 @@ import {
 	NutritionLibraryService,
 } from "./nutrition-library-service";
 import { mintNutritionUuid } from "./nutrition-operation-service";
+import { personalFoodLibraryView } from "./personal-food-library-view";
 import {
 	type Combo,
 	type ComboDraft,
 	openPersonalFoodRepository,
 	type PersonalFood,
 	type PersonalFoodDraft,
+	type PersonalFoodFilter,
 	type PersonalFoodRepository,
 } from "./personal-food-repository";
 
 type PersonalFoodsValue = {
 	revision: number;
-	list(): PersonalFood[];
+	list(filter?: PersonalFoodFilter): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
 	findByBarcode(barcode: string): PersonalFood | undefined;
-	search(query: string, locale: "en" | "nl"): PersonalFood[];
+	search(
+		query: string,
+		locale: "en" | "nl",
+		filter?: PersonalFoodFilter,
+	): PersonalFood[];
 	forks(): PersonalFood[];
 	findForkOf(shippedId: string): PersonalFood | undefined;
 	create(draft: PersonalFoodDraft): PersonalFood;
@@ -98,10 +105,11 @@ function PersonalFoodsScope({
 	const value = useMemo<PersonalFoodsValue>(
 		() => ({
 			revision,
-			list: () => repository.list(),
+			list: (filter) => repository.list(filter),
 			find: (id) => repository.find(id),
 			findByBarcode: (barcode) => repository.findByBarcode(barcode),
-			search: (query, locale) => repository.search(query, locale),
+			search: (query, locale, filter) =>
+				repository.search(query, locale, filter),
 			forks: () => repository.forks(),
 			findForkOf: (shippedId) => repository.findForkOf(shippedId),
 			create: (draft) => {
@@ -241,15 +249,42 @@ export function PersonalFoodsProvider({
 	const [settingsVersion, setSettingsVersion] = useState(0);
 	const enabled = subject && state ? state.isEnabled(subject) : false;
 	const legacyOwner = state?.legacyClaimedBy();
-	const accountRepository = useMemo(
+	const legacyRepository = useMemo(
+		() => suppliedRepository ?? openPersonalFoodRepository(),
+		[suppliedRepository],
+	);
+	const account = useMemo(() => {
+		if (suppliedRepository || !subject)
+			return {
+				repository: legacyRepository,
+				migratedIds: [] as readonly string[],
+			};
+		const repository = openPersonalFoodRepository(
+			nutritionLibraryDatabaseName(subject),
+		);
+		const migratedIds = migrateDeviceRecipes(subject, repository, [
+			...legacyRepository.list().map((food) => food.id),
+			...legacyRepository.listCombos().map((combo) => combo.id),
+			...(state?.listRecords(subject).map((record) => record.id) ?? []),
+		]);
+		return { repository, migratedIds };
+	}, [legacyRepository, state, subject, suppliedRepository]);
+	const accountRepository = account.repository;
+	const visibleRepository = useMemo(
 		() =>
-			suppliedRepository ??
-			openPersonalFoodRepository(
-				subject && (enabled || legacyOwner !== undefined)
-					? nutritionLibraryDatabaseName(subject)
-					: undefined,
-			),
-		[enabled, legacyOwner, subject, suppliedRepository],
+			subject && !enabled && legacyOwner === undefined && !suppliedRepository
+				? personalFoodLibraryView(legacyRepository, accountRepository)
+				: subject
+					? accountRepository
+					: legacyRepository,
+		[
+			accountRepository,
+			enabled,
+			legacyOwner,
+			legacyRepository,
+			subject,
+			suppliedRepository,
+		],
 	);
 	const applyMutation = useMutation(api.nutritionLibrary.applyOperation);
 	const remote = useCallback(
@@ -302,7 +337,9 @@ export function PersonalFoodsProvider({
 					);
 				}
 				if (
-					accountRepository.list().length ||
+					accountRepository
+						.list()
+						.some((food) => !account.migratedIds.includes(food.id)) ||
 					accountRepository.listCombos().length
 				) {
 					throw new Error("This account library already contains records.");
@@ -327,7 +364,17 @@ export function PersonalFoodsProvider({
 				];
 				let localCommitted = false;
 				try {
-					accountRepository.replaceFromBackup(legacy);
+					accountRepository.replaceFromBackup({
+						foods: [
+							...legacy.foods,
+							...accountRepository
+								.list()
+								.filter(
+									(food) => !legacy.foods.some((item) => item.id === food.id),
+								),
+						],
+						combos: legacy.combos,
+					});
 					localCommitted = true;
 					for (const prepared of preparations) {
 						if (prepared.kind === "food")
@@ -364,12 +411,20 @@ export function PersonalFoodsProvider({
 			discardPrepared: (transactionId) =>
 				service?.discardPrepared(transactionId),
 		}),
-		[accountRepository, enabled, service, state, subject, syncSnapshot],
+		[
+			account,
+			accountRepository,
+			enabled,
+			service,
+			state,
+			subject,
+			syncSnapshot,
+		],
 	);
 	return (
 		<PersonalFoodsScope
 			key={`${subject ?? "legacy"}:${enabled ? "account" : "legacy"}:${settingsVersion}`}
-			repository={accountRepository}
+			repository={visibleRepository}
 			backup={backup}
 		>
 			{children}

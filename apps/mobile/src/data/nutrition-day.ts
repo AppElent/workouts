@@ -49,7 +49,8 @@ export interface DiaryEntry {
 	/** The number of servings logged — what a quantity edit rescales from. */
 	quantity: number;
 	amount: number;
-	baseUnit: "g" | "ml";
+	baseUnit: "g" | "ml" | "serving";
+	estimated?: true;
 	provenance: ComboSnapshotProvenance;
 	comboGroup?: { id: string; comboId: string; name: string };
 }
@@ -154,6 +155,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			amount: entry.amount,
 			baseUnit: entry.baseUnit,
 			provenance: entry.provenance,
+			...(entry.estimated ? { estimated: true as const } : {}),
 			comboGroup: entry.comboGroup,
 			pendingOperationId:
 				"pendingOperationId" in entry ? entry.pendingOperationId : undefined,

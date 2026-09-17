@@ -135,10 +135,6 @@ _Avoid_: Combo, Recipe Version
 A note about food intake saved for later review. It does not count as intake until converted into one or more Diary Entries.
 _Avoid_: Diary Entry
 
-**Complete Day**:
-A Nutrition Diary day that a person has explicitly marked as finished, including a deliberately empty day.
-_Avoid_: Logged day
-
 **Shipped Food ID**:
 The permanent identity of a Shipped Food. It never changes or gets reused, even when the Food is renamed, corrected, or retired.
 _Avoid_: seed key, slug, food key

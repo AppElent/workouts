@@ -13,6 +13,12 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 				modifiers={[accessibilityLabel(props.label)]}
 			>
 				<Button
+					label={props.weekOverviewLabel}
+					systemImage="chart.bar.xaxis"
+					onPress={props.onOpenWeekOverview}
+				/>
+				<Divider />
+				<Button
 					label={props.createComboLabel}
 					systemImage="plus"
 					onPress={props.onCreateCombo}
@@ -24,9 +30,9 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 				/>
 				<Divider />
 				<Button
-					label={props.recipesLabel}
+					label={props.captureDraftsLabel}
 					systemImage="frying.pan"
-					onPress={props.onOpenRecipes}
+					onPress={props.onOpenCaptureDrafts}
 				/>
 				<Button
 					label={props.assistanceLabel}
