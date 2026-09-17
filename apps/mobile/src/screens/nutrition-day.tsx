@@ -4,6 +4,7 @@
  */
 
 import {
+	NUTRIENT_KEYS,
 	type NutrientTotal,
 	roundForDisplay,
 	totalNutrients,
@@ -21,11 +22,8 @@ import {
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import {
 	type DiaryEntry,
-	type GoalState,
-	goalState,
 	MEAL_SLOTS,
 	type MealSlot,
-	NUTRIENT_KEYS,
 	type NutrientGoal,
 	type NutrientKey,
 	nutrientUnit,
@@ -45,18 +43,10 @@ import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { NutritionEntryTransfer } from "./nutrition-entry-transfer";
+import { NutritionGoalCard } from "./nutrition-goal-card";
 import { NutritionHeaderMenu } from "./nutrition-header-menu";
 import { NutritionMenu } from "./nutrition-menu";
 import { NutritionSyncStatus } from "./nutrition-sync-status";
-
-/** State word first, colour second — colour is never the only signal. */
-const STATE_COLOR: Record<GoalState, string> = {
-	neutral: colors.textMuted,
-	under: colors.accent,
-	met: colors.success,
-	within: colors.success,
-	exceeded: colors.danger,
-};
 
 export function NutritionDayScreen({
 	initialDate,
@@ -112,10 +102,20 @@ export function NutritionDayScreen({
 	const totals = useMemo(() => {
 		if (state.status !== "ready") return {};
 		const entries = MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]);
-		return {
+		const combined: Partial<Record<NutrientKey, NutrientTotal>> = {
 			...totalNutrients(entries.map((entry) => entry.nutrients)),
 			...state.day.totals,
 		};
+		for (const nutrient of NUTRIENT_KEYS) {
+			const hasEstimatedContribution = entries.some(
+				(entry) =>
+					entry.estimated && entry.nutrients[nutrient].kind !== "absent",
+			);
+			const total = combined[nutrient];
+			if (hasEstimatedContribution && total)
+				combined[nutrient] = { ...total, qualified: true };
+		}
+		return combined;
 	}, [state]);
 
 	/**
@@ -229,11 +229,17 @@ export function NutritionDayScreen({
 									: "Only locally available entries. Day totals are incomplete."}
 							</AppText>
 						) : null}
-						<GoalSection
+						<NutritionGoalCard
 							t={t}
 							goals={state.day.goals}
 							totals={totals}
-							onSetUpGoals={() => router.push("/nutrition-goals")}
+							displayOrder={state.day.displayOrder}
+							onEdit={(nutrient) =>
+								router.push({
+									pathname: "/nutrition-goals",
+									params: { date, ...(nutrient ? { nutrient } : {}) },
+								})
+							}
 						/>
 
 						<ComboControls
@@ -494,86 +500,6 @@ function DayDateStepper({
 	);
 }
 
-function GoalSection({
-	t,
-	goals,
-	totals,
-	onSetUpGoals,
-}: {
-	t: Messages;
-	goals: NutrientGoal[];
-	totals: Partial<Record<NutrientKey, NutrientTotal>>;
-	onSetUpGoals: () => void;
-}) {
-	const macros = ["protein", "carbs", "fat"] as const;
-	const extraGoals = goals.filter(
-		(goal) =>
-			!macros.includes(goal.nutrient as (typeof macros)[number]) &&
-			goal.nutrient !== "energy",
-	);
-	const extraNutrients = new Set(extraGoals.map((goal) => goal.nutrient));
-	const [expanded, setExpanded] = useState(false);
-
-	return (
-		<View style={styles.section}>
-			<DailySummary
-				t={t}
-				goals={goals}
-				totals={totals}
-				onSetUpGoals={onSetUpGoals}
-			/>
-			{goals.length === 0 ? (
-				<GroupedSurface>
-					<EmptyState
-						title={t.nutrition.goals.empty.title}
-						body={t.nutrition.goals.empty.body}
-						action={{
-							label: t.nutrition.goals.empty.action,
-							onPress: onSetUpGoals,
-						}}
-					/>
-				</GroupedSurface>
-			) : null}
-			{goals.length > 0 && extraNutrients.size > 0 ? (
-				<FormSection>
-					<DisclosureRow
-						label={fmt(t.nutrition.day.additionalGoals, {
-							count: extraNutrients.size,
-						})}
-						expanded={expanded}
-						accessibilityLabel={
-							expanded
-								? t.nutrition.day.hideAdditionalGoals
-								: t.nutrition.day.showAdditionalGoals
-						}
-						onPress={() => setExpanded((open) => !open)}
-					/>
-					{expanded
-						? extraGoals.map((goal) => (
-								<View
-									key={`${goal.nutrient}-${goal.direction}`}
-									style={styles.groupedRow}
-								>
-									<GoalRow t={t} goal={goal} total={totals[goal.nutrient]} />
-								</View>
-							))
-						: null}
-				</FormSection>
-			) : null}
-		</View>
-	);
-}
-
-function goalsByNutrient(goals: NutrientGoal[]) {
-	const grouped = new Map<NutrientKey, NutrientGoal[]>();
-	for (const goal of goals) {
-		const current = grouped.get(goal.nutrient) ?? [];
-		current.push(goal);
-		grouped.set(goal.nutrient, current);
-	}
-	return grouped;
-}
-
 function totalLabel(
 	t: Messages,
 	key: NutrientKey,
@@ -591,314 +517,6 @@ function totalLabel(
 	if (total.incomplete) return `≥ ${amount}`;
 	if (total.qualified) return `~ ${amount}`;
 	return String(amount);
-}
-
-function DailySummary({
-	t,
-	goals,
-	totals,
-	onSetUpGoals,
-}: {
-	t: Messages;
-	goals: NutrientGoal[];
-	totals: Partial<Record<NutrientKey, NutrientTotal>>;
-	onSetUpGoals: () => void;
-}) {
-	const groups = goalsByNutrient(goals);
-	const energy = totals.energy;
-	const energyGoals = groups.get("energy") ?? [];
-	const min = energyGoals.find((goal) => goal.direction === "min")?.target;
-	const max = energyGoals.find((goal) => goal.direction === "max")?.target;
-	const energyDisplay = describeEnergy(t, energy, min, max);
-
-	return (
-		<GroupedSurface style={styles.summaryCard}>
-			<View style={styles.summaryHeader}>
-				<AppText variant="caption">{t.nutrition.goals.heading}</AppText>
-				<Pressable
-					onPress={onSetUpGoals}
-					accessibilityRole="button"
-					style={styles.editGoals}
-				>
-					<AppText variant="caption" style={{ color: colors.accent }}>
-						{t.nutrition.goals.edit}
-					</AppText>
-				</Pressable>
-			</View>
-			<View
-				style={styles.summaryEnergy}
-				accessible
-				accessibilityLabel={energyDisplay.accessibility}
-			>
-				<AppText variant="title">{energyDisplay.primary}</AppText>
-				<AppText variant="caption">{energyDisplay.secondary}</AppText>
-			</View>
-			{(max ?? min ?? 0) > 0 && goalStatusAvailable(energyGoals, energy) ? (
-				<View style={styles.track}>
-					<View
-						style={[
-							styles.fill,
-							{
-								width: `${Math.max(0, Math.min(100, ((energy?.amount ?? 0) / (max ?? min ?? 1)) * 100))}%`,
-								backgroundColor: colors.accent,
-							},
-						]}
-					/>
-				</View>
-			) : null}
-			<View style={styles.macros}>
-				{["protein", "carbs", "fat"].map((key) => (
-					<MacroRow
-						key={key}
-						t={t}
-						nutrient={key as NutrientKey}
-						total={totals[key as NutrientKey]}
-						goals={groups.get(key as NutrientKey) ?? []}
-					/>
-				))}
-			</View>
-		</GroupedSurface>
-	);
-}
-
-function describeEnergy(
-	t: Messages,
-	total: NutrientTotal | undefined,
-	min: number | undefined,
-	max: number | undefined,
-) {
-	const amount = total?.amount ?? 0;
-	const logged = roundForDisplay("energy", amount);
-	const invalidRange = min !== undefined && max !== undefined && min > max;
-	const reference = invalidRange
-		? t.nutrition.day.reviewGoals
-		: min !== undefined && max !== undefined
-			? fmt(t.nutrition.day.energyRangeReference, { logged, min, max })
-			: max !== undefined
-				? fmt(t.nutrition.day.energyReference, { logged, target: max })
-				: min !== undefined
-					? fmt(t.nutrition.day.energyReference, { logged, target: min })
-					: t.nutrition.day.energyNoGoal;
-	if (!total || total.entryCount === 0) {
-		const primary = fmt(t.nutrition.day.energyLogged, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (total?.absentCount && total.valueCount === 0 && total.traceCount === 0) {
-		return {
-			primary: t.nutrition.day.unavailableEnergy,
-			secondary: reference,
-			accessibility: `${t.nutrition.day.unavailableEnergy}. ${reference}`,
-		};
-	}
-	if (total?.incomplete) {
-		const primary = fmt(t.nutrition.day.knownEnergy, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (total?.qualified) {
-		const primary = fmt(t.nutrition.day.approximateEnergy, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (invalidRange) {
-		const primary = fmt(t.nutrition.day.energyLogged, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (min !== undefined && max !== undefined) {
-		const primary =
-			amount < min
-				? fmt(t.nutrition.day.energyToRange, {
-						amount: roundForDisplay("energy", min - amount),
-					})
-				: amount > max
-					? fmt(t.nutrition.day.energyAboveRange, {
-							amount: roundForDisplay("energy", amount - max),
-						})
-					: t.nutrition.day.energyWithinRange;
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (max !== undefined) {
-		const primary =
-			amount < max
-				? fmt(t.nutrition.day.energyRemaining, {
-						amount: roundForDisplay("energy", max - amount),
-					})
-				: amount === max
-					? t.nutrition.day.energyTargetReached
-					: fmt(t.nutrition.day.energyAboveTarget, {
-							amount: roundForDisplay("energy", amount - max),
-						});
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (min !== undefined) {
-		const primary =
-			amount < min
-				? fmt(t.nutrition.day.energyToMinimum, {
-						amount: roundForDisplay("energy", min - amount),
-					})
-				: t.nutrition.day.energyMinimumReached;
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	const primary = fmt(t.nutrition.day.energyLogged, { amount: logged });
-	return {
-		primary,
-		secondary: reference,
-		accessibility: `${primary}. ${reference}`,
-	};
-}
-
-function MacroRow({
-	t,
-	nutrient,
-	total,
-	goals,
-}: {
-	t: Messages;
-	nutrient: NutrientKey;
-	total: NutrientTotal | undefined;
-	goals: NutrientGoal[];
-}) {
-	const value = totalLabel(t, nutrient, total);
-	const displayValue =
-		value === t.nutrition.foodBrowser.absent ||
-		value === t.nutrition.foodBrowser.trace
-			? value
-			: `${value} g`;
-	const canReportStatus = goalStatusAvailable(goals, total);
-	const goalStatus = canReportStatus
-		? goals
-				.map(
-					(goal) =>
-						t.nutrition.goals.state[
-							goalState(goal.direction, total?.amount, goal.target)
-						],
-				)
-				.join(". ")
-		: "";
-	return (
-		<View
-			style={styles.macroRow}
-			accessible
-			accessibilityLabel={`${t.nutrition.nutrients[nutrient]}: ${displayValue}${goalStatus ? `. ${goalStatus}.` : ""}`}
-		>
-			<AppText variant="caption">{t.nutrition.nutrients[nutrient]}</AppText>
-			<View style={styles.macroValue}>
-				<AppText style={styles.strong}>{displayValue}</AppText>
-				{goals.map((goal) => (
-					<View key={`${goal.nutrient}-${goal.direction}`}>
-						<AppText variant="caption">
-							{goal.direction === "min" ? "≥" : "≤"} {goal.target} g
-						</AppText>
-						{canReportStatus ? (
-							<AppText variant="caption">
-								{
-									t.nutrition.goals.state[
-										goalState(goal.direction, total?.amount, goal.target)
-									]
-								}
-							</AppText>
-						) : null}
-					</View>
-				))}
-			</View>
-		</View>
-	);
-}
-
-function goalStatusAvailable(
-	goals: NutrientGoal[],
-	total: NutrientTotal | undefined,
-) {
-	if (
-		total === undefined ||
-		total.entryCount === 0 ||
-		total.absentCount > 0 ||
-		total.incomplete ||
-		total.qualified
-	) {
-		return false;
-	}
-	const min = goals.find((goal) => goal.direction === "min")?.target;
-	const max = goals.find((goal) => goal.direction === "max")?.target;
-	return !(min !== undefined && max !== undefined && min > max);
-}
-
-function GoalRow({
-	t,
-	goal,
-	total,
-}: {
-	t: Messages;
-	goal: NutrientGoal;
-	total: NutrientTotal | undefined;
-}) {
-	const amount = total?.amount;
-	const canReportStatus = goalStatusAvailable([goal], total);
-	const state = goalState(goal.direction, amount, goal.target);
-	const unit = t.nutrition.units[nutrientUnit(goal.nutrient)];
-	const name = t.nutrition.nutrients[goal.nutrient];
-	const progress = fmt(t.nutrition.goals.progress, {
-		total: qualifiedAmount(goal.nutrient, total),
-		target: goal.target,
-		unit,
-	});
-	const stateWord = t.nutrition.goals.state[state];
-	const fraction = Math.max(0, Math.min(1, (amount ?? 0) / goal.target));
-
-	return (
-		<View
-			accessible
-			accessibilityLabel={`${name}: ${progress}${canReportStatus ? `. ${stateWord}.` : ""}`}
-			style={styles.goalRow}
-		>
-			<View style={styles.goalHeader}>
-				<AppText style={styles.goalName}>{name}</AppText>
-				<AppText variant="caption">{progress}</AppText>
-			</View>
-			<View style={styles.track}>
-				<View
-					style={[
-						styles.fill,
-						{
-							width: `${fraction * 100}%`,
-							backgroundColor: STATE_COLOR[state],
-						},
-					]}
-				/>
-			</View>
-			{canReportStatus ? (
-				<AppText variant="caption" style={{ color: STATE_COLOR[state] }}>
-					{stateWord}
-				</AppText>
-			) : null}
-		</View>
-	);
 }
 
 function ComboControls({
@@ -1444,22 +1062,29 @@ function OfflineDay({
 
 /**
  * The same boxes the loaded day draws, in the same places: one goal card with
- * four rows, then four meal sections. A spinner would tell the user nothing
+ * two full rows plus a teaser, then four meal sections. A spinner would tell the user nothing
  * about what is coming.
  */
 function DaySkeleton({ label }: { label: string }) {
 	return (
 		<SkeletonGroup label={label}>
 			<GroupedSurface style={styles.goalCard}>
-				<SkeletonBlock width="65%" height={28} />
-				<SkeletonBlock height={8} />
-				<View style={styles.macros}>
-					{[0, 1, 2].map((row) => (
-						<View key={row} style={styles.macroRow}>
-							<SkeletonBlock height={14} />
-							<SkeletonBlock width="65%" height={20} />
+				<View style={styles.skeletonGoalHeader}>
+					<SkeletonBlock width="28%" height={14} />
+					<SkeletonBlock width={76} height={28} />
+				</View>
+				{[0, 1].map((row) => (
+					<View key={row} style={styles.skeletonGoalRow}>
+						<View style={styles.skeletonGoalHeader}>
+							<SkeletonBlock width="30%" height={16} />
+							<SkeletonBlock width="45%" height={14} />
 						</View>
-					))}
+						<SkeletonBlock height={8} />
+						<SkeletonBlock width="32%" height={13} />
+					</View>
+				))}
+				<View style={styles.skeletonTeaser}>
+					<SkeletonBlock height={8} />
 				</View>
 			</GroupedSurface>
 			{MEAL_SLOTS.map((slot) => (
@@ -1517,53 +1142,20 @@ const styles = StyleSheet.create({
 	},
 
 	goalCard: { gap: spacing.md },
-	summaryCard: { gap: spacing.sm },
-	summaryHeader: {
+	skeletonGoalHeader: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
 		gap: spacing.sm,
 	},
-	macros: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: spacing.md,
-		paddingTop: spacing.sm,
-	},
-	summaryEnergy: { gap: 2, paddingBottom: spacing.xs },
-	macroRow: {
-		flexGrow: 1,
-		flexBasis: 80,
-		minWidth: 80,
-		gap: 4,
-	},
-	macroValue: { gap: 2 },
-	editGoals: {
-		minHeight: 44,
-		justifyContent: "center",
-		alignItems: "flex-end",
-	},
-	goalRow: { gap: 6 },
-	goalHeader: {
-		flexDirection: "row",
-		alignItems: "baseline",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-	},
+	skeletonGoalRow: { gap: 6 },
+	skeletonTeaser: { opacity: 0.35, height: 12, overflow: "hidden" },
 	// The nutrient's name yields before its number does. Spec #68 is explicit
 	// that dynamic type must not clip nutrition values, and in a row with one
 	// of each there has to be a rule about which one gives way.
 	goalName: { fontWeight: "700", flexShrink: 1 },
 	comboControls: { gap: spacing.sm },
 	comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-	track: {
-		height: 8,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-		overflow: "hidden",
-	},
-	fill: { height: 8, borderRadius: radius.pill },
-
 	mealHeader: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -1601,7 +1193,6 @@ const styles = StyleSheet.create({
 	},
 	selectionUnavailable: { opacity: 0.45 },
 	comboPart: { paddingLeft: spacing.sm },
-	groupedRow: { padding: spacing.md },
 	groupedEntryRow: {
 		paddingHorizontal: spacing.md,
 		borderBottomWidth: 0,

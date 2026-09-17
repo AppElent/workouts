@@ -24,6 +24,8 @@ describe("the app's language", () => {
 		expect(await screen.findByText("Vandaag")).toBeTruthy();
 		expect(screen.getByText("Ontbijt")).toBeTruthy();
 		expect(screen.getByText("Tussendoortjes")).toBeTruthy();
+		expect(screen.getByText("Geen voedingsdoelen")).toBeTruthy();
+		expect(screen.getByText("Doelen instellen")).toBeTruthy();
 		expect(screen.getByLabelText("Voeg eten toe aan Diner")).toBeTruthy();
 	});
 

@@ -152,7 +152,32 @@ describe("durable nutrition local repository", () => {
 			goals: [{ nutrient: "energy", direction: "max", target: 2000 }],
 			basis: "effective",
 			effectiveFrom: "2026-09-01",
+			displayOrder: [
+				"energy",
+				"protein",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+				"salt",
+			],
 		});
+		first.putGoals("alice", "2026-09-06", {
+			goals: [{ nutrient: "energy", direction: "max", target: 2100 }],
+			basis: "effective",
+			effectiveFrom: "2026-09-06",
+		});
+		first.putGoalDisplayOrder("alice", [
+			"protein",
+			"energy",
+			"carbs",
+			"fat",
+			"saturatedFat",
+			"fibre",
+			"sugars",
+			"salt",
+		]);
 		firstDatabase.closeSync();
 
 		const reopenedDatabase = new SQLiteTestDatabase(path);
@@ -161,6 +186,12 @@ describe("durable nutrition local repository", () => {
 		expect(saved?.envelope).toEqual(operation);
 		expect(reopened.getGoals("alice", "2026-09-05")?.goals[0].target).toBe(
 			2000,
+		);
+		expect(reopened.getGoals("alice", "2026-09-05")?.displayOrder?.[0]).toBe(
+			"protein",
+		);
+		expect(reopened.getGoals("alice", "2026-09-06")?.displayOrder?.[0]).toBe(
+			"protein",
 		);
 		expect(reopened.getGoals("bob", "2026-09-05")).toBeUndefined();
 		expect(reopened.projectDay("alice", "2026-09-05").entries).toHaveLength(1);

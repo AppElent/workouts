@@ -6,6 +6,7 @@ import {
 	type NutritionMealSlot,
 	type NutritionOperationEnvelope,
 } from "@workouts/core";
+import type { NutrientKey } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -306,6 +307,16 @@ export class NutritionOperationService {
 		)
 			return;
 		this.repository.putGoals(subject, date, history);
+		this.notify();
+	}
+
+	cacheGoalDisplayOrder(subject: string, displayOrder: NutrientKey[]) {
+		if (
+			canonicalJson(this.repository.getGoalDisplayOrder(subject)) ===
+			canonicalJson(displayOrder)
+		)
+			return;
+		this.repository.putGoalDisplayOrder(subject, displayOrder);
 		this.notify();
 	}
 
