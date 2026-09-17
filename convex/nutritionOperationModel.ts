@@ -7,6 +7,14 @@ const operationTarget = v.union(
 	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
 );
 
+// A durable group operation can outlive the deployment that issued a cached
+// server ID. Accept the wire value here so the handler can reconcile stale
+// targets while retaining strict table-ID validation for edits and removals.
+const groupOperationTarget = v.union(
+	v.object({ kind: v.literal("serverId"), id: v.string() }),
+	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
+);
+
 const operationEntry = v.object({
 	...diarySnapshotFields,
 	clientEntryId: v.string(),
@@ -51,7 +59,7 @@ export const operationArgs = {
 		}),
 		v.object({
 			kind: v.literal("group"),
-			targets: v.array(operationTarget),
+			targets: v.array(groupOperationTarget),
 			comboGroup: v.object({
 				id: v.string(),
 				comboId: v.string(),

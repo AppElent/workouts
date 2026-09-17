@@ -133,9 +133,10 @@ async function ownedEntry(
 }
 
 function backendTarget(
-	target:
-		| Extract<NutritionDiaryOperation, { kind: "update" | "remove" }>["target"]
-		| Extract<NutritionDiaryOperation, { kind: "group" }>["targets"][number],
+	target: Extract<
+		NutritionDiaryOperation,
+		{ kind: "update" | "remove" }
+	>["target"],
 ):
 	| { kind: "serverId"; id: Id<"nutritionDiaryEntries"> }
 	| { kind: "clientEntryId"; id: string } {
@@ -145,6 +146,30 @@ function backendTarget(
 		return { kind: "serverId", id: target.id as Id<"nutritionDiaryEntries"> };
 	}
 	return target;
+}
+
+async function existingOwnedGroupEntry(
+	ctx: MutationCtx,
+	userId: string,
+	target: Extract<
+		NutritionDiaryOperation,
+		{ kind: "group" }
+	>["targets"][number],
+) {
+	let entry;
+	if (target.kind === "serverId") {
+		const id = ctx.db.normalizeId("nutritionDiaryEntries", target.id);
+		entry = id ? await ctx.db.get(id) : null;
+	} else {
+		entry = await ctx.db
+			.query("nutritionDiaryEntries")
+			.withIndex("by_user_client_entry", (q) =>
+				q.eq("userId", userId).eq("clientEntryId", target.id),
+			)
+			.first();
+	}
+	if (entry && entry.userId !== userId) throw new Error("Unauthorized");
+	return entry;
 }
 
 async function assertClientEntryAvailable(
@@ -518,7 +543,8 @@ export const applyOperation = mutation({
 				const key = `${target.kind}:${target.id}`;
 				if (seen.has(key)) throw new Error("Duplicate diary entry target.");
 				seen.add(key);
-				entries.push(await ownedEntry(ctx, userId, backendTarget(target)));
+				const entry = await existingOwnedGroupEntry(ctx, userId, target);
+				if (entry) entries.push(entry);
 			}
 			const [first] = entries;
 			if (

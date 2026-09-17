@@ -349,6 +349,48 @@ describe("public nutrition diary operations", () => {
 		);
 	});
 
+	it("groups surviving entries when a durable target contains a stale deployment id", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "create-surviving-part",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: { ...snapshot, clientEntryId: "surviving-part" },
+			},
+		});
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "group-with-stale-id",
+			expectedSubject: "alice",
+			operation: {
+				kind: "group",
+				targets: [
+					{ kind: "serverId", id: created.entryIds[0] },
+					{ kind: "serverId", id: "stale-deployment-entry-id" as never },
+				],
+				comboGroup: {
+					id: "recovered-group",
+					comboId: "combo-1",
+					name: "Recovered combo",
+				},
+			},
+		});
+
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		expect(day.entries).toHaveLength(1);
+		expect(day.entries[0].comboGroup).toEqual({
+			id: "recovered-group",
+			comboId: "combo-1",
+			name: "Recovered combo",
+		});
+	});
+
 	it("detaches one entry from its Logged Combo when it moves", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
