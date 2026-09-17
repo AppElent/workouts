@@ -109,7 +109,32 @@ describe("worktree identity", () => {
 
 describe("arguments and commands", () => {
 	it("defaults to dependency-only mode", () => {
-		expect(parseArgs([]).convex).toBe("none");
+		expect(parseArgs([])).toMatchObject({ convex: "none", seed: false });
+	});
+
+	it("accepts expiration days and validates seed mode", () => {
+		expect(
+			parseArgs([
+				"--convex=cloud",
+				"--project=team:project",
+				"--days=9",
+				"--seed=true",
+			]).expiration,
+		).toBe("in 9 days");
+		expect(() => parseArgs(["--convex=local", "--seed=true"])).toThrow(
+			"supported only in cloud mode",
+		);
+		expect(() => parseArgs(["--convex=local", "--days=2"])).toThrow(
+			"supported only in cloud mode",
+		);
+		expect(() =>
+			parseArgs([
+				"--convex=cloud",
+				"--project=team:project",
+				"--days=2",
+				"--expiration=in 3 days",
+			]),
+		).toThrow("either --days or --expiration");
 	});
 
 	it("selects platform-specific pnpm executables", () => {
@@ -244,6 +269,63 @@ describe("setup orchestration", () => {
 		expect(calls).toHaveLength(1);
 		expect(calls[0]).toContain("select");
 		expect(logs.join("\n")).toContain("Deployment exists; selected");
+	});
+
+	it("seeds only after a successful cloud push", async () => {
+		const cwd = await fixture();
+		const calls = [];
+		await setupWorktree(
+			cloudOptions({
+				push: true,
+				seed: true,
+				scopedKey: false,
+				expiration: "in 9 days",
+			}),
+			{
+				cwd,
+				env: { USER: "ericj" },
+				runner: selectingRunner(cwd, calls),
+				logger: () => {},
+				errorLogger: () => {},
+			},
+		);
+		const pushIndex = calls.findIndex(
+			(call) => call.slice(1).join(" ") === "exec convex dev --once",
+		);
+		const seedIndex = calls.findIndex(
+			(call) => call.slice(1).join(" ") === "seed:reset",
+		);
+		expect(pushIndex).toBeGreaterThan(-1);
+		expect(seedIndex).toBeGreaterThan(pushIndex);
+		const createCall = calls.find(
+			(call) => call.slice(1, 5).join(" ") === "exec convex deployment create",
+		);
+		expect(createCall).toEqual(expect.arrayContaining(["in 9 days"]));
+	});
+
+	it("does not seed when the cloud push fails", async () => {
+		const cwd = await fixture();
+		const calls = [];
+		const baseRunner = selectingRunner(cwd, calls);
+		await expect(
+			setupWorktree(
+				cloudOptions({ push: true, seed: true, scopedKey: false }),
+				{
+					cwd,
+					env: { USER: "ericj" },
+					runner: async (invocation) => {
+						if (invocation.args.includes("--once")) {
+							calls.push([invocation.command, ...invocation.args]);
+							return { code: 1, stdout: "", stderr: "push failed" };
+						}
+						return baseRunner(invocation);
+					},
+					logger: () => {},
+					errorLogger: () => {},
+				},
+			),
+		).rejects.toThrow("Convex function push failed");
+		expect(calls.some((call) => call.includes("seed:reset"))).toBe(false);
 	});
 
 	it("does no work or writes in dry-run mode", async () => {

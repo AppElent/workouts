@@ -31,7 +31,17 @@ pnpm setup:worktree -- --convex=cloud --project=eric-jansen:workout-tracker --ed
 pnpm setup:worktree -- --convex=cloud --project=eric-jansen:workout-tracker --editor=orca
 ```
 
-The deployment reference comes from the worktree directory, OS user, and editor label, so it remains stable when editor-specific environment variables are absent. Rerunning setup reuses the deployment. Use `--expiration="in 5 days"`, `--scoped-key=false`, `--install=false`, or `--push=false` to override cloud defaults. Preview the plan without running commands or writing files with `--dry-run`.
+The deployment reference comes from the worktree directory, OS user, and editor label, so it remains stable when editor-specific environment variables are absent. Rerunning setup reuses the deployment. Use `--days=7` for a whole-number expiration or `--expiration="in 12 hours"` for Convex's advanced expiration syntax; do not pass both. The default is five days. Expiration applies when creating a deployment; reusing an existing deployment does not change its expiry.
+
+Add `--seed=true` to run the existing `pnpm seed:reset` package script after the cloud function push succeeds:
+
+```sh
+pnpm setup:worktree -- --convex=cloud --project=eric-jansen:workout-tracker --editor=t3code --days=5 --seed=true
+```
+
+Seeding defaults to `false`. `seed:reset` seeds exercises and benchmark WODs, clears the fixed test user's data, and recreates its demo history, so enable it only for an isolated development deployment. Local seeding requires a persistent `pnpm exec convex dev` process; run `pnpm seed:reset` separately after starting it.
+
+Use `--scoped-key=false`, `--install=false`, or `--push=false` to override other cloud defaults. `--seed=true` requires `--push=true`. Preview the plan without running commands or writing files with `--dry-run`.
 
 ## Isolated local Convex
 

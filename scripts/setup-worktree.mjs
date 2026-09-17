@@ -67,6 +67,7 @@ export function parseArgs(argv) {
 		expiration: "in 5 days",
 		install: true,
 		push: true,
+		seed: false,
 		scopedKey: true,
 		dryRun: false,
 		project: undefined,
@@ -74,12 +75,16 @@ export function parseArgs(argv) {
 	const valued = new Set([
 		"convex",
 		"project",
+		"days",
 		"expiration",
 		"editor",
 		"scoped-key",
 		"install",
 		"push",
+		"seed",
 	]);
+	let daysSpecified = false;
+	let expirationSpecified = false;
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const argument = argv[index];
@@ -107,8 +112,22 @@ export function parseArgs(argv) {
 			case "project":
 				options.project = value;
 				break;
+			case "days": {
+				if (
+					!/^\d+$/.test(value) ||
+					!Number.isSafeInteger(Number(value)) ||
+					Number(value) < 1
+				) {
+					throw new Error("--days must be a positive integer.");
+				}
+				const days = Number(value);
+				options.expiration = `in ${days} ${days === 1 ? "day" : "days"}`;
+				daysSpecified = true;
+				break;
+			}
 			case "expiration":
 				options.expiration = value;
+				expirationSpecified = true;
 				break;
 			case "editor":
 				options.editor = value;
@@ -122,7 +141,13 @@ export function parseArgs(argv) {
 			case "push":
 				options.push = parseBoolean(value, "--push");
 				break;
+			case "seed":
+				options.seed = parseBoolean(value, "--seed");
+				break;
 		}
+	}
+	if (daysSpecified && expirationSpecified) {
+		throw new Error("Use either --days or --expiration, not both.");
 	}
 
 	if (!["none", "cloud", "local"].includes(options.convex)) {
@@ -133,6 +158,19 @@ export function parseArgs(argv) {
 		(!options.project || !/^[a-zA-Z0-9-]+:[a-zA-Z0-9-]+$/.test(options.project))
 	) {
 		throw new Error("Cloud mode requires --project=team-slug:project-slug.");
+	}
+	if ((daysSpecified || expirationSpecified) && options.convex !== "cloud") {
+		throw new Error(
+			"--days and --expiration are supported only in cloud mode.",
+		);
+	}
+	if (options.seed && options.convex !== "cloud") {
+		throw new Error(
+			"--seed=true is supported only in cloud mode. For local mode, keep `pnpm exec convex dev` running and then run `pnpm seed:reset`.",
+		);
+	}
+	if (options.seed && !options.push) {
+		throw new Error("--seed=true requires --push=true.");
 	}
 	return options;
 }
@@ -363,6 +401,9 @@ export async function setupWorktree(options, dependencies = {}) {
 		if (options.convex === "cloud" && options.push) {
 			logger(`$ ${pnpm} exec convex dev --once`);
 		}
+		if (options.convex === "cloud" && options.seed) {
+			logger(`$ ${pnpm} seed:reset`);
+		}
 		if (options.convex === "local") {
 			logger(
 				`$ ${pnpm} exec convex dev --once  # only if local configuration is missing`,
@@ -521,6 +562,9 @@ export async function setupWorktree(options, dependencies = {}) {
 	if (options.convex === "cloud" && options.push) {
 		await run(["exec", "convex", "dev", "--once"], "Convex function push");
 	}
+	if (options.convex === "cloud" && options.seed) {
+		await run(["seed:reset"], "Convex seed reset");
+	}
 
 	logger(`Selected deployment: ${qualifiedReference}`);
 	logger(`Public hostname: ${publicHostname(convexUrl)}`);
@@ -542,11 +586,13 @@ export function helpText() {
 
   --convex=none|cloud|local  Deployment mode (default: none)
   --project=team:project     Required for cloud mode
+  --days=5                  Cloud expiration in whole days (default: 5)
   --expiration="in 5 days"   Cloud deployment expiration
   --editor=t3code            Stable editor label (generic values accepted)
   --scoped-key=true|false    Create a deployment-scoped key (default: true)
   --install=true|false       Install dependencies (default: true)
   --push=true|false          Push cloud functions once (default: true)
+  --seed=true|false          Run pnpm seed:reset after a cloud push (default: false)
   --dry-run                  Print the plan without commands or file writes`;
 }
 
