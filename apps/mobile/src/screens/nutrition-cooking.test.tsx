@@ -145,7 +145,7 @@ describe("Nutrition cooking screen", () => {
 		fireEvent.press(screen.getByText("Finish and log once"));
 		expect(operations.create).toHaveBeenCalledTimes(1);
 		expect(repository.getDraft("account-a", draft.id)).toBeUndefined();
-		expect(screen.getAllByText("Home cooking").length).toBeGreaterThanOrEqual(
+		expect(screen.getAllByText("Capture notes").length).toBeGreaterThanOrEqual(
 			1,
 		);
 		repository.close();

@@ -10,6 +10,7 @@ import {
 } from "@workouts/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -333,10 +334,8 @@ export function NutritionDayScreen({
 							}
 							createComboLabel={t.nutrition.combos.create}
 							logComboLabel={t.nutrition.combos.log}
-							recipesLabel={
-								locale === "nl"
-									? "Recepten en onvoltooide invoer"
-									: "Recipes and unfinished logs"
+							captureDraftsLabel={
+								locale === "nl" ? "Onvoltooide invoer" : "Unfinished logs"
 							}
 							assistanceLabel={
 								locale === "nl"
@@ -365,7 +364,7 @@ export function NutritionDayScreen({
 									params: { date },
 								})
 							}
-							onOpenRecipes={() =>
+							onOpenCaptureDrafts={() =>
 								router.push({
 									pathname: "/nutrition-cooking",
 									params: { date, meal: "breakfast" },
@@ -1144,19 +1143,21 @@ function EntryRow({
 	onDelete: () => void;
 	onTransfer: (mode: "copy" | "move") => void;
 }) {
+	const estimateLabel =
+		locale === "nl" ? "Geschatte voedingswaarden" : "Estimated nutrition";
 	const content = (accessibility?: RowAccessibilityProps) => (
 		<Pressable
 			onPress={onPress}
 			accessibilityRole={selecting ? "checkbox" : "button"}
 			accessibilityState={selecting ? { checked: selected } : undefined}
 			accessibilityLabel={
-				selecting
+				(selecting
 					? fmt(t.nutrition.combos.selectEntry, {
 							name: entry.name[locale],
 						})
 					: fmt(t.nutrition.entryEditor.editEntry, {
 							name: entry.name[locale],
-						})
+						})) + (entry.estimated ? `. ${estimateLabel}` : "")
 			}
 			{...accessibility}
 			style={({ pressed }) => [
@@ -1172,7 +1173,30 @@ function EntryRow({
 					</AppText>
 				) : null}
 				<View style={styles.flex}>
-					<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
+					<View
+						style={{
+							flexDirection: "row",
+							alignItems: "center",
+							gap: spacing.xs,
+						}}
+					>
+						<AppText style={[styles.goalName, { flexShrink: 1 }]}>
+							{entry.name[locale]}
+						</AppText>
+						{entry.estimated ? (
+							<SymbolView
+								name={{
+									ios: "plus.forwardslash.minus",
+									android: "calculate",
+									web: "calculate",
+								}}
+								size={14}
+								tintColor={colors.textMuted}
+								accessibilityLabel={estimateLabel}
+								accessibilityRole="image"
+							/>
+						) : null}
+					</View>
 					<AppText variant="caption">{entry.serving[locale]}</AppText>
 					{entry.pendingOperationId ? (
 						<AppText variant="caption">{t.nutrition.day.syncPending}</AppText>

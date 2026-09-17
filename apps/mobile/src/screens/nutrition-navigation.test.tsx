@@ -153,6 +153,8 @@ describe("Nutrition navigation", () => {
 			meal: "dinner",
 			mode: "oneoff-log",
 		});
+		expect(await screen.findByLabelText("Food name in English")).toBeTruthy();
+		expect(screen.getByText("Servings")).toBeTruthy();
 	});
 
 	it("routes Capture later directly to its cooking mode", async () => {
@@ -167,6 +169,12 @@ describe("Nutrition navigation", () => {
 			meal: "lunch",
 			mode: "draft-new",
 		});
+		expect(await screen.findByText("Save for later")).toBeTruthy();
+		expect(
+			screen.getByLabelText(
+				"What did you eat? Add a short note to finish later.",
+			),
+		).toBeTruthy();
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {

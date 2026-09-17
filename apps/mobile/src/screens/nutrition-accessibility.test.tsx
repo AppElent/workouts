@@ -81,6 +81,24 @@ beforeEach(() => {
 });
 
 describe("Nutrition accessibility", () => {
+	it("shows only estimated entries with a compact accessible icon", async () => {
+		const previous = jest.mocked(useQuery).getMockImplementation();
+		jest.mocked(useQuery).mockImplementation((reference, args?) => {
+			if (getFunctionName(reference) === "nutritionDiary:day")
+				return {
+					entries: [{ ...entry, estimated: true }],
+					totals: {},
+				};
+			return previous?.(reference, args);
+		});
+		renderApp();
+		const icon = await screen.findByLabelText("Estimated nutrition");
+		expect(icon.props.size).toBe(14);
+		expect(
+			await screen.findByLabelText("Edit entry: Oatmeal. Estimated nutrition"),
+		).toBeTruthy();
+		expect(screen.queryByText("Estimated nutrition")).toBeNull();
+	});
 	it("names every icon-only control on the day", async () => {
 		renderApp();
 		await screen.findByText("Today");

@@ -49,7 +49,14 @@ const MORE_NUTRIENTS = NUTRIENT_KEYS.filter(
 
 type EditorSeed = Pick<
 	PersonalFoodDraft,
-	"name" | "baseUnit" | "nutrients" | "servings"
+	| "name"
+	| "baseUnit"
+	| "nutrients"
+	| "servings"
+	| "classification"
+	| "nutritionBasis"
+	| "estimated"
+	| "description"
 >;
 
 function initialNutrients(
@@ -88,6 +95,13 @@ function draftUnchanged(a: EditorSeed, b: EditorSeed): boolean {
 		a.name.en === b.name.en &&
 		a.name.nl === b.name.nl &&
 		a.baseUnit === b.baseUnit &&
+		(a.classification ?? "ordinary") === (b.classification ?? "ordinary") &&
+		(a.estimated ?? false) === (b.estimated ?? false) &&
+		JSON.stringify(a.nutritionBasis ?? { kind: "per100", unit: a.baseUnit }) ===
+			JSON.stringify(
+				b.nutritionBasis ?? { kind: "per100", unit: b.baseUnit },
+			) &&
+		JSON.stringify(a.description) === JSON.stringify(b.description) &&
 		NUTRIENT_KEYS.every(
 			(key) =>
 				JSON.stringify(a.nutrients[key]) === JSON.stringify(b.nutrients[key]),
@@ -104,10 +118,12 @@ export function PersonalFoodEditorForm({
 	food,
 	seed,
 	reviewNotice,
+	defaultClassification = "ordinary",
 	onSaved,
 	onCancel,
 }: {
 	food?: PersonalFood;
+	defaultClassification?: "ordinary" | "recipe";
 	seed?: PersonalFoodDraft;
 	reviewNotice?: { title: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
@@ -123,7 +139,22 @@ export function PersonalFoodEditorForm({
 	const [otherName, setOtherName] = useState(initial?.name[otherLocale] ?? "");
 	const [otherNameOpen, setOtherNameOpen] = useState(false);
 	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
-		initial?.baseUnit ?? "g",
+		initial?.baseUnit === "ml" ? "ml" : "g",
+	);
+	const [classification, setClassification] = useState<"ordinary" | "recipe">(
+		initial?.classification ?? defaultClassification,
+	);
+	const [estimated, setEstimated] = useState(initial?.estimated ?? false);
+	const [basisKind, setBasisKind] = useState<"per100" | "perServing">(
+		initial?.nutritionBasis?.kind ?? "per100",
+	);
+	const [servingLabel, setServingLabel] = useState(
+		initial?.nutritionBasis?.kind === "perServing"
+			? initial.nutritionBasis.label[locale]
+			: copy.serving,
+	);
+	const [description, setDescription] = useState(
+		initial?.description?.[locale] ?? "",
 	);
 	const [nutrients, setNutrients] = useState(() => initialNutrients(initial));
 	const [moreNutrientsOpen, setMoreNutrientsOpen] = useState(false);
@@ -175,20 +206,60 @@ export function PersonalFoodEditorForm({
 				: { en: fallbackOtherName, nl: primaryName };
 		const editable: EditorSeed = {
 			name,
-			baseUnit,
+			baseUnit: basisKind === "perServing" ? "serving" : baseUnit,
+			classification,
+			estimated,
+			nutritionBasis:
+				basisKind === "perServing"
+					? {
+							kind: "perServing",
+							label: {
+								en:
+									locale === "en"
+										? servingLabel
+										: initial?.nutritionBasis?.kind === "perServing"
+											? initial.nutritionBasis.label.en
+											: servingLabel,
+								nl:
+									locale === "nl"
+										? servingLabel
+										: initial?.nutritionBasis?.kind === "perServing"
+											? initial.nutritionBasis.label.nl
+											: servingLabel,
+							},
+						}
+					: { kind: "per100", unit: baseUnit },
+			...(description.trim()
+				? {
+						description: {
+							en:
+								locale === "en"
+									? description
+									: (initial?.description?.en ?? description),
+							nl:
+								locale === "nl"
+									? description
+									: (initial?.description?.nl ?? description),
+						},
+					}
+				: {}),
 			nutrients: values,
-			servings: servings.map((serving) => {
-				const primary = locale === "en" ? serving.en : serving.nl;
-				const other = locale === "en" ? serving.nl : serving.en;
-				const fallbackOther = other.trim().length > 0 ? other : primary;
-				return {
-					label:
-						locale === "en"
-							? { en: primary, nl: fallbackOther }
-							: { en: fallbackOther, nl: primary },
-					amount: parseNumber(serving.amount),
-				};
-			}),
+			servings:
+				basisKind === "perServing" &&
+				initial?.nutritionBasis?.kind !== "perServing"
+					? []
+					: servings.map((serving) => {
+							const primary = locale === "en" ? serving.en : serving.nl;
+							const other = locale === "en" ? serving.nl : serving.en;
+							const fallbackOther = other.trim().length > 0 ? other : primary;
+							return {
+								label:
+									locale === "en"
+										? { en: primary, nl: fallbackOther }
+										: { en: fallbackOther, nl: primary },
+								amount: parseNumber(serving.amount),
+							};
+						}),
 		};
 
 		let provenance = initial?.provenance ?? {
@@ -199,9 +270,14 @@ export function PersonalFoodEditorForm({
 		if (source) {
 			provenance = {
 				...provenance,
-				locallyEdited: forkHasLocalEdits(editable, source),
+				locallyEdited:
+					editable.baseUnit === "serving" ||
+					forkHasLocalEdits(
+						{ ...editable, baseUnit: editable.baseUnit },
+						source,
+					),
 			};
-		} else if (!food && seed && !draftUnchanged(editable, seed)) {
+		} else if (initial && !draftUnchanged(editable, initial)) {
 			provenance = { ...provenance, locallyEdited: true };
 		}
 		return { ...editable, provenance };
@@ -307,6 +383,10 @@ export function PersonalFoodEditorForm({
 			: food
 				? t.nutrition.personalFood.editTitle
 				: t.nutrition.personalFood.createTitle;
+	const basisLabel =
+		basisKind === "perServing"
+			? `${copy.perServing.toLowerCase()} (${servingLabel})`
+			: `${copy.per100.toLowerCase()} ${baseUnit}`;
 	const servingNumber = (editingServingIndex ?? servings.length) + 1;
 
 	return (
@@ -367,29 +447,77 @@ export function PersonalFoodEditorForm({
 				) : null}
 			</FormSection>
 
-			<FormSection title={copy.per100}>
+			<FormSection title={copy.classification}>
 				<View style={styles.segmentedRow}>
 					<Segmented
-						value={baseUnit}
-						onChange={setBaseUnit}
+						value={classification}
+						onChange={setClassification}
 						options={[
-							{
-								value: "g",
-								label: copy.grams,
-								accessibilityLabel: `${copy.per100} ${copy.grams}`,
-							},
-							{
-								value: "ml",
-								label: copy.millilitres,
-								accessibilityLabel: `${copy.per100} ${copy.millilitres}`,
-							},
+							{ value: "ordinary", label: copy.ordinary },
+							{ value: "recipe", label: copy.recipe },
+						]}
+					/>
+				</View>
+				<FormTextField
+					label={copy.description}
+					value={description}
+					onChangeText={setDescription}
+					multiline
+				/>
+			</FormSection>
+			<FormSection title={copy.precision} footer={copy.estimateHelp}>
+				<View style={styles.segmentedRow}>
+					<Segmented
+						value={estimated ? "estimated" : "provided"}
+						onChange={(value) => setEstimated(value === "estimated")}
+						options={[
+							{ value: "provided", label: copy.provided },
+							{ value: "estimated", label: copy.estimated },
 						]}
 					/>
 				</View>
 			</FormSection>
+			<FormSection title={copy.basis}>
+				<View style={styles.segmentedRow}>
+					<Segmented
+						value={basisKind}
+						onChange={setBasisKind}
+						options={[
+							{ value: "per100", label: copy.per100 },
+							{ value: "perServing", label: copy.perServing },
+						]}
+					/>
+				</View>
+				{basisKind === "perServing" ? (
+					<FormTextField
+						label={copy.servingLabel}
+						value={servingLabel}
+						onChangeText={setServingLabel}
+					/>
+				) : (
+					<View style={styles.segmentedRow}>
+						<Segmented
+							value={baseUnit}
+							onChange={setBaseUnit}
+							options={[
+								{
+									value: "g",
+									label: copy.grams,
+									accessibilityLabel: `${copy.per100} ${copy.grams}`,
+								},
+								{
+									value: "ml",
+									label: copy.millilitres,
+									accessibilityLabel: `${copy.per100} ${copy.millilitres}`,
+								},
+							]}
+						/>
+					</View>
+				)}
+			</FormSection>
 
 			<FormSection
-				title={`${copy.nutrition} ${copy.per100.toLowerCase()} ${baseUnit}`}
+				title={`${copy.nutrition} ${basisLabel}`}
 				footer={copy.nutrientHelper}
 			>
 				{visibleNutrients.map((key) => (
@@ -399,7 +527,7 @@ export function PersonalFoodEditorForm({
 						suffix={key === "energy" ? "kcal" : "g"}
 						value={nutrients[key].amount}
 						onChangeText={(amount) => setAmount(key, amount)}
-						accessibilityLabel={`${t.nutrition.nutrients[key]} per 100 ${baseUnit}`}
+						accessibilityLabel={`${t.nutrition.nutrients[key]} ${basisLabel}`}
 						placeholder={nutrients[key].kind === "trace" ? copy.trace : "—"}
 						keyboardType="decimal-pad"
 						accessory={
@@ -432,71 +560,75 @@ export function PersonalFoodEditorForm({
 				/>
 			</FormSection>
 
-			<FormSection footer={servingsOpen ? copy.customServingsHelp : undefined}>
-				<DisclosureRow
-					label={copy.customServings}
-					expanded={servingsOpen}
-					onPress={() => setServingsOpen((open) => !open)}
-				/>
-				{servingsOpen
-					? servings.map((serving, index) => (
-							<EditableValueRow
-								key={serving.key}
-								label={locale === "en" ? serving.en : serving.nl}
-								value={`${serving.amount} ${baseUnit}`}
-								deleteLabel={copy.remove}
-								deleteAccessibilityLabel={`${copy.removeServing} ${index + 1}`}
-								onPress={() => beginEditingServing(index)}
-								onDelete={() =>
-									setServings((current) =>
-										current.filter((_, itemIndex) => itemIndex !== index),
-									)
-								}
+			{basisKind === "per100" ? (
+				<FormSection
+					footer={servingsOpen ? copy.customServingsHelp : undefined}
+				>
+					<DisclosureRow
+						label={copy.customServings}
+						expanded={servingsOpen}
+						onPress={() => setServingsOpen((open) => !open)}
+					/>
+					{servingsOpen
+						? servings.map((serving, index) => (
+								<EditableValueRow
+									key={serving.key}
+									label={locale === "en" ? serving.en : serving.nl}
+									value={`${serving.amount} ${baseUnit}`}
+									deleteLabel={copy.remove}
+									deleteAccessibilityLabel={`${copy.removeServing} ${index + 1}`}
+									onPress={() => beginEditingServing(index)}
+									onDelete={() =>
+										setServings((current) =>
+											current.filter((_, itemIndex) => itemIndex !== index),
+										)
+									}
+								/>
+							))
+						: null}
+					{servingsOpen && servings.length < 3 && !addingServing ? (
+						<AddRow label={copy.addServing} onPress={beginAddingServing} />
+					) : null}
+					{servingsOpen && addingServing ? (
+						<View style={styles.servingEditor}>
+							<FormTextField
+								autoFocus
+								label={copyWithServing(copy.servingName, servingNumber)}
+								value={newServingName}
+								onChangeText={setNewServingName}
+								autoCorrect={false}
 							/>
-						))
-					: null}
-				{servingsOpen && servings.length < 3 && !addingServing ? (
-					<AddRow label={copy.addServing} onPress={beginAddingServing} />
-				) : null}
-				{servingsOpen && addingServing ? (
-					<View style={styles.servingEditor}>
-						<FormTextField
-							autoFocus
-							label={copyWithServing(copy.servingName, servingNumber)}
-							value={newServingName}
-							onChangeText={setNewServingName}
-							autoCorrect={false}
-						/>
-						<FormTextField
-							label={copyWithServing(
-								copy.servingAmount,
-								servingNumber,
-								baseUnit,
-							)}
-							placeholder={`100 ${baseUnit}`}
-							keyboardType="decimal-pad"
-							value={newServingAmount}
-							onChangeText={setNewServingAmount}
-							onSubmitEditing={saveServing}
-						/>
-						<InlineActionRow>
-							<TextAction
-								label={t.nutrition.personalFood.cancel}
-								tone="neutral"
-								onPress={closeServingEditor}
+							<FormTextField
+								label={copyWithServing(
+									copy.servingAmount,
+									servingNumber,
+									baseUnit,
+								)}
+								placeholder={`100 ${baseUnit}`}
+								keyboardType="decimal-pad"
+								value={newServingAmount}
+								onChangeText={setNewServingAmount}
+								onSubmitEditing={saveServing}
 							/>
-							<PrimaryButton
-								label={
-									editingServingIndex === undefined
-										? copy.saveServing
-										: copy.updateServing
-								}
-								onPress={saveServing}
-							/>
-						</InlineActionRow>
-					</View>
-				) : null}
-			</FormSection>
+							<InlineActionRow>
+								<TextAction
+									label={t.nutrition.personalFood.cancel}
+									tone="neutral"
+									onPress={closeServingEditor}
+								/>
+								<PrimaryButton
+									label={
+										editingServingIndex === undefined
+											? copy.saveServing
+											: copy.updateServing
+									}
+									onPress={saveServing}
+								/>
+							</InlineActionRow>
+						</View>
+					) : null}
+				</FormSection>
+			) : null}
 
 			{validationError ? (
 				<AppText selectable accessibilityRole="alert" style={styles.error}>

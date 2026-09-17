@@ -72,6 +72,36 @@ describe("Personal Food compact authoring", () => {
 		jest.restoreAllMocks();
 	});
 
+	it("saves a per-serving Recipe estimate without requiring a weight", async () => {
+		const { onSaved, repository } = renderEditor();
+		fireEvent.changeText(screen.getByLabelText("Name"), "Pasta bowl");
+		fireEvent.press(screen.getByText("Recipe"));
+		fireEvent.press(screen.getByText("Estimated"));
+		fireEvent.press(screen.getByText("Per serving"));
+		fireEvent.changeText(screen.getByLabelText("Serving name"), "Bowl");
+		fireEvent.changeText(
+			screen.getByLabelText("Description (optional)"),
+			"Lunch at home",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Energy per serving (Bowl)"),
+			"550",
+		);
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(onSaved.mock.calls[0][0].id)).toMatchObject({
+			classification: "recipe",
+			estimated: true,
+			baseUnit: "serving",
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Bowl" } },
+			description: { en: "Lunch at home", nl: "Lunch at home" },
+			nutrients: {
+				energy: { kind: "value", amount: 550 },
+				fat: { kind: "absent" },
+			},
+		});
+	});
+
 	it("uses one primary name, falls back to it, and keeps zero, trace, absent, and a custom serving", async () => {
 		const { onSaved, repository } = renderEditor();
 
@@ -118,6 +148,8 @@ describe("Personal Food compact authoring", () => {
 		const created = repository.find(onSaved.mock.calls[0][0].id);
 		expect(created).toMatchObject({
 			name: { en: "Training drink", nl: "Training drink" },
+			estimated: false,
+			classification: "ordinary",
 			baseUnit: "ml",
 			nutrients: {
 				energy: { kind: "value", amount: 0 },
@@ -169,6 +201,55 @@ describe("Personal Food compact authoring", () => {
 		});
 		expect(repository.find(food.id)?.nutrients.protein).toEqual({
 			kind: "trace",
+		});
+	});
+
+	it("protects an existing import's reviewed serving basis from provider refresh", async () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const food = repository.create({
+			name: { en: "Imported soup", nl: "Soep" },
+			baseUnit: "g",
+			nutrients: {
+				energy: { kind: "value", amount: 100 },
+				protein: { kind: "absent" },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			servings: [],
+			provenance: {
+				recordOrigin: "import",
+				nutritionSource: "openfoodfacts",
+				locallyEdited: false,
+				provider: "Open Food Facts",
+				barcode: "1234567890123",
+			},
+		});
+		const onSaved = jest.fn<void, [PersonalFood]>();
+		render(
+			<PersonalFoodEditor food={food} onSaved={onSaved} onCancel={jest.fn()} />,
+			{
+				wrapper: ({ children }) => (
+					<Providers repository={repository}>{children}</Providers>
+				),
+			},
+		);
+		fireEvent.press(screen.getByText("Per serving"));
+		fireEvent.changeText(screen.getByLabelText("Serving name"), "Bowl");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(food.id)).toMatchObject({
+			baseUnit: "serving",
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Bowl" } },
+			estimated: false,
+			provenance: {
+				recordOrigin: "import",
+				nutritionSource: "openfoodfacts",
+				locallyEdited: true,
+			},
 		});
 	});
 
@@ -235,7 +316,11 @@ describe("Personal Food compact authoring", () => {
 		fireEvent.changeText(screen.getByLabelText("Name"), "");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
-		expect(await screen.findByText("English name is required.")).toBeTruthy();
+		expect(
+			await screen.findByText(
+				"Food name English is required and must be at most 500 characters.",
+			),
+		).toBeTruthy();
 		expect(screen.getByLabelText("Name").props.value).toBe("");
 		expect(repository.list()).toEqual([]);
 	});

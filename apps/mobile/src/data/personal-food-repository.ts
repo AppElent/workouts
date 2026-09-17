@@ -3,12 +3,15 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-	type ShippedFoodId,
+	type PersonalFood,
+	type PersonalFoodClassification,
+	type PersonalFoodDraft,
+	validatePersonalFoodDraft,
 } from "@workouts/core/nutrition";
 import { openDatabaseSync } from "expo-sqlite";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 export type SQLiteValue = string | number | null | Uint8Array;
 
@@ -23,48 +26,17 @@ export type SyncSQLiteDatabase = {
 	getAllSync<T>(source: string, ...params: SQLiteValue[]): T[];
 };
 
-export type PersonalServing = {
-	readonly label: { readonly en: string; readonly nl: string };
-	/** Positive amount in the Personal Food's base unit. */
-	readonly amount: number;
-};
+export type {
+	PersonalFood,
+	PersonalFoodClassification,
+	PersonalFoodDraft,
+	PersonalFoodProvenance,
+	PersonalServing,
+} from "@workouts/core/nutrition";
+export { validatePersonalFoodDraft } from "@workouts/core/nutrition";
 
-/**
- * Provenance fields are stored together so #75 and #76 can retain a shipped
- * ancestor or provider attribution without another SQLite migration.
- */
-export type PersonalFoodProvenance = {
-	readonly recordOrigin: "personal" | "import";
-	readonly nutritionSource: "manual" | "nevo" | "openfoodfacts";
-	readonly locallyEdited: boolean;
-	readonly forkedFrom?: ShippedFoodId;
-	readonly provider?: string;
-	readonly barcode?: string;
-	readonly attribution?: string;
-	readonly brand?: string;
-	/** Provider-authored package quantity, retained verbatim for display. */
-	readonly quantity?: string;
-	readonly imageUrl?: string;
-	/** Provider serving metadata; user-editable serving shortcuts remain separate. */
-	readonly providerServing?: {
-		readonly label: string;
-		readonly amount: number;
-		readonly unit: "g" | "ml";
-	};
-};
-
-export type PersonalFoodDraft = {
-	readonly name: { readonly en: string; readonly nl: string };
-	readonly baseUnit: "g" | "ml";
-	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
-	readonly servings: readonly PersonalServing[];
-	readonly provenance: PersonalFoodProvenance;
-};
-
-export type PersonalFood = PersonalFoodDraft & {
-	readonly id: string;
-	readonly createdAt: number;
-	readonly updatedAt: number;
+export type PersonalFoodFilter = {
+	readonly classification?: PersonalFoodClassification;
 };
 
 export type ComboSnapshotProvenance =
@@ -95,7 +67,8 @@ export type ComboPartSnapshot = {
 	readonly serving: { readonly en: string; readonly nl: string };
 	readonly quantity: number;
 	readonly amount: number;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: "g" | "ml" | "serving";
+	readonly estimated?: true;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: ComboSnapshotProvenance;
 };
@@ -135,11 +108,15 @@ export type PersonalLibraryBackup = {
 };
 
 export type PersonalFoodRepository = {
-	list(): PersonalFood[];
+	list(filter?: PersonalFoodFilter): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
 	/** The Personal Food whose provenance carries this barcode, if any. */
 	findByBarcode(barcode: string): PersonalFood | undefined;
-	search(query: string, locale: "en" | "nl"): PersonalFood[];
+	search(
+		query: string,
+		locale: "en" | "nl",
+		filter?: PersonalFoodFilter,
+	): PersonalFood[];
 	/**
 	 * Every Personal Food that was forked from a shipped one, most recently
 	 * updated first — the order `forkShadows` reads to decide which of two
@@ -175,6 +152,10 @@ type PersonalFoodRow = {
 	nutrients_json: string;
 	servings_json: string;
 	provenance_json: string;
+	classification: PersonalFoodClassification;
+	nutrition_basis_json: string;
+	estimated: number;
+	description_json: string | null;
 	created_at: number;
 	updated_at: number;
 };
@@ -253,6 +234,31 @@ function migrate(database: SyncSQLiteDatabase): void {
 					ON nutrition_combos(updated_at DESC);
 			`);
 		}
+		if (current < 4) {
+			// Rebuild to widen the old unit CHECK without losing IDs or timestamps.
+			database.execSync(`
+				CREATE TABLE personal_foods_v4 (
+					id TEXT PRIMARY KEY NOT NULL,
+					name_en TEXT NOT NULL, name_nl TEXT NOT NULL,
+					base_unit TEXT NOT NULL CHECK (base_unit IN ('g', 'ml', 'serving')),
+					nutrients_json TEXT NOT NULL, servings_json TEXT NOT NULL,
+					provenance_json TEXT NOT NULL,
+					classification TEXT NOT NULL CHECK (classification IN ('ordinary', 'recipe')),
+					nutrition_basis_json TEXT NOT NULL,
+					estimated INTEGER NOT NULL CHECK (estimated IN (0, 1)),
+					description_json TEXT,
+					created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+				);
+				INSERT INTO personal_foods_v4
+				SELECT id, name_en, name_nl, base_unit, nutrients_json, servings_json,
+					provenance_json, 'ordinary', '{"kind":"per100","unit":"' || base_unit || '"}',
+					0, NULL, created_at, updated_at FROM personal_foods;
+				DROP TABLE personal_foods;
+				ALTER TABLE personal_foods_v4 RENAME TO personal_foods;
+				CREATE INDEX personal_foods_by_updated ON personal_foods(updated_at DESC);
+			`);
+		}
+
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -285,119 +291,6 @@ function validateNutrient(value: unknown, label: string): NutrientValue {
 		throw new Error(`${label} must be zero or greater.`);
 	}
 	return { kind: "value", amount: value.amount };
-}
-
-function validateProvenance(value: unknown): PersonalFoodProvenance {
-	if (!value || typeof value !== "object") {
-		throw new Error("Food provenance is required.");
-	}
-	const candidate = value as Partial<PersonalFoodProvenance>;
-	if (
-		candidate.recordOrigin !== "personal" &&
-		candidate.recordOrigin !== "import"
-	) {
-		throw new Error("Food provenance has an invalid record origin.");
-	}
-	if (
-		candidate.nutritionSource !== "manual" &&
-		candidate.nutritionSource !== "nevo" &&
-		candidate.nutritionSource !== "openfoodfacts"
-	) {
-		throw new Error("Food provenance has an invalid nutrition source.");
-	}
-	if (typeof candidate.locallyEdited !== "boolean") {
-		throw new Error("Food provenance must say whether it was edited locally.");
-	}
-	let providerServing: PersonalFoodProvenance["providerServing"];
-	if (candidate.providerServing !== undefined) {
-		const serving = candidate.providerServing;
-		if (
-			!serving ||
-			typeof serving !== "object" ||
-			typeof serving.label !== "string" ||
-			serving.label.trim().length === 0 ||
-			!Number.isFinite(serving.amount) ||
-			serving.amount <= 0 ||
-			(serving.unit !== "g" && serving.unit !== "ml")
-		) {
-			throw new Error("Food provenance has invalid provider serving data.");
-		}
-		providerServing = {
-			label: serving.label.trim(),
-			amount: serving.amount,
-			unit: serving.unit,
-		};
-	}
-	const imageUrl = candidate.imageUrl?.trim();
-	if (imageUrl) {
-		let parsed: URL;
-		try {
-			parsed = new URL(imageUrl);
-		} catch {
-			throw new Error("Food provenance has an invalid image URL.");
-		}
-		if (
-			parsed.protocol !== "https:" ||
-			parsed.hostname !== "images.openfoodfacts.org"
-		) {
-			throw new Error("Food provenance has an invalid image URL.");
-		}
-	}
-	return {
-		recordOrigin: candidate.recordOrigin,
-		nutritionSource: candidate.nutritionSource,
-		locallyEdited: candidate.locallyEdited,
-		...(candidate.forkedFrom ? { forkedFrom: candidate.forkedFrom } : {}),
-		...(candidate.provider ? { provider: candidate.provider } : {}),
-		...(candidate.barcode ? { barcode: candidate.barcode } : {}),
-		...(candidate.attribution ? { attribution: candidate.attribution } : {}),
-		...(candidate.brand?.trim() ? { brand: candidate.brand.trim() } : {}),
-		...(candidate.quantity?.trim()
-			? { quantity: candidate.quantity.trim() }
-			: {}),
-		...(imageUrl ? { imageUrl } : {}),
-		...(providerServing ? { providerServing } : {}),
-	};
-}
-
-export function validatePersonalFoodDraft(
-	draft: PersonalFoodDraft,
-): PersonalFoodDraft {
-	if (draft.baseUnit !== "g" && draft.baseUnit !== "ml") {
-		throw new Error("Base unit must be grams or millilitres.");
-	}
-	if (!Array.isArray(draft.servings) || draft.servings.length > 3) {
-		throw new Error("A Personal Food can have up to three Servings.");
-	}
-	const nutrients = {} as Record<NutrientKey, NutrientValue>;
-	for (const key of NUTRIENT_KEYS) {
-		nutrients[key] = validateNutrient(draft.nutrients[key], key);
-	}
-	const servings = draft.servings.map((serving, index) => {
-		if (!Number.isFinite(serving.amount) || serving.amount <= 0) {
-			throw new Error(`Serving ${index + 1} amount must be greater than zero.`);
-		}
-		return {
-			label: {
-				en: validateText(
-					serving.label.en,
-					`Serving ${index + 1} English label`,
-				),
-				nl: validateText(serving.label.nl, `Serving ${index + 1} Dutch label`),
-			},
-			amount: serving.amount,
-		};
-	});
-	return {
-		name: {
-			en: validateText(draft.name.en, "English name"),
-			nl: validateText(draft.name.nl, "Dutch name"),
-		},
-		baseUnit: draft.baseUnit,
-		nutrients,
-		servings,
-		provenance: validateProvenance(draft.provenance),
-	};
 }
 
 function validateComboProvenance(
@@ -511,9 +404,17 @@ function validateComboDraft(draft: ComboDraft): ComboDraft {
 		if (!(snapshot.quantity > 0) || !(snapshot.amount > 0)) {
 			throw new Error("Combo part quantities must be greater than zero.");
 		}
-		if (snapshot.baseUnit !== "g" && snapshot.baseUnit !== "ml") {
-			throw new Error("Combo part base unit must be grams or millilitres.");
+		if (
+			snapshot.baseUnit !== "g" &&
+			snapshot.baseUnit !== "ml" &&
+			snapshot.baseUnit !== "serving"
+		) {
+			throw new Error(
+				"Combo part base unit must be grams, millilitres, or servings.",
+			);
 		}
+		if (snapshot.estimated !== undefined && snapshot.estimated !== true)
+			throw new Error("Combo estimate marker is invalid.");
 		const nutrients = {} as Record<NutrientKey, NutrientValue>;
 		for (const key of NUTRIENT_KEYS) {
 			nutrients[key] = validateNutrient(snapshot.nutrients[key], key);
@@ -533,6 +434,7 @@ function validateComboDraft(draft: ComboDraft): ComboDraft {
 				quantity: snapshot.quantity,
 				amount: snapshot.amount,
 				baseUnit: snapshot.baseUnit,
+				...(snapshot.estimated ? { estimated: true as const } : {}),
 				nutrients,
 				provenance: validateComboProvenance(
 					snapshot.provenance,
@@ -547,7 +449,13 @@ function validateComboDraft(draft: ComboDraft): ComboDraft {
 function rowToFood(row: PersonalFoodRow): PersonalFood {
 	const draft = validatePersonalFoodDraft({
 		name: { en: row.name_en, nl: row.name_nl },
-		baseUnit: row.base_unit as "g" | "ml",
+		baseUnit: row.base_unit as PersonalFood["baseUnit"],
+		classification: row.classification,
+		nutritionBasis: JSON.parse(row.nutrition_basis_json),
+		estimated: row.estimated === 1,
+		...(row.description_json
+			? { description: JSON.parse(row.description_json) }
+			: {}),
 		nutrients: JSON.parse(row.nutrients_json),
 		servings: JSON.parse(row.servings_json),
 		provenance: JSON.parse(row.provenance_json),
@@ -632,12 +540,17 @@ export function createPersonalFoodRepository(
 	}
 
 	return {
-		list() {
+		list(filter) {
 			return database
 				.getAllSync<PersonalFoodRow>(
 					"SELECT * FROM personal_foods ORDER BY updated_at DESC, id ASC",
 				)
-				.map(rowToFood);
+				.map(rowToFood)
+				.filter(
+					(food) =>
+						!filter?.classification ||
+						food.classification === filter.classification,
+				);
 		},
 		find,
 		findByBarcode(barcode) {
@@ -647,10 +560,10 @@ export function createPersonalFoodRepository(
 			// small on-device table, not a hot path that needs its own index.
 			return this.list().find((food) => food.provenance.barcode === barcode);
 		},
-		search(query, locale) {
+		search(query, locale, filter) {
 			const needle = query.trim().toLocaleLowerCase(locale);
-			if (needle.length === 0) return this.list();
-			return this.list()
+			if (needle.length === 0) return this.list(filter);
+			return this.list(filter)
 				.filter((food) =>
 					[food.name[locale], food.name[locale === "en" ? "nl" : "en"]].some(
 						(name) => name.toLocaleLowerCase(locale).includes(needle),
@@ -676,8 +589,8 @@ export function createPersonalFoodRepository(
 			const timestamp = now();
 			database.runSync(
 				`INSERT INTO personal_foods
-					(id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, created_at, updated_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					(id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, classification, nutrition_basis_json, estimated, description_json, created_at, updated_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				id,
 				valid.name.en,
 				valid.name.nl,
@@ -685,6 +598,10 @@ export function createPersonalFoodRepository(
 				JSON.stringify(valid.nutrients),
 				JSON.stringify(valid.servings),
 				JSON.stringify(valid.provenance),
+				valid.classification,
+				JSON.stringify(valid.nutritionBasis),
+				valid.estimated ? 1 : 0,
+				valid.description ? JSON.stringify(valid.description) : null,
 				timestamp,
 				timestamp,
 			);
@@ -703,7 +620,7 @@ export function createPersonalFoodRepository(
 			database.runSync(
 				`UPDATE personal_foods
 				 SET name_en = ?, name_nl = ?, base_unit = ?, nutrients_json = ?,
-				     servings_json = ?, provenance_json = ?, updated_at = ?
+				     servings_json = ?, provenance_json = ?, classification = ?, nutrition_basis_json = ?, estimated = ?, description_json = ?, updated_at = ?
 				 WHERE id = ?`,
 				valid.name.en,
 				valid.name.nl,
@@ -711,6 +628,10 @@ export function createPersonalFoodRepository(
 				JSON.stringify(valid.nutrients),
 				JSON.stringify(valid.servings),
 				JSON.stringify(valid.provenance),
+				valid.classification,
+				JSON.stringify(valid.nutritionBasis),
+				valid.estimated ? 1 : 0,
+				valid.description ? JSON.stringify(valid.description) : null,
 				timestamp,
 				id,
 			);
@@ -832,8 +753,8 @@ export function createPersonalFoodRepository(
 				);
 				for (const food of foods) {
 					database.runSync(
-						`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, created_at, updated_at)
-						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+						`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, classification, nutrition_basis_json, estimated, description_json, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 						food.id,
 						food.name.en,
 						food.name.nl,
@@ -841,6 +762,10 @@ export function createPersonalFoodRepository(
 						JSON.stringify(food.nutrients),
 						JSON.stringify(food.servings),
 						JSON.stringify(food.provenance),
+						food.classification,
+						JSON.stringify(food.nutritionBasis),
+						food.estimated ? 1 : 0,
+						food.description ? JSON.stringify(food.description) : null,
 						food.createdAt,
 						food.updatedAt,
 					);
