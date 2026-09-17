@@ -99,8 +99,16 @@ describe("Capture Draft SQLite repository", () => {
 		const repo = createNutritionDraftRepository(new SQLiteTestDatabase(), {
 			mintId: () => `draft-${++i}`,
 		});
-		const a = repo.create("a", { date: "2026-09-16", meal: "lunch", note: "A" });
-		const b = repo.create("b", { date: "2026-09-16", meal: "lunch", note: "B" });
+		const a = repo.create("a", {
+			date: "2026-09-16",
+			meal: "lunch",
+			note: "A",
+		});
+		const b = repo.create("b", {
+			date: "2026-09-16",
+			meal: "lunch",
+			note: "B",
+		});
 
 		expect(
 			repo.update("a", a.id, { date: a.date, meal: "dinner", note: "A2" }),

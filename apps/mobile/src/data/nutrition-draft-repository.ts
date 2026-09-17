@@ -9,11 +9,11 @@
  */
 import { openDatabaseSync } from "expo-sqlite";
 import { NUTRITION_COOKING_DATABASE_NAME } from "./nutrition-cooking-repository";
+import { MEAL_SLOTS, type MealSlot } from "./nutrition-day";
 import { mintNutritionUuid } from "./nutrition-operation-service";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
-export const DRAFT_MEALS = ["breakfast", "lunch", "dinner", "snacks"] as const;
-export type DraftMeal = (typeof DRAFT_MEALS)[number];
+export type DraftMeal = MealSlot;
 
 export type CaptureDraft = {
 	readonly id: string;
@@ -81,14 +81,21 @@ function text(value: unknown, label: string): string {
 	return value.trim();
 }
 
+function noteText(value: unknown): string {
+	if (typeof value !== "string" || value.trim().length === 0) {
+		throw new Error("Draft note is required.");
+	}
+	return value;
+}
+
 function validate(input: CaptureDraftInput): CaptureDraftInput {
-	if (!DRAFT_MEALS.includes(input.meal)) {
+	if (!MEAL_SLOTS.includes(input.meal)) {
 		throw new Error("Draft meal is invalid.");
 	}
 	return {
 		date: text(input.date, "Draft date"),
 		meal: input.meal,
-		note: text(input.note, "Draft note"),
+		note: noteText(input.note),
 	};
 }
 

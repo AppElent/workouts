@@ -18,8 +18,6 @@ import {
 	todayIsoDate,
 } from "../data/calendar-day";
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
-import type { CaptureDraft } from "../data/nutrition-draft-repository";
-import { useNutritionDrafts } from "../data/nutrition-drafts";
 import {
 	type DiaryEntry,
 	type GoalState,
@@ -32,11 +30,14 @@ import {
 	nutrientUnit,
 	useNutritionDay,
 } from "../data/nutrition-day";
+import type { CaptureDraft } from "../data/nutrition-draft-repository";
+import { useNutritionDrafts } from "../data/nutrition-drafts";
 import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
+import { useConfirm } from "../ui/confirm-dialog";
 import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
 import { DisclosureRow, FormSection, GroupedSurface } from "../ui/form";
@@ -44,7 +45,7 @@ import { NutritionCalendar } from "../ui/nutrition-calendar";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { type RowAccessibilityProps, SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
-import { useConfirm } from "../ui/confirm-dialog";
+import { useToast } from "../ui/toast";
 import { NutritionDraftEditor } from "./nutrition-draft-editor";
 import { NutritionEntryTransfer } from "./nutrition-entry-transfer";
 import { NutritionHeaderMenu } from "./nutrition-header-menu";
@@ -85,6 +86,7 @@ export function NutritionDayScreen() {
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const drafts = useNutritionDrafts();
 	const confirm = useConfirm();
+	const toast = useToast();
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const state = useNutritionDay(date);
 	// A day that has never been downloaded cannot arrive while the socket is
@@ -146,7 +148,14 @@ export function NutritionDayScreen() {
 			confirmLabel: t.nutrition.drafts.deleteConfirm,
 			destructive: true,
 		});
-		if (approved) drafts.remove(draft.id);
+		if (!approved) return;
+		try {
+			if (!drafts.remove(draft.id)) {
+				toast.error(t.nutrition.drafts.deleteFailure);
+			}
+		} catch {
+			toast.error(t.nutrition.drafts.deleteFailure);
+		}
 	}
 
 	const dayLabel =
@@ -319,9 +328,9 @@ export function NutritionDayScreen() {
 								slot={slot}
 								date={date}
 								entries={state.day.entries[slot]}
-								drafts={drafts.listForDate(date).filter(
-									(draft) => draft.meal === slot,
-								)}
+								drafts={drafts
+									.listForDate(date)
+									.filter((draft) => draft.meal === slot)}
 								locale={locale}
 								onAdd={() => openFoodBrowser(slot)}
 								onResolveDraft={resolveDraft}
@@ -387,11 +396,7 @@ export function NutritionDayScreen() {
 							closeLabel={t.nutrition.entryActions.close}
 							createComboLabel={t.nutrition.combos.create}
 							logComboLabel={t.nutrition.combos.log}
-							recipesLabel={
-								locale === "nl"
-									? "Recepten en onvoltooide invoer"
-									: "Recipes and unfinished logs"
-							}
+							recipesLabel={locale === "nl" ? "Recepten" : "Recipes"}
 							assistanceLabel={
 								locale === "nl"
 									? "Tekst en voedingsetiket"

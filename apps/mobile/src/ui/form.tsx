@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, metrics, radius, spacing } from "../theme";
 import { PrimaryButton } from "./button";
+import { Segmented, type SegmentedOption } from "./segmented";
 import { AppText } from "./text";
 
 type PrimaryAction = {
@@ -165,6 +166,23 @@ export function FormTextField({
 					{error}
 				</AppText>
 			) : null}
+		</View>
+	);
+}
+
+/** A mutually exclusive choice set presented as one grouped form row. */
+export function FormSegmentedRow<Value extends string>({
+	options,
+	value,
+	onChange,
+}: {
+	options: readonly SegmentedOption<Value>[];
+	value: Value;
+	onChange: (next: Value) => void;
+}) {
+	return (
+		<View style={styles.segmentedRow}>
+			<Segmented options={options} value={value} onChange={onChange} />
 		</View>
 	);
 }
@@ -423,6 +441,7 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.borderStrong,
 	},
 	fieldRow: { padding: spacing.md, gap: spacing.sm },
+	segmentedRow: { padding: spacing.md },
 	textInput: {
 		minHeight: metrics.fieldMinHeight,
 		borderRadius: radius.md,

@@ -166,6 +166,7 @@ export const nl = {
 			deleteTitle: "Deze notitie verwijderen?",
 			deleteBody: "Deze is nog niet als voeding gelogd.",
 			deleteConfirm: "Notitie verwijderen",
+			deleteFailure: "Deze notitie kon niet worden verwijderd.",
 			otherDaysOne: "1 onverwerkte notitie op een andere dag",
 			otherDaysMany: "{count} onverwerkte notities op andere dagen",
 			otherDaysAction: "Naar de oudste",
@@ -174,7 +175,8 @@ export const nl = {
 			noteLabel: "Notitie",
 			mealLabel: "Maaltijd",
 			save: "Notitie opslaan",
-			saveFailure: "Deze notitie kon niet worden opgeslagen. Je tekst staat er nog.",
+			saveFailure:
+				"Deze notitie kon niet worden opgeslagen. Je tekst staat er nog.",
 			cancel: "Annuleren",
 			countOne: "1 notitie",
 			countMany: "{count} notities",

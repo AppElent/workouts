@@ -1,4 +1,4 @@
-/** Home cooking hub: device-local recipes plus capture-later notes. */
+/** Home cooking hub: device-local recipes and one-off logging. */
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";
@@ -29,9 +29,7 @@ export default function NutritionCookingRoute() {
 			meal={targetMeal}
 			repository={repository}
 			initialMode={
-				mode === "recipe-log" || mode === "draft-new" || mode === "oneoff-log"
-					? mode
-					: undefined
+				mode === "recipe-log" || mode === "oneoff-log" ? mode : undefined
 			}
 			initialRecipeId={recipeId}
 		/>

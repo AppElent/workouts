@@ -13,7 +13,6 @@ import { useNutritionOperations } from "../data/nutrition-operation-service";
 import { usePersonalFoods } from "../data/personal-foods";
 import { useI18n } from "../i18n";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
-import { useConfirm } from "../ui/confirm-dialog";
 import { useToast } from "../ui/toast";
 import { NutritionCookingScreen } from "./nutrition-cooking";
 
@@ -23,13 +22,11 @@ jest.mock("../data/nutrition-operation-service", () => ({
 }));
 jest.mock("../data/personal-foods", () => ({ usePersonalFoods: jest.fn() }));
 jest.mock("../i18n", () => ({ useI18n: jest.fn() }));
-jest.mock("../ui/confirm-dialog", () => ({ useConfirm: jest.fn() }));
 jest.mock("../ui/toast", () => ({ useToast: jest.fn() }));
 
 const mockUseNutritionOperations = jest.mocked(useNutritionOperations);
 const mockUsePersonalFoods = jest.mocked(usePersonalFoods);
 const mockUseI18n = jest.mocked(useI18n);
-const mockUseConfirm = jest.mocked(useConfirm);
 const mockUseToast = jest.mocked(useToast);
 
 const nutrientLabels = {
@@ -53,7 +50,6 @@ function renderCooking(
 		setLocale: jest.fn(),
 	} as never);
 	mockUsePersonalFoods.mockReturnValue({ list: () => [] } as never);
-	mockUseConfirm.mockReturnValue(jest.fn().mockResolvedValue(true));
 	const toast = { error: jest.fn(), success: jest.fn() };
 	mockUseToast.mockReturnValue(toast);
 	mockUseNutritionOperations.mockReturnValue(operations as never);
@@ -107,44 +103,26 @@ describe("Nutrition cooking screen", () => {
 
 		expect(screen.getByText("Log once")).toBeTruthy();
 		expect(screen.getByText("Stored only on this device")).toBeTruthy();
+		expect(screen.queryByText("Unfinished")).toBeNull();
 		repository.close();
 	});
 
-	it("reuses the persisted conversion identity after same-mounted local failure", () => {
+	it("logs a one-off entry without creating a Capture Draft", () => {
 		const database = new SQLiteTestDatabase();
-		const repository = createNutritionCookingRepository(database, {
-			mintId: (() => {
-				let index = 0;
-				return () => `id-${++index}`;
-			})(),
-		});
-		const draft = repository.createDraft("account-a", {
-			date: "2026-09-12",
-			meal: "dinner",
-			note: "Pasta",
-		});
+		const repository = createNutritionCookingRepository(database);
 		const operations = mockOperations();
-		const setOperation = jest.spyOn(repository, "setDraftConversionOperation");
-		setOperation.mockImplementationOnce(() => {
-			throw new Error("temporary local failure after acceptance");
-		});
-		const { toast } = renderCooking(repository, operations);
+		renderCooking(repository, operations);
 
-		fireEvent.press(screen.getByText("Finish and log once"));
-		fireEvent.changeText(screen.getByLabelText("Amount"), "250");
-		fireEvent.press(screen.getByText("Finish and log once"));
-
-		expect(toast.error).toHaveBeenCalledWith(
-			"This note could not be logged. It is still here.",
+		fireEvent.press(screen.getByText("Log once"));
+		fireEvent.changeText(
+			screen.getByLabelText("Food name in English"),
+			"Pasta",
 		);
-		expect(operations.create).toHaveBeenCalledTimes(1);
-		expect(
-			repository.getDraft("account-a", draft.id)?.conversionClientEntryId,
-		).toBe("00000000-0000-4000-8000-000000000001");
+		fireEvent.changeText(screen.getByLabelText("Food name in Dutch"), "Pasta");
+		fireEvent.changeText(screen.getByLabelText("Amount"), "250");
+		fireEvent.press(screen.getAllByText("Log once")[1]);
 
-		fireEvent.press(screen.getByText("Finish and log once"));
 		expect(operations.create).toHaveBeenCalledTimes(1);
-		expect(repository.getDraft("account-a", draft.id)).toBeUndefined();
 		expect(screen.getAllByText("Home cooking").length).toBeGreaterThanOrEqual(
 			1,
 		);

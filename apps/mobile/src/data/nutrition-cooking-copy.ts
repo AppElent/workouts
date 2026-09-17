@@ -36,22 +36,9 @@ export type NutritionCookingCopy = {
 	estimated: string;
 	grams: string;
 	millilitres: string;
-	unfinished: string;
-	captureNote: string;
-	notePlaceholder: string;
 	meal: string;
-	saveDraft: string;
-	savingDraft: string;
-	draftSaved: string;
-	draftSaveFailure: string;
-	noDrafts: string;
-	editDraft: string;
-	deleteDraft: string;
-	deleteDraftTitle: string;
-	deleteDraftBody: string;
-	deleteDraftConfirm: string;
 	cancel: string;
-	convertDraft: string;
+	logOnceConfirm: string;
 	conversionFailure: string;
 	comboScale: string;
 	comboScaleHelp: string;
@@ -63,7 +50,7 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		title: "Home cooking",
 		storageTitle: "Stored only on this device",
 		storageBody:
-			"Recipes and unfinished notes stay on this device and are scoped to this account. Recipe sync is not available yet. Diary logs sync through the normal diary path when connected.",
+			"Recipes stay on this device and are scoped to this account. Recipe sync is not available yet. Diary logs sync through the normal diary path when connected.",
 		recipes: "Recipes",
 		newRecipe: "New recipe",
 		noRecipes: "No recipes yet. Add ingredients and save a named version.",
@@ -99,22 +86,9 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		estimated: "Estimated",
 		grams: "Grams",
 		millilitres: "Millilitres",
-		unfinished: "Unfinished",
-		captureNote: "Capture a note",
-		notePlaceholder: "What did you eat? Add a short note to finish later.",
 		meal: "Meal",
-		saveDraft: "Save for later",
-		savingDraft: "Saving note…",
-		draftSaved: "Note saved on this device.",
-		draftSaveFailure: "This note could not be saved. It is still here.",
-		noDrafts: "No unfinished notes.",
-		editDraft: "Edit note",
-		deleteDraft: "Delete note",
-		deleteDraftTitle: "Delete this unfinished note?",
-		deleteDraftBody: "The note will be removed from this device.",
-		deleteDraftConfirm: "Delete note",
 		cancel: "Cancel",
-		convertDraft: "Finish and log once",
+		logOnceConfirm: "Log once",
 		conversionFailure: "This note could not be logged. It is still here.",
 		comboScale: "Scale this Combo",
 		comboScaleHelp: "Changes this log only; the saved Combo stays unchanged.",
@@ -124,7 +98,7 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		title: "Thuis koken",
 		storageTitle: "Alleen op dit apparaat opgeslagen",
 		storageBody:
-			"Recepten en onafgemaakte notities blijven op dit apparaat en zijn aan dit account gekoppeld. Receptsync is nog niet beschikbaar. Dagboekitems gebruiken de normale synchronisatie zodra je verbonden bent.",
+			"Recepten blijven op dit apparaat en zijn aan dit account gekoppeld. Receptsync is nog niet beschikbaar. Dagboekitems gebruiken de normale synchronisatie zodra je verbonden bent.",
 		recipes: "Recepten",
 		newRecipe: "Nieuw recept",
 		noRecipes:
@@ -161,24 +135,9 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		estimated: "Geschat",
 		grams: "Gram",
 		millilitres: "Milliliter",
-		unfinished: "Onafgewerkt",
-		captureNote: "Notitie vastleggen",
-		notePlaceholder:
-			"Wat heb je gegeten? Voeg een korte notitie toe om later af te maken.",
 		meal: "Maaltijd",
-		saveDraft: "Bewaar voor later",
-		savingDraft: "Notitie opslaan…",
-		draftSaved: "Notitie op dit apparaat opgeslagen.",
-		draftSaveFailure:
-			"Deze notitie kon niet worden opgeslagen. Hij staat er nog.",
-		noDrafts: "Geen onafgemaakte notities.",
-		editDraft: "Notitie bewerken",
-		deleteDraft: "Notitie verwijderen",
-		deleteDraftTitle: "Deze onafgemaakte notitie verwijderen?",
-		deleteDraftBody: "De notitie wordt van dit apparaat verwijderd.",
-		deleteDraftConfirm: "Notitie verwijderen",
 		cancel: "Annuleren",
-		convertDraft: "Afronden en eenmalig loggen",
+		logOnceConfirm: "Eenmalig loggen",
 		conversionFailure: "Deze notitie kon niet worden gelogd. Hij staat er nog.",
 		comboScale: "Deze Combo schalen",
 		comboScaleHelp:

@@ -23,7 +23,6 @@ import {
 	recipePreview,
 } from "../data/nutrition-cooking-helpers";
 import {
-	type CaptureDraft,
 	type CookingIngredientSnapshot,
 	type CookingRecipe,
 	type CookingRecipeDraft,
@@ -31,7 +30,7 @@ import {
 	type NutritionCookingRepository,
 	openNutritionCookingRepository,
 } from "../data/nutrition-cooking-repository";
-import { MEAL_SLOTS, type MealSlot } from "../data/nutrition-day";
+import type { MealSlot } from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
@@ -41,7 +40,6 @@ import { useI18n } from "../i18n";
 import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
-import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
@@ -55,14 +53,7 @@ type ScreenProps = {
 	readonly initialRecipeId?: string;
 };
 
-type Mode =
-	| "hub"
-	| "recipe-new"
-	| "recipe-log"
-	| "draft-new"
-	| "draft-edit"
-	| "draft-log"
-	| "oneoff-log";
+type Mode = "hub" | "recipe-new" | "recipe-log" | "oneoff-log";
 
 type FoodChoice = {
 	readonly sourceKey: string;
@@ -143,7 +134,6 @@ export function NutritionCookingScreen({
 	const operations = useNutritionOperations();
 	const foods = usePersonalFoods();
 	const toast = useToast();
-	const confirm = useConfirm();
 	const ownsRepository = suppliedRepository === undefined;
 	const [repository] = useState(
 		() =>
@@ -154,7 +144,6 @@ export function NutritionCookingScreen({
 	const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>(
 		initialRecipeId,
 	);
-	const [selectedDraftId, setSelectedDraftId] = useState<string>();
 	const bump = () => setRevision((value) => value + 1);
 
 	useEffect(() => {
@@ -164,7 +153,6 @@ export function NutritionCookingScreen({
 
 	const subject = operations.getSubject();
 	const recipes = repository.listRecipes(subject ?? "");
-	const drafts = repository.listDrafts(subject ?? "");
 
 	if (!subject) {
 		return <EmptyState body={copy.storageBody} />;
@@ -183,31 +171,11 @@ export function NutritionCookingScreen({
 					copy={copy}
 					locale={locale}
 					recipes={recipes}
-					drafts={drafts}
 					onNewRecipe={() => setMode("recipe-new")}
-					onNewDraft={() => setMode("draft-new")}
 					onLogOnce={() => setMode("oneoff-log")}
 					onLogRecipe={(id) => {
 						setSelectedRecipeId(id);
 						setMode("recipe-log");
-					}}
-					onEditDraft={(id) => {
-						setSelectedDraftId(id);
-						setMode("draft-edit");
-					}}
-					onLogDraft={(draft) => {
-						setSelectedDraftId(draft.id);
-						setMode("draft-log");
-					}}
-					onDeleteDraft={async (id) => {
-						const approved = await confirm({
-							title: copy.deleteDraftTitle,
-							message: copy.deleteDraftBody,
-							confirmLabel: copy.deleteDraftConfirm,
-							cancelLabel: copy.cancel,
-							destructive: true,
-						});
-						if (approved && repository.removeDraft(subject, id)) bump();
 					}}
 				/>
 			) : mode === "recipe-new" ? (
@@ -237,68 +205,16 @@ export function NutritionCookingScreen({
 					operations={operations}
 					toast={toast}
 				/>
-			) : mode === "draft-new" ? (
-				<DraftEditor
-					copy={copy}
-					locale={locale}
-					date={date}
-					meal={meal}
-					onCancel={() => setMode("hub")}
-					onSaved={() => {
-						bump();
-						setMode("hub");
-					}}
-					repository={repository}
-					subject={subject}
-					toast={toast}
-				/>
-			) : mode === "draft-edit" ? (
-				<DraftEditor
-					copy={copy}
-					locale={locale}
-					draft={drafts.find((draft) => draft.id === selectedDraftId)}
-					date={date}
-					meal={meal}
-					onCancel={() => setMode("hub")}
-					onSaved={() => {
-						bump();
-						setMode("hub");
-					}}
-					repository={repository}
-					subject={subject}
-					toast={toast}
-				/>
-			) : mode === "oneoff-log" ? (
-				<DraftLogger
-					copy={copy}
-					locale={locale}
-					date={date}
-					meal={meal}
-					operations={operations}
-					repository={repository}
-					labels={t.nutrition.nutrients}
-					toast={toast}
-					onAccepted={() => {
-						bump();
-						setMode("hub");
-					}}
-					onCancel={() => setMode("hub")}
-				/>
 			) : (
-				<DraftLogger
+				<OneOffLogger
 					copy={copy}
 					locale={locale}
 					date={date}
 					meal={meal}
-					draft={drafts.find((draft) => draft.id === selectedDraftId)}
 					operations={operations}
-					repository={repository}
 					labels={t.nutrition.nutrients}
 					toast={toast}
-					onAccepted={() => {
-						bump();
-						setMode("hub");
-					}}
+					onAccepted={() => setMode("hub")}
 					onCancel={() => setMode("hub")}
 				/>
 			)}
@@ -310,26 +226,16 @@ function Hub({
 	copy,
 	locale,
 	recipes,
-	drafts,
 	onNewRecipe,
-	onNewDraft,
 	onLogOnce,
 	onLogRecipe,
-	onEditDraft,
-	onLogDraft,
-	onDeleteDraft,
 }: {
 	copy: ReturnType<typeof nutritionCookingCopy>;
 	locale: "en" | "nl";
 	recipes: readonly CookingRecipe[];
-	drafts: readonly CaptureDraft[];
 	onNewRecipe: () => void;
-	onNewDraft: () => void;
 	onLogOnce: () => void;
 	onLogRecipe: (id: string) => void;
-	onEditDraft: (id: string) => void;
-	onLogDraft: (draft: CaptureDraft) => void;
-	onDeleteDraft: (id: string) => Promise<void>;
 }) {
 	return (
 		<>
@@ -341,7 +247,6 @@ function Hub({
 			</Card>
 			<View style={styles.actions}>
 				<PrimaryButton label={copy.newRecipe} onPress={onNewRecipe} />
-				<GhostButton label={copy.captureNote} onPress={onNewDraft} />
 				<GhostButton label={copy.logOnce} onPress={onLogOnce} />
 			</View>
 			<AppText variant="heading">{copy.recipes}</AppText>
@@ -365,39 +270,6 @@ function Hub({
 								label={copy.logRecipe}
 								onPress={() => onLogRecipe(recipe.id)}
 							/>
-						</View>
-					))}
-				</Card>
-			)}
-			<AppText variant="heading">{copy.unfinished}</AppText>
-			{drafts.length === 0 ? (
-				<EmptyState body={copy.noDrafts} />
-			) : (
-				<Card>
-					{drafts.map((draft) => (
-						<View key={draft.id} style={styles.draftRow}>
-							<View style={styles.flex}>
-								<AppText variant="body" style={styles.strong}>
-									{draft.note}
-								</AppText>
-								<AppText variant="caption">
-									{draft.date} · {mealLabel(draft.meal, locale)}
-								</AppText>
-							</View>
-							<View style={styles.inlineActions}>
-								<GhostButton
-									label={copy.editDraft}
-									onPress={() => onEditDraft(draft.id)}
-								/>
-								<GhostButton
-									label={copy.convertDraft}
-									onPress={() => onLogDraft(draft)}
-								/>
-								<GhostButton
-									label={copy.deleteDraft}
-									onPress={() => void onDeleteDraft(draft.id)}
-								/>
-							</View>
 						</View>
 					))}
 				</Card>
@@ -736,99 +608,12 @@ function RecipeLogger({
 	);
 }
 
-function DraftEditor({
+function OneOffLogger({
 	copy,
 	locale,
-	draft,
-	date,
-	meal,
-	onCancel,
-	onSaved,
-	repository,
-	subject,
-	toast,
-}: {
-	copy: ReturnType<typeof nutritionCookingCopy>;
-	locale: "en" | "nl";
-	draft?: CaptureDraft;
-	date: string;
-	meal: MealSlot;
-	onCancel: () => void;
-	onSaved: () => void;
-	repository: NutritionCookingRepository;
-	subject: string;
-	toast: {
-		error: (message: string) => void;
-		success: (message: string) => void;
-	};
-}) {
-	const [note, setNote] = useState(draft?.note ?? "");
-	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(
-		draft?.meal ?? meal,
-	);
-	const [saving, setSaving] = useState(false);
-	const savingRef = useRef(false);
-	function save() {
-		if (savingRef.current) return;
-		savingRef.current = true;
-		setSaving(true);
-		try {
-			if (draft)
-				repository.updateDraft(subject, draft.id, {
-					date: draft.date,
-					meal: selectedMeal,
-					note,
-				});
-			else repository.createDraft(subject, { date, meal: selectedMeal, note });
-			toast.success(copy.draftSaved);
-			onSaved();
-		} catch {
-			toast.error(copy.draftSaveFailure);
-			setSaving(false);
-			savingRef.current = false;
-		}
-	}
-	return (
-		<>
-			<AppText variant="title">{copy.captureNote}</AppText>
-			<Field
-				label={copy.notePlaceholder}
-				value={note}
-				onChangeText={setNote}
-				multiline
-			/>
-			<AppText variant="label">{copy.meal}</AppText>
-			<View style={styles.inlineActions}>
-				{MEAL_SLOTS.map((slot) => (
-					<GhostButton
-						key={slot}
-						label={mealLabel(slot, locale)}
-						onPress={() => setSelectedMeal(slot)}
-						style={selectedMeal === slot ? styles.selectedButton : undefined}
-					/>
-				))}
-			</View>
-			<View style={styles.actions}>
-				<PrimaryButton
-					label={saving ? copy.savingDraft : copy.saveDraft}
-					onPress={save}
-					disabled={!note.trim()}
-					loading={saving}
-				/>
-				<GhostButton label={copy.cancel} onPress={onCancel} disabled={saving} />
-			</View>
-		</>
-	);
-}
-
-function DraftLogger({
-	copy,
-	locale,
-	draft,
 	date,
 	meal,
 	operations,
-	repository,
 	labels,
 	toast,
 	onAccepted,
@@ -836,18 +621,16 @@ function DraftLogger({
 }: {
 	copy: ReturnType<typeof nutritionCookingCopy>;
 	locale: "en" | "nl";
-	draft?: CaptureDraft;
 	date: string;
 	meal: MealSlot;
 	operations: ReturnType<typeof useNutritionOperations>;
-	repository: NutritionCookingRepository;
 	labels: Readonly<Record<NutrientKey, string>>;
 	toast: { error: (message: string) => void };
 	onAccepted: () => void;
 	onCancel: () => void;
 }) {
-	const [nameEn, setNameEn] = useState(draft?.note ?? "");
-	const [nameNl, setNameNl] = useState(draft?.note ?? "");
+	const [nameEn, setNameEn] = useState("");
+	const [nameNl, setNameNl] = useState("");
 	const [amount, setAmount] = useState("");
 	const [baseUnit, setBaseUnit] = useState<"g" | "ml">("g");
 	const [nutrientInputs, setNutrientInputs] = useState(EMPTY_NUTRIENT_INPUTS);
@@ -865,55 +648,20 @@ function DraftLogger({
 				const value = parseOptionalNutrient(nutrientInputs[key], key);
 				nutrients[key] = { kind: "value", amount: value };
 			}
-			const draftId = draft?.id;
-			const persistedDraft = draftId
-				? repository.getDraft(subject, draftId)
-				: undefined;
-			const conversionDraft = persistedDraft ?? draft;
-			if (conversionDraft?.conversionClientEntryId) {
-				const alreadyAccepted = operations
-					.getOperations(subject)
-					.some((operation) => {
-						const operationValue = operation.envelope.operation;
-						return operationValue.kind === "create"
-							? operationValue.entry.clientEntryId ===
-									conversionDraft.conversionClientEntryId
-							: operationValue.kind === "createBatch"
-								? operationValue.entries.some(
-										(entry) =>
-											entry.clientEntryId ===
-											conversionDraft.conversionClientEntryId,
-									)
-								: false;
-					});
-				if (alreadyAccepted) {
-					if (draftId) repository.removeDraft(subject, draftId);
-					onAccepted();
-					return;
-				}
-			}
 			loggingRef.current = true;
 			setLogging(true);
-			const marked = draftId
-				? repository.beginDraftConversion(subject, draftId, mintNutritionUuid())
-				: undefined;
 			const snapshot = oneOffLogSnapshot({
-				date: marked?.date ?? conversionDraft?.date ?? date,
-				meal: marked?.meal ?? conversionDraft?.meal ?? meal,
+				date,
+				meal,
 				name: { en: nameEn.trim(), nl: nameNl.trim() },
 				amount: numericAmount,
 				baseUnit,
 				nutrients,
-				clientEntryId: marked?.conversionClientEntryId ?? mintNutritionUuid(),
+				clientEntryId: mintNutritionUuid(),
 			});
-			const operationId = operations.create(subject, snapshot, undefined, () =>
+			operations.create(subject, snapshot, undefined, () =>
 				toast.error(copy.conversionFailure),
 			);
-			if (draftId) {
-				repository.setDraftConversionOperation(subject, draftId, operationId);
-				// create() returns only after release-two SQLite acceptance.
-				repository.removeDraft(subject, draftId);
-			}
 			onAccepted();
 		} catch {
 			toast.error(copy.conversionFailure);
@@ -925,7 +673,7 @@ function DraftLogger({
 		<>
 			<AppText variant="title">{copy.logOnce}</AppText>
 			<AppText variant="caption">
-				{draft?.date ?? date} · {mealLabel(draft?.meal ?? meal, locale)}
+				{date} · {mealLabel(meal, locale)}
 			</AppText>
 			<Field
 				label={copy.oneOffFoodNameEn}
@@ -969,7 +717,7 @@ function DraftLogger({
 				/>
 			))}
 			<PrimaryButton
-				label={copy.convertDraft}
+				label={copy.logOnceConfirm}
 				onPress={log}
 				disabled={!nameEn.trim() || !nameNl.trim() || !amount.trim()}
 				loading={logging}
@@ -1043,7 +791,6 @@ const styles = StyleSheet.create({
 		gap: spacing.sm,
 		paddingVertical: spacing.xs,
 	},
-	draftRow: { gap: spacing.sm, paddingVertical: spacing.sm },
 	choice: {
 		minHeight: 44,
 		borderWidth: 1,

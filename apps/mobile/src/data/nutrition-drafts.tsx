@@ -43,7 +43,9 @@ export function intakeLoggedSince(
 		if (operation.createdAt < since) return false;
 		const change = operation.envelope.operation;
 		if (change.kind === "create")
-			return change.entry.date === draft.date && change.entry.meal === draft.meal;
+			return (
+				change.entry.date === draft.date && change.entry.meal === draft.meal
+			);
 		if (change.kind === "createBatch")
 			return change.date === draft.date && change.meal === draft.meal;
 		return false;

@@ -178,6 +178,7 @@ export const en = {
 			deleteTitle: "Delete this note?",
 			deleteBody: "It has not been logged as food.",
 			deleteConfirm: "Delete note",
+			deleteFailure: "This note could not be deleted.",
 			otherDaysOne: "1 unresolved note on another day",
 			otherDaysMany: "{count} unresolved notes on other days",
 			otherDaysAction: "Go to oldest",

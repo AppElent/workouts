@@ -49,8 +49,11 @@ import {
 	type NutritionCookingRepository,
 	openNutritionCookingRepository,
 } from "../data/nutrition-cooking-repository";
-import { intakeLoggedSince, useNutritionDrafts } from "../data/nutrition-drafts";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
+import {
+	intakeLoggedSince,
+	useNutritionDrafts,
+} from "../data/nutrition-drafts";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
@@ -264,6 +267,7 @@ export function NutritionFoodBrowser({
 	const cookingRepository = suppliedCookingRepository ?? ownedCookingRepository;
 	const drafts = useNutritionDrafts();
 	const [query, setQuery] = useState(initialQuery ?? "");
+	const [savingNote, setSavingNote] = useState(false);
 	const [showCaptureTools, setShowCaptureTools] = useState(false);
 	const [showMealChoices, setShowMealChoices] = useState(false);
 	const [filter, setFilter] = useState<FoodFilter>(() =>
@@ -300,8 +304,20 @@ export function NutritionFoodBrowser({
 	// A resolving session ends when this screen leaves the stack. Read through
 	// a ref so the cleanup sees the store as it is then, not as it was mounted.
 	const sessionStartedAt = useRef(Date.now());
-	const resolveRef = useRef({ draftId, drafts, operations });
-	resolveRef.current = { draftId, drafts, operations };
+	const resolveRef = useRef({
+		draftId,
+		drafts,
+		operations,
+		toast,
+		removeFailure: t.nutrition.drafts.deleteFailure,
+	});
+	resolveRef.current = {
+		draftId,
+		drafts,
+		operations,
+		toast,
+		removeFailure: t.nutrition.drafts.deleteFailure,
+	};
 	useEffect(
 		() => () => {
 			const current = resolveRef.current;
@@ -310,13 +326,20 @@ export function NutritionFoodBrowser({
 			const account = current.operations.getSubject();
 			if (!draft || !account) return;
 			if (
-				intakeLoggedSince(
+				!intakeLoggedSince(
 					current.operations.getOperations(account),
 					draft,
 					sessionStartedAt.current,
 				)
 			)
-				current.drafts.remove(draft.id);
+				return;
+			try {
+				if (!current.drafts.remove(draft.id)) {
+					current.toast.error(current.removeFailure);
+				}
+			} catch {
+				current.toast.error(current.removeFailure);
+			}
 		},
 		[],
 	);
@@ -536,11 +559,14 @@ export function NutritionFoodBrowser({
 
 	/** Capture is the exit for "no time now": file the note and leave. */
 	function saveAsNote() {
+		if (savingNote) return;
+		setSavingNote(true);
 		try {
-			drafts.create({ date, meal: selectedMeal, note: query.trim() });
+			drafts.create({ date, meal: selectedMeal, note: query });
 			onClose();
 		} catch {
 			toast.error(t.nutrition.drafts.saveFailure);
+			setSavingNote(false);
 		}
 	}
 
@@ -902,15 +928,12 @@ export function NutritionFoodBrowser({
 									</Pressable>
 								) : null}
 								{draftId ? null : (
-									<Pressable
+									<PrimaryButton
+										label={t.nutrition.drafts.saveAsNote}
 										onPress={saveAsNote}
-										accessibilityRole="button"
-										style={styles.onlineSearch}
-									>
-										<AppText style={styles.onlineSearchText}>
-											{t.nutrition.drafts.saveAsNote}
-										</AppText>
-									</Pressable>
+										loading={savingNote}
+										disabled={savingNote}
+									/>
 								)}
 							</View>
 						) : null}

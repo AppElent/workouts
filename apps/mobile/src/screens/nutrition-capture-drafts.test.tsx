@@ -53,10 +53,10 @@ describe("Capture Drafts in the diary", () => {
 		fireEvent.press(await screen.findByText("Save as note"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-		expect(await screen.findByText("wrap from the station")).toBeTruthy();
-		expect(app.draftRepository.listForDate("test-user", todayIsoDate())).toMatchObject(
-			[{ meal: "lunch", note: "wrap from the station" }],
-		);
+		expect(await screen.findByText("  wrap from the station ")).toBeTruthy();
+		expect(
+			app.draftRepository.listForDate("test-user", todayIsoDate()),
+		).toMatchObject([{ meal: "lunch", note: "  wrap from the station " }]);
 	});
 
 	function seedLunchNote(note = "apple") {
