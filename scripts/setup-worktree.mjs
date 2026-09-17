@@ -217,6 +217,24 @@ export function pnpmExecutable(platform = process.platform) {
 	return platform === "win32" ? "pnpm.cmd" : "pnpm";
 }
 
+export function resolveSpawnCommand({
+	command,
+	args,
+	platform = process.platform,
+	env = process.env,
+	execPath = process.execPath,
+}) {
+	if (platform !== "win32" || !command.toLowerCase().endsWith(".cmd")) {
+		return { command, args };
+	}
+	if (!env.npm_execpath) {
+		throw new Error(
+			"Cannot safely launch pnpm.cmd without npm_execpath. Run this script through `pnpm setup:worktree`.",
+		);
+	}
+	return { command: execPath, args: [env.npm_execpath, ...args] };
+}
+
 function redactSecrets(value) {
 	return String(value)
 		.replace(/(CONVEX_DEPLOY_KEY\s*=\s*)[^\s]+/gi, "$1[REDACTED]")
@@ -227,9 +245,10 @@ function redactSecrets(value) {
 }
 
 export function createCommandRunner() {
-	return async ({ command, args, cwd, env }) =>
-		new Promise((resolve, reject) => {
-			const child = spawn(command, args, {
+	return async ({ command, args, cwd, env }) => {
+		const spawnCommand = resolveSpawnCommand({ command, args, env });
+		return new Promise((resolve, reject) => {
+			const child = spawn(spawnCommand.command, spawnCommand.args, {
 				cwd,
 				env,
 				shell: false,
@@ -246,6 +265,7 @@ export function createCommandRunner() {
 			child.on("error", reject);
 			child.on("close", (code) => resolve({ code: code ?? 1, stdout, stderr }));
 		});
+	};
 }
 
 function isExplicitlyMissing(result) {

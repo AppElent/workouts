@@ -7,6 +7,7 @@ import {
 	parseArgs,
 	pnpmExecutable,
 	removeEnvVariable,
+	resolveSpawnCommand,
 	sanitizeComponent,
 	setEnvVariable,
 	setupWorktree,
@@ -115,6 +116,25 @@ describe("arguments and commands", () => {
 		expect(pnpmExecutable("win32")).toBe("pnpm.cmd");
 		expect(pnpmExecutable("linux")).toBe("pnpm");
 		expect(pnpmExecutable("darwin")).toBe("pnpm");
+		expect(
+			resolveSpawnCommand({
+				command: "pnpm.cmd",
+				args: ["install"],
+				platform: "win32",
+				env: { npm_execpath: "C:\\pnpm\\pnpm.cjs" },
+				execPath: "C:\\node\\node.exe",
+			}),
+		).toEqual({
+			command: "C:\\node\\node.exe",
+			args: ["C:\\pnpm\\pnpm.cjs", "install"],
+		});
+		expect(
+			resolveSpawnCommand({
+				command: "pnpm",
+				args: ["install"],
+				platform: "linux",
+			}),
+		).toEqual({ command: "pnpm", args: ["install"] });
 	});
 });
 
