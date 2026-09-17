@@ -1,6 +1,7 @@
 node_modules
 node_modules_OLD
 node_modules.*
+.pnpm-store/
 .DS_Store
 dist
 dist-ssr
@@ -22,6 +23,8 @@ docs/.generated
 .worktrees/
 .claude/worktrees/
 .playwright-mcp/
+.worktree-setup.json
+.convex/
 
 .dev.vars*
 !.dev.vars.example

@@ -51,6 +51,8 @@ pnpm exec convex dev --once
 
 ## Development
 
+Concurrent editor/agent worktrees must use the repository's isolated [worktree setup](docs/worktree-setup.md) instead of sharing a Convex development deployment.
+
 ```bash
 pnpm dev:watch   # Convex (watch mode) + Vite, concurrently — recommended, http://localhost:3000
 ```

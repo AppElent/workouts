@@ -10,6 +10,7 @@
 		"includes": [
 			"**/src/**/*",
 			"**/cli/**/*",
+			"scripts/setup-worktree*",
 			"**/.vscode/**/*",
 			"**/index.html",
 			"**/vite.config.ts",
