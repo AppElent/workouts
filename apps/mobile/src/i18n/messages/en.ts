@@ -153,8 +153,31 @@ export const en = {
 		goals: {
 			heading: "Goals",
 			edit: "Edit goals",
+			more: "{count} more",
+			showMore: "Show {count} more goals",
+			showLess: "Show less",
+			expandPreview: "Expand {count} hidden goals",
+			incomplete: "Incomplete",
+			approximate: "Approximate",
+			toMinimum: "{amount} {unit} to minimum",
+			minimumMet: "Minimum met",
+			remaining: "{amount} {unit} remaining",
+			atMaximum: "At maximum",
+			over: "{amount} {unit} over",
+			toRange: "{amount} {unit} to range",
+			withinRange: "Within range",
+			actionsFor: "Actions for {nutrient}",
+			reorder: "Reorder goals",
+			cancel: "Cancel",
+			reset: "Reset",
+			done: "Done",
+			move: "Move {nutrient}",
+			moveUp: "Move up",
+			moveDown: "Move down",
+			reorderFailure:
+				"Your goal order could not be saved. Your changes are still here.",
 			empty: {
-				title: "No goals yet",
+				title: "No nutrition goals",
 				body: "Set a daily amount for the nutrients you care about, and the day fills in against them.",
 				action: "Set up goals",
 			},
@@ -338,7 +361,7 @@ export const en = {
 			saveFailure:
 				"This Combo could not be saved. Your name and selection are still here.",
 			selectionHelp:
-				"Choose individual diary entries. Meal slots are never selected automatically.",
+				"Choose diary entries or an entire Logged Combo from one meal.",
 			selectEntry: "Select {name} for Combo",
 			cancel: "Cancel",
 			continueOne: "Continue with 1 part",
@@ -354,7 +377,7 @@ export const en = {
 			needsAttention: "Needs attention",
 			missing: "Missing source",
 			missingBody:
-				"A saved food is no longer on this device. It was not replaced automatically. Remove unavailable parts, delete this Combo, or recreate it from the entries you want.",
+				"A saved food is no longer on this device. Exclude it for this log, remove unavailable parts from the saved Combo, or recreate the Combo.",
 			resolveTitle: "Remove unavailable parts?",
 			resolveBody:
 				"Only the parts whose original sources are still available will remain in this Combo.",

@@ -152,7 +152,32 @@ describe("durable nutrition local repository", () => {
 			goals: [{ nutrient: "energy", direction: "max", target: 2000 }],
 			basis: "effective",
 			effectiveFrom: "2026-09-01",
+			displayOrder: [
+				"energy",
+				"protein",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+				"salt",
+			],
 		});
+		first.putGoals("alice", "2026-09-06", {
+			goals: [{ nutrient: "energy", direction: "max", target: 2100 }],
+			basis: "effective",
+			effectiveFrom: "2026-09-06",
+		});
+		first.putGoalDisplayOrder("alice", [
+			"protein",
+			"energy",
+			"carbs",
+			"fat",
+			"saturatedFat",
+			"fibre",
+			"sugars",
+			"salt",
+		]);
 		firstDatabase.closeSync();
 
 		const reopenedDatabase = new SQLiteTestDatabase(path);
@@ -162,10 +187,41 @@ describe("durable nutrition local repository", () => {
 		expect(reopened.getGoals("alice", "2026-09-05")?.goals[0].target).toBe(
 			2000,
 		);
+		expect(reopened.getGoals("alice", "2026-09-05")?.displayOrder?.[0]).toBe(
+			"protein",
+		);
+		expect(reopened.getGoals("alice", "2026-09-06")?.displayOrder?.[0]).toBe(
+			"protein",
+		);
 		expect(reopened.getGoals("bob", "2026-09-05")).toBeUndefined();
 		expect(reopened.projectDay("alice", "2026-09-05").entries).toHaveLength(1);
 		expect(reopened.projectDay("bob", "2026-09-05").entries).toHaveLength(0);
 		reopenedDatabase.closeSync();
+		rmSync(directory, { recursive: true, force: true });
+	});
+
+	it("repairs version 4 databases created by either concurrent schema change", () => {
+		const directory = mkdtempSync(join(tmpdir(), "workouts-nutrition-v4-"));
+		const path = join(directory, "state.db");
+		const oldDatabase = new SQLiteTestDatabase(path);
+		createNutritionLocalRepository(oldDatabase);
+		oldDatabase.execSync(`
+			DROP TABLE nutrition_cached_personal_measures;
+			PRAGMA user_version = 4;
+		`);
+		oldDatabase.closeSync();
+
+		const upgradedDatabase = new SQLiteTestDatabase(path);
+		const upgraded = createNutritionLocalRepository(upgradedDatabase);
+		expect(upgraded.getPersonalMeasures("alice")).toEqual([]);
+		upgraded.putPersonalMeasures("alice", [
+			{ id: "glass", name: "Small glass", amount: 250, unit: "ml", order: 0 },
+		]);
+		expect(upgraded.getPersonalMeasures("alice")).toEqual([
+			{ id: "glass", name: "Small glass", amount: 250, unit: "ml", order: 0 },
+		]);
+		expect(upgraded.getGoalDisplayOrder("alice")).toBeUndefined();
+		upgradedDatabase.closeSync();
 		rmSync(directory, { recursive: true, force: true });
 	});
 
@@ -235,6 +291,118 @@ describe("durable nutrition local repository", () => {
 		expect(repository.projectDay("alice", "2026-09-06").entries).toHaveLength(
 			0,
 		);
+		database.closeSync();
+	});
+
+	it("projects pending entries as one Logged Combo without changing their snapshots", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createNutritionLocalRepository(database);
+		const apple = snapshot("apple-entry");
+		const oats = {
+			...snapshot("oats-entry"),
+			name: { en: "Oats", nl: "Havermout" },
+		};
+		repository.accept(
+			"alice",
+			envelope("create-parts", {
+				kind: "createBatch",
+				date: apple.date,
+				meal: apple.meal,
+				entries: [apple, oats].map(
+					({ date: _date, meal: _meal, clientEntryId, ...entry }) => ({
+						...entry,
+						clientEntryId: clientEntryId as string,
+					}),
+				),
+			}),
+		);
+		repository.accept(
+			"alice",
+			envelope("group-parts", {
+				kind: "group",
+				targets: [
+					{ kind: "clientEntryId", id: "apple-entry" },
+					{ kind: "clientEntryId", id: "oats-entry" },
+				],
+				comboGroup: {
+					id: "logged-combo-1",
+					comboId: "combo-1",
+					name: "Apple oats",
+				},
+			}),
+		);
+
+		const projected = repository.projectDay("alice", apple.date);
+		expect(projected.entries.map((entry) => entry._id)).toEqual([
+			"client:apple-entry",
+			"client:oats-entry",
+		]);
+		expect(projected.entries.map((entry) => entry.comboGroup)).toEqual([
+			{ id: "logged-combo-1", comboId: "combo-1", name: "Apple oats" },
+			{ id: "logged-combo-1", comboId: "combo-1", name: "Apple oats" },
+		]);
+		expect(projected.entries.map((entry) => entry.nutrients)).toEqual([
+			apple.nutrients,
+			oats.nutrients,
+		]);
+		database.closeSync();
+	});
+
+	it("detaches a projected entry when it moves out of a Logged Combo", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createNutritionLocalRepository(database);
+		const grouped = {
+			...snapshot("grouped-entry"),
+			comboGroup: {
+				id: "logged-combo-1",
+				comboId: "combo-1",
+				name: "Apple oats",
+			},
+		};
+		repository.putDay("alice", cachedDay(grouped.date, [grouped], 1));
+		repository.accept(
+			"alice",
+			envelope("move-part", {
+				kind: "update",
+				target: { kind: "serverId", id: "server-1" },
+				meal: "dinner",
+			}),
+			{ targetEntry: { _id: "server-1", ...grouped } },
+		);
+
+		const [entry] = repository.projectDay("alice", grouped.date).entries;
+		expect(entry).toMatchObject({ _id: "server-1", meal: "dinner" });
+		expect(entry.comboGroup).toBeUndefined();
+		database.closeSync();
+	});
+
+	it("retains a projected Logged Combo when an entry is edited in place", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createNutritionLocalRepository(database);
+		const grouped = {
+			...snapshot("grouped-entry"),
+			comboGroup: {
+				id: "logged-combo-1",
+				comboId: "combo-1",
+				name: "Apple oats",
+			},
+		};
+		repository.putDay("alice", cachedDay(grouped.date, [grouped], 1));
+		repository.accept(
+			"alice",
+			envelope("edit-part", {
+				kind: "update",
+				target: { kind: "serverId", id: "server-1" },
+				date: grouped.date,
+				meal: grouped.meal,
+				quantity: grouped.quantity * 2,
+			}),
+			{ targetEntry: { _id: "server-1", ...grouped } },
+		);
+
+		const [entry] = repository.projectDay("alice", grouped.date).entries;
+		expect(entry.quantity).toBe(grouped.quantity * 2);
+		expect(entry.comboGroup).toEqual(grouped.comboGroup);
 		database.closeSync();
 	});
 

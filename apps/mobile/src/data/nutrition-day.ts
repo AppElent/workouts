@@ -14,7 +14,7 @@ import {
 	type NutrientValue,
 	type NutritionGoalValue,
 } from "@workouts/core/nutrition";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect } from "react";
 import { api } from "../convex/api";
 import type { IsoDate } from "./calendar-day";
@@ -60,6 +60,7 @@ export interface NutritionDay {
 	date: IsoDate;
 	complete: boolean;
 	goals: NutrientGoal[];
+	displayOrder: readonly NutrientKey[];
 	goalBasis?: "effective" | "reference";
 	goalsCached?: boolean;
 	/** Day totals per nutrient. Absent from the map means "nothing logged". */
@@ -96,6 +97,17 @@ export function goalState(
 /** kcal for energy, grams for everything else. */
 export function nutrientUnit(nutrient: NutrientKey): "kcal" | "g" {
 	return nutrient === "energy" ? "kcal" : "g";
+}
+
+export function useSetNutritionDisplayOrder() {
+	const setRemoteOrder = useMutation(api.nutritionGoals.setDisplayOrder);
+	const operations = useNutritionOperations();
+	return async (displayOrder: readonly NutrientKey[]) => {
+		const nextOrder = [...displayOrder];
+		await setRemoteOrder({ displayOrder: nextOrder });
+		const subject = operations.getSubject();
+		if (subject) operations.cacheGoalDisplayOrder(subject, nextOrder);
+	};
 }
 
 /**
@@ -169,6 +181,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			date,
 			complete: local?.complete || diary !== undefined,
 			goals: goals ?? [],
+			displayOrder: history?.displayOrder ?? NUTRIENT_KEYS,
 			goalBasis: history?.basis,
 			goalsCached: !goalHistory && !!cachedGoals,
 			totals: useLocal ? (local?.totals ?? {}) : (diary?.totals ?? {}),

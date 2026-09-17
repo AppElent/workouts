@@ -105,10 +105,17 @@ function personalFoodDraft(name: string, energy: number): PersonalFoodDraft {
 }
 
 describe("Nutrition Combos", () => {
-	it("saves individually selected diary entries as a named device-local Combo", async () => {
+	it("saves selected diary entries and replaces them with one Logged Combo", async () => {
+		const pendingApply = jest.fn(() => new Promise(() => undefined));
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
+					? pendingApply
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
 		showDiary([
 			diaryEntry("entry-1", "Apple", "lunch"),
-			diaryEntry("entry-2", "Oats", "dinner"),
+			diaryEntry("entry-2", "Oats", "lunch"),
 		]);
 		const app = renderApp();
 		await screen.findByText("Apple");
@@ -122,7 +129,9 @@ describe("Nutrition Combos", () => {
 		fireEvent.changeText(screen.getByLabelText("Combo name"), "Apple oats");
 		fireEvent.press(screen.getByText("Save Combo"));
 
-		await screen.findByText("Today");
+		await screen.findByText("Apple oats");
+		expect(screen.queryByText("Apple")).toBeNull();
+		expect(screen.queryByText("Oats")).toBeNull();
 		expect(app.repository.listCombos()).toEqual([
 			expect.objectContaining({
 				name: "Apple oats",
@@ -160,6 +169,74 @@ describe("Nutrition Combos", () => {
 		expect(screen.getByText("Oats")).toBeTruthy();
 	});
 
+	it("removes the saved Combo when diary replacement cannot be accepted", async () => {
+		showDiary([diaryEntry("entry-1", "Oats", "lunch")]);
+		const app = renderApp();
+		jest.spyOn(app.nutritionRepository, "accept").mockImplementation(() => {
+			throw new Error("disk full");
+		});
+		await screen.findByText("Oats");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Create Combo"));
+		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
+		fireEvent.press(screen.getByText("Continue with 1 part"));
+		fireEvent.changeText(screen.getByLabelText("Combo name"), "My oats");
+		fireEvent.press(screen.getByText("Save Combo"));
+
+		expect(
+			await screen.findByText(
+				"This Combo could not be saved. Your name and selection are still here.",
+			),
+		).toBeTruthy();
+		expect(screen.getByDisplayValue("My oats")).toBeTruthy();
+		expect(app.repository.listCombos()).toEqual([]);
+	});
+
+	it("locks Combo selection to the first selected Meal Slot", async () => {
+		showDiary([
+			diaryEntry("entry-1", "Apple", "lunch"),
+			diaryEntry("entry-2", "Oats", "dinner"),
+		]);
+		renderApp();
+		await screen.findByText("Apple");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Create Combo"));
+		fireEvent.press(screen.getByLabelText("Select Apple for Combo"));
+
+		expect(screen.getByLabelText("Select Oats for Combo")).toBeDisabled();
+		expect(screen.getByLabelText("Select Oats for Combo")).toHaveStyle({
+			opacity: 0.45,
+		});
+		expect(
+			screen.getByText("Only entries from Lunch can be selected."),
+		).toBeTruthy();
+	});
+
+	it("selects an existing Logged Combo only as one whole group", async () => {
+		const group = {
+			id: "logged-combo-1",
+			comboId: "combo-1",
+			name: "Apple oats",
+		};
+		showDiary([
+			{ ...diaryEntry("entry-1", "Apple", "lunch"), comboGroup: group },
+			{ ...diaryEntry("entry-2", "Oats", "lunch"), comboGroup: group },
+		]);
+		renderApp();
+		await screen.findByText("Apple oats");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Create Combo"));
+
+		expect(screen.queryByLabelText("Select Apple for Combo")).toBeNull();
+		fireEvent.press(
+			screen.getByLabelText("Select Logged Combo Apple oats for Combo"),
+		);
+		expect(screen.getByText("Continue with 2 parts")).toBeEnabled();
+	});
+
 	it("logs all saved parts to the selected day and meal with one action", async () => {
 		showDiary([]);
 		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
@@ -191,6 +268,124 @@ describe("Nutrition Combos", () => {
 				],
 			}),
 		);
+	});
+
+	it("combines whole and per-part scales and can exclude one part for this log", async () => {
+		showDiary([]);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionDiary:logCombo"
+					? logCombo
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
+		const app = renderApp();
+		const oats = oneOffCombo().parts[0];
+		app.repository.createCombo({
+			name: "Breakfast",
+			parts: [
+				{
+					...oats,
+					snapshot: {
+						...oats.snapshot,
+						name: { en: "Apple", nl: "Appel" },
+					},
+				},
+				oats,
+			],
+		});
+		await screen.findByText("Today");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Breakfast"));
+		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
+		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
+
+		expect(screen.getByText("Final amount: 50 g")).toBeTruthy();
+		expect(screen.getByText("Final amount: 100 g")).toBeTruthy();
+		fireEvent.press(screen.getByLabelText("Exclude Apple"));
+		expect(screen.getByText("Final amount: 50 g")).toBeTruthy();
+		fireEvent.press(screen.getByText("Log 1 part"));
+		await screen.findByText("Today");
+
+		expect(logCombo).toHaveBeenCalledWith(
+			expect.objectContaining({
+				parts: [expect.objectContaining({ amount: 100, quantity: 1 })],
+			}),
+		);
+		expect(app.repository.listCombos()[0].parts).toHaveLength(2);
+	});
+
+	it("limits multiplier display precision without rounding the logged values", async () => {
+		showDiary([]);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		mockUseMutation.mockImplementation(
+			(reference) =>
+				(getFunctionName(reference) === "nutritionDiary:logCombo"
+					? logCombo
+					: jest.fn().mockResolvedValue(undefined)) as never,
+		);
+		const app = renderApp();
+		app.repository.createCombo(oneOffCombo());
+		await screen.findByText("Today");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Morning Combo"));
+		const wholeScale = screen.getByLabelText("Scale this Combo");
+		const partScale = screen.getByLabelText("Scale Oats");
+		fireEvent.changeText(wholeScale, "0.123456");
+		fireEvent.changeText(partScale, "2.345678");
+		fireEvent(wholeScale, "blur");
+		fireEvent(partScale, "blur");
+
+		expect(screen.getByDisplayValue("0.123")).toBeTruthy();
+		expect(screen.getByDisplayValue("2.346")).toBeTruthy();
+		fireEvent(screen.getByLabelText("Scale this Combo"), "blur");
+		fireEvent(screen.getByLabelText("Scale Oats"), "blur");
+		fireEvent.press(screen.getByText("Log 1 part"));
+		await screen.findByText("Today");
+		expect(logCombo.mock.calls[0][0].parts[0].amount).toBeCloseTo(
+			100 * 0.123456 * 2.345678,
+			10,
+		);
+	});
+
+	it("resets scales and inclusion and blocks a log with no included parts", async () => {
+		showDiary([]);
+		const app = renderApp();
+		const oats = oneOffCombo().parts[0];
+		app.repository.createCombo({
+			name: "Breakfast",
+			parts: [
+				oats,
+				{
+					...oats,
+					snapshot: {
+						...oats.snapshot,
+						name: { en: "Apple", nl: "Appel" },
+					},
+				},
+			],
+		});
+		await screen.findByText("Today");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Breakfast"));
+		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
+		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
+		fireEvent.press(screen.getByLabelText("Exclude Oats"));
+		fireEvent.press(screen.getByLabelText("Exclude Apple"));
+		expect(screen.getByText("Log 0 parts")).toBeDisabled();
+
+		fireEvent.press(screen.getByText("Reset adjustments"));
+		expect(screen.getByLabelText("Scale this Combo").props.value).toBe("");
+		expect(screen.getByLabelText("Scale Oats").props.value).toBe("");
+		expect(screen.getByLabelText("Exclude Oats")).toBeChecked();
+		expect(screen.getByLabelText("Exclude Apple")).toBeChecked();
+		expect(screen.getByText("Log 2 parts")).toBeEnabled();
 	});
 
 	it("resolves the same Personal Food id at logging time without chasing replacements", async () => {
@@ -334,6 +529,43 @@ describe("Nutrition Combos", () => {
 		expect(screen.getByText("Needs attention")).toBeTruthy();
 		expect(screen.getByText("Log 1 part")).toBeDisabled();
 		expect(screen.getByText("Delete Combo")).toBeTruthy();
+	});
+
+	it("temporarily excludes a missing part without repairing the saved Combo", async () => {
+		showDiary([]);
+		const app = renderApp();
+		const available = oneOffCombo().parts[0];
+		const combo = app.repository.createCombo({
+			name: "Available breakfast",
+			parts: [
+				available,
+				{
+					...available,
+					reference: { kind: "personal", foodId: "deleted-food" },
+					snapshot: {
+						...available.snapshot,
+						name: { en: "Milk", nl: "Melk" },
+						provenance: {
+							source: "personal",
+							sourceId: "deleted-food",
+							nutritionSource: "manual",
+							locallyEdited: false,
+						},
+					},
+				},
+			],
+		});
+		await screen.findByText("Today");
+
+		fireEvent.press(screen.getByLabelText("More nutrition tools"));
+		fireEvent.press(screen.getByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Available breakfast"));
+		expect(screen.getByText("Log 2 parts")).toBeDisabled();
+
+		fireEvent.press(screen.getByLabelText("Exclude Milk"));
+		expect(screen.getByText("Log 1 part")).toBeEnabled();
+		expect(screen.getAllByText("Final amount: 100 g")).toHaveLength(2);
+		expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(2);
 	});
 
 	it("explicitly resolves a partial dangling Combo by removing unavailable parts", async () => {

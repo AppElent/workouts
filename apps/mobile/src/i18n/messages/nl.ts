@@ -144,8 +144,31 @@ export const nl = {
 		goals: {
 			heading: "Doelen",
 			edit: "Doelen bewerken",
+			more: "Nog {count}",
+			showMore: "Nog {count} doelen tonen",
+			showLess: "Minder tonen",
+			expandPreview: "{count} verborgen doelen uitklappen",
+			incomplete: "Onvolledig",
+			approximate: "Bij benadering",
+			toMinimum: "Nog {amount} {unit} tot minimum",
+			minimumMet: "Minimum gehaald",
+			remaining: "Nog {amount} {unit}",
+			atMaximum: "Op maximum",
+			over: "{amount} {unit} erboven",
+			toRange: "Nog {amount} {unit} tot bereik",
+			withinRange: "Binnen bereik",
+			actionsFor: "Acties voor {nutrient}",
+			reorder: "Doelen rangschikken",
+			cancel: "Annuleren",
+			reset: "Herstellen",
+			done: "Gereed",
+			move: "{nutrient} verplaatsen",
+			moveUp: "Omhoog verplaatsen",
+			moveDown: "Omlaag verplaatsen",
+			reorderFailure:
+				"Je doelvolgorde kon niet worden opgeslagen. Je wijzigingen staan er nog.",
 			empty: {
-				title: "Nog geen doelen",
+				title: "Geen voedingsdoelen",
 				body: "Stel een dagelijkse hoeveelheid in voor de voedingsstoffen die jij belangrijk vindt; de dag vult zich daarna vanzelf.",
 				action: "Doelen instellen",
 			},
@@ -329,7 +352,7 @@ export const nl = {
 			saveFailure:
 				"Deze Combo kon niet worden opgeslagen. Je naam en selectie staan er nog.",
 			selectionHelp:
-				"Kies afzonderlijke dagboekitems. Maaltijdvakken worden nooit automatisch geselecteerd.",
+				"Kies dagboekitems of een hele gelogde Combo uit één maaltijd.",
 			selectEntry: "Selecteer {name} voor Combo",
 			cancel: "Annuleren",
 			continueOne: "Ga verder met 1 onderdeel",
@@ -345,7 +368,7 @@ export const nl = {
 			needsAttention: "Aandacht nodig",
 			missing: "Bron ontbreekt",
 			missingBody:
-				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Het is niet automatisch vervangen. Verwijder niet-beschikbare onderdelen, verwijder deze Combo of maak hem opnieuw met de gewenste items.",
+				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Sluit het voor deze log uit, verwijder niet-beschikbare onderdelen uit de opgeslagen Combo of maak de Combo opnieuw.",
 			resolveTitle: "Niet-beschikbare onderdelen verwijderen?",
 			resolveBody:
 				"Alleen onderdelen waarvan de oorspronkelijke bron nog beschikbaar is, blijven in deze Combo staan.",

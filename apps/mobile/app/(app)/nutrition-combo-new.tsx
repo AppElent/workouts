@@ -24,13 +24,19 @@ export default function NutritionComboNewRoute() {
 	const day = date ?? todayIsoDate();
 	const state = useNutritionDay(day);
 	const wanted = new Set((entryIds ?? "").split(",").filter(Boolean));
-	const entries =
+	const selected =
 		state.status === "ready"
-			? MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]).filter((entry) =>
-					wanted.has(entry.id),
+			? MEAL_SLOTS.flatMap((slot) =>
+					state.day.entries[slot]
+						.filter((entry) => wanted.has(entry.id))
+						.map((entry) => ({ entry, slot })),
 				)
 			: [];
-	const nothingToSave = state.status === "ready" && entries.length === 0;
+	const entries = selected.map(({ entry }) => entry);
+	const selectedSlots = new Set(selected.map(({ slot }) => slot));
+	const nothingToSave =
+		state.status === "ready" &&
+		(entries.length === 0 || selectedSlots.size !== 1);
 
 	useEffect(() => {
 		if (nothingToSave) router.back();
@@ -41,6 +47,8 @@ export default function NutritionComboNewRoute() {
 	return (
 		<NutritionComboBuilder
 			entries={entries}
+			date={day}
+			meal={selected[0]?.slot ?? "breakfast"}
 			onClose={() => router.back()}
 			onSaved={() => router.back()}
 		/>

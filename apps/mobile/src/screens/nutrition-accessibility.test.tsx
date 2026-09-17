@@ -117,14 +117,13 @@ describe("Nutrition accessibility", () => {
 		renderApp();
 		await screen.findByText("Today");
 
-		// A minimum that has been reached and a maximum that has been passed are
-		// two different sentences, and both are spoken as part of the row.
-		expect(screen.getByLabelText(/Protein: .*\. Met\./)).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Show additional goals"));
-		expect(screen.getByLabelText(/Salt: .*\. Over\./)).toBeTruthy();
+		// A minimum that has been reached and a maximum that has been passed use
+		// direction-specific sentences, and both are spoken as part of the row.
+		expect(screen.getByLabelText(/Protein: .*\. Minimum met\./)).toBeTruthy();
+		expect(screen.getByLabelText(/Salt: .*\. 3 g over\./)).toBeTruthy();
 		// And the words are on screen too, not only in the accessible name.
-		expect(screen.getByText("Met")).toBeTruthy();
-		expect(screen.getByText("Over")).toBeTruthy();
+		expect(screen.getByText("Minimum met")).toBeTruthy();
+		expect(screen.getByText("3 g over")).toBeTruthy();
 	});
 
 	it("announces the collapsed detail section as collapsed, and as expanded once opened", async () => {

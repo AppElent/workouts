@@ -18,9 +18,12 @@ jest.mock("../data/nutrition-day", () => {
 			status: "ready" as const,
 			day: {
 				date,
+				complete: true,
 				goals: [],
+				displayOrder: actual.NUTRIENT_KEYS,
 				totals: {},
 				entries: { breakfast: [], lunch: [], dinner: [], snacks: [] },
+				pendingOperationIds: [],
 			},
 		}),
 	};
@@ -30,7 +33,7 @@ describe("a day with no goals", () => {
 	it("offers a way to set them instead of showing an empty box", async () => {
 		renderApp();
 
-		expect(await screen.findByText("No goals yet")).toBeTruthy();
+		expect(await screen.findByText("No nutrition goals")).toBeTruthy();
 
 		fireEvent.press(screen.getByText("Set up goals"));
 

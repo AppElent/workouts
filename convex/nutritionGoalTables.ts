@@ -1,7 +1,18 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
-const nutrient = v.union(
+export const NUTRITION_NUTRIENTS = [
+	"energy",
+	"protein",
+	"carbs",
+	"fat",
+	"saturatedFat",
+	"fibre",
+	"sugars",
+	"salt",
+] as const;
+
+export const nutritionNutrientValidator = v.union(
 	v.literal("energy"),
 	v.literal("protein"),
 	v.literal("carbs"),
@@ -10,6 +21,10 @@ const nutrient = v.union(
 	v.literal("fibre"),
 	v.literal("sugars"),
 	v.literal("salt"),
+);
+
+export const nutritionDisplayOrderValidator = v.array(
+	nutritionNutrientValidator,
 );
 
 const direction = v.union(v.literal("min"), v.literal("max"));
@@ -33,7 +48,7 @@ export const nutritionGoalTables = {
 		effectiveFrom: v.string(),
 		goals: v.array(
 			v.object({
-				nutrient,
+				nutrient: nutritionNutrientValidator,
 				direction,
 				target: v.number(),
 				sourcePreset: v.optional(sourcePreset),
@@ -44,7 +59,7 @@ export const nutritionGoalTables = {
 		referenceGoals: v.optional(
 			v.array(
 				v.object({
-					nutrient,
+					nutrient: nutritionNutrientValidator,
 					direction,
 					target: v.number(),
 					sourcePreset: v.optional(sourcePreset),
@@ -54,4 +69,8 @@ export const nutritionGoalTables = {
 	})
 		.index("by_user_effectiveFrom", ["userId", "effectiveFrom"])
 		.index("by_user", ["userId"]),
+	nutritionGoalPreferences: defineTable({
+		userId: v.string(),
+		displayOrder: nutritionDisplayOrderValidator,
+	}).index("by_user", ["userId"]),
 };
