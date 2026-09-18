@@ -29,13 +29,12 @@ import { useActiveSession } from "../../../src/data/session-data";
 import { useI18n } from "../../../src/i18n";
 import { chrome, colors } from "../../../src/theme";
 import { ActiveSessionBar } from "../../../src/ui/active-session-bar";
+import { isIOS26OrLater } from "../../../src/ui/platform";
 
 export default function CoachTabsLayout() {
 	const { t } = useI18n();
 	const active = useActiveSession();
-	const hasAccessory =
-		Platform.OS === "ios" &&
-		Number.parseInt(String(Platform.Version), 10) >= 26;
+	const hasAccessory = isIOS26OrLater();
 
 	return (
 		<View style={{ flex: 1 }}>
