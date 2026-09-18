@@ -1,0 +1,140 @@
+# Foundry native redesign — plan
+
+Branch `AppElent/UI-Redesign`. Written 2026-09-18; revised after each step.
+
+## Goal
+
+`apps/mobile` should feel like a real iOS app, not a rendered web page.
+`designs/foundry/` is the design contract (tokens, rules, component
+inventory). `@expo/ui/swift-ui` is the implementation on iOS wherever it has
+the component; React Native draws only what SwiftUI cannot. Android keeps the
+existing RN fallback and is not reworked in this plan.
+
+The web app adopts the Foundry palette later, as its own branch. Nothing here
+touches `src/`.
+
+## Where the app stands (2026-09-18)
+
+Chrome is already native: `NativeTabs` with SF Symbols and the iOS 26 bottom
+accessory, large-title `systemUltraThinMaterialDark` headers, `formSheet`
+presentations, edge-swipe back, and a five-event haptics vocabulary
+(`src/feedback/haptics.ts`). `@expo/ui` is used in five files: the SwiftUI
+swipe row (Exercises only), the plate / set-edit / food-editor sheets and the
+Nutrition header menu.
+
+Content is hand-drawn RN, and that is the HTML feel. `train.tsx` is the
+specimen: `Pressable` cards with inline Start/Edit/Delete, decorative filter
+chips, `"Loading…"` text instead of a skeleton, hardcoded English, a
+gesture-handler swipe row on three of four list screens, a custom
+`Segmented`, custom form rows.
+
+## The one rule this plan adds to Foundry
+
+**Where SwiftUI draws it, the system's look wins.** An inset-grouped `List`,
+a `Form`, a segmented `Picker`, a `ConfirmationDialog` get the OS's corners,
+material and spacing; we only tint them with the accent and feed them
+Foundry's copy. Foundry's radii, hairlines and "elevation is colour" apply to
+the RN-drawn content that remains: stat boxes, the hero/routine card, the
+session card, charts' surroundings. Do not force `radius.card` onto a
+`UITableView`.
+
+## Component mapping
+
+| Foundry | iOS (`@expo/ui/swift-ui` 57.0.18) | Android / fallback |
+| --- | --- | --- |
+| InsetList / InsetRow / DisclosureRow | `List` (insetGrouped) + `Section` + `NavigationLink` / `Label` | existing RN rows |
+| FormSection / FormTextField / InlineNumberFieldRow | `Form` + `Section` + `TextField` + `LabeledContent` | `src/ui/form.tsx` |
+| Segmented | `Picker` (segmented) | `src/ui/segmented.tsx` |
+| StepperField | `Stepper` | existing |
+| Sheet | `BottomSheet` / router `formSheet` | existing |
+| ConfirmDialog | `ConfirmationDialog` / `Alert` | `src/ui/confirm-dialog.tsx` |
+| EmptyState | `ContentUnavailableView` | `src/ui/empty-state.tsx` |
+| ProgressRing | `Gauge` | RN |
+| TrendChart / BucketChart | `Chart` (Swift Charts) | `react-native-gifted-charts` |
+| SwipeableRow | `SwipeActions` + `ContextMenu` | `src/ui/swipeable-row.tsx` |
+| SearchField | Stack `headerSearchBarOptions` | same (react-native-screens) |
+| NavBar actions | `Toolbar` / Stack `headerRight` | same |
+| Toast | RN (SwiftUI has no toast) | same |
+
+Foundry's `.jsx` mocks are not ported. Its `.d.ts` files are the shared prop
+contracts for the `.ios.tsx` / `.tsx` split.
+
+## Step 1 — tokens (this commit)
+
+`apps/mobile/src/theme/tokens.ts`:
+
+- Add `accentInk` (= accent in dark, olive `#55700c` in light), `warnSoft`,
+  `warnBorder`, `separator`, `successSoft`.
+- Add the light ramp from `designs/foundry/tokens/light.css` as `colorsLight`;
+  `useTokens()` reads `useColorScheme()`. `app.json` keeps
+  `userInterfaceStyle: "dark"` pinned, so nothing renders differently yet —
+  the light ramp goes live per screen once each screen reads `useTokens()`
+  instead of the static `colors` object (steps 2–3) and passes device QA.
+- `sportMeta` gains `colorLight` / `dimLight`.
+- Type ramp: add the native iOS layer — `largeTitle` 34/700 (−0.8),
+  `navTitle` 17/600, `row` 17/600 (−0.2), `secondary` 15/400, `footnote`
+  13/400, `control` 16/600. The existing named ramp stays for content.
+- `radius`: add `card` 14, `cardLg` 18, `list` 14.
+- `metrics`: `rowMinHeight` 52 → 48, `fieldMinHeight` 48 → 44,
+  `sectionGap` 24 → 18 (Foundry's density pass); add `formGutter` 16,
+  `controlHeight` 46, `separatorInset` 16, `formMaxWidth` 640. These three
+  reductions are visible on every existing form screen — intended.
+- Add `motion` (`easeIos`, `durFast/Base/Sheet`) and `opacity`
+  (`pressed`, `disabled`).
+- Rewrite the file header: the web now adopts this palette; the "do not
+  transcribe" warning is retired.
+
+`apps/mobile/app.json`: `backgroundColor` `#000000` → `#0a0b09` (root and
+android), `expo-notifications` colour `#1DB954` → `#c8f73c`.
+
+Verification: `pnpm --filter @workouts/mobile typecheck` + jest; the
+row-height change is checked on device in step 3's first screen.
+
+## Step 2 — primitive seam
+
+Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
+`.tsx` (RN) split, one PR per group, each reading `useTokens()`:
+
+1. `inset-list` — `List`/`Section`/row with leading media, title, secondary,
+   value, chevron; swipe + context-menu built in (folds
+   `native-swipeable-row.ios.tsx` in and retires the Exercises-only canary).
+2. `form` — `Form`/`Section`/`TextField`/`LabeledContent`/`Stepper`/`Toggle`
+   behind the existing `form.tsx` names, so screens migrate by import.
+3. `segmented` → `Picker`; `confirm-dialog` → `ConfirmationDialog`;
+   `empty-state` → `ContentUnavailableView`.
+4. `chart` → Swift `Chart`; `progress-ring` → `Gauge`.
+5. `Host` wrappers stop hardcoding `colorScheme="dark"`; they read the scheme.
+
+Each primitive: a jest test that the SwiftUI props are bound (pattern in
+`swift-ui-surfaces.test.tsx`), and a row in `docs/ios-native-verification.md`.
+
+## Step 3 — screens, lists first
+
+Order chosen by how much card-stack there is to remove and how many
+primitives each exercises. Each screen answers the screen contract in
+`apps/mobile/DESIGN_SYSTEM.md` in its PR description, moves its strings into
+`src/i18n/messages`, replaces `Loading…` with a skeleton, and gets a device
+pass before the next starts.
+
+1. **Train** — routines as an inset list (row opens the editor; Start is the
+   swipe/context action and the row's trailing button), library section,
+   one primary capsule. Filter chips go until a second activity type exists.
+2. **Exercises** — `headerSearchBarOptions`, filter as a `Picker`, inset
+   list with `MediaThumb` slot.
+3. **Profile / Language** — pure inset-grouped settings; the cheapest
+   full-native screen and the light-mode pilot.
+4. **Session** — set rows as an inset list, set type `Picker`, `Stepper`
+   fields, rest timer stays RN.
+5. **Progress** — Swift Charts, `Gauge` week ring, stat boxes stay RN.
+6. **Nutrition** — largest surface, last; diary rows, goal card, calendar.
+
+Out of scope: Android Compose variants, the web app, photography slots
+(fallbacks only), a logo.
+
+## Open questions
+
+- Light mode ship gate: after Profile (step 3.3) or after all six screens?
+- `@expo/ui` stability in SDK 57 — the codebase calls the swipe row a
+  "canary until device QA". If `RNHostView` sizing misbehaves inside `List`,
+  the fallback is `List` for settings-style screens only and RN inset rows
+  elsewhere.

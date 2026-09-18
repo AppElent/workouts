@@ -3,7 +3,10 @@
 export type { SportKey, Tokens } from "./tokens";
 export {
 	colors,
+	colorsLight,
 	metrics,
+	motion,
+	opacity,
 	radius,
 	spacing,
 	sportMeta,
