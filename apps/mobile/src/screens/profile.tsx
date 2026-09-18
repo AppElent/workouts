@@ -63,7 +63,7 @@ export function ProfileScreen() {
 					<AppText style={styles.muted}>None</AppText>
 				</View>
 				<Pressable
-					onPress={() => router.push("/personal-measures")}
+					onPress={() => router.push("/settings")}
 					accessibilityRole="button"
 					style={({ pressed }) => [
 						styles.groupRow,
@@ -72,7 +72,7 @@ export function ProfileScreen() {
 					]}
 				>
 					<AppText style={styles.label}>
-						{t.preferences.personalMeasures}
+						{locale === "nl" ? "Instellingen" : "Settings"}
 					</AppText>
 					<AppText style={[styles.value, { color: colors.accent }]}>›</AppText>
 				</Pressable>

@@ -158,6 +158,7 @@ describe("diary row accelerators", () => {
 		const row = await screen.findByLabelText("Edit entry: Oatmeal");
 
 		expect(row.props.accessibilityActions).toEqual([
+			{ name: "select", label: "Select" },
 			{ name: "edit", label: "Edit" },
 			{ name: "copy", label: "Copy" },
 			{ name: "move", label: "Move" },

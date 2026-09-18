@@ -599,6 +599,41 @@ export const applyOperation = mutation({
 			if (entry.clientEntryId) clientEntryIds.push(entry.clientEntryId);
 		}
 
+		if (operation.kind === "removeBatch" || operation.kind === "moveBatch") {
+			if (operation.targets.length < 1 || operation.targets.length > 100) {
+				throw new Error("A batch must contain between 1 and 100 entries.");
+			}
+			const entries = [];
+			const seen = new Set<string>();
+			for (const target of operation.targets) {
+				const key = `${target.kind}:${target.id}`;
+				if (seen.has(key)) throw new Error("Duplicate diary entry target.");
+				seen.add(key);
+				const entry = await existingOwnedGroupEntry(ctx, userId, target);
+				if (!entry) throw new Error("Diary entry no longer exists.");
+				entries.push(entry);
+			}
+			const selectedIds = new Set(entries.map((entry) => String(entry._id)));
+			const groupIds = new Set(entries.map((entry) => entry.comboGroup?.id).filter((id): id is string => id !== undefined));
+			for (const groupId of groupIds) {
+				const parts = await ctx.db.query("nutritionDiaryEntries").withIndex("by_user_combo_group", (query) => query.eq("userId", userId).eq("comboGroup.id", groupId)).take(101);
+				if (parts.some((entry) => !selectedIds.has(String(entry._id)))) {
+					throw new Error("Existing Logged Combos must be selected as a whole.");
+				}
+			}
+			if (operation.kind === "moveBatch") assertDiaryDate(operation.date);
+			for (const entry of entries) {
+				affectedDates.add(entry.date);
+				entryIds.push(entry._id);
+				if (entry.clientEntryId) clientEntryIds.push(entry.clientEntryId);
+				if (operation.kind === "removeBatch") await ctx.db.delete(entry._id);
+				else {
+					await ctx.db.patch(entry._id, { date: operation.date, meal: operation.meal, comboGroup: undefined });
+					affectedDates.add(operation.date);
+				}
+			}
+		}
+
 		for (const date of affectedDates) await bumpRevision(ctx, userId, date);
 		const result = {
 			entryIds,

@@ -98,6 +98,16 @@ export type NutritionDiaryOperation =
 	| {
 			readonly kind: "remove";
 			readonly target: NutritionOperationTarget;
+	  }
+	| {
+			readonly kind: "removeBatch";
+			readonly targets: readonly NutritionOperationTarget[];
+	  }
+	| {
+			readonly kind: "moveBatch";
+			readonly targets: readonly NutritionOperationTarget[];
+			readonly date: string;
+			readonly meal: NutritionMealSlot;
 	  };
 
 export type NutritionOperationEnvelope = {

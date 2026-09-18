@@ -603,6 +603,51 @@ export class NutritionOperationService {
 			onSuccess,
 		);
 	}
+
+	removeBatch(
+		subject: string,
+		targets: readonly { kind: "serverId" | "clientEntryId"; id: string }[],
+		onError?: (error: unknown) => void,
+		onSuccess?: () => void,
+	) {
+		return this.accept(
+			subject,
+			{ kind: "removeBatch", targets: targets.map(normalizeTarget) },
+			undefined,
+			undefined,
+			undefined,
+			onError,
+			onSuccess,
+		);
+	}
+
+	moveBatch(
+		subject: string,
+		targets: readonly { kind: "serverId" | "clientEntryId"; id: string }[],
+		date: string,
+		meal: NutritionMealSlot,
+		onError?: (error: unknown) => void,
+		onSuccess?: () => void,
+	) {
+		return this.accept(
+			subject,
+			{ kind: "moveBatch", targets: targets.map(normalizeTarget), date, meal },
+			undefined,
+			undefined,
+			undefined,
+			onError,
+			onSuccess,
+		);
+	}
+}
+
+function normalizeTarget(target: {
+	kind: "serverId" | "clientEntryId";
+	id: string;
+}) {
+	return target.id.startsWith("client:")
+		? { kind: "clientEntryId" as const, id: target.id.slice("client:".length) }
+		: target;
 }
 
 const NutritionOperationsContext =

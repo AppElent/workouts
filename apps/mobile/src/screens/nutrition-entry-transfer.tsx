@@ -145,14 +145,16 @@ function updateTarget(entry: DiaryEntry) {
 
 export function NutritionEntryTransfer({
 	entry,
+	entries,
 	date,
 	meal,
 	mode,
 	onClose,
 }: {
-	entry: DiaryEntry;
+	entry?: DiaryEntry;
+	entries?: readonly DiaryEntry[];
 	date: string;
-	meal: MealSlot;
+	meal?: MealSlot;
 	mode: TransferMode;
 	onClose: () => void;
 }) {
@@ -166,13 +168,21 @@ export function NutritionEntryTransfer({
 	// stale native sheet from accepting a previous person's entry.
 	const [sourceSubject] = useState(() => operations.getSubject());
 	const copy = transferCopy(mode, locale);
+	const selectedEntries = entries ?? (entry ? [entry] : []);
+	const primary = selectedEntries[0] ?? entry;
+	const sourceMeal = meal ?? primary?.meal ?? "breakfast";
 	const [destinationDate, setDestinationDate] = useState(date);
-	const [destinationMeal, setDestinationMeal] = useState<MealSlot>(meal);
+	const [destinationMeal, setDestinationMeal] = useState<MealSlot>(sourceMeal);
 	const [showCalendar, setShowCalendar] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const submitLock = useRef(false);
+	if (!primary) return null;
 	const unchanged =
-		mode === "move" && destinationDate === date && destinationMeal === meal;
+		mode === "move" &&
+		destinationDate === date &&
+		(entries
+			? selectedEntries.every((item) => item.meal === destinationMeal)
+			: destinationMeal === sourceMeal);
 
 	const releaseAfterFailure = (error: unknown) => {
 		submitLock.current = false;
@@ -195,13 +205,17 @@ export function NutritionEntryTransfer({
 				throw new Error("Nutrition account changed.");
 
 			if (mode === "copy") {
-				operations.create(
+				operations.createBatch(
 					subject,
-					copiedEntrySnapshot(
-						entry,
-						destinationDate,
-						destinationMeal,
-						mintNutritionUuid(),
+					destinationDate,
+					destinationMeal,
+					selectedEntries.map((item) =>
+						copiedEntrySnapshot(
+							item,
+							destinationDate,
+							destinationMeal,
+							mintNutritionUuid(),
+						),
 					),
 					undefined,
 					releaseAfterFailure,
@@ -210,17 +224,11 @@ export function NutritionEntryTransfer({
 				return;
 			}
 
-			operations.update(
+			operations.moveBatch(
 				subject,
-				updateTarget(entry),
-				{ date: destinationDate, meal: destinationMeal },
-				{
-					targetEntry: {
-						_id: entry.id,
-						...snapshotFromDiaryEntry(entry, date, meal),
-						...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
-					},
-				},
+				selectedEntries.map(updateTarget),
+				destinationDate,
+				destinationMeal,
 				releaseAfterFailure,
 				accepted,
 			);
@@ -259,7 +267,13 @@ export function NutritionEntryTransfer({
 				<View style={styles.header}>
 					<View style={styles.heading}>
 						<Eyebrow>{copy.title}</Eyebrow>
-						<AppText variant="heading">{entry.name[locale]}</AppText>
+						<AppText variant="heading">
+							{selectedEntries.length === 1
+								? primary.name[locale]
+								: locale === "nl"
+									? `${selectedEntries.length} items`
+									: `${selectedEntries.length} items`}
+						</AppText>
 					</View>
 					<Pressable
 						onPress={requestClose}

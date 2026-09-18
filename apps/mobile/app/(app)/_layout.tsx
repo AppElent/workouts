@@ -133,6 +133,22 @@ export default function AppLayout() {
 													}}
 												/>
 												<Stack.Screen
+													name="settings"
+													options={{
+														title:
+															locale === "nl" ? "Instellingen" : "Settings",
+													}}
+												/>
+												<Stack.Screen
+													name="nutrition-settings"
+													options={{
+														title:
+															locale === "nl"
+																? "Voedingsinstellingen"
+																: "Nutrition Settings",
+													}}
+												/>
+												<Stack.Screen
 													name="nutrition-food"
 													options={{ title: t.nutrition.foodBrowser.addFood }}
 												/>

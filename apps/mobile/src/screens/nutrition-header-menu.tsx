@@ -13,16 +13,15 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 					onPress: props.onOpenWeekOverview,
 					dividerAfter: true,
 				},
-				{ label: props.createComboLabel, onPress: props.onCreateCombo },
-				{ label: props.logComboLabel, onPress: props.onLogCombo },
-				{ label: props.captureDraftsLabel, onPress: props.onOpenCaptureDrafts },
+				{ label: props.foodLibraryLabel, onPress: props.onOpenFoodLibrary },
 				{ label: props.assistanceLabel, onPress: props.onOpenAssistance },
-				{ label: props.backupLabel, onPress: props.onOpenBackup },
 				{ label: props.goalsLabel, onPress: props.onOpenGoals },
 				{
 					label: props.dataSourcesLabel,
 					onPress: props.onToggleDataSources,
+					dividerAfter: true,
 				},
+				{ label: props.settingsLabel, onPress: props.onOpenSettings },
 			]}
 		/>
 	);

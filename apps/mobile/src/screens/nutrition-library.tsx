@@ -1,4 +1,5 @@
 import { useConvexConnectionState, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
@@ -59,8 +60,9 @@ function conflictName(
 	return conflict.record.kind === "food" ? copy.unnamedFood : copy.unnamedCombo;
 }
 
-export function NutritionLibraryScreen() {
+export function NutritionSettingsScreen() {
 	const { locale } = useI18n();
+	const router = useRouter();
 	const copy = nutritionLibraryCopy[locale];
 	const foods = usePersonalFoods();
 	const openFoodFacts = useOpenFoodFacts();
@@ -214,6 +216,24 @@ export function NutritionLibraryScreen() {
 			<Eyebrow>{copy.eyebrow}</Eyebrow>
 			<AppText variant="title">{copy.title}</AppText>
 			<AppText>{copy.intro}</AppText>
+			<Card style={styles.card}>
+				<AppText variant="heading">
+					{locale === "nl" ? "Persoonlijke maten" : "Personal measures"}
+				</AppText>
+				<AppText variant="caption">
+					{locale === "nl"
+						? "Beheer je eigen porties en exacte hoeveelheden."
+						: "Manage your own portions and exact quantities."}
+				</AppText>
+				<GhostButton
+					label={
+						locale === "nl"
+							? "Persoonlijke maten beheren"
+							: "Manage personal measures"
+					}
+					onPress={() => router.push("/personal-measures")}
+				/>
+			</Card>
 			<Card style={styles.card}>
 				<AppText variant="caption">{copy.photoNotice}</AppText>
 			</Card>

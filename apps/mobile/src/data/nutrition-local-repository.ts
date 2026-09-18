@@ -459,6 +459,28 @@ function applyOperations(
 			if (index >= 0) entries.splice(index, 1);
 			pendingOperationIds.push(local.operationId);
 		}
+		if (operation.kind === "removeBatch") {
+			for (const target of operation.targets) {
+				const index = entries.findIndex((entry) => entryMatches(entry, target));
+				if (index >= 0) entries.splice(index, 1);
+			}
+			pendingOperationIds.push(local.operationId);
+		}
+		if (operation.kind === "moveBatch") {
+			for (const target of operation.targets) {
+				applyUpdate(
+					entries,
+					{
+						kind: "update",
+						target,
+						date: operation.date,
+						meal: operation.meal,
+					},
+					local.operationId,
+				);
+			}
+			pendingOperationIds.push(local.operationId);
+		}
 	}
 	const visible = entries.filter((entry) => entry.date === date);
 	return {

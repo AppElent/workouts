@@ -97,7 +97,7 @@ describe("Nutrition navigation", () => {
 		const weekAction = await screen.findByText("Week overview");
 		expect(
 			menuActions.indexOf(screen.getByLabelText("Week overview")),
-		).toBeLessThan(menuActions.indexOf(screen.getByLabelText("Create Combo")));
+		).toBeLessThan(menuActions.indexOf(screen.getByLabelText("Food library")));
 		fireEvent.press(weekAction);
 
 		await waitFor(() =>
@@ -185,13 +185,15 @@ describe("Nutrition navigation", () => {
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 
-	it("pushes the Combo library for the day being viewed", async () => {
+	it("pushes the Food library from the nutrition menu", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Food library"));
 
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combos"));
-		expect(app.getSearchParams()).toMatchObject({ date: todayIsoDate() });
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-library"));
+		expect(await screen.findByText("Personal foods")).toBeTruthy();
+		expect(screen.getByText("Combos")).toBeTruthy();
+		expect(screen.getByText("Recipes")).toBeTruthy();
 
 		testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
@@ -199,8 +201,7 @@ describe("Nutrition navigation", () => {
 
 	it("carries the chosen entries to the Combo builder by id", async () => {
 		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Create Combo"));
+		fireEvent.press(await screen.findByText("Select"));
 		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
 		fireEvent.press(await screen.findByText("Continue with 1 part"));
 
@@ -210,8 +211,7 @@ describe("Nutrition navigation", () => {
 
 	it("ends a Combo selection when the day it was made on is left", async () => {
 		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Create Combo"));
+		fireEvent.press(await screen.findByText("Select"));
 		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
 		expect(screen.getByText("Continue with 1 part")).toBeTruthy();
 
@@ -223,8 +223,7 @@ describe("Nutrition navigation", () => {
 		await waitFor(() =>
 			expect(screen.queryByText("Continue with 1 part")).toBeNull(),
 		);
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		expect(await screen.findByText("Create Combo")).toBeTruthy();
+		expect(await screen.findByText("Select")).toBeTruthy();
 		expect(app.getPathname()).toBe("/nutrition");
 	});
 
@@ -256,7 +255,8 @@ describe("Nutrition navigation", () => {
 			],
 		});
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Log Combo"));
+		fireEvent.press(await screen.findByText("Food library"));
+		fireEvent.press(await screen.findByText("Combos"));
 		fireEvent.press(await screen.findByText("Breakfast"));
 		await waitFor(() =>
 			expect(app.getSearchParams()).toMatchObject({
@@ -266,7 +266,7 @@ describe("Nutrition navigation", () => {
 		);
 		testRouter.back();
 		await waitFor(() => expect(app.getSearchParams().comboId).toBeUndefined());
-		expect(app.getPathname()).toBe("/nutrition-combos");
+		expect(app.getPathname()).toBe("/nutrition-library");
 		testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
