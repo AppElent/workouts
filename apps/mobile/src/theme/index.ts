@@ -2,6 +2,7 @@
 
 export type { SportKey, Tokens } from "./tokens";
 export {
+	chrome,
 	colors,
 	colorsLight,
 	metrics,

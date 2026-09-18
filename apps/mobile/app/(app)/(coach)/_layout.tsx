@@ -14,6 +14,11 @@
  * deciding to. Nutrition (#69) takes the fifth slot; a sixth area has to
  * displace something rather than be appended.
  *
+ * Colours are `chrome` (UIKit-resolved dynamic colours), never `colors`: on
+ * iOS 26 the glass picks its own trait from the content under it, and in Expo
+ * Go the dark pin lands a frame late, so a static lime icon on light glass is
+ * what a static colour buys you.
+ *
  * Every label comes from the message tree. Converting the four existing ones
  * alongside the new one was deliberate (#69): a tab bar with four English
  * labels and one Dutch is worse than either extreme.
@@ -22,7 +27,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Platform, View } from "react-native";
 import { useActiveSession } from "../../../src/data/session-data";
 import { useI18n } from "../../../src/i18n";
-import { colors } from "../../../src/theme";
+import { chrome, colors } from "../../../src/theme";
 import { ActiveSessionBar } from "../../../src/ui/active-session-bar";
 
 export default function CoachTabsLayout() {
@@ -38,10 +43,14 @@ export default function CoachTabsLayout() {
 			<NativeTabs
 				backgroundColor={Platform.OS === "ios" ? undefined : colors.surface}
 				minimizeBehavior="onScrollDown"
-				tintColor={colors.accent}
+				tintColor={chrome.accentInk}
 				iconColor={{
-					default: colors.textMuted,
-					selected: colors.accent,
+					default: chrome.textMuted,
+					selected: chrome.accentInk,
+				}}
+				labelStyle={{
+					default: { color: chrome.textMuted },
+					selected: { color: chrome.accentInk },
 				}}
 			>
 				{hasAccessory && active ? (

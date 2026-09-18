@@ -17,7 +17,12 @@
  * FILL and never ink. Text, icons, strokes and chart series read `accentInk`
  * unconditionally — it is the same lime in dark and a deep olive in light.
  */
-import { useColorScheme } from "react-native";
+import {
+	type ColorValue,
+	DynamicColorIOS,
+	Platform,
+	useColorScheme,
+} from "react-native";
 
 /** Every colour the app is allowed to use, dark scheme. */
 export const colors = {
@@ -253,6 +258,32 @@ export const type = {
 	footnote: { fontSize: 13, fontWeight: "400", color: colors.textMuted },
 	/** Text inside a button or segmented control. */
 	control: { fontSize: 16, fontWeight: "600", color: colors.text },
+} as const;
+
+/**
+ * A colour that UIKit resolves itself, per trait, with no JS round-trip.
+ * Android has no equivalent and follows `useTokens()` instead.
+ */
+function dynamic(dark: string, light: string): ColorValue {
+	return Platform.OS === "ios" ? DynamicColorIOS({ dark, light }) : dark;
+}
+
+/**
+ * Colours for native chrome — the tab bar, stack headers, large titles.
+ *
+ * On iOS 26 the system decides the chrome's trait on its own: Liquid Glass
+ * reads the content under it, and in Expo Go the `userInterfaceStyle` pin
+ * only lands after the first frame. A static hex is therefore wrong half the
+ * time — a lime icon on light glass, a pale large title that UIKit repaints
+ * black. These resolve on the UIKit side, so the chrome is legible whichever
+ * way it flips, and they are the reason `accentInk` has a light value at all.
+ * Content colours never use these; content reads `useTokens()`.
+ */
+export const chrome = {
+	bg: dynamic(colors.bg, colorsLight.bg),
+	text: dynamic(colors.text, colorsLight.text),
+	textMuted: dynamic(colors.textMuted, colorsLight.textMuted),
+	accentInk: dynamic(colors.accentInk, colorsLight.accentInk),
 } as const;
 
 /**
