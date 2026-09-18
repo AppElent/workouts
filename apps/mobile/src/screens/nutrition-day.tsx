@@ -461,11 +461,13 @@ export function NutritionDayScreen({
 			) : null}
 			<Stack.Screen
 				options={{
+					// `undefined` here does not "leave it alone" — it clears the
+					// layout's title and the header falls back to the route name.
 					title: selecting
 						? locale === "nl"
 							? `${selectedEntryIds.size} geselecteerd`
 							: `${selectedEntryIds.size} selected`
-						: undefined,
+						: t.tabs.nutrition,
 					headerRight: () => (
 						<View style={styles.headerActions}>
 							<Pressable
