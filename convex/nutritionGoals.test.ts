@@ -30,6 +30,17 @@ const energy = (target: number) => ({
 	target,
 });
 
+const defaultDisplayOrder = [
+	"energy",
+	"protein",
+	"carbs",
+	"fat",
+	"saturatedFat",
+	"fibre",
+	"sugars",
+	"salt",
+] as const;
+
 describe("public nutrition goal operations", () => {
 	it("requires authentication and keeps each user's goals private", async () => {
 		const t = convexTest(testSchema, modules);
@@ -40,6 +51,59 @@ describe("public nutrition goal operations", () => {
 		const bob = t.withIdentity({ subject: "bob" });
 		await alice.mutation(api.nutritionGoals.replace, { goals: [energy(2000)] });
 		expect(await bob.query(api.nutritionGoals.list, {})).toEqual([]);
+	});
+
+	it("stores one global display order without changing effective goal history", async () => {
+		const t = convexTest(testSchema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const bob = t.withIdentity({ subject: "bob" });
+		await alice.mutation(api.nutritionGoals.replace, {
+			goals: [energy(1800)],
+			effectiveFrom: "2026-01-01",
+		});
+		expect(
+			await alice.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({ displayOrder: defaultDisplayOrder });
+
+		const reordered: Array<(typeof defaultDisplayOrder)[number]> = [
+			"protein",
+			"energy",
+			"carbs",
+			"fat",
+			"saturatedFat",
+			"fibre",
+			"sugars",
+			"salt",
+		];
+		await alice.mutation(api.nutritionGoals.setDisplayOrder, {
+			displayOrder: reordered,
+		});
+
+		expect(
+			await alice.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({ goals: [energy(1800)], displayOrder: reordered });
+		expect(
+			await bob.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({ displayOrder: defaultDisplayOrder });
+		await expect(
+			t.mutation(api.nutritionGoals.setDisplayOrder, {
+				displayOrder: [...defaultDisplayOrder],
+			}),
+		).rejects.toThrow("Unauthenticated");
+		await expect(
+			alice.mutation(api.nutritionGoals.setDisplayOrder, {
+				displayOrder: [
+					"energy",
+					"energy",
+					"carbs",
+					"fat",
+					"saturatedFat",
+					"fibre",
+					"sugars",
+					"salt",
+				],
+			}),
+		).rejects.toThrow("every nutrient once");
 	});
 
 	it("atomically replaces the current set and rejects duplicate bounds", async () => {

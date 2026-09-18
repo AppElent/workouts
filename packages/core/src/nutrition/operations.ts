@@ -33,7 +33,11 @@ export type NutritionDiarySnapshot = {
 	readonly serving: NutritionBilingual;
 	readonly quantity: number;
 	readonly amount: number;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: "g" | "ml" | "serving";
+	/** Stable identity when the selected amount came from a Personal Measure. */
+	readonly personalMeasureId?: string;
+	/** Omitted for historical entries and figures that are not estimated. */
+	readonly estimated?: true;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
 	readonly comboGroup?: {
@@ -72,8 +76,24 @@ export type NutritionDiaryOperation =
 			readonly kind: "update";
 			readonly target: NutritionOperationTarget;
 			readonly quantity?: number;
+			/** A newly chosen serving, captured as a durable diary snapshot. */
+			readonly selection?: {
+				readonly serving: NutritionBilingual;
+				readonly quantity: number;
+				readonly amount: number;
+				readonly personalMeasureId: string | null;
+			};
 			readonly date?: string;
 			readonly meal?: NutritionMealSlot;
+	  }
+	| {
+			readonly kind: "group";
+			readonly targets: readonly NutritionOperationTarget[];
+			readonly comboGroup: {
+				readonly id: string;
+				readonly comboId: string;
+				readonly name: string;
+			};
 	  }
 	| {
 			readonly kind: "remove";

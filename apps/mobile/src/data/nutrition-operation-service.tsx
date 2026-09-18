@@ -6,6 +6,7 @@ import {
 	type NutritionMealSlot,
 	type NutritionOperationEnvelope,
 } from "@workouts/core";
+import type { NutrientKey } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -244,12 +245,14 @@ export class NutritionOperationService {
 		subject: string,
 		operation: { operationId: string; envelope: NutritionOperationEnvelope },
 	) {
-		const target =
+		const targets =
 			operation.envelope.operation.kind === "update" ||
 			operation.envelope.operation.kind === "remove"
-				? operation.envelope.operation.target
-				: undefined;
-		if (!target) return false;
+				? [operation.envelope.operation.target]
+				: operation.envelope.operation.kind === "group"
+					? operation.envelope.operation.targets
+					: [];
+		if (targets.length === 0) return false;
 		return this.repository.listOperations(subject).some((candidate) => {
 			if (
 				candidate.operationId === operation.operationId ||
@@ -259,10 +262,19 @@ export class NutritionOperationService {
 			)
 				return false;
 			const created = candidate.envelope.operation;
+			const predecessorTargets =
+				created.kind === "update" || created.kind === "remove"
+					? [created.target]
+					: created.kind === "group"
+						? created.targets
+						: [];
 			if (
-				(created.kind === "update" || created.kind === "remove") &&
-				created.target.kind === target.kind &&
-				created.target.id === target.id
+				predecessorTargets.some((previous) =>
+					targets.some(
+						(target) =>
+							previous.kind === target.kind && previous.id === target.id,
+					),
+				)
 			)
 				return candidate.status !== "acknowledged";
 			const ids =
@@ -271,10 +283,11 @@ export class NutritionOperationService {
 					: created.kind === "createBatch"
 						? created.entries.map((entry) => entry.clientEntryId)
 						: [];
-			return (
-				target.kind === "clientEntryId" &&
-				ids.includes(target.id) &&
-				candidate.status !== "acknowledged"
+			return targets.some(
+				(target) =>
+					target.kind === "clientEntryId" &&
+					ids.includes(target.id) &&
+					candidate.status !== "acknowledged",
 			);
 		});
 	}
@@ -287,6 +300,23 @@ export class NutritionOperationService {
 		return this.repository.getGoals(subject, date);
 	}
 
+	getPersonalMeasures(subject: string) {
+		return this.repository.getPersonalMeasures(subject);
+	}
+
+	cachePersonalMeasures(
+		subject: string,
+		measures: readonly import("@workouts/core/nutrition").PersonalMeasure[],
+	) {
+		if (
+			canonicalJson(this.repository.getPersonalMeasures(subject)) ===
+			canonicalJson(measures)
+		)
+			return;
+		this.repository.putPersonalMeasures(subject, measures);
+		this.notify();
+	}
+
 	cacheGoals(subject: string, date: string, history: CachedGoalHistory) {
 		if (
 			canonicalJson(this.repository.getGoals(subject, date)) ===
@@ -294,6 +324,16 @@ export class NutritionOperationService {
 		)
 			return;
 		this.repository.putGoals(subject, date, history);
+		this.notify();
+	}
+
+	cacheGoalDisplayOrder(subject: string, displayOrder: NutrientKey[]) {
+		if (
+			canonicalJson(this.repository.getGoalDisplayOrder(subject)) ===
+			canonicalJson(displayOrder)
+		)
+			return;
+		this.repository.putGoalDisplayOrder(subject, displayOrder);
 		this.notify();
 	}
 
@@ -422,6 +462,78 @@ export class NutritionOperationService {
 		);
 	}
 
+	group(
+		subject: string,
+		date: string,
+		meal: NutritionMealSlot,
+		targets: readonly (
+			| { kind: "serverId"; id: string }
+			| { kind: "clientEntryId"; id: string }
+		)[],
+		comboGroup: { id: string; comboId: string; name: string },
+		onError?: (error: unknown) => void,
+		onSuccess?: () => void,
+	) {
+		const normalizedTargets = targets.map((target) =>
+			target.id.startsWith("client:")
+				? { kind: "clientEntryId" as const, id: target.id.slice(7) }
+				: target,
+		);
+		const uniqueTargets = new Set(
+			normalizedTargets.map((target) => `${target.kind}:${target.id}`),
+		);
+		const projectedEntries = this.repository.projectDay(subject, date).entries;
+		const entries = normalizedTargets.map((target) =>
+			projectedEntries.find((entry) =>
+				target.kind === "serverId"
+					? entry._id === target.id
+					: entry.clientEntryId === target.id,
+			),
+		);
+		if (
+			normalizedTargets.length < 1 ||
+			normalizedTargets.length > 100 ||
+			uniqueTargets.size !== normalizedTargets.length ||
+			entries.some((entry) => !entry || entry.meal !== meal)
+		) {
+			throw new Error(
+				"Every diary entry must be available in the same Meal Slot.",
+			);
+		}
+		const selectedEntries = entries.filter(
+			(entry): entry is NonNullable<typeof entry> => entry !== undefined,
+		);
+		const selectedIds = new Set(selectedEntries.map((entry) => entry._id));
+		const existingGroupIds = new Set(
+			selectedEntries
+				.map((entry) => entry.comboGroup?.id)
+				.filter((id): id is string => id !== undefined),
+		);
+		if (
+			projectedEntries.some(
+				(entry) =>
+					entry.comboGroup &&
+					existingGroupIds.has(entry.comboGroup.id) &&
+					!selectedIds.has(entry._id),
+			)
+		) {
+			throw new Error("Existing Logged Combos must be selected as a whole.");
+		}
+		return this.accept(
+			subject,
+			{
+				kind: "group",
+				targets: normalizedTargets,
+				comboGroup,
+			},
+			undefined,
+			undefined,
+			undefined,
+			onError,
+			onSuccess,
+		);
+	}
+
 	update(
 		subject: string,
 		target:
@@ -429,6 +541,12 @@ export class NutritionOperationService {
 			| { kind: "clientEntryId"; id: string },
 		patch: {
 			quantity?: number;
+			selection?: {
+				serving: { en: string; nl: string };
+				quantity: number;
+				amount: number;
+				personalMeasureId: string | null;
+			};
 			date?: string;
 			meal?: "breakfast" | "lunch" | "dinner" | "snacks";
 		},
@@ -632,6 +750,7 @@ export function snapshotFromDiaryEntry(
 		baseUnit: entry.baseUnit,
 		nutrients: entry.nutrients,
 		provenance: entry.provenance,
+		...(entry.estimated ? { estimated: true as const } : {}),
 		...(entry.id.startsWith("client:")
 			? { clientEntryId: entry.id.slice("client:".length) }
 			: {}),

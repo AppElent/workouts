@@ -1,3 +1,4 @@
 {
-	"NSCameraUsageDescription": "Allow Foundry to access your camera to scan food barcodes and find nutrition information, take progress photos, and record form-check videos."
+	"NSCameraUsageDescription": "Allow Foundry to access your camera to scan food barcodes for nutrition data, take Food and progress photos, and record form-check videos.",
+	"NSPhotoLibraryUsageDescription": "Allow Foundry to choose Food and progress photos from your library."
 }

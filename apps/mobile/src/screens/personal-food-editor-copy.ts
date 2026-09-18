@@ -1,7 +1,33 @@
+import type { FoodVisualPresetId } from "../data/personal-food-repository";
 import type { Locale } from "../i18n";
 
 export type PersonalFoodEditorCopy = {
+	visual: string;
+	defaultVisual: string;
+	visualPresets: Readonly<Record<FoodVisualPresetId, string>>;
+	takePhoto: string;
+	choosePhoto: string;
+	replacePhoto: string;
+	removePhoto: string;
+	photoUnavailable: string;
+	photoPermissionDenied: string;
+	photoFailure: string;
+	importPhotoFailure: string;
+	cropPosition: string;
+	cropPositions: Record<"center" | "top" | "bottom" | "left" | "right", string>;
 	name: string;
+	classification: string;
+	ordinary: string;
+	recipe: string;
+	description: string;
+	precision: string;
+	estimateHelp: string;
+	provided: string;
+	estimated: string;
+	basis: string;
+	perServing: string;
+	servingLabel: string;
+	serving: string;
 	otherName: string;
 	addOtherName: string;
 	editOtherName: string;
@@ -30,6 +56,52 @@ export type PersonalFoodEditorCopy = {
 
 export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 	en: {
+		visual: "Food visual",
+		defaultVisual: "Default",
+		visualPresets: {
+			fruit: "Fruit",
+			vegetable: "Vegetable",
+			grains: "Grains and bread",
+			dairy: "Dairy",
+			egg: "Egg",
+			meat: "Meat",
+			fish: "Fish",
+			meal: "Prepared meal",
+			snack: "Snack or sweet",
+			drink: "Drink",
+			supplement: "Supplement",
+			condiment: "Condiment",
+		},
+		takePhoto: "Take photo",
+		choosePhoto: "Choose photo",
+		replacePhoto: "Replace photo",
+		removePhoto: "Remove photo",
+		photoUnavailable: "Photo unavailable",
+		photoPermissionDenied: "Photo access was not allowed.",
+		photoFailure:
+			"That photo could not be prepared. Your current visual is unchanged.",
+		importPhotoFailure:
+			"The product was saved, but its photo could not be downloaded.",
+		cropPosition: "Crop position",
+		cropPositions: {
+			center: "Center",
+			top: "Top",
+			bottom: "Bottom",
+			left: "Left",
+			right: "Right",
+		},
+		classification: "Food category",
+		ordinary: "Food",
+		recipe: "Recipe",
+		description: "Description (optional)",
+		precision: "Nutrition figures",
+		estimateHelp: "Choose Estimated only when these figures are approximate.",
+		provided: "Provided values",
+		estimated: "Estimated",
+		basis: "Nutrition basis",
+		perServing: "Per serving",
+		servingLabel: "Serving name",
+		serving: "Serving",
 		name: "Name",
 		otherName: "Dutch name",
 		addOtherName: "Add Dutch name (optional)",
@@ -57,6 +129,53 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 		servingAmount: "Serving {number} amount in {unit}",
 	},
 	nl: {
+		visual: "Voedingsicoon",
+		defaultVisual: "Standaard",
+		visualPresets: {
+			fruit: "Fruit",
+			vegetable: "Groente",
+			grains: "Granen en brood",
+			dairy: "Zuivel",
+			egg: "Ei",
+			meat: "Vlees",
+			fish: "Vis",
+			meal: "Bereide maaltijd",
+			snack: "Snack of zoetigheid",
+			drink: "Drank",
+			supplement: "Supplement",
+			condiment: "Saus of smaakmaker",
+		},
+		takePhoto: "Foto maken",
+		choosePhoto: "Foto kiezen",
+		replacePhoto: "Foto vervangen",
+		removePhoto: "Foto verwijderen",
+		photoUnavailable: "Foto niet beschikbaar",
+		photoPermissionDenied: "Toegang tot foto's is niet toegestaan.",
+		photoFailure:
+			"Deze foto kon niet worden verwerkt. Je huidige afbeelding is niet gewijzigd.",
+		importPhotoFailure:
+			"Het voedingsmiddel is opgeslagen, maar de foto kon niet worden gedownload.",
+		cropPosition: "Uitsnede",
+		cropPositions: {
+			center: "Midden",
+			top: "Boven",
+			bottom: "Onder",
+			left: "Links",
+			right: "Rechts",
+		},
+		classification: "Voedingscategorie",
+		ordinary: "Voeding",
+		recipe: "Recept",
+		description: "Beschrijving (optioneel)",
+		precision: "Voedingscijfers",
+		estimateHelp:
+			"Kies Geschat alleen wanneer deze waarden bij benadering zijn.",
+		provided: "Opgegeven waarden",
+		estimated: "Geschat",
+		basis: "Voedingsbasis",
+		perServing: "Per portie",
+		servingLabel: "Naam portie",
+		serving: "Portie",
 		name: "Naam",
 		otherName: "Engelse naam",
 		addOtherName: "Engelse naam toevoegen (optioneel)",

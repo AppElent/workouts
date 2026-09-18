@@ -4,13 +4,15 @@
  */
 
 import {
+	NUTRIENT_KEYS,
 	type NutrientTotal,
 	roundForDisplay,
 	totalNutrients,
 } from "@workouts/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { SymbolView } from "expo-symbols";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
 	formatLongDate,
@@ -20,11 +22,8 @@ import {
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import {
 	type DiaryEntry,
-	type GoalState,
-	goalState,
 	MEAL_SLOTS,
 	type MealSlot,
-	NUTRIENT_KEYS,
 	type NutrientGoal,
 	type NutrientKey,
 	nutrientUnit,
@@ -32,6 +31,7 @@ import {
 } from "../data/nutrition-day";
 import type { CaptureDraft } from "../data/nutrition-draft-repository";
 import { useNutritionDrafts } from "../data/nutrition-drafts";
+import { isRealIsoDate } from "../data/nutrition-weekly-review";
 import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
@@ -48,20 +48,16 @@ import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { NutritionDraftEditor } from "./nutrition-draft-editor";
 import { NutritionEntryTransfer } from "./nutrition-entry-transfer";
+import { NutritionGoalCard } from "./nutrition-goal-card";
 import { NutritionHeaderMenu } from "./nutrition-header-menu";
 import { NutritionMenu } from "./nutrition-menu";
 import { NutritionSyncStatus } from "./nutrition-sync-status";
 
-/** State word first, colour second — colour is never the only signal. */
-const STATE_COLOR: Record<GoalState, string> = {
-	neutral: colors.textMuted,
-	under: colors.accent,
-	met: colors.success,
-	within: colors.success,
-	exceeded: colors.danger,
-};
-
-export function NutritionDayScreen() {
+export function NutritionDayScreen({
+	initialDate,
+}: {
+	initialDate?: string;
+} = {}) {
 	const { t, locale } = useI18n();
 	const router = useRouter();
 
@@ -69,7 +65,9 @@ export function NutritionDayScreen() {
 	// the user mid-scroll because midnight passed is worse than one that is
 	// right again on the next visit.
 	const [today] = useState(todayIsoDate);
-	const [date, setDate] = useState(today);
+	const [date, setDate] = useState(() =>
+		isRealDate(initialDate) ? initialDate : today,
+	);
 	const [showOther, setShowOther] = useState(false);
 	const [showCalendar, setShowCalendar] = useState(false);
 	const [showTools, setShowTools] = useState(false);
@@ -82,6 +80,15 @@ export function NutritionDayScreen() {
 	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
 		() => new Set(),
 	);
+	const [selectedMeal, setSelectedMeal] = useState<MealSlot | null>(null);
+	useEffect(() => {
+		if (!isRealDate(initialDate)) return;
+		setDate(initialDate);
+		setShowCalendar(false);
+		setSelecting(false);
+		setSelectedEntryIds(new Set());
+		setSelectedMeal(null);
+	}, [initialDate]);
 
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const drafts = useNutritionDrafts();
@@ -104,10 +111,20 @@ export function NutritionDayScreen() {
 	const totals = useMemo(() => {
 		if (state.status !== "ready") return {};
 		const entries = MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]);
-		return {
+		const combined: Partial<Record<NutrientKey, NutrientTotal>> = {
 			...totalNutrients(entries.map((entry) => entry.nutrients)),
 			...state.day.totals,
 		};
+		for (const nutrient of NUTRIENT_KEYS) {
+			const hasEstimatedContribution = entries.some(
+				(entry) =>
+					entry.estimated && entry.nutrients[nutrient].kind !== "absent",
+			);
+			const total = combined[nutrient];
+			if (hasEstimatedContribution && total)
+				combined[nutrient] = { ...total, qualified: true };
+		}
+		return combined;
 	}, [state]);
 
 	/**
@@ -122,13 +139,13 @@ export function NutritionDayScreen() {
 		setShowCalendar(false);
 		setSelecting(false);
 		setSelectedEntryIds(new Set());
+		setSelectedMeal(null);
 	}
 
 	function openFoodBrowser(slot: MealSlot) {
 		router.push({ pathname: "/nutrition-food", params: { meal: slot, date } });
 	}
 
-	/** A note is a paused search: reopen the browser with the note as the query. */
 	function resolveDraft(draft: CaptureDraft) {
 		router.push({
 			pathname: "/nutrition-food",
@@ -150,9 +167,8 @@ export function NutritionDayScreen() {
 		});
 		if (!approved) return;
 		try {
-			if (!drafts.remove(draft.id)) {
+			if (!drafts.remove(draft.id))
 				toast.error(t.nutrition.drafts.deleteFailure);
-			}
 		} catch {
 			toast.error(t.nutrition.drafts.deleteFailure);
 		}
@@ -190,43 +206,13 @@ export function NutritionDayScreen() {
 							onChooseDate={() => setShowCalendar((open) => !open)}
 						/>
 					</View>
-					<Pressable
-						style={styles.toolbarButton}
-						accessibilityRole="button"
-						accessibilityLabel={
-							locale === "nl" ? "Weekoverzicht" : "Weekly review"
-						}
-						onPress={() =>
-							router.push({
-								pathname: "/nutrition-weekly-review",
-								params: { startDate: date },
-							})
-						}
-					>
-						<View
-							accessible={false}
-							style={{ flexDirection: "row", alignItems: "flex-end", gap: 3 }}
-						>
-							{[10, 19, 15].map((height) => (
-								<View
-									key={height}
-									style={{
-										width: 4,
-										height,
-										borderRadius: 2,
-										backgroundColor: colors.accent,
-									}}
-								/>
-							))}
-						</View>
-					</Pressable>
 				</View>
 
 				{marker === "visible" ? <TrainingMarker t={t} /> : null}
 				<OtherDaysDraftsBanner
 					t={t}
 					summary={drafts.summariseOtherDays(date)}
-					onJump={(target) => changeDate(target)}
+					onJump={changeDate}
 				/>
 				{showTools ? (
 					<View style={styles.attribution}>
@@ -285,17 +271,30 @@ export function NutritionDayScreen() {
 									: "Only locally available entries. Day totals are incomplete."}
 							</AppText>
 						) : null}
-						<GoalSection
+						<NutritionGoalCard
 							t={t}
 							goals={state.day.goals}
 							totals={totals}
-							onSetUpGoals={() => router.push("/nutrition-goals")}
+							displayOrder={state.day.displayOrder}
+							onEdit={(nutrient) =>
+								router.push({
+									pathname: "/nutrition-goals",
+									params: { date, ...(nutrient ? { nutrient } : {}) },
+								})
+							}
 						/>
 
 						<ComboControls
 							t={t}
 							selecting={selecting}
 							selectedCount={selectedEntryIds.size}
+							selectionConstraint={
+								selectedMeal
+									? locale === "nl"
+										? `Alleen invoer uit ${t.nutrition.meals[selectedMeal]} kan worden geselecteerd.`
+										: `Only entries from ${t.nutrition.meals[selectedMeal]} can be selected.`
+									: undefined
+							}
 							onCreate={() => setSelecting(true)}
 							onLog={() =>
 								router.push({
@@ -306,6 +305,7 @@ export function NutritionDayScreen() {
 							onCancel={() => {
 								setSelecting(false);
 								setSelectedEntryIds(new Set());
+								setSelectedMeal(null);
 							}}
 							onContinue={() => {
 								if (selectedEntryIds.size === 0) return;
@@ -318,6 +318,7 @@ export function NutritionDayScreen() {
 									},
 								});
 								setSelectedEntryIds(new Set());
+								setSelectedMeal(null);
 							}}
 						/>
 
@@ -359,18 +360,31 @@ export function NutritionDayScreen() {
 									setSelectedEntryIds(
 										new Set(state.day.entries[slot].map((entry) => entry.id)),
 									);
+									setSelectedMeal(slot);
 									setSelecting(true);
 								}}
 								selecting={selecting}
+								selectionLocked={selectedMeal !== null && selectedMeal !== slot}
 								selectedEntryIds={selectedEntryIds}
-								onToggleEntry={(entry) =>
-									setSelectedEntryIds((current) => {
-										const next = new Set(current);
-										if (next.has(entry.id)) next.delete(entry.id);
-										else next.add(entry.id);
-										return next;
-									})
-								}
+								onToggleEntry={(entry) => {
+									if (selectedMeal !== null && selectedMeal !== slot) return;
+									const next = new Set(selectedEntryIds);
+									if (next.has(entry.id)) next.delete(entry.id);
+									else next.add(entry.id);
+									setSelectedEntryIds(next);
+									setSelectedMeal(next.size === 0 ? null : slot);
+								}}
+								onToggleGroup={(parts) => {
+									if (selectedMeal !== null && selectedMeal !== slot) return;
+									const next = new Set(selectedEntryIds);
+									const allSelected = parts.every((part) => next.has(part.id));
+									for (const part of parts) {
+										if (allSelected) next.delete(part.id);
+										else next.add(part.id);
+									}
+									setSelectedEntryIds(next);
+									setSelectedMeal(next.size === 0 ? null : slot);
+								}}
 							/>
 						))}
 
@@ -394,9 +408,12 @@ export function NutritionDayScreen() {
 									: "More nutrition tools"
 							}
 							closeLabel={t.nutrition.entryActions.close}
+							weekOverviewLabel={
+								locale === "nl" ? "Weekoverzicht" : "Week overview"
+							}
 							createComboLabel={t.nutrition.combos.create}
 							logComboLabel={t.nutrition.combos.log}
-							recipesLabel={locale === "nl" ? "Recepten" : "Recipes"}
+							captureDraftsLabel={locale === "nl" ? "Recepten" : "Recipes"}
 							assistanceLabel={
 								locale === "nl"
 									? "Tekst en voedingsetiket"
@@ -412,18 +429,19 @@ export function NutritionDayScreen() {
 								locale === "nl" ? "Gegevensbronnen" : "Data sources"
 							}
 							onCreateCombo={() => setSelecting(true)}
+							onOpenWeekOverview={() =>
+								router.push({
+									pathname: "/nutrition-weekly-review",
+									params: { startDate: date },
+								})
+							}
 							onLogCombo={() =>
 								router.push({
 									pathname: "/nutrition-combos",
 									params: { date },
 								})
 							}
-							onOpenRecipes={() =>
-								router.push({
-									pathname: "/nutrition-cooking",
-									params: { date, meal: "breakfast" },
-								})
-							}
+							onOpenCaptureDrafts={() => router.push("/nutrition-library")}
 							onOpenAssistance={() =>
 								router.push({
 									pathname: "/nutrition-assistance",
@@ -460,10 +478,6 @@ export function NutritionDayScreen() {
  * carries no number and reads no differently regardless of what the Activity
  * involved — there is nothing here about duration, intensity, or calories to
  * show even if the design changes later.
- */
-/**
- * The reminder that a note is for: a draft filed on a day you are not looking
- * at would otherwise be invisible until you happened back onto that day.
  */
 function OtherDaysDraftsBanner({
 	t,
@@ -566,86 +580,6 @@ function DayDateStepper({
 	);
 }
 
-function GoalSection({
-	t,
-	goals,
-	totals,
-	onSetUpGoals,
-}: {
-	t: Messages;
-	goals: NutrientGoal[];
-	totals: Partial<Record<NutrientKey, NutrientTotal>>;
-	onSetUpGoals: () => void;
-}) {
-	const macros = ["protein", "carbs", "fat"] as const;
-	const extraGoals = goals.filter(
-		(goal) =>
-			!macros.includes(goal.nutrient as (typeof macros)[number]) &&
-			goal.nutrient !== "energy",
-	);
-	const extraNutrients = new Set(extraGoals.map((goal) => goal.nutrient));
-	const [expanded, setExpanded] = useState(false);
-
-	return (
-		<View style={styles.section}>
-			<DailySummary
-				t={t}
-				goals={goals}
-				totals={totals}
-				onSetUpGoals={onSetUpGoals}
-			/>
-			{goals.length === 0 ? (
-				<GroupedSurface>
-					<EmptyState
-						title={t.nutrition.goals.empty.title}
-						body={t.nutrition.goals.empty.body}
-						action={{
-							label: t.nutrition.goals.empty.action,
-							onPress: onSetUpGoals,
-						}}
-					/>
-				</GroupedSurface>
-			) : null}
-			{goals.length > 0 && extraNutrients.size > 0 ? (
-				<FormSection>
-					<DisclosureRow
-						label={fmt(t.nutrition.day.additionalGoals, {
-							count: extraNutrients.size,
-						})}
-						expanded={expanded}
-						accessibilityLabel={
-							expanded
-								? t.nutrition.day.hideAdditionalGoals
-								: t.nutrition.day.showAdditionalGoals
-						}
-						onPress={() => setExpanded((open) => !open)}
-					/>
-					{expanded
-						? extraGoals.map((goal) => (
-								<View
-									key={`${goal.nutrient}-${goal.direction}`}
-									style={styles.groupedRow}
-								>
-									<GoalRow t={t} goal={goal} total={totals[goal.nutrient]} />
-								</View>
-							))
-						: null}
-				</FormSection>
-			) : null}
-		</View>
-	);
-}
-
-function goalsByNutrient(goals: NutrientGoal[]) {
-	const grouped = new Map<NutrientKey, NutrientGoal[]>();
-	for (const goal of goals) {
-		const current = grouped.get(goal.nutrient) ?? [];
-		current.push(goal);
-		grouped.set(goal.nutrient, current);
-	}
-	return grouped;
-}
-
 function totalLabel(
 	t: Messages,
 	key: NutrientKey,
@@ -665,324 +599,18 @@ function totalLabel(
 	return String(amount);
 }
 
-function DailySummary({
-	t,
-	goals,
-	totals,
-	onSetUpGoals,
-}: {
-	t: Messages;
-	goals: NutrientGoal[];
-	totals: Partial<Record<NutrientKey, NutrientTotal>>;
-	onSetUpGoals: () => void;
-}) {
-	const groups = goalsByNutrient(goals);
-	const energy = totals.energy;
-	const energyGoals = groups.get("energy") ?? [];
-	const min = energyGoals.find((goal) => goal.direction === "min")?.target;
-	const max = energyGoals.find((goal) => goal.direction === "max")?.target;
-	const energyDisplay = describeEnergy(t, energy, min, max);
-
-	return (
-		<GroupedSurface style={styles.summaryCard}>
-			<View style={styles.summaryHeader}>
-				<AppText variant="caption">{t.nutrition.goals.heading}</AppText>
-				<Pressable
-					onPress={onSetUpGoals}
-					accessibilityRole="button"
-					style={styles.editGoals}
-				>
-					<AppText variant="caption" style={{ color: colors.accent }}>
-						{t.nutrition.goals.edit}
-					</AppText>
-				</Pressable>
-			</View>
-			<View
-				style={styles.summaryEnergy}
-				accessible
-				accessibilityLabel={energyDisplay.accessibility}
-			>
-				<AppText variant="title">{energyDisplay.primary}</AppText>
-				<AppText variant="caption">{energyDisplay.secondary}</AppText>
-			</View>
-			{(max ?? min ?? 0) > 0 && goalStatusAvailable(energyGoals, energy) ? (
-				<View style={styles.track}>
-					<View
-						style={[
-							styles.fill,
-							{
-								width: `${Math.max(0, Math.min(100, ((energy?.amount ?? 0) / (max ?? min ?? 1)) * 100))}%`,
-								backgroundColor: colors.accent,
-							},
-						]}
-					/>
-				</View>
-			) : null}
-			<View style={styles.macros}>
-				{["protein", "carbs", "fat"].map((key) => (
-					<MacroRow
-						key={key}
-						t={t}
-						nutrient={key as NutrientKey}
-						total={totals[key as NutrientKey]}
-						goals={groups.get(key as NutrientKey) ?? []}
-					/>
-				))}
-			</View>
-		</GroupedSurface>
-	);
-}
-
-function describeEnergy(
-	t: Messages,
-	total: NutrientTotal | undefined,
-	min: number | undefined,
-	max: number | undefined,
-) {
-	const amount = total?.amount ?? 0;
-	const logged = roundForDisplay("energy", amount);
-	const invalidRange = min !== undefined && max !== undefined && min > max;
-	const reference = invalidRange
-		? t.nutrition.day.reviewGoals
-		: min !== undefined && max !== undefined
-			? fmt(t.nutrition.day.energyRangeReference, { logged, min, max })
-			: max !== undefined
-				? fmt(t.nutrition.day.energyReference, { logged, target: max })
-				: min !== undefined
-					? fmt(t.nutrition.day.energyReference, { logged, target: min })
-					: t.nutrition.day.energyNoGoal;
-	if (!total || total.entryCount === 0) {
-		const primary = fmt(t.nutrition.day.energyLogged, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (total?.absentCount && total.valueCount === 0 && total.traceCount === 0) {
-		return {
-			primary: t.nutrition.day.unavailableEnergy,
-			secondary: reference,
-			accessibility: `${t.nutrition.day.unavailableEnergy}. ${reference}`,
-		};
-	}
-	if (total?.incomplete) {
-		const primary = fmt(t.nutrition.day.knownEnergy, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (total?.qualified) {
-		const primary = fmt(t.nutrition.day.approximateEnergy, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (invalidRange) {
-		const primary = fmt(t.nutrition.day.energyLogged, { amount: logged });
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (min !== undefined && max !== undefined) {
-		const primary =
-			amount < min
-				? fmt(t.nutrition.day.energyToRange, {
-						amount: roundForDisplay("energy", min - amount),
-					})
-				: amount > max
-					? fmt(t.nutrition.day.energyAboveRange, {
-							amount: roundForDisplay("energy", amount - max),
-						})
-					: t.nutrition.day.energyWithinRange;
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (max !== undefined) {
-		const primary =
-			amount < max
-				? fmt(t.nutrition.day.energyRemaining, {
-						amount: roundForDisplay("energy", max - amount),
-					})
-				: amount === max
-					? t.nutrition.day.energyTargetReached
-					: fmt(t.nutrition.day.energyAboveTarget, {
-							amount: roundForDisplay("energy", amount - max),
-						});
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	if (min !== undefined) {
-		const primary =
-			amount < min
-				? fmt(t.nutrition.day.energyToMinimum, {
-						amount: roundForDisplay("energy", min - amount),
-					})
-				: t.nutrition.day.energyMinimumReached;
-		return {
-			primary,
-			secondary: reference,
-			accessibility: `${primary}. ${reference}`,
-		};
-	}
-	const primary = fmt(t.nutrition.day.energyLogged, { amount: logged });
-	return {
-		primary,
-		secondary: reference,
-		accessibility: `${primary}. ${reference}`,
-	};
-}
-
-function MacroRow({
-	t,
-	nutrient,
-	total,
-	goals,
-}: {
-	t: Messages;
-	nutrient: NutrientKey;
-	total: NutrientTotal | undefined;
-	goals: NutrientGoal[];
-}) {
-	const value = totalLabel(t, nutrient, total);
-	const displayValue =
-		value === t.nutrition.foodBrowser.absent ||
-		value === t.nutrition.foodBrowser.trace
-			? value
-			: `${value} g`;
-	const canReportStatus = goalStatusAvailable(goals, total);
-	const goalStatus = canReportStatus
-		? goals
-				.map(
-					(goal) =>
-						t.nutrition.goals.state[
-							goalState(goal.direction, total?.amount, goal.target)
-						],
-				)
-				.join(". ")
-		: "";
-	return (
-		<View
-			style={styles.macroRow}
-			accessible
-			accessibilityLabel={`${t.nutrition.nutrients[nutrient]}: ${displayValue}${goalStatus ? `. ${goalStatus}.` : ""}`}
-		>
-			<AppText variant="caption">{t.nutrition.nutrients[nutrient]}</AppText>
-			<View style={styles.macroValue}>
-				<AppText style={styles.strong}>{displayValue}</AppText>
-				{goals.map((goal) => (
-					<View key={`${goal.nutrient}-${goal.direction}`}>
-						<AppText variant="caption">
-							{goal.direction === "min" ? "≥" : "≤"} {goal.target} g
-						</AppText>
-						{canReportStatus ? (
-							<AppText variant="caption">
-								{
-									t.nutrition.goals.state[
-										goalState(goal.direction, total?.amount, goal.target)
-									]
-								}
-							</AppText>
-						) : null}
-					</View>
-				))}
-			</View>
-		</View>
-	);
-}
-
-function goalStatusAvailable(
-	goals: NutrientGoal[],
-	total: NutrientTotal | undefined,
-) {
-	if (
-		total === undefined ||
-		total.entryCount === 0 ||
-		total.absentCount > 0 ||
-		total.incomplete ||
-		total.qualified
-	) {
-		return false;
-	}
-	const min = goals.find((goal) => goal.direction === "min")?.target;
-	const max = goals.find((goal) => goal.direction === "max")?.target;
-	return !(min !== undefined && max !== undefined && min > max);
-}
-
-function GoalRow({
-	t,
-	goal,
-	total,
-}: {
-	t: Messages;
-	goal: NutrientGoal;
-	total: NutrientTotal | undefined;
-}) {
-	const amount = total?.amount;
-	const canReportStatus = goalStatusAvailable([goal], total);
-	const state = goalState(goal.direction, amount, goal.target);
-	const unit = t.nutrition.units[nutrientUnit(goal.nutrient)];
-	const name = t.nutrition.nutrients[goal.nutrient];
-	const progress = fmt(t.nutrition.goals.progress, {
-		total: qualifiedAmount(goal.nutrient, total),
-		target: goal.target,
-		unit,
-	});
-	const stateWord = t.nutrition.goals.state[state];
-	const fraction = Math.max(0, Math.min(1, (amount ?? 0) / goal.target));
-
-	return (
-		<View
-			accessible
-			accessibilityLabel={`${name}: ${progress}${canReportStatus ? `. ${stateWord}.` : ""}`}
-			style={styles.goalRow}
-		>
-			<View style={styles.goalHeader}>
-				<AppText style={styles.goalName}>{name}</AppText>
-				<AppText variant="caption">{progress}</AppText>
-			</View>
-			<View style={styles.track}>
-				<View
-					style={[
-						styles.fill,
-						{
-							width: `${fraction * 100}%`,
-							backgroundColor: STATE_COLOR[state],
-						},
-					]}
-				/>
-			</View>
-			{canReportStatus ? (
-				<AppText variant="caption" style={{ color: STATE_COLOR[state] }}>
-					{stateWord}
-				</AppText>
-			) : null}
-		</View>
-	);
-}
-
 function ComboControls({
 	t,
 	selecting,
 	selectedCount,
+	selectionConstraint,
 	onCancel,
 	onContinue,
 }: {
 	t: Messages;
 	selecting: boolean;
 	selectedCount: number;
+	selectionConstraint?: string;
 	onCreate: () => void;
 	onLog: () => void;
 	onCancel: () => void;
@@ -992,6 +620,9 @@ function ComboControls({
 		return (
 			<GroupedSurface style={styles.comboControls}>
 				<AppText>{t.nutrition.combos.selectionHelp}</AppText>
+				{selectionConstraint ? (
+					<AppText variant="caption">{selectionConstraint}</AppText>
+				) : null}
 				<View style={styles.comboActions}>
 					<GhostButton label={t.nutrition.combos.cancel} onPress={onCancel} />
 					<PrimaryButton
@@ -1030,8 +661,10 @@ function MealSection({
 	onEdit,
 	onDelete,
 	selecting,
+	selectionLocked,
 	selectedEntryIds,
 	onToggleEntry,
+	onToggleGroup,
 }: {
 	t: Messages;
 	slot: MealSlot;
@@ -1049,8 +682,10 @@ function MealSection({
 	onEdit: (entry: DiaryEntry) => void;
 	onDelete: (entry: DiaryEntry) => void;
 	selecting: boolean;
+	selectionLocked: boolean;
 	selectedEntryIds: ReadonlySet<string>;
 	onToggleEntry: (entry: DiaryEntry) => void;
+	onToggleGroup: (entries: readonly DiaryEntry[]) => void;
 }) {
 	const mealName = t.nutrition.meals[slot];
 	const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
@@ -1117,6 +752,7 @@ function MealSection({
 									date={date}
 									locale={locale}
 									selecting={selecting}
+									disabled={selectionLocked}
 									selected={selectedEntryIds.has(entry.id)}
 									onPress={() =>
 										selecting ? onToggleEntry(entry) : onEdit(entry)
@@ -1131,25 +767,35 @@ function MealSection({
 						const parts = entries.filter(
 							(candidate) => candidate.comboGroup?.id === group.id,
 						);
-						const expanded = selecting || expandedGroups.has(group.id);
+						const groupSelected = parts.every((part) =>
+							selectedEntryIds.has(part.id),
+						);
+						const expanded = !selecting && expandedGroups.has(group.id);
 						return (
 							<View key={group.id}>
 								<Pressable
-									disabled={selecting}
-									accessible={!selecting}
-									onPress={() =>
-										setExpandedGroups((current) => {
-											const next = new Set(current);
-											if (next.has(group.id)) next.delete(group.id);
-											else next.add(group.id);
-											return next;
-										})
+									disabled={selecting && selectionLocked}
+									onPress={() => {
+										if (selecting) onToggleGroup(parts);
+										else
+											setExpandedGroups((current) => {
+												const next = new Set(current);
+												if (next.has(group.id)) next.delete(group.id);
+												else next.add(group.id);
+												return next;
+											});
+									}}
+									accessibilityRole={selecting ? "checkbox" : "button"}
+									accessibilityState={
+										selecting
+											? { checked: groupSelected, disabled: selectionLocked }
+											: { expanded }
 									}
-									accessibilityRole={selecting ? undefined : "button"}
-									accessibilityState={selecting ? undefined : { expanded }}
 									accessibilityLabel={
 										selecting
-											? undefined
+											? locale === "nl"
+												? `Selecteer gelogde Combo ${group.name} voor Combo`
+												: `Select Logged Combo ${group.name} for Combo`
 											: fmt(
 													expanded
 														? t.nutrition.combos.collapseGroup
@@ -1157,9 +803,25 @@ function MealSection({
 													{ name: group.name },
 												)
 									}
-									style={styles.entryRow}
+									style={[
+										styles.entryRow,
+										selecting && selectionLocked
+											? styles.selectionUnavailable
+											: null,
+									]}
 								>
 									<View style={styles.flex}>
+										{selecting ? (
+											<AppText
+												style={{
+													color: groupSelected
+														? colors.accent
+														: colors.textMuted,
+												}}
+											>
+												{groupSelected ? "☑" : "☐"}
+											</AppText>
+										) : null}
 										<AppText style={styles.goalName}>{group.name}</AppText>
 										<AppText variant="caption">
 											{parts.length === 1
@@ -1178,7 +840,9 @@ function MealSection({
 										)}{" "}
 										{t.nutrition.units.kcal}
 									</AppText>
-									<AppText variant="heading">{expanded ? "⌃" : "⌄"}</AppText>
+									{selecting ? null : (
+										<AppText variant="heading">{expanded ? "⌃" : "⌄"}</AppText>
+									)}
 								</Pressable>
 								{expanded
 									? parts.map((part) => (
@@ -1190,6 +854,7 @@ function MealSection({
 												date={date}
 												locale={locale}
 												selecting={selecting}
+												disabled={selectionLocked}
 												selected={selectedEntryIds.has(part.id)}
 												inGroup
 												onPress={() =>
@@ -1220,11 +885,6 @@ function MealSection({
 	);
 }
 
-/**
- * One Capture Draft: a note that is not intake yet, so no figures and no
- * share of the subtotal. Tapping reopens the search with the note as the
- * query; edit and delete ride the same swipe/long-press/menu as an entry.
- */
 function DraftRow({
 	t,
 	draft,
@@ -1263,9 +923,9 @@ function DraftRow({
 						note: draft.note,
 					})}
 					{...accessibility}
-					style={({ pressed }) => [
-						pressed ? { backgroundColor: colors.surface2 } : null,
-					]}
+					style={({ pressed }) =>
+						pressed ? { backgroundColor: colors.surface2 } : undefined
+					}
 				>
 					<View style={[styles.entryRow, styles.draftRow]}>
 						<View style={styles.flex}>
@@ -1303,6 +963,7 @@ function EntryRow({
 	locale,
 	selecting,
 	selected,
+	disabled = false,
 	inGroup = false,
 	onPress,
 	onDelete,
@@ -1315,28 +976,35 @@ function EntryRow({
 	locale: "en" | "nl";
 	selecting: boolean;
 	selected: boolean;
+	disabled?: boolean;
 	/** Indents the row under its Combo header. Only a part is ever nested. */
 	inGroup?: boolean;
 	onPress: () => void;
 	onDelete: () => void;
 	onTransfer: (mode: "copy" | "move") => void;
 }) {
+	const estimateLabel =
+		locale === "nl" ? "Geschatte voedingswaarden" : "Estimated nutrition";
 	const content = (accessibility?: RowAccessibilityProps) => (
 		<Pressable
 			onPress={onPress}
+			disabled={disabled}
 			accessibilityRole={selecting ? "checkbox" : "button"}
-			accessibilityState={selecting ? { checked: selected } : undefined}
+			accessibilityState={
+				selecting ? { checked: selected, disabled } : undefined
+			}
 			accessibilityLabel={
-				selecting
+				(selecting
 					? fmt(t.nutrition.combos.selectEntry, {
 							name: entry.name[locale],
 						})
 					: fmt(t.nutrition.entryEditor.editEntry, {
 							name: entry.name[locale],
-						})
+						})) + (entry.estimated ? `. ${estimateLabel}` : "")
 			}
 			{...accessibility}
 			style={({ pressed }) => [
+				disabled ? styles.selectionUnavailable : null,
 				pressed ? { backgroundColor: colors.surface2 } : null,
 			]}
 		>
@@ -1349,7 +1017,30 @@ function EntryRow({
 					</AppText>
 				) : null}
 				<View style={styles.flex}>
-					<AppText style={styles.goalName}>{entry.name[locale]}</AppText>
+					<View
+						style={{
+							flexDirection: "row",
+							alignItems: "center",
+							gap: spacing.xs,
+						}}
+					>
+						<AppText style={[styles.goalName, { flexShrink: 1 }]}>
+							{entry.name[locale]}
+						</AppText>
+						{entry.estimated ? (
+							<SymbolView
+								name={{
+									ios: "plus.forwardslash.minus",
+									android: "calculate",
+									web: "calculate",
+								}}
+								size={14}
+								tintColor={colors.textMuted}
+								accessibilityLabel={estimateLabel}
+								accessibilityRole="image"
+							/>
+						) : null}
+					</View>
 					<AppText variant="caption">{entry.serving[locale]}</AppText>
 					{entry.pendingOperationId ? (
 						<AppText variant="caption">{t.nutrition.day.syncPending}</AppText>
@@ -1527,22 +1218,29 @@ function OfflineDay({
 
 /**
  * The same boxes the loaded day draws, in the same places: one goal card with
- * four rows, then four meal sections. A spinner would tell the user nothing
+ * two full rows plus a teaser, then four meal sections. A spinner would tell the user nothing
  * about what is coming.
  */
 function DaySkeleton({ label }: { label: string }) {
 	return (
 		<SkeletonGroup label={label}>
 			<GroupedSurface style={styles.goalCard}>
-				<SkeletonBlock width="65%" height={28} />
-				<SkeletonBlock height={8} />
-				<View style={styles.macros}>
-					{[0, 1, 2].map((row) => (
-						<View key={row} style={styles.macroRow}>
-							<SkeletonBlock height={14} />
-							<SkeletonBlock width="65%" height={20} />
+				<View style={styles.skeletonGoalHeader}>
+					<SkeletonBlock width="28%" height={14} />
+					<SkeletonBlock width={76} height={28} />
+				</View>
+				{[0, 1].map((row) => (
+					<View key={row} style={styles.skeletonGoalRow}>
+						<View style={styles.skeletonGoalHeader}>
+							<SkeletonBlock width="30%" height={16} />
+							<SkeletonBlock width="45%" height={14} />
 						</View>
-					))}
+						<SkeletonBlock height={8} />
+						<SkeletonBlock width="32%" height={13} />
+					</View>
+				))}
+				<View style={styles.skeletonTeaser}>
+					<SkeletonBlock height={8} />
 				</View>
 			</GroupedSurface>
 			{MEAL_SLOTS.map((slot) => (
@@ -1555,6 +1253,10 @@ function DaySkeleton({ label }: { label: string }) {
 			))}
 		</SkeletonGroup>
 	);
+}
+
+function isRealDate(value: string | undefined): value is string {
+	return value !== undefined && isRealIsoDate(value);
 }
 
 const styles = StyleSheet.create({
@@ -1576,12 +1278,6 @@ const styles = StyleSheet.create({
 	scroll: { flex: 1 },
 	content: { padding: 20, paddingTop: 12, gap: spacing.md, paddingBottom: 40 },
 	flex: { flex: 1, minWidth: 0 },
-	toolbarButton: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
 	section: { gap: spacing.sm },
 	strong: { fontWeight: "700" },
 
@@ -1616,53 +1312,20 @@ const styles = StyleSheet.create({
 	},
 
 	goalCard: { gap: spacing.md },
-	summaryCard: { gap: spacing.sm },
-	summaryHeader: {
+	skeletonGoalHeader: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
 		gap: spacing.sm,
 	},
-	macros: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: spacing.md,
-		paddingTop: spacing.sm,
-	},
-	summaryEnergy: { gap: 2, paddingBottom: spacing.xs },
-	macroRow: {
-		flexGrow: 1,
-		flexBasis: 80,
-		minWidth: 80,
-		gap: 4,
-	},
-	macroValue: { gap: 2 },
-	editGoals: {
-		minHeight: 44,
-		justifyContent: "center",
-		alignItems: "flex-end",
-	},
-	goalRow: { gap: 6 },
-	goalHeader: {
-		flexDirection: "row",
-		alignItems: "baseline",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-	},
+	skeletonGoalRow: { gap: 6 },
+	skeletonTeaser: { opacity: 0.35, height: 12, overflow: "hidden" },
 	// The nutrient's name yields before its number does. Spec #68 is explicit
 	// that dynamic type must not clip nutrition values, and in a row with one
 	// of each there has to be a rule about which one gives way.
 	goalName: { fontWeight: "700", flexShrink: 1 },
 	comboControls: { gap: spacing.sm },
 	comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-	track: {
-		height: 8,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-		overflow: "hidden",
-	},
-	fill: { height: 8, borderRadius: radius.pill },
-
 	mealHeader: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -1698,8 +1361,8 @@ const styles = StyleSheet.create({
 		maxWidth: "38%",
 		flexShrink: 1,
 	},
+	selectionUnavailable: { opacity: 0.45 },
 	comboPart: { paddingLeft: spacing.sm },
-	groupedRow: { padding: spacing.md },
 	groupedEntryRow: {
 		paddingHorizontal: spacing.md,
 		borderBottomWidth: 0,

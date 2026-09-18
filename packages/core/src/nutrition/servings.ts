@@ -15,6 +15,13 @@ import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
  */
 export type ServingOption =
 	| {
+			readonly kind: "personal-measure";
+			readonly id: string;
+			readonly label: Bilingual;
+			readonly amount: number;
+			readonly unit: "g" | "ml";
+	  }
+	| {
 			readonly kind: "authored";
 			/** Index into the food's `servings`, so a selection can be stored. */
 			readonly index: number;
@@ -28,8 +35,16 @@ export type ServingOption =
 			readonly label: Bilingual;
 			/** One gram or one millilitre; quantity does the rest. */
 			readonly amount: 1;
-			readonly unit: "g" | "ml";
+			readonly unit: "g" | "ml" | "serving";
 	  };
+
+export type PersonalMeasure = {
+	readonly id: string;
+	readonly name: string;
+	readonly amount: number;
+	readonly unit: "g" | "ml";
+	readonly order: number;
+};
 
 const BASE_UNIT_LABELS: Record<"g" | "ml", Bilingual> = {
 	g: { en: "Gram (g)", nl: "Gram (g)" },
@@ -53,6 +68,48 @@ export function servingOptions(food: ShippedFood): ServingOption[] {
 		unit: food.baseUnit,
 	});
 	return options;
+}
+
+/** Adds exact same-unit Personal Measures before a Food's own choices. */
+export function withPersonalMeasures(
+	foodOptions: readonly ServingOption[],
+	baseUnit: "g" | "ml" | "serving",
+	measures: readonly PersonalMeasure[],
+): ServingOption[] {
+	if (baseUnit === "serving") return [...foodOptions];
+	const compatible = [...measures]
+		.filter((measure) => measure.unit === baseUnit)
+		.sort((left, right) => left.order - right.order)
+		.map((measure): ServingOption => {
+			return {
+				kind: "personal-measure",
+				id: measure.id,
+				label: {
+					en: `${measure.name} (${formatQuantity(measure.amount, "en")} ${measure.unit})`,
+					nl: `${measure.name} (${formatQuantity(measure.amount, "nl")} ${measure.unit})`,
+				},
+				amount: measure.amount,
+				unit: measure.unit,
+			};
+		});
+	const authored = foodOptions.filter((option) => {
+		if (option.kind !== "authored") return true;
+		return !compatible.some((measure) => {
+			const name = measure.label.en
+				.replace(/\s*\([^)]*\)$/, "")
+				.trim()
+				.toLowerCase();
+			const exact = measure.label.en.toLowerCase();
+			return (
+				option.amount === measure.amount &&
+				[option.label.en, option.label.nl].some((label) => {
+					const normalized = label.trim().toLowerCase();
+					return normalized === name || normalized === exact;
+				})
+			);
+		});
+	});
+	return [...compatible, ...authored];
 }
 
 /** How many base units `quantity` of this option comes to. */

@@ -26,6 +26,7 @@ export const nl = {
 		units: "Eenheden",
 		notifications: "Meldingen",
 		connectedApps: "Gekoppelde apps",
+		personalMeasures: "Persoonlijke maten",
 		language: "Taal",
 	},
 
@@ -41,6 +42,47 @@ export const nl = {
 
 	nutrition: {
 		title: "Voeding",
+		personalMeasures: {
+			title: "Persoonlijke maten",
+			emptyTitle: "Nog geen persoonlijke maten",
+			emptyBody:
+				"Bewaar herbruikbare exacte hoeveelheden, zoals Klein glas · 250 ml of Eiwitschep · 35 g.",
+			add: "Persoonlijke maat toevoegen",
+			edit: "Persoonlijke maat bewerken",
+			name: "Naam",
+			amount: "Hoeveelheid",
+			unit: "Eenheid",
+			unitChangeTitle: "Eenheid van deze maat wijzigen?",
+			unitChangeBody:
+				"De maat verdwijnt bij voedingsmiddelen met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
+			unitChangeConfirm: "Eenheid wijzigen",
+			grams: "Gram",
+			millilitres: "Milliliter",
+			save: "Maat opslaan",
+			cancel: "Annuleren",
+			delete: "Persoonlijke maat verwijderen",
+			deleteTitle: "Persoonlijke maat verwijderen?",
+			deleteBody:
+				"Eerdere dagboekitems veranderen niet. Deze maat verdwijnt uit toekomstige keuzes.",
+			deleteFailure: "Deze persoonlijke maat kon niet worden verwijderd.",
+			saveFailure:
+				"Deze persoonlijke maat kon niet worden opgeslagen. Je wijzigingen staan er nog.",
+			reorderFailure: "De persoonlijke maten konden niet worden herschikt.",
+			validation:
+				"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met maximaal één decimaal in.",
+			formHelp: "Persoonlijke namen blijven in elke app-taal hetzelfde.",
+			compatibilityHelp:
+				"Een persoonlijke maat verschijnt alleen bij voeding met dezelfde basiseenheid g of ml.",
+			offlineTitle: "Maak verbinding om persoonlijke maten te beheren",
+			offlineBody:
+				"Opgeslagen maten blijven beschikbaar bij het loggen, maar wijzigingen vereisen nu een verbinding.",
+			moveUp: "Omhoog",
+			moveDown: "Omlaag",
+			manage: "Persoonlijke maten beheren",
+			incompatibleReturn:
+				"Deze maat gebruikt een andere eenheid; de vorige portiekeuze bleef staan.",
+			loading: "Persoonlijke maten laden",
+		},
 
 		day: {
 			today: "Vandaag",
@@ -102,8 +144,31 @@ export const nl = {
 		goals: {
 			heading: "Doelen",
 			edit: "Doelen bewerken",
+			more: "Nog {count}",
+			showMore: "Nog {count} doelen tonen",
+			showLess: "Minder tonen",
+			expandPreview: "{count} verborgen doelen uitklappen",
+			incomplete: "Onvolledig",
+			approximate: "Bij benadering",
+			toMinimum: "Nog {amount} {unit} tot minimum",
+			minimumMet: "Minimum gehaald",
+			remaining: "Nog {amount} {unit}",
+			atMaximum: "Op maximum",
+			over: "{amount} {unit} erboven",
+			toRange: "Nog {amount} {unit} tot bereik",
+			withinRange: "Binnen bereik",
+			actionsFor: "Acties voor {nutrient}",
+			reorder: "Doelen rangschikken",
+			cancel: "Annuleren",
+			reset: "Herstellen",
+			done: "Gereed",
+			move: "{nutrient} verplaatsen",
+			moveUp: "Omhoog verplaatsen",
+			moveDown: "Omlaag verplaatsen",
+			reorderFailure:
+				"Je doelvolgorde kon niet worden opgeslagen. Je wijzigingen staan er nog.",
 			empty: {
-				title: "Nog geen doelen",
+				title: "Geen voedingsdoelen",
 				body: "Stel een dagelijkse hoeveelheid in voor de voedingsstoffen die jij belangrijk vindt; de dag vult zich daarna vanzelf.",
 				action: "Doelen instellen",
 			},
@@ -313,7 +378,7 @@ export const nl = {
 			saveFailure:
 				"Deze Combo kon niet worden opgeslagen. Je naam en selectie staan er nog.",
 			selectionHelp:
-				"Kies afzonderlijke dagboekitems. Maaltijdvakken worden nooit automatisch geselecteerd.",
+				"Kies dagboekitems of een hele gelogde Combo uit één maaltijd.",
 			selectEntry: "Selecteer {name} voor Combo",
 			cancel: "Annuleren",
 			continueOne: "Ga verder met 1 onderdeel",
@@ -329,7 +394,7 @@ export const nl = {
 			needsAttention: "Aandacht nodig",
 			missing: "Bron ontbreekt",
 			missingBody:
-				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Het is niet automatisch vervangen. Verwijder niet-beschikbare onderdelen, verwijder deze Combo of maak hem opnieuw met de gewenste items.",
+				"Een opgeslagen voedingsmiddel staat niet meer op dit apparaat. Sluit het voor deze log uit, verwijder niet-beschikbare onderdelen uit de opgeslagen Combo of maak de Combo opnieuw.",
 			resolveTitle: "Niet-beschikbare onderdelen verwijderen?",
 			resolveBody:
 				"Alleen onderdelen waarvan de oorspronkelijke bron nog beschikbaar is, blijven in deze Combo staan.",
@@ -380,6 +445,9 @@ export const nl = {
 
 		entryEditor: {
 			title: "Item bewerken",
+			serving: "Portie",
+			previousValue: "Vorige waarde",
+			noLongerAvailable: "Niet meer beschikbaar",
 			editEntry: "Item bewerken: {name}",
 			meal: "Maaltijd",
 			date: "Datum",

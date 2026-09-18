@@ -9,6 +9,7 @@ import {
 	servingAmount,
 	servingOptions,
 	servingVolumeMapping,
+	withPersonalMeasures,
 } from "./servings";
 import type { ShippedFood } from "./types";
 
@@ -45,6 +46,42 @@ describe("the serving picker", () => {
 		expect(servingOptions(perMillilitre).at(-1)?.label.en).toBe(
 			"Millilitre (ml)",
 		);
+	});
+
+	test("puts same-unit Personal Measures first and suppresses only exact duplicates", () => {
+		const options = withPersonalMeasures(
+			[
+				{
+					kind: "authored",
+					index: 0,
+					label: { en: "Scoop", nl: "Schep" },
+					amount: 35,
+				},
+				{
+					kind: "base-unit",
+					label: { en: "Gram (g)", nl: "Gram (g)" },
+					amount: 1,
+					unit: "g",
+				},
+			],
+			"g",
+			[
+				{ id: "large", name: "Large glass", amount: 450, unit: "ml", order: 0 },
+				{ id: "scoop", name: "scoop", amount: 35, unit: "g", order: 1 },
+				{ id: "bowl", name: "Bowl", amount: 100, unit: "g", order: 2 },
+			],
+		);
+
+		expect(options.map((option) => option.kind)).toEqual([
+			"personal-measure",
+			"personal-measure",
+			"base-unit",
+		]);
+		expect(options.map((option) => option.label.en)).toEqual([
+			"scoop (35 g)",
+			"Bowl (100 g)",
+			"Gram (g)",
+		]);
 	});
 });
 

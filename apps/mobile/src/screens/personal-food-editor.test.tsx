@@ -7,6 +7,7 @@ import {
 import type { ReactNode } from "react";
 import { ActionSheetIOS } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import type { FoodPhotoManager } from "../data/food-photo-manager";
 import {
 	createPersonalFoodRepository,
 	type PersonalFood,
@@ -50,13 +51,21 @@ function Providers({
 
 function renderEditor(
 	repository = createPersonalFoodRepository(new SQLiteTestDatabase()),
+	photoManager?: FoodPhotoManager,
 ) {
 	const onSaved = jest.fn<void, [PersonalFood]>();
-	render(<PersonalFoodEditor onSaved={onSaved} onCancel={jest.fn()} />, {
-		wrapper: ({ children }) => (
-			<Providers repository={repository}>{children}</Providers>
-		),
-	});
+	render(
+		<PersonalFoodEditor
+			onSaved={onSaved}
+			onCancel={jest.fn()}
+			photoManager={photoManager}
+		/>,
+		{
+			wrapper: ({ children }) => (
+				<Providers repository={repository}>{children}</Providers>
+			),
+		},
+	);
 	return { onSaved, repository };
 }
 
@@ -66,10 +75,190 @@ function mockNutritionMenuSelect(index: number) {
 		.mockImplementation((_options, onSelect) => onSelect(index));
 }
 
+function testPhotoManager(
+	overrides: Partial<FoodPhotoManager> = {},
+): FoodPhotoManager {
+	return {
+		choose: jest.fn().mockResolvedValue({ kind: "cancelled" }),
+		importRemote: jest.fn(),
+		remove: jest.fn(),
+		isAvailable: jest.fn().mockReturnValue(true),
+		removeOrphans: jest.fn(),
+		...overrides,
+	};
+}
+
+function testFoodDraft() {
+	return {
+		name: { en: "Apple", nl: "Appel" },
+		baseUnit: "g" as const,
+		nutrients: {
+			energy: { kind: "absent" as const },
+			protein: { kind: "absent" as const },
+			carbs: { kind: "absent" as const },
+			fat: { kind: "absent" as const },
+			saturatedFat: { kind: "absent" as const },
+			fibre: { kind: "absent" as const },
+			sugars: { kind: "absent" as const },
+			salt: { kind: "absent" as const },
+		},
+		servings: [],
+		provenance: {
+			recordOrigin: "personal" as const,
+			nutritionSource: "manual" as const,
+			locallyEdited: false,
+		},
+	};
+}
+
 describe("Personal Food compact authoring", () => {
 	afterEach(() => {
 		clearPreference(PREFERENCE_KEYS.locale);
 		jest.restoreAllMocks();
+	});
+
+	it("stores a curated Food Visual icon while leaving the default unstored", async () => {
+		const first = renderEditor();
+		expect(screen.getByText("Food visual")).toBeTruthy();
+		expect(screen.getByText("Default")).toBeTruthy();
+		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
+		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(first.onSaved).toHaveBeenCalledTimes(1));
+		expect(
+			first.repository.find(first.onSaved.mock.calls[0][0].id)?.visual,
+		).toEqual({ kind: "icon", preset: "fruit" });
+
+		const second = renderEditor();
+		fireEvent.changeText(screen.getByLabelText("Name"), "Plain oats");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(second.onSaved).toHaveBeenCalledTimes(1));
+		expect(
+			second.repository.find(second.onSaved.mock.calls[0][0].id)?.visual,
+		).toBeUndefined();
+	});
+
+	it("stores a manually cropped photo selected from the library", async () => {
+		const photoManager = testPhotoManager({
+			choose: jest.fn().mockResolvedValue({
+				kind: "selected",
+				visual: {
+					kind: "photo",
+					uri: "file:///documents/food-photos/apple.jpg",
+				},
+			}),
+		});
+		const { onSaved, repository } = renderEditor(undefined, photoManager);
+		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
+		fireEvent.press(screen.getByText("Choose photo"));
+		await screen.findByLabelText("Food visual");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(photoManager.choose).toHaveBeenCalledWith("library");
+		expect(repository.find(onSaved.mock.calls[0][0].id)?.visual).toEqual({
+			kind: "photo",
+			uri: "file:///documents/food-photos/apple.jpg",
+		});
+	});
+
+	it("blocks saving after photo preparation fails until the visual is changed", async () => {
+		const photoManager = testPhotoManager({
+			choose: jest.fn().mockRejectedValue(new Error("cannot prepare image")),
+		});
+		const { onSaved, repository } = renderEditor(undefined, photoManager);
+		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
+		fireEvent.press(screen.getByText("Choose photo"));
+
+		expect(
+			await screen.findByText(
+				"That photo could not be prepared. Your current visual is unchanged.",
+			),
+		).toBeTruthy();
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		expect(onSaved).not.toHaveBeenCalled();
+		expect(repository.list()).toEqual([]);
+
+		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+	});
+
+	it("deletes the previous managed photo only after its replacement is saved", async () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const oldPhoto = {
+			kind: "photo" as const,
+			uri: "file:///documents/food-photos/old.jpg",
+		};
+		const food = repository.create({ ...testFoodDraft(), visual: oldPhoto });
+		const photoManager = testPhotoManager({
+			choose: jest.fn().mockResolvedValue({
+				kind: "selected",
+				visual: {
+					kind: "photo",
+					uri: "file:///documents/food-photos/new.jpg",
+				},
+			}),
+		});
+		const onSaved = jest.fn<void, [PersonalFood]>();
+		render(
+			<PersonalFoodEditor
+				food={food}
+				onSaved={onSaved}
+				onCancel={jest.fn()}
+				photoManager={photoManager}
+			/>,
+			{
+				wrapper: ({ children }) => (
+					<Providers repository={repository}>{children}</Providers>
+				),
+			},
+		);
+
+		fireEvent.press(screen.getByText("Replace photo"));
+		await waitFor(() =>
+			expect(screen.getByLabelText("Food visual").props.source).toEqual([
+				{ uri: "file:///documents/food-photos/new.jpg" },
+			]),
+		);
+		expect(photoManager.remove).not.toHaveBeenCalledWith(oldPhoto);
+		fireEvent.press(screen.getByText("Save Personal Food"));
+
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(food.id)?.visual).toEqual({
+			kind: "photo",
+			uri: "file:///documents/food-photos/new.jpg",
+		});
+		expect(photoManager.remove).toHaveBeenCalledWith(oldPhoto);
+	});
+	it("saves a per-serving Recipe estimate without requiring a weight", async () => {
+		const { onSaved, repository } = renderEditor();
+		fireEvent.changeText(screen.getByLabelText("Name"), "Pasta bowl");
+		fireEvent.press(screen.getByText("Recipe"));
+		fireEvent.press(screen.getByText("Estimated"));
+		fireEvent.press(screen.getByText("Per serving"));
+		fireEvent.changeText(screen.getByLabelText("Serving name"), "Bowl");
+		fireEvent.changeText(
+			screen.getByLabelText("Description (optional)"),
+			"Lunch at home",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Energy per serving (Bowl)"),
+			"550",
+		);
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(onSaved.mock.calls[0][0].id)).toMatchObject({
+			classification: "recipe",
+			estimated: true,
+			baseUnit: "serving",
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Bowl" } },
+			description: { en: "Lunch at home", nl: "Lunch at home" },
+			nutrients: {
+				energy: { kind: "value", amount: 550 },
+				fat: { kind: "absent" },
+			},
+		});
 	});
 
 	it("uses one primary name, falls back to it, and keeps zero, trace, absent, and a custom serving", async () => {
@@ -118,6 +307,8 @@ describe("Personal Food compact authoring", () => {
 		const created = repository.find(onSaved.mock.calls[0][0].id);
 		expect(created).toMatchObject({
 			name: { en: "Training drink", nl: "Training drink" },
+			estimated: false,
+			classification: "ordinary",
 			baseUnit: "ml",
 			nutrients: {
 				energy: { kind: "value", amount: 0 },
@@ -169,6 +360,55 @@ describe("Personal Food compact authoring", () => {
 		});
 		expect(repository.find(food.id)?.nutrients.protein).toEqual({
 			kind: "trace",
+		});
+	});
+
+	it("protects an existing import's reviewed serving basis from provider refresh", async () => {
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const food = repository.create({
+			name: { en: "Imported soup", nl: "Soep" },
+			baseUnit: "g",
+			nutrients: {
+				energy: { kind: "value", amount: 100 },
+				protein: { kind: "absent" },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			servings: [],
+			provenance: {
+				recordOrigin: "import",
+				nutritionSource: "openfoodfacts",
+				locallyEdited: false,
+				provider: "Open Food Facts",
+				barcode: "1234567890123",
+			},
+		});
+		const onSaved = jest.fn<void, [PersonalFood]>();
+		render(
+			<PersonalFoodEditor food={food} onSaved={onSaved} onCancel={jest.fn()} />,
+			{
+				wrapper: ({ children }) => (
+					<Providers repository={repository}>{children}</Providers>
+				),
+			},
+		);
+		fireEvent.press(screen.getByText("Per serving"));
+		fireEvent.changeText(screen.getByLabelText("Serving name"), "Bowl");
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+		expect(repository.find(food.id)).toMatchObject({
+			baseUnit: "serving",
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Bowl" } },
+			estimated: false,
+			provenance: {
+				recordOrigin: "import",
+				nutritionSource: "openfoodfacts",
+				locallyEdited: true,
+			},
 		});
 	});
 
@@ -235,7 +475,11 @@ describe("Personal Food compact authoring", () => {
 		fireEvent.changeText(screen.getByLabelText("Name"), "");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
-		expect(await screen.findByText("English name is required.")).toBeTruthy();
+		expect(
+			await screen.findByText(
+				"Food name English is required and must be at most 500 characters.",
+			),
+		).toBeTruthy();
 		expect(screen.getByLabelText("Name").props.value).toBe("");
 		expect(repository.list()).toEqual([]);
 	});

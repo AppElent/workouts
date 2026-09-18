@@ -1,30 +1,17 @@
-import {
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { OFFLINE_GRACE_MS } from "../data/stalled-offline";
 import { NutritionWeeklyReviewScreen } from "./nutrition-weekly-review";
 
 const mockUseQuery = jest.fn();
-const mockToggleComplete = jest.fn();
-const mockToastError = jest.fn();
 const mockGetOperations = jest.fn();
-const mockListDraftsForDate = jest.fn();
-const mockConfirm = jest.fn();
+let mockConnected = true;
 
 jest.mock("convex/react", () => ({
-	useConvexConnectionState: () => ({ isWebSocketConnected: true }),
-	useMutation: () => mockToggleComplete,
+	useConvexConnectionState: () => ({ isWebSocketConnected: mockConnected }),
 	useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
 jest.mock("../convex/api", () => ({
-	api: {
-		nutritionReview: {
-			week: "nutritionReview:week",
-			toggleComplete: "nutritionReview:toggleComplete",
-		},
-	},
+	api: { nutritionReview: { week: "nutritionReview:week" } },
 }));
 jest.mock("../data/nutrition-operation-service", () => ({
 	useNutritionOperations: () => ({
@@ -34,33 +21,28 @@ jest.mock("../data/nutrition-operation-service", () => ({
 	useNutritionOperationVersion: () => 0,
 }));
 jest.mock("../data/nutrition-drafts", () => ({
-	useNutritionDrafts: () => ({
-		revision: 0,
-		listForDate: mockListDraftsForDate,
-	}),
+	useNutritionDrafts: () => ({ listForDate: () => [] }),
 }));
-jest.mock("../ui/confirm-dialog", () => ({
-	useConfirm: () => mockConfirm,
-}));
-jest.mock("../i18n", () => ({
-	fmt: jest.requireActual("@appelent/i18n/core").fmt,
-	useI18n: () => ({
-		locale: "en",
-		t: jest.requireActual("../i18n/messages/en").en,
-	}),
-}));
-jest.mock("../ui/toast", () => ({
-	useToast: () => ({ error: mockToastError }),
-}));
+jest.mock("../i18n", () => {
+	const actual = jest.requireActual("../i18n");
+	const { en } = jest.requireActual("../i18n/messages/en");
+	return {
+		...actual,
+		useI18n: () => ({ locale: "en", t: en }),
+	};
+});
 
-const total = (amount: number, qualified = false) => ({
+const total = (
+	amount: number,
+	options: { incomplete?: boolean; qualified?: boolean } = {},
+) => ({
 	amount,
 	entryCount: 1,
 	valueCount: 1,
-	traceCount: qualified ? 1 : 0,
-	absentCount: 0,
-	incomplete: false,
-	qualified,
+	traceCount: options.qualified ? 1 : 0,
+	absentCount: options.incomplete ? 1 : 0,
+	incomplete: options.incomplete ?? false,
+	qualified: options.qualified ?? options.incomplete ?? false,
 });
 
 const emptyTotal = () => ({
@@ -73,135 +55,220 @@ const emptyTotal = () => ({
 	qualified: false,
 });
 
-function reviewWithMissingDay() {
-	const totals = {
-		energy: total(100, true),
-		protein: total(5),
-		carbs: total(20),
-		fat: total(2),
-		saturatedFat: total(1),
-		fibre: total(3),
-		sugars: total(4),
-		salt: total(0.1),
-	};
-	const emptyTotals = {
-		energy: emptyTotal(),
-		protein: emptyTotal(),
-		carbs: emptyTotal(),
-		fat: emptyTotal(),
-		saturatedFat: emptyTotal(),
-		fibre: emptyTotal(),
-		sugars: emptyTotal(),
-		salt: emptyTotal(),
-	};
+function totals(
+	energy: ReturnType<typeof total>,
+	protein = total(90),
+	carbs = total(200),
+	fat = total(60),
+) {
 	return {
-		startDate: "2026-09-07",
-		endDate: "2026-09-13",
+		energy,
+		protein,
+		carbs,
+		fat,
+		saturatedFat: total(10),
+		fibre: total(20),
+		sugars: total(30),
+		salt: total(2),
+	};
+}
+
+const emptyTotals = {
+	energy: emptyTotal(),
+	protein: emptyTotal(),
+	carbs: emptyTotal(),
+	fat: emptyTotal(),
+	saturatedFat: emptyTotal(),
+	fibre: emptyTotal(),
+	sugars: emptyTotal(),
+	salt: emptyTotal(),
+};
+
+function currentWeekReview() {
+	const goals = [
+		{ nutrient: "energy", direction: "min", target: 1800 },
+		{ nutrient: "energy", direction: "max", target: 2200 },
+		{ nutrient: "protein", direction: "min", target: 100 },
+		{ nutrient: "carbs", direction: "max", target: 250 },
+	];
+	return {
+		startDate: "2026-09-14",
+		endDate: "2026-09-20",
 		days: [
 			{
-				date: "2026-09-07",
-				entries: [
-					{
-						name: { en: "Oatmeal", nl: "Havermout" },
-						nutrients: { energy: { kind: "value", amount: 100 } },
-					},
-				],
-				totals,
-				markedComplete: false,
+				date: "2026-09-14",
+				entryCount: 3,
+				totals: totals(total(2000), total(110), total(240), total(70)),
+				goals,
+				goalBasis: "effective",
+				effectiveFrom: "2026-09-01",
 			},
-			...Array.from({ length: 6 }, (_, index) => ({
-				date: `2026-09-${String(8 + index).padStart(2, "0")}`,
-				entries: [],
+			{
+				date: "2026-09-15",
+				entryCount: 2,
+				totals: totals(
+					total(1000, { incomplete: true }),
+					total(0, { qualified: true }),
+					total(260, { incomplete: true }),
+				),
+				goals,
+				goalBasis: "effective",
+				effectiveFrom: "2026-09-01",
+			},
+			{
+				date: "2026-09-16",
+				entryCount: 0,
 				totals: emptyTotals,
-				markedComplete: false,
+				goals,
+				goalBasis: "effective",
+				effectiveFrom: "2026-09-01",
+			},
+			...Array.from({ length: 4 }, (_, index) => ({
+				date: `2026-09-${17 + index}`,
+				entryCount: 0,
+				totals: emptyTotals,
+				goals,
+				goalBasis: "effective",
+				effectiveFrom: "2026-09-01",
 			})),
 		],
-		coverage: { loggedDayCount: 1, markedCompleteCount: 0 },
-		averages: { energy: 100, protein: 5, energyDays: 1, proteinDays: 1 },
+		averages: {
+			energy: 2000,
+			energyDays: 1,
+			energyQualified: false,
+			protein: 55,
+			proteinDays: 2,
+			proteinQualified: true,
+		},
 	};
 }
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	mockConnected = true;
 	mockGetOperations.mockReturnValue([]);
-	mockListDraftsForDate.mockReturnValue([]);
-	mockConfirm.mockResolvedValue(true);
-	mockUseQuery.mockReturnValue(reviewWithMissingDay());
-	mockToggleComplete.mockResolvedValue({ date: "2026-09-07", completed: true });
+	mockUseQuery.mockReturnValue(currentWeekReview());
 });
 
-describe("nutrition weekly review screen", () => {
-	it("shows synced-only pending notice and unknown missing days", () => {
-		mockGetOperations.mockReturnValue([{ status: "pending" }]);
+describe("Nutrition Week overview screen", () => {
+	it("renders seven visual day buttons with truthful states and averages", () => {
+		const onSelectDay = jest.fn();
 		render(
 			<NutritionWeeklyReviewScreen
-				startDate="2026-09-07"
-				onClose={jest.fn()}
+				startDate="2026-09-16"
+				today="2026-09-16"
+				onSelectDay={onSelectDay}
 			/>,
 		);
 
+		expect(screen.getByText("Week overview")).toBeTruthy();
+		expect(screen.getByText("Today")).toBeTruthy();
+		expect(screen.getAllByText("Upcoming")).toHaveLength(4);
+		expect(screen.getByText("3 entries")).toBeTruthy();
+		expect(screen.getAllByText("No entries").length).toBeGreaterThan(0);
+		expect(screen.queryByText("Mark complete")).toBeNull();
+		expect(screen.queryByText("Close")).toBeNull();
+		expect(screen.getByText("Energy average")).toBeTruthy();
+		expect(screen.getByText("2000 kcal · 1 day")).toBeTruthy();
+		expect(screen.getByText("~ 55 g · 2 days")).toBeTruthy();
+		expect(screen.getByText("≥ 1000 kcal")).toBeTruthy();
+		expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Within").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Met").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Exceeded").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("No goal").length).toBeGreaterThan(0);
+		expect(
+			screen.getByLabelText(
+				/Open Monday, September 14.*Energy: 2000 kcal.*1800–2200 kcal.*Within.*Protein: 110 g.*At least 100 g.*Met/,
+			),
+		).toBeTruthy();
+		expect(
+			screen
+				.getAllByRole("button")
+				.some((button) => button.props.accessibilityState?.disabled === true),
+		).toBe(true);
+
+		fireEvent.press(screen.getByLabelText(/Open Monday, September 14/));
+		expect(onSelectDay).toHaveBeenCalledWith("2026-09-14");
+	});
+
+	it("keeps an entirely empty week navigable without inventing an average", () => {
+		const review = currentWeekReview();
+		mockUseQuery.mockReturnValue({
+			...review,
+			days: review.days.map((day) => ({
+				...day,
+				entryCount: 0,
+				totals: emptyTotals,
+			})),
+			averages: {
+				energyDays: 0,
+				proteinDays: 0,
+				energyQualified: false,
+				proteinQualified: false,
+			},
+		});
+		render(
+			<NutritionWeeklyReviewScreen
+				startDate="2026-09-16"
+				today="2026-09-16"
+				onSelectDay={jest.fn()}
+			/>,
+		);
+
+		expect(
+			screen
+				.getAllByRole("button")
+				.filter((button) =>
+					button.props.accessibilityLabel?.startsWith("Open "),
+				),
+		).toHaveLength(7);
+		expect(screen.getAllByText("No average available")).toHaveLength(2);
+	});
+
+	it("discloses pending device operations and renders a matching loading skeleton", () => {
+		mockGetOperations.mockReturnValue([{ status: "pending" }]);
+		const { rerender } = render(
+			<NutritionWeeklyReviewScreen
+				today="2026-09-16"
+				onSelectDay={jest.fn()}
+			/>,
+		);
 		expect(
 			screen.getByText(
-				"Some saved meals are still waiting to sync; this review shows synced diary data only.",
+				"Some saved meals are still waiting to sync; this overview shows synced diary data only.",
 			),
 		).toBeTruthy();
-		expect(screen.getAllByText("No entries; intake is unknown.")).toHaveLength(
-			6,
-		);
-		expect(screen.getByText("Energy: 100 kcal · incomplete")).toBeTruthy();
-		expect(
-			screen.getByText("Missing days are unknown, not zero intake."),
-		).toBeTruthy();
-	});
 
-	it("surfaces marker failures and keeps the review available", async () => {
-		mockToggleComplete.mockRejectedValueOnce(new Error("marker failed"));
-		render(
+		mockUseQuery.mockReturnValue(undefined);
+		rerender(
 			<NutritionWeeklyReviewScreen
-				startDate="2026-09-07"
-				onClose={jest.fn()}
+				today="2026-09-16"
+				onSelectDay={jest.fn()}
 			/>,
 		);
-
-		fireEvent.press(screen.getAllByText("Mark complete")[0]);
-		await waitFor(() =>
-			expect(mockToastError).toHaveBeenCalledWith(
-				"This day could not be updated. Try again.",
-			),
-		);
-		expect(screen.getByText("Weekly review")).toBeTruthy();
+		expect(screen.getByLabelText("Loading Week overview")).toBeTruthy();
 	});
 
-	it("counts a day's unresolved notes and asks before marking it complete", async () => {
-		mockListDraftsForDate.mockImplementation((date: string) =>
-			date === "2026-09-08"
-				? [
-						{ id: "d1", note: "Pizza" },
-						{ id: "d2", note: "Beer" },
-					]
-				: [],
-		);
-		mockConfirm.mockResolvedValueOnce(false);
-		render(
-			<NutritionWeeklyReviewScreen
-				startDate="2026-09-07"
-				onClose={jest.fn()}
-			/>,
-		);
-
-		expect(screen.getByText("2 notes")).toBeTruthy();
-		// Day one has no notes: marking it complete asks nothing.
-		fireEvent.press(screen.getAllByText("Mark complete")[0]);
-		await waitFor(() => expect(mockToggleComplete).toHaveBeenCalledTimes(1));
-		expect(mockConfirm).not.toHaveBeenCalled();
-
-		// Day two has notes: it asks, and a "no" leaves the day alone.
-		fireEvent.press(screen.getAllByText("Mark complete")[1]);
-		await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
-		expect(mockConfirm.mock.calls[0][0]).toMatchObject({
-			title: "Mark complete with unresolved notes?",
-			confirmLabel: "Mark complete",
-		});
-		expect(mockToggleComplete).toHaveBeenCalledTimes(1);
+	it("replaces a stalled loading state with the offline recovery message", () => {
+		jest.useFakeTimers();
+		mockConnected = false;
+		mockUseQuery.mockReturnValue(undefined);
+		try {
+			render(
+				<NutritionWeeklyReviewScreen
+					today="2026-09-16"
+					onSelectDay={jest.fn()}
+				/>,
+			);
+			expect(screen.getByLabelText("Loading Week overview")).toBeTruthy();
+			act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
+			expect(
+				screen.getByText("This Week overview is not on this phone yet"),
+			).toBeTruthy();
+			expect(screen.getByText("Try again")).toBeTruthy();
+		} finally {
+			jest.useRealTimers();
+		}
 	});
 });

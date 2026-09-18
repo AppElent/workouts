@@ -2,13 +2,13 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
 import { nutritionGoalTables } from './nutritionGoalTables'
-import { nutritionReviewTables } from './nutritionReviewModel'
 import { nutritionLibraryTables } from './nutritionLibraryTables'
+import { personalMeasureTables } from './personalMeasureTables'
 
 export default defineSchema({
   ...nutritionGoalTables,
-  ...nutritionReviewTables,
   ...nutritionLibraryTables,
+  ...personalMeasureTables,
   nutritionDiaryEntries: defineTable({
     userId: v.string(),
     ...diarySnapshotFields,
@@ -18,6 +18,7 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_date', ['userId', 'date'])
+    .index('by_user_combo_group', ['userId', 'comboGroup.id'])
     .index('by_user_client_entry', ['userId', 'clientEntryId']),
 
   nutritionDiaryOperationReceipts: defineTable({

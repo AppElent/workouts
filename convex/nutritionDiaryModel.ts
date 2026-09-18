@@ -45,7 +45,9 @@ export const diaryPartSnapshotFields = {
 	serving: bilingual,
 	quantity: v.number(),
 	amount: v.number(),
-	baseUnit: v.union(v.literal("g"), v.literal("ml")),
+	baseUnit: v.union(v.literal("g"), v.literal("ml"), v.literal("serving")),
+	personalMeasureId: v.optional(v.string()),
+	estimated: v.optional(v.literal(true)),
 	nutrients: v.object({
 		energy: nutrientValue,
 		protein: nutrientValue,

@@ -72,4 +72,48 @@ describe("nutrition library account backup operations", () => {
 			operation: { kind: "upsert", record: { id: "food-1", kind: "combo", payload: combo("food-1") }, expectedRevision: 2 },
 		})).rejects.toThrow("kind cannot change");
 	});
+
+	it("backs up semantic Food icons but rejects device-local photo paths", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const iconPayload = JSON.stringify({
+			...JSON.parse(food("icon-food")),
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		await expect(
+			alice.mutation(api.nutritionLibrary.applyOperation, {
+				...upsert("icon", "icon-food", 0, iconPayload),
+				operation: {
+					kind: "upsert",
+					expectedRevision: 0,
+					record: {
+						id: "icon-food",
+						kind: "food",
+						payload: iconPayload,
+						schemaVersion: 2,
+					},
+				},
+			}),
+		).resolves.toBeDefined();
+
+		const photoPayload = JSON.stringify({
+			...JSON.parse(food("photo-food")),
+			visual: { kind: "photo", uri: "file:///food-photos/private.jpg" },
+		});
+		await expect(
+			alice.mutation(api.nutritionLibrary.applyOperation, {
+				...upsert("photo", "photo-food", 0, photoPayload),
+				operation: {
+					kind: "upsert",
+					expectedRevision: 0,
+					record: {
+						id: "photo-food",
+						kind: "food",
+						payload: photoPayload,
+						schemaVersion: 2,
+					},
+				},
+			}),
+		).rejects.toThrow("cannot be backed up");
+	});
 });

@@ -274,6 +274,7 @@ export function EditableValueRow({
 	deleteAccessibilityLabel,
 	onPress,
 	onDelete,
+	disabled,
 }: {
 	label: string;
 	value: string;
@@ -281,15 +282,19 @@ export function EditableValueRow({
 	deleteAccessibilityLabel?: string;
 	onPress: () => void;
 	onDelete?: () => void;
+	disabled?: boolean;
 }) {
 	return (
 		<View style={styles.editableRow}>
 			<Pressable
 				onPress={onPress}
+				disabled={disabled}
 				accessibilityRole="button"
+				accessibilityState={{ disabled }}
 				style={({ pressed }) => [
 					styles.editableMain,
 					pressed && styles.pressedRow,
+					disabled && styles.disabled,
 				]}
 			>
 				<View style={styles.editableCopy}>
@@ -301,7 +306,9 @@ export function EditableValueRow({
 			{onDelete && deleteLabel ? (
 				<Pressable
 					onPress={onDelete}
+					disabled={disabled}
 					accessibilityRole="button"
+					accessibilityState={{ disabled }}
 					accessibilityLabel={deleteAccessibilityLabel ?? deleteLabel}
 					style={({ pressed }) => [
 						styles.deleteAction,
@@ -319,6 +326,39 @@ export function EditableValueRow({
 
 export function InlineActionRow({ children }: { children: ReactNode }) {
 	return <View style={styles.inlineActions}>{children}</View>;
+}
+
+export function FormPreview({ children }: { children: ReactNode }) {
+	return <View style={styles.preview}>{children}</View>;
+}
+
+export function FormChoiceChips<const Id extends string>({
+	options,
+	selectedId,
+	onSelect,
+}: {
+	options: readonly { id: Id; label: string }[];
+	selectedId?: Id;
+	onSelect: (id: Id) => void;
+}) {
+	return (
+		<View style={styles.choiceChips} accessibilityRole="radiogroup">
+			{options.map((option) => (
+				<Pressable
+					key={option.id}
+					onPress={() => onSelect(option.id)}
+					accessibilityRole="radio"
+					accessibilityState={{ checked: selectedId === option.id }}
+					style={[
+						styles.choiceChip,
+						selectedId === option.id && styles.choiceChipSelected,
+					]}
+				>
+					<AppText>{option.label}</AppText>
+				</Pressable>
+			))}
+		</View>
+	);
 }
 
 export function TextAction({
@@ -522,6 +562,25 @@ const styles = StyleSheet.create({
 		justifyContent: "flex-end",
 		alignItems: "center",
 		gap: spacing.sm,
+	},
+	preview: { gap: spacing.sm, padding: spacing.md },
+	choiceChips: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: spacing.sm,
+		padding: spacing.md,
+	},
+	choiceChip: {
+		minHeight: metrics.hitTarget,
+		justifyContent: "center",
+		paddingHorizontal: spacing.md,
+		borderWidth: 1,
+		borderColor: colors.borderStrong,
+		borderRadius: radius.pill,
+	},
+	choiceChipSelected: {
+		borderColor: colors.accent,
+		backgroundColor: colors.accentDim,
 	},
 	textAction: {
 		minHeight: metrics.hitTarget,

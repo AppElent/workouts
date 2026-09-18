@@ -1,5 +1,9 @@
 import type { NutrientKey } from "@workouts/core/nutrition";
-import { NUTRIENT_KEYS, shippedLibrary } from "@workouts/core/nutrition";
+import {
+	NUTRIENT_KEYS,
+	personalFoodSnapshot,
+	shippedLibrary,
+} from "@workouts/core/nutrition";
 import { useMemo, useRef, useState } from "react";
 import {
 	KeyboardAvoidingView,
@@ -18,6 +22,7 @@ import {
 	buildAssistanceBatchEntries,
 	buildAssistanceFoodCatalog,
 	editableLabelNutrients,
+	estimatedPersonalFoodProposal,
 	nutrientsFromLabelInputs,
 	parseNutritionLabel,
 	parseTextAssistedLog,
@@ -30,6 +35,10 @@ import {
 	mintNutritionUuid,
 	useNutritionOperations,
 } from "../data/nutrition-operation-service";
+import type {
+	PersonalFood,
+	PersonalFoodDraft,
+} from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
 import { getNutritionAssistanceMessages } from "../i18n/messages/nutrition-assistance";
@@ -37,8 +46,10 @@ import { colors, radius, spacing } from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card, Eyebrow } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
+import { FormSection, FormTextField } from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { PersonalFoodEditor } from "./personal-food-editor";
 
 const NUTRIENT_LABELS: Record<NutrientKey, { en: string; nl: string }> = {
 	energy: { en: "Energy", nl: "Energie" },
@@ -65,7 +76,24 @@ export function NutritionAssistanceScreen({
 	const personalFoods = usePersonalFoods();
 	const operations = useNutritionOperations();
 	const toast = useToast();
-	const [mode, setMode] = useState<"text" | "label">("text");
+	const [mode, setMode] = useState<"text" | "label" | "estimate">("text");
+	const [estimateName, setEstimateName] = useState("");
+	const [estimateServing, setEstimateServing] = useState(
+		messages.servingNameDefault,
+	);
+	const [estimateInputs, setEstimateInputs] = useState<
+		Record<NutrientKey, string>
+	>(
+		() =>
+			Object.fromEntries(NUTRIENT_KEYS.map((key) => [key, ""])) as Record<
+				NutrientKey,
+				string
+			>,
+	);
+	const [estimateProposal, setEstimateProposal] = useState<PersonalFoodDraft>();
+	const [savedEstimate, setSavedEstimate] = useState<PersonalFood>();
+	const [estimateLogging, setEstimateLogging] = useState(false);
+	const estimateLogLock = useRef(false);
 	const [text, setText] = useState("");
 	const [textError, setTextError] = useState<string>();
 	const [rows, setRows] = useState<readonly AssistanceRow[]>([]);
@@ -255,6 +283,60 @@ export function NutritionAssistanceScreen({
 		}
 	}
 
+	function reviewEstimate() {
+		try {
+			setEstimateProposal(
+				estimatedPersonalFoodProposal(
+					estimateName,
+					estimateServing,
+					estimateInputs,
+				),
+			);
+		} catch {
+			toast.error(messages.estimateFailure);
+		}
+	}
+	function logEstimate() {
+		const subject = operations.getSubject();
+		if (!subject || !savedEstimate || estimateLogLock.current) return;
+		estimateLogLock.current = true;
+		setEstimateLogging(true);
+		try {
+			operations.create(
+				subject,
+				{
+					...personalFoodSnapshot(savedEstimate, { date, meal, quantity: 1 }),
+					clientEntryId: mintNutritionUuid(),
+				},
+				undefined,
+				() => {
+					estimateLogLock.current = false;
+					setEstimateLogging(false);
+					toast.error(messages.estimateFailure);
+				},
+				onClose,
+			);
+		} catch {
+			estimateLogLock.current = false;
+			setEstimateLogging(false);
+			toast.error(messages.estimateFailure);
+		}
+	}
+	if (estimateProposal)
+		return (
+			<PersonalFoodEditor
+				seed={estimateProposal}
+				reviewNotice={{
+					title: messages.reviewEstimate,
+					attribution: messages.estimateReviewHelp,
+				}}
+				onCancel={() => setEstimateProposal(undefined)}
+				onSaved={(food) => {
+					setSavedEstimate(food);
+					setEstimateProposal(undefined);
+				}}
+			/>
+		);
 	return (
 		<KeyboardAvoidingView
 			style={styles.root}
@@ -279,9 +361,69 @@ export function NutritionAssistanceScreen({
 						label={messages.labelMode}
 						onPress={() => setMode("label")}
 					/>
+					<ModeButton
+						active={mode === "estimate"}
+						label={messages.estimateMode}
+						onPress={() => setMode("estimate")}
+					/>
 				</View>
 
-				{mode === "text" ? (
+				{mode === "estimate" ? (
+					savedEstimate ? (
+						<FormSection
+							title={savedEstimate.name[locale]}
+							footer={messages.estimateSaved}
+						>
+							<AppText>
+								{
+									personalFoodSnapshot(savedEstimate, { quantity: 1 }).serving[
+										locale
+									]
+								}
+							</AppText>
+							<PrimaryButton
+								label={messages.logEstimate}
+								onPress={logEstimate}
+								loading={estimateLogging}
+							/>
+						</FormSection>
+					) : (
+						<FormSection
+							title={messages.estimateMode}
+							footer={messages.estimateReviewHelp}
+						>
+							<FormTextField
+								label={messages.estimateName}
+								value={estimateName}
+								onChangeText={setEstimateName}
+							/>
+							<FormTextField
+								label={messages.servingName}
+								value={estimateServing}
+								onChangeText={setEstimateServing}
+							/>
+							{NUTRIENT_KEYS.map((key) => (
+								<FormTextField
+									key={key}
+									label={`${NUTRIENT_LABELS[key][locale]} (${key === "energy" ? "kcal" : "g"})`}
+									keyboardType="decimal-pad"
+									value={estimateInputs[key]}
+									onChangeText={(value) =>
+										setEstimateInputs((current) => ({
+											...current,
+											[key]: value,
+										}))
+									}
+								/>
+							))}
+							<PrimaryButton
+								label={messages.reviewEstimate}
+								onPress={reviewEstimate}
+								disabled={!estimateName.trim() || !estimateServing.trim()}
+							/>
+						</FormSection>
+					)
+				) : mode === "text" ? (
 					<>
 						<AppText variant="label">{messages.textMode}</AppText>
 						<TextInput

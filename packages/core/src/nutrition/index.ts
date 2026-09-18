@@ -40,7 +40,6 @@ export {
 	OPEN_FOOD_FACTS_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
-export * from "./cooking";
 export {
 	type FoodResult,
 	type FoodResultsInput,
@@ -98,6 +97,7 @@ export {
 	scaleNutrient,
 	TRACE,
 } from "./nutrients";
+export * from "./personal-food";
 export {
 	parseProviderNumber,
 	parseProviderNutrient,
@@ -122,6 +122,7 @@ export {
 export {
 	formatQuantity,
 	formatServingSelection,
+	type PersonalMeasure,
 	previewServing,
 	type ServingOption,
 	type ServingPreview,
@@ -129,6 +130,7 @@ export {
 	servingAmount,
 	servingOptions,
 	servingVolumeMapping,
+	withPersonalMeasures,
 } from "./servings";
 export {
 	type Bilingual,

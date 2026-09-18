@@ -1,9 +1,18 @@
-import { useMutation } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { todayIsoDate } from "../data/calendar-day";
 import { renderApp } from "../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
+const mockUsePaginatedQuery = jest.mocked(usePaginatedQuery);
+
+afterEach(() => {
+	mockUsePaginatedQuery.mockReturnValue({
+		results: [],
+		status: "Exhausted",
+		loadMore: jest.fn(),
+	} as never);
+});
 
 async function showAllFoods(query?: string) {
 	fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
@@ -13,6 +22,156 @@ async function showAllFoods(query?: string) {
 }
 
 describe("browsing shipped foods", () => {
+	it("offers same-unit Personal Measures and logs their exact amount", async () => {
+		mockUsePaginatedQuery.mockReturnValue({
+			results: [
+				{ id: "glass", name: "Small glass", amount: 250, unit: "ml", order: 0 },
+				{ id: "scoop", name: "Scoop", amount: 35, unit: "g", order: 1 },
+			],
+			status: "Exhausted",
+			loadMore: jest.fn(),
+		} as never);
+		const log = jest.fn().mockResolvedValue(undefined);
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		const { repository } = renderApp();
+		repository.create({
+			name: { en: "Training drink", nl: "Trainingsdrank" },
+			baseUnit: "ml",
+			nutrients: {
+				energy: { kind: "value", amount: 40 },
+				protein: { kind: "value", amount: 2 },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await showAllFoods("training drink");
+		fireEvent.press(await screen.findByText("Training drink"));
+
+		expect(screen.getByText("Small glass (250 ml)")).toBeTruthy();
+		expect(screen.queryByText("Scoop (35 g)")).toBeNull();
+		// Personal Measures are choices, never a global default. With no memory,
+		// this base-only Food keeps its normal 100 ml starting amount.
+		expect(screen.getByText("100 ml")).toBeTruthy();
+		fireEvent.press(screen.getByText("Small glass (250 ml)"));
+		expect(screen.getByText("Small glass (250 ml) × 1")).toBeTruthy();
+		expect(screen.getByText("250 ml")).toBeTruthy();
+	});
+
+	it("shows a Personal Food's selected visual and the neutral fallback in search", async () => {
+		const { repository } = renderApp();
+		const base = {
+			baseUnit: "g" as const,
+			nutrients: {
+				energy: { kind: "value" as const, amount: 42 },
+				protein: { kind: "absent" as const },
+				carbs: { kind: "absent" as const },
+				fat: { kind: "absent" as const },
+				saturatedFat: { kind: "absent" as const },
+				fibre: { kind: "absent" as const },
+				sugars: { kind: "absent" as const },
+				salt: { kind: "absent" as const },
+			},
+			servings: [],
+			provenance: {
+				recordOrigin: "personal" as const,
+				nutritionSource: "manual" as const,
+				locallyEdited: false,
+			},
+		};
+		repository.create({
+			...base,
+			name: { en: "Icon apple", nl: "Icoonappel" },
+			visual: { kind: "icon", preset: "fruit" },
+		});
+		repository.create({
+			...base,
+			name: { en: "Plain apple", nl: "Gewone appel" },
+		});
+
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await showAllFoods("apple");
+
+		expect(screen.getByLabelText("Icon apple visual")).toBeTruthy();
+		expect(screen.getByLabelText("Plain apple visual")).toBeTruthy();
+	});
+
+	it("finds Recipes in the Personal Library and logs a per-serving estimate through the ordinary serving sheet", async () => {
+		const log = jest.fn().mockResolvedValue(undefined);
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		const { repository } = renderApp();
+		const nutrients = {
+			energy: { kind: "value" as const, amount: 550 },
+			protein: { kind: "trace" as const },
+			carbs: { kind: "absent" as const },
+			fat: { kind: "absent" as const },
+			saturatedFat: { kind: "absent" as const },
+			fibre: { kind: "absent" as const },
+			sugars: { kind: "absent" as const },
+			salt: { kind: "absent" as const },
+		};
+		const recipe = repository.create({
+			name: { en: "Pasta bowl", nl: "Pastakom" },
+			baseUnit: "serving",
+			classification: "recipe",
+			estimated: true,
+			nutritionBasis: { kind: "perServing", label: { en: "Bowl", nl: "Kom" } },
+			nutrients,
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		repository.create({
+			name: { en: "Ordinary shake", nl: "Shake" },
+			baseUnit: "g",
+			nutrients,
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		fireEvent.press(await screen.findByRole("tab", { name: "Recipes" }));
+		expect(screen.queryByText("Ordinary shake")).toBeNull();
+		fireEvent.press(await screen.findByText("Pasta bowl"));
+		expect(screen.getByLabelText("Quantity").props.value).toBe("1");
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "");
+		expect(screen.queryByText("550 kcal")).toBeNull();
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		fireEvent.press(screen.getByText("Add & continue"));
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		expect(log.mock.calls[0][0]).toMatchObject({
+			estimated: true,
+			amount: 2,
+			baseUnit: "serving",
+			nutrients: {
+				energy: { kind: "value", amount: 1100 },
+				protein: { kind: "trace" },
+				carbs: { kind: "absent" },
+			},
+			provenance: { source: "personal", sourceId: recipe.id },
+		});
+	});
+
 	it("defaults a base-only Personal Food to 100 base units", async () => {
 		const log = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(

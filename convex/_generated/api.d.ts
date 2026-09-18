@@ -28,6 +28,8 @@ import type * as nutritionOperationModel from "../nutritionOperationModel.js";
 import type * as nutritionReview from "../nutritionReview.js";
 import type * as nutritionReviewModel from "../nutritionReviewModel.js";
 import type * as oneRepMaxes from "../oneRepMaxes.js";
+import type * as personalMeasureTables from "../personalMeasureTables.js";
+import type * as personalMeasures from "../personalMeasures.js";
 import type * as progress from "../progress.js";
 import type * as routines from "../routines.js";
 import type * as seed from "../seed.js";
@@ -66,6 +68,8 @@ declare const fullApi: ApiFromModules<{
   nutritionReview: typeof nutritionReview;
   nutritionReviewModel: typeof nutritionReviewModel;
   oneRepMaxes: typeof oneRepMaxes;
+  personalMeasureTables: typeof personalMeasureTables;
+  personalMeasures: typeof personalMeasures;
   progress: typeof progress;
   routines: typeof routines;
   seed: typeof seed;

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NutritionAssistanceScreen } from "./nutrition-assistance";
 
 const mockCreateBatch = jest.fn();
@@ -29,7 +35,10 @@ const mockPersonalFood = {
 };
 
 jest.mock("../i18n", () => ({
-	useI18n: () => ({ locale: "en" }),
+	useI18n: () => ({
+		locale: "en",
+		t: jest.requireActual("../i18n/messages/en").en,
+	}),
 	fmt: (value: string, values: Record<string, string>) =>
 		value.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? ""),
 }));
@@ -55,6 +64,68 @@ describe("nutrition assistance screen", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		mockPersonalCreate.mockReturnValue(mockPersonalFood);
+	});
+
+	it("keeps an estimate proposal out of storage and the diary until review and explicit actions", async () => {
+		mockPersonalCreate.mockImplementation((draft) => ({
+			...draft,
+			id: "estimate",
+			createdAt: 1,
+			updatedAt: 1,
+		}));
+		render(
+			<SafeAreaProvider
+				initialMetrics={{
+					frame: { x: 0, y: 0, width: 390, height: 844 },
+					insets: { top: 0, right: 0, bottom: 0, left: 0 },
+				}}
+			>
+				<NutritionAssistanceScreen
+					date="2026-09-12"
+					meal="breakfast"
+					onClose={jest.fn()}
+				/>
+			</SafeAreaProvider>,
+		);
+		fireEvent.press(screen.getByText("Nutrition estimate"));
+		fireEvent.changeText(screen.getByLabelText("Estimated food name"), "Pasta");
+		fireEvent.changeText(screen.getByLabelText("Energy (kcal)"), "550");
+		fireEvent.press(screen.getByText("Review estimate"));
+		expect(mockPersonalCreate).not.toHaveBeenCalled();
+		expect(mockDiaryCreate).not.toHaveBeenCalled();
+		fireEvent.changeText(
+			screen.getByLabelText("Energy per serving (Serving)"),
+			"600",
+		);
+		fireEvent.press(screen.getByText("Recipe"));
+		fireEvent.press(screen.getByText("Save Personal Food"));
+		await waitFor(() => expect(mockPersonalCreate).toHaveBeenCalledTimes(1));
+		expect(mockPersonalCreate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				classification: "recipe",
+				estimated: true,
+				baseUnit: "serving",
+				nutrients: expect.objectContaining({
+					energy: { kind: "value", amount: 600 },
+				}),
+			}),
+		);
+		expect(mockDiaryCreate).not.toHaveBeenCalled();
+		fireEvent.press(screen.getByText("Log reviewed amount"));
+		expect(mockDiaryCreate).toHaveBeenCalledWith(
+			"test-user",
+			expect.objectContaining({
+				estimated: true,
+				baseUnit: "serving",
+				amount: 1,
+				nutrients: expect.objectContaining({
+					energy: { kind: "value", amount: 600 },
+				}),
+			}),
+			undefined,
+			expect.any(Function),
+			expect.any(Function),
+		);
 	});
 
 	it("submits a reviewed text batch only once", () => {

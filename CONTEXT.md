@@ -74,6 +74,10 @@ _Avoid_: Standard food, built-in food
 A reusable Food saved by a person, whether entered manually, imported, or forked from a Shipped Food.
 _Avoid_: Custom food
 
+**Food Visual**:
+An optional icon or photo owned by a Personal Food to help a person recognize it. It is separate from Food Provenance; when unset, the interface supplies a default fallback.
+_Avoid_: Food image, provenance image
+
 **Food Import**:
 A proposal created from an external food database that must be reviewed before it can become a Personal Food or Diary Entry.
 _Avoid_: Synced food, downloaded food
@@ -87,7 +91,7 @@ A person's record of food intake, organized by date and Meal Slot.
 _Avoid_: Food Library
 
 **Diary Entry**:
-A snapshot of nutrition figures logged at a particular time. Later changes to its source never alter the entry.
+A snapshot of a chosen amount and its nutrition figures logged at a particular time. Later changes to its Food, Serving, or Personal Measure never alter the entry.
 _Avoid_: Food log
 
 **Meal Slot**:
@@ -119,9 +123,21 @@ _Avoid_: Recipe, manually entered Food
 A named amount of a Food, such as one banana or one slice. A Food may offer several Servings.
 _Avoid_: Portion, serving size
 
+**Personal Measure**:
+A person-defined, account-synced exact amount in grams or millilitres with a name, reusable when logging a Food with the same base unit. It supplements rather than replaces a Food's Servings.
+_Avoid_: Portion, custom Serving
+
 **Combo**:
-A named reusable collection of Foods and One-off Entries that are logged together. Future logs use current figures from referenced Foods, while the resulting Diary Entries remain frozen snapshots.
+A named reusable ordered collection of Foods and One-off Entries that are logged together. Future logs use current figures from referenced Foods, while the resulting Diary Entries remain frozen snapshots.
 _Avoid_: Meal, Routine, preset
+
+**Logged Combo**:
+A named group of Diary Entries representing one occurrence of a Combo in the Nutrition Diary. Its entries remain frozen snapshots even when the reusable Combo later changes or becomes unavailable.
+_Avoid_: Combo when distinguishing diary history from the reusable definition
+
+**Combo Scale**:
+A temporary multiplier used while logging a Combo. A whole-Combo scale combines multiplicatively with each included part's scale without changing the reusable Combo.
+_Avoid_: Serving, saved quantity
 
 **Recipe**:
 A Personal Food categorized as a prepared dish so it can be found and logged as such. Recipe is a classification, not a separate record type or a claim about the precision of its nutrition figures.
@@ -130,10 +146,6 @@ _Avoid_: Combo, Recipe Version
 **Capture Draft**:
 A note about food intake, placed in the Nutrition Diary under its date and Meal Slot, saved for later review. It does not count as intake until converted into one or more Diary Entries.
 _Avoid_: Diary Entry, unfinished log
-
-**Complete Day**:
-A Nutrition Diary day that a person has explicitly marked as finished, including a deliberately empty day.
-_Avoid_: Logged day
 
 **Shipped Food ID**:
 The permanent identity of a Shipped Food. It never changes or gets reused, even when the Food is renamed, corrected, or retired.

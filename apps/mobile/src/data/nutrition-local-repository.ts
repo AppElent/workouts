@@ -6,17 +6,22 @@ import {
 	rescaleNutrients,
 	totalNutrients,
 } from "@workouts/core";
-import type { NutritionGoalValue } from "@workouts/core/nutrition";
+import type {
+	NutrientKey,
+	NutritionGoalValue,
+	PersonalMeasure,
+} from "@workouts/core/nutrition";
 import { openDatabaseSync } from "expo-sqlite";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 5;
 
 export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
 	basis: "effective" | "reference";
 	effectiveFrom: string | null;
+	displayOrder?: NutrientKey[];
 };
 
 export type LocalOperationStatus =
@@ -49,9 +54,9 @@ export type LocalProjectionHint = {
 };
 
 export type PortionMemory = {
-	readonly kind: "authored" | "base-unit";
+	readonly kind: "authored" | "base-unit" | "personal-measure";
 	readonly servingKey: string;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: "g" | "ml" | "serving";
 	readonly amount: number;
 	readonly quantity: number;
 	readonly label: { readonly en: string; readonly nl: string };
@@ -111,6 +116,13 @@ export type NutritionOperationResult = {
 export type NutritionLocalRepository = {
 	getGoals(subject: string, date: string): CachedGoalHistory | undefined;
 	putGoals(subject: string, date: string, history: CachedGoalHistory): void;
+	getPersonalMeasures(subject: string): PersonalMeasure[];
+	putPersonalMeasures(
+		subject: string,
+		measures: readonly PersonalMeasure[],
+	): void;
+	getGoalDisplayOrder(subject: string): NutrientKey[] | undefined;
+	putGoalDisplayOrder(subject: string, displayOrder: NutrientKey[]): void;
 	accept(
 		subject: string,
 		envelope: NutritionOperationEnvelope,
@@ -234,6 +246,17 @@ function migrate(database: SyncSQLiteDatabase): void {
 			database.execSync(
 				"CREATE TABLE nutrition_cached_goals (subject TEXT NOT NULL, date TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, date))",
 			);
+		if (current < 5)
+			database.execSync(`
+				CREATE TABLE IF NOT EXISTS nutrition_goal_preferences (
+					subject TEXT PRIMARY KEY,
+					display_order_json TEXT NOT NULL
+				);
+				CREATE TABLE IF NOT EXISTS nutrition_cached_personal_measures (
+					subject TEXT PRIMARY KEY NOT NULL,
+					payload TEXT NOT NULL
+				);
+			`);
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -329,23 +352,56 @@ function applyUpdate(
 	}
 	if (!entry) return;
 	const oldQuantity = entry.quantity;
-	const quantity = operation.quantity ?? oldQuantity;
-	const factor = quantity / oldQuantity;
+	const quantity =
+		operation.selection?.quantity ?? operation.quantity ?? oldQuantity;
+	const factor = operation.selection
+		? operation.selection.amount / entry.amount
+		: quantity / oldQuantity;
+	const moved =
+		(operation.date !== undefined && operation.date !== entry.date) ||
+		(operation.meal !== undefined && operation.meal !== entry.meal);
 	const next = {
 		...entry,
 		...(operation.date ? { date: operation.date } : {}),
 		...(operation.meal ? { meal: operation.meal } : {}),
-		...(operation.quantity
+		...(operation.selection
 			? {
 					quantity,
-					amount: entry.amount * factor,
+					amount: operation.selection.amount,
+					serving: operation.selection.serving,
+					personalMeasureId: operation.selection.personalMeasureId ?? undefined,
 					nutrients: rescaleNutrients(entry.nutrients, factor),
 				}
-			: {}),
+			: operation.quantity
+				? {
+						quantity,
+						amount: entry.amount * factor,
+						nutrients: rescaleNutrients(entry.nutrients, factor),
+					}
+				: {}),
 		pendingOperationId: operationId,
 	};
+	if (moved) {
+		delete next.comboGroup;
+	}
 	const index = entries.indexOf(entry);
 	entries[index] = next;
+}
+
+function applyGroup(
+	entries: NutritionProjectedEntry[],
+	operation: Extract<NutritionDiaryOperation, { kind: "group" }>,
+	operationId: string,
+) {
+	for (const target of operation.targets) {
+		const index = entries.findIndex((entry) => entryMatches(entry, target));
+		if (index < 0) continue;
+		entries[index] = {
+			...entries[index],
+			comboGroup: operation.comboGroup,
+			pendingOperationId: operationId,
+		};
+	}
 }
 
 function applyOperations(
@@ -390,6 +446,10 @@ function applyOperations(
 		}
 		if (operation.kind === "update") {
 			applyUpdate(entries, operation, local.operationId, local.hint);
+			pendingOperationIds.push(local.operationId);
+		}
+		if (operation.kind === "group") {
+			applyGroup(entries, operation, local.operationId);
 			pendingOperationIds.push(local.operationId);
 		}
 		if (operation.kind === "remove") {
@@ -572,14 +632,55 @@ export function createNutritionLocalRepository(
 				subject,
 				date,
 			);
-			return row ? (JSON.parse(row.payload) as CachedGoalHistory) : undefined;
+			if (!row) return undefined;
+			const history = JSON.parse(row.payload) as CachedGoalHistory;
+			const displayOrder = this.getGoalDisplayOrder(subject);
+			return displayOrder ? { ...history, displayOrder } : history;
 		},
 		putGoals(subject, date, history) {
-			database.runSync(
-				"INSERT INTO nutrition_cached_goals(subject, date, payload) VALUES (?, ?, ?) ON CONFLICT(subject, date) DO UPDATE SET payload = excluded.payload",
+			transaction(database, () => {
+				database.runSync(
+					"INSERT INTO nutrition_cached_goals(subject, date, payload) VALUES (?, ?, ?) ON CONFLICT(subject, date) DO UPDATE SET payload = excluded.payload",
+					subject,
+					date,
+					JSON.stringify(history),
+				);
+				if (history.displayOrder)
+					database.runSync(
+						"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
+						subject,
+						JSON.stringify(history.displayOrder),
+					);
+			});
+		},
+		getGoalDisplayOrder(subject) {
+			const row = database.getFirstSync<{ display_order_json: string }>(
+				"SELECT display_order_json FROM nutrition_goal_preferences WHERE subject = ?",
 				subject,
-				date,
-				JSON.stringify(history),
+			);
+			return row
+				? (JSON.parse(row.display_order_json) as NutrientKey[])
+				: undefined;
+		},
+		putGoalDisplayOrder(subject, displayOrder) {
+			database.runSync(
+				"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
+				subject,
+				JSON.stringify(displayOrder),
+			);
+		},
+		getPersonalMeasures(subject) {
+			const row = database.getFirstSync<{ payload: string }>(
+				"SELECT payload FROM nutrition_cached_personal_measures WHERE subject = ?",
+				subject,
+			);
+			return row ? (JSON.parse(row.payload) as PersonalMeasure[]) : [];
+		},
+		putPersonalMeasures(subject, measures) {
+			database.runSync(
+				"INSERT INTO nutrition_cached_personal_measures(subject, payload) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET payload = excluded.payload",
+				subject,
+				JSON.stringify(measures),
 			);
 		},
 		listRecent(subject, limit = 50) {

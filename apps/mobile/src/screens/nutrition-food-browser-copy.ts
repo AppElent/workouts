@@ -16,6 +16,7 @@ type FoodBrowserCopy = {
 	readonly favorites: string;
 	readonly combos: string;
 	readonly recipes: string;
+	readonly newRecipe: string;
 	readonly allFoods: string;
 	readonly recentEmptyTitle: string;
 	readonly recentEmptyBody: string;
@@ -34,7 +35,6 @@ type FoodBrowserCopy = {
 	) => string;
 	readonly details: string;
 	readonly log: string;
-	readonly recipeDetail: (recipe: string) => string;
 	readonly comboDetail: (combo: string) => string;
 	readonly onlineResults: string;
 	readonly searchOnline: string;
@@ -53,6 +53,7 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		favorites: "Favorites",
 		combos: "Combos",
 		recipes: "Recipes",
+		newRecipe: "New recipe",
 		allFoods: "All foods",
 		recentEmptyTitle: "Nothing logged recently",
 		recentEmptyBody:
@@ -62,7 +63,7 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		combosEmptyTitle: "No saved Combos",
 		combosEmptyBody: "Save foods from a meal as a Combo, then log it here.",
 		recipesEmptyTitle: "No saved recipes",
-		recipesEmptyBody: "Create recipes in Cooking and they will appear here.",
+		recipesEmptyBody: "Save a Personal Food as a Recipe to find it here.",
 		noFoodsTitle: "No matches",
 		noFoodsBody:
 			"Try a different name, scan a barcode, or add a Personal Food.",
@@ -71,7 +72,6 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 			energy ? `${portion} · ${energy} kcal` : portion,
 		details: "Details",
 		log: "Log",
-		recipeDetail: (recipe) => `Open recipe ${recipe}`,
 		comboDetail: (combo) => `Open Combo ${combo}`,
 		onlineResults: "Open Food Facts results",
 		searchOnline: "Search Open Food Facts",
@@ -88,6 +88,7 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		favorites: "Favorieten",
 		combos: "Combo's",
 		recipes: "Recepten",
+		newRecipe: "Nieuw recept",
 		allFoods: "Alle voeding",
 		recentEmptyTitle: "Nog niets recent gelogd",
 		recentEmptyBody:
@@ -99,7 +100,8 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		combosEmptyBody:
 			"Sla voeding uit een maaltijd op als Combo en log hem hier.",
 		recipesEmptyTitle: "Geen opgeslagen recepten",
-		recipesEmptyBody: "Maak recepten in Koken; ze verschijnen hier.",
+		recipesEmptyBody:
+			"Sla persoonlijke voeding op als Recept om het hier te vinden.",
 		noFoodsTitle: "Geen resultaten",
 		noFoodsBody:
 			"Probeer een andere zoekopdracht, scan een barcode of voeg een persoonlijk voedingsmiddel toe.",
@@ -108,7 +110,6 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 			energy ? `${portion} · ${energy} kcal` : portion,
 		details: "Details",
 		log: "Loggen",
-		recipeDetail: (recipe) => `Recept ${recipe} openen`,
 		comboDetail: (combo) => `Combo ${combo} openen`,
 		onlineResults: "Resultaten van Open Food Facts",
 		searchOnline: "Zoek in Open Food Facts",

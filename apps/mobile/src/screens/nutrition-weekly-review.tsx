@@ -1,6 +1,13 @@
-import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import type { NutrientTotal } from "@workouts/core/nutrition";
+import { useConvexConnectionState, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import {
+	type DimensionValue,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	View,
+} from "react-native";
 import { api } from "../convex/api";
 import {
 	formatLongDate,
@@ -14,46 +21,58 @@ import {
 	useNutritionOperationVersion,
 } from "../data/nutrition-operation-service";
 import {
+	canGoToNextWeek,
+	evaluateNutrientGoal,
+	isRealIsoDate,
+	type WeeklyGoal,
+	type WeeklyGoalStatus,
 	type WeeklyReviewDay,
+	weekDates,
 	weekEndDate,
 	weekStartMonday,
 } from "../data/nutrition-weekly-review";
 import { useStalledOffline } from "../data/stalled-offline";
 import { fmt, useI18n } from "../i18n";
-import { getNutritionAssistanceMessages } from "../i18n/messages/nutrition-assistance";
-import { colors, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
-import { useConfirm } from "../ui/confirm-dialog";
+import {
+	type AssistanceMessages,
+	getNutritionAssistanceMessages,
+} from "../i18n/messages/nutrition-assistance";
+import { colors, radius, spacing } from "../theme";
+import { GhostButton } from "../ui/button";
+import { Card } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
-import { useToast } from "../ui/toast";
+
+const FEATURED_NUTRIENTS = ["energy", "protein", "carbs", "fat"] as const;
 
 export function NutritionWeeklyReviewScreen({
 	startDate,
-	onClose,
+	today: todayProp,
+	onSelectDay,
 }: {
 	startDate?: string;
-	onClose: () => void;
+	today?: IsoDate;
+	onSelectDay: (date: IsoDate) => void;
 }) {
 	const { locale, t } = useI18n();
 	const messages = getNutritionAssistanceMessages(locale);
-	const toast = useToast();
-	const confirm = useConfirm();
 	const drafts = useNutritionDrafts();
 	const operations = useNutritionOperations();
 	useNutritionOperationVersion();
-	const initial = isDate(startDate)
+	const today = todayProp ?? todayIsoDate();
+	const currentWeek = weekStartMonday(today);
+	const requestedWeek = isDate(startDate)
 		? weekStartMonday(startDate)
-		: weekStartMonday(todayIsoDate());
-	const [week, setWeek] = useState(initial);
-	const [pendingDate, setPendingDate] = useState<string>();
-	const [retryNonce, setRetryNonce] = useState(0);
-	const queryArgs = retryNonce % 2 === 0 ? { startDate: week } : "skip";
-	const result = useQuery(api.nutritionReview.week, queryArgs);
-	const toggleComplete = useMutation(api.nutritionReview.toggleComplete);
-	const review = result;
+		: currentWeek;
+	const [week, setWeek] = useState<IsoDate>(
+		requestedWeek > currentWeek ? currentWeek : requestedWeek,
+	);
+	const [retrying, setRetrying] = useState(false);
+	const result = useQuery(
+		api.nutritionReview.week,
+		retrying ? "skip" : { startDate: week, today },
+	);
 	const subject = operations.getSubject();
 	const hasPendingDeviceOperations = subject
 		? operations
@@ -62,7 +81,7 @@ export function NutritionWeeklyReviewScreen({
 		: false;
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
-		review === undefined,
+		result === undefined,
 		isWebSocketConnected,
 	);
 	const range = useMemo(
@@ -71,31 +90,6 @@ export function NutritionWeeklyReviewScreen({
 		[locale, week],
 	);
 
-	async function toggle(day: WeeklyReviewDay) {
-		if (pendingDate) return;
-		// Completeness is a claim about intake, and a note is not intake — so
-		// notes never block the mark, but nobody should make it unaware of them.
-		const noteCount = drafts.listForDate(day.date).length;
-		if (!day.markedComplete && noteCount > 0) {
-			const approved = await confirm({
-				title: t.nutrition.drafts.completeWithNotesTitle,
-				message: fmt(t.nutrition.drafts.completeWithNotesBody, {
-					count: noteCount,
-				}),
-				confirmLabel: messages.markComplete,
-			});
-			if (!approved) return;
-		}
-		setPendingDate(day.date);
-		try {
-			await toggleComplete({ date: day.date, completed: !day.markedComplete });
-		} catch {
-			toast.error(messages.completeFailure);
-		} finally {
-			setPendingDate(undefined);
-		}
-	}
-
 	return (
 		<ScrollView
 			style={styles.root}
@@ -103,16 +97,23 @@ export function NutritionWeeklyReviewScreen({
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
-			<Eyebrow>{messages.weeklyTitle}</Eyebrow>
-			<AppText variant="title">{range}</AppText>
+			<AppText variant="title">{messages.weeklyTitle}</AppText>
+			<AppText variant="caption">{range}</AppText>
 			<View style={styles.nav}>
 				<GhostButton
 					label={messages.previousWeek}
+					accessibilityRole="button"
+					accessibilityLabel={messages.previousWeek}
 					onPress={() => setWeek((date) => shiftIsoDate(date, -7))}
+					style={styles.navButton}
 				/>
 				<GhostButton
 					label={messages.nextWeek}
+					accessibilityRole="button"
+					accessibilityLabel={messages.nextWeek}
+					disabled={!canGoToNextWeek(week, today)}
 					onPress={() => setWeek((date) => shiftIsoDate(date, 7))}
+					style={styles.navButton}
 				/>
 			</View>
 			{stalledOffline ? (
@@ -123,14 +124,14 @@ export function NutritionWeeklyReviewScreen({
 						action={{
 							label: messages.retry,
 							onPress: () => {
-								setRetryNonce((value) => value + 1);
-								setTimeout(() => setRetryNonce((value) => value + 1), 0);
+								setRetrying(true);
+								setTimeout(() => setRetrying(false), 0);
 							},
 						}}
 					/>
 				</Card>
-			) : review === undefined ? (
-				<WeeklySkeleton label={messages.loading} />
+			) : result === undefined ? (
+				<WeeklySkeleton label={messages.loading} week={week} today={today} />
 			) : (
 				<>
 					{hasPendingDeviceOperations ? (
@@ -138,50 +139,24 @@ export function NutritionWeeklyReviewScreen({
 							<AppText variant="caption">{messages.pendingNotice}</AppText>
 						</Card>
 					) : null}
-					<Card style={styles.summary}>
-						<AppText variant="heading">{messages.coverage}</AppText>
-						<AppText>
-							{review.coverage.loggedDayCount} {messages.loggedDays} ·{" "}
-							{review.coverage.markedCompleteCount} {messages.completeDays}
-						</AppText>
-						<AppText variant="caption">{messages.missingUnknown}</AppText>
-					</Card>
-					<Card style={styles.summary}>
-						<AppText variant="heading">{messages.averages}</AppText>
-						<AppText>
-							{messages.averageEnergy}:{" "}
-							{review.averages.energy === undefined
-								? messages.notEnoughKnown
-								: `${numberText(review.averages.energy, locale)} kcal (${review.averages.energyDays} ${messages.days})`}
-						</AppText>
-						<AppText>
-							{messages.averageProtein}:{" "}
-							{review.averages.protein === undefined
-								? messages.notEnoughKnown
-								: `${numberText(review.averages.protein, locale)} g (${review.averages.proteinDays} ${messages.days})`}
-						</AppText>
-						<AppText variant="caption">{messages.factualOnly}</AppText>
-					</Card>
-					{review.days.map((day) => (
+					<WeeklyAverages review={result} locale={locale} messages={messages} />
+					{result.days.map((day) => (
 						<ReviewDayCard
 							key={day.date}
 							day={day}
+							today={today}
 							locale={locale}
 							messages={messages}
 							noteLabel={noteCountLabel(
 								drafts.listForDate(day.date).length,
 								t.nutrition.drafts,
 							)}
-							pending={pendingDate === day.date}
-							onToggle={() => toggle(day)}
+							onPress={() => onSelectDay(day.date)}
 						/>
 					))}
-					{review.coverage.loggedDayCount === 0 ? (
-						<EmptyState body={messages.noEntries} />
-					) : null}
+					<AppText variant="caption">{messages.factualOnly}</AppText>
 				</>
 			)}
-			<PrimaryButton label={messages.close} onPress={onClose} />
 		</ScrollView>
 	);
 }
@@ -194,102 +169,345 @@ function noteCountLabel(
 	return count === 1 ? copy.countOne : fmt(copy.countMany, { count });
 }
 
-function ReviewDayCard({
-	day,
+function WeeklyAverages({
+	review,
 	locale,
 	messages,
-	noteLabel,
-	pending,
-	onToggle,
 }: {
-	day: WeeklyReviewDay;
+	review: {
+		averages: {
+			energy?: number;
+			protein?: number;
+			energyDays: number;
+			proteinDays: number;
+			energyQualified: boolean;
+			proteinQualified: boolean;
+		};
+	};
 	locale: "en" | "nl";
-	messages: ReturnType<typeof getNutritionAssistanceMessages>;
-	/** "2 notes" — Capture Drafts on this day that are not intake yet. */
-	noteLabel?: string;
-	pending: boolean;
-	onToggle: () => void;
+	messages: AssistanceMessages;
 }) {
-	const entryNames = day.entries
-		.map((entry) => entry.name?.[locale])
-		.filter(Boolean)
-		.join(", ");
 	return (
-		<Card style={styles.dayCard}>
-			<View style={styles.dayHeader}>
-				<View style={styles.flex}>
-					<AppText variant="heading">
-						{formatLongDate(day.date, locale)}
-					</AppText>
-					{day.entries.length > 0 ? (
-						<AppText variant="caption">
-							{day.entries.length} {messages.entries}
-							{entryNames ? ` · ${entryNames}` : ""}
-						</AppText>
-					) : (
-						<AppText variant="caption">{messages.dayUnknown}</AppText>
-					)}
-					{noteLabel ? <AppText variant="caption">{noteLabel}</AppText> : null}
-				</View>
-				<GhostButton
-					label={
-						day.markedComplete ? messages.markIncomplete : messages.markComplete
-					}
-					loading={pending}
-					onPress={onToggle}
-					accessibilityRole="checkbox"
-					accessibilityState={{ checked: day.markedComplete, busy: pending }}
-				/>
-			</View>
-			{day.entries.length > 0 ? (
-				<View style={styles.totals}>
-					<ReviewTotal
-						label={messages.energy}
-						amount={day.totals.energy.amount}
-						unit="kcal"
-						incomplete={
-							day.totals.energy.incomplete || day.totals.energy.qualified
-						}
-					/>
-					<ReviewTotal
-						label={messages.protein}
-						amount={day.totals.protein.amount}
-						unit="g"
-						incomplete={
-							day.totals.protein.incomplete || day.totals.protein.qualified
-						}
-					/>
-				</View>
-			) : null}
+		<View style={styles.averageRow}>
+			<AverageCard
+				label={messages.averageEnergy}
+				value={review.averages.energy}
+				unit="kcal"
+				dayCount={review.averages.energyDays}
+				qualified={review.averages.energyQualified}
+				locale={locale}
+				messages={messages}
+			/>
+			<AverageCard
+				label={messages.averageProtein}
+				value={review.averages.protein}
+				unit="g"
+				dayCount={review.averages.proteinDays}
+				qualified={review.averages.proteinQualified}
+				locale={locale}
+				messages={messages}
+			/>
+		</View>
+	);
+}
+
+function AverageCard({
+	label,
+	value,
+	unit,
+	dayCount,
+	qualified,
+	locale,
+	messages,
+}: {
+	label: string;
+	value?: number;
+	unit: string;
+	dayCount: number;
+	qualified: boolean;
+	locale: "en" | "nl";
+	messages: AssistanceMessages;
+}) {
+	const daysLabel = dayCount === 1 ? messages.day : messages.days;
+	return (
+		<Card style={styles.averageCard}>
+			<AppText variant="caption">{label}</AppText>
+			<AppText variant="heading">
+				{value === undefined
+					? messages.noAverage
+					: `${qualified ? "~ " : ""}${numberText(value, locale)} ${unit} · ${dayCount} ${daysLabel}`}
+			</AppText>
 		</Card>
 	);
 }
 
-function ReviewTotal({
-	label,
-	amount,
-	unit,
-	incomplete,
+function ReviewDayCard({
+	day,
+	today,
+	locale,
+	messages,
+	noteLabel,
+	onPress,
 }: {
-	label: string;
-	amount: number;
-	unit: string;
-	incomplete: boolean;
+	day: WeeklyReviewDay;
+	today: IsoDate;
+	locale: "en" | "nl";
+	messages: AssistanceMessages;
+	noteLabel?: string;
+	onPress: () => void;
 }) {
+	const isToday = day.date === today;
+	const isUpcoming = day.date > today;
+	const dateLabel = formatLongDate(day.date, locale);
+	const entryLabel =
+		day.entryCount === 0
+			? messages.noEntries
+			: `${day.entryCount} ${day.entryCount === 1 ? messages.entry : messages.entries}`;
+	const stateLabel = isToday
+		? messages.today
+		: isUpcoming
+			? messages.upcoming
+			: undefined;
+	const comparisonGoals = day.goalBasis === "effective" ? day.goals : [];
+	const nutrientSummary =
+		day.entryCount > 0 && !isUpcoming
+			? ` ${FEATURED_NUTRIENTS.map((nutrient) =>
+					nutrientAccessibilityLabel({
+						nutrient,
+						total: day.totals[nutrient],
+						goals: comparisonGoals.filter((goal) => goal.nutrient === nutrient),
+						locale,
+						messages,
+					}),
+				).join(" ")}`
+			: "";
 	return (
-		<AppText variant="caption">
-			{label}: {numberText(amount, "en")} {unit}
-			{incomplete ? " · incomplete" : ""}
-		</AppText>
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={`${messages.openDay} ${dateLabel}. ${stateLabel ? `${stateLabel}. ` : ""}${entryLabel}.${noteLabel ? ` ${noteLabel}.` : ""}${nutrientSummary}`}
+			onPress={onPress}
+			style={({ pressed }) => [
+				styles.dayCard,
+				isToday && styles.todayCard,
+				isUpcoming && styles.upcomingCard,
+				pressed && styles.pressedCard,
+			]}
+		>
+			<View style={styles.dayHeader} accessible={false}>
+				<View style={styles.flex}>
+					<AppText variant="heading">{dateLabel}</AppText>
+					<AppText variant="caption">{entryLabel}</AppText>
+					{noteLabel ? <AppText variant="caption">{noteLabel}</AppText> : null}
+				</View>
+				{stateLabel ? (
+					<View style={[styles.badge, isToday && styles.todayBadge]}>
+						<AppText
+							variant="caption"
+							style={isToday ? styles.todayBadgeText : undefined}
+						>
+							{stateLabel}
+						</AppText>
+					</View>
+				) : null}
+			</View>
+			{day.entryCount > 0 && !isUpcoming ? (
+				<View style={styles.nutrients} accessible={false}>
+					{FEATURED_NUTRIENTS.map((nutrient) => (
+						<NutrientVisual
+							key={nutrient}
+							nutrient={nutrient}
+							total={day.totals[nutrient]}
+							goals={comparisonGoals.filter(
+								(goal) => goal.nutrient === nutrient,
+							)}
+							locale={locale}
+							messages={messages}
+							prominent={nutrient === "energy"}
+						/>
+					))}
+				</View>
+			) : null}
+		</Pressable>
 	);
 }
 
-function WeeklySkeleton({ label }: { label: string }) {
+function NutrientVisual({
+	nutrient,
+	total,
+	goals,
+	locale,
+	messages,
+	prominent,
+}: {
+	nutrient: (typeof FEATURED_NUTRIENTS)[number];
+	total: NutrientTotal;
+	goals: readonly WeeklyGoal[];
+	locale: "en" | "nl";
+	messages: AssistanceMessages;
+	prominent: boolean;
+}) {
+	const evaluation = evaluateNutrientGoal(
+		total.amount,
+		total.incomplete,
+		goals,
+	);
+	const label = messages[nutrient];
+	const unit = nutrient === "energy" ? "kcal" : "g";
+	const amount = `${total.incomplete ? "≥ " : total.qualified ? "~ " : ""}${numberText(total.amount, locale)} ${unit}`;
+	const goal = goalText(evaluation, unit, locale, messages);
+	const status = statusText(evaluation.status, messages);
+	const scale = Math.max(
+		total.amount,
+		evaluation.maximum ?? 0,
+		evaluation.minimum ?? 0,
+		1,
+	);
+	const progress =
+		evaluation.status === "noGoal"
+			? 0
+			: Math.min(100, (total.amount / scale) * 100);
+	return (
+		<View
+			accessible
+			accessibilityLabel={nutrientAccessibilityLabel({
+				nutrient,
+				total,
+				goals,
+				locale,
+				messages,
+			})}
+			style={[styles.nutrient, prominent && styles.energyNutrient]}
+		>
+			<View style={styles.nutrientHeader} accessible={false}>
+				<AppText variant={prominent ? "body" : "caption"}>{label}</AppText>
+				<AppText variant={prominent ? "heading" : "caption"}>{amount}</AppText>
+			</View>
+			<View
+				style={[
+					styles.track,
+					prominent && styles.energyTrack,
+					total.incomplete && styles.incompleteTrack,
+				]}
+				accessible={false}
+			>
+				<View
+					style={[
+						styles.progress,
+						{ width: `${progress}%` as DimensionValue },
+						{ backgroundColor: statusColor(evaluation.status) },
+					]}
+				/>
+				{evaluation.minimum !== undefined &&
+				evaluation.maximum !== undefined ? (
+					<View
+						style={[
+							styles.targetBand,
+							{
+								left: `${(evaluation.minimum / scale) * 100}%`,
+								width: `${((evaluation.maximum - evaluation.minimum) / scale) * 100}%`,
+							},
+						]}
+					/>
+				) : null}
+			</View>
+			<View style={styles.nutrientFooter} accessible={false}>
+				<AppText variant="caption">{goal}</AppText>
+				{evaluation.status === "noGoal" ? null : (
+					<AppText
+						variant="caption"
+						style={{ color: statusColor(evaluation.status) }}
+					>
+						{status}
+					</AppText>
+				)}
+			</View>
+		</View>
+	);
+}
+
+function nutrientAccessibilityLabel({
+	nutrient,
+	total,
+	goals,
+	locale,
+	messages,
+}: {
+	nutrient: (typeof FEATURED_NUTRIENTS)[number];
+	total: NutrientTotal;
+	goals: readonly WeeklyGoal[];
+	locale: "en" | "nl";
+	messages: AssistanceMessages;
+}) {
+	const evaluation = evaluateNutrientGoal(
+		total.amount,
+		total.incomplete,
+		goals,
+	);
+	const unit = nutrient === "energy" ? "kcal" : "g";
+	const amount = `${total.incomplete ? "≥ " : total.qualified ? "~ " : ""}${numberText(total.amount, locale)} ${unit}`;
+	const goal = goalText(evaluation, unit, locale, messages);
+	const status =
+		evaluation.status === "noGoal"
+			? ""
+			: ` ${statusText(evaluation.status, messages)}.`;
+	return `${messages[nutrient]}: ${amount}. ${goal}.${status}`;
+}
+
+function goalText(
+	evaluation: ReturnType<typeof evaluateNutrientGoal>,
+	unit: string,
+	locale: "en" | "nl",
+	messages: AssistanceMessages,
+) {
+	if (evaluation.minimum !== undefined && evaluation.maximum !== undefined) {
+		return `${numberText(evaluation.minimum, locale)}–${numberText(evaluation.maximum, locale)} ${unit}`;
+	}
+	if (evaluation.minimum !== undefined) {
+		return `${messages.atLeast} ${numberText(evaluation.minimum, locale)} ${unit}`;
+	}
+	if (evaluation.maximum !== undefined) {
+		return `${messages.upTo} ${numberText(evaluation.maximum, locale)} ${unit}`;
+	}
+	return messages.noGoal;
+}
+
+function statusText(status: WeeklyGoalStatus, messages: AssistanceMessages) {
+	const labels: Record<WeeklyGoalStatus, string> = {
+		noGoal: messages.noGoal,
+		below: messages.below,
+		met: messages.met,
+		within: messages.within,
+		exceeded: messages.exceeded,
+		incomplete: messages.incomplete,
+	};
+	return labels[status];
+}
+
+function statusColor(status: WeeklyGoalStatus) {
+	if (status === "met" || status === "within") return colors.success;
+	if (status === "exceeded") return colors.danger;
+	if (status === "below") return colors.warn;
+	return colors.textMuted;
+}
+
+function WeeklySkeleton({
+	label,
+	week,
+	today,
+}: {
+	label: string;
+	week: IsoDate;
+	today: IsoDate;
+}) {
 	return (
 		<SkeletonGroup label={label}>
-			<SkeletonBlock height={72} />
-			<SkeletonBlock height={72} />
-			<SkeletonBlock height={72} />
+			<View style={styles.averageRow}>
+				<SkeletonBlock height={82} style={styles.flex} />
+				<SkeletonBlock height={82} style={styles.flex} />
+			</View>
+			{weekDates(week).map((date) => (
+				<SkeletonBlock key={date} height={date > today ? 76 : 184} />
+			))}
 		</SkeletonGroup>
 	);
 }
@@ -301,21 +519,78 @@ function numberText(value: number, locale: "en" | "nl") {
 }
 
 function isDate(value: string | undefined): value is IsoDate {
-	return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value);
+	return value !== undefined && isRealIsoDate(value);
 }
 
 const styles = StyleSheet.create({
 	root: { flex: 1, backgroundColor: colors.bg },
 	content: { padding: 20, paddingBottom: 48, gap: spacing.md },
 	nav: { flexDirection: "row", gap: spacing.sm },
+	navButton: { flex: 1, minHeight: 44 },
 	summary: { gap: spacing.xs },
-	dayCard: { gap: spacing.sm },
+	averageRow: { flexDirection: "row", gap: spacing.sm },
+	averageCard: { flex: 1, gap: spacing.xs, minHeight: 82 },
+	dayCard: {
+		backgroundColor: colors.surface,
+		borderColor: colors.border,
+		borderWidth: 1,
+		borderRadius: 18,
+		padding: spacing.md,
+		gap: spacing.md,
+		minHeight: 76,
+	},
+	todayCard: { borderColor: colors.accent },
+	upcomingCard: { opacity: 0.58 },
+	pressedCard: { backgroundColor: colors.surface2 },
 	dayHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 	flex: { flex: 1 },
-	totals: {
-		gap: spacing.xs,
+	badge: {
+		borderRadius: radius.pill,
+		backgroundColor: colors.surface2,
+		paddingVertical: spacing.xs,
+		paddingHorizontal: spacing.sm,
+	},
+	todayBadge: { backgroundColor: colors.accentDim },
+	todayBadgeText: { color: colors.accent },
+	nutrients: {
+		gap: spacing.sm,
 		borderTopWidth: 1,
 		borderTopColor: colors.border,
 		paddingTop: spacing.sm,
+	},
+	nutrient: { gap: spacing.xs },
+	energyNutrient: { gap: spacing.sm },
+	nutrientHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "baseline",
+		gap: spacing.sm,
+	},
+	track: {
+		height: 6,
+		borderRadius: radius.pill,
+		backgroundColor: colors.surface2,
+		overflow: "hidden",
+	},
+	energyTrack: { height: 10 },
+	incompleteTrack: {
+		borderWidth: 1,
+		borderStyle: "dashed",
+		borderColor: colors.textMuted,
+	},
+	progress: { height: "100%", borderRadius: radius.pill },
+	targetBand: {
+		position: "absolute",
+		top: 0,
+		bottom: 0,
+		backgroundColor: colors.accentDim,
+		borderLeftWidth: 1,
+		borderRightWidth: 1,
+		borderColor: colors.accent,
+	},
+	nutrientFooter: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		gap: spacing.sm,
 	},
 });

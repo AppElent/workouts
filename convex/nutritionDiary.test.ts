@@ -287,4 +287,306 @@ describe("public nutrition diary operations", () => {
 		});
 		expect(day.totals.energy).toMatchObject({ amount: 151.2, entryCount: 1 });
 	});
+
+	it("groups existing entries atomically and replays the same operation idempotently", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const { date: _date, meal: _meal, ...part } = snapshot;
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "create-parts",
+			expectedSubject: "alice",
+			operation: {
+				kind: "createBatch",
+				date: snapshot.date,
+				meal: "lunch",
+				entries: [
+					{ ...part, clientEntryId: "apple-entry" },
+					{
+						...part,
+						name: { en: "Oats", nl: "Havermout" },
+						clientEntryId: "oats-entry",
+					},
+				],
+			},
+		});
+		const before = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		const grouping = {
+			version: 1 as const,
+			operationId: "group-parts",
+			expectedSubject: "alice",
+			operation: {
+				kind: "group" as const,
+				targets: [
+					{ kind: "clientEntryId" as const, id: "apple-entry" },
+					{ kind: "clientEntryId" as const, id: "oats-entry" },
+				],
+				comboGroup: {
+					id: "logged-combo-1",
+					comboId: "combo-1",
+					name: "Apple oats",
+				},
+			},
+		};
+
+		await alice.mutation(api.nutritionDiary.applyOperation, grouping);
+		await alice.mutation(api.nutritionDiary.applyOperation, grouping);
+		const after = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+
+		expect(after.entries.map((entry) => entry._id)).toEqual(
+			before.entries.map((entry) => entry._id),
+		);
+		expect(after.entries.map((entry) => entry.comboGroup)).toEqual([
+			{ id: "logged-combo-1", comboId: "combo-1", name: "Apple oats" },
+			{ id: "logged-combo-1", comboId: "combo-1", name: "Apple oats" },
+		]);
+		expect(after.entries.map((entry) => entry.nutrients)).toEqual(
+			before.entries.map((entry) => entry.nutrients),
+		);
+	});
+
+	it("groups surviving entries when a durable target contains a stale deployment id", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "create-surviving-part",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: { ...snapshot, clientEntryId: "surviving-part" },
+			},
+		});
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "group-with-stale-id",
+			expectedSubject: "alice",
+			operation: {
+				kind: "group",
+				targets: [
+					{ kind: "serverId", id: created.entryIds[0] },
+					{ kind: "serverId", id: "stale-deployment-entry-id" as never },
+				],
+				comboGroup: {
+					id: "recovered-group",
+					comboId: "combo-1",
+					name: "Recovered combo",
+				},
+			},
+		});
+
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		expect(day.entries).toHaveLength(1);
+		expect(day.entries[0].comboGroup).toEqual({
+			id: "recovered-group",
+			comboId: "combo-1",
+			name: "Recovered combo",
+		});
+	});
+
+	it("detaches one entry from its Logged Combo when it moves", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const { date: _date, meal: _meal, ...part } = snapshot;
+		const [id] = await alice.mutation(api.nutritionDiary.logCombo, {
+			date: snapshot.date,
+			meal: "lunch",
+			combo: { id: "combo-1", name: "Apple oats" },
+			parts: [part],
+		});
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "move-part",
+			expectedSubject: "alice",
+			operation: {
+				kind: "update",
+				target: { kind: "serverId", id },
+				meal: "dinner",
+			},
+		});
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+
+		expect(day.entries[0]).toMatchObject({ _id: id, meal: "dinner" });
+		expect(day.entries[0].comboGroup).toBeUndefined();
+	});
+
+	it("retains Logged Combo membership when an entry is edited in place", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const { date: _date, meal: _meal, ...part } = snapshot;
+		const [id] = await alice.mutation(api.nutritionDiary.logCombo, {
+			date: snapshot.date,
+			meal: "lunch",
+			combo: { id: "combo-1", name: "Apple oats" },
+			parts: [part],
+		});
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "edit-part",
+			expectedSubject: "alice",
+			operation: {
+				kind: "update",
+				target: { kind: "serverId", id },
+				date: snapshot.date,
+				meal: "lunch",
+				quantity: snapshot.quantity * 2,
+			},
+		});
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+
+		expect(day.entries[0]).toMatchObject({
+			_id: id,
+			quantity: snapshot.quantity * 2,
+			comboGroup: {
+				id: expect.any(String),
+				comboId: "combo-1",
+				name: "Apple oats",
+			},
+		});
+	});
+
+	it("keeps mixed legacy and pending identity mappings aligned when grouping", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const legacyId = await alice.mutation(api.nutritionDiary.log, snapshot);
+		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "create-pending-part",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: { ...snapshot, clientEntryId: "pending-part" },
+			},
+		});
+		const pendingId = created.entryIds[0];
+
+		const grouped = await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "group-mixed-identities",
+			expectedSubject: "alice",
+			operation: {
+				kind: "group",
+				targets: [
+					{ kind: "serverId", id: legacyId },
+					{ kind: "serverId", id: pendingId },
+				],
+				comboGroup: {
+					id: "logged-combo-1",
+					comboId: "combo-1",
+					name: "Apple oats",
+				},
+			},
+		});
+
+		expect(grouped.entryIds).toEqual([pendingId]);
+		expect(grouped.clientEntryIds).toEqual(["pending-part"]);
+	});
+
+	it("rejects regrouping only part of an existing Logged Combo", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const { date: _date, meal: _meal, ...part } = snapshot;
+		const ids = await alice.mutation(api.nutritionDiary.logCombo, {
+			date: snapshot.date,
+			meal: snapshot.meal,
+			combo: { id: "old-combo", name: "Old combo" },
+			parts: [
+				part,
+				{ ...part, name: { en: "Oats", nl: "Havermout" } },
+			],
+		});
+
+		await expect(
+			alice.mutation(api.nutritionDiary.applyOperation, {
+				version: 1,
+				operationId: "partial-regroup",
+				expectedSubject: "alice",
+				operation: {
+					kind: "group",
+					targets: [{ kind: "serverId", id: ids[0] }],
+					comboGroup: {
+						id: "new-group",
+						comboId: "new-combo",
+						name: "New combo",
+					},
+				},
+			}),
+		).rejects.toThrow("selected as a whole");
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		expect(day.entries.map((entry) => entry.comboGroup?.comboId)).toEqual([
+			"old-combo",
+			"old-combo",
+		]);
+	});
+
+	it("rejects mixed Meal Slots and another user's entry without partial grouping", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const bob = t.withIdentity({ subject: "bob" });
+		const lunchId = await alice.mutation(api.nutritionDiary.log, snapshot);
+		const dinnerId = await alice.mutation(api.nutritionDiary.log, {
+			...snapshot,
+			meal: "dinner",
+		});
+		const bobId = await bob.mutation(api.nutritionDiary.log, snapshot);
+		const comboGroup = {
+			id: "logged-combo-1",
+			comboId: "combo-1",
+			name: "Apple oats",
+		};
+
+		await expect(
+			alice.mutation(api.nutritionDiary.applyOperation, {
+				version: 1,
+				operationId: "mixed-meals",
+				expectedSubject: "alice",
+				operation: {
+					kind: "group",
+					targets: [
+						{ kind: "serverId", id: lunchId },
+						{ kind: "serverId", id: dinnerId },
+					],
+					comboGroup,
+				},
+			}),
+		).rejects.toThrow("share one date and Meal Slot");
+		await expect(
+			alice.mutation(api.nutritionDiary.applyOperation, {
+				version: 1,
+				operationId: "other-user",
+				expectedSubject: "alice",
+				operation: {
+					kind: "group",
+					targets: [
+						{ kind: "serverId", id: lunchId },
+						{ kind: "serverId", id: bobId },
+					],
+					comboGroup,
+				},
+			}),
+		).rejects.toThrow("Unauthorized");
+
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		expect(day.entries.map((entry) => entry.comboGroup)).toEqual([
+			undefined,
+			undefined,
+		]);
+	});
 });

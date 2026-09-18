@@ -133,7 +133,10 @@ async function ownedEntry(
 }
 
 function backendTarget(
-	target: Extract<NutritionDiaryOperation, { kind: "update" | "remove" }>["target"],
+	target: Extract<
+		NutritionDiaryOperation,
+		{ kind: "update" | "remove" }
+	>["target"],
 ):
 	| { kind: "serverId"; id: Id<"nutritionDiaryEntries"> }
 	| { kind: "clientEntryId"; id: string } {
@@ -143,6 +146,30 @@ function backendTarget(
 		return { kind: "serverId", id: target.id as Id<"nutritionDiaryEntries"> };
 	}
 	return target;
+}
+
+async function existingOwnedGroupEntry(
+	ctx: MutationCtx,
+	userId: string,
+	target: Extract<
+		NutritionDiaryOperation,
+		{ kind: "group" }
+	>["targets"][number],
+) {
+	let entry;
+	if (target.kind === "serverId") {
+		const id = ctx.db.normalizeId("nutritionDiaryEntries", target.id);
+		entry = id ? await ctx.db.get(id) : null;
+	} else {
+		entry = await ctx.db
+			.query("nutritionDiaryEntries")
+			.withIndex("by_user_client_entry", (q) =>
+				q.eq("userId", userId).eq("clientEntryId", target.id),
+			)
+			.first();
+	}
+	if (entry && entry.userId !== userId) throw new Error("Unauthorized");
+	return entry;
 }
 
 async function assertClientEntryAvailable(
@@ -302,6 +329,12 @@ export const update = mutation({
 	args: {
 		id: v.id("nutritionDiaryEntries"),
 		quantity: v.optional(v.number()),
+		selection: v.optional(v.object({
+			serving: v.object({ en: v.string(), nl: v.string() }),
+			quantity: v.number(),
+			amount: v.number(),
+			personalMeasureId: v.union(v.string(), v.null()),
+		})),
 		meal: v.optional(
 			v.union(
 				v.literal("breakfast"),
@@ -312,7 +345,8 @@ export const update = mutation({
 		),
 		date: v.optional(v.string()),
 	},
-	handler: async (ctx, { id, quantity, meal, date }) => {
+	returns: v.id("nutritionDiaryEntries"),
+	handler: async (ctx, { id, quantity, selection, meal, date }) => {
 		const userId = await requireUser(ctx);
 		const entry = await requireOwnedEntry(ctx, userId, id);
 
@@ -321,7 +355,25 @@ export const update = mutation({
 		const patch: Partial<typeof entry> = {};
 		if (meal !== undefined) patch.meal = meal;
 		if (date !== undefined) patch.date = date;
-		if (quantity !== undefined) {
+		if (
+			(meal !== undefined && meal !== entry.meal) ||
+			(date !== undefined && date !== entry.date)
+		) {
+			patch.comboGroup = undefined;
+		}
+		if (selection !== undefined) {
+			if (quantity !== undefined) {
+				throw new Error("Choose either quantity or a serving selection.");
+			}
+			assertFinitePositive(selection.quantity, "Quantity");
+			assertFinitePositive(selection.amount, "Amount");
+			const factor = selection.amount / entry.amount;
+			patch.quantity = selection.quantity;
+			patch.amount = selection.amount;
+			patch.nutrients = rescaleNutrients(entry.nutrients, factor);
+			patch.serving = selection.serving;
+			patch.personalMeasureId = selection.personalMeasureId ?? undefined;
+		} else if (quantity !== undefined) {
 			if (!(quantity > 0)) throw new Error("Quantity must be greater than zero.");
 			const factor = quantity / entry.quantity;
 			patch.quantity = quantity;
@@ -439,7 +491,26 @@ export const applyOperation = mutation({
 			const patch: Partial<typeof entry> = {};
 			if (operation.meal !== undefined) patch.meal = operation.meal;
 			if (operation.date !== undefined) patch.date = operation.date;
-			if (operation.quantity !== undefined) {
+			if (
+				(operation.meal !== undefined && operation.meal !== entry.meal) ||
+				(operation.date !== undefined && operation.date !== entry.date)
+			) {
+				patch.comboGroup = undefined;
+			}
+			if (operation.selection !== undefined) {
+				if (operation.quantity !== undefined) {
+					throw new Error("Choose either quantity or a serving selection.");
+				}
+				assertFinitePositive(operation.selection.quantity, "Quantity");
+				assertFinitePositive(operation.selection.amount, "Amount");
+				const factor = operation.selection.amount / entry.amount;
+				patch.quantity = operation.selection.quantity;
+				patch.amount = operation.selection.amount;
+				patch.nutrients = rescaleNutrients(entry.nutrients, factor);
+				patch.serving = operation.selection.serving;
+				patch.personalMeasureId =
+					operation.selection.personalMeasureId ?? undefined;
+			} else if (operation.quantity !== undefined) {
 				assertFinitePositive(operation.quantity, "Quantity");
 				const factor = operation.quantity / entry.quantity;
 				patch.quantity = operation.quantity;
@@ -457,6 +528,67 @@ export const applyOperation = mutation({
 			}
 			entryIds.push(entry._id);
 			if (entry.clientEntryId) clientEntryIds.push(entry.clientEntryId);
+		}
+
+		if (operation.kind === "group") {
+			if (operation.targets.length < 1 || operation.targets.length > 100) {
+				throw new Error("A Logged Combo must contain between 1 and 100 entries.");
+			}
+			assertText(operation.comboGroup.id, "Logged Combo ID");
+			assertText(operation.comboGroup.comboId, "Combo ID");
+			assertText(operation.comboGroup.name, "Combo name");
+			const entries = [];
+			const seen = new Set<string>();
+			for (const target of operation.targets) {
+				const key = `${target.kind}:${target.id}`;
+				if (seen.has(key)) throw new Error("Duplicate diary entry target.");
+				seen.add(key);
+				const entry = await existingOwnedGroupEntry(ctx, userId, target);
+				if (entry) entries.push(entry);
+			}
+			const [first] = entries;
+			if (
+				!first ||
+				entries.some(
+					(entry) => entry.date !== first.date || entry.meal !== first.meal,
+				)
+			) {
+				throw new Error("Logged Combo entries must share one date and Meal Slot.");
+			}
+			const selectedIds = new Set(entries.map((entry) => String(entry._id)));
+			const existingGroupIds = new Set(
+				entries
+					.map((entry) => entry.comboGroup?.id)
+					.filter((id): id is string => id !== undefined),
+			);
+			if (existingGroupIds.size > 0) {
+				for (const groupId of existingGroupIds) {
+					const existingParts = await ctx.db
+						.query("nutritionDiaryEntries")
+						.withIndex("by_user_combo_group", (query) =>
+							query.eq("userId", userId).eq("comboGroup.id", groupId),
+						)
+						.take(operation.targets.length + 1);
+					if (
+						existingParts.some(
+						(entry) =>
+							!selectedIds.has(String(entry._id)),
+						)
+					) {
+						throw new Error(
+							"Existing Logged Combos must be selected as a whole.",
+						);
+					}
+				}
+			}
+			for (const entry of entries) {
+				await ctx.db.patch(entry._id, { comboGroup: operation.comboGroup });
+				if (entry.clientEntryId) {
+					entryIds.push(entry._id);
+					clientEntryIds.push(entry.clientEntryId);
+				}
+			}
+			affectedDates.add(first.date);
 		}
 
 		if (operation.kind === "remove") {

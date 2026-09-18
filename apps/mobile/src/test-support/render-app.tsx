@@ -32,10 +32,7 @@ import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
-import {
-	createNutritionCookingRepository,
-	type NutritionCookingRepository,
-} from "../data/nutrition-cooking-repository";
+import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import {
 	createNutritionDraftRepository,
 	type NutritionDraftRepository,
@@ -55,8 +52,8 @@ import {
 	type PersonalFoodRepository,
 } from "../data/personal-food-repository";
 import { PersonalFoodsProvider } from "../data/personal-foods";
+import { PersonalMeasuresProvider } from "../data/personal-measures";
 import { LocaleProvider } from "../i18n";
-import { FoodBrowserCookingRepositoryProvider } from "../screens/nutrition-food-browser";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
 import { NativeAlertHost } from "./native-alert-host";
@@ -66,14 +63,12 @@ export function TestLayout({
 	repository,
 	offCache,
 	nutritionRepository,
-	cookingRepository,
 	draftRepository,
 	fetchImpl,
 }: {
 	repository: PersonalFoodRepository;
 	offCache: OpenFoodFactsCache;
 	nutritionRepository: NutritionLocalRepository;
-	cookingRepository: NutritionCookingRepository;
 	draftRepository: NutritionDraftRepository;
 	fetchImpl?: FetchLike;
 }): ReactNode {
@@ -89,11 +84,9 @@ export function TestLayout({
 									subject="test-user"
 								>
 									<NutritionDraftsProvider repository={draftRepository}>
-										<FoodBrowserCookingRepositoryProvider
-											repository={cookingRepository}
-										>
+										<PersonalMeasuresProvider>
 											<Stack />
-										</FoodBrowserCookingRepositoryProvider>
+										</PersonalMeasuresProvider>
 									</NutritionDraftsProvider>
 								</NutritionOperationsProvider>
 							</OpenFoodFactsProvider>
@@ -111,15 +104,11 @@ export function renderApp(
 	overrides: Record<string, unknown> = {},
 	/** A fake fetch for tests that exercise the Open Food Facts network boundary. */
 	fetchImpl?: FetchLike,
-	/** Runs against the device stores before the first render, for tests that start mid-life. */
 	seed?: (stores: { draftRepository: NutritionDraftRepository }) => void,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 	const nutritionRepository = createNutritionLocalRepository(
-		new SQLiteTestDatabase(),
-	);
-	const cookingRepository = createNutritionCookingRepository(
 		new SQLiteTestDatabase(),
 	);
 	const draftRepository = createNutritionDraftRepository(
@@ -132,7 +121,6 @@ export function renderApp(
 				repository={repository}
 				offCache={offCache}
 				nutritionRepository={nutritionRepository}
-				cookingRepository={cookingRepository}
 				draftRepository={draftRepository}
 				fetchImpl={fetchImpl}
 			/>
@@ -152,11 +140,17 @@ export function renderApp(
 			"nutrition-assistance": NutritionAssistanceRoute as never,
 			"nutrition-weekly-review": NutritionWeeklyReviewRoute as never,
 			"nutrition-library": NutritionLibraryRoute as never,
+			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,
 			profile: ProfileRoute as never,
 			...(overrides as Record<string, never>),
 		},
 		{ initialUrl },
 	);
-	return Object.assign(rendered, { repository, offCache, draftRepository });
+	return Object.assign(rendered, {
+		repository,
+		offCache,
+		nutritionRepository,
+		draftRepository,
+	});
 }
