@@ -116,7 +116,7 @@ function assertComboProvenance(value: unknown, reference: Record<string, unknown
 	if (provenance.source !== "personal" && provenance.source !== "import") {
 		throw new Error("Combo provenance is invalid.");
 	}
-	if (typeof provenance.nutritionSource !== "string" || !["manual", "nevo", "openfoodfacts"].includes(provenance.nutritionSource)) {
+	if (typeof provenance.nutritionSource !== "string" || !["manual", "nevo", "lidl", "openfoodfacts"].includes(provenance.nutritionSource)) {
 		throw new Error("Combo provenance is invalid.");
 	}
 	if (typeof provenance.locallyEdited !== "boolean") throw new Error("Combo provenance is invalid.");

@@ -13,7 +13,7 @@ import {
 	personalFoodSnapshot,
 	type ShippedFood,
 	searchShippedFoods,
-	shippedLibraryMeta,
+	shippedSourceMeta,
 } from "@workouts/core/nutrition";
 import type {
 	PersonalFood,
@@ -98,7 +98,7 @@ function candidateFromShipped(food: ShippedFood): AssistanceFood {
 	const nutrients = Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => [key, food.nutrients[key]]),
 	) as Record<NutrientKey, NutrientValue>;
-	const meta = shippedLibraryMeta();
+	const source = shippedSourceMeta(food);
 	return {
 		id: food.id,
 		kind: "shipped",
@@ -108,11 +108,11 @@ function candidateFromShipped(food: ShippedFood): AssistanceFood {
 		provenance: {
 			source: "shipped",
 			sourceId: food.id,
-			dataset: meta.dataset.name,
-			edition: meta.dataset.edition,
+			dataset: source.name,
+			edition: source.edition,
 			sourceCode: food.code,
 			sourceName: food.sourceName,
-			saltDerived: true,
+			saltDerived: source.saltDerived,
 		},
 	};
 }

@@ -47,7 +47,7 @@ export type PersonalServing = {
 
 export type PersonalFoodProvenance = {
 	readonly recordOrigin: "personal" | "import";
-	readonly nutritionSource: "manual" | "nevo" | "openfoodfacts";
+	readonly nutritionSource: "manual" | "nevo" | "lidl" | "openfoodfacts";
 	readonly locallyEdited: boolean;
 	readonly forkedFrom?: ShippedFoodId;
 	readonly provider?: string;
@@ -141,7 +141,9 @@ function validateProvenance(
 		throw new Error("Food provenance has an invalid record origin.");
 	}
 	if (
-		!["manual", "nevo", "openfoodfacts"].includes(candidate.nutritionSource)
+		!["manual", "nevo", "lidl", "openfoodfacts"].includes(
+			candidate.nutritionSource,
+		)
 	) {
 		throw new Error("Food provenance has an invalid nutrition source.");
 	}

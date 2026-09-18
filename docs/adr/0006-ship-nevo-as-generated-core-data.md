@@ -12,3 +12,9 @@ NEVO's licence is a live constraint: source attribution and clearly marked Appel
 - **Use Open Food Facts as the shipped list** — rejected: it is oriented toward branded products and an extracted bundled database carries ODbL obligations; it remains an explicit runtime import provider instead.
 - **Serve the catalogue from Convex** — rejected for v1: it adds network and backend dependencies to ordinary logging without a need for server-side mutation.
 - **Use NEVO code as application identity** — rejected: code reuse/reactivation is proven and no permanent non-reuse guarantee exists.
+
+## Addendum (2026-09): a second shipped source
+
+The artifact now also carries Lidl's bake-off range (65 products, `data/lidl/lidl-bakeoff.json`), transcribed once by hand from Lidl's own ingredient sheets. A further source is admitted on three conditions, all of which the generator enforces: it has its own code namespace (`${source}:${code}`; ids minted as `shipped:<source>-…`), its own entry in the artifact's `sources` table (dataset, edition, whether salt is derived), and its figures ship unchanged with Appelent additions (English names, categories, emoji, servings) kept visibly separate — the same shape as the NEVO overlay split. Lidl foods are promoted by default because the range is small and branded; NEVO rows still earn promotion through the overlay.
+
+The NEVO licence is untouched by this: NEVO data still ships unchanged and attributed. Lidl's terms and the attribution wording for mixed totals are **not yet settled** and must be before this reaches production.

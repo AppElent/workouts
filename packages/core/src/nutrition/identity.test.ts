@@ -2,11 +2,14 @@ import { describe, expect, test } from "vitest";
 import {
 	buildArtifact,
 	EMPTY_LOCK,
+	foodKey,
 	reconcileLock,
 	serialiseArtifact,
 } from "../../scripts/build";
+import { type LidlExtract, parseLidlExtract } from "../../scripts/lidl";
 import { parseNevoExtract } from "../../scripts/nevo";
 import type { OverlayEntry } from "./overlay";
+import { shippedArtifactSchema } from "./schema";
 
 /**
  * The identity rules, exercised by feeding the generator a mutated extract.
@@ -214,7 +217,7 @@ describe("a retired NEVO code", () => {
 				extract: extractOf([APPLE, PEAR]),
 				lock: full,
 				overlay: [],
-			}).foods.map((food) => [food.code, food]),
+			}).foods.map((food) => [foodKey(food), food]),
 		);
 		const { lock } = reconcileLock(
 			extractOf([PEAR]),
@@ -441,5 +444,178 @@ describe("the promotion overlay", () => {
 		});
 		expect(built.foods[0]?.cat).toBe("fruit");
 		expect(built.foods[0]?.p?.emoji).toBe("🍎");
+	});
+});
+
+describe("a second source (Lidl)", () => {
+	function lidlOf(
+		products: readonly Partial<LidlExtract["products"][number]>[],
+	): LidlExtract {
+		return parseLidlExtract(
+			JSON.stringify({
+				source: "Lidl test",
+				sheets: [
+					{
+						key: "fixed",
+						title: "Fixed",
+						version: "27 juli 2026",
+						file: "fixed.pdf",
+					},
+				],
+				basis: "per 100 g",
+				note: "test",
+				products: products.map((product) => ({
+					code: 1,
+					codeType: "article",
+					sheet: "fixed",
+					nameNl: "Appelflap",
+					nameEn: "Apple turnover",
+					category: "snacks",
+					emoji: "🥧",
+					grammage: 105,
+					nutrients: {
+						energy: 294,
+						fat: 16.1,
+						saturatedFat: 8,
+						carbs: 31.7,
+						sugars: 11.8,
+						fibre: 3.6,
+						protein: 3.8,
+						salt: 0.3,
+					},
+					...product,
+				})),
+			}),
+		);
+	}
+
+	const APPELFLAP = lidlOf([{}]);
+
+	test("mints in its own namespace, so NEVO 1 and Lidl 1 coexist", () => {
+		const { problems, lock } = reconcileLock(
+			extractOf([APPLE]),
+			EMPTY_LOCK,
+			{ mintNew: true },
+			new Map(),
+			APPELFLAP,
+		);
+		expect(problems).toEqual([]);
+		expect(lock.entries.map((entry) => entry.id)).toEqual([
+			"shipped:apple",
+			"shipped:lidl-apple-turnover",
+		]);
+		expect(lock.entries[1]?.src).toBe("lidl");
+		expect(lock.entries[1]?.mintedIn).toBe("27 juli 2026");
+		expect(lock.entries[0]?.src).toBeUndefined();
+	});
+
+	test("emits a promoted food with the piece weight as its serving and no sodium", () => {
+		const { lock } = reconcileLock(
+			extractOf([APPLE]),
+			EMPTY_LOCK,
+			{ mintNew: true },
+			new Map(),
+			APPELFLAP,
+		);
+		const artifact = buildArtifact({
+			extract: extractOf([APPLE]),
+			lidl: APPELFLAP,
+			lock,
+			overlay: [],
+		});
+		expect(() => shippedArtifactSchema.parse(artifact)).not.toThrow();
+		const flap = artifact.foods.find((food) => food.src === "lidl");
+		expect(flap?.id).toBe("shipped:lidl-apple-turnover");
+		expect(flap?.grp).toBe("lidl-bake-off");
+		expect(flap?.cat).toBe("snacks");
+		expect(flap?.p?.servings).toEqual([
+			{ en: "1 piece (105 g)", nl: "1 stuk (105 g)", amount: 105 },
+		]);
+		const at = (key: string) =>
+			flap?.n[artifact.nutrientOrder.indexOf(key as never)];
+		expect(at("energy")).toBe(294);
+		expect(at("salt")).toBe(0.3);
+		expect(at("sodium")).toBeNull();
+		expect(artifact.sources.lidl?.saltDerived).toBe(false);
+		expect(artifact.sources.nevo.saltDerived).toBe(true);
+		// NEVO block first, then Lidl.
+		expect(artifact.foods.map((food) => food.id)).toEqual([
+			"shipped:apple",
+			"shipped:lidl-apple-turnover",
+		]);
+	});
+
+	test("stops on a changed Lidl identity and names the lidl: flag", () => {
+		const { lock } = reconcileLock(
+			extractOf([APPLE]),
+			EMPTY_LOCK,
+			{ mintNew: true },
+			new Map(),
+			APPELFLAP,
+		);
+		const resized = lidlOf([{ grammage: 120 }]);
+		const { problems } = reconcileLock(
+			extractOf([APPLE]),
+			lock,
+			{},
+			new Map(),
+			resized,
+		);
+		expect(problems).toHaveLength(1);
+		expect(problems[0]?.kind).toBe("changed");
+		expect(problems[0]?.src).toBe("lidl");
+		expect(problems[0]?.remedy).toContain("--accept-change=lidl:1");
+
+		const accepted = reconcileLock(
+			extractOf([APPLE]),
+			lock,
+			{ acceptChange: ["lidl:1"] },
+			new Map(),
+			resized,
+		);
+		expect(accepted.problems).toEqual([]);
+		expect(accepted.lock.entries).toHaveLength(2);
+	});
+
+	test("retires a Lidl product that left the sheet without touching NEVO", () => {
+		const { lock } = reconcileLock(
+			extractOf([APPLE]),
+			EMPTY_LOCK,
+			{ mintNew: true },
+			new Map(),
+			APPELFLAP,
+		);
+		const empty = lidlOf([
+			{ code: 2, nameEn: "Croissant", nameNl: "Croissant" },
+		]);
+		const { problems, lock: next } = reconcileLock(
+			extractOf([APPLE]),
+			lock,
+			{ retireMissing: true, mintNew: true },
+			new Map(),
+			empty,
+		);
+		expect(problems).toEqual([]);
+		const flap = next.entries.find(
+			(entry) => entry.id === "shipped:lidl-apple-turnover",
+		);
+		expect(flap?.status).toBe("retired");
+		expect(
+			next.entries.find((entry) => entry.id === "shipped:apple")?.status,
+		).toBe("active");
+	});
+
+	test("leaves Lidl lock entries alone when no Lidl extract is supplied", () => {
+		const { lock } = reconcileLock(
+			extractOf([APPLE]),
+			EMPTY_LOCK,
+			{ mintNew: true },
+			new Map(),
+			APPELFLAP,
+		);
+		const { problems, lock: next } = reconcileLock(extractOf([APPLE]), lock);
+		expect(problems).toEqual([]);
+		expect(next.entries).toHaveLength(2);
+		expect(next.entries[1]?.status).toBe("active");
 	});
 });

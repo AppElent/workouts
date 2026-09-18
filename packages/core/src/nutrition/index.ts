@@ -78,6 +78,7 @@ export {
 	shippedFoodGroups,
 	shippedLibrary,
 	shippedLibraryMeta,
+	shippedSourceMeta,
 } from "./library";
 export {
 	ABSENT,
@@ -143,4 +144,7 @@ export {
 	type ShippedFoodId,
 	type ShippedLibraryMeta,
 	type ShippedServing,
+	type ShippedSource,
+	type ShippedSourceMeta,
+	type ShippedSources,
 } from "./types";

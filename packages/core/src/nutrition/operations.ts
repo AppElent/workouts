@@ -17,7 +17,7 @@ export type NutritionProvenance =
 	| {
 			readonly source: "personal" | "import";
 			readonly sourceId: string;
-			readonly nutritionSource: "manual" | "nevo" | "openfoodfacts";
+			readonly nutritionSource: "manual" | "nevo" | "lidl" | "openfoodfacts";
 			readonly locallyEdited: boolean;
 			readonly forkedFrom?: string;
 			readonly provider?: string;

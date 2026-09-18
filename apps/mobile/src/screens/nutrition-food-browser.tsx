@@ -18,7 +18,7 @@ import {
 	type ServingOption,
 	type ShippedFood,
 	servingOptions,
-	shippedLibraryMeta,
+	shippedSourceMeta,
 	withPersonalMeasures,
 } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
@@ -1794,15 +1794,15 @@ function createFoodSnapshot(
 			NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
 		) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
 	};
-	const meta = shippedLibraryMeta();
+	const source = shippedSourceMeta(selection.food);
 	const provenance: DiaryEntry["provenance"] = {
 		source: "shipped",
 		sourceId: selection.food.id,
-		dataset: meta.dataset.name,
-		edition: meta.dataset.edition,
+		dataset: source.name,
+		edition: source.edition,
 		sourceCode: selection.food.code,
 		sourceName: selection.food.sourceName,
-		saltDerived: true,
+		saltDerived: source.saltDerived,
 	};
 	return { common, provenance };
 }

@@ -108,7 +108,7 @@ export type ComboSnapshotProvenance =
 	| {
 			readonly source: "personal" | "import";
 			readonly sourceId: string;
-			readonly nutritionSource: "manual" | "nevo" | "openfoodfacts";
+			readonly nutritionSource: "manual" | "nevo" | "lidl" | "openfoodfacts";
 			readonly locallyEdited: boolean;
 			readonly forkedFrom?: string;
 			readonly provider?: string;
@@ -440,6 +440,7 @@ function validateComboProvenance(
 	if (
 		candidate.nutritionSource !== "manual" &&
 		candidate.nutritionSource !== "nevo" &&
+		candidate.nutritionSource !== "lidl" &&
 		candidate.nutritionSource !== "openfoodfacts"
 	) {
 		throw new Error(

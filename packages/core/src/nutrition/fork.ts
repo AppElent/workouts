@@ -27,7 +27,13 @@ import {
 	type NutrientValue,
 } from "./nutrients";
 import { type SearchScope, searchShippedFoods } from "./search";
-import type { Bilingual, Locale, ShippedFood, ShippedFoodId } from "./types";
+import type {
+	Bilingual,
+	Locale,
+	ShippedFood,
+	ShippedFoodId,
+	ShippedSource,
+} from "./types";
 
 /** A Personal Food carries at most three Servings, forks included. */
 export const MAX_FORK_SERVINGS = 3;
@@ -41,15 +47,16 @@ export type ForkedServing = {
 /**
  * What a fork records about where it came from.
  *
- * `recordOrigin` says the row is the user's own; `nutritionSource: "nevo"` says
- * the figures started as NEVO's, which is why NEVO attribution follows a fork
- * into its detail view and its diary snapshots; `locallyEdited` says whether
- * the user has actually changed anything yet. Conflating the three loses all
- * three answers, so they stay separate (spec #68, "Provenance and attribution").
+ * `recordOrigin` says the row is the user's own; `nutritionSource` says which
+ * shipped source the figures started as, which is why source attribution
+ * follows a fork into its detail view and its diary snapshots; `locallyEdited`
+ * says whether the user has actually changed anything yet. Conflating the three
+ * loses all three answers, so they stay separate (spec #68, "Provenance and
+ * attribution").
  */
 export type ForkProvenance = {
 	readonly recordOrigin: "personal";
-	readonly nutritionSource: "nevo";
+	readonly nutritionSource: ShippedSource;
 	readonly locallyEdited: boolean;
 	readonly forkedFrom: ShippedFoodId;
 };
@@ -101,7 +108,7 @@ export function forkShippedFood(food: ShippedFood): ForkedFoodDraft {
 		})),
 		provenance: {
 			recordOrigin: "personal",
-			nutritionSource: "nevo",
+			nutritionSource: food.source,
 			locallyEdited: false,
 			forkedFrom: food.id,
 		},
