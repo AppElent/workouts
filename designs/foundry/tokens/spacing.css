@@ -1,0 +1,22 @@
+/* 4-point grid. Space between sections is larger than space between rows. */
+:root{
+  --space-xs:4px;
+  --space-sm:8px;
+  --space-md:16px;
+  --space-lg:24px;
+  --space-xl:32px;
+  --space-xxl:48px;
+
+  /* Layout metrics — theme/tokens.ts `metrics` */
+  --screen-gutter:20px;
+  --form-gutter:16px;
+  --row-min-height:48px;   /* iOS grouped-list row; 44 is the floor */
+  --field-min-height:44px;
+  --hit-target:44px;
+  --section-gap:18px;
+  --control-height:46px;   /* primary capsule */
+  --separator-inset:16px;
+  --shell-content-gap:16px;
+  --row-gap:8px;
+  --form-max-width:640px;
+}

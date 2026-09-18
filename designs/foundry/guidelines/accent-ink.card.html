@@ -1,0 +1,31 @@
+<!-- @dsCard group="Colors" viewport="700x190" name="Accent: fill vs ink" subtitle="Lime fills in both themes; ink switches to olive in light" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Accent ink</title><link rel="stylesheet" href="../styles.css">
+<style>html,body{margin:0;font-family:var(--font-system)}body{padding:0}
+.pair{display:flex;height:100%}.half{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:var(--bg);color:var(--text)}
+.grid{display:flex;gap:8px;flex-wrap:wrap}
+.sw{flex:1;min-width:84px;border-radius:var(--r-md);padding:8px;display:flex;flex-direction:column;justify-content:flex-end;min-height:62px;border:.5px solid var(--border)}
+.n{font-size:10px;font-weight:700}.v{font-size:8px;font-family:ui-monospace,Menlo,monospace;opacity:.75;margin-top:2px}
+.tok{font-size:9px;font-family:ui-monospace,Menlo,monospace;color:var(--text-faint)}
+.lab{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}
+.row{display:flex;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:8px}
+.list{background:var(--surface);border-radius:var(--r-list);border:.5px solid var(--border);box-shadow:var(--shadow-card);overflow:hidden}
+.item{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 16px;font-size:17px;font-weight:600;letter-spacing:-.2px}
+.item+.item{border-top:.5px solid var(--separator);}
+.sec{font-size:13px;font-weight:400;color:var(--text-muted)}
+.cta{height:46px;border:none;border-radius:23px;background:var(--accent);color:var(--on-accent);font-family:var(--font-system);font-size:16px;font-weight:600;padding:0 22px}
+</style></head><body><div class="pair">
+<div class="half theme-dark"><span class="lab">dark — fill and ink are the same lime</span>
+  <div class="row"><button class="cta">Log set 3</button><span style="color:var(--accent-ink);font-size:16px;font-weight:500">Edit goals</span></div>
+  <div class="grid">
+    <div class="sw" style="background:var(--accent);color:var(--on-accent)"><span class="n">--accent</span><span class="v">fill</span></div>
+    <div class="sw" style="background:var(--surface);color:var(--accent-ink)"><span class="n">--accent-ink</span><span class="v">#c8f73c</span></div>
+  </div>
+</div>
+<div class="half theme-light"><span class="lab">light — lime stays a fill, ink goes olive</span>
+  <div class="row"><button class="cta">Log set 3</button><span style="color:var(--accent-ink);font-size:16px;font-weight:500">Edit goals</span></div>
+  <div class="grid">
+    <div class="sw" style="background:var(--accent);color:var(--on-accent)"><span class="n">--accent</span><span class="v">#c8f73c fill</span></div>
+    <div class="sw" style="background:var(--surface);color:var(--accent-ink)"><span class="n">--accent-ink</span><span class="v">#55700c · 5.6:1</span></div>
+  </div>
+  <span class="tok">Lime as text on white is ~1.4:1 — never ink.</span>
+</div></div></body></html>

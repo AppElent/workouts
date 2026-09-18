@@ -1,0 +1,53 @@
+/* Foundry palette — transcribed from apps/mobile/src/theme/tokens.ts.
+   Dark-only, on purpose: app.json pins userInterfaceStyle "dark" and there is
+   no light palette on either client. Do not add one silently. */
+:root{
+  /* Base */
+  --bg:#0a0b09;
+  --surface:#141613;
+  --surface-2:#1d201b;
+
+  --accent:#c8f73c;
+  --accent-pressed:#d6ff5c;
+  --accent-dim:rgba(200,247,60,0.13);
+  --on-accent:#0a0b09;
+  /* Accented INK — text, icons, strokes, chart series. Same as --accent in
+     dark; a deep olive in light, where lime is fill-only. Components read
+     this, never --accent, for anything that is not a filled surface. */
+  --accent-ink:#c8f73c;
+
+  --text:#f2f4ef;
+  --text-muted:#9ba095;
+  --text-faint:#5c6156;
+
+  --border:rgba(255,255,255,0.07);
+  --border-strong:rgba(255,255,255,0.14);
+
+  --danger:#ff6b6b;
+  --danger-soft:rgba(255,107,107,0.12);
+  --success:#4ade80;
+  --warn:#fbbf24;
+  --warn-soft:rgba(251,191,36,0.12);
+  --warn-border:rgba(251,191,36,0.25);
+  --separator-color:rgba(255,255,255,0.14);
+  --shadow-card:none;
+
+  /* Semantic aliases — screens use these names */
+  --screen-bg:var(--bg);
+  --surface-card:var(--surface);
+  --surface-raised:var(--surface-2);
+  --surface-pressed:var(--surface-2);
+  --field-bg:var(--surface-2);
+  --text-heading:var(--text);
+  --text-body:var(--text);
+  --text-secondary:var(--text-muted);
+  --text-placeholder:var(--text-faint);
+  --text-on-accent:var(--on-accent);
+  --separator:var(--separator-color);
+  --hairline:var(--border);
+  --action-primary:var(--accent);
+  --action-ink:var(--accent-ink);
+  --action-primary-pressed:var(--accent-pressed);
+  --action-destructive:var(--danger);
+  --focus-ring:var(--accent);
+}

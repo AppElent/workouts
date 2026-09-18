@@ -1,0 +1,17 @@
+<!-- @dsCard group="Brand" viewport="700x150" name="Motion" subtitle="Native transitions; in-app motion is short, eased, never looping" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Motion</title><link rel="stylesheet" href="../styles.css">
+<style>html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-system)}body{padding:16px}
+.grid{display:flex;gap:10px;flex-wrap:wrap}.sw{flex:1;min-width:96px;border-radius:var(--r-lg);padding:10px;display:flex;flex-direction:column;justify-content:flex-end;min-height:84px;border:1px solid var(--border)}
+.n{font-size:11px;font-weight:800}.v{font-size:9px;font-family:ui-monospace,Menlo,monospace;opacity:.75;margin-top:2px}
+.row{display:flex;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}
+.tok{font-size:9px;font-family:ui-monospace,Menlo,monospace;color:var(--text-faint)}
+.lab{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}</style></head><body><div class="col">
+<div class="row" style="gap:10px;flex-wrap:wrap">
+<span class="tok">--ease-ios cubic-bezier(.32,.72,0,1)</span><span class="tok">--dur-fast 150ms</span><span class="tok">--dur-base 250ms</span><span class="tok">--dur-sheet 350ms</span><span class="tok">Reduce Motion → --dur-instant</span>
+</div>
+<div style="position:relative;height:56px;background:var(--surface);border-radius:var(--r-card);overflow:hidden">
+<div style="position:absolute;right:0;top:0;bottom:0;width:88px;background:var(--danger-soft);color:var(--danger);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">Delete</div>
+<div style="position:absolute;inset:0;transform:translateX(-88px);background:var(--surface-2);display:flex;align-items:center;padding:0 16px;font-size:13px;transition:transform var(--dur-base) var(--ease-ios)">swipe reveals · clamped to 88px · never commits</div>
+</div>
+<span class="tok">Skeletons do not animate at all — that is how Reduce Motion is honoured without a branch.</span>
+</div></body></html>

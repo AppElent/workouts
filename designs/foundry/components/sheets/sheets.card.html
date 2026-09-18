@@ -1,0 +1,41 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Sheets" subtitle="Bottom sheet shell — set editor and plate calculator" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sheets</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-system)}#root{padding:16px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:10px}.lab{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { Sheet, Chip, StepperField, PrimaryButton, GhostButton, AppText, Eyebrow } = window.FoundryDesignSystem_397633;
+function Frame({children}){return <div style={{position:'relative',width:300,height:300,borderRadius:22,overflow:'hidden',border:'1px solid var(--border-strong)',background:'var(--surface-2)'}}>{children}</div>;}
+function Demo(){
+  const [type,setType]=React.useState('working');
+  return (
+  <div className="row" style={{gap:18,alignItems:'flex-start'}}>
+    <div className="col" style={{gap:6}}><span className="lab">Set editor</span>
+      <Frame><Sheet title="Set 3" subtitle="Bench press" doneLabel="Close" onDone={()=>{}} detent="large">
+        <div className="row" style={{gap:6,flexWrap:'nowrap'}}>{['warmup','working','drop','failure'].map(t=><Chip key={t} label={t} active={t===type} onClick={()=>setType(t)} />)}</div>
+        <div className="row" style={{gap:8,flexWrap:'nowrap'}}><StepperField label="kg" value={60} step={2.5} height={56} /><StepperField label="reps" value={8} step={1} height={56} /></div>
+        <PrimaryButton label="Save changes" />
+        <div className="row" style={{gap:8,flexWrap:'nowrap'}}><GhostButton label="Duplicate" fullWidth style={{flex:1}} /><GhostButton label="Delete" tone="destructive" fullWidth style={{flex:1}} /></div>
+      </Sheet></Frame>
+    </div>
+    <div className="col" style={{gap:6}}><span className="lab">Plate calculator</span>
+      <Frame><Sheet title="102.5 kg" doneLabel="Done" onDone={()=>{}} detent="medium">
+        <Eyebrow>Per side</Eyebrow>
+        <div className="row" style={{gap:3,alignItems:'center'}}>
+          {[20,20,2.5,1.25].map((p,i)=>(<span key={i} style={{width:26,height:Math.max(18,Math.min(56,18+p*1.5)),borderRadius:'var(--r-xs)',background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:800,color:'var(--on-accent)'}}>{p}</span>))}
+        </div>
+        <AppText variant="caption">20 + 20 + 2.5 + 1.25 per side, plus the 20 kg bar.</AppText>
+        <Eyebrow>Warm-up</Eyebrow>
+        {[[20,8,'empty bar'],[60,5,'60%'],[80,3,'80%']].map(([w,r,p])=>(
+          <div key={w} className="row" style={{gap:8,background:'var(--surface-2)',borderRadius:'var(--r-md)',padding:8}}>
+            <AppText style={{fontWeight:800,width:60}}>{w} kg</AppText><AppText variant="caption" style={{flex:1}}>× {r}</AppText><AppText variant="caption">{p}</AppText>
+          </div>))}
+      </Sheet></Frame>
+    </div>
+  </div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

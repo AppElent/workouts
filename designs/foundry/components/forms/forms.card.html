@@ -1,0 +1,77 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Forms" subtitle="Borderless grouped rows, iOS search bar, steppers — shown in both themes" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Forms</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0;font-family:var(--font-system)}#root{display:flex;min-height:420px}
+.pane{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--bg);color:var(--text)}
+.lab{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}
+.stack{display:flex;flex-direction:column;gap:6px}</style></head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { FormSection, FormTextField, InlineNumberFieldRow, DisclosureRow, AddRow, EditableValueRow, StepperField, Segmented, SearchField, GroupedSurface, AppText, Chip } = window.FoundryDesignSystem_397633;
+
+function Pane({ theme }) {
+  const [name, setName] = React.useState("Front squat");
+  const [notes, setNotes] = React.useState("Heels slightly raised.");
+  const [q, setQ] = React.useState("bench");
+  const [sets, setSets] = React.useState(4);
+  const [kg, setKg] = React.useState(82.5);
+  const [reps, setReps] = React.useState(8);
+  const [unit, setUnit] = React.useState("kg");
+  return (
+    <div className={"pane theme-" + theme}>
+      <span className="lab">{theme} · borderless grouped rows</span>
+
+      <FormSection title="Exercise" footer="Shared exercises cannot be renamed.">
+        <FormTextField label="Name" value={name} onChange={setName} placeholder="Required" />
+        <InlineNumberFieldRow label="Increment" value="2.5" suffix="kg" />
+        <InlineNumberFieldRow label="Sets" value={String(sets)} suffix=""
+          accessory={<StepperField variant="compact" label="sets" value={sets} onChange={setSets} />} />
+        <DisclosureRow label="Equipment" value="Barbell" />
+        <FormTextField label="Notes" multiline value={notes} onChange={setNotes} />
+      </FormSection>
+
+      <div className="stack">
+        <span className="lab">validation · footnote under the row</span>
+        <FormSection>
+          <FormTextField label="Email" value="eric@" error="Enter a complete email address." />
+        </FormSection>
+      </div>
+
+      <div className="stack">
+        <span className="lab">search bar · the one boxed input</span>
+        <SearchField value={q} onChange={setQ} placeholder="Search exercises" onCancel={() => setQ("")} />
+        <div style={{ display: "flex", gap: 6, overflow: "hidden" }}>
+          <Chip label="All" active /><Chip label="Chest" /><Chip label="Back" /><Chip label="barbell" />
+        </div>
+      </div>
+
+      <div className="stack">
+        <span className="lab">repeated values &amp; add</span>
+        <FormSection>
+          <EditableValueRow label="Bench press" value="4 × 8 · 60 kg" deleteLabel="Delete" onPress={() => {}} onDelete={() => {}} />
+          <AddRow label="Add exercise" />
+        </FormSection>
+      </div>
+
+      <div className="stack">
+        <span className="lab">set logger steppers · 56pt</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <StepperField label="kg" value={kg} step={2.5} height={56} onChange={setKg} />
+          <StepperField label="reps" value={reps} step={1} min={1} height={56} onChange={setReps} />
+        </div>
+      </div>
+
+      <div className="stack">
+        <span className="lab">segmented</span>
+        <Segmented value={unit} onChange={setUnit} options={[{ value: "kg", label: "kg" }, { value: "lb", label: "lb" }]} />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<><Pane theme="dark" /><Pane theme="light" /></>);
+</script></body></html>

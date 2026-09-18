@@ -1,0 +1,12 @@
+/* One entry per Activity type (closed set, ADR-0004). Colour + 14% tint.
+   Strength is the only type with a backend today; the rest are shape. */
+:root{
+  --sport-strength:#c8f73c;
+  --sport-strength-dim:rgba(200,247,60,0.14);
+  --sport-running:#ff8a4c;
+  --sport-running-dim:rgba(255,138,76,0.14);
+  --sport-cycling:#4fd1e3;
+  --sport-cycling-dim:rgba(79,209,227,0.14);
+  --sport-wod:#ff5d73;
+  --sport-wod-dim:rgba(255,93,115,0.14);
+}

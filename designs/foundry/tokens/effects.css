@@ -1,0 +1,20 @@
+/* Content is opaque. Transparency and blur belong to functional chrome only —
+   native headers, tab bars, sheet scrims — where iOS 26 Liquid Glass lives. */
+:root{
+  --glass-blur:blur(22px) saturate(160%); /* @kind other */
+  --glass-chrome:rgba(10,11,9,0.62);          /* systemUltraThinMaterialDark stand-in */
+  --glass-chrome-strong:rgba(10,11,9,0.80);
+  --glass-hairline:rgba(255,255,255,0.10);
+  --scrim:rgba(0,0,0,0.6);
+  --shadow-sheet:0 -10px 40px rgba(0,0,0,0.55);
+  --shadow-menu:0 18px 48px rgba(0,0,0,0.55);
+  --grabber-w:36px; /* @kind spacing */
+  --grabber-h:4px; /* @kind spacing */
+  --border-width:1px; /* @kind spacing */
+  --hairline-width:0.5px; /* @kind spacing */
+  --tab-bar-height:49px;
+  --nav-bar-height:44px;
+  --large-title-height:52px;
+  --status-bar-height:54px;
+  --home-indicator-height:34px;
+}

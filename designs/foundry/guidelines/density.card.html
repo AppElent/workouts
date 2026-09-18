@@ -1,0 +1,32 @@
+<!-- @dsCard group="Spacing" viewport="700x200" name="Native density" subtitle="iOS row and type metrics — what stops a screen reading as HTML" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Density</title><link rel="stylesheet" href="../styles.css">
+<style>html,body{margin:0;font-family:var(--font-system)}body{padding:0}
+.pair{display:flex;height:100%}.half{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:var(--bg);color:var(--text)}
+.grid{display:flex;gap:8px;flex-wrap:wrap}
+.sw{flex:1;min-width:84px;border-radius:var(--r-md);padding:8px;display:flex;flex-direction:column;justify-content:flex-end;min-height:62px;border:.5px solid var(--border)}
+.n{font-size:10px;font-weight:700}.v{font-size:8px;font-family:ui-monospace,Menlo,monospace;opacity:.75;margin-top:2px}
+.tok{font-size:9px;font-family:ui-monospace,Menlo,monospace;color:var(--text-faint)}
+.lab{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}
+.row{display:flex;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:8px}
+.list{background:var(--surface);border-radius:var(--r-list);border:.5px solid var(--border);box-shadow:var(--shadow-card);overflow:hidden}
+.item{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 16px;font-size:17px;font-weight:600;letter-spacing:-.2px}
+.item+.item{border-top:.5px solid var(--separator);}
+.sec{font-size:13px;font-weight:400;color:var(--text-muted)}
+.cta{height:46px;border:none;border-radius:23px;background:var(--accent);color:var(--on-accent);font-family:var(--font-system);font-size:16px;font-weight:600;padding:0 22px}
+</style></head><body><div class="half theme-dark"><div class="row" style="align-items:flex-start;gap:20px">
+<div class="col" style="flex:1">
+  <span class="lab">grouped list · 48pt rows, 0.5px separators inset 16</span>
+  <div class="list">
+    <div class="item"><span style="flex:1">Bench press<div class="sec" style="font-weight:400">compound · barbell</div></span><span class="sec">60 kg</span><span style="color:var(--text-faint)">›</span></div>
+    <div class="item"><span style="flex:1">Back squat<div class="sec" style="font-weight:400">compound · barbell</div></span><span class="sec">95 kg</span><span style="color:var(--text-faint)">›</span></div>
+  </div>
+</div>
+<div class="col" style="width:250px">
+  <span class="lab">type &amp; controls</span>
+  <span style="font-size:34px;font-weight:700;letter-spacing:-.8px">Large title</span>
+  <span style="font-size:17px;font-weight:600;letter-spacing:-.2px">Row title · 17/600</span>
+  <span style="font-size:15px;color:var(--text-muted)">Secondary · 15/400</span>
+  <span style="font-size:13px;color:var(--text-muted)">Footnote · 13/400</span>
+  <button class="cta" style="width:100%">Control · 46pt / 16‑600</button>
+  <span class="tok">--row-min-height 48 · --field-min-height 44 · --control-height 46 · --hairline-width .5</span>
+</div></div></div></body></html>

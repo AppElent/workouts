@@ -1,0 +1,45 @@
+/* The system face, always. No webfonts are bundled by the app: iOS renders
+   SF Pro, Android Roboto. Weights are numeric and synthesised from the system
+   face, which is why 800 appears so often. */
+:root{
+  /* System face only — no webfont is bundled or needed. -apple-system and
+     BlinkMacSystemFont already resolve to SF Pro on Apple platforms; the
+     quoted "SF Pro Text"/"SF Pro Display" names were redundant and read as a
+     missing webfont, so they are deliberately not listed. */
+  --font-system:-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",Roboto,sans-serif;
+  --font-numeric:var(--font-system);
+  --numeric-tabular:tabular-nums; /* @kind font */
+
+  /* Named ramp — theme/tokens.ts `type`. Nothing outside it sets a size. */
+  --type-display-size:32px;   --type-display-weight:800;
+  --type-title-size:24px;     --type-title-weight:800;
+  --type-metric-size:28px;    --type-metric-weight:800;
+  --type-heading-size:18px;   --type-heading-weight:700;
+  --type-body-size:15px;      --type-body-weight:500;
+  --type-label-size:13px;     --type-label-weight:600;
+  --type-caption-size:12px;   --type-caption-weight:500;
+
+  /* Native iOS text styles. The app's own ramp (above) predates the density
+     pass; these are what screens should use for chrome and grouped lists, and
+     they match the platform's own sizes so a Foundry screen reads as an app
+     rather than a web page. */
+  --type-large-title-size:34px; --type-large-title-weight:700; --type-large-title-tracking:-0.8px;
+  --type-nav-title-size:17px;   --type-nav-title-weight:600;
+  --type-nav-action-size:17px;  --type-nav-action-weight:500;
+  --type-row-size:17px;         --type-row-weight:600;   --type-row-tracking:-0.2px;
+  --type-secondary-size:15px;   --type-secondary-weight:400;
+  --type-footnote-size:13px;    --type-footnote-weight:400;
+  --type-control-size:16px;     --type-control-weight:600;
+
+  /* Screen-level compositions the shell screens use on top of the ramp. */
+  --type-screen-title-size:22px; --type-screen-title-weight:700; --type-screen-title-tracking:-0.4px;
+  --type-eyebrow-size:12px;      --type-eyebrow-weight:600;      --type-eyebrow-tracking:0.4px;
+  --type-row-title-size:14px;    --type-row-title-weight:700;
+  --type-row-sub-size:11px;      --type-row-sub-weight:500;
+  --type-stat-value-size:21px;   --type-stat-value-weight:800;
+  --type-stat-label-size:10px;   --type-stat-label-weight:800; --type-stat-label-tracking:0.6px;
+
+  --line-body:1.35; /* @kind font */
+  --line-tight:1.15; /* @kind font */
+  --line-prose:1.42; /* @kind font */
+}

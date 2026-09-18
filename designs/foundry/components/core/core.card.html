@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Core" subtitle="Type ramp, cards, chips, stat boxes, sport tiles, empty + skeleton" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Core</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-system)}#root{padding:16px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:10px}.lab{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { AppText, Card, Chip, SportIcon, StatBox, Eyebrow, EmptyState, SkeletonBlock, SkeletonGroup, Icon } = window.FoundryDesignSystem_397633;
+function Demo(){return (
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+  <div className="col">
+    <span className="lab">Type ramp</span>
+    <AppText variant="title">Ready to move</AppText>
+    <AppText variant="metric">82.5</AppText>
+    <AppText variant="heading">Bench press</AppText>
+    <AppText>Working set · 4 of 5</AppText>
+    <AppText variant="label">Targets</AppText>
+    <AppText variant="caption">compound · barbell</AppText>
+    <Eyebrow>Recent</Eyebrow>
+    <span className="lab">Chips</span>
+    <div className="row" style={{gap:7}}><Chip label="All" active /><Chip label="Chest" /><Chip label="barbell" /><Chip label="warmup" /></div>
+    <span className="lab">Sport tiles</span>
+    <div className="row" style={{gap:8}}>
+      <SportIcon sport="strength" size={40} /><SportIcon sport="running" size={40} /><SportIcon sport="cycling" size={40} /><SportIcon sport="wod" size={40} />
+    </div>
+  </div>
+  <div className="col">
+    <span className="lab">Cards</span>
+    <Card><div className="col" style={{gap:4}}><Eyebrow>Up next</Eyebrow><AppText variant="heading">Easy Run · 5K</AppText><AppText variant="caption">Zone 2 · nice and easy</AppText></div></Card>
+    <Card tone="accent"><div className="col" style={{gap:4}}><Eyebrow style={{color:'var(--accent)'}}>In progress</Eyebrow><AppText variant="heading">Push day</AppText></div></Card>
+    <span className="lab">Stat boxes</span>
+    <div className="row" style={{gap:8}}><StatBox value="142" label="Sessions" /><StatBox value="312" unit="km" label="Distance" /><StatBox value="18" label="PRs" /></div>
+    <span className="lab">Empty state / skeleton / icons</span>
+    <EmptyState title="No routines yet" body="A routine is a template — the exercises, sets and reps you repeat." />
+    <SkeletonGroup label="Loading routines" style={{gap:6}}><SkeletonBlock height={40} style={{borderRadius:'var(--r-card)'}} /><SkeletonBlock width="55%" /></SkeletonGroup>
+    <div className="row" style={{gap:14,color:'var(--text-muted)'}}>
+      <Icon name="house.fill" size={20} /><Icon name="play.fill" size={20} /><Icon name="fork.knife" size={20} /><Icon name="chart.bar.fill" size={20} /><Icon name="person.fill" size={20} /><Icon name="trash" size={20} />
+    </div>
+  </div>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

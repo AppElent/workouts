@@ -1,0 +1,14 @@
+/* Motion is native where possible. In-app motion is short, eased, and never
+   looping — skeletons are deliberately still so Reduce Motion needs no branch. */
+:root{
+  --ease-ios:cubic-bezier(0.32,0.72,0,1); /* @kind other */
+  --ease-out:cubic-bezier(0.2,0.8,0.2,1); /* @kind other */
+  --dur-instant:0ms; /* @kind other */
+  --dur-fast:150ms; /* @kind other */
+  --dur-base:250ms; /* @kind other */
+  --dur-sheet:350ms; /* @kind other */
+  --press-opacity:0.7; /* @kind other */
+  --disabled-opacity:0.5; /* @kind other */
+  --swipe-action-width:88px; /* @kind spacing */
+  --swipe-open-threshold:0.4; /* @kind other */
+}

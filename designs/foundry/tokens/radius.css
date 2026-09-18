@@ -1,0 +1,14 @@
+/* Continuous corners (borderCurve:"continuous" on native). Pills are reserved
+   for the principal action and compact chips, not every tappable element. */
+:root{
+  --r-xs:4px;
+  --r-sm:6px;
+  --r-md:8px;
+  --r-lg:12px;
+  --r-card:14px;      /* shell rows and tiles */
+  --r-card-lg:18px;   /* coach.tsx Card */
+  --r-list:14px;      /* inset grouped list */
+  --r-sheet:20px;
+  --r-pill:9999px;
+  --corner-smoothing:squircle; /* @kind other */ /* documentation only: iOS continuous corners */
+}

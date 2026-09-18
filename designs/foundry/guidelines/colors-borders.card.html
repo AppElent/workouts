@@ -1,0 +1,14 @@
+<!-- @dsCard group="Colors" viewport="700x130" name="Borders" subtitle="Two white alphas — hairline and separator" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Borders</title><link rel="stylesheet" href="../styles.css">
+<style>html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-system)}body{padding:16px}
+.grid{display:flex;gap:10px;flex-wrap:wrap}.sw{flex:1;min-width:96px;border-radius:var(--r-lg);padding:10px;display:flex;flex-direction:column;justify-content:flex-end;min-height:84px;border:1px solid var(--border)}
+.n{font-size:11px;font-weight:800}.v{font-size:9px;font-family:ui-monospace,Menlo,monospace;opacity:.75;margin-top:2px}
+.row{display:flex;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}
+.tok{font-size:9px;font-family:ui-monospace,Menlo,monospace;color:var(--text-faint)}
+.lab{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}</style></head><body><div class="grid">
+<div class="sw" style="background:var(--surface);border:1px solid var(--border)"><span class="n">border</span><span class="v">--border · white 7%</span></div>
+<div class="sw" style="background:var(--surface);border:1px solid var(--border-strong)"><span class="n">border-strong</span><span class="v">--border-strong · white 14%</span></div>
+<div class="sw" style="background:var(--surface);padding:0;justify-content:center;align-items:stretch">
+<div style="padding:10px;font-size:11px;font-weight:800">row</div><div style="height:1px;margin-left:16px;background:var(--separator)"></div><div style="padding:10px;font-size:11px;font-weight:800">row</div>
+<div class="v" style="padding:0 10px 8px">--separator, inset 16px</div></div>
+</div></body></html>

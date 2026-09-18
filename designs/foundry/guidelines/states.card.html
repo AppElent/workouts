@@ -1,0 +1,19 @@
+<!-- @dsCard group="Brand" viewport="700x180" name="Press &amp; state" subtitle="Colour change, not fade — plus disabled and selected" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>States</title><link rel="stylesheet" href="../styles.css">
+<style>html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-system)}body{padding:16px}
+.grid{display:flex;gap:10px;flex-wrap:wrap}.sw{flex:1;min-width:96px;border-radius:var(--r-lg);padding:10px;display:flex;flex-direction:column;justify-content:flex-end;min-height:84px;border:1px solid var(--border)}
+.n{font-size:11px;font-weight:800}.v{font-size:9px;font-family:ui-monospace,Menlo,monospace;opacity:.75;margin-top:2px}
+.row{display:flex;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}
+.tok{font-size:9px;font-family:ui-monospace,Menlo,monospace;color:var(--text-faint)}
+.lab{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}</style></head><body><div class="col">
+<div class="row" style="gap:10px;flex-wrap:wrap">
+<div class="col" style="gap:6;align-items:center"><div style="height:44px;padding:0 22px;border-radius:9999px;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:13px;display:flex;align-items:center">Start</div><span class="tok">rest</span></div>
+<div class="col" style="gap:6;align-items:center"><div style="height:44px;padding:0 22px;border-radius:9999px;background:var(--accent-pressed);color:var(--on-accent);font-weight:800;font-size:13px;display:flex;align-items:center">Start</div><span class="tok">pressed</span></div>
+<div class="col" style="gap:6;align-items:center"><div style="height:44px;padding:0 22px;border-radius:9999px;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:13px;display:flex;align-items:center;opacity:.5">Start</div><span class="tok">disabled · .5</span></div>
+<div class="col" style="gap:6;align-items:center"><div style="height:44px;padding:0 22px;border-radius:9999px;border:1px solid var(--border-strong);font-weight:700;font-size:13px;display:flex;align-items:center">Edit</div><span class="tok">ghost rest</span></div>
+<div class="col" style="gap:6;align-items:center"><div style="height:44px;padding:0 22px;border-radius:9999px;border:1px solid var(--border-strong);background:var(--surface-2);font-weight:700;font-size:13px;display:flex;align-items:center">Edit</div><span class="tok">ghost pressed</span></div>
+</div>
+<div style="background:var(--surface);border-radius:var(--r-lg);overflow:hidden">
+<div style="min-height:52px;display:flex;align-items:center;padding:0 16px;font-size:15px">row · rest</div><div style="height:1px;margin-left:16px;background:var(--separator)"></div>
+<div style="min-height:52px;display:flex;align-items:center;padding:0 16px;font-size:15px;background:var(--surface-2)">row · pressed → surface-2</div></div>
+</div></body></html>

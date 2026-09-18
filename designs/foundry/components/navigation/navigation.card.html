@@ -1,0 +1,43 @@
+<!-- @dsCard group="Components" viewport="700x380" name="Navigation chrome" subtitle="Native header, five-tab bar, resume accessory" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Navigation</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-system)}#root{padding:16px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:10px}.lab{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--text-faint)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { NavBar, TabBar, ActiveSessionBar, AppText, Card, Eyebrow } = window.FoundryDesignSystem_397633;
+const TABS=[{key:'home',label:'Home',icon:'house.fill'},{key:'train',label:'Train',icon:'play.fill'},{key:'nutrition',label:'Nutrition',icon:'fork.knife'},{key:'progress',label:'Progress',icon:'chart.bar.fill'},{key:'profile',label:'Profile',icon:'person.fill'}];
+function Phone({children}){return <div style={{width:300,height:340,overflow:'hidden',borderRadius:22,border:'1px solid var(--border-strong)',display:'flex',flexDirection:'column',background:'var(--bg)'}}>{children}</div>;}
+function Demo(){
+  const [tab,setTab]=React.useState('home');
+  return (
+  <div className="row" style={{gap:18,alignItems:'flex-start'}}>
+    <div className="col" style={{gap:6}}><span className="lab">Tab root — large title + glass</span>
+      <Phone>
+        <NavBar title="Home" largeTitle />
+        <div style={{flex:1,padding:'8px 20px',display:'flex',flexDirection:'column',gap:8,overflow:'hidden'}}>
+          <Card><AppText variant="heading">This week</AppText><AppText variant="caption">3 sessions logged</AppText></Card>
+          <Eyebrow>Recent</Eyebrow>
+        </div>
+        <TabBar tabs={TABS} value={tab} onChange={setTab} />
+      </Phone>
+    </div>
+    <div className="col" style={{gap:6}}><span className="lab">Pushed screen + resume accessory</span>
+      <Phone>
+        <NavBar title="Exercises" onBack={()=>{}} action={{label:'Add'}} />
+        <div style={{flex:1,padding:'8px 16px',display:'flex',flexDirection:'column',gap:8,overflow:'hidden'}}>
+          {['Bench press','Back squat','Deadlift'].map(n=>(
+            <div key={n} style={{background:'var(--surface)',borderRadius:'var(--r-lg)',padding:'12px 16px'}}>
+              <AppText style={{fontWeight:700}}>{n}</AppText>
+              <div><AppText variant="caption">compound · barbell</AppText></div>
+            </div>))}
+        </div>
+        <TabBar tabs={TABS} value="train" accessory={<ActiveSessionBar name="Push day" elapsed="12:04" />} />
+      </Phone>
+    </div>
+  </div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

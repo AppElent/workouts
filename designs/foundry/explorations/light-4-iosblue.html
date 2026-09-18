@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Light — System blue</title>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
+<style>
+:root{--bg:#f2f2f7;--card:#ffffff;--card2:#f2f2f7;--hair:rgba(60,60,67,0.18);--sep:rgba(60,60,67,0.13);--text:#000000;--muted:#6c6c70;--faint:#a1a1a6;--ink:#0a6cff;--fill:#0a6cff;--onfill:#ffffff;--dim:rgba(10,108,255,0.10);--ring:#0a6cff;
+--f:-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}html,body{margin:0;background:#dcdcd8;font-family:var(--f);-webkit-font-smoothing:antialiased}
+.phone{width:390px;min-height:844px;margin:0 auto;background:var(--bg);color:var(--text);display:flex;flex-direction:column;position:relative}
+.chrome{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);border-bottom:.5px solid var(--hair)}
+.status{height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 4px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.statusr{display:flex;gap:5px;align-items:center;color:var(--text)}
+.nav{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.navt{font-size:17px;font-weight:600}
+.large{padding:0 20px 8px;font-size:34px;font-weight:700;letter-spacing:-.8px}
+.body{flex:1;padding:4px 20px 24px;display:flex;flex-direction:column;gap:18px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--card);border-radius:14px;border:.5px solid var(--hair);box-shadow:0 1px 2px rgba(20,22,18,.05)}
+.pad{padding:14px 16px}
+.row{display:flex;align-items:center;gap:12px}
+.ring{width:56px;height:56px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;background:conic-gradient(var(--ring) 0 37.5%,var(--card2) 0)}
+.ring i{width:44px;height:44px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:15px;font-weight:700;font-style:normal;font-variant-numeric:tabular-nums}
+.h2{font-size:17px;font-weight:600;letter-spacing:-.2px}
+.sub{font-size:13px;color:var(--muted)}
+.cta{width:100%;height:46px;border:none;border-radius:23px;background:var(--fill);color:var(--onfill);font-family:var(--f);font-size:16px;font-weight:600;letter-spacing:-.2px}
+.tiles{display:flex;gap:8px}
+.tile{flex:1;border:none;border-radius:13px;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--f)}
+.tile span{font-size:11px;font-weight:600;color:var(--muted)}
+.glyph{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:700}
+.list{background:var(--card);border-radius:14px;border:.5px solid var(--hair);overflow:hidden;box-shadow:0 1px 2px rgba(20,22,18,.05)}
+.item{display:flex;align-items:center;gap:12px;padding:10px 16px;min-height:52px}
+.item+.item{border-top:.5px solid var(--sep)}
+.chev{color:var(--faint);font-size:17px}
+.mono{font-variant-numeric:tabular-nums;font-size:15px;color:var(--muted);font-weight:500}
+.seeall{background:none;border:none;color:var(--ink);font-family:var(--f);font-size:15px;font-weight:500;padding:0}
+.hdr{display:flex;align-items:center;justify-content:space-between}
+.tabs{position:sticky;bottom:0;background:color-mix(in srgb,var(--bg) 72%,transparent);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);border-top:.5px solid var(--hair)}
+.tabrow{display:flex;height:49px;padding-top:4px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--faint);font-size:10px;font-weight:500}
+.tab.on{color:var(--ink)}
+.ind{height:34px;display:grid;place-items:center}.ind i{width:140px;height:5px;border-radius:3px;background:rgba(0,0,0,.22)}
+.note{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--card);border:.5px solid var(--hair);border-radius:8px;padding:3px 9px;font-size:10px;color:var(--muted);z-index:9}
+</style></head><body>
+<div class="phone">
+  <div class="note">System blue</div>
+  <div class="chrome">
+    <div class="status"><span>9:41</span><span class="statusr"><iconify-icon icon="lucide:signal" width="14"></iconify-icon><iconify-icon icon="lucide:wifi" width="14"></iconify-icon><iconify-icon icon="lucide:battery-full" width="16"></iconify-icon></span></div>
+    <div class="nav"><span></span><span class="navt"></span><span></span></div>
+    <div class="large">Home</div>
+  </div>
+  <div class="body">
+    <div class="hdr">
+      <div><div class="eyebrow">Wednesday, 17 Sep</div><div style="font-size:22px;font-weight:700;letter-spacing:-.4px;margin-top:2px">Ready to move</div></div>
+      <div style="width:36px;height:36px;border-radius:18px;background:var(--card2);display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--muted)">EJ</div>
+    </div>
+
+    <div class="card pad row" style="gap:14px">
+      <div class="ring"><i>3<span style="font-size:10px;font-weight:500;color:var(--muted)">/8</span></i></div>
+      <div style="flex:1"><div class="h2">This week</div><div class="sub">3 sessions logged · 2h 41m</div></div>
+      <iconify-icon icon="lucide:chevron-right" width="18" style="color:var(--faint)"></iconify-icon>
+    </div>
+
+    <div class="card pad" style="display:flex;flex-direction:column;gap:10px">
+      <div class="hdr"><span class="eyebrow">Up next</span><button class="seeall">Change</button></div>
+      <div><div class="h2">Push day</div><div class="sub">4 exercises · about 45 min</div></div>
+      <button class="cta">Start activity</button>
+    </div>
+
+    <div class="tiles">
+      <button class="tile" style="background:rgba(200,247,60,0.30)"><span class="glyph" style="background:rgba(200,247,60,0.30);color:#5f7a10">S</span><span>Strength</span></button><button class="tile" style="background:rgba(255,138,76,0.20)"><span class="glyph" style="background:rgba(255,138,76,0.20);color:#c2540f">R</span><span>Running</span></button><button class="tile" style="background:rgba(79,209,227,0.20)"><span class="glyph" style="background:rgba(79,209,227,0.20);color:#0d7e8c">C</span><span>Cycling</span></button><button class="tile" style="background:rgba(255,93,115,0.18)"><span class="glyph" style="background:rgba(255,93,115,0.18);color:#c22b43">W</span><span>WOD</span></button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="hdr"><span class="eyebrow">Recent</span><button class="seeall">See all</button></div>
+      <div class="list">
+        
+        <div class="item"><span class="glyph" style="background:var(--dim);color:var(--ink)">S</span>
+          <span style="flex:1"><span class="h2" style="display:block">Push day</span><span class="sub">Mon 14 Sep</span></span>
+          <span class="mono">48 min</span><span class="chev">›</span></div>
+        <div class="item"><span class="glyph" style="background:var(--dim);color:var(--ink)">S</span>
+          <span style="flex:1"><span class="h2" style="display:block">Leg day</span><span class="sub">Sat 12 Sep</span></span>
+          <span class="mono">62 min</span><span class="chev">›</span></div>
+        <div class="item"><span class="glyph" style="background:var(--dim);color:var(--ink)">S</span>
+          <span style="flex:1"><span class="h2" style="display:block">Free session</span><span class="sub">Thu 10 Sep</span></span>
+          <span class="mono">31 min</span><span class="chev">›</span></div>
+      </div>
+    </div>
+
+    <div class="sub" style="font-size:12px">Maximum native feel — Apple grouped-list greys and a system-blue accent. Furthest from the brand.</div>
+  </div>
+  <div class="tabs">
+    <div class="tabrow">
+      <div class="tab on"><iconify-icon icon="lucide:house" width="22"></iconify-icon><span>Home</span></div><div class="tab"><iconify-icon icon="lucide:play" width="22"></iconify-icon><span>Train</span></div><div class="tab"><iconify-icon icon="lucide:utensils" width="22"></iconify-icon><span>Nutrition</span></div><div class="tab"><iconify-icon icon="lucide:chart-column" width="22"></iconify-icon><span>Progress</span></div><div class="tab"><iconify-icon icon="lucide:user" width="22"></iconify-icon><span>Profile</span></div>
+    </div>
+    <div class="ind"><i></i></div>
+  </div>
+</div></body></html>

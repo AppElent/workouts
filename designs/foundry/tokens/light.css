@@ -1,0 +1,84 @@
+/* Light theme. Dark is the base (:root in colors.css); this file overrides it.
+   Foundry follows the OS setting; .theme-light / .theme-dark force a mode for
+   mocks and specimens.
+
+   The one rule that shapes this palette: lime #c8f73c on white is ~1.4:1, so
+   it can be a FILL but never ink. --accent stays lime for filled controls and
+   --accent-ink carries every accented text, icon, stroke and chart series. In
+   dark mode the two are the same colour, so components read --accent-ink
+   unconditionally. */
+
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#faf9f5;
+    --surface:#ffffff;
+    --surface-2:#f3f2ec;
+
+    --accent:#c8f73c;
+    --accent-pressed:#d6ff5c;
+    --accent-dim:rgba(200,247,60,0.22);
+    --on-accent:#1b1d18;
+    --accent-ink:#55700c;
+
+    --text:#1b1d18;
+    --text-muted:#6b6f62;
+    --text-faint:#9a9d90;
+
+    --border:rgba(60,62,50,0.13);
+    --border-strong:rgba(60,62,50,0.22);
+    --separator-color:rgba(60,62,50,0.10);
+
+    --danger:#c0302c;
+    --danger-soft:rgba(192,48,44,0.09);
+    --success:#157f45;
+    --warn:#9a6600;
+    --warn-soft:rgba(154,102,0,0.10);
+
+    --sport-strength:#5f7a10;
+    --sport-strength-dim:rgba(200,247,60,0.30);
+    --sport-running:#c2540f;
+    --sport-running-dim:rgba(255,138,76,0.20);
+    --sport-cycling:#0d7e8c;
+    --sport-cycling-dim:rgba(79,209,227,0.20);
+    --sport-wod:#c22b43;
+    --sport-wod-dim:rgba(255,93,115,0.18);
+
+    --glass-chrome:rgba(250,249,245,0.78);
+    --glass-chrome-strong:rgba(250,249,245,0.72);
+    --glass-hairline:rgba(60,62,50,0.13);
+    --scrim:rgba(20,22,18,0.28);
+    --shadow-card:0 1px 2px rgba(20,22,18,0.05);
+    --shadow-sheet:0 -10px 40px rgba(20,22,18,0.16);
+    --shadow-menu:0 18px 48px rgba(20,22,18,0.18);
+  }
+}
+
+.theme-light{
+  --bg:#faf9f5;--surface:#ffffff;--surface-2:#f3f2ec;
+  --accent:#c8f73c;--accent-pressed:#d6ff5c;--accent-dim:rgba(200,247,60,0.22);--on-accent:#1b1d18;--accent-ink:#55700c;
+  --text:#1b1d18;--text-muted:#6b6f62;--text-faint:#9a9d90;
+  --border:rgba(60,62,50,0.13);--border-strong:rgba(60,62,50,0.22);--separator-color:rgba(60,62,50,0.10);
+  --danger:#c0302c;--danger-soft:rgba(192,48,44,0.09);--success:#157f45;--warn:#9a6600;--warn-soft:rgba(154,102,0,0.10);
+  --sport-strength:#5f7a10;--sport-strength-dim:rgba(200,247,60,0.30);
+  --sport-running:#c2540f;--sport-running-dim:rgba(255,138,76,0.20);
+  --sport-cycling:#0d7e8c;--sport-cycling-dim:rgba(79,209,227,0.20);
+  --sport-wod:#c22b43;--sport-wod-dim:rgba(255,93,115,0.18);
+  --glass-chrome:rgba(250,249,245,0.78);--glass-chrome-strong:rgba(250,249,245,0.72);--glass-hairline:rgba(60,62,50,0.13);
+  --scrim:rgba(20,22,18,0.28);--shadow-card:0 1px 2px rgba(20,22,18,0.05);
+  --shadow-sheet:0 -10px 40px rgba(20,22,18,0.16);--shadow-menu:0 18px 48px rgba(20,22,18,0.18);
+}
+
+.theme-dark{
+  --bg:#0a0b09;--surface:#141613;--surface-2:#1d201b;
+  --accent:#c8f73c;--accent-pressed:#d6ff5c;--accent-dim:rgba(200,247,60,0.13);--on-accent:#0a0b09;--accent-ink:#c8f73c;
+  --text:#f2f4ef;--text-muted:#9ba095;--text-faint:#5c6156;
+  --border:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.14);--separator-color:rgba(255,255,255,0.14);
+  --danger:#ff6b6b;--danger-soft:rgba(255,107,107,0.12);--success:#4ade80;--warn:#fbbf24;--warn-soft:rgba(251,191,36,0.12);
+  --sport-strength:#c8f73c;--sport-strength-dim:rgba(200,247,60,0.14);
+  --sport-running:#ff8a4c;--sport-running-dim:rgba(255,138,76,0.14);
+  --sport-cycling:#4fd1e3;--sport-cycling-dim:rgba(79,209,227,0.14);
+  --sport-wod:#ff5d73;--sport-wod-dim:rgba(255,93,115,0.14);
+  --glass-chrome:rgba(10,11,9,0.62);--glass-chrome-strong:rgba(10,11,9,0.80);--glass-hairline:rgba(255,255,255,0.10);
+  --scrim:rgba(0,0,0,0.6);--shadow-card:none;
+  --shadow-sheet:0 -10px 40px rgba(0,0,0,0.55);--shadow-menu:0 18px 48px rgba(0,0,0,0.55);
+}
