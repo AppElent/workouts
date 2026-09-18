@@ -21,7 +21,7 @@ import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
 import { PersonalMeasuresProvider } from "../../src/data/personal-measures";
 import { useI18n } from "../../src/i18n";
-import { chrome, colors } from "../../src/theme";
+import { colors } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
 import { RestTimerProvider } from "../../src/ui/rest-timer";
@@ -48,7 +48,7 @@ export default function AppLayout() {
 											<Stack
 												screenOptions={{
 													headerShown: true,
-													headerTintColor: chrome.accentInk,
+													headerTintColor: colors.accent,
 													gestureEnabled: true,
 													contentStyle: { backgroundColor: colors.bg },
 													headerBackButtonDisplayMode: "minimal",
