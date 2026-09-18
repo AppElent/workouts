@@ -59,7 +59,7 @@ session card, charts' surroundings. Do not force `radius.card` onto a
 Foundry's `.jsx` mocks are not ported. Its `.d.ts` files are the shared prop
 contracts for the `.ios.tsx` / `.tsx` split.
 
-## Step 1 — tokens (this commit)
+## Step 1 — tokens (done, `8d0a5406`)
 
 `apps/mobile/src/theme/tokens.ts`:
 
@@ -87,14 +87,38 @@ contracts for the `.ios.tsx` / `.tsx` split.
 `apps/mobile/app.json`: `backgroundColor` `#000000` → `#0a0b09` (root and
 android), `expo-notifications` colour `#1DB954` → `#c8f73c`.
 
-Verification: `pnpm --filter @workouts/mobile typecheck` + jest; the
-row-height change is checked on device in step 3's first screen.
+Outcome: typecheck clean for `apps/mobile` (two pre-existing errors in
+`packages/core/src/nutrition/library.ts` — `nutrientOrder` is `string[]`
+where a literal union is expected — are a separate issue). Jest 360/363; the
+three failures are timeouts under full-suite load on Windows (~170 s) and
+pass in isolation. The row-height change is checked on device with step 3.1.
+
+What step 1 surfaced, and what it changes below:
+
+- The dark palette already matched Foundry (Foundry was read from this
+  file), so the visible diff is the density metrics only.
+- `useTokens()` has **zero** call sites outside `src/theme`. 74 files read the
+  static `colors` object, mostly inside module-scope `StyleSheet.create`.
+  Light mode is therefore not a switch; it is the migration in steps 2–3.
+- `AppText` is the lever: every text colour in the app goes through it. Making
+  it resolve `color` from `useTokens()` (ramp colour as the dark default,
+  scheme colour applied on top) makes text light-ready in one change, before
+  any screen is touched. That is now step 2.0.
+- `AppText` already accepts the new native variants (`variant="row"` etc.)
+  since its prop is `keyof typeof type` — nothing else needed there.
+- The five SwiftUI `Host`s hardcode `colorScheme="dark"`; a `useHostScheme()`
+  helper next to `useTokens()` fixes all five at once (step 2.0 too).
 
 ## Step 2 — primitive seam
 
 Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
 `.tsx` (RN) split, one PR per group, each reading `useTokens()`:
 
+0. Scheme plumbing, no visual change: `AppText` applies the scheme colour
+   from `useTokens()`; `useHostScheme()` replaces the hardcoded
+   `colorScheme="dark"` on the five `Host`s; `sportMeta` gets a
+   `useSportColors()` reader. This is the prerequisite for light mode and
+   costs nothing while dark is pinned.
 1. `inset-list` — `List`/`Section`/row with leading media, title, secondary,
    value, chevron; swipe + context-menu built in (folds
    `native-swipeable-row.ios.tsx` in and retires the Exercises-only canary).
@@ -103,7 +127,8 @@ Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
 3. `segmented` → `Picker`; `confirm-dialog` → `ConfirmationDialog`;
    `empty-state` → `ContentUnavailableView`.
 4. `chart` → Swift `Chart`; `progress-ring` → `Gauge`.
-5. `Host` wrappers stop hardcoding `colorScheme="dark"`; they read the scheme.
+5. `skeleton` — still blocks matching each list/form layout, so step 3
+   screens have something to replace `Loading…` with.
 
 Each primitive: a jest test that the SwiftUI props are bound (pattern in
 `swift-ui-surfaces.test.tsx`), and a row in `docs/ios-native-verification.md`.
@@ -134,6 +159,12 @@ Out of scope: Android Compose variants, the web app, photography slots
 ## Open questions
 
 - Light mode ship gate: after Profile (step 3.3) or after all six screens?
+  Unpinning `userInterfaceStyle` before every screen reads `useTokens()`
+  would show dark cards on a light ground — so the gate is "all screens
+  migrated", unless Profile is the pilot behind a per-screen override.
+- The jest suite takes ~170 s on Windows and flakes on timeouts under load;
+  step 3 PRs should run the touched suites in isolation and let CI (Linux)
+  run the full set.
 - `@expo/ui` stability in SDK 57 — the codebase calls the swipe row a
   "canary until device QA". If `RNHostView` sizing misbehaves inside `List`,
   the fallback is `List` for settings-style screens only and RN inset rows
