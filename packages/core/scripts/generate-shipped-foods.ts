@@ -9,18 +9,21 @@ import {
 } from "../src/nutrition/schema";
 import {
 	buildArtifact,
+	type CodeRef,
 	EMPTY_LOCK,
+	foodKey,
 	type Resolutions,
 	reconcileLock,
 	serialiseArtifact,
 	serialiseLock,
 } from "./build";
+import { readLidlExtract } from "./lidl";
 import { readNevoExtract } from "./nevo";
 
 /**
- * Generate `src/nutrition/shipped-foods.json` from the three committed inputs:
- * the unchanged NEVO extract, the hand-authored promotion overlay, and the
- * append-only ID lockfile.
+ * Generate `src/nutrition/shipped-foods.json` from the committed inputs: the
+ * unchanged NEVO extract, the hand-reviewed Lidl extract, the hand-authored
+ * promotion overlay, and the append-only ID lockfile.
  *
  *   pnpm --filter @workouts/core generate:foods
  *   pnpm --filter @workouts/core generate:foods --check
@@ -28,24 +31,29 @@ import { readNevoExtract } from "./nevo";
  *   pnpm --filter @workouts/core generate:foods --retire-missing
  *   pnpm --filter @workouts/core generate:foods --accept-change=2063,5562
  *   pnpm --filter @workouts/core generate:foods --remint=2063
+ *   pnpm --filter @workouts/core generate:foods --accept-change=lidl:20652654
  *
- * Running it twice produces byte-identical files: records are ordered by NEVO
- * code, the serialisation is pinned, and derived figures are rounded to a fixed
- * precision. `--check` writes nothing and exits non-zero if the committed files
- * are out of date — that is what CI would run.
+ * A bare number names a NEVO code; `lidl:` prefixes a Lidl code.
+ *
+ * Running it twice produces byte-identical files: records are ordered by
+ * source then code, the serialisation is pinned, and derived figures are
+ * rounded to a fixed precision. `--check` writes nothing and exits non-zero if
+ * the committed files are out of date — that is what CI would run.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
 const EXTRACT_PATH = resolve(repoRoot, "data/nevo/NEVO2025_v9.0.csv");
+const LIDL_PATH = resolve(repoRoot, "data/lidl/lidl-bakeoff.json");
 const ARTIFACT_PATH = resolve(here, "../src/nutrition/shipped-foods.json");
 const LOCK_PATH = resolve(here, "../src/nutrition/shipped-foods.lock.json");
 
-function parseCodeList(argument: string): number[] {
+function parseCodeList(argument: string): CodeRef[] {
 	return argument
 		.split(",")
-		.map((part) => Number(part.trim()))
-		.filter((code) => Number.isInteger(code) && code > 0);
+		.map((part) => part.trim())
+		.filter((part) => /^(?:[a-z]+:)?[1-9]\d*$/.test(part))
+		.map((part) => (part.includes(":") ? part : Number(part)));
 }
 
 function parseArgs(argv: readonly string[]): {
@@ -55,8 +63,8 @@ function parseArgs(argv: readonly string[]): {
 	const resolutions: {
 		mintNew: boolean;
 		retireMissing: boolean;
-		acceptChange: number[];
-		remint: number[];
+		acceptChange: CodeRef[];
+		remint: CodeRef[];
 	} = {
 		mintNew: false,
 		retireMissing: false,
@@ -90,29 +98,36 @@ function loadLock() {
 	return shippedLockSchema.parse(JSON.parse(readFileSync(LOCK_PATH, "utf8")));
 }
 
-function loadPreviousFoods(): Map<number, WireFood> {
+function loadPreviousFoods(): Map<string, WireFood> {
 	if (!existsSync(ARTIFACT_PATH)) return new Map();
 	const previous = JSON.parse(readFileSync(ARTIFACT_PATH, "utf8")) as {
 		foods?: WireFood[];
 	};
-	return new Map((previous.foods ?? []).map((food) => [food.code, food]));
+	return new Map((previous.foods ?? []).map((food) => [foodKey(food), food]));
 }
 
 function main(): void {
 	const { resolutions, check } = parseArgs(process.argv.slice(2));
 
 	const extract = readNevoExtract(EXTRACT_PATH);
+	const lidl = readLidlExtract(LIDL_PATH);
 	const lock = loadLock();
 	const previousFoods = loadPreviousFoods();
 
-	const reconciled = reconcileLock(extract, lock, resolutions, previousFoods);
+	const reconciled = reconcileLock(
+		extract,
+		lock,
+		resolutions,
+		previousFoods,
+		lidl,
+	);
 	if (reconciled.problems.length > 0) {
 		const byKind = new Map<string, typeof reconciled.problems>();
 		for (const problem of reconciled.problems) {
 			byKind.set(problem.kind, [...(byKind.get(problem.kind) ?? []), problem]);
 		}
 		console.error(
-			`\nGeneration stopped: ${reconciled.problems.length} NEVO code(s) need explicit reconciliation.\n` +
+			`\nGeneration stopped: ${reconciled.problems.length} source code(s) need explicit reconciliation.\n` +
 				"Internal ids are permanent and are never reused, so nothing is bound automatically.\n",
 		);
 		for (const [kind, problems] of byKind) {
@@ -128,7 +143,7 @@ function main(): void {
 	}
 
 	const validatedLock = shippedLockSchema.parse(reconciled.lock);
-	const artifact = buildArtifact({ extract, lock: validatedLock });
+	const artifact = buildArtifact({ extract, lidl, lock: validatedLock });
 	shippedArtifactSchema.parse(artifact);
 
 	const artifactText = serialiseArtifact(artifact);
@@ -163,9 +178,10 @@ function main(): void {
 
 	const promoted = artifact.foods.filter((food) => food.p).length;
 	const retired = artifact.foods.filter((food) => food.retired).length;
+	const lidlCount = artifact.foods.filter((food) => food.src === "lidl").length;
 	console.log(
 		[
-			`Wrote ${artifact.foods.length} shipped foods (${promoted} promoted, ${retired} retired) from ${extract.version}.`,
+			`Wrote ${artifact.foods.length} shipped foods (${promoted} promoted, ${retired} retired) from ${extract.version} + ${lidlCount} Lidl.`,
 			reconciled.minted.length > 0
 				? `Minted ${reconciled.minted.length} new id(s).`
 				: "",

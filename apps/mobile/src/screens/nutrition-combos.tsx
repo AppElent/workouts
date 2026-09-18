@@ -89,6 +89,11 @@ export function NutritionComboBuilder({
 					})),
 				});
 				try {
+					if (new Set(entries.map((entry) => entry.meal)).size > 1) {
+						toast.success(t.nutrition.combos.saved);
+						onSaved();
+						return;
+					}
 					operations.group(
 						subject,
 						date,

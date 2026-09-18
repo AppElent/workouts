@@ -1,0 +1,1321 @@
+{
+	"source": "Lidl Nederland bake-off ingredient and allergen sheets",
+	"sheets": [
+		{
+			"key": "fixed",
+			"title": "Landelijke Lijst — Bake-off overzicht ingrediënten en allergeneninformatie",
+			"version": "27 juli 2026",
+			"file": "26-07-27_Ingredientlijst_vast_DEF-2355500.pdf"
+		},
+		{
+			"key": "promo",
+			"title": "Actie lijst bake-off WK35–WK38",
+			"version": "9 september 2026",
+			"file": "Actie_Ingredientlijst_WK35_WK38-2460628.pdf"
+		}
+	],
+	"basis": "per 100 g as printed under 'Gemiddelde voedingswaarde ø/100 g'",
+	"note": "One-time hand-reviewed extract. Values are copied unchanged; nameEn, category and emoji are Appelent additions. Lidl publishes salt, not sodium.",
+	"products": [
+		{
+			"code": 128974,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Pastel de nata",
+			"nameEn": "Pastel de nata",
+			"category": "snacks",
+			"emoji": "🧁",
+			"grammage": 58,
+			"nutrients": {
+				"energy": 283.0,
+				"fat": 11.4,
+				"saturatedFat": 6.0,
+				"carbs": 40.0,
+				"sugars": 24.0,
+				"fibre": 1.0,
+				"protein": 4.6,
+				"salt": 0.24
+			}
+		},
+		{
+			"code": 144962,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Brioche",
+			"nameEn": "Brioche",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 400,
+			"nutrients": {
+				"energy": 350.0,
+				"fat": 10.9,
+				"saturatedFat": 7.2,
+				"carbs": 55.6,
+				"sugars": 11.2,
+				"fibre": 1.8,
+				"protein": 6.4,
+				"salt": 1.07
+			}
+		},
+		{
+			"code": 184001,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Rode crodot met kokos",
+			"nameEn": "Red-glazed crodot with coconut",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 81,
+			"nutrients": {
+				"energy": 526.0,
+				"fat": 38.0,
+				"saturatedFat": 29.0,
+				"carbs": 41.0,
+				"sugars": 20.0,
+				"fibre": 1.0,
+				"protein": 4.4,
+				"salt": 0.75
+			}
+		},
+		{
+			"code": 201130,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Pop Dots Dark/Hazelnut",
+			"nameEn": "Pop Dots Dark/Hazelnut",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 18,
+			"nutrients": {
+				"energy": 488.0,
+				"fat": 35.0,
+				"saturatedFat": 16.0,
+				"carbs": 34.0,
+				"sugars": 15.0,
+				"fibre": 2.9,
+				"protein": 7.7,
+				"salt": 1.0
+			}
+		},
+		{
+			"code": 201135,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Pop Dots Pink",
+			"nameEn": "Pop Dots Pink",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 21,
+			"nutrients": {
+				"energy": 465.0,
+				"fat": 28.0,
+				"saturatedFat": 17.0,
+				"carbs": 48.0,
+				"sugars": 32.0,
+				"fibre": 0.9,
+				"protein": 4.9,
+				"salt": 0.86
+			}
+		},
+		{
+			"code": 208623,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Flammkuchen met romige saus, rauwe hamblokjes en ui",
+			"nameEn": "Flammkuchen with creamy sauce, raw ham and onion",
+			"category": "meals",
+			"emoji": "🍕",
+			"grammage": 120,
+			"nutrients": {
+				"energy": 299.0,
+				"fat": 11.4,
+				"saturatedFat": 3.2,
+				"carbs": 36.4,
+				"sugars": 1.5,
+				"fibre": 2.0,
+				"protein": 11.7,
+				"salt": 1.36
+			}
+		},
+		{
+			"code": 225866,
+			"codeType": "article",
+			"sheet": "fixed",
+			"nameNl": "Spelt roll",
+			"nameEn": "Spelt roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 105,
+			"nutrients": {
+				"energy": 263.0,
+				"fat": 3.7,
+				"saturatedFat": 0.6,
+				"carbs": 45.0,
+				"sugars": 3.9,
+				"fibre": 4.7,
+				"protein": 10.0,
+				"salt": 1.1
+			}
+		},
+		{
+			"code": 1022663,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Parkside Berliner",
+			"nameEn": "Parkside Berliner (glazed fruit-filled Berliner)",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 85,
+			"nutrients": {
+				"energy": 364.0,
+				"fat": 17.2,
+				"saturatedFat": 8.9,
+				"carbs": 45.3,
+				"sugars": 19.0,
+				"fibre": 1.8,
+				"protein": 6.2,
+				"salt": 0.6
+			}
+		},
+		{
+			"code": 1027566,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Philly stijl cheese calzone",
+			"nameEn": "Philly-style cheese calzone",
+			"category": "meals",
+			"emoji": "🍕",
+			"grammage": 130,
+			"nutrients": {
+				"energy": 271.0,
+				"fat": 10.5,
+				"saturatedFat": 4.8,
+				"carbs": 33.6,
+				"sugars": 2.5,
+				"fibre": 2.1,
+				"protein": 9.1,
+				"salt": 1.4
+			}
+		},
+		{
+			"code": 5000886,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Abrikozenflap",
+			"nameEn": "Apricot turnover",
+			"category": "snacks",
+			"emoji": "🥧",
+			"grammage": 125,
+			"nutrients": {
+				"energy": 284.0,
+				"fat": 15.0,
+				"saturatedFat": 7.4,
+				"carbs": 32.0,
+				"sugars": 10.0,
+				"fibre": 1.5,
+				"protein": 4.1,
+				"salt": 0.48
+			}
+		},
+		{
+			"code": 5010182,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Pretzel met suiker- en kaneeldecoratie",
+			"nameEn": "Pretzel with sugar and cinnamon",
+			"category": "snacks",
+			"emoji": "🥨",
+			"grammage": 70,
+			"nutrients": {
+				"energy": 541.0,
+				"fat": 25.0,
+				"saturatedFat": 11.0,
+				"carbs": 48.0,
+				"sugars": 12.0,
+				"fibre": 2.2,
+				"protein": 7.3,
+				"salt": 0.7
+			}
+		},
+		{
+			"code": 5617759,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Bladerdeeg met La Vache qui rit",
+			"nameEn": "Puff pastry with La Vache qui rit",
+			"category": "snacks",
+			"emoji": "🧀",
+			"grammage": 100,
+			"nutrients": {
+				"energy": 300.0,
+				"fat": 16.0,
+				"saturatedFat": 11.0,
+				"carbs": 30.0,
+				"sugars": 6.0,
+				"fibre": 1.5,
+				"protein": 8.2,
+				"salt": 0.95
+			}
+		},
+		{
+			"code": 5619352,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Croque Monsieur",
+			"nameEn": "Croque Monsieur",
+			"category": "meals",
+			"emoji": "🥪",
+			"grammage": 150,
+			"nutrients": {
+				"energy": 232.0,
+				"fat": 10.0,
+				"saturatedFat": 5.6,
+				"carbs": 25.0,
+				"sugars": 2.8,
+				"fibre": 1.3,
+				"protein": 10.0,
+				"salt": 0.91
+			}
+		},
+		{
+			"code": 6606363,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Roomboter appeltaart",
+			"nameEn": "Butter apple pie",
+			"category": "snacks",
+			"emoji": "🥧",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 281.0,
+				"fat": 11.5,
+				"saturatedFat": 7.6,
+				"carbs": 40.4,
+				"sugars": 23.6,
+				"fibre": 1.6,
+				"protein": 3.1,
+				"salt": 0.16
+			}
+		},
+		{
+			"code": 6610653,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Churros",
+			"nameEn": "Churros",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 30,
+			"nutrients": {
+				"energy": 394.0,
+				"fat": 27.5,
+				"saturatedFat": 5.5,
+				"carbs": 32.7,
+				"sugars": 9.7,
+				"fibre": 0.8,
+				"protein": 3.6,
+				"salt": 0.58
+			}
+		},
+		{
+			"code": 6612917,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Reuze stroopwafel",
+			"nameEn": "Giant stroopwafel",
+			"category": "snacks",
+			"emoji": "🧇",
+			"grammage": 85,
+			"nutrients": {
+				"energy": 430.0,
+				"fat": 15.0,
+				"saturatedFat": 7.1,
+				"carbs": 69.0,
+				"sugars": 35.0,
+				"fibre": 0.6,
+				"protein": 3.8,
+				"salt": 0.53
+			}
+		},
+		{
+			"code": 6614828,
+			"codeType": "article",
+			"sheet": "promo",
+			"nameNl": "Frikandelbroodje met 44% frikandel en currysaus",
+			"nameEn": "Frikandel roll with curry sauce (XL)",
+			"category": "snacks",
+			"emoji": "🌭",
+			"grammage": 235,
+			"nutrients": {
+				"energy": 297.0,
+				"fat": 16.1,
+				"saturatedFat": 6.9,
+				"carbs": 27.0,
+				"sugars": 6.6,
+				"fibre": 1.3,
+				"protein": 10.1,
+				"salt": 1.61
+			}
+		},
+		{
+			"code": 6902753,
+			"codeType": "article",
+			"sheet": "fixed",
+			"nameNl": "Turks brood",
+			"nameEn": "Turkish bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 200,
+			"nutrients": {
+				"energy": 233.0,
+				"fat": 0.7,
+				"saturatedFat": 0.3,
+				"carbs": 49.1,
+				"sugars": 3.0,
+				"fibre": 0.0,
+				"protein": 7.5,
+				"salt": 1.1
+			}
+		},
+		{
+			"code": 20084417,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Rustiek desem wit",
+			"nameEn": "Rustic white sourdough bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 263.0,
+				"fat": 2.3,
+				"saturatedFat": 0.3,
+				"carbs": 49.2,
+				"sugars": 0.5,
+				"fibre": 4.3,
+				"protein": 9.3,
+				"salt": 0.9
+			}
+		},
+		{
+			"code": 20084424,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Rustiek desem meergranen",
+			"nameEn": "Rustic multigrain sourdough bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 295.0,
+				"fat": 6.7,
+				"saturatedFat": 0.7,
+				"carbs": 41.9,
+				"sugars": 0.8,
+				"fibre": 5.3,
+				"protein": 14.1,
+				"salt": 0.9
+			}
+		},
+		{
+			"code": 20216726,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Double chocolate cookie",
+			"nameEn": "Double chocolate cookie",
+			"category": "snacks",
+			"emoji": "🍪",
+			"grammage": 75,
+			"nutrients": {
+				"energy": 434.0,
+				"fat": 16.6,
+				"saturatedFat": 9.0,
+				"carbs": 62.3,
+				"sugars": 40.0,
+				"fibre": 3.2,
+				"protein": 6.9,
+				"salt": 0.8
+			}
+		},
+		{
+			"code": 20218478,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Mini appeltaartje",
+			"nameEn": "Mini apple pie",
+			"category": "snacks",
+			"emoji": "🥧",
+			"grammage": 95,
+			"nutrients": {
+				"energy": 297.0,
+				"fat": 12.8,
+				"saturatedFat": 7.7,
+				"carbs": 41.1,
+				"sugars": 22.6,
+				"fibre": 1.7,
+				"protein": 3.4,
+				"salt": 0.27
+			}
+		},
+		{
+			"code": 20320768,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Goudse kaasbroodje",
+			"nameEn": "Gouda cheese roll",
+			"category": "grains",
+			"emoji": "🧀",
+			"grammage": 80,
+			"nutrients": {
+				"energy": 305.0,
+				"fat": 7.5,
+				"saturatedFat": 5.0,
+				"carbs": 44.0,
+				"sugars": 3.6,
+				"fibre": 4.8,
+				"protein": 13.0,
+				"salt": 1.0
+			}
+		},
+		{
+			"code": 20320850,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Koffiebroodje",
+			"nameEn": "Custard and raisin bun (koffiebroodje)",
+			"category": "snacks",
+			"emoji": "🥐",
+			"grammage": 100,
+			"nutrients": {
+				"energy": 318.0,
+				"fat": 12.4,
+				"saturatedFat": 8.3,
+				"carbs": 44.4,
+				"sugars": 17.2,
+				"fibre": 1.9,
+				"protein": 6.3,
+				"salt": 0.7
+			}
+		},
+		{
+			"code": 20320874,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Chocoladebroodje",
+			"nameEn": "Chocolate croissant (pain au chocolat)",
+			"category": "snacks",
+			"emoji": "🥐",
+			"grammage": 70,
+			"nutrients": {
+				"energy": 398.0,
+				"fat": 17.8,
+				"saturatedFat": 11.4,
+				"carbs": 50.2,
+				"sugars": 11.2,
+				"fibre": 2.1,
+				"protein": 8.1,
+				"salt": 1.02
+			}
+		},
+		{
+			"code": 20351472,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Frans stokbrood",
+			"nameEn": "French baguette",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 400,
+			"nutrients": {
+				"energy": 270.0,
+				"fat": 1.2,
+				"saturatedFat": 0.2,
+				"carbs": 55.0,
+				"sugars": 3.4,
+				"fibre": 2.6,
+				"protein": 8.4,
+				"salt": 1.2
+			}
+		},
+		{
+			"code": 20355180,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Ham-kaascroissant",
+			"nameEn": "Ham and cheese croissant",
+			"category": "grains",
+			"emoji": "🥐",
+			"grammage": 95,
+			"nutrients": {
+				"energy": 375.0,
+				"fat": 22.0,
+				"saturatedFat": 11.0,
+				"carbs": 32.3,
+				"sugars": 2.7,
+				"fibre": 1.7,
+				"protein": 11.0,
+				"salt": 1.4
+			}
+		},
+		{
+			"code": 20364021,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Roombotercroissant",
+			"nameEn": "Butter croissant",
+			"category": "grains",
+			"emoji": "🥐",
+			"grammage": 60,
+			"nutrients": {
+				"energy": 434.0,
+				"fat": 23.5,
+				"saturatedFat": 15.7,
+				"carbs": 44.4,
+				"sugars": 7.2,
+				"fibre": 1.8,
+				"protein": 8.7,
+				"salt": 1.0
+			}
+		},
+		{
+			"code": 20364854,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Kaasbroodje",
+			"nameEn": "Cheese pastry (kaasbroodje)",
+			"category": "snacks",
+			"emoji": "🧀",
+			"grammage": 115,
+			"nutrients": {
+				"energy": 302.0,
+				"fat": 18.2,
+				"saturatedFat": 11.8,
+				"carbs": 24.4,
+				"sugars": 2.0,
+				"fibre": 0.9,
+				"protein": 9.6,
+				"salt": 1.23
+			}
+		},
+		{
+			"code": 20477073,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Schnittbroodje wit",
+			"nameEn": "White roll (Schnittbroodje)",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 65,
+			"nutrients": {
+				"energy": 282.0,
+				"fat": 1.0,
+				"saturatedFat": 0.2,
+				"carbs": 57.5,
+				"sugars": 3.8,
+				"fibre": 2.9,
+				"protein": 9.2,
+				"salt": 1.0
+			}
+		},
+		{
+			"code": 20477080,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Pompoenpitbroodje",
+			"nameEn": "Pumpkin seed roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 80,
+			"nutrients": {
+				"energy": 309.0,
+				"fat": 8.8,
+				"saturatedFat": 1.6,
+				"carbs": 42.3,
+				"sugars": 3.1,
+				"fibre": 4.4,
+				"protein": 13.0,
+				"salt": 0.91
+			}
+		},
+		{
+			"code": 20477110,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Kampioentje",
+			"nameEn": "Seeded wheat-rye roll (Kampioentje)",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 80,
+			"nutrients": {
+				"energy": 330.0,
+				"fat": 10.7,
+				"saturatedFat": 1.2,
+				"carbs": 45.8,
+				"sugars": 3.8,
+				"fibre": 5.0,
+				"protein": 10.2,
+				"salt": 1.2
+			}
+		},
+		{
+			"code": 20487683,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Hazelnoot nougat broodje",
+			"nameEn": "Hazelnut nougat roll",
+			"category": "snacks",
+			"emoji": "🥐",
+			"grammage": 112,
+			"nutrients": {
+				"energy": 442.0,
+				"fat": 24.8,
+				"saturatedFat": 13.3,
+				"carbs": 46.2,
+				"sugars": 22.4,
+				"fibre": 3.7,
+				"protein": 6.7,
+				"salt": 0.87
+			}
+		},
+		{
+			"code": 20494438,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Pretzel",
+			"nameEn": "Pretzel",
+			"category": "grains",
+			"emoji": "🥨",
+			"grammage": 95,
+			"nutrients": {
+				"energy": 286.0,
+				"fat": 4.4,
+				"saturatedFat": 0.5,
+				"carbs": 50.2,
+				"sugars": 3.1,
+				"fibre": 3.9,
+				"protein": 9.4,
+				"salt": 2.2
+			}
+		},
+		{
+			"code": 20500481,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Pecannotenbroodje",
+			"nameEn": "Pecan roll",
+			"category": "snacks",
+			"emoji": "🥐",
+			"grammage": 83,
+			"nutrients": {
+				"energy": 488.0,
+				"fat": 31.6,
+				"saturatedFat": 12.3,
+				"carbs": 44.8,
+				"sugars": 14.2,
+				"fibre": 1.5,
+				"protein": 5.2,
+				"salt": 0.39
+			}
+		},
+		{
+			"code": 20500573,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Tijgerbol",
+			"nameEn": "Tiger roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 70,
+			"nutrients": {
+				"energy": 251.0,
+				"fat": 1.4,
+				"saturatedFat": 0.3,
+				"carbs": 51.1,
+				"sugars": 0.9,
+				"fibre": 1.9,
+				"protein": 7.5,
+				"salt": 0.95
+			}
+		},
+		{
+			"code": 20500849,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Stokbrood wit",
+			"nameEn": "White baguette",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 250,
+			"nutrients": {
+				"energy": 278.0,
+				"fat": 1.0,
+				"saturatedFat": 0.2,
+				"carbs": 57.2,
+				"sugars": 3.3,
+				"fibre": 2.5,
+				"protein": 8.7,
+				"salt": 1.0
+			}
+		},
+		{
+			"code": 20507848,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Kaiserbroodje",
+			"nameEn": "Kaiser roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 65,
+			"nutrients": {
+				"energy": 263.0,
+				"fat": 0.9,
+				"saturatedFat": 0.1,
+				"carbs": 54.2,
+				"sugars": 0.8,
+				"fibre": 2.7,
+				"protein": 8.2,
+				"salt": 0.88
+			}
+		},
+		{
+			"code": 20520632,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Steenoven baguette desem wit",
+			"nameEn": "Stone-oven white sourdough baguette",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 300,
+			"nutrients": {
+				"energy": 253.0,
+				"fat": 1.2,
+				"saturatedFat": 0.2,
+				"carbs": 49.6,
+				"sugars": 0.5,
+				"fibre": 3.6,
+				"protein": 9.2,
+				"salt": 0.9
+			}
+		},
+		{
+			"code": 20520649,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Steenoven baguette desem meergranen",
+			"nameEn": "Stone-oven multigrain sourdough baguette",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 300,
+			"nutrients": {
+				"energy": 277.0,
+				"fat": 4.3,
+				"saturatedFat": 0.5,
+				"carbs": 45.8,
+				"sugars": 1.0,
+				"fibre": 5.5,
+				"protein": 10.9,
+				"salt": 0.9
+			}
+		},
+		{
+			"code": 20652654,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Berlinerbol met multivruchtenvulling",
+			"nameEn": "Berliner with mixed-fruit filling",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 75,
+			"nutrients": {
+				"energy": 353.0,
+				"fat": 14.6,
+				"saturatedFat": 4.2,
+				"carbs": 48.4,
+				"sugars": 15.5,
+				"fibre": 2.0,
+				"protein": 5.8,
+				"salt": 0.52
+			}
+		},
+		{
+			"code": 20708016,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Kaastwister",
+			"nameEn": "Cheese twist",
+			"category": "snacks",
+			"emoji": "🧀",
+			"grammage": 75,
+			"nutrients": {
+				"energy": 404.0,
+				"fat": 22.1,
+				"saturatedFat": 15.2,
+				"carbs": 38.1,
+				"sugars": 5.8,
+				"fibre": 2.1,
+				"protein": 12.0,
+				"salt": 1.07
+			}
+		},
+		{
+			"code": 20714239,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Walnootbrood",
+			"nameEn": "Walnut bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 380,
+			"nutrients": {
+				"energy": 298.0,
+				"fat": 9.1,
+				"saturatedFat": 0.9,
+				"carbs": 41.1,
+				"sugars": 3.8,
+				"fibre": 6.6,
+				"protein": 9.7,
+				"salt": 0.93
+			}
+		},
+		{
+			"code": 20716776,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Saucijzenbroodje",
+			"nameEn": "Puff-pastry sausage roll (saucijzenbroodje)",
+			"category": "snacks",
+			"emoji": "🌭",
+			"grammage": 110,
+			"nutrients": {
+				"energy": 281.0,
+				"fat": 18.2,
+				"saturatedFat": 12.5,
+				"carbs": 23.0,
+				"sugars": 2.4,
+				"fibre": 2.1,
+				"protein": 5.2,
+				"salt": 1.6
+			}
+		},
+		{
+			"code": 20716783,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Frikandelbroodje",
+			"nameEn": "Frikandel roll",
+			"category": "snacks",
+			"emoji": "🌭",
+			"grammage": 165,
+			"nutrients": {
+				"energy": 266.0,
+				"fat": 13.0,
+				"saturatedFat": 6.2,
+				"carbs": 30.4,
+				"sugars": 6.5,
+				"fibre": 0.9,
+				"protein": 6.4,
+				"salt": 1.21
+			}
+		},
+		{
+			"code": 20759070,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Focaccia",
+			"nameEn": "Focaccia with tomato, peppers and cheese",
+			"category": "meals",
+			"emoji": "🍕",
+			"grammage": 130,
+			"nutrients": {
+				"energy": 206.0,
+				"fat": 5.2,
+				"saturatedFat": 1.7,
+				"carbs": 32.0,
+				"sugars": 2.4,
+				"fibre": 1.8,
+				"protein": 6.9,
+				"salt": 0.92
+			}
+		},
+		{
+			"code": 20941925,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Meerzadencroissant",
+			"nameEn": "Multiseed croissant",
+			"category": "grains",
+			"emoji": "🥐",
+			"grammage": 68,
+			"nutrients": {
+				"energy": 426.0,
+				"fat": 25.0,
+				"saturatedFat": 14.0,
+				"carbs": 39.5,
+				"sugars": 5.3,
+				"fibre": 2.8,
+				"protein": 9.3,
+				"salt": 0.98
+			}
+		},
+		{
+			"code": 20975371,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Gevulde koek met amandelspijs",
+			"nameEn": "Almond-filled cookie (gevulde koek)",
+			"category": "snacks",
+			"emoji": "🍪",
+			"grammage": 85,
+			"nutrients": {
+				"energy": 397.0,
+				"fat": 17.9,
+				"saturatedFat": 7.4,
+				"carbs": 51.1,
+				"sugars": 32.3,
+				"fibre": 2.0,
+				"protein": 7.0,
+				"salt": 0.49
+			}
+		},
+		{
+			"code": 4056489005032,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Kaascroissant",
+			"nameEn": "Cheese croissant",
+			"category": "grains",
+			"emoji": "🥐",
+			"grammage": 95,
+			"nutrients": {
+				"energy": 362.0,
+				"fat": 20.3,
+				"saturatedFat": 13.5,
+				"carbs": 32.9,
+				"sugars": 4.6,
+				"fibre": 3.0,
+				"protein": 10.5,
+				"salt": 0.97
+			}
+		},
+		{
+			"code": 4056489057086,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Börek met spinazie en feta",
+			"nameEn": "Börek with spinach and feta",
+			"category": "meals",
+			"emoji": "🥟",
+			"grammage": 90,
+			"nutrients": {
+				"energy": 281.0,
+				"fat": 13.4,
+				"saturatedFat": 4.4,
+				"carbs": 31.6,
+				"sugars": 2.6,
+				"fibre": 2.2,
+				"protein": 7.3,
+				"salt": 1.11
+			}
+		},
+		{
+			"code": 4056489270225,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Pistolet wit",
+			"nameEn": "White pistolet roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 80,
+			"nutrients": {
+				"energy": 264.0,
+				"fat": 0.9,
+				"saturatedFat": 0.2,
+				"carbs": 54.5,
+				"sugars": 3.0,
+				"fibre": 2.7,
+				"protein": 8.2,
+				"salt": 0.95
+			}
+		},
+		{
+			"code": 4056489431312,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Kaneelbroodje",
+			"nameEn": "Cinnamon roll",
+			"category": "snacks",
+			"emoji": "🥐",
+			"grammage": 113,
+			"nutrients": {
+				"energy": 407.0,
+				"fat": 24.4,
+				"saturatedFat": 9.2,
+				"carbs": 42.2,
+				"sugars": 16.7,
+				"fibre": 1.3,
+				"protein": 4.0,
+				"salt": 0.66
+			}
+		},
+		{
+			"code": 4056489474999,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Bio Rustiek meergranen",
+			"nameEn": "Organic rustic multigrain sourdough bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 365.0,
+				"fat": 5.1,
+				"saturatedFat": 0.6,
+				"carbs": 67.1,
+				"sugars": 0.4,
+				"fibre": 5.0,
+				"protein": 10.1,
+				"salt": 0.9
+			}
+		},
+		{
+			"code": 4056489475002,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Rustiek desem volkoren",
+			"nameEn": "Rustic wholemeal sourdough bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 258.0,
+				"fat": 4.7,
+				"saturatedFat": 0.6,
+				"carbs": 37.8,
+				"sugars": 0.6,
+				"fibre": 6.6,
+				"protein": 12.9,
+				"salt": 0.9
+			}
+		},
+		{
+			"code": 4056489475019,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Bio Rustiek Woutkorn",
+			"nameEn": "Organic rustic Woutkorn sourdough bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 372.0,
+				"fat": 6.0,
+				"saturatedFat": 0.9,
+				"carbs": 66.3,
+				"sugars": 0.5,
+				"fibre": 5.0,
+				"protein": 10.7,
+				"salt": 0.88
+			}
+		},
+		{
+			"code": 4056489591993,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Italiaanse bol",
+			"nameEn": "Italian roll with olive oil and oregano",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 140,
+			"nutrients": {
+				"energy": 270.0,
+				"fat": 1.5,
+				"saturatedFat": 0.2,
+				"carbs": 53.7,
+				"sugars": 1.0,
+				"fibre": 2.8,
+				"protein": 8.0,
+				"salt": 1.07
+			}
+		},
+		{
+			"code": 4056489737919,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Choco donut",
+			"nameEn": "Chocolate donut",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 56,
+			"nutrients": {
+				"energy": 432.0,
+				"fat": 25.7,
+				"saturatedFat": 12.2,
+				"carbs": 42.2,
+				"sugars": 14.0,
+				"fibre": 2.3,
+				"protein": 6.8,
+				"salt": 0.75
+			}
+		},
+		{
+			"code": 4056489847502,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Appelflap",
+			"nameEn": "Apple turnover",
+			"category": "snacks",
+			"emoji": "🥧",
+			"grammage": 105,
+			"nutrients": {
+				"energy": 294.0,
+				"fat": 16.1,
+				"saturatedFat": 8.0,
+				"carbs": 31.7,
+				"sugars": 11.8,
+				"fibre": 3.6,
+				"protein": 3.8,
+				"salt": 0.3
+			}
+		},
+		{
+			"code": 4056489849919,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Volkorenbol",
+			"nameEn": "Wholemeal roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 98,
+			"nutrients": {
+				"energy": 231.0,
+				"fat": 2.9,
+				"saturatedFat": 0.4,
+				"carbs": 37.9,
+				"sugars": 0.6,
+				"fibre": 6.7,
+				"protein": 9.9,
+				"salt": 0.89
+			}
+		},
+		{
+			"code": 4335619009080,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Donut met vanillesmaakvulling",
+			"nameEn": "Donut with vanilla-flavour filling",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 68,
+			"nutrients": {
+				"energy": 399.0,
+				"fat": 21.7,
+				"saturatedFat": 21.7,
+				"carbs": 44.1,
+				"sugars": 19.3,
+				"fibre": 1.5,
+				"protein": 6.0,
+				"salt": 1.07
+			}
+		},
+		{
+			"code": 4335619043886,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Rustiek desem spelt",
+			"nameEn": "Rustic spelt sourdough bread",
+			"category": "grains",
+			"emoji": "🍞",
+			"grammage": 600,
+			"nutrients": {
+				"energy": 285.0,
+				"fat": 5.0,
+				"saturatedFat": 0.6,
+				"carbs": 47.4,
+				"sugars": 0.9,
+				"fibre": 3.7,
+				"protein": 10.7,
+				"salt": 0.8
+			}
+		},
+		{
+			"code": 4335619240346,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Ciabatta",
+			"nameEn": "Ciabatta",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 100,
+			"nutrients": {
+				"energy": 255.0,
+				"fat": 2.3,
+				"saturatedFat": 0.3,
+				"carbs": 48.0,
+				"sugars": 0.5,
+				"fibre": 3.4,
+				"protein": 8.9,
+				"salt": 1.0
+			}
+		},
+		{
+			"code": 4335619321793,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Walnoten-honing broodje",
+			"nameEn": "Walnut and honey roll",
+			"category": "grains",
+			"emoji": "🥖",
+			"grammage": 90,
+			"nutrients": {
+				"energy": 326.0,
+				"fat": 11.0,
+				"saturatedFat": 1.1,
+				"carbs": 43.2,
+				"sugars": 6.9,
+				"fibre": 7.4,
+				"protein": 9.9,
+				"salt": 1.03
+			}
+		},
+		{
+			"code": 8590325511395,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Gesuikerde donut",
+			"nameEn": "Sugared donut",
+			"category": "snacks",
+			"emoji": "🍩",
+			"grammage": 47,
+			"nutrients": {
+				"energy": 403.0,
+				"fat": 21.1,
+				"saturatedFat": 9.2,
+				"carbs": 46.1,
+				"sugars": 15.1,
+				"fibre": 1.8,
+				"protein": 6.2,
+				"salt": 1.36
+			}
+		},
+		{
+			"code": 8719089008969,
+			"codeType": "ean",
+			"sheet": "fixed",
+			"nameNl": "Worstenbroodje",
+			"nameEn": "Sausage roll (worstenbroodje)",
+			"category": "snacks",
+			"emoji": "🌭",
+			"grammage": 80,
+			"nutrients": {
+				"energy": 255.0,
+				"fat": 10.6,
+				"saturatedFat": 3.7,
+				"carbs": 29.6,
+				"sugars": 3.2,
+				"fibre": 1.4,
+				"protein": 9.7,
+				"salt": 1.34
+			}
+		}
+	]
+}

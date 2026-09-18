@@ -6,7 +6,7 @@ import {
 	type NutrientValue,
 	personalFoodSnapshotAtAmount,
 	rescaleNutrients,
-	shippedLibraryMeta,
+	shippedSourceMeta,
 } from "@workouts/core/nutrition";
 import { formatSnapshotAmount } from "./nutrition-one-off";
 import type {
@@ -28,7 +28,7 @@ export function resolveComboPart(
 	}
 	const food = getShippedFood(part.reference.foodId);
 	if (!food) throw new Error("Combo source is missing.");
-	const meta = shippedLibraryMeta();
+	const source = shippedSourceMeta(food);
 	const scaled = rescaleNutrients(food.nutrients, part.snapshot.amount / 100);
 	const { estimated: _estimated, ...snapshot } = part.snapshot;
 	return {
@@ -41,11 +41,11 @@ export function resolveComboPart(
 		provenance: {
 			source: "shipped",
 			sourceId: food.id,
-			dataset: meta.dataset.name,
-			edition: meta.dataset.edition,
+			dataset: source.name,
+			edition: source.edition,
 			sourceCode: food.code,
 			sourceName: food.sourceName,
-			saltDerived: true,
+			saltDerived: source.saltDerived,
 		},
 	};
 }

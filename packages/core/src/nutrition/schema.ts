@@ -50,8 +50,21 @@ export const promotionSchema = z.object({
 	servings: z.array(servingSchema).max(3),
 });
 
+const sourceSchema = z.literal("lidl").optional();
+
+/** `${source}:${code}` — the key a code is unique under. */
+function sourceKey(food: { src?: string; code: number }): string {
+	return `${food.src ?? "nevo"}:${food.code}`;
+}
+
+/** Sort rank per source: NEVO first, then Lidl, each block ordered by code. */
+function sourceRank(src: string | undefined): number {
+	return src === undefined ? 0 : 1;
+}
+
 export const wireFoodSchema = z.object({
 	id: z.string().regex(/^shipped:[a-z0-9-]+$/),
+	src: sourceSchema,
 	code: z.number().int().positive(),
 	en: bilingualString,
 	nl: bilingualString,
@@ -64,6 +77,14 @@ export const wireFoodSchema = z.object({
 	retired: z.literal(true).optional(),
 });
 
+const sourceMetaSchema = z.object({
+	name: bilingualString,
+	edition: bilingualString,
+	version: bilingualString,
+	publisher: bilingualString,
+	saltDerived: z.boolean(),
+});
+
 export const shippedArtifactSchema = z
 	.object({
 		schemaVersion: z.number().int().positive(),
@@ -74,6 +95,10 @@ export const shippedArtifactSchema = z
 			publisher: bilingualString,
 		}),
 		generatedFrom: bilingualString,
+		sources: z.object({
+			nevo: sourceMetaSchema,
+			lidl: sourceMetaSchema.optional(),
+		}),
 		licence: z.object({
 			attribution: bilingualString,
 			attributionMixed: bilingualString,
@@ -104,7 +129,7 @@ export const shippedArtifactSchema = z
 	.superRefine((artifact, ctx) => {
 		const width = artifact.nutrientOrder.length;
 		const seenIds = new Set<string>();
-		const seenCodes = new Set<number>();
+		const seenCodes = new Set<string>();
 		for (const food of artifact.foods) {
 			if (food.n.length !== width) {
 				ctx.addIssue({
@@ -118,16 +143,22 @@ export const shippedArtifactSchema = z
 					message: `duplicate shipped id ${food.id}`,
 				});
 			}
-			if (seenCodes.has(food.code)) {
+			if (seenCodes.has(sourceKey(food))) {
 				ctx.addIssue({
 					code: "custom",
-					message: `duplicate NEVO code ${food.code}`,
+					message: `duplicate source code ${sourceKey(food)}`,
 				});
 			}
 			if (!(food.grp in artifact.groups)) {
 				ctx.addIssue({
 					code: "custom",
 					message: `food ${food.id} references unknown group ${food.grp}`,
+				});
+			}
+			if (food.src && !artifact.sources[food.src]) {
+				ctx.addIssue({
+					code: "custom",
+					message: `food ${food.id} comes from source ${food.src}, which has no entry in sources`,
 				});
 			}
 			// A drink nobody can portion is a bad search result, so the spec makes
@@ -139,22 +170,25 @@ export const shippedArtifactSchema = z
 				});
 			}
 			seenIds.add(food.id);
-			seenCodes.add(food.code);
+			seenCodes.add(sourceKey(food));
 		}
 		for (let index = 1; index < artifact.foods.length; index += 1) {
 			const previous = artifact.foods[index - 1];
 			const current = artifact.foods[index];
-			if (previous && current && previous.code > current.code) {
+			if (!previous || !current) continue;
+			const rankDelta = sourceRank(previous.src) - sourceRank(current.src);
+			if (rankDelta > 0 || (rankDelta === 0 && previous.code > current.code)) {
 				ctx.addIssue({
 					code: "custom",
 					message:
-						"foods must be ordered by NEVO code so regeneration produces a stable diff",
+						"foods must be ordered by source then code so regeneration produces a stable diff",
 				});
 			}
 		}
 	});
 
 export const lockEntrySchema = z.object({
+	src: sourceSchema,
 	code: z.number().int().positive(),
 	id: z.string().regex(/^shipped:[a-z0-9-]+$/),
 	status: z.enum(["active", "retired"]),
@@ -174,7 +208,7 @@ export const shippedLockSchema = z
 	})
 	.superRefine((lock, ctx) => {
 		const seenIds = new Set<string>();
-		const activeCodes = new Set<number>();
+		const activeCodes = new Set<string>();
 		for (const entry of lock.entries) {
 			if (seenIds.has(entry.id)) {
 				ctx.addIssue({
@@ -184,13 +218,13 @@ export const shippedLockSchema = z
 			}
 			seenIds.add(entry.id);
 			if (entry.status === "active") {
-				if (activeCodes.has(entry.code)) {
+				if (activeCodes.has(sourceKey(entry))) {
 					ctx.addIssue({
 						code: "custom",
-						message: `NEVO code ${entry.code} has two active ids; a code maps to at most one live food`,
+						message: `source code ${sourceKey(entry)} has two active ids; a code maps to at most one live food`,
 					});
 				}
-				activeCodes.add(entry.code);
+				activeCodes.add(sourceKey(entry));
 			}
 		}
 	});

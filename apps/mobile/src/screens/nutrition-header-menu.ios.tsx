@@ -19,30 +19,14 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 				/>
 				<Divider />
 				<Button
-					label={props.createComboLabel}
-					systemImage="plus"
-					onPress={props.onCreateCombo}
-				/>
-				<Button
-					label={props.logComboLabel}
-					systemImage="square.stack.3d.up"
-					onPress={props.onLogCombo}
-				/>
-				<Divider />
-				<Button
-					label={props.captureDraftsLabel}
-					systemImage="frying.pan"
-					onPress={props.onOpenCaptureDrafts}
+					label={props.foodLibraryLabel}
+					systemImage="books.vertical"
+					onPress={props.onOpenFoodLibrary}
 				/>
 				<Button
 					label={props.assistanceLabel}
 					systemImage="text.viewfinder"
 					onPress={props.onOpenAssistance}
-				/>
-				<Button
-					label={props.backupLabel}
-					systemImage="externaldrive"
-					onPress={props.onOpenBackup}
 				/>
 				<Divider />
 				<Button
@@ -54,6 +38,12 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 					label={props.dataSourcesLabel}
 					systemImage="info.circle"
 					onPress={props.onToggleDataSources}
+				/>
+				<Divider />
+				<Button
+					label={props.settingsLabel}
+					systemImage="gearshape"
+					onPress={props.onOpenSettings}
 				/>
 			</Menu>
 		</Host>

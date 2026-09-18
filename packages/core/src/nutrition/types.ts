@@ -34,6 +34,28 @@ export type FoodCategory = (typeof FOOD_CATEGORIES)[number];
 export type ShippedFoodId = `shipped:${string}`;
 
 /**
+ * Where a shipped food's figures come from. Each source has its own code
+ * space, its own lockfile namespace and its own entry in the artifact's
+ * `sources` table.
+ */
+export type ShippedSource = "nevo" | "lidl";
+
+export type ShippedSourceMeta = {
+	readonly name: string;
+	readonly edition: string;
+	readonly version: string;
+	readonly publisher: string;
+	/** True when the salt column is an Appelent derivation rather than published. */
+	readonly saltDerived: boolean;
+};
+
+/** NEVO is always present; another source only when its extract was supplied. */
+export type ShippedSources = {
+	readonly nevo: ShippedSourceMeta;
+	readonly lidl?: ShippedSourceMeta;
+};
+
+/**
  * How a volume-labelled serving was turned into an amount in a mass base unit.
  *
  * Every NEVO beverage is per 100 **g**, so "Glass (200 ml)" cannot simply store
@@ -57,16 +79,17 @@ export type ShippedServing = {
 
 export type ShippedFood = {
 	readonly id: ShippedFoodId;
-	/** NEVO code. Source identity only — never application identity. */
+	readonly source: ShippedSource;
+	/** Source-local code (NEVO code, Lidl EAN/article code). Never application identity. */
 	readonly code: number;
 	/**
 	 * What to show. The overlay's conversational name for a promoted food, the
-	 * verbatim NEVO name otherwise.
+	 * verbatim source name otherwise.
 	 */
 	readonly name: Bilingual;
 	/**
-	 * The NEVO name exactly as published. The licence forbids amending it, so
-	 * "search all" shows this even when a friendlier name exists.
+	 * The source name exactly as published. NEVO's licence forbids amending it,
+	 * so "search all" shows this even when a friendlier name exists.
 	 */
 	readonly sourceName: Bilingual;
 	readonly aliases: {
@@ -104,6 +127,7 @@ export type ShippedLibraryMeta = {
 		readonly publisher: string;
 	};
 	readonly generatedFrom: string;
+	readonly sources: ShippedSources;
 	readonly counts: {
 		readonly foods: number;
 		readonly promoted: number;

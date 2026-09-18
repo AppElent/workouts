@@ -20,7 +20,18 @@ import {
 	SALT_FROM_SODIUM_FACTOR,
 } from "../src/nutrition/salt";
 import type { LockEntry, ShippedLock } from "../src/nutrition/schema";
-import { FOOD_CATEGORIES, type FoodCategory } from "../src/nutrition/types";
+import {
+	FOOD_CATEGORIES,
+	type FoodCategory,
+	type ShippedSource,
+	type ShippedSourceMeta,
+} from "../src/nutrition/types";
+import {
+	type LidlExtract,
+	type LidlProduct,
+	lidlEdition,
+	lidlIdentityFingerprint,
+} from "./lidl";
 import {
 	identityFingerprint,
 	NEVO_TRACE_CODES,
@@ -93,32 +104,40 @@ export type ReconcileProblemKind = "new" | "changed" | "returning" | "missing";
 
 export type ReconcileProblem = {
 	readonly kind: ReconcileProblemKind;
+	readonly src: ShippedSource;
 	readonly code: number;
 	readonly id?: string;
 	readonly detail: string;
 	readonly remedy: string;
 };
 
+/**
+ * A code reference on the command line: a bare number is a NEVO code, a
+ * `lidl:` prefix names a Lidl code.
+ */
+export type CodeRef = number | string;
+
 export type Resolutions = {
-	/** Bind a `shipped:` id to every NEVO code the lockfile has never seen. */
+	/** Bind a `shipped:` id to every source code the lockfile has never seen. */
 	readonly mintNew?: boolean;
-	/** Retire lock entries whose NEVO code has left the extract. */
+	/** Retire lock entries whose code has left its source. */
 	readonly retireMissing?: boolean;
 	/** "Same food" — keep the id, rebind it to the new identity fields. */
-	readonly acceptChange?: Iterable<number>;
+	readonly acceptChange?: Iterable<CodeRef>;
 	/** "Different food behind the same code" — retire the id, mint a fresh one. */
-	readonly remint?: Iterable<number>;
+	readonly remint?: Iterable<CodeRef>;
 };
 
 export type ReconcileResult = {
 	readonly lock: ShippedLock;
 	readonly problems: readonly ReconcileProblem[];
-	readonly minted: readonly number[];
-	readonly retired: readonly number[];
+	/** Source keys (`nevo:151`, `lidl:20652654`) minted in this run. */
+	readonly minted: readonly string[];
+	readonly retired: readonly string[];
 };
 
 export const LOCK_NOTE =
-	"Append-only map from NEVO code to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @workouts/core generate:foods`.";
+	'Append-only map from source code (NEVO code, or Lidl code under src: "lidl") to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @workouts/core generate:foods`.';
 
 export const EMPTY_LOCK: ShippedLock = {
 	schemaVersion: LOCK_SCHEMA_VERSION,
@@ -126,68 +145,143 @@ export const EMPTY_LOCK: ShippedLock = {
 	entries: [],
 };
 
-function mintId(nameEn: string, code: number, used: Set<string>): string {
-	const base = `shipped:${slugify(nameEn)}`;
+/** `${source}:${code}` — the key a code is unique under across the artifact. */
+export function foodKey(food: { src?: string; code: number }): string {
+	return `${food.src ?? "nevo"}:${food.code}`;
+}
+
+function sourceRank(src: ShippedSource): number {
+	return src === "nevo" ? 0 : 1;
+}
+
+function normaliseCodeRef(ref: CodeRef): string {
+	if (typeof ref === "number") return `nevo:${ref}`;
+	return ref.includes(":") ? ref : `nevo:${ref}`;
+}
+
+const SOURCE_LABEL: Record<ShippedSource, string> = {
+	nevo: "NEVO",
+	lidl: "Lidl",
+};
+
+/** One row of any source, reduced to what identity reconciliation needs. */
+export type SourceRow = {
+	readonly src: ShippedSource;
+	readonly code: number;
+	readonly nameEn: string;
+	readonly nameNl: string;
+	readonly fingerprint: string;
+	/** Parenthetical after the names in problem messages. */
+	readonly context: string;
+	/** Edition stamped on lock entries minted or retired against this row. */
+	readonly edition: string;
+};
+
+function nevoSourceRows(extract: NevoExtract): SourceRow[] {
+	const edition = nevoEdition(extract.version);
+	return extract.rows.map((row) => ({
+		src: "nevo",
+		code: row.code,
+		nameEn: row.nameEn,
+		nameNl: row.nameNl,
+		fingerprint: identityFingerprint(row),
+		context: `${row.groupEn}, per 100 ${row.baseUnit}`,
+		edition,
+	}));
+}
+
+function lidlSourceRows(extract: LidlExtract): SourceRow[] {
+	const edition = lidlEdition(extract);
+	return extract.products.map((product) => ({
+		src: "lidl",
+		code: product.code,
+		nameEn: product.nameEn,
+		nameNl: product.nameNl,
+		fingerprint: lidlIdentityFingerprint(product),
+		context: `${product.grammage} g piece, ${product.sheet} sheet`,
+		edition,
+	}));
+}
+
+function mintId(row: SourceRow, used: Set<string>): string {
+	const prefix = row.src === "nevo" ? "" : `${row.src}-`;
+	const base = `shipped:${prefix}${slugify(row.nameEn)}`;
 	if (!used.has(base)) return base;
-	// Two NEVO foods share an English name. The code disambiguates and, unlike a
+	// Two foods share an English name. The code disambiguates and, unlike a
 	// counter, does not shift when an unrelated food is added later.
-	const withCode = `${base}-${code}`;
+	const withCode = `${base}-${row.code}`;
 	if (!used.has(withCode)) return withCode;
 	let suffix = 2;
 	while (used.has(`${withCode}-${suffix}`)) suffix += 1;
 	return `${withCode}-${suffix}`;
 }
 
+/** The flag value that names this row on the command line. */
+function flagRef(row: { src: ShippedSource; code: number }): string {
+	return row.src === "nevo" ? String(row.code) : `${row.src}:${row.code}`;
+}
+
 /**
- * Reconcile the lockfile against the extract.
+ * Reconcile the lockfile against every source.
  *
  * Nothing here mints, retires or rebinds an id on its own. Every one of those
  * is a deliberate human act, expressed as a flag on the generator, because a
- * NEVO code that changed meaning would otherwise silently inherit an id that
+ * source code that changed meaning would otherwise silently inherit an id that
  * diary entries and Combos already point at.
  */
 export function reconcileLock(
 	extract: NevoExtract,
 	lock: ShippedLock,
 	resolutions: Resolutions = {},
-	previousFoods: ReadonlyMap<number, WireFood> = new Map(),
+	previousFoods: ReadonlyMap<string, WireFood> = new Map(),
+	lidl?: LidlExtract,
 ): ReconcileResult {
-	const edition = nevoEdition(extract.version);
-	const acceptChange = new Set(resolutions.acceptChange ?? []);
-	const remint = new Set(resolutions.remint ?? []);
+	const acceptChange = new Set(
+		[...(resolutions.acceptChange ?? [])].map(normaliseCodeRef),
+	);
+	const remint = new Set([...(resolutions.remint ?? [])].map(normaliseCodeRef));
 
 	const entries: LockEntry[] = lock.entries.map((entry) => ({ ...entry }));
 	const usedIds = new Set(entries.map((entry) => entry.id));
 	const problems: ReconcileProblem[] = [];
-	const minted: number[] = [];
-	const retired: number[] = [];
+	const minted: string[] = [];
+	const retired: string[] = [];
 
-	const activeByCode = new Map<number, LockEntry>();
-	const retiredByCode = new Map<number, LockEntry>();
+	const activeByKey = new Map<string, LockEntry>();
+	const retiredByKey = new Map<string, LockEntry>();
 	for (const entry of entries) {
-		if (entry.status === "active") activeByCode.set(entry.code, entry);
-		else retiredByCode.set(entry.code, entry);
+		if (entry.status === "active") activeByKey.set(foodKey(entry), entry);
+		else retiredByKey.set(foodKey(entry), entry);
 	}
 
-	const mint = (row: NevoRow, fingerprint: string) => {
-		const id = mintId(row.nameEn, row.code, usedIds);
+	const rows = [
+		...nevoSourceRows(extract),
+		...(lidl ? lidlSourceRows(lidl) : []),
+	];
+	const editionOf = new Map<ShippedSource, string>();
+	for (const row of rows) editionOf.set(row.src, row.edition);
+
+	const mint = (row: SourceRow) => {
+		const id = mintId(row, usedIds);
 		usedIds.add(id);
 		const entry: LockEntry = {
+			...(row.src === "nevo" ? {} : { src: row.src }),
 			code: row.code,
 			id,
 			status: "active",
-			identity: fingerprint,
-			mintedIn: edition,
+			identity: row.fingerprint,
+			mintedIn: row.edition,
 		};
 		entries.push(entry);
-		activeByCode.set(row.code, entry);
-		minted.push(row.code);
+		activeByKey.set(foodKey(entry), entry);
+		minted.push(foodKey(entry));
 	};
 
 	const retire = (entry: LockEntry) => {
+		const key = foodKey(entry);
 		entry.status = "retired";
-		entry.retiredIn = edition;
-		const previous = previousFoods.get(entry.code);
+		entry.retiredIn = editionOf.get(entry.src ?? "nevo") ?? entry.mintedIn;
+		const previous = previousFoods.get(key);
 		// Freeze the last generated record so a retired food stays readable:
 		// Combos read a food's current figures, and a Combo that referenced this
 		// id must not start showing nothing.
@@ -197,93 +291,102 @@ export function reconcileLock(
 				retired: true,
 			} as LockEntry["lastKnown"];
 		}
-		activeByCode.delete(entry.code);
-		retiredByCode.set(entry.code, entry);
-		retired.push(entry.code);
+		activeByKey.delete(key);
+		retiredByKey.set(key, entry);
+		retired.push(key);
 	};
 
-	for (const row of extract.rows) {
-		const fingerprint = identityFingerprint(row);
-		const active = activeByCode.get(row.code);
+	for (const row of rows) {
+		const key = foodKey(row);
+		const label = `${SOURCE_LABEL[row.src]} code ${row.code}`;
+		const ref = flagRef(row);
+		const active = activeByKey.get(key);
 
 		if (active) {
-			if (active.identity === fingerprint) continue;
-			if (remint.has(row.code)) {
+			if (active.identity === row.fingerprint) continue;
+			if (remint.has(key)) {
 				retire(active);
-				mint(row, fingerprint);
+				mint(row);
 				continue;
 			}
-			if (acceptChange.has(row.code)) {
-				active.identity = fingerprint;
+			if (acceptChange.has(key)) {
+				active.identity = row.fingerprint;
 				continue;
 			}
 			problems.push({
 				kind: "changed",
+				src: row.src,
 				code: row.code,
 				id: active.id,
-				detail: `NEVO code ${row.code} no longer matches the food ${active.id} was minted for. The extract now says "${row.nameEn}" / "${row.nameNl}" (${row.groupEn}, per 100 ${row.baseUnit}); identity ${active.identity} became ${fingerprint}.`,
-				remedy: `If that is the same food renamed or regrouped, rerun with --accept-change=${row.code}. If NEVO now uses this code for a different food, rerun with --remint=${row.code} — ${active.id} is retired and a new id is minted.`,
+				detail: `${label} no longer matches the food ${active.id} was minted for. The extract now says "${row.nameEn}" / "${row.nameNl}" (${row.context}); identity ${active.identity} became ${row.fingerprint}.`,
+				remedy: `If that is the same food renamed or regrouped, rerun with --accept-change=${ref}. If ${SOURCE_LABEL[row.src]} now uses this code for a different food, rerun with --remint=${ref} — ${active.id} is retired and a new id is minted.`,
 			});
 			continue;
 		}
 
-		const previouslyRetired = retiredByCode.get(row.code);
+		const previouslyRetired = retiredByKey.get(key);
 		if (previouslyRetired) {
-			if (acceptChange.has(row.code)) {
+			if (acceptChange.has(key)) {
 				previouslyRetired.status = "active";
-				previouslyRetired.identity = fingerprint;
+				previouslyRetired.identity = row.fingerprint;
 				previouslyRetired.retiredIn = undefined;
 				previouslyRetired.lastKnown = undefined;
-				retiredByCode.delete(row.code);
-				activeByCode.set(row.code, previouslyRetired);
+				retiredByKey.delete(key);
+				activeByKey.set(key, previouslyRetired);
 				continue;
 			}
-			if (remint.has(row.code)) {
-				mint(row, fingerprint);
+			if (remint.has(key)) {
+				mint(row);
 				continue;
 			}
 			problems.push({
 				kind: "returning",
+				src: row.src,
 				code: row.code,
 				id: previouslyRetired.id,
-				detail: `NEVO code ${row.code} is back in the extract as "${row.nameEn}", but it was retired here as ${previouslyRetired.id} in ${previouslyRetired.retiredIn}.`,
-				remedy: `If it is the same food returning, rerun with --accept-change=${row.code} to reactivate ${previouslyRetired.id}. If NEVO has reused the code for something else, rerun with --remint=${row.code} — ${previouslyRetired.id} stays retired forever and a new id is minted.`,
+				detail: `${label} is back in the extract as "${row.nameEn}", but it was retired here as ${previouslyRetired.id} in ${previouslyRetired.retiredIn}.`,
+				remedy: `If it is the same food returning, rerun with --accept-change=${ref} to reactivate ${previouslyRetired.id}. If ${SOURCE_LABEL[row.src]} has reused the code for something else, rerun with --remint=${ref} — ${previouslyRetired.id} stays retired forever and a new id is minted.`,
 			});
 			continue;
 		}
 
 		if (resolutions.mintNew) {
-			mint(row, fingerprint);
+			mint(row);
 			continue;
 		}
 		problems.push({
 			kind: "new",
+			src: row.src,
 			code: row.code,
-			detail: `NEVO code ${row.code} ("${row.nameEn}") has no shipped id yet.`,
+			detail: `${label} ("${row.nameEn}") has no shipped id yet.`,
 			remedy: "Rerun with --mint-new to bind ids to every unseen code.",
 		});
 	}
 
-	const extractCodes = new Set(extract.rows.map((row) => row.code));
+	const presentKeys = new Set(rows.map(foodKey));
+	// A source that was not supplied at all is left alone rather than retired
+	// wholesale: the generator always passes every source it knows about.
+	const suppliedSources = new Set(rows.map((row) => row.src));
 	for (const entry of entries) {
-		if (entry.status !== "active" || extractCodes.has(entry.code)) continue;
+		const src = entry.src ?? "nevo";
+		if (entry.status !== "active" || presentKeys.has(foodKey(entry))) continue;
+		if (!suppliedSources.has(src)) continue;
 		if (resolutions.retireMissing) {
 			retire(entry);
 			continue;
 		}
 		problems.push({
 			kind: "missing",
+			src,
 			code: entry.code,
 			id: entry.id,
-			detail: `${entry.id} (NEVO code ${entry.code}) is no longer in the extract.`,
+			detail: `${entry.id} (${SOURCE_LABEL[src]} code ${entry.code}) is no longer in the extract.`,
 			remedy:
 				"Rerun with --retire-missing. The id is kept forever and never reused; its last generated record is frozen into the lockfile so Combos that reference it keep resolving.",
 		});
 	}
 
-	entries.sort((a, b) =>
-		a.code === b.code ? a.id.localeCompare(b.id) : a.code - b.code,
-	);
+	entries.sort(compareBySourceThenCode);
 
 	return {
 		lock: {
@@ -295,6 +398,18 @@ export function reconcileLock(
 		minted,
 		retired,
 	};
+}
+
+function compareBySourceThenCode(
+	a: { src?: string; code: number; id: string },
+	b: { src?: string; code: number; id: string },
+): number {
+	const rank =
+		sourceRank((a.src ?? "nevo") as ShippedSource) -
+		sourceRank((b.src ?? "nevo") as ShippedSource);
+	if (rank !== 0) return rank;
+	if (a.code !== b.code) return a.code - b.code;
+	return a.id.localeCompare(b.id);
 }
 
 // ---------------------------------------------------------------- artifact --
@@ -408,12 +523,70 @@ export function validateOverlay(
 
 export type BuildInput = {
 	readonly extract: NevoExtract;
+	readonly lidl?: LidlExtract;
 	readonly lock: ShippedLock;
 	readonly overlay?: readonly OverlayEntry[];
 };
 
+/** The one group every Lidl bake-off product is filed under. */
+export const LIDL_GROUP = {
+	key: "lidl-bake-off",
+	en: "Lidl bake-off",
+	nl: "Lidl afbakproducten",
+	category: "snacks" as FoodCategory,
+};
+
+/** Above this a "piece" is a whole loaf or pie, not a single portion. */
+const LIDL_WHOLE_ITEM_GRAMS = 250;
+
+function lidlServing(grammage: number): WireServing {
+	const whole = grammage >= LIDL_WHOLE_ITEM_GRAMS;
+	return {
+		en: `${whole ? "Whole" : "1 piece"} (${grammage} g)`,
+		nl: `${whole ? "Heel" : "1 stuk"} (${grammage} g)`,
+		amount: grammage,
+	};
+}
+
+/** Lidl publishes the eight nutrients as-is and no sodium; nothing is derived. */
+function lidlFood(product: LidlProduct, id: string): WireFood {
+	const cells: Record<string, NutrientCell> = {
+		...product.nutrients,
+		sodium: null,
+	};
+	return {
+		id,
+		src: "lidl",
+		code: product.code,
+		en: product.nameEn,
+		nl: product.nameNl,
+		cat: product.category,
+		grp: LIDL_GROUP.key,
+		n: SHIPPED_NUTRIENT_KEYS.map((nutrient) => cells[nutrient] ?? null),
+		p: {
+			en: product.nameEn,
+			nl: product.nameNl,
+			emoji: product.emoji,
+			servings: [lidlServing(product.grammage)],
+		},
+	};
+}
+
+function lidlSourceMeta(extract: LidlExtract): ShippedSourceMeta {
+	return {
+		name: "Lidl bake-off ingredient sheets",
+		edition: lidlEdition(extract),
+		version: extract.sheets
+			.map((sheet) => `${sheet.title} (${sheet.version})`)
+			.join("; "),
+		publisher: "Lidl Nederland",
+		saltDerived: false,
+	};
+}
+
 export function buildArtifact({
 	extract,
+	lidl,
 	lock,
 	overlay = PROMOTION_OVERLAY,
 }: BuildInput): ShippedArtifact {
@@ -428,9 +601,9 @@ export function buildArtifact({
 	}
 
 	const overlayByCode = new Map(overlay.map((entry) => [entry.code, entry]));
-	const idByCode = new Map<number, string>();
+	const idByKey = new Map<string, string>();
 	for (const entry of lock.entries) {
-		if (entry.status === "active") idByCode.set(entry.code, entry.id);
+		if (entry.status === "active") idByKey.set(foodKey(entry), entry.id);
 	}
 
 	const groups: Record<
@@ -452,7 +625,7 @@ export function buildArtifact({
 	const foods: WireFood[] = [];
 
 	for (const row of extract.rows) {
-		const id = idByCode.get(row.code);
+		const id = idByKey.get(`nevo:${row.code}`);
 		if (!id)
 			throw new Error(
 				`NEVO code ${row.code} has no active lock entry; reconcile the lockfile first`,
@@ -505,33 +678,61 @@ export function buildArtifact({
 		});
 	}
 
+	if (lidl) {
+		groups[LIDL_GROUP.key] = {
+			en: LIDL_GROUP.en,
+			nl: LIDL_GROUP.nl,
+			category: LIDL_GROUP.category,
+		};
+		for (const product of lidl.products) {
+			const id = idByKey.get(`lidl:${product.code}`);
+			if (!id)
+				throw new Error(
+					`Lidl code ${product.code} has no active lock entry; reconcile the lockfile first`,
+				);
+			foods.push(lidlFood(product, id));
+		}
+	}
+
 	// Retired foods stay in the artifact forever, carrying the figures they had
-	// when they left NEVO, so a Combo or diary reference to them still resolves.
+	// when they left their source, so a Combo or diary reference still resolves.
 	for (const entry of lock.entries) {
 		if (entry.status === "retired" && entry.lastKnown) {
 			foods.push({ ...(entry.lastKnown as WireFood), retired: true });
 		}
 	}
 
-	foods.sort((a, b) =>
-		a.code === b.code ? a.id.localeCompare(b.id) : a.code - b.code,
-	);
+	foods.sort(compareBySourceThenCode);
 
 	const orderedGroups = Object.fromEntries(
 		Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)),
 	);
 	const edition = nevoEdition(extract.version);
+	const nevoSource: ShippedSourceMeta = {
+		name: "NEVO-online",
+		edition,
+		version: extract.version,
+		publisher: "RIVM, Bilthoven",
+		saltDerived: true,
+	};
 
 	return {
 		schemaVersion: ARTIFACT_SCHEMA_VERSION,
 		dataset: {
-			name: "NEVO-online",
-			edition,
-			version: extract.version,
-			publisher: "RIVM, Bilthoven",
+			name: nevoSource.name,
+			edition: nevoSource.edition,
+			version: nevoSource.version,
+			publisher: nevoSource.publisher,
 		},
-		generatedFrom:
-			"data/nevo/NEVO2025_v9.0.csv + packages/core/src/nutrition/overlay.ts",
+		generatedFrom: [
+			"data/nevo/NEVO2025_v9.0.csv",
+			...(lidl ? ["data/lidl/lidl-bakeoff.json"] : []),
+			"packages/core/src/nutrition/overlay.ts",
+		].join(" + "),
+		sources: {
+			nevo: nevoSource,
+			...(lidl ? { lidl: lidlSourceMeta(lidl) } : {}),
+		},
 		licence: {
 			attribution: NEVO_ATTRIBUTION,
 			attributionMixed: NEVO_ATTRIBUTION_MIXED,

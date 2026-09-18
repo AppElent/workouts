@@ -17,7 +17,7 @@ export type NutritionProvenance =
 	| {
 			readonly source: "personal" | "import";
 			readonly sourceId: string;
-			readonly nutritionSource: "manual" | "nevo" | "openfoodfacts";
+			readonly nutritionSource: "manual" | "nevo" | "lidl" | "openfoodfacts";
 			readonly locallyEdited: boolean;
 			readonly forkedFrom?: string;
 			readonly provider?: string;
@@ -98,6 +98,16 @@ export type NutritionDiaryOperation =
 	| {
 			readonly kind: "remove";
 			readonly target: NutritionOperationTarget;
+	  }
+	| {
+			readonly kind: "removeBatch";
+			readonly targets: readonly NutritionOperationTarget[];
+	  }
+	| {
+			readonly kind: "moveBatch";
+			readonly targets: readonly NutritionOperationTarget[];
+			readonly date: string;
+			readonly meal: NutritionMealSlot;
 	  };
 
 export type NutritionOperationEnvelope = {

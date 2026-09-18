@@ -71,7 +71,6 @@ export function NativeSwipeableRow({
 	return (
 		<Link href={href} asChild>
 			<Link.Trigger>{row}</Link.Trigger>
-			<Link.Preview />
 			<Link.Menu title={menuTitle}>
 				{actions.map((action) => (
 					<Link.MenuAction

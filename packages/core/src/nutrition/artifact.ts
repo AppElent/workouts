@@ -13,6 +13,8 @@ import type {
 	ShippedFoodId,
 	ShippedLibraryMeta,
 	ShippedServing,
+	ShippedSource,
+	ShippedSources,
 } from "./types";
 
 /**
@@ -52,10 +54,13 @@ export type WirePromotion = {
 
 export type WireFood = {
 	readonly id: string;
+	/** Omitted for NEVO, which is every row the artifact started with. */
+	readonly src?: Exclude<ShippedSource, "nevo">;
+	/** Source-local code: NEVO code, or a Lidl EAN/article code. */
 	readonly code: number;
-	/** NEVO English name, verbatim. */
+	/** Source English name, verbatim. */
 	readonly en: string;
-	/** NEVO Dutch name, verbatim. */
+	/** Source Dutch name, verbatim. */
 	readonly nl: string;
 	readonly cat: FoodCategory;
 	readonly grp: string;
@@ -77,6 +82,7 @@ export type ShippedArtifact = {
 		readonly publisher: string;
 	};
 	readonly generatedFrom: string;
+	readonly sources: ShippedSources;
 	readonly licence: {
 		readonly attribution: string;
 		readonly attributionMixed: string;
@@ -143,6 +149,7 @@ export function decodeFood(
 	const sourceName = { en: wire.en, nl: wire.nl };
 	return {
 		id: wire.id as ShippedFoodId,
+		source: wire.src ?? "nevo",
 		code: wire.code,
 		name: wire.p ? { en: wire.p.en, nl: wire.p.nl } : sourceName,
 		sourceName,
@@ -185,6 +192,7 @@ export function artifactMeta(artifact: ShippedArtifact): ShippedLibraryMeta {
 		schemaVersion: artifact.schemaVersion,
 		dataset: artifact.dataset,
 		generatedFrom: artifact.generatedFrom,
+		sources: artifact.sources,
 		counts: { foods: artifact.foods.length, promoted, retired },
 	};
 }

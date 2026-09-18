@@ -10,6 +10,7 @@ import type {
 	ShippedFoodGroup,
 	ShippedFoodId,
 	ShippedLibraryMeta,
+	ShippedSourceMeta,
 } from "./types";
 
 export type ShippedLibrary = {
@@ -44,7 +45,7 @@ export function loadShippedLibrary(
 
 	for (const food of foods) {
 		byId.set(food.id, food);
-		byNevoCode.set(food.code, food);
+		if (food.source === "nevo") byNevoCode.set(food.code, food);
 		if (!food.retired) {
 			active.push(food);
 			if (food.promoted) promoted.push(food);
@@ -97,6 +98,17 @@ export function getShippedFoodByNevoCode(
 
 export function shippedLibraryMeta(): ShippedLibraryMeta {
 	return shippedLibrary().meta;
+}
+
+/** Dataset name, edition and salt provenance for the source a food came from. */
+export function shippedSourceMeta(
+	food: Pick<ShippedFood, "source">,
+): ShippedSourceMeta {
+	const meta = shippedLibrary().meta.sources[food.source];
+	// The schema guarantees this at generation time; a miss means a hand-edited artifact.
+	if (!meta)
+		throw new Error(`Shipped artifact has no source table for ${food.source}`);
+	return meta;
 }
 
 export function shippedFoodGroups(): readonly ShippedFoodGroup[] {

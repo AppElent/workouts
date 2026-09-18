@@ -67,6 +67,16 @@ export const operationArgs = {
 			}),
 		}),
 		v.object({ kind: v.literal("remove"), target: operationTarget }),
+		v.object({
+			kind: v.literal("removeBatch"),
+			targets: v.array(groupOperationTarget),
+		}),
+		v.object({
+			kind: v.literal("moveBatch"),
+			targets: v.array(groupOperationTarget),
+			date: v.string(),
+			meal: mealSlot,
+		}),
 	),
 } satisfies Record<keyof NutritionOperationEnvelope, unknown>;
 

@@ -5,10 +5,10 @@ import {
 	NEVO_ATTRIBUTION_MIXED,
 	nevoAttribution,
 } from "./attribution";
-import { SHIPPED_ARTIFACT, shippedLibrary } from "./library";
+import { SHIPPED_ARTIFACT, shippedLibrary, shippedSourceMeta } from "./library";
 import { SHIPPED_NUTRIENT_KEYS } from "./nutrients";
 import { shippedArtifactSchema } from "./schema";
-import { FOOD_CATEGORIES } from "./types";
+import { FOOD_CATEGORIES, type ShippedFood } from "./types";
 
 /**
  * The committed artifact is a build output, so these are contract tests on it:
@@ -19,8 +19,37 @@ describe("the committed shipped artifact", () => {
 		expect(() => shippedArtifactSchema.parse(SHIPPED_ARTIFACT)).not.toThrow();
 	});
 
-	test("carries all 2,328 NEVO rows", () => {
-		expect(shippedLibrary().foods).toHaveLength(2328);
+	test("carries all 2,328 NEVO rows plus the 65 Lidl products", () => {
+		const foods = shippedLibrary().foods;
+		expect(foods.filter((food) => food.source === "nevo")).toHaveLength(2328);
+		expect(foods.filter((food) => food.source === "lidl")).toHaveLength(65);
+	});
+
+	test("ships Lidl products as promoted, salt-as-published foods", () => {
+		const library = shippedLibrary();
+		const lidl = library.foods.filter((food) => food.source === "lidl");
+		expect(lidl.every((food) => food.id.startsWith("shipped:lidl-"))).toBe(
+			true,
+		);
+		expect(lidl.every((food) => food.promoted)).toBe(true);
+		expect(lidl.every((food) => food.servings.length === 1)).toBe(true);
+		expect(lidl.every((food) => food.group === "lidl-bake-off")).toBe(true);
+		expect(lidl.every((food) => food.nutrients.sodium.kind === "absent")).toBe(
+			true,
+		);
+		expect(lidl.every((food) => food.nutrients.salt.kind === "value")).toBe(
+			true,
+		);
+		expect(library.meta.sources.lidl?.saltDerived).toBe(false);
+		expect(library.meta.sources.nevo.saltDerived).toBe(true);
+		expect(shippedSourceMeta(lidl[0] as ShippedFood).name).toContain("Lidl");
+		// Lidl codes never leak into the NEVO code index.
+		for (const food of lidl)
+			expect(library.byNevoCode.get(food.code)?.source ?? "nevo").toBe("nevo");
+		const appelflap = library.byId.get("shipped:lidl-apple-turnover");
+		expect(appelflap?.code).toBe(4056489847502);
+		expect(appelflap?.servings[0]?.amount).toBe(105);
+		expect(appelflap?.nutrients.energy).toEqual({ kind: "value", amount: 294 });
 	});
 
 	test("gives every food a permanent shipped: id, used once", () => {
@@ -87,9 +116,10 @@ describe("the committed shipped artifact", () => {
 		}
 	});
 
-	test("maps all 27 NEVO food groups", () => {
+	test("maps all 27 NEVO food groups, plus the one Lidl group", () => {
 		const groups = shippedLibrary().groups;
-		expect(groups).toHaveLength(27);
+		expect(groups).toHaveLength(28);
+		expect(groups.some((group) => group.key === "lidl-bake-off")).toBe(true);
 		expect(Object.keys(GROUP_CATEGORIES)).toHaveLength(27);
 		for (const group of groups) {
 			expect(FOOD_CATEGORIES).toContain(group.category);

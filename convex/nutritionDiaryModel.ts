@@ -23,6 +23,7 @@ const personalProvenance = v.object({
 	nutritionSource: v.union(
 		v.literal("manual"),
 		v.literal("nevo"),
+		v.literal("lidl"),
 		v.literal("openfoodfacts"),
 	),
 	locallyEdited: v.boolean(),

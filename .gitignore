@@ -37,3 +37,5 @@ docs/.generated
 
 # NEVO source archive — the unpacked extract under data/nevo/ is committed instead (27 MB zip)
 data/*.zip
+# Lidl bake-off sheets — the hand-reviewed data/lidl/lidl-bakeoff.json is committed instead (14 MB PDF)
+data/lidl/*.pdf

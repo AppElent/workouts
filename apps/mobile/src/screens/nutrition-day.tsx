@@ -31,6 +31,7 @@ import {
 } from "../data/nutrition-day";
 import type { CaptureDraft } from "../data/nutrition-draft-repository";
 import { useNutritionDrafts } from "../data/nutrition-drafts";
+import { useNutritionOperations } from "../data/nutrition-operation-service";
 import { isRealIsoDate } from "../data/nutrition-weekly-review";
 import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
@@ -76,18 +77,19 @@ export function NutritionDayScreen({
 		meal: MealSlot;
 		mode: "copy" | "move";
 	} | null>(null);
+	const [batchTransfer, setBatchTransfer] = useState<"copy" | "move" | null>(
+		null,
+	);
 	const [selecting, setSelecting] = useState(false);
 	const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
 		() => new Set(),
 	);
-	const [selectedMeal, setSelectedMeal] = useState<MealSlot | null>(null);
 	useEffect(() => {
 		if (!isRealDate(initialDate)) return;
 		setDate(initialDate);
 		setShowCalendar(false);
 		setSelecting(false);
 		setSelectedEntryIds(new Set());
-		setSelectedMeal(null);
 	}, [initialDate]);
 
 	const { deleteEntry } = useDeleteDiaryEntry();
@@ -96,6 +98,13 @@ export function NutritionDayScreen({
 	const toast = useToast();
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const state = useNutritionDay(date);
+	const operations = useNutritionOperations();
+	const selectedEntries =
+		state.status === "ready"
+			? MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]).filter((entry) =>
+					selectedEntryIds.has(entry.id),
+				)
+			: [];
 	// A day that has never been downloaded cannot arrive while the socket is
 	// down, so a skeleton there is a promise the app cannot keep — but only
 	// after a grace period, because the socket is briefly down on every cold
@@ -139,7 +148,6 @@ export function NutritionDayScreen({
 		setShowCalendar(false);
 		setSelecting(false);
 		setSelectedEntryIds(new Set());
-		setSelectedMeal(null);
 	}
 
 	function openFoodBrowser(slot: MealSlot) {
@@ -288,13 +296,6 @@ export function NutritionDayScreen({
 							t={t}
 							selecting={selecting}
 							selectedCount={selectedEntryIds.size}
-							selectionConstraint={
-								selectedMeal
-									? locale === "nl"
-										? `Alleen invoer uit ${t.nutrition.meals[selectedMeal]} kan worden geselecteerd.`
-										: `Only entries from ${t.nutrition.meals[selectedMeal]} can be selected.`
-									: undefined
-							}
 							onCreate={() => setSelecting(true)}
 							onLog={() =>
 								router.push({
@@ -305,7 +306,6 @@ export function NutritionDayScreen({
 							onCancel={() => {
 								setSelecting(false);
 								setSelectedEntryIds(new Set());
-								setSelectedMeal(null);
 							}}
 							onContinue={() => {
 								if (selectedEntryIds.size === 0) return;
@@ -318,7 +318,6 @@ export function NutritionDayScreen({
 									},
 								});
 								setSelectedEntryIds(new Set());
-								setSelectedMeal(null);
 							}}
 						/>
 
@@ -360,22 +359,24 @@ export function NutritionDayScreen({
 									setSelectedEntryIds(
 										new Set(state.day.entries[slot].map((entry) => entry.id)),
 									);
-									setSelectedMeal(slot);
+									setSelecting(true);
+								}}
+								onBeginSelection={(entries) => {
+									setSelectedEntryIds(
+										new Set(entries.map((entry) => entry.id)),
+									);
 									setSelecting(true);
 								}}
 								selecting={selecting}
-								selectionLocked={selectedMeal !== null && selectedMeal !== slot}
+								selectionLocked={false}
 								selectedEntryIds={selectedEntryIds}
 								onToggleEntry={(entry) => {
-									if (selectedMeal !== null && selectedMeal !== slot) return;
 									const next = new Set(selectedEntryIds);
 									if (next.has(entry.id)) next.delete(entry.id);
 									else next.add(entry.id);
 									setSelectedEntryIds(next);
-									setSelectedMeal(next.size === 0 ? null : slot);
 								}}
 								onToggleGroup={(parts) => {
-									if (selectedMeal !== null && selectedMeal !== slot) return;
 									const next = new Set(selectedEntryIds);
 									const allSelected = parts.every((part) => next.has(part.id));
 									for (const part of parts) {
@@ -383,7 +384,6 @@ export function NutritionDayScreen({
 										else next.add(part.id);
 									}
 									setSelectedEntryIds(next);
-									setSelectedMeal(next.size === 0 ? null : slot);
 								}}
 							/>
 						))}
@@ -398,60 +398,137 @@ export function NutritionDayScreen({
 					</>
 				)}
 			</ScrollView>
+			{selecting ? (
+				<View style={styles.selectionBar}>
+					<GhostButton
+						label={locale === "nl" ? "Verwijderen" : "Delete"}
+						disabled={selectedEntryIds.size === 0}
+						onPress={() =>
+							void (async () => {
+								if (
+									!(await confirm({
+										title:
+											locale === "nl"
+												? "Selectie verwijderen?"
+												: "Delete selection?",
+										message:
+											locale === "nl"
+												? `Verwijder ${selectedEntryIds.size} items.`
+												: `Delete ${selectedEntryIds.size} items.`,
+										confirmLabel: locale === "nl" ? "Verwijderen" : "Delete",
+										destructive: true,
+									}))
+								)
+									return;
+								const subject = operations.getSubject();
+								if (!subject) return;
+								operations.removeBatch(
+									subject,
+									selectedEntries.map((entry) => ({
+										kind: "serverId",
+										id: entry.id,
+									})),
+									() => toast.error(t.nutrition.error.body),
+								);
+								setSelecting(false);
+								setSelectedEntryIds(new Set());
+							})()
+						}
+					/>
+					<GhostButton
+						label={locale === "nl" ? "Kopiëren" : "Copy"}
+						disabled={selectedEntryIds.size === 0}
+						onPress={() => setBatchTransfer("copy")}
+					/>
+					<GhostButton
+						label={locale === "nl" ? "Verplaatsen" : "Move"}
+						disabled={selectedEntryIds.size === 0}
+						onPress={() => setBatchTransfer("move")}
+					/>
+					<PrimaryButton
+						label={locale === "nl" ? "Combo maken" : "Make combo"}
+						disabled={selectedEntryIds.size === 0}
+						onPress={() => {
+							setSelecting(false);
+							router.push({
+								pathname: "/nutrition-combo-new",
+								params: { date, entryIds: [...selectedEntryIds].join(",") },
+							});
+							setSelectedEntryIds(new Set());
+						}}
+					/>
+				</View>
+			) : null}
 			<Stack.Screen
 				options={{
+					title: selecting
+						? locale === "nl"
+							? `${selectedEntryIds.size} geselecteerd`
+							: `${selectedEntryIds.size} selected`
+						: undefined,
 					headerRight: () => (
-						<NutritionHeaderMenu
-							label={
-								locale === "nl"
-									? "Meer voedingsfuncties"
-									: "More nutrition tools"
-							}
-							closeLabel={t.nutrition.entryActions.close}
-							weekOverviewLabel={
-								locale === "nl" ? "Weekoverzicht" : "Week overview"
-							}
-							createComboLabel={t.nutrition.combos.create}
-							logComboLabel={t.nutrition.combos.log}
-							captureDraftsLabel={locale === "nl" ? "Recepten" : "Recipes"}
-							assistanceLabel={
-								locale === "nl"
-									? "Tekst en voedingsetiket"
-									: "Text and nutrition label"
-							}
-							backupLabel={
-								locale === "nl"
-									? "Back-up van voedingsbibliotheek"
-									: "Food library backup"
-							}
-							goalsLabel={t.nutrition.goals.edit}
-							dataSourcesLabel={
-								locale === "nl" ? "Gegevensbronnen" : "Data sources"
-							}
-							onCreateCombo={() => setSelecting(true)}
-							onOpenWeekOverview={() =>
-								router.push({
-									pathname: "/nutrition-weekly-review",
-									params: { startDate: date },
-								})
-							}
-							onLogCombo={() =>
-								router.push({
-									pathname: "/nutrition-combos",
-									params: { date },
-								})
-							}
-							onOpenCaptureDrafts={() => router.push("/nutrition-library")}
-							onOpenAssistance={() =>
-								router.push({
-									pathname: "/nutrition-assistance",
-									params: { date, meal: "breakfast" },
-								})
-							}
-							onOpenBackup={() => router.push("/nutrition-library")}
-							onOpenGoals={() => router.push("/nutrition-goals")}
-							onToggleDataSources={() => setShowTools((open) => !open)}
-						/>
+						<View style={styles.headerActions}>
+							<Pressable
+								onPress={() => {
+									setSelecting((value) => !value);
+									setSelectedEntryIds(new Set());
+								}}
+								accessibilityRole="button"
+								style={styles.headerButton}
+							>
+								<AppText style={styles.headerButtonText}>
+									{selecting
+										? locale === "nl"
+											? "Annuleren"
+											: "Cancel"
+										: locale === "nl"
+											? "Selecteer"
+											: "Select"}
+								</AppText>
+							</Pressable>
+							{selecting ? null : (
+								<NutritionHeaderMenu
+									label={
+										locale === "nl"
+											? "Meer voedingsfuncties"
+											: "More nutrition tools"
+									}
+									closeLabel={t.nutrition.entryActions.close}
+									weekOverviewLabel={
+										locale === "nl" ? "Weekoverzicht" : "Week overview"
+									}
+									foodLibraryLabel={
+										locale === "nl" ? "Voedingsbibliotheek" : "Food library"
+									}
+									settingsLabel={locale === "nl" ? "Instellingen" : "Settings"}
+									assistanceLabel={
+										locale === "nl"
+											? "Tekst en voedingsetiket"
+											: "Text and nutrition label"
+									}
+									goalsLabel={t.nutrition.goals.edit}
+									dataSourcesLabel={
+										locale === "nl" ? "Gegevensbronnen" : "Data sources"
+									}
+									onOpenWeekOverview={() =>
+										router.push({
+											pathname: "/nutrition-weekly-review",
+											params: { startDate: date },
+										})
+									}
+									onOpenFoodLibrary={() => router.push("/nutrition-library")}
+									onOpenSettings={() => router.push("/nutrition-settings")}
+									onOpenAssistance={() =>
+										router.push({
+											pathname: "/nutrition-assistance",
+											params: { date, meal: "breakfast" },
+										})
+									}
+									onOpenGoals={() => router.push("/nutrition-goals")}
+									onToggleDataSources={() => setShowTools((open) => !open)}
+								/>
+							)}
+						</View>
 					),
 				}}
 			/>
@@ -466,6 +543,18 @@ export function NutritionDayScreen({
 					{...transfer}
 					date={date}
 					onClose={() => setTransfer(null)}
+				/>
+			) : null}
+			{batchTransfer ? (
+				<NutritionEntryTransfer
+					entries={selectedEntries}
+					date={date}
+					mode={batchTransfer}
+					onClose={() => {
+						setBatchTransfer(null);
+						setSelecting(false);
+						setSelectedEntryIds(new Set());
+					}}
 				/>
 			) : null}
 		</>
@@ -658,6 +747,7 @@ function MealSection({
 	onCopy,
 	onTransfer,
 	onCreateCombo,
+	onBeginSelection,
 	onEdit,
 	onDelete,
 	selecting,
@@ -679,6 +769,7 @@ function MealSection({
 	onCopy: () => void;
 	onTransfer: (entry: DiaryEntry, mode: "copy" | "move") => void;
 	onCreateCombo: () => void;
+	onBeginSelection: (entries: readonly DiaryEntry[]) => void;
 	onEdit: (entry: DiaryEntry) => void;
 	onDelete: (entry: DiaryEntry) => void;
 	selecting: boolean;
@@ -759,6 +850,7 @@ function MealSection({
 									}
 									onDelete={() => onDelete(entry)}
 									onTransfer={(mode) => onTransfer(entry, mode)}
+									onSelect={() => onBeginSelection([entry])}
 								/>
 							);
 						}
@@ -784,6 +876,9 @@ function MealSection({
 												else next.add(group.id);
 												return next;
 											});
+									}}
+									onLongPress={() => {
+										if (!selecting) onToggleGroup(parts);
 									}}
 									accessibilityRole={selecting ? "checkbox" : "button"}
 									accessibilityState={
@@ -862,6 +957,7 @@ function MealSection({
 												}
 												onDelete={() => onDelete(part)}
 												onTransfer={(mode) => onTransfer(part, mode)}
+												onSelect={() => onBeginSelection(parts)}
 											/>
 										))
 									: null}
@@ -968,6 +1064,7 @@ function EntryRow({
 	onPress,
 	onDelete,
 	onTransfer,
+	onSelect,
 }: {
 	t: Messages;
 	entry: DiaryEntry;
@@ -982,6 +1079,7 @@ function EntryRow({
 	onPress: () => void;
 	onDelete: () => void;
 	onTransfer: (mode: "copy" | "move") => void;
+	onSelect?: () => void;
 }) {
 	const estimateLabel =
 		locale === "nl" ? "Geschatte voedingswaarden" : "Estimated nutrition";
@@ -1070,6 +1168,16 @@ function EntryRow({
 			menuTitle={`${locale === "nl" ? "Acties voor" : "Actions for"} ${entry.name[locale]}`}
 			closeMenuLabel={t.nutrition.entryActions.close}
 			actions={[
+				...(onSelect
+					? [
+							{
+								key: "select",
+								label: locale === "nl" ? "Selecteer" : "Select",
+								onPress: onSelect,
+								swipe: false,
+							},
+						]
+					: []),
 				{ key: "edit", label: t.nutrition.entryActions.edit, onPress },
 				{
 					key: "copy",
@@ -1260,6 +1368,24 @@ function isRealDate(value: string | undefined): value is string {
 }
 
 const styles = StyleSheet.create({
+	headerActions: { flexDirection: "row", alignItems: "center" },
+	headerButton: {
+		minHeight: 44,
+		minWidth: 44,
+		justifyContent: "center",
+		paddingHorizontal: spacing.xs,
+	},
+	headerButtonText: { color: colors.accent, fontWeight: "700" },
+	selectionBar: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: spacing.xs,
+		padding: spacing.sm,
+		paddingBottom: spacing.md,
+		borderTopWidth: 1,
+		borderTopColor: colors.border,
+		backgroundColor: colors.surface,
+	},
 	draftRow: { borderLeftWidth: 3, borderLeftColor: colors.border },
 	draftBanner: {
 		flexDirection: "row",

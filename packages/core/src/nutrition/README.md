@@ -25,12 +25,26 @@ Full text: `data/nevo/Conditions of use NEVO-online 2025 dataset.pdf`. Rationale
 
 | File | What it is |
 | --- | --- |
-| `shipped-foods.json` | **Generated.** All 2,328 NEVO foods plus the overlay. Committed. Do not edit. |
-| `shipped-foods.lock.json` | **Generated, append-only.** NEVO code → permanent `shipped:` id. Committed. Entries are never deleted and ids are never reused. |
-| `overlay.ts` | **Hand-authored.** The promoted foods: bilingual names, aliases, emoji, category, servings. This is the file to edit. |
+| `shipped-foods.json` | **Generated.** All 2,328 NEVO foods, the 65 Lidl bake-off products, plus the overlay. Committed. Do not edit. |
+| `shipped-foods.lock.json` | **Generated, append-only.** Source code → permanent `shipped:` id. Committed. Entries are never deleted and ids are never reused. |
+| `overlay.ts` | **Hand-authored.** The promoted NEVO foods: bilingual names, aliases, emoji, category, servings. This is the file to edit. |
 | `schema.ts` | Zod schema for both generated files. Generation and tests only — `zod` is a devDependency and must not reach the phone. |
 | `library.ts` `search.ts` `servings.ts` `aggregate.ts` `salt.ts` `nutrients.ts` `attribution.ts` | The public API. |
-| `../../scripts/` | The generator, its NEVO reader, and the benchmark. |
+| `../../scripts/` | The generator, its NEVO and Lidl readers, and the benchmark. |
+
+## Two sources, one artifact
+
+Every food carries a `source` (`"nevo"` or `"lidl"`) and a source-local `code`. Codes are
+unique per source, never across sources: identity is `${source}:${code}`, the lockfile
+namespaces Lidl entries with `src: "lidl"`, and Lidl ids are minted as `shipped:lidl-…`.
+The artifact's `sources` table gives each source its dataset name, edition and whether salt
+is derived — read it through `shippedSourceMeta(food)` when writing provenance, never from
+`meta.dataset` (which is NEVO's).
+
+Lidl products (`data/lidl/lidl-bakeoff.json`, see its README) are promoted automatically
+with one serving — the piece weight from the sheet — and are filed under the single
+`lidl-bake-off` group. They publish salt, not sodium, so their sodium cell is absent and
+`sources.lidl.saltDerived` is `false`.
 
 ## Regenerating
 
@@ -42,11 +56,11 @@ pnpm --filter @workouts/core bench:foods             # timings and memory
 
 Two consecutive runs produce byte-identical files. If they do not, that is a bug.
 
-Generation **stops** rather than guessing whenever a NEVO code is new, has changed identity, has
+Generation **stops** rather than guessing whenever a source code is new, has changed identity, has
 disappeared, or has come back. Each case prints the code, both names, and the exact flag that
-resolves it (`--mint-new`, `--accept-change=N`, `--remint=N`, `--retire-missing`). This is
-deliberate: an id that a diary entry or a Combo already points at must never quietly come to mean a
-different food.
+resolves it (`--mint-new`, `--accept-change=N`, `--remint=N`, `--retire-missing`). A bare `N` is a
+NEVO code; prefix Lidl codes as `lidl:N`. This is deliberate: an id that a diary entry or a Combo
+already points at must never quietly come to mean a different food.
 
 ## Adding a food to the overlay
 
