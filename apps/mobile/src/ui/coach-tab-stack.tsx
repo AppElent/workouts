@@ -24,6 +24,10 @@ export function CoachTabStack({ title }: { title: string }) {
 	return (
 		<Stack
 			screenOptions={{
+				// Also the stack-level default: a screen that sets its own options
+				// (Nutrition adds a headerRight) must not fall back to the route
+				// name "index".
+				title,
 				contentStyle: { backgroundColor: colors.bg },
 				headerBackButtonDisplayMode: "minimal",
 				headerTintColor: colors.accent,
