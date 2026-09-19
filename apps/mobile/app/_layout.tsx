@@ -27,7 +27,7 @@ import { DarkTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { Appearance, Platform, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -37,6 +37,27 @@ import { LocaleProvider } from "../src/i18n";
 import { colors } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * `app.json` pins `userInterfaceStyle: "dark"`, which prebuild bakes into
+ * Info.plist as `UIUserInterfaceStyle = Dark`. A dev client built before that
+ * pin (or without a rebuild since) follows the phone instead, and then every
+ * UIKit-presented surface — tab bar glass, stack header trait, SwiftUI menus
+ * — comes up light over the dark ground. The JS side cannot fix that; only a
+ * rebuild can. Say so once, loudly, rather than let it look like a theming
+ * bug. Reading `Appearance` at module scope is deliberate: that is the
+ * window's trait before any JS override could touch it.
+ */
+if (
+	__DEV__ &&
+	Platform.OS === "ios" &&
+	Appearance.getColorScheme() !== "dark"
+) {
+	console.warn(
+		"[foundry] This dev client is not pinned to dark (Info.plist lacks UIUserInterfaceStyle=Dark). " +
+			"Native chrome will follow the phone's appearance. Rebuild it: pnpm --filter @workouts/mobile devbuild:ios:eas",
+	);
+}
 
 /**
  * react-navigation's dark theme, repainted in the app's own palette. Spread
