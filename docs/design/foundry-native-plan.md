@@ -114,11 +114,12 @@ What step 1 surfaced, and what it changes below:
 Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
 `.tsx` (RN) split, one PR per group, each reading `useTokens()`:
 
-0. Scheme plumbing, no visual change: `AppText` applies the scheme colour
-   from `useTokens()`; `useHostScheme()` replaces the hardcoded
-   `colorScheme="dark"` on the five `Host`s; `sportMeta` gets a
-   `useSportColors()` reader. This is the prerequisite for light mode and
-   costs nothing while dark is pinned.
+0. **Done, `d277c8b5`.** Scheme plumbing, no visual change: `AppText` takes
+   its ink from `useTokens()`; `useHostScheme()` replaces the hardcoded
+   `colorScheme="dark"` on the five `Host`s; `useSportColors()` for the
+   sport hues. `lightModeEnabled` (off) is the deliberate switch —
+   `useScheme()` ignores the OS scheme while it is off (see the iOS 26
+   findings below).
 1. `inset-list` — `List`/`Section`/row with leading media, title, secondary,
    value, chevron; swipe + context-menu built in (folds
    `native-swipeable-row.ios.tsx` in and retires the Exercises-only canary).
@@ -156,6 +157,31 @@ pass before the next starts.
 Out of scope: Android Compose variants, the web app, photography slots
 (fallbacks only), a logo.
 
+## iOS 26 chrome findings (2026-09-18/19, dev build, physical iPhone)
+
+Learned while chasing the "blank band at the top" and the light tab bar.
+They constrain every step below.
+
+- **The header's trait is not the app's.** With `userInterfaceStyle: "dark"`
+  baked into Info.plist, the stack header still resolved `DynamicColorIOS`
+  against the *light* trait while the tab bar resolved dark. Stack headers
+  therefore take static scheme colours (`coach-tab-stack.tsx`); only the tab
+  bar uses the dynamic `chrome` pairs, because Liquid Glass there genuinely
+  flips with the content under it and comes up light for a moment on launch.
+  This is why `useScheme()` must ignore the OS until `lightModeEnabled`.
+- **No `headerBlurEffect` from iOS 26.** An explicit blur is layered above
+  the large title and smears it out; Liquid Glass supplies the material.
+  Gate on `isIOS26OrLater()` (`src/ui/platform.ts`). The
+  `[RNScreens] blurEffect + scrollEdgeEffects` warning is the tell that a
+  bundle still sets one.
+- **`setOptions({ title: undefined })` clears, it does not inherit.** A screen
+  that sets its own `<Stack.Screen options>` must pass the tab title back
+  explicitly (`nutrition-day.tsx`), or the header shows the route name.
+- **Branch drift hits the phone first.** The phone and the web share one
+  dev deployment; a branch behind `main` rejects ops the phone queued under a
+  newer bundle. Merge `main`, `pnpm --filter @workouts/core build`,
+  `npx convex dev --once`.
+
 ## Open questions
 
 - Light mode ship gate: after Profile (step 3.3) or after all six screens?
@@ -165,6 +191,11 @@ Out of scope: Android Compose variants, the web app, photography slots
 - The jest suite takes ~170 s on Windows and flakes on timeouts under load;
   step 3 PRs should run the touched suites in isolation and let CI (Linux)
   run the full set.
+- Pre-existing on `main` after the 2026-09-18 merge, not this branch's to
+  fix here: six `tsc` errors in `apps/mobile` (`nutrition-entry-transfer`,
+  `nutrition-combos`, `food-library`, `swift-ui-surfaces.test`) and the
+  `swift-ui-surfaces` "Create Combo" assertion, all from the batch-selection
+  commit `987a66dc`.
 - `@expo/ui` stability in SDK 57 — the codebase calls the swipe row a
   "canary until device QA". If `RNHostView` sizing misbehaves inside `List`,
   the fallback is `List` for settings-style screens only and RN inset rows
