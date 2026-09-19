@@ -19,6 +19,7 @@ import { useRoutines, useShellData } from "../data/session-data";
 import { colors } from "../theme";
 import { Chip, Eyebrow, SportIcon } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { InsetList, InsetRow } from "../ui/inset-list";
 import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
@@ -223,37 +224,31 @@ export function TrainScreen() {
 				</View>
 			)}
 
-			<Eyebrow>Library</Eyebrow>
-			<Pressable onPress={() => router.push("/exercises")} style={styles.row}>
-				<SportIcon sport="strength" size={40} />
-				<View style={styles.flex}>
-					<AppText style={styles.rowTitle}>Exercises</AppText>
-					<AppText style={styles.rowSub}>
-						{exercises === undefined ? "…" : `${exercises.length} exercises`}
-					</AppText>
-				</View>
-				<AppText style={styles.chevron}>›</AppText>
-			</Pressable>
-
-			<Pressable onPress={() => router.push("/wods")} style={styles.row}>
-				<SportIcon sport="wod" size={40} />
-				<View style={styles.flex}>
-					<AppText style={styles.rowTitle}>WODs</AppText>
-					<AppText style={styles.rowSub}>
-						Benchmarks and your own, with scores
-					</AppText>
-				</View>
-				<AppText style={styles.chevron}>›</AppText>
-			</Pressable>
-
-			<Pressable onPress={() => router.push("/hosted")} style={styles.row}>
-				<SportIcon sport="wod" size={40} />
-				<View style={styles.flex}>
-					<AppText style={styles.rowTitle}>Hosted workouts</AppText>
-					<AppText style={styles.rowSub}>Join with a code, or run one</AppText>
-				</View>
-				<AppText style={styles.chevron}>›</AppText>
-			</Pressable>
+			<InsetList header="Library">
+				<InsetRow
+					leading={{ sport: "strength" }}
+					title="Exercises"
+					secondary={
+						exercises === undefined ? "…" : `${exercises.length} exercises`
+					}
+					chevron
+					onPress={() => router.push("/exercises")}
+				/>
+				<InsetRow
+					leading={{ sport: "wod" }}
+					title="WODs"
+					secondary="Benchmarks and your own, with scores"
+					chevron
+					onPress={() => router.push("/wods")}
+				/>
+				<InsetRow
+					leading={{ sport: "wod" }}
+					title="Hosted workouts"
+					secondary="Join with a code, or run one"
+					chevron
+					onPress={() => router.push("/hosted")}
+				/>
+			</InsetList>
 		</ScrollView>
 	);
 }
@@ -296,7 +291,6 @@ const styles = StyleSheet.create({
 	},
 	rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
 	rowSub: { fontSize: 11, color: colors.textMuted },
-	chevron: { fontSize: 18, color: colors.textFaint },
 	chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
 	actions: { flexDirection: "row", gap: 8 },
 	primaryBtn: {

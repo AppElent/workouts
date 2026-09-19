@@ -31,7 +31,84 @@ jest.mock("@expo/ui/swift-ui", () => {
 			children,
 		);
 	const SwipeActions = Object.assign(Container, { Actions });
+	// (No local type alias here: babel-plugin-jest-hoist rejects it as an
+	// out-of-scope reference.)
+	const modifierArg = (
+		modifiers: { type: string; args: unknown[] }[] | undefined,
+		type: string,
+	) => modifiers?.find((modifier) => modifier.type === type)?.args[0];
+	// A SwiftUI stack whose `onTapGesture` / `accessibilityLabel` modifiers
+	// are honoured, so a row built from stacks is pressable and findable.
+	const Stack = ({
+		children,
+		modifiers,
+		...props
+	}: {
+		children?: React.ReactNode;
+		modifiers?: { type: string; args: unknown[] }[];
+	}) => {
+		const onPress = modifierArg(modifiers, "onTapGesture") as
+			| (() => void)
+			| undefined;
+		const label = modifierArg(modifiers, "accessibilityLabel") as
+			| string
+			| undefined;
+		return React.createElement(
+			onPress ? Pressable : View,
+			{
+				...props,
+				onPress,
+				accessibilityLabel: label,
+				accessibilityRole: onPress ? "button" : undefined,
+			},
+			children,
+		);
+	};
+	const ContextMenu = Object.assign(
+		({ children }: { children?: React.ReactNode }) =>
+			React.createElement(View, { testID: "swiftui-context-menu" }, children),
+		{
+			Items: ({ children }: { children?: React.ReactNode }) =>
+				React.createElement(
+					View,
+					{ testID: "swiftui-context-menu-items" },
+					children,
+				),
+			Trigger: Container,
+			Preview: Container,
+		},
+	);
 	return {
+		ContextMenu,
+		HStack: Stack,
+		List: Stack,
+		RoundedRectangle: Container,
+		Section: ({
+			title,
+			footer,
+			children,
+		}: {
+			title?: string;
+			footer?: React.ReactNode;
+			children?: React.ReactNode;
+		}) =>
+			React.createElement(
+				View,
+				{ testID: "swiftui-section" },
+				title ? React.createElement(Text, null, title) : null,
+				children,
+				footer ?? null,
+			),
+		Spacer: Container,
+		Text: ({
+			children,
+			modifiers,
+		}: {
+			children?: React.ReactNode;
+			modifiers?: { type: string; args: unknown[] }[];
+		}) => React.createElement(Text, { modifiers }, children),
+		VStack: Stack,
+		ZStack: Stack,
 		BottomSheet: ({
 			children,
 			anchor,
@@ -112,18 +189,17 @@ jest.mock("@expo/ui/swift-ui", () => {
 	};
 });
 
-jest.mock(
-	"@expo/ui/swift-ui/modifiers",
-	() =>
-		new Proxy(
-			{},
-			{
-				get:
-					(_target, name) =>
-					(...args: unknown[]) => ({ type: String(name), args }),
-			},
-		),
-);
+// Every modifier becomes `{ type, args }`; nested namespaces (`shapes.rectangle()`)
+// resolve the same way with a dotted type, so a component can assert on them.
+jest.mock("@expo/ui/swift-ui/modifiers", () => {
+	const modifier = (path: string): unknown =>
+		new Proxy(() => undefined, {
+			get: (_target, name) =>
+				modifier(path ? `${path}.${String(name)}` : String(name)),
+			apply: (_target, _thisArg, args: unknown[]) => ({ type: path, args }),
+		});
+	return modifier("");
+});
 
 // UIKit's menu host is absent in Jest. Keep Expo's real Link, routing and menu
 // declarations; drive only the native presentation/selection boundary here.

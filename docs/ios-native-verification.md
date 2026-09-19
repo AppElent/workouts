@@ -10,6 +10,7 @@ iPhone, or use the existing development client. No native dependencies were adde
 | Flow | Verify on the iPhone |
 | --- | --- |
 | All five tabs | Native header and tabs remain visible. Scroll to the last control; it must clear the tab bar and home indicator. Repeat with larger text. |
+| Train → Library group (SwiftUI inset list) | The three rows sit in one system inset-grouped list whose left/right margins match the system's (not the 20pt screen gutter): rounded group, inset separators, S/W tiles, chevrons. The group is exactly as tall as its rows — no clipped last row, no empty band under it — including after a font-size change and after rotating. Tapping a row pushes; a vertical drag that starts on a row scrolls the screen. Long press does nothing (no actions). |
 | Train → Exercises → exercise | Native Back and edge-swipe each return one level. Cancel an edge-swipe halfway; the screen stays usable. Long-press Back to inspect the system navigation history. |
 | Exercise library | Long press shows an anchored system menu. Swipe exposes actions; Delete still asks. A visible Delete tap must not also open the exercise. |
 | Routine cards and logged sets | Horizontal swipe reveals actions, vertical drag scrolls. Long press opens system options. Tapping a set still opens its editor. |
