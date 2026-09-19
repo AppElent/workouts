@@ -184,6 +184,16 @@ They constrain every step below.
 
 ## Open questions
 
+- **`expo` is behind `@expo/ui`.** `@expo/ui` ~57.0.18 was built against
+  `expo` 57.0.22 / `expo-modules-core` 57.0.18 and calls
+  `useReleasingSharedObjectWithLifecycle`, absent from the installed
+  `expo-modules-core` 57.0.10 (`expo` 57.0.12). `useScrollGeometryChange`
+  crashes as a result; `inset-list.ios.tsx` gates on expo's version and falls
+  back to a row-count estimate until then. Aligning `expo` to ~57.0.22 (8 days
+  old, past the 3-day `minimumReleaseAge`) is a native change — a dev-client
+  rebuild, which is already owed for the dark pin. Every `@expo/ui` component
+  that uses worklet-capable callbacks is exposed to this, not just the list.
+
 - Light mode ship gate: after Profile (step 3.3) or after all six screens?
   Unpinning `userInterfaceStyle` before every screen reads `useTokens()`
   would show dark cards on a light ground — so the gate is "all screens

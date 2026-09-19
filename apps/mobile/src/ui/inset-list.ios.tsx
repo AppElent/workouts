@@ -53,6 +53,7 @@ import {
 	tint,
 	useScrollGeometryChange,
 } from "@expo/ui/swift-ui/modifiers";
+import { version as expoVersion } from "expo/package.json";
 import { Children, isValidElement, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
@@ -75,11 +76,27 @@ function estimateHeight(rows: number, header?: string, footer?: string) {
 	return rows * 52 + (header ? 44 : 20) + (footer ? 36 : 20);
 }
 
+/**
+ * `@expo/ui` 57.0.18 was built against expo 57.0.22, and its
+ * `useScrollGeometryChange` reaches for `useReleasingSharedObjectWithLifecycle`,
+ * which the `expo-modules-core` that ships with expo < 57.0.22 does not export
+ * — the call throws "undefined is not a function" from inside the hook.
+ * `expo-modules-core` is not resolvable from here under pnpm, so the check is
+ * on expo's own version. Until `expo` is aligned (plan doc, open questions)
+ * the list falls back to the estimate. Decided once at module load, so the
+ * hook order is constant.
+ */
+const [major, , patch] = expoVersion.split(".").map(Number);
+const canMeasure = major > 57 || (major === 57 && patch >= 22);
+const useContentHeight: typeof useScrollGeometryChange = canMeasure
+	? useScrollGeometryChange
+	: () => null;
+
 export function InsetList({ header, footer, children }: InsetListProps) {
 	const tokens = useTokens();
 	const rows = Children.count(children);
 	const [measured, setMeasured] = useState<number | null>(null);
-	const geometry = useScrollGeometryChange((g) => {
+	const geometry = useContentHeight((g) => {
 		if (g.contentHeight > 0) setMeasured(Math.ceil(g.contentHeight));
 	});
 	const height = measured ?? estimateHeight(rows, header, footer);
