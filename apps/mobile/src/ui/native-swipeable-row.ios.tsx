@@ -3,7 +3,7 @@ import { type Href, Link } from "expo-router";
 import { type ReactElement, useMemo } from "react";
 import type { AccessibilityActionEvent } from "react-native";
 import { StyleSheet } from "react-native";
-import { colors } from "../theme";
+import { colors, useHostScheme } from "../theme";
 import type { RowAccessibilityProps, RowAction } from "./swipeable-row";
 
 /**
@@ -44,7 +44,7 @@ export function NativeSwipeableRow({
 
 	const row = (
 		<Host
-			colorScheme="dark"
+			colorScheme={useHostScheme()}
 			seedColor={colors.accent}
 			matchContents={{ vertical: true }}
 			style={styles.host}

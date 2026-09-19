@@ -8,7 +8,7 @@
  */
 import type { ReactNode } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
-import { colors, type SportKey, sportMeta } from "../theme";
+import { colors, type SportKey, sportMeta, useSportColors } from "../theme";
 import { AppText } from "./text";
 
 export function Card({
@@ -60,6 +60,7 @@ export function SportIcon({
 	size?: number;
 }) {
 	const meta = sportMeta[sport];
+	const { color, dim } = useSportColors(sport);
 	return (
 		<View
 			style={[
@@ -68,13 +69,11 @@ export function SportIcon({
 					width: size,
 					height: size,
 					borderRadius: size * 0.32,
-					backgroundColor: meta.dim,
+					backgroundColor: dim,
 				},
 			]}
 		>
-			<AppText
-				style={{ color: meta.color, fontWeight: "800", fontSize: size * 0.4 }}
-			>
+			<AppText style={{ color, fontWeight: "800", fontSize: size * 0.4 }}>
 				{meta.glyph}
 			</AppText>
 		</View>

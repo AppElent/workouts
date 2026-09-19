@@ -15,9 +15,9 @@
  * displace something rather than be appended.
  *
  * Colours are `chrome` (UIKit-resolved dynamic colours), never `colors`: on
- * iOS 26 the glass picks its own trait from the content under it, and in Expo
- * Go the dark pin lands a frame late, so a static lime icon on light glass is
- * what a static colour buys you.
+ * iOS 26 the glass picks its own trait from the content under it and comes up
+ * light for a moment even in a dev build with the dark pin in Info.plist, so
+ * a static lime icon on light glass is what a static colour buys you.
  *
  * Every label comes from the message tree. Converting the four existing ones
  * alongside the new one was deliberate (#69): a tab bar with four English

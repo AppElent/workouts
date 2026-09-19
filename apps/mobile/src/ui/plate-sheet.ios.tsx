@@ -5,7 +5,7 @@ import {
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet, View } from "react-native";
-import { colors } from "../theme";
+import { colors, useHostScheme } from "../theme";
 import { PlateSheetContent } from "./plate-sheet-content";
 
 export function PlateSheet({
@@ -19,7 +19,7 @@ export function PlateSheet({
 }) {
 	return (
 		<Host
-			colorScheme="dark"
+			colorScheme={useHostScheme()}
 			seedColor={colors.accent}
 			pointerEvents="box-none"
 			style={StyleSheet.absoluteFill}

@@ -6,14 +6,14 @@ import {
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet, View } from "react-native";
-import { colors } from "../theme";
+import { colors, useHostScheme } from "../theme";
 import type { SetEditSheetPresentationProps } from "./set-edit-sheet-presentation.types";
 import { SetEditorContent } from "./set-editor-content";
 
 export function SetEditSheetPresentation(props: SetEditSheetPresentationProps) {
 	return (
 		<Host
-			colorScheme="dark"
+			colorScheme={useHostScheme()}
 			seedColor={colors.accent}
 			pointerEvents="box-none"
 			style={StyleSheet.absoluteFill}

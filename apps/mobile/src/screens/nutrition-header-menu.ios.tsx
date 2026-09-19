@@ -1,13 +1,17 @@
 import { Button, Divider, Host, Image, Menu } from "@expo/ui/swift-ui";
 import { accessibilityLabel } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet } from "react-native";
-import { colors } from "../theme";
+import { colors, useHostScheme } from "../theme";
 import type { NutritionHeaderMenuProps } from "./nutrition-header-menu.types";
 
 /** A purpose-built SwiftUI toolbar menu; the feature still owns every handler. */
 export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 	return (
-		<Host colorScheme="dark" seedColor={colors.accent} style={styles.host}>
+		<Host
+			colorScheme={useHostScheme()}
+			seedColor={colors.accent}
+			style={styles.host}
+		>
 			<Menu
 				label={<Image systemName="ellipsis.circle" size={22} />}
 				modifiers={[accessibilityLabel(props.label)]}

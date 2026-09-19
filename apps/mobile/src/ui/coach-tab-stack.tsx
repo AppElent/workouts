@@ -6,13 +6,13 @@ import { isIOS26OrLater } from "./platform";
 /**
  * Native navigation chrome shared by the five independent Coach tab stacks.
  *
- * Header colours are the static dark values on purpose. On this device the
- * stack header resolves its trait as *light* while the tab bar resolves dark
- * (iOS 26 + the late `userInterfaceStyle` pin), so a `DynamicColorIOS` here
+ * Header colours are the static dark values on purpose. On iOS 26 the stack
+ * header resolves its trait as *light* while the tab bar resolves dark — in a
+ * dev build, with the dark pin in Info.plist — so a `DynamicColorIOS` here
  * painted the large title in the light scheme's near-black ink onto the dark
- * ground. Until the app ships a real light mode and unpins, the header is
- * simply told the colours the content is using. The tab bar keeps `chrome`
- * because Liquid Glass there genuinely flips with the content under it.
+ * ground. Until `lightModeEnabled` flips, the header is simply told the
+ * colours the content is using. The tab bar keeps `chrome` because Liquid
+ * Glass there genuinely flips with the content under it.
  *
  * The blur is only asked for below iOS 26. From 26 the header is Liquid Glass
  * on its own, and an explicit `headerBlurEffect` is layered above the large

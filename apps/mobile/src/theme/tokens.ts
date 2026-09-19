@@ -271,13 +271,15 @@ function dynamic(dark: string, light: string): ColorValue {
 /**
  * Colours for native chrome — the tab bar, stack headers, large titles.
  *
- * On iOS 26 the system decides the chrome's trait on its own: Liquid Glass
- * reads the content under it, and in Expo Go the `userInterfaceStyle` pin
- * only lands after the first frame. A static hex is therefore wrong half the
- * time — a lime icon on light glass, a pale large title that UIKit repaints
- * black. These resolve on the UIKit side, so the chrome is legible whichever
- * way it flips, and they are the reason `accentInk` has a light value at all.
- * Content colours never use these; content reads `useTokens()`.
+ * On iOS 26 Liquid Glass decides the tab bar's trait on its own from the
+ * content under it — even in a dev build with `userInterfaceStyle` baked into
+ * Info.plist the bar comes up light for a moment. A static hex is therefore
+ * wrong half the time (a lime icon on light glass). These resolve on the UIKit
+ * side, so the bar is legible whichever way it flips, and they are the reason
+ * `accentInk` has a light value at all. Stack headers do NOT use these: their
+ * trait resolves light while the ground is dark, so they take the static
+ * scheme colours (see `coach-tab-stack.tsx`). Content never uses these
+ * either; content reads `useTokens()`.
  */
 export const chrome = {
 	bg: dynamic(colors.bg, colorsLight.bg),
@@ -287,13 +289,45 @@ export const chrome = {
 } as const;
 
 /**
- * Colours, not conditions (gather's rule). Follows the OS scheme; while
- * `app.json` pins dark this always returns `colors`. Call it in a component,
- * never at module scope — a `StyleSheet.create` that captures it is dark
- * forever.
+ * The deliberate light-mode switch. Off until every screen reads `useTokens()`
+ * (plan step 3) and the light pass in `docs/ios-native-verification.md` is
+ * green; flip it together with `userInterfaceStyle` in `app.json`. While it
+ * is off the OS scheme is ignored entirely — iOS 26 reports traits the ground
+ * does not match (see `chrome`), and a half-migrated app must never render
+ * light text on a dark screen because of it.
+ */
+export const lightModeEnabled = false;
+
+export type Scheme = "dark" | "light";
+
+/** The scheme the app is actually drawing in — not necessarily the OS's. */
+export function useScheme(): Scheme {
+	const os = useColorScheme();
+	return lightModeEnabled && os === "light" ? "light" : "dark";
+}
+
+/**
+ * Colours, not conditions (gather's rule). Call it in a component, never at
+ * module scope — a `StyleSheet.create` that captures it is dark forever.
  */
 export function useTokens(): Tokens {
-	return useColorScheme() === "light" ? colorsLight : colors;
+	return useScheme() === "light" ? colorsLight : colors;
+}
+
+/** For `<Host colorScheme>`: SwiftUI surfaces draw in the scheme the app draws in. */
+export function useHostScheme(): Scheme {
+	return useScheme();
+}
+
+/** A sport's hue and tint for the current scheme. */
+export function useSportColors(sport: SportKey): {
+	color: string;
+	dim: string;
+} {
+	const meta = sportMeta[sport];
+	return useScheme() === "light"
+		? { color: meta.colorLight, dim: meta.dimLight }
+		: { color: meta.color, dim: meta.dim };
 }
 
 export type Tokens = { readonly [K in keyof typeof colors]: string };
