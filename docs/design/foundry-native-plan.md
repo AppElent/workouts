@@ -193,6 +193,7 @@ They constrain every step below.
   old, past the 3-day `minimumReleaseAge`) is a native change — a dev-client
   rebuild, which is already owed for the dark pin. Every `@expo/ui` component
   that uses worklet-capable callbacks is exposed to this, not just the list.
+  Deferred: [#88](https://github.com/AppElent/workouts/issues/88).
 
 - Light mode ship gate: after Profile (step 3.3) or after all six screens?
   Unpinning `userInterfaceStyle` before every screen reads `useTokens()`
