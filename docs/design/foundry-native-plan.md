@@ -120,9 +120,13 @@ Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
    sport hues. `lightModeEnabled` (off) is the deliberate switch —
    `useScheme()` ignores the OS scheme while it is off (see the iOS 26
    findings below).
-1. `inset-list` — `List`/`Section`/row with leading media, title, secondary,
-   value, chevron; swipe + context-menu built in (folds
-   `native-swipeable-row.ios.tsx` in and retires the Exercises-only canary).
+1. **Done, `d5696992`.** `inset-list` — `List`/`Section`/row with leading
+   media, title, secondary, value, chevron; swipe + context menu built in.
+   First consumer: Train → Library (three rows, no actions). Height is a
+   row-count estimate until #88 lands (`useScrollGeometryChange` crashes on
+   the installed expo). Finding: `.swipeActions` only works inside a SwiftUI
+   `List`, so the per-row `native-swipeable-row.ios.tsx` canary never swiped;
+   it is retired when Exercises moves over (3.2).
 2. `form` — `Form`/`Section`/`TextField`/`LabeledContent`/`Stepper`/`Toggle`
    behind the existing `form.tsx` names, so screens migrate by import.
 3. `segmented` → `Picker`; `confirm-dialog` → `ConfirmationDialog`;
@@ -135,6 +139,16 @@ Each primitive: a jest test that the SwiftUI props are bound (pattern in
 `swift-ui-surfaces.test.tsx`), and a row in `docs/ios-native-verification.md`.
 
 ## Step 3 — screens, lists first
+
+**Ordering change (2026-09-20):** 3.1 Train runs *before* 2.2–2.5. Train is
+the real test of the inset list — routines as rows with Start/Edit/Delete
+as swipe + long-press actions — and each later primitive should be built
+against a screen that needs it, not ahead of one. 2.2 `form` follows for the
+routine editor.
+
+**Current status:** next up is 3.1. Before it: your device look at Train →
+Library (row in `docs/ios-native-verification.md`) — group height, system
+look, tap and drag. Emulator (Android, RN fallback) already renders it.
 
 Order chosen by how much card-stack there is to remove and how many
 primitives each exercises. Each screen answers the screen contract in
