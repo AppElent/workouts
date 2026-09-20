@@ -240,12 +240,14 @@ jest.mock("@expo/ui/swift-ui", () => {
 			React.createElement(
 				View,
 				{ testID: "swiftui-picker", accessibilityRole: "radiogroup" },
-				React.Children.map(children, (child) => {
+				React.Children.map(children, (child: React.ReactNode) => {
 					if (!React.isValidElement(child)) return child;
-					const props = child.props as {
-						modifiers?: { type: string; args: unknown[] }[];
-						children?: React.ReactNode;
-					};
+					const props = (
+						child as React.ReactElement<{
+							modifiers?: { type: string; args: unknown[] }[];
+							children?: React.ReactNode;
+						}>
+					).props;
 					const value = modifierArg(props.modifiers, "tag");
 					const label = modifierArg(props.modifiers, "accessibilityLabel");
 					return React.createElement(
