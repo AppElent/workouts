@@ -150,35 +150,55 @@ Each primitive: a jest test that the SwiftUI props are bound (pattern in
 
 ## Step 3 — screens, lists first
 
-**Ordering change (2026-09-20):** 3.1 Train runs *before* 2.2–2.5. Train is
-the real test of the inset list — routines as rows with Start/Edit/Delete
-as swipe + long-press actions — and each later primitive should be built
-against a screen that needs it, not ahead of one. 2.2 `form` follows for the
-routine editor.
+**Status (2026-09-20):** step 2 is complete except 2.2 `form`, which is
+built with 3.1. Primitives available to screens now: `InsetList`/`InsetRow`
+(SwiftUI `List`, swipe + long-press actions), `Segmented` (system control),
+`EmptyState` (system "no results" for search), `TrendChart`/`BucketChart`
+(Swift Charts), `ProgressRing` (`Gauge`), `SkeletonList`/`SkeletonCard`,
+`useTokens()`/`useHostScheme()`/`useSportColors()`. Their device rows are
+in `docs/ios-native-verification.md`; the inset list's height is a
+row-count estimate until #88 lands.
 
-**Current status:** next up is 3.1. Before it: your device look at Train →
-Library (row in `docs/ios-native-verification.md`) — group height, system
-look, tap and drag. Emulator (Android, RN fallback) already renders it.
+**Per screen, the definition of done:**
 
-Order chosen by how much card-stack there is to remove and how many
-primitives each exercises. Each screen answers the screen contract in
-`apps/mobile/DESIGN_SYSTEM.md` in its PR description, moves its strings into
-`src/i18n/messages`, replaces `Loading…` with a skeleton, and gets a device
-pass before the next starts.
+- Answers the screen contract in `apps/mobile/DESIGN_SYSTEM.md` (job, single
+  primary action, before/after, native pattern, populated/empty/loading/
+  error/long-text/keyboard states) in the commit message.
+- Collections are inset lists, not card stacks; every row's actions are
+  reachable by swipe, long press *and* a visible route.
+- Strings come from `src/i18n/messages` (en + nl) — several screens still
+  carry hardcoded English.
+- `Loading…` is gone; the region shows a skeleton shaped like its content.
+- Colours come from `useTokens()`, never the static `colors` object, so the
+  screen is light-ready.
+- One row in `docs/ios-native-verification.md`; a device pass before the
+  next screen starts.
 
-1. **Train** — routines as an inset list (row opens the editor; Start is the
-   swipe/context action and the row's trailing button), library section,
-   one primary capsule. Filter chips go until a second activity type exists.
-2. **Exercises** — `headerSearchBarOptions`, filter as a `Picker`, inset
-   list with `MediaThumb` slot.
-3. **Profile / Language** — pure inset-grouped settings; the cheapest
-   full-native screen and the light-mode pilot.
-4. **Session** — set rows as an inset list, set type `Picker`, `Stepper`
-   fields, rest timer stays RN.
-5. **Progress** — Swift Charts, `Gauge` week ring, stat boxes stay RN.
-6. **Nutrition** — largest surface, last; diary rows, goal card, calendar.
-7. **Home** — was missing from this list. Week ring → `ProgressRing`,
-   recent sessions → inset list, sport tiles stay RN.
+**Order** — by how much card-stack there is to remove and which primitives
+each exercises:
+
+1. **Train** — routines become `InsetRow`s (row opens the editor; Start /
+   Edit / Delete as swipe + long-press actions, Start also as the trailing
+   button), Library group (done), one primary capsule, `SkeletonList` while
+   loading, `EmptyState` when there are no routines. The decorative filter
+   chips go until a second activity type exists. **Builds 2.2 `form`** for
+   the routine editor: `Form`/`Section`/`TextField`/`Stepper`/`Toggle`
+   behind the existing `form.tsx` names, so other screens migrate by import.
+2. **Exercises** — Stack `headerSearchBarOptions` (real `UISearchController`),
+   muscle/equipment filter as `Segmented`, inset list with the `MediaThumb`
+   slot (fallback initial until photography exists), swipe delete for
+   user-created rows. Retires `native-swipeable-row.ios.tsx`.
+3. **Profile / Language** — pure inset-grouped settings; cheapest full-native
+   screen; the light-mode pilot (first screen where `lightModeEnabled` can
+   be flipped behind a per-screen check).
+4. **Session** — logged sets as an inset list, set type as `Segmented`,
+   weight/reps as `Stepper` fields, the rest timer stays RN.
+5. **Progress** — charts are already Swift Charts (2.4); stat boxes stay RN;
+   this screen is mostly strings, skeleton and tokens.
+6. **Home** — week ring → `ProgressRing`, recent sessions → inset list, sport
+   tiles stay RN, the greeting stays in-content under the large title.
+7. **Nutrition** — largest surface, last: diary rows as inset lists per
+   meal, goal card, calendar, food browser's search already native (2.3).
 
 Out of scope: Android Compose variants, the web app, photography slots
 (fallbacks only), a logo.
