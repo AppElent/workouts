@@ -79,7 +79,49 @@ jest.mock("@expo/ui/swift-ui", () => {
 		},
 	);
 	return {
+		Chart: ({
+			type,
+			data,
+		}: {
+			type?: string;
+			data: { x: unknown; y: number }[];
+		}) => React.createElement(View, { testID: `swiftui-chart-${type}`, data }),
+		ContentUnavailableView: ({
+			title,
+			description,
+			systemImage,
+		}: {
+			title?: string;
+			description?: string;
+			systemImage?: string;
+		}) =>
+			React.createElement(
+				View,
+				{ testID: "swiftui-content-unavailable", systemImage },
+				title ? React.createElement(Text, null, title) : null,
+				description ? React.createElement(Text, null, description) : null,
+			),
 		ContextMenu,
+		Gauge: ({
+			value,
+			max,
+			currentValueLabel,
+			modifiers,
+		}: {
+			value: number;
+			max?: number;
+			currentValueLabel?: React.ReactNode;
+			modifiers?: { type: string; args: unknown[] }[];
+		}) =>
+			React.createElement(
+				View,
+				{
+					testID: "swiftui-gauge",
+					accessibilityLabel: modifierArg(modifiers, "accessibilityLabel"),
+					accessibilityValue: { now: value, max },
+				},
+				currentValueLabel,
+			),
 		HStack: Stack,
 		List: Stack,
 		RoundedRectangle: Container,
@@ -184,6 +226,40 @@ jest.mock("@expo/ui/swift-ui", () => {
 				open ? children : null,
 			);
 		},
+		// A segmented control: each tagged child is a pressable option; the
+		// selected one carries `accessibilityState.selected`.
+		Picker: ({
+			selection,
+			onSelectionChange,
+			children,
+		}: {
+			selection?: unknown;
+			onSelectionChange?: (next: unknown) => void;
+			children?: React.ReactNode;
+		}) =>
+			React.createElement(
+				View,
+				{ testID: "swiftui-picker", accessibilityRole: "radiogroup" },
+				React.Children.map(children, (child) => {
+					if (!React.isValidElement(child)) return child;
+					const props = child.props as {
+						modifiers?: { type: string; args: unknown[] }[];
+						children?: React.ReactNode;
+					};
+					const value = modifierArg(props.modifiers, "tag");
+					const label = modifierArg(props.modifiers, "accessibilityLabel");
+					return React.createElement(
+						Pressable,
+						{
+							accessibilityRole: "radio",
+							accessibilityLabel: label ?? props.children,
+							accessibilityState: { selected: value === selection },
+							onPress: () => onSelectionChange?.(value),
+						},
+						React.createElement(Text, null, props.children),
+					);
+				}),
+			),
 		RNHostView: Container,
 		SwipeActions,
 	};

@@ -11,6 +11,9 @@ iPhone, or use the existing development client. No native dependencies were adde
 | --- | --- |
 | All five tabs | Native header and tabs remain visible. Scroll to the last control; it must clear the tab bar and home indicator. Repeat with larger text. |
 | Train → Library group (SwiftUI inset list) | The three rows sit in one system inset-grouped list whose left/right margins match the system's (not the 20pt screen gutter): rounded group, inset separators, S/W tiles, chevrons. The group is exactly as tall as its rows — no clipped last row, no empty band under it — including after a font-size change and after rotating. Tapping a row pushes; a vertical drag that starts on a row scrolls the screen. Long press does nothing (no actions). |
+| Profile → Language (system segmented control) | The English / Nederlands switch is a `UISegmentedControl` in the accent tint: the selection slides, the label stays legible in both themes, and VoiceOver reads "1 of 2". Same for the set-type and unit switches in the set editor and Personal measures. |
+| Nutrition → food search with no matches | The empty state is the system "no results" view (magnifier, title, sentence), centred in the results region, not a card. |
+| Progress / exercise detail charts | Trend lines and volume bars are Swift Charts in the accent ink — 2pt line with points, rounded 16pt bars, no grid, axis labels from the system. One point still says "Not enough data yet." |
 | Train → Exercises → exercise | Native Back and edge-swipe each return one level. Cancel an edge-swipe halfway; the screen stays usable. Long-press Back to inspect the system navigation history. |
 | Exercise library | Long press shows an anchored system menu. Swipe exposes actions; Delete still asks. A visible Delete tap must not also open the exercise. |
 | Routine cards and logged sets | Horizontal swipe reveals actions, vertical drag scrolls. Long press opens system options. Tapping a set still opens its editor. |

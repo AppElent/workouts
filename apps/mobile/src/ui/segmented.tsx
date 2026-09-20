@@ -1,12 +1,6 @@
 /**
- * A row of mutually exclusive choices. The language switch is the first one; a
- * unit switch and a goal-direction switch are the obvious next.
- *
- * Plain `Pressable`s rather than a platform segmented control, for the same
- * reason `confirm-dialog.tsx` is a `Modal` rather than `Alert.alert`: this app
- * has one dark palette and a platform control cannot take it — including in the
- * case that matters most here, reading the language switch in the language you
- * are about to leave.
+ * A row of mutually exclusive choices — the React Native drawing, for Android
+ * and tests. iOS gets the system segmented control in `segmented.ios.tsx`.
  *
  * Selection is announced, not only drawn. `accessibilityState.selected` is what
  * makes this a set of choices to a screen reader instead of N buttons with
@@ -14,24 +8,16 @@
  */
 import { Pressable, StyleSheet, View } from "react-native";
 import { colors, radius, spacing } from "../theme";
+import type { SegmentedOption, SegmentedProps } from "./segmented.types";
 import { AppText } from "./text";
 
-export interface SegmentedOption<Value extends string> {
-	value: Value;
-	label: string;
-	/** Spoken instead of the label, where the label alone is not a sentence. */
-	accessibilityLabel?: string;
-}
+export type { SegmentedOption, SegmentedProps };
 
 export function Segmented<Value extends string>({
 	options,
 	value,
 	onChange,
-}: {
-	options: readonly SegmentedOption<Value>[];
-	value: Value;
-	onChange: (next: Value) => void;
-}) {
+}: SegmentedProps<Value>) {
 	return (
 		<View style={styles.row}>
 			{options.map((option) => {

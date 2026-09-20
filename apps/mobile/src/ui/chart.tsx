@@ -1,25 +1,24 @@
 /**
- * The app's two chart shapes, and the only place `react-native-gifted-charts`
- * is imported.
+ * Charts for Android and tests: `react-native-gifted-charts`, and the only
+ * place it is imported. iOS draws the same two shapes with Swift Charts in
+ * `chart.ios.tsx`. Both take pre-shaped points and own nothing but
+ * presentation; deciding *what* to plot stays with the screen.
  *
- * Wrapped rather than used directly so that swapping the library — or dropping
- * it for hand-drawn Views — is one file, not every screen that shows a trend.
- * The web draws the same charts with Recharts, which is DOM-only and could not
- * come across.
- *
- * Both take pre-shaped points and own nothing but presentation. Deciding *what*
- * to plot stays with the screen; these decide how it looks.
- *
- * Note `react-native-svg` underneath is a native module: after adding it the
- * dev client needs rebuilding, and a JS-only reload will not pick it up.
+ * `react-native-svg` underneath is a native module: after adding it the dev
+ * client needs rebuilding, and a JS-only reload will not pick it up.
  */
 import { useState } from "react";
-import { type LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { type LayoutChangeEvent, StyleSheet } from "react-native";
 import { BarChart, LineChart } from "react-native-gifted-charts";
-import { colors, radius, spacing } from "../theme";
-import { AppText } from "./text";
+import { colors, spacing } from "../theme";
+import {
+	CHART_HEIGHT,
+	ChartFrame,
+	type ChartProps,
+	type Point,
+} from "./chart-frame";
 
-export type Point = { value: number; label?: string };
+export type { ChartProps, Point };
 
 /** Charts need a pixel width; the parent's is only known after layout. */
 function useMeasuredWidth() {
@@ -27,36 +26,6 @@ function useMeasuredWidth() {
 	const onLayout = (e: LayoutChangeEvent) =>
 		setWidth(e.nativeEvent.layout.width);
 	return { width, onLayout };
-}
-
-function ChartFrame({
-	title,
-	note,
-	empty,
-	children,
-	onLayout,
-}: {
-	title: string;
-	note?: string;
-	empty: boolean;
-	children: React.ReactNode;
-	onLayout: (e: LayoutChangeEvent) => void;
-}) {
-	return (
-		<View style={styles.card} onLayout={onLayout}>
-			<AppText variant="caption" style={styles.title}>
-				{title}
-			</AppText>
-			{note ? <AppText variant="caption">{note}</AppText> : null}
-			{empty ? (
-				<AppText variant="caption" style={styles.empty}>
-					Not enough data yet.
-				</AppText>
-			) : (
-				children
-			)}
-		</View>
-	);
 }
 
 /**
@@ -67,13 +36,8 @@ export function TrendChart({
 	title,
 	note,
 	points,
-	color = colors.accent,
-}: {
-	title: string;
-	note?: string;
-	points: Point[];
-	color?: string;
-}) {
+	color = colors.accentInk,
+}: ChartProps) {
 	const { width, onLayout } = useMeasuredWidth();
 	const inner = Math.max(0, width - spacing.md * 2);
 
@@ -88,7 +52,7 @@ export function TrendChart({
 				<LineChart
 					data={points}
 					width={inner}
-					height={160}
+					height={CHART_HEIGHT}
 					initialSpacing={12}
 					adjustToWidth
 					thickness={2}
@@ -112,13 +76,8 @@ export function BucketChart({
 	title,
 	note,
 	points,
-	color = colors.accent,
-}: {
-	title: string;
-	note?: string;
-	points: Point[];
-	color?: string;
-}) {
+	color = colors.accentInk,
+}: ChartProps) {
 	const { width, onLayout } = useMeasuredWidth();
 	const inner = Math.max(0, width - spacing.md * 2);
 
@@ -133,7 +92,7 @@ export function BucketChart({
 				<BarChart
 					data={points}
 					width={inner}
-					height={160}
+					height={CHART_HEIGHT}
 					barWidth={16}
 					initialSpacing={12}
 					spacing={14}
@@ -152,21 +111,5 @@ export function BucketChart({
 }
 
 const styles = StyleSheet.create({
-	card: {
-		gap: spacing.xs,
-		backgroundColor: colors.surface,
-		borderColor: colors.border,
-		borderWidth: 1,
-		borderRadius: radius.lg,
-		padding: spacing.md,
-		overflow: "hidden",
-	},
-	title: {
-		color: colors.textMuted,
-		fontWeight: "800",
-		letterSpacing: 1,
-		textTransform: "uppercase",
-	},
-	empty: { paddingVertical: spacing.lg, textAlign: "center" },
 	axis: { color: colors.textFaint, fontSize: 9 },
 });

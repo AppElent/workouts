@@ -129,11 +129,21 @@ Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
    it is retired when Exercises moves over (3.2).
 2. `form` — `Form`/`Section`/`TextField`/`LabeledContent`/`Stepper`/`Toggle`
    behind the existing `form.tsx` names, so screens migrate by import.
-3. `segmented` → `Picker`; `confirm-dialog` → `ConfirmationDialog`;
-   `empty-state` → `ContentUnavailableView`.
-4. `chart` → Swift `Chart`; `progress-ring` → `Gauge`.
-5. `skeleton` — still blocks matching each list/form layout, so step 3
-   screens have something to replace `Loading…` with.
+3. **Done.** `segmented` → system `Picker` (segmented) in the accent tint —
+   the old "a platform control cannot take our palette" reason is gone with
+   `Host colorScheme`/`seedColor`. `empty-state` → `ContentUnavailableView`
+   for the "search" appearance; the inline sentence stays RN. `confirm-dialog`
+   already presents a system `Alert` on iOS with a destructive-styled verb —
+   that *is* the native pattern for "Delete X?" with a consequence line, so
+   it is unchanged (`ConfirmationDialog` is the action-sheet form; not needed).
+4. **Done.** `chart` → Swift Charts (`chart.ios.tsx`; the RN file keeps
+   gifted-charts for Android; `chart-frame.tsx` is the shared card and empty
+   state). New `progress-ring` → `Gauge` circular-capacity; Home's inline
+   week ring adopts it when Home is done (see step 3.7).
+5. **Done.** `skeleton` gains `SkeletonList` (inset rows) and `SkeletonCard`.
+   All three read `useTokens()`.
+
+2.2 `form` is deliberately last: it follows the routine editor (3.1).
 
 Each primitive: a jest test that the SwiftUI props are bound (pattern in
 `swift-ui-surfaces.test.tsx`), and a row in `docs/ios-native-verification.md`.
@@ -167,6 +177,8 @@ pass before the next starts.
    fields, rest timer stays RN.
 5. **Progress** — Swift Charts, `Gauge` week ring, stat boxes stay RN.
 6. **Nutrition** — largest surface, last; diary rows, goal card, calendar.
+7. **Home** — was missing from this list. Week ring → `ProgressRing`,
+   recent sessions → inset list, sport tiles stay RN.
 
 Out of scope: Android Compose variants, the web app, photography slots
 (fallbacks only), a logo.
