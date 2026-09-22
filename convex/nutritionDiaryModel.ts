@@ -33,6 +33,26 @@ const personalProvenance = v.object({
 	attribution: v.optional(v.string()),
 });
 const oneOffProvenance = v.object({ source: v.literal("oneOff") });
+const foodVisual = v.union(
+	v.object({
+		kind: v.literal("icon"),
+		preset: v.union(
+			v.literal("fruit"),
+			v.literal("vegetable"),
+			v.literal("grains"),
+			v.literal("dairy"),
+			v.literal("egg"),
+			v.literal("meat"),
+			v.literal("fish"),
+			v.literal("meal"),
+			v.literal("snack"),
+			v.literal("drink"),
+			v.literal("supplement"),
+			v.literal("condiment"),
+		),
+	}),
+	v.object({ kind: v.literal("photo"), uri: v.string() }),
+);
 
 export const mealSlot = v.union(
 	v.literal("breakfast"),
@@ -48,6 +68,7 @@ export const diaryPartSnapshotFields = {
 	amount: v.number(),
 	baseUnit: v.union(v.literal("g"), v.literal("ml"), v.literal("serving")),
 	personalMeasureId: v.optional(v.string()),
+	visual: v.optional(foodVisual),
 	estimated: v.optional(v.literal(true)),
 	nutrients: v.object({
 		energy: nutrientValue,

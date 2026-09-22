@@ -115,10 +115,11 @@ describe("Personal Food compact authoring", () => {
 
 	it("stores a curated Food Visual icon while leaving the default unstored", async () => {
 		const first = renderEditor();
-		expect(screen.getByText("Food visual")).toBeTruthy();
+		expect(screen.getAllByText("Food visual").length).toBeGreaterThan(0);
+		fireEvent.press(screen.getByRole("button", { name: "Food visual" }));
 		expect(screen.getByText("Default")).toBeTruthy();
 		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
-		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByRole("button", { name: "Fruit" }));
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await waitFor(() => expect(first.onSaved).toHaveBeenCalledTimes(1));
 		expect(
@@ -147,7 +148,9 @@ describe("Personal Food compact authoring", () => {
 		const { onSaved, repository } = renderEditor(undefined, photoManager);
 		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
 		fireEvent.press(screen.getByText("Choose photo"));
-		await screen.findByLabelText("Food visual");
+		expect(
+			(await screen.findAllByLabelText("Food visual")).length,
+		).toBeGreaterThan(0);
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
@@ -175,7 +178,8 @@ describe("Personal Food compact authoring", () => {
 		expect(onSaved).not.toHaveBeenCalled();
 		expect(repository.list()).toEqual([]);
 
-		fireEvent.press(screen.getByRole("radio", { name: "Fruit" }));
+		fireEvent.press(screen.getByRole("button", { name: "Food visual" }));
+		fireEvent.press(screen.getByRole("button", { name: "Fruit" }));
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 	});
@@ -213,9 +217,11 @@ describe("Personal Food compact authoring", () => {
 
 		fireEvent.press(screen.getByText("Replace photo"));
 		await waitFor(() =>
-			expect(screen.getByLabelText("Food visual").props.source).toEqual([
-				{ uri: "file:///documents/food-photos/new.jpg" },
-			]),
+			expect(
+				screen
+					.getAllByLabelText("Food visual")
+					.find((element) => element.props.source)?.props.source,
+			).toEqual([{ uri: "file:///documents/food-photos/new.jpg" }]),
 		);
 		expect(photoManager.remove).not.toHaveBeenCalledWith(oldPhoto);
 		fireEvent.press(screen.getByText("Save Personal Food"));

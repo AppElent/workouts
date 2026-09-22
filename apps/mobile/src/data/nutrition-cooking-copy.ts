@@ -7,8 +7,8 @@ export type NutritionCookingCopy = {
 	amount: string;
 	logOnce: string;
 	logOnceConfirm: string;
-	oneOffFoodNameEn: string;
-	oneOffFoodNameNl: string;
+	oneOffFoodName: string;
+	moreNutrients: string;
 	nutrientAmountHelp: string;
 	estimated: string;
 	grams: string;
@@ -32,8 +32,8 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		amount: "Amount",
 		logOnce: "Log once",
 		logOnceConfirm: "Log once",
-		oneOffFoodNameEn: "Food name in English",
-		oneOffFoodNameNl: "Food name in Dutch",
+		oneOffFoodName: "Food name",
+		moreNutrients: "More nutrients",
 		nutrientAmountHelp:
 			"Values for the entire amount above; energy in kcal, all others in g. Leave unknown blank.",
 		estimated: "Estimated",
@@ -55,8 +55,8 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		amount: "Hoeveelheid",
 		logOnce: "Eenmalig loggen",
 		logOnceConfirm: "Eenmalig loggen",
-		oneOffFoodNameEn: "Naam voeding in het Engels",
-		oneOffFoodNameNl: "Naam voeding in het Nederlands",
+		oneOffFoodName: "Naam voeding",
+		moreNutrients: "Meer voedingswaarden",
 		nutrientAmountHelp:
 			"Waarden voor de volledige bovenstaande hoeveelheid; energie in kcal, de rest in gram. Laat onbekende waarden leeg.",
 		estimated: "Geschat",

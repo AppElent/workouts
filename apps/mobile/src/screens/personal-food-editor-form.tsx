@@ -27,6 +27,7 @@ import { fmt, useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
 import { FoodVisualView } from "../ui/food-visual";
+import { FoodVisualMenu } from "../ui/food-visual-menu";
 import {
 	AddRow,
 	DisclosureRow,
@@ -44,6 +45,7 @@ import {
 import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { FoodAuthoringTabs } from "./food-authoring-tabs";
 import { NutritionMenu } from "./nutrition-menu";
 import {
 	copyWithLabel,
@@ -134,6 +136,7 @@ export function PersonalFoodEditorForm({
 	defaultClassification = "ordinary",
 	onSaved,
 	onCancel,
+	onCreateKindChange,
 	photoManager = foodPhotos,
 }: {
 	food?: PersonalFood;
@@ -142,6 +145,7 @@ export function PersonalFoodEditorForm({
 	reviewNotice?: { title: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
+	onCreateKindChange?: (kind: "personal" | "recipe" | "oneOff") => void;
 	photoManager?: FoodPhotoManager;
 }) {
 	const styles = useThemedStyles(createStyles);
@@ -501,9 +505,9 @@ export function PersonalFoodEditorForm({
 	const photoUnavailable =
 		visual?.kind === "photo" && !photoManager.isAvailable(visual);
 	const visualChoices = [
-		{ id: "default" as const, label: copy.defaultVisual },
+		{ value: "default" as const, label: copy.defaultVisual },
 		...FOOD_VISUAL_PRESET_IDS.map((preset) => ({
-			id: preset,
+			value: preset,
 			label: copy.visualPresets[preset],
 		})),
 	];
@@ -520,7 +524,17 @@ export function PersonalFoodEditorForm({
 				loading: saving,
 				onPress: save,
 			}}
+			primaryActionPlacement="header"
 		>
+			{!food && !seed && !reviewNotice ? (
+				<FoodAuthoringTabs
+					value={classification === "recipe" ? "recipe" : "personal"}
+					onChange={(kind) => {
+						if (kind === "oneOff") onCreateKindChange?.(kind);
+						else setClassification(kind === "recipe" ? "recipe" : "ordinary");
+					}}
+				/>
+			) : null}
 			{source ? (
 				<GroupedSurface style={styles.notice}>
 					<AppText variant="heading">
@@ -615,9 +629,10 @@ export function PersonalFoodEditorForm({
 						{visualError}
 					</AppText>
 				) : null}
-				<FormChoiceChips
+				<FoodVisualMenu
+					label={copy.visual}
 					options={visualChoices}
-					selectedId={
+					selectedValue={
 						visual?.kind === "icon"
 							? visual.preset
 							: visual === undefined
@@ -664,16 +679,18 @@ export function PersonalFoodEditorForm({
 			</FormSection>
 
 			<FormSection title={copy.classification}>
-				<View style={styles.segmentedRow}>
-					<Segmented
-						value={classification}
-						onChange={setClassification}
-						options={[
-							{ value: "ordinary", label: copy.ordinary },
-							{ value: "recipe", label: copy.recipe },
-						]}
-					/>
-				</View>
+				{food || seed || reviewNotice ? (
+					<View style={styles.segmentedRow}>
+						<Segmented
+							value={classification}
+							onChange={setClassification}
+							options={[
+								{ value: "ordinary", label: copy.ordinary },
+								{ value: "recipe", label: copy.recipe },
+							]}
+						/>
+					</View>
+				) : null}
 				<FormTextField
 					label={copy.description}
 					value={description}

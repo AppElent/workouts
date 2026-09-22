@@ -44,6 +44,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatLongDate } from "../data/calendar-day";
+import { useFoodAuthoringIntent } from "../data/food-authoring-intent";
 import { foodPhotos } from "../data/food-photo-manager";
 import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
 import {
@@ -247,12 +248,14 @@ export function NutritionFoodBrowser({
 	date,
 	draftId,
 	initialQuery,
+	initialCreateKind,
 	onClose,
 }: {
 	meal: MealSlot;
 	date: string;
 	draftId?: string;
 	initialQuery?: string;
+	initialCreateKind?: "personal" | "recipe";
 	onClose: () => void;
 }) {
 	const colors = useTokens();
@@ -260,6 +263,7 @@ export function NutritionFoodBrowser({
 	const { t, locale } = useI18n();
 	const copy = nutritionFoodBrowserCopy(locale);
 	const router = useRouter();
+	const authoringIntent = useFoodAuthoringIntent();
 	const operations = useNutritionOperations();
 	useNutritionOperationVersion();
 	const subject = operations.getSubject();
@@ -275,7 +279,11 @@ export function NutritionFoodBrowser({
 	const [showCaptureTools, setShowCaptureTools] = useState(false);
 	const [showMealChoices, setShowMealChoices] = useState(false);
 	const [filter, setFilter] = useState<FoodFilter>(() =>
-		initialQuery?.trim() ? "all" : "recent",
+		initialCreateKind === "recipe"
+			? "recipes"
+			: initialQuery?.trim()
+				? "all"
+				: "recent",
 	);
 	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(meal);
 	const [addedFeedback, setAddedFeedback] = useState<string>();
@@ -284,7 +292,15 @@ export function NutritionFoodBrowser({
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
 	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
-	const [creatingFood, setCreatingFood] = useState(false);
+	const [creatingFood, setCreatingFood] = useState(
+		initialCreateKind !== undefined,
+	);
+	useEffect(() => {
+		if (!authoringIntent.intent) return;
+		setFilter(authoringIntent.intent === "recipe" ? "recipes" : "all");
+		setCreatingFood(true);
+		authoringIntent.consume();
+	}, [authoringIntent]);
 	const [scanning, setScanning] = useState(false);
 	const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
 	const [reviewingImport, setReviewingImport] = useState<PersonalFoodDraft>();
@@ -541,6 +557,14 @@ export function NutritionFoodBrowser({
 				food={editingFood}
 				seed={forkDraft}
 				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
+				onCreateKindChange={(kind) => {
+					if (kind !== "oneOff") return;
+					closeEditor();
+					router.push({
+						pathname: "/nutrition-cooking",
+						params: { date, meal: selectedMeal, mode: "oneoff-log" },
+					});
+				}}
 				onCancel={closeEditor}
 				onSaved={(food) => {
 					closeEditor();

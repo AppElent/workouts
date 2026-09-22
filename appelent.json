@@ -1,4 +1,5 @@
 {
+  "envManifest": "env.manifest.ts",
   "features": {
     "baseline": { "version": 6, "steps": [6, 14, 15, 16] },
     "auth": { "version": 1 },

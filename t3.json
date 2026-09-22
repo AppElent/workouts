@@ -1,0 +1,13 @@
+{
+	"$schema": "https://t3.codes/schema/t3.json",
+	"defaultThreadEnvMode": "worktree",
+	"scripts": [
+		{
+			"name": "Copy .env.local into worktree",
+			"command": "Copy-Item -Force \"$env:T3CODE_PROJECT_ROOT/.env.local\" .env.local; Copy-Item -Force \"$env:T3CODE_PROJECT_ROOT/apps/mobile/.env.local\" apps/mobile/.env.local",
+			"icon": "configure",
+			"runOnWorktreeCreate": true,
+			"async": false
+		}
+	]
+}

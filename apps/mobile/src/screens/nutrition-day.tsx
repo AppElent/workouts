@@ -47,6 +47,7 @@ import { GhostButton, PrimaryButton } from "../ui/button";
 import { useConfirm } from "../ui/confirm-dialog";
 import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
+import { FoodVisualView } from "../ui/food-visual";
 import { DisclosureRow, FormSection, GroupedSurface } from "../ui/form";
 import { NutritionCalendar } from "../ui/nutrition-calendar";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
@@ -1161,6 +1162,13 @@ function EntryRow({
 					>
 						{selected ? "☑" : "☐"}
 					</AppText>
+				) : null}
+				{entry.visual ? (
+					<FoodVisualView
+						visual={entry.visual}
+						label={entry.name[locale]}
+						size={40}
+					/>
 				) : null}
 				<View style={styles.flex}>
 					<View

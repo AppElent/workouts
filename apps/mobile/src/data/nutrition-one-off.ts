@@ -5,6 +5,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 } from "@workouts/core/nutrition";
+import type { FoodVisual } from "./personal-food-repository";
 
 export function positiveOneOffNumber(value: string, label: string): number {
 	const parsed = Number(value.replace(",", ".").trim());
@@ -33,6 +34,7 @@ export function oneOffLogSnapshot(input: {
 	baseUnit?: "g" | "ml" | "serving";
 	nutrients: Partial<Record<NutrientKey, NutrientValue>>;
 	clientEntryId: string;
+	visual?: FoodVisual;
 	note?: string;
 }): NutritionDiarySnapshot & { readonly clientEntryId: string } {
 	if (!Number.isFinite(input.amount) || input.amount <= 0) {
@@ -54,6 +56,7 @@ export function oneOffLogSnapshot(input: {
 		date: input.date,
 		meal: input.meal,
 		name: input.name,
+		...(input.visual ? { visual: input.visual } : {}),
 		serving: formatSnapshotAmount(input.amount, baseUnit),
 		quantity: 1,
 		amount: input.amount,

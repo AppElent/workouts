@@ -11,6 +11,7 @@ describe("One-off estimates", () => {
 				energy: { kind: "value", amount: 450 },
 				protein: { kind: "trace" },
 			},
+			visual: { kind: "icon", preset: "meal" },
 			clientEntryId: "estimate",
 		});
 		expect(snapshot).toMatchObject({
@@ -18,6 +19,7 @@ describe("One-off estimates", () => {
 			baseUnit: "serving",
 			amount: 1,
 			provenance: { source: "oneOff" },
+			visual: { kind: "icon", preset: "meal" },
 			nutrients: { protein: { kind: "trace" }, carbs: { kind: "absent" } },
 		});
 		expect(snapshot.serving.en).not.toContain("Estimated");

@@ -64,11 +64,17 @@ export function mintNutritionUuid(): string {
 
 function classifyError(error: unknown): "permanent" | "transient" {
 	const message = error instanceof Error ? error.message : String(error);
-	return /invalid|unauthorized|subject|conflict|already exists|different payload/i.test(
+	return /invalid|unauthorized|subject|conflict|already exists|different payload|diary entry no longer exists/i.test(
 		message,
 	)
 		? "permanent"
 		: "transient";
+}
+
+function operationTargets(operation: NutritionDiaryOperation) {
+	if ("target" in operation) return [operation.target];
+	if ("targets" in operation) return operation.targets;
+	return [];
 }
 
 export class NutritionOperationService {
@@ -245,13 +251,8 @@ export class NutritionOperationService {
 		subject: string,
 		operation: { operationId: string; envelope: NutritionOperationEnvelope },
 	) {
-		const targets =
-			operation.envelope.operation.kind === "update" ||
-			operation.envelope.operation.kind === "remove"
-				? [operation.envelope.operation.target]
-				: operation.envelope.operation.kind === "group"
-					? operation.envelope.operation.targets
-					: [];
+		// Batch moves/removals must wait for creates and earlier writes too.
+		const targets = operationTargets(operation.envelope.operation);
 		if (targets.length === 0) return false;
 		return this.repository.listOperations(subject).some((candidate) => {
 			if (
@@ -262,12 +263,7 @@ export class NutritionOperationService {
 			)
 				return false;
 			const created = candidate.envelope.operation;
-			const predecessorTargets =
-				created.kind === "update" || created.kind === "remove"
-					? [created.target]
-					: created.kind === "group"
-						? created.targets
-						: [];
+			const predecessorTargets = operationTargets(created);
 			if (
 				predecessorTargets.some((previous) =>
 					targets.some(
@@ -793,6 +789,7 @@ export function snapshotFromDiaryEntry(
 		quantity: entry.quantity,
 		amount: entry.amount,
 		baseUnit: entry.baseUnit,
+		...(entry.visual ? { visual: entry.visual } : {}),
 		nutrients: entry.nutrients,
 		provenance: entry.provenance,
 		...(entry.estimated ? { estimated: true as const } : {}),

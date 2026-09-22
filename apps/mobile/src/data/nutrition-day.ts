@@ -22,7 +22,10 @@ import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
 } from "./nutrition-operation-service";
-import type { ComboSnapshotProvenance } from "./personal-food-repository";
+import type {
+	ComboSnapshotProvenance,
+	FoodVisual,
+} from "./personal-food-repository";
 
 /** The eight nutrients the module stores and shows. Order is display order. */
 export { NUTRIENT_KEYS, type NutrientKey };
@@ -51,6 +54,7 @@ export interface DiaryEntry {
 	amount: number;
 	baseUnit: "g" | "ml" | "serving";
 	personalMeasureId?: string;
+	visual?: FoodVisual;
 	estimated?: true;
 	provenance: ComboSnapshotProvenance;
 	comboGroup?: { id: string; comboId: string; name: string };
@@ -173,6 +177,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			amount: entry.amount,
 			baseUnit: entry.baseUnit,
 			personalMeasureId: entry.personalMeasureId,
+			visual: entry.visual,
 			provenance: entry.provenance,
 			...(entry.estimated ? { estimated: true as const } : {}),
 			comboGroup: entry.comboGroup,

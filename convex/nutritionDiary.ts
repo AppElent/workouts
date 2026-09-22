@@ -610,8 +610,10 @@ export const applyOperation = mutation({
 				if (seen.has(key)) throw new Error("Duplicate diary entry target.");
 				seen.add(key);
 				const entry = await existingOwnedGroupEntry(ctx, userId, target);
-				if (!entry) throw new Error("Diary entry no longer exists.");
-				entries.push(entry);
+				// Offline batches can outlive entries deleted on another device or
+				// cached IDs from an old deployment. Acknowledge those stale targets
+				// without resurrecting them or blocking the surviving selection.
+				if (entry) entries.push(entry);
 			}
 			const selectedIds = new Set(entries.map((entry) => String(entry._id)));
 			const groupIds = new Set(entries.map((entry) => entry.comboGroup?.id).filter((id): id is string => id !== undefined));

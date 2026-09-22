@@ -41,9 +41,10 @@ Personal workout tracker with real-time session logging, exercise library, 1RM t
 # Install dependencies
 pnpm install
 
-# Configure environment
-cp .env.example .env.local
-# Fill in VITE_CLERK_PUBLISHABLE_KEY and CONVEX_DEPLOYMENT
+# Check the manifest, then read the configured Infisical source and apply local values
+pnpm env:check
+pnpm env:plan local --only file
+pnpm env:apply local --only file
 
 # Initialize Convex (first time only — prompts login + writes CONVEX_DEPLOYMENT)
 pnpm exec convex dev --once
@@ -62,6 +63,11 @@ pnpm dev:watch   # Convex (watch mode) + Vite, concurrently — recommended, htt
 On the sign-in screen, a "▶ Dev: log in as test user" button appears if `VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set (only takes effect against a Clerk *test* key, never production).
 
 ## Environment Variables
+
+See the [environment contract](docs/environment.md) for source setup, routing,
+generated-file ownership, and the shared `@appelent/dev` commands. `.env.example`
+is a canonical source-key catalog; do not copy it into `.env.local`. Existing
+human-owned files require review and explicit ownership adoption before apply.
 
 | Variable | Description |
 |---|---|

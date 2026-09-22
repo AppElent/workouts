@@ -54,6 +54,69 @@ function envelope(
 }
 
 describe("retry-safe nutrition diary operations", () => {
+	it.each(["removeBatch", "moveBatch"] as const)(
+		"acknowledges %s with deleted or stale targets and still applies surviving entries",
+		async (kind) => {
+			const t = convexTest(schema, modules);
+			const alice = t.withIdentity({ subject: "alice" });
+			const deleted = await alice.mutation(api.nutritionDiary.applyOperation,
+				envelope("create-deleted", { kind: "create", entry: snapshot() }));
+			const surviving = await alice.mutation(api.nutritionDiary.applyOperation,
+				envelope("create-surviving", { kind: "create", entry: snapshot({ clientEntryId: "surviving" }) }));
+			await alice.mutation(api.nutritionDiary.remove, { id: deleted.entryIds[0] });
+			const missingTargets = [
+				{ kind: "serverId" as const, id: deleted.entryIds[0] },
+				{ kind: "clientEntryId" as const, id: "client-entry-1" },
+				{ kind: "serverId" as const, id: "stale-deployment-id" },
+			];
+			const targets = [...missingTargets, { kind: "serverId" as const, id: surviving.entryIds[0] }];
+			const operation = envelope("stale-batch", kind === "moveBatch"
+				? { kind, targets, date: "2026-09-06", meal: "dinner" }
+				: { kind, targets });
+			const result = await alice.mutation(api.nutritionDiary.applyOperation, operation);
+			expect(result.entryIds).toEqual(surviving.entryIds);
+			expect(await alice.mutation(api.nutritionDiary.applyOperation, operation)).toEqual(result);
+			expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(0);
+			const destination = await alice.query(api.nutritionDiary.day, { date: "2026-09-06" });
+			expect(destination.entries).toHaveLength(kind === "moveBatch" ? 1 : 0);
+			if (kind === "moveBatch") expect(destination.entries[0].meal).toBe("dinner");
+
+			const emptyOperation = envelope("all-stale-batch", {
+				...operation.operation, targets: missingTargets,
+			} as ApplyOperationArgs["operation"]);
+			const emptyResult = await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation);
+			expect(emptyResult).toEqual({ entryIds: [], clientEntryIds: [], days: [] });
+			expect(await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation)).toEqual(emptyResult);
+		},
+	);
+
+	it.each(["removeBatch", "moveBatch"] as const)(
+		"keeps %s ownership and whole-combo checks when skipping stale targets",
+		async (kind) => {
+			const t = convexTest(schema, modules);
+			const alice = t.withIdentity({ subject: "alice" });
+			const bob = t.withIdentity({ subject: "bob" });
+			const comboGroup = { id: "group", comboId: "combo", name: "Lunch" };
+			const created = [];
+			for (const clientEntryId of ["part-1", "part-2"]) {
+				created.push(await alice.mutation(api.nutritionDiary.applyOperation,
+					envelope(`create-${clientEntryId}`, { kind: "create", entry: snapshot({ clientEntryId, comboGroup }) })));
+			}
+			const targets = [
+				{ kind: "clientEntryId" as const, id: "missing" },
+				{ kind: "serverId" as const, id: created[0].entryIds[0] },
+			];
+			const operation = kind === "moveBatch"
+				? { kind, targets, date: "2026-09-06", meal: "dinner" as const }
+				: { kind, targets };
+			await expect(bob.mutation(api.nutritionDiary.applyOperation,
+				envelope("foreign-batch", operation, "bob"))).rejects.toThrow("Unauthorized");
+			await expect(alice.mutation(api.nutritionDiary.applyOperation,
+				envelope("partial-batch", operation))).rejects.toThrow("selected as a whole");
+			expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(2);
+		},
+	);
+
 	it("deduplicates identical create replay and rejects a changed payload", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
