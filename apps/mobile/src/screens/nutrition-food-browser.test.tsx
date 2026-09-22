@@ -1,10 +1,20 @@
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { todayIsoDate } from "../data/calendar-day";
+import { formatShortDate, todayIsoDate } from "../data/calendar-day";
 import { renderApp } from "../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
 const mockUsePaginatedQuery = jest.mocked(usePaginatedQuery);
+
+/** The setup file's defaults, restored after any test that seeds a diary day. */
+function emptyDay(reference: Parameters<typeof getFunctionName>[0]) {
+	const name = getFunctionName(reference);
+	if (name === "nutritionDiary:day") return { entries: [], totals: {} };
+	if (name === "nutritionGoals:forDate")
+		return { goals: [], basis: "reference", effectiveFrom: null };
+	return [];
+}
 
 afterEach(() => {
 	mockUsePaginatedQuery.mockReturnValue({
@@ -12,10 +22,16 @@ afterEach(() => {
 		status: "Exhausted",
 		loadMore: jest.fn(),
 	} as never);
+	jest.mocked(useQuery).mockImplementation(emptyDay as never);
 });
 
+/**
+ * The deliberate broader view (#75), which is now its own chip rather than the
+ * last of five exclusive tabs. Tests that only need "search everything" no
+ * longer come through here — the default pool already does that.
+ */
 async function showAllFoods(query?: string) {
-	fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
+	fireEvent.press(await screen.findByRole("tab", { name: "Full catalogue" }));
 	if (query) {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), query);
 	}
@@ -228,11 +244,11 @@ describe("browsing shipped foods", () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
 
-		expect(await screen.findByText("Nothing logged recently")).toBeTruthy();
+		expect(await screen.findByText("Nothing to log yet")).toBeTruthy();
 		expect(screen.queryByText("Apple")).toBeNull();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect(
-			screen.getByRole("tab", { name: "All foods" }).props.accessibilityState,
+			screen.getByRole("tab", { name: "All" }).props.accessibilityState,
 		).toMatchObject({ selected: true });
 		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
 		fireEvent.press(screen.getByLabelText("Quick log Apple"));
@@ -437,8 +453,11 @@ describe("browsing shipped foods", () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 
-		expect(await screen.findByLabelText("Find food for Lunch")).toBeTruthy();
-		expect(screen.getByText("Nothing logged recently")).toBeTruthy();
+		expect(
+			(await screen.findByRole("radio", { name: "Lunch" })).props
+				.accessibilityState,
+		).toMatchObject({ checked: true });
+		expect(screen.getByText("Nothing to log yet")).toBeTruthy();
 		await showAllFoods("apple");
 		expect(screen.getByText("Apple")).toBeTruthy();
 
@@ -449,7 +468,7 @@ describe("browsing shipped foods", () => {
 		expect(await screen.findByText("Chocolate sprinkles")).toBeTruthy();
 	});
 
-	it("switches an empty Recent search to the full NEVO catalogue", async () => {
+	it("reaches the full NEVO catalogue from the default pool, without switching scope", async () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
 		fireEvent.changeText(
@@ -458,7 +477,7 @@ describe("browsing shipped foods", () => {
 		);
 
 		expect(
-			screen.getByRole("tab", { name: "All foods" }).props.accessibilityState,
+			screen.getByRole("tab", { name: "All" }).props.accessibilityState,
 		).toMatchObject({ selected: true });
 		expect(await screen.findByText("Apple strudel")).toBeTruthy();
 	});
@@ -564,8 +583,7 @@ describe("browsing shipped foods", () => {
 			log as unknown as ReturnType<typeof useMutation>,
 		);
 		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findByText("Thursday, August 20")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Find food for Breakfast"));
+		expect(await screen.findByText("Thu, August 20")).toBeTruthy();
 		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
 		await showAllFoods();
 
@@ -584,7 +602,9 @@ describe("browsing shipped foods", () => {
 			);
 		}
 
-		expect(screen.getByLabelText("Find food for Lunch")).toBeTruthy();
+		expect(
+			screen.getByRole("radio", { name: "Lunch" }).props.accessibilityState,
+		).toMatchObject({ checked: true });
 		expect(screen.getByPlaceholderText("Search foods").props.value).toBe(
 			"hagelslag",
 		);
@@ -617,8 +637,225 @@ describe("browsing shipped foods", () => {
 		expect(log).toHaveBeenCalledTimes(1);
 		resolveLog();
 		await waitFor(() =>
-			expect(screen.getByText("Added Apple to Dinner")).toBeTruthy(),
+			expect(screen.queryByText("Add & continue")).toBeNull(),
 		);
-		expect(screen.getByLabelText("Find food for Dinner")).toBeTruthy();
+		expect(
+			screen.getByRole("radio", { name: "Dinner" }).props.accessibilityState,
+		).toMatchObject({ checked: true });
+	});
+});
+
+/**
+ * The redesign's own promises (design `Food logging.dc.html`, option 3a).
+ *
+ * These are the five problems the screen was rebuilt to fix, asserted as
+ * behaviour rather than layout: one list that always searches everything, a
+ * meal and a date that are two separate controls, no dead "Klaar", authoring
+ * behind a menu instead of an inline panel, and a running total that is the
+ * only confirmation a quick log gets.
+ */
+describe("the redesigned food browser", () => {
+	/** One logged breakfast entry, served by the mocked diary query. */
+	function seedBreakfast() {
+		jest.mocked(useQuery).mockImplementation(((reference: never) => {
+			if (getFunctionName(reference) === "nutritionGoals:forDate")
+				return { goals: [], basis: "reference", effectiveFrom: null };
+			if (getFunctionName(reference) !== "nutritionDiary:day") return [];
+			return {
+				entries: [
+					{
+						_id: "entry-1",
+						meal: "breakfast" as const,
+						name: { en: "Oatmeal", nl: "Havermout" },
+						serving: { en: "Bowl × 1", nl: "Kom × 1" },
+						quantity: 1,
+						nutrients: {
+							energy: { kind: "value" as const, amount: 180 },
+							protein: { kind: "absent" as const },
+							carbs: { kind: "absent" as const },
+							fat: { kind: "absent" as const },
+							saturatedFat: { kind: "absent" as const },
+							fibre: { kind: "absent" as const },
+							sugars: { kind: "absent" as const },
+							salt: { kind: "absent" as const },
+						},
+					},
+				],
+				totals: {},
+			};
+		}) as never);
+	}
+
+	function oneOffPart(name: string, energy: number) {
+		return {
+			reference: { kind: "oneOff" as const },
+			snapshot: {
+				name: { en: name, nl: name },
+				serving: { en: "Bowl", nl: "Kom" },
+				quantity: 1,
+				amount: 100,
+				baseUnit: "g" as const,
+				provenance: { source: "oneOff" as const },
+				nutrients: {
+					energy: { kind: "value" as const, amount: energy },
+					protein: { kind: "absent" as const },
+					carbs: { kind: "absent" as const },
+					fat: { kind: "absent" as const },
+					saturatedFat: { kind: "absent" as const },
+					fibre: { kind: "absent" as const },
+					sugars: { kind: "absent" as const },
+					salt: { kind: "absent" as const },
+				},
+			},
+		};
+	}
+
+	it("pools Combos, Personal Foods and the catalogue into one list", async () => {
+		const app = renderApp();
+		app.repository.createCombo({
+			name: "Fixed breakfast",
+			parts: [oneOffPart("Oats", 222), oneOffPart("Milk", 115)],
+		});
+		app.repository.create({
+			name: { en: "Cheese twister", nl: "Kaastwister" },
+			baseUnit: "g",
+			servings: [],
+			nutrients: {
+				energy: { kind: "value", amount: 404 },
+				protein: { kind: "absent" },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+
+		// No chip is touched between these three: the default pool holds a
+		// Combo, a Personal Food and a NEVO record at once.
+		expect(await screen.findByText("Fixed breakfast")).toBeTruthy();
+		expect(screen.getByText("Combo · 2 foods")).toBeTruthy();
+		expect(screen.getByText("337 kcal")).toBeTruthy();
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "cheese");
+		expect(await screen.findByText("Cheese twister")).toBeTruthy();
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		expect(await screen.findByText("Apple")).toBeTruthy();
+	});
+
+	it("keeps the meal and the date as two separate controls, and logs into both", async () => {
+		const log = jest.fn().mockResolvedValue("entry-1");
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
+
+		// The date is the title and the meal is a chip; neither shares a control
+		// with the other, and neither is a menu.
+		expect(await screen.findByText("Thu, August 20")).toBeTruthy();
+		fireEvent.press(screen.getByRole("radio", { name: "Dinner" }));
+		fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
+		fireEvent(
+			await screen.findByTestId("swiftui-date-picker"),
+			"dateChange",
+			new Date(2026, 7, 21, 12),
+		);
+
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
+
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		expect(log.mock.calls[0][0]).toMatchObject({
+			date: "2026-08-21",
+			meal: "dinner",
+		});
+	});
+
+	it("resets to today from inside the picker, where the date it resets is visible", async () => {
+		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
+		expect(await screen.findByText("Thu, August 20")).toBeTruthy();
+		// "Today" is not in the navigation bar: there it is disabled exactly when
+		// you are already on today, which is most of the time.
+		expect(screen.queryByLabelText("Today")).toBeNull();
+
+		fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
+		fireEvent.press(await screen.findByLabelText("Today"));
+
+		expect(
+			await screen.findByText(formatShortDate(todayIsoDate(), "en")),
+		).toBeTruthy();
+	});
+
+	it("has no Done: closing is the stack's job, and each row commits its own log", async () => {
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await screen.findByPlaceholderText("Search foods");
+
+		expect(screen.queryByText("Done")).toBeNull();
+	});
+
+	it("puts authoring behind the + rather than an inline panel", async () => {
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await screen.findByPlaceholderText("Search foods");
+
+		expect(screen.queryByText("Log once")).toBeNull();
+		expect(screen.queryByText("New recipe")).toBeNull();
+		fireEvent.press(screen.getByLabelText("More food actions"));
+
+		expect(await screen.findByText("Log once")).toBeTruthy();
+		expect(screen.getByText("New Personal Food")).toBeTruthy();
+		expect(screen.getByText("New recipe")).toBeTruthy();
+	});
+
+	it("carries the meal's running total, and what is in it, into the browser", async () => {
+		seedBreakfast();
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+
+		// The bar is the browser's only confirmation now, so it has to be right
+		// before a single row is tapped.
+		expect(
+			await screen.findByText("Breakfast · 1 item · 180 kcal"),
+		).toBeTruthy();
+		fireEvent.press(screen.getByLabelText("Show what is logged"));
+		expect(await screen.findByText("Oatmeal · Bowl × 1")).toBeTruthy();
+
+		// Switching meals switches what the bar is reporting.
+		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
+		expect(await screen.findByText("Lunch · 0 items")).toBeTruthy();
+	});
+
+	it("does not announce a quick log with a line of its own", async () => {
+		const log = jest.fn().mockResolvedValue("entry-1");
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
+
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		// The old lime "Added Apple to Breakfast" line is gone for good: the bar
+		// and the success haptic are the feedback.
+		expect(screen.queryByText("Added Apple to Breakfast")).toBeNull();
+	});
+
+	it("offers the AI entry point beside barcode rather than nowhere", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(await screen.findByLabelText("Describe a meal"));
+
+		await waitFor(() =>
+			expect(app.getPathname()).toBe("/nutrition-assistance"),
+		);
+		expect(app.getSearchParams()).toMatchObject({ meal: "lunch" });
 	});
 });

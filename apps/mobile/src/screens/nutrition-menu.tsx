@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import {
 	ActionSheetIOS,
@@ -5,8 +6,10 @@ import {
 	Platform,
 	Pressable,
 	ScrollView,
+	type StyleProp,
 	StyleSheet,
 	View,
+	type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
@@ -24,6 +27,7 @@ export function NutritionMenu({
 	label,
 	closeLabel,
 	actions,
+	trigger,
 }: {
 	label: string;
 	closeLabel: string;
@@ -32,6 +36,15 @@ export function NutritionMenu({
 		onPress: () => void;
 		dividerAfter?: boolean;
 	}[];
+	/**
+	 * What the caller shows instead of the overflow glyph. The food browser's +
+	 * sits in a row of 40pt square controls and has to match them; the
+	 * presentation behind it is the same either way.
+	 */
+	trigger?: {
+		readonly content: ReactNode;
+		readonly style?: StyleProp<ViewStyle>;
+	};
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -56,9 +69,9 @@ export function NutritionMenu({
 				accessibilityRole="button"
 				accessibilityLabel={label}
 				onPress={show}
-				style={styles.trigger}
+				style={[styles.trigger, trigger?.style]}
 			>
-				<AppText variant="heading">···</AppText>
+				{trigger?.content ?? <AppText variant="heading">···</AppText>}
 			</Pressable>
 			<Modal
 				visible={open}

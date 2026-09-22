@@ -18,11 +18,12 @@ import {
 	type ServingOption,
 	type ShippedFood,
 	servingOptions,
+	shippedLibrary,
 	shippedSourceMeta,
 	withPersonalMeasures,
 } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import {
 	type ComponentProps,
@@ -43,9 +44,18 @@ import {
 	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { formatLongDate } from "../data/calendar-day";
+import {
+	formatLongDate,
+	formatShortDate,
+	todayIsoDate,
+} from "../data/calendar-day";
 import { foodPhotos } from "../data/food-photo-manager";
-import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
+import {
+	type DiaryEntry,
+	MEAL_SLOTS,
+	type MealSlot,
+	useNutritionDay,
+} from "../data/nutrition-day";
 import {
 	intakeLoggedSince,
 	useNutritionDrafts,
@@ -89,6 +99,7 @@ import {
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
+import { DatePickerSheet } from "../ui/date-picker-sheet";
 import { EmptyState } from "../ui/empty-state";
 import { FoodEditorSheet } from "../ui/food-editor-sheet";
 import { FoodVisualView } from "../ui/food-visual";
@@ -105,9 +116,33 @@ import {
 	type FoodBrowserTab,
 	nutritionFoodBrowserCopy,
 } from "./nutrition-food-browser-copy";
+import { FoodBrowserMenu } from "./nutrition-food-browser-menu";
 import { PersonalFoodEditor } from "./personal-food-editor";
 
-const RESULT_PAGE_SIZE = 50;
+/**
+ * The shipped side is capped, not paged: the list is virtualized, and the cap
+ * exists only so an empty-query browse of the broader view has an end.
+ */
+const CATALOGUE_LIMIT = 2328;
+
+/** Scope chips, in the order they are offered. `pool` leads because it is the default. */
+const SCOPE_CHIPS = [
+	{ scope: "pool", copyKey: "pool" },
+	{ scope: "recent", copyKey: "recent" },
+	{ scope: "favorites", copyKey: "favorites" },
+	{ scope: "combos", copyKey: "combos" },
+	{ scope: "recipes", copyKey: "recipes" },
+	{ scope: "all", copyKey: "allFoods" },
+] as const satisfies readonly {
+	readonly scope: FoodBrowserTab;
+	readonly copyKey:
+		| "pool"
+		| "recent"
+		| "favorites"
+		| "combos"
+		| "recipes"
+		| "allFoods";
+}[];
 
 type FoodSelection =
 	| { readonly kind: "shipped"; readonly food: ShippedFood }
@@ -133,6 +168,79 @@ function asSelection(result: FoodResult<PersonalFood>): FoodSelection {
 	return result.kind === "local"
 		? { kind: "personal", food: result.food }
 		: { kind: "shipped", food: result.food };
+}
+
+/** The identity a row keeps across the tiers it can appear in. */
+function browserItemKey(item: BrowserItem): string {
+	return item.kind === "food"
+		? `food:${item.selection.kind}:${item.selection.food.id}`
+		: item.kind === "combo"
+			? `combo:${item.combo.id}`
+			: `online:${item.id}`;
+}
+
+/**
+ * First occurrence wins.
+ *
+ * The pooled list is built tier by tier, so a food that is both recent and a
+ * favorite — or recent and a search hit — arrives more than once. Keeping the
+ * first keeps the tier order meaningful: what you logged yesterday stays above
+ * the catalogue rather than being pulled down to where the catalogue found it.
+ */
+function dedupeItems(items: readonly BrowserItem[]): BrowserItem[] {
+	const seen = new Set<string>();
+	return items.filter((item) => {
+		const key = browserItemKey(item);
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+}
+
+/** Resolves durable shortcut keys back to the foods they point at. */
+function useShortcutSelections(
+	shortcuts: readonly { readonly sourceKey: string }[],
+	personalFoods: ReturnType<typeof usePersonalFoods>,
+): FoodSelection[] {
+	return useMemo(
+		() =>
+			shortcuts.reduce<FoodSelection[]>((selections, shortcut) => {
+				const separator = shortcut.sourceKey.indexOf(":");
+				const kind = shortcut.sourceKey.slice(0, separator);
+				const id = shortcut.sourceKey.slice(separator + 1);
+				if (kind === "shipped") {
+					const food = getShippedFood(id);
+					if (food) selections.push({ kind: "shipped", food });
+					return selections;
+				}
+				if (kind === "personal") {
+					const food = personalFoods.find(id);
+					if (food) selections.push({ kind: "personal", food });
+					return selections;
+				}
+				return selections;
+			}, []),
+		[personalFoods, shortcuts],
+	);
+}
+
+/**
+ * A Combo's own kcal, summed from the snapshots it was saved with.
+ *
+ * A part's `nutrients` are already the figures for the amount that part logs —
+ * the same values the diary prints per entry — so this sums them rather than
+ * rescaling by `quantity`.
+ */
+function comboEnergy(combo: Combo): number | undefined {
+	let total = 0;
+	let known = false;
+	for (const part of combo.parts) {
+		const energy = part.snapshot.nutrients.energy;
+		if (energy.kind !== "value") continue;
+		known = true;
+		total += energy.amount;
+	}
+	return known ? roundForDisplay("energy", total) : undefined;
 }
 
 /**
@@ -244,7 +352,7 @@ function offFailureMessage(
 
 export function NutritionFoodBrowser({
 	meal,
-	date,
+	date: initialDate,
 	draftId,
 	initialQuery,
 	onClose,
@@ -272,13 +380,15 @@ export function NutritionFoodBrowser({
 	const drafts = useNutritionDrafts();
 	const [query, setQuery] = useState(initialQuery ?? "");
 	const [savingNote, setSavingNote] = useState(false);
-	const [showCaptureTools, setShowCaptureTools] = useState(false);
-	const [showMealChoices, setShowMealChoices] = useState(false);
-	const [filter, setFilter] = useState<FoodFilter>(() =>
-		initialQuery?.trim() ? "all" : "recent",
-	);
+	// Read once per mount: a browser whose "Vandaag" target moves under the
+	// person because midnight passed mid-session is worse than one that is
+	// right again on the next visit.
+	const [today] = useState(todayIsoDate);
+	const [date, setDate] = useState(initialDate);
+	const [showCalendar, setShowCalendar] = useState(false);
+	const [filter, setFilter] = useState<FoodFilter>("pool");
 	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(meal);
-	const [addedFeedback, setAddedFeedback] = useState<string>();
+	const [mealOpen, setMealOpen] = useState(false);
 	const servingPendingRef = useRef(false);
 	const [servingPending, setServingPending] = useState(false);
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
@@ -342,87 +452,121 @@ export function NutritionFoodBrowser({
 	 * which tier the person asked for; which of their corrections stands in
 	 * front of which shipped record is not a rendering question.
 	 */
+	/**
+	 * `promoted` is a curated everyday subset, not "the ordinary ranking" — which
+	 * is exactly why a food you own could be invisible on the wrong tab. Both the
+	 * pool and the broader view therefore search `all`; what separates them is
+	 * that only the broader view keeps shipped records someone has corrected.
+	 */
+	const broaderView = filter === "all";
 	const allResults = useMemo(
 		() =>
 			foodResults<PersonalFood>({
 				query,
 				locale,
-				scope: filter === "all" ? "all" : "promoted",
+				scope: "all",
 				localMatches: personalFoods.search(query, locale),
 				localFoods: personalFoods.forks(),
-				limit: filter === "all" ? 2328 : RESULT_PAGE_SIZE,
+				limit: CATALOGUE_LIMIT,
 			}),
-		[filter, locale, personalFoods, query],
+		[locale, personalFoods, query],
 	);
 	// The operation-version subscription above deliberately refreshes these
-	// durable shortcuts after a quick log or a favorite toggle.
-	const shortcuts = subject
-		? filter === "favorites"
-			? operations.listFavorites(subject)
-			: operations.listRecent(subject)
-		: [];
-	const shortcutSelections = useMemo<FoodSelection[]>(
-		() =>
-			shortcuts.reduce<FoodSelection[]>((selections, shortcut) => {
-				const separator = shortcut.sourceKey.indexOf(":");
-				const kind = shortcut.sourceKey.slice(0, separator);
-				const id = shortcut.sourceKey.slice(separator + 1);
-				if (kind === "shipped") {
-					const food = getShippedFood(id);
-					if (food) selections.push({ kind: "shipped", food });
-					return selections;
-				}
-				if (kind === "personal") {
-					const food = personalFoods.find(id);
-					if (food) selections.push({ kind: "personal", food });
-					return selections;
-				}
-				return selections;
-			}, []),
-		[personalFoods, shortcuts],
+	// durable shortcuts after a quick log or a favorite toggle. Both tiers are
+	// read on every render now rather than whichever the tab asked for: the
+	// default view pools them, so "which one do I need" is no longer a question
+	// the chip answers.
+	const recentShortcuts = subject ? operations.listRecent(subject) : [];
+	const favoriteShortcuts = subject ? operations.listFavorites(subject) : [];
+	const recentSelections = useShortcutSelections(
+		recentShortcuts,
+		personalFoods,
+	);
+	const favoriteSelections = useShortcutSelections(
+		favoriteShortcuts,
+		personalFoods,
 	);
 	const combos = personalFoods.listCombos();
 	const recipes = personalFoods.search(query, locale, {
 		classification: "recipe",
 	});
+	/**
+	 * What the list shows.
+	 *
+	 * `pool` is the default and the point of the redesign: one list holding
+	 * recents, favorites, Combos, recipes and ordinary search at once, so a food
+	 * you own can never be invisible because you are standing on the wrong chip.
+	 * The other chips narrow that same pool rather than querying a different
+	 * place, except `all` — which stays the deliberate broader view (#75), the
+	 * one place a shipped record someone has corrected is still listed.
+	 */
 	const visibleItems = useMemo<readonly BrowserItem[]>(() => {
 		const normalizedQuery = query.trim().toLocaleLowerCase();
-		if (filter === "combos") {
-			return combos
-				.filter(
-					(combo) =>
-						!normalizedQuery ||
-						combo.name.toLocaleLowerCase().includes(normalizedQuery),
-				)
-				.map((combo) => ({ kind: "combo" as const, combo }));
-		}
-		if (filter === "recipes") {
-			return recipes.map((food) => ({
+		const matches = (name: string) =>
+			!normalizedQuery || name.toLocaleLowerCase().includes(normalizedQuery);
+		const shortcutItems = (
+			selections: readonly FoodSelection[],
+			caption: string,
+		) =>
+			selections
+				.filter((selection) => matches(selection.food.name[locale]))
+				.map((selection) => ({
+					kind: "food" as const,
+					selection,
+					caption,
+				}));
+		const recentItems = shortcutItems(
+			recentSelections,
+			t.nutrition.foodBrowser.lastUsed,
+		);
+		const favoriteItems = shortcutItems(favoriteSelections, copy.favorites);
+		const comboItems = combos
+			.filter((combo) => matches(combo.name))
+			.map((combo) => ({ kind: "combo" as const, combo }));
+		const recipeItems = recipes.map((food) => ({
+			kind: "food" as const,
+			selection: { kind: "personal" as const, food },
+			caption: copy.recipes,
+		}));
+		const searchItems = allResults
+			// The pool is ordinary search: a shipped record whose correction is
+			// already in the list would be a duplicate of it. The broader view is
+			// the one place that keeps both and says which corrected which.
+			.filter(
+				(result) =>
+					broaderView || result.kind === "local" || !result.shadowedBy,
+			)
+			// An empty query in the pool is not a browse request: it shows what you
+			// already keep — recents, favorites, Combos, recipes — rather than the
+			// whole catalogue in alphabetical order. That browse is the broader
+			// view's job, and it still does it.
+			.filter(
+				(result) =>
+					broaderView || normalizedQuery.length > 0 || result.kind === "local",
+			)
+			.map((result) => ({
 				kind: "food" as const,
-				selection: { kind: "personal" as const, food },
-				caption: copy.recipes,
+				selection: asSelection(result),
+				caption: resultCaption(result, t.nutrition, locale),
 			}));
-		}
 		const foods =
-			filter === "recent" || filter === "favorites"
-				? shortcutSelections
-						.filter(
-							(selection) =>
-								!normalizedQuery ||
-								selection.food.name[locale]
-									.toLocaleLowerCase()
-									.includes(normalizedQuery),
-						)
-						.map((selection) => ({
-							kind: "food" as const,
-							selection,
-							caption: t.nutrition.foodBrowser.lastUsed,
-						}))
-				: allResults.map((result) => ({
-						kind: "food" as const,
-						selection: asSelection(result),
-						caption: resultCaption(result, t.nutrition, locale),
-					}));
+			filter === "recent"
+				? recentItems
+				: filter === "favorites"
+					? favoriteItems
+					: filter === "combos"
+						? comboItems
+						: filter === "recipes"
+							? recipeItems
+							: broaderView
+								? searchItems
+								: dedupeItems([
+										...recentItems,
+										...favoriteItems,
+										...comboItems,
+										...recipeItems,
+										...searchItems,
+									]);
 		return [
 			...foods,
 			...(onlineResults ?? []).map((draft, id) => ({
@@ -433,16 +577,31 @@ export function NutritionFoodBrowser({
 		];
 	}, [
 		allResults,
+		broaderView,
 		combos,
+		copy.favorites,
 		copy.recipes,
+		favoriteSelections,
 		filter,
 		locale,
 		onlineResults,
 		query,
+		recentSelections,
 		recipes,
-		shortcutSelections,
 		t.nutrition,
 	]);
+	// The meal bar is the confirmation: it is what moves when a row is logged.
+	const day = useNutritionDay(date);
+	const mealEntries =
+		day.status === "ready" ? day.day.entries[selectedMeal] : [];
+	const mealEnergy = mealEntries.reduce((total, entry) => {
+		const energy = entry.nutrients.energy;
+		return energy.kind === "value" ? total + energy.amount : total;
+	}, 0);
+	const mealEnergyLabel = mealEntries.length
+		? `${roundForDisplay("energy", mealEnergy)} kcal`
+		: undefined;
+	const catalogueSize = useMemo(() => shippedLibrary().active.length, []);
 
 	function closeEditor() {
 		setCreatingFood(false);
@@ -576,18 +735,15 @@ export function NutritionFoodBrowser({
 					servingPendingRef.current = pending;
 					setServingPending(pending);
 				}}
-				onLogged={(outcome, foodName) => {
+				onLogged={(outcome) => {
 					if (outcome === "close") {
 						onClose();
 						return;
 					}
+					// No in-screen confirmation line: the meal bar's count and kcal
+					// moving is the feedback, and it is a polite live region so it is
+					// announced too.
 					setSelectedFood(undefined);
-					setAddedFeedback(
-						fmt(t.nutrition.foodBrowser.addedToMeal, {
-							food: foodName,
-							meal: t.nutrition.meals[selectedMeal],
-						}),
-					);
 				}}
 				onEdit={
 					selectedFood.kind === "personal"
@@ -693,12 +849,6 @@ export function NutritionFoodBrowser({
 						return next;
 					});
 					haptics.entryLogged();
-					setAddedFeedback(
-						fmt(t.nutrition.foodBrowser.addedToMeal, {
-							food: selection.food.name[locale],
-							meal: t.nutrition.meals[selectedMeal],
-						}),
-					);
 				},
 			);
 		} catch {
@@ -734,6 +884,72 @@ export function NutritionFoodBrowser({
 
 	return (
 		<>
+			<DatePickerSheet
+				visible={showCalendar}
+				date={date}
+				today={today}
+				locale={locale}
+				title={copy.chooseDate}
+				todayLabel={copy.today}
+				doneLabel={copy.doneChoosingDate}
+				closeLabel={copy.closeMenu}
+				onSelect={(next) => {
+					setDate(next);
+					setShowCalendar(false);
+				}}
+				onClose={() => setShowCalendar(false)}
+			/>
+			{/*
+			 * The date is the title, and tapping it opens the system picker.
+			 * There is no "Klaar" to confirm — every row commits its own log and
+			 * the stack's back chevron closes the browser — so the corner freed
+			 * up carries the same picker as a visible affordance.
+			 */}
+			<Stack.Screen
+				options={{
+					title: formatShortDate(date, locale),
+					headerTitle: () => (
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel={copy.chooseDate}
+							accessibilityValue={{ text: formatLongDate(date, locale) }}
+							accessibilityState={{ expanded: showCalendar }}
+							onPress={() => setShowCalendar(true)}
+							style={styles.headerTitle}
+						>
+							<AppText style={styles.headerTitleText}>
+								{formatShortDate(date, locale)}
+							</AppText>
+						</Pressable>
+					),
+					/*
+					 * The corner opens the picker rather than holding "Vandaag".
+					 * "Vandaag" is disabled exactly when you are already on today —
+					 * which is most of the time — so in the corner it reads as a
+					 * control that does nothing. It lives inside the picker now,
+					 * next to the date it resets.
+					 */
+					headerRight: () => (
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel={copy.chooseDate}
+							accessibilityValue={{ text: formatLongDate(date, locale) }}
+							onPress={() => setShowCalendar(true)}
+							style={styles.headerButton}
+						>
+							<SymbolView
+								name={{
+									ios: "calendar",
+									android: "calendar_month",
+									web: "calendar_month",
+								}}
+								size={20}
+								tintColor={colors.accentInk}
+							/>
+						</Pressable>
+					),
+				}}
+			/>
 			<FoodEditorSheet
 				visible={Boolean(editor)}
 				onClose={() => {
@@ -762,92 +978,51 @@ export function NutritionFoodBrowser({
 				keyboardDismissMode="interactive"
 				keyboardShouldPersistTaps="handled"
 				contentContainerStyle={styles.content}
-				keyExtractor={(item) =>
-					item.kind === "food"
-						? `food:${item.selection.kind}:${item.selection.food.id}`
-						: item.kind === "combo"
-							? `combo:${item.combo.id}`
-							: `online:${item.id}`
-				}
+				keyExtractor={browserItemKey}
 				ListHeaderComponent={
 					<View style={styles.headerContent}>
-						<View style={styles.targetPicker}>
-							<View style={styles.pickerRow}>
-								<Pressable
-									accessibilityRole="button"
-									accessibilityLabel={fmt(t.nutrition.foodBrowser.title, {
-										meal: t.nutrition.meals[selectedMeal],
-									})}
-									accessibilityState={{ expanded: showMealChoices }}
-									onPress={() => setShowMealChoices((open) => !open)}
-									style={styles.mealPicker}
-								>
-									<View style={styles.flex}>
-										<AppText style={styles.strong}>
-											{t.nutrition.meals[selectedMeal]}
-										</AppText>
-										<AppText variant="caption" style={styles.dateLabel}>
-											{formatLongDate(date, locale)}
-										</AppText>
-									</View>
-									<SymbolView
-										name={{
-											ios: "chevron.up.chevron.down",
-											android: "arrow_drop_down",
-											web: "expand_more",
-										}}
-										size={18}
-										tintColor={colors.textMuted}
-									/>
-								</Pressable>
-								<GhostButton
-									label={copy.done}
-									onPress={onClose}
-									disabled={servingPending}
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.chipList}
+						>
+							{MEAL_SLOTS.map((slot) => (
+								<Chip
+									key={slot}
+									label={t.nutrition.meals[slot]}
+									selected={selectedMeal === slot}
+									size="large"
+									role="radio"
+									onPress={() => setSelectedMeal(slot)}
+								/>
+							))}
+						</ScrollView>
+						<View style={styles.findControls}>
+							<View style={styles.searchField}>
+								<SymbolView
+									name={{
+										ios: "magnifyingglass",
+										android: "search",
+										web: "search",
+									}}
+									size={16}
+									tintColor={colors.textFaint}
+								/>
+								<TextInput
+									value={query}
+									onChangeText={(value) => {
+										setQuery(value);
+										searchRevision.current += 1;
+										setOnlineFeedback(undefined);
+										setOnlineResults(undefined);
+									}}
+									placeholder={copy.search}
+									placeholderTextColor={colors.textFaint}
+									accessibilityLabel={copy.search}
+									style={[styles.input, styles.flex]}
+									autoCorrect={false}
 								/>
 							</View>
-							{showMealChoices ? (
-								<View style={styles.mealMenu} accessibilityRole="menu">
-									{(["breakfast", "lunch", "dinner", "snacks"] as const).map(
-										(slot) => (
-											<Pressable
-												key={slot}
-												accessibilityRole="radio"
-												accessibilityState={{ checked: selectedMeal === slot }}
-												onPress={() => {
-													setSelectedMeal(slot);
-													setShowMealChoices(false);
-												}}
-												style={styles.mealChoice}
-											>
-												<AppText>{t.nutrition.meals[slot]}</AppText>
-											</Pressable>
-										),
-									)}
-								</View>
-							) : null}
-						</View>
-						{addedFeedback ? (
-							<AppText accessibilityLiveRegion="polite" style={styles.feedback}>
-								{addedFeedback}
-							</AppText>
-						) : null}
-						<View style={styles.findControls}>
-							<TextInput
-								value={query}
-								onChangeText={(value) => {
-									if (filter === "recent" && value.trim()) setFilter("all");
-									setQuery(value);
-									searchRevision.current += 1;
-									setOnlineFeedback(undefined);
-									setOnlineResults(undefined);
-								}}
-								placeholder={copy.search}
-								placeholderTextColor={colors.textFaint}
-								accessibilityLabel={copy.search}
-								style={[styles.input, styles.flex]}
-								autoCorrect={false}
-							/>
 							<IconButton
 								label={copy.scanBarcode}
 								symbol={{
@@ -858,91 +1033,71 @@ export function NutritionFoodBrowser({
 								onPress={() => setScanning(true)}
 							/>
 							<IconButton
+								label={copy.aiSearch}
+								symbol={{
+									ios: "sparkles",
+									android: "auto_awesome",
+									web: "auto_awesome",
+								}}
+								accented
+								onPress={() =>
+									router.push({
+										pathname: "/nutrition-assistance",
+										params: { date, meal: selectedMeal },
+									})
+								}
+							/>
+							<FoodBrowserMenu
 								label={copy.moreActions}
-								symbol={{ ios: "plus.circle.fill", android: "add", web: "add" }}
-								onPress={() => setShowCaptureTools((open) => !open)}
-								selected={showCaptureTools}
+								closeLabel={copy.closeMenu}
+								logOnceLabel={copy.logOnce}
+								newFoodLabel={copy.newPersonalFood}
+								newRecipeLabel={copy.newRecipe}
+								saveAsNoteLabel={t.nutrition.drafts.saveAsNote}
+								canSaveAsNote={!draftId && query.trim().length > 0}
+								onLogOnce={() =>
+									router.push({
+										pathname: "/nutrition-cooking",
+										params: { date, meal: selectedMeal, mode: "oneoff-log" },
+									})
+								}
+								onNewFood={() => setCreatingFood(true)}
+								onNewRecipe={() => {
+									setFilter("recipes");
+									setCreatingFood(true);
+								}}
+								onSaveAsNote={saveAsNote}
 							/>
 						</View>
-						{showCaptureTools ? (
-							<View style={styles.actionMenu} accessibilityRole="menu">
-								<Pressable
-									accessibilityRole="menuitem"
-									onPress={() =>
-										router.push({
-											pathname: "/nutrition-cooking",
-											params: { date, meal: selectedMeal, mode: "oneoff-log" },
-										})
-									}
-									style={styles.actionMenuItem}
-								>
-									<AppText>{copy.logOnce}</AppText>
-								</Pressable>
-								<Pressable
-									accessibilityRole="menuitem"
-									onPress={() => setCreatingFood(true)}
-									style={styles.actionMenuItem}
-								>
-									<AppText>{copy.newPersonalFood}</AppText>
-								</Pressable>
-							</View>
-						) : null}
 						<ScrollView
 							horizontal
 							showsHorizontalScrollIndicator={false}
-							contentContainerStyle={styles.tabList}
+							contentContainerStyle={styles.chipList}
 						>
-							{(
-								["recent", "favorites", "combos", "recipes", "all"] as const
-							).map((tab) => (
-								<Pressable
-									key={tab}
-									accessibilityRole="tab"
-									accessibilityState={{ selected: filter === tab }}
-									onPress={() => setFilter(tab)}
-									style={[styles.tab, filter === tab && styles.tabSelected]}
-								>
-									<AppText
-										style={filter === tab ? styles.tabTextSelected : undefined}
-									>
-										{tab === "all" ? copy.allFoods : copy[tab]}
-									</AppText>
-								</Pressable>
+							{SCOPE_CHIPS.map(({ scope, copyKey }) => (
+								<Chip
+									key={scope}
+									label={copy[copyKey]}
+									selected={filter === scope}
+									role="tab"
+									onPress={() => setFilter(scope)}
+								/>
 							))}
 						</ScrollView>
-						{filter === "recipes" ? (
-							<GhostButton
-								label={copy.newRecipe}
-								onPress={() => setCreatingFood(true)}
-							/>
-						) : null}
-						{query.trim().length > 0 ? (
-							<View style={styles.queryActions}>
-								{filter === "all" ? (
-									<Pressable
-										onPress={runOnlineSearch}
-										disabled={onlineSearching}
-										accessibilityRole="button"
-										style={styles.onlineSearch}
-									>
-										<AppText style={styles.onlineSearchText}>
-											{onlineSearching
-												? copy.searchingOnline
-												: copy.searchOnline}
-										</AppText>
-									</Pressable>
-								) : null}
-								{draftId ? null : (
-									<PrimaryButton
-										label={t.nutrition.drafts.saveAsNote}
-										onPress={saveAsNote}
-										loading={savingNote}
-										disabled={savingNote}
-									/>
-								)}
-							</View>
-						) : null}
-						{filter === "all" && onlineFeedback ? (
+						<MealSummary
+							label={copy.mealSummary(
+								t.nutrition.meals[selectedMeal],
+								mealEntries.length,
+								mealEnergyLabel,
+							)}
+							expandLabel={mealOpen ? copy.collapseMeal : copy.expandMeal}
+							emptyLabel={copy.mealEmpty}
+							open={mealOpen}
+							entries={mealEntries}
+							locale={locale}
+							onToggle={() => setMealOpen((open) => !open)}
+						/>
+						{query.trim().length > 0 && onlineFeedback ? (
 							<View
 								testID="off-search-feedback"
 								accessibilityRole="alert"
@@ -954,49 +1109,59 @@ export function NutritionFoodBrowser({
 						) : null}
 					</View>
 				}
+				ListFooterComponent={
+					<View style={styles.poolNote}>
+						<AppText variant="caption">
+							{copy.poolNote(catalogueSize.toLocaleString(locale))}
+						</AppText>
+						{/*
+						 * Open Food Facts is a network call on someone else's service,
+						 * so it stays an explicit act and only appears once there is
+						 * something to search for.
+						 */}
+						{query.trim().length > 0 ? (
+							<AppText
+								variant="caption"
+								accessibilityRole="button"
+								disabled={onlineSearching}
+								onPress={onlineSearching ? undefined : runOnlineSearch}
+								style={styles.onlineSearchText}
+							>
+								{onlineSearching ? copy.searchingOnline : copy.searchOnline}
+							</AppText>
+						) : null}
+					</View>
+				}
 				ListEmptyComponent={
-					filter === "all" && (onlineFeedback || onlineSearching) ? null : (
+					onlineFeedback || onlineSearching ? null : (
 						<BrowserEmptyState tab={filter} query={query} copy={copy} />
 					)
 				}
 				renderItem={({ item }) => {
-					if (item.kind === "combo")
+					if (item.kind === "combo") {
+						const energy = comboEnergy(item.combo);
+						const openCombo = () =>
+							router.push({
+								pathname: "/nutrition-combos",
+								params: {
+									date,
+									meal: selectedMeal,
+									comboId: item.combo.id,
+								},
+							});
 						return (
 							<LibraryRow
 								name={item.combo.name}
-								caption={
-									item.combo.parts.length === 1
-										? locale === "nl"
-											? "1 voedingsmiddel"
-											: "1 food"
-										: locale === "nl"
-											? `${item.combo.parts.length} voedingsmiddelen`
-											: `${item.combo.parts.length} foods`
-								}
+								caption={copy.comboParts(item.combo.parts.length)}
+								energy={energy === undefined ? undefined : `${energy} kcal`}
+								portion={copy.wholeCombo}
 								detailLabel={copy.comboDetail(item.combo.name)}
-								onDetail={() =>
-									router.push({
-										pathname: "/nutrition-combos",
-										params: {
-											date,
-											meal: selectedMeal,
-											comboId: item.combo.id,
-										},
-									})
-								}
+								onDetail={openCombo}
 								logLabel={copy.log}
-								onLog={() =>
-									router.push({
-										pathname: "/nutrition-combos",
-										params: {
-											date,
-											meal: selectedMeal,
-											comboId: item.combo.id,
-										},
-									})
-								}
+								onLog={openCombo}
 							/>
 						);
+					}
 					if (item.kind === "online")
 						return (
 							<Pressable
@@ -1013,10 +1178,16 @@ export function NutritionFoodBrowser({
 										style={styles.foodImage}
 									/>
 								) : (
-									<AppText variant="heading">◈</AppText>
+									<MediaSlot
+										symbol={{
+											ios: "globe",
+											android: "public",
+											web: "public",
+										}}
+									/>
 								)}
 								<View style={styles.flex}>
-									<AppText style={styles.strong}>
+									<AppText numberOfLines={2} style={styles.rowTitle}>
 										{item.draft.name[locale]}
 									</AppText>
 									<AppText variant="caption">
@@ -1074,16 +1245,17 @@ export function NutritionFoodBrowser({
 	);
 }
 
+/** One 40pt square control in the search row. */
 function IconButton({
 	label,
 	symbol,
 	onPress,
-	selected = false,
+	accented = false,
 }: {
 	label: string;
 	symbol: ComponentProps<typeof SymbolView>["name"];
 	onPress: () => void;
-	selected?: boolean;
+	accented?: boolean;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -1092,10 +1264,170 @@ function IconButton({
 			accessibilityRole="button"
 			accessibilityLabel={label}
 			onPress={onPress}
-			style={[styles.iconButton, selected && styles.iconButtonSelected]}
+			style={[styles.iconButton, accented && styles.iconButtonAccented]}
 		>
-			<SymbolView name={symbol} size={19} tintColor={colors.text} />
+			<SymbolView
+				name={symbol}
+				size={accented ? 18 : 19}
+				tintColor={accented ? colors.accentInk : colors.text}
+			/>
 		</Pressable>
+	);
+}
+
+/**
+ * A meal chip, and a scope chip at `size="small"`.
+ *
+ * Meals are a radio set — exactly one is the target you are logging into —
+ * while scopes read as tabs over one list, which is why the role differs.
+ */
+function Chip({
+	label,
+	selected,
+	onPress,
+	role,
+	size = "small",
+}: {
+	label: string;
+	selected: boolean;
+	onPress: () => void;
+	role: "radio" | "tab";
+	size?: "small" | "large";
+}) {
+	const styles = useThemedStyles(createStyles);
+	return (
+		<Pressable
+			accessibilityRole={role}
+			accessibilityState={
+				role === "radio" ? { checked: selected } : { selected }
+			}
+			onPress={onPress}
+			style={[
+				size === "large" ? styles.chipLarge : styles.chip,
+				selected && styles.chipSelected,
+			]}
+		>
+			<AppText
+				style={[
+					size === "large" ? styles.chipLargeText : styles.chipText,
+					selected && styles.chipTextSelected,
+				]}
+			>
+				{label}
+			</AppText>
+		</Pressable>
+	);
+}
+
+/**
+ * The 44pt slot every row leads with.
+ *
+ * Drawn even when a food has no photo and no preset, because the alternative —
+ * what the screen used to do — was three different leading indents and titles
+ * that never lined up.
+ */
+function MediaSlot({
+	symbol,
+	tinted = false,
+}: {
+	symbol: ComponentProps<typeof SymbolView>["name"];
+	tinted?: boolean;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	return (
+		<View style={styles.mediaSlot}>
+			<SymbolView
+				name={symbol}
+				size={20}
+				tintColor={tinted ? colors.accentInk : colors.textFaint}
+			/>
+		</View>
+	);
+}
+
+/**
+ * The meal's running total, and what is in it.
+ *
+ * This is the only confirmation a quick log gets: there is no transient "added
+ * to Ontbijt" line any more, so the count and kcal moving here — announced,
+ * because it is a polite live region — is the feedback.
+ */
+function MealSummary({
+	label,
+	expandLabel,
+	emptyLabel,
+	open,
+	entries,
+	locale,
+	onToggle,
+}: {
+	label: string;
+	expandLabel: string;
+	emptyLabel: string;
+	open: boolean;
+	entries: readonly DiaryEntry[];
+	locale: "en" | "nl";
+	onToggle: () => void;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	return (
+		<View style={styles.mealSummary}>
+			<Pressable
+				accessibilityRole="button"
+				accessibilityLabel={expandLabel}
+				accessibilityState={{ expanded: open }}
+				onPress={onToggle}
+				style={styles.mealSummaryHeader}
+			>
+				<AppText
+					accessibilityLiveRegion="polite"
+					style={[styles.flex, styles.mealSummaryLabel]}
+				>
+					{label}
+				</AppText>
+				<SymbolView
+					name={
+						open
+							? {
+									ios: "chevron.up",
+									android: "expand_less",
+									web: "expand_less",
+								}
+							: {
+									ios: "chevron.down",
+									android: "expand_more",
+									web: "expand_more",
+								}
+					}
+					size={15}
+					tintColor={colors.accentInk}
+				/>
+			</Pressable>
+			{open ? (
+				<View style={styles.mealSummaryBody}>
+					{entries.length === 0 ? (
+						<AppText variant="caption">{emptyLabel}</AppText>
+					) : (
+						entries.map((entry) => (
+							<View key={entry.id} style={styles.mealSummaryEntry}>
+								<AppText variant="caption" style={styles.flex}>
+									{entry.name[locale]} · {entry.serving[locale]}
+								</AppText>
+								<AppText variant="caption" style={styles.tabular}>
+									{entry.nutrients.energy.kind === "value"
+										? `${roundForDisplay("energy", entry.nutrients.energy.amount)} kcal`
+										: entry.nutrients.energy.kind === "trace"
+											? "~0 kcal"
+											: "— kcal"}
+								</AppText>
+							</View>
+						))
+					)}
+				</View>
+			) : null}
+		</View>
 	);
 }
 
@@ -1147,50 +1479,66 @@ function FoodRow({
 					<FoodVisualView
 						visual={selection.food.visual}
 						label={selection.food.name[locale]}
+						size={MEDIA_SLOT}
 					/>
 				) : (
-					<AppText variant="heading">{selection.food.emoji ?? "•"}</AppText>
+					<MediaSlot
+						symbol={{
+							ios: "fork.knife",
+							android: "restaurant",
+							web: "restaurant",
+						}}
+					/>
 				)}
 				<View style={styles.flex}>
-					<AppText style={styles.strong}>{selection.food.name[locale]}</AppText>
+					{/*
+					 * Two lines, not one: NEVO names run long in Dutch
+					 * ("Aardappel(product) naturel voorgekookt koelvers") and a hard
+					 * one-line clamp hides the part that distinguishes them. Two is
+					 * enough for almost all of them and still bounds the row.
+					 */}
+					<AppText numberOfLines={2} style={styles.rowTitle}>
+						{selection.food.name[locale]}
+					</AppText>
 					<AppText variant="caption">
 						{selection.kind === "personal"
 							? offProductCaption(selection.food.provenance, caption)
 							: caption}
 					</AppText>
-					<AppText variant="caption">{energy}</AppText>
+					<AppText variant="caption" style={styles.rowFaint}>
+						{energy}
+					</AppText>
 				</View>
 			</Pressable>
-			<View style={styles.quickLogControl}>
-				{quickPortion ? (
-					<AppText variant="caption" style={styles.quickPortion}>
-						{quickPortion}
-					</AppText>
-				) : null}
-				<Pressable
-					accessibilityRole="button"
-					accessibilityLabel={quickLabel}
-					accessibilityState={{ busy: quickLogging, disabled: quickLogging }}
-					disabled={quickLogging}
-					onPress={onQuickLog}
-					style={styles.quickAdd}
-				>
-					<SymbolView
-						name={{ ios: "plus.circle.fill", android: "add", web: "add" }}
-						size={18}
-						tintColor={colors.onAccent}
-					/>
-				</Pressable>
-			</View>
+			{quickPortion ? (
+				<AppText variant="caption" style={styles.quickPortion}>
+					{quickPortion}
+				</AppText>
+			) : null}
+			<Pressable
+				accessibilityRole="button"
+				accessibilityLabel={quickLabel}
+				accessibilityState={{ busy: quickLogging, disabled: quickLogging }}
+				disabled={quickLogging}
+				onPress={onQuickLog}
+				style={styles.quickAdd}
+			>
+				<SymbolView
+					name={{ ios: "plus", android: "add", web: "add" }}
+					size={18}
+					tintColor={colors.onAccent}
+				/>
+			</Pressable>
 		</View>
 	);
 }
 
+/** A Combo, on the same grid as a food: media slot, three lines, round +. */
 function LibraryRow({
 	name,
 	caption,
-	visual,
-	showVisual = false,
+	energy,
+	portion,
 	detailLabel,
 	onDetail,
 	logLabel,
@@ -1198,13 +1546,14 @@ function LibraryRow({
 }: {
 	name: string;
 	caption: string;
-	visual?: PersonalFood["visual"];
-	showVisual?: boolean;
+	energy?: string;
+	portion?: string;
 	detailLabel: string;
 	onDetail: () => void;
 	logLabel: string;
 	onLog: () => void;
 }) {
+	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.foodRow}>
@@ -1214,19 +1563,41 @@ function LibraryRow({
 				onPress={onDetail}
 				style={styles.foodOpen}
 			>
-				{showVisual ? <FoodVisualView visual={visual} label={name} /> : null}
+				<MediaSlot
+					symbol={{
+						ios: "square.stack.3d.up",
+						android: "layers",
+						web: "layers",
+					}}
+				/>
 				<View style={styles.flex}>
-					<AppText style={styles.strong}>{name}</AppText>
+					<AppText numberOfLines={2} style={styles.rowTitle}>
+						{name}
+					</AppText>
 					<AppText variant="caption">{caption}</AppText>
+					{energy ? (
+						<AppText variant="caption" style={styles.rowFaint}>
+							{energy}
+						</AppText>
+					) : null}
 				</View>
 			</Pressable>
+			{portion ? (
+				<AppText variant="caption" style={styles.quickPortion}>
+					{portion}
+				</AppText>
+			) : null}
 			<Pressable
 				accessibilityRole="button"
 				accessibilityLabel={`${logLabel} ${name}`}
 				onPress={onLog}
 				style={styles.quickAdd}
 			>
-				<AppText style={styles.quickAddText}>{logLabel}</AppText>
+				<SymbolView
+					name={{ ios: "plus", android: "add", web: "add" }}
+					size={18}
+					tintColor={colors.onAccent}
+				/>
 			</Pressable>
 		</View>
 	);
@@ -1249,6 +1620,8 @@ function BrowserEmptyState({
 				appearance="search"
 			/>
 		);
+	if (tab === "pool")
+		return <EmptyState title={copy.poolEmptyTitle} body={copy.poolEmptyBody} />;
 	if (tab === "recent")
 		return (
 			<EmptyState title={copy.recentEmptyTitle} body={copy.recentEmptyBody} />
@@ -1795,104 +2168,122 @@ function createFoodSnapshot(
 	return { common, provenance };
 }
 
+/**
+ * Every row leads with a slot this wide, drawn whether or not the food has a
+ * picture, so titles line up at one indent instead of three.
+ */
+const MEDIA_SLOT = 44;
+
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
 		center: { alignItems: "center", justifyContent: "center" },
-		content: { padding: 16, paddingTop: 8, paddingBottom: 40, gap: spacing.xs },
+		content: { paddingTop: 10, paddingBottom: 40, gap: 12 },
 		flex: { flex: 1 },
-		headerContent: { gap: spacing.sm, paddingBottom: spacing.sm },
-		targetPicker: { gap: spacing.xs },
-		pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-		mealPicker: {
-			minHeight: 48,
-			flex: 1,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: spacing.sm,
-			paddingHorizontal: spacing.md,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-			borderRadius: radius.md,
-			backgroundColor: colors.surface2,
-		},
-		mealMenu: {
-			borderRadius: radius.md,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-			backgroundColor: colors.surface2,
-			overflow: "hidden",
-		},
-		mealChoice: {
+		tabular: { fontVariant: ["tabular-nums"] },
+		headerContent: { gap: 12, paddingBottom: spacing.sm },
+		headerTitle: {
 			minHeight: 44,
 			justifyContent: "center",
-			paddingHorizontal: spacing.md,
-			borderBottomWidth: 1,
-			borderBottomColor: colors.border,
+			paddingHorizontal: spacing.sm,
 		},
-		dateLabel: { color: colors.textMuted },
-		feedback: { color: colors.accent, fontWeight: "700" },
+		headerTitleText: { fontWeight: "700", color: colors.text },
+		headerButton: {
+			minHeight: 44,
+			justifyContent: "center",
+			paddingHorizontal: spacing.sm,
+		},
+		chipList: {
+			flexDirection: "row",
+			gap: spacing.sm,
+			paddingHorizontal: spacing.md,
+		},
+		chip: {
+			minHeight: 32,
+			justifyContent: "center",
+			paddingHorizontal: 12,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+		},
+		chipLarge: {
+			minHeight: 36,
+			justifyContent: "center",
+			paddingHorizontal: 14,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+		},
+		chipSelected: { backgroundColor: colors.accentFill },
+		chipText: { fontSize: 13, color: colors.text },
+		chipLargeText: { fontSize: 15, color: colors.text },
+		chipTextSelected: { color: colors.onAccent, fontWeight: "700" },
 		findControls: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.sm,
+			paddingHorizontal: spacing.md,
+		},
+		searchField: {
+			flex: 1,
+			minWidth: 0,
+			minHeight: 40,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			paddingHorizontal: 10,
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface2,
 		},
 		iconButton: {
-			width: 48,
-			height: 48,
+			width: 40,
+			height: 40,
 			alignItems: "center",
 			justifyContent: "center",
-			borderRadius: radius.md,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
+			borderRadius: radius.lg,
 			backgroundColor: colors.surface2,
 		},
-		iconButtonSelected: {
+		iconButtonAccented: {
+			backgroundColor: colors.accentDim,
+			borderWidth: 1,
+			borderColor: colors.accent,
+		},
+		mealSummary: {
+			marginHorizontal: spacing.md,
+			borderRadius: radius.card,
+			borderWidth: 1,
 			borderColor: colors.accent,
 			backgroundColor: colors.accentDim,
+			overflow: "hidden",
 		},
-		actionMenu: {
-			gap: 2,
-			padding: spacing.xs,
-			borderRadius: radius.md,
-			backgroundColor: colors.surface2,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-		},
-		actionMenuItem: {
-			minHeight: 44,
-			justifyContent: "center",
-			paddingHorizontal: spacing.md,
-		},
-		tabList: {
-			flexDirection: "row",
-			gap: spacing.md,
-			paddingHorizontal: spacing.xs,
-		},
-		tab: {
-			minHeight: 44,
-			justifyContent: "center",
-			borderBottomWidth: 2,
-			borderBottomColor: "transparent",
-		},
-		tabSelected: { borderBottomColor: colors.accent },
-		tabTextSelected: { color: colors.accent, fontWeight: "800" },
-		queryActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
-		onlineSearch: {
-			minHeight: 36,
-			alignSelf: "flex-start",
-			justifyContent: "center",
-		},
-		onlineSearchText: { color: colors.accent, fontWeight: "700" },
-		heading: { gap: spacing.xs },
-		strong: { fontWeight: "700" },
-		input: {
+		mealSummaryHeader: {
 			minHeight: 48,
-			borderRadius: radius.md,
-			backgroundColor: colors.surface2,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingHorizontal: 14,
+			paddingVertical: spacing.sm,
+		},
+		mealSummaryLabel: { fontWeight: "700" },
+		mealSummaryBody: {
+			gap: 6,
+			paddingHorizontal: 14,
+			paddingBottom: 10,
+		},
+		mealSummaryEntry: { flexDirection: "row", gap: 10 },
+		heading: { gap: spacing.xs, paddingHorizontal: spacing.md },
+		poolNote: {
+			gap: spacing.xs,
 			paddingHorizontal: spacing.md,
+			paddingVertical: 14,
+		},
+		onlineSearchText: { color: colors.accentInk, fontWeight: "600" },
+		onlineSearchIdle: { color: colors.textFaint, fontWeight: "600" },
+		strong: { fontWeight: "700" },
+		rowTitle: { fontWeight: "600", letterSpacing: -0.2 },
+		rowFaint: { color: colors.textFaint },
+		input: {
+			flex: 1,
+			minWidth: 0,
+			minHeight: 40,
 			color: colors.text,
 			fontSize: 15,
 		},
@@ -1907,25 +2298,38 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.pill,
 		},
 		foodRow: {
-			minHeight: 56,
+			minHeight: 64,
 			flexDirection: "row",
 			alignItems: "center",
-			gap: spacing.md,
-			paddingHorizontal: spacing.sm,
-			paddingVertical: spacing.sm,
-			borderBottomWidth: 1,
-			borderBottomColor: colors.border,
+			gap: 12,
+			paddingHorizontal: spacing.md,
+			paddingVertical: 10,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: colors.separator,
 		},
 		foodOpen: {
 			flex: 1,
+			minWidth: 0,
 			flexDirection: "row",
 			alignItems: "center",
-			gap: spacing.md,
+			gap: 12,
+		},
+		mediaSlot: {
+			width: MEDIA_SLOT,
+			height: MEDIA_SLOT,
+			flexGrow: 0,
+			flexShrink: 0,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface2,
 		},
 		foodImage: {
-			width: 52,
-			height: 52,
-			borderRadius: radius.sm,
+			width: MEDIA_SLOT,
+			height: MEDIA_SLOT,
+			flexGrow: 0,
+			flexShrink: 0,
+			borderRadius: radius.lg,
 			backgroundColor: colors.surface2,
 		},
 		detailImage: {
@@ -1937,23 +2341,19 @@ const createStyles = (colors: Tokens) =>
 		quickAdd: {
 			width: 44,
 			height: 44,
-			paddingHorizontal: spacing.sm,
+			flexGrow: 0,
+			flexShrink: 0,
 			alignItems: "center",
 			justifyContent: "center",
 			borderRadius: radius.pill,
 			backgroundColor: colors.accentFill,
 		},
-		quickLogControl: {
-			flexDirection: "row",
-			alignItems: "center",
-			gap: spacing.xs,
-		},
 		quickPortion: {
 			maxWidth: 104,
 			color: colors.textMuted,
 			textAlign: "right",
+			fontVariant: ["tabular-nums"],
 		},
-		quickAddText: { color: colors.onAccent, fontWeight: "800", fontSize: 12 },
 		options: { gap: spacing.md },
 		favoriteButton: {
 			alignSelf: "flex-end",

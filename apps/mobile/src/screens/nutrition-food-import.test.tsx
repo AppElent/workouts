@@ -163,7 +163,11 @@ describe("scanning a barcode", () => {
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
 		expect(repository.list()[0].visual).toBeUndefined();
-		expect(await screen.findByLabelText("Baked Beans visual")).toBeTruthy();
+		// The neutral fallback, in the serving sheet and in the row behind it —
+		// the pooled list shows the food you just saved without switching scope.
+		expect(
+			(await screen.findAllByLabelText("Baked Beans visual")).length,
+		).toBeGreaterThan(0);
 		expect(
 			await screen.findByText(
 				"The product was saved, but its photo could not be downloaded.",
@@ -318,7 +322,6 @@ describe("the explicit Open Food Facts search", () => {
 		const fetchImpl: FetchLike = jest.fn();
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
 
 		expect(screen.queryByText("Search Open Food Facts")).toBeNull();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
@@ -333,7 +336,6 @@ describe("the explicit Open Food Facts search", () => {
 		);
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
 		fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"baked beans",
@@ -355,7 +357,6 @@ describe("the explicit Open Food Facts search", () => {
 		);
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
 		fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"zzzznotfound",

@@ -79,6 +79,25 @@ export function isoDateToLocalDayRangeMs(iso: IsoDate): {
  * nutrition day that crashes over a date header would be an absurd way to lose
  * the screen. The fallback is the ISO string, which is at least unambiguous.
  */
+/**
+ * "di 22 september" — the same date with an abbreviated weekday.
+ *
+ * A navigation title has one line and no room to truncate gracefully; the long
+ * form ("dinsdag 22 september") loses its day number there, which is the part
+ * that matters when you are logging into a past day.
+ */
+export function formatShortDate(iso: IsoDate, locale: string): string {
+	try {
+		return isoDateToLocalDate(iso).toLocaleDateString(locale, {
+			weekday: "short",
+			day: "numeric",
+			month: "long",
+		});
+	} catch {
+		return iso;
+	}
+}
+
 export function formatLongDate(iso: IsoDate, locale: string): string {
 	try {
 		return isoDateToLocalDate(iso).toLocaleDateString(locale, {

@@ -58,8 +58,8 @@ describe("the app's language", () => {
 		testRouter.navigate("/nutrition");
 		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
 
-		fireEvent.press(await screen.findByText("Alle voeding"));
-		fireEvent.changeText(screen.getByLabelText("Zoek eten"), "appel");
+		// The default "Alles" chip already searches the whole catalogue.
+		fireEvent.changeText(await screen.findByLabelText("Zoek eten"), "appel");
 		fireEvent.press(screen.getByText("Appel"));
 		expect(await screen.findByText("Appel × 1")).toBeTruthy();
 	});

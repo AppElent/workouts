@@ -182,6 +182,27 @@ jest.mock("@expo/ui/swift-ui", () => {
 				},
 				children ?? React.createElement(Text, null, label),
 			),
+		// The system date picker. Jest cannot draw a month grid, so the mock
+		// exposes the one thing a test needs: the selected date in, and a
+		// `dateChange` event out.
+		DatePicker: ({
+			title,
+			selection,
+			onDateChange,
+			modifiers,
+		}: {
+			title?: string;
+			selection?: Date;
+			onDateChange?: (date: Date) => void;
+			modifiers?: { type: string; args: unknown[] }[];
+		}) =>
+			React.createElement(View, {
+				testID: "swiftui-date-picker",
+				accessibilityLabel:
+					modifierArg(modifiers, "accessibilityLabel") ?? title,
+				selection,
+				onDateChange,
+			}),
 		Divider: Container,
 		Group: ({
 			children,

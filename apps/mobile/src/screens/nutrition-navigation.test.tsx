@@ -205,8 +205,11 @@ describe("Nutrition navigation", () => {
 			meal: "dinner",
 			date: todayIsoDate(),
 		});
-		// The compact meal/date picker retains the route's meal context.
-		expect(await screen.findByLabelText("Find food for Dinner")).toBeTruthy();
+		// The meal chip row retains the route's meal context.
+		expect(
+			(await screen.findByRole("radio", { name: "Dinner" })).props
+				.accessibilityState,
+		).toMatchObject({ checked: true });
 	});
 	it("preserves Dinner when switching from Add food to Log once", async () => {
 		const app = renderApp();

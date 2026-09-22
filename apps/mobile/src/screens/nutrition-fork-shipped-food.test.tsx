@@ -19,17 +19,17 @@ import { renderApp } from "../test-support/render-app";
 const mockUseMutation = jest.mocked(useMutation);
 
 /** Open Find Food for a meal and start correcting the promoted apple. */
-async function correctTheApple(meal = "Lunch", allFoods = "All foods") {
+async function correctTheApple(meal = "Lunch", allFoods = "Full catalogue") {
 	fireEvent.press(await screen.findByLabelText(`Add food to ${meal}`));
 	fireEvent.press(await screen.findByRole("tab", { name: allFoods }));
 	fireEvent.changeText(
 		screen.getByPlaceholderText(
-			allFoods === "Alle voeding" ? "Zoek eten" : "Search foods",
+			allFoods === "Volledige lijst" ? "Zoek eten" : "Search foods",
 		),
-		allFoods === "Alle voeding" ? "appel" : "apple",
+		allFoods === "Volledige lijst" ? "appel" : "apple",
 	);
 	fireEvent.press(
-		await screen.findByText(allFoods === "Alle voeding" ? "Appel" : "Apple"),
+		await screen.findByText(allFoods === "Volledige lijst" ? "Appel" : "Apple"),
 	);
 	fireEvent.press(await screen.findByText("Correct this food"));
 }
@@ -107,13 +107,13 @@ describe("correcting a shipped food", () => {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 
 		expect(await screen.findByText("Elstar apple")).toBeTruthy();
-		// All foods is the deliberate broader library: it retains the source and
-		// marks it as replaced while the correction wins the normal result.
+		// The full catalogue is the deliberate broader library: it retains the
+		// source and marks it as replaced while the correction wins the pool.
 		expect(screen.getByText("Replaced by your correction")).toBeTruthy();
 		expect(screen.getAllByText("Apple").length).toBeGreaterThan(0);
 	});
 
-	it("keeps the replaced-source provenance visible in All foods", async () => {
+	it("keeps the replaced-source provenance visible in the full catalogue", async () => {
 		renderApp();
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save Personal Food"));
@@ -184,13 +184,15 @@ describe("what a correction does to the diary", () => {
 		);
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(await screen.findByRole("tab", { name: "All foods" }));
+		fireEvent.press(await screen.findByRole("tab", { name: "Full catalogue" }));
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		fireEvent.press(await screen.findByText("Apple"));
 		fireEvent.press(screen.getByText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		const before = structuredClone(log.mock.calls[0][0]);
-		fireEvent.press(screen.getByText("Done"));
+		// There is no "Done" any more — the pushed route's back chevron closes the
+		// browser, and every row has already committed its own log.
+		testRouter.back();
 
 		await correctTheApple("Dinner");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
@@ -246,7 +248,9 @@ describe("correcting a shipped food in Dutch", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition");
 		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
-		fireEvent.press(await screen.findByRole("tab", { name: "Alle voeding" }));
+		fireEvent.press(
+			await screen.findByRole("tab", { name: "Volledige lijst" }),
+		);
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
 		fireEvent.press(await screen.findByText("Appel"));
 
@@ -261,7 +265,7 @@ describe("correcting a shipped food in Dutch", () => {
 		).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Sluit portiekeuze"));
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
-		fireEvent.press(screen.getByRole("tab", { name: "Alle voeding" }));
+		fireEvent.press(screen.getByRole("tab", { name: "Volledige lijst" }));
 
 		expect(
 			await screen.findByText("Vervangen door jouw correctie"),

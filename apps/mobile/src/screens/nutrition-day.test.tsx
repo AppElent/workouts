@@ -11,7 +11,7 @@ import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import * as ReactNative from "react-native";
 import {
-	formatLongDate,
+	formatShortDate,
 	shiftIsoDate,
 	todayIsoDate,
 } from "../data/calendar-day";
@@ -400,7 +400,10 @@ describe("the nutrition day", () => {
 
 		fireEvent.press(screen.getByLabelText("Add food to Lunch"));
 
-		expect(await screen.findByLabelText("Find food for Lunch")).toBeTruthy();
+		expect(
+			(await screen.findByRole("radio", { name: "Lunch" })).props
+				.accessibilityState,
+		).toMatchObject({ checked: true });
 	});
 
 	it("explains an empty meal slot rather than leaving it blank", async () => {
@@ -437,9 +440,10 @@ describe("the nutrition day", () => {
 		fireEvent.press(screen.getByLabelText("Previous day"));
 		fireEvent.press(screen.getByLabelText("Add food to Breakfast"));
 
+		// The browser's own title, which is the date it will log into.
 		expect(
 			await screen.findByText(
-				formatLongDate(shiftIsoDate(todayIsoDate(), -1), "en"),
+				formatShortDate(shiftIsoDate(todayIsoDate(), -1), "en"),
 			),
 		).toBeTruthy();
 	});

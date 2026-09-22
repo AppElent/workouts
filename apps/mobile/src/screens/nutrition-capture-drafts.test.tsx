@@ -44,6 +44,9 @@ describe("Capture Drafts in the diary", () => {
 	it("saves the search text as a note and lands back on the diary", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		// Saving a note lives in the + menu now. With nothing typed there is
+		// nothing to file, so the menu does not offer it.
+		fireEvent.press(await screen.findByLabelText("More food actions"));
 		expect(screen.queryByText("Save as note")).toBeNull();
 
 		fireEvent.changeText(
@@ -84,6 +87,7 @@ describe("Capture Drafts in the diary", () => {
 		);
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		// Resolving a note never offers to file the same text as a second note.
+		fireEvent.press(screen.getByLabelText("More food actions"));
 		expect(screen.queryByText("Save as note")).toBeNull();
 	});
 
@@ -92,7 +96,11 @@ describe("Capture Drafts in the diary", () => {
 		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
 		fireEvent.press(await screen.findByText("Apple"));
 		fireEvent.press(await screen.findByText("Add & continue"));
-		await screen.findByText("Added Apple to Lunch");
+		// The serving sheet closing is the signal the log landed; there is no
+		// confirmation line on the browser any more.
+		await waitFor(() =>
+			expect(screen.queryByText("Add & continue")).toBeNull(),
+		);
 
 		testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
