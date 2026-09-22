@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
+import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "../ui/text";
 
 export function SettingsScreen() {
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const { locale } = useI18n();
 	return (
@@ -22,17 +23,18 @@ export function SettingsScreen() {
 		</ScrollView>
 	);
 }
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: spacing.md },
-	row: {
-		minHeight: 52,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		padding: spacing.md,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-	},
-	chevron: { color: colors.accent, fontSize: 24 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: spacing.md },
+		row: {
+			minHeight: 52,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			padding: spacing.md,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+		},
+		chevron: { color: colors.accent, fontSize: 24 },
+	});

@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { type Edge, SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "../theme";
+import { type Tokens, useThemedStyles } from "../theme";
 
 export function Screen({
 	children,
@@ -14,6 +14,7 @@ export function Screen({
 	children: ReactNode;
 	edges?: readonly Edge[];
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.root}>
 			<SafeAreaView style={styles.root} edges={edges}>
@@ -23,6 +24,7 @@ export function Screen({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+	});

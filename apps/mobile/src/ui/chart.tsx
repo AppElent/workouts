@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { type LayoutChangeEvent, StyleSheet } from "react-native";
 import { BarChart, LineChart } from "react-native-gifted-charts";
-import { colors, spacing } from "../theme";
+import { spacing, useTokens } from "../theme";
 import {
 	CHART_HEIGHT,
 	ChartFrame,
@@ -36,8 +36,10 @@ export function TrendChart({
 	title,
 	note,
 	points,
-	color = colors.accentInk,
+	color: suppliedColor,
 }: ChartProps) {
+	const colors = useTokens();
+	const color = suppliedColor ?? colors.accentInk;
 	const { width, onLayout } = useMeasuredWidth();
 	const inner = Math.max(0, width - spacing.md * 2);
 
@@ -62,8 +64,8 @@ export function TrendChart({
 					hideRules
 					yAxisColor="transparent"
 					xAxisColor={colors.border}
-					yAxisTextStyle={styles.axis}
-					xAxisLabelTextStyle={styles.axis}
+					yAxisTextStyle={[styles.axis, { color: colors.textFaint }]}
+					xAxisLabelTextStyle={[styles.axis, { color: colors.textFaint }]}
 					backgroundColor="transparent"
 				/>
 			) : null}
@@ -76,8 +78,10 @@ export function BucketChart({
 	title,
 	note,
 	points,
-	color = colors.accentInk,
+	color: suppliedColor,
 }: ChartProps) {
+	const colors = useTokens();
+	const color = suppliedColor ?? colors.accentInk;
 	const { width, onLayout } = useMeasuredWidth();
 	const inner = Math.max(0, width - spacing.md * 2);
 
@@ -101,8 +105,8 @@ export function BucketChart({
 					hideRules
 					yAxisColor="transparent"
 					xAxisColor={colors.border}
-					yAxisTextStyle={styles.axis}
-					xAxisLabelTextStyle={styles.axis}
+					yAxisTextStyle={[styles.axis, { color: colors.textFaint }]}
+					xAxisLabelTextStyle={[styles.axis, { color: colors.textFaint }]}
 					backgroundColor="transparent"
 				/>
 			) : null}
@@ -111,5 +115,5 @@ export function BucketChart({
 }
 
 const styles = StyleSheet.create({
-	axis: { color: colors.textFaint, fontSize: 9 },
+	axis: { fontSize: 9 },
 });

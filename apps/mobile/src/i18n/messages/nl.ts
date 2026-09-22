@@ -22,6 +22,7 @@ export const nl = {
 	},
 
 	preferences: {
+		appearance: "Weergave",
 		heading: "Voorkeuren",
 		units: "Eenheden",
 		notifications: "Meldingen",
@@ -30,6 +31,16 @@ export const nl = {
 		language: "Taal",
 	},
 
+	appearance: {
+		saveError:
+			"De weergave is gewijzigd, maar kon niet worden opgeslagen. Kies opnieuw om het nogmaals te proberen.",
+		title: "Weergave",
+		system: "Systeem",
+		light: "Licht",
+		dark: "Donker",
+		description:
+			"Kies de weergave voor de hele app. Systeem volgt automatisch de weergave van je telefoon.",
+	},
 	language: {
 		title: "Taal",
 		description:
@@ -124,7 +135,9 @@ export const nl = {
 			targetDate: "Doel dag",
 			targetMeal: "Doel maaltijd",
 			selectAll: "Alles selecteren",
+			deselectAll: "Selectie wissen",
 			selected: "{count} geselecteerd",
+			copyOne: "1 voedingsmiddel naar {meal} kopiëren",
 			copy: "{count} voedingsmiddelen naar {meal} kopiëren",
 			copying: "Kopiëren…",
 			empty: "Er is niets om uit deze maaltijd te kopiëren.",
@@ -431,6 +444,10 @@ export const nl = {
 		},
 
 		offline: {
+			uncachedMeal:
+				"Er staan nog geen items voor deze maaltijd op deze telefoon.",
+			goals:
+				"De doelen voor deze dag staan nog niet op deze telefoon. Ze verschijnen zodra je weer verbinding hebt. Je kunt nog steeds eten toevoegen.",
 			title: "Je dagboek voor deze dag staat nog niet op deze telefoon",
 			body: "Het verschijnt zodra je weer online bent. Je kunt nu al eten zoeken en toevoegen — items worden verstuurd zodra je weer verbinding hebt.",
 			slot: "Niet beschikbaar zonder verbinding",

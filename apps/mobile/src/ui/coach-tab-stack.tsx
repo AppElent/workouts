@@ -1,24 +1,21 @@
 import { Stack } from "expo-router";
 import { Platform } from "react-native";
-import { colors } from "../theme";
+import { useTokens } from "../theme";
 import { isIOS26OrLater } from "./platform";
 
 /**
  * Native navigation chrome shared by the five independent Coach tab stacks.
  *
- * Header colours are the static dark values on purpose. On iOS 26 the stack
- * header resolves its trait as *light* while the tab bar resolves dark — in a
- * dev build, with the dark pin in Info.plist — so a `DynamicColorIOS` here
- * painted the large title in the light scheme's near-black ink onto the dark
- * ground. Until `lightModeEnabled` flips, the header is simply told the
- * colours the content is using. The tab bar keeps `chrome` because Liquid
- * Glass there genuinely flips with the content under it.
+ * Headers use the same resolved palette as their content, including explicit
+ * Light/Dark overrides. The tab bar keeps UIKit trait-adaptive chrome because
+ * Liquid Glass can choose a different trait from the content beneath it.
  *
  * The blur is only asked for below iOS 26. From 26 the header is Liquid Glass
  * on its own, and an explicit `headerBlurEffect` is layered above the large
  * title, which then shows as a pale smear where the word should be.
  */
 export function CoachTabStack({ title }: { title: string }) {
+	const colors = useTokens();
 	const ios = Platform.OS === "ios";
 
 	return (

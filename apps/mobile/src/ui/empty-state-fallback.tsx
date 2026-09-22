@@ -11,7 +11,7 @@
  */
 import { SymbolView } from "expo-symbols";
 import { StyleSheet, View } from "react-native";
-import { colors, spacing } from "../theme";
+import { spacing, useTokens } from "../theme";
 import { GhostButton } from "./button";
 import { AppText } from "./text";
 
@@ -31,6 +31,7 @@ export function EmptyState({
 	action,
 	appearance = "default",
 }: EmptyStateProps) {
+	const colors = useTokens();
 	const search = appearance === "search";
 	return (
 		<View style={[styles.root, search && styles.search]}>

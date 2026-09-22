@@ -30,7 +30,7 @@ import {
 } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 const STORAGE_KEY = "restTimer.defaultSeconds";
@@ -60,6 +60,7 @@ function format(seconds: number) {
 }
 
 export function RestTimerProvider({ children }: { children: ReactNode }) {
+	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
 	const [defaultSeconds, setDefaultSeconds] = useState(FALLBACK_SECONDS);
 	const [endsAt, setEndsAt] = useState<number | null>(null);
@@ -236,44 +237,49 @@ export function useRestTimer(): RestTimerApi {
 
 const NOOP_TIMER: RestTimerApi = { start: () => {}, stop: () => {} };
 
-const styles = StyleSheet.create({
-	wrap: {
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.xs,
-		gap: spacing.xs,
-		backgroundColor: colors.bg,
-	},
-	pill: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-		minHeight: 52,
-		paddingHorizontal: spacing.md,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-	},
-	done: { borderColor: colors.accent },
-	readout: { alignItems: "center", minWidth: 88 },
-	time: {
-		fontSize: 18,
-		fontWeight: "800",
-		color: colors.text,
-		fontVariant: ["tabular-nums"],
-	},
-	pausedLabel: { fontSize: 9, color: colors.textMuted },
-	adjust: { fontSize: 13, fontWeight: "800", color: colors.textMuted },
-	dismiss: { fontSize: 15, fontWeight: "800", color: colors.textMuted },
-	presets: { flexDirection: "row", gap: spacing.xs, justifyContent: "center" },
-	preset: {
-		paddingVertical: 4,
-		paddingHorizontal: 10,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface,
-	},
-	presetActive: { backgroundColor: colors.accent },
-	presetText: { fontSize: 10, fontWeight: "700", color: colors.textMuted },
-	presetTextActive: { color: colors.onAccent },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		wrap: {
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.xs,
+			gap: spacing.xs,
+			backgroundColor: colors.bg,
+		},
+		pill: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: spacing.sm,
+			minHeight: 52,
+			paddingHorizontal: spacing.md,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+		},
+		done: { borderColor: colors.accent },
+		readout: { alignItems: "center", minWidth: 88 },
+		time: {
+			fontSize: 18,
+			fontWeight: "800",
+			color: colors.text,
+			fontVariant: ["tabular-nums"],
+		},
+		pausedLabel: { fontSize: 9, color: colors.textMuted },
+		adjust: { fontSize: 13, fontWeight: "800", color: colors.textMuted },
+		dismiss: { fontSize: 15, fontWeight: "800", color: colors.textMuted },
+		presets: {
+			flexDirection: "row",
+			gap: spacing.xs,
+			justifyContent: "center",
+		},
+		preset: {
+			paddingVertical: 4,
+			paddingHorizontal: 10,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface,
+		},
+		presetActive: { backgroundColor: colors.accentFill },
+		presetText: { fontSize: 10, fontWeight: "700", color: colors.textMuted },
+		presetTextActive: { color: colors.onAccent },
+	});

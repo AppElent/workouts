@@ -16,10 +16,15 @@ export type NutritionCookingCopy = {
 	millilitres: string;
 	cancel: string;
 	conversionFailure: string;
+	invalidAmount: string;
+	invalidNutrient: string;
 };
 
 const copy: Record<Locale, NutritionCookingCopy> = {
 	en: {
+		invalidAmount: "Enter an amount greater than zero.",
+		invalidNutrient:
+			"Enter zero or a positive number, or leave unknown values blank.",
 		title: "Quick capture",
 		storageTitle: "Log a one-off food",
 		storageBody:
@@ -40,6 +45,9 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 			"This entry could not be logged. Your values are still here.",
 	},
 	nl: {
+		invalidAmount: "Vul een hoeveelheid groter dan nul in.",
+		invalidNutrient:
+			"Vul nul of een positief getal in, of laat onbekende waarden leeg.",
 		title: "Snel vastleggen",
 		storageTitle: "Eenmalige voeding loggen",
 		storageBody:

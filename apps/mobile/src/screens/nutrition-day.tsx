@@ -36,7 +36,13 @@ import { isRealIsoDate } from "../data/nutrition-weekly-review";
 import { useStalledOffline } from "../data/stalled-offline";
 import { useTrainingMarker } from "../data/training-marker";
 import { fmt, type Messages, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { useConfirm } from "../ui/confirm-dialog";
 import { DateStepper } from "../ui/date-stepper";
@@ -59,6 +65,7 @@ export function NutritionDayScreen({
 }: {
 	initialDate?: string;
 } = {}) {
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const router = useRouter();
 
@@ -101,9 +108,9 @@ export function NutritionDayScreen({
 	const operations = useNutritionOperations();
 	const selectedEntries =
 		state.status === "ready"
-			? MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]).filter((entry) =>
-					selectedEntryIds.has(entry.id),
-				)
+			? MEAL_SLOTS.flatMap((slot) =>
+					state.day.entries[slot].map((entry) => ({ ...entry, meal: slot })),
+				).filter((entry) => selectedEntryIds.has(entry.id))
 			: [];
 	// A day that has never been downloaded cannot arrive while the socket is
 	// down, so a skeleton there is a promise the app cannot keep — but only
@@ -116,10 +123,16 @@ export function NutritionDayScreen({
 		isWebSocketConnected,
 	);
 	const marker = useTrainingMarker(date);
+	const goalsStalled = useStalledOffline(
+		state.status === "ready" && state.day.goalsPending === true,
+		isWebSocketConnected,
+	);
 	const offset = isoDayOffset(today, date);
 	const totals = useMemo(() => {
 		if (state.status !== "ready") return {};
-		const entries = MEAL_SLOTS.flatMap((slot) => state.day.entries[slot]);
+		const entries = MEAL_SLOTS.flatMap((slot) =>
+			state.day.entries[slot].map((entry) => ({ ...entry, meal: slot })),
+		);
 		const combined: Partial<Record<NutrientKey, NutrientTotal>> = {
 			...totalNutrients(entries.map((entry) => entry.nutrients)),
 			...state.day.totals,
@@ -279,18 +292,30 @@ export function NutritionDayScreen({
 									: "Only locally available entries. Day totals are incomplete."}
 							</AppText>
 						) : null}
-						<NutritionGoalCard
-							t={t}
-							goals={state.day.goals}
-							totals={totals}
-							displayOrder={state.day.displayOrder}
-							onEdit={(nutrient) =>
-								router.push({
-									pathname: "/nutrition-goals",
-									params: { date, ...(nutrient ? { nutrient } : {}) },
-								})
-							}
-						/>
+						{state.day.goalsPending ? (
+							goalsStalled ? (
+								<GroupedSurface>
+									<AppText>{t.nutrition.offline.goals}</AppText>
+								</GroupedSurface>
+							) : (
+								<SkeletonGroup label={t.nutrition.goalEditor.loading}>
+									<GoalSkeleton />
+								</SkeletonGroup>
+							)
+						) : (
+							<NutritionGoalCard
+								t={t}
+								goals={state.day.goals}
+								totals={totals}
+								displayOrder={state.day.displayOrder}
+								onEdit={(nutrient) =>
+									router.push({
+										pathname: "/nutrition-goals",
+										params: { date, ...(nutrient ? { nutrient } : {}) },
+									})
+								}
+							/>
+						)}
 
 						<ComboControls
 							t={t}
@@ -328,6 +353,7 @@ export function NutritionDayScreen({
 								slot={slot}
 								date={date}
 								entries={state.day.entries[slot]}
+								complete={state.day.complete}
 								drafts={drafts
 									.listForDate(date)
 									.filter((draft) => draft.meal === slot)}
@@ -579,6 +605,8 @@ function OtherDaysDraftsBanner({
 	summary: { count: number; oldestDate: string | undefined };
 	onJump: (date: string) => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	if (summary.count === 0 || !summary.oldestDate) return null;
 	const target = summary.oldestDate;
 	return (
@@ -604,6 +632,7 @@ function OtherDaysDraftsBanner({
 }
 
 function TrainingMarker({ t }: { t: Messages }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View
 			accessible
@@ -637,6 +666,8 @@ function DayDateStepper({
 	onToday: () => void;
 	onChooseDate: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.stepper}>
 			<View style={{ alignSelf: "stretch" }}>
@@ -707,6 +738,7 @@ function ComboControls({
 	onCancel: () => void;
 	onContinue: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	if (selecting) {
 		return (
 			<GroupedSurface style={styles.comboControls}>
@@ -740,6 +772,7 @@ function MealSection({
 	t,
 	slot,
 	entries,
+	complete,
 	drafts,
 	locale,
 	onAdd,
@@ -762,6 +795,7 @@ function MealSection({
 	slot: MealSlot;
 	date: string;
 	entries: DiaryEntry[];
+	complete: boolean;
 	drafts: CaptureDraft[];
 	locale: "en" | "nl";
 	onAdd: () => void;
@@ -780,6 +814,8 @@ function MealSection({
 	onToggleEntry: (entry: DiaryEntry) => void;
 	onToggleGroup: (entries: readonly DiaryEntry[]) => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const mealName = t.nutrition.meals[slot];
 	const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
 		() => new Set(),
@@ -831,7 +867,13 @@ function MealSection({
 			</View>
 			<GroupedSurface>
 				{entries.length === 0 && drafts.length === 0 ? (
-					<EmptyState body={t.nutrition.mealEmpty} />
+					<EmptyState
+						body={
+							complete
+								? t.nutrition.mealEmpty
+								: t.nutrition.offline.uncachedMeal
+						}
+					/>
 				) : (
 					entries.map((entry) => {
 						const group = entry.comboGroup;
@@ -998,6 +1040,8 @@ function DraftRow({
 	onEdit: () => void;
 	onDelete: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<SwipeableRow
 			showMenuButton
@@ -1083,6 +1127,8 @@ function EntryRow({
 	onTransfer: (mode: "copy" | "move") => void;
 	onSelect?: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const estimateLabel =
 		locale === "nl" ? "Geschatte voedingswaarden" : "Estimated nutrition";
 	const content = (accessibility?: RowAccessibilityProps) => (
@@ -1219,6 +1265,7 @@ function OtherNutrients({
 	expanded: boolean;
 	onToggle: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const targeted = useMemo(
 		() => new Set(goals.map((goal) => goal.nutrient)),
 		[goals],
@@ -1288,6 +1335,8 @@ function OfflineDay({
 	t: Messages;
 	onAdd: (slot: MealSlot) => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<>
 			<GroupedSurface style={styles.goalCard}>
@@ -1332,27 +1381,10 @@ function OfflineDay({
  * about what is coming.
  */
 function DaySkeleton({ label }: { label: string }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<SkeletonGroup label={label}>
-			<GroupedSurface style={styles.goalCard}>
-				<View style={styles.skeletonGoalHeader}>
-					<SkeletonBlock width="28%" height={14} />
-					<SkeletonBlock width={76} height={28} />
-				</View>
-				{[0, 1].map((row) => (
-					<View key={row} style={styles.skeletonGoalRow}>
-						<View style={styles.skeletonGoalHeader}>
-							<SkeletonBlock width="30%" height={16} />
-							<SkeletonBlock width="45%" height={14} />
-						</View>
-						<SkeletonBlock height={8} />
-						<SkeletonBlock width="32%" height={13} />
-					</View>
-				))}
-				<View style={styles.skeletonTeaser}>
-					<SkeletonBlock height={8} />
-				</View>
-			</GroupedSurface>
+			<GoalSkeleton />
 			{MEAL_SLOTS.map((slot) => (
 				<View key={slot} style={styles.section}>
 					<SkeletonBlock width="35%" height={18} />
@@ -1365,136 +1397,167 @@ function DaySkeleton({ label }: { label: string }) {
 	);
 }
 
+function GoalSkeleton() {
+	const styles = useThemedStyles(createStyles);
+	return (
+		<GroupedSurface style={styles.goalCard}>
+			<View style={styles.skeletonGoalHeader}>
+				<SkeletonBlock width="28%" height={14} />
+				<SkeletonBlock width={76} height={28} />
+			</View>
+			{[0, 1].map((row) => (
+				<View key={row} style={styles.skeletonGoalRow}>
+					<View style={styles.skeletonGoalHeader}>
+						<SkeletonBlock width="30%" height={16} />
+						<SkeletonBlock width="45%" height={14} />
+					</View>
+					<SkeletonBlock height={8} />
+					<SkeletonBlock width="32%" height={13} />
+				</View>
+			))}
+			<View style={styles.skeletonTeaser}>
+				<SkeletonBlock height={8} />
+			</View>
+		</GroupedSurface>
+	);
+}
+
 function isRealDate(value: string | undefined): value is string {
 	return value !== undefined && isRealIsoDate(value);
 }
 
-const styles = StyleSheet.create({
-	headerActions: { flexDirection: "row", alignItems: "center" },
-	headerButton: {
-		minHeight: 44,
-		minWidth: 44,
-		justifyContent: "center",
-		paddingHorizontal: spacing.xs,
-	},
-	headerButtonText: { color: colors.accent, fontWeight: "700" },
-	selectionBar: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: spacing.xs,
-		padding: spacing.sm,
-		paddingBottom: spacing.md,
-		borderTopWidth: 1,
-		borderTopColor: colors.border,
-		backgroundColor: colors.surface,
-	},
-	draftRow: { borderLeftWidth: 3, borderLeftColor: colors.border },
-	draftBanner: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		minHeight: 44,
-		paddingHorizontal: spacing.md,
-		paddingVertical: spacing.sm,
-		borderRadius: radius.md,
-		borderWidth: 1,
-		borderColor: colors.border,
-		backgroundColor: colors.surface,
-	},
-	draftNote: { fontStyle: "italic" },
-	root: { flex: 1, backgroundColor: colors.bg },
-	scroll: { flex: 1 },
-	content: { padding: 20, paddingTop: 12, gap: spacing.md, paddingBottom: 40 },
-	flex: { flex: 1, minWidth: 0 },
-	section: { gap: spacing.sm },
-	strong: { fontWeight: "700" },
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		headerActions: { flexDirection: "row", alignItems: "center" },
+		headerButton: {
+			minHeight: 44,
+			minWidth: 44,
+			justifyContent: "center",
+			paddingHorizontal: spacing.xs,
+		},
+		headerButtonText: { color: colors.accent, fontWeight: "700" },
+		selectionBar: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: spacing.xs,
+			padding: spacing.sm,
+			paddingBottom: spacing.md,
+			borderTopWidth: 1,
+			borderTopColor: colors.border,
+			backgroundColor: colors.surface,
+		},
+		draftRow: { borderLeftWidth: 3, borderLeftColor: colors.border },
+		draftBanner: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			minHeight: 44,
+			paddingHorizontal: spacing.md,
+			paddingVertical: spacing.sm,
+			borderRadius: radius.md,
+			borderWidth: 1,
+			borderColor: colors.border,
+			backgroundColor: colors.surface,
+		},
+		draftNote: { fontStyle: "italic" },
+		root: { flex: 1, backgroundColor: colors.bg },
+		scroll: { flex: 1 },
+		content: {
+			padding: 20,
+			paddingTop: 12,
+			gap: spacing.md,
+			paddingBottom: 40,
+		},
+		flex: { flex: 1, minWidth: 0 },
+		section: { gap: spacing.sm },
+		strong: { fontWeight: "700" },
 
-	headerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-	},
-	trainingMarker: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-		// `minHeight`, not `height`: at the largest dynamic type sizes a fixed
-		// box crops its own label, and a marker that reads "Traine" is worse
-		// than one that is taller than the design intended.
-		minHeight: 44,
-	},
-	trainingMarkerGlyph: { color: colors.accent, fontSize: 8 },
-	trainingMarkerLabel: { color: colors.textMuted },
+		headerRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: spacing.sm,
+		},
+		trainingMarker: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			// `minHeight`, not `height`: at the largest dynamic type sizes a fixed
+			// box crops its own label, and a marker that reads "Traine" is worse
+			// than one that is taller than the design intended.
+			minHeight: 44,
+		},
+		trainingMarkerGlyph: { color: colors.accent, fontSize: 8 },
+		trainingMarkerLabel: { color: colors.textMuted },
 
-	stepper: { alignItems: "center", gap: spacing.xs },
-	todayPill: {
-		// 44pt so the target meets platform guidance without relying on hitSlop
-		// to make up the difference, and so the label has room to grow.
-		minHeight: 44,
-		paddingHorizontal: spacing.md,
-		borderRadius: radius.pill,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: colors.accent,
-	},
+		stepper: { alignItems: "center", gap: spacing.xs },
+		todayPill: {
+			// 44pt so the target meets platform guidance without relying on hitSlop
+			// to make up the difference, and so the label has room to grow.
+			minHeight: 44,
+			paddingHorizontal: spacing.md,
+			borderRadius: radius.pill,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.accentFill,
+		},
 
-	goalCard: { gap: spacing.md },
-	skeletonGoalHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	skeletonGoalRow: { gap: 6 },
-	skeletonTeaser: { opacity: 0.35, height: 12, overflow: "hidden" },
-	// The nutrient's name yields before its number does. Spec #68 is explicit
-	// that dynamic type must not clip nutrition values, and in a row with one
-	// of each there has to be a rule about which one gives way.
-	goalName: { fontWeight: "700", flexShrink: 1 },
-	comboControls: { gap: spacing.sm },
-	comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-	mealHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	mealActions: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.xs,
-	},
-	addButton: {
-		minWidth: 44,
-		minHeight: 44,
-		padding: 4,
-		borderRadius: radius.pill,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: colors.accent,
-	},
+		goalCard: { gap: spacing.md },
+		skeletonGoalHeader: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		skeletonGoalRow: { gap: 6 },
+		skeletonTeaser: { opacity: 0.35, height: 12, overflow: "hidden" },
+		// The nutrient's name yields before its number does. Spec #68 is explicit
+		// that dynamic type must not clip nutrition values, and in a row with one
+		// of each there has to be a rule about which one gives way.
+		goalName: { fontWeight: "700", flexShrink: 1 },
+		comboControls: { gap: spacing.sm },
+		comboActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+		mealHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		mealActions: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.xs,
+		},
+		addButton: {
+			minWidth: 44,
+			minHeight: 44,
+			padding: 4,
+			borderRadius: radius.pill,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.accentFill,
+		},
 
-	entryRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingVertical: 12,
-		minHeight: 56,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: colors.border,
-	},
-	entryEnergy: {
-		fontWeight: "700",
-		textAlign: "right",
-		maxWidth: "38%",
-		flexShrink: 1,
-	},
-	selectionUnavailable: { opacity: 0.45 },
-	comboPart: { paddingLeft: spacing.sm },
-	groupedEntryRow: {
-		paddingHorizontal: spacing.md,
-		borderBottomWidth: 0,
-	},
+		entryRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingVertical: 12,
+			minHeight: 56,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: colors.border,
+		},
+		entryEnergy: {
+			fontWeight: "700",
+			textAlign: "right",
+			maxWidth: "38%",
+			flexShrink: 1,
+		},
+		selectionUnavailable: { opacity: 0.45 },
+		comboPart: { paddingLeft: spacing.sm },
+		groupedEntryRow: {
+			paddingHorizontal: spacing.md,
+			borderBottomWidth: 0,
+		},
 
-	attribution: { gap: 2, paddingTop: spacing.sm },
-});
+		attribution: { gap: 2, paddingTop: spacing.sm },
+	});

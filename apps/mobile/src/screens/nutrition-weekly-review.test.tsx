@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, screen } from "@testing-library/react-native";
 import { OFFLINE_GRACE_MS } from "../data/stalled-offline";
+import { renderThemed as render } from "../test-support/render-themed";
 import { NutritionWeeklyReviewScreen } from "./nutrition-weekly-review";
 
 const mockUseQuery = jest.fn();
@@ -161,7 +162,9 @@ describe("Nutrition Week overview screen", () => {
 			/>,
 		);
 
-		expect(screen.getByText("Week overview")).toBeTruthy();
+		expect(
+			screen.getByText(/Monday, September 14.*Sunday, September 20/),
+		).toBeTruthy();
 		expect(screen.getByText("Today")).toBeTruthy();
 		expect(screen.getAllByText("Upcoming")).toHaveLength(4);
 		expect(screen.getByText("3 entries")).toBeTruthy();

@@ -16,12 +16,20 @@ import { ActivityIndicator, StyleSheet, TextInput, View } from "react-native";
 
 import { devLogin } from "../../src/auth/config";
 import { usePasswordSignIn } from "../../src/auth/usePasswordSignIn";
-import { colors, radius, spacing } from "../../src/theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../../src/theme";
 import { PrimaryButton } from "../../src/ui/button";
 import { Screen } from "../../src/ui/screen";
 import { AppText } from "../../src/ui/text";
 
 export default function SignIn() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const { submit, busy, error } = usePasswordSignIn();
 	const [email, setEmail] = useState(devLogin?.email ?? "");
 	const [password, setPassword] = useState(devLogin?.password ?? "");
@@ -96,38 +104,39 @@ export default function SignIn() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: {
-		flex: 1,
-		justifyContent: "center",
-		paddingHorizontal: spacing.lg,
-		gap: spacing.sm,
-	},
-	brand: { gap: spacing.xs, marginBottom: spacing.lg },
-	mark: {
-		width: 40,
-		height: 40,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		marginBottom: spacing.sm,
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: colors.border,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		paddingVertical: 14,
-		fontSize: 16,
-		color: colors.text,
-	},
-	// Matches PrimaryButton's height so the layout does not jump on submit.
-	busy: {
-		backgroundColor: colors.accent,
-		borderRadius: radius.pill,
-		paddingVertical: 14,
-		alignItems: "center",
-	},
-	disabled: { opacity: 0.5 },
-	devNote: { textAlign: "center", marginTop: spacing.sm },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: {
+			flex: 1,
+			justifyContent: "center",
+			paddingHorizontal: spacing.lg,
+			gap: spacing.sm,
+		},
+		brand: { gap: spacing.xs, marginBottom: spacing.lg },
+		mark: {
+			width: 40,
+			height: 40,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			marginBottom: spacing.sm,
+		},
+		input: {
+			borderWidth: 1,
+			borderColor: colors.border,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			paddingVertical: 14,
+			fontSize: 16,
+			color: colors.text,
+		},
+		// Matches PrimaryButton's height so the layout does not jump on submit.
+		busy: {
+			backgroundColor: colors.accentFill,
+			borderRadius: radius.pill,
+			paddingVertical: 14,
+			alignItems: "center",
+		},
+		disabled: { opacity: 0.5 },
+		devNote: { textAlign: "center", marginTop: spacing.sm },
+	});

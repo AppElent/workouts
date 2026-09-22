@@ -7,8 +7,9 @@
  * the table, and the cooking repository no longer reads it. The table is
  * created idempotently rather than versioned so either opener can go first.
  */
-import { openDatabaseSync } from "expo-sqlite";
+
 import { NUTRITION_COOKING_DATABASE_NAME } from "./nutrition-cooking-repository";
+import { openNutritionDatabase } from "./nutrition-database";
 import { MEAL_SLOTS, type MealSlot } from "./nutrition-day";
 import { mintNutritionUuid } from "./nutrition-operation-service";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
@@ -203,6 +204,8 @@ export function createNutritionDraftRepository(
 
 export function openNutritionDraftRepository(): NutritionDraftRepository {
 	return createNutritionDraftRepository(
-		openDatabaseSync(NUTRITION_COOKING_DATABASE_NAME) as SyncSQLiteDatabase,
+		openNutritionDatabase(
+			NUTRITION_COOKING_DATABASE_NAME,
+		) as SyncSQLiteDatabase,
 	);
 }

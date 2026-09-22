@@ -20,7 +20,13 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { formatSessionDate } from "../data/session-data";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { TrendChart } from "../ui/chart";
 import { Card, Chip, Eyebrow, StatBox } from "../ui/coach";
 import { ScreenHeader } from "../ui/screen-header";
@@ -33,6 +39,8 @@ type Tab = (typeof TABS)[number];
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export function ExerciseDetailScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const params = useLocalSearchParams<{ id?: string }>();
 	const exerciseId = params.id as Id<"exercises"> | undefined;
 
@@ -222,6 +230,7 @@ function ProgressTab({
 	history: ReturnType<typeof useQuery<typeof api.exercises.getHistory>>;
 	currentOrm: { value: number } | null;
 }) {
+	const colors = useTokens();
 	const ormHistory = useQuery(
 		api.oneRepMaxes.listForExercise,
 		exerciseId ? { exerciseId } : "skip",
@@ -296,6 +305,8 @@ function HistoryTab({
 }: {
 	history: ReturnType<typeof useQuery<typeof api.exercises.getHistory>>;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	if (history === undefined) {
 		return <AppText variant="caption">Loading…</AppText>;
 	}
@@ -357,59 +368,72 @@ function HistoryTab({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xxl },
-	centered: { alignItems: "center", justifyContent: "center", gap: spacing.sm },
-	centeredText: { textAlign: "center" },
-	header: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	flex: { flex: 1 },
-	meta: { textTransform: "capitalize" },
-	chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
-	tabRow: { flexDirection: "row", gap: spacing.xs + 2, marginTop: spacing.xs },
-	ormCard: { gap: spacing.xs },
-	ormValue: { fontSize: 32, fontWeight: "800", color: colors.text },
-	ormUnit: { fontSize: 15, fontWeight: "700", color: colors.textMuted },
-	statRow: { flexDirection: "row", gap: spacing.sm },
-	instructions: { gap: spacing.sm },
-	step: { color: colors.textMuted },
-	empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
-	historyList: { gap: 2 },
-	historyHead: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.xs,
-		paddingHorizontal: spacing.xs,
-		paddingBottom: spacing.xs,
-	},
-	th: {
-		fontSize: 9,
-		fontWeight: "800",
-		letterSpacing: 0.5,
-		textTransform: "uppercase",
-		color: colors.textFaint,
-	},
-	center: { textAlign: "center" },
-	historyRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.xs,
-		backgroundColor: colors.surface,
-		borderRadius: radius.md,
-		paddingHorizontal: spacing.sm,
-		paddingVertical: spacing.sm,
-	},
-	historyDate: { color: colors.text, fontWeight: "600" },
-	historyType: { textTransform: "capitalize" },
-	td: { fontSize: 13, fontWeight: "700", color: colors.text },
-	ghostBtn: {
-		minHeight: 44,
-		paddingHorizontal: spacing.lg,
-		borderRadius: radius.pill,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	ghostText: { fontSize: 13, fontWeight: "800", color: colors.text },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			padding: spacing.md,
+			gap: spacing.sm,
+			paddingBottom: spacing.xxl,
+		},
+		centered: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: spacing.sm,
+		},
+		centeredText: { textAlign: "center" },
+		header: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+		flex: { flex: 1 },
+		meta: { textTransform: "capitalize" },
+		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
+		tabRow: {
+			flexDirection: "row",
+			gap: spacing.xs + 2,
+			marginTop: spacing.xs,
+		},
+		ormCard: { gap: spacing.xs },
+		ormValue: { fontSize: 32, fontWeight: "800", color: colors.text },
+		ormUnit: { fontSize: 15, fontWeight: "700", color: colors.textMuted },
+		statRow: { flexDirection: "row", gap: spacing.sm },
+		instructions: { gap: spacing.sm },
+		step: { color: colors.textMuted },
+		empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
+		historyList: { gap: 2 },
+		historyHead: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.xs,
+			paddingHorizontal: spacing.xs,
+			paddingBottom: spacing.xs,
+		},
+		th: {
+			fontSize: 9,
+			fontWeight: "800",
+			letterSpacing: 0.5,
+			textTransform: "uppercase",
+			color: colors.textFaint,
+		},
+		center: { textAlign: "center" },
+		historyRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.xs,
+			backgroundColor: colors.surface,
+			borderRadius: radius.md,
+			paddingHorizontal: spacing.sm,
+			paddingVertical: spacing.sm,
+		},
+		historyDate: { color: colors.text, fontWeight: "600" },
+		historyType: { textTransform: "capitalize" },
+		td: { fontSize: 13, fontWeight: "700", color: colors.text },
+		ghostBtn: {
+			minHeight: 44,
+			paddingHorizontal: spacing.lg,
+			borderRadius: radius.pill,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		ghostText: { fontSize: 13, fontWeight: "800", color: colors.text },
+	});

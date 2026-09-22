@@ -3,23 +3,29 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 } from "@workouts/core/nutrition";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { nutritionCookingCopy } from "../data/nutrition-cooking-copy";
 import type { MealSlot } from "../data/nutrition-day";
-import {
-	oneOffLogSnapshot,
-	positiveOneOffNumber,
-} from "../data/nutrition-one-off";
+import { oneOffLogSnapshot } from "../data/nutrition-one-off";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
 } from "../data/nutrition-operation-service";
 import { useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
-import { FormTextField } from "../ui/form";
+import { spacing, type Tokens, useThemedStyles } from "../theme";
+import { PrimaryButton } from "../ui/button";
+import { Card } from "../ui/coach";
+import {
+	FormScreen,
+	FormSection,
+	FormSegmentedRow,
+	FormTextField,
+	InlineNumberFieldRow,
+	TextAction,
+} from "../ui/form";
+import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
@@ -38,46 +44,50 @@ export function NutritionCookingScreen({
 	meal: MealSlot;
 	initialMode?: Exclude<Mode, "hub">;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { locale, t } = useI18n();
 	const copy = nutritionCookingCopy(locale);
 	const operations = useNutritionOperations();
 	const toast = useToast();
+	const router = useRouter();
 	const [mode, setMode] = useState<Mode>(() => initialMode ?? "hub");
 
+	if (mode === "oneoff-log") {
+		return (
+			<OneOffLogger
+				copy={copy}
+				locale={locale}
+				date={date}
+				meal={meal}
+				operations={operations}
+				labels={t.nutrition.nutrients}
+				toast={toast}
+				onAccepted={() =>
+					router.dismissTo({ pathname: "/nutrition", params: { date } })
+				}
+				onCancel={() => {
+					if (!initialMode) setMode("hub");
+					else if (router.canGoBack()) router.back();
+					else router.replace({ pathname: "/nutrition", params: { date } });
+				}}
+			/>
+		);
+	}
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
-			automaticallyAdjustKeyboardInsets
-			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 		>
-			{mode === "hub" ? (
-				<>
-					<Eyebrow>{copy.title}</Eyebrow>
-					<AppText variant="title">{copy.title}</AppText>
-					<Card style={styles.card}>
-						<AppText variant="heading">{copy.storageTitle}</AppText>
-						<AppText variant="caption">{copy.storageBody}</AppText>
-					</Card>
-					<PrimaryButton
-						label={copy.logOnce}
-						onPress={() => setMode("oneoff-log")}
-					/>
-				</>
-			) : (
-				<OneOffLogger
-					copy={copy}
-					locale={locale}
-					date={date}
-					meal={meal}
-					operations={operations}
-					labels={t.nutrition.nutrients}
-					toast={toast}
-					onAccepted={() => setMode("hub")}
-					onCancel={() => setMode("hub")}
-				/>
-			)}
+			<ScreenHeader title={copy.title} />
+			<Card style={styles.card}>
+				<AppText variant="heading">{copy.storageTitle}</AppText>
+				<AppText variant="caption">{copy.storageBody}</AppText>
+			</Card>
+			<PrimaryButton
+				label={copy.logOnce}
+				onPress={() => setMode("oneoff-log")}
+			/>
 		</ScrollView>
 	);
 }
@@ -115,15 +125,22 @@ function OneOffLogger({
 		if (loggingRef.current) return;
 		const subject = operations.getSubject();
 		if (!subject) return;
-		try {
-			const numericAmount = positiveOneOffNumber(amount, copy.amount);
-			const nutrients: Partial<Record<NutrientKey, NutrientValue>> = {};
-			for (const key of NUTRIENT_KEYS) {
-				if (!nutrientInputs[key].trim()) continue;
-				const value = Number(nutrientInputs[key].replace(",", ".").trim());
-				if (!Number.isFinite(value) || value < 0) throw new Error(key);
-				nutrients[key] = { kind: "value", amount: value };
+		const numericAmount = Number(amount.replace(",", ".").trim());
+		if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+			toast.error(copy.invalidAmount);
+			return;
+		}
+		const nutrients: Partial<Record<NutrientKey, NutrientValue>> = {};
+		for (const key of NUTRIENT_KEYS) {
+			if (!nutrientInputs[key].trim()) continue;
+			const value = Number(nutrientInputs[key].replace(",", ".").trim());
+			if (!Number.isFinite(value) || value < 0) {
+				toast.error(`${labels[key]}: ${copy.invalidNutrient}`);
+				return;
 			}
+			nutrients[key] = { kind: "value", amount: value };
+		}
+		try {
 			loggingRef.current = true;
 			setLogging(true);
 			operations.create(
@@ -149,64 +166,64 @@ function OneOffLogger({
 	}
 
 	return (
-		<>
-			<AppText variant="title">{copy.logOnce}</AppText>
+		<FormScreen
+			primaryAction={{
+				label: copy.logOnceConfirm,
+				onPress: log,
+				disabled: !nameEn.trim() || !nameNl.trim() || !amount.trim(),
+				loading: logging,
+			}}
+		>
+			<ScreenHeader title={copy.logOnce} />
 			<AppText variant="caption">
 				{date} · {mealLabel(meal, locale)}
 			</AppText>
-			<FormTextField
-				label={copy.oneOffFoodNameEn}
-				value={nameEn}
-				onChangeText={setNameEn}
-			/>
-			<FormTextField
-				label={copy.oneOffFoodNameNl}
-				value={nameNl}
-				onChangeText={setNameNl}
-			/>
-			<FormTextField
-				label={copy.amount}
-				value={amount}
-				onChangeText={setAmount}
-				keyboardType="decimal-pad"
-			/>
-			<View style={styles.actions}>
-				{(
-					[
-						["serving", copy.servings],
-						["g", copy.grams],
-						["ml", copy.millilitres],
-					] as const
-				).map(([unit, label]) => (
-					<GhostButton
-						key={unit}
-						label={label}
-						onPress={() => setBaseUnit(unit)}
-						style={baseUnit === unit ? styles.selected : undefined}
-					/>
-				))}
-			</View>
-			<AppText variant="caption">{copy.estimated}</AppText>
-			<AppText variant="caption">{copy.nutrientAmountHelp}</AppText>
-			{NUTRIENT_KEYS.map((key) => (
+			<FormSection>
 				<FormTextField
-					key={key}
-					label={labels[key]}
-					value={nutrientInputs[key]}
-					onChangeText={(value) =>
-						setNutrientInputs((current) => ({ ...current, [key]: value }))
-					}
+					label={copy.oneOffFoodNameEn}
+					value={nameEn}
+					onChangeText={setNameEn}
+				/>
+				<FormTextField
+					label={copy.oneOffFoodNameNl}
+					value={nameNl}
+					onChangeText={setNameNl}
+				/>
+			</FormSection>
+			<FormSection title={copy.amount}>
+				<FormSegmentedRow
+					options={[
+						{ value: "serving", label: copy.servings },
+						{ value: "g", label: copy.grams },
+						{ value: "ml", label: copy.millilitres },
+					]}
+					value={baseUnit}
+					onChange={setBaseUnit}
+				/>
+				<InlineNumberFieldRow
+					label={copy.amount}
+					suffix={baseUnit === "serving" ? "" : baseUnit}
+					value={amount}
+					onChangeText={setAmount}
 					keyboardType="decimal-pad"
 				/>
-			))}
-			<PrimaryButton
-				label={copy.logOnceConfirm}
-				onPress={log}
-				disabled={!nameEn.trim() || !nameNl.trim() || !amount.trim()}
-				loading={logging}
-			/>
-			<GhostButton label={copy.cancel} onPress={onCancel} disabled={logging} />
-		</>
+			</FormSection>
+			<FormSection title={copy.estimated} footer={copy.nutrientAmountHelp}>
+				{NUTRIENT_KEYS.map((key) => (
+					<InlineNumberFieldRow
+						key={key}
+						label={labels[key]}
+						suffix={key === "energy" ? "kcal" : "g"}
+						value={nutrientInputs[key]}
+						keyboardType="decimal-pad"
+						onChangeText={(value) =>
+							setNutrientInputs((current) => ({ ...current, [key]: value }))
+						}
+					/>
+				))}
+			</FormSection>
+			<TextAction label={copy.cancel} onPress={onCancel} disabled={logging} />
+		</FormScreen>
 	);
 }
 
@@ -219,10 +236,14 @@ function mealLabel(meal: MealSlot, locale: "en" | "nl") {
 	}[meal][locale];
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, paddingBottom: 40, gap: spacing.md },
-	card: { gap: spacing.xs },
-	actions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-	selected: { borderColor: colors.accent, backgroundColor: colors.accentDim },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			padding: 20,
+			paddingTop: 12,
+			paddingBottom: 40,
+			gap: spacing.md,
+		},
+		card: { gap: spacing.xs },
+	});

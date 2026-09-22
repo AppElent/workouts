@@ -37,7 +37,13 @@ import {
 	type AssistanceMessages,
 	getNutritionAssistanceMessages,
 } from "../i18n/messages/nutrition-assistance";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { GhostButton } from "../ui/button";
 import { Card } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
@@ -55,6 +61,7 @@ export function NutritionWeeklyReviewScreen({
 	today?: IsoDate;
 	onSelectDay: (date: IsoDate) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { locale, t } = useI18n();
 	const messages = getNutritionAssistanceMessages(locale);
 	const drafts = useNutritionDrafts();
@@ -97,7 +104,6 @@ export function NutritionWeeklyReviewScreen({
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
-			<AppText variant="title">{messages.weeklyTitle}</AppText>
 			<AppText variant="caption">{range}</AppText>
 			<View style={styles.nav}>
 				<GhostButton
@@ -187,6 +193,7 @@ function WeeklyAverages({
 	locale: "en" | "nl";
 	messages: AssistanceMessages;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.averageRow}>
 			<AverageCard
@@ -228,6 +235,7 @@ function AverageCard({
 	locale: "en" | "nl";
 	messages: AssistanceMessages;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const daysLabel = dayCount === 1 ? messages.day : messages.days;
 	return (
 		<Card style={styles.averageCard}>
@@ -256,6 +264,7 @@ function ReviewDayCard({
 	noteLabel?: string;
 	onPress: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const isToday = day.date === today;
 	const isUpcoming = day.date > today;
 	const dateLabel = formatLongDate(day.date, locale);
@@ -346,6 +355,8 @@ function NutrientVisual({
 	messages: AssistanceMessages;
 	prominent: boolean;
 }) {
+	const styles = useThemedStyles(createStyles);
+	const colors = useTokens();
 	const evaluation = evaluateNutrientGoal(
 		total.amount,
 		total.incomplete,
@@ -394,7 +405,7 @@ function NutrientVisual({
 					style={[
 						styles.progress,
 						{ width: `${progress}%` as DimensionValue },
-						{ backgroundColor: statusColor(evaluation.status) },
+						{ backgroundColor: statusColor(colors, evaluation.status) },
 					]}
 				/>
 				{evaluation.minimum !== undefined &&
@@ -415,7 +426,7 @@ function NutrientVisual({
 				{evaluation.status === "noGoal" ? null : (
 					<AppText
 						variant="caption"
-						style={{ color: statusColor(evaluation.status) }}
+						style={{ color: statusColor(colors, evaluation.status) }}
 					>
 						{status}
 					</AppText>
@@ -483,7 +494,7 @@ function statusText(status: WeeklyGoalStatus, messages: AssistanceMessages) {
 	return labels[status];
 }
 
-function statusColor(status: WeeklyGoalStatus) {
+function statusColor(colors: Tokens, status: WeeklyGoalStatus) {
 	if (status === "met" || status === "within") return colors.success;
 	if (status === "exceeded") return colors.danger;
 	if (status === "below") return colors.warn;
@@ -499,6 +510,7 @@ function WeeklySkeleton({
 	week: IsoDate;
 	today: IsoDate;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<SkeletonGroup label={label}>
 			<View style={styles.averageRow}>
@@ -522,75 +534,76 @@ function isDate(value: string | undefined): value is IsoDate {
 	return value !== undefined && isRealIsoDate(value);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingBottom: 48, gap: spacing.md },
-	nav: { flexDirection: "row", gap: spacing.sm },
-	navButton: { flex: 1, minHeight: 44 },
-	summary: { gap: spacing.xs },
-	averageRow: { flexDirection: "row", gap: spacing.sm },
-	averageCard: { flex: 1, gap: spacing.xs, minHeight: 82 },
-	dayCard: {
-		backgroundColor: colors.surface,
-		borderColor: colors.border,
-		borderWidth: 1,
-		borderRadius: 18,
-		padding: spacing.md,
-		gap: spacing.md,
-		minHeight: 76,
-	},
-	todayCard: { borderColor: colors.accent },
-	upcomingCard: { opacity: 0.58 },
-	pressedCard: { backgroundColor: colors.surface2 },
-	dayHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	flex: { flex: 1 },
-	badge: {
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-		paddingVertical: spacing.xs,
-		paddingHorizontal: spacing.sm,
-	},
-	todayBadge: { backgroundColor: colors.accentDim },
-	todayBadgeText: { color: colors.accent },
-	nutrients: {
-		gap: spacing.sm,
-		borderTopWidth: 1,
-		borderTopColor: colors.border,
-		paddingTop: spacing.sm,
-	},
-	nutrient: { gap: spacing.xs },
-	energyNutrient: { gap: spacing.sm },
-	nutrientHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "baseline",
-		gap: spacing.sm,
-	},
-	track: {
-		height: 6,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-		overflow: "hidden",
-	},
-	energyTrack: { height: 10 },
-	incompleteTrack: {
-		borderWidth: 1,
-		borderStyle: "dashed",
-		borderColor: colors.textMuted,
-	},
-	progress: { height: "100%", borderRadius: radius.pill },
-	targetBand: {
-		position: "absolute",
-		top: 0,
-		bottom: 0,
-		backgroundColor: colors.accentDim,
-		borderLeftWidth: 1,
-		borderRightWidth: 1,
-		borderColor: colors.accent,
-	},
-	nutrientFooter: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingBottom: 48, gap: spacing.md },
+		nav: { flexDirection: "row", gap: spacing.sm },
+		navButton: { flex: 1, minHeight: 44 },
+		summary: { gap: spacing.xs },
+		averageRow: { flexDirection: "row", gap: spacing.sm },
+		averageCard: { flex: 1, gap: spacing.xs, minHeight: 82 },
+		dayCard: {
+			backgroundColor: colors.surface,
+			borderColor: colors.border,
+			borderWidth: 1,
+			borderRadius: 18,
+			padding: spacing.md,
+			gap: spacing.md,
+			minHeight: 76,
+		},
+		todayCard: { borderColor: colors.accent },
+		upcomingCard: { opacity: 0.58 },
+		pressedCard: { backgroundColor: colors.surface2 },
+		dayHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+		flex: { flex: 1 },
+		badge: {
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+			paddingVertical: spacing.xs,
+			paddingHorizontal: spacing.sm,
+		},
+		todayBadge: { backgroundColor: colors.accentDim },
+		todayBadgeText: { color: colors.accent },
+		nutrients: {
+			gap: spacing.sm,
+			borderTopWidth: 1,
+			borderTopColor: colors.border,
+			paddingTop: spacing.sm,
+		},
+		nutrient: { gap: spacing.xs },
+		energyNutrient: { gap: spacing.sm },
+		nutrientHeader: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "baseline",
+			gap: spacing.sm,
+		},
+		track: {
+			height: 6,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+			overflow: "hidden",
+		},
+		energyTrack: { height: 10 },
+		incompleteTrack: {
+			borderWidth: 1,
+			borderStyle: "dashed",
+			borderColor: colors.textMuted,
+		},
+		progress: { height: "100%", borderRadius: radius.pill },
+		targetBand: {
+			position: "absolute",
+			top: 0,
+			bottom: 0,
+			backgroundColor: colors.accentDim,
+			borderLeftWidth: 1,
+			borderRightWidth: 1,
+			borderColor: colors.accent,
+		},
+		nutrientFooter: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			gap: spacing.sm,
+		},
+	});

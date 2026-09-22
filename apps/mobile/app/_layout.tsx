@@ -7,14 +7,8 @@
  * up (`preventAutoHideAsync`) until Clerk resolves, so the router never
  * mounts a route before it knows which one is right.
  *
- * #46 adds the native chrome the scaffold left out. Three surfaces sit outside
- * React's reach and each will show white on a black app unless told otherwise:
- *
- * 1. expo-router ships react-navigation's **light** theme by default, which
- *    paints the screen background and the header behind every route.
- * 2. The status bar's icons are dark unless the bar is told the app is dark.
- * 3. The window behind the React tree flashes its own background during the
- *    handoff from splash to first frame.
+ * Navigation, status bar and the native window resolve the same appearance.
+ * Keep the splash visible until auth and the initial window color are ready.
  *
  * Still deliberately missing (an honest gap, not an oversight): the escape
  * hatch for a Clerk that never resolves. On a dead network this holds the
@@ -23,61 +17,66 @@
  */
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
-import { DarkTheme, Stack, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { Appearance, Platform, StyleSheet, View } from "react-native";
+import * as SystemUI from "expo-system-ui";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
 import { LocaleProvider } from "../src/i18n";
-import { colors } from "../src/theme";
+import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
-
-/**
- * `app.json` pins `userInterfaceStyle: "dark"`, which prebuild bakes into
- * Info.plist as `UIUserInterfaceStyle = Dark`. A dev client built before that
- * pin (or without a rebuild since) follows the phone instead, and then every
- * UIKit-presented surface — tab bar glass, stack header trait, SwiftUI menus
- * — comes up light over the dark ground. The JS side cannot fix that; only a
- * rebuild can. Say so once, loudly, rather than let it look like a theming
- * bug. Reading `Appearance` at module scope is deliberate: that is the
- * window's trait before any JS override could touch it.
- */
-if (
-	__DEV__ &&
-	Platform.OS === "ios" &&
-	Appearance.getColorScheme() !== "dark"
-) {
-	console.warn(
-		"[foundry] This dev client is not pinned to dark (Info.plist lacks UIUserInterfaceStyle=Dark). " +
-			"Native chrome will follow the phone's appearance. Rebuild it: pnpm --filter @workouts/mobile devbuild:ios:eas",
-	);
-}
 
 /**
  * react-navigation's dark theme, repainted in the app's own palette. Spread
  * first so the `fonts` block (which react-navigation requires and we have no
  * opinion about) survives.
  */
-const navigationTheme = {
-	...DarkTheme,
-	colors: {
-		...DarkTheme.colors,
-		primary: colors.accent,
-		background: colors.bg,
-		card: colors.surface,
-		text: colors.text,
-		border: colors.border,
-		notification: colors.accent,
-	},
-};
-
 export default function RootLayout() {
+	return (
+		<AppearanceProvider>
+			<ThemedRoot />
+		</AppearanceProvider>
+	);
+}
+
+function ThemedRoot() {
+	const { scheme, colors } = useAppearance();
+	const [windowReady, setWindowReady] = useState(false);
+	const baseTheme = scheme === "dark" ? DarkTheme : DefaultTheme;
+	const styles = { window: { flex: 1, backgroundColor: colors.bg } };
+	useEffect(() => {
+		let active = true;
+		SystemUI.setBackgroundColorAsync(colors.bg)
+			.catch(() => {
+				// React's root still paints the background if the OS rejects it.
+			})
+			.finally(() => {
+				if (active) setWindowReady(true);
+			});
+		return () => {
+			active = false;
+		};
+	}, [colors.bg]);
+	const navigationTheme = {
+		...baseTheme,
+		colors: {
+			...baseTheme.colors,
+			primary: colors.accent,
+			background: colors.bg,
+			card: colors.surface,
+			text: colors.text,
+			border: colors.border,
+			notification: colors.accent,
+		},
+	};
+
 	return (
 		// Gesture handler wraps everything: the pan-driven sheets deeper in the
 		// tree need a native root, and it has to be the outermost view to receive
@@ -99,8 +98,8 @@ export default function RootLayout() {
 						<SafeAreaProvider>
 							<ThemeProvider value={navigationTheme}>
 								<View style={styles.window}>
-									<StatusBar style="light" />
-									<RootNavigator />
+									<StatusBar style={scheme === "dark" ? "light" : "dark"} />
+									<RootNavigator windowReady={windowReady} />
 								</View>
 							</ThemeProvider>
 						</SafeAreaProvider>
@@ -111,18 +110,19 @@ export default function RootLayout() {
 	);
 }
 
-function RootNavigator() {
+function RootNavigator({ windowReady }: { windowReady: boolean }) {
+	const colors = useTokens();
 	const { isLoaded } = useAuth();
 
 	useEffect(() => {
-		if (isLoaded) {
+		if (isLoaded && windowReady) {
 			SplashScreen.hideAsync();
 		}
-	}, [isLoaded]);
+	}, [isLoaded, windowReady]);
 
 	// Still resolving the cached session. Rendering nothing is the point —
 	// the splash is still covering this.
-	if (!isLoaded) return null;
+	if (!isLoaded || !windowReady) return null;
 
 	return (
 		<Stack
@@ -136,7 +136,3 @@ function RootNavigator() {
 		</Stack>
 	);
 }
-
-const styles = StyleSheet.create({
-	window: { flex: 1, backgroundColor: colors.bg },
-});

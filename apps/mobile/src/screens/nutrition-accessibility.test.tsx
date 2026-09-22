@@ -139,8 +139,7 @@ describe("Nutrition accessibility", () => {
 
 	it("announces a Combo selection as a checkbox that is checked", async () => {
 		renderApp();
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Create Combo"));
+		fireEvent.press(await screen.findByRole("button", { name: "Select" }));
 
 		const row = await screen.findByLabelText("Select Oatmeal for Combo");
 		expect(row.props.accessibilityRole).toBe("checkbox");

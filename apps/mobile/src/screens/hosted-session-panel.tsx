@@ -15,7 +15,13 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
@@ -56,6 +62,7 @@ export function HostedSessionPanel({
 }: {
 	sessionId: Id<"workoutSessions">;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const data = useQuery(api.hostedWorkoutParticipants.getBySession, {
 		sessionId,
 	});
@@ -114,6 +121,8 @@ function ScoreBox({
 	type: "forTime" | "amrap" | "emom" | "load";
 	levels: { level: string; label: string; description?: string }[];
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const submit = useMutation(api.hostedWorkoutSubmissions.submitForSession);
 
@@ -256,32 +265,33 @@ function ScoreBox({
 	);
 }
 
-const styles = StyleSheet.create({
-	wrap: { gap: spacing.sm },
-	planCard: { gap: spacing.xs },
-	planLine: { color: colors.textMuted },
-	scoreCard: { gap: spacing.sm },
-	chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-	selfStart: { alignSelf: "flex-start" },
-	formRow: { flexDirection: "row", gap: spacing.sm },
-	flex: { flex: 1 },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	submit: {
-		height: 48,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	submitText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
-	dimmed: { opacity: 0.5 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		wrap: { gap: spacing.sm },
+		planCard: { gap: spacing.xs },
+		planLine: { color: colors.textMuted },
+		scoreCard: { gap: spacing.sm },
+		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
+		selfStart: { alignSelf: "flex-start" },
+		formRow: { flexDirection: "row", gap: spacing.sm },
+		flex: { flex: 1 },
+		input: {
+			minHeight: 48,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface2,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		submit: {
+			height: 48,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		submitText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
+		dimmed: { opacity: 0.5 },
+	});

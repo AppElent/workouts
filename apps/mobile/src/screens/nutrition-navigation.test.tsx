@@ -35,6 +35,9 @@ const loggedEntry = {
 	name: { en: "Apple", nl: "Appel" },
 	serving: { en: "Piece × 1", nl: "Stuk × 1" },
 	quantity: 1,
+	amount: 135,
+	baseUnit: "g" as const,
+	provenance: { source: "oneOff" as const },
 	nutrients: {
 		energy: value(76),
 		protein: value(0.3),
@@ -86,6 +89,69 @@ beforeEach(() => {
 });
 
 describe("Nutrition navigation", () => {
+	it("returns a logged One-off Entry to its diary day", async () => {
+		// Keep the server write pending so the real local projection remains
+		// visible until a server query acknowledges the new entry.
+		jest
+			.mocked(useMutation)
+			.mockReturnValue(
+				jest
+					.fn()
+					.mockReturnValue(new Promise(() => {})) as unknown as ReturnType<
+					typeof useMutation
+				>,
+			);
+		const date = "2026-09-24";
+		const app = renderApp(
+			`/nutrition-cooking?date=${date}&meal=dinner&mode=oneoff-log`,
+		);
+		fireEvent.changeText(
+			await screen.findByLabelText("Food name in English"),
+			"One-off soup",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Food name in Dutch"),
+			"Eenmalige soep",
+		);
+		fireEvent.changeText(screen.getByLabelText("Amount"), "1");
+		fireEvent.changeText(screen.getByLabelText("Energy"), "120");
+		fireEvent.press(screen.getByRole("button", { name: "Log once" }));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+		expect(app.getSearchParams()).toMatchObject({ date });
+		expect(await screen.findByText("One-off soup")).toBeTruthy();
+	});
+
+	it("explains invalid One-off Entry amounts and keeps the entered values", async () => {
+		renderApp("/nutrition-cooking?mode=oneoff-log");
+		fireEvent.changeText(
+			await screen.findByLabelText("Food name in English"),
+			"One-off soup",
+		);
+		fireEvent.changeText(
+			screen.getByLabelText("Food name in Dutch"),
+			"Eenmalige soep",
+		);
+		fireEvent.changeText(screen.getByLabelText("Amount"), "0");
+		fireEvent.press(screen.getByRole("button", { name: "Log once" }));
+		expect(
+			await screen.findByText("Enter an amount greater than zero."),
+		).toBeTruthy();
+		expect(screen.getByDisplayValue("One-off soup")).toBeTruthy();
+		expect(screen.getByDisplayValue("0")).toBeTruthy();
+	});
+
+	it("returns a directly opened Copy meal screen to its target diary day", async () => {
+		const targetDate = "2026-09-20";
+		const app = renderApp(
+			`/nutrition-copy?targetDate=${targetDate}&targetMeal=lunch`,
+		);
+		const copy = await screen.findByRole("button", { name: /^Copy 1 food/ });
+		await waitFor(() => expect(copy).toBeEnabled());
+		fireEvent.press(copy);
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+		expect(app.getSearchParams()).toMatchObject({ date: targetDate });
+	});
+
 	it("opens Week overview first from the menu and returns to the selected day", async () => {
 		const app = renderApp();
 		const selectedDate = shiftIsoDate(todayIsoDate(), -1);
@@ -155,6 +221,9 @@ describe("Nutrition navigation", () => {
 		});
 		expect(await screen.findByLabelText("Food name in English")).toBeTruthy();
 		expect(screen.getByText("Servings")).toBeTruthy();
+		fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		expect(app.getSearchParams()).toMatchObject({ meal: "dinner" });
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {
@@ -179,7 +248,7 @@ describe("Nutrition navigation", () => {
 			id: "entry-1",
 			meal: "lunch",
 		});
-		expect(await screen.findByText("Edit entry")).toBeTruthy();
+		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
 
 		testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));

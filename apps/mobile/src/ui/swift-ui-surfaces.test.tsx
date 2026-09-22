@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, screen } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { NutritionHeaderMenu } from "../screens/nutrition-header-menu.ios";
+import { renderThemed as render } from "../test-support/render-themed";
 import { FoodEditorSheet } from "./food-editor-sheet.ios";
 import { NativeSwipeableRow } from "./native-swipeable-row.ios";
 import { SetEditSheetPresentation } from "./set-edit-sheet-presentation.ios";
@@ -37,7 +38,8 @@ it("keeps native swipe deletion tap-only and screen-reader reachable", () => {
 });
 
 it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
-	const onCreateCombo = jest.fn();
+	const onOpenFoodLibrary = jest.fn();
+	const onOpenSettings = jest.fn();
 	const onOpenWeekOverview = jest.fn();
 	const onToggleDataSources = jest.fn();
 	render(
@@ -45,19 +47,15 @@ it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 			label="More nutrition tools"
 			closeLabel="Close"
 			weekOverviewLabel="Week overview"
-			createComboLabel="Create Combo"
-			logComboLabel="Log Combo"
-			captureDraftsLabel="Unfinished logs"
+			foodLibraryLabel="Food library"
 			assistanceLabel="Assistance"
-			backupLabel="Backup"
+			settingsLabel="Settings"
 			goalsLabel="Goals"
 			dataSourcesLabel="Data sources"
-			onCreateCombo={onCreateCombo}
+			onOpenFoodLibrary={onOpenFoodLibrary}
 			onOpenWeekOverview={onOpenWeekOverview}
-			onLogCombo={jest.fn()}
-			onOpenCaptureDrafts={jest.fn()}
 			onOpenAssistance={jest.fn()}
-			onOpenBackup={jest.fn()}
+			onOpenSettings={onOpenSettings}
 			onOpenGoals={jest.fn()}
 			onToggleDataSources={onToggleDataSources}
 		/>,
@@ -65,10 +63,12 @@ it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 
 	fireEvent.press(screen.getByLabelText("More nutrition tools"));
 	fireEvent.press(screen.getByLabelText("Week overview"));
-	fireEvent.press(screen.getByLabelText("Create Combo"));
+	fireEvent.press(screen.getByLabelText("Food library"));
+	fireEvent.press(screen.getByLabelText("Settings"));
 	fireEvent.press(screen.getByLabelText("Data sources"));
 	expect(onOpenWeekOverview).toHaveBeenCalledTimes(1);
-	expect(onCreateCombo).toHaveBeenCalledTimes(1);
+	expect(onOpenFoodLibrary).toHaveBeenCalledTimes(1);
+	expect(onOpenSettings).toHaveBeenCalledTimes(1);
 	expect(onToggleDataSources).toHaveBeenCalledTimes(1);
 });
 

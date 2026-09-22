@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { renderThemed as render } from "../test-support/render-themed";
 import { AddRow, DisclosureRow, FormSection, StepperField } from "./form";
 
 function renderForm(children: ReactNode) {

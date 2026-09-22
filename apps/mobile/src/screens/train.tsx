@@ -16,7 +16,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import { useRoutines, useShellData } from "../data/session-data";
-import { colors } from "../theme";
+import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { Chip, Eyebrow, SportIcon } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { InsetList, InsetRow } from "../ui/inset-list";
@@ -30,6 +30,8 @@ type Routines = NonNullable<ReturnType<typeof useRoutines>>;
 type Routine = Routines[number];
 
 export function TrainScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -253,73 +255,74 @@ export function TrainScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
-	filterRow: { flexDirection: "row", gap: 7 },
-	between: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	action: { fontSize: 13, fontWeight: "800", color: colors.accent },
-	muted: { fontSize: 13, color: colors.textMuted },
-	centered: { textAlign: "center" },
-	empty: {
-		alignItems: "center",
-		gap: 4,
-		paddingVertical: 24,
-		paddingHorizontal: 16,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-	},
-	list: { gap: 8 },
-	flex: { flex: 1, gap: 2 },
-	card: {
-		gap: 10,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-		padding: 12,
-	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-		padding: 12,
-	},
-	rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
-	rowSub: { fontSize: 11, color: colors.textMuted },
-	chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-	actions: { flexDirection: "row", gap: 8 },
-	primaryBtn: {
-		flex: 1,
-		minHeight: 44,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	primaryBtnText: { fontSize: 13, fontWeight: "800", color: colors.onAccent },
-	ghostBtn: {
-		minHeight: 44,
-		paddingHorizontal: 16,
-		borderRadius: 9999,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	ghostBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
-	deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
-	dimmed: { opacity: 0.5 },
-	startBtn: {
-		height: 48,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	startBtnText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
+		filterRow: { flexDirection: "row", gap: 7 },
+		between: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		action: { fontSize: 13, fontWeight: "800", color: colors.accent },
+		muted: { fontSize: 13, color: colors.textMuted },
+		centered: { textAlign: "center" },
+		empty: {
+			alignItems: "center",
+			gap: 4,
+			paddingVertical: 24,
+			paddingHorizontal: 16,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+		},
+		list: { gap: 8 },
+		flex: { flex: 1, gap: 2 },
+		card: {
+			gap: 10,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+			padding: 12,
+		},
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+			padding: 12,
+		},
+		rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
+		rowSub: { fontSize: 11, color: colors.textMuted },
+		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+		actions: { flexDirection: "row", gap: 8 },
+		primaryBtn: {
+			flex: 1,
+			minHeight: 44,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		primaryBtnText: { fontSize: 13, fontWeight: "800", color: colors.onAccent },
+		ghostBtn: {
+			minHeight: 44,
+			paddingHorizontal: 16,
+			borderRadius: 9999,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		ghostBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
+		deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
+		dimmed: { opacity: 0.5 },
+		startBtn: {
+			height: 48,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		startBtnText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
+	});

@@ -6,7 +6,7 @@ import type {
 	FoodVisual,
 	FoodVisualPresetId,
 } from "../data/personal-food-repository";
-import { colors, radius } from "../theme";
+import { radius, type Tokens, useThemedStyles, useTokens } from "../theme";
 
 const PRESET_SYMBOLS = {
 	fruit: { ios: "carrot.fill", android: "nutrition", web: "nutrition" },
@@ -58,6 +58,8 @@ export function FoodVisualView({
 	accessibilityLabel?: string;
 	size?: number;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	if (visual?.kind === "photo") {
 		return (
 			<FoodPhoto
@@ -100,6 +102,7 @@ function FoodPhoto({
 	accessibilityLabel: string;
 	size: number;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const [failed, setFailed] = useState(false);
 	if (failed) {
 		return (
@@ -121,12 +124,13 @@ function FoodPhoto({
 	);
 }
 
-const styles = StyleSheet.create({
-	image: { borderRadius: radius.sm, backgroundColor: colors.surface2 },
-	symbol: {
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.sm,
-		backgroundColor: colors.surface2,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		image: { borderRadius: radius.sm, backgroundColor: colors.surface2 },
+		symbol: {
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.sm,
+			backgroundColor: colors.surface2,
+		},
+	});

@@ -5,15 +5,7 @@ import {
 	shippedLibrary,
 } from "@workouts/core/nutrition";
 import { useMemo, useRef, useState } from "react";
-import {
-	KeyboardAvoidingView,
-	Platform,
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { formatLongDate } from "../data/calendar-day";
 import {
 	type AssistanceFood,
@@ -42,11 +34,17 @@ import type {
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
 import { getNutritionAssistanceMessages } from "../i18n/messages/nutrition-assistance";
-import { colors, radius, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
+import { PrimaryButton } from "../ui/button";
+import { Card } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
-import { FormSection, FormTextField } from "../ui/form";
+import {
+	FormScreen,
+	FormSection,
+	FormSegmentedRow,
+	FormTextField,
+	TextAction,
+} from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { PersonalFoodEditor } from "./personal-food-editor";
@@ -71,6 +69,7 @@ export function NutritionAssistanceScreen({
 	meal: MealSlot;
 	onClose: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useI18n();
 	const messages = getNutritionAssistanceMessages(locale);
 	const personalFoods = usePersonalFoods();
@@ -338,209 +337,198 @@ export function NutritionAssistanceScreen({
 			/>
 		);
 	return (
-		<KeyboardAvoidingView
-			style={styles.root}
-			behavior={Platform.OS === "ios" ? "padding" : undefined}
-		>
-			<ScrollView
-				contentInsetAdjustmentBehavior="automatic"
-				keyboardShouldPersistTaps="handled"
-				contentContainerStyle={styles.content}
-			>
-				<Eyebrow>{messages.title}</Eyebrow>
-				<AppText variant="title">{context}</AppText>
-				<AppText variant="caption">{messages.intro}</AppText>
-				<View style={styles.tabs}>
-					<ModeButton
-						active={mode === "text"}
-						label={messages.textMode}
-						onPress={() => setMode("text")}
-					/>
-					<ModeButton
-						active={mode === "label"}
-						label={messages.labelMode}
-						onPress={() => setMode("label")}
-					/>
-					<ModeButton
-						active={mode === "estimate"}
-						label={messages.estimateMode}
-						onPress={() => setMode("estimate")}
-					/>
-				</View>
+		<FormScreen>
+			<AppText variant="label">{context}</AppText>
+			<AppText variant="caption">{messages.intro}</AppText>
+			<FormSection>
+				<FormSegmentedRow
+					options={[
+						{
+							value: "text",
+							label: messages.textMode,
+							accessibilityLabel: `${messages.title}: ${messages.textMode}`,
+						},
+						{ value: "label", label: messages.labelMode },
+						{ value: "estimate", label: messages.estimateMode },
+					]}
+					value={mode}
+					onChange={setMode}
+				/>
+			</FormSection>
 
-				{mode === "estimate" ? (
-					savedEstimate ? (
-						<FormSection
-							title={savedEstimate.name[locale]}
-							footer={messages.estimateSaved}
-						>
-							<AppText>
-								{
-									personalFoodSnapshot(savedEstimate, { quantity: 1 }).serving[
-										locale
-									]
+			{mode === "estimate" ? (
+				savedEstimate ? (
+					<FormSection
+						title={savedEstimate.name[locale]}
+						footer={messages.estimateSaved}
+					>
+						<AppText>
+							{
+								personalFoodSnapshot(savedEstimate, { quantity: 1 }).serving[
+									locale
+								]
+							}
+						</AppText>
+						<PrimaryButton
+							label={messages.logEstimate}
+							onPress={logEstimate}
+							loading={estimateLogging}
+						/>
+					</FormSection>
+				) : (
+					<FormSection
+						title={messages.estimateMode}
+						footer={messages.estimateReviewHelp}
+					>
+						<FormTextField
+							label={messages.estimateName}
+							value={estimateName}
+							onChangeText={setEstimateName}
+						/>
+						<FormTextField
+							label={messages.servingName}
+							value={estimateServing}
+							onChangeText={setEstimateServing}
+						/>
+						{NUTRIENT_KEYS.map((key) => (
+							<FormTextField
+								key={key}
+								label={`${NUTRIENT_LABELS[key][locale]} (${key === "energy" ? "kcal" : "g"})`}
+								keyboardType="decimal-pad"
+								value={estimateInputs[key]}
+								onChangeText={(value) =>
+									setEstimateInputs((current) => ({
+										...current,
+										[key]: value,
+									}))
 								}
-							</AppText>
-							<PrimaryButton
-								label={messages.logEstimate}
-								onPress={logEstimate}
-								loading={estimateLogging}
 							/>
-						</FormSection>
-					) : (
-						<FormSection
-							title={messages.estimateMode}
-							footer={messages.estimateReviewHelp}
-						>
-							<FormTextField
-								label={messages.estimateName}
-								value={estimateName}
-								onChangeText={setEstimateName}
-							/>
-							<FormTextField
-								label={messages.servingName}
-								value={estimateServing}
-								onChangeText={setEstimateServing}
-							/>
-							{NUTRIENT_KEYS.map((key) => (
-								<FormTextField
-									key={key}
-									label={`${NUTRIENT_LABELS[key][locale]} (${key === "energy" ? "kcal" : "g"})`}
-									keyboardType="decimal-pad"
-									value={estimateInputs[key]}
-									onChangeText={(value) =>
-										setEstimateInputs((current) => ({
-											...current,
-											[key]: value,
-										}))
-									}
-								/>
-							))}
-							<PrimaryButton
-								label={messages.reviewEstimate}
-								onPress={reviewEstimate}
-								disabled={!estimateName.trim() || !estimateServing.trim()}
-							/>
-						</FormSection>
-					)
-				) : mode === "text" ? (
-					<>
-						<AppText variant="label">{messages.textMode}</AppText>
-						<TextInput
+						))}
+						<PrimaryButton
+							label={messages.reviewEstimate}
+							onPress={reviewEstimate}
+							disabled={!estimateName.trim() || !estimateServing.trim()}
+						/>
+					</FormSection>
+				)
+			) : mode === "text" ? (
+				<>
+					<FormSection>
+						<FormTextField
+							label={messages.textMode}
 							value={text}
 							onChangeText={(value) => {
 								setText(value);
 								setTextError(undefined);
 							}}
 							placeholder={messages.textPlaceholder}
-							placeholderTextColor={colors.textMuted}
 							multiline
 							accessibilityLabel={messages.textMode}
 							style={styles.textArea}
 						/>
-						<PrimaryButton
-							label={messages.parse}
-							onPress={parseTextInput}
-							disabled={!text.trim()}
-						/>
-						{textError ? (
-							<AppText accessibilityRole="alert" style={styles.warning}>
-								{textError}
-							</AppText>
-						) : null}
-						{rows.length === 0 ? (
-							<EmptyState body={messages.selectionPrompt} />
-						) : (
-							rows.map((row) => (
-								<AssistanceRowView
-									key={row.id}
-									row={row}
-									locale={locale}
-									messages={messages}
-									onSelect={(candidateId) => chooseRow(row.id, candidateId)}
-									onReparse={(nextText) =>
-										setRows((current) =>
-											current.map((candidate) =>
-												candidate.id === row.id
-													? reparseAssistanceRow(
-															candidate,
-															nextText,
-															catalog,
-															locale,
-														)
-													: candidate,
-											),
-										)
-									}
-								/>
-							))
-						)}
-						{reviewingBatch ? (
-							<Card style={styles.reviewCard}>
-								<AppText variant="heading">{messages.reviewBatch}</AppText>
-								{rows.map((row) => (
-									<AppText key={row.id} variant="caption">
-										{row.quantity} {row.unit} ·{" "}
-										{
-											row.candidates.find(
-												(item) => item.id === row.selectedCandidateId,
-											)?.name[locale]
-										}
-									</AppText>
-								))}
-								<PrimaryButton
-									label={messages.logBatch}
-									loading={batchSaving}
-									disabled={batchAccepted}
-									onPress={saveBatch}
-								/>
-								<GhostButton
-									label={messages.editBatch}
-									onPress={() => setReviewingBatch(false)}
-								/>
-							</Card>
-						) : (
-							<PrimaryButton
-								label={messages.reviewBatch}
-								onPress={() => setReviewingBatch(true)}
-								disabled={
-									rows.length === 0 ||
-									!rows.every((row) => row.status === "selected")
+					</FormSection>
+					<PrimaryButton
+						label={messages.parse}
+						onPress={parseTextInput}
+						disabled={!text.trim()}
+					/>
+					{textError ? (
+						<AppText accessibilityRole="alert" style={styles.warning}>
+							{textError}
+						</AppText>
+					) : null}
+					{rows.length === 0 ? (
+						<EmptyState body={messages.selectionPrompt} />
+					) : (
+						rows.map((row) => (
+							<AssistanceRowView
+								key={row.id}
+								row={row}
+								locale={locale}
+								messages={messages}
+								onSelect={(candidateId) => chooseRow(row.id, candidateId)}
+								onReparse={(nextText) =>
+									setRows((current) =>
+										current.map((candidate) =>
+											candidate.id === row.id
+												? reparseAssistanceRow(
+														candidate,
+														nextText,
+														catalog,
+														locale,
+													)
+												: candidate,
+										),
+									)
 								}
 							/>
-						)}
-						{batchAccepted ? (
-							<AppText style={styles.success}>{messages.batchAccepted}</AppText>
-						) : null}
-					</>
-				) : (
-					<LabelReview
-						messages={messages}
-						locale={locale}
-						labelText={labelText}
-						setLabelText={setLabelText}
-						label={label}
-						labelNames={labelNames}
-						setLabelNames={setLabelNames}
-						labelUnit={labelUnit}
-						setLabelUnit={setLabelUnit}
-						labelInputs={labelInputs}
-						setLabelInputs={setLabelInputs}
-						portionText={portionText}
-						setPortionText={setPortionText}
-						labelSaving={labelSaving}
-						labelAccepted={labelAccepted}
-						onParse={parseLabelInput}
-						onSave={saveLabelFood}
-					/>
-				)}
-				<Card style={styles.gated}>
-					<AppText variant="caption">{messages.photoGated}</AppText>
-					<AppText variant="caption">{messages.mealPhotoGated}</AppText>
-				</Card>
-				<GhostButton label={messages.close} onPress={onClose} />
-			</ScrollView>
-		</KeyboardAvoidingView>
+						))
+					)}
+					{reviewingBatch ? (
+						<Card style={styles.reviewCard}>
+							<AppText variant="heading">{messages.reviewBatch}</AppText>
+							{rows.map((row) => (
+								<AppText key={row.id} variant="caption">
+									{row.quantity} {row.unit} ·{" "}
+									{
+										row.candidates.find(
+											(item) => item.id === row.selectedCandidateId,
+										)?.name[locale]
+									}
+								</AppText>
+							))}
+							<PrimaryButton
+								label={messages.logBatch}
+								loading={batchSaving}
+								disabled={batchAccepted}
+								onPress={saveBatch}
+							/>
+							<TextAction
+								label={messages.editBatch}
+								onPress={() => setReviewingBatch(false)}
+							/>
+						</Card>
+					) : (
+						<PrimaryButton
+							label={messages.reviewBatch}
+							onPress={() => setReviewingBatch(true)}
+							disabled={
+								rows.length === 0 ||
+								!rows.every((row) => row.status === "selected")
+							}
+						/>
+					)}
+					{batchAccepted ? (
+						<AppText style={styles.success}>{messages.batchAccepted}</AppText>
+					) : null}
+				</>
+			) : (
+				<LabelReview
+					messages={messages}
+					locale={locale}
+					labelText={labelText}
+					setLabelText={setLabelText}
+					label={label}
+					labelNames={labelNames}
+					setLabelNames={setLabelNames}
+					labelUnit={labelUnit}
+					setLabelUnit={setLabelUnit}
+					labelInputs={labelInputs}
+					setLabelInputs={setLabelInputs}
+					portionText={portionText}
+					setPortionText={setPortionText}
+					labelSaving={labelSaving}
+					labelAccepted={labelAccepted}
+					onParse={parseLabelInput}
+					onSave={saveLabelFood}
+				/>
+			)}
+			<Card style={styles.gated}>
+				<AppText variant="caption">{messages.photoGated}</AppText>
+				<AppText variant="caption">{messages.mealPhotoGated}</AppText>
+			</Card>
+			<TextAction label={messages.close} onPress={onClose} />
+		</FormScreen>
 	);
 }
 
@@ -557,16 +545,18 @@ function AssistanceRowView({
 	onSelect: (candidateId: string) => void;
 	onReparse: (text: string) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const [draft, setDraft] = useState(row.raw);
 	return (
 		<Card style={styles.rowCard}>
-			<TextInput
+			<FormTextField
+				label={messages.textMode}
 				value={draft}
 				onChangeText={setDraft}
 				accessibilityLabel={row.raw}
 				style={styles.input}
 			/>
-			<GhostButton label={messages.reparse} onPress={() => onReparse(draft)} />
+			<TextAction label={messages.reparse} onPress={() => onReparse(draft)} />
 			{row.status === "ambiguous" ? (
 				<AppText style={styles.warning}>{messages.ambiguous}</AppText>
 			) : null}
@@ -640,19 +630,21 @@ function LabelReview({
 	onParse: () => void;
 	onSave: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<>
-			<AppText variant="heading">{messages.labelTitle}</AppText>
 			<AppText variant="caption">{messages.labelIntro}</AppText>
-			<TextInput
-				value={labelText}
-				onChangeText={setLabelText}
-				placeholder={messages.labelPlaceholder}
-				placeholderTextColor={colors.textMuted}
-				multiline
-				accessibilityLabel={messages.labelTitle}
-				style={styles.textArea}
-			/>
+			<FormSection>
+				<FormTextField
+					label={messages.labelTitle}
+					value={labelText}
+					onChangeText={setLabelText}
+					placeholder={messages.labelPlaceholder}
+					multiline
+					accessibilityLabel={messages.labelTitle}
+					style={styles.textArea}
+				/>
+			</FormSection>
 			<PrimaryButton
 				label={messages.parseLabel}
 				onPress={onParse}
@@ -661,14 +653,14 @@ function LabelReview({
 			{label ? (
 				<Card style={styles.reviewCard}>
 					<AppText variant="heading">{messages.labelReview}</AppText>
-					<Field
+					<FormTextField
 						label={messages.nameEnglish}
 						value={labelNames.en}
 						onChangeText={(value) =>
 							setLabelNames({ ...labelNames, en: value })
 						}
 					/>
-					<Field
+					<FormTextField
 						label={messages.nameDutch}
 						value={labelNames.nl}
 						onChangeText={(value) =>
@@ -676,18 +668,14 @@ function LabelReview({
 						}
 					/>
 					<AppText variant="label">{messages.baseUnit}</AppText>
-					<View style={styles.tabs}>
-						<ModeButton
-							active={labelUnit === "g"}
-							label={messages.grams}
-							onPress={() => setLabelUnit("g")}
-						/>
-						<ModeButton
-							active={labelUnit === "ml"}
-							label={messages.millilitres}
-							onPress={() => setLabelUnit("ml")}
-						/>
-					</View>
+					<FormSegmentedRow
+						options={[
+							{ value: "g", label: messages.grams },
+							{ value: "ml", label: messages.millilitres },
+						]}
+						value={labelUnit}
+						onChange={setLabelUnit}
+					/>
 					<AppText variant="caption">{messages.allNutrients}</AppText>
 					{label.energyBasis === "kj-converted" ? (
 						<AppText variant="caption" style={styles.success}>
@@ -695,7 +683,7 @@ function LabelReview({
 						</AppText>
 					) : null}
 					{NUTRIENT_KEYS.map((key) => (
-						<Field
+						<FormTextField
 							key={key}
 							label={NUTRIENT_LABELS[key][locale]}
 							value={labelInputs[key]}
@@ -705,7 +693,7 @@ function LabelReview({
 							keyboardType="decimal-pad"
 						/>
 					))}
-					<Field
+					<FormTextField
 						label={messages.portion}
 						value={portionText}
 						onChangeText={setPortionText}
@@ -726,54 +714,6 @@ function LabelReview({
 	);
 }
 
-function Field({
-	label,
-	value,
-	onChangeText,
-	keyboardType,
-}: {
-	label: string;
-	value: string;
-	onChangeText: (value: string) => void;
-	keyboardType?: "decimal-pad";
-}) {
-	return (
-		<View style={styles.field}>
-			<AppText variant="label">{label}</AppText>
-			<TextInput
-				value={value}
-				onChangeText={onChangeText}
-				keyboardType={keyboardType}
-				accessibilityLabel={label}
-				style={styles.input}
-			/>
-		</View>
-	);
-}
-
-function ModeButton({
-	active,
-	label,
-	onPress,
-}: {
-	active: boolean;
-	label: string;
-	onPress: () => void;
-}) {
-	return (
-		<Pressable
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityState={{ selected: active }}
-			style={[styles.modeButton, active && styles.modeActive]}
-		>
-			<AppText style={{ color: active ? colors.onAccent : colors.text }}>
-				{label}
-			</AppText>
-		</Pressable>
-	);
-}
-
 function mealLabel(meal: MealSlot, locale: "en" | "nl") {
 	const labels = {
 		breakfast: { en: "Breakfast", nl: "Ontbijt" },
@@ -784,52 +724,38 @@ function mealLabel(meal: MealSlot, locale: "en" | "nl") {
 	return labels[meal][locale];
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingBottom: 48, gap: spacing.md },
-	tabs: { flexDirection: "row", gap: spacing.sm },
-	modeButton: {
-		flex: 1,
-		minHeight: 48,
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: spacing.sm,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.lg,
-	},
-	modeActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-	textArea: {
-		minHeight: 112,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		padding: spacing.md,
-		color: colors.text,
-		textAlignVertical: "top",
-	},
-	rowCard: { gap: spacing.sm },
-	reviewCard: { gap: spacing.sm },
-	input: {
-		minHeight: 48,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		paddingHorizontal: spacing.md,
-		color: colors.text,
-	},
-	candidate: {
-		minHeight: 48,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-	},
-	pressed: { backgroundColor: colors.accentDim },
-	field: { gap: spacing.xs },
-	warning: { color: colors.danger },
-	success: { color: colors.success },
-	gated: { gap: spacing.xs, borderColor: colors.borderStrong },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		textArea: {
+			minHeight: 112,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			borderRadius: radius.md,
+			backgroundColor: colors.surface2,
+			padding: spacing.md,
+			color: colors.text,
+			textAlignVertical: "top",
+		},
+		rowCard: { gap: spacing.sm },
+		reviewCard: { gap: spacing.sm },
+		input: {
+			minHeight: 48,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			borderRadius: radius.md,
+			backgroundColor: colors.surface2,
+			paddingHorizontal: spacing.md,
+			color: colors.text,
+		},
+		candidate: {
+			minHeight: 48,
+			justifyContent: "center",
+			paddingHorizontal: spacing.md,
+			borderRadius: radius.md,
+			backgroundColor: colors.surface2,
+		},
+		pressed: { backgroundColor: colors.accentDim },
+		warning: { color: colors.danger },
+		success: { color: colors.success },
+		gated: { gap: spacing.xs, borderColor: colors.borderStrong },
+	});

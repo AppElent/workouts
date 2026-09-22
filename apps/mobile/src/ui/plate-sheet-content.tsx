@@ -1,6 +1,6 @@
 import { calcPlates, DEFAULT_BAR, generateWarmup } from "@workouts/core";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { Eyebrow } from "./coach";
 import { AppText } from "./text";
 
@@ -16,6 +16,7 @@ export function PlateSheetContent({
 	weight: number;
 	onClose: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const unit = "kg" as const;
 	const bar = DEFAULT_BAR[unit];
 	const result = calcPlates(weight, bar, unit);
@@ -98,39 +99,40 @@ export function PlateSheetContent({
 	);
 }
 
-const styles = StyleSheet.create({
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		minHeight: 44,
-	},
-	close: { color: colors.accent, fontWeight: "800" },
-	stack: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 3,
-		paddingVertical: spacing.sm,
-	},
-	plate: {
-		width: 26,
-		borderRadius: radius.xs,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	plateText: { fontSize: 9, fontWeight: "800", color: colors.onAccent },
-	warn: { color: colors.warn },
-	warmupList: { gap: spacing.xs },
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		backgroundColor: colors.surface2,
-		borderRadius: radius.md,
-		paddingHorizontal: spacing.sm,
-		paddingVertical: spacing.sm,
-	},
-	warmupWeight: { fontWeight: "800", width: 72 },
-	flex: { flex: 1 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			minHeight: 44,
+		},
+		close: { color: colors.accent, fontWeight: "800" },
+		stack: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 3,
+			paddingVertical: spacing.sm,
+		},
+		plate: {
+			width: 26,
+			borderRadius: radius.xs,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		plateText: { fontSize: 9, fontWeight: "800", color: colors.onAccent },
+		warn: { color: colors.warn },
+		warmupList: { gap: spacing.xs },
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface2,
+			borderRadius: radius.md,
+			paddingHorizontal: spacing.sm,
+			paddingVertical: spacing.sm,
+		},
+		warmupWeight: { fontWeight: "800", width: 72 },
+		flex: { flex: 1 },
+	});

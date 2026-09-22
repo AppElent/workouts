@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react-native";
+import { screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { renderThemed as render } from "../test-support/render-themed";
 import { CoachTabStack } from "./coach-tab-stack";
 
 jest.mock("expo-router", () => {

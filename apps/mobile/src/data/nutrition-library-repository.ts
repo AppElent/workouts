@@ -1,4 +1,4 @@
-import { openDatabaseSync } from "expo-sqlite";
+import { openNutritionDatabase } from "./nutrition-database";
 import type {
 	Combo,
 	PersonalFood,
@@ -637,7 +637,7 @@ export function createNutritionLibraryStateRepository(
 
 export function openNutritionLibraryStateRepository() {
 	return createNutritionLibraryStateRepository(
-		openDatabaseSync(
+		openNutritionDatabase(
 			NUTRITION_LIBRARY_STATE_DATABASE_NAME,
 		) as SyncSQLiteDatabase,
 	);

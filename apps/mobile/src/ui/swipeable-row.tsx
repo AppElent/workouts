@@ -45,7 +45,13 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { AppText } from "./text";
 
 export interface RowAction {
@@ -90,6 +96,8 @@ export function SwipeableRow({
 	showMenuButton?: boolean;
 	children: (accessibility: RowAccessibilityProps) => ReactNode;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const reduceMotion = useReduceMotion();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const swipeActions = actions.filter((action) => action.swipe !== false);
@@ -305,6 +313,8 @@ function ActionMenu({
 	onSelect: (action: RowAction) => void;
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
 	return (
 		<Modal
@@ -371,55 +381,56 @@ function ActionMenu({
 	);
 }
 
-const styles = StyleSheet.create({
-	clip: { overflow: "hidden" },
-	actionsLayer: {
-		position: "absolute",
-		right: 0,
-		top: 0,
-		bottom: 0,
-		flexDirection: "row",
-	},
-	action: {
-		width: ACTION_WIDTH,
-		// 44pt is the platform minimum; these rows are taller, but the button
-		// must not fall under it when a row is short.
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: spacing.xs,
-	},
-	actionPressed: { opacity: 0.7 },
-	row: {
-		backgroundColor: colors.surface,
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	menuButton: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		clip: { overflow: "hidden" },
+		actionsLayer: {
+			position: "absolute",
+			right: 0,
+			top: 0,
+			bottom: 0,
+			flexDirection: "row",
+		},
+		action: {
+			width: ACTION_WIDTH,
+			// 44pt is the platform minimum; these rows are taller, but the button
+			// must not fall under it when a row is short.
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			paddingHorizontal: spacing.xs,
+		},
+		actionPressed: { opacity: 0.7 },
+		row: {
+			backgroundColor: colors.surface,
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		menuButton: {
+			minWidth: 44,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
 
-	backdrop: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.6)",
-		justifyContent: "flex-end",
-		padding: spacing.md,
-	},
-	menu: {
-		maxHeight: "90%",
-		backgroundColor: colors.surface,
-		borderRadius: radius.sheet,
-		borderWidth: 1,
-		borderColor: colors.border,
-		padding: spacing.md,
-		gap: spacing.xs,
-	},
-	menuItem: {
-		minHeight: 48,
-		justifyContent: "center",
-		paddingHorizontal: spacing.sm,
-	},
-});
+		backdrop: {
+			flex: 1,
+			backgroundColor: colors.scrim,
+			justifyContent: "flex-end",
+			padding: spacing.md,
+		},
+		menu: {
+			maxHeight: "90%",
+			backgroundColor: colors.surface,
+			borderRadius: radius.sheet,
+			borderWidth: 1,
+			borderColor: colors.border,
+			padding: spacing.md,
+			gap: spacing.xs,
+		},
+		menuItem: {
+			minHeight: 48,
+			justifyContent: "center",
+			paddingHorizontal: spacing.sm,
+		},
+	});

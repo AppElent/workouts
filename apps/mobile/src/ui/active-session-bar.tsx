@@ -3,7 +3,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useActiveSession } from "../data/session-data";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 /** "0:42" under an hour, "1:02:47" over it. */
@@ -19,6 +19,7 @@ function formatElapsed(ms: number) {
 }
 
 export function ActiveSessionBar() {
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const segments = useSegments();
 	const active = useActiveSession();
@@ -62,36 +63,37 @@ export function ActiveSessionBar() {
 	);
 }
 
-const styles = StyleSheet.create({
-	wrap: {
-		paddingHorizontal: spacing.md,
-	},
-	bar: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		minHeight: 44,
-		paddingHorizontal: spacing.md,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-	},
-	dot: {
-		width: 8,
-		height: 8,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-	},
-	flex: { flex: 1 },
-	label: {
-		color: colors.accent,
-		letterSpacing: 1,
-		textTransform: "uppercase",
-	},
-	name: { fontWeight: "700" },
-	elapsed: {
-		color: colors.textMuted,
-		fontWeight: "700",
-		fontVariant: ["tabular-nums"],
-	},
-	resume: { color: colors.accent, fontWeight: "800" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		wrap: {
+			paddingHorizontal: spacing.md,
+		},
+		bar: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			minHeight: 44,
+			paddingHorizontal: spacing.md,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+		},
+		dot: {
+			width: 8,
+			height: 8,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+		},
+		flex: { flex: 1 },
+		label: {
+			color: colors.accent,
+			letterSpacing: 1,
+			textTransform: "uppercase",
+		},
+		name: { fontWeight: "700" },
+		elapsed: {
+			color: colors.textMuted,
+			fontWeight: "700",
+			fontVariant: ["tabular-nums"],
+		},
+		resume: { color: colors.accent, fontWeight: "800" },
+	});

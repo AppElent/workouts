@@ -69,7 +69,9 @@ describe("the app's language", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition-goals");
 
-		expect(await screen.findByText("Jouw voedingsdoelen")).toBeTruthy();
+		expect(
+			await screen.findByLabelText("Energie Maximum Dagelijkse hoeveelheid"),
+		).toBeTruthy();
 		expect(screen.getByText("Referentie-inname")).toBeTruthy();
 		fireEvent.changeText(
 			screen.getByLabelText("Energie Minimum Dagelijkse hoeveelheid"),

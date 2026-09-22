@@ -19,7 +19,7 @@ import {
 } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 type ToastKind = "error" | "success";
@@ -36,6 +36,7 @@ const ToastContext = createContext<ToastApi | null>(null);
 const DISMISS_MS = 4000;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+	const styles = useThemedStyles(createStyles);
 	const [toast, setToast] = useState<Toast | null>(null);
 	const insets = useSafeAreaInsets();
 
@@ -62,6 +63,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 					pointerEvents="box-none"
 				>
 					<Pressable
+						accessibilityRole="alert"
+						accessibilityLiveRegion="assertive"
 						onPress={() => setToast(null)}
 						style={[
 							styles.toast,
@@ -84,26 +87,27 @@ export function useToast() {
 	return api;
 }
 
-const styles = StyleSheet.create({
-	wrap: {
-		position: "absolute",
-		left: spacing.md,
-		right: spacing.md,
-		zIndex: 100,
-	},
-	toast: {
-		borderRadius: radius.lg,
-		borderWidth: 1,
-		paddingVertical: spacing.sm + 2,
-		paddingHorizontal: spacing.md,
-	},
-	error: {
-		backgroundColor: colors.dangerSoft,
-		borderColor: colors.danger,
-	},
-	success: {
-		backgroundColor: colors.accentDim,
-		borderColor: colors.accent,
-	},
-	text: { color: colors.text },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		wrap: {
+			position: "absolute",
+			left: spacing.md,
+			right: spacing.md,
+			zIndex: 100,
+		},
+		toast: {
+			borderRadius: radius.lg,
+			borderWidth: 1,
+			paddingVertical: spacing.sm + 2,
+			paddingHorizontal: spacing.md,
+		},
+		error: {
+			backgroundColor: colors.surface,
+			borderColor: colors.danger,
+		},
+		success: {
+			backgroundColor: colors.surface,
+			borderColor: colors.accent,
+		},
+		text: { color: colors.text },
+	});

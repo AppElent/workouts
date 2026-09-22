@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import type { Doc, Id } from "../convex/api";
+import { renderThemed as render } from "../test-support/render-themed";
 import { ConfirmProvider } from "./confirm-dialog";
 import { SetEditSheet } from "./set-edit-sheet";
 

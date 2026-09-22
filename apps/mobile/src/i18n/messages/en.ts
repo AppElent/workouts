@@ -29,6 +29,7 @@ export const en = {
 	},
 
 	preferences: {
+		appearance: "Appearance",
 		heading: "Preferences",
 		units: "Units",
 		notifications: "Notifications",
@@ -37,6 +38,16 @@ export const en = {
 		language: "Language",
 	},
 
+	appearance: {
+		saveError:
+			"Appearance changed, but could not be saved. Choose it again to retry.",
+		title: "Appearance",
+		system: "System",
+		light: "Light",
+		dark: "Dark",
+		description:
+			"Choose how the whole app looks. System follows your phone’s appearance automatically.",
+	},
 	language: {
 		title: "Language",
 		description:
@@ -129,7 +140,9 @@ export const en = {
 			targetDate: "Target day",
 			targetMeal: "Target meal",
 			selectAll: "Select all",
+			deselectAll: "Deselect all",
 			selected: "{count} selected",
+			copyOne: "Copy 1 food to {meal}",
 			copy: "Copy {count} foods to {meal}",
 			copying: "Copying…",
 			empty: "There is nothing to copy from this meal.",
@@ -446,6 +459,9 @@ export const en = {
 		},
 
 		offline: {
+			uncachedMeal: "No entries for this meal are on this phone yet.",
+			goals:
+				"Goals for this day are not on this phone yet. They will appear when you reconnect. You can still log food.",
 			title: "Your diary for this day is not on this phone yet",
 			body: "It will appear as soon as you are back online. You can still search foods and log them now — entries are sent when you reconnect.",
 			slot: "Not available offline",

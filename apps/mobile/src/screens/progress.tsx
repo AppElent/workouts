@@ -18,7 +18,7 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useShellData } from "../data/session-data";
-import { colors } from "../theme";
+import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { BucketChart, TrendChart } from "../ui/chart";
 import { Chip, Eyebrow, StatBox } from "../ui/coach";
 import { AppText } from "../ui/text";
@@ -28,6 +28,7 @@ const TABS = ["Exercises", "Body"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProgressScreen() {
+	const styles = useThemedStyles(createStyles);
 	const [tab, setTab] = useState<Tab>("Exercises");
 	const { recent, exercises } = useShellData();
 
@@ -80,6 +81,8 @@ function ExerciseProgress({
 }: {
 	exercises: ReturnType<typeof useShellData>["exercises"];
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const [selected, setSelected] = useState<Id<"exercises"> | null>(null);
 
 	const ormHistory = useQuery(
@@ -170,21 +173,22 @@ function ExerciseProgress({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
-	tabRow: { flexDirection: "row", gap: 7 },
-	flex: { flex: 1 },
-	statRow: { flexDirection: "row", gap: 8 },
-	chipRow: { flexDirection: "row", gap: 7 },
-	muted: { fontSize: 13, color: colors.textMuted },
-	centered: { textAlign: "center" },
-	empty: {
-		alignItems: "center",
-		gap: 4,
-		paddingVertical: 24,
-		paddingHorizontal: 16,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
+		tabRow: { flexDirection: "row", gap: 7 },
+		flex: { flex: 1 },
+		statRow: { flexDirection: "row", gap: 8 },
+		chipRow: { flexDirection: "row", gap: 7 },
+		muted: { fontSize: 13, color: colors.textMuted },
+		centered: { textAlign: "center" },
+		empty: {
+			alignItems: "center",
+			gap: 4,
+			paddingVertical: 24,
+			paddingHorizontal: 16,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+		},
+	});

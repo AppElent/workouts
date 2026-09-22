@@ -25,8 +25,8 @@ export function NutritionSyncStatus() {
 		<View accessibilityLiveRegion="polite">
 			<AppText variant="caption">
 				{locale === "nl"
-					? `${operations.length} wijzigingen op dit apparaat; wachten op synchronisatie.`
-					: `${operations.length} changes saved on this device; waiting to sync.`}
+					? `${operations.length} ${operations.length === 1 ? "wijziging" : "wijzigingen"} op dit apparaat; wachten op synchronisatie.`
+					: `${operations.length} ${operations.length === 1 ? "change" : "changes"} saved on this device; waiting to sync.`}
 			</AppText>
 			{failed.length > 0 ? (
 				<>

@@ -8,51 +8,29 @@
  * (`docs/design/foundry-native-plan.md`), so there is no longer a "web look"
  * to keep this one apart from.
  *
- * Two schemes. Dark is the base; light is Foundry's addition. `app.json` still
- * pins `userInterfaceStyle: "dark"` — the light ramp is data until each screen
- * reads `useTokens()` instead of the static `colors` object and passes device
- * QA. `colors` stays exported for the screens that have not migrated.
- *
- * The one rule light mode turns on: lime on white is ~1.4:1, so `accent` is a
- * FILL and never ink. Text, icons, strokes and chart series read `accentInk`
- * unconditionally — it is the same lime in dark and a deep olive in light.
+ * System / Light / Dark is resolved by AppearanceProvider. Static palettes are
+ * used only for token definitions and UIKit trait-adaptive chrome. Components
+ * read useTokens(). accentFill is the lime fill; accent and accentInk are
+ * legible foreground colors in either scheme.
  */
-import {
-	type ColorValue,
-	DynamicColorIOS,
-	Platform,
-	useColorScheme,
-} from "react-native";
+import { type ColorValue, DynamicColorIOS, Platform } from "react-native";
 
 /** Every colour the app is allowed to use, dark scheme. */
-export const colors = {
-	/** Page background. Near-black, warmed slightly off true black. */
+export const darkColors = {
 	bg: "#0a0b09",
-	/** Raised surface: cards, rows, sheets. */
 	surface: "#141613",
-	/** One step above `surface`: inputs, pressed states. */
 	surface2: "#1d201b",
-
-	/** The one accent, as a fill. Everything interactive that matters is this lime. */
 	accent: "#c8f73c",
-	/** Accent under a finger. */
 	accentPressed: "#d6ff5c",
-	/** Accent at 13% — tinted backdrops behind accent content. */
 	accentDim: "rgba(200, 247, 60, 0.13)",
-	/** Ink on an accent-filled surface. Near-black, not white — the lime is bright. */
 	onAccent: "#0a0b09",
-	/** Accented text, icons, strokes and chart series. Never `accent` for these. */
 	accentInk: "#c8f73c",
-
 	text: "#f2f4ef",
 	textMuted: "#9ba095",
-	textFaint: "#5c6156",
-
+	textFaint: "#919789",
 	border: "rgba(255, 255, 255, 0.07)",
 	borderStrong: "rgba(255, 255, 255, 0.14)",
-	/** The 0.5pt hairline between rows of a group, inset from the leading edge. */
 	separator: "rgba(255, 255, 255, 0.14)",
-
 	danger: "#ff6b6b",
 	dangerSoft: "rgba(255, 107, 107, 0.12)",
 	success: "#4ade80",
@@ -60,37 +38,48 @@ export const colors = {
 	warn: "#fbbf24",
 	warnSoft: "rgba(251, 191, 36, 0.12)",
 	warnBorder: "rgba(251, 191, 36, 0.25)",
+	accentFill: "#c8f73c",
+	onDanger: "#0a0b09",
+	scrim: "rgba(0, 0, 0, 0.6)",
+	mediaScrim: "rgba(10, 11, 9, 0.72)",
+	onMedia: "#ffffff",
+	surfaceTransparent: "rgba(20, 22, 19, 0)",
 } as const;
 
+export const colors = darkColors;
+
 /** The light scheme — `designs/foundry/tokens/light.css`. Same keys, so a screen never branches. */
-export const colorsLight: Tokens = {
-	bg: "#faf9f5",
+export const lightColors: Tokens = {
+	bg: "#f4f5f0",
 	surface: "#ffffff",
-	surface2: "#f3f2ec",
-
-	accent: "#c8f73c",
-	accentPressed: "#d6ff5c",
-	accentDim: "rgba(200, 247, 60, 0.22)",
-	onAccent: "#1b1d18",
-	/** Deep olive — 5.6:1 on white. */
-	accentInk: "#55700c",
-
-	text: "#1b1d18",
-	textMuted: "#6b6f62",
-	textFaint: "#9a9d90",
-
-	border: "rgba(60, 62, 50, 0.13)",
-	borderStrong: "rgba(60, 62, 50, 0.22)",
+	surface2: "#e9ece3",
+	accent: "#466400",
+	accentPressed: "#b5e329",
+	accentDim: "rgba(70, 100, 0, 0.10)",
+	onAccent: "#0a0b09",
+	accentInk: "#466400",
+	text: "#1a2015",
+	textMuted: "#535e49",
+	textFaint: "#606b57",
+	border: "rgba(26, 32, 21, 0.12)",
+	borderStrong: "rgba(26, 32, 21, 0.25)",
 	separator: "rgba(60, 62, 50, 0.10)",
-
-	danger: "#c0302c",
-	dangerSoft: "rgba(192, 48, 44, 0.09)",
-	success: "#157f45",
+	danger: "#b42332",
+	dangerSoft: "rgba(180, 35, 50, 0.09)",
+	success: "#24723c",
 	successSoft: "rgba(21, 127, 69, 0.10)",
-	warn: "#9a6600",
-	warnSoft: "rgba(154, 102, 0, 0.10)",
-	warnBorder: "rgba(154, 102, 0, 0.25)",
+	warn: "#865500",
+	warnSoft: "rgba(134, 85, 0, 0.09)",
+	warnBorder: "rgba(134, 85, 0, 0.25)",
+	accentFill: "#c8f73c",
+	onDanger: "#ffffff",
+	scrim: "rgba(0, 0, 0, 0.4)",
+	mediaScrim: "rgba(10, 11, 9, 0.72)",
+	onMedia: "#ffffff",
+	surfaceTransparent: "rgba(255, 255, 255, 0)",
 };
+
+export const colorsLight = lightColors;
 
 /**
  * One entry per proposed Activity type. A closed set of code literals per
@@ -145,6 +134,25 @@ export const sportMeta = {
 } as const;
 
 export type SportKey = keyof typeof sportMeta;
+
+export const lightSportMeta = {
+	strength: {
+		...sportMeta.strength,
+		color: "#466400",
+		dim: "rgba(70, 100, 0, 0.10)",
+	},
+	running: {
+		...sportMeta.running,
+		color: "#9d430a",
+		dim: "rgba(157, 67, 10, 0.10)",
+	},
+	cycling: {
+		...sportMeta.cycling,
+		color: "#086878",
+		dim: "rgba(8, 104, 120, 0.10)",
+	},
+	wod: { ...sportMeta.wod, color: "#b42342", dim: "rgba(180, 35, 66, 0.10)" },
+};
 
 /**
  * Corner radii. Continuous ("squircle") on native via `borderCurve`. `pill` is
@@ -228,36 +236,34 @@ export const opacity = {
  * `color` from `useTokens()`.
  */
 export const type = {
-	display: { fontSize: 32, fontWeight: "800", color: colors.text },
-	title: { fontSize: 24, fontWeight: "800", color: colors.text },
-	heading: { fontSize: 18, fontWeight: "700", color: colors.text },
-	body: { fontSize: 15, fontWeight: "500", color: colors.text },
-	label: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-	caption: { fontSize: 12, fontWeight: "500", color: colors.textMuted },
+	display: { fontSize: 32, fontWeight: "800" },
+	title: { fontSize: 24, fontWeight: "800" },
+	heading: { fontSize: 18, fontWeight: "700" },
+	body: { fontSize: 15, fontWeight: "500" },
+	label: { fontSize: 13, fontWeight: "600" },
+	caption: { fontSize: 12, fontWeight: "500" },
 	/** Numbers that are the point of the screen: reps, weight, set counts. */
-	metric: { fontSize: 28, fontWeight: "800", color: colors.text },
+	metric: { fontSize: 28, fontWeight: "800" },
 
 	/** Native iOS layer. */
 	largeTitle: {
 		fontSize: 34,
 		fontWeight: "700",
 		letterSpacing: -0.8,
-		color: colors.text,
 	},
-	navTitle: { fontSize: 17, fontWeight: "600", color: colors.text },
+	navTitle: { fontSize: 17, fontWeight: "600" },
 	/** A grouped-list row title. */
 	row: {
 		fontSize: 17,
 		fontWeight: "600",
 		letterSpacing: -0.2,
-		color: colors.text,
 	},
 	/** The line under a row title, or a right-aligned value. */
-	secondary: { fontSize: 15, fontWeight: "400", color: colors.textMuted },
+	secondary: { fontSize: 15, fontWeight: "400" },
 	/** Section footers, field errors, timestamps. */
-	footnote: { fontSize: 13, fontWeight: "400", color: colors.textMuted },
+	footnote: { fontSize: 13, fontWeight: "400" },
 	/** Text inside a button or segmented control. */
-	control: { fontSize: 16, fontWeight: "600", color: colors.text },
+	control: { fontSize: 16, fontWeight: "600" },
 } as const;
 
 /**
@@ -288,46 +294,5 @@ export const chrome = {
 	accentInk: dynamic(colors.accentInk, colorsLight.accentInk),
 } as const;
 
-/**
- * The deliberate light-mode switch. Off until every screen reads `useTokens()`
- * (plan step 3) and the light pass in `docs/ios-native-verification.md` is
- * green; flip it together with `userInterfaceStyle` in `app.json`. While it
- * is off the OS scheme is ignored entirely — iOS 26 reports traits the ground
- * does not match (see `chrome`), and a half-migrated app must never render
- * light text on a dark screen because of it.
- */
-export const lightModeEnabled = false;
-
 export type Scheme = "dark" | "light";
-
-/** The scheme the app is actually drawing in — not necessarily the OS's. */
-export function useScheme(): Scheme {
-	const os = useColorScheme();
-	return lightModeEnabled && os === "light" ? "light" : "dark";
-}
-
-/**
- * Colours, not conditions (gather's rule). Call it in a component, never at
- * module scope — a `StyleSheet.create` that captures it is dark forever.
- */
-export function useTokens(): Tokens {
-	return useScheme() === "light" ? colorsLight : colors;
-}
-
-/** For `<Host colorScheme>`: SwiftUI surfaces draw in the scheme the app draws in. */
-export function useHostScheme(): Scheme {
-	return useScheme();
-}
-
-/** A sport's hue and tint for the current scheme. */
-export function useSportColors(sport: SportKey): {
-	color: string;
-	dim: string;
-} {
-	const meta = sportMeta[sport];
-	return useScheme() === "light"
-		? { color: meta.colorLight, dim: meta.dimLight }
-		: { color: meta.color, dim: meta.dim };
-}
-
-export type Tokens = { readonly [K in keyof typeof colors]: string };
+export type Tokens = { readonly [K in keyof typeof darkColors]: string };

@@ -17,10 +17,11 @@ import { useConvexConnectionState } from "convex/react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
+import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 export function OfflineBanner() {
+	const styles = useThemedStyles(createStyles);
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const insets = useSafeAreaInsets();
 	const { t } = useI18n();
@@ -39,14 +40,15 @@ export function OfflineBanner() {
 	);
 }
 
-const styles = StyleSheet.create({
-	wrap: {
-		alignItems: "center",
-		paddingBottom: spacing.xs,
-		paddingHorizontal: spacing.md,
-		backgroundColor: "rgba(251, 191, 36, 0.12)",
-		borderBottomWidth: 1,
-		borderBottomColor: "rgba(251, 191, 36, 0.25)",
-	},
-	text: { color: colors.warn, fontWeight: "600" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		wrap: {
+			alignItems: "center",
+			paddingBottom: spacing.xs,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.warnSoft,
+			borderBottomWidth: 1,
+			borderBottomColor: colors.warnBorder,
+		},
+		text: { color: colors.warn, fontWeight: "600" },
+	});

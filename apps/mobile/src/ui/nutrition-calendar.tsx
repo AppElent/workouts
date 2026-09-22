@@ -7,7 +7,7 @@ import {
 	todayIsoDate,
 	toIsoDate,
 } from "../data/calendar-day";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 export type NutritionCalendarLabels = {
@@ -84,6 +84,7 @@ export function NutritionCalendar({
 	today?: IsoDate;
 	labels?: Partial<NutritionCalendarLabels>;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const copy = {
 		...(locale === "nl" ? DUTCH_LABELS : DEFAULT_LABELS),
 		...labels,
@@ -196,32 +197,33 @@ export function NutritionCalendar({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { gap: spacing.sm },
-	header: { flexDirection: "row", alignItems: "center" },
-	title: { flex: 1, textAlign: "center", textTransform: "capitalize" },
-	navButton: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-	},
-	navGlyph: { color: colors.accent, fontSize: 28 },
-	weekdays: { flexDirection: "row" },
-	weekday: { flex: 1, textAlign: "center", fontWeight: "700" },
-	grid: { flexDirection: "row", flexWrap: "wrap" },
-	cell: {
-		width: "14.2857%",
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-	},
-	selected: { backgroundColor: colors.accent },
-	selectedText: { color: colors.onAccent, fontWeight: "800" },
-	today: { borderColor: colors.accent, borderWidth: 1 },
-	pressed: { backgroundColor: colors.surface2 },
-	todayButton: { alignSelf: "center", padding: spacing.sm, minHeight: 44 },
-	todayText: { color: colors.accent, fontWeight: "800" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { gap: spacing.sm },
+		header: { flexDirection: "row", alignItems: "center" },
+		title: { flex: 1, textAlign: "center", textTransform: "capitalize" },
+		navButton: {
+			minWidth: 44,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.pill,
+		},
+		navGlyph: { color: colors.accent, fontSize: 28 },
+		weekdays: { flexDirection: "row" },
+		weekday: { flex: 1, textAlign: "center", fontWeight: "700" },
+		grid: { flexDirection: "row", flexWrap: "wrap" },
+		cell: {
+			width: "14.2857%",
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.pill,
+		},
+		selected: { backgroundColor: colors.accentFill },
+		selectedText: { color: colors.onAccent, fontWeight: "800" },
+		today: { borderColor: colors.accent, borderWidth: 1 },
+		pressed: { backgroundColor: colors.surface2 },
+		todayButton: { alignSelf: "center", padding: spacing.sm, minHeight: 44 },
+		todayText: { color: colors.accent, fontWeight: "800" },
+	});

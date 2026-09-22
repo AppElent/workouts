@@ -25,7 +25,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
@@ -65,6 +71,8 @@ export function AddExerciseForm({
 	presentation?: "modal" | "screen";
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
@@ -267,41 +275,46 @@ export function AddExerciseForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.md },
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		minHeight: 44,
-	},
-	cancel: { color: colors.accent, fontWeight: "700" },
-	content: { gap: spacing.sm, paddingBottom: spacing.xxl },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	multiline: {
-		minHeight: 88,
-		paddingTop: spacing.sm,
-		textAlignVertical: "top",
-	},
-	chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-	chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
-	submit: {
-		height: 48,
-		marginTop: spacing.md,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-	dimmed: { opacity: 0.5 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: {
+			flex: 1,
+			backgroundColor: colors.bg,
+			paddingHorizontal: spacing.md,
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			minHeight: 44,
+		},
+		cancel: { color: colors.accent, fontWeight: "700" },
+		content: { gap: spacing.sm, paddingBottom: spacing.xxl },
+		input: {
+			minHeight: 48,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		multiline: {
+			minHeight: 88,
+			paddingTop: spacing.sm,
+			textAlignVertical: "top",
+		},
+		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
+		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
+		submit: {
+			height: 48,
+			marginTop: spacing.md,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
+		dimmed: { opacity: 0.5 },
+	});

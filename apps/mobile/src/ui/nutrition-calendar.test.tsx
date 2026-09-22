@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, screen } from "@testing-library/react-native";
+import { renderThemed as render } from "../test-support/render-themed";
 import { NutritionCalendar } from "./nutrition-calendar";
 
 describe("NutritionCalendar", () => {

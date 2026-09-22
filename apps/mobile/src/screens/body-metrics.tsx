@@ -16,7 +16,13 @@ import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { formatSessionDate } from "../data/session-data";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { TrendChart } from "../ui/chart";
 import { Eyebrow, StatBox } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
@@ -32,6 +38,8 @@ function optionalNumber(raw: string) {
 }
 
 export function BodyMetricsPanel() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const confirm = useConfirm();
 	const entries = useQuery(api.bodyMetrics.list, {});
@@ -198,39 +206,40 @@ export function BodyMetricsPanel() {
 	);
 }
 
-const styles = StyleSheet.create({
-	statRow: { flexDirection: "row", gap: spacing.sm },
-	flex: { flex: 1 },
-	formRow: { flexDirection: "row", gap: spacing.sm },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	submit: {
-		height: 48,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-	dimmed: { opacity: 0.5 },
-	muted: { fontSize: 13, color: colors.textMuted },
-	list: { gap: spacing.sm },
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		padding: spacing.md,
-	},
-	rowTitle: { fontWeight: "700" },
-	delete: { color: colors.danger, fontWeight: "700" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		statRow: { flexDirection: "row", gap: spacing.sm },
+		flex: { flex: 1 },
+		formRow: { flexDirection: "row", gap: spacing.sm },
+		input: {
+			minHeight: 48,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		submit: {
+			height: 48,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
+		dimmed: { opacity: 0.5 },
+		muted: { fontSize: 13, color: colors.textMuted },
+		list: { gap: spacing.sm },
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			padding: spacing.md,
+		},
+		rowTitle: { fontWeight: "700" },
+		delete: { color: colors.danger, fontWeight: "700" },
+	});

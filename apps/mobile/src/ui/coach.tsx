@@ -8,7 +8,14 @@
  */
 import type { ReactNode } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
-import { colors, type SportKey, sportMeta, useSportColors } from "../theme";
+import {
+	type SportKey,
+	type Tokens,
+	useSportColors,
+	useSportMeta,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { AppText } from "./text";
 
 export function Card({
@@ -18,6 +25,7 @@ export function Card({
 	children: ReactNode;
 	style?: ViewStyle;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return <View style={[styles.card, style]}>{children}</View>;
 }
 
@@ -30,12 +38,14 @@ export function Chip({
 	active?: boolean;
 	color?: string;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View
 			style={[
 				styles.chip,
 				active
-					? { backgroundColor: colors.accent }
+					? { backgroundColor: colors.accentFill }
 					: { backgroundColor: colors.surface2 },
 			]}
 		>
@@ -59,6 +69,8 @@ export function SportIcon({
 	sport: SportKey;
 	size?: number;
 }) {
+	const sportMeta = useSportMeta();
+	const styles = useThemedStyles(createStyles);
 	const meta = sportMeta[sport];
 	const { color, dim } = useSportColors(sport);
 	return (
@@ -91,6 +103,8 @@ export function StatBox({
 	label: string;
 	color?: string;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.statBox}>
 			<AppText
@@ -130,6 +144,7 @@ export function StatBox({
 }
 
 export function Eyebrow({ children }: { children: ReactNode }) {
+	const colors = useTokens();
 	return (
 		<AppText
 			style={{
@@ -145,28 +160,29 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	card: {
-		backgroundColor: colors.surface,
-		borderColor: colors.border,
-		borderWidth: 1,
-		borderRadius: 18,
-		padding: 16,
-	},
-	chip: {
-		height: 34,
-		paddingHorizontal: 14,
-		borderRadius: 9999,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	sportIcon: { alignItems: "center", justifyContent: "center" },
-	statBox: {
-		flex: 1,
-		backgroundColor: colors.surface,
-		borderRadius: 16,
-		paddingVertical: 15,
-		paddingHorizontal: 13,
-		gap: 4,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		card: {
+			backgroundColor: colors.surface,
+			borderColor: colors.border,
+			borderWidth: 1,
+			borderRadius: 18,
+			padding: 16,
+		},
+		chip: {
+			height: 34,
+			paddingHorizontal: 14,
+			borderRadius: 9999,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		sportIcon: { alignItems: "center", justifyContent: "center" },
+		statBox: {
+			flex: 1,
+			backgroundColor: colors.surface,
+			borderRadius: 16,
+			paddingVertical: 15,
+			paddingHorizontal: 13,
+			gap: 4,
+		},
+	});

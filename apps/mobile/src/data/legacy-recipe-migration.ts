@@ -5,8 +5,8 @@ import {
 	type PersonalFood,
 	validatePersonalFoodDraft,
 } from "@workouts/core/nutrition";
-import { openDatabaseSync } from "expo-sqlite";
 import { NUTRITION_COOKING_DATABASE_NAME } from "./nutrition-cooking-repository";
+import { openNutritionDatabase } from "./nutrition-database";
 import { mintNutritionUuid } from "./nutrition-operation-service";
 import type {
 	PersonalFoodRepository,
@@ -188,9 +188,7 @@ export function migrateDeviceRecipes(
 	repository: PersonalFoodRepository,
 	reservedIds: readonly string[] = [],
 ): readonly string[] {
-	const database = openDatabaseSync(NUTRITION_COOKING_DATABASE_NAME, {
-		useNewConnection: true,
-	});
+	const database = openNutritionDatabase(NUTRITION_COOKING_DATABASE_NAME);
 	try {
 		return migrateLegacyRecipes(
 			database as SyncSQLiteDatabase,

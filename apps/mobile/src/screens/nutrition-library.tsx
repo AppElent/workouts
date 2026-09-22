@@ -12,10 +12,15 @@ import {
 } from "../data/open-food-facts-sync";
 import { usePersonalFoods } from "../data/personal-foods";
 import { useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
+import { spacing, type Tokens, useThemedStyles } from "../theme";
+import { PrimaryButton } from "../ui/button";
 import { useConfirm } from "../ui/confirm-dialog";
+import {
+	DisclosureRow,
+	FormSection,
+	GroupedSurface,
+	TextAction,
+} from "../ui/form";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
@@ -61,6 +66,7 @@ function conflictName(
 }
 
 export function NutritionSettingsScreen() {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useI18n();
 	const router = useRouter();
 	const copy = nutritionLibraryCopy[locale];
@@ -197,35 +203,33 @@ export function NutritionSettingsScreen() {
 
 	if (foods.backup.enabled && result === undefined) {
 		return (
-			<ScrollView style={styles.root} contentContainerStyle={styles.content}>
+			<ScrollView
+				contentInsetAdjustmentBehavior="automatic"
+				style={styles.root}
+				contentContainerStyle={styles.content}
+			>
 				<SkeletonGroup label={copy.loading}>
 					<SkeletonBlock height={80} />
 					<SkeletonBlock height={180} />
 				</SkeletonGroup>
 				{!isWebSocketConnected ? (
-					<Card style={styles.card}>
+					<GroupedSurface style={styles.card}>
 						<AppText>{copy.offline}</AppText>
-						<GhostButton label={copy.restore} onPress={restore} />
-					</Card>
+						<TextAction label={copy.restore} onPress={restore} />
+					</GroupedSurface>
 				) : null}
 			</ScrollView>
 		);
 	}
 	return (
-		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
-			<Eyebrow>{copy.eyebrow}</Eyebrow>
-			<AppText variant="title">{copy.title}</AppText>
-			<AppText>{copy.intro}</AppText>
-			<Card style={styles.card}>
-				<AppText variant="heading">
-					{locale === "nl" ? "Persoonlijke maten" : "Personal measures"}
-				</AppText>
-				<AppText variant="caption">
-					{locale === "nl"
-						? "Beheer je eigen porties en exacte hoeveelheden."
-						: "Manage your own portions and exact quantities."}
-				</AppText>
-				<GhostButton
+		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			style={styles.root}
+			contentContainerStyle={styles.content}
+		>
+			<AppText variant="caption">{copy.intro}</AppText>
+			<FormSection>
+				<DisclosureRow
 					label={
 						locale === "nl"
 							? "Persoonlijke maten beheren"
@@ -233,19 +237,18 @@ export function NutritionSettingsScreen() {
 					}
 					onPress={() => router.push("/personal-measures")}
 				/>
-			</Card>
-			<Card style={styles.card}>
+			</FormSection>
+			<GroupedSurface style={styles.card}>
 				<AppText variant="caption">{copy.photoNotice}</AppText>
-			</Card>
-			<Card style={styles.card}>
+			</GroupedSurface>
+			<GroupedSurface style={styles.card}>
 				<AppText variant="heading">{copy.offTitle}</AppText>
 				<AppText variant="caption">
 					{importedFoods.length ? copy.offHelp : copy.offEmpty}
 				</AppText>
-				<PrimaryButton
+				<TextAction
 					label={offRefreshing ? copy.offRefreshing : copy.offRefresh}
-					loading={offRefreshing}
-					disabled={importedFoods.length === 0}
+					disabled={offRefreshing || importedFoods.length === 0}
 					onPress={() => void refreshImports()}
 				/>
 				{offProgress ? (
@@ -264,26 +267,26 @@ export function NutritionSettingsScreen() {
 						) : null}
 					</View>
 				) : null}
-			</Card>
+			</GroupedSurface>
 			{!foods.backup.enabled ? (
-				<Card style={styles.card}>
+				<GroupedSurface style={styles.card}>
 					<AppText>{copy.disabled}</AppText>
 					<PrimaryButton label={copy.enable} onPress={() => void enable()} />
-				</Card>
+				</GroupedSurface>
 			) : (
 				<>
-					<Card style={styles.card}>
+					<GroupedSurface style={styles.card}>
 						<AppText variant="heading">{copy.import}</AppText>
 						<AppText variant="caption">{copy.importHelp}</AppText>
 						<PrimaryButton
 							label={copy.import}
 							onPress={() => void importLegacy()}
 						/>
-						<GhostButton label={copy.restore} onPress={restore} />
-						<GhostButton label={copy.retryUpload} onPress={retryUpload} />
-					</Card>
+						<TextAction label={copy.restore} onPress={restore} />
+						<TextAction label={copy.retryUpload} onPress={retryUpload} />
+					</GroupedSurface>
 					{foods.backup.operations.length ? (
-						<Card style={styles.card}>
+						<GroupedSurface style={styles.card}>
 							<AppText variant="heading">{copy.pending}</AppText>
 							{foods.backup.operations.map((operation) => (
 								<AppText key={operation.operationId} variant="caption">
@@ -291,10 +294,10 @@ export function NutritionSettingsScreen() {
 									{operation.lastError ? ` · ${operation.lastError}` : ""}
 								</AppText>
 							))}
-						</Card>
+						</GroupedSurface>
 					) : null}
 					{foods.backup.conflicts.length ? (
-						<Card style={styles.card}>
+						<GroupedSurface style={styles.card}>
 							<AppText variant="heading">{copy.conflicts}</AppText>
 							{foods.backup.conflicts.map((conflict) => {
 								const name = conflictName(conflict, locale, copy);
@@ -305,14 +308,14 @@ export function NutritionSettingsScreen() {
 											label={copy.keep}
 											onPress={() => keepDeviceCopy(conflict)}
 										/>
-										<GhostButton
+										<TextAction
 											label={copy.server}
 											onPress={() => void applyServerCopy(conflict)}
 										/>
 									</View>
 								);
 							})}
-						</Card>
+						</GroupedSurface>
 					) : null}
 				</>
 			)}
@@ -320,15 +323,20 @@ export function NutritionSettingsScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xl },
-	card: { gap: spacing.sm },
-	conflict: {
-		gap: spacing.sm,
-		borderTopWidth: 1,
-		borderTopColor: colors.border,
-		paddingTop: spacing.sm,
-	},
-	offStatus: { gap: spacing.xs },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			padding: spacing.lg,
+			gap: spacing.md,
+			paddingBottom: spacing.xl,
+		},
+		card: { gap: spacing.sm },
+		conflict: {
+			gap: spacing.sm,
+			borderTopWidth: 1,
+			borderTopColor: colors.border,
+			paddingTop: spacing.sm,
+		},
+		offStatus: { gap: spacing.xs },
+	});

@@ -32,7 +32,7 @@ export default function NutritionComboNewRoute() {
 						.map((entry) => ({ entry, slot })),
 				)
 			: [];
-	const entries = selected.map(({ entry }) => entry);
+	const entries = selected.map(({ entry, slot }) => ({ ...entry, meal: slot }));
 	const nothingToSave = state.status === "ready" && entries.length === 0;
 
 	useEffect(() => {

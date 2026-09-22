@@ -22,7 +22,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Doc, Id } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { AppText } from "../ui/text";
 
 export function AddExercisePicker({
@@ -37,6 +43,8 @@ export function AddExercisePicker({
 	onSelect: (id: Id<"exercises">) => void;
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const [search, setSearch] = useState("");
 	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
@@ -132,36 +140,41 @@ export function AddExercisePicker({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.md },
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		minHeight: 44,
-	},
-	close: { color: colors.accent, fontWeight: "800" },
-	input: {
-		minHeight: 48,
-		marginVertical: spacing.sm,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	list: { gap: spacing.xs, paddingBottom: spacing.xl },
-	pad: { padding: spacing.md },
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		minHeight: 56,
-		paddingHorizontal: spacing.md,
-		borderRadius: radius.lg,
-		backgroundColor: colors.surface,
-	},
-	flex: { flex: 1, gap: 2 },
-	name: { fontWeight: "700" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: {
+			flex: 1,
+			backgroundColor: colors.bg,
+			paddingHorizontal: spacing.md,
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			minHeight: 44,
+		},
+		close: { color: colors.accent, fontWeight: "800" },
+		input: {
+			minHeight: 48,
+			marginVertical: spacing.sm,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		list: { gap: spacing.xs, paddingBottom: spacing.xl },
+		pad: { padding: spacing.md },
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			minHeight: 56,
+			paddingHorizontal: spacing.md,
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface,
+		},
+		flex: { flex: 1, gap: 2 },
+		name: { fontWeight: "700" },
+	});

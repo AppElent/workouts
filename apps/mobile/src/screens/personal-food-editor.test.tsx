@@ -1,9 +1,4 @@
-import {
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from "@testing-library/react-native";
+import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { ActionSheetIOS } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -20,6 +15,7 @@ import {
 	PREFERENCE_KEYS,
 	writePreference,
 } from "../prefs/local-preference";
+import { renderThemed as render } from "../test-support/render-themed";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import { ToastProvider } from "../ui/toast";
 import { PersonalFoodEditor } from "./personal-food-editor";

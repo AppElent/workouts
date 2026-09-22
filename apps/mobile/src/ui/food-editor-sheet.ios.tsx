@@ -6,7 +6,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { colors, useHostScheme } from "../theme";
+import { useAppearance, useTokens } from "../theme";
 
 export function FoodEditorSheet({
 	visible,
@@ -17,9 +17,11 @@ export function FoodEditorSheet({
 	onClose: () => void;
 	children: ReactNode;
 }) {
+	const colors = useTokens();
+	const { scheme } = useAppearance();
 	return (
 		<Host
-			colorScheme={useHostScheme()}
+			colorScheme={scheme}
 			seedColor={colors.accent}
 			pointerEvents="box-none"
 			style={StyleSheet.absoluteFill}

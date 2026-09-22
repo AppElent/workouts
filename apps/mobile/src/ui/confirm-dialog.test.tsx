@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, screen } from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
+import { renderThemed as render } from "../test-support/render-themed";
 import { ConfirmProvider, useConfirm } from "./confirm-dialog";
 
 function Prompt({ answered }: { answered: (value: boolean) => void }) {

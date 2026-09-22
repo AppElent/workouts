@@ -1,8 +1,8 @@
 import { useConvexConnectionState } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { formatLongDate, shiftIsoDate } from "../data/calendar-day";
+import { Pressable, StyleSheet, View } from "react-native";
+import { formatLongDate } from "../data/calendar-day";
 import { copyMealEntries, previousCalendarDay } from "../data/nutrition-copy";
 import {
 	MEAL_SLOTS,
@@ -15,10 +15,16 @@ import {
 } from "../data/nutrition-operation-service";
 import { useStalledOffline } from "../data/stalled-offline";
 import { fmt, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
+import { spacing, useThemedStyles, useTokens } from "../theme";
+import { Card } from "../ui/coach";
+import { DateStepper } from "../ui/date-stepper";
 import { EmptyState } from "../ui/empty-state";
+import {
+	FormScreen,
+	FormSection,
+	FormSegmentedRow,
+	TextAction,
+} from "../ui/form";
 import { SkeletonBlock } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
@@ -34,6 +40,8 @@ export function NutritionCopyScreen({
 	targetDate: string;
 	targetMeal: MealSlot;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const router = useRouter();
 	const operations = useNutritionOperations();
@@ -87,7 +95,12 @@ export function NutritionCopyScreen({
 				destinationMeal,
 				copyMealEntries(selectedEntries, targetDate, destinationMeal, mintId),
 			);
-			router.back();
+			if (router.canGoBack()) router.back();
+			else
+				router.replace({
+					pathname: "/nutrition",
+					params: { date: targetDate },
+				});
 		} catch {
 			copyLock.current = false;
 			setCopying(false);
@@ -96,52 +109,64 @@ export function NutritionCopyScreen({
 	}
 
 	return (
-		<ScrollView
-			contentInsetAdjustmentBehavior="automatic"
-			style={styles.root}
-			contentContainerStyle={styles.content}
+		<FormScreen
+			primaryAction={{
+				label: copying
+					? t.nutrition.copyMeal.copying
+					: fmt(
+							selectedEntries.length === 1
+								? t.nutrition.copyMeal.copyOne
+								: t.nutrition.copyMeal.copy,
+							{
+								count: selectedEntries.length,
+								meal: t.nutrition.meals[destinationMeal],
+							},
+						),
+				onPress: () => void copy(),
+				disabled: !canCopy,
+				loading: copying,
+			}}
 		>
-			<Eyebrow>{t.nutrition.title}</Eyebrow>
-			<AppText variant="title">{t.nutrition.copyMeal.title}</AppText>
 			<AppText variant="body">{t.nutrition.copyMeal.intro}</AppText>
 
-			<Card style={styles.controls}>
-				<AppText variant="heading">{t.nutrition.copyMeal.sourceDate}</AppText>
-				<View style={styles.dateRow}>
-					<GhostButton
-						label={t.nutrition.day.previousDay}
-						onPress={() => {
-							setSourceDate((date) => shiftIsoDate(date, -1));
-							setSelected(null);
-						}}
-					/>
-					<AppText style={styles.flex}>
-						{formatLongDate(sourceDate, locale)}
-					</AppText>
-					<GhostButton
-						label={t.nutrition.day.nextDay}
-						onPress={() => {
-							setSourceDate((date) => shiftIsoDate(date, 1));
-							setSelected(null);
-						}}
-					/>
-				</View>
-				<AppText variant="heading">{t.nutrition.copyMeal.sourceMeal}</AppText>
-				<MealPicker
+			<FormSection title={t.nutrition.copyMeal.sourceDate}>
+				<DateStepper
+					date={sourceDate}
+					locale={locale}
+					previousLabel={t.nutrition.day.previousDay}
+					nextLabel={t.nutrition.day.nextDay}
+					onChange={(date) => {
+						setSourceDate(date);
+						setSelected(null);
+					}}
+				/>
+			</FormSection>
+			<FormSection title={t.nutrition.copyMeal.sourceMeal}>
+				<FormSegmentedRow
+					options={MEAL_SLOTS.map((slot) => ({
+						value: slot,
+						label: t.nutrition.meals[slot],
+					}))}
 					value={sourceMeal}
 					onChange={(meal) => {
 						setSourceMeal(meal);
 						setSelected(null);
 					}}
-					t={t}
 				/>
-				<AppText variant="heading">{t.nutrition.copyMeal.targetMeal}</AppText>
-				<MealPicker
+			</FormSection>
+			<FormSection
+				title={t.nutrition.copyMeal.targetMeal}
+				footer={formatLongDate(targetDate, locale)}
+			>
+				<FormSegmentedRow
+					options={MEAL_SLOTS.map((slot) => ({
+						value: slot,
+						label: t.nutrition.meals[slot],
+					}))}
 					value={destinationMeal}
 					onChange={setDestinationMeal}
-					t={t}
 				/>
-			</Card>
+			</FormSection>
 
 			{state.status === "loading" ? (
 				sourceStalled ? (
@@ -161,8 +186,12 @@ export function NutritionCopyScreen({
 								count: selectedEntries.length,
 							})}
 						</AppText>
-						<GhostButton
-							label={t.nutrition.copyMeal.selectAll}
+						<TextAction
+							label={
+								selectedEntries.length === sourceEntries.length
+									? t.nutrition.copyMeal.deselectAll
+									: t.nutrition.copyMeal.selectAll
+							}
 							onPress={selectAll}
 						/>
 					</View>
@@ -202,83 +231,22 @@ export function NutritionCopyScreen({
 			{selfCopy ? (
 				<AppText variant="caption">{t.nutrition.copyMeal.self}</AppText>
 			) : null}
-			<PrimaryButton
-				label={
-					copying
-						? t.nutrition.copyMeal.copying
-						: fmt(t.nutrition.copyMeal.copy, {
-								count: selectedEntries.length,
-								meal: t.nutrition.meals[destinationMeal],
-							})
-				}
-				onPress={() => void copy()}
-				disabled={!canCopy}
-				loading={copying}
-			/>
-		</ScrollView>
+		</FormScreen>
 	);
 }
 
-function MealPicker({
-	value,
-	onChange,
-	t,
-}: {
-	value: MealSlot;
-	onChange: (meal: MealSlot) => void;
-	t: ReturnType<typeof useI18n>["t"];
-}) {
-	return (
-		<View style={styles.mealPicker}>
-			{MEAL_SLOTS.map((meal) => (
-				<Pressable
-					key={meal}
-					onPress={() => onChange(meal)}
-					accessibilityRole="button"
-					accessibilityState={{ selected: value === meal }}
-					style={[
-						styles.mealChoice,
-						value === meal ? styles.mealChoiceSelected : null,
-					]}
-				>
-					<AppText>{t.nutrition.meals[meal]}</AppText>
-				</Pressable>
-			))}
-		</View>
-	);
-}
-
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: {
-		padding: spacing.lg,
-		gap: spacing.md,
-		paddingBottom: spacing.xl * 2,
-	},
-	controls: { gap: spacing.sm },
-	dateRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-	selectionHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	entry: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingVertical: spacing.sm,
-	},
-	mealPicker: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-	mealChoice: {
-		borderWidth: 1,
-		borderColor: colors.border,
-		borderRadius: radius.pill,
-		paddingVertical: spacing.sm,
-		paddingHorizontal: spacing.md,
-	},
-	mealChoiceSelected: {
-		borderColor: colors.accent,
-		backgroundColor: colors.surface2,
-	},
-	flex: { flex: 1 },
-});
+const createStyles = () =>
+	StyleSheet.create({
+		selectionHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		entry: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingVertical: spacing.sm,
+		},
+		flex: { flex: 1 },
+	});

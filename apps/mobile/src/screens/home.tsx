@@ -14,13 +14,15 @@ import {
 	formatSessionDate,
 	useShellData,
 } from "../data/session-data";
-import { colors, sportMeta } from "../theme";
+import { type Tokens, useSportMeta, useThemedStyles } from "../theme";
 import { Card, Eyebrow, SportIcon } from "../ui/coach";
 import { AppText } from "../ui/text";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function HomeScreen() {
+	const sportMeta = useSportMeta();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const { active, recent, loading } = useShellData();
 
@@ -160,117 +162,118 @@ export function HomeScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 16, paddingBottom: 24 },
-	between: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	row: { flexDirection: "row", alignItems: "center", gap: 8 },
-	flex: { flex: 1, gap: 2 },
-	eyebrowDate: {
-		fontSize: 12,
-		fontWeight: "700",
-		letterSpacing: 1,
-		textTransform: "uppercase",
-		color: colors.textMuted,
-	},
-	h1: {
-		fontSize: 26,
-		fontWeight: "800",
-		color: colors.text,
-		letterSpacing: -0.5,
-	},
-	h2: { fontSize: 18, fontWeight: "800", color: colors.text },
-	muted: { fontSize: 13, color: colors.textMuted },
-	avatar: {
-		width: 44,
-		height: 44,
-		borderRadius: 9999,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	avatarText: { fontSize: 13, fontWeight: "700", color: colors.textMuted },
-	weekCard: { flexDirection: "row", alignItems: "center", gap: 16 },
-	ring: {
-		width: 64,
-		height: 64,
-		borderRadius: 9999,
-		borderWidth: 6,
-		borderColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	ringValue: { fontSize: 18, fontWeight: "800", color: colors.text },
-	ringLabel: { fontSize: 9, color: colors.textMuted },
-	activeCard: {
-		gap: 10,
-		backgroundColor: colors.accentDim,
-		borderColor: colors.accent,
-	},
-	dot: {
-		width: 8,
-		height: 8,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-	},
-	inProgress: {
-		fontSize: 12,
-		fontWeight: "700",
-		letterSpacing: 1,
-		textTransform: "uppercase",
-		color: colors.accent,
-	},
-	upNext: { gap: 10 },
-	change: { fontSize: 12, fontWeight: "700", color: colors.accent },
-	sportRow: { flexDirection: "row", gap: 8 },
-	sportTile: {
-		flex: 1,
-		alignItems: "center",
-		gap: 6,
-		paddingVertical: 12,
-		borderRadius: 14,
-	},
-	sportLabel: { fontSize: 10, fontWeight: "700", color: colors.textMuted },
-	list: { gap: 8 },
-	recentRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-		padding: 12,
-	},
-	rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
-	rowSub: { fontSize: 11, color: colors.textMuted },
-	rowTime: { fontSize: 12, fontWeight: "700", color: colors.textMuted },
-	resumeBtn: {
-		height: 44,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	resumeBtnText: {
-		fontSize: 14,
-		fontWeight: "800",
-		color: colors.onAccent,
-	},
-	startBtn: {
-		height: 48,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	startBtnText: {
-		fontSize: 15,
-		fontWeight: "800",
-		color: colors.onAccent,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 16, paddingBottom: 24 },
+		between: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		row: { flexDirection: "row", alignItems: "center", gap: 8 },
+		flex: { flex: 1, gap: 2 },
+		eyebrowDate: {
+			fontSize: 12,
+			fontWeight: "700",
+			letterSpacing: 1,
+			textTransform: "uppercase",
+			color: colors.textMuted,
+		},
+		h1: {
+			fontSize: 26,
+			fontWeight: "800",
+			color: colors.text,
+			letterSpacing: -0.5,
+		},
+		h2: { fontSize: 18, fontWeight: "800", color: colors.text },
+		muted: { fontSize: 13, color: colors.textMuted },
+		avatar: {
+			width: 44,
+			height: 44,
+			borderRadius: 9999,
+			backgroundColor: colors.surface2,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		avatarText: { fontSize: 13, fontWeight: "700", color: colors.textMuted },
+		weekCard: { flexDirection: "row", alignItems: "center", gap: 16 },
+		ring: {
+			width: 64,
+			height: 64,
+			borderRadius: 9999,
+			borderWidth: 6,
+			borderColor: colors.accent,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		ringValue: { fontSize: 18, fontWeight: "800", color: colors.text },
+		ringLabel: { fontSize: 9, color: colors.textMuted },
+		activeCard: {
+			gap: 10,
+			backgroundColor: colors.accentDim,
+			borderColor: colors.accent,
+		},
+		dot: {
+			width: 8,
+			height: 8,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+		},
+		inProgress: {
+			fontSize: 12,
+			fontWeight: "700",
+			letterSpacing: 1,
+			textTransform: "uppercase",
+			color: colors.accent,
+		},
+		upNext: { gap: 10 },
+		change: { fontSize: 12, fontWeight: "700", color: colors.accent },
+		sportRow: { flexDirection: "row", gap: 8 },
+		sportTile: {
+			flex: 1,
+			alignItems: "center",
+			gap: 6,
+			paddingVertical: 12,
+			borderRadius: 14,
+		},
+		sportLabel: { fontSize: 10, fontWeight: "700", color: colors.textMuted },
+		list: { gap: 8 },
+		recentRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+			padding: 12,
+		},
+		rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
+		rowSub: { fontSize: 11, color: colors.textMuted },
+		rowTime: { fontSize: 12, fontWeight: "700", color: colors.textMuted },
+		resumeBtn: {
+			height: 44,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		resumeBtnText: {
+			fontSize: 14,
+			fontWeight: "800",
+			color: colors.onAccent,
+		},
+		startBtn: {
+			height: 48,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		startBtnText: {
+			fontSize: 15,
+			fontWeight: "800",
+			color: colors.onAccent,
+		},
+	});

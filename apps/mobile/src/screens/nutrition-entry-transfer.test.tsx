@@ -1,12 +1,17 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, screen } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
+import type {
+	DiaryEntry,
+	DiaryEntryWithMeal,
+	MealSlot,
+} from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
 	snapshotFromDiaryEntry,
 	useNutritionOperations,
 } from "../data/nutrition-operation-service";
 import { useI18n } from "../i18n";
+import { renderThemed as render } from "../test-support/render-themed";
 import { useToast } from "../ui/toast";
 import {
 	copiedEntrySnapshot,
@@ -75,6 +80,7 @@ function renderTransfer(
 	operations: Record<string, jest.Mock>,
 	overrides: Partial<DiaryEntry> = {},
 	locale: "en" | "nl" = "en",
+	entries?: readonly DiaryEntryWithMeal[],
 ) {
 	const toast = { error: jest.fn(), success: jest.fn() };
 	const dutch = locale === "nl";
@@ -108,8 +114,9 @@ function renderTransfer(
 		>
 			<NutritionEntryTransfer
 				entry={{ ...entry, ...overrides }}
+				entries={entries}
 				date="2026-09-12"
-				meal="lunch"
+				meal={entries ? undefined : "lunch"}
 				mode={mode}
 				onClose={onClose}
 			/>
@@ -124,52 +131,101 @@ beforeEach(() => {
 });
 
 describe("NutritionEntryTransfer", () => {
+	it("defaults a batch move to its source meal and blocks an unchanged destination", () => {
+		const moveBatch = jest.fn();
+		renderTransfer(
+			"move",
+			{ getSubject: jest.fn(() => "account-a"), moveBatch },
+			{},
+			"en",
+			[
+				{ ...entry, meal: "dinner" },
+				{ ...entry, id: "entry-2", meal: "dinner" },
+			],
+		);
+		expect(screen.getByRole("radio", { name: "Dinner" })).toBeSelected();
+		expect(screen.getByLabelText("Move entry")).toBeDisabled();
+		fireEvent.press(screen.getByLabelText("Move entry"));
+		expect(moveBatch).not.toHaveBeenCalled();
+	});
+	it("moves a mixed-meal selection together without mistaking it for an unchanged move", () => {
+		const moveBatch = jest.fn();
+		renderTransfer(
+			"move",
+			{ getSubject: jest.fn(() => "account-a"), moveBatch },
+			{},
+			"en",
+			[
+				{ ...entry, meal: "lunch" },
+				{ ...entry, id: "client:pending-entry", meal: "dinner" },
+			],
+		);
+		expect(screen.getByLabelText("Move entry")).toBeEnabled();
+		fireEvent.press(screen.getByLabelText("Move entry"));
+		expect(moveBatch).toHaveBeenCalledWith(
+			"account-a",
+			[
+				{ kind: "serverId", id: "entry-1" },
+				{ kind: "clientEntryId", id: "pending-entry" },
+			],
+			"2026-09-12",
+			"lunch",
+			expect.any(Function),
+			expect.any(Function),
+		);
+	});
 	it("creates a fresh, ungrouped snapshot at the selected destination", () => {
-		const create = jest.fn(
+		const createBatch = jest.fn(
 			(
 				_subject: string,
-				_snapshot: unknown,
-				_direct: unknown,
+				_date: string,
+				_meal: MealSlot,
+				_snapshots: unknown[],
 				_error: unknown,
 				onSuccess: () => void,
 			) => onSuccess(),
 		);
 		const { onClose } = renderTransfer("copy", {
 			getSubject: jest.fn(() => "account-a"),
-			create,
-			update: jest.fn(),
+			createBatch,
+			moveBatch: jest.fn(),
 		});
 
 		fireEvent.press(screen.getByText("Dinner"));
 		fireEvent.press(screen.getByLabelText("Next day"));
 		fireEvent.press(screen.getByLabelText("Copy entry"));
 
-		expect(create).toHaveBeenCalledWith(
+		expect(createBatch).toHaveBeenCalledWith(
 			"account-a",
-			expect.objectContaining({
-				clientEntryId: "new-client-id",
-				date: "2026-09-13",
-				meal: "dinner",
-				serving: entry.serving,
-				nutrients: entry.nutrients,
-				provenance: entry.provenance,
-			}),
-			undefined,
+			"2026-09-13",
+			"dinner",
+			[
+				expect.objectContaining({
+					clientEntryId: "new-client-id",
+					date: "2026-09-13",
+					meal: "dinner",
+					serving: entry.serving,
+					nutrients: entry.nutrients,
+					provenance: entry.provenance,
+				}),
+			],
 			expect.any(Function),
 			expect.any(Function),
 		);
-		const copied = create.mock.calls[0]?.[1] as { comboGroup?: unknown };
+		const copied = createBatch.mock.calls[0]?.[3][0] as {
+			comboGroup?: unknown;
+		};
 		expect(copied.comboGroup).toBeUndefined();
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it("moves the existing local entry with one normalized atomic update", () => {
-		const update = jest.fn(
+	it("moves the existing local entry with one normalized atomic batch", () => {
+		const moveBatch = jest.fn(
 			(
 				_subject: string,
-				_target: unknown,
-				_patch: unknown,
-				_hint: unknown,
+				_targets: unknown[],
+				_date: string,
+				_meal: MealSlot,
 				_error: unknown,
 				onSuccess: () => void,
 			) => onSuccess(),
@@ -178,8 +234,8 @@ describe("NutritionEntryTransfer", () => {
 			"move",
 			{
 				getSubject: jest.fn(() => "account-a"),
-				create: jest.fn(),
-				update,
+				createBatch: jest.fn(),
+				moveBatch,
 			},
 			{ id: "client:offline-entry" },
 		);
@@ -188,33 +244,26 @@ describe("NutritionEntryTransfer", () => {
 		fireEvent.press(screen.getByLabelText("Next day"));
 		fireEvent.press(screen.getByLabelText("Move entry"));
 
-		expect(update).toHaveBeenCalledWith(
+		expect(moveBatch).toHaveBeenCalledWith(
 			"account-a",
-			{ kind: "clientEntryId", id: "offline-entry" },
-			{ date: "2026-09-13", meal: "dinner" },
-			expect.objectContaining({
-				targetEntry: expect.objectContaining({
-					_id: "client:offline-entry",
-					date: "2026-09-12",
-					meal: "lunch",
-					comboGroup: entry.comboGroup,
-				}),
-			}),
+			[{ kind: "clientEntryId", id: "offline-entry" }],
+			"2026-09-13",
+			"dinner",
 			expect.any(Function),
 			expect.any(Function),
 		);
 	});
 
 	it("blocks an unchanged move", () => {
-		const update = jest.fn();
+		const moveBatch = jest.fn();
 		renderTransfer("move", {
 			getSubject: jest.fn(() => "account-a"),
-			create: jest.fn(),
-			update,
+			createBatch: jest.fn(),
+			moveBatch,
 		});
 
 		fireEvent.press(screen.getByLabelText("Move entry"));
-		expect(update).not.toHaveBeenCalled();
+		expect(moveBatch).not.toHaveBeenCalled();
 	});
 
 	it("does not transfer an entry after its source account changes", () => {
@@ -222,17 +271,17 @@ describe("NutritionEntryTransfer", () => {
 			.fn()
 			.mockReturnValueOnce("account-a")
 			.mockReturnValue("account-b");
-		const create = jest.fn();
+		const createBatch = jest.fn();
 		const { toast } = renderTransfer("copy", {
 			getSubject,
-			create,
-			update: jest.fn(),
+			createBatch,
+			moveBatch: jest.fn(),
 		});
 
 		fireEvent.press(screen.getByText("Dinner"));
 		fireEvent.press(screen.getByLabelText("Copy entry"));
 
-		expect(create).not.toHaveBeenCalled();
+		expect(createBatch).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith("Nutrition account changed.");
 	});
 
@@ -241,8 +290,8 @@ describe("NutritionEntryTransfer", () => {
 			"copy",
 			{
 				getSubject: jest.fn(() => "account-a"),
-				create: jest.fn(),
-				update: jest.fn(),
+				createBatch: jest.fn(),
+				moveBatch: jest.fn(),
 			},
 			{},
 			"nl",
@@ -257,11 +306,12 @@ describe("NutritionEntryTransfer", () => {
 
 	it("blocks a synchronous double submit and keeps the destination after failure", () => {
 		let fail!: (error: unknown) => void;
-		const create = jest.fn(
+		const createBatch = jest.fn(
 			(
 				_subject: string,
-				_snapshot: unknown,
-				_direct: unknown,
+				_date: string,
+				_meal: MealSlot,
+				_snapshots: unknown[],
 				onError: (error: unknown) => void,
 			) => {
 				fail = onError;
@@ -269,8 +319,8 @@ describe("NutritionEntryTransfer", () => {
 		);
 		const operations = {
 			getSubject: jest.fn(() => "account-a"),
-			create,
-			update: jest.fn(),
+			createBatch,
+			moveBatch: jest.fn(),
 		};
 		const { toast } = renderTransfer("copy", operations);
 		fireEvent.press(screen.getByText("Dinner"));
@@ -278,7 +328,7 @@ describe("NutritionEntryTransfer", () => {
 		const copyButton = screen.getByLabelText("Copy entry");
 		fireEvent.press(copyButton);
 		fireEvent.press(copyButton);
-		expect(create).toHaveBeenCalledTimes(1);
+		expect(createBatch).toHaveBeenCalledTimes(1);
 
 		act(() => fail("offline"));
 		expect(toast.error).toHaveBeenCalledWith(
@@ -292,7 +342,7 @@ describe("NutritionEntryTransfer", () => {
 		);
 
 		fireEvent.press(screen.getByLabelText("Copy entry"));
-		expect(create).toHaveBeenCalledTimes(2);
+		expect(createBatch).toHaveBeenCalledTimes(2);
 	});
 
 	it("strips any source combo group even when the snapshot helper supplies one", () => {

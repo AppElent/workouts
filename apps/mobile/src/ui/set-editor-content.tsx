@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { Chip } from "./coach";
 import {
 	SET_TYPES,
@@ -29,6 +29,7 @@ export function SetEditorContent({
 	bottomInset: number;
 	backgroundColor: string;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<ScrollView
 			style={{ flex: 1, backgroundColor }}
@@ -123,6 +124,7 @@ function NumberStepper({
 	min?: number;
 	onChange: (value: number) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const round = (number: number) => Math.round(number * 10) / 10;
 	return (
 		<View style={styles.stepper}>
@@ -152,57 +154,58 @@ function NumberStepper({
 	);
 }
 
-const styles = StyleSheet.create({
-	sheet: {
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.sm,
-	},
-	header: { flexDirection: "row", alignItems: "center", minHeight: 44 },
-	flex: { flex: 1 },
-	close: { color: colors.accent, fontWeight: "800" },
-	typeRow: { flexDirection: "row", gap: spacing.xs + 2 },
-	steppers: { flexDirection: "row", gap: spacing.sm },
-	stepper: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		height: 56,
-		paddingHorizontal: 6,
-		borderRadius: radius.lg,
-		backgroundColor: colors.surface2,
-	},
-	stepperBtn: {
-		width: 44,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	stepperGlyph: { fontSize: 20, fontWeight: "800", color: colors.textMuted },
-	stepperValueWrap: { alignItems: "center" },
-	stepperValue: { fontSize: 20, fontWeight: "800", color: colors.text },
-	stepperLabel: { fontSize: 9, color: colors.textMuted },
-	save: {
-		height: 48,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	saveText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
-	secondaryRow: { flexDirection: "row", gap: spacing.sm },
-	ghost: {
-		flex: 1,
-		minHeight: 44,
-		borderRadius: radius.pill,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	ghostText: { fontSize: 13, fontWeight: "700", color: colors.text },
-	deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
-	dimmed: { opacity: 0.5 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		sheet: {
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.sm,
+		},
+		header: { flexDirection: "row", alignItems: "center", minHeight: 44 },
+		flex: { flex: 1 },
+		close: { color: colors.accent, fontWeight: "800" },
+		typeRow: { flexDirection: "row", gap: spacing.xs + 2 },
+		steppers: { flexDirection: "row", gap: spacing.sm },
+		stepper: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			height: 56,
+			paddingHorizontal: 6,
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface2,
+		},
+		stepperBtn: {
+			width: 44,
+			height: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		stepperGlyph: { fontSize: 20, fontWeight: "800", color: colors.textMuted },
+		stepperValueWrap: { alignItems: "center" },
+		stepperValue: { fontSize: 20, fontWeight: "800", color: colors.text },
+		stepperLabel: { fontSize: 9, color: colors.textMuted },
+		save: {
+			height: 48,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		saveText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
+		secondaryRow: { flexDirection: "row", gap: spacing.sm },
+		ghost: {
+			flex: 1,
+			minHeight: 44,
+			borderRadius: radius.pill,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		ghostText: { fontSize: 13, fontWeight: "700", color: colors.text },
+		deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
+		dimmed: { opacity: 0.5 },
+	});

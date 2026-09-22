@@ -32,7 +32,13 @@ import {
 } from "react-native";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { AppText } from "./text";
 
 export type ConfirmOptions = {
@@ -51,6 +57,8 @@ type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
 const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const [options, setOptions] = useState<ConfirmOptions | null>(null);
 	const reduceMotion = useReduceMotion();
 	// Held across renders so the promise opened in `confirm` is the one settled
@@ -149,7 +157,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 									{
 										backgroundColor: options?.destructive
 											? colors.danger
-											: colors.accent,
+											: colors.accentFill,
 										opacity: pressed ? 0.85 : 1,
 									},
 								]}
@@ -158,7 +166,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 									variant="body"
 									style={{
 										fontWeight: "800",
-										color: options?.destructive ? colors.text : colors.onAccent,
+										color: options?.destructive
+											? colors.onDanger
+											: colors.onAccent,
 									}}
 								>
 									{options?.confirmLabel}
@@ -192,40 +202,41 @@ export function convexErrorMessage(error: unknown, fallback: string) {
 	return cleaned.length > 0 ? cleaned : fallback;
 }
 
-const styles = StyleSheet.create({
-	backdrop: {
-		flex: 1,
-		backgroundColor: "rgba(0, 0, 0, 0.6)",
-		alignItems: "center",
-		justifyContent: "center",
-		padding: spacing.lg,
-	},
-	card: {
-		width: "100%",
-		maxWidth: 380,
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderColor: colors.border,
-		borderWidth: 1,
-		borderRadius: radius.sheet,
-		padding: spacing.lg,
-	},
-	actions: {
-		flexDirection: "row",
-		gap: spacing.sm,
-		marginTop: spacing.sm,
-	},
-	button: {
-		flex: 1,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-		paddingHorizontal: spacing.md,
-	},
-	cancel: {
-		backgroundColor: "transparent",
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		backdrop: {
+			flex: 1,
+			backgroundColor: colors.scrim,
+			alignItems: "center",
+			justifyContent: "center",
+			padding: spacing.lg,
+		},
+		card: {
+			width: "100%",
+			maxWidth: 380,
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderColor: colors.border,
+			borderWidth: 1,
+			borderRadius: radius.sheet,
+			padding: spacing.lg,
+		},
+		actions: {
+			flexDirection: "row",
+			gap: spacing.sm,
+			marginTop: spacing.sm,
+		},
+		button: {
+			flex: 1,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.pill,
+			paddingHorizontal: spacing.md,
+		},
+		cancel: {
+			backgroundColor: "transparent",
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+		},
+	});

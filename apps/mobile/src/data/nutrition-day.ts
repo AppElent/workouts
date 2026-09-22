@@ -56,6 +56,9 @@ export interface DiaryEntry {
 	comboGroup?: { id: string; comboId: string; name: string };
 }
 
+/** Keeps the source Meal Slot when entries are selected across the day. */
+export type DiaryEntryWithMeal = DiaryEntry & { meal: MealSlot };
+
 export interface NutritionDay {
 	date: IsoDate;
 	complete: boolean;
@@ -63,6 +66,8 @@ export interface NutritionDay {
 	displayOrder: readonly NutrientKey[];
 	goalBasis?: "effective" | "reference";
 	goalsCached?: boolean;
+	/** Diary entries can be available before this date's goals arrive. */
+	goalsPending?: boolean;
 	/** Day totals per nutrient. Absent from the map means "nothing logged". */
 	totals: Partial<Record<NutrientKey, NutrientTotal>>;
 	entries: Record<MealSlot, DiaryEntry[]>;
@@ -184,6 +189,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			displayOrder: history?.displayOrder ?? NUTRIENT_KEYS,
 			goalBasis: history?.basis,
 			goalsCached: !goalHistory && !!cachedGoals,
+			goalsPending: goals === undefined,
 			totals: useLocal ? (local?.totals ?? {}) : (diary?.totals ?? {}),
 			entries,
 			pendingOperationIds: local?.pendingOperationIds ?? [],

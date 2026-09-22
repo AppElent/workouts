@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { Button, Platform } from "react-native";
-import { colors } from "../theme";
+import { useTokens } from "../theme";
 
 /** Titles and actions belong to the navigator, outside the scrolling content. */
 export function ScreenHeader({
@@ -10,6 +10,7 @@ export function ScreenHeader({
 	title: string;
 	action?: { label: string; onPress: () => void; disabled?: boolean };
 }) {
+	const colors = useTokens();
 	return (
 		<>
 			<Stack.Screen

@@ -11,7 +11,7 @@ import {
 	type ShippedFood,
 	validatePersonalFoodDraft,
 } from "@workouts/core/nutrition";
-import { openDatabaseSync } from "expo-sqlite";
+import { openNutritionDatabase } from "./nutrition-database";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
 const DATABASE_VERSION = 6;
@@ -914,7 +914,7 @@ export function openPersonalFoodRepository(
 	databaseName = PERSONAL_FOOD_DATABASE_NAME,
 ): PersonalFoodRepository {
 	return createPersonalFoodRepository(
-		openDatabaseSync(databaseName) as SyncSQLiteDatabase,
+		openNutritionDatabase(databaseName) as SyncSQLiteDatabase,
 	);
 }
 
@@ -1038,6 +1038,6 @@ export function createOpenFoodFactsCache(
 /** Open the same on-device database `openPersonalFoodRepository` uses, for the Open Food Facts request cache. */
 export function openOpenFoodFactsCache(): OpenFoodFactsCache {
 	return createOpenFoodFactsCache(
-		openDatabaseSync(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
+		openNutritionDatabase(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
 	);
 }

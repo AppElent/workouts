@@ -18,7 +18,7 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
 import { formatSessionDate } from "../data/session-data";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
@@ -33,6 +33,7 @@ const LEVEL_LABEL: Record<string, string> = {
 };
 
 export function HostedDetailScreen() {
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -238,6 +239,7 @@ function WodBlockBoard({
 	participants: Doc<"hostedWorkoutParticipants">[];
 	submissions: Doc<"hostedWorkoutSubmissions">[];
 }) {
+	const styles = useThemedStyles(createStyles);
 	const nameOf = useMemo(() => {
 		const map = new Map<Id<"hostedWorkoutParticipants">, string>();
 		for (const p of participants) {
@@ -288,58 +290,67 @@ function WodBlockBoard({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xxl },
-	centered: { alignItems: "center", justifyContent: "center", gap: spacing.sm },
-	centeredText: { textAlign: "center" },
-	header: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	flex: { flex: 1, gap: 2 },
-	tokenCard: { gap: spacing.xs },
-	token: {
-		fontSize: 22,
-		fontWeight: "800",
-		color: colors.accent,
-		letterSpacing: 1,
-	},
-	muted: { fontSize: 13, color: colors.textMuted },
-	list: { gap: spacing.xs + 2 },
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		padding: spacing.md,
-	},
-	rowTitle: { fontWeight: "700" },
-	rank: {
-		width: 20,
-		fontSize: 13,
-		fontWeight: "800",
-		color: colors.textMuted,
-	},
-	score: { fontSize: 14, fontWeight: "800", color: colors.accent },
-	actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
-	primaryBtn: {
-		flex: 1,
-		minHeight: 48,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	primaryText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
-	ghostBtn: {
-		minHeight: 48,
-		paddingHorizontal: spacing.lg,
-		borderRadius: radius.pill,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	ghostText: { fontSize: 13, fontWeight: "800", color: colors.text },
-	deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
-	dimmed: { opacity: 0.5 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			padding: spacing.md,
+			gap: spacing.sm,
+			paddingBottom: spacing.xxl,
+		},
+		centered: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: spacing.sm,
+		},
+		centeredText: { textAlign: "center" },
+		header: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+		flex: { flex: 1, gap: 2 },
+		tokenCard: { gap: spacing.xs },
+		token: {
+			fontSize: 22,
+			fontWeight: "800",
+			color: colors.accent,
+			letterSpacing: 1,
+		},
+		muted: { fontSize: 13, color: colors.textMuted },
+		list: { gap: spacing.xs + 2 },
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			padding: spacing.md,
+		},
+		rowTitle: { fontWeight: "700" },
+		rank: {
+			width: 20,
+			fontSize: 13,
+			fontWeight: "800",
+			color: colors.textMuted,
+		},
+		score: { fontSize: 14, fontWeight: "800", color: colors.accent },
+		actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
+		primaryBtn: {
+			flex: 1,
+			minHeight: 48,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		primaryText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
+		ghostBtn: {
+			minHeight: 48,
+			paddingHorizontal: spacing.lg,
+			borderRadius: radius.pill,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		ghostText: { fontSize: 13, fontWeight: "800", color: colors.text },
+		deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
+		dimmed: { opacity: 0.5 },
+	});

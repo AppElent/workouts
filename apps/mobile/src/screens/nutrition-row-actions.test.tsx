@@ -178,7 +178,7 @@ describe("diary row accelerators", () => {
 		// A plain tap — no gesture — opens the editor.
 		fireEvent.press(await screen.findByLabelText("Edit entry: Oatmeal"));
 
-		expect(await screen.findByText("Edit entry")).toBeTruthy();
+		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
 		// …which carries its own visible Delete, so neither action depends on
 		// knowing that a swipe or a long press exists.
 		expect(screen.getByText("Delete entry")).toBeTruthy();

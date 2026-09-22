@@ -25,7 +25,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Doc } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
@@ -56,6 +62,8 @@ export function WodEditor({
 	wod?: Doc<"wods"> | null;
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
@@ -313,59 +321,68 @@ export function WodEditor({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.md },
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		minHeight: 44,
-	},
-	cancel: { color: colors.accent, fontWeight: "700" },
-	content: { gap: spacing.sm, paddingBottom: spacing.xxl },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	multiline: {
-		minHeight: 88,
-		paddingTop: spacing.sm,
-		textAlignVertical: "top",
-	},
-	chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
-	movementRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-	flex: { flex: 1 },
-	repsInput: { width: 76, textAlign: "center" },
-	removeBtn: {
-		width: 32,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	remove: { fontSize: 14, fontWeight: "800", color: colors.textMuted },
-	addBtn: {
-		minHeight: 44,
-		borderRadius: radius.pill,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	addBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
-	submit: {
-		height: 48,
-		marginTop: spacing.sm,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-	dimmed: { opacity: 0.5 },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: {
+			flex: 1,
+			backgroundColor: colors.bg,
+			paddingHorizontal: spacing.md,
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			minHeight: 44,
+		},
+		cancel: { color: colors.accent, fontWeight: "700" },
+		content: { gap: spacing.sm, paddingBottom: spacing.xxl },
+		input: {
+			minHeight: 48,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		multiline: {
+			minHeight: 88,
+			paddingTop: spacing.sm,
+			textAlignVertical: "top",
+		},
+		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
+		movementRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.xs,
+		},
+		flex: { flex: 1 },
+		repsInput: { width: 76, textAlign: "center" },
+		removeBtn: {
+			width: 32,
+			height: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		remove: { fontSize: 14, fontWeight: "800", color: colors.textMuted },
+		addBtn: {
+			minHeight: 44,
+			borderRadius: radius.pill,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		addBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
+		submit: {
+			height: 48,
+			marginTop: spacing.sm,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
+		dimmed: { opacity: 0.5 },
+	});

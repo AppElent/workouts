@@ -64,7 +64,7 @@ function mockMutations(fn: string, impl: jest.Mock) {
 async function openEditor() {
 	renderApp();
 	fireEvent.press(await screen.findByLabelText("Edit entry: Apple"));
-	await screen.findByText("Edit entry");
+	await screen.findByLabelText("Quantity");
 }
 
 beforeEach(() => {

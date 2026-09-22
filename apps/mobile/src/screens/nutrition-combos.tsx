@@ -1,17 +1,15 @@
 import { useForm } from "@tanstack/react-form";
 import { formatQuantity } from "@workouts/core/nutrition";
 import { useRef, useState } from "react";
-import {
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { z } from "zod";
 import { resolveComboPart, scaleComboSnapshot } from "../data/nutrition-combo";
 import { nutritionComboCopy } from "../data/nutrition-combo-copy";
-import type { DiaryEntry, MealSlot } from "../data/nutrition-day";
+import type {
+	DiaryEntry,
+	DiaryEntryWithMeal,
+	MealSlot,
+} from "../data/nutrition-day";
 import { MEAL_SLOTS } from "../data/nutrition-day";
 import {
 	mintNutritionUuid,
@@ -20,11 +18,18 @@ import {
 import type { ComboPartReference } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
+import { spacing, type Tokens, useThemedStyles, useTokens } from "../theme";
+import { PrimaryButton } from "../ui/button";
+import { Card } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
+import {
+	FormSection,
+	FormSegmentedRow,
+	FormTextField,
+	InlineNumberFieldRow,
+	TextAction,
+} from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
@@ -53,12 +58,13 @@ export function NutritionComboBuilder({
 	meal,
 	onSaved,
 }: {
-	entries: readonly DiaryEntry[];
+	entries: readonly DiaryEntryWithMeal[];
 	date: string;
 	meal: MealSlot;
 	onClose: () => void;
 	onSaved: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const foods = usePersonalFoods();
 	const operations = useNutritionOperations();
@@ -125,24 +131,20 @@ export function NutritionComboBuilder({
 			style={styles.root}
 			contentContainerStyle={styles.content}
 		>
-			<Eyebrow>{t.nutrition.title}</Eyebrow>
-			<AppText variant="title">{t.nutrition.combos.create}</AppText>
-			<Card style={styles.storageDisclosure}>
-				<AppText variant="heading">{t.nutrition.combos.storageTitle}</AppText>
-				<AppText variant="caption">{t.nutrition.combos.storageBody}</AppText>
-			</Card>
-			<AppText variant="label">{t.nutrition.combos.name}</AppText>
-			<form.Field name="name">
-				{(field) => (
-					<TextInput
-						value={field.state.value}
-						onChangeText={field.handleChange}
-						accessibilityLabel={t.nutrition.combos.name}
-						style={styles.input}
-						autoFocus
-					/>
-				)}
-			</form.Field>
+			<AppText variant="caption">{t.nutrition.combos.storageBody}</AppText>
+			<FormSection>
+				<form.Field name="name">
+					{(field) => (
+						<FormTextField
+							label={t.nutrition.combos.name}
+							value={field.state.value}
+							onChangeText={field.handleChange}
+							accessibilityLabel={t.nutrition.combos.name}
+							autoFocus
+						/>
+					)}
+				</form.Field>
+			</FormSection>
 			<Card>
 				{entries.map((entry) => (
 					<View key={entry.id} style={styles.row}>
@@ -182,6 +184,8 @@ export function NutritionComboLibrary({
 	onBack: () => void;
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const foods = usePersonalFoods();
 	const operations = useNutritionOperations();
@@ -385,12 +389,7 @@ export function NutritionComboLibrary({
 			style={styles.root}
 			contentContainerStyle={styles.content}
 		>
-			<Eyebrow>{t.nutrition.title}</Eyebrow>
-			<AppText variant="title">{t.nutrition.combos.log}</AppText>
-			<Card style={styles.storageDisclosure}>
-				<AppText variant="heading">{t.nutrition.combos.storageTitle}</AppText>
-				<AppText variant="caption">{t.nutrition.combos.storageBody}</AppText>
-			</Card>
+			<AppText variant="caption">{t.nutrition.combos.storageBody}</AppText>
 			{selected ? (
 				<>
 					<AppText variant="heading">{selected.name}</AppText>
@@ -455,7 +454,9 @@ export function NutritionComboLibrary({
 											</View>
 										</View>
 										<View style={styles.partControls}>
-											<TextInput
+											<InlineNumberFieldRow
+												label={locale === "nl" ? "Schaal" : "Scale"}
+												suffix="×"
 												value={partInput}
 												onChangeText={(value) =>
 													updatePart(part.id, {
@@ -469,7 +470,6 @@ export function NutritionComboLibrary({
 												accessibilityLabel={
 													locale === "nl" ? `Schaal ${name}` : `Scale ${name}`
 												}
-												style={[styles.input, styles.partInput]}
 											/>
 											<AppText
 												variant="caption"
@@ -485,44 +485,42 @@ export function NutritionComboLibrary({
 							},
 						)}
 					</Card>
-					<AppText variant="label">{cookingCopy.comboScale}</AppText>
-					<TextInput
-						value={scaleInput}
-						onChangeText={(value) => {
-							setScaleInput(value);
-							setScaleValue(undefined);
-						}}
-						onBlur={commitWholeScale}
-						placeholder="1"
-						keyboardType="decimal-pad"
-						accessibilityLabel={cookingCopy.comboScale}
-						style={styles.input}
-					/>
+					<FormSection>
+						<InlineNumberFieldRow
+							label={cookingCopy.comboScale}
+							suffix="×"
+							value={scaleInput}
+							onChangeText={(value) => {
+								setScaleInput(value);
+								setScaleValue(undefined);
+							}}
+							onBlur={commitWholeScale}
+							placeholder="1"
+							keyboardType="decimal-pad"
+							accessibilityLabel={cookingCopy.comboScale}
+						/>
+					</FormSection>
 					<AppText variant="caption">
 						{scaleValid
 							? cookingCopy.comboScaleHelp
 							: cookingCopy.comboScaleInvalid}
 					</AppText>
-					<GhostButton
+					<TextAction
 						label={
 							locale === "nl" ? "Aanpassingen herstellen" : "Reset adjustments"
 						}
 						onPress={resetAdjustments}
 					/>
-					<AppText variant="label">{t.nutrition.combos.destination}</AppText>
-					<View style={styles.meals}>
-						{MEAL_SLOTS.map((slot) => (
-							<Pressable
-								key={slot}
-								onPress={() => setMeal(slot)}
-								accessibilityRole="radio"
-								accessibilityState={{ checked: meal === slot }}
-								style={[styles.meal, meal === slot && styles.mealSelected]}
-							>
-								<AppText>{t.nutrition.meals[slot]}</AppText>
-							</Pressable>
-						))}
-					</View>
+					<FormSection title={t.nutrition.combos.destination}>
+						<FormSegmentedRow
+							options={MEAL_SLOTS.map((slot) => ({
+								value: slot,
+								label: t.nutrition.meals[slot],
+							}))}
+							value={meal}
+							onChange={setMeal}
+						/>
+					</FormSection>
 					<PrimaryButton
 						label={
 							logging
@@ -543,17 +541,17 @@ export function NutritionComboLibrary({
 						}
 						loading={logging}
 					/>
-					<GhostButton
+					<TextAction
 						label={
 							deleting ? t.nutrition.combos.deleting : t.nutrition.combos.delete
 						}
 						onPress={remove}
-						loading={deleting}
-						disabled={logging}
+						tone="destructive"
+						disabled={logging || deleting}
 					/>
 					{hasMissing &&
 					selected.parts.some((part) => part.status === "available") ? (
-						<GhostButton
+						<TextAction
 							label={t.nutrition.combos.resolve}
 							onPress={removeMissingParts}
 						/>
@@ -606,67 +604,40 @@ function referenceFor(entry: DiaryEntry): ComboPartReference {
 	return { kind: "oneOff" };
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, paddingBottom: 40, gap: spacing.md },
-	flex: { flex: 1 },
-	strong: { fontWeight: "700" },
-	back: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	storageDisclosure: { gap: spacing.xs },
-	warning: { gap: spacing.xs, borderColor: colors.warn },
-	missing: { color: colors.danger },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		paddingHorizontal: spacing.md,
-		color: colors.text,
-		fontSize: 15,
-	},
-	row: {
-		minHeight: 52,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingVertical: spacing.sm,
-	},
-	partRow: {
-		paddingVertical: spacing.sm,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: colors.border,
-		gap: spacing.sm,
-	},
-	partControls: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingLeft: 44,
-	},
-	partInput: { width: 88 },
-	includeToggle: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	meals: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-	meal: {
-		minHeight: 44,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.pill,
-	},
-	mealSelected: {
-		borderColor: colors.accent,
-		backgroundColor: colors.accentDim,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			padding: 20,
+			paddingTop: 12,
+			paddingBottom: 40,
+			gap: spacing.md,
+		},
+		flex: { flex: 1 },
+		strong: { fontWeight: "700" },
+		warning: { gap: spacing.xs, borderColor: colors.warn },
+		missing: { color: colors.danger },
+		row: {
+			minHeight: 52,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingVertical: spacing.sm,
+		},
+		partRow: {
+			paddingVertical: spacing.sm,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: colors.border,
+			gap: spacing.sm,
+		},
+		partControls: {
+			gap: spacing.sm,
+			paddingLeft: 44,
+		},
+		includeToggle: {
+			minWidth: 44,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+	});

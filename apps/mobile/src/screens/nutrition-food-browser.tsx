@@ -79,13 +79,25 @@ import {
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, type Messages, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { GhostButton, PrimaryButton } from "../ui/button";
 import { Card } from "../ui/coach";
 import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { FoodEditorSheet } from "../ui/food-editor-sheet";
 import { FoodVisualView } from "../ui/food-visual";
+import {
+	DisclosureRow,
+	FormSection,
+	FormSegmentedRow,
+	InlineNumberFieldRow,
+} from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { BarcodeScanner } from "./barcode-scanner";
@@ -243,6 +255,8 @@ export function NutritionFoodBrowser({
 	initialQuery?: string;
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const copy = nutritionFoodBrowserCopy(locale);
 	const router = useRouter();
@@ -1071,6 +1085,8 @@ function IconButton({
 	onPress: () => void;
 	selected?: boolean;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Pressable
 			accessibilityRole="button"
@@ -1104,6 +1120,8 @@ function FoodRow({
 	onPress: () => void;
 	onQuickLog: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const legacyImageUrl =
 		selection.kind === "personal" &&
 		selection.food.visualMigrationPending &&
@@ -1187,6 +1205,7 @@ function LibraryRow({
 	logLabel: string;
 	onLog: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.foodRow}>
 			<Pressable
@@ -1285,6 +1304,8 @@ function ServingDetail({
 	/** Start a correction of this shipped food. Absent for a local food. */
 	onCorrect?: () => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const router = useRouter();
 	const operations = useNutritionOperations();
@@ -1504,86 +1525,53 @@ function ServingDetail({
 							}}
 							style={styles.favoriteButton}
 						>
-							<AppText>{favorite ? "★" : "☆"}</AppText>
+							<SymbolView
+								name={{
+									ios: favorite ? "star.fill" : "star",
+									android: favorite ? "star" : "star_border",
+									web: favorite ? "star" : "star_border",
+								}}
+								tintColor={colors.accent}
+								size={24}
+							/>
 						</Pressable>
 					</View>
-					<AppText variant="label">{t.nutrition.foodBrowser.serving}</AppText>
-					<View style={styles.options}>
-						{[
-							{
-								label: t.nutrition.personalMeasures.title,
-								choices: choices.filter(
-									(choice) => choice.kind === "personal-measure",
-								),
-							},
-							{
-								label: t.nutrition.foodBrowser.serving,
-								choices: choices.filter(
-									(choice) => choice.kind !== "personal-measure",
-								),
-							},
-						]
-							.filter((group) => group.choices.length > 0)
-							.map((group) => (
-								<View key={group.label} style={styles.optionGroup}>
-									<AppText variant="caption">{group.label}</AppText>
-									<View style={styles.optionChoices}>
-										{group.choices.map((candidate) => (
-											<Pressable
-												key={
-													candidate.kind === "authored"
-														? `authored:${candidate.index}`
-														: candidate.kind === "personal-measure"
-															? `measure:${candidate.id}`
-															: "base"
-												}
-												onPress={() => {
-													// A meaningful selection: it changes the figures below and the
-													// numbers that will be written. The list itself is silent.
-													if (candidate !== selectedServing)
-														haptics.selectionChanged();
-													setSelectedServing(candidate);
-													setQuantityText(
-														candidate.kind === "base-unit" &&
-															candidate.unit !== "serving"
-															? "100"
-															: "1",
-													);
-												}}
-												accessibilityRole="radio"
-												accessibilityState={{
-													checked: selectedServing === candidate,
-												}}
-												style={[
-													styles.option,
-													selectedServing === candidate &&
-														styles.optionSelected,
-												]}
-											>
-												<AppText>{candidate.label[locale]}</AppText>
-											</Pressable>
-										))}
-									</View>
-								</View>
-							))}
-					</View>
-					<GhostButton
-						label={t.nutrition.personalMeasures.manage}
-						onPress={() =>
-							router.push({
-								pathname: "/personal-measures",
-								params: { returnTo: "picker", baseUnit: food.baseUnit },
-							})
-						}
-					/>
-					<AppText variant="label">{t.nutrition.foodBrowser.quantity}</AppText>
-					<TextInput
-						value={quantityText}
-						onChangeText={setQuantityText}
-						accessibilityLabel={t.nutrition.foodBrowser.quantity}
-						keyboardType="decimal-pad"
-						style={styles.input}
-					/>
+					<FormSection title={t.nutrition.foodBrowser.serving}>
+						<FormSegmentedRow
+							options={choices.map((candidate, index) => ({
+								value: String(index),
+								label: candidate.label[locale],
+							}))}
+							value={String(choices.indexOf(selectedServing))}
+							onChange={(value) => {
+								const candidate = choices[Number(value)];
+								if (!candidate) return;
+								if (candidate !== selectedServing) haptics.selectionChanged();
+								setSelectedServing(candidate);
+								setQuantityText(
+									candidate.kind === "base-unit" && candidate.unit !== "serving"
+										? "100"
+										: "1",
+								);
+							}}
+						/>
+						<InlineNumberFieldRow
+							label={t.nutrition.foodBrowser.quantity}
+							suffix=""
+							value={quantityText}
+							onChangeText={setQuantityText}
+							keyboardType="decimal-pad"
+						/>
+						<DisclosureRow
+							label={t.nutrition.personalMeasures.manage}
+							onPress={() =>
+								router.push({
+									pathname: "/personal-measures",
+									params: { returnTo: "picker", baseUnit: food.baseUnit },
+								})
+							}
+						/>
+					</FormSection>
 					{selectedServing.kind !== "base-unit" ? (
 						<View style={styles.quantityShortcuts}>
 							{[
@@ -1807,219 +1795,213 @@ function createFoodSnapshot(
 	return { common, provenance };
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	center: { alignItems: "center", justifyContent: "center" },
-	content: { padding: 16, paddingTop: 8, paddingBottom: 40, gap: spacing.xs },
-	flex: { flex: 1 },
-	headerContent: { gap: spacing.sm, paddingBottom: spacing.sm },
-	targetPicker: { gap: spacing.xs },
-	pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	mealPicker: {
-		minHeight: 48,
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingHorizontal: spacing.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-	},
-	mealMenu: {
-		borderRadius: radius.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		backgroundColor: colors.surface2,
-		overflow: "hidden",
-	},
-	mealChoice: {
-		minHeight: 44,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-		borderBottomWidth: 1,
-		borderBottomColor: colors.border,
-	},
-	dateLabel: { color: colors.textMuted },
-	feedback: { color: colors.accent, fontWeight: "700" },
-	findControls: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	iconButton: {
-		width: 48,
-		height: 48,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		backgroundColor: colors.surface2,
-	},
-	iconButtonSelected: {
-		borderColor: colors.accent,
-		backgroundColor: colors.accentDim,
-	},
-	actionMenu: {
-		gap: 2,
-		padding: spacing.xs,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-	},
-	actionMenuItem: {
-		minHeight: 44,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-	},
-	tabList: {
-		flexDirection: "row",
-		gap: spacing.md,
-		paddingHorizontal: spacing.xs,
-	},
-	tab: {
-		minHeight: 44,
-		justifyContent: "center",
-		borderBottomWidth: 2,
-		borderBottomColor: "transparent",
-	},
-	tabSelected: { borderBottomColor: colors.accent },
-	tabTextSelected: { color: colors.accent, fontWeight: "800" },
-	queryActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
-	onlineSearch: {
-		minHeight: 36,
-		alignSelf: "flex-start",
-		justifyContent: "center",
-	},
-	onlineSearchText: { color: colors.accent, fontWeight: "700" },
-	heading: { gap: spacing.xs },
-	strong: { fontWeight: "700" },
-	back: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	input: {
-		minHeight: 48,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		paddingHorizontal: spacing.md,
-		color: colors.text,
-		fontSize: 15,
-	},
-	quantityShortcuts: { flexDirection: "row", gap: spacing.sm },
-	quantityShortcut: {
-		minWidth: 52,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.pill,
-	},
-	foodRow: {
-		minHeight: 56,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.md,
-		paddingHorizontal: spacing.sm,
-		paddingVertical: spacing.sm,
-		borderBottomWidth: 1,
-		borderBottomColor: colors.border,
-	},
-	foodOpen: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.md,
-	},
-	foodImage: {
-		width: 52,
-		height: 52,
-		borderRadius: radius.sm,
-		backgroundColor: colors.surface2,
-	},
-	detailImage: {
-		width: 112,
-		height: 112,
-		borderRadius: radius.lg,
-		backgroundColor: colors.surface2,
-	},
-	quickAdd: {
-		width: 44,
-		height: 44,
-		paddingHorizontal: spacing.sm,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-	},
-	quickLogControl: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.xs,
-	},
-	quickPortion: { maxWidth: 104, color: colors.textMuted, textAlign: "right" },
-	quickAddText: { color: colors.onAccent, fontWeight: "800", fontSize: 12 },
-	options: { gap: spacing.md },
-	optionGroup: { gap: spacing.xs },
-	optionChoices: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-	option: {
-		minHeight: 44,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.pill,
-	},
-	optionSelected: {
-		borderColor: colors.accent,
-		backgroundColor: colors.accentDim,
-	},
-	favoriteButton: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	preview: { gap: spacing.sm },
-	nutrientRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	attribution: { gap: spacing.xs },
-	sheet: {
-		flex: 1,
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.sm,
-	},
-	sheetHandle: {
-		alignSelf: "center",
-		width: 36,
-		height: 4,
-		borderRadius: radius.pill,
-		backgroundColor: colors.borderStrong,
-	},
-	sheetBody: { flex: 1 },
-	sheetHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		minHeight: 44,
-	},
-	sheetClose: {
-		width: 44,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	sheetCloseGlyph: {
-		color: colors.accent,
-		fontSize: 30,
-		fontWeight: "400",
-		lineHeight: 32,
-	},
-	sheetContent: { gap: spacing.md, paddingBottom: spacing.md },
-	sheetFooter: { gap: spacing.sm, paddingTop: spacing.sm },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		center: { alignItems: "center", justifyContent: "center" },
+		content: { padding: 16, paddingTop: 8, paddingBottom: 40, gap: spacing.xs },
+		flex: { flex: 1 },
+		headerContent: { gap: spacing.sm, paddingBottom: spacing.sm },
+		targetPicker: { gap: spacing.xs },
+		pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+		mealPicker: {
+			minHeight: 48,
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingHorizontal: spacing.md,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			borderRadius: radius.md,
+			backgroundColor: colors.surface2,
+		},
+		mealMenu: {
+			borderRadius: radius.md,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			backgroundColor: colors.surface2,
+			overflow: "hidden",
+		},
+		mealChoice: {
+			minHeight: 44,
+			justifyContent: "center",
+			paddingHorizontal: spacing.md,
+			borderBottomWidth: 1,
+			borderBottomColor: colors.border,
+		},
+		dateLabel: { color: colors.textMuted },
+		feedback: { color: colors.accent, fontWeight: "700" },
+		findControls: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		iconButton: {
+			width: 48,
+			height: 48,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.md,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			backgroundColor: colors.surface2,
+		},
+		iconButtonSelected: {
+			borderColor: colors.accent,
+			backgroundColor: colors.accentDim,
+		},
+		actionMenu: {
+			gap: 2,
+			padding: spacing.xs,
+			borderRadius: radius.md,
+			backgroundColor: colors.surface2,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+		},
+		actionMenuItem: {
+			minHeight: 44,
+			justifyContent: "center",
+			paddingHorizontal: spacing.md,
+		},
+		tabList: {
+			flexDirection: "row",
+			gap: spacing.md,
+			paddingHorizontal: spacing.xs,
+		},
+		tab: {
+			minHeight: 44,
+			justifyContent: "center",
+			borderBottomWidth: 2,
+			borderBottomColor: "transparent",
+		},
+		tabSelected: { borderBottomColor: colors.accent },
+		tabTextSelected: { color: colors.accent, fontWeight: "800" },
+		queryActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
+		onlineSearch: {
+			minHeight: 36,
+			alignSelf: "flex-start",
+			justifyContent: "center",
+		},
+		onlineSearchText: { color: colors.accent, fontWeight: "700" },
+		heading: { gap: spacing.xs },
+		strong: { fontWeight: "700" },
+		input: {
+			minHeight: 48,
+			borderRadius: radius.md,
+			backgroundColor: colors.surface2,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			paddingHorizontal: spacing.md,
+			color: colors.text,
+			fontSize: 15,
+		},
+		quantityShortcuts: { flexDirection: "row", gap: spacing.sm },
+		quantityShortcut: {
+			minWidth: 52,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			borderRadius: radius.pill,
+		},
+		foodRow: {
+			minHeight: 56,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.md,
+			paddingHorizontal: spacing.sm,
+			paddingVertical: spacing.sm,
+			borderBottomWidth: 1,
+			borderBottomColor: colors.border,
+		},
+		foodOpen: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.md,
+		},
+		foodImage: {
+			width: 52,
+			height: 52,
+			borderRadius: radius.sm,
+			backgroundColor: colors.surface2,
+		},
+		detailImage: {
+			width: 112,
+			height: 112,
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface2,
+		},
+		quickAdd: {
+			width: 44,
+			height: 44,
+			paddingHorizontal: spacing.sm,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+		},
+		quickLogControl: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.xs,
+		},
+		quickPortion: {
+			maxWidth: 104,
+			color: colors.textMuted,
+			textAlign: "right",
+		},
+		quickAddText: { color: colors.onAccent, fontWeight: "800", fontSize: 12 },
+		options: { gap: spacing.md },
+		favoriteButton: {
+			alignSelf: "flex-end",
+			minWidth: 44,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		preview: { gap: spacing.sm },
+		nutrientRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		attribution: { gap: spacing.xs },
+		sheet: {
+			flex: 1,
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.sm,
+		},
+		sheetHandle: {
+			alignSelf: "center",
+			width: 36,
+			height: 4,
+			borderRadius: radius.pill,
+			backgroundColor: colors.borderStrong,
+		},
+		sheetBody: { flex: 1 },
+		sheetHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			minHeight: 44,
+		},
+		sheetClose: {
+			width: 44,
+			height: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		sheetCloseGlyph: {
+			color: colors.accent,
+			fontSize: 30,
+			fontWeight: "400",
+			lineHeight: 32,
+		},
+		sheetContent: { gap: spacing.md, paddingBottom: spacing.md },
+		sheetFooter: { gap: spacing.sm, paddingTop: spacing.sm },
+	});

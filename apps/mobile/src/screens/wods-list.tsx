@@ -24,7 +24,13 @@ import {
 	View,
 } from "react-native";
 import { api, type Doc } from "../convex/api";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Chip } from "../ui/coach";
 import { Screen } from "../ui/screen";
 import { ScreenHeader } from "../ui/screen-header";
@@ -41,6 +47,8 @@ export const WOD_TYPE_LABEL: Record<Doc<"wods">["type"], string> = {
 };
 
 export function WodsScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const wods = useQuery(api.wods.list, {});
 
 	const [search, setSearch] = useState("");
@@ -114,6 +122,8 @@ export function WodsScreen() {
 }
 
 function WodRow({ wod }: { wod: Doc<"wods"> }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const best = useQuery(api.wodResults.getBest, { wodId: wod._id });
 
@@ -146,47 +156,48 @@ function WodRow({ wod }: { wod: Doc<"wods"> }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.md,
-		paddingBottom: spacing.sm,
-	},
-	flex: { flex: 1, gap: 2 },
-	filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
-	input: {
-		minHeight: 44,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-	status: { paddingHorizontal: spacing.md },
-	list: {
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.sm,
-		paddingBottom: spacing.xxl * 2,
-		gap: spacing.sm,
-	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		paddingVertical: spacing.md,
-	},
-	name: { fontWeight: "700" },
-	best: { fontWeight: "800", color: colors.accent },
-	chevron: { fontSize: 18, color: colors.textFaint },
-	empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
-	centered: { textAlign: "center" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.md,
+			paddingBottom: spacing.sm,
+		},
+		flex: { flex: 1, gap: 2 },
+		filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
+		input: {
+			minHeight: 44,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
+		status: { paddingHorizontal: spacing.md },
+		list: {
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.sm,
+			paddingBottom: spacing.xxl * 2,
+			gap: spacing.sm,
+		},
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			paddingVertical: spacing.md,
+		},
+		name: { fontWeight: "700" },
+		best: { fontWeight: "800", color: colors.accent },
+		chevron: { fontSize: 18, color: colors.textFaint },
+		empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
+		centered: { textAlign: "center" },
+	});

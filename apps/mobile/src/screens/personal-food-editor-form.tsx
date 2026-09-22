@@ -24,7 +24,7 @@ import {
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { fmt, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
 import { FoodVisualView } from "../ui/food-visual";
 import {
@@ -144,6 +144,7 @@ export function PersonalFoodEditorForm({
 	onCancel: () => void;
 	photoManager?: FoodPhotoManager;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const copy = personalFoodEditorCopy[locale];
 	const personalFoods = usePersonalFoods();
@@ -854,15 +855,16 @@ export function PersonalFoodEditorForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	notice: { gap: spacing.xs },
-	visualImage: {
-		width: 112,
-		height: 112,
-		borderRadius: radius.lg,
-		backgroundColor: colors.surface2,
-	},
-	segmentedRow: { padding: spacing.md },
-	servingEditor: { gap: spacing.sm, backgroundColor: colors.surface2 },
-	error: { color: colors.danger },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		notice: { gap: spacing.xs },
+		visualImage: {
+			width: 112,
+			height: 112,
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface2,
+		},
+		segmentedRow: { padding: spacing.md },
+		servingEditor: { gap: spacing.sm, backgroundColor: colors.surface2 },
+		error: { color: colors.danger },
+	});

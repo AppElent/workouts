@@ -38,7 +38,9 @@ describe("nutrition goal editor", () => {
 	it("opens from the day and applies a disclosed static preset", async () => {
 		renderApp();
 		fireEvent.press(await screen.findByText("Set up goals"));
-		expect(await screen.findByText("Your nutrition goals")).toBeTruthy();
+		expect(
+			await screen.findByLabelText("Energy Maximum Daily amount"),
+		).toBeTruthy();
 		fireEvent.press(screen.getByText("Reference intake"));
 		expect(screen.getByText(/EU Regulation 1169\/2011/)).toBeTruthy();
 		expect(
@@ -50,7 +52,7 @@ describe("nutrition goal editor", () => {
 		const save = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(asMutation(save));
 		renderApp("/nutrition-goals");
-		await screen.findByText("Your nutrition goals");
+		await screen.findByLabelText("Energy Maximum Daily amount");
 		fireEvent.press(screen.getByText("Build muscle"));
 		fireEvent.changeText(
 			screen.getByLabelText("Protein Minimum Daily amount"),
@@ -76,7 +78,7 @@ describe("nutrition goal editor", () => {
 			asMutation(jest.fn().mockRejectedValue(new Error("offline"))),
 		);
 		renderApp("/nutrition-goals");
-		await screen.findByText("Your nutrition goals");
+		await screen.findByLabelText("Energy Maximum Daily amount");
 		fireEvent.changeText(
 			screen.getByLabelText("Energy Minimum Daily amount"),
 			"1234",
@@ -120,7 +122,7 @@ describe("nutrition goal editor", () => {
 		);
 		mockUseMutation.mockReturnValue(asMutation(save));
 		renderApp("/nutrition-goals");
-		await screen.findByText("Your nutrition goals");
+		await screen.findByLabelText("Energy Maximum Daily amount");
 		fireEvent.changeText(
 			screen.getByLabelText("Energy Minimum Daily amount"),
 			"1234",

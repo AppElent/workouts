@@ -23,7 +23,13 @@ import {
 } from "react-native";
 import { api, type Doc } from "../convex/api";
 import { useShellData } from "../data/session-data";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Chip } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { NativeSwipeableRow } from "../ui/native-swipeable-row";
@@ -64,6 +70,8 @@ const EQUIPMENT = [
 ] as const;
 
 export function ExercisesScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -259,47 +267,48 @@ export function ExercisesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.md,
-		paddingBottom: spacing.sm,
-	},
-	flex: { flex: 1 },
-	filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
-	input: {
-		minHeight: 44,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-	status: { paddingHorizontal: spacing.md },
-	list: {
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.sm,
-		paddingBottom: spacing.xxl * 2,
-		gap: spacing.sm,
-	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		paddingVertical: spacing.md,
-	},
-	name: { fontWeight: "700" },
-	meta: { marginTop: 2, textTransform: "capitalize" },
-	delete: { color: colors.danger, fontWeight: "700" },
-	empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
-	centered: { textAlign: "center" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.md,
+			paddingBottom: spacing.sm,
+		},
+		flex: { flex: 1 },
+		filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
+		input: {
+			minHeight: 44,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
+		status: { paddingHorizontal: spacing.md },
+		list: {
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.sm,
+			paddingBottom: spacing.xxl * 2,
+			gap: spacing.sm,
+		},
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			paddingVertical: spacing.md,
+		},
+		name: { fontWeight: "700" },
+		meta: { marginTop: 2, textTransform: "capitalize" },
+		delete: { color: colors.danger, fontWeight: "700" },
+		empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
+		centered: { textAlign: "center" },
+	});

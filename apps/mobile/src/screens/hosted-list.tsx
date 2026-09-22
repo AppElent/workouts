@@ -29,7 +29,13 @@ import {
 } from "react-native";
 import { api, type Doc } from "../convex/api";
 import { formatSessionDate } from "../data/session-data";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { Screen } from "../ui/screen";
@@ -44,6 +50,8 @@ const STATUS_LABEL: Record<Doc<"hostedWorkouts">["status"], string> = {
 };
 
 export function HostedListScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
 	const hosted = useQuery(api.hostedWorkouts.listMine, {});
@@ -165,61 +173,62 @@ export function HostedListScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.md,
-		paddingBottom: spacing.sm,
-	},
-	content: {
-		paddingHorizontal: spacing.md,
-		paddingBottom: spacing.xxl * 2,
-		gap: spacing.sm,
-	},
-	joinRow: { flexDirection: "row", gap: spacing.sm },
-	flex: { flex: 1, gap: 2 },
-	input: {
-		minHeight: 48,
-		borderRadius: radius.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	joinBtn: {
-		minHeight: 48,
-		paddingHorizontal: spacing.lg,
-		borderRadius: radius.pill,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	joinBtnText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
-	dimmed: { opacity: 0.5 },
-	muted: { fontSize: 13, color: colors.textMuted },
-	centered: { textAlign: "center" },
-	empty: {
-		alignItems: "center",
-		gap: 4,
-		paddingVertical: spacing.lg,
-		paddingHorizontal: spacing.md,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-	},
-	list: { gap: spacing.sm },
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		padding: spacing.md,
-	},
-	rowTitle: { fontWeight: "700" },
-	chevron: { fontSize: 18, color: colors.textFaint },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.md,
+			paddingBottom: spacing.sm,
+		},
+		content: {
+			paddingHorizontal: spacing.md,
+			paddingBottom: spacing.xxl * 2,
+			gap: spacing.sm,
+		},
+		joinRow: { flexDirection: "row", gap: spacing.sm },
+		flex: { flex: 1, gap: 2 },
+		input: {
+			minHeight: 48,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		joinBtn: {
+			minHeight: 48,
+			paddingHorizontal: spacing.lg,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		joinBtnText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
+		dimmed: { opacity: 0.5 },
+		muted: { fontSize: 13, color: colors.textMuted },
+		centered: { textAlign: "center" },
+		empty: {
+			alignItems: "center",
+			gap: 4,
+			paddingVertical: spacing.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+		},
+		list: { gap: spacing.sm },
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			padding: spacing.md,
+		},
+		rowTitle: { fontWeight: "700" },
+		chevron: { fontSize: 18, color: colors.textFaint },
+	});

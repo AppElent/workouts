@@ -28,13 +28,15 @@ import {
 	useShellData,
 	workingVolume,
 } from "../data/session-data";
-import { colors } from "../theme";
+import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { Eyebrow, StatBox } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
 export function SummaryScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -179,6 +181,7 @@ function SessionWodResults({
 }: {
 	sessionId: Id<"workoutSessions"> | undefined;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const results = useQuery(
 		api.wodResults.listForSession,
 		sessionId ? { sessionId } : "skip",
@@ -211,6 +214,7 @@ function SessionWodResults({
 }
 
 function ExerciseRecap({ name, sets }: { name: string; sets: Doc<"sets">[] }) {
+	const styles = useThemedStyles(createStyles);
 	// "Best" is the heaviest set, matching the web. Not the same as the highest
 	// estimated 1RM — a heavy double can out-rank a heavier single there.
 	const best = sets.reduce(
@@ -250,71 +254,76 @@ function ExerciseRecap({ name, sets }: { name: string; sets: Doc<"sets">[] }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 16, gap: 12, paddingBottom: 60 },
-	centered: { alignItems: "center", justifyContent: "center", gap: 12 },
-	badgeRow: { flexDirection: "row" },
-	badge: {
-		paddingVertical: 6,
-		paddingHorizontal: 12,
-		borderRadius: 9999,
-		backgroundColor: colors.accentDim,
-		borderWidth: 1,
-		borderColor: colors.accent,
-	},
-	badgeText: { fontSize: 11, fontWeight: "800", color: colors.accent },
-	badgeMuted: {
-		backgroundColor: colors.surface2,
-		borderColor: colors.borderStrong,
-	},
-	badgeMutedText: { fontSize: 11, fontWeight: "800", color: colors.textMuted },
-	h1: { fontSize: 24, fontWeight: "800", color: colors.text },
-	muted: { fontSize: 13, color: colors.textMuted },
-	statRow: { flexDirection: "row", gap: 8, marginTop: 4 },
-	list: { gap: 8 },
-	card: {
-		gap: 6,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-		padding: 12,
-	},
-	rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
-	rowSub: { fontSize: 11, color: colors.textMuted },
-	chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-	setChip: {
-		paddingVertical: 4,
-		paddingHorizontal: 9,
-		borderRadius: 9999,
-		backgroundColor: colors.surface2,
-	},
-	setChipText: { fontSize: 11, fontWeight: "700", color: colors.text },
-	warmupChip: { backgroundColor: "rgba(251, 191, 36, 0.12)" },
-	warmupChipText: { color: colors.warn },
-	doneBtn: {
-		height: 48,
-		marginTop: 8,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	doneText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-	deleteBtn: {
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
-	dimmed: { opacity: 0.5 },
-	ghostBtn: {
-		minHeight: 44,
-		paddingHorizontal: 20,
-		borderRadius: 9999,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	ghostText: { fontSize: 13, fontWeight: "800", color: colors.text },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 16, gap: 12, paddingBottom: 60 },
+		centered: { alignItems: "center", justifyContent: "center", gap: 12 },
+		badgeRow: { flexDirection: "row" },
+		badge: {
+			paddingVertical: 6,
+			paddingHorizontal: 12,
+			borderRadius: 9999,
+			backgroundColor: colors.accentDim,
+			borderWidth: 1,
+			borderColor: colors.accent,
+		},
+		badgeText: { fontSize: 11, fontWeight: "800", color: colors.accent },
+		badgeMuted: {
+			backgroundColor: colors.surface2,
+			borderColor: colors.borderStrong,
+		},
+		badgeMutedText: {
+			fontSize: 11,
+			fontWeight: "800",
+			color: colors.textMuted,
+		},
+		h1: { fontSize: 24, fontWeight: "800", color: colors.text },
+		muted: { fontSize: 13, color: colors.textMuted },
+		statRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+		list: { gap: 8 },
+		card: {
+			gap: 6,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+			padding: 12,
+		},
+		rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
+		rowSub: { fontSize: 11, color: colors.textMuted },
+		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+		setChip: {
+			paddingVertical: 4,
+			paddingHorizontal: 9,
+			borderRadius: 9999,
+			backgroundColor: colors.surface2,
+		},
+		setChipText: { fontSize: 11, fontWeight: "700", color: colors.text },
+		warmupChip: { backgroundColor: colors.warnSoft },
+		warmupChipText: { color: colors.warn },
+		doneBtn: {
+			height: 48,
+			marginTop: 8,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		doneText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
+		deleteBtn: {
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		deleteText: { fontSize: 13, fontWeight: "700", color: colors.danger },
+		dimmed: { opacity: 0.5 },
+		ghostBtn: {
+			minHeight: 44,
+			paddingHorizontal: 20,
+			borderRadius: 9999,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		ghostText: { fontSize: 13, fontWeight: "800", color: colors.text },
+	});

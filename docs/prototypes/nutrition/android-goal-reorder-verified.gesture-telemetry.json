@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-20T15:53:17.246Z",
+  "events": [
+    {
+      "kind": "tap",
+      "tMs": 3166,
+      "x": 1118,
+      "y": 570,
+      "referenceWidth": 1280,
+      "referenceHeight": 2856
+    },
+    {
+      "kind": "longpress",
+      "tMs": 8734,
+      "x": 640,
+      "y": 757,
+      "referenceWidth": 1280,
+      "referenceHeight": 2784,
+      "durationMs": 2595
+    },
+    {
+      "kind": "tap",
+      "tMs": 14314,
+      "x": 640,
+      "y": 2280,
+      "referenceWidth": 1280,
+      "referenceHeight": 2856
+    },
+    {
+      "kind": "tap",
+      "tMs": 49069,
+      "x": 1118,
+      "y": 570,
+      "referenceWidth": 1280,
+      "referenceHeight": 2856
+    }
+  ]
+}

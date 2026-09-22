@@ -27,11 +27,13 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Platform, View } from "react-native";
 import { useActiveSession } from "../../../src/data/session-data";
 import { useI18n } from "../../../src/i18n";
-import { chrome, colors } from "../../../src/theme";
+import { chrome, useTokens } from "../../../src/theme";
 import { ActiveSessionBar } from "../../../src/ui/active-session-bar";
 import { isIOS26OrLater } from "../../../src/ui/platform";
 
 export default function CoachTabsLayout() {
+	const colors = useTokens();
+	const tabColors = Platform.OS === "ios" ? chrome : colors;
 	const { t } = useI18n();
 	const active = useActiveSession();
 	const hasAccessory = isIOS26OrLater();
@@ -42,14 +44,14 @@ export default function CoachTabsLayout() {
 			<NativeTabs
 				backgroundColor={Platform.OS === "ios" ? undefined : colors.surface}
 				minimizeBehavior="onScrollDown"
-				tintColor={chrome.accentInk}
+				tintColor={tabColors.accentInk}
 				iconColor={{
-					default: chrome.textMuted,
-					selected: chrome.accentInk,
+					default: tabColors.textMuted,
+					selected: tabColors.accentInk,
 				}}
 				labelStyle={{
-					default: { color: chrome.textMuted },
-					selected: { color: chrome.accentInk },
+					default: { color: tabColors.textMuted },
+					selected: { color: tabColors.accentInk },
 				}}
 			>
 				{hasAccessory && active ? (

@@ -3,7 +3,7 @@ export const nutritionLibraryCopy = {
 		eyebrow: "PERSONAL LIBRARY",
 		title: "Back up and restore your foods and Combos",
 		intro:
-			"Diary history is saved as independent snapshots. Background sync uploads local library changes; opening this screen explicitly restores the latest reusable Personal Foods and fixed Combos.",
+			"Back up your Personal Foods and Combos and restore them on your other devices. Meals already logged keep their original nutrition values.",
 		photoNotice:
 			"Food photos stay on this device and are not backed up. Restored Foods keep preset icons and use the default visual where a photo was omitted.",
 		offTitle: "Open Food Facts",
@@ -13,7 +13,8 @@ export const nutritionLibraryCopy = {
 		offPhotoFailure:
 			"Nutrition was refreshed, but one product photo could not be saved. It will be retried next time.",
 		offRefreshing: "Refreshing imported foods…",
-		offEmpty: "No barcode-backed Open Food Facts foods are saved locally.",
+		offEmpty:
+			"Products you import from Open Food Facts can be refreshed here. None are saved yet.",
 		offConfirmTitle: "Refresh imported foods?",
 		offConfirmBody: (count: number) =>
 			`Foundry will check ${count} saved ${count === 1 ? "food" : "foods"}. Open Food Facts limits product lookups, so this can take about ${Math.max(1, Math.ceil(count / 15))} minute${count > 15 ? "s" : ""}.`,
@@ -27,7 +28,7 @@ export const nutritionLibraryCopy = {
 		enable: "Enable backup for this account",
 		import: "Import this device library",
 		importHelp:
-			"Copy the current device library into this signed-in account once. IDs and Combo references are retained.",
+			"Add the Personal Foods and Combos saved on this device to your account backup.",
 		restore: "Restore latest library",
 		retryUpload: "Retry upload",
 		pending: "Changes waiting to sync",
@@ -42,7 +43,7 @@ export const nutritionLibraryCopy = {
 		confirmEnable: "Enable backup",
 		confirmImportTitle: "Import this device library?",
 		confirmImportBody:
-			"This copies its Personal Foods and Combos into this account with the same IDs. Diary history is not changed.",
+			"Add this device’s Personal Foods and Combos to your account backup? Meals already logged will stay unchanged.",
 		confirmImport: "Import device library",
 		confirmServerTitle: "Use the server copy?",
 		confirmServerBody: (name: string) =>
@@ -61,7 +62,7 @@ export const nutritionLibraryCopy = {
 		title:
 			"Maak een reservekopie van je voedingsmiddelen en Combo's en herstel ze",
 		intro:
-			"Dagboekgeschiedenis wordt als onafhankelijke snapshots opgeslagen. Achtergrondsynchronisatie uploadt lokale bibliotheekwijzigingen; door dit scherm te openen herstel je expliciet de nieuwste herbruikbare Persoonlijke Voedingsmiddelen en vaste Combo's.",
+			"Maak een reservekopie van je Persoonlijke Voedingsmiddelen en Combo's en herstel ze op je andere apparaten. Eerder gelogde maaltijden behouden hun oorspronkelijke voedingswaarden.",
 		photoNotice:
 			"Voedingsfoto's blijven op dit apparaat en worden niet opgenomen in de reservekopie. Herstelde voedingsmiddelen behouden gekozen iconen en gebruiken de standaardafbeelding waar een foto is weggelaten.",
 		offTitle: "Open Food Facts",
@@ -101,7 +102,7 @@ export const nutritionLibraryCopy = {
 		confirmEnable: "Reservekopie inschakelen",
 		confirmImportTitle: "Deze apparaatbibliotheek importeren?",
 		confirmImportBody:
-			"Dit kopieert Persoonlijke Voedingsmiddelen en Combo's met dezelfde ID's naar dit account. Dagboekgeschiedenis verandert niet.",
+			"Persoonlijke Voedingsmiddelen en Combo's van dit apparaat aan je reservekopie toevoegen? Eerder gelogde maaltijden blijven ongewijzigd.",
 		confirmImport: "Apparaatbibliotheek importeren",
 		confirmServerTitle: "Serverkopie gebruiken?",
 		confirmServerBody: (name: string) =>

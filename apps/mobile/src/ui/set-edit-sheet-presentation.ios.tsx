@@ -6,14 +6,22 @@ import {
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet, View } from "react-native";
-import { colors, useHostScheme } from "../theme";
+import {
+	type Tokens,
+	useAppearance,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import type { SetEditSheetPresentationProps } from "./set-edit-sheet-presentation.types";
 import { SetEditorContent } from "./set-editor-content";
 
 export function SetEditSheetPresentation(props: SetEditSheetPresentationProps) {
+	const colors = useTokens();
+	const { scheme } = useAppearance();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Host
-			colorScheme={useHostScheme()}
+			colorScheme={scheme}
 			seedColor={colors.accent}
 			pointerEvents="box-none"
 			style={StyleSheet.absoluteFill}
@@ -47,6 +55,7 @@ export function SetEditSheetPresentation(props: SetEditSheetPresentationProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	content: { flex: 1, backgroundColor: colors.surface },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		content: { flex: 1, backgroundColor: colors.surface },
+	});

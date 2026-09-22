@@ -148,9 +148,10 @@ export const nutritionAssistanceMessages: Record<
 			"The label food could not be saved. Your review is still here.",
 		labelAccepted: "Food saved and portion queued on this device.",
 		energyConverted: "Energy shown in kJ was converted to kcal (kJ ÷ 4.184).",
-		photoGated: "Photo/OCR label capture is gated and not implemented in v1.",
+		photoGated:
+			"Reading labels from photos is not available yet. Paste the label text to review its values.",
 		mealPhotoGated:
-			"Meal-photo estimation is a separate gated experiment and is not implemented.",
+			"Nutrition estimates from meal photos are not available yet. You can enter an estimate for review.",
 		allNutrients: "All eight nutrients; blank means not supplied",
 		weeklyTitle: "Week overview",
 		previousWeek: "Previous week",
@@ -250,9 +251,9 @@ export const nutritionAssistanceMessages: Record<
 		labelAccepted: "Voeding opgeslagen en portie op dit apparaat klaargezet.",
 		energyConverted: "Energie in kJ is omgerekend naar kcal (kJ ÷ 4,184).",
 		photoGated:
-			"Etiket vastleggen met foto/OCR is afgeschermd en niet geïmplementeerd in v1.",
+			"Etiketten lezen uit foto’s is nog niet beschikbaar. Plak de etikettekst om de waarden te controleren.",
 		mealPhotoGated:
-			"Schatten met een maaltijdfoto is een apart afgeschermd experiment en niet geïmplementeerd.",
+			"Voedingswaarden schatten uit maaltijdfoto’s is nog niet beschikbaar. Je kunt zelf een schatting invoeren en controleren.",
 		allNutrients: "Alle acht voedingsstoffen; leeg betekent niet aangeleverd",
 		weeklyTitle: "Weekoverzicht",
 		previousWeek: "Vorige week",

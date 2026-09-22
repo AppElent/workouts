@@ -10,7 +10,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { AppText } from "../ui/text";
 
 /** A visible, compact entry point for secondary nutrition actions. */
@@ -27,6 +33,8 @@ export function NutritionMenu({
 		dividerAfter?: boolean;
 	}[];
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const [open, setOpen] = useState(false);
 	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
@@ -107,29 +115,30 @@ export function NutritionMenu({
 		</>
 	);
 }
-const styles = StyleSheet.create({
-	trigger: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	backdrop: {
-		flex: 1,
-		justifyContent: "flex-end",
-		backgroundColor: "rgba(0,0,0,0.6)",
-		paddingHorizontal: spacing.md,
-	},
-	sheet: {
-		maxHeight: "90%",
-		borderRadius: radius.sheet,
-		backgroundColor: colors.surface,
-		padding: spacing.md,
-	},
-	item: {
-		minHeight: 48,
-		justifyContent: "center",
-		paddingVertical: spacing.sm,
-	},
-	divider: { height: 1, backgroundColor: colors.borderStrong },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		trigger: {
+			minWidth: 44,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		backdrop: {
+			flex: 1,
+			justifyContent: "flex-end",
+			backgroundColor: colors.scrim,
+			paddingHorizontal: spacing.md,
+		},
+		sheet: {
+			maxHeight: "90%",
+			borderRadius: radius.sheet,
+			backgroundColor: colors.surface,
+			padding: spacing.md,
+		},
+		item: {
+			minHeight: 48,
+			justifyContent: "center",
+			paddingVertical: spacing.sm,
+		},
+		divider: { height: 1, backgroundColor: colors.borderStrong },
+	});

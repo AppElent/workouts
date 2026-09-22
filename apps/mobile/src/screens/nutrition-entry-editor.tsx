@@ -21,13 +21,7 @@ import {
 	withPersonalMeasures,
 } from "@workouts/core/nutrition";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { View } from "react-native";
 import { useDeleteDiaryEntry } from "../data/delete-diary-entry";
 import type { DiaryEntry } from "../data/nutrition-day";
 import { MEAL_SLOTS, type MealSlot } from "../data/nutrition-day";
@@ -36,12 +30,16 @@ import { servingKey } from "../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../data/personal-foods";
 import { usePersonalMeasures } from "../data/personal-measures";
 import { useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
-import { GhostButton, PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
+import { spacing } from "../theme";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { DateStepper } from "../ui/date-stepper";
-import { Segmented } from "../ui/segmented";
+import {
+	FormScreen,
+	FormSection,
+	FormSegmentedRow,
+	InlineNumberFieldRow,
+	TextAction,
+} from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
@@ -215,91 +213,78 @@ export function NutritionEntryEditor({
 		}
 	}
 
+	const servingOptionsForPicker = [
+		...(showHistoricalServing
+			? [
+					{
+						value: "historical",
+						label: `${entry.serving[locale]} · ${historicalStatus}`,
+					},
+				]
+			: []),
+		...servingChoices.map((candidate, index) => ({
+			value: String(index),
+			label: candidate.label[locale],
+		})),
+	];
 	return (
-		<ScrollView
-			contentInsetAdjustmentBehavior="automatic"
-			automaticallyAdjustKeyboardInsets
-			keyboardDismissMode="interactive"
-			style={styles.root}
-			contentContainerStyle={styles.content}
-			keyboardShouldPersistTaps="handled"
+		<FormScreen
+			primaryAction={{
+				label: saving
+					? t.nutrition.entryEditor.saving
+					: t.nutrition.entryEditor.save,
+				onPress: save,
+				loading: saving,
+				disabled: busy || quantity <= 0,
+			}}
 		>
-			<View style={styles.heading}>
-				<Eyebrow>{t.nutrition.entryEditor.title}</Eyebrow>
+			<View style={{ gap: spacing.xs }}>
 				<AppText variant="title">{entry.name[locale]}</AppText>
 				<AppText variant="caption">{entry.serving[locale]}</AppText>
 			</View>
-
-			<AppText variant="label">{t.nutrition.entryEditor.serving}</AppText>
-			<View style={styles.options}>
-				{showHistoricalServing ? (
-					<Pressable
-						onPress={() => {
-							selectionWasExplicit.current = true;
-							setSelectedServing(undefined);
-							setQuantityText(String(entry.quantity));
-						}}
-						accessibilityRole="radio"
-						accessibilityState={{ checked: selectedServing === undefined }}
-						style={[
-							styles.option,
-							selectedServing === undefined && styles.optionSelected,
-						]}
-					>
-						<AppText>{`${entry.serving[locale]} · ${historicalStatus}`}</AppText>
-					</Pressable>
-				) : null}
-				{servingChoices.map((candidate) => (
-					<Pressable
-						key={
-							candidate.kind === "authored"
-								? `authored:${candidate.index}`
-								: candidate.kind === "personal-measure"
-									? `measure:${candidate.id}`
-									: "base"
-						}
-						onPress={() => {
-							selectionWasExplicit.current = true;
-							setSelectedServing(candidate);
-							setQuantityText(
-								candidate.kind === "base-unit" && candidate.unit !== "serving"
+			<FormSection title={t.nutrition.entryEditor.serving}>
+				<FormSegmentedRow
+					options={servingOptionsForPicker}
+					value={
+						selectedServing
+							? String(servingChoices.indexOf(selectedServing))
+							: "historical"
+					}
+					onChange={(value) => {
+						selectionWasExplicit.current = true;
+						const candidate =
+							value === "historical"
+								? undefined
+								: servingChoices[Number(value)];
+						setSelectedServing(candidate);
+						setQuantityText(
+							!candidate
+								? String(entry.quantity)
+								: candidate.kind === "base-unit" && candidate.unit !== "serving"
 									? "100"
 									: "1",
-							);
-						}}
-						accessibilityRole="radio"
-						accessibilityState={{ checked: selectedServing === candidate }}
-						style={[
-							styles.option,
-							selectedServing === candidate && styles.optionSelected,
-						]}
-					>
-						<AppText>{candidate.label[locale]}</AppText>
-					</Pressable>
-				))}
-			</View>
-
-			<AppText variant="label">{t.nutrition.foodBrowser.quantity}</AppText>
-			<TextInput
-				value={quantityText}
-				onChangeText={setQuantityText}
-				accessibilityLabel={t.nutrition.foodBrowser.quantity}
-				keyboardType="decimal-pad"
-				style={styles.input}
-			/>
-
-			<AppText variant="label">{t.nutrition.entryEditor.meal}</AppText>
-			<Segmented
-				options={MEAL_SLOTS.map((slot) => ({
-					value: slot,
-					label: t.nutrition.meals[slot],
-				}))}
-				value={nextMeal}
-				onChange={setNextMeal}
-			/>
-
-			<AppText variant="label">{t.nutrition.entryEditor.date}</AppText>
-			<Card>
+						);
+					}}
+				/>
+				<InlineNumberFieldRow
+					label={t.nutrition.foodBrowser.quantity}
+					suffix=""
+					value={quantityText}
+					onChangeText={setQuantityText}
+					keyboardType="decimal-pad"
+				/>
+			</FormSection>
+			<FormSection title={t.nutrition.entryEditor.meal}>
+				<FormSegmentedRow
+					options={MEAL_SLOTS.map((slot) => ({
+						value: slot,
+						label: t.nutrition.meals[slot],
+					}))}
+					value={nextMeal}
+					onChange={setNextMeal}
+				/>
+			</FormSection>
+			<FormSection title={t.nutrition.entryEditor.date}>
 				<DateStepper
 					date={nextDate}
 					locale={locale}
@@ -307,64 +292,17 @@ export function NutritionEntryEditor({
 					nextLabel={t.nutrition.day.nextDay}
 					onChange={setNextDate}
 				/>
-			</Card>
-
-			<PrimaryButton
-				label={
-					saving ? t.nutrition.entryEditor.saving : t.nutrition.entryEditor.save
-				}
-				onPress={save}
-				loading={saving}
-				disabled={busy || quantity <= 0}
-			/>
-			<GhostButton
+			</FormSection>
+			<TextAction
 				label={
 					deleting
 						? t.nutrition.entryEditor.deleting
 						: t.nutrition.entryEditor.delete
 				}
 				onPress={remove}
-				loading={deleting}
 				disabled={busy}
-				style={styles.deleteButton}
+				tone="destructive"
 			/>
-		</ScrollView>
+		</FormScreen>
 	);
 }
-
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, paddingBottom: 40, gap: spacing.md },
-	back: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	heading: { gap: spacing.xs },
-	options: { gap: spacing.sm },
-	option: {
-		minHeight: 48,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-		borderRadius: radius.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		backgroundColor: colors.surface2,
-	},
-	optionSelected: {
-		borderColor: colors.accent,
-		backgroundColor: colors.surface,
-	},
-	input: {
-		minHeight: 48,
-		borderRadius: radius.md,
-		backgroundColor: colors.surface2,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		paddingHorizontal: spacing.md,
-		color: colors.text,
-		fontSize: 15,
-	},
-	deleteButton: { borderColor: colors.danger },
-});

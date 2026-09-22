@@ -14,7 +14,13 @@ import {
 	StyleSheet,
 	View,
 } from "react-native";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { AppText } from "./text";
 
 type Props = Omit<PressableProps, "children"> & {
@@ -34,9 +40,13 @@ export function PrimaryButton({
 	disabled,
 	...rest
 }: Props) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Pressable
 			{...rest}
+			accessibilityRole={rest.accessibilityRole ?? "button"}
+			accessibilityLabel={rest.accessibilityLabel ?? label}
 			disabled={disabled || loading}
 			accessibilityState={{
 				...rest.accessibilityState,
@@ -47,7 +57,12 @@ export function PrimaryButton({
 				styles.base,
 				size === "lg" && styles.lg,
 				{
-					backgroundColor: state.pressed ? colors.accentPressed : colors.accent,
+					backgroundColor:
+						disabled && !loading
+							? colors.surface2
+							: state.pressed
+								? colors.accentPressed
+								: colors.accentFill,
 				},
 				typeof style === "function" ? style(state) : style,
 			]}
@@ -59,7 +74,12 @@ export function PrimaryButton({
 			) : null}
 			<AppText
 				variant={size === "lg" ? "heading" : "body"}
-				style={{ color: colors.onAccent, fontWeight: "800" }}
+				style={{
+					color: disabled && !loading ? colors.textMuted : colors.onAccent,
+					fontWeight: "800",
+					flexShrink: 1,
+					textAlign: "center",
+				}}
 			>
 				{label}
 			</AppText>
@@ -76,9 +96,13 @@ export function GhostButton({
 	disabled,
 	...rest
 }: Props) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Pressable
 			{...rest}
+			accessibilityRole={rest.accessibilityRole ?? "button"}
+			accessibilityLabel={rest.accessibilityLabel ?? label}
 			disabled={disabled || loading}
 			accessibilityState={{
 				...rest.accessibilityState,
@@ -98,32 +122,42 @@ export function GhostButton({
 			) : icon ? (
 				<View style={styles.icon}>{icon}</View>
 			) : null}
-			<AppText variant={size === "lg" ? "heading" : "body"}>{label}</AppText>
+			<AppText
+				variant={size === "lg" ? "heading" : "body"}
+				style={{
+					color: disabled && !loading ? colors.textMuted : colors.text,
+					flexShrink: 1,
+					textAlign: "center",
+				}}
+			>
+				{label}
+			</AppText>
 		</Pressable>
 	);
 }
 
-const styles = StyleSheet.create({
-	base: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: spacing.sm,
-		borderRadius: radius.pill,
-		paddingVertical: 14,
-		paddingHorizontal: spacing.lg,
-	},
-	lg: {
-		paddingVertical: 20,
-		paddingHorizontal: spacing.xl,
-	},
-	ghost: {
-		backgroundColor: "transparent",
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-	},
-	icon: {
-		alignItems: "center",
-		justifyContent: "center",
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		base: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: spacing.sm,
+			borderRadius: radius.pill,
+			paddingVertical: 14,
+			paddingHorizontal: spacing.lg,
+		},
+		lg: {
+			paddingVertical: 20,
+			paddingHorizontal: spacing.xl,
+		},
+		ghost: {
+			backgroundColor: "transparent",
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+		},
+		icon: {
+			alignItems: "center",
+			justifyContent: "center",
+		},
+	});

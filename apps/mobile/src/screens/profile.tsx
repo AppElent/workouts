@@ -17,11 +17,19 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useI18n } from "../i18n";
-import { colors } from "../theme";
+import {
+	type Tokens,
+	useAppearance,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Eyebrow, StatBox } from "../ui/coach";
 import { AppText } from "../ui/text";
 
 export function ProfileScreen() {
+	const { preference } = useAppearance();
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const { signOut } = useAuth();
 	const router = useRouter();
 	const { t, locale } = useI18n();
@@ -48,6 +56,19 @@ export function ProfileScreen() {
 
 			<Eyebrow>{t.preferences.heading}</Eyebrow>
 			<View style={styles.group}>
+				<Pressable
+					onPress={() => router.push("/appearance")}
+					accessibilityRole="button"
+					style={({ pressed }) => [
+						styles.groupRow,
+						pressed ? { backgroundColor: colors.surface2 } : null,
+					]}
+				>
+					<AppText style={styles.label}>{t.preferences.appearance}</AppText>
+					<AppText style={[styles.value, { color: colors.accent }]}>
+						{t.appearance[preference]} ›
+					</AppText>
+				</Pressable>
 				<View style={styles.groupRow}>
 					<AppText style={styles.label}>{t.preferences.units}</AppText>
 					<AppText style={[styles.value, { color: colors.accent }]}>
@@ -99,45 +120,46 @@ export function ProfileScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 16 },
-	header: { alignItems: "center", gap: 6, paddingVertical: 8 },
-	avatar: {
-		width: 56,
-		height: 56,
-		borderRadius: 9999,
-		backgroundColor: colors.surface2,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	avatarText: { fontSize: 16, fontWeight: "800", color: colors.textMuted },
-	name: { fontSize: 16, fontWeight: "800", color: colors.text },
-	muted: { fontSize: 12, color: colors.textMuted },
-	statRow: { flexDirection: "row", gap: 8 },
-	group: {
-		borderRadius: 14,
-		overflow: "hidden",
-		borderWidth: 1,
-		borderColor: colors.border,
-	},
-	groupRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingVertical: 12,
-		paddingHorizontal: 12,
-		backgroundColor: colors.surface,
-	},
-	divider: { borderTopWidth: 1, borderTopColor: colors.border },
-	label: { fontSize: 13, fontWeight: "700", color: colors.text },
-	value: { fontSize: 12, fontWeight: "700" },
-	signOutBtn: {
-		height: 46,
-		borderRadius: 9999,
-		backgroundColor: colors.dangerSoft,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	signOutText: { fontSize: 13, fontWeight: "800", color: colors.danger },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 16 },
+		header: { alignItems: "center", gap: 6, paddingVertical: 8 },
+		avatar: {
+			width: 56,
+			height: 56,
+			borderRadius: 9999,
+			backgroundColor: colors.surface2,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		avatarText: { fontSize: 16, fontWeight: "800", color: colors.textMuted },
+		name: { fontSize: 16, fontWeight: "800", color: colors.text },
+		muted: { fontSize: 12, color: colors.textMuted },
+		statRow: { flexDirection: "row", gap: 8 },
+		group: {
+			borderRadius: 14,
+			overflow: "hidden",
+			borderWidth: 1,
+			borderColor: colors.border,
+		},
+		groupRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingVertical: 12,
+			paddingHorizontal: 12,
+			backgroundColor: colors.surface,
+		},
+		divider: { borderTopWidth: 1, borderTopColor: colors.border },
+		label: { fontSize: 13, fontWeight: "700", color: colors.text },
+		value: { fontSize: 12, fontWeight: "700" },
+		signOutBtn: {
+			height: 46,
+			borderRadius: 9999,
+			backgroundColor: colors.dangerSoft,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		signOutText: { fontSize: 13, fontWeight: "800", color: colors.danger },
+	});

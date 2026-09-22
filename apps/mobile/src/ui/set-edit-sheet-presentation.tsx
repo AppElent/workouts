@@ -1,11 +1,12 @@
 import { Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { colors } from "../theme";
+import { useTokens } from "../theme";
 import type { SetEditSheetPresentationProps } from "./set-edit-sheet-presentation.types";
 import { SetEditorContent } from "./set-editor-content";
 
 export function SetEditSheetPresentation(props: SetEditSheetPresentationProps) {
+	const colors = useTokens();
 	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
 	return (

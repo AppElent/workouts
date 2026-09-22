@@ -21,6 +21,7 @@ import { renderRouter } from "expo-router/testing-library";
 import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
+import * as AppearanceRoute from "../../app/(app)/appearance";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionAssistanceRoute from "../../app/(app)/nutrition-assistance";
 import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
@@ -54,6 +55,7 @@ import {
 import { PersonalFoodsProvider } from "../data/personal-foods";
 import { PersonalMeasuresProvider } from "../data/personal-measures";
 import { LocaleProvider } from "../i18n";
+import { AppearanceProvider } from "../theme";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
 import { NativeAlertHost } from "./native-alert-host";
@@ -73,28 +75,30 @@ export function TestLayout({
 	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
-		<LocaleProvider>
-			<NativeAlertHost>
-				<ToastProvider>
-					<ConfirmProvider>
-						<PersonalFoodsProvider repository={repository}>
-							<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
-								<NutritionOperationsProvider
-									repository={nutritionRepository}
-									subject="test-user"
-								>
-									<NutritionDraftsProvider repository={draftRepository}>
-										<PersonalMeasuresProvider>
-											<Stack />
-										</PersonalMeasuresProvider>
-									</NutritionDraftsProvider>
-								</NutritionOperationsProvider>
-							</OpenFoodFactsProvider>
-						</PersonalFoodsProvider>
-					</ConfirmProvider>
-				</ToastProvider>
-			</NativeAlertHost>
-		</LocaleProvider>
+		<AppearanceProvider>
+			<LocaleProvider>
+				<NativeAlertHost>
+					<ToastProvider>
+						<ConfirmProvider>
+							<PersonalFoodsProvider repository={repository}>
+								<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
+									<NutritionOperationsProvider
+										repository={nutritionRepository}
+										subject="test-user"
+									>
+										<NutritionDraftsProvider repository={draftRepository}>
+											<PersonalMeasuresProvider>
+												<Stack />
+											</PersonalMeasuresProvider>
+										</NutritionDraftsProvider>
+									</NutritionOperationsProvider>
+								</OpenFoodFactsProvider>
+							</PersonalFoodsProvider>
+						</ConfirmProvider>
+					</ToastProvider>
+				</NativeAlertHost>
+			</LocaleProvider>
+		</AppearanceProvider>
 	);
 }
 
@@ -142,6 +146,7 @@ export function renderApp(
 			"nutrition-library": NutritionLibraryRoute as never,
 			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,
+			appearance: AppearanceRoute as never,
 			profile: ProfileRoute as never,
 			...(overrides as Record<string, never>),
 		},

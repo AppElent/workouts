@@ -3,7 +3,7 @@ import { type Href, Link } from "expo-router";
 import { type ReactElement, useMemo } from "react";
 import type { AccessibilityActionEvent } from "react-native";
 import { StyleSheet } from "react-native";
-import { colors, useHostScheme } from "../theme";
+import { useAppearance, useTokens } from "../theme";
 import type { RowAccessibilityProps, RowAction } from "./swipeable-row";
 
 /**
@@ -23,6 +23,8 @@ export function NativeSwipeableRow({
 	showMenuButton?: boolean;
 	children: (accessibility: RowAccessibilityProps) => ReactElement;
 }) {
+	const colors = useTokens();
+	const { scheme } = useAppearance();
 	const swipeActions = actions
 		.filter((action) => action.swipe !== false)
 		.slice(0, 2);
@@ -44,7 +46,7 @@ export function NativeSwipeableRow({
 
 	const row = (
 		<Host
-			colorScheme={useHostScheme()}
+			colorScheme={scheme}
 			seedColor={colors.accent}
 			matchContents={{ vertical: true }}
 			style={styles.host}

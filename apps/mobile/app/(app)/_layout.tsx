@@ -21,13 +21,14 @@ import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
 import { PersonalMeasuresProvider } from "../../src/data/personal-measures";
 import { useI18n } from "../../src/i18n";
-import { colors } from "../../src/theme";
+import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
 import { RestTimerProvider } from "../../src/ui/rest-timer";
 import { ToastProvider } from "../../src/ui/toast";
 
 export default function AppLayout() {
+	const colors = useTokens();
 	const { isSignedIn } = useAuth();
 	const { t, locale } = useI18n();
 	if (!isSignedIn) {
@@ -121,6 +122,10 @@ export default function AppLayout() {
 														headerBackVisible: false,
 														gestureEnabled: false,
 													}}
+												/>
+												<Stack.Screen
+													name="appearance"
+													options={{ title: t.appearance.title }}
 												/>
 												<Stack.Screen
 													name="language"

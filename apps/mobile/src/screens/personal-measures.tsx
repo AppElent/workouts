@@ -10,7 +10,7 @@ import {
 	usePersonalMeasures,
 } from "../data/personal-measures";
 import { useI18n } from "../i18n";
-import { colors, metrics, spacing } from "../theme";
+import { metrics, spacing, type Tokens, useThemedStyles } from "../theme";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import {
@@ -22,12 +22,14 @@ import {
 	InlineNumberFieldRow,
 	TextAction,
 } from "../ui/form";
+import { ScreenHeader } from "../ui/screen-header";
 import { Segmented } from "../ui/segmented";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
 export function PersonalMeasuresScreen() {
+	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.personalMeasures;
 	const router = useRouter();
@@ -190,9 +192,6 @@ export function PersonalMeasuresScreen() {
 	if (editing) {
 		return (
 			<FormScreen
-				title={editing === "new" ? copy.add : copy.edit}
-				onCancel={() => setEditing(undefined)}
-				cancelLabel={copy.cancel}
 				primaryAction={{
 					label: copy.save,
 					onPress: save,
@@ -200,6 +199,7 @@ export function PersonalMeasuresScreen() {
 					disabled: pending || !isWebSocketConnected,
 				}}
 			>
+				<ScreenHeader title={editing === "new" ? copy.add : copy.edit} />
 				{!isWebSocketConnected ? (
 					<FormSection>
 						<AppText variant="heading">{copy.offlineTitle}</AppText>
@@ -235,6 +235,11 @@ export function PersonalMeasuresScreen() {
 						/>
 					</View>
 				</FormSection>
+				<TextAction
+					label={copy.cancel}
+					onPress={() => setEditing(undefined)}
+					disabled={pending}
+				/>
 			</FormScreen>
 		);
 	}
@@ -245,6 +250,7 @@ export function PersonalMeasuresScreen() {
 			contentContainerStyle={styles.content}
 			contentInsetAdjustmentBehavior="automatic"
 		>
+			<ScreenHeader title={copy.title} />
 			{!isWebSocketConnected ? (
 				<View style={styles.offline}>
 					<AppText variant="heading">{copy.offlineTitle}</AppText>
@@ -267,7 +273,7 @@ export function PersonalMeasuresScreen() {
 					}
 				/>
 			) : (
-				<FormSection title={copy.title} footer={copy.compatibilityHelp}>
+				<FormSection footer={copy.compatibilityHelp}>
 					{localMeasures.map((measure, index) => (
 						<View key={measure.id}>
 							<EditableValueRow
@@ -310,15 +316,16 @@ export function PersonalMeasuresScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: {
-		alignSelf: "center",
-		width: "100%",
-		maxWidth: 640,
-		padding: metrics.screenGutter,
-		gap: metrics.sectionGap,
-	},
-	offline: { gap: spacing.xs },
-	segmented: { padding: spacing.md },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			alignSelf: "center",
+			width: "100%",
+			maxWidth: 640,
+			padding: metrics.screenGutter,
+			gap: metrics.sectionGap,
+		},
+		offline: { gap: spacing.xs },
+		segmented: { padding: spacing.md },
+	});

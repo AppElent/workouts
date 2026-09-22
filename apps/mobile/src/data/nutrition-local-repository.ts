@@ -11,7 +11,7 @@ import type {
 	NutritionGoalValue,
 	PersonalMeasure,
 } from "@workouts/core/nutrition";
-import { openDatabaseSync } from "expo-sqlite";
+import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
@@ -757,7 +757,7 @@ export function createNutritionLocalRepository(
 
 export function openNutritionLocalRepository(): NutritionLocalRepository {
 	return createNutritionLocalRepository(
-		openDatabaseSync(
+		openNutritionDatabase(
 			NUTRITION_STATE_DATABASE_NAME,
 		) as unknown as SyncSQLiteDatabase,
 	);

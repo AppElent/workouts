@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, screen } from "@testing-library/react-native";
+import { renderThemed as render } from "../test-support/render-themed";
 import { InsetList, InsetRow } from "./inset-list";
 
 // Jest resolves `./inset-list` to the SwiftUI file (jest-expo defaults to

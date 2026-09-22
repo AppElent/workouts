@@ -1,4 +1,5 @@
-import { Children, type ReactNode } from "react";
+import { HeaderHeightContext } from "expo-router/react-navigation";
+import { Children, type ReactNode, type Ref, useContext } from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -11,13 +12,21 @@ import {
 	type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, metrics, radius, spacing } from "../theme";
+import {
+	metrics,
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { PrimaryButton } from "./button";
 import { Segmented, type SegmentedOption } from "./segmented";
 import { AppText } from "./text";
 
 type PrimaryAction = {
 	label: string;
+	accessibilityLabel?: string;
 	onPress: () => void;
 	loading?: boolean;
 	disabled?: boolean;
@@ -35,6 +44,7 @@ export function FormScreen({
 	onCancel,
 	primaryAction,
 	contentStyle,
+	scrollRef,
 }: {
 	children: ReactNode;
 	title?: string;
@@ -42,12 +52,18 @@ export function FormScreen({
 	onCancel?: () => void;
 	primaryAction?: PrimaryAction;
 	contentStyle?: ViewStyle;
+	scrollRef?: Ref<ScrollView>;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
+	const headerHeight = useContext(HeaderHeightContext) ?? 0;
 
 	return (
 		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : undefined}
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			// Native stack content starts below its header. A modal with its own
+			// title starts at the window origin, regardless of the parent's header.
+			keyboardVerticalOffset={title ? 0 : headerHeight}
 			style={styles.screen}
 		>
 			{title ? (
@@ -74,6 +90,7 @@ export function FormScreen({
 				</View>
 			) : null}
 			<ScrollView
+				ref={scrollRef}
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardDismissMode="interactive"
 				keyboardShouldPersistTaps="handled"
@@ -91,6 +108,7 @@ export function FormScreen({
 				>
 					<PrimaryButton
 						label={primaryAction.label}
+						accessibilityLabel={primaryAction.accessibilityLabel}
 						onPress={primaryAction.onPress}
 						loading={primaryAction.loading}
 						disabled={primaryAction.disabled}
@@ -113,6 +131,7 @@ export function FormSection({
 	children: ReactNode;
 	style?: ViewStyle;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={[styles.section, style]}>
 			{title ? <AppText variant="label">{title}</AppText> : null}
@@ -137,6 +156,7 @@ export function GroupedSurface({
 	children: ReactNode;
 	style?: ViewStyle;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={[styles.group, styles.surfacePadding, style]}>{children}</View>
 	);
@@ -152,6 +172,8 @@ export function FormTextField({
 	error?: string;
 	style?: TextInputProps["style"];
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.fieldRow}>
 			<AppText variant="label">{label}</AppText>
@@ -180,6 +202,7 @@ export function FormSegmentedRow<Value extends string>({
 	value: Value;
 	onChange: (next: Value) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.segmentedRow}>
 			<Segmented options={options} value={value} onChange={onChange} />
@@ -192,18 +215,23 @@ export function InlineNumberFieldRow({
 	suffix,
 	accessory,
 	inputStyle,
+	inputRef,
 	...props
 }: TextInputProps & {
 	label: string;
 	suffix: string;
 	accessory?: ReactNode;
 	inputStyle?: TextInputProps["style"];
+	inputRef?: Ref<TextInput>;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.inlineRow}>
 			<AppText style={styles.rowLabel}>{label}</AppText>
 			<View style={styles.inlineControls}>
 				<TextInput
+					ref={inputRef}
 					{...props}
 					accessibilityLabel={props.accessibilityLabel ?? label}
 					placeholderTextColor={props.placeholderTextColor ?? colors.textFaint}
@@ -231,6 +259,7 @@ export function DisclosureRow({
 	accessibilityLabel?: string;
 	onPress: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Pressable
 			onPress={onPress}
@@ -255,6 +284,7 @@ export function AddRow({
 	label: string;
 	onPress: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Pressable
 			onPress={onPress}
@@ -284,6 +314,7 @@ export function EditableValueRow({
 	onDelete?: () => void;
 	disabled?: boolean;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.editableRow}>
 			<Pressable
@@ -325,10 +356,12 @@ export function EditableValueRow({
 }
 
 export function InlineActionRow({ children }: { children: ReactNode }) {
+	const styles = useThemedStyles(createStyles);
 	return <View style={styles.inlineActions}>{children}</View>;
 }
 
 export function FormPreview({ children }: { children: ReactNode }) {
+	const styles = useThemedStyles(createStyles);
 	return <View style={styles.preview}>{children}</View>;
 }
 
@@ -341,6 +374,7 @@ export function FormChoiceChips<const Id extends string>({
 	selectedId?: Id;
 	onSelect: (id: Id) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.choiceChips} accessibilityRole="radiogroup">
 			{options.map((option) => (
@@ -372,6 +406,8 @@ export function TextAction({
 	onPress: () => void;
 	disabled?: boolean;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const color =
 		tone === "destructive"
 			? colors.danger
@@ -407,6 +443,7 @@ export function StepperField({
 	min?: number;
 	onChange: (value: number) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const round = (number: number) => Math.round(number * 10) / 10;
 	return (
 		<View style={styles.stepperField}>
@@ -434,182 +471,183 @@ export function StepperField({
 	);
 }
 
-const styles = StyleSheet.create({
-	screen: { flex: 1, backgroundColor: colors.bg },
-	content: {
-		alignSelf: "center",
-		width: "100%",
-		maxWidth: 640,
-		paddingHorizontal: metrics.screenGutter,
-		paddingTop: spacing.sm,
-		paddingBottom: spacing.xl,
-		gap: metrics.sectionGap,
-	},
-	modalHeader: {
-		minHeight: 52,
-		paddingHorizontal: spacing.sm,
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	headerAction: {
-		minWidth: 76,
-		minHeight: metrics.hitTarget,
-		paddingHorizontal: spacing.sm,
-		alignItems: "flex-start",
-		justifyContent: "center",
-	},
-	headerActionText: { color: colors.accent, fontWeight: "700" },
-	modalTitle: { flex: 1, textAlign: "center" },
-	footer: {
-		paddingTop: spacing.sm,
-		paddingHorizontal: metrics.screenGutter,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: colors.border,
-		backgroundColor: colors.bg,
-	},
-	section: { gap: spacing.sm },
-	group: {
-		backgroundColor: colors.surface,
-		borderRadius: radius.lg,
-		borderCurve: "continuous",
-		overflow: "hidden",
-	},
-	surfacePadding: { padding: spacing.md },
-	separator: {
-		height: StyleSheet.hairlineWidth,
-		marginLeft: spacing.md,
-		backgroundColor: colors.borderStrong,
-	},
-	fieldRow: { padding: spacing.md, gap: spacing.sm },
-	segmentedRow: { padding: spacing.md },
-	textInput: {
-		minHeight: metrics.fieldMinHeight,
-		borderRadius: radius.md,
-		borderCurve: "continuous",
-		backgroundColor: colors.surface2,
-		paddingHorizontal: spacing.md,
-		color: colors.text,
-		fontSize: 15,
-	},
-	error: { color: colors.danger },
-	inlineRow: {
-		minHeight: metrics.rowMinHeight,
-		paddingHorizontal: spacing.md,
-		paddingVertical: spacing.xs,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	rowLabel: { flex: 1, minWidth: 0 },
-	inlineControls: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		flexShrink: 0,
-	},
-	numberInput: {
-		width: 82,
-		minHeight: metrics.hitTarget,
-		borderRadius: radius.md,
-		borderCurve: "continuous",
-		backgroundColor: colors.surface2,
-		paddingHorizontal: spacing.sm,
-		color: colors.text,
-		fontSize: 15,
-		fontVariant: ["tabular-nums"],
-		textAlign: "right",
-	},
-	suffix: { width: 30 },
-	actionRow: {
-		minHeight: metrics.rowMinHeight,
-		paddingHorizontal: spacing.md,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	pressedRow: { backgroundColor: colors.surface2 },
-	disclosureGlyph: {
-		minWidth: 20,
-		textAlign: "center",
-		color: colors.accent,
-		fontSize: 22,
-		fontWeight: "700",
-	},
-	addGlyph: { color: colors.accent, fontSize: 20, fontWeight: "700" },
-	actionLabel: { flex: 1, color: colors.accent, fontWeight: "700" },
-	editableRow: { flexDirection: "row", alignItems: "stretch" },
-	editableMain: {
-		flex: 1,
-		minHeight: 60,
-		paddingLeft: spacing.md,
-		paddingVertical: spacing.sm,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	editableCopy: { flex: 1, minWidth: 0, gap: 2 },
-	chevron: { color: colors.textFaint, fontSize: 24 },
-	deleteAction: {
-		minWidth: 72,
-		paddingHorizontal: spacing.sm,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	deleteText: { color: colors.danger, fontWeight: "700" },
-	inlineActions: {
-		padding: spacing.sm,
-		flexDirection: "row",
-		justifyContent: "flex-end",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-	preview: { gap: spacing.sm, padding: spacing.md },
-	choiceChips: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: spacing.sm,
-		padding: spacing.md,
-	},
-	choiceChip: {
-		minHeight: metrics.hitTarget,
-		justifyContent: "center",
-		paddingHorizontal: spacing.md,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.pill,
-	},
-	choiceChipSelected: {
-		borderColor: colors.accent,
-		backgroundColor: colors.accentDim,
-	},
-	textAction: {
-		minHeight: metrics.hitTarget,
-		paddingHorizontal: spacing.md,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.md,
-		borderCurve: "continuous",
-	},
-	textActionLabel: { fontWeight: "700" },
-	disabled: { opacity: 0.5 },
-	stepperField: {
-		flex: 1,
-		minWidth: 96,
-		height: 48,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		borderRadius: radius.md,
-		borderCurve: "continuous",
-		backgroundColor: colors.surface2,
-	},
-	stepperButton: {
-		width: 36,
-		height: metrics.hitTarget,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	stepperGlyph: { color: colors.textMuted, fontSize: 18, fontWeight: "800" },
-	stepperValue: { alignItems: "center" },
-	tabularValue: { fontWeight: "800", fontVariant: ["tabular-nums"] },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		screen: { flex: 1, backgroundColor: colors.bg },
+		content: {
+			alignSelf: "center",
+			width: "100%",
+			maxWidth: 640,
+			paddingHorizontal: metrics.screenGutter,
+			paddingTop: spacing.sm,
+			paddingBottom: spacing.xl,
+			gap: metrics.sectionGap,
+		},
+		modalHeader: {
+			minHeight: 52,
+			paddingHorizontal: spacing.sm,
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		headerAction: {
+			minWidth: 76,
+			minHeight: metrics.hitTarget,
+			paddingHorizontal: spacing.sm,
+			alignItems: "flex-start",
+			justifyContent: "center",
+		},
+		headerActionText: { color: colors.accent, fontWeight: "700" },
+		modalTitle: { flex: 1, textAlign: "center" },
+		footer: {
+			paddingTop: spacing.sm,
+			paddingHorizontal: metrics.screenGutter,
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: colors.border,
+			backgroundColor: colors.bg,
+		},
+		section: { gap: spacing.sm },
+		group: {
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			borderCurve: "continuous",
+			overflow: "hidden",
+		},
+		surfacePadding: { padding: spacing.md },
+		separator: {
+			height: StyleSheet.hairlineWidth,
+			marginLeft: spacing.md,
+			backgroundColor: colors.borderStrong,
+		},
+		fieldRow: { padding: spacing.md, gap: spacing.sm },
+		segmentedRow: { padding: spacing.md },
+		textInput: {
+			minHeight: metrics.fieldMinHeight,
+			borderRadius: radius.md,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface2,
+			paddingHorizontal: spacing.md,
+			color: colors.text,
+			fontSize: 15,
+		},
+		error: { color: colors.danger },
+		inlineRow: {
+			minHeight: metrics.rowMinHeight,
+			paddingHorizontal: spacing.md,
+			paddingVertical: spacing.xs,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		rowLabel: { flex: 1, minWidth: 0 },
+		inlineControls: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			flexShrink: 0,
+		},
+		numberInput: {
+			width: 82,
+			minHeight: metrics.hitTarget,
+			borderRadius: radius.md,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface2,
+			paddingHorizontal: spacing.sm,
+			color: colors.text,
+			fontSize: 15,
+			fontVariant: ["tabular-nums"],
+			textAlign: "right",
+		},
+		suffix: { width: 30 },
+		actionRow: {
+			minHeight: metrics.rowMinHeight,
+			paddingHorizontal: spacing.md,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		pressedRow: { backgroundColor: colors.surface2 },
+		disclosureGlyph: {
+			minWidth: 20,
+			textAlign: "center",
+			color: colors.accent,
+			fontSize: 22,
+			fontWeight: "700",
+		},
+		addGlyph: { color: colors.accent, fontSize: 20, fontWeight: "700" },
+		actionLabel: { flex: 1, color: colors.accent, fontWeight: "700" },
+		editableRow: { flexDirection: "row", alignItems: "stretch" },
+		editableMain: {
+			flex: 1,
+			minHeight: 60,
+			paddingLeft: spacing.md,
+			paddingVertical: spacing.sm,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		editableCopy: { flex: 1, minWidth: 0, gap: 2 },
+		chevron: { color: colors.textFaint, fontSize: 24 },
+		deleteAction: {
+			minWidth: 72,
+			paddingHorizontal: spacing.sm,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		deleteText: { color: colors.danger, fontWeight: "700" },
+		inlineActions: {
+			padding: spacing.sm,
+			flexDirection: "row",
+			justifyContent: "flex-end",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		preview: { gap: spacing.sm, padding: spacing.md },
+		choiceChips: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: spacing.sm,
+			padding: spacing.md,
+		},
+		choiceChip: {
+			minHeight: metrics.hitTarget,
+			justifyContent: "center",
+			paddingHorizontal: spacing.md,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			borderRadius: radius.pill,
+		},
+		choiceChipSelected: {
+			borderColor: colors.accent,
+			backgroundColor: colors.accentDim,
+		},
+		textAction: {
+			minHeight: metrics.hitTarget,
+			paddingHorizontal: spacing.md,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.md,
+			borderCurve: "continuous",
+		},
+		textActionLabel: { fontWeight: "700" },
+		disabled: { opacity: 0.5 },
+		stepperField: {
+			flex: 1,
+			minWidth: 96,
+			height: 48,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			borderRadius: radius.md,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface2,
+		},
+		stepperButton: {
+			width: 36,
+			height: metrics.hitTarget,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		stepperGlyph: { color: colors.textMuted, fontSize: 18, fontWeight: "800" },
+		stepperValue: { alignItems: "center" },
+		tabularValue: { fontWeight: "800", fontVariant: ["tabular-nums"] },
+	});

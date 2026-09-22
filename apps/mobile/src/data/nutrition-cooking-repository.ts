@@ -1,4 +1,4 @@
-import { openDatabaseSync } from "expo-sqlite";
+import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_COOKING_DATABASE_NAME = "workouts-nutrition-cooking.db";
@@ -40,6 +40,8 @@ export function createNutritionCookingRepository(
 
 export function openNutritionCookingRepository(): NutritionCookingRepository {
 	return createNutritionCookingRepository(
-		openDatabaseSync(NUTRITION_COOKING_DATABASE_NAME) as SyncSQLiteDatabase,
+		openNutritionDatabase(
+			NUTRITION_COOKING_DATABASE_NAME,
+		) as SyncSQLiteDatabase,
 	);
 }

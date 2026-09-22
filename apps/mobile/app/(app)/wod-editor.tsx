@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { api, type Id } from "../../src/convex/api";
 import { WodEditor } from "../../src/screens/wod-editor";
-import { colors } from "../../src/theme";
+import { type Tokens, useThemedStyles } from "../../src/theme";
 import { AppText } from "../../src/ui/text";
 
 export default function WodEditorRoute() {
@@ -29,6 +29,7 @@ export default function WodEditorRoute() {
 }
 
 function Status({ label }: { label: string }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.status}>
 			<AppText variant="caption">{label}</AppText>
@@ -36,11 +37,12 @@ function Status({ label }: { label: string }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	status: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: colors.bg,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		status: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.bg,
+		},
+	});

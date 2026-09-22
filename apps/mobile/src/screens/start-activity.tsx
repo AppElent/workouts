@@ -24,7 +24,13 @@ import {
 } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useRoutines } from "../data/session-data";
-import { colors, type SportKey, sportMeta } from "../theme";
+import {
+	type SportKey,
+	type Tokens,
+	useSportMeta,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { Eyebrow, SportIcon } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
@@ -32,6 +38,9 @@ import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
 export function StartActivityScreen() {
+	const sportMeta = useSportMeta();
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const routines = useRoutines();
 	const toast = useToast();
@@ -190,53 +199,54 @@ export function StartActivityScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 80 },
-	header: { flexDirection: "row", alignItems: "center", gap: 10 },
-	back: {
-		width: 32,
-		height: 32,
-		borderRadius: 9999,
-		backgroundColor: "rgba(255,255,255,0.08)",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	backText: { fontSize: 18, fontWeight: "800", color: colors.text },
-	h1: { fontSize: 17, fontWeight: "800", color: colors.text },
-	grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-	tile: { width: "48%", borderRadius: 14, padding: 12, gap: 6 },
-	tileLabel: { fontSize: 15, fontWeight: "800", color: colors.text },
-	tileSub: { fontSize: 10, color: colors.textMuted },
-	stubNote: {
-		backgroundColor: colors.surface2,
-		borderRadius: 12,
-		padding: 12,
-	},
-	stubNoteText: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
-	dimmed: { opacity: 0.5 },
-	input: {
-		minHeight: 48,
-		borderRadius: 14,
-		paddingHorizontal: 14,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-		color: colors.text,
-		fontSize: 15,
-	},
-	muted: { fontSize: 13, color: colors.textMuted },
-	list: { gap: 6 },
-	flex: { flex: 1, gap: 2 },
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-		padding: 10,
-	},
-	rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
-	rowSub: { fontSize: 11, color: colors.textMuted },
-	chevron: { fontSize: 18, color: colors.textFaint },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 80 },
+		header: { flexDirection: "row", alignItems: "center", gap: 10 },
+		back: {
+			width: 32,
+			height: 32,
+			borderRadius: 9999,
+			backgroundColor: colors.surface2,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		backText: { fontSize: 18, fontWeight: "800", color: colors.text },
+		h1: { fontSize: 17, fontWeight: "800", color: colors.text },
+		grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+		tile: { width: "48%", borderRadius: 14, padding: 12, gap: 6 },
+		tileLabel: { fontSize: 15, fontWeight: "800", color: colors.text },
+		tileSub: { fontSize: 10, color: colors.textMuted },
+		stubNote: {
+			backgroundColor: colors.surface2,
+			borderRadius: 12,
+			padding: 12,
+		},
+		stubNoteText: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+		dimmed: { opacity: 0.5 },
+		input: {
+			minHeight: 48,
+			borderRadius: 14,
+			paddingHorizontal: 14,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: 15,
+		},
+		muted: { fontSize: 13, color: colors.textMuted },
+		list: { gap: 6 },
+		flex: { flex: 1, gap: 2 },
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+			padding: 10,
+		},
+		rowTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
+		rowSub: { fontSize: 11, color: colors.textMuted },
+		chevron: { fontSize: 18, color: colors.textFaint },
+	});

@@ -24,7 +24,7 @@ import {
 	useActiveSession,
 	useSessionSets,
 } from "../data/session-data";
-import { colors } from "../theme";
+import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { Chip } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { PlateSheet } from "../ui/plate-sheet";
@@ -69,6 +69,8 @@ function formatElapsed(ms: number) {
 }
 
 export function StrengthSessionScreen() {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -275,6 +277,7 @@ function ExerciseLogger({
 	exercise: Doc<"exercises">;
 	sets: Doc<"sets">[];
 }) {
+	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const rest = useRestTimer();
 	const addSet = useMutation(api.sets.add);
@@ -471,6 +474,7 @@ function Stepper({
 	step: number;
 	onChange: (v: number) => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	// Fractional steps (2.5kg) accumulate float error over enough taps; one
 	// decimal is finer than any plate anyone owns.
 	const round = (n: number) => Math.round(n * 10) / 10;
@@ -503,135 +507,136 @@ function Stepper({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 12, gap: 12, paddingBottom: 40 },
-	centered: { alignItems: "center", justifyContent: "center", gap: 12 },
-	centeredText: { textAlign: "center" },
-	header: { flexDirection: "row", alignItems: "center", gap: 10 },
-	back: {
-		width: 32,
-		height: 32,
-		borderRadius: 9999,
-		backgroundColor: "rgba(255,255,255,0.08)",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	backText: { fontSize: 18, fontWeight: "800", color: colors.text },
-	flex: { flex: 1 },
-	h2: { fontSize: 16, fontWeight: "800", color: colors.text },
-	row: { flexDirection: "row", alignItems: "center", gap: 6 },
-	dot: {
-		width: 6,
-		height: 6,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-	},
-	elapsed: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: colors.textMuted,
-		fontVariant: ["tabular-nums"],
-	},
-	finishBtn: {
-		minHeight: 36,
-		paddingHorizontal: 14,
-		borderRadius: 9999,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	finishText: { fontSize: 12, fontWeight: "800", color: colors.text },
-	dimmed: { opacity: 0.5 },
-	empty: {
-		alignItems: "center",
-		gap: 4,
-		paddingVertical: 24,
-		backgroundColor: colors.surface,
-		borderRadius: 14,
-	},
-	chipRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
-	addBtn: {
-		minHeight: 44,
-		borderRadius: 9999,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	addBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
-	loggerGap: { gap: 10 },
-	between: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	exerciseName: { fontSize: 17, fontWeight: "800", color: colors.text },
-	setCount: { fontSize: 11, fontWeight: "700", color: colors.textMuted },
-	muted: { fontSize: 13, color: colors.textMuted },
-	table: { gap: 2 },
-	tableHead: {
-		flexDirection: "row",
-		gap: 6,
-		paddingHorizontal: 2,
-		paddingBottom: 4,
-	},
-	th: {
-		fontSize: 9,
-		fontWeight: "800",
-		letterSpacing: 0.5,
-		textTransform: "uppercase",
-		color: colors.textFaint,
-	},
-	center: { textAlign: "center" },
-	tableRow: {
-		backgroundColor: colors.surface,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		height: 34,
-	},
-	td: { fontSize: 12, fontWeight: "500", color: colors.textMuted },
-	bold: { fontWeight: "800", color: colors.text },
-	typeRow: { flexDirection: "row", gap: 6 },
-	steppers: { flexDirection: "row", gap: 10, marginTop: 4 },
-	stepper: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		height: 56,
-		paddingHorizontal: 6,
-		borderRadius: 14,
-		backgroundColor: colors.surface,
-		borderWidth: 1,
-		borderColor: colors.border,
-	},
-	stepperBtn: {
-		width: 44,
-		height: 44,
-		borderRadius: 11,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	stepperGlyph: { fontSize: 20, fontWeight: "800", color: colors.textMuted },
-	stepperValueWrap: { alignItems: "center" },
-	stepperValue: { fontSize: 20, fontWeight: "800", color: colors.text },
-	stepperLabel: { fontSize: 9, color: colors.textMuted },
-	logBtn: {
-		height: 48,
-		borderRadius: 9999,
-		backgroundColor: colors.accent,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	logText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
-	cancelBtn: {
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		marginTop: 8,
-	},
-	cancelText: { fontSize: 13, fontWeight: "700", color: colors.danger },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 12, paddingBottom: 40 },
+		centered: { alignItems: "center", justifyContent: "center", gap: 12 },
+		centeredText: { textAlign: "center" },
+		header: { flexDirection: "row", alignItems: "center", gap: 10 },
+		back: {
+			width: 32,
+			height: 32,
+			borderRadius: 9999,
+			backgroundColor: colors.surface2,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		backText: { fontSize: 18, fontWeight: "800", color: colors.text },
+		flex: { flex: 1 },
+		h2: { fontSize: 16, fontWeight: "800", color: colors.text },
+		row: { flexDirection: "row", alignItems: "center", gap: 6 },
+		dot: {
+			width: 6,
+			height: 6,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+		},
+		elapsed: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: colors.textMuted,
+			fontVariant: ["tabular-nums"],
+		},
+		finishBtn: {
+			minHeight: 36,
+			paddingHorizontal: 14,
+			borderRadius: 9999,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		finishText: { fontSize: 12, fontWeight: "800", color: colors.text },
+		dimmed: { opacity: 0.5 },
+		empty: {
+			alignItems: "center",
+			gap: 4,
+			paddingVertical: 24,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+		},
+		chipRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+		addBtn: {
+			minHeight: 44,
+			borderRadius: 9999,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		addBtnText: { fontSize: 13, fontWeight: "700", color: colors.text },
+		loggerGap: { gap: 10 },
+		between: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		exerciseName: { fontSize: 17, fontWeight: "800", color: colors.text },
+		setCount: { fontSize: 11, fontWeight: "700", color: colors.textMuted },
+		muted: { fontSize: 13, color: colors.textMuted },
+		table: { gap: 2 },
+		tableHead: {
+			flexDirection: "row",
+			gap: 6,
+			paddingHorizontal: 2,
+			paddingBottom: 4,
+		},
+		th: {
+			fontSize: 9,
+			fontWeight: "800",
+			letterSpacing: 0.5,
+			textTransform: "uppercase",
+			color: colors.textFaint,
+		},
+		center: { textAlign: "center" },
+		tableRow: {
+			backgroundColor: colors.surface,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			height: 34,
+		},
+		td: { fontSize: 12, fontWeight: "500", color: colors.textMuted },
+		bold: { fontWeight: "800", color: colors.text },
+		typeRow: { flexDirection: "row", gap: 6 },
+		steppers: { flexDirection: "row", gap: 10, marginTop: 4 },
+		stepper: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			height: 56,
+			paddingHorizontal: 6,
+			borderRadius: 14,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+		},
+		stepperBtn: {
+			width: 44,
+			height: 44,
+			borderRadius: 11,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		stepperGlyph: { fontSize: 20, fontWeight: "800", color: colors.textMuted },
+		stepperValueWrap: { alignItems: "center" },
+		stepperValue: { fontSize: 20, fontWeight: "800", color: colors.text },
+		stepperLabel: { fontSize: 9, color: colors.textMuted },
+		logBtn: {
+			height: 48,
+			borderRadius: 9999,
+			backgroundColor: colors.accentFill,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		logText: { fontSize: 14, fontWeight: "800", color: colors.onAccent },
+		cancelBtn: {
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			marginTop: 8,
+		},
+		cancelText: { fontSize: 13, fontWeight: "700", color: colors.danger },
+	});

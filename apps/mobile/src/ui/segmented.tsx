@@ -1,25 +1,35 @@
 /**
- * A row of mutually exclusive choices — the React Native drawing, for Android
- * and tests. iOS gets the system segmented control in `segmented.ios.tsx`.
+ * A row of mutually exclusive choices. The language switch is the first one; a
+ * unit switch and a goal-direction switch are the obvious next.
+ *
+ * Android uses themed Pressables; the iOS adapter delegates selection to a
+ * native SwiftUI picker and accommodates long labels with a menu.
  *
  * Selection is announced, not only drawn. `accessibilityState.selected` is what
  * makes this a set of choices to a screen reader instead of N buttons with
  * different backgrounds, and it is why colour is never the only signal.
  */
-import { Pressable, StyleSheet, View } from "react-native";
-import { colors, radius, spacing } from "../theme";
-import type { SegmentedOption, SegmentedProps } from "./segmented.types";
+import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { radius, spacing, useTokens } from "../theme";
+import type { SegmentedProps } from "./segmented.types";
 import { AppText } from "./text";
 
-export type { SegmentedOption, SegmentedProps };
+export type { SegmentedOption, SegmentedProps } from "./segmented.types";
 
 export function Segmented<Value extends string>({
 	options,
 	value,
 	onChange,
 }: SegmentedProps<Value>) {
+	const colors = useTokens();
+	const { width, fontScale } = useWindowDimensions();
+	const stacked =
+		fontScale > 1.2 ||
+		width < 350 ||
+		options.some((option) => option.label.length > 20);
+	const wrap = stacked || options.length > 3;
 	return (
-		<View style={styles.row}>
+		<View style={[styles.row, wrap && { flexWrap: "wrap" }]}>
 			{options.map((option) => {
 				const selected = option.value === value;
 				return (
@@ -31,8 +41,9 @@ export function Segmented<Value extends string>({
 						onPress={() => onChange(option.value)}
 						style={({ pressed }) => [
 							styles.option,
+							wrap && { flexBasis: stacked ? "100%" : "45%", flexGrow: 1 },
 							{
-								backgroundColor: selected ? colors.accent : colors.surface,
+								backgroundColor: selected ? colors.accentFill : colors.surface,
 								borderColor: selected ? colors.accent : colors.border,
 							},
 							pressed && !selected
@@ -41,11 +52,6 @@ export function Segmented<Value extends string>({
 						]}
 					>
 						<AppText
-							// Two lines, not one. Four options across a phone is tight
-							// already, and at large text sizes a single line turns
-							// "Breakfast" into "Break…" — a choice the user cannot read
-							// is not a choice.
-							numberOfLines={2}
 							style={{
 								fontWeight: "700",
 								color: selected ? colors.onAccent : colors.text,
@@ -70,6 +76,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		paddingHorizontal: spacing.sm,
+		paddingVertical: spacing.sm,
 		borderWidth: 1,
 		borderRadius: radius.lg,
 	},

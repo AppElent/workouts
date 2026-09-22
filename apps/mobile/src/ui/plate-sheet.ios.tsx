@@ -5,7 +5,12 @@ import {
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet, View } from "react-native";
-import { colors, useHostScheme } from "../theme";
+import {
+	type Tokens,
+	useAppearance,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { PlateSheetContent } from "./plate-sheet-content";
 
 export function PlateSheet({
@@ -17,9 +22,12 @@ export function PlateSheet({
 	weight: number;
 	onClose: () => void;
 }) {
+	const colors = useTokens();
+	const { scheme } = useAppearance();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Host
-			colorScheme={useHostScheme()}
+			colorScheme={scheme}
 			seedColor={colors.accent}
 			pointerEvents="box-none"
 			style={StyleSheet.absoluteFill}
@@ -48,11 +56,12 @@ export function PlateSheet({
 	);
 }
 
-const styles = StyleSheet.create({
-	content: {
-		flex: 1,
-		backgroundColor: colors.surface,
-		paddingHorizontal: 16,
-		paddingTop: 8,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		content: {
+			flex: 1,
+			backgroundColor: colors.surface,
+			paddingHorizontal: 16,
+			paddingTop: 8,
+		},
+	});

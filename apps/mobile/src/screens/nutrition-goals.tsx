@@ -3,6 +3,7 @@ import {
 	GOAL_PRESET_KEYS,
 	type GoalPresetKey,
 	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@workouts/core/nutrition";
@@ -12,9 +13,9 @@ import { useEffect, useRef, useState } from "react";
 import {
 	type LayoutChangeEvent,
 	Pressable,
-	ScrollView,
+	type ScrollView,
 	StyleSheet,
-	TextInput,
+	type TextInput,
 	View,
 } from "react-native";
 import { api } from "../convex/api";
@@ -29,17 +30,26 @@ import {
 } from "../data/nutrition-goal-history";
 import { getNutritionGoalsCopy } from "../data/nutrition-goals-copy";
 import { useStalledOffline } from "../data/stalled-offline";
+import { useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
-import { PrimaryButton } from "../ui/button";
-import { Card, Eyebrow } from "../ui/coach";
+import { spacing, type Tokens, useThemedStyles } from "../theme";
+import { Card } from "../ui/coach";
 import { EmptyState } from "../ui/empty-state";
+import {
+	DisclosureRow,
+	FormScreen,
+	FormSection,
+	InlineNumberFieldRow,
+	TextAction,
+} from "../ui/form";
 import { NutritionCalendar } from "../ui/nutrition-calendar";
 import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
 export function NutritionGoalsScreen() {
+	const styles = useThemedStyles(createStyles);
+	const reduceMotion = useReduceMotion();
 	const { t, locale } = useI18n();
 	const copy = getNutritionGoalsCopy(locale);
 	const router = useRouter();
@@ -78,6 +88,7 @@ export function NutritionGoalsScreen() {
 	);
 	const [dirty, setDirty] = useState(false);
 	const [showExtras, setShowExtras] = useState(false);
+	const [showDate, setShowDate] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [pending, setPending] = useState(false);
 	const [activePreset, setActivePreset] = useState<GoalPresetKey>();
@@ -94,7 +105,7 @@ export function NutritionGoalsScreen() {
 		focusedNutrientHandled.current = true;
 		const y = Math.max(0, event.nativeEvent.layout.y - spacing.md);
 		requestAnimationFrame(() => {
-			scrollRef.current?.scrollTo({ y, animated: true });
+			scrollRef.current?.scrollTo({ y, animated: !reduceMotion });
 			requestAnimationFrame(() => focusedInputRef.current?.focus());
 		});
 	};
@@ -252,13 +263,15 @@ export function NutritionGoalsScreen() {
 		: 0;
 	const preview = draftToGoals(draft).goals;
 	return (
-		<ScrollView
-			ref={scrollRef}
-			contentInsetAdjustmentBehavior="automatic"
-			automaticallyAdjustKeyboardInsets
-			keyboardDismissMode="interactive"
-			style={styles.root}
-			contentContainerStyle={styles.content}
+		<FormScreen
+			scrollRef={scrollRef}
+			primaryAction={{
+				label: pending
+					? t.nutrition.goalEditor.saving
+					: t.nutrition.goalEditor.save,
+				loading: pending,
+				onPress: save,
+			}}
 		>
 			{stalledOffline ? (
 				<Card style={styles.offlineCard}>
@@ -269,21 +282,24 @@ export function NutritionGoalsScreen() {
 					/>
 				</Card>
 			) : null}
-			<Eyebrow>{t.nutrition.goals.heading}</Eyebrow>
-			<AppText variant="title">{t.nutrition.goalEditor.title}</AppText>
 			<AppText>{t.nutrition.goalEditor.intro}</AppText>
-			<Card style={styles.dateCard}>
-				<AppText variant="heading">{copy.applyFrom}</AppText>
-				<AppText variant="caption">{copy.applyFromHint}</AppText>
-				<AppText style={styles.dateValue}>{effectiveFrom}</AppText>
-				<NutritionCalendar
-					selectedDate={effectiveFrom}
-					onSelect={setEffectiveFrom}
-					locale={locale}
-					labels={{ today: t.nutrition.day.goToToday }}
+			<FormSection footer={copy.applyFromHint}>
+				<DisclosureRow
+					label={copy.applyFrom}
+					value={effectiveFrom}
+					expanded={showDate}
+					onPress={() => setShowDate((visible) => !visible)}
 				/>
+				{showDate ? (
+					<NutritionCalendar
+						selectedDate={effectiveFrom}
+						onSelect={setEffectiveFrom}
+						locale={locale}
+						labels={{ today: t.nutrition.day.goToToday }}
+					/>
+				) : null}
 				{selectedResponse ? (
-					<AppText variant="caption">
+					<AppText variant="caption" style={{ padding: spacing.md }}>
 						{goalHistoryLabel({
 							basis: selectedResponse.basis,
 							effectiveFrom: selectedResponse.effectiveFrom,
@@ -291,7 +307,7 @@ export function NutritionGoalsScreen() {
 						})}
 					</AppText>
 				) : null}
-			</Card>
+			</FormSection>
 			<View style={styles.presets}>
 				{GOAL_PRESET_KEYS.map((key) => (
 					<Pressable
@@ -334,46 +350,38 @@ export function NutritionGoalsScreen() {
 								: undefined
 						}
 					>
-						<Card style={styles.row}>
-							<AppText variant="heading">
-								{t.nutrition.nutrients[nutrient]}
-							</AppText>
+						<FormSection title={t.nutrition.nutrients[nutrient]}>
 							{directions.map((direction, index) => (
 								<View key={direction} style={styles.bound}>
-									<TextInput
-										ref={
+									<InlineNumberFieldRow
+										inputRef={
 											params.nutrient === nutrient && index === 0
 												? focusedInputRef
 												: undefined
 										}
+										label={t.nutrition.goalEditor.directions[direction]}
+										suffix={NUTRIENT_UNITS[nutrient]}
 										accessibilityLabel={`${t.nutrition.nutrients[nutrient]} ${t.nutrition.goalEditor.directions[direction]} ${t.nutrition.goalEditor.amount}`}
 										keyboardType="decimal-pad"
 										value={draft[nutrient][direction]}
 										onChangeText={(target) =>
 											setBound(nutrient, direction, target)
 										}
-										placeholder={t.nutrition.goalEditor.directions[direction]}
-										placeholderTextColor={colors.textMuted}
-										style={styles.input}
 									/>
-									<AppText variant="caption">
-										{t.nutrition.goalEditor.directions[direction]}
-									</AppText>
-									<Pressable
-										accessibilityRole="button"
+									<TextAction
+										label={copy.removeBound}
+										tone="neutral"
 										onPress={() => setBound(nutrient, direction, "")}
-									>
-										<AppText style={styles.remove}>{copy.removeBound}</AppText>
-									</Pressable>
+									/>
 									{errors[`${nutrient}.${direction}`] ? (
-										<AppText style={styles.error}>
+										<AppText style={styles.error} accessibilityRole="alert">
 											{errors[`${nutrient}.${direction}`]}
 										</AppText>
 									) : null}
 								</View>
 							))}
 							{errors[`${nutrient}.range`] ? (
-								<AppText style={styles.error}>
+								<AppText style={styles.error} accessibilityRole="alert">
 									{errors[`${nutrient}.range`]}
 								</AppText>
 							) : null}
@@ -394,7 +402,7 @@ export function NutritionGoalsScreen() {
 									),
 								)}
 							</View>
-						</Card>
+						</FormSection>
 					</View>
 				);
 			})}
@@ -446,41 +454,22 @@ export function NutritionGoalsScreen() {
 				)}
 			</Card>
 			{dirty ? <AppText variant="caption">{copy.unsaved}</AppText> : null}
-			<PrimaryButton
-				accessibilityRole="button"
-				loading={pending}
-				label={
-					pending ? t.nutrition.goalEditor.saving : t.nutrition.goalEditor.save
-				}
-				onPress={save}
-			/>
-		</ScrollView>
+		</FormScreen>
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, gap: spacing.md, paddingBottom: 40 },
-	presets: { gap: spacing.sm },
-	preset: { gap: 4 },
-	dateCard: { gap: spacing.sm },
-	dateValue: { color: colors.accent, fontWeight: "800" },
-	row: { gap: spacing.sm },
-	bound: { gap: spacing.xs },
-	addBounds: { flexDirection: "row", gap: spacing.md, flexWrap: "wrap" },
-	add: { color: colors.accent, fontWeight: "800" },
-	remove: { color: colors.textMuted },
-	error: { color: colors.danger },
-	extraCard: { gap: spacing.sm },
-	extraList: { gap: spacing.md },
-	preview: { gap: spacing.xs },
-	offlineCard: { gap: spacing.sm },
-	input: {
-		width: "100%",
-		color: colors.text,
-		borderWidth: 1,
-		borderColor: colors.borderStrong,
-		borderRadius: radius.md,
-		padding: spacing.md,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, gap: spacing.md, paddingBottom: 40 },
+		presets: { gap: spacing.sm },
+		preset: { gap: 4 },
+		bound: { gap: spacing.xs },
+		addBounds: { flexDirection: "row", gap: spacing.md, flexWrap: "wrap" },
+		add: { color: colors.accent, fontWeight: "800" },
+		error: { color: colors.danger },
+		extraCard: { gap: spacing.sm },
+		extraList: { gap: spacing.md },
+		preview: { gap: spacing.xs },
+		offlineCard: { gap: spacing.sm },
+	});

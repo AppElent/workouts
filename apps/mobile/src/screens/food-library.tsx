@@ -6,7 +6,7 @@ import { todayIsoDate } from "../data/calendar-day";
 import type { Combo } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { useI18n } from "../i18n";
-import { colors, spacing } from "../theme";
+import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
 import { EmptyState } from "../ui/empty-state";
 import { AppText } from "../ui/text";
@@ -14,6 +14,7 @@ import { PersonalFoodEditor } from "./personal-food-editor";
 
 type LibraryTab = "foods" | "combos" | "recipes";
 export function FoodLibraryScreen() {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useI18n();
 	const router = useRouter();
 	const library = usePersonalFoods();
@@ -78,7 +79,7 @@ export function FoodLibraryScreen() {
 			<ScrollView contentContainerStyle={styles.content}>
 				{items.length === 0 ? (
 					<EmptyState
-						title={
+						body={
 							tab === "foods"
 								? copy.emptyFoods
 								: tab === "recipes"
@@ -139,43 +140,48 @@ export function FoodLibraryScreen() {
 		</View>
 	);
 }
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	tabs: {
-		flexDirection: "row",
-		margin: spacing.md,
-		padding: 2,
-		borderRadius: 12,
-		backgroundColor: colors.surface2,
-	},
-	tab: {
-		flex: 1,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: 10,
-		paddingHorizontal: spacing.xs,
-	},
-	selectedTab: { backgroundColor: colors.surface },
-	selectedText: { color: colors.accent, fontWeight: "800" },
-	content: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: 1 },
-	row: {
-		minHeight: 56,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-		padding: spacing.md,
-		backgroundColor: colors.surface,
-		borderBottomWidth: 1,
-		borderBottomColor: colors.border,
-	},
-	flex: { flex: 1 },
-	chevron: { color: colors.textMuted, fontSize: 24 },
-	footer: {
-		padding: spacing.md,
-		paddingBottom: spacing.lg,
-		borderTopWidth: 1,
-		borderTopColor: colors.border,
-		backgroundColor: colors.bg,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		tabs: {
+			flexDirection: "row",
+			margin: spacing.md,
+			padding: 2,
+			borderRadius: 12,
+			backgroundColor: colors.surface2,
+		},
+		tab: {
+			flex: 1,
+			minHeight: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: 10,
+			paddingHorizontal: spacing.xs,
+		},
+		selectedTab: { backgroundColor: colors.surface },
+		selectedText: { color: colors.accent, fontWeight: "800" },
+		content: {
+			paddingHorizontal: spacing.md,
+			paddingBottom: spacing.xl,
+			gap: 1,
+		},
+		row: {
+			minHeight: 56,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			padding: spacing.md,
+			backgroundColor: colors.surface,
+			borderBottomWidth: 1,
+			borderBottomColor: colors.border,
+		},
+		flex: { flex: 1 },
+		chevron: { color: colors.textMuted, fontSize: 24 },
+		footer: {
+			padding: spacing.md,
+			paddingBottom: spacing.lg,
+			borderTopWidth: 1,
+			borderTopColor: colors.border,
+			backgroundColor: colors.bg,
+		},
+	});

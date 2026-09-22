@@ -33,6 +33,7 @@ import Storage from "expo-sqlite/kv-store";
  */
 export const PREFERENCE_KEYS = {
 	locale: "workouts:locale",
+	appearance: "workouts:appearance",
 } as const;
 
 export type PreferenceKey =
@@ -50,8 +51,10 @@ export function readPreference(key: PreferenceKey): string | null {
 export function writePreference(key: PreferenceKey, value: string) {
 	try {
 		Storage.setItemSync(key, value);
+		return true;
 	} catch {
 		// Ignored: the next launch falls back to this preference's default.
+		return false;
 	}
 }
 

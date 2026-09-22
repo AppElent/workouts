@@ -6,7 +6,7 @@
  */
 import { Pressable, StyleSheet, View } from "react-native";
 import { formatLongDate, shiftIsoDate } from "../data/calendar-day";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, useTokens } from "../theme";
 import { AppText } from "./text";
 
 export function DateStepper({
@@ -77,6 +77,7 @@ function StepperButton({
 	glyph: string;
 	onPress: () => void;
 }) {
+	const colors = useTokens();
 	return (
 		<Pressable
 			onPress={onPress}

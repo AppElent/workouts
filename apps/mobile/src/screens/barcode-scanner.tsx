@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useI18n } from "../i18n";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { GhostButton } from "../ui/button";
 import { AppText } from "../ui/text";
 
@@ -25,6 +25,7 @@ export function BarcodeScanner({
 	onScanned: (barcode: string) => void;
 	onCancel: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { t } = useI18n();
 	const [permission, requestPermission] = useCameraPermissions();
 	const requested = useRef(false);
@@ -108,6 +109,7 @@ function Shell({
 	onCancel: () => void;
 	children: ReactNode;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { t } = useI18n();
 	return (
 		<SafeAreaView style={styles.shell}>
@@ -125,46 +127,47 @@ function Shell({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	camera: { flex: 1 },
-	overlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		justifyContent: "space-between",
-		padding: spacing.md,
-	},
-	overlayBack: {
-		alignSelf: "flex-start",
-		minHeight: 44,
-		paddingHorizontal: spacing.md,
-		justifyContent: "center",
-		borderRadius: radius.pill,
-		backgroundColor: "rgba(10, 11, 9, 0.6)",
-	},
-	overlayText: { color: colors.text },
-	hintBar: {
-		alignSelf: "center",
-		paddingHorizontal: spacing.md,
-		paddingVertical: spacing.sm,
-		borderRadius: radius.md,
-		backgroundColor: "rgba(10, 11, 9, 0.6)",
-		marginBottom: spacing.xl,
-	},
-	shell: {
-		flex: 1,
-		backgroundColor: colors.bg,
-		padding: 20,
-		paddingTop: 12,
-		gap: spacing.md,
-	},
-	back: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: spacing.sm,
-	},
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		camera: { flex: 1 },
+		overlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			justifyContent: "space-between",
+			padding: spacing.md,
+		},
+		overlayBack: {
+			alignSelf: "flex-start",
+			minHeight: 44,
+			paddingHorizontal: spacing.md,
+			justifyContent: "center",
+			borderRadius: radius.pill,
+			backgroundColor: colors.mediaScrim,
+		},
+		overlayText: { color: colors.onMedia },
+		hintBar: {
+			alignSelf: "center",
+			paddingHorizontal: spacing.md,
+			paddingVertical: spacing.sm,
+			borderRadius: radius.md,
+			backgroundColor: colors.mediaScrim,
+			marginBottom: spacing.xl,
+		},
+		shell: {
+			flex: 1,
+			backgroundColor: colors.bg,
+			padding: 20,
+			paddingTop: 12,
+			gap: spacing.md,
+		},
+		back: {
+			minHeight: 44,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+	});

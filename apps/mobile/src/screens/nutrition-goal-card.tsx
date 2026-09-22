@@ -26,7 +26,13 @@ import {
 import { haptics } from "../feedback/haptics";
 import { useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, type Messages } from "../i18n";
-import { colors, radius, spacing } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { GroupedSurface } from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
@@ -68,6 +74,7 @@ function targetLabel(group: GoalGroup, unit: string): string {
 }
 
 function outcome(
+	colors: Tokens,
 	t: Messages,
 	group: GoalGroup,
 	total?: NutrientTotal,
@@ -139,9 +146,11 @@ function GoalProgressTrack({
 	group: GoalGroup;
 	total?: NutrientTotal;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const denominator = group.max ?? group.min ?? 1;
 	const fraction = Math.max(0, Math.min(1, (total?.amount ?? 0) / denominator));
-	const status = outcome(t, group, total);
+	const status = outcome(colors, t, group, total);
 	const neutral = !total || total.incomplete || total.qualified;
 	return (
 		<View style={styles.track}>
@@ -185,9 +194,11 @@ function GoalProgressRow({
 	onReorder?: () => void;
 	stacked: boolean;
 }) {
+	const styles = useThemedStyles(createStyles);
+	const colors = useTokens();
 	const unit = t.nutrition.units[nutrientUnit(group.nutrient)];
 	const value = `${displayAmount(group.nutrient, total)} / ${targetLabel(group, unit)}`;
-	const status = outcome(t, group, total);
+	const status = outcome(colors, t, group, total);
 	return (
 		<Pressable
 			accessible
@@ -245,7 +256,12 @@ function ReorderHandle({
 	onMove: (direction: -1 | 1) => boolean;
 	disabled: boolean;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const step = useRef(0);
+	// A move rerenders the rows; recreating PanResponder would reset this drag.
+	const moveRef = useRef(onMove);
+	moveRef.current = onMove;
 	const pan = useMemo(
 		() =>
 			PanResponder.create({
@@ -260,7 +276,7 @@ function ReorderHandle({
 					const nextStep = Math.trunc(gesture.dy / 52);
 					while (nextStep !== step.current) {
 						const direction = nextStep > step.current ? 1 : -1;
-						if (!onMove(direction)) break;
+						if (!moveRef.current(direction)) break;
 						step.current += direction;
 						haptics.selectionChanged();
 					}
@@ -268,14 +284,16 @@ function ReorderHandle({
 				onPanResponderRelease: () => haptics.selectionChanged(),
 				onPanResponderTerminate: () => haptics.selectionChanged(),
 			}),
-		[disabled, onMove],
+		[disabled],
 	);
 	return (
-		<Pressable
+		// Pressable overrides responder handlers; the drag owns this accessible View.
+		<View
 			{...pan.panHandlers}
+			accessible
 			accessibilityRole="adjustable"
 			accessibilityState={{ disabled }}
-			disabled={disabled}
+			pointerEvents={disabled ? "none" : "auto"}
 			accessibilityLabel={fmt(t.nutrition.goals.move, {
 				nutrient: t.nutrition.nutrients[nutrient],
 			})}
@@ -308,11 +326,11 @@ function ReorderHandle({
 			style={styles.reorderHandle}
 		>
 			<SymbolView
-				name="line.3.horizontal"
+				name={{ ios: "line.3.horizontal", android: "drag_handle", web: "menu" }}
 				size={20}
 				tintColor={colors.textMuted}
 			/>
-		</Pressable>
+		</View>
 	);
 }
 
@@ -329,6 +347,8 @@ export function NutritionGoalCard({
 	displayOrder: readonly NutrientKey[];
 	onEdit: (nutrient?: NutrientKey) => void;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	const [expanded, setExpanded] = useState(false);
 	const [reordering, setReordering] = useState(false);
 	const [savedOrder, setSavedOrder] = useState<NutrientKey[]>(() => [
@@ -546,7 +566,11 @@ export function NutritionGoalCard({
 								onPress={() => onEdit()}
 								style={styles.iconButton}
 							>
-								<SymbolView name="pencil" size={17} tintColor={colors.accent} />
+								<SymbolView
+									name={{ ios: "pencil", android: "edit", web: "edit" }}
+									size={17}
+									tintColor={colors.accent}
+								/>
 							</Pressable>
 						)}
 						{!reordering && hiddenCount > 0 ? (
@@ -567,7 +591,11 @@ export function NutritionGoalCard({
 										: fmt(t.nutrition.goals.more, { count: hiddenCount })}
 								</AppText>
 								<SymbolView
-									name={expanded ? "chevron.up" : "chevron.down"}
+									name={{
+										ios: expanded ? "chevron.up" : "chevron.down",
+										android: expanded ? "expand_less" : "expand_more",
+										web: expanded ? "expand_less" : "expand_more",
+									}}
 									size={14}
 									tintColor={colors.accent}
 								/>
@@ -627,7 +655,7 @@ export function NutritionGoalCard({
 							/>
 						</View>
 						<LinearGradient
-							colors={["rgba(20,22,19,0)", colors.surface]}
+							colors={[colors.surfaceTransparent, colors.surface]}
 							pointerEvents="none"
 							style={StyleSheet.absoluteFill}
 						/>
@@ -690,101 +718,102 @@ export function NutritionGoalCard({
 	);
 }
 
-const styles = StyleSheet.create({
-	card: { gap: spacing.sm },
-	cardHeader: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-	},
-	headerActions: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		alignItems: "center",
-		justifyContent: "flex-end",
-		flexShrink: 1,
-		gap: spacing.xs,
-	},
-	headerTextButton: {
-		minHeight: 44,
-		justifyContent: "center",
-		padding: spacing.xs,
-	},
-	iconButton: {
-		width: 44,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-	},
-	disclosureButton: {
-		minHeight: 44,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: spacing.xs,
-		paddingHorizontal: spacing.xs,
-	},
-	actionText: { color: colors.accent, fontWeight: "700" },
-	goalRow: { gap: 6, paddingVertical: spacing.xs },
-	reorderRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-	rowContent: { flex: 1 },
-	reorderHandle: {
-		width: 44,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	rowHeader: {
-		flexDirection: "row",
-		alignItems: "baseline",
-		justifyContent: "space-between",
-		gap: spacing.sm,
-	},
-	rowHeaderStacked: {
-		flexDirection: "column",
-		alignItems: "stretch",
-		gap: 2,
-	},
-	goalName: { fontWeight: "700", flexShrink: 1 },
-	numbers: { fontVariant: ["tabular-nums"], flexShrink: 0 },
-	track: {
-		height: 8,
-		borderRadius: radius.pill,
-		backgroundColor: colors.surface2,
-		overflow: "hidden",
-	},
-	fill: { height: 8, borderRadius: radius.pill },
-	minimumMarker: {
-		position: "absolute",
-		top: 0,
-		bottom: 0,
-		width: 2,
-		backgroundColor: colors.text,
-	},
-	teaser: { height: 18, overflow: "hidden", paddingTop: 2 },
-	teaserTrack: { paddingTop: 2 },
-	emptyRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: spacing.md,
-	},
-	emptyCopy: { flex: 1, gap: spacing.xs },
-	textButton: { minHeight: 44, justifyContent: "center" },
-	menuBackdrop: {
-		flex: 1,
-		justifyContent: "flex-end",
-		backgroundColor: "rgba(0,0,0,0.6)",
-		padding: spacing.md,
-	},
-	menuCard: {
-		borderRadius: radius.sheet,
-		backgroundColor: colors.surface,
-		padding: spacing.md,
-		gap: spacing.sm,
-	},
-	menuItem: { minHeight: 48, justifyContent: "center" },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		card: { gap: spacing.sm },
+		cardHeader: {
+			minHeight: 44,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: spacing.sm,
+		},
+		headerActions: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			alignItems: "center",
+			justifyContent: "flex-end",
+			flexShrink: 1,
+			gap: spacing.xs,
+		},
+		headerTextButton: {
+			minHeight: 44,
+			justifyContent: "center",
+			padding: spacing.xs,
+		},
+		iconButton: {
+			width: 44,
+			height: 44,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: radius.pill,
+		},
+		disclosureButton: {
+			minHeight: 44,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: spacing.xs,
+			paddingHorizontal: spacing.xs,
+		},
+		actionText: { color: colors.accent, fontWeight: "700" },
+		goalRow: { gap: 6, paddingVertical: spacing.xs },
+		reorderRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+		rowContent: { flex: 1 },
+		reorderHandle: {
+			width: 44,
+			height: 44,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		rowHeader: {
+			flexDirection: "row",
+			alignItems: "baseline",
+			justifyContent: "space-between",
+			gap: spacing.sm,
+		},
+		rowHeaderStacked: {
+			flexDirection: "column",
+			alignItems: "stretch",
+			gap: 2,
+		},
+		goalName: { fontWeight: "700", flexShrink: 1 },
+		numbers: { fontVariant: ["tabular-nums"], flexShrink: 0 },
+		track: {
+			height: 8,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+			overflow: "hidden",
+		},
+		fill: { height: 8, borderRadius: radius.pill },
+		minimumMarker: {
+			position: "absolute",
+			top: 0,
+			bottom: 0,
+			width: 2,
+			backgroundColor: colors.text,
+		},
+		teaser: { height: 18, overflow: "hidden", paddingTop: 2 },
+		teaserTrack: { paddingTop: 2 },
+		emptyRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: spacing.md,
+		},
+		emptyCopy: { flex: 1, gap: spacing.xs },
+		textButton: { minHeight: 44, justifyContent: "center" },
+		menuBackdrop: {
+			flex: 1,
+			justifyContent: "flex-end",
+			backgroundColor: colors.scrim,
+			padding: spacing.md,
+		},
+		menuCard: {
+			borderRadius: radius.sheet,
+			backgroundColor: colors.surface,
+			padding: spacing.md,
+			gap: spacing.sm,
+		},
+		menuItem: { minHeight: 48, justifyContent: "center" },
+	});

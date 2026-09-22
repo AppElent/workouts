@@ -12,7 +12,7 @@
  * is holding the phone.
  */
 import { ScrollView, StyleSheet, View } from "react-native";
-import { colors, spacing } from "../theme";
+import { spacing, type Tokens, useThemedStyles, useTokens } from "../theme";
 import { PrimaryButton } from "./button";
 import { AppText } from "./text";
 
@@ -29,6 +29,8 @@ export function RouteError({
 	onRetry: () => void;
 	error?: Error;
 }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<ScrollView
 			style={styles.root}
@@ -53,13 +55,14 @@ export function RouteError({
 	);
 }
 
-const styles = StyleSheet.create({
-	root: { flex: 1, backgroundColor: colors.bg },
-	content: { padding: 20, paddingTop: 64, gap: spacing.sm },
-	detail: {
-		backgroundColor: colors.surface,
-		borderRadius: 12,
-		padding: spacing.md,
-	},
-	action: { alignSelf: "flex-start", marginTop: spacing.md },
-});
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 64, gap: spacing.sm },
+		detail: {
+			backgroundColor: colors.surface,
+			borderRadius: 12,
+			padding: spacing.md,
+		},
+		action: { alignSelf: "flex-start", marginTop: spacing.md },
+	});
