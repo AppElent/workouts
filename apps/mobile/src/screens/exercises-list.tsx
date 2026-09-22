@@ -193,7 +193,6 @@ export function ExercisesScreen() {
 					}
 					renderItem={({ item }) => (
 						<NativeSwipeableRow
-							href={{ pathname: "/exercise/[id]", params: { id: item._id } }}
 							menuTitle={item.name}
 							closeMenuLabel="Close"
 							actions={[

@@ -1,5 +1,4 @@
 import { Button, Host, RNHostView, SwipeActions } from "@expo/ui/swift-ui";
-import { type Href, Link } from "expo-router";
 import { type ReactElement, useMemo } from "react";
 import type { AccessibilityActionEvent } from "react-native";
 import { StyleSheet } from "react-native";
@@ -11,12 +10,9 @@ import type { RowAccessibilityProps, RowAction } from "./swipeable-row";
  * the rest of the app keeps the proven Gesture Handler row until device QA.
  */
 export function NativeSwipeableRow({
-	href,
 	actions,
-	menuTitle,
 	children,
 }: {
-	href?: Href;
 	actions: readonly RowAction[];
 	menuTitle: string;
 	closeMenuLabel: string;
@@ -39,17 +35,17 @@ export function NativeSwipeableRow({
 					.find((action) => action.key === event.nativeEvent.actionName)
 					?.onPress();
 			},
-			...(href ? { onPress: undefined, onLongPress: undefined } : {}),
 		}),
-		[actions, href],
+		[actions],
 	);
 
-	const row = (
+	return (
 		<Host
 			colorScheme={scheme}
 			seedColor={colors.accent}
 			matchContents={{ vertical: true }}
 			style={styles.host}
+			testID="native-swipeable-row"
 		>
 			<SwipeActions>
 				<RNHostView matchContents>{children(accessibility)}</RNHostView>
@@ -66,24 +62,6 @@ export function NativeSwipeableRow({
 				</SwipeActions.Actions>
 			</SwipeActions>
 		</Host>
-	);
-
-	if (!href) return row;
-
-	return (
-		<Link href={href} asChild>
-			<Link.Trigger>{row}</Link.Trigger>
-			<Link.Menu title={menuTitle}>
-				{actions.map((action) => (
-					<Link.MenuAction
-						key={action.key}
-						title={action.label}
-						destructive={action.destructive}
-						onPress={action.onPress}
-					/>
-				))}
-			</Link.Menu>
-		</Link>
 	);
 }
 

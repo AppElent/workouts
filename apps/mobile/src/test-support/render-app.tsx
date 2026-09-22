@@ -34,6 +34,7 @@ import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
 import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
+import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
 import {
 	createNutritionDraftRepository,
 	type NutritionDraftRepository,
@@ -81,18 +82,20 @@ export function TestLayout({
 					<ToastProvider>
 						<ConfirmProvider>
 							<PersonalFoodsProvider repository={repository}>
-								<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
-									<NutritionOperationsProvider
-										repository={nutritionRepository}
-										subject="test-user"
-									>
-										<NutritionDraftsProvider repository={draftRepository}>
-											<PersonalMeasuresProvider>
-												<Stack />
-											</PersonalMeasuresProvider>
-										</NutritionDraftsProvider>
-									</NutritionOperationsProvider>
-								</OpenFoodFactsProvider>
+								<FoodAuthoringIntentProvider>
+									<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
+										<NutritionOperationsProvider
+											repository={nutritionRepository}
+											subject="test-user"
+										>
+											<NutritionDraftsProvider repository={draftRepository}>
+												<PersonalMeasuresProvider>
+													<Stack />
+												</PersonalMeasuresProvider>
+											</NutritionDraftsProvider>
+										</NutritionOperationsProvider>
+									</OpenFoodFactsProvider>
+								</FoodAuthoringIntentProvider>
 							</PersonalFoodsProvider>
 						</ConfirmProvider>
 					</ToastProvider>

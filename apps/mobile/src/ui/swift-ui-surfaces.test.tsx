@@ -37,6 +37,29 @@ it("keeps native swipe deletion tap-only and screen-reader reachable", () => {
 	expect(open).toHaveBeenCalledTimes(1);
 });
 
+it("keeps a native swipe row full-width and lets its child handle a plain tap", () => {
+	const open = jest.fn();
+	render(
+		<NativeSwipeableRow
+			menuTitle="Squat"
+			closeMenuLabel="Close"
+			actions={[{ key: "open", label: "View exercise", onPress: open }]}
+		>
+			{(accessibility) => (
+				<Pressable onPress={open} accessibilityLabel="Squat" {...accessibility}>
+					<Text>Squat</Text>
+				</Pressable>
+			)}
+		</NativeSwipeableRow>,
+	);
+
+	expect(screen.getByTestId("native-swipeable-row").props.style).toEqual(
+		expect.objectContaining({ width: "100%" }),
+	);
+	fireEvent.press(screen.getByLabelText("Squat"));
+	expect(open).toHaveBeenCalledTimes(1);
+});
+
 it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 	const onOpenFoodLibrary = jest.fn();
 	const onOpenSettings = jest.fn();

@@ -49,6 +49,7 @@ import {
 	formatShortDate,
 	todayIsoDate,
 } from "../data/calendar-day";
+import { useFoodAuthoringIntent } from "../data/food-authoring-intent";
 import { foodPhotos } from "../data/food-photo-manager";
 import {
 	type DiaryEntry,
@@ -355,12 +356,14 @@ export function NutritionFoodBrowser({
 	date: initialDate,
 	draftId,
 	initialQuery,
+	initialCreateKind,
 	onClose,
 }: {
 	meal: MealSlot;
 	date: string;
 	draftId?: string;
 	initialQuery?: string;
+	initialCreateKind?: "personal" | "recipe";
 	onClose: () => void;
 }) {
 	const colors = useTokens();
@@ -368,6 +371,7 @@ export function NutritionFoodBrowser({
 	const { t, locale } = useI18n();
 	const copy = nutritionFoodBrowserCopy(locale);
 	const router = useRouter();
+	const authoringIntent = useFoodAuthoringIntent();
 	const operations = useNutritionOperations();
 	useNutritionOperationVersion();
 	const subject = operations.getSubject();
@@ -386,7 +390,14 @@ export function NutritionFoodBrowser({
 	const [today] = useState(todayIsoDate);
 	const [date, setDate] = useState(initialDate);
 	const [showCalendar, setShowCalendar] = useState(false);
-	const [filter, setFilter] = useState<FoodFilter>("pool");
+	/*
+	 * Arriving to author a recipe scopes the list to recipes; everything else
+	 * lands on the pool. A typed query no longer needs its own case — the pool
+	 * already searches the whole catalogue, which is what "all" used to be for.
+	 */
+	const [filter, setFilter] = useState<FoodFilter>(
+		initialCreateKind === "recipe" ? "recipes" : "pool",
+	);
 	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(meal);
 	const [mealOpen, setMealOpen] = useState(false);
 	const servingPendingRef = useRef(false);
@@ -394,7 +405,17 @@ export function NutritionFoodBrowser({
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
 	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
-	const [creatingFood, setCreatingFood] = useState(false);
+	const [creatingFood, setCreatingFood] = useState(
+		initialCreateKind !== undefined,
+	);
+	useEffect(() => {
+		if (!authoringIntent.intent) return;
+		// "all" here meant "search everything", which is the pool's job now;
+		// the chip called `all` became the deliberate broader catalogue view.
+		setFilter(authoringIntent.intent === "recipe" ? "recipes" : "pool");
+		setCreatingFood(true);
+		authoringIntent.consume();
+	}, [authoringIntent]);
 	const [scanning, setScanning] = useState(false);
 	const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
 	const [reviewingImport, setReviewingImport] = useState<PersonalFoodDraft>();
@@ -700,6 +721,14 @@ export function NutritionFoodBrowser({
 				food={editingFood}
 				seed={forkDraft}
 				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
+				onCreateKindChange={(kind) => {
+					if (kind !== "oneOff") return;
+					closeEditor();
+					router.push({
+						pathname: "/nutrition-cooking",
+						params: { date, meal: selectedMeal, mode: "oneoff-log" },
+					});
+				}}
 				onCancel={closeEditor}
 				onSaved={(food) => {
 					closeEditor();

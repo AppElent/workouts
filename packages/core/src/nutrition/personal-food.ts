@@ -426,6 +426,7 @@ export function personalFoodSnapshot(
 	const origin = valid.provenance;
 	const part: NutritionDiaryPartSnapshot = {
 		name: valid.name,
+		...(valid.visual ? { visual: valid.visual } : {}),
 		serving: {
 			en: `${label.en} × ${formatQuantity(quantity, "en")}`,
 			nl: `${label.nl} × ${formatQuantity(quantity, "nl")}`,

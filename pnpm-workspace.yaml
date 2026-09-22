@@ -8,6 +8,10 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Expo fingerprints include pnpm paths from native autolinking. pnpm defaults
+# to 60 on Windows and 120 on macOS/Linux; use one layout locally and on EAS.
+virtualStoreDirMaxLength: 60
+
 # Keep platform-specific optional binaries for local Windows development and
 # EAS' macOS builders. Without this, sharp can fall back to a source build on
 # EAS even though its Darwin prebuilt packages are present in the lockfile.
@@ -25,6 +29,13 @@ supportedArchitectures:
 # a bootstrap cycle: the install needs the authentication that the hook sets up.
 # Explicit install commands still run every supply-chain policy check.
 verifyDepsBeforeRun: false
+
+# Clerk's config plugin imports this at runtime but only declares it as a
+# devDependency. EAS loads the plugin directly, without pnpm's NODE_PATH shim.
+packageExtensions:
+  '@clerk/expo@4.2.8':
+    dependencies:
+      '@expo/config-plugins': '~57.0.9'
 
 # Supply-chain hardening: only these packages may run install/build lifecycle
 # scripts. Everything else is install-script-sandboxed (default-deny), which

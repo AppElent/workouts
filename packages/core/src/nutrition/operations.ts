@@ -1,4 +1,5 @@
 import type { NutrientKey, NutrientValue } from "./nutrients";
+import type { FoodVisual } from "./personal-food";
 
 export type NutritionMealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
 
@@ -36,6 +37,7 @@ export type NutritionDiarySnapshot = {
 	readonly baseUnit: "g" | "ml" | "serving";
 	/** Stable identity when the selected amount came from a Personal Measure. */
 	readonly personalMeasureId?: string;
+	readonly visual?: FoodVisual;
 	/** Omitted for historical entries and figures that are not estimated. */
 	readonly estimated?: true;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;

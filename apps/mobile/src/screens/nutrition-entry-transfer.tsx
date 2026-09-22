@@ -1,8 +1,8 @@
 /**
- * Copy or move one diary entry without changing the entry editor's contract.
+ * Copy or move selected diary entries without changing their snapshots.
  *
  * A copy is a fresh, immutable diary snapshot. A move is intentionally a
- * single update operation: it retains the entry's identity and lets the local
+ * single batch operation: it retains the entries' identities and lets the local
  * projection move it atomically between the two day/meal views.
  */
 import type { NutritionDiarySnapshot } from "@workouts/core";

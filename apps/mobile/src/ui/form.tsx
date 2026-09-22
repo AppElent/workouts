@@ -43,6 +43,7 @@ export function FormScreen({
 	cancelLabel = "Cancel",
 	onCancel,
 	primaryAction,
+	primaryActionPlacement = "fixed",
 	contentStyle,
 	scrollRef,
 }: {
@@ -51,6 +52,7 @@ export function FormScreen({
 	cancelLabel?: string;
 	onCancel?: () => void;
 	primaryAction?: PrimaryAction;
+	primaryActionPlacement?: "fixed" | "header";
 	contentStyle?: ViewStyle;
 	scrollRef?: Ref<ScrollView>;
 }) {
@@ -86,7 +88,25 @@ export function FormScreen({
 					>
 						{title}
 					</AppText>
-					<View style={styles.headerAction} />
+					{primaryAction && primaryActionPlacement === "header" ? (
+						<Pressable
+							onPress={primaryAction.onPress}
+							disabled={primaryAction.disabled || primaryAction.loading}
+							accessibilityRole="button"
+							accessibilityLabel={primaryAction.accessibilityLabel}
+							accessibilityState={{
+								disabled: primaryAction.disabled || primaryAction.loading,
+								busy: primaryAction.loading,
+							}}
+							style={[styles.headerAction, styles.headerActionTrailing]}
+						>
+							<AppText style={styles.headerActionText}>
+								{primaryAction.label}
+							</AppText>
+						</Pressable>
+					) : (
+						<View style={styles.headerAction} />
+					)}
 				</View>
 			) : null}
 			<ScrollView
@@ -99,7 +119,7 @@ export function FormScreen({
 			>
 				{children}
 			</ScrollView>
-			{primaryAction ? (
+			{primaryAction && primaryActionPlacement === "fixed" ? (
 				<View
 					style={[
 						styles.footer,
@@ -497,6 +517,7 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 		},
 		headerActionText: { color: colors.accent, fontWeight: "700" },
+		headerActionTrailing: { alignItems: "flex-end" },
 		modalTitle: { flex: 1, textAlign: "center" },
 		footer: {
 			paddingTop: spacing.sm,

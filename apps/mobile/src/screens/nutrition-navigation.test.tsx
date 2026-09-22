@@ -106,33 +106,28 @@ describe("Nutrition navigation", () => {
 			`/nutrition-cooking?date=${date}&meal=dinner&mode=oneoff-log`,
 		);
 		fireEvent.changeText(
-			await screen.findByLabelText("Food name in English"),
+			await screen.findByLabelText("Food name"),
 			"One-off soup",
-		);
-		fireEvent.changeText(
-			screen.getByLabelText("Food name in Dutch"),
-			"Eenmalige soep",
 		);
 		fireEvent.changeText(screen.getByLabelText("Amount"), "1");
 		fireEvent.changeText(screen.getByLabelText("Energy"), "120");
-		fireEvent.press(screen.getByRole("button", { name: "Log once" }));
+		fireEvent.press(screen.getByRole("button", { name: "Food visual" }));
+		fireEvent.press(screen.getByRole("button", { name: "Fruit" }));
+		fireEvent.press(screen.getAllByRole("button", { name: "Log once" })[0]);
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(app.getSearchParams()).toMatchObject({ date });
 		expect(await screen.findByText("One-off soup")).toBeTruthy();
+		expect(screen.getByLabelText("One-off soup visual")).toBeTruthy();
 	});
 
 	it("explains invalid One-off Entry amounts and keeps the entered values", async () => {
 		renderApp("/nutrition-cooking?mode=oneoff-log");
 		fireEvent.changeText(
-			await screen.findByLabelText("Food name in English"),
+			await screen.findByLabelText("Food name"),
 			"One-off soup",
 		);
-		fireEvent.changeText(
-			screen.getByLabelText("Food name in Dutch"),
-			"Eenmalige soep",
-		);
 		fireEvent.changeText(screen.getByLabelText("Amount"), "0");
-		fireEvent.press(screen.getByRole("button", { name: "Log once" }));
+		fireEvent.press(screen.getAllByRole("button", { name: "Log once" })[0]);
 		expect(
 			await screen.findByText("Enter an amount greater than zero."),
 		).toBeTruthy();
@@ -222,11 +217,33 @@ describe("Nutrition navigation", () => {
 			meal: "dinner",
 			mode: "oneoff-log",
 		});
-		expect(await screen.findByLabelText("Food name in English")).toBeTruthy();
+		expect(await screen.findByLabelText("Food name")).toBeTruthy();
 		expect(screen.getByText("Servings")).toBeTruthy();
+		expect(screen.queryByLabelText("Carbohydrates")).toBeNull();
+		const moreNutrients = screen.getByLabelText("More nutrients");
+		expect(moreNutrients.props.accessibilityState).toEqual({ expanded: false });
+		fireEvent.press(moreNutrients);
+		expect(screen.getByLabelText("Carbohydrates")).toBeTruthy();
 		fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(app.getSearchParams()).toMatchObject({ meal: "dinner" });
+	});
+
+	it("switches between One-off and reusable food authoring", async () => {
+		const app = renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		fireEvent.press(await screen.findByLabelText("More food actions"));
+		fireEvent.press(await screen.findByText("Log once"));
+
+		fireEvent.press(
+			await screen.findByRole("radio", { name: "Personal food" }),
+		);
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		expect(await screen.findByText("Create Personal Food")).toBeTruthy();
+
+		fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
+		expect(await screen.findByLabelText("Food name")).toBeTruthy();
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {
