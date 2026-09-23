@@ -19,7 +19,9 @@ export default function NutritionCookingRoute() {
 		<NutritionCookingScreen
 			date={date ?? todayIsoDate()}
 			meal={targetMeal}
-			initialMode={mode === "oneoff-log" ? mode : undefined}
+			initialMode={
+				mode === "oneoff-log" || mode === "recipe" ? mode : undefined
+			}
 		/>
 	);
 }

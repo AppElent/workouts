@@ -118,7 +118,7 @@ describe("scanning a barcode", () => {
 		expect(screen.getByText(/Product data from Open Food Facts/)).toBeTruthy();
 		expect(screen.getByText("Crop position")).toBeTruthy();
 		fireEvent.press(screen.getByRole("radio", { name: "Right" }));
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		expect((await screen.findAllByText("Baked Beans")).length).toBeGreaterThan(
 			0,
@@ -159,7 +159,7 @@ describe("scanning a barcode", () => {
 		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 		await screen.findByText("Review imported food");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
 		expect(repository.list()[0].visual).toBeUndefined();
@@ -190,7 +190,7 @@ describe("scanning a barcode", () => {
 			screen.getByLabelText("Name"),
 			"Baked Beans in Tomato Sauce",
 		);
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
 		expect(repository.list()[0].provenance.locallyEdited).toBe(true);

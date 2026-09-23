@@ -15,8 +15,8 @@ export function FoodVisualMenu<Value extends string>({
 		<Host
 			colorScheme={scheme}
 			seedColor={colors.accent}
-			matchContents={{ vertical: true }}
-			style={{ minHeight: 44, alignSelf: "stretch" }}
+			matchContents
+			style={{ minHeight: 44, alignSelf: "center" }}
 		>
 			<Menu
 				label={<Text>{label}</Text>}

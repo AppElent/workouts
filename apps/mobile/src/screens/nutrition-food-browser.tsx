@@ -722,11 +722,15 @@ export function NutritionFoodBrowser({
 				seed={forkDraft}
 				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
 				onCreateKindChange={(kind) => {
-					if (kind !== "oneOff") return;
+					if (kind === "personal") return;
 					closeEditor();
 					router.push({
 						pathname: "/nutrition-cooking",
-						params: { date, meal: selectedMeal, mode: "oneoff-log" },
+						params: {
+							date,
+							meal: selectedMeal,
+							mode: kind === "recipe" ? "recipe" : "oneoff-log",
+						},
 					});
 				}}
 				onCancel={closeEditor}

@@ -44,6 +44,8 @@ export function FormScreen({
 	onCancel,
 	primaryAction,
 	primaryActionPlacement = "fixed",
+	headerTitleBelow = false,
+	respectTopInset = false,
 	contentStyle,
 	scrollRef,
 }: {
@@ -53,6 +55,8 @@ export function FormScreen({
 	onCancel?: () => void;
 	primaryAction?: PrimaryAction;
 	primaryActionPlacement?: "fixed" | "header";
+	headerTitleBelow?: boolean;
+	respectTopInset?: boolean;
 	contentStyle?: ViewStyle;
 	scrollRef?: Ref<ScrollView>;
 }) {
@@ -69,25 +73,37 @@ export function FormScreen({
 			style={styles.screen}
 		>
 			{title ? (
-				<View style={styles.modalHeader}>
+				<View
+					style={[
+						styles.modalHeader,
+						respectTopInset && {
+							paddingTop: insets.top,
+							minHeight: 52 + insets.top,
+						},
+					]}
+				>
 					{onCancel ? (
 						<Pressable
 							onPress={onCancel}
 							accessibilityRole="button"
 							style={styles.headerAction}
 						>
-							<AppText style={styles.headerActionText}>{cancelLabel}</AppText>
+							<AppText style={styles.headerCancelText}>{cancelLabel}</AppText>
 						</Pressable>
 					) : (
 						<View style={styles.headerAction} />
 					)}
-					<AppText
-						variant="heading"
-						numberOfLines={2}
-						style={styles.modalTitle}
-					>
-						{title}
-					</AppText>
+					{headerTitleBelow ? (
+						<View style={styles.modalTitleSpacer} />
+					) : (
+						<AppText
+							variant="heading"
+							numberOfLines={2}
+							style={styles.modalTitle}
+						>
+							{title}
+						</AppText>
+					)}
 					{primaryAction && primaryActionPlacement === "header" ? (
 						<Pressable
 							onPress={primaryAction.onPress}
@@ -108,6 +124,11 @@ export function FormScreen({
 						<View style={styles.headerAction} />
 					)}
 				</View>
+			) : null}
+			{title && headerTitleBelow ? (
+				<AppText variant="heading" style={styles.modalTitleBelow}>
+					{title}
+				</AppText>
 			) : null}
 			<ScrollView
 				ref={scrollRef}
@@ -517,8 +538,14 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 		},
 		headerActionText: { color: colors.accent, fontWeight: "700" },
+		headerCancelText: { color: colors.textMuted, fontWeight: "500" },
 		headerActionTrailing: { alignItems: "flex-end" },
 		modalTitle: { flex: 1, textAlign: "center" },
+		modalTitleSpacer: { flex: 1 },
+		modalTitleBelow: {
+			paddingHorizontal: metrics.screenGutter,
+			paddingBottom: spacing.sm,
+		},
 		footer: {
 			paddingTop: spacing.sm,
 			paddingHorizontal: metrics.screenGutter,

@@ -108,7 +108,7 @@ describe("nutrition assistance screen", () => {
 			"600",
 		);
 		fireEvent.press(screen.getByText("Recipe"));
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(mockPersonalCreate).toHaveBeenCalledTimes(1));
 		expect(mockPersonalCreate).toHaveBeenCalledWith(
 			expect.objectContaining({

@@ -7,7 +7,15 @@ import {
 } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import {
+	KeyboardAvoidingView,
+	Modal,
+	Platform,
+	Pressable,
+	StyleSheet,
+	TextInput,
+	View,
+} from "react-native";
 import {
 	type FoodPhotoCropPosition,
 	type FoodPhotoManager,
@@ -33,7 +41,6 @@ import {
 	DisclosureRow,
 	EditableValueRow,
 	FormChoiceChips,
-	FormPreview,
 	FormScreen,
 	FormSection,
 	FormTextField,
@@ -172,8 +179,6 @@ export function PersonalFoodEditorForm({
 	const savedPhoto = useRef(false);
 	const otherLocale = locale === "en" ? "nl" : "en";
 	const [primaryName, setPrimaryName] = useState(initial?.name[locale] ?? "");
-	const [otherName, setOtherName] = useState(initial?.name[otherLocale] ?? "");
-	const [otherNameOpen, setOtherNameOpen] = useState(false);
 	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
 		initial?.baseUnit === "ml" ? "ml" : "g",
 	);
@@ -243,12 +248,11 @@ export function PersonalFoodEditorForm({
 					: { kind: input.kind };
 		}
 
-		const fallbackOtherName =
-			otherName.trim().length > 0 ? otherName : primaryName;
+		const hiddenName = initial?.name[otherLocale] ?? primaryName;
 		const name =
 			locale === "en"
-				? { en: primaryName, nl: fallbackOtherName }
-				: { en: fallbackOtherName, nl: primaryName };
+				? { en: primaryName, nl: hiddenName }
+				: { en: hiddenName, nl: primaryName };
 		const editable: EditorSeed = {
 			name,
 			baseUnit: basisKind === "perServing" ? "serving" : baseUnit,
@@ -515,12 +519,13 @@ export function PersonalFoodEditorForm({
 	return (
 		<FormScreen
 			title={title}
+			headerTitleBelow
+			respectTopInset
 			cancelLabel={t.nutrition.personalFood.cancel}
 			onCancel={saving || photoBusy ? undefined : cancel}
 			primaryAction={{
-				label: saving
-					? t.nutrition.personalFood.saving
-					: t.nutrition.personalFood.save,
+				label: saving ? copy.saving : copy.save,
+				accessibilityLabel: t.nutrition.personalFood.save,
 				loading: saving,
 				onPress: save,
 			}}
@@ -530,8 +535,11 @@ export function PersonalFoodEditorForm({
 				<FoodAuthoringTabs
 					value={classification === "recipe" ? "recipe" : "personal"}
 					onChange={(kind) => {
-						if (kind === "oneOff") onCreateKindChange?.(kind);
-						else setClassification(kind === "recipe" ? "recipe" : "ordinary");
+						if (onCreateKindChange) {
+							onCreateKindChange(kind);
+							return;
+						}
+						setClassification(kind === "recipe" ? "recipe" : "ordinary");
 					}}
 				/>
 			) : null}
@@ -551,37 +559,51 @@ export function PersonalFoodEditorForm({
 				</GroupedSurface>
 			) : null}
 
-			<FormSection title={copy.visual}>
-				<FormPreview>
-					{photoUnavailable ? (
-						<>
+			<FormSection>
+				<View style={styles.identityRow}>
+					<View style={styles.compactVisual}>
+						{photoUnavailable ? (
+							<>
+								<FoodVisualView
+									label={copy.visual}
+									accessibilityLabel={copy.visual}
+									size={48}
+								/>
+								<AppText accessibilityRole="alert" style={styles.error}>
+									{copy.photoUnavailable}
+								</AppText>
+							</>
+						) : visual?.kind === "remote" ? (
+							<Image
+								source={visual.uri}
+								accessibilityLabel={copy.visual}
+								contentFit="cover"
+								contentPosition={remoteCrop}
+								style={styles.compactVisualImage}
+							/>
+						) : (
 							<FoodVisualView
+								visual={visual}
 								label={copy.visual}
 								accessibilityLabel={copy.visual}
-								size={112}
+								size={48}
 							/>
-							<AppText accessibilityRole="alert" style={styles.error}>
-								{copy.photoUnavailable}
-							</AppText>
-						</>
-					) : visual?.kind === "remote" ? (
-						<Image
-							source={visual.uri}
-							accessibilityLabel={copy.visual}
-							contentFit="cover"
-							contentPosition={remoteCrop}
-							style={styles.visualImage}
+						)}
+					</View>
+					<View style={styles.identityFields}>
+						<AppText variant="label">{copy.name}</AppText>
+						<TextInput
+							accessibilityLabel={copy.name}
+							value={primaryName}
+							onChangeText={setPrimaryName}
+							autoCorrect={false}
+							style={styles.nameInput}
 						/>
-					) : (
-						<FoodVisualView
-							visual={visual}
-							label={copy.visual}
-							accessibilityLabel={copy.visual}
-							size={112}
-						/>
-					)}
+					</View>
+				</View>
+				<InlineActionRow>
 					{visual?.kind === "photo" || visual?.kind === "remote" ? (
-						<InlineActionRow>
+						<>
 							<TextAction
 								label={copy.replacePhoto}
 								onPress={() => void choosePhoto("library")}
@@ -593,9 +615,9 @@ export function PersonalFoodEditorForm({
 								disabled={photoBusy}
 								tone="destructive"
 							/>
-						</InlineActionRow>
+						</>
 					) : (
-						<InlineActionRow>
+						<>
 							<TextAction
 								label={copy.takePhoto}
 								onPress={() => void choosePhoto("camera")}
@@ -606,9 +628,27 @@ export function PersonalFoodEditorForm({
 								onPress={() => void choosePhoto("library")}
 								disabled={photoBusy}
 							/>
-						</InlineActionRow>
+						</>
 					)}
-				</FormPreview>
+					<FoodVisualMenu
+						label={copy.visual}
+						options={visualChoices}
+						selectedValue={
+							visual?.kind === "icon"
+								? visual.preset
+								: visual === undefined
+									? "default"
+									: undefined
+						}
+						onSelect={(id) =>
+							replaceVisual(
+								id === "default"
+									? undefined
+									: { kind: "icon", preset: id as FoodVisualPresetId },
+							)
+						}
+					/>
+				</InlineActionRow>
 				{visual?.kind === "remote" ? (
 					<>
 						<AppText variant="caption">{copy.cropPosition}</AppText>
@@ -628,53 +668,6 @@ export function PersonalFoodEditorForm({
 					<AppText selectable accessibilityRole="alert" style={styles.error}>
 						{visualError}
 					</AppText>
-				) : null}
-				<FoodVisualMenu
-					label={copy.visual}
-					options={visualChoices}
-					selectedValue={
-						visual?.kind === "icon"
-							? visual.preset
-							: visual === undefined
-								? "default"
-								: undefined
-					}
-					onSelect={(id) =>
-						replaceVisual(
-							id === "default"
-								? undefined
-								: { kind: "icon", preset: id as FoodVisualPresetId },
-						)
-					}
-				/>
-			</FormSection>
-
-			<FormSection>
-				<FormTextField
-					label={copy.name}
-					value={primaryName}
-					onChangeText={setPrimaryName}
-					autoCorrect={false}
-				/>
-				<DisclosureRow
-					label={copy.otherName}
-					accessibilityLabel={
-						otherNameOpen
-							? copy.hideOtherName
-							: otherName.trim()
-								? copy.editOtherName
-								: copy.addOtherName
-					}
-					expanded={otherNameOpen}
-					onPress={() => setOtherNameOpen((open) => !open)}
-				/>
-				{otherNameOpen ? (
-					<FormTextField
-						label={copy.otherName}
-						value={otherName}
-						onChangeText={setOtherName}
-						autoCorrect={false}
-					/>
 				) : null}
 			</FormSection>
 
@@ -823,42 +816,59 @@ export function PersonalFoodEditorForm({
 						<AddRow label={copy.addServing} onPress={beginAddingServing} />
 					) : null}
 					{servingsOpen && addingServing ? (
-						<View style={styles.servingEditor}>
-							<FormTextField
-								autoFocus
-								label={copyWithServing(copy.servingName, servingNumber)}
-								value={newServingName}
-								onChangeText={setNewServingName}
-								autoCorrect={false}
-							/>
-							<FormTextField
-								label={copyWithServing(
-									copy.servingAmount,
-									servingNumber,
-									baseUnit,
-								)}
-								placeholder={`100 ${baseUnit}`}
-								keyboardType="decimal-pad"
-								value={newServingAmount}
-								onChangeText={setNewServingAmount}
-								onSubmitEditing={saveServing}
-							/>
-							<InlineActionRow>
-								<TextAction
-									label={t.nutrition.personalFood.cancel}
-									tone="neutral"
+						<Modal
+							transparent
+							animationType="fade"
+							onRequestClose={closeServingEditor}
+						>
+							<KeyboardAvoidingView
+								behavior={Platform.OS === "ios" ? "padding" : "height"}
+								style={styles.servingOverlay}
+							>
+								<Pressable
+									accessibilityRole="button"
+									accessibilityLabel={t.nutrition.personalFood.cancel}
+									style={StyleSheet.absoluteFill}
 									onPress={closeServingEditor}
 								/>
-								<PrimaryButton
-									label={
-										editingServingIndex === undefined
-											? copy.saveServing
-											: copy.updateServing
-									}
-									onPress={saveServing}
-								/>
-							</InlineActionRow>
-						</View>
+								<View style={styles.servingEditor}>
+									<FormTextField
+										autoFocus
+										label={copyWithServing(copy.servingName, servingNumber)}
+										value={newServingName}
+										onChangeText={setNewServingName}
+										autoCorrect={false}
+									/>
+									<FormTextField
+										label={copyWithServing(
+											copy.servingAmount,
+											servingNumber,
+											baseUnit,
+										)}
+										placeholder={`100 ${baseUnit}`}
+										keyboardType="decimal-pad"
+										value={newServingAmount}
+										onChangeText={setNewServingAmount}
+										onSubmitEditing={saveServing}
+									/>
+									<InlineActionRow>
+										<TextAction
+											label={t.nutrition.personalFood.cancel}
+											tone="neutral"
+											onPress={closeServingEditor}
+										/>
+										<PrimaryButton
+											label={
+												editingServingIndex === undefined
+													? copy.saveServing
+													: copy.updateServing
+											}
+											onPress={saveServing}
+										/>
+									</InlineActionRow>
+								</View>
+							</KeyboardAvoidingView>
+						</Modal>
 					) : null}
 				</FormSection>
 			) : null}
@@ -875,13 +885,46 @@ export function PersonalFoodEditorForm({
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		notice: { gap: spacing.xs },
-		visualImage: {
-			width: 112,
-			height: 112,
+		identityRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.md,
+			padding: spacing.sm,
+		},
+		identityFields: { flex: 1, minWidth: 0, gap: spacing.xs },
+		nameInput: {
+			minHeight: 44,
+			borderRadius: radius.md,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface2,
+			paddingHorizontal: spacing.md,
+			color: colors.text,
+			fontSize: 16,
+		},
+		compactVisual: {
+			width: 48,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		compactVisualImage: {
+			width: 48,
+			height: 48,
 			borderRadius: radius.lg,
 			backgroundColor: colors.surface2,
 		},
 		segmentedRow: { padding: spacing.md },
-		servingEditor: { gap: spacing.sm, backgroundColor: colors.surface2 },
+		servingOverlay: {
+			flex: 1,
+			justifyContent: "flex-end",
+			backgroundColor: "rgba(0, 0, 0, 0.28)",
+		},
+		servingEditor: {
+			gap: spacing.sm,
+			padding: spacing.md,
+			paddingBottom: spacing.xl,
+			borderTopLeftRadius: radius.card,
+			borderTopRightRadius: radius.card,
+			backgroundColor: colors.surface,
+		},
 		error: { color: colors.danger },
 	});

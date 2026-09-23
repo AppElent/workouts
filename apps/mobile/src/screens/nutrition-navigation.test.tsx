@@ -234,15 +234,22 @@ describe("Nutrition navigation", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		fireEvent.press(await screen.findByLabelText("More food actions"));
 		fireEvent.press(await screen.findByText("Log once"));
+		fireEvent.press(await screen.findByRole("radio", { name: "Recipe" }));
+		expect(app.getPathname()).toBe("/nutrition-cooking");
+		expect(
+			(await screen.findByRole("radio", { name: "Recipe" })).props
+				.accessibilityState,
+		).toMatchObject({ selected: true });
+		expect(screen.getByLabelText("Food name")).toBeTruthy();
 
 		fireEvent.press(
 			await screen.findByRole("radio", { name: "Personal food" }),
 		);
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
 		expect(await screen.findByText("Create Personal Food")).toBeTruthy();
 
 		fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
+		expect(app.getPathname()).toBe("/nutrition-cooking");
 		expect(await screen.findByLabelText("Food name")).toBeTruthy();
 	});
 

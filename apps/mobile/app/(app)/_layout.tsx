@@ -196,10 +196,7 @@ export default function AppLayout() {
 																	? "Eenmalig loggen"
 																	: "Log once",
 															headerShown: false,
-															presentation: "formSheet",
-															sheetAllowedDetents: [0.5, 1],
-															sheetInitialDetentIndex: 0,
-															sheetGrabberVisible: true,
+															presentation: "modal",
 														}}
 													/>
 													<Stack.Screen

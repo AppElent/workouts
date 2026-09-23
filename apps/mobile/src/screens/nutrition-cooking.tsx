@@ -5,9 +5,14 @@ import {
 } from "@workouts/core/nutrition";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	TextInput,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFoodAuthoringIntent } from "../data/food-authoring-intent";
 import { foodPhotos } from "../data/food-photo-manager";
 import { nutritionCookingCopy } from "../data/nutrition-cooking-copy";
 import type { MealSlot } from "../data/nutrition-day";
@@ -21,6 +26,7 @@ import {
 	type FoodVisual,
 	type FoodVisualPresetId,
 } from "../data/personal-food-repository";
+import { usePersonalFoods } from "../data/personal-foods";
 import { useI18n } from "../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
@@ -31,7 +37,6 @@ import {
 	DisclosureRow,
 	FormSection,
 	FormSegmentedRow,
-	FormTextField,
 	InlineActionRow,
 	InlineNumberFieldRow,
 	TextAction,
@@ -39,10 +44,14 @@ import {
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { FoodAuthoringTabs } from "./food-authoring-tabs";
+import {
+	type FoodAuthoringKind,
+	FoodAuthoringTabs,
+} from "./food-authoring-tabs";
 import { personalFoodEditorCopy } from "./personal-food-editor-copy";
+import { PersonalFoodEditorForm } from "./personal-food-editor-form";
 
-type Mode = "hub" | "oneoff-log";
+type Mode = "hub" | FoodAuthoringKind;
 
 const EMPTY_NUTRIENT_INPUTS = Object.fromEntries(
 	NUTRIENT_KEYS.map((key) => [key, ""]),
@@ -55,7 +64,7 @@ export function NutritionCookingScreen({
 }: {
 	date: string;
 	meal: MealSlot;
-	initialMode?: Exclude<Mode, "hub">;
+	initialMode?: "oneoff-log" | FoodAuthoringKind;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const { locale, t } = useI18n();
@@ -63,11 +72,24 @@ export function NutritionCookingScreen({
 	const operations = useNutritionOperations();
 	const toast = useToast();
 	const router = useRouter();
-	const [mode, setMode] = useState<Mode>(() => initialMode ?? "hub");
+	const [mode, setMode] = useState<Mode>(() =>
+		initialMode === "oneoff-log" ? "oneOff" : (initialMode ?? "hub"),
+	);
 
-	if (mode === "oneoff-log") {
+	if (mode === "personal") {
+		return (
+			<PersonalFoodEditorForm
+				onCancel={() => setMode("oneOff")}
+				onCreateKindChange={setMode}
+				onSaved={() => setMode("oneOff")}
+			/>
+		);
+	}
+
+	if (mode === "oneOff" || mode === "recipe") {
 		return (
 			<OneOffLogger
+				kind={mode}
 				copy={copy}
 				locale={locale}
 				date={date}
@@ -78,6 +100,7 @@ export function NutritionCookingScreen({
 				onAccepted={() =>
 					router.dismissTo({ pathname: "/nutrition", params: { date } })
 				}
+				onKindChange={setMode}
 				onCancel={() => {
 					if (!initialMode) setMode("hub");
 					else if (router.canGoBack()) router.back();
@@ -97,15 +120,13 @@ export function NutritionCookingScreen({
 				<AppText variant="heading">{copy.storageTitle}</AppText>
 				<AppText variant="caption">{copy.storageBody}</AppText>
 			</Card>
-			<PrimaryButton
-				label={copy.logOnce}
-				onPress={() => setMode("oneoff-log")}
-			/>
+			<PrimaryButton label={copy.logOnce} onPress={() => setMode("oneOff")} />
 		</ScrollView>
 	);
 }
 
 function OneOffLogger({
+	kind,
 	copy,
 	locale,
 	date,
@@ -115,7 +136,9 @@ function OneOffLogger({
 	toast,
 	onAccepted,
 	onCancel,
+	onKindChange,
 }: {
+	kind: "oneOff" | "recipe";
 	copy: ReturnType<typeof nutritionCookingCopy>;
 	locale: "en" | "nl";
 	date: string;
@@ -125,11 +148,11 @@ function OneOffLogger({
 	toast: { error: (message: string) => void };
 	onAccepted: () => void;
 	onCancel: () => void;
+	onKindChange: (kind: FoodAuthoringKind) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
-	const router = useRouter();
-	const authoringIntent = useFoodAuthoringIntent();
+	const personalFoods = usePersonalFoods();
 	const visualCopy = personalFoodEditorCopy[locale];
 	const [name, setName] = useState("");
 	const [amount, setAmount] = useState("");
@@ -208,6 +231,35 @@ function OneOffLogger({
 		try {
 			loggingRef.current = true;
 			setLogging(true);
+			if (kind === "recipe") {
+				const recipeNutrients = Object.fromEntries(
+					NUTRIENT_KEYS.map((key) => [
+						key,
+						nutrients[key] ?? { kind: "absent" as const },
+					]),
+				) as Record<NutrientKey, NutrientValue>;
+				personalFoods.create({
+					name: { en: name.trim(), nl: name.trim() },
+					baseUnit: "serving",
+					nutrients: recipeNutrients,
+					servings: [],
+					classification: "recipe",
+					nutritionBasis: {
+						kind: "perServing",
+						label: { en: "serving", nl: "portie" },
+					},
+					estimated: true,
+					provenance: {
+						recordOrigin: "personal",
+						nutritionSource: "manual",
+						locallyEdited: false,
+					},
+					...(visual ? { visual } : {}),
+				});
+				visualCommitted.current = true;
+				onAccepted();
+				return;
+			}
 			operations.create(
 				subject,
 				oneOffLogSnapshot({
@@ -235,22 +287,31 @@ function OneOffLogger({
 
 	return (
 		<>
-			<View collapsable={false} style={styles.sheetHeader}>
+			<View
+				collapsable={false}
+				style={[
+					styles.sheetHeader,
+					{ paddingTop: insets.top, minHeight: 52 + insets.top },
+				]}
+			>
 				<Pressable
 					onPress={cancel}
 					disabled={logging}
 					accessibilityRole="button"
 					style={styles.sheetHeaderAction}
 				>
-					<AppText style={styles.sheetHeaderActionText}>{copy.cancel}</AppText>
+					<AppText style={styles.sheetHeaderCancelText}>{copy.cancel}</AppText>
 				</Pressable>
-				<AppText variant="heading" numberOfLines={1} style={styles.sheetTitle}>
-					{copy.logOnce}
-				</AppText>
+				<View style={styles.sheetTitleSpacer} />
 				<Pressable
 					onPress={log}
 					disabled={logging || !name.trim() || !amount.trim()}
 					accessibilityRole="button"
+					accessibilityLabel={
+						kind === "recipe"
+							? `${visualCopy.save} ${visualCopy.recipe}`
+							: copy.logOnceConfirm
+					}
 					accessibilityState={{
 						disabled: logging || !name.trim() || !amount.trim(),
 						busy: logging,
@@ -258,10 +319,13 @@ function OneOffLogger({
 					style={styles.sheetHeaderAction}
 				>
 					<AppText style={styles.sheetHeaderActionText}>
-						{copy.logOnceConfirm}
+						{visualCopy.save}
 					</AppText>
 				</Pressable>
 			</View>
+			<AppText variant="heading" style={styles.sheetTitleBelow}>
+				{kind === "recipe" ? visualCopy.recipe : copy.logOnce}
+			</AppText>
 			<ScrollView
 				style={styles.root}
 				contentInsetAdjustmentBehavior="automatic"
@@ -274,81 +338,72 @@ function OneOffLogger({
 					{ paddingBottom: Math.max(insets.bottom, spacing.lg) },
 				]}
 			>
-				<FoodAuthoringTabs
-					value="oneOff"
-					onChange={(value) => {
-						if (value === "oneOff") return;
-						replaceVisual(undefined);
-						authoringIntent.request(value);
-						router.dismissTo({
-							pathname: "/nutrition-food",
-							params: { date, meal, create: value },
-						});
-					}}
-				/>
-				<FormSection title={visualCopy.visual}>
-					<View style={styles.visualRow}>
+				<FoodAuthoringTabs value={kind} onChange={onKindChange} />
+				<FormSection>
+					<View style={styles.identityRow}>
 						<FoodVisualView
 							visual={visual}
 							label={name || visualCopy.visual}
-							size={52}
+							size={48}
 						/>
-						<View style={styles.visualActions}>
-							<FoodVisualMenu
-								label={visualCopy.visual}
-								options={[
-									{ value: "default", label: visualCopy.defaultVisual },
-									...FOOD_VISUAL_PRESET_IDS.map((preset) => ({
-										value: preset,
-										label: visualCopy.visualPresets[preset],
-									})),
-								]}
-								selectedValue={
-									visual?.kind === "icon" ? visual.preset : "default"
-								}
-								onSelect={(id) =>
-									replaceVisual(
-										id === "default"
-											? undefined
-											: {
-													kind: "icon",
-													preset: id as FoodVisualPresetId,
-												},
-									)
-								}
+						<View style={styles.identityFields}>
+							<AppText variant="label">{copy.oneOffFoodName}</AppText>
+							<TextInput
+								accessibilityLabel={copy.oneOffFoodName}
+								value={name}
+								onChangeText={setName}
+								style={styles.nameInput}
 							/>
-							<InlineActionRow>
-								<TextAction
-									label={
-										visual?.kind === "photo"
-											? visualCopy.replacePhoto
-											: visualCopy.choosePhoto
-									}
-									onPress={() => void choosePhoto()}
-									disabled={photoBusy}
-								/>
-								{visual?.kind === "photo" ? (
-									<TextAction
-										label={visualCopy.removePhoto}
-										onPress={() => replaceVisual(undefined)}
-										disabled={photoBusy}
-										tone="destructive"
-									/>
-								) : null}
-							</InlineActionRow>
 						</View>
+					</View>
+					<View style={styles.visualActions}>
+						<FoodVisualMenu
+							label={visualCopy.visual}
+							options={[
+								{ value: "default", label: visualCopy.defaultVisual },
+								...FOOD_VISUAL_PRESET_IDS.map((preset) => ({
+									value: preset,
+									label: visualCopy.visualPresets[preset],
+								})),
+							]}
+							selectedValue={
+								visual?.kind === "icon" ? visual.preset : "default"
+							}
+							onSelect={(id) =>
+								replaceVisual(
+									id === "default"
+										? undefined
+										: {
+												kind: "icon",
+												preset: id as FoodVisualPresetId,
+											},
+								)
+							}
+						/>
+						<InlineActionRow>
+							<TextAction
+								label={
+									visual?.kind === "photo"
+										? visualCopy.replacePhoto
+										: visualCopy.choosePhoto
+								}
+								onPress={() => void choosePhoto()}
+								disabled={photoBusy}
+							/>
+							{visual?.kind === "photo" ? (
+								<TextAction
+									label={visualCopy.removePhoto}
+									onPress={() => replaceVisual(undefined)}
+									disabled={photoBusy}
+									tone="destructive"
+								/>
+							) : null}
+						</InlineActionRow>
 					</View>
 				</FormSection>
 				<AppText variant="caption">
 					{date} · {mealLabel(meal, locale)}
 				</AppText>
-				<FormSection>
-					<FormTextField
-						label={copy.oneOffFoodName}
-						value={name}
-						onChangeText={setName}
-					/>
-				</FormSection>
 				<FormSection title={copy.amount}>
 					<FormSegmentedRow
 						options={[
@@ -435,13 +490,33 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 		},
 		sheetHeaderActionText: { color: colors.accent, fontWeight: "700" },
-		sheetTitle: { flex: 1, textAlign: "center" },
-		visualRow: {
+		sheetHeaderCancelText: { color: colors.textMuted, fontWeight: "500" },
+		sheetTitleSpacer: { flex: 1 },
+		sheetTitleBelow: {
+			paddingHorizontal: 20,
+			paddingBottom: spacing.sm,
+		},
+		identityRow: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.md,
-			padding: spacing.md,
+			padding: spacing.sm,
 		},
-		visualActions: { flex: 1 },
+		identityFields: { flex: 1, minWidth: 0, gap: spacing.xs },
+		nameInput: {
+			minHeight: 44,
+			borderRadius: 8,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface2,
+			paddingHorizontal: spacing.md,
+			color: colors.text,
+			fontSize: 16,
+		},
+		visualActions: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "flex-end",
+			paddingHorizontal: spacing.sm,
+		},
 		card: { gap: spacing.xs },
 	});
