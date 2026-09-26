@@ -51,7 +51,7 @@ describe("correcting a shipped food", () => {
 		const { repository } = renderApp();
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await screen.findByText("Your correction of Apple w skin av");
 		const [fork] = repository.list();
@@ -65,7 +65,7 @@ describe("correcting a shipped food", () => {
 		const { repository } = renderApp();
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await screen.findByText("Your correction of Apple w skin av");
 		expect(repository.list()[0].provenance).toEqual({
@@ -85,7 +85,7 @@ describe("correcting a shipped food", () => {
 	it("uses one name and records the resulting local correction", async () => {
 		const { repository } = renderApp();
 		await correctTheApple();
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await screen.findByText("Your correction of Apple w skin av");
 		expect(repository.list()[0].name).toEqual({ en: "Apple", nl: "Apple" });
@@ -98,7 +98,7 @@ describe("correcting a shipped food", () => {
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Name"), "Elstar apple");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await screen.findByText("Your correction of Apple w skin av");
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 
@@ -114,7 +114,7 @@ describe("correcting a shipped food", () => {
 	it("keeps the replaced-source provenance visible in the full catalogue", async () => {
 		renderApp();
 		await correctTheApple();
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await screen.findByText("Your correction of Apple w skin av");
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 
@@ -126,7 +126,7 @@ describe("correcting a shipped food", () => {
 	it("restores the shipped food when the correction is deleted", async () => {
 		const { repository } = renderApp();
 		await correctTheApple();
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await screen.findByText("Your correction of Apple w skin av");
 
 		fireEvent.press(screen.getByText("Delete Personal Food"));
@@ -156,7 +156,7 @@ describe("what a correction does to the diary", () => {
 		const { repository } = renderApp();
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await screen.findByText("Your correction of Apple w skin av");
 
 		fireEvent.press(screen.getByText("Add & continue"));
@@ -194,7 +194,7 @@ describe("what a correction does to the diary", () => {
 
 		await correctTheApple("Dinner");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await screen.findByText("Your correction of Apple w skin av");
 
 		// The snapshot already written is untouched: same id, same figures. The
@@ -218,7 +218,7 @@ describe("correcting a shipped food offline", () => {
 		const { repository } = renderApp();
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await screen.findByText("Your correction of Apple w skin av");
 
 		fireEvent.press(screen.getByText("Add & continue"));
@@ -254,7 +254,7 @@ describe("correcting a shipped food in Dutch", () => {
 
 		fireEvent.press(await screen.findByText("Dit voedingsmiddel corrigeren"));
 		expect(await screen.findByLabelText("Naam")).toBeTruthy();
-		fireEvent.press(screen.getByText("Persoonlijk voedingsmiddel opslaan"));
+		fireEvent.press(screen.getByText("Opslaan"));
 
 		expect(
 			await screen.findByText("Jouw correctie van Appel m schil gem"),

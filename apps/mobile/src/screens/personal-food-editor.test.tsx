@@ -120,7 +120,7 @@ describe("Personal Food compact authoring", () => {
 		expect(screen.getByText("Default")).toBeTruthy();
 		fireEvent.changeText(screen.getByLabelText("Name"), "Apple");
 		fireEvent.press(screen.getByRole("button", { name: "Fruit" }));
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(first.onSaved).toHaveBeenCalledTimes(1));
 		expect(
 			first.repository.find(first.onSaved.mock.calls[0][0].id)?.visual,
@@ -128,7 +128,7 @@ describe("Personal Food compact authoring", () => {
 
 		const second = renderEditor();
 		fireEvent.changeText(screen.getByLabelText("Name"), "Plain oats");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(second.onSaved).toHaveBeenCalledTimes(1));
 		expect(
 			second.repository.find(second.onSaved.mock.calls[0][0].id)?.visual,
@@ -151,7 +151,7 @@ describe("Personal Food compact authoring", () => {
 		expect(
 			(await screen.findAllByLabelText("Food visual")).length,
 		).toBeGreaterThan(0);
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(photoManager.choose).toHaveBeenCalledWith("library");
@@ -174,13 +174,13 @@ describe("Personal Food compact authoring", () => {
 				"That photo could not be prepared. Your current visual is unchanged.",
 			),
 		).toBeTruthy();
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		expect(onSaved).not.toHaveBeenCalled();
 		expect(repository.list()).toEqual([]);
 
 		fireEvent.press(screen.getByRole("button", { name: "Food visual" }));
 		fireEvent.press(screen.getByRole("button", { name: "Fruit" }));
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 	});
 
@@ -224,7 +224,7 @@ describe("Personal Food compact authoring", () => {
 			).toEqual([{ uri: "file:///documents/food-photos/new.jpg" }]),
 		);
 		expect(photoManager.remove).not.toHaveBeenCalledWith(oldPhoto);
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(repository.find(food.id)?.visual).toEqual({
@@ -248,7 +248,7 @@ describe("Personal Food compact authoring", () => {
 			screen.getByLabelText("Energy per serving (Bowl)"),
 			"550",
 		);
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(repository.find(onSaved.mock.calls[0][0].id)).toMatchObject({
 			classification: "recipe",
@@ -303,7 +303,7 @@ describe("Personal Food compact authoring", () => {
 			"500",
 		);
 		fireEvent.press(screen.getByText("Add portion"));
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		const created = repository.find(onSaved.mock.calls[0][0].id);
@@ -354,7 +354,7 @@ describe("Personal Food compact authoring", () => {
 		);
 
 		fireEvent.changeText(screen.getByLabelText("Name"), "Workout drink");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(repository.find(food.id)?.name).toEqual({
 			en: "Workout drink",
@@ -400,7 +400,7 @@ describe("Personal Food compact authoring", () => {
 		);
 		fireEvent.press(screen.getByText("Per serving"));
 		fireEvent.changeText(screen.getByLabelText("Serving name"), "Bowl");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(repository.find(food.id)).toMatchObject({
 			baseUnit: "serving",
@@ -465,7 +465,7 @@ describe("Personal Food compact authoring", () => {
 		expect(screen.getByText("750 ml")).toBeTruthy();
 		expect(screen.queryByLabelText("Serving 1 name")).toBeNull();
 
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(repository.find(food.id)?.servings).toEqual([
 			{ label: { en: "Large bottle", nl: "Fles" }, amount: 750 },
@@ -475,7 +475,7 @@ describe("Personal Food compact authoring", () => {
 	it("keeps invalid input in place and explains what must change", async () => {
 		const { repository } = renderEditor();
 		fireEvent.changeText(screen.getByLabelText("Name"), "");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		expect(await screen.findByText("Enter a food name.")).toBeTruthy();
 		expect(screen.getByLabelText("Name").props.value).toBe("");
@@ -519,7 +519,7 @@ describe("Personal Food compact authoring", () => {
 		};
 		renderEditor(failing);
 		fireEvent.changeText(screen.getByLabelText("Name"), "Keep me");
-		fireEvent.press(screen.getByText("Save Personal Food"));
+		fireEvent.press(screen.getByText("Save"));
 
 		expect(
 			await screen.findByText(

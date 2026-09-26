@@ -513,9 +513,8 @@ export function PersonalFoodEditorForm({
 			onCancel={saving || photoBusy ? undefined : cancel}
 			scrollRef={scrollRef}
 			primaryAction={{
-				label: saving
-					? t.nutrition.personalFood.saving
-					: t.nutrition.personalFood.save,
+				label: saving ? copy.saving : copy.save,
+				accessibilityLabel: t.nutrition.personalFood.save,
 				loading: saving,
 				onPress: save,
 			}}

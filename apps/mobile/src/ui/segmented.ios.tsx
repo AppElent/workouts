@@ -28,7 +28,7 @@ export function Segmented<Value extends string>({
 			colorScheme={scheme}
 			seedColor={colors.accent}
 			matchContents={{ vertical: true }}
-			style={{ minHeight: 44, alignSelf: "stretch" }}
+			style={{ minHeight: 44, width: "100%" }}
 		>
 			<Picker<Value>
 				selection={value}

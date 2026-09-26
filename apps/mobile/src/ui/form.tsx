@@ -78,7 +78,7 @@ export function FormScreen({
 							accessibilityRole="button"
 							style={styles.headerAction}
 						>
-							<AppText style={styles.headerActionText}>{cancelLabel}</AppText>
+							<AppText style={styles.headerCancelText}>{cancelLabel}</AppText>
 						</Pressable>
 					) : (
 						<View style={styles.headerAction} />
@@ -522,6 +522,7 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "flex-start",
 			justifyContent: "center",
 		},
+		headerCancelText: { color: colors.textMuted, fontWeight: "500" },
 		headerActionText: { color: colors.accent, fontWeight: "700" },
 		headerActionTrailing: { alignItems: "flex-end" },
 		modalTitle: { flex: 1, textAlign: "center" },

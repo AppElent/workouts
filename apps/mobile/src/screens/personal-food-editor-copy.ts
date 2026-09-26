@@ -2,6 +2,8 @@ import type { FoodVisualPresetId } from "../data/personal-food-repository";
 import type { Locale } from "../i18n";
 
 export type PersonalFoodEditorCopy = {
+	save: string;
+	saving: string;
 	visual: string;
 	defaultVisual: string;
 	visualPresets: Readonly<Record<FoodVisualPresetId, string>>;
@@ -54,6 +56,8 @@ export type PersonalFoodEditorCopy = {
 
 export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 	en: {
+		save: "Save",
+		saving: "Saving…",
 		visual: "Food visual",
 		defaultVisual: "Default",
 		visualPresets: {
@@ -125,6 +129,8 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 		servingAmount: "Serving {number} amount in {unit}",
 	},
 	nl: {
+		save: "Opslaan",
+		saving: "Opslaan…",
 		visual: "Voedingsicoon",
 		defaultVisual: "Standaard",
 		visualPresets: {

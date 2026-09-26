@@ -242,7 +242,7 @@ function OneOffLogger({
 					accessibilityRole="button"
 					style={styles.sheetHeaderAction}
 				>
-					<AppText style={styles.sheetHeaderActionText}>{copy.cancel}</AppText>
+					<AppText style={styles.sheetHeaderCancelText}>{copy.cancel}</AppText>
 				</Pressable>
 				<View style={styles.sheetTitle} />
 				<Pressable
@@ -432,6 +432,7 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "center",
 			justifyContent: "center",
 		},
+		sheetHeaderCancelText: { color: colors.textMuted, fontWeight: "500" },
 		sheetHeaderActionText: { color: colors.accent, fontWeight: "700" },
 		sheetTitle: { flex: 1, textAlign: "center" },
 		visualRow: {
