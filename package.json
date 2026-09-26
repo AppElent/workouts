@@ -16,7 +16,7 @@
     "dev:all": "pnpm exec convex dev --once && pnpm dev",
     "dev:watch": "concurrently -n convex,vite -c blue,green \"pnpm exec convex dev\" \"pnpm dev\"",
     "build": "vite build && node scripts/generate-sw.mjs",
-    "build:development": "vite build --mode development && node scripts/generate-sw.mjs",
+    "build:development": "CLOUDFLARE_ENV=dev vite build --mode development && node scripts/generate-sw.mjs",
     "preview": "pnpm build:development && wrangler dev",
     "test": "vitest run",
     "build:packages": "pnpm --filter @workouts/core build",
