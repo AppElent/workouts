@@ -1,3 +1,4 @@
+import { exerciseReference, requireExercise, normalizeExerciseTemplate } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { ConvexError, v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
@@ -33,7 +34,7 @@ const template = v.object({
   strengthBlocks: v.array(
     v.object({
       blockId: v.string(),
-      exerciseId: v.optional(v.id('exercises')),
+      exerciseId: v.optional(exerciseReference),
       exerciseName: v.string(),
       instructions: v.optional(v.string()),
       defaultSets: v.optional(v.number()),
@@ -132,6 +133,9 @@ export const createDraft = mutation({
     const hostUserId = await requireUser(ctx)
     if (!args.title.trim()) throw new ConvexError('Title is required.')
     assertTemplateIsUsable(args.template)
+    for (const block of args.template.strengthBlocks) {
+      if (block.exerciseId) block.exerciseId = await requireExercise(ctx, block.exerciseId, hostUserId)
+    }
     const now = Date.now()
     return ctx.db.insert('hostedWorkouts', {
       hostUserId,
@@ -173,7 +177,7 @@ export const getMine = query({
       .query('hostedWorkoutSubmissions')
       .withIndex('by_hosted_workout', (q) => q.eq('hostedWorkoutId', id))
       .collect()
-    return { hosted, participants, submissions }
+    return { hosted: { ...hosted, template: await normalizeExerciseTemplate(ctx, hosted.template) }, participants, submissions }
   },
 })
 
@@ -253,6 +257,9 @@ export const updateDraft = mutation({
       throw new ConvexError('Only draft workouts can be edited.')
     if (!patch.title.trim()) throw new ConvexError('Title is required.')
     assertTemplateIsUsable(patch.template)
+    for (const block of patch.template.strengthBlocks) {
+      if (block.exerciseId) block.exerciseId = await requireExercise(ctx, block.exerciseId, hostUserId)
+    }
     await ctx.db.patch(id, {
       ...patch,
       title: patch.title.trim(),

@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import type { Exercise, ExerciseId } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronUp, Plus, Weight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,9 +12,9 @@ import { SetCard } from "./SetCard";
 import { SetRow } from "./SetRow";
 
 interface Props {
-	exerciseId: Id<"exercises">;
+	exerciseId: ExerciseId;
 	exerciseName: string;
-	equipment: Doc<"exercises">["equipment"];
+	equipment: Exercise["equipment"];
 	weightIncrement?: number;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];

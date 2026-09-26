@@ -14,11 +14,13 @@
  * your 1RM estimate is stale.
  */
 import { calculateOneRepMax } from "@workouts/core";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { api, type Id } from "../convex/api";
+import { api } from "../convex/api";
+import { useExercise } from "../data/exercises";
 import { formatSessionDate } from "../data/session-data";
 import {
 	radius,
@@ -42,14 +44,11 @@ export function ExerciseDetailScreen() {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const params = useLocalSearchParams<{ id?: string }>();
-	const exerciseId = params.id as Id<"exercises"> | undefined;
+	const exerciseId = params.id as ExerciseId | undefined;
 
 	const [tab, setTab] = useState<Tab>("Overview");
 
-	const exercise = useQuery(
-		api.exercises.getById,
-		exerciseId ? { id: exerciseId } : "skip",
-	);
+	const exercise = useExercise(exerciseId);
 	const history = useQuery(
 		api.exercises.getHistory,
 		exerciseId ? { exerciseId } : "skip",
@@ -226,7 +225,7 @@ function ProgressTab({
 	history,
 	currentOrm,
 }: {
-	exerciseId: Id<"exercises"> | undefined;
+	exerciseId: ExerciseId | undefined;
 	history: ReturnType<typeof useQuery<typeof api.exercises.getHistory>>;
 	currentOrm: { value: number } | null;
 }) {

@@ -28,7 +28,7 @@ pnpm format     # Biome formatter
 pnpm check      # Biome lint + format check combined
 pnpm workouts   # Run the repo-local Workouts CLI
 pnpm cli:smoke  # Smoke-test the CLI wrapper
-pnpm seed:exercises  # Seed the default exercise library (idempotent)
+pnpm seed:exercises  # Compatibility no-op; exercises ship with the app
 pnpm seed:wods       # Seed the default benchmark WODs (idempotent)
 pnpm seed:test        # Seed demo workout history for the fixed test user
 pnpm seed:clear        # Clear the fixed test user's workout history
@@ -137,7 +137,7 @@ Convex API files:
 - `convex/oneRepMaxes.ts` — store and retrieve 1RM records
 - `convex/routines.ts` — create and manage routines
 - `convex/progress.ts` — analytics and progress tracking
-- `convex/seed.ts` — seed default exercise data and benchmark WODs (`seedExercises`, `seedWods`; `seedTestData`/`clearUserData` are internal, demo-data only)
+- `convex/seed.ts` — seed benchmark WODs and demo history; `seedExercises` is an internal compatibility no-op. Historical exercise references use the migration in `docs/exercise-migration.md`.
 
 `convex/_generated/` is **auto-generated** from schema — never edit manually.
 

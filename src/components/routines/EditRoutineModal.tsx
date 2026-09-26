@@ -1,9 +1,9 @@
-import { api } from "@convex/_generated/api";
-import type { Doc, Id } from "@convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import type { Doc } from "@convex/_generated/dataModel";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { useExercises } from "#/lib/useExercises";
 
 type RoutineExercise = Doc<"routines">["exercises"][number] & {
 	exerciseName: string;
@@ -13,7 +13,7 @@ export type RoutineWithNames = Omit<Doc<"routines">, "exercises"> & {
 };
 
 interface ExerciseEntry {
-	exerciseId: Id<"exercises">;
+	exerciseId: ExerciseId;
 	name: string;
 	defaultSets: number;
 	defaultReps: number;
@@ -23,7 +23,7 @@ interface ExerciseEntry {
 export interface SavePayload {
 	name: string;
 	exercises: {
-		exerciseId: Id<"exercises">;
+		exerciseId: ExerciseId;
 		defaultSets: number;
 		defaultReps: number;
 		defaultWeight: number | undefined;
@@ -43,7 +43,7 @@ export function EditRoutineModal({ routine, open, onClose, onSave }: Props) {
 	const [search, setSearch] = useState("");
 	const [showPicker, setShowPicker] = useState(false);
 
-	const allExercises = useQuery(api.exercises.list);
+	const allExercises = useExercises();
 
 	useEffect(() => {
 		if (open) {
@@ -68,7 +68,7 @@ export function EditRoutineModal({ routine, open, onClose, onSave }: Props) {
 		e.name.toLowerCase().includes(search.toLowerCase()),
 	);
 
-	function addExercise(ex: { _id: Id<"exercises">; name: string }) {
+	function addExercise(ex: { _id: ExerciseId; name: string }) {
 		setEntries((prev) => [
 			...prev,
 			{

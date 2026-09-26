@@ -1,3 +1,4 @@
+import type { Exercise, ExerciseId } from "@workouts/core/exercises";
 /**
  * Build or change a routine. Ported from the web's
  * `src/components/routines/CreateRoutineForm.tsx` and `EditRoutineModal.tsx`,
@@ -16,7 +17,7 @@
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
-import { api, type Doc, type Id } from "../convex/api";
+import { api } from "../convex/api";
 import type { useRoutines } from "../data/session-data";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { spacing } from "../theme";
@@ -34,7 +35,7 @@ import { useToast } from "../ui/toast";
 import { AddExercisePicker } from "./add-exercise-picker";
 
 type Entry = {
-	exerciseId: Id<"exercises">;
+	exerciseId: ExerciseId;
 	name: string;
 	defaultSets: number;
 	defaultReps: number;
@@ -59,7 +60,7 @@ export function RoutineEditor({
 	presentation?: "modal" | "screen";
 	/** Omit to create a new routine; pass one to edit it in place. */
 	routine?: RoutineWithNames | null;
-	exercises: Doc<"exercises">[] | undefined;
+	exercises: Exercise[] | undefined;
 	onClose: () => void;
 }) {
 	const toast = useToast();

@@ -1,3 +1,4 @@
+import type { Exercise, ExerciseId } from "@workouts/core/exercises";
 /**
  * The mid-session "add an exercise" picker, ported from the web's
  * `src/components/session/AddExerciseModal.tsx`.
@@ -20,7 +21,6 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { Doc, Id } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import {
 	radius,
@@ -39,8 +39,8 @@ export function AddExercisePicker({
 }: {
 	visible: boolean;
 	/** `undefined` while the catalog query is in flight. */
-	exercises: Doc<"exercises">[] | undefined;
-	onSelect: (id: Id<"exercises">) => void;
+	exercises: Exercise[] | undefined;
+	onSelect: (id: ExerciseId) => void;
 	onClose: () => void;
 }) {
 	const colors = useTokens();

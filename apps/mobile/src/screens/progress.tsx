@@ -1,3 +1,4 @@
+import type { ExerciseId } from "@workouts/core/exercises";
 /**
  * Progress tab, ported from the web's `src/routes/progress/index.tsx`.
  *
@@ -16,7 +17,7 @@
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { api, type Id } from "../convex/api";
+import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { BucketChart, TrendChart } from "../ui/chart";
@@ -83,7 +84,7 @@ function ExerciseProgress({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	const [selected, setSelected] = useState<Id<"exercises"> | null>(null);
+	const [selected, setSelected] = useState<ExerciseId | null>(null);
 
 	const ormHistory = useQuery(
 		api.oneRepMaxes.listForExercise,

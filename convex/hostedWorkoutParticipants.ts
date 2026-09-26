@@ -1,3 +1,4 @@
+import { normalizeExerciseTemplate } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { ConvexError, v } from 'convex/values'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -79,7 +80,7 @@ export const getBySession = query({
     if (!participant || participant.userId !== userId) return null
     const hosted = await ctx.db.get(participant.hostedWorkoutId)
     if (!hosted) return null
-    return { hosted: toHostedSessionDto(hosted) }
+    return { hosted: toHostedSessionDto({ ...hosted, template: await normalizeExerciseTemplate(ctx, hosted.template) }) }
   },
 })
 

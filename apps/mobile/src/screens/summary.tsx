@@ -14,6 +14,7 @@
  * here yet; it lands with the WOD screens.
  */
 import { formatScore } from "@workouts/core";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -50,7 +51,7 @@ export function SummaryScreen() {
 	const [busy, setBusy] = useState(false);
 
 	const nameById = useMemo(() => {
-		const map = new Map<Id<"exercises">, string>();
+		const map = new Map<ExerciseId, string>();
 		for (const e of exercises ?? []) map.set(e._id, e.name);
 		return map;
 	}, [exercises]);

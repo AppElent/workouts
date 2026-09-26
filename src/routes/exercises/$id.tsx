@@ -1,8 +1,8 @@
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { calculateOneRepMax } from "@workouts/core";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
+import { useExercise } from "#/lib/useExercises";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";
@@ -48,22 +49,20 @@ function ExerciseDetailPage() {
 	const { isSignedIn } = useAuth();
 	const signedIn = Boolean(isSignedIn);
 
-	const exercise = useQuery(api.exercises.getById, {
-		id: id as Id<"exercises">,
-	});
+	const exercise = useExercise(id);
 	const history =
 		useQuery(
 			api.exercises.getHistory,
-			signedIn ? { exerciseId: id as Id<"exercises"> } : "skip",
+			signedIn ? { exerciseId: id as ExerciseId } : "skip",
 		) ?? [];
 	const currentOrm = useQuery(
 		api.oneRepMaxes.getCurrentForExercise,
-		signedIn ? { exerciseId: id as Id<"exercises"> } : "skip",
+		signedIn ? { exerciseId: id as ExerciseId } : "skip",
 	);
 	const ormHistory =
 		useQuery(
 			api.oneRepMaxes.listForExercise,
-			signedIn ? { exerciseId: id as Id<"exercises"> } : "skip",
+			signedIn ? { exerciseId: id as ExerciseId } : "skip",
 		) ?? [];
 
 	if (exercise === undefined) {

@@ -1,7 +1,7 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -17,6 +17,7 @@ import {
 	YAxis,
 } from "recharts";
 import { BodyMetricsPanel } from "#/components/progress/BodyMetricsPanel";
+import { useExercises } from "#/lib/useExercises";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/progress/")({
@@ -39,8 +40,8 @@ function ProgressPageGuarded() {
 type ProgressTab = "exercises" | "body";
 
 function ProgressPage() {
-	const exercises = useQuery(api.exercises.list) ?? [];
-	const [selectedId, setSelectedId] = useState<Id<"exercises"> | "">("");
+	const exercises = useExercises() ?? [];
+	const [selectedId, setSelectedId] = useState<ExerciseId | "">("");
 	const [tab, setTab] = useState<ProgressTab>("exercises");
 
 	const tabs: { id: ProgressTab; label: string }[] = [
@@ -75,7 +76,7 @@ function ProgressPage() {
 					<div className="mb-6">
 						<select
 							value={selectedId}
-							onChange={(e) => setSelectedId(e.target.value as Id<"exercises">)}
+							onChange={(e) => setSelectedId(e.target.value as ExerciseId)}
 							className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-white min-w-[240px] w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
 						>
 							<option value="">Select an exercise…</option>
@@ -88,7 +89,7 @@ function ProgressPage() {
 					</div>
 
 					{selectedId ? (
-						<ExerciseCharts exerciseId={selectedId as Id<"exercises">} />
+						<ExerciseCharts exerciseId={selectedId as ExerciseId} />
 					) : (
 						<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-10 text-center">
 							<p className="text-[var(--text-muted)] text-sm">
@@ -104,7 +105,7 @@ function ProgressPage() {
 	);
 }
 
-function ExerciseCharts({ exerciseId }: { exerciseId: Id<"exercises"> }) {
+function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 	const ormRecords =
 		useQuery(api.oneRepMaxes.listForExercise, { exerciseId }) ?? [];
 	const volumeData = useQuery(api.progress.weeklyVolume, { exerciseId }) ?? [];

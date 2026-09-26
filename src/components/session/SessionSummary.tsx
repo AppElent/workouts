@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { formatScore } from "@workouts/core";
+import type { Exercise } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
@@ -20,7 +21,7 @@ import { getConvexErrorMessage } from "#/lib/convexError";
 interface Props {
 	session: Doc<"workoutSessions">;
 	sets: Doc<"sets">[];
-	exerciseMap: Map<string, Doc<"exercises">>;
+	exerciseMap: Map<string, Exercise>;
 }
 
 function formatDuration(ms: number): string {

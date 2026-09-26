@@ -1,10 +1,11 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { Clock, Dumbbell } from "lucide-react";
+import { useExercises } from "#/lib/useExercises";
 
 export const Route = createFileRoute("/dashboard/")({
 	component: DashboardPageGuarded,
@@ -27,7 +28,7 @@ function DashboardPage() {
 	const recentSessions =
 		useQuery(api.workoutSessions.listRecent, { limit: 5 }) ?? [];
 	const activeSession = useQuery(api.workoutSessions.getActive);
-	const exercises = useQuery(api.exercises.list) ?? [];
+	const exercises = useExercises() ?? [];
 	const currentOrms = useQuery(api.oneRepMaxes.listCurrentForUser) ?? [];
 
 	const exerciseNameById = new Map(
@@ -134,7 +135,7 @@ function DashboardPage() {
 							{topOrms.map((orm) => (
 								<ExerciseOrmRow
 									key={orm._id}
-									exerciseId={orm.exerciseId as Id<"exercises">}
+									exerciseId={orm.exerciseId as ExerciseId}
 									exerciseName={
 										exerciseNameById.get(orm.exerciseId as string) ?? ""
 									}
@@ -162,7 +163,7 @@ function ExerciseOrmRow({
 	unit,
 	source,
 }: {
-	exerciseId: Id<"exercises">;
+	exerciseId: ExerciseId;
 	exerciseName: string;
 	value: number;
 	unit: "kg" | "lbs";

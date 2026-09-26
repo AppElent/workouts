@@ -1,5 +1,5 @@
+import { exerciseReference, exerciseSets } from "./lib/exerciseCatalog";
 import { query } from './_generated/server'
-import { v } from 'convex/values'
 import type { QueryCtx } from './_generated/server'
 
 async function requireUser(ctx: QueryCtx) {
@@ -9,15 +9,10 @@ async function requireUser(ctx: QueryCtx) {
 }
 
 export const weeklyVolume = query({
-  args: { exerciseId: v.id('exercises') },
+  args: { exerciseId: exerciseReference },
   handler: async (ctx, { exerciseId }) => {
     const userId = await requireUser(ctx)
-    const sets = await ctx.db
-      .query('sets')
-      .withIndex('by_user_exercise', (q) =>
-        q.eq('userId', userId).eq('exerciseId', exerciseId),
-      )
-      .collect()
+    const sets = await exerciseSets(ctx, userId, exerciseId)
     const weekMap = new Map<string, number>()
     for (const set of sets) {
       const date = new Date(set.loggedAt)

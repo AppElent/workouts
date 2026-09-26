@@ -1,10 +1,10 @@
+import type { Exercise } from "@workouts/core/exercises";
 /**
  * The exercise library, ported from the web's `src/routes/exercises/index.tsx`.
  *
  * All four filters are client-side and compose with AND, exactly as on the web:
- * `exercises.list` returns the whole catalog in one subscription (defaults plus
- * the user's own), so filtering here costs nothing and filtering server-side
- * would cost a round trip per keystroke.
+ * the shipped catalog is bundled with the app and merged with paginated personal
+ * exercises, so filtering here needs no backend request per keystroke.
  *
  * Default exercises are shared and cannot be deleted — the backend enforces
  * that, and the row hides the affordance rather than offering a button that
@@ -21,7 +21,7 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import { api, type Doc } from "../convex/api";
+import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
 import {
 	radius,
@@ -47,8 +47,19 @@ import { useToast } from "../ui/toast";
 const CHIP_FILTERS: { label: string; groups: string[] | null }[] = [
 	{ label: "All", groups: null },
 	{ label: "Chest", groups: ["chest"] },
-	{ label: "Back", groups: ["back", "lats", "traps"] },
-	{ label: "Legs", groups: ["quads", "hamstrings", "glutes", "calves"] },
+	{ label: "Back", groups: ["back", "lats", "lower back", "traps"] },
+	{
+		label: "Legs",
+		groups: [
+			"quads",
+			"quadriceps",
+			"hamstrings",
+			"glutes",
+			"calves",
+			"adductors",
+			"abductors",
+		],
+	},
 	{
 		label: "Shoulders",
 		groups: ["shoulders", "front delts", "side delts", "rear delts", "traps"],
@@ -100,7 +111,7 @@ export function ExercisesScreen() {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}, [exercises, search, chip, category, equipment]);
 
-	const remove = async (exercise: Doc<"exercises">) => {
+	const remove = async (exercise: Exercise) => {
 		const confirmed = await confirm({
 			title: `Delete ${exercise.name}?`,
 			message: "Every set and 1RM logged against it goes too.",

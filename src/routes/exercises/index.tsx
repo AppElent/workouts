@@ -1,18 +1,30 @@
 import { SignedIn } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AddExerciseModal } from "#/components/exercises/AddExerciseModal";
 import { Select } from "#/components/ui/Select";
+import { useExercises } from "#/lib/useExercises";
 import { cn } from "#/lib/utils";
 
 const CHIP_FILTERS = [
 	{ label: "All", groups: null as string[] | null },
 	{ label: "Chest", groups: ["chest"] },
-	{ label: "Back", groups: ["back", "lats", "traps"] },
-	{ label: "Legs", groups: ["quads", "hamstrings", "glutes", "calves"] },
+	{ label: "Back", groups: ["back", "lats", "lower back", "traps"] },
+	{
+		label: "Legs",
+		groups: [
+			"quads",
+			"quadriceps",
+			"hamstrings",
+			"glutes",
+			"calves",
+			"adductors",
+			"abductors",
+		],
+	},
 	{
 		label: "Shoulders",
 		groups: ["shoulders", "front delts", "side delts", "rear delts", "traps"],
@@ -38,7 +50,7 @@ export const Route = createFileRoute("/exercises/")({
 });
 
 function ExercisesPage() {
-	const exercises = useQuery(api.exercises.list) ?? [];
+	const exercises = useExercises() ?? [];
 	const removeExercise = useMutation(api.exercises.remove);
 
 	const [search, setSearch] = useState("");

@@ -1,6 +1,6 @@
-import type { Doc } from "@convex/_generated/dataModel";
+import type { Exercise } from "@workouts/core/exercises";
 
-const EQUIPMENT_STEPS: Record<Doc<"exercises">["equipment"], number> = {
+const EQUIPMENT_STEPS: Record<Exercise["equipment"], number> = {
 	barbell: 2.5,
 	dumbbell: 1,
 	cable: 5,
@@ -12,7 +12,7 @@ const EQUIPMENT_STEPS: Record<Doc<"exercises">["equipment"], number> = {
 };
 
 export function getWeightStep(
-	equipment: Doc<"exercises">["equipment"],
+	equipment: Exercise["equipment"],
 	weightIncrement?: number,
 ): number {
 	return weightIncrement ?? EQUIPMENT_STEPS[equipment];

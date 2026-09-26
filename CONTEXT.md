@@ -15,6 +15,12 @@ _Avoid_: Workout Session
 **Exercise**:
 A named strength movement that can be performed in Sets.
 
+**Shipped Exercise**:
+A read-only Exercise included with the app and available to everyone.
+
+**Personal Exercise**:
+An Exercise created by a person for their own training.
+
 **Set**:
 One recorded performance of an Exercise, including its repetitions, load, and optional effort or set classification.
 

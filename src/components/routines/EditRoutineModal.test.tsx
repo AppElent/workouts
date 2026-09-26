@@ -2,14 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EditRoutineModal } from "./EditRoutineModal";
 
-vi.mock("convex/react", () => ({
-	useQuery: vi.fn(() => []),
-}));
-
-vi.mock("@convex/_generated/api", () => ({
-	api: {
-		exercises: { list: "exercises:list" },
-	},
+vi.mock("#/lib/useExercises", () => ({
+	useExercises: vi.fn(() => []),
 }));
 
 const mockRoutine = {

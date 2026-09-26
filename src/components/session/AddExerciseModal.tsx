@@ -1,16 +1,15 @@
-import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useExercises } from "#/lib/useExercises";
 
 interface Props {
-	onSelect: (exerciseId: Id<"exercises">) => void;
+	onSelect: (exerciseId: ExerciseId) => void;
 	onClose: () => void;
 }
 
 export function AddExerciseModal({ onSelect, onClose }: Props) {
-	const exercises = useQuery(api.exercises.list) ?? [];
+	const exercises = useExercises() ?? [];
 	const [search, setSearch] = useState("");
 	const searchRef = useRef<HTMLInputElement>(null);
 

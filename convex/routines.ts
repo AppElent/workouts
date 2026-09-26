@@ -1,3 +1,4 @@
+import { exerciseReference, requireExercise, resolveExercise, canonicalExerciseId, normalizeExerciseReferences } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
@@ -22,11 +23,11 @@ export const list = query({
         ...routine,
         exercises: await Promise.all(
           routine.exercises.map(async (ex) => {
-            const exercise = await ctx.db.get(ex.exerciseId)
+            const exercise = await resolveExercise(ctx, ex.exerciseId, userId)
             const canRead =
               exercise !== null &&
               (exercise.isDefault === true || exercise.userId === userId)
-            return { ...ex, exerciseName: canRead ? exercise.name : 'Unknown' }
+            return { ...ex, exerciseId: await canonicalExerciseId(ctx, ex.exerciseId), exerciseName: canRead ? exercise.name : 'Unknown' }
           }),
         ),
       })),
@@ -40,7 +41,7 @@ export const getById = query({
     const userId = await requireUser(ctx)
     const routine = await ctx.db.get(id)
     if (!routine || routine.userId !== userId) return null
-    return routine
+    return { ...routine, exercises: await normalizeExerciseReferences(ctx, routine.exercises) }
   },
 })
 
@@ -49,7 +50,7 @@ export const create = mutation({
     name: v.string(),
     exercises: v.array(
       v.object({
-        exerciseId: v.id('exercises'),
+        exerciseId: exerciseReference,
         defaultSets: v.number(),
         defaultReps: v.number(),
         defaultWeight: v.optional(v.number()),
@@ -58,7 +59,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
-    return ctx.db.insert('routines', { ...args, userId })
+    const exercises = await Promise.all(args.exercises.map(async (ex) => ({ ...ex, exerciseId: await requireExercise(ctx, ex.exerciseId, userId) })))
+    return ctx.db.insert('routines', { ...args, exercises, userId })
   },
 })
 
@@ -78,7 +80,7 @@ export const update = mutation({
     name: v.string(),
     exercises: v.array(
       v.object({
-        exerciseId: v.id('exercises'),
+        exerciseId: exerciseReference,
         defaultSets: v.number(),
         defaultReps: v.number(),
         defaultWeight: v.optional(v.number()),
@@ -91,7 +93,7 @@ export const update = mutation({
     if (!routine || routine.userId !== userId) throw new Error('Unauthorized')
     await ctx.db.patch(args.id, {
       name: args.name,
-      exercises: args.exercises,
+      exercises: await Promise.all(args.exercises.map(async (ex) => ({ ...ex, exerciseId: await requireExercise(ctx, ex.exerciseId, userId) }))),
     })
   },
 })
@@ -120,11 +122,12 @@ export const startSession = mutation({
       status: 'active',
     })
     for (const ex of routine.exercises) {
+      const exerciseId = await requireExercise(ctx, ex.exerciseId, userId)
       for (let s = 1; s <= ex.defaultSets; s++) {
         await ctx.db.insert('sets', {
           userId,
           sessionId,
-          exerciseId: ex.exerciseId,
+          exerciseId,
           setNumber: s,
           reps: ex.defaultReps,
           weight: ex.defaultWeight ?? 0,

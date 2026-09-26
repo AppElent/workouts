@@ -1,5 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import type { Exercise, ExerciseId } from "@workouts/core/exercises";
+import { mergeExerciseCatalog } from "@workouts/core/exercises";
 import { ConvexHttpClient } from "convex/browser";
 
 export type ExerciseSummary = {
@@ -93,7 +95,21 @@ export function createConvexWorkoutsMcpDataClient({
 	return {
 		async listExercises() {
 			requireAuth();
-			const exercises = await client.query(api.exercises.list, {});
+			const personal: Exercise[] = [];
+			let cursor: string | null = null;
+			for (;;) {
+				const page: {
+					page: Exercise[];
+					isDone: boolean;
+					continueCursor: string;
+				} = await client.query(api.exercises.listPersonal, {
+					paginationOpts: { numItems: 100, cursor },
+				});
+				personal.push(...page.page);
+				if (page.isDone) break;
+				cursor = page.continueCursor;
+			}
+			const exercises = mergeExerciseCatalog(personal);
 			return exercises.map((exercise) => ({
 				id: exercise._id,
 				name: exercise.name,
@@ -154,7 +170,7 @@ export function createConvexWorkoutsMcpDataClient({
 		async getExerciseVolume({ exerciseId }) {
 			requireAuth();
 			return client.query(api.progress.weeklyVolume, {
-				exerciseId: exerciseId as Id<"exercises">,
+				exerciseId: exerciseId as ExerciseId,
 			});
 		},
 	};

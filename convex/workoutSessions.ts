@@ -1,7 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from '@workouts/core'
+import { recalcOneRepMax } from "./sets"
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -110,46 +110,7 @@ export const remove = mutation({
       await ctx.db.delete(set._id)
     }
     for (const exerciseId of exerciseIds) {
-      const staleOrms = await ctx.db
-        .query('oneRepMaxes')
-        .withIndex('by_user_exercise', (q) =>
-          q.eq('userId', userId).eq('exerciseId', exerciseId),
-        )
-        .filter((q) => q.neq(q.field('source'), 'manual'))
-        .collect()
-      for (const orm of staleOrms) await ctx.db.delete(orm._id)
-      const remaining = (
-        await ctx.db
-          .query('sets')
-          .withIndex('by_user_exercise', (q) =>
-            q.eq('userId', userId).eq('exerciseId', exerciseId),
-          )
-          .collect()
-      ).filter((s) => s.weight > 0)
-      if (remaining.length > 0) {
-        let bestValue = 0
-        let bestSet = remaining[0]
-        for (const s of remaining) {
-          const { value } = calculateOneRepMax(s.weight, s.reps)
-          if (value > bestValue) {
-            bestValue = value
-            bestSet = s
-          }
-        }
-        const { value, source, formula } = calculateOneRepMax(
-          bestSet.weight,
-          bestSet.reps,
-        )
-        await ctx.db.insert('oneRepMaxes', {
-          userId,
-          exerciseId,
-          value,
-          unit: bestSet.unit,
-          date: Date.now(),
-          source,
-          formula,
-        })
-      }
+      await recalcOneRepMax(ctx, userId, exerciseId)
     }
     await ctx.db.delete(id)
   },

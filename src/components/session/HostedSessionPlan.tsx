@@ -1,8 +1,8 @@
-import type { Id } from "@convex/_generated/dataModel";
+import type { ExerciseId } from "@workouts/core/exercises";
 
 export type HostedStrengthBlock = {
 	blockId: string;
-	exerciseId?: Id<"exercises">;
+	exerciseId?: ExerciseId;
 	exerciseName: string;
 	instructions?: string;
 };

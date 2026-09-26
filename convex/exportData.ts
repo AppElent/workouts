@@ -1,3 +1,4 @@
+import { resolveExercise } from "./lib/exerciseCatalog";
 import { query } from './_generated/server'
 import type { QueryCtx } from './_generated/server'
 
@@ -46,10 +47,11 @@ export const allData = query({
 		const exerciseIds = new Set([
 			...sets.map((s) => s.exerciseId as string),
 			...oneRepMaxes.map((o) => o.exerciseId as string),
+            ...routines.flatMap((routine) => routine.exercises.map((exercise) => exercise.exerciseId)),
 		])
 		const exercises: { _id: string; name: string }[] = []
 		for (const id of exerciseIds) {
-			const ex = await ctx.db.get(id as (typeof sets)[number]['exerciseId'])
+			const ex = await resolveExercise(ctx, id, userId)
 			if (ex) exercises.push({ _id: ex._id as string, name: ex.name })
 		}
 

@@ -1,19 +1,21 @@
+import type { ExerciseId } from "@workouts/core/exercises";
 /**
  * The reads every screen shares: what is running now, what ran recently, and
  * the exercise catalog. Grouped into one hook because Home, Train and Progress
- * all want the same three, and Convex subscriptions deduplicate — asking three
- * times costs one socket's worth of traffic, not three.
+ * all want the same data. The shipped catalog is local; Convex supplies only
+ * personal exercises. Legacy references are migrated on the backend.
  *
  * Reads only. Mutations live with the screen that fires them, so that a screen
  * reading this file is provably incapable of writing.
  */
 import { useQuery } from "convex/react";
 import { api, type Doc, type Id } from "../convex/api";
+import { useExercises } from "./exercises";
 
 export function useShellData() {
 	const active = useQuery(api.workoutSessions.getActive, {});
 	const recent = useQuery(api.workoutSessions.listRecent, { limit: 8 });
-	const exercises = useQuery(api.exercises.list, {});
+	const exercises = useExercises();
 
 	return {
 		active,
@@ -72,7 +74,7 @@ export function useSessionSets(id: Id<"workoutSessions"> | undefined) {
  * exercise you are mid-way through from jumping around as sets land.
  */
 export function orderExercisesByFirstSet(sets: Doc<"sets">[]) {
-	const seen: Id<"exercises">[] = [];
+	const seen: ExerciseId[] = [];
 	for (const set of sets) {
 		if (!seen.includes(set.exerciseId)) seen.push(set.exerciseId);
 	}

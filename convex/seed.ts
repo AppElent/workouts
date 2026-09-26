@@ -1,5 +1,7 @@
+import { canonicalExerciseId } from "./lib/exerciseCatalog";
+import { getShippedExerciseByName } from "@workouts/core/exercises";
 // SEED MAINTENANCE: When adding new tables or features, update this file:
-//   - seedExercises: add new default exercises if the exercise library grows
+//   - Default exercises ship in packages/core/src/exercises; do not insert them here.
 //   - seedTestData: add inserts for any new tables with per-user data
 //   - clearUserData: add delete queries for any new per-user tables
 //   - Schema additions: check for new required fields on existing tables
@@ -9,7 +11,6 @@ import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { calculateOneRepMax } from '@workouts/core'
-import { DEFAULT_EXERCISES } from './seedData/exercises'
 import { DEFAULT_WODS } from './seedData/wods'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -54,60 +55,18 @@ async function deleteUserData(ctx: MutationCtx, userId: string): Promise<void> {
 	for (const w of userWods) await ctx.db.delete(w._id)
 }
 
-async function getExerciseId(ctx: MutationCtx, name: string): Promise<Id<'exercises'>> {
-	const ex = await ctx.db
-		.query('exercises')
-		.withIndex('by_name', (q) => q.eq('name', name))
-		.first()
-	if (!ex) throw new Error(`Exercise not found: ${name}. Run seed:exercises first.`)
-	return ex._id
+async function getExerciseId(ctx: MutationCtx, name: string): Promise<string> {
+	const shipped = getShippedExerciseByName(name)
+	if (!shipped) throw new Error(`Exercise not found: ${name}`)
+	return canonicalExerciseId(ctx, shipped._id)
 }
 
-// ─── seedExercises ───────────────────────────────────────────────────────────
-
-export const seedExercises = mutation({
+// Kept for existing setup scripts. The shipped catalog never needs database rows.
+// Historical references are migrated separately with exerciseMigration:start.
+export const seedExercises = internalMutation({
 	args: {},
-	handler: async (ctx) => {
-		let inserted = 0
-		let updated = 0
-		let skipped = 0
-
-		for (const ex of DEFAULT_EXERCISES) {
-			const existing = await ctx.db
-				.query('exercises')
-				.withIndex('by_name', (q) => q.eq('name', ex.name))
-				.first()
-
-			if (!existing) {
-				await ctx.db.insert('exercises', { ...ex, isDefault: true })
-				inserted++
-				continue
-			}
-
-			const patch: {
-				instructions?: string[]
-				notes?: string
-				muscleGroups?: string[]
-				category?: 'compound' | 'isolation'
-				equipment?: typeof ex.equipment
-				weightIncrement?: number
-			} = {}
-			if (!existing.instructions || existing.instructions.length === 0) {
-				patch.instructions = ex.instructions
-			}
-			if (ex.notes !== undefined && existing.notes === undefined) {
-				patch.notes = ex.notes
-			}
-			if (Object.keys(patch).length > 0) {
-				await ctx.db.patch(existing._id, patch)
-				updated++
-			} else {
-				skipped++
-			}
-		}
-
-		return { inserted, updated, skipped, total: DEFAULT_EXERCISES.length }
-	},
+	returns: v.object({ shipped: v.boolean() }),
+	handler: async () => ({ shipped: true }),
 })
 
 // ─── seedWods ────────────────────────────────────────────────────────────────
@@ -259,9 +218,9 @@ export const seedTestData = internalMutation({
 		]
 
 		type BestSet = { weight: number; reps: number }
-		const bestSets = new Map<Id<'exercises'>, BestSet>()
+		const bestSets = new Map<string, BestSet>()
 
-		function trackBest(exerciseId: Id<'exercises'>, weight: number, reps: number) {
+		function trackBest(exerciseId: string, weight: number, reps: number) {
 			if (weight === 0) return
 			const existing = bestSets.get(exerciseId)
 			if (!existing) {
@@ -276,7 +235,7 @@ export const seedTestData = internalMutation({
 		async function insertSets(
 			sessionId: Id<'workoutSessions'>,
 			sessionStart: number,
-			exercises: { id: Id<'exercises'>; reps: number; sets: number }[],
+			exercises: { id: string; reps: number; sets: number }[],
 			weights: number[],
 		) {
 			let setIndex = 0

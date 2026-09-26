@@ -2,6 +2,7 @@ import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
+import type { ExerciseId } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { CheckCircle, Plus, XCircle } from "lucide-react";
@@ -18,6 +19,7 @@ import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import type { HostedWodType } from "#/lib/hostedWorkouts";
+import { useExercises } from "#/lib/useExercises";
 
 export const Route = createFileRoute("/log/$sessionId")({
 	component: ActiveSessionPageGuarded,
@@ -62,7 +64,7 @@ function ActiveSessionPage() {
 	);
 
 	const [showAddExercise, setShowAddExercise] = useState(false);
-	const [exerciseOrder, setExerciseOrder] = useState<Id<"exercises">[]>([]);
+	const [exerciseOrder, setExerciseOrder] = useState<ExerciseId[]>([]);
 	const [editing, setEditing] = useState<{
 		setId: Id<"sets">;
 		exerciseName: string;
@@ -81,7 +83,7 @@ function ActiveSessionPage() {
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const prevCountRef = useRef<number | null>(null);
 
-	const exerciseIds: Id<"exercises">[] = [];
+	const exerciseIds: ExerciseId[] = [];
 	for (const set of sets) {
 		if (!exerciseIds.includes(set.exerciseId)) {
 			exerciseIds.push(set.exerciseId);
@@ -108,10 +110,10 @@ function ActiveSessionPage() {
 		prevCountRef.current = exerciseIds.length;
 	}, [exerciseIds.length]);
 
-	const exercises = useQuery(api.exercises.list) ?? [];
+	const exercises = useExercises() ?? [];
 	const exerciseMap = new Map(exercises.map((ex) => [ex._id as string, ex]));
 
-	function handleExerciseSelect(exerciseId: Id<"exercises">) {
+	function handleExerciseSelect(exerciseId: ExerciseId) {
 		setExerciseOrder((prev) => [...prev, exerciseId]);
 		setShowAddExercise(false);
 	}

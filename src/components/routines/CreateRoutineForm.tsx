@@ -1,12 +1,13 @@
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import type { ExerciseId } from "@workouts/core/exercises";
+import { useMutation } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { useExercises } from "#/lib/useExercises";
 
 interface ExerciseEntry {
-	exerciseId: Id<"exercises">;
+	exerciseId: ExerciseId;
 	name: string;
 	defaultSets: number;
 	defaultReps: number;
@@ -15,7 +16,7 @@ interface ExerciseEntry {
 
 export function CreateRoutineForm() {
 	const createRoutine = useMutation(api.routines.create);
-	const exercises = useQuery(api.exercises.list) ?? [];
+	const exercises = useExercises() ?? [];
 
 	const [name, setName] = useState("");
 	const [entries, setEntries] = useState<ExerciseEntry[]>([]);
@@ -26,7 +27,7 @@ export function CreateRoutineForm() {
 		ex.name.toLowerCase().includes(search.toLowerCase()),
 	);
 
-	function addExercise(exId: Id<"exercises">, exName: string) {
+	function addExercise(exId: ExerciseId, exName: string) {
 		setEntries((prev) => [
 			...prev,
 			{

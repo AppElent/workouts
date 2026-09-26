@@ -1,3 +1,4 @@
+import type { Exercise, ExerciseId } from "@workouts/core/exercises";
 /**
  * The strength session log. Laid out from `designs/shell/index.html#flows`
  * ("Strength session — set-and-rep table"), behaviour ported from the web's
@@ -19,6 +20,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useExercises } from "../data/exercises";
 import {
 	orderExercisesByFirstSet,
 	useActiveSession,
@@ -45,7 +47,7 @@ type SetType = (typeof SET_TYPES)[number];
  * `src/lib/exerciseWeightConfig.ts`. A dumbbell rack goes up in 1s and a cable
  * stack in 5s; one step for everything makes the stepper wrong twice.
  */
-const EQUIPMENT_STEPS: Record<Doc<"exercises">["equipment"], number> = {
+const EQUIPMENT_STEPS: Record<Exercise["equipment"], number> = {
 	barbell: 2.5,
 	dumbbell: 1,
 	cable: 5,
@@ -56,7 +58,7 @@ const EQUIPMENT_STEPS: Record<Doc<"exercises">["equipment"], number> = {
 	other: 2.5,
 };
 
-function weightStepFor(exercise: Doc<"exercises"> | undefined) {
+function weightStepFor(exercise: Exercise | undefined) {
 	if (!exercise) return 2.5;
 	return exercise.weightIncrement ?? EQUIPMENT_STEPS[exercise.equipment];
 }
@@ -84,15 +86,15 @@ export function StrengthSessionScreen() {
 		| undefined;
 
 	const sets = useSessionSets(sessionId);
-	const exercises = useQuery(api.exercises.list, {});
+	const exercises = useExercises();
 
 	const finishSession = useMutation(api.workoutSessions.finish);
 	const cancelSession = useMutation(api.workoutSessions.cancel);
 
 	const [picking, setPicking] = useState(false);
 	/** Exercises added this visit that have no set yet, so nothing to order by. */
-	const [pending, setPending] = useState<Id<"exercises">[]>([]);
-	const [selected, setSelected] = useState<Id<"exercises"> | null>(null);
+	const [pending, setPending] = useState<ExerciseId[]>([]);
+	const [selected, setSelected] = useState<ExerciseId | null>(null);
 	const [busy, setBusy] = useState(false);
 
 	const startTime = active?.startTime;
@@ -103,7 +105,7 @@ export function StrengthSessionScreen() {
 	}, []);
 
 	const byId = useMemo(() => {
-		const map = new Map<Id<"exercises">, Doc<"exercises">>();
+		const map = new Map<ExerciseId, Exercise>();
 		for (const e of exercises ?? []) map.set(e._id, e);
 		return map;
 	}, [exercises]);
@@ -274,7 +276,7 @@ function ExerciseLogger({
 	sets,
 }: {
 	sessionId: Id<"workoutSessions">;
-	exercise: Doc<"exercises">;
+	exercise: Exercise;
 	sets: Doc<"sets">[];
 }) {
 	const styles = useThemedStyles(createStyles);

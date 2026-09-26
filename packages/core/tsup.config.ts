@@ -12,7 +12,7 @@ import { defineConfig } from "tsup";
 // the web bundle and to every Convex function — neither of which reads it.
 // Keep the barrel and the nutrition entry disjoint.
 export default defineConfig({
-	entry: ["src/index.ts", "src/nutrition/index.ts"],
+	entry: ["src/index.ts", "src/nutrition/index.ts", "src/exercises/index.ts"],
 	format: ["esm"],
 	dts: true,
 	clean: true,

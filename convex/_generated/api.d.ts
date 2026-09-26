@@ -9,11 +9,14 @@
  */
 
 import type * as bodyMetrics from "../bodyMetrics.js";
+import type * as exerciseMigration from "../exerciseMigration.js";
 import type * as exercises from "../exercises.js";
 import type * as exportData from "../exportData.js";
 import type * as hostedWorkoutParticipants from "../hostedWorkoutParticipants.js";
 import type * as hostedWorkoutSubmissions from "../hostedWorkoutSubmissions.js";
 import type * as hostedWorkouts from "../hostedWorkouts.js";
+import type * as lib_exerciseCatalog from "../lib/exerciseCatalog.js";
+import type * as lib_exerciseMigrationModel from "../lib/exerciseMigrationModel.js";
 import type * as lib_hostedDto from "../lib/hostedDto.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as nutritionActivityMarker from "../nutritionActivityMarker.js";
@@ -33,7 +36,6 @@ import type * as personalMeasures from "../personalMeasures.js";
 import type * as progress from "../progress.js";
 import type * as routines from "../routines.js";
 import type * as seed from "../seed.js";
-import type * as seedData_exercises from "../seedData/exercises.js";
 import type * as seedData_wods from "../seedData/wods.js";
 import type * as seedPreview from "../seedPreview.js";
 import type * as sets from "../sets.js";
@@ -49,11 +51,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   bodyMetrics: typeof bodyMetrics;
+  exerciseMigration: typeof exerciseMigration;
   exercises: typeof exercises;
   exportData: typeof exportData;
   hostedWorkoutParticipants: typeof hostedWorkoutParticipants;
   hostedWorkoutSubmissions: typeof hostedWorkoutSubmissions;
   hostedWorkouts: typeof hostedWorkouts;
+  "lib/exerciseCatalog": typeof lib_exerciseCatalog;
+  "lib/exerciseMigrationModel": typeof lib_exerciseMigrationModel;
   "lib/hostedDto": typeof lib_hostedDto;
   "lib/validate": typeof lib_validate;
   nutritionActivityMarker: typeof nutritionActivityMarker;
@@ -73,7 +78,6 @@ declare const fullApi: ApiFromModules<{
   progress: typeof progress;
   routines: typeof routines;
   seed: typeof seed;
-  "seedData/exercises": typeof seedData_exercises;
   "seedData/wods": typeof seedData_wods;
   seedPreview: typeof seedPreview;
   sets: typeof sets;

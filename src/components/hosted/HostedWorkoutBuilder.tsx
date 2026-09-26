@@ -1,13 +1,15 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import type { ExerciseId } from "@workouts/core/exercises";
+import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { getConvexErrorMessage } from "#/lib/convexError";
+import { useExercises } from "#/lib/useExercises";
 
 type StrengthBlock = {
 	blockId: string;
-	exerciseId?: Id<"exercises">;
+	exerciseId?: ExerciseId;
 	exerciseName: string;
 	instructions?: string;
 	defaultSets?: number;
@@ -122,7 +124,7 @@ export function HostedWorkoutBuilder({
 }) {
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
-	const exercises = useQuery(api.exercises.list) ?? [];
+	const exercises = useExercises() ?? [];
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [notes, setNotes] = useState(initial?.notes ?? "");
 	const [scheduledAt, setScheduledAt] = useState(

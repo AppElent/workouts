@@ -1,3 +1,6 @@
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import { mergeExerciseCatalog } from "@workouts/core/exercises";
+import { exerciseSets, exerciseDocument, exerciseReference, resolveExercise } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
@@ -8,46 +11,46 @@ async function requireUser(ctx: QueryCtx | MutationCtx) {
   return identity.subject
 }
 
+// Compatibility for older clients. Current clients merge the bundle locally.
 export const list = query({
   args: {},
+  returns: v.array(v.object({ ...exerciseDocument.fields, _id: exerciseReference })),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity()
-    const defaults = await ctx.db
-      .query('exercises')
-      .withIndex('by_default', (q) => q.eq('isDefault', true))
-      .collect()
-    if (!identity) return defaults
+    if (!identity) return mergeExerciseCatalog([])
     const userExercises = await ctx.db
       .query('exercises')
       .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .collect()
-    return [...defaults, ...userExercises].sort((a, b) =>
-      a.name.localeCompare(b.name),
-    )
+    return mergeExerciseCatalog(userExercises)
+  },
+})
+
+// New clients download only personal exercises.
+export const listPersonal = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(exerciseDocument),
+  handler: async (ctx, { paginationOpts }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return { page: [], isDone: true, continueCursor: "" }
+    return ctx.db.query('exercises').withIndex('by_user', (q) => q.eq('userId', identity.subject)).paginate(paginationOpts)
   },
 })
 
 export const getById = query({
-  args: { id: v.id('exercises') },
+  args: { id: exerciseReference },
+  returns: v.union(v.null(), v.object({ ...exerciseDocument.fields, _id: exerciseReference })),
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity()
-    const exercise = await ctx.db.get(id)
-    if (!exercise) return null
-    if (exercise.isDefault) return exercise
-    if (!identity || exercise.userId !== identity.subject) return null
-    return exercise
+    return resolveExercise(ctx, id, identity?.subject)
   },
 })
 
 export const getHistory = query({
-  args: { exerciseId: v.id('exercises') },
-  handler: async (ctx, { exerciseId: id }) => {
+  args: { exerciseId: exerciseReference },
+  handler: async (ctx, { exerciseId }) => {
     const userId = await requireUser(ctx)
-    const sets = await ctx.db
-      .query('sets')
-      .withIndex('by_exercise', (q) => q.eq('exerciseId', id))
-      .collect()
-    const userSets = sets.filter((s) => s.userId === userId)
+    const userSets = await exerciseSets(ctx, userId, exerciseId)
     const result = []
     for (const set of userSets) {
       const session = await ctx.db.get(set.sessionId)
@@ -86,10 +89,12 @@ export const create = mutation({
 })
 
 export const remove = mutation({
-  args: { id: v.id('exercises') },
+  args: { id: exerciseReference },
   handler: async (ctx, { id }) => {
     const userId = await requireUser(ctx)
-    const exercise = await ctx.db.get(id)
+    const documentId = ctx.db.normalizeId('exercises', id)
+    if (!documentId) throw new Error('Cannot delete a shipped exercise')
+    const exercise = await ctx.db.get(documentId)
     if (!exercise) throw new Error('Exercise not found')
     if (exercise.isDefault) throw new Error('Cannot delete default exercises')
     if (exercise.userId !== userId) throw new Error('Unauthorized')
@@ -110,6 +115,6 @@ export const remove = mutation({
     for (const orm of orms) {
       await ctx.db.delete(orm._id)
     }
-    await ctx.db.delete(id)
+    await ctx.db.delete(documentId)
   },
 })

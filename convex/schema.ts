@@ -1,3 +1,5 @@
+import { exerciseMigrationTable } from "./lib/exerciseMigrationModel";
+import { exerciseReference } from "./lib/exerciseCatalog";
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
@@ -6,6 +8,7 @@ import { nutritionLibraryTables } from './nutritionLibraryTables'
 import { personalMeasureTables } from './personalMeasureTables'
 
 export default defineSchema({
+  exerciseMigrations: exerciseMigrationTable,
   ...nutritionGoalTables,
   ...nutritionLibraryTables,
   ...personalMeasureTables,
@@ -63,9 +66,12 @@ export default defineSchema({
     instructions: v.optional(v.array(v.string())),
     weightIncrement: v.optional(v.number()),
     isDefault: v.boolean(),
+    shippedExerciseId: v.optional(v.string()),
     userId: v.optional(v.string()),
   })
     .index('by_name', ['name'])
+    .index('by_default_name', ['isDefault', 'name'])
+    .index('by_shipped', ['shippedExerciseId'])
     .index('by_default', ['isDefault'])
     .index('by_user', ['userId']),
 
@@ -89,7 +95,7 @@ export default defineSchema({
   sets: defineTable({
     userId: v.string(),
     sessionId: v.id('workoutSessions'),
-    exerciseId: v.id('exercises'),
+    exerciseId: exerciseReference,
     setNumber: v.number(),
     reps: v.number(),
     weight: v.number(),
@@ -111,7 +117,7 @@ export default defineSchema({
 
   oneRepMaxes: defineTable({
     userId: v.string(),
-    exerciseId: v.id('exercises'),
+    exerciseId: exerciseReference,
     value: v.number(),
     unit: v.union(v.literal('kg'), v.literal('lbs')),
     date: v.number(),
@@ -150,7 +156,7 @@ export default defineSchema({
     name: v.string(),
     exercises: v.array(
       v.object({
-        exerciseId: v.id('exercises'),
+        exerciseId: exerciseReference,
         defaultSets: v.number(),
         defaultReps: v.number(),
         defaultWeight: v.optional(v.number()),
@@ -236,7 +242,7 @@ export default defineSchema({
       strengthBlocks: v.array(
         v.object({
           blockId: v.string(),
-          exerciseId: v.optional(v.id('exercises')),
+          exerciseId: v.optional(exerciseReference),
           exerciseName: v.string(),
           instructions: v.optional(v.string()),
           defaultSets: v.optional(v.number()),
