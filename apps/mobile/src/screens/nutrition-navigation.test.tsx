@@ -239,7 +239,7 @@ describe("Nutrition navigation", () => {
 			await screen.findByRole("radio", { name: "Personal food" }),
 		);
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
-		expect(await screen.findByText("Create Personal Food")).toBeTruthy();
+		expect(await screen.findByLabelText("Name")).toBeTruthy();
 
 		fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));

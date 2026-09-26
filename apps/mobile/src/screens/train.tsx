@@ -1,28 +1,19 @@
-/**
- * Train tab. Laid out from `designs/shell/index.html#train`.
- *
- * The routine list is the web's `src/routes/routines/index.tsx` folded into the
- * shell: create, edit, delete and start, all from one screen. Unlike the web,
- * delete asks first — the web's `RoutineCard` deletes on a single click with no
- * confirmation, which is a gap in it rather than a convention to copy.
- *
- * The filter chips are still visual: every routine points at strength exercises
- * today, so filtering by Running or Cycling would produce a guaranteed-empty
- * list. They earn their behaviour when a second activity type does.
- */
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import { useRoutines, useShellData } from "../data/session-data";
+import { useI18n } from "../i18n";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";
+import { GhostButton } from "../ui/button";
 import { Chip, Eyebrow, SportIcon } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { InsetList, InsetRow } from "../ui/inset-list";
 import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { activityCopy } from "./activity-copy";
 
 const FILTERS = ["All", "Strength", "Running", "Cycling", "WOD"] as const;
 
@@ -33,6 +24,8 @@ export function TrainScreen() {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
+	const { locale } = useI18n();
+	const copy = activityCopy(locale);
 	const toast = useToast();
 	const confirm = useConfirm();
 	const routines = useRoutines();
@@ -88,18 +81,53 @@ export function TrainScreen() {
 			<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 				<View style={styles.filterRow}>
 					{FILTERS.map((f) => (
-						<Chip key={f} label={f} active={f === "All"} />
+						<Pressable
+							key={f}
+							accessibilityRole="button"
+							style={{
+								minHeight: 48,
+								justifyContent: "center",
+								paddingHorizontal: 2,
+							}}
+							onPress={() =>
+								f === "WOD"
+									? router.push("/wods")
+									: router.push({
+											pathname: "/activity-history",
+											params: f === "All" ? {} : { sport: f.toLowerCase() },
+										})
+							}
+						>
+							<Chip
+								label={
+									f === "All"
+										? copy.all
+										: f === "Strength"
+											? copy.strength
+											: f === "Running"
+												? copy.running
+												: f === "Cycling"
+													? copy.cycling
+													: f
+								}
+							/>
+						</Pressable>
 					))}
 				</View>
 			</ScrollView>
 
 			<Pressable
 				onPress={() => router.push("/start-activity")}
+				accessibilityRole="button"
 				style={styles.startBtn}
 			>
-				<AppText style={styles.startBtnText}>Start activity</AppText>
+				<AppText style={styles.startBtnText}>{copy.startActivity}</AppText>
 			</Pressable>
 
+			<GhostButton
+				label={copy.history}
+				onPress={() => router.push("/activity-history")}
+			/>
 			<View style={styles.between}>
 				<Eyebrow>Routines</Eyebrow>
 				<Pressable

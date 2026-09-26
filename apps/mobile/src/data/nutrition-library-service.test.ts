@@ -138,6 +138,26 @@ function device(subject: string, remote: ReturnType<typeof remoteServer>) {
 }
 
 describe("NutritionLibraryService", () => {
+	it("retries a transient upload while the connection stays online", async () => {
+		jest.useFakeTimers();
+		try {
+			const remote = remoteServer();
+			remote.failOnce();
+			const current = device("account-a", remote);
+			const food = current.foods.create(foodDraft("Retry food"));
+			current.service.recordFood(food);
+			await Promise.resolve();
+			await Promise.resolve();
+			expect(remote.records.has(food.id)).toBe(false);
+			await jest.advanceTimersByTimeAsync(5000);
+			expect(remote.records.get(food.id)?.revision).toBe(1);
+			expect(current.state.listOperations("account-a")).toHaveLength(0);
+			current.service.dispose();
+		} finally {
+			jest.useRealTimers();
+		}
+	});
+
 	it("syncs preset icons without ever sending device-local photo paths", async () => {
 		const remote = remoteServer();
 		const first = device("account-a", remote);

@@ -40,6 +40,7 @@ type PrimaryAction = {
 export function FormScreen({
 	children,
 	title,
+	showHeader = title !== undefined,
 	cancelLabel = "Cancel",
 	onCancel,
 	primaryAction,
@@ -49,6 +50,7 @@ export function FormScreen({
 }: {
 	children: ReactNode;
 	title?: string;
+	showHeader?: boolean;
 	cancelLabel?: string;
 	onCancel?: () => void;
 	primaryAction?: PrimaryAction;
@@ -65,10 +67,10 @@ export function FormScreen({
 			behavior={Platform.OS === "ios" ? "padding" : "height"}
 			// Native stack content starts below its header. A modal with its own
 			// title starts at the window origin, regardless of the parent's header.
-			keyboardVerticalOffset={title ? 0 : headerHeight}
+			keyboardVerticalOffset={showHeader ? 0 : headerHeight}
 			style={styles.screen}
 		>
-			{title ? (
+			{showHeader ? (
 				<View style={styles.modalHeader}>
 					{onCancel ? (
 						<Pressable
@@ -81,13 +83,17 @@ export function FormScreen({
 					) : (
 						<View style={styles.headerAction} />
 					)}
-					<AppText
-						variant="heading"
-						numberOfLines={2}
-						style={styles.modalTitle}
-					>
-						{title}
-					</AppText>
+					{title ? (
+						<AppText
+							variant="heading"
+							numberOfLines={2}
+							style={styles.modalTitle}
+						>
+							{title}
+						</AppText>
+					) : (
+						<View style={styles.modalTitle} />
+					)}
 					{primaryAction && primaryActionPlacement === "header" ? (
 						<Pressable
 							onPress={primaryAction.onPress}

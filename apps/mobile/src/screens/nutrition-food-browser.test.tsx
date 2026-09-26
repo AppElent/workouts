@@ -244,7 +244,7 @@ describe("browsing shipped foods", () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
 
-		expect(await screen.findByText("Nothing to log yet")).toBeTruthy();
+		expect(await screen.findByText("Find a food to log")).toBeTruthy();
 		expect(screen.queryByText("Apple")).toBeNull();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect(
@@ -431,7 +431,7 @@ describe("browsing shipped foods", () => {
 		await screen.findAllByText("Morning mix");
 		const originalId = repository.list()[0].id;
 
-		fireEvent.press(screen.getByText("Edit Personal Food"));
+		fireEvent.press(await screen.findByText("Edit Personal Food"));
 		fireEvent.changeText(screen.getByLabelText("Name"), "Morning oats");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 		expect((await screen.findAllByText("Morning oats")).length).toBeGreaterThan(
@@ -457,7 +457,7 @@ describe("browsing shipped foods", () => {
 			(await screen.findByRole("radio", { name: "Lunch" })).props
 				.accessibilityState,
 		).toMatchObject({ checked: true });
-		expect(screen.getByText("Nothing to log yet")).toBeTruthy();
+		expect(screen.getByText("Find a food to log")).toBeTruthy();
 		await showAllFoods("apple");
 		expect(screen.getByText("Apple")).toBeTruthy();
 

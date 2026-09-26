@@ -29,18 +29,11 @@ export function NutritionSyncStatus() {
 					: `${operations.length} ${operations.length === 1 ? "change" : "changes"} saved on this device; waiting to sync.`}
 			</AppText>
 			{failed.length > 0 ? (
-				<>
-					<AppText variant="caption">
-						{locale === "nl"
-							? "Sommige wijzigingen hebben aandacht nodig. Je gegevens blijven op dit apparaat."
-							: "Some changes need attention. Your data remains on this device."}
-					</AppText>
-					{failed.map((operation) => (
-						<AppText key={operation.operationId} variant="caption">
-							{operation.lastError}
-						</AppText>
-					))}
-				</>
+				<AppText variant="caption">
+					{locale === "nl"
+						? "Sommige wijzigingen hebben aandacht nodig. Je gegevens blijven op dit apparaat."
+						: "Some changes need attention. Your data remains on this device."}
+				</AppText>
 			) : null}
 			<GhostButton
 				label={

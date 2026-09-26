@@ -176,6 +176,7 @@ export function NutritionComboLibrary({
 	date,
 	meal: initialMeal,
 	onClose,
+	onBeginSelection,
 }: {
 	date: string;
 	meal: MealSlot;
@@ -183,6 +184,7 @@ export function NutritionComboLibrary({
 	onSelectCombo: (id: string) => void;
 	onBack: () => void;
 	onClose: () => void;
+	onBeginSelection: () => void;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -561,6 +563,10 @@ export function NutritionComboLibrary({
 				<EmptyState
 					title={t.nutrition.combos.emptyTitle}
 					body={t.nutrition.combos.emptyBody}
+					action={{
+						label: locale === "nl" ? "＋ Combo maken" : "＋ Create Combo",
+						onPress: onBeginSelection,
+					}}
 				/>
 			) : (
 				<Card>

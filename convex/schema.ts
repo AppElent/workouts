@@ -90,7 +90,35 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_status', ['userId', 'status'])
+    .index('by_user_status_date', ['userId', 'status', 'date'])
     .index('by_user_date', ['userId', 'date']),
+
+  activities: defineTable({
+    userId: v.string(),
+    clientEntryId: v.string(),
+    sport: v.union(v.literal('running'), v.literal('cycling')),
+    occurredAt: v.number(),
+    durationSeconds: v.number(),
+    title: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_user_client_entry', ['userId', 'clientEntryId'])
+    .index('by_user_occurred_at', ['userId', 'occurredAt'])
+    .index('by_user_sport_occurred_at', ['userId', 'sport', 'occurredAt']),
+
+  enduranceActivityDetails: defineTable({
+    activityId: v.id('activities'),
+    userId: v.string(),
+    distanceMeters: v.number(),
+    environment: v.optional(v.union(v.literal('indoor'), v.literal('outdoor'))),
+    elevationGainMeters: v.optional(v.number()),
+    averageHeartRate: v.optional(v.number()),
+    effort: v.optional(v.number()),
+  })
+    .index('by_activity', ['activityId'])
+    .index('by_user', ['userId']),
 
   sets: defineTable({
     userId: v.string(),

@@ -390,6 +390,14 @@ jest.mock("convex/react", () => {
 	const { getFunctionName } = jest.requireActual("convex/server");
 	return {
 		...jest.requireActual("convex/react"),
+		useQueries: jest.fn((queries) =>
+			Object.fromEntries(
+				Object.keys(queries).map((key) => [
+					key,
+					{ items: [], cursor: null, isDone: true },
+				]),
+			),
+		),
 		useQuery: jest.fn((reference) =>
 			getFunctionName(reference) === "nutritionDiary:day"
 				? emptyDiary

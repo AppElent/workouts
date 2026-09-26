@@ -63,8 +63,10 @@ import { NutritionSyncStatus } from "./nutrition-sync-status";
 
 export function NutritionDayScreen({
 	initialDate,
+	startSelecting,
 }: {
 	initialDate?: string;
+	startSelecting?: string;
 } = {}) {
 	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
@@ -99,6 +101,12 @@ export function NutritionDayScreen({
 		setSelecting(false);
 		setSelectedEntryIds(new Set());
 	}, [initialDate]);
+	useEffect(() => {
+		if (startSelecting) {
+			setSelecting(true);
+			setSelectedEntryIds(new Set());
+		}
+	}, [startSelecting]);
 
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const drafts = useNutritionDrafts();

@@ -244,9 +244,7 @@ function OneOffLogger({
 				>
 					<AppText style={styles.sheetHeaderActionText}>{copy.cancel}</AppText>
 				</Pressable>
-				<AppText variant="heading" numberOfLines={1} style={styles.sheetTitle}>
-					{copy.logOnce}
-				</AppText>
+				<View style={styles.sheetTitle} />
 				<Pressable
 					onPress={log}
 					disabled={logging || !name.trim() || !amount.trim()}

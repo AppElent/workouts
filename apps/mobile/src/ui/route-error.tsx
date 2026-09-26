@@ -33,6 +33,7 @@ export function RouteError({
 	const styles = useThemedStyles(createStyles);
 	return (
 		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
@@ -58,7 +59,7 @@ export function RouteError({
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
-		content: { padding: 20, paddingTop: 64, gap: spacing.sm },
+		content: { padding: 20, gap: spacing.sm },
 		detail: {
 			backgroundColor: colors.surface,
 			borderRadius: 12,

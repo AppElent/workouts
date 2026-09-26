@@ -1,8 +1,7 @@
-import { useConvexConnectionState, useQuery } from "convex/react";
+import { useConvexConnectionState } from "convex/react";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { api } from "../convex/api";
 import { foodPhotos } from "../data/food-photo-manager";
 import { useOpenFoodFacts } from "../data/open-food-facts-context";
 import {
@@ -21,24 +20,9 @@ import {
 	GroupedSurface,
 	TextAction,
 } from "../ui/form";
-import { SkeletonBlock, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { nutritionLibraryCopy } from "./nutrition-library-copy";
-
-type ServerPage = {
-	page: Parameters<
-		ReturnType<typeof usePersonalFoods>["backup"]["receiveServerPage"]
-	>[0];
-	isDone: boolean;
-	continueCursor: string;
-};
-
-function isServerPage(value: unknown): value is ServerPage {
-	return (
-		!!value && typeof value === "object" && "page" in value && "isDone" in value
-	);
-}
 
 function conflictName(
 	conflict: ReturnType<typeof usePersonalFoods>["backup"]["conflicts"][number],
@@ -75,35 +59,10 @@ export function NutritionSettingsScreen() {
 	const toast = useToast();
 	const confirm = useConfirm();
 	const resolveWithServer = foods.backup.useServerCopy;
-	const [cursor, setCursor] = useState<string | null>(null);
-	const [restoreVersion, setRestoreVersion] = useState(0);
 	const [offRefreshing, setOffRefreshing] = useState(false);
 	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
-	const received = useRef(new Set<string>());
 	const { isWebSocketConnected } = useConvexConnectionState();
-	const result = useQuery(
-		api.nutritionLibrary.list,
-		foods.backup.enabled
-			? { paginationOpts: { cursor, numItems: 50 } }
-			: "skip",
-	);
-	useEffect(() => {
-		if (!isServerPage(result)) return;
-		const key = `${restoreVersion}:${cursor ?? "first"}:${JSON.stringify(result.page.map((record) => [record.id, record.revision, record.deleted, record.payload]))}`;
-		if (received.current.has(key)) return;
-		try {
-			foods.backup.receiveServerPage(result.page);
-			received.current.add(key);
-			if (!result.isDone) setCursor(result.continueCursor);
-		} catch {
-			toast.error(copy.failure);
-		}
-	}, [copy.failure, cursor, foods.backup, restoreVersion, result, toast]);
-	const restore = () => {
-		received.current.clear();
-		setCursor(null);
-		setRestoreVersion((version) => version + 1);
-	};
+	const restore = foods.backup.restore;
 	const retryUpload = () => {
 		foods.backup.retry();
 	};
@@ -201,26 +160,6 @@ export function NutritionSettingsScreen() {
 		}
 	};
 
-	if (foods.backup.enabled && result === undefined) {
-		return (
-			<ScrollView
-				contentInsetAdjustmentBehavior="automatic"
-				style={styles.root}
-				contentContainerStyle={styles.content}
-			>
-				<SkeletonGroup label={copy.loading}>
-					<SkeletonBlock height={80} />
-					<SkeletonBlock height={180} />
-				</SkeletonGroup>
-				{!isWebSocketConnected ? (
-					<GroupedSurface style={styles.card}>
-						<AppText>{copy.offline}</AppText>
-						<TextAction label={copy.restore} onPress={restore} />
-					</GroupedSurface>
-				) : null}
-			</ScrollView>
-		);
-	}
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
@@ -228,6 +167,17 @@ export function NutritionSettingsScreen() {
 			contentContainerStyle={styles.content}
 		>
 			<AppText variant="caption">{copy.intro}</AppText>
+			{foods.backup.enabled && !isWebSocketConnected ? (
+				<GroupedSurface style={styles.card}>
+					<AppText>{copy.offline}</AppText>
+				</GroupedSurface>
+			) : null}
+			{foods.backup.restoreError ? (
+				<GroupedSurface style={styles.card}>
+					<AppText accessibilityRole="alert">{copy.failure}</AppText>
+					<TextAction label={copy.restore} onPress={restore} />
+				</GroupedSurface>
+			) : null}
 			<FormSection>
 				<DisclosureRow
 					label={
@@ -291,7 +241,7 @@ export function NutritionSettingsScreen() {
 							{foods.backup.operations.map((operation) => (
 								<AppText key={operation.operationId} variant="caption">
 									{operation.status}
-									{operation.lastError ? ` · ${operation.lastError}` : ""}
+									{operation.lastError ? ` · ${copy.failure}` : ""}
 								</AppText>
 							))}
 						</GroupedSurface>

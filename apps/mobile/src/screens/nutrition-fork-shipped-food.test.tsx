@@ -39,10 +39,9 @@ describe("correcting a shipped food", () => {
 		renderApp();
 		await correctTheApple();
 
-		expect(await screen.findByText("Correct a shipped food")).toBeTruthy();
+		expect(await screen.findByLabelText("Name")).toBeTruthy();
 		expect(screen.getByLabelText("Name").props.value).toBe("Apple");
-		fireEvent.press(screen.getByLabelText("Edit Dutch name (optional)"));
-		expect(screen.getByLabelText("Dutch name").props.value).toBe("Appel");
+		expect(screen.queryByLabelText("Dutch name")).toBeNull();
 		expect(
 			Number(screen.getByLabelText("Energy per 100 g").props.value),
 		).toBeGreaterThan(0);
@@ -75,7 +74,7 @@ describe("correcting a shipped food", () => {
 			locallyEdited: true,
 			forkedFrom: "shipped:apple-w-skin-av",
 		});
-		expect(screen.getByText("You changed these figures.")).toBeTruthy();
+		expect(screen.getByText("You changed this food.")).toBeTruthy();
 		expect(
 			screen.getByText(
 				"Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven",
@@ -83,16 +82,15 @@ describe("correcting a shipped food", () => {
 		).toBeTruthy();
 	});
 
-	it("does not claim a local edit when nothing was changed", async () => {
+	it("uses one name and records the resulting local correction", async () => {
 		const { repository } = renderApp();
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
 		await screen.findByText("Your correction of Apple w skin av");
-		expect(repository.list()[0].provenance.locallyEdited).toBe(false);
-		expect(
-			screen.getByText("You have not changed these figures yet."),
-		).toBeTruthy();
+		expect(repository.list()[0].name).toEqual({ en: "Apple", nl: "Apple" });
+		expect(repository.list()[0].provenance.locallyEdited).toBe(true);
+		expect(screen.getByText("You changed this food.")).toBeTruthy();
 	});
 
 	it("replaces the shipped food in ordinary search", async () => {
@@ -255,9 +253,7 @@ describe("correcting a shipped food in Dutch", () => {
 		fireEvent.press(await screen.findByText("Appel"));
 
 		fireEvent.press(await screen.findByText("Dit voedingsmiddel corrigeren"));
-		expect(
-			await screen.findByText("Meegeleverd voedingsmiddel corrigeren"),
-		).toBeTruthy();
+		expect(await screen.findByLabelText("Naam")).toBeTruthy();
 		fireEvent.press(screen.getByText("Persoonlijk voedingsmiddel opslaan"));
 
 		expect(

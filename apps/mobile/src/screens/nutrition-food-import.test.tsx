@@ -99,7 +99,7 @@ describe("scanning a barcode", () => {
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
-	it("opens an editable Food Import review, saves it as an unedited Personal Food, and logs its provenance", async () => {
+	it("opens an editable Food Import review, saves it as a Personal Food, and logs its provenance", async () => {
 		const log = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
@@ -113,7 +113,7 @@ describe("scanning a barcode", () => {
 		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
-		expect(await screen.findByText("Review imported food")).toBeTruthy();
+		expect(await screen.findByLabelText("Name")).toBeTruthy();
 		expect(screen.getByDisplayValue("Baked Beans")).toBeTruthy();
 		expect(screen.getByText(/Product data from Open Food Facts/)).toBeTruthy();
 		expect(screen.getByText("Crop position")).toBeTruthy();
@@ -137,7 +137,7 @@ describe("scanning a barcode", () => {
 		expect(log.mock.calls[0][0].provenance).toMatchObject({
 			source: "import",
 			nutritionSource: "openfoodfacts",
-			locallyEdited: false,
+			locallyEdited: true,
 			provider: "Open Food Facts",
 			barcode: "5000112637922",
 		});
@@ -158,7 +158,7 @@ describe("scanning a barcode", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
-		await screen.findByText("Review imported food");
+		await screen.findByLabelText("Name");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
@@ -184,7 +184,7 @@ describe("scanning a barcode", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 		fireEvent.press(screen.getByLabelText("Scan barcode"));
 		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
-		await screen.findByText("Review imported food");
+		await screen.findByLabelText("Name");
 
 		fireEvent.changeText(
 			screen.getByLabelText("Name"),
@@ -348,7 +348,7 @@ describe("the explicit Open Food Facts search", () => {
 		).toBeTruthy();
 		fireEvent.press(screen.getByText("Baked Beans"));
 
-		expect(await screen.findByText("Review imported food")).toBeTruthy();
+		expect(await screen.findByLabelText("Name")).toBeTruthy();
 	});
 
 	it("reports no online matches without disturbing local Search or Enter manually", async () => {

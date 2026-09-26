@@ -98,7 +98,7 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		mealEmpty: "Nothing logged yet",
 		poolNote: (count) =>
 			`Everything is searched in one list — recent, favorites, Combos, recipes and all ${count} catalogue items.`,
-		poolEmptyTitle: "Nothing to log yet",
+		poolEmptyTitle: "Find a food to log",
 		poolEmptyBody:
 			"Search for a food, scan a barcode, or add one with the + button.",
 		recentEmptyTitle: "Nothing logged recently",
@@ -153,7 +153,7 @@ const copy: Record<"en" | "nl", FoodBrowserCopy> = {
 		mealEmpty: "Nog niets gelogd",
 		poolNote: (count) =>
 			`Alles wordt in één lijst gezocht — recent, favorieten, combo's, recepten en alle ${count} NEVO-items.`,
-		poolEmptyTitle: "Nog niets om te loggen",
+		poolEmptyTitle: "Zoek eten om te loggen",
 		poolEmptyBody:
 			"Zoek een voedingsmiddel, scan een barcode of voeg er een toe met de +.",
 		recentEmptyTitle: "Nog niets recent gelogd",

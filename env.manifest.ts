@@ -16,7 +16,7 @@ export const ENV_CONFIG = {
 			dev: "staging",
 			production: "prod",
 		},
-		paths: ["/", "/workouts"],
+		paths: ["/", "/foundry"],
 	},
 	mobile: { path: "apps/mobile" },
 	github: { repository: "AppElent/workouts" },

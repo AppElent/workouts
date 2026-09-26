@@ -97,7 +97,7 @@ describe("nutrition assistance screen", () => {
 				/>
 			</SafeAreaProvider>,
 		);
-		fireEvent.press(screen.getByText("Nutrition estimate"));
+		fireEvent.press(screen.getByRole("radio", { name: "Nutrition estimate" }));
 		fireEvent.changeText(screen.getByLabelText("Estimated food name"), "Pasta");
 		fireEvent.changeText(screen.getByLabelText("Energy (kcal)"), "550");
 		fireEvent.press(screen.getByText("Review estimate"));

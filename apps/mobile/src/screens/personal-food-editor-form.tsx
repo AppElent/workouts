@@ -7,7 +7,7 @@ import {
 } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { type ScrollView, StyleSheet, View } from "react-native";
 import {
 	type FoodPhotoCropPosition,
 	type FoodPhotoManager,
@@ -170,10 +170,10 @@ export function PersonalFoodEditorForm({
 	const [remoteCrop, setRemoteCrop] = useState<FoodPhotoCropPosition>("center");
 	const stagedPhoto = useRef<string | undefined>(undefined);
 	const savedPhoto = useRef(false);
-	const otherLocale = locale === "en" ? "nl" : "en";
 	const [primaryName, setPrimaryName] = useState(initial?.name[locale] ?? "");
-	const [otherName, setOtherName] = useState(initial?.name[otherLocale] ?? "");
-	const [otherNameOpen, setOtherNameOpen] = useState(false);
+	const [nameError, setNameError] = useState<string>();
+	const scrollRef = useRef<ScrollView>(null);
+	const nameOffset = useRef(0);
 	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
 		initial?.baseUnit === "ml" ? "ml" : "g",
 	);
@@ -243,12 +243,7 @@ export function PersonalFoodEditorForm({
 					: { kind: input.kind };
 		}
 
-		const fallbackOtherName =
-			otherName.trim().length > 0 ? otherName : primaryName;
-		const name =
-			locale === "en"
-				? { en: primaryName, nl: fallbackOtherName }
-				: { en: fallbackOtherName, nl: primaryName };
+		const name = { en: primaryName, nl: primaryName };
 		const editable: EditorSeed = {
 			name,
 			baseUnit: basisKind === "perServing" ? "serving" : baseUnit,
@@ -379,15 +374,21 @@ export function PersonalFoodEditorForm({
 		if (saving || saveLock.current) return;
 		if (photoPreparationFailed) return;
 		setValidationError(undefined);
+		setNameError(undefined);
+		if (!primaryName.trim() || primaryName.trim().length > 500) {
+			setNameError(primaryName.trim() ? copy.nameTooLong : copy.nameRequired);
+			scrollRef.current?.scrollTo({
+				y: Math.max(0, nameOffset.current - spacing.md),
+				animated: true,
+			});
+			return;
+		}
 		let draft: PersonalFoodDraft;
 		try {
 			draft = validatePersonalFoodDraft(buildDraft());
-		} catch (error) {
-			setValidationError(
-				error instanceof Error
-					? error.message
-					: t.nutrition.personalFood.validation,
-			);
+		} catch {
+			setValidationError(t.nutrition.personalFood.validation);
+			scrollRef.current?.scrollToEnd({ animated: true });
 			return;
 		}
 		saveLock.current = true;
@@ -490,13 +491,6 @@ export function PersonalFoodEditorForm({
 		...(moreNutrientsOpen ? MORE_NUTRIENTS : []),
 	];
 
-	const title = source
-		? t.nutrition.fork.title
-		: reviewNotice
-			? reviewNotice.title
-			: food
-				? t.nutrition.personalFood.editTitle
-				: t.nutrition.personalFood.createTitle;
 	const basisLabel =
 		basisKind === "perServing"
 			? `${copy.perServing.toLowerCase()} (${servingLabel})`
@@ -514,9 +508,10 @@ export function PersonalFoodEditorForm({
 
 	return (
 		<FormScreen
-			title={title}
+			showHeader
 			cancelLabel={t.nutrition.personalFood.cancel}
 			onCancel={saving || photoBusy ? undefined : cancel}
+			scrollRef={scrollRef}
 			primaryAction={{
 				label: saving
 					? t.nutrition.personalFood.saving
@@ -649,34 +644,24 @@ export function PersonalFoodEditorForm({
 				/>
 			</FormSection>
 
-			<FormSection>
-				<FormTextField
-					label={copy.name}
-					value={primaryName}
-					onChangeText={setPrimaryName}
-					autoCorrect={false}
-				/>
-				<DisclosureRow
-					label={copy.otherName}
-					accessibilityLabel={
-						otherNameOpen
-							? copy.hideOtherName
-							: otherName.trim()
-								? copy.editOtherName
-								: copy.addOtherName
-					}
-					expanded={otherNameOpen}
-					onPress={() => setOtherNameOpen((open) => !open)}
-				/>
-				{otherNameOpen ? (
+			<View
+				onLayout={(event) => {
+					nameOffset.current = event.nativeEvent.layout.y;
+				}}
+			>
+				<FormSection>
 					<FormTextField
-						label={copy.otherName}
-						value={otherName}
-						onChangeText={setOtherName}
+						label={copy.name}
+						value={primaryName}
+						onChangeText={(value) => {
+							setPrimaryName(value);
+							setNameError(undefined);
+						}}
+						error={nameError}
 						autoCorrect={false}
 					/>
-				) : null}
-			</FormSection>
+				</FormSection>
+			</View>
 
 			<FormSection title={copy.classification}>
 				{food || seed || reviewNotice ? (

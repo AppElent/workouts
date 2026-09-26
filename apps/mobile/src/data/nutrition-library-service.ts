@@ -58,6 +58,7 @@ export class NutritionLibraryService {
 	private online = false;
 	private replaying = false;
 	private disposed = false;
+	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	private readonly listeners = new Set<() => void>();
 	private version = 0;
 
@@ -208,12 +209,14 @@ export class NutritionLibraryService {
 	setOnline(online: boolean) {
 		if (this.disposed) return;
 		this.online = online;
+		if (!online) clearTimeout(this.retryTimer);
 		if (online) void this.replay();
 	}
 
 	dispose() {
 		this.disposed = true;
 		this.online = false;
+		clearTimeout(this.retryTimer);
 	}
 
 	private queue(record: LibraryRecord) {
@@ -255,6 +258,7 @@ export class NutritionLibraryService {
 
 	async replay() {
 		if (this.disposed || !this.online || this.replaying) return;
+		clearTimeout(this.retryTimer);
 		this.replaying = true;
 		let stoppedByFailure = false;
 		const blockedRecords = new Set<string>();
@@ -304,6 +308,12 @@ export class NutritionLibraryService {
 			}
 		} finally {
 			this.replaying = false;
+			if (!this.disposed && this.online && stoppedByFailure) {
+				// Retain the durable outbox and retry a transient failure even if the
+				// connection stays up and the user makes no further library changes.
+				this.retryTimer = setTimeout(() => void this.replay(), 5_000);
+				(this.retryTimer as unknown as { unref?: () => void }).unref?.();
+			}
 			// A second local write can arrive while this pass is awaiting the first
 			// remote receipt. Drain it promptly, but never busy-loop a failed retry.
 			if (

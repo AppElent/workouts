@@ -17,7 +17,7 @@ describe("Workouts environment routing", () => {
 			"dev",
 			"production",
 		]);
-		expect(ENV_CONFIG.source.paths).toEqual(["/", "/workouts"]);
+		expect(ENV_CONFIG.source.paths).toEqual(["/", "/foundry"]);
 		expect(ENV_CONFIG.source.environments).toEqual({
 			local: "dev",
 			preview: "staging",

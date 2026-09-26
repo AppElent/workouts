@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/expo";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -7,6 +7,7 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	useSyncExternalStore,
 } from "react";
@@ -67,6 +68,8 @@ type PersonalFoodsValue = {
 		enable(): void;
 		importLegacy(): void;
 		retry(): void;
+		restore(): void;
+		restoreError: boolean;
 		receiveServerPage(records: readonly LibraryRecord[]): void;
 		keepDeviceCopy(conflict: LibraryConflict): void;
 		useServerCopy(conflict: LibraryConflict): void;
@@ -91,10 +94,12 @@ function PersonalFoodsScope({
 	children,
 	repository: suppliedRepository,
 	backup,
+	remoteRevision = 0,
 }: {
 	children: ReactNode;
 	repository?: PersonalFoodRepository;
 	backup: BackupControls;
+	remoteRevision?: number;
 }) {
 	const [repository] = useState(
 		() => suppliedRepository ?? openPersonalFoodRepository(),
@@ -104,7 +109,7 @@ function PersonalFoodsScope({
 
 	const value = useMemo<PersonalFoodsValue>(
 		() => ({
-			revision,
+			revision: revision + remoteRevision,
 			list: (filter) => repository.list(filter),
 			find: (id) => repository.find(id),
 			findByBarcode: (barcode) => repository.findByBarcode(barcode),
@@ -222,7 +227,7 @@ function PersonalFoodsScope({
 			},
 			backup,
 		}),
-		[backup, changed, repository, revision],
+		[backup, changed, remoteRevision, repository, revision],
 	);
 
 	return <PersonalFoodsContext value={value}>{children}</PersonalFoodsContext>;
@@ -247,6 +252,14 @@ export function PersonalFoodsProvider({
 		[libraryState, suppliedRepository],
 	);
 	const [settingsVersion, setSettingsVersion] = useState(0);
+	const [restoreVersion, setRestoreVersion] = useState(0);
+	const [restoreError, setRestoreError] = useState(false);
+	const onRestoreError = useCallback(() => setRestoreError(true), []);
+	const [restoredRevision, setRestoredRevision] = useState(0);
+	const onPageRestored = useCallback(
+		() => setRestoredRevision((value) => value + 1),
+		[],
+	);
 	const enabled = subject && state ? state.isEnabled(subject) : false;
 	const legacyOwner = state?.legacyClaimedBy();
 	const legacyRepository = useMemo(
@@ -397,6 +410,11 @@ export function PersonalFoodsProvider({
 				}
 			},
 			retry: () => void service?.replay(),
+			restore: () => {
+				setRestoreError(false);
+				setRestoreVersion((version) => version + 1);
+			},
+			restoreError,
 			receiveServerPage: (records) => service?.receiveServerPage(records),
 			keepDeviceCopy: (conflict) => service?.keepDeviceCopy(conflict),
 			useServerCopy: (conflict) => service?.resolveServerConflict(conflict),
@@ -415,6 +433,7 @@ export function PersonalFoodsProvider({
 			account,
 			accountRepository,
 			enabled,
+			restoreError,
 			service,
 			state,
 			subject,
@@ -422,14 +441,57 @@ export function PersonalFoodsProvider({
 		],
 	);
 	return (
-		<PersonalFoodsScope
-			key={`${subject ?? "legacy"}:${enabled ? "account" : "legacy"}:${settingsVersion}`}
-			repository={visibleRepository}
-			backup={backup}
-		>
-			{children}
-		</PersonalFoodsScope>
+		<>
+			{service && subject ? (
+				<LibraryRestore
+					key={`${subject}:${restoreVersion}`}
+					service={service}
+					onError={onRestoreError}
+					onPage={onPageRestored}
+				/>
+			) : null}
+			<PersonalFoodsScope
+				key={`${subject ?? "legacy"}:${enabled ? "account" : "legacy"}:${settingsVersion}`}
+				repository={visibleRepository}
+				backup={backup}
+				remoteRevision={restoredRevision}
+			>
+				{children}
+			</PersonalFoodsScope>
+		</>
 	);
+}
+
+/** Restore all server pages for the signed-in library, independent of Settings. */
+function LibraryRestore({
+	service,
+	onError,
+	onPage,
+}: {
+	service: NutritionLibraryService;
+	onError: () => void;
+	onPage: () => void;
+}) {
+	const [cursor, setCursor] = useState<string | null>(null);
+	const received = useRef(new Set<string>());
+	const result = useQuery(api.nutritionLibrary.list, {
+		paginationOpts: { cursor, numItems: 50 },
+	});
+	useEffect(() => {
+		if (!result || !("page" in result)) return;
+		const key = `${cursor ?? "first"}:${result.continueCursor}:${result.page.map((record) => `${record.id}:${record.revision}`).join(",")}`;
+		if (received.current.has(key)) return;
+		try {
+			received.current.add(key);
+			service.receiveServerPage(result.page);
+			onPage();
+			if (!result.isDone) setCursor(result.continueCursor);
+		} catch {
+			received.current.delete(key);
+			onError();
+		}
+	}, [cursor, onError, onPage, result, service]);
+	return null;
 }
 
 export function usePersonalFoods(): PersonalFoodsValue {

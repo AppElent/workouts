@@ -87,7 +87,7 @@ export const colorsLight = lightColors;
  * not a user-extensible catalog, because each type needs its own detail schema
  * and logging UI that a data row cannot supply.
  *
- * This remains phone-local while Strength is the only implemented type. A
+ * Presentation metadata remains phone-local. A
  * future shared catalog belongs to the Activity migration; the colours stay
  * phone-side because they are presentation rather than domain language.
  * `colorLight`/`dimLight` are the darkened hues that stay legible as a label
@@ -101,7 +101,7 @@ export const sportMeta = {
 		dim: "rgba(200, 247, 60, 0.14)",
 		colorLight: "#5f7a10",
 		dimLight: "rgba(200, 247, 60, 0.30)",
-		/** The only type with a real Convex-backed implementation today. */
+		/** Strength retains its existing session storage. */
 		implemented: true,
 	},
 	running: {
@@ -111,7 +111,7 @@ export const sportMeta = {
 		dim: "rgba(255, 138, 76, 0.14)",
 		colorLight: "#c2540f",
 		dimLight: "rgba(255, 138, 76, 0.20)",
-		implemented: false,
+		implemented: true,
 	},
 	cycling: {
 		label: "Cycling",
@@ -120,7 +120,7 @@ export const sportMeta = {
 		dim: "rgba(79, 209, 227, 0.14)",
 		colorLight: "#0d7e8c",
 		dimLight: "rgba(79, 209, 227, 0.20)",
-		implemented: false,
+		implemented: true,
 	},
 	wod: {
 		label: "WOD",

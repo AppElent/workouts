@@ -449,8 +449,8 @@ export const en = {
 			/** Caption under a fork, wherever it appears. */
 			resultLabel: "Your correction",
 			forkedFrom: "Your correction of {name}",
-			locallyEdited: "You changed these figures.",
-			unchanged: "You have not changed these figures yet.",
+			locallyEdited: "You changed this food.",
+			unchanged: "You have not changed this food yet.",
 			/** Caption on the original, in the deliberate broader view only. */
 			shadowed: "Replaced by your correction",
 			deleteTitle: "Delete this correction?",

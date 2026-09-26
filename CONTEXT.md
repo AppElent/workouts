@@ -12,6 +12,12 @@ _Avoid_: Workout or Session as the umbrella term
 An Activity in which a person performs Exercises as Sets. A Strength Session may be free-form or started from a Routine.
 _Avoid_: Workout Session
 
+**Run**:
+An Activity in which a person records a distance covered on foot and the time spent moving. A Run can take place indoors or outdoors.
+
+**Ride**:
+An Activity in which a person records a distance cycled and the time spent moving. A Ride can take place indoors or outdoors.
+
 **Exercise**:
 A named strength movement that can be performed in Sets.
 

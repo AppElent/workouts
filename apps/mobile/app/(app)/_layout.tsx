@@ -65,6 +65,31 @@ export default function AppLayout() {
 													}}
 												>
 													<Stack.Screen
+														name="activity-history"
+														options={{
+															title:
+																locale === "nl"
+																	? "Activiteitengeschiedenis"
+																	: "Activity history",
+														}}
+													/>
+													<Stack.Screen
+														name="endurance-editor"
+														options={{
+															title:
+																locale === "nl"
+																	? "Activiteit vastleggen"
+																	: "Log activity",
+														}}
+													/>
+													<Stack.Screen
+														name="endurance/[id]"
+														options={{
+															title:
+																locale === "nl" ? "Activiteit" : "Activity",
+														}}
+													/>
+													<Stack.Screen
 														name="(coach)"
 														options={{
 															headerShown: false,

@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { useConvex } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { format } from "date-fns";
 import { Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
@@ -74,9 +75,29 @@ export function ExportDataCard() {
 			const data = await convex.query(api.exportData.allData, {});
 			const stamp = format(new Date(), "yyyy-MM-dd");
 			if (kind === "json") {
+				const activities: FunctionReturnType<
+					typeof api.exportData.endurancePage
+				>["activities"] = [];
+				const enduranceActivityDetails: FunctionReturnType<
+					typeof api.exportData.endurancePage
+				>["enduranceActivityDetails"] = [];
+				let cursor: string | null = null;
+				for (;;) {
+					const page: FunctionReturnType<typeof api.exportData.endurancePage> =
+						await convex.query(api.exportData.endurancePage, { cursor });
+					activities.push(...page.activities);
+					enduranceActivityDetails.push(...page.enduranceActivityDetails);
+					if (page.isDone) break;
+					if (!page.cursor) throw new Error("Incomplete activity export.");
+					cursor = page.cursor;
+				}
 				download(
 					`workouts-export-${stamp}.json`,
-					JSON.stringify(data, null, 2),
+					JSON.stringify(
+						{ ...data, activities, enduranceActivityDetails },
+						null,
+						2,
+					),
 					"application/json",
 				);
 			} else {

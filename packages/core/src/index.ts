@@ -1,3 +1,4 @@
+export * from "./activity";
 export {
 	type NutrientContribution,
 	type NutrientTotal,

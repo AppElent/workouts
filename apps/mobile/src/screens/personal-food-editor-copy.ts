@@ -16,6 +16,8 @@ export type PersonalFoodEditorCopy = {
 	cropPosition: string;
 	cropPositions: Record<"center" | "top" | "bottom" | "left" | "right", string>;
 	name: string;
+	nameRequired: string;
+	nameTooLong: string;
 	classification: string;
 	ordinary: string;
 	recipe: string;
@@ -28,10 +30,6 @@ export type PersonalFoodEditorCopy = {
 	perServing: string;
 	servingLabel: string;
 	serving: string;
-	otherName: string;
-	addOtherName: string;
-	editOtherName: string;
-	hideOtherName: string;
 	per100: string;
 	grams: string;
 	millilitres: string;
@@ -103,10 +101,8 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 		servingLabel: "Serving name",
 		serving: "Serving",
 		name: "Name",
-		otherName: "Dutch name",
-		addOtherName: "Add Dutch name (optional)",
-		editOtherName: "Edit Dutch name (optional)",
-		hideOtherName: "Hide Dutch name",
+		nameRequired: "Enter a food name.",
+		nameTooLong: "Use 500 characters or fewer.",
 		per100: "Per 100",
 		grams: "g",
 		millilitres: "ml",
@@ -177,10 +173,8 @@ export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
 		servingLabel: "Naam portie",
 		serving: "Portie",
 		name: "Naam",
-		otherName: "Engelse naam",
-		addOtherName: "Engelse naam toevoegen (optioneel)",
-		editOtherName: "Engelse naam bewerken (optioneel)",
-		hideOtherName: "Engelse naam verbergen",
+		nameRequired: "Vul een naam voor het voedingsmiddel in.",
+		nameTooLong: "Gebruik maximaal 500 tekens.",
 		per100: "Per 100",
 		grams: "g",
 		millilitres: "ml",

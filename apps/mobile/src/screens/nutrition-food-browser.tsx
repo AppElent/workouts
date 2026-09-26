@@ -630,6 +630,12 @@ export function NutritionFoodBrowser({
 		setForkDraft(undefined);
 	}
 
+	function showSavedFood(food: PersonalFood) {
+		// Unmount the SwiftUI editor Host before exposing the serving modal. A
+		// hidden Host over the picker intercepted taps after saving a new food.
+		setSelectedFood({ kind: "personal", food });
+	}
+
 	async function handleBarcodeScanned(barcode: string) {
 		setScanning(false);
 		// Local foods are checked before any network call reaches Open Food
@@ -640,13 +646,20 @@ export function NutritionFoodBrowser({
 			return;
 		}
 		setLookingUpBarcode(true);
-		const outcome = await openFoodFacts.lookupBarcode(barcode);
-		setLookingUpBarcode(false);
-		if (outcome.kind === "found") {
-			setReviewingImport(outcome.draft);
-			return;
+		try {
+			const outcome = await openFoodFacts.lookupBarcode(barcode);
+			if (outcome.kind === "found") {
+				setReviewingImport(outcome.draft);
+				return;
+			}
+			toast.error(
+				offFailureMessage(outcome.kind, t.nutrition.foodImport, false),
+			);
+		} catch {
+			toast.error(t.nutrition.foodImport.unavailable);
+		} finally {
+			setLookingUpBarcode(false);
 		}
-		toast.error(offFailureMessage(outcome.kind, t.nutrition.foodImport, false));
 	}
 
 	async function runOnlineSearch() {
@@ -709,7 +722,7 @@ export function NutritionFoodBrowser({
 				onCancel={() => setReviewingImport(undefined)}
 				onSaved={(food) => {
 					setReviewingImport(undefined);
-					setSelectedFood({ kind: "personal", food });
+					showSavedFood(food);
 				}}
 			/>
 		);
@@ -732,7 +745,7 @@ export function NutritionFoodBrowser({
 				onCancel={closeEditor}
 				onSaved={(food) => {
 					closeEditor();
-					setSelectedFood({ kind: "personal", food });
+					showSavedFood(food);
 				}}
 			/>
 		);
@@ -979,15 +992,17 @@ export function NutritionFoodBrowser({
 					),
 				}}
 			/>
-			<FoodEditorSheet
-				visible={Boolean(editor)}
-				onClose={() => {
-					setReviewingImport(undefined);
-					closeEditor();
-				}}
-			>
-				{editor}
-			</FoodEditorSheet>
+			{editor ? (
+				<FoodEditorSheet
+					visible
+					onClose={() => {
+						setReviewingImport(undefined);
+						closeEditor();
+					}}
+				>
+					{editor}
+				</FoodEditorSheet>
+			) : null}
 			<Modal
 				visible={Boolean(servingSheet)}
 				presentationStyle="formSheet"

@@ -1,12 +1,14 @@
 import { useAuth } from "@clerk/expo";
-import { act, render } from "@testing-library/react-native";
+import { act, render, waitFor } from "@testing-library/react-native";
 import type { NutrientValue } from "@workouts/core/nutrition";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import { getFunctionName } from "convex/server";
 import { useEffect, useRef } from "react";
 import { Text } from "react-native";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	createNutritionLibraryStateRepository,
+	libraryRecordFromFood,
 	type NutritionLibraryStateRepository,
 } from "./nutrition-library-repository";
 import type { NutritionLibraryOperationEnvelope } from "./nutrition-library-service";
@@ -42,6 +44,55 @@ const draft: PersonalFoodDraft = {
 };
 
 describe("PersonalFoodsProvider library journal", () => {
+	it("restores the server library without opening settings", async () => {
+		jest
+			.mocked(useAuth)
+			.mockReturnValue({ isSignedIn: true, userId: "account-a" } as never);
+		const previousQuery = jest.mocked(useQuery).getMockImplementation();
+		const remoteFoods = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const remoteFood = remoteFoods.create(draft);
+		const page = {
+			page: [libraryRecordFromFood(remoteFood, 1)],
+			isDone: true,
+			continueCursor: "",
+		};
+		jest
+			.mocked(useQuery)
+			.mockImplementation(((reference: never, args?: never) =>
+				getFunctionName(reference) === "nutritionLibrary:list"
+					? page
+					: previousQuery?.(reference, args)) as never);
+		const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const state = createNutritionLibraryStateRepository(
+			new SQLiteTestDatabase(),
+		);
+		state.setEnabled("account-a", true);
+		function Reader() {
+			const personal = usePersonalFoods();
+			return (
+				<Text>
+					{personal
+						.list()
+						.map((food) => food.name.en)
+						.join(", ")}
+				</Text>
+			);
+		}
+		try {
+			const screen = render(
+				<PersonalFoodsProvider repository={foods} libraryState={state}>
+					<Reader />
+				</PersonalFoodsProvider>,
+			);
+			await waitFor(() =>
+				expect(screen.getByText("Prepared oats")).toBeTruthy(),
+			);
+			expect(foods.list()).toHaveLength(1);
+		} finally {
+			jest.mocked(useQuery).mockImplementation(previousQuery ?? (() => []));
+		}
+	});
+
 	it("retains the prepared journal when the local food write succeeded but outbox commit fails", () => {
 		jest
 			.mocked(useAuth)

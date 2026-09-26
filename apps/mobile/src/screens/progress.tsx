@@ -1,43 +1,28 @@
 import type { ExerciseId } from "@workouts/core/exercises";
-/**
- * Progress tab, ported from the web's `src/routes/progress/index.tsx`.
- *
- * Two sub-tabs, as on the web: per-exercise trends, and body metrics. The
- * by-sport bars from the original design are gone rather than left as fake
- * data — there is no per-sport record to draw from until the Activity split in
- * ADR-0001 lands, and an invented breakdown is worse than an absent one.
- *
- * One deliberate difference in wording. `progress.weeklyVolume` sums **every**
- * set type, while the session summary's volume counts working sets only. Those
- * are two different numbers and the web labels both "volume", which invites the
- * reader to compare them. The chart here says which one it is instead. Changing
- * the query to match would silently move the web's chart too, so it is left
- * alone and flagged rather than quietly fixed.
- */
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
+import { useI18n } from "../i18n";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { BucketChart, TrendChart } from "../ui/chart";
-import { Chip, Eyebrow, StatBox } from "../ui/coach";
+import { Chip, Eyebrow } from "../ui/coach";
+import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
+import { activityCopy } from "./activity-copy";
 import { BodyMetricsPanel } from "./body-metrics";
+import { EnduranceProgress } from "./endurance-progress";
 
-const TABS = ["Exercises", "Body"] as const;
+const TABS = ["Exercises", "Running", "Cycling", "Body"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProgressScreen() {
 	const styles = useThemedStyles(createStyles);
 	const [tab, setTab] = useState<Tab>("Exercises");
-	const { recent, exercises } = useShellData();
-
-	const totalMinutes =
-		recent?.reduce((sum, s) => {
-			if (!s.endTime) return sum;
-			return sum + Math.round((s.endTime - s.startTime) / 60000);
-		}, 0) ?? 0;
+	const { exercises } = useShellData();
+	const { locale } = useI18n();
+	const copy = activityCopy(locale);
 
 	return (
 		<ScrollView
@@ -48,28 +33,29 @@ export function ProgressScreen() {
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
-			<View style={styles.tabRow}>
-				{TABS.map((t) => (
-					<Pressable key={t} onPress={() => setTab(t)} style={styles.flex}>
-						<Chip label={t} active={t === tab} />
-					</Pressable>
-				))}
-			</View>
-
-			<View style={styles.statRow}>
-				<StatBox value={String(recent?.length ?? 0)} label="Sessions" />
-				<StatBox
-					value={
-						totalMinutes >= 60
-							? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`
-							: `${totalMinutes}m`
-					}
-					label="Active"
-				/>
-			</View>
+			<Segmented
+				value={tab}
+				onChange={setTab}
+				options={TABS.map((value) => ({
+					value,
+					label:
+						value === "Exercises"
+							? copy.exercises
+							: value === "Body"
+								? copy.body
+								: value === "Running"
+									? copy.running
+									: copy.cycling,
+				}))}
+			/>
 
 			{tab === "Exercises" ? (
 				<ExerciseProgress exercises={exercises} />
+			) : tab === "Running" || tab === "Cycling" ? (
+				<EnduranceProgress
+					key={tab}
+					sport={tab === "Running" ? "running" : "cycling"}
+				/>
 			) : (
 				<BodyMetricsPanel />
 			)}

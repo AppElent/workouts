@@ -321,7 +321,7 @@ describe("Personal Food compact authoring", () => {
 		});
 	});
 
-	it("preserves an existing translation while editing from the current locale", async () => {
+	it("uses the edited personal-food name in every app language", async () => {
 		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 		const food = repository.create({
 			name: { en: "Training drink", nl: "Trainingsdrank" },
@@ -358,7 +358,7 @@ describe("Personal Food compact authoring", () => {
 		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
 		expect(repository.find(food.id)?.name).toEqual({
 			en: "Workout drink",
-			nl: "Trainingsdrank",
+			nl: "Workout drink",
 		});
 		expect(repository.find(food.id)?.nutrients.protein).toEqual({
 			kind: "trace",
@@ -477,11 +477,7 @@ describe("Personal Food compact authoring", () => {
 		fireEvent.changeText(screen.getByLabelText("Name"), "");
 		fireEvent.press(screen.getByText("Save Personal Food"));
 
-		expect(
-			await screen.findByText(
-				"Food name English is required and must be at most 500 characters.",
-			),
-		).toBeTruthy();
+		expect(await screen.findByText("Enter a food name.")).toBeTruthy();
 		expect(screen.getByLabelText("Name").props.value).toBe("");
 		expect(repository.list()).toEqual([]);
 	});

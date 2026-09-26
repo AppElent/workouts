@@ -1,17 +1,3 @@
-/**
- * The Start Activity picker — a type picker rather than a privileged "Start
- * Workout" button. Laid out from `designs/shell/index.html#flows`.
- *
- * Only Strength goes anywhere; it is the only type with a logging screen. The
- * other three stay visible so the picker reads as multi-sport, but pressing one
- * says so in a caption rather than faking navigation to a screen that does not
- * exist. `sportMeta[key].implemented` is the single switch.
- *
- * Both real paths — a free session and a routine — create the session *here*
- * and push the log screen with its id, mirroring `src/routes/log/index.tsx`.
- * The log screen never creates anything, so there is exactly one place a
- * session can come into existence.
- */
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -24,6 +10,7 @@ import {
 } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useRoutines } from "../data/session-data";
+import { useI18n } from "../i18n";
 import {
 	type SportKey,
 	type Tokens,
@@ -36,36 +23,34 @@ import { convexErrorMessage } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
+import { activityCopy } from "./activity-copy";
 
 export function StartActivityScreen() {
 	const sportMeta = useSportMeta();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
+	const { locale } = useI18n();
+	const copy = activityCopy(locale);
 	const routines = useRoutines();
 	const toast = useToast();
 	const createSession = useMutation(api.workoutSessions.create);
 	const startFromRoutine = useMutation(api.routines.startSession);
 
-	const [pickedStub, setPickedStub] = useState<SportKey | null>(null);
 	const [name, setName] = useState("");
 	/** Which button is mid-flight, so only that one shows a pending state. */
 	const [busy, setBusy] = useState<string | null>(null);
 
 	const pick = (key: SportKey) => {
-		if (sportMeta[key].implemented) {
+		if (key === "strength") {
 			void startFree();
 			return;
 		}
-		// WOD is a half-case: there is no WOD *activity type* — no envelope, no
-		// logging screen — but the WOD library and its scores are real, and that
-		// is what someone tapping this tile is after. Sending them there beats a
-		// note explaining that the thing they can see elsewhere doesn't exist.
 		if (key === "wod") {
 			router.push("/wods");
 			return;
 		}
-		setPickedStub(key);
+		router.push({ pathname: "/endurance-editor", params: { sport: key } });
 	};
 
 	/**
@@ -121,13 +106,21 @@ export function StartActivityScreen() {
 			showsVerticalScrollIndicator={false}
 			keyboardShouldPersistTaps="handled"
 		>
-			<ScreenHeader title={"Start activity"} />
+			<ScreenHeader title={copy.startActivity} />
 
 			<View style={styles.grid}>
 				{(Object.keys(sportMeta) as SportKey[]).map((key) => (
 					<Pressable
 						key={key}
 						onPress={() => pick(key)}
+						accessibilityRole="button"
+						accessibilityLabel={
+							key === "running"
+								? copy.logRun
+								: key === "cycling"
+									? copy.logRide
+									: sportMeta[key].label
+						}
 						disabled={busy !== null}
 						style={[
 							styles.tile,
@@ -136,23 +129,25 @@ export function StartActivityScreen() {
 						]}
 					>
 						<SportIcon sport={key} size={32} />
-						<AppText style={styles.tileLabel}>{sportMeta[key].label}</AppText>
+						<AppText style={styles.tileLabel}>
+							{key === "wod" ? "WOD" : copy[key]}
+						</AppText>
 						<AppText style={styles.tileSub}>
-							{key === "strength" ? "Log sets & reps" : "Distance & pace"}
+							{key === "running"
+								? copy.logRun
+								: key === "cycling"
+									? copy.logRide
+									: key === "wod"
+										? locale === "nl"
+											? "WOD bekijken"
+											: "Browse WODs"
+										: locale === "nl"
+											? "Sets en herhalingen"
+											: "Log sets & reps"}
 						</AppText>
 					</Pressable>
 				))}
 			</View>
-
-			{pickedStub ? (
-				<View style={styles.stubNote}>
-					<AppText style={styles.stubNoteText}>
-						{sportMeta[pickedStub].label} logging doesn't exist yet — strength
-						is the only activity type with a backend so far. The picker is built
-						for four so adding one is a screen, not a redesign.
-					</AppText>
-				</View>
-			) : null}
 
 			<Eyebrow>Name this session (optional)</Eyebrow>
 			<TextInput
@@ -218,12 +213,6 @@ const createStyles = (colors: Tokens) =>
 		tile: { width: "48%", borderRadius: 14, padding: 12, gap: 6 },
 		tileLabel: { fontSize: 15, fontWeight: "800", color: colors.text },
 		tileSub: { fontSize: 10, color: colors.textMuted },
-		stubNote: {
-			backgroundColor: colors.surface2,
-			borderRadius: 12,
-			padding: 12,
-		},
-		stubNoteText: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
 		dimmed: { opacity: 0.5 },
 		input: {
 			minHeight: 48,

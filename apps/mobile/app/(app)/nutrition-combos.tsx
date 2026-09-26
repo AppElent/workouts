@@ -34,6 +34,12 @@ export default function NutritionCombosRoute() {
 			}
 			onBack={() => router.back()}
 			onClose={() => router.dismissTo("/nutrition")}
+			onBeginSelection={() =>
+				router.dismissTo({
+					pathname: "/nutrition",
+					params: { date: day, select: String(Date.now()) },
+				})
+			}
 		/>
 	);
 }

@@ -435,8 +435,8 @@ export const nl = {
 				"Dit slaat je eigen kopie op. Het meegeleverde voedingsmiddel blijft zoals het is gepubliceerd en jouw kopie vervangt het in de gewone zoekresultaten.",
 			resultLabel: "Jouw correctie",
 			forkedFrom: "Jouw correctie van {name}",
-			locallyEdited: "Je hebt deze waarden aangepast.",
-			unchanged: "Je hebt deze waarden nog niet aangepast.",
+			locallyEdited: "Je hebt dit voedingsmiddel aangepast.",
+			unchanged: "Je hebt dit voedingsmiddel nog niet aangepast.",
 			shadowed: "Vervangen door jouw correctie",
 			deleteTitle: "Deze correctie verwijderen?",
 			deleteBody:

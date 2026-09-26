@@ -4,8 +4,11 @@ import { NutritionDayScreen } from "../../../../src/screens/nutrition-day";
 import { RouteError } from "../../../../src/ui/route-error";
 
 export default function NutritionRoute() {
-	const { date } = useLocalSearchParams<{ date?: string }>();
-	return <NutritionDayScreen initialDate={date} />;
+	const { date, select } = useLocalSearchParams<{
+		date?: string;
+		select?: string;
+	}>();
+	return <NutritionDayScreen initialDate={date} startSelecting={select} />;
 }
 
 export function ErrorBoundary({

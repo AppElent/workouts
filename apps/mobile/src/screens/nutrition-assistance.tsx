@@ -349,7 +349,11 @@ export function NutritionAssistanceScreen({
 							accessibilityLabel: `${messages.title}: ${messages.textMode}`,
 						},
 						{ value: "label", label: messages.labelMode },
-						{ value: "estimate", label: messages.estimateMode },
+						{
+							value: "estimate",
+							label: locale === "nl" ? "Schatting" : "Estimate",
+							accessibilityLabel: messages.estimateMode,
+						},
 					]}
 					value={mode}
 					onChange={setMode}
