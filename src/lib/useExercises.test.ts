@@ -25,7 +25,7 @@ describe("locally shipped exercise reads", () => {
 			loadMore,
 		});
 		const { result } = renderHook(() => useExercises());
-		expect(result.current).toHaveLength(673);
+		expect(result.current).toHaveLength(674);
 		expect(
 			result.current.some(
 				(exercise) => exercise._id === SHIPPED_EXERCISES[0]._id,
@@ -46,7 +46,7 @@ describe("locally shipped exercise reads", () => {
 			isLoading: true,
 			loadMore: vi.fn(),
 		});
-		expect(renderHook(() => useExercises()).result.current).toHaveLength(672);
+		expect(renderHook(() => useExercises()).result.current).toHaveLength(673);
 	});
 	it("resolves an old bookmarked ID through the backend only when needed", () => {
 		vi.mocked(useQuery).mockReturnValue({

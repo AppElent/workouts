@@ -573,7 +573,7 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Shoulders (4 new) ─────────────────────────────────────────────────────
+	// ─── Shoulders (5 new) ─────────────────────────────────────────────────────
 	{
 		name: "Dumbbell Shoulder Press",
 		_id: "shipped:exercise:dumbbell-shoulder-press",
@@ -624,6 +624,21 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 			"Hinge at the hips with a flat back, dumbbells hanging below the chest, slight elbow bend.",
 			"Raise the weights out to the sides until the upper arms are roughly parallel to the floor.",
 			"Squeeze the rear delts and upper back, then lower under control.",
+		],
+	},
+	// Upstream wrkout "Push Press" has no instructions, so the importer skips it.
+	{
+		name: "Push Press",
+		_id: "shipped:exercise:push-press",
+		muscleGroups: ["shoulders", "triceps", "quadriceps"],
+		category: "compound",
+		equipment: "barbell",
+		weightIncrement: 2.5,
+		instructions: [
+			"Stand tall with the bar in the front rack, hands just outside shoulder width, elbows slightly in front of the bar.",
+			"Brace the core and dip a few inches by bending the knees, keeping the torso upright and weight over mid-foot.",
+			"Drive hard through the legs and use that momentum to press the bar straight overhead.",
+			"Lock out with the bar over mid-foot and your head through, then lower under control back to the front rack.",
 		],
 	},
 

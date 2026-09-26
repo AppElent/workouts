@@ -35,7 +35,7 @@ describe("shipped exercise references", () => {
 		});
 		expect(personal.page).toEqual([]);
 		expect(mergeExerciseCatalog(personal.page)).toHaveLength(
-			672,
+			673,
 		);
 	});
 

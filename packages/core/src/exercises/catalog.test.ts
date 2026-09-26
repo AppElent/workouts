@@ -13,18 +13,18 @@ describe("shipped exercise catalog", () => {
 		const ids = JSON.parse(
 			readFileSync(new URL("./ids.json", import.meta.url), "utf8"),
 		);
-		expect(CURATED_EXERCISES).toHaveLength(54);
-		expect(DEFAULT_EXERCISES).toHaveLength(672);
+		expect(CURATED_EXERCISES).toHaveLength(55);
+		expect(DEFAULT_EXERCISES).toHaveLength(673);
 		expect(
 			new Set(DEFAULT_EXERCISES.map((exercise) => exercise._id)).size,
-		).toBe(672);
+		).toBe(673);
 		expect(
 			new Set(
 				DEFAULT_EXERCISES.map((exercise) =>
 					exercise.name.toLowerCase().replace(/[^a-z0-9]/g, ""),
 				),
 			).size,
-		).toBe(672);
+		).toBe(673);
 		for (const exercise of DEFAULT_EXERCISES) {
 			expect(exercise._id).toBe(ids[exercise.name]);
 			expect(exercise.instructions.length).toBeGreaterThan(0);
@@ -45,7 +45,7 @@ describe("shipped exercise catalog", () => {
 		const merged = mergeExerciseCatalog([
 			{ ...shipped, _id: "personal-id", isDefault: false },
 		]);
-		expect(merged).toHaveLength(673);
+		expect(merged).toHaveLength(674);
 		expect(
 			merged
 				.filter((exercise) => exercise.name === shipped.name)

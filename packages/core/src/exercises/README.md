@@ -1,7 +1,7 @@
 # Shipped exercise catalog
 
-The catalog combines 54 curated entries in `exercises.ts` with 618 imported
-entries in `wrkoutExercises.ts` (672 total). Curated names and metadata stay
+The catalog combines 55 curated entries in `exercises.ts` with 618 imported
+entries in `wrkoutExercises.ts` (673 total). Curated names and metadata stay
 unchanged so existing exercise IDs, routines, and workout history remain valid.
 
 ## Source and scope
@@ -14,7 +14,8 @@ The generated file is bundled locally; browsing exercises needs no GitHub access
 Of the source's 873 entries, we include strength, powerlifting, Olympic
 weightlifting, and strongman movements with instructions. Cardio, stretching,
 and plyometrics are outside this strength catalog. Five otherwise eligible
-entries have no instructions and are skipped. Exact names, punctuation-only
+entries have no instructions and are skipped; Push Press is covered by a curated
+entry instead. Exact names, punctuation-only
 variants, and explicit aliases of curated exercises are deduplicated. Distinct
 equipment, grip, stance, and range-of-motion variants remain separate.
 
