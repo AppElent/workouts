@@ -40,11 +40,13 @@ See `github.md` for the sync record and the screen → source map.
 
 ### Brand mark
 
-**There is no Foundry logo.** The only marks in the repo are placeholder React
-and PWA icons (`public/logo512.png` was the stock React atom), so nothing was
-copied in and nothing was drawn. Wherever a mark would go, set the word
-**Foundry** in the system face at weight 800 — that is what `thumbnail.html`
-does. Ask the design owner for a real mark before shipping anything public.
+Foundry's launcher icon is a glossy lime anvil on a dark olive-charcoal
+background. The mobile assets live in `apps/mobile/assets/`: `icon.png` for
+iOS, `adaptive-icon.png` for Android, and `favicon.png` for Expo web. The
+generation prompt is recorded alongside them in `icon-prompt.md`.
+For a wordmark, set **Foundry** in the system face at weight 800 — that is
+what `thumbnail.html` does. The separate web client's `public/` icons remain
+legacy assets.
 
 ## Content fundamentals
 
