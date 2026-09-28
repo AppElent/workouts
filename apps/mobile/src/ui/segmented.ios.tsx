@@ -25,6 +25,7 @@ export function Segmented<Value extends string>({
 		options.some((option) => option.label.length > 20);
 	return (
 		<Host
+			ignoreSafeArea="all"
 			colorScheme={scheme}
 			seedColor={colors.accent}
 			matchContents={{ vertical: true }}

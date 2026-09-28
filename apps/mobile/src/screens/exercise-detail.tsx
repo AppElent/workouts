@@ -15,13 +15,14 @@
  */
 import { calculateOneRepMax } from "@workouts/core";
 import type { ExerciseId } from "@workouts/core/exercises";
-import { useQuery } from "convex/react";
-import { useLocalSearchParams } from "expo-router";
+import { useMutation, useQuery } from "convex/react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import { useExercise } from "../data/exercises";
 import { formatSessionDate } from "../data/session-data";
+import { useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -31,17 +32,28 @@ import {
 } from "../theme";
 import { TrendChart } from "../ui/chart";
 import { Card, Chip, Eyebrow, StatBox } from "../ui/coach";
+import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { MuscleIcon } from "../ui/muscle-icon";
 import { ScreenHeader } from "../ui/screen-header";
+import { Segmented } from "../ui/segmented";
+import { SkeletonBlock, SkeletonList } from "../ui/skeleton";
 import { AppText } from "../ui/text";
+import { useToast } from "../ui/toast";
+import { primaryGroup } from "./exercise-library/model";
 
-const TABS = ["Overview", "Progress", "History"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = "Overview" | "Progress" | "History";
 
 /** Rep counts the strength curve covers — beyond ten, Epley stops meaning much. */
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export function ExerciseDetailScreen() {
 	const colors = useTokens();
+	const { t } = useI18n();
+	const router = useRouter();
+	const confirm = useConfirm();
+	const toast = useToast();
+	const remove = useMutation(api.exercises.remove);
+	const [deleting, setDeleting] = useState(false);
 	const styles = useThemedStyles(createStyles);
 	const params = useLocalSearchParams<{ id?: string }>();
 	const exerciseId = params.id as ExerciseId | undefined;
@@ -49,6 +61,28 @@ export function ExerciseDetailScreen() {
 	const [tab, setTab] = useState<Tab>("Overview");
 
 	const exercise = useExercise(exerciseId);
+	const deleteExercise = async () => {
+		if (!exercise || exercise.isDefault || deleting) return;
+		if (
+			!(await confirm({
+				title: t.exercises.deleteTitle.replace("{name}", exercise.name),
+				message: t.exercises.deleteBody,
+				confirmLabel: t.exercises.delete,
+				cancelLabel: t.exercises.cancel,
+				destructive: true,
+			}))
+		)
+			return;
+		setDeleting(true);
+		try {
+			await remove({ id: exercise._id });
+			router.back();
+		} catch (error) {
+			toast.error(convexErrorMessage(error, t.exercises.deleteError));
+		} finally {
+			setDeleting(false);
+		}
+	};
 	const history = useQuery(
 		api.exercises.getHistory,
 		exerciseId ? { exerciseId } : "skip",
@@ -78,7 +112,7 @@ export function ExerciseDetailScreen() {
 	if (exercise === undefined) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="caption">Loading…</AppText>
+				<SkeletonList rows={3} />
 			</View>
 		);
 	}
@@ -97,15 +131,58 @@ export function ExerciseDetailScreen() {
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
-			automaticallyAdjustKeyboardInsets
 			keyboardDismissMode="interactive"
 			style={styles.root}
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
 			<View style={styles.header}>
+				<MuscleIcon group={primaryGroup(exercise)} size={80} />
 				<View style={styles.flex}>
 					<ScreenHeader title={exercise.name} />
+					<Stack.Toolbar placement="right">
+						<Stack.Toolbar.Menu
+							icon="ellipsis"
+							accessibilityLabel={t.exercises.actions}
+							disabled={deleting}
+						>
+							{exercise.isDefault ? (
+								<Stack.Toolbar.MenuAction
+									icon="doc.on.doc"
+									onPress={() =>
+										router.push({
+											pathname: "/exercise-new",
+											params: { clone: exercise._id },
+										})
+									}
+								>
+									{t.exercises.clone}
+								</Stack.Toolbar.MenuAction>
+							) : (
+								<Stack.Toolbar.Menu inline>
+									<Stack.Toolbar.MenuAction
+										icon="pencil"
+										onPress={() =>
+											router.push({
+												pathname: "/exercise-new",
+												params: { edit: exercise._id },
+											})
+										}
+									>
+										{t.exercises.edit}
+									</Stack.Toolbar.MenuAction>
+									<Stack.Toolbar.MenuAction
+										icon="trash"
+										destructive
+										onPress={() => void deleteExercise()}
+									>
+										{t.exercises.delete}
+									</Stack.Toolbar.MenuAction>
+								</Stack.Toolbar.Menu>
+							)}
+						</Stack.Toolbar.Menu>
+					</Stack.Toolbar>
+					<AppText variant="title">{exercise.name}</AppText>
 					<AppText variant="caption" style={styles.meta}>
 						{exercise.category} · {exercise.equipment}
 					</AppText>
@@ -120,20 +197,22 @@ export function ExerciseDetailScreen() {
 				</View>
 			) : null}
 
-			<View style={styles.tabRow}>
-				{TABS.map((t) => (
-					<Pressable key={t} onPress={() => setTab(t)} style={styles.flex}>
-						<Chip label={t} active={t === tab} />
-					</Pressable>
-				))}
-			</View>
+			<Segmented
+				value={tab}
+				onChange={setTab}
+				options={[
+					{ value: "Overview", label: t.exercises.overview },
+					{ value: "Progress", label: t.exercises.progress },
+					{ value: "History", label: t.exercises.history },
+				]}
+			/>
 
 			{tab === "Overview" ? (
 				<>
 					<Card style={styles.ormCard}>
 						<Eyebrow>Current 1RM</Eyebrow>
 						{currentOrm === undefined ? (
-							<AppText variant="caption">Loading…</AppText>
+							<SkeletonBlock height={40} />
 						) : currentOrm === null ? (
 							<AppText variant="caption">
 								No 1RM yet — log a set and one appears.
@@ -307,7 +386,7 @@ function HistoryTab({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	if (history === undefined) {
-		return <AppText variant="caption">Loading…</AppText>;
+		return <SkeletonBlock height={40} />;
 	}
 
 	if (history.length === 0) {
@@ -371,6 +450,7 @@ const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
 		content: {
+			flexGrow: 1,
 			padding: spacing.md,
 			gap: spacing.sm,
 			paddingBottom: spacing.xxl,

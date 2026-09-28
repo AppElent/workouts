@@ -1,4 +1,5 @@
 import { HeaderHeightContext } from "expo-router/react-navigation";
+import { SymbolView } from "expo-symbols";
 import { Children, type ReactNode, type Ref, useContext } from "react";
 import {
 	KeyboardAvoidingView,
@@ -47,6 +48,7 @@ export function FormScreen({
 	primaryActionPlacement = "fixed",
 	contentStyle,
 	scrollRef,
+	nativeSheet = false,
 }: {
 	children: ReactNode;
 	title?: string;
@@ -57,19 +59,15 @@ export function FormScreen({
 	primaryActionPlacement?: "fixed" | "header";
 	contentStyle?: ViewStyle;
 	scrollRef?: Ref<ScrollView>;
+	/** Keep the scroll view at the native sheet root so UIKit owns its gestures. */
+	nativeSheet?: boolean;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
 	const headerHeight = useContext(HeaderHeightContext) ?? 0;
 
-	return (
-		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			// Native stack content starts below its header. A modal with its own
-			// title starts at the window origin, regardless of the parent's header.
-			keyboardVerticalOffset={showHeader ? 0 : headerHeight}
-			style={styles.screen}
-		>
+	const content = (
+		<>
 			{showHeader ? (
 				<View style={styles.modalHeader}>
 					{onCancel ? (
@@ -117,6 +115,9 @@ export function FormScreen({
 			) : null}
 			<ScrollView
 				ref={scrollRef}
+				style={nativeSheet ? styles.screen : undefined}
+				automaticallyAdjustKeyboardInsets={nativeSheet}
+				scrollToOverflowEnabled={nativeSheet}
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardDismissMode="interactive"
 				keyboardShouldPersistTaps="handled"
@@ -141,6 +142,16 @@ export function FormScreen({
 					/>
 				</View>
 			) : null}
+		</>
+	);
+	if (nativeSheet) return content;
+	return (
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			keyboardVerticalOffset={showHeader ? 0 : headerHeight}
+			style={styles.screen}
+		>
+			{content}
 		</KeyboardAvoidingView>
 	);
 }
@@ -191,23 +202,31 @@ export function GroupedSurface({
 export function FormTextField({
 	label,
 	error,
+	appearance = "inset",
 	style,
 	...props
 }: TextInputProps & {
 	label: string;
 	error?: string;
+	appearance?: "inset" | "plain";
 	style?: TextInputProps["style"];
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	return (
-		<View style={styles.fieldRow}>
+		<View
+			style={[styles.fieldRow, appearance === "plain" && styles.plainField]}
+		>
 			<AppText variant="label">{label}</AppText>
 			<TextInput
 				{...props}
 				accessibilityLabel={props.accessibilityLabel ?? label}
 				placeholderTextColor={props.placeholderTextColor ?? colors.textFaint}
-				style={[styles.textInput, style]}
+				style={[
+					styles.textInput,
+					appearance === "plain" && styles.plainInput,
+					style,
+				]}
 			/>
 			{error ? (
 				<AppText selectable accessibilityRole="alert" style={styles.error}>
@@ -220,18 +239,27 @@ export function FormTextField({
 
 /** A mutually exclusive choice set presented as one grouped form row. */
 export function FormSegmentedRow<Value extends string>({
+	label,
 	options,
 	value,
 	onChange,
 }: {
+	label?: string;
 	options: readonly SegmentedOption<Value>[];
 	value: Value;
 	onChange: (next: Value) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
 	return (
-		<View style={styles.segmentedRow}>
-			<Segmented options={options} value={value} onChange={onChange} />
+		<View
+			style={
+				label && Platform.OS === "ios" ? styles.inlineRow : styles.segmentedRow
+			}
+		>
+			{label ? <AppText style={styles.rowLabel}>{label}</AppText> : null}
+			<View style={label && Platform.OS === "ios" ? { flex: 1.2 } : undefined}>
+				<Segmented options={options} value={value} onChange={onChange} />
+			</View>
 		</View>
 	);
 }
@@ -546,6 +574,12 @@ const createStyles = (colors: Tokens) =>
 			marginLeft: spacing.md,
 			backgroundColor: colors.borderStrong,
 		},
+		plainField: { paddingVertical: spacing.sm, gap: 0 },
+		plainInput: {
+			backgroundColor: "transparent",
+			paddingHorizontal: 0,
+			fontSize: 17,
+		},
 		fieldRow: { padding: spacing.md, gap: spacing.sm },
 		segmentedRow: { padding: spacing.md },
 		textInput: {
@@ -679,3 +713,94 @@ const createStyles = (colors: Tokens) =>
 		stepperValue: { alignItems: "center" },
 		tabularValue: { fontWeight: "800", fontVariant: ["tabular-nums"] },
 	});
+
+/** A multi-select choice inside a grouped form section. */
+export function FormChoiceRow({
+	label,
+	selected,
+	onPress,
+	leading,
+}: {
+	label: string;
+	selected: boolean;
+	onPress: () => void;
+	leading?: ReactNode;
+}) {
+	const colors = useTokens();
+	return (
+		<Pressable
+			onPress={onPress}
+			accessibilityRole="checkbox"
+			accessibilityLabel={label}
+			accessibilityState={{ checked: selected }}
+			style={({ pressed }) => ({
+				minHeight: 52,
+				paddingHorizontal: spacing.md,
+				paddingVertical: spacing.sm,
+				flexDirection: "row",
+				alignItems: "center",
+				gap: spacing.sm,
+				backgroundColor: pressed ? colors.surface2 : undefined,
+			})}
+		>
+			{leading}
+			<AppText variant="body" style={{ flex: 1 }}>
+				{label}
+			</AppText>
+			<View
+				style={{
+					width: 24,
+					height: 24,
+					borderRadius: 12,
+					borderWidth: selected ? 0 : 1.5,
+					borderColor: colors.textFaint,
+					backgroundColor: selected ? colors.accentFill : undefined,
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+			>
+				{selected ? (
+					<AppText variant="label" style={{ color: colors.onAccent }}>
+						✓
+					</AppText>
+				) : null}
+			</View>
+		</Pressable>
+	);
+}
+
+/** Compact search field with a persistent accessible name and native clear control. */
+export function FormSearchField({
+	label,
+	...props
+}: TextInputProps & { label: string }) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	return (
+		<View
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				paddingHorizontal: spacing.sm,
+				gap: spacing.sm,
+				minHeight: 44,
+			}}
+		>
+			<SymbolView
+				name={{ ios: "magnifyingglass", android: "search", web: "search" }}
+				size={18}
+				tintColor={colors.textMuted}
+			/>
+			<TextInput
+				{...props}
+				accessibilityLabel={label}
+				placeholder={label}
+				placeholderTextColor={colors.textFaint}
+				style={[styles.textInput, { flex: 1, minHeight: 44 }]}
+				autoCorrect={false}
+				clearButtonMode="while-editing"
+				returnKeyType="search"
+			/>
+		</View>
+	);
+}

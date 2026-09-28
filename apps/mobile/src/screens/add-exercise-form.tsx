@@ -1,272 +1,327 @@
-/**
- * Create a custom exercise. Ported from the web's
- * `src/components/exercises/AddExerciseForm.tsx`.
- *
- * The web uses TanStack Form + Zod; this uses plain state. Six fields with one
- * required string and one conditional number does not need a form library, and
- * the phone has neither dependency today — validation that fits in a boolean
- * is not worth two packages and a native rebuild.
- *
- * `weightIncrement` only appears for equipment that is actually loaded. A
- * bodyweight movement or a band has no plate step to configure, and offering
- * the field there invites a number that means nothing.
- */
+import type { Exercise } from "@workouts/core/exercises";
 import { useMutation } from "convex/react";
+import { Stack } from "expo-router";
 import { useState } from "react";
-import {
-	Modal,
-	Platform,
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Modal, Platform } from "react-native";
 import { api } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import {
-	radius,
-	spacing,
-	type Tokens,
-	useThemedStyles,
-	useTokens,
-} from "../theme";
-import { Chip, Eyebrow } from "../ui/coach";
+import { useI18n } from "../i18n";
+import { useTokens } from "../theme";
 import { convexErrorMessage } from "../ui/confirm-dialog";
+import {
+	DisclosureRow,
+	FormChoiceRow,
+	FormScreen,
+	FormSection,
+	FormSegmentedRow,
+	FormTextField,
+	InlineNumberFieldRow,
+} from "../ui/form";
+import { MuscleIcon } from "../ui/muscle-icon";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-
-const CATEGORIES = ["compound", "isolation"] as const;
-type Category = (typeof CATEGORIES)[number];
-
-const EQUIPMENT = [
-	"barbell",
-	"dumbbell",
-	"cable",
-	"bodyweight",
-	"machine",
-	"kettlebell",
-	"band",
-	"other",
-] as const;
-type Equipment = (typeof EQUIPMENT)[number];
-
-/** Equipment whose load is chosen in discrete steps worth configuring. */
-const LOADED: ReadonlySet<Equipment> = new Set<Equipment>([
-	"barbell",
-	"dumbbell",
-	"cable",
-	"machine",
-	"kettlebell",
-	"other",
-]);
+import {
+	EQUIPMENT,
+	type Equipment,
+	GROUP_KEYS,
+	type Group,
+	toggleChoice,
+} from "./exercise-library/model";
 
 export function AddExerciseForm({
 	visible = true,
 	presentation = "modal",
 	onClose,
+	exercise,
+	mode = "new",
 }: {
+	exercise?: Exercise;
+	mode?: "new" | "edit" | "clone";
 	visible?: boolean;
 	presentation?: "modal" | "screen";
-	onClose: () => void;
+	onClose: (createdName?: string) => void;
 }) {
+	const { t } = useI18n();
+	const c = t.exercises;
 	const colors = useTokens();
-	const styles = useThemedStyles(createStyles);
+	const nativeHeader = presentation === "screen" && Platform.OS === "ios";
 	const toast = useToast();
-	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
-	const createExercise = useMutation(api.exercises.create);
-
-	const [name, setName] = useState("");
-	const [muscleGroups, setMuscleGroups] = useState("");
-	const [category, setCategory] = useState<Category>("compound");
-	const [equipment, setEquipment] = useState<Equipment>("barbell");
-	const [increment, setIncrement] = useState("");
-	const [notes, setNotes] = useState("");
+	const create = useMutation(api.exercises.create);
+	const update = useMutation(api.exercises.update);
+	const title =
+		mode === "edit" ? c.editTitle : mode === "clone" ? c.cloneTitle : c.new;
+	const [name, setName] = useState(
+		mode === "clone" && exercise
+			? c.copyName.replace("{name}", exercise.name)
+			: (exercise?.name ?? ""),
+	);
+	const [groups, setGroups] = useState<Group[]>(() =>
+		GROUP_KEYS.filter((g) =>
+			exercise?.muscleGroups.includes(g === "legs" ? "quads" : g),
+		),
+	);
+	const [groupsOpen, setGroupsOpen] = useState(false);
+	const [additionalGroups, setAdditionalGroups] = useState(
+		() =>
+			exercise?.muscleGroups
+				.filter(
+					(m) => !GROUP_KEYS.some((g) => m === (g === "legs" ? "quads" : g)),
+				)
+				.join(", ") ?? "",
+	);
+	const [category, setCategory] = useState<"compound" | "isolation">(
+		exercise?.category ?? "compound",
+	);
+	const [equipment, setEquipment] = useState<Equipment>(
+		exercise?.equipment ?? "barbell",
+	);
+	const [increment, setIncrement] = useState(
+		exercise?.weightIncrement?.toString() ?? "",
+	);
+	const [notes, setNotes] = useState(exercise?.notes ?? "");
 	const [busy, setBusy] = useState(false);
-
-	const reset = () => {
-		setName("");
-		setMuscleGroups("");
-		setCategory("compound");
-		setEquipment("barbell");
-		setIncrement("");
-		setNotes("");
-	};
-
+	const loaded = equipment !== "bodyweight" && equipment !== "band";
+	const parsed = Number(increment.replace(",", "."));
+	const invalid =
+		loaded &&
+		increment.trim() !== "" &&
+		(!Number.isFinite(parsed) || parsed <= 0);
 	const close = () => {
-		reset();
-		onClose();
+		if (!busy) {
+			setName("");
+			setGroups([]);
+			setGroupsOpen(false);
+			setAdditionalGroups("");
+			setCategory("compound");
+			setEquipment("barbell");
+			setIncrement("");
+			setNotes("");
+			onClose();
+		}
 	};
-
 	const submit = async () => {
-		const trimmed = name.trim();
-		if (trimmed === "" || busy) return;
-
-		// Free text, split on commas — same as the web. There is no canonical
-		// muscle-group list to validate against, so a typo makes a new group
-		// rather than an error. Worth knowing when the chip filters miss a row.
-		const groups = muscleGroups
-			.split(",")
-			.map((g) => g.trim().toLowerCase())
-			.filter((g) => g !== "");
-
-		const parsedIncrement = Number.parseFloat(increment);
-		const weightIncrement =
-			LOADED.has(equipment) &&
-			Number.isFinite(parsedIncrement) &&
-			parsedIncrement > 0
-				? parsedIncrement
-				: undefined;
-
+		if (busy || !name.trim() || invalid) return;
 		setBusy(true);
 		try {
-			await createExercise({
-				name: trimmed,
-				muscleGroups: groups,
+			const selectedMuscles = [
+				...new Set([
+					...groups.map((g) => (g === "legs" ? "quads" : g)),
+					...additionalGroups
+						.split(",")
+						.map((g) => g.trim().toLowerCase())
+						.filter(Boolean),
+				]),
+			];
+			const values = {
+				name: name.trim(),
+				// Keep primary-muscle order when editing or copying an existing exercise.
+				muscleGroups: exercise
+					? [
+							...exercise.muscleGroups.filter((m) =>
+								selectedMuscles.includes(m),
+							),
+							...selectedMuscles.filter(
+								(m) => !exercise.muscleGroups.includes(m),
+							),
+						]
+					: selectedMuscles,
 				category,
 				equipment,
-				notes: notes.trim() === "" ? undefined : notes.trim(),
-				weightIncrement,
-			});
-			// The new row appears in the list behind this sheet, so no success
-			// toast — the result is already on screen.
-			close();
+				notes: notes.trim() || undefined,
+				weightIncrement: loaded && increment.trim() ? parsed : undefined,
+			};
+			if (mode === "edit") {
+				if (!exercise || exercise.isDefault) throw new Error(c.updateError);
+				await update({ id: exercise._id, ...values });
+			} else {
+				await create({ ...values, instructions: exercise?.instructions });
+			}
+			setName("");
+			setGroups([]);
+			setGroupsOpen(false);
+			setAdditionalGroups("");
+			setNotes("");
+			setIncrement("");
+			onClose(name.trim());
 		} catch (error) {
-			// Keep the user's input: retyping six fields to fix one is a punishment.
-			toast.error(convexErrorMessage(error, "Could not create the exercise."));
+			toast.error(
+				convexErrorMessage(
+					error,
+					mode === "edit" ? c.updateError : c.createError,
+				),
+			);
 		} finally {
 			setBusy(false);
 		}
 	};
-
 	const content = (
-		<View
-			style={[
-				styles.root,
-				{
-					paddingTop:
-						presentation === "screen"
-							? 0
-							: Platform.OS === "ios"
-								? spacing.md
-								: insets.top + spacing.sm,
-				},
-			]}
+		<FormScreen
+			title={nativeHeader ? undefined : title}
+			nativeSheet={nativeHeader}
+			primaryActionPlacement="header"
+			cancelLabel={c.cancel}
+			onCancel={close}
+			primaryAction={
+				nativeHeader
+					? undefined
+					: {
+							label: busy ? c.saving : c.save,
+							onPress: () => void submit(),
+							loading: busy,
+							disabled: !name.trim() || invalid,
+						}
+			}
 		>
-			{presentation === "modal" ? (
-				<View style={styles.header}>
-					<AppText variant="heading">New exercise</AppText>
-					<Pressable
-						onPress={close}
-						hitSlop={12}
-						accessibilityRole="button"
-						accessibilityLabel="Cancel"
-					>
-						<AppText variant="body" style={styles.cancel}>
-							Cancel
-						</AppText>
-					</Pressable>
-				</View>
-			) : null}
-
-			<ScrollView
-				contentInsetAdjustmentBehavior="automatic"
-				automaticallyAdjustKeyboardInsets
-				keyboardDismissMode="interactive"
-				contentContainerStyle={styles.content}
-				keyboardShouldPersistTaps="handled"
-				showsVerticalScrollIndicator={false}
-			>
-				<Eyebrow>Name</Eyebrow>
-				<TextInput
+			<FormSection title={c.essentials}>
+				<FormTextField
+					label={c.name}
+					appearance="plain"
+					placeholder={c.namePlaceholder}
 					value={name}
 					onChangeText={setName}
-					placeholder="Bulgarian split squat"
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					autoFocus
+					editable={!busy}
+					autoCapitalize="words"
 				/>
-
-				<Eyebrow>Muscle groups</Eyebrow>
-				<TextInput
-					value={muscleGroups}
-					onChangeText={setMuscleGroups}
-					placeholder="quads, glutes"
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					autoCapitalize="none"
-					autoCorrect={false}
+				<DisclosureRow
+					label={c.groups}
+					value={[
+						...groups.map((g) => c.groupNames[g]),
+						...additionalGroups
+							.split(",")
+							.map((m) => m.trim())
+							.filter(Boolean),
+					].join(", ")}
+					expanded={groupsOpen}
+					onPress={() => setGroupsOpen(!groupsOpen)}
 				/>
-				<AppText variant="caption">Separate with commas.</AppText>
-
-				<Eyebrow>Category</Eyebrow>
-				<View style={styles.chipRow}>
-					{CATEGORIES.map((c) => (
-						<Pressable key={c} onPress={() => setCategory(c)}>
-							<Chip label={c} active={category === c} />
-						</Pressable>
-					))}
-				</View>
-
-				<Eyebrow>Equipment</Eyebrow>
-				<View style={styles.chipWrap}>
-					{EQUIPMENT.map((e) => (
-						<Pressable key={e} onPress={() => setEquipment(e)}>
-							<Chip label={e} active={equipment === e} />
-						</Pressable>
-					))}
-				</View>
-
-				{LOADED.has(equipment) ? (
+				{groupsOpen ? (
 					<>
-						<Eyebrow>Weight step (optional)</Eyebrow>
-						<TextInput
-							value={increment}
-							onChangeText={setIncrement}
-							placeholder="2.5"
-							placeholderTextColor={colors.textFaint}
-							style={styles.input}
-							keyboardType="decimal-pad"
+						{GROUP_KEYS.map((group) => (
+							<FormChoiceRow
+								key={group}
+								label={c.groupNames[group]}
+								leading={<MuscleIcon group={group} size={36} />}
+								selected={groups.includes(group)}
+								onPress={() => {
+									if (!busy) setGroups(toggleChoice(groups, group));
+								}}
+							/>
+						))}
+						<FormTextField
+							label={c.additionalGroups}
+							placeholder={c.additionalGroupsPlaceholder}
+							value={additionalGroups}
+							onChangeText={setAdditionalGroups}
+							editable={!busy}
+							autoCapitalize="none"
 						/>
-						<AppText variant="caption">
-							How much the load jumps by. Defaults to the usual step for{" "}
-							{equipment}.
-						</AppText>
 					</>
 				) : null}
-
-				<Eyebrow>Notes (optional)</Eyebrow>
-				<TextInput
+				<FormSegmentedRow
+					label={c.equipment}
+					value={equipment}
+					onChange={(value) => {
+						if (!busy) setEquipment(value);
+					}}
+					options={EQUIPMENT.map((value) => ({
+						value,
+						label: c.equipmentNames[value],
+					}))}
+				/>
+			</FormSection>
+			<FormSection
+				title={c.trainingDetails}
+				footer={loaded ? c.stepHelp : undefined}
+			>
+				<FormSegmentedRow
+					value={category}
+					onChange={(value) => {
+						if (!busy) setCategory(value);
+					}}
+					options={[
+						{ value: "compound", label: c.compound },
+						{ value: "isolation", label: c.isolation },
+					]}
+				/>
+				{loaded ? (
+					<InlineNumberFieldRow
+						label={c.step}
+						suffix=""
+						value={increment}
+						onChangeText={setIncrement}
+						editable={!busy}
+						placeholder="2.5"
+						keyboardType="decimal-pad"
+					/>
+				) : null}
+				{invalid ? (
+					<AppText
+						accessibilityRole="alert"
+						style={{ color: colors.danger, padding: 16 }}
+					>
+						{c.invalidStep}
+					</AppText>
+				) : null}
+				<FormTextField
+					label={c.notes}
+					appearance="plain"
 					value={notes}
 					onChangeText={setNotes}
-					placeholder="Cues, setup, anything worth remembering"
-					placeholderTextColor={colors.textFaint}
-					style={[styles.input, styles.multiline]}
+					editable={!busy}
+					placeholder={c.notesPlaceholder}
 					multiline
+					style={{ minHeight: 64, textAlignVertical: "top" }}
 				/>
-
-				<Pressable
-					onPress={() => void submit()}
-					disabled={busy || name.trim() === ""}
-					style={[styles.submit, (busy || name.trim() === "") && styles.dimmed]}
-				>
-					<AppText style={styles.submitText}>
-						{busy ? "Creating…" : "Create exercise"}
-					</AppText>
-				</Pressable>
-			</ScrollView>
-		</View>
+			</FormSection>
+		</FormScreen>
 	);
-
-	if (presentation === "screen") return content;
-
+	if (presentation === "screen")
+		return (
+			<>
+				{content}
+				<Stack.Screen
+					options={{
+						title,
+						headerShown: nativeHeader,
+						headerTitleStyle: { color: colors.text },
+						gestureEnabled: !busy,
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: [0.75, 1],
+						sheetExpandsWhenScrolledToEdge: false,
+					}}
+				/>
+				{Platform.OS === "ios" ? (
+					<>
+						<Stack.Toolbar placement="left">
+							<Stack.Toolbar.Button
+								hidesSharedBackground
+								tintColor={colors.textMuted}
+								disabled={busy}
+								onPress={close}
+							>
+								{c.cancel}
+							</Stack.Toolbar.Button>
+						</Stack.Toolbar>
+						<Stack.Toolbar placement="right">
+							<Stack.Toolbar.Button
+								hidesSharedBackground
+								tintColor={colors.accent}
+								disabled={busy || !name.trim() || invalid}
+								onPress={() => void submit()}
+							>
+								{busy ? c.saving : c.save}
+							</Stack.Toolbar.Button>
+						</Stack.Toolbar>
+					</>
+				) : null}
+			</>
+		);
 	return (
 		<Modal
+			visible={visible}
 			presentationStyle="pageSheet"
 			allowSwipeDismissal={!busy}
-			visible={visible}
 			animationType={modalAnimation(reduceMotion, "slide")}
 			onRequestClose={close}
 		>
@@ -274,47 +329,3 @@ export function AddExerciseForm({
 		</Modal>
 	);
 }
-
-const createStyles = (colors: Tokens) =>
-	StyleSheet.create({
-		root: {
-			flex: 1,
-			backgroundColor: colors.bg,
-			paddingHorizontal: spacing.md,
-		},
-		header: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			minHeight: 44,
-		},
-		cancel: { color: colors.accent, fontWeight: "700" },
-		content: { gap: spacing.sm, paddingBottom: spacing.xxl },
-		input: {
-			minHeight: 48,
-			borderRadius: radius.lg,
-			paddingHorizontal: spacing.md,
-			backgroundColor: colors.surface,
-			borderWidth: 1,
-			borderColor: colors.border,
-			color: colors.text,
-			fontSize: 15,
-		},
-		multiline: {
-			minHeight: 88,
-			paddingTop: spacing.sm,
-			textAlignVertical: "top",
-		},
-		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
-		submit: {
-			height: 48,
-			marginTop: spacing.md,
-			borderRadius: radius.pill,
-			backgroundColor: colors.accentFill,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		submitText: { fontSize: 15, fontWeight: "800", color: colors.onAccent },
-		dimmed: { opacity: 0.5 },
-	});

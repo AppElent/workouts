@@ -23,6 +23,7 @@ export function EmptyState(props: EmptyStateProps) {
 	return (
 		<View style={styles.search}>
 			<Host
+				ignoreSafeArea="all"
 				colorScheme={scheme}
 				seedColor={tokens.accent}
 				matchContents={{ vertical: true }}
