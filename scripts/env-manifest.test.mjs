@@ -137,7 +137,7 @@ describe("Workouts environment routing", () => {
 	});
 
 	it("gives every logical value a unique evidenced source name", () => {
-		expect(ENTRIES).toHaveLength(11);
+		expect(ENTRIES).toHaveLength(13);
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
 		expect(sourceNames).not.toEqual(
@@ -148,6 +148,24 @@ describe("Workouts environment routing", () => {
 				"CLOUDFLARE_ENV",
 			]),
 		);
+	});
+
+	it("keeps Sentry upload credentials out of client bundles", () => {
+		for (const environment of ENVIRONMENTS) {
+			const sentry = placementsFor(environment).filter((placement) =>
+				placement.entry.key.startsWith("sentry"),
+			);
+			expect(sentry.every((placement) => placement.entry.optional)).toBe(true);
+			expect(
+				sentry.filter((placement) => placement.entry.secret),
+			).toEqual([
+				expect.objectContaining({
+					name: "SENTRY_AUTH_TOKEN",
+					consumer: "eas-tooling",
+					destination: expect.objectContaining({ kind: "eas" }),
+				}),
+			]);
+		}
 	});
 
 	it("claims each destination slot only once", () => {

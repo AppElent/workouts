@@ -88,6 +88,8 @@ overrides:
 # instead of prompting, even though the packages are already listed in
 # onlyBuiltDependencies above. Booleans mirror that same decision.
 allowBuilds:
+  # Platform optional packages supply sentry-cli; no postinstall download needed.
+  '@sentry/cli': false
   '@clerk/shared': false
   # @clerk/expo (apps/mobile) pulls these in transitively. None run native
   # binary compiles — all false, but they still need a ledger entry or
@@ -102,3 +104,5 @@ allowBuilds:
   # for either the web app or EAS' mobile build.
   sharp: false
   workerd: true
+  dtrace-provider: false # EAS CLI's optional native tracing; JS fallback is sufficient
+  protobufjs: false # postinstall only checks dependency version notation

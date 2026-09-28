@@ -109,6 +109,13 @@
 						"backgroundColor": "#0a0b09"
 					}
 				}
+			],
+			[
+				"@sentry/react-native/expo",
+				{
+					"project": "foundry",
+					"organization": "appelent"
+				}
 			]
 		],
 		"locales": {

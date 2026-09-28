@@ -24,6 +24,7 @@
 		"@clerk/expo": "^4.2.3",
 		"@expo/metro-runtime": "~57.0.16",
 		"@expo/ui": "~57.0.19",
+		"@sentry/react-native": "~8.28.0",
 		"@tanstack/react-form": "^1.33.1",
 		"@workouts/core": "workspace:*",
 		"convex": "^1.42.1",

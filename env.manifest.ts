@@ -168,6 +168,36 @@ export type Entry =
 
 export const ENTRIES = [
 	{
+		key: "sentryDsn",
+		infisicalKey: "sentry-dsn",
+		description: "Public Sentry DSN for mobile error reporting and shake-to-report.",
+		secret: false,
+		optional: true,
+		lands: {
+			"expo-build": {
+				name: "EXPO_PUBLIC_SENTRY_DSN",
+				environments: ["local", "preview", "dev", "production"],
+			},
+			"expo-local": {
+				name: "EXPO_PUBLIC_SENTRY_DSN",
+				environments: ["local"],
+			},
+		},
+	},
+	{
+		key: "sentryAuthToken",
+		infisicalKey: "sentry-auth-token",
+		description: "Build-only Sentry token for source-map and debug-symbol uploads.",
+		secret: true,
+		optional: true,
+		lands: {
+			"eas-tooling": {
+				name: "SENTRY_AUTH_TOKEN",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
 		key: "clerkPublishableKey",
 		infisicalKey: "clerk-publishable-key",
 		description: "Clerk publishable key used by the web and mobile clients.",

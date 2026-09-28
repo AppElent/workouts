@@ -1,5 +1,9 @@
 # iOS test builds and OTA updates
 
+For error reporting and shake-to-report configuration, see
+[mobile Sentry](mobile-sentry.md). New builds need the Sentry environment
+values there; OTA updates also need their source maps uploaded.
+
 Run these commands from `apps/mobile`. Use the `preview` profile for a
 standalone TestFlight app. It uses the EAS `preview` environment and update
 channel. The `development` profile is a Metro development client; it does not

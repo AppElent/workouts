@@ -15,8 +15,10 @@
  * splash indefinitely. That belongs with the offline/availability work, not
  * with the shell.
  */
+import "../src/feedback/sentry";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+import * as Sentry from "@sentry/react-native";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -38,13 +40,15 @@ SplashScreen.preventAutoHideAsync();
  * first so the `fonts` block (which react-navigation requires and we have no
  * opinion about) survives.
  */
-export default function RootLayout() {
+function RootLayout() {
 	return (
 		<AppearanceProvider>
 			<ThemedRoot />
 		</AppearanceProvider>
 	);
 }
+
+export default Sentry.wrap(RootLayout);
 
 function ThemedRoot() {
 	const { scheme, colors } = useAppearance();
