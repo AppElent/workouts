@@ -1,28 +1,23 @@
 import type { Exercise } from "@workouts/core/exercises";
-/**
- * The exercise library, ported from the web's `src/routes/exercises/index.tsx`.
- *
- * All four filters are client-side and compose with AND, exactly as on the web:
- * the shipped catalog is bundled with the app and merged with paginated personal
- * exercises, so filtering here needs no backend request per keystroke.
- *
- * Default exercises are shared and cannot be deleted — the backend enforces
- * that, and the row hides the affordance rather than offering a button that
- * always fails.
- */
 import { useMutation } from "convex/react";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { useEffect, useMemo, useState } from "react";
 import {
-	FlatList,
+	Platform,
 	Pressable,
-	ScrollView,
+	SectionList,
 	StyleSheet,
-	TextInput,
 	View,
 } from "react-native";
 import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
+import { useI18n } from "../i18n";
+import {
+	PREFERENCE_KEYS,
+	readPreference,
+	writePreference,
+} from "../prefs/local-preference";
 import {
 	radius,
 	spacing,
@@ -30,55 +25,25 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../theme";
-import { Chip } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
-import { NativeSwipeableRow } from "../ui/native-swipeable-row";
-import { Screen } from "../ui/screen";
-import { ScreenHeader } from "../ui/screen-header";
+import { EmptyState } from "../ui/empty-state";
+import { FormSearchField } from "../ui/form";
+import { MuscleIcon } from "../ui/muscle-icon";
+import { Segmented } from "../ui/segmented";
+import { SkeletonGroup, SkeletonList } from "../ui/skeleton";
+import { SwipeableRow } from "../ui/swipeable-row";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-
-/**
- * Muscle-group shortcuts, transcribed from the web. Several map to more than
- * one raw group — "Back" has to catch lats and traps or it misses most rows —
- * and traps deliberately appear under both Back and Shoulders, since which one
- * a person means depends on the exercise.
- */
-const CHIP_FILTERS: { label: string; groups: string[] | null }[] = [
-	{ label: "All", groups: null },
-	{ label: "Chest", groups: ["chest"] },
-	{ label: "Back", groups: ["back", "lats", "lower back", "traps"] },
-	{
-		label: "Legs",
-		groups: [
-			"quads",
-			"quadriceps",
-			"hamstrings",
-			"glutes",
-			"calves",
-			"adductors",
-			"abductors",
-		],
-	},
-	{
-		label: "Shoulders",
-		groups: ["shoulders", "front delts", "side delts", "rear delts", "traps"],
-	},
-	{ label: "Arms", groups: ["biceps", "triceps", "forearms"] },
-	{ label: "Core", groups: ["core"] },
-];
-
-const CATEGORIES = ["compound", "isolation"] as const;
-const EQUIPMENT = [
-	"barbell",
-	"dumbbell",
-	"cable",
-	"bodyweight",
-	"machine",
-	"kettlebell",
-	"band",
-	"other",
-] as const;
+import { FiltersSheet } from "./exercise-library/filters-sheet";
+import { LayoutMenu } from "./exercise-library/layout-menu";
+import {
+	emptyFilters,
+	type Filters,
+	filterExercises,
+	GROUP_KEYS,
+	type Layout,
+	primaryGroup,
+} from "./exercise-library/model";
 
 export function ExercisesScreen() {
 	const colors = useTokens();
@@ -86,239 +51,392 @@ export function ExercisesScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
+	const { t } = useI18n();
+	const c = t.exercises;
 	const { exercises } = useShellData();
 	const removeExercise = useMutation(api.exercises.remove);
-
 	const [search, setSearch] = useState("");
-	const [chip, setChip] = useState("All");
-	const [category, setCategory] = useState<string | null>(null);
-	const [equipment, setEquipment] = useState<string | null>(null);
-
-	const filtered = useMemo(() => {
-		const term = search.trim().toLowerCase();
-		const groups = CHIP_FILTERS.find((c) => c.label === chip)?.groups ?? null;
-
-		return (exercises ?? [])
-			.filter((ex) => {
-				if (term && !ex.name.toLowerCase().includes(term)) return false;
-				if (groups && !ex.muscleGroups.some((mg) => groups.includes(mg))) {
-					return false;
-				}
-				if (category && ex.category !== category) return false;
-				if (equipment && ex.equipment !== equipment) return false;
-				return true;
-			})
-			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [exercises, search, chip, category, equipment]);
-
+	const { created } = useLocalSearchParams<{ created?: string }>();
+	const [scope, setScope] = useState("all");
+	const [filters, setFilters] = useState(emptyFilters);
+	const [draft, setDraft] = useState<Filters | null>(null);
+	useEffect(() => {
+		if (created) {
+			setSearch(created);
+			setScope("personal");
+			setFilters(emptyFilters());
+			router.setParams({ created: undefined });
+		}
+	}, [created, router]);
+	const [layout, setLayout] = useState<Layout>(() =>
+		readPreference(PREFERENCE_KEYS.exerciseLibraryLayout) === "groups"
+			? "groups"
+			: "list",
+	);
+	const [deleting, setDeleting] = useState<string | null>(null);
+	const filtered = useMemo(
+		() =>
+			filterExercises(exercises ?? [], search, scope === "personal", filters),
+		[exercises, search, scope, filters],
+	);
+	const sections = useMemo(
+		() =>
+			layout === "list"
+				? filtered.length
+					? [{ key: "all", title: "", data: filtered }]
+					: []
+				: [...GROUP_KEYS, "other" as const]
+						.map((group) => ({
+							key: group,
+							title: c.groupNames[group],
+							data: filtered.filter((ex) => primaryGroup(ex) === group),
+						}))
+						.filter((s) => s.data.length),
+		[filtered, layout, c.groupNames],
+	);
+	const filterCount =
+		filters.groups.length +
+		filters.equipment.length +
+		(filters.category === "all" ? 0 : 1);
+	const changeLayout = (next: Layout) => {
+		setLayout(next);
+		writePreference(PREFERENCE_KEYS.exerciseLibraryLayout, next);
+	};
+	const clear = () => {
+		setSearch("");
+		setFilters(emptyFilters());
+	};
+	const add = () => router.push("/exercise-new");
+	const open = (exercise: Exercise) =>
+		router.push({ pathname: "/exercise/[id]", params: { id: exercise._id } });
 	const remove = async (exercise: Exercise) => {
-		const confirmed = await confirm({
-			title: `Delete ${exercise.name}?`,
-			message: "Every set and 1RM logged against it goes too.",
-			confirmLabel: "Delete exercise",
-			destructive: true,
-		});
-		if (!confirmed) return;
+		if (deleting) return;
+		if (
+			!(await confirm({
+				title: c.deleteTitle.replace("{name}", exercise.name),
+				message: c.deleteBody,
+				confirmLabel: c.delete,
+				cancelLabel: c.cancel,
+				destructive: true,
+			}))
+		)
+			return;
+		setDeleting(exercise._id);
 		try {
 			await removeExercise({ id: exercise._id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not delete the exercise."));
+			toast.error(convexErrorMessage(error, c.deleteError));
+		} finally {
+			setDeleting(null);
 		}
 	};
-
 	return (
-		<Screen edges={["bottom"]}>
-			<ScreenHeader
-				title={"Exercises"}
-				action={{
-					label: "Add exercise",
-					onPress: () => router.push("/exercise-new"),
-				}}
-			/>
-
-			<View style={styles.filters}>
-				<TextInput
-					value={search}
-					onChangeText={setSearch}
-					placeholder="Search exercises"
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					autoCorrect={false}
-				/>
-
-				<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-					<View style={styles.chipRow}>
-						{CHIP_FILTERS.map((c) => (
-							<Pressable key={c.label} onPress={() => setChip(c.label)}>
-								<Chip label={c.label} active={c.label === chip} />
-							</Pressable>
-						))}
-					</View>
-				</ScrollView>
-
-				<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-					<View style={styles.chipRow}>
-						{CATEGORIES.map((c) => (
-							<Pressable
-								key={c}
-								onPress={() => setCategory(category === c ? null : c)}
-							>
-								<Chip label={c} active={category === c} />
-							</Pressable>
-						))}
-						{EQUIPMENT.map((e) => (
-							<Pressable
-								key={e}
-								onPress={() => setEquipment(equipment === e ? null : e)}
-							>
-								<Chip label={e} active={equipment === e} />
-							</Pressable>
-						))}
-					</View>
-				</ScrollView>
-			</View>
-
-			{exercises === undefined ? (
-				<AppText variant="caption" style={styles.status}>
-					Loading…
-				</AppText>
-			) : (
-				<FlatList
-					contentInsetAdjustmentBehavior="automatic"
-					data={filtered}
-					keyExtractor={(item) => item._id}
-					contentContainerStyle={styles.list}
-					showsVerticalScrollIndicator={false}
-					keyboardShouldPersistTaps="handled"
-					ListEmptyComponent={
-						<View style={styles.empty}>
-							<AppText variant="heading" style={{ color: colors.textMuted }}>
-								Nothing matches
-							</AppText>
-							<AppText variant="caption" style={styles.centered}>
-								{exercises.length === 0
-									? "The library is empty — add your first exercise."
-									: "Try clearing a filter or two."}
-							</AppText>
+		<>
+			<SectionList
+				style={styles.root}
+				contentContainerStyle={styles.content}
+				contentInsetAdjustmentBehavior="automatic"
+				automaticallyAdjustKeyboardInsets
+				// Preserve UIKit's negative large-title offset during keyboard adjustment.
+				// RN otherwise clamps against contentInset, excluding adjustedContentInset.
+				scrollToOverflowEnabled
+				keyboardDismissMode="interactive"
+				keyboardShouldPersistTaps="handled"
+				stickySectionHeadersEnabled={false}
+				sections={sections}
+				keyExtractor={(item) => item._id}
+				ListHeaderComponent={
+					<View style={styles.header}>
+						<View style={styles.search}>
+							<FormSearchField
+								label={c.search}
+								value={search}
+								onChangeText={setSearch}
+								placeholder={c.search}
+								autoCorrect={false}
+								returnKeyType="search"
+								clearButtonMode="while-editing"
+							/>
 						</View>
-					}
-					renderItem={({ item }) => (
-						<NativeSwipeableRow
-							menuTitle={item.name}
-							closeMenuLabel="Close"
-							actions={[
-								{
-									key: "open",
-									label: "View exercise",
-									onPress: () =>
-										router.push({
-											pathname: "/exercise/[id]",
-											params: { id: item._id },
-										}),
-								},
-								...(!item.isDefault
-									? [
-											{
-												key: "delete",
-												label: "Delete",
-												destructive: true,
-												onPress: () => void remove(item),
-											},
-										]
-									: []),
+						<Segmented
+							value={scope}
+							onChange={setScope}
+							options={[
+								{ value: "all", label: c.all },
+								{ value: "personal", label: c.personal },
+							]}
+						/>
+						<View style={styles.summary}>
+							<AppText variant="footnote" style={{ color: colors.textMuted }}>
+								{(filtered.length === 1 ? c.countOne : c.count).replace(
+									"{count}",
+									String(filtered.length),
+								)}
+							</AppText>
+							<Pressable
+								accessibilityRole="button"
+								accessibilityLabel={`${c.filters}${filterCount ? `, ${filterCount}` : ""}`}
+								onPress={() =>
+									setDraft({
+										...filters,
+										groups: [...filters.groups],
+										equipment: [...filters.equipment],
+									})
+								}
+								style={styles.filterButton}
+							>
+								<SymbolView
+									name={{
+										ios: "line.3.horizontal.decrease",
+										android: "filter_list",
+										web: "filter_list",
+									}}
+									tintColor={colors.accent}
+									size={18}
+								/>
+								<AppText variant="control" style={{ color: colors.accent }}>
+									{c.filters}
+									{filterCount ? ` · ${filterCount}` : ""}
+								</AppText>
+							</Pressable>
+						</View>
+					</View>
+				}
+				renderSectionHeader={({ section }) =>
+					section.title ? (
+						<View style={styles.sectionHeader}>
+							<AppText variant="heading">{section.title}</AppText>
+							<AppText variant="footnote">{section.data.length}</AppText>
+						</View>
+					) : null
+				}
+				renderSectionFooter={() => <View style={{ height: spacing.md }} />}
+				ListEmptyComponent={
+					exercises === undefined ? (
+						<SkeletonGroup label={c.loading}>
+							<SkeletonList rows={7} />
+						</SkeletonGroup>
+					) : (
+						<EmptyState
+							appearance="search"
+							title={
+								scope === "personal" && !search && !filterCount
+									? c.noPersonal
+									: c.noResults
+							}
+							body={
+								scope === "personal" && !search && !filterCount
+									? c.noPersonalBody
+									: c.noResultsBody
+							}
+							action={{
+								label:
+									scope === "personal" && !search && !filterCount
+										? c.add
+										: c.clear,
+								onPress:
+									scope === "personal" && !search && !filterCount ? add : clear,
+							}}
+						/>
+					)
+				}
+				renderItem={({ item, index, section }) => {
+					const row = (accessibility = {}) => (
+						<Pressable
+							{...accessibility}
+							onPress={() => open(item)}
+							accessibilityRole="button"
+							accessibilityLabel={`${item.name}, ${c.equipmentNames[item.equipment]}`}
+							accessibilityState={{ busy: deleting === item._id }}
+							disabled={deleting === item._id}
+							style={({ pressed }) => [
+								styles.row,
+								index === 0 && styles.first,
+								index === section.data.length - 1 && styles.last,
+								pressed && { backgroundColor: colors.surface2 },
 							]}
 						>
-							{(accessibility) => (
-								<Pressable
-									onPress={() =>
-										router.push({
-											pathname: "/exercise/[id]",
-											params: { id: item._id },
-										})
-									}
-									{...accessibility}
-									accessibilityRole="button"
-									accessibilityLabel={item.name}
-									style={({ pressed }) => [
-										styles.row,
-										pressed && { backgroundColor: colors.surface2 },
-									]}
-								>
-									<View style={styles.flex}>
-										<AppText variant="body" style={styles.name}>
-											{item.name}
-										</AppText>
-										<AppText variant="caption" style={styles.meta}>
-											{item.category} · {item.equipment}
-										</AppText>
-									</View>
-									{item.isDefault ? null : (
+							<MuscleIcon group={primaryGroup(item)} />
+							<View style={styles.rowText}>
+								<AppText variant="row">{item.name}</AppText>
+								<AppText variant="footnote" style={{ color: colors.textMuted }}>
+									{c.equipmentNames[item.equipment]} ·{" "}
+									{item.category === "compound" ? c.compound : c.isolation}
+									{!item.isDefault ? ` · ${c.personal}` : ""}
+								</AppText>
+							</View>
+							<SymbolView
+								name={{
+									ios: "chevron.right",
+									android: "chevron_right",
+									web: "chevron_right",
+								}}
+								size={12}
+								tintColor={colors.textFaint}
+							/>
+						</Pressable>
+					);
+					return (
+						<View
+							style={[
+								index === 0 && styles.first,
+								index === section.data.length - 1 && styles.last,
+								{ overflow: "hidden" },
+							]}
+						>
+							<SwipeableRow
+								menuTitle={item.name}
+								closeMenuLabel={c.cancel}
+								actions={
+									item.isDefault
+										? [
+												{
+													key: "clone",
+													label: c.clone,
+													swipe: false,
+													onPress: () =>
+														router.push({
+															pathname: "/exercise-new",
+															params: { clone: item._id },
+														}),
+												},
+											]
+										: [
+												{
+													key: "edit",
+													label: c.edit,
+													onPress: () =>
+														router.push({
+															pathname: "/exercise-new",
+															params: { edit: item._id, returnTo: "library" },
+														}),
+												},
+												{
+													key: "delete",
+													label: c.delete,
+													destructive: true,
+													onPress: () => void remove(item),
+												},
+											]
+								}
+							>
+								{row}
+							</SwipeableRow>
+						</View>
+					);
+				}}
+			/>
+			<Stack.Screen
+				options={{
+					title: c.title,
+					headerLargeTitleEnabled: true,
+					headerLargeTitleStyle: { color: colors.text },
+					headerTitleStyle: { color: colors.text },
+					headerTransparent: Platform.OS === "ios",
+					headerShadowVisible: false,
+					...(Platform.OS !== "ios"
+						? {
+								headerRight: () => (
+									<View style={{ flexDirection: "row" }}>
 										<Pressable
-											onPress={(event) => {
-												event.stopPropagation();
-												void remove(item);
-											}}
-											hitSlop={12}
+											accessibilityLabel={c.add}
 											accessibilityRole="button"
-											accessibilityLabel={`Delete ${item.name}`}
+											onPress={add}
+											style={styles.filterButton}
 										>
-											<AppText variant="body" style={styles.delete}>
-												Delete
-											</AppText>
+											<AppText style={{ color: colors.accent }}>＋</AppText>
 										</Pressable>
-									)}
-								</Pressable>
-							)}
-						</NativeSwipeableRow>
-					)}
+										<LayoutMenu value={layout} onChange={changeLayout} />
+									</View>
+								),
+							}
+						: {}),
+				}}
+			/>
+			{Platform.OS === "ios" ? (
+				<Stack.Toolbar placement="right">
+					<Stack.Toolbar.Button
+						icon="plus"
+						accessibilityLabel={c.add}
+						onPress={add}
+					/>
+					<Stack.Toolbar.View>
+						<LayoutMenu value={layout} onChange={changeLayout} />
+					</Stack.Toolbar.View>
+				</Stack.Toolbar>
+			) : null}
+			{draft ? (
+				<FiltersSheet
+					draft={draft}
+					onChange={setDraft}
+					count={
+						filterExercises(
+							exercises ?? [],
+							search,
+							scope === "personal",
+							draft,
+						).length
+					}
+					onCancel={() => setDraft(null)}
+					onApply={() => {
+						setFilters(draft);
+						setDraft(null);
+					}}
 				/>
-			)}
-		</Screen>
+			) : null}
+		</>
 	);
 }
-
-const createStyles = (colors: Tokens) =>
+const createStyles = (c: Tokens) =>
 	StyleSheet.create({
-		header: {
+		root: { flex: 1, backgroundColor: c.bg },
+		content: {
+			flexGrow: 1,
+			paddingHorizontal: spacing.md,
+			paddingBottom: spacing.xxl,
+		},
+		header: { gap: spacing.sm },
+		search: {
+			backgroundColor: c.surface2,
+			borderRadius: radius.lg,
+			borderCurve: "continuous",
+		},
+		summary: {
 			flexDirection: "row",
 			alignItems: "center",
-			gap: spacing.sm,
-			paddingHorizontal: spacing.md,
-			paddingTop: spacing.md,
-			paddingBottom: spacing.sm,
+			justifyContent: "space-between",
 		},
-		flex: { flex: 1 },
-		filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
-		input: {
+		filterButton: {
 			minHeight: 44,
-			borderRadius: radius.lg,
-			paddingHorizontal: spacing.md,
-			backgroundColor: colors.surface,
-			borderWidth: 1,
-			borderColor: colors.border,
-			color: colors.text,
-			fontSize: 15,
+			minWidth: 44,
+			flexDirection: "row",
+			gap: 6,
+			alignItems: "center",
+			justifyContent: "center",
 		},
-		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-		status: { paddingHorizontal: spacing.md },
-		list: {
-			paddingHorizontal: spacing.md,
+		sectionHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingBottom: spacing.sm,
 			paddingTop: spacing.sm,
-			paddingBottom: spacing.xxl * 2,
-			gap: spacing.sm,
 		},
 		row: {
+			minHeight: 80,
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.sm,
-			backgroundColor: colors.surface,
-			borderRadius: radius.lg,
-			paddingHorizontal: spacing.md,
-			paddingVertical: spacing.md,
+			paddingHorizontal: spacing.sm,
+			paddingVertical: 12,
+			backgroundColor: c.surface,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: c.separator,
 		},
-		name: { fontWeight: "700" },
-		meta: { marginTop: 2, textTransform: "capitalize" },
-		delete: { color: colors.danger, fontWeight: "700" },
-		empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
-		centered: { textAlign: "center" },
+		rowText: { flex: 1, gap: 4 },
+		first: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
+		last: {
+			borderBottomLeftRadius: radius.lg,
+			borderBottomRightRadius: radius.lg,
+			borderBottomWidth: 0,
+		},
 	});

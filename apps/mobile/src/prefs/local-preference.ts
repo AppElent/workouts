@@ -33,6 +33,7 @@ import Storage from "expo-sqlite/kv-store";
  */
 export const PREFERENCE_KEYS = {
 	locale: "workouts:locale",
+	exerciseLibraryLayout: "workouts:exercise-library-layout",
 	appearance: "workouts:appearance",
 } as const;
 

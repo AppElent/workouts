@@ -7,3 +7,5 @@ import { ExercisesScreen } from "../../src/screens/exercises-list";
 export default function Exercises() {
 	return <ExercisesScreen />;
 }
+
+export { ExerciseRouteError as ErrorBoundary } from "../../src/screens/exercise-library/route-error";

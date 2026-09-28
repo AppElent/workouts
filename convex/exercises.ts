@@ -64,29 +64,55 @@ export const getHistory = query({
   },
 })
 
+const exerciseInput = {
+  name: exerciseDocument.fields.name,
+  muscleGroups: exerciseDocument.fields.muscleGroups,
+  category: exerciseDocument.fields.category,
+  equipment: exerciseDocument.fields.equipment,
+  notes: exerciseDocument.fields.notes,
+  weightIncrement: exerciseDocument.fields.weightIncrement,
+};
+
+function validateExerciseInput(args: { name: string; weightIncrement?: number }) {
+  if (!args.name.trim()) throw new Error("Enter an exercise name");
+  if (args.weightIncrement !== undefined && (!Number.isFinite(args.weightIncrement) || args.weightIncrement <= 0)) {
+    throw new Error("Weight step must be greater than zero");
+  }
+}
+
 export const create = mutation({
-  args: {
-    name: v.string(),
-    muscleGroups: v.array(v.string()),
-    category: v.union(v.literal('compound'), v.literal('isolation')),
-    equipment: v.union(
-      v.literal('barbell'),
-      v.literal('dumbbell'),
-      v.literal('cable'),
-      v.literal('bodyweight'),
-      v.literal('machine'),
-      v.literal('kettlebell'),
-      v.literal('band'),
-      v.literal('other'),
-    ),
-    notes: v.optional(v.string()),
-    weightIncrement: v.optional(v.number()),
-  },
+  args: { ...exerciseInput, instructions: exerciseDocument.fields.instructions },
+  returns: v.id("exercises"),
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
-    return ctx.db.insert('exercises', { ...args, isDefault: false, userId })
+    const userId = await requireUser(ctx);
+    validateExerciseInput(args);
+    return ctx.db.insert("exercises", { ...args, name: args.name.trim(), isDefault: false, userId });
   },
-})
+});
+
+export const update = mutation({
+  args: { id: exerciseReference, ...exerciseInput },
+  returns: v.null(),
+  handler: async (ctx, { id, ...args }) => {
+    const userId = await requireUser(ctx);
+    const documentId = ctx.db.normalizeId("exercises", id);
+    if (!documentId) throw new Error("Cannot edit a shipped exercise");
+    const exercise = await ctx.db.get(documentId);
+    if (!exercise) throw new Error("Exercise not found");
+    if (exercise.isDefault) throw new Error("Cannot edit default exercises");
+    if (exercise.userId !== userId) throw new Error("Unauthorized");
+    validateExerciseInput(args);
+    // Patch in place: sets, records, routines and instructions keep their identity.
+    // Explicit undefined clears optional fields omitted by the form.
+    await ctx.db.patch(documentId, {
+      ...args,
+      name: args.name.trim(),
+      notes: args.notes,
+      weightIncrement: args.weightIncrement,
+    });
+    return null;
+  },
+});
 
 export const remove = mutation({
   args: { id: exerciseReference },

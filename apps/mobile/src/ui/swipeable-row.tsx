@@ -137,6 +137,7 @@ export function SwipeableRow({
 	);
 
 	const openMenu = useCallback(() => {
+		haptics.menuOpened();
 		if (Platform.OS === "ios") {
 			ActionSheetIOS.showActionSheetWithOptions(
 				{
@@ -153,7 +154,6 @@ export function SwipeableRow({
 				},
 			);
 		} else {
-			haptics.menuOpened();
 			setMenuOpen(true);
 		}
 	}, [actions, menuTitle, closeMenuLabel, runAction]);
@@ -172,6 +172,9 @@ export function SwipeableRow({
 					passedThreshold.current = false;
 				})
 				.onUpdate((event) => {
+					// Consume horizontal drags without turning them into row taps.
+					// Rows with menu-only actions must neither move nor play feedback.
+					if (openWidth === 0) return;
 					const next = offset.current + event.translationX;
 					// Clamped both ways: closed at 0, open at exactly the buttons'
 					// width. There is no distance past "open" for a full swipe to use.
@@ -184,6 +187,7 @@ export function SwipeableRow({
 					}
 				})
 				.onEnd(() => {
+					if (openWidth === 0) return;
 					settle(passedThreshold.current ? -openWidth : 0);
 				}),
 		[openWidth, settle, translateX],

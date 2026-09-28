@@ -1,3 +1,4 @@
+import { exerciseLibraryEn } from "./exercise-library";
 /**
  * The phone's words, in the source language.
  *
@@ -14,6 +15,7 @@
  * `nl.ts` from satisfying this shape.
  */
 export const en = {
+	exercises: exerciseLibraryEn,
 	tabs: {
 		home: "Home",
 		train: "Train",
