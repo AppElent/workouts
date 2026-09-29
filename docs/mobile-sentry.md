@@ -1,8 +1,8 @@
 # Mobile Sentry
 
-The mobile app uses `@sentry/react-native` for JavaScript/native errors and
-shake-to-report. Shaking opens Sentry's feedback form; submitting creates an
-item in the project's **User Feedback** section. No prior crash is required.
+The mobile app uses Expo SDK 57's recommended `@sentry/react-native` 7.11.x
+for JavaScript and native errors. Built-in shake-to-report is not enabled:
+it requires Sentry 8.5.0+, outside Expo's recommended version for this SDK.
 The setup does not enable tracing, profiling, session replay, or log ingestion.
 
 ## Configuration
@@ -39,22 +39,18 @@ EAS installation alone is not enough. Use `pnpm exec eas login` if needed.
 
 Sentry's environment follows the EAS Update channel, falling back to
 `development` for a dev bundle and `production` otherwise. Default PII
-collection is disabled; users may voluntarily enter contact details in the
-feedback form.
+collection is disabled.
 
 ## Build and verify
 
 This adds a native dependency: install a **new native build**, following
 [mobile releases](mobile-releases.md). An OTA update to an older binary cannot
-add shake detection. Verify on a standalone preview/TestFlight build rather
-than Expo Go or the development client's competing shake menu.
+add native error reporting. Changing the Sentry native SDK version also
+requires a new binary. Verify on a standalone preview/TestFlight build
+rather than Expo Go.
 
-1. Open the app and shake the phone. Confirm that the feedback form opens.
-2. Cancel once and confirm the current screen/workout remains intact.
-3. Shake again, enter a recognizable test report, and submit it.
-4. Confirm the report arrives in Sentry's User Feedback section with the
-   expected environment and release. Delete the test report when finished.
-5. Verify error reporting separately with a temporary
+1. Open the app and verify normal navigation and workout use.
+2. Verify error reporting with a temporary
    `Sentry.captureException(new Error("Mobile Sentry verification"))` in a
    local test build; confirm its stack is symbolicated and remove the test code.
 
@@ -63,10 +59,14 @@ EAS Update, upload that update's exported maps from `apps/mobile` with
 `pnpm exec sentry-expo-upload-sourcemaps dist` using the same Sentry build
 credentials. If overriding the DSN, use the same override for the build and update.
 
-Sentry is pinned to 8.28.0 because built-in shake-to-report requires 8.5.0+;
-Expo SDK 57's suggested 7.11.x does not include it. Do not let
-`expo install --fix` downgrade this dependency. The version recommendation
-may appear in Expo's dependency checks; it is not suppressed.
+Keep Sentry aligned with Expo's recommended version when updating the SDK.
+Do not upgrade Sentry independently to enable shake-to-report. Expo's
+dependency checks remain enabled without a Sentry exclusion.
+
+`@sentry/cli` is an explicit mobile development dependency at the version
+required by the Sentry SDK. Its Xcode upload scripts resolve the CLI from
+the app directory, which cannot access a transitive dependency under pnpm's
+isolated layout. Keep the CLI version in sync with the SDK when upgrading.
 
 References: [Sentry Expo setup](https://docs.sentry.io/platforms/react-native/guides/expo/)
 and [user feedback](https://docs.sentry.io/platforms/react-native/user-feedback/).

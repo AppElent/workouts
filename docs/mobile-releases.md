@@ -1,6 +1,6 @@
 # iOS test builds and OTA updates
 
-For error reporting and shake-to-report configuration, see
+For error reporting configuration, see
 [mobile Sentry](mobile-sentry.md). New builds need the Sentry environment
 values there; OTA updates also need their source maps uploaded.
 
@@ -9,7 +9,19 @@ standalone TestFlight app. It uses the EAS `preview` environment and update
 channel. The `development` profile is a Metro development client; it does not
 provide the same automatic update flow.
 
+The EAS profile name does not determine the backend environment. As verified
+on 2026-09-29, `preview` points to the live Convex deployment `fine-akita-444`,
+also used by the production web app. Check the target before deploying backend
+changes. This release requires the completed
+[exercise-history migration](exercise-migration.md) before client distribution.
+
 ## Build and install
+
+From macOS (zsh), in `apps/mobile`:
+
+```sh
+EXPO_NO_DOTENV=1 pnpm exec eas build --platform ios --profile preview --clear-cache --auto-submit
+```
 
 From PowerShell:
 
@@ -31,8 +43,42 @@ TypeScript checks and bundle exports cannot verify them.
 
 The clean cache is intentional for the first rebuild: the previous failed iOS
 build used Expo Modules Core 57.0.10 and lacked symbols required by Expo UI.
-The current lockfile resolves 57.0.18, whose source includes those symbols.
+The current lockfile resolves 57.0.19, whose source includes those symbols.
 Subsequent builds can omit `--clear-cache` unless troubleshooting build caches.
+
+## Local iOS development on macOS
+
+Use Xcode with an installed iOS simulator runtime and CocoaPods. Run from
+`apps/mobile` with the development values in `.env.local`:
+
+Clerk enables Sign in with Apple, so Expo's local build command requires a
+development signing identity even when selecting a simulator. Add your Apple
+Developer account under Xcode → Settings → Accounts and create an Apple
+Development certificate through Manage Certificates before the first run.
+
+```sh
+SENTRY_DISABLE_AUTO_UPLOAD=true pnpm devbuild:ios --device
+```
+
+This compiles and installs the development client and starts Metro. JavaScript
+changes then use Fast Refresh. If another checkout already uses port 8081,
+append `--port 8084` (or another free port).
+
+After native dependency or config-plugin changes, regenerate the ignored iOS
+project first. Preserve any manual native changes before using `--clean`:
+
+```sh
+pnpm exec expo prebuild --platform ios --clean
+```
+
+Keep durable native settings in `app.json` and config plugins; `ios/` and
+`android/` remain generated and ignored. Disabling Sentry uploads is only for
+local development without upload credentials; EAS preview builds use their
+configured `SENTRY_AUTH_TOKEN` and upload source maps normally.
+
+Use EAS cloud builds for the TestFlight flow above. Local `eas build --local`
+is optional and additionally needs Fastlane and locally supplied EAS secrets;
+it is not required for simulator development.
 
 ## Publish subsequent OTA updates
 
