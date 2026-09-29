@@ -1,8 +1,9 @@
 # Mobile Sentry
 
-The mobile app uses Expo SDK 57's recommended `@sentry/react-native` 7.11.x
-for JavaScript and native errors. Built-in shake-to-report is not enabled:
-it requires Sentry 8.5.0+, outside Expo's recommended version for this SDK.
+The mobile app uses `@sentry/react-native` 8.28.0 with Expo SDK 57 for
+JavaScript and native errors, following Sentry's Expo integration guide.
+Shaking the device opens Sentry's feedback form through
+`feedbackIntegration({ enableShakeToReport: true })` and `Sentry.wrap`.
 The setup does not enable tracing, profiling, session replay, or log ingestion.
 
 ## Configuration
@@ -50,7 +51,10 @@ requires a new binary. Verify on a standalone preview/TestFlight build
 rather than Expo Go.
 
 1. Open the app and verify normal navigation and workout use.
-2. Verify error reporting with a temporary
+2. Shake the device and verify the feedback form opens and can be dismissed.
+   On an iOS simulator, use Device → Shake. Submit a clearly labeled test
+   report when checking delivery, then confirm it in Sentry User Feedback.
+3. Verify error reporting with a temporary
    `Sentry.captureException(new Error("Mobile Sentry verification"))` in a
    local test build; confirm its stack is symbolicated and remove the test code.
 
@@ -59,14 +63,25 @@ EAS Update, upload that update's exported maps from `apps/mobile` with
 `pnpm exec sentry-expo-upload-sourcemaps dist` using the same Sentry build
 credentials. If overriding the DSN, use the same override for the build and update.
 
-Keep Sentry aligned with Expo's recommended version when updating the SDK.
-Do not upgrade Sentry independently to enable shake-to-report. Expo's
-dependency checks remain enabled without a Sentry exclusion.
+Expo SDK 57's compatibility list still recommends Sentry 7.11.x. We explicitly
+select Sentry 8 for its documented Expo support and built-in shake-to-report
+(introduced in 8.5.0). Only `@sentry/react-native` is listed in
+`expo.install.exclude`; Expo's other dependency checks remain enabled.
+Review this exception when upgrading Expo and validate Sentry changes with
+typechecks, tests, a bundle export, and a native build.
+
+Sentry 8 requires iOS 15+ and Xcode 16.4+, which Expo SDK 57's iOS target
+and our build environment satisfy. Android requires AGP 7.4+ and Kotlin 1.8+;
+keep Expo's generated toolchain defaults. We use hosted Sentry, so the
+Sentry CLI 3 minimum server version for self-hosted installations does not apply.
 
 `@sentry/cli` is an explicit mobile development dependency at the version
-required by the Sentry SDK. Its Xcode upload scripts resolve the CLI from
-the app directory, which cannot access a transitive dependency under pnpm's
-isolated layout. Keep the CLI version in sync with the SDK when upgrading.
+required by the Sentry SDK (3.8.0). This keeps CLI resolution from the app
+directory predictable under pnpm's isolated layout. Sentry 8 also provides a
+pnpm fallback in its Xcode upload scripts. Keep the CLI version in sync with
+the SDK when upgrading.
 
-References: [Sentry Expo setup](https://docs.sentry.io/platforms/react-native/guides/expo/)
-and [user feedback](https://docs.sentry.io/platforms/react-native/user-feedback/).
+References: [Sentry Expo setup](https://docs.sentry.io/platforms/react-native/guides/expo/),
+[Sentry 8 migration](https://docs.sentry.io/platforms/react-native/migration/v7-to-v8/),
+[user feedback](https://docs.sentry.io/platforms/react-native/user-feedback/), and
+[Expo dependency validation](https://docs.expo.dev/more/expo-cli/#configuring-dependency-validation).
