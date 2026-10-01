@@ -1,5 +1,5 @@
 ---
-version: 1.2.0
+version: 1.3.0
 description: Configure an existing Expo Router target while preserving native identity and release boundaries.
 ---
 
@@ -8,6 +8,8 @@ description: Configure an existing Expo Router target while preserving native id
 ## Standard
 
 All current mobile projects use Expo, React Native, and Expo Router. Use the [shared baseline](../baseline/FEATURE.md) for pnpm, TypeScript, Biome, CI, and dependency policy; use Jest with jest-expo and React Native Testing Library for behavior tests. Select SDK-compatible packages through `pnpm exec expo install`, keeping actual versions in package/lockfiles.
+
+Use [Expo Device Hub](https://github.com/expo/expo-device-hub) as the standard local simulator/emulator dashboard on Expo SDK 57 or newer. Install it as development tooling in the Expo target. Older SDKs retain their existing device workflow until a deliberate SDK upgrade.
 
 Use native navigation and platform controls behind app-owned component interfaces. Consult the installed Expo UI skill for SDK-compatible @expo/ui controls before adding another control library. Use TanStack Form with Zod for validated forms behind those interfaces. Keep colors, spacing, typography, and motion in semantic tokens; do not copy the web Tailwind/DOM layer into native screens. iOS uses native chrome and SF Symbols; Android follows its own navigation/control conventions while preserving product outcomes. Large collections need a virtualized list; grouped native rows do not establish virtualization.
 
@@ -23,6 +25,15 @@ node scripts/baseline-mobile.mjs --path apps/mobile --apply
 ```
 
 This adds missing Expo run scripts and a starter eas.json when absent, alongside applicable shared repository settings. Existing SDK versions, routes, bundle IDs, Android package IDs, scheme, EAS project ID, profiles, and app config are preserved. Install expo-dev-client before using the generated development-client start command. See [Expo development builds](https://docs.expo.dev/develop/development-builds/introduction/).
+
+For SDK 57+ targets, install Device Hub from the mobile directory:
+
+```sh
+pnpm exec expo install expo-device-hub --dev --pnpm
+pnpm exec expo start --dev-client
+```
+
+The plugin registers automatically; open the Device Hub URL printed by Metro (under `/_expo/plugins/expo-device-hub` on the selected port). No application import or config plugin is required. iOS simulators need macOS and Xcode; Android emulators need the Android SDK with `emulator` and `adb`. Follow the existing pnpm build-script policy: Device Hub's `node-datachannel` dependency needs its native binary for Android streaming. Review that install script and explicitly allow it in the workspace's build ledger; do not disable script checks globally. Verify the dashboard loads and the intended device connects. Dashboard availability alone does not establish application acceptance.
 
 ## Application integration
 

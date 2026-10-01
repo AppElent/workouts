@@ -71,6 +71,7 @@ integrations and platform-specific implementations; package files own versions.
 | Web charts | Recharts, following the web baseline |
 | Web date utilities | date-fns, following the web baseline |
 | Mobile charts | Swift Charts through `@expo/ui/swift-ui` on iOS; `react-native-gifted-charts` on Android, behind `apps/mobile/src/ui/chart` |
+| Mobile device tooling | Expo Device Hub, following the mobile baseline; installed in the Expo target as a devDependency |
 | Localization | Existing `@appelent/i18n` integration with English/Dutch app-owned messages |
 | Application CLI | Existing `@appelent/cli` wrapper in `cli/index.ts` |
 

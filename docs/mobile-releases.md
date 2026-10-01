@@ -71,6 +71,15 @@ project first. Preserve any manual native changes before using `--clean`:
 pnpm exec expo prebuild --platform ios --clean
 ```
 
+Expo Device Hub is the standard local simulator/emulator dashboard. Start Metro
+with `pnpm start:dev-client` from `apps/mobile`, then open the Device Hub URL
+printed in the terminal (`http://localhost:<port>/_expo/plugins/expo-device-hub`).
+It registers automatically and uses Metro's selected port. Use the dashboard to
+view and control local devices; Android requires the Android SDK's `emulator`
+and `adb`. The workspace explicitly allows `node-datachannel`'s native install
+script for Android streaming. Application device acceptance still follows the
+[verification workflow](../.claude/skills/verify/SKILL.md).
+
 Keep durable native settings in `app.json` and config plugins; `ios/` and
 `android/` remain generated and ignored. Disabling Sentry uploads is only for
 local development without upload credentials; EAS preview builds use their

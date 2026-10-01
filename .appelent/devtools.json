@@ -4,7 +4,7 @@
   "scope": "project",
   "ref": "main",
   "commit": "local",
-  "manifestHash": "0ce577c08a42dfc91f3f14b5873e06ea128924e2e67b8cdf8ee3452d6d004f07",
+  "manifestHash": "2b64e69f3a1c12f255fb0335778d491952552221dd99ba664e9bcda723051952",
   "files": {
     "docs/features/app-cli/examples/args.ts": {
       "sha256": "d4b58ff5f763d06f513af586038f12520c97c66932c54c189c270a1a6c4533a0"
@@ -104,8 +104,8 @@
       "sha256": "289feb472d01d52047d137fb8d65de5394f6cfb15b81e00a1bc9b4ddf8821456"
     },
     "docs/features/mobile-baseline/FEATURE.md": {
-      "sha256": "1a762239c2de62ee5ad1e2dd2bba5cf1f92eeee92eea3758138f2e8e5843dbbc",
-      "version": "1.2.0"
+      "sha256": "e76133b646bbd7c17a92143088aabc026c2020eaddff9bec57d234ca54b5107c",
+      "version": "1.3.0"
     },
     "docs/features/previews/FEATURE.md": {
       "sha256": "9fb9ca5780a8edec125e922b0ff335733bef2615f9517ee4ab7d4d5b3fc95c48",
