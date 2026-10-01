@@ -2,8 +2,11 @@
 
 [`env.manifest.ts`](../env.manifest.ts) is the source of truth for which
 Workouts value each web, mobile, Convex, CI, and workspace consumer reads. The
-thin `scripts/env.mjs` wrapper runs the shared `@appelent/dev` environment
-engine; it does not contain app routing of its own.
+legacy `scripts/env-legacy.mjs` wrapper still runs the shared `@appelent/dev`
+environment engine through the `pnpm env:*` aliases. The distributed standalone
+`scripts/env.mjs` is installed for a future migration; see the
+[shared guide](features/environments/FEATURE.md). Installing it did not change
+those aliases or validate this app against its loader.
 
 The app has four environments: `local`, per-PR `preview`, stable `dev`, and
 `production`. There is no Workouts staging environment. Stable Convex targets
@@ -14,12 +17,12 @@ Worker remains `workouts-dev`, and production remains `workouts`.
 ## Source prerequisite
 
 Workouts uses the same Infisical project reference as Gather and keeps its
-app-specific values under `/workouts`. Its `local` source is `dev`, both PR
+app-specific values under `/foundry`. Its `local` source is `dev`, both PR
 `preview` and stable app `dev` use the project's `staging` source, and
 `production` uses `prod`. The app environment remains named `dev`; the
 provider's `staging` slug does not introduce a Workouts staging deployment.
 
-The source lookup order is `/` followed by `/workouts`; a value in the app
+The source lookup order is `/` followed by `/foundry`; a value in the app
 folder overrides the same source name at the root. Shared values retain
 Gather's existing canonical source keys, while each landing keeps the exact
 Workouts variable name consumed by code or CI. `.infisical.json` contains only

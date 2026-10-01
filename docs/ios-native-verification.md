@@ -1,11 +1,14 @@
 # iOS interaction verification
 
-The native UI changes are implemented. A physical iPhone pass remains required:
-Windows cannot verify UIKit layout, interactive transitions or gesture conflicts.
-The app still uses its existing dark appearance.
+This is an acceptance checklist, not evidence that every row passed. Inspect the
+current build and record the date, device, backend, locale/theme, and result.
+Physical iPhone checks remain necessary for device feel and haptics; simulator
+results must identify their limits. The app now supports system/light/dark appearance.
 
-Run `pnpm --filter @workouts/mobile start` and open the project in Expo Go on the
-iPhone, or use the existing development client. No native dependencies were added.
+Use a development client matching this checkout's native dependencies. Follow
+[mobile releases](mobile-releases.md) for build/start commands and
+[project verification](../.claude/skills/verify/SKILL.md) for target checks.
+Do not assume Expo Go contains this app's native integrations.
 
 | Flow | Verify on the iPhone |
 | --- | --- |
@@ -34,5 +37,5 @@ layout; a short recording is needed to assess edge-back cancellation, sheet
 dismissal and keyboard movement. Automated tests and the iOS export do not
 establish that these device checks passed.
 
-Android uses the existing menu fallback and native back navigation; it has not
-been visually verified as part of this iOS work.
+Android uses its platform adapters and native Back navigation. This iOS checklist
+does not establish Android acceptance; report Android coverage separately.

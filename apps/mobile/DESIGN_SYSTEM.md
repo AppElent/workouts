@@ -5,20 +5,11 @@ while entering data, and dense enough for repeated daily use. The lime accent
 identifies the primary action, selection, and progress. Neutral surfaces carry
 everything else.
 
-## Screen contract
+## Shared behavior
 
-Before implementing a visual change, record in the task or PR:
-
-1. The user's immediate job and the screen's single primary action.
-2. What precedes and follows the screen, its presentation, and what Back or
-   Cancel does.
-3. The established native pattern being followed and which content is common
-   versus progressively disclosed.
-4. The populated, empty, loading, error, long-text, and keyboard states that
-   apply.
-
-Completion means each answer is visible in the implementation, not merely
-written down.
+Read the root [design system](../../DESIGN_SYSTEM.md) and its general/mobile/
+iOS/Android links for the screen contract, states, navigation, and verification
+rules. The sections below define Workouts' visual identity and component seams.
 
 ## Layers
 
@@ -71,8 +62,10 @@ cancellation, deletion, or navigation.
 
 ## Device acceptance
 
-Iterate through the repository's Android emulator verification flow, then make
-the iOS decision on a physical iPhone. For visual changes capture the populated
+Verify each affected supported platform with the development build. A simulator
+can verify layout and navigation; final iOS feel/haptics acceptance requires a
+physical iPhone. Follow [the project verification guide](../../.claude/skills/verify/SKILL.md)
+and state unavailable platforms explicitly. For visual changes capture the populated
 screen and verify:
 
 - Dutch and English copy;

@@ -1,5 +1,7 @@
 # Personal Food, Recipe, and Nutrition Estimate implementation
 
+> Implementation/brief record (2026-09-16). Its original state and verification claims are dated; use [current docs](../README.md) and source for current behavior. Outstanding acceptance is preserved below.
+
 The shared Personal Food interface normalizes legacy inputs to ordinary classification,
 per-100 nutrition in the existing unit, and no estimate. It owns validation, serving
 choices, and conversion into immutable Diary snapshots. Per-serving foods use a real

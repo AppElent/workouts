@@ -1,5 +1,7 @@
 # Shell prototype — issue #46
 
+> Historical shell experiment. Screenshots and variant findings describe the prototype revision, not the current five-tab application. Use [current project guidance](../../README.md) before attempting its old launch/variant instructions.
+
 Three shells of the same app, built to be judged in the hand rather than on
 paper. Screenshots are from a Pixel 9 Pro emulator running the real app against
 the real Convex backend (54 exercises, real session history).

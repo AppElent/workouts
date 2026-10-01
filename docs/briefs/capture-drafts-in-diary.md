@@ -1,5 +1,7 @@
 # Capture Drafts in the Nutrition Diary
 
+> Implementation/brief record (pre-implementation). Its original state and verification claims are dated; use [current docs](../README.md) and source for current behavior. Outstanding acceptance is preserved below.
+
 ## Objective
 
 Make Capture Drafts (the "unfinished logs") fast to create and fast to resolve. A Capture Draft is a note about intake placed in the Nutrition Diary under its date and Meal Slot; it does not count as intake until converted into Diary Entries. See `CONTEXT.md`.
