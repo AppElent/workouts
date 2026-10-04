@@ -653,3 +653,33 @@ describe("Combo behavior through the device nutrition repository", () => {
 		);
 	});
 });
+
+it("reopens a version 7 nutrition library without losing personal foods", () => {
+	const database = new SQLiteTestDatabase();
+	const original = createPersonalFoodRepository(database);
+	const saved = original.create(draft());
+	database.execSync(
+		"ALTER TABLE nutrition_combos ADD COLUMN visual_json TEXT; PRAGMA user_version = 7;",
+	);
+	const reopened = createPersonalFoodRepository(database);
+	expect(reopened.find(saved.id)).toEqual(saved);
+	expect(
+		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
+			?.user_version,
+	).toBe(7);
+});
+
+it.each([
+	7, 8,
+])("rejects an unrecognized nutrition schema %i without downgrading it", (version) => {
+	const database = new SQLiteTestDatabase();
+	createPersonalFoodRepository(database);
+	database.execSync(`PRAGMA user_version = ${version}`);
+	expect(() => createPersonalFoodRepository(database)).toThrow(
+		`This nutrition database is newer than this version of Workouts (${version}).`,
+	);
+	expect(
+		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
+			?.user_version,
+	).toBe(version);
+});

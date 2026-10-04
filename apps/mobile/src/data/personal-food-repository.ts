@@ -239,6 +239,18 @@ function migrate(database: SyncSQLiteDatabase): void {
 		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
 			?.user_version ?? 0;
 	if (current > DATABASE_VERSION) {
+		// Schema 7 only adds an optional visual_json column to nutrition_combos.
+		// Older code does not read or write that column, so it can safely use
+		// this database as long as that known schema is present. Keep user_version
+		// at 7; lowering it would make the next schema-7 migration fail.
+		if (
+			current === 7 &&
+			database
+				.getAllSync<{ name: string }>("PRAGMA table_info(nutrition_combos)")
+				.some((column) => column.name === "visual_json")
+		) {
+			return;
+		}
 		throw new Error(
 			`This nutrition database is newer than this version of Workouts (${current}).`,
 		);
