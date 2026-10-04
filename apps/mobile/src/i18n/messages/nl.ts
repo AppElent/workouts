@@ -4,9 +4,11 @@
  * English does not have fails too.
  */
 import type { en } from "./en";
+import { entryEditorNl } from "./entry-editor";
 import { exerciseLibraryNl } from "./exercise-library";
 
 export const nl = {
+	diaryEntry: entryEditorNl,
 	exercises: exerciseLibraryNl,
 	tabs: {
 		home: "Home",

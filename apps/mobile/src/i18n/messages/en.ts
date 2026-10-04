@@ -1,3 +1,4 @@
+import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
 /**
  * The phone's words, in the source language.
@@ -15,6 +16,7 @@ import { exerciseLibraryEn } from "./exercise-library";
  * `nl.ts` from satisfying this shape.
  */
 export const en = {
+	diaryEntry: entryEditorEn,
 	exercises: exerciseLibraryEn,
 	tabs: {
 		home: "Home",

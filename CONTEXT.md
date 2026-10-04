@@ -133,6 +133,7 @@ _Avoid_: Recipe, manually entered Food
 
 **Serving**:
 A named amount of a Food, such as one banana or one slice. A Food may offer several Servings.
+A person may add their own Servings to a Shipped Food without creating a Fork or changing its nutrition figures.
 _Avoid_: Portion, serving size
 
 **Personal Measure**:

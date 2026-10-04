@@ -87,6 +87,7 @@ import {
 	usePersonalMeasureActions,
 	usePersonalMeasures,
 } from "../data/personal-measures";
+import { useSupplementaryServings } from "../data/supplementary-servings";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, type Messages, useI18n } from "../i18n";
@@ -403,6 +404,9 @@ export function NutritionFoodBrowser({
 	const servingPendingRef = useRef(false);
 	const [servingPending, setServingPending] = useState(false);
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
+	const supplementary = useSupplementaryServings(
+		selectedFood?.kind === "shipped" ? selectedFood.food.id : undefined,
+	);
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
 	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
 	const [creatingFood, setCreatingFood] = useState(
@@ -793,12 +797,26 @@ export function NutritionFoodBrowser({
 						: undefined
 				}
 				onCorrect={
-					selectedFood.kind === "shipped"
+					selectedFood.kind === "shipped" && !supplementary.loading
 						? () => {
 								// A correction is a new local food, never an edit of the
 								// shipped record — so this seeds the authoring screen
 								// rather than opening the shipped row for editing.
-								const draft = forkShippedFood(selectedFood.food);
+								const original = forkShippedFood(selectedFood.food);
+								const draft = {
+									...original,
+									servings: [
+										...original.servings,
+										...supplementary.servings
+											.filter(
+												(item) => item.unit === selectedFood.food.baseUnit,
+											)
+											.map((item) => ({
+												label: { en: item.name, nl: item.name },
+												amount: item.amount,
+											})),
+									],
+								};
 								const visual = foodVisualForShippedFood(selectedFood.food);
 								setForkDraft({
 									...draft,
@@ -905,7 +923,13 @@ export function NutritionFoodBrowser({
 	}
 
 	function resolveQuickSelection(selection: FoodSelection) {
-		const choices = servingChoices(selection, personalMeasures);
+		const choices = servingChoices(
+			selection,
+			personalMeasures,
+			selection.kind === "shipped" && subject
+				? operations.getSupplementaryServings(subject, selection.food.id)
+				: [],
+		);
 		const sourceKey = foodSourceKey(
 			selection.kind === "shipped" ? "shipped" : "personal",
 			selection.food.id,
@@ -1732,9 +1756,12 @@ function ServingDetail({
 	const [logging, setLogging] = useState(false);
 	const loggingRef = useRef(false);
 	const food = selection.food;
+	const supplementary = useSupplementaryServings(
+		selection.kind === "shipped" ? food.id : undefined,
+	);
 	const choices = useMemo(
-		() => servingChoices(selection, personalMeasures),
-		[personalMeasures, selection],
+		() => servingChoices(selection, personalMeasures, supplementary.servings),
+		[personalMeasures, selection, supplementary.servings],
 	);
 	const subject = operations.getSubject();
 	const sourceKey = foodSourceKey(
@@ -2119,13 +2146,32 @@ function formatNutrient(
 function servingChoices(
 	selection: FoodSelection,
 	personalMeasures: readonly import("@workouts/core/nutrition").PersonalMeasure[],
+	supplementary: readonly import("@workouts/core/nutrition").SupplementaryServing[] = [],
 ): ServingOption[] {
 	const foodOptions =
 		selection.kind === "shipped"
 			? servingOptions(selection.food)
 			: personalFoodServingOptions(selection.food);
 	return withPersonalMeasures(
-		foodOptions,
+		[
+			...foodOptions.filter((item) => item.kind !== "base-unit"),
+			...supplementary
+				.filter(
+					(item) =>
+						item.foodId === selection.food.id &&
+						item.unit === selection.food.baseUnit,
+				)
+				.map(
+					(item): ServingOption => ({
+						kind: "supplementary",
+						id: item.id,
+						label: { en: item.name, nl: item.name },
+						amount: item.amount,
+						unit: item.unit,
+					}),
+				),
+			...foodOptions.filter((item) => item.kind === "base-unit"),
+		],
 		selection.food.baseUnit,
 		personalMeasures,
 	);

@@ -17,7 +17,7 @@ export function foodSourceKey(
 }
 
 export function servingKey(option: ServingOption): string {
-	if (option.kind === "personal-measure") {
+	if (option.kind === "personal-measure" || option.kind === "supplementary") {
 		return canonicalJson({ kind: option.kind, id: option.id });
 	}
 	return canonicalJson({

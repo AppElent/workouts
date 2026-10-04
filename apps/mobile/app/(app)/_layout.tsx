@@ -72,6 +72,23 @@ export default function AppLayout() {
 														}}
 													>
 														<Stack.Screen
+															name="labs"
+															options={{ title: t.diaryEntry.labs }}
+														/>
+														<Stack.Screen
+															name="labs-entry"
+															options={{
+																title: t.nutrition.entryEditor.title,
+																presentation: "formSheet",
+																sheetAllowedDetents: [1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="labs-food"
+															options={{ title: t.diaryEntry.details }}
+														/>
+														<Stack.Screen
 															name="activity-history"
 															options={{
 																title:

@@ -296,6 +296,23 @@ export class NutritionOperationService {
 		return this.repository.getGoals(subject, date);
 	}
 
+	getSupplementaryServings(subject: string, foodId: string) {
+		return this.repository.getSupplementaryServings(subject, foodId);
+	}
+	cacheSupplementaryServings(
+		subject: string,
+		foodId: string,
+		servings: readonly import("@workouts/core/nutrition").SupplementaryServing[],
+	) {
+		if (
+			canonicalJson(
+				this.repository.getSupplementaryServings(subject, foodId),
+			) === canonicalJson(servings)
+		)
+			return;
+		this.repository.putSupplementaryServings(subject, foodId, servings);
+		this.notify();
+	}
 	getPersonalMeasures(subject: string) {
 		return this.repository.getPersonalMeasures(subject);
 	}

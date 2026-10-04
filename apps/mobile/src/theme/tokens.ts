@@ -236,6 +236,7 @@ export const opacity = {
  * `color` from `useTokens()`.
  */
 export const type = {
+	quantity: { fontSize: 52, fontWeight: "600", letterSpacing: -1.5 },
 	display: { fontSize: 32, fontWeight: "800" },
 	title: { fontSize: 24, fontWeight: "800" },
 	heading: { fontSize: 18, fontWeight: "700" },

@@ -13,7 +13,22 @@ import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
  * The base-unit option is always present and always last — it is the escape
  * hatch for "I weighed it", and story 38 makes it non-optional.
  */
+export type SupplementaryServing = {
+	readonly id: string;
+	readonly foodId: string;
+	readonly name: string;
+	readonly amount: number;
+	readonly unit: "g" | "ml";
+};
+
 export type ServingOption =
+	| {
+			readonly kind: "supplementary";
+			readonly id: string;
+			readonly label: Bilingual;
+			readonly amount: number;
+			readonly unit: "g" | "ml";
+	  }
 	| {
 			readonly kind: "personal-measure";
 			readonly id: string;

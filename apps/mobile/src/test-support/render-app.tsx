@@ -22,6 +22,9 @@ import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as AppearanceRoute from "../../app/(app)/appearance";
+import * as LabsRoute from "../../app/(app)/labs";
+import * as LabsEntryRoute from "../../app/(app)/labs-entry";
+import * as LabsFoodRoute from "../../app/(app)/labs-food";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionAssistanceRoute from "../../app/(app)/nutrition-assistance";
 import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
@@ -111,7 +114,10 @@ export function renderApp(
 	overrides: Record<string, unknown> = {},
 	/** A fake fetch for tests that exercise the Open Food Facts network boundary. */
 	fetchImpl?: FetchLike,
-	seed?: (stores: { draftRepository: NutritionDraftRepository }) => void,
+	seed?: (stores: {
+		draftRepository: NutritionDraftRepository;
+		nutritionRepository: NutritionLocalRepository;
+	}) => void,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
@@ -121,7 +127,7 @@ export function renderApp(
 	const draftRepository = createNutritionDraftRepository(
 		new SQLiteTestDatabase(),
 	);
-	seed?.({ draftRepository });
+	seed?.({ draftRepository, nutritionRepository });
 	function Layout() {
 		return (
 			<TestLayout
@@ -139,6 +145,9 @@ export function renderApp(
 			nutrition: NutritionRoute as never,
 			"nutrition-food": NutritionFoodRoute as never,
 			"nutrition-entry": NutritionEntryRoute as never,
+			"labs-entry": LabsEntryRoute as never,
+			labs: LabsRoute as never,
+			"labs-food": LabsFoodRoute as never,
 			"nutrition-combos": NutritionCombosRoute as never,
 			"nutrition-copy": NutritionCopyRoute as never,
 			"nutrition-combo-new": NutritionComboNewRoute as never,

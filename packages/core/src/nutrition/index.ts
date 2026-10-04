@@ -120,6 +120,7 @@ export {
 	type SearchScope,
 	searchShippedFoods,
 } from "./search";
+export type { SupplementaryServing } from "./servings";
 export {
 	formatQuantity,
 	formatServingSelection,

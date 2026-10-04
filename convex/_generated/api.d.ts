@@ -41,6 +41,8 @@ import type * as seed from "../seed.js";
 import type * as seedData_wods from "../seedData/wods.js";
 import type * as seedPreview from "../seedPreview.js";
 import type * as sets from "../sets.js";
+import type * as supplementaryServingTables from "../supplementaryServingTables.js";
+import type * as supplementaryServings from "../supplementaryServings.js";
 import type * as wodResults from "../wodResults.js";
 import type * as wods from "../wods.js";
 import type * as workoutSessions from "../workoutSessions.js";
@@ -85,6 +87,8 @@ declare const fullApi: ApiFromModules<{
   "seedData/wods": typeof seedData_wods;
   seedPreview: typeof seedPreview;
   sets: typeof sets;
+  supplementaryServingTables: typeof supplementaryServingTables;
+  supplementaryServings: typeof supplementaryServings;
   wodResults: typeof wodResults;
   wods: typeof wods;
   workoutSessions: typeof workoutSessions;

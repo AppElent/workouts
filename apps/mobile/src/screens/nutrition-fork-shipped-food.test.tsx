@@ -6,7 +6,8 @@
  * component rendered — the storage contract is covered at the repository
  * boundary and the ranking rules in `@workouts/core`.
  */
-import { useMutation } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { getFunctionName } from "convex/server";
 import {
 	fireEvent,
 	screen,
@@ -14,6 +15,7 @@ import {
 	waitFor,
 } from "expo-router/testing-library";
 import { todayIsoDate } from "../data/calendar-day";
+import { PREFERENCE_KEYS, writePreference } from "../prefs/local-preference";
 import { renderApp } from "../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -267,4 +269,33 @@ describe("correcting a shipped food in Dutch", () => {
 			await screen.findByText("Vervangen door jouw correctie"),
 		).toBeTruthy();
 	});
+});
+
+it("copies supplementary Servings into a correction once", async () => {
+	writePreference(PREFERENCE_KEYS.locale, "en");
+	jest.mocked(usePaginatedQuery).mockImplementation(
+		(ref, _args, _options) =>
+			({
+				results:
+					getFunctionName(ref) === "supplementaryServings:list"
+						? [
+								{
+									id: "addition-1",
+									foodId: "shipped:apple-w-skin-av",
+									name: "My bowl",
+									amount: 187.5,
+									unit: "g",
+								},
+							]
+						: [],
+				status: "Exhausted",
+				loadMore: jest.fn(),
+			}) as never,
+	);
+	renderApp();
+	await correctTheApple();
+	expect(await screen.findByText(/My bowl/)).toBeTruthy();
+	fireEvent.press(screen.getByText("Save"));
+	await screen.findByText("Your correction of Apple w skin av");
+	expect(screen.getByText(/My bowl/)).toBeTruthy();
 });

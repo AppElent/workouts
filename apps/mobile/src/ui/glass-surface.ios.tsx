@@ -1,0 +1,37 @@
+import { Host, VStack } from "@expo/ui/swift-ui";
+import { frame, glassEffect } from "@expo/ui/swift-ui/modifiers";
+import { StyleSheet, View } from "react-native";
+import { radius, useAppearance } from "../theme";
+import type { GlassSurfaceProps } from "./glass-surface";
+export function GlassSurface({ children, style, capsule }: GlassSurfaceProps) {
+	const { scheme } = useAppearance();
+	return (
+		<View style={style}>
+			<View
+				pointerEvents="none"
+				accessible={false}
+				style={StyleSheet.absoluteFill}
+			>
+				<Host
+					colorScheme={scheme}
+					style={StyleSheet.absoluteFill}
+					ignoreSafeArea="all"
+				>
+					<VStack
+						modifiers={[
+							frame({ maxWidth: Infinity, maxHeight: Infinity }),
+							glassEffect({
+								glass: { variant: "regular" },
+								shape: capsule ? "capsule" : "roundedRectangle",
+								cornerRadius: radius.sheet,
+							}),
+						]}
+					>
+						{null}
+					</VStack>
+				</Host>
+			</View>
+			{children}
+		</View>
+	);
+}
