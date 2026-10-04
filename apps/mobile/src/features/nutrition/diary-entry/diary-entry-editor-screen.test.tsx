@@ -6,6 +6,10 @@ import {
 } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import {
+	PREFERENCE_KEYS,
+	writePreference,
+} from "../../../prefs/local-preference";
 import { renderApp } from "../../../test-support/render-app";
 
 const entry = {
@@ -23,6 +27,7 @@ const entry = {
 	},
 };
 beforeEach(() => {
+	writePreference(PREFERENCE_KEYS.locale, "en");
 	jest
 		.mocked(useQuery)
 		.mockImplementation((ref, _args?) =>
@@ -233,10 +238,91 @@ it("closes a clean entry without asking and cancels creation without a write", a
 	fireEvent.press(await screen.findByLabelText("Choose serving"));
 	fireEvent.press(await screen.findByText("New serving"));
 	fireEvent.changeText(screen.getByLabelText("Name"), "Abandoned mug");
-	fireEvent.press(screen.getAllByLabelText("Cancel")[1]);
+	fireEvent.press(screen.getByLabelText("Cancel new serving"));
 	expect(screen.queryByDisplayValue("Abandoned mug")).toBeNull();
 	fireEvent.press(screen.getByLabelText("Cancel"));
 	expect(await screen.findByText("Diary Entry redesign")).toBeTruthy();
 	expect(screen.queryByText("Discard changes?")).toBeNull();
 	expect(create).not.toHaveBeenCalled();
+});
+
+it("uses Dutch decimal input and preserves exact amount through a round trip", async () => {
+	writePreference(PREFERENCE_KEYS.locale, "nl");
+	renderApp("/labs-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	expect(await screen.findByDisplayValue("1,25")).toBeTruthy();
+	fireEvent.press(screen.getByLabelText("Portie kiezen"));
+	fireEvent.press(await screen.findByText("Milliliter (ml)"));
+	expect(screen.getByDisplayValue("187,5")).toBeTruthy();
+	fireEvent.press(screen.getByLabelText("Portie kiezen"));
+	fireEvent.press(await screen.findByText(/Glas · Vorige waarde/));
+	expect(screen.getByDisplayValue("1,25")).toBeTruthy();
+	fireEvent.changeText(screen.getByLabelText("Aantal"), "2,5");
+	expect(screen.getByText("375 ml")).toBeTruthy();
+});
+
+it("blocks conflicting actions while creation is pending", async () => {
+	const create = jest.fn(() => new Promise(() => {}));
+	jest.mocked(useMutation).mockReturnValue(create as never);
+	renderApp("/labs-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	fireEvent.press(await screen.findByLabelText("Choose serving"));
+	fireEvent.press(await screen.findByText("New serving"));
+	fireEvent.changeText(screen.getByLabelText("Name"), "Pending mug");
+	fireEvent.press(screen.getByText("Add"));
+	expect(await screen.findByText("Saving…")).toBeTruthy();
+	expect(screen.getByLabelText("Delete entry")).toBeDisabled();
+	expect(screen.getByLabelText("Cancel new serving")).toBeDisabled();
+	expect(screen.getByLabelText("Meal")).toBeDisabled();
+	expect(screen.getByLabelText("Date")).toBeDisabled();
+	expect(create).toHaveBeenCalledTimes(1);
+});
+
+it("keeps a completed Shipped Food serving when the outer draft is discarded, without creating a Fork", async () => {
+	const foodId = "shipped:apple-w-skin-av";
+	jest.mocked(useQuery).mockImplementation((ref, _args?) =>
+		getFunctionName(ref).includes("Goals")
+			? []
+			: {
+					entries: [
+						{
+							...entry,
+							baseUnit: "g",
+							provenance: { source: "shipped", sourceId: foodId },
+						},
+					],
+					totals: {},
+				},
+	);
+	const create = jest.fn().mockResolvedValue({
+		id: "addition-1",
+		foodId,
+		name: "My bowl",
+		amount: 250,
+		unit: "g",
+	});
+	const update = jest.fn();
+	jest
+		.mocked(useMutation)
+		.mockImplementation(
+			(ref) =>
+				(getFunctionName(ref) === "supplementaryServings:create"
+					? create
+					: update) as never,
+		);
+	const app = renderApp("/labs-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	fireEvent.press(await screen.findByLabelText("Choose serving"));
+	fireEvent.press(await screen.findByText("New serving"));
+	fireEvent.changeText(screen.getByLabelText("Name"), "My bowl");
+	fireEvent.press(screen.getByText("Add"));
+	expect(await screen.findByDisplayValue("1")).toBeTruthy();
+	expect(screen.getByText("250 g")).toBeTruthy();
+	fireEvent.press(screen.getByLabelText("Cancel"));
+	fireEvent.press(await screen.findByText("Discard changes"));
+	expect(await screen.findByText("Diary Entry redesign")).toBeTruthy();
+	expect(
+		app.nutritionRepository.getSupplementaryServings("test-user", foodId),
+	).toEqual([
+		{ id: "addition-1", foodId, name: "My bowl", amount: 250, unit: "g" },
+	]);
+	expect(app.repository.list()).toEqual([]);
+	expect(update).not.toHaveBeenCalled();
 });

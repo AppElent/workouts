@@ -85,6 +85,30 @@ export function servingOptions(food: ShippedFood): ServingOption[] {
 	return options;
 }
 
+/** Composes account-owned additions with immutable food choices, preserving the base-unit escape hatch. */
+export function withSupplementaryServings(
+	foodOptions: readonly ServingOption[],
+	foodId: string | undefined,
+	baseUnit: "g" | "ml" | "serving",
+	additions: readonly SupplementaryServing[],
+): ServingOption[] {
+	return [
+		...foodOptions.filter((option) => option.kind !== "base-unit"),
+		...additions
+			.filter((item) => item.foodId === foodId && item.unit === baseUnit)
+			.map(
+				(item): ServingOption => ({
+					kind: "supplementary",
+					id: item.id,
+					label: { en: item.name, nl: item.name },
+					amount: item.amount,
+					unit: item.unit,
+				}),
+			),
+		...foodOptions.filter((option) => option.kind === "base-unit"),
+	];
+}
+
 /** Adds exact same-unit Personal Measures before a Food's own choices. */
 export function withPersonalMeasures(
 	foodOptions: readonly ServingOption[],

@@ -45,7 +45,8 @@ Accepted boundaries live in [Activity families](adr/0001-closed-activity-family.
 [local-first nutrition](adr/0005-local-first-nutrition-with-durable-history.md),
 [shipped foods](adr/0006-ship-nevo-as-generated-core-data.md),
 [hosted ownership](adr/0008-hosted-workout-ownership.md), and
-[shipped exercises](adr/0009-shipped-exercise-catalog.md).
+[shipped exercises](adr/0009-shipped-exercise-catalog.md), and
+[personal Servings for Shipped Foods](adr/0010-personal-servings-for-shipped-foods.md).
 
 Dataset provenance and generators remain with their owners:
 [NEVO](../data/nevo/README.md), [Lidl](../data/lidl/README.md),
@@ -90,3 +91,6 @@ Evidence and unresolved acceptance work are retained rather than marked complete
 - Replace public-build test-login credentials with a server-side or locally
   controlled test mechanism. Existing non-production placement is a project
   exception, not a shared authentication standard.
+
+- [Labs Diary Entry implementation and verification](reports/diary-entry-editor-implementation.md):
+  spec #91, first feature-folder adoption, file ownership, and native acceptance limits.

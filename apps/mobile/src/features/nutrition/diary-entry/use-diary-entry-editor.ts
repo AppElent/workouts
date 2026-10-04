@@ -1,3 +1,4 @@
+import { useForm, useStore } from "@tanstack/react-form";
 import {
 	formatServingSelection,
 	getShippedFood,
@@ -5,8 +6,10 @@ import {
 	type ServingOption,
 	servingOptions,
 	withPersonalMeasures,
+	withSupplementaryServings,
 } from "@workouts/core/nutrition";
 import { useRef, useState } from "react";
+import { z } from "zod";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import type { DiaryEntry, MealSlot } from "../../../data/nutrition-day";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
@@ -29,7 +32,9 @@ export function useDiaryEntryEditor({
 	date,
 	onClose,
 }: DiaryEntryEditorProps) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
+	const quantityInput = (value: number) =>
+		locale === "nl" ? String(value).replace(".", ",") : String(value);
 	const toast = useToast();
 	const operations = useNutritionOperations();
 	const foods = usePersonalFoods();
@@ -73,21 +78,14 @@ export function useDiaryEntryEditor({
 					},
 				];
 	const choices = withPersonalMeasures(
-		[
-			...authored.filter((item) => item.kind !== "base-unit"),
-			...additions.servings
-				.filter((item) => item.unit === entry.baseUnit)
-				.map(
-					(item): ServingOption => ({
-						kind: "supplementary",
-						id: item.id,
-						amount: item.amount,
-						unit: item.unit,
-						label: { en: item.name, nl: item.name },
-					}),
-				),
-			...authored.filter((item) => item.kind === "base-unit"),
-		],
+		withSupplementaryServings(
+			authored,
+			entry.provenance.source === "shipped"
+				? entry.provenance.sourceId
+				: undefined,
+			entry.baseUnit,
+			additions.servings,
+		),
 		entry.baseUnit,
 		measures,
 	);
@@ -101,16 +99,44 @@ export function useDiaryEntryEditor({
 		},
 	};
 	const [selected, setSelected] = useState<ServingOption>(historical);
-	const [quantityText, setQuantityText] = useState(String(entry.quantity));
+	const form = useForm({
+		defaultValues: {
+			quantityText: quantityInput(entry.quantity),
+			nextMeal: meal,
+			nextDate: date,
+		},
+		validators: {
+			onChange: z.object({
+				quantityText: z
+					.string()
+					.refine(
+						(text) =>
+							text.trim().length > 0 &&
+							Number.isFinite(Number(text.replace(",", "."))) &&
+							Number(text.replace(",", ".")) > 0,
+					),
+				nextMeal: z.enum(["breakfast", "lunch", "dinner", "snacks"]),
+				nextDate: z.iso.date(),
+			}),
+		},
+	});
+	const { quantityText, nextMeal, nextDate } = useStore(
+		form.store,
+		(state) => state.values,
+	);
+	const formValid = useStore(form.store, (state) => state.isValid);
+	const setQuantityText = (value: string) =>
+		form.setFieldValue("quantityText", value);
+	const setMeal = (value: MealSlot) => form.setFieldValue("nextMeal", value);
+	const setDate = (value: string) => form.setFieldValue("nextDate", value);
 	// Retain base amount independently: repeating decimals in a representation must not drift history.
 	const [exactAmount, setExactAmount] = useState(entry.amount);
-	const [nextMeal, setMeal] = useState(meal);
-	const [nextDate, setDate] = useState(date);
 	const [saving, setSaving] = useState(false);
 	const lock = useRef(false);
 	const { deleteEntry, deleting } = useDeleteDiaryEntry();
 	const quantity = Number(quantityText.replace(",", "."));
 	const valid =
+		formValid &&
 		quantityText.trim().length > 0 &&
 		Number.isFinite(quantity) &&
 		quantity > 0 &&
@@ -123,14 +149,14 @@ export function useDiaryEntryEditor({
 		nextMeal !== meal ||
 		nextDate !== date;
 	function setQuantity(text: string) {
-		setQuantityText(text);
+		setQuantityText(locale === "nl" ? text.replace(".", ",") : text);
 		setExactAmount(Number(text.replace(",", ".")) * selected.amount);
 	}
 	function select(option: ServingOption, newlyCreated = false) {
 		const amount = newlyCreated ? option.amount : exactAmount;
 		setSelected(option);
 		setExactAmount(amount);
-		setQuantityText(String(amount / option.amount));
+		setQuantityText(quantityInput(amount / option.amount));
 	}
 	async function save() {
 		if (lock.current || saving || deleting || !valid || !dirty) return;

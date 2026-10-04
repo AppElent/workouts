@@ -21,6 +21,7 @@ import {
 	shippedLibrary,
 	shippedSourceMeta,
 	withPersonalMeasures,
+	withSupplementaryServings,
 } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
@@ -2153,25 +2154,12 @@ function servingChoices(
 			? servingOptions(selection.food)
 			: personalFoodServingOptions(selection.food);
 	return withPersonalMeasures(
-		[
-			...foodOptions.filter((item) => item.kind !== "base-unit"),
-			...supplementary
-				.filter(
-					(item) =>
-						item.foodId === selection.food.id &&
-						item.unit === selection.food.baseUnit,
-				)
-				.map(
-					(item): ServingOption => ({
-						kind: "supplementary",
-						id: item.id,
-						label: { en: item.name, nl: item.name },
-						amount: item.amount,
-						unit: item.unit,
-					}),
-				),
-			...foodOptions.filter((item) => item.kind === "base-unit"),
-		],
+		withSupplementaryServings(
+			foodOptions,
+			selection.kind === "shipped" ? selection.food.id : undefined,
+			selection.food.baseUnit,
+			supplementary,
+		),
 		selection.food.baseUnit,
 		personalMeasures,
 	);

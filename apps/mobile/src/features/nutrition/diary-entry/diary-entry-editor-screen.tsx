@@ -185,7 +185,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 							copy.cancel,
 							{ ios: "xmark", android: "close", web: "close" },
 							props.onClose,
-							draft.busy,
+							draft.busy || adding,
 						),
 					headerRight: () =>
 						draft.busy ? (
@@ -203,6 +203,8 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 				}}
 			/>
 			<ScrollView
+				pointerEvents={adding ? "none" : "auto"}
+				accessibilityElementsHidden={adding}
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardDismissMode="interactive"
 				keyboardShouldPersistTaps="handled"
@@ -235,7 +237,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 									),
 								),
 							),
-						draft.busy,
+						draft.busy || adding,
 					)}
 					<View
 						style={{
@@ -250,7 +252,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 							onChangeText={draft.setQuantity}
 							keyboardType="decimal-pad"
 							selectTextOnFocus
-							editable={!draft.busy}
+							editable={!draft.busy && !adding}
 							inputAccessoryViewID="entry-quantity"
 							style={{
 								...type.quantity,
@@ -276,7 +278,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 										(draft.selected.kind === "base-unit" ? 10 : 0.25),
 								),
 							),
-						draft.busy,
+						draft.busy || adding,
 					)}
 				</GlassSurface>
 				<GlassSurface
@@ -339,7 +341,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel={copy.details}
-						disabled={!draft.source}
+						disabled={!draft.source || adding}
 						onPress={() => {
 							Keyboard.dismiss();
 							router.push({
@@ -403,7 +405,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 					<SelectionMenu
 						label={t.nutrition.meals[draft.nextMeal]}
 						accessibilityLabel={t.nutrition.entryEditor.meal}
-						disabled={draft.busy}
+						disabled={draft.busy || adding}
 						groups={[
 							{
 								options: MEAL_SLOTS.map((slot) => ({
@@ -427,7 +429,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 								: formatShortDate(draft.nextDate, locale)
 						}
 						accessibilityLabel={t.nutrition.entryEditor.date}
-						disabled={draft.busy}
+						disabled={draft.busy || adding}
 						groups={[
 							{
 								options: [
@@ -449,7 +451,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 						t.nutrition.entryEditor.delete,
 						{ ios: "trash", android: "delete", web: "delete" },
 						draft.remove,
-						draft.busy,
+						draft.busy || adding,
 						true,
 					)}
 				</GlassSurface>

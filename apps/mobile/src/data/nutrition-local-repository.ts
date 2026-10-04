@@ -273,7 +273,7 @@ function migrate(database: SyncSQLiteDatabase): void {
 			`);
 		if (current < 6)
 			database.execSync(
-				"CREATE TABLE nutrition_cached_supplementary_servings (subject TEXT NOT NULL, food_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, food_id))",
+				"CREATE TABLE IF NOT EXISTS nutrition_cached_supplementary_servings (subject TEXT NOT NULL, food_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, food_id))",
 			);
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");

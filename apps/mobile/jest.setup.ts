@@ -240,6 +240,10 @@ jest.mock("@expo/ui/swift-ui", () => {
 					{
 						accessibilityLabel: spokenLabel,
 						accessibilityRole: "button",
+						disabled: Boolean(modifierArg(modifiers, "disabled")),
+						accessibilityState: {
+							disabled: Boolean(modifierArg(modifiers, "disabled")),
+						},
 						onPress: () => setOpen(true),
 					},
 					label,

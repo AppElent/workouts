@@ -133,6 +133,7 @@ export {
 	servingOptions,
 	servingVolumeMapping,
 	withPersonalMeasures,
+	withSupplementaryServings,
 } from "./servings";
 export {
 	type Bilingual,

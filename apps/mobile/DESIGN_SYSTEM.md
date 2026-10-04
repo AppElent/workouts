@@ -76,3 +76,20 @@ screen and verify:
 - a short recording when navigation, sheets, gestures, or motion changed.
 
 Automated tests protect behavior; they do not approve hierarchy or device feel.
+
+## Labs Diary Entry redesign
+
+The first adoption of [the feature folder structure](../../docs/mobile-folder-structure.md)
+is scoped to the Labs editor in spec #91. Its quantity capsule, serving/menu
+pills, native sheet actions, combined product/nutrient card, and keyboard accessory
+follow [Round 5](../../designs/entry-editor/round5.html). These are deliberate
+exceptions to the older form/primary-button and pill composition above, not a
+restyling instruction for other screens.
+
+`GlassSurface` owns material rendering; `SelectionMenu` owns platform selection.
+The feature owns the quantity interaction and creation popup. The latter keeps both visible native text inputs inside one keyboard-owned
+`InputAccessoryView`, using React Native’s sticky-input mode. This preserves
+editable caret/selection controls rather than hiding the name field behind a
+readout. Keyboard transitions and VoiceOver still require native acceptance;
+automated tests do not establish those affordances. See the
+[implementation report](../../docs/reports/diary-entry-editor-implementation.md).

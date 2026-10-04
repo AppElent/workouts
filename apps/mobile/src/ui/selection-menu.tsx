@@ -16,6 +16,7 @@ export function SelectionMenu({
 		<>
 			<Pressable
 				disabled={disabled}
+				accessibilityState={{ disabled: Boolean(disabled) }}
 				accessibilityRole="button"
 				accessibilityLabel={accessibilityLabel}
 				onPress={() => setOpen(true)}

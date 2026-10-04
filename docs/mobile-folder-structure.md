@@ -1,6 +1,8 @@
 # Mobile folder structure
 
-Proposed standard. Apply after agreement; existing code is not yet migrated.
+Adopted for the Labs Diary Entry redesign (spec #91). Existing screens outside
+that slice remain in their current folders; migrate them when their feature work
+requires it. See the [first implementation report](reports/diary-entry-editor-implementation.md).
 
 ## Ownership
 

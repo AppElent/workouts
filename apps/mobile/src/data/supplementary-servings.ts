@@ -76,9 +76,7 @@ export function useSupplementaryServings(foodId?: string) {
 	return {
 		servings,
 		loading:
-			Boolean(foodId && subject) &&
-			query.status === "LoadingFirstPage" &&
-			cached.length === 0,
+			Boolean(foodId && subject) && connected && query.status !== "Exhausted",
 		async add(input: { name: string; amount: number; unit: "g" | "ml" }) {
 			if (!subject || !foodId || !connected) throw new Error("offline");
 			const serving = await create({ ...input, foodId });

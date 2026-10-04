@@ -2,7 +2,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import type { PersonalFood, ServingOption } from "@workouts/core/nutrition";
 import { withPersonalMeasures } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	InputAccessoryView,
 	Keyboard,
@@ -51,6 +51,11 @@ export function DiaryEntryServingPopup({
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const nameRef = useRef<TextInput>(null);
 	const amountRef = useRef<TextInput>(null);
+	useEffect(() => {
+		// Focus after the keyboard-owned surface and its native inputs have mounted.
+		const frame = requestAnimationFrame(() => nameRef.current?.focus());
+		return () => cancelAnimationFrame(frame);
+	}, []);
 	const lock = useRef(false);
 	const [error, setError] = useState<string>();
 	const [active, setActive] = useState<"name" | "amount">("name");
@@ -151,42 +156,41 @@ export function DiaryEntryServingPopup({
 	const values = useStore(form.store, (state) => state.values);
 	const inputStyle = { ...type.row, color: colors.text, minHeight: 48 };
 	const fields = (
-		<>
-			<TextInput
-				ref={nameRef}
-				accessibilityLabel={copy.name}
-				autoFocus
-				value={values.name}
-				onChangeText={(value) => form.setFieldValue("name", value)}
-				editable={!pending}
-				placeholder={copy.namePlaceholder}
-				returnKeyType="next"
-				submitBehavior="submit"
-				onSubmitEditing={() => amountRef.current?.focus()}
-				inputAccessoryViewID="entry-serving"
-				onFocus={() => setActive("name")}
-				style={
-					Platform.OS === "ios"
-						? { position: "absolute", width: 1, height: 1, opacity: 0.01 }
-						: inputStyle
-				}
-			/>
-			<TextInput
-				ref={amountRef}
-				accessibilityLabel={copy.amount}
-				value={values.amount}
-				onChangeText={(value) => form.setFieldValue("amount", value)}
-				editable={!pending}
-				keyboardType="decimal-pad"
-				inputAccessoryViewID="entry-serving"
-				onFocus={() => setActive("amount")}
-				style={
-					Platform.OS === "ios"
-						? { position: "absolute", width: 1, height: 1, opacity: 0.01 }
-						: inputStyle
-				}
-			/>
-		</>
+		<View style={{ flexDirection: "row", gap: spacing.sm }}>
+			{(["name", "amount"] as const).map((key) => (
+				<View
+					key={key}
+					style={{
+						flex: key === "name" ? 1.5 : 1,
+						padding: spacing.sm,
+						borderRadius: radius.lg,
+						backgroundColor: colors.surface,
+						borderWidth: 1,
+						borderColor: active === key ? colors.accent : colors.border,
+					}}
+				>
+					<AppText variant="caption">
+						{key === "name" ? copy.name : `${copy.amount} (${unit})`}
+					</AppText>
+					<TextInput
+						ref={key === "name" ? nameRef : amountRef}
+						accessibilityLabel={key === "name" ? copy.name : copy.amount}
+						value={values[key]}
+						onChangeText={(value) => form.setFieldValue(key, value)}
+						editable={!pending}
+						placeholder={key === "name" ? copy.namePlaceholder : undefined}
+						keyboardType={key === "name" ? "default" : "decimal-pad"}
+						returnKeyType={key === "name" ? "next" : "done"}
+						submitBehavior="submit"
+						onSubmitEditing={() =>
+							key === "name" ? amountRef.current?.focus() : form.handleSubmit()
+						}
+						onFocus={() => setActive(key)}
+						style={inputStyle}
+					/>
+				</View>
+			))}
+		</View>
 	);
 	const card = (
 		<GlassSurface
@@ -203,7 +207,7 @@ export function DiaryEntryServingPopup({
 				<Pressable
 					disabled={pending}
 					accessibilityRole="button"
-					accessibilityLabel={copy.cancel}
+					accessibilityLabel={copy.cancelCreation}
 					onPress={() => {
 						Keyboard.dismiss();
 						onCancel();
@@ -226,39 +230,7 @@ export function DiaryEntryServingPopup({
 					</AppText>
 				</Pressable>
 			</View>
-			{Platform.OS === "ios" ? (
-				<View style={{ flexDirection: "row", gap: spacing.sm }}>
-					{(["name", "amount"] as const).map((key) => (
-						<Pressable
-							key={key}
-							accessibilityRole="button"
-							accessibilityLabel={`${key === "name" ? copy.name : copy.amount}: ${values[key]}`}
-							onPress={() =>
-								(key === "name" ? nameRef : amountRef).current?.focus()
-							}
-							style={{
-								flex: key === "name" ? 1.5 : 1,
-								minHeight: 64,
-								padding: spacing.sm,
-								borderRadius: radius.lg,
-								backgroundColor: colors.surface,
-								borderWidth: 1,
-								borderColor: active === key ? colors.accent : colors.border,
-							}}
-						>
-							<AppText variant="caption">
-								{key === "name" ? copy.name : copy.amount}
-							</AppText>
-							<AppText variant="row">
-								{values[key] || copy.namePlaceholder}
-								{key === "amount" ? ` ${unit}` : ""}
-							</AppText>
-						</Pressable>
-					))}
-				</View>
-			) : (
-				fields
-			)}
+			{fields}
 			<Segmented
 				options={[
 					...(food ? [{ value: "food", label: name }] : []),
@@ -282,11 +254,10 @@ export function DiaryEntryServingPopup({
 			)}
 		</GlassSurface>
 	);
+	// RN's sticky-input accessory API (no nativeID) keeps both real editable fields
+	// in one keyboard-owned surface, preserving caret, selection, and VoiceOver.
 	return Platform.OS === "ios" ? (
-		<>
-			{fields}
-			<InputAccessoryView nativeID="entry-serving">{card}</InputAccessoryView>
-		</>
+		<InputAccessoryView>{card}</InputAccessoryView>
 	) : (
 		<KeyboardAvoidingView behavior="padding">{card}</KeyboardAvoidingView>
 	);
