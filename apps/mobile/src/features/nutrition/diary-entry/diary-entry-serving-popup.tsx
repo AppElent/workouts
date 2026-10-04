@@ -4,12 +4,13 @@ import { withPersonalMeasures } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import {
-	InputAccessoryView,
 	Keyboard,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
+	StyleSheet,
 	TextInput,
+	useWindowDimensions,
 	View,
 } from "react-native";
 import { z } from "zod";
@@ -49,10 +50,12 @@ export function DiaryEntryServingPopup({
 	const operations = useNutritionOperations();
 	const createMeasure = useMutation(api.personalMeasures.create);
 	const connected = useConvexConnectionState().isWebSocketConnected;
+	const { height: windowHeight } = useWindowDimensions();
+	const [keyboardOffset, setKeyboardOffset] = useState(0);
 	const nameRef = useRef<TextInput>(null);
 	const amountRef = useRef<TextInput>(null);
 	useEffect(() => {
-		// Focus after the keyboard-owned surface and its native inputs have mounted.
+		// Focus after the overlay and its native inputs have mounted.
 		const frame = requestAnimationFrame(() => nameRef.current?.focus());
 		return () => cancelAnimationFrame(frame);
 	}, []);
@@ -254,11 +257,25 @@ export function DiaryEntryServingPopup({
 			)}
 		</GlassSurface>
 	);
-	// RN's sticky-input accessory API (no nativeID) keeps both real editable fields
-	// in one keyboard-owned surface, preserving caret, selection, and VoiceOver.
-	return Platform.OS === "ios" ? (
-		<InputAccessoryView>{card}</InputAccessoryView>
-	) : (
-		<KeyboardAvoidingView behavior="padding">{card}</KeyboardAvoidingView>
+	// SwiftUI hosts cannot move into UIKit's keyboard accessory window. Keep the
+	// glass and native picker in the sheet and move this overlay above the keyboard.
+	return (
+		<View
+			pointerEvents="box-none"
+			style={StyleSheet.absoluteFill}
+			onLayout={({ nativeEvent }) => {
+				// Sheet-local coordinates omit its top inset and native header.
+				setKeyboardOffset(windowHeight - nativeEvent.layout.height);
+			}}
+		>
+			<KeyboardAvoidingView
+				pointerEvents="box-none"
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				keyboardVerticalOffset={keyboardOffset}
+				style={{ flex: 1, justifyContent: "flex-end" }}
+			>
+				{card}
+			</KeyboardAvoidingView>
+		</View>
 	);
 }

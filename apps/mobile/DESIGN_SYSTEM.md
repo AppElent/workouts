@@ -87,9 +87,10 @@ exceptions to the older form/primary-button and pill composition above, not a
 restyling instruction for other screens.
 
 `GlassSurface` owns material rendering; `SelectionMenu` owns platform selection.
-The feature owns the quantity interaction and creation popup. The latter keeps both visible native text inputs inside one keyboard-owned
-`InputAccessoryView`, using React Native’s sticky-input mode. This preserves
-editable caret/selection controls rather than hiding the name field behind a
-readout. Keyboard transitions and VoiceOver still require native acceptance;
-automated tests do not establish those affordances. See the
-[implementation report](../../docs/reports/diary-entry-editor-implementation.md).
+The feature owns the quantity interaction and creation popup. The popup keeps
+both visible native text inputs in a keyboard-avoiding overlay within the sheet.
+SwiftUI hosts must stay outside `InputAccessoryView`: moving them into UIKit's
+keyboard window crashes the installed native runtime. The overlay preserves the
+glass surface, native scope picker, and editable caret/selection controls. See the
+[implementation report](../../docs/reports/diary-entry-editor-implementation.md)
+for verified transitions and remaining native acceptance.

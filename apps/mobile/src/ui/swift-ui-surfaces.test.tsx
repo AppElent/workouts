@@ -2,6 +2,7 @@ import { fireEvent, screen } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { NutritionHeaderMenu } from "../screens/nutrition-header-menu.ios";
 import { renderThemed as render } from "../test-support/render-themed";
+import { DatePickerSheet } from "./date-picker-sheet.ios";
 import { FoodEditorSheet } from "./food-editor-sheet.ios";
 import { NativeSwipeableRow } from "./native-swipeable-row.ios";
 import { SetEditSheetPresentation } from "./set-edit-sheet-presentation.ios";
@@ -139,4 +140,25 @@ it("presents food editing as a full-height native sheet with a drag indicator", 
 		type: "presentationDragIndicator",
 		args: ["visible"],
 	});
+});
+
+it("leaves no native overlay behind when the date picker is closed", () => {
+	const props = {
+		date: "2026-10-04",
+		today: "2026-10-04",
+		locale: "en",
+		title: "Date",
+		todayLabel: "Today",
+		doneLabel: "Done",
+		closeLabel: "Close",
+		onSelect: jest.fn(),
+		onClose: jest.fn(),
+	};
+	const view = render(<DatePickerSheet {...props} visible={false} />);
+	expect(view.toJSON()).toBeNull();
+	view.rerender(<DatePickerSheet {...props} visible />);
+	fireEvent.press(screen.getByText("Done"));
+	expect(props.onClose).toHaveBeenCalledTimes(1);
+	view.rerender(<DatePickerSheet {...props} visible={false} />);
+	expect(view.toJSON()).toBeNull();
 });

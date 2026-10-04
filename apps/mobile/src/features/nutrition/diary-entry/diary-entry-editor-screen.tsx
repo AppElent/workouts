@@ -1,4 +1,4 @@
-import { formatQuantity, NEVO_ATTRIBUTION } from "@workouts/core/nutrition";
+import { formatQuantity } from "@workouts/core/nutrition";
 import { router, Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import { SymbolView } from "expo-symbols";
@@ -384,12 +384,6 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 						referenceLabel={`${entry.baseUnit === "serving" ? 1 : 100} ${entry.baseUnit}`}
 					/>
 				</View>
-				<AppText variant="caption">{copy.historicalBasis}</AppText>
-				{draft.source &&
-					"source" in draft.source &&
-					draft.source.source === "nevo" && (
-						<AppText variant="caption">{NEVO_ATTRIBUTION}</AppText>
-					)}
 			</ScrollView>
 			<View
 				style={{

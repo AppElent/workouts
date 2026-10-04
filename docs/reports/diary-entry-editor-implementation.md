@@ -163,3 +163,36 @@ without further blocking code findings. No material scope creep was found.
 
 Review totals: Standards **3 initial findings**, corrected in code; Spec **3 initial findings**, all corrected. The outstanding limit is
 native acceptance, not a claim that automated tests establish keyboard usability.
+
+## Native bug follow-up — 2026-10-04
+
+Retested the same iPhone 18 Pro 3 / iOS 27 simulator using this worktree's existing
+Metro on **8084**. The earlier 8093 server is stopped. This follow-up supersedes
+the sticky-accessory implementation description above.
+
+- Reproduced the initial unresponsive sheet: tapping plus did nothing. The closed
+  date picker still mounted an absolute-fill SwiftUI Host. Returning null while
+  closed removes that touch interceptor. The same tap then changed 1 to 1.25 and
+  93 to 116 kcal. Serving selection, dirty close/keep, and calendar open/Done worked.
+- Reproduced New portion terminating the app. The native SIGABRT trace points to
+  `ExpoSwiftUI.HostingView.didMoveToWindow()` while UIKit installs the input
+  accessory. The popup now stays inside the app sheet in a keyboard-avoiding
+  overlay; its SwiftUI glass and picker no longer move into the keyboard window.
+  The offset accounts for the sheet and native header. Verified opening, typing
+  `Testglas`, Next to decimal input, entering `250,5`, cancelling, reopening, and
+  cancelling again. No serving was saved by this verification.
+- Removed explanatory footer and attribution/source copy from the redesigned
+  editor and read-only food details, as requested. Domain metadata is unchanged.
+- Focused editor/native-adapter tests: **17 passed**. Mobile TypeScript and changed
+  TypeScript files' Biome checks passed. Added a regression for the closed date
+  picker mounting no overlay. Jest mocks cannot reproduce UIKit window ownership;
+  the simulator journey is the crash regression evidence.
+
+![Serving popup after native fix](evidence/diary-entry-editor/ios-serving-keyboard-fixed.png)
+
+Recording: `evidence/diary-entry-editor/ios-keyboard-fix.mp4` captures decimal
+editing, cancellation and reopening. Physical-device confirmation, Dynamic Type,
+VoiceOver, dark/English appearance, and the remaining gestures are still pending.
+The user's subsequent visual review identified fidelity gaps in the quantity
+buttons, editing state, menus, keyboard shortcuts, and nutrition card. These fixes
+establish usable controls; they do not mark Round 5 visual acceptance complete.

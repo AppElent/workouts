@@ -42,6 +42,8 @@ export function DatePickerSheet({
 }: DatePickerSheetProps) {
 	const colors = useTokens();
 	const { scheme } = useAppearance();
+	// An idle full-screen SwiftUI host intercepts touches in a parent native sheet.
+	if (!visible) return null;
 	return (
 		<Host
 			colorScheme={scheme}
