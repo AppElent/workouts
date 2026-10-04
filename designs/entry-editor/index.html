@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Item bewerken — Liquid Glass directions</title>
+<style>
+:root {
+	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
+	--accent: #466400; --accentFill: #c8f73c; --onAccent: #0a0b09; --accentDim: rgba(70,100,0,.10);
+	--text: #1a2015; --muted: #535e49; --faint: #606b57;
+	--sep: rgba(60,62,50,.10); --border: rgba(26,32,21,.12);
+	--danger: #b42332; --dangerSoft: rgba(180,35,50,.09); --warn: #865500;
+	--glass: rgba(255,255,255,.52); --glassStrong: rgba(255,255,255,.72);
+	--glassEdge: rgba(255,255,255,.85); --glassShadow: 0 10px 30px rgba(26,32,21,.14), 0 1px 3px rgba(26,32,21,.08);
+	--glassTint: rgba(200,247,60,.55);
+	--board: #dfe2d8; --ink: #1a2015;
+	--font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+}
+body.dark {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --faint: #919789;
+	--sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --dangerSoft: rgba(255,107,107,.12); --warn: #fbbf24;
+	--glass: rgba(40,44,38,.48); --glassStrong: rgba(48,52,45,.7);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.42);
+	--board: #050604; --ink: #f2f4ef;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: var(--font); background: var(--board); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ——— board ——— */
+header.board { padding: 28px 32px 8px; display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+header.board h1 { font-size: 28px; margin: 0; letter-spacing: -.02em; }
+header.board p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; line-height: 1.45; font-size: 14px; }
+.toggles { margin-left: auto; display: flex; gap: 8px; }
+.toggles button { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+.toggles button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+main.grid { display: flex; gap: 36px; padding: 24px 32px 64px; overflow-x: auto; align-items: flex-start; }
+.dir { flex: 0 0 auto; width: 393px; }
+.dir h2 { font-size: 19px; margin: 0 0 2px; letter-spacing: -.01em; }
+.dir .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.dir .pitch { font-size: 13.5px; color: var(--muted); line-height: 1.45; margin: 6px 0 14px; min-height: 58px; }
+.notes { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
+.notes b { color: var(--ink); }
+.notes ul { margin: 4px 0 10px; padding-left: 18px; }
+
+/* ——— phone ——— */
+.phone { position: relative; width: 393px; height: 852px; border-radius: 55px; overflow: hidden; background: #000; box-shadow: 0 0 0 10px #1b1c1a, 0 0 0 11px #3a3c38, 0 30px 60px rgba(0,0,0,.3); isolation: isolate; }
+.status { position: absolute; z-index: 30; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 34px 0 46px; font-weight: 600; font-size: 17px; color: var(--text); pointer-events: none; }
+.status .island { position: absolute; left: 50%; top: 11px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; }
+.status .icons { display: flex; gap: 6px; align-items: center; }
+.status .icons i { display: block; width: 25px; height: 12px; border-radius: 4px; border: 1.5px solid currentColor; position: relative; }
+.status .icons i::after { content: ""; position: absolute; inset: 1.5px 5px 1.5px 1.5px; background: currentColor; border-radius: 2px; }
+.home { position: absolute; z-index: 40; bottom: 8px; left: 50%; width: 139px; margin-left: -70px; height: 5px; border-radius: 3px; background: var(--text); opacity: .9; pointer-events: none; }
+
+/* diary behind the sheet, for glass to refract */
+.behind { position: absolute; inset: 0; background: var(--bg); padding: 64px 16px 0; transform: scale(.93); transform-origin: top center; border-radius: 40px; filter: saturate(1.05); }
+.behind .h { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -.02em; margin: 8px 4px 12px; }
+.behind .ring { height: 130px; border-radius: 22px; background: linear-gradient(135deg, #c8f73c, #8fd16a 45%, #4fd1e3); margin-bottom: 14px; }
+.behind .row { height: 58px; border-radius: 14px; background: var(--surface); margin-bottom: 8px; display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+.behind .row::before { content: ""; width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, #ff8a4c, #ffd36b); }
+.behind .row:nth-child(odd)::before { background: linear-gradient(135deg, #4fd1e3, #8b7bff); }
+.behind .row span { height: 10px; width: 50%; border-radius: 5px; background: var(--surface2); }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.22); }
+body.dark .scrim { background: rgba(0,0,0,.45); }
+
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--bg); border-radius: 38px 38px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.sheet.large { top: 58px; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--text); opacity: .22; margin: 6px auto 0; flex: 0 0 auto; }
+
+/* Liquid Glass approximation */
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%); box-shadow: var(--glassShadow), inset 0 1px 0 var(--glassEdge), inset 0 -1px 0 rgba(255,255,255,.08); border: .5px solid var(--glassEdge); }
+.glass.tint { background: var(--glassTint); color: var(--onAccent); }
+.gbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; transition: transform .18s cubic-bezier(.3,1.6,.5,1); }
+.gbtn:active, .press:active { transform: scale(.92); }
+.gbtn svg { width: 20px; height: 20px; }
+.navbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 6px; flex: 0 0 auto; }
+.navbar .title { flex: 1; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); line-height: 1.2; }
+.navbar .title small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.icon { width: 1em; height: 1em; }
+
+/* grouped form */
+.sec-h { font-size: 13px; color: var(--muted); margin: 22px 20px 7px; font-weight: 500; }
+.sec-f { font-size: 13px; color: var(--muted); margin: 7px 20px 0; line-height: 1.35; }
+.group { background: var(--surface); border-radius: 26px; margin: 0 16px; overflow: hidden; }
+.rowf { min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px; color: var(--text); font-size: 17px; position: relative; }
+.rowf + .rowf::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: .5px; background: var(--sep); }
+.rowf .val { margin-left: auto; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.stepper { margin-left: auto; display: flex; align-items: center; background: var(--surface2); border-radius: 999px; height: 34px; }
+.stepper button { width: 46px; height: 34px; display: grid; place-items: center; color: var(--text); }
+.stepper output { min-width: 44px; text-align: center; font-weight: 600; font-size: 16px; }
+.seg { display: flex; background: var(--surface2); border-radius: 999px; padding: 2px; margin: 0 16px 14px; }
+.seg button { flex: 1; height: 30px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,.12); font-weight: 600; }
+body.dark .seg button[aria-pressed="true"] { background: #3a3e36; }
+.pillv { background: var(--surface2); border-radius: 999px; padding: 6px 12px; font-size: 15px; color: var(--text); }
+
+/* popover menu */
+.menu { position: absolute; z-index: 50; min-width: 200px; border-radius: 26px; padding: 6px; transform-origin: top right; animation: pop .22s cubic-bezier(.3,1.4,.5,1); background: var(--glassStrong); }
+.menu button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 18px; font-size: 16px; color: var(--text); text-align: left; }
+.menu button:hover { background: var(--accentDim); }
+.menu .chk { width: 16px; color: var(--accent); }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } }
+
+/* ——— A ——— */
+.a-hero { margin: 8px 16px 0; padding: 18px; border-radius: 26px; background: var(--surface); display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: center; }
+.a-kcal { font-size: 40px; font-weight: 700; letter-spacing: -.03em; color: var(--text); line-height: 1; }
+.a-kcal small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
+.a-macros { display: grid; gap: 7px; }
+.a-macro { display: grid; grid-template-columns: 74px 1fr 40px; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.a-macro .bar { height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+.a-macro .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+.a-macro .bar.unknown { background: repeating-linear-gradient(90deg, var(--surface2) 0 4px, transparent 4px 7px); }
+.a-macro b { color: var(--text); text-align: right; font-weight: 600; }
+.a-was { grid-column: 1 / -1; font-size: 13px; color: var(--muted); padding-top: 10px; border-top: .5px solid var(--sep); margin-top: 6px; }
+.a-food { display: flex; gap: 12px; align-items: center; }
+.thumb { width: 44px; height: 44px; border-radius: 12px; background: var(--accentDim); color: var(--accent); display: grid; place-items: center; flex: 0 0 auto; }
+
+/* ——— B ——— */
+.b-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 6px; }
+.b-name { font-size: 15px; color: var(--muted); font-weight: 500; }
+.b-num { font-size: 104px; font-weight: 700; letter-spacing: -.06em; line-height: 1; color: var(--text); margin-top: 22px; transition: transform .15s; }
+.b-unit { font-size: 17px; color: var(--muted); margin-top: 4px; }
+.b-sum { margin-top: 18px; display: flex; gap: 8px; }
+.b-sum span { padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--text); }
+.b-sum span.k { background: var(--accentFill); color: var(--onAccent); }
+.b-sum span.q { background: var(--surface); color: var(--muted); font-weight: 500; }
+.ruler { position: relative; width: 100%; margin-top: 30px; height: 84px; }
+.ruler .track { height: 84px; overflow-x: scroll; scroll-snap-type: x mandatory; scrollbar-width: none; display: flex; align-items: flex-end; mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
+.ruler .track::-webkit-scrollbar { display: none; }
+.ruler .tick { flex: 0 0 14px; height: 18px; display: flex; justify-content: center; scroll-snap-align: center; position: relative; }
+.ruler .tick::before { content: ""; width: 2px; height: 100%; border-radius: 1px; background: var(--muted); opacity: .45; }
+.ruler .tick.major { height: 34px; }
+.ruler .tick.major::before { opacity: .9; }
+.ruler .tick.major span { position: absolute; top: -22px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.ruler .pad { flex: 0 0 calc(50% - 7px); }
+.ruler .needle { position: absolute; left: 50%; bottom: 0; width: 4px; height: 52px; margin-left: -2px; border-radius: 2px; background: var(--accent); pointer-events: none; }
+.b-chips { display: flex; gap: 8px; margin-top: 26px; }
+.b-chips button { height: 40px; min-width: 56px; padding: 0 14px; border-radius: 999px; font-weight: 600; font-size: 15px; color: var(--text); }
+.b-chips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+.toolbar { position: absolute; left: 16px; right: 16px; bottom: 30px; z-index: 20; display: flex; gap: 10px; align-items: center; }
+.toolbar .cap { height: 50px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 18px; font-weight: 600; font-size: 16px; color: var(--text); }
+.toolbar .cap small { font-weight: 500; color: var(--muted); font-size: 13px; }
+
+/* ——— C ——— */
+.c-sheet { height: 470px; }
+.c-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px 0; }
+.c-head .t { flex: 1; min-width: 0; }
+.c-head .t b { display: block; font-size: 20px; color: var(--text); letter-spacing: -.01em; }
+.c-head .t span { font-size: 14px; color: var(--muted); }
+.c-big { margin: 20px 16px 0; height: 104px; border-radius: 999px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.c-big .gbtn { width: 84px; height: 84px; background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.08); color: var(--text); }
+body.dark .c-big .gbtn { background: #2a2e27; }
+.c-big .gbtn svg { width: 28px; height: 28px; }
+.c-big .mid { text-align: center; color: var(--text); }
+.c-big .mid b { font-size: 44px; letter-spacing: -.04em; display: block; line-height: 1; }
+.c-big .mid span { font-size: 13px; color: var(--muted); }
+.c-meals { display: flex; gap: 6px; margin: 18px 16px 0; padding: 4px; border-radius: 999px; }
+.c-meals button { flex: 1; height: 38px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--muted); transition: background .2s, color .2s; }
+.c-meals button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+body.dark .c-meals button[aria-pressed="true"] { background: #3a3e36; }
+.c-days { display: flex; gap: 8px; margin: 12px 16px 0; }
+.c-days button { flex: 1; height: 38px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--muted); background: var(--surface); }
+.c-days button[aria-pressed="true"] { color: var(--accent); background: var(--accentDim); font-weight: 700; }
+.c-save { position: absolute; left: 16px; right: 16px; bottom: 30px; height: 56px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 22px rgba(120,170,0,.35), inset 0 1px 0 rgba(255,255,255,.6); }
+.c-save span { font-weight: 500; opacity: .75; }
+
+/* ——— D ——— */
+.d-ringwrap { position: relative; width: 260px; height: 260px; margin: 10px auto 0; }
+.d-ringwrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.d-ringwrap circle { fill: none; stroke-width: 22; stroke-linecap: round; transition: stroke-dasharray .35s cubic-bezier(.3,1.2,.5,1), stroke-dashoffset .35s cubic-bezier(.3,1.2,.5,1); }
+.d-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--text); }
+.d-center b { font-size: 46px; letter-spacing: -.04em; line-height: 1; }
+.d-center span { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.d-center em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--accent); margin-top: 6px; }
+.d-legend { display: flex; justify-content: center; gap: 16px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.d-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.d-slider { margin: 22px 20px 0; padding: 14px 18px; border-radius: 26px; background: var(--surface); }
+.d-slider .lbl { display: flex; justify-content: space-between; font-size: 15px; color: var(--text); margin-bottom: 8px; }
+.d-slider .lbl b { font-weight: 700; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; background: transparent; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) var(--p, 30%), var(--surface2) var(--p, 30%)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 38px; height: 26px; border-radius: 13px; background: rgba(255,255,255,.75); margin-top: -10px; box-shadow: 0 3px 10px rgba(0,0,0,.2), inset 0 0 0 .5px rgba(0,0,0,.08); backdrop-filter: blur(6px); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--surface2); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+input[type=range]::-moz-range-thumb { width: 38px; height: 26px; border-radius: 13px; background: #fff; border: 0; box-shadow: 0 3px 10px rgba(0,0,0,.2); }
+.d-gap { margin: 12px 20px 0; padding: 12px 14px; border-radius: 18px; background: var(--surface); display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text); line-height: 1.35; }
+.d-gap .dot { width: 30px; height: 30px; border-radius: 50%; background: rgba(251,191,36,.18); color: var(--warn); display: grid; place-items: center; flex: 0 0 auto; font-weight: 800; }
+.d-gap span { color: var(--muted); font-size: 13px; display: block; }
+
+/* ——— E ——— */
+.e-body { padding: 28px 24px 0; }
+.e-sentence { font-size: 34px; line-height: 1.55; font-weight: 700; letter-spacing: -.025em; color: var(--text); }
+.e-sentence .faint { color: var(--muted); font-weight: 600; }
+.tok { display: inline-flex; align-items: center; gap: 4px; padding: 0 14px; height: 50px; border-radius: 999px; vertical-align: middle; line-height: 1; color: var(--accent); }
+.tok.on { outline: 2px solid var(--accent); outline-offset: 2px; }
+.e-panel { margin-top: 18px; border-radius: 30px; padding: 12px; animation: pop .22s cubic-bezier(.3,1.4,.5,1); transform-origin: top left; }
+.e-panel .row { display: flex; gap: 8px; }
+.e-panel .row + .row { margin-top: 8px; }
+.e-panel button { flex: 1; height: 46px; border-radius: 999px; background: var(--surface); font-weight: 600; font-size: 16px; color: var(--text); }
+body.dark .e-panel button { background: #2a2e27; }
+.e-panel button[aria-pressed="true"] { background: var(--accentFill); color: var(--onAccent); }
+.e-facts { margin-top: 26px; font-size: 15px; color: var(--muted); line-height: 1.6; }
+.e-facts b { color: var(--text); font-weight: 600; }
+.e-facts a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+/* ——— Expo guidance ——— */
+details.code { margin-top: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+details.code summary { cursor: pointer; padding: 12px 14px; font-size: 13px; font-weight: 700; color: var(--ink); }
+details.code pre { margin: 0; padding: 0 14px 14px; font: 11.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); white-space: pre; overflow-x: auto; }
+details.code pre .c { color: var(--muted); }
+section.guide { margin: 8px 32px 0; padding: 18px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; }
+section.guide h3 { margin: 0 0 10px; font-size: 16px; }
+section.guide table { border-collapse: collapse; font-size: 13px; width: 100%; }
+section.guide td, section.guide th { text-align: left; padding: 7px 10px; border-top: 1px solid var(--border); vertical-align: top; color: var(--muted); }
+section.guide th { color: var(--ink); font-weight: 600; border-top: 0; }
+section.guide td:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
+section.guide code, .notes code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; background: var(--surface2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+section.guide p { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 10px 0 0; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="board">
+	<div>
+		<h1>Item bewerken — vijf richtingen</h1>
+		<p>iOS 26 Liquid Glass. Glass alleen op de functionele laag (navigatie, toolbars, bediening die over content zweeft); content blijft op ondoorzichtige oppervlakken, zoals in <code>apps/mobile/DESIGN_SYSTEM.md</code>. Alle telefoons delen één state: wijzig de hoeveelheid in de ene en de rest volgt. Voorbeeld: <i>Test 2</i>, 1 portie = 400 kcal · 20 g eiwit, koolhydraten/vet onbekend.</p>
+	</div>
+	<div class="toggles" role="group" aria-label="Weergave">
+		<button id="light" aria-pressed="true">Licht</button>
+		<button id="dark" aria-pressed="false">Donker</button>
+	</div>
+</header>
+
+<section class="guide">
+	<h3>Expo-bouwstenen (geïnstalleerd: expo 57, expo-router 57, @expo/ui 57, react-native-screens 4.26)</h3>
+	<table>
+		<tr><th>Element in mock</th><th>Gebruik in de app</th><th>Waarom</th></tr>
+		<tr><td>Sheet + grabber + detents</td><td><code>Stack.Screen</code> in <code>app/(app)/_layout.tsx</code>: <code>presentation: "formSheet"</code>, <code>sheetAllowedDetents</code>, <code>sheetGrabberVisible</code></td><td>iOS 26 tekent de glass-sheet, de grabber en de detent-overgang zelf.</td></tr>
+		<tr><td>✕ / ✓ glass-knoppen</td><td><code>Stack.Toolbar placement="left|right"</code> + <code>Stack.Toolbar.Button icon="xmark|checkmark" variant="prominent"</code></td><td>Systeemheader = echt Liquid Glass, juiste hit-areas, VoiceOver gratis. Bestaand patroon in <code>routine-editor.tsx</code>.</td></tr>
+		<tr><td>Zwevende onderbalk (B, D)</td><td><code>Stack.Toolbar placement="bottom"</code> met <code>.Menu</code>, <code>.MenuAction isOn</code>, <code>.Spacer</code>, <code>.Button</code></td><td>Alleen in page-componenten (<code>nutrition-entry.tsx</code> is er één). Controleer op toestel binnen een formSheet; fallback is de <code>GlassEffectContainer</code>-rij hieronder.</td></tr>
+		<tr><td>Eigen glass-oppervlak (C, E)</td><td><code>@expo/ui/swift-ui</code>: <code>Host</code> → <code>GlassEffectContainer</code> → views met <code>glassEffect({ glass: { variant: "regular", interactive: true }, shape: "capsule" })</code></td><td>Echte SwiftUI-glass incl. samensmelten/morph. Nooit <code>BlurView</code> + rgba nabootsen.</td></tr>
+		<tr><td>Glass-knop / chip</td><td><code>Button</code> + <code>buttonStyle("glass" | "glassProminent")</code>, <code>controlSize("large")</code></td><td>Prominent voor de ene primaire actie; tint met <code>tint(colors.accentFill)</code>.</td></tr>
+		<tr><td>Maaltijd-keuze</td><td>Bestaande <code>FoodVisualMenu</code> (SwiftUI <code>Menu</code>) of <code>Segmented</code> (<code>Picker</code> + <code>pickerStyle("segmented")</code>)</td><td>Hergebruik bestaande seams in <code>src/ui/</code>.</td></tr>
+		<tr><td>Datum</td><td>Bestaande <code>DatePickerSheet</code> / SwiftUI <code>DatePicker</code> (compact)</td><td>Systeem-kalenderpopover is al glass.</td></tr>
+		<tr><td>Hoeveelheid</td><td>Bestaande <code>StepperField</code> / <code>InlineNumberFieldRow</code>; groot getal via SwiftUI <code>Text</code> + <code>font({ size, weight })</code>, <code>monospacedDigit()</code>, <code>contentTransition("numericText")</code></td><td>Cijfers rollen native bij elke stap.</td></tr>
+		<tr><td>Haptiek</td><td><code>expo-haptics</code>: <code>Haptics.selectionAsync()</code> per ¼-stap</td><td>Maakt liniaal/stepper voelbaar.</td></tr>
+		<tr><td>Content-kaarten</td><td><code>FormSection</code> / <code>GroupedSurface</code> uit <code>src/ui/form.tsx</code> — ondoorzichtig</td><td>DESIGN_SYSTEM: glass alleen op de functionele laag, niet op content.</td></tr>
+	</table>
+	<p>De mock benadert glass met CSS <code>backdrop-filter</code>; neem die CSS-waarden niet over in de app. Gedeelde route-config voor alle richtingen:</p>
+	<details class="code"><summary>app/(app)/_layout.tsx</summary><pre id="shared-code"></pre></details>
+</section>
+
+<main class="grid" id="grid"></main>
+
+<script>
+const BASE = { kcal: 400, protein: 20, carbs: null, fat: null };
+const MEALS = ["Ontbijt", "Lunch", "Diner", "Snack"];
+const DAYS = ["Gisteren", "Vandaag", "Morgen"];
+const ORIGINAL = { q: 1.5, meal: "Lunch", day: "Vandaag" };
+const DAY_GOAL = 2400, DAY_OTHER = 1240; // already eaten today excluding this entry
+const state = { ...ORIGINAL, open: { E: null } };
+
+const fmt = (n, d = 2) => n.toLocaleString("nl-NL", { maximumFractionDigits: d });
+const frac = (q) => ({ 0.25: "¼", 0.5: "½", 0.75: "¾", 1.5: "1½", 2.5: "2½" })[q] ?? fmt(q);
+const kcal = () => Math.round(BASE.kcal * state.q);
+const prot = () => Math.round(BASE.protein * state.q);
+const dirty = () => state.q !== ORIGINAL.q || state.meal !== ORIGINAL.meal || state.day !== ORIGINAL.day;
+const clamp = (q) => Math.min(5, Math.max(0.25, Math.round(q * 4) / 4));
+
+const I = {
+	x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+	check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+	minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+	plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+	more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+	trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>',
+	chev: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10l4-4 4 4M8 14l4 4 4-4"/></svg>',
+	right: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+	fork: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 0-3 2-3 6s1 4 3 4v8"/></svg>',
+	cal: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+	meal: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+};
+
+const chrome = (inner, extra = "") => `
+	<div class="phone" ${extra}>
+		<div class="behind"><div class="h">Voeding</div><div class="ring"></div><div class="row"><span></span></div><div class="row"><span></span></div><div class="row"><span></span></div><div class="row"><span></span></div><div class="row"><span></span></div></div>
+		<div class="scrim"></div>
+		<div class="status"><span>12:42</span><span class="island"></span><span class="icons"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg> <i></i></span></div>
+		${inner}
+		<div class="home"></div>
+	</div>`;
+
+const confirmBtn = (dir) => `<button class="gbtn glass ${dirty() ? "tint" : ""} press" data-act="save" aria-label="Opslaan" ${dirty() ? "" : 'style="opacity:.55"'}>${I.check}</button>`;
+const closeBtn = `<button class="gbtn glass press" aria-label="Annuleren">${I.x}</button>`;
+
+/* ——— A: Native formulier ——— */
+function A() {
+	const mac = (label, v, max, unit = "g") => `
+		<div class="a-macro"><span>${label}</span>
+		<span class="bar ${v == null ? "unknown" : ""}"><i style="width:${v == null ? 0 : Math.min(100, (v / max) * 100)}%"></i></span>
+		<b class="tnum">${v == null ? "?" : fmt(v) + " " + unit}</b></div>`;
+	return chrome(`
+	<div class="sheet large">
+		<div class="grabber"></div>
+		<div class="navbar">${closeBtn}<div class="title">Test 2<small>Recept</small></div>${confirmBtn()}</div>
+		<div class="scroll">
+			<div class="a-hero">
+				<div class="a-kcal tnum">${fmt(kcal())}<small>kcal</small></div>
+				<div class="a-macros">${mac("Eiwitten", prot(), 60)}${mac("Koolh.", BASE.carbs, 80)}${mac("Vet", BASE.fat, 40)}</div>
+				<div class="a-was">${state.q === ORIGINAL.q ? "Ongewijzigd · zoals gelogd" : `Was ${frac(ORIGINAL.q)} portie · ${fmt(BASE.kcal * ORIGINAL.q)} kcal`}</div>
+			</div>
+			<div class="sec-h">Hoeveelheid</div>
+			<div class="group">
+				<div class="rowf"><span>Portie</span>
+					<div class="stepper"><button data-act="dec" aria-label="Minder">${I.minus}</button><output class="tnum">${frac(state.q)}</output><button data-act="inc" aria-label="Meer">${I.plus}</button></div>
+				</div>
+				<div class="seg" role="group" aria-label="Snelkeuze">${[0.5, 1, 1.5, 2].map((v) => `<button data-q="${v}" aria-pressed="${state.q === v}">${frac(v)}</button>`).join("")}</div>
+			</div>
+			<div class="sec-f">1 portie = 400 kcal. Tik op het getal voor exacte invoer.</div>
+			<div class="sec-h">Gelogd bij</div>
+			<div class="group">
+				<button class="rowf" style="width:100%" data-menu="meal">${I.meal}<span>Maaltijd</span><span class="val">${state.meal} ${I.chev}</span></button>
+				<button class="rowf" style="width:100%" data-menu="day">${I.cal}<span>Datum</span><span class="val"><span class="pillv">${state.day === "Vandaag" ? "Vandaag, 3 okt" : state.day}</span></span></button>
+			</div>
+			<div class="group" style="margin-top:28px"><button class="rowf" style="width:100%;justify-content:center;color:var(--danger);font-weight:600" data-act="delete">Verwijderen uit dagboek</button></div>
+			<div style="height:60px"></div>
+		</div>
+	</div>`, 'data-dir="A"');
+}
+
+/* ——— B: Wijzerplaat ——— */
+function B() {
+	return chrome(`
+	<div class="sheet large">
+		<div class="grabber"></div>
+		<div class="navbar">${closeBtn}<div class="title">Test 2<small>Recept</small></div>${confirmBtn()}</div>
+		<div class="b-wrap">
+			<div class="b-num tnum" id="bnum">${frac(state.q)}</div>
+			<div class="b-unit">${state.q === 1 ? "portie" : "porties"}</div>
+			<div class="b-sum"><span class="k tnum">${fmt(kcal())} kcal</span><span class="q tnum">${prot()} g eiwit</span><span class="q">K ? · V ?</span></div>
+			<div class="ruler"><div class="track" data-ruler><div class="pad"></div>${Array.from({ length: 20 }, (_, i) => { const v = (i + 1) / 4; return `<div class="tick ${v % 1 === 0 ? "major" : ""}" data-v="${v}">${v % 1 === 0 ? `<span>${v}</span>` : ""}</div>`; }).join("")}<div class="pad"></div></div><div class="needle"></div></div>
+			<div class="b-chips">${[0.5, 1, 1.5, 2].map((v) => `<button class="glass press" data-q="${v}" aria-pressed="${state.q === v}">${frac(v)}</button>`).join("")}</div>
+		</div>
+		<div class="toolbar">
+			<button class="cap glass press" data-menu="meal">${state.meal} ${I.chev}</button>
+			<button class="cap glass press" data-menu="day">${I.cal} ${state.day}</button>
+			<span style="flex:1"></span>
+			<button class="gbtn glass press" style="width:50px;height:50px;color:var(--danger)" data-act="delete" aria-label="Verwijderen">${I.trash}</button>
+		</div>
+		<div style="height:110px"></div>
+	</div>`, 'data-dir="B"');
+}
+
+/* ——— C: Duimzone ——— */
+function C() {
+	return chrome(`
+	<div class="sheet c-sheet">
+		<div class="grabber"></div>
+		<div class="c-head">
+			<div class="thumb">${I.fork}</div>
+			<div class="t"><b>Test 2</b><span class="tnum">${fmt(kcal())} kcal · ${prot()} g eiwit</span></div>
+			<button class="gbtn glass press" data-menu="more" aria-label="Meer">${I.more}</button>
+		</div>
+		<div class="c-big glass">
+			<button class="gbtn press" data-act="dec" aria-label="Minder">${I.minus}</button>
+			<div class="mid"><b class="tnum">${frac(state.q)}</b><span>${state.q === ORIGINAL.q ? "portie · ongewijzigd" : `portie · was ${frac(ORIGINAL.q)}`}</span></div>
+			<button class="gbtn press" data-act="inc" aria-label="Meer">${I.plus}</button>
+		</div>
+		<div class="c-meals glass" role="group" aria-label="Maaltijd">${MEALS.map((m) => `<button data-meal="${m}" aria-pressed="${state.meal === m}">${m}</button>`).join("")}</div>
+		<div class="c-days" role="group" aria-label="Dag">${DAYS.map((d) => `<button data-day="${d}" aria-pressed="${state.day === d}">${d}</button>`).join("")}<button aria-label="Kies datum" style="flex:0 0 52px">${I.cal}</button></div>
+		<button class="c-save press" data-act="save">${dirty() ? "Opslaan" : "Gereed"} <span class="tnum">· ${fmt(kcal())} kcal</span></button>
+	</div>`, 'data-dir="C"');
+}
+
+/* ——— D: Dagimpact ——— */
+function D() {
+	const R = 110, C = 2 * Math.PI * R;
+	const other = DAY_OTHER / DAY_GOAL, mine = Math.min(1 - other, kcal() / DAY_GOAL);
+	const left = DAY_GOAL - DAY_OTHER - kcal();
+	return chrome(`
+	<div class="sheet large">
+		<div class="grabber"></div>
+		<div class="navbar">${closeBtn}<div class="title">Test 2<small>${state.meal} · ${state.day.toLowerCase()}</small></div>${confirmBtn()}</div>
+		<div class="scroll">
+			<div class="d-ringwrap">
+				<svg viewBox="0 0 260 260">
+					<circle cx="130" cy="130" r="${R}" stroke="var(--surface2)" />
+					<circle cx="130" cy="130" r="${R}" stroke="var(--muted)" stroke-opacity=".35" stroke-dasharray="${other * C} ${C}" />
+					<circle cx="130" cy="130" r="${R}" stroke="var(--accentFill)" stroke-dasharray="${mine * C} ${C}" stroke-dashoffset="${-other * C}" />
+				</svg>
+				<div class="d-center"><b class="tnum">${fmt(kcal())}</b><span>kcal uit dit item</span><em class="tnum">${left >= 0 ? `${fmt(left)} over vandaag` : `${fmt(-left)} boven doel`}</em></div>
+			</div>
+			<div class="d-legend"><span><i style="background:var(--muted);opacity:.5"></i>Al gegeten</span><span><i style="background:var(--accentFill)"></i>Test 2</span><span><i style="background:var(--surface2)"></i>Doel ${fmt(DAY_GOAL)}</span></div>
+			<div class="d-slider">
+				<div class="lbl"><span>Porties</span><b class="tnum">${frac(state.q)} × 400 kcal</b></div>
+				<input type="range" min="0.25" max="4" step="0.25" value="${state.q}" data-range style="--p:${((state.q - 0.25) / 3.75) * 100}%" aria-label="Porties" />
+			</div>
+			<div class="d-gap"><div class="dot">!</div><div>Koolhydraten en vet ontbreken<span>Vul het recept aan voor een volledig dagtotaal</span></div><span style="margin-left:auto;color:var(--muted)">${I.right}</span></div>
+			<div style="height:120px"></div>
+		</div>
+		<div class="toolbar">
+			<button class="cap glass press" data-menu="meal">${state.meal} ${I.chev}</button>
+			<button class="cap glass press" data-menu="day">${I.cal} ${state.day}</button>
+			<span style="flex:1"></span>
+			<button class="gbtn glass press" style="width:50px;height:50px;color:var(--danger)" data-act="delete" aria-label="Verwijderen">${I.trash}</button>
+		</div>
+	</div>`, 'data-dir="D"');
+}
+
+/* ——— E: Zin ——— */
+function E() {
+	const o = state.open.E;
+	const panel = o === "q"
+		? `<div class="e-panel glass"><div class="row">${[0.5, 1, 1.5, 2].map((v) => `<button data-q="${v}" aria-pressed="${state.q === v}">${frac(v)}</button>`).join("")}</div><div class="row"><button data-act="dec" aria-label="Minder">${I.minus.replace("<svg", '<svg width="20" height="20"')}</button><button data-act="exact">Exact…</button><button data-act="inc" aria-label="Meer">${I.plus.replace("<svg", '<svg width="20" height="20"')}</button></div></div>`
+		: o === "meal"
+		? `<div class="e-panel glass"><div class="row">${MEALS.map((m) => `<button data-meal="${m}" aria-pressed="${state.meal === m}">${m}</button>`).join("")}</div></div>`
+		: o === "day"
+		? `<div class="e-panel glass"><div class="row">${DAYS.map((d) => `<button data-day="${d}" aria-pressed="${state.day === d}">${d}</button>`).join("")}</div><div class="row"><button>${I.cal} Andere datum…</button></div></div>`
+		: "";
+	return chrome(`
+	<div class="sheet large">
+		<div class="grabber"></div>
+		<div class="navbar">${closeBtn}<div class="title"></div><button class="gbtn glass press" data-menu="more" aria-label="Meer">${I.more}</button></div>
+		<div class="scroll">
+			<div class="e-body">
+				<div class="e-sentence">
+					<span class="faint">Ik at</span>
+					<button class="tok glass ${o === "q" ? "on" : ""}" data-tok="q"><span class="tnum">${frac(state.q)}</span>&nbsp;${state.q === 1 ? "portie" : "porties"}</button>
+					<span>Test 2</span>
+					<span class="faint">bij</span>
+					<button class="tok glass ${o === "meal" ? "on" : ""}" data-tok="meal">${state.meal.toLowerCase()}</button>
+					<button class="tok glass ${o === "day" ? "on" : ""}" data-tok="day">${state.day.toLowerCase()}</button><span class="faint">.</span>
+				</div>
+				${panel}
+				<div class="e-facts tnum">Dat is <b>${fmt(kcal())} kcal</b> en <b>${prot()} g eiwit</b>. Koolhydraten en vet zijn onbekend — <a href="#">recept aanvullen</a>.${state.q !== ORIGINAL.q ? `<br>Eerder gelogd als ${frac(ORIGINAL.q)} portie.` : ""}</div>
+			</div>
+			<div style="height:120px"></div>
+		</div>
+		<button class="c-save press" data-act="save" style="${dirty() ? "" : "opacity:.5"}">${dirty() ? "Wijzigingen opslaan" : "Geen wijzigingen"}</button>
+	</div>`, 'data-dir="E"');
+}
+
+const DIRS = [
+	{ id: "A", tag: "A · Verfijnd native", name: "Native formulier", fn: A,
+		pitch: "De huidige structuur, rechtgezet. Eén samenvatting bovenaan, één hoeveelheidsgroep, één ‘gelogd bij’-groep. Laagste risico.",
+		notes: `<b>Lost op:</b><ul><li>‘Portie × 1,5’ stond er drie keer + Engelse ‘1.5 serving’</li><li>Presets los van de stepper → nu één groep</li><li>Lege macro's als streepjes → gestippelde balk met ‘?’</li><li>Destructieve actie in eigen groep, niet zwevend in leegte</li></ul><b>Native:</b> stack-header met <code>headerLeft/Right</code> glass-knoppen (iOS 26 rendert ✓ als prominent getint), <code>@expo/ui</code> Picker (segmented), Menu voor maaltijd, compacte DatePicker.` },
+	{ id: "B", tag: "B · Radicaal", name: "Wijzerplaat", fn: B,
+		pitch: "De hoeveelheid ís het scherm. Een gigantisch getal, een draaibare liniaal (veeg) en glass-chips. Maaltijd, datum en verwijderen zakken naar een zwevende glass-toolbar.",
+		notes: `<b>Sterk:</b> één duimgebaar, haptische tik per ¼, leest als Apple Fitness. <b>Risico:</b> exacte invoer (bv. 1,37) vraagt tik op het getal → toetsenbord. Liniaal moet VoiceOver-adjustable zijn.<br><b>Native:</b> horizontale <code>ScrollView</code> met snap + <code>Haptics.selectionAsync</code>, of SwiftUI <code>Slider</code> met custom track; toolbar via <code>Stack.Toolbar</code> (bottom) zodat het systeem het glas tekent.` },
+	{ id: "C", tag: "C · Radicaal", name: "Duimzone", fn: C,
+		pitch: "Medium detent: het dagboek blijft zichtbaar. Alle bediening onderaan binnen duimbereik — XXL stepper, maaltijd en dag als één tik, één grote opslaanknop met live kcal.",
+		notes: `<b>Sterk:</b> geen menu's of pickers voor 95% van de bewerkingen; wijzigen = 2 tikken. Opslaan-knop toont de consequentie. <b>Risico:</b> weinig ruimte voor macro's; verwijderen verstopt in ⋯ (swipe in dagboek blijft).<br><b>Native:</b> <code>formSheet</code> met <code>sheetAllowedDetents: [0.55, 1]</code>, glass-capsule via <code>GlassView</code> (expo-glass-effect) achter de stepper.` },
+	{ id: "D", tag: "D · Radicaal", name: "Dagimpact", fn: D,
+		pitch: "Laat niet zien wat het item ís, maar wat de wijziging dóét met je dag. Ring met al-gegeten + dit item tegen het doel; schuif en zie ‘nog X over’ live veranderen.",
+		notes: `<b>Sterk:</b> beantwoordt de echte vraag (‘past dit nog?’), maakt ontbrekende macro's een actie i.p.v. streepjes. <b>Risico:</b> vereist dagdoel + dagtotaal in de editor (data is er al via nutrition-day); slider minder precies.<br><b>Native:</b> Skia/SVG-ring met Reanimated spring, SwiftUI <code>Slider</code> uit <code>@expo/ui</code>, toolbar onderaan zoals B.` },
+	{ id: "E", tag: "E · Experimenteel", name: "Zin", fn: E,
+		pitch: "Bewerken als een zin: ‘Ik at 1½ porties Test 2 bij lunch vandaag.’ Elk onderstreept deel is een glass-token dat ter plekke een keuzepaneel opent.",
+		notes: `<b>Sterk:</b> nul formulierchrome, leest direct als bevestiging, uitstekend voor VoiceOver als één zin. <b>Risico:</b> Engelse/Nederlandse zinsbouw verschilt (i18n-templates met tokens), groot lettertype + Dynamic Type XL breekt snel.<br><b>Native:</b> <code>Text</code> met inline <code>Pressable</code>-tokens of SwiftUI <code>Menu</code> per token; panelen als <code>GlassEffectContainer</code> zodat tokens en paneel samensmelten (morph).` },
+];
+
+const CODE = {
+	shared: `<Stack.Screen
+  name="nutrition-entry"
+  options={{
+    presentation: "formSheet",
+    sheetGrabberVisible: true,
+    // A, B, D, E: full height. C: medium only, diary stays visible.
+    sheetAllowedDetents: [1],          // C: [0.55]
+    sheetLargestUndimmedDetentIndex: "none",
+    contentStyle: { backgroundColor: colors.bg },
+  }}
+/>`,
+	A: `// app/(app)/nutrition-entry.tsx — systeemheader levert de glass-knoppen
+import { Stack } from "expo-router";
+
+<>
+  <Stack.Screen options={{ title: entry.name }} />
+  <Stack.Toolbar placement="left">
+    <Stack.Toolbar.Button icon="xmark" accessibilityLabel={t.common.cancel} onPress={close} />
+  </Stack.Toolbar>
+  <Stack.Toolbar placement="right">
+    <Stack.Toolbar.Button
+      icon="checkmark"
+      variant="prominent"          // iOS 26: getint glass
+      tintColor={colors.accentFill}
+      disabled={!dirty || busy}
+      accessibilityLabel={t.nutrition.entryEditor.save}
+      onPress={save}
+    />
+  </Stack.Toolbar>
+  <NutritionEntryEditor ... />
+</>
+
+// src/screens/nutrition-entry-editor.tsx — content blijft ondoorzichtig
+<FormScreen>
+  <GroupedSurface>{/* kcal + macro-balken, "Was 1½ portie" */}</GroupedSurface>
+
+  <FormSection title={t.nutrition.entryEditor.serving}
+               footer="1 portie = 400 kcal">
+    <StepperField label="Portie" value={quantity} step={0.25} min={0.25}
+                  onChange={setQuantity} />
+    <Segmented options={PRESETS} value={presetKey} onChange={pickPreset} />
+  </FormSection>
+
+  <FormSection title="Gelogd bij">
+    <FoodVisualMenu label={mealLabel} options={mealOptions}
+                    selectedValue={nextMeal} onSelect={setNextMeal} />
+    <DatePickerSheet value={nextDate} onChange={setNextDate} />
+  </FormSection>
+
+  <FormSection>
+    <TextAction tone="destructive" onPress={confirmDelete}>
+      {t.nutrition.entryEditor.delete}
+    </TextAction>
+  </FormSection>
+</FormScreen>`,
+	B: `// Groot getal: echte SwiftUI-tekst zodat cijfers native "rollen"
+import { Host, Text, VStack } from "@expo/ui/swift-ui";
+import { font, monospacedDigit, contentTransition } from "@expo/ui/swift-ui/modifiers";
+import * as Haptics from "expo-haptics";
+
+<Host matchContents colorScheme={scheme}>
+  <VStack spacing={4}>
+    <Text modifiers={[font({ size: 104, weight: "bold", design: "rounded" }),
+                      monospacedDigit(), contentTransition("numericText")]}>
+      {formatQuantity(quantity, locale)}
+    </Text>
+    <Text modifiers={[font({ textStyle: "headline" })]}>{unitLabel}</Text>
+  </VStack>
+</Host>
+
+// Liniaal: RN ScrollView met snap per ¼ + haptiek
+<ScrollView horizontal snapToInterval={TICK} decelerationRate="fast"
+  showsHorizontalScrollIndicator={false}
+  contentContainerStyle={{ paddingHorizontal: width / 2 - TICK / 2 }}
+  onScroll={(e) => {
+    const q = clampQuarter((Math.round(e.nativeEvent.contentOffset.x / TICK) + 1) / 4);
+    if (q !== quantity) { setQuantity(q); Haptics.selectionAsync(); }
+  }}
+  scrollEventThrottle={16}
+  accessible accessibilityRole="adjustable"
+  accessibilityValue={{ text: formatQuantity(quantity, locale) }}
+  onAccessibilityAction={stepByAction}
+  accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+>{ticks}</ScrollView>
+
+// Onderbalk: systeem-glass toolbar
+<Stack.Toolbar placement="bottom">
+  <Stack.Toolbar.Menu icon="fork.knife" title={mealLabel(nextMeal)}>
+    {MEAL_SLOTS.map((m) => (
+      <Stack.Toolbar.MenuAction key={m} isOn={m === nextMeal}
+                                onPress={() => setNextMeal(m)}>
+        {mealLabel(m)}
+      </Stack.Toolbar.MenuAction>
+    ))}
+  </Stack.Toolbar.Menu>
+  <Stack.Toolbar.Button icon="calendar" onPress={openDatePicker}>
+    {dayLabel(nextDate)}
+  </Stack.Toolbar.Button>
+  <Stack.Toolbar.Spacer />
+  <Stack.Toolbar.Button icon="trash" tintColor={colors.danger}
+                        accessibilityLabel={t.nutrition.entryEditor.delete}
+                        onPress={confirmDelete} />
+</Stack.Toolbar>`,
+	C: `// XXL stepper in één glass-capsule; knoppen smelten mee bij indrukken
+import { Host, HStack, VStack, Button, Text, Picker, GlassEffectContainer } from "@expo/ui/swift-ui";
+import { glassEffect, buttonStyle, controlSize, font, monospacedDigit,
+         contentTransition, padding, pickerStyle, tag, frame } from "@expo/ui/swift-ui/modifiers";
+
+<Host matchContents colorScheme={scheme} seedColor={colors.accent}>
+  <GlassEffectContainer spacing={16}>
+    <VStack spacing={14}>
+      <HStack spacing={0} modifiers={[
+        padding({ all: 10 }),
+        glassEffect({ glass: { variant: "regular", interactive: true }, shape: "capsule" }),
+      ]}>
+        <Button systemImage="minus" onPress={dec}
+                modifiers={[buttonStyle("glass"), controlSize("extraLarge")]} />
+        <VStack modifiers={[frame({ maxWidth: Infinity })]}>
+          <Text modifiers={[font({ size: 44, weight: "bold" }),
+                            monospacedDigit(), contentTransition("numericText")]}>
+            {formatQuantity(quantity, locale)}
+          </Text>
+          <Text modifiers={[font({ textStyle: "caption" })]}>{wasLabel}</Text>
+        </VStack>
+        <Button systemImage="plus" onPress={inc}
+                modifiers={[buttonStyle("glass"), controlSize("extraLarge")]} />
+      </HStack>
+
+      <Picker selection={nextMeal} onSelectionChange={setNextMeal}
+              modifiers={[pickerStyle("segmented")]}>
+        {MEAL_SLOTS.map((m) => (
+          <Text key={m} modifiers={[tag(m)]}>{mealLabel(m)}</Text>
+        ))}
+      </Picker>
+    </VStack>
+  </GlassEffectContainer>
+</Host>
+
+// Opslaan: bestaande PrimaryButton met live consequentie
+<PrimaryButton onPress={save} loading={saving}>
+  {dirty ? t.nutrition.entryEditor.save : t.common.done} · {kcal} kcal
+</PrimaryButton>
+
+// Verwijderen achter ⋯ in de header
+<Stack.Toolbar placement="right">
+  <Stack.Toolbar.Menu icon="ellipsis">
+    <Stack.Toolbar.MenuAction icon="book" onPress={openRecipe}>Recept bekijken</Stack.Toolbar.MenuAction>
+    <Stack.Toolbar.MenuAction icon="trash" destructive onPress={confirmDelete}>
+      {t.nutrition.entryEditor.delete}
+    </Stack.Toolbar.MenuAction>
+  </Stack.Toolbar.Menu>
+</Stack.Toolbar>`,
+	D: `// Ring: react-native-svg (al geïnstalleerd) + Reanimated voor de veer
+import Animated, { useAnimatedProps, withSpring } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
+const ACircle = Animated.createAnimatedComponent(Circle);
+
+const mine = useDerivedValue(() => withSpring(kcal / goal, { damping: 18 }));
+const props = useAnimatedProps(() => ({
+  strokeDasharray: [mine.value * C, C],
+}));
+<Svg viewBox="0 0 260 260" style={{ transform: [{ rotate: "-90deg" }] }}>
+  <Circle r={110} cx={130} cy={130} stroke={colors.surface2} strokeWidth={22} fill="none" />
+  <Circle ... stroke={colors.textMuted} strokeDasharray={[eatenRatio * C, C]} />
+  <ACircle ... stroke={colors.accentFill} strokeDashoffset={-eatenRatio * C}
+           animatedProps={props} strokeLinecap="round" />
+</Svg>
+// Bestaande progress-ring.ios.tsx (SwiftUI Gauge) is een alternatief.
+
+// Slider: native SwiftUI, krijgt automatisch de iOS 26 glass-thumb
+import { Host, Slider } from "@expo/ui/swift-ui";
+<Host matchContents colorScheme={scheme} seedColor={colors.accent}>
+  <Slider value={quantity} min={0.25} max={4} step={0.25}
+          onValueChange={(q) => { setQuantity(q); Haptics.selectionAsync(); }} />
+</Host>
+
+// Dagdata: hergebruik de query die nutrition-day al gebruikt
+const day = useNutritionDay(nextDate);          // al-gegeten zonder dit item
+const eaten = day.totals.energy - entry.nutrients.energy;
+
+// Onderbalk: identiek aan B (Stack.Toolbar placement="bottom")`,
+	E: `// Zin met glass-tokens die samensmelten met hun paneel (morph)
+import { Host, HStack, VStack, Button, Text, GlassEffectContainer, Namespace } from "@expo/ui/swift-ui";
+import { glassEffect, glassEffectId, buttonStyle, font } from "@expo/ui/swift-ui/modifiers";
+
+<Host matchContents colorScheme={scheme} seedColor={colors.accent}>
+  <Namespace id="entry">
+    <GlassEffectContainer spacing={20}>
+      <VStack alignment="leading" spacing={12}>
+        {/* zinsdelen per taal uit i18n, niet hardcoded volgorde */}
+        <Text modifiers={[font({ textStyle: "largeTitle", weight: "bold" })]}>
+          {t.nutrition.entryEditor.sentence.prefix}
+        </Text>
+        <Button label={quantityLabel} onPress={() => toggle("q")}
+                modifiers={[buttonStyle("glass"), glassEffectId("q", "entry")]} />
+        <Button label={mealLabel} onPress={() => toggle("meal")}
+                modifiers={[buttonStyle("glass"), glassEffectId("meal", "entry")]} />
+
+        {open === "q" && (
+          <HStack spacing={8} modifiers={[
+            glassEffect({ glass: { variant: "regular", interactive: true },
+                          shape: "roundedRectangle", cornerRadius: 30 }),
+            glassEffectId("q", "entry"),     // zelfde id → token "groeit" tot paneel
+          ]}>
+            {PRESETS.map((p) => (
+              <Button key={p} label={formatQuantity(p, locale)}
+                      onPress={() => setQuantity(p)}
+                      modifiers={[buttonStyle(p === quantity ? "glassProminent" : "glass")]} />
+            ))}
+          </HStack>
+        )}
+      </VStack>
+    </GlassEffectContainer>
+  </Namespace>
+</Host>
+
+// i18n: zin als template met slots, want NL/EN-volgorde verschilt
+// en: "I had {quantity} of {food} for {meal} {day}."
+// nl: "Ik at {quantity} {food} bij {meal} {day}."`,
+};
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/(\/\/.*)$/gm, '<span class="c">$1</span>').replace(/(\{\/\*.*?\*\/\})/g, '<span class="c">$1</span>');
+document.getElementById("shared-code").innerHTML = esc(CODE.shared);
+
+const grid = document.getElementById("grid");
+let menuEl = null;
+const openCode = new Set();
+grid.addEventListener("toggle", (e) => { const id = e.target.dataset?.code; if (id) e.target.open ? openCode.add(id) : openCode.delete(id); }, true);
+function render() {
+	const scrolls = [...grid.querySelectorAll(".scroll")].map((s) => s.scrollTop);
+	grid.innerHTML = DIRS.map((d) => `<section class="dir"><div class="tag">${d.tag}</div><h2>${d.name}</h2><p class="pitch">${d.pitch}</p>${d.fn()}<div class="notes">${d.notes}</div><details class="code" ${openCode.has(d.id) ? "open" : ""} data-code="${d.id}"><summary>Expo-implementatie (code)</summary><pre>${esc(CODE[d.id])}</pre></details></section>`).join("");
+	grid.querySelectorAll(".scroll").forEach((s, i) => (s.scrollTop = scrolls[i] ?? 0));
+	syncRuler();
+}
+
+let rulerLock = false;
+function syncRuler() {
+	const t = grid.querySelector("[data-ruler]"); if (!t) return;
+	rulerLock = true;
+	t.scrollLeft = (state.q / 0.25 - 1) * 14;
+	requestAnimationFrame(() => (rulerLock = false));
+	let timer;
+	t.addEventListener("scroll", () => {
+		if (rulerLock) return;
+		const q = clamp((Math.round(t.scrollLeft / 14) + 1) * 0.25);
+		const num = grid.querySelector("#bnum");
+		if (q !== state.q) { state.q = q; if (num) num.textContent = frac(q); }
+		clearTimeout(timer); timer = setTimeout(render, 160);
+	});
+}
+
+function openMenu(btn, kind) {
+	closeMenu();
+	const phone = btn.closest(".phone");
+	const items = kind === "meal" ? MEALS.map((m) => [m, state.meal === m, () => (state.meal = m)])
+		: kind === "day" ? [...DAYS.map((d) => [d, state.day === d, () => (state.day = d)]), ["Andere datum…", false, () => {}]]
+		: [["Recept bekijken", false, () => {}], ["Exacte hoeveelheid…", false, () => {}], ["Verwijderen", false, () => alert("Bevestiging: ‘Test 2 verwijderen uit lunch?’"), true]];
+	menuEl = document.createElement("div");
+	menuEl.className = "menu glass";
+	menuEl.innerHTML = items.map(([l, on, , danger], i) => `<button data-i="${i}" ${danger ? 'style="color:var(--danger)"' : ""}><span class="chk">${on ? I.check.replace("<svg", '<svg width="16" height="16"') : ""}</span>${l}</button>`).join("");
+	const pr = phone.getBoundingClientRect(), br = btn.getBoundingClientRect();
+	phone.appendChild(menuEl);
+	const h = menuEl.offsetHeight;
+	let top = br.bottom - pr.top + 8; if (top + h > pr.height - 30) top = br.top - pr.top - h - 8;
+	menuEl.style.top = top + "px";
+	if (br.left - pr.left > pr.width / 2) menuEl.style.right = pr.right - br.right + "px"; else { menuEl.style.left = br.left - pr.left + "px"; menuEl.style.transformOrigin = top < br.top - pr.top ? "bottom left" : "top left"; }
+	menuEl.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; items[+b.dataset.i][2](); closeMenu(); render(); });
+}
+function closeMenu() { menuEl?.remove(); menuEl = null; }
+
+grid.addEventListener("click", (e) => {
+	const t = e.target.closest("button"); if (!t) { closeMenu(); return; }
+	if (t.closest(".menu")) return;
+	const d = t.dataset;
+	if (d.menu) { e.stopPropagation(); return openMenu(t, d.menu); }
+	closeMenu();
+	if (d.q) state.q = +d.q;
+	else if (d.meal) state.meal = d.meal;
+	else if (d.day) state.day = d.day;
+	else if (d.tok) state.open.E = state.open.E === d.tok ? null : d.tok;
+	else if (d.act === "inc") state.q = clamp(state.q + 0.25);
+	else if (d.act === "dec") state.q = clamp(state.q - 0.25);
+	else if (d.act === "exact") { const v = prompt("Porties", fmt(state.q)); if (v) state.q = Math.max(0.01, +v.replace(",", ".") || state.q); }
+	else if (d.act === "delete") return alert("Bevestiging: ‘Test 2 verwijderen uit lunch op 3 okt?’");
+	else if (d.act === "save") { Object.assign(ORIGINAL, { q: state.q, meal: state.meal, day: state.day }); state.open.E = null; }
+	else return;
+	if (navigator.vibrate) navigator.vibrate(8);
+	render();
+});
+grid.addEventListener("input", (e) => { if (e.target.matches("[data-range]")) { state.q = +e.target.value; render(); grid.querySelector("[data-range]")?.focus(); } });
+document.addEventListener("click", (e) => { if (!e.target.closest(".phone")) closeMenu(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMenu(); state.open.E = null; render(); } });
+
+for (const id of ["light", "dark"]) document.getElementById(id).addEventListener("click", () => {
+	document.body.classList.toggle("dark", id === "dark");
+	document.getElementById("light").setAttribute("aria-pressed", id === "light");
+	document.getElementById("dark").setAttribute("aria-pressed", id === "dark");
+});
+render();
+</script>
+</body>
+</html>
