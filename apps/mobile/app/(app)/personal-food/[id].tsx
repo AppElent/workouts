@@ -9,19 +9,24 @@ import { PersonalFoodEditor } from "../../../src/screens/personal-food-editor";
 
 export { ErrorBoundary } from "../nutrition-library";
 
+/** Deep links can open the editor with nothing beneath it. */
+const leave = () =>
+	router.canGoBack() ? router.back() : router.replace("/nutrition-library");
+
 export default function PersonalFoodRoute() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const library = usePersonalFoods();
 	const food = id ? library.find(id) : undefined;
 	useEffect(() => {
-		if (!food) router.back();
+		if (!food) leave();
 	}, [food]);
 	if (!food) return null;
 	return (
 		<PersonalFoodEditor
 			food={food}
-			onCancel={() => router.back()}
-			onSaved={() => router.back()}
+			chrome="route"
+			onCancel={leave}
+			onSaved={leave}
 		/>
 	);
 }

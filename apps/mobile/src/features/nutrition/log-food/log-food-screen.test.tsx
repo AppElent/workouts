@@ -429,13 +429,12 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(screen.getByLabelText("More food actions"));
 		fireEvent.press(screen.getByText("New Personal Food"));
 		fireEvent.changeText(screen.getByLabelText("Name"), "Training gel");
-		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "260");
-		fireEvent.press(screen.getByText("Custom servings"));
-		fireEvent.press(screen.getByText("Add serving"));
-		fireEvent.changeText(screen.getByLabelText("Serving 1 name"), "Pouch");
-		fireEvent.changeText(screen.getByLabelText("Serving 1 amount in g"), "40");
-		fireEvent.press(screen.getByText("Add portion"));
-		fireEvent.press(screen.getByText("Save"));
+		fireEvent.changeText(screen.getByLabelText("Energy"), "260");
+		fireEvent.press(screen.getByLabelText("Add serving"));
+		fireEvent.changeText(screen.getByLabelText("Serving name"), "Pouch");
+		fireEvent.changeText(screen.getByLabelText("Serving amount"), "40");
+		fireEvent.press(screen.getByText("Add"));
+		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		expect((await servingPreview()).getByText("Pouch × 1")).toBeTruthy();
 		expect((await servingPreview()).getByText("104 kcal")).toBeTruthy();
@@ -458,7 +457,7 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(screen.getByLabelText("More food actions"));
 		fireEvent.press(screen.getByText("New Personal Food"));
 		fireEvent.changeText(screen.getByLabelText("Name"), "Morning mix");
-		fireEvent.press(screen.getByText("Save"));
+		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		// The serving sheet opens over the results, so the new food's name is
 		// both the sheet's title and the row behind it.
 		await screen.findAllByText("Morning mix");
@@ -466,7 +465,7 @@ describe("browsing shipped foods", () => {
 
 		fireEvent.press(await screen.findByText("Edit Personal Food"));
 		fireEvent.changeText(screen.getByLabelText("Name"), "Morning oats");
-		fireEvent.press(screen.getByText("Save"));
+		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		expect((await screen.findAllByText("Morning oats")).length).toBeGreaterThan(
 			0,
 		);

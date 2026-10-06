@@ -13,6 +13,10 @@ import { useToast } from "../../src/ui/toast";
 
 export { ErrorBoundary } from "./nutrition-library";
 
+/** Deep links can open the editor with nothing beneath it. */
+const leave = () =>
+	router.canGoBack() ? router.back() : router.replace("/nutrition-library");
+
 export default function PersonalFoodNewRoute() {
 	const { classification, barcode } = useLocalSearchParams<{
 		classification?: string;
@@ -64,8 +68,9 @@ export default function PersonalFoodNewRoute() {
 						}
 					: undefined
 			}
-			onCancel={() => router.back()}
-			onSaved={() => router.back()}
+			chrome="route"
+			onCancel={leave}
+			onSaved={leave}
 		/>
 	);
 }
