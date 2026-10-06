@@ -374,7 +374,7 @@ export const en = {
 			per100: "Nutrition per 100",
 			states: { absent: "Not available", trace: "Trace", value: "Amount" },
 			servings: "Servings",
-			servingsHelp: "Add up to three familiar amounts in the base unit.",
+			servingsHelp: "Add familiar amounts in the base unit.",
 			englishLabel: "English label",
 			dutchLabel: "Dutch label",
 			amountIn: "amount in",

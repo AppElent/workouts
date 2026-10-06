@@ -56,7 +56,6 @@ export {
 	forkSource,
 	isFork,
 	type LocalFoodLike,
-	MAX_FORK_SERVINGS,
 } from "./fork";
 export {
 	editedGoalCount,

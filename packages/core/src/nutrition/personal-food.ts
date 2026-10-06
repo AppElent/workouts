@@ -273,8 +273,8 @@ export function validatePersonalFoodDraft(
 	} else {
 		throw new Error("Personal Food nutrition basis is invalid.");
 	}
-	if (!Array.isArray(draft.servings) || draft.servings.length > 3) {
-		throw new Error("A Personal Food can have up to three Servings.");
+	if (!Array.isArray(draft.servings)) {
+		throw new Error("Personal Food Servings must be a list.");
 	}
 	const nutrients = {} as Record<NutrientKey, NutrientValue>;
 	for (const key of NUTRIENT_KEYS) {

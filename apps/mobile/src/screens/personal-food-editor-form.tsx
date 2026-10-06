@@ -803,7 +803,7 @@ export function PersonalFoodEditorForm({
 								/>
 							))
 						: null}
-					{servingsOpen && servings.length < 3 && !addingServing ? (
+					{servingsOpen && !addingServing ? (
 						<AddRow label={copy.addServing} onPress={beginAddingServing} />
 					) : null}
 					{servingsOpen && addingServing ? (

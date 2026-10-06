@@ -369,17 +369,20 @@ describe("PersonalFoodRepository public behavior", () => {
 		expect(found?.servings).toHaveLength(3);
 	});
 
+	it("keeps more than three Servings", () => {
+		const database = new SQLiteTestDatabase();
+		const repository = createPersonalFoodRepository(database);
+		const servings = [
+			...draft().servings,
+			{ label: { en: "Fourth", nl: "Vierde" }, amount: 20 },
+		];
+
+		const created = repository.create(draft({ servings }));
+
+		expect(repository.find(created.id)?.servings).toEqual(servings);
+	});
+
 	it.each([
-		[
-			"a fourth Serving",
-			draft({
-				servings: [
-					...draft().servings,
-					{ label: { en: "Fourth", nl: "Vierde" }, amount: 20 },
-				],
-			}),
-			"up to three",
-		],
 		[
 			"a non-positive Serving amount",
 			draft({

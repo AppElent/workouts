@@ -363,7 +363,7 @@ export const nl = {
 			},
 			servings: "Porties",
 			servingsHelp:
-				"Voeg maximaal drie bekende hoeveelheden in de basiseenheid toe.",
+				"Voeg bekende hoeveelheden in de basiseenheid toe.",
 			englishLabel: "Engels label",
 			dutchLabel: "Nederlands label",
 			amountIn: "hoeveelheid in",
