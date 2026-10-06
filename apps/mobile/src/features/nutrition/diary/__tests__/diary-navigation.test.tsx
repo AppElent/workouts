@@ -287,9 +287,7 @@ describe("Nutrition navigation", () => {
 		fireEvent.press(await screen.findByText("Food library"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-library"));
-		expect(await screen.findByText("Personal foods")).toBeTruthy();
-		expect(screen.getByText("Combos")).toBeTruthy();
-		expect(screen.getByText("Recipes")).toBeTruthy();
+		expect(await screen.findByText("Your own foods live here")).toBeTruthy();
 
 		testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
@@ -365,7 +363,7 @@ describe("Nutrition navigation", () => {
 		});
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Breakfast"));
 		await waitFor(() =>
 			expect(app.getSearchParams()).toMatchObject({

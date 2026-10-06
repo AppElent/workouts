@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
-export type GoalsMenuItem = {
+export type NutritionChoiceMenuItem = {
 	id: string;
 	label: string;
 	/** A second, quieter line under the label. */
@@ -12,10 +12,10 @@ export type GoalsMenuItem = {
 };
 
 /** A visible menu trigger whose items are the row's or section's actions. */
-export type GoalsMenuProps = {
+export type NutritionChoiceMenuProps = {
 	accessibilityLabel: string;
 	title?: string;
-	sections: readonly (readonly GoalsMenuItem[])[];
+	sections: readonly (readonly NutritionChoiceMenuItem[])[];
 	onSelect: (id: string) => void;
 	disabled?: boolean;
 	children: ReactNode;

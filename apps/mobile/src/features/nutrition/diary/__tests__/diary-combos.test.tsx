@@ -256,7 +256,7 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Morning Combo"));
 		fireEvent.press(screen.getByText("Dinner"));
 		fireEvent.press(screen.getByText("Log 1 part"));
@@ -303,7 +303,7 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Breakfast"));
 		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
 		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
@@ -338,7 +338,7 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Morning Combo"));
 		const wholeScale = screen.getByLabelText("Scale this Combo");
 		const partScale = screen.getByLabelText("Scale Oats");
@@ -380,7 +380,7 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Breakfast"));
 		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
 		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
@@ -434,7 +434,7 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Current oats"));
 		fireEvent.press(screen.getByText("Log 1 part"));
 		await screen.findByText("Today");
@@ -471,7 +471,7 @@ describe("Nutrition Combos", () => {
 		await screen.findByText("Today");
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Morning Combo"));
 
 		fireEvent.press(screen.getByText("Log 1 part"));
@@ -534,8 +534,11 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
-		fireEvent.press(await screen.findByText("Old breakfast"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
+		// The attention line names it too; the row is the last match.
+		fireEvent.press(
+			(await screen.findAllByText("Old breakfast")).at(-1) as never,
+		);
 
 		expect(screen.getByText("Needs attention")).toBeTruthy();
 		expect(screen.getByText("Log 1 part")).toBeDisabled();
@@ -570,8 +573,11 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
-		fireEvent.press(await screen.findByText("Available breakfast"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
+		// The attention line names it too; the row is the last match.
+		fireEvent.press(
+			(await screen.findAllByText("Available breakfast")).at(-1) as never,
+		);
 		expect(screen.getByText("Log 2 parts")).toBeDisabled();
 
 		fireEvent.press(screen.getByLabelText("Exclude Milk"));
@@ -606,8 +612,9 @@ describe("Nutrition Combos", () => {
 		await screen.findByText("Today");
 		fireEvent.press(screen.getByLabelText("More nutrition tools"));
 		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press(await screen.findByText("Combos"));
-		fireEvent.press(await screen.findByText("Repair me"));
+		fireEvent.press((await screen.findAllByText("Combos"))[0]);
+		// The attention line names it too; the row is the last match.
+		fireEvent.press((await screen.findAllByText("Repair me")).at(-1) as never);
 
 		fireEvent.press(screen.getByText("Remove unavailable parts"));
 		expect(await screen.findByText("Remove unavailable parts?")).toBeTruthy();
@@ -626,7 +633,6 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(await screen.findByLabelText("Meer voedingsfuncties"));
 		fireEvent.press(await screen.findByText("Voedingsbibliotheek"));
-		fireEvent.press(await screen.findByText("Combo's"));
-		expect(screen.getByText("Nog geen combo's")).toBeTruthy();
+		expect(await screen.findByText("Hier staat je eigen voeding")).toBeTruthy();
 	});
 });

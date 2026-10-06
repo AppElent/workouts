@@ -12,11 +12,11 @@ import {
 } from "../../../../theme";
 import { SkeletonBlock, SkeletonGroup } from "../../../../ui/skeleton";
 import { AppText } from "../../../../ui/text";
+import { FoodRowLayout } from "../../components/food-row-layout";
 import { compactEnergyPer100, offFailureMessage } from "../log-food-captions";
 import type { LogFoodCopy } from "../log-food-copy";
 import type { OffSearchState } from "../use-off-search";
 import { LogFoodMediaSlot } from "./log-food-media-slot";
-import { LogFoodRowLayout } from "./log-food-row-layout";
 import { LogFoodSectionHeader } from "./log-food-section-header";
 
 /** How many products the section shows before "Show all". */
@@ -98,7 +98,7 @@ export function LogFoodOffSection({
 					<View style={styles.card}>
 						{(showAll ? state.drafts : state.drafts.slice(0, OFF_PREVIEW)).map(
 							(draft, index) => (
-								<LogFoodRowLayout
+								<FoodRowLayout
 									// biome-ignore lint/suspicious/noArrayIndexKey: products without a barcode have no other identity
 									key={`${draft.provenance.barcode ?? "off"}:${index}`}
 									leading={

@@ -47,10 +47,13 @@ import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
 import * as NutritionFoodDetailsRoute from "../../app/(app)/nutrition-food-details";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
+import * as NutritionLibraryAttentionRoute from "../../app/(app)/nutrition-library-attention";
 import * as NutritionNutrientSourcesRoute from "../../app/(app)/nutrition-nutrient-sources";
 import * as NutritionWeekGoalsRoute from "../../app/(app)/nutrition-week-goals";
 import * as NutritionWeekSourcesRoute from "../../app/(app)/nutrition-week-sources";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
+import * as PersonalFoodRoute from "../../app/(app)/personal-food/[id]";
+import * as PersonalFoodNewRoute from "../../app/(app)/personal-food-new";
 import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
 import {
@@ -132,6 +135,7 @@ export function renderApp(
 	seed?: (stores: {
 		draftRepository: NutritionDraftRepository;
 		nutritionRepository: NutritionLocalRepository;
+		personalFoods: ReturnType<typeof createPersonalFoodRepository>;
 	}) => void,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
@@ -142,7 +146,7 @@ export function renderApp(
 	const draftRepository = createNutritionDraftRepository(
 		new SQLiteTestDatabase(),
 	);
-	seed?.({ draftRepository, nutritionRepository });
+	seed?.({ draftRepository, nutritionRepository, personalFoods: repository });
 	function Layout() {
 		return (
 			<TestLayout
@@ -178,6 +182,9 @@ export function renderApp(
 			"nutrition-week-goals": NutritionWeekGoalsRoute as never,
 			"nutrition-week-sources": NutritionWeekSourcesRoute as never,
 			"nutrition-library": NutritionLibraryRoute as never,
+			"nutrition-library-attention": NutritionLibraryAttentionRoute as never,
+			"personal-food/[id]": PersonalFoodRoute as never,
+			"personal-food-new": PersonalFoodNewRoute as never,
 			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,
 			appearance: AppearanceRoute as never,

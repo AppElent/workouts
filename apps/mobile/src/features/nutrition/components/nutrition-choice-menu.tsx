@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
-import { radius, spacing, useTokens } from "../../../../theme";
-import { AppText } from "../../../../ui/text";
-import type { GoalsMenuProps } from "./goals-menu-props";
+import { radius, spacing, useTokens } from "../../../theme";
+import { AppText } from "../../../ui/text";
+import type { NutritionChoiceMenuProps } from "./nutrition-choice-menu-props";
 
 /** Android and web: the same items in a modal list until a Compose menu is verified. */
-export function GoalsMenu({
+export function NutritionChoiceMenu({
 	accessibilityLabel,
 	title,
 	sections,
@@ -13,7 +13,7 @@ export function GoalsMenu({
 	disabled,
 	children,
 	style,
-}: GoalsMenuProps) {
+}: NutritionChoiceMenuProps) {
 	const [open, setOpen] = useState(false);
 	const colors = useTokens();
 	return (

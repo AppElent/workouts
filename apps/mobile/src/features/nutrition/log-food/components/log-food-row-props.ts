@@ -1,6 +1,6 @@
 import type { RowAction } from "../../../../ui/swipeable-row";
+import type { FoodRowPosition } from "../../components/food-row-layout";
 import type { FoodSelection } from "../log-food-selection";
-import type { LogFoodRowPosition } from "./log-food-row-layout";
 
 /** One food in the results; shared by the iOS and the cross-platform row. */
 export interface LogFoodRowProps {
@@ -8,7 +8,7 @@ export interface LogFoodRowProps {
 	/** Source and per-100 figure, such as "NEVO · 151 kcal/100 g". */
 	caption: string;
 	locale: "en" | "nl";
-	position: LogFoodRowPosition;
+	position: FoodRowPosition;
 	quickLabel: string;
 	/** kcal of the remembered portion, such as "97 kcal". */
 	quickValue: string | undefined;

@@ -28,6 +28,7 @@ import {
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { foodPhotos } from "../../../data/food-photo-manager";
+import { comboEnergy } from "../../../data/nutrition-combo";
 import {
 	type DiaryEntry,
 	MEAL_SLOTS,
@@ -79,9 +80,10 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import type { FoodRowPosition } from "../components/food-row-layout";
+import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
-import { LogFoodChip } from "./components/log-food-chip";
 import { LogFoodComboRow } from "./components/log-food-combo-row";
 import { LogFoodDestinationMenu } from "./components/log-food-destination-menu";
 import { LogFoodEmptyState } from "./components/log-food-empty-state";
@@ -90,12 +92,10 @@ import { LogFoodMealSummary } from "./components/log-food-meal-summary";
 import type { LogFoodMenuProps } from "./components/log-food-menu-props";
 import { LogFoodOffSection } from "./components/log-food-off-section";
 import { LogFoodRow } from "./components/log-food-row";
-import type { LogFoodRowPosition } from "./components/log-food-row-layout";
 import { LogFoodSectionHeader } from "./components/log-food-section-header";
 import { LogFoodServingSheet } from "./components/log-food-serving-sheet";
 import { LogFoodToolbar } from "./components/log-food-toolbar";
 import {
-	comboEnergy,
 	compactEnergyPer100,
 	offFailureMessage,
 	quickEnergyAmount,
@@ -971,7 +971,7 @@ export function LogFoodScreen({
 							contentContainerStyle={styles.chipList}
 						>
 							{SCOPE_CHIPS.map(({ scope, copyKey }) => (
-								<LogFoodChip
+								<NutritionScopeChip
 									key={scope}
 									label={copy[copyKey]}
 									selected={filter === scope}
@@ -1068,7 +1068,7 @@ export function LogFoodScreen({
 					</View>
 				}
 				renderItem={({ item, index }) => {
-					const position: LogFoodRowPosition =
+					const position: FoodRowPosition =
 						items.length === 1
 							? "only"
 							: index === 0

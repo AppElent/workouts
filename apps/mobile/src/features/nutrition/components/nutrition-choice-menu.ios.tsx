@@ -13,13 +13,16 @@ import {
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
-import { useHostScheme, useTokens } from "../../../../theme";
-import type { GoalsMenuItem, GoalsMenuProps } from "./goals-menu-props";
+import { useHostScheme, useTokens } from "../../../theme";
+import type {
+	NutritionChoiceMenuItem,
+	NutritionChoiceMenuProps,
+} from "./nutrition-choice-menu-props";
 
 /** SwiftUI's button role, not an ARIA role. */
 const DESTRUCTIVE = "destructive" as const;
 
-function itemContent(item: GoalsMenuItem) {
+function itemContent(item: NutritionChoiceMenuItem) {
 	return item.hint
 		? [
 				<Text key="label">{item.label}</Text>,
@@ -29,7 +32,7 @@ function itemContent(item: GoalsMenuItem) {
 }
 
 /** SwiftUI `Menu`: choices carry the system checkmark, hints sit under labels. */
-export function GoalsMenu({
+export function NutritionChoiceMenu({
 	accessibilityLabel: label,
 	title,
 	sections,
@@ -37,7 +40,7 @@ export function GoalsMenu({
 	disabled: isDisabled = false,
 	children,
 	style,
-}: GoalsMenuProps) {
+}: NutritionChoiceMenuProps) {
 	const colors = useTokens();
 	return (
 		<Host matchContents colorScheme={useHostScheme()} style={style}>

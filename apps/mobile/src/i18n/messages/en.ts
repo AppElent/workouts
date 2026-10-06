@@ -1,5 +1,6 @@
 import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
+import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
 import { weekReviewEn } from "./week-review";
 /**
@@ -211,6 +212,7 @@ export const en = {
 			},
 		},
 		week: weekReviewEn,
+		library: foodLibraryEn,
 		goalEditor: {
 			...goalEditorEn,
 			presets: {

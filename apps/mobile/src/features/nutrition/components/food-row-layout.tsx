@@ -12,14 +12,14 @@ import {
 	type Tokens,
 	useThemedStyles,
 	useTokens,
-} from "../../../../theme";
-import { AppText } from "../../../../ui/text";
+} from "../../../theme";
+import { AppText } from "../../../ui/text";
 
 /** Where a row sits in its grouped card, which decides its corners and separator. */
-export type LogFoodRowPosition = "only" | "first" | "middle" | "last";
+export type FoodRowPosition = "only" | "first" | "middle" | "last";
 
 /** The corners a cell at `position` rounds, so a group of rows reads as one card. */
-export function logFoodCellCorners(position: LogFoodRowPosition) {
+export function foodCellCorners(position: FoodRowPosition) {
 	const top = position === "only" || position === "first";
 	const bottom = position === "only" || position === "last";
 	return {
@@ -41,7 +41,7 @@ const SEPARATOR_INSET = spacing.md + 38 + 12;
  * The + is its own hit target, separate from the row: tapping the row opens
  * the portion, tapping + logs at once. After a log it briefly shows ✓.
  */
-export function LogFoodRowLayout({
+export function FoodRowLayout({
 	leading,
 	title,
 	caption,
@@ -64,7 +64,7 @@ export function LogFoodRowLayout({
 	value?: string;
 	/** What `value` is for, such as "1 stuk". */
 	portion?: string;
-	position?: LogFoodRowPosition;
+	position?: FoodRowPosition;
 	/** False when a wrapper (a swipeable cell) already insets and rounds the row. */
 	inset?: boolean;
 	rowLabel?: string;
@@ -87,7 +87,7 @@ export function LogFoodRowLayout({
 			style={[
 				styles.row,
 				inset && styles.inset,
-				inset && logFoodCellCorners(position),
+				inset && foodCellCorners(position),
 			]}
 		>
 			{position === "middle" || position === "last" ? (

@@ -1,8 +1,11 @@
 import { StyleSheet, View } from "react-native";
 import { spacing } from "../../../../theme";
 import { SwipeableRow } from "../../../../ui/swipeable-row";
+import {
+	FoodRowLayout,
+	foodCellCorners,
+} from "../../components/food-row-layout";
 import { offProductCaption } from "../log-food-captions";
-import { LogFoodRowLayout, logFoodCellCorners } from "./log-food-row-layout";
 import { LogFoodRowLeading } from "./log-food-row-leading";
 import type { LogFoodRowProps } from "./log-food-row-props";
 
@@ -17,14 +20,14 @@ export function LogFoodRow(props: LogFoodRowProps) {
 	const { selection, locale } = props;
 	const name = selection.food.name[locale];
 	return (
-		<View style={[styles.cell, logFoodCellCorners(props.position)]}>
+		<View style={[styles.cell, foodCellCorners(props.position)]}>
 			<SwipeableRow
 				actions={props.actions}
 				menuTitle={name}
 				closeMenuLabel={props.closeMenuLabel}
 			>
 				{(accessibility) => (
-					<LogFoodRowLayout
+					<FoodRowLayout
 						leading={
 							<LogFoodRowLeading selection={selection} locale={locale} />
 						}

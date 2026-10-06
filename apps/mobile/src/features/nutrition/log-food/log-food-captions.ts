@@ -8,32 +8,10 @@ import type {
 	OffLookupOutcome,
 	OffSearchOutcome,
 } from "../../../data/open-food-facts";
-import type {
-	Combo,
-	PersonalFood,
-} from "../../../data/personal-food-repository";
+import type { PersonalFood } from "../../../data/personal-food-repository";
 import { fmt, type Messages } from "../../../i18n";
 
 import type { servingPreview } from "./log-food-selection";
-
-/**
- * A Combo's own kcal, summed from the snapshots it was saved with.
- *
- * A part's `nutrients` are already the figures for the amount that part logs —
- * the same values the diary prints per entry — so this sums them rather than
- * rescaling by `quantity`.
- */
-export function comboEnergy(combo: Combo): number | undefined {
-	let total = 0;
-	let known = false;
-	for (const part of combo.parts) {
-		const energy = part.snapshot.nutrients.energy;
-		if (energy.kind !== "value") continue;
-		known = true;
-		total += energy.amount;
-	}
-	return known ? roundForDisplay("energy", total) : undefined;
-}
 
 /**
  * The line under a result's name.

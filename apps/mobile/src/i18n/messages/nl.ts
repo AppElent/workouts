@@ -6,6 +6,7 @@
 import type { en } from "./en";
 import { entryEditorNl } from "./entry-editor";
 import { exerciseLibraryNl } from "./exercise-library";
+import { foodLibraryNl } from "./food-library";
 import { goalEditorNl } from "./goal-editor";
 import { weekReviewNl } from "./week-review";
 
@@ -201,6 +202,7 @@ export const nl = {
 			},
 		},
 		week: weekReviewNl,
+		library: foodLibraryNl,
 		goalEditor: {
 			...goalEditorNl,
 			presets: {

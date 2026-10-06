@@ -38,10 +38,10 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { ToastProvider } from "../../../ui/toast";
+import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { GoalNumberField } from "./components/goal-number-field";
 import { GoalKindLabel, GoalRow } from "./components/goal-row";
 import { GoalsKeyboardBar } from "./components/goals-keyboard-bar";
-import { GoalsMenu } from "./components/goals-menu";
 import { GoalsStartPicker } from "./components/goals-start-picker";
 import { goalsAppliesFrom } from "./goals-applies-from";
 import { type GoalFieldKey, useGoalsEditor } from "./use-goals-editor";
@@ -397,7 +397,7 @@ function GoalsEditor() {
 						) : null}
 						<SectionLabel>{copy.startingPoint}</SectionLabel>
 						<Card>
-							<GoalsMenu
+							<NutritionChoiceMenu
 								accessibilityLabel={`${copy.startingPoint}, ${presetLabel}, ${presetValue}`}
 								title={copy.presetMenuTitle}
 								sections={[
@@ -440,7 +440,7 @@ function GoalsEditor() {
 									</AppText>
 									<Value text={presetValue} />
 								</View>
-							</GoalsMenu>
+							</NutritionChoiceMenu>
 						</Card>
 						<AppText variant="footnote" style={footnoteStyle}>
 							{editor.preset ? copy.staticFooter : copy.customFooter}
@@ -509,7 +509,7 @@ function GoalsEditor() {
 																unit={NUTRIENT_UNITS[nutrient]}
 																error={editor.errors[nutrient]}
 																kind={
-																	<GoalsMenu
+																	<NutritionChoiceMenu
 																		accessibilityLabel={fmt(copy.kindMenu, {
 																			nutrient: nutrientName(nutrient),
 																		})}
@@ -520,7 +520,7 @@ function GoalsEditor() {
 																		<GoalKindLabel
 																			label={copy.kinds[kind].label}
 																		/>
-																	</GoalsMenu>
+																	</NutritionChoiceMenu>
 																}
 																fields={directions.map(
 																	(direction, position) => {

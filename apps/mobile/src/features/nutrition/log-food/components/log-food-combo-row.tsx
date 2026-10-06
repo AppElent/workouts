@@ -1,8 +1,8 @@
-import { LogFoodMediaSlot } from "./log-food-media-slot";
 import {
-	LogFoodRowLayout,
-	type LogFoodRowPosition,
-} from "./log-food-row-layout";
+	FoodRowLayout,
+	type FoodRowPosition,
+} from "../../components/food-row-layout";
+import { LogFoodMediaSlot } from "./log-food-media-slot";
 
 /** A Combo, on the same grid as a food: tile, name over parts, kcal, round +. */
 export function LogFoodComboRow({
@@ -20,14 +20,14 @@ export function LogFoodComboRow({
 	caption: string;
 	energy?: string;
 	portion?: string;
-	position: LogFoodRowPosition;
+	position: FoodRowPosition;
 	detailLabel: string;
 	onDetail: () => void;
 	logLabel: string;
 	onLog: () => void;
 }) {
 	return (
-		<LogFoodRowLayout
+		<FoodRowLayout
 			leading={
 				<LogFoodMediaSlot
 					symbol={{

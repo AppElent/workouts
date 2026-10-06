@@ -13,55 +13,59 @@ import {
 	FoodRowLayout,
 	foodCellCorners,
 } from "../../components/food-row-layout";
-import { offProductCaption } from "../log-food-captions";
-import { LogFoodRowLeading } from "./log-food-row-leading";
-import type { LogFoodRowProps } from "./log-food-row-props";
+import { LibraryRowLeading } from "./library-row-leading";
+import type { LibraryRowProps } from "./library-row-props";
 
 /**
- * iOS: the row's long press is the system context menu with the row lifted as
- * its preview (the diary's row contract). Swipe still reveals Favorite only,
- * and VoiceOver gets every action as a custom action.
+ * iOS: long press is the system context menu with the row lifted as its
+ * preview (the diary's row contract); swipe reveals Edit and Delete only.
  */
-export function LogFoodRow(props: LogFoodRowProps) {
-	const { selection, locale } = props;
+export function LibraryRow(props: LibraryRowProps) {
 	const colors = useTokens();
 	const scheme = useHostScheme();
-	const name = selection.food.name[locale];
-	// RN content in a SwiftUI host sizes to itself; pin it to the cell's width
-	// so every row spans the card instead of shrinking to its text.
 	const cellWidth = useWindowDimensions().width - 2 * spacing.md;
 	const row = (accessibility?: {
 		accessibilityActions: readonly { name: string; label: string }[];
-		onAccessibilityAction: FoodRowLayoutA11y;
+		onAccessibilityAction: NonNullable<
+			Parameters<typeof FoodRowLayout>[0]["onAccessibilityAction"]
+		>;
 	}) => (
 		<FoodRowLayout
-			leading={<LogFoodRowLeading selection={selection} locale={locale} />}
-			title={name}
-			caption={
-				selection.kind === "personal"
-					? offProductCaption(selection.food.provenance, props.caption)
-					: props.caption
+			leading={
+				<LibraryRowLeading selected={props.selected}>
+					{props.leading}
+				</LibraryRowLeading>
 			}
-			value={props.quickValue}
-			portion={props.quickPortion}
-			position={accessibility ? props.position : "only"}
+			title={props.title}
+			caption={props.caption}
+			value={props.value}
+			portion={props.basis}
+			position={
+				accessibility || props.selected !== undefined ? props.position : "only"
+			}
 			inset={false}
+			chevron={props.selected === undefined}
+			rowLabel={
+				props.selected === undefined
+					? undefined
+					: `${props.title}, ${props.selectLabel}`
+			}
 			onPress={props.onPress}
 			accessibilityActions={accessibility?.accessibilityActions}
 			onAccessibilityAction={accessibility?.onAccessibilityAction}
-			add={{
-				label: props.quickLabel,
-				busy: props.quickLogging,
-				done: props.justLogged,
-				onPress: props.onQuickLog,
-			}}
 		/>
 	);
+	if (props.selected !== undefined)
+		return (
+			<View style={[styles.cell, foodCellCorners(props.position)]}>
+				{row()}
+			</View>
+		);
 	return (
 		<View style={[styles.cell, foodCellCorners(props.position)]}>
 			<SwipeableRow
 				actions={props.actions}
-				menuTitle={name}
+				menuTitle={props.title}
 				closeMenuLabel={props.closeMenuLabel}
 			>
 				{(accessibility) => (
@@ -102,10 +106,6 @@ export function LogFoodRow(props: LogFoodRowProps) {
 		</View>
 	);
 }
-
-type FoodRowLayoutA11y = NonNullable<
-	Parameters<typeof FoodRowLayout>[0]["onAccessibilityAction"]
->;
 
 const styles = StyleSheet.create({
 	cell: {

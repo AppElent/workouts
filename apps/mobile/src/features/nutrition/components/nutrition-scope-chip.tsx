@@ -1,12 +1,12 @@
 import { Pressable, StyleSheet } from "react-native";
-import { radius, type Tokens, type, useThemedStyles } from "../../../../theme";
-import { AppText } from "../../../../ui/text";
+import { radius, type Tokens, type, useThemedStyles } from "../../../theme";
+import { AppText } from "../../../ui/text";
 
 /**
  * A scope chip. Scopes read as tabs over one list: they narrow what is shown,
  * they never change where a log goes — that is the title menu's job.
  */
-export function LogFoodChip({
+export function NutritionScopeChip({
 	label,
 	selected,
 	onPress,
