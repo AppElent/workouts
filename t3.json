@@ -4,10 +4,25 @@
 	"scripts": [
 		{
 			"name": "Copy .env.local into worktree",
-			"command": "Copy-Item -Force \"$env:T3CODE_PROJECT_ROOT/.env.local\" .env.local; Copy-Item -Force \"$env:T3CODE_PROJECT_ROOT/apps/mobile/.env.local\" apps/mobile/.env.local",
+			"command": "node scripts/copy-worktree-env.mjs",
 			"icon": "configure",
 			"runOnWorktreeCreate": true,
 			"async": false
+		},
+		{
+			"name": "Start Expo mobile",
+			"command": "pnpm --filter @workouts/mobile start:dev-client",
+			"icon": "play"
+		},
+		{
+			"name": "Start Expo iOS",
+			"command": "pnpm --filter @workouts/mobile ios --dev-client",
+			"icon": "play"
+		},
+		{
+			"name": "Start Expo Android",
+			"command": "pnpm --filter @workouts/mobile android --dev-client",
+			"icon": "play"
 		}
 	]
 }
