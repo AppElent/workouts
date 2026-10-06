@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Eten loggen — definitief</title>
+<style>
+:root {
+	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
+	--accent: #466400; --accentFill: #c8f73c; --onAccent: #0a0b09; --accentDim: rgba(70,100,0,.10);
+	--text: #1a2015; --muted: #535e49; --sep: rgba(60,62,50,.10); --border: rgba(26,32,21,.12);
+	--danger: #b42332; --warn: #865500;
+	--glass: rgba(255,255,255,.52); --glassStrong: rgba(255,255,255,.74);
+	--glassEdge: rgba(255,255,255,.85); --glassShadow: 0 10px 30px rgba(26,32,21,.14), 0 1px 3px rgba(26,32,21,.08);
+	--glassTint: rgba(200,247,60,.6); --key: rgba(255,255,255,.7); --kbd: #d4d7cf; --kbdKey: #fff;
+	--board: #dfe2d8; --ink: #1a2015;
+	--font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
+}
+body.dark {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --warn: #fbbf24;
+	--glass: rgba(40,44,38,.5); --glassStrong: rgba(48,52,45,.78);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.88); --key: rgba(70,75,66,.6); --kbd: #2b2d29; --kbdKey: #5a5d56;
+	--board: #050604; --ink: #f2f4ef;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body { font-family: var(--font); background: var(--board); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+.tnum { font-variant-numeric: tabular-nums; }
+svg.i { width: 1em; height: 1em; flex: 0 0 auto; }
+
+header.board { padding: 28px 32px 8px; display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+header.board h1 { font-size: 28px; margin: 0; letter-spacing: -.02em; }
+header.board p { margin: 6px 0 0; color: var(--muted); max-width: 78ch; line-height: 1.5; font-size: 14px; }
+.toggles { margin-left: auto; display: flex; gap: 8px; }
+.toggles button { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+.toggles button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+section.guide { margin: 8px 32px 0; padding: 16px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+section.guide h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+section.guide b { color: var(--ink); }
+section.guide ul { margin: 4px 0 0; padding-left: 18px; }
+code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; background: var(--surface2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+main.grid { display: flex; gap: 36px; padding: 24px 32px 64px; overflow-x: auto; align-items: flex-start; }
+.dir { flex: 0 0 auto; width: 393px; }
+.dir h2 { font-size: 19px; margin: 0 0 2px; letter-spacing: -.01em; }
+.dir .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.dir .pitch { font-size: 13.5px; color: var(--muted); line-height: 1.45; margin: 6px 0 14px; min-height: 78px; }
+.notes { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
+.notes b { color: var(--ink); }
+details.code { margin-top: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+details.code summary { cursor: pointer; padding: 12px 14px; font-size: 13px; font-weight: 700; color: var(--ink); }
+details.code pre { margin: 0; padding: 0 14px 14px; font: 11.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); white-space: pre; overflow-x: auto; }
+details.code pre .c { color: var(--muted); }
+
+/* phone */
+.phone { position: relative; width: 393px; height: 852px; border-radius: 55px; overflow: hidden; background: #000; box-shadow: 0 0 0 10px #1b1c1a, 0 0 0 11px #3a3c38, 0 30px 60px rgba(0,0,0,.3); isolation: isolate; user-select: none; -webkit-user-select: none; }
+.status { position: absolute; z-index: 30; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0 46px; font-weight: 600; font-size: 17px; color: var(--text); pointer-events: none; }
+.status .island { position: absolute; left: 50%; top: 11px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; }
+.status .icons { display: flex; gap: 6px; align-items: center; }
+.home { position: absolute; z-index: 60; bottom: 8px; left: 50%; width: 139px; margin-left: -70px; height: 5px; border-radius: 3px; background: var(--text); opacity: .9; pointer-events: none; }
+.behind { position: absolute; inset: 0; background: var(--bg); padding: 64px 16px 0; transform: scale(.93); transform-origin: top center; border-radius: 40px; }
+.behind .h { font-size: 34px; font-weight: 800; color: var(--text); margin: 8px 4px 12px; }
+.behind .ring { height: 130px; border-radius: 22px; background: linear-gradient(135deg, #c8f73c, #8fd16a 45%, #4fd1e3); }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.22); }
+body.dark .scrim { background: rgba(0,0,0,.45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 58px; z-index: 10; background: var(--bg); border-radius: 38px 38px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--text); opacity: .22; margin: 6px auto 0; flex: 0 0 auto; }
+
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%); box-shadow: var(--glassShadow), inset 0 1px 0 var(--glassEdge); border: .5px solid var(--glassEdge); }
+.glass.tint { background: var(--glassTint); color: var(--onAccent); }
+.press { transition: transform .18s cubic-bezier(.3,1.6,.5,1); }
+.press:active { transform: scale(.93); }
+.gbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; color: var(--text); }
+.navbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 0; }
+.navbar .title { flex: 1; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); line-height: 1.2; }
+.navbar .title small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.body { flex: 1; display: flex; flex-direction: column; padding-top: 14px; position: relative; }
+
+/* the C capsule dial */
+.dial { margin: 0 16px; height: 104px; border-radius: 999px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.dial .step { width: 84px; height: 84px; border-radius: 50%; background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.08); display: grid; place-items: center; font-size: 28px; color: var(--text); }
+body.dark .dial .step { background: #2a2e27; }
+.dial .num { flex: 1; text-align: center; color: var(--text); border-radius: 22px; padding: 6px 0; }
+.dial .num b { font-size: 44px; letter-spacing: -.04em; display: block; line-height: 1; }
+.dial .num span { font-size: 13px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; margin-top: 4px; }
+.dial .num .hint { color: var(--accent); font-weight: 600; }
+.dial .num.editing b { color: var(--accent); }
+.caret { display: inline-block; width: 3px; height: 38px; background: var(--accent); border-radius: 2px; margin-left: 3px; vertical-align: -4px; animation: blink 1s steps(1) infinite; }
+.ghost { opacity: .3; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.sum { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; padding: 0 16px; }
+.sum span { padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--muted); background: var(--surface); }
+.sum span.k { background: var(--accentFill); color: var(--onAccent); }
+.was { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+.was b { color: var(--text); font-weight: 600; }
+
+.toolbar { position: absolute; left: 16px; right: 16px; bottom: 30px; z-index: 20; display: flex; gap: 10px; align-items: center; }
+.toolbar .cap { height: 50px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 18px; font-weight: 600; font-size: 16px; color: var(--text); }
+
+/* unit chips (opt 1) */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 14px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { flex: 0 0 auto; height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.chips button small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.chips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+.chips button[aria-pressed="true"] small { color: var(--onAccent); opacity: .7; }
+.badge { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
+
+/* wheel (opt 1) */
+.wheelbox { margin: 0 16px; border-radius: 34px; padding: 10px 12px 12px; position: relative; animation: pop .25s cubic-bezier(.3,1.3,.5,1); }
+.wheels { display: flex; justify-content: center; gap: 4px; position: relative; height: 200px; }
+.wheels::before { content: ""; position: absolute; left: 6px; right: 6px; top: 80px; height: 40px; border-radius: 12px; background: var(--accentDim); pointer-events: none; }
+.wheel { width: 96px; height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); }
+.wheel::-webkit-scrollbar { display: none; }
+.wheel div { height: 40px; display: grid; place-items: center; scroll-snap-align: center; font-size: 23px; font-weight: 600; color: var(--text); }
+.wheel .padw { height: 80px; scroll-snap-align: none; }
+.wheel-unit { align-self: center; font-size: 17px; font-weight: 600; color: var(--muted); width: 104px; padding-left: 4px; }
+.wheelbar { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 8px; font-size: 13px; color: var(--muted); }
+.done { height: 36px; padding: 0 16px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } }
+
+/* unit menu pill (opt 2) */
+.unitpill { align-self: center; margin-top: 14px; height: 40px; padding: 0 16px; border-radius: 999px; display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 15px; color: var(--text); }
+.unitpill small { color: var(--muted); font-weight: 500; }
+
+/* glass keypad (opt 2) */
+.keypad { position: absolute; left: 10px; right: 10px; bottom: 26px; z-index: 25; border-radius: 40px; padding: 12px; animation: up .3s cubic-bezier(.3,1.2,.5,1); }
+.keypad .top { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
+.keypad .top .lbl { flex: 1; font-size: 13px; color: var(--muted); }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.keys button { height: 54px; border-radius: 999px; background: var(--key); font-size: 24px; font-weight: 500; color: var(--text); display: grid; place-items: center; box-shadow: inset 0 1px 0 var(--glassEdge); }
+.keys button.fr { background: var(--accentDim); color: var(--accent); font-weight: 700; font-size: 22px; }
+.keys button.ok { background: var(--accentFill); color: var(--onAccent); font-size: 16px; font-weight: 700; grid-row: span 2; height: auto; border-radius: 30px; }
+@keyframes up { from { transform: translateY(40%); opacity: 0; } }
+
+/* unit cards (opt 3) */
+.cards { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px calc(50% - 52px) 16px; scrollbar-width: none; }
+.cards::-webkit-scrollbar { display: none; }
+
+/* system keyboard mock (opt 3) */
+.kbdwrap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.acc { display: flex; gap: 8px; padding: 8px 10px; align-items: center; }
+.acc button { height: 40px; padding: 0 16px; border-radius: 999px; font-weight: 600; font-size: 15px; color: var(--text); }
+.acc .sp { flex: 1; }
+.kbd { background: var(--kbd); padding: 8px 6px 46px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.kbd button { height: 48px; border-radius: 9px; background: var(--kbdKey); font-size: 26px; color: var(--text); box-shadow: 0 1px 0 rgba(0,0,0,.25); display: grid; place-items: center; }
+.kbd button.fn { background: transparent; box-shadow: none; font-size: 22px; }
+
+/* ruler (opt 4) */
+.ruler { position: relative; margin-top: 18px; height: 104px; }
+.ruler .track { height: 104px; overflow-x: scroll; scroll-snap-type: x mandatory; scrollbar-width: none; display: flex; align-items: flex-end; mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); }
+.ruler .track::-webkit-scrollbar { display: none; }
+.tick { flex: 0 0 12px; height: 16px; display: flex; justify-content: center; scroll-snap-align: center; position: relative; }
+.tick::before { content: ""; width: 2px; height: 100%; border-radius: 1px; background: var(--muted); opacity: .4; }
+.tick.m { height: 26px; } .tick.m::before { opacity: .75; }
+.tick.lm { height: 40px; } .tick.lm::before { background: var(--accent); opacity: 1; width: 3px; }
+.tick .lml { position: absolute; bottom: 46px; font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.tick .ml { position: absolute; top: -18px; font-size: 11px; color: var(--muted); }
+.ruler .pad { flex: 0 0 calc(50% - 6px); }
+.ruler .needle { position: absolute; left: 50%; bottom: 0; width: 4px; height: 58px; margin-left: -2px; border-radius: 2px; background: var(--text); pointer-events: none; }
+.lmchips { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; padding: 0 16px; }
+.lmchips button { height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text); }
+.lmchips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+
+/* menu */
+.menu { position: absolute; z-index: 70; min-width: 220px; border-radius: 26px; padding: 6px; animation: pop .22s cubic-bezier(.3,1.4,.5,1); background: var(--glassStrong); }
+.menu button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 18px; font-size: 16px; color: var(--text); text-align: left; }
+.menu button small { margin-left: auto; color: var(--muted); font-size: 13px; }
+.menu .chk { width: 16px; color: var(--accent); display: grid; place-items: center; }
+.menu hr { border: 0; height: .5px; background: var(--sep); margin: 4px 10px; }
+
+/* ——— nutrition board ——— */
+.sec-h { font-size: 13px; color: var(--muted); margin: 20px 20px 7px; }
+.sec-f { font-size: 12.5px; color: var(--muted); margin: 7px 20px 0; line-height: 1.4; }
+.group { background: var(--surface); border-radius: 22px; margin: 0 16px; overflow: hidden; }
+.rowf { min-height: 50px; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--text); font-size: 16px; position: relative; width: 100%; text-align: left; }
+.rowf + .rowf::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: .5px; background: var(--sep); }
+.rowf .val { margin-left: auto; color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.rowf .val.m { color: var(--muted); font-weight: 400; }
+.rowf input { margin-left: auto; text-align: right; border: 0; background: none; font: inherit; color: var(--text); width: 60%; outline: none; }
+.seg { display: flex; background: var(--surface2); border-radius: 999px; padding: 2px; margin: 0 16px; }
+.seg button { flex: 1; height: 32px; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,.12); font-weight: 600; }
+body.dark .seg button[aria-pressed="true"] { background: #3a3e36; }
+.optcard { text-align: left; width: calc(100% - 32px); }
+.tabsbar { display: flex; gap: 6px; padding: 0 32px; flex-wrap: wrap; position: sticky; top: 0; z-index: 90; background: var(--board); padding-top: 10px; padding-bottom: 10px; }
+.tabsbar button { padding: 9px 15px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.tabsbar button[aria-pressed="true"] { background: var(--accentFill); color: var(--onAccent); border-color: transparent; }
+.screenintro { margin: 6px 32px 0; max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.screenintro b { color: var(--ink); }
+.root { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; z-index: 5; }
+.root .content { flex: 1; overflow-y: auto; padding: 54px 0 120px; scrollbar-width: none; }
+.root .content::-webkit-scrollbar { display: none; }
+.lt { display: flex; align-items: flex-end; justify-content: space-between; padding: 8px 20px 6px; }
+.lt h1 { font-size: 34px; font-weight: 800; letter-spacing: -.025em; margin: 0; color: var(--text); }
+.lt h1 small { display: block; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.lt .acts { display: flex; gap: 8px; }
+.tabbar { position: absolute; z-index: 20; left: 16px; right: 16px; bottom: 26px; height: 62px; border-radius: 999px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px; }
+.tabbar span { display: flex; flex-direction: column; align-items: center; font-size: 10.5px; font-weight: 600; color: var(--muted); gap: 2px; padding: 6px 12px; border-radius: 999px; }
+.tabbar span svg { width: 22px; height: 22px; }
+.tabbar span.on { color: var(--accent); background: var(--accentDim); }
+.card { background: var(--surface); border-radius: 24px; margin: 0 16px; color: var(--text); }
+.cardpad { padding: 14px 16px; }
+.sh { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 20px 7px; font-size: 13px; color: var(--muted); }
+.sh b { font-size: 17px; color: var(--text); font-weight: 700; }
+.sh .add { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); background: var(--accentDim); font-size: 16px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; position: relative; color: var(--text); font-size: 15.5px; width: 100%; text-align: left; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 64px; right: 0; height: .5px; background: var(--sep); }
+.row.plain + .row.plain::before { left: 16px; }
+.row .t { flex: 1; min-width: 0; } .row .t small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.row .v { color: var(--muted); font-size: 14px; text-align: right; white-space: nowrap; }
+.row .v b { color: var(--text); font-weight: 600; }
+.fv { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 auto; font-size: 17px; background: var(--surface2); color: var(--text); }
+.chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--borderStrong, rgba(26,32,21,.25)); flex: 0 0 auto; display: grid; place-items: center; color: var(--onAccent); font-size: 13px; }
+.chk.on { background: var(--accentFill); border-color: var(--accentFill); }
+.mutedline { font-size: 12.5px; color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; } .bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.bar.warn i { background: var(--warn); }
+.datestrip { display: flex; gap: 6px; padding: 4px 16px 10px; }
+.datestrip span { flex: 1; text-align: center; padding: 6px 0 7px; border-radius: 14px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.datestrip span b { display: block; font-size: 17px; color: var(--text); margin-top: 1px; }
+.datestrip span.on { background: var(--accentFill); color: var(--onAccent); } .datestrip span.on b { color: var(--onAccent); }
+.datestrip span i { display: block; width: 4px; height: 4px; border-radius: 2px; background: var(--accent); margin: 3px auto 0; }
+.datestrip span.on i { background: var(--onAccent); }
+.selbar { position: absolute; z-index: 25; left: 12px; right: 12px; bottom: 26px; border-radius: 30px; padding: 8px; display: flex; gap: 4px; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.selbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--text); padding: 7px 0; border-radius: 20px; }
+.selbar button svg { width: 21px; height: 21px; }
+.selbar button.d { color: var(--danger); }
+.pillbtn { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+.ring { position: relative; display: grid; place-items: center; }
+.ring svg { transform: rotate(-90deg); }
+.ring .c { position: absolute; text-align: center; color: var(--text); }
+.ring .c b { display: block; font-size: 26px; letter-spacing: -.03em; line-height: 1; }
+.ring .c small { font-size: 11px; color: var(--muted); }
+.macros3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.macros3 div { font-size: 12px; color: var(--muted); }
+.macros3 b { display: block; font-size: 15px; color: var(--text); margin: 2px 0 5px; font-weight: 600; }
+.macros3 b small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.search { margin: 6px 16px 0; height: 44px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 16px; color: var(--muted); font-size: 16px; }
+.search svg { width: 18px; height: 18px; }
+.chipsrow { display: flex; gap: 6px; padding: 10px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+.chipsrow span { flex: 0 0 auto; padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text); background: var(--surface); }
+.chipsrow span.on { background: var(--text); color: var(--bg); }
+.plus { width: 32px; height: 32px; border-radius: 50%; background: var(--accentDim); color: var(--accent); display: grid; place-items: center; flex: 0 0 auto; }
+.plus svg { width: 16px; height: 16px; }
+.plus.on { background: var(--accentFill); color: var(--onAccent); }
+.tray { position: absolute; z-index: 25; left: 12px; right: 12px; bottom: 26px; border-radius: 30px; padding: 8px 8px 8px 18px; display: flex; align-items: center; gap: 10px; color: var(--text); }
+.tray .t { flex: 1; font-size: 13px; color: var(--muted); } .tray .t b { display: block; font-size: 15px; color: var(--text); }
+.tray .go { height: 46px; padding: 0 18px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; }
+.cam { margin: 0 16px; height: 230px; border-radius: 28px; background: radial-gradient(circle at 30% 30%, #5b6a4e, #1c2118); position: relative; overflow: hidden; display: grid; place-items: center; }
+.cam .frame { width: 220px; height: 110px; border-radius: 18px; border: 3px solid rgba(255,255,255,.9); box-shadow: 0 0 0 999px rgba(0,0,0,.25); }
+.cam .bc { position: absolute; width: 150px; height: 58px; background: repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px); opacity: .8; border-radius: 4px; }
+.cam .lbl { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; color: #fff; font-size: 13px; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px; }
+.tile { aspect-ratio: 1; border-radius: 22px; background: var(--surface); display: flex; flex-direction: column; justify-content: flex-end; padding: 10px; color: var(--text); position: relative; overflow: hidden; }
+.tile .em { position: absolute; top: 10px; left: 10px; font-size: 30px; }
+.tile b { font-size: 13px; line-height: 1.2; } .tile small { font-size: 11px; color: var(--muted); }
+.tile .kind { position: absolute; top: 9px; right: 9px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); background: var(--accentDim); padding: 2px 6px; border-radius: 999px; }
+.stack { display: flex; } .stack span { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; font-size: 13px; border: 2px solid var(--surface); margin-left: -8px; } .stack span:first-child { margin-left: 0; }
+.bigcount { padding: 16px; border-radius: 24px; background: var(--surface); color: var(--text); display: flex; flex-direction: column; gap: 4px; }
+.bigcount b { font-size: 30px; letter-spacing: -.03em; } .bigcount span { font-size: 13px; color: var(--muted); }
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding: 0 4px; position: relative; }
+.chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-weight: 600; height: 100%; justify-content: flex-end; }
+.chart .col i { width: 100%; border-radius: 8px; background: var(--accent); opacity: .85; }
+.chart .col i.over { background: var(--warn); } .chart .col i.none { background: var(--surface2); }
+.chart .col.on { color: var(--text); }
+.chart .band { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted); border-bottom: 1.5px dashed var(--muted); background: var(--accentDim); pointer-events: none; }
+.heat { display: grid; grid-template-columns: 82px repeat(7, 1fr); gap: 5px; align-items: center; font-size: 12px; color: var(--muted); }
+.heat .d { width: 22px; height: 22px; border-radius: 7px; margin: 0 auto; }
+.st-met { background: var(--accent); } .st-below { background: transparent; border: 2px solid var(--accent); box-sizing: border-box; } .st-over { background: var(--warn); } .st-none { background: var(--surface2); }
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; } .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; }
+.rings7 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; padding: 0 16px; }
+.rings7 > div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.insight { display: flex; gap: 12px; padding: 12px 14px; align-items: flex-start; font-size: 14px; line-height: 1.4; color: var(--text); }
+.insight + .insight { border-top: .5px solid var(--sep); }
+.insight .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; font-weight: 800; font-size: 13px; }
+.insight small { display: block; color: var(--muted); font-size: 12.5px; }
+.goalrow .v { color: var(--accent); font-weight: 600; font-size: 15px; }
+.kindtag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--surface2); color: var(--muted); margin-left: 6px; vertical-align: 1px; }
+.rangebar { position: relative; height: 30px; margin: 6px 0 2px; }
+.rangebar .tr { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--surface2); }
+.rangebar .fill { position: absolute; top: 13px; height: 4px; background: var(--accent); }
+.rangebar .th { position: absolute; top: 3px; width: 34px; height: 24px; margin-left: -17px; border-radius: 12px; background: rgba(255,255,255,.85); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+body.dark .rangebar .th { background: #d8dcd2; }
+.donut { display: flex; align-items: center; gap: 18px; }
+.split { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.split div { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; }
+.split div b { color: var(--text); font-weight: 600; } .split i { width: 10px; height: 10px; border-radius: 3px; }
+.label { border: 2px solid var(--text); border-radius: 6px; padding: 8px 12px; margin: 0 16px; background: var(--surface); color: var(--text); font-size: 14px; }
+.label h4 { margin: 0; font-size: 20px; font-weight: 900; border-bottom: 6px solid var(--text); padding-bottom: 4px; }
+.label .lr { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: .5px solid var(--text); }
+.label .lr.sub { padding-left: 14px; color: var(--muted); }
+.label .lr span:last-child { font-weight: 600; } .label .lr .tap { color: var(--accent); border-bottom: 1.5px dotted var(--accent); }
+.label .lr .tr2 { color: var(--muted); font-style: italic; font-weight: 500; }
+.steps { display: flex; gap: 6px; justify-content: center; margin: 4px 0 10px; } .steps i { width: 26px; height: 5px; border-radius: 3px; background: var(--surface2); } .steps i.on { background: var(--accent); }
+.hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0 4px; }
+.photo { width: 92px; height: 92px; border-radius: 28px; background: var(--accentDim); display: grid; place-items: center; font-size: 44px; position: relative; }
+.photo .cam2 { position: absolute; right: -4px; bottom: -4px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--text); }
+.photo .cam2 svg { width: 15px; height: 15px; }
+.bigname { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+.wizard-q { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.02em; padding: 4px 20px 2px; }
+.wizard-s { font-size: 14px; color: var(--muted); padding: 0 20px 14px; }
+.optcard { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 22px; background: var(--surface); margin: 0 16px 10px; border: 2px solid transparent; color: var(--text); font-size: 15px; }
+.optcard.on { border-color: var(--accent); } .optcard small { display: block; color: var(--muted); font-size: 12.5px; }
+.optcard .fv { width: 44px; height: 44px; font-size: 22px; }
+.acc2 { display: flex; gap: 6px; padding: 8px 10px; align-items: center; }
+.acc2 button { height: 38px; padding: 0 13px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--text); }
+.acc2 .sp { flex: 1; }
+.notecard { border: 1.5px dashed var(--border); background: transparent; }
+.combo-g { font-size: 11px; font-weight: 700; color: var(--accent); }
+.badge2 { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accentDim); color: var(--accent); }
+.dsheet { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 34px 34px 0 0; padding: 0 0 36px; box-shadow: 0 -10px 30px rgba(0,0,0,.18); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.dsheet .navbar .title { font-size: 16px; }
+.dimmer { position: absolute; inset: 0; z-index: 29; background: rgba(0,0,0,.25); }
+.kindlbl { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+.kindlbl.alt { background: var(--accentDim); color: var(--accent); } .kindlbl.flow { background: rgba(8,104,120,.12); color: #086878; }
+body.dark .kindlbl.flow { background: rgba(79,209,227,.14); color: #4fd1e3; }
+/* ——— round 2 additions ——— */
+.navbar2 { position: absolute; z-index: 22; top: 54px; left: 0; right: 0; height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+.navbar2 .ttl { position: absolute; left: 90px; right: 90px; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); opacity: 0; transition: opacity .15s; pointer-events: none; line-height: 1.15; }
+.navbar2 .ttl small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+.navbar2 .r { margin-left: auto; display: flex; gap: 8px; }
+.edge { position: absolute; z-index: 21; top: 0; left: 0; right: 0; height: 128px; pointer-events: none; background: linear-gradient(var(--bg) 62%, transparent); opacity: 0; transition: opacity .15s; }
+.collapsed .navbar2 .ttl, .collapsed .edge { opacity: 1; }
+.ltitle { padding: 0 20px 10px; transition: opacity .15s; }
+.ltitle h1 { font-size: 34px; font-weight: 800; letter-spacing: -.025em; margin: 0; color: var(--text); line-height: 1.1; }
+.ltitle small { display: block; font-size: 15px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+.collapsed .ltitle { opacity: 0; }
+.mh .t b { display: inline-flex; align-items: center; gap: 4px; }
+.mh .t b svg { width: 14px; height: 14px; color: var(--muted); }
+.mh .acts { display: flex; gap: 8px; align-items: center; }
+.mh .more { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); background: var(--surface2); }
+.mh .more svg { width: 16px; height: 16px; }
+.txtbtn { color: var(--accent); font-weight: 600; font-size: 15px; }
+.menu button svg { width: 19px; height: 19px; }
+.menu button.d { color: var(--danger); }
+.menu .mt { font-size: 12.5px; color: var(--muted); padding: 8px 14px 4px; }
+.menu .new { margin-left: auto; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); background: var(--accentDim); padding: 2px 6px; border-radius: 999px; }
+.ctx { position: absolute; inset: 0; z-index: 50; background: rgba(0,0,0,.12); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+body.dark .ctx { background: rgba(0,0,0,.4); }
+.ctx .lift { position: absolute; left: 16px; right: 16px; background: var(--surface); border-radius: 20px; box-shadow: 0 14px 40px rgba(0,0,0,.22); overflow: hidden; }
+.ctx .menu { left: 16px; width: 252px; animation: none; }
+.swacts { position: absolute; right: 0; top: 0; bottom: 0; display: flex; width: 156px; }
+.sw { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; font-weight: 600; color: #fff; }
+.sw svg { width: 20px; height: 20px; }
+.sw.e { background: #7d8478; } .sw.d { background: var(--danger); }
+.calg { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+.calg i { font-style: normal; font-size: 11px; color: var(--muted); font-weight: 700; padding: 4px 0; }
+.calg span { width: 36px; height: 36px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%; font-size: 16px; color: var(--text); }
+.calg span.on { background: var(--accentFill); color: var(--onAccent); font-weight: 700; }
+.calg span.lg { background: radial-gradient(circle at 50% 86%, var(--accent) 2px, transparent 2.6px); }
+.calg span.today { color: var(--accent); font-weight: 700; }
+.calh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--text); font-size: 16px; }
+.calh span { display: flex; gap: 18px; color: var(--accent); }
+.calh svg { width: 18px; height: 18px; }
+section.sect { padding: 20px 32px 0; }
+section.sect > h2 { font-size: 22px; margin: 0; letter-spacing: -.015em; }
+section.sect > p { margin: 6px 0 0; color: var(--muted); max-width: 90ch; line-height: 1.5; font-size: 14px; }
+section.sect > p b { color: var(--ink); }
+.phones { display: flex; gap: 36px; overflow-x: auto; padding: 16px 0 28px; align-items: flex-start; }
+.phones .pitch { min-height: 0; }
+.kindlbl.rec { background: var(--accentFill); color: var(--onAccent); }
+.kindlbl.state { background: var(--surface2); color: var(--muted); }
+/* ——— round 3 additions ——— */
+.bar.danger i { background: var(--danger); }
+.chev { color: var(--muted); display: grid; place-items: center; }
+.chev svg { width: 15px; height: 15px; }
+.grow { flex-direction: column; align-items: stretch; gap: 6px; padding: 11px 16px; }
+.grow + .grow::before { left: 16px; }
+.gl { display: flex; align-items: center; gap: 8px; }
+.gl .t small { display: inline; margin-left: 6px; }
+.gv { font-weight: 700; font-size: 16px; } .gv small { font-weight: 500; font-size: 13px; color: var(--muted); }
+.gs { font-size: 12.5px; }
+.gbar { position: relative; border-radius: 4px; background: var(--surface2); }
+.gbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.gbar.over i { background: var(--danger); }
+.gbar.inc i { background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 9px); opacity: .7; }
+.gbar b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 1px; }
+.gtiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 12px; }
+.gtile { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text); }
+.gtile b { font-size: 17px; } .gtile b small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.gtile > small { font-size: 11px; line-height: 1.25; }
+.dots { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--surface2); } .dots i.on { background: var(--muted); }
+.cv { text-align: right; display: flex; flex-direction: column; font-size: 14px; color: var(--text); }
+.cv small { font-size: 12px; color: var(--muted); }
+.share { position: absolute; left: 66px; right: 16px; bottom: 4px; height: 3px; }
+.share i { display: block; height: 100%; border-radius: 2px; background: var(--danger); opacity: .55; }
+.split4 { display: flex; gap: 3px; height: 10px; border-radius: 5px; overflow: hidden; }
+.lensbar { display: flex; align-items: center; gap: 10px; padding: 0 16px 6px; }
+.lensbar .mutedline { flex: 1; }
+.lens { height: 36px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); }
+.lens b { color: var(--danger); }
+.guide table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 6px; }
+.guide th, .guide td { border-top: 1px solid var(--border); padding: 7px 8px; text-align: left; vertical-align: top; color: var(--ink); }
+.guide th { color: var(--muted); font-weight: 600; }
+.impl { max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 0 0 10px; }
+.impl b { color: var(--ink); }
+section.sect details.code { max-width: 1180px; margin: 0 0 8px; }
+/* ——— log food round 2 ——— */
+.root.collapsed .navbar2 .ttl { pointer-events: auto; }
+.ttlbtn { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 17px; color: var(--text); }
+.ttlbtn svg { width: 13px; height: 13px; color: var(--muted); }
+.tb { position: absolute; left: 14px; right: 14px; bottom: 30px; z-index: 25; display: flex; gap: 8px; align-items: center; }
+.tb .search { flex: 1; margin: 0; height: 50px; color: var(--muted); }
+.tb .search.q { color: var(--text); }
+.tb .search > span:not(.clr):not(.caret2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.phones .pitch { min-height: 48px; }
+.menu button small { white-space: nowrap; }
+.tb .gbtn, .tb .grp { width: 50px; height: 50px; flex: 0 0 auto; }
+.tb .grp { width: auto; }
+.grp { display: flex; height: 50px; border-radius: 999px; padding: 0 3px; align-items: center; }
+.grp button { width: 44px; height: 44px; display: grid; place-items: center; font-size: 21px; color: var(--text); }
+.grp button.ai, .gbtn.ai { color: var(--accent); }
+.tb .sp { flex: 1; }
+.tb.up { bottom: 300px; }
+.caret2 { display: inline-block; width: 2px; height: 20px; background: var(--accent); margin-left: 1px; vertical-align: -4px; animation: blink 1s steps(1) infinite; }
+.clr { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); opacity: .55; display: grid; place-items: center; color: var(--bg); font-size: 11px; }
+.qkbd { position: absolute; left: 0; right: 0; bottom: 0; z-index: 24; height: 292px; background: var(--kbd); padding: 8px 3px 0; display: flex; flex-direction: column; gap: 11px; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.qkbd .kr { display: flex; gap: 6px; justify-content: center; }
+.qkbd .kr span { flex: 0 0 32px; height: 42px; border-radius: 6px; background: var(--kbdKey); box-shadow: 0 1px 0 rgba(0,0,0,.25); display: grid; place-items: center; font-size: 21px; color: var(--text); }
+.qkbd .kr span.w { flex: 0 0 44px; background: transparent; box-shadow: none; font-size: 15px; }
+.qkbd .kr span.sp { flex: 1 1 auto; font-size: 15px; }
+.qkbd .kr span.go { flex: 0 0 88px; background: var(--accentFill); color: var(--onAccent); font-size: 15px; font-weight: 600; }
+.qrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; position: relative; color: var(--text); font-size: 15.5px; width: 100%; text-align: left; }
+.qrow + .qrow::before { content: ""; position: absolute; top: 0; left: 66px; right: 0; height: .5px; background: var(--sep); }
+.qrow .t { flex: 1; min-width: 0; line-height: 1.25; }
+.qrow .t small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.qrow .qp { text-align: right; font-size: 12.5px; color: var(--muted); line-height: 1.3; white-space: nowrap; }
+.qrow .qp b { display: block; color: var(--text); font-weight: 600; font-size: 13.5px; }
+.qrow .plus { width: 34px; height: 34px; }
+.mealbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: 15px; color: var(--text); width: 100%; }
+.mealbar b { font-weight: 600; }
+.mealbar .chev { margin-left: auto; color: var(--accent); }
+.mealbar.flash { background: var(--accentDim); }
+.toast { position: absolute; z-index: 26; left: 14px; right: 14px; bottom: 92px; height: 50px; border-radius: 999px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 18px; font-size: 14.5px; color: var(--text); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.toast .t { flex: 1; } .toast button { height: 36px; padding: 0 14px; border-radius: 999px; color: var(--accent); font-weight: 700; }
+.toast .ok { color: var(--accent); display: grid; place-items: center; }
+.empty { text-align: center; padding: 26px 26px 18px; color: var(--text); }
+.empty .ic { width: 56px; height: 56px; border-radius: 18px; margin: 0 auto 12px; display: grid; place-items: center; background: var(--accentDim); color: var(--accent); font-size: 26px; }
+.empty b { display: block; font-size: 18px; margin-bottom: 4px; } .empty p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.offl { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+.offl svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 1px; }
+.linkish { color: var(--accent); font-weight: 600; }
+.linkish.off { color: var(--muted); opacity: .6; }
+.ol { margin: 6px 0 0; padding-left: 20px; } .ol li { margin: 4px 0; }
+.ol li b { color: var(--ink); }
+.swfav { position: absolute; right: 0; top: 0; bottom: 0; display: flex; width: 86px; }
+.sw.f { background: #c58a2b; }
+.selpill { height: 30px; padding: 0 10px; border-radius: 999px; background: var(--surface2); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; color: var(--text); white-space: nowrap; }
+.selpill svg { width: 12px; height: 12px; color: var(--muted); }
+.menu .mt b { color: var(--text); }
+</style>
+</head>
+<body>
+<header class="board">
+	<div>
+		<h1>Eten loggen · definitief</h1>
+		<p>Gekozen in <a href="index.html#log" style="color:var(--accent)">ronde 1</a> (A: zoeken onderaan), <a href="log_round2.html" style="color:var(--accent)">ronde 2</a> (werkbalk onderaan, titelmenu, + met ongedaan maken, rijgebaren, aanvullingen) en <a href="log_round3.html" style="color:var(--accent)">ronde 3</a> (Open Food Facts als eigen sectie, automatisch zodra de zoekterm af is). Patronen uit <a href="diary_final.html" style="color:var(--accent)">dagboek · definitief</a>.</p>
+	</div>
+	<div class="toggles" role="group" aria-label="Weergave"><button id="light" aria-pressed="true">Licht</button><button id="dark" aria-pressed="false">Donker</button></div>
+</header>
+<section class="guide">
+	<h3>Expo-bouwstenen (geïnstalleerd: expo 57.0.25, expo-router 57.0.23, @expo/ui 57.0.20, react-native-screens 4.26, gesture-handler 2.32)</h3>
+	<table>
+		<tr><th>Element</th><th>In de app</th><th>Waarom</th></tr>
+		<tr><td>Zoekveld onderaan</td><td><code>Stack.SearchBar</code> + <code>Stack.Toolbar.SearchBarSlot</code> (iOS 26+)</td><td>Systeem doet glas, toetsenbord-volgen en uitklappen; geen eigen capsule.</td></tr>
+		<tr><td>+ menu, scannen, beschrijven</td><td><code>Stack.Toolbar.Menu</code>, <code>Stack.Toolbar.Button</code></td><td>Dezelfde acties als <code>FoodBrowserMenu</code>, nu in de werkbalk.</td></tr>
+		<tr><td>Titelmenu ‘Lunch ⌄’</td><td>SwiftUI <code>Menu</code> in <code>headerTitle</code> (<code>Host matchContents</code>)</td><td>Zelfde idioom als het maaltijdmenu in het dagboek.</td></tr>
+		<tr><td>Kalender</td><td><code>headerRight</code> → <code>DatePickerSheet</code></td><td>Bestaat al.</td></tr>
+		<tr><td>Resultatenlijst</td><td><code>FlatList</code> (virtueel) + <code>FoodRow</code>/<code>LibraryRow</code></td><td>2.328 NEVO-items: geen SwiftUI <code>List</code>.</td></tr>
+		<tr><td>Vegen / lang indrukken</td><td><code>RowAction</code>-contract; <code>native-swipeable-row.ios</code>, Android <code>SwipeableRow</code></td><td>Eén actieset voor vegen, menu en VoiceOver.</td></tr>
+		<tr><td>Maaltijdregel (uitgeklapt)</td><td><code>InsetList</code>/<code>InsetRow</code> met <code>actions</code></td><td>Klein aantal items; zelfde rijcontract als het dagboek.</td></tr>
+		<tr><td>Toast met ongedaan maken</td><td><code>useToast()</code>, <b>uitbreiden</b> met <code>action</code></td><td>Geen tweede toastsysteem.</td></tr>
+		<tr><td>Portievenster, voedingsmiddel-editor</td><td>Bestaande <code>ServingDetail</code> (formSheet) en <code>PersonalFoodEditor</code>/<code>FoodEditorSheet</code></td><td>Ongewijzigd in deze studie.</td></tr>
+		<tr><td>Open Food Facts</td><td><code>useOpenFoodFacts()</code> + nieuwe <code>useOffSearch</code></td><td>Cache en uitkomsten bestaan; nieuw zijn de trigger en het budget.</td></tr>
+		<tr><td>Barcode</td><td><code>BarcodeScanner</code> (expo-camera 57) in fullscreen <code>Modal</code></td><td>Status bij het opzoeken komt in de camera.</td></tr>
+	</table>
+	<p>Android en iOS &lt; 26 houden de huidige zoekrij en <code>FoodBrowserMenu</code> (zelfde acties). De mock benadert glas en toetsenbord met CSS; neem die waarden niet over.</p>
+</section>
+<main id="board"></main>
+<script>
+const svg = (p, sw = 2.2, fill = "none") => `<svg class="i" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const I = {
+	x: svg('<path d="M6 6l12 12M18 6L6 18"/>'), check: svg('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.6),
+	plus: svg('<path d="M12 5v14M5 12h14"/>', 2.4), minus: svg('<path d="M5 12h14"/>', 2.4),
+	right: svg('<path d="M9 6l6 6-6 6"/>'), left: svg('<path d="M15 6l-6 6 6 6"/>'), chev: svg('<path d="M8 10l4-4 4 4M8 14l4 4 4-4"/>'),
+	search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'), scan: svg('<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M8 9v6M11 9v6M14 9v6M17 9v6"/>', 1.9),
+	copy: svg('<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>', 1.9),
+	move: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2), combo: svg('<rect x="3" y="4" width="8" height="8" rx="2"/><rect x="13" y="4" width="8" height="8" rx="2"/><rect x="8" y="13" width="8" height="8" rx="2"/>', 1.9),
+	trash: svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', 1.9), more: svg('<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>', 0, "currentColor"),
+	cal: svg('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>', 1.9),
+	cam: svg('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 1.9),
+	star: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', 1.8),
+	dumb: svg('<path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12"/>', 2.2), fork: svg('<path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 0-3 2-3 6s1 4 3 4v8"/>', 2),
+	pulse: svg('<path d="M3 12h4l3-7 4 14 3-7h4"/>', 2), person: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>', 2),
+	note: svg('<path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4"/>', 1.8), sort: svg('<path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3"/>', 1.9),
+	back: svg('<path d="M21 6H9l-6 6 6 6h12zM17 10l-4 4M13 10l4 4"/>', 1.7), cloud: svg('<path d="M7 18a5 5 0 01-.6-10A6 6 0 0118 9a4.5 4.5 0 01-1 9z"/>', 1.9),
+};
+const signal = '<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg>';
+const battery = '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".75" y=".75" width="22.5" height="11.5" rx="3.5" stroke="currentColor" stroke-opacity=".4" stroke-width="1.5"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="currentColor"/></svg>';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span class="icons">${signal}${battery}</span></div>`;
+const tabbar = (on = 1) => `<div class="tabbar glass">${[["Training", I.dumb], ["Voeding", I.fork], ["Activiteit", I.pulse], ["Profiel", I.person]].map(([l, i], n) => `<span class="${n === on ? "on" : ""}">${i}${l}</span>`).join("")}</div>`;
+const gbtn = (icon, extra = "") => `<button class="gbtn glass press" ${extra}>${icon}</button>`;
+const tick = (on) => `<span class="chk ${on ? "on" : ""}">${on ? I.check.replace('class="i"', 'class="i" style="width:14px;height:14px"') : ""}</span>`;
+Object.assign(I, {
+	pencil: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 1.9),
+	chart: svg('<path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3"/>', 1.9),
+	books: svg('<rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="M16 5.5l3.5-1 2 15-3.5 1z"/>', 1.7),
+	viewfinder: svg('<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M8 10h8M8 14h5"/>', 1.9),
+	target: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>', 1.9),
+	info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.2"/>', 1.9),
+	gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>', 1.9),
+	selc: svg('<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.5"/>', 1.9),
+	down: svg('<path d="M7 10l5 5 5-5"/>', 2.4),
+});
+const menuItem = (icon, label, opt = {}) => `<button class="${opt.d ? "d" : ""}">${icon}<span>${label}</span>${opt.isNew ? '<span class="new">nieuw</span>' : ""}</button>`;
+
+Object.assign(I, {
+	sparkles: svg('<path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8z"/><path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/>', 1.7),
+	timer: svg('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.5h4"/>', 1.9),
+	newdoc: svg('<path d="M14 4H6a1 1 0 00-1 1v14a1 1 0 001 1h12a1 1 0 001-1v-8"/><path d="M17 3l3 3-7 7h-3v-3z"/>', 1.8),
+	book: svg('<path d="M5 4.5A1.5 1.5 0 016.5 3H19v15H6.5A1.5 1.5 0 005 19.5zM5 19.5A1.5 1.5 0 006.5 21H19"/>', 1.8),
+	globe: svg('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17"/>', 1.6),
+	wifioff: svg('<path d="M3 3l18 18M8.5 16.5a5 5 0 017 0M5 13a10 10 0 014.6-2.6M19 13a10 10 0 00-2.2-1.6M2 9.5a15 15 0 015.2-3.2M22 9.5A15 15 0 0011 5"/><circle cx="12" cy="20" r=".8"/>', 1.8),
+	starf: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', 1.2, "currentColor"),
+	retry: svg('<path d="M4 12a8 8 0 0114-5.3M20 4v4h-4M20 12a8 8 0 01-14 5.3M4 20v-4h4"/>', 1.9),
+});
+const small = (icon, px = 15) => icon.replace('class="i"', `class="i" style="width:${px}px;height:${px}px"`);
+
+/* ——— data ——— */
+const POOL = [
+	["🥪", "Volkorenbrood", "Vaak bij lunch", "1 snee", 79],
+	["🧀", "Jonge kaas 48+", "Vaak bij lunch", "1 plak", 71],
+	["🍎", "Appel", "Favoriet", "1 stuk", 97],
+	["🥗", "Salade kip", "Combo · 3 voedingsmiddelen", "Hele combo", 333],
+	["🍲", "Linzensoep", "Recept · eigen", "1 kom", 170],
+	["🥛", "Halfvolle melk", "Recent", "1 glas", 92],
+	["🥚", "Ei, gekookt", "Recent", "1 stuk", 76],
+	["🍌", "Banaan", "Favoriet", "1 stuk", 115],
+];
+const KIP = [
+	["🍗", "Kipfilet, gebakken", "NEVO · 151 kcal/100 g", "100 g", 151],
+	["🥗", "Salade kip", "Combo · 3 voedingsmiddelen", "Hele combo", 333],
+	["🍗", "Kippendijfilet, gegrild", "NEVO · 196 kcal/100 g", "100 g", 196],
+	["🥪", "Kipfilet, broodbeleg", "Recent · 104 kcal/100 g", "1 plak", 16],
+	["🍛", "Kip-kerrie", "Eigen · 142 kcal/100 g", "1 portie", 426],
+	["🌭", "Kipworstje", "NEVO · 210 kcal/100 g", "1 stuk", 84],
+];
+const LUNCH = [["🥪", "Volkorenbrood", "2 sneetjes", 180], ["🧀", "Jonge kaas 48+", "2 plakken", 142]];
+const MEALN = [["Ontbijt", "3 items · 412 kcal"], ["Lunch", "2 items · 322 kcal", 1], ["Diner", "nog niets"], ["Tussendoortjes", "1 item · 97 kcal"]];
+
+/* ——— building blocks ——— */
+const plusBtn = (done) => `<span class="plus on">${done ? small(I.check, 16) : small(I.plus, 16)}</span>`;
+function qrow([e, n, cap, portion, kcal], { done = false, sel = null } = {}) {
+	if (sel !== null) return `<button class="qrow">${tick(sel)}<span class="fv">${e}</span><span class="t">${n}<small>${cap}</small></span>${sel ? `<span class="selpill">${portion} ${small(I.chev, 12)}</span>` : `<span class="qp">${kcal} kcal</span>`}</button>`;
+	return `<button class="qrow"><span class="fv">${e}</span><span class="t">${n}<small>${cap}</small></span><span class="qp"><b class="tnum">${kcal} kcal</b>${portion}</span>${plusBtn(done)}</button>`;
+}
+const list = (rows, o = {}) => `<div class="card" style="overflow:hidden">${rows.map((r, i) => qrow(r, typeof o === "function" ? o(r, i) : o)).join("")}</div>`;
+const scopes = (on = "Alles") => `<div class="chipsrow" style="padding-top:2px">${["Alles", "Recent", "Favorieten", "Combo's", "Recepten", "Catalogus"].map((s) => `<span class="${s === on ? "on" : ""}">${s}</span>`).join("")}</div>`;
+function mealbar({ label = "Lunch · 2 items · 322 kcal", open = false, flash = false, swipe = false } = {}) {
+	const rows = open ? `<div style="border-top:.5px solid var(--sep)">${LUNCH.map(([e, n, q, k], i) => { const r = `<button class="row" style="background:var(--surface);position:relative"><span class="fv">${e}</span><span class="t">${n}<small>${q}</small></span><span class="v"><b>${k}</b> kcal</span></button>`; return swipe && i === 1 ? `<div style="position:relative;overflow:hidden"><div class="swacts"><span class="sw e">${I.pencil}Bewerk</span><span class="sw d">${I.trash}Verwijder</span></div><div style="transform:translateX(-156px);box-shadow:6px 0 12px rgba(0,0,0,.08)">${r}</div></div>` : r; }).join("")}</div>` : "";
+	return `<div class="card" style="overflow:hidden;margin-top:8px"><button class="mealbar ${flash ? "flash" : ""}"><span>${label.replace(/^(\w+)/, "<b>$1</b>")}</span><span class="chev">${open ? small(svg('<path d="M7 14l5-5 5 5"/>', 2.4)) : small(I.down)}</span></button>${rows}</div>${open ? '<div class="sec-f">Tik een item om het aan te passen; veeg om te verwijderen.</div>' : ""}`;
+}
+const sh = (title, right = "") => `<div class="sh"><b>${title}</b><span>${right}</span></div>`;
+const footer = (q, offline = false) => `<div class="sec-f" style="text-align:center;margin-top:12px">Gezocht in recent, favorieten, combo's, recepten en 2.328 NEVO-items.${q ? `<br><span class="linkish ${offline ? "off" : ""}" style="display:inline-flex;gap:6px;align-items:center;margin-top:8px">${small(I.globe)}Zoek ‘${q}’ in Open Food Facts</span>` : ""}</div>`;
+const keyboard = () => `<div class="qkbd">${["qwertyuiop", "asdfghjkl", "zxcvbnm"].map((r, i) => `<div class="kr">${i === 2 ? '<span class="w">⇧</span>' : ""}${[...r].map((c) => `<span>${c}</span>`).join("")}${i === 2 ? '<span class="w">⌫</span>' : ""}</div>`).join("")}<div class="kr"><span class="w" style="flex-basis:88px;background:var(--kbdKey);box-shadow:0 1px 0 rgba(0,0,0,.25)">123</span><span class="sp">spatie</span><span class="go">zoek</span></div></div>`;
+const titleBtn = (t, menu = true) => `<span class="ttlbtn">${t}${menu ? I.down : ""}</span>`;
+
+/** A pushed screen over the tabs: back, inline title + subtitle, right items, optional bottom toolbar. */
+const screen = ({ inner, title = titleBtn("Lunch"), sub = "Vandaag · vr 3 okt", right = gbtn(I.cal), left = gbtn(I.left), toolbar = "", kbd = false, overlay = "", top = 110, padBottom = 130, scroll = 0 }) =>
+	`<div class="phone"><div class="root collapsed"><div class="content" data-scroll="${scroll}" style="padding-top:${top}px;padding-bottom:${padBottom}px">${inner}</div><div class="edge"></div><div class="navbar2">${left}<div class="ttl">${title}<small>${sub}</small></div><div class="r">${right}</div></div>${toolbar}${kbd ? keyboard() : ""}${overlay}</div>${status}<div class="home"></div></div>`;
+
+/* ——— toolbars ——— */
+const searchCap = (q, focused) => `<div class="search glass ${q ? "q" : ""}" data-act="focus" style="cursor:text">${I.search}${q ? `<span>${q}</span>` : "Zoek eten"}${focused ? '<span class="caret2"></span>' : ""}${q ? `<span class="clr">${small(I.x, 10)}</span>` : ""}</div>`;
+/** Recommended: system bottom toolbar. + | search slot | scan + describe. Focused: search grows over the keyboard, items step aside. */
+const tbRec = ({ q = "", focused = false } = {}) => focused
+	? `<div class="tb up">${searchCap(q, true)}${gbtn(I.x, 'data-act="blur" style="width:50px;height:50px"')}</div>`
+	: `<div class="tb">${gbtn(I.plus, 'style="width:50px;height:50px"')}${searchCap(q)}<div class="grp glass"><button>${I.scan}</button><button class="ai">${I.sparkles}</button></div></div>`;
+/** Alternative B: search in the native header, bottom toolbar keeps the actions. */
+const tbActions = () => `<div class="tb">${gbtn(I.plus, 'style="width:50px;height:50px"')}<span class="sp"></span><div class="grp glass"><button>${I.scan}</button><button class="ai">${I.sparkles}</button></div></div>`;
+/** Alternative C: one custom capsule that morphs (Outlook-like), scan stays visible while typing. */
+const tbCustom = ({ focused = false, q = "" } = {}) => `<div class="tb ${focused ? "up" : ""}"><div class="search glass ${q ? "q" : ""}" style="padding-right:4px">${I.search}${q ? `<span>${q}</span>` : "Zoek eten"}${focused ? '<span class="caret2"></span>' : ""}<span style="margin-left:auto;display:flex">${focused ? "" : `<button class="gbtn" style="width:42px;height:42px;color:var(--accent)">${I.sparkles}</button>`}<button class="gbtn" style="width:42px;height:42px">${I.scan}</button></span></div>${focused ? gbtn(I.x, 'style="width:50px;height:50px"') : gbtn(I.plus, 'style="width:50px;height:50px"')}</div>`;
+
+/* ——— §1 bottom glass ——— */
+let FOCUSED = false;
+const homeList = (o = {}) => scopes() + mealbar(o.bar) + sh("Voor jouw lunch", "recent · favorieten · combo's") + list(POOL, o.rows || {}) + footer("");
+const kipList = (offline = false) => scopes() + mealbar() + sh("Resultaten", "6") + list(KIP) + footer("kip", offline);
+const B1rest = () => FOCUSED ? B1focus() : screen({ inner: homeList(), toolbar: tbRec() });
+const B1focus = () => screen({ inner: kipList(), toolbar: tbRec({ q: "kip", focused: true }), kbd: true, padBottom: 360 });
+const B1query = () => screen({ inner: kipList(), toolbar: tbRec({ q: "kip" }), scroll: 120 });
+const B2 = () => screen({ inner: `<div class="search" style="background:var(--surface2);margin:0 16px 8px;height:38px;border-radius:12px">${I.search}Zoek eten</div>` + homeList(), toolbar: tbActions() });
+const B3rest = () => screen({ inner: homeList(), toolbar: tbCustom() });
+const B3focus = () => screen({ inner: kipList(), toolbar: tbCustom({ focused: true, q: "kip" }), kbd: true, padBottom: 360 });
+
+/* ——— §2 destination ——— */
+const mealMenuDest = () => `<div class="menu glass" style="top:104px;left:56px;width:282px"><div class="mt">Loggen in</div>${MEALN.map(([n, s, on]) => `<button><span class="chk" style="border:0;width:16px;color:var(--accent)">${on ? small(I.check, 15) : ""}</span><span>${n}</span><small>${s}</small></button>`).join("")}<hr><button>${I.cal}<span>Andere dag…</span></button></div>`;
+const D1 = () => screen({ inner: homeList(), toolbar: tbRec(), overlay: mealMenuDest() });
+const D2 = () => screen({ title: `<span class="ttlbtn">vr 3 okt</span>`, sub: "Vandaag", inner: `<div class="chipsrow" style="padding:0 16px 8px">${["Ontbijt", "Lunch", "Diner", "Tussendoortjes"].map((m) => `<span class="${m === "Lunch" ? "on" : ""}" style="padding:10px 16px;font-size:15px">${m}</span>`).join("")}</div>` + homeList(), toolbar: tbRec() });
+
+/* ——— §3 several items + confirmation ——— */
+const toast = (text) => `<div class="toast glass"><span class="ok">${small(I.check, 18)}</span><span class="t">${text}</span><button>Ongedaan maken</button></div>`;
+const M1 = () => screen({ inner: scopes() + mealbar({ label: "Lunch · 3 items · 419 kcal", flash: true }) + sh("Voor jouw lunch", "recent · favorieten · combo's") + list(POOL, (r, i) => ({ done: i === 2 })) + footer(""), toolbar: tbRec(), overlay: toast("Appel toegevoegd aan Lunch") });
+const M1open = () => screen({ inner: scopes() + mealbar({ open: true, swipe: true }) + sh("Voor jouw lunch") + list(POOL.slice(0, 4)), toolbar: tbRec() });
+let PICK = new Set([0, 1, 5]);
+const M2 = () => {
+	const k = [...PICK].reduce((a, i) => a + POOL[i][4], 0);
+	const bar = `<div class="tray glass"><div class="t"><b class="tnum">${PICK.size} ${PICK.size === 1 ? "item" : "items"} · ${k} kcal</b>Naar Lunch · vandaag</div><button class="go press">Toevoegen</button></div>`;
+	return screen({ title: `<span class="ttlbtn">${PICK.size} geselecteerd</span>`, sub: "Lunch · vandaag", left: "", right: `<button class="pillbtn glass tint press" style="height:44px">Gereed</button>`, inner: scopes() + sh("Voor jouw lunch") + `<div class="card" style="overflow:hidden">${POOL.map((r, i) => qrow(r, { sel: PICK.has(i) }).replace('<button class="qrow">', `<button class="qrow" data-pick="${i}">`)).join("")}</div>`, overlay: bar });
+};
+
+/* ——— §4 rows ——— */
+const swipeFav = (r) => `<div style="position:relative;overflow:hidden"><div class="swfav"><span class="sw f">${I.starf}Favoriet</span></div><div style="transform:translateX(-86px);background:var(--surface);position:relative;box-shadow:6px 0 12px rgba(0,0,0,.08)">${qrow(r)}</div></div>`;
+const R1 = () => screen({ inner: scopes() + mealbar() + sh("Voor jouw lunch") + `<div class="card" style="overflow:hidden">${POOL.map((r, i) => (i === 5 ? swipeFav(r) : qrow(r))).join("")}</div>`, toolbar: tbRec() });
+function R2(personal) {
+	const r = personal ? POOL[4] : POOL[2];
+	const items = personal
+		? menuItem(I.plus, "Loggen · 1 kom, 170 kcal") + menuItem(I.pencil, "Andere portie…") + "<hr>" + menuItem(I.star, "Favoriet maken") + "<hr>" + menuItem(I.newdoc, "Bewerken") + menuItem(I.trash, "Verwijderen", { d: 1 })
+		: menuItem(I.plus, "Loggen · 1 stuk, 97 kcal") + menuItem(I.pencil, "Andere portie…") + "<hr>" + menuItem(I.starf, "Geen favoriet meer") + "<hr>" + menuItem(I.newdoc, "Corrigeren…");
+	const top = personal ? 336 : 270;
+	const ctx = `<div class="ctx"><div class="lift" style="top:${top}px">${qrow(r)}</div><div class="menu glass" style="top:${top + 72}px;width:268px">${items}</div></div>`;
+	return screen({ inner: scopes() + mealbar() + sh("Voor jouw lunch") + list(POOL), toolbar: tbRec(), overlay: ctx });
+}
+
+/* ——— §5 + menu, Open Food Facts ——— */
+const plusMenu = (q) => `<div class="menu glass" style="left:14px;bottom:92px;width:286px">${menuItem(I.timer, "Eenmalig loggen")}<hr>${menuItem(I.newdoc, "Nieuw voedingsmiddel")}${menuItem(I.book, "Nieuw recept")}${q ? `<hr>${menuItem(I.note, `Bewaar ‘${q}’ als notitie`)}` : ""}</div>`;
+const noMatch = (q) => scopes() + mealbar() + `<div class="card" style="margin-top:14px"><div class="empty"><div class="ic">${I.search}</div><b>Geen resultaten voor ‘${q}’</b><p>Zoek online, scan de verpakking of maak het zelf aan.</p></div><button class="row plain" style="border-top:.5px solid var(--sep);color:var(--accent);font-weight:600">${I.globe}<span class="t">Zoek in Open Food Facts</span></button><button class="row plain" style="color:var(--accent);font-weight:600">${I.newdoc}<span class="t">Nieuw voedingsmiddel ‘${q}’</span></button></div>`;
+const P1 = () => screen({ inner: noMatch("pasta van mama"), toolbar: tbRec({ q: "pasta van mama" }), overlay: plusMenu("pasta van mama") });
+const OFFROWS = [["🟦", "Optimel Drinkyoghurt Aardbei", "Open Food Facts · Campina", "100 ml", 38], ["🟨", "Activia Aardbei", "Open Food Facts · Danone", "125 g", 119], ["🟥", "Aardbeien drinkyoghurt 0%", "Open Food Facts · AH", "100 ml", 41]];
+const P2 = () => screen({ inner: scopes() + mealbar() + sh("Jouw voeding", "1") + list([["🍓", "Aardbeienyoghurt (eigen)", "Eigen · 82 kcal/100 g", "1 bakje", 123]]) + sh("Open Food Facts", "controleer na importeren") + `<div class="card" style="overflow:hidden">${OFFROWS.map(([e, n, c, p, k]) => `<button class="qrow"><span class="fv">${I.globe}</span><span class="t">${n}<small>${c} · ${k} kcal/${p}</small></span><span class="chev">${I.right}</span></button>`).join("")}</div><div class="sec-f">Tik om te controleren en op te slaan; daarna log je het als je eigen voeding.</div>`, toolbar: tbRec({ q: "aardbeien yoghurt" }) });
+
+/* ——— §6 gaps ——— */
+const NotFound = () => {
+	const sheet = `<div class="dimmer"></div><div class="dsheet"><div class="grabber"></div><div class="navbar">${gbtn(I.x)}<div class="title">Barcode niet gevonden<small class="tnum">8 710398 527134</small></div><span style="width:44px"></span></div>
+		<div class="sec-f" style="text-align:center;margin:4px 24px 14px">Niet in je eigen voeding en niet in Open Food Facts.</div>
+		<button class="optcard on">${`<span class="fv">${I.newdoc}</span>`}<span class="t">Nieuw voedingsmiddel<small>Barcode is al ingevuld; de volgende scan vindt het direct</small></span></button>
+		<button class="optcard"><span class="fv">${I.search}</span><span class="t">Zoek op naam<small>Koppel de barcode aan wat je kiest</small></span></button>
+		<button class="optcard"><span class="fv">${I.scan}</span><span class="t">Opnieuw scannen</span></button></div>`;
+	return screen({ inner: homeList(), toolbar: tbRec(), overlay: sheet });
+};
+const Lookup = () => screen({ inner: `<div class="cam" style="height:852px;margin:0;border-radius:0"><div class="bc"></div><div class="frame"></div><div class="lbl" style="bottom:auto;top:62%"><span class="pillbtn glass" style="color:var(--text)">Zoeken in Open Food Facts…</span></div></div>`, top: 0, title: `<span class="ttlbtn" style="color:#fff">Scannen</span>`, sub: "", left: gbtn(I.x), right: "", toolbar: "", padBottom: 0 });
+const Offline = () => screen({ inner: kipList(true).replace(footer("kip", true), "") + `<div class="card" style="margin-top:14px"><div class="offl">${I.wifioff}<span>Offline. Je eigen voeding en NEVO werken; Open Food Facts en onbekende barcodes wachten tot je weer verbinding hebt. Gelogde items synchroniseren later.</span></div></div>` + footer("kip", true), toolbar: tbRec({ q: "kip" }), scroll: 260 });
+const FirstRun = () => screen({ inner: scopes() + mealbar({ label: "Lunch · nog niets" }) + `<div class="card" style="margin-top:14px"><div class="empty"><div class="ic">${I.fork}</div><b>Zoek eten om te loggen</b><p>Typ onderaan, scan een barcode of beschrijf wat je at. Wat je logt, komt hier terug bij deze maaltijd.</p></div></div>` + `<div class="sec-f" style="text-align:center">Doorzoekt 2.328 NEVO-items, je eigen voeding en Open Food Facts.</div>`, toolbar: tbRec() });
+
+/* ——— round 3: Open Food Facts in the results ——— */
+const OFF_YOG = [["Optimel Drinkyoghurt Aardbei", "Campina · 1 L", "38 kcal/100 ml"], ["Activia Aardbei", "Danone · 4 × 125 g", "95 kcal/100 g"], ["Aardbeien drinkyoghurt 0%", "AH · 1 L", "41 kcal/100 ml"], ["Yoghurt aardbei vol", "Melkan · 500 g", "92 kcal/100 g"], ["Skyr aardbei", "Arla · 450 g", "64 kcal/100 g"]];
+const LOCAL_YOG = [["🍓", "Aardbeienyoghurt", "Eigen · 82 kcal/100 g", "1 bakje", 123], ["🥛", "Yoghurt, halfvol", "NEVO · 51 kcal/100 g", "1 schaaltje", 77], ["🥛", "Yoghurt, vol", "NEVO · 63 kcal/100 g", "1 schaaltje", 95], ["🍓", "Aardbeien, vers", "NEVO · 35 kcal/100 g", "1 schaaltje", 53]];
+const offRow = ([n, brand, per]) => `<button class="qrow"><span class="fv">${I.globe}</span><span class="t">${n}<small>${brand} · ${per}</small></span><span class="chev">${I.right}</span></button>`;
+const offHead = (right) => `<div class="sh"><b style="display:inline-flex;gap:6px;align-items:center">${small(I.globe, 16)}Open Food Facts</b><span>${right}</span></div>`;
+const skel = (n) => `<div class="card" style="overflow:hidden">${Array.from({ length: n }, () => `<div class="qrow"><span class="fv" style="opacity:.6"></span><span class="t"><span style="display:block;height:12px;width:62%;border-radius:6px;background:var(--surface2)"></span><span style="display:block;height:10px;width:40%;border-radius:5px;background:var(--surface2);margin-top:7px"></span></span></div>`).join("")}</div>`;
+const offNote = (t) => `<div class="sec-f">${t}</div>`;
+const localPart = (q) => scopes() + mealbar() + sh("Jouw voeding en NEVO", String(LOCAL_YOG.length)) + list(LOCAL_YOG);
+const tbY = () => tbRec({ q: "aardbeien yoghurt" });
+const O1 = () => screen({ inner: localPart() + offHead("zoeken…") + skel(3), toolbar: tbY(), scroll: 200 });
+const O2 = () => screen({ inner: localPart() + offHead("20 resultaten") + `<div class="card" style="overflow:hidden">${OFF_YOG.slice(0, 3).map(offRow).join("")}<button class="row plain" style="border-top:.5px solid var(--sep);color:var(--accent);font-weight:600;justify-content:center">Toon alle 20</button></div>` + offNote("Tik om te controleren en op te slaan; daarna staat het in je eigen voeding, ook offline."), toolbar: tbY(), scroll: 250 });
+const O3 = () => screen({ inner: localPart() + offHead("") + `<div class="card"><div class="offl">${small(I.timer, 18)}<span>Open Food Facts vraagt even rust. Over <b class="tnum" style="color:var(--text)">40 s</b> zoeken we automatisch opnieuw.</span></div><button class="row plain" style="border-top:.5px solid var(--sep);color:var(--accent);font-weight:600;justify-content:center">${small(I.scan, 16)} Scan liever de barcode</button></div>`, toolbar: tbY(), scroll: 250 });
+const O4 = () => screen({ inner: scopes() + mealbar() + `<div class="sec-f" style="margin:14px 20px 0">Niets in je eigen voeding of NEVO voor ‘optimel framboos’.</div>` + offHead("6 resultaten") + `<div class="card" style="overflow:hidden">${[["Optimel Drinkyoghurt Framboos", "Campina · 1 L", "37 kcal/100 ml"], ["Optimel Skyr Framboos", "Campina · 450 g", "60 kcal/100 g"], ["Optimel Kwark Framboos", "Campina · 500 g", "52 kcal/100 g"]].map(offRow).join("")}</div>`, toolbar: tbRec({ q: "optimel framboos" }) });
+const O5 = () => screen({ inner: localPart() + offHead("") + `<div class="card"><button class="row plain" style="color:var(--accent);font-weight:600">${I.globe}<span class="t">Zoek ‘aardbeien yoghurt’ in Open Food Facts<small>Merkproducten, met foto en etiket</small></span></button></div>`, toolbar: tbY(), scroll: 250 });
+const O6 = () => screen({ inner: scopes() + mealbar() + sh("Resultaten", "2") + list(LOCAL_YOG.slice(0, 2)), toolbar: tbRec({ q: "aardb", focused: true }), kbd: true, padBottom: 360 });
+
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const CODE = {
+	toolbar: `// nutrition-food-browser.tsx — iOS 26: the bottom toolbar replaces the search row.
+<Stack.SearchBar
+  placeholder={copy.search}
+  onChangeText={(e) => onQueryChange(e.nativeEvent.text)}
+  onSearchButtonPress={() => offSearch.commit(query)} // "Zoek" commits the term for OFF
+  hideWhenScrolling={false}
+/>
+{Platform.OS === "ios" ? (
+  <Stack.Toolbar placement="bottom">
+    <Stack.Toolbar.Menu accessibilityLabel={copy.moreActions}>
+      <Stack.Toolbar.Icon sfSymbol="plus" />
+      <Stack.Toolbar.MenuAction icon="timer" onPress={logOnce}>{copy.logOnce}</Stack.Toolbar.MenuAction>
+      <Stack.Toolbar.MenuAction icon="square.and.pencil" onPress={newFood}>{copy.newPersonalFood}</Stack.Toolbar.MenuAction>
+      <Stack.Toolbar.MenuAction icon="text.book.closed" onPress={newRecipe}>{copy.newRecipe}</Stack.Toolbar.MenuAction>
+      {canSaveAsNote ? <Stack.Toolbar.MenuAction icon="note.text" onPress={saveAsNote}>{saveAsNoteLabel}</Stack.Toolbar.MenuAction> : null}
+    </Stack.Toolbar.Menu>
+    <Stack.Toolbar.SearchBarSlot />
+    <Stack.Toolbar.Button icon="barcode.viewfinder" accessibilityLabel={copy.scanBarcode} onPress={() => setScanning(true)} />
+    <Stack.Toolbar.Button icon="sparkles" accessibilityLabel={copy.aiSearch} onPress={openAssistance} />
+  </Stack.Toolbar>
+) : (
+  <FindControls {...sameProps} /> // Android keeps today's search row + FoodBrowserMenu
+)}`,
+	title: `// Title = destination menu (same idiom as the diary meal menu).
+<Stack.Screen options={{
+  headerTitle: () => (
+    <Host matchContents colorScheme={scheme}>
+      <Menu label={<VStack spacing={0}>
+          <HStack spacing={4}><Text modifiers={[font({ size: 17, weight: "semibold" })]}>{t.nutrition.meals[selectedMeal]}</Text>
+            <Image systemName="chevron.down" size={11} color={colors.textMuted} /></HStack>
+          <Text modifiers={[font({ size: 12 })]}>{formatShortDate(date, locale)}</Text>
+        </VStack>}>
+        <Section title={copy.logInto}>
+          {MEAL_SLOTS.map((slot) => (
+            <Button key={slot} label={t.nutrition.meals[slot]} systemImage={slot === selectedMeal ? "checkmark" : undefined}
+              onPress={() => setSelectedMeal(slot)} />
+          ))}
+        </Section>
+        <Button label={copy.otherDay} systemImage="calendar" onPress={() => setShowCalendar(true)} />
+      </Menu>
+    </Host>
+  ),
+}} />
+// headerRight keeps the existing calendar button → DatePickerSheet.`,
+	undo: `// quickLog(): after operations.create(...) succeeds
+haptics.entryLogged();
+toast.success(copy.logged(food.name[locale], t.nutrition.meals[selectedMeal]), {
+  action: { label: copy.undo, onPress: () => operations.remove(subject, { kind: "clientEntryId", id: clientEntryId }) },
+});
+// NEW: ToastApi.success(message, { action? }) — today it only takes a message.
+
+// Meal row, expanded: same row contract as the diary.
+<InsetList>
+  {mealEntries.map((entry) => (
+    <InsetRow key={entry.id} id={entry.id} title={entry.name[locale]} secondary={entry.serving[locale]}
+      value={kcalLabel(entry)} onPress={() => router.push({ pathname: "/nutrition-entry", params: { id: entry.id } })}
+      actions={[
+        { key: "edit", label: t.nutrition.entryActions.edit, onPress: () => openEntry(entry) },
+        { key: "delete", label: t.nutrition.entryActions.delete, destructive: true, onPress: () => confirmDelete(entry) },
+      ]} />
+  ))}
+</InsetList>`,
+	rows: `// Result rows keep FoodRow's layout (+ is a separate hit target), wrapped in the row-actions contract.
+const actions: RowAction[] = [
+  { key: "favorite", label: isFavorite ? copy.unfavorite : copy.favorite, onPress: () => operations.toggleFavorite(subject, sourceKey, !isFavorite) },
+  { key: "log", label: copy.logPortion(quickPreview), onPress: () => quickLog(selection), swipe: false },
+  { key: "portion", label: copy.otherPortion, onPress: () => setSelectedFood(selection), swipe: false },
+  ...(selection.kind === "shipped"
+    ? [{ key: "correct", label: copy.correct, onPress: () => correct(selection.food), swipe: false }]
+    : [{ key: "edit", label: copy.edit, onPress: () => setEditingFood(selection.food), swipe: false },
+       { key: "delete", label: copy.delete, destructive: true, onPress: () => deleteFood(selection.food), swipe: false }]),
+];`,
+	off: `// open-food-facts-search.ts — when the browser may ask OFF.
+const MIN_CHARS = 3, IDLE_MS = 1500, BUDGET = 6, WINDOW_MS = 60_000;
+
+export function useOffSearch(query: string, openFoodFacts: OpenFoodFactsClient) {
+  // State: idle | waiting(term) | loading | found(drafts) | none | cooling(until) | offline
+  // - typing: local only; an idle timer of IDLE_MS (or commit() from "Zoek") fires one request
+  // - cache hit (existing OpenFoodFactsCache): no request, no budget spent
+  // - budget: sliding window of BUDGET requests per WINDOW_MS; over budget → cooling
+  // - 429 ("rate-limited") → cooling for 60 s, auto-retry once the window opens
+  // - drop drafts whose barcode already belongs to a Personal Food
+}`,
+};
+
+const IMPL = (fixes, native, risks) => `<b>Fixes:</b> ${fixes}<br><b>Native:</b> ${native}<br><b>Risks:</b> ${risks}`;
+const SECTIONS = [
+	{ h: "1 · Glazen bediening onderaan", p: "Een gepusht scherm zonder tabbalk: de iOS-werkbalk onderaan heeft + (menu), het zoekveld, scannen en beschrijven. Bij typen staat het zoekveld over de volle breedte boven het toetsenbord; ✕ sluit. Daarna blijft de zoekterm in de capsule staan. Bovenaan: bereikchips en de maaltijdregel. <b>Tik op het zoekveld in de eerste telefoon.</b>",
+		impl: IMPL("zoeken buiten duimbereik; vier bedieningsbanden boven de lijst (nu twee).", "<code>Stack.SearchBar</code> + <code>Stack.Toolbar placement=\"bottom\"</code> met <code>Stack.Toolbar.Menu</code>, <code>SearchBarSlot</code> en twee <code>Button</code>s (expo-router 57.0.23). Lijst = bestaande <code>FlatList</code> met <code>contentInsetAdjustmentBehavior=\"automatic\"</code>. ‘Volledige lijst’ heet nu ‘Catalogus’.", "<code>SearchBarSlot</code> is iOS 26+. Op iOS 18 en Android blijft de huidige zoekrij. Scannen kan niet tijdens het typen (systeemgedrag); verifieer of de term na ✕ blijft staan of dat de SearchBar hem wist. Check of <code>Stack.SearchBar</code> en <code>FlatList</code>-headers op hetzelfde scherm de scroll-rand goed tekenen."),
+		code: CODE.toolbar,
+		phones: [["In rust", "state", B1rest, "Interactief: tik het zoekveld."], ["Typen", "state", B1focus, "Zoekveld boven het toetsenbord."], ["Met zoekterm", "state", B1query, "Term blijft; lijst scrolt onder het glas."]] },
+	{ h: "2 · Bestemming: titelmenu", p: "‘Lunch ⌄’ is de titel en het menu; de dag staat eronder. Per maaltijd het huidige aantal en kcal, dan ‘Andere dag…’. Kalender rechts blijft de directe route naar de dag.",
+		impl: IMPL("de maaltijdchiprij (één band minder); maaltijd en dag zijn één ‘waarheen’.", "SwiftUI <code>Menu</code> in <code>headerTitle</code> via <code>Host matchContents</code>; bestaande <code>DatePickerSheet</code>.", "maaltijd wisselen kost nu twee tikken. Verifieer dat een SwiftUI-<code>Host</code> als <code>headerTitle</code> centreert en met Dynamic Type XL niet afkapt; fallback is een <code>Pressable</code>-titel die een <code>@expo/ui</code>-sheet opent."),
+		code: CODE.title,
+		phones: [["Titelmenu open", "state", D1, "Vinkje bij de huidige maaltijd."]] },
+	{ h: "3 · Snel loggen, ongedaan maken, maaltijdregel", p: "+ logt direct met de onthouden portie. Een toast boven de werkbalk bevestigt en biedt <b>Ongedaan maken</b>; de maaltijdregel licht op. Uitgeklapt toont de maaltijdregel de gelogde items: tik = item-editor, vegen = bewerken/verwijderen.",
+		impl: IMPL("stille mis-tikken; fouten herstellen zonder terug naar het dagboek.", "<code>operations.create</code> → <code>toast.success</code> met actie → <code>operations.remove(subject, { kind: \"clientEntryId\", id })</code>. Items in <code>InsetList</code>/<code>InsetRow</code> met <code>actions</code>; tik → <code>/nutrition-entry</code> (formSheet).", "<code>useToast</code> heeft nog geen actie; breid <code>ToastApi.success</code> uit en geef de toast minstens 5 s en een VoiceOver-aankondiging. De toast moet boven de systeemwerkbalk komen (safe-area + werkbalkhoogte). Ongedaan maken van een nog niet gesynchroniseerde operatie verifiëren met de offline-test."),
+		code: CODE.undo,
+		phones: [["Na +", "state", M1, "✓ op de rij, toast, regel licht op."], ["Maaltijdregel open", "state", M1open, "Geveegd: Bewerk / Verwijder."]] },
+	{ h: "4 · Rijen: tikken, vegen, lang indrukken", p: "Tik = portievenster. + = snel loggen. Vegen = Favoriet, nooit vol doorvegen. Lang indrukken: loggen met de onthouden portie, andere portie, favoriet, en dan corrigeren (NEVO) of bewerken/verwijderen (eigen).",
+		impl: IMPL("favoriet/corrigeren/bewerken/verwijderen waren alleen in het portievenster te vinden.", "<code>RowAction</code>-contract (<code>swipeable-row.tsx</code>); op iOS <code>InsetRow</code> <code>actions</code> of <code>native-swipeable-row.ios</code>, Android <code>SwipeableRow</code>. Bestaande handlers: <code>toggleFavorite</code>, <code>forkShippedFood</code>, <code>personalFoods.remove</code>.", "een virtuele lijst van 2.328 items past niet in de SwiftUI-<code>List</code> van <code>InsetList</code>; gebruik voor resultaten <code>native-swipeable-row</code> rond <code>FoodRow</code> in de <code>FlatList</code>. De + moet een eigen tikdoel blijven, los van het contextmenu."),
+		code: CODE.rows,
+		phones: [["Geveegd", "state", R1, "Eén actie."], ["Lang ingedrukt · NEVO", "state", () => R2(false), "Corrigeren…"], ["Lang ingedrukt · eigen", "state", () => R2(true), "Bewerken, Verwijderen."]] },
+	{ h: "5 · + menu en geen resultaten", p: "Het + menu heeft dezelfde vier acties als <code>FoodBrowserMenu</code>; ‘Bewaar als notitie’ alleen met een zoekterm en niet bij het verwerken van een notitie. Geen resultaten verwijst naar Open Food Facts en naar ‘Nieuw voedingsmiddel’ met de term als naam.",
+		impl: IMPL("doodlopende lege staat.", "<code>Stack.Toolbar.Menu</code>; <code>EmptyState</code>; <code>PersonalFoodEditor</code> met <code>seed.name</code> = zoekterm.", "<code>canSaveAsNote</code> blijft <code>!draftId && query</code>."),
+		phones: [["+ menu, geen resultaten", "state", P1, "Menu opent omhoog."]] },
+	{ h: "6 · Open Food Facts in de resultaten", p: "OFF is een eigen sectie onder je eigen voeding en NEVO, ook als die resultaten hebben. Er wordt pas gezocht als de term af is: <b>Zoek</b> op het toetsenbord, of 1,5 s stilte bij ≥ 3 tekens. Eén verzoek per term, cache eerst, maximaal 6 per minuut. Bij rate limiting telt alleen deze sectie af. Top 3 + ‘Toon alle’; al geïmporteerde barcodes vallen weg. Tik = controleren en opslaan als eigen voeding.",
+		impl: IMPL("OFF was onzichtbaar tot je erom vroeg, en het zoeken na elke letter zou de limiet raken.", "<code>useOpenFoodFacts().search</code> (Search-a-licious, bestaande cache) achter een nieuwe <code>useOffSearch</code>-hook; <code>commit()</code> vanuit <code>onSearchButtonPress</code>. Uitkomsten <code>rate-limited</code>/<code>timeout</code>/<code>network-error</code> bestaan al.", "OFF documenteert 10 zoekverzoeken/min/IP en 15 productverzoeken/min/IP (geraadpleegd 6 okt 2026); voor Search-a-licious staat geen limiet, dus aangenomen gelijk. Gedeeld NAT (kantoor-wifi) deelt het budget; daarom aftellen en scannen als uitweg. De idle-trigger testen met jest fake timers."),
+		code: CODE.off,
+		phones: [["Typen", "state", O6, "Alleen lokaal."], ["Laden", "state", O1, "Skeleton in de OFF-sectie."], ["Geladen", "state", O2, "Top 3 + Toon alle 20."], ["Even wachten", "state", O3, "Aftellen, auto-opnieuw, scannen."], ["Niets lokaal", "state", O4, "OFF staat vanzelf bovenaan."]] },
+	{ h: "7 · Barcode, offline, eerste keer", p: "Een onbekende barcode opent een sheet met een vervolg. Het opzoeken gebeurt in de camera. Offline zegt wat wel werkt. De eerste keer legt de drie routes uit. ‘Voor jouw lunch’ rangschikt op de gekozen maaltijd.",
+		impl: IMPL("toast als eindpunt; leeg scherm tijdens het opzoeken; stille offline-fouten.", "formSheet + <code>PersonalFoodEditor</code> met <code>barcode</code> in de seed; status in de <code>BarcodeScanner</code>-modal; bestaand offline-signaal (<code>offline-banner.tsx</code>); <code>EmptyState</code>.", "‘Voor jouw lunch’ heeft een nieuwe pure functie in <code>@workouts/core</code> nodig (recente items per maaltijd uit de dagboekgeschiedenis); <code>FoodShortcut</code> bewaart geen maaltijd. ‘Zoek op naam’ moet de barcode aan de gekozen eigen voeding kunnen koppelen; NEVO-items krijgen dan een correctie (fork) met barcode."),
+		phones: [["Barcode niet gevonden", "state", NotFound, "Barcode ingevuld."], ["Barcode opzoeken", "state", Lookup, "In de camera."], ["Offline", "state", Offline, "OFF-link uitgeschakeld."], ["Eerste keer", "state", FirstRun, "Drie routes."]] },
+];
+
+const KINDS = { state: "Staat", rec: "Aanbevolen", alt: "Alternatief" };
+function render() {
+	const only = new URLSearchParams(location.search).get("s")?.split(",").map(Number);
+	if (only) document.querySelectorAll("section.guide").forEach((g) => (g.style.display = "none"));
+	document.getElementById("board").innerHTML = SECTIONS.filter((_, i) => !only || only.includes(i + 1)).map((s) => `<section class="sect"><h2>${s.h}</h2><p>${s.p}</p>${s.impl ? `<div class="impl">${s.impl}</div>` : ""}${s.code ? `<details class="code"><summary>Expo-implementatie (code)</summary><pre>${esc(s.code)}</pre></details>` : ""}<div class="phones">${s.phones.map(([n, k, fn, note]) => `<div class="dir"><div class="tag"><span class="kindlbl ${k}" style="margin-left:0">${KINDS[k]}</span></div><h2>${n}</h2><p class="pitch">${note}</p>${fn()}</div>`).join("")}</div></section>`).join("");
+	for (const el of document.querySelectorAll("[data-scroll]")) el.scrollTop = +el.dataset.scroll;
+}
+document.addEventListener("click", (e) => {
+	const t = e.target.closest("[data-act],[data-pick]"); if (!t) return;
+	if (t.dataset.pick) { const i = +t.dataset.pick; PICK.has(i) ? PICK.delete(i) : PICK.add(i); }
+	else if (t.dataset.act === "focus") FOCUSED = true;
+	else if (t.dataset.act === "blur") FOCUSED = false;
+	render();
+});
+for (const id of ["light", "dark"]) document.getElementById(id).addEventListener("click", () => {
+	document.body.classList.toggle("dark", id === "dark");
+	document.getElementById("light").setAttribute("aria-pressed", id === "light");
+	document.getElementById("dark").setAttribute("aria-pressed", id === "dark");
+});
+render();
+</script>
+</body>
+</html>

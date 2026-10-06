@@ -30,7 +30,7 @@ report implementation and automated results separately from pending visual revie
 
 ## Backend and login
 
-Use [isolated worktree setup](../../../docs/worktree-setup.md) for concurrent
+Use [isolated worktree setup](../../../docs/runbooks/worktree-setup.md) for concurrent
 worktrees. Confirm the selected backend before runtime writes; localhost and EAS
 profile names do not prove an isolated development deployment.
 
@@ -73,7 +73,7 @@ rather than using an incomplete copied route map.
 
 ## Mobile runtime
 
-Read [mobile releases](../../../docs/mobile-releases.md) for building a compatible
+Read [mobile releases](../../../docs/runbooks/mobile-releases.md) for building a compatible
 development client and starting Metro. Use a free port for this checkout; do not
 kill another worktree's server. Confirm the bundle and backend belong to this task.
 Do not assume Expo Go contains custom native modules or Sentry integration.
@@ -96,10 +96,10 @@ Jest cannot establish native layout, permission dialogs, gesture/worklet runtime
 or UIKit/Compose behavior. Capture screenshots for layout and short recordings
 for changed navigation, sheets, keyboard movement, or gestures. Identify the build,
 device, backend, locale/theme, and untested paths. See the
-[iOS acceptance checklist](../../../docs/ios-native-verification.md) and existing
+[iOS acceptance checklist](../../../docs/verification/ios-native-checklist.md) and existing
 reports/evidence linked from the docs index.
 
-Follow the [mobile folder contract](../../../docs/mobile-folder-structure.md) for
+Follow the [mobile folder contract](../../../docs/guidelines/project/mobile-folder-structure.md) for
 routes, adopted feature folders, and legacy screens; inspect the actual owner
 before editing. Platform primitives are under `apps/mobile/src/ui/`. Nutrition's local persistence
 is under `apps/mobile/src/data/`; domain catalogs/calculations are in `packages/core`.

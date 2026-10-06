@@ -20,7 +20,7 @@ Everything here was read from source, not reconstructed from screenshots:
   does not cover: `apps/mobile/DESIGN_SYSTEM.md` (the app's own written design
   contract), `apps/mobile/src/theme/tokens.ts` (the palette, ramp and metrics),
   `apps/mobile/src/ui/*` (the component seam), `apps/mobile/src/screens/*`
-  (every screen), `docs/ios-native-verification.md` (the device acceptance
+  (every screen), `docs/verification/ios-native-checklist.md` (the device acceptance
   checklist), `CONTEXT.md` (the product's vocabulary), and
   `designs/shell/index.html` (the "Coach" shell direction the phone was laid
   out from).
@@ -321,7 +321,7 @@ web. Use a column with a 640px max width and a footer instead.
    compact summary rows that open focused editing.
 7. **Never put `var(--accent)` on text.** Accented ink is `--accent-ink`;
    `--accent` is a fill. Check every screen in both themes before calling it
-   done — the device acceptance list in `docs/ios-native-verification.md` now
+   done — the device acceptance list in `docs/verification/ios-native-checklist.md` now
    has a light-mode pass too.
 8. **Never box a field inside a group.** See "Fields are rows, not boxes".
 9. **Reach for the grouped list first.** If a screen feels like a web page, it

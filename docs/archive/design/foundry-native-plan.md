@@ -149,7 +149,7 @@ Rebuild `apps/mobile/src/ui/` primitives on the `.ios.tsx` (SwiftUI) /
 2.2 `form` is deliberately last: it follows the routine editor (3.1).
 
 Each primitive: a jest test that the SwiftUI props are bound (pattern in
-`swift-ui-surfaces.test.tsx`), and a row in `docs/ios-native-verification.md`.
+`swift-ui-surfaces.test.tsx`), and a row in `docs/verification/ios-native-checklist.md`.
 
 ## Step 3 — screens, lists first
 
@@ -159,7 +159,7 @@ built with 3.1. Primitives available to screens now: `InsetList`/`InsetRow`
 `EmptyState` (system "no results" for search), `TrendChart`/`BucketChart`
 (Swift Charts), `ProgressRing` (`Gauge`), `SkeletonList`/`SkeletonCard`,
 `useTokens()`/`useHostScheme()`/`useSportColors()`. Their device rows are
-in `docs/ios-native-verification.md`; the inset list's height is a
+in `docs/verification/ios-native-checklist.md`; the inset list's height is a
 row-count estimate until #88 lands.
 
 **Per screen, the definition of done:**
@@ -174,7 +174,7 @@ row-count estimate until #88 lands.
 - `Loading…` is gone; the region shows a skeleton shaped like its content.
 - Colours come from `useTokens()`, never the static `colors` object, so the
   screen is light-ready.
-- One row in `docs/ios-native-verification.md`; a device pass before the
+- One row in `docs/verification/ios-native-checklist.md`; a device pass before the
   next screen starts.
 
 **Order** — by how much card-stack there is to remove and which primitives

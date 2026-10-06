@@ -2,7 +2,7 @@
  * The tab bar (`designs/shell/index.html`). It gets its own route group
  * because expo-router keeps navigation state per route: a `NativeTabs`
  * navigator cannot share a route with the `Stack` that pushes the session and
- * summary screens over it. See `docs/prototypes/46-shell/README.md`.
+ * summary screens over it. See `docs/archive/prototypes/46-shell/README.md`.
  *
  * Native tabs mean real `UITabBarItem`/`BottomNavigationView` chrome. That used
  * to imply a custom dev client; as of SDK 57 it does not — #69 drove this tab
