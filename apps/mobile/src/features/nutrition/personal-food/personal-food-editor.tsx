@@ -61,6 +61,7 @@ export type PersonalFoodEditorProps = {
 	onCancel: () => void;
 	onCreateKindChange?: (kind: "personal" | "recipe" | "oneOff") => void;
 	photoManager?: FoodPhotoManager;
+	initialName?: string;
 	/**
 	 * `route`: the editor owns its navigation header (pushed or a sheet).
 	 * `inline`: it replaces a screen's content and draws ✕ and ✓ itself.
@@ -77,6 +78,7 @@ export function PersonalFoodEditor({
 	onCancel,
 	onCreateKindChange,
 	photoManager,
+	initialName,
 	chrome = "inline",
 }: PersonalFoodEditorProps) {
 	const { t, locale } = useI18n();
@@ -91,6 +93,7 @@ export function PersonalFoodEditor({
 		food,
 		seed,
 		defaultClassification,
+		initialName,
 		photoManager,
 		onSaved: (saved) => {
 			setLeaving(true);

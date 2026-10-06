@@ -124,4 +124,15 @@ describe("food library", () => {
 		expect(screen.getByText("Enter a food")).toBeTruthy();
 		expect(screen.getByText("Search Open Food Facts")).toBeTruthy();
 	});
+
+	it("creates a food named after a search without results", async () => {
+		const app = renderLibrary();
+		fireEvent.changeText(
+			await screen.findByLabelText("Search library"),
+			"Skyr",
+		);
+		fireEvent.press(await screen.findByText("New food ‘Skyr’"));
+		await waitFor(() => expect(app.getPathname()).toBe("/personal-food-new"));
+		expect(screen.getByLabelText("Name").props.value).toBe("Skyr");
+	});
 });

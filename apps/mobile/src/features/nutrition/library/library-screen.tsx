@@ -118,13 +118,17 @@ export function LibraryScreen() {
 				params: { id: item.id },
 			});
 	};
-	const createNew = (classification: "ordinary" | "recipe") =>
-		router.push({ pathname: "/personal-food-new", params: { classification } });
+	const createNew = (classification: "ordinary" | "recipe", name?: string) =>
+		router.push({
+			pathname: "/personal-food-new",
+			params: { classification, ...(name ? { name } : {}) },
+		});
 	const startSelection = (kind?: LibraryKind) => {
 		setSelection(new Set());
 		if (kind) setChip(kind === "combo" ? "all" : kind);
 	};
-	const newCombo = () => startSelection("food");
+	// Foods and recipes can both be parts, so the selection shows every kind.
+	const newCombo = () => startSelection("combo");
 
 	const toggleFavorite = (item: LibraryItem) => {
 		if (!subject || item.kind === "combo") return;
@@ -843,7 +847,7 @@ export function LibraryScreen() {
 											<Pressable
 												key={classification}
 												accessibilityRole="button"
-												onPress={() => createNew(classification)}
+												onPress={() => createNew(classification, query.trim())}
 												style={{
 													minHeight: 44,
 													paddingHorizontal: spacing.md,

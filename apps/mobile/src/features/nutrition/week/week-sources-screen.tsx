@@ -54,7 +54,16 @@ export function WeekSourcesScreen({
 			pathname: "/nutrition-entry",
 			params: { id: entry.id, date: entry.date, meal: entry.meal },
 		});
-	const chooseDay = (options: WeekEntry[]) => {
+	const chooseDay = (entries: WeekEntry[]) => {
+		// One choice per day: the first entry of the food on that day.
+		const options = entries.filter(
+			(entry, index) =>
+				entries.findIndex((other) => other.date === entry.date) === index,
+		);
+		if (options.length === 1) {
+			openEntry(options[0]);
+			return;
+		}
 		const labels = options.map(
 			(entry) =>
 				`${weekDayParts(entry.date, locale).long} ${weekDayParts(entry.date, locale).dayMonth} · ${t.nutrition.meals[entry.meal]}`,

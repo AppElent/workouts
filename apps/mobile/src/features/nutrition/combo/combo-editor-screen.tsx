@@ -81,9 +81,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 		const save = (name?: string) => {
 			if (name?.trim()) write({ ...combo, name: name.trim() });
 		};
-		if (Platform.OS === "ios")
-			Alert.prompt(copy.renameTitle, undefined, save, "plain-text", combo.name);
-		else save(combo.name);
+		Alert.prompt(copy.renameTitle, undefined, save, "plain-text", combo.name);
 	};
 	const duplicate = () => {
 		try {
@@ -212,7 +210,10 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			sections={[
 				[{ id: "log", label: copy.log }],
 				[
-					{ id: "rename", label: copy.rename },
+					// Alert.prompt is iOS-only; Android renames via a new combo for now.
+					...(Platform.OS === "ios"
+						? [{ id: "rename", label: copy.rename }]
+						: []),
 					{ id: "duplicate", label: copy.duplicate },
 				],
 				...(missing.length

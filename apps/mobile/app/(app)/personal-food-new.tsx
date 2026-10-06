@@ -18,9 +18,10 @@ const leave = () =>
 	router.canGoBack() ? router.back() : router.replace("/nutrition-library");
 
 export default function PersonalFoodNewRoute() {
-	const { classification, barcode } = useLocalSearchParams<{
+	const { classification, barcode, name } = useLocalSearchParams<{
 		classification?: string;
 		barcode?: string;
+		name?: string;
 	}>();
 	const { t } = useI18n();
 	const toast = useToast();
@@ -69,6 +70,7 @@ export default function PersonalFoodNewRoute() {
 					: undefined
 			}
 			chrome="route"
+			initialName={name || undefined}
 			onCancel={leave}
 			onSaved={leave}
 		/>

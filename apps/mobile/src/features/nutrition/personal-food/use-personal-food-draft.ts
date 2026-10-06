@@ -76,9 +76,12 @@ export function usePersonalFoodDraft({
 	food,
 	seed,
 	defaultClassification,
+	initialName,
 	photoManager = foodPhotos,
 	onSaved,
 }: {
+	/** A new food's name, such as the search term it was created from. */
+	initialName?: string;
 	food?: PersonalFood;
 	seed?: PersonalFoodDraft;
 	defaultClassification: "ordinary" | "recipe";
@@ -102,7 +105,9 @@ export function usePersonalFoodDraft({
 	const [remoteCrop, setRemoteCrop] = useState<FoodPhotoCropPosition>("center");
 	const stagedPhoto = useRef<string | undefined>(undefined);
 	const savedPhoto = useRef(false);
-	const [name, setNameState] = useState(initial?.name[locale] ?? "");
+	const [name, setNameState] = useState(
+		initial?.name[locale] ?? initialName ?? "",
+	);
 	const [nameError, setNameError] = useState<string>();
 	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
 		initial?.baseUnit === "ml" ? "ml" : "g",
