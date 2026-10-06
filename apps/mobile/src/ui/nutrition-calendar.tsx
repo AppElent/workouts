@@ -78,6 +78,7 @@ export function NutritionCalendar({
 	today = todayIsoDate(),
 	labels,
 	markedDates,
+	highlightedDates,
 	onMonthChange,
 }: {
 	selectedDate: IsoDate;
@@ -86,6 +87,8 @@ export function NutritionCalendar({
 	today?: IsoDate;
 	labels?: Partial<NutritionCalendarLabels>;
 	markedDates?: ReadonlySet<string>;
+	/** A span shown as one band, such as the chosen week. */
+	highlightedDates?: ReadonlySet<string>;
 	onMonthChange?: (date: string) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
@@ -180,6 +183,7 @@ export function NutritionCalendar({
 							onPress={() => onSelect(date)}
 							style={({ pressed }) => [
 								styles.cell,
+								highlightedDates?.has(date) && styles.highlighted,
 								isSelected && styles.selected,
 								isToday && !isSelected && styles.today,
 								pressed && styles.pressed,
@@ -238,6 +242,7 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.pill,
 		},
 		selected: { backgroundColor: colors.accentFill },
+		highlighted: { backgroundColor: colors.accentDim, borderRadius: 0 },
 		selectedText: { color: colors.onAccent, fontWeight: "800" },
 		today: { borderColor: colors.accent, borderWidth: 1 },
 		pressed: { backgroundColor: colors.surface2 },

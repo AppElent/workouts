@@ -318,6 +318,22 @@ export default function AppLayout() {
 															}}
 														/>
 														<Stack.Screen
+															name="nutrition-week-goals"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.75, 1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-week-sources"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.75, 1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
 															name="nutrition-library"
 															options={{
 																title:

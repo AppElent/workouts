@@ -48,6 +48,8 @@ import * as NutritionFoodDetailsRoute from "../../app/(app)/nutrition-food-detai
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
 import * as NutritionNutrientSourcesRoute from "../../app/(app)/nutrition-nutrient-sources";
+import * as NutritionWeekGoalsRoute from "../../app/(app)/nutrition-week-goals";
+import * as NutritionWeekSourcesRoute from "../../app/(app)/nutrition-week-sources";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
 import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
@@ -173,6 +175,8 @@ export function renderApp(
 			"nutrition-cooking": NutritionCookingRoute as never,
 			"nutrition-assistance": NutritionAssistanceRoute as never,
 			"nutrition-weekly-review": NutritionWeeklyReviewRoute as never,
+			"nutrition-week-goals": NutritionWeekGoalsRoute as never,
+			"nutrition-week-sources": NutritionWeekSourcesRoute as never,
 			"nutrition-library": NutritionLibraryRoute as never,
 			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,

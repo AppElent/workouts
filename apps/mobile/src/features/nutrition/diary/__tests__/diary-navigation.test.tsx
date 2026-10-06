@@ -178,11 +178,7 @@ describe("Nutrition navigation", () => {
 		);
 		expect(app.getSearchParams()).toMatchObject({ startDate: selectedDate });
 		const monday = weekStartMonday(selectedDate);
-		fireEvent.press(
-			await screen.findByLabelText(
-				new RegExp(`Open .*${Number(monday.slice(-2))}`),
-			),
-		);
+		fireEvent.press(await screen.findByText("Open Monday in diary"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(app.getSearchParams()).toMatchObject({ date: monday });
