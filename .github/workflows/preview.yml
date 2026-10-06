@@ -133,9 +133,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Core exports compiled files; fresh preview runners have no dist cache.
-      - run: pnpm build:packages
-
       - name: Delete Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
