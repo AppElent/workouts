@@ -15,8 +15,8 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
+import { LogFoodScreen } from "../../src/features/nutrition/log-food/log-food-screen";
 import { useI18n } from "../../src/i18n";
-import { NutritionFoodBrowser } from "../../src/screens/nutrition-food-browser";
 import { RouteError } from "../../src/ui/route-error";
 
 function asMealSlot(value: string | undefined): MealSlot {
@@ -32,7 +32,7 @@ export default function NutritionFoodRoute() {
 		create?: string;
 	}>();
 	return (
-		<NutritionFoodBrowser
+		<LogFoodScreen
 			meal={asMealSlot(meal)}
 			date={date ?? todayIsoDate()}
 			draftId={draftId || undefined}

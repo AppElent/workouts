@@ -1,11 +1,16 @@
 import { SymbolView } from "expo-symbols";
 import { StyleSheet } from "react-native";
-import { NutritionMenu } from "../features/nutrition/components/nutrition-menu";
-import { radius, type Tokens, useThemedStyles, useTokens } from "../theme";
-import type { FoodBrowserMenuProps } from "./nutrition-food-browser-menu.types";
+import {
+	radius,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../../../../theme";
+import { NutritionMenu } from "../../components/nutrition-menu";
+import type { LogFoodMenuProps } from "./log-food-menu-props";
 
 /** Android keeps the app's existing sheet presentation behind the same +. */
-export function FoodBrowserMenu(props: FoodBrowserMenuProps) {
+export function LogFoodMenu(props: LogFoodMenuProps) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	return (

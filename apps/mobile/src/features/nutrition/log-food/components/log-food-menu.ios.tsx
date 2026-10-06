@@ -7,11 +7,11 @@ import {
 	useAppearance,
 	useThemedStyles,
 	useTokens,
-} from "../theme";
-import type { FoodBrowserMenuProps } from "./nutrition-food-browser-menu.types";
+} from "../../../../theme";
+import type { LogFoodMenuProps } from "./log-food-menu-props";
 
 /** A SwiftUI `Menu` anchored to the +, so it floats over the list rather than displacing it. */
-export function FoodBrowserMenu(props: FoodBrowserMenuProps) {
+export function LogFoodMenu(props: LogFoodMenuProps) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const { scheme } = useAppearance();

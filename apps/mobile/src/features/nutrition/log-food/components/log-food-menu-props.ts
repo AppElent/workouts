@@ -6,7 +6,7 @@
  * worth. iOS gets a real `UIMenu` anchored to the button; Android gets the
  * app's existing sheet presentation.
  */
-export interface FoodBrowserMenuProps {
+export interface LogFoodMenuProps {
 	label: string;
 	closeLabel: string;
 	logOnceLabel: string;

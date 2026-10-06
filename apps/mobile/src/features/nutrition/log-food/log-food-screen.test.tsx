@@ -1,8 +1,8 @@
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { formatShortDate, todayIsoDate } from "../data/calendar-day";
-import { renderApp } from "../test-support/render-app";
+import { formatShortDate, todayIsoDate } from "../../../data/calendar-day";
+import { renderApp } from "../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
 const mockUsePaginatedQuery = jest.mocked(usePaginatedQuery);
