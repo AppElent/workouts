@@ -1,173 +1,80 @@
 ---
 name: verify
-description: Verify a code change in the workouts app by driving it through the real running app (dev server + Convex backend), not just typecheck/lint/test. Use before claiming a fix or feature is done.
+description: Verify Workouts changes through the affected web/mobile target and report actual runtime coverage.
 ---
 
-# Verify (workouts)
+# Verify Workouts
 
-Local-first: use `pnpm dev:watch` (Convex + Vite) and drive the change through
-the actual UI/API surface it touches. On web sessions without Convex/Clerk
-runtime credentials, verification falls back to the static suite
-(`pnpm run check`, `pnpm run typecheck`, `pnpm test`, `pnpm build`) — say so
-explicitly rather than claiming the feature itself was verified.
+Read root coding/design standards and [the docs index](../../../docs/README.md).
+Shared guidelines own generic verification rules. This file owns project commands,
+backend selection, test-account behavior, and the route/module starting points.
+Documentation-only changes need link/ownership checks, not an invented device pass.
 
-**If the change is in `apps/mobile/`, the static suite is not enough.** See
-"Mobile" below: the mobile app has failure modes that are structurally
-invisible to Jest.
+## Backend and login
 
-## Logging in
+Use [isolated worktree setup](../../../docs/runbooks/worktree-setup.md) for concurrent
+worktrees. Confirm the selected backend before runtime writes; localhost and EAS
+profile names do not prove an isolated development deployment.
 
-The sign-in screen shows a "▶ Dev: log in as test user" button (from
-`@appelent/auth`'s `TestLoginButton`) whenever `VITE_CLERK_PUBLISHABLE_KEY` is
-a Clerk **test** key (`pk_test_...`, never `pk_live_...`) *and* both
-`VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set in `.env.local`. Use
-it to authenticate when verifying auth-gated pages — don't assume a real
-Clerk login is required. If the button isn't showing, check `.env.local` for
-those two vars before concluding the app can't be tested logged-in.
+The web currently exposes a test-login shortcut through `@appelent/auth` when a
+Clerk test key and the configured public test-user variables are present. Use only
+the documented test account against the verified target. Read configuration names
+without printing credential values. Missing credentials are a verification limit,
+not a reason to invent accounts or promote this mechanism into shared policy.
 
-## Route → module map
+## Automated checks
 
-<!-- TODO: fill in as routes are verified. Never guess this table. -->
+Run applicable project checks from the repository root:
 
-| Route | Convex module(s) | Notes |
-| --- | --- | --- |
-| `/dashboard` | TODO | |
-| `/exercises`, `/exercises/$id` | `convex/exercises.ts` | |
-| `/log`, `/log/$sessionId` | `convex/workoutSessions.ts`, `convex/sets.ts` | real-time session |
-| `/routines` | `convex/routines.ts` | |
-| `/progress` | `convex/progress.ts`, `convex/oneRepMaxes.ts` | |
-| `/profile` | TODO | |
-
----
-
-# Mobile (`apps/mobile`)
-
-## Why the static gates are not enough here
-
-`pnpm --filter @workouts/mobile test` runs Jest against a **test renderer**.
-It has no worklet runtime, no native modules, no real layout and no real
-accessibility tree. Whole classes of defect pass it and then fail on the first
-phone that opens the screen. One that actually happened (#79): a
-`react-native-gesture-handler` gesture captured a legacy `Animated.Value`, and
-because gesture callbacks are worklets by default the diary crashed with
-`[Worklets] Cannot copy value of type AnimatedValue` — with 167 tests green.
-
-Assume anything in this list is unverified until a device says otherwise:
-
-- gestures, worklets, and anything touching `react-native-reanimated` or
-  `react-native-gesture-handler`
-- `NativeTabs`, native sheet/modal presentation, and the hardware back button
-- haptics (`src/feedback/haptics.ts`) — they are fire-and-forget and silent on
-  failure by design, so only a hand feels a regression
-- dynamic type and clipping, hit-target size, contrast
-- anything reading a system accessibility setting (`useReduceMotion`)
-- native permission dialogs, including the localized purpose strings in
-  `apps/mobile/locales/*.json`
-
-## Running it on the Android emulator
-
-There is no Mac here, so Android is the device (spec #68, D26). iOS-first is a
-design instruction, not a verification one.
-
-```bash
-# 1. Is the emulator up?
-agent-device devices                  # expect: Pixel 9 Pro 2 ... booted=true
-
-# 2. Start Metro from THIS worktree.
-#    Check the port first — another worktree may already own 8081:
-netstat -ano | grep ":8081"
-powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>' | Select-Object -ExpandProperty CommandLine"
-#    If it belongs to another checkout, use a free port instead of killing it.
-pnpm --filter @workouts/mobile exec expo start --port 8082 --go
-
-# 3. Point the emulator at your Metro and open Expo Go.
-adb reverse tcp:8082 tcp:8082
-adb shell am start -a android.intent.action.VIEW -d "exp://127.0.0.1:8082" host.exp.exponent
-
-# 4. Drive it.
-agent-device open host.exp.exponent --foreground
-```
-
-Confirm the bundle came from **your** worktree before believing anything:
-Metro's log prints `Android Bundled … (N modules)` when it serves, and the
-LogBox stack traces name the absolute path of the checkout that built it.
-
-### Things that will slow you down
-
-- **The app runs in Expo Go**, not a dev client (`host.exp.exponent`). `NativeTabs`
-  renders there; `expo-camera` and `expo-sqlite` are bundled with Expo Go.
-- **Two LogBox warnings are expected and harmless**: Clerk's development-keys
-  notice, and the `wods-list ↔ wod-editor` require cycle. Clear them with
-  `agent-device react-native dismiss-overlay` (twice — they queue), or press
-  the `Dismiss` node. A snapshot taken with an overlay up returns the LogBox
-  tree, not the app.
-- **`snapshot -i` refs go stale after any navigation.** Re-snapshot rather than
-  reusing a ref; a press on a stale ref silently does nothing.
-- **The emulator's locale is Dutch**, so the whole app is in Dutch. That is
-  useful — it verifies the message tree for free — but every selector must be
-  the Dutch string. See the table below.
-- **Route errors are recoverable**: the Nutrition routes render `RouteError`
-  with a retry, so a crash shows "Deze dag kon niet worden geopend" plus
-  "Opnieuw proberen" rather than a white screen. Pressing retry after a Fast
-  Refresh is usually enough to pick up a fix.
-
-### Reaching Nutrition
-
-Tab bar, fifth tab: **Voeding** (English: Nutrition). From the day:
-
-| What | Dutch label on device |
-| --- | --- |
-| Add to a meal | `Voeg eten toe aan Ontbijt` / `Lunch` / `Diner` / `Tussendoortjes` |
-| Move day | `Vorige dag` / `Volgende dag` / `Naar vandaag` |
-| Edit an entry | `Item bewerken: <food>` |
-| Row actions (long press) | `Wijzig` / `Verwijder` / `Sluiten` |
-| Delete confirmation | `Dit item verwijderen?` → `Item verwijderen` / `Item behouden` |
-| Goals | `Doelen bewerken` |
-| Combos | `Combo maken` / `Combo loggen` |
-| Food browser | `Zoek eten`, `Scan barcode`, `Doorzoek alle 2.328 voedingsmiddelen` |
-| Serving sheet | title is the food name; close is `Sluit portiekeuze` (`Klaar`) |
-| Log | `Eten loggen` |
-
-### Going offline
-
-The diary's offline behaviour is a real branch, not a fallback, so test it:
-
-```bash
-adb shell cmd connectivity airplane-mode enable
-adb shell svc wifi disable && adb shell svc data disable
-# ... verify ...
-adb shell cmd connectivity airplane-mode disable
-adb shell svc wifi enable && adb shell svc data enable
-```
-
-A day already downloaded keeps rendering. Step to a day that was not
-(`Vorige dag`) and it must say `Je dagboek voor deze dag staat nog niet op
-deze telefoon` with `Niet beschikbaar zonder verbinding` in each slot — never
-a skeleton, which would promise data that cannot arrive. The plus controls
-stay live, and the shipped food library still searches, because it is in the
-bundle.
-
-## Mobile route → module map
-
-Routes are files under `apps/mobile/app/`; screens live in `src/screens/`.
-The Nutrition sub-screens are siblings of `(coach)`, so they push *over* the
-tab bar.
-
-| Route | Screen | Convex / device module(s) |
-| --- | --- | --- |
-| `(app)/(coach)/nutrition` | `nutrition-day.tsx` | `convex/nutritionDiary.ts`, `convex/nutritionGoals.ts`, `convex/nutritionActivityMarker.ts` |
-| `(app)/nutrition-food` | `nutrition-food-browser.tsx` | `convex/nutritionDiary.ts` (`log`); `@workouts/core/nutrition` for the shipped library; `src/data/personal-food-repository.ts` (SQLite); `src/data/open-food-facts.ts` |
-| `(app)/nutrition-entry` | `nutrition-entry-editor.tsx` | `convex/nutritionDiary.ts` (`update`, `remove`) |
-| `(app)/nutrition-goals` | `nutrition-goals.tsx` | `convex/nutritionGoals.ts` |
-| `(app)/nutrition-combos` | `nutrition-combos.tsx` (`NutritionComboLibrary`) | `convex/nutritionDiary.ts` (`logCombo`); SQLite combos |
-| `(app)/nutrition-combo-new` | `nutrition-combos.tsx` (`NutritionComboBuilder`) | SQLite combos |
-| `(app)/language` | `language.tsx` | none — `expo-sqlite/kv-store` |
-
-## Mobile static gates
-
-```bash
-pnpm --filter @workouts/core build          # required, or typecheck fails TS2307
+```sh
+pnpm check
+pnpm typecheck
+pnpm test
+pnpm build
 pnpm --filter @workouts/mobile typecheck
-pnpm --filter @workouts/mobile test         # Jest; the rest of the repo is Vitest
-pnpm check                                  # Biome covers apps/mobile/src and app
+pnpm --filter @workouts/mobile test --runInBand
 ```
+
+Root Vitest/types exclude the mobile target. Mobile uses Jest. Build
+`@workouts/core` before dependent checks if its output is missing:
+`pnpm --filter @workouts/core build`.
+For an initial focused investigation run the affected suite; complete the relevant
+required gates before reporting the change finished. Never hide failures by
+weakening tests or checks. Record pre-existing failures separately with evidence.
+
+## Web runtime
+
+`pnpm dev:watch` runs Vite and continuous Convex sync; `pnpm dev` starts only Vite.
+`pnpm preview` runs a development-mode build in Wrangler. Use the host's shared
+browser surface when available. Exercise the changed journey, relevant failure
+states, and refresh; report inaccessible authenticated areas explicitly.
+
+Routes are under `src/routes/`, navigation is in `src/components/navItems.ts`, and
+backend calls identify their owning `convex/` modules. Resolve the current imports
+rather than using an incomplete copied route map.
+
+## Mobile runtime
+
+Read [mobile releases](../../../docs/runbooks/mobile-releases.md) for building a compatible
+development client and starting Metro. Use a free port for this checkout; do not
+kill another worktree's server. Confirm the bundle and backend belong to this task.
+Do not assume Expo Go contains custom native modules or Sentry integration.
+
+Use the host's device tools to discover/open the intended simulator or emulator,
+then drive the affected journey. On iOS verify native navigation/sheets, keyboard,
+Dynamic Type, themes/locales, safe areas, and relevant gestures. On Android verify
+its adapters, Back/keyboard dismissal, edge-to-edge insets, and relevant gestures.
+A physical device is needed for tactile haptics and final device-feel acceptance.
+
+Jest cannot establish native layout, permission dialogs, gesture/worklet runtime,
+or UIKit/Compose behavior. Capture screenshots for layout and short recordings
+for changed navigation, sheets, keyboard movement, or gestures. Identify the build,
+device, backend, locale/theme, and untested paths. See the
+[iOS acceptance checklist](../../../docs/verification/ios-native-checklist.md) and existing
+reports/evidence linked from the docs index.
+
+Mobile routes are under `apps/mobile/app/`, screens under `apps/mobile/src/screens/`,
+and platform primitives under `apps/mobile/src/ui/`. Nutrition's local persistence
+is under `apps/mobile/src/data/`; domain catalogs/calculations are in `packages/core`.
+Verify offline behavior when that branch changes: cached history stays readable;
+an unavailable day explains its absence rather than showing indefinite loading.

@@ -5,7 +5,7 @@
  * its React Native transcription. CSS custom properties cascade, these do not,
  * so every value is typed out. When the two disagree, Foundry wins — fix this
  * file, not the design system. The web app adopts the same palette
- * (`docs/design/foundry-native-plan.md`), so there is no longer a "web look"
+ * (`docs/archive/design/foundry-native-plan.md`), so there is no longer a "web look"
  * to keep this one apart from.
  *
  * System / Light / Dark is resolved by AppearanceProvider. Static palettes are

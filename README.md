@@ -2,15 +2,14 @@
 
 Personal workout tracker with real-time session logging, exercise library, 1RM tracking, and routine management.
 
-## Tech Stack
+## Project guidance
 
-- **React 19** + TanStack Start/Router (SSR, file-based routing)
-- **Convex** — real-time serverless backend
-- **Clerk** + `@appelent/auth` — authentication
-- **Cloudflare Workers** — hosting (via Wrangler)
-- **Tailwind CSS v4** + CVA for component variants
-- **Biome** — linting and formatting
-- **Vitest** — tests
+The web uses TanStack Start; the Foundry mobile app uses Expo. Both share a Convex
+backend and Clerk authentication. Read [coding standards](CODING_STANDARDS.md)
+for the stack, workspace boundaries, and current integration exceptions, and
+[design standards](DESIGN_SYSTEM.md) for the web/mobile component owners.
+The [docs index](docs/README.md) separates current contracts and runbooks from
+historical proposals and verification records.
 
 ## Features
 
@@ -52,7 +51,7 @@ pnpm exec convex dev --once
 
 ## Development
 
-Concurrent editor/agent worktrees must use the repository's isolated [worktree setup](docs/worktree-setup.md) instead of sharing a Convex development deployment.
+Concurrent editor/agent worktrees must use the repository's isolated [worktree setup](docs/runbooks/worktree-setup.md) instead of sharing a Convex development deployment.
 
 ```bash
 pnpm dev:watch   # Convex (watch mode) + Vite, concurrently — recommended, http://localhost:3000
@@ -60,11 +59,13 @@ pnpm dev:watch   # Convex (watch mode) + Vite, concurrently — recommended, htt
 
 `pnpm dev:watch` runs both servers you need for full functionality in one command. `pnpm dev:all` is a lighter alternative that only pushes Convex functions once at startup (fine for a quick session, but Convex won't re-sync if you edit `convex/` afterward). `pnpm dev` starts Vite only.
 
-On the sign-in screen, a "▶ Dev: log in as test user" button appears if `VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set (only takes effect against a Clerk *test* key, never production).
+The current test-login shortcut uses a Clerk test key and optional public client
+variables. Follow the [environment contract](docs/runbooks/environment.md); a test key
+alone does not establish which backend or deployment is being tested.
 
 ## Environment Variables
 
-See the [environment contract](docs/environment.md) for source setup, routing,
+See the [environment contract](docs/runbooks/environment.md) for source setup, routing,
 generated-file ownership, and the shared `@appelent/dev` commands. `.env.example`
 is a canonical source-key catalog; do not copy it into `.env.local`. Existing
 human-owned files require review and explicit ownership adoption before apply.
@@ -73,7 +74,7 @@ human-owned files require review and explicit ownership adoption before apply.
 |---|---|
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard) |
 | `VITE_CONVEX_URL` | Convex deployment URL for the frontend client |
-| `CONVEX_DEPLOYMENT` | Convex deployment reference (set automatically by `npx convex dev`) |
+| `CONVEX_DEPLOYMENT` | Convex deployment reference (set automatically by `pnpm exec convex dev`) |
 | `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` | Optional — enables the dev test-login button above |
 
 The Convex backend itself reads `CLERK_JWT_ISSUER_DOMAIN` from its own environment (`pnpm exec convex env set CLERK_JWT_ISSUER_DOMAIN <value>`), not from a `.env` file.
@@ -83,7 +84,9 @@ The Convex backend itself reads `CLERK_JWT_ISSUER_DOMAIN` from its own environme
 ```bash
 pnpm dev:watch    # Convex (watch mode) + Vite, concurrently (recommended)
 pnpm build        # Production build
-pnpm typecheck    # tsc --noEmit
+pnpm typecheck    # Root tsc --noEmit
+pnpm --filter @workouts/mobile typecheck  # Mobile types
+pnpm --filter @workouts/mobile test       # Mobile Jest tests
 pnpm test         # Run Vitest tests
 pnpm lint         # Biome lint
 pnpm lint:fix     # Biome lint + format, auto-fix
@@ -110,33 +113,21 @@ pnpm workouts auth status
 pnpm workouts auth login
 ```
 
-`auth login` uses the browser login flow from `@appelent/cli`; `auth login --token <token>` is the manual fallback. You do not need to publish this app to use the repo-local CLI. Generic CLI behavior ships in the shared `@appelent/cli` package, so new shared CLI features must be published there and then consumed here through the normal dependency update.
+`auth login` uses the browser login flow from `@appelent/cli`; `auth login --token <token>` is the manual fallback. You do not need to publish this app to use the repo-local CLI. Generic CLI behavior currently comes from `@appelent/cli`. The new
+[app-owned CLI guide](docs/features/app-cli/FEATURE.md) describes a future
+migration; do not remove the package until imports and login behavior are verified.
 
 ## Deployment
 
 Hosted on Cloudflare Workers via Wrangler (see `wrangler.jsonc` for the `production`/`dev` environments). Every pull request also gets an automatic, isolated preview — a fresh per-PR Convex backend plus a per-PR Worker — provisioned by `.github/workflows/preview.yml` and linked in a PR comment.
 
-## Architecture
+## Architecture and mobile
 
-```
-Clerk (auth) → JWT → Convex backend → real-time subscriptions → React components
-```
+See [coding standards](CODING_STANDARDS.md) for workspace boundaries and
+[CONTEXT.md](CONTEXT.md) for product vocabulary. Routes come from `src/routes/`
+and `apps/mobile/app/`; `src/components/navItems.ts` owns web navigation.
+Do not use a copied route inventory as the source of truth.
 
-- `src/` — React 19 frontend with TanStack Router file-based routes
-- `convex/` — Schema, queries, mutations (serverless)
-- `convex/schema.ts` — Source of truth for all tables
-- `src/routes/__root.tsx` — Root layout; auto-redirects active sessions to `/log/$sessionId`
-
-## Routes
-
-| Path | Description |
-|---|---|
-| `/` | Home / landing |
-| `/dashboard` | Session history + stats |
-| `/log` | Start or resume a workout |
-| `/log/$sessionId` | Active session logging |
-| `/exercises` | Exercise library |
-| `/exercises/$id` | Exercise detail + 1RM history |
-| `/routines` | Routine management |
-| `/progress` | Progress charts |
-| `/profile` | User settings |
+Mobile development, signing, TestFlight, and OTA procedures are in
+[mobile releases](docs/runbooks/mobile-releases.md). CI runs root and mobile checks;
+root Vitest/typechecking alone does not cover the Expo target.

@@ -1,0 +1,15 @@
+# Product contracts and briefs
+
+These documents capture intended feature behavior. Their implementation inventories
+and completion claims describe the time of writing; consult current source and the
+linked verification records for implementation status. [CONTEXT.md](../../CONTEXT.md)
+owns vocabulary, and [ADRs](../adr/README.md) own architectural boundaries.
+
+| Feature | Contract / brief | Evidence |
+| --- | --- | --- |
+| Running and cycling | [V1 contract](running-cycling-v1.md) | [Endurance verification](../verification/endurance.md) |
+| Personal Foods, Recipes, and estimates | [Implementation brief](personal-food-recipes-estimates.md) | [Implementation record](../verification/personal-food-recipes-estimates.md) |
+| Capture Drafts in the diary | [Agreed behavior and original inventory](capture-drafts-in-diary.md) | [Nutrition review](../verification/nutrition/REVIEW.md) |
+
+The dedicated Capture Draft repository and diary UI now exist. Its brief's
+pre-implementation inventory is historical; outstanding acceptance stays visible.

@@ -33,6 +33,12 @@ verifyDepsBeforeRun: false
 # Clerk's config plugin imports this at runtime but only declares it as a
 # devDependency. EAS loads the plugin directly, without pnpm's NODE_PATH shim.
 packageExtensions:
+  # Worklets' Babel plugin imports these directly but omits them from its manifest.
+  # Declare them explicitly so fresh pnpm installs do not depend on hoisting.
+  'react-native-worklets@0.10.1':
+    dependencies:
+      '@babel/generator': '7.29.7'
+      '@babel/traverse': '7.29.7'
   '@clerk/expo@4.2.8':
     dependencies:
       '@expo/config-plugins': '~57.0.9'
@@ -43,6 +49,7 @@ packageExtensions:
 # Each entry is a trusted native-binary build:
 #   esbuild / lightningcss — bundler + Tailwind v4 CSS engine
 #   workerd / sharp        — Cloudflare Workers runtime + miniflare image dep
+#   node-datachannel      — Expo Device Hub's Android WebRTC streaming binary
 # Intentionally NOT allowed: @clerk/shared (its published dist works without
 # running its install script).
 onlyBuiltDependencies:
@@ -50,6 +57,7 @@ onlyBuiltDependencies:
   - lightningcss
   - workerd
   - sharp
+  - node-datachannel
 
 # Supply-chain cooldown: refuse to install/resolve any package version
 # published less than 3 days ago. Newly published malicious versions are
@@ -106,3 +114,4 @@ allowBuilds:
   workerd: true
   dtrace-provider: false # EAS CLI's optional native tracing; JS fallback is sufficient
   protobufjs: false # postinstall only checks dependency version notation
+  node-datachannel: true # Expo Device Hub's Android streaming needs the native binary

@@ -50,7 +50,7 @@ records, and hosted workouts store shipped keys directly; only personal exercise
 are stored in the exercises table. Backend validation reads the same bundled data.
 
 For an existing deployment, use the checkpointed reference migration described
-in `docs/exercise-migration.md`. Deploy the backend, run a dry run, then apply and
+in `docs/runbooks/exercise-migration.md`. Deploy the backend, run a dry run, then apply and
 verify the migration before releasing updated clients. The backend supports
 mixed references during the rollout. Personal exercise IDs are never rewritten.
 

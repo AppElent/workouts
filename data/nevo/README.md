@@ -50,7 +50,8 @@ source citations and a spreadsheet copy of the same rows.
 There is no salt or NaCl column. NEVO stores total sodium, and where it takes a salt figure off
 a label it converts *in* at `salt g × 0.4 × 1000 = mg sodium` (background info §6, sodium). So
 `salt g = NA mg × 2.5 / 1000` is the exact inverse of NEVO's own factor — but it is still a
-figure NEVO does not publish. Unresolved: see #64.
+figure NEVO does not publish. The pipeline preserves source sodium and declares
+its salt derivation; see [ADR 0006](../../docs/adr/0006-ship-nevo-as-generated-core-data.md).
 
 ### Empty, zero, and trace are three different things
 
@@ -65,14 +66,18 @@ figure NEVO does not publish. Unresolved: see #64.
 
 So #57's absence-is-not-zero rule survives the raw data intact: blank and `0` are distinct in
 the file, and the extract can carry that through by omitting the key rather than writing 0. A
-trace is a genuine ~0 and needs no separate state.
+trace contributes numeric zero but retains a distinct `trace` state in the shipped
+artifact. See [the current nutrition contract](../../packages/core/src/nutrition/README.md);
+these dataset notes do not override the runtime nutrient model.
 
 ## Identity
 
 `NEVO-code` is an integer, unique, no leading zeros, 1–5,610 across 2,328 rows — the code space
 is 41% used, and material changes mint a new code rather than mutate an old one (background info
 §5.5 records margarine 2063 being replaced by a new code 5562). That is consistent with
-retire-don't-reuse, but the documentation never states it. Not proven: see #66.
+retire-don't-reuse, but the documentation never states it. The later [identity research](../../docs/research/nevo-code-stability.md) proves
+retirement/reactivation; [ADR 0006](../../docs/adr/0006-ship-nevo-as-generated-core-data.md)
+therefore requires permanent application IDs and explicit reconciliation.
 
 ## Units and quantity basis
 

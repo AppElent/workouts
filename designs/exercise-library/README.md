@@ -43,3 +43,7 @@ The ellipsis button in the library header switches List (A) and Muscle groups (B
 Verified multi-select union/intersection, result counts, deselection, cancellation, reset, multi-select muscle browsing, and header-menu layout switching.
 
 The header menu now follows the supplied iOS Mail visual-picker reference: two side-by-side phone thumbnails, descriptive layout labels, and selected/unselected circles. It retains the app palette and Base UI menu semantics. Left/Right arrows select focus; Enter applies the layout; Escape dismisses. Verified the visual result and keyboard switching in-browser.
+
+## Implementation evidence
+
+See the [native implementation and verification record](../../docs/verification/exercise-library/README.md) for device coverage, limitations, screenshots, and recordings.
