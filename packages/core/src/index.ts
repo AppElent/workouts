@@ -5,6 +5,8 @@ export {
 	totalNutrient,
 	totalNutrients,
 } from "./nutrition/aggregate";
+export * from "./nutrition/diary-correction";
+export * from "./nutrition/nutrient-sources";
 export {
 	NUTRIENT_KEYS,
 	type NutrientKey,

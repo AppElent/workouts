@@ -104,6 +104,7 @@ _Avoid_: Food Library
 
 **Diary Entry**:
 A snapshot of a chosen amount and its nutrition figures logged at a particular time. Later changes to its Food, Serving, or Personal Measure never alter the entry.
+An explicit correction can change the selected entry without changing other historical entries.
 _Avoid_: Food log
 
 **Meal Slot**:

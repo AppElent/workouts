@@ -12,6 +12,7 @@ import type {
 	PersonalMeasure,
 	SupplementaryServing,
 } from "@workouts/core/nutrition";
+import { correctDiaryNutrients } from "@workouts/core/nutrition";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
@@ -369,6 +370,12 @@ function applyUpdate(
 		entries.push(entry);
 	}
 	if (!entry) return;
+	if (
+		operation.correction &&
+		(operation.quantity !== undefined || operation.selection)
+	) {
+		throw new Error("A nutrient correction cannot change the amount");
+	}
 	const oldQuantity = entry.quantity;
 	const quantity =
 		operation.selection?.quantity ?? operation.quantity ?? oldQuantity;
@@ -399,6 +406,8 @@ function applyUpdate(
 				: {}),
 		pendingOperationId: operationId,
 	};
+	if (operation.correction)
+		Object.assign(next, correctDiaryNutrients(next, operation.correction));
 	if (moved) {
 		delete next.comboGroup;
 	}

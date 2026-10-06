@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
+import { DiaryScreen } from "../../../../src/features/nutrition/diary/diary-screen";
 import { useI18n } from "../../../../src/i18n";
-import { NutritionDayScreen } from "../../../../src/screens/nutrition-day";
 import { RouteError } from "../../../../src/ui/route-error";
 
 export default function NutritionRoute() {
@@ -8,7 +8,7 @@ export default function NutritionRoute() {
 		date?: string;
 		select?: string;
 	}>();
-	return <NutritionDayScreen initialDate={date} startSelecting={select} />;
+	return <DiaryScreen initialDate={date} startSelecting={select} />;
 }
 
 export function ErrorBoundary({

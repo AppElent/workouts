@@ -40,6 +40,7 @@ export {
 	OPEN_FOOD_FACTS_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
+export * from "./diary-correction";
 export {
 	type FoodResult,
 	type FoodResultsInput,
@@ -80,6 +81,7 @@ export {
 	shippedLibraryMeta,
 	shippedSourceMeta,
 } from "./library";
+export * from "./nutrient-sources";
 export {
 	ABSENT,
 	isValue,

@@ -1,40 +1,60 @@
 # Mobile folder structure
 
-Adopted for the Labs Diary Entry redesign (spec #91). Existing screens outside
-that slice remain in their current folders; migrate them when their feature work
-requires it. See the [first implementation report](reports/diary-entry-editor-implementation.md).
+Adopted for the live Nutrition Diary and Diary Entry redesigns. New feature work
+belongs in the feature folders; migrate existing implementations when changing
+their behavior. Routes stay thin and use the production destinations. Labs routes
+may remain compatibility aliases, but are not the exclusive home of redesigned
+screens. See the [Diary report](reports/nutrition-diary-redesign-implementation.md)
+and [first implementation report](reports/diary-entry-editor-implementation.md).
 
 ## Ownership
 
 - `apps/mobile/app/`: routes, parameter validation, navigation, and presentation.
 - `apps/mobile/src/features/<feature>/`: feature screens, state, and supporting code.
+- `features/nutrition/<subject>/components/`: supporting UI used only by that subject.
 - `features/nutrition/components/`: components shared across nutrition subjects.
 - `src/ui/`: app-wide, domain-independent controls and platform adapters.
 - Existing data services remain canonical; reuse their operations. Shared domain
   calculations and catalogs stay in `packages/core/`.
 
-Keep each subject folder flat while it remains easy to navigate. View, editor,
-and their supporting components live together. Add subfolders when size warrants
-them, not merely because tasks or presentations differ.
+Keep screen/view entry points and their state hooks at the subject root. Put
+supporting UI in a subject-local `components/` folder, including platform variants.
+Keep directly paired tests beside the screen or component they exercise. Group
+subject-wide scenario and integration tests in the subject’s `__tests__/` folder;
+their names describe behaviors and do not imply matching implementation files. Pure calculations and
+presentation helpers remain beside their owning screen/state unless they form a
+separate cohesive module. Do not move a component to the shared nutrition folder
+merely because two screens within the same subject use it.
 
 ```text
 src/
   ui/
     segmented.tsx
   features/nutrition/
-    components/
-      meal-picker.tsx
+    components/                    # shared across nutrition subjects
       nutrient-table.tsx
-    personal-food/
-      personal-food-editor-form.tsx
-      personal-food-editor-form.test.tsx
-      personal-food-editor-screen.tsx
-      personal-food-editor-sheet.tsx
-      personal-food-header.tsx
-      personal-food-view-content.tsx
-      personal-food-view-screen.tsx
-      personal-food-view-sheet.tsx
-      use-personal-food-editor.ts
+      nutrition-header-menu.tsx
+    diary/
+      diary-screen.tsx
+      diary-screen.test.tsx
+      use-logged-diary-dates.ts
+      __tests__/                   # subject-wide scenarios
+        diary-navigation.test.tsx
+        diary-offline.test.tsx
+      components/                  # diary-only supporting UI
+        diary-calendar.tsx
+        diary-meal-card.tsx
+        diary-meal-menu.tsx
+        diary-meal-menu.ios.tsx
+        diary-summary.tsx
+        diary-week-strip.tsx
+    diary-entry/
+      diary-entry-editor-screen.tsx
+      diary-entry-editor-screen.test.tsx
+      use-diary-entry-editor.ts
+      components/
+        diary-entry-quantity.tsx
+        diary-entry-serving-popup.tsx
 ```
 
 ## Naming and reuse
@@ -43,8 +63,10 @@ src/
   task, such as `personal-food-header.tsx`. Avoid vague names like `helpers.ts`.
 - Match component exports to filenames in PascalCase. Hooks use `use-` filenames
   and `use` exports. Tests and platform variants retain the complete basename.
-- Colocate supporting components, hooks, and tests with their screens. Move UI to
-  `nutrition/components/` when another nutrition subject needs the same contract.
+- Keep supporting components in their subject’s `components/`, hooks at the
+  subject root, directly paired tests beside their owner, and scenario tests in
+  the subject’s `__tests__/`. Move UI to `nutrition/components/`
+  when another nutrition subject needs the same contract.
 - Domain-aware UI stays in its feature: `MealPicker` can wrap the generic
   `Segmented` control. Use `src/ui/` for generic primitives, without a nutrition
   subfolder. Generic UI must not import features.

@@ -1,3 +1,4 @@
+import type { ImageProps } from "@expo/ui/swift-ui";
 import { type Href, Link } from "expo-router";
 /**
  * A row whose actions can be reached three ways, none of which is the only way.
@@ -57,6 +58,9 @@ import { AppText } from "./text";
 export interface RowAction {
 	/** Stable across renders; also the accessibility action name. */
 	key: string;
+	systemImage?: ImageProps["systemName"];
+	menuLabel?: string;
+	dividerAfter?: boolean;
 	/** Shown on the revealed button and spoken as the custom action. */
 	label: string;
 	onPress: () => void;

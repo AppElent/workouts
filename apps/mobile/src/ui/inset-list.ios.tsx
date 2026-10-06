@@ -23,6 +23,7 @@
 import {
 	Button,
 	ContextMenu,
+	Divider,
 	Host,
 	HStack,
 	Image,
@@ -38,15 +39,20 @@ import {
 } from "@expo/ui/swift-ui";
 import {
 	accessibilityAddTraits,
+	accessibilityElement,
 	accessibilityLabel,
 	contentShape,
 	font,
 	foregroundStyle,
 	frame,
 	lineLimit,
+	listRowBackground,
+	listRowInsets,
+	listSectionMargins,
 	listStyle,
 	monospacedDigit,
 	onTapGesture,
+	padding,
 	scrollContentBackground,
 	scrollDisabled,
 	shapes,
@@ -54,8 +60,8 @@ import {
 	useScrollGeometryChange,
 } from "@expo/ui/swift-ui/modifiers";
 import { version as expoVersion } from "expo/package.json";
-import { Children, isValidElement, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Children, Fragment, isValidElement, useState } from "react";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import {
 	metrics,
 	sportMeta,
@@ -92,9 +98,15 @@ const useContentHeight: typeof useScrollGeometryChange = canMeasure
 	? useScrollGeometryChange
 	: () => null;
 
-export function InsetList({ header, footer, children }: InsetListProps) {
+export function InsetList({
+	compact = false,
+	header,
+	headerContent,
+	footer,
+	children,
+}: InsetListProps) {
 	const tokens = useTokens();
-	const rows = Children.count(children);
+	const rows = Children.count(children) + (headerContent ? 1 : 0);
 	const [measured, setMeasured] = useState<number | null>(null);
 	const geometry = useContentHeight((g) => {
 		if (g.contentHeight > 0) setMeasured(Math.ceil(g.contentHeight));
@@ -102,7 +114,7 @@ export function InsetList({ header, footer, children }: InsetListProps) {
 	const height = measured ?? estimateHeight(rows, header, footer);
 
 	return (
-		<View style={styles.bleed}>
+		<View style={[styles.bleed, compact ? { marginHorizontal: -16 } : null]}>
 			<Host
 				colorScheme={useHostScheme()}
 				seedColor={tokens.accent}
@@ -117,9 +129,25 @@ export function InsetList({ header, footer, children }: InsetListProps) {
 					]}
 				>
 					<Section
+						modifiers={
+							compact
+								? [listSectionMargins({ edges: "vertical", length: 0 })]
+								: []
+						}
 						title={header}
 						footer={footer ? <Text>{footer}</Text> : undefined}
 					>
+						{headerContent ? (
+							<HStack
+								modifiers={[
+									frame({ minHeight: 64 }),
+									listRowInsets({ top: 0, bottom: 0, leading: 0, trailing: 0 }),
+									listRowBackground(tokens.surface),
+								]}
+							>
+								<RNHostView>{headerContent}</RNHostView>
+							</HStack>
+						) : null}
 						{children}
 					</Section>
 				</List>
@@ -175,9 +203,11 @@ function SportTile({
 
 export function InsetRow({
 	leading,
+	selected,
 	title,
 	secondary,
 	value,
+	trailing,
 	chevron = false,
 	destructive = false,
 	onPress,
@@ -186,6 +216,7 @@ export function InsetRow({
 	accessibilityLabel: label,
 }: InsetRowProps) {
 	const tokens = useTokens();
+	const { width } = useWindowDimensions();
 	const spoken = label ?? (secondary ? `${title}, ${secondary}` : title);
 	const swipe = (actions ?? []).filter((a) => a.swipe !== false);
 
@@ -194,6 +225,9 @@ export function InsetRow({
 			spacing={12}
 			modifiers={[
 				contentShape(shapes.rectangle()),
+				listRowBackground(tokens.surface),
+				accessibilityElement("ignore"),
+				...(selected ? [accessibilityAddTraits(["isSelected"])] : []),
 				accessibilityLabel(spoken),
 				...(onPress
 					? [onTapGesture(onPress), accessibilityAddTraits(["isButton"])]
@@ -224,7 +258,9 @@ export function InsetRow({
 				) : null}
 			</VStack>
 			<Spacer />
-			{value ? (
+			{trailing ? (
+				<RNHostView matchContents>{trailing}</RNHostView>
+			) : value ? (
 				<Text
 					modifiers={[
 						font({ textStyle: "subheadline" }),
@@ -254,15 +290,29 @@ export function InsetRow({
 		<ContextMenu>
 			<ContextMenu.Items>
 				{actions.map((action) => (
-					<Button
-						key={action.key}
-						label={action.label}
-						role={action.destructive ? "destructive" : "default"}
-						onPress={action.onPress}
-					/>
+					<Fragment key={action.key}>
+						<Button
+							key={action.key}
+							label={action.menuLabel ?? action.label}
+							modifiers={[
+								tint(action.destructive ? tokens.danger : tokens.text),
+							]}
+							systemImage={action.systemImage}
+							role={action.destructive ? "destructive" : "default"}
+							onPress={action.onPress}
+						/>
+						{action.dividerAfter ? <Divider /> : null}
+					</Fragment>
 				))}
 			</ContextMenu.Items>
 			<ContextMenu.Trigger>{row}</ContextMenu.Trigger>
+			<ContextMenu.Preview>
+				<VStack
+					modifiers={[frame({ width: width - 64 }), padding({ all: 16 })]}
+				>
+					{row}
+				</VStack>
+			</ContextMenu.Preview>
 		</ContextMenu>
 	);
 
@@ -272,14 +322,18 @@ export function InsetRow({
 		<SwipeActions>
 			{withMenu}
 			<SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-				{swipe.map((action) => (
+				{[...swipe].reverse().map((action) => (
 					<Button
 						key={action.key}
 						label={action.label}
 						role={action.destructive ? "destructive" : "default"}
-						systemImage={action.destructive ? "trash" : undefined}
+						systemImage={
+							action.systemImage ?? (action.destructive ? "trash" : "pencil")
+						}
 						onPress={action.onPress}
-						modifiers={action.destructive ? [] : [tint(tokens.accent)]}
+						modifiers={[
+							tint(action.destructive ? tokens.danger : tokens.swipeNeutral),
+						]}
 					/>
 				))}
 			</SwipeActions.Actions>

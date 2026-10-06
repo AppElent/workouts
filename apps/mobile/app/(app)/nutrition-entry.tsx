@@ -1,68 +1,59 @@
-/**
- * Route for correcting one logged diary entry.
- *
- * Pushed over the tab bar for the same reasons as `nutrition-food.tsx`: edge
- * back on iOS, hardware back on Android, and a diary that is still underneath
- * rather than unmounted.
- *
- * The entry is looked up from the day query by id rather than carried through
- * the navigation as an object. That is not only what a route makes convenient —
- * it is more correct. The editor then renders whatever Convex currently holds,
- * so an entry changed or deleted from another device is reflected here instead
- * of the screen editing a stale copy it was handed on push. If it is gone, the
- * route closes itself rather than showing an editor for nothing.
- */
+import { useConvexConnectionState } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef } from "react";
-import { todayIsoDate } from "../../src/data/calendar-day";
+import { useRef } from "react";
 import {
-	MEAL_SLOTS,
-	type MealSlot,
-	useNutritionDay,
-} from "../../src/data/nutrition-day";
+	isoDateToLocalDate,
+	todayIsoDate,
+	toIsoDate,
+} from "../../src/data/calendar-day";
+import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
+import { DiaryEntryEditorScreen } from "../../src/features/nutrition/diary-entry/diary-entry-editor-screen";
 import { useI18n } from "../../src/i18n";
-import { NutritionEntryEditor } from "../../src/screens/nutrition-entry-editor";
 import { RouteError } from "../../src/ui/route-error";
-
-function asMealSlot(value: string | undefined): MealSlot {
-	return MEAL_SLOTS.find((slot) => slot === value) ?? "breakfast";
-}
-
+import { AppText } from "../../src/ui/text";
 export default function NutritionEntryRoute() {
-	const { id, meal, date } = useLocalSearchParams<{
+	const params = useLocalSearchParams<{
 		id?: string;
 		meal?: string;
 		date?: string;
 	}>();
-	const day = date ?? todayIsoDate();
-	const slot = asMealSlot(meal);
-	const state = useNutritionDay(day);
-	const currentEntry =
+	const { t } = useI18n();
+	const connected = useConvexConnectionState().isWebSocketConnected;
+	const date =
+		typeof params.date === "string" &&
+		/^\d{4}-\d{2}-\d{2}$/.test(params.date) &&
+		toIsoDate(isoDateToLocalDate(params.date)) === params.date
+			? params.date
+			: todayIsoDate();
+	const meal = MEAL_SLOTS.find((slot) => slot === params.meal) ?? "breakfast";
+	const state = useNutritionDay(date);
+	const current =
 		state.status === "ready"
-			? state.day.entries[slot].find((candidate) => candidate.id === id)
+			? state.day.entries[meal].find((entry) => entry.id === params.id)
 			: undefined;
-	const lastEntry = useRef<typeof currentEntry>(undefined);
-	if (currentEntry) lastEntry.current = currentEntry;
-	const entry = currentEntry ?? lastEntry.current;
-	const missing =
-		state.status === "ready" &&
-		entry === undefined &&
-		state.day.pendingOperationIds.length === 0;
-
-	// Closing during a render would fight the router; do it as an effect once
-	// the day has actually loaded and the entry is genuinely not in it.
-	useEffect(() => {
-		if (missing) router.back();
-	}, [missing]);
-
-	if (!entry) return null;
-
+	const retained = useRef(current);
+	if (!retained.current && current) retained.current = current;
+	// Keep the editor mounted during its optimistic meal/date move.
+	const entry = retained.current;
+	if (!entry)
+		return (
+			<AppText>
+				{state.status === "loading"
+					? connected
+						? t.diaryEntry.loading
+						: t.diaryEntry.uncachedDay
+					: t.diaryEntry.missingEntry}
+			</AppText>
+		);
 	return (
-		<NutritionEntryEditor
+		<DiaryEntryEditorScreen
+			key={entry.id}
 			entry={entry}
-			meal={slot}
-			date={day}
-			onClose={() => router.back()}
+			date={date}
+			meal={meal}
+			onClose={() =>
+				router.canGoBack() ? router.back() : router.replace("/nutrition")
+			}
 		/>
 	);
 }

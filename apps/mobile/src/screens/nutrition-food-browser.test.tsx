@@ -583,7 +583,7 @@ describe("browsing shipped foods", () => {
 			log as unknown as ReturnType<typeof useMutation>,
 		);
 		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
 		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
 		await showAllFoods();
 
@@ -758,7 +758,7 @@ describe("the redesigned food browser", () => {
 
 		// The date is the title and the meal is a chip; neither shares a control
 		// with the other, and neither is a menu.
-		expect(await screen.findByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
 		fireEvent.press(screen.getByRole("radio", { name: "Dinner" }));
 		fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
 		fireEvent(
@@ -779,7 +779,7 @@ describe("the redesigned food browser", () => {
 
 	it("resets to today from inside the picker, where the date it resets is visible", async () => {
 		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
 		// "Today" is not in the navigation bar: there it is disabled exactly when
 		// you are already on today, which is most of the time.
 		expect(screen.queryByLabelText("Today")).toBeNull();
@@ -788,7 +788,7 @@ describe("the redesigned food browser", () => {
 		fireEvent.press(await screen.findByLabelText("Today"));
 
 		expect(
-			await screen.findByText(formatShortDate(todayIsoDate(), "en")),
+			await screen.findAllByText(formatShortDate(todayIsoDate(), "en")),
 		).toBeTruthy();
 	});
 

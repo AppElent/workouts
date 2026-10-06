@@ -26,7 +26,7 @@ jest.mock(
 			"react-native-screens/lib/commonjs/components/ScreenStackHeaderConfig",
 		);
 		const React = jest.requireActual("react");
-		const { Pressable, View } = jest.requireActual("react-native");
+		const { Pressable, Text, View } = jest.requireActual("react-native");
 		return {
 			...actual,
 			ScreenStackHeaderConfig: React.forwardRef(
@@ -38,6 +38,13 @@ jest.mock(
 						View,
 						{ ref },
 						props.children,
+						props.title && !props.hidden
+							? React.createElement(
+									Text,
+									{ accessibilityRole: "header" },
+									props.title,
+								)
+							: null,
 						...[
 							...(props.headerLeftBarButtonItems ?? []),
 							...(props.headerRightBarButtonItems ?? []),
@@ -62,7 +69,7 @@ jest.mock(
 // Expo UI is native-only. These thin host shims keep tests focused on the
 // React contract (callbacks, roles and presentation options), not SwiftUI.
 jest.mock("@expo/ui/swift-ui", () => {
-	const React = jest.requireActual("react");
+	const React = jest.requireActual<typeof import("react")>("react");
 	const { Pressable, Text, View } = jest.requireActual("react-native");
 	const Container = ({ children, ...props }: { children?: React.ReactNode }) =>
 		React.createElement(View, props, children);
@@ -106,6 +113,8 @@ jest.mock("@expo/ui/swift-ui", () => {
 			children,
 		);
 	};
+	const PopoverContent = ({ children }: { children?: React.ReactNode }) =>
+		React.createElement(View, null, children);
 	const ContextMenu = Object.assign(
 		({ children }: { children?: React.ReactNode }) =>
 			React.createElement(View, { testID: "swiftui-context-menu" }, children),
@@ -117,7 +126,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 					children,
 				),
 			Trigger: Container,
-			Preview: Container,
+			Preview: () => null,
 		},
 	);
 	return {
@@ -143,6 +152,26 @@ jest.mock("@expo/ui/swift-ui", () => {
 				title ? React.createElement(Text, null, title) : null,
 				description ? React.createElement(Text, null, description) : null,
 			),
+		Popover: Object.assign(
+			({
+				children,
+				isPresented,
+			}: {
+				children?: React.ReactNode;
+				isPresented?: boolean;
+			}) =>
+				React.createElement(
+					View,
+					null,
+					React.Children.toArray(children).filter(
+						(child: React.ReactNode) =>
+							isPresented ||
+							!React.isValidElement(child) ||
+							child.type !== PopoverContent,
+					),
+				),
+			{ Trigger: Container, Content: PopoverContent },
+		),
 		ContextMenu,
 		Gauge: ({
 			value,
@@ -589,3 +618,31 @@ const maybeWindow = (globalThis as { window?: { dispatchEvent?: unknown } })
 if (maybeWindow && typeof maybeWindow.dispatchEvent !== "function") {
 	maybeWindow.dispatchEvent = () => true;
 }
+
+// Native bottom toolbar items expose their public selection callback in Jest.
+jest.mock("expo-router/build/toolbar/native", () => {
+	const React = jest.requireActual("react");
+	const { View, Pressable, Text } = jest.requireActual("react-native");
+	return {
+		RouterToolbarHost: ({ children }: { children?: React.ReactNode }) =>
+			React.createElement(View, null, children),
+		RouterToolbarItem: (
+			props: import("expo-router/build/toolbar/native.types").RouterToolbarItemProps,
+		) =>
+			props.hidden
+				? null
+				: props.children
+					? React.createElement(View, null, props.children)
+					: React.createElement(
+							Pressable,
+							{
+								accessibilityRole: "button",
+								accessibilityLabel: props.accessibilityLabel ?? props.title,
+								disabled: props.disabled,
+								accessibilityState: { disabled: props.disabled ?? false },
+								onPress: props.onSelected,
+							},
+							props.title ? React.createElement(Text, null, props.title) : null,
+						),
+	};
+});

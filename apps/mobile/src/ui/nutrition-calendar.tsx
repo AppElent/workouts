@@ -77,12 +77,16 @@ export function NutritionCalendar({
 	locale = "en",
 	today = todayIsoDate(),
 	labels,
+	markedDates,
+	onMonthChange,
 }: {
 	selectedDate: IsoDate;
 	onSelect: (date: IsoDate) => void;
 	locale?: string;
 	today?: IsoDate;
 	labels?: Partial<NutritionCalendarLabels>;
+	markedDates?: ReadonlySet<string>;
+	onMonthChange?: (date: string) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const copy = {
@@ -98,6 +102,9 @@ export function NutritionCalendar({
 
 	const year = visibleMonth.getFullYear();
 	const month = visibleMonth.getMonth();
+	useEffect(() => {
+		onMonthChange?.(toIsoDate(visibleMonth));
+	}, [visibleMonth, onMonthChange]);
 	const days = useMemo(
 		() =>
 			Array.from({ length: monthDays(year, month) }, (_, index) => index + 1),
@@ -181,6 +188,14 @@ export function NutritionCalendar({
 							<AppText style={isSelected ? styles.selectedText : undefined}>
 								{cell.day}
 							</AppText>
+							{markedDates?.has(date) ? (
+								<View
+									style={[
+										{ width: 4, height: 4, borderRadius: 2 },
+										isSelected ? styles.selectedDot : styles.dot,
+									]}
+								/>
+							) : null}
 						</Pressable>
 					);
 				})}
@@ -200,6 +215,8 @@ export function NutritionCalendar({
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { gap: spacing.sm },
+		dot: { backgroundColor: colors.accent },
+		selectedDot: { backgroundColor: colors.onAccent },
 		header: { flexDirection: "row", alignItems: "center" },
 		title: { flex: 1, textAlign: "center", textTransform: "capitalize" },
 		navButton: {

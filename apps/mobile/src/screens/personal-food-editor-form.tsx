@@ -23,6 +23,7 @@ import {
 	validatePersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
+import { NutritionMenu } from "../features/nutrition/components/nutrition-menu";
 import { fmt, useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
@@ -46,7 +47,6 @@ import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { FoodAuthoringTabs } from "./food-authoring-tabs";
-import { NutritionMenu } from "./nutrition-menu";
 import {
 	copyWithLabel,
 	copyWithServing,

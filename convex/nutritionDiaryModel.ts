@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 const bilingual = v.object({ en: v.string(), nl: v.string() });
-const nutrientValue = v.union(
+export const nutrientValue = v.union(
 	v.object({ kind: v.literal("value"), amount: v.number() }),
 	v.object({ kind: v.literal("trace") }),
 	v.object({ kind: v.literal("absent") }),
@@ -61,6 +61,14 @@ export const mealSlot = v.union(
 	v.literal("snacks"),
 );
 
+export const nutrientKey = v.union(v.literal("energy"),v.literal("protein"),v.literal("carbs"),v.literal("fat"),v.literal("saturatedFat"),v.literal("fibre"),v.literal("sugars"),v.literal("salt"));
+
+export const diaryNutrientCorrection = v.object({
+ baseUnit: v.union(v.literal("g"),v.literal("ml"),v.literal("serving")),
+ basisAmount: v.number(),
+ nutrients: v.object({energy: v.optional(nutrientValue),protein: v.optional(nutrientValue),carbs: v.optional(nutrientValue),fat: v.optional(nutrientValue),saturatedFat: v.optional(nutrientValue),fibre: v.optional(nutrientValue),sugars: v.optional(nutrientValue),salt: v.optional(nutrientValue)}),
+});
+
 export const diaryPartSnapshotFields = {
 	name: bilingual,
 	serving: bilingual,
@@ -70,6 +78,7 @@ export const diaryPartSnapshotFields = {
 	personalMeasureId: v.optional(v.string()),
 	visual: v.optional(foodVisual),
 	estimated: v.optional(v.literal(true)),
+ correctedNutrients: v.optional(v.array(nutrientKey)),
 	nutrients: v.object({
 		energy: nutrientValue,
 		protein: nutrientValue,

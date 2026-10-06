@@ -45,11 +45,11 @@ function snapshot(
 	} as NutritionDiarySnapshot & { clientEntryId: string };
 }
 
-function envelope(
+function envelope<T extends ApplyOperationArgs["operation"]>(
 	operationId: string,
-	operation: ApplyOperationArgs["operation"],
+	operation: T,
 	expectedSubject = "alice",
-	): ApplyOperationArgs {
+	): Omit<ApplyOperationArgs, "operation"> & { operation: T } {
 	return { version: 1 as const, operationId, expectedSubject, operation };
 }
 
@@ -372,4 +372,28 @@ describe("retry-safe nutrition diary operations", () => {
 		});
 		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-06" })).entries).toHaveLength(0);
 	});
+});
+
+describe("explicit nutrient corrections",()=>{
+ it("corrects only the tapped entry, is retry-safe, and scales with later quantity edits",async()=>{
+  const t=convexTest(schema,modules);const alice=t.withIdentity({subject:"alice"});
+  const first=await alice.mutation(api.nutritionDiary.applyOperation,envelope("correct-first",{kind:"create",entry:snapshot()}));
+  const second=await alice.mutation(api.nutritionDiary.applyOperation,envelope("correct-second",{kind:"create",entry:snapshot({clientEntryId:"second"})}));
+  const request=envelope("correct-fat",{kind:"update",target:{kind:"serverId",id:first.entryIds[0]},correction:{baseUnit:"g",basisAmount:100,nutrients:{fat:{kind:"value",amount:2}}}});
+  const result=await alice.mutation(api.nutritionDiary.applyOperation,request);
+  expect(await alice.mutation(api.nutritionDiary.applyOperation,request)).toEqual(result);
+  let day=await alice.query(api.nutritionDiary.day,{date:"2026-09-05"});
+  const corrected=day.entries.find(e=>e._id===first.entryIds[0]);
+  expect(corrected?.nutrients.fat).toEqual({kind:"value",amount:2.7});expect(corrected?.nutrients.energy).toEqual(snapshot().nutrients.energy);expect(corrected?.correctedNutrients).toEqual(["fat"]);expect(corrected?.provenance).toEqual(snapshot().provenance);
+  expect(day.entries.find(e=>e._id===second.entryIds[0])?.nutrients.fat).toEqual({kind:"absent"});
+  await alice.mutation(api.nutritionDiary.applyOperation,envelope("resize-corrected",{kind:"update",target:{kind:"serverId",id:first.entryIds[0]},quantity:2}));
+  day=await alice.query(api.nutritionDiary.day,{date:"2026-09-05"});expect(day.entries.find(e=>e._id===first.entryIds[0])?.nutrients.fat).toEqual({kind:"value",amount:5.4});
+  const bob=t.withIdentity({subject:"bob"});await expect(bob.mutation(api.nutritionDiary.applyOperation,{...request,operationId:"bob-correction",expectedSubject:"bob"})).rejects.toThrow("Unauthorized");
+  await expect(alice.mutation(api.nutritionDiary.applyOperation,envelope("bad-unit",{...request.operation,correction:{baseUnit:"ml",basisAmount:100,nutrients:{fat:{kind:"trace"}}}}))).rejects.toThrow();
+ });
+ it("returns only the account's logged calendar days",async()=>{
+  const t=convexTest(schema,modules);const alice=t.withIdentity({subject:"alice"});await alice.mutation(api.nutritionDiary.applyOperation,envelope("calendar-entry",{kind:"create",entry:snapshot()}));
+  expect(await alice.query(api.nutritionDiary.loggedDates,{startDate:"2026-09-01",endDate:"2026-09-30"})).toEqual(["2026-09-05"]);
+  expect(await t.withIdentity({subject:"bob"}).query(api.nutritionDiary.loggedDates,{startDate:"2026-09-01",endDate:"2026-09-30"})).toEqual([]);
+ });
 });

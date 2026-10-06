@@ -30,8 +30,20 @@ import { useI18n } from "../../../src/i18n";
 import { chrome, useTokens } from "../../../src/theme";
 import { ActiveSessionBar } from "../../../src/ui/active-session-bar";
 import { isIOS26OrLater } from "../../../src/ui/platform";
+import {
+	TabBarVisibilityProvider,
+	useTabBarVisibility,
+} from "../../../src/ui/tab-bar-visibility";
 
 export default function CoachTabsLayout() {
+	return (
+		<TabBarVisibilityProvider>
+			<CoachTabs />
+		</TabBarVisibilityProvider>
+	);
+}
+function CoachTabs() {
+	const { hidden } = useTabBarVisibility();
 	const colors = useTokens();
 	const tabColors = Platform.OS === "ios" ? chrome : colors;
 	const { t } = useI18n();
@@ -42,6 +54,7 @@ export default function CoachTabsLayout() {
 		<View style={{ flex: 1 }}>
 			{!hasAccessory && active ? <ActiveSessionBar /> : null}
 			<NativeTabs
+				hidden={hidden}
 				backgroundColor={Platform.OS === "ios" ? undefined : colors.surface}
 				minimizeBehavior="onScrollDown"
 				tintColor={tabColors.accentInk}

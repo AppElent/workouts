@@ -220,8 +220,48 @@ export default function AppLayout() {
 														<Stack.Screen
 															name="nutrition-entry"
 															options={{
-																title: t.nutrition.entryEditor.title,
 																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+																title: t.nutrition.entryEditor.title,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-food-details"
+															options={{ presentation: "card" }}
+														/>
+														<Stack.Screen
+															name="nutrition-entry-transfer"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: "fitToContents",
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-day-goals"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.65, 1],
+																sheetInitialDetentIndex: 1,
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-nutrient-sources"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.65, 1],
+																sheetInitialDetentIndex: 1,
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-entry-correction"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
 															}}
 														/>
 														<Stack.Screen

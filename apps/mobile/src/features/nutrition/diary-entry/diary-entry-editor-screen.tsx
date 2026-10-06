@@ -30,8 +30,8 @@ import { NutrientTable } from "../components/nutrient-table";
 import {
 	DiaryEntryQuantity,
 	DiaryEntryQuantityAccessory,
-} from "./diary-entry-quantity";
-import { DiaryEntryServingPopup } from "./diary-entry-serving-popup";
+} from "./components/diary-entry-quantity";
+import { DiaryEntryServingPopup } from "./components/diary-entry-serving-popup";
 import {
 	type DiaryEntryEditorProps,
 	useDiaryEntryEditor,
@@ -311,7 +311,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 							onPress={() => {
 								Keyboard.dismiss();
 								router.push({
-									pathname: "/labs-food",
+									pathname: "/nutrition-food-details",
 									params: {
 										source: entry.provenance.source,
 										id:
@@ -354,6 +354,16 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 								/>
 							)}
 						</Pressable>
+						{entry.correctedNutrients?.length ? (
+							<AppText variant="caption" style={{ padding: spacing.md }}>
+								{locale === "nl"
+									? "Aangevuld voor deze invoer: "
+									: "Corrected for this entry: "}
+								{entry.correctedNutrients
+									.map((n) => t.nutrition.nutrients[n])
+									.join(", ")}
+							</AppText>
+						) : null}
 						<NutrientTable
 							compact
 							nutrients={entry.nutrients}

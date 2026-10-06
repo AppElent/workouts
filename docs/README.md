@@ -94,3 +94,6 @@ Evidence and unresolved acceptance work are retained rather than marked complete
 
 - [Labs Diary Entry implementation and verification](reports/diary-entry-editor-implementation.md):
   spec #91, first feature-folder adoption, file ownership, and native acceptance limits.
+
+- [Live Nutrition Diary redesign](reports/nutrition-diary-redesign-implementation.md):
+  production routes, folder ownership, targeted nutrient corrections, and verification.

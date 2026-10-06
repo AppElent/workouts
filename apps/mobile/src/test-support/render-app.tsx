@@ -1,3 +1,11 @@
+jest.mock("../features/nutrition/day-goals/components/goal-row-menu", () =>
+	jest.requireActual(
+		"../features/nutrition/day-goals/components/goal-row-menu.tsx",
+	),
+);
+// Exercise the public RN row contract here; native adapter wiring has dedicated tests and simulator acceptance.
+jest.mock("../ui/inset-list", () => jest.requireActual("../ui/inset-list.tsx"));
+
 /**
  * How the screen tests mount the app.
  *
@@ -31,10 +39,15 @@ import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
 import * as NutritionCombosRoute from "../../app/(app)/nutrition-combos";
 import * as NutritionCookingRoute from "../../app/(app)/nutrition-cooking";
 import * as NutritionCopyRoute from "../../app/(app)/nutrition-copy";
+import * as NutritionDayGoalsRoute from "../../app/(app)/nutrition-day-goals";
 import * as NutritionEntryRoute from "../../app/(app)/nutrition-entry";
+import * as NutritionEntryCorrectionRoute from "../../app/(app)/nutrition-entry-correction";
+import * as NutritionEntryTransferRoute from "../../app/(app)/nutrition-entry-transfer";
 import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
+import * as NutritionFoodDetailsRoute from "../../app/(app)/nutrition-food-details";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
+import * as NutritionNutrientSourcesRoute from "../../app/(app)/nutrition-nutrient-sources";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
 import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
@@ -144,6 +157,11 @@ export function renderApp(
 			_layout: Layout as never,
 			nutrition: NutritionRoute as never,
 			"nutrition-food": NutritionFoodRoute as never,
+			"nutrition-day-goals": NutritionDayGoalsRoute as never,
+			"nutrition-nutrient-sources": NutritionNutrientSourcesRoute as never,
+			"nutrition-entry-correction": NutritionEntryCorrectionRoute as never,
+			"nutrition-entry-transfer": NutritionEntryTransferRoute as never,
+			"nutrition-food-details": NutritionFoodDetailsRoute as never,
 			"nutrition-entry": NutritionEntryRoute as never,
 			"labs-entry": LabsEntryRoute as never,
 			labs: LabsRoute as never,

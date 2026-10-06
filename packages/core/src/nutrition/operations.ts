@@ -1,3 +1,4 @@
+import type { DiaryNutrientCorrection } from "./diary-correction";
 import type { NutrientKey, NutrientValue } from "./nutrients";
 import type { FoodVisual } from "./personal-food";
 
@@ -40,6 +41,8 @@ export type NutritionDiarySnapshot = {
 	readonly visual?: FoodVisual;
 	/** Omitted for historical entries and figures that are not estimated. */
 	readonly estimated?: true;
+	/** Explicit user corrections, distinct from the original source attribution. */
+	readonly correctedNutrients?: NutrientKey[];
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
 	readonly comboGroup?: {
@@ -78,6 +81,7 @@ export type NutritionDiaryOperation =
 			readonly kind: "update";
 			readonly target: NutritionOperationTarget;
 			readonly quantity?: number;
+			readonly correction?: DiaryNutrientCorrection;
 			/** A newly chosen serving, captured as a durable diary snapshot. */
 			readonly selection?: {
 				readonly serving: NutritionBilingual;

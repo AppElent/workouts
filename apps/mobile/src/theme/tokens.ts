@@ -27,6 +27,7 @@ export const darkColors = {
 	accentInk: "#c8f73c",
 	text: "#f2f4ef",
 	textMuted: "#9ba095",
+	swipeNeutral: "#7d8478",
 	textFaint: "#919789",
 	border: "rgba(255, 255, 255, 0.07)",
 	borderStrong: "rgba(255, 255, 255, 0.14)",
@@ -60,6 +61,7 @@ export const lightColors: Tokens = {
 	accentInk: "#466400",
 	text: "#1a2015",
 	textMuted: "#535e49",
+	swipeNeutral: "#7d8478",
 	textFaint: "#606b57",
 	border: "rgba(26, 32, 21, 0.12)",
 	borderStrong: "rgba(26, 32, 21, 0.25)",
@@ -169,6 +171,8 @@ export const radius = {
 	card: 14,
 	/** Content cards. */
 	cardLg: 18,
+	/** Nutrition diary reference: composed content summary. */
+	contentCard: 24,
 	sheet: 20,
 	pill: 9999,
 } as const;
