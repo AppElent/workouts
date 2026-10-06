@@ -18,5 +18,12 @@ are supporting references; runtime tokens and the mobile design system own shipp
 implementation choices. Preserve the current web/mobile visual difference until
 an explicit design migration.
 
+Design studies live in `designs/<area>/` as self-contained HTML:
+`<screen>_round<n>.html` per iteration and `<screen>_final.html` for the approved
+design with implementation notes. A final file is a reference for the next
+implementation, not a runtime contract. Run new studies with the
+`design-session` skill. For mobile, mockups use the token values from
+`apps/mobile/src/theme/tokens.ts`; Dutch copy by default.
+
 Application UI copy supports English and Dutch. Translate accessible names,
 validation, empty/error states, and navigation labels with the existing i18n seam.
