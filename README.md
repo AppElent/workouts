@@ -51,7 +51,7 @@ pnpm exec convex dev --once
 
 ## Development
 
-Concurrent editor/agent worktrees must use the repository's isolated [worktree setup](docs/worktree-setup.md) instead of sharing a Convex development deployment.
+Concurrent editor/agent worktrees must use the repository's isolated [worktree setup](docs/runbooks/worktree-setup.md) instead of sharing a Convex development deployment.
 
 ```bash
 pnpm dev:watch   # Convex (watch mode) + Vite, concurrently — recommended, http://localhost:3000
@@ -60,12 +60,12 @@ pnpm dev:watch   # Convex (watch mode) + Vite, concurrently — recommended, htt
 `pnpm dev:watch` runs both servers you need for full functionality in one command. `pnpm dev:all` is a lighter alternative that only pushes Convex functions once at startup (fine for a quick session, but Convex won't re-sync if you edit `convex/` afterward). `pnpm dev` starts Vite only.
 
 The current test-login shortcut uses a Clerk test key and optional public client
-variables. Follow the [environment contract](docs/environment.md); a test key
+variables. Follow the [environment contract](docs/runbooks/environment.md); a test key
 alone does not establish which backend or deployment is being tested.
 
 ## Environment Variables
 
-See the [environment contract](docs/environment.md) for source setup, routing,
+See the [environment contract](docs/runbooks/environment.md) for source setup, routing,
 generated-file ownership, and the shared `@appelent/dev` commands. `.env.example`
 is a canonical source-key catalog; do not copy it into `.env.local`. Existing
 human-owned files require review and explicit ownership adoption before apply.
@@ -129,5 +129,5 @@ and `apps/mobile/app/`; `src/components/navItems.ts` owns web navigation.
 Do not use a copied route inventory as the source of truth.
 
 Mobile development, signing, TestFlight, and OTA procedures are in
-[mobile releases](docs/mobile-releases.md). CI runs root and mobile checks;
+[mobile releases](docs/runbooks/mobile-releases.md). CI runs root and mobile checks;
 root Vitest/typechecking alone does not cover the Expo target.

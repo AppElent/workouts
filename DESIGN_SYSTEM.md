@@ -24,26 +24,6 @@ Read only files relevant to the target platform. Project-specific design decisio
 Feature guides and their examples live under `docs/features/`; use the relevant guide listed in CODING_STANDARDS.md for feature-specific UI behavior. Research and experiments in the toolkit source are not installed project standards.
 <!-- appelent-standards:end -->
 
-
 ## Workouts project decisions
 
-The web uses the existing dark theme and green accent from `src/styles.css`, with
-Tailwind/CVA and Base UI components in `src/components/`. `AppShell.tsx` owns the
-desktop sidebar and narrow-screen bottom navigation. Reuse its navigation spacing
-rather than introducing another shell. Active sessions are resumed through the
-existing session affordance; the root layout does not force an active-session redirect.
-
-Use `Button`'s `loading` prop, `useToast()`, `useConfirm()`, `Skeleton`, and
-`EmptyState` from the existing component owners. The router uses
-`RouteErrorFallback`. Apply shared state/feedback rules through these interfaces;
-never introduce a parallel toast, confirmation, or modal system.
-
-Mobile has its own Foundry visual identity and native component interfaces. Read
-[the mobile design system](apps/mobile/DESIGN_SYSTEM.md) for its tokens, forms,
-platform adapters, and acceptance requirements. [Foundry design assets](designs/foundry/readme.md)
-are supporting references; runtime tokens and the mobile design system own shipped
-implementation choices. Preserve the current web/mobile visual difference until
-an explicit design migration.
-
-Application UI copy supports English and Dutch. Translate accessible names,
-validation, empty/error states, and navigation labels with the existing i18n seam.
+Read [Workouts design decisions](docs/guidelines/project/design.md) for UI work. For mobile UI, also read the [mobile design system](apps/mobile/DESIGN_SYSTEM.md).

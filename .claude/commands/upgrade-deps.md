@@ -21,7 +21,7 @@ pnpm build
 
 For mobile dependency changes also use the Expo overview/upgrade guidance and run
 mobile typecheck/Jest, SDK dependency checks, export, and compatible native-build
-verification. Follow `docs/mobile-releases.md`; root checks do not verify mobile.
+verification. Follow `docs/runbooks/mobile-releases.md`; root checks do not verify mobile.
 
 Routine unspecified upgrades stay within current majors. Report deferred major
 migrations for discussion. Commit/push only when requested by the invoked user
