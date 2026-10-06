@@ -6,7 +6,7 @@ import {
 	type NutrientValue,
 	scaleNutrient,
 } from "@workouts/core/nutrition";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
@@ -18,6 +18,7 @@ export function NutrientTable({
 	referenceLabel,
 	all = false,
 	valueLabel,
+	compact = false,
 }: {
 	nutrients: Partial<Record<NutrientKey, NutrientValue>>;
 	factor?: number;
@@ -25,9 +26,15 @@ export function NutrientTable({
 	referenceLabel?: string;
 	all?: boolean;
 	valueLabel?: string;
+	compact?: boolean;
 }) {
 	const { t, locale } = useI18n();
 	const colors = useTokens();
+	const { fontScale } = useWindowDimensions();
+	const valueColumn =
+		compact && fontScale < 1.5 ? { width: 76 * fontScale } : { flex: 1 };
+	const referenceColumn =
+		compact && fontScale < 1.5 ? { width: 70 * fontScale } : { flex: 1 };
 	const keys = all
 		? NUTRIENT_KEYS
 		: (["energy", "protein", "carbs", "fat"] as const);
@@ -39,33 +46,51 @@ export function NutrientTable({
 	}
 	return (
 		<View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
-			<View style={{ flexDirection: "row", paddingVertical: spacing.sm }}>
-				<View style={{ flex: 1.3 }} />
-				<AppText variant="caption" style={{ flex: 1, textAlign: "right" }}>
+			<View
+				style={{
+					flexDirection: "row",
+					paddingTop: spacing.sm,
+					paddingBottom: compact ? 0 : spacing.sm,
+				}}
+			>
+				<View style={{ flex: compact ? 1 : 1.3 }} />
+				<AppText
+					variant="caption"
+					style={{ ...valueColumn, textAlign: "right" }}
+				>
 					{valueLabel ?? t.diaryEntry.thisItem}
 				</AppText>
 				{referenceLabel && (
-					<AppText variant="caption" style={{ flex: 1, textAlign: "right" }}>
+					<AppText
+						variant="caption"
+						style={{ ...referenceColumn, textAlign: "right" }}
+					>
 						{referenceLabel}
 					</AppText>
 				)}
 			</View>
-			{keys.map((key) => (
+			{keys.map((key, index) => (
 				<View
 					key={key}
 					style={{
 						flexDirection: "row",
 						alignItems: "center",
-						minHeight: 40,
-						paddingVertical: spacing.xs,
-						borderTopWidth: 0.5,
+						minHeight: compact ? undefined : 40,
+						paddingVertical: compact ? spacing.sm : spacing.xs,
+						borderTopWidth: compact && index === 0 ? 0 : 0.5,
 						borderColor: colors.separator,
 					}}
 				>
-					<AppText style={{ flex: 1.3 }}>{t.nutrition.nutrients[key]}</AppText>
 					<AppText
+						variant={compact ? "table" : "body"}
+						style={{ flex: compact ? 1 : 1.3 }}
+					>
+						{t.nutrition.nutrients[key]}
+					</AppText>
+					<AppText
+						variant={compact ? "table" : "body"}
 						style={{
-							flex: 1,
+							...valueColumn,
 							textAlign: "right",
 							fontVariant: ["tabular-nums"],
 							fontWeight: key === "energy" ? "700" : "500",
@@ -75,8 +100,9 @@ export function NutrientTable({
 					</AppText>
 					{referenceFactor !== undefined && (
 						<AppText
+							variant={compact ? "table" : "body"}
 							style={{
-								flex: 1,
+								...referenceColumn,
 								textAlign: "right",
 								color: colors.textMuted,
 								fontVariant: ["tabular-nums"],

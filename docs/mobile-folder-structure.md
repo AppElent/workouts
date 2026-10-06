@@ -63,3 +63,21 @@ src/
   Give scrolling, keyboard handling, safe areas, and chrome one owner. Apply the
   same unsaved-change policy to close, swipe dismissal, and Android Back.
 
+
+## Automated boundaries
+
+`pnpm check:mobile-architecture` runs through `pnpm check` in CI. It checks:
+
+- Direct imports and re-exports from `src/ui/` into `src/features/`, including
+  literal dynamic imports and `require`, resolved with the mobile TypeScript config.
+- Kebab-case TypeScript filenames in `src/features/`, retaining platform and
+  test suffixes.
+- Literal `fontSize` values in feature object properties and JSX attributes;
+  use shared typography tokens instead.
+
+Naming and font checks cover adopted feature folders. Legacy screens and existing
+UI typography migrate separately; this is not whole-app typography enforcement.
+The check is syntactic: indirect dependency chains, computed style values, export
+naming, and semantic subject/task/role choices still need review. Tests of the
+checker run in the existing scripts test project. Keep any future exception narrow,
+justified, and tested rather than disabling the check for a feature.

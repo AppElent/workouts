@@ -5,14 +5,20 @@ export type GlassSurfaceProps = {
 	children: ReactNode;
 	style?: StyleProp<ViewStyle>;
 	capsule?: boolean;
+	tint?: string;
 };
-export function GlassSurface({ children, style, capsule }: GlassSurfaceProps) {
+export function GlassSurface({
+	children,
+	style,
+	capsule,
+	tint,
+}: GlassSurfaceProps) {
 	const colors = useTokens();
 	return (
 		<View
 			style={[
 				{
-					backgroundColor: colors.surface2,
+					backgroundColor: tint ?? colors.surface2,
 					borderRadius: capsule ? radius.pill : radius.sheet,
 					borderCurve: "continuous",
 				},

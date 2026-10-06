@@ -3,16 +3,7 @@ import type { PersonalFood, ServingOption } from "@workouts/core/nutrition";
 import { withPersonalMeasures } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
-import {
-	Keyboard,
-	KeyboardAvoidingView,
-	Platform,
-	Pressable,
-	StyleSheet,
-	TextInput,
-	useWindowDimensions,
-	View,
-} from "react-native";
+import { Keyboard, Pressable, TextInput, View } from "react-native";
 import { z } from "zod";
 import { api } from "../../../convex/api";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
@@ -24,6 +15,7 @@ import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";
+import { DiaryEntryKeyboardOverlay } from "./diary-entry-keyboard-overlay";
 
 export function DiaryEntryServingPopup({
 	food,
@@ -50,8 +42,6 @@ export function DiaryEntryServingPopup({
 	const operations = useNutritionOperations();
 	const createMeasure = useMutation(api.personalMeasures.create);
 	const connected = useConvexConnectionState().isWebSocketConnected;
-	const { height: windowHeight } = useWindowDimensions();
-	const [keyboardOffset, setKeyboardOffset] = useState(0);
 	const nameRef = useRef<TextInput>(null);
 	const amountRef = useRef<TextInput>(null);
 	useEffect(() => {
@@ -157,7 +147,12 @@ export function DiaryEntryServingPopup({
 		},
 	});
 	const values = useStore(form.store, (state) => state.values);
-	const inputStyle = { ...type.row, color: colors.text, minHeight: 48 };
+	const inputStyle = {
+		...type.control,
+		color: colors.text,
+		minHeight: 44,
+		paddingVertical: 0,
+	};
 	const fields = (
 		<View style={{ flexDirection: "row", gap: spacing.sm }}>
 			{(["name", "amount"] as const).map((key) => (
@@ -165,7 +160,8 @@ export function DiaryEntryServingPopup({
 					key={key}
 					style={{
 						flex: key === "name" ? 1.5 : 1,
-						padding: spacing.sm,
+						paddingHorizontal: spacing.md,
+						paddingTop: spacing.xs,
 						borderRadius: radius.lg,
 						backgroundColor: colors.surface,
 						borderWidth: 1,
@@ -182,6 +178,8 @@ export function DiaryEntryServingPopup({
 						onChangeText={(value) => form.setFieldValue(key, value)}
 						editable={!pending}
 						placeholder={key === "name" ? copy.namePlaceholder : undefined}
+						placeholderTextColor={colors.textFaint}
+						selectionColor={colors.accent}
 						keyboardType={key === "name" ? "default" : "decimal-pad"}
 						returnKeyType={key === "name" ? "next" : "done"}
 						submitBehavior="submit"
@@ -197,7 +195,11 @@ export function DiaryEntryServingPopup({
 	);
 	const card = (
 		<GlassSurface
-			style={{ margin: spacing.sm, padding: spacing.md, gap: spacing.sm }}
+			style={{
+				margin: spacing.sm,
+				padding: spacing.sm + spacing.xs,
+				gap: spacing.sm,
+			}}
 		>
 			<View
 				style={{
@@ -219,16 +221,23 @@ export function DiaryEntryServingPopup({
 				>
 					<AppText variant="title">×</AppText>
 				</Pressable>
-				<AppText variant="navTitle" style={{ flex: 1 }}>
+				<AppText variant="control" style={{ flex: 1, textAlign: "center" }}>
 					{copy.newServing}
 				</AppText>
 				<Pressable
 					disabled={pending}
 					accessibilityRole="button"
 					onPress={() => form.handleSubmit()}
-					style={{ minHeight: 44, justifyContent: "center" }}
+					style={{
+						minHeight: 44,
+						paddingHorizontal: spacing.md,
+						justifyContent: "center",
+						borderRadius: radius.pill,
+						backgroundColor: colors.accentFill,
+						opacity: pending ? 0.4 : 1,
+					}}
 				>
-					<AppText style={{ color: colors.accent, fontWeight: "700" }}>
+					<AppText variant="control" style={{ color: colors.onAccent }}>
 						{pending ? t.nutrition.entryEditor.saving : copy.add}
 					</AppText>
 				</Pressable>
@@ -246,10 +255,9 @@ export function DiaryEntryServingPopup({
 					if (!pending) form.setFieldValue("scope", value);
 				}}
 			/>
-			<AppText variant="caption">
+			<AppText variant="caption" style={{ textAlign: "center" }}>
 				{values.scope === "food" ? copy.foodHelp : fmt(copy.ownHelp, { unit })}
 			</AppText>
-			<AppText variant="caption">{copy.savedSeparately}</AppText>
 			{error && (
 				<AppText accessibilityRole="alert" style={{ color: colors.danger }}>
 					{error}
@@ -257,25 +265,5 @@ export function DiaryEntryServingPopup({
 			)}
 		</GlassSurface>
 	);
-	// SwiftUI hosts cannot move into UIKit's keyboard accessory window. Keep the
-	// glass and native picker in the sheet and move this overlay above the keyboard.
-	return (
-		<View
-			pointerEvents="box-none"
-			style={StyleSheet.absoluteFill}
-			onLayout={({ nativeEvent }) => {
-				// Sheet-local coordinates omit its top inset and native header.
-				setKeyboardOffset(windowHeight - nativeEvent.layout.height);
-			}}
-		>
-			<KeyboardAvoidingView
-				pointerEvents="box-none"
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				keyboardVerticalOffset={keyboardOffset}
-				style={{ flex: 1, justifyContent: "flex-end" }}
-			>
-				{card}
-			</KeyboardAvoidingView>
-		</View>
-	);
+	return <DiaryEntryKeyboardOverlay>{card}</DiaryEntryKeyboardOverlay>;
 }

@@ -129,7 +129,7 @@ export function useDiaryEntryEditor({
 		form.setFieldValue("quantityText", value);
 	const setMeal = (value: MealSlot) => form.setFieldValue("nextMeal", value);
 	const setDate = (value: string) => form.setFieldValue("nextDate", value);
-	// Retain base amount independently: repeating decimals in a representation must not drift history.
+	// Keep the original snapshot amount exact until the person edits the quantity or serving.
 	const [exactAmount, setExactAmount] = useState(entry.amount);
 	const [saving, setSaving] = useState(false);
 	const lock = useRef(false);
@@ -152,11 +152,14 @@ export function useDiaryEntryEditor({
 		setQuantityText(locale === "nl" ? text.replace(".", ",") : text);
 		setExactAmount(Number(text.replace(",", ".")) * selected.amount);
 	}
-	function select(option: ServingOption, newlyCreated = false) {
-		const amount = newlyCreated ? option.amount : exactAmount;
+	function select(option: ServingOption) {
+		if (servingKey(option) === servingKey(selected)) return;
+		const quantity =
+			option.kind === "base-unit" && option.unit !== "serving" ? 100 : 1;
+		const amount = quantity * option.amount;
 		setSelected(option);
 		setExactAmount(amount);
-		setQuantityText(quantityInput(amount / option.amount));
+		setQuantityText(quantityInput(quantity));
 	}
 	async function save() {
 		if (lock.current || saving || deleting || !valid || !dirty) return;

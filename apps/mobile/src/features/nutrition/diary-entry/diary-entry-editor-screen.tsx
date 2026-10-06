@@ -1,4 +1,3 @@
-import { formatQuantity } from "@workouts/core/nutrition";
 import { router, Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import { SymbolView } from "expo-symbols";
@@ -6,12 +5,9 @@ import type { ComponentProps } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
 	ActivityIndicator,
-	InputAccessoryView,
 	Keyboard,
-	Platform,
 	Pressable,
 	ScrollView,
-	TextInput,
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,7 +19,7 @@ import {
 import { MEAL_SLOTS } from "../../../data/nutrition-day";
 import { servingKey } from "../../../data/nutrition-shortcuts";
 import { useI18n } from "../../../i18n";
-import { radius, spacing, type, useTokens } from "../../../theme";
+import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { FoodVisualView } from "../../../ui/food-visual";
@@ -31,6 +27,10 @@ import { GlassSurface } from "../../../ui/glass-surface";
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
 import { NutrientTable } from "../components/nutrient-table";
+import {
+	DiaryEntryQuantity,
+	DiaryEntryQuantityAccessory,
+} from "./diary-entry-quantity";
 import { DiaryEntryServingPopup } from "./diary-entry-serving-popup";
 import {
 	type DiaryEntryEditorProps,
@@ -49,6 +49,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 		...props,
 		onClose: () => setLeaving(true),
 	});
+	const [quantityEditing, setQuantityEditing] = useState(false);
 	const [adding, setAdding] = useState(false);
 	const [creating, setCreating] = useState(false);
 	const pendingNavigation = useRef<(() => void) | null>(null);
@@ -88,12 +89,6 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 	);
 	const entry = props.entry;
 	const validAmount = draft.valid ? draft.amount : entry.amount;
-	const energy = entry.nutrients.energy;
-	const delta =
-		energy?.kind === "value"
-			? Math.round((energy.amount * validAmount) / entry.amount) -
-				Math.round(energy.amount)
-			: undefined;
 	const today = todayIsoDate();
 	const action = (
 		label: string,
@@ -101,6 +96,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 		onPress: () => void,
 		disabled = false,
 		danger = false,
+		accent = false,
 	) => (
 		<Pressable
 			accessibilityRole="button"
@@ -114,11 +110,15 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 				alignItems: "center",
 				justifyContent: "center",
 				opacity: disabled ? 0.4 : 1,
+				borderRadius: 24,
+				backgroundColor: accent ? colors.accentFill : undefined,
 			}}
 		>
 			<SymbolView
 				name={glyph}
-				tintColor={danger ? colors.danger : colors.text}
+				tintColor={
+					danger ? colors.danger : accent ? colors.onAccent : colors.text
+				}
 				size={22}
 			/>
 		</Pressable>
@@ -187,6 +187,31 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 							props.onClose,
 							draft.busy || adding,
 						),
+					// Native items let UIKit tint the glass itself, without a nested fill.
+					unstable_headerRightItems: () =>
+						draft.busy
+							? [
+									{
+										type: "custom",
+										element: (
+											<ActivityIndicator
+												accessibilityLabel={t.nutrition.entryEditor.saving}
+											/>
+										),
+									},
+								]
+							: [
+									{
+										type: "button",
+										label: t.nutrition.entryEditor.save,
+										accessibilityLabel: t.nutrition.entryEditor.save,
+										icon: { type: "sfSymbol", name: "checkmark" },
+										variant: draft.dirty ? "prominent" : "plain",
+										tintColor: draft.dirty ? colors.accentFill : colors.text,
+										disabled: adding || !draft.valid || !draft.dirty,
+										onPress: draft.save,
+									},
+								],
 					headerRight: () =>
 						draft.busy ? (
 							<ActivityIndicator
@@ -198,193 +223,149 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 								{ ios: "checkmark", android: "check", web: "check" },
 								draft.save,
 								draft.busy || adding || !draft.valid || !draft.dirty,
+								false,
+								draft.dirty,
 							)
 						),
 				}}
 			/>
-			<ScrollView
-				pointerEvents={adding ? "none" : "auto"}
-				accessibilityElementsHidden={adding}
-				contentInsetAdjustmentBehavior="automatic"
-				keyboardDismissMode="interactive"
-				keyboardShouldPersistTaps="handled"
-				contentContainerStyle={{
-					padding: spacing.md,
-					gap: spacing.md,
-					paddingBottom: spacing.xl,
-				}}
-			>
-				<GlassSurface
-					capsule
-					style={{
-						flexDirection: "row",
-						alignItems: "center",
-						paddingHorizontal: spacing.sm,
-						marginTop: spacing.md,
-						minHeight: 108,
+			<View style={{ flex: 1 }} collapsable={false}>
+				<ScrollView
+					style={{ flex: 1 }}
+					pointerEvents={adding ? "none" : "auto"}
+					accessibilityElementsHidden={adding}
+					contentInsetAdjustmentBehavior="automatic"
+					keyboardDismissMode="interactive"
+					keyboardShouldPersistTaps="handled"
+					contentContainerStyle={{
+						padding: spacing.md,
+						gap: spacing.sm,
+						paddingBottom: spacing.xl,
 					}}
 				>
-					{action(
-						copy.less,
-						{ ios: "minus", android: "remove", web: "remove" },
-						() =>
-							draft.setQuantity(
-								String(
-									Math.max(
-										draft.selected.kind === "base-unit" ? 0.1 : 0.25,
-										(draft.valid ? draft.quantity : 0) -
-											(draft.selected.kind === "base-unit" ? 10 : 0.25),
-									),
-								),
-							),
-						draft.busy || adding,
-					)}
-					<View
+					<DiaryEntryQuantity
+						value={draft.quantityText}
+						amount={draft.amount}
+						unit={entry.baseUnit}
+						baseUnitSelected={draft.selected.kind === "base-unit"}
+						valid={draft.valid}
+						disabled={draft.busy || adding}
+						onChange={draft.setQuantity}
+						onEditingChange={setQuantityEditing}
+					/>
+					<GlassSurface
+						capsule
 						style={{
-							flex: 1,
-							alignItems: "center",
-							paddingVertical: spacing.sm,
+							alignSelf: "center",
+							paddingHorizontal: spacing.sm,
+							marginTop: 6,
 						}}
 					>
-						<TextInput
-							accessibilityLabel={t.nutrition.foodBrowser.quantity}
-							value={draft.quantityText}
-							onChangeText={draft.setQuantity}
-							keyboardType="decimal-pad"
-							selectTextOnFocus
-							editable={!draft.busy && !adding}
-							inputAccessoryViewID="entry-quantity"
-							style={{
-								...type.quantity,
-								color: colors.text,
-								textAlign: "center",
-								minWidth: 100,
-								maxWidth: "100%",
-								fontVariant: ["tabular-nums"],
-							}}
-						/>
-						<AppText variant="secondary">
-							{draft.valid ? formatQuantity(draft.amount, locale) : "—"}{" "}
-							{entry.baseUnit}
-						</AppText>
-					</View>
-					{action(
-						copy.more,
-						{ ios: "plus", android: "add", web: "add" },
-						() =>
-							draft.setQuantity(
-								String(
-									(draft.valid ? draft.quantity : 0) +
-										(draft.selected.kind === "base-unit" ? 10 : 0.25),
-								),
-							),
-						draft.busy || adding,
-					)}
-				</GlassSurface>
-				<GlassSurface
-					capsule
-					style={{ alignSelf: "center", paddingHorizontal: spacing.sm }}
-				>
-					<SelectionMenu
-						label={draft.selected.label[locale]}
-						accessibilityLabel={copy.chooseServing}
-						groups={[
-							...servingGroups,
-							{
-								options: [
-									{
-										id: "new",
-										label: copy.newServing,
-										disabled: !draft.source && entry.baseUnit === "serving",
-									},
-								],
-							},
-						]}
-						disabled={draft.busy || !draft.valid}
-						onSelect={(id) =>
-							id === "new"
-								? setAdding(true)
-								: draft.select(
+						<SelectionMenu
+							label={draft.selected.label[locale]}
+							accessibilityLabel={copy.chooseServing}
+							groups={[
+								...servingGroups,
+								{
+									options: [
+										{
+											id: "new",
+											label: copy.newServing,
+											emphasized: true,
+											symbol: "plus",
+											disabled: !draft.source && entry.baseUnit === "serving",
+										},
+									],
+								},
+							]}
+							disabled={draft.busy || !draft.valid}
+							onSelect={(id) => {
+								Keyboard.dismiss();
+								if (id === "new") setAdding(true);
+								else
+									draft.select(
 										id === "historical"
 											? draft.historical
 											: draft.choices[Number(id)],
-									)
-						}
-					/>
-				</GlassSurface>
-				{draft.selected.kind === "personal-measure" && (
-					<AppText variant="caption" style={{ textAlign: "center" }}>
-						{copy.personalMeasure}
-					</AppText>
-				)}
-				{!draft.valid && (
-					<AppText style={{ color: colors.danger }}>
-						{copy.invalidQuantity}
-					</AppText>
-				)}
-				<AppText
-					variant="caption"
-					style={{ textAlign: "center", minHeight: 18 }}
-				>
-					{draft.amount !== entry.amount
-						? `${copy.logged}: ${entry.serving[locale]}${delta === undefined ? "" : ` · ${delta >= 0 ? "+" : "−"}${Math.abs(delta)} kcal`}`
-						: " "}
-				</AppText>
-				<View
-					style={{
-						backgroundColor: colors.surface,
-						borderRadius: radius.sheet,
-						borderCurve: "continuous",
-						overflow: "hidden",
-					}}
-				>
-					<Pressable
-						accessibilityRole="button"
-						accessibilityLabel={copy.details}
-						disabled={!draft.source || adding}
-						onPress={() => {
-							Keyboard.dismiss();
-							router.push({
-								pathname: "/labs-food",
-								params: {
-									source: entry.provenance.source,
-									id:
-										"sourceId" in entry.provenance
-											? entry.provenance.sourceId
-											: "",
-								},
-							});
-						}}
+									);
+							}}
+						/>
+					</GlassSurface>
+					{!draft.valid && (
+						<AppText style={{ color: colors.danger }}>
+							{copy.invalidQuantity}
+						</AppText>
+					)}
+					<View
 						style={{
-							padding: spacing.md,
-							flexDirection: "row",
-							alignItems: "center",
-							gap: spacing.sm,
+							backgroundColor: colors.surface,
+							borderRadius: 26,
+							borderCurve: "continuous",
+							overflow: "hidden",
 						}}
 					>
-						<FoodVisualView
-							label={entry.name[locale]}
-							visual={entry.visual}
-							size={44}
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel={copy.details}
+							disabled={!draft.source || adding}
+							onPress={() => {
+								Keyboard.dismiss();
+								router.push({
+									pathname: "/labs-food",
+									params: {
+										source: entry.provenance.source,
+										id:
+											"sourceId" in entry.provenance
+												? entry.provenance.sourceId
+												: "",
+									},
+								});
+							}}
+							style={{
+								paddingHorizontal: spacing.md,
+								paddingVertical: 12,
+								borderBottomWidth: 0.5,
+								borderBottomColor: colors.separator,
+								flexDirection: "row",
+								alignItems: "center",
+								gap: 12,
+							}}
+						>
+							<FoodVisualView
+								label={entry.name[locale]}
+								visual={entry.visual}
+								size={44}
+							/>
+							<View style={{ flex: 1 }}>
+								<AppText variant="control">{entry.name[locale]}</AppText>
+								<AppText variant="caption">
+									{draft.source ? copy.detailsHint : copy.unavailable}
+								</AppText>
+							</View>
+							{draft.source && (
+								<SymbolView
+									name={{
+										ios: "chevron.right",
+										android: "chevron_right",
+										web: "chevron_right",
+									}}
+									size={20}
+									tintColor={colors.textMuted}
+								/>
+							)}
+						</Pressable>
+						<NutrientTable
+							compact
+							nutrients={entry.nutrients}
+							factor={validAmount / entry.amount}
+							referenceFactor={
+								(entry.baseUnit === "serving" ? 1 : 100) / entry.amount
+							}
+							referenceLabel={`${entry.baseUnit === "serving" ? 1 : 100} ${entry.baseUnit}`}
 						/>
-						<View style={{ flex: 1 }}>
-							<AppText variant="heading">{entry.name[locale]}</AppText>
-							<AppText variant="caption">
-								{draft.source ? copy.detailsHint : copy.unavailable}
-							</AppText>
-						</View>
-						{draft.source && <AppText>›</AppText>}
-					</Pressable>
-					<NutrientTable
-						nutrients={entry.nutrients}
-						factor={validAmount / entry.amount}
-						referenceFactor={
-							(entry.baseUnit === "serving" ? 1 : 100) / entry.amount
-						}
-						referenceLabel={`${entry.baseUnit === "serving" ? 1 : 100} ${entry.baseUnit}`}
-					/>
-				</View>
-			</ScrollView>
+					</View>
+				</ScrollView>
+			</View>
 			<View
 				style={{
 					flexDirection: "row",
@@ -427,9 +408,21 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 						groups={[
 							{
 								options: [
-									{ id: shiftIsoDate(today, -1), label: copy.yesterday },
-									{ id: today, label: copy.today },
-									{ id: shiftIsoDate(today, 1), label: copy.tomorrow },
+									{
+										id: shiftIsoDate(today, -1),
+										label: copy.yesterday,
+										selected: draft.nextDate === shiftIsoDate(today, -1),
+									},
+									{
+										id: today,
+										label: copy.today,
+										selected: draft.nextDate === today,
+									},
+									{
+										id: shiftIsoDate(today, 1),
+										label: copy.tomorrow,
+										selected: draft.nextDate === shiftIsoDate(today, 1),
+									},
 									{ id: "other", label: copy.otherDate },
 								],
 							},
@@ -471,40 +464,17 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 					onBusyChange={setCreating}
 					onCancel={() => setAdding(false)}
 					onAdded={(option) => {
-						draft.select(option, true);
+						draft.select(option);
 						setAdding(false);
 					}}
 				/>
 			)}
-			{Platform.OS === "ios" && !adding && (
-				<InputAccessoryView nativeID="entry-quantity">
-					<View
-						style={{
-							backgroundColor: colors.surface,
-							flexDirection: "row",
-							justifyContent: "space-around",
-						}}
-					>
-						{(draft.selected.kind === "base-unit"
-							? [100, 150, 200, 250, 300]
-							: [0.5, 1, 1.5, 2, 3]
-						).map((value) => (
-							<Pressable
-								key={value}
-								onPress={() => draft.setQuantity(String(value))}
-								style={{ padding: spacing.md }}
-							>
-								<AppText>{formatQuantity(value, locale)}</AppText>
-							</Pressable>
-						))}
-						<Pressable
-							onPress={Keyboard.dismiss}
-							style={{ padding: spacing.md }}
-						>
-							<AppText>{copy.done}</AppText>
-						</Pressable>
-					</View>
-				</InputAccessoryView>
+			{!adding && (
+				<DiaryEntryQuantityAccessory
+					baseUnitSelected={draft.selected.kind === "base-unit"}
+					onChange={draft.setQuantity}
+					visible={quantityEditing && !draft.busy}
+				/>
 			)}
 		</View>
 	);

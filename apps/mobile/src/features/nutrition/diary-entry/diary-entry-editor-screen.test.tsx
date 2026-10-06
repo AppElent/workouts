@@ -41,7 +41,7 @@ beforeEach(() => {
 		loadMore: jest.fn(),
 	} as never);
 });
-it("opens a real entry in Labs and preserves its exact amount when changing representation", async () => {
+it("resets base units to 100 and saves the resulting amount", async () => {
 	const update = jest.fn().mockResolvedValue(undefined);
 	jest
 		.mocked(useMutation)
@@ -55,10 +55,10 @@ it("opens a real entry in Labs and preserves its exact amount when changing repr
 	expect(await screen.findByDisplayValue("1.25")).toBeTruthy();
 	fireEvent.press(screen.getByLabelText("Choose serving"));
 	fireEvent.press(await screen.findByText("Millilitre (ml)"));
-	expect(await screen.findByDisplayValue("187.5")).toBeTruthy();
+	expect(await screen.findByDisplayValue("100")).toBeTruthy();
 	fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
-	expect(update.mock.calls[0][0].selection.amount).toBe(187.5);
+	expect(update.mock.calls[0][0].selection.amount).toBe(100);
 });
 it("creates a Personal Measure independently and selects it at quantity one", async () => {
 	const create = jest.fn().mockResolvedValue({
@@ -173,7 +173,7 @@ it("keeps cached supplementary Servings usable offline and prevents online-only 
 	);
 	fireEvent.press(await screen.findByLabelText("Choose serving"));
 	fireEvent.press(await screen.findByText("My bowl"));
-	expect(screen.getByDisplayValue("0.9375")).toBeTruthy();
+	expect(screen.getByDisplayValue("1")).toBeTruthy();
 	fireEvent.press(screen.getByLabelText("Choose serving"));
 	fireEvent.press(await screen.findByText("New serving"));
 	fireEvent.changeText(await screen.findByLabelText("Name"), "My plate");
@@ -246,16 +246,16 @@ it("closes a clean entry without asking and cancels creation without a write", a
 	expect(create).not.toHaveBeenCalled();
 });
 
-it("uses Dutch decimal input and preserves exact amount through a round trip", async () => {
+it("resets named servings to one and accepts Dutch decimal input", async () => {
 	writePreference(PREFERENCE_KEYS.locale, "nl");
 	renderApp("/labs-entry?id=entry-1&meal=lunch&date=2026-10-04");
 	expect(await screen.findByDisplayValue("1,25")).toBeTruthy();
 	fireEvent.press(screen.getByLabelText("Portie kiezen"));
 	fireEvent.press(await screen.findByText("Milliliter (ml)"));
-	expect(screen.getByDisplayValue("187,5")).toBeTruthy();
+	expect(screen.getByDisplayValue("100")).toBeTruthy();
 	fireEvent.press(screen.getByLabelText("Portie kiezen"));
 	fireEvent.press(await screen.findByText(/Glas · Vorige waarde/));
-	expect(screen.getByDisplayValue("1,25")).toBeTruthy();
+	expect(screen.getByDisplayValue("1")).toBeTruthy();
 	fireEvent.changeText(screen.getByLabelText("Aantal"), "2,5");
 	expect(screen.getByText("375 ml")).toBeTruthy();
 });
@@ -325,4 +325,26 @@ it("keeps a completed Shipped Food serving when the outer draft is discarded, wi
 	]);
 	expect(app.repository.list()).toEqual([]);
 	expect(update).not.toHaveBeenCalled();
+});
+
+it("leaves the quantity unchanged when selecting the current serving", async () => {
+	renderApp("/labs-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	fireEvent.press(await screen.findByLabelText("Choose serving"));
+	fireEvent.press(await screen.findByText(/Glass · Previous value/));
+	expect(screen.getByDisplayValue("1.25")).toBeTruthy();
+	expect(screen.getByLabelText("Save changes")).toBeDisabled();
+});
+it("shows the original quantity as a replacement placeholder and keeps it on empty dismissal", async () => {
+	renderApp("/labs-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	const input = await screen.findByLabelText("Quantity");
+	fireEvent(input, "focus");
+	expect(screen.getByPlaceholderText("1.25")).toHaveProp("value", "");
+	fireEvent(input, "blur");
+	expect(screen.getByDisplayValue("1.25")).toBeTruthy();
+	expect(screen.getByLabelText("Save changes")).toBeDisabled();
+	fireEvent(input, "focus");
+	fireEvent.changeText(input, "2");
+	expect(screen.getByText("300 ml")).toBeTruthy();
+	fireEvent(input, "blur");
+	expect(screen.getByDisplayValue("2")).toBeTruthy();
 });

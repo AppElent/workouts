@@ -8,6 +8,8 @@ export type SelectionMenuProps = {
 			id: string;
 			label: string;
 			selected?: boolean;
+			emphasized?: boolean;
+			symbol?: "plus";
 			disabled?: boolean;
 		}[];
 	}[];

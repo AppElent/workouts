@@ -20,6 +20,16 @@ bars, stack headers and toolbars, menus, form sheets, context menus, pickers,
 and SF Symbols. iOS 26 supplies Liquid Glass to this layer. Let the system own
 its material and motion instead of imitating it in React Native.
 
+Native navigation actions use the platform's semantic button style. For a dirty
+save/confirmation action on iOS 26+, use a native prominent bar item with
+`accentFill`; UIKit owns the filled shape and glass. A clean save is plain and
+disabled, invalid or conflicting work disables saving, and pending work shows
+progress with duplicate submission blocked. Keep an accessible action name.
+The [Labs editor](src/features/nutrition/diary-entry/diary-entry-editor-screen.tsx)
+is the current example; use the platform fallback on other supported targets.
+Review the complete toolbar composition: a custom content background inside a
+system glass item can create mismatched nested shapes.
+
 ### Content
 
 Content uses opaque semantic surfaces from `src/theme/tokens.ts`. Group related
@@ -76,6 +86,8 @@ screen and verify:
 - a short recording when navigation, sheets, gestures, or motion changed.
 
 Automated tests protect behavior; they do not approve hierarchy or device feel.
+When implementing a supplied design or mockup, use the verification guide's
+[reference-comparison workflow](../../.claude/skills/verify/SKILL.md#implementing-a-supplied-design).
 
 ## Labs Diary Entry redesign
 
@@ -94,3 +106,10 @@ keyboard window crashes the installed native runtime. The overlay preserves the
 glass surface, native scope picker, and editable caret/selection controls. See the
 [implementation report](../../docs/reports/diary-entry-editor-implementation.md)
 for verified transitions and remaining native acceptance.
+
+The Round 5 editor opts into `type.quantityCompact` (44pt) and `type.table`
+(14pt), approved for this slice; existing type variants remain unchanged.
+Its content uses 84pt circular step buttons and a compact nutrition table, while
+menus retain native iOS spacing and styling. Both quantity shortcuts and serving
+creation use the feature-owned keyboard overlay. Keep its keyboard observer
+mounted before focus so the shortcut bar receives the opening keyboard event.

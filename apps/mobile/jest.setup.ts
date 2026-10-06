@@ -17,6 +17,48 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// UIKit renders native header items outside React's test tree. Expose their
+// public callbacks and accessibility state without mocking the navigation stack.
+jest.mock(
+	"react-native-screens/lib/commonjs/components/ScreenStackHeaderConfig",
+	() => {
+		const actual = jest.requireActual(
+			"react-native-screens/lib/commonjs/components/ScreenStackHeaderConfig",
+		);
+		const React = jest.requireActual("react");
+		const { Pressable, View } = jest.requireActual("react-native");
+		return {
+			...actual,
+			ScreenStackHeaderConfig: React.forwardRef(
+				(
+					props: import("react-native-screens").ScreenStackHeaderConfigProps,
+					ref: unknown,
+				) =>
+					React.createElement(
+						View,
+						{ ref },
+						props.children,
+						...[
+							...(props.headerLeftBarButtonItems ?? []),
+							...(props.headerRightBarButtonItems ?? []),
+						]
+							.filter((item) => item.type === "button")
+							.map((item, index) =>
+								React.createElement(Pressable, {
+									key: index,
+									accessibilityRole: "button",
+									accessibilityLabel: item.accessibilityLabel ?? item.title,
+									accessibilityState: { disabled: item.disabled ?? false },
+									disabled: item.disabled,
+									onPress: item.onPress,
+								}),
+							),
+					),
+			),
+		};
+	},
+);
+
 // Expo UI is native-only. These thin host shims keep tests focused on the
 // React contract (callbacks, roles and presentation options), not SwiftUI.
 jest.mock("@expo/ui/swift-ui", () => {
@@ -161,6 +203,28 @@ jest.mock("@expo/ui/swift-ui", () => {
 			isPresented: boolean;
 		}) =>
 			React.createElement(View, null, anchor, isPresented ? children : null),
+		Toggle: ({
+			label,
+			isOn,
+			onIsOnChange,
+			modifiers,
+		}: {
+			label?: string;
+			isOn?: boolean;
+			onIsOnChange?: (value: boolean) => void;
+			modifiers?: { type: string; args: unknown[] }[];
+		}) =>
+			React.createElement(
+				Pressable,
+				{
+					accessibilityRole: "checkbox",
+					accessibilityLabel: label,
+					accessibilityState: { checked: isOn },
+					disabled: Boolean(modifierArg(modifiers, "disabled")),
+					onPress: () => onIsOnChange?.(!isOn),
+				},
+				React.createElement(Text, null, label),
+			),
 		Button: ({
 			label,
 			children,

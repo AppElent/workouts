@@ -3,7 +3,12 @@ import { frame, glassEffect } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet, View } from "react-native";
 import { radius, useAppearance } from "../theme";
 import type { GlassSurfaceProps } from "./glass-surface";
-export function GlassSurface({ children, style, capsule }: GlassSurfaceProps) {
+export function GlassSurface({
+	children,
+	style,
+	capsule,
+	tint,
+}: GlassSurfaceProps) {
 	const { scheme } = useAppearance();
 	return (
 		<View style={style}>
@@ -21,7 +26,7 @@ export function GlassSurface({ children, style, capsule }: GlassSurfaceProps) {
 						modifiers={[
 							frame({ maxWidth: Infinity, maxHeight: Infinity }),
 							glassEffect({
-								glass: { variant: "regular" },
+								glass: { variant: "regular", ...(tint ? { tint } : {}) },
 								shape: capsule ? "capsule" : "roundedRectangle",
 								cornerRadius: radius.sheet,
 							}),

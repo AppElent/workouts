@@ -236,6 +236,9 @@ export const opacity = {
  * `color` from `useTokens()`.
  */
 export const type = {
+	/** Opt-in Round 5 editor typography; existing consumers retain their sizes. */
+	quantityCompact: { fontSize: 44, fontWeight: "600", letterSpacing: -1.76 },
+	table: { fontSize: 14, fontWeight: "400" },
 	quantity: { fontSize: 52, fontWeight: "600", letterSpacing: -1.5 },
 	display: { fontSize: 32, fontWeight: "800" },
 	title: { fontSize: 24, fontWeight: "800" },

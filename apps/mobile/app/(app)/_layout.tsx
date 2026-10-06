@@ -80,7 +80,8 @@ export default function AppLayout() {
 															options={{
 																title: t.nutrition.entryEditor.title,
 																presentation: "formSheet",
-																sheetAllowedDetents: [1],
+																sheetAllowedDetents: [0.9, 1],
+																sheetInitialDetentIndex: 0,
 																sheetGrabberVisible: true,
 															}}
 														/>

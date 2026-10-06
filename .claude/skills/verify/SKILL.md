@@ -10,6 +10,24 @@ Shared guidelines own generic verification rules. This file owns project command
 backend selection, test-account behavior, and the route/module starting points.
 Documentation-only changes need link/ownership checks, not an invented device pass.
 
+## Implementing a supplied design
+
+When the user asks to build from a supplied design or mockup (HTML, image, Figma,
+or equivalent), record the reference and a short list of its applicable states
+before implementation. Include open menus, keyboard/nested forms, and
+clean/dirty/invalid states when present. Identify native equivalents and discuss
+material deviations before committing to them; example code still needs runtime
+validation. Ordinary UI fixes without a supplied reference do not require this
+comparison checklist.
+
+Before reporting design fidelity complete, compare the running result with the
+reference for each listed state. Record current screenshots or recordings, the
+build/revision observed, and a pass, agreed deviation, or unresolved result for
+each state. After a relevant layout/adapter change, recheck affected states;
+earlier evidence does not verify a later revision. Reviewers inspect this evidence
+against the reference and call out missing coverage. If runtime access is blocked,
+report implementation and automated results separately from pending visual review.
+
 ## Backend and login
 
 Use [isolated worktree setup](../../../docs/worktree-setup.md) for concurrent
@@ -60,6 +78,14 @@ development client and starting Metro. Use a free port for this checkout; do not
 kill another worktree's server. Confirm the bundle and backend belong to this task.
 Do not assume Expo Go contains custom native modules or Sentry integration.
 
+For a new or changed combination of native sheets, overlays, keyboard accessories,
+or platform hosts, exercise the smallest end-to-end flow on a compatible client
+before visual polishing: open, focus, switch inputs/presentations, dismiss, and
+reopen. Confirm the parent remains tappable with auxiliary overlays closed. After
+changing detents or keyboard placement, repeat the affected flow and check scroll
+and safe-area ownership. Record runtime-specific workarounds with their observed
+build and reason.
+
 Use the host's device tools to discover/open the intended simulator or emulator,
 then drive the affected journey. On iOS verify native navigation/sheets, keyboard,
 Dynamic Type, themes/locales, safe areas, and relevant gestures. On Android verify
@@ -73,8 +99,19 @@ device, backend, locale/theme, and untested paths. See the
 [iOS acceptance checklist](../../../docs/ios-native-verification.md) and existing
 reports/evidence linked from the docs index.
 
-Mobile routes are under `apps/mobile/app/`, screens under `apps/mobile/src/screens/`,
-and platform primitives under `apps/mobile/src/ui/`. Nutrition's local persistence
+Follow the [mobile folder contract](../../../docs/mobile-folder-structure.md) for
+routes, adopted feature folders, and legacy screens; inspect the actual owner
+before editing. Platform primitives are under `apps/mobile/src/ui/`. Nutrition's local persistence
 is under `apps/mobile/src/data/`; domain catalogs/calculations are in `packages/core`.
 Verify offline behavior when that branch changes: cached history stays readable;
 an unavailable day explains its absence rather than showing indefinite loading.
+
+## Evidence and diagnostic output
+
+Keep one current-status section in an implementation report, with observed revision,
+checks, and unresolved acceptance. Label older observations as historical and update
+superseded behavior descriptions rather than appending contradictory conclusions.
+For noisy failures, save the full log locally and inspect the summary plus relevant
+failure excerpt first; retain the process exit status. Search dependency source and
+declarations with explicit file filters, excluding generated source maps unless
+mapping generated code back to source is the task.
