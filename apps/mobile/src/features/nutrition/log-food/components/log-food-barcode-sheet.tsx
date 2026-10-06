@@ -67,7 +67,7 @@ export function LogFoodBarcodeSheet({
 			animationType={modalAnimation(reduceMotion, "slide")}
 			onRequestClose={onClose}
 		>
-			<SafeAreaView edges={["bottom"]} style={styles.sheet}>
+			<SafeAreaView edges={["top", "bottom"]} style={styles.sheet}>
 				<View style={styles.header}>
 					<Pressable
 						accessibilityRole="button"
