@@ -125,6 +125,127 @@ other pushed find-and-add screens.
   provider's documented limit. On rate limiting only that section waits and
   retries; local results are unaffected.
 
+Settled in the weekly overview study (`designs/nutrition/week_final.html`). Apply
+them to other period reviews (a week or month of days).
+
+- **Period header.** A pushed review keeps the large title, named for the period
+  ("Deze week", "Vorige week", "Week 38") with the date range below. A period
+  strip mirrors the diary day strip: recent periods as chips with logged-day
+  dots, swipe for older ones, ending at the current period; the calendar is the
+  direct toolbar action and selects a whole period. No prev/next buttons.
+- **Period summary.** One summary card: the leading nutrient per day as SVG bars
+  (`react-native-svg`, one `Pressable` per day) with the goal band, the other
+  goals as one row of status squares per day (fill, outline, dash, not colour
+  alone), and "Alle doelen" with the worst miss as a badge. Figures show the
+  average plus "x of y days" within goal. The diary summary → sources route
+  applies across days: bars open that day's sources, sources that occur on
+  several days ask which day before opening the entry editor.
+- **Goals over time.** Compare each day with the goal that applied then. A goal
+  change inside the period steps the band on that day and adds one line naming
+  the change. Days before the first goal are neutral, without status, and do not
+  count in "x of y days"; averages of logged values are unaffected.
+- **Day rows in a review.** Tap opens the day in the diary. Long press offers the
+  day actions (open, that day's goals, copy the day); no swipe and no selection
+  mode when there are no frequent or bulk actions.
+- **Review states.** Header and period strip stay in every state, so another
+  period stays reachable offline. Pending sync is one line above the summary,
+  not a card; an empty period has one action that opens its first day.
+
+Settled in the goals editor study (`designs/nutrition/goals_final.html`). Apply
+them to other screens that edit a set of saved values as one draft.
+
+- **Draft editor sheet.** Editing a saved set opens a `formSheet` with ✕ (left)
+  and ✓ (right) via `Stack.Toolbar`. ✓ is disabled until the draft changes.
+  Leaving with changes (✕ or swipe down) asks to discard via `usePreventRemove`
+  plus `useConfirm()`. While saving, ✓ shows progress and the fields lock; a
+  failed save keeps the sheet and the draft open with a retry toast.
+- **The number is the field.** Numeric values are inline fields in their rows,
+  not separate screens. On focus the current value turns grey (it becomes the
+  placeholder) and the first key replaces it; leaving without typing, or after
+  clearing, keeps the old value. Use `InlineNumberFieldRow` with
+  `replaceOnFocus`. On iOS an `InputAccessoryView` offers ‹ › between fields and
+  "Klaar". A deep link to one value opens with that field focused.
+- **Kind as a row menu.** When a value has a kind (minimum, maximum, range), the
+  kind is a menu label under the row name; the menu also holds "remove". Long
+  press opens the same menu; swipe reveals only remove. Rows with text fields use
+  `SwipeableRow`, not `InsetList`.
+- **Draft-wide actions.** Replacing or clearing the whole draft (a preset,
+  "remove all") applies directly with an undo toast instead of a confirmation,
+  because nothing is saved until ✓. A preset shows as one row with its source
+  and the number of values changed since, with a menu to switch or restore it.
+- **Unset items stay visible.** Items without a value are listed in their own
+  section with +; adding fills the default (for example the reference value)
+  and focuses it with the replace-on-focus behaviour.
+
+Settled in the personal food study (`designs/nutrition/personal-food_final.html`).
+Apply them to other editors of a saved library object (recipes, combos).
+
+- **One editor, three presentations.** Editing an existing object pushes it
+  (from a list). Creating a new one is a `formSheet` with ✕/✓. Opened from a
+  row inside a sheet (a diary entry), it pushes from the right inside that
+  sheet through a nested `Stack`; ‹ returns to the row. The header is ⋯ plus
+  ✓; the photo and name are the large title and collapse into the inline title.
+- **Source of a snapshot.** A snapshot (a diary entry) shows its source as a
+  disclosure row. Editing the source from there offers "also update this
+  entry", on by default and with its effect shown; other snapshots keep their
+  values.
+- **Choices before values.** Sections the user picks from when logging
+  (servings) sit above the reference values (nutrition). The basis of the values
+  is the section menu (`per 100 g ⌄`), not a segmented control.
+- **One serving component.** Adding or editing a serving anywhere uses the
+  serving popup above the keyboard from the entry editor, with the
+  replace-on-focus rule for its name and amount. Rows swipe to delete only; long
+  press adds "move to top" (the logging default).
+- **Provider refresh into the draft.** Refreshing an imported object from its
+  provider (Open Food Facts) writes the new values into the open draft, marks
+  each changed row with "was …", and saves with ✓. When the user edited values
+  themselves, ask before overwriting; declining refreshes only the provider
+  metadata.
+- **Trace and unknown.** Values that can be "trace" or "unknown" offer both
+  above the decimal keyboard, next to ‹ ›, instead of a menu per row.
+
+Settled in the food library study (`designs/nutrition/library_final.html`). Apply
+them to other libraries of the user's own objects.
+
+- **One list, sections per kind.** A library is one `SectionList` with a section
+  per kind (Voeding, Recepten, Combo's) showing the first items and "Toon alle".
+  Scope chips filter the same screen; "Toon alle" selects its kind's chip instead
+  of pushing a screen. Rows show the value, its basis, and the source tag
+  (OFF, NEVO, ~ estimated, ⚠ needs attention). An empty section stays with one
+  row that says how to fill it, and has no section menu.
+- **Library search is local.** Search filters on every keystroke and groups
+  results per kind. A third-party provider is only a link below the results;
+  importing is a deliberate step. Find-and-add screens keep the provider section.
+- **One status row.** The top of the list holds at most one status row, in the
+  order restoring › restore failed › needs attention › offline. "Needs
+  attention" opens a sheet listing each problem with the action that fixes it;
+  Settings stays the owner of backup and provider refresh, and the ⋯ menu links
+  there.
+- **Deleting a referenced object.** The confirmation names what references it
+  (combos) and states that the diary is unchanged. Confirm with a toast; no undo
+  when the backup commits the removal immediately.
+
+Settled in the combo editor study (`designs/nutrition/combo_final.html`). Apply
+them to other composite objects and to every amount task.
+
+- **Composite objects edit in place.** A composite (combo) has no edit mode or
+  Save: each confirmed part change is saved at once. Parts use the diary row
+  contract; long press adds replace and Omhoog/Omlaag so order needs no drag
+  mode. Logging is the first ⋯ item. A part whose source is gone keeps its
+  snapshot, so totals stay exact; only logging waits until it is replaced,
+  removed, or turned off for that log.
+- **One amount editor.** Every amount task uses the Diary Entry editor
+  composition (quantity capsule, serving menu, product + nutrient card, bottom
+  toolbar): editing a diary entry, a combo part, logging a combo, and "only this
+  time" adjustments. Only the title, the first table column, and the toolbar
+  differ (meal/date for logging, replace/remove for a part, none for a one-off
+  adjustment). Rescale from the stored snapshot, not the live source. Do not add
+  a separate reset action; closing without ✓ discards.
+- **Browser target modes.** Adding to or replacing in a composite, and saving a
+  provider result to the library, reuse the food browser with a narrow target
+  mode (title "Toevoegen"/"Vervangen"; + writes to the target) instead of a
+  second browser.
+
 ## Device acceptance
 
 Verify each affected supported platform with the development build. A simulator

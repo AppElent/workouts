@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dagboek — definitief</title>
+<title>Persoonlijk voedingsmiddel — ronde 4</title>
 <style>
 :root {
 	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
@@ -402,33 +402,118 @@ section.sect > p b { color: var(--ink); }
 .impl { max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 0 0 10px; }
 .impl b { color: var(--ink); }
 section.sect details.code { max-width: 1180px; margin: 0 0 8px; }
+/* ——— personal food, round 2 ——— */
+.pfhero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 20px 4px; text-align: center; }
+.pfname { font-size: 28px; font-weight: 800; letter-spacing: -.02em; color: var(--text); line-height: 1.15; }
+.pfrow { display: flex; gap: 14px; align-items: center; padding: 0 20px 14px; }
+.photo.sm { width: 64px; height: 64px; font-size: 30px; border-radius: 20px; }
+.rowf.sub { padding-left: 32px; font-size: 15px; color: var(--muted); }
+.rowf .num { margin-left: auto; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; padding: 3px 6px; border-radius: 8px; }
+.rowf .num small { font-weight: 500; color: var(--muted); }
+.rowf .num.m { color: var(--muted); font-weight: 500; }
+.rowf.focus .num { background: var(--accentDim); box-shadow: 0 0 0 2px var(--accent); }
+.rowf.focus .num::after { content: ""; display: inline-block; width: 2px; height: 18px; background: var(--accent); margin-left: 2px; vertical-align: -3px; animation: blink 1s steps(1) infinite; }
+.rowf .rsub { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.rowf > span:first-child { padding: 8px 0; }
+.rowf .val svg { width: 14px; height: 14px; }
+.tg { margin-left: auto; width: 51px; height: 31px; border-radius: 999px; background: var(--surface2); position: relative; flex: 0 0 auto; }
+.tg::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+.tg.on { background: var(--accentFill); } .tg.on::after { left: 22px; }
+.trig { color: var(--accent); font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; gap: 3px; }
+.trig svg { width: 14px; height: 14px; }
+.row.hl { box-shadow: inset 0 0 0 2px var(--accent); border-radius: 24px; }
+.qty { text-align: center; color: var(--text); margin-top: 6px; }
+.qty b { font-size: 52px; letter-spacing: -.04em; } .qty span { font-size: 20px; color: var(--muted); font-weight: 600; }
+.sheet.under { top: 50px; transform: scale(.93); transform-origin: top center; filter: brightness(.92); }
+body.dark .sheet.under { filter: brightness(.7); }
+.sheet.over { top: 66px; box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
+.crit { margin: 14px 32px 0; padding: 16px 20px 16px 40px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.crit li { margin: 4px 0; } .crit b { color: var(--ink); }
+.crit h3 { margin: 0 0 4px -20px; font-size: 15px; color: var(--ink); }
+.optcard .t { flex: 1; }
+.sheet .body > * { flex-shrink: 0; }
+.phones .pitch { min-height: 80px; }
+.label .lr.foc span:last-child { background: var(--accentDim); border-radius: 4px; }
+/* ——— round 3 ——— */
+.pfname.ph { color: var(--muted); font-weight: 700; border-bottom: 2px solid var(--accent); padding: 0 6px; }
+.pfname.ph.bad { border-color: var(--danger); }
+.cur { display: inline-block; width: 2px; height: .9em; background: var(--accent); margin-left: 2px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+.err { font-size: 13px; color: var(--danger); font-weight: 600; }
+.notice { margin: 10px 16px 0; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; line-height: 1.4; color: var(--muted); border-left: 4px solid var(--accent); }
+.notice b { color: var(--text); font-size: 15px; }
+.photo.remote { background: linear-gradient(160deg, #e8f0fb, #b9c9de); }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(10,11,9,.25); border-top-color: var(--onAccent); animation: rot .8s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+.alert { position: absolute; left: 50%; width: 290px; margin-left: -145px; border-radius: 30px; padding: 20px 18px 14px; text-align: center; background: var(--glassStrong); color: var(--text); }
+.alert b { font-size: 17px; display: block; line-height: 1.25; }
+.alert p { font-size: 14px; color: var(--muted); margin: 6px 0 14px; line-height: 1.4; }
+.alert .ab { display: flex; gap: 8px; }
+.alert .ab button { flex: 1; height: 46px; border-radius: 999px; background: var(--surface2); font-weight: 600; font-size: 15px; padding: 0 8px; }
+.alert .ab button.d { background: var(--danger); color: #fff; }
+.toast { position: absolute; z-index: 45; left: 14px; right: 14px; bottom: 34px; border-radius: 24px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text); background: var(--glassStrong); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.toast svg { width: 20px; height: 20px; color: var(--accent); flex: 0 0 auto; }
+.panes { position: relative; flex: 1; overflow: hidden; }
+.pane { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform .38s cubic-bezier(.2,.9,.3,1); }
+.pane .pscroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 14px 0 60px; }
+.pane .pscroll::-webkit-scrollbar { display: none; }
+.pane.food { transform: translateX(100%); box-shadow: -10px 0 24px rgba(0,0,0,.12); }
+.panes.pushed .pane.entry { transform: translateX(-28%); }
+.panes.pushed .pane.food { transform: none; }
+.editrow { gap: 8px; }
+.editrow .fld { flex: 1; height: 36px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; padding: 0 10px; font-size: 15px; color: var(--text); }
+.editrow .fld.on { box-shadow: 0 0 0 2px var(--accent); }
+.editrow .fld.amt { flex: 0 0 84px; justify-content: flex-end; } .editrow .fld small { color: var(--muted); }
+.dk {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --warn: #fbbf24;
+	--glass: rgba(40,44,38,.5); --glassStrong: rgba(48,52,45,.78);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.88);
+}
+.xl .rowf { font-size: 21px; flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 16px 8px; }
+.xl .rowf > span:first-child { padding: 2px 0 0; }
+.xl .rowf .num, .xl .rowf .val { margin-left: 0; padding-left: 0; font-size: 21px; }
+.xl .rowf .tg { margin: 4px 0 0; }
+.xl .rowf.sub { padding-left: 32px; font-size: 19px; }
+.xl .pfname { font-size: 32px; }
+.xl .sh b { font-size: 21px; } .xl .sec-f, .xl .mutedline, .xl .rowf .rsub { font-size: 16px; }
+.xl .navbar2 .ttl { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ——— round 4 ——— */
+.kpop { margin: 0 8px 8px; border-radius: 30px; padding: 10px 12px 12px; animation: up .28s cubic-bezier(.2,.9,.3,1); }
+.kh { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; } .kh b { flex: 1; text-align: center; font-size: 15px; color: var(--text); }
+.addbtn { height: 34px; padding: 0 14px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 14px; }
+.flds { display: flex; gap: 8px; margin-bottom: 10px; }
+.flds .fld { flex: 1.4; text-align: left; background: var(--surface); border-radius: 16px; padding: 7px 12px; border: 2px solid transparent; color: var(--text); min-width: 0; }
+.flds .fld.amt { flex: 1; } .flds .fld.on { border-color: var(--accent); }
+.flds .fld small { display: block; font-size: 11px; color: var(--muted); } .flds .fld > span { font-size: 17px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; }
+.ph { font-style: normal; color: var(--muted); opacity: .6; font-weight: 500; }
+.kpop .seg { margin: 0; } .kf { font-size: 12px; color: var(--muted); text-align: center; margin-top: 7px; }
+.qw { background: var(--kbd); padding: 8px 3px 46px; }
+.qr { display: flex; justify-content: center; gap: 6px; margin-bottom: 11px; }
+.qr button { flex: 0 0 32px; height: 42px; border-radius: 7px; background: var(--kbdKey); font-size: 21px; color: var(--text); box-shadow: 0 1px 0 rgba(0,0,0,.25); display: grid; place-items: center; }
+.qr button.fn { background: rgba(0,0,0,.12); } .qr .w { flex-basis: 42px; } .qr .ww { flex-basis: 86px; font-size: 15px; } .qr .space { flex: 1 1 auto; font-size: 15px; } .qr .go { background: var(--accentFill); color: var(--onAccent); font-weight: 600; }
+.rowf.chg { background: var(--accentDim); }
+.rowf.focusrow { box-shadow: inset 0 0 0 2px var(--accent); border-radius: 14px; }
+.rf { width: 28px; height: 28px; border-radius: 50%; background: var(--accentDim); display: inline-grid; place-items: center; margin-left: 4px; }
+.spin.dark { width: 14px; height: 14px; border-width: 2px; border-color: var(--surface2); border-top-color: var(--accent); display: inline-block; margin-right: 6px; }
 </style>
 </head>
 <body>
 <header class="board">
 	<div>
-		<h1>Dagboek · definitief</h1>
-		<p>Gekozen in <a href="index.html#diary" style="color:var(--accent)">ronde 1</a> (B + selectie A + sheet C), <a href="diary_round2.html" style="color:var(--accent)">ronde 2</a> (native header, menu’s, gebaren, kalender, maaltijdmenu M1) en <a href="diary_round3.html" style="color:var(--accent)">ronde 3</a> (doelen G1, bronnen C1, staten). Voorbeelddag: vet boven het maximum.</p>
+		<h1>Persoonlijk voedingsmiddel · ronde 4</h1>
+		<p>Verder op <a href="personal-food_round3.html" style="color:var(--accent)">ronde 3</a>. Besloten in ronde 3: nieuw maken als sheet met ✕/✓; ‘Loggen…’ blijft in ⋯. Ronde 3 is verder nog niet goedgekeurd. Jouw punten: porties boven de waarden, porties met de popup uit de item-editor, en per product verversen van Open Food Facts.</p>
 	</div>
 	<div class="toggles" role="group" aria-label="Weergave"><button id="light" aria-pressed="true">Licht</button><button id="dark" aria-pressed="false">Donker</button></div>
 </header>
-<section class="guide">
-	<h3>Expo-bouwstenen (geïnstalleerd: expo 57, expo-router 57, @expo/ui 57, react-native-screens 4.26, gesture-handler 2.32)</h3>
-	<table>
-		<tr><th>Element</th><th>In de app</th><th>Waarom</th></tr>
-		<tr><td>Grote titel die inklapt</td><td><code>Stack.Screen</code> <code>headerLargeTitleEnabled</code>, <code>headerTransparent</code> (iOS)</td><td>Systeem tekent inklappen, scroll-rand en Liquid Glass. Patroon uit <code>exercises-list.tsx</code>.</td></tr>
-		<tr><td>Kalender / ⋯</td><td><code>Stack.Toolbar placement="right"</code>, <code>NutritionHeaderMenu</code>, <code>DatePickerSheet</code></td><td>Bestaande seams; ⋯ krijgt alleen ‘Selecteer’ erbij.</td></tr>
-		<tr><td>Rijen, vegen, lang indrukken</td><td><code>InsetList</code>/<code>InsetRow</code> met <code>actions</code> (iOS), <code>SwipeableRow</code> (Android)</td><td>SwiftUI <code>SwipeActions</code> zonder volle veeg + <code>ContextMenu</code>; VoiceOver custom actions.</td></tr>
-		<tr><td>Maaltijdmenu</td><td>SwiftUI <code>Menu</code> met <code>HStack</code>-label in <code>Host matchContents</code></td><td>Zichtbaar zonder extra knop.</td></tr>
-		<tr><td>Selectie-actiebalk</td><td><code>Stack.Toolbar placement="bottom"</code></td><td>Systeemglas, vervangt de tabbalk.</td></tr>
-		<tr><td>Sheets</td><td><code>presentation: "formSheet"</code>, <code>sheetAllowedDetents</code>, <code>sheetGrabberVisible</code></td><td>Kopiëren/verplaatsen, doelen vandaag, bronnen.</td></tr>
-		<tr><td>Segmenten / datum</td><td><code>Segmented</code> (<code>src/ui/segmented</code>), SwiftUI <code>DatePicker</code> graphical</td><td>Bestaande seams.</td></tr>
-		<tr><td>Ring, doelbalken</td><td><code>ProgressRing</code>-seam (aanpassen voor energie) en <code>GoalProgressRow</code></td><td>Statuslogica (min/max/bereik, ≥, ~) bestaat al in <code>outcome()</code>.</td></tr>
-		<tr><td>Bronnen-ranking</td><td>Pure functie in <code>@workouts/core</code></td><td>Eén berekening voor web en mobiel.</td></tr>
-		<tr><td>Kaarten</td><td><code>GroupedSurface</code> / <code>FormSection</code> — ondoorzichtig</td><td>Glass alleen op de functionele laag.</td></tr>
-	</table>
-	<p>De mock benadert glass, blur en de header met CSS; neem die waarden niet over. Telefoonchrome, statusbalk en tabbalk zijn mock.</p>
-</section>
+<ol class="crit">
+	<h3>Wat er verandert, op impact</h3>
+	<li><b>Verversen van Open Food Facts per product.</b> Nu kan dat alleen voor alle imports tegelijk vanuit de Bibliotheek, en eigen aanpassingen blijven daarbij altijd staan. Per product is het een bewuste actie, dus je mag kiezen (sectie 3).</li>
+	<li><b>Eén portie-onderdeel voor de hele app.</b> De popup uit de item-editor vervangt de rij die je in ronde 3 inline bewerkte. Ronde 3, sectie 3 (inline) vervalt.</li>
+	<li><b>Porties boven de waarden.</b> Bij het loggen zijn porties wat je kiest. De standaardportie (de bovenste) kies je met lang indrukken → ‘Bovenaan zetten’ (nieuw).</li>
+</ol>
 <main id="board"></main>
 <script>
 const svg = (p, sw = 2.2, fill = "none") => `<svg class="i" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -460,27 +545,6 @@ const root = (inner, overlay = "", tab = 1) => `<div class="phone"><div class="r
 /** Sheet screen */
 const sheet = (left, title, right, inner, overlay = "") => `<div class="phone"><div class="behind"><div class="h">Voeding</div><div class="ring"></div></div><div class="scrim"></div>${status}
 	<div class="sheet"><div class="grabber"></div><div class="navbar">${left}<div class="title">${title}</div>${right}</div><div class="body" style="overflow-y:auto;padding-bottom:110px;scrollbar-width:none">${inner}</div>${overlay}</div><div class="home"></div></div>`;
-const ringSvg = (size, stroke, parts) => { const r = (size - stroke) / 2, C = 2 * Math.PI * r; let off = 0; return `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="${stroke}"/>${parts.map(([p, c]) => { const s = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${c}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${Math.max(0, p * C - 0.1)} ${C}" stroke-dashoffset="${-off * C}"/>`; off += p; return s; }).join("")}</svg>`; };
-
-/* ——— sample data ——— */
-const MEALS = [
-	{ n: "Ontbijt", k: 412, items: [["🥣", "Havermout", "60 g", 228], ["🥛", "Halfvolle melk", "1 klein glas", 69], ["🍌", "Banaan", "1 stuk", 115]] },
-	{ n: "Lunch", k: 655, items: [["🥪", "Volkorenbrood", "2 sneetjes", 180], ["🧀", "Jonge kaas 48+", "2 plakken", 142], ["🥗", "Salade kip", "Combo · 3 onderdelen", 333, true]] },
-	{ n: "Diner", k: 0, items: [] },
-	{ n: "Tussendoortjes", k: 0, items: [], note: "Handje noten (notitie)" },
-];
-let SEL = new Set(["Lunch:0", "Lunch:1"]);
-
-/* ════════ 1. DAGBOEK ════════ */
-function diaryRows(meal, { select = false, swipe = false } = {}) {
-	if (!meal.items.length) return `<div class="row plain"><span class="mutedline">${meal.note ? "" : "Nog niets gelogd."}</span></div>${meal.note ? `<div class="row plain notecard" style="margin:0 10px 8px;border-radius:16px">${I.note}<span class="t">Handje noten<small>Notitie · nog verwerken</small></span><span class="v" style="color:var(--accent);font-weight:600">Verwerk</span></div>` : ""}`;
-	return meal.items.map(([e, n, q, k, combo], i) => { const id = `${meal.n}:${i}`; return `<button class="row" ${select ? `data-sel="${id}"` : ""}>${select ? tick(SEL.has(id)) : ""}<span class="fv">${e}</span><span class="t">${n}<small>${combo ? `<span class="combo-g">COMBO</span> · 3 onderdelen` : q}</small></span><span class="v"><b>${k}</b> kcal</span></button>`; }).join("");
-}
-const summaryCard = () => `<div class="card cardpad" style="display:flex;gap:16px;align-items:center">
-	<div class="ring">${ringSvg(96, 11, [[0.45, "var(--accent)"]])}<div class="c"><b class="tnum">1.133</b><small>van 2.500</small></div></div>
-	<div style="flex:1"><div style="font-size:15px;font-weight:700;margin-bottom:8px">1.367 kcal resterend</div>
-	<div class="macros3"><div>Eiwit<b class="tnum">58 <small>/ 120 g</small></b><div class="bar"><i style="width:48%"></i></div></div><div>Koolh.<b class="tnum">131 <small>/ 280</small></b><div class="bar"><i style="width:47%"></i></div></div><div>Vet<b class="tnum">38 <small>/ 80</small></b><div class="bar"><i style="width:47%"></i></div></div></div></div></div>`;
-
 /* ——— round 2 ——— */
 Object.assign(I, {
 	pencil: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 1.9),
@@ -494,317 +558,218 @@ Object.assign(I, {
 	down: svg('<path d="M7 10l5 5 5-5"/>', 2.4),
 });
 
-const DAYS = [["MA", 29], ["DI", 30], ["WO", 1], ["DO", 2], ["VR", 3, 1], ["ZA", 4], ["ZO", 5]];
-const strip = () => `<div class="datestrip">${DAYS.map(([d, n, on]) => `<span class="${on ? "on" : ""}">${d}<b>${n}</b>${n !== 4 && n !== 5 ? "<i></i>" : ""}</span>`).join("")}</div>`;
-const large = (h, sub) => `<div class="ltitle"><h1>${h}</h1>${sub ? `<small>${sub}</small>` : ""}</div>`;
+
 const navbar = (title, sub, right, left = "") => `<div class="edge"></div><div class="navbar2">${left}<div class="ttl">${title}${sub ? `<small>${sub}</small>` : ""}</div><div class="r">${right}</div></div>`;
 const page = ({ inner, nav, overlay = "", tab = 1, scroll = 0, padBottom = 130 }) => `<div class="phone"><div class="root ${scroll > 40 ? "collapsed" : ""}"><div class="content" data-scroll="${scroll}" style="padding-top:106px;padding-bottom:${padBottom}px">${inner}</div>${nav}${overlay}${tab === null ? "" : tabbar(tab)}</div>${status}<div class="home"></div></div>`;
-const headerBtns = () => gbtn(I.cal) + gbtn(I.more);
-const menuItem = (icon, label, opt = {}) => `<button class="${opt.d ? "d" : ""}">${icon}<span>${label}</span>${opt.isNew ? '<span class="new">nieuw</span>' : ""}</button>`;
+const menuItem = (icon, label, opt = {}) => `<button class="${opt.d ? "d" : ""}">${icon}<span>${label}</span>${opt.isNew ? '<span class="new">nieuw</span>' : ""}${opt.small ? `<small>${opt.small}</small>` : ""}${opt.check ? `<span class="chk2" style="margin-left:auto;color:var(--accent)">${I.check}</span>` : ""}</button>`;
+Object.assign(I, { img: svg('<rect x="4" y="5" width="16" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l4.5-4 3 2.5L16 12l3 3"/>', 1.8), tag: svg('<path d="M4 12V5a1 1 0 011-1h7l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>', 1.8), crop: svg('<path d="M7 3v14h14M3 7h14v14"/>', 1.9), undo: svg('<path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 010 12"/>', 1.9) });
 
-function itemRow(m, i, { select = false } = {}) {
-	const [e, n, q, k, combo] = m.items[i], id = `${m.n}:${i}`;
-	return `<button class="row" ${select ? `data-sel="${id}"` : ""}>${select ? tick(SEL.has(id)) : ""}<span class="fv">${e}</span><span class="t">${n}<small>${combo ? '<span class="combo-g">COMBO</span> · 3 onderdelen' : q}</small></span><span class="v"><b>${k}</b> kcal</span></button>`;
-}
-const swipeRow = (m, i) => `<div style="position:relative;overflow:hidden"><div class="swacts"><span class="sw e">${I.pencil}Bewerk</span><span class="sw d">${I.trash}Verwijder</span></div><div style="transform:translateX(-156px);background:var(--surface);position:relative;box-shadow:6px 0 12px rgba(0,0,0,.08)">${itemRow(m, i)}</div></div>`;
-const noteRow = `<div class="row plain"><span class="fv">${I.note}</span><span class="t">Handje noten<small>Notitie · nog verwerken</small></span><span class="v" style="color:var(--accent);font-weight:600">Verwerk</span></div>`;
+/* ——— data ——— */
+const NUTR = [["Energie", "389", "kcal"], ["Eiwit", "13,5", "g"], ["Koolhydraten", "58,7", "g"], ["waarvan suikers", "1,1", "g", 1], ["Vet", "7,0", "g"], ["waarvan verzadigd", "1,3", "g", 1], ["Vezels", "10,1", "g"], ["Zout", "spoor", "g"]];
+const base = NUTR.map((n) => n[1]);
+const edited = ["402", ...base.slice(1)];
+const KB = { focus: 1, vals: [...base] };
+const num = (v) => Number(String(v).replace(",", "."));
+const kcalFor = (vals, g) => Math.round((num(vals[0]) * g) / 100);
+const shown = (v, u) => (v === "spoor" ? `<span class="num m">Spoor</span>` : v === "" ? `<span class="num m">—</span>` : `<span class="num">${v}<small> ${u}</small></span>`);
 
-/** One meal card. `head` replaces the trailing controls; `titleMenu` adds the chevron of option M1. */
-function mealCard(m, { select = false, head = null, swipeAt = null, titleMenu = false } = {}) {
-	const allSel = m.items.length && m.items.every((_, i) => SEL.has(`${m.n}:${i}`));
-	const right = select ? (m.items.length ? `<button class="txtbtn" data-meal="${m.n}">${allSel ? "Geen" : "Alles"}</button>` : "") : (head ?? `<span class="plus">${I.plus}</span>`);
-	const rows = m.items.map((_, i) => (swipeAt === i ? swipeRow(m, i) : itemRow(m, i, { select }))).join("") || (m.note && !select ? noteRow : "");
-	return `<div class="card" style="margin-top:10px;overflow:hidden"><div class="row plain mh" style="padding:13px 16px"><span class="t"><b style="font-size:17px">${m.n}${titleMenu || (!select && m.items.length && head === null) ? I.down : ""}</b><small>${m.items.length ? m.items.length + (m.items.length === 1 ? " item · " : " items · ") + m.k + " kcal" : "Nog niets"}</small></span>${right}</div>${rows ? `<div style="border-top:.5px solid var(--sep)">${rows}</div>` : ""}</div>`;
-}
-const meals = (o = {}, f = () => ({})) => MEALS.map((m, i) => mealCard(m, { ...o, ...f(m, i) })).join("");
-const diary = (o, f) => large("Vandaag", "Vrijdag 3 oktober") + strip() + sum3() + meals(o, f);
-const diaryNav = () => navbar("Vandaag", "vr 3 okt", headerBtns());
+const nutRows = (vals, focus = -1, kb = false) => NUTR.map(([n, , u, sub], i) => `<div class="rowf ${sub ? "sub" : ""} ${focus === i ? "focus" : ""}" ${kb ? `data-kf="${i}"` : ""}><span>${n}</span>${shown(vals[i], u)}</div>`).join("");
+const estRow = `<div class="rowf"><span>Waarden zijn geschat<small class="rsub">Totalen met dit voedingsmiddel tonen ~</small></span><span class="tg"></span></div>`;
+const impact = (vals) => `<div class="group" style="margin-top:14px"><div class="rowf"><span>Ook dit item bijwerken<small class="rsub">Lunch, vandaag · 60 g · 233 → ${kcalFor(vals, 60)} kcal</small></span><span class="tg on"></span></div></div><div class="sec-f">Andere logs houden hun waarden.</div>`;
+const portions = (vals) => `<div class="sh"><b>Porties</b><span class="add">${I.plus}</span></div><div class="group">${[["Kom", 60], ["Eetlepel", 10]].map(([n, g]) => `<div class="rowf"><span>${n}</span><span class="val m tnum">${g} g · ${kcalFor(vals, g)} kcal</span></div>`).join("")}</div><div class="sec-f">Tot 3 porties. Tik om te wijzigen, veeg om te verwijderen.</div>`;
+const details = `<div class="sh"><b>Details</b></div><div class="group"><div class="rowf"><span>Categorie</span><span class="val">Voeding ${I.chev}</span></div><div class="rowf"><span>Beschrijving</span><span class="val m">Grove vlokken</span></div><div class="rowf"><span>Bron</span><span class="val m">Handmatig</span></div></div>`;
+const hero = `<div class="pfhero"><div class="photo">🥣<span class="cam2 glass">${I.cam}</span></div><div class="pfname">Havermout</div><div class="mutedline">Eigen voeding</div></div>`;
+const nutHead = `<div class="sh"><b>Voedingswaarde</b><span class="trig">per 100 g ${I.chev}</span></div>`;
+const footNote = `<div class="sec-f">— is onbekend. Typ 0 voor echt nul; ‘Spoor’ staat boven het toetsenbord.</div>`;
 
-/* 1 — base */
-const Base = () => page({ inner: diary(), nav: diaryNav() });
-const Collapsed = () => page({ inner: diary(), nav: diaryNav(), scroll: 345 });
+/** Direction A: native rows */
+const bodyA = ({ vals = base, focus = -1, withImpact = false, kb = false } = {}) => hero + nutHead + `<div class="group">${nutRows(vals, focus, kb)}${estRow}</div>` + footNote + (withImpact ? impact(vals) : "") + portions(vals) + details;
+/** Direction B: label */
+const bodyB = () => `<div class="pfrow"><div class="photo sm">🥣<span class="cam2 glass">${I.cam}</span></div><div><div class="bigname">Havermout</div><div class="mutedline">Eigen voeding</div></div></div>
+	<div class="label"><h4>Voedingswaarde</h4><div class="lr" style="font-size:12px;color:var(--muted)"><span>per</span><span class="tap">100 g ⌄</span></div>${NUTR.map(([n, v, u, sub]) => `<div class="lr ${sub ? "sub" : ""}"><span>${n}</span><span class="${v === "spoor" ? "tr2" : "tap"}">${v === "spoor" ? "spoor" : `${v} ${u}`}</span></div>`).join("")}</div>
+	<div class="group" style="margin-top:12px">${estRow}</div>` + portions(base) + details;
 
-/* 2 — header menu */
-function HeaderMenu() {
-	const menu = `<div class="menu glass" style="top:104px;right:16px;width:262px">
-		${menuItem(I.selc, "Selecteer")}${menuItem(I.chart, "Weekoverzicht")}<hr>
-		${menuItem(I.books, "Voedingsbibliotheek")}${menuItem(I.viewfinder, "Tekst en voedingsetiket")}<hr>
-		${menuItem(I.target, "Voedingsdoelen")}${menuItem(I.info, "Gegevensbronnen")}<hr>
-		${menuItem(I.gear, "Instellingen")}</div>`;
-	return page({ inner: diary(), nav: diaryNav(), overlay: menu });
-}
-function DatePicker() {
-	const overlay = `<div class="menu glass" style="top:104px;right:16px;width:340px;padding:14px">${calendar(3, 3, [1, 2])}<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 0"><span class="mutedline"><i style="display:inline-block;width:5px;height:5px;border-radius:3px;background:var(--accent);vertical-align:2px;margin-right:6px"></i>gelogd</span><span class="pillbtn" style="background:var(--accentDim);color:var(--accent)">Vandaag</span></div></div>`;
-	return page({ inner: diary(), nav: diaryNav(), overlay });
-}
+const saveBtn = `<button class="gbtn glass tint press" aria-label="Bewaar">${I.check}</button>`;
+const pushedNav = () => navbar("Havermout", "", gbtn(I.more) + saveBtn, gbtn(I.left));
+const pushed = (o = {}) => page({ inner: o.inner ?? bodyA(), nav: pushedNav(), overlay: o.overlay ?? "", tab: null, scroll: o.scroll ?? 0, padBottom: o.padBottom ?? 60 });
 
-/* 3 — row gestures */
-const Swipe = () => page({ inner: diary({}, (m) => (m.n === "Lunch" ? { swipeAt: 1 } : {})), nav: diaryNav(), scroll: 345 });
-function LongPress() {
-	const lunch = MEALS[1];
-	const ctx = `<div class="ctx"><div class="lift" style="top:300px">${itemRow(lunch, 1)}</div>
-		<div class="menu glass" style="top:372px">${menuItem(I.pencil, "Bewerken")}${menuItem(I.selc, "Selecteer")}<hr>${menuItem(I.copy, "Kopiëren…")}${menuItem(I.move, "Verplaatsen…")}<hr>${menuItem(I.trash, "Verwijderen", { d: 1 })}</div></div>`;
-	return page({ inner: diary(), nav: diaryNav(), scroll: 345, overlay: ctx });
+/** Sheet presentation over the diary; `stacked` puts a second sheet over the entry sheet */
+const diaryBehind = `<div class="behind"><div class="h">Vandaag</div><div class="ring"></div></div><div class="scrim"></div>`;
+function sheetPhone({ left, title, right, inner, overlay = "", scroll = 0, stacked = false }) {
+	const under = stacked ? `<div class="sheet under"><div class="grabber"></div><div class="navbar">${gbtn(I.x)}<div class="title">Havermout<small>Lunch · vandaag</small></div>${saveBtn}</div><div class="body">${entryBody()}</div></div>` : "";
+	return `<div class="phone">${diaryBehind}${status}${under}<div class="sheet ${stacked ? "over" : ""}"><div class="grabber"></div><div class="navbar">${left}<div class="title">${title}</div>${right}</div><div class="body" data-scroll="${scroll}" style="overflow-y:auto;min-height:0;padding-bottom:60px;scrollbar-width:none">${inner}</div>${overlay}</div><div class="home"></div></div>`;
 }
+const entryBody = () => `<div class="qty"><b class="tnum">60</b><span> g</span></div>
+	<div class="sum" style="margin-top:10px"><span class="k">233 kcal</span><span>8,1 g eiwit</span><span>35,2 g koolh.</span><span>4,2 g vet</span></div>
+	<div class="group" style="margin-top:20px"><div class="rowf"><span>Maaltijd</span><span class="val">Lunch ${I.chev}</span></div><div class="rowf"><span>Datum</span><span class="val">Vandaag ${I.chev}</span></div></div>
+	<div class="sh"><span>Voedingsmiddel</span></div>
+	<div class="card" style="overflow:hidden"><button class="row hl"><span class="fv">🥣</span><span class="t">Havermout<small>Eigen voeding · 389 kcal per 100 g</small></span><span class="chev">${I.right}</span></button></div>
+	<div class="sec-f">Een item is een momentopname. Het voedingsmiddel wijzigen past dit item alleen aan als je dat kiest.</div>
+	<div style="text-align:center;margin-top:26px;color:var(--danger);font-weight:600;font-size:16px">Verwijder item</div>`;
 
-/* 4 — selection */
-function Selection() {
-	const nav = navbar(`${SEL.size} geselecteerd`, "vr 3 okt", `<button class="pillbtn glass tint press" style="height:44px" data-act="selnone">Gereed</button>`);
-	const bar = `<div class="selbar glass"><button>${I.copy}Kopiëren</button><button>${I.move}Verplaatsen</button><button>${I.combo}Combo maken</button><button class="d">${I.trash}Verwijderen</button></div>`;
-	return page({ inner: large(`${SEL.size} geselecteerd`, "Vrijdag 3 oktober") + meals({ select: true }), nav, overlay: bar, tab: null });
-}
+/* ——— round 3 ——— */
+const EMPTY = NUTR.map(() => "");
+const SKYR = ["63", "11", "4,0", "4,0", "0,2", "0,1", "", "0,1"];
+const BAR = ["198", "20", "18", "2,1", "6,5", "3,9", "3,5", "0,3"];
 
-/* 5 — copy / move destination */
-function calendar(sel, today, logged = []) {
-	const cells = ["", "", ...Array.from({ length: 31 }, (_, i) => i + 1)];
-	return `<div class="calh"><b>Oktober 2025</b><span>${I.left}${I.right}</span></div><div class="calg">${["M", "D", "W", "D", "V", "Z", "Z"].map((d) => `<i>${d}</i>`).join("")}${cells.map((n) => `<span class="${n === sel ? "on" : ""} ${n === today && n !== sel ? "today" : ""} ${logged.includes(n) && n !== sel ? "lg" : ""}">${n}</span>`).join("")}</div>`;
+/** The decided form (direction A) with every variant this round needs */
+function form(o = {}) {
+	const vals = o.vals ?? base;
+	const name = o.name ?? "Havermout";
+	const nameHtml = name ? `<div class="pfname">${name}</div>` : `<div class="pfname ph ${o.nameError ? "bad" : ""}">Naam<span class="cur"></span></div>`;
+	const sub = o.nameError ? `<div class="err">Vul een naam voor het voedingsmiddel in.</div>` : `<div class="mutedline">${o.sub ?? "Eigen voeding"}</div>`;
+	const photoErr = o.photoError ? `<div class="err">Toegang tot foto's is niet toegestaan.</div>` : "";
+	const hero = `<div class="pfhero"><div class="photo ${o.remote ? "remote" : ""}">${o.photo ?? "🥣"}<span class="cam2 glass">${I.cam}</span></div>${photoErr}${nameHtml}${sub}</div>`;
+	const basis = o.perServing ? `per portie (${o.perServing})` : "per 100 g";
+	const rows = NUTR.map(([n, , u, sub2], i) => `<div class="rowf ${sub2 ? "sub" : ""}"><span>${n}</span>${shown(vals[i], u)}</div>`).join("");
+	const est = `<div class="rowf"><span>Waarden zijn geschat<small class="rsub">Totalen met dit voedingsmiddel tonen ~</small></span><span class="tg ${o.estimated ? "on" : ""}"></span></div>`;
+	const nut = `<div class="sh"><b>Voedingswaarde</b><span class="trig">${basis} ${I.chev}</span></div><div class="group">${rows}${est}</div>${footNote}`;
+	return (o.top ?? "") + hero + (o.notice ?? "") + nut + (o.withImpact ? impact(vals) : "") + (o.perServing ? "" : portionsR3(vals, o.portions)) + detailsR3(o.source ?? "Handmatig", o.name === "" ? "Optioneel" : undefined);
 }
-function CopySheet(cal) {
-	const days = [["DO", 2], ["VR", 3], ["ZA", 4, 1], ["ZO", 5]];
-	const chip = cal ? `<span class="on">DI<b>14</b></span>` : `<span style="background:var(--surface);display:grid;place-items:center;font-size:20px;color:var(--accent)">${I.cal}</span>`;
-	const sheet = `<div class="dimmer"></div><div class="dsheet"><div class="grabber"></div><div class="navbar">${gbtn(I.x)}<div class="title">2 items kopiëren</div><button class="gbtn glass tint press">${I.check}</button></div>
-		<div class="seg" style="margin:8px 16px 0"><button aria-pressed="true">Kopiëren</button><button aria-pressed="false">Verplaatsen</button></div>
-		<div class="sh" style="margin-top:14px"><span>Naar dag</span></div>
-		<div class="datestrip" style="padding-bottom:4px">${days.map(([d, n, on]) => `<span class="${on && !cal ? "on" : ""}" style="${on && !cal ? "" : "background:var(--surface)"}">${d}<b>${n}</b></span>`).join("")}${chip}</div>
-		${cal ? `<div class="card cardpad" style="margin-top:8px">${calendar(14, 3)}</div>` : ""}
-		<div class="sh"><span>Naar maaltijd</span></div><div class="seg">${["Ontbijt", "Lunch", "Diner", "Snack"].map((m) => `<button aria-pressed="${m === "Lunch"}">${m}</button>`).join("")}</div>
-		<div class="sec-f" style="text-align:center;margin-top:12px">${cal ? "Dinsdag 14 okt" : "Zaterdag 4 okt"} · Lunch · +322 kcal</div></div>`;
-	return page({ inner: large("2 geselecteerd", "Vrijdag 3 oktober") + meals({ select: true }), nav: navbar("", "", ""), overlay: sheet, tab: null });
+function portionsR3(vals, mode = "normal") {
+	const list = mode === "full" ? [["Kom", 60], ["Eetlepel", 10], ["Handje", 30]] : [["Kom", 60], ["Eetlepel", 10]];
+	const row = ([n, g], i) => {
+		const r = `<div class="rowf" style="background:var(--surface)"><span>${n}</span><span class="val m tnum">${g} g · ${kcalFor(vals, g)} kcal</span></div>`;
+		return mode === "full" && i === 1 ? `<div style="position:relative;overflow:hidden"><div class="swacts" style="width:96px"><span class="sw d">${I.trash}Verwijder</span></div><div style="transform:translateX(-96px);position:relative">${r}</div></div>` : r;
+	};
+	const adding = mode === "adding" ? `<div class="rowf editrow"><span class="fld on">Handje<span class="cur"></span></span><span class="fld amt">30<small> g</small></span></div>` : "";
+	const add = mode === "full" ? "" : `<span class="add">${I.plus}</span>`;
+	const foot = mode === "full" ? "Maximaal 3 porties. Veeg een portie om te verwijderen." : mode === "adding" ? "Naam en hoeveelheid in gram. ‘Klaar’ voegt toe." : "Tot 3 porties. Tik om te wijzigen, veeg om te verwijderen.";
+	return `<div class="sh"><b>Porties</b>${add}</div><div class="group">${list.map(row).join("")}${adding}</div><div class="sec-f">${foot}</div>`;
 }
+const detailsR3 = (source, desc = "Grove vlokken") => `<div class="sh"><b>Details</b></div><div class="group"><div class="rowf"><span>Categorie</span><span class="val">Voeding ${I.chev}</span></div><div class="rowf"><span>Beschrijving</span><span class="val m">${desc}</span></div><div class="rowf"><span>Bron</span><span class="val m">${source}</span></div></div>`;
+const notice = (title, body) => `<div class="card cardpad notice"><b>${title}</b><span>${body}</span></div>`;
+const cancelBtn = `<button class="gbtn glass press" aria-label="Annuleer">${I.x}</button>`;
+const saveOff = `<button class="gbtn glass press" style="opacity:.45" aria-label="Bewaar">${I.check}</button>`;
+const saving = `<button class="gbtn glass tint press" aria-label="Bezig met bewaren"><span class="spin"></span></button>`;
+const pushedR3 = (o = {}) => page({ inner: o.inner ?? form(o.form), nav: navbar(o.title ?? "Havermout", "", gbtn(I.more) + (o.save ?? saveBtn), gbtn(I.left)), overlay: o.overlay ?? "", tab: null, scroll: o.scroll ?? 0, padBottom: 130 });
+const alertBox = (title, body, primary, top = 300) => `<div class="ctx"><div class="alert glass" style="top:${top}px"><b>${title}</b><p>${body}</p><div class="ab"><button>Annuleren</button><button class="d">${primary}</button></div></div></div>`;
+const toast = (text) => `<div class="toast glass">${I.info}<span>${text}</span></div>`;
 
-/* 6 — meal menu options */
-const mealMenu = (top, left = 16) => `<div class="menu glass" style="top:${top}px;left:${left}px;width:290px"><div class="mt">Ontbijt · 3 items</div>${menuItem(I.selc, "Items selecteren", { isNew: 1 })}<hr>${menuItem(I.copy, "Maaltijd kopiëren…")}${menuItem(I.move, "Maaltijd verplaatsen…", { isNew: 1 })}${menuItem(I.combo, "Combo maken")}</div>`;
-const M1 = () => page({ inner: diary({}, (m) => (m.items.length ? { titleMenu: true } : {})), nav: diaryNav(), overlay: mealMenu(497) });
-const M2 = () => page({ inner: diary({}, (m) => ({ head: `<span class="acts">${m.items.length ? `<span class="more">${I.more}</span>` : ""}<span class="plus">${I.plus}</span></span>` })), nav: diaryNav(), overlay: mealMenu(452, 87) });
-const M3 = () => page({ inner: diary(), nav: diaryNav(), overlay: `<div class="ctx"><div class="lift" style="top:384px"><div class="row plain mh" style="padding:13px 16px"><span class="t"><b style="font-size:17px">Ontbijt</b><small>3 items · 412 kcal</small></span><span class="plus">${I.plus}</span></div></div>${mealMenu(456)}</div>` });
-
-/* ——— round 3: goals in full + what caused it ——— */
-MEALS.splice(0, MEALS.length,
-	{ n: "Ontbijt", k: 412, items: [["🥣", "Havermout", "60 g", 228, 0, 4.2], ["🥛", "Halfvolle melk", "1 klein glas", 69, 0, 2.3], ["🍌", "Banaan", "1 stuk", 115, 0, 0.4]] },
-	{ n: "Lunch", k: 655, items: [["🥪", "Volkorenbrood", "2 sneetjes", 180, 0, 2.4], ["🧀", "Jonge kaas 48+", "2 plakken", 142, 0, 11.6], ["🥗", "Salade kip", "Combo · 3 onderdelen", 333, true, 24]] },
-	{ n: "Diner", k: 680, items: [["🍝", "Lasagne bolognese", "1 portie", 680, 0, 34]] },
-	{ n: "Tussendoortjes", k: 180, items: [["🥜", "Pinda's", "1 handje", 180, 0, 15]] },
-);
-const fmtNum = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
-const ALL = MEALS.flatMap((m) => m.items.map((it) => ({ meal: m.n, e: it[0], n: it[1], q: it[2], k: it[3], fat: it[5] })));
-const FAT = ALL.reduce((a, x) => a + x.fat, 0);
-
-const GOALS = [
-	{ n: "Energie", amt: "1.927", u: "kcal", tgt: "2.300–2.700", st: "nog 373 kcal tot bereik", c: "accent", p: 0.71, mark: 0.85 },
-	{ n: "Eiwit", amt: "96", u: "g", tgt: "min. 120", st: "nog 24 g", c: "accent", p: 0.8, mark: 1 },
-	{ n: "Koolhydraten", amt: "231", u: "g", tgt: "max. 300", st: "nog 69 g ruimte", c: "accent", p: 0.77, mark: 1 },
-	{ n: "Vet", amt: "94", u: "g", tgt: "max. 80", st: "14 g te veel", c: "danger", p: 1, mark: 0.85, over: 1 },
-	{ n: "Vezels", amt: "≥ 21", u: "g", tgt: "min. 30", st: "Onvolledig · 2 items zonder vezelwaarde", c: "muted", p: 0.7, mark: 1, inc: 1 },
-	{ n: "Zout", amt: "~ 5,1", u: "g", tgt: "max. 6", st: "Ongeveer · nog 0,9 g", c: "muted", p: 0.85, mark: 1 },
-];
-const FREE = [["Verzadigd vet", "38 g"], ["Suikers", "52 g"]];
-const col = (c) => `var(--${c === "muted" ? "muted" : c})`;
-const gbar = (g, h = 6) => `<div class="gbar ${g.over ? "over" : ""} ${g.inc ? "inc" : ""}" style="height:${h}px"><i style="width:${g.p * 100}%"></i>${g.mark < 1 ? `<b style="left:${g.mark * 100}%"></b>` : ""}</div>`;
-const goalRow = (g, { chevron = true, lifted = false } = {}) => `<button class="row plain grow" style="${lifted ? "" : ""}"><div class="gl"><span class="t">${g.n}<small>${g.tgt} ${g.u}</small></span><span class="gv tnum" style="${g.over ? "color:var(--danger)" : ""}">${g.amt}<small> ${g.u}</small></span>${chevron ? `<span class="chev">${I.right}</span>` : ""}</div>${gbar(g)}<span class="gs" style="color:${col(g.c)}">${g.st}</span></button>`;
-
-/** Compact diary summary; `footer` adds the affordance that differs per option. */
-function summary(footer = "") {
-	const m = (n, a, t, p, over) => `<div>${n}<b class="tnum" style="${over ? "color:var(--danger)" : ""}">${a} <small>/ ${t}</small></b><div class="bar ${over ? "danger" : ""}"><i style="width:${p}%"></i></div></div>`;
-	return `<div class="card" style="overflow:hidden"><div class="cardpad" style="display:flex;gap:16px;align-items:center">
-		<div class="ring">${ringSvg(96, 11, [[0.77, "var(--accent)"]])}<div class="c"><b class="tnum">1.927</b><small>van 2.500</small></div></div>
-		<div style="flex:1"><div style="font-size:15px;font-weight:700;margin-bottom:8px">nog 373 kcal tot bereik</div>
-		<div class="macros3">${m("Eiwit", 96, "120 g", 80)}${m("Koolh.", 231, "300", 77)}${m("Vet", 94, "80", 100, 1)}</div></div></div>${footer}</div>`;
+/* ——— 1: entry points and header ——— */
+const Expanded = () => pushedR3({});
+const CollapsedR3 = () => pushedR3({ scroll: 470 });
+function PushDemo(after = false) {
+	const entry = `<div class="pane entry"><div class="navbar">${gbtn(I.x)}<div class="title">Havermout<small>Lunch · vandaag</small></div>${saveBtn}</div><div class="pscroll">${after ? entryAfter() : entryBody().replace('<button class="row hl">', '<button class="row hl" data-push="1">')}</div></div>`;
+	const food = `<div class="pane food"><div class="navbar"><button class="gbtn glass press" data-pop="1">${I.left}</button><div class="title">Havermout</div>${saveBtn}</div><div class="pscroll" data-scroll="230">${form({ vals: edited, withImpact: true })}</div></div>`;
+	return `<div class="phone">${diaryBehind}${status}<div class="sheet"><div class="grabber"></div><div class="panes">${entry}${after ? "" : food}</div></div>${after ? toast("Havermout bewaard · dit item bijgewerkt") : ""}<div class="home"></div></div>`;
 }
-const footRow = (label, extra = "") => `<div class="row plain" style="border-top:.5px solid var(--sep);padding:11px 16px"><span class="t" style="font-size:15px">${label}</span>${extra}<span class="chev">${I.right}</span></div>`;
-const diary3 = (sum, o, f) => large("Vandaag", "Vrijdag 3 oktober") + strip() + sum + meals(o, f);
-const sheetOver = (left, title, right, body) => `<div class="dimmer"></div><div class="dsheet" style="top:64px;overflow:auto;padding-bottom:40px"><div class="grabber"></div><div class="navbar">${left}<div class="title">${title}</div>${right}</div>${body}</div>`;
-const goalsSheetBody = () => `<div class="card" style="margin-top:12px;overflow:hidden">${GOALS.map((g) => goalRow(g)).join("")}</div>
-	<div class="sh"><span>Zonder doel</span></div><div class="card" style="overflow:hidden">${FREE.map(([n, v]) => `<div class="row plain"><span class="t">${n}</span><span class="v"><b>${v}</b></span><span class="chev">${I.right}</span></div>`).join("")}</div>
-	<div class="sec-f">≥ = ten minste: niet alle items hebben een waarde. ~ = bevat geschatte waarden.</div>`;
-const editBtn = `<button class="pillbtn glass press" style="height:44px">Bewerk</button>`;
+const entryAfter = () => entryBody().replace("233 kcal", "241 kcal").replace("8,1 g eiwit", "8,1 g eiwit").replace("389 kcal per 100 g", "402 kcal per 100 g");
 
-/* 1 — all goals */
-const G1 = () => page({ inner: diary3(summary(footRow("Alle doelen", '<span class="badge2" style="background:rgba(180,35,50,.12);color:var(--danger)">1 te veel</span>'))), nav: diaryNav(), overlay: sheetOver(gbtn(I.x), "Doelen vandaag", editBtn, goalsSheetBody()) });
-const G1closed = () => page({ inner: diary3(summary(footRow("Alle doelen", '<span class="badge2" style="background:rgba(180,35,50,.12);color:var(--danger)">1 te veel</span>'))), nav: diaryNav() });
-const G2 = () => page({ inner: large("Vandaag", "Vrijdag 3 oktober") + strip() + `<div class="card" style="overflow:hidden"><div class="row plain" style="padding:12px 16px"><span class="t"><b style="font-size:17px">Doelen</b><small>1 te veel · 1 onvolledig</small></span><button class="txtbtn">Bewerk</button></div><div style="border-top:.5px solid var(--sep)">${GOALS.map((g) => goalRow(g, { chevron: false })).join("")}</div><div class="row plain" style="justify-content:center;color:var(--accent);font-weight:600;border-top:.5px solid var(--sep)">Minder ⌃</div></div>` + meals(), nav: diaryNav() });
-function G3() {
-	const tile = (g) => `<div class="gtile"><span class="mutedline">${g.n}</span><b class="tnum" style="${g.over ? "color:var(--danger)" : ""}">${g.amt}<small> ${g.u}</small></b>${gbar(g, 5)}<small style="color:${col(g.c)}">${g.st.split(" · ")[0]}</small></div>`;
-	return page({ inner: large("Vandaag", "Vrijdag 3 oktober") + strip() + `<div class="card cardpad"><div class="gtiles">${GOALS.map(tile).join("")}</div><div class="dots"><i></i><i class="on"></i></div></div>` + meals(), nav: diaryNav() });
-}
+/* ——— 2: new, import, correction ——— */
+const kindSeg = `<div class="seg" style="margin:0 16px 16px"><button aria-pressed="true">Eigen voeding</button><button aria-pressed="false">Recept</button><button aria-pressed="false">Eenmalig</button></div>`;
+const NewSheet = () => sheetPhone({ left: cancelBtn, title: "Nieuw voedingsmiddel", right: saveBtn, inner: form({ name: "", vals: EMPTY, photo: "🍽️", sub: "Nieuw voedingsmiddel", }) });
+const NewPushed = () => pushedR3({ title: "Nieuw voedingsmiddel", form: { name: "", vals: EMPTY, photo: "🍽️", sub: "Nieuw voedingsmiddel" } });
+const NewFromLog = () => sheetPhone({ left: cancelBtn, title: "Nieuw<small>Lunch · vandaag</small>", right: saveBtn, inner: form({ top: kindSeg, name: "", vals: EMPTY, photo: "🍽️", sub: "Na bewaren kies je de hoeveelheid voor Lunch" }) });
+const Import = () => sheetPhone({ left: cancelBtn, title: "Controleren", right: saveBtn, inner: form({ name: "Skyr naturel", vals: SKYR, photo: "🥛", remote: true, sub: "Arla · 8718452390071", source: "Open Food Facts", notice: notice("Geïmporteerd van Open Food Facts", "Controleer de waarden voor je bewaart. © Open Food Facts-bijdragers, ODbL.") }) });
+const Correction = () => pushedR3({ form: { name: "Havermout", sub: "Jouw correctie", source: "NEVO 2023 · aangepast", notice: notice("Jouw correctie van Havermout (NEVO)", "Vervangt het origineel in zoekresultaten. Je hebt dit voedingsmiddel aangepast.") } });
 
-/* 2 — what caused it */
-function contributors() {
-	const rows = [...ALL].sort((a, b) => b.fat - a.fat);
-	return rows.map((x, i) => `<button class="row" ${i > 4 ? 'style="opacity:.75"' : ""}><span class="fv">${x.e}</span><span class="t">${x.n}<small>${x.meal} · ${x.q}</small></span><span class="cv"><b class="tnum">${fmtNum(x.fat)} g</b><small>${Math.round((x.fat / FAT) * 100)}%</small></span><span class="share"><i style="width:${(x.fat / rows[0].fat) * 100}%"></i></span></button>`).join("");
-}
-function mealSplit() {
-	const per = MEALS.map((m) => [m.n, m.items.reduce((a, it) => a + it[5], 0)]);
-	const cs = ["var(--accent)", "#8fb04a", "#c58a2b", "#9a6a3c"];
-	return `<div class="split4">${per.map(([, v], i) => `<i style="flex:${v};background:${cs[i]}"></i>`).join("")}</div><div class="legend" style="margin-top:8px">${per.map(([n, v], i) => `<span><i style="background:${cs[i]}"></i>${n} ${fmtNum(v)} g</span>`).join("")}</div>`;
-}
-const fatHero = `<div class="cardpad" style="text-align:center"><div style="font-size:44px;font-weight:800;letter-spacing:-.04em;color:var(--danger)" class="tnum">94<span style="font-size:17px;font-weight:600"> g</span></div><div class="mutedline">max. 80 g · <b style="color:var(--danger)">14 g te veel</b></div></div>`;
-const C1 = () => page({ inner: diary3(summary(footRow("Alle doelen"))), nav: diaryNav(), overlay: sheetOver(gbtn(I.left), "Vet<small>Vandaag</small>", gbtn(I.more), `<div class="card" style="margin-top:10px">${fatHero}<div style="padding:0 16px 14px">${mealSplit()}</div></div><div class="sh"><b>Grootste bronnen</b><span>van hoog naar laag</span></div><div class="card" style="overflow:hidden">${contributors()}</div><div class="sec-f">Tik een item om de hoeveelheid aan te passen.</div>`) });
-function C2() {
-	const top = [...ALL].sort((a, b) => b.fat - a.fat).slice(0, 3).map((x) => x.n);
-	const lensRow = (m, i) => { const [e, n, q, k, combo, fat] = m.items[i]; const hot = top.includes(n); return `<button class="row"><span class="fv">${e}</span><span class="t">${n}<small>${combo ? '<span class="combo-g">COMBO</span> · 3 onderdelen' : q}</small></span><span class="v" style="${hot ? "color:var(--danger)" : ""}"><b style="${hot ? "color:var(--danger)" : ""}">${fmtNum(fat)}</b> g</span></button>`; };
-	const mealsLens = MEALS.map((m) => `<div class="card" style="margin-top:10px;overflow:hidden"><div class="row plain mh" style="padding:13px 16px"><span class="t"><b style="font-size:17px">${m.n}</b><small>${fmtNum(m.items.reduce((a, it) => a + it[5], 0))} g vet</small></span><span class="plus">${I.plus}</span></div><div style="border-top:.5px solid var(--sep)">${m.items.map((_, i) => lensRow(m, i)).join("")}</div></div>`).join("");
-	const lens = `<div class="lensbar"><span class="lens glass">Toon <b>Vet</b> ${I.chev}</span><span class="mutedline">94 van max. 80 g</span><button class="gbtn glass" style="width:34px;height:34px;font-size:15px">${I.x}</button></div>`;
-	return page({ inner: large("Vandaag", "Vrijdag 3 oktober") + strip() + lens + mealsLens, nav: diaryNav() });
-}
+/* ——— 3: portions and basis ——— */
+const Adding = () => pushedR3({ scroll: 520, form: { portions: "adding" } });
+const Full = () => pushedR3({ scroll: 520, form: { portions: "full" } });
+const PerServing = () => pushedR3({ title: "Proteïnereep", form: { name: "Proteïnereep", photo: "🍫", vals: BAR, perServing: "1 reep" }, scroll: 150 });
 
-/* 3 — states */
-function LongGoal() {
-	const g = GOALS[3];
-	const ctx = `<div class="ctx"><div class="lift" style="top:300px">${goalRow(g)}</div><div class="menu glass" style="top:404px;width:260px">${menuItem(I.chart, "Grootste bronnen")}${menuItem(I.target, "Doel bewerken")}<hr>${menuItem(I.sort, "Volgorde wijzigen")}</div></div>`;
-	return page({ inner: diary3(summary(footRow("Alle doelen"))), nav: diaryNav(), overlay: sheetOver(gbtn(I.x), "Doelen vandaag", editBtn, goalsSheetBody()) + ctx });
-}
-const NoGoals = () => page({ inner: large("Vandaag", "Vrijdag 3 oktober") + strip() + `<div class="card cardpad" style="display:flex;gap:14px;align-items:center"><div style="flex:1"><b class="tnum" style="font-size:28px;letter-spacing:-.03em">1.927</b> <span class="mutedline">kcal vandaag</span><div class="mutedline" style="margin-top:4px">Eiwit 96 g · Koolh. 231 g · Vet 94 g</div></div></div><div class="card cardpad notecard" style="margin-top:10px;display:flex;gap:12px;align-items:center"><span class="fv">${I.target}</span><span class="t" style="flex:1;font-size:14.5px">Stel doelen in<small class="mutedline" style="display:block">Kies een startpunt of stel zelf in</small></span><span class="pillbtn" style="background:var(--accentFill);color:var(--onAccent)">Instellen</span></div>` + meals(), nav: diaryNav() });
-function Incomplete() {
-	const g = GOALS[4];
-	const miss = [["🥗", "Salade kip", "Lunch · Combo"], ["🥜", "Pinda's", "Tussendoortjes · eigen product"]];
-	const body = `<div class="card cardpad" style="text-align:center;margin-top:10px"><div style="font-size:44px;font-weight:800;letter-spacing:-.04em" class="tnum">≥ 21<span style="font-size:17px;font-weight:600"> g</span></div><div class="mutedline">min. 30 g · ten minste nog 9 g</div>${gbar(g, 8).replace('class="gbar', 'style="margin-top:12px" class="gbar')}</div>
-		<div class="sh"><b>Zonder vezelwaarde</b><span>2 items</span></div><div class="card" style="overflow:hidden">${miss.map(([e, n, s]) => `<div class="row"><span class="fv">${e}</span><span class="t">${n}<small>${s}</small></span><span class="pillbtn" style="background:var(--accentDim);color:var(--accent);height:30px;font-size:13px">Aanvullen</span></div>`).join("")}</div>
-		<div class="sh"><b>Grootste bronnen</b></div><div class="card" style="overflow:hidden">${[["🥣", "Havermout", "6,1 g"], ["🥪", "Volkorenbrood", "4,8 g"], ["🍝", "Lasagne bolognese", "4,5 g"]].map(([e, n, v]) => `<div class="row"><span class="fv">${e}</span><span class="t">${n}</span><span class="v"><b>${v}</b></span></div>`).join("")}</div>`;
-	return page({ inner: diary3(summary(footRow("Alle doelen"))), nav: diaryNav(), overlay: sheetOver(gbtn(I.left), "Vezels<small>Vandaag</small>", gbtn(I.more), body) });
-}
+/* ——— 4: confirmations ——— */
+const Discard = () => pushedR3({ form: { vals: edited }, overlay: alertBox("Wijzigingen weggooien?", "Je wijzigingen aan Havermout worden niet bewaard.", "Weggooien") });
+const Delete = () => pushedR3({ overlay: alertBox("Dit persoonlijke voedingsmiddel verwijderen?", "Bestaande dagboekitems behouden hun opgeslagen momentopname.", "Verwijderen") });
+const CorrMenu = () => pushedR3({ form: { sub: "Jouw correctie", source: "NEVO 2023 · aangepast", notice: notice("Jouw correctie van Havermout (NEVO)", "Vervangt het origineel in zoekresultaten. Je hebt dit voedingsmiddel aangepast.") }, overlay: `<div class="menu glass" style="top:104px;right:16px;width:276px"><div class="mt">Havermout · correctie</div>${menuItem(I.plus, "Loggen…", { isNew: 1 })}${menuItem(I.tag, "Categorie", { small: "Voeding ›" })}<hr>${menuItem(I.trash, "Correctie verwijderen", { d: 1 })}</div>` });
+const CorrConfirm = () => pushedR3({ form: { sub: "Jouw correctie", source: "NEVO 2023 · aangepast" }, overlay: alertBox("Deze correctie verwijderen?", "Het meegeleverde voedingsmiddel komt terug in de zoekresultaten. Dagboekitems behouden de voedingswaarde waarmee ze zijn vastgelegd.", "Correctie verwijderen") });
 
-/* ——— final ——— */
-const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-const CODE = {
-	header: `// nutrition-day.tsx — native large title; iOS draws the collapse and scroll edge.
-<Stack.Screen
-  options={{
-    title: dayTitle, // "Vandaag" | "Donderdag 2 okt"
-    headerLargeTitleEnabled: true,
-    headerLargeTitleStyle: { color: colors.text },
-    headerTransparent: Platform.OS === "ios",
-    headerShadowVisible: false,
-  }}
-/>
-{Platform.OS === "ios" ? (
-  <Stack.Toolbar placement="right">
-    <Stack.Toolbar.Button
-      icon="calendar"
-      accessibilityLabel={t.nutrition.day.pickDate}
-      onPress={() => setPickingDate(true)}
-    />
-    <Stack.Toolbar.View>
-      {/* Existing SwiftUI menu + one new item: Select (checkmark.circle) */}
-      <NutritionHeaderMenu {...menuProps} onSelect={() => setSelecting(true)} />
-    </Stack.Toolbar.View>
-  </Stack.Toolbar>
-) : null}
-<DatePickerSheet visible={pickingDate} value={date} onChange={goToDate} onClose={...} />`,
-	rows: `// iOS: the InsetList seam (SwiftUI List) already gives ContextMenu + SwipeActions
-// with allowsFullSwipe={false}. Same contract as SwipeableRow on Android.
-<InsetRow
-  id={entry.id}
-  leading={<FoodVisual food={entry.food} size={38} />}
-  title={entry.name[locale]}
-  secondary={portionLabel(entry)}
-  value={\`\${kcal(entry)} \${t.nutrition.units.kcal}\`}
-  onPress={() => openEditor(entry)}
-  actions={[
-    { key: "edit", label: t.nutrition.entryActions.edit, onPress: () => openEditor(entry) },
-    { key: "select", label: selectLabel, onPress: () => beginSelection([entry]), swipe: false },
-    { key: "copy", label: copyLabel, onPress: () => transfer([entry], "copy"), swipe: false },
-    { key: "move", label: moveLabel, onPress: () => transfer([entry], "move"), swipe: false },
-    { key: "delete", label: t.nutrition.entryActions.delete, onPress: () => confirmDelete(entry), destructive: true },
-  ]}
-/>`,
-	meal: `// Meal title is the menu (M1). Replaces the per-meal NutritionMenu "···".
-<Host matchContents colorScheme={scheme}>
-  <Menu
-    label={
-      <HStack spacing={4}>
-        <Text modifiers={[font({ size: 17, weight: "bold" })]}>{mealName}</Text>
-        <Image systemName="chevron.down" size={12} color={colors.textMuted} />
-      </HStack>
-    }
-    modifiers={[accessibilityLabel(\`\${mealName}: \${actionsLabel}\`)]}
-  >
-    <Button label={selectItems} systemImage="checkmark.circle" onPress={() => beginSelection(entries)} />
-    <Divider />
-    <Button label={t.nutrition.day.copyMeal} systemImage="doc.on.doc" onPress={() => transfer(entries, "copy")} />
-    <Button label={moveMeal} systemImage="arrow.right" onPress={() => transfer(entries, "move")} />
-    <Button label={t.nutrition.combos.create} systemImage="square.on.square" onPress={onCreateCombo} />
-  </Menu>
-</Host>
-// Empty meal: plain Text title, no chevron, no menu.`,
-	selection: `// Existing selecting/selectedEntryIds state; the bottom bar is the system toolbar.
-{selecting ? (
-  <Stack.Toolbar placement="bottom">
-    <Stack.Toolbar.Button icon="doc.on.doc" accessibilityLabel={copy} onPress={() => transfer(selected, "copy")} />
-    <Stack.Toolbar.Button icon="arrow.right" accessibilityLabel={move} onPress={() => transfer(selected, "move")} />
-    <Stack.Toolbar.Button icon="square.on.square" accessibilityLabel={makeCombo} onPress={createCombo} />
-    <Stack.Toolbar.Spacer />
-    <Stack.Toolbar.Button icon="trash" accessibilityLabel={remove} onPress={confirmDeleteSelected} />
-  </Stack.Toolbar>
-) : null}`,
-	transfer: `// app/(app)/_layout.tsx — the existing nutrition-entry-transfer route, now for N entries.
-<Stack.Screen
-  name="nutrition-entry-transfer"
-  options={{ presentation: "formSheet", sheetAllowedDetents: "fitToContents", sheetGrabberVisible: true }}
-/>
-// Inside: Segmented (copy | move) → day strip (4 days + calendar tile) →
-// iOS DatePicker (graphical) inline when the tile is tapped → Segmented meal.
-// Confirm (✓) writes through the durable operation service, one operation per entry.`,
-	goals: `// New formSheet route: /nutrition-day-goals?date=…
-<Stack.Screen name="nutrition-day-goals"
-  options={{ presentation: "formSheet", sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true }} />
-// Rows reuse GoalProgressRow + outcome() from nutrition-goal-card.tsx (min/max/range,
-// ≥ incomplete, ~ qualified). Long press → existing reorder mode. "Bewerk" → /nutrition-goals.
-// Diary card keeps energy ring + 3 macros + one "Alle doelen" row with the worst outcome.`,
-	sources: `// packages/core — one calculation, used by web and mobile.
-export function rankNutrientSources(entries: readonly DiaryEntry[], nutrient: NutrientKey) {
-  const known = [], missing = [];
-  for (const e of entries) {
-    const v = e.nutrients[nutrient];
-    if (v.kind === "absent") missing.push(e); else known.push({ entry: e, amount: v.kind === "value" ? v.amount : 0 });
-  }
-  const total = known.reduce((a, x) => a + x.amount, 0);
-  return { missing, ranked: known.sort((a, b) => b.amount - a.amount).map((x) => ({ ...x, share: total ? x.amount / total : 0 })) };
-}
-// Mobile: /nutrition-nutrient-sources?date&nutrient pushed inside the goals sheet.
-// Missing values first ("Aanvullen" → food editor), then ranked rows → entry editor.`,
-};
+/* ——— 5: errors and waiting ——— */
+const NameError = () => sheetPhone({ left: cancelBtn, title: "Nieuw voedingsmiddel", right: saveBtn, inner: form({ name: "", nameError: true, vals: ["120", "4", "", "", "", "", "", ""], photo: "🍽️" }) });
+const Saving = () => pushedR3({ save: saving, form: { vals: edited }, inner: `<div style="opacity:.55;pointer-events:none">${form({ vals: edited })}</div>` });
+const SaveFailed = () => pushedR3({ form: { vals: edited }, overlay: toast("Dit persoonlijke voedingsmiddel kon niet worden opgeslagen. Je wijzigingen staan er nog.") });
+const PhotoDenied = () => pushedR3({ form: { photoError: true } });
 
-const sum3 = () => summary(footRow("Alle doelen", '<span class="badge2" style="background:rgba(180,35,50,.12);color:var(--danger)">1 te veel</span>'));
+/* ——— 6: dark and larger text ——— */
+const Dark = () => `<div class="dk">${pushedR3({ scroll: 0 })}</div>`;
+const XL = () => `<div class="xl">${pushedR3({ title: "Havermout grof, volkoren…", form: { name: "Havermout grof, volkoren, biologisch (Albert Heijn)" } })}</div>`;
+
+/* ——— round 4 ——— */
+/** Portions above values; optional OFF changes and source row variants */
+function form4(o = {}) {
+	const vals = o.vals ?? base;
+	const name = o.name ?? "Havermout";
+	const hero = `<div class="pfhero"><div class="photo ${o.remote ? "remote" : ""}">${o.photo ?? "🥣"}<span class="cam2 glass">${I.cam}</span></div><div class="pfname">${name}</div><div class="mutedline">${o.sub ?? "Eigen voeding"}</div></div>`;
+	const ch = o.changed ?? {};
+	const rows = NUTR.map(([n, , u, sub2], i) => `<div class="rowf ${sub2 ? "sub" : ""} ${i in ch ? "chg" : ""}"><span>${n}${i in ch ? `<small class="rsub">was ${ch[i] || "—"}${ch[i] ? " " + u : ""}</small>` : ""}</span>${shown(vals[i], u)}</div>`).join("");
+	const est = `<div class="rowf"><span>Waarden zijn geschat<small class="rsub">Totalen met dit voedingsmiddel tonen ~</small></span><span class="tg"></span></div>`;
+	const nut = `<div class="sh"><b>Voedingswaarde</b><span class="trig">per 100 g ${I.chev}</span></div><div class="group">${rows}${est}</div>${footNote}`;
+	const list = o.portionList ?? [["Kom", 60], ["Eetlepel", 10]];
+	const portions = `<div class="sh"><b>Porties</b><span class="add">${I.plus}</span></div><div class="group">${list.map(([n, g], i) => `<div class="rowf ${o.editing === i ? "focusrow" : ""}"><span>${n}</span><span class="val m tnum">${g} g · ${kcalFor(vals, g)} kcal</span></div>`).join("")}</div><div class="sec-f">Tot 3 porties. Tik om te wijzigen, veeg om te verwijderen.</div>`;
+	const det = `<div class="sh"><b>Details</b></div><div class="group"><div class="rowf"><span>Categorie</span><span class="val">Voeding ${I.chev}</span></div><div class="rowf"><span>Beschrijving</span><span class="val m">${o.desc ?? "Grove vlokken"}</span></div>${o.sourceRow ?? `<div class="rowf"><span>Bron</span><span class="val m">Handmatig</span></div>`}</div>`;
+	return hero + (o.notice ?? "") + portions + nut + det;
+}
+const offSource = (state = "idle") => `<div class="rowf"><span>Bron<small class="rsub">Open Food Facts · 8718452390071</small></span>${state === "busy" ? `<span class="val m"><span class="spin dark"></span>Bezig…</span>` : `<span class="val">${state === "done" ? "Zojuist" : "12 sep"} <span class="rf">${I.undo.replace("M9 7L4 12l5 5", "M4 4v5h5").replace("M4 12h10a6 6 0 010 12", "M4.5 9A8 8 0 1112 20")}</span></span>`}</div>`;
+const skyr = (o = {}) => ({ name: "Skyr naturel", vals: o.vals ?? SKYR, photo: "🥛", remote: true, sub: "Arla · geïmporteerd", desc: "Optioneel", portionList: [["Bakje", 150], ["Eetlepel", 15]], sourceRow: offSource(o.state), ...o });
+const SKYR_NEW = ["65", "11", "4,0", "4,0", "0,2", "0,1", "0", "0,1"];
+
+/* 1: order */
+const Order = () => pushedR3({ inner: form4() });
+const OrderScrolled = () => pushedR3({ inner: form4(), scroll: 300 });
+
+/* 2: portion popup (entry editor round 5 component) */
+const LETTERS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+function portionPopup({ title = "Nieuwe portie", btn = "Toevoegen", name = "", amount = "", target = "name", scope = "food" } = {}) {
+	const nameField = `<span class="fld ${target === "name" ? "on" : ""}"><small>Naam</small><span>${name || (target === "name" ? "" : '<i class="ph">bijv. Kom</i>')}${target === "name" ? '<span class="cur"></span>' : ""}</span></span>`;
+	const amtField = `<span class="fld amt ${target === "amount" ? "on" : ""}"><small>Hoeveelheid</small><span class="tnum">${amount || '<i class="ph">60</i>'}${target === "amount" ? '<span class="cur"></span>' : ""}&nbsp;g</span></span>`;
+	const pop = `<div class="kpop glass"><div class="kh"><button class="gbtn press" aria-label="Annuleren" style="width:34px;height:34px;font-size:16px">${I.x}</button><b>${title}</b><button class="addbtn press" ${name ? "" : 'style="opacity:.45"'}>${btn}</button></div>
+		<div class="flds">${nameField}${amtField}</div>
+		<div class="seg">${[["food", "Bij Havermout"], ["own", "Eigen maat"]].map(([k, l]) => `<button aria-pressed="${scope === k}">${l}</button>`).join("")}</div>
+		<div class="kf">${scope === "food" ? "Alleen zichtbaar bij dit voedingsmiddel." : "Zichtbaar bij álle producten in gram, zoals ‘Mijn kom’."}</div></div>`;
+	const keys = target === "name"
+		? `<div class="qw">${LETTERS.map((r, i) => `<div class="qr">${i === 2 ? '<button class="fn w">⇧</button>' : ""}${[...r].map((c) => `<button>${c}</button>`).join("")}${i === 2 ? `<button class="fn w">${I.back}</button>` : ""}</div>`).join("")}<div class="qr"><button class="fn ww">123</button><button class="space">spatie</button><button class="fn ww go">Volgende</button></div></div>`
+		: `<div class="kbd">${["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0"].map((k) => `<button ${k === "," ? 'class="fn"' : ""}>${k}</button>`).join("")}<button class="fn">${I.back}</button></div>`;
+	return `<div class="kbdwrap" style="z-index:40">${pop}${keys}</div>`;
+}
+const NewPortion = () => pushedR3({ inner: form4(), overlay: portionPopup({ name: "Hand", target: "name" }) });
+const NewPortionAmount = () => pushedR3({ inner: form4(), overlay: portionPopup({ name: "Handje", amount: "30", target: "amount" }) });
+const EditPortion = () => pushedR3({ inner: form4({ editing: 0 }), overlay: portionPopup({ title: "Portie wijzigen", btn: "Bewaar", name: "Kom", amount: "65", target: "amount" }) });
+const PortionLong = () => pushedR3({ inner: form4(), overlay: `<div class="ctx"><div class="lift" style="top:300px"><div class="rowf"><span>Kom</span><span class="val m tnum">60 g · 233 kcal</span></div></div><div class="menu glass" style="top:362px;width:240px">${menuItem(I.pencil, "Wijzigen")}${menuItem(I.sort, "Bovenaan zetten")}<hr>${menuItem(I.trash, "Verwijderen", { d: 1 })}</div></div>` });
+
+/* 3: refresh from Open Food Facts */
+const RefreshMenu = () => pushedR3({ title: "Skyr naturel", inner: form4(skyr()), overlay: `<div class="menu glass" style="top:104px;right:16px;width:290px"><div class="mt">Skyr naturel · Open Food Facts</div>${menuItem(I.plus, "Loggen…")}${menuItem(I.cloud, "Verversen van Open Food Facts")}${menuItem(I.tag, "Categorie", { small: "Voeding ›" })}<hr>${menuItem(I.trash, "Verwijderen", { d: 1 })}</div>` });
+const RefreshBusy = () => pushedR3({ title: "Skyr naturel", inner: form4(skyr({ state: "busy" })), scroll: 2000 });
+const RefreshInline = () => pushedR3({ title: "Skyr naturel", inner: form4(skyr({ vals: SKYR_NEW, state: "done", changed: { 0: "63", 6: "" }, notice: `<div class="card cardpad notice"><b>2 waarden bijgewerkt</b><span>Van Open Food Facts, nog niet bewaard. ✓ bewaart, ‹ vraagt of je ze weggooit.</span><button class="txtbtn" style="text-align:left;margin-top:4px">Ongedaan maken</button></div>` })), scroll: 230 });
+const RefreshEdited = () => pushedR3({ title: "Skyr naturel", inner: form4(skyr({ state: "idle" })), overlay: alertBox("Je eigen aanpassingen overschrijven?", "Je hebt Energie en Zout zelf aangepast. Open Food Facts heeft andere waarden.", "Overnemen", 290).replace("<button>Annuleren</button>", "<button>Mijn waarden houden</button>") });
+const RefreshSame = () => pushedR3({ title: "Skyr naturel", inner: form4(skyr({ state: "done" })), scroll: 2000, overlay: toast("Al up-to-date met Open Food Facts.") });
+const RefreshLimited = () => pushedR3({ title: "Skyr naturel", inner: form4(skyr()), scroll: 2000, overlay: toast("Open Food Facts krijgt op dit moment te veel verzoeken. Probeer het straks opnieuw.") });
+
+const RefreshCompare = () => sheetPhone({ left: cancelBtn, title: "Open Food Facts", right: `<button class="pillbtn glass tint press" style="height:44px">Overnemen</button>`, inner: `<div class="sec-f" style="margin:0 20px 12px">Skyr naturel · 2 van 8 waarden verschillen.</div><div class="group">${[["Energie", "63 kcal", "65 kcal"], ["Vezels", "—", "0 g"]].map(([n, a, b]) => `<div class="rowf"><span>${n}</span><span class="val m tnum">${a} → <b style="color:var(--text)">${b}</b></span></div>`).join("")}</div><div class="sec-f">Overnemen bewaart direct.</div>` });
 const SECTIONS = [
-	{ h: "1 · Dagboek met native header", p: "Grote titel ‘Vandaag’ met datum, klapt bij scrollen in tot een kleine titel. Kalender en ⋯ in de navigatiebalk. Samenvatting: energiering + 3 macro’s + ‘Alle doelen’. Maaltijden als kaarten; de titel van een maaltijd met items is het maaltijdmenu (⌄). <b>Scroll in de eerste telefoon.</b>",
-		impl: "<b>Native:</b> <code>headerLargeTitleEnabled</code> + <code>headerTransparent</code> (zoals <code>exercises-list.tsx</code>); <code>Stack.Toolbar placement=\"right\"</code>. <b>Risico:</b> de datum als subtitel onder de grote titel vereist iOS 26 <code>navigationSubtitle</code>; als <code>react-native-screens</code> 4.26 dat niet ondersteunt, zet de datum als eerste regel in de content. Weekstrook horizontaal pagineren per week.",
-		code: CODE.header,
-		phones: [["Uitgeklapt", "state", Base, "Bovenaan de dag."], ["Ingeklapt", "state", Collapsed, "Na scrollen: kleine titel + zachte scroll-rand."]] },
-	{ h: "2 · Header-menu en datum", p: "⋯ bevat alles uit <code>NutritionHeaderMenu</code> plus <b>Selecteer</b>. De kalender springt naar elke dag; stip = gelogd; ‘Vandaag’ in de kiezer.",
-		impl: "<b>Native:</b> bestaand SwiftUI <code>Menu</code> in <code>nutrition-header-menu.ios.tsx</code> met één extra <code>Button</code>; bestaande <code>DatePickerSheet</code> (SwiftUI <code>DatePicker</code>). <b>Risico:</b> stippen voor gelogde dagen bestaan niet in de systeem-<code>DatePicker</code>; accepteer zonder stippen of houd de app-kalender (<code>nutrition-calendar.tsx</code>).",
-		phones: [["⋯ open", "state", HeaderMenu, "Secties: dag, bibliotheek, doelen/bronnen, instellingen."], ["Kalender open", "state", DatePicker, "Systeem-datumkiezer als popover."]] },
-	{ h: "3 · Rijen: tikken, vegen, lang indrukken", p: "Tik = item-editor. Vegen toont Bewerk en Verwijder, voert nooit zelf uit. Lang indrukken: Bewerken, Selecteer, Kopiëren…, Verplaatsen…, Verwijderen (met bevestiging).",
-		impl: "<b>Native:</b> <code>InsetList</code>/<code>InsetRow</code> (SwiftUI <code>List</code>, al in gebruik in de oefeningbibliotheek) met <code>actions</code>; <code>swipe:false</code> houdt een actie uit de veeg. Android houdt <code>SwipeableRow</code>. <b>Risico:</b> combo-groepen (uitklapbaar) en notitie-rijen moeten in dezelfde <code>InsetList</code> passen; verifieer VoiceOver custom actions.",
-		code: CODE.rows,
-		phones: [["Geveegd", "state", Swipe, "Twee acties, geen volle veeg."], ["Lang ingedrukt", "state", LongPress, "Systeem-<code>ContextMenu</code> met voorbeeld."]] },
-	{ h: "4 · Maaltijdmenu", p: "De titel ‘Ontbijt ⌄’ opent het menu: Items selecteren, Maaltijd kopiëren…, Maaltijd verplaatsen…, Combo maken. + blijft de enige knop rechts. Lege maaltijden hebben geen menu.",
-		impl: "<b>Lost op:</b> het ⋯-knopje per maaltijd (huidige <code>NutritionMenu</code>) en het aparte ‘Maaltijd kopiëren’-scherm. <b>Native:</b> SwiftUI <code>Menu</code> met een <code>HStack</code>-label. <b>Nieuw gedrag:</b> maaltijd verplaatsen en items selecteren.",
-		code: CODE.meal,
-		phones: [["Maaltijdmenu open", "state", M1, "Patroon van titelmenu’s in Foto’s/Bestanden."]] },
-	{ h: "5 · Selectie en kopiëren/verplaatsen", p: "Selectiemodus met ‘Alles’ per maaltijd en een glazen actiebalk. Kopiëren/Verplaatsen in één sheet: werkwoord, dag (strook + kalendertegel), maaltijd, met kcal-impact.",
-		impl: "<b>Native:</b> <code>Stack.Toolbar placement=\"bottom\"</code>; bestaande route <code>nutrition-entry-transfer</code> als <code>formSheet</code> voor N items; <code>Segmented</code>; inline graphical <code>DatePicker</code>. <b>Risico:</b> de tabbalk verbergen tijdens selectie met native tabs; verifieer op toestel. Meerdere items verplaatsen = meerdere duurzame operaties: toon voortgang en gedeeltelijke fouten.",
-		code: CODE.selection + "\n\n" + CODE.transfer,
-		phones: [["Selectiemodus", "state", Selection, "Tik rijen en ‘Alles’."], ["Nabije dag", "state", () => CopySheet(false), "Eén tik op dag en maaltijd, ✓."], ["Andere dag", "state", () => CopySheet(true), "Kalender klapt uit in de sheet."]] },
-	{ h: "6 · Doelen vandaag en bronnen", p: "‘Alle doelen’ opent een sheet met elk doel, status en voedingsstoffen zonder doel. Een doel aantikken toont de bronnen: verdeling per maaltijd en items van hoog naar laag. Onvolledige totalen tonen eerst de items zonder waarde.",
-		impl: "<b>Lost op:</b> ‘welk item veroorzaakte zoveel vet?’ en het uitklappen van de doelenkaart op het dagboek. <b>Native:</b> <code>formSheet</code> met detents; <code>GoalProgressRow</code>/<code>outcome()</code> hergebruiken; ranking als pure functie in <code>@workouts/core</code>. <b>Risico:</b> combo-items tellen als één bron of per onderdeel; kies per onderdeel met de combo-naam als context.",
-		code: CODE.goals + "\n\n" + CODE.sources,
-		phones: [["Ingang", "state", G1closed, "‘1 te veel’ maakt de afwijking zichtbaar."], ["Doelen vandaag", "state", G1, "Bewerk → doelenscherm."], ["Bronnen: vet", "state", C1, "Item → item-editor."], ["Doel lang ingedrukt", "state", LongGoal, "Bronnen, bewerken, volgorde."], ["Onvolledig totaal", "state", Incomplete, "Aanvullen → voedingsmiddel-editor."], ["Geen doelen", "state", NoGoals, "Totalen als tekst + uitnodiging."]] },
+	{ h: "1 · Porties boven de voedingswaarde", p: "Volgorde nu: foto en naam, <b>Porties</b>, Voedingswaarde, Details. Porties zijn wat je bij het loggen kiest, dus ze staan bovenaan. Bij ‘per portie’ vervalt de sectie nog steeds.",
+		phones: [["Uitgeklapt", "state", Order, "Native: volgorde van de <code>FormSection</code>s in <code>PersonalFoodEditor</code>."], ["Gescrold", "state", OrderScrolled, "De voedingswaarde blijft één blok met het basismenu in de kop."]] },
+	{ h: "2 · Porties met de popup uit de item-editor", p: "Hetzelfde onderdeel als ‘Nieuwe portie…’ in de item-editor (<a href=\"../entry-editor/round5.html\" style=\"color:var(--accent)\">entry-editor ronde 5</a>): een glazen kaart vast boven het toetsenbord, eerst de naam en daarna ‘Volgende’ naar de hoeveelheid. + en tikken op een portie openen hem; vegen en lang indrukken blijven. Het segment ‘Bij Havermout / Eigen maat’ blijft, zodat het onderdeel gelijk blijft. ‘Eigen maat’ bewaart een persoonlijke maat voor alle producten in gram.",
+		phones: [["Nieuw: naam", "state", NewPortion, "Native: <code>InputAccessoryView</code> met een gedeelde <code>NewServingCard</code>; ‘Toevoegen’ pas actief met een naam."], ["Nieuw: hoeveelheid", "state", NewPortionAmount, "‘Volgende’ springt naar <code>decimal-pad</code>; de kaart blijft staan."], ["Portie wijzigen", "state", EditPortion, "Tik op ‘Kom’: dezelfde kaart, gevuld, met ‘Bewaar’. De rij blijft gemarkeerd."], ["Lang indrukken", "state", PortionLong, "Wijzigen, bovenaan zetten (= standaardportie bij loggen), verwijderen."]] },
+	{ h: "3 · Open vraag: verversen van Open Food Facts", p: "Nu ververst de Bibliotheek alleen alle imports tegelijk, en daarbij blijven je eigen aanpassingen staan. Nieuw: per product in ⋯ en via ↻ in de Bron-rij. Aanbeveling: <b>de nieuwe waarden komen in het formulier als wijziging</b>, met ‘was …’ bij elke gewijzigde rij. ✓ bewaart, zoals elke andere wijziging. Heb je zelf waarden aangepast, dan vraagt het eerst of OFF ze mag overschrijven.",
+		phones: [["⋯ bij een import", "state", RefreshMenu, "Alleen bij <code>openFoodFactsImports</code> (import met barcode)."], ["Bezig", "state", RefreshBusy, "De Bron-rij toont de voortgang; het formulier blijft bruikbaar. Native: <code>openFoodFacts.refreshBarcode</code>, cache eerst."], ["Nieuwe waarden in het formulier", "rec", RefreshInline, "Gewijzigde rijen gemarkeerd, met de oude waarde eronder. ‘Ongedaan maken’ zet ze terug. Native: <code>refreshedDraft()</code> als concept, niet direct opslaan."], ["Vergelijken in een sheet", "alt", RefreshCompare, "Eerst een lijst met verschillen, dan ‘Overnemen’. Duidelijk, maar je ziet de waarden niet in hun context en het bewaart buiten ✓ om."], ["Eigen aanpassingen", "state", RefreshEdited, "Alleen als <code>locallyEdited</code>. ‘Mijn waarden houden’ ververst alleen de bronmetadata (zoals de bulkactie nu)."], ["Niets nieuw", "state", RefreshSame, "Toast; de Bron-rij zegt ‘Zojuist’."], ["Te veel verzoeken", "state", RefreshLimited, "Bestaande tekst (<code>foodImport.rateLimited</code>). Niets verandert."]] },
 ];
 
 const KINDS = { state: "Staat", rec: "Aanbevolen", alt: "Alternatief" };
 function render() {
 	const only = new URLSearchParams(location.search).get("s")?.split(",").map(Number);
-	document.getElementById("board").innerHTML = SECTIONS.filter((_, i) => !only || only.includes(i + 1)).map((s) => `<section class="sect"><h2>${s.h}</h2><p>${s.p}</p>${s.impl ? `<div class="impl">${s.impl}</div>` : ""}${s.code ? `<details class="code"><summary>Expo-implementatie (code)</summary><pre>${esc(s.code)}</pre></details>` : ""}<div class="phones">${s.phones.map(([n, k, fn, note]) => `<div class="dir"><div class="tag"><span class="kindlbl ${k}" style="margin-left:0">${KINDS[k]}</span></div><h2>${n}</h2><p class="pitch">${note}</p>${fn()}</div>`).join("")}</div></section>`).join("");
+	document.querySelector(".crit").hidden = Boolean(only && !only.includes(0));
+	document.getElementById("board").innerHTML = SECTIONS.filter((_, i) => !only || only.includes(i + 1)).map((s) => `<section class="sect"><h2>${s.h}</h2><p>${s.p}</p><div class="phones">${s.phones.map(([n, k, fn, note]) => `<div class="dir"><div class="tag"><span class="kindlbl ${k}" style="margin-left:0">${KINDS[k]}</span></div><h2>${n}</h2><p class="pitch">${note}</p>${fn()}</div>`).join("")}</div></section>`).join("");
 	for (const el of document.querySelectorAll("[data-scroll]")) {
 		el.scrollTop = +el.dataset.scroll;
 		el.addEventListener("scroll", () => el.parentElement.classList.toggle("collapsed", el.scrollTop > 40));
 	}
 }
 document.addEventListener("click", (e) => {
-	const t = e.target.closest("[data-sel],[data-act],[data-meal]"); if (!t) return;
-	if (t.dataset.sel) SEL.has(t.dataset.sel) ? SEL.delete(t.dataset.sel) : SEL.add(t.dataset.sel);
-	else if (t.dataset.meal) { const m = MEALS.find((x) => x.n === t.dataset.meal), ids = m.items.map((_, i) => `${m.n}:${i}`), all = ids.every((id) => SEL.has(id)); ids.forEach((id) => (all ? SEL.delete(id) : SEL.add(id))); }
-	else if (t.dataset.act === "selnone") SEL.clear();
+	const p = e.target.closest("[data-push],[data-pop]");
+	if (p) { p.closest(".panes").classList.toggle("pushed", Boolean(p.dataset.push)); return; }
+	const t = e.target.closest("[data-kf],[data-k]"); if (!t) return;
+	if (t.dataset.kf) KB.focus = +t.dataset.kf;
+	else {
+		const k = t.dataset.k, i = KB.focus, v = KB.vals[i];
+		if (k === "next") KB.focus = Math.min(NUTR.length - 1, i + 1);
+		else if (k === "prev") KB.focus = Math.max(0, i - 1);
+		else if (k === "done") KB.focus = -1;
+		else if (k === "trace") KB.vals[i] = "spoor";
+		else if (k === "unknown") KB.vals[i] = "";
+		else if (k === "del") KB.vals[i] = v === "spoor" ? "" : v.slice(0, -1);
+		else KB.vals[i] = (v === "spoor" ? "" : v) + k;
+	}
 	render();
 });
 for (const id of ["light", "dark"]) document.getElementById(id).addEventListener("click", () => {

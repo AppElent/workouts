@@ -1,0 +1,1190 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Combo-editor — definitief</title>
+<style>
+:root {
+	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
+	--accent: #466400; --accentFill: #c8f73c; --onAccent: #0a0b09; --accentDim: rgba(70,100,0,.10);
+	--text: #1a2015; --muted: #535e49; --sep: rgba(60,62,50,.10); --border: rgba(26,32,21,.12);
+	--danger: #b42332; --warn: #865500;
+	--glass: rgba(255,255,255,.52); --glassStrong: rgba(255,255,255,.74);
+	--glassEdge: rgba(255,255,255,.85); --glassShadow: 0 10px 30px rgba(26,32,21,.14), 0 1px 3px rgba(26,32,21,.08);
+	--glassTint: rgba(200,247,60,.6); --key: rgba(255,255,255,.7); --kbd: #d4d7cf; --kbdKey: #fff;
+	--board: #dfe2d8; --ink: #1a2015;
+	--font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
+}
+body.dark {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --warn: #fbbf24;
+	--glass: rgba(40,44,38,.5); --glassStrong: rgba(48,52,45,.78);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.88); --key: rgba(70,75,66,.6); --kbd: #2b2d29; --kbdKey: #5a5d56;
+	--board: #050604; --ink: #f2f4ef;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body { font-family: var(--font); background: var(--board); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+.tnum { font-variant-numeric: tabular-nums; }
+svg.i { width: 1em; height: 1em; flex: 0 0 auto; }
+
+header.board { padding: 28px 32px 8px; display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+header.board h1 { font-size: 28px; margin: 0; letter-spacing: -.02em; }
+header.board p { margin: 6px 0 0; color: var(--muted); max-width: 78ch; line-height: 1.5; font-size: 14px; }
+.toggles { margin-left: auto; display: flex; gap: 8px; }
+.toggles button { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+.toggles button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+section.guide { margin: 8px 32px 0; padding: 16px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+section.guide h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+section.guide b { color: var(--ink); }
+section.guide ul { margin: 4px 0 0; padding-left: 18px; }
+code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; background: var(--surface2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+main.grid { display: flex; gap: 36px; padding: 24px 32px 64px; overflow-x: auto; align-items: flex-start; }
+.dir { flex: 0 0 auto; width: 393px; }
+.dir h2 { font-size: 19px; margin: 0 0 2px; letter-spacing: -.01em; }
+.dir .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.dir .pitch { font-size: 13.5px; color: var(--muted); line-height: 1.45; margin: 6px 0 14px; min-height: 78px; }
+.notes { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
+.notes b { color: var(--ink); }
+details.code { margin-top: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+details.code summary { cursor: pointer; padding: 12px 14px; font-size: 13px; font-weight: 700; color: var(--ink); }
+details.code pre { margin: 0; padding: 0 14px 14px; font: 11.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); white-space: pre; overflow-x: auto; }
+details.code pre .c { color: var(--muted); }
+
+/* phone */
+.phone { position: relative; width: 393px; height: 852px; border-radius: 55px; overflow: hidden; background: #000; box-shadow: 0 0 0 10px #1b1c1a, 0 0 0 11px #3a3c38, 0 30px 60px rgba(0,0,0,.3); isolation: isolate; user-select: none; -webkit-user-select: none; }
+.status { position: absolute; z-index: 30; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0 46px; font-weight: 600; font-size: 17px; color: var(--text); pointer-events: none; }
+.status .island { position: absolute; left: 50%; top: 11px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; }
+.status .icons { display: flex; gap: 6px; align-items: center; }
+.home { position: absolute; z-index: 60; bottom: 8px; left: 50%; width: 139px; margin-left: -70px; height: 5px; border-radius: 3px; background: var(--text); opacity: .9; pointer-events: none; }
+.behind { position: absolute; inset: 0; background: var(--bg); padding: 64px 16px 0; transform: scale(.93); transform-origin: top center; border-radius: 40px; }
+.behind .h { font-size: 34px; font-weight: 800; color: var(--text); margin: 8px 4px 12px; }
+.behind .ring { height: 130px; border-radius: 22px; background: linear-gradient(135deg, #c8f73c, #8fd16a 45%, #4fd1e3); }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.22); }
+body.dark .scrim { background: rgba(0,0,0,.45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 58px; z-index: 10; background: var(--bg); border-radius: 38px 38px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--text); opacity: .22; margin: 6px auto 0; flex: 0 0 auto; }
+
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%); box-shadow: var(--glassShadow), inset 0 1px 0 var(--glassEdge); border: .5px solid var(--glassEdge); }
+.glass.tint { background: var(--glassTint); color: var(--onAccent); }
+.press { transition: transform .18s cubic-bezier(.3,1.6,.5,1); }
+.press:active { transform: scale(.93); }
+.gbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; color: var(--text); }
+.navbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 0; }
+.navbar .title { flex: 1; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); line-height: 1.2; }
+.navbar .title small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.body { flex: 1; display: flex; flex-direction: column; padding-top: 14px; position: relative; }
+
+/* the C capsule dial */
+.dial { margin: 0 16px; height: 104px; border-radius: 999px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.dial .step { width: 84px; height: 84px; border-radius: 50%; background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.08); display: grid; place-items: center; font-size: 28px; color: var(--text); }
+body.dark .dial .step { background: #2a2e27; }
+.dial .num { flex: 1; text-align: center; color: var(--text); border-radius: 22px; padding: 6px 0; }
+.dial .num b { font-size: 44px; letter-spacing: -.04em; display: block; line-height: 1; }
+.dial .num span { font-size: 13px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; margin-top: 4px; }
+.dial .num .hint { color: var(--accent); font-weight: 600; }
+.dial .num.editing b { color: var(--accent); }
+.caret { display: inline-block; width: 3px; height: 38px; background: var(--accent); border-radius: 2px; margin-left: 3px; vertical-align: -4px; animation: blink 1s steps(1) infinite; }
+.ghost { opacity: .3; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.sum { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; padding: 0 16px; }
+.sum span { padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--muted); background: var(--surface); }
+.sum span.k { background: var(--accentFill); color: var(--onAccent); }
+.was { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+.was b { color: var(--text); font-weight: 600; }
+
+.toolbar { position: absolute; left: 16px; right: 16px; bottom: 30px; z-index: 20; display: flex; gap: 10px; align-items: center; }
+.toolbar .cap { height: 50px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 18px; font-weight: 600; font-size: 16px; color: var(--text); }
+
+/* unit chips (opt 1) */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 14px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { flex: 0 0 auto; height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.chips button small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.chips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+.chips button[aria-pressed="true"] small { color: var(--onAccent); opacity: .7; }
+.badge { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
+
+/* wheel (opt 1) */
+.wheelbox { margin: 0 16px; border-radius: 34px; padding: 10px 12px 12px; position: relative; animation: pop .25s cubic-bezier(.3,1.3,.5,1); }
+.wheels { display: flex; justify-content: center; gap: 4px; position: relative; height: 200px; }
+.wheels::before { content: ""; position: absolute; left: 6px; right: 6px; top: 80px; height: 40px; border-radius: 12px; background: var(--accentDim); pointer-events: none; }
+.wheel { width: 96px; height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); }
+.wheel::-webkit-scrollbar { display: none; }
+.wheel div { height: 40px; display: grid; place-items: center; scroll-snap-align: center; font-size: 23px; font-weight: 600; color: var(--text); }
+.wheel .padw { height: 80px; scroll-snap-align: none; }
+.wheel-unit { align-self: center; font-size: 17px; font-weight: 600; color: var(--muted); width: 104px; padding-left: 4px; }
+.wheelbar { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 8px; font-size: 13px; color: var(--muted); }
+.done { height: 36px; padding: 0 16px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } }
+
+/* unit menu pill (opt 2) */
+.unitpill { align-self: center; margin-top: 14px; height: 40px; padding: 0 16px; border-radius: 999px; display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 15px; color: var(--text); }
+.unitpill small { color: var(--muted); font-weight: 500; }
+
+/* glass keypad (opt 2) */
+.keypad { position: absolute; left: 10px; right: 10px; bottom: 26px; z-index: 25; border-radius: 40px; padding: 12px; animation: up .3s cubic-bezier(.3,1.2,.5,1); }
+.keypad .top { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
+.keypad .top .lbl { flex: 1; font-size: 13px; color: var(--muted); }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.keys button { height: 54px; border-radius: 999px; background: var(--key); font-size: 24px; font-weight: 500; color: var(--text); display: grid; place-items: center; box-shadow: inset 0 1px 0 var(--glassEdge); }
+.keys button.fr { background: var(--accentDim); color: var(--accent); font-weight: 700; font-size: 22px; }
+.keys button.ok { background: var(--accentFill); color: var(--onAccent); font-size: 16px; font-weight: 700; grid-row: span 2; height: auto; border-radius: 30px; }
+@keyframes up { from { transform: translateY(40%); opacity: 0; } }
+
+/* unit cards (opt 3) */
+.cards { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px calc(50% - 52px) 16px; scrollbar-width: none; }
+.cards::-webkit-scrollbar { display: none; }
+
+/* system keyboard mock (opt 3) */
+.kbdwrap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.acc { display: flex; gap: 8px; padding: 8px 10px; align-items: center; }
+.acc button { height: 40px; padding: 0 16px; border-radius: 999px; font-weight: 600; font-size: 15px; color: var(--text); }
+.acc .sp { flex: 1; }
+.kbd { background: var(--kbd); padding: 8px 6px 46px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.kbd button { height: 48px; border-radius: 9px; background: var(--kbdKey); font-size: 26px; color: var(--text); box-shadow: 0 1px 0 rgba(0,0,0,.25); display: grid; place-items: center; }
+.kbd button.fn { background: transparent; box-shadow: none; font-size: 22px; }
+
+/* ruler (opt 4) */
+.ruler { position: relative; margin-top: 18px; height: 104px; }
+.ruler .track { height: 104px; overflow-x: scroll; scroll-snap-type: x mandatory; scrollbar-width: none; display: flex; align-items: flex-end; mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); }
+.ruler .track::-webkit-scrollbar { display: none; }
+.tick { flex: 0 0 12px; height: 16px; display: flex; justify-content: center; scroll-snap-align: center; position: relative; }
+.tick::before { content: ""; width: 2px; height: 100%; border-radius: 1px; background: var(--muted); opacity: .4; }
+.tick.m { height: 26px; } .tick.m::before { opacity: .75; }
+.tick.lm { height: 40px; } .tick.lm::before { background: var(--accent); opacity: 1; width: 3px; }
+.tick .lml { position: absolute; bottom: 46px; font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.tick .ml { position: absolute; top: -18px; font-size: 11px; color: var(--muted); }
+.ruler .pad { flex: 0 0 calc(50% - 6px); }
+.ruler .needle { position: absolute; left: 50%; bottom: 0; width: 4px; height: 58px; margin-left: -2px; border-radius: 2px; background: var(--text); pointer-events: none; }
+.lmchips { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; padding: 0 16px; }
+.lmchips button { height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text); }
+.lmchips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+
+/* menu */
+.menu { position: absolute; z-index: 70; min-width: 220px; border-radius: 26px; padding: 6px; animation: pop .22s cubic-bezier(.3,1.4,.5,1); background: var(--glassStrong); }
+.menu button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 18px; font-size: 16px; color: var(--text); text-align: left; }
+.menu button small { margin-left: auto; color: var(--muted); font-size: 13px; }
+.menu .chk { width: 16px; color: var(--accent); display: grid; place-items: center; }
+.menu hr { border: 0; height: .5px; background: var(--sep); margin: 4px 10px; }
+
+/* ——— nutrition board ——— */
+.sec-h { font-size: 13px; color: var(--muted); margin: 20px 20px 7px; }
+.sec-f { font-size: 12.5px; color: var(--muted); margin: 7px 20px 0; line-height: 1.4; }
+.group { background: var(--surface); border-radius: 22px; margin: 0 16px; overflow: hidden; }
+.rowf { min-height: 50px; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--text); font-size: 16px; position: relative; width: 100%; text-align: left; }
+.rowf + .rowf::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: .5px; background: var(--sep); }
+.rowf .val { margin-left: auto; color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.rowf .val.m { color: var(--muted); font-weight: 400; }
+.rowf input { margin-left: auto; text-align: right; border: 0; background: none; font: inherit; color: var(--text); width: 60%; outline: none; }
+.seg { display: flex; background: var(--surface2); border-radius: 999px; padding: 2px; margin: 0 16px; }
+.seg button { flex: 1; height: 32px; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,.12); font-weight: 600; }
+body.dark .seg button[aria-pressed="true"] { background: #3a3e36; }
+.optcard { text-align: left; width: calc(100% - 32px); }
+.tabsbar { display: flex; gap: 6px; padding: 0 32px; flex-wrap: wrap; position: sticky; top: 0; z-index: 90; background: var(--board); padding-top: 10px; padding-bottom: 10px; }
+.tabsbar button { padding: 9px 15px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.tabsbar button[aria-pressed="true"] { background: var(--accentFill); color: var(--onAccent); border-color: transparent; }
+.screenintro { margin: 6px 32px 0; max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.screenintro b { color: var(--ink); }
+.root { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; z-index: 5; }
+.root .content { flex: 1; overflow-y: auto; padding: 54px 0 120px; scrollbar-width: none; }
+.root .content::-webkit-scrollbar { display: none; }
+.lt { display: flex; align-items: flex-end; justify-content: space-between; padding: 8px 20px 6px; }
+.lt h1 { font-size: 34px; font-weight: 800; letter-spacing: -.025em; margin: 0; color: var(--text); }
+.lt h1 small { display: block; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.lt .acts { display: flex; gap: 8px; }
+.tabbar { position: absolute; z-index: 20; left: 16px; right: 16px; bottom: 26px; height: 62px; border-radius: 999px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px; }
+.tabbar span { display: flex; flex-direction: column; align-items: center; font-size: 10.5px; font-weight: 600; color: var(--muted); gap: 2px; padding: 6px 12px; border-radius: 999px; }
+.tabbar span svg { width: 22px; height: 22px; }
+.tabbar span.on { color: var(--accent); background: var(--accentDim); }
+.card { background: var(--surface); border-radius: 24px; margin: 0 16px; color: var(--text); }
+.cardpad { padding: 14px 16px; }
+.sh { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 20px 7px; font-size: 13px; color: var(--muted); }
+.sh b { font-size: 17px; color: var(--text); font-weight: 700; }
+.sh .add { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); background: var(--accentDim); font-size: 16px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; position: relative; color: var(--text); font-size: 15.5px; width: 100%; text-align: left; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 64px; right: 0; height: .5px; background: var(--sep); }
+.row.plain + .row.plain::before { left: 16px; }
+.row .t { flex: 1; min-width: 0; } .row .t small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.row .v { color: var(--muted); font-size: 14px; text-align: right; white-space: nowrap; }
+.row .v b { color: var(--text); font-weight: 600; }
+.fv { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 auto; font-size: 17px; background: var(--surface2); color: var(--text); }
+.chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--borderStrong, rgba(26,32,21,.25)); flex: 0 0 auto; display: grid; place-items: center; color: var(--onAccent); font-size: 13px; }
+.chk.on { background: var(--accentFill); border-color: var(--accentFill); }
+.mutedline { font-size: 12.5px; color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; } .bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.bar.warn i { background: var(--warn); }
+.datestrip { display: flex; gap: 6px; padding: 4px 16px 10px; }
+.datestrip span { flex: 1; text-align: center; padding: 6px 0 7px; border-radius: 14px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.datestrip span b { display: block; font-size: 17px; color: var(--text); margin-top: 1px; }
+.datestrip span.on { background: var(--accentFill); color: var(--onAccent); } .datestrip span.on b { color: var(--onAccent); }
+.datestrip span i { display: block; width: 4px; height: 4px; border-radius: 2px; background: var(--accent); margin: 3px auto 0; }
+.datestrip span.on i { background: var(--onAccent); }
+.selbar { position: absolute; z-index: 25; left: 12px; right: 12px; bottom: 26px; border-radius: 30px; padding: 8px; display: flex; gap: 4px; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.selbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--text); padding: 7px 0; border-radius: 20px; }
+.selbar button svg { width: 21px; height: 21px; }
+.selbar button.d { color: var(--danger); }
+.pillbtn { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+.ring { position: relative; display: grid; place-items: center; }
+.ring svg { transform: rotate(-90deg); }
+.ring .c { position: absolute; text-align: center; color: var(--text); }
+.ring .c b { display: block; font-size: 26px; letter-spacing: -.03em; line-height: 1; }
+.ring .c small { font-size: 11px; color: var(--muted); }
+.macros3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.macros3 div { font-size: 12px; color: var(--muted); }
+.macros3 b { display: block; font-size: 15px; color: var(--text); margin: 2px 0 5px; font-weight: 600; }
+.macros3 b small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.search { margin: 6px 16px 0; height: 44px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 16px; color: var(--muted); font-size: 16px; }
+.search svg { width: 18px; height: 18px; }
+.chipsrow { display: flex; gap: 6px; padding: 10px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+.chipsrow span { flex: 0 0 auto; padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text); background: var(--surface); }
+.chipsrow span.on { background: var(--text); color: var(--bg); }
+.plus { width: 32px; height: 32px; border-radius: 50%; background: var(--accentDim); color: var(--accent); display: grid; place-items: center; flex: 0 0 auto; }
+.plus svg { width: 16px; height: 16px; }
+.plus.on { background: var(--accentFill); color: var(--onAccent); }
+.tray { position: absolute; z-index: 25; left: 12px; right: 12px; bottom: 26px; border-radius: 30px; padding: 8px 8px 8px 18px; display: flex; align-items: center; gap: 10px; color: var(--text); }
+.tray .t { flex: 1; font-size: 13px; color: var(--muted); } .tray .t b { display: block; font-size: 15px; color: var(--text); }
+.tray .go { height: 46px; padding: 0 18px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; }
+.cam { margin: 0 16px; height: 230px; border-radius: 28px; background: radial-gradient(circle at 30% 30%, #5b6a4e, #1c2118); position: relative; overflow: hidden; display: grid; place-items: center; }
+.cam .frame { width: 220px; height: 110px; border-radius: 18px; border: 3px solid rgba(255,255,255,.9); box-shadow: 0 0 0 999px rgba(0,0,0,.25); }
+.cam .bc { position: absolute; width: 150px; height: 58px; background: repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px); opacity: .8; border-radius: 4px; }
+.cam .lbl { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; color: #fff; font-size: 13px; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px; }
+.tile { aspect-ratio: 1; border-radius: 22px; background: var(--surface); display: flex; flex-direction: column; justify-content: flex-end; padding: 10px; color: var(--text); position: relative; overflow: hidden; }
+.tile .em { position: absolute; top: 10px; left: 10px; font-size: 30px; }
+.tile b { font-size: 13px; line-height: 1.2; } .tile small { font-size: 11px; color: var(--muted); }
+.tile .kind { position: absolute; top: 9px; right: 9px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); background: var(--accentDim); padding: 2px 6px; border-radius: 999px; }
+.stack { display: flex; } .stack span { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; font-size: 13px; border: 2px solid var(--surface); margin-left: -8px; } .stack span:first-child { margin-left: 0; }
+.bigcount { padding: 16px; border-radius: 24px; background: var(--surface); color: var(--text); display: flex; flex-direction: column; gap: 4px; }
+.bigcount b { font-size: 30px; letter-spacing: -.03em; } .bigcount span { font-size: 13px; color: var(--muted); }
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding: 0 4px; position: relative; }
+.chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-weight: 600; height: 100%; justify-content: flex-end; }
+.chart .col i { width: 100%; border-radius: 8px; background: var(--accent); opacity: .85; }
+.chart .col i.over { background: var(--warn); } .chart .col i.none { background: var(--surface2); }
+.chart .col.on { color: var(--text); }
+.chart .band { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted); border-bottom: 1.5px dashed var(--muted); background: var(--accentDim); pointer-events: none; }
+.heat { display: grid; grid-template-columns: 82px repeat(7, 1fr); gap: 5px; align-items: center; font-size: 12px; color: var(--muted); }
+.heat .d { width: 22px; height: 22px; border-radius: 7px; margin: 0 auto; }
+.st-met { background: var(--accent); } .st-below { background: transparent; border: 2px solid var(--accent); box-sizing: border-box; } .st-over { background: var(--warn); } .st-none { background: var(--surface2); }
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; } .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; }
+.rings7 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; padding: 0 16px; }
+.rings7 > div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.insight { display: flex; gap: 12px; padding: 12px 14px; align-items: flex-start; font-size: 14px; line-height: 1.4; color: var(--text); }
+.insight + .insight { border-top: .5px solid var(--sep); }
+.insight .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; font-weight: 800; font-size: 13px; }
+.insight small { display: block; color: var(--muted); font-size: 12.5px; }
+.goalrow .v { color: var(--accent); font-weight: 600; font-size: 15px; }
+.kindtag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--surface2); color: var(--muted); margin-left: 6px; vertical-align: 1px; }
+.rangebar { position: relative; height: 30px; margin: 6px 0 2px; }
+.rangebar .tr { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--surface2); }
+.rangebar .fill { position: absolute; top: 13px; height: 4px; background: var(--accent); }
+.rangebar .th { position: absolute; top: 3px; width: 34px; height: 24px; margin-left: -17px; border-radius: 12px; background: rgba(255,255,255,.85); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+body.dark .rangebar .th { background: #d8dcd2; }
+.donut { display: flex; align-items: center; gap: 18px; }
+.split { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.split div { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; }
+.split div b { color: var(--text); font-weight: 600; } .split i { width: 10px; height: 10px; border-radius: 3px; }
+.label { border: 2px solid var(--text); border-radius: 6px; padding: 8px 12px; margin: 0 16px; background: var(--surface); color: var(--text); font-size: 14px; }
+.label h4 { margin: 0; font-size: 20px; font-weight: 900; border-bottom: 6px solid var(--text); padding-bottom: 4px; }
+.label .lr { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: .5px solid var(--text); }
+.label .lr.sub { padding-left: 14px; color: var(--muted); }
+.label .lr span:last-child { font-weight: 600; } .label .lr .tap { color: var(--accent); border-bottom: 1.5px dotted var(--accent); }
+.label .lr .tr2 { color: var(--muted); font-style: italic; font-weight: 500; }
+.steps { display: flex; gap: 6px; justify-content: center; margin: 4px 0 10px; } .steps i { width: 26px; height: 5px; border-radius: 3px; background: var(--surface2); } .steps i.on { background: var(--accent); }
+.hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0 4px; }
+.photo { width: 92px; height: 92px; border-radius: 28px; background: var(--accentDim); display: grid; place-items: center; font-size: 44px; position: relative; }
+.photo .cam2 { position: absolute; right: -4px; bottom: -4px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--text); }
+.photo .cam2 svg { width: 15px; height: 15px; }
+.bigname { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+.wizard-q { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.02em; padding: 4px 20px 2px; }
+.wizard-s { font-size: 14px; color: var(--muted); padding: 0 20px 14px; }
+.optcard { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 22px; background: var(--surface); margin: 0 16px 10px; border: 2px solid transparent; color: var(--text); font-size: 15px; }
+.optcard.on { border-color: var(--accent); } .optcard small { display: block; color: var(--muted); font-size: 12.5px; }
+.optcard .fv { width: 44px; height: 44px; font-size: 22px; }
+.acc2 { display: flex; gap: 6px; padding: 8px 10px; align-items: center; }
+.acc2 button { height: 38px; padding: 0 13px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--text); }
+.acc2 .sp { flex: 1; }
+.notecard { border: 1.5px dashed var(--border); background: transparent; }
+.combo-g { font-size: 11px; font-weight: 700; color: var(--accent); }
+.badge2 { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accentDim); color: var(--accent); }
+.dsheet { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 34px 34px 0 0; padding: 0 0 36px; box-shadow: 0 -10px 30px rgba(0,0,0,.18); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.dsheet .navbar .title { font-size: 16px; }
+.dimmer { position: absolute; inset: 0; z-index: 29; background: rgba(0,0,0,.25); }
+.kindlbl { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+.kindlbl.alt { background: var(--accentDim); color: var(--accent); } .kindlbl.flow { background: rgba(8,104,120,.12); color: #086878; }
+body.dark .kindlbl.flow { background: rgba(79,209,227,.14); color: #4fd1e3; }
+/* ——— round 2 additions ——— */
+.navbar2 { position: absolute; z-index: 22; top: 54px; left: 0; right: 0; height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+.navbar2 .ttl { position: absolute; left: 90px; right: 90px; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); opacity: 0; transition: opacity .15s; pointer-events: none; line-height: 1.15; }
+.navbar2 .ttl small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+.navbar2 .r { margin-left: auto; display: flex; gap: 8px; }
+.edge { position: absolute; z-index: 21; top: 0; left: 0; right: 0; height: 128px; pointer-events: none; background: linear-gradient(var(--bg) 62%, transparent); opacity: 0; transition: opacity .15s; }
+.collapsed .navbar2 .ttl, .collapsed .edge { opacity: 1; }
+.ltitle { padding: 0 20px 10px; transition: opacity .15s; }
+.ltitle h1 { font-size: 34px; font-weight: 800; letter-spacing: -.025em; margin: 0; color: var(--text); line-height: 1.1; }
+.ltitle small { display: block; font-size: 15px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+.collapsed .ltitle { opacity: 0; }
+.mh .t b { display: inline-flex; align-items: center; gap: 4px; }
+.mh .t b svg { width: 14px; height: 14px; color: var(--muted); }
+.mh .acts { display: flex; gap: 8px; align-items: center; }
+.mh .more { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); background: var(--surface2); }
+.mh .more svg { width: 16px; height: 16px; }
+.txtbtn { color: var(--accent); font-weight: 600; font-size: 15px; }
+.menu button svg { width: 19px; height: 19px; }
+.menu button.d { color: var(--danger); }
+.menu .mt { font-size: 12.5px; color: var(--muted); padding: 8px 14px 4px; }
+.menu .new { margin-left: auto; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); background: var(--accentDim); padding: 2px 6px; border-radius: 999px; }
+.ctx { position: absolute; inset: 0; z-index: 50; background: rgba(0,0,0,.12); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+body.dark .ctx { background: rgba(0,0,0,.4); }
+.ctx .lift { position: absolute; left: 16px; right: 16px; background: var(--surface); border-radius: 20px; box-shadow: 0 14px 40px rgba(0,0,0,.22); overflow: hidden; }
+.ctx .menu { left: 16px; width: 252px; animation: none; }
+.swacts { position: absolute; right: 0; top: 0; bottom: 0; display: flex; width: 156px; }
+.sw { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; font-weight: 600; color: #fff; }
+.sw svg { width: 20px; height: 20px; }
+.sw.e { background: #7d8478; } .sw.d { background: var(--danger); }
+.calg { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+.calg i { font-style: normal; font-size: 11px; color: var(--muted); font-weight: 700; padding: 4px 0; }
+.calg span { width: 36px; height: 36px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%; font-size: 16px; color: var(--text); }
+.calg span.on { background: var(--accentFill); color: var(--onAccent); font-weight: 700; }
+.calg span.lg { background: radial-gradient(circle at 50% 86%, var(--accent) 2px, transparent 2.6px); }
+.calg span.today { color: var(--accent); font-weight: 700; }
+.calh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--text); font-size: 16px; }
+.calh span { display: flex; gap: 18px; color: var(--accent); }
+.calh svg { width: 18px; height: 18px; }
+section.sect { padding: 20px 32px 0; }
+section.sect > h2 { font-size: 22px; margin: 0; letter-spacing: -.015em; }
+section.sect > p { margin: 6px 0 0; color: var(--muted); max-width: 90ch; line-height: 1.5; font-size: 14px; }
+section.sect > p b { color: var(--ink); }
+.phones { display: flex; gap: 36px; overflow-x: auto; padding: 16px 0 28px; align-items: flex-start; }
+.phones .pitch { min-height: 0; }
+.kindlbl.rec { background: var(--accentFill); color: var(--onAccent); }
+.kindlbl.state { background: var(--surface2); color: var(--muted); }
+/* ——— round 3 additions ——— */
+.bar.danger i { background: var(--danger); }
+.chev { color: var(--muted); display: grid; place-items: center; }
+.chev svg { width: 15px; height: 15px; }
+.grow { flex-direction: column; align-items: stretch; gap: 6px; padding: 11px 16px; }
+.grow + .grow::before { left: 16px; }
+.gl { display: flex; align-items: center; gap: 8px; }
+.gl .t small { display: inline; margin-left: 6px; }
+.gv { font-weight: 700; font-size: 16px; } .gv small { font-weight: 500; font-size: 13px; color: var(--muted); }
+.gs { font-size: 12.5px; }
+.gbar { position: relative; border-radius: 4px; background: var(--surface2); }
+.gbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.gbar.over i { background: var(--danger); }
+.gbar.inc i { background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 9px); opacity: .7; }
+.gbar b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 1px; }
+.gtiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 12px; }
+.gtile { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text); }
+.gtile b { font-size: 17px; } .gtile b small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.gtile > small { font-size: 11px; line-height: 1.25; }
+.dots { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--surface2); } .dots i.on { background: var(--muted); }
+.cv { text-align: right; display: flex; flex-direction: column; font-size: 14px; color: var(--text); }
+.cv small { font-size: 12px; color: var(--muted); }
+.share { position: absolute; left: 66px; right: 16px; bottom: 4px; height: 3px; }
+.share i { display: block; height: 100%; border-radius: 2px; background: var(--danger); opacity: .55; }
+.split4 { display: flex; gap: 3px; height: 10px; border-radius: 5px; overflow: hidden; }
+.lensbar { display: flex; align-items: center; gap: 10px; padding: 0 16px 6px; }
+.lensbar .mutedline { flex: 1; }
+.lens { height: 36px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); }
+.lens b { color: var(--danger); }
+.guide table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 6px; }
+.guide th, .guide td { border-top: 1px solid var(--border); padding: 7px 8px; text-align: left; vertical-align: top; color: var(--ink); }
+.guide th { color: var(--muted); font-weight: 600; }
+.impl { max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 0 0 10px; }
+.impl b { color: var(--ink); }
+section.sect details.code { max-width: 1180px; margin: 0 0 8px; }
+/* ——— log food round 2 ——— */
+.root.collapsed .navbar2 .ttl { pointer-events: auto; }
+.ttlbtn { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 17px; color: var(--text); }
+.ttlbtn svg { width: 13px; height: 13px; color: var(--muted); }
+.tb { position: absolute; left: 14px; right: 14px; bottom: 30px; z-index: 25; display: flex; gap: 8px; align-items: center; }
+.tb .search { flex: 1; margin: 0; height: 50px; color: var(--muted); }
+.tb .search.q { color: var(--text); }
+.tb .search > span:not(.clr):not(.caret2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.phones .pitch { min-height: 48px; }
+.menu button small { white-space: nowrap; }
+.tb .gbtn, .tb .grp { width: 50px; height: 50px; flex: 0 0 auto; }
+.tb .grp { width: auto; }
+.grp { display: flex; height: 50px; border-radius: 999px; padding: 0 3px; align-items: center; }
+.grp button { width: 44px; height: 44px; display: grid; place-items: center; font-size: 21px; color: var(--text); }
+.grp button.ai, .gbtn.ai { color: var(--accent); }
+.tb .sp { flex: 1; }
+.tb.up { bottom: 300px; }
+.caret2 { display: inline-block; width: 2px; height: 20px; background: var(--accent); margin-left: 1px; vertical-align: -4px; animation: blink 1s steps(1) infinite; }
+.clr { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); opacity: .55; display: grid; place-items: center; color: var(--bg); font-size: 11px; }
+.qkbd { position: absolute; left: 0; right: 0; bottom: 0; z-index: 24; height: 292px; background: var(--kbd); padding: 8px 3px 0; display: flex; flex-direction: column; gap: 11px; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.qkbd .kr { display: flex; gap: 6px; justify-content: center; }
+.qkbd .kr span { flex: 0 0 32px; height: 42px; border-radius: 6px; background: var(--kbdKey); box-shadow: 0 1px 0 rgba(0,0,0,.25); display: grid; place-items: center; font-size: 21px; color: var(--text); }
+.qkbd .kr span.w { flex: 0 0 44px; background: transparent; box-shadow: none; font-size: 15px; }
+.qkbd .kr span.sp { flex: 1 1 auto; font-size: 15px; }
+.qkbd .kr span.go { flex: 0 0 88px; background: var(--accentFill); color: var(--onAccent); font-size: 15px; font-weight: 600; }
+.qrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; position: relative; color: var(--text); font-size: 15.5px; width: 100%; text-align: left; }
+.qrow + .qrow::before { content: ""; position: absolute; top: 0; left: 66px; right: 0; height: .5px; background: var(--sep); }
+.qrow .t { flex: 1; min-width: 0; line-height: 1.25; }
+.qrow .t small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.qrow .qp { text-align: right; font-size: 12.5px; color: var(--muted); line-height: 1.3; white-space: nowrap; }
+.qrow .qp b { display: block; color: var(--text); font-weight: 600; font-size: 13.5px; }
+.qrow .plus { width: 34px; height: 34px; }
+.mealbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: 15px; color: var(--text); width: 100%; }
+.mealbar b { font-weight: 600; }
+.mealbar .chev { margin-left: auto; color: var(--accent); }
+.mealbar.flash { background: var(--accentDim); }
+.toast { position: absolute; z-index: 26; left: 14px; right: 14px; bottom: 92px; height: 50px; border-radius: 999px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 18px; font-size: 14.5px; color: var(--text); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.toast .t { flex: 1; } .toast button { height: 36px; padding: 0 14px; border-radius: 999px; color: var(--accent); font-weight: 700; }
+.toast .ok { color: var(--accent); display: grid; place-items: center; }
+.empty { text-align: center; padding: 26px 26px 18px; color: var(--text); }
+.empty .ic { width: 56px; height: 56px; border-radius: 18px; margin: 0 auto 12px; display: grid; place-items: center; background: var(--accentDim); color: var(--accent); font-size: 26px; }
+.empty b { display: block; font-size: 18px; margin-bottom: 4px; } .empty p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.offl { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+.offl svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 1px; }
+.linkish { color: var(--accent); font-weight: 600; }
+.linkish.off { color: var(--muted); opacity: .6; }
+.ol { margin: 6px 0 0; padding-left: 20px; } .ol li { margin: 4px 0; }
+.ol li b { color: var(--ink); }
+.swfav { position: absolute; right: 0; top: 0; bottom: 0; display: flex; width: 86px; }
+.sw.f { background: #c58a2b; }
+.selpill { height: 30px; padding: 0 10px; border-radius: 999px; background: var(--surface2); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; color: var(--text); white-space: nowrap; }
+.selpill svg { width: 12px; height: 12px; color: var(--muted); }
+.menu .mt b { color: var(--text); }
+/* ——— library round 2 ——— */
+.sh .mt { display: inline-flex; align-items: center; gap: 4px; font-size: 17px; color: var(--text); font-weight: 700; }
+.sh .mt svg { width: 13px; height: 13px; color: var(--accent); }
+.more { display: block; width: 100%; text-align: left; padding: 12px 16px 12px 66px; color: var(--accent); font-weight: 600; font-size: 15px; border-top: .5px solid var(--sep); }
+.src { font-size: 10.5px; font-weight: 700; letter-spacing: .03em; padding: 1px 6px; border-radius: 6px; background: var(--surface2); color: var(--muted); margin-right: 4px; vertical-align: 1px; }
+.src.w { background: rgba(134,85,0,.12); color: var(--warn); }
+body.dark .src.w { background: rgba(251,191,36,.12); }
+.attn { display: flex; align-items: center; gap: 12px; padding: 12px 16px; width: 100%; text-align: left; color: var(--text); font-size: 15px; }
+.attn .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgba(134,85,0,.12); color: var(--warn); flex: 0 0 auto; }
+body.dark .attn .ic { background: rgba(251,191,36,.12); }
+.attn .ic svg { width: 17px; height: 17px; }
+.attn .t { flex: 1; line-height: 1.25; } .attn .t small { display: block; color: var(--muted); font-size: 12.5px; }
+.attn + .attn { border-top: .5px solid var(--sep); }
+.attn .chev { color: var(--muted); }
+.attn .chev svg { width: 16px; height: 16px; }
+.segc { display: flex; margin: 4px 16px 10px; padding: 2px; border-radius: 10px; background: var(--surface2); }
+.segc span { flex: 1; text-align: center; padding: 7px 0; font-size: 13.5px; font-weight: 600; border-radius: 8px; color: var(--text); }
+.segc span.on { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.idx { position: absolute; right: 3px; top: 250px; z-index: 6; display: flex; flex-direction: column; gap: 1px; font-size: 10.5px; font-weight: 700; color: var(--accent); text-align: center; }
+.lh { margin: 14px 20px 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.ctiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 4px 16px 0; }
+.ctile { background: var(--surface); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px; color: var(--text); text-align: left; }
+.ctile .e { font-size: 20px; }
+.ctile b { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.ctile span { font-size: 13px; color: var(--muted); font-weight: 600; }
+.crit { max-width: 1180px; }
+.crit ol { margin: 6px 0 0; padding-left: 22px; } .crit li { margin: 6px 0; }
+.crit .q { display: inline-block; margin-top: 3px; color: var(--accent); font-weight: 600; }
+.chipsrow span[data-scope] { cursor: pointer; }
+.dsheet .body { padding: 6px 16px 0; }
+.dk { --bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --warn: #fbbf24;
+	--glass: rgba(40,44,38,.5); --glassStrong: rgba(48,52,45,.78);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.88); --key: rgba(70,75,66,.6); --kbd: #2b2d29; --kbdKey: #5a5d56;
+	--board: #050604; --ink: #f2f4ef; }
+.dk .phone { color-scheme: dark; }
+.alertx { position: absolute; z-index: 61; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 280px; border-radius: 26px; padding: 20px 18px 14px; text-align: center; color: var(--text); background: var(--glassStrong); }
+.alertx b { display: block; font-size: 17px; } .alertx p { margin: 6px 0 14px; font-size: 13.5px; line-height: 1.4; }
+.alertx .ab { display: flex; gap: 8px; } .alertx .ab button { flex: 1; height: 44px; border-radius: 999px; background: var(--surface2); font-weight: 600; font-size: 16px; color: var(--text); }
+.alertx .ab button.d { color: var(--danger); }
+.qrow .nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qrow .t small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xl .qrow .nm { -webkit-line-clamp: 3; } .xl .qrow > span:last-child:not(.qp) { display: none; }
+.xl .qrow { flex-wrap: wrap; font-size: 20px; } .xl .qrow .t small { font-size: 16px; } .xl .qrow .t { flex: 1 1 calc(100% - 90px); }
+.xl .qrow .qp { flex-basis: 100%; text-align: left; padding-left: 50px; font-size: 15px; } .xl .qrow .qp b { display: inline; font-size: 16px; margin-right: 6px; }
+.xl .sh .mt, .xl .ltitle h1 { font-size: 22px; } .xl .ltitle h1 { font-size: 40px; } .xl .attn { font-size: 19px; } .xl .attn .t small { font-size: 15px; } .xl .more { font-size: 18px; }
+.delc { width: 22px; height: 22px; border-radius: 50%; background: var(--danger); color: #fff; display: grid; place-items: center; flex: 0 0 auto; }
+.grip { color: var(--muted); font-size: 20px; padding: 0 4px; }
+.numf { min-width: 72px; text-align: right; padding: 6px 10px; border-radius: 10px; background: var(--surface2); font-weight: 600; }
+.dsheet .body > * { flex-shrink: 0; }
+.dsheet .body .card { margin: 0; }
+.sfoot { padding: 10px 16px 30px; background: var(--bg); border-top: .5px solid var(--sep); }
+.r5 { display: flex; flex-direction: column; border-radius: 38px 38px 0 0; padding-bottom: 0; }
+.r5head { display: flex; align-items: center; padding: 8px 16px 6px; }
+.r5head b { flex: 1; text-align: center; font-size: 17px; color: var(--text); }
+.r5btn { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); background: var(--surface); border: .5px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.r5head .r5btn:first-child { color: var(--text); }
+.r5btn.prom { background: var(--accentFill); color: var(--onAccent); border: 0; }
+.r5body { flex: 1; overflow: auto; padding: 10px 16px 0; scrollbar-width: none; }
+.r5body .card { margin: 0; }
+.r5cap { display: flex; align-items: center; justify-content: space-between; height: 108px; border-radius: 999px; padding: 0 10px; background: var(--surface); }
+.r5cap button { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; color: var(--text); }
+.r5cap div { text-align: center; line-height: 1; } .r5cap b { font-size: 44px; font-weight: 700; color: var(--text); display: block; } .r5cap small { color: var(--muted); font-size: 13px; display: block; margin-top: 6px; }
+.r5pill { display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 18px; border-radius: 999px; font-size: 16px; color: var(--text); background: var(--surface); white-space: nowrap; }
+.r5pill svg { color: var(--muted); }
+.r5card { background: var(--surface); border-radius: 22px; padding: 14px 16px 6px; }
+.r5prod { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; color: var(--text); }
+.r5prod .t { flex: 1; line-height: 1.25; } .r5prod b { font-size: 17px; } .r5prod small { display: block; font-size: 12.5px; color: var(--muted); }
+.r5tab { font-size: 14px; color: var(--text); }
+.r5h, .r5r { display: grid; grid-template-columns: 1fr 96px 80px; align-items: center; } .r5h span, .r5r span:not(:first-child) { text-align: right; }
+.r5h { font-size: 12.5px; color: var(--muted); padding: 4px 0 6px; border-bottom: .5px solid var(--sep); }
+.r5r { padding: 9px 0; } .r5r + .r5r { border-top: .5px solid var(--sep); } .r5r .m { color: var(--muted); }
+.r5tb { position: absolute; left: 14px; right: 14px; bottom: 26px; display: flex; gap: 8px; align-items: center; }
+.r5tb .r5pill { height: 50px; }
+.r5tb { z-index: 2; } .r5tb::before { content: ""; position: absolute; left: -14px; right: -14px; top: -24px; bottom: -26px; background: linear-gradient(transparent, var(--bg) 45%); z-index: -1; }
+.dsheet .qrow .t small { white-space: normal; }
+</style>
+</head>
+<body>
+<header class="board">
+	<div>
+		<h1>Combo-editor · definitief</h1>
+		<p>Gekozen in <a href="combo_round1.html" style="color:var(--accent)">ronde 1</a> (A · bewerken op de plek, rijen, toevoegen, vervangen, nieuwe combo), <a href="combo_round2.html" style="color:var(--accent)">ronde 2</a> (hergebruik in plaats van eigen portievenster) en <a href="combo_round3.html" style="color:var(--accent)">ronde 3</a> (hergebruik van de dagboekitem-editor uit <a href="../entry-editor/round5.html" style="color:var(--accent)">entry-editor ronde 5</a>; geen losse ‘Herstel’). Ingang: <a href="library_final.html" style="color:var(--accent)">bibliotheek · definitief</a>.</p>
+	</div>
+	<div class="toggles" role="group" aria-label="Weergave"><button id="light" aria-pressed="true">Licht</button><button id="dark" aria-pressed="false">Donker</button></div>
+</header>
+<section class="guide">
+	<h3>Expo-bouwstenen (geïnstalleerd: expo 57.0.25, expo-router 57.0.23, @expo/ui 57.0.20, react-native 0.86.3, react-native-screens 4.26, gesture-handler 2.32; editorcomponenten van branch <code>t3code/entry-editor-redesign</code>)</h3>
+	<table>
+		<tr><th>Element</th><th>In de app</th><th>Waarom</th></tr>
+		<tr><td>Combo-editor</td><td>Route <code>/nutrition-combo/[id]</code>; <code>InsetList</code>/<code>InsetRow</code> met <code>actions</code></td><td>Weinig rijen; rijcontract uit het dagboek.</td></tr>
+		<tr><td>Opslaan</td><td><code>personalFoods.updateCombo(id, draft)</code></td><td>Bestaat; bewaart volgorde.</td></tr>
+		<tr><td>Hoeveelheid</td><td><code>DiaryEntryQuantity</code> + <code>DiaryEntryQuantityAccessory</code> → naar <code>features/nutrition/components/</code></td><td>Tweede subject deelt het contract.</td></tr>
+		<tr><td>Portiemenu, nieuwe portie</td><td><code>SelectionMenu</code> (<code>ui/</code>), <code>DiaryEntryServingPopup</code> → <code>features/nutrition/components/</code></td><td>Zelfde groepen en creatie als de editor.</td></tr>
+		<tr><td>Productkaart</td><td><code>NutrientTable</code>; kop → <code>FoodViewScreen</code> (<code>/nutrition-food-details</code>)</td><td>Bekijken los van bewerken.</td></tr>
+		<tr><td>✓, glas</td><td>Native prominent bar item; <code>GlassSurface</code></td><td>Regel uit mobile-design.</td></tr>
+		<tr><td>Combo loggen</td><td>Route <code>/nutrition-combo-log</code>; <code>use-combo-log.ts</code> (bestaande <code>partAdjustments</code>, <code>operations.group</code>)</td><td>Bestemming via maaltijd-/datumknoppen van de editor.</td></tr>
+		<tr><td>Toevoegen, vervangen</td><td><code>NutritionFoodBrowser</code> doelmodus <code>combo</code></td><td>Eén browser, smalle seam.</td></tr>
+		<tr><td>Nieuwe combo</td><td><code>NutritionComboBuilder</code> als formSheet</td><td>Bestaat; nu ook vanuit de bibliotheek.</td></tr>
+	</table>
+	<p>Vervalt: <code>nutrition-combos.tsx</code> als bekijk/bewerk/log-scherm (logica verhuist naar <code>use-combo-log.ts</code>), het ×-schaalveld per onderdeel, ‘Aanpassingen herstellen’ en de altijd zichtbare opslagmelding.</p>
+</section>
+<main id="board"></main>
+
+
+
+
+
+<script>
+const svg = (p, sw = 2.2, fill = "none") => `<svg class="i" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const I = {
+	x: svg('<path d="M6 6l12 12M18 6L6 18"/>'), check: svg('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.6),
+	plus: svg('<path d="M12 5v14M5 12h14"/>', 2.4), minus: svg('<path d="M5 12h14"/>', 2.4),
+	right: svg('<path d="M9 6l6 6-6 6"/>'), left: svg('<path d="M15 6l-6 6 6 6"/>'), chev: svg('<path d="M8 10l4-4 4 4M8 14l4 4 4-4"/>'),
+	search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'), scan: svg('<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M8 9v6M11 9v6M14 9v6M17 9v6"/>', 1.9),
+	copy: svg('<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>', 1.9),
+	move: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2), combo: svg('<rect x="3" y="4" width="8" height="8" rx="2"/><rect x="13" y="4" width="8" height="8" rx="2"/><rect x="8" y="13" width="8" height="8" rx="2"/>', 1.9),
+	trash: svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', 1.9), more: svg('<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>', 0, "currentColor"),
+	cal: svg('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>', 1.9),
+	cam: svg('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 1.9),
+	star: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', 1.8),
+	dumb: svg('<path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12"/>', 2.2), fork: svg('<path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 0-3 2-3 6s1 4 3 4v8"/>', 2),
+	pulse: svg('<path d="M3 12h4l3-7 4 14 3-7h4"/>', 2), person: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>', 2),
+	note: svg('<path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4"/>', 1.8), sort: svg('<path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3"/>', 1.9),
+	back: svg('<path d="M21 6H9l-6 6 6 6h12zM17 10l-4 4M13 10l4 4"/>', 1.7), cloud: svg('<path d="M7 18a5 5 0 01-.6-10A6 6 0 0118 9a4.5 4.5 0 01-1 9z"/>', 1.9),
+};
+const signal = '<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg>';
+const battery = '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".75" y=".75" width="22.5" height="11.5" rx="3.5" stroke="currentColor" stroke-opacity=".4" stroke-width="1.5"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="currentColor"/></svg>';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span class="icons">${signal}${battery}</span></div>`;
+const tabbar = (on = 1) => `<div class="tabbar glass">${[["Training", I.dumb], ["Voeding", I.fork], ["Activiteit", I.pulse], ["Profiel", I.person]].map(([l, i], n) => `<span class="${n === on ? "on" : ""}">${i}${l}</span>`).join("")}</div>`;
+const gbtn = (icon, extra = "") => `<button class="gbtn glass press" ${extra}>${icon}</button>`;
+const tick = (on) => `<span class="chk ${on ? "on" : ""}">${on ? I.check.replace('class="i"', 'class="i" style="width:14px;height:14px"') : ""}</span>`;
+Object.assign(I, {
+	pencil: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 1.9),
+	chart: svg('<path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3"/>', 1.9),
+	books: svg('<rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="M16 5.5l3.5-1 2 15-3.5 1z"/>', 1.7),
+	viewfinder: svg('<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M8 10h8M8 14h5"/>', 1.9),
+	target: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>', 1.9),
+	info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.2"/>', 1.9),
+	gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>', 1.9),
+	selc: svg('<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.5"/>', 1.9),
+	down: svg('<path d="M7 10l5 5 5-5"/>', 2.4),
+});
+const menuItem = (icon, label, opt = {}) => `<button class="${opt.d ? "d" : ""}">${icon}<span>${label}</span>${opt.isNew ? '<span class="new">nieuw</span>' : ""}</button>`;
+
+Object.assign(I, {
+	sparkles: svg('<path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8z"/><path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/>', 1.7),
+	timer: svg('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.5h4"/>', 1.9),
+	newdoc: svg('<path d="M14 4H6a1 1 0 00-1 1v14a1 1 0 001 1h12a1 1 0 001-1v-8"/><path d="M17 3l3 3-7 7h-3v-3z"/>', 1.8),
+	book: svg('<path d="M5 4.5A1.5 1.5 0 016.5 3H19v15H6.5A1.5 1.5 0 005 19.5zM5 19.5A1.5 1.5 0 006.5 21H19"/>', 1.8),
+	globe: svg('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17"/>', 1.6),
+	wifioff: svg('<path d="M3 3l18 18M8.5 16.5a5 5 0 017 0M5 13a10 10 0 014.6-2.6M19 13a10 10 0 00-2.2-1.6M2 9.5a15 15 0 015.2-3.2M22 9.5A15 15 0 0011 5"/><circle cx="12" cy="20" r=".8"/>', 1.8),
+	starf: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', 1.2, "currentColor"),
+	retry: svg('<path d="M4 12a8 8 0 0114-5.3M20 4v4h-4M20 12a8 8 0 01-14 5.3M4 20v-4h4"/>', 1.9),
+});
+const small = (icon, px = 15) => icon.replace('class="i"', `class="i" style="width:${px}px;height:${px}px"`);
+
+/* ——— data ——— */
+const POOL = [
+	["🥪", "Volkorenbrood", "Vaak bij lunch", "1 snee", 79],
+	["🧀", "Jonge kaas 48+", "Vaak bij lunch", "1 plak", 71],
+	["🍎", "Appel", "Favoriet", "1 stuk", 97],
+	["🥗", "Salade kip", "Combo · 3 voedingsmiddelen", "Hele combo", 333],
+	["🍲", "Linzensoep", "Recept · eigen", "1 kom", 170],
+	["🥛", "Halfvolle melk", "Recent", "1 glas", 92],
+	["🥚", "Ei, gekookt", "Recent", "1 stuk", 76],
+	["🍌", "Banaan", "Favoriet", "1 stuk", 115],
+];
+const KIP = [
+	["🍗", "Kipfilet, gebakken", "NEVO · 151 kcal/100 g", "100 g", 151],
+	["🥗", "Salade kip", "Combo · 3 voedingsmiddelen", "Hele combo", 333],
+	["🍗", "Kippendijfilet, gegrild", "NEVO · 196 kcal/100 g", "100 g", 196],
+	["🥪", "Kipfilet, broodbeleg", "Recent · 104 kcal/100 g", "1 plak", 16],
+	["🍛", "Kip-kerrie", "Eigen · 142 kcal/100 g", "1 portie", 426],
+	["🌭", "Kipworstje", "NEVO · 210 kcal/100 g", "1 stuk", 84],
+];
+const LUNCH = [["🥪", "Volkorenbrood", "2 sneetjes", 180], ["🧀", "Jonge kaas 48+", "2 plakken", 142]];
+const MEALN = [["Ontbijt", "3 items · 412 kcal"], ["Lunch", "2 items · 322 kcal", 1], ["Diner", "nog niets"], ["Tussendoortjes", "1 item · 97 kcal"]];
+
+/* ——— building blocks ——— */
+const plusBtn = (done) => `<span class="plus on">${done ? small(I.check, 16) : small(I.plus, 16)}</span>`;
+function qrow([e, n, cap, portion, kcal], { done = false, sel = null } = {}) {
+	if (sel !== null) return `<button class="qrow">${tick(sel)}<span class="fv">${e}</span><span class="t">${n}<small>${cap}</small></span>${sel ? `<span class="selpill">${portion} ${small(I.chev, 12)}</span>` : `<span class="qp">${kcal} kcal</span>`}</button>`;
+	return `<button class="qrow"><span class="fv">${e}</span><span class="t">${n}<small>${cap}</small></span><span class="qp"><b class="tnum">${kcal} kcal</b>${portion}</span>${plusBtn(done)}</button>`;
+}
+const list = (rows, o = {}) => `<div class="card" style="overflow:hidden">${rows.map((r, i) => qrow(r, typeof o === "function" ? o(r, i) : o)).join("")}</div>`;
+const scopes = (on = "Alles") => `<div class="chipsrow" style="padding-top:2px">${["Alles", "Recent", "Favorieten", "Combo's", "Recepten", "Catalogus"].map((s) => `<span class="${s === on ? "on" : ""}">${s}</span>`).join("")}</div>`;
+function mealbar({ label = "Lunch · 2 items · 322 kcal", open = false, flash = false, swipe = false } = {}) {
+	const rows = open ? `<div style="border-top:.5px solid var(--sep)">${LUNCH.map(([e, n, q, k], i) => { const r = `<button class="row" style="background:var(--surface);position:relative"><span class="fv">${e}</span><span class="t">${n}<small>${q}</small></span><span class="v"><b>${k}</b> kcal</span></button>`; return swipe && i === 1 ? `<div style="position:relative;overflow:hidden"><div class="swacts"><span class="sw e">${I.pencil}Bewerk</span><span class="sw d">${I.trash}Verwijder</span></div><div style="transform:translateX(-156px);box-shadow:6px 0 12px rgba(0,0,0,.08)">${r}</div></div>` : r; }).join("")}</div>` : "";
+	return `<div class="card" style="overflow:hidden;margin-top:8px"><button class="mealbar ${flash ? "flash" : ""}"><span>${label.replace(/^(\w+)/, "<b>$1</b>")}</span><span class="chev">${open ? small(svg('<path d="M7 14l5-5 5 5"/>', 2.4)) : small(I.down)}</span></button>${rows}</div>${open ? '<div class="sec-f">Tik een item om het aan te passen; veeg om te verwijderen.</div>' : ""}`;
+}
+const sh = (title, right = "") => `<div class="sh"><b>${title}</b><span>${right}</span></div>`;
+const footer = (q, offline = false) => `<div class="sec-f" style="text-align:center;margin-top:12px">Gezocht in recent, favorieten, combo's, recepten en 2.328 NEVO-items.${q ? `<br><span class="linkish ${offline ? "off" : ""}" style="display:inline-flex;gap:6px;align-items:center;margin-top:8px">${small(I.globe)}Zoek ‘${q}’ in Open Food Facts</span>` : ""}</div>`;
+const keyboard = () => `<div class="qkbd">${["qwertyuiop", "asdfghjkl", "zxcvbnm"].map((r, i) => `<div class="kr">${i === 2 ? '<span class="w">⇧</span>' : ""}${[...r].map((c) => `<span>${c}</span>`).join("")}${i === 2 ? '<span class="w">⌫</span>' : ""}</div>`).join("")}<div class="kr"><span class="w" style="flex-basis:88px;background:var(--kbdKey);box-shadow:0 1px 0 rgba(0,0,0,.25)">123</span><span class="sp">spatie</span><span class="go">zoek</span></div></div>`;
+const titleBtn = (t, menu = true) => `<span class="ttlbtn">${t}${menu ? I.down : ""}</span>`;
+
+/** A pushed screen over the tabs: back, inline title + subtitle, right items, optional bottom toolbar. */
+const screen = ({ inner, title = titleBtn("Lunch"), sub = "Vandaag · vr 3 okt", right = gbtn(I.cal), left = gbtn(I.left), toolbar = "", kbd = false, overlay = "", top = 110, padBottom = 130, scroll = 0 }) =>
+	`<div class="phone"><div class="root collapsed"><div class="content" data-scroll="${scroll}" style="padding-top:${top}px;padding-bottom:${padBottom}px">${inner}</div><div class="edge"></div><div class="navbar2">${left}<div class="ttl">${title}<small>${sub}</small></div><div class="r">${right}</div></div>${toolbar}${kbd ? keyboard() : ""}${overlay}</div>${status}<div class="home"></div></div>`;
+
+/* ——— toolbars ——— */
+const searchCap = (q, focused) => `<div class="search glass ${q ? "q" : ""}" data-act="focus" style="cursor:text">${I.search}${q ? `<span>${q}</span>` : "Zoek eten"}${focused ? '<span class="caret2"></span>' : ""}${q ? `<span class="clr">${small(I.x, 10)}</span>` : ""}</div>`;
+/** Recommended: system bottom toolbar. + | search slot | scan + describe. Focused: search grows over the keyboard, items step aside. */
+const tbRec = ({ q = "", focused = false } = {}) => focused
+	? `<div class="tb up">${searchCap(q, true)}${gbtn(I.x, 'data-act="blur" style="width:50px;height:50px"')}</div>`
+	: `<div class="tb">${gbtn(I.plus, 'style="width:50px;height:50px"')}${searchCap(q)}<div class="grp glass"><button>${I.scan}</button><button class="ai">${I.sparkles}</button></div></div>`;
+/** Alternative B: search in the native header, bottom toolbar keeps the actions. */
+const tbActions = () => `<div class="tb">${gbtn(I.plus, 'style="width:50px;height:50px"')}<span class="sp"></span><div class="grp glass"><button>${I.scan}</button><button class="ai">${I.sparkles}</button></div></div>`;
+/** Alternative C: one custom capsule that morphs (Outlook-like), scan stays visible while typing. */
+const tbCustom = ({ focused = false, q = "" } = {}) => `<div class="tb ${focused ? "up" : ""}"><div class="search glass ${q ? "q" : ""}" style="padding-right:4px">${I.search}${q ? `<span>${q}</span>` : "Zoek eten"}${focused ? '<span class="caret2"></span>' : ""}<span style="margin-left:auto;display:flex">${focused ? "" : `<button class="gbtn" style="width:42px;height:42px;color:var(--accent)">${I.sparkles}</button>`}<button class="gbtn" style="width:42px;height:42px">${I.scan}</button></span></div>${focused ? gbtn(I.x, 'style="width:50px;height:50px"') : gbtn(I.plus, 'style="width:50px;height:50px"')}</div>`;
+
+
+/* ════════ Library round 2 ════════ */
+Object.assign(I, {
+	warn: svg('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.2"/>', 1.9),
+	dup: svg('<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/><path d="M14 11v6M11 14h6"/>', 1.8),
+	ruler: svg('<path d="M4 16L16 4l4 4L8 20z"/><path d="M8 12l2 2M11 9l2 2M14 6l2 2"/>', 1.8),
+	sync: svg('<path d="M4 12a8 8 0 0114-5.3M20 4v4h-4M20 12a8 8 0 01-14 5.3M4 20v-4h4"/>', 1.9),
+});
+
+/* ——— data ——— */
+const F = (e, n, cap, k, u, o = {}) => ({ e, n, cap, k, u, ...o });
+const FOODS = [
+	F("🥣", "Havermout", "Eigen", "389", "per 100 g"),
+	F("🥤", "Eiwitshake vanille", "Etos · 330 ml", "120", "per fles", { src: "OFF" }),
+	F("🥜", "Pindakaas", "Aangepast uit NEVO", "588", "per 100 g", { src: "NEVO" }),
+	F("🍓", "Aardbeienyoghurt", "Eigen", "82", "per 100 g", { fav: 1 }),
+	F("🧆", "Falafel van de markt", "Geschatte waarden", "~330", "per 100 g", { src: "~", w: 1 }),
+	F("🍫", "Pure chocolade 72%", "Tony's Chocolonely", "545", "per 100 g", { src: "OFF" }),
+];
+const RECIPES = [
+	F("🍲", "Linzensoep", "4 kommen", "170", "per kom", { fav: 1 }),
+	F("🍝", "Pasta pesto", "4 porties", "612", "per portie"),
+	F("🥞", "Pannenkoeken", "6 stuks", "210", "per stuk"),
+];
+const COMBOS = [
+	F("🥗", "Salade kip", "3 onderdelen", "333", "hele combo"),
+	F("🌯", "Wrap lunch", "1 onderdeel ontbreekt", "≥ 410", "hele combo", { w: 1, src: "!" }),
+	F("🥣", "Standaard ontbijt", "3 onderdelen", "412", "hele combo", { fav: 1 }),
+];
+const KINDS_ = [["food", "Voeding", 24, FOODS, "voedingsmiddelen"], ["recipe", "Recepten", 6, RECIPES, "recepten"], ["combo", "Combo's", 9, COMBOS, "combo's"]];
+
+/* ——— building blocks ——— */
+const srcTag = (s) => !s ? "" : s === "!" ? `<span class="src w">${small(I.warn, 10)}</span>` : s === "~" ? '<span class="src w">~</span>' : `<span class="src">${s}</span>`;
+function libRow(f, { sel = null, id = "", chev = true, right = null } = {}) {
+	const pick = sel !== null ? `data-lsel="${id}"` : "";
+	return `<button class="qrow" ${pick}>${sel !== null ? tick(sel) : ""}<span class="fv">${f.e}</span><span class="t"><span class="nm">${f.n}${f.fav ? ` <span style="color:#c58a2b">${small(I.starf, 12)}</span>` : ""}</span><small>${srcTag(f.src)}${f.cap}</small></span><span class="qp">${right ?? `<b class="tnum">${f.k} kcal</b>${f.u}`}</span>${chev && sel === null ? `<span style="color:var(--muted);opacity:.6">${small(I.right, 14)}</span>` : ""}</button>`;
+}
+const card = (html, style = "") => `<div class="card" style="overflow:hidden;${style}">${html}</div>`;
+const secHead = (title, count, { menu = true, all = null } = {}) => `<div class="sh"><span class="mt">${title}${menu ? I.down : ""}</span><span>${all === null ? count : `<button style="color:var(--accent);font-weight:600;font-size:15px" data-lall="${all}">Alle</button>`}</span></div>`;
+const moreRow = (n, label) => `<button class="more">Toon alle ${n} ${label}</button>`;
+const libSearch = (q) => `<div class="search glass ${q ? "q" : ""}">${I.search}${q ? `<span>${q}</span><span class="clr">${small(I.x, 10)}</span>` : "Zoek in bibliotheek"}</div>`;
+const libTb = (q = "") => `<div class="tb">${gbtn(I.plus, 'style="width:50px;height:50px"')}${libSearch(q)}${gbtn(I.scan, 'style="width:50px;height:50px"')}</div>`;
+const libNav = (title = "Bibliotheek", right = gbtn(I.more), sub = "") => navbar(title, sub, right, gbtn(I.left));
+const libPage = ({ inner, nav = libNav(), toolbar = libTb(), overlay = "", scroll = 0, padBottom = 130, id = "" }) =>
+	`<div class="phone"><div class="root ${scroll > 40 ? "collapsed" : ""}"><div class="content" ${id ? `id="${id}"` : ""} data-scroll="${scroll}" style="padding-top:106px;padding-bottom:${padBottom}px">${inner}</div>${nav}${toolbar}${overlay}</div>${status}<div class="home"></div></div>`;
+const large = (h, sub) => `<div class="ltitle"><h1>${h}</h1>${sub ? `<small>${sub}</small>` : ""}</div>`;
+const navbar = (title, sub, right, left = "") => `<div class="edge"></div><div class="navbar2">${left}<div class="ttl">${title}${sub ? `<small>${sub}</small>` : ""}</div><div class="r">${right}</div></div>`;
+const attnRow = (icon, t, s, action = "") => `<button class="attn"><span class="ic">${icon}</span><span class="t">${t}<small>${s}</small></span>${action ? `<span style="color:var(--accent);font-weight:600;font-size:14.5px">${action}</span>` : `<span class="chev">${I.right}</span>`}</button>`;
+
+/* ——— §1 directions ——— */
+let SCOPE = "Alles";
+const SCOPES = ["Alles", "Voeding", "Recepten", "Combo's", "Favorieten", "Open Food Facts"];
+const scopeChips = (interactive = true) => `<div class="chipsrow" style="padding:2px 16px 4px">${SCOPES.map((s) => `<span ${interactive ? `data-scope="${s}"` : ""} class="${s === SCOPE ? "on" : ""}">${s}</span>`).join("")}</div>`;
+function aSections({ select = false } = {}) {
+	if (SCOPE === "Favorieten" || SCOPE === "Open Food Facts") {
+		const all = [...FOODS, ...RECIPES, ...COMBOS].filter((f) => (SCOPE === "Favorieten" ? f.fav : f.src === "OFF"));
+		return secHead(SCOPE, all.length, { menu: false }) + card(all.map((f) => libRow(f)).join("")) + `<div class="sec-f">${SCOPE === "Favorieten" ? "Dezelfde favorieten als bij Eten loggen." : "Geïmporteerd via barcode of zoeken. Verversen staat in het ⋯-menu."}</div>`;
+	}
+	return KINDS_.filter(([, label]) => SCOPE === "Alles" || SCOPE === label).map(([k, label, n, items, noun]) => {
+		const one = SCOPE !== "Alles";
+		const shown = one ? items : items.slice(0, k === "food" ? 4 : 3);
+		const rows = shown.map((f, i) => libRow(f, select ? { sel: SEL.has(`${k}:${i}`), id: `${k}:${i}` } : {})).join("");
+		return secHead(label, n, select ? { all: k } : {}) + card(rows + (select ? "" : moreRow(n, noun)));
+	}).join("");
+}
+const attnCard = () => card(attnRow(I.warn, "Vraagt aandacht", "Wrap lunch · Havermout"), "margin-top:12px");
+const innerA = ({ select = false } = {}) => large("Bibliotheek", "39 items") + scopeChips() + (SCOPE === "Alles" && !select ? attnCard() : "") + aSections({ select });
+const DirA = () => libPage({ inner: innerA(), id: "scrollA" });
+
+const AZ = [["A", [F("🍓", "Aardbeienyoghurt", "Eigen", "82", "per 100 g", { fav: 1 }), F("🍎", "Appelmoes zonder suiker", "Eigen", "67", "per 100 g")]], ["E", [F("🥤", "Eiwitshake vanille", "Etos · 330 ml", "120", "per fles", { src: "OFF" })]], ["F", [F("🧆", "Falafel van de markt", "Geschatte waarden", "~330", "per 100 g", { src: "~", w: 1 })]], ["H", [F("🥣", "Havermout", "Eigen", "389", "per 100 g"), F("🫘", "Hummus naturel", "Eigen", "312", "per 100 g")]], ["P", [F("🥜", "Pindakaas", "Aangepast uit NEVO", "588", "per 100 g", { src: "NEVO" }), F("🍫", "Pure chocolade 72%", "Tony's Chocolonely", "545", "per 100 g", { src: "OFF" })]]];
+const DirB = () => libPage({
+	inner: large("Bibliotheek") + `<div class="segc"><span class="on">Voeding</span><span>Recepten</span><span>Combo's</span></div><div class="sec-f" style="margin:0 20px 2px;display:flex;justify-content:space-between"><span>24 voedingsmiddelen</span><span style="color:var(--accent);font-weight:600">A–Z ${small(I.down, 11)}</span></div>` +
+		AZ.map(([l, rows]) => `<div class="lh">${l}</div>` + card(rows.map((f) => libRow(f)).join(""))).join(""),
+	overlay: `<div class="idx">${"ABCDEFGHIJKLMNOPRSTVWZ".split("").map((c) => `<span>${c}</span>`).join("")}</div>`,
+});
+
+const RECENT = [[FOODS[1], "vandaag"], [COMBOS[1], "gisteren"], [RECIPES[0], "2 d"], [FOODS[2], "5 d"]];
+const DirC = () => libPage({
+	inner: large("Bibliotheek") + `<div class="ctiles">${[["🥣", 24, "Voeding"], ["🍲", 6, "Recepten"], ["🥗", 9, "Combo's"]].map(([e, n, l]) => `<button class="ctile"><span class="e">${e}</span><b class="tnum">${n}</b><span>${l} ›</span></button>`).join("")}</div>` +
+		`<div class="sh"><b>Vraagt aandacht</b><span>2</span></div>` + card(attnRow(I.warn, "Wrap lunch", "1 onderdeel bestaat niet meer", "Oplossen") + attnRow(I.sync, "Havermout", "Gewijzigd op dit apparaat en online", "Kiezen")) +
+		`<div class="sh"><b>Recent bewerkt</b></div>` + card(RECENT.map(([f, when]) => libRow(f, { right: when })).join("")) +
+		`<div class="sh"><b>Beheer</b></div>` + card(`<button class="row plain">${I.ruler}<span class="t">Persoonlijke maten</span><span style="color:var(--muted)">${small(I.right, 14)}</span></button><button class="row plain">${I.cloud}<span class="t">Back-up en synchronisatie<small>Aan · 1 conflict</small></span><span style="color:var(--muted)">${small(I.right, 14)}</span></button><button class="row plain">${I.globe}<span class="t">Open Food Facts verversen<small>4 producten · 3 weken geleden</small></span><span style="color:var(--muted)">${small(I.right, 14)}</span></button>`),
+});
+
+/* ——— §2 header and menus ——— */
+const menuAt = (style, html, title = "") => `<div class="menu glass" style="${style}">${title ? `<div class="mt">${title}</div>` : ""}${html}</div>`;
+const sub = (t) => `<small>${t}</small>`;
+const moreMenu = () => menuAt("top:104px;right:14px;width:284px", menuItem(I.selc, "Selecteer") + `<button>${I.sort}<span>Sorteren</span><small>A–Z</small></button>` + "<hr>" + menuItem(I.ruler, "Persoonlijke maten") + `<button>${I.cloud}<span>Back-up en synchronisatie</span><small>Aan</small></button>` + `<button>${I.globe}<span>Open Food Facts verversen</span><small>4</small></button>` + "<hr>" + menuItem(I.gear, "Voedingsinstellingen"));
+const sectionMenu = () => menuAt("top:366px;left:16px;width:270px", menuItem(I.newdoc, "Nieuwe combo…") + menuItem(I.combo, "Toon alle 9 combo's") + "<hr>" + `<button>${I.sort}<span>Sorteren</span><small>Recent gebruikt</small></button>` + menuItem(I.selc, "Selecteer"));
+const plusMenu = () => menuAt("left:14px;bottom:92px;width:286px", menuItem(I.newdoc, "Nieuw voedingsmiddel") + menuItem(I.book, "Nieuw recept") + menuItem(I.combo, "Nieuwe combo…", { isNew: 1 }));
+const Collapsed = () => libPage({ inner: innerA(), scroll: 330 });
+const MoreOpen = () => libPage({ inner: innerA(), overlay: moreMenu() });
+const SecOpen = () => libPage({ inner: innerA(), overlay: sectionMenu(), scroll: 60, id: "scrollSec" });
+const PlusOpen = () => libPage({ inner: innerA(), overlay: plusMenu() });
+
+/* ——— §3 rows ——— */
+const swipeLib = (f) => `<div style="position:relative;overflow:hidden"><div class="swacts"><span class="sw e">${I.pencil}Bewerk</span><span class="sw d">${I.trash}Verwijder</span></div><div style="transform:translateX(-156px);background:var(--surface);position:relative;box-shadow:6px 0 12px rgba(0,0,0,.08)">${libRow(f)}</div></div>`;
+const Swiped = () => libPage({ inner: large("Bibliotheek", "39 items") + scopeChips(false) + attnCard() + secHead("Voeding", 24) + card(FOODS.slice(0, 4).map((f, i) => (i === 2 ? swipeLib(f) : libRow(f))).join("") + moreRow(24, "voedingsmiddelen")) });
+function Ctx(kind) {
+	const f = kind === "off" ? FOODS[1] : kind === "combo" ? COMBOS[1] : RECIPES[0];
+	const items = kind === "off"
+		? menuItem(I.pencil, "Bewerken") + menuItem(I.plus, "Loggen…") + menuItem(I.star, "Favoriet maken") + menuItem(I.dup, "Dupliceren", { isNew: 1 }) + menuItem(I.selc, "Selecteer") + "<hr>" + `<button>${I.globe}<span>Verversen uit Open Food Facts</span></button>` + "<hr>" + menuItem(I.trash, "Verwijderen", { d: 1 })
+		: kind === "combo"
+			? menuItem(I.pencil, "Bewerken") + menuItem(I.plus, "Loggen…") + menuItem(I.starf, "Geen favoriet meer") + menuItem(I.dup, "Dupliceren", { isNew: 1 }) + menuItem(I.selc, "Selecteer") + "<hr>" + `<button>${I.warn}<span>Ontbrekend onderdeel weghalen</span></button>` + "<hr>" + menuItem(I.trash, "Verwijderen", { d: 1 })
+			: menuItem(I.pencil, "Bewerken") + menuItem(I.plus, "Loggen…") + menuItem(I.starf, "Geen favoriet meer") + menuItem(I.dup, "Dupliceren", { isNew: 1 }) + menuItem(I.selc, "Selecteer") + "<hr>" + menuItem(I.trash, "Verwijderen", { d: 1 });
+	const top = 250;
+	return libPage({ inner: innerA(), overlay: `<div class="ctx"><div class="lift" style="top:${top}px">${libRow(f)}</div><div class="menu glass" style="top:${top + 72}px;width:290px">${items}</div></div>` });
+}
+
+/* ——— §4 selection ——— */
+let SEL = new Set(["food:0", "food:3", "recipe:0"]);
+function Selection() {
+	const kinds = new Set([...SEL].map((s) => s.split(":")[0]));
+	const comboOk = SEL.size >= 2 && !kinds.has("combo");
+	const nav = navbar(`${SEL.size} geselecteerd`, "", `<button class="pillbtn glass tint press" style="height:44px">Gereed</button>`, "");
+	const bar = `<div class="selbar glass"><button style="${comboOk ? "" : "opacity:.35"}">${I.combo}Combo maken</button><button>${I.star}Favoriet</button><button>${I.dup}Dupliceren</button><button class="d">${I.trash}Verwijderen</button></div>`;
+	const save = SCOPE; SCOPE = "Alles";
+	const inner = large(`${SEL.size} geselecteerd`, "Bibliotheek") + aSections({ select: true });
+	SCOPE = save;
+	return libPage({ inner, nav, toolbar: "", overlay: bar });
+}
+
+/* ——— §5 needs attention ——— */
+const Attention = () => libPage({
+	inner: innerA(),
+	toolbar: "",
+	overlay: `<div class="dimmer"></div><div class="dsheet"><div class="grabber"></div><div class="navbar">${gbtn(I.x)}<div class="title">Vraagt aandacht<small>2 items</small></div><span style="width:44px"></span></div><div class="body">` + `<div class="sh" style="margin-top:4px"><b>Ontbrekend onderdeel</b></div>` +
+		card(`<button class="qrow"><span class="fv">🌯</span><span class="t">Wrap lunch<small>Tortillawrap volkoren bestaat niet meer. De combo telt nu ≥ 410 kcal.</small></span></button><div style="display:flex;gap:8px;padding:0 16px 12px 66px"><span class="selpill" style="background:var(--accentFill);color:var(--onAccent)">Vervangen…</span><span class="selpill">Weghalen</span></div>`) +
+		`<div class="sh" style="margin-top:14px"><b>Back-upconflict</b></div>` + card(`<button class="qrow"><span class="fv">🥣</span><span class="t">Havermout<small>Op dit apparaat 389 kcal · online 372 kcal</small></span></button><div style="display:flex;gap:8px;padding:0 16px 12px 66px"><span class="selpill" style="background:var(--accentFill);color:var(--onAccent)">Dit apparaat</span><span class="selpill">Online versie</span></div>`) +
+		`<div class="sec-f">Verdwijnt als alles is opgelost. Back-up en Open Food Facts houden hun eigen scherm in Instellingen.</div></div></div>`,
+});
+
+/* ════════ Round 3 states ════════ */
+const withScope = (s, fn) => { const keep = SCOPE; SCOPE = s; try { return fn(); } finally { SCOPE = keep; } };
+const hl = (n, q) => n.replace(new RegExp(`(${q})`, "i"), "<b>$1</b>");
+const libSearchI = (q, focused = false) => `<div class="search glass ${q ? "q" : ""}" ${focused ? "" : 'data-act="lfocus"'} style="cursor:text">${I.search}${q ? `<span>${q}</span>` : "Zoek in bibliotheek"}${focused ? '<span class="caret2"></span>' : ""}${q ? `<span class="clr">${small(I.x, 10)}</span>` : ""}</div>`;
+const libTbI = ({ q = "", focused = false } = {}) => focused
+	? `<div class="tb up">${libSearchI(q, true)}${gbtn(I.x, 'data-act="lblur" style="width:50px;height:50px"')}</div>`
+	: `<div class="tb">${gbtn(I.plus, 'style="width:50px;height:50px"')}${libSearchI(q)}${gbtn(I.scan, 'style="width:50px;height:50px"')}</div>`;
+const linkRow = (icon, label, sub = "") => `<button class="row plain" style="color:var(--accent);font-weight:600">${icon}<span class="t">${label}${sub ? `<small style="font-weight:400">${sub}</small>` : ""}</span></button>`;
+
+/* ——— §1 search ——— */
+const KIPR = [
+	["Voeding", [F("🍗", "Kipfilet gekruid", "Eigen", "128", "per 100 g"), F("🥪", "Kipfilet broodbeleg", "Plus · 150 g", "104", "per 100 g", { src: "OFF" })]],
+	["Recepten", [F("🍛", "Kip-kerrie", "4 porties", "426", "per portie")]],
+	["Combo's", [F("🥗", "Salade kip", "3 onderdelen", "333", "hele combo")]],
+];
+const kipResults = (q = "kip") => KIPR.map(([h, rows]) => secHead(h, rows.length, { menu: false }) + card(rows.map((f) => libRow({ ...f, n: hl(f.n, q) })).join(""))).join("");
+const offLink = (q) => `<div class="sec-f" style="text-align:center;margin-top:14px">Gezocht in je eigen voeding, recepten en combo's. NEVO staat bij Eten loggen.<br><span class="linkish" style="display:inline-flex;gap:6px;align-items:center;margin-top:8px">${small(I.globe)}Zoek ‘${q}’ in Open Food Facts</span></div>`;
+let LFOCUS = false;
+const SearchRest = () => LFOCUS
+	? libPage({ inner: kipResults() + offLink("kip"), toolbar: libTbI({ q: "kip", focused: true }) + keyboard(), scroll: 41, padBottom: 360 })
+	: libPage({ inner: innerA(), toolbar: libTbI() });
+const SearchQ = () => libPage({ inner: kipResults() + offLink("kip"), toolbar: libTbI({ q: "kip" }), scroll: 41 });
+const OFFR = [["Kipfilet naturel", "Albert Heijn · 300 g", "106 kcal/100 g"], ["Kip shoarma", "Jumbo · 400 g", "152 kcal/100 g"], ["Kipsaté", "Mora · 6 stuks", "238 kcal/100 g"]];
+const SearchOff = () => libPage({
+	inner: kipResults() + secHead("Open Food Facts", "importeren", { menu: false }) + card(OFFR.map(([n, c, k]) => `<button class="qrow"><span class="fv">${I.globe}</span><span class="t">${hl(n, "kip")}<small>${c} · ${k}</small></span><span style="color:var(--muted);opacity:.6">${small(I.right, 14)}</span></button>`).join("")) + `<div class="sec-f">Tik om te controleren en op te slaan in je bibliotheek.</div>`,
+	toolbar: libTbI({ q: "kip" }), scroll: 41,
+});
+const NoMatch = () => libPage({
+	inner: card(`<div class="empty"><div class="ic">${I.search}</div><b>Niet in je bibliotheek</b><p>Niets gevonden voor ‘pasta van mama’.</p></div>` + `<div style="border-top:.5px solid var(--sep)">${linkRow(I.newdoc, "Nieuw voedingsmiddel", "Met ‘pasta van mama’ als naam")}${linkRow(I.book, "Nieuw recept", "Met ‘pasta van mama’ als naam")}${linkRow(I.globe, "Zoek in Open Food Facts")}</div>`, "margin-top:8px"),
+	toolbar: libTbI({ q: "pasta van mama" }), scroll: 41,
+});
+const ALLFOODS = [F("🍓", "Aardbeienyoghurt", "Eigen", "82", "per 100 g", { fav: 1 }), F("🍎", "Appelmoes zonder suiker", "Eigen", "67", "per 100 g"), F("🥤", "Eiwitshake vanille", "Etos · 330 ml", "120", "per fles", { src: "OFF" }), F("🧆", "Falafel van de markt", "Geschatte waarden", "~330", "per 100 g", { src: "~", w: 1 }), F("🥣", "Havermout", "Eigen", "389", "per 100 g"), F("🫘", "Hummus naturel", "Eigen", "312", "per 100 g"), F("🍗", "Kipfilet gekruid", "Eigen", "128", "per 100 g"), F("🥜", "Pindakaas", "Aangepast uit NEVO", "588", "per 100 g", { src: "NEVO" }), F("🍫", "Pure chocolade 72%", "Tony's Chocolonely", "545", "per 100 g", { src: "OFF" })];
+const ShowAll = () => withScope("Voeding", () => libPage({
+	inner: large("Bibliotheek", "39 items") + scopeChips(false) + `<div class="sh"><span class="mt">Voeding${I.down}</span><span>24 · A–Z</span></div>` + card(ALLFOODS.map((f) => libRow(f)).join("")),
+}));
+
+/* ——— §2 combo editor ——— */
+const PARTS = [["🫘", "Hummus naturel", "3 eetlepels", "141"], ["🍗", "Kipfilet gekruid", "100 g", "128"], ["🧀", "Feta", "50 g", "141"]];
+const comboNav = (right = gbtn(I.more)) => navbar("Wrap lunch", "Combo", right, gbtn(I.left));
+const comboInner = () => large("Wrap lunch", "Combo · 4 onderdelen") +
+	card(`<div style="padding:14px 16px"><div style="display:flex;align-items:baseline;gap:8px"><b class="tnum" style="font-size:28px;letter-spacing:-.02em">≥ 410</b><span style="color:var(--muted)">kcal</span></div><div class="tnum" style="color:var(--muted);font-size:13.5px;margin-top:2px">Eiwit ≥ 29 g · Koolh. ≥ 14 g · Vet ≥ 27 g</div></div>` + attnRow(I.warn, "Onvolledig", "Tortillawrap volkoren bestaat niet meer")) +
+	`<div class="sh"><b>Onderdelen</b><span>4</span></div>` +
+	card(`<div class="qrow"><span class="fv" style="color:var(--warn)">${I.warn}</span><span class="t" style="color:var(--muted)">Tortillawrap volkoren<small>Verwijderd uit je bibliotheek</small></span><span class="selpill" style="background:var(--accentFill);color:var(--onAccent)">Vervangen…</span></div>` +
+		PARTS.map(([e, n, q, k]) => `<button class="qrow"><span class="fv">${e}</span><span class="t">${n}<small>${q}</small></span><span class="qp"><b class="tnum">${k} kcal</b></span></button>`).join("") +
+		`<button class="more" style="padding-left:16px;display:flex;gap:10px;align-items:center">${small(I.plus, 18)}Onderdeel toevoegen</button>`) +
+	`<div class="sec-f">Wijzigingen gelden voor de volgende keer dat je logt. Eerder gelogde maaltijden blijven zoals ze waren.</div>`;
+const ComboEd = () => libPage({ inner: comboInner(), nav: comboNav(), toolbar: "" });
+const ComboMenu = () => libPage({ inner: comboInner(), nav: comboNav(), toolbar: "", overlay: menuAt("top:104px;right:14px;width:250px", menuItem(I.plus, "Loggen…") + "<hr>" + menuItem(I.pencil, "Naam wijzigen") + menuItem(I.dup, "Dupliceren") + menuItem(I.star, "Favoriet maken") + "<hr>" + menuItem(I.trash, "Verwijderen", { d: 1 })) });
+
+/* ——— §3 delete ——— */
+const alertBox = (title, body, ok) => `<div class="dimmer" style="z-index:60;background:rgba(0,0,0,.3)"></div><div class="alertx glass"><b>${title}</b><p>${body}</p><div class="ab"><button>Annuleer</button><button class="d">${ok}</button></div></div>`;
+const DelOne = () => libPage({ inner: innerA(), overlay: alertBox("Pindakaas verwijderen?", "Wordt gebruikt in 2 combo's: Standaard ontbijt en Wrap lunch. Daar wordt het een ontbrekend onderdeel. Je dagboek blijft ongewijzigd.", "Verwijder") });
+const DelMany = () => { const s = Selection(); return s.replace('<div class="home">', alertBox("3 items verwijderen?", "Havermout, Aardbeienyoghurt en Linzensoep. Niet gebruikt in combo's. Je dagboek blijft ongewijzigd.", "Verwijder 3") + '<div class="home">'); };
+const DelDone = () => libPage({ inner: innerA(), overlay: `<div class="toast glass"><span class="ok">${small(I.check, 18)}</span><span class="t">Pindakaas verwijderd</span></div>` });
+
+/* ——— §4 empty ——— */
+const FirstRun = () => libPage({
+	inner: large("Bibliotheek") + card(`<div class="empty"><div class="ic">${I.books}</div><b>Je bibliotheek is nog leeg</b><p>Hier komen je eigen voedingsmiddelen, recepten en combo's. NEVO-producten vind je gewoon bij Eten loggen.</p></div><div style="border-top:.5px solid var(--sep)">${linkRow(I.scan, "Scan een verpakking")}${linkRow(I.newdoc, "Nieuw voedingsmiddel")}${linkRow(I.book, "Nieuw recept")}</div>`, "margin-top:8px") + `<div class="sec-f">Combo's maak je door items in het dagboek of hier te selecteren.</div>`,
+});
+const emptyCombos = () => `<div class="sh"><span class="mt">Combo's</span><span>0</span></div>` + card(`<button class="qrow"><span class="fv" style="color:var(--accent);background:var(--accentDim)">${I.combo}</span><span class="t">Nog geen combo's<small>Selecteer twee of meer items en kies Combo maken</small></span><span style="color:var(--accent);font-weight:600;font-size:14.5px">Maken</span></button>`);
+const EmptySec = () => libPage({
+	inner: large("Bibliotheek", "30 items") + scopeChips(false) + KINDS_.slice(0, 2).map(([k, label, n, items, noun]) => secHead(label, n) + card(items.slice(0, k === "food" ? 3 : 2).map((f) => libRow(f)).join("") + moreRow(n, noun))).join("") + emptyCombos(),
+	scroll: 230,
+});
+const EmptyFav = () => withScope("Favorieten", () => libPage({
+	inner: large("Bibliotheek", "39 items") + scopeChips(false) + card(`<div class="empty"><div class="ic">${I.star}</div><b>Nog geen favorieten</b><p>Houd een item ingedrukt en kies Favoriet maken. Favorieten staan ook bovenaan bij Eten loggen.</p></div>`, "margin-top:12px"),
+}));
+
+/* ——— §5 loading, offline, error ——— */
+const skel = (n) => card(Array.from({ length: n }, () => `<div class="qrow"><span class="fv" style="background:var(--surface2)"></span><span class="t"><span style="display:block;height:12px;width:55%;border-radius:6px;background:var(--surface2)"></span><span style="display:block;height:10px;width:30%;border-radius:5px;background:var(--surface2);margin-top:7px"></span></span><span style="height:12px;width:54px;border-radius:6px;background:var(--surface2)"></span></div>`).join(""));
+const statusRow = (icon, t, s, action = "", warn = false) => card(`<div class="attn"><span class="ic" style="${warn ? "" : "background:var(--surface2);color:var(--muted)"}">${icon}</span><span class="t">${t}<small>${s}</small></span>${action ? `<span style="color:var(--accent);font-weight:600;font-size:14.5px">${action}</span>` : ""}</div>`, "margin-top:12px");
+const Loading = () => libPage({ inner: large("Bibliotheek") + statusRow(I.cloud, "Ophalen uit je back-up…", "12 van 39 items") + secHead("Voeding", "", { menu: false }) + skel(4) + secHead("Recepten", "", { menu: false }) + skel(2) });
+const Offline = () => libPage({ inner: large("Bibliotheek", "39 items") + scopeChips(false) + statusRow(I.wifioff, "Offline", "Alles werkt. 2 wijzigingen worden gesynchroniseerd zodra je online bent.") + aSections() });
+const RestoreErr = () => libPage({ inner: large("Bibliotheek", "39 items") + scopeChips(false) + statusRow(I.warn, "Back-up ophalen mislukt", "Je ziet wat op dit apparaat staat.", "Opnieuw", true) + aSections() });
+
+/* ——— §6 dark, long text, XL ——— */
+const LONG = [F("🌯", "Volkoren speltwrap met hummus, geroosterde paprika en feta (zelfgemaakt)", "Eigen · 2 porties", "386", "per portie"), F("🥤", "Eiwitshake vanille met extra vezels, lactosevrij", "Etos Sport Nutrition · 330 ml", "120", "per fles", { src: "OFF" }), F("🍲", "Linzensoep", "4 kommen", "170", "per kom", { fav: 1 })];
+const Dark = () => `<div class="dk">${libPage({ inner: innerA() })}</div>`;
+const Long = () => libPage({ inner: large("Bibliotheek", "39 items") + scopeChips(false) + attnCard() + secHead("Voeding", 24) + card(LONG.map((f) => libRow(f)).join("") + moreRow(24, "voedingsmiddelen")) });
+const XL = () => `<div class="xl">${libPage({ inner: large("Bibliotheek", "39 items") + attnCard() + secHead("Voeding", 24) + card(LONG.map((f) => libRow(f)).join("") + moreRow(24, "voedingsmiddelen")) })}</div>`;
+
+/* ════════ Combo editor round 1 ════════ */
+const CPARTS = [
+	{ e: "🫓", n: "Tortillawrap volkoren", q: "1 stuk · 62 g", k: 130, miss: 1 },
+	{ e: "🫘", n: "Hummus naturel", q: "3 eetlepels · 45 g", k: 141 },
+	{ e: "🍗", n: "Kipfilet gekruid", q: "100 g", k: 128 },
+	{ e: "🧀", n: "Feta", q: "50 g", k: 141 },
+];
+const missTag = `<span class="src w">${small(I.warn, 10)}</span>`;
+function partRow(p, { mode = "view", sel = null, scale = null } = {}) {
+	const cap = p.miss ? `${missTag}Bron ontbreekt · ${p.q}` : p.q;
+	const lead = mode === "edit" ? `<span class="delc">${small(I.minus, 12)}</span>` : sel !== null ? (p.miss && !sel ? `<span class="chk" style="opacity:.4"></span>` : tick(sel)) : "";
+	const right = mode === "edit" ? `<span class="grip">≡</span>`
+		: scale ? `<span class="qp"><b class="tnum">${Math.round(p.k * scale)} kcal</b>${scale !== 1 ? `${String(scale).replace(".", ",")}×` : ""}</span>`
+		: p.miss && mode === "view" ? `<span class="selpill" style="background:var(--accentFill);color:var(--onAccent)">Vervangen…</span>`
+		: `<span class="qp"><b class="tnum">${p.k} kcal</b></span>`;
+	const dim = sel === false ? "opacity:.5" : "";
+	return `<button class="qrow" style="${dim}">${lead}<span class="fv">${p.e}</span><span class="t"><span class="nm">${p.n}</span><small>${cap}</small></span>${right}</button>`;
+}
+const addPartRow = () => `<button class="more" style="padding-left:16px;display:flex;gap:10px;align-items:center">${small(I.plus, 18)}Onderdeel toevoegen</button>`;
+const sumCard = (extra = "") => card(`<div style="padding:14px 16px"><div style="display:flex;align-items:baseline;gap:8px"><b class="tnum" style="font-size:28px;letter-spacing:-.02em">540</b><span style="color:var(--muted)">kcal</span><span style="margin-left:auto;color:var(--muted);font-size:13px">4 onderdelen</span></div><div class="tnum" style="color:var(--muted);font-size:13.5px;margin-top:2px">Eiwit 35 g · Koolh. 38 g · Vet 30 g</div></div>${extra}`);
+const missAttn = () => attnRow(I.warn, "Bron ontbreekt: Tortillawrap", "Vervang of haal weg om te loggen");
+const comboNav2 = (right = gbtn(I.more), left = gbtn(I.left), title = "Wrap lunch") => navbar(title, "Combo", right, left);
+const editorA = () => large("Wrap lunch", "Combo") + sumCard(missAttn()) + `<div class="sh"><b>Onderdelen</b><span>4</span></div>` + card(CPARTS.map((p) => partRow(p)).join("") + addPartRow()) + `<div class="sec-f">Wijzigingen worden meteen bewaard. Eerder gelogde maaltijden blijven zoals ze waren.</div>`;
+const EdA = () => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "" });
+const EdBView = () => libPage({ inner: large("Wrap lunch", "Combo") + sumCard(missAttn()) + `<div class="sh"><b>Onderdelen</b><span>4</span></div>` + card(CPARTS.map((p) => partRow(p, { mode: "plain" })).join("")), nav: comboNav2(`<button class="pillbtn glass press" style="height:44px">Wijzig</button>` + gbtn(I.more)), toolbar: "" });
+const EdBEdit = () => libPage({
+	inner: `<div style="padding:0 16px 6px"><div class="card" style="padding:12px 16px;font-size:22px;font-weight:700;color:var(--text)">Wrap lunch<span class="caret2"></span></div></div>` + `<div class="sh"><b>Onderdelen</b><span>sleep om te ordenen</span></div>` + card(CPARTS.map((p) => partRow(p, { mode: "edit" })).join("") + addPartRow()),
+	nav: navbar("Combo wijzigen", "", `<button class="pillbtn glass tint press" style="height:44px">Gereed</button>`, `<button class="pillbtn glass press" style="height:44px">Annuleer</button>`).replace('class="edge"', 'class="edge" style="opacity:1"').replace('<div class="ttl">', '<div class="ttl" style="opacity:1">'),
+	toolbar: "",
+});
+const EdC = () => libPage({
+	inner: `<div class="lh" style="margin-top:4px">NAAM</div>` + card(`<div class="row plain" style="font-size:17px">Wrap lunch</div>`) +
+		`<div class="lh">ONDERDELEN</div>` + card(CPARTS.map((p) => `<button class="qrow"><span class="fv">${p.e}</span><span class="t"><span class="nm">${p.n}</span><small>${p.miss ? `${missTag}Bron ontbreekt` : p.q}</small></span><span style="color:var(--muted);opacity:.6">${small(I.right, 14)}</span></button>`).join("") + addPartRow()) +
+		`<div class="sec-f">540 kcal · eiwit 35 g · koolh. 38 g · vet 30 g</div><div style="padding:18px 16px 0"><button class="press" style="width:100%;height:50px;border-radius:999px;background:var(--accentFill);color:var(--onAccent);font-weight:700;font-size:16px">Bewaar</button></div><div style="text-align:center;margin-top:12px;color:var(--danger);font-weight:600">Verwijder combo</div>`,
+	nav: navbar("Combo bewerken", "", "", `<button class="pillbtn glass press" style="height:44px">Annuleer</button>`).replace('class="edge"', 'class="edge" style="opacity:1"').replace('<div class="ttl">', '<div class="ttl" style="opacity:1">'),
+	toolbar: "",
+});
+
+/* ——— §2 log sheet ——— */
+let LOGSEL = new Set([1, 2, 3]);
+let LOGSCALE = 1;
+const scaleChips = () => `<div class="chipsrow" style="padding:4px 0 2px">${[0.5, 1, 1.5, 2].map((s) => `<span data-lscale="${s}" class="${s === LOGSCALE ? "on" : ""}" style="cursor:pointer">${String(s).replace(".", ",")}×</span>`).join("")}<span>Anders…</span></div>`;
+const sheetWrap = (title, sub, body, { top = 70, left = gbtn(I.x), right = '<span style="width:44px"></span>' } = {}) => `<div class="dimmer"></div><div class="dsheet" style="top:${top}px;display:flex;flex-direction:column"><div class="grabber"></div><div class="navbar">${left}<div class="title">${title}${sub ? `<small>${sub}</small>` : ""}</div>${right}</div><div class="body" style="flex:1;overflow:auto">${body}</div></div>`;
+function LogSheet() {
+	const k = [...LOGSEL].reduce((a, i) => a + CPARTS[i].k * LOGSCALE, 0);
+	const changed = LOGSCALE !== 1 || LOGSEL.size !== 3;
+	const body = `<div class="sh" style="margin:6px 4px 6px"><b>Naar</b></div>` + card(`<button class="row plain"><span class="t" style="font-weight:600">Lunch<small>Vandaag · vr 3 okt · 2 items, 322 kcal</small></span><span style="color:var(--accent)">${small(I.chev, 16)}</span></button>`) +
+		`<div class="sh" style="margin:16px 4px 2px"><b>Hoeveel</b>${changed ? '<span style="color:var(--accent);font-weight:600" data-lreset="1">Herstel</span>' : ""}</div>` + scaleChips() +
+		`<div class="sh" style="margin:14px 4px 6px"><b>Onderdelen</b><span>tik om aan/uit te zetten</span></div>` +
+		card(CPARTS.map((p, i) => partRow(p, { sel: LOGSEL.has(i), scale: LOGSCALE }).replace('<button class="qrow"', `<button class="qrow" ${p.miss ? "" : `data-lpart="${i}"`}`)).join("")) +
+		`<div class="sec-f" style="margin:8px 4px 0">Tortillawrap staat uit: de bron ontbreekt. Aanpassingen gelden alleen voor deze keer.</div><div style="height:90px"></div>`;
+	const foot = `<div class="tray glass" style="z-index:40"><div class="t"><b class="tnum">${LOGSEL.size} ${LOGSEL.size === 1 ? "item" : "items"} · ${Math.round(k)} kcal</b>Lunch · vandaag</div><button class="go press">Loggen</button></div>`;
+	return libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay: sheetWrap("Wrap lunch loggen", "", body) + foot });
+}
+const PartAmount = () => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay: sheetWrap("Hummus naturel", "In Wrap lunch", card(`<div style="padding:18px 16px;text-align:center"><b class="tnum" style="font-size:40px;letter-spacing:-.02em">3</b><div style="color:var(--muted);margin-top:2px">eetlepels · 45 g · 141 kcal</div><div style="display:flex;gap:10px;justify-content:center;margin-top:14px"><span class="gbtn" style="background:var(--surface2)">${I.minus}</span><span class="gbtn" style="background:var(--surface2)">${I.plus}</span></div></div>`) + `<div class="sh" style="margin:16px 4px 6px"><b>Eenheid</b></div><div class="chipsrow" style="padding:0">${["eetlepel", "gram", "portie (100 g)"].map((u, i) => `<span class="${i === 0 ? "on" : ""}">${u}</span>`).join("")}</div><div class="sec-f" style="margin:10px 4px">Bewaart in de combo. Voor één keer loggen pas je de hoeveelheid aan bij Loggen….</div>`, { top: 380, right: `<button class="pillbtn glass tint press" style="height:40px">Bewaar</button>` }) });
+
+/* ——— §3 rows ——— */
+const swipePart = (p) => `<div style="position:relative;overflow:hidden"><div class="swacts"><span class="sw e">${I.pencil}Portie</span><span class="sw d">${I.trash}Weghalen</span></div><div style="transform:translateX(-156px);background:var(--surface);position:relative;box-shadow:6px 0 12px rgba(0,0,0,.08)">${partRow(p)}</div></div>`;
+const PartSwipe = () => libPage({ inner: large("Wrap lunch", "Combo") + sumCard(missAttn()) + `<div class="sh"><b>Onderdelen</b><span>4</span></div>` + card(CPARTS.map((p, i) => (i === 2 ? swipePart(p) : partRow(p))).join("") + addPartRow()), nav: comboNav2(), toolbar: "" });
+const PartCtx = () => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay: `<div class="ctx"><div class="lift" style="top:420px">${partRow(CPARTS[1])}</div><div class="menu glass" style="top:492px;width:270px">${menuItem(I.pencil, "Portie wijzigen")}${menuItem(I.sync, "Vervangen…")}${menuItem(I.right, "Voedingsmiddel openen")}<hr>${menuItem(I.sort, "Omhoog")}${menuItem(I.sort, "Omlaag")}<hr>${menuItem(I.trash, "Weghalen uit combo", { d: 1 })}</div></div>` });
+const ComboMore = () => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay: menuAt("top:104px;right:14px;width:262px", menuItem(I.plus, "Loggen…") + "<hr>" + menuItem(I.pencil, "Naam wijzigen") + menuItem(I.dup, "Dupliceren") + menuItem(I.star, "Favoriet maken") + "<hr>" + `<button>${I.warn}<span>Ontbrekende onderdelen weghalen</span></button>` + "<hr>" + menuItem(I.trash, "Verwijderen", { d: 1 })) });
+
+/* ——— §4 add / replace ——— */
+const PICK_ROWS = [["🥬", "IJsbergsla", "NEVO · 14 kcal/100 g", "50 g", 7], ["🫓", "Tortillawrap volkoren", "Open Food Facts · Old El Paso", "1 stuk", 135], ["🫓", "Wrap naturel", "NEVO · 310 kcal/100 g", "1 stuk", 192], ["🥒", "Komkommer", "Recent · 12 kcal/100 g", "50 g", 6]];
+const pickRow = ([e, n, c, p, k], done) => `<button class="qrow"><span class="fv">${e}</span><span class="t"><span class="nm">${n}</span><small>${c}</small></span><span class="qp"><b class="tnum">${k} kcal</b>${p}</span><span class="plus on">${done ? small(I.check, 16) : small(I.plus, 16)}</span></button>`;
+const tbPick = (q, ph) => `<div class="tb">${libSearchI(q).replace("Zoek in bibliotheek", ph)}${gbtn(I.scan, 'style="width:50px;height:50px"')}</div>`;
+const AddPart = () => libPage({
+	inner: `<div class="sh" style="margin-top:4px"><b>Resultaten</b><span>4</span></div>` + card(PICK_ROWS.map((r, i) => pickRow(r, i === 0)).join("")) + `<div class="sec-f">+ voegt toe met de standaardportie; tik de rij om eerst de portie te kiezen. Zoekt in je bibliotheek, NEVO en Open Food Facts, zoals Eten loggen.</div>`,
+	nav: navbar("Toevoegen", "aan Wrap lunch · 5 onderdelen", `<button class="pillbtn glass tint press" style="height:44px">Gereed</button>`, gbtn(I.left)).replace('class="edge"', 'class="edge" style="opacity:1"').replace('<div class="ttl">', '<div class="ttl" style="opacity:1">'),
+	toolbar: tbPick("wrap", "Zoek eten"), overlay: `<div class="toast glass"><span class="ok">${small(I.check, 18)}</span><span class="t">IJsbergsla toegevoegd</span><button>Ongedaan maken</button></div>`, scroll: 41,
+});
+const ReplacePart = () => libPage({
+	inner: card(`<div class="qrow"><span class="fv" style="color:var(--warn)">${I.warn}</span><span class="t"><span class="nm">Tortillawrap volkoren</span><small>Was: 1 stuk · 62 g · 130 kcal</small></span></div>`, "margin-top:2px") +
+		`<div class="sh"><b>Kies een vervanging</b><span>3</span></div>` + card(PICK_ROWS.slice(1, 3).concat([PICK_ROWS[0]]).map(([e, n, c, p, k]) => `<button class="qrow"><span class="fv">${e}</span><span class="t"><span class="nm">${n}</span><small>${c}</small></span><span class="qp"><b class="tnum">${k} kcal</b>${p}</span><span style="color:var(--muted);opacity:.6">${small(I.right, 14)}</span></button>`).join("")) +
+		`<div class="sec-f">Tik om de portie te bevestigen; de combo krijgt het nieuwe onderdeel op dezelfde plek. De zoekterm is de oude naam.</div>`,
+	nav: navbar("Vervangen", "in Wrap lunch", "", gbtn(I.x)).replace('class="edge"', 'class="edge" style="opacity:1"').replace('<div class="ttl">', '<div class="ttl" style="opacity:1">'),
+	toolbar: tbPick("tortillawrap", "Zoek eten"), scroll: 41,
+});
+
+/* ——— §5 new combo ——— */
+const NEWP = [{ e: "🥣", n: "Havermout", q: "standaard 40 g", k: 156 }, { e: "🍓", n: "Aardbeienyoghurt", q: "standaard 1 bakje · 150 g", k: 123 }, { e: "🍲", n: "Linzensoep", q: "standaard 1 kom", k: 170 }];
+const NewCombo = (backupOff = false) => libPage({
+	inner: innerA(), toolbar: "",
+	overlay: sheetWrap("Nieuwe combo", "3 onderdelen · 449 kcal", `<div class="lh" style="margin:6px 4px">NAAM</div>` + card(`<div class="row plain" style="font-size:17px;color:var(--muted)"><span class="caret2" style="margin:0 2px 0 0"></span>Bijv. ‘Ontbijt doordeweeks’</div>`) + `<div class="lh" style="margin:14px 4px 6px">ONDERDELEN</div>` + card(NEWP.map((p) => partRow(p)).join("")) + `<div class="sec-f" style="margin:8px 4px 0">Elk onderdeel krijgt zijn standaardportie. Pas porties daarna aan in de combo.</div>` + (backupOff ? card(attnRow(I.cloud, "Alleen op dit apparaat", "Zet back-up aan om combo's te bewaren als je de app verwijdert.", "Aanzetten"), "margin-top:12px") : ""),
+		{ top: 160, left: `<button class="pillbtn glass press" style="height:40px">Annuleer</button>`, right: `<button class="pillbtn glass tint press" style="height:40px;opacity:.45">Bewaar</button>` }),
+});
+
+/* ════════ Combo round 2 — reuse ServingDetail ════════ */
+/** A faithful mock of the shipped ServingDetail sheet (nutrition-food-browser.tsx). Slots mirror its props. */
+function servingSheet({ title, sub = "", fv = "🫘", caption, lastUsed = true, fav = null, choices, sel = 0, qty = "3", preview, nutr, attribution = "", options = "", footer, extra = "", top = 120, pick = "" }) {
+	const seg = `<div class="segc" style="margin:0 0 8px">${choices.map((c, i) => `<span class="${i === sel ? "on" : ""}">${c}</span>`).join("")}</div>`;
+	const body =
+		`<div style="display:flex;gap:12px;align-items:center;padding:4px 4px 12px"><span class="fv" style="width:52px;height:52px;font-size:26px;border-radius:14px">${fv}</span><div style="flex:1;line-height:1.3"><div style="font-size:13px;color:var(--muted)">${caption}</div>${lastUsed ? '<div style="font-size:13px;color:var(--muted)">Laatst gebruikt</div>' : ""}</div>${fav === null ? "" : `<span style="color:${fav ? "#c58a2b" : "var(--muted)"}">${fav ? I.starf : I.star}</span>`}</div>` +
+		`<div class="lh" style="margin:2px 4px 6px">PORTIE</div>` + card(`<div style="padding:10px 12px 2px">${seg}</div><div class="row plain" style="border-top:.5px solid var(--sep)"><span class="t">Aantal</span><span class="numf tnum">${qty}</span></div>${choices.length > 1 ? `<div class="row plain" style="border-top:.5px solid var(--sep)"><span class="t">Persoonlijke maten beheren</span><span style="color:var(--muted)">${small(I.right, 14)}</span></div>` : ""}`) +
+		`<div class="chipsrow" style="padding:10px 0 0">${["½", "1", "2"].map((q) => `<span class="${q === (qty === "1" ? "1" : "") ? "on" : ""}" style="min-width:44px;text-align:center">${q}</span>`).join("")}</div>` +
+		card(`<div style="padding:12px 16px 4px"><b style="font-size:16px">${preview[0]}</b><div style="color:var(--muted);font-size:13px">${preview[1]}</div></div>${nutr.map(([n, v]) => `<div class="row plain" style="padding:7px 16px;font-size:14.5px"><span class="t">${n}</span><b class="tnum" style="font-weight:600">${v}</b></div>`).join("")}`, "margin-top:12px") +
+		extra +
+		(attribution ? `<div class="sec-f" style="margin:10px 4px 0">${attribution}</div>` : "") + options + `<div style="height:130px"></div>`;
+	const head = `<div class="navbar" style="padding-top:12px"><div class="title" style="text-align:left;font-size:19px;font-weight:700;padding-left:4px">${title}${sub ? `<small style="font-size:13px">${sub}</small>` : ""}</div>${gbtn(I.x)}</div>`;
+	return `<div class="dimmer"></div><div class="dsheet" style="top:${top}px;display:flex;flex-direction:column"><div class="grabber"></div>${head}<div class="body" style="flex:1;overflow:auto">${body}</div><div class="sfoot">${footer}</div></div>${pick}`;
+}
+const primaryBtn = (t, dim = false) => `<button class="press" style="width:100%;height:50px;border-radius:999px;background:var(--accentFill);color:var(--onAccent);font-weight:700;font-size:16px;${dim ? "opacity:.45" : ""}">${t}</button>`;
+const ghostBtn = (t, d = false) => `<button style="width:100%;height:42px;margin-top:4px;font-weight:600;font-size:15.5px;color:${d ? "var(--danger)" : "var(--accent)"}">${t}</button>`;
+const HUMMUS_N = [["Eiwit", "3,5 g"], ["Koolhydraten", "6,1 g"], ["Vet", "11,2 g"]];
+const hummus = { title: "Hummus naturel", fv: "🫘", caption: "Persoonlijk voedingsmiddel", choices: ["Eetlepel · 15 g", "100 g", "Gram"], qty: "3", preview: ["3 eetlepels · 45 g", "141 kcal"], nutr: HUMMUS_N };
+
+/* background: the food browser (log_final) with its destination title */
+const browserBg = (rows = POOL) => screen({ inner: scopes() + mealbar() + sh("Voor jouw lunch", "recent · favorieten · combo's") + list(rows), toolbar: tbRec() });
+const overBrowser = (overlay) => browserBg().replace('<div class="home">', overlay + '<div class="home">');
+
+/* §1 — part portion */
+const NowLog = () => overBrowser(servingSheet({ ...hummus, fav: false, options: ghostBtn("Bewerken") + ghostBtn("Verwijderen", true), footer: primaryBtn("Toevoegen en doorgaan") + ghostBtn("Toevoegen en sluiten") }));
+const PartServing = () => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay: servingSheet({ ...hummus, sub: "Onderdeel van Wrap lunch", lastUsed: false, attribution: "Wrap lunch wordt 540 → 540 kcal. Eerder gelogde maaltijden blijven zoals ze waren.", footer: primaryBtn("Bewaar in combo") + ghostBtn("Vervangen…") }) });
+const PartServingChanged = () => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay: servingSheet({ ...hummus, sub: "Onderdeel van Wrap lunch", lastUsed: false, qty: "2", preview: ["2 eetlepels · 30 g", "94 kcal"], nutr: [["Eiwit", "2,3 g"], ["Koolhydraten", "4,1 g"], ["Vet", "7,5 g"]], attribution: "Wrap lunch wordt <b>540 → 493 kcal</b>. Eerder gelogde maaltijden blijven zoals ze waren.", footer: primaryBtn("Bewaar in combo") + ghostBtn("Vervangen…") }) });
+
+/* §2 — Loggen… = the browser + the combo's ServingDetail */
+let C2SEL = new Set([1, 2, 3]);
+const comboPartsExtra = () => `<div class="sh" style="margin:16px 4px 6px"><b>Onderdelen</b><span>voor deze keer</span></div>` + card(CPARTS.map((p, i) => partRow(p, { sel: C2SEL.has(i), scale: 1 }).replace('<button class="qrow"', `<button class="qrow" ${p.miss ? "" : `data-c2="${i}"`}`)).join("")) + `<div class="sec-f" style="margin:8px 4px 0">Tik een vinkje om aan/uit te zetten; tik een onderdeel voor een andere hoeveelheid. Tortillawrap staat uit: de bron ontbreekt.</div>`;
+function ComboServing() {
+	const k = [...C2SEL].reduce((a, i) => a + CPARTS[i].k, 0);
+	return overBrowser(servingSheet({ title: "Wrap lunch", fv: "🌯", caption: `Combo · ${C2SEL.size} van 4 onderdelen`, fav: false, choices: ["Hele combo"], qty: "1", preview: [`1 hele combo · ${C2SEL.size} onderdelen`, `${k} kcal`], nutr: [["Eiwit", "32 g"], ["Koolhydraten", "9 g"], ["Vet", "27 g"]], extra: comboPartsExtra(), options: ghostBtn("Combo bewerken"), footer: primaryBtn("Toevoegen en doorgaan") + ghostBtn("Toevoegen en sluiten"), top: 90 }));
+}
+const PartOnce = () => overBrowser(servingSheet({ title: "Wrap lunch", fv: "🌯", caption: "Combo · 3 van 4 onderdelen", choices: ["Hele combo"], qty: "1", preview: ["1 hele combo", "410 kcal"], nutr: [], footer: "", top: 90 }) + `<div class="dsheet" style="top:150px;z-index:31;display:flex;flex-direction:column;box-shadow:0 -10px 30px rgba(0,0,0,.25)"><div class="grabber"></div><div class="navbar" style="padding-top:12px">${gbtn(I.left)}<div class="title">Hummus naturel<small>Alleen deze keer · in Wrap lunch</small></div><span style="width:44px"></span></div><div class="body" style="flex:1;overflow:auto">` +
+	`<div class="lh" style="margin:6px 4px">PORTIE</div>` + card(`<div style="padding:10px 12px 2px"><div class="segc" style="margin:0 0 8px"><span class="on">Eetlepel · 15 g</span><span>100 g</span><span>Gram</span></div></div><div class="row plain" style="border-top:.5px solid var(--sep)"><span class="t">Aantal</span><span class="numf tnum">4</span></div>`) +
+	`<div class="chipsrow" style="padding:10px 0 0">${["½", "1", "2"].map((q) => `<span style="min-width:44px;text-align:center">${q}</span>`).join("")}</div>` + card(`<div style="padding:12px 16px"><b style="font-size:16px">4 eetlepels · 60 g</b><div style="color:var(--muted);font-size:13px">188 kcal · combo wordt 457 kcal</div></div>`, "margin-top:12px") +
+	`<div class="sec-f" style="margin:10px 4px 0">De combo zelf verandert niet. Om dit te bewaren: Combo bewerken.</div></div><div class="sfoot">${primaryBtn("Gebruik voor deze keer")}</div></div>`);
+
+/* ════════ Combo round 3 — reuse the Round 5 Diary Entry editor ════════ */
+const chk = (on) => `<button class="r5btn ${on ? "prom" : ""}">${small(I.check, 20)}</button>`;
+const r5Table = (cols, rows) => `<div class="r5tab"><div class="r5h"><span></span><span>${cols[0]}</span><span>${cols[1]}</span></div>${rows.map(([n, a, b], i) => `<div class="r5r"><span>${n}</span><span class="tnum" style="${i === 0 ? "font-weight:700" : ""}">${a}</span><span class="tnum m">${b}</span></div>`).join("")}</div>`;
+/** Mock of DiaryEntryEditorScreen's composition (branch t3code/entry-editor-redesign). */
+function r5Sheet({ title, dirty = false, qty, base, pill, pillMenu = true, product, sub = "Tik voor productgegevens", fv = "🫘", chevron = true, cols, rows, notes = [], extra = "", toolbarL = "", toolbarR = "", overlay = "", top = 60 }) {
+	return `<div class="dimmer"></div><div class="r5 dsheet" style="top:${top}px"><div class="grabber"></div>
+		<div class="r5head"><button class="r5btn">${small(I.x, 20)}</button><b>${title}</b>${chk(dirty)}</div>
+		<div class="r5body">
+		<div class="r5cap glass"><button>${small(I.minus, 26)}</button><div><b class="tnum">${qty}</b><small class="tnum">${base}</small></div><button>${small(I.plus, 26)}</button></div>
+		<div style="text-align:center;margin:14px 0 18px"><span class="r5pill glass">${pill}${pillMenu ? ` ${small(I.chev, 13)}` : ""}</span></div>
+		<div class="r5card"><div class="r5prod"><span class="fv" style="width:44px;height:44px;font-size:22px;border-radius:10px">${fv}</span><span class="t"><b>${product}</b><small>${sub}</small></span>${chevron ? `<span style="color:var(--text)">${small(I.right, 16)}</span>` : ""}</div>${r5Table(cols, rows)}</div>
+		${notes.map((n) => `<div class="sec-f" style="margin:10px 4px 0">${n}</div>`).join("")}${extra}<div style="height:90px"></div></div>
+		<div class="r5tb">${toolbarL}<span style="flex:1"></span>${toolbarR}</div></div>${overlay}`;
+}
+const r5Pill = (t, menu = true, style = "") => `<span class="r5pill glass" style="${style}">${t}${menu ? ` ${small(I.chev, 13)}` : ""}</span>`;
+const trashBtn = `<button class="r5btn" style="color:var(--danger);width:50px;height:50px">${small(I.trash, 20)}</button>`;
+const HUM_ROWS = (q) => { const f = q / 45; const r = (v) => (v * f).toFixed(1).replace(".", ","); return [["Energie", `${Math.round(313 * f * 0.45)} kcal`, "313 kcal"], ["Eiwitten", `${r(7.8 * 0.45)} g`, "7,8 g"], ["Koolhydraten", `${r(13.6 * 0.45)} g`, "13,6 g"], ["Vet", `${r(24.9 * 0.45)} g`, "24,9 g"]]; };
+const onEditor = (overlay) => libPage({ inner: editorA(), nav: comboNav2(), toolbar: "", overlay });
+
+/* §1 part in the combo */
+const partSheet = ({ qty = "3", grams = 45, dirty = false, overlay = "", total = "540 kcal" } = {}) => r5Sheet({
+	title: "Onderdeel bewerken", dirty, qty, base: `${grams} g`, pill: "Eetlepel (15 g)", product: "Hummus naturel", cols: ["Dit onderdeel", "100 g"], rows: HUM_ROWS(grams),
+	notes: [`Wrap lunch: ${dirty ? `<b>540 → ${total}</b>` : "540 kcal"}. Eerder gelogde maaltijden blijven zoals ze waren.`],
+	toolbarL: r5Pill(`${small(I.sync, 15)} Vervangen…`, false), toolbarR: trashBtn, overlay,
+});
+const P1 = () => onEditor(partSheet());
+const P2 = () => onEditor(partSheet({ qty: "2", grams: 30, dirty: true, total: "493 kcal" }));
+const servMenu = `<div class="menu glass" style="top:300px;left:72px;width:250px"><div class="mt">Porties</div><button><span class="chk" style="border:0;width:16px;color:var(--accent)">${small(I.check, 15)}</span><span>Eetlepel (15 g)</span></button><button><span style="width:16px"></span><span>Bakje (200 g)</span></button><hr><div class="mt">Persoonlijke maten</div><button><span style="width:16px"></span><span>Mijn soeplepel (20 g)</span></button><hr><button><span style="width:16px"></span><span>Gram</span></button><hr><button>${small(I.plus, 16)}<span>Nieuwe portie…</span></button></div>`;
+const P3 = () => onEditor(partSheet({ overlay: servMenu }));
+const P4 = () => onEditor(r5Sheet({
+	title: "Onderdeel bewerken", qty: "1", base: "62 g", pill: "Stuk (62 g)", fv: `<span style="color:var(--warn)">${I.warn}</span>`, product: "Tortillawrap volkoren", sub: "Bron ontbreekt · opgeslagen waarden", chevron: false,
+	cols: ["Dit onderdeel", "100 g"], rows: [["Energie", "130 kcal", "210 kcal"], ["Eiwitten", "4,3 g", "6,9 g"], ["Koolhydraten", "21,1 g", "34 g"], ["Vet", "2,9 g", "4,7 g"]],
+	notes: ["Het oorspronkelijke product is niet meer beschikbaar. De opgeslagen waarden blijven bruikbaar; andere porties kies je pas na vervangen."],
+	toolbarL: r5Pill(`${small(I.sync, 15)} Vervangen…`, false, "background:var(--accentFill);color:var(--onAccent)"), toolbarR: trashBtn,
+}));
+
+/* §2 log a combo */
+let C3SEL = new Set([1, 2, 3]);
+let C3Q = 1;
+const comboParts3 = () => `<div class="sh" style="margin:18px 4px 6px"><b>Onderdelen</b><span>voor deze keer</span></div>` + card(CPARTS.map((p, i) => partRow(p, { sel: C3SEL.has(i), scale: C3Q }).replace('<button class="qrow"', `<button class="qrow" ${p.miss ? "" : `data-c3="${i}"`}`)).join(""));
+function LogR5() {
+	const k = [...C3SEL].reduce((a, i) => a + CPARTS[i].k, 0);
+	const q = (v) => String(v).replace(".", ",");
+	return libPage({
+		inner: innerA(), toolbar: "",
+		overlay: r5Sheet({
+			title: "Combo loggen", dirty: true, qty: q(C3Q), base: "hele combo", pill: "Hele combo", pillMenu: false, fv: "🌯", product: "Wrap lunch", sub: `${C3SEL.size} van 4 onderdelen · tik om te bewerken`,
+			cols: ["Deze keer", "Hele combo"], rows: [["Energie", `${Math.round(k * C3Q)} kcal`, `${k} kcal`], ["Eiwitten", `${Math.round(32 * C3Q)} g`, "32 g"], ["Koolhydraten", `${Math.round(9 * C3Q)} g`, "9 g"], ["Vet", `${Math.round(27 * C3Q)} g`, "27 g"]],
+			extra: comboParts3() + `<div class="sec-f" style="margin:8px 4px 0">Vinkje = deze keer aan/uit; tik een onderdeel voor een andere hoeveelheid. Tortillawrap staat uit: de bron ontbreekt.</div>`,
+			toolbarL: r5Pill("Lunch") + r5Pill("Vandaag"),
+		}).replace(`<button>${small(I.minus, 26)}</button>`, `<button data-c3q="-0.5">${small(I.minus, 26)}</button>`).replace(`<button>${small(I.plus, 26)}</button>`, `<button data-c3q="0.5">${small(I.plus, 26)}</button>`),
+	});
+}
+const PartOnce3 = () => libPage({
+	inner: innerA(), toolbar: "",
+	overlay: r5Sheet({ title: "Combo loggen", dirty: true, qty: "1", base: "hele combo", pill: "Hele combo", pillMenu: false, fv: "🌯", product: "Wrap lunch", cols: ["Deze keer", "Hele combo"], rows: [["Energie", "410 kcal", "410 kcal"]], toolbarL: r5Pill("Lunch") + r5Pill("Vandaag") }) +
+		r5Sheet({ title: "Alleen deze keer", dirty: true, qty: "4", base: "60 g", pill: "Eetlepel (15 g)", product: "Hummus naturel", cols: ["Deze keer", "100 g"], rows: HUM_ROWS(60), notes: ["De combo zelf verandert niet. Combo deze keer: 410 → 457 kcal."], top: 110 }).replace('<div class="dimmer"></div>', '<div class="dimmer" style="z-index:31"></div>').replace('class="r5 dsheet"', 'class="r5 dsheet" style="z-index:32"'),
+});
+
+/* ════════ Combo editor — final ════════ */
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const CODE = {
+	editor: `// app/(app)/nutrition-combo/[id].tsx → features/nutrition/combo/combo-editor-screen.tsx
+// Edit in place: every confirmed change is one updateCombo; no edit mode, no Save.
+const combo = useCombo(id);
+const total = comboTotals(combo.parts);           // snapshot-based, exact even when a source is missing
+<Stack.Screen options={{ title: combo.name, headerLargeTitle: true,
+  headerRight: () => <ComboMenu onLog={() => router.push({ pathname: "/nutrition-combo-log", params: { id } })}
+    onRename={rename} onDuplicate={duplicate} onFavorite={toggleFavorite}
+    onRemoveMissing={combo.parts.some(missing) ? removeMissing : undefined} onDelete={confirmDelete} /> }} />
+<ComboSummary total={total} missing={combo.parts.filter(missing)} onResolve={openReplace} />
+<InsetList>
+  {combo.parts.map((part, index) => (
+    <InsetRow key={part.id} id={part.id} title={part.snapshot.name[locale]} secondary={servingLabel(part)}
+      value={kcal(part)} onPress={() => router.push({ pathname: "/nutrition-combo-part", params: { id, partId: part.id } })}
+      actions={[
+        { key: "portion", label: copy.portion, onPress: () => openPart(part) },
+        { key: "remove", label: copy.removePart, destructive: true, onPress: () => removePart(part) },
+        { key: "replace", label: copy.replace, swipe: false, onPress: () => openReplace(part) },
+        { key: "up", label: copy.moveUp, swipe: false, disabled: index === 0, onPress: () => move(part, -1) },
+        { key: "down", label: copy.moveDown, swipe: false, onPress: () => move(part, 1) },
+      ]} />
+  ))}
+  <AddRow label={copy.addPart} onPress={() => router.push({ pathname: "/nutrition-food", params: { target: \`combo:\${id}\` } })} />
+</InsetList>`,
+	part: `// features/nutrition/combo/combo-part-editor-screen.tsx — same composition as DiaryEntryEditorScreen.
+// Promote DiaryEntryQuantity(+Accessory) and DiaryEntryServingPopup to features/nutrition/components/
+// now that a second subject shares their contract (mobile-folder-structure.md).
+const draft = useComboPartEditor({ comboId, partId, purpose });   // purpose: "save" | "thisTimeOnly"
+<DiaryEntryQuantity value={draft.quantity} base={draft.baseLabel} onChange={draft.setQuantity} />
+<SelectionMenu value={draft.serving} groups={draft.servingGroups}            // servings · personal measures · base
+  onCreate={() => setCreating(true)} />                                       // → DiaryEntryServingPopup
+<Pressable onPress={() => router.push(foodDetails(draft.source))} disabled={!draft.source}>
+  <NutrientTable columns={[purpose === "save" ? copy.thisPart : copy.thisTime, draft.basisLabel]}
+    rows={draft.nutrients} />
+</Pressable>
+<AppText variant="footnote">{fmt(copy.comboTotal, { from: draft.comboBefore, to: draft.comboAfter })}</AppText>
+// Toolbar (purpose "save"): Vervangen… left, trash right. Purpose "thisTimeOnly": no toolbar.
+// ✓ = native prominent bar item when dirty (mobile-design.md); rescale from part.snapshot, never the live source.`,
+	log: `// app/(app)/nutrition-combo-log.tsx → features/nutrition/combo/combo-log-screen.tsx
+// Same editor composition; destination via the editor's own meal/date controls.
+const log = useComboLog({ comboId, meal: defaultMeal(now), date: today });
+<DiaryEntryQuantity value={log.scale} step={0.5} base={copy.wholeCombo} onChange={log.setScale} />
+<NutrientTable columns={[copy.thisTime, copy.wholeCombo]} rows={log.nutrients} />
+<ComboPartToggles parts={log.parts} onToggle={log.toggle}                    // existing partAdjustments
+  onOpen={(part) => openPart(part, "thisTimeOnly")} />                      // missing source: off + disabled
+<EditorToolbar left={<><MealMenu value={log.meal} onChange={log.setMeal} /><DiaryDatePicker value={log.date} onChange={log.setDate} /></>} />
+// ✓ → existing combo log (operations + group); closing without ✓ resets everything (no separate "Herstel").`,
+};
+const IMPL = (fixes, native, risks) => `<b>Fixes:</b> ${fixes}<br><b>Native:</b> ${native}<br><b>Risks:</b> ${risks}`;
+const SECTIONS = [
+	{ h: "1 · Combo-editor: bewerken op de plek", p: "Grote titel, totaal met macro's, en het probleem met de oorzaak (patroon samenvatting → bronnen). Onderdelen als rijen: tik = onderdeel bewerken (§2), vegen = Portie/Weghalen, lang indrukken = alles inclusief Vervangen… en Omhoog/Omlaag. Elke bevestigde wijziging wordt direct bewaard. ⋯ heeft Loggen… bovenaan.",
+		impl: IMPL("bewerken was alleen ‘ontbrekende onderdelen verwijderen’; geen naam, porties, volgorde of toevoegen.", "Nieuwe route <code>/nutrition-combo/[id]</code>; <code>InsetList</code>/<code>InsetRow</code> met <code>actions</code>; <code>personalFoods.updateCombo</code>; naam via <code>Alert.prompt</code> (Android: kleine sheet).", "Elke wijziging is een back-upoperatie; voeg snelle opeenvolgende wijzigingen samen of debounce ze. Een onderdeel zonder bron houdt zijn snapshot: het totaal blijft exact, alleen loggen wacht tot je vervangt, weghaalt of het voor deze keer uitzet."),
+		code: CODE.editor, phones: [["Combo", "state", EdA, ""], ["⋯", "state", ComboMore, ""], ["Geveegd", "state", PartSwipe, ""], ["Lang indrukken", "state", PartCtx, ""]] },
+	{ h: "2 · Onderdeel bewerken = de dagboekitem-editor", p: "Zelfde opbouw als ‘Item bewerken’ (entry-editor ronde 5, live op <code>t3code/entry-editor-redesign</code>): capsule, portiemenu met persoonlijke maten en Nieuwe portie…, productkaart met tabel. ✓ wordt gevuld zodra er iets verandert; onder de tabel staat het nieuwe combototaal. Toolbar: Vervangen… en de prullenbak (uit combo halen).",
+		impl: IMPL("een tweede portievenster; persoonlijke maten en nieuwe porties ontbraken bij combo's.", "<code>DiaryEntryQuantity</code>, <code>SelectionMenu</code>, <code>NutrientTable</code>, <code>DiaryEntryServingPopup</code>, <code>GlassSurface</code>, <code>FoodViewScreen</code>; nieuwe eigenaar <code>features/nutrition/combo/</code>. Capsule en popup verhuizen naar <code>features/nutrition/components/</code>.", "Rescale vanuit <code>part.snapshot</code>, niet vanuit de huidige bron (zelfde regel als bevroren dagboekhistorie). Zonder bron: alleen de opgeslagen portie, Vervangen… primair."),
+		code: CODE.part, phones: [["Schoon", "state", P1, ""], ["Aangepast", "state", P2, ""], ["Portiemenu", "state", P3, ""], ["Bron ontbreekt", "state", P4, ""]] },
+	{ h: "3 · Combo loggen", p: "Loggen… (combo-editor of bibliotheek) opent dezelfde editor: capsule in hele combo's (stap ½), Lunch ⌄ en Vandaag ⌄ in de toolbar, en ✓ logt. ‘Onderdelen voor deze keer’ zet onderdelen aan of uit; een tik opent §2 als ‘Alleen deze keer’, zonder toolbar. Er is geen losse ‘Herstel’: sluiten zonder ✓ zet alles terug. <b>Interactief.</b>",
+		impl: IMPL("de bestemming stond vast op ontbijt; abstracte ×-velden per onderdeel; tekst-vinkjes.", "Route <code>/nutrition-combo-log</code>; bestaande logica uit <code>nutrition-combos.tsx</code> (<code>partAdjustments</code>, schaal, <code>operations.group</code>) in <code>use-combo-log.ts</code>; maaltijd- en datumknoppen van de editor.", "Eerste ‘nieuw item’-flow in de nieuwe editoropbouw; Eten loggen gebruikt nog <code>ServingDetail</code>. <code>DiaryEntryQuantity</code> moet een stapgrootte accepteren. Het gestapelde ‘Alleen deze keer’: tweede formSheet of push binnen de sheet, verifieer op iOS."),
+		code: CODE.log, phones: [["Combo loggen", "state", LogR5, "Interactief."], ["Alleen deze keer", "state", PartOnce3, ""]] },
+	{ h: "4 · Toevoegen en vervangen", p: "Beide gebruiken Eten loggen met de combo als doel. Toevoegen: + voegt meteen toe met de standaardportie, met een toast en ongedaan maken. Vervangen zoekt op de oude naam en zet de keuze op dezelfde plek.",
+		impl: IMPL("toevoegen en vervangen bestonden niet.", "<code>NutritionFoodBrowser</code> met doelmodus <code>{ kind: \"combo\", comboId, replacePartId? }</code>; titel ‘Toevoegen’ of ‘Vervangen’; + roept <code>updateCombo</code> aan.", "Houd de doelmodus een smalle seam (ook gebruikt door ‘Zoek in Open Food Facts’ in de bibliotheek)."),
+		phones: [["Toevoegen", "state", AddPart, ""], ["Vervangen", "state", ReplacePart, ""]] },
+	{ h: "5 · Nieuwe combo", p: "Uit de selectie in de bibliotheek of het dagboek: naam en onderdelen in één sheet. Bewaar is pas actief met een naam. De opslagmelding staat er alleen als de back-up uit staat.",
+		impl: IMPL("de lange opslagmelding stond altijd bovenaan; combo maken kon alleen uit het dagboek.", "<code>NutritionComboBuilder</code> als formSheet met bron dagboekregels of bibliotheek-ids; <code>foods.backup.enabled</code>.", "Standaardportie voor bibliotheekitems: eerste <code>servings</code>, anders 100 g/ml."),
+		phones: [["Nieuwe combo", "state", () => NewCombo(false), ""], ["Zonder back-up", "state", () => NewCombo(true), ""]] },
+];
+
+const KINDS = { state: "Staat", rec: "Aanbevolen", alt: "Alternatief" };
+function render() {
+	const only = new URLSearchParams(location.search).get("s")?.split(",").map(Number);
+	const z = new URLSearchParams(location.search).get("z");
+	if (z) document.body.style.zoom = z;
+	if (only) document.querySelectorAll("section.guide").forEach((g) => (g.style.display = "none"));
+	const keep = document.getElementById("scrollA")?.scrollTop ?? 0;
+	document.getElementById("board").innerHTML = SECTIONS.filter((_, i) => !only || only.includes(i + 1)).map((s) => `<section class="sect"><h2>${s.h}</h2><p>${s.p}</p>${s.impl ? `<div class="impl">${s.impl}</div>` : ""}${s.code ? `<details class="code"><summary>Expo-implementatie (code)</summary><pre>${esc(s.code)}</pre></details>` : ""}<div class="phones">${s.phones.map(([n, k, fn, note]) => `<div class="dir"><div class="tag"><span class="kindlbl ${k}" style="margin-left:0">${KINDS[k]}</span></div><h2>${n}</h2><p class="pitch">${note}</p>${fn()}</div>`).join("")}</div></section>`).join("");
+	for (const el of document.querySelectorAll("[data-scroll]")) {
+		el.scrollTop = el.id === "scrollA" ? keep : +el.dataset.scroll;
+		if (el.id === "scrollSec") {
+			// Scroll so the Combo's title sits at y=330, then open its menu right under it.
+			const t = [...el.querySelectorAll(".sh")].find((x) => x.textContent.startsWith("Combo"));
+			if (t) el.scrollTop = t.offsetTop - 330;
+			el.parentElement.classList.add("collapsed");
+			const root = el.parentElement, k = root.getBoundingClientRect().height / root.offsetHeight;
+			const rel = (t.getBoundingClientRect().top - root.getBoundingClientRect().top) / k;
+			el.parentElement.querySelector(".menu").style.top = `${rel + 40}px`;
+		}
+		el.addEventListener("scroll", () => el.parentElement.classList.toggle("collapsed", el.scrollTop > 40));
+	}
+}
+document.addEventListener("click", (e) => {
+	const t = e.target.closest("[data-scope],[data-lsel],[data-lall],[data-act],[data-lscale],[data-lpart],[data-lreset],[data-c2],[data-c3],[data-c3q]"); if (!t) return;
+	if (t.dataset.lscale) { LOGSCALE = +t.dataset.lscale; render(); return; }
+	if (t.dataset.lpart) { const i = +t.dataset.lpart; LOGSEL.has(i) ? LOGSEL.delete(i) : LOGSEL.add(i); render(); return; }
+	if (t.dataset.c3) { const i = +t.dataset.c3; C3SEL.has(i) ? C3SEL.delete(i) : C3SEL.add(i); render(); return; }
+	if (t.dataset.c3q) { C3Q = Math.max(0.5, C3Q + +t.dataset.c3q); render(); return; }
+	if (t.dataset.c2) { const i = +t.dataset.c2; C2SEL.has(i) ? C2SEL.delete(i) : C2SEL.add(i); render(); return; }
+	if (t.dataset.lreset) { LOGSCALE = 1; LOGSEL = new Set([1, 2, 3]); render(); return; }
+	if (t.dataset.act === "lfocus") LFOCUS = true;
+	else if (t.dataset.act === "lblur") LFOCUS = false;
+	else if (t.dataset.scope) SCOPE = t.dataset.scope;
+	else if (t.dataset.lsel) SEL.has(t.dataset.lsel) ? SEL.delete(t.dataset.lsel) : SEL.add(t.dataset.lsel);
+	else if (t.dataset.lall) {
+		const k = t.dataset.lall, n = KINDS_.find(([kk]) => kk === k)[0] === "food" ? 4 : 3;
+		const ids = Array.from({ length: n }, (_, i) => `${k}:${i}`);
+		const all = ids.every((id) => SEL.has(id));
+		ids.forEach((id) => (all ? SEL.delete(id) : SEL.add(id)));
+	}
+	render();
+});
+for (const id of ["light", "dark"]) document.getElementById(id).addEventListener("click", () => {
+	document.body.classList.toggle("dark", id === "dark");
+	document.getElementById("light").setAttribute("aria-pressed", id === "light");
+	document.getElementById("dark").setAttribute("aria-pressed", id === "dark");
+});
+render();
+</script>
+</body>
+</html>
