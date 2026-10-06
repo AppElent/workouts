@@ -3,6 +3,8 @@
  * present in English and missing here fails typecheck, and a key here that
  * English does not have fails too.
  */
+
+import { comboEditorNl } from "./combo-editor";
 import type { en } from "./en";
 import { entryEditorNl } from "./entry-editor";
 import { exerciseLibraryNl } from "./exercise-library";
@@ -205,6 +207,7 @@ export const nl = {
 		week: weekReviewNl,
 		library: foodLibraryNl,
 		foodEditor: foodEditorNl,
+		comboEditor: comboEditorNl,
 		goalEditor: {
 			...goalEditorNl,
 			presets: {

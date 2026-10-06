@@ -27,9 +27,9 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
+import { NutritionListRow } from "../components/nutrition-list-row";
 import { NutritionMenu } from "../components/nutrition-menu";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
-import { LibraryRow } from "./components/library-row";
 import { LibrarySectionHeader } from "./components/library-section-header";
 import { LibrarySelectionActions } from "./components/library-selection-actions";
 import { LibraryToolbar } from "./components/library-toolbar";
@@ -109,8 +109,8 @@ export function LibraryScreen() {
 	const open = (item: LibraryItem) => {
 		if (item.kind === "combo")
 			router.push({
-				pathname: "/nutrition-combos",
-				params: { comboId: item.id, date: todayIsoDate() },
+				pathname: "/nutrition-combo/[id]",
+				params: { id: item.id },
 			});
 		else
 			router.push({
@@ -223,7 +223,7 @@ export function LibraryScreen() {
 						onPress: () =>
 							router.push({
 								pathname: "/nutrition-combos",
-								params: { comboId: item.id },
+								params: { comboId: item.id, date: todayIsoDate() },
 							}),
 					},
 					{
@@ -294,7 +294,7 @@ export function LibraryScreen() {
 		const energy = libraryEnergy(item, locale, copy);
 		const name = libraryItemName(item, locale);
 		return (
-			<LibraryRow
+			<NutritionListRow
 				key={itemKey(item)}
 				title={item.favorite ? `${name} ★` : name}
 				caption={libraryCaption(item, locale, copy)}

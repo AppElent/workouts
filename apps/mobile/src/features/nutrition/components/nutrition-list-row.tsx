@@ -1,19 +1,16 @@
 import { StyleSheet, View } from "react-native";
-import { spacing } from "../../../../theme";
-import { SwipeableRow } from "../../../../ui/swipeable-row";
-import {
-	FoodRowLayout,
-	foodCellCorners,
-} from "../../components/food-row-layout";
-import { LibraryRowLeading } from "./library-row-leading";
-import type { LibraryRowProps } from "./library-row-props";
+import { spacing } from "../../../theme";
+import { SwipeableRow } from "../../../ui/swipeable-row";
+import { FoodRowLayout, foodCellCorners } from "./food-row-layout";
+import { NutritionListRowLeading } from "./nutrition-list-row-leading";
+import type { NutritionListRowProps } from "./nutrition-list-row-props";
 
 /**
  * One library item (Android and tests; iOS has `library-row.ios.tsx`). Tap
  * opens it; swipe reveals Edit and Delete without committing; long press
  * shows the full set, which screen readers get as custom actions.
  */
-export function LibraryRow(props: LibraryRowProps) {
+export function NutritionListRow(props: NutritionListRowProps) {
 	const layout = (accessibility?: {
 		onLongPress?: () => void;
 		accessibilityActions?: readonly { name: string; label: string }[];
@@ -23,9 +20,9 @@ export function LibraryRow(props: LibraryRowProps) {
 	}) => (
 		<FoodRowLayout
 			leading={
-				<LibraryRowLeading selected={props.selected}>
+				<NutritionListRowLeading selected={props.selected}>
 					{props.leading}
-				</LibraryRowLeading>
+				</NutritionListRowLeading>
 			}
 			title={props.title}
 			caption={props.caption}

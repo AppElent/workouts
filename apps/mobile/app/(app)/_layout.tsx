@@ -326,6 +326,10 @@ export default function AppLayout() {
 															}}
 														/>
 														<Stack.Screen
+															name="nutrition-combo/[id]"
+															options={{ title: "" }}
+														/>
+														<Stack.Screen
 															name="personal-food/[id]"
 															options={{ title: "" }}
 														/>

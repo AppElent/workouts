@@ -12,11 +12,33 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
+import { usePersonalFoods } from "../../src/data/personal-foods";
+import { ComboNewScreen } from "../../src/features/nutrition/combo/combo-new-screen";
+import { comboPartFromFood } from "../../src/features/nutrition/combo/combo-parts";
 import { useI18n } from "../../src/i18n";
 import { NutritionComboBuilder } from "../../src/screens/nutrition-combos";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionComboNewRoute() {
+	const { foodIds } = useLocalSearchParams<{ foodIds?: string }>();
+	return foodIds ? (
+		<LibraryComboRoute foodIds={foodIds} />
+	) : (
+		<DiaryComboRoute />
+	);
+}
+
+/** From the library selection: parts at each food's default portion. */
+function LibraryComboRoute({ foodIds }: { foodIds: string }) {
+	const library = usePersonalFoods();
+	const parts = foodIds.split(",").flatMap((id) => {
+		const food = library.find(id);
+		return food ? [comboPartFromFood(food)] : [];
+	});
+	return <ComboNewScreen parts={parts} />;
+}
+
+function DiaryComboRoute() {
 	const { date, entryIds } = useLocalSearchParams<{
 		date?: string;
 		entryIds?: string;

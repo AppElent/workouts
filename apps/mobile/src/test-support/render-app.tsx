@@ -35,6 +35,7 @@ import * as LabsEntryRoute from "../../app/(app)/labs-entry";
 import * as LabsFoodRoute from "../../app/(app)/labs-food";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionAssistanceRoute from "../../app/(app)/nutrition-assistance";
+import * as NutritionComboRoute from "../../app/(app)/nutrition-combo/[id]";
 import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
 import * as NutritionCombosRoute from "../../app/(app)/nutrition-combos";
 import * as NutritionCookingRoute from "../../app/(app)/nutrition-cooking";
@@ -184,6 +185,7 @@ export function renderApp(
 			"nutrition-library": NutritionLibraryRoute as never,
 			"nutrition-library-attention": NutritionLibraryAttentionRoute as never,
 			"personal-food/[id]": PersonalFoodRoute as never,
+			"nutrition-combo/[id]": NutritionComboRoute as never,
 			"personal-food-new": PersonalFoodNewRoute as never,
 			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,

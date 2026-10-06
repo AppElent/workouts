@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import type { RowAction } from "../../../../ui/swipeable-row";
-import type { FoodRowPosition } from "../../components/food-row-layout";
+import type { RowAction } from "../../../ui/swipeable-row";
+import type { FoodRowPosition } from "./food-row-layout";
 
 /** One library item; shared by the iOS and the cross-platform row. */
-export interface LibraryRowProps {
+export interface NutritionListRowProps {
 	title: string;
 	caption: string;
 	/** "389 kcal" */

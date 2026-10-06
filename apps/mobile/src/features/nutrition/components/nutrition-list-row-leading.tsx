@@ -1,10 +1,10 @@
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { useTokens } from "../../../../theme";
+import { useTokens } from "../../../theme";
 
 /** In selection mode the row leads with a checkmark circle before its tile. */
-export function LibraryRowLeading({
+export function NutritionListRowLeading({
 	selected,
 	children,
 }: {

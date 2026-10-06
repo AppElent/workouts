@@ -104,6 +104,12 @@ function personalFoodDraft(name: string, energy: number): PersonalFoodDraft {
 	};
 }
 
+/** A library combo opens its editor; logging starts from its ⋯ menu. */
+async function openComboLog() {
+	fireEvent.press(await screen.findByLabelText("More"));
+	fireEvent.press(await screen.findByText("Log…"));
+}
+
 describe("Nutrition Combos", () => {
 	it("saves selected diary entries and replaces them with one Logged Combo", async () => {
 		const pendingApply = jest.fn(() => new Promise(() => undefined));
@@ -258,6 +264,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Morning Combo"));
+		await openComboLog();
 		fireEvent.press(screen.getByText("Dinner"));
 		fireEvent.press(screen.getByText("Log 1 part"));
 		await screen.findByText("Today");
@@ -305,6 +312,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Breakfast"));
+		await openComboLog();
 		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
 		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
 
@@ -340,6 +348,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Morning Combo"));
+		await openComboLog();
 		const wholeScale = screen.getByLabelText("Scale this Combo");
 		const partScale = screen.getByLabelText("Scale Oats");
 		fireEvent.changeText(wholeScale, "0.123456");
@@ -382,6 +391,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Breakfast"));
+		await openComboLog();
 		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
 		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
 		fireEvent.press(screen.getByLabelText("Exclude Oats"));
@@ -436,6 +446,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Current oats"));
+		await openComboLog();
 		fireEvent.press(screen.getByText("Log 1 part"));
 		await screen.findByText("Today");
 
@@ -473,6 +484,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Morning Combo"));
+		await openComboLog();
 
 		fireEvent.press(screen.getByText("Log 1 part"));
 		// The release-two service closes at the local SQLite acceptance boundary;
@@ -539,6 +551,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(
 			(await screen.findAllByText("Old breakfast")).at(-1) as never,
 		);
+		await openComboLog();
 
 		expect(screen.getByText("Needs attention")).toBeTruthy();
 		expect(screen.getByText("Log 1 part")).toBeDisabled();
@@ -578,6 +591,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(
 			(await screen.findAllByText("Available breakfast")).at(-1) as never,
 		);
+		await openComboLog();
 		expect(screen.getByText("Log 2 parts")).toBeDisabled();
 
 		fireEvent.press(screen.getByLabelText("Exclude Milk"));
@@ -615,6 +629,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		// The attention line names it too; the row is the last match.
 		fireEvent.press((await screen.findAllByText("Repair me")).at(-1) as never);
+		await openComboLog();
 
 		fireEvent.press(screen.getByText("Remove unavailable parts"));
 		expect(await screen.findByText("Remove unavailable parts?")).toBeTruthy();

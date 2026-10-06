@@ -7,20 +7,17 @@ import {
 } from "@expo/ui/swift-ui";
 import { Fragment } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
-import { spacing, useHostScheme, useTokens } from "../../../../theme";
-import { SwipeableRow } from "../../../../ui/swipeable-row";
-import {
-	FoodRowLayout,
-	foodCellCorners,
-} from "../../components/food-row-layout";
-import { LibraryRowLeading } from "./library-row-leading";
-import type { LibraryRowProps } from "./library-row-props";
+import { spacing, useHostScheme, useTokens } from "../../../theme";
+import { SwipeableRow } from "../../../ui/swipeable-row";
+import { FoodRowLayout, foodCellCorners } from "./food-row-layout";
+import { NutritionListRowLeading } from "./nutrition-list-row-leading";
+import type { NutritionListRowProps } from "./nutrition-list-row-props";
 
 /**
  * iOS: long press is the system context menu with the row lifted as its
  * preview (the diary's row contract); swipe reveals Edit and Delete only.
  */
-export function LibraryRow(props: LibraryRowProps) {
+export function NutritionListRow(props: NutritionListRowProps) {
 	const colors = useTokens();
 	const scheme = useHostScheme();
 	const cellWidth = useWindowDimensions().width - 2 * spacing.md;
@@ -32,9 +29,9 @@ export function LibraryRow(props: LibraryRowProps) {
 	}) => (
 		<FoodRowLayout
 			leading={
-				<LibraryRowLeading selected={props.selected}>
+				<NutritionListRowLeading selected={props.selected}>
 					{props.leading}
-				</LibraryRowLeading>
+				</NutritionListRowLeading>
 			}
 			title={props.title}
 			caption={props.caption}

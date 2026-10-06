@@ -96,6 +96,12 @@ beforeEach(() => {
 		);
 });
 
+/** A library combo opens its editor; logging starts from its ⋯ menu. */
+async function openComboLog() {
+	fireEvent.press(await screen.findByLabelText("More"));
+	fireEvent.press(await screen.findByText("Log…"));
+}
+
 describe("Nutrition navigation", () => {
 	it("returns a logged One-off Entry to its diary day", async () => {
 		// Keep the server write pending so the real local projection remains
@@ -365,6 +371,7 @@ describe("Nutrition navigation", () => {
 		fireEvent.press(await screen.findByText("Food library"));
 		fireEvent.press((await screen.findAllByText("Combos"))[0]);
 		fireEvent.press(await screen.findByText("Breakfast"));
+		await openComboLog();
 		await waitFor(() =>
 			expect(app.getSearchParams()).toMatchObject({
 				comboId: combo.id,
@@ -372,8 +379,11 @@ describe("Nutrition navigation", () => {
 			}),
 		);
 		testRouter.back();
-		await waitFor(() => expect(app.getSearchParams().comboId).toBeUndefined());
-		expect(app.getPathname()).toBe("/nutrition-library");
+		await waitFor(() =>
+			expect(app.getPathname()).toBe(`/nutrition-combo/${combo.id}`),
+		);
+		testRouter.back();
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-library"));
 		testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
