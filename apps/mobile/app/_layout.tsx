@@ -19,7 +19,13 @@ import "../src/feedback/sentry";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import * as Sentry from "@sentry/react-native";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import {
+	DarkTheme,
+	DefaultTheme,
+	Stack,
+	ThemeProvider,
+	useSegments,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -30,7 +36,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
-import { LocaleProvider } from "../src/i18n";
+import { configureFeedbackLanguage } from "../src/feedback/sentry";
+import { LocaleProvider, useI18n } from "../src/i18n";
 import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -116,7 +123,18 @@ function ThemedRoot() {
 
 function RootNavigator({ windowReady }: { windowReady: boolean }) {
 	const colors = useTokens();
-	const { isLoaded } = useAuth();
+	const { isLoaded, userId } = useAuth();
+	const screen = useSegments().join("/") || "/";
+	const { locale } = useI18n();
+	useEffect(() => {
+		Sentry.setTag("screen", screen);
+	}, [screen]);
+	useEffect(() => configureFeedbackLanguage(locale), [locale]);
+
+	useEffect(() => {
+		Sentry.setUser(isLoaded && userId ? { id: userId } : null);
+		return () => Sentry.setUser(null);
+	}, [isLoaded, userId]);
 
 	useEffect(() => {
 		if (isLoaded && windowReady) {

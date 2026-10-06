@@ -12,6 +12,7 @@ import { useAuth } from "@clerk/expo";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import type { ReactNode } from "react";
+import { instrumentConvexClient } from "../observability/convex";
 
 const CONVEX_URL = process.env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -24,9 +25,11 @@ if (!CONVEX_URL) {
 // unsavedChangesWarning is a beforeunload handler and opt-*out*: left unset,
 // the client reaches for `window.addEventListener`, which doesn't exist on
 // this runtime.
-const convex = new ConvexReactClient(CONVEX_URL, {
-	unsavedChangesWarning: false,
-});
+const convex = instrumentConvexClient(
+	new ConvexReactClient(CONVEX_URL, {
+		unsavedChangesWarning: false,
+	}),
+);
 
 export function AppConvexProvider({ children }: { children: ReactNode }) {
 	// `useAuth` here comes from `@clerk/expo` (Clerk Core 3) while the web

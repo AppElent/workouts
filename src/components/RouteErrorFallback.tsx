@@ -1,7 +1,9 @@
 import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import { EmptyState } from "#/components/ui/empty-state";
+import { reportError } from "#/lib/observability/errors";
 
 /**
  * Default route-level error boundary: explains the failure and offers a
@@ -16,6 +18,8 @@ import { EmptyState } from "#/components/ui/empty-state";
  */
 export function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
 	const router = useRouter();
+	if (router.isServer) reportError(error, "route.render");
+	useEffect(() => reportError(error, "route.render"), [error]);
 	return (
 		<div className="mx-auto max-w-md p-6">
 			<EmptyState
