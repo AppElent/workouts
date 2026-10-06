@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/clerk-react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { instrumentConvexClient } from "#/lib/observability/convex";
 
 // biome-ignore lint/suspicious/noExplicitAny: import.meta.env not typed outside Vite context
 const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL;
@@ -17,7 +18,8 @@ export default function AppConvexProvider({
 	if (!CONVEX_URL) {
 		throw new Error("missing env var VITE_CONVEX_URL");
 	}
-	if (!convexClient) convexClient = new ConvexReactClient(CONVEX_URL);
+	if (!convexClient)
+		convexClient = instrumentConvexClient(new ConvexReactClient(CONVEX_URL));
 	return (
 		<ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
 			{children}

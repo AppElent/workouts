@@ -18,7 +18,8 @@
 		"test": "jest",
 		"eas-build-pre-install": "node ./scripts/eas-build-pre-install.mjs",
 		"preview:ios:build": "eas build --platform ios --profile preview --clear-cache --auto-submit",
-		"preview:ios:update": "eas update --platform ios --channel preview --environment preview"
+		"preview:ios:update": "node scripts/publish-update.mjs --platform ios --channel preview --environment preview",
+		"update:publish": "node scripts/publish-update.mjs"
 	},
 	"dependencies": {
 		"@appelent/i18n": "^0.2.0",

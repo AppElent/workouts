@@ -14,6 +14,7 @@
  * to `@appelent/auth`'s account panel. The phone keeps its own screen.
  */
 import { useAuth } from "@clerk/expo";
+import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useI18n } from "../i18n";
@@ -23,8 +24,10 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../theme";
+import { GhostButton } from "../ui/button";
 import { Eyebrow, StatBox } from "../ui/coach";
 import { AppText } from "../ui/text";
+import { useToast } from "../ui/toast";
 
 export function ProfileScreen() {
 	const { preference } = useAppearance();
@@ -33,6 +36,7 @@ export function ProfileScreen() {
 	const { signOut } = useAuth();
 	const router = useRouter();
 	const { t, locale } = useI18n();
+	const toast = useToast();
 
 	return (
 		<ScrollView
@@ -113,6 +117,16 @@ export function ProfileScreen() {
 				</Pressable>
 			</View>
 
+			<GhostButton
+				label={t.feedback.report}
+				onPress={() => {
+					try {
+						Sentry.showFeedbackForm();
+					} catch {
+						toast.error(t.feedback.trigger);
+					}
+				}}
+			/>
 			<Pressable onPress={() => signOut()} style={styles.signOutBtn}>
 				<AppText style={styles.signOutText}>Sign out</AppText>
 			</Pressable>

@@ -17,6 +17,25 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// Tests exercise telemetry calls without loading native Sentry or sending data.
+jest.mock("@sentry/react-native", () => ({
+	init: jest.fn(),
+	wrap: (component: unknown) => component,
+	setTag: jest.fn(),
+	showFeedbackForm: jest.fn(),
+	setUser: jest.fn(),
+	captureException: jest.fn(),
+	logger: { error: jest.fn() },
+	startSpan: jest.fn((_options, callback) => callback()),
+	expoRouterIntegration: jest.fn(() => ({ name: "ExpoRouter" })),
+	feedbackIntegration: jest.fn(() => ({
+		name: "Feedback",
+		options: {},
+		screenshotButtonOptions: {},
+	})),
+	mobileReplayIntegration: jest.fn(() => ({ name: "MobileReplay" })),
+}));
+
 // Expo UI is native-only. These thin host shims keep tests focused on the
 // React contract (callbacks, roles and presentation options), not SwiftUI.
 jest.mock("@expo/ui/swift-ui", () => {

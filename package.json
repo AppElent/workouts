@@ -39,7 +39,8 @@
     "env:check": "node scripts/env.mjs check",
     "env:plan": "node scripts/env.mjs plan",
     "env:apply": "node scripts/env.mjs apply",
-    "env:generate": "node scripts/env.mjs generate"
+    "env:generate": "node scripts/env.mjs generate",
+    "sentry:convex": "node scripts/convex-sentry.mjs"
   },
   "dependencies": {
     "@appelent/auth": "^0.2.0",
@@ -49,6 +50,9 @@
     "@clerk/clerk-react": "^5.61.8",
     "@convex-dev/react-query": "0.1.0",
     "@modelcontextprotocol/sdk": "1.29.0",
+    "@sentry/cloudflare": "11.0.0",
+    "@sentry/node": "11.0.0",
+    "@sentry/react": "11.0.0",
     "@tailwindcss/vite": "^4.3.2",
     "@tanstack/react-devtools": "^0.10.8",
     "@tanstack/react-form": "^1.33.1",
@@ -77,6 +81,7 @@
     "@biomejs/biome": "2.5.3",
     "@cloudflare/vite-plugin": "^1.44.0",
     "@edge-runtime/vm": "^5.0.0",
+    "@sentry/vite-plugin": "5.4.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "^0.8.1",
     "@testing-library/dom": "^10.4.1",

@@ -20,6 +20,9 @@ jobs:
       WORKER_NAME: workouts-pr-${{ github.event.pull_request.number }}
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
+      VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      VITE_SENTRY_ENVIRONMENT: preview
     steps:
       - uses: actions/checkout@v4
 
