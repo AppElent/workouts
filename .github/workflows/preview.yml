@@ -44,6 +44,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Core exports compiled files; fresh preview runners have no dist cache.
+      - run: pnpm build:packages
+
       # Convex provisions/refreshes preview backend pr-<N>, exposes its URL as
       # $CONVEX_URL inside --cmd, runs the build (we bridge CONVEX_URL ->
       # VITE_CONVEX_URL since the app reads VITE_CONVEX_URL at build time), then
@@ -129,6 +132,9 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
 
       - run: pnpm install --frozen-lockfile
+
+      # Core exports compiled files; fresh preview runners have no dist cache.
+      - run: pnpm build:packages
 
       - name: Delete Worker
         env:
