@@ -78,17 +78,12 @@ describe("the app's language", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition-goals");
 
+		fireEvent.press(await screen.findByText("Zelf instellen"));
+		fireEvent.changeText(await screen.findByLabelText("Energie maximum"), "0");
+		fireEvent.press(screen.getByLabelText("Doelen opslaan"));
 		expect(
-			await screen.findByLabelText("Energie Maximum Dagelijkse hoeveelheid"),
+			await screen.findByText("Vul een getal groter dan nul in."),
 		).toBeTruthy();
-		expect(screen.getByText("Referentie-inname")).toBeTruthy();
-		fireEvent.changeText(
-			screen.getByLabelText("Energie Minimum Dagelijkse hoeveelheid"),
-			"0",
-		);
-		fireEvent.press(screen.getByText("Doelen opslaan"));
-		expect(
-			await screen.findAllByText("Voer een getal groter dan nul in."),
-		).toHaveLength(2);
+		expect(screen.getByText("1 doel klopt niet")).toBeTruthy();
 	});
 });

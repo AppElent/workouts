@@ -6,7 +6,7 @@ import { useI18n } from "../../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../../theme";
 import { GlassSurface } from "../../../../ui/glass-surface";
 import { AppText } from "../../../../ui/text";
-import { DiaryEntryKeyboardOverlay } from "./diary-entry-keyboard-overlay";
+import { NutritionKeyboardOverlay } from "../../components/nutrition-keyboard-overlay";
 
 /** Round 5 replacement entry: an empty editing buffer never erases the saved draft. */
 export function DiaryEntryQuantity({
@@ -156,7 +156,7 @@ export function DiaryEntryQuantityAccessory({
 		Keyboard.dismiss();
 	}
 	return (
-		<DiaryEntryKeyboardOverlay>
+		<NutritionKeyboardOverlay>
 			{visible && (
 				<View
 					style={{
@@ -220,6 +220,6 @@ export function DiaryEntryQuantityAccessory({
 					</GlassSurface>
 				</View>
 			)}
-		</DiaryEntryKeyboardOverlay>
+		</NutritionKeyboardOverlay>
 	);
 }

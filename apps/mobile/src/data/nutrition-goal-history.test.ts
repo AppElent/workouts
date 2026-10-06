@@ -4,7 +4,12 @@ import {
 	emptyGoalDraft,
 	goalDraftEquals,
 	goalHistoryLabel,
+	goalKind,
 	parseGoalNumber,
+	referenceGoalTarget,
+	setGoalKind,
+	withGoal,
+	withoutGoal,
 } from "./nutrition-goal-history";
 
 describe("nutrition goal history helpers", () => {
@@ -61,5 +66,33 @@ describe("nutrition goal history helpers", () => {
 				locale: "nl",
 			}),
 		).toContain("2026-09-12");
+	});
+
+	it("reads the kind of a goal from which bounds are filled", () => {
+		const draft = emptyGoalDraft();
+		draft.energy = { min: "2300", max: "2700" };
+		draft.protein = { min: "120", max: "" };
+		draft.fat = { min: "", max: "80" };
+		expect(goalKind(draft.energy)).toBe("range");
+		expect(goalKind(draft.protein)).toBe("min");
+		expect(goalKind(draft.fat)).toBe("max");
+		expect(goalKind(draft.salt)).toBeNull();
+	});
+
+	it("changes a goal's kind and keeps the number the user had", () => {
+		const draft = emptyGoalDraft();
+		draft.protein = { min: "120", max: "" };
+		const range = setGoalKind(draft, "protein", "range");
+		expect(range.protein).toEqual({ min: "120", max: "120" });
+		const max = setGoalKind(range, "protein", "max");
+		expect(max.protein).toEqual({ min: "", max: "120" });
+		expect(draft.protein).toEqual({ min: "120", max: "" });
+	});
+
+	it("adds a nutrient with its default direction and reference value", () => {
+		expect(referenceGoalTarget("saturatedFat")).toBe(20);
+		const draft = withGoal(emptyGoalDraft(), "fibre");
+		expect(draft.fibre).toEqual({ min: "25", max: "" });
+		expect(withoutGoal(draft, "fibre").fibre).toEqual({ min: "", max: "" });
 	});
 });

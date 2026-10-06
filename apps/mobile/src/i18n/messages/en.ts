@@ -1,5 +1,6 @@
 import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
+import { goalEditorEn } from "./goal-editor";
 /**
  * The phone's words, in the source language.
  *
@@ -209,18 +210,7 @@ export const en = {
 			},
 		},
 		goalEditor: {
-			title: "Your nutrition goals",
-			intro:
-				"Choose a static starting point or set any minimum or maximum yourself. These values do not use Activity or body data.",
-			loading: "Loading goals",
-			amount: "Daily amount",
-			remove: "Remove",
-			save: "Save goals",
-			saving: "Saving goals…",
-			validation: "Enter an amount greater than zero.",
-			failure: "Your goals could not be saved. Your changes are still here.",
-			edited: "{count} edited",
-			directions: { min: "Minimum", max: "Maximum" },
+			...goalEditorEn,
 			presets: {
 				reference: {
 					name: "Reference intake",

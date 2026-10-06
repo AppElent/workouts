@@ -10,7 +10,7 @@ import {
 } from "react-native";
 
 /** Sheets share the screen's bottom edge, even when iOS expands a detent for typing. */
-export function DiaryEntryKeyboardOverlay({
+export function NutritionKeyboardOverlay({
 	children,
 }: {
 	children: ReactNode;

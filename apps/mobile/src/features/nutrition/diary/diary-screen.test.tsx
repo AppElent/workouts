@@ -359,7 +359,7 @@ describe("the nutrition day", () => {
 		fireEvent.press(screen.getByText("Edit"));
 
 		expect(
-			await screen.findByText(shiftIsoDate(todayIsoDate(), -1)),
+			await screen.findByText(/Also applies to .* through today\./),
 		).toBeTruthy();
 	});
 
@@ -397,7 +397,7 @@ describe("the nutrition day", () => {
 			{ nativeEvent: { actionName: "edit" } },
 		);
 
-		expect(await screen.findByLabelText("Protein Edit goals")).toBeTruthy();
+		expect(await screen.findByLabelText("Protein minimum")).toBeTruthy();
 	});
 
 	it("gives each meal slot's icon-only plus a spoken name", async () => {

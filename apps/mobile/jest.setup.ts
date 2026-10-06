@@ -237,11 +237,13 @@ jest.mock("@expo/ui/swift-ui", () => {
 			isOn,
 			onIsOnChange,
 			modifiers,
+			children,
 		}: {
 			label?: string;
 			isOn?: boolean;
 			onIsOnChange?: (value: boolean) => void;
 			modifiers?: { type: string; args: unknown[] }[];
+			children?: React.ReactNode;
 		}) =>
 			React.createElement(
 				Pressable,
@@ -252,7 +254,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 					disabled: Boolean(modifierArg(modifiers, "disabled")),
 					onPress: () => onIsOnChange?.(!isOn),
 				},
-				React.createElement(Text, null, label),
+				label === undefined ? children : React.createElement(Text, null, label),
 			),
 		Button: ({
 			label,

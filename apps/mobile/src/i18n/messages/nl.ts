@@ -6,6 +6,7 @@
 import type { en } from "./en";
 import { entryEditorNl } from "./entry-editor";
 import { exerciseLibraryNl } from "./exercise-library";
+import { goalEditorNl } from "./goal-editor";
 
 export const nl = {
 	diaryEntry: entryEditorNl,
@@ -199,19 +200,7 @@ export const nl = {
 			},
 		},
 		goalEditor: {
-			title: "Jouw voedingsdoelen",
-			intro:
-				"Kies een statisch startpunt of stel zelf een minimum of maximum in. Deze waarden gebruiken geen Activiteit- of lichaamsgegevens.",
-			loading: "Doelen worden geladen",
-			amount: "Dagelijkse hoeveelheid",
-			remove: "Verwijderen",
-			save: "Doelen opslaan",
-			saving: "Doelen opslaan…",
-			validation: "Vul een hoeveelheid groter dan nul in.",
-			failure:
-				"Je doelen konden niet worden opgeslagen. Je wijzigingen staan er nog.",
-			edited: "{count} bewerkt",
-			directions: { min: "Minimum", max: "Maximum" },
+			...goalEditorNl,
 			presets: {
 				reference: {
 					name: "Referentie-inname",
@@ -362,8 +351,7 @@ export const nl = {
 				value: "Hoeveelheid",
 			},
 			servings: "Porties",
-			servingsHelp:
-				"Voeg bekende hoeveelheden in de basiseenheid toe.",
+			servingsHelp: "Voeg bekende hoeveelheden in de basiseenheid toe.",
 			englishLabel: "Engels label",
 			dutchLabel: "Nederlands label",
 			amountIn: "hoeveelheid in",

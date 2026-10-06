@@ -278,7 +278,12 @@ export default function AppLayout() {
 														/>
 														<Stack.Screen
 															name="nutrition-goals"
-															options={{ title: t.nutrition.goalEditor.title }}
+															options={{
+																title: t.nutrition.goalEditor.title,
+																presentation: "formSheet",
+																sheetAllowedDetents: [1],
+																sheetGrabberVisible: true,
+															}}
 														/>
 														<Stack.Screen
 															name="nutrition-cooking"

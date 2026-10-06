@@ -37,9 +37,7 @@ describe("a day with no goals", () => {
 
 		fireEvent.press(screen.getByText("Set up goals"));
 
-		expect(
-			await screen.findByLabelText("Energy Maximum Daily amount"),
-		).toBeTruthy();
+		expect(await screen.findByText("Choose a starting point")).toBeTruthy();
 	});
 
 	it("still shows every nutrient, since none of them is targeted", async () => {

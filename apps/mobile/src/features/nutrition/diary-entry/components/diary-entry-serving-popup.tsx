@@ -15,7 +15,7 @@ import { radius, spacing, type, useTokens } from "../../../../theme";
 import { GlassSurface } from "../../../../ui/glass-surface";
 import { Segmented } from "../../../../ui/segmented";
 import { AppText } from "../../../../ui/text";
-import { DiaryEntryKeyboardOverlay } from "./diary-entry-keyboard-overlay";
+import { NutritionKeyboardOverlay } from "../../components/nutrition-keyboard-overlay";
 
 export function DiaryEntryServingPopup({
 	food,
@@ -265,5 +265,5 @@ export function DiaryEntryServingPopup({
 			)}
 		</GlassSurface>
 	);
-	return <DiaryEntryKeyboardOverlay>{card}</DiaryEntryKeyboardOverlay>;
+	return <NutritionKeyboardOverlay>{card}</NutritionKeyboardOverlay>;
 }
