@@ -5,19 +5,19 @@ import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, TextInput, View } from "react-native";
 import { z } from "zod";
-import { api } from "../../../../convex/api";
-import { useNutritionOperations } from "../../../../data/nutrition-operation-service";
-import { usePersonalFoods } from "../../../../data/personal-foods";
-import { usePersonalMeasureActions } from "../../../../data/personal-measures";
-import type { useSupplementaryServings } from "../../../../data/supplementary-servings";
-import { fmt, useI18n } from "../../../../i18n";
-import { radius, spacing, type, useTokens } from "../../../../theme";
-import { GlassSurface } from "../../../../ui/glass-surface";
-import { Segmented } from "../../../../ui/segmented";
-import { AppText } from "../../../../ui/text";
-import { NutritionKeyboardOverlay } from "../../components/nutrition-keyboard-overlay";
+import { api } from "../../../convex/api";
+import { useNutritionOperations } from "../../../data/nutrition-operation-service";
+import { usePersonalFoods } from "../../../data/personal-foods";
+import { usePersonalMeasureActions } from "../../../data/personal-measures";
+import type { useSupplementaryServings } from "../../../data/supplementary-servings";
+import { fmt, useI18n } from "../../../i18n";
+import { radius, spacing, type, useTokens } from "../../../theme";
+import { GlassSurface } from "../../../ui/glass-surface";
+import { Segmented } from "../../../ui/segmented";
+import { AppText } from "../../../ui/text";
+import { NutritionKeyboardOverlay } from "./nutrition-keyboard-overlay";
 
-export function DiaryEntryServingPopup({
+export function AmountServingPopup({
 	food,
 	name,
 	unit,

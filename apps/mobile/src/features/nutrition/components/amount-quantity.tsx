@@ -2,14 +2,14 @@ import { formatQuantity } from "@workouts/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Keyboard, Pressable, TextInput, View } from "react-native";
-import { useI18n } from "../../../../i18n";
-import { radius, spacing, type, useTokens } from "../../../../theme";
-import { GlassSurface } from "../../../../ui/glass-surface";
-import { AppText } from "../../../../ui/text";
-import { NutritionKeyboardOverlay } from "../../components/nutrition-keyboard-overlay";
+import { useI18n } from "../../../i18n";
+import { radius, spacing, type, useTokens } from "../../../theme";
+import { GlassSurface } from "../../../ui/glass-surface";
+import { AppText } from "../../../ui/text";
+import { NutritionKeyboardOverlay } from "./nutrition-keyboard-overlay";
 
 /** Round 5 replacement entry: an empty editing buffer never erases the saved draft. */
-export function DiaryEntryQuantity({
+export function AmountQuantity({
 	value,
 	amount,
 	unit,
@@ -140,7 +140,7 @@ export function DiaryEntryQuantity({
 }
 
 /** Above-keyboard presets share the same safe host boundary as serving creation. */
-export function DiaryEntryQuantityAccessory({
+export function AmountQuantityAccessory({
 	baseUnitSelected,
 	visible,
 	onChange,
