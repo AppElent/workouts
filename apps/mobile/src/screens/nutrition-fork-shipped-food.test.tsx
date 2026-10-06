@@ -21,17 +21,17 @@ import { renderApp } from "../test-support/render-app";
 const mockUseMutation = jest.mocked(useMutation);
 
 /** Open Find Food for a meal and start correcting the promoted apple. */
-async function correctTheApple(meal = "Lunch", allFoods = "Full catalogue") {
+async function correctTheApple(meal = "Lunch", allFoods = "Catalogue") {
 	fireEvent.press(await screen.findByLabelText(`Add food to ${meal}`));
 	fireEvent.press(await screen.findByRole("tab", { name: allFoods }));
 	fireEvent.changeText(
 		screen.getByPlaceholderText(
-			allFoods === "Volledige lijst" ? "Zoek eten" : "Search foods",
+			allFoods === "Catalogus" ? "Zoek eten" : "Search foods",
 		),
-		allFoods === "Volledige lijst" ? "appel" : "apple",
+		allFoods === "Catalogus" ? "appel" : "apple",
 	);
 	fireEvent.press(
-		await screen.findByText(allFoods === "Volledige lijst" ? "Appel" : "Apple"),
+		await screen.findByText(allFoods === "Catalogus" ? "Appel" : "Apple"),
 	);
 	fireEvent.press(await screen.findByText("Correct this food"));
 }
@@ -184,7 +184,7 @@ describe("what a correction does to the diary", () => {
 		);
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(await screen.findByRole("tab", { name: "Full catalogue" }));
+		fireEvent.press(await screen.findByRole("tab", { name: "Catalogue" }));
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		fireEvent.press(await screen.findByText("Apple"));
 		fireEvent.press(screen.getByText("Add & continue"));
@@ -248,9 +248,7 @@ describe("correcting a shipped food in Dutch", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition");
 		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
-		fireEvent.press(
-			await screen.findByRole("tab", { name: "Volledige lijst" }),
-		);
+		fireEvent.press(await screen.findByRole("tab", { name: "Catalogus" }));
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
 		fireEvent.press(await screen.findByText("Appel"));
 
@@ -263,7 +261,7 @@ describe("correcting a shipped food in Dutch", () => {
 		).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Sluit portiekeuze"));
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
-		fireEvent.press(screen.getByRole("tab", { name: "Volledige lijst" }));
+		fireEvent.press(screen.getByRole("tab", { name: "Catalogus" }));
 
 		expect(
 			await screen.findByText("Vervangen door jouw correctie"),

@@ -23,17 +23,33 @@ import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 type ToastKind = "error" | "success";
-type Toast = { id: number; kind: ToastKind; message: string };
+
+/** One follow-up, such as undo, for a change the person may not have meant. */
+export type ToastAction = { label: string; onPress: () => void };
+type ToastOptions = { action?: ToastAction };
+type Toast = {
+	id: number;
+	kind: ToastKind;
+	message: string;
+	action?: ToastAction;
+};
 
 type ToastApi = {
-	error: (message: string) => void;
-	success: (message: string) => void;
+	error: (message: string, options?: ToastOptions) => void;
+	success: (message: string, options?: ToastOptions) => void;
 };
 
 const ToastContext = createContext<ToastApi | null>(null);
 
 /** Long enough to read a sentence, short enough not to sit in the way. */
 const DISMISS_MS = 4000;
+/** An action needs time to be found and reached, not just read. */
+const ACTION_DISMISS_MS = 6000;
+/**
+ * A toast with an action sits low, in thumb reach above the bottom toolbar,
+ * because it asks for a tap; a plain one stays at the top, out of the way.
+ */
+const BOTTOM_TOOLBAR_CLEARANCE = 64;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
 	const styles = useThemedStyles(createStyles);
@@ -44,13 +60,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 	// inheriting the remainder of the first one's.
 	useEffect(() => {
 		if (!toast) return;
-		const timer = setTimeout(() => setToast(null), DISMISS_MS);
+		const timer = setTimeout(
+			() => setToast(null),
+			toast.action ? ACTION_DISMISS_MS : DISMISS_MS,
+		);
 		return () => clearTimeout(timer);
 	}, [toast]);
 
 	const api = useMemo<ToastApi>(() => {
-		const push = (kind: ToastKind) => (message: string) =>
-			setToast({ id: Date.now(), kind, message });
+		const push =
+			(kind: ToastKind) => (message: string, options?: ToastOptions) =>
+				setToast({ id: Date.now(), kind, message, action: options?.action });
 		return { error: push("error"), success: push("success") };
 	}, []);
 
@@ -59,7 +79,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 			{children}
 			{toast ? (
 				<View
-					style={[styles.wrap, { top: insets.top + spacing.sm }]}
+					style={[
+						styles.wrap,
+						toast.action
+							? { bottom: insets.bottom + BOTTOM_TOOLBAR_CLEARANCE }
+							: { top: insets.top + spacing.sm },
+					]}
 					pointerEvents="box-none"
 				>
 					<Pressable
@@ -68,12 +93,33 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 						onPress={() => setToast(null)}
 						style={[
 							styles.toast,
+							toast.action && styles.withAction,
 							toast.kind === "error" ? styles.error : styles.success,
 						]}
 					>
-						<AppText variant="body" style={styles.text}>
+						<AppText
+							variant="body"
+							style={[styles.text, toast.action && styles.message]}
+						>
 							{toast.message}
 						</AppText>
+						{toast.action ? (
+							<Pressable
+								accessibilityRole="button"
+								accessibilityLabel={toast.action.label}
+								hitSlop={8}
+								onPress={() => {
+									const action = toast.action;
+									setToast(null);
+									action?.onPress();
+								}}
+								style={styles.action}
+							>
+								<AppText variant="body" style={styles.actionText}>
+									{toast.action.label}
+								</AppText>
+							</Pressable>
+						) : null}
 					</Pressable>
 				</View>
 			) : null}
@@ -110,4 +156,18 @@ const createStyles = (colors: Tokens) =>
 			borderColor: colors.accent,
 		},
 		text: { color: colors.text },
+		withAction: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingVertical: spacing.xs,
+			paddingRight: spacing.xs,
+		},
+		message: { flex: 1 },
+		action: {
+			minHeight: 44,
+			justifyContent: "center",
+			paddingHorizontal: spacing.sm,
+		},
+		actionText: { color: colors.accentInk, fontWeight: "700" },
 	});

@@ -407,9 +407,8 @@ describe("the nutrition day", () => {
 		fireEvent.press(screen.getByLabelText("Add food to Lunch"));
 
 		expect(
-			(await screen.findByRole("radio", { name: "Lunch" })).props
-				.accessibilityState,
-		).toMatchObject({ checked: true });
+			(await screen.findAllByLabelText(/^Logging into Lunch, /)).length,
+		).toBeGreaterThan(0);
 	});
 
 	it("explains an empty meal slot rather than leaving it blank", async () => {

@@ -1,9 +1,9 @@
 import { useMutation } from "convex/react";
 import { PermissionStatus, useCameraPermissions } from "expo-camera";
-import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { foodPhotos } from "../data/food-photo-manager";
-import type { FetchLike } from "../data/open-food-facts";
-import { renderApp } from "../test-support/render-app";
+import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { foodPhotos } from "../../../../data/food-photo-manager";
+import type { FetchLike } from "../../../../data/open-food-facts";
+import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
 const mockUseCameraPermissions = jest.mocked(useCameraPermissions);
@@ -240,12 +240,81 @@ describe("scanning a barcode", () => {
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
 	});
 
+	it("offers next steps for an unknown barcode instead of an error", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, { status: 0 }),
+		);
+		renderApp("/nutrition", {}, fetchImpl);
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
+		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+
+		expect(await screen.findByText("Barcode not found")).toBeTruthy();
+		expect(screen.getByText("5000112637922")).toBeTruthy();
+		expect(screen.getByText("New Personal Food")).toBeTruthy();
+		expect(screen.getByText("Search by name")).toBeTruthy();
+		expect(screen.getByText("Scan again")).toBeTruthy();
+	});
+
+	it("links an unknown barcode to the Personal Food picked by name, so the next scan finds it", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, { status: 0 }),
+		);
+		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		repository.create({
+			name: { en: "Mum's pasta", nl: "Pasta van mama" },
+			baseUnit: "g",
+			servings: [],
+			nutrients: {
+				energy: { kind: "value", amount: 150 },
+				protein: { kind: "absent" },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
+		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		fireEvent.press(await screen.findByText("Search by name"));
+
+		expect(
+			await screen.findByText(
+				"Choose one of your own foods for barcode 5000112637922",
+			),
+		).toBeTruthy();
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "pasta");
+		fireEvent.press(await screen.findByText("Mum's pasta"));
+		expect(
+			await screen.findByText("Barcode linked to Mum's pasta"),
+		).toBeTruthy();
+		expect(repository.findByBarcode("5000112637922")?.name.en).toBe(
+			"Mum's pasta",
+		);
+	});
+
+	it("creates a Personal Food with the unknown barcode already filled in", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, { status: 0 }),
+		);
+		renderApp("/nutrition", {}, fetchImpl);
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.press(screen.getByLabelText("Scan barcode"));
+		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		fireEvent.press(await screen.findByText("New Personal Food"));
+
+		expect(await screen.findByLabelText("Name")).toBeTruthy();
+	});
+
 	it.each([
-		[
-			"an unknown barcode",
-			() => jsonResponse(200, { status: 0 }),
-			"No product was found for this barcode.",
-		],
 		[
 			"a rate limit",
 			() => jsonResponse(429, {}),
@@ -296,62 +365,154 @@ describe("scanning a barcode", () => {
 	});
 });
 
-describe("the explicit Open Food Facts search", () => {
-	it("shows downtime inline, preserves the query, and allows retry", async () => {
+/** Submits the search field, as the keyboard's Search key does. */
+function submitSearch(query: string) {
+	const field = screen.getByPlaceholderText("Search foods");
+	fireEvent.changeText(field, query);
+	fireEvent(field, "submitEditing");
+}
+
+function product(code: string, name: string) {
+	return { ...bakedBeans, code, product_name: name, product_name_en: name };
+}
+
+describe("Open Food Facts in the results", () => {
+	it("shows downtime in its own section, keeps the query, and retries on Search", async () => {
 		const fetchImpl = jest
 			.fn()
 			.mockResolvedValueOnce(jsonResponse(503, {}))
 			.mockResolvedValueOnce(jsonResponse(200, { hits: [bakedBeans] }));
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.changeText(
-			screen.getByPlaceholderText("Search foods"),
-			"baked beans",
-		);
-		fireEvent.press(screen.getByText("Search Open Food Facts"));
+		submitSearch("baked beans");
 		expect(await screen.findByTestId("off-search-feedback")).toHaveTextContent(
 			/Open Food Facts is temporarily unavailable/,
 		);
 		expect(screen.getByDisplayValue("baked beans")).toBeTruthy();
-		expect(screen.queryByText("No matches")).toBeNull();
-		fireEvent.press(screen.getByText("Search Open Food Facts"));
+		fireEvent(screen.getByPlaceholderText("Search foods"), "submitEditing");
 		expect(await screen.findByText("Baked Beans")).toBeTruthy();
 		expect(screen.queryByTestId("off-search-feedback")).toBeNull();
 	});
-	it("is hidden until a query is typed and never fires on ordinary local search", async () => {
-		const fetchImpl: FetchLike = jest.fn();
+
+	it("stays local while typing and asks once the term has settled", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, { hits: [] }),
+		);
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
 
-		expect(screen.queryByText("Search Open Food Facts")).toBeNull();
+		expect(screen.queryByTestId("off-section")).toBeNull();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(fetchImpl).not.toHaveBeenCalled();
-		expect(screen.getByText("Search Open Food Facts")).toBeTruthy();
+		expect(screen.getByText("Search ‘apple’ in Open Food Facts")).toBeTruthy();
+		await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1), {
+			timeout: 3000,
+		});
 	});
 
-	it("finds an online result and opens it for review before it can be logged", async () => {
+	it("never asks on its own for a term under three characters", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, { hits: [] }),
+		);
+		renderApp("/nutrition", {}, fetchImpl);
+		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "ei");
+		// The router test harness runs on fake timers: walk past the idle delay.
+		act(() => jest.advanceTimersByTime(1700));
+		expect(fetchImpl).not.toHaveBeenCalled();
+		fireEvent.press(screen.getByText("Search ‘ei’ in Open Food Facts"));
+		await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+	});
+
+	it("lists online products under the local results and opens one for review", async () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { hits: [bakedBeans] }),
 		);
 		renderApp("/nutrition", {}, fetchImpl);
 		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.changeText(
-			screen.getByPlaceholderText("Search foods"),
-			"baked beans",
-		);
-		fireEvent.press(await screen.findByText("Search Open Food Facts"));
+		submitSearch("baked beans");
 
-		expect(await screen.findByText(/Open Food Facts results/)).toBeTruthy();
+		expect(await screen.findByText("1 result")).toBeTruthy();
 		expect(
-			screen.getByText(/Heinz · 415 g · Half can \(207\.5 g\)/),
+			screen.getByText(
+				/Open Food Facts · Heinz · 415 g · Half can \(207\.5 g\)/,
+			),
 		).toBeTruthy();
 		fireEvent.press(screen.getByText("Baked Beans"));
 
 		expect(await screen.findByLabelText("Name")).toBeTruthy();
 	});
 
-	it("reports no online matches without disturbing local Search or Enter manually", async () => {
+	it("shows the top three products and the rest on request", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, {
+				hits: ["1", "2", "3", "4", "5"].map((n) =>
+					product(`871000000000${n}`, `Yoghurt ${n}`),
+				),
+			}),
+		);
+		renderApp("/nutrition", {}, fetchImpl);
+		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		submitSearch("yoghurt");
+
+		expect(await screen.findByText("Yoghurt 3")).toBeTruthy();
+		expect(screen.queryByText("Yoghurt 4")).toBeNull();
+		fireEvent.press(screen.getByText("Show all 5"));
+		expect(screen.getByText("Yoghurt 5")).toBeTruthy();
+	});
+
+	it("leaves out products whose barcode is already a Personal Food", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () =>
+			jsonResponse(200, {
+				hits: [product("111", "Already mine"), product("222", "New to me")],
+			}),
+		);
+		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		repository.create({
+			name: { en: "My yoghurt", nl: "Mijn yoghurt" },
+			baseUnit: "g",
+			servings: [],
+			nutrients: {
+				energy: { kind: "value", amount: 60 },
+				protein: { kind: "absent" },
+				carbs: { kind: "absent" },
+				fat: { kind: "absent" },
+				saturatedFat: { kind: "absent" },
+				fibre: { kind: "absent" },
+				sugars: { kind: "absent" },
+				salt: { kind: "absent" },
+			},
+			provenance: {
+				recordOrigin: "import",
+				nutritionSource: "openfoodfacts",
+				locallyEdited: false,
+				barcode: "111",
+			},
+		});
+		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		submitSearch("yoghurt");
+
+		expect(await screen.findByText("New to me")).toBeTruthy();
+		expect(screen.queryByText("Already mine")).toBeNull();
+	});
+
+	it("counts down only its own section when rate-limited", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () => jsonResponse(429, {}));
+		renderApp("/nutrition", {}, fetchImpl);
+		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		submitSearch("apple");
+
+		expect(
+			await screen.findByText(
+				/Open Food Facts needs a moment\. We'll search again automatically in \d+ s\./,
+			),
+		).toBeTruthy();
+		expect(screen.getByText("Scan the barcode instead")).toBeTruthy();
+		expect(screen.getByText("Apple")).toBeTruthy();
+	});
+
+	it("turns a search with no matches anywhere into a way forward", async () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { hits: [] }),
 		);
@@ -361,14 +522,19 @@ describe("the explicit Open Food Facts search", () => {
 			screen.getByPlaceholderText("Search foods"),
 			"zzzznotfound",
 		);
-		fireEvent.press(await screen.findByText("Search Open Food Facts"));
 
 		expect(
-			await screen.findByText(
-				"No Open Food Facts products matched your search.",
-			),
+			await screen.findByText("No results for ‘zzzznotfound’"),
 		).toBeTruthy();
-		expect(screen.getByPlaceholderText("Search foods")).toBeTruthy();
-		expect(screen.getByLabelText("More food actions")).toBeTruthy();
+		fireEvent.press(screen.getByText("Search Open Food Facts"));
+		expect(
+			await screen.findByText("Nothing in Open Food Facts for ‘zzzznotfound’."),
+		).toBeTruthy();
+		fireEvent.press(screen.getByText("New Personal Food ‘zzzznotfound’"));
+		// The editor opens with the typed term as the food's name.
+		expect(await screen.findByLabelText("Name")).toHaveProp(
+			"value",
+			"zzzznotfound",
+		);
 	});
 });

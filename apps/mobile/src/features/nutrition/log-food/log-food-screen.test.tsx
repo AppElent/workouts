@@ -1,7 +1,7 @@
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { formatShortDate, todayIsoDate } from "../../../data/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -30,8 +30,27 @@ afterEach(() => {
  * last of five exclusive tabs. Tests that only need "search everything" no
  * longer come through here — the default pool already does that.
  */
+/** Picks the meal from the title menu, the screen's one destination control. */
+async function chooseMeal(meal: string) {
+	fireEvent.press((await screen.findAllByLabelText(/^Logging into /))[0]);
+	fireEvent.press(
+		(
+			await screen.findAllByRole("button", {
+				name: new RegExp(`^${meal} · `),
+			})
+		)[0],
+	);
+}
+
+/** The destination the title currently names. */
+async function destination(meal: string) {
+	return (
+		await screen.findAllByLabelText(new RegExp(`^Logging into ${meal}, `))
+	).length;
+}
+
 async function showAllFoods(query?: string) {
-	fireEvent.press(await screen.findByRole("tab", { name: "Full catalogue" }));
+	fireEvent.press(await screen.findByRole("tab", { name: "Catalogue" }));
 	if (query) {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), query);
 	}
@@ -244,7 +263,7 @@ describe("browsing shipped foods", () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
 
-		expect(await screen.findByText("Find a food to log")).toBeTruthy();
+		expect(await screen.findByText("Find food to log")).toBeTruthy();
 		expect(screen.queryByText("Apple")).toBeNull();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect(
@@ -453,11 +472,8 @@ describe("browsing shipped foods", () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 
-		expect(
-			(await screen.findByRole("radio", { name: "Lunch" })).props
-				.accessibilityState,
-		).toMatchObject({ checked: true });
-		expect(screen.getByText("Find a food to log")).toBeTruthy();
+		expect(await destination("Lunch")).toBeGreaterThan(0);
+		expect(screen.getByText("Find food to log")).toBeTruthy();
 		await showAllFoods("apple");
 		expect(screen.getByText("Apple")).toBeTruthy();
 
@@ -584,7 +600,7 @@ describe("browsing shipped foods", () => {
 		);
 		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
 		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
-		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
+		await chooseMeal("Lunch");
 		await showAllFoods();
 
 		for (const [query, food] of [
@@ -602,9 +618,7 @@ describe("browsing shipped foods", () => {
 			);
 		}
 
-		expect(
-			screen.getByRole("radio", { name: "Lunch" }).props.accessibilityState,
-		).toMatchObject({ checked: true });
+		expect(await destination("Lunch")).toBeGreaterThan(0);
 		expect(screen.getByPlaceholderText("Search foods").props.value).toBe(
 			"hagelslag",
 		);
@@ -639,9 +653,7 @@ describe("browsing shipped foods", () => {
 		await waitFor(() =>
 			expect(screen.queryByText("Add & continue")).toBeNull(),
 		);
-		expect(
-			screen.getByRole("radio", { name: "Dinner" }).props.accessibilityState,
-		).toMatchObject({ checked: true });
+		expect(await destination("Dinner")).toBeGreaterThan(0);
 	});
 });
 
@@ -749,17 +761,17 @@ describe("the redesigned food browser", () => {
 		expect(await screen.findByText("Apple")).toBeTruthy();
 	});
 
-	it("keeps the meal and the date as two separate controls, and logs into both", async () => {
+	it("makes meal and day one destination in the title, and logs into it", async () => {
 		const log = jest.fn().mockResolvedValue("entry-1");
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
 		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
 
-		// The date is the title and the meal is a chip; neither shares a control
-		// with the other, and neither is a menu.
+		// "Dinner ⌄" over the day: the meal is chosen from the title menu, the
+		// calendar stays the direct route to the day.
 		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
-		fireEvent.press(screen.getByRole("radio", { name: "Dinner" }));
+		await chooseMeal("Dinner");
 		fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
 		fireEvent(
 			await screen.findByTestId("swiftui-date-picker"),
@@ -788,7 +800,9 @@ describe("the redesigned food browser", () => {
 		fireEvent.press(await screen.findByLabelText("Today"));
 
 		expect(
-			await screen.findAllByText(formatShortDate(todayIsoDate(), "en")),
+			await screen.findAllByLabelText(
+				`Logging into Breakfast, ${formatLongDate(todayIsoDate(), "en")}`,
+			),
 		).toBeTruthy();
 	});
 
@@ -819,20 +833,20 @@ describe("the redesigned food browser", () => {
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
 
-		// The bar is the browser's only confirmation now, so it has to be right
-		// before a single row is tapped.
+		// The bar has to be right before a single row is tapped.
 		expect(
 			await screen.findByText("Breakfast · 1 item · 180 kcal"),
 		).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Show what is logged"));
-		expect(await screen.findByText("Oatmeal · Bowl × 1")).toBeTruthy();
+		expect(await screen.findByText("Oatmeal")).toBeTruthy();
+		expect(screen.getByText("Bowl × 1")).toBeTruthy();
 
 		// Switching meals switches what the bar is reporting.
-		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
-		expect(await screen.findByText("Lunch · 0 items")).toBeTruthy();
+		await chooseMeal("Lunch");
+		expect((await screen.findAllByText("Lunch · 0 items")).length).toBe(2);
 	});
 
-	it("does not announce a quick log with a line of its own", async () => {
+	it("confirms a quick log with a toast that can undo it", async () => {
 		const log = jest.fn().mockResolvedValue("entry-1");
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
@@ -843,9 +857,15 @@ describe("the redesigned food browser", () => {
 		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		// The old lime "Added Apple to Breakfast" line is gone for good: the bar
-		// and the success haptic are the feedback.
+		expect(await screen.findByText("Added Apple to Breakfast")).toBeTruthy();
+
+		fireEvent.press(screen.getByRole("button", { name: "Undo" }));
 		expect(screen.queryByText("Added Apple to Breakfast")).toBeNull();
+		// Undo removes exactly the entry this + created, by its client id.
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(2));
+		expect(log.mock.calls[1][0]).toEqual({
+			id: log.mock.calls[0][0].clientEntryId,
+		});
 	});
 
 	it("offers the AI entry point beside barcode rather than nowhere", async () => {

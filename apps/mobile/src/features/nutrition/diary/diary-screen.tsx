@@ -38,6 +38,7 @@ import { DiaryMealCard } from "./components/diary-meal-card";
 import { DiarySelectionActions } from "./components/diary-selection-actions";
 import { DiarySummary } from "./components/diary-summary";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
+import { useDiaryDateRequest } from "./diary-date-request";
 
 export function DiaryScreen({
 	initialDate,
@@ -121,6 +122,8 @@ export function DiaryScreen({
 		setSelecting(false);
 		setSelected(new Set());
 	};
+	// The log food screen above may have moved to another day; follow it.
+	useDiaryDateRequest(changeDate);
 	const beginSelection = (items: readonly DiaryEntry[]) => {
 		setSelected(new Set(items.map((e) => e.id)));
 		setSelecting(true);

@@ -1,12 +1,12 @@
 import {
-	type FoodResult,
-	foodResults,
 	forkShippedFood,
-	getShippedFood,
+	NUTRIENT_KEYS,
 	roundForDisplay,
+	type ShippedFood,
+	type SupplementaryServing,
 	shippedLibrary,
 } from "@workouts/core/nutrition";
-import { Image } from "expo-image";
+import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,17 +16,20 @@ import {
 	Pressable,
 	ScrollView,
 	StyleSheet,
-	TextInput,
+	type TextInput,
 	View,
 } from "react-native";
+import type { SearchBarCommands } from "react-native-screens";
 import {
 	formatLongDate,
 	formatShortDate,
 	todayIsoDate,
 } from "../../../data/calendar-day";
+import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import {
+	type DiaryEntry,
 	MEAL_SLOTS,
 	type MealSlot,
 	useNutritionDay,
@@ -47,13 +50,13 @@ import {
 } from "../../../data/nutrition-shortcuts";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import type {
-	Combo,
 	PersonalFood,
 	PersonalFoodDraft,
 } from "../../../data/personal-food-repository";
 import { foodVisualForShippedFood } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasures } from "../../../data/personal-measures";
+import { useStalledOffline } from "../../../data/stalled-offline";
 import { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { haptics } from "../../../feedback/haptics";
 import {
@@ -67,35 +70,37 @@ import {
 	radius,
 	spacing,
 	type Tokens,
-	type,
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { FoodEditorSheet } from "../../../ui/food-editor-sheet";
+import { isIOS26OrLater } from "../../../ui/platform";
+import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { LogFoodChip, LogFoodIconButton } from "./components/log-food-controls";
+import { requestDiaryDate } from "../diary/diary-date-request";
+import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
+import { LogFoodChip } from "./components/log-food-chip";
+import { LogFoodComboRow } from "./components/log-food-combo-row";
+import { LogFoodDestinationMenu } from "./components/log-food-destination-menu";
 import { LogFoodEmptyState } from "./components/log-food-empty-state";
+import { LogFoodFindControls } from "./components/log-food-find-controls";
 import { LogFoodMealSummary } from "./components/log-food-meal-summary";
-import { LogFoodMenu } from "./components/log-food-menu";
-import {
-	LogFoodComboRow,
-	LogFoodMediaSlot,
-	LogFoodRow,
-	MEDIA_SLOT,
-} from "./components/log-food-rows";
+import type { LogFoodMenuProps } from "./components/log-food-menu-props";
+import { LogFoodOffSection } from "./components/log-food-off-section";
+import { LogFoodRow } from "./components/log-food-row";
+import { LogFoodSectionHeader } from "./components/log-food-section-header";
 import { LogFoodServingSheet } from "./components/log-food-serving-sheet";
+import { LogFoodToolbar } from "./components/log-food-toolbar";
 import {
 	comboEnergy,
 	offFailureMessage,
-	offProductCaption,
 	quickEnergyAmount,
-	resultCaption,
 	resultEnergyCaption,
 } from "./log-food-captions";
-import { type FoodBrowserTab, nutritionFoodBrowserCopy } from "./log-food-copy";
+import { type FoodBrowserTab, logFoodCopy } from "./log-food-copy";
 import {
 	createFoodSnapshot,
 	type FoodFilter,
@@ -103,12 +108,8 @@ import {
 	servingChoices,
 	servingPreview,
 } from "./log-food-selection";
-
-/**
- * The shipped side is capped, not paged: the list is virtualized, and the cap
- * exists only so an empty-query browse of the broader view has an end.
- */
-const CATALOGUE_LIMIT = 2328;
+import { logFoodItemKey, useLogFoodItems } from "./use-log-food-items";
+import { useOffSearch } from "./use-off-search";
 
 /** Scope chips, in the order they are offered. `pool` leads because it is the default. */
 const SCOPE_CHIPS = [
@@ -129,79 +130,64 @@ const SCOPE_CHIPS = [
 		| "allFoods";
 }[];
 
-type BrowserItem =
-	| {
-			readonly kind: "food";
-			readonly selection: FoodSelection;
-			readonly caption: string;
-	  }
-	| { readonly kind: "combo"; readonly combo: Combo }
-	| {
-			readonly kind: "online";
-			readonly draft: PersonalFoodDraft;
-			readonly id: number;
-	  };
-
-function asSelection(result: FoodResult<PersonalFood>): FoodSelection {
-	return result.kind === "local"
-		? { kind: "personal", food: result.food }
-		: { kind: "shipped", food: result.food };
+/** A new Personal Food with nothing filled in but the name and the barcode. */
+function blankFoodDraft(name: string, barcode?: string): PersonalFoodDraft {
+	return {
+		name: { en: name, nl: name },
+		baseUnit: "g",
+		nutrients: Object.fromEntries(
+			NUTRIENT_KEYS.map((key) => [key, { kind: "absent" }]),
+		) as PersonalFoodDraft["nutrients"],
+		servings: [],
+		provenance: {
+			recordOrigin: "personal",
+			nutritionSource: "manual",
+			locallyEdited: false,
+			...(barcode ? { barcode } : {}),
+		},
+	};
 }
 
-/** The identity a row keeps across the tiers it can appear in. */
-function browserItemKey(item: BrowserItem): string {
-	return item.kind === "food"
-		? `food:${item.selection.kind}:${item.selection.food.id}`
-		: item.kind === "combo"
-			? `combo:${item.combo.id}`
-			: `online:${item.id}`;
+/** A correction is a new local food, never an edit of the shipped record. */
+function correctionDraft(
+	food: ShippedFood,
+	supplementary: readonly SupplementaryServing[],
+): PersonalFoodDraft {
+	const original = forkShippedFood(food);
+	const visual = foodVisualForShippedFood(food);
+	return {
+		...original,
+		servings: [
+			...original.servings,
+			...supplementary
+				.filter((item) => item.unit === food.baseUnit)
+				.map((item) => ({
+					label: { en: item.name, nl: item.name },
+					amount: item.amount,
+				})),
+		],
+		...(visual ? { visual } : {}),
+	};
+}
+
+function energyLabel(entries: readonly DiaryEntry[]): string | undefined {
+	if (!entries.length) return undefined;
+	const total = entries.reduce((sum, entry) => {
+		const energy = entry.nutrients.energy;
+		return energy.kind === "value" ? sum + energy.amount : sum;
+	}, 0);
+	return `${roundForDisplay("energy", total)} kcal`;
 }
 
 /**
- * First occurrence wins.
+ * Finding and logging food into one meal on one day.
  *
- * The pooled list is built tier by tier, so a food that is both recent and a
- * favorite — or recent and a search hit — arrives more than once. Keeping the
- * first keeps the tier order meaningful: what you logged yesterday stays above
- * the catalogue rather than being pulled down to where the catalogue found it.
+ * The title is the destination ("Lunch ⌄", day below). On iOS 26 search and
+ * its companion actions sit in the system bottom toolbar; elsewhere the same
+ * actions are an in-content row. Local results come first; Open Food Facts is
+ * its own section under them. A row's + logs at once and offers undo, and the
+ * meal summary shows — and lets you fix — what is already in the meal.
  */
-function dedupeItems(items: readonly BrowserItem[]): BrowserItem[] {
-	const seen = new Set<string>();
-	return items.filter((item) => {
-		const key = browserItemKey(item);
-		if (seen.has(key)) return false;
-		seen.add(key);
-		return true;
-	});
-}
-
-/** Resolves durable shortcut keys back to the foods they point at. */
-function useShortcutSelections(
-	shortcuts: readonly { readonly sourceKey: string }[],
-	personalFoods: ReturnType<typeof usePersonalFoods>,
-): FoodSelection[] {
-	return useMemo(
-		() =>
-			shortcuts.reduce<FoodSelection[]>((selections, shortcut) => {
-				const separator = shortcut.sourceKey.indexOf(":");
-				const kind = shortcut.sourceKey.slice(0, separator);
-				const id = shortcut.sourceKey.slice(separator + 1);
-				if (kind === "shipped") {
-					const food = getShippedFood(id);
-					if (food) selections.push({ kind: "shipped", food });
-					return selections;
-				}
-				if (kind === "personal") {
-					const food = personalFoods.find(id);
-					if (food) selections.push({ kind: "personal", food });
-					return selections;
-				}
-				return selections;
-			}, []),
-		[personalFoods, shortcuts],
-	);
-}
-
 export function LogFoodScreen({
 	meal,
 	date: initialDate,
@@ -220,7 +206,7 @@ export function LogFoodScreen({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
-	const copy = nutritionFoodBrowserCopy(locale);
+	const copy = logFoodCopy(locale);
 	const router = useRouter();
 	const authoringIntent = useFoodAuthoringIntent();
 	const operations = useNutritionOperations();
@@ -233,6 +219,12 @@ export function LogFoodScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const drafts = useNutritionDrafts();
+	const { deleteEntry } = useDeleteDiaryEntry();
+	const connected = useConvexConnectionState().isWebSocketConnected;
+	const offline = useStalledOffline(true, connected);
+	const bottomToolbar = isIOS26OrLater();
+	const searchBarRef = useRef<SearchBarCommands>(null);
+	const searchInputRef = useRef<TextInput>(null);
 	const [query, setQuery] = useState(initialQuery ?? "");
 	const [savingNote, setSavingNote] = useState(false);
 	// Read once per mount: a browser whose "Vandaag" target moves under the
@@ -243,8 +235,7 @@ export function LogFoodScreen({
 	const [showCalendar, setShowCalendar] = useState(false);
 	/*
 	 * Arriving to author a recipe scopes the list to recipes; everything else
-	 * lands on the pool. A typed query no longer needs its own case — the pool
-	 * already searches the whole catalogue, which is what "all" used to be for.
+	 * lands on the pool, which already searches the whole catalogue.
 	 */
 	const [filter, setFilter] = useState<FoodFilter>(
 		initialCreateKind === "recipe" ? "recipes" : "pool",
@@ -259,25 +250,21 @@ export function LogFoodScreen({
 	);
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
 	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
+	const [newFoodSeed, setNewFoodSeed] = useState<PersonalFoodDraft>();
 	const [creatingFood, setCreatingFood] = useState(
 		initialCreateKind !== undefined,
 	);
 	useEffect(() => {
 		if (!authoringIntent.intent) return;
-		// "all" here meant "search everything", which is the pool's job now;
-		// the chip called `all` became the deliberate broader catalogue view.
 		setFilter(authoringIntent.intent === "recipe" ? "recipes" : "pool");
 		setCreatingFood(true);
 		authoringIntent.consume();
 	}, [authoringIntent]);
 	const [scanning, setScanning] = useState(false);
-	const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
+	const [barcodeStatus, setBarcodeStatus] = useState<string>();
+	const [unknownBarcode, setUnknownBarcode] = useState<string>();
+	const [linkingBarcode, setLinkingBarcode] = useState<string>();
 	const [reviewingImport, setReviewingImport] = useState<PersonalFoodDraft>();
-	const [onlineSearching, setOnlineSearching] = useState(false);
-	const [onlineFeedback, setOnlineFeedback] = useState<string>();
-	const searchRevision = useRef(0);
-	const [onlineResults, setOnlineResults] =
-		useState<readonly PersonalFoodDraft[]>();
 	const quickLoggingRef = useRef(new Set<string>());
 	const [quickLoggingKeys, setQuickLoggingKeys] = useState<ReadonlySet<string>>(
 		() => new Set(),
@@ -297,6 +284,7 @@ export function LogFoodScreen({
 		toast,
 		removeFailure: t.nutrition.drafts.deleteFailure,
 	};
+	// Resolving a Capture Draft: once something was logged for it, it is done.
 	useEffect(
 		() => () => {
 			const current = resolveRef.current;
@@ -322,166 +310,57 @@ export function LogFoodScreen({
 		},
 		[],
 	);
-	/**
-	 * Ranking and shadowing both live in core (#75). All this screen decides is
-	 * which tier the person asked for; which of their corrections stands in
-	 * front of which shipped record is not a rendering question.
-	 */
-	/**
-	 * `promoted` is a curated everyday subset, not "the ordinary ranking" — which
-	 * is exactly why a food you own could be invisible on the wrong tab. Both the
-	 * pool and the broader view therefore search `all`; what separates them is
-	 * that only the broader view keeps shipped records someone has corrected.
-	 */
-	const broaderView = filter === "all";
-	const allResults = useMemo(
-		() =>
-			foodResults<PersonalFood>({
-				query,
-				locale,
-				scope: "all",
-				localMatches: personalFoods.search(query, locale),
-				localFoods: personalFoods.forks(),
-				limit: CATALOGUE_LIMIT,
-			}),
-		[locale, personalFoods, query],
-	);
-	// The operation-version subscription above deliberately refreshes these
-	// durable shortcuts after a quick log or a favorite toggle. Both tiers are
-	// read on every render now rather than whichever the tab asked for: the
-	// default view pools them, so "which one do I need" is no longer a question
-	// the chip answers.
+	// The native search bar owns its text; seed it with a note being resolved.
+	useEffect(() => {
+		if (bottomToolbar && initialQuery)
+			searchBarRef.current?.setText(initialQuery);
+	}, [bottomToolbar, initialQuery]);
+
+	// Durable shortcuts, refreshed by the operation-version subscription above
+	// after a quick log or a favorite toggle.
 	const recentShortcuts = subject ? operations.listRecent(subject) : [];
 	const favoriteShortcuts = subject ? operations.listFavorites(subject) : [];
-	const recentSelections = useShortcutSelections(
-		recentShortcuts,
-		personalFoods,
+	const favoriteKeys = useMemo(
+		() => new Set(favoriteShortcuts.map((shortcut) => shortcut.sourceKey)),
+		[favoriteShortcuts],
 	);
-	const favoriteSelections = useShortcutSelections(
-		favoriteShortcuts,
-		personalFoods,
-	);
-	const combos = personalFoods.listCombos();
-	const recipes = personalFoods.search(query, locale, {
-		classification: "recipe",
-	});
-	/**
-	 * What the list shows.
-	 *
-	 * `pool` is the default and the point of the redesign: one list holding
-	 * recents, favorites, Combos, recipes and ordinary search at once, so a food
-	 * you own can never be invisible because you are standing on the wrong chip.
-	 * The other chips narrow that same pool rather than querying a different
-	 * place, except `all` — which stays the deliberate broader view (#75), the
-	 * one place a shipped record someone has corrected is still listed.
-	 */
-	const visibleItems = useMemo<readonly BrowserItem[]>(() => {
-		const normalizedQuery = query.trim().toLocaleLowerCase();
-		const matches = (name: string) =>
-			!normalizedQuery || name.toLocaleLowerCase().includes(normalizedQuery);
-		const shortcutItems = (
-			selections: readonly FoodSelection[],
-			caption: string,
-		) =>
-			selections
-				.filter((selection) => matches(selection.food.name[locale]))
-				.map((selection) => ({
-					kind: "food" as const,
-					selection,
-					caption,
-				}));
-		const recentItems = shortcutItems(
-			recentSelections,
-			t.nutrition.foodBrowser.lastUsed,
-		);
-		const favoriteItems = shortcutItems(favoriteSelections, copy.favorites);
-		const comboItems = combos
-			.filter((combo) => matches(combo.name))
-			.map((combo) => ({ kind: "combo" as const, combo }));
-		const recipeItems = recipes.map((food) => ({
-			kind: "food" as const,
-			selection: { kind: "personal" as const, food },
-			caption: copy.recipes,
-		}));
-		const searchItems = allResults
-			// The pool is ordinary search: a shipped record whose correction is
-			// already in the list would be a duplicate of it. The broader view is
-			// the one place that keeps both and says which corrected which.
-			.filter(
-				(result) =>
-					broaderView || result.kind === "local" || !result.shadowedBy,
-			)
-			// An empty query in the pool is not a browse request: it shows what you
-			// already keep — recents, favorites, Combos, recipes — rather than the
-			// whole catalogue in alphabetical order. That browse is the broader
-			// view's job, and it still does it.
-			.filter(
-				(result) =>
-					broaderView || normalizedQuery.length > 0 || result.kind === "local",
-			)
-			.map((result) => ({
-				kind: "food" as const,
-				selection: asSelection(result),
-				caption: resultCaption(result, t.nutrition, locale),
-			}));
-		const foods =
-			filter === "recent"
-				? recentItems
-				: filter === "favorites"
-					? favoriteItems
-					: filter === "combos"
-						? comboItems
-						: filter === "recipes"
-							? recipeItems
-							: broaderView
-								? searchItems
-								: dedupeItems([
-										...recentItems,
-										...favoriteItems,
-										...comboItems,
-										...recipeItems,
-										...searchItems,
-									]);
-		return [
-			...foods,
-			...(onlineResults ?? []).map((draft, id) => ({
-				kind: "online" as const,
-				draft,
-				id,
-			})),
-		];
-	}, [
-		allResults,
-		broaderView,
-		combos,
-		copy.favorites,
-		copy.recipes,
-		favoriteSelections,
+	const items = useLogFoodItems({
+		query,
 		filter,
 		locale,
-		onlineResults,
-		query,
-		recentSelections,
-		recipes,
-		t.nutrition,
-	]);
-	// The meal bar is the confirmation: it is what moves when a row is logged.
+		personalFoods,
+		recentShortcuts,
+		favoriteShortcuts,
+		messages: t.nutrition,
+		copy,
+	});
+	const off = useOffSearch(query, {
+		client: openFoodFacts,
+		online: !offline,
+		isImported: (barcode) => Boolean(personalFoods.findByBarcode(barcode)),
+	});
 	const day = useNutritionDay(date);
-	const mealEntries =
-		day.status === "ready" ? day.day.entries[selectedMeal] : [];
-	const mealEnergy = mealEntries.reduce((total, entry) => {
-		const energy = entry.nutrients.energy;
-		return energy.kind === "value" ? total + energy.amount : total;
-	}, 0);
-	const mealEnergyLabel = mealEntries.length
-		? `${roundForDisplay("energy", mealEnergy)} kcal`
-		: undefined;
+	const entriesFor = (slot: MealSlot) =>
+		day.status === "ready" ? day.day.entries[slot] : [];
+	const mealEntries = entriesFor(selectedMeal);
+	const mealName = t.nutrition.meals[selectedMeal];
 	const catalogueSize = useMemo(() => shippedLibrary().active.length, []);
+	const hasQuery = query.trim().length > 0;
+	// Whether Open Food Facts is showing (or about to show) something for this
+	// query; if not, an empty local list is a dead end that needs a way out.
+	const offAnswering = ["loading", "found", "cooling"].includes(off.state.kind);
+
+	function changeDate(next: string) {
+		setDate(next);
+		// The diary underneath follows, so going back shows where this went.
+		requestDiaryDate(next);
+	}
 
 	function closeEditor() {
 		setCreatingFood(false);
 		setEditingFood(undefined);
 		setForkDraft(undefined);
+		setNewFoodSeed(undefined);
 	}
 
 	function showSavedFood(food: PersonalFood) {
@@ -490,119 +369,113 @@ export function LogFoodScreen({
 		setSelectedFood({ kind: "personal", food });
 	}
 
+	function createFood(name: string, barcode?: string) {
+		setNewFoodSeed(blankFoodDraft(name, barcode));
+		setCreatingFood(true);
+	}
+
+	function startCorrection(food: ShippedFood) {
+		setForkDraft(
+			correctionDraft(
+				food,
+				subject ? operations.getSupplementaryServings(subject, food.id) : [],
+			),
+		);
+		setSelectedFood(undefined);
+	}
+
+	async function deletePersonalFood(food: PersonalFood) {
+		// Deleting a correction restores the shipped food to search, which is a
+		// different promise from deleting a Personal Food that stands alone.
+		const isCorrection = food.provenance.forkedFrom !== undefined;
+		const approved = await confirm({
+			title: isCorrection
+				? t.nutrition.fork.deleteTitle
+				: t.nutrition.personalFood.deleteTitle,
+			message: isCorrection
+				? t.nutrition.fork.deleteBody
+				: t.nutrition.personalFood.deleteBody,
+			confirmLabel: t.nutrition.personalFood.delete,
+			cancelLabel: t.nutrition.personalFood.cancel,
+			destructive: true,
+		});
+		if (!approved) return;
+		try {
+			const removed = personalFoods.remove(food.id);
+			if (removed) foodPhotos.remove(food.visual);
+			setSelectedFood(undefined);
+		} catch {
+			toast.error(t.nutrition.personalFood.deleteFailure);
+		}
+	}
+
 	async function handleBarcodeScanned(barcode: string) {
-		setScanning(false);
 		// Local foods are checked before any network call reaches Open Food
 		// Facts (spec #68) — a Personal Food carrying this barcode wins outright.
 		const localMatch = personalFoods.findByBarcode(barcode);
 		if (localMatch) {
+			setScanning(false);
 			setSelectedFood({ kind: "personal", food: localMatch });
 			return;
 		}
-		setLookingUpBarcode(true);
+		// The lookup runs in the camera, so the screen is never empty meanwhile.
+		setBarcodeStatus(t.nutrition.barcode.lookingUp);
 		try {
 			const outcome = await openFoodFacts.lookupBarcode(barcode);
+			setScanning(false);
 			if (outcome.kind === "found") {
 				setReviewingImport(outcome.draft);
 				return;
 			}
-			toast.error(
-				offFailureMessage(outcome.kind, t.nutrition.foodImport, false),
-			);
-		} catch {
-			toast.error(t.nutrition.foodImport.unavailable);
-		} finally {
-			setLookingUpBarcode(false);
-		}
-	}
-
-	async function runOnlineSearch() {
-		if (onlineSearching || query.trim().length === 0) return;
-		const revision = searchRevision.current;
-		setOnlineSearching(true);
-		setOnlineFeedback(undefined);
-		setOnlineResults(undefined);
-		try {
-			const outcome = await openFoodFacts.search(query);
-			if (revision !== searchRevision.current) return;
-			if (outcome.kind === "found") {
-				setOnlineResults(outcome.drafts);
+			if (outcome.kind === "not-found") {
+				setUnknownBarcode(barcode);
 				return;
 			}
-			setOnlineFeedback(
-				offFailureMessage(outcome.kind, t.nutrition.foodImport, true),
+			toast.error(
+				offline
+					? copy.offline
+					: offFailureMessage(outcome.kind, t.nutrition.foodImport, false),
 			);
 		} catch {
-			if (revision === searchRevision.current)
-				setOnlineFeedback(t.nutrition.foodImport.networkError);
+			setScanning(false);
+			toast.error(t.nutrition.foodImport.unavailable);
 		} finally {
-			setOnlineSearching(false);
+			setBarcodeStatus(undefined);
 		}
 	}
 
-	if (scanning) {
-		return (
-			<Modal
-				visible
-				presentationStyle="fullScreen"
-				animationType={modalAnimation(reduceMotion, "slide")}
-				onRequestClose={() => setScanning(false)}
-			>
-				<BarcodeScanner
-					onScanned={handleBarcodeScanned}
-					onCancel={() => setScanning(false)}
-				/>
-			</Modal>
-		);
+	/** "Zoek op naam": the barcode goes to the Personal Food picked next. */
+	async function linkBarcode(food: PersonalFood, barcode: string) {
+		const existing = food.provenance.barcode;
+		if (existing && existing !== barcode) {
+			const approved = await confirm({
+				title: copy.replaceBarcodeTitle,
+				message: copy.replaceBarcodeBody(food.name[locale], existing),
+				confirmLabel: copy.replaceBarcodeConfirm,
+				cancelLabel: copy.cancel,
+			});
+			if (!approved) return false;
+		}
+		try {
+			const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = food;
+			personalFoods.update(food.id, {
+				...draft,
+				provenance: { ...food.provenance, barcode },
+			});
+			setLinkingBarcode(undefined);
+			toast.success(copy.barcodeLinked(food.name[locale]));
+			return true;
+		} catch {
+			toast.error(copy.barcodeLinkFailure);
+			return false;
+		}
 	}
 
-	if (lookingUpBarcode) {
-		return (
-			<View style={[styles.root, styles.center]}>
-				<AppText>{t.nutrition.barcode.lookingUp}</AppText>
-			</View>
-		);
-	}
-
-	let editor = null;
-	if (reviewingImport) {
-		editor = (
-			<PersonalFoodEditor
-				seed={reviewingImport}
-				reviewNotice={{
-					title: t.nutrition.foodImport.reviewTitle,
-					attribution: reviewingImport.provenance.attribution,
-				}}
-				onCancel={() => setReviewingImport(undefined)}
-				onSaved={(food) => {
-					setReviewingImport(undefined);
-					showSavedFood(food);
-				}}
-			/>
-		);
-	}
-
-	if (creatingFood || editingFood || forkDraft) {
-		editor = (
-			<PersonalFoodEditor
-				food={editingFood}
-				seed={forkDraft}
-				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
-				onCreateKindChange={(kind) => {
-					if (kind !== "oneOff") return;
-					closeEditor();
-					router.push({
-						pathname: "/nutrition-cooking",
-						params: { date, meal: selectedMeal, mode: "oneoff-log" },
-					});
-				}}
-				onCancel={closeEditor}
-				onSaved={(food) => {
-					closeEditor();
-					showSavedFood(food);
-				}}
-			/>
-		);
+	async function openFood(selection: FoodSelection) {
+		if (linkingBarcode && selection.kind === "personal") {
+			await linkBarcode(selection.food, linkingBarcode);
+		}
+		setSelectedFood(selection);
 	}
 
 	function saveAsNote() {
@@ -614,161 +487,6 @@ export function LogFoodScreen({
 		} catch {
 			toast.error(t.nutrition.drafts.saveFailure);
 			setSavingNote(false);
-		}
-	}
-
-	const servingSheet =
-		selectedFood && !editor ? (
-			<LogFoodServingSheet
-				key={`${selectedFood.kind}:${selectedFood.food.id}`}
-				selection={selectedFood}
-				meal={selectedMeal}
-				date={date}
-				onBack={() => {
-					if (!servingPendingRef.current) setSelectedFood(undefined);
-				}}
-				onPendingChange={(pending) => {
-					servingPendingRef.current = pending;
-					setServingPending(pending);
-				}}
-				onLogged={(outcome) => {
-					if (outcome === "close") {
-						onClose();
-						return;
-					}
-					// No in-screen confirmation line: the meal bar's count and kcal
-					// moving is the feedback, and it is a polite live region so it is
-					// announced too.
-					setSelectedFood(undefined);
-				}}
-				onEdit={
-					selectedFood.kind === "personal"
-						? () => setEditingFood(selectedFood.food)
-						: undefined
-				}
-				onCorrect={
-					selectedFood.kind === "shipped" && !supplementary.loading
-						? () => {
-								// A correction is a new local food, never an edit of the
-								// shipped record — so this seeds the authoring screen
-								// rather than opening the shipped row for editing.
-								const original = forkShippedFood(selectedFood.food);
-								const draft = {
-									...original,
-									servings: [
-										...original.servings,
-										...supplementary.servings
-											.filter(
-												(item) => item.unit === selectedFood.food.baseUnit,
-											)
-											.map((item) => ({
-												label: { en: item.name, nl: item.name },
-												amount: item.amount,
-											})),
-									],
-								};
-								const visual = foodVisualForShippedFood(selectedFood.food);
-								setForkDraft({
-									...draft,
-									...(visual ? { visual } : {}),
-								});
-								setSelectedFood(undefined);
-							}
-						: undefined
-				}
-				onDelete={
-					selectedFood.kind === "personal"
-						? async () => {
-								// Deleting a correction restores the shipped food to search,
-								// which is a different promise from deleting a Personal Food
-								// that stands alone.
-								const isCorrection =
-									selectedFood.food.provenance.forkedFrom !== undefined;
-								const approved = await confirm({
-									title: isCorrection
-										? t.nutrition.fork.deleteTitle
-										: t.nutrition.personalFood.deleteTitle,
-									message: isCorrection
-										? t.nutrition.fork.deleteBody
-										: t.nutrition.personalFood.deleteBody,
-									confirmLabel: t.nutrition.personalFood.delete,
-									cancelLabel: t.nutrition.personalFood.cancel,
-									destructive: true,
-								});
-								if (!approved) return;
-								try {
-									const removed = personalFoods.remove(selectedFood.food.id);
-									if (removed) foodPhotos.remove(selectedFood.food.visual);
-									setSelectedFood(undefined);
-								} catch {
-									toast.error(t.nutrition.personalFood.deleteFailure);
-								}
-							}
-						: undefined
-				}
-			/>
-		) : null;
-
-	function quickLog(selection: FoodSelection) {
-		const sourceKey = foodSourceKey(
-			selection.kind === "shipped" ? "shipped" : "personal",
-			selection.food.id,
-		);
-		if (!subject || quickLoggingRef.current.has(sourceKey)) return;
-		const quickSelection = resolveQuickSelection(selection);
-		if (!quickSelection) return;
-		const { option: selectedServing, quantity } = quickSelection;
-		quickLoggingRef.current.add(sourceKey);
-		setQuickLoggingKeys((keys) => new Set(keys).add(sourceKey));
-		try {
-			const clientEntryId = mintNutritionUuid();
-			const { common, provenance } = createFoodSnapshot(
-				selection,
-				selectedServing,
-				quantity,
-				date,
-				selectedMeal,
-				clientEntryId,
-				locale,
-			);
-			operations.create(
-				subject,
-				{ ...common, provenance },
-				{
-					sourceKey,
-					portion: portionMemoryFor(
-						selectedServing,
-						quantity,
-						selection.food.baseUnit,
-					),
-				},
-				() => {
-					quickLoggingRef.current.delete(sourceKey);
-					setQuickLoggingKeys((keys) => {
-						const next = new Set(keys);
-						next.delete(sourceKey);
-						return next;
-					});
-					toast.error(t.nutrition.foodBrowser.logFailure);
-				},
-				() => {
-					quickLoggingRef.current.delete(sourceKey);
-					setQuickLoggingKeys((keys) => {
-						const next = new Set(keys);
-						next.delete(sourceKey);
-						return next;
-					});
-					haptics.entryLogged();
-				},
-			);
-		} catch {
-			quickLoggingRef.current.delete(sourceKey);
-			setQuickLoggingKeys((keys) => {
-				const next = new Set(keys);
-				next.delete(sourceKey);
-				return next;
-			});
-			toast.error(t.nutrition.foodBrowser.logFailure);
 		}
 	}
 
@@ -798,6 +516,284 @@ export function LogFoodScreen({
 		return option && quantity > 0 ? { option, quantity } : undefined;
 	}
 
+	function quickLog(selection: FoodSelection) {
+		const sourceKey = foodSourceKey(
+			selection.kind === "shipped" ? "shipped" : "personal",
+			selection.food.id,
+		);
+		if (!subject || quickLoggingRef.current.has(sourceKey)) return;
+		const quickSelection = resolveQuickSelection(selection);
+		if (!quickSelection) return;
+		const { option: selectedServing, quantity } = quickSelection;
+		const release = () => {
+			quickLoggingRef.current.delete(sourceKey);
+			setQuickLoggingKeys((keys) => {
+				const next = new Set(keys);
+				next.delete(sourceKey);
+				return next;
+			});
+		};
+		quickLoggingRef.current.add(sourceKey);
+		setQuickLoggingKeys((keys) => new Set(keys).add(sourceKey));
+		const foodName = selection.food.name[locale];
+		const loggedMeal = t.nutrition.meals[selectedMeal];
+		try {
+			const clientEntryId = mintNutritionUuid();
+			const { common, provenance } = createFoodSnapshot(
+				selection,
+				selectedServing,
+				quantity,
+				date,
+				selectedMeal,
+				clientEntryId,
+				locale,
+			);
+			operations.create(
+				subject,
+				{ ...common, provenance },
+				{
+					sourceKey,
+					portion: portionMemoryFor(
+						selectedServing,
+						quantity,
+						selection.food.baseUnit,
+					),
+				},
+				() => {
+					release();
+					toast.error(t.nutrition.foodBrowser.logFailure);
+				},
+				() => {
+					release();
+					haptics.entryLogged();
+					toast.success(copy.logged(foodName, loggedMeal), {
+						action: {
+							label: copy.undo,
+							onPress: () =>
+								operations.remove(
+									subject,
+									{ kind: "clientEntryId", id: clientEntryId },
+									undefined,
+									() => toast.error(copy.undoFailure),
+								),
+						},
+					});
+				},
+			);
+		} catch {
+			release();
+			toast.error(t.nutrition.foodBrowser.logFailure);
+		}
+	}
+
+	function rowActions(
+		selection: FoodSelection,
+		quickPreview: string | undefined,
+	): RowAction[] {
+		const sourceKey = foodSourceKey(
+			selection.kind === "shipped" ? "shipped" : "personal",
+			selection.food.id,
+		);
+		const isFavorite = favoriteKeys.has(sourceKey);
+		return [
+			{
+				key: "favorite",
+				systemImage: isFavorite ? "star.slash" : "star",
+				label: isFavorite ? copy.unfavorite : copy.favorite,
+				onPress: () => {
+					if (subject)
+						operations.toggleFavorite(subject, sourceKey, !isFavorite);
+				},
+			},
+			...(quickPreview
+				? [
+						{
+							key: "log",
+							systemImage: "plus" as const,
+							label: copy.logPortion(quickPreview),
+							onPress: () => quickLog(selection),
+							swipe: false,
+						},
+					]
+				: []),
+			{
+				key: "portion",
+				systemImage: "slider.horizontal.3",
+				label: copy.otherPortion,
+				onPress: () => void openFood(selection),
+				swipe: false,
+			},
+			...(selection.kind === "shipped"
+				? [
+						{
+							key: "correct",
+							systemImage: "pencil" as const,
+							label: copy.correct,
+							onPress: () => startCorrection(selection.food),
+							swipe: false,
+						},
+					]
+				: [
+						{
+							key: "edit",
+							systemImage: "pencil" as const,
+							label: copy.edit,
+							onPress: () => setEditingFood(selection.food),
+							swipe: false,
+						},
+						{
+							key: "delete",
+							systemImage: "trash" as const,
+							label: copy.delete,
+							destructive: true,
+							onPress: () => void deletePersonalFood(selection.food),
+							swipe: false,
+						},
+					]),
+		];
+	}
+
+	if (scanning) {
+		return (
+			<Modal
+				visible
+				presentationStyle="fullScreen"
+				animationType={modalAnimation(reduceMotion, "slide")}
+				onRequestClose={() => setScanning(false)}
+			>
+				<BarcodeScanner
+					onScanned={handleBarcodeScanned}
+					onCancel={() => {
+						setScanning(false);
+						setBarcodeStatus(undefined);
+					}}
+					status={barcodeStatus}
+				/>
+			</Modal>
+		);
+	}
+
+	let editor = null;
+	if (reviewingImport) {
+		editor = (
+			<PersonalFoodEditor
+				seed={reviewingImport}
+				reviewNotice={{
+					title: t.nutrition.foodImport.reviewTitle,
+					attribution: reviewingImport.provenance.attribution,
+				}}
+				onCancel={() => setReviewingImport(undefined)}
+				onSaved={(food) => {
+					setReviewingImport(undefined);
+					showSavedFood(food);
+				}}
+			/>
+		);
+	}
+
+	if (creatingFood || editingFood || forkDraft) {
+		editor = (
+			<PersonalFoodEditor
+				food={editingFood}
+				seed={forkDraft ?? newFoodSeed}
+				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
+				onCreateKindChange={(kind) => {
+					if (kind !== "oneOff") return;
+					closeEditor();
+					router.push({
+						pathname: "/nutrition-cooking",
+						params: { date, meal: selectedMeal, mode: "oneoff-log" },
+					});
+				}}
+				onCancel={closeEditor}
+				onSaved={(food) => {
+					closeEditor();
+					showSavedFood(food);
+				}}
+			/>
+		);
+	}
+
+	const servingSheet =
+		selectedFood && !editor ? (
+			<LogFoodServingSheet
+				key={`${selectedFood.kind}:${selectedFood.food.id}`}
+				selection={selectedFood}
+				meal={selectedMeal}
+				date={date}
+				onBack={() => {
+					if (!servingPendingRef.current) setSelectedFood(undefined);
+				}}
+				onPendingChange={(pending) => {
+					servingPendingRef.current = pending;
+					setServingPending(pending);
+				}}
+				onLogged={(outcome) => {
+					if (outcome === "close") {
+						onClose();
+						return;
+					}
+					// The meal summary's count and kcal moving is the feedback.
+					setSelectedFood(undefined);
+				}}
+				onEdit={
+					selectedFood.kind === "personal"
+						? () => setEditingFood(selectedFood.food)
+						: undefined
+				}
+				onCorrect={
+					selectedFood.kind === "shipped" && !supplementary.loading
+						? () => {
+								setForkDraft(
+									correctionDraft(selectedFood.food, supplementary.servings),
+								);
+								setSelectedFood(undefined);
+							}
+						: undefined
+				}
+				onDelete={
+					selectedFood.kind === "personal"
+						? () => void deletePersonalFood(selectedFood.food)
+						: undefined
+				}
+			/>
+		) : null;
+
+	const menu: LogFoodMenuProps = {
+		label: copy.moreActions,
+		closeLabel: copy.closeMenu,
+		logOnceLabel: copy.logOnce,
+		newFoodLabel: copy.newPersonalFood,
+		newRecipeLabel: copy.newRecipe,
+		saveAsNoteLabel: t.nutrition.drafts.saveAsNote,
+		canSaveAsNote: !draftId && hasQuery,
+		onLogOnce: () =>
+			router.push({
+				pathname: "/nutrition-cooking",
+				params: { date, meal: selectedMeal, mode: "oneoff-log" },
+			}),
+		onNewFood: () => setCreatingFood(true),
+		onNewRecipe: () => {
+			setFilter("recipes");
+			setCreatingFood(true);
+		},
+		onSaveAsNote: saveAsNote,
+	};
+	const describe = () =>
+		router.push({
+			pathname: "/nutrition-assistance",
+			params: { date, meal: selectedMeal },
+		});
+	const dayLabel = date === today ? copy.today : formatShortDate(date, locale);
+	const listHeading = hasQuery
+		? {
+				title: copy.results,
+				detail: items.length ? String(items.length) : undefined,
+			}
+		: filter === "pool"
+			? { title: copy.forMeal(mealName), detail: copy.forMealHint }
+			: undefined;
+
 	return (
 		<>
 			<DatePickerSheet
@@ -810,41 +806,42 @@ export function LogFoodScreen({
 				doneLabel={copy.doneChoosingDate}
 				closeLabel={copy.closeMenu}
 				onSelect={(next) => {
-					setDate(next);
+					changeDate(next);
 					setShowCalendar(false);
 				}}
 				onClose={() => setShowCalendar(false)}
 			/>
-			{/*
-			 * The date is the title, and tapping it opens the system picker.
-			 * There is no "Klaar" to confirm — every row commits its own log and
-			 * the stack's back chevron closes the browser — so the corner freed
-			 * up carries the same picker as a visible affordance.
-			 */}
 			<Stack.Screen
 				options={{
-					title: formatShortDate(date, locale),
+					title: mealName,
 					headerTitle: () => (
-						<Pressable
-							accessibilityRole="button"
-							accessibilityLabel={copy.chooseDate}
-							accessibilityValue={{ text: formatLongDate(date, locale) }}
-							accessibilityState={{ expanded: showCalendar }}
-							onPress={() => setShowCalendar(true)}
-							style={styles.headerTitle}
-						>
-							<AppText style={styles.headerTitleText}>
-								{formatShortDate(date, locale)}
-							</AppText>
-						</Pressable>
+						<LogFoodDestinationMenu
+							label={copy.destinationLabel(
+								mealName,
+								formatLongDate(date, locale),
+							)}
+							mealName={mealName}
+							dayLabel={dayLabel}
+							sectionTitle={copy.logInto}
+							closeLabel={copy.closeMenu}
+							otherDayLabel={copy.otherDay}
+							options={MEAL_SLOTS.map((slot) => {
+								const entries = entriesFor(slot);
+								return {
+									slot,
+									selected: slot === selectedMeal,
+									label: copy.mealSummary(
+										t.nutrition.meals[slot],
+										entries.length,
+										energyLabel(entries),
+									),
+								};
+							})}
+							onSelectMeal={setSelectedMeal}
+							onOtherDay={() => setShowCalendar(true)}
+						/>
 					),
-					/*
-					 * The corner opens the picker rather than holding "Vandaag".
-					 * "Vandaag" is disabled exactly when you are already on today —
-					 * which is most of the time — so in the corner it reads as a
-					 * control that does nothing. It lives inside the picker now,
-					 * next to the date it resets.
-					 */
+					// The calendar stays the one direct route to the day.
 					headerRight: () => (
 						<Pressable
 							accessibilityRole="button"
@@ -866,6 +863,19 @@ export function LogFoodScreen({
 					),
 				}}
 			/>
+			{bottomToolbar ? (
+				<LogFoodToolbar
+					searchRef={searchBarRef}
+					placeholder={copy.search}
+					scanLabel={copy.scanBarcode}
+					describeLabel={copy.aiSearch}
+					menu={menu}
+					onChangeQuery={setQuery}
+					onSubmit={off.commit}
+					onScan={() => setScanning(true)}
+					onDescribe={describe}
+				/>
+			) : null}
 			{editor ? (
 				<FoodEditorSheet
 					visible
@@ -889,104 +899,51 @@ export function LogFoodScreen({
 			>
 				{servingSheet}
 			</Modal>
+			<LogFoodBarcodeSheet
+				barcode={unknownBarcode}
+				copy={copy}
+				closeLabel={copy.closeMenu}
+				onClose={() => setUnknownBarcode(undefined)}
+				onCreate={() => {
+					const barcode = unknownBarcode;
+					setUnknownBarcode(undefined);
+					createFood("", barcode);
+				}}
+				onSearchByName={() => {
+					setLinkingBarcode(unknownBarcode);
+					setUnknownBarcode(undefined);
+					if (bottomToolbar) searchBarRef.current?.focus();
+					else searchInputRef.current?.focus();
+				}}
+				onRescan={() => {
+					setUnknownBarcode(undefined);
+					setScanning(true);
+				}}
+			/>
 			<FlatList
-				data={visibleItems}
+				data={items}
 				style={styles.root}
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardDismissMode="interactive"
 				keyboardShouldPersistTaps="handled"
 				contentContainerStyle={styles.content}
-				keyExtractor={browserItemKey}
+				keyExtractor={logFoodItemKey}
 				ListHeaderComponent={
 					<View style={styles.headerContent}>
-						<ScrollView
-							horizontal
-							showsHorizontalScrollIndicator={false}
-							contentContainerStyle={styles.chipList}
-						>
-							{MEAL_SLOTS.map((slot) => (
-								<LogFoodChip
-									key={slot}
-									label={t.nutrition.meals[slot]}
-									selected={selectedMeal === slot}
-									size="large"
-									role="radio"
-									onPress={() => setSelectedMeal(slot)}
-								/>
-							))}
-						</ScrollView>
-						<View style={styles.findControls}>
-							<View style={styles.searchField}>
-								<SymbolView
-									name={{
-										ios: "magnifyingglass",
-										android: "search",
-										web: "search",
-									}}
-									size={16}
-									tintColor={colors.textFaint}
-								/>
-								<TextInput
-									value={query}
-									onChangeText={(value) => {
-										setQuery(value);
-										searchRevision.current += 1;
-										setOnlineFeedback(undefined);
-										setOnlineResults(undefined);
-									}}
-									placeholder={copy.search}
-									placeholderTextColor={colors.textFaint}
-									accessibilityLabel={copy.search}
-									style={[styles.input, styles.flex]}
-									autoCorrect={false}
-								/>
-							</View>
-							<LogFoodIconButton
-								label={copy.scanBarcode}
-								symbol={{
-									ios: "barcode.viewfinder",
-									android: "barcode_scanner",
-									web: "barcode",
-								}}
-								onPress={() => setScanning(true)}
+						{bottomToolbar ? null : (
+							<LogFoodFindControls
+								inputRef={searchInputRef}
+								query={query}
+								placeholder={copy.search}
+								scanLabel={copy.scanBarcode}
+								describeLabel={copy.aiSearch}
+								menu={menu}
+								onChangeQuery={setQuery}
+								onSubmit={off.commit}
+								onScan={() => setScanning(true)}
+								onDescribe={describe}
 							/>
-							<LogFoodIconButton
-								label={copy.aiSearch}
-								symbol={{
-									ios: "sparkles",
-									android: "auto_awesome",
-									web: "auto_awesome",
-								}}
-								accented
-								onPress={() =>
-									router.push({
-										pathname: "/nutrition-assistance",
-										params: { date, meal: selectedMeal },
-									})
-								}
-							/>
-							<LogFoodMenu
-								label={copy.moreActions}
-								closeLabel={copy.closeMenu}
-								logOnceLabel={copy.logOnce}
-								newFoodLabel={copy.newPersonalFood}
-								newRecipeLabel={copy.newRecipe}
-								saveAsNoteLabel={t.nutrition.drafts.saveAsNote}
-								canSaveAsNote={!draftId && query.trim().length > 0}
-								onLogOnce={() =>
-									router.push({
-										pathname: "/nutrition-cooking",
-										params: { date, meal: selectedMeal, mode: "oneoff-log" },
-									})
-								}
-								onNewFood={() => setCreatingFood(true)}
-								onNewRecipe={() => {
-									setFilter("recipes");
-									setCreatingFood(true);
-								}}
-								onSaveAsNote={saveAsNote}
-							/>
-						</View>
+						)}
 						<ScrollView
 							horizontal
 							showsHorizontalScrollIndicator={false}
@@ -997,63 +954,93 @@ export function LogFoodScreen({
 									key={scope}
 									label={copy[copyKey]}
 									selected={filter === scope}
-									role="tab"
 									onPress={() => setFilter(scope)}
 								/>
 							))}
 						</ScrollView>
 						<LogFoodMealSummary
 							label={copy.mealSummary(
-								t.nutrition.meals[selectedMeal],
+								mealName,
 								mealEntries.length,
-								mealEnergyLabel,
+								energyLabel(mealEntries),
 							)}
 							expandLabel={mealOpen ? copy.collapseMeal : copy.expandMeal}
-							emptyLabel={copy.mealEmpty}
+							hint={copy.mealHint}
 							open={mealOpen}
 							entries={mealEntries}
 							locale={locale}
+							editLabel={copy.edit}
+							deleteLabel={copy.delete}
 							onToggle={() => setMealOpen((open) => !open)}
+							onOpenEntry={(entry) =>
+								router.push({
+									pathname: "/nutrition-entry",
+									params: { id: entry.id, date, meal: selectedMeal },
+								})
+							}
+							onDeleteEntry={(entry) =>
+								void deleteEntry({ entry, meal: selectedMeal, date })
+							}
 						/>
-						{query.trim().length > 0 && onlineFeedback ? (
-							<View
-								testID="off-search-feedback"
-								accessibilityRole="alert"
-								accessibilityLiveRegion="polite"
-								style={styles.heading}
-							>
-								<AppText>{onlineFeedback}</AppText>
+						{linkingBarcode ? (
+							<View style={styles.linking} accessibilityLiveRegion="polite">
+								<AppText variant="caption" style={styles.flex}>
+									{copy.barcodeLinking(linkingBarcode)}
+								</AppText>
+								<Pressable
+									accessibilityRole="button"
+									onPress={() => setLinkingBarcode(undefined)}
+									style={styles.linkingStop}
+								>
+									<AppText style={styles.accent}>
+										{copy.barcodeLinkingStop}
+									</AppText>
+								</Pressable>
 							</View>
 						) : null}
-					</View>
-				}
-				ListFooterComponent={
-					<View style={styles.poolNote}>
-						<AppText variant="caption">
-							{copy.poolNote(catalogueSize.toLocaleString(locale))}
-						</AppText>
-						{/*
-						 * Open Food Facts is a network call on someone else's service,
-						 * so it stays an explicit act and only appears once there is
-						 * something to search for.
-						 */}
-						{query.trim().length > 0 ? (
-							<AppText
-								variant="caption"
-								accessibilityRole="button"
-								disabled={onlineSearching}
-								onPress={onlineSearching ? undefined : runOnlineSearch}
-								style={styles.onlineSearchText}
-							>
-								{onlineSearching ? copy.searchingOnline : copy.searchOnline}
+						{items.length && listHeading ? (
+							<LogFoodSectionHeader
+								title={listHeading.title}
+								detail={listHeading.detail}
+							/>
+						) : null}
+						{!items.length && hasQuery && offAnswering ? (
+							<AppText variant="caption" style={styles.localNone}>
+								{copy.localNone(query.trim())}
 							</AppText>
 						) : null}
 					</View>
 				}
 				ListEmptyComponent={
-					onlineFeedback || onlineSearching ? null : (
-						<LogFoodEmptyState tab={filter} query={query} copy={copy} />
+					hasQuery && offAnswering ? null : (
+						<LogFoodEmptyState
+							tab={filter}
+							query={query}
+							copy={copy}
+							offPending={off.state.kind === "waiting"}
+							onSearchOnline={off.commit}
+							onCreateFood={(name) => createFood(name)}
+						/>
 					)
+				}
+				ListFooterComponent={
+					<View>
+						{hasQuery ? (
+							<LogFoodOffSection
+								state={off.state}
+								query={query}
+								copy={copy}
+								messages={t.nutrition}
+								locale={locale}
+								onCommit={off.commit}
+								onReview={setReviewingImport}
+								onScan={() => setScanning(true)}
+							/>
+						) : null}
+						<AppText variant="caption" style={styles.poolNote}>
+							{copy.poolNote(catalogueSize.toLocaleString(locale))}
+						</AppText>
+					</View>
 				}
 				renderItem={({ item }) => {
 					if (item.kind === "combo") {
@@ -1080,46 +1067,6 @@ export function LogFoodScreen({
 							/>
 						);
 					}
-					if (item.kind === "online")
-						return (
-							<Pressable
-								onPress={() => setReviewingImport(item.draft)}
-								accessibilityRole="button"
-								style={styles.foodRow}
-							>
-								{item.draft.provenance.imageUrl ? (
-									<Image
-										source={item.draft.provenance.imageUrl}
-										accessibilityLabel={item.draft.name[locale]}
-										cachePolicy="memory-disk"
-										contentFit="contain"
-										style={styles.foodImage}
-									/>
-								) : (
-									<LogFoodMediaSlot
-										symbol={{
-											ios: "globe",
-											android: "public",
-											web: "public",
-										}}
-									/>
-								)}
-								<View style={styles.flex}>
-									<AppText numberOfLines={2} style={styles.rowTitle}>
-										{item.draft.name[locale]}
-									</AppText>
-									<AppText variant="caption">
-										{offProductCaption(
-											item.draft.provenance,
-											`${copy.onlineResults} · ${item.draft.provenance.provider}`,
-										)}
-									</AppText>
-									<AppText variant="caption">
-										{resultEnergyCaption(item.draft, t.nutrition, locale)}
-									</AppText>
-								</View>
-							</Pressable>
-						);
 					const sourceKey = foodSourceKey(
 						item.selection.kind === "shipped" ? "shipped" : "personal",
 						item.selection.food.id,
@@ -1153,7 +1100,9 @@ export function LogFoodScreen({
 									: undefined
 							}
 							quickLogging={quickLoggingKeys.has(sourceKey)}
-							onPress={() => setSelectedFood(item.selection)}
+							actions={rowActions(item.selection, quickPreview?.label)}
+							closeMenuLabel={copy.closeMenu}
+							onPress={() => void openFood(item.selection)}
 							onQuickLog={() => quickLog(item.selection)}
 						/>
 					);
@@ -1166,16 +1115,9 @@ export function LogFoodScreen({
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
-		center: { alignItems: "center", justifyContent: "center" },
-		content: { paddingTop: 10, paddingBottom: 40, gap: 12 },
+		content: { paddingTop: 10, paddingBottom: 40 },
 		flex: { flex: 1 },
-		headerContent: { gap: 12, paddingBottom: spacing.sm },
-		headerTitle: {
-			minHeight: 44,
-			justifyContent: "center",
-			paddingHorizontal: spacing.sm,
-		},
-		headerTitleText: { fontWeight: "700", color: colors.text },
+		headerContent: { gap: 12, paddingBottom: spacing.xs },
 		headerButton: {
 			minHeight: 44,
 			justifyContent: "center",
@@ -1186,54 +1128,24 @@ const createStyles = (colors: Tokens) =>
 			gap: spacing.sm,
 			paddingHorizontal: spacing.md,
 		},
-		findControls: {
+		linking: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.sm,
+			marginHorizontal: spacing.md,
+			paddingLeft: spacing.md,
+			borderRadius: radius.lg,
+			backgroundColor: colors.accentDim,
+		},
+		linkingStop: {
+			minHeight: 44,
+			justifyContent: "center",
 			paddingHorizontal: spacing.md,
 		},
-		searchField: {
-			flex: 1,
-			minWidth: 0,
-			minHeight: 40,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 6,
-			paddingHorizontal: 10,
-			borderRadius: radius.lg,
-			backgroundColor: colors.surface2,
-		},
-		heading: { gap: spacing.xs, paddingHorizontal: spacing.md },
+		accent: { color: colors.accentInk, fontWeight: "600" },
+		localNone: { paddingHorizontal: spacing.md },
 		poolNote: {
-			gap: spacing.xs,
 			paddingHorizontal: spacing.md,
 			paddingVertical: 14,
-		},
-		onlineSearchText: { color: colors.accentInk, fontWeight: "600" },
-		rowTitle: { fontWeight: "600", letterSpacing: -0.2 },
-		input: {
-			flex: 1,
-			minWidth: 0,
-			minHeight: 40,
-			color: colors.text,
-			fontSize: type.secondary.fontSize,
-		},
-		foodRow: {
-			minHeight: 64,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 12,
-			paddingHorizontal: spacing.md,
-			paddingVertical: 10,
-			borderBottomWidth: StyleSheet.hairlineWidth,
-			borderBottomColor: colors.separator,
-		},
-		foodImage: {
-			width: MEDIA_SLOT,
-			height: MEDIA_SLOT,
-			flexGrow: 0,
-			flexShrink: 0,
-			borderRadius: radius.lg,
-			backgroundColor: colors.surface2,
 		},
 	});

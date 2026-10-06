@@ -212,11 +212,10 @@ describe("Nutrition navigation", () => {
 			meal: "dinner",
 			date: todayIsoDate(),
 		});
-		// The meal chip row retains the route's meal context.
+		// The title menu carries the route's meal as the destination.
 		expect(
-			(await screen.findByRole("radio", { name: "Dinner" })).props
-				.accessibilityState,
-		).toMatchObject({ checked: true });
+			(await screen.findAllByLabelText(/^Logging into Dinner, /)).length,
+		).toBeGreaterThan(0);
 	});
 	it("preserves Dinner when switching from Add food to Log once", async () => {
 		const app = renderApp();

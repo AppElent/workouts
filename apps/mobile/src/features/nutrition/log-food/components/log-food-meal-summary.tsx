@@ -1,7 +1,9 @@
 import { roundForDisplay } from "@workouts/core/nutrition";
 import { SymbolView } from "expo-symbols";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, View } from "react-native";
 import type { DiaryEntry } from "../../../../data/nutrition-day";
+import { useReduceMotion } from "../../../../feedback/reduce-motion";
 import {
 	radius,
 	spacing,
@@ -9,49 +11,70 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../../theme";
+import { InsetList, InsetRow } from "../../../../ui/inset-list";
 import { AppText } from "../../../../ui/text";
 
 /**
- * The meal's running total, and what is in it.
+ * The destination meal's running total, and what is in it.
  *
- * This is the only confirmation a quick log gets: there is no transient "added
- * to Ontbijt" line any more, so the count and kcal moving here — announced,
- * because it is a polite live region — is the feedback.
+ * A quick log confirms here as well as in the toast: the count and kcal move,
+ * the bar lights up briefly, and the label is a polite live region so the
+ * change is announced. Expanded, the logged items use the diary's row
+ * contract — tap opens the entry editor, swipe offers edit and delete — so a
+ * mistake is fixed without going back to the diary.
  */
 export function LogFoodMealSummary({
 	label,
 	expandLabel,
-	emptyLabel,
+	hint,
 	open,
 	entries,
 	locale,
+	editLabel,
+	deleteLabel,
 	onToggle,
+	onOpenEntry,
+	onDeleteEntry,
 }: {
 	label: string;
 	expandLabel: string;
-	emptyLabel: string;
+	hint: string;
 	open: boolean;
 	entries: readonly DiaryEntry[];
 	locale: "en" | "nl";
+	editLabel: string;
+	deleteLabel: string;
 	onToggle: () => void;
+	onOpenEntry: (entry: DiaryEntry) => void;
+	onDeleteEntry: (entry: DiaryEntry) => void;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.mealSummary}>
-			<Pressable
-				accessibilityRole="button"
-				accessibilityLabel={expandLabel}
-				accessibilityState={{ expanded: open }}
-				onPress={onToggle}
-				style={styles.mealSummaryHeader}
+	const flash = useMealFlash(entries.length);
+	const expandable = entries.length > 0;
+	const header = (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={expandable ? expandLabel : undefined}
+			accessibilityState={expandable ? { expanded: open } : undefined}
+			disabled={!expandable}
+			onPress={onToggle}
+			style={styles.header}
+		>
+			<Animated.View
+				pointerEvents="none"
+				style={[
+					StyleSheet.absoluteFill,
+					{ backgroundColor: colors.accentDim, opacity: flash },
+				]}
+			/>
+			<AppText
+				accessibilityLiveRegion="polite"
+				style={[styles.flex, styles.label]}
 			>
-				<AppText
-					accessibilityLiveRegion="polite"
-					style={[styles.flex, styles.mealSummaryLabel]}
-				>
-					{label}
-				</AppText>
+				{label}
+			</AppText>
+			{expandable ? (
 				<SymbolView
 					name={
 						open
@@ -69,58 +92,101 @@ export function LogFoodMealSummary({
 					size={15}
 					tintColor={colors.accentInk}
 				/>
-			</Pressable>
-			{open ? (
-				<View style={styles.mealSummaryBody}>
-					{entries.length === 0 ? (
-						<AppText variant="caption">{emptyLabel}</AppText>
-					) : (
-						entries.map((entry) => (
-							<View key={entry.id} style={styles.mealSummaryEntry}>
-								<AppText variant="caption" style={styles.flex}>
-									{entry.name[locale]} · {entry.serving[locale]}
-								</AppText>
-								<AppText variant="caption" style={styles.tabular}>
-									{entry.nutrients.energy.kind === "value"
-										? `${roundForDisplay("energy", entry.nutrients.energy.amount)} kcal`
-										: entry.nutrients.energy.kind === "trace"
-											? "~0 kcal"
-											: "— kcal"}
-								</AppText>
-							</View>
-						))
-					)}
-				</View>
 			) : null}
+		</Pressable>
+	);
+	// Closed, the bar is a plain card: the native grouped list only earns its
+	// place once there are rows to swipe.
+	if (!open || !expandable)
+		return (
+			<View style={styles.wrap}>
+				<View style={styles.card}>{header}</View>
+			</View>
+		);
+	return (
+		<View style={styles.wrap}>
+			<InsetList compact headerContent={header}>
+				{entries.map((entry) => (
+					<InsetRow
+						key={entry.id}
+						id={entry.id}
+						title={entry.name[locale]}
+						secondary={entry.serving[locale]}
+						value={energyLabel(entry)}
+						onPress={() => onOpenEntry(entry)}
+						actions={[
+							{
+								key: "edit",
+								systemImage: "pencil",
+								label: editLabel,
+								onPress: () => onOpenEntry(entry),
+							},
+							{
+								key: "delete",
+								systemImage: "trash",
+								label: deleteLabel,
+								destructive: true,
+								onPress: () => onDeleteEntry(entry),
+							},
+						]}
+					/>
+				))}
+			</InsetList>
+			<AppText variant="caption" style={styles.hint}>
+				{hint}
+			</AppText>
 		</View>
 	);
 }
 
+function energyLabel(entry: DiaryEntry): string {
+	const energy = entry.nutrients.energy;
+	return energy.kind === "value"
+		? `${roundForDisplay("energy", energy.amount)} kcal`
+		: energy.kind === "trace"
+			? "~0 kcal"
+			: "— kcal";
+}
+
+/** Lights the bar briefly when the meal gains an item; Reduce Motion skips it. */
+function useMealFlash(count: number) {
+	const reduceMotion = useReduceMotion();
+	const flash = useRef(new Animated.Value(0)).current;
+	const previous = useRef(count);
+	useEffect(() => {
+		const grew = count > previous.current;
+		previous.current = count;
+		if (!grew || reduceMotion) return;
+		flash.setValue(1);
+		Animated.timing(flash, {
+			toValue: 0,
+			duration: 900,
+			useNativeDriver: true,
+		}).start();
+	}, [count, flash, reduceMotion]);
+	return flash;
+}
+
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
-		flex: { flex: 1 },
-		tabular: { fontVariant: ["tabular-nums"] },
-		mealSummary: {
-			marginHorizontal: spacing.md,
-			borderRadius: radius.card,
-			borderWidth: 1,
-			borderColor: colors.accent,
-			backgroundColor: colors.accentDim,
+		wrap: { marginHorizontal: spacing.md, gap: spacing.xs },
+		card: {
+			borderRadius: radius.contentCard,
+			backgroundColor: colors.surface,
 			overflow: "hidden",
 		},
-		mealSummaryHeader: {
+		// Grow without a zero basis: text measured at zero width wraps per word
+		// and leaves the bar taller than its one line.
+		flex: { flexGrow: 1, flexShrink: 1 },
+		header: {
 			minHeight: 48,
 			flexDirection: "row",
 			alignItems: "center",
 			gap: 12,
 			paddingHorizontal: 14,
 			paddingVertical: spacing.sm,
+			overflow: "hidden",
 		},
-		mealSummaryLabel: { fontWeight: "700" },
-		mealSummaryBody: {
-			gap: 6,
-			paddingHorizontal: 14,
-			paddingBottom: 10,
-		},
-		mealSummaryEntry: { flexDirection: "row", gap: 10 },
+		label: { fontWeight: "700" },
+		hint: { paddingHorizontal: spacing.xs },
 	});

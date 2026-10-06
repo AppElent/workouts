@@ -21,9 +21,16 @@ import { AppText } from "../ui/text";
 export function BarcodeScanner({
 	onScanned,
 	onCancel,
+	status,
 }: {
 	onScanned: (barcode: string) => void;
 	onCancel: () => void;
+	/**
+	 * What happens to the code just read, such as an Open Food Facts lookup.
+	 * Shown in the camera instead of the aiming hint, so the person never
+	 * faces an empty screen while it runs.
+	 */
+	status?: string;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const { t } = useI18n();
@@ -90,9 +97,12 @@ export function BarcodeScanner({
 						{t.nutrition.entryActions.close}
 					</AppText>
 				</Pressable>
-				<View style={styles.hintBar}>
+				<View
+					style={styles.hintBar}
+					accessibilityLiveRegion={status ? "polite" : undefined}
+				>
 					<AppText style={styles.overlayText}>
-						{t.nutrition.barcode.hint}
+						{status ?? t.nutrition.barcode.hint}
 					</AppText>
 				</View>
 			</SafeAreaView>
