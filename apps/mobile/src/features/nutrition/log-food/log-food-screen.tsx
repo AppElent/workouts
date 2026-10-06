@@ -44,7 +44,6 @@ import {
 	useNutritionOperationVersion,
 } from "../../../data/nutrition-operation-service";
 import {
-	foodSourceKey,
 	portionMemoryFor,
 	rememberedSelection,
 } from "../../../data/nutrition-shortcuts";
@@ -80,7 +79,7 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { requestDiaryDate } from "../diary/diary-date-request";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
 import { LogFoodChip } from "./components/log-food-chip";
 import { LogFoodComboRow } from "./components/log-food-combo-row";
@@ -105,6 +104,7 @@ import {
 	createFoodSnapshot,
 	type FoodFilter,
 	type FoodSelection,
+	selectionSourceKey,
 	servingChoices,
 	servingPreview,
 } from "./log-food-selection";
@@ -242,6 +242,7 @@ export function LogFoodScreen({
 	);
 	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(meal);
 	const [mealOpen, setMealOpen] = useState(false);
+	const [mealFlash, setMealFlash] = useState(0);
 	const servingPendingRef = useRef(false);
 	const [servingPending, setServingPending] = useState(false);
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
@@ -472,8 +473,12 @@ export function LogFoodScreen({
 	}
 
 	async function openFood(selection: FoodSelection) {
-		if (linkingBarcode && selection.kind === "personal") {
-			await linkBarcode(selection.food, linkingBarcode);
+		if (linkingBarcode) {
+			// Only a Personal Food can carry the barcode; a shipped pick is just
+			// logged, and either way the linking task is over.
+			if (selection.kind === "personal")
+				await linkBarcode(selection.food, linkingBarcode);
+			else setLinkingBarcode(undefined);
 		}
 		setSelectedFood(selection);
 	}
@@ -498,10 +503,7 @@ export function LogFoodScreen({
 				? operations.getSupplementaryServings(subject, selection.food.id)
 				: [],
 		);
-		const sourceKey = foodSourceKey(
-			selection.kind === "shipped" ? "shipped" : "personal",
-			selection.food.id,
-		);
+		const sourceKey = selectionSourceKey(selection);
 		const remembered = rememberedSelection(
 			choices,
 			selection.food.baseUnit,
@@ -517,10 +519,7 @@ export function LogFoodScreen({
 	}
 
 	function quickLog(selection: FoodSelection) {
-		const sourceKey = foodSourceKey(
-			selection.kind === "shipped" ? "shipped" : "personal",
-			selection.food.id,
-		);
+		const sourceKey = selectionSourceKey(selection);
 		if (!subject || quickLoggingRef.current.has(sourceKey)) return;
 		const quickSelection = resolveQuickSelection(selection);
 		if (!quickSelection) return;
@@ -566,6 +565,7 @@ export function LogFoodScreen({
 				() => {
 					release();
 					haptics.entryLogged();
+					setMealFlash((key) => key + 1);
 					toast.success(copy.logged(foodName, loggedMeal), {
 						action: {
 							label: copy.undo,
@@ -590,21 +590,11 @@ export function LogFoodScreen({
 		selection: FoodSelection,
 		quickPreview: string | undefined,
 	): RowAction[] {
-		const sourceKey = foodSourceKey(
-			selection.kind === "shipped" ? "shipped" : "personal",
-			selection.food.id,
-		);
+		const sourceKey = selectionSourceKey(selection);
 		const isFavorite = favoriteKeys.has(sourceKey);
+		// Menu order follows the design: log, other portion, favorite, then the
+		// food's own edits. Only Favorite is offered on swipe.
 		return [
-			{
-				key: "favorite",
-				systemImage: isFavorite ? "star.slash" : "star",
-				label: isFavorite ? copy.unfavorite : copy.favorite,
-				onPress: () => {
-					if (subject)
-						operations.toggleFavorite(subject, sourceKey, !isFavorite);
-				},
-			},
 			...(quickPreview
 				? [
 						{
@@ -622,6 +612,15 @@ export function LogFoodScreen({
 				label: copy.otherPortion,
 				onPress: () => void openFood(selection),
 				swipe: false,
+			},
+			{
+				key: "favorite",
+				systemImage: isFavorite ? "star.slash" : "star",
+				label: isFavorite ? copy.unfavorite : copy.favorite,
+				onPress: () => {
+					if (subject)
+						operations.toggleFavorite(subject, sourceKey, !isFavorite);
+				},
 			},
 			...(selection.kind === "shipped"
 				? [
@@ -968,6 +967,7 @@ export function LogFoodScreen({
 							hint={copy.mealHint}
 							open={mealOpen}
 							entries={mealEntries}
+							flashKey={mealFlash}
 							locale={locale}
 							editLabel={copy.edit}
 							deleteLabel={copy.delete}
@@ -1032,6 +1032,7 @@ export function LogFoodScreen({
 								copy={copy}
 								messages={t.nutrition}
 								locale={locale}
+								offline={offline}
 								onCommit={off.commit}
 								onReview={setReviewingImport}
 								onScan={() => setScanning(true)}
@@ -1067,10 +1068,7 @@ export function LogFoodScreen({
 							/>
 						);
 					}
-					const sourceKey = foodSourceKey(
-						item.selection.kind === "shipped" ? "shipped" : "personal",
-						item.selection.food.id,
-					);
+					const sourceKey = selectionSourceKey(item.selection);
 					const quickSelection = resolveQuickSelection(item.selection);
 					const quickPreview = quickSelection
 						? servingPreview(

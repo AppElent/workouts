@@ -15,6 +15,7 @@ import {
 	withSupplementaryServings,
 } from "@workouts/core/nutrition";
 import type { DiaryEntry, MealSlot } from "../../../data/nutrition-day";
+import { foodSourceKey } from "../../../data/nutrition-shortcuts";
 import type { PersonalFood } from "../../../data/personal-food-repository";
 import type { FoodBrowserTab } from "./log-food-copy";
 
@@ -135,4 +136,12 @@ export function createFoodSnapshot(
 		saltDerived: source.saltDerived,
 	};
 	return { common, provenance };
+}
+
+/** The durable shortcut key for a selection (favorite, recent, remembered portion). */
+export function selectionSourceKey(selection: FoodSelection): string {
+	return foodSourceKey(
+		selection.kind === "shipped" ? "shipped" : "personal",
+		selection.food.id,
+	);
 }

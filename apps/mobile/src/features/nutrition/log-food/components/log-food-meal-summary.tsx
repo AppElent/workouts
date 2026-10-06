@@ -29,6 +29,7 @@ export function LogFoodMealSummary({
 	hint,
 	open,
 	entries,
+	flashKey,
 	locale,
 	editLabel,
 	deleteLabel,
@@ -41,6 +42,8 @@ export function LogFoodMealSummary({
 	hint: string;
 	open: boolean;
 	entries: readonly DiaryEntry[];
+	/** Changes once per quick add; the bar lights up when it does. */
+	flashKey: number;
 	locale: "en" | "nl";
 	editLabel: string;
 	deleteLabel: string;
@@ -50,7 +53,7 @@ export function LogFoodMealSummary({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	const flash = useMealFlash(entries.length);
+	const flash = useMealFlash(flashKey);
 	const expandable = entries.length > 0;
 	const header = (
 		<Pressable
@@ -148,22 +151,22 @@ function energyLabel(entry: DiaryEntry): string {
 			: "— kcal";
 }
 
-/** Lights the bar briefly when the meal gains an item; Reduce Motion skips it. */
-function useMealFlash(count: number) {
+/** Lights the bar briefly after a quick add; Reduce Motion skips it. */
+function useMealFlash(flashKey: number) {
 	const reduceMotion = useReduceMotion();
 	const flash = useRef(new Animated.Value(0)).current;
-	const previous = useRef(count);
+	const previous = useRef(flashKey);
 	useEffect(() => {
-		const grew = count > previous.current;
-		previous.current = count;
-		if (!grew || reduceMotion) return;
+		const changed = flashKey !== previous.current;
+		previous.current = flashKey;
+		if (!changed || reduceMotion) return;
 		flash.setValue(1);
 		Animated.timing(flash, {
 			toValue: 0,
 			duration: 900,
 			useNativeDriver: true,
 		}).start();
-	}, [count, flash, reduceMotion]);
+	}, [flashKey, flash, reduceMotion]);
 	return flash;
 }
 

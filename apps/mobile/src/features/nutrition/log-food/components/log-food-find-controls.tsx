@@ -98,7 +98,7 @@ const createStyles = (colors: Tokens) =>
 		field: {
 			flex: 1,
 			minWidth: 0,
-			minHeight: 40,
+			minHeight: 44,
 			flexDirection: "row",
 			alignItems: "center",
 			gap: 6,
@@ -109,7 +109,7 @@ const createStyles = (colors: Tokens) =>
 		input: {
 			flex: 1,
 			minWidth: 0,
-			minHeight: 40,
+			minHeight: 44,
 			color: colors.text,
 			fontSize: type.secondary.fontSize,
 		},

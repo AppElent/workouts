@@ -21,6 +21,8 @@ export function LogFoodChip({
 			accessibilityRole="tab"
 			accessibilityState={{ selected }}
 			onPress={onPress}
+			// A compact chip with a 44pt target.
+			hitSlop={{ top: 6, bottom: 6 }}
 			style={[styles.chip, selected && styles.chipSelected]}
 		>
 			<AppText style={[styles.chipText, selected && styles.chipTextSelected]}>

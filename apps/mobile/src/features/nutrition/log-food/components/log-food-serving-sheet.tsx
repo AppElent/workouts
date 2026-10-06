@@ -24,7 +24,6 @@ import {
 	useNutritionOperations,
 } from "../../../../data/nutrition-operation-service";
 import {
-	foodSourceKey,
 	portionMemoryFor,
 	rememberedSelection,
 } from "../../../../data/nutrition-shortcuts";
@@ -59,6 +58,7 @@ import {
 	type FoodSelection,
 	formatNutrient,
 	type LogOutcome,
+	selectionSourceKey,
 	servingChoices,
 	servingPreview,
 } from "../log-food-selection";
@@ -115,10 +115,7 @@ export function LogFoodServingSheet({
 		[personalMeasures, selection, supplementary.servings],
 	);
 	const subject = operations.getSubject();
-	const sourceKey = foodSourceKey(
-		selection.kind === "shipped" ? "shipped" : "personal",
-		food.id,
-	);
+	const sourceKey = selectionSourceKey(selection);
 	const remembered = useMemo(
 		() =>
 			rememberedSelection(

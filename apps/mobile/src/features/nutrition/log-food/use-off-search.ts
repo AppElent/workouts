@@ -81,11 +81,9 @@ export function useOffSearch(
 			setState({ kind: "offline" });
 			return;
 		}
-		const until = client.coolingUntil();
-		if (until !== undefined) {
-			cool(until);
-			return;
-		}
+		// No budget check here: the budget wraps the network fetch, so a cached
+		// term is still answered while the window is closed, and an uncached
+		// one comes back as "rate-limited" below without leaving the device.
 		askedRef.current = asked;
 		setState({ kind: "loading" });
 		let outcome: OffSearchOutcome;

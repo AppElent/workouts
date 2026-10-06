@@ -38,7 +38,7 @@ import { DiaryMealCard } from "./components/diary-meal-card";
 import { DiarySelectionActions } from "./components/diary-selection-actions";
 import { DiarySummary } from "./components/diary-summary";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
-import { useDiaryDateRequest } from "./diary-date-request";
+import { useDiaryDateRequest } from "./use-diary-date-request";
 
 export function DiaryScreen({
 	initialDate,

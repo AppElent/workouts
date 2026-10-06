@@ -1,5 +1,8 @@
 import { act, renderHook } from "@testing-library/react-native";
-import { requestDiaryDate, useDiaryDateRequest } from "./diary-date-request";
+import {
+	requestDiaryDate,
+	useDiaryDateRequest,
+} from "./use-diary-date-request";
 
 describe("asking the diary to show a day", () => {
 	it("moves a mounted diary to each requested day", () => {

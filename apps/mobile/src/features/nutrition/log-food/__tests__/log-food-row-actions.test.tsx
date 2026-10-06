@@ -31,9 +31,9 @@ describe("a result row's actions", () => {
 		const [{ title, options }] = sheet.mock.calls[0];
 		expect(title).toBe("Apple");
 		expect(options).toEqual([
-			"Favorite",
 			expect.stringMatching(/^Log /),
 			"Other portion…",
+			"Favorite",
 			"Correct",
 			"Close",
 		]);

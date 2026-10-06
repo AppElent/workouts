@@ -27,6 +27,7 @@ export function LogFoodIconButton({
 			accessibilityRole="button"
 			accessibilityLabel={label}
 			onPress={onPress}
+			hitSlop={4}
 			style={[styles.iconButton, accented && styles.iconButtonAccented]}
 		>
 			<SymbolView

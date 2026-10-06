@@ -40,6 +40,7 @@ export function LogFoodOffSection({
 	copy,
 	messages,
 	locale,
+	offline,
 	onCommit,
 	onReview,
 	onScan,
@@ -49,6 +50,8 @@ export function LogFoodOffSection({
 	copy: LogFoodCopy;
 	messages: Messages["nutrition"];
 	locale: "en" | "nl";
+	/** Nothing can be asked: the manual row gives way to the offline notice. */
+	offline: boolean;
 	onCommit: () => void;
 	onReview: (draft: PersonalFoodDraft) => void;
 	onScan: () => void;
@@ -62,7 +65,7 @@ export function LogFoodOffSection({
 	}, [state.kind]);
 	if (state.kind === "idle") return null;
 
-	if (state.kind === "offline")
+	if (state.kind === "offline" || (offline && state.kind === "waiting"))
 		return (
 			<View testID="off-section" style={styles.section}>
 				<Notice symbol="wifi.slash" text={copy.offline} />
@@ -72,23 +75,7 @@ export function LogFoodOffSection({
 	if (state.kind === "waiting")
 		return (
 			<View testID="off-section" style={styles.section}>
-				<View style={styles.card}>
-					<Pressable
-						accessibilityRole="button"
-						onPress={onCommit}
-						style={styles.manual}
-					>
-						<LogFoodMediaSlot
-							symbol={{ ios: "globe", android: "public", web: "public" }}
-						/>
-						<View style={styles.flex}>
-							<AppText style={styles.accent}>
-								{copy.searchOnlineQuery(term)}
-							</AppText>
-							<AppText variant="caption">{copy.searchOnlineHint}</AppText>
-						</View>
-					</Pressable>
-				</View>
+				<ManualSearch term={term} copy={copy} onCommit={onCommit} />
 			</View>
 		);
 
@@ -166,6 +153,9 @@ export function LogFoodOffSection({
 					{offFailureMessage(state.reason, messages.foodImport, true)}
 				</AppText>
 			) : null}
+			{state.kind === "failed" ? (
+				<ManualSearch term={term} copy={copy} onCommit={onCommit} />
+			) : null}
 			{state.kind === "cooling" ? (
 				<View style={styles.card}>
 					<Countdown until={state.until} copy={copy} />
@@ -178,6 +168,38 @@ export function LogFoodOffSection({
 					</Pressable>
 				</View>
 			) : null}
+		</View>
+	);
+}
+
+/** Asks Open Food Facts now, for a term that has not been (or could not be) asked. */
+function ManualSearch({
+	term,
+	copy,
+	onCommit,
+}: {
+	term: string;
+	copy: LogFoodCopy;
+	onCommit: () => void;
+}) {
+	const styles = useThemedStyles(createStyles);
+	return (
+		<View style={styles.card}>
+			<Pressable
+				accessibilityRole="button"
+				onPress={onCommit}
+				style={styles.manual}
+			>
+				<LogFoodMediaSlot
+					symbol={{ ios: "globe", android: "public", web: "public" }}
+				/>
+				<View style={styles.flex}>
+					<AppText style={styles.accent}>
+						{copy.searchOnlineQuery(term)}
+					</AppText>
+					<AppText variant="caption">{copy.searchOnlineHint}</AppText>
+				</View>
+			</Pressable>
 		</View>
 	);
 }

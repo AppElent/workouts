@@ -137,14 +137,27 @@ describe("when the food browser asks Open Food Facts", () => {
 		act(() => result.current.commit());
 		await flush();
 		expect(result.current.state).toEqual({ kind: "cooling", until: 40_000 });
-		expect(client.search).not.toHaveBeenCalled();
+		expect(client.search).toHaveBeenCalledTimes(1);
 
 		client.search.mockResolvedValue({ kind: "not-found" });
 		client.setCooling(undefined);
 		act(() => jest.advanceTimersByTime(40_000));
 		await flush();
-		expect(client.search).toHaveBeenCalledTimes(1);
+		expect(client.search).toHaveBeenCalledTimes(2);
 		expect(result.current.state.kind).toBe("none");
+	});
+
+	it("still answers a cached term while the budget is closed", async () => {
+		const client = fakeClient({
+			kind: "found",
+			drafts: [draft("Cached")],
+			fromCache: true,
+		});
+		client.setCooling(40_000);
+		const { result } = render(client, { query: "optimel" });
+		act(() => result.current.commit());
+		await flush();
+		expect(result.current.state.kind).toBe("found");
 	});
 
 	it("waits a minute after the provider says 429 when the budget has no better answer", async () => {
