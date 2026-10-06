@@ -35,7 +35,7 @@ export function LogFoodDestinationMenu(props: LogFoodDestinationMenuProps) {
 			}}
 			actions={[
 				...props.options.map((option, index) => ({
-					label: option.selected ? `✓ ${option.label}` : option.label,
+					label: `${option.selected ? "✓ " : ""}${option.label} · ${option.detail}`,
 					onPress: () => props.onSelectMeal(option.slot),
 					dividerAfter: index === props.options.length - 1,
 				})),

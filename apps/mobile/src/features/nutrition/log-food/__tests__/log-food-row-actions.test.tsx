@@ -1,6 +1,10 @@
 import { useMutation } from "convex/react";
-import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { ActionSheetIOS } from "react-native";
+import {
+	fireEvent,
+	screen,
+	waitFor,
+	within,
+} from "expo-router/testing-library";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -18,24 +22,21 @@ async function rowFor(name: string) {
 
 describe("a result row's actions", () => {
 	it("offers the full set on long press: log, other portion, favorite and correct", async () => {
-		const sheet = jest
-			.spyOn(ActionSheetIOS, "showActionSheetWithOptions")
-			.mockImplementation(() => {});
 		renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await screen.findByLabelText("Quick log Apple");
 
-		fireEvent(await rowFor("Apple"), "longPress");
-
-		expect(sheet).toHaveBeenCalledTimes(1);
-		const [{ title, options }] = sheet.mock.calls[0];
-		expect(title).toBe("Apple");
-		expect(options).toEqual([
-			expect.stringMatching(/^Log /),
+		// iOS: the row's long press is the system context menu.
+		const menus = await screen.findAllByTestId("swiftui-context-menu-items");
+		const items = within(menus[0])
+			.getAllByRole("button")
+			.map((button) => button.props.accessibilityLabel);
+		expect(items).toEqual([
+			expect.stringMatching(/^Log · Apple × 1/),
 			"Other portion…",
 			"Favorite",
-			"Correct",
-			"Close",
+			"Correct…",
 		]);
 	});
 

@@ -162,18 +162,15 @@ export function useLogFoodItems({
 					selection,
 					caption,
 				}));
-		const recentItems = shortcutItems(
-			recentSelections,
-			messages.foodBrowser.lastUsed,
-		);
-		const favoriteItems = shortcutItems(favoriteSelections, copy.favorites);
+		const recentItems = shortcutItems(recentSelections, copy.recent);
+		const favoriteItems = shortcutItems(favoriteSelections, copy.favoriteTag);
 		const comboItems = combos
 			.filter((combo) => matches(combo.name))
 			.map((combo) => ({ kind: "combo" as const, combo }));
 		const recipeItems = recipes.map((food) => ({
 			kind: "food" as const,
 			selection: { kind: "personal" as const, food },
-			caption: copy.recipes,
+			caption: copy.recipeTag,
 		}));
 		const searchItems = allResults
 			// The pool is ordinary search: a shipped record whose correction is
@@ -192,7 +189,10 @@ export function useLogFoodItems({
 			.map((result) => ({
 				kind: "food" as const,
 				selection: asSelection(result),
-				caption: resultCaption(result, messages, locale),
+				caption: resultCaption(result, messages, locale, {
+					shipped: copy.sourceShipped,
+					own: copy.sourceOwn,
+				}),
 			}));
 		switch (filter) {
 			case "recent":
@@ -218,8 +218,7 @@ export function useLogFoodItems({
 		allResults,
 		broaderView,
 		combos,
-		copy.favorites,
-		copy.recipes,
+		copy,
 		favoriteSelections,
 		filter,
 		locale,

@@ -37,6 +37,8 @@ export function LogFoodToolbar({
 				ref={searchRef}
 				placeholder={placeholder}
 				hideWhenScrolling={false}
+				// Keep "Lunch ⌄" visible while typing (design: Typen).
+				hideNavigationBar={false}
 				autoCapitalize="none"
 				onChangeText={(event) => onChangeQuery(event.nativeEvent.text)}
 				onSearchButtonPress={onSubmit}
@@ -70,16 +72,22 @@ export function LogFoodToolbar({
 					) : null}
 				</Stack.Toolbar.Menu>
 				<Stack.Toolbar.SearchBarSlot />
+				{/* The title is what VoiceOver reads; `accessibilityLabel` alone was
+				    not applied to bottom toolbar items (it read the symbol name). */}
 				<Stack.Toolbar.Button
 					icon="barcode.viewfinder"
 					accessibilityLabel={scanLabel}
 					onPress={onScan}
-				/>
+				>
+					{scanLabel}
+				</Stack.Toolbar.Button>
 				<Stack.Toolbar.Button
 					icon="sparkles"
 					accessibilityLabel={describeLabel}
 					onPress={onDescribe}
-				/>
+				>
+					{describeLabel}
+				</Stack.Toolbar.Button>
 			</Stack.Toolbar>
 		</>
 	);

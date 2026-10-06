@@ -38,6 +38,8 @@ type LogFoodCopy = {
 		count: number,
 		energy: string | undefined,
 	) => string;
+	readonly mealTally: (count: number, energy: string | undefined) => string;
+	readonly mealNothing: string;
 	readonly expandMeal: string;
 	readonly collapseMeal: string;
 	readonly mealEmpty: string;
@@ -45,6 +47,11 @@ type LogFoodCopy = {
 	readonly forMeal: (meal: string) => string;
 	readonly forMealHint: string;
 	readonly results: string;
+	readonly sourceShipped: string;
+	readonly sourceOwn: string;
+	readonly favoriteTag: string;
+	readonly recipeTag: string;
+	readonly servingWord: string;
 	readonly logInto: string;
 	readonly otherDay: string;
 	readonly destinationLabel: (meal: string, day: string) => string;
@@ -137,6 +144,11 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 			const items = count === 1 ? "1 item" : `${count} items`;
 			return energy ? `${meal} · ${items} · ${energy}` : `${meal} · ${items}`;
 		},
+		mealTally: (count, energy) => {
+			const items = count === 1 ? "1 item" : `${count} items`;
+			return energy ? `${items} · ${energy}` : items;
+		},
+		mealNothing: "nothing yet",
 		expandMeal: "Show what is logged",
 		collapseMeal: "Hide what is logged",
 		mealEmpty: "Nothing logged yet",
@@ -144,6 +156,11 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 		forMeal: (meal) => `For your ${meal.toLocaleLowerCase("en")}`,
 		forMealHint: "recent · favorites · combos",
 		results: "Results",
+		sourceShipped: "NEVO",
+		sourceOwn: "Own",
+		favoriteTag: "Favorite",
+		recipeTag: "Recipe · own",
+		servingWord: "serving",
 		logInto: "Log into",
 		otherDay: "Another day…",
 		destinationLabel: (meal, day) => `Logging into ${meal}, ${day}`,
@@ -152,10 +169,10 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 		undoFailure: "Couldn't undo. Remove it from the meal instead.",
 		favorite: "Favorite",
 		unfavorite: "Remove favorite",
-		logPortion: (portion) => `Log ${portion}`,
+		logPortion: (portion) => `Log · ${portion}`,
 		otherPortion: "Other portion…",
-		correct: "Correct",
-		edit: "Edit",
+		correct: "Correct…",
+		edit: "Edit…",
 		delete: "Delete",
 		poolNote: (count) =>
 			`Searches ${count} NEVO items, your own foods and Open Food Facts.`,
@@ -243,6 +260,11 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 			const items = count === 1 ? "1 item" : `${count} items`;
 			return energy ? `${meal} · ${items} · ${energy}` : `${meal} · ${items}`;
 		},
+		mealTally: (count, energy) => {
+			const items = count === 1 ? "1 item" : `${count} items`;
+			return energy ? `${items} · ${energy}` : items;
+		},
+		mealNothing: "nog niets",
 		expandMeal: "Toon wat er gelogd is",
 		collapseMeal: "Verberg wat er gelogd is",
 		mealEmpty: "Nog niets gelogd",
@@ -250,6 +272,11 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 		forMeal: (meal) => `Voor jouw ${meal.toLocaleLowerCase("nl")}`,
 		forMealHint: "recent · favorieten · combo's",
 		results: "Resultaten",
+		sourceShipped: "NEVO",
+		sourceOwn: "Eigen",
+		favoriteTag: "Favoriet",
+		recipeTag: "Recept · eigen",
+		servingWord: "portie",
 		logInto: "Loggen in",
 		otherDay: "Andere dag…",
 		destinationLabel: (meal, day) => `Loggen in ${meal}, ${day}`,
@@ -259,10 +286,10 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 			"Ongedaan maken lukte niet. Verwijder het item uit de maaltijd.",
 		favorite: "Favoriet",
 		unfavorite: "Geen favoriet meer",
-		logPortion: (portion) => `Log ${portion}`,
+		logPortion: (portion) => `Loggen · ${portion}`,
 		otherPortion: "Andere portie…",
-		correct: "Corrigeren",
-		edit: "Bewerken",
+		correct: "Corrigeren…",
+		edit: "Bewerken…",
 		delete: "Verwijderen",
 		poolNote: (count) =>
 			`Doorzoekt ${count} NEVO-items, je eigen voeding en Open Food Facts.`,

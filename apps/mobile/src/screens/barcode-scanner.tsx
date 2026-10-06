@@ -9,12 +9,19 @@
  * never becomes a dead end.
  */
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useI18n } from "../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
 import { GhostButton } from "../ui/button";
 import { AppText } from "../ui/text";
 
@@ -34,6 +41,10 @@ export function BarcodeScanner({
 }) {
 	const styles = useThemedStyles(createStyles);
 	const { t } = useI18n();
+	// Explicit insets: inside a full-screen Modal the overlay's SafeAreaView
+	// measured none, which put Close under the status bar.
+	const insets = useSafeAreaInsets();
+	const colors = useTokens();
 	const [permission, requestPermission] = useCameraPermissions();
 	const requested = useRef(false);
 	const scanned = useRef(false);
@@ -86,17 +97,39 @@ export function BarcodeScanner({
 					onScanned(result.data);
 				}}
 			/>
-			<SafeAreaView style={styles.overlay} pointerEvents="box-none">
+			<View
+				style={[
+					styles.overlay,
+					{
+						paddingTop: insets.top + spacing.sm,
+						paddingBottom: insets.bottom + spacing.md,
+					},
+				]}
+				pointerEvents="box-none"
+			>
 				<Pressable
 					onPress={onCancel}
 					accessibilityRole="button"
 					accessibilityLabel={t.nutrition.entryActions.close}
-					style={styles.overlayBack}
+					hitSlop={4}
+					style={[styles.overlayBack, { top: insets.top + spacing.sm }]}
 				>
-					<AppText style={styles.overlayText}>
-						{t.nutrition.entryActions.close}
-					</AppText>
+					<SymbolView
+						name={{ ios: "xmark", android: "close", web: "close" }}
+						size={17}
+						weight="semibold"
+						tintColor={colors.onMedia}
+					/>
 				</Pressable>
+				<AppText
+					variant="navTitle"
+					accessibilityRole="header"
+					style={[styles.overlayText, styles.overlayTitle]}
+				>
+					{t.nutrition.barcode.scanTitle}
+				</AppText>
+				{/* The aiming frame (design `.cam .frame`). */}
+				<View pointerEvents="none" style={styles.frame} />
 				<View
 					style={styles.hintBar}
 					accessibilityLiveRegion={status ? "polite" : undefined}
@@ -105,7 +138,7 @@ export function BarcodeScanner({
 						{status ?? t.nutrition.barcode.hint}
 					</AppText>
 				</View>
-			</SafeAreaView>
+			</View>
 		</View>
 	);
 }
@@ -119,10 +152,16 @@ function Shell({
 	onCancel: () => void;
 	children: ReactNode;
 }) {
+	const insets = useSafeAreaInsets();
 	const styles = useThemedStyles(createStyles);
 	const { t } = useI18n();
 	return (
-		<SafeAreaView style={styles.shell}>
+		<View
+			style={[
+				styles.shell,
+				{ paddingTop: insets.top + 12, paddingBottom: insets.bottom },
+			]}
+		>
 			<Pressable
 				onPress={onCancel}
 				accessibilityRole="button"
@@ -133,7 +172,7 @@ function Shell({
 			</Pressable>
 			<AppText variant="title">{title}</AppText>
 			{children}
-		</SafeAreaView>
+		</View>
 	);
 }
 
@@ -151,12 +190,23 @@ const createStyles = (colors: Tokens) =>
 			padding: spacing.md,
 		},
 		overlayBack: {
-			alignSelf: "flex-start",
-			minHeight: 44,
-			paddingHorizontal: spacing.md,
+			position: "absolute",
+			left: spacing.md,
+			width: 44,
+			height: 44,
+			alignItems: "center",
 			justifyContent: "center",
 			borderRadius: radius.pill,
 			backgroundColor: colors.mediaScrim,
+		},
+		overlayTitle: { alignSelf: "center", lineHeight: 44 },
+		frame: {
+			alignSelf: "center",
+			width: 220,
+			height: 110,
+			borderRadius: 18,
+			borderWidth: 3,
+			borderColor: colors.onMedia,
 		},
 		overlayText: { color: colors.onMedia },
 		hintBar: {
@@ -171,7 +221,6 @@ const createStyles = (colors: Tokens) =>
 			flex: 1,
 			backgroundColor: colors.bg,
 			padding: 20,
-			paddingTop: 12,
 			gap: spacing.md,
 		},
 		back: {

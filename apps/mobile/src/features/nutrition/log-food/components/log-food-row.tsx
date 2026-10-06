@@ -1,88 +1,64 @@
-import { FoodVisualView } from "../../../../ui/food-visual";
-import { type RowAction, SwipeableRow } from "../../../../ui/swipeable-row";
+import { StyleSheet, View } from "react-native";
+import { spacing } from "../../../../theme";
+import { SwipeableRow } from "../../../../ui/swipeable-row";
 import { offProductCaption } from "../log-food-captions";
-import type { FoodSelection } from "../log-food-selection";
-import { LogFoodMediaSlot, MEDIA_SLOT } from "./log-food-media-slot";
-import { LogFoodRowLayout } from "./log-food-row-layout";
+import { LogFoodRowLayout, logFoodCellCorners } from "./log-food-row-layout";
+import { LogFoodRowLeading } from "./log-food-row-leading";
+import type { LogFoodRowProps } from "./log-food-row-props";
 
 /**
- * One food in the results.
+ * One food in the results (Android and tests; iOS has `log-food-row.ios.tsx`).
  *
  * Tap opens the portion sheet, + logs the remembered portion. Swipe reveals
  * only Favorite and never commits on a full swipe; long press opens the whole
- * action set (log, other portion, favorite, then correct or edit/delete), and
- * screen readers get the same set as custom actions.
+ * action set, and screen readers get the same set as custom actions.
  */
-export function LogFoodRow({
-	selection,
-	caption,
-	energy,
-	locale,
-	quickLabel,
-	quickPortion,
-	quickLogging,
-	actions,
-	closeMenuLabel,
-	onPress,
-	onQuickLog,
-}: {
-	selection: FoodSelection;
-	caption: string;
-	energy: string;
-	locale: "en" | "nl";
-	quickLabel: string;
-	quickPortion: string | undefined;
-	quickLogging: boolean;
-	actions: readonly RowAction[];
-	closeMenuLabel: string;
-	onPress: () => void;
-	onQuickLog: () => void;
-}) {
+export function LogFoodRow(props: LogFoodRowProps) {
+	const { selection, locale } = props;
 	const name = selection.food.name[locale];
-	const legacyImageUrl =
-		selection.kind === "personal" &&
-		selection.food.visualMigrationPending &&
-		!selection.food.visual
-			? selection.food.provenance.imageUrl
-			: undefined;
-	const leading =
-		selection.kind === "personal" && !legacyImageUrl ? (
-			<FoodVisualView
-				visual={selection.food.visual}
-				label={name}
-				size={MEDIA_SLOT}
-			/>
-		) : (
-			<LogFoodMediaSlot
-				imageUrl={legacyImageUrl}
-				label={name}
-				symbol={{ ios: "fork.knife", android: "restaurant", web: "restaurant" }}
-			/>
-		);
 	return (
-		<SwipeableRow
-			actions={actions}
-			menuTitle={name}
-			closeMenuLabel={closeMenuLabel}
-		>
-			{(accessibility) => (
-				<LogFoodRowLayout
-					leading={leading}
-					title={name}
-					caption={
-						selection.kind === "personal"
-							? offProductCaption(selection.food.provenance, caption)
-							: caption
-					}
-					energy={energy}
-					portion={quickPortion}
-					onPress={onPress}
-					onLongPress={accessibility.onLongPress}
-					accessibilityActions={accessibility.accessibilityActions}
-					onAccessibilityAction={accessibility.onAccessibilityAction}
-					add={{ label: quickLabel, busy: quickLogging, onPress: onQuickLog }}
-				/>
-			)}
-		</SwipeableRow>
+		<View style={[styles.cell, logFoodCellCorners(props.position)]}>
+			<SwipeableRow
+				actions={props.actions}
+				menuTitle={name}
+				closeMenuLabel={props.closeMenuLabel}
+			>
+				{(accessibility) => (
+					<LogFoodRowLayout
+						leading={
+							<LogFoodRowLeading selection={selection} locale={locale} />
+						}
+						title={name}
+						caption={
+							selection.kind === "personal"
+								? offProductCaption(selection.food.provenance, props.caption)
+								: props.caption
+						}
+						value={props.quickValue}
+						portion={props.quickPortion}
+						position={props.position}
+						inset={false}
+						onPress={props.onPress}
+						onLongPress={accessibility.onLongPress}
+						accessibilityActions={accessibility.accessibilityActions}
+						onAccessibilityAction={accessibility.onAccessibilityAction}
+						add={{
+							label: props.quickLabel,
+							busy: props.quickLogging,
+							done: props.justLogged,
+							onPress: props.onQuickLog,
+						}}
+					/>
+				)}
+			</SwipeableRow>
+		</View>
 	);
 }
+
+const styles = StyleSheet.create({
+	cell: {
+		marginHorizontal: spacing.md,
+		overflow: "hidden",
+		borderCurve: "continuous",
+	},
+});

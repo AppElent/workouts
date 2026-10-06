@@ -2,9 +2,11 @@ import {
 	Button,
 	Divider,
 	Host,
+	Label,
 	Menu,
 	RNHostView,
 	Section,
+	Text,
 } from "@expo/ui/swift-ui";
 import { accessibilityLabel } from "@expo/ui/swift-ui/modifiers";
 import { SymbolView } from "expo-symbols";
@@ -44,12 +46,18 @@ export function LogFoodDestinationMenu(props: LogFoodDestinationMenuProps) {
 			>
 				<Section title={props.sectionTitle}>
 					{props.options.map((option) => (
+						// A menu button with two texts shows the second as its
+						// subtitle: the meal, and what is already in it.
 						<Button
 							key={option.slot}
-							label={option.label}
-							systemImage={option.selected ? "checkmark" : undefined}
 							onPress={() => props.onSelectMeal(option.slot)}
-						/>
+						>
+							<Label
+								title={option.label}
+								systemImage={option.selected ? "checkmark" : undefined}
+							/>
+							<Text>{option.detail}</Text>
+						</Button>
 					))}
 				</Section>
 				<Divider />

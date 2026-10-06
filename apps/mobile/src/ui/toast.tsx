@@ -9,6 +9,8 @@
  * already visible on screen. A logged set that appears in the table announces
  * itself; a cancelled session that vanishes does not need a receipt.
  */
+
+import { SymbolView } from "expo-symbols";
 import {
 	createContext,
 	type ReactNode,
@@ -19,7 +21,14 @@ import {
 } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../theme";
+import { GlassSurface } from "./glass-surface";
 import { AppText } from "./text";
 
 type ToastKind = "error" | "success";
@@ -49,10 +58,11 @@ const ACTION_DISMISS_MS = 6000;
  * A toast with an action sits low, in thumb reach above the bottom toolbar,
  * because it asks for a tap; a plain one stays at the top, out of the way.
  */
-const BOTTOM_TOOLBAR_CLEARANCE = 64;
+const BOTTOM_TOOLBAR_CLEARANCE = 72;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
 	const styles = useThemedStyles(createStyles);
+	const colors = useTokens();
 	const [toast, setToast] = useState<Toast | null>(null);
 	const insets = useSafeAreaInsets();
 
@@ -87,23 +97,40 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 					]}
 					pointerEvents="box-none"
 				>
-					<Pressable
-						accessibilityRole="alert"
-						accessibilityLiveRegion="assertive"
-						onPress={() => setToast(null)}
-						style={[
-							styles.toast,
-							toast.action && styles.withAction,
-							toast.kind === "error" ? styles.error : styles.success,
-						]}
-					>
-						<AppText
-							variant="body"
-							style={[styles.text, toast.action && styles.message]}
-						>
-							{toast.message}
-						</AppText>
-						{toast.action ? (
+					{toast.action ? (
+						// Design `.toast`: a glass capsule above the bottom toolbar —
+						// ✓, the message, and the action in the accent.
+						<GlassSurface capsule style={styles.capsule}>
+							<View
+								accessible
+								accessibilityRole="alert"
+								accessibilityLiveRegion="assertive"
+								style={styles.capsuleBody}
+							>
+								<SymbolView
+									name={
+										toast.kind === "error"
+											? {
+													ios: "exclamationmark.circle",
+													android: "error",
+													web: "error",
+												}
+											: { ios: "checkmark", android: "check", web: "check" }
+									}
+									size={17}
+									weight="bold"
+									tintColor={
+										toast.kind === "error" ? colors.danger : colors.accentInk
+									}
+								/>
+								<AppText
+									variant="secondary"
+									numberOfLines={2}
+									style={[styles.text, styles.message]}
+								>
+									{toast.message}
+								</AppText>
+							</View>
 							<Pressable
 								accessibilityRole="button"
 								accessibilityLabel={toast.action.label}
@@ -115,12 +142,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 								}}
 								style={styles.action}
 							>
-								<AppText variant="body" style={styles.actionText}>
+								<AppText variant="secondary" style={styles.actionText}>
 									{toast.action.label}
 								</AppText>
 							</Pressable>
-						) : null}
-					</Pressable>
+						</GlassSurface>
+					) : (
+						<Pressable
+							accessibilityRole="alert"
+							accessibilityLiveRegion="assertive"
+							onPress={() => setToast(null)}
+							style={[
+								styles.toast,
+								toast.kind === "error" ? styles.error : styles.success,
+							]}
+						>
+							<AppText variant="body" style={styles.text}>
+								{toast.message}
+							</AppText>
+						</Pressable>
+					)}
 				</View>
 			) : null}
 		</ToastContext.Provider>
@@ -156,12 +197,18 @@ const createStyles = (colors: Tokens) =>
 			borderColor: colors.accent,
 		},
 		text: { color: colors.text },
-		withAction: {
+		capsule: {
+			minHeight: 50,
 			flexDirection: "row",
 			alignItems: "center",
-			gap: spacing.sm,
-			paddingVertical: spacing.xs,
+			paddingLeft: 18,
 			paddingRight: spacing.xs,
+		},
+		capsuleBody: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 10,
 		},
 		message: { flex: 1 },
 		action: {

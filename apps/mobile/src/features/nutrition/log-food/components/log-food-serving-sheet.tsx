@@ -383,26 +383,28 @@ export function LogFoodServingSheet({
 						</View>
 					) : null}
 					{canLog ? (
-						<Card style={styles.preview}>
-							<AppText variant="heading">{preview.label}</AppText>
-							<AppText variant="caption">
-								{preview.amount} {preview.baseUnit}
-							</AppText>
-							{NUTRIENT_KEYS.map((key) => (
-								<View key={key} style={styles.nutrientRow}>
-									<AppText style={styles.flex}>
-										{t.nutrition.nutrients[key]}
-									</AppText>
-									<AppText style={styles.strong}>
-										{formatNutrient(
-											preview.nutrients[key],
-											key,
-											t.nutrition.foodBrowser,
-										)}
-									</AppText>
-								</View>
-							))}
-						</Card>
+						<View testID="log-food-serving-preview">
+							<Card style={styles.preview}>
+								<AppText variant="heading">{preview.label}</AppText>
+								<AppText variant="caption">
+									{preview.amount} {preview.baseUnit}
+								</AppText>
+								{NUTRIENT_KEYS.map((key) => (
+									<View key={key} style={styles.nutrientRow}>
+										<AppText style={styles.flex}>
+											{t.nutrition.nutrients[key]}
+										</AppText>
+										<AppText style={styles.strong}>
+											{formatNutrient(
+												preview.nutrients[key],
+												key,
+												t.nutrition.foodBrowser,
+											)}
+										</AppText>
+									</View>
+								))}
+							</Card>
+						</View>
 					) : null}
 					{selection.kind === "shipped" ? (
 						<View style={styles.attribution}>

@@ -1,5 +1,4 @@
 import { StyleSheet, View } from "react-native";
-import { spacing } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 
 /** A results section's name, with its count or scope on the right. */
@@ -12,10 +11,10 @@ export function LogFoodSectionHeader({
 }) {
 	return (
 		<View accessibilityRole="header" style={styles.row}>
-			<AppText variant="label" style={styles.title}>
+			<AppText variant="navTitle" style={styles.title}>
 				{title}
 			</AppText>
-			{detail ? <AppText variant="caption">{detail}</AppText> : null}
+			{detail ? <AppText variant="footnote">{detail}</AppText> : null}
 		</View>
 	);
 }
@@ -24,10 +23,10 @@ const styles = StyleSheet.create({
 	row: {
 		flexDirection: "row",
 		alignItems: "baseline",
-		gap: spacing.sm,
-		paddingHorizontal: spacing.md,
-		paddingTop: spacing.md,
-		paddingBottom: spacing.xs,
+		gap: 8,
+		marginHorizontal: 20,
+		marginTop: 20,
+		marginBottom: 7,
 	},
-	title: { flex: 1 },
+	title: { flex: 1, fontWeight: "700" },
 });

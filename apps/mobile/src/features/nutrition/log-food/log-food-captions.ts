@@ -54,17 +54,36 @@ export function resultCaption(
 	result: FoodResult<PersonalFood>,
 	messages: Messages["nutrition"],
 	locale: "en" | "nl",
+	sources: { readonly shipped: string; readonly own: string },
 ): string {
 	if (result.kind === "local") {
 		return result.shadows
 			? fmt(messages.fork.forkedFrom, {
 					name: result.shadows.sourceName[locale],
 				})
-			: messages.personalFood.resultLabel;
+			: sources.own;
 	}
-	return result.shadowedBy
-		? messages.fork.shadowed
-		: `${messages.foodBrowser.per100} ${result.food.baseUnit}`;
+	return result.shadowedBy ? messages.fork.shadowed : sources.shipped;
+}
+
+/** The compact per-100 figure a row caption ends with: "151 kcal/100 g". */
+export function compactEnergyPer100(
+	food: {
+		nutrients: Record<NutrientKey, NutrientValue>;
+		baseUnit: "g" | "ml" | "serving";
+	},
+	servingWord: string,
+): string {
+	const energy = food.nutrients.energy;
+	const amount =
+		energy.kind === "value"
+			? String(roundForDisplay("energy", energy.amount))
+			: energy.kind === "trace"
+				? "~0"
+				: "—";
+	return food.baseUnit === "serving"
+		? `${amount} kcal/${servingWord}`
+		: `${amount} kcal/100 ${food.baseUnit}`;
 }
 
 export function resultEnergyCaption(

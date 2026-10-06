@@ -13,6 +13,7 @@ checks remain pending when a document moves or a plan is archived.
 
 - [Diary Entry editor](diary-entry-editor/README.md): promoted editor, keyboard overlays, and device evidence.
 - [Live Nutrition Diary](nutrition-diary/README.md): production routes, folder ownership, corrections, visual review, and outstanding acceptance.
+- [Log food screen](log-food/README.md): per-state comparison with the design, device evidence, and lessons on stale bundles.
 
 Keep report assets with their report. Link temporary or unavailable captures with
 an explicit limitation; a historical path is not evidence that a file is retained.

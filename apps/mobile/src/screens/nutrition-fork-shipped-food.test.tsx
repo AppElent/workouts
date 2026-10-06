@@ -55,7 +55,7 @@ describe("correcting a shipped food", () => {
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save"));
 
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 		const [fork] = repository.list();
 		expect(fork.id).not.toBe("shipped:apple-w-skin-av");
 		expect(fork.nutrients.energy).toEqual({ kind: "value", amount: 41 });
@@ -69,7 +69,7 @@ describe("correcting a shipped food", () => {
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save"));
 
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 		expect(repository.list()[0].provenance).toEqual({
 			recordOrigin: "personal",
 			nutritionSource: "nevo",
@@ -89,7 +89,7 @@ describe("correcting a shipped food", () => {
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save"));
 
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 		expect(repository.list()[0].name).toEqual({ en: "Apple", nl: "Apple" });
 		expect(repository.list()[0].provenance.locallyEdited).toBe(true);
 		expect(screen.getByText("You changed this food.")).toBeTruthy();
@@ -101,7 +101,7 @@ describe("correcting a shipped food", () => {
 		fireEvent.changeText(screen.getByLabelText("Name"), "Elstar apple");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save"));
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
@@ -109,7 +109,9 @@ describe("correcting a shipped food", () => {
 		expect(await screen.findByText("Elstar apple")).toBeTruthy();
 		// The full catalogue is the deliberate broader library: it retains the
 		// source and marks it as replaced while the correction wins the pool.
-		expect(screen.getByText("Replaced by your correction")).toBeTruthy();
+		expect(
+			screen.getByText(/^Replaced by your correction( · |$)/),
+		).toBeTruthy();
 		expect(screen.getAllByText("Apple").length).toBeGreaterThan(0);
 	});
 
@@ -117,19 +119,21 @@ describe("correcting a shipped food", () => {
 		renderApp();
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save"));
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect((await screen.findAllByText("Apple")).length).toBeGreaterThan(0);
-		expect(screen.getByText("Replaced by your correction")).toBeTruthy();
+		expect(
+			screen.getByText(/^Replaced by your correction( · |$)/),
+		).toBeTruthy();
 	});
 
 	it("restores the shipped food when the correction is deleted", async () => {
 		const { repository } = renderApp();
 		await correctTheApple();
 		fireEvent.press(screen.getByText("Save"));
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
 		fireEvent.press(screen.getByText("Delete Personal Food"));
 		expect(await screen.findByText("Delete this correction?")).toBeTruthy();
@@ -159,7 +163,7 @@ describe("what a correction does to the diary", () => {
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save"));
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
 		fireEvent.press(screen.getByText("Add & continue"));
 
@@ -197,7 +201,7 @@ describe("what a correction does to the diary", () => {
 		await correctTheApple("Dinner");
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save"));
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
 		// The snapshot already written is untouched: same id, same figures. The
 		// correction changes what the next search returns, never what history says.
@@ -221,7 +225,7 @@ describe("correcting a shipped food offline", () => {
 		await correctTheApple();
 		fireEvent.changeText(screen.getByLabelText("Energy per 100 g"), "41");
 		fireEvent.press(screen.getByText("Save"));
-		await screen.findByText("Your correction of Apple w skin av");
+		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
 		fireEvent.press(screen.getByText("Add & continue"));
 
@@ -236,7 +240,7 @@ describe("correcting a shipped food offline", () => {
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		expect(
-			await screen.findByText("Your correction of Apple w skin av"),
+			await screen.findByText(/^Your correction of Apple w skin av( · |$)/),
 		).toBeTruthy();
 		expect(screen.queryByText("Apple w skin av")).toBeNull();
 	});
@@ -264,7 +268,7 @@ describe("correcting a shipped food in Dutch", () => {
 		fireEvent.press(screen.getByRole("tab", { name: "Catalogus" }));
 
 		expect(
-			await screen.findByText("Vervangen door jouw correctie"),
+			await screen.findByText(/^Vervangen door jouw correctie( · |$)/),
 		).toBeTruthy();
 	});
 });
@@ -294,6 +298,6 @@ it("copies supplementary Servings into a correction once", async () => {
 	await correctTheApple();
 	expect(await screen.findByText(/My bowl/)).toBeTruthy();
 	fireEvent.press(screen.getByText("Save"));
-	await screen.findByText("Your correction of Apple w skin av");
+	await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 	expect(screen.getByText(/My bowl/)).toBeTruthy();
 });

@@ -1,6 +1,11 @@
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import {
+	fireEvent,
+	screen,
+	waitFor,
+	within,
+} from "expo-router/testing-library";
 import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
 
@@ -30,13 +35,18 @@ afterEach(() => {
  * last of five exclusive tabs. Tests that only need "search everything" no
  * longer come through here — the default pool already does that.
  */
+/** The serving sheet's preview, which repeats the row's portion label. */
+async function servingPreview() {
+	return within(await screen.findByTestId("log-food-serving-preview"));
+}
+
 /** Picks the meal from the title menu, the screen's one destination control. */
 async function chooseMeal(meal: string) {
 	fireEvent.press((await screen.findAllByLabelText(/^Logging into /))[0]);
 	fireEvent.press(
 		(
 			await screen.findAllByRole("button", {
-				name: new RegExp(`^${meal} · `),
+				name: new RegExp(`^${meal}\\b`),
 			})
 		)[0],
 	);
@@ -190,7 +200,8 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(await screen.findByText("Pasta bowl"));
 		expect(screen.getByLabelText("Quantity").props.value).toBe("1");
 		fireEvent.changeText(screen.getByLabelText("Quantity"), "");
-		expect(screen.queryByText("550 kcal")).toBeNull();
+		// No amount, no preview (the row itself still shows its own 550 kcal).
+		expect(screen.queryByTestId("log-food-serving-preview")).toBeNull();
 		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		fireEvent.press(screen.getByText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
@@ -242,8 +253,10 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(await screen.findByText("Base-only shake"));
 
 		expect(screen.getByLabelText("Quantity").props.value).toBe("100");
-		expect(await screen.findByText("Millilitre (ml) × 100")).toBeTruthy();
-		expect(screen.getByText("42 kcal")).toBeTruthy();
+		expect(
+			(await servingPreview()).getByText("Millilitre (ml) × 100"),
+		).toBeTruthy();
+		expect((await servingPreview()).getByText("42 kcal")).toBeTruthy();
 		fireEvent.press(screen.getByText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
@@ -424,15 +437,16 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(screen.getByText("Add portion"));
 		fireEvent.press(screen.getByText("Save"));
 
-		expect(await screen.findByText("Pouch × 1")).toBeTruthy();
-		expect(screen.getByText("104 kcal")).toBeTruthy();
+		expect((await servingPreview()).getByText("Pouch × 1")).toBeTruthy();
+		expect((await servingPreview()).getByText("104 kcal")).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 		fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"training gel",
 		);
 
-		const labels = await screen.findAllByText("Personal Food");
+		// Own foods are tagged "Own" (design: "Eigen · 142 kcal/100 g").
+		const labels = await screen.findAllByText(/^Own · /);
 		expect(labels).toHaveLength(1);
 		expect(screen.getByText("Training gel")).toBeTruthy();
 		expect(repository.search("training gel", "en")).toHaveLength(1);
@@ -514,7 +528,7 @@ describe("browsing shipped foods", () => {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "peach");
 		fireEvent.press(await screen.findByText("Peach"));
 
-		expect(await screen.findByText("Peach × 1")).toBeTruthy();
+		expect((await servingPreview()).getByText("Peach × 1")).toBeTruthy();
 		expect(screen.getAllByText("Trace").length).toBeGreaterThan(0);
 		expect(
 			screen.getByText(
@@ -589,7 +603,7 @@ describe("browsing shipped foods", () => {
 				"This food could not be logged. Your selection is still here.",
 			),
 		).toBeTruthy();
-		expect(screen.getByText("Apple × 1")).toBeTruthy();
+		expect((await servingPreview()).getByText("Apple × 1")).toBeTruthy();
 		expect(log).toHaveBeenCalledTimes(1);
 	});
 
@@ -843,7 +857,7 @@ describe("the redesigned food browser", () => {
 
 		// Switching meals switches what the bar is reporting.
 		await chooseMeal("Lunch");
-		expect((await screen.findAllByText("Lunch · 0 items")).length).toBe(2);
+		expect(await screen.findByText("Lunch · 0 items")).toBeTruthy();
 	});
 
 	it("confirms a quick log with a toast that can undo it", async () => {

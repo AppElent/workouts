@@ -12,11 +12,7 @@ import {
 } from "../../../../theme";
 import { SkeletonBlock, SkeletonGroup } from "../../../../ui/skeleton";
 import { AppText } from "../../../../ui/text";
-import {
-	offFailureMessage,
-	offProductCaption,
-	resultEnergyCaption,
-} from "../log-food-captions";
+import { compactEnergyPer100, offFailureMessage } from "../log-food-captions";
 import type { LogFoodCopy } from "../log-food-copy";
 import type { OffSearchState } from "../use-off-search";
 import { LogFoodMediaSlot } from "./log-food-media-slot";
@@ -99,40 +95,52 @@ export function LogFoodOffSection({
 			) : null}
 			{state.kind === "found" ? (
 				<>
-					{(showAll ? state.drafts : state.drafts.slice(0, OFF_PREVIEW)).map(
-						(draft, index) => (
-							<LogFoodRowLayout
-								// biome-ignore lint/suspicious/noArrayIndexKey: products without a barcode have no other identity
-								key={`${draft.provenance.barcode ?? "off"}:${index}`}
-								leading={
-									<LogFoodMediaSlot
-										imageUrl={draft.provenance.imageUrl}
-										label={draft.name[locale]}
-										symbol={{ ios: "globe", android: "public", web: "public" }}
-									/>
-								}
-								title={draft.name[locale]}
-								caption={offProductCaption(
-									draft.provenance,
-									draft.provenance.provider ?? copy.onlineResults,
-								)}
-								energy={resultEnergyCaption(draft, messages, locale)}
-								onPress={() => onReview(draft)}
-								chevron
-							/>
-						),
-					)}
-					{!showAll && state.drafts.length > OFF_PREVIEW ? (
-						<Pressable
-							accessibilityRole="button"
-							onPress={() => setShowAll(true)}
-							style={styles.showAll}
-						>
-							<AppText style={styles.accent}>
-								{copy.offShowAll(state.drafts.length)}
-							</AppText>
-						</Pressable>
-					) : null}
+					<View style={styles.card}>
+						{(showAll ? state.drafts : state.drafts.slice(0, OFF_PREVIEW)).map(
+							(draft, index) => (
+								<LogFoodRowLayout
+									// biome-ignore lint/suspicious/noArrayIndexKey: products without a barcode have no other identity
+									key={`${draft.provenance.barcode ?? "off"}:${index}`}
+									leading={
+										<LogFoodMediaSlot
+											imageUrl={draft.provenance.imageUrl}
+											label={draft.name[locale]}
+											symbol={{
+												ios: "globe",
+												android: "public",
+												web: "public",
+											}}
+										/>
+									}
+									title={draft.name[locale]}
+									// Design: "Campina · 1 L · 38 kcal/100 ml" — the brand
+									// and pack, then the figure; the section names the source.
+									caption={[
+										draft.provenance.brand,
+										draft.provenance.quantity,
+										compactEnergyPer100(draft, copy.servingWord),
+									]
+										.filter(Boolean)
+										.join(" · ")}
+									position={index === 0 ? "first" : "middle"}
+									inset={false}
+									onPress={() => onReview(draft)}
+									chevron
+								/>
+							),
+						)}
+						{!showAll && state.drafts.length > OFF_PREVIEW ? (
+							<Pressable
+								accessibilityRole="button"
+								onPress={() => setShowAll(true)}
+								style={[styles.showAll, styles.divided]}
+							>
+								<AppText style={styles.accent}>
+									{copy.offShowAll(state.drafts.length)}
+								</AppText>
+							</Pressable>
+						) : null}
+					</View>
 					<AppText variant="caption" style={styles.note}>
 						{copy.offImportHint}
 					</AppText>
@@ -280,7 +288,7 @@ const createStyles = (colors: Tokens) =>
 			borderTopWidth: StyleSheet.hairlineWidth,
 			borderTopColor: colors.separator,
 		},
-		note: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+		note: { marginHorizontal: 20, marginTop: 7 },
 		notice: {
 			flexDirection: "row",
 			alignItems: "center",

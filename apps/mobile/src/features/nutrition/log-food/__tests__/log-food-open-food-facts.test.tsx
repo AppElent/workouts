@@ -434,11 +434,8 @@ describe("Open Food Facts in the results", () => {
 		submitSearch("baked beans");
 
 		expect(await screen.findByText("1 result")).toBeTruthy();
-		expect(
-			screen.getByText(
-				/Open Food Facts · Heinz · 415 g · Half can \(207\.5 g\)/,
-			),
-		).toBeTruthy();
+		// Brand and pack first, then the figure (design: "Campina · 1 L · …").
+		expect(screen.getByText("Heinz · 415 g · 75 kcal/100 g")).toBeTruthy();
 		fireEvent.press(screen.getByText("Baked Beans"));
 
 		expect(await screen.findByLabelText("Name")).toBeTruthy();

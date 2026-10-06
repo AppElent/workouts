@@ -90,14 +90,15 @@ import { LogFoodMealSummary } from "./components/log-food-meal-summary";
 import type { LogFoodMenuProps } from "./components/log-food-menu-props";
 import { LogFoodOffSection } from "./components/log-food-off-section";
 import { LogFoodRow } from "./components/log-food-row";
+import type { LogFoodRowPosition } from "./components/log-food-row-layout";
 import { LogFoodSectionHeader } from "./components/log-food-section-header";
 import { LogFoodServingSheet } from "./components/log-food-serving-sheet";
 import { LogFoodToolbar } from "./components/log-food-toolbar";
 import {
 	comboEnergy,
+	compactEnergyPer100,
 	offFailureMessage,
 	quickEnergyAmount,
-	resultEnergyCaption,
 } from "./log-food-captions";
 import { type FoodBrowserTab, logFoodCopy } from "./log-food-copy";
 import {
@@ -129,6 +130,9 @@ const SCOPE_CHIPS = [
 		| "recipes"
 		| "allFoods";
 }[];
+
+/** How long a row's + shows ✓ after a quick log. */
+const JUST_LOGGED_MS = 2000;
 
 /** A new Personal Food with nothing filled in but the name and the barcode. */
 function blankFoodDraft(name: string, barcode?: string): PersonalFoodDraft {
@@ -243,6 +247,10 @@ export function LogFoodScreen({
 	const [selectedMeal, setSelectedMeal] = useState<MealSlot>(meal);
 	const [mealOpen, setMealOpen] = useState(false);
 	const [mealFlash, setMealFlash] = useState(0);
+	// Rows logged with + show ✓ briefly (design: "✓ op de rij").
+	const [justLogged, setJustLogged] = useState<ReadonlySet<string>>(
+		() => new Set(),
+	);
 	const servingPendingRef = useRef(false);
 	const [servingPending, setServingPending] = useState(false);
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
@@ -566,6 +574,16 @@ export function LogFoodScreen({
 					release();
 					haptics.entryLogged();
 					setMealFlash((key) => key + 1);
+					setJustLogged((keys) => new Set(keys).add(sourceKey));
+					setTimeout(
+						() =>
+							setJustLogged((keys) => {
+								const next = new Set(keys);
+								next.delete(sourceKey);
+								return next;
+							}),
+						JUST_LOGGED_MS,
+					);
 					toast.success(copy.logged(foodName, loggedMeal), {
 						action: {
 							label: copy.undo,
@@ -608,15 +626,17 @@ export function LogFoodScreen({
 				: []),
 			{
 				key: "portion",
-				systemImage: "slider.horizontal.3",
+				systemImage: "pencil",
 				label: copy.otherPortion,
 				onPress: () => void openFood(selection),
 				swipe: false,
+				dividerAfter: true,
 			},
 			{
 				key: "favorite",
-				systemImage: isFavorite ? "star.slash" : "star",
+				systemImage: isFavorite ? "star.fill" : "star",
 				label: isFavorite ? copy.unfavorite : copy.favorite,
+				dividerAfter: true,
 				onPress: () => {
 					if (subject)
 						operations.toggleFavorite(subject, sourceKey, !isFavorite);
@@ -626,7 +646,7 @@ export function LogFoodScreen({
 				? [
 						{
 							key: "correct",
-							systemImage: "pencil" as const,
+							systemImage: "square.and.pencil" as const,
 							label: copy.correct,
 							onPress: () => startCorrection(selection.food),
 							swipe: false,
@@ -635,7 +655,7 @@ export function LogFoodScreen({
 				: [
 						{
 							key: "edit",
-							systemImage: "pencil" as const,
+							systemImage: "square.and.pencil" as const,
 							label: copy.edit,
 							onPress: () => setEditingFood(selection.food),
 							swipe: false,
@@ -783,7 +803,10 @@ export function LogFoodScreen({
 			pathname: "/nutrition-assistance",
 			params: { date, meal: selectedMeal },
 		});
-	const dayLabel = date === today ? copy.today : formatShortDate(date, locale);
+	const dayLabel =
+		date === today
+			? `${copy.today} · ${formatShortDate(date, locale)}`
+			: formatShortDate(date, locale);
 	const listHeading = hasQuery
 		? {
 				title: copy.results,
@@ -829,11 +852,10 @@ export function LogFoodScreen({
 								return {
 									slot,
 									selected: slot === selectedMeal,
-									label: copy.mealSummary(
-										t.nutrition.meals[slot],
-										entries.length,
-										energyLabel(entries),
-									),
+									label: t.nutrition.meals[slot],
+									detail: entries.length
+										? copy.mealTally(entries.length, energyLabel(entries))
+										: copy.mealNothing,
 								};
 							})}
 							onSelectMeal={setSelectedMeal}
@@ -969,8 +991,8 @@ export function LogFoodScreen({
 							entries={mealEntries}
 							flashKey={mealFlash}
 							locale={locale}
-							editLabel={copy.edit}
-							deleteLabel={copy.delete}
+							editLabel={t.nutrition.entryActions.edit}
+							deleteLabel={t.nutrition.entryActions.delete}
 							onToggle={() => setMealOpen((open) => !open)}
 							onOpenEntry={(entry) =>
 								router.push({
@@ -1025,7 +1047,9 @@ export function LogFoodScreen({
 				}
 				ListFooterComponent={
 					<View>
-						{hasQuery ? (
+						{/* With no local results the empty card already offers the
+						    search, so the section's own manual row would repeat it. */}
+						{hasQuery && (items.length > 0 || off.state.kind !== "waiting") ? (
 							<LogFoodOffSection
 								state={off.state}
 								query={query}
@@ -1043,7 +1067,15 @@ export function LogFoodScreen({
 						</AppText>
 					</View>
 				}
-				renderItem={({ item }) => {
+				renderItem={({ item, index }) => {
+					const position: LogFoodRowPosition =
+						items.length === 1
+							? "only"
+							: index === 0
+								? "first"
+								: index === items.length - 1
+									? "last"
+									: "middle";
 					if (item.kind === "combo") {
 						const energy = comboEnergy(item.combo);
 						const openCombo = () =>
@@ -1061,6 +1093,7 @@ export function LogFoodScreen({
 								caption={copy.comboParts(item.combo.parts.length)}
 								energy={energy === undefined ? undefined : `${energy} kcal`}
 								portion={copy.wholeCombo}
+								position={position}
 								detailLabel={copy.comboDetail(item.combo.name)}
 								onDetail={openCombo}
 								logLabel={copy.log}
@@ -1078,27 +1111,33 @@ export function LogFoodScreen({
 								locale,
 							)
 						: undefined;
+					const quickKcal = quickPreview
+						? quickEnergyAmount(quickPreview)
+						: undefined;
+					// With a query the caption adds the per-100 figure, so search
+					// results can be compared; the pool keeps just why it is there.
+					const caption = hasQuery
+						? `${item.caption} · ${compactEnergyPer100(item.selection.food, copy.servingWord)}`
+						: item.caption;
 					return (
 						<LogFoodRow
 							selection={item.selection}
-							caption={item.caption}
-							energy={resultEnergyCaption(
-								item.selection.food,
-								t.nutrition,
-								locale,
-							)}
+							caption={caption}
 							locale={locale}
+							position={position}
 							quickLabel={copy.quickLog(item.selection.food.name[locale])}
-							quickPortion={
-								quickPreview
-									? copy.quickPortion(
-											quickPreview.label,
-											quickEnergyAmount(quickPreview),
-										)
-									: undefined
-							}
+							quickValue={quickKcal ? `${quickKcal} kcal` : undefined}
+							quickPortion={quickPreview?.label}
 							quickLogging={quickLoggingKeys.has(sourceKey)}
-							actions={rowActions(item.selection, quickPreview?.label)}
+							justLogged={justLogged.has(sourceKey)}
+							actions={rowActions(
+								item.selection,
+								quickPreview
+									? quickKcal
+										? `${quickPreview.label}, ${quickKcal} kcal`
+										: quickPreview.label
+									: undefined,
+							)}
 							closeMenuLabel={copy.closeMenu}
 							onPress={() => void openFood(item.selection)}
 							onQuickLog={() => quickLog(item.selection)}
@@ -1142,8 +1181,11 @@ const createStyles = (colors: Tokens) =>
 		},
 		accent: { color: colors.accentInk, fontWeight: "600" },
 		localNone: { paddingHorizontal: spacing.md },
+		// Design `.sec-f`, centred under the list.
 		poolNote: {
-			paddingHorizontal: spacing.md,
-			paddingVertical: 14,
+			marginHorizontal: 20,
+			marginTop: 10,
+			paddingBottom: 14,
+			textAlign: "center",
 		},
 	});

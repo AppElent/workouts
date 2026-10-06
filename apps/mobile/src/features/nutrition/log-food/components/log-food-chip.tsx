@@ -34,14 +34,19 @@ export function LogFoodChip({
 
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
+		// Design `.chipsrow span`: white pills; the selected one is inked.
 		chip: {
 			minHeight: 32,
 			justifyContent: "center",
-			paddingHorizontal: 12,
+			paddingHorizontal: 13,
 			borderRadius: radius.pill,
-			backgroundColor: colors.surface2,
+			backgroundColor: colors.surface,
 		},
-		chipSelected: { backgroundColor: colors.accentFill },
-		chipText: { fontSize: type.footnote.fontSize, color: colors.text },
-		chipTextSelected: { color: colors.onAccent, fontWeight: "700" },
+		chipSelected: { backgroundColor: colors.text },
+		chipText: {
+			fontSize: type.footnote.fontSize,
+			fontWeight: "600",
+			color: colors.text,
+		},
+		chipTextSelected: { color: colors.bg },
 	});

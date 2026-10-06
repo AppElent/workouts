@@ -2,7 +2,12 @@
  * The bilingual requirement, tested where it is visible: the words on the
  * screen, in both languages, and the absence of a frame in the wrong one.
  */
-import { fireEvent, screen, testRouter } from "expo-router/testing-library";
+import {
+	fireEvent,
+	screen,
+	testRouter,
+	within,
+} from "expo-router/testing-library";
 import { PREFERENCE_KEYS, writePreference } from "../prefs/local-preference";
 import { renderApp } from "../test-support/render-app";
 
@@ -61,7 +66,11 @@ describe("the app's language", () => {
 		// The default "Alles" chip already searches the whole catalogue.
 		fireEvent.changeText(await screen.findByLabelText("Zoek eten"), "appel");
 		fireEvent.press(screen.getByText("Appel"));
-		expect(await screen.findByText("Appel × 1")).toBeTruthy();
+		expect(
+			within(await screen.findByTestId("log-food-serving-preview")).getByText(
+				"Appel × 1",
+			),
+		).toBeTruthy();
 	});
 
 	it("renders the goal editor and validation in Dutch", async () => {

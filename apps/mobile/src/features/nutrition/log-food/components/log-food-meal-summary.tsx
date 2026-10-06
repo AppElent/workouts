@@ -75,7 +75,11 @@ export function LogFoodMealSummary({
 				accessibilityLiveRegion="polite"
 				style={[styles.flex, styles.label]}
 			>
-				{label}
+				{/* Design `.mealbar`: the meal in bold, the tally in regular. */}
+				<AppText style={styles.meal}>{label.split(" · ")[0]}</AppText>
+				{label.includes(" · ")
+					? ` · ${label.split(" · ").slice(1).join(" · ")}`
+					: ""}
 			</AppText>
 			{expandable ? (
 				<SymbolView
@@ -182,14 +186,15 @@ const createStyles = (colors: Tokens) =>
 		// and leaves the bar taller than its one line.
 		flex: { flexGrow: 1, flexShrink: 1 },
 		header: {
-			minHeight: 48,
+			minHeight: 44,
 			flexDirection: "row",
 			alignItems: "center",
 			gap: 12,
-			paddingHorizontal: 14,
+			paddingHorizontal: spacing.md,
 			paddingVertical: spacing.sm,
 			overflow: "hidden",
 		},
-		label: { fontWeight: "700" },
+		label: { fontWeight: "400" },
+		meal: { fontWeight: "600" },
 		hint: { paddingHorizontal: spacing.xs },
 	});

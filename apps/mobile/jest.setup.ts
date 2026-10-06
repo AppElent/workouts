@@ -310,6 +310,13 @@ jest.mock("@expo/ui/swift-ui", () => {
 				children,
 			),
 		Host: Container,
+		Label: ({
+			title,
+			children,
+		}: {
+			title?: string;
+			children?: React.ReactNode;
+		}) => React.createElement(Text, null, title, children),
 		Image: ({ systemName }: { systemName?: string }) =>
 			React.createElement(Text, null, systemName),
 		Menu: ({
