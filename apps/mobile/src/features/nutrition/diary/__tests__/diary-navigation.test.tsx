@@ -117,15 +117,14 @@ describe("Nutrition navigation", () => {
 			);
 		const date = "2026-09-24";
 		const app = renderApp(`/nutrition-one-off?date=${date}&meal=dinner`);
-		fireEvent.changeText(
-			await screen.findByLabelText("Food name"),
-			"One-off soup",
-		);
+		fireEvent.changeText(await screen.findByLabelText("Name"), "One-off soup");
 		fireEvent.changeText(screen.getByLabelText("Amount"), "1");
 		fireEvent.changeText(screen.getByLabelText("Energy"), "120");
-		fireEvent.press(screen.getByRole("button", { name: "Food visual" }));
-		fireEvent.press(screen.getByRole("button", { name: "Fruit" }));
-		fireEvent.press(screen.getAllByRole("button", { name: "Log once" })[0]);
+		// The photo popup's Icon › submenu.
+		fireEvent.press(screen.getByLabelText("Food visual"));
+		fireEvent.press(await screen.findByText("Icon"));
+		fireEvent.press(await screen.findByText("Fruit"));
+		fireEvent.press(screen.getByLabelText("Log"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(app.getSearchParams()).toMatchObject({ date });
 		expect(await screen.findByText("One-off soup")).toBeTruthy();
@@ -134,12 +133,9 @@ describe("Nutrition navigation", () => {
 
 	it("explains invalid One-off Entry amounts and keeps the entered values", async () => {
 		renderApp("/nutrition-one-off");
-		fireEvent.changeText(
-			await screen.findByLabelText("Food name"),
-			"One-off soup",
-		);
+		fireEvent.changeText(await screen.findByLabelText("Name"), "One-off soup");
 		fireEvent.changeText(screen.getByLabelText("Amount"), "0");
-		fireEvent.press(screen.getAllByRole("button", { name: "Log once" })[0]);
+		fireEvent.press(screen.getByLabelText("Log"));
 		expect(
 			await screen.findByText("Enter an amount greater than zero."),
 		).toBeTruthy();
@@ -215,14 +211,13 @@ describe("Nutrition navigation", () => {
 			date: todayIsoDate(),
 			meal: "dinner",
 		});
-		expect(await screen.findByLabelText("Food name")).toBeTruthy();
-		expect(screen.getByText("Servings")).toBeTruthy();
-		expect(screen.queryByLabelText("Carbohydrates")).toBeNull();
-		const moreNutrients = screen.getByLabelText("More nutrients");
-		expect(moreNutrients.props.accessibilityState).toEqual({ expanded: false });
-		fireEvent.press(moreNutrients);
+		// The destination is the title menu; all eight values are there at once.
+		expect(
+			(await screen.findAllByLabelText(/^Logging into Dinner, /)).length,
+		).toBeGreaterThan(0);
 		expect(screen.getByLabelText("Carbohydrates")).toBeTruthy();
-		fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
+		expect(screen.getByLabelText("Salt")).toBeTruthy();
+		fireEvent.press(screen.getByLabelText("Cancel"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(app.getSearchParams()).toMatchObject({ meal: "dinner" });
 	});
@@ -233,15 +228,17 @@ describe("Nutrition navigation", () => {
 		fireEvent.press(await screen.findByLabelText("More food actions"));
 		fireEvent.press(await screen.findByText("Log once"));
 
+		// What was typed goes along to the other kind of form, and back.
+		fireEvent.changeText(await screen.findByLabelText("Name"), "Soup");
 		fireEvent.press(
 			await screen.findByRole("radio", { name: "Personal food" }),
 		);
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
-		expect(await screen.findByLabelText("Name")).toBeTruthy();
+		expect(await screen.findByDisplayValue("Soup")).toBeTruthy();
 
 		fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-one-off"));
-		expect(await screen.findByLabelText("Food name")).toBeTruthy();
+		expect(await screen.findByDisplayValue("Soup")).toBeTruthy();
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {

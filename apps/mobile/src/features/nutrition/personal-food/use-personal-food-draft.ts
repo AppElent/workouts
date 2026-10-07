@@ -6,6 +6,7 @@ import {
 	type NutrientValue,
 } from "@workouts/core/nutrition";
 import { useMemo, useRef, useState } from "react";
+import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import {
 	type FoodPhotoCropPosition,
 	type FoodPhotoManager,
@@ -21,7 +22,7 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { foodEditorCopy } from "../components/food-editor-copy";
-import type { NutrientInput } from "../use-nutrient-fields";
+import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 
 export type { NutrientInput };
@@ -37,9 +38,7 @@ function toText(value: number) {
 	return String(value).replace(".", ",");
 }
 
-export function parseFoodNumber(text: string): number {
-	return Number(text.trim().replace(",", "."));
-}
+export { parseFoodNumber };
 
 function initialNutrients(seed?: PersonalFoodDraft) {
 	return Object.fromEntries(
@@ -128,6 +127,9 @@ export function usePersonalFoodDraft({
 				? { kind: "remote", uri: initial.provenance.imageUrl }
 				: undefined,
 		photoManager,
+		// A new food seeded with a local photo (handed over from a one-off) has
+		// not saved it anywhere yet: it is this form's to clean up.
+		adoptInitialPhoto: !food && initial?.visual?.kind === "photo",
 		messages: {
 			permissionDenied: copy.photoPermissionDenied,
 			failure: copy.photoFailure,
@@ -352,6 +354,14 @@ export function usePersonalFoodDraft({
 		replaceVisual: photo.replace,
 		save,
 		discardStagedPhoto: photo.discard,
+		/** Name and photo for another kind of form; it now owns the photo. */
+		handOff: (): FoodAuthoringSeed => {
+			photo.keep();
+			return {
+				name,
+				...(visual && visual.kind !== "remote" ? { visual } : {}),
+			};
+		},
 		buildDraft,
 	};
 }

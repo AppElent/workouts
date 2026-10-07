@@ -18,11 +18,14 @@ export type EditorVisual =
  */
 export function useStagedFoodVisual({
 	initial,
+	adoptInitialPhoto = false,
 	photoManager = foodPhotos,
 	messages,
 	onChange,
 }: {
 	initial?: EditorVisual;
+	/** The initial photo is unsaved, so cancelling removes it like a new one. */
+	adoptInitialPhoto?: boolean;
 	photoManager?: FoodPhotoManager;
 	messages: { permissionDenied: string; failure: string };
 	/** After every change by the person, such as marking a draft dirty. */
@@ -31,7 +34,9 @@ export function useStagedFoodVisual({
 	const [visual, setVisual] = useState<EditorVisual | undefined>(initial);
 	const [error, setError] = useState<string>();
 	const [busy, setBusy] = useState(false);
-	const staged = useRef<string | undefined>(undefined);
+	const staged = useRef<string | undefined>(
+		adoptInitialPhoto && initial?.kind === "photo" ? initial.uri : undefined,
+	);
 	const kept = useRef(false);
 
 	useEffect(

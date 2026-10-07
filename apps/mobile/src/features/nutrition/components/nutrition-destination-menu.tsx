@@ -96,20 +96,43 @@ export function NutritionDestinationMenu(props: NutritionDestinationMenuProps) {
 				onPress={show}
 				style={styles.trigger}
 			>
-				<View style={styles.titleRow}>
-					<AppText variant="navTitle">{props.mealName}</AppText>
-					<SymbolView
-						name={{
-							ios: "chevron.down",
-							android: "expand_more",
-							web: "expand_more",
-						}}
-						size={11}
-						weight="semibold"
-						tintColor={colors.textMuted}
-					/>
-				</View>
-				<AppText variant="caption">{props.dayLabel}</AppText>
+				{props.title ? (
+					<>
+						<AppText variant="navTitle">{props.title}</AppText>
+						<View style={styles.titleRow}>
+							<AppText variant="caption">
+								{props.mealName} · {props.dayLabel}
+							</AppText>
+							<SymbolView
+								name={{
+									ios: "chevron.down",
+									android: "expand_more",
+									web: "expand_more",
+								}}
+								size={9}
+								weight="semibold"
+								tintColor={colors.textMuted}
+							/>
+						</View>
+					</>
+				) : (
+					<>
+						<View style={styles.titleRow}>
+							<AppText variant="navTitle">{props.mealName}</AppText>
+							<SymbolView
+								name={{
+									ios: "chevron.down",
+									android: "expand_more",
+									web: "expand_more",
+								}}
+								size={11}
+								weight="semibold"
+								tintColor={colors.textMuted}
+							/>
+						</View>
+						<AppText variant="caption">{props.dayLabel}</AppText>
+					</>
+				)}
 			</Pressable>
 			<Modal
 				visible={open}

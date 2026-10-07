@@ -5,6 +5,11 @@ import { Keyboard, type TextInput } from "react-native";
 /** A nutrient as typed: its kind, and the text of a value. */
 export type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 
+/** A typed number, with either decimal separator. NaN when it is none. */
+export function parseFoodNumber(text: string): number {
+	return Number(text.trim().replace(",", "."));
+}
+
 /** Label order: what you read on a package, "of which" rows indented. */
 export const FOOD_NUTRIENT_ROWS: readonly {
 	key: NutrientKey;

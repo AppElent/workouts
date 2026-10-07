@@ -5,12 +5,24 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import type { FoodVisual } from "./personal-food-repository";
 
-export type FoodAuthoringIntent = "personal" | "recipe";
+export type FoodAuthoringIntent = "personal" | "recipe" | "oneOff";
+
+/**
+ * What switching between Personal food, Recipe and One-off carries along, so
+ * the person does not type the name or take the photo twice. A staged photo
+ * handed over here belongs to the receiving form from then on.
+ */
+export type FoodAuthoringSeed = {
+	readonly name: string;
+	readonly visual?: FoodVisual;
+};
 
 type FoodAuthoringIntentValue = {
 	intent?: FoodAuthoringIntent;
-	request: (intent: FoodAuthoringIntent) => void;
+	seed?: FoodAuthoringSeed;
+	request: (intent: FoodAuthoringIntent, seed?: FoodAuthoringSeed) => void;
 	consume: () => void;
 };
 
@@ -21,10 +33,19 @@ export function FoodAuthoringIntentProvider({
 }: {
 	children: ReactNode;
 }) {
-	const [intent, setIntent] = useState<FoodAuthoringIntent>();
+	const [state, setState] = useState<{
+		intent: FoodAuthoringIntent;
+		seed?: FoodAuthoringSeed;
+	}>();
 	const value = useMemo(
-		() => ({ intent, request: setIntent, consume: () => setIntent(undefined) }),
-		[intent],
+		() => ({
+			intent: state?.intent,
+			seed: state?.seed,
+			request: (intent: FoodAuthoringIntent, seed?: FoodAuthoringSeed) =>
+				setState({ intent, seed }),
+			consume: () => setState(undefined),
+		}),
+		[state],
 	);
 	return <Context.Provider value={value}>{children}</Context.Provider>;
 }

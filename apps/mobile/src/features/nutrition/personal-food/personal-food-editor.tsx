@@ -12,6 +12,7 @@ import {
 	TextInput,
 	View,
 } from "react-native";
+import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import type { FoodPhotoManager } from "../../../data/food-photo-manager";
 import type {
 	PersonalFood,
@@ -48,7 +49,11 @@ export type PersonalFoodEditorProps = {
 	reviewNotice?: { title: string; attribution?: string };
 	onSaved: (saved: PersonalFood) => void;
 	onCancel: () => void;
-	onCreateKindChange?: (kind: "personal" | "recipe" | "oneOff") => void;
+	/** The segment's other kinds; a one-off receives the name and photo. */
+	onCreateKindChange?: (
+		kind: "personal" | "recipe" | "oneOff",
+		seed?: FoodAuthoringSeed,
+	) => void;
 	photoManager?: FoodPhotoManager;
 	initialName?: string;
 	/**
@@ -410,15 +415,11 @@ export function PersonalFoodEditor({
 					gap: spacing.xs,
 				}}
 			>
-				{chrome === "inline" &&
-				!food &&
-				!seed &&
-				!reviewNotice &&
-				onCreateKindChange ? (
+				{chrome === "inline" && !food && !reviewNotice && onCreateKindChange ? (
 					<FoodAuthoringTabs
 						value={draft.classification === "recipe" ? "recipe" : "personal"}
 						onChange={(kind) => {
-							if (kind === "oneOff") onCreateKindChange(kind);
+							if (kind === "oneOff") onCreateKindChange(kind, draft.handOff());
 							else
 								draft.setClassification(
 									kind === "recipe" ? "recipe" : "ordinary",

@@ -1,7 +1,6 @@
 import {
 	forkShippedFood,
 	NUTRIENT_KEYS,
-	roundForDisplay,
 	type ShippedFood,
 	type SupplementaryServing,
 	shippedLibrary,
@@ -20,21 +19,12 @@ import {
 	View,
 } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
-import {
-	formatLongDate,
-	formatShortDate,
-	todayIsoDate,
-} from "../../../data/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import { comboEnergy } from "../../../data/nutrition-combo";
-import {
-	type DiaryEntry,
-	MEAL_SLOTS,
-	type MealSlot,
-	useNutritionDay,
-} from "../../../data/nutrition-day";
+import type { MealSlot } from "../../../data/nutrition-day";
 import {
 	intakeLoggedSince,
 	useNutritionDrafts,
@@ -50,6 +40,7 @@ import {
 } from "../../../data/nutrition-shortcuts";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import type {
+	FoodVisual,
 	PersonalFood,
 	PersonalFoodDraft,
 } from "../../../data/personal-food-repository";
@@ -84,6 +75,7 @@ import { NutritionDestinationMenu } from "../components/nutrition-destination-me
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
+import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { LogFoodAmountSheet } from "./components/log-food-amount-sheet";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
 import { LogFoodComboRow } from "./components/log-food-combo-row";
@@ -141,13 +133,18 @@ const SCOPE_CHIPS = [
 const JUST_LOGGED_MS = 2000;
 
 /** A new Personal Food with nothing filled in but the name and the barcode. */
-function blankFoodDraft(name: string, barcode?: string): PersonalFoodDraft {
+function blankFoodDraft(
+	name: string,
+	barcode?: string,
+	visual?: FoodVisual,
+): PersonalFoodDraft {
 	return {
 		name: { en: name, nl: name },
 		baseUnit: "g",
 		nutrients: Object.fromEntries(
 			NUTRIENT_KEYS.map((key) => [key, { kind: "absent" }]),
 		) as PersonalFoodDraft["nutrients"],
+		...(visual ? { visual } : {}),
 		servings: [],
 		provenance: {
 			recordOrigin: "personal",
@@ -178,15 +175,6 @@ function correctionDraft(
 		],
 		...(visual ? { visual } : {}),
 	};
-}
-
-function energyLabel(entries: readonly DiaryEntry[]): string | undefined {
-	if (!entries.length) return undefined;
-	const total = entries.reduce((sum, entry) => {
-		const energy = entry.nutrients.energy;
-		return energy.kind === "value" ? sum + energy.amount : sum;
-	}, 0);
-	return `${roundForDisplay("energy", total)} kcal`;
 }
 
 /**
@@ -283,9 +271,12 @@ export function LogFoodScreen({
 	const [creatingFood, setCreatingFood] = useState(
 		initialCreateKind !== undefined,
 	);
+	// Switching from a one-off back to a food: start it with what was typed.
 	useEffect(() => {
-		if (!authoringIntent.intent) return;
-		setFilter(authoringIntent.intent === "recipe" ? "recipes" : "pool");
+		const { intent, seed } = authoringIntent;
+		if (!intent || intent === "oneOff") return;
+		setFilter(intent === "recipe" ? "recipes" : "pool");
+		if (seed) setNewFoodSeed(blankFoodDraft(seed.name, undefined, seed.visual));
 		setCreatingFood(true);
 		authoringIntent.consume();
 	}, [authoringIntent]);
@@ -380,9 +371,14 @@ export function LogFoodScreen({
 		online: !offline,
 		isImported: (barcode) => Boolean(personalFoods.findByBarcode(barcode)),
 	});
-	const day = useNutritionDay(date);
-	const entriesFor = (slot: MealSlot) =>
-		day.status === "ready" ? day.day.entries[slot] : [];
+	const destination = useMealDestinationMenu({
+		date,
+		meal: selectedMeal,
+		today,
+		onSelectMeal: setSelectedMeal,
+		onOtherDay: () => setShowCalendar(true),
+	});
+	const { entriesFor, energyLabel } = destination;
 	const mealEntries = entriesFor(selectedMeal);
 	const mealName = t.nutrition.meals[selectedMeal];
 	const catalogueSize = useMemo(() => shippedLibrary().active.length, []);
@@ -777,14 +773,20 @@ export function LogFoodScreen({
 				food={editingFood}
 				seed={forkDraft ?? newFoodSeed}
 				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
-				onCreateKindChange={(kind) => {
-					if (kind !== "oneOff") return;
-					closeEditor();
-					router.push({
-						pathname: "/nutrition-one-off",
-						params: { date, meal: selectedMeal },
-					});
-				}}
+				onCreateKindChange={
+					// Only a new food offers the segment; a correction or an edit does not.
+					editingFood || forkDraft
+						? undefined
+						: (kind, seed) => {
+								if (kind !== "oneOff") return;
+								authoringIntent.request("oneOff", seed);
+								closeEditor();
+								router.push({
+									pathname: "/nutrition-one-off",
+									params: { date, meal: selectedMeal },
+								});
+							}
+				}
 				onCancel={closeEditor}
 				onSaved={(food) => {
 					closeEditor();
@@ -875,10 +877,6 @@ export function LogFoodScreen({
 			pathname: "/nutrition-assistance",
 			params: { date, meal: selectedMeal },
 		});
-	const dayLabel =
-		date === today
-			? `${copy.today} · ${formatShortDate(date, locale)}`
-			: formatShortDate(date, locale);
 	const listHeading = hasQuery
 		? {
 				title: browserTarget?.resultsTitle ?? copy.results,
@@ -917,30 +915,7 @@ export function LogFoodScreen({
 					options={{
 						title: mealName,
 						headerTitle: () => (
-							<NutritionDestinationMenu
-								label={copy.destinationLabel(
-									mealName,
-									formatLongDate(date, locale),
-								)}
-								mealName={mealName}
-								dayLabel={dayLabel}
-								sectionTitle={copy.logInto}
-								closeLabel={copy.closeMenu}
-								otherDayLabel={copy.otherDay}
-								options={MEAL_SLOTS.map((slot) => {
-									const entries = entriesFor(slot);
-									return {
-										slot,
-										selected: slot === selectedMeal,
-										label: t.nutrition.meals[slot],
-										detail: entries.length
-											? copy.mealTally(entries.length, energyLabel(entries))
-											: copy.mealNothing,
-									};
-								})}
-								onSelectMeal={setSelectedMeal}
-								onOtherDay={() => setShowCalendar(true)}
-							/>
+							<NutritionDestinationMenu {...destination.menu} />
 						),
 						// The calendar stays the one direct route to the day.
 						headerRight: () => (

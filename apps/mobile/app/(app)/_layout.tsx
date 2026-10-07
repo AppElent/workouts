@@ -293,14 +293,10 @@ export default function AppLayout() {
 														<Stack.Screen
 															name="nutrition-one-off"
 															options={{
-																title:
-																	locale === "nl"
-																		? "Eenmalig loggen"
-																		: "Log once",
-																headerShown: false,
+																title: locale === "nl" ? "Eenmalig" : "One-off",
+																// Full height: the keyboard opens at once on the name.
 																presentation: "formSheet",
-																sheetAllowedDetents: [0.5, 1],
-																sheetInitialDetentIndex: 0,
+																sheetAllowedDetents: [1],
 																sheetGrabberVisible: true,
 															}}
 														/>
