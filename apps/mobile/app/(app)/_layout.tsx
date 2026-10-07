@@ -270,7 +270,6 @@ export default function AppLayout() {
 																presentation: "formSheet",
 																sheetAllowedDetents: [0.9, 1],
 																sheetGrabberVisible: true,
-																headerShown: false,
 															}}
 														/>
 														<Stack.Screen
@@ -336,7 +335,6 @@ export default function AppLayout() {
 																presentation: "formSheet",
 																sheetAllowedDetents: [0.9, 1],
 																sheetGrabberVisible: true,
-																headerShown: false,
 															}}
 														/>
 														<Stack.Screen

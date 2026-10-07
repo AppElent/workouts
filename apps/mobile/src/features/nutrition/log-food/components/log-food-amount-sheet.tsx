@@ -73,6 +73,8 @@ export function LogFoodAmountSheet({
 	pick?: {
 		title: string;
 		confirmLabel: string;
+		/** The table's first column, such as "This part". */
+		valueLabel: string;
 		onPick: (serving: ServingOption, quantity: number) => void;
 	};
 }) {
@@ -250,6 +252,7 @@ export function LogFoodAmountSheet({
 					referenceFactor:
 						reference / (amount.valid ? amount.amount : reference),
 					referenceLabel: `${reference} ${food.baseUnit}`,
+					valueLabel: pick?.valueLabel,
 					all: true,
 				}}
 				onOpenDetails={() =>

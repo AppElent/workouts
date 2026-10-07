@@ -62,14 +62,22 @@ export function useSnapshotServings(
 		snapshot.baseUnit,
 		measures,
 	);
-	const historical: ServingOption = {
-		kind: "authored",
-		index: -1,
-		amount: snapshot.amount / snapshot.quantity,
-		label: {
-			en: snapshot.serving.en.replace(/ × .*$/, ""),
-			nl: snapshot.serving.nl.replace(/ × .*$/, ""),
-		},
-	};
+	// Saved by weight or volume, the amount is simply in the base unit, which
+	// steps by tens; anything else is kept as the serving it was saved with.
+	const baseUnit = choices.find((choice) => choice.kind === "base-unit");
+	const historical: ServingOption =
+		baseUnit &&
+		snapshot.baseUnit !== "serving" &&
+		snapshot.amount / snapshot.quantity === 1
+			? baseUnit
+			: {
+					kind: "authored",
+					index: -1,
+					amount: snapshot.amount / snapshot.quantity,
+					label: {
+						en: snapshot.serving.en.replace(/ × .*$/, ""),
+						nl: snapshot.serving.nl.replace(/ × .*$/, ""),
+					},
+				};
 	return { source, additions, choices, historical };
 }

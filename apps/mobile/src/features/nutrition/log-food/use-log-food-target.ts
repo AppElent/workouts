@@ -89,6 +89,7 @@ export function useLogFoodTarget(
 		sheet: {
 			title: combo.name,
 			confirmLabel: replacing ? copy.confirm : copy.add,
+			valueLabel: copy.thisPart,
 		},
 		pick,
 	};

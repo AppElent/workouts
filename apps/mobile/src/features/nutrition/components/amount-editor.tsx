@@ -106,7 +106,9 @@ export function AmountEditor({
 		{
 			title: name,
 			options: [
-				...(historical
+				// The saved serving, unless it is one of the choices anyway.
+				...(historical &&
+				!choices.some((item) => servingKey(item) === servingKey(historical))
 					? [
 							{
 								id: "historical",
