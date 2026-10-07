@@ -2,11 +2,37 @@ import {
 	type PersonalFood,
 	personalFoodSnapshotAtAmount,
 } from "@workouts/core/nutrition";
+import type { DiaryEntry } from "../../../data/nutrition-day";
 import type {
 	Combo,
 	ComboDraft,
 	ComboPartDraft,
+	ComboPartReference,
 } from "../../../data/personal-food-repository";
+
+/** A diary entry as a combo part: its food by reference, or a one-off snapshot. */
+export function comboPartFromEntry(entry: DiaryEntry): ComboPartDraft {
+	const reference: ComboPartReference =
+		entry.provenance.source === "shipped"
+			? { kind: "shipped", foodId: entry.provenance.sourceId }
+			: entry.provenance.source === "personal" ||
+					entry.provenance.source === "import"
+				? { kind: "personal", foodId: entry.provenance.sourceId }
+				: { kind: "oneOff" };
+	return {
+		reference,
+		snapshot: {
+			name: entry.name,
+			serving: entry.serving,
+			quantity: entry.quantity,
+			amount: entry.amount,
+			baseUnit: entry.baseUnit,
+			nutrients: entry.nutrients,
+			provenance: entry.provenance,
+			...(entry.estimated ? { estimated: true as const } : {}),
+		},
+	};
+}
 
 /**
  * A library food as a new combo part: its first serving, otherwise 100 g/ml,

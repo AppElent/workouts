@@ -103,7 +103,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 	};
 	const logCombo = () =>
 		router.push({
-			pathname: "/nutrition-combos",
+			pathname: "/nutrition-combo-log",
 			params: { comboId: combo.id, date: todayIsoDate() },
 		});
 	const totals = comboTotals(combo);
@@ -290,6 +290,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 					{missing.length ? (
 						<Pressable
 							accessibilityRole="button"
+							accessibilityHint={copy.removeMissing}
 							onPress={() => write(withoutMissingParts(combo))}
 							style={({ pressed }) => ({
 								flexDirection: "row",

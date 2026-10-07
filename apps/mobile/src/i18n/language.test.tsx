@@ -2,12 +2,7 @@
  * The bilingual requirement, tested where it is visible: the words on the
  * screen, in both languages, and the absence of a frame in the wrong one.
  */
-import {
-	fireEvent,
-	screen,
-	testRouter,
-	within,
-} from "expo-router/testing-library";
+import { fireEvent, screen, testRouter } from "expo-router/testing-library";
 import { PREFERENCE_KEYS, writePreference } from "../prefs/local-preference";
 import { renderApp } from "../test-support/render-app";
 

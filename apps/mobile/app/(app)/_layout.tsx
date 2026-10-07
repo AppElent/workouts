@@ -265,8 +265,13 @@ export default function AppLayout() {
 															}}
 														/>
 														<Stack.Screen
-															name="nutrition-combos"
-															options={{ title: t.nutrition.combos.log }}
+															name="nutrition-combo-log"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+																headerShown: false,
+															}}
 														/>
 														<Stack.Screen
 															name="nutrition-copy"

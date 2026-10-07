@@ -228,7 +228,7 @@ export function LibraryScreen() {
 						swipe: false,
 						onPress: () =>
 							router.push({
-								pathname: "/nutrition-combos",
+								pathname: "/nutrition-combo-log",
 								params: { comboId: item.id, date: todayIsoDate() },
 							}),
 					},

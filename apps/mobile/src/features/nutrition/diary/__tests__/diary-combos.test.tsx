@@ -1,6 +1,11 @@
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { fireEvent, screen, testRouter } from "expo-router/testing-library";
+import {
+	fireEvent,
+	screen,
+	testRouter,
+	waitFor,
+} from "expo-router/testing-library";
 import type {
 	ComboDraft,
 	PersonalFoodDraft,
@@ -104,6 +109,20 @@ function personalFoodDraft(name: string, energy: number): PersonalFoodDraft {
 	};
 }
 
+/** Opens a combo's editor from the library's Combos filter. */
+async function openLibraryCombo(name: string) {
+	fireEvent.press(screen.getByLabelText("More nutrition tools"));
+	fireEvent.press(screen.getByText("Food library"));
+	fireEvent.press((await screen.findAllByText("Combos"))[0]);
+	// A combo that needs attention is named there too; the row is the last match.
+	fireEvent.press((await screen.findAllByText(name)).at(-1) as never);
+}
+
+/** Logging closes the sheet back to where the combo was chosen. */
+async function waitForLogClosed() {
+	await waitFor(() => expect(screen.queryByLabelText("Log Combo")).toBeNull());
+}
+
 /** A library combo opens its editor; logging starts from its ⋯ menu. */
 async function openComboLog() {
 	fireEvent.press(await screen.findByLabelText("More"));
@@ -133,7 +152,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
 		fireEvent.changeText(screen.getByLabelText("Combo name"), "Apple oats");
-		fireEvent.press(screen.getByText("Save Combo"));
+		fireEvent.press(screen.getByLabelText("Save Combo"));
 
 		await screen.findByText("Apple oats");
 		expect(screen.queryByText("Apple")).toBeNull();
@@ -164,7 +183,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
 		fireEvent.changeText(screen.getByLabelText("Combo name"), "My oats");
-		fireEvent.press(screen.getByText("Save Combo"));
+		fireEvent.press(screen.getByLabelText("Save Combo"));
 
 		expect(
 			await screen.findByText(
@@ -188,7 +207,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
 		fireEvent.changeText(screen.getByLabelText("Combo name"), "My oats");
-		fireEvent.press(screen.getByText("Save Combo"));
+		fireEvent.press(screen.getByLabelText("Save Combo"));
 
 		expect(
 			await screen.findByText(
@@ -215,7 +234,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
 		fireEvent.changeText(screen.getByLabelText("Combo name"), "Mixed meals");
-		fireEvent.press(screen.getByText("Save Combo"));
+		fireEvent.press(screen.getByLabelText("Save Combo"));
 		await screen.findByText("Today");
 		expect(app.repository.listCombos()[0]).toMatchObject({
 			name: "Mixed meals",
@@ -260,14 +279,12 @@ describe("Nutrition Combos", () => {
 		const combo = app.repository.createCombo(oneOffCombo());
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Morning Combo"));
+		await openLibraryCombo("Morning Combo");
 		await openComboLog();
-		fireEvent.press(screen.getByText("Dinner"));
-		fireEvent.press(screen.getByText("Log 1 part"));
-		await screen.findByText("Today");
+		fireEvent.press(screen.getByLabelText("Meal"));
+		fireEvent.press(await screen.findByText("Dinner"));
+		fireEvent.press(screen.getByLabelText("Log Combo"));
+		await waitForLogClosed();
 
 		expect(logCombo).toHaveBeenCalledTimes(1);
 		expect(logCombo).toHaveBeenCalledWith(
@@ -282,7 +299,7 @@ describe("Nutrition Combos", () => {
 		);
 	});
 
-	it("combines whole and per-part scales and can exclude one part for this log", async () => {
+	it("scales whole combos and can turn one part off for this log", async () => {
 		showDiary([]);
 		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
 		mockUseMutation.mockImplementation(
@@ -308,30 +325,28 @@ describe("Nutrition Combos", () => {
 		});
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Breakfast"));
+		await openLibraryCombo("Breakfast");
 		await openComboLog();
-		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
-		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
-
-		expect(screen.getByText("Final amount: 50 g")).toBeTruthy();
-		expect(screen.getByText("Final amount: 100 g")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Exclude Apple"));
-		expect(screen.getByText("Final amount: 50 g")).toBeTruthy();
-		fireEvent.press(screen.getByText("Log 1 part"));
-		await screen.findByText("Today");
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "0.5");
+		fireEvent(screen.getByLabelText("Apple"), "valueChange", false);
+		fireEvent.press(screen.getByLabelText("Log Combo"));
+		await waitForLogClosed();
 
 		expect(logCombo).toHaveBeenCalledWith(
 			expect.objectContaining({
-				parts: [expect.objectContaining({ amount: 100, quantity: 1 })],
+				parts: [
+					expect.objectContaining({
+						name: { en: "Oats", nl: "Havermout" },
+						amount: 50,
+						quantity: 0.5,
+					}),
+				],
 			}),
 		);
 		expect(app.repository.listCombos()[0].parts).toHaveLength(2);
 	});
 
-	it("limits multiplier display precision without rounding the logged values", async () => {
+	it("does not round the whole-combo count it logs", async () => {
 		showDiary([]);
 		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
 		mockUseMutation.mockImplementation(
@@ -344,31 +359,18 @@ describe("Nutrition Combos", () => {
 		app.repository.createCombo(oneOffCombo());
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Morning Combo"));
+		await openLibraryCombo("Morning Combo");
 		await openComboLog();
-		const wholeScale = screen.getByLabelText("Scale this Combo");
-		const partScale = screen.getByLabelText("Scale Oats");
-		fireEvent.changeText(wholeScale, "0.123456");
-		fireEvent.changeText(partScale, "2.345678");
-		fireEvent(wholeScale, "blur");
-		fireEvent(partScale, "blur");
-
-		expect(screen.getByDisplayValue("0.123")).toBeTruthy();
-		expect(screen.getByDisplayValue("2.346")).toBeTruthy();
-		fireEvent(screen.getByLabelText("Scale this Combo"), "blur");
-		fireEvent(screen.getByLabelText("Scale Oats"), "blur");
-		fireEvent.press(screen.getByText("Log 1 part"));
-		await screen.findByText("Today");
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "0.123456");
+		fireEvent.press(screen.getByLabelText("Log Combo"));
+		await waitForLogClosed();
 		expect(logCombo.mock.calls[0][0].parts[0].amount).toBeCloseTo(
-			100 * 0.123456 * 2.345678,
+			100 * 0.123456,
 			10,
 		);
 	});
 
-	it("resets scales and inclusion and blocks a log with no included parts", async () => {
+	it("blocks a log with no included parts", async () => {
 		showDiary([]);
 		const app = renderApp();
 		const oats = oneOffCombo().parts[0];
@@ -387,23 +389,14 @@ describe("Nutrition Combos", () => {
 		});
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Breakfast"));
+		await openLibraryCombo("Breakfast");
 		await openComboLog();
-		fireEvent.changeText(screen.getByLabelText("Scale this Combo"), "0.5");
-		fireEvent.changeText(screen.getByLabelText("Scale Oats"), "2");
-		fireEvent.press(screen.getByLabelText("Exclude Oats"));
-		fireEvent.press(screen.getByLabelText("Exclude Apple"));
-		expect(screen.getByText("Log 0 parts")).toBeDisabled();
-
-		fireEvent.press(screen.getByText("Reset adjustments"));
-		expect(screen.getByLabelText("Scale this Combo").props.value).toBe("");
-		expect(screen.getByLabelText("Scale Oats").props.value).toBe("");
-		expect(screen.getByLabelText("Exclude Oats")).toBeChecked();
-		expect(screen.getByLabelText("Exclude Apple")).toBeChecked();
-		expect(screen.getByText("Log 2 parts")).toBeEnabled();
+		expect(screen.getByLabelText("Log Combo")).toBeEnabled();
+		fireEvent(screen.getByLabelText("Oats"), "valueChange", false);
+		fireEvent(screen.getByLabelText("Apple"), "valueChange", false);
+		expect(screen.getByLabelText("Log Combo")).toBeDisabled();
+		fireEvent(screen.getByLabelText("Apple"), "valueChange", true);
+		expect(screen.getByLabelText("Log Combo")).toBeEnabled();
 	});
 
 	it("resolves the same Personal Food id at logging time without chasing replacements", async () => {
@@ -442,13 +435,10 @@ describe("Nutrition Combos", () => {
 		app.repository.update(food.id, personalFoodDraft("Updated oats", 200));
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Current oats"));
+		await openLibraryCombo("Current oats");
 		await openComboLog();
-		fireEvent.press(screen.getByText("Log 1 part"));
-		await screen.findByText("Today");
+		fireEvent.press(screen.getByLabelText("Log Combo"));
+		await waitForLogClosed();
 
 		expect(logCombo).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -480,17 +470,15 @@ describe("Nutrition Combos", () => {
 		const app = renderApp();
 		app.repository.createCombo(oneOffCombo());
 		await screen.findByText("Today");
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Morning Combo"));
+		await openLibraryCombo("Morning Combo");
 		await openComboLog();
 
-		fireEvent.press(screen.getByText("Log 1 part"));
+		fireEvent.press(screen.getByLabelText("Log Combo"));
 		// The release-two service closes at the local SQLite acceptance boundary;
 		// it must not hold the form open while the network request is pending.
-		expect(await screen.findByText("Today")).toBeTruthy();
+		await waitForLogClosed();
 		rejectLog(new Error("offline"));
+		testRouter.navigate("/nutrition");
 
 		expect(
 			await screen.findByText(
@@ -544,18 +532,15 @@ describe("Nutrition Combos", () => {
 		});
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		// The attention line names it too; the row is the last match.
-		fireEvent.press(
-			(await screen.findAllByText("Old breakfast")).at(-1) as never,
-		);
+		await openLibraryCombo("Old breakfast");
 		await openComboLog();
 
-		expect(screen.getByText("Needs attention")).toBeTruthy();
-		expect(screen.getByText("Log 1 part")).toBeDisabled();
-		expect(screen.getByText("Delete Combo")).toBeTruthy();
+		expect(
+			screen.getByText(
+				"Remove or replace parts without a source to log this combo.",
+			),
+		).toBeTruthy();
+		expect(screen.getByLabelText("Log Combo")).toBeDisabled();
 	});
 
 	it("temporarily excludes a missing part without repairing the saved Combo", async () => {
@@ -584,23 +569,16 @@ describe("Nutrition Combos", () => {
 		});
 		await screen.findByText("Today");
 
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		// The attention line names it too; the row is the last match.
-		fireEvent.press(
-			(await screen.findAllByText("Available breakfast")).at(-1) as never,
-		);
+		await openLibraryCombo("Available breakfast");
 		await openComboLog();
-		expect(screen.getByText("Log 2 parts")).toBeDisabled();
+		expect(screen.getByLabelText("Log Combo")).toBeDisabled();
 
-		fireEvent.press(screen.getByLabelText("Exclude Milk"));
-		expect(screen.getByText("Log 1 part")).toBeEnabled();
-		expect(screen.getAllByText("Final amount: 100 g")).toHaveLength(2);
+		fireEvent(screen.getByLabelText("Milk"), "valueChange", false);
+		expect(screen.getByLabelText("Log Combo")).toBeEnabled();
 		expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(2);
 	});
 
-	it("explicitly resolves a partial dangling Combo by removing unavailable parts", async () => {
+	it("explicitly repairs a partial dangling Combo in its editor", async () => {
 		showDiary([]);
 		const app = renderApp();
 		const oneOff = oneOffCombo().parts[0];
@@ -624,20 +602,13 @@ describe("Nutrition Combos", () => {
 			],
 		});
 		await screen.findByText("Today");
-		fireEvent.press(screen.getByLabelText("More nutrition tools"));
-		fireEvent.press(screen.getByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		// The attention line names it too; the row is the last match.
-		fireEvent.press((await screen.findAllByText("Repair me")).at(-1) as never);
-		await openComboLog();
-
-		fireEvent.press(screen.getByText("Remove unavailable parts"));
-		expect(await screen.findByText("Remove unavailable parts?")).toBeTruthy();
-		const removeButtons = screen.getAllByText("Remove unavailable parts");
-		fireEvent.press(removeButtons[removeButtons.length - 1]);
-
-		expect(await screen.findByText("Log 1 part")).toBeEnabled();
+		await openLibraryCombo("Repair me");
+		fireEvent.press(await screen.findByLabelText("More"));
+		fireEvent.press(await screen.findByText("Remove missing parts"));
 		expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(1);
+
+		await openComboLog();
+		expect(await screen.findByLabelText("Log Combo")).toBeEnabled();
 	});
 
 	it("offers the device-local Combo flow in Dutch", async () => {

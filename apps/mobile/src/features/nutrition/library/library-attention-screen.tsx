@@ -61,8 +61,8 @@ export function LibraryAttentionScreen() {
 							chevron
 							onPress={() =>
 								router.push({
-									pathname: "/nutrition-combos",
-									params: { comboId: combo.id },
+									pathname: "/nutrition-combo/[id]",
+									params: { id: combo.id },
 								})
 							}
 						/>

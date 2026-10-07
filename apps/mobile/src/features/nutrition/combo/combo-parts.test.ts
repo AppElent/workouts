@@ -7,6 +7,7 @@ import {
 import type { Combo } from "../../../data/personal-food-repository";
 import {
 	comboDraft,
+	comboPartFromEntry,
 	comboPartFromFood,
 	comboTotals,
 	moveComboPart,
@@ -119,5 +120,32 @@ describe("combo parts", () => {
 		expect(draft.name).toBe("Wrap lunch");
 		expect(draft.parts[0]).not.toHaveProperty("status");
 		expect(draft.parts[0].id).toBe("a");
+	});
+
+	it("keeps a logged food by reference and a one-off as a snapshot", () => {
+		const base = {
+			id: "e1",
+			name: { en: "Oats", nl: "Havermout" },
+			serving: { en: "Bowl × 1", nl: "Kom × 1" },
+			quantity: 1,
+			amount: 60,
+			baseUnit: "g" as const,
+			nutrients: nutrients(233),
+		};
+		expect(
+			comboPartFromEntry({
+				...base,
+				provenance: {
+					source: "personal",
+					sourceId: "oats",
+					nutritionSource: "manual",
+					locallyEdited: false,
+				},
+			} as never).reference,
+		).toEqual({ kind: "personal", foodId: "oats" });
+		expect(
+			comboPartFromEntry({ ...base, provenance: { source: "oneOff" } } as never)
+				.reference,
+		).toEqual({ kind: "oneOff" });
 	});
 });

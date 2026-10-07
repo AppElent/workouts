@@ -12,11 +12,17 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
+import {
+	mintNutritionUuid,
+	useNutritionOperations,
+} from "../../src/data/nutrition-operation-service";
 import { usePersonalFoods } from "../../src/data/personal-foods";
 import { ComboNewScreen } from "../../src/features/nutrition/combo/combo-new-screen";
-import { comboPartFromFood } from "../../src/features/nutrition/combo/combo-parts";
+import {
+	comboPartFromEntry,
+	comboPartFromFood,
+} from "../../src/features/nutrition/combo/combo-parts";
 import { useI18n } from "../../src/i18n";
-import { NutritionComboBuilder } from "../../src/screens/nutrition-combos";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionComboNewRoute() {
@@ -44,6 +50,7 @@ function DiaryComboRoute() {
 		entryIds?: string;
 	}>();
 	const day = date ?? todayIsoDate();
+	const operations = useNutritionOperations();
 	const state = useNutritionDay(day);
 	const wanted = new Set((entryIds ?? "").split(",").filter(Boolean));
 	const selected =
@@ -64,11 +71,22 @@ function DiaryComboRoute() {
 	if (entries.length === 0) return null;
 
 	return (
-		<NutritionComboBuilder
-			entries={entries}
-			date={day}
-			meal={selected[0]?.slot ?? "breakfast"}
-			onClose={() => router.back()}
+		<ComboNewScreen
+			parts={entries.map(comboPartFromEntry)}
+			onCreated={(combo) => {
+				// Entries from one meal become that combo, logged; across meals
+				// the combo is only saved.
+				if (new Set(entries.map((entry) => entry.meal)).size > 1) return;
+				const subject = operations.getSubject();
+				if (!subject) throw new Error("Not signed in.");
+				operations.group(
+					subject,
+					day,
+					entries[0].meal,
+					entries.map((entry) => ({ kind: "serverId", id: entry.id })),
+					{ id: mintNutritionUuid(), comboId: combo.id, name: combo.name },
+				);
+			}}
 			onSaved={() => router.back()}
 		/>
 	);

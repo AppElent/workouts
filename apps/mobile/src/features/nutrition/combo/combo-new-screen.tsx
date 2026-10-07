@@ -2,7 +2,10 @@ import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import type { ComboPartDraft } from "../../../data/personal-food-repository";
+import type {
+	Combo,
+	ComboPartDraft,
+} from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
@@ -15,8 +18,17 @@ import { useToast } from "../../../ui/toast";
  */
 export function ComboNewScreen({
 	parts,
+	onCreated,
+	onSaved,
 }: {
 	parts: readonly ComboPartDraft[];
+	/**
+	 * Runs right after the combo is saved, such as grouping the diary entries
+	 * it was made from. If it throws, the new combo is removed again.
+	 */
+	onCreated?: (combo: Combo) => void;
+	/** Where to go once saved; by default the new combo's editor. */
+	onSaved?: (combo: Combo) => void;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.comboEditor;
@@ -31,11 +43,19 @@ export function ComboNewScreen({
 		setSaving(true);
 		try {
 			const combo = library.createCombo({ name: name.trim(), parts });
+			try {
+				onCreated?.(combo);
+			} catch (error) {
+				library.removeCombo(combo.id);
+				throw error;
+			}
 			toast.success(t.nutrition.combos.saved);
-			router.replace({
-				pathname: "/nutrition-combo/[id]",
-				params: { id: combo.id },
-			});
+			if (onSaved) onSaved(combo);
+			else
+				router.replace({
+					pathname: "/nutrition-combo/[id]",
+					params: { id: combo.id },
+				});
 		} catch {
 			toast.error(t.nutrition.combos.saveFailure);
 			setSaving(false);

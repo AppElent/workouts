@@ -1080,7 +1080,7 @@ export function LogFoodScreen({
 						const energy = comboEnergy(item.combo);
 						const openCombo = () =>
 							router.push({
-								pathname: "/nutrition-combos",
+								pathname: "/nutrition-combo-log",
 								params: {
 									date,
 									meal: selectedMeal,
