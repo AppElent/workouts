@@ -62,7 +62,7 @@ export function DiaryScreen({
 	const [deleting, setDeleting] = useState(false);
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const { deleteEntry } = useDeleteDiaryEntry();
-	const drafts = useNutritionDrafts();
+	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
 	const operations = useNutritionOperations();
 	const state = useNutritionDay(date);
 	const marker = useTrainingMarker(date);
@@ -304,6 +304,17 @@ export function DiaryScreen({
 				) : (
 					<>
 						<DiarySyncStatus />
+						{drafts.loading ? (
+							<AppText variant="caption">
+								{locale === "nl"
+									? connected
+										? "Opgeslagen notities laden…"
+										: "Maak verbinding om opgeslagen notities te laden."
+									: connected
+										? "Loading saved notes…"
+										: "Connect to load saved notes."}
+							</AppText>
+						) : null}
 						{!state.day.complete ? (
 							<AppText variant="caption">
 								{locale === "nl"
@@ -392,10 +403,10 @@ export function DiaryScreen({
 										message: t.nutrition.drafts.deleteBody,
 										confirmLabel: t.nutrition.drafts.deleteConfirm,
 										destructive: true,
-									}).then((ok) => {
+									}).then(async (ok) => {
 										if (ok) {
 											try {
-												if (!drafts.remove(draft.id))
+												if (!(await drafts.remove(draft.id)))
 													toast.error(t.nutrition.drafts.deleteFailure);
 											} catch {
 												toast.error(t.nutrition.drafts.deleteFailure);

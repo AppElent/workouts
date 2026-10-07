@@ -23,17 +23,17 @@ export function ComboPartScreen({
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.comboEditor;
 	const toast = useToast();
-	const library = usePersonalFoods();
+	const library = usePersonalFoods({ ids: [comboId] });
 	const combo = library.findCombo(comboId);
 	const part = combo?.parts.find((item) => item.id === partId);
 	useEffect(() => {
-		if (!part) onClose();
-	}, [part, onClose]);
+		if (!part && !library.loading) onClose();
+	}, [part, onClose, library.loading]);
 	if (!combo || !part) return null;
 	const draft = comboDraft(combo);
 	const comboTotal = comboTotals(combo).energy ?? 0;
-	const write = (parts: readonly ComboPartDraft[]) => {
-		library.updateCombo(combo.id, { name: combo.name, parts });
+	const write = async (parts: readonly ComboPartDraft[]) => {
+		await library.updateCombo(combo.id, { name: combo.name, parts });
 		onClose();
 	};
 	return (
@@ -46,9 +46,9 @@ export function ComboPartScreen({
 				others: comboTotal - snapshotEnergy(part.snapshot),
 			}}
 			onCancel={onClose}
-			onConfirm={(snapshot) => {
+			onConfirm={async (snapshot) => {
 				try {
-					write(
+					await write(
 						draft.parts.map((item) =>
 							item.id === part.id ? { ...item, snapshot } : item,
 						),
@@ -57,15 +57,19 @@ export function ComboPartScreen({
 					toast.error(copy.saveFailure);
 				}
 			}}
-			onRemove={() => {
+			onRemove={async () => {
 				try {
-					write(draft.parts.filter((item) => item.id !== part.id));
+					await write(draft.parts.filter((item) => item.id !== part.id));
 					toast.success(
 						fmt(copy.removed, { name: part.snapshot.name[locale] }),
 						{
 							action: {
 								label: copy.undo,
-								onPress: () => library.updateCombo(combo.id, draft),
+								onPress: () => {
+									void library
+										.updateCombo(combo.id, draft)
+										.catch(() => toast.error(copy.saveFailure));
+								},
 							},
 						},
 					);

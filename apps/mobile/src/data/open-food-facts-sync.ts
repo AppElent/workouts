@@ -20,7 +20,10 @@ export type OffRefreshProgress = {
 type RefreshDependencies = {
 	readonly foods: readonly PersonalFood[];
 	readonly refreshBarcode: (barcode: string) => Promise<OffLookupOutcome>;
-	readonly update: (id: string, draft: PersonalFoodDraft) => PersonalFood;
+	readonly update: (
+		id: string,
+		draft: PersonalFoodDraft,
+	) => PersonalFood | Promise<PersonalFood>;
 	readonly importPhoto?: (
 		url: string,
 	) => Promise<Extract<FoodVisual, { kind: "photo" }>>;
@@ -172,7 +175,7 @@ export async function refreshOpenFoodFactsImports({
 			) {
 				progress = { ...progress, unchanged: progress.unchanged + 1 };
 			} else {
-				update(food.id, draft);
+				await update(food.id, draft);
 				progress = { ...progress, updated: progress.updated + 1 };
 			}
 		} else if (outcome.kind === "rate-limited") {

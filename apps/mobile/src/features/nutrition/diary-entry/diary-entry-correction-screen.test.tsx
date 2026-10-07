@@ -46,7 +46,7 @@ function setup(source: "shipped" | "oneOff" = "shipped") {
 			};
 		return [];
 	});
-	const apply = jest.fn().mockImplementation(() => new Promise(() => {}));
+	const apply = jest.fn().mockResolvedValue(undefined);
 	const other = jest.fn().mockResolvedValue(undefined);
 	jest
 		.mocked(useMutation)
@@ -78,6 +78,13 @@ it("saves a source Fork and only the selected snapshot, scaling only changed nut
 		kind: "value",
 		amount: 4,
 	});
+	await waitFor(() =>
+		expect(
+			app.nutritionRepository
+				.projectDay("test-user", date)
+				.entries.find((e) => e._id === "entry-1")?.nutrients.fibre.kind,
+		).toBe("value"),
+	);
 	const entries = app.nutritionRepository.projectDay("test-user", date).entries;
 	expect(entries.find((e) => e._id === "entry-1")?.nutrients).toMatchObject({
 		fibre: { kind: "value", amount: 6 },
@@ -96,11 +103,13 @@ it("can fill a missing snapshot from an already known source value", async () =>
 	const fibre = getShippedFood(sourceId)?.nutrients.fibre;
 	expect(fibre?.kind).toBe("value");
 	if (fibre?.kind !== "value") throw new Error("Fixture needs known fibre");
-	expect(
-		app.nutritionRepository
-			.projectDay("test-user", date)
-			.entries.find((e) => e._id === "entry-1")?.nutrients.fibre,
-	).toEqual({ kind: "value", amount: fibre.amount * 1.5 });
+	await waitFor(() =>
+		expect(
+			app.nutritionRepository
+				.projectDay("test-user", date)
+				.entries.find((e) => e._id === "entry-1")?.nutrients.fibre,
+		).toEqual({ kind: "value", amount: fibre.amount * 1.5 }),
+	);
 });
 it("keeps a one-off correction on the entry and distinguishes zero from unknown", async () => {
 	const { app } = setup("oneOff");
@@ -118,14 +127,10 @@ it("keeps a one-off correction on the entry and distinguishes zero from unknown"
 	);
 	expect(app.repository.list()).toEqual([]);
 });
-it("keeps the form after diary persistence fails and reuses the saved Fork on retry", async () => {
-	const { app } = setup();
+it("keeps the form after diary acknowledgement fails and reuses the saved Fork on retry", async () => {
+	const { app, apply } = setup();
 	await openCorrection();
-	const accept = jest
-		.spyOn(app.nutritionRepository, "accept")
-		.mockImplementationOnce(() => {
-			throw new Error("disk full");
-		});
+	apply.mockRejectedValueOnce(new Error("offline"));
 	fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "4");
 	save();
 	expect(
@@ -133,7 +138,6 @@ it("keeps the form after diary persistence fails and reuses the saved Fork on re
 	).toBeTruthy();
 	expect(screen.getByLabelText("Fibre (g)").props.value).toBe("4");
 	expect(app.repository.forks()).toHaveLength(1);
-	accept.mockRestore();
 	save();
 	await waitFor(() =>
 		expect(

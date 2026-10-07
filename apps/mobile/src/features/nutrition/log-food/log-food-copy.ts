@@ -212,14 +212,14 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 		offCount: (count) => (count === 1 ? "1 result" : `${count} results`),
 		offReviewHint: "check after importing",
 		offImportHint:
-			"Tap to check and save it; after that it is one of your own foods, also offline.",
+			"Tap to check and save it to your account. A connection is required to save and log food.",
 		offShowAll: (count) => `Show all ${count}`,
 		offNone: (query) => `Nothing in Open Food Facts for ‘${query}’.`,
 		offCooling: (seconds) =>
 			`Open Food Facts needs a moment. We'll search again automatically in ${seconds} s.`,
 		scanInstead: "Scan the barcode instead",
 		offline:
-			"Offline. Your own foods and NEVO still work; Open Food Facts and unknown barcodes wait until you're back online. Logged items sync later.",
+			"Offline. Cached foods and NEVO are available. Connect to log food, save a note, or use Open Food Facts. Your input stays here for retry.",
 		barcodeNotFound: "Barcode not found",
 		barcodeNotFoundBody: "Not in your own foods and not in Open Food Facts.",
 		barcodeNewFoodHint:
@@ -334,14 +334,14 @@ const copy: Record<"en" | "nl", LogFoodCopy> = {
 		offCount: (count) => (count === 1 ? "1 resultaat" : `${count} resultaten`),
 		offReviewHint: "controleer na importeren",
 		offImportHint:
-			"Tik om te controleren en op te slaan; daarna staat het in je eigen voeding, ook offline.",
+			"Tik om het te controleren en in je account op te slaan. Opslaan en voeding loggen vereisen verbinding.",
 		offShowAll: (count) => `Toon alle ${count}`,
 		offNone: (query) => `Niets in Open Food Facts voor ‘${query}’.`,
 		offCooling: (seconds) =>
 			`Open Food Facts vraagt even rust. Over ${seconds} s zoeken we automatisch opnieuw.`,
 		scanInstead: "Scan liever de barcode",
 		offline:
-			"Offline. Je eigen voeding en NEVO werken; Open Food Facts en onbekende barcodes wachten tot je weer verbinding hebt. Gelogde items synchroniseren later.",
+			"Offline. Voeding in de cache en NEVO zijn beschikbaar. Maak verbinding om voeding te loggen, een notitie op te slaan of Open Food Facts te gebruiken. Je invoer blijft hier staan om opnieuw te proberen.",
 		barcodeNotFound: "Barcode niet gevonden",
 		barcodeNotFoundBody: "Niet in je eigen voeding en niet in Open Food Facts.",
 		barcodeNewFoodHint:

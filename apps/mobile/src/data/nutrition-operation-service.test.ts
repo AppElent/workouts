@@ -32,6 +32,92 @@ const snapshot: NutritionDiarySnapshot = {
 };
 
 describe("nutrition replay service", () => {
+	it("online saves report success only after acknowledgement and never queue disconnected input", async () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		let acknowledge!: (value: {
+			entryIds: string[];
+			clientEntryIds: string[];
+			days: [];
+		}) => void;
+		const remote = jest.fn(
+			() =>
+				new Promise<{ entryIds: string[]; clientEntryIds: string[]; days: [] }>(
+					(resolve) => {
+						acknowledge = resolve;
+					},
+				),
+		);
+		const service = new NutritionOperationService(
+			repo,
+			remote,
+			{},
+			false,
+			false,
+			true,
+		);
+		const saved = jest.fn();
+		try {
+			service.setSubject("alice");
+			service.setOnline(true);
+			service.create("alice", snapshot, undefined, undefined, saved);
+			expect(saved).not.toHaveBeenCalled();
+			expect(repo.listOperations("alice")).toEqual([]);
+			acknowledge({ entryIds: ["entry"], clientEntryIds: [], days: [] });
+			await Promise.resolve();
+			expect(saved).toHaveBeenCalledTimes(1);
+			service.setOnline(false);
+			expect(() => service.create("alice", snapshot)).toThrow("connection");
+			expect(remote).toHaveBeenCalledTimes(1);
+			expect(
+				repo
+					.listOperations("alice")
+					.every((operation) => operation.status === "acknowledged"),
+			).toBe(true);
+		} finally {
+			service.dispose();
+			db.closeSync();
+		}
+	});
+	it("a failed online save remains retryable without a projected entry or late success for another account", async () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		const remote = jest
+			.fn()
+			.mockRejectedValueOnce(new Error("Invalid save"))
+			.mockResolvedValue({ entryIds: [], clientEntryIds: [], days: [] });
+		const service = new NutritionOperationService(
+			repo,
+			remote,
+			{},
+			false,
+			false,
+			true,
+		);
+		const failed = jest.fn();
+		const saved = jest.fn();
+		try {
+			service.setSubject("alice");
+			service.setOnline(true);
+			service.create("alice", snapshot, undefined, failed, saved);
+			await Promise.resolve();
+			await Promise.resolve();
+			expect(failed).toHaveBeenCalledTimes(1);
+			expect(saved).not.toHaveBeenCalled();
+			expect(service.getProjectedDay("alice", snapshot.date).entries).toEqual(
+				[],
+			);
+			service.create("alice", snapshot, undefined, failed, saved);
+			service.setSubject("bob");
+			await Promise.resolve();
+			expect(saved).not.toHaveBeenCalled();
+			expect(repo.listOperations("alice")[0].status).toBe("acknowledged");
+			expect(repo.listOperations("bob")).toEqual([]);
+		} finally {
+			service.dispose();
+			db.closeSync();
+		}
+	});
 	it.each([
 		"removeBatch",
 		"moveBatch",
@@ -347,6 +433,41 @@ describe("nutrition replay service", () => {
 		expect(remote).toHaveBeenCalledTimes(2);
 		expect(remote.mock.calls[0][0]).toEqual(remote.mock.calls[1][0]);
 		expect(repo.listOperations("alice")[0].status).toBe("acknowledged");
+		service.dispose();
+		db.closeSync();
+	});
+	it("reuses an ambiguous online save until acknowledged, then allows another identical log", async () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		const remote = jest
+			.fn()
+			.mockRejectedValueOnce(new Error("Receipt lost"))
+			.mockResolvedValue({ entryIds: [], clientEntryIds: [], days: [] });
+		const service = new NutritionOperationService(
+			repo,
+			remote,
+			{},
+			false,
+			false,
+			true,
+		);
+		service.setSubject("alice");
+		service.setOnline(true);
+		const failed = jest.fn();
+		service.create("alice", snapshot, undefined, failed);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(failed).toHaveBeenCalledTimes(1);
+		expect(repo.listOperations("alice")).toEqual([]);
+		service.create("alice", snapshot);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(remote.mock.calls[1][0]).toEqual(remote.mock.calls[0][0]);
+		service.create("alice", snapshot);
+		await Promise.resolve();
+		expect(remote.mock.calls[2][0].operationId).not.toBe(
+			remote.mock.calls[0][0].operationId,
+		);
 		service.dispose();
 		db.closeSync();
 	});

@@ -1,5 +1,10 @@
 ## Problem Statement
 
+Storage-policy update, 2026-10-07: [ADR 0012](../adr/0012-online-first-account-data.md)
+requires online Diary Entry saves. Cached Servings remain available for preparing
+input, but do not imply offline write support. Issue 89 owns the transition from
+the existing offline operations; this editor brief does not claim it has shipped.
+
 The mobile Diary Entry editor needs a clearer, more direct way to adjust logged food intake. The selected Round 5 design makes quantity, Serving selection, nutrition feedback, and meal/date changes easier to understand, but currently exists only as an interactive HTML demonstration. Its example data and placeholder actions do not establish a working mobile flow.
 
 This implementation is also the first test of a wider mobile redesign and the proposed feature-oriented folder structure. It must establish reusable ownership and component patterns without replacing the everyday editor prematurely or copying the existing experimental implementation.
@@ -45,7 +50,7 @@ Allow people to add Servings to Personal Foods or Shipped Foods and create reusa
 27. As a person adding a Serving to a Personal Food, I want it saved with that food, so that its definitions stay together.
 28. As a person adding a Serving to a Shipped Food, I want it associated with that food without creating a Fork, so that I retain the shipped food and its maintained nutrition figures.
 29. As a person using multiple devices, I want my added Servings for Shipped Foods synchronized to my account, so that they are available across devices.
-30. As a person logging offline, I want cached additional Servings to remain selectable, so that ordinary logging remains usable without a connection.
+30. As a person preparing an entry without a connection, I want cached additional Servings to remain selectable, so that I can prepare input and save once connected.
 31. As a person creating an account-synced Serving or Personal Measure offline, I want a clear explanation that creation needs a connection, so that I do not mistake an unsaved definition for a saved one.
 32. As a person confirming a new Serving or Personal Measure, I want it immediately selected in the editor, so that I can use it without searching again.
 33. As a person who saves a reusable Serving and then cancels the Diary Entry edit, I want the Serving retained, so that completing one task is not silently undone by canceling another.
@@ -117,6 +122,6 @@ Allow people to add Servings to Personal Foods or Shipped Foods and create reusa
 - Authoritative visual reference and example code: [Round 5 design](../../designs/entry-editor/round5.html). Earlier rounds contain alternatives; Round 5 is the selected direction.
 - Structural contract: [Mobile folder structure](../guidelines/project/mobile-folder-structure.md). Adopt it for this implementation without treating the whole existing app as already migrated.
 - Domain vocabulary: [Project glossary](../../CONTEXT.md).
-- Accepted storage decision: [Personal Servings for Shipped Foods](../adr/0010-personal-servings-for-shipped-foods.md), including one-time copying when a later Fork is created. This extends the existing local-first nutrition and read-only shipped-catalog decisions.
+- Accepted storage decisions: [Personal Servings for Shipped Foods](../adr/0010-personal-servings-for-shipped-foods.md), including one-time copying when a later Fork is created, and [online-first account data](../adr/0012-online-first-account-data.md). Cached selection remains supported; saving requires a connection. The read-only shipped-catalog boundary is unchanged.
 - Implementation report must list every created/changed file, where it lives, why that owner is appropriate, which components/patterns can be reused, verification performed, and limitations. Specific implementation paths belong in that report rather than this spec's implementation decisions.
 - The scope and test boundaries are agreed. This document records the agreed specification. Implementation status, file ownership, and verification limits are recorded in the [implementation report](../verification/diary-entry-editor/README.md). The glossary clarification and new ADR were recorded during the discussion and travel with the implementation.

@@ -11,7 +11,9 @@ export default function NutritionFoodDetailsRoute() {
 		id?: string;
 		source?: string;
 	}>();
-	const foods = usePersonalFoods();
+	const foods = usePersonalFoods({
+		ids: id && source !== "shipped" ? [id] : [],
+	});
 	const { t } = useI18n();
 	const colors = useTokens();
 	const food =

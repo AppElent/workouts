@@ -49,7 +49,7 @@ export const en = {
 	common: {
 		back: "Go back",
 		retry: "Try again",
-		offline: "Offline — changes will sync when you reconnect",
+		offline: "Offline — connect to save changes",
 	},
 
 	preferences: {
@@ -250,7 +250,7 @@ export const en = {
 		mealEmpty: "Nothing logged yet. Use + to add a food.",
 		/** Capture Drafts: notes filed under a meal that are not intake yet. */
 		drafts: {
-			onDevice: "Note · on this device",
+			onDevice: "Note · saved to your account",
 			/** Tap = the fast path: reopen the search with the note as the query. */
 			resolve: "Resolve note: {note}",
 			edit: "Edit note",
@@ -361,9 +361,9 @@ export const en = {
 			createTitle: "Create Personal Food",
 			editTitle: "Edit Personal Food",
 			resultLabel: "Personal Food",
-			storageTitle: "Local storage and optional backup",
+			storageTitle: "Saved in your account",
 			storageBody:
-				"Personal Foods are stored locally. Enable account backup in More nutrition tools to back them up and restore them on another device. Without backup, uninstalling Workouts may remove them.",
+				"Personal Foods are saved in your account. Connect to save changes. Food photos stay on this device.",
 			nameEn: "English name",
 			nameNl: "Dutch name",
 			baseUnit: "Nutrition base unit",
@@ -393,9 +393,9 @@ export const en = {
 		combos: {
 			create: "Create Combo",
 			log: "Log Combo",
-			storageTitle: "Local storage and optional backup",
+			storageTitle: "Saved in your account",
 			storageBody:
-				"Combos are available offline. Enable account backup in More nutrition tools to back them up and restore them on another device. Without backup, uninstalling may remove them. Diary logs sync separately when connected.",
+				"Combos are saved in your account. Connect to save changes and log food.",
 			name: "Combo name",
 			save: "Save Combo",
 			saving: "Saving Combo…",
@@ -463,9 +463,9 @@ export const en = {
 		offline: {
 			uncachedMeal: "No entries for this meal are on this phone yet.",
 			goals:
-				"Goals for this day are not on this phone yet. They will appear when you reconnect. You can still log food.",
+				"Goals for this day are not on this phone yet. Connect to load them and log food.",
 			title: "Your diary for this day is not on this phone yet",
-			body: "It will appear as soon as you are back online. You can still search foods and log them now — entries are sent when you reconnect.",
+			body: "Connect to load this day and log food. Cached foods remain available to browse.",
 			slot: "Not available offline",
 		},
 

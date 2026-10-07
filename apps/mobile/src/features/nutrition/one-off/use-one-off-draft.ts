@@ -134,15 +134,14 @@ export function useOneOffDraft({
 					...(visual ? { visual } : {}),
 				}),
 				undefined,
-				// Accepted on this device already; a later sync failure is news.
-				onFailed,
+				fail,
+				() => {
+					photo.keep();
+					lock.current = false;
+					setLogging(false);
+					onLogged(destination.date);
+				},
 			);
-			// Logged once the device accepted it, as everywhere else: the
-			// network write may still be pending.
-			photo.keep();
-			lock.current = false;
-			setLogging(false);
-			onLogged(destination.date);
 		} catch {
 			fail();
 		}

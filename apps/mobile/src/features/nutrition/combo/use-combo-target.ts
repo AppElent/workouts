@@ -7,7 +7,7 @@ import { comboDraft, withComboPart } from "./combo-parts";
  * `write` saves the part right away and returns the undo.
  */
 export function useComboTarget(comboId?: string, replacePartId?: string) {
-	const library = usePersonalFoods();
+	const library = usePersonalFoods({ ids: comboId ? [comboId] : [] });
 	const combo = comboId ? library.findCombo(comboId) : undefined;
 	if (!combo) return undefined;
 	const replacing = replacePartId
@@ -16,12 +16,13 @@ export function useComboTarget(comboId?: string, replacePartId?: string) {
 	return {
 		combo,
 		replacing,
-		write(part: ComboPartDraft) {
+		async write(part: ComboPartDraft) {
 			const before = comboDraft(combo);
-			library.updateCombo(combo.id, withComboPart(combo, part, replacing?.id));
-			return () => {
-				library.updateCombo(combo.id, before);
-			};
+			await library.updateCombo(
+				combo.id,
+				withComboPart(combo, part, replacing?.id),
+			);
+			return () => library.updateCombo(combo.id, before);
 		},
 	};
 }

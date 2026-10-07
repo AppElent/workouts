@@ -36,7 +36,7 @@ async function requireOwnedEntry(
 const DIARY_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_TEXT_LENGTH = 500;
 
-function assertDiaryDate(date: string) {
+export function assertDiaryDate(date: string) {
 	if (!DIARY_DATE_PATTERN.test(date)) throw new Error("Invalid diary date.");
 	const [year, month, day] = date.split("-").map(Number);
 	const candidate = new Date(Date.UTC(year, month - 1, day));
@@ -408,7 +408,7 @@ export const remove = mutation({
 });
 
 export const applyOperation = mutation({
-	args: operationArgs,
+	args: { ...operationArgs, includeDays: v.optional(v.boolean()) },
 	returns: operationResult,
 	handler: async (ctx, args) => {
 		const userId = await requireUser(ctx);
@@ -645,7 +645,7 @@ export const applyOperation = mutation({
 		const result = {
 			entryIds,
 			clientEntryIds,
-			days: await affectedDays(ctx, userId, affectedDates),
+			days: args.includeDays === false ? [] : await affectedDays(ctx, userId, affectedDates),
 		};
 		await ctx.db.insert("nutritionDiaryOperationReceipts", {
 			userId,

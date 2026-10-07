@@ -1,4 +1,4 @@
-import { exerciseReference, canonicalExerciseId, requireExercise, exerciseSets, exerciseReferenceIds, exerciseOneRepMaxes, normalizeExerciseReferences } from "./lib/exerciseCatalog";
+import { exerciseReference, canonicalExerciseId, requireExercise, exerciseReferenceIds, exerciseOneRepMaxes, normalizeExerciseReferences } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
@@ -20,18 +20,19 @@ export async function recalcOneRepMax(
   const orms = await exerciseOneRepMaxes(ctx, userId, exerciseId)
   if (orms.some((orm) => orm.source === 'manual')) return
   for (const orm of orms) await ctx.db.delete(orm._id)
-  const remaining = (await exerciseSets(ctx, userId, exerciseId)).filter((set) => set.weight > 0)
-  if (remaining.length === 0) return
-
-  let bestValue = 0
-  let bestSet = remaining[0]
-  for (const s of remaining) {
-    const { value } = calculateOneRepMax(s.weight, s.reps)
-    if (value > bestValue) {
-      bestValue = value
-      bestSet = s
+  const referenceIds = await exerciseReferenceIds(ctx, exerciseId)
+  const candidates = await Promise.all(referenceIds.map(async (id) => {
+    const unindexed = await ctx.db.query('sets').withIndex('by_user_exercise_estimate', q => q.eq('userId', userId).eq('exerciseId', id).eq('estimatedMax', undefined)).first()
+    if (unindexed) {
+      // Compatibility until the operator backfill finishes. New writes always index
+      // their estimate; the normal path reads one winning set per legacy alias.
+      const legacy = await ctx.db.query('sets').withIndex('by_user_exercise', q => q.eq('userId', userId).eq('exerciseId', id)).collect()
+      return legacy.filter(set => set.weight > 0).sort((a, b) => calculateOneRepMax(b.weight, b.reps).value - calculateOneRepMax(a.weight, a.reps).value)[0] ?? null
     }
-  }
+    return ctx.db.query('sets').withIndex('by_user_exercise_estimate', q => q.eq('userId', userId).eq('exerciseId', id).gt('estimatedMax', 0)).order('desc').first()
+  }))
+  const bestSet = candidates.filter(set => set !== null).sort((a, b) => calculateOneRepMax(b.weight, b.reps).value - calculateOneRepMax(a.weight, a.reps).value)[0]
+  if (!bestSet) return
   const { value, source, formula } = calculateOneRepMax(
     bestSet.weight,
     bestSet.reps,
@@ -87,6 +88,7 @@ export const add = mutation({
       ...args,
       userId,
       loggedAt: Date.now(),
+      estimatedMax: args.weight > 0 ? calculateOneRepMax(args.weight, args.reps).value : 0,
     })
     const orms = await exerciseOneRepMaxes(ctx, userId, args.exerciseId)
     if (!orms.some((orm) => orm.source === 'manual') && args.weight > 0) {
@@ -132,7 +134,7 @@ export const update = mutation({
     assertOptionalRange(patch.rpe, 1, 10, 'RPE')
     const set = await ctx.db.get(id)
     if (!set || set.userId !== userId) throw new Error('Unauthorized')
-    await ctx.db.patch(id, { ...patch, exerciseId: await canonicalExerciseId(ctx, set.exerciseId) })
+    await ctx.db.patch(id, { ...patch, exerciseId: await canonicalExerciseId(ctx, set.exerciseId), estimatedMax: (patch.weight ?? set.weight) > 0 ? calculateOneRepMax(patch.weight ?? set.weight, patch.reps ?? set.reps).value : 0 })
     await recalcOneRepMax(ctx, userId, set.exerciseId)
   },
 })
@@ -165,6 +167,7 @@ export const duplicate = mutation({
       rpe: src.rpe,
       setType: src.setType,
       loggedAt: Date.now(),
+      estimatedMax: src.weight > 0 ? calculateOneRepMax(src.weight, src.reps).value : 0,
     })
     await recalcOneRepMax(ctx, userId, src.exerciseId)
     return newId
@@ -176,8 +179,10 @@ export const getLastForExercise = query({
   handler: async (ctx, { exerciseId }) => {
     const userId = await requireUser(ctx)
     exerciseId = await canonicalExerciseId(ctx, exerciseId)
-    const sets = await exerciseSets(ctx, userId, exerciseId)
-    return sets.sort((a, b) => b._creationTime - a._creationTime)[0] ?? null
+    const references = await exerciseReferenceIds(ctx, exerciseId)
+    const sets = await Promise.all(references.map(id => ctx.db.query('sets').withIndex('by_user_exercise', q => q.eq('userId', userId).eq('exerciseId', id)).order('desc').first()))
+    const latest = sets.filter(set => set !== null).sort((a, b) => b._creationTime - a._creationTime)[0]
+    return latest ? { ...latest, exerciseId } : null
   },
 })
 

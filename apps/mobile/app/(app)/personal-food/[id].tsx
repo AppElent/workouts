@@ -15,11 +15,11 @@ const leave = () =>
 
 export default function PersonalFoodRoute() {
 	const { id } = useLocalSearchParams<{ id: string }>();
-	const library = usePersonalFoods();
+	const library = usePersonalFoods({ ids: id ? [id] : [] });
 	const food = id ? library.find(id) : undefined;
 	useEffect(() => {
-		if (!food) leave();
-	}, [food]);
+		if (!food && !library.loading) leave();
+	}, [food, library.loading]);
 	if (!food) return null;
 	return (
 		<PersonalFoodEditor

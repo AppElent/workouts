@@ -131,7 +131,7 @@ async function openComboLog() {
 
 describe("Nutrition Combos", () => {
 	it("saves selected diary entries and replaces them with one Logged Combo", async () => {
-		const pendingApply = jest.fn(() => new Promise(() => undefined));
+		const pendingApply = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockImplementation(
 			(reference) =>
 				(getFunctionName(reference) === "nutritionDiary:applyOperation"
@@ -170,10 +170,10 @@ describe("Nutrition Combos", () => {
 		]);
 	});
 
-	it("keeps the Combo name and selection visible when device saving fails", async () => {
+	it("keeps the Combo name and selection visible when acknowledged cache saving fails", async () => {
 		showDiary([diaryEntry("entry-1", "Oats", "lunch")]);
 		const app = renderApp();
-		jest.spyOn(app.repository, "createCombo").mockImplementation(() => {
+		jest.spyOn(app.repository, "replaceFromBackup").mockImplementation(() => {
 			throw new Error("disk full");
 		});
 		await screen.findByText("Oats");
@@ -194,12 +194,14 @@ describe("Nutrition Combos", () => {
 		expect(screen.getByText("Oats")).toBeTruthy();
 	});
 
-	it("removes the saved Combo when diary replacement cannot be accepted", async () => {
+	it("retries diary grouping with the already acknowledged Combo", async () => {
 		showDiary([diaryEntry("entry-1", "Oats", "lunch")]);
 		const app = renderApp();
-		jest.spyOn(app.nutritionRepository, "accept").mockImplementation(() => {
-			throw new Error("disk full");
-		});
+		const accept = jest
+			.spyOn(app.nutritionRepository, "accept")
+			.mockImplementationOnce(() => {
+				throw new Error("disk full");
+			});
 		await screen.findByText("Oats");
 
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
@@ -215,7 +217,14 @@ describe("Nutrition Combos", () => {
 			),
 		).toBeTruthy();
 		expect(screen.getByDisplayValue("My oats")).toBeTruthy();
-		expect(app.repository.listCombos()).toEqual([]);
+		expect(app.repository.listCombos()).toHaveLength(1);
+		const id = app.repository.listCombos()[0].id;
+		accept.mockRestore();
+		fireEvent.press(screen.getByLabelText("Save Combo"));
+		await waitFor(() =>
+			expect(screen.queryByLabelText("Combo name")).toBeNull(),
+		);
+		expect(app.repository.listCombos().map((combo) => combo.id)).toEqual([id]);
 	});
 
 	it("saves a Combo across Meal Slots without regrouping the diary", async () => {
@@ -455,16 +464,17 @@ describe("Nutrition Combos", () => {
 		);
 	});
 
-	it("closes after local acceptance and keeps sync status visible after a network failure", async () => {
+	it("keeps Combo input open until acknowledgement and preserves it after network failure", async () => {
 		showDiary([]);
-		let rejectLog: (reason: Error) => void = () => undefined;
+		let rejectLog!: (reason: Error) => void;
 		const pending = new Promise<never>((_resolve, reject) => {
 			rejectLog = reject;
 		});
+		const log = jest.fn(() => pending);
 		mockUseMutation.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:logCombo"
-					? jest.fn(() => pending)
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
+					? log
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
 		const app = renderApp();
@@ -472,20 +482,15 @@ describe("Nutrition Combos", () => {
 		await screen.findByText("Today");
 		await openLibraryCombo("Morning Combo");
 		await openComboLog();
-
 		fireEvent.press(screen.getByLabelText("Log Combo"));
-		// The release-two service closes at the local SQLite acceptance boundary;
-		// it must not hold the form open while the network request is pending.
-		await waitForLogClosed();
+		expect(screen.getByLabelText("Logging Combo…")).toBeTruthy();
 		rejectLog(new Error("offline"));
-		testRouter.navigate("/nutrition");
-
-		expect(
-			await screen.findByText(
-				"1 change saved on this device; waiting to sync.",
-			),
-		).toBeTruthy();
-		expect(screen.getByText("Retry sync")).toBeTruthy();
+		await waitFor(() =>
+			expect(screen.getByLabelText("Log Combo")).toBeEnabled(),
+		);
+		expect(screen.getByLabelText("Log Combo")).toBeTruthy();
+		expect(app.nutritionRepository.listOperations("test-user")).toEqual([]);
+		expect(log).toHaveBeenCalledTimes(1);
 	});
 
 	it("renders a logged Combo collapsed, then exposes each normal entry editor", async () => {
@@ -605,7 +610,9 @@ describe("Nutrition Combos", () => {
 		await openLibraryCombo("Repair me");
 		fireEvent.press(await screen.findByLabelText("More"));
 		fireEvent.press(await screen.findByText("Remove missing parts"));
-		expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(1);
+		await waitFor(() =>
+			expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(1),
+		);
 
 		await openComboLog();
 		expect(await screen.findByLabelText("Log Combo")).toBeEnabled();

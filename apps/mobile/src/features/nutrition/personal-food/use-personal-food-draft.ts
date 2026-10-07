@@ -239,8 +239,8 @@ export function usePersonalFoodDraft({
 				}
 			}
 			saved = food
-				? personalFoods.update(food.id, draft)
-				: personalFoods.create(draft);
+				? await personalFoods.update(food.id, draft)
+				: await personalFoods.create(draft);
 			if (
 				food?.visual?.kind === "photo" &&
 				(saved.visual?.kind !== "photo" || food.visual.uri !== saved.visual.uri)

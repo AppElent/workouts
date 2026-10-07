@@ -13,6 +13,7 @@ const DATABASE_VERSION = 3;
 
 export type LibraryRecordKind = "food" | "combo";
 export type LibraryRecord = {
+	readonly subject?: string;
 	readonly id: string;
 	readonly kind: LibraryRecordKind;
 	readonly payload: string | null;
@@ -683,31 +684,28 @@ export function applyLibraryRecord(
 	repository: PersonalFoodRepository,
 	record: LibraryRecord,
 ) {
-	const foods = new Map(repository.list().map((food) => [food.id, food]));
-	const combos = new Map(
-		repository.listCombos().map((combo) => [combo.id, combo]),
+	if (record.deleted) {
+		if (record.kind === "food") repository.remove(record.id);
+		else repository.removeCombo(record.id);
+		return;
+	}
+	if (record.kind === "combo") {
+		repository.replaceFromBackup(
+			{ foods: [], combos: [JSON.parse(record.payload ?? "null") as Combo] },
+			{ merge: true, preserveLocalPhotos: true },
+		);
+		return;
+	}
+	const incoming = portablePersonalFood(
+		JSON.parse(record.payload ?? "null") as PersonalFood,
 	);
-	if (record.kind === "food") {
-		if (record.deleted) foods.delete(record.id);
-		else {
-			const current = foods.get(record.id);
-			const incoming = portablePersonalFood(
-				JSON.parse(record.payload ?? "null") as PersonalFood,
-			);
-			foods.set(
-				record.id,
-				!incoming.visual && current?.visual?.kind === "photo"
-					? { ...incoming, visual: current.visual }
-					: incoming,
-			);
-		}
-	} else if (record.deleted) combos.delete(record.id);
-	else combos.set(record.id, JSON.parse(record.payload ?? "null") as Combo);
+	const current = repository.find(record.id);
+	const food =
+		!incoming.visual && current?.visual?.kind === "photo"
+			? { ...incoming, visual: current.visual }
+			: incoming;
 	repository.replaceFromBackup(
-		{
-			foods: [...foods.values()],
-			combos: [...combos.values()],
-		},
-		{ preserveLocalPhotos: true },
+		{ foods: [food], combos: [] },
+		{ merge: true, preserveLocalPhotos: true },
 	);
 }

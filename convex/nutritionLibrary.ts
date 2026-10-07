@@ -1,10 +1,12 @@
+import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { canonicalJson, normalizePersonalFood, type PersonalFood } from "@workouts/core";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { libraryRecordKind, librarySchemaVersion } from "./nutritionLibraryTables";
 
 const libraryRecord = v.object({
+	subject: v.optional(v.string()),
 	schemaVersion: v.optional(librarySchemaVersion),
 	id: v.string(),
 	kind: libraryRecordKind,
@@ -223,10 +225,7 @@ export const list = query({
  * are rows, never physical deletes, so a delayed old update cannot resurrect a
  * library item after it was removed on another device.
  */
-export const applyOperation = mutation({
-	args: operationArgs,
-	returns: v.object({ record: libraryRecord }),
-	handler: async (ctx, args) => {
+async function applyLibraryOperation(ctx: MutationCtx, args: Infer<typeof operationEnvelope>, online = false, migration = false): Promise<{ record: ReturnType<typeof asRecord>; preservedRecords?: ReturnType<typeof asRecord>[] }> {
 		const userId = await requireUser(ctx);
 		if (args.expectedSubject !== userId) throw new Error("Subject mismatch.");
 		assertId(args.operationId, "Operation ID");
@@ -241,14 +240,14 @@ export const applyOperation = mutation({
 			if (receipt.payload !== payload) {
 				throw new Error("Operation ID was already used with a different payload.");
 			}
-			return JSON.parse(receipt.result) as { record: ReturnType<typeof asRecord> };
+			return JSON.parse(receipt.result) as { record: ReturnType<typeof asRecord>; preservedRecords?: ReturnType<typeof asRecord>[] };
 		}
 
 		const target =
 			args.operation.kind === "upsert"
 				? args.operation.record
 				: { id: args.operation.recordId, kind: args.operation.recordKind };
-		assertId(target.id, "Library record ID");
+		if (!target.id.trim() || target.id.length > 512) throw new Error("Library record ID is invalid.");
 		if (args.operation.expectedRevision < 0 || !Number.isInteger(args.operation.expectedRevision)) {
 			throw new Error("Expected revision is invalid.");
 		}
@@ -265,16 +264,46 @@ export const applyOperation = mutation({
 		if (current && current.recordKind !== target.kind) {
 			throw new Error("Library record kind cannot change.");
 		}
-		if (currentRevision !== args.operation.expectedRevision) {
+		if (online && args.operation.kind === "upsert" && (current?.deleted || (!current && args.operation.expectedRevision > 0))) {
+			throw new Error("This library record was deleted.");
+		}
+		if (!online && !migration && currentRevision !== args.operation.expectedRevision) {
 			throw new Error("Conflict: this library record changed on another device.");
 		}
 		const schemaVersion = args.operation.kind === "upsert"
 			? args.operation.record.schemaVersion ?? 1
 			: current?.schemaVersion ?? 1;
-		if (schemaVersion < (current?.schemaVersion ?? 1)) {
+		const olderSchema = schemaVersion < (current?.schemaVersion ?? 1);
+		if (olderSchema && !migration) {
 			throw new Error("This library record requires a newer app; payload schema downgrade rejected.");
 		}
-		const revision = currentRevision + 1;
+		const preservedRecords: ReturnType<typeof asRecord>[] = [];
+        if (migration && current && (olderSchema || currentRevision !== args.operation.expectedRevision || (current.deleted && args.operation.kind === "upsert"))) {
+            // A conflicting deletion never erases a newer live version. A conflicting
+            // upsert keeps both versions as independently editable records.
+            if (args.operation.kind === "remove") {
+                const result = { record: asRecord(current) };
+                await ctx.db.insert("nutritionLibraryOperationReceipts", { userId, operationId: args.operationId, payload, result: canonicalJson(result), createdAt: Date.now() });
+                return result;
+            }
+            const copyId = `legacy:${args.operationId}`;
+            const preserveLocal = current.deleted || olderSchema;
+            const sourcePayload = preserveLocal ? args.operation.record.payload : current.payload!;
+            const copyPayload = JSON.parse(sourcePayload);
+            copyPayload.id = copyId;
+            if (typeof copyPayload.name === "string") copyPayload.name = `${copyPayload.name.slice(0, 475)} (Recovered copy)`;
+            else copyPayload.name = { en: `${copyPayload.name.en.slice(0, 475)} (Recovered copy)`, nl: `${copyPayload.name.nl.slice(0, 475)} (Herstelde kopie)` };
+            const copy = { userId, recordId: copyId, recordKind: target.kind, payload: JSON.stringify(copyPayload), schemaVersion: preserveLocal ? args.operation.record.schemaVersion ?? 1 : current.schemaVersion ?? 1, revision: 1, deleted: false, updatedAt: Date.now() };
+            assertPayload(copyId, copy.recordKind, copy.payload, copy.schemaVersion);
+            await ctx.db.insert("nutritionLibraryRecords", { ...copy, ...libraryIndexFields(copy.recordKind, copy.payload) });
+            preservedRecords.push(asRecord(copy));
+            if (preserveLocal) {
+                const result = { record: asRecord(current), preservedRecords };
+                await ctx.db.insert("nutritionLibraryOperationReceipts", { userId, operationId: args.operationId, payload, result: canonicalJson(result), createdAt: Date.now() });
+                return result;
+            }
+        }
+        const revision = currentRevision + 1;
 		const next = {
 			userId,
 			recordId: target.id,
@@ -284,11 +313,12 @@ export const applyOperation = mutation({
 			deleted: args.operation.kind === "remove",
 			...(args.operation.kind === "upsert" ? { payload: args.operation.record.payload } : {}),
 			updatedAt: Date.now(),
+            ...libraryIndexFields(target.kind, args.operation.kind === "upsert" ? args.operation.record.payload : undefined),
 		};
 		if (current) await ctx.db.replace(current._id, next);
 		else await ctx.db.insert("nutritionLibraryRecords", next);
 		const record = asRecord(next);
-		const result = { record };
+		const result = { record, ...(preservedRecords.length ? { preservedRecords } : {}) };
 		await ctx.db.insert("nutritionLibraryOperationReceipts", {
 			userId,
 			operationId: args.operationId,
@@ -297,5 +327,77 @@ export const applyOperation = mutation({
 			createdAt: Date.now(),
 		});
 		return result;
-	},
+}
+
+const operationEnvelope = v.object(operationArgs);
+
+/** Retained for migration and older clients with durable revision-based journals. */
+export const applyOperation = mutation({
+	args: operationArgs,
+	returns: v.object({ record: libraryRecord }),
+	handler: (ctx, args) => applyLibraryOperation(ctx, args),
+});
+
+/** Ordinary online edits use server acceptance order; tombstones are final. */
+export const save = mutation({
+	args: operationArgs,
+	returns: v.object({ record: libraryRecord }),
+	handler: (ctx, args) => applyLibraryOperation(ctx, args, true),
+});
+
+/** Only old durable journals use this endpoint. Both conflicting versions survive. */
+export const migrateOperation = mutation({
+    args: operationArgs,
+    returns: v.object({ record: libraryRecord, preservedRecords: v.optional(v.array(libraryRecord)) }),
+    handler: (ctx, args) => applyLibraryOperation(ctx, args, false, true),
+});
+
+const category = v.union(v.literal("food"), v.literal("recipe"), v.literal("combo"));
+export const browse = query({
+ args: { query: v.string(), category: v.optional(category), paginationOpts: paginationOptsValidator },
+ returns: v.object({ page: v.array(libraryRecord), isDone: v.boolean(), continueCursor: v.string() }),
+ handler: async (ctx, args) => {
+  const userId = await requireUser(ctx);
+  if (args.query.length > 200) throw new Error("Search is too long.");
+  const text = args.query.trim();
+  const records = ctx.db.query("nutritionLibraryRecords");
+  const selected = text ? records.withSearchIndex("search_library", q => {
+   const search = q.search("searchText", text).eq("userId", userId).eq("deleted", false);
+   return args.category ? search.eq("category", args.category) : search;
+  }) : args.category ? records.withIndex("by_user_deleted_category_name", q => q.eq("userId", userId).eq("deleted", false).eq("category", args.category)) : records.withIndex("by_user_deleted_name", q => q.eq("userId", userId).eq("deleted", false));
+  const result = await selected.paginate({ ...args.paginationOpts, numItems: Math.min(100, args.paginationOpts.numItems) });
+  return { page: result.page.map(row => ({ ...asRecord(row), subject: userId })), isDone: result.isDone, continueCursor: result.continueCursor };
+ },
+});
+
+/** Resolve selected records and their personal Combo sources, with a hard read bound. */
+export const getMany = query({
+ args: { ids: v.array(v.string()), forkIds: v.optional(v.array(v.string())), barcode: v.optional(v.string()) },
+ returns: v.array(libraryRecord),
+ handler: async (ctx, args) => {
+  const userId = await requireUser(ctx);
+  if (args.ids.length > 100 || (args.forkIds?.length ?? 0) > 100) throw new Error("Request at most 100 library identities.");
+  const records = new Map<string, ReturnType<typeof asRecord>>();
+  async function get(id: string) {
+   const row = await ctx.db.query("nutritionLibraryRecords").withIndex("by_user_and_record", q => q.eq("userId", userId).eq("recordId", id)).unique();
+   if (row) records.set(row.recordId, asRecord(row));
+  }
+  await Promise.all([...new Set(args.ids)].map(get));
+  for (const forkId of args.forkIds ?? []) {
+   const row = await ctx.db.query("nutritionLibraryRecords").withIndex("by_user_fork", q => q.eq("userId", userId).eq("forkedFrom", forkId).eq("deleted", false)).first();
+   if (row) records.set(row.recordId, asRecord(row));
+  }
+  if (args.barcode) {
+   const row = await ctx.db.query("nutritionLibraryRecords").withIndex("by_user_barcode", q => q.eq("userId", userId).eq("barcode", args.barcode).eq("deleted", false)).first();
+   if (row) records.set(row.recordId, asRecord(row));
+  }
+  const sources = new Set<string>();
+  // Resolve sources for the selected Combo, not every Combo in a shortcut list.
+  for (const record of records.values()) if (args.ids.length === 1 && record.kind === "combo" && !record.deleted && record.payload) {
+   for (const part of JSON.parse(record.payload).parts) if (part.reference.kind === "personal" && !records.has(part.reference.foodId)) sources.add(part.reference.foodId);
+  }
+  if (sources.size > 100) throw new Error("Resolve fewer Combos at once.");
+  await Promise.all([...sources].map(get));
+  return [...records.values()].map(record => ({ ...record, subject: userId }));
+ },
 });

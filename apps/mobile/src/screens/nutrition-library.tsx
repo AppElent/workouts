@@ -1,8 +1,11 @@
-import { useConvexConnectionState } from "convex/react";
+import { useConvex, useConvexConnectionState } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { api } from "../convex/api";
 import { foodPhotos } from "../data/food-photo-manager";
+import { useNutritionDrafts } from "../data/nutrition-drafts";
 import { useOpenFoodFacts } from "../data/open-food-facts-context";
 import {
 	type OffRefreshProgress,
@@ -24,97 +27,20 @@ import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { nutritionLibraryCopy } from "./nutrition-library-copy";
 
-function conflictName(
-	conflict: ReturnType<typeof usePersonalFoods>["backup"]["conflicts"][number],
-	locale: "en" | "nl",
-	copy: { unnamedFood: string; unnamedCombo: string },
-) {
-	const payload = conflict.localPayload ?? conflict.serverPayload;
-	if (payload) {
-		try {
-			const parsed: unknown = JSON.parse(payload);
-			if (parsed && typeof parsed === "object" && "name" in parsed) {
-				const name = parsed.name;
-				if (typeof name === "string" && name.trim()) return name;
-				if (name && typeof name === "object" && locale in name) {
-					const localized: unknown = Reflect.get(name, locale);
-					if (typeof localized === "string" && localized.trim())
-						return localized;
-				}
-			}
-		} catch {
-			// The service records the conflict even when an old payload is malformed.
-		}
-	}
-	return conflict.record.kind === "food" ? copy.unnamedFood : copy.unnamedCombo;
-}
-
 export function NutritionSettingsScreen() {
 	const styles = useThemedStyles(createStyles);
 	const { locale } = useI18n();
 	const router = useRouter();
 	const copy = nutritionLibraryCopy[locale];
 	const foods = usePersonalFoods();
+	const drafts = useNutritionDrafts();
+	const client = useConvex();
 	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const resolveWithServer = foods.backup.useServerCopy;
 	const [offRefreshing, setOffRefreshing] = useState(false);
 	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
 	const { isWebSocketConnected } = useConvexConnectionState();
-	const restore = foods.backup.restore;
-	const retryUpload = () => {
-		foods.backup.retry();
-	};
-	const keepDeviceCopy = (
-		conflict: ReturnType<
-			typeof usePersonalFoods
-		>["backup"]["conflicts"][number],
-	) => {
-		try {
-			foods.backup.keepDeviceCopy(conflict);
-		} catch {
-			toast.error(copy.failure);
-		}
-	};
-	const applyServerCopy = async (
-		conflict: ReturnType<
-			typeof usePersonalFoods
-		>["backup"]["conflicts"][number],
-	) => {
-		const name = conflictName(conflict, locale, copy);
-		if (
-			!(await confirm({
-				title: copy.confirmServerTitle,
-				message: copy.confirmServerBody(name),
-				confirmLabel: copy.confirmServer,
-				destructive: true,
-			}))
-		)
-			return;
-		try {
-			resolveWithServer(conflict);
-		} catch {
-			toast.error(copy.failure);
-		}
-	};
-
-	const enable = async () => {
-		if (
-			!(await confirm({
-				title: copy.confirmEnableTitle,
-				message: copy.confirmEnableBody,
-				confirmLabel: copy.confirmEnable,
-			}))
-		)
-			return;
-		try {
-			foods.backup.enable();
-			toast.success(copy.ready);
-		} catch {
-			toast.error(copy.failure);
-		}
-	};
 	const importLegacy = async () => {
 		if (
 			!(await confirm({
@@ -125,19 +51,18 @@ export function NutritionSettingsScreen() {
 		)
 			return;
 		try {
-			foods.backup.importLegacy();
+			foods.account.importLegacy();
 			toast.success(copy.imported);
 		} catch {
 			toast.error(copy.failure);
 		}
 	};
-	const importedFoods = openFoodFactsImports(foods.list());
 	const refreshImports = async () => {
-		if (offRefreshing || importedFoods.length === 0) return;
+		if (offRefreshing || !isWebSocketConnected) return;
 		if (
 			!(await confirm({
 				title: copy.offConfirmTitle,
-				message: copy.offConfirmBody(importedFoods.length),
+				message: copy.offHelp,
 				confirmLabel: copy.offConfirm,
 			}))
 		)
@@ -145,8 +70,21 @@ export function NutritionSettingsScreen() {
 		setOffRefreshing(true);
 		setOffProgress(undefined);
 		try {
+			// This explicit management action may enumerate the library. Ordinary navigation
+			// never does. Apply bounded pages to the existing cache, then refresh each import.
+			let cursor: string | null = null;
+			for (;;) {
+				const page: FunctionReturnType<typeof api.nutritionLibrary.browse> =
+					await client.query(api.nutritionLibrary.browse, {
+						query: "",
+						paginationOpts: { cursor, numItems: 100 },
+					});
+				foods.account.receiveServerPage(page.page);
+				if (page.isDone) break;
+				cursor = page.continueCursor;
+			}
 			await refreshOpenFoodFactsImports({
-				foods: importedFoods,
+				foods: openFoodFactsImports(foods.list()),
 				refreshBarcode: openFoodFacts.refreshBarcode,
 				importPhoto: foodPhotos.importRemote,
 				update: foods.update,
@@ -159,7 +97,6 @@ export function NutritionSettingsScreen() {
 			setOffRefreshing(false);
 		}
 	};
-
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
@@ -167,15 +104,9 @@ export function NutritionSettingsScreen() {
 			contentContainerStyle={styles.content}
 		>
 			<AppText variant="caption">{copy.intro}</AppText>
-			{foods.backup.enabled && !isWebSocketConnected ? (
+			{!isWebSocketConnected ? (
 				<GroupedSurface style={styles.card}>
 					<AppText>{copy.offline}</AppText>
-				</GroupedSurface>
-			) : null}
-			{foods.backup.restoreError ? (
-				<GroupedSurface style={styles.card}>
-					<AppText accessibilityRole="alert">{copy.failure}</AppText>
-					<TextAction label={copy.restore} onPress={restore} />
 				</GroupedSurface>
 			) : null}
 			<FormSection>
@@ -191,14 +122,36 @@ export function NutritionSettingsScreen() {
 			<GroupedSurface style={styles.card}>
 				<AppText variant="caption">{copy.photoNotice}</AppText>
 			</GroupedSurface>
+			{foods.account.hasLegacy ? (
+				<GroupedSurface style={styles.card}>
+					<AppText variant="heading">{copy.import}</AppText>
+					<AppText variant="caption">{copy.importHelp}</AppText>
+					<PrimaryButton
+						label={copy.import}
+						onPress={() => void importLegacy()}
+					/>
+				</GroupedSurface>
+			) : null}
+			{foods.account.operations.length || drafts.migrationError ? (
+				<GroupedSurface style={styles.card}>
+					<AppText variant="heading">{copy.pending}</AppText>
+					<AppText variant="caption">{copy.migrationHelp}</AppText>
+					<TextAction
+						label={copy.retryUpload}
+						disabled={!isWebSocketConnected}
+						onPress={() => {
+							foods.account.retry();
+							drafts.retryMigration();
+						}}
+					/>
+				</GroupedSurface>
+			) : null}
 			<GroupedSurface style={styles.card}>
 				<AppText variant="heading">{copy.offTitle}</AppText>
-				<AppText variant="caption">
-					{importedFoods.length ? copy.offHelp : copy.offEmpty}
-				</AppText>
+				<AppText variant="caption">{copy.offHelp}</AppText>
 				<TextAction
 					label={offRefreshing ? copy.offRefreshing : copy.offRefresh}
-					disabled={offRefreshing || importedFoods.length === 0}
+					disabled={offRefreshing || !isWebSocketConnected}
 					onPress={() => void refreshImports()}
 				/>
 				{offProgress ? (
@@ -218,61 +171,9 @@ export function NutritionSettingsScreen() {
 					</View>
 				) : null}
 			</GroupedSurface>
-			{!foods.backup.enabled ? (
-				<GroupedSurface style={styles.card}>
-					<AppText>{copy.disabled}</AppText>
-					<PrimaryButton label={copy.enable} onPress={() => void enable()} />
-				</GroupedSurface>
-			) : (
-				<>
-					<GroupedSurface style={styles.card}>
-						<AppText variant="heading">{copy.import}</AppText>
-						<AppText variant="caption">{copy.importHelp}</AppText>
-						<PrimaryButton
-							label={copy.import}
-							onPress={() => void importLegacy()}
-						/>
-						<TextAction label={copy.restore} onPress={restore} />
-						<TextAction label={copy.retryUpload} onPress={retryUpload} />
-					</GroupedSurface>
-					{foods.backup.operations.length ? (
-						<GroupedSurface style={styles.card}>
-							<AppText variant="heading">{copy.pending}</AppText>
-							{foods.backup.operations.map((operation) => (
-								<AppText key={operation.operationId} variant="caption">
-									{operation.status}
-									{operation.lastError ? ` · ${copy.failure}` : ""}
-								</AppText>
-							))}
-						</GroupedSurface>
-					) : null}
-					{foods.backup.conflicts.length ? (
-						<GroupedSurface style={styles.card}>
-							<AppText variant="heading">{copy.conflicts}</AppText>
-							{foods.backup.conflicts.map((conflict) => {
-								const name = conflictName(conflict, locale, copy);
-								return (
-									<View key={conflict.record.id} style={styles.conflict}>
-										<AppText>{name}</AppText>
-										<PrimaryButton
-											label={copy.keep}
-											onPress={() => keepDeviceCopy(conflict)}
-										/>
-										<TextAction
-											label={copy.server}
-											onPress={() => void applyServerCopy(conflict)}
-										/>
-									</View>
-								);
-							})}
-						</GroupedSurface>
-					) : null}
-				</>
-			)}
 		</ScrollView>
 	);
 }
-
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
@@ -282,11 +183,5 @@ const createStyles = (colors: Tokens) =>
 			paddingBottom: spacing.xl,
 		},
 		card: { gap: spacing.sm },
-		conflict: {
-			gap: spacing.sm,
-			borderTopWidth: 1,
-			borderTopColor: colors.border,
-			paddingTop: spacing.sm,
-		},
 		offStatus: { gap: spacing.xs },
 	});

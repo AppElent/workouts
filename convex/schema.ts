@@ -4,6 +4,7 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
 import { nutritionGoalTables } from './nutritionGoalTables'
+import { nutritionDraftTables } from "./nutritionDraftTables";
 import { nutritionLibraryTables } from './nutritionLibraryTables'
 import { supplementaryServingTables } from './supplementaryServingTables'
 import { personalMeasureTables } from './personalMeasureTables'
@@ -12,6 +13,7 @@ export default defineSchema({
   exerciseMigrations: exerciseMigrationTable,
   ...nutritionGoalTables,
   ...nutritionLibraryTables,
+  ...nutritionDraftTables,
   ...personalMeasureTables,
   ...supplementaryServingTables,
   nutritionDiaryEntries: defineTable({
@@ -138,11 +140,13 @@ export default defineSchema({
       v.literal('failure'),
     ),
     loggedAt: v.number(),
+    estimatedMax: v.optional(v.number()),
   })
     .index('by_session', ['sessionId'])
     .index('by_exercise', ['exerciseId'])
     .index('by_user', ['userId'])
     .index('by_user_exercise', ['userId', 'exerciseId'])
+    .index('by_user_exercise_estimate', ['userId', 'exerciseId', 'estimatedMax'])
     .index('by_session_exercise', ['sessionId', 'exerciseId']),
 
   oneRepMaxes: defineTable({

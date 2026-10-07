@@ -1,6 +1,7 @@
+import { canonicalJson } from "@workouts/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import type {
 	Combo,
@@ -24,9 +25,9 @@ export function ComboNewScreen({
 	parts: readonly ComboPartDraft[];
 	/**
 	 * Runs right after the combo is saved, such as grouping the diary entries
-	 * it was made from. If it throws, the new combo is removed again.
+	 * it was made from. Failed follow-up work retries with the accepted Combo.
 	 */
-	onCreated?: (combo: Combo) => void;
+	onCreated?: (combo: Combo) => void | Promise<void>;
 	/** Where to go once saved; by default the new combo's editor. */
 	onSaved?: (combo: Combo) => void;
 }) {
@@ -37,18 +38,26 @@ export function ComboNewScreen({
 	const library = usePersonalFoods();
 	const [name, setName] = useState("");
 	const [saving, setSaving] = useState(false);
+	const saveLock = useRef(false);
+	const accepted = useRef<{ combo: Combo; input: string } | undefined>(
+		undefined,
+	);
 	const canSave = name.trim().length > 0 && parts.length > 0 && !saving;
-	const save = () => {
-		if (!canSave) return;
+	const save = async () => {
+		if (!canSave || saveLock.current) return;
+		saveLock.current = true;
 		setSaving(true);
 		try {
-			const combo = library.createCombo({ name: name.trim(), parts });
-			try {
-				onCreated?.(combo);
-			} catch (error) {
-				library.removeCombo(combo.id);
-				throw error;
-			}
+			const input = { name: name.trim(), parts };
+			const inputKey = canonicalJson(input);
+			const previous = accepted.current;
+			const combo = previous
+				? previous.input === inputKey
+					? previous.combo
+					: await library.updateCombo(previous.combo.id, input)
+				: await library.createCombo(input);
+			accepted.current = { combo, input: inputKey };
+			await onCreated?.(combo);
 			toast.success(t.nutrition.combos.saved);
 			if (onSaved) onSaved(combo);
 			else
@@ -59,6 +68,7 @@ export function ComboNewScreen({
 		} catch {
 			toast.error(t.nutrition.combos.saveFailure);
 			setSaving(false);
+			saveLock.current = false;
 		}
 	};
 	return (
@@ -167,11 +177,6 @@ export function ComboNewScreen({
 						);
 					})}
 				</View>
-				{library.backup.enabled ? null : (
-					<AppText variant="caption" style={{ paddingHorizontal: spacing.xs }}>
-						{copy.backupOff}
-					</AppText>
-				)}
 			</ScrollView>
 		</>
 	);

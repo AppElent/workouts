@@ -193,7 +193,7 @@ describe("editing a diary entry", () => {
 		});
 	});
 
-	it("accepts the edit locally once and offers sync retry after a network failure", async () => {
+	it("keeps the edited quantity open after a failed acknowledgement", async () => {
 		// A non-`Error` rejection, so the assertion is on the localized fallback
 		// text rather than convexErrorMessage's Convex-specific pass-through.
 		const update = jest.fn().mockRejectedValue("offline");
@@ -205,9 +205,12 @@ describe("editing a diary entry", () => {
 		fireEvent.press(button);
 		fireEvent.press(button);
 
-		expect(await screen.findByText("Today")).toBeTruthy();
-		expect(await screen.findByText("Retry sync")).toBeTruthy();
-		expect(update).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+		await waitFor(() =>
+			expect(screen.getByLabelText("Save changes")).toBeEnabled(),
+		);
+		expect(screen.getByLabelText("Quantity").props.value).toBe("2");
+		expect(screen.queryByText("Retry sync")).toBeNull();
 	});
 
 	it("deletes only through a named, destructive confirmation", async () => {
@@ -243,7 +246,7 @@ describe("editing a diary entry", () => {
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
-	it("keeps a durable deletion and offers sync retry when the network fails", async () => {
+	it("keeps the entry and editor after a failed deletion acknowledgement", async () => {
 		const remove = jest.fn().mockRejectedValue("offline");
 		mockMutations("applyOperation", remove);
 		await openEditor();
@@ -253,9 +256,11 @@ describe("editing a diary entry", () => {
 		const confirmButtons = screen.getAllByText("Delete entry");
 		fireEvent.press(confirmButtons[confirmButtons.length - 1]);
 
-		expect(await screen.findByText("Today")).toBeTruthy();
-		expect(await screen.findByText("Retry sync")).toBeTruthy();
-		expect(screen.queryByLabelText("Edit entry: Apple")).toBeNull();
-		expect(remove).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
+		await waitFor(() =>
+			expect(screen.getByLabelText("Delete entry")).toBeEnabled(),
+		);
+		expect(screen.getByLabelText("Quantity").props.value).toBe("1");
+		expect(screen.queryByText("Retry sync")).toBeNull();
 	});
 });

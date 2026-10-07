@@ -1,7 +1,7 @@
 export const foodLibraryEn = {
 	title: "Library",
-	itemCount: "{count} items",
-	itemCountOne: "1 item",
+	itemCount: "{count} loaded items",
+	itemCountOne: "1 loaded item",
 	chips: {
 		all: "All",
 		food: "Foods",
@@ -34,7 +34,6 @@ export const foodLibraryEn = {
 	more: "More",
 	select: "Select",
 	measures: "My measures",
-	backup: "Backup and sync",
 	settings: "Nutrition settings",
 	add: "Add",
 	newFood: "New food",
@@ -74,7 +73,7 @@ export const foodLibraryEn = {
 	firstOff: "Search Open Food Facts",
 	restoreFailed: "Your library couldn't be restored",
 	retry: "Try again",
-	offline: "Offline · changes sync later",
+	offline: "Offline · connect to save changes",
 	conflict: "Changed on two devices",
 	conflictAction: "Choose a version",
 	missingPartBody: "{part} is no longer in your library.",
@@ -84,8 +83,8 @@ export const foodLibraryEn = {
 
 export const foodLibraryNl: typeof foodLibraryEn = {
 	title: "Bibliotheek",
-	itemCount: "{count} items",
-	itemCountOne: "1 item",
+	itemCount: "{count} geladen items",
+	itemCountOne: "1 geladen item",
 	chips: {
 		all: "Alles",
 		food: "Voeding",
@@ -118,7 +117,6 @@ export const foodLibraryNl: typeof foodLibraryEn = {
 	more: "Meer",
 	select: "Selecteer",
 	measures: "Eigen maten",
-	backup: "Back-up en synchronisatie",
 	settings: "Voedingsinstellingen",
 	add: "Toevoegen",
 	newFood: "Nieuw voedingsmiddel",
@@ -158,7 +156,7 @@ export const foodLibraryNl: typeof foodLibraryEn = {
 	firstOff: "Zoek in Open Food Facts",
 	restoreFailed: "Je bibliotheek kon niet worden hersteld",
 	retry: "Opnieuw proberen",
-	offline: "Offline · wijzigingen worden later gesynchroniseerd",
+	offline: "Offline · maak verbinding om wijzigingen op te slaan",
 	conflict: "Op twee toestellen gewijzigd",
 	conflictAction: "Kies een versie",
 	missingPartBody: "{part} staat niet meer in je bibliotheek.",

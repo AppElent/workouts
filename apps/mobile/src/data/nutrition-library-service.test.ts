@@ -138,6 +138,46 @@ function device(subject: string, remote: ReturnType<typeof remoteServer>) {
 }
 
 describe("NutritionLibraryService", () => {
+	it("retains legacy work until recovered copies and the acknowledged version are cached", async () => {
+		const state = createNutritionLibraryStateRepository(
+			new SQLiteTestDatabase(),
+		);
+		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const local = repository.create(foodDraft("Device"));
+		const record = libraryRecordFromFood(local);
+		state.queueUpsert("a", record, "legacy-op");
+		state.markNeedsAttention("a", "legacy-op", "Conflict: changed elsewhere");
+		const serverFood = {
+			...local,
+			id: "recovered",
+			name: { en: "Server", nl: "Server" },
+		};
+		const remote = jest.fn(async () => ({
+			record: { ...record, revision: 2 },
+			preservedRecords: [libraryRecordFromFood(serverFood, 1)],
+		}));
+		const service = new NutritionLibraryService(
+			"a",
+			state,
+			repository,
+			remote,
+			true,
+		);
+		expect(state.listOperations("a")).toHaveLength(1);
+		service.setOnline(true);
+		await service.replay();
+		await Promise.resolve();
+		expect(
+			repository
+				.list()
+				.map((food) => food.name.en)
+				.sort(),
+		).toEqual(["Device", "Server"]);
+		expect(state.listOperations("a")).toEqual([]);
+		expect(state.listOperations("b")).toEqual([]);
+		service.dispose();
+	});
+
 	it("retries a transient upload while the connection stays online", async () => {
 		jest.useFakeTimers();
 		try {

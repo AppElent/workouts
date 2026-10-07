@@ -54,6 +54,17 @@ function envelope<T extends ApplyOperationArgs["operation"]>(
 }
 
 describe("retry-safe nutrition diary operations", () => {
+    it("acknowledges an online save without retransferring the entire day", async () => {
+        const t = convexTest(schema, modules);
+        const alice = t.withIdentity({ subject: "alice" });
+        const request = { ...envelope("compact-save", { kind: "create", entry: snapshot() }), includeDays: false };
+        const result = await alice.mutation(api.nutritionDiary.applyOperation, request);
+        expect(result.days).toEqual([]);
+        expect(result.entryIds).toHaveLength(1);
+        expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
+        expect(await alice.mutation(api.nutritionDiary.applyOperation, request)).toEqual(result);
+    });
+
 	it.each(["removeBatch", "moveBatch"] as const)(
 		"acknowledges %s with deleted or stale targets and still applies surviving entries",
 		async (kind) => {

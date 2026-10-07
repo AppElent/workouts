@@ -6,6 +6,29 @@ import { createNutritionCookingRepository } from "./nutrition-cooking-repository
 import { createNutritionDraftRepository } from "./nutrition-draft-repository";
 
 describe("Capture Draft SQLite repository", () => {
+	it("keeps migration originals until acknowledgement and isolates completion by owner", () => {
+		const db = new SQLiteTestDatabase();
+		const repository = createNutritionDraftRepository(db);
+		const draft = repository.create("a", {
+			date: "2026-10-07",
+			meal: "lunch",
+			note: "Legacy",
+		});
+		expect(repository.pendingMigrations("a")).toEqual([draft]);
+		expect(repository.pendingMigrations("b")).toEqual([]);
+		const reopened = createNutritionDraftRepository(db);
+		expect(reopened.pendingMigrations("a")).toEqual([draft]);
+		reopened.acknowledgeMigration(draft);
+		expect(reopened.pendingMigrations("a")).toEqual([]);
+		expect(reopened.get("a", draft.id)).toEqual(draft);
+		reopened.update("a", draft.id, {
+			date: draft.date,
+			meal: draft.meal,
+			note: "Changed original",
+		});
+		expect(reopened.pendingMigrations("a")).toHaveLength(1);
+	});
+
 	it("keeps drafts per account, per day, and durable across reopen", () => {
 		const path = join(
 			tmpdir(),

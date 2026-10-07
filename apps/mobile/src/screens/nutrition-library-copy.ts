@@ -1,11 +1,11 @@
 export const nutritionLibraryCopy = {
 	en: {
 		eyebrow: "PERSONAL LIBRARY",
-		title: "Back up and restore your foods and Combos",
+		title: "Library settings",
 		intro:
-			"Back up your Personal Foods and Combos and restore them on your other devices. Meals already logged keep their original nutrition values.",
+			"Personal Foods and Combos are saved to your account. Saving requires a connection. Meals already logged keep their original nutrition values.",
 		photoNotice:
-			"Food photos stay on this device and are not backed up. Restored Foods keep preset icons and use the default visual where a photo was omitted.",
+			"Food photos stay on this device. On another device, Foods keep preset icons and use the default visual where a photo is unavailable.",
 		offTitle: "Open Food Facts",
 		offHelp:
 			"Refresh imported products from their barcodes. Your edited names, nutrition values, custom portions, and chosen Food Visual stay unchanged.",
@@ -23,48 +23,29 @@ export const nutritionLibraryCopy = {
 			`${completed} of ${total} checked`,
 		offSummary: (updated: number, unchanged: number, failed: number) =>
 			`${updated} updated · ${unchanged} unchanged · ${failed} not refreshed`,
-		disabled:
-			"Backup is off. Existing device foods remain private to this device until you explicitly import them.",
-		enable: "Enable backup for this account",
 		import: "Import this device library",
 		importHelp:
-			"Add the Personal Foods and Combos saved on this device to your account backup.",
-		restore: "Restore latest library",
+			"Add the Personal Foods and Combos saved on this device to your account.",
 		retryUpload: "Retry upload",
-		pending: "Changes waiting to sync",
-		conflicts: "Needs your decision",
-		keep: "Keep this device copy",
-		server: "Use server copy",
-		unnamedFood: "Unnamed Personal Food",
-		unnamedCombo: "Unnamed Combo",
-		confirmEnableTitle: "Enable library backup?",
-		confirmEnableBody:
-			"A new, empty library will be associated with this account. Device foods are not imported automatically.",
-		confirmEnable: "Enable backup",
+		pending: "Legacy records waiting to upload",
+		migrationHelp:
+			"Originals stay on this device until their upload is acknowledged. Conflicting versions are preserved as separate records.",
 		confirmImportTitle: "Import this device library?",
 		confirmImportBody:
-			"Add this device’s Personal Foods and Combos to your account backup? Meals already logged will stay unchanged.",
+			"Add this device’s Personal Foods and Combos to your account? Meals already logged will stay unchanged.",
 		confirmImport: "Import device library",
-		confirmServerTitle: "Use the server copy?",
-		confirmServerBody: (name: string) =>
-			`Use the server version of ${name}? This discards every pending local change for this item.`,
-		confirmServer: "Discard local changes",
-		ready: "Backup is enabled for this account.",
-		imported: "Device library queued for backup.",
+		imported: "Device library queued for account migration.",
 		failure:
-			"The library action could not be completed. Some changes may already be saved locally. Retry or reopen to recover.",
-		loading: "Loading backed-up library",
-		offline:
-			"Backup data is unavailable while offline. Local changes remain queued on this device.",
+			"The action could not be saved. Your input is still available while this editor stays open.",
+		offline: "A connection is required to save.",
 	},
 	nl: {
 		eyebrow: "PERSOONLIJKE BIBLIOTHEEK",
-		title:
-			"Maak een reservekopie van je voedingsmiddelen en Combo's en herstel ze",
+		title: "Bibliotheekinstellingen",
 		intro:
-			"Maak een reservekopie van je Persoonlijke Voedingsmiddelen en Combo's en herstel ze op je andere apparaten. Eerder gelogde maaltijden behouden hun oorspronkelijke voedingswaarden.",
+			"Persoonlijke Voedingsmiddelen en Combo's worden in je account opgeslagen. Opslaan vereist verbinding. Eerder gelogde maaltijden behouden hun oorspronkelijke voedingswaarden.",
 		photoNotice:
-			"Voedingsfoto's blijven op dit apparaat en worden niet opgenomen in de reservekopie. Herstelde voedingsmiddelen behouden gekozen iconen en gebruiken de standaardafbeelding waar een foto is weggelaten.",
+			"Voedingsfoto's blijven op dit apparaat. Op een ander apparaat behouden voedingsmiddelen gekozen iconen en gebruiken ze de standaardafbeelding waar een foto ontbreekt.",
 		offTitle: "Open Food Facts",
 		offHelp:
 			"Vernieuw geïmporteerde producten via hun barcode. Je aangepaste namen, voedingswaarden, eigen porties en gekozen voedingsvisual blijven ongewijzigd.",
@@ -73,7 +54,7 @@ export const nutritionLibraryCopy = {
 			"De voedingswaarden zijn vernieuwd, maar één productfoto kon niet worden opgeslagen. Bij de volgende keer proberen we het opnieuw.",
 		offRefreshing: "Geïmporteerde voeding vernieuwen…",
 		offEmpty:
-			"Er is lokaal geen Open Food Facts-voeding met barcode opgeslagen.",
+			"Er is nog geen Open Food Facts-voeding met barcode in je account opgeslagen.",
 		offConfirmTitle: "Geïmporteerde voeding vernieuwen?",
 		offConfirmBody: (count: number) =>
 			`Foundry controleert ${count} opgeslagen ${count === 1 ? "voedingsmiddel" : "voedingsmiddelen"}. Open Food Facts beperkt productopvragingen, dus dit kan ongeveer ${Math.max(1, Math.ceil(count / 15))} ${count > 15 ? "minuten" : "minuut"} duren.`,
@@ -82,38 +63,20 @@ export const nutritionLibraryCopy = {
 			`${completed} van ${total} gecontroleerd`,
 		offSummary: (updated: number, unchanged: number, failed: number) =>
 			`${updated} vernieuwd · ${unchanged} ongewijzigd · ${failed} niet vernieuwd`,
-		disabled:
-			"Reservekopie staat uit. Bestaande voedingsmiddelen blijven op dit apparaat totdat je ze expliciet importeert.",
-		enable: "Reservekopie voor dit account inschakelen",
 		import: "Deze apparaatbibliotheek importeren",
 		importHelp:
-			"Kopieer de huidige apparaatbibliotheek eenmalig naar dit ingelogde account. ID's en Combo-verwijzingen blijven behouden.",
-		restore: "Nieuwste bibliotheek herstellen",
+			"Voeg de Persoonlijke Voedingsmiddelen en Combo's van dit apparaat toe aan je account.",
 		retryUpload: "Upload opnieuw proberen",
-		pending: "Wijzigingen wachten op synchronisatie",
-		conflicts: "Jouw keuze is nodig",
-		keep: "Deze apparaatkopie behouden",
-		server: "Serverkopie gebruiken",
-		unnamedFood: "Naamloos Persoonlijk Voedingsmiddel",
-		unnamedCombo: "Naamloze Combo",
-		confirmEnableTitle: "Bibliotheekreservekopie inschakelen?",
-		confirmEnableBody:
-			"Een nieuwe, lege bibliotheek wordt aan dit account gekoppeld. Apparaatvoedingsmiddelen worden niet automatisch geïmporteerd.",
-		confirmEnable: "Reservekopie inschakelen",
+		pending: "Oude gegevens wachten op upload",
+		migrationHelp:
+			"Originelen blijven op dit apparaat totdat de upload bevestigd is. Conflicterende versies worden als aparte records bewaard.",
 		confirmImportTitle: "Deze apparaatbibliotheek importeren?",
 		confirmImportBody:
-			"Persoonlijke Voedingsmiddelen en Combo's van dit apparaat aan je reservekopie toevoegen? Eerder gelogde maaltijden blijven ongewijzigd.",
+			"Persoonlijke Voedingsmiddelen en Combo's van dit apparaat aan je account toevoegen? Eerder gelogde maaltijden blijven ongewijzigd.",
 		confirmImport: "Apparaatbibliotheek importeren",
-		confirmServerTitle: "Serverkopie gebruiken?",
-		confirmServerBody: (name: string) =>
-			`De serverversie van ${name} gebruiken? Hiermee worden alle lokale wijzigingen die nog wachten voor dit item verwijderd.`,
-		confirmServer: "Lokale wijzigingen verwijderen",
-		ready: "Reservekopie is ingeschakeld voor dit account.",
-		imported: "Apparaatbibliotheek staat klaar voor reservekopie.",
+		imported: "Apparaatbibliotheek staat klaar voor accountmigratie.",
 		failure:
-			"De bibliotheekactie kon niet worden voltooid. Sommige wijzigingen kunnen al lokaal zijn opgeslagen. Probeer opnieuw of open dit scherm opnieuw om te herstellen.",
-		loading: "Bibliotheekreservekopie laden",
-		offline:
-			"Reservekopiegegevens zijn offline niet beschikbaar. Lokale wijzigingen blijven op dit apparaat in de wachtrij staan.",
+			"De actie kon niet worden opgeslagen. Je invoer blijft beschikbaar zolang dit formulier open is.",
+		offline: "Opslaan vereist verbinding.",
 	},
 } as const;

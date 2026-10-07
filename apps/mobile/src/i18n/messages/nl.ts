@@ -42,8 +42,7 @@ export const nl = {
 	common: {
 		back: "Terug",
 		retry: "Opnieuw proberen",
-		offline:
-			"Offline — wijzigingen worden gesynchroniseerd zodra je weer verbinding hebt",
+		offline: "Offline — maak verbinding om wijzigingen op te slaan",
 	},
 
 	preferences: {
@@ -237,7 +236,7 @@ export const nl = {
 		addTo: "Voeg eten toe aan {meal}",
 		mealEmpty: "Nog niets gelogd. Gebruik + om eten toe te voegen.",
 		drafts: {
-			onDevice: "Notitie · op dit toestel",
+			onDevice: "Notitie · opgeslagen in je account",
 			resolve: "Notitie verwerken: {note}",
 			edit: "Notitie bewerken",
 			delete: "Notitie verwijderen",
@@ -343,9 +342,9 @@ export const nl = {
 			createTitle: "Persoonlijk voedingsmiddel maken",
 			editTitle: "Persoonlijk voedingsmiddel bewerken",
 			resultLabel: "Persoonlijk voedingsmiddel",
-			storageTitle: "Lokale opslag en optionele reservekopie",
+			storageTitle: "Opgeslagen in je account",
 			storageBody:
-				"Persoonlijke voedingsmiddelen staan lokaal. Schakel accountreservekopie in via Meer voedingsfuncties om ze te bewaren en op een ander apparaat te herstellen. Zonder reservekopie kunnen ze bij het verwijderen van Workouts verloren gaan.",
+				"Persoonlijke voedingsmiddelen worden in je account opgeslagen. Maak verbinding om wijzigingen op te slaan. Voedingsfoto's blijven op dit apparaat.",
 			nameEn: "Engelse naam",
 			nameNl: "Nederlandse naam",
 			baseUnit: "Basiseenheid voedingswaarde",
@@ -380,9 +379,9 @@ export const nl = {
 		combos: {
 			create: "Combo maken",
 			log: "Combo loggen",
-			storageTitle: "Lokale opslag en optionele reservekopie",
+			storageTitle: "Opgeslagen in je account",
 			storageBody:
-				"Combo's zijn offline beschikbaar. Schakel accountreservekopie in via Meer voedingsfuncties om ze te bewaren en elders te herstellen. Zonder reservekopie kunnen ze bij verwijderen verloren gaan. Dagboekitems synchroniseren afzonderlijk zodra je verbonden bent.",
+				"Combo's worden in je account opgeslagen. Maak verbinding om wijzigingen op te slaan en voeding te loggen.",
 			name: "Naam van Combo",
 			save: "Combo opslaan",
 			saving: "Combo opslaan…",
@@ -446,9 +445,9 @@ export const nl = {
 			uncachedMeal:
 				"Er staan nog geen items voor deze maaltijd op deze telefoon.",
 			goals:
-				"De doelen voor deze dag staan nog niet op deze telefoon. Ze verschijnen zodra je weer verbinding hebt. Je kunt nog steeds eten toevoegen.",
+				"De doelen voor deze dag staan nog niet op deze telefoon. Maak verbinding om ze te laden en voeding te loggen.",
 			title: "Je dagboek voor deze dag staat nog niet op deze telefoon",
-			body: "Het verschijnt zodra je weer online bent. Je kunt nu al eten zoeken en toevoegen — items worden verstuurd zodra je weer verbinding hebt.",
+			body: "Maak verbinding om deze dag te laden en voeding te loggen. Je kunt voeding in de cache blijven bekijken.",
 			slot: "Niet beschikbaar zonder verbinding",
 		},
 

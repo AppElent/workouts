@@ -5,7 +5,9 @@ Accepted, durable architectural trade-offs. Use the
 retain existing numbers so references remain stable.
 
 - [0001: Closed Activity family](0001-closed-activity-family.md)
-- [0005: Local-first nutrition with durable history](0005-local-first-nutrition-with-durable-history.md)
+- [0005: Local-first nutrition with durable history](0005-local-first-nutrition-with-durable-history.md) (ownership/offline policies superseded by 0012; history guarantees retained)
 - [0006: Ship NEVO as generated core data](0006-ship-nevo-as-generated-core-data.md)
 - [0008: Hosted workout ownership](0008-hosted-workout-ownership.md)
 - [0009: Shipped exercise catalog](0009-shipped-exercise-catalog.md)
+
+- [0012: Online-first account data](0012-online-first-account-data.md)

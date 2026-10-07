@@ -39,7 +39,10 @@ export type NutritionLibraryOperationEnvelope = {
 
 export type NutritionLibraryRemote = (
 	envelope: NutritionLibraryOperationEnvelope,
-) => Promise<{ readonly record: LibraryRecord }>;
+) => Promise<{
+	readonly record: LibraryRecord;
+	readonly preservedRecords?: readonly LibraryRecord[];
+}>;
 
 function isPermanent(error: unknown) {
 	return /conflict|invalid|unauthenticated|unauthorized|subject|different payload|schema|downgrade/i.test(
@@ -67,10 +70,23 @@ export class NutritionLibraryService {
 		private readonly state: NutritionLibraryStateRepository,
 		private readonly repository: PersonalFoodRepository,
 		private readonly remote: NutritionLibraryRemote,
+		private readonly migration = false,
 	) {
 		// An account switch or unmount can interrupt a request after it was marked
 		// sending. Requeue it with its original revision/operation ID for safe replay.
 		this.state.recoverSending(this.subject);
+		if (migration)
+			for (const operation of state.listOperations(subject)) {
+				if (
+					operation.status === "needs-attention" &&
+					/conflict/i.test(operation.lastError ?? "")
+				)
+					state.markQueued(
+						subject,
+						operation.operationId,
+						"Recovering both legacy versions",
+					);
+			}
 		this.recoverPrepared();
 		this.seedUntrackedAccountLibrary();
 	}
@@ -283,6 +299,20 @@ export class NutritionLibraryService {
 				try {
 					const result = await this.remote(this.envelope(operation));
 					if (this.disposed) break;
+					if (this.migration) {
+						for (const record of result.preservedRecords ?? []) {
+							applyLibraryRecord(this.repository, record);
+							this.state.commitServerRecord(this.subject, record);
+						}
+						const later = this.state
+							.listOperations(this.subject)
+							.some(
+								(item) =>
+									item.recordId === operation.recordId &&
+									item.sequence > operation.sequence,
+							);
+						if (!later) applyLibraryRecord(this.repository, result.record);
+					}
 					this.state.acknowledge(
 						this.subject,
 						operation.operationId,
@@ -375,7 +405,31 @@ export class NutritionLibraryService {
 	receiveServerPage(records: readonly LibraryRecord[]) {
 		for (const record of records) {
 			const decision = this.state.acceptServerRecord(this.subject, record);
-			if (decision === "apply") {
+			if (this.migration && decision === "conflict") {
+				for (const operation of this.state.listOperations(this.subject)) {
+					if (
+						operation.recordId === record.id &&
+						operation.status === "needs-attention"
+					)
+						this.state.markQueued(
+							this.subject,
+							operation.operationId,
+							"Recovering both legacy versions",
+						);
+				}
+			}
+			const known = this.state.getRecord(this.subject, record.id);
+			const absent =
+				record.kind === "food"
+					? !this.repository.find(record.id)
+					: !this.repository.findCombo(record.id);
+			if (
+				decision === "apply" ||
+				(decision === "ignore" &&
+					!record.deleted &&
+					absent &&
+					known?.revision === record.revision)
+			) {
 				// Metadata deliberately follows the separate account-library write. If
 				// that write fails or the process dies first, the page can safely replay.
 				applyLibraryRecord(this.repository, record);
@@ -383,6 +437,7 @@ export class NutritionLibraryService {
 			}
 		}
 		this.notify();
+		if (this.migration) void this.replay();
 	}
 
 	keepDeviceCopy(conflict: LibraryConflict) {

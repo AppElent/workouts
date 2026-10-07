@@ -122,7 +122,7 @@ export function NutritionAssistanceScreen({
 	const [labelAccepted, setLabelAccepted] = useState(false);
 	const labelSubmitRef = useRef(false);
 	const savedLabelFoodRef = useRef<
-		| { intent: string; food: ReturnType<typeof personalFoods.create> }
+		| { intent: string; food: Awaited<ReturnType<typeof personalFoods.create>> }
 		| undefined
 	>(undefined);
 	const catalog = useMemo(
@@ -213,7 +213,7 @@ export function NutritionAssistanceScreen({
 		setLabelAccepted(false);
 	}
 
-	function saveLabelFood() {
+	async function saveLabelFood() {
 		if (labelSubmitRef.current || labelAccepted) return;
 		const subject = operations.getSubject();
 		if (!subject || !label) {
@@ -233,7 +233,7 @@ export function NutritionAssistanceScreen({
 			const saved =
 				savedLabelFoodRef.current?.intent === intent
 					? savedLabelFoodRef.current.food
-					: personalFoods.create(
+					: await personalFoods.create(
 							personalFoodDraftFromLabel(
 								label,
 								labelNames,

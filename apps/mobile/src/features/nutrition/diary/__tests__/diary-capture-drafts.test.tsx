@@ -37,7 +37,7 @@ describe("Capture Drafts in the diary", () => {
 		);
 
 		expect(await screen.findByText("Wrap from the station")).toBeTruthy();
-		expect(screen.getByText("Note · on this device")).toBeTruthy();
+		expect(screen.getByText("Note · saved to your account")).toBeTruthy();
 		// Lunch has a row, so no "nothing logged" — but also no kcal subtotal.
 		expect(screen.getAllByText("Nothing yet")).toHaveLength(3);
 		expect(screen.queryByText(/^\d+ kcal$/)).toBeNull();
@@ -60,7 +60,9 @@ describe("Capture Drafts in the diary", () => {
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(await screen.findByText("  wrap from the station ")).toBeTruthy();
 		expect(
-			app.draftRepository.listForDate("test-user", todayIsoDate()),
+			[...app.accountTransport.notes.values()].filter(
+				(d) => d.date === todayIsoDate(),
+			),
 		).toMatchObject([{ meal: "lunch", note: "  wrap from the station " }]);
 	});
 
@@ -109,7 +111,9 @@ describe("Capture Drafts in the diary", () => {
 
 		await waitFor(() =>
 			expect(
-				app.draftRepository.listForDate("test-user", todayIsoDate()),
+				[...app.accountTransport.notes.values()].filter(
+					(d) => d.date === todayIsoDate(),
+				),
 			).toEqual([]),
 		);
 		expect(screen.queryByLabelText("Resolve note: apple")).toBeNull();

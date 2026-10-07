@@ -217,7 +217,7 @@ export function LogFoodScreen({
 	useNutritionOperationVersion();
 	const subject = operations.getSubject();
 	const reduceMotion = useReduceMotion();
-	const personalFoods = usePersonalFoods();
+
 	const browserTarget = useLogFoodTarget(target, {
 		onClose,
 		onAdded: markJustLogged,
@@ -226,7 +226,6 @@ export function LogFoodScreen({
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const drafts = useNutritionDrafts();
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const offline = useStalledOffline(true, connected);
@@ -236,11 +235,17 @@ export function LogFoodScreen({
 	const seedQuery = initialQuery ?? browserTarget?.initialQuery;
 	const [query, setQuery] = useState(seedQuery ?? "");
 	const [savingNote, setSavingNote] = useState(false);
+	const noteSaveLock = useRef(false);
 	// Read once per mount: a browser whose "Vandaag" target moves under the
 	// person because midnight passed mid-session is worse than one that is
 	// right again on the next visit.
 	const [today] = useState(todayIsoDate);
 	const [date, setDate] = useState(initialDate);
+	const drafts = useNutritionDrafts({
+		startDate: date,
+		endDate: date,
+		recordId: draftId,
+	});
 	const [showCalendar, setShowCalendar] = useState(false);
 	/*
 	 * Arriving to author a recipe scopes the list to recipes; everything else
@@ -321,12 +326,9 @@ export function LogFoodScreen({
 				)
 			)
 				return;
-			try {
-				if (!current.drafts.remove(draft.id))
-					current.toast.error(current.removeFailure);
-			} catch {
-				current.toast.error(current.removeFailure);
-			}
+			void current.drafts
+				.remove(draft.id)
+				.catch(() => current.toast.error(current.removeFailure));
 		},
 		[],
 	);
@@ -352,7 +354,27 @@ export function LogFoodScreen({
 		() => new Set(favoriteShortcuts.map((shortcut) => shortcut.sourceKey)),
 		[favoriteShortcuts],
 	);
+	const [cataloguePage, setCataloguePage] = useState({ query, limit: 100 });
+	const catalogueLimit =
+		cataloguePage.query === query ? cataloguePage.limit : 100;
+	const personalFoods = usePersonalFoods({
+		forkSearch: { locale, limit: catalogueLimit },
+		browse: {
+			query,
+			...(filter === "recipes"
+				? { category: "recipe" as const }
+				: filter === "combos"
+					? { category: "combo" as const }
+					: {}),
+		},
+		ids: [...recentShortcuts, ...favoriteShortcuts]
+			.map((item) => item.sourceKey)
+			.filter((key) => key.startsWith("personal:") || key.startsWith("combo:"))
+			.slice(0, 100)
+			.map((key) => key.slice(key.indexOf(":") + 1)),
+	});
 	const browsed = useLogFoodItems({
+		catalogueLimit,
 		query,
 		filter,
 		locale,
@@ -449,7 +471,7 @@ export function LogFoodScreen({
 		});
 		if (!approved) return;
 		try {
-			const removed = personalFoods.remove(food.id);
+			const removed = await personalFoods.remove(food.id);
 			if (removed) foodPhotos.remove(food.visual);
 			setSelectedFood(undefined);
 		} catch {
@@ -458,17 +480,16 @@ export function LogFoodScreen({
 	}
 
 	async function handleBarcodeScanned(barcode: string) {
-		// Local foods are checked before any network call reaches Open Food
-		// Facts (spec #68) — a Personal Food carrying this barcode wins outright.
-		const localMatch = personalFoods.findByBarcode(barcode);
-		if (localMatch) {
-			setScanning(false);
-			setSelectedFood({ kind: "personal", food: localMatch });
-			return;
-		}
-		// The lookup runs in the camera, so the screen is never empty meanwhile.
 		setBarcodeStatus(t.nutrition.barcode.lookingUp);
 		try {
+			const localMatch = personalFoods.lookupBarcode
+				? await personalFoods.lookupBarcode(barcode)
+				: personalFoods.findByBarcode(barcode);
+			if (localMatch) {
+				setScanning(false);
+				setSelectedFood({ kind: "personal", food: localMatch });
+				return;
+			}
 			const outcome = await openFoodFacts.lookupBarcode(barcode);
 			setScanning(false);
 			if (outcome.kind === "found") {
@@ -506,7 +527,7 @@ export function LogFoodScreen({
 		}
 		try {
 			const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = food;
-			personalFoods.update(food.id, {
+			await personalFoods.update(food.id, {
 				...draft,
 				provenance: { ...food.provenance, barcode },
 			});
@@ -530,15 +551,17 @@ export function LogFoodScreen({
 		setSelectedFood(selection);
 	}
 
-	function saveAsNote() {
-		if (savingNote) return;
+	async function saveAsNote() {
+		if (savingNote || noteSaveLock.current) return;
+		noteSaveLock.current = true;
 		setSavingNote(true);
 		try {
-			drafts.create({ date, meal: selectedMeal, note: query });
+			await drafts.create({ date, meal: selectedMeal, note: query });
 			onClose();
 		} catch {
 			toast.error(t.nutrition.drafts.saveFailure);
 			setSavingNote(false);
+			noteSaveLock.current = false;
 		}
 	}
 
@@ -842,8 +865,8 @@ export function LogFoodScreen({
 					browserTarget
 						? {
 								...browserTarget.sheet,
-								onPick: (serving, quantity) => {
-									if (browserTarget.pick(selectedFood, serving, quantity))
+								onPick: async (serving, quantity) => {
+									if (await browserTarget.pick(selectedFood, serving, quantity))
 										setSelectedFood(undefined);
 								},
 							}
@@ -1003,6 +1026,18 @@ export function LogFoodScreen({
 				}}
 			/>
 			<FlatList
+				onEndReached={() => {
+					personalFoods.loadMore();
+					if (!personalFoods.loading && (query.trim() || filter === "all"))
+						setCataloguePage((current) => ({
+							query,
+							limit: Math.min(
+								(current.query === query ? current.limit : 100) + 100,
+								2328,
+							),
+						}));
+				}}
+				onEndReachedThreshold={0.5}
 				data={items}
 				style={styles.root}
 				contentInsetAdjustmentBehavior="automatic"
@@ -1012,6 +1047,18 @@ export function LogFoodScreen({
 				keyExtractor={logFoodItemKey}
 				ListHeaderComponent={
 					<View style={styles.headerContent}>
+						{bottomToolbar && hasQuery && !draftId && !browserTarget ? (
+							<Pressable
+								accessibilityRole="button"
+								disabled={savingNote}
+								onPress={saveAsNote}
+								style={{ minHeight: 44, justifyContent: "center" }}
+							>
+								<AppText style={styles.accent}>
+									{t.nutrition.drafts.saveAsNote}
+								</AppText>
+							</Pressable>
+						) : null}
 						{bottomToolbar ? null : (
 							<LogFoodFindControls
 								inputRef={searchInputRef}

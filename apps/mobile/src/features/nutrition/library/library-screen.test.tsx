@@ -74,7 +74,7 @@ describe("food library", () => {
 	it("lists foods, recipes and combos with a preview and show all", async () => {
 		renderLibrary();
 
-		expect(await screen.findByText("8 items")).toBeTruthy();
+		expect(await screen.findByText("8 loaded items")).toBeTruthy();
 		expect(screen.getByText("Lentil soup")).toBeTruthy();
 		expect(screen.getByText("Breakfast bowl")).toBeTruthy();
 		expect(screen.queryByText("Shake")).toBeNull();

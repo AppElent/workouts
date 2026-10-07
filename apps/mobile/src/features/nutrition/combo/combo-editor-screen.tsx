@@ -1,7 +1,7 @@
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { useRef, useState } from "react";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { todayIsoDate } from "../../../data/calendar-day";
 import {
 	useNutritionOperations,
@@ -41,11 +41,13 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 	const colors = useTokens();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const library = usePersonalFoods();
+	const library = usePersonalFoods({ ids: [comboId] });
 	const operations = useNutritionOperations();
 	useNutritionOperationVersion();
 	const subject = operations.getSubject();
 	const [renaming, setRenaming] = useState(false);
+	const writeLock = useRef(false);
+	const [saving, setSaving] = useState(false);
 	const combo = library.findCombo(comboId);
 
 	if (!combo) return null;
@@ -56,11 +58,19 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 				.some((shortcut) => shortcut.sourceKey === favoriteKey)
 		: false;
 
-	const write = (next: Combo) => {
+	const write = async (next: Combo) => {
+		if (writeLock.current) return false;
+		writeLock.current = true;
+		setSaving(true);
 		try {
-			library.updateCombo(combo.id, comboDraft(next));
+			await library.updateCombo(combo.id, comboDraft(next));
+			return true;
 		} catch {
 			toast.error(copy.saveFailure);
+			return false;
+		} finally {
+			writeLock.current = false;
+			setSaving(false);
 		}
 	};
 	const openPart = (partId: string) =>
@@ -73,36 +83,30 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			pathname: "/nutrition-food",
 			params: { comboId: combo.id, replacePartId: partId },
 		});
-	const removePart = (partId: string) => {
+	const removePart = async (partId: string) => {
 		const part = combo.parts.find((item) => item.id === partId);
 		if (!part) return;
 		const before = combo;
-		write({
+		const saved = await write({
 			...combo,
 			parts: combo.parts.filter((item) => item.id !== partId),
 		});
+		if (!saved) return;
 		toast.success(fmt(copy.removed, { name: part.snapshot.name[locale] }), {
 			action: { label: copy.undo, onPress: () => write(before) },
 		});
 	};
-	const saveName = (name?: string) => {
-		if (name?.trim()) write({ ...combo, name: name.trim() });
-	};
-	// iOS asks in a system prompt; Android has none, so a small sheet asks.
-	const rename = () =>
-		Platform.OS === "ios"
-			? Alert.prompt(
-					copy.renameTitle,
-					undefined,
-					saveName,
-					"plain-text",
-					combo.name,
-				)
-			: setRenaming(true);
-	const duplicate = () => {
+	const saveName = async (name?: string) =>
+		name?.trim() ? write({ ...combo, name: name.trim() }) : false;
+	// Keep the edited name visible when the server cannot acknowledge it.
+	const rename = () => setRenaming(true);
+	const duplicate = async () => {
+		if (writeLock.current) return;
+		writeLock.current = true;
+		setSaving(true);
 		try {
 			const draft = comboDraft(combo);
-			const copyOf = library.createCombo({
+			const copyOf = await library.createCombo({
 				name: `${combo.name}${copy.copySuffix}`,
 				parts: draft.parts.map(({ id: _id, ...part }) => part),
 			});
@@ -112,6 +116,9 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			});
 		} catch {
 			toast.error(copy.saveFailure);
+		} finally {
+			writeLock.current = false;
+			setSaving(false);
 		}
 	};
 	const remove = async () => {
@@ -123,8 +130,18 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			destructive: true,
 		});
 		if (!ok) return;
-		library.removeCombo(combo.id);
-		router.back();
+		if (writeLock.current) return;
+		writeLock.current = true;
+		setSaving(true);
+		try {
+			await library.removeCombo(combo.id);
+			router.back();
+		} catch {
+			toast.error(copy.saveFailure);
+		} finally {
+			writeLock.current = false;
+			setSaving(false);
+		}
 	};
 	const logCombo = () =>
 		router.push({
@@ -428,6 +445,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			</ScrollView>
 			<ComboRenameSheet
 				visible={renaming}
+				busy={saving}
 				title={copy.renameTitle}
 				name={combo.name}
 				label={copy.name}

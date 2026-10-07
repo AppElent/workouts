@@ -1,14 +1,26 @@
 import { useState } from "react";
-import { Modal, Pressable, TextInput, View } from "react-native";
+import {
+	KeyboardAvoidingView,
+	Modal,
+	Platform,
+	Pressable,
+	TextInput,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+	modalAnimation,
+	useReduceMotion,
+} from "../../../../feedback/reduce-motion";
 import { radius, spacing, type, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 
 /**
- * Renaming a combo where `Alert.prompt` does not exist (Android): a small
- * sheet with the name field, Cancel and Save. Save needs a name.
+ * Keep the editable name visible above the keyboard until Save is acknowledged.
  */
 export function ComboRenameSheet({
 	visible,
+	busy = false,
 	title,
 	name,
 	label,
@@ -18,6 +30,7 @@ export function ComboRenameSheet({
 	onSave,
 }: {
 	visible: boolean;
+	busy?: boolean;
 	title: string;
 	name: string;
 	label: string;
@@ -27,80 +40,89 @@ export function ComboRenameSheet({
 	onSave: (name: string) => void;
 }) {
 	const colors = useTokens();
+	const insets = useSafeAreaInsets();
+	const reduceMotion = useReduceMotion();
 	const [draft, setDraft] = useState(name);
-	const valid = draft.trim().length > 0;
+	const valid = !busy && draft.trim().length > 0;
 	return (
 		<Modal
 			visible={visible}
 			transparent
-			animationType="slide"
+			animationType={modalAnimation(reduceMotion, "slide")}
 			onRequestClose={onCancel}
 			onShow={() => setDraft(name)}
 		>
-			<Pressable
-				accessibilityLabel={cancelLabel}
-				onPress={onCancel}
-				style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
-			/>
-			<View
-				style={{
-					backgroundColor: colors.surface,
-					borderTopLeftRadius: radius.contentCard,
-					borderTopRightRadius: radius.contentCard,
-					padding: spacing.md,
-					gap: spacing.md,
-				}}
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				style={{ flex: 1 }}
 			>
-				<AppText variant="navTitle" accessibilityRole="header">
-					{title}
-				</AppText>
-				<TextInput
-					autoFocus
-					value={draft}
-					onChangeText={setDraft}
-					accessibilityLabel={label}
-					returnKeyType="done"
-					onSubmitEditing={() => valid && onSave(draft.trim())}
-					style={{
-						...type.control,
-						color: colors.text,
-						backgroundColor: colors.surface2,
-						borderRadius: radius.md,
-						paddingHorizontal: spacing.md,
-						minHeight: 48,
-					}}
+				<Pressable
+					accessibilityLabel={cancelLabel}
+					onPress={onCancel}
+					style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
 				/>
 				<View
 					style={{
-						flexDirection: "row",
-						justifyContent: "flex-end",
+						backgroundColor: colors.surface,
+						borderTopLeftRadius: radius.contentCard,
+						borderTopRightRadius: radius.contentCard,
+						padding: spacing.md,
+						paddingBottom: Math.max(insets.bottom, spacing.md),
 						gap: spacing.md,
 					}}
 				>
-					<Pressable
-						accessibilityRole="button"
-						onPress={onCancel}
-						style={{ minHeight: 44, justifyContent: "center" }}
-					>
-						<AppText style={{ color: colors.text }}>{cancelLabel}</AppText>
-					</Pressable>
-					<Pressable
-						accessibilityRole="button"
-						accessibilityState={{ disabled: !valid }}
-						disabled={!valid}
-						onPress={() => onSave(draft.trim())}
+					<AppText variant="navTitle" accessibilityRole="header">
+						{title}
+					</AppText>
+					<TextInput
+						autoFocus
+						editable={!busy}
+						value={draft}
+						onChangeText={setDraft}
+						accessibilityLabel={label}
+						returnKeyType="done"
+						onSubmitEditing={() => valid && onSave(draft.trim())}
 						style={{
-							minHeight: 44,
-							justifyContent: "center",
-							opacity: valid ? 1 : 0.4,
+							...type.control,
+							color: colors.text,
+							backgroundColor: colors.surface2,
+							borderRadius: radius.md,
+							paddingHorizontal: spacing.md,
+							minHeight: 48,
+						}}
+					/>
+					<View
+						style={{
+							flexDirection: "row",
+							justifyContent: "flex-end",
+							gap: spacing.md,
 						}}
 					>
-						<AppText style={{ color: colors.accentInk, fontWeight: "700" }}>
-							{saveLabel}
-						</AppText>
-					</Pressable>
+						<Pressable
+							accessibilityRole="button"
+							onPress={onCancel}
+							style={{ minHeight: 44, justifyContent: "center" }}
+						>
+							<AppText style={{ color: colors.text }}>{cancelLabel}</AppText>
+						</Pressable>
+						<Pressable
+							accessibilityRole="button"
+							accessibilityState={{ disabled: !valid }}
+							disabled={!valid}
+							onPress={() => onSave(draft.trim())}
+							style={{
+								minHeight: 44,
+								justifyContent: "center",
+								opacity: valid ? 1 : 0.4,
+							}}
+						>
+							<AppText style={{ color: colors.accentInk, fontWeight: "700" }}>
+								{saveLabel}
+							</AppText>
+						</Pressable>
+					</View>
 				</View>
-			</View>
+			</KeyboardAvoidingView>
 		</Modal>
 	);
 }

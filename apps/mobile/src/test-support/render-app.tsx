@@ -6,6 +6,13 @@ jest.mock("../features/nutrition/day-goals/components/goal-row-menu", () =>
 // Exercise the public RN row contract here; native adapter wiring has dedicated tests and simulator acceptance.
 jest.mock("../ui/inset-list", () => jest.requireActual("../ui/inset-list.tsx"));
 
+import {
+	useConvex,
+	useMutation,
+	usePaginatedQuery,
+	useQuery,
+} from "convex/react";
+import { getFunctionName } from "convex/server";
 /**
  * How the screen tests mount the app.
  *
@@ -63,6 +70,11 @@ import {
 } from "../data/nutrition-draft-repository";
 import { NutritionDraftsProvider } from "../data/nutrition-drafts";
 import {
+	libraryRecordFromCombo,
+	libraryRecordFromFood,
+} from "../data/nutrition-library-repository";
+import type { NutritionLibraryOperationEnvelope } from "../data/nutrition-library-service";
+import {
 	createNutritionLocalRepository,
 	type NutritionLocalRepository,
 } from "../data/nutrition-local-repository";
@@ -81,9 +93,108 @@ import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
 import { ConfirmProvider } from "../ui/confirm-dialog";
 import { ToastProvider } from "../ui/toast";
+import { installAccountTransport } from "./account-transport";
 import { NativeAlertHost } from "./native-alert-host";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
 
+/** Screen tests acknowledge the library transport at its public Convex boundary. */
+function installLibraryTransport(repository: PersonalFoodRepository) {
+	const mutation = jest.mocked(useMutation).getMockImplementation();
+	const query = jest.mocked(useQuery).getMockImplementation();
+	const paginated = jest.mocked(usePaginatedQuery).getMockImplementation();
+	const save = jest.fn(async (args: NutritionLibraryOperationEnvelope) => ({
+		record:
+			args.operation.kind === "upsert"
+				? { ...args.operation.record, revision: 1, deleted: false }
+				: {
+						id: args.operation.recordId,
+						kind: args.operation.recordKind,
+						payload: null,
+						revision: 2,
+						deleted: true,
+					},
+	}));
+	const records = () => [
+		...repository.list().map((food) => ({
+			...libraryRecordFromFood(food, 1),
+			subject: "test-user",
+		})),
+		...repository.listCombos().map((combo) => ({
+			...libraryRecordFromCombo(combo, 1),
+			subject: "test-user",
+		})),
+	];
+	jest.mocked(useConvex).mockReturnValue({
+		query: jest.fn(async (_ref, args) =>
+			records().filter(
+				(record) =>
+					args.ids?.includes(record.id) ||
+					args.forkIds?.includes(
+						repository.find(record.id)?.provenance.forkedFrom,
+					) ||
+					(args.barcode &&
+						repository.find(record.id)?.provenance.barcode === args.barcode),
+			),
+		),
+	} as never);
+	jest
+		.mocked(useMutation)
+		.mockImplementation(((reference: never) =>
+			getFunctionName(reference) === "nutritionLibrary:save"
+				? save
+				: mutation?.(reference)) as never);
+	jest.mocked(useQuery).mockImplementation(((
+		reference: never,
+		args: { ids?: string[]; barcode?: string } | "skip",
+	) => {
+		if (getFunctionName(reference) !== "nutritionLibrary:getMany")
+			return query?.(reference, args as never);
+		return args === "skip"
+			? undefined
+			: records().filter(
+					(record) =>
+						args.ids?.includes(record.id) ||
+						(args.barcode &&
+							record.kind === "food" &&
+							repository.find(record.id)?.provenance.barcode === args.barcode),
+				);
+	}) as never);
+	jest.mocked(usePaginatedQuery).mockImplementation(((
+		reference: never,
+		args: { query?: string; category?: string } | "skip",
+		options: never,
+	) => {
+		if (getFunctionName(reference) !== "nutritionLibrary:browse")
+			return paginated?.(reference, args as never, options);
+		const selected =
+			args === "skip"
+				? []
+				: records().filter((record) => {
+						const parsed = JSON.parse(record.payload ?? "null");
+						const name =
+							record.kind === "food"
+								? `${parsed.name.en} ${parsed.name.nl}`
+								: parsed.name;
+						const category =
+							record.kind === "combo"
+								? "combo"
+								: parsed.classification === "recipe"
+									? "recipe"
+									: "food";
+						return (
+							(!args.query ||
+								name.toLowerCase().includes(args.query.toLowerCase())) &&
+							(!args.category || category === args.category)
+						);
+					});
+		return {
+			results: selected,
+			status: "Exhausted",
+			loadMore: jest.fn(),
+			isLoading: false,
+		};
+	}) as never);
+}
 export function TestLayout({
 	repository,
 	offCache,
@@ -148,6 +259,8 @@ export function renderApp(
 		new SQLiteTestDatabase(),
 	);
 	seed?.({ draftRepository, nutritionRepository, personalFoods: repository });
+	installLibraryTransport(repository);
+	const accountTransport = installAccountTransport(draftRepository);
 	function Layout() {
 		return (
 			<TestLayout
@@ -200,5 +313,6 @@ export function renderApp(
 		offCache,
 		nutritionRepository,
 		draftRepository,
+		accountTransport,
 	});
 }

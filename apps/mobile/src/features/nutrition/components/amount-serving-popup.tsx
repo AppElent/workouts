@@ -175,7 +175,7 @@ export function AmountServingPopup({
 					if (!current || current.baseUnit !== unit)
 						throw new Error("unavailable");
 					const next = { label: { en: servingName, nl: servingName }, amount };
-					const updated = foods.update(current.id, {
+					const updated = await foods.update(current.id, {
 						...current,
 						servings: [...current.servings, next],
 					});

@@ -14,7 +14,7 @@ export function ComboNewFromLibrary({
 }: {
 	foodIds: readonly string[];
 }) {
-	const library = usePersonalFoods();
+	const library = usePersonalFoods({ ids: foodIds });
 	const parts = foodIds.flatMap((id) => {
 		const food = library.find(id);
 		return food ? [comboPartFromFood(food)] : [];
@@ -60,12 +60,16 @@ export function ComboNewFromDiary({
 				if (new Set(entries.map((entry) => entry.meal)).size > 1) return;
 				const subject = operations.getSubject();
 				if (!subject) throw new Error("Not signed in.");
-				operations.group(
-					subject,
-					date,
-					entries[0].meal,
-					entries.map((entry) => ({ kind: "serverId", id: entry.id })),
-					{ id: mintNutritionUuid(), comboId: combo.id, name: combo.name },
+				return new Promise<void>((resolve, reject) =>
+					operations.group(
+						subject,
+						date,
+						entries[0].meal,
+						entries.map((entry) => ({ kind: "serverId", id: entry.id })),
+						{ id: mintNutritionUuid(), comboId: combo.id, name: combo.name },
+						reject,
+						resolve,
+					),
 				);
 			}}
 			onSaved={onDone}

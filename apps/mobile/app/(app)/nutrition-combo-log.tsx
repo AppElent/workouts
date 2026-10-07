@@ -18,11 +18,11 @@ export default function NutritionComboLogRoute() {
 		date?: string;
 		meal?: string;
 	}>();
-	const library = usePersonalFoods();
+	const library = usePersonalFoods({ ids: comboId ? [comboId] : [] });
 	const combo = comboId ? library.findCombo(comboId) : undefined;
 	useEffect(() => {
-		if (!combo) leave();
-	}, [combo]);
+		if (!combo && !library.loading) leave();
+	}, [combo, library.loading]);
 	if (!combo) return null;
 	return (
 		<ComboLogScreen

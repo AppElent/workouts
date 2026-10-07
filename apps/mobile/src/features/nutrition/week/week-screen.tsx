@@ -42,9 +42,12 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 	const copy = t.nutrition.week;
 	const offlineCopy = getNutritionAssistanceMessages(locale);
 	const colors = useTokens();
-	const drafts = useNutritionDrafts();
 	const review = useWeekReview(startDate);
 	const { today, week, days } = review;
+	const drafts = useNutritionDrafts({
+		startDate: week,
+		endDate: weekEndDate(week),
+	});
 	const number = isoWeekNumber(week);
 	const titleKind = weekTitleKind(week, today);
 	const title =

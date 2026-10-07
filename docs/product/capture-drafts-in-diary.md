@@ -2,6 +2,14 @@
 
 > Implementation/brief record (pre-implementation). Its original state and verification claims are dated; use [current docs](../README.md) and source for current behavior. Outstanding acceptance is preserved below.
 
+> Storage-policy update, 2026-10-07: [ADR 0012](../adr/0012-online-first-account-data.md)
+> and [issue 89's contract](online-first-account-data.md) supersede the device-only
+> storage, local-only counts, and "on this device" disclosure below. Saved Capture
+> Drafts become account-owned, with explicit online Save and no remote writes
+> while typing. Their placement, resolution, and exclusion from intake totals
+> remain unchanged. The original storage instructions are retained as migration
+> context; this documentation change does not implement the migration.
+
 ## Objective
 
 Make Capture Drafts (the "unfinished logs") fast to create and fast to resolve. A Capture Draft is a note about intake placed in the Nutrition Diary under its date and Meal Slot; it does not count as intake until converted into Diary Entries. See `CONTEXT.md`.
@@ -14,7 +22,7 @@ Read `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, and `docs/adr/0005-local-first-nutr
 - The only UI is `apps/mobile/src/screens/nutrition-cooking.tsx` (`draft-new` / `draft-edit` / `draft-log` modes), reached via the day-screen overflow menu → "Recipes and unfinished logs" → "Capture note". The food browser's collapsed tools menu has a "Capture later" item that navigates there with an empty note.
 - Resolving a draft opens a full one-off entry form (name EN/NL, amount, unit, every nutrient). There is no path from a note to the Food Library.
 
-## Agreed behaviour
+## Original agreed behaviour (storage policy superseded)
 
 1. **Placement.** A draft renders inline in the day screen under its Meal Slot, visually distinct from Diary Entries, with a subtle "on this device" hint. It never contributes to totals or goal progress.
 2. **Create.** In the food browser (`/nutrition-food?meal=&date=`), a "Save as note" action is available whenever the search field has text, and in the empty-results state. It stores the search text verbatim as the note for the current date + meal, then pops back to the day screen. No success toast — the note appearing in the diary is the confirmation. The "Capture later" menu item is removed.

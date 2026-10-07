@@ -24,12 +24,15 @@ export function DiaryWeekStrip({
 }) {
 	const { locale } = useI18n();
 	const colors = useTokens();
-	const drafts = useNutritionDrafts();
 	const scroll = useRef<ScrollView>(null);
 	const [width, setWidth] = useState(0);
 	const d = isoDateToLocalDate(date);
 	d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
 	const monday = toIsoDate(d);
+	const drafts = useNutritionDrafts({
+		startDate: shiftIsoDate(monday, -7),
+		endDate: shiftIsoDate(monday, 13),
+	});
 	const fetchedDates = useLoggedDiaryDates(
 		shiftIsoDate(monday, -7),
 		shiftIsoDate(monday, 13),

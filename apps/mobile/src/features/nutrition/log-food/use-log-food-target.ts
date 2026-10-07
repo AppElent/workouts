@@ -35,7 +35,7 @@ export function useLogFoodTarget(
 	if (!target) return undefined;
 	const { combo, replacing } = target;
 	/** Writes the pick into the combo; false when it could not be saved. */
-	const pick = (
+	const pick = async (
 		selection: FoodSelection,
 		serving: ServingOption,
 		quantity: number,
@@ -47,12 +47,21 @@ export function useLogFoodTarget(
 				quantity,
 				locale,
 			);
-			const undo = target.write(comboPartFromEntry({ ...part, provenance }));
+			const undo = await target.write(
+				comboPartFromEntry({ ...part, provenance }),
+			);
 			toast.success(
 				fmt(replacing ? copy.replaced : copy.added, {
 					name: selection.food.name[locale],
 				}),
-				{ action: { label: copy.undo, onPress: undo } },
+				{
+					action: {
+						label: copy.undo,
+						onPress: () => {
+							void undo().catch(() => toast.error(copy.saveFailure));
+						},
+					},
+				},
 			);
 		} catch {
 			toast.error(copy.saveFailure);

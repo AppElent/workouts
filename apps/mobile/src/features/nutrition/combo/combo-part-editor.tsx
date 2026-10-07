@@ -48,8 +48,8 @@ export function ComboPartEditor({
 		readonly others: number;
 	};
 	onCancel: () => void;
-	onConfirm: (snapshot: ComboPartSnapshot) => void;
-	onRemove?: () => void;
+	onConfirm: (snapshot: ComboPartSnapshot) => void | Promise<void>;
+	onRemove?: () => void | Promise<void>;
 	onReplace?: () => void;
 }) {
 	const { t, locale } = useI18n();
@@ -65,31 +65,37 @@ export function ComboPartEditor({
 		amount: snapshot.amount,
 	});
 	const [adding, setAdding] = useState(false);
+	const [saving, setSaving] = useState(false);
 	const factor = selection.valid ? selection.amount / snapshot.amount : 1;
 	const before = Math.round(total.before);
 	const after = Math.round(total.others + snapshotEnergy(snapshot) * factor);
 	const reference = snapshot.baseUnit === "serving" ? 1 : 100;
-	const canConfirm = selection.valid && selection.changed;
-	const confirm = () => {
+	const canConfirm = !saving && selection.valid && selection.changed;
+	const confirm = async () => {
 		if (!canConfirm) return;
-		onConfirm({
-			...snapshot,
-			quantity: selection.quantity,
-			amount: selection.amount,
-			serving: {
-				en: formatServingSelection(
-					selection.selected,
-					selection.quantity,
-					"en",
-				),
-				nl: formatServingSelection(
-					selection.selected,
-					selection.quantity,
-					"nl",
-				),
-			},
-			nutrients: rescaleNutrients(snapshot.nutrients, factor),
-		});
+		setSaving(true);
+		try {
+			await onConfirm({
+				...snapshot,
+				quantity: selection.quantity,
+				amount: selection.amount,
+				serving: {
+					en: formatServingSelection(
+						selection.selected,
+						selection.quantity,
+						"en",
+					),
+					nl: formatServingSelection(
+						selection.selected,
+						selection.quantity,
+						"nl",
+					),
+				},
+				nutrients: rescaleNutrients(snapshot.nutrients, factor),
+			});
+		} finally {
+			setSaving(false);
+		}
 	};
 	const totalLine = fmt(
 		mode === "once"
@@ -113,7 +119,7 @@ export function ComboPartEditor({
 					closeLabel={copy.cancel}
 					confirmLabel={copy.confirm}
 					canConfirm={canConfirm}
-					disabled={adding}
+					disabled={adding || saving}
 					onClose={onCancel}
 					onConfirm={confirm}
 				/>
@@ -124,7 +130,7 @@ export function ComboPartEditor({
 					closeLabel={copy.cancel}
 					confirmLabel={copy.confirm}
 					canConfirm={canConfirm}
-					disabled={adding}
+					disabled={adding || saving}
 					onClose={onCancel}
 					onConfirm={confirm}
 				/>
@@ -165,7 +171,7 @@ export function ComboPartEditor({
 						{totalLine}
 					</AppText>
 				}
-				disabled={false}
+				disabled={saving}
 				adding={adding}
 				onAddingChange={setAdding}
 				toolbar={
@@ -176,7 +182,7 @@ export function ComboPartEditor({
 									label={copy.replace}
 									symbol="arrow.triangle.2.circlepath"
 									onPress={onReplace}
-									disabled={adding}
+									disabled={adding || saving}
 								/>
 							) : null}
 							<View style={{ flex: 1 }} />
@@ -184,8 +190,16 @@ export function ComboPartEditor({
 								<AmountToolbarButton
 									label={copy.removePart}
 									symbol="trash"
-									onPress={onRemove}
-									disabled={adding}
+									onPress={async () => {
+										if (saving) return;
+										setSaving(true);
+										try {
+											await onRemove();
+										} finally {
+											setSaving(false);
+										}
+									}}
+									disabled={adding || saving}
 									destructive
 									iconOnly
 								/>

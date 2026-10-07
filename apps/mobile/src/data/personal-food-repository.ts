@@ -147,7 +147,7 @@ export type ComboDraft = {
 
 export type ComboPart = Omit<ComboPartDraft, "id"> & {
 	readonly id: string;
-	readonly status: "available" | "missing";
+	readonly status: "available" | "missing" | "unloaded";
 };
 
 export type Combo = Omit<ComboDraft, "parts"> & {
@@ -199,7 +199,10 @@ export type PersonalFoodRepository = {
 	exportBackup(): PersonalLibraryBackup;
 	replaceFromBackup(
 		backup: PersonalLibraryBackup,
-		options?: { readonly preserveLocalPhotos?: boolean },
+		options?: {
+			readonly preserveLocalPhotos?: boolean;
+			readonly merge?: boolean;
+		},
 	): void;
 };
 
@@ -230,6 +233,8 @@ type ComboRow = {
 };
 
 type RepositoryOptions = {
+	/** Account caches can contain a Combo before its source Foods arrive. */
+	readonly partialCache?: boolean;
 	readonly mintUuid?: () => string;
 	readonly now?: () => number;
 };
@@ -474,7 +479,7 @@ function validateComboProvenance(
 	};
 }
 
-function validateComboDraft(draft: ComboDraft): ComboDraft {
+export function validateComboDraft(draft: ComboDraft): ComboDraft {
 	const name = validateText(draft.name, "Combo name");
 	if (!Array.isArray(draft.parts) || draft.parts.length === 0) {
 		throw new Error("A Combo needs at least one part.");
@@ -640,7 +645,9 @@ export function createPersonalFoodRepository(
 					(part.reference.kind === "personal" &&
 						find(part.reference.foodId) !== undefined)
 						? "available"
-						: "missing";
+						: options.partialCache && part.reference.kind === "personal"
+							? "unloaded"
+							: "missing";
 				return { ...part, id: part.id, status };
 			}),
 			createdAt: row.created_at,
@@ -878,12 +885,13 @@ export function createPersonalFoodRepository(
 			}
 			database.execSync("BEGIN IMMEDIATE");
 			try {
-				database.execSync(
-					"DELETE FROM nutrition_combos; DELETE FROM personal_foods;",
-				);
+				if (!options?.merge)
+					database.execSync(
+						"DELETE FROM nutrition_combos; DELETE FROM personal_foods;",
+					);
 				for (const food of foods) {
 					database.runSync(
-						`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, classification, nutrition_basis_json, estimated, description_json, visual_json, visual_migration_pending, created_at, updated_at)
+						`INSERT OR REPLACE INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, classification, nutrition_basis_json, estimated, description_json, visual_json, visual_migration_pending, created_at, updated_at)
 						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
 						food.id,
 						food.name.en,
@@ -903,7 +911,7 @@ export function createPersonalFoodRepository(
 				}
 				for (const combo of combos) {
 					database.runSync(
-						`INSERT INTO nutrition_combos (id, name, parts_json, created_at, updated_at)
+						`INSERT OR REPLACE INTO nutrition_combos (id, name, parts_json, created_at, updated_at)
 						 VALUES (?, ?, ?, ?, ?)`,
 						combo.id,
 						combo.name,
@@ -924,9 +932,11 @@ export function createPersonalFoodRepository(
 /** Open the one device database shared by Personal Foods and later local Nutrition data. */
 export function openPersonalFoodRepository(
 	databaseName = PERSONAL_FOOD_DATABASE_NAME,
+	options: RepositoryOptions = {},
 ): PersonalFoodRepository {
 	return createPersonalFoodRepository(
 		openNutritionDatabase(databaseName) as SyncSQLiteDatabase,
+		options,
 	);
 }
 

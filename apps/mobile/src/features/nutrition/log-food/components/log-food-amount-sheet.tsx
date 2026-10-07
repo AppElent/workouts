@@ -4,7 +4,6 @@ import {
 	SALT_DERIVATION_DISCLOSURE,
 	type ServingOption,
 } from "@workouts/core/nutrition";
-import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";
@@ -76,12 +75,11 @@ export function LogFoodAmountSheet({
 		confirmLabel: string;
 		/** The table's first column, such as "This part". */
 		valueLabel: string;
-		onPick: (serving: ServingOption, quantity: number) => void;
+		onPick: (serving: ServingOption, quantity: number) => void | Promise<void>;
 	};
 }) {
 	const { t, locale } = useI18n();
 	const colors = useTokens();
-	const router = useRouter();
 	const toast = useToast();
 	const operations = useNutritionOperations();
 	const measures = usePersonalMeasures();
@@ -255,11 +253,21 @@ export function LogFoodAmountSheet({
 				busyLabel={t.nutrition.foodBrowser.logging}
 				disabled={adding}
 				onClose={onBack}
-				onConfirm={() =>
-					pick
-						? amount.valid && pick.onPick(amount.selected, amount.quantity)
-						: log("continue")
-				}
+				onConfirm={async () => {
+					if (!pick) {
+						log("continue");
+						return;
+					}
+					if (!amount.valid || logging || lock.current) return;
+					lock.current = true;
+					setLogging(true);
+					try {
+						await pick.onPick(amount.selected, amount.quantity);
+					} finally {
+						lock.current = false;
+						setLogging(false);
+					}
+				}}
 			/>
 			<AmountEditor
 				name={food.name[locale]}

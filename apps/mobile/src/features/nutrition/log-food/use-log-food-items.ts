@@ -4,7 +4,6 @@ import {
 	getShippedFood,
 } from "@workouts/core/nutrition";
 import { useMemo } from "react";
-import { comboSourceKey } from "../../../data/nutrition-shortcuts";
 import type {
 	Combo,
 	PersonalFood,
@@ -106,7 +105,9 @@ export function useLogFoodItems({
 	favoriteShortcuts,
 	messages,
 	copy,
+	catalogueLimit = CATALOGUE_LIMIT,
 }: {
+	catalogueLimit?: number;
 	query: string;
 	filter: FoodFilter;
 	locale: "en" | "nl";
@@ -132,9 +133,9 @@ export function useLogFoodItems({
 				scope: "all",
 				localMatches: personalFoods.search(query, locale),
 				localFoods: personalFoods.forks(),
-				limit: CATALOGUE_LIMIT,
+				limit: catalogueLimit,
 			}),
-		[locale, personalFoods, query],
+		[locale, personalFoods, query, catalogueLimit],
 	);
 	const recentSelections = useShortcutSelections(
 		recentShortcuts,
@@ -164,17 +165,23 @@ export function useLogFoodItems({
 					caption,
 				}));
 		const recentItems = shortcutItems(recentSelections, copy.recent);
-		const comboItems = combos
-			.filter((combo) => matches(combo.name))
-			.map((combo) => ({ kind: "combo" as const, combo }));
+		const comboItems = combos.map((combo) => ({
+			kind: "combo" as const,
+			combo,
+		}));
 		const favoriteComboKeys = new Set(
 			favoriteShortcuts.map((shortcut) => shortcut.sourceKey),
 		);
 		const favoriteItems = [
 			...shortcutItems(favoriteSelections, copy.favoriteTag),
-			...comboItems.filter((item) =>
-				favoriteComboKeys.has(comboSourceKey(item.combo.id)),
-			),
+			...[...favoriteComboKeys]
+				.filter((key) => key.startsWith("combo:"))
+				.flatMap((key) => {
+					const combo = personalFoods.findCombo(key.slice(6));
+					return combo && matches(combo.name)
+						? [{ kind: "combo" as const, combo }]
+						: [];
+				}),
 		];
 		const recipeItems = recipes.map((food) => ({
 			kind: "food" as const,
@@ -234,6 +241,7 @@ export function useLogFoodItems({
 		locale,
 		messages,
 		query,
+		personalFoods,
 		recentSelections,
 		recipes,
 	]);

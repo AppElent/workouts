@@ -24,6 +24,7 @@ import { radius, spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
+import { useToast } from "../../../ui/toast";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import { foodEditorCopy } from "../components/food-editor-copy";
@@ -82,6 +83,7 @@ export function PersonalFoodEditor({
 	const confirm = useConfirm();
 	const navigation = useNavigation();
 	const personalFoods = usePersonalFoods();
+	const toast = useToast();
 	const [leaving, setLeaving] = useState(false);
 	const draft = usePersonalFoodDraft({
 		food,
@@ -166,9 +168,14 @@ export function PersonalFoodEditor({
 			destructive: true,
 		});
 		if (!ok) return;
-		if (personalFoods.remove(food.id)) photoManager?.remove(food.visual);
-		pendingLeave.current = onCancel;
-		setLeaving(true);
+		try {
+			if (await personalFoods.remove(food.id))
+				photoManager?.remove(food.visual);
+			pendingLeave.current = onCancel;
+			setLeaving(true);
+		} catch {
+			toast.error(t.nutrition.personalFood.saveFailure);
+		}
 	};
 
 	const title = food

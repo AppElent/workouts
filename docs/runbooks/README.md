@@ -9,6 +9,7 @@ identities, routing, and operational choices.
 - [Mobile releases](mobile-releases.md): development clients, TestFlight, OTA, and runtime compatibility.
 - [Mobile Sentry](mobile-sentry.md): project credentials, native builds, source maps, and version exception.
 - [Exercise migration](exercise-migration.md): dry run, rollout, resume, and verification while old clients/history may need it.
+- [Nutrition account migration](nutrition-account-migration.md): server backfill release gate, retained legacy records, explicit claims and retry verification.
 - [MCP endpoint](mcp.md): Workouts tools and client authentication.
 - [Issue tracker](issue-tracker.md): ticket conventions.
 

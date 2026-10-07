@@ -1,11 +1,11 @@
-/**
- * Capture Drafts for the screens: the diary (rows and the other-days banner),
- * the food browser (save / resolve) and the weekly review (per-day count).
- *
- * The subject comes from the operation service so a draft is filed under the
- * same account as the Diary Entries it will become. Every write bumps a
- * revision so a diary sitting under the pushed browser re-reads on return.
- */
+/** Account-owned Capture Drafts; local originals remain migration evidence. */
+import { canonicalJson } from "@workouts/core";
+import {
+	useConvexConnectionState,
+	useMutation,
+	usePaginatedQuery,
+	useQuery,
+} from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -13,8 +13,10 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
+import { api } from "../convex/api";
 import {
 	type CaptureDraft,
 	type CaptureDraftInput,
@@ -24,9 +26,11 @@ import {
 } from "./nutrition-draft-repository";
 import type { NutritionLocalOperation } from "./nutrition-local-repository";
 import {
+	mintNutritionUuid,
 	useNutritionOperations,
 	useNutritionOperationVersion,
 } from "./nutrition-operation-service";
+import { useScreenQueryActive } from "./screen-query-active";
 
 /**
  * Whether any Diary Entry was accepted for the draft's day and meal at or
@@ -40,7 +44,8 @@ export function intakeLoggedSince(
 	since: number,
 ): boolean {
 	return operations.some((operation) => {
-		if (operation.createdAt < since) return false;
+		if (operation.status !== "acknowledged" || operation.createdAt < since)
+			return false;
 		const change = operation.envelope.operation;
 		if (change.kind === "create")
 			return (
@@ -54,84 +59,277 @@ export function intakeLoggedSince(
 
 export type NutritionDraftsValue = {
 	readonly revision: number;
+	readonly loading: boolean;
+	readonly migrationError?: string;
+	retryMigration(): void;
 	listForDate(date: string): CaptureDraft[];
 	summariseOtherDays(date: string): OtherDaysSummary;
 	get(id: string): CaptureDraft | undefined;
-	create(input: CaptureDraftInput): CaptureDraft;
-	update(id: string, input: CaptureDraftInput): CaptureDraft;
-	remove(id: string): boolean;
+	create(input: CaptureDraftInput): Promise<CaptureDraft>;
+	update(id: string, input: CaptureDraftInput): Promise<CaptureDraft>;
+	remove(id: string): Promise<boolean>;
 };
 
-const NutritionDraftsContext = createContext<NutritionDraftsValue | undefined>(
-	undefined,
-);
-
-const NO_SUMMARY: OtherDaysSummary = { count: 0, oldestDate: undefined };
+type DraftScope = Omit<
+	NutritionDraftsValue,
+	"loading" | "summariseOtherDays"
+> & {
+	subject?: string;
+	receive(drafts: CaptureDraft[], startDate?: string, endDate?: string): void;
+};
+const NutritionDraftsContext = createContext<DraftScope | undefined>(undefined);
 
 export function NutritionDraftsProvider({
 	children,
-	repository: suppliedRepository,
+	repository,
 }: {
 	children: ReactNode;
-	/** Tests inject an in-memory store; production opens the device database. */
 	repository?: NutritionDraftRepository;
 }) {
 	const operations = useNutritionOperations();
-	// The subject is set by an effect after mount, and announced by version.
 	useNutritionOperationVersion();
 	const subject = operations.getSubject();
-	const [repository] = useState<NutritionDraftRepository>(
+	return (
+		<NutritionDraftScope
+			key={subject ?? "signed-out"}
+			subject={subject}
+			repository={repository}
+		>
+			{children}
+		</NutritionDraftScope>
+	);
+}
+
+function NutritionDraftScope({
+	children,
+	subject,
+	repository: suppliedRepository,
+}: {
+	children: ReactNode;
+	subject?: string;
+	repository?: NutritionDraftRepository;
+}) {
+	const operations = useNutritionOperations();
+	const { isWebSocketConnected } = useConvexConnectionState();
+	const saveRemote = useMutation(api.nutritionDrafts.save);
+	const [repository] = useState(
 		() => suppliedRepository ?? openNutritionDraftRepository(),
 	);
-	const ownsRepository = suppliedRepository === undefined;
-	useEffect(() => {
-		if (!ownsRepository) return;
-		return () => repository.close();
-	}, [ownsRepository, repository]);
+	const [records, setRecords] = useState<ReadonlyMap<string, CaptureDraft>>(
+		new Map(),
+	);
 	const [revision, setRevision] = useState(0);
-	const bump = useCallback(() => setRevision((value) => value + 1), []);
-
-	const value = useMemo<NutritionDraftsValue>(
+	const [migrationError, setMigrationError] = useState<string>();
+	const migrationRunning = useRef(false);
+	const createIds = useRef(new Map<string, string>());
+	const retryIds = useRef(new Map<string, string>());
+	const active = useRef(true);
+	useEffect(() => {
+		active.current = true;
+		return () => {
+			active.current = false;
+			if (!suppliedRepository) repository.close();
+		};
+	}, [repository, suppliedRepository]);
+	const receive = useCallback(
+		(drafts: CaptureDraft[], startDate?: string, endDate?: string) => {
+			if (!active.current) return;
+			setRecords((current) => {
+				const next = new Map(current);
+				if (startDate && endDate)
+					for (const [id, draft] of next)
+						if (draft.date >= startDate && draft.date <= endDate)
+							next.delete(id);
+				for (const draft of drafts)
+					if (draft.subject === subject) next.set(draft.id, draft);
+				return canonicalJson([...next]) === canonicalJson([...current])
+					? current
+					: next;
+			});
+		},
+		[subject],
+	);
+	const migrate = useCallback(async () => {
+		if (
+			!subject ||
+			!isWebSocketConnected ||
+			migrationRunning.current ||
+			!active.current
+		)
+			return;
+		migrationRunning.current = true;
+		const account = subject;
+		try {
+			for (const draft of repository.pendingMigrations(account)) {
+				if (!active.current || operations.getSubject() !== account) break;
+				const saved = await saveRemote({
+					expectedSubject: account,
+					operationId: `draft-migration:${draft.id}:${draft.updatedAt}`,
+					id: draft.id,
+					action: "migrate",
+					input: { date: draft.date, meal: draft.meal, note: draft.note },
+					createdAt: draft.createdAt,
+				});
+				if (!saved) throw new Error("Missing Capture Draft acknowledgement.");
+				if (!active.current) break;
+				repository.acknowledgeMigration(draft);
+				receive([saved]);
+			}
+			if (active.current) setMigrationError(undefined);
+		} catch (error) {
+			if (active.current)
+				setMigrationError(
+					error instanceof Error ? error.message : String(error),
+				);
+		} finally {
+			migrationRunning.current = false;
+		}
+	}, [
+		subject,
+		isWebSocketConnected,
+		repository,
+		operations,
+		saveRemote,
+		receive,
+	]);
+	useEffect(() => {
+		void migrate();
+	}, [migrate]);
+	const write = useCallback(
+		async (
+			action: "create" | "update" | "remove",
+			id: string,
+			input?: CaptureDraftInput,
+		) => {
+			if (!subject || !isWebSocketConnected)
+				throw new Error("A connection is required to save.");
+			const retryKey = canonicalJson({ action, id, input });
+			const operationId = retryIds.current.get(retryKey) ?? mintNutritionUuid();
+			retryIds.current.set(retryKey, operationId);
+			const saved = await saveRemote({
+				expectedSubject: subject,
+				operationId,
+				id,
+				action,
+				...(input ? { input } : {}),
+			});
+			if (!active.current || operations.getSubject() !== subject)
+				throw new Error("The account changed while saving.");
+			if (saved) receive([saved]);
+			else
+				setRecords((current) => {
+					const next = new Map(current);
+					next.delete(id);
+					return next;
+				});
+			retryIds.current.delete(retryKey);
+			setRevision((value) => value + 1);
+			return saved;
+		},
+		[subject, isWebSocketConnected, saveRemote, operations, receive],
+	);
+	const value = useMemo<DraftScope>(
 		() => ({
+			subject,
 			revision,
+			migrationError,
+			retryMigration: () => void migrate(),
+			receive,
 			listForDate: (date) =>
-				subject ? repository.listForDate(subject, date) : [],
-			summariseOtherDays: (date) =>
-				subject ? repository.summariseOtherDays(subject, date) : NO_SUMMARY,
-			get: (id) => (subject ? repository.get(subject, id) : undefined),
-			create: (input) => {
-				if (!subject) throw new Error("Sign in to save a note.");
-				const created = repository.create(subject, input);
-				bump();
-				return created;
+				[...records.values()]
+					.filter((draft) => draft.date === date)
+					.sort((a, b) => a.createdAt - b.createdAt),
+			get: (id) => records.get(id),
+			create: async (input) => {
+				const key = canonicalJson(input);
+				const id = createIds.current.get(key) ?? mintNutritionUuid();
+				createIds.current.set(key, id);
+				const saved = await write("create", id, input);
+				createIds.current.delete(key);
+				if (!saved) throw new Error("Missing Capture Draft acknowledgement.");
+				return saved;
 			},
-			update: (id, input) => {
-				if (!subject) throw new Error("Sign in to edit a note.");
-				const updated = repository.update(subject, id, input);
-				bump();
-				return updated;
+			update: async (id, input) => {
+				const saved = await write("update", id, input);
+				if (!saved) throw new Error("Missing Capture Draft acknowledgement.");
+				return saved;
 			},
-			remove: (id) => {
-				if (!subject) return false;
-				const removed = repository.remove(subject, id);
-				if (removed) bump();
-				return removed;
+			remove: async (id) => {
+				await write("remove", id);
+				return true;
 			},
 		}),
-		[bump, repository, revision, subject],
+		[subject, records, revision, migrationError, receive, write, migrate],
 	);
-
 	return (
 		<NutritionDraftsContext value={value}>{children}</NutritionDraftsContext>
 	);
 }
 
-export function useNutritionDrafts(): NutritionDraftsValue {
+/** Subscribe only to the dates this consumer displays; never download all notes. */
+export function useNutritionDrafts(range?: {
+	startDate: string;
+	endDate: string;
+	recordId?: string;
+}): NutritionDraftsValue {
 	const value = use(NutritionDraftsContext);
-	if (!value) {
+	if (!value)
 		throw new Error(
 			"useNutritionDrafts must be used within <NutritionDraftsProvider>",
 		);
-	}
-	return value;
+	const screenActive = useScreenQueryActive();
+	const queryEnabled = !!value.subject && screenActive;
+	const result = usePaginatedQuery(
+		api.nutritionDrafts.list,
+		queryEnabled && range
+			? { startDate: range.startDate, endDate: range.endDate }
+			: "skip",
+		{ initialNumItems: 50 },
+	);
+	const summary = useQuery(
+		api.nutritionDrafts.summary,
+		queryEnabled && range ? { date: range.startDate } : "skip",
+	);
+	const byId = useQuery(
+		api.nutritionDrafts.get,
+		queryEnabled && range?.recordId ? { id: range.recordId } : "skip",
+	);
+	const pageKey = canonicalJson(result.results);
+	const { receive } = value;
+	const startDate = range?.startDate;
+	const endDate = range?.endDate;
+	useEffect(() => {
+		if (
+			!queryEnabled ||
+			!startDate ||
+			!endDate ||
+			result.status === "LoadingFirstPage"
+		)
+			return;
+		receive(
+			JSON.parse(pageKey) as CaptureDraft[],
+			result.status === "Exhausted" ? startDate : undefined,
+			result.status === "Exhausted" ? endDate : undefined,
+		);
+	}, [pageKey, result.status, startDate, endDate, receive, queryEnabled]);
+	useEffect(() => {
+		if (queryEnabled && result.status === "CanLoadMore") result.loadMore(50);
+	}, [result.status, result.loadMore, queryEnabled]);
+	const draftKey = canonicalJson(byId ?? null);
+	useEffect(() => {
+		if (draftKey !== "null" && draftKey !== "[]")
+			receive([JSON.parse(draftKey) as CaptureDraft]);
+	}, [draftKey, receive]);
+	return {
+		...value,
+		loading: result.status === "LoadingFirstPage",
+		summariseOtherDays: (date) => {
+			if (summary && "count" in summary && date === startDate)
+				return {
+					count: summary.count,
+					oldestDate: summary.oldestDate ?? undefined,
+				};
+			return { count: 0, oldestDate: undefined };
+		},
+	};
 }

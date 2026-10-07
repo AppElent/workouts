@@ -33,6 +33,7 @@ import {
 
 type RemoteApply = (
 	envelope: NutritionOperationEnvelope,
+	includeDays?: boolean,
 ) => Promise<NutritionOperationResult | undefined>;
 
 type LegacyFallback = () => Promise<unknown>;
@@ -91,6 +92,10 @@ export class NutritionOperationService {
 	private version = 0;
 	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	private online = true;
+	private readonly onlineRetries = new Map<
+		string,
+		NutritionOperationEnvelope
+	>();
 
 	constructor(
 		private readonly repository: NutritionLocalRepository,
@@ -98,7 +103,11 @@ export class NutritionOperationService {
 		private readonly legacy: LegacyWriters = {},
 		private readonly legacyCompatibility = false,
 		private readonly allowTestFallback = false,
-	) {}
+		/** Old durable journals replay for migration; new saves wait for the server. */
+		private readonly onlineWrites = false,
+	) {
+		if (onlineWrites) this.online = false;
+	}
 
 	subscribe = (listener: () => void) => {
 		this.listeners.add(listener);
@@ -145,12 +154,78 @@ export class NutritionOperationService {
 	): string {
 		if (subject !== this.activeSubject)
 			throw new Error("Unauthorized nutrition account.");
-		const envelope: NutritionOperationEnvelope = {
+		let envelope: NutritionOperationEnvelope = {
 			version: 1,
 			operationId: mintNutritionUuid(),
 			expectedSubject: subject,
 			operation,
 		};
+		if (this.onlineWrites && !this.legacyCompatibility) {
+			if (!this.online) throw new Error("A connection is required to save.");
+			// Input stays in the editor; only its retry identity lives here until ACK.
+			const withoutGeneratedIds = (entry: NutritionDiarySnapshot) => {
+				const { clientEntryId: _id, comboGroup, ...input } = entry;
+				return {
+					...input,
+					...(comboGroup
+						? {
+								comboGroup: {
+									comboId: comboGroup.comboId,
+									name: comboGroup.name,
+								},
+							}
+						: {}),
+				};
+			};
+			const retryKey = canonicalJson({
+				subject,
+				operation:
+					operation.kind === "create"
+						? {
+								kind: operation.kind,
+								entry: withoutGeneratedIds(operation.entry),
+							}
+						: operation.kind === "createBatch"
+							? {
+									...operation,
+									entries: operation.entries.map((entry) =>
+										withoutGeneratedIds({
+											...entry,
+											date: operation.date,
+											meal: operation.meal,
+										}),
+									),
+								}
+							: operation.kind === "group"
+								? {
+										...operation,
+										comboGroup: {
+											comboId: operation.comboGroup.comboId,
+											name: operation.comboGroup.name,
+										},
+									}
+								: operation,
+			});
+			envelope = this.onlineRetries.get(retryKey) ?? envelope;
+			this.onlineRetries.set(retryKey, envelope);
+			void this.remoteApply(envelope, false)
+				.then((result) => {
+					if (!result) throw new Error("Missing nutrition operation receipt.");
+					// Keep completion under its original owner, even after account changes.
+					// These are acknowledged records, never an outbox for new offline input.
+					this.repository.accept(subject, envelope, hint, directFoodUse);
+					this.repository.acknowledge(subject, envelope.operationId, result);
+					this.onlineRetries.delete(retryKey);
+					if (subject === this.activeSubject) {
+						this.notify();
+						onSuccess?.();
+					}
+				})
+				.catch((error: unknown) => {
+					if (subject === this.activeSubject) onError?.(error);
+				});
+			return envelope.operationId;
+		}
 		this.repository.accept(subject, envelope, hint, directFoodUse);
 		if (fallback) this.fallbacks.set(envelope.operationId, fallback);
 		if (this.legacyCompatibility && fallback) {
@@ -207,7 +282,8 @@ export class NutritionOperationService {
 					this.fallbacks.delete(operation.operationId);
 					this.fallbackPromises.delete(operation.operationId);
 					this.errorHandlers.delete(operation.operationId);
-					this.successHandlers.get(operation.operationId)?.();
+					if (subject === this.activeSubject)
+						this.successHandlers.get(operation.operationId)?.();
 					this.successHandlers.delete(operation.operationId);
 				} catch (error) {
 					this.errorHandlers.get(operation.operationId)?.(error);
@@ -697,66 +773,25 @@ function NutritionOperationsSession({
 	const { isSignedIn, userId } = useAuth();
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const applyOperation = useMutation(api.nutritionDiary.applyOperation);
-	const legacyLog = useMutation(api.nutritionDiary.log);
-	const legacyUpdate = useMutation(api.nutritionDiary.update);
-	const legacyRemove = useMutation(api.nutritionDiary.remove);
-	const legacyCombo = useMutation(api.nutritionDiary.logCombo);
 	const local = useMemo(
 		() => repository ?? openNutritionLocalRepository(),
 		[repository],
 	);
-	const legacyOnly =
-		typeof applyOperation === "function" &&
-		typeof legacyLog === "function" &&
-		typeof legacyUpdate === "function" &&
-		typeof legacyRemove === "function" &&
-		typeof legacyCombo === "function" &&
-		sameMutation(applyOperation, legacyLog) &&
-		sameMutation(applyOperation, legacyUpdate) &&
-		sameMutation(applyOperation, legacyRemove) &&
-		sameMutation(applyOperation, legacyCombo);
 	const service = useMemo(
 		() =>
 			new NutritionOperationService(
 				local,
-				async (envelope) => {
-					if (legacyOnly) return undefined;
-					const run = applyOperation as unknown as (
-						args: NutritionOperationEnvelope,
-					) => Promise<unknown>;
-					return (await run(envelope)) as NutritionOperationResult | undefined;
-				},
-				{
-					create:
-						typeof legacyLog === "function"
-							? (snapshot) => legacyLog(snapshot as never)
-							: undefined,
-					update:
-						typeof legacyUpdate === "function"
-							? (args) => legacyUpdate(args as never)
-							: undefined,
-					remove:
-						typeof legacyRemove === "function"
-							? (args) => legacyRemove(args as never)
-							: undefined,
-					combo:
-						typeof legacyCombo === "function"
-							? (args) => legacyCombo(args as never)
-							: undefined,
-				},
-				legacyOnly,
-				repository !== undefined,
+				async (envelope, includeDays) =>
+					(await applyOperation({
+						...envelope,
+						...(includeDays === false ? { includeDays } : {}),
+					} as never)) as NutritionOperationResult,
+				{},
+				false,
+				false,
+				true,
 			),
-		[
-			applyOperation,
-			legacyCombo,
-			legacyLog,
-			legacyOnly,
-			legacyRemove,
-			legacyUpdate,
-			local,
-			repository,
-		],
+		[applyOperation, local],
 	);
 	const subject =
 		forcedSubject ?? (isSignedIn ? (userId ?? undefined) : undefined);
@@ -776,10 +811,6 @@ function NutritionOperationsSession({
 			{children}
 		</NutritionOperationsContext.Provider>
 	);
-}
-
-function sameMutation(left: unknown, right: unknown) {
-	return left === right;
 }
 
 export function useNutritionOperations() {

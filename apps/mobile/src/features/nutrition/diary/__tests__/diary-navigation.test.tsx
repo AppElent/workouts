@@ -104,17 +104,11 @@ async function openComboLog() {
 
 describe("Nutrition navigation", () => {
 	it("returns a logged One-off Entry to its diary day", async () => {
-		// Keep the server write pending so the real local projection remains
-		// visible until a server query acknowledges the new entry.
-		jest
-			.mocked(useMutation)
-			.mockReturnValue(
-				jest
-					.fn()
-					.mockReturnValue(new Promise(() => {})) as unknown as ReturnType<
-					typeof useMutation
-				>,
-			);
+		let acknowledge!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			acknowledge = resolve;
+		});
+		jest.mocked(useMutation).mockReturnValue(jest.fn(() => pending) as never);
 		const date = "2026-09-24";
 		const app = renderApp(`/nutrition-one-off?date=${date}&meal=dinner`);
 		fireEvent.changeText(await screen.findByLabelText("Name"), "One-off soup");
@@ -125,6 +119,9 @@ describe("Nutrition navigation", () => {
 		fireEvent.press(await screen.findByText("Icon"));
 		fireEvent.press(await screen.findByText("Fruit"));
 		fireEvent.press(screen.getByLabelText("Log"));
+		expect(app.getPathname()).toBe("/nutrition-one-off");
+		expect(screen.getByDisplayValue("One-off soup")).toBeTruthy();
+		acknowledge();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(app.getSearchParams()).toMatchObject({ date });
 		expect(await screen.findByText("One-off soup")).toBeTruthy();

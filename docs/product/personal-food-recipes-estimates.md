@@ -2,6 +2,12 @@
 
 > Accepted implementation brief; the original task instructions below describe the implementation effort. See the [implementation record](../verification/personal-food-recipes-estimates.md) for results and outstanding acceptance.
 
+> Storage-policy update, 2026-10-07: [ADR 0012](../adr/0012-online-first-account-data.md)
+> and [issue 89's contract](online-first-account-data.md) supersede the original
+> local ownership, optional backup, offline-write, and manual conflict policies.
+> The SQLite/backup steps below are historical implementation context, not a
+> requirement to preserve those policies during issue 89's migration.
+
 ## Objective
 
 Implement the domain model agreed in `CONTEXT.md`: Recipe is a classification of Personal Food, Nutrition Estimate is independent of classification and provenance, and estimate status follows immutable Diary Entry snapshots. Replace the separate Recipe model instead of layering an adapter over it.
@@ -17,7 +23,7 @@ Read `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, and `docs/adr/0005-local-first-nutr
 - Diary snapshots retain estimate status. Later Food edits affect future logs only.
 - The diary shows a compact icon beside estimated entries with an accessible label. Do not add a large badge or a day-total warning.
 - Combos keep their existing semantics: referenced Foods resolve current figures for a new log, and the resulting Diary Entries are frozen snapshots.
-- Capture Drafts remain device-only and separate from Personal Foods.
+- Capture Drafts remain separate from Personal Foods. Saved Capture Drafts become account-owned under ADR 0012; issue 89 owns migration from device-only storage.
 
 ## Module shape
 
@@ -42,7 +48,10 @@ The existing SQLite adapter and its real SQLite test adapter are the persistence
 
 Keep legacy payloads readable throughout. Backend validation must accept old clients before the new mobile payload is emitted. New fields must round-trip through Convex without an older shape silently erasing them; add an explicit payload schema version or downgrade rejection if the current revision protocol cannot guarantee that.
 
-Do not change the accepted offline-first, explicit-backup, conflict, tombstone, or legacy-claim behavior in ADR-0005.
+Preserve historical nutrition snapshots, deletion meaning, and account-safe legacy
+claims. Issue 89 deliberately changes ADR 0005's offline-first, optional-backup,
+and manual-conflict policies under ADR 0012; retain existing local data and
+pending operations until the migration is acknowledged.
 
 ## Verification
 

@@ -540,6 +540,7 @@ jest.mock("@clerk/expo", () => ({
 	useAuth: () => ({
 		isLoaded: true,
 		isSignedIn: true,
+		userId: "test-user",
 		signOut: jest.fn(),
 		getToken: jest.fn().mockResolvedValue(null),
 	}),
@@ -583,6 +584,7 @@ jest.mock("convex/react", () => {
 			data: false,
 		})),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+		useConvex: jest.fn(() => ({ query: jest.fn().mockResolvedValue([]) })),
 		usePaginatedQuery: jest.fn(() => ({
 			results: [],
 			status: "Exhausted",

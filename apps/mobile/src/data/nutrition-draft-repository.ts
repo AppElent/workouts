@@ -2,7 +2,7 @@
  * Capture Drafts: a note about intake, filed under a day and Meal Slot, that
  * does not count as intake until it becomes Diary Entries (see CONTEXT.md).
  *
- * Drafts are device-only by decision (ADR 0005). They share the cooking
+ * This store retains pre-ADR-0012 notes for acknowledged account migration. They share the cooking
  * database file because that is where the table was born; this module now owns
  * the table, and the cooking repository no longer reads it. The table is
  * created idempotently rather than versioned so either opener can go first.
@@ -35,6 +35,8 @@ export type OtherDaysSummary = {
 
 export type NutritionDraftRepository = {
 	listForDate(subject: string, date: string): CaptureDraft[];
+	pendingMigrations(subject: string): CaptureDraft[];
+	acknowledgeMigration(draft: CaptureDraft): void;
 	/** Drafts on every day except `date` — what the diary's banner reports. */
 	summariseOtherDays(subject: string, date: string): OtherDaysSummary;
 	get(subject: string, id: string): CaptureDraft | undefined;
@@ -68,6 +70,10 @@ function ensureTable(database: SyncSQLiteDatabase): void {
 			conversion_operation_id TEXT,
 			created_at INTEGER NOT NULL,
 			updated_at INTEGER NOT NULL,
+			PRIMARY KEY (subject, id)
+		);
+		CREATE TABLE IF NOT EXISTS nutrition_capture_draft_migrations (
+			subject TEXT NOT NULL, id TEXT NOT NULL, updated_at INTEGER NOT NULL,
 			PRIMARY KEY (subject, id)
 		);
 		CREATE INDEX IF NOT EXISTS nutrition_capture_drafts_by_date
@@ -130,6 +136,26 @@ export function createNutritionDraftRepository(
 	}
 
 	return {
+		pendingMigrations(subject) {
+			return database
+				.getAllSync<DraftRow>(
+					`SELECT d.* FROM nutrition_capture_drafts d LEFT JOIN nutrition_capture_draft_migrations m
+				 ON d.subject = m.subject AND d.id = m.id
+				 WHERE d.subject = ? AND (m.updated_at IS NULL OR m.updated_at <> d.updated_at)
+				 ORDER BY d.created_at ASC, d.id ASC`,
+					subject,
+				)
+				.map(fromRow);
+		},
+		acknowledgeMigration(draft) {
+			database.runSync(
+				`INSERT INTO nutrition_capture_draft_migrations(subject, id, updated_at) VALUES (?, ?, ?)
+			 ON CONFLICT(subject, id) DO UPDATE SET updated_at = excluded.updated_at`,
+				draft.subject,
+				draft.id,
+				draft.updatedAt,
+			);
+		},
 		listForDate(subject, date) {
 			return database
 				.getAllSync<DraftRow>(
@@ -171,13 +197,15 @@ export function createNutritionDraftRepository(
 			return created;
 		},
 		update(subject, id, input) {
+			const current = get(subject, id);
+			if (!current) throw new Error("Draft was not found.");
 			const valid = validate(input);
 			database.runSync(
 				"UPDATE nutrition_capture_drafts SET date = ?, meal = ?, note = ?, updated_at = ? WHERE subject = ? AND id = ?",
 				valid.date,
 				valid.meal,
 				valid.note,
-				now(),
+				Math.max(now(), current.updatedAt + 1),
 				subject,
 				id,
 			);

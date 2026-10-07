@@ -52,7 +52,7 @@ export function useComboLog({
 	onLogged: () => void;
 	onFailed: () => void;
 }) {
-	const foods = usePersonalFoods();
+	const foods = usePersonalFoods({ ids: [combo.id] });
 	const operations = useNutritionOperations();
 	const whole = useAmountSelection({
 		option: WHOLE_COMBO,
@@ -74,7 +74,8 @@ export function useComboLog({
 	});
 	const included = parts.filter((item) => item.included);
 	const missing = combo.parts.filter((part) => part.status === "missing");
-	const canLog = whole.valid && included.length > 0 && !logging;
+	const canLog =
+		whole.valid && included.length > 0 && !logging && !foods.loading;
 	/** Per-combo values of what is included, before the whole-combo factor. */
 	const nutrients = combinedNutrients(
 		included.map(({ snapshot }) => snapshot.nutrients),

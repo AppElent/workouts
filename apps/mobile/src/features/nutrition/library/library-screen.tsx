@@ -60,12 +60,14 @@ function itemKey(item: LibraryItem) {
 }
 
 export function LibraryScreen() {
+	const pendingItems = useRef(new Set<string>());
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.library;
 	const colors = useTokens();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const library = usePersonalFoods();
+	const [chip, setChip] = useState<LibraryChip>("all");
+	const [query, setQuery] = useState("");
 	const operations = useNutritionOperations();
 	useNutritionOperationVersion();
 	const subject = operations.getSubject();
@@ -74,28 +76,43 @@ export function LibraryScreen() {
 			(shortcut) => shortcut.sourceKey,
 		),
 	);
+	const library = usePersonalFoods({
+		...(chip === "favorite"
+			? {
+					ids: [...favoriteKeys]
+						.filter(
+							(key) => key.startsWith("personal:") || key.startsWith("combo:"),
+						)
+						.slice(0, 100)
+						.map((key) => key.slice(key.indexOf(":") + 1)),
+				}
+			: {
+					browse: {
+						query,
+						...(chip === "food" || chip === "recipe" || chip === "combo"
+							? { category: chip }
+							: {}),
+					},
+				}),
+	});
 	const combos = library.listCombos();
 	const items = libraryItems(library.list(), combos, favoriteKeys);
-	const [chip, setChip] = useState<LibraryChip>("all");
-	const [query, setQuery] = useState("");
+
 	const [selection, setSelection] = useState<Set<string> | null>(null);
 	const [scanning, setScanning] = useState(false);
 	const bottomToolbar = isIOS26OrLater();
 	const searchRef = useRef<SearchBarCommands>(null);
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const offline = useStalledOffline(true, connected);
-	const visible = filterLibrary(items, { chip, query, locale });
+	const visible = filterLibrary(items, {
+		chip,
+		query: chip === "favorite" ? query : "",
+		locale,
+	});
 	const searching = query.trim().length > 0;
 	const selecting = selection !== null;
 
 	const problems = [
-		...library.backup.conflicts.map((conflict) => ({
-			key: `conflict:${conflict.record.kind}:${conflict.record.id}`,
-			name:
-				conflict.record.kind === "food"
-					? (library.find(conflict.record.id)?.name[locale] ?? copy.conflict)
-					: (library.findCombo(conflict.record.id)?.name ?? copy.conflict),
-		})),
 		...combos
 			.filter((combo) => combo.parts.some((part) => part.status === "missing"))
 			.map((combo) => ({ key: `combo:${combo.id}`, name: combo.name })),
@@ -129,18 +146,20 @@ export function LibraryScreen() {
 		if (!subject) return;
 		operations.toggleFavorite(subject, favoriteKeyOf(item), !item.favorite);
 	};
-	const duplicate = (item: LibraryItem) => {
+	const duplicate = async (item: LibraryItem) => {
+		if (pendingItems.current.has(item.id)) return;
+		pendingItems.current.add(item.id);
 		try {
 			if (item.kind === "combo") {
 				const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.combo;
-				library.createCombo({
+				await library.createCombo({
 					...draft,
 					name: `${draft.name}${copy.copySuffix}`,
 					parts: draft.parts.map(({ id: _part, status: _s, ...part }) => part),
 				});
 			} else {
 				const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.food;
-				library.create({
+				await library.create({
 					...draft,
 					name: {
 						en: `${draft.name.en}${copy.copySuffix}`,
@@ -153,6 +172,8 @@ export function LibraryScreen() {
 			);
 		} catch {
 			toast.error(copy.actionFailure);
+		} finally {
+			pendingItems.current.delete(item.id);
 		}
 	};
 	const remove = async (targets: readonly LibraryItem[]) => {
@@ -192,10 +213,13 @@ export function LibraryScreen() {
 			destructive: true,
 		});
 		if (!ok) return;
+		if (targets.some((item) => pendingItems.current.has(item.id))) return;
+		for (const item of targets) pendingItems.current.add(item.id);
 		try {
 			for (const item of targets) {
-				if (item.kind === "combo") library.removeCombo(item.id);
-				else if (library.remove(item.id)) foodPhotos.remove(item.food.visual);
+				if (item.kind === "combo") await library.removeCombo(item.id);
+				else if (await library.remove(item.id))
+					foodPhotos.remove(item.food.visual);
 			}
 			setSelection(null);
 			toast.success(
@@ -205,6 +229,8 @@ export function LibraryScreen() {
 			);
 		} catch {
 			toast.error(copy.actionFailure);
+		} finally {
+			for (const item of targets) pendingItems.current.delete(item.id);
 		}
 	};
 	const actions = (item: LibraryItem): RowAction[] =>
@@ -383,7 +409,6 @@ export function LibraryScreen() {
 				[{ id: "select", label: copy.select }],
 				[
 					{ id: "measures", label: copy.measures },
-					{ id: "backup", label: copy.backup },
 					{ id: "settings", label: copy.settings },
 				],
 			]}
@@ -480,16 +505,10 @@ export function LibraryScreen() {
 		},
 	];
 
-	const firstTime = items.length === 0;
+	const firstTime =
+		items.length === 0 && !library.loading && !searching && chip === "all";
 	const sections = librarySections(visible);
-	const statusLine = library.backup.restoreError ? (
-		<StatusRow
-			icon="exclamationmark.triangle"
-			title={copy.restoreFailed}
-			action={copy.retry}
-			onPress={library.backup.restore}
-		/>
-	) : problems.length ? (
+	const statusLine = problems.length ? (
 		<StatusRow
 			icon="exclamationmark.triangle"
 			title={copy.attention}
@@ -505,9 +524,15 @@ export function LibraryScreen() {
 			<Modal visible presentationStyle="fullScreen" animationType="slide">
 				<BarcodeScanner
 					onCancel={() => setScanning(false)}
-					onScanned={(barcode) => {
+					onScanned={async (barcode) => {
 						setScanning(false);
-						const local = library.findByBarcode(barcode);
+						let local: Awaited<ReturnType<typeof library.lookupBarcode>>;
+						try {
+							local = await library.lookupBarcode(barcode);
+						} catch {
+							toast.error(copy.actionFailure);
+							return;
+						}
 						if (local)
 							router.push({
 								pathname: "/personal-food/[id]",
@@ -875,6 +900,24 @@ export function LibraryScreen() {
 						) : null}
 					</>
 				)}
+				{library.loading ? (
+					<AppText variant="caption" style={{ margin: spacing.md }}>
+						{locale === "nl" ? "Bibliotheek laden…" : "Loading library…"}
+					</AppText>
+				) : null}
+				{library.canLoadMore ? (
+					<Pressable
+						accessibilityRole="button"
+						onPress={library.loadMore}
+						style={{
+							minHeight: 44,
+							alignItems: "center",
+							justifyContent: "center",
+						}}
+					>
+						<AppText>{locale === "nl" ? "Meer laden" : "Load more"}</AppText>
+					</Pressable>
+				) : null}
 			</ScrollView>
 			{/* After the scroll view, so the large title tracks it. */}
 			{bottomToolbar && !selecting ? (

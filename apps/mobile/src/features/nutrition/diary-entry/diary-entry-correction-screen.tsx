@@ -52,17 +52,32 @@ function parseValue(value: string): NutrientValue {
 			: { kind: "value", amount: Number(v.replace(",", ".")) };
 }
 
-export function DiaryEntryCorrectionScreen({
-	entry,
-	date,
-	meal,
-	nutrient,
-}: {
+type CorrectionProps = {
 	entry: DiaryEntry;
 	date: string;
 	meal: MealSlot;
 	nutrient: NutrientKey;
-}) {
+};
+
+export function DiaryEntryCorrectionScreen(props: CorrectionProps) {
+	const source = props.entry.provenance;
+	const foods = usePersonalFoods({
+		ids:
+			source.source !== "oneOff" && source.source !== "shipped"
+				? [source.sourceId]
+				: [],
+		forkIds: source.source === "shipped" ? [source.sourceId] : [],
+	});
+	const { t } = useI18n();
+	const [loaded, setLoaded] = useState(false);
+	useEffect(() => {
+		if (!foods.loading) setLoaded(true);
+	}, [foods.loading]);
+	if (!loaded) return <AppText>{t.nutrition.day.loading}</AppText>;
+	return <CorrectionForm {...props} />;
+}
+
+function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 	const { t, locale } = useI18n();
 	const colors = useTokens();
 	const foods = usePersonalFoods();
@@ -120,7 +135,7 @@ export function DiaryEntryCorrectionScreen({
 			: "Could not save. Your changes are still here; try again.";
 	const form = useForm({
 		defaultValues: { nutrients: initial, convertedAmount: "" },
-		onSubmit: ({ value }) => {
+		onSubmit: async ({ value }) => {
 			if (
 				lock.current ||
 				!NUTRIENT_KEYS.every(
@@ -193,8 +208,8 @@ export function DiaryEntryCorrectionScreen({
 										})),
 								],
 					};
-					if (latest) foods.update(latest.id, draft);
-					else foods.create(draft);
+					if (latest) await foods.update(latest.id, draft);
+					else await foods.create(draft);
 					setSourceSaved(true);
 				}
 				operations.update(

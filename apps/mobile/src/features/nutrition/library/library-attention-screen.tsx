@@ -6,17 +6,12 @@ import { spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { AppText } from "../../../ui/text";
 
-/**
- * Every library problem with the action that fixes it: a version conflict
- * opens backup and sync, which owns resolving it; a combo with a missing
- * part opens that combo.
- */
+/** Known Combos with missing source parts open their editor for repair. */
 export function LibraryAttentionScreen() {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.library;
 	const colors = useTokens();
 	const library = usePersonalFoods();
-	const conflicts = library.backup.conflicts;
 	const broken = library
 		.listCombos()
 		.filter((combo) => combo.parts.some((part) => part.status === "missing"));
@@ -29,23 +24,6 @@ export function LibraryAttentionScreen() {
 				contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}
 			>
 				<InsetList compact>
-					{conflicts.map((conflict) => (
-						<InsetRow
-							key={`${conflict.record.kind}:${conflict.record.id}`}
-							leading={{ symbol: "arrow.triangle.2.circlepath" }}
-							title={
-								conflict.record.kind === "food"
-									? (library.find(conflict.record.id)?.name[locale] ??
-										copy.conflict)
-									: (library.findCombo(conflict.record.id)?.name ??
-										copy.conflict)
-							}
-							secondary={copy.conflict}
-							value={copy.conflictAction}
-							chevron
-							onPress={() => router.push("/nutrition-settings")}
-						/>
-					))}
 					{broken.map((combo) => (
 						<InsetRow
 							key={combo.id}

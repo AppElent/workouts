@@ -1,4 +1,4 @@
-/** Edit a device-only Capture Draft's text or Meal Slot in a page sheet. */
+/** Edit an account-owned Capture Draft's text or Meal Slot in a page sheet. */
 import { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import { MEAL_SLOTS, type MealSlot } from "../../../../data/nutrition-day";
@@ -36,11 +36,11 @@ export function DiaryDraftEditor({
 	const [saving, setSaving] = useState(false);
 	const unchanged = note === draft.note && meal === draft.meal;
 
-	function save() {
+	async function save() {
 		if (saving || unchanged || !note.trim()) return;
 		setSaving(true);
 		try {
-			drafts.update(draft.id, { date: draft.date, meal, note });
+			await drafts.update(draft.id, { date: draft.date, meal, note });
 			onClose();
 		} catch {
 			toast.error(copy.saveFailure);

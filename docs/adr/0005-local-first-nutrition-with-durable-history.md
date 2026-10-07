@@ -1,8 +1,18 @@
 ---
-status: accepted
+status: partially superseded by ADR-0012
 ---
 
 # Keep nutrition local-first without allowing history to drift
+
+On 2026-10-07, [ADR 0012](0012-online-first-account-data.md) superseded this
+decision's offline-write, local ownership, optional backup, device-only Capture
+Draft, and manual conflict policies. Its historical nutrition guarantees remain:
+frozen Diary Entry snapshots, current-source resolution for future Combo logs,
+and effective-dated Nutrition Goals. The original decision below records the
+existing behavior that issue 89 must migrate safely; acceptance of ADR 0012 does
+not mean that runtime migration has shipped.
+
+## Original decision
 
 Nutrition remains usable without a connection: diary changes are accepted locally and later acknowledged by the shared account history, while Personal Foods and Combos are authored locally with explicit opt-in account backup. Legacy libraries require an explicit claim, conflicts require a person's choice, deletions remain meaningful, and Capture Drafts stay device-only until their own synchronization needs are justified.
 

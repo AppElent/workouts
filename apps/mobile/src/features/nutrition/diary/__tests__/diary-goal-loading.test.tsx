@@ -112,7 +112,7 @@ it("explains uncached goals offline without hiding the available diary", async (
 		expect(screen.queryByLabelText("Loading goals")).toBeNull();
 		expect(
 			screen.getByText(
-				"Goals for this day are not on this phone yet. They will appear when you reconnect. You can still log food.",
+				"Goals for this day are not on this phone yet. Connect to load them and log food.",
 			),
 		).toBeTruthy();
 		expect(screen.getByLabelText("Add food to Breakfast")).toBeEnabled();
