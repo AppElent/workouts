@@ -21,9 +21,10 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { foodEditorCopy } from "../components/food-editor-copy";
+import type { NutrientInput } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 
-export type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
+export type { NutrientInput };
 export type ServingInput = {
 	key: string;
 	en: string;

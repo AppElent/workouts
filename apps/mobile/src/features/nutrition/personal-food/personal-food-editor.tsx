@@ -1,9 +1,9 @@
-import { type NutrientKey, roundForDisplay } from "@workouts/core/nutrition";
+import { roundForDisplay } from "@workouts/core/nutrition";
 import { Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
 import { SymbolView } from "expo-symbols";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Keyboard,
 	Pressable,
@@ -26,27 +26,20 @@ import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import { foodEditorCopy } from "../components/food-editor-copy";
+import {
+	FoodFormCard,
+	FoodFormMenuValue,
+	FoodFormSectionHeader,
+} from "../components/food-form-section";
 import { FoodKeyboardBar } from "../components/food-keyboard-bar";
-import { FoodValueField } from "../components/food-value-field";
+import { FoodNutrientRows } from "../components/food-nutrient-rows";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
+import { useNutrientFields } from "../use-nutrient-fields";
 import {
-	type NutrientInput,
 	parseFoodNumber,
 	usePersonalFoodDraft,
 } from "./use-personal-food-draft";
-
-/** Label order: what you read on a package, "of which" rows indented. */
-const NUTRIENT_ROWS: readonly { key: NutrientKey; indent?: boolean }[] = [
-	{ key: "energy" },
-	{ key: "protein" },
-	{ key: "carbs" },
-	{ key: "sugars", indent: true },
-	{ key: "fat" },
-	{ key: "saturatedFat", indent: true },
-	{ key: "fibre" },
-	{ key: "salt" },
-];
 
 export type PersonalFoodEditorProps = {
 	food?: PersonalFood;
@@ -107,9 +100,6 @@ export function PersonalFoodEditor({
 		remove: () => undefined,
 		close: () => undefined,
 	});
-	const inputs = useRef(new Map<NutrientKey, TextInput>());
-	const [focused, setFocused] = useState<NutrientKey | null>(null);
-	const focusSnapshot = useRef<NutrientInput | undefined>(undefined);
 	const [servingEditor, setServingEditor] = useState<number | "new" | null>(
 		null,
 	);
@@ -202,18 +192,10 @@ export function PersonalFoodEditor({
 			.filter(Boolean)
 			.join(" · ");
 	})();
-	const nutrientDisplay = (key: NutrientKey) => {
-		const input = draft.nutrients[key];
-		return input.kind === "trace"
-			? copy.trace
-			: input.kind === "value"
-				? input.amount
-				: "—";
-	};
-	const fieldOrder = NUTRIENT_ROWS.map((row) => row.key);
-	const focusIndex = focused ? fieldOrder.indexOf(focused) : -1;
-	const focusField = (key: NutrientKey) =>
-		requestAnimationFrame(() => inputs.current.get(key)?.focus());
+	const nutrientFields = useNutrientFields({
+		values: draft.nutrients,
+		onChange: draft.setNutrient,
+	});
 
 	// A seeded draft (an import to review, a correction to start) is worth
 	// saving as it is; an existing food only once something changed.
@@ -504,7 +486,7 @@ export function PersonalFoodEditor({
 					: null}
 				{draft.basisKind === "per100" ? (
 					<>
-						<SectionHeader
+						<FoodFormSectionHeader
 							title={copy.servings}
 							trailing={
 								<Pressable
@@ -537,7 +519,7 @@ export function PersonalFoodEditor({
 								{copy.noServings}
 							</AppText>
 						) : (
-							<Card>
+							<FoodFormCard>
 								{draft.servings.map((serving, index) => {
 									const label = locale === "en" ? serving.en : serving.nl;
 									const amount = parseFoodNumber(serving.amount);
@@ -616,7 +598,7 @@ export function PersonalFoodEditor({
 										</View>
 									);
 								})}
-							</Card>
+							</FoodFormCard>
 						)}
 						{draft.servings.length ? (
 							<AppText
@@ -628,7 +610,7 @@ export function PersonalFoodEditor({
 						) : null}
 					</>
 				) : null}
-				<SectionHeader
+				<FoodFormSectionHeader
 					title={copy.nutrition}
 					trailing={
 						<NutritionChoiceMenu
@@ -660,96 +642,18 @@ export function PersonalFoodEditor({
 									: draft.setBasis("per100", id as "g" | "ml")
 							}
 						>
-							<View
-								style={{
-									flexDirection: "row",
-									alignItems: "center",
-									gap: 4,
-									minHeight: 32,
-								}}
-							>
-								<AppText
-									variant="footnote"
-									style={{ color: colors.accent, fontWeight: "700" }}
-								>
-									{draft.basisKind === "perServing"
+							<FoodFormMenuValue
+								label={
+									draft.basisKind === "perServing"
 										? copy.perServing
-										: fmt(copy.per100, { unit: draft.baseUnit })}
-								</AppText>
-								<SymbolView
-									name={{
-										ios: "chevron.up.chevron.down",
-										android: "unfold_more",
-										web: "unfold_more",
-									}}
-									size={10}
-									weight="semibold"
-									tintColor={colors.accent}
-								/>
-							</View>
+										: fmt(copy.per100, { unit: draft.baseUnit })
+								}
+							/>
 						</NutritionChoiceMenu>
 					}
 				/>
-				<Card>
-					{NUTRIENT_ROWS.map(({ key, indent }, index) => (
-						<View
-							key={key}
-							style={{
-								minHeight: 48,
-								flexDirection: "row",
-								alignItems: "center",
-								paddingLeft: indent ? spacing.md + 16 : spacing.md,
-								paddingRight: spacing.md,
-								borderTopWidth: index ? 0.5 : 0,
-								borderTopColor: colors.separator,
-							}}
-						>
-							<AppText
-								variant="secondary"
-								style={{
-									flex: 1,
-									color: indent ? colors.textMuted : colors.text,
-								}}
-							>
-								{indent
-									? key === "sugars"
-										? copy.ofWhichSugars
-										: copy.ofWhichSaturated
-									: t.nutrition.nutrients[key]}
-							</AppText>
-							<FoodValueField
-								inputRef={(input) => {
-									if (input) inputs.current.set(key, input);
-									else inputs.current.delete(key);
-								}}
-								display={nutrientDisplay(key)}
-								unit={
-									draft.nutrients[key].kind === "value"
-										? key === "energy"
-											? "kcal"
-											: "g"
-										: ""
-								}
-								accessibilityLabel={t.nutrition.nutrients[key]}
-								emphasis={draft.nutrients[key].kind === "value"}
-								onFocus={() => {
-									focusSnapshot.current = draft.nutrients[key];
-									setFocused(key);
-								}}
-								onBlur={() =>
-									setFocused((current) => (current === key ? null : current))
-								}
-								onChange={(text) =>
-									draft.setNutrient(
-										key,
-										text
-											? { kind: "value", amount: text }
-											: (focusSnapshot.current ?? draft.nutrients[key]),
-									)
-								}
-							/>
-						</View>
-					))}
+				<FoodFormCard>
+					<FoodNutrientRows values={draft.nutrients} fields={nutrientFields} />
 					<View
 						style={{
 							minHeight: 56,
@@ -773,12 +677,12 @@ export function PersonalFoodEditor({
 							trackColor={{ true: colors.accentFill }}
 						/>
 					</View>
-				</Card>
+				</FoodFormCard>
 				<AppText variant="caption" style={{ paddingHorizontal: spacing.xs }}>
 					{copy.nutrientFooter}
 				</AppText>
-				<SectionHeader title={copy.details} />
-				<Card>
+				<FoodFormSectionHeader title={copy.details} />
+				<FoodFormCard>
 					<View style={detailRow(colors.separator, false)}>
 						<AppText
 							variant="secondary"
@@ -871,7 +775,7 @@ export function PersonalFoodEditor({
 							}
 						</AppText>
 					</View>
-				</Card>
+				</FoodFormCard>
 				{/* An import is checked first and explained last, under its figures. */}
 				{reviewNotice
 					? notice(
@@ -883,32 +787,13 @@ export function PersonalFoodEditor({
 					: null}
 			</ScrollView>
 			<FoodKeyboardBar
-				visible={focused !== null && servingEditor === null}
+				{...nutrientFields.bar}
+				visible={nutrientFields.bar.visible && servingEditor === null}
 				traceLabel={copy.trace}
 				unknownLabel={copy.unknown}
 				previousLabel={copy.previous}
 				nextLabel={copy.next}
 				doneLabel={copy.done}
-				onTrace={() => {
-					if (!focused) return;
-					draft.setNutrient(focused, { kind: "trace", amount: "" });
-					Keyboard.dismiss();
-				}}
-				onUnknown={() => {
-					if (!focused) return;
-					draft.setNutrient(focused, { kind: "absent", amount: "" });
-					Keyboard.dismiss();
-				}}
-				onPrevious={
-					focusIndex > 0
-						? () => focusField(fieldOrder[focusIndex - 1])
-						: undefined
-				}
-				onNext={
-					focusIndex >= 0 && focusIndex < fieldOrder.length - 1
-						? () => focusField(fieldOrder[focusIndex + 1])
-						: undefined
-				}
 			/>
 			{servingEditor !== null ? (
 				<AmountServingPopup
@@ -953,46 +838,4 @@ function detailRow(separator: string, border: boolean) {
 		borderTopWidth: border ? 0.5 : 0,
 		borderTopColor: separator,
 	};
-}
-
-function SectionHeader({
-	title,
-	trailing,
-}: {
-	title: string;
-	trailing?: ReactNode;
-}) {
-	return (
-		<View
-			style={{
-				flexDirection: "row",
-				alignItems: "center",
-				marginTop: spacing.md,
-				marginBottom: 2,
-				paddingHorizontal: spacing.xs,
-				minHeight: 32,
-			}}
-		>
-			<AppText variant="heading" accessibilityRole="header" style={{ flex: 1 }}>
-				{title}
-			</AppText>
-			{trailing}
-		</View>
-	);
-}
-
-function Card({ children }: { children: ReactNode }) {
-	const colors = useTokens();
-	return (
-		<View
-			style={{
-				backgroundColor: colors.surface,
-				borderRadius: radius.contentCard,
-				borderCurve: "continuous",
-				overflow: "hidden",
-			}}
-		>
-			{children}
-		</View>
-	);
 }

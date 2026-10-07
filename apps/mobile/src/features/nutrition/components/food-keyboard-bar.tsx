@@ -24,8 +24,9 @@ export function FoodKeyboardBar({
 	previousLabel: string;
 	nextLabel: string;
 	doneLabel: string;
-	onTrace: () => void;
-	onUnknown: () => void;
+	/** Absent where a value cannot be a trace or unknown, such as an amount. */
+	onTrace?: () => void;
+	onUnknown?: () => void;
 	onPrevious?: () => void;
 	onNext?: () => void;
 }) {
@@ -97,8 +98,8 @@ export function FoodKeyboardBar({
 							minHeight: 52,
 						}}
 					>
-						{chip(traceLabel, onTrace)}
-						{chip(unknownLabel, onUnknown)}
+						{onTrace ? chip(traceLabel, onTrace) : null}
+						{onUnknown ? chip(unknownLabel, onUnknown) : null}
 						<View style={{ flex: 1 }} />
 						{step(previousLabel, "chevron.left", onPrevious)}
 						{step(nextLabel, "chevron.right", onNext)}
