@@ -91,8 +91,11 @@ describe("personal food editor", () => {
 			{ label: { en: "Cup", nl: "Kop" }, amount: 80 },
 		]);
 		fireEvent.press(await screen.findByLabelText("Add serving"));
-		fireEvent.changeText(screen.getByLabelText("Serving name"), "Jar");
-		fireEvent.changeText(screen.getByLabelText("Serving amount"), "400");
+		fireEvent.changeText(
+			screen.getAllByLabelText("Name").at(-1) as never,
+			"Jar",
+		);
+		fireEvent.changeText(screen.getByLabelText("Amount"), "400");
 		fireEvent.press(screen.getByText("Add"));
 
 		fireEvent(await screen.findByLabelText(/^Jar,/), "accessibilityAction", {

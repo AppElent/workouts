@@ -459,9 +459,13 @@ describe("browsing shipped foods", () => {
 		fireEvent.changeText(screen.getByLabelText("Name"), "Training gel");
 		fireEvent.changeText(screen.getByLabelText("Energy"), "260");
 		fireEvent.press(screen.getByLabelText("Add serving"));
-		fireEvent.changeText(screen.getByLabelText("Serving name"), "Pouch");
-		fireEvent.changeText(screen.getByLabelText("Serving amount"), "40");
+		fireEvent.changeText(
+			screen.getAllByLabelText("Name").at(-1) as never,
+			"Pouch",
+		);
+		fireEvent.changeText(screen.getByLabelText("Amount"), "40");
 		fireEvent.press(screen.getByText("Add"));
+		await screen.findByLabelText(/^Pouch, /);
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		await expectServing("Pouch", "1");

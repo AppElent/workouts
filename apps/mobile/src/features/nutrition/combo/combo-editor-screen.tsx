@@ -1,31 +1,21 @@
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
-import {
-	Alert,
-	Keyboard,
-	Platform,
-	Pressable,
-	ScrollView,
-	TextInput,
-	View,
-} from "react-native";
+import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { todayIsoDate } from "../../../data/calendar-day";
-import { scaleComboSnapshot } from "../../../data/nutrition-combo";
 import type { Combo } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
-import { radius, spacing, type, useTokens } from "../../../theme";
+import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { FoodVisualView } from "../../../ui/food-visual";
 import { GlassSurface } from "../../../ui/glass-surface";
+import { InsetList, InsetRow } from "../../../ui/inset-list";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
-import { NutritionKeyboardOverlay } from "../components/nutrition-keyboard-overlay";
-import { NutritionListRow } from "../components/nutrition-list-row";
+import { NutritionEnergyValue } from "../components/nutrition-energy-value";
 import {
 	comboDraft,
 	comboTotals,
@@ -33,7 +23,7 @@ import {
 	withoutMissingParts,
 } from "./combo-parts";
 
-function position(index: number, count: number): FoodRowPosition {
+function _position(index: number, count: number): FoodRowPosition {
 	if (count === 1) return "only";
 	if (index === 0) return "first";
 	return index === count - 1 ? "last" : "middle";
@@ -51,10 +41,6 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 	const confirm = useConfirm();
 	const library = usePersonalFoods();
 	const combo = library.findCombo(comboId);
-	const [portion, setPortion] = useState<{
-		partId: string;
-		text: string;
-	} | null>(null);
 
 	if (!combo) return null;
 
@@ -65,6 +51,11 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			toast.error(copy.saveFailure);
 		}
 	};
+	const openPart = (partId: string) =>
+		router.push({
+			pathname: "/nutrition-combo-part",
+			params: { comboId: combo.id, partId },
+		});
 	const removePart = (partId: string) => {
 		const part = combo.parts.find((item) => item.id === partId);
 		if (!part) return;
@@ -115,22 +106,6 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			pathname: "/nutrition-combos",
 			params: { comboId: combo.id, date: todayIsoDate() },
 		});
-	const savePortion = () => {
-		if (!portion) return;
-		const factor = Number(portion.text.replace(",", "."));
-		Keyboard.dismiss();
-		setPortion(null);
-		if (!Number.isFinite(factor) || factor <= 0 || factor === 1) return;
-		write({
-			...combo,
-			parts: combo.parts.map((part) =>
-				part.id === portion.partId
-					? { ...part, snapshot: scaleComboSnapshot(part.snapshot, factor) }
-					: part,
-			),
-		});
-	};
-
 	const totals = comboTotals(combo);
 	const missing = combo.parts.filter((part) => part.status === "missing");
 	const count = combo.parts.length;
@@ -143,7 +118,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 				key: "portion",
 				label: copy.changePortion,
 				systemImage: "pencil",
-				onPress: () => setPortion({ partId: part.id, text: "" }),
+				onPress: () => openPart(part.id),
 			},
 			...(openable
 				? [
@@ -245,10 +220,6 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			</View>
 		</NutritionChoiceMenu>
 	);
-	const editingPart = portion
-		? combo.parts.find((part) => part.id === portion.partId)
-		: undefined;
-
 	return (
 		<>
 			<Stack.Screen
@@ -380,41 +351,71 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 					</AppText>
 					<AppText variant="footnote">{count}</AppText>
 				</View>
-				{combo.parts.map((part, index) => {
-					const energy = part.snapshot.nutrients.energy;
-					return (
-						<NutritionListRow
-							key={part.id}
-							title={part.snapshot.name[locale]}
-							caption={
+				<View style={{ marginHorizontal: spacing.md }}>
+					<InsetList compact>
+						{combo.parts.map((part, index) => {
+							const energy = part.snapshot.nutrients.energy;
+							const caption =
 								part.status === "missing"
 									? `⚠ ${copy.missingPart} · ${part.snapshot.serving[locale]}`
-									: part.snapshot.serving[locale]
-							}
-							value={
+									: part.snapshot.serving[locale];
+							const value =
 								energy.kind === "value"
 									? `${Math.round(energy.amount).toLocaleString(locale)} kcal`
-									: undefined
-							}
-							leading={
-								<FoodVisualView
-									visual={
-										part.reference.kind === "personal"
-											? library.find(part.reference.foodId)?.visual
-											: undefined
+									: undefined;
+							return (
+								<InsetRow
+									key={part.id}
+									id={part.id}
+									title={part.snapshot.name[locale]}
+									secondary={caption}
+									leading={
+										<FoodVisualView
+											visual={
+												part.reference.kind === "personal"
+													? library.find(part.reference.foodId)?.visual
+													: undefined
+											}
+											label={part.snapshot.name[locale]}
+											size={38}
+										/>
 									}
-									label={part.snapshot.name[locale]}
-									size={38}
+									trailing={<NutritionEnergyValue value={value} />}
+									chevron
+									accessibilityLabel={`${part.snapshot.name[locale]}, ${caption}${value ? `, ${value}` : ""}`}
+									actions={partActions(index)}
+									onPress={() => openPart(part.id)}
 								/>
-							}
-							position={position(index, count)}
-							selectLabel=""
-							actions={partActions(index)}
-							closeMenuLabel={copy.cancel}
-							onPress={() => setPortion({ partId: part.id, text: "" })}
+							);
+						})}
+					</InsetList>
+					<Pressable
+						accessibilityRole="button"
+						onPress={() =>
+							router.push({
+								pathname: "/nutrition-food",
+								params: { comboId: combo.id },
+							})
+						}
+						style={{
+							minHeight: 44,
+							flexDirection: "row",
+							alignItems: "center",
+							gap: 8,
+							paddingHorizontal: spacing.xs,
+						}}
+					>
+						<SymbolView
+							name={{ ios: "plus", android: "add", web: "add" }}
+							size={15}
+							weight="semibold"
+							tintColor={colors.accent}
 						/>
-					);
-				})}
+						<AppText style={{ color: colors.accent, fontWeight: "700" }}>
+							{copy.addPart}
+						</AppText>
+					</Pressable>
+				</View>
 				<AppText
 					variant="caption"
 					style={{ marginHorizontal: 20, marginTop: spacing.sm }}
@@ -422,97 +423,6 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 					{copy.footer}
 				</AppText>
 			</ScrollView>
-			{editingPart && portion ? (
-				<NutritionKeyboardOverlay>
-					<View style={{ padding: spacing.sm }}>
-						<GlassSurface
-							style={{ padding: spacing.md, gap: spacing.sm, borderRadius: 26 }}
-						>
-							<AppText
-								variant="secondary"
-								style={{ fontWeight: "700", color: colors.text }}
-							>
-								{fmt(copy.portionTitle, {
-									name: editingPart.snapshot.name[locale],
-								})}
-							</AppText>
-							<View
-								style={{
-									flexDirection: "row",
-									alignItems: "center",
-									gap: spacing.sm,
-								}}
-							>
-								<TextInput
-									autoFocus
-									accessibilityLabel={fmt(copy.portionTitle, {
-										name: editingPart.snapshot.name[locale],
-									})}
-									value={portion.text}
-									placeholder="1"
-									placeholderTextColor={colors.textFaint}
-									keyboardType="decimal-pad"
-									onChangeText={(text) => setPortion({ ...portion, text })}
-									style={{
-										...type.secondary,
-										width: 84,
-										minHeight: 44,
-										paddingHorizontal: 12,
-										borderRadius: radius.lg,
-										backgroundColor: colors.surface2,
-										color: colors.text,
-										textAlign: "right",
-									}}
-								/>
-								<AppText variant="footnote" style={{ flex: 1 }}>
-									{copy.portionHint} ({editingPart.snapshot.serving[locale]})
-								</AppText>
-							</View>
-							<View
-								style={{
-									flexDirection: "row",
-									justifyContent: "flex-end",
-									gap: spacing.sm,
-								}}
-							>
-								<Pressable
-									accessibilityRole="button"
-									onPress={() => {
-										Keyboard.dismiss();
-										setPortion(null);
-									}}
-									style={{
-										minHeight: 40,
-										paddingHorizontal: spacing.md,
-										justifyContent: "center",
-									}}
-								>
-									<AppText style={{ color: colors.text }}>
-										{copy.cancel}
-									</AppText>
-								</Pressable>
-								<Pressable
-									accessibilityRole="button"
-									onPress={savePortion}
-									style={{
-										minHeight: 40,
-										paddingHorizontal: spacing.md,
-										borderRadius: radius.pill,
-										backgroundColor: colors.accentFill,
-										justifyContent: "center",
-									}}
-								>
-									<AppText
-										style={{ color: colors.onAccent, fontWeight: "700" }}
-									>
-										{copy.save}
-									</AppText>
-								</Pressable>
-							</View>
-						</GlassSurface>
-					</View>
-				</NutritionKeyboardOverlay>
-			) : null}
 		</>
 	);
 }

@@ -6,7 +6,7 @@ import {
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { View } from "react-native";
 import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
 import {
 	mintNutritionUuid,
@@ -20,12 +20,13 @@ import { usePersonalMeasures } from "../../../../data/personal-measures";
 import { useSupplementaryServings } from "../../../../data/supplementary-servings";
 import { haptics } from "../../../../feedback/haptics";
 import { fmt, useI18n } from "../../../../i18n";
-import { radius, spacing, useTokens } from "../../../../theme";
+import { spacing, useTokens } from "../../../../theme";
 import { GlassSurface } from "../../../../ui/glass-surface";
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
 import { AmountDestination } from "../../components/amount-destination";
 import { AmountEditor } from "../../components/amount-editor";
+import { AmountEditorHeader } from "../../components/amount-editor-header";
 import { NutritionChoiceMenu } from "../../components/nutrition-choice-menu";
 import { useAmountSelection } from "../../components/use-amount-selection";
 import {
@@ -173,41 +174,6 @@ export function LogFoodAmountSheet({
 	}
 
 	const reference = food.baseUnit === "serving" ? 1 : 100;
-	const headerButton = (
-		label: string,
-		glyph: "xmark" | "checkmark",
-		onPress: () => void,
-		disabled: boolean,
-		prominent = false,
-	) => (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityLabel={label}
-			accessibilityState={{ disabled }}
-			disabled={disabled}
-			onPress={onPress}
-			style={{
-				width: 44,
-				height: 44,
-				borderRadius: radius.pill,
-				alignItems: "center",
-				justifyContent: "center",
-				backgroundColor: prominent ? colors.accentFill : undefined,
-				opacity: disabled ? 0.4 : 1,
-			}}
-		>
-			<SymbolView
-				name={{
-					ios: glyph,
-					android: glyph === "xmark" ? "close" : "check",
-					web: glyph === "xmark" ? "close" : "check",
-				}}
-				size={19}
-				weight="semibold"
-				tintColor={prominent ? colors.onAccent : colors.text}
-			/>
-		</Pressable>
-	);
 	const menuItems = [
 		[
 			{
@@ -239,47 +205,17 @@ export function LogFoodAmountSheet({
 
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
-			<View
-				style={{
-					flexDirection: "row",
-					alignItems: "center",
-					paddingHorizontal: spacing.sm,
-					paddingTop: spacing.sm,
-				}}
-			>
-				<GlassSurface capsule>
-					{headerButton(
-						t.nutrition.foodBrowser.closeServingLabel,
-						"xmark",
-						onBack,
-						logging || adding,
-					)}
-				</GlassSurface>
-				<AppText
-					variant="navTitle"
-					numberOfLines={1}
-					style={{ flex: 1, textAlign: "center", marginHorizontal: spacing.sm }}
-				>
-					{food.name[locale]}
-				</AppText>
-				<GlassSurface capsule>
-					{logging ? (
-						<View style={{ width: 44, height: 44, justifyContent: "center" }}>
-							<ActivityIndicator
-								accessibilityLabel={t.nutrition.foodBrowser.logging}
-							/>
-						</View>
-					) : (
-						headerButton(
-							t.nutrition.foodBrowser.addAndContinue,
-							"checkmark",
-							() => log("continue"),
-							!amount.valid || adding,
-							true,
-						)
-					)}
-				</GlassSurface>
-			</View>
+			<AmountEditorHeader
+				title={food.name[locale]}
+				closeLabel={t.nutrition.foodBrowser.closeServingLabel}
+				confirmLabel={t.nutrition.foodBrowser.addAndContinue}
+				canConfirm={amount.valid}
+				busy={logging}
+				busyLabel={t.nutrition.foodBrowser.logging}
+				disabled={adding}
+				onClose={onBack}
+				onConfirm={() => log("continue")}
+			/>
 			<AmountEditor
 				name={food.name[locale]}
 				visual={"visual" in food ? food.visual : undefined}

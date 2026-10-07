@@ -47,7 +47,7 @@ describe("combo editor", () => {
 		const { app, id } = await openCombo();
 		expect(await screen.findByText(/^482/)).toBeTruthy();
 
-		fireEvent(screen.getByLabelText(/^Feta/), "accessibilityAction", {
+		fireEvent(screen.getByLabelText(/^Feta, /), "accessibilityAction", {
 			nativeEvent: { actionName: "up" },
 		});
 		await waitFor(() =>
@@ -61,9 +61,13 @@ describe("combo editor", () => {
 
 	it("removes a part with undo", async () => {
 		const { app, id } = await openCombo();
-		fireEvent(await screen.findByLabelText(/^Hummus/), "accessibilityAction", {
-			nativeEvent: { actionName: "remove" },
-		});
+		fireEvent(
+			await screen.findByLabelText(/^Hummus, /),
+			"accessibilityAction",
+			{
+				nativeEvent: { actionName: "remove" },
+			},
+		);
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(2),
 		);
@@ -73,15 +77,19 @@ describe("combo editor", () => {
 		);
 	});
 
-	it("scales a part's portion", async () => {
+	it("edits a part's portion in the amount editor", async () => {
 		const { app, id } = await openCombo();
-		fireEvent.press(await screen.findByText("Wrap"));
-		fireEvent.changeText(screen.getByLabelText("Portion of Wrap"), "2");
-		fireEvent.press(screen.getByText("Save"));
+		fireEvent.press(await screen.findByLabelText(/^Wrap, /));
+		await waitFor(() =>
+			expect(app.getPathname()).toBe("/nutrition-combo-part"),
+		);
+		fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+		fireEvent.press(screen.getByLabelText("Save"));
 		await waitFor(() => {
 			const energy =
 				app.repository.findCombo(id)?.parts[0].snapshot.nutrients.energy;
 			expect(energy).toEqual({ kind: "value", amount: 400 });
 		});
+		expect(app.repository.findCombo(id)?.parts[0].snapshot.quantity).toBe(2);
 	});
 });

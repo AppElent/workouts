@@ -21,13 +21,15 @@ import { EmptyState } from "../../../ui/empty-state";
 import { FoodVisualView } from "../../../ui/food-visual";
 import { FormSearchField } from "../../../ui/form";
 import { GlassSurface } from "../../../ui/glass-surface";
+import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
-import { NutritionListRow } from "../components/nutrition-list-row";
+import { NutritionEnergyValue } from "../components/nutrition-energy-value";
+import { NutritionListRowLeading } from "../components/nutrition-list-row-leading";
 import { NutritionMenu } from "../components/nutrition-menu";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { LibrarySectionHeader } from "./components/library-section-header";
@@ -58,7 +60,7 @@ function itemKey(item: LibraryItem) {
 	return `${item.kind}:${item.id}`;
 }
 
-function position(index: number, count: number): FoodRowPosition {
+function _position(index: number, count: number): FoodRowPosition {
 	if (count === 1) return "only";
 	if (index === 0) return "first";
 	return index === count - 1 ? "last" : "middle";
@@ -294,49 +296,60 @@ export function LibraryScreen() {
 			return next;
 		});
 
-	const row = (item: LibraryItem, index: number, count: number) => {
+	const row = (item: LibraryItem) => {
 		const energy = libraryEnergy(item, locale, copy);
 		const name = libraryItemName(item, locale);
+		const caption = libraryCaption(item, locale, copy);
+		const tile =
+			item.kind === "combo" ? (
+				<View
+					style={{
+						width: 38,
+						height: 38,
+						borderRadius: radius.lg,
+						backgroundColor: colors.surface2,
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<SymbolView
+						name={{
+							ios: "square.stack.3d.up",
+							android: "layers",
+							web: "layers",
+						}}
+						size={17}
+						tintColor={colors.text}
+					/>
+				</View>
+			) : (
+				<FoodVisualView visual={item.food.visual} label={name} size={38} />
+			);
+		const selected = selecting
+			? (selection?.has(itemKey(item)) ?? false)
+			: undefined;
 		return (
-			<NutritionListRow
+			<InsetRow
 				key={itemKey(item)}
+				id={itemKey(item)}
 				title={item.favorite ? `${name} ★` : name}
-				caption={libraryCaption(item, locale, copy)}
-				value={energy.value}
-				basis={energy.basis}
+				secondary={caption}
 				leading={
-					item.kind === "combo" ? (
-						<View
-							style={{
-								width: 38,
-								height: 38,
-								borderRadius: radius.lg,
-								backgroundColor: colors.surface2,
-								alignItems: "center",
-								justifyContent: "center",
-							}}
-						>
-							<SymbolView
-								name={{
-									ios: "square.stack.3d.up",
-									android: "layers",
-									web: "layers",
-								}}
-								size={17}
-								tintColor={colors.text}
-							/>
-						</View>
-					) : (
-						<FoodVisualView visual={item.food.visual} label={name} size={38} />
-					)
+					<NutritionListRowLeading selected={selected}>
+						{tile}
+					</NutritionListRowLeading>
 				}
-				position={position(index, count)}
-				selected={
-					selecting ? (selection?.has(itemKey(item)) ?? false) : undefined
+				trailing={
+					<NutritionEnergyValue value={energy.value} basis={energy.basis} />
 				}
-				selectLabel={copy.select}
-				actions={actions(item)}
-				closeMenuLabel={t.diaryEntry.cancel}
+				chevron={!selecting}
+				selected={selected}
+				accessibilityLabel={
+					selecting
+						? `${name}, ${copy.select}`
+						: `${name}, ${caption}, ${energy.value}, ${energy.basis}`
+				}
+				actions={selecting ? undefined : actions(item)}
 				onPress={() => (selecting ? toggle(item) : open(item))}
 			/>
 		);
@@ -545,23 +558,6 @@ export function LibraryScreen() {
 					</Stack.Toolbar.View>
 				</Stack.Toolbar>
 			) : null}
-			{bottomToolbar && !selecting ? (
-				<LibraryToolbar
-					searchRef={searchRef}
-					placeholder={copy.searchPlaceholder}
-					scanLabel={copy.scan}
-					menu={addMenu}
-					onChangeQuery={setQuery}
-					onScan={() => setScanning(true)}
-				/>
-			) : null}
-			{selecting && Platform.OS === "ios" ? (
-				<Stack.Toolbar placement="bottom">
-					<Stack.Toolbar.View>
-						<LibrarySelectionActions actions={selectionActions} />
-					</Stack.Toolbar.View>
-				</Stack.Toolbar>
-			) : null}
 			<ScrollView
 				style={{ flex: 1, backgroundColor: colors.bg }}
 				contentInsetAdjustmentBehavior="automatic"
@@ -721,10 +717,15 @@ export function LibraryScreen() {
 									{copy.emptyChip}
 								</AppText>
 							) : (
-								<View style={{ marginTop: spacing.sm }}>
-									{visible.map((item, index) =>
-										row(item, index, visible.length),
-									)}
+								<View
+									style={{
+										marginTop: spacing.sm,
+										marginHorizontal: spacing.md,
+									}}
+								>
+									<InsetList compact>
+										{visible.map((item) => row(item))}
+									</InsetList>
 								</View>
 							)
 						) : (
@@ -785,31 +786,19 @@ export function LibraryScreen() {
 													{copy.emptySection[section.kind]}
 												</AppText>
 											) : (
-												<>
-													{shown.map((item, index) =>
-														row(
-															item,
-															index,
-															shown.length + (shown.length < total ? 1 : 0),
-														),
-													)}
+												<View style={{ marginHorizontal: spacing.md }}>
+													<InsetList compact>
+														{shown.map((item) => row(item))}
+													</InsetList>
 													{shown.length < total ? (
 														<Pressable
 															accessibilityRole="button"
 															onPress={() => setChip(section.kind)}
-															style={({ pressed }) => ({
-																marginHorizontal: spacing.md,
-																minHeight: 48,
+															style={{
+																minHeight: 44,
 																alignItems: "center",
 																justifyContent: "center",
-																backgroundColor: pressed
-																	? colors.surface2
-																	: colors.surface,
-																borderBottomLeftRadius: radius.contentCard,
-																borderBottomRightRadius: radius.contentCard,
-																borderTopWidth: 0.5,
-																borderTopColor: colors.separator,
-															})}
+															}}
 														>
 															<AppText
 																variant="footnote"
@@ -824,7 +813,7 @@ export function LibraryScreen() {
 															</AppText>
 														</Pressable>
 													) : null}
-												</>
+												</View>
 											)}
 										</View>
 									);
@@ -896,6 +885,24 @@ export function LibraryScreen() {
 					</>
 				)}
 			</ScrollView>
+			{/* After the scroll view, so the large title tracks it. */}
+			{bottomToolbar && !selecting ? (
+				<LibraryToolbar
+					searchRef={searchRef}
+					placeholder={copy.searchPlaceholder}
+					scanLabel={copy.scan}
+					menu={addMenu}
+					onChangeQuery={setQuery}
+					onScan={() => setScanning(true)}
+				/>
+			) : null}
+			{selecting && Platform.OS === "ios" ? (
+				<Stack.Toolbar placement="bottom">
+					<Stack.Toolbar.View>
+						<LibrarySelectionActions actions={selectionActions} />
+					</Stack.Toolbar.View>
+				</Stack.Toolbar>
+			) : null}
 			{selecting && Platform.OS !== "ios" ? (
 				<View style={{ alignItems: "center", backgroundColor: colors.surface }}>
 					<LibrarySelectionActions actions={selectionActions} />

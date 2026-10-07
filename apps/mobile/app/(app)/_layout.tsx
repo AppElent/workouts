@@ -326,6 +326,15 @@ export default function AppLayout() {
 															}}
 														/>
 														<Stack.Screen
+															name="nutrition-combo-part"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+																headerShown: false,
+															}}
+														/>
+														<Stack.Screen
 															name="nutrition-combo/[id]"
 															options={{ title: "" }}
 														/>

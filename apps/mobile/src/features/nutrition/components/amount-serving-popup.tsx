@@ -25,7 +25,19 @@ export function AmountServingPopup({
 	onAdded,
 	onCancel,
 	onBusyChange,
+	initial,
+	onFoodServing,
 }: {
+	/**
+	 * The serving being changed. Its values show grey; typing replaces them and
+	 * a field left empty keeps them. Changing offers only "this food".
+	 */
+	initial?: { name: string; amount: string };
+	/**
+	 * Keeps a new "this food" serving in the caller's draft instead of writing
+	 * it to the food at once, as the Personal Food editor does until ✓.
+	 */
+	onFoodServing?: (name: string, amount: number) => void;
 	food?: PersonalFood | { id: string };
 	name: string;
 	unit: "g" | "ml" | "serving";
@@ -54,7 +66,11 @@ export function AmountServingPopup({
 	const [active, setActive] = useState<"name" | "amount">("name");
 	const [pending, setPending] = useState(false);
 	const form = useForm({
-		defaultValues: { name: "", amount: "250", scope: food ? "food" : "own" },
+		defaultValues: {
+			name: "",
+			amount: initial ? "" : "250",
+			scope: food ? "food" : "own",
+		},
 		onSubmit: async ({ value }) => {
 			if (lock.current) return;
 			const result = z
@@ -63,8 +79,10 @@ export function AmountServingPopup({
 					amount: z.number().positive().max(10000),
 				})
 				.safeParse({
-					name: value.name,
-					amount: Number(value.amount.replace(",", ".")),
+					name: value.name.trim() || initial?.name || "",
+					amount: Number(
+						(value.amount.trim() || initial?.amount || "").replace(",", "."),
+					),
 				});
 			if (!result.success) {
 				setError(copy.invalidServing);
@@ -76,6 +94,11 @@ export function AmountServingPopup({
 				Math.abs(amount * 10 - Math.round(amount * 10)) > 1e-9
 			) {
 				setError(copy.invalidMeasure);
+				return;
+			}
+			if (value.scope === "food" && onFoodServing) {
+				Keyboard.dismiss();
+				onFoodServing(servingName, amount);
 				return;
 			}
 			const personal = food && "provenance" in food;
@@ -177,7 +200,13 @@ export function AmountServingPopup({
 						value={values[key]}
 						onChangeText={(value) => form.setFieldValue(key, value)}
 						editable={!pending}
-						placeholder={key === "name" ? copy.namePlaceholder : undefined}
+						placeholder={
+							initial
+								? initial[key]
+								: key === "name"
+									? copy.namePlaceholder
+									: undefined
+						}
 						placeholderTextColor={colors.textFaint}
 						selectionColor={colors.accent}
 						keyboardType={key === "name" ? "default" : "decimal-pad"}
@@ -222,7 +251,7 @@ export function AmountServingPopup({
 					<AppText variant="title">×</AppText>
 				</Pressable>
 				<AppText variant="control" style={{ flex: 1, textAlign: "center" }}>
-					{copy.newServing}
+					{initial ? copy.changeServing : copy.newServing}
 				</AppText>
 				<Pressable
 					disabled={pending}
@@ -238,7 +267,11 @@ export function AmountServingPopup({
 					}}
 				>
 					<AppText variant="control" style={{ color: colors.onAccent }}>
-						{pending ? t.nutrition.entryEditor.saving : copy.add}
+						{pending
+							? t.nutrition.entryEditor.saving
+							: initial
+								? copy.saveServing
+								: copy.add}
 					</AppText>
 				</Pressable>
 			</View>
@@ -246,7 +279,7 @@ export function AmountServingPopup({
 			<Segmented
 				options={[
 					...(food ? [{ value: "food", label: name }] : []),
-					...(unit !== "serving"
+					...(unit !== "serving" && !initial
 						? [{ value: "own", label: copy.ownScope }]
 						: []),
 				]}

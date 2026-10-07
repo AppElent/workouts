@@ -87,7 +87,7 @@ describe("food library", () => {
 
 	it("names the combos that use a food before deleting it", async () => {
 		renderLibrary();
-		const oats = await screen.findByLabelText(/^Oats/);
+		const oats = await screen.findByLabelText(/^Oats, Own/);
 		fireEvent(oats, "accessibilityAction", {
 			nativeEvent: { actionName: "delete" },
 		});
