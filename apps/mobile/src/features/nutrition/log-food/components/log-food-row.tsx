@@ -7,7 +7,8 @@ import { LogFoodRowLeading } from "./log-food-row-leading";
 import type { LogFoodRowProps } from "./log-food-row-props";
 
 /**
- * One food in the results (Android and tests; iOS has `log-food-row.ios.tsx`).
+ * One food in the results. Plain React Native on every platform: a SwiftUI
+ * host per row re-measures after the list has laid out, and rows overlap.
  *
  * Tap opens the portion sheet, + logs the remembered portion. Swipe reveals
  * only Favorite and never commits on a full swipe; long press opens the whole

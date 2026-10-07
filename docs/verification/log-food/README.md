@@ -20,10 +20,11 @@ replaces it.
 | --- | --- | --- |
 | 1 · In rust | Pass | [rest](assets/ios-rest.png), [dark](assets/ios-rest-dark.png) |
 | 1 · Typen / met zoekterm | Pass | [results](assets/ios-results.png) |
-| 2 · Titelmenu open | Agreed deviation: the native menu shows each meal's tally as a subtitle, not right-aligned | [title menu](assets/ios-title-menu.png) |
+| 2 · Titelmenu open | Pass (re-shot after the custom menu replaced the native one: one line per meal, fixed check column, tally right-aligned) | [title menu](assets/ios-title-menu.png) |
 | 3 · Na + (✓ on row, toast, bar) | Pass; Undo verified on device | [toast](assets/ios-quick-add-toast.png) |
-| 3 · Maaltijdregel open | Pass (native inset rows, no emoji tile); delete verified with confirm | [summary](assets/ios-meal-summary-open.png) |
-| 4 · Lang ingedrukt | Pass (system context menu with lifted row) | [long press](assets/ios-long-press.png) |
+| 3 · Maaltijdregel open | Pass (re-shot: React Native rows, no gap under the header, no clipping); long-press delete verified with confirm. Swipe not exercised | [summary](assets/ios-meal-summary-open.png) |
+| 4 · Lang ingedrukt | Changed: action sheet instead of the context menu with lifted row (the per-row SwiftUI host made rows overlap); not re-shot | — |
+| Results while scrolling | Pass: no overlapping rows after a fast scroll | [scrolled](assets/ios-results-scrolled.png) |
 | 4 · Geveegd | Not compared on device (swipe gesture not exercised) | — |
 | 5 · + menu, geen resultaten | Pass (no-results card); + menu not re-shot | [no results](assets/ios-no-results.png) |
 | 6 · Open Food Facts geladen / niets lokaal | Pass | [OFF](assets/ios-open-food-facts.png) |
@@ -47,3 +48,10 @@ labels), Dynamic Type, physical-device haptics and camera.
   other sessions; a pool simulator with the dev client copied in was reliable.
 - **Dev-only overlays hide controls.** The dev-tools bubble covers the toast's
   Undo; drag it away before tapping.
+- **Keep SwiftUI hosts out of RN lists.** A `Host` sized by `matchContents`
+  around RN content, or a SwiftUI `List` sized by its scroll geometry inside an
+  RN scroll view, measures after RN has laid out: rows overlap or clip on
+  device. Rows inside a `FlatList` or `ScrollView` stay plain React Native.
+- **A native menu cannot match a one-line menu design.** The system menu puts
+  a second text on its own line and only indents the item with an icon; when
+  the design specifies trailing details, draw the menu.

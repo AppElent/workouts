@@ -8,6 +8,7 @@ export function GlassSurface({
 	style,
 	capsule,
 	tint,
+	cornerRadius = radius.sheet,
 }: GlassSurfaceProps) {
 	const { scheme } = useAppearance();
 	return (
@@ -28,7 +29,7 @@ export function GlassSurface({
 							glassEffect({
 								glass: { variant: "regular", ...(tint ? { tint } : {}) },
 								shape: capsule ? "capsule" : "roundedRectangle",
-								cornerRadius: radius.sheet,
+								cornerRadius,
 							}),
 						]}
 					>

@@ -6,12 +6,15 @@ export type GlassSurfaceProps = {
 	style?: StyleProp<ViewStyle>;
 	capsule?: boolean;
 	tint?: string;
+	/** Corner radius of a non-capsule surface; defaults to the sheet radius. */
+	cornerRadius?: number;
 };
 export function GlassSurface({
 	children,
 	style,
 	capsule,
 	tint,
+	cornerRadius = radius.sheet,
 }: GlassSurfaceProps) {
 	const colors = useTokens();
 	return (
@@ -19,7 +22,7 @@ export function GlassSurface({
 			style={[
 				{
 					backgroundColor: tint ?? colors.surface2,
-					borderRadius: capsule ? radius.pill : radius.sheet,
+					borderRadius: capsule ? radius.pill : cornerRadius,
 					borderCurve: "continuous",
 				},
 				style,

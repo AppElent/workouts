@@ -11,7 +11,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../../theme";
-import { InsetList, InsetRow } from "../../../../ui/inset-list";
+import { SwipeableRow } from "../../../../ui/swipeable-row";
 import { AppText } from "../../../../ui/text";
 
 /**
@@ -33,6 +33,7 @@ export function LogFoodMealSummary({
 	locale,
 	editLabel,
 	deleteLabel,
+	closeMenuLabel,
 	onToggle,
 	onOpenEntry,
 	onDeleteEntry,
@@ -47,6 +48,7 @@ export function LogFoodMealSummary({
 	locale: "en" | "nl";
 	editLabel: string;
 	deleteLabel: string;
+	closeMenuLabel: string;
 	onToggle: () => void;
 	onOpenEntry: (entry: DiaryEntry) => void;
 	onDeleteEntry: (entry: DiaryEntry) => void;
@@ -102,46 +104,70 @@ export function LogFoodMealSummary({
 			) : null}
 		</Pressable>
 	);
-	// Closed, the bar is a plain card: the native grouped list only earns its
-	// place once there are rows to swipe.
-	if (!open || !expandable)
-		return (
-			<View style={styles.wrap}>
-				<View style={styles.card}>{header}</View>
-			</View>
-		);
 	return (
 		<View style={styles.wrap}>
-			<InsetList compact headerContent={header}>
-				{entries.map((entry) => (
-					<InsetRow
-						key={entry.id}
-						id={entry.id}
-						title={entry.name[locale]}
-						secondary={entry.serving[locale]}
-						value={energyLabel(entry)}
-						onPress={() => onOpenEntry(entry)}
-						actions={[
-							{
-								key: "edit",
-								systemImage: "pencil",
-								label: editLabel,
-								onPress: () => onOpenEntry(entry),
-							},
-							{
-								key: "delete",
-								systemImage: "trash",
-								label: deleteLabel,
-								destructive: true,
-								onPress: () => onDeleteEntry(entry),
-							},
-						]}
-					/>
-				))}
-			</InsetList>
-			<AppText variant="caption" style={styles.hint}>
-				{hint}
-			</AppText>
+			<View style={styles.card}>
+				{header}
+				{open && expandable
+					? entries.map((entry) => (
+							<View key={entry.id} style={styles.entry}>
+								<View style={styles.separator} />
+								<SwipeableRow
+									menuTitle={entry.name[locale]}
+									closeMenuLabel={closeMenuLabel}
+									actions={[
+										{
+											key: "edit",
+											systemImage: "pencil",
+											label: editLabel,
+											onPress: () => onOpenEntry(entry),
+										},
+										{
+											key: "delete",
+											systemImage: "trash",
+											label: deleteLabel,
+											destructive: true,
+											onPress: () => onDeleteEntry(entry),
+										},
+									]}
+								>
+									{(accessibility) => (
+										<Pressable
+											accessibilityRole="button"
+											accessibilityActions={accessibility.accessibilityActions}
+											onAccessibilityAction={
+												accessibility.onAccessibilityAction
+											}
+											onLongPress={accessibility.onLongPress}
+											onPress={() => onOpenEntry(entry)}
+											style={({ pressed }) => [
+												styles.row,
+												pressed && styles.pressed,
+											]}
+										>
+											<View style={styles.flex}>
+												<AppText numberOfLines={2} style={styles.title}>
+													{entry.name[locale]}
+												</AppText>
+												<AppText variant="caption" numberOfLines={1}>
+													{entry.serving[locale]}
+												</AppText>
+											</View>
+											<AppText variant="footnote" style={styles.value}>
+												{energyLabel(entry)}
+											</AppText>
+										</Pressable>
+									)}
+								</SwipeableRow>
+							</View>
+						))
+					: null}
+			</View>
+			{open && expandable ? (
+				<AppText variant="caption" style={styles.hint}>
+					{hint}
+				</AppText>
+			) : null}
 		</View>
 	);
 }
@@ -197,4 +223,22 @@ const createStyles = (colors: Tokens) =>
 		label: { fontWeight: "400" },
 		meal: { fontWeight: "600" },
 		hint: { paddingHorizontal: spacing.xs },
+		entry: { backgroundColor: colors.surface },
+		separator: {
+			height: StyleSheet.hairlineWidth,
+			marginLeft: spacing.md,
+			backgroundColor: colors.separator,
+		},
+		row: {
+			minHeight: 52,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingHorizontal: spacing.md,
+			paddingVertical: 10,
+			backgroundColor: colors.surface,
+		},
+		pressed: { backgroundColor: colors.surface2 },
+		title: { fontWeight: "500" },
+		value: { fontVariant: ["tabular-nums"] },
 	});

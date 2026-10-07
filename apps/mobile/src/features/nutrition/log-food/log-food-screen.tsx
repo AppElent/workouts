@@ -993,6 +993,7 @@ export function LogFoodScreen({
 							locale={locale}
 							editLabel={t.nutrition.entryActions.edit}
 							deleteLabel={t.nutrition.entryActions.delete}
+							closeMenuLabel={copy.closeMenu}
 							onToggle={() => setMealOpen((open) => !open)}
 							onOpenEntry={(entry) =>
 								router.push({
