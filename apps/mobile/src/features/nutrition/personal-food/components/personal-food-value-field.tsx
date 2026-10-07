@@ -1,13 +1,16 @@
-import { type Ref, useState } from "react";
-import { TextInput } from "react-native";
+import { type Ref, useImperativeHandle, useRef, useState } from "react";
+import { Pressable, TextInput } from "react-native";
 import { type, useTokens } from "../../../../theme";
+import { AppText } from "../../../../ui/text";
 
 /**
  * A value that is its own field. Focus greys the current value into the
  * placeholder so the first keystroke replaces it; leaving empty keeps it.
+ * The unit after it belongs to the field: tapping "g" edits the number too.
  */
 export function PersonalFoodValueField({
 	display,
+	unit,
 	accessibilityLabel,
 	inputRef,
 	onChange,
@@ -20,8 +23,10 @@ export function PersonalFoodValueField({
 }: {
 	/** What the field shows when idle: a number, "—" or a word such as "Trace". */
 	display: string;
+	/** Shown after the value, such as "g" or "kcal"; empty keeps its space. */
+	unit?: string;
 	accessibilityLabel: string;
-	inputRef?: Ref<TextInput>;
+	inputRef?: Ref<TextInput | null>;
 	/** Called on every keystroke; "" means "back to the value from before". */
 	onChange: (text: string) => void;
 	onFocus?: () => void;
@@ -33,10 +38,12 @@ export function PersonalFoodValueField({
 }) {
 	const colors = useTokens();
 	const [buffer, setBuffer] = useState<string | null>(null);
+	const input = useRef<TextInput>(null);
+	useImperativeHandle(inputRef, () => input.current as TextInput);
 	const editing = buffer !== null;
-	return (
+	const field = (
 		<TextInput
-			ref={inputRef}
+			ref={input}
 			accessibilityLabel={accessibilityLabel}
 			accessibilityValue={{ text: display }}
 			value={editing ? buffer : display}
@@ -67,5 +74,18 @@ export function PersonalFoodValueField({
 				fontVariant: ["tabular-nums"],
 			}}
 		/>
+	);
+	if (unit === undefined) return field;
+	return (
+		<Pressable
+			accessible={false}
+			onPress={() => input.current?.focus()}
+			style={{ flexDirection: "row", alignItems: "center", minHeight: 44 }}
+		>
+			{field}
+			<AppText variant="footnote" style={{ width: 30, marginLeft: 4 }}>
+				{unit}
+			</AppText>
+		</Pressable>
 	);
 }

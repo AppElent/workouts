@@ -271,6 +271,9 @@ export function LogFoodScreen({
 	const servingPendingRef = useRef(false);
 	const [servingPending, setServingPending] = useState(false);
 	const [selectedFood, setSelectedFood] = useState<FoodSelection>();
+	/** A food saved in the editor sheet, opened once that sheet is gone. */
+	const [afterEditor, setAfterEditor] = useState<PersonalFood>();
+	const completingReview = useRef(false);
 	const supplementary = useSupplementaryServings(
 		selectedFood?.kind === "shipped" ? selectedFood.food.id : undefined,
 	);
@@ -402,9 +405,20 @@ export function LogFoodScreen({
 	}
 
 	function showSavedFood(food: PersonalFood) {
-		// Unmount the SwiftUI editor Host before exposing the serving modal. A
-		// hidden Host over the picker intercepted taps after saving a new food.
-		setSelectedFood({ kind: "personal", food });
+		// The amount sheet can only present once the editor sheet is fully gone;
+		// presenting during its dismissal failed and left a layer blocking taps.
+		setAfterEditor(food);
+	}
+
+	/** A search result is read again by barcode, for its serving and brand. */
+	async function reviewOffResult(draft: PersonalFoodDraft) {
+		if (completingReview.current) return;
+		completingReview.current = true;
+		try {
+			setReviewingImport(await openFoodFacts.complete(draft));
+		} finally {
+			completingReview.current = false;
+		}
 	}
 
 	function createFood(name: string, barcode?: string) {
@@ -964,12 +978,17 @@ export function LogFoodScreen({
 					onDescribe={browserTarget ? undefined : describe}
 				/>
 			) : null}
-			{editor ? (
+			{editor || afterEditor ? (
 				<FoodEditorSheet
-					visible
+					visible={Boolean(editor)}
 					onClose={() => {
 						setReviewingImport(undefined);
 						closeEditor();
+					}}
+					onDismissed={() => {
+						if (!afterEditor) return;
+						setSelectedFood({ kind: "personal", food: afterEditor });
+						setAfterEditor(undefined);
 					}}
 				>
 					{editor}
@@ -1137,7 +1156,7 @@ export function LogFoodScreen({
 								locale={locale}
 								offline={offline}
 								onCommit={off.commit}
-								onReview={setReviewingImport}
+								onReview={(draft) => void reviewOffResult(draft)}
 								onScan={() => setScanning(true)}
 							/>
 						) : null}

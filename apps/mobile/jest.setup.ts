@@ -222,16 +222,30 @@ jest.mock("@expo/ui/swift-ui", () => {
 		}) => React.createElement(Text, { modifiers }, children),
 		VStack: Stack,
 		ZStack: Stack,
-		BottomSheet: ({
+		// Like SwiftUI, dismissal is reported once the sheet has gone.
+		BottomSheet: function BottomSheet({
 			children,
 			anchor,
 			isPresented,
+			onDismiss,
 		}: {
 			children?: React.ReactNode;
 			anchor?: React.ReactNode;
 			isPresented: boolean;
-		}) =>
-			React.createElement(View, null, anchor, isPresented ? children : null),
+			onDismiss?: () => void;
+		}) {
+			const shown = React.useRef(isPresented);
+			React.useEffect(() => {
+				if (shown.current && !isPresented) onDismiss?.();
+				shown.current = isPresented;
+			}, [isPresented, onDismiss]);
+			return React.createElement(
+				View,
+				null,
+				anchor,
+				isPresented ? children : null,
+			);
+		},
 		Toggle: ({
 			label,
 			isOn,

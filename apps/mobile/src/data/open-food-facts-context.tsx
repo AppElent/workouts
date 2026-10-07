@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, use, useState } from "react";
 import {
+	completeOffSearchDraft,
 	type FetchLike,
 	lookupOffBarcode,
 	type OffLookupOutcome,
@@ -10,12 +11,15 @@ import { createOffRequestBudget } from "./open-food-facts-budget";
 import {
 	type OpenFoodFactsCache,
 	openOpenFoodFactsCache,
+	type PersonalFoodDraft,
 } from "./personal-food-repository";
 
 type OpenFoodFactsValue = {
 	lookupBarcode(barcode: string): Promise<OffLookupOutcome>;
 	refreshBarcode(barcode: string): Promise<OffLookupOutcome>;
 	search(query: string): Promise<OffSearchOutcome>;
+	/** A picked search result with what only its product page has. */
+	complete(draft: PersonalFoodDraft): Promise<PersonalFoodDraft>;
 	/** When the shared request budget opens again; `undefined` when it is open. */
 	coolingUntil(): number | undefined;
 };
@@ -52,6 +56,7 @@ export function OpenFoodFactsProvider({
 			refreshBarcode: (barcode) =>
 				lookupOffBarcode(barcode, client, { fresh: true }),
 			search: (query) => searchOffProducts(query, client),
+			complete: (draft) => completeOffSearchDraft(draft, client),
 			coolingUntil: budget.coolingUntil,
 		};
 	});

@@ -304,6 +304,26 @@ export function PersonalFoodEditor({
 		</Pressable>
 	);
 
+	const notice = (title: string, body: string) => (
+		<View
+			style={{
+				padding: spacing.md,
+				gap: 4,
+				borderRadius: radius.contentCard,
+				backgroundColor: colors.surface,
+				borderLeftWidth: 3,
+				borderLeftColor: colors.accent,
+			}}
+		>
+			<AppText
+				variant="secondary"
+				style={{ fontWeight: "700", color: colors.text }}
+			>
+				{title}
+			</AppText>
+			<AppText variant="caption">{body}</AppText>
+		</View>
+	);
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
 			{chrome === "route" ? (
@@ -533,36 +553,14 @@ export function PersonalFoodEditor({
 						</AppText>
 					) : null}
 				</View>
-				{draft.source || reviewNotice ? (
-					<View
-						style={{
-							padding: spacing.md,
-							gap: 4,
-							borderRadius: radius.contentCard,
-							backgroundColor: colors.surface,
-							borderLeftWidth: 3,
-							borderLeftColor: colors.accent,
-						}}
-					>
-						<AppText
-							variant="secondary"
-							style={{ fontWeight: "700", color: colors.text }}
-						>
-							{draft.source
-								? fmt(t.nutrition.fork.forkedFrom, {
-										name: draft.source.sourceName[locale],
-									})
-								: reviewNotice?.title}
-						</AppText>
-						<AppText variant="caption">
-							{draft.source
-								? t.nutrition.fork.intro
-								: [t.nutrition.foodImport.reviewBody, reviewNotice?.attribution]
-										.filter(Boolean)
-										.join(" ")}
-						</AppText>
-					</View>
-				) : null}
+				{draft.source
+					? notice(
+							fmt(t.nutrition.fork.forkedFrom, {
+								name: draft.source.sourceName[locale],
+							}),
+							t.nutrition.fork.intro,
+						)
+					: null}
 				{draft.basisKind === "per100" ? (
 					<>
 						<SectionHeader
@@ -783,6 +781,13 @@ export function PersonalFoodEditor({
 									else inputs.current.delete(key);
 								}}
 								display={nutrientDisplay(key)}
+								unit={
+									draft.nutrients[key].kind === "value"
+										? key === "energy"
+											? "kcal"
+											: "g"
+										: ""
+								}
 								accessibilityLabel={t.nutrition.nutrients[key]}
 								emphasis={draft.nutrients[key].kind === "value"}
 								onFocus={() => {
@@ -801,13 +806,6 @@ export function PersonalFoodEditor({
 									)
 								}
 							/>
-							<AppText variant="footnote" style={{ width: 30, marginLeft: 4 }}>
-								{draft.nutrients[key].kind === "value"
-									? key === "energy"
-										? "kcal"
-										: "g"
-									: ""}
-							</AppText>
 						</View>
 					))}
 					<View
@@ -846,52 +844,57 @@ export function PersonalFoodEditor({
 						>
 							{copy.category}
 						</AppText>
-						<NutritionChoiceMenu
-							accessibilityLabel={copy.category}
-							sections={[
-								[
-									{
-										id: "ordinary",
-										label: copy.food,
-										selected: draft.classification === "ordinary",
-									},
-									{
-										id: "recipe",
-										label: copy.recipe,
-										selected: draft.classification === "recipe",
-									},
-								],
-							]}
-							onSelect={(id) =>
-								draft.setClassification(id as "ordinary" | "recipe")
-							}
-						>
-							<View
-								style={{
-									flexDirection: "row",
-									alignItems: "center",
-									gap: 4,
-									minHeight: 40,
-								}}
+						{/* The SwiftUI menu sizes itself after layout; a fixed box keeps it centred. */}
+						<View style={{ height: 44, justifyContent: "center" }}>
+							<NutritionChoiceMenu
+								accessibilityLabel={copy.category}
+								sections={[
+									[
+										{
+											id: "ordinary",
+											label: copy.food,
+											selected: draft.classification === "ordinary",
+										},
+										{
+											id: "recipe",
+											label: copy.recipe,
+											selected: draft.classification === "recipe",
+										},
+									],
+								]}
+								onSelect={(id) =>
+									draft.setClassification(id as "ordinary" | "recipe")
+								}
 							>
-								<AppText
-									variant="secondary"
-									style={{ color: colors.accent, fontWeight: "700" }}
-								>
-									{draft.classification === "recipe" ? copy.recipe : copy.food}
-								</AppText>
-								<SymbolView
-									name={{
-										ios: "chevron.up.chevron.down",
-										android: "unfold_more",
-										web: "unfold_more",
+								<View
+									style={{
+										flexDirection: "row",
+										alignItems: "center",
+										gap: 4,
+										minHeight: 40,
 									}}
-									size={10}
-									weight="semibold"
-									tintColor={colors.accent}
-								/>
-							</View>
-						</NutritionChoiceMenu>
+								>
+									<AppText
+										variant="secondary"
+										style={{ color: colors.accent, fontWeight: "700" }}
+									>
+										{draft.classification === "recipe"
+											? copy.recipe
+											: copy.food}
+									</AppText>
+									<SymbolView
+										name={{
+											ios: "chevron.up.chevron.down",
+											android: "unfold_more",
+											web: "unfold_more",
+										}}
+										size={10}
+										weight="semibold"
+										tintColor={colors.accent}
+									/>
+								</View>
+							</NutritionChoiceMenu>
+						</View>
 					</View>
 					<View style={detailRow(colors.separator, true)}>
 						<AppText variant="secondary" style={{ color: colors.text }}>
@@ -927,6 +930,15 @@ export function PersonalFoodEditor({
 						</AppText>
 					</View>
 				</Card>
+				{/* An import is checked first and explained last, under its figures. */}
+				{reviewNotice
+					? notice(
+							reviewNotice.title,
+							[t.nutrition.foodImport.reviewBody, reviewNotice.attribution]
+								.filter(Boolean)
+								.join(" "),
+						)
+					: null}
 			</ScrollView>
 			<PersonalFoodKeyboardBar
 				visible={focused !== null && servingEditor === null}
