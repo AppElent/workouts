@@ -2,6 +2,7 @@ import {
 	forkShippedFood,
 	NUTRIENT_KEYS,
 	roundForDisplay,
+	type ServingOption,
 	type ShippedFood,
 	type SupplementaryServing,
 	shippedLibrary,
@@ -63,7 +64,7 @@ import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { BarcodeScanner } from "../../../screens/barcode-scanner";
 import { PersonalFoodEditor } from "../../../screens/personal-food-editor";
 import {
@@ -80,6 +81,8 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { comboPartFromEntry } from "../combo/combo-parts";
+import { useComboTarget } from "../combo/use-combo-target";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
@@ -198,6 +201,7 @@ export function LogFoodScreen({
 	draftId,
 	initialQuery,
 	initialCreateKind,
+	target,
 	onClose,
 }: {
 	meal: MealSlot;
@@ -205,6 +209,11 @@ export function LogFoodScreen({
 	draftId?: string;
 	initialQuery?: string;
 	initialCreateKind?: "personal" | "recipe";
+	/**
+	 * Browser target mode: a picked food goes into this combo, added at the
+	 * end or in the place of `replacePartId`, instead of into the diary.
+	 */
+	target?: { comboId: string; replacePartId?: string };
 	onClose: () => void;
 }) {
 	const colors = useTokens();
@@ -218,6 +227,8 @@ export function LogFoodScreen({
 	const subject = operations.getSubject();
 	const reduceMotion = useReduceMotion();
 	const personalFoods = usePersonalFoods();
+	const comboTarget = useComboTarget(target?.comboId, target?.replacePartId);
+	const comboCopy = t.nutrition.comboEditor;
 	const personalMeasures = usePersonalMeasures();
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
@@ -333,7 +344,7 @@ export function LogFoodScreen({
 		() => new Set(favoriteShortcuts.map((shortcut) => shortcut.sourceKey)),
 		[favoriteShortcuts],
 	);
-	const items = useLogFoodItems({
+	const browsed = useLogFoodItems({
 		query,
 		filter,
 		locale,
@@ -343,6 +354,10 @@ export function LogFoodScreen({
 		messages: t.nutrition,
 		copy,
 	});
+	// A combo cannot hold another combo.
+	const items = comboTarget
+		? browsed.filter((item) => item.kind !== "combo")
+		: browsed;
 	const off = useOffSearch(query, {
 		client: openFoodFacts,
 		online: !offline,
@@ -526,7 +541,61 @@ export function LogFoodScreen({
 		return option && quantity > 0 ? { option, quantity } : undefined;
 	}
 
+	/** Target mode: the food at this amount goes into the combo, with undo. */
+	function pickForCombo(
+		selection: FoodSelection,
+		serving: ServingOption,
+		quantity: number,
+	) {
+		if (!comboTarget) return;
+		const name = selection.food.name[locale];
+		try {
+			const { common, provenance } = createFoodSnapshot(
+				selection,
+				serving,
+				quantity,
+				date,
+				selectedMeal,
+				mintNutritionUuid(),
+				locale,
+			);
+			const undo = comboTarget.write(
+				comboPartFromEntry({ ...common, provenance }),
+			);
+			toast.success(
+				fmt(comboTarget.replacing ? comboCopy.replaced : comboCopy.added, {
+					name,
+				}),
+				{ action: { label: comboCopy.undo, onPress: undo } },
+			);
+		} catch {
+			toast.error(t.nutrition.combos.saveFailure);
+			return;
+		}
+		setSelectedFood(undefined);
+		if (comboTarget.replacing) {
+			onClose();
+			return;
+		}
+		const sourceKey = selectionSourceKey(selection);
+		setJustLogged((keys) => new Set(keys).add(sourceKey));
+		setTimeout(
+			() =>
+				setJustLogged((keys) => {
+					const next = new Set(keys);
+					next.delete(sourceKey);
+					return next;
+				}),
+			JUST_LOGGED_MS,
+		);
+	}
+
 	function quickLog(selection: FoodSelection) {
+		if (comboTarget) {
+			const quick = resolveQuickSelection(selection);
+			if (quick) pickForCombo(selection, quick.option, quick.quantity);
+			return;
+		}
 		const sourceKey = selectionSourceKey(selection);
 		if (!subject || quickLoggingRef.current.has(sourceKey)) return;
 		const quickSelection = resolveQuickSelection(selection);
@@ -775,6 +844,18 @@ export function LogFoodScreen({
 						? () => void deletePersonalFood(selectedFood.food)
 						: undefined
 				}
+				pick={
+					comboTarget
+						? {
+								title: comboTarget.combo.name,
+								confirmLabel: comboTarget.replacing
+									? comboCopy.confirm
+									: comboCopy.add,
+								onPick: (serving, quantity) =>
+									pickForCombo(selectedFood, serving, quantity),
+							}
+						: undefined
+				}
 			/>
 		) : null;
 
@@ -833,68 +914,96 @@ export function LogFoodScreen({
 				}}
 				onClose={() => setShowCalendar(false)}
 			/>
-			<Stack.Screen
-				options={{
-					title: mealName,
-					headerTitle: () => (
-						<LogFoodDestinationMenu
-							label={copy.destinationLabel(
-								mealName,
-								formatLongDate(date, locale),
-							)}
-							mealName={mealName}
-							dayLabel={dayLabel}
-							sectionTitle={copy.logInto}
-							closeLabel={copy.closeMenu}
-							otherDayLabel={copy.otherDay}
-							options={MEAL_SLOTS.map((slot) => {
-								const entries = entriesFor(slot);
-								return {
-									slot,
-									selected: slot === selectedMeal,
-									label: t.nutrition.meals[slot],
-									detail: entries.length
-										? copy.mealTally(entries.length, energyLabel(entries))
-										: copy.mealNothing,
-								};
-							})}
-							onSelectMeal={setSelectedMeal}
-							onOtherDay={() => setShowCalendar(true)}
-						/>
-					),
-					// The calendar stays the one direct route to the day.
-					headerRight: () => (
-						<Pressable
-							accessibilityRole="button"
-							accessibilityLabel={copy.chooseDate}
-							accessibilityValue={{ text: formatLongDate(date, locale) }}
-							onPress={() => setShowCalendar(true)}
-							style={styles.headerButton}
-						>
-							<SymbolView
-								name={{
-									ios: "calendar",
-									android: "calendar_month",
-									web: "calendar_month",
-								}}
-								size={20}
-								tintColor={colors.accentInk}
+			{comboTarget ? (
+				<Stack.Screen
+					options={{
+						title: fmt(
+							comboTarget.replacing
+								? comboCopy.replaceTitle
+								: comboCopy.addTitle,
+							{ name: comboTarget.combo.name },
+						),
+						headerTitle: undefined,
+						headerRight: () => (
+							<Pressable
+								accessibilityRole="button"
+								accessibilityLabel={comboCopy.done}
+								onPress={onClose}
+								style={styles.headerButton}
+							>
+								<SymbolView
+									name={{ ios: "checkmark", android: "check", web: "check" }}
+									size={20}
+									tintColor={colors.accentInk}
+								/>
+							</Pressable>
+						),
+					}}
+				/>
+			) : (
+				<Stack.Screen
+					options={{
+						title: mealName,
+						headerTitle: () => (
+							<LogFoodDestinationMenu
+								label={copy.destinationLabel(
+									mealName,
+									formatLongDate(date, locale),
+								)}
+								mealName={mealName}
+								dayLabel={dayLabel}
+								sectionTitle={copy.logInto}
+								closeLabel={copy.closeMenu}
+								otherDayLabel={copy.otherDay}
+								options={MEAL_SLOTS.map((slot) => {
+									const entries = entriesFor(slot);
+									return {
+										slot,
+										selected: slot === selectedMeal,
+										label: t.nutrition.meals[slot],
+										detail: entries.length
+											? copy.mealTally(entries.length, energyLabel(entries))
+											: copy.mealNothing,
+									};
+								})}
+								onSelectMeal={setSelectedMeal}
+								onOtherDay={() => setShowCalendar(true)}
 							/>
-						</Pressable>
-					),
-				}}
-			/>
+						),
+						// The calendar stays the one direct route to the day.
+						headerRight: () => (
+							<Pressable
+								accessibilityRole="button"
+								accessibilityLabel={copy.chooseDate}
+								accessibilityValue={{ text: formatLongDate(date, locale) }}
+								onPress={() => setShowCalendar(true)}
+								style={styles.headerButton}
+							>
+								<SymbolView
+									name={{
+										ios: "calendar",
+										android: "calendar_month",
+										web: "calendar_month",
+									}}
+									size={20}
+									tintColor={colors.accentInk}
+								/>
+							</Pressable>
+						),
+					}}
+				/>
+			)}
 			{bottomToolbar ? (
 				<LogFoodToolbar
 					searchRef={searchBarRef}
 					placeholder={copy.search}
 					scanLabel={copy.scanBarcode}
 					describeLabel={copy.aiSearch}
-					menu={menu}
+					menu={comboTarget ? undefined : menu}
 					onChangeQuery={setQuery}
 					onSubmit={off.commit}
 					onScan={() => setScanning(true)}
-					onDescribe={describe}
+					onDescribe={comboTarget ? undefined : describe}
 				/>
 			) : null}
 			{editor ? (
@@ -958,11 +1067,11 @@ export function LogFoodScreen({
 								placeholder={copy.search}
 								scanLabel={copy.scanBarcode}
 								describeLabel={copy.aiSearch}
-								menu={menu}
+								menu={comboTarget ? undefined : menu}
 								onChangeQuery={setQuery}
 								onSubmit={off.commit}
 								onScan={() => setScanning(true)}
-								onDescribe={describe}
+								onDescribe={comboTarget ? undefined : describe}
 							/>
 						)}
 						<ScrollView
@@ -979,31 +1088,33 @@ export function LogFoodScreen({
 								/>
 							))}
 						</ScrollView>
-						<LogFoodMealSummary
-							label={copy.mealSummary(
-								mealName,
-								mealEntries.length,
-								energyLabel(mealEntries),
-							)}
-							expandLabel={mealOpen ? copy.collapseMeal : copy.expandMeal}
-							hint={copy.mealHint}
-							open={mealOpen}
-							entries={mealEntries}
-							flashKey={mealFlash}
-							locale={locale}
-							editLabel={t.nutrition.entryActions.edit}
-							deleteLabel={t.nutrition.entryActions.delete}
-							onToggle={() => setMealOpen((open) => !open)}
-							onOpenEntry={(entry) =>
-								router.push({
-									pathname: "/nutrition-entry",
-									params: { id: entry.id, date, meal: selectedMeal },
-								})
-							}
-							onDeleteEntry={(entry) =>
-								void deleteEntry({ entry, meal: selectedMeal, date })
-							}
-						/>
+						{comboTarget ? null : (
+							<LogFoodMealSummary
+								label={copy.mealSummary(
+									mealName,
+									mealEntries.length,
+									energyLabel(mealEntries),
+								)}
+								expandLabel={mealOpen ? copy.collapseMeal : copy.expandMeal}
+								hint={copy.mealHint}
+								open={mealOpen}
+								entries={mealEntries}
+								flashKey={mealFlash}
+								locale={locale}
+								editLabel={t.nutrition.entryActions.edit}
+								deleteLabel={t.nutrition.entryActions.delete}
+								onToggle={() => setMealOpen((open) => !open)}
+								onOpenEntry={(entry) =>
+									router.push({
+										pathname: "/nutrition-entry",
+										params: { id: entry.id, date, meal: selectedMeal },
+									})
+								}
+								onDeleteEntry={(entry) =>
+									void deleteEntry({ entry, meal: selectedMeal, date })
+								}
+							/>
+						)}
 						{linkingBarcode ? (
 							<View style={styles.linking} accessibilityLiveRegion="polite">
 								<AppText variant="caption" style={styles.flex}>

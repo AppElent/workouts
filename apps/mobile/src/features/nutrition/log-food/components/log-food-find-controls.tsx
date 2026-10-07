@@ -34,11 +34,12 @@ export function LogFoodFindControls({
 	placeholder: string;
 	scanLabel: string;
 	describeLabel: string;
-	menu: LogFoodMenuProps;
+	/** Absent in a target mode, where only finding a food makes sense. */
+	menu?: LogFoodMenuProps;
 	onChangeQuery: (query: string) => void;
 	onSubmit: () => void;
 	onScan: () => void;
-	onDescribe: () => void;
+	onDescribe?: () => void;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -72,17 +73,19 @@ export function LogFoodFindControls({
 				}}
 				onPress={onScan}
 			/>
-			<LogFoodIconButton
-				label={describeLabel}
-				symbol={{
-					ios: "sparkles",
-					android: "auto_awesome",
-					web: "auto_awesome",
-				}}
-				accented
-				onPress={onDescribe}
-			/>
-			<LogFoodMenu {...menu} />
+			{onDescribe ? (
+				<LogFoodIconButton
+					label={describeLabel}
+					symbol={{
+						ios: "sparkles",
+						android: "auto_awesome",
+						web: "auto_awesome",
+					}}
+					accented
+					onPress={onDescribe}
+				/>
+			) : null}
+			{menu ? <LogFoodMenu {...menu} /> : null}
 		</View>
 	);
 }

@@ -56,6 +56,11 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			pathname: "/nutrition-combo-part",
 			params: { comboId: combo.id, partId },
 		});
+	const replacePart = (partId: string) =>
+		router.push({
+			pathname: "/nutrition-food",
+			params: { comboId: combo.id, replacePartId: partId },
+		});
 	const removePart = (partId: string) => {
 		const part = combo.parts.find((item) => item.id === partId);
 		if (!part) return;
@@ -119,6 +124,13 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 				label: copy.changePortion,
 				systemImage: "pencil",
 				onPress: () => openPart(part.id),
+			},
+			{
+				key: "replace",
+				label: copy.replace,
+				systemImage: "arrow.triangle.2.circlepath",
+				swipe: false,
+				onPress: () => replacePart(part.id),
 			},
 			...(openable
 				? [

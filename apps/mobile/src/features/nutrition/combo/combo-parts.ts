@@ -11,7 +11,19 @@ import type {
 } from "../../../data/personal-food-repository";
 
 /** A diary entry as a combo part: its food by reference, or a one-off snapshot. */
-export function comboPartFromEntry(entry: DiaryEntry): ComboPartDraft {
+export function comboPartFromEntry(
+	entry: Pick<
+		DiaryEntry,
+		| "name"
+		| "serving"
+		| "quantity"
+		| "amount"
+		| "baseUnit"
+		| "nutrients"
+		| "provenance"
+		| "estimated"
+	>,
+): ComboPartDraft {
 	const reference: ComboPartReference =
 		entry.provenance.source === "shipped"
 			? { kind: "shipped", foodId: entry.provenance.sourceId }
@@ -113,4 +125,23 @@ export function withoutMissingParts(combo: Combo): Combo {
 		...combo,
 		parts: combo.parts.filter((part) => part.status !== "missing"),
 	};
+}
+
+/**
+ * The combo with a part added at the end, or put in the place of
+ * `replacePartId`. A replaced part that is already gone is added instead.
+ */
+export function withComboPart(
+	combo: Combo,
+	part: ComboPartDraft,
+	replacePartId?: string,
+): ComboDraft {
+	const draft = comboDraft(combo);
+	const index = replacePartId
+		? draft.parts.findIndex((item) => item.id === replacePartId)
+		: -1;
+	const parts: ComboPartDraft[] = [...draft.parts];
+	if (index >= 0) parts[index] = part;
+	else parts.push(part);
+	return { ...draft, parts };
 }

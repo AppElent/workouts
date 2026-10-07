@@ -57,12 +57,14 @@ export default function NutritionComboPartRoute() {
 				)
 			}
 			onRemove={() => write(draft.parts.filter((item) => item.id !== part.id))}
-			onReplace={() =>
+			onReplace={() => {
+				// The browser replaces the part sheet rather than stacking on it.
+				leave();
 				router.push({
 					pathname: "/nutrition-food",
 					params: { comboId: combo.id, replacePartId: part.id },
-				})
-			}
+				});
+			}}
 		/>
 	);
 }

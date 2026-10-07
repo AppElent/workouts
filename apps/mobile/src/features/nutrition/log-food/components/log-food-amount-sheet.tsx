@@ -2,6 +2,7 @@ import {
 	forkSource,
 	NEVO_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
+	type ServingOption,
 } from "@workouts/core/nutrition";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -53,6 +54,7 @@ export function LogFoodAmountSheet({
 	onEdit,
 	onDelete,
 	onCorrect,
+	pick,
 }: {
 	selection: FoodSelection;
 	meal: MealSlot;
@@ -64,6 +66,15 @@ export function LogFoodAmountSheet({
 	onDelete?: () => void;
 	/** Start a correction of this shipped food. Absent for a local food. */
 	onCorrect?: () => void;
+	/**
+	 * Target mode: ✓ hands the amount to the target (such as a combo)
+	 * instead of logging it, and there is no meal, date or ⋯.
+	 */
+	pick?: {
+		title: string;
+		confirmLabel: string;
+		onPick: (serving: ServingOption, quantity: number) => void;
+	};
 }) {
 	const { t, locale } = useI18n();
 	const colors = useTokens();
@@ -207,14 +218,21 @@ export function LogFoodAmountSheet({
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
 			<AmountEditorHeader
 				title={food.name[locale]}
+				subtitle={pick?.title}
 				closeLabel={t.nutrition.foodBrowser.closeServingLabel}
-				confirmLabel={t.nutrition.foodBrowser.addAndContinue}
+				confirmLabel={
+					pick?.confirmLabel ?? t.nutrition.foodBrowser.addAndContinue
+				}
 				canConfirm={amount.valid}
 				busy={logging}
 				busyLabel={t.nutrition.foodBrowser.logging}
 				disabled={adding}
 				onClose={onBack}
-				onConfirm={() => log("continue")}
+				onConfirm={() =>
+					pick
+						? amount.valid && pick.onPick(amount.selected, amount.quantity)
+						: log("continue")
+				}
 			/>
 			<AmountEditor
 				name={food.name[locale]}
@@ -264,55 +282,57 @@ export function LogFoodAmountSheet({
 				adding={adding}
 				onAddingChange={setAdding}
 				toolbar={
-					<>
-						<AmountDestination
-							meal={destination.meal}
-							date={destination.date}
-							disabled={logging || adding}
-							onMealChange={(next) =>
-								setDestination((current) => ({ ...current, meal: next }))
-							}
-							onDateChange={(next) =>
-								setDestination((current) => ({ ...current, date: next }))
-							}
-						/>
-						<View style={{ flex: 1 }} />
-						<GlassSurface capsule>
-							<NutritionChoiceMenu
-								accessibilityLabel={t.nutrition.foodEditor.more}
-								sections={menuItems}
-								onSelect={(id) => {
-									if (id === "favorite") {
-										if (!subject) return;
-										operations.toggleFavorite(subject, sourceKey, !favorite);
-										setFavorite(!favorite);
-									} else if (id === "close") log("close");
-									else if (id === "correct") onCorrect?.();
-									else if (id === "edit") onEdit?.();
-									else if (id === "delete") onDelete?.();
-								}}
-							>
-								<View
-									style={{
-										width: 44,
-										height: 44,
-										alignItems: "center",
-										justifyContent: "center",
+					pick ? undefined : (
+						<>
+							<AmountDestination
+								meal={destination.meal}
+								date={destination.date}
+								disabled={logging || adding}
+								onMealChange={(next) =>
+									setDestination((current) => ({ ...current, meal: next }))
+								}
+								onDateChange={(next) =>
+									setDestination((current) => ({ ...current, date: next }))
+								}
+							/>
+							<View style={{ flex: 1 }} />
+							<GlassSurface capsule>
+								<NutritionChoiceMenu
+									accessibilityLabel={t.nutrition.foodEditor.more}
+									sections={menuItems}
+									onSelect={(id) => {
+										if (id === "favorite") {
+											if (!subject) return;
+											operations.toggleFavorite(subject, sourceKey, !favorite);
+											setFavorite(!favorite);
+										} else if (id === "close") log("close");
+										else if (id === "correct") onCorrect?.();
+										else if (id === "edit") onEdit?.();
+										else if (id === "delete") onDelete?.();
 									}}
 								>
-									<SymbolView
-										name={{
-											ios: "ellipsis",
-											android: "more_horiz",
-											web: "more_horiz",
+									<View
+										style={{
+											width: 44,
+											height: 44,
+											alignItems: "center",
+											justifyContent: "center",
 										}}
-										size={19}
-										tintColor={colors.text}
-									/>
-								</View>
-							</NutritionChoiceMenu>
-						</GlassSurface>
-					</>
+									>
+										<SymbolView
+											name={{
+												ios: "ellipsis",
+												android: "more_horiz",
+												web: "more_horiz",
+											}}
+											size={19}
+											tintColor={colors.text}
+										/>
+									</View>
+								</NutritionChoiceMenu>
+							</GlassSurface>
+						</>
+					)
 				}
 			/>
 		</View>

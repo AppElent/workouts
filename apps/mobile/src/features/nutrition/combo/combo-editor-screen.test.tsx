@@ -36,6 +36,17 @@ async function openCombo() {
 			name: "Wrap lunch",
 			parts: [oneOff("Wrap", 200), oneOff("Hummus", 141), oneOff("Feta", 141)],
 		}).id;
+		stores.personalFoods.create({
+			name: { en: "Oats", nl: "Havermout" },
+			baseUnit: "g",
+			nutrients: nutrients(389),
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: true,
+			},
+		});
 	});
 	fireEvent.press(await screen.findByText("Wrap lunch"));
 	await waitFor(() => expect(app.getPathname()).toBe(`/nutrition-combo/${id}`));
@@ -91,5 +102,75 @@ describe("combo editor", () => {
 			expect(energy).toEqual({ kind: "value", amount: 400 });
 		});
 		expect(app.repository.findCombo(id)?.parts[0].snapshot.quantity).toBe(2);
+	});
+
+	it("adds a food at its default portion from the browser, with undo", async () => {
+		const { app, id } = await openCombo();
+		fireEvent.press(await screen.findByText("Add part"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "oats");
+		fireEvent.press((await screen.findAllByLabelText("Quick log Oats"))[0]);
+
+		await waitFor(() =>
+			expect(app.repository.findCombo(id)?.parts).toHaveLength(4),
+		);
+		const added = app.repository.findCombo(id)?.parts[3];
+		expect(added?.reference).toEqual({
+			kind: "personal",
+			foodId: expect.any(String),
+		});
+		expect(added?.snapshot.amount).toBe(100);
+		// The browser stays open for the next part.
+		expect(app.getPathname()).toBe("/nutrition-food");
+		fireEvent.press(screen.getByLabelText("Undo"));
+		await waitFor(() =>
+			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
+		);
+	});
+
+	it("adds a food at a chosen portion", async () => {
+		const { app, id } = await openCombo();
+		fireEvent.press(await screen.findByText("Add part"));
+		fireEvent.changeText(
+			await screen.findByPlaceholderText("Search foods"),
+			"oats",
+		);
+		// The library underneath lists it too; the browser row is the last match.
+		fireEvent.press((await screen.findAllByText("Oats")).at(-1) as never);
+		// NEVO's oat flakes come by the 40 g portion.
+		fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+		fireEvent.press(screen.getByLabelText("Add"));
+
+		await waitFor(() =>
+			expect(app.repository.findCombo(id)?.parts[3]?.snapshot).toMatchObject({
+				quantity: 2,
+				amount: 80,
+			}),
+		);
+	});
+
+	it("replaces a part in its place and returns to the combo", async () => {
+		const { app, id } = await openCombo();
+		fireEvent(
+			await screen.findByLabelText(/^Hummus, /),
+			"accessibilityAction",
+			{ nativeEvent: { actionName: "replace" } },
+		);
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		// The search starts from the old part's name.
+		expect(screen.getByDisplayValue("Hummus")).toBeTruthy();
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "oats");
+		fireEvent.press((await screen.findAllByLabelText("Quick log Oats"))[0]);
+
+		await waitFor(() =>
+			expect(
+				app.repository
+					.findCombo(id)
+					?.parts.map((part) => part.snapshot.name.en),
+			).toEqual(["Wrap", "Oats", "Feta"]),
+		);
+		await waitFor(() =>
+			expect(app.getPathname()).toBe(`/nutrition-combo/${id}`),
+		);
 	});
 });

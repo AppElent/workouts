@@ -11,6 +11,7 @@ import {
 	comboPartFromFood,
 	comboTotals,
 	moveComboPart,
+	withComboPart,
 	withoutMissingParts,
 } from "./combo-parts";
 
@@ -147,5 +148,27 @@ describe("combo parts", () => {
 			comboPartFromEntry({ ...base, provenance: { source: "oneOff" } } as never)
 				.reference,
 		).toEqual({ kind: "oneOff" });
+	});
+
+	it("appends a new part, or replaces one in its place", () => {
+		const part = comboPartFromFood(food());
+		const added = withComboPart(combo, part);
+		expect(added.parts.map((item) => item.id ?? "new")).toEqual([
+			"a",
+			"b",
+			"c",
+			"new",
+		]);
+		const replaced = withComboPart(combo, part, "b");
+		expect(replaced.parts.map((item) => item.id ?? "new")).toEqual([
+			"a",
+			"new",
+			"c",
+		]);
+		expect(replaced.parts[1].reference).toEqual({
+			kind: "personal",
+			foodId: "oats",
+		});
+		expect(withComboPart(combo, part, "gone").parts).toHaveLength(4);
 	});
 });
