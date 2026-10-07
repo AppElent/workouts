@@ -285,7 +285,8 @@ export function InsetRow({
 	if (!actions || actions.length === 0) return row;
 
 	// Long press: the same actions as a system menu. Swipe: the ones that fit.
-	// Full swipe never commits — every destructive action still confirms.
+	// A full swipe runs only an outermost action marked `fullSwipe`, which
+	// confirms or offers undo itself (the RowAction contract).
 	const withMenu = (
 		<ContextMenu>
 			<ContextMenu.Items>
@@ -321,7 +322,10 @@ export function InsetRow({
 	return (
 		<SwipeActions>
 			{withMenu}
-			<SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+			<SwipeActions.Actions
+				edge="trailing"
+				allowsFullSwipe={Boolean(swipe.at(-1)?.fullSwipe)}
+			>
 				{[...swipe].reverse().map((action) => (
 					<Button
 						key={action.key}

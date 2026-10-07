@@ -247,6 +247,7 @@ export function LibraryScreen() {
 						label: copy.delete,
 						systemImage: "trash",
 						destructive: true,
+						fullSwipe: true,
 						onPress: () => void remove([item]),
 					},
 				]
@@ -277,6 +278,7 @@ export function LibraryScreen() {
 						label: copy.delete,
 						systemImage: "trash",
 						destructive: true,
+						fullSwipe: true,
 						onPress: () => void remove([item]),
 					},
 				];

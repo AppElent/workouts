@@ -669,6 +669,7 @@ export function PersonalFoodEditor({
 														key: "remove",
 														label: copy.remove,
 														destructive: true,
+														fullSwipe: true,
 														onPress: () => draft.removeServing(index),
 													},
 												]}

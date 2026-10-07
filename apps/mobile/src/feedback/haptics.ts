@@ -97,6 +97,14 @@ export const haptics = {
 		play(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
 	},
 
+	/**
+	 * A swipe went far enough that letting go runs the row's outermost action
+	 * (a full swipe). Stronger than the open threshold: this one commits.
+	 */
+	swipeCommitArmed(): void {
+		play(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+	},
+
 	/** A press-and-hold opened an action menu. */
 	menuOpened(): void {
 		play(() =>

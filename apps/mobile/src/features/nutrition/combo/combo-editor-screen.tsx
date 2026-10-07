@@ -195,6 +195,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 				label: copy.removePart,
 				systemImage: "trash",
 				destructive: true,
+				fullSwipe: true,
 				onPress: () => removePart(part.id),
 			},
 		];

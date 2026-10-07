@@ -494,6 +494,7 @@ function GoalsEditor() {
 															key: "remove",
 															label: copy.removeGoal,
 															destructive: true,
+															fullSwipe: true,
 															onPress: () => onKind(nutrient, "remove"),
 														},
 													]}

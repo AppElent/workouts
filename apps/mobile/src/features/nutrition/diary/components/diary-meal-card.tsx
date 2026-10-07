@@ -178,6 +178,7 @@ export function DiaryMealCard({
 								label: t.nutrition.entryActions.delete,
 								onPress: () => onDelete(entry),
 								destructive: true,
+								fullSwipe: true,
 							},
 						]
 			}
@@ -373,6 +374,7 @@ export function DiaryMealCard({
 									label: t.nutrition.entryActions.delete,
 									onPress: () => onDeleteDraft(draft),
 									destructive: true,
+									fullSwipe: true,
 								},
 							]}
 						/>

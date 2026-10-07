@@ -127,6 +127,7 @@ export function LogFoodMealSummary({
 											systemImage: "trash",
 											label: deleteLabel,
 											destructive: true,
+											fullSwipe: true,
 											onPress: () => onDeleteEntry(entry),
 										},
 									]}
