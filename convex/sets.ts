@@ -1,9 +1,11 @@
-import { exerciseReference, canonicalExerciseId, requireExercise, exerciseSets, exerciseReferenceIds, exerciseOneRepMaxes, normalizeExerciseReferences } from "./lib/exerciseCatalog";
+import { exerciseReference, canonicalExerciseId, exerciseSets, exerciseReferenceIds, normalizeExerciseReferences } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from '@workouts/core'
-import { assertOptionalRange, assertRange } from './lib/validate'
+import { canonicalJson } from '@workouts/core'
+import { assertOptionalRange, assertRange, assertIntegerRange, assertOptionalRpe } from './lib/validate'
+import { ensureSessionExercise } from './lib/strengthSession'
+import { performanceReference, recalcStrengthReferences } from './lib/strengthReferences'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -11,41 +13,7 @@ async function requireUser(ctx: QueryCtx | MutationCtx) {
   return identity.subject
 }
 
-export async function recalcOneRepMax(
-  ctx: MutationCtx,
-  userId: string,
-  exerciseId: string,
-) {
-  exerciseId = await canonicalExerciseId(ctx, exerciseId)
-  const orms = await exerciseOneRepMaxes(ctx, userId, exerciseId)
-  if (orms.some((orm) => orm.source === 'manual')) return
-  for (const orm of orms) await ctx.db.delete(orm._id)
-  const remaining = (await exerciseSets(ctx, userId, exerciseId)).filter((set) => set.weight > 0)
-  if (remaining.length === 0) return
-
-  let bestValue = 0
-  let bestSet = remaining[0]
-  for (const s of remaining) {
-    const { value } = calculateOneRepMax(s.weight, s.reps)
-    if (value > bestValue) {
-      bestValue = value
-      bestSet = s
-    }
-  }
-  const { value, source, formula } = calculateOneRepMax(
-    bestSet.weight,
-    bestSet.reps,
-  )
-  await ctx.db.insert('oneRepMaxes', {
-    userId,
-    exerciseId,
-    value,
-    unit: bestSet.unit,
-    date: Date.now(),
-    source,
-    formula,
-  })
-}
+export { recalcStrengthReferences as recalcOneRepMax } from "./lib/strengthReferences"
 
 export const listForSession = query({
   args: { sessionId: v.id('workoutSessions') },
@@ -61,6 +29,8 @@ export const listForSession = query({
 
 export const add = mutation({
   args: {
+    // Optional only for existing web/native clients during additive rollout.
+    operationId: v.optional(v.string()),
     sessionId: v.id('workoutSessions'),
     exerciseId: exerciseReference,
     setNumber: v.number(),
@@ -77,35 +47,49 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
-    assertRange(args.reps, 0, 1000, 'Reps')
-    assertRange(args.weight, 0, 2000, 'Weight')
-    assertOptionalRange(args.rpe, 1, 10, 'RPE')
-    const session = await ctx.db.get(args.sessionId)
-    if (!session || session.userId !== userId) throw new Error('Unauthorized')
-    args.exerciseId = await requireExercise(ctx, args.exerciseId, userId)
-    const setId = await ctx.db.insert('sets', {
-      ...args,
-      userId,
-      loggedAt: Date.now(),
-    })
-    const orms = await exerciseOneRepMaxes(ctx, userId, args.exerciseId)
-    if (!orms.some((orm) => orm.source === 'manual') && args.weight > 0) {
-      const { value, source, formula } = calculateOneRepMax(args.weight, args.reps)
-      const current = orms.filter((orm) => orm.source !== 'manual').sort((a, b) => b.value - a.value)[0]
-      if (!current || value > current.value) {
-        if (current) await ctx.db.delete(current._id)
-        await ctx.db.insert('oneRepMaxes', {
-          userId,
-          exerciseId: args.exerciseId,
-          value,
-          unit: args.unit,
-          date: Date.now(),
-          source,
-          formula,
-        })
+    try {
+      assertIntegerRange(args.reps, 0, 1000, 'Reps')
+      assertIntegerRange(args.setNumber, 1, 10000, 'Set number')
+      assertRange(args.weight, 0, 2000, 'Weight')
+      assertOptionalRpe(args.rpe)
+    } catch (error) {
+      // A typed rejection proves this operation did not commit. Clients may
+      // unlock its input; transport failures retain the frozen operation ID.
+      throw new ConvexError(error instanceof Error ? error.message : 'Invalid set')
+    }
+    const { operationId, ...values } = args
+    const payload = canonicalJson(values)
+    if (operationId) {
+      const receipt = await ctx.db.query('strengthLogReceipts')
+        .withIndex('by_user_operation', q => q.eq('userId', userId).eq('operationId', operationId)).unique()
+      if (receipt) {
+        if (receipt.payload !== payload) throw new Error('This Log was already submitted with different details.')
+        return receipt.setId
       }
     }
+    args.exerciseId = await ensureSessionExercise(ctx, userId, args.sessionId, args.exerciseId)
+    const setId = await ctx.db.insert('sets', {
+      ...values,
+      exerciseId: args.exerciseId,
+      userId,
+      loggedAt: Date.now(),
+      performanceVerified: true,
+      ...await performanceReference(ctx, userId, { ...values, exerciseId: args.exerciseId, performanceVerified: true }),
+    })
+    if (operationId) await ctx.db.insert('strengthLogReceipts', { userId, operationId, payload, setId })
+    await recalcStrengthReferences(ctx, userId, args.exerciseId)
     return setId
+  },
+})
+
+export const getLogResult = query({
+  args: { operationId: v.string() },
+  handler: async (ctx, { operationId }) => {
+    const userId = await requireUser(ctx)
+    const receipt = await ctx.db.query('strengthLogReceipts')
+      .withIndex('by_user_operation', q => q.eq('userId', userId).eq('operationId', operationId)).unique()
+    if (!receipt) return null
+    return { setId: receipt.setId, status: await ctx.db.get(receipt.setId) ? 'saved' as const : 'removed' as const }
   },
 })
 
@@ -115,7 +99,7 @@ export const update = mutation({
     reps: v.optional(v.number()),
     weight: v.optional(v.number()),
     unit: v.optional(v.union(v.literal('kg'), v.literal('lbs'))),
-    rpe: v.optional(v.number()),
+    rpe: v.optional(v.union(v.number(), v.null())),
     setType: v.optional(
       v.union(
         v.literal('warmup'),
@@ -125,15 +109,16 @@ export const update = mutation({
       ),
     ),
   },
-  handler: async (ctx, { id, ...patch }) => {
+  handler: async (ctx, { id, rpe, ...values }) => {
+    const patch = { ...values, ...(rpe === undefined ? {} : { rpe: rpe ?? undefined }) }
     const userId = await requireUser(ctx)
-    assertOptionalRange(patch.reps, 0, 1000, 'Reps')
+    if (patch.reps !== undefined) assertIntegerRange(patch.reps, 0, 1000, 'Reps')
     assertOptionalRange(patch.weight, 0, 2000, 'Weight')
-    assertOptionalRange(patch.rpe, 1, 10, 'RPE')
+    assertOptionalRpe(patch.rpe)
     const set = await ctx.db.get(id)
     if (!set || set.userId !== userId) throw new Error('Unauthorized')
-    await ctx.db.patch(id, { ...patch, exerciseId: await canonicalExerciseId(ctx, set.exerciseId) })
-    await recalcOneRepMax(ctx, userId, set.exerciseId)
+    await ctx.db.patch(id, { ...patch, exerciseId: await canonicalExerciseId(ctx, set.exerciseId), ...await performanceReference(ctx, userId, { ...set, ...patch }) })
+    await recalcStrengthReferences(ctx, userId, set.exerciseId)
   },
 })
 
@@ -154,8 +139,8 @@ export const duplicate = mutation({
       0,
     )
 
-    const newId = await ctx.db.insert('sets', {
-      userId,
+    // Compatibility endpoint: repeating prepares values. Only `add` records work.
+    return {
       sessionId: src.sessionId,
       exerciseId,
       setNumber: maxNum + 1,
@@ -164,20 +149,30 @@ export const duplicate = mutation({
       unit: src.unit,
       rpe: src.rpe,
       setType: src.setType,
-      loggedAt: Date.now(),
-    })
-    await recalcOneRepMax(ctx, userId, src.exerciseId)
-    return newId
+    }
   },
 })
 
 export const getLastForExercise = query({
-  args: { exerciseId: exerciseReference },
-  handler: async (ctx, { exerciseId }) => {
+  args: { exerciseId: exerciseReference, excludeSessionId: v.optional(v.id("workoutSessions")) },
+  handler: async (ctx, { exerciseId, excludeSessionId }) => {
     const userId = await requireUser(ctx)
     exerciseId = await canonicalExerciseId(ctx, exerciseId)
     const sets = await exerciseSets(ctx, userId, exerciseId)
-    return sets.sort((a, b) => b._creationTime - a._creationTime)[0] ?? null
+    return sets.filter(set => set.sessionId !== excludeSessionId).sort((a, b) => b.loggedAt - a.loggedAt)[0] ?? null
+  },
+})
+
+export const getPreviousForExercise = query({
+  args: { exerciseId: exerciseReference, sessionId: v.id('workoutSessions') },
+  handler: async (ctx, { exerciseId, sessionId }) => {
+    const userId = await requireUser(ctx)
+    const sets = (await exerciseSets(ctx, userId, exerciseId))
+      .filter(set => set.sessionId !== sessionId)
+      .sort((a, b) => b.loggedAt - a.loggedAt)
+    const previousSessionId = sets[0]?.sessionId
+    return sets.filter(set => set.sessionId === previousSessionId)
+      .sort((a, b) => a.setNumber - b.setNumber)
   },
 })
 
@@ -189,6 +184,6 @@ export const remove = mutation({
     if (!set || set.userId !== userId) throw new Error('Unauthorized')
     const exerciseId = set.exerciseId
     await ctx.db.delete(id)
-    await recalcOneRepMax(ctx, userId, exerciseId)
+    await recalcStrengthReferences(ctx, userId, exerciseId)
   },
 })

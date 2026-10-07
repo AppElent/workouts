@@ -92,9 +92,13 @@ function createFields(
 export function EnduranceEditorScreen({
 	sport,
 	activity,
+	onCreated,
+	nativeSheet = false,
 }: {
 	sport: "running" | "cycling";
 	activity?: EnduranceDetail | null;
+	onCreated?: (id: Id<"activities">) => void;
+	nativeSheet?: boolean;
 }) {
 	const router = useRouter();
 	const colors = useTokens();
@@ -215,7 +219,8 @@ export function EnduranceEditorScreen({
 				) {
 					await update({ id, ...fields });
 				}
-				pendingNavigation.current = () => router.replace(`/endurance/${id}`);
+				pendingNavigation.current = () =>
+					onCreated ? onCreated(id) : router.replace(`/endurance/${id}`);
 			}
 			setAllowLeave(true);
 		} catch (error) {
@@ -251,6 +256,7 @@ export function EnduranceEditorScreen({
 				onClose={() => setShowDatePicker(false)}
 			/>
 			<FormScreen
+				nativeSheet={nativeSheet}
 				primaryAction={{
 					label: saving ? copy.saving : copy.save,
 					onPress: submit,

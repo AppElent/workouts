@@ -69,7 +69,7 @@ describe("shipped exercise references", () => {
 		expect(
 			(await alice.query(api.exercises.getHistory, { exerciseId: shipped._id }))
 				.length,
-		).toBe(2);
+		).toBe(1);
 		expect(
 			await alice.query(api.sets.getLastForExercise, {
 				exerciseId: shipped._id,

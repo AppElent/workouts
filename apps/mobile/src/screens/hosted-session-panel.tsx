@@ -59,8 +59,14 @@ function parseNumber(raw: string) {
 
 export function HostedSessionPanel({
 	sessionId,
+	busy,
+	writable,
+	write,
 }: {
 	sessionId: Id<"workoutSessions">;
+	busy: boolean;
+	writable: boolean;
+	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const data = useQuery(api.hostedWorkoutParticipants.getBySession, {
@@ -102,6 +108,9 @@ export function HostedSessionPanel({
 					name={block.name}
 					type={block.type}
 					levels={block.levels}
+					busy={busy}
+					writable={writable}
+					write={write}
 				/>
 			))}
 		</View>
@@ -114,12 +123,18 @@ function ScoreBox({
 	name,
 	type,
 	levels,
+	busy,
+	writable,
+	write,
 }: {
 	sessionId: Id<"workoutSessions">;
 	blockId: string;
 	name: string;
 	type: "forTime" | "amrap" | "emom" | "load";
 	levels: { level: string; label: string; description?: string }[];
+	busy: boolean;
+	writable: boolean;
+	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -133,36 +148,35 @@ function ScoreBox({
 	const [load, setLoad] = useState("");
 	const [capped, setCapped] = useState(false);
 	const [notes, setNotes] = useState("");
-	const [busy, setBusy] = useState(false);
 
 	const chosen = levels.find((l) => l.level === level);
 
 	const send = async () => {
-		if (busy) return;
-		setBusy(true);
+		if (busy || !writable) return;
 		try {
-			await submit({
-				sessionId,
-				wodBlockId: blockId,
-				level,
-				timeSeconds: type === "forTime" ? parseTime(time) : undefined,
-				rounds: type === "amrap" ? parseNumber(rounds) : undefined,
-				reps:
-					type === "amrap" || type === "emom" || capped
-						? parseNumber(reps)
-						: undefined,
-				timeCapped: type === "forTime" ? capped : undefined,
-				load: type === "load" ? parseNumber(load) : undefined,
-				loadUnit: type === "load" ? "kg" : undefined,
-				notes: notes.trim() === "" ? undefined : notes.trim(),
-			});
+			const saved = await write(() =>
+				submit({
+					sessionId,
+					wodBlockId: blockId,
+					level,
+					timeSeconds: type === "forTime" ? parseTime(time) : undefined,
+					rounds: type === "amrap" ? parseNumber(rounds) : undefined,
+					reps:
+						type === "amrap" || type === "emom" || capped
+							? parseNumber(reps)
+							: undefined,
+					timeCapped: type === "forTime" ? capped : undefined,
+					load: type === "load" ? parseNumber(load) : undefined,
+					loadUnit: type === "load" ? "kg" : undefined,
+					notes: notes.trim() === "" ? undefined : notes.trim(),
+				}),
+			);
+			if (!saved) return;
 			// The leaderboard is on the host's screen, not this one, so there is
 			// nothing on-screen to confirm the submission landed.
 			toast.success(`Score submitted for ${name}`);
 		} catch (error) {
 			toast.error(convexErrorMessage(error, "Could not submit your score."));
-		} finally {
-			setBusy(false);
 		}
 	};
 
@@ -254,7 +268,7 @@ function ScoreBox({
 
 			<Pressable
 				onPress={() => void send()}
-				disabled={busy}
+				disabled={busy || !writable}
 				style={[styles.submit, busy && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>

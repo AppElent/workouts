@@ -7,6 +7,7 @@ import { nutritionGoalTables } from './nutritionGoalTables'
 import { nutritionLibraryTables } from './nutritionLibraryTables'
 import { supplementaryServingTables } from './supplementaryServingTables'
 import { personalMeasureTables } from './personalMeasureTables'
+import { strengthReferenceSnapshots } from './lib/strengthReferences'
 
 export default defineSchema({
   exerciseMigrations: exerciseMigrationTable,
@@ -84,6 +85,16 @@ export default defineSchema({
     endTime: v.optional(v.number()),
     name: v.optional(v.string()),
     routineId: v.optional(v.id('routines')),
+    // Absent on legacy sessions: their recorded history is not reclassified.
+    exercises: v.optional(v.array(v.object({
+      exerciseId: exerciseReference,
+      references: v.optional(strengthReferenceSnapshots),
+      plannedSets: v.array(v.object({
+        reps: v.number(),
+        weight: v.number(),
+        unit: v.union(v.literal('kg'), v.literal('lbs')),
+      })),
+    }))),
     status: v.union(
       v.literal('active'),
       v.literal('completed'),
@@ -138,12 +149,23 @@ export default defineSchema({
       v.literal('failure'),
     ),
     loggedAt: v.number(),
+    performanceVerified: v.optional(v.boolean()),
+    referenceKind: v.optional(v.union(v.literal('actual'), v.literal('calculated'))),
+    referenceValueKg: v.optional(v.number()),
   })
     .index('by_session', ['sessionId'])
     .index('by_exercise', ['exerciseId'])
     .index('by_user', ['userId'])
     .index('by_user_exercise', ['userId', 'exerciseId'])
-    .index('by_session_exercise', ['sessionId', 'exerciseId']),
+    .index('by_session_exercise', ['sessionId', 'exerciseId'])
+    .index('by_strength_reference', ['userId', 'exerciseId', 'referenceKind', 'referenceValueKg']),
+
+  strengthLogReceipts: defineTable({
+    userId: v.string(),
+    operationId: v.string(),
+    payload: v.string(),
+    setId: v.id('sets'),
+  }).index('by_user_operation', ['userId', 'operationId']),
 
   oneRepMaxes: defineTable({
     userId: v.string(),
@@ -157,6 +179,7 @@ export default defineSchema({
       v.literal('actual'),
     ),
     formula: v.optional(v.string()),
+    sourceSetId: v.optional(v.id('sets')),
   })
     .index('by_exercise', ['exerciseId'])
     .index('by_user', ['userId'])

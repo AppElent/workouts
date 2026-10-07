@@ -8,7 +8,10 @@ interface Props {
 }
 
 export function SetRow({ set, onEdit }: Props) {
-	const orm = set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
+	const orm =
+		set.performanceVerified && set.referenceKind
+			? calculateOneRepMax(set.weight, set.reps)
+			: null;
 
 	return (
 		<tr className="border-b border-[var(--border)] last:border-0 text-sm">

@@ -9,3 +9,5 @@ retain existing numbers so references remain stable.
 - [0006: Ship NEVO as generated core data](0006-ship-nevo-as-generated-core-data.md)
 - [0008: Hosted workout ownership](0008-hosted-workout-ownership.md)
 - [0009: Shipped exercise catalog](0009-shipped-exercise-catalog.md)
+- [0012: Separate planned sets from performance](0012-separate-planned-sets-from-performance.md)
+- [0013: Sourced strength references and session snapshots](0013-sourced-strength-references-and-session-snapshots.md)
