@@ -147,18 +147,6 @@ describe("Nutrition navigation", () => {
 		expect(screen.getByDisplayValue("0")).toBeTruthy();
 	});
 
-	it("returns a directly opened Copy meal screen to its target diary day", async () => {
-		const targetDate = "2026-09-20";
-		const app = renderApp(
-			`/nutrition-copy?targetDate=${targetDate}&targetMeal=lunch`,
-		);
-		const copy = await screen.findByRole("button", { name: /^Copy 1 food/ });
-		await waitFor(() => expect(copy).toBeEnabled());
-		fireEvent.press(copy);
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-		expect(app.getSearchParams()).toMatchObject({ date: targetDate });
-	});
-
 	it("opens Week overview first from the menu and returns to the selected day", async () => {
 		const app = renderApp();
 		const selectedDate = shiftIsoDate(todayIsoDate(), -1);

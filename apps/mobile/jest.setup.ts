@@ -49,16 +49,46 @@ jest.mock(
 							...(props.headerLeftBarButtonItems ?? []),
 							...(props.headerRightBarButtonItems ?? []),
 						]
-							.filter((item) => item.type === "button")
-							.map((item, index) =>
-								React.createElement(Pressable, {
-									key: index,
-									accessibilityRole: "button",
-									accessibilityLabel: item.accessibilityLabel ?? item.title,
-									accessibilityState: { disabled: item.disabled ?? false },
-									disabled: item.disabled,
-									onPress: item.onPress,
-								}),
+							.filter((item) => item.type === "button" || item.type === "menu")
+							.flatMap((item, index) =>
+								item.type === "button"
+									? [
+											React.createElement(Pressable, {
+												key: index,
+												accessibilityRole: "button",
+												accessibilityLabel:
+													item.accessibilityLabel ?? item.title,
+												accessibilityState: {
+													disabled: item.disabled ?? false,
+												},
+												disabled: item.disabled,
+												onPress: item.onPress,
+											}),
+										]
+									: // A native menu: its trigger, then its actions as plain rows.
+										[
+											React.createElement(Pressable, {
+												key: index,
+												accessibilityRole: "button",
+												accessibilityLabel:
+													item.accessibilityLabel ?? item.title,
+											}),
+											...(item.menu?.items ?? []).map(
+												(
+													action: { title?: string; onPress?: () => void },
+													actionIndex: number,
+												) =>
+													React.createElement(
+														Pressable,
+														{
+															key: `${index}-${actionIndex}`,
+															accessibilityRole: "menuitem",
+															onPress: action.onPress,
+														},
+														React.createElement(Text, null, action.title),
+													),
+											),
+										],
 							),
 					),
 			),

@@ -228,7 +228,12 @@ export default function AppLayout() {
 														/>
 														<Stack.Screen
 															name="nutrition-food-details"
-															options={{ presentation: "card" }}
+															options={{
+																// Opened from amount sheets: a sheet over the sheet, not a page behind it.
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+															}}
 														/>
 														<Stack.Screen
 															name="nutrition-entry-transfer"
@@ -271,10 +276,6 @@ export default function AppLayout() {
 																sheetAllowedDetents: [0.9, 1],
 																sheetGrabberVisible: true,
 															}}
-														/>
-														<Stack.Screen
-															name="nutrition-copy"
-															options={{ title: t.nutrition.copyMeal.title }}
 														/>
 														<Stack.Screen
 															name="nutrition-combo-new"

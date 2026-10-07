@@ -39,7 +39,6 @@ import * as NutritionComboRoute from "../../app/(app)/nutrition-combo/[id]";
 import * as NutritionComboLogRoute from "../../app/(app)/nutrition-combo-log";
 import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
 import * as NutritionComboPartRoute from "../../app/(app)/nutrition-combo-part";
-import * as NutritionCopyRoute from "../../app/(app)/nutrition-copy";
 import * as NutritionDayGoalsRoute from "../../app/(app)/nutrition-day-goals";
 import * as NutritionEntryRoute from "../../app/(app)/nutrition-entry";
 import * as NutritionEntryCorrectionRoute from "../../app/(app)/nutrition-entry-correction";
@@ -175,7 +174,6 @@ export function renderApp(
 			labs: LabsRoute as never,
 			"labs-food": LabsFoodRoute as never,
 			"nutrition-combo-log": NutritionComboLogRoute as never,
-			"nutrition-copy": NutritionCopyRoute as never,
 			"nutrition-combo-new": NutritionComboNewRoute as never,
 			"nutrition-goals": NutritionGoalsRoute as never,
 			"nutrition-one-off": NutritionOneOffRoute as never,

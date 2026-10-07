@@ -1,10 +1,11 @@
 import { getShippedFood } from "@workouts/core/nutrition";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { Pressable } from "react-native";
 import { usePersonalFoods } from "../../src/data/personal-foods";
 import { FoodViewScreen } from "../../src/features/nutrition/food/food-view-screen";
 import { useI18n } from "../../src/i18n";
-import { AppText } from "../../src/ui/text";
+import { useTokens } from "../../src/theme";
 export default function NutritionFoodDetailsRoute() {
 	const { id, source } = useLocalSearchParams<{
 		id?: string;
@@ -12,6 +13,7 @@ export default function NutritionFoodDetailsRoute() {
 	}>();
 	const foods = usePersonalFoods();
 	const { t } = useI18n();
+	const colors = useTokens();
 	const food =
 		typeof id === "string"
 			? source === "shipped"
@@ -25,14 +27,20 @@ export default function NutritionFoodDetailsRoute() {
 			<Stack.Screen
 				options={{
 					title: t.diaryEntry.details,
+					headerShown: true,
 					headerLeft: () => (
 						<Pressable
 							accessibilityRole="button"
-							accessibilityLabel={t.common.back}
+							accessibilityLabel={t.nutrition.entryActions.close}
 							onPress={() => router.back()}
-							style={{ minWidth: 48, minHeight: 48, justifyContent: "center" }}
+							style={{ minWidth: 44, minHeight: 44, justifyContent: "center" }}
 						>
-							<AppText>‹</AppText>
+							<SymbolView
+								name={{ ios: "xmark", android: "close", web: "close" }}
+								size={18}
+								weight="semibold"
+								tintColor={colors.text}
+							/>
 						</Pressable>
 					),
 				}}

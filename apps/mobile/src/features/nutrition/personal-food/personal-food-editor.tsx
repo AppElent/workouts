@@ -2,11 +2,11 @@ import { type NutrientKey, roundForDisplay } from "@workouts/core/nutrition";
 import { Image } from "expo-image";
 import { Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
 import { SymbolView } from "expo-symbols";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
 	Keyboard,
-	Platform,
 	Pressable,
 	ScrollView,
 	Switch,
@@ -26,7 +26,6 @@ import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-co
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { FoodVisualView } from "../../../ui/food-visual";
-import { GlassSurface } from "../../../ui/glass-surface";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
@@ -101,6 +100,16 @@ export function PersonalFoodEditor({
 		},
 	});
 	const scroll = useRef<ScrollView>(null);
+	/** The latest handlers, for header items that outlive a render. */
+	const actions = useRef<{
+		save: () => unknown;
+		remove: () => unknown;
+		close: () => unknown;
+	}>({
+		save: () => undefined,
+		remove: () => undefined,
+		close: () => undefined,
+	});
 	const inputs = useRef(new Map<NutrientKey, TextInput>());
 	const [focused, setFocused] = useState<NutrientKey | null>(null);
 	const focusSnapshot = useRef<NutrientInput | undefined>(undefined);
@@ -212,13 +221,14 @@ export function PersonalFoodEditor({
 	// A seeded draft (an import to review, a correction to start) is worth
 	// saving as it is; an existing food only once something changed.
 	const canSave = (draft.dirty || (!food && Boolean(seed))) && !draft.saving;
+	const hasFood = Boolean(food);
 	const confirmButton = (
 		<Pressable
 			accessibilityRole="button"
 			accessibilityLabel={t.nutrition.personalFood.save}
 			accessibilityState={{ disabled: !canSave }}
 			disabled={!canSave}
-			onPress={() => void save()}
+			onPress={() => void actions.current.save()}
 			style={{
 				width: 44,
 				height: 44,
@@ -243,18 +253,6 @@ export function PersonalFoodEditor({
 			sections={[
 				[
 					{
-						id: "ordinary",
-						label: copy.food,
-						selected: draft.classification === "ordinary",
-					},
-					{
-						id: "recipe",
-						label: copy.recipe,
-						selected: draft.classification === "recipe",
-					},
-				],
-				[
-					{
 						id: "delete",
 						label: food.provenance.forkedFrom
 							? copy.deleteCorrection
@@ -264,8 +262,7 @@ export function PersonalFoodEditor({
 				],
 			]}
 			onSelect={(id) => {
-				if (id === "delete") void remove();
-				else draft.setClassification(id as "ordinary" | "recipe");
+				if (id === "delete") void actions.current.remove();
 			}}
 		>
 			<View
@@ -288,7 +285,7 @@ export function PersonalFoodEditor({
 		<Pressable
 			accessibilityRole="button"
 			accessibilityLabel={copy.cancel}
-			onPress={() => void close()}
+			onPress={() => void actions.current.close()}
 			style={{
 				width: 44,
 				height: 44,
@@ -302,6 +299,75 @@ export function PersonalFoodEditor({
 				tintColor={colors.text}
 			/>
 		</Pressable>
+	);
+
+	// Native bar items, so UIKit draws the glass (mobile-design "Functional
+	// chrome"). Memoized with handlers in a ref: Stack.Screen sets options on
+	// every new object, and this screen re-renders when they are set.
+	actions.current = { save, remove, close };
+	const deleteLabel = food?.provenance.forkedFrom
+		? copy.deleteCorrection
+		: copy.delete;
+	const headerTitle = food ? (scrolled ? draft.name : "") : title;
+	// The fallback views read the latest handlers through `actions`; only what
+	// the bar shows invalidates the options.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above
+	const routeOptions = useMemo(
+		(): NativeStackNavigationOptions => ({
+			title: headerTitle,
+			headerTitleStyle: { color: colors.text },
+			headerLeft: hasFood ? undefined : () => closeButton,
+			unstable_headerRightItems: () => [
+				...(hasFood
+					? [
+							{
+								type: "menu" as const,
+								label: copy.more,
+								accessibilityLabel: copy.more,
+								icon: { type: "sfSymbol" as const, name: "ellipsis" as const },
+								menu: {
+									items: [
+										{
+											type: "action" as const,
+											label: deleteLabel,
+											icon: {
+												type: "sfSymbol" as const,
+												name: "trash" as const,
+											},
+											destructive: true,
+											onPress: () => void actions.current.remove(),
+										},
+									],
+								},
+							},
+						]
+					: []),
+				{
+					type: "button" as const,
+					label: t.nutrition.personalFood.save,
+					accessibilityLabel: t.nutrition.personalFood.save,
+					icon: { type: "sfSymbol" as const, name: "checkmark" as const },
+					variant: canSave ? ("prominent" as const) : ("plain" as const),
+					tintColor: canSave ? colors.accentFill : colors.text,
+					disabled: !canSave,
+					onPress: () => void actions.current.save(),
+				},
+			],
+			headerRight: () => (
+				<View style={{ flexDirection: "row", gap: 4 }}>
+					{moreMenu}
+					{confirmButton}
+				</View>
+			),
+		}),
+		[
+			canSave,
+			colors.accentFill,
+			colors.text,
+			deleteLabel,
+			hasFood,
+			headerTitle,
+		],
 	);
 
 	const notice = (title: string, body: string) => (
@@ -327,36 +393,7 @@ export function PersonalFoodEditor({
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
 			{chrome === "route" ? (
-				<>
-					<Stack.Screen
-						options={{
-							title: food ? (scrolled ? draft.name : "") : title,
-							headerTitleStyle: { color: colors.text },
-							headerLeft: food ? undefined : () => closeButton,
-							headerRight:
-								Platform.OS === "ios"
-									? undefined
-									: () => (
-											<View style={{ flexDirection: "row", gap: 4 }}>
-												{moreMenu}
-												{confirmButton}
-											</View>
-										),
-						}}
-					/>
-					{Platform.OS === "ios" ? (
-						<Stack.Toolbar placement="right">
-							<Stack.Toolbar.View hidesSharedBackground>
-								<View style={{ flexDirection: "row", gap: 8 }}>
-									{moreMenu ? (
-										<GlassSurface capsule>{moreMenu}</GlassSurface>
-									) : null}
-									<GlassSurface capsule>{confirmButton}</GlassSurface>
-								</View>
-							</Stack.Toolbar.View>
-						</Stack.Toolbar>
-					) : null}
-				</>
+				<Stack.Screen options={routeOptions} />
 			) : (
 				<View
 					style={{

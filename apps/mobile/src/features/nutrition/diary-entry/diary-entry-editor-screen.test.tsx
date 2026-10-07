@@ -125,7 +125,8 @@ it("opens read-only product details and retains the entry draft on return", asyn
 	fireEvent.press(screen.getByLabelText("Product details"));
 	expect(await screen.findByText("Apple")).toBeTruthy();
 	expect(screen.queryByLabelText("Name")).toBeNull();
-	fireEvent.press(screen.getByLabelText("Go back"));
+	// Details open as a sheet over the entry; closing it keeps the draft.
+	fireEvent.press(screen.getByLabelText("Close"));
 	expect(await screen.findByDisplayValue("2")).toBeTruthy();
 });
 it("keeps cached supplementary Servings usable offline and prevents online-only creation", async () => {

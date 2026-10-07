@@ -141,26 +141,6 @@ export const en = {
 			syncPending: "Saved on this device, waiting to sync.",
 			copyMeal: "Copy meal",
 		},
-		copyMeal: {
-			title: "Copy meal",
-			intro: "Choose a meal from another day to add to this day.",
-			sourceDate: "Source day",
-			sourceMeal: "Source meal",
-			targetDate: "Target day",
-			targetMeal: "Target meal",
-			selectAll: "Select all",
-			deselectAll: "Deselect all",
-			selected: "{count} selected",
-			copyOne: "Copy 1 food to {meal}",
-			copy: "Copy {count} foods to {meal}",
-			copying: "Copying…",
-			empty: "There is nothing to copy from this meal.",
-			uncached: "This source meal is not available offline yet.",
-			incomplete:
-				"This source meal is only partially available and cannot be copied yet.",
-			self: "Choose a different source meal or day.",
-			failure: "This meal could not be copied. Your selection is still here.",
-		},
 
 		/**
 		 * A purely decorative acknowledgement — see spec #68. Never mentions

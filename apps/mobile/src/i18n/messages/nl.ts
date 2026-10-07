@@ -136,28 +136,6 @@ export const nl = {
 			syncPending: "Op dit apparaat opgeslagen; wachten op synchronisatie.",
 			copyMeal: "Maaltijd kopiëren",
 		},
-		copyMeal: {
-			title: "Maaltijd kopiëren",
-			intro:
-				"Kies een maaltijd van een andere dag om aan deze dag toe te voegen.",
-			sourceDate: "Bron dag",
-			sourceMeal: "Bron maaltijd",
-			targetDate: "Doel dag",
-			targetMeal: "Doel maaltijd",
-			selectAll: "Alles selecteren",
-			deselectAll: "Selectie wissen",
-			selected: "{count} geselecteerd",
-			copyOne: "1 voedingsmiddel naar {meal} kopiëren",
-			copy: "{count} voedingsmiddelen naar {meal} kopiëren",
-			copying: "Kopiëren…",
-			empty: "Er is niets om uit deze maaltijd te kopiëren.",
-			uncached: "Deze bronmaaltijd is offline nog niet beschikbaar.",
-			incomplete:
-				"Deze bronmaaltijd is slechts gedeeltelijk beschikbaar en kan nog niet worden gekopieerd.",
-			self: "Kies een andere bronmaaltijd of dag.",
-			failure:
-				"Deze maaltijd kon niet worden gekopieerd. Je selectie is bewaard.",
-		},
 
 		trainingMarker: {
 			label: "Getraind",
