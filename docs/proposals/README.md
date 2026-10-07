@@ -3,7 +3,7 @@
 These items await agreement or a separate migration. They do not override current
 [project guidelines](../guidelines/project/README.md).
 
-- [Mobile folder structure](mobile-folder-structure.md): proposed organization; existing code has not been migrated.
+The [mobile folder structure](../guidelines/project/mobile-folder-structure.md) is adopted incrementally by the live Nutrition Diary and Diary Entry implementations. Its rules now live with project guidelines.
 
 Open choices retained from the previous docs index:
 

@@ -1,4 +1,10 @@
+import { comboEditorEn } from "./combo-editor";
+import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
+import { foodEditorEn } from "./food-editor";
+import { foodLibraryEn } from "./food-library";
+import { goalEditorEn } from "./goal-editor";
+import { weekReviewEn } from "./week-review";
 /**
  * The phone's words, in the source language.
  *
@@ -15,6 +21,7 @@ import { exerciseLibraryEn } from "./exercise-library";
  * `nl.ts` from satisfying this shape.
  */
 export const en = {
+	diaryEntry: entryEditorEn,
 	exercises: exerciseLibraryEn,
 	tabs: {
 		home: "Home",
@@ -36,7 +43,7 @@ export const en = {
 		units: "Units",
 		notifications: "Notifications",
 		connectedApps: "Connected apps",
-		personalMeasures: "Personal measures",
+		personalMeasures: "My measures",
 		language: "Language",
 	},
 
@@ -63,45 +70,50 @@ export const en = {
 	nutrition: {
 		title: "Nutrition",
 		personalMeasures: {
-			title: "Personal measures",
-			emptyTitle: "No personal measures yet",
-			emptyBody:
-				"Save reusable exact amounts such as Small glass · 250 ml or Protein scoop · 35 g.",
-			add: "Add personal measure",
-			edit: "Edit personal measure",
+			title: "My measures",
+			weight: "Weight",
+			volume: "Volume",
+			help: {
+				g: "Offered for every food measured in grams.",
+				ml: "Offered for every food measured in millilitres.",
+			},
+			intro:
+				"Keep amounts you use often. They appear next to a product's servings when you log.",
+			example: {
+				g: "E.g. Protein scoop · 35 g",
+				ml: "E.g. Small glass · 200 ml",
+			},
+			add: "New measure",
+			addIn: "Add a measure in {unit}",
+			edit: "Change measure",
 			name: "Name",
 			amount: "Amount",
-			unit: "Unit",
 			unitChangeTitle: "Change this measure's unit?",
 			unitChangeBody:
 				"It will stop appearing for foods that use the previous unit. Past diary entries will not change.",
 			unitChangeConfirm: "Change unit",
 			grams: "Grams",
 			millilitres: "Millilitres",
-			save: "Save measure",
+			confirmAdd: "Add",
+			save: "Save",
 			cancel: "Cancel",
-			delete: "Delete personal measure",
-			deleteTitle: "Delete personal measure?",
+			editAction: "Change",
+			delete: "Delete",
+			deleteTitle: "Delete ‘{name}’?",
 			deleteBody:
-				"Past diary entries will not change. This measure will disappear from future choices.",
-			deleteFailure: "This personal measure could not be deleted.",
+				"It disappears from the serving choice. Earlier diary entries do not change.",
+			deleteFailure: "This measure could not be deleted.",
 			saveFailure:
-				"This personal measure could not be saved. Your changes are still here.",
-			reorderFailure: "The personal measures could not be reordered.",
+				"This measure could not be saved. What you typed is still here.",
+			reorderFailure: "The measures could not be reordered.",
 			validation:
-				"Enter a unique name and an amount from 0.1 to 10,000 with at most one decimal place.",
-			formHelp: "Names are personal and stay the same in every app language.",
-			compatibilityHelp:
-				"A personal measure appears only for foods with the same g or ml base unit.",
-			offlineTitle: "Connect to manage personal measures",
+				"Enter a unique name and an amount from 0.1 to 10,000 with at most one decimal.",
+			offline: "Offline",
 			offlineBody:
-				"Cached measures remain available while logging, but changes require a connection for now.",
+				"Your measures work while logging. Changing them needs a connection again.",
 			moveUp: "Move up",
 			moveDown: "Move down",
-			manage: "Manage personal measures",
-			incompatibleReturn:
-				"This measure uses a different unit, so the previous serving choice was kept.",
-			loading: "Loading personal measures",
+			loading: "Loading measures",
 		},
 
 		day: {
@@ -133,26 +145,6 @@ export const en = {
 			hideAdditionalGoals: "Hide additional goals",
 			syncPending: "Saved on this device, waiting to sync.",
 			copyMeal: "Copy meal",
-		},
-		copyMeal: {
-			title: "Copy meal",
-			intro: "Choose a meal from another day to add to this day.",
-			sourceDate: "Source day",
-			sourceMeal: "Source meal",
-			targetDate: "Target day",
-			targetMeal: "Target meal",
-			selectAll: "Select all",
-			deselectAll: "Deselect all",
-			selected: "{count} selected",
-			copyOne: "Copy 1 food to {meal}",
-			copy: "Copy {count} foods to {meal}",
-			copying: "Copying…",
-			empty: "There is nothing to copy from this meal.",
-			uncached: "This source meal is not available offline yet.",
-			incomplete:
-				"This source meal is only partially available and cannot be copied yet.",
-			self: "Choose a different source meal or day.",
-			failure: "This meal could not be copied. Your selection is still here.",
 		},
 
 		/**
@@ -206,19 +198,12 @@ export const en = {
 				exceeded: "Over",
 			},
 		},
+		week: weekReviewEn,
+		library: foodLibraryEn,
+		foodEditor: foodEditorEn,
+		comboEditor: comboEditorEn,
 		goalEditor: {
-			title: "Your nutrition goals",
-			intro:
-				"Choose a static starting point or set any minimum or maximum yourself. These values do not use Activity or body data.",
-			loading: "Loading goals",
-			amount: "Daily amount",
-			remove: "Remove",
-			save: "Save goals",
-			saving: "Saving goals…",
-			validation: "Enter an amount greater than zero.",
-			failure: "Your goals could not be saved. Your changes are still here.",
-			edited: "{count} edited",
-			directions: { min: "Minimum", max: "Maximum" },
+			...goalEditorEn,
 			presets: {
 				reference: {
 					name: "Reference intake",
@@ -372,7 +357,7 @@ export const en = {
 			per100: "Nutrition per 100",
 			states: { absent: "Not available", trace: "Trace", value: "Amount" },
 			servings: "Servings",
-			servingsHelp: "Add up to three familiar amounts in the base unit.",
+			servingsHelp: "Add familiar amounts in the base unit.",
 			englishLabel: "English label",
 			dutchLabel: "Dutch label",
 			amountIn: "amount in",

@@ -35,9 +35,6 @@ import type {
 	ShippedSource,
 } from "./types";
 
-/** A Personal Food carries at most three Servings, forks included. */
-export const MAX_FORK_SERVINGS = 3;
-
 export type ForkedServing = {
 	readonly label: Bilingual;
 	/** Amount in the fork's base unit. */
@@ -102,7 +99,7 @@ export function forkShippedFood(food: ShippedFood): ForkedFoodDraft {
 		name: { en: food.name.en, nl: food.name.nl },
 		baseUnit: food.baseUnit,
 		nutrients,
-		servings: food.servings.slice(0, MAX_FORK_SERVINGS).map((serving) => ({
+		servings: food.servings.map((serving) => ({
 			label: { en: serving.label.en, nl: serving.label.nl },
 			amount: serving.amount,
 		})),
@@ -283,7 +280,7 @@ export function forkHasLocalEdits(
 	for (const key of NUTRIENT_KEYS) {
 		if (!sameNutrient(draft.nutrients[key], source.nutrients[key])) return true;
 	}
-	const sourceServings = source.servings.slice(0, MAX_FORK_SERVINGS);
+	const sourceServings = source.servings;
 	if (draft.servings.length !== sourceServings.length) return true;
 	for (let index = 0; index < draft.servings.length; index += 1) {
 		const mine = draft.servings[index];

@@ -3,10 +3,18 @@
  * present in English and missing here fails typecheck, and a key here that
  * English does not have fails too.
  */
+
+import { comboEditorNl } from "./combo-editor";
 import type { en } from "./en";
+import { entryEditorNl } from "./entry-editor";
 import { exerciseLibraryNl } from "./exercise-library";
+import { foodEditorNl } from "./food-editor";
+import { foodLibraryNl } from "./food-library";
+import { goalEditorNl } from "./goal-editor";
+import { weekReviewNl } from "./week-review";
 
 export const nl = {
+	diaryEntry: entryEditorNl,
 	exercises: exerciseLibraryNl,
 	tabs: {
 		home: "Home",
@@ -29,7 +37,7 @@ export const nl = {
 		units: "Eenheden",
 		notifications: "Meldingen",
 		connectedApps: "Gekoppelde apps",
-		personalMeasures: "Persoonlijke maten",
+		personalMeasures: "Eigen maten",
 		language: "Taal",
 	},
 
@@ -56,45 +64,50 @@ export const nl = {
 	nutrition: {
 		title: "Voeding",
 		personalMeasures: {
-			title: "Persoonlijke maten",
-			emptyTitle: "Nog geen persoonlijke maten",
-			emptyBody:
-				"Bewaar herbruikbare exacte hoeveelheden, zoals Klein glas · 250 ml of Eiwitschep · 35 g.",
-			add: "Persoonlijke maat toevoegen",
-			edit: "Persoonlijke maat bewerken",
+			title: "Eigen maten",
+			weight: "Gewicht",
+			volume: "Volume",
+			help: {
+				g: "Te kiezen bij alle voeding in gram.",
+				ml: "Te kiezen bij alle voeding in milliliter.",
+			},
+			intro:
+				"Bewaar hoeveelheden die je vaak gebruikt. Ze verschijnen bij het loggen naast de porties van het product.",
+			example: {
+				g: "Bijv. Eiwitschep · 35 g",
+				ml: "Bijv. Klein glas · 200 ml",
+			},
+			add: "Nieuwe maat",
+			addIn: "Maat in {unit} toevoegen",
+			edit: "Maat wijzigen",
 			name: "Naam",
 			amount: "Hoeveelheid",
-			unit: "Eenheid",
 			unitChangeTitle: "Eenheid van deze maat wijzigen?",
 			unitChangeBody:
-				"De maat verdwijnt bij voedingsmiddelen met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
+				"De maat verdwijnt bij voeding met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
 			unitChangeConfirm: "Eenheid wijzigen",
 			grams: "Gram",
 			millilitres: "Milliliter",
-			save: "Maat opslaan",
+			confirmAdd: "Toevoegen",
+			save: "Bewaar",
 			cancel: "Annuleren",
-			delete: "Persoonlijke maat verwijderen",
-			deleteTitle: "Persoonlijke maat verwijderen?",
+			editAction: "Wijzigen",
+			delete: "Verwijderen",
+			deleteTitle: "‘{name}’ verwijderen?",
 			deleteBody:
-				"Eerdere dagboekitems veranderen niet. Deze maat verdwijnt uit toekomstige keuzes.",
-			deleteFailure: "Deze persoonlijke maat kon niet worden verwijderd.",
+				"Verdwijnt uit de portiekeuze. Eerdere dagboekitems veranderen niet.",
+			deleteFailure: "Deze maat kon niet worden verwijderd.",
 			saveFailure:
-				"Deze persoonlijke maat kon niet worden opgeslagen. Je wijzigingen staan er nog.",
-			reorderFailure: "De persoonlijke maten konden niet worden herschikt.",
+				"Deze maat kon niet worden bewaard. Wat je typte staat er nog.",
+			reorderFailure: "De maten konden niet worden herschikt.",
 			validation:
-				"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met maximaal één decimaal in.",
-			formHelp: "Persoonlijke namen blijven in elke app-taal hetzelfde.",
-			compatibilityHelp:
-				"Een persoonlijke maat verschijnt alleen bij voeding met dezelfde basiseenheid g of ml.",
-			offlineTitle: "Maak verbinding om persoonlijke maten te beheren",
+				"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met hooguit één decimaal in.",
+			offline: "Offline",
 			offlineBody:
-				"Opgeslagen maten blijven beschikbaar bij het loggen, maar wijzigingen vereisen nu een verbinding.",
+				"Je maten werken bij het loggen. Wijzigen kan weer met verbinding.",
 			moveUp: "Omhoog",
 			moveDown: "Omlaag",
-			manage: "Persoonlijke maten beheren",
-			incompatibleReturn:
-				"Deze maat gebruikt een andere eenheid; de vorige portiekeuze bleef staan.",
-			loading: "Persoonlijke maten laden",
+			loading: "Maten laden",
 		},
 
 		day: {
@@ -127,28 +140,6 @@ export const nl = {
 			hideAdditionalGoals: "Extra doelen verbergen",
 			syncPending: "Op dit apparaat opgeslagen; wachten op synchronisatie.",
 			copyMeal: "Maaltijd kopiëren",
-		},
-		copyMeal: {
-			title: "Maaltijd kopiëren",
-			intro:
-				"Kies een maaltijd van een andere dag om aan deze dag toe te voegen.",
-			sourceDate: "Bron dag",
-			sourceMeal: "Bron maaltijd",
-			targetDate: "Doel dag",
-			targetMeal: "Doel maaltijd",
-			selectAll: "Alles selecteren",
-			deselectAll: "Selectie wissen",
-			selected: "{count} geselecteerd",
-			copyOne: "1 voedingsmiddel naar {meal} kopiëren",
-			copy: "{count} voedingsmiddelen naar {meal} kopiëren",
-			copying: "Kopiëren…",
-			empty: "Er is niets om uit deze maaltijd te kopiëren.",
-			uncached: "Deze bronmaaltijd is offline nog niet beschikbaar.",
-			incomplete:
-				"Deze bronmaaltijd is slechts gedeeltelijk beschikbaar en kan nog niet worden gekopieerd.",
-			self: "Kies een andere bronmaaltijd of dag.",
-			failure:
-				"Deze maaltijd kon niet worden gekopieerd. Je selectie is bewaard.",
 		},
 
 		trainingMarker: {
@@ -196,20 +187,12 @@ export const nl = {
 				exceeded: "Over",
 			},
 		},
+		week: weekReviewNl,
+		library: foodLibraryNl,
+		foodEditor: foodEditorNl,
+		comboEditor: comboEditorNl,
 		goalEditor: {
-			title: "Jouw voedingsdoelen",
-			intro:
-				"Kies een statisch startpunt of stel zelf een minimum of maximum in. Deze waarden gebruiken geen Activiteit- of lichaamsgegevens.",
-			loading: "Doelen worden geladen",
-			amount: "Dagelijkse hoeveelheid",
-			remove: "Verwijderen",
-			save: "Doelen opslaan",
-			saving: "Doelen opslaan…",
-			validation: "Vul een hoeveelheid groter dan nul in.",
-			failure:
-				"Je doelen konden niet worden opgeslagen. Je wijzigingen staan er nog.",
-			edited: "{count} bewerkt",
-			directions: { min: "Minimum", max: "Maximum" },
+			...goalEditorNl,
 			presets: {
 				reference: {
 					name: "Referentie-inname",
@@ -360,8 +343,7 @@ export const nl = {
 				value: "Hoeveelheid",
 			},
 			servings: "Porties",
-			servingsHelp:
-				"Voeg maximaal drie bekende hoeveelheden in de basiseenheid toe.",
+			servingsHelp: "Voeg bekende hoeveelheden in de basiseenheid toe.",
 			englishLabel: "Engels label",
 			dutchLabel: "Nederlands label",
 			amountIn: "hoeveelheid in",

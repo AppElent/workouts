@@ -11,10 +11,13 @@ import { useAppearance, useTokens } from "../theme";
 export function FoodEditorSheet({
 	visible,
 	onClose,
+	onDismissed,
 	children,
 }: {
 	visible: boolean;
 	onClose: () => void;
+	/** After the sheet is fully gone: the moment another sheet may present. */
+	onDismissed?: () => void;
 	children: ReactNode;
 }) {
 	const colors = useTokens();
@@ -31,6 +34,7 @@ export function FoodEditorSheet({
 				onIsPresentedChange={(presented) => {
 					if (!presented) onClose();
 				}}
+				onDismiss={onDismissed}
 			>
 				<Group
 					modifiers={[

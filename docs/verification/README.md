@@ -11,5 +11,9 @@ checks remain pending when a document moves or a plan is archived.
 - [Nutrition and appearance evidence](nutrition/README.md): coverage inventory and colocated screenshots/recordings; start with the [review](nutrition/REVIEW.md), [merge selection](nutrition/MERGE-SELECTION.md), and [SQLite regression record](nutrition/SQLITE-REVIEW.md).
 - [Exercise library implementation and verification](exercise-library/README.md): native flow results and colocated assets; the [design study](../../designs/exercise-library/README.md) remains separate.
 
+- [Diary Entry editor](diary-entry-editor/README.md): promoted editor, keyboard overlays, and device evidence.
+- [Live Nutrition Diary](nutrition-diary/README.md): production routes, folder ownership, corrections, visual review, and outstanding acceptance.
+- [Log food screen](log-food/README.md): per-state comparison with the design, device evidence, and lessons on stale bundles.
+
 Keep report assets with their report. Link temporary or unavailable captures with
 an explicit limitation; a historical path is not evidence that a file is retained.

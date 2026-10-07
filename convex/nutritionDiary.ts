@@ -1,5 +1,6 @@
 import {
 	canonicalJson,
+ correctDiaryNutrients,
 	formatQuantity,
 	rescaleNutrients,
 	totalNutrients,
@@ -521,6 +522,10 @@ export const applyOperation = mutation({
 					nl: rescaleServingLabel(entry.serving.nl, operation.quantity, "nl"),
 				};
 			}
+			if (operation.correction) {
+ if (operation.quantity !== undefined || operation.selection !== undefined) throw new Error("Correct nutrition separately from quantity.");
+ Object.assign(patch, correctDiaryNutrients(entry, operation.correction));
+ }
 			if (Object.keys(patch).length > 0) {
 				await ctx.db.patch(entry._id, patch);
 				affectedDates.add(oldDate);
@@ -651,4 +656,22 @@ export const applyOperation = mutation({
 		});
 		return result;
 	},
+});
+
+/** At most one indexed read per visible calendar day; intake totals are not needed. */
+export const loggedDates = query({
+ args: { startDate: v.string(), endDate: v.string() },
+ returns: v.array(v.string()),
+ handler: async (ctx, { startDate, endDate }) => {
+  const userId=await requireUser(ctx);assertDiaryDate(startDate);assertDiaryDate(endDate);
+  const start=Date.parse(`${startDate}T12:00:00Z`);const end=Date.parse(`${endDate}T12:00:00Z`);
+  const count=Math.round((end-start)/86400000)+1;
+  if(count<1||count>62)throw new Error("Calendar range must contain 1–62 days.");
+  const dates=Array.from({length:count},(_,i)=>new Date(start+i*86400000).toISOString().slice(0,10));
+  const present=await Promise.all(dates.map(async date=>{
+   const row=await ctx.db.query("nutritionDiaryEntries").withIndex("by_user_date",q=>q.eq("userId",userId).eq("date",date)).first();
+   return row?date:null;
+  }));
+  return present.filter((date):date is string=>date!==null);
+ },
 });

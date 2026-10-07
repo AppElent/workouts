@@ -1,3 +1,11 @@
+jest.mock("../features/nutrition/day-goals/components/goal-row-menu", () =>
+	jest.requireActual(
+		"../features/nutrition/day-goals/components/goal-row-menu.tsx",
+	),
+);
+// Exercise the public RN row contract here; native adapter wiring has dedicated tests and simulator acceptance.
+jest.mock("../ui/inset-list", () => jest.requireActual("../ui/inset-list.tsx"));
+
 /**
  * How the screen tests mount the app.
  *
@@ -22,17 +30,31 @@ import type { ReactNode } from "react";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as AppearanceRoute from "../../app/(app)/appearance";
+import * as LabsRoute from "../../app/(app)/labs";
+import * as LabsEntryRoute from "../../app/(app)/labs-entry";
+import * as LabsFoodRoute from "../../app/(app)/labs-food";
 import * as LanguageRoute from "../../app/(app)/language";
 import * as NutritionAssistanceRoute from "../../app/(app)/nutrition-assistance";
+import * as NutritionComboRoute from "../../app/(app)/nutrition-combo/[id]";
+import * as NutritionComboLogRoute from "../../app/(app)/nutrition-combo-log";
 import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
-import * as NutritionCombosRoute from "../../app/(app)/nutrition-combos";
-import * as NutritionCookingRoute from "../../app/(app)/nutrition-cooking";
-import * as NutritionCopyRoute from "../../app/(app)/nutrition-copy";
+import * as NutritionComboPartRoute from "../../app/(app)/nutrition-combo-part";
+import * as NutritionDayGoalsRoute from "../../app/(app)/nutrition-day-goals";
 import * as NutritionEntryRoute from "../../app/(app)/nutrition-entry";
+import * as NutritionEntryCorrectionRoute from "../../app/(app)/nutrition-entry-correction";
+import * as NutritionEntryTransferRoute from "../../app/(app)/nutrition-entry-transfer";
 import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
+import * as NutritionFoodDetailsRoute from "../../app/(app)/nutrition-food-details";
 import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
 import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
+import * as NutritionLibraryAttentionRoute from "../../app/(app)/nutrition-library-attention";
+import * as NutritionNutrientSourcesRoute from "../../app/(app)/nutrition-nutrient-sources";
+import * as NutritionOneOffRoute from "../../app/(app)/nutrition-one-off";
+import * as NutritionWeekGoalsRoute from "../../app/(app)/nutrition-week-goals";
+import * as NutritionWeekSourcesRoute from "../../app/(app)/nutrition-week-sources";
 import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
+import * as PersonalFoodRoute from "../../app/(app)/personal-food/[id]";
+import * as PersonalFoodNewRoute from "../../app/(app)/personal-food-new";
 import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
 import {
@@ -111,7 +133,11 @@ export function renderApp(
 	overrides: Record<string, unknown> = {},
 	/** A fake fetch for tests that exercise the Open Food Facts network boundary. */
 	fetchImpl?: FetchLike,
-	seed?: (stores: { draftRepository: NutritionDraftRepository }) => void,
+	seed?: (stores: {
+		draftRepository: NutritionDraftRepository;
+		nutritionRepository: NutritionLocalRepository;
+		personalFoods: ReturnType<typeof createPersonalFoodRepository>;
+	}) => void,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
@@ -121,7 +147,7 @@ export function renderApp(
 	const draftRepository = createNutritionDraftRepository(
 		new SQLiteTestDatabase(),
 	);
-	seed?.({ draftRepository });
+	seed?.({ draftRepository, nutritionRepository, personalFoods: repository });
 	function Layout() {
 		return (
 			<TestLayout
@@ -138,15 +164,29 @@ export function renderApp(
 			_layout: Layout as never,
 			nutrition: NutritionRoute as never,
 			"nutrition-food": NutritionFoodRoute as never,
+			"nutrition-day-goals": NutritionDayGoalsRoute as never,
+			"nutrition-nutrient-sources": NutritionNutrientSourcesRoute as never,
+			"nutrition-entry-correction": NutritionEntryCorrectionRoute as never,
+			"nutrition-entry-transfer": NutritionEntryTransferRoute as never,
+			"nutrition-food-details": NutritionFoodDetailsRoute as never,
 			"nutrition-entry": NutritionEntryRoute as never,
-			"nutrition-combos": NutritionCombosRoute as never,
-			"nutrition-copy": NutritionCopyRoute as never,
+			"labs-entry": LabsEntryRoute as never,
+			labs: LabsRoute as never,
+			"labs-food": LabsFoodRoute as never,
+			"nutrition-combo-log": NutritionComboLogRoute as never,
 			"nutrition-combo-new": NutritionComboNewRoute as never,
 			"nutrition-goals": NutritionGoalsRoute as never,
-			"nutrition-cooking": NutritionCookingRoute as never,
+			"nutrition-one-off": NutritionOneOffRoute as never,
 			"nutrition-assistance": NutritionAssistanceRoute as never,
 			"nutrition-weekly-review": NutritionWeeklyReviewRoute as never,
+			"nutrition-week-goals": NutritionWeekGoalsRoute as never,
+			"nutrition-week-sources": NutritionWeekSourcesRoute as never,
 			"nutrition-library": NutritionLibraryRoute as never,
+			"nutrition-library-attention": NutritionLibraryAttentionRoute as never,
+			"personal-food/[id]": PersonalFoodRoute as never,
+			"nutrition-combo/[id]": NutritionComboRoute as never,
+			"nutrition-combo-part": NutritionComboPartRoute as never,
+			"personal-food-new": PersonalFoodNewRoute as never,
 			"personal-measures": PersonalMeasuresRoute as never,
 			language: LanguageRoute as never,
 			appearance: AppearanceRoute as never,

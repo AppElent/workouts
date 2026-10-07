@@ -30,7 +30,13 @@ import { AppText } from "./text";
 
 export type { InsetListProps, InsetRowProps, RowLeading };
 
-export function InsetList({ header, footer, children }: InsetListProps) {
+export function InsetList({
+	compact = false,
+	header,
+	headerContent,
+	footer,
+	children,
+}: InsetListProps) {
 	const tokens = useTokens();
 	return (
 		<View style={styles.list}>
@@ -42,9 +48,16 @@ export function InsetList({ header, footer, children }: InsetListProps) {
 			<View
 				style={[
 					styles.group,
-					{ backgroundColor: tokens.surface, borderColor: tokens.border },
+					{
+						backgroundColor: tokens.surface,
+						borderColor: tokens.border,
+						...(compact
+							? { borderRadius: radius.contentCard, borderWidth: 0 }
+							: {}),
+					},
 				]}
 			>
+				{headerContent}
 				{Children.toArray(children).map((row, index) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional; the list re-keys by content anyway
 					<Fragment key={index}>
@@ -87,9 +100,11 @@ function Leading({ leading }: { leading: RowLeading }) {
 
 export function InsetRow({
 	leading,
+	selected,
 	title,
 	secondary,
 	value,
+	trailing,
 	chevron = false,
 	destructive = false,
 	onPress,
@@ -105,7 +120,12 @@ export function InsetRow({
 		<Pressable
 			onPress={onPress}
 			disabled={!onPress && !accessibility}
-			accessibilityRole={onPress ? "button" : undefined}
+			accessibilityRole={
+				selected !== undefined ? "checkbox" : onPress ? "button" : undefined
+			}
+			accessibilityState={
+				selected !== undefined ? { checked: selected } : undefined
+			}
 			accessibilityLabel={label}
 			{...accessibility}
 			style={({ pressed }) => [
@@ -128,7 +148,9 @@ export function InsetRow({
 					</AppText>
 				) : null}
 			</View>
-			{value ? (
+			{trailing ? (
+				trailing
+			) : value ? (
 				<AppText variant="secondary" style={styles.value}>
 					{value}
 				</AppText>

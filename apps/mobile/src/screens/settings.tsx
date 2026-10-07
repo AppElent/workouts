@@ -7,7 +7,7 @@ import { AppText } from "../ui/text";
 export function SettingsScreen() {
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
-	const { locale } = useI18n();
+	const { locale, t } = useI18n();
 	return (
 		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
 			<Pressable
@@ -18,6 +18,14 @@ export function SettingsScreen() {
 				<AppText variant="heading">
 					{locale === "nl" ? "Voeding" : "Nutrition"}
 				</AppText>
+				<AppText style={styles.chevron}>›</AppText>
+			</Pressable>
+			<Pressable
+				accessibilityRole="button"
+				style={[styles.row, { marginTop: spacing.md }]}
+				onPress={() => router.push("/labs")}
+			>
+				<AppText variant="heading">{t.diaryEntry.labs}</AppText>
 				<AppText style={styles.chevron}>›</AppText>
 			</Pressable>
 		</ScrollView>

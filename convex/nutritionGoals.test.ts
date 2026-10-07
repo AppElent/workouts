@@ -180,6 +180,26 @@ describe("public nutrition goal operations", () => {
 		expect(listed).not.toEqual([energy(2400)]);
 	});
 
+	it("names the next dated version so an editor can say where a change ends", async () => {
+		const t = convexTest(testSchema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		await alice.mutation(api.nutritionGoals.replace, {
+			goals: [energy(1800)],
+			effectiveFrom: "2026-01-01",
+		});
+		await alice.mutation(api.nutritionGoals.replace, {
+			goals: [energy(2100)],
+			effectiveFrom: "2026-02-01",
+		});
+
+		expect(
+			await alice.query(api.nutritionGoals.forDate, { date: "2026-01-15" }),
+		).toMatchObject({ effectiveFrom: "2026-01-01", nextEffectiveFrom: "2026-02-01" });
+		expect(
+			await alice.query(api.nutritionGoals.forDate, { date: "2026-02-01" }),
+		).toMatchObject({ effectiveFrom: "2026-02-01", nextEffectiveFrom: null });
+	});
+
 	it("replaces only the same effective date and freezes the pre-version reference", async () => {
 		const t = convexTest(testSchema, modules);
 		const alice = t.withIdentity({ subject: "alice" });

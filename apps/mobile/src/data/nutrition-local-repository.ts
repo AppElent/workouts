@@ -10,12 +10,14 @@ import type {
 	NutrientKey,
 	NutritionGoalValue,
 	PersonalMeasure,
+	SupplementaryServing,
 } from "@workouts/core/nutrition";
+import { correctDiaryNutrients } from "@workouts/core/nutrition";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
-const DATABASE_VERSION = 5;
+const DATABASE_VERSION = 6;
 
 export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
@@ -54,7 +56,11 @@ export type LocalProjectionHint = {
 };
 
 export type PortionMemory = {
-	readonly kind: "authored" | "base-unit" | "personal-measure";
+	readonly kind:
+		| "authored"
+		| "base-unit"
+		| "personal-measure"
+		| "supplementary";
 	readonly servingKey: string;
 	readonly baseUnit: "g" | "ml" | "serving";
 	readonly amount: number;
@@ -114,6 +120,15 @@ export type NutritionOperationResult = {
 };
 
 export type NutritionLocalRepository = {
+	getSupplementaryServings(
+		subject: string,
+		foodId: string,
+	): SupplementaryServing[];
+	putSupplementaryServings(
+		subject: string,
+		foodId: string,
+		servings: readonly SupplementaryServing[],
+	): void;
 	getGoals(subject: string, date: string): CachedGoalHistory | undefined;
 	putGoals(subject: string, date: string, history: CachedGoalHistory): void;
 	getPersonalMeasures(subject: string): PersonalMeasure[];
@@ -257,6 +272,10 @@ function migrate(database: SyncSQLiteDatabase): void {
 					payload TEXT NOT NULL
 				);
 			`);
+		if (current < 6)
+			database.execSync(
+				"CREATE TABLE IF NOT EXISTS nutrition_cached_supplementary_servings (subject TEXT NOT NULL, food_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, food_id))",
+			);
 		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -351,6 +370,12 @@ function applyUpdate(
 		entries.push(entry);
 	}
 	if (!entry) return;
+	if (
+		operation.correction &&
+		(operation.quantity !== undefined || operation.selection)
+	) {
+		throw new Error("A nutrient correction cannot change the amount");
+	}
 	const oldQuantity = entry.quantity;
 	const quantity =
 		operation.selection?.quantity ?? operation.quantity ?? oldQuantity;
@@ -381,6 +406,8 @@ function applyUpdate(
 				: {}),
 		pendingOperationId: operationId,
 	};
+	if (operation.correction)
+		Object.assign(next, correctDiaryNutrients(next, operation.correction));
 	if (moved) {
 		delete next.comboGroup;
 	}
@@ -689,6 +716,22 @@ export function createNutritionLocalRepository(
 				"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
 				subject,
 				JSON.stringify(displayOrder),
+			);
+		},
+		getSupplementaryServings(subject, foodId) {
+			const row = database.getFirstSync<{ payload: string }>(
+				"SELECT payload FROM nutrition_cached_supplementary_servings WHERE subject = ? AND food_id = ?",
+				subject,
+				foodId,
+			);
+			return row ? (JSON.parse(row.payload) as SupplementaryServing[]) : [];
+		},
+		putSupplementaryServings(subject, foodId, servings) {
+			database.runSync(
+				"INSERT INTO nutrition_cached_supplementary_servings(subject, food_id, payload) VALUES (?, ?, ?) ON CONFLICT(subject, food_id) DO UPDATE SET payload = excluded.payload",
+				subject,
+				foodId,
+				JSON.stringify(servings),
 			);
 		},
 		getPersonalMeasures(subject) {

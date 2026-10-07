@@ -1,4 +1,4 @@
-export { NutritionGoalsScreen as default } from "../../src/screens/nutrition-goals";
+export { GoalsEditorScreen as default } from "../../src/features/nutrition/goals/goals-editor-screen";
 
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";

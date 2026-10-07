@@ -16,8 +16,13 @@ export function foodSourceKey(
 	return `${kind}:${id}`;
 }
 
+/** The shortcut key of a saved combo, so it can be a favourite like a food. */
+export function comboSourceKey(id: string): string {
+	return `combo:${id}`;
+}
+
 export function servingKey(option: ServingOption): string {
-	if (option.kind === "personal-measure") {
+	if (option.kind === "personal-measure" || option.kind === "supplementary") {
 		return canonicalJson({ kind: option.kind, id: option.id });
 	}
 	return canonicalJson({

@@ -5,6 +5,7 @@ import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
 import { nutritionGoalTables } from './nutritionGoalTables'
 import { nutritionLibraryTables } from './nutritionLibraryTables'
+import { supplementaryServingTables } from './supplementaryServingTables'
 import { personalMeasureTables } from './personalMeasureTables'
 
 export default defineSchema({
@@ -12,6 +13,7 @@ export default defineSchema({
   ...nutritionGoalTables,
   ...nutritionLibraryTables,
   ...personalMeasureTables,
+  ...supplementaryServingTables,
   nutritionDiaryEntries: defineTable({
     userId: v.string(),
     ...diarySnapshotFields,

@@ -2,7 +2,19 @@ import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { renderThemed } from "../test-support/render-themed";
+import { ConfirmProvider } from "../ui/confirm-dialog";
 import { NutritionAssistanceScreen } from "./nutrition-assistance";
+
+// The Personal Food editor guards leaving through navigation; this screen is
+// rendered on its own here, so there is nothing to leave.
+jest.mock("expo-router/build/react-navigation/core", () => ({
+	...jest.requireActual("expo-router/build/react-navigation/core"),
+	usePreventRemove: () => undefined,
+}));
+jest.mock("expo-router", () => ({
+	...jest.requireActual("expo-router"),
+	useNavigation: () => ({ dispatch: jest.fn() }),
+}));
 
 function render(children: ReactNode) {
 	return renderThemed(
@@ -12,7 +24,7 @@ function render(children: ReactNode) {
 				insets: { top: 0, right: 0, bottom: 0, left: 0 },
 			}}
 		>
-			{children}
+			<ConfirmProvider>{children}</ConfirmProvider>
 		</SafeAreaProvider>,
 	);
 }
@@ -103,12 +115,10 @@ describe("nutrition assistance screen", () => {
 		fireEvent.press(screen.getByText("Review estimate"));
 		expect(mockPersonalCreate).not.toHaveBeenCalled();
 		expect(mockDiaryCreate).not.toHaveBeenCalled();
-		fireEvent.changeText(
-			screen.getByLabelText("Energy per serving (Serving)"),
-			"600",
-		);
+		fireEvent.changeText(screen.getByLabelText("Energy"), "600");
+		fireEvent.press(screen.getByLabelText("Category"));
 		fireEvent.press(screen.getByText("Recipe"));
-		fireEvent.press(screen.getByText("Save"));
+		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		await waitFor(() => expect(mockPersonalCreate).toHaveBeenCalledTimes(1));
 		expect(mockPersonalCreate).toHaveBeenCalledWith(
 			expect.objectContaining({

@@ -11,5 +11,8 @@ owns vocabulary, and [ADRs](../adr/README.md) own architectural boundaries.
 | Personal Foods, Recipes, and estimates | [Implementation brief](personal-food-recipes-estimates.md) | [Implementation record](../verification/personal-food-recipes-estimates.md) |
 | Capture Drafts in the diary | [Agreed behavior and original inventory](capture-drafts-in-diary.md) | [Nutrition review](../verification/nutrition/REVIEW.md) |
 
+| Diary Entry redesign | [Editor brief](diary-entry-editor-redesign.md) | [Implementation and device evidence](../verification/diary-entry-editor/README.md) |
+| Live Nutrition Diary redesign | [Diary brief](nutrition-diary-redesign.md) | [Implementation and device evidence](../verification/nutrition-diary/README.md) |
+
 The dedicated Capture Draft repository and diary UI now exist. Its brief's
 pre-implementation inventory is historical; outstanding acceptance stays visible.

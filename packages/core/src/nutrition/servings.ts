@@ -13,7 +13,22 @@ import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
  * The base-unit option is always present and always last — it is the escape
  * hatch for "I weighed it", and story 38 makes it non-optional.
  */
+export type SupplementaryServing = {
+	readonly id: string;
+	readonly foodId: string;
+	readonly name: string;
+	readonly amount: number;
+	readonly unit: "g" | "ml";
+};
+
 export type ServingOption =
+	| {
+			readonly kind: "supplementary";
+			readonly id: string;
+			readonly label: Bilingual;
+			readonly amount: number;
+			readonly unit: "g" | "ml";
+	  }
 	| {
 			readonly kind: "personal-measure";
 			readonly id: string;
@@ -46,10 +61,19 @@ export type PersonalMeasure = {
 	readonly order: number;
 };
 
-const BASE_UNIT_LABELS: Record<"g" | "ml", Bilingual> = {
+const BASE_UNIT_LABELS: Record<"g" | "ml" | "serving", Bilingual> = {
 	g: { en: "Gram (g)", nl: "Gram (g)" },
 	ml: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
+	serving: { en: "Serving", nl: "Portie" },
 };
+
+/** The base-unit choice for an amount: "I weighed it", or one serving. */
+export function baseUnitServingOption(
+	unit: "g" | "ml" | "serving",
+	label: Bilingual = BASE_UNIT_LABELS[unit],
+): ServingOption {
+	return { kind: "base-unit", label, amount: 1, unit };
+}
 
 /** The serving choices for a food, authored first, base unit last. */
 export function servingOptions(food: ShippedFood): ServingOption[] {
@@ -61,13 +85,32 @@ export function servingOptions(food: ShippedFood): ServingOption[] {
 		...(serving.volumeMl === undefined ? {} : { volumeMl: serving.volumeMl }),
 		...(serving.note === undefined ? {} : { note: serving.note }),
 	}));
-	options.push({
-		kind: "base-unit",
-		label: BASE_UNIT_LABELS[food.baseUnit],
-		amount: 1,
-		unit: food.baseUnit,
-	});
+	options.push(baseUnitServingOption(food.baseUnit));
 	return options;
+}
+
+/** Composes account-owned additions with immutable food choices, preserving the base-unit escape hatch. */
+export function withSupplementaryServings(
+	foodOptions: readonly ServingOption[],
+	foodId: string | undefined,
+	baseUnit: "g" | "ml" | "serving",
+	additions: readonly SupplementaryServing[],
+): ServingOption[] {
+	return [
+		...foodOptions.filter((option) => option.kind !== "base-unit"),
+		...additions
+			.filter((item) => item.foodId === foodId && item.unit === baseUnit)
+			.map(
+				(item): ServingOption => ({
+					kind: "supplementary",
+					id: item.id,
+					label: { en: item.name, nl: item.name },
+					amount: item.amount,
+					unit: item.unit,
+				}),
+			),
+		...foodOptions.filter((option) => option.kind === "base-unit"),
+	];
 }
 
 /** Adds exact same-unit Personal Measures before a Food's own choices. */

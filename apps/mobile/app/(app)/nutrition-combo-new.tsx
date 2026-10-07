@@ -2,52 +2,37 @@
  * Route for naming and saving the selected diary entries as a Combo.
  *
  * The selection travels as a comma-joined list of entry ids and the entries
- * themselves are resolved from the day query here, for the same reason
+ * themselves are resolved from the day query by `ComboNewFromDiary`, for the same reason
  * `nutrition-entry.tsx` looks its entry up: ids survive a navigation, objects
  * carried through one go stale. Ids that no longer match anything are dropped
  * rather than faked, and an empty selection closes the route instead of
  * offering to save a Combo with nothing in it.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";
-import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
+import {
+	ComboNewFromDiary,
+	ComboNewFromLibrary,
+} from "../../src/features/nutrition/combo/combo-new-sources";
 import { useI18n } from "../../src/i18n";
-import { NutritionComboBuilder } from "../../src/screens/nutrition-combos";
 import { RouteError } from "../../src/ui/route-error";
 
+const ids = (value?: string) => (value ?? "").split(",").filter(Boolean);
+const leave = () => router.back();
+
 export default function NutritionComboNewRoute() {
-	const { date, entryIds } = useLocalSearchParams<{
+	const { foodIds, date, entryIds } = useLocalSearchParams<{
+		foodIds?: string;
 		date?: string;
 		entryIds?: string;
 	}>();
-	const day = date ?? todayIsoDate();
-	const state = useNutritionDay(day);
-	const wanted = new Set((entryIds ?? "").split(",").filter(Boolean));
-	const selected =
-		state.status === "ready"
-			? MEAL_SLOTS.flatMap((slot) =>
-					state.day.entries[slot]
-						.filter((entry) => wanted.has(entry.id))
-						.map((entry) => ({ entry, slot })),
-				)
-			: [];
-	const entries = selected.map(({ entry, slot }) => ({ ...entry, meal: slot }));
-	const nothingToSave = state.status === "ready" && entries.length === 0;
-
-	useEffect(() => {
-		if (nothingToSave) router.back();
-	}, [nothingToSave]);
-
-	if (entries.length === 0) return null;
-
-	return (
-		<NutritionComboBuilder
-			entries={entries}
-			date={day}
-			meal={selected[0]?.slot ?? "breakfast"}
-			onClose={() => router.back()}
-			onSaved={() => router.back()}
+	return foodIds ? (
+		<ComboNewFromLibrary foodIds={ids(foodIds)} />
+	) : (
+		<ComboNewFromDiary
+			date={date ?? todayIsoDate()}
+			entryIds={ids(entryIds)}
+			onDone={leave}
 		/>
 	);
 }

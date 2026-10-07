@@ -13,6 +13,7 @@ export type { SegmentedOption, SegmentedProps } from "./segmented.types";
 /** Native selection; use a menu when a segmented row would truncate choices. */
 export function Segmented<Value extends string>({
 	options,
+	maxSegments = 3,
 	value,
 	onChange,
 }: SegmentedProps<Value>) {
@@ -20,7 +21,7 @@ export function Segmented<Value extends string>({
 	const { width, fontScale } = useWindowDimensions();
 	const menu =
 		fontScale > 1.2 ||
-		options.length > 3 ||
+		options.length > maxSegments ||
 		width < 350 ||
 		options.some((option) => option.label.length > 20);
 	return (

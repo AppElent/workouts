@@ -6,10 +6,12 @@ import {
 	type NutrientValue,
 	personalFoodSnapshotAtAmount,
 	rescaleNutrients,
+	roundForDisplay,
 	shippedSourceMeta,
 } from "@workouts/core/nutrition";
 import { formatSnapshotAmount } from "./nutrition-one-off";
 import type {
+	Combo,
 	ComboPart,
 	ComboPartSnapshot,
 	PersonalFood,
@@ -90,4 +92,23 @@ export function scaleComboSnapshot<
 		}
 	}
 	return scaled;
+}
+
+/**
+ * A Combo's own kcal, summed from the snapshots it was saved with.
+ *
+ * A part's `nutrients` are already the figures for the amount that part logs —
+ * the same values the diary prints per entry — so this sums them rather than
+ * rescaling by `quantity`.
+ */
+export function comboEnergy(combo: Combo): number | undefined {
+	let total = 0;
+	let known = false;
+	for (const part of combo.parts) {
+		const energy = part.snapshot.nutrients.energy;
+		if (energy.kind !== "value") continue;
+		known = true;
+		total += energy.amount;
+	}
+	return known ? roundForDisplay("energy", total) : undefined;
 }

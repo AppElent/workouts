@@ -141,17 +141,28 @@ export const forDate = query({
 		goals: goalsValidator,
 		basis: v.union(v.literal("effective"), v.literal("reference")),
 		effectiveFrom: v.union(v.string(), v.null()),
+		/** Where the version in force on `date` stops applying, if anywhere. */
+		nextEffectiveFrom: v.union(v.string(), v.null()),
 		displayOrder: nutritionDisplayOrderValidator,
 	}),
 	handler: async (ctx, { date }) => {
 		assertCalendarDate(date);
 		const userId = await requireUser(ctx);
-		const [{ version, firstVersion }, legacyGoals, displayOrder] = await Promise.all([
-			readEffectiveVersion(ctx, userId, date),
-			readLegacyGoals(ctx, userId),
-			readDisplayOrder(ctx, userId),
-		]);
+		const [{ version, firstVersion }, legacyGoals, displayOrder, next] =
+			await Promise.all([
+				readEffectiveVersion(ctx, userId, date),
+				readLegacyGoals(ctx, userId),
+				readDisplayOrder(ctx, userId),
+				ctx.db
+					.query("nutritionGoalVersions")
+					.withIndex("by_user_effectiveFrom", (q) =>
+						q.eq("userId", userId).gt("effectiveFrom", date),
+					)
+					.order("asc")
+					.first(),
+			]);
 		return {
+			nextEffectiveFrom: next?.effectiveFrom ?? null,
 			...resolveGoalHistory({
 				date,
 				legacyGoals,

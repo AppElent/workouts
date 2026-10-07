@@ -1,9 +1,9 @@
+import { LibraryScreen } from "../../src/features/nutrition/library/library-screen";
 import { useI18n } from "../../src/i18n";
-import { FoodLibraryScreen } from "../../src/screens/food-library";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionLibraryRoute() {
-	return <FoodLibraryScreen />;
+	return <LibraryScreen />;
 }
 
 export function ErrorBoundary({

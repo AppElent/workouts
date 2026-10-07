@@ -20,6 +20,16 @@ bars, stack headers and toolbars, menus, form sheets, context menus, pickers,
 and SF Symbols. iOS 26 supplies Liquid Glass to this layer. Let the system own
 its material and motion instead of imitating it in React Native.
 
+Native navigation actions use the platform's semantic button style. For a dirty
+save/confirmation action on iOS 26+, use a native prominent bar item with
+`accentFill`; UIKit owns the filled shape and glass. A clean save is plain and
+disabled, invalid or conflicting work disables saving, and pending work shows
+progress with duplicate submission blocked. Keep an accessible action name.
+The [Diary Entry editor](../../../apps/mobile/src/features/nutrition/diary-entry/diary-entry-editor-screen.tsx)
+is the current example; use the platform fallback on other supported targets.
+Review the complete toolbar composition: a custom content background inside a
+system glass item can create mismatched nested shapes.
+
 ### Content
 
 Content uses opaque semantic surfaces from `apps/mobile/src/theme/tokens.ts`. Group related
@@ -324,6 +334,40 @@ These decisions describe the approved design, not completed implementation.
   require implementation and device verification; the final study records
   the actual component owners and installed versions.
 
+Settled in the my-measures study (`designs/nutrition/measures_final.html`). Apply
+them to other lists of reusable, unit-bound values.
+
+- **Group by compatibility.** When an item only applies where its unit matches
+  (g or ml), list one section per unit with the rule as the section footer, not
+  one mixed list with an explanatory note. Each section has its own + in the
+  section header, which presets the unit; order is kept per section.
+- **Small values edit in the serving popup.** A saved value with a name and an
+  amount (a personal measure) is added and changed in the shared serving popup
+  above the keyboard, with the unit as its segment, not in a form screen or
+  sheet. Changing the unit of an existing value asks first.
+- **Order without a mode.** Move up/down sit in the long-press menu (disabled at
+  the edges), never as buttons on every row.
+
+Settled in the one-off log study (`designs/nutrition/one-off_final.html`). Apply
+them to other create-and-log forms that do not save a library object.
+
+- **Same composition as the library editor.** A form that captures food without
+  saving it (a One-off Entry) reuses the personal food editor: photo and name as
+  the hero, the amount where the editor has servings, then all eight nutrients
+  with the basis menu and the same field and keyboard rules. Leave out what does
+  not apply (details, the estimated switch: one-offs are always estimated).
+- **Basis defaults to what you ate.** Values default to the whole amount
+  ("voor 1 portie"); per 100 g/ml stays in the basis menu and shows the total
+  below. The snapshot stores totals.
+- **Destination as the sheet subtitle.** A ✕/✓ sheet that logs shows its task as
+  the title and the meal + day below it as the destination menu from Log food.
+- **Photo popup.** Tapping a food photo opens one menu: Take photo, Choose photo,
+  Icon › (a submenu with the presets, current one shown beside it), and Remove
+  photo only when there is a photo. Every food editor uses this popup instead of
+  listing the presets in the main menu.
+- **Switching kind keeps input.** The Personal food / Recipe / One-off segment
+  carries the name and photo to the other form.
+
 ## Device acceptance
 
 Verify each affected supported platform with the development build. A simulator
@@ -340,3 +384,31 @@ screen and verify:
 - a short recording when navigation, sheets, gestures, or motion changed.
 
 Automated tests protect behavior; they do not approve hierarchy or device feel.
+
+When implementing a supplied design or mockup, use the verification guide's
+[reference-comparison workflow](../../../.claude/skills/verify/SKILL.md#implementing-a-supplied-design).
+
+## Diary Entry redesign
+
+The first adoption of [the feature folder structure](mobile-folder-structure.md)
+began with the Labs editor in spec #91 and is now used by the live Diary Entry route. Its quantity capsule, serving/menu
+pills, native sheet actions, combined product/nutrient card, and keyboard accessory
+follow [Round 5](../../../designs/entry-editor/round5.html). These are deliberate
+exceptions to the older form/primary-button and pill composition above, not a
+restyling instruction for other screens.
+
+`GlassSurface` owns material rendering; `SelectionMenu` owns platform selection.
+The feature owns the quantity interaction and creation popup. The popup keeps
+both visible native text inputs in a keyboard-avoiding overlay within the sheet.
+SwiftUI hosts must stay outside `InputAccessoryView`: moving them into UIKit's
+keyboard window crashes the installed native runtime. The overlay preserves the
+glass surface, native scope picker, and editable caret/selection controls. See the
+[implementation report](../../verification/diary-entry-editor/README.md)
+for verified transitions and remaining native acceptance.
+
+The Round 5 editor opts into `type.quantityCompact` (44pt) and `type.table`
+(14pt), approved for this slice; existing type variants remain unchanged.
+Its content uses 84pt circular step buttons and a compact nutrition table, while
+menus retain native iOS spacing and styling. Both quantity shortcuts and serving
+creation use the feature-owned keyboard overlay. Keep its keyboard observer
+mounted before focus so the shortcut bar receives the opening keyboard event.

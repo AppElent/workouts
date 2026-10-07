@@ -32,6 +32,7 @@ import type {
 	PersonalFoodDraft,
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
+import { PersonalFoodEditor } from "../features/nutrition/personal-food/personal-food-editor";
 import { fmt, useI18n } from "../i18n";
 import { getNutritionAssistanceMessages } from "../i18n/messages/nutrition-assistance";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
@@ -47,7 +48,6 @@ import {
 } from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { PersonalFoodEditor } from "./personal-food-editor";
 
 const NUTRIENT_LABELS: Record<NutrientKey, { en: string; nl: string }> = {
 	energy: { en: "Energy", nl: "Energie" },

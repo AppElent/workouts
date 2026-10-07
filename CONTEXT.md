@@ -104,6 +104,7 @@ _Avoid_: Food Library
 
 **Diary Entry**:
 A snapshot of a chosen amount and its nutrition figures logged at a particular time. Later changes to its Food, Serving, or Personal Measure never alter the entry.
+An explicit correction can change the selected entry without changing other historical entries.
 _Avoid_: Food log
 
 **Meal Slot**:
@@ -133,6 +134,7 @@ _Avoid_: Recipe, manually entered Food
 
 **Serving**:
 A named amount of a Food, such as one banana or one slice. A Food may offer several Servings.
+A person may add their own Servings to a Shipped Food without creating a Fork or changing its nutrition figures.
 _Avoid_: Portion, serving size
 
 **Personal Measure**:

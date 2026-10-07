@@ -61,7 +61,9 @@ describe("the app's language", () => {
 		// The default "Alles" chip already searches the whole catalogue.
 		fireEvent.changeText(await screen.findByLabelText("Zoek eten"), "appel");
 		fireEvent.press(screen.getByText("Appel"));
-		expect(await screen.findByText("Appel × 1")).toBeTruthy();
+		expect(await screen.findByTestId("amount-editor-card")).toBeTruthy();
+		expect(screen.getByLabelText("Aantal").props.value).toBe("1");
+		expect(screen.getAllByText("Appel").length).toBeGreaterThan(0);
 	});
 
 	it("renders the goal editor and validation in Dutch", async () => {
@@ -69,17 +71,12 @@ describe("the app's language", () => {
 		fireEvent.press(await screen.findByLabelText("Nederlands"));
 		testRouter.navigate("/nutrition-goals");
 
+		fireEvent.press(await screen.findByText("Zelf instellen"));
+		fireEvent.changeText(await screen.findByLabelText("Energie maximum"), "0");
+		fireEvent.press(screen.getByLabelText("Doelen opslaan"));
 		expect(
-			await screen.findByLabelText("Energie Maximum Dagelijkse hoeveelheid"),
+			await screen.findByText("Vul een getal groter dan nul in."),
 		).toBeTruthy();
-		expect(screen.getByText("Referentie-inname")).toBeTruthy();
-		fireEvent.changeText(
-			screen.getByLabelText("Energie Minimum Dagelijkse hoeveelheid"),
-			"0",
-		);
-		fireEvent.press(screen.getByText("Doelen opslaan"));
-		expect(
-			await screen.findAllByText("Voer een getal groter dan nul in."),
-		).toHaveLength(2);
+		expect(screen.getByText("1 doel klopt niet")).toBeTruthy();
 	});
 });

@@ -24,8 +24,12 @@ export type RowLeading =
 	| ReactElement;
 
 export interface InsetListProps {
+	/** Content card inside an existing scroll view; no outer section margins. */
+	compact?: boolean;
 	/** Section header above the group; the platform decides its case. */
 	header?: string;
+	/** Interactive heading inside the grouped surface. */
+	headerContent?: ReactElement;
 	/** One line of help under the group. */
 	footer?: string;
 	/** `InsetRow`s. Anything else is undefined behaviour on iOS. */
@@ -35,11 +39,15 @@ export interface InsetListProps {
 export interface InsetRowProps {
 	/** Stable identity for the native list. */
 	id?: string;
+	/** When present the row toggles a batch selection. */
+	selected?: boolean;
 	leading?: RowLeading;
 	title: string;
 	secondary?: string;
 	/** Trailing value, tabular — a duration, a weight, a count. */
 	value?: string;
+	/** Custom trailing figure, status, or action; replaces the plain value. */
+	trailing?: ReactElement;
 	/** Draws the disclosure chevron. Implied by nothing; say it. */
 	chevron?: boolean;
 	/** Red title for a destructive row such as "Sign out". */

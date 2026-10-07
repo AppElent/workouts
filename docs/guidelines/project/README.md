@@ -6,6 +6,7 @@ A deliberate override identifies its rule, scope, replacement, and reason.
 
 - [Coding](coding.md): read before implementing or reviewing code; owns workspace boundaries, integrations, and migration exceptions.
 - [Design](design.md): read for UI work; owns web identity, component seams, and design-study conventions.
+- [Mobile folder structure](mobile-folder-structure.md): adopted feature ownership, helper components, and test placement.
 - [Mobile design](mobile-design.md): also read for mobile UI; owns Foundry identity, native interfaces, interactions, and acceptance requirements.
 
 Root [coding standards](../../../CODING_STANDARDS.md) and

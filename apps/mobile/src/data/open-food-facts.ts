@@ -386,6 +386,21 @@ export async function lookupOffBarcode(
 }
 
 /**
+ * A search result as its product page has it. Search-a-licious indexes no
+ * serving size and a looser brand, so the product a person picks is read
+ * again by barcode before review; without a page it stays as found.
+ */
+export async function completeOffSearchDraft(
+	draft: PersonalFoodDraft,
+	options: OpenFoodFactsClientOptions,
+): Promise<PersonalFoodDraft> {
+	const barcode = draft.provenance.barcode;
+	if (!barcode) return draft;
+	const outcome = await lookupOffBarcode(barcode, options);
+	return outcome.kind === "found" ? outcome.draft : draft;
+}
+
+/**
  * The explicit, user-invoked Open Food Facts text search (spec #68) — never
  * called by ordinary local search.
  */

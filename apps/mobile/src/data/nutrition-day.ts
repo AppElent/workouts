@@ -56,6 +56,7 @@ export interface DiaryEntry {
 	personalMeasureId?: string;
 	visual?: FoodVisual;
 	estimated?: true;
+	correctedNutrients?: NutrientKey[];
 	provenance: ComboSnapshotProvenance;
 	comboGroup?: { id: string; comboId: string; name: string };
 }
@@ -180,6 +181,9 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			visual: entry.visual,
 			provenance: entry.provenance,
 			...(entry.estimated ? { estimated: true as const } : {}),
+			...(entry.correctedNutrients
+				? { correctedNutrients: entry.correctedNutrients }
+				: {}),
 			comboGroup: entry.comboGroup,
 			pendingOperationId:
 				"pendingOperationId" in entry ? entry.pendingOperationId : undefined,

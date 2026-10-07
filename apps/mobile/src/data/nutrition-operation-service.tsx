@@ -6,7 +6,10 @@ import {
 	type NutritionMealSlot,
 	type NutritionOperationEnvelope,
 } from "@workouts/core";
-import type { NutrientKey } from "@workouts/core/nutrition";
+import type {
+	DiaryNutrientCorrection,
+	NutrientKey,
+} from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -296,6 +299,23 @@ export class NutritionOperationService {
 		return this.repository.getGoals(subject, date);
 	}
 
+	getSupplementaryServings(subject: string, foodId: string) {
+		return this.repository.getSupplementaryServings(subject, foodId);
+	}
+	cacheSupplementaryServings(
+		subject: string,
+		foodId: string,
+		servings: readonly import("@workouts/core/nutrition").SupplementaryServing[],
+	) {
+		if (
+			canonicalJson(
+				this.repository.getSupplementaryServings(subject, foodId),
+			) === canonicalJson(servings)
+		)
+			return;
+		this.repository.putSupplementaryServings(subject, foodId, servings);
+		this.notify();
+	}
 	getPersonalMeasures(subject: string) {
 		return this.repository.getPersonalMeasures(subject);
 	}
@@ -536,6 +556,7 @@ export class NutritionOperationService {
 			| { kind: "serverId"; id: string }
 			| { kind: "clientEntryId"; id: string },
 		patch: {
+			correction?: DiaryNutrientCorrection;
 			quantity?: number;
 			selection?: {
 				serving: { en: string; nl: string };
@@ -560,7 +581,7 @@ export class NutritionOperationService {
 				...patch,
 			},
 			hint,
-			target.kind === "serverId" && this.legacy.update
+			!patch.correction && target.kind === "serverId" && this.legacy.update
 				? () =>
 						this.legacy.update?.({
 							id: target.id,
@@ -790,9 +811,16 @@ export function snapshotFromDiaryEntry(
 		amount: entry.amount,
 		baseUnit: entry.baseUnit,
 		...(entry.visual ? { visual: entry.visual } : {}),
+		...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
+		...(entry.personalMeasureId
+			? { personalMeasureId: entry.personalMeasureId }
+			: {}),
 		nutrients: entry.nutrients,
 		provenance: entry.provenance,
 		...(entry.estimated ? { estimated: true as const } : {}),
+		...(entry.correctedNutrients
+			? { correctedNutrients: entry.correctedNutrients }
+			: {}),
 		...(entry.id.startsWith("client:")
 			? { clientEntryId: entry.id.slice("client:".length) }
 			: {}),

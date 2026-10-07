@@ -1,18 +1,11 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { WeekScreen } from "../../src/features/nutrition/week/week-screen";
 import { useI18n } from "../../src/i18n";
-import { NutritionWeeklyReviewScreen } from "../../src/screens/nutrition-weekly-review";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionWeeklyReviewRoute() {
 	const { startDate } = useLocalSearchParams<{ startDate?: string }>();
-	return (
-		<NutritionWeeklyReviewScreen
-			startDate={startDate}
-			onSelectDay={(date) =>
-				router.dismissTo({ pathname: "/nutrition", params: { date } })
-			}
-		/>
-	);
+	return <WeekScreen startDate={startDate} />;
 }
 
 export function ErrorBoundary({
@@ -28,9 +21,7 @@ export function ErrorBoundary({
 			title={t.nutrition.error.title}
 			body={t.nutrition.error.body}
 			retryLabel={t.common.retry}
-			onRetry={() => {
-				retry();
-			}}
+			onRetry={() => retry()}
 			error={error}
 		/>
 	);

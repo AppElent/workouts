@@ -72,6 +72,24 @@ export default function AppLayout() {
 														}}
 													>
 														<Stack.Screen
+															name="labs"
+															options={{ title: t.diaryEntry.labs }}
+														/>
+														<Stack.Screen
+															name="labs-entry"
+															options={{
+																title: t.nutrition.entryEditor.title,
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetInitialDetentIndex: 0,
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="labs-food"
+															options={{ title: t.diaryEntry.details }}
+														/>
+														<Stack.Screen
 															name="activity-history"
 															options={{
 																title:
@@ -202,17 +220,62 @@ export default function AppLayout() {
 														<Stack.Screen
 															name="nutrition-entry"
 															options={{
-																title: t.nutrition.entryEditor.title,
 																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+																title: t.nutrition.entryEditor.title,
 															}}
 														/>
 														<Stack.Screen
-															name="nutrition-combos"
-															options={{ title: t.nutrition.combos.log }}
+															name="nutrition-food-details"
+															options={{
+																// Opened from amount sheets: a sheet over the sheet, not a page behind it.
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+															}}
 														/>
 														<Stack.Screen
-															name="nutrition-copy"
-															options={{ title: t.nutrition.copyMeal.title }}
+															name="nutrition-entry-transfer"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: "fitToContents",
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-day-goals"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.65, 1],
+																sheetInitialDetentIndex: 1,
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-nutrient-sources"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.65, 1],
+																sheetInitialDetentIndex: 1,
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-entry-correction"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-combo-log"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+															}}
 														/>
 														<Stack.Screen
 															name="nutrition-combo-new"
@@ -220,19 +283,20 @@ export default function AppLayout() {
 														/>
 														<Stack.Screen
 															name="nutrition-goals"
-															options={{ title: t.nutrition.goalEditor.title }}
+															options={{
+																title: t.nutrition.goalEditor.title,
+																presentation: "formSheet",
+																sheetAllowedDetents: [1],
+																sheetGrabberVisible: true,
+															}}
 														/>
 														<Stack.Screen
-															name="nutrition-cooking"
+															name="nutrition-one-off"
 															options={{
-																title:
-																	locale === "nl"
-																		? "Eenmalig loggen"
-																		: "Log once",
-																headerShown: false,
+																title: locale === "nl" ? "Eenmalig" : "One-off",
+																// Full height: the keyboard opens at once on the name.
 																presentation: "formSheet",
-																sheetAllowedDetents: [0.5, 1],
-																sheetInitialDetentIndex: 0,
+																sheetAllowedDetents: [1],
 																sheetGrabberVisible: true,
 															}}
 														/>
@@ -252,6 +316,54 @@ export default function AppLayout() {
 																	locale === "nl"
 																		? "Weekoverzicht"
 																		: "Week overview",
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-library-attention"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.6, 1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-combo-part"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.9, 1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-combo/[id]"
+															options={{ title: "" }}
+														/>
+														<Stack.Screen
+															name="personal-food/[id]"
+															options={{ title: "" }}
+														/>
+														<Stack.Screen
+															name="personal-food-new"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-week-goals"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.75, 1],
+																sheetGrabberVisible: true,
+															}}
+														/>
+														<Stack.Screen
+															name="nutrition-week-sources"
+															options={{
+																presentation: "formSheet",
+																sheetAllowedDetents: [0.75, 1],
+																sheetGrabberVisible: true,
 															}}
 														/>
 														<Stack.Screen

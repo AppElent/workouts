@@ -1,16 +1,20 @@
+import type { ImageProps } from "@expo/ui/swift-ui";
 import { type Href, Link } from "expo-router";
+import { SymbolView } from "expo-symbols";
 /**
  * A row whose actions can be reached three ways, none of which is the only way.
  *
  * Spec #68 is unusually specific here, so this component is built around the
  * constraint rather than decorated with it:
  *
- * - **Swipe reveals; it never commits.** The row's travel is clamped to the
- *   width of the actions it is uncovering, so a "full swipe" is not a gesture
- *   this row has. That is deliberate and stronger than choosing not to handle
- *   one: deletion here requires a confirmation, and a gesture that could fling
- *   past the confirmation would be a gesture that could delete by accident.
- *   Releasing a swipe leaves the buttons showing and waits for a tap.
+ * - **Swipe reveals; a full swipe only runs what is safe to run.** By default
+ *   the row's travel is clamped to the width of the actions it uncovers, and
+ *   releasing leaves the buttons showing until a tap. Only an outermost action
+ *   marked `fullSwipe` lets the row travel further: its button stretches, a
+ *   haptic says letting go will run it, and it runs as if tapped. Such an
+ *   action must still confirm or offer undo, so a fling cannot lose data.
+ * - **The buttons match the native list's**: round capsules with an icon and
+ *   the label under them, neutral or red, as SwiftUI swipe actions draw them.
  * - **Long press opens the same actions as a menu.** An accelerator for people
  *   who know it is there, never the only route to anything.
  * - **Screen readers get the actions as named custom actions**, which is the
@@ -57,6 +61,9 @@ import { AppText } from "./text";
 export interface RowAction {
 	/** Stable across renders; also the accessibility action name. */
 	key: string;
+	systemImage?: ImageProps["systemName"];
+	menuLabel?: string;
+	dividerAfter?: boolean;
 	/** Shown on the revealed button and spoken as the custom action. */
 	label: string;
 	onPress: () => void;
@@ -64,6 +71,11 @@ export interface RowAction {
 	destructive?: boolean;
 	/** Keep secondary actions in the menu without making a swipe wider than the row. */
 	swipe?: boolean;
+	/**
+	 * Let a full swipe run this action. Only honoured on the last swipe action,
+	 * the outermost button; the action must confirm or offer undo itself.
+	 */
+	fullSwipe?: boolean;
 }
 
 /** Spread onto the row's own focusable element so the actions reach a screen reader. */
@@ -74,11 +86,14 @@ export interface RowAccessibilityProps {
 	onPress?: () => void;
 }
 
-/** One action button's width, and therefore how far the row can travel. */
-const ACTION_WIDTH = 88;
+/** One action's slot: its capsule plus the space around it. */
+const ACTION_WIDTH = 76;
 
 /** Past this fraction of the travel the row stays open on release. */
 const OPEN_THRESHOLD = 0.4;
+
+/** Past this fraction of the row's width, letting go runs the full-swipe action. */
+const COMMIT_THRESHOLD = 0.6;
 
 export function SwipeableRow({
 	href,
@@ -102,11 +117,17 @@ export function SwipeableRow({
 	const [menuOpen, setMenuOpen] = useState(false);
 	const swipeActions = actions.filter((action) => action.swipe !== false);
 	const openWidth = ACTION_WIDTH * swipeActions.length;
+	const fullAction = swipeActions.at(-1)?.fullSwipe
+		? swipeActions.at(-1)
+		: undefined;
+	const [rowWidth, setRowWidth] = useState(0);
+	const fullWidth = fullAction ? Math.max(rowWidth, openWidth) : openWidth;
 	const translateX = useRef(new Animated.Value(0)).current;
 	// Plain refs: the gesture callbacks run on the JS thread, so these are
 	// ordinary reads and writes rather than anything shared across threads.
 	const offset = useRef(0);
 	const passedThreshold = useRef(false);
+	const armed = useRef(false);
 
 	const settle = useCallback(
 		(to: number) => {
@@ -115,9 +136,10 @@ export function SwipeableRow({
 				translateX.setValue(to);
 				return;
 			}
+			// JS-driven: the stretching full-swipe button animates its width.
 			Animated.spring(translateX, {
 				toValue: to,
-				useNativeDriver: true,
+				useNativeDriver: false,
 				bounciness: 0,
 				speed: 20,
 			}).start();
@@ -170,27 +192,40 @@ export function SwipeableRow({
 				.failOffsetY([-12, 12])
 				.onBegin(() => {
 					passedThreshold.current = false;
+					armed.current = false;
 				})
 				.onUpdate((event) => {
 					// Consume horizontal drags without turning them into row taps.
 					// Rows with menu-only actions must neither move nor play feedback.
 					if (openWidth === 0) return;
 					const next = offset.current + event.translationX;
-					// Clamped both ways: closed at 0, open at exactly the buttons'
-					// width. There is no distance past "open" for a full swipe to use.
-					const clamped = Math.min(0, Math.max(-openWidth, next));
+					// Closed at 0; open at the buttons' width, or the whole row when
+					// the outermost action takes a full swipe.
+					const clamped = Math.min(0, Math.max(-fullWidth, next));
 					translateX.setValue(clamped);
 					const past = clamped <= -openWidth * OPEN_THRESHOLD;
 					if (past !== passedThreshold.current) {
 						passedThreshold.current = past;
 						if (past) haptics.swipeThresholdPassed();
 					}
+					if (fullAction && rowWidth > 0) {
+						const commit = clamped <= -rowWidth * COMMIT_THRESHOLD;
+						if (commit !== armed.current) {
+							armed.current = commit;
+							if (commit) haptics.swipeCommitArmed();
+						}
+					}
 				})
 				.onEnd(() => {
 					if (openWidth === 0) return;
+					if (fullAction && armed.current) {
+						armed.current = false;
+						runAction(fullAction);
+						return;
+					}
 					settle(passedThreshold.current ? -openWidth : 0);
 				}),
-		[openWidth, settle, translateX],
+		[fullAction, fullWidth, openWidth, rowWidth, runAction, settle, translateX],
 	);
 
 	const accessibility = useMemo<RowAccessibilityProps>(
@@ -214,38 +249,75 @@ export function SwipeableRow({
 	);
 
 	return (
-		<View style={styles.clip}>
+		<View
+			style={styles.clip}
+			onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
+		>
 			{/* Drawn behind the row and uncovered by it, so it is out of reach
-			    until the swipe has actually revealed it. */}
-			<View style={[styles.actionsLayer, { width: openWidth }]}>
+			    until the swipe has actually revealed it. It grows with the swipe;
+			    a full-swipe action takes the extra width. */}
+			<Animated.View
+				style={[
+					styles.actionsLayer,
+					{
+						width: translateX.interpolate({
+							inputRange: [-Math.max(fullWidth, openWidth + 1), -openWidth, 0],
+							outputRange: [
+								Math.max(fullWidth, openWidth + 1),
+								openWidth,
+								openWidth,
+							],
+							extrapolate: "clamp",
+						}),
+					},
+				]}
+			>
 				{swipeActions.map((action) => (
 					<Pressable
 						key={action.key}
 						onPress={() => runAction(action)}
 						accessibilityRole="button"
 						accessibilityLabel={action.label}
-						style={({ pressed }) => [
+						style={[
 							styles.action,
-							{
-								backgroundColor: action.destructive
-									? colors.dangerSoft
-									: colors.surface2,
-							},
-							pressed && styles.actionPressed,
+							action === fullAction ? styles.actionFull : null,
 						]}
 					>
-						<AppText
-							variant="caption"
-							style={{
-								color: action.destructive ? colors.danger : colors.text,
-								fontWeight: "700",
-							}}
-						>
-							{action.label}
-						</AppText>
+						{({ pressed }) => (
+							<>
+								<View
+									style={[
+										styles.capsule,
+										{
+											backgroundColor: action.destructive
+												? colors.danger
+												: colors.swipeNeutral,
+										},
+										pressed && styles.actionPressed,
+									]}
+								>
+									<SymbolView
+										name={
+											action.systemImage ??
+											(action.destructive ? "trash" : "pencil")
+										}
+										size={20}
+										weight="semibold"
+										tintColor="#ffffff"
+									/>
+								</View>
+								<AppText
+									variant="caption"
+									numberOfLines={1}
+									style={styles.actionLabel}
+								>
+									{action.label}
+								</AppText>
+							</>
+						)}
 					</Pressable>
 				))}
-			</View>
+			</Animated.View>
 
 			<GestureDetector gesture={pan}>
 				{/* The row's own opaque background is what hides the actions. */}
@@ -394,16 +466,28 @@ const createStyles = (colors: Tokens) =>
 			top: 0,
 			bottom: 0,
 			flexDirection: "row",
+			justifyContent: "flex-end",
+			backgroundColor: colors.surface,
 		},
 		action: {
 			width: ACTION_WIDTH,
-			// 44pt is the platform minimum; these rows are taller, but the button
-			// must not fall under it when a row is short.
-			minHeight: 44,
 			alignItems: "center",
 			justifyContent: "center",
-			paddingHorizontal: spacing.xs,
+			gap: 4,
+			paddingHorizontal: 6,
 		},
+		/** The full-swipe action takes whatever width the swipe adds. */
+		actionFull: { flexGrow: 1 },
+		capsule: {
+			// The capsule plus its label make the 44pt+ hit area, as in SwiftUI.
+			alignSelf: "stretch",
+			height: 40,
+			borderRadius: radius.pill,
+			borderCurve: "continuous",
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		actionLabel: { color: colors.textMuted },
 		actionPressed: { opacity: 0.7 },
 		row: {
 			backgroundColor: colors.surface,

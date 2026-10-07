@@ -77,12 +77,19 @@ export function NutritionCalendar({
 	locale = "en",
 	today = todayIsoDate(),
 	labels,
+	markedDates,
+	highlightedDates,
+	onMonthChange,
 }: {
 	selectedDate: IsoDate;
 	onSelect: (date: IsoDate) => void;
 	locale?: string;
 	today?: IsoDate;
 	labels?: Partial<NutritionCalendarLabels>;
+	markedDates?: ReadonlySet<string>;
+	/** A span shown as one band, such as the chosen week. */
+	highlightedDates?: ReadonlySet<string>;
+	onMonthChange?: (date: string) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const copy = {
@@ -98,6 +105,9 @@ export function NutritionCalendar({
 
 	const year = visibleMonth.getFullYear();
 	const month = visibleMonth.getMonth();
+	useEffect(() => {
+		onMonthChange?.(toIsoDate(visibleMonth));
+	}, [visibleMonth, onMonthChange]);
 	const days = useMemo(
 		() =>
 			Array.from({ length: monthDays(year, month) }, (_, index) => index + 1),
@@ -173,6 +183,7 @@ export function NutritionCalendar({
 							onPress={() => onSelect(date)}
 							style={({ pressed }) => [
 								styles.cell,
+								highlightedDates?.has(date) && styles.highlighted,
 								isSelected && styles.selected,
 								isToday && !isSelected && styles.today,
 								pressed && styles.pressed,
@@ -181,6 +192,14 @@ export function NutritionCalendar({
 							<AppText style={isSelected ? styles.selectedText : undefined}>
 								{cell.day}
 							</AppText>
+							{markedDates?.has(date) ? (
+								<View
+									style={[
+										{ width: 4, height: 4, borderRadius: 2 },
+										isSelected ? styles.selectedDot : styles.dot,
+									]}
+								/>
+							) : null}
 						</Pressable>
 					);
 				})}
@@ -200,6 +219,8 @@ export function NutritionCalendar({
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { gap: spacing.sm },
+		dot: { backgroundColor: colors.accent },
+		selectedDot: { backgroundColor: colors.onAccent },
 		header: { flexDirection: "row", alignItems: "center" },
 		title: { flex: 1, textAlign: "center", textTransform: "capitalize" },
 		navButton: {
@@ -221,6 +242,7 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.pill,
 		},
 		selected: { backgroundColor: colors.accentFill },
+		highlighted: { backgroundColor: colors.accentDim, borderRadius: 0 },
 		selectedText: { color: colors.onAccent, fontWeight: "800" },
 		today: { borderColor: colors.accent, borderWidth: 1 },
 		pressed: { backgroundColor: colors.surface2 },

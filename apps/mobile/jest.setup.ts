@@ -17,10 +17,89 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// UIKit renders native header items outside React's test tree. Expose their
+// public callbacks and accessibility state without mocking the navigation stack.
+jest.mock(
+	"react-native-screens/lib/commonjs/components/ScreenStackHeaderConfig",
+	() => {
+		const actual = jest.requireActual(
+			"react-native-screens/lib/commonjs/components/ScreenStackHeaderConfig",
+		);
+		const React = jest.requireActual("react");
+		const { Pressable, Text, View } = jest.requireActual("react-native");
+		return {
+			...actual,
+			ScreenStackHeaderConfig: React.forwardRef(
+				(
+					props: import("react-native-screens").ScreenStackHeaderConfigProps,
+					ref: unknown,
+				) =>
+					React.createElement(
+						View,
+						{ ref },
+						props.children,
+						props.title && !props.hidden
+							? React.createElement(
+									Text,
+									{ accessibilityRole: "header" },
+									props.title,
+								)
+							: null,
+						...[
+							...(props.headerLeftBarButtonItems ?? []),
+							...(props.headerRightBarButtonItems ?? []),
+						]
+							.filter((item) => item.type === "button" || item.type === "menu")
+							.flatMap((item, index) =>
+								item.type === "button"
+									? [
+											React.createElement(Pressable, {
+												key: index,
+												accessibilityRole: "button",
+												accessibilityLabel:
+													item.accessibilityLabel ?? item.title,
+												accessibilityState: {
+													disabled: item.disabled ?? false,
+												},
+												disabled: item.disabled,
+												onPress: item.onPress,
+											}),
+										]
+									: // A native menu: its trigger, then its actions as plain rows.
+										[
+											React.createElement(Pressable, {
+												key: index,
+												accessibilityRole: "button",
+												accessibilityLabel:
+													item.accessibilityLabel ?? item.title,
+											}),
+											...(item.menu?.items ?? []).map(
+												(
+													action: { title?: string; onPress?: () => void },
+													actionIndex: number,
+												) =>
+													React.createElement(
+														Pressable,
+														{
+															key: `${index}-${actionIndex}`,
+															accessibilityRole: "menuitem",
+															onPress: action.onPress,
+														},
+														React.createElement(Text, null, action.title),
+													),
+											),
+										],
+							),
+					),
+			),
+		};
+	},
+);
+
 // Expo UI is native-only. These thin host shims keep tests focused on the
 // React contract (callbacks, roles and presentation options), not SwiftUI.
 jest.mock("@expo/ui/swift-ui", () => {
-	const React = jest.requireActual("react");
+	const React = jest.requireActual<typeof import("react")>("react");
 	const { Pressable, Text, View } = jest.requireActual("react-native");
 	const Container = ({ children, ...props }: { children?: React.ReactNode }) =>
 		React.createElement(View, props, children);
@@ -64,6 +143,8 @@ jest.mock("@expo/ui/swift-ui", () => {
 			children,
 		);
 	};
+	const PopoverContent = ({ children }: { children?: React.ReactNode }) =>
+		React.createElement(View, null, children);
 	const ContextMenu = Object.assign(
 		({ children }: { children?: React.ReactNode }) =>
 			React.createElement(View, { testID: "swiftui-context-menu" }, children),
@@ -75,7 +156,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 					children,
 				),
 			Trigger: Container,
-			Preview: Container,
+			Preview: () => null,
 		},
 	);
 	return {
@@ -101,6 +182,26 @@ jest.mock("@expo/ui/swift-ui", () => {
 				title ? React.createElement(Text, null, title) : null,
 				description ? React.createElement(Text, null, description) : null,
 			),
+		Popover: Object.assign(
+			({
+				children,
+				isPresented,
+			}: {
+				children?: React.ReactNode;
+				isPresented?: boolean;
+			}) =>
+				React.createElement(
+					View,
+					null,
+					React.Children.toArray(children).filter(
+						(child: React.ReactNode) =>
+							isPresented ||
+							!React.isValidElement(child) ||
+							child.type !== PopoverContent,
+					),
+				),
+			{ Trigger: Container, Content: PopoverContent },
+		),
 		ContextMenu,
 		Gauge: ({
 			value,
@@ -151,16 +252,54 @@ jest.mock("@expo/ui/swift-ui", () => {
 		}) => React.createElement(Text, { modifiers }, children),
 		VStack: Stack,
 		ZStack: Stack,
-		BottomSheet: ({
+		// Like SwiftUI, dismissal is reported once the sheet has gone.
+		BottomSheet: function BottomSheet({
 			children,
 			anchor,
 			isPresented,
+			onDismiss,
 		}: {
 			children?: React.ReactNode;
 			anchor?: React.ReactNode;
 			isPresented: boolean;
+			onDismiss?: () => void;
+		}) {
+			const shown = React.useRef(isPresented);
+			React.useEffect(() => {
+				if (shown.current && !isPresented) onDismiss?.();
+				shown.current = isPresented;
+			}, [isPresented, onDismiss]);
+			return React.createElement(
+				View,
+				null,
+				anchor,
+				isPresented ? children : null,
+			);
+		},
+		Toggle: ({
+			label,
+			isOn,
+			onIsOnChange,
+			modifiers,
+			children,
+		}: {
+			label?: string;
+			isOn?: boolean;
+			onIsOnChange?: (value: boolean) => void;
+			modifiers?: { type: string; args: unknown[] }[];
+			children?: React.ReactNode;
 		}) =>
-			React.createElement(View, null, anchor, isPresented ? children : null),
+			React.createElement(
+				Pressable,
+				{
+					accessibilityRole: "checkbox",
+					accessibilityLabel: label,
+					accessibilityState: { checked: isOn },
+					disabled: Boolean(modifierArg(modifiers, "disabled")),
+					onPress: () => onIsOnChange?.(!isOn),
+				},
+				label === undefined ? children : React.createElement(Text, null, label),
+			),
 		Button: ({
 			label,
 			children,
@@ -217,6 +356,13 @@ jest.mock("@expo/ui/swift-ui", () => {
 				children,
 			),
 		Host: Container,
+		Label: ({
+			title,
+			children,
+		}: {
+			title?: string;
+			children?: React.ReactNode;
+		}) => React.createElement(Text, null, title, children),
 		Image: ({ systemName }: { systemName?: string }) =>
 			React.createElement(Text, null, systemName),
 		Menu: ({
@@ -240,6 +386,10 @@ jest.mock("@expo/ui/swift-ui", () => {
 					{
 						accessibilityLabel: spokenLabel,
 						accessibilityRole: "button",
+						disabled: Boolean(modifierArg(modifiers, "disabled")),
+						accessibilityState: {
+							disabled: Boolean(modifierArg(modifiers, "disabled")),
+						},
 						onPress: () => setOpen(true),
 					},
 					label,
@@ -521,3 +671,31 @@ const maybeWindow = (globalThis as { window?: { dispatchEvent?: unknown } })
 if (maybeWindow && typeof maybeWindow.dispatchEvent !== "function") {
 	maybeWindow.dispatchEvent = () => true;
 }
+
+// Native bottom toolbar items expose their public selection callback in Jest.
+jest.mock("expo-router/build/toolbar/native", () => {
+	const React = jest.requireActual("react");
+	const { View, Pressable, Text } = jest.requireActual("react-native");
+	return {
+		RouterToolbarHost: ({ children }: { children?: React.ReactNode }) =>
+			React.createElement(View, null, children),
+		RouterToolbarItem: (
+			props: import("expo-router/build/toolbar/native.types").RouterToolbarItemProps,
+		) =>
+			props.hidden
+				? null
+				: props.children
+					? React.createElement(View, null, props.children)
+					: React.createElement(
+							Pressable,
+							{
+								accessibilityRole: "button",
+								accessibilityLabel: props.accessibilityLabel ?? props.title,
+								disabled: props.disabled,
+								accessibilityState: { disabled: props.disabled ?? false },
+								onPress: props.onSelected,
+							},
+							props.title ? React.createElement(Text, null, props.title) : null,
+						),
+	};
+});

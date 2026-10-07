@@ -15,6 +15,7 @@
  */
 
 export {
+	combinedNutrients,
 	type NutrientContribution,
 	type NutrientTotal,
 	totalNutrient,
@@ -40,6 +41,7 @@ export {
 	OPEN_FOOD_FACTS_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
+export * from "./diary-correction";
 export {
 	type FoodResult,
 	type FoodResultsInput,
@@ -55,7 +57,6 @@ export {
 	forkSource,
 	isFork,
 	type LocalFoodLike,
-	MAX_FORK_SERVINGS,
 } from "./fork";
 export {
 	editedGoalCount,
@@ -80,6 +81,8 @@ export {
 	shippedLibraryMeta,
 	shippedSourceMeta,
 } from "./library";
+export { mealSlotAt } from "./meal-time";
+export * from "./nutrient-sources";
 export {
 	ABSENT,
 	isValue,
@@ -120,7 +123,9 @@ export {
 	type SearchScope,
 	searchShippedFoods,
 } from "./search";
+export type { SupplementaryServing } from "./servings";
 export {
+	baseUnitServingOption,
 	formatQuantity,
 	formatServingSelection,
 	type PersonalMeasure,
@@ -132,6 +137,7 @@ export {
 	servingOptions,
 	servingVolumeMapping,
 	withPersonalMeasures,
+	withSupplementaryServings,
 } from "./servings";
 export {
 	type Bilingual,

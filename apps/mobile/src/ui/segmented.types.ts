@@ -8,6 +8,8 @@ export interface SegmentedOption<Value extends string> {
 
 export interface SegmentedProps<Value extends string> {
 	options: readonly SegmentedOption<Value>[];
+	/** Compact labels may allow four visible choices before using a native menu. */
+	maxSegments?: number;
 	value: Value;
 	onChange: (next: Value) => void;
 }

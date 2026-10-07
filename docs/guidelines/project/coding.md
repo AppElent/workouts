@@ -73,3 +73,13 @@ Development requires both Vite and a continuously running/pushing Convex process
 `pnpm preview` builds development mode and runs Wrangler, not Vite preview.
 Provider identities, environment names, release channels, and migrations are
 project-specific runbooks linked from [the docs index](../../README.md).
+
+## Mobile ownership review
+
+
+For mobile changes, follow [the folder contract](mobile-folder-structure.md).
+Reviewers assess responsibility boundaries: routes own presentation, one draft owner
+owns the editing session, and shared components move only when actual callers need
+the same contract. Check that keyboard geometry, scrolling, and dismissal each have
+one coordinating owner. The contract documents automated checks for mechanical
+boundaries; review focuses on semantic ownership and cross-file consistency.

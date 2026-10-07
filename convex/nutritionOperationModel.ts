@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { NutritionOperationEnvelope } from "@workouts/core";
-import { diaryPartSnapshotFields, diarySnapshotFields, mealSlot } from "./nutritionDiaryModel";
+import { diaryNutrientCorrection, diaryPartSnapshotFields, diarySnapshotFields, mealSlot } from "./nutritionDiaryModel";
 
 const operationTarget = v.union(
 	v.object({ kind: v.literal("serverId"), id: v.id("nutritionDiaryEntries") }),
@@ -54,6 +54,7 @@ export const operationArgs = {
 			target: operationTarget,
 			quantity: v.optional(v.number()),
 			selection: v.optional(servingSelection),
+ correction: v.optional(diaryNutrientCorrection),
 			date: v.optional(v.string()),
 			meal: v.optional(mealSlot),
 		}),

@@ -1,5 +1,6 @@
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
+	completeOffSearchDraft,
 	type FetchLike,
 	lookupOffBarcode,
 	searchOffProducts,
@@ -369,5 +370,52 @@ describe("searchOffProducts", () => {
 		expect(await searchOffProducts("oats", { cache, fetchImpl })).toEqual({
 			kind: "rate-limited",
 		});
+	});
+});
+
+describe("completeOffSearchDraft", () => {
+	const searchHit = {
+		code: bakedBeans.code,
+		product_name: "Baked Beans",
+		brands: ["HeinzBaked"],
+		nutriments: bakedBeans.nutriments,
+	};
+
+	it("fills a search result in from its product page, servings and brand included", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch((url) =>
+			url.includes("search.openfoodfacts.org")
+				? jsonResponse(200, { hits: [searchHit], timed_out: false })
+				: jsonResponse(200, { status: 1, product: bakedBeans }),
+		);
+		const search = await searchOffProducts("beans", { cache, fetchImpl });
+		if (search.kind !== "found") throw new Error("expected a result");
+		expect(search.drafts[0].servings).toEqual([]);
+
+		const complete = await completeOffSearchDraft(search.drafts[0], {
+			cache,
+			fetchImpl,
+		});
+		expect(complete.servings).toEqual([
+			{
+				label: { en: "Half can (207.5 g)", nl: "Half can (207.5 g)" },
+				amount: 207.5,
+			},
+		]);
+		expect(complete.provenance.brand).toBe("Heinz");
+	});
+
+	it("keeps the search result when the product page cannot be read", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch((url) =>
+			url.includes("search.openfoodfacts.org")
+				? jsonResponse(200, { hits: [searchHit], timed_out: false })
+				: jsonResponse(503, {}),
+		);
+		const search = await searchOffProducts("beans", { cache, fetchImpl });
+		if (search.kind !== "found") throw new Error("expected a result");
+		expect(
+			await completeOffSearchDraft(search.drafts[0], { cache, fetchImpl }),
+		).toBe(search.drafts[0]);
 	});
 });

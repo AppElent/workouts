@@ -1,7 +1,9 @@
 import {
 	GOAL_DIRECTIONS,
 	type GoalDirection,
+	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_KEYS,
+	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@workouts/core/nutrition";
 
@@ -13,6 +15,9 @@ export type GoalRow = {
 	target: number;
 	sourcePreset?: "reference" | "loseWeight" | "buildMuscle";
 };
+
+/** Which bounds a goal has: at least, at most, or both. */
+export type GoalKind = "min" | "max" | "range";
 
 export type GoalDraftError = {
 	key: string;
@@ -82,6 +87,58 @@ export function draftToGoals(draft: GoalDraft): {
 		}
 	}
 	return { goals, errors };
+}
+
+export function goalKind(bounds: GoalDraft[NutrientKey]): GoalKind | null {
+	const min = bounds.min.trim() !== "";
+	const max = bounds.max.trim() !== "";
+	return min && max ? "range" : min ? "min" : max ? "max" : null;
+}
+
+/** Switching kind reuses the number already there, so no value is lost. */
+export function setGoalKind(
+	draft: GoalDraft,
+	nutrient: NutrientKey,
+	kind: GoalKind,
+): GoalDraft {
+	const current = draft[nutrient];
+	const keep = current.min || current.max;
+	const next =
+		kind === "range"
+			? { min: current.min || keep, max: current.max || keep }
+			: kind === "min"
+				? { min: keep, max: "" }
+				: { min: "", max: keep };
+	return { ...draft, [nutrient]: next };
+}
+
+/** The Reference intake target in the nutrient's default direction. */
+export function referenceGoalTarget(nutrient: NutrientKey): number {
+	const direction = NUTRIENT_DEFAULT_DIRECTIONS[nutrient];
+	const goal = NUTRITION_GOAL_PRESETS.reference.goals.find(
+		(item) => item.nutrient === nutrient && item.direction === direction,
+	);
+	if (!goal) throw new Error(`No reference goal for ${nutrient}.`);
+	return goal.target;
+}
+
+export function withGoal(draft: GoalDraft, nutrient: NutrientKey): GoalDraft {
+	const direction = NUTRIENT_DEFAULT_DIRECTIONS[nutrient];
+	return {
+		...draft,
+		[nutrient]: {
+			min: "",
+			max: "",
+			[direction]: String(referenceGoalTarget(nutrient)),
+		},
+	};
+}
+
+export function withoutGoal(
+	draft: GoalDraft,
+	nutrient: NutrientKey,
+): GoalDraft {
+	return { ...draft, [nutrient]: { min: "", max: "" } };
 }
 
 export function goalDraftEquals(left: GoalDraft, right: GoalDraft): boolean {
