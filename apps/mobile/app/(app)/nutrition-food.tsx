@@ -15,7 +15,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
-import { usePersonalFoods } from "../../src/data/personal-foods";
 import { LogFoodScreen } from "../../src/features/nutrition/log-food/log-food-screen";
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";
@@ -35,21 +34,13 @@ export default function NutritionFoodRoute() {
 			comboId?: string;
 			replacePartId?: string;
 		}>();
-	const library = usePersonalFoods();
-	const { locale } = useI18n();
-	// Replacing starts from the old part's name (combo §4).
-	const replacing =
-		comboId && replacePartId
-			? library
-					.findCombo(comboId)
-					?.parts.find((part) => part.id === replacePartId)
-			: undefined;
+
 	return (
 		<LogFoodScreen
 			meal={asMealSlot(meal)}
 			date={date ?? todayIsoDate()}
 			draftId={draftId || undefined}
-			initialQuery={query || replacing?.snapshot.name[locale] || undefined}
+			initialQuery={query || undefined}
 			target={
 				comboId
 					? { comboId, replacePartId: replacePartId || undefined }

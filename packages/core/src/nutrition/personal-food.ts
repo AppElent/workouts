@@ -9,7 +9,11 @@ import type {
 	NutritionDiaryPartSnapshot,
 	NutritionDiarySnapshot,
 } from "./operations";
-import { formatQuantity, type ServingOption } from "./servings";
+import {
+	baseUnitServingOption,
+	formatQuantity,
+	type ServingOption,
+} from "./servings";
 import type { ShippedFoodId } from "./types";
 
 export type PersonalFoodClassification = "ordinary" | "recipe";
@@ -339,17 +343,12 @@ export function personalFoodServingOptions(
 			index,
 			...serving,
 		})),
-		{
-			kind: "base-unit",
-			amount: 1,
-			unit: valid.baseUnit,
-			label:
-				valid.nutritionBasis.kind === "perServing"
-					? valid.nutritionBasis.label
-					: valid.baseUnit === "g"
-						? { en: "Gram (g)", nl: "Gram (g)" }
-						: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
-		},
+		baseUnitServingOption(
+			valid.baseUnit,
+			valid.nutritionBasis.kind === "perServing"
+				? valid.nutritionBasis.label
+				: undefined,
+		),
 	];
 }
 

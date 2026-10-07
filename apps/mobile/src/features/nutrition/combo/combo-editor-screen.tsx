@@ -1,7 +1,13 @@
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import { useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { todayIsoDate } from "../../../data/calendar-day";
+import {
+	useNutritionOperations,
+	useNutritionOperationVersion,
+} from "../../../data/nutrition-operation-service";
+import { comboSourceKey } from "../../../data/nutrition-shortcuts";
 import type { Combo } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
@@ -13,21 +19,17 @@ import { InsetList, InsetRow } from "../../../ui/inset-list";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionEnergyValue } from "../components/nutrition-energy-value";
+import { openComboPartSource } from "./combo-part-source";
 import {
 	comboDraft,
 	comboTotals,
+	kcalText,
 	moveComboPart,
 	withoutMissingParts,
 } from "./combo-parts";
-
-function _position(index: number, count: number): FoodRowPosition {
-	if (count === 1) return "only";
-	if (index === 0) return "first";
-	return index === count - 1 ? "last" : "middle";
-}
+import { ComboRenameSheet } from "./components/combo-rename-sheet";
 
 /**
  * A saved combo, edited in place: every confirmed change is written at once,
@@ -40,9 +42,19 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 	const toast = useToast();
 	const confirm = useConfirm();
 	const library = usePersonalFoods();
+	const operations = useNutritionOperations();
+	useNutritionOperationVersion();
+	const subject = operations.getSubject();
+	const [renaming, setRenaming] = useState(false);
 	const combo = library.findCombo(comboId);
 
 	if (!combo) return null;
+	const favoriteKey = comboSourceKey(combo.id);
+	const favorite = subject
+		? operations
+				.listFavorites(subject)
+				.some((shortcut) => shortcut.sourceKey === favoriteKey)
+		: false;
 
 	const write = (next: Combo) => {
 		try {
@@ -73,12 +85,20 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			action: { label: copy.undo, onPress: () => write(before) },
 		});
 	};
-	const rename = () => {
-		const save = (name?: string) => {
-			if (name?.trim()) write({ ...combo, name: name.trim() });
-		};
-		Alert.prompt(copy.renameTitle, undefined, save, "plain-text", combo.name);
+	const saveName = (name?: string) => {
+		if (name?.trim()) write({ ...combo, name: name.trim() });
 	};
+	// iOS asks in a system prompt; Android has none, so a small sheet asks.
+	const rename = () =>
+		Platform.OS === "ios"
+			? Alert.prompt(
+					copy.renameTitle,
+					undefined,
+					saveName,
+					"plain-text",
+					combo.name,
+				)
+			: setRenaming(true);
 	const duplicate = () => {
 		try {
 			const draft = comboDraft(combo);
@@ -111,6 +131,9 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			pathname: "/nutrition-combo-log",
 			params: { comboId: combo.id, date: todayIsoDate() },
 		});
+	const toggleFavorite = () => {
+		if (subject) operations.toggleFavorite(subject, favoriteKey, !favorite);
+	};
 	const totals = comboTotals(combo);
 	const missing = combo.parts.filter((part) => part.status === "missing");
 	const count = combo.parts.length;
@@ -140,22 +163,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 							systemImage: "chevron.right" as const,
 							swipe: false,
 							dividerAfter: true,
-							onPress: () =>
-								part.reference.kind === "personal"
-									? router.push({
-											pathname: "/personal-food/[id]",
-											params: { id: part.reference.foodId },
-										})
-									: router.push({
-											pathname: "/nutrition-food-details",
-											params: {
-												source: "shipped",
-												id:
-													part.reference.kind === "shipped"
-														? part.reference.foodId
-														: "",
-											},
-										}),
+							onPress: () => openComboPartSource(part.reference),
 						},
 					]
 				: []),
@@ -197,11 +205,9 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			sections={[
 				[{ id: "log", label: copy.log }],
 				[
-					// Alert.prompt is iOS-only; Android renames via a new combo for now.
-					...(Platform.OS === "ios"
-						? [{ id: "rename", label: copy.rename }]
-						: []),
+					{ id: "rename", label: copy.rename },
 					{ id: "duplicate", label: copy.duplicate },
+					{ id: "favorite", label: favorite ? copy.unfavorite : copy.favorite },
 				],
 				...(missing.length
 					? [[{ id: "missing", label: copy.removeMissing }]]
@@ -212,6 +218,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 				if (id === "log") logCombo();
 				else if (id === "rename") rename();
 				else if (id === "duplicate") duplicate();
+				else if (id === "favorite") toggleFavorite();
 				else if (id === "missing") write(withoutMissingParts(combo));
 				else void remove();
 			}}
@@ -302,8 +309,8 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 					{missing.length ? (
 						<Pressable
 							accessibilityRole="button"
-							accessibilityHint={copy.removeMissing}
-							onPress={() => write(withoutMissingParts(combo))}
+							accessibilityHint={copy.replace}
+							onPress={() => replacePart(missing[0].id)}
 							style={({ pressed }) => ({
 								flexDirection: "row",
 								alignItems: "center",
@@ -372,10 +379,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 								part.status === "missing"
 									? `⚠ ${copy.missingPart} · ${part.snapshot.serving[locale]}`
 									: part.snapshot.serving[locale];
-							const value =
-								energy.kind === "value"
-									? `${Math.round(energy.amount).toLocaleString(locale)} kcal`
-									: undefined;
+							const value = kcalText(energy, locale);
 							return (
 								<InsetRow
 									key={part.id}
@@ -401,33 +405,18 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 								/>
 							);
 						})}
-					</InsetList>
-					<Pressable
-						accessibilityRole="button"
-						onPress={() =>
-							router.push({
-								pathname: "/nutrition-food",
-								params: { comboId: combo.id },
-							})
-						}
-						style={{
-							minHeight: 44,
-							flexDirection: "row",
-							alignItems: "center",
-							gap: 8,
-							paddingHorizontal: spacing.xs,
-						}}
-					>
-						<SymbolView
-							name={{ ios: "plus", android: "add", web: "add" }}
-							size={15}
-							weight="semibold"
-							tintColor={colors.accent}
+						<InsetRow
+							id="add-part"
+							leading={{ symbol: "plus" }}
+							title={copy.addPart}
+							onPress={() =>
+								router.push({
+									pathname: "/nutrition-food",
+									params: { comboId: combo.id },
+								})
+							}
 						/>
-						<AppText style={{ color: colors.accent, fontWeight: "700" }}>
-							{copy.addPart}
-						</AppText>
-					</Pressable>
+					</InsetList>
 				</View>
 				<AppText
 					variant="caption"
@@ -436,6 +425,19 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 					{copy.footer}
 				</AppText>
 			</ScrollView>
+			<ComboRenameSheet
+				visible={renaming}
+				title={copy.renameTitle}
+				name={combo.name}
+				label={copy.name}
+				cancelLabel={copy.cancel}
+				saveLabel={copy.confirm}
+				onCancel={() => setRenaming(false)}
+				onSave={(name) => {
+					setRenaming(false);
+					saveName(name);
+				}}
+			/>
 		</>
 	);
 }

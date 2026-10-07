@@ -61,10 +61,19 @@ export type PersonalMeasure = {
 	readonly order: number;
 };
 
-const BASE_UNIT_LABELS: Record<"g" | "ml", Bilingual> = {
+const BASE_UNIT_LABELS: Record<"g" | "ml" | "serving", Bilingual> = {
 	g: { en: "Gram (g)", nl: "Gram (g)" },
 	ml: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
+	serving: { en: "Serving", nl: "Portie" },
 };
+
+/** The base-unit choice for an amount: "I weighed it", or one serving. */
+export function baseUnitServingOption(
+	unit: "g" | "ml" | "serving",
+	label: Bilingual = BASE_UNIT_LABELS[unit],
+): ServingOption {
+	return { kind: "base-unit", label, amount: 1, unit };
+}
 
 /** The serving choices for a food, authored first, base unit last. */
 export function servingOptions(food: ShippedFood): ServingOption[] {
@@ -76,12 +85,7 @@ export function servingOptions(food: ShippedFood): ServingOption[] {
 		...(serving.volumeMl === undefined ? {} : { volumeMl: serving.volumeMl }),
 		...(serving.note === undefined ? {} : { note: serving.note }),
 	}));
-	options.push({
-		kind: "base-unit",
-		label: BASE_UNIT_LABELS[food.baseUnit],
-		amount: 1,
-		unit: food.baseUnit,
-	});
+	options.push(baseUnitServingOption(food.baseUnit));
 	return options;
 }
 

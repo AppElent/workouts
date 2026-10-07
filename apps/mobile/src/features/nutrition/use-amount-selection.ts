@@ -1,7 +1,7 @@
 import type { ServingOption } from "@workouts/core/nutrition";
 import { useState } from "react";
-import { servingKey } from "../../../data/nutrition-shortcuts";
-import { useI18n } from "../../../i18n";
+import { servingKey } from "../../data/nutrition-shortcuts";
+import { useI18n } from "../../i18n";
 
 /**
  * The serving and quantity an amount editor is setting. The exact amount is

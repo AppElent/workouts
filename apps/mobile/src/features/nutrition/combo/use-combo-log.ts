@@ -1,7 +1,5 @@
 import {
-	NUTRIENT_KEYS,
-	type NutrientKey,
-	type NutrientValue,
+	combinedNutrients,
 	type ServingOption,
 } from "@workouts/core/nutrition";
 import { useRef, useState } from "react";
@@ -16,10 +14,11 @@ import {
 } from "../../../data/nutrition-operation-service";
 import type {
 	Combo,
+	ComboPart,
 	ComboPartSnapshot,
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { useAmountSelection } from "../components/use-amount-selection";
+import { useAmountSelection } from "../use-amount-selection";
 
 /** Whole combos are the serving the capsule counts in. */
 const WHOLE_COMBO: ServingOption = {
@@ -34,33 +33,6 @@ type PartChoice = {
 	/** An "only this time" amount, rescaled from the saved snapshot. */
 	once?: ComboPartSnapshot;
 };
-
-function sumNutrients(
-	snapshots: readonly ComboPartSnapshot[],
-): Record<NutrientKey, NutrientValue> {
-	return Object.fromEntries(
-		NUTRIENT_KEYS.map((key) => {
-			let total = 0;
-			let known = false;
-			let trace = false;
-			for (const snapshot of snapshots) {
-				const value = snapshot.nutrients[key];
-				if (value.kind === "value") {
-					known = true;
-					total += value.amount;
-				} else if (value.kind === "trace") trace = true;
-			}
-			return [
-				key,
-				known
-					? { kind: "value", amount: total }
-					: trace
-						? { kind: "trace" }
-						: { kind: "absent" },
-			];
-		}),
-	) as Record<NutrientKey, NutrientValue>;
-}
 
 /**
  * Logging a combo: how many whole combos, which parts this time and any
@@ -91,19 +63,21 @@ export function useComboLog({
 	const [choices, setChoices] = useState<Record<string, PartChoice>>({});
 	const [logging, setLogging] = useState(false);
 	const lock = useRef(false);
-	const choiceFor = (partId: string): PartChoice =>
-		choices[partId] ?? { included: true };
-	const parts = combo.parts.map((part) => ({ part, ...choiceFor(part.id) }));
+	// A part whose source is gone stays off: there is nothing to log it from.
+	const choiceFor = (part: ComboPart): PartChoice =>
+		part.status === "missing"
+			? { included: false }
+			: (choices[part.id] ?? { included: true });
+	const parts = combo.parts.map((part) => {
+		const choice = choiceFor(part);
+		return { part, ...choice, snapshot: choice.once ?? part.snapshot };
+	});
 	const included = parts.filter((item) => item.included);
-	// A part whose source is gone waits until it is replaced, removed or off.
-	const blockedByMissing = included.some(
-		({ part }) => part.status === "missing",
-	);
-	const canLog =
-		whole.valid && included.length > 0 && !blockedByMissing && !logging;
+	const missing = combo.parts.filter((part) => part.status === "missing");
+	const canLog = whole.valid && included.length > 0 && !logging;
 	/** Per-combo values of what is included, before the whole-combo factor. */
-	const nutrients = sumNutrients(
-		included.map(({ part, once }) => once ?? part.snapshot),
+	const nutrients = combinedNutrients(
+		included.map(({ snapshot }) => snapshot.nutrients),
 	);
 
 	function log() {
@@ -157,19 +131,19 @@ export function useComboLog({
 		setDate: (next: string) =>
 			setDestination((current) => ({ ...current, date: next })),
 		parts,
+		included,
+		missing,
 		nutrients,
-		blockedByMissing,
 		canLog,
 		logging,
 		log,
-		toggle: (partId: string) =>
+		toggle: (part: ComboPart) => {
+			if (part.status === "missing") return;
 			setChoices((current) => ({
 				...current,
-				[partId]: {
-					...choiceFor(partId),
-					included: !choiceFor(partId).included,
-				},
-			})),
+				[part.id]: { ...choiceFor(part), included: !choiceFor(part).included },
+			}));
+		},
 		setOnce: (partId: string, snapshot: ComboPartSnapshot) =>
 			setChoices((current) => ({
 				...current,

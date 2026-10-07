@@ -15,6 +15,7 @@
  */
 
 export {
+	combinedNutrients,
 	type NutrientContribution,
 	type NutrientTotal,
 	totalNutrient,
@@ -80,6 +81,7 @@ export {
 	shippedLibraryMeta,
 	shippedSourceMeta,
 } from "./library";
+export { mealSlotAt } from "./meal-time";
 export * from "./nutrient-sources";
 export {
 	ABSENT,
@@ -123,6 +125,7 @@ export {
 } from "./search";
 export type { SupplementaryServing } from "./servings";
 export {
+	baseUnitServingOption,
 	formatQuantity,
 	formatServingSelection,
 	type PersonalMeasure,

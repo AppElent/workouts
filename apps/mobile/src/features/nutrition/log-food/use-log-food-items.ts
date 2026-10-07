@@ -4,6 +4,7 @@ import {
 	getShippedFood,
 } from "@workouts/core/nutrition";
 import { useMemo } from "react";
+import { comboSourceKey } from "../../../data/nutrition-shortcuts";
 import type {
 	Combo,
 	PersonalFood,
@@ -163,10 +164,18 @@ export function useLogFoodItems({
 					caption,
 				}));
 		const recentItems = shortcutItems(recentSelections, copy.recent);
-		const favoriteItems = shortcutItems(favoriteSelections, copy.favoriteTag);
 		const comboItems = combos
 			.filter((combo) => matches(combo.name))
 			.map((combo) => ({ kind: "combo" as const, combo }));
+		const favoriteComboKeys = new Set(
+			favoriteShortcuts.map((shortcut) => shortcut.sourceKey),
+		);
+		const favoriteItems = [
+			...shortcutItems(favoriteSelections, copy.favoriteTag),
+			...comboItems.filter((item) =>
+				favoriteComboKeys.has(comboSourceKey(item.combo.id)),
+			),
+		];
 		const recipeItems = recipes.map((food) => ({
 			kind: "food" as const,
 			selection: { kind: "personal" as const, food },
@@ -220,6 +229,7 @@ export function useLogFoodItems({
 		combos,
 		copy,
 		favoriteSelections,
+		favoriteShortcuts,
 		filter,
 		locale,
 		messages,

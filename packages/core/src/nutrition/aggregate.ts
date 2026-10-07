@@ -97,3 +97,25 @@ export function totalNutrients(
 	}
 	return totals;
 }
+
+/**
+ * Several contributions as one reading per nutrient, such as a combo's parts:
+ * known values add up, a sum of only traces stays a trace, and a nutrient no
+ * contribution knows stays absent.
+ */
+export function combinedNutrients(
+	contributions: readonly NutrientContribution[],
+): Record<NutrientKey, NutrientValue> {
+	const totals = totalNutrients(contributions);
+	const combined = {} as Record<NutrientKey, NutrientValue>;
+	for (const key of NUTRIENT_KEYS) {
+		const total = totals[key];
+		combined[key] =
+			total.valueCount > 0
+				? { kind: "value", amount: total.amount }
+				: total.traceCount > 0
+					? { kind: "trace" }
+					: { kind: "absent" };
+	}
+	return combined;
+}

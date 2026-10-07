@@ -1,4 +1,5 @@
 import {
+	baseUnitServingOption,
 	getShippedFood,
 	personalFoodServingOptions,
 	type ServingOption,
@@ -6,9 +7,10 @@ import {
 	withPersonalMeasures,
 	withSupplementaryServings,
 } from "@workouts/core/nutrition";
-import { usePersonalFoods } from "../../../data/personal-foods";
-import { usePersonalMeasures } from "../../../data/personal-measures";
-import { useSupplementaryServings } from "../../../data/supplementary-servings";
+import { usePersonalFoods } from "../../data/personal-foods";
+import { usePersonalMeasures } from "../../data/personal-measures";
+import { useSupplementaryServings } from "../../data/supplementary-servings";
+import type { AmountServings } from "./components/amount-editor";
 
 /** What a saved amount remembers: a diary entry or a combo part. */
 export type AmountSnapshot = {
@@ -29,7 +31,9 @@ export type AmountSnapshot = {
  * still exists with the same unit), added servings, personal measures, and
  * the serving it was saved with, so keeping it is always a choice.
  */
-export function useSnapshotServings(snapshot: AmountSnapshot) {
+export function useSnapshotServings(
+	snapshot: AmountSnapshot,
+): AmountServings & { readonly historical: ServingOption } {
 	const foods = usePersonalFoods();
 	const measures = usePersonalMeasures();
 	const { provenance } = snapshot;
@@ -47,27 +51,7 @@ export function useSnapshotServings(snapshot: AmountSnapshot) {
 			? "provenance" in source
 				? personalFoodServingOptions(source)
 				: servingOptions(source)
-			: [
-					{
-						kind: "base-unit",
-						amount: 1,
-						unit: snapshot.baseUnit,
-						label: {
-							en:
-								snapshot.baseUnit === "ml"
-									? "Millilitre (ml)"
-									: snapshot.baseUnit === "g"
-										? "Gram (g)"
-										: "Serving",
-							nl:
-								snapshot.baseUnit === "ml"
-									? "Milliliter (ml)"
-									: snapshot.baseUnit === "g"
-										? "Gram (g)"
-										: "Portie",
-						},
-					},
-				];
+			: [baseUnitServingOption(snapshot.baseUnit)];
 	const choices = withPersonalMeasures(
 		withSupplementaryServings(
 			authored,

@@ -8,8 +8,8 @@ import { useNutritionOperations } from "../../../data/nutrition-operation-servic
 import { servingKey } from "../../../data/nutrition-shortcuts";
 import { useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
-import { useAmountSelection } from "../components/use-amount-selection";
-import { useSnapshotServings } from "../components/use-snapshot-servings";
+import { useAmountSelection } from "../use-amount-selection";
+import { useSnapshotServings } from "../use-snapshot-servings";
 
 export type DiaryEntryEditorProps = {
 	entry: DiaryEntry;
@@ -26,7 +26,8 @@ export function useDiaryEntryEditor({
 	const { t } = useI18n();
 	const toast = useToast();
 	const operations = useNutritionOperations();
-	const { source, additions, choices, historical } = useSnapshotServings(entry);
+	const servings = useSnapshotServings(entry);
+	const { historical } = servings;
 	const selection = useAmountSelection({
 		option: historical,
 		quantity: entry.quantity,
@@ -133,16 +134,7 @@ export function useDiaryEntryEditor({
 	}
 	return {
 		selection,
-		source,
-		additions,
-		choices,
-		historical,
-		selected,
-		select: selection.select,
-		quantityText: selection.quantityText,
-		quantity,
-		setQuantity: selection.setQuantity,
-		amount: exactAmount,
+		servings,
 		nextMeal,
 		setMeal,
 		nextDate,

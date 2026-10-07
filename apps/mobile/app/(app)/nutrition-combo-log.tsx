@@ -1,4 +1,5 @@
 /** Logging a saved combo onto a day and meal, as a sheet over where it was chosen. */
+import { mealSlotAt } from "@workouts/core/nutrition";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";
@@ -26,7 +27,7 @@ export default function NutritionComboLogRoute() {
 	return (
 		<ComboLogScreen
 			combo={combo}
-			meal={MEAL_SLOTS.find((slot) => slot === meal) ?? "breakfast"}
+			meal={MEAL_SLOTS.find((slot) => slot === meal) ?? mealSlotAt(new Date())}
 			date={date ?? todayIsoDate()}
 			onClose={leave}
 		/>

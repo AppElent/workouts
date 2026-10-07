@@ -508,7 +508,7 @@ describe("Nutrition Combos", () => {
 		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
 	});
 
-	it("marks a dangling reference and requires explicit deletion instead of logging it", async () => {
+	it("keeps a part without a source off, so a combo of only that has nothing to log", async () => {
 		showDiary([]);
 		const app = renderApp();
 		app.repository.createCombo({
@@ -536,14 +536,13 @@ describe("Nutrition Combos", () => {
 		await openComboLog();
 
 		expect(
-			screen.getByText(
-				"Remove or replace parts without a source to log this combo.",
-			),
+			screen.getByText(/Oats is off: its source is missing\./),
 		).toBeTruthy();
+		expect(screen.getByLabelText("Oats")).toBeDisabled();
 		expect(screen.getByLabelText("Log Combo")).toBeDisabled();
 	});
 
-	it("temporarily excludes a missing part without repairing the saved Combo", async () => {
+	it("logs the rest of a combo while a missing part stays off, without repairing it", async () => {
 		showDiary([]);
 		const app = renderApp();
 		const available = oneOffCombo().parts[0];
@@ -571,9 +570,10 @@ describe("Nutrition Combos", () => {
 
 		await openLibraryCombo("Available breakfast");
 		await openComboLog();
-		expect(screen.getByLabelText("Log Combo")).toBeDisabled();
-
-		fireEvent(screen.getByLabelText("Milk"), "valueChange", false);
+		expect(screen.getByLabelText("Milk")).toBeDisabled();
+		expect(
+			screen.getByText(/Milk is off: its source is missing\./),
+		).toBeTruthy();
 		expect(screen.getByLabelText("Log Combo")).toBeEnabled();
 		expect(app.repository.findCombo(combo.id)?.parts).toHaveLength(2);
 	});
@@ -609,6 +609,39 @@ describe("Nutrition Combos", () => {
 
 		await openComboLog();
 		expect(await screen.findByLabelText("Log Combo")).toBeEnabled();
+	});
+
+	it("counts whole combos in halves", async () => {
+		showDiary([]);
+		const app = renderApp();
+		app.repository.createCombo(oneOffCombo());
+		await screen.findByText("Today");
+		await openLibraryCombo("Morning Combo");
+		await openComboLog();
+		fireEvent.press(screen.getByLabelText("Increase quantity"));
+		expect(screen.getByDisplayValue("1.5")).toBeTruthy();
+	});
+
+	it("changes a part for this log only and shows what it does to this time", async () => {
+		showDiary([]);
+		const app = renderApp();
+		const combo = app.repository.createCombo(oneOffCombo());
+		await screen.findByText("Today");
+		await openLibraryCombo("Morning Combo");
+		await openComboLog();
+		fireEvent.press(screen.getByLabelText(/^Oats, /));
+		// The log's own table and the part's both read "This time".
+		expect(await screen.findAllByText("This time")).toHaveLength(2);
+		const quantities = screen.getAllByLabelText("Quantity");
+		fireEvent.changeText(quantities.at(-1) as never, "2");
+		expect(
+			screen.getByText(
+				"The combo itself doesn't change. Combo this time: 76 → 152 kcal.",
+			),
+		).toBeTruthy();
+		expect(app.repository.findCombo(combo.id)?.parts[0].snapshot.amount).toBe(
+			100,
+		);
 	});
 
 	it("offers the device-local Combo flow in Dutch", async () => {

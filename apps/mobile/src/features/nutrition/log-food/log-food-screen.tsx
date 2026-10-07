@@ -2,7 +2,6 @@ import {
 	forkShippedFood,
 	NUTRIENT_KEYS,
 	roundForDisplay,
-	type ServingOption,
 	type ShippedFood,
 	type SupplementaryServing,
 	shippedLibrary,
@@ -64,7 +63,7 @@ import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
-import { fmt, useI18n } from "../../../i18n";
+import { useI18n } from "../../../i18n";
 import { BarcodeScanner } from "../../../screens/barcode-scanner";
 import {
 	radius,
@@ -80,8 +79,6 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { comboPartFromEntry } from "../combo/combo-parts";
-import { useComboTarget } from "../combo/use-combo-target";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
@@ -95,8 +92,10 @@ import { LogFoodFindControls } from "./components/log-food-find-controls";
 import { LogFoodMealSummary } from "./components/log-food-meal-summary";
 import type { LogFoodMenuProps } from "./components/log-food-menu-props";
 import { LogFoodOffSection } from "./components/log-food-off-section";
+import { LogFoodReplacedPart } from "./components/log-food-replaced-part";
 import { LogFoodRow } from "./components/log-food-row";
 import { LogFoodSectionHeader } from "./components/log-food-section-header";
+import { LogFoodTargetHeader } from "./components/log-food-target-header";
 import { LogFoodToolbar } from "./components/log-food-toolbar";
 import {
 	compactEnergyPer100,
@@ -113,6 +112,10 @@ import {
 	servingPreview,
 } from "./log-food-selection";
 import { logFoodItemKey, useLogFoodItems } from "./use-log-food-items";
+import {
+	type LogFoodTargetParams,
+	useLogFoodTarget,
+} from "./use-log-food-target";
 import { useOffSearch } from "./use-off-search";
 
 /** Scope chips, in the order they are offered. `pool` leads because it is the default. */
@@ -213,7 +216,7 @@ export function LogFoodScreen({
 	 * Browser target mode: a picked food goes into this combo, added at the
 	 * end or in the place of `replacePartId`, instead of into the diary.
 	 */
-	target?: { comboId: string; replacePartId?: string };
+	target?: LogFoodTargetParams;
 	onClose: () => void;
 }) {
 	const colors = useTokens();
@@ -227,8 +230,10 @@ export function LogFoodScreen({
 	const subject = operations.getSubject();
 	const reduceMotion = useReduceMotion();
 	const personalFoods = usePersonalFoods();
-	const comboTarget = useComboTarget(target?.comboId, target?.replacePartId);
-	const comboCopy = t.nutrition.comboEditor;
+	const browserTarget = useLogFoodTarget(target, {
+		onClose,
+		onAdded: markJustLogged,
+	});
 	const personalMeasures = usePersonalMeasures();
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
@@ -240,7 +245,8 @@ export function LogFoodScreen({
 	const bottomToolbar = isIOS26OrLater();
 	const searchBarRef = useRef<SearchBarCommands>(null);
 	const searchInputRef = useRef<TextInput>(null);
-	const [query, setQuery] = useState(initialQuery ?? "");
+	const seedQuery = initialQuery ?? browserTarget?.initialQuery;
+	const [query, setQuery] = useState(seedQuery ?? "");
 	const [savingNote, setSavingNote] = useState(false);
 	// Read once per mount: a browser whose "Vandaag" target moves under the
 	// person because midnight passed mid-session is worse than one that is
@@ -333,16 +339,16 @@ export function LogFoodScreen({
 	// The native search bar owns its text; seed it with a note being resolved.
 	// The header mounts it a few frames after this screen, so wait for it.
 	useEffect(() => {
-		if (!bottomToolbar || !initialQuery) return;
+		if (!bottomToolbar || !seedQuery) return;
 		let frame = 0;
 		let tries = 0;
 		const seed = () => {
-			if (searchBarRef.current) searchBarRef.current.setText(initialQuery);
+			if (searchBarRef.current) searchBarRef.current.setText(seedQuery);
 			else if (tries++ < 30) frame = requestAnimationFrame(seed);
 		};
 		seed();
 		return () => cancelAnimationFrame(frame);
-	}, [bottomToolbar, initialQuery]);
+	}, [bottomToolbar, seedQuery]);
 
 	// Durable shortcuts, refreshed by the operation-version subscription above
 	// after a quick log or a favorite toggle.
@@ -363,7 +369,7 @@ export function LogFoodScreen({
 		copy,
 	});
 	// A combo cannot hold another combo.
-	const items = comboTarget
+	const items = browserTarget
 		? browsed.filter((item) => item.kind !== "combo")
 		: browsed;
 	const off = useOffSearch(query, {
@@ -535,11 +541,16 @@ export function LogFoodScreen({
 				: [],
 		);
 		const sourceKey = selectionSourceKey(selection);
-		const remembered = rememberedSelection(
-			choices,
-			selection.food.baseUnit,
-			subject ? operations.getShortcut(subject, sourceKey)?.portion : undefined,
-		);
+		// A combo part starts at the default portion, not the last one logged.
+		const remembered = browserTarget
+			? undefined
+			: rememberedSelection(
+					choices,
+					selection.food.baseUnit,
+					subject
+						? operations.getShortcut(subject, sourceKey)?.portion
+						: undefined,
+				);
 		const option =
 			remembered?.option ??
 			choices.find((choice) => choice.kind !== "personal-measure");
@@ -549,43 +560,8 @@ export function LogFoodScreen({
 		return option && quantity > 0 ? { option, quantity } : undefined;
 	}
 
-	/** Target mode: the food at this amount goes into the combo, with undo. */
-	function pickForCombo(
-		selection: FoodSelection,
-		serving: ServingOption,
-		quantity: number,
-	) {
-		if (!comboTarget) return;
-		const name = selection.food.name[locale];
-		try {
-			const { common, provenance } = createFoodSnapshot(
-				selection,
-				serving,
-				quantity,
-				date,
-				selectedMeal,
-				mintNutritionUuid(),
-				locale,
-			);
-			const undo = comboTarget.write(
-				comboPartFromEntry({ ...common, provenance }),
-			);
-			toast.success(
-				fmt(comboTarget.replacing ? comboCopy.replaced : comboCopy.added, {
-					name,
-				}),
-				{ action: { label: comboCopy.undo, onPress: undo } },
-			);
-		} catch {
-			toast.error(t.nutrition.combos.saveFailure);
-			return;
-		}
-		setSelectedFood(undefined);
-		if (comboTarget.replacing) {
-			onClose();
-			return;
-		}
-		const sourceKey = selectionSourceKey(selection);
+	/** The row's + turns into ✓ for a moment after it added the food. */
+	function markJustLogged(sourceKey: string) {
 		setJustLogged((keys) => new Set(keys).add(sourceKey));
 		setTimeout(
 			() =>
@@ -599,9 +575,9 @@ export function LogFoodScreen({
 	}
 
 	function quickLog(selection: FoodSelection) {
-		if (comboTarget) {
+		if (browserTarget) {
 			const quick = resolveQuickSelection(selection);
-			if (quick) pickForCombo(selection, quick.option, quick.quantity);
+			if (quick) browserTarget.pick(selection, quick.option, quick.quantity);
 			return;
 		}
 		const sourceKey = selectionSourceKey(selection);
@@ -651,16 +627,7 @@ export function LogFoodScreen({
 					release();
 					haptics.entryLogged();
 					setMealFlash((key) => key + 1);
-					setJustLogged((keys) => new Set(keys).add(sourceKey));
-					setTimeout(
-						() =>
-							setJustLogged((keys) => {
-								const next = new Set(keys);
-								next.delete(sourceKey);
-								return next;
-							}),
-						JUST_LOGGED_MS,
-					);
+					markJustLogged(sourceKey);
 					toast.success(copy.logged(foodName, loggedMeal), {
 						action: {
 							label: copy.undo,
@@ -690,12 +657,15 @@ export function LogFoodScreen({
 		// Menu order follows the design: log, other portion, favorite, then the
 		// food's own edits. Only Favorite is offered on swipe.
 		return [
-			...(quickPreview
+			// Replacing has no quick pick: the portion is always confirmed.
+			...(quickPreview && !browserTarget?.replacing
 				? [
 						{
 							key: "log",
 							systemImage: "plus" as const,
-							label: copy.logPortion(quickPreview),
+							label: browserTarget
+								? browserTarget.addLabel(quickPreview)
+								: copy.logPortion(quickPreview),
 							onPress: () => quickLog(selection),
 							swipe: false,
 						},
@@ -853,14 +823,13 @@ export function LogFoodScreen({
 						: undefined
 				}
 				pick={
-					comboTarget
+					browserTarget
 						? {
-								title: comboTarget.combo.name,
-								confirmLabel: comboTarget.replacing
-									? comboCopy.confirm
-									: comboCopy.add,
-								onPick: (serving, quantity) =>
-									pickForCombo(selectedFood, serving, quantity),
+								...browserTarget.sheet,
+								onPick: (serving, quantity) => {
+									if (browserTarget.pick(selectedFood, serving, quantity))
+										setSelectedFood(undefined);
+								},
 							}
 						: undefined
 				}
@@ -898,10 +867,10 @@ export function LogFoodScreen({
 			: formatShortDate(date, locale);
 	const listHeading = hasQuery
 		? {
-				title: copy.results,
+				title: browserTarget?.resultsTitle ?? copy.results,
 				detail: items.length ? String(items.length) : undefined,
 			}
-		: filter === "pool" && !comboTarget
+		: filter === "pool" && !browserTarget
 			? { title: copy.forMeal(mealName), detail: copy.forMealHint }
 			: undefined;
 
@@ -922,38 +891,12 @@ export function LogFoodScreen({
 				}}
 				onClose={() => setShowCalendar(false)}
 			/>
-			{comboTarget ? (
-				<Stack.Screen
-					options={{
-						title: fmt(
-							comboTarget.replacing
-								? comboCopy.replaceTitle
-								: comboCopy.addTitle,
-							{ name: comboTarget.combo.name },
-						),
-						headerTitle: undefined,
-						// Replacing ends with the pick; only adding needs Done.
-						headerRight: comboTarget.replacing
-							? () => null
-							: () => (
-									<Pressable
-										accessibilityRole="button"
-										accessibilityLabel={comboCopy.done}
-										onPress={onClose}
-										style={styles.headerButton}
-									>
-										<SymbolView
-											name={{
-												ios: "checkmark",
-												android: "check",
-												web: "check",
-											}}
-											size={20}
-											tintColor={colors.accentInk}
-										/>
-									</Pressable>
-								),
-					}}
+			{browserTarget ? (
+				<LogFoodTargetHeader
+					title={browserTarget.title}
+					subtitle={browserTarget.subtitle}
+					doneLabel={browserTarget.doneLabel}
+					onDone={onClose}
 				/>
 			) : (
 				<Stack.Screen
@@ -1014,11 +957,11 @@ export function LogFoodScreen({
 					placeholder={copy.search}
 					scanLabel={copy.scanBarcode}
 					describeLabel={copy.aiSearch}
-					menu={comboTarget ? undefined : menu}
+					menu={browserTarget ? undefined : menu}
 					onChangeQuery={setQuery}
 					onSubmit={off.commit}
 					onScan={() => setScanning(true)}
-					onDescribe={comboTarget ? undefined : describe}
+					onDescribe={browserTarget ? undefined : describe}
 				/>
 			) : null}
 			{editor ? (
@@ -1082,11 +1025,11 @@ export function LogFoodScreen({
 								placeholder={copy.search}
 								scanLabel={copy.scanBarcode}
 								describeLabel={copy.aiSearch}
-								menu={comboTarget ? undefined : menu}
+								menu={browserTarget ? undefined : menu}
 								onChangeQuery={setQuery}
 								onSubmit={off.commit}
 								onScan={() => setScanning(true)}
-								onDescribe={comboTarget ? undefined : describe}
+								onDescribe={browserTarget ? undefined : describe}
 							/>
 						)}
 						<ScrollView
@@ -1095,7 +1038,7 @@ export function LogFoodScreen({
 							contentContainerStyle={styles.chipList}
 						>
 							{SCOPE_CHIPS.filter(
-								({ scope }) => !comboTarget || scope !== "combos",
+								({ scope }) => !browserTarget || scope !== "combos",
 							).map(({ scope, copyKey }) => (
 								<NutritionScopeChip
 									key={scope}
@@ -1105,7 +1048,7 @@ export function LogFoodScreen({
 								/>
 							))}
 						</ScrollView>
-						{comboTarget ? null : (
+						{browserTarget ? null : (
 							<LogFoodMealSummary
 								label={copy.mealSummary(
 									mealName,
@@ -1132,6 +1075,13 @@ export function LogFoodScreen({
 								}
 							/>
 						)}
+						{browserTarget?.was ? (
+							<LogFoodReplacedPart
+								name={browserTarget.was.name}
+								detail={browserTarget.was.detail}
+								missing={browserTarget.was.missing}
+							/>
+						) : null}
 						{linkingBarcode ? (
 							<View style={styles.linking} accessibilityLiveRegion="polite">
 								<AppText variant="caption" style={styles.flex}>
@@ -1189,6 +1139,11 @@ export function LogFoodScreen({
 								onReview={setReviewingImport}
 								onScan={() => setScanning(true)}
 							/>
+						) : null}
+						{browserTarget ? (
+							<AppText variant="caption" style={styles.poolNote}>
+								{browserTarget.hint}
+							</AppText>
 						) : null}
 						<AppText variant="caption" style={styles.poolNote}>
 							{copy.poolNote(catalogueSize.toLocaleString(locale))}
@@ -1253,7 +1208,11 @@ export function LogFoodScreen({
 							caption={caption}
 							locale={locale}
 							position={position}
-							quickLabel={copy.quickLog(item.selection.food.name[locale])}
+							quickLabel={
+								browserTarget
+									? browserTarget.addLabel(item.selection.food.name[locale])
+									: copy.quickLog(item.selection.food.name[locale])
+							}
 							quickValue={quickKcal ? `${quickKcal} kcal` : undefined}
 							quickPortion={quickPreview?.label}
 							quickLogging={quickLoggingKeys.has(sourceKey)}
@@ -1268,7 +1227,11 @@ export function LogFoodScreen({
 							)}
 							closeMenuLabel={copy.closeMenu}
 							onPress={() => void openFood(item.selection)}
-							onQuickLog={() => quickLog(item.selection)}
+							onQuickLog={
+								browserTarget?.replacing
+									? undefined
+									: () => quickLog(item.selection)
+							}
 						/>
 					);
 				}}

@@ -108,8 +108,9 @@ describe("combo editor", () => {
 		const { app, id } = await openCombo();
 		fireEvent.press(await screen.findByText("Add part"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
+		expect(screen.getByText("to Wrap lunch · 3 parts")).toBeTruthy();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "oats");
-		fireEvent.press((await screen.findAllByLabelText("Quick log Oats"))[0]);
+		fireEvent.press((await screen.findAllByLabelText("Add Oats"))[0]);
 
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(4),
@@ -149,7 +150,7 @@ describe("combo editor", () => {
 		);
 	});
 
-	it("replaces a part in its place and returns to the combo", async () => {
+	it("replaces a part in its place after confirming the portion", async () => {
 		const { app, id } = await openCombo();
 		fireEvent(
 			await screen.findByLabelText(/^Hummus, /),
@@ -157,10 +158,15 @@ describe("combo editor", () => {
 			{ nativeEvent: { actionName: "replace" } },
 		);
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
-		// The search starts from the old part's name.
+		// The search starts from the old part's name, under what it was.
 		expect(screen.getByDisplayValue("Hummus")).toBeTruthy();
+		expect(screen.getByText("Was: 1 portion · 141 kcal")).toBeTruthy();
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "oats");
-		fireEvent.press((await screen.findAllByLabelText("Quick log Oats"))[0]);
+		expect(await screen.findByText("Choose a replacement")).toBeTruthy();
+		// Replacing has no quick +: a tap confirms the portion first.
+		expect(screen.queryByLabelText("Add Oats")).toBeNull();
+		fireEvent.press((await screen.findAllByText("Oats")).at(-1) as never);
+		fireEvent.press((await screen.findAllByLabelText("Save")).at(-1) as never);
 
 		await waitFor(() =>
 			expect(
@@ -172,5 +178,43 @@ describe("combo editor", () => {
 		await waitFor(() =>
 			expect(app.getPathname()).toBe(`/nutrition-combo/${id}`),
 		);
+	});
+
+	it("removes a part from its sheet with undo", async () => {
+		const { app, id } = await openCombo();
+		fireEvent.press(await screen.findByLabelText(/^Feta, /));
+		fireEvent.press(await screen.findByLabelText("Remove from combo"));
+		await waitFor(() =>
+			expect(app.repository.findCombo(id)?.parts).toHaveLength(2),
+		);
+		fireEvent.press(screen.getByLabelText("Undo"));
+		await waitFor(() =>
+			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
+		);
+	});
+
+	it("shows the new combo total under a changed part", async () => {
+		await openCombo();
+		fireEvent.press(await screen.findByLabelText(/^Wrap, /));
+		expect(
+			await screen.findByText(
+				"Wrap lunch: 482 kcal. Meals logged earlier stay as they were.",
+			),
+		).toBeTruthy();
+		expect(screen.getByText("This part")).toBeTruthy();
+		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		expect(
+			screen.getByText(
+				"Wrap lunch: 482 → 682 kcal. Meals logged earlier stay as they were.",
+			),
+		).toBeTruthy();
+	});
+
+	it("makes the combo a favourite from its menu", async () => {
+		await openCombo();
+		fireEvent.press(await screen.findByLabelText("More"));
+		fireEvent.press(await screen.findByText("Make favourite"));
+		fireEvent.press(await screen.findByLabelText("More"));
+		expect(await screen.findByText("Remove favourite")).toBeTruthy();
 	});
 });

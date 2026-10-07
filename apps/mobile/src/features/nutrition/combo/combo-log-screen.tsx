@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Modal, Switch, View } from "react-native";
 import type { MealSlot } from "../../../data/nutrition-day";
 import type { Combo } from "../../../data/personal-food-repository";
-import type { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
@@ -10,21 +9,16 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { AmountDestination } from "../components/amount-destination";
 import { AmountEditor } from "../components/amount-editor";
-import { AmountEditorHeader } from "../components/amount-editor-header";
+import { AmountSheetHeader } from "../components/amount-sheet-header";
 import { ComboPartEditor } from "./combo-part-editor";
-import { comboTotals } from "./combo-parts";
+import { kcalText, snapshotEnergy } from "./combo-parts";
 import { useComboLog } from "./use-combo-log";
-
-const noAdditions: ReturnType<typeof useSupplementaryServings> = {
-	servings: [],
-	loading: false,
-	add: () => Promise.reject(new Error("A combo has no servings to add.")),
-};
 
 /**
  * Logging a combo in the one amount editor (combo §3): the capsule counts
- * whole combos, meal and date sit in the toolbar, and parts can be turned
- * off or changed for this log only. Closing without ✓ discards everything.
+ * whole combos in halves, meal and date sit in the toolbar, and parts can be
+ * turned off or changed for this log only. A part whose source is gone stays
+ * off. Closing without ✓ discards everything.
  */
 export function ComboLogScreen({
 	combo,
@@ -41,7 +35,6 @@ export function ComboLogScreen({
 	const copy = t.nutrition.comboEditor;
 	const colors = useTokens();
 	const toast = useToast();
-	const [adding, setAdding] = useState(false);
 	const [onceFor, setOnceFor] = useState<string | null>(null);
 	const draft = useComboLog({
 		combo,
@@ -53,11 +46,25 @@ export function ComboLogScreen({
 		},
 		onFailed: () => toast.error(copy.logFailure),
 	});
-	const oncePart = combo.parts.find((part) => part.id === onceFor);
-	const totalEnergy = comboTotals(combo).energy ?? 0;
+	const once = draft.parts.find(({ part }) => part.id === onceFor);
+	const thisTime = draft.included.reduce(
+		(sum, { snapshot }) => sum + snapshotEnergy(snapshot),
+		0,
+	);
+	const missingNames = draft.missing.map((part) => part.snapshot.name[locale]);
+	const footer = [
+		copy.partsThisTimeFooter,
+		missingNames.length === 1
+			? fmt(copy.missingOff, { name: missingNames[0] })
+			: missingNames.length > 1
+				? fmt(copy.missingOffMany, { names: missingNames.join(", ") })
+				: undefined,
+	]
+		.filter(Boolean)
+		.join(" ");
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
-			<AmountEditorHeader
+			<AmountSheetHeader
 				title={combo.name}
 				subtitle={copy.logTitle}
 				closeLabel={copy.cancel}
@@ -72,22 +79,19 @@ export function ComboLogScreen({
 				name={combo.name}
 				unit="serving"
 				selection={draft.whole}
-				choices={[]}
-				additions={noAdditions}
-				servingMenu={false}
-				quantityUnit={copy.wholeUnit}
-				caption={
-					combo.parts.length === 1
-						? copy.partCountOne
-						: fmt(copy.partCount, { count: combo.parts.length })
-				}
-				nutrients={draft.nutrients}
-				factor={draft.whole.valid ? draft.whole.quantity : 1}
-				referenceFactor={1}
-				referenceLabel={fmt(copy.wholeCombos, { count: 1 })}
+				quantity={{ unit: copy.wholeUnit, step: 0.5 }}
+				table={{
+					nutrients: draft.nutrients,
+					factor: draft.whole.valid ? draft.whole.quantity : 1,
+					referenceFactor: 1,
+					referenceLabel: copy.wholeCombo,
+					valueLabel: copy.thisTime,
+				}}
+				caption={fmt(copy.partsIncluded, {
+					count: draft.included.length,
+					total: combo.parts.length,
+				})}
 				disabled={draft.logging}
-				adding={adding}
-				onAddingChange={setAdding}
 				below={
 					<View style={{ gap: spacing.xs, marginTop: spacing.sm }}>
 						<AppText
@@ -98,18 +102,16 @@ export function ComboLogScreen({
 							{copy.partsThisTime}
 						</AppText>
 						<InsetList compact>
-							{draft.parts.map(({ part, included, once }) => {
-								const snapshot = once ?? part.snapshot;
-								const energy = snapshot.nutrients.energy;
+							{draft.parts.map(({ part, included, once, snapshot }) => {
+								const missing = part.status === "missing";
 								const caption = [
-									part.status === "missing"
-										? `⚠ ${copy.missingPart}`
-										: undefined,
+									missing ? `⚠ ${copy.missingPart}` : undefined,
 									snapshot.serving[locale],
 									once ? copy.onlyThisTime : undefined,
 								]
 									.filter(Boolean)
 									.join(" · ");
+								const kcal = kcalText(snapshot.nutrients.energy, locale);
 								return (
 									<InsetRow
 										key={part.id}
@@ -124,40 +126,29 @@ export function ComboLogScreen({
 													gap: spacing.sm,
 												}}
 											>
-												{energy.kind === "value" ? (
-													<AppText variant="footnote">
-														{Math.round(energy.amount).toLocaleString(locale)}{" "}
-														kcal
-													</AppText>
+												{kcal ? (
+													<AppText variant="footnote">{kcal}</AppText>
 												) : null}
 												<Switch
 													accessibilityLabel={snapshot.name[locale]}
 													value={included}
-													onValueChange={() => draft.toggle(part.id)}
+													disabled={missing || draft.logging}
+													onValueChange={() => draft.toggle(part)}
 													trackColor={{ true: colors.accentFill }}
 												/>
 											</View>
 										}
 										accessibilityLabel={`${snapshot.name[locale]}, ${caption}`}
-										onPress={
-											part.status === "missing"
-												? undefined
-												: () => setOnceFor(part.id)
-										}
+										onPress={missing ? undefined : () => setOnceFor(part.id)}
 									/>
 								);
 							})}
 						</InsetList>
 						<AppText
 							variant="caption"
-							style={{
-								paddingHorizontal: spacing.xs,
-								color: draft.blockedByMissing ? colors.danger : undefined,
-							}}
+							style={{ paddingHorizontal: spacing.xs }}
 						>
-							{draft.blockedByMissing
-								? copy.missingWaits
-								: copy.partsThisTimeFooter}
+							{footer}
 						</AppText>
 					</View>
 				}
@@ -172,33 +163,25 @@ export function ComboLogScreen({
 				}
 			/>
 			<Modal
-				visible={Boolean(oncePart)}
+				visible={Boolean(once)}
 				animationType="slide"
 				presentationStyle="pageSheet"
 				onRequestClose={() => setOnceFor(null)}
 			>
-				{oncePart ? (
+				{once ? (
 					<ComboPartEditor
-						part={
-							draft.parts.find((item) => item.part.id === oncePart.id)?.once
-								? {
-										...oncePart,
-										snapshot:
-											draft.parts.find((item) => item.part.id === oncePart.id)
-												?.once ?? oncePart.snapshot,
-									}
-								: oncePart
-						}
+						part={{ ...once.part, snapshot: once.snapshot }}
 						mode="once"
-						otherEnergy={
-							totalEnergy -
-							(oncePart.snapshot.nutrients.energy.kind === "value"
-								? oncePart.snapshot.nutrients.energy.amount
-								: 0)
-						}
+						total={{
+							name: combo.name,
+							before: thisTime,
+							others: once.included
+								? thisTime - snapshotEnergy(once.snapshot)
+								: thisTime,
+						}}
 						onCancel={() => setOnceFor(null)}
 						onConfirm={(snapshot) => {
-							draft.setOnce(oncePart.id, snapshot);
+							draft.setOnce(once.part.id, snapshot);
 							setOnceFor(null);
 						}}
 					/>

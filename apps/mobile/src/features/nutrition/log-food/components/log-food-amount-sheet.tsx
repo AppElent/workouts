@@ -29,7 +29,7 @@ import { AmountDestination } from "../../components/amount-destination";
 import { AmountEditor } from "../../components/amount-editor";
 import { AmountEditorHeader } from "../../components/amount-editor-header";
 import { NutritionChoiceMenu } from "../../components/nutrition-choice-menu";
-import { useAmountSelection } from "../../components/use-amount-selection";
+import { useAmountSelection } from "../../use-amount-selection";
 import {
 	createFoodSnapshot,
 	type FoodSelection,
@@ -92,16 +92,20 @@ export function LogFoodAmountSheet({
 	);
 	const subject = operations.getSubject();
 	const sourceKey = selectionSourceKey(selection);
+	const picking = pick !== undefined;
+	// A pick for a target starts at the default portion, not the last logged one.
 	const remembered = useMemo(
 		() =>
-			rememberedSelection(
-				choices,
-				food.baseUnit,
-				subject
-					? operations.getShortcut(subject, sourceKey)?.portion
-					: undefined,
-			),
-		[choices, food.baseUnit, operations, sourceKey, subject],
+			picking
+				? undefined
+				: rememberedSelection(
+						choices,
+						food.baseUnit,
+						subject
+							? operations.getShortcut(subject, sourceKey)?.portion
+							: undefined,
+					),
+		[choices, food.baseUnit, operations, picking, sourceKey, subject],
 	);
 	const [initial] = useState(() => {
 		const option =
@@ -239,14 +243,15 @@ export function LogFoodAmountSheet({
 				visual={"visual" in food ? food.visual : undefined}
 				unit={food.baseUnit}
 				selection={amount}
-				choices={choices}
-				source={food}
-				additions={additions}
-				nutrients={preview.nutrients}
-				allNutrients
-				factor={1}
-				referenceFactor={reference / (amount.valid ? amount.amount : reference)}
-				referenceLabel={`${reference} ${food.baseUnit}`}
+				servings={{ choices, source: food, additions }}
+				table={{
+					nutrients: preview.nutrients,
+					factor: 1,
+					referenceFactor:
+						reference / (amount.valid ? amount.amount : reference),
+					referenceLabel: `${reference} ${food.baseUnit}`,
+					all: true,
+				}}
 				onOpenDetails={() =>
 					router.push({
 						pathname: "/nutrition-food-details",

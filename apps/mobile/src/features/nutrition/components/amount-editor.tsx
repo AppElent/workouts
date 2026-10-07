@@ -17,74 +17,77 @@ import { FoodVisualView } from "../../../ui/food-visual";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
+import type { AmountSelection } from "../use-amount-selection";
 import { AmountQuantity, AmountQuantityAccessory } from "./amount-quantity";
 import { AmountServingPopup } from "./amount-serving-popup";
 import { NutrientTable } from "./nutrient-table";
-import type { AmountSelection } from "./use-amount-selection";
+
+/** The servings an amount can switch to, and where a new one can go. */
+export type AmountServings = {
+	readonly choices: readonly ServingOption[];
+	/** The serving the amount was saved with, offered as "previous value". */
+	readonly historical?: ServingOption;
+	/** The food behind the amount; new servings can only be added to one. */
+	readonly source?: PersonalFood | { id: string };
+	readonly additions: ReturnType<typeof useSupplementaryServings>;
+};
+
+/** The nutrient table: values for factor 1, scaled by `factor`. */
+export type AmountTable = {
+	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
+	readonly factor: number;
+	readonly referenceFactor: number;
+	readonly referenceLabel: string;
+	/** The first column; "This item" unless the task names it. */
+	readonly valueLabel?: string;
+	/** All eight values instead of energy and macros, before something is logged. */
+	readonly all?: boolean;
+};
 
 /**
  * The one amount editor (mobile-design "One amount editor"): quantity capsule,
  * serving menu, product card with its nutrient table, and a bottom toolbar.
- * Every amount task composes it; only the header, the table's reference
- * column and the toolbar differ, and those belong to the wrapper.
+ * Every amount task composes it; only the header, the table's columns and the
+ * toolbar differ, and those belong to the wrapper.
  */
 export function AmountEditor({
 	name,
 	visual,
 	unit,
 	selection,
-	choices,
-	historical,
-	source,
-	additions,
-	nutrients,
-	factor,
-	referenceFactor,
-	referenceLabel,
+	servings,
+	table,
+	quantity,
 	onOpenDetails,
 	caption,
-	quantityUnit,
 	notice,
 	below,
 	toolbar,
 	disabled,
-	adding,
+	adding = false,
 	onAddingChange,
 	onCreatingChange,
-	servingMenu = true,
-	allNutrients = false,
 }: {
 	name: string;
 	visual?: FoodVisual;
 	unit: "g" | "ml" | "serving";
 	selection: AmountSelection;
-	choices: readonly ServingOption[];
-	/** The serving the amount was saved with, offered as "previous value". */
-	historical?: ServingOption;
-	/** The food behind the amount; new servings can only be added to one. */
-	source?: PersonalFood | { id: string };
-	additions: ReturnType<typeof useSupplementaryServings>;
-	/** Values for `factor` = 1, scaled for the current amount by `factor`. */
-	nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
-	factor: number;
-	referenceFactor: number;
-	referenceLabel: string;
+	/** Absent when the amount has no servings to choose, such as whole combos. */
+	servings?: AmountServings;
+	table: AmountTable;
+	/** What the capsule counts in and steps by, when not the serving's own. */
+	quantity?: { readonly unit?: string; readonly step?: number };
 	onOpenDetails?: () => void;
 	/** The card's line under the name, when it is not about product details. */
 	caption?: string;
-	/** What the capsule counts in, when that is not the base unit. */
-	quantityUnit?: string;
 	notice?: ReactNode;
 	below?: ReactNode;
 	toolbar?: ReactNode;
 	disabled: boolean;
-	adding: boolean;
-	onAddingChange: (adding: boolean) => void;
+	/** The new-serving popup is open; only with `servings`. */
+	adding?: boolean;
+	onAddingChange?: (adding: boolean) => void;
 	onCreatingChange?: (creating: boolean) => void;
-	/** False when the amount has no servings to choose, such as whole combos. */
-	servingMenu?: boolean;
-	/** All eight values instead of energy and macros, before something is logged. */
-	allNutrients?: boolean;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.diaryEntry;
@@ -92,6 +95,8 @@ export function AmountEditor({
 	const insets = useSafeAreaInsets();
 	const [quantityEditing, setQuantityEditing] = useState(false);
 	const { selected } = selection;
+	const choices = servings?.choices ?? [];
+	const historical = servings?.historical;
 	const option = (item: ServingOption, i: number) => ({
 		id: String(i),
 		label: item.label[locale],
@@ -135,7 +140,7 @@ export function AmountEditor({
 					label: copy.newServing,
 					emphasized: true,
 					symbol: "plus" as const,
-					disabled: !source && unit === "serving",
+					disabled: !servings?.source && unit === "serving",
 				},
 			],
 		},
@@ -159,14 +164,15 @@ export function AmountEditor({
 					<AmountQuantity
 						value={selection.quantityText}
 						amount={selection.amount}
-						unit={quantityUnit ?? unit}
+						unit={quantity?.unit ?? unit}
+						step={quantity?.step}
 						baseUnitSelected={selected.kind === "base-unit"}
 						valid={selection.valid}
 						disabled={disabled || adding}
 						onChange={selection.setQuantity}
 						onEditingChange={setQuantityEditing}
 					/>
-					{servingMenu ? (
+					{servings ? (
 						<GlassSurface
 							capsule
 							style={{
@@ -182,7 +188,7 @@ export function AmountEditor({
 								disabled={disabled || !selection.valid}
 								onSelect={(id) => {
 									Keyboard.dismiss();
-									if (id === "new") onAddingChange(true);
+									if (id === "new") onAddingChange?.(true);
 									else if (id === "historical" && historical)
 										selection.select(historical);
 									else selection.select(choices[Number(id)]);
@@ -243,14 +249,7 @@ export function AmountEditor({
 							)}
 						</Pressable>
 						{notice}
-						<NutrientTable
-							compact
-							all={allNutrients}
-							nutrients={nutrients}
-							factor={factor}
-							referenceFactor={referenceFactor}
-							referenceLabel={referenceLabel}
-						/>
+						<NutrientTable compact {...table} />
 					</View>
 					{below}
 				</ScrollView>
@@ -269,17 +268,17 @@ export function AmountEditor({
 					{toolbar}
 				</View>
 			) : null}
-			{adding && (
+			{adding && servings && (
 				<AmountServingPopup
-					food={source}
+					food={servings.source}
 					name={name}
 					unit={unit}
-					additions={additions}
-					onBusyChange={(busy) => onCreatingChange?.(busy)}
-					onCancel={() => onAddingChange(false)}
+					additions={servings.additions}
+					onBusyChange={onCreatingChange}
+					onCancel={() => onAddingChange?.(false)}
 					onAdded={(added) => {
 						selection.select(added);
-						onAddingChange(false);
+						onAddingChange?.(false);
 					}}
 				/>
 			)}

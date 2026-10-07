@@ -1,6 +1,9 @@
 import {
+	combinedNutrients,
+	type NutrientValue,
 	type PersonalFood,
 	personalFoodSnapshotAtAmount,
+	roundForDisplay,
 } from "@workouts/core/nutrition";
 import type { DiaryEntry } from "../../../data/nutrition-day";
 import type {
@@ -82,23 +85,39 @@ export function comboPartFromFood(food: PersonalFood): ComboPartDraft {
 
 /** kcal and the three macros, summed from the saved snapshots. */
 export function comboTotals(combo: Pick<Combo, "parts">) {
-	const sum = (key: "energy" | "protein" | "carbs" | "fat") => {
-		let total = 0;
-		let known = false;
-		for (const part of combo.parts) {
-			const value = part.snapshot.nutrients[key];
-			if (value.kind !== "value") continue;
-			known = true;
-			total += value.amount;
-		}
-		return known ? Math.round(total * 10) / 10 : undefined;
+	const sum = combinedNutrients(
+		combo.parts.map((part) => part.snapshot.nutrients),
+	);
+	const pick = (key: "energy" | "protein" | "carbs" | "fat") => {
+		const value = sum[key];
+		return value.kind === "value"
+			? Math.round(value.amount * 10) / 10
+			: undefined;
 	};
 	return {
-		energy: sum("energy"),
-		protein: sum("protein"),
-		carbs: sum("carbs"),
-		fat: sum("fat"),
+		energy: pick("energy"),
+		protein: pick("protein"),
+		carbs: pick("carbs"),
+		fat: pick("fat"),
 	};
+}
+
+/** A snapshot's kcal for adding up; unknown counts as nothing. */
+export function snapshotEnergy(snapshot: {
+	readonly nutrients: { readonly energy: NutrientValue };
+}): number {
+	const { energy } = snapshot.nutrients;
+	return energy.kind === "value" ? energy.amount : 0;
+}
+
+/** "389 kcal" in the reader's digits; undefined while the value is unknown. */
+export function kcalText(
+	value: NutrientValue,
+	locale: "en" | "nl",
+): string | undefined {
+	return value.kind === "value"
+		? `${roundForDisplay("energy", value.amount).toLocaleString(locale)} kcal`
+		: undefined;
 }
 
 /** The saved combo as an editable draft; part ids stay so updates keep them. */

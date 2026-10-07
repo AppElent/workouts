@@ -45,12 +45,17 @@ export function LogFoodRow(props: LogFoodRowProps) {
 						onLongPress={accessibility.onLongPress}
 						accessibilityActions={accessibility.accessibilityActions}
 						onAccessibilityAction={accessibility.onAccessibilityAction}
-						add={{
-							label: props.quickLabel,
-							busy: props.quickLogging,
-							done: props.justLogged,
-							onPress: props.onQuickLog,
-						}}
+						add={
+							props.onQuickLog
+								? {
+										label: props.quickLabel,
+										busy: props.quickLogging,
+										done: props.justLogged,
+										onPress: props.onQuickLog,
+									}
+								: undefined
+						}
+						chevron={!props.onQuickLog}
 					/>
 				)}
 			</SwipeableRow>

@@ -1,18 +1,15 @@
-import { router, Stack, useNavigation } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
-import { SymbolView } from "expo-symbols";
-import type { ComponentProps } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Keyboard, Pressable, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { todayIsoDate } from "../../../data/calendar-day";
+import { Keyboard, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
-import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
 import { AmountDestination } from "../components/amount-destination";
 import { AmountEditor } from "../components/amount-editor";
+import { AmountSheetHeader } from "../components/amount-sheet-header";
+import { AmountToolbarButton } from "../components/amount-toolbar-button";
 import {
 	type DiaryEntryEditorProps,
 	useDiaryEntryEditor,
@@ -22,7 +19,6 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 	const { t, locale } = useI18n();
 	const copy = t.diaryEntry;
 	const colors = useTokens();
-	const _insets = useSafeAreaInsets();
 	const confirm = useConfirm();
 	const navigation = useNavigation();
 	const [leaving, setLeaving] = useState(false);
@@ -30,7 +26,6 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 		...props,
 		onClose: () => setLeaving(true),
 	});
-	const [_quantityEditing, _setQuantityEditing] = useState(false);
 	const [adding, setAdding] = useState(false);
 	const [creating, setCreating] = useState(false);
 	const pendingNavigation = useRef<(() => void) | null>(null);
@@ -41,7 +36,6 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 			pendingNavigation.current = null;
 		}
 	}, [allowDiscard]);
-	const [_dateOpen, _setDateOpen] = useState(false);
 	useEffect(() => {
 		if (leaving) props.onClose();
 	}, [leaving, props.onClose]);
@@ -69,124 +63,43 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 		},
 	);
 	const entry = props.entry;
-	const validAmount = draft.valid ? draft.amount : entry.amount;
-	const _today = todayIsoDate();
-	const action = (
-		label: string,
-		glyph: ComponentProps<typeof SymbolView>["name"],
-		onPress: () => void,
-		disabled = false,
-		danger = false,
-		accent = false,
-	) => (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityLabel={label}
-			accessibilityState={{ disabled }}
-			disabled={disabled}
-			onPress={onPress}
-			style={{
-				minHeight: 48,
-				minWidth: 48,
-				alignItems: "center",
-				justifyContent: "center",
-				opacity: disabled ? 0.4 : 1,
-				borderRadius: 24,
-				backgroundColor: accent ? colors.accentFill : undefined,
-			}}
-		>
-			<SymbolView
-				name={glyph}
-				tintColor={
-					danger ? colors.danger : accent ? colors.onAccent : colors.text
-				}
-				size={22}
-			/>
-		</Pressable>
-	);
+	const validAmount = draft.selection.valid
+		? draft.selection.amount
+		: entry.amount;
+	const reference = entry.baseUnit === "serving" ? 1 : 100;
+	const sourceId =
+		"sourceId" in entry.provenance ? entry.provenance.sourceId : undefined;
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
-			<Stack.Screen
-				options={{
-					title: t.nutrition.entryEditor.title,
-					headerShown: true,
-					headerTitleStyle: { color: colors.text },
-					headerLeft: () =>
-						action(
-							copy.cancel,
-							{ ios: "xmark", android: "close", web: "close" },
-							props.onClose,
-							draft.busy || adding,
-						),
-					// Native items let UIKit tint the glass itself, without a nested fill.
-					unstable_headerRightItems: () =>
-						draft.busy
-							? [
-									{
-										type: "custom",
-										element: (
-											<ActivityIndicator
-												accessibilityLabel={t.nutrition.entryEditor.saving}
-											/>
-										),
-									},
-								]
-							: [
-									{
-										type: "button",
-										label: t.nutrition.entryEditor.save,
-										accessibilityLabel: t.nutrition.entryEditor.save,
-										icon: { type: "sfSymbol", name: "checkmark" },
-										variant: draft.dirty ? "prominent" : "plain",
-										tintColor: draft.dirty ? colors.accentFill : colors.text,
-										disabled: adding || !draft.valid || !draft.dirty,
-										onPress: draft.save,
-									},
-								],
-					headerRight: () =>
-						draft.busy ? (
-							<ActivityIndicator
-								accessibilityLabel={t.nutrition.entryEditor.saving}
-							/>
-						) : (
-							action(
-								t.nutrition.entryEditor.save,
-								{ ios: "checkmark", android: "check", web: "check" },
-								draft.save,
-								draft.busy || adding || !draft.valid || !draft.dirty,
-								false,
-								draft.dirty,
-							)
-						),
-				}}
+			<AmountSheetHeader
+				title={t.nutrition.entryEditor.title}
+				closeLabel={copy.cancel}
+				confirmLabel={t.nutrition.entryEditor.save}
+				canConfirm={draft.valid && draft.dirty}
+				busy={draft.busy}
+				busyLabel={t.nutrition.entryEditor.saving}
+				disabled={adding}
+				onClose={props.onClose}
+				onConfirm={draft.save}
 			/>
 			<AmountEditor
 				name={entry.name[locale]}
 				visual={entry.visual}
 				unit={entry.baseUnit}
 				selection={draft.selection}
-				choices={draft.choices}
-				historical={draft.historical}
-				source={draft.source}
-				additions={draft.additions}
-				nutrients={entry.nutrients}
-				factor={validAmount / entry.amount}
-				referenceFactor={
-					(entry.baseUnit === "serving" ? 1 : 100) / entry.amount
-				}
-				referenceLabel={`${entry.baseUnit === "serving" ? 1 : 100} ${entry.baseUnit}`}
+				servings={draft.servings}
+				table={{
+					nutrients: entry.nutrients,
+					factor: validAmount / entry.amount,
+					referenceFactor: reference / entry.amount,
+					referenceLabel: `${reference} ${entry.baseUnit}`,
+				}}
 				onOpenDetails={
-					draft.source
+					draft.servings.source && sourceId
 						? () =>
 								router.push({
 									pathname: "/nutrition-food-details",
-									params: {
-										source: entry.provenance.source,
-										id:
-											"sourceId" in entry.provenance
-												? entry.provenance.sourceId
-												: "",
-									},
+									params: { source: entry.provenance.source, id: sourceId },
 								})
 						: undefined
 				}
@@ -216,15 +129,14 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 							onDateChange={draft.setDate}
 						/>
 						<View style={{ flex: 1 }} />
-						<GlassSurface capsule>
-							{action(
-								t.nutrition.entryEditor.delete,
-								{ ios: "trash", android: "delete", web: "delete" },
-								draft.remove,
-								draft.busy || adding,
-								true,
-							)}
-						</GlassSurface>
+						<AmountToolbarButton
+							label={t.nutrition.entryEditor.delete}
+							symbol={{ ios: "trash", android: "delete", web: "delete" }}
+							onPress={draft.remove}
+							disabled={draft.busy || adding}
+							destructive
+							iconOnly
+						/>
 					</>
 				}
 			/>

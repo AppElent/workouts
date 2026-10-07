@@ -5,8 +5,9 @@ import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
 
 /**
- * ✕, the title and ✓ above an amount editor shown in a sheet that has no
- * navigation header of its own. ✓ fills once there is something to confirm.
+ * ✕, the title and ✓ above an amount editor inside a React Native `Modal`,
+ * which has no navigator and so no native header. Routed sheets use
+ * `AmountSheetHeader`. ✓ fills once there is something to confirm.
  */
 export function AmountEditorHeader({
 	title,
@@ -14,7 +15,7 @@ export function AmountEditorHeader({
 	closeLabel,
 	confirmLabel,
 	canConfirm,
-	busy,
+	busy = false,
 	busyLabel,
 	disabled = false,
 	onClose,
@@ -25,8 +26,8 @@ export function AmountEditorHeader({
 	closeLabel: string;
 	confirmLabel: string;
 	canConfirm: boolean;
-	busy: boolean;
-	busyLabel: string;
+	busy?: boolean;
+	busyLabel?: string;
 	disabled?: boolean;
 	onClose: () => void;
 	onConfirm: () => void;
@@ -94,7 +95,7 @@ export function AmountEditorHeader({
 			<GlassSurface capsule>
 				{busy ? (
 					<View style={{ width: 44, height: 44, justifyContent: "center" }}>
-						<ActivityIndicator accessibilityLabel={busyLabel} />
+						<ActivityIndicator accessibilityLabel={busyLabel ?? confirmLabel} />
 					</View>
 				) : (
 					button(

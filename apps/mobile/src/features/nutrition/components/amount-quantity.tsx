@@ -18,7 +18,10 @@ export function AmountQuantity({
 	disabled,
 	onChange,
 	onEditingChange,
+	step: stepSize,
 }: {
+	/** What − and + change by; tens of a base unit, quarters otherwise. */
+	step?: number;
 	value: string;
 	amount: number;
 	unit: string;
@@ -43,6 +46,7 @@ export function AmountQuantity({
 		onChange(String(next));
 		Keyboard.dismiss();
 	}
+	const by = stepSize ?? 0.25;
 	const step = (direction: -1 | 1) => (
 		<Pressable
 			accessibilityRole="button"
@@ -52,9 +56,9 @@ export function AmountQuantity({
 			onPress={() =>
 				choose(
 					Math.max(
-						baseUnitSelected ? 0.1 : 0.25,
+						baseUnitSelected ? 0.1 : by,
 						(valid ? Number(value.replace(",", ".")) : 0) +
-							direction * (baseUnitSelected ? 10 : 0.25),
+							direction * (baseUnitSelected ? 10 : by),
 					),
 				)
 			}

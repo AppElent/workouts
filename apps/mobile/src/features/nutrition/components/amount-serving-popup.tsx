@@ -41,10 +41,11 @@ export function AmountServingPopup({
 	food?: PersonalFood | { id: string };
 	name: string;
 	unit: "g" | "ml" | "serving";
-	additions: ReturnType<typeof useSupplementaryServings>;
+	/** Where a new serving of a shipped food is kept; absent for other foods. */
+	additions?: ReturnType<typeof useSupplementaryServings>;
 	onAdded: (option: ServingOption) => void;
 	onCancel: () => void;
-	onBusyChange: (busy: boolean) => void;
+	onBusyChange?: (busy: boolean) => void;
 }) {
 	const { t } = useI18n();
 	const copy = t.diaryEntry;
@@ -61,6 +62,8 @@ export function AmountServingPopup({
 		const frame = requestAnimationFrame(() => nameRef.current?.focus());
 		return () => cancelAnimationFrame(frame);
 	}, []);
+	// A food draft without an id yet still takes servings, through the caller.
+	const foodScope = Boolean(food || onFoodServing);
 	const lock = useRef(false);
 	const [error, setError] = useState<string>();
 	const [active, setActive] = useState<"name" | "amount">("name");
@@ -69,7 +72,7 @@ export function AmountServingPopup({
 		defaultValues: {
 			name: "",
 			amount: initial ? "" : "250",
-			scope: food ? "food" : "own",
+			scope: foodScope ? "food" : "own",
 		},
 		onSubmit: async ({ value }) => {
 			if (lock.current) return;
@@ -108,7 +111,7 @@ export function AmountServingPopup({
 			}
 			lock.current = true;
 			setPending(true);
-			onBusyChange(true);
+			onBusyChange?.(true);
 			setError(undefined);
 			const subject = operations.getSubject();
 			try {
@@ -141,7 +144,7 @@ export function AmountServingPopup({
 						index: updated.servings.length - 1,
 						...next,
 					};
-				} else if (food && unit !== "serving") {
+				} else if (food && additions && unit !== "serving") {
 					const saved = await additions.add({
 						name: servingName,
 						amount,
@@ -165,7 +168,7 @@ export function AmountServingPopup({
 			} finally {
 				lock.current = false;
 				setPending(false);
-				onBusyChange(false);
+				onBusyChange?.(false);
 			}
 		},
 	});
@@ -278,7 +281,7 @@ export function AmountServingPopup({
 			{fields}
 			<Segmented
 				options={[
-					...(food ? [{ value: "food", label: name }] : []),
+					...(foodScope ? [{ value: "food", label: name }] : []),
 					...(unit !== "serving" && !initial
 						? [{ value: "own", label: copy.ownScope }]
 						: []),

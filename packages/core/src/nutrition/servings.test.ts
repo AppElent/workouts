@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { getShippedFood, shippedLibrary } from "./library";
 import { numericAmount } from "./nutrients";
 import {
+	baseUnitServingOption,
 	formatQuantity,
 	formatServingSelection,
 	previewServing,
@@ -200,5 +201,26 @@ describe("beverages, which NEVO measures by mass", () => {
 		if (!glass) throw new Error("expected an authored serving");
 		expect(servingAmount(glass, 1)).toBe(253);
 		expect(formatServingSelection(glass, 1, "en")).toBe("Glass (250 ml) × 1");
+	});
+});
+
+describe("baseUnitServingOption", () => {
+	test("labels each base unit, or uses the given label", () => {
+		expect(baseUnitServingOption("g").label).toEqual({
+			en: "Gram (g)",
+			nl: "Gram (g)",
+		});
+		expect(baseUnitServingOption("serving").label).toEqual({
+			en: "Serving",
+			nl: "Portie",
+		});
+		expect(baseUnitServingOption("serving", { en: "bowl", nl: "kom" })).toEqual(
+			{
+				kind: "base-unit",
+				amount: 1,
+				unit: "serving",
+				label: { en: "bowl", nl: "kom" },
+			},
+		);
 	});
 });

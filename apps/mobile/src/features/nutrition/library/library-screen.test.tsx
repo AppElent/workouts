@@ -102,6 +102,15 @@ describe("food library", () => {
 		await waitFor(() => expect(screen.queryByText("Oats")).toBeNull());
 	});
 
+	it("makes a combo a favourite like a food", async () => {
+		renderLibrary();
+		const combo = await screen.findByLabelText(/^Breakfast bowl, /);
+		fireEvent(combo, "accessibilityAction", {
+			nativeEvent: { actionName: "favorite" },
+		});
+		expect(await screen.findByText("Breakfast bowl ★")).toBeTruthy();
+	});
+
 	it("selects items and deletes them together", async () => {
 		renderLibrary();
 		fireEvent.press(await screen.findByLabelText("More"));

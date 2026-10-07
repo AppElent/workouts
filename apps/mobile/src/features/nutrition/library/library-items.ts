@@ -1,5 +1,8 @@
 import type { PersonalFood } from "@workouts/core/nutrition";
-import { foodSourceKey } from "../../../data/nutrition-shortcuts";
+import {
+	comboSourceKey,
+	foodSourceKey,
+} from "../../../data/nutrition-shortcuts";
 import type { Combo } from "../../../data/personal-food-repository";
 
 export type LibraryKind = "food" | "recipe" | "combo";
@@ -16,7 +19,7 @@ export type LibraryItem =
 			readonly kind: "combo";
 			readonly id: string;
 			readonly combo: Combo;
-			readonly favorite: false;
+			readonly favorite: boolean;
 	  };
 
 export const LIBRARY_KINDS: readonly LibraryKind[] = [
@@ -45,10 +48,17 @@ export function libraryItems(
 				kind: "combo",
 				id: combo.id,
 				combo,
-				favorite: false,
+				favorite: favoriteKeys.has(comboSourceKey(combo.id)),
 			}),
 		),
 	];
+}
+
+/** The shortcut key a library item is a favourite under. */
+export function favoriteKeyOf(item: LibraryItem): string {
+	return item.kind === "combo"
+		? comboSourceKey(item.id)
+		: foodSourceKey("personal", item.id);
 }
 
 export function libraryItemName(item: LibraryItem, locale: "en" | "nl") {

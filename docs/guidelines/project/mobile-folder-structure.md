@@ -13,6 +13,8 @@ and [first implementation report](../../verification/diary-entry-editor/README.m
 - `apps/mobile/src/features/<feature>/`: feature screens, state, and supporting code.
 - `features/nutrition/<subject>/components/`: supporting UI used only by that subject.
 - `features/nutrition/components/`: components shared across nutrition subjects.
+- `features/nutrition/use-*.ts`: state hooks shared across nutrition subjects,
+  at the nutrition root the way subject hooks sit at their subject root.
 - `src/ui/`: app-wide, domain-independent controls and platform adapters.
 - Existing data services remain canonical; reuse their operations. Shared domain
   calculations and catalogs stay in `packages/core/`.

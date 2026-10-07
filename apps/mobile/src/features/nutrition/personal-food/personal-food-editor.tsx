@@ -21,7 +21,6 @@ import {
 	type PersonalFoodDraft,
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import type { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { fmt, useI18n } from "../../../i18n";
 import { FoodAuthoringTabs } from "../../../screens/food-authoring-tabs";
 import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-copy";
@@ -34,20 +33,12 @@ import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { PersonalFoodKeyboardBar } from "./components/personal-food-keyboard-bar";
-
 import { PersonalFoodValueField } from "./components/personal-food-value-field";
 import {
 	type NutrientInput,
 	parseFoodNumber,
 	usePersonalFoodDraft,
 } from "./use-personal-food-draft";
-
-/** Servings of the food itself go into the draft, never to supplementary storage. */
-const noAdditions: ReturnType<typeof useSupplementaryServings> = {
-	servings: [],
-	loading: false,
-	add: () => Promise.reject(new Error("Not available in the food editor.")),
-};
 
 /** Label order: what you read on a package, "of which" rows indented. */
 const NUTRIENT_ROWS: readonly { key: NutrientKey; indent?: boolean }[] = [
@@ -186,7 +177,6 @@ export function PersonalFoodEditor({
 			: draft.classification === "recipe"
 				? copy.newRecipe
 				: copy.newFood;
-	const _unit = draft.basisKind === "perServing" ? "" : draft.baseUnit;
 	const kcalPerUnit =
 		draft.nutrients.energy.kind === "value"
 			? parseFoodNumber(draft.nutrients.energy.amount) / 100
@@ -968,10 +958,10 @@ export function PersonalFoodEditor({
 			/>
 			{servingEditor !== null ? (
 				<AmountServingPopup
-					food={food ?? { id: "draft" }}
+					// Servings of the food itself go into the draft until ✓.
+					food={food}
 					name={draft.name || copy.namePlaceholder}
 					unit={draft.baseUnit}
-					additions={noAdditions}
 					initial={
 						servingEditor === "new"
 							? undefined
@@ -983,7 +973,6 @@ export function PersonalFoodEditor({
 									amount: draft.servings[servingEditor].amount,
 								}
 					}
-					onBusyChange={() => {}}
 					onCancel={() => setServingEditor(null)}
 					onAdded={() => setServingEditor(null)}
 					onFoodServing={(name, amount) => {

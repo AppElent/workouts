@@ -20,5 +20,6 @@ export interface LogFoodRowProps {
 	actions: readonly RowAction[];
 	closeMenuLabel: string;
 	onPress: () => void;
-	onQuickLog: () => void;
+	/** Absent when a tap is the only way in, such as when replacing: a chevron shows. */
+	onQuickLog?: () => void;
 }

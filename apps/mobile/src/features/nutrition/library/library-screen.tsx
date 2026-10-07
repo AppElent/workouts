@@ -10,7 +10,6 @@ import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
 } from "../../../data/nutrition-operation-service";
-import { foodSourceKey } from "../../../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useStalledOffline } from "../../../data/stalled-offline";
 import { fmt, useI18n } from "../../../i18n";
@@ -26,7 +25,6 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionEnergyValue } from "../components/nutrition-energy-value";
 import { NutritionListRowLeading } from "../components/nutrition-list-row-leading";
@@ -37,6 +35,7 @@ import { LibrarySelectionActions } from "./components/library-selection-actions"
 import { LibraryToolbar } from "./components/library-toolbar";
 import {
 	combosUsing,
+	favoriteKeyOf,
 	filterLibrary,
 	type LibraryChip,
 	type LibraryItem,
@@ -58,12 +57,6 @@ const CHIPS: readonly LibraryChip[] = [
 
 function itemKey(item: LibraryItem) {
 	return `${item.kind}:${item.id}`;
-}
-
-function _position(index: number, count: number): FoodRowPosition {
-	if (count === 1) return "only";
-	if (index === 0) return "first";
-	return index === count - 1 ? "last" : "middle";
 }
 
 export function LibraryScreen() {
@@ -133,12 +126,8 @@ export function LibraryScreen() {
 	const newCombo = () => startSelection("combo");
 
 	const toggleFavorite = (item: LibraryItem) => {
-		if (!subject || item.kind === "combo") return;
-		operations.toggleFavorite(
-			subject,
-			foodSourceKey("personal", item.id),
-			!item.favorite,
-		);
+		if (!subject) return;
+		operations.toggleFavorite(subject, favoriteKeyOf(item), !item.favorite);
 	};
 	const duplicate = (item: LibraryItem) => {
 		try {
@@ -243,8 +232,15 @@ export function LibraryScreen() {
 						label: copy.duplicate,
 						systemImage: "plus.square.on.square",
 						swipe: false,
-						dividerAfter: true,
 						onPress: () => duplicate(item),
+					},
+					{
+						key: "favorite",
+						label: item.favorite ? copy.unfavorite : copy.favorite,
+						systemImage: item.favorite ? "star.fill" : "star",
+						swipe: false,
+						dividerAfter: true,
+						onPress: () => toggleFavorite(item),
 					},
 					{
 						key: "delete",
@@ -454,19 +450,12 @@ export function LibraryScreen() {
 			key: "favorite",
 			label: copy.favorite,
 			icon: "star" as const,
-			disabled: !selectedItems.some((item) => item.kind !== "combo"),
+			disabled: selectedItems.length === 0,
 			onPress: () => {
 				if (!subject) return;
-				const allFavorite = selectedItems
-					.filter((item) => item.kind !== "combo")
-					.every((item) => item.favorite);
+				const allFavorite = selectedItems.every((item) => item.favorite);
 				for (const item of selectedItems)
-					if (item.kind !== "combo")
-						operations.toggleFavorite(
-							subject,
-							foodSourceKey("personal", item.id),
-							!allFavorite,
-						);
+					operations.toggleFavorite(subject, favoriteKeyOf(item), !allFavorite);
 			},
 		},
 		{
