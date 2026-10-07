@@ -246,6 +246,40 @@ them to other composite objects and to every amount task.
   mode (title "Toevoegen"/"Vervangen"; + writes to the target) instead of a
   second browser.
 
+Settled in the my-measures study (`designs/nutrition/measures_final.html`). Apply
+them to other lists of reusable, unit-bound values.
+
+- **Group by compatibility.** When an item only applies where its unit matches
+  (g or ml), list one section per unit with the rule as the section footer, not
+  one mixed list with an explanatory note. Each section has its own + in the
+  section header, which presets the unit; order is kept per section.
+- **Small values edit in the serving popup.** A saved value with a name and an
+  amount (a personal measure) is added and changed in the shared serving popup
+  above the keyboard, with the unit as its segment, not in a form screen or
+  sheet. Changing the unit of an existing value asks first.
+- **Order without a mode.** Move up/down sit in the long-press menu (disabled at
+  the edges), never as buttons on every row.
+
+Settled in the one-off log study (`designs/nutrition/one-off_final.html`). Apply
+them to other create-and-log forms that do not save a library object.
+
+- **Same composition as the library editor.** A form that captures food without
+  saving it (a One-off Entry) reuses the personal food editor: photo and name as
+  the hero, the amount where the editor has servings, then all eight nutrients
+  with the basis menu and the same field and keyboard rules. Leave out what does
+  not apply (details, the estimated switch: one-offs are always estimated).
+- **Basis defaults to what you ate.** Values default to the whole amount
+  ("voor 1 portie"); per 100 g/ml stays in the basis menu and shows the total
+  below. The snapshot stores totals.
+- **Destination as the sheet subtitle.** A ✕/✓ sheet that logs shows its task as
+  the title and the meal + day below it as the destination menu from Log food.
+- **Photo popup.** Tapping a food photo opens one menu: Take photo, Choose photo,
+  Icon › (a submenu with the presets, current one shown beside it), and Remove
+  photo only when there is a photo. Every food editor uses this popup instead of
+  listing the presets in the main menu.
+- **Switching kind keeps input.** The Personal food / Recipe / One-off segment
+  carries the name and photo to the other form.
+
 ## Device acceptance
 
 Verify each affected supported platform with the development build. A simulator

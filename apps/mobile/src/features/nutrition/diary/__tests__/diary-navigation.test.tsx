@@ -116,9 +116,7 @@ describe("Nutrition navigation", () => {
 				>,
 			);
 		const date = "2026-09-24";
-		const app = renderApp(
-			`/nutrition-cooking?date=${date}&meal=dinner&mode=oneoff-log`,
-		);
+		const app = renderApp(`/nutrition-one-off?date=${date}&meal=dinner`);
 		fireEvent.changeText(
 			await screen.findByLabelText("Food name"),
 			"One-off soup",
@@ -135,7 +133,7 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("explains invalid One-off Entry amounts and keeps the entered values", async () => {
-		renderApp("/nutrition-cooking?mode=oneoff-log");
+		renderApp("/nutrition-one-off");
 		fireEvent.changeText(
 			await screen.findByLabelText("Food name"),
 			"One-off soup",
@@ -224,11 +222,10 @@ describe("Nutrition navigation", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		fireEvent.press(await screen.findByLabelText("More food actions"));
 		fireEvent.press(await screen.findByText("Log once"));
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-one-off"));
 		expect(app.getSearchParams()).toMatchObject({
 			date: todayIsoDate(),
 			meal: "dinner",
-			mode: "oneoff-log",
 		});
 		expect(await screen.findByLabelText("Food name")).toBeTruthy();
 		expect(screen.getByText("Servings")).toBeTruthy();
@@ -255,7 +252,7 @@ describe("Nutrition navigation", () => {
 		expect(await screen.findByLabelText("Name")).toBeTruthy();
 
 		fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
-		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-cooking"));
+		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-one-off"));
 		expect(await screen.findByLabelText("Food name")).toBeTruthy();
 	});
 

@@ -781,8 +781,8 @@ export function LogFoodScreen({
 					if (kind !== "oneOff") return;
 					closeEditor();
 					router.push({
-						pathname: "/nutrition-cooking",
-						params: { date, meal: selectedMeal, mode: "oneoff-log" },
+						pathname: "/nutrition-one-off",
+						params: { date, meal: selectedMeal },
 					});
 				}}
 				onCancel={closeEditor}
@@ -860,8 +860,8 @@ export function LogFoodScreen({
 		canSaveAsNote: !draftId && hasQuery,
 		onLogOnce: () =>
 			router.push({
-				pathname: "/nutrition-cooking",
-				params: { date, meal: selectedMeal, mode: "oneoff-log" },
+				pathname: "/nutrition-one-off",
+				params: { date, meal: selectedMeal },
 			}),
 		onNewFood: () => setCreatingFood(true),
 		onNewRecipe: () => {

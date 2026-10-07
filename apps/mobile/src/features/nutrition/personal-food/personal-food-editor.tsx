@@ -22,7 +22,6 @@ import {
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
-import { FoodAuthoringTabs } from "../../../screens/food-authoring-tabs";
 import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-copy";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -31,6 +30,7 @@ import { GlassSurface } from "../../../ui/glass-surface";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
+import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { PersonalFoodKeyboardBar } from "./components/personal-food-keyboard-bar";
 import { PersonalFoodValueField } from "./components/personal-food-value-field";

@@ -7,26 +7,24 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFoodAuthoringIntent } from "../data/food-authoring-intent";
-import { foodPhotos } from "../data/food-photo-manager";
-import { nutritionCookingCopy } from "../data/nutrition-cooking-copy";
-import type { MealSlot } from "../data/nutrition-day";
-import { oneOffLogSnapshot } from "../data/nutrition-one-off";
+import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
+import { foodPhotos } from "../../../data/food-photo-manager";
+import type { MealSlot } from "../../../data/nutrition-day";
+import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
-} from "../data/nutrition-operation-service";
+} from "../../../data/nutrition-operation-service";
 import {
 	FOOD_VISUAL_PRESET_IDS,
 	type FoodVisual,
 	type FoodVisualPresetId,
-} from "../data/personal-food-repository";
-import { useI18n } from "../i18n";
-import { spacing, type Tokens, useThemedStyles } from "../theme";
-import { PrimaryButton } from "../ui/button";
-import { Card } from "../ui/coach";
-import { FoodVisualView } from "../ui/food-visual";
-import { FoodVisualMenu } from "../ui/food-visual-menu";
+} from "../../../data/personal-food-repository";
+import { useI18n } from "../../../i18n";
+import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-copy";
+import { spacing, type Tokens, useThemedStyles } from "../../../theme";
+import { FoodVisualView } from "../../../ui/food-visual";
+import { FoodVisualMenu } from "../../../ui/food-visual-menu";
 import {
 	DisclosureRow,
 	FormSection,
@@ -35,73 +33,45 @@ import {
 	InlineActionRow,
 	InlineNumberFieldRow,
 	TextAction,
-} from "../ui/form";
-import { ScreenHeader } from "../ui/screen-header";
-import { AppText } from "../ui/text";
-import { useToast } from "../ui/toast";
-import { FoodAuthoringTabs } from "./food-authoring-tabs";
-import { personalFoodEditorCopy } from "./personal-food-editor-copy";
-
-type Mode = "hub" | "oneoff-log";
+} from "../../../ui/form";
+import { AppText } from "../../../ui/text";
+import { useToast } from "../../../ui/toast";
+import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
+import { type OneOffLogCopy, oneOffLogCopy } from "./one-off-log-copy";
 
 const EMPTY_NUTRIENT_INPUTS = Object.fromEntries(
 	NUTRIENT_KEYS.map((key) => [key, ""]),
 ) as Record<NutrientKey, string>;
 
-export function NutritionCookingScreen({
+export function OneOffLogScreen({
 	date,
 	meal,
-	initialMode,
 }: {
 	date: string;
 	meal: MealSlot;
-	initialMode?: Exclude<Mode, "hub">;
 }) {
-	const styles = useThemedStyles(createStyles);
 	const { locale, t } = useI18n();
-	const copy = nutritionCookingCopy(locale);
+	const copy = oneOffLogCopy(locale);
 	const operations = useNutritionOperations();
 	const toast = useToast();
 	const router = useRouter();
-	const [mode, setMode] = useState<Mode>(() => initialMode ?? "hub");
-
-	if (mode === "oneoff-log") {
-		return (
-			<OneOffLogger
-				copy={copy}
-				locale={locale}
-				date={date}
-				meal={meal}
-				operations={operations}
-				labels={t.nutrition.nutrients}
-				toast={toast}
-				onAccepted={() =>
-					router.dismissTo({ pathname: "/nutrition", params: { date } })
-				}
-				onCancel={() => {
-					if (!initialMode) setMode("hub");
-					else if (router.canGoBack()) router.back();
-					else router.replace({ pathname: "/nutrition", params: { date } });
-				}}
-			/>
-		);
-	}
 	return (
-		<ScrollView
-			contentInsetAdjustmentBehavior="automatic"
-			style={styles.root}
-			contentContainerStyle={styles.content}
-		>
-			<ScreenHeader title={copy.title} />
-			<Card style={styles.card}>
-				<AppText variant="heading">{copy.storageTitle}</AppText>
-				<AppText variant="caption">{copy.storageBody}</AppText>
-			</Card>
-			<PrimaryButton
-				label={copy.logOnce}
-				onPress={() => setMode("oneoff-log")}
-			/>
-		</ScrollView>
+		<OneOffLogger
+			copy={copy}
+			locale={locale}
+			date={date}
+			meal={meal}
+			operations={operations}
+			labels={t.nutrition.nutrients}
+			toast={toast}
+			onAccepted={() =>
+				router.dismissTo({ pathname: "/nutrition", params: { date } })
+			}
+			onCancel={() => {
+				if (router.canGoBack()) router.back();
+				else router.replace({ pathname: "/nutrition", params: { date } });
+			}}
+		/>
 	);
 }
 
@@ -116,7 +86,7 @@ function OneOffLogger({
 	onAccepted,
 	onCancel,
 }: {
-	copy: ReturnType<typeof nutritionCookingCopy>;
+	copy: OneOffLogCopy;
 	locale: "en" | "nl";
 	date: string;
 	meal: MealSlot;
@@ -403,12 +373,6 @@ function mealLabel(meal: MealSlot, locale: "en" | "nl") {
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
-		content: {
-			padding: 20,
-			paddingTop: 12,
-			paddingBottom: 40,
-			gap: spacing.md,
-		},
 		sheetContent: {
 			alignSelf: "center",
 			width: "100%",
@@ -442,5 +406,4 @@ const createStyles = (colors: Tokens) =>
 			padding: spacing.md,
 		},
 		visualActions: { flex: 1 },
-		card: { gap: spacing.xs },
 	});

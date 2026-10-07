@@ -290,7 +290,7 @@ export default function AppLayout() {
 															}}
 														/>
 														<Stack.Screen
-															name="nutrition-cooking"
+															name="nutrition-one-off"
 															options={{
 																title:
 																	locale === "nl"

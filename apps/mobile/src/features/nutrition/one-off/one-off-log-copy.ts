@@ -1,11 +1,7 @@
 import type { Locale } from "@workouts/core/nutrition";
 
-export type NutritionCookingCopy = {
-	title: string;
-	storageTitle: string;
-	storageBody: string;
+export type OneOffLogCopy = {
 	amount: string;
-	logOnce: string;
 	logOnceConfirm: string;
 	oneOffFoodName: string;
 	moreNutrients: string;
@@ -20,17 +16,12 @@ export type NutritionCookingCopy = {
 	invalidNutrient: string;
 };
 
-const copy: Record<Locale, NutritionCookingCopy> = {
+const copy: Record<Locale, OneOffLogCopy> = {
 	en: {
 		invalidAmount: "Enter an amount greater than zero.",
 		invalidNutrient:
 			"Enter zero or a positive number, or leave unknown values blank.",
-		title: "Quick capture",
-		storageTitle: "Log a one-off food",
-		storageBody:
-			"Use this for food you do not want to add to your personal library.",
 		amount: "Amount",
-		logOnce: "Log once",
 		logOnceConfirm: "Log once",
 		oneOffFoodName: "Food name",
 		moreNutrients: "More nutrients",
@@ -48,12 +39,7 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 		invalidAmount: "Vul een hoeveelheid groter dan nul in.",
 		invalidNutrient:
 			"Vul nul of een positief getal in, of laat onbekende waarden leeg.",
-		title: "Snel vastleggen",
-		storageTitle: "Eenmalige voeding loggen",
-		storageBody:
-			"Gebruik dit voor voeding die je niet aan je persoonlijke bibliotheek wilt toevoegen.",
 		amount: "Hoeveelheid",
-		logOnce: "Eenmalig loggen",
 		logOnceConfirm: "Eenmalig loggen",
 		oneOffFoodName: "Naam voeding",
 		moreNutrients: "Meer voedingswaarden",
@@ -69,6 +55,6 @@ const copy: Record<Locale, NutritionCookingCopy> = {
 	},
 };
 
-export function nutritionCookingCopy(locale: Locale): NutritionCookingCopy {
+export function oneOffLogCopy(locale: Locale): OneOffLogCopy {
 	return copy[locale];
 }

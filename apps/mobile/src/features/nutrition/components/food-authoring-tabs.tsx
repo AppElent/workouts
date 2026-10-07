@@ -1,5 +1,5 @@
-import { useI18n } from "../i18n";
-import { Segmented } from "../ui/segmented";
+import { useI18n } from "../../../i18n";
+import { Segmented } from "../../../ui/segmented";
 
 export type FoodAuthoringKind = "personal" | "recipe" | "oneOff";
 
