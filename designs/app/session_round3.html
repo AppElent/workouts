@@ -1,0 +1,593 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Krachtsessie · ronde 3</title><style>
+:root {
+	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
+	--accent: #466400; --accentFill: #c8f73c; --onAccent: #0a0b09; --accentDim: rgba(70,100,0,.10);
+	--text: #1a2015; --muted: #535e49; --sep: rgba(60,62,50,.10); --border: rgba(26,32,21,.12);
+	--danger: #b42332; --warn: #865500;
+	--glass: rgba(255,255,255,.52); --glassStrong: rgba(255,255,255,.74);
+	--glassEdge: rgba(255,255,255,.85); --glassShadow: 0 10px 30px rgba(26,32,21,.14), 0 1px 3px rgba(26,32,21,.08);
+	--glassTint: rgba(200,247,60,.6); --key: rgba(255,255,255,.7); --kbd: #d4d7cf; --kbdKey: #fff;
+	--board: #dfe2d8; --ink: #1a2015;
+	--font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
+}
+body.dark {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --warn: #fbbf24;
+	--glass: rgba(40,44,38,.5); --glassStrong: rgba(48,52,45,.78);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.88); --key: rgba(70,75,66,.6); --kbd: #2b2d29; --kbdKey: #5a5d56;
+	--board: #050604; --ink: #f2f4ef;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body { font-family: var(--font); background: var(--board); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+.tnum { font-variant-numeric: tabular-nums; }
+svg.i { width: 1em; height: 1em; flex: 0 0 auto; }
+
+header.board { padding: 28px 32px 8px; display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+header.board h1 { font-size: 28px; margin: 0; letter-spacing: -.02em; }
+header.board p { margin: 6px 0 0; color: var(--muted); max-width: 78ch; line-height: 1.5; font-size: 14px; }
+.toggles { margin-left: auto; display: flex; gap: 8px; }
+.toggles button { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+.toggles button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+section.guide { margin: 8px 32px 0; padding: 16px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+section.guide h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+section.guide b { color: var(--ink); }
+section.guide ul { margin: 4px 0 0; padding-left: 18px; }
+code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; background: var(--surface2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+main.grid { display: flex; gap: 36px; padding: 24px 32px 64px; overflow-x: auto; align-items: flex-start; }
+.dir { flex: 0 0 auto; width: 393px; }
+.dir h2 { font-size: 19px; margin: 0 0 2px; letter-spacing: -.01em; }
+.dir .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.dir .pitch { font-size: 13.5px; color: var(--muted); line-height: 1.45; margin: 6px 0 14px; min-height: 78px; }
+.notes { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
+.notes b { color: var(--ink); }
+details.code { margin-top: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+details.code summary { cursor: pointer; padding: 12px 14px; font-size: 13px; font-weight: 700; color: var(--ink); }
+details.code pre { margin: 0; padding: 0 14px 14px; font: 11.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); white-space: pre; overflow-x: auto; }
+details.code pre .c { color: var(--muted); }
+
+/* phone */
+.phone { position: relative; width: 393px; height: 852px; border-radius: 55px; overflow: hidden; background: #000; box-shadow: 0 0 0 10px #1b1c1a, 0 0 0 11px #3a3c38, 0 30px 60px rgba(0,0,0,.3); isolation: isolate; user-select: none; -webkit-user-select: none; }
+.status { position: absolute; z-index: 30; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0 46px; font-weight: 600; font-size: 17px; color: var(--text); pointer-events: none; }
+.status .island { position: absolute; left: 50%; top: 11px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; }
+.status .icons { display: flex; gap: 6px; align-items: center; }
+.home { position: absolute; z-index: 60; bottom: 8px; left: 50%; width: 139px; margin-left: -70px; height: 5px; border-radius: 3px; background: var(--text); opacity: .9; pointer-events: none; }
+.behind { position: absolute; inset: 0; background: var(--bg); padding: 64px 16px 0; transform: scale(.93); transform-origin: top center; border-radius: 40px; }
+.behind .h { font-size: 34px; font-weight: 800; color: var(--text); margin: 8px 4px 12px; }
+.behind .ring { height: 130px; border-radius: 22px; background: linear-gradient(135deg, #c8f73c, #8fd16a 45%, #4fd1e3); }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.22); }
+body.dark .scrim { background: rgba(0,0,0,.45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 58px; z-index: 10; background: var(--bg); border-radius: 38px 38px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--text); opacity: .22; margin: 6px auto 0; flex: 0 0 auto; }
+
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%); box-shadow: var(--glassShadow), inset 0 1px 0 var(--glassEdge); border: .5px solid var(--glassEdge); }
+.glass.tint { background: var(--glassTint); color: var(--onAccent); }
+.press { transition: transform .18s cubic-bezier(.3,1.6,.5,1); }
+.press:active { transform: scale(.93); }
+.gbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; color: var(--text); }
+.navbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 0; }
+.navbar .title { flex: 1; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); line-height: 1.2; }
+.navbar .title small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.body { flex: 1; display: flex; flex-direction: column; padding-top: 14px; position: relative; }
+
+/* the C capsule dial */
+.dial { margin: 0 16px; height: 104px; border-radius: 999px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.dial .step { width: 84px; height: 84px; border-radius: 50%; background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.08); display: grid; place-items: center; font-size: 28px; color: var(--text); }
+body.dark .dial .step { background: #2a2e27; }
+.dial .num { flex: 1; text-align: center; color: var(--text); border-radius: 22px; padding: 6px 0; }
+.dial .num b { font-size: 44px; letter-spacing: -.04em; display: block; line-height: 1; }
+.dial .num span { font-size: 13px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; margin-top: 4px; }
+.dial .num .hint { color: var(--accent); font-weight: 600; }
+.dial .num.editing b { color: var(--accent); }
+.caret { display: inline-block; width: 3px; height: 38px; background: var(--accent); border-radius: 2px; margin-left: 3px; vertical-align: -4px; animation: blink 1s steps(1) infinite; }
+.ghost { opacity: .3; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.sum { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; padding: 0 16px; }
+.sum span { padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--muted); background: var(--surface); }
+.sum span.k { background: var(--accentFill); color: var(--onAccent); }
+.was { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+.was b { color: var(--text); font-weight: 600; }
+
+.toolbar { position: absolute; left: 16px; right: 16px; bottom: 30px; z-index: 20; display: flex; gap: 10px; align-items: center; }
+.toolbar .cap { height: 50px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 18px; font-weight: 600; font-size: 16px; color: var(--text); }
+
+/* unit chips (opt 1) */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 14px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { flex: 0 0 auto; height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.chips button small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.chips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+.chips button[aria-pressed="true"] small { color: var(--onAccent); opacity: .7; }
+.badge { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
+
+/* wheel (opt 1) */
+.wheelbox { margin: 0 16px; border-radius: 34px; padding: 10px 12px 12px; position: relative; animation: pop .25s cubic-bezier(.3,1.3,.5,1); }
+.wheels { display: flex; justify-content: center; gap: 4px; position: relative; height: 200px; }
+.wheels::before { content: ""; position: absolute; left: 6px; right: 6px; top: 80px; height: 40px; border-radius: 12px; background: var(--accentDim); pointer-events: none; }
+.wheel { width: 96px; height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); }
+.wheel::-webkit-scrollbar { display: none; }
+.wheel div { height: 40px; display: grid; place-items: center; scroll-snap-align: center; font-size: 23px; font-weight: 600; color: var(--text); }
+.wheel .padw { height: 80px; scroll-snap-align: none; }
+.wheel-unit { align-self: center; font-size: 17px; font-weight: 600; color: var(--muted); width: 104px; padding-left: 4px; }
+.wheelbar { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 8px; font-size: 13px; color: var(--muted); }
+.done { height: 36px; padding: 0 16px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } }
+
+/* unit menu pill (opt 2) */
+.unitpill { align-self: center; margin-top: 14px; height: 40px; padding: 0 16px; border-radius: 999px; display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 15px; color: var(--text); }
+.unitpill small { color: var(--muted); font-weight: 500; }
+
+/* glass keypad (opt 2) */
+.keypad { position: absolute; left: 10px; right: 10px; bottom: 26px; z-index: 25; border-radius: 40px; padding: 12px; animation: up .3s cubic-bezier(.3,1.2,.5,1); }
+.keypad .top { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
+.keypad .top .lbl { flex: 1; font-size: 13px; color: var(--muted); }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.keys button { height: 54px; border-radius: 999px; background: var(--key); font-size: 24px; font-weight: 500; color: var(--text); display: grid; place-items: center; box-shadow: inset 0 1px 0 var(--glassEdge); }
+.keys button.fr { background: var(--accentDim); color: var(--accent); font-weight: 700; font-size: 22px; }
+.keys button.ok { background: var(--accentFill); color: var(--onAccent); font-size: 16px; font-weight: 700; grid-row: span 2; height: auto; border-radius: 30px; }
+@keyframes up { from { transform: translateY(40%); opacity: 0; } }
+
+/* unit cards (opt 3) */
+.cards { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px calc(50% - 52px) 16px; scrollbar-width: none; }
+.cards::-webkit-scrollbar { display: none; }
+
+/* system keyboard mock (opt 3) */
+.kbdwrap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.acc { display: flex; gap: 8px; padding: 8px 10px; align-items: center; }
+.acc button { height: 40px; padding: 0 16px; border-radius: 999px; font-weight: 600; font-size: 15px; color: var(--text); }
+.acc .sp { flex: 1; }
+.kbd { background: var(--kbd); padding: 8px 6px 46px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.kbd button { height: 48px; border-radius: 9px; background: var(--kbdKey); font-size: 26px; color: var(--text); box-shadow: 0 1px 0 rgba(0,0,0,.25); display: grid; place-items: center; }
+.kbd button.fn { background: transparent; box-shadow: none; font-size: 22px; }
+
+/* ruler (opt 4) */
+.ruler { position: relative; margin-top: 18px; height: 104px; }
+.ruler .track { height: 104px; overflow-x: scroll; scroll-snap-type: x mandatory; scrollbar-width: none; display: flex; align-items: flex-end; mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); }
+.ruler .track::-webkit-scrollbar { display: none; }
+.tick { flex: 0 0 12px; height: 16px; display: flex; justify-content: center; scroll-snap-align: center; position: relative; }
+.tick::before { content: ""; width: 2px; height: 100%; border-radius: 1px; background: var(--muted); opacity: .4; }
+.tick.m { height: 26px; } .tick.m::before { opacity: .75; }
+.tick.lm { height: 40px; } .tick.lm::before { background: var(--accent); opacity: 1; width: 3px; }
+.tick .lml { position: absolute; bottom: 46px; font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.tick .ml { position: absolute; top: -18px; font-size: 11px; color: var(--muted); }
+.ruler .pad { flex: 0 0 calc(50% - 6px); }
+.ruler .needle { position: absolute; left: 50%; bottom: 0; width: 4px; height: 58px; margin-left: -2px; border-radius: 2px; background: var(--text); pointer-events: none; }
+.lmchips { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; padding: 0 16px; }
+.lmchips button { height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text); }
+.lmchips button[aria-pressed="true"] { background: var(--glassTint); color: var(--onAccent); }
+
+/* menu */
+.menu { position: absolute; z-index: 70; min-width: 220px; border-radius: 26px; padding: 6px; animation: pop .22s cubic-bezier(.3,1.4,.5,1); background: var(--glassStrong); }
+.menu button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 18px; font-size: 16px; color: var(--text); text-align: left; }
+.menu button small { margin-left: auto; color: var(--muted); font-size: 13px; }
+.menu .chk { width: 16px; color: var(--accent); display: grid; place-items: center; }
+.menu hr { border: 0; height: .5px; background: var(--sep); margin: 4px 10px; }
+
+/* ——— nutrition board ——— */
+.sec-h { font-size: 13px; color: var(--muted); margin: 20px 20px 7px; }
+.sec-f { font-size: 12.5px; color: var(--muted); margin: 7px 20px 0; line-height: 1.4; }
+.group { background: var(--surface); border-radius: 22px; margin: 0 16px; overflow: hidden; }
+.rowf { min-height: 50px; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--text); font-size: 16px; position: relative; width: 100%; text-align: left; }
+.rowf + .rowf::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: .5px; background: var(--sep); }
+.rowf .val { margin-left: auto; color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.rowf .val.m { color: var(--muted); font-weight: 400; }
+.rowf input { margin-left: auto; text-align: right; border: 0; background: none; font: inherit; color: var(--text); width: 60%; outline: none; }
+.seg { display: flex; background: var(--surface2); border-radius: 999px; padding: 2px; margin: 0 16px; }
+.seg button { flex: 1; height: 32px; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,.12); font-weight: 600; }
+body.dark .seg button[aria-pressed="true"] { background: #3a3e36; }
+.optcard { text-align: left; width: calc(100% - 32px); }
+.tabsbar { display: flex; gap: 6px; padding: 0 32px; flex-wrap: wrap; position: sticky; top: 0; z-index: 90; background: var(--board); padding-top: 10px; padding-bottom: 10px; }
+.tabsbar button { padding: 9px 15px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.tabsbar button[aria-pressed="true"] { background: var(--accentFill); color: var(--onAccent); border-color: transparent; }
+.screenintro { margin: 6px 32px 0; max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.screenintro b { color: var(--ink); }
+.root { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; z-index: 5; }
+.root .content { flex: 1; overflow-y: auto; padding: 54px 0 120px; scrollbar-width: none; }
+.root .content::-webkit-scrollbar { display: none; }
+.lt { display: flex; align-items: flex-end; justify-content: space-between; padding: 8px 20px 6px; }
+.lt h1 { font-size: 34px; font-weight: 800; letter-spacing: -.025em; margin: 0; color: var(--text); }
+.lt h1 small { display: block; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.lt .acts { display: flex; gap: 8px; }
+.tabbar { position: absolute; z-index: 20; left: 16px; right: 16px; bottom: 26px; height: 62px; border-radius: 999px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px; }
+.tabbar span { display: flex; flex-direction: column; align-items: center; font-size: 10.5px; font-weight: 600; color: var(--muted); gap: 2px; padding: 6px 12px; border-radius: 999px; }
+.tabbar span svg { width: 22px; height: 22px; }
+.tabbar span.on { color: var(--accent); background: var(--accentDim); }
+.card { background: var(--surface); border-radius: 24px; margin: 0 16px; color: var(--text); }
+.cardpad { padding: 14px 16px; }
+.sh { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 20px 7px; font-size: 13px; color: var(--muted); }
+.sh b { font-size: 17px; color: var(--text); font-weight: 700; }
+.sh .add { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); background: var(--accentDim); font-size: 16px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; position: relative; color: var(--text); font-size: 15.5px; width: 100%; text-align: left; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 64px; right: 0; height: .5px; background: var(--sep); }
+.row.plain + .row.plain::before { left: 16px; }
+.row .t { flex: 1; min-width: 0; } .row .t small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.row .v { color: var(--muted); font-size: 14px; text-align: right; white-space: nowrap; }
+.row .v b { color: var(--text); font-weight: 600; }
+.fv { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 auto; font-size: 17px; background: var(--surface2); color: var(--text); }
+.chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--borderStrong, rgba(26,32,21,.25)); flex: 0 0 auto; display: grid; place-items: center; color: var(--onAccent); font-size: 13px; }
+.chk.on { background: var(--accentFill); border-color: var(--accentFill); }
+.mutedline { font-size: 12.5px; color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; } .bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.bar.warn i { background: var(--warn); }
+.datestrip { display: flex; gap: 6px; padding: 4px 16px 10px; }
+.datestrip span { flex: 1; text-align: center; padding: 6px 0 7px; border-radius: 14px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.datestrip span b { display: block; font-size: 17px; color: var(--text); margin-top: 1px; }
+.datestrip span.on { background: var(--accentFill); color: var(--onAccent); } .datestrip span.on b { color: var(--onAccent); }
+.datestrip span i { display: block; width: 4px; height: 4px; border-radius: 2px; background: var(--accent); margin: 3px auto 0; }
+.datestrip span.on i { background: var(--onAccent); }
+.selbar { position: absolute; z-index: 25; left: 12px; right: 12px; bottom: 26px; border-radius: 30px; padding: 8px; display: flex; gap: 4px; animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.selbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--text); padding: 7px 0; border-radius: 20px; }
+.selbar button svg { width: 21px; height: 21px; }
+.selbar button.d { color: var(--danger); }
+.pillbtn { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+.ring { position: relative; display: grid; place-items: center; }
+.ring svg { transform: rotate(-90deg); }
+.ring .c { position: absolute; text-align: center; color: var(--text); }
+.ring .c b { display: block; font-size: 26px; letter-spacing: -.03em; line-height: 1; }
+.ring .c small { font-size: 11px; color: var(--muted); }
+.macros3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.macros3 div { font-size: 12px; color: var(--muted); }
+.macros3 b { display: block; font-size: 15px; color: var(--text); margin: 2px 0 5px; font-weight: 600; }
+.macros3 b small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.search { margin: 6px 16px 0; height: 44px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 16px; color: var(--muted); font-size: 16px; }
+.search svg { width: 18px; height: 18px; }
+.chipsrow { display: flex; gap: 6px; padding: 10px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+.chipsrow span { flex: 0 0 auto; padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text); background: var(--surface); }
+.chipsrow span.on { background: var(--text); color: var(--bg); }
+.plus { width: 32px; height: 32px; border-radius: 50%; background: var(--accentDim); color: var(--accent); display: grid; place-items: center; flex: 0 0 auto; }
+.plus svg { width: 16px; height: 16px; }
+.plus.on { background: var(--accentFill); color: var(--onAccent); }
+.tray { position: absolute; z-index: 25; left: 12px; right: 12px; bottom: 26px; border-radius: 30px; padding: 8px 8px 8px 18px; display: flex; align-items: center; gap: 10px; color: var(--text); }
+.tray .t { flex: 1; font-size: 13px; color: var(--muted); } .tray .t b { display: block; font-size: 15px; color: var(--text); }
+.tray .go { height: 46px; padding: 0 18px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; }
+.cam { margin: 0 16px; height: 230px; border-radius: 28px; background: radial-gradient(circle at 30% 30%, #5b6a4e, #1c2118); position: relative; overflow: hidden; display: grid; place-items: center; }
+.cam .frame { width: 220px; height: 110px; border-radius: 18px; border: 3px solid rgba(255,255,255,.9); box-shadow: 0 0 0 999px rgba(0,0,0,.25); }
+.cam .bc { position: absolute; width: 150px; height: 58px; background: repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px); opacity: .8; border-radius: 4px; }
+.cam .lbl { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; color: #fff; font-size: 13px; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px; }
+.tile { aspect-ratio: 1; border-radius: 22px; background: var(--surface); display: flex; flex-direction: column; justify-content: flex-end; padding: 10px; color: var(--text); position: relative; overflow: hidden; }
+.tile .em { position: absolute; top: 10px; left: 10px; font-size: 30px; }
+.tile b { font-size: 13px; line-height: 1.2; } .tile small { font-size: 11px; color: var(--muted); }
+.tile .kind { position: absolute; top: 9px; right: 9px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); background: var(--accentDim); padding: 2px 6px; border-radius: 999px; }
+.stack { display: flex; } .stack span { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; font-size: 13px; border: 2px solid var(--surface); margin-left: -8px; } .stack span:first-child { margin-left: 0; }
+.bigcount { padding: 16px; border-radius: 24px; background: var(--surface); color: var(--text); display: flex; flex-direction: column; gap: 4px; }
+.bigcount b { font-size: 30px; letter-spacing: -.03em; } .bigcount span { font-size: 13px; color: var(--muted); }
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding: 0 4px; position: relative; }
+.chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-weight: 600; height: 100%; justify-content: flex-end; }
+.chart .col i { width: 100%; border-radius: 8px; background: var(--accent); opacity: .85; }
+.chart .col i.over { background: var(--warn); } .chart .col i.none { background: var(--surface2); }
+.chart .col.on { color: var(--text); }
+.chart .band { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted); border-bottom: 1.5px dashed var(--muted); background: var(--accentDim); pointer-events: none; }
+.heat { display: grid; grid-template-columns: 82px repeat(7, 1fr); gap: 5px; align-items: center; font-size: 12px; color: var(--muted); }
+.heat .d { width: 22px; height: 22px; border-radius: 7px; margin: 0 auto; }
+.st-met { background: var(--accent); } .st-below { background: transparent; border: 2px solid var(--accent); box-sizing: border-box; } .st-over { background: var(--warn); } .st-none { background: var(--surface2); }
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; } .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; }
+.rings7 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; padding: 0 16px; }
+.rings7 > div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.insight { display: flex; gap: 12px; padding: 12px 14px; align-items: flex-start; font-size: 14px; line-height: 1.4; color: var(--text); }
+.insight + .insight { border-top: .5px solid var(--sep); }
+.insight .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; font-weight: 800; font-size: 13px; }
+.insight small { display: block; color: var(--muted); font-size: 12.5px; }
+.goalrow .v { color: var(--accent); font-weight: 600; font-size: 15px; }
+.kindtag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--surface2); color: var(--muted); margin-left: 6px; vertical-align: 1px; }
+.rangebar { position: relative; height: 30px; margin: 6px 0 2px; }
+.rangebar .tr { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--surface2); }
+.rangebar .fill { position: absolute; top: 13px; height: 4px; background: var(--accent); }
+.rangebar .th { position: absolute; top: 3px; width: 34px; height: 24px; margin-left: -17px; border-radius: 12px; background: rgba(255,255,255,.85); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+body.dark .rangebar .th { background: #d8dcd2; }
+.donut { display: flex; align-items: center; gap: 18px; }
+.split { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.split div { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; }
+.split div b { color: var(--text); font-weight: 600; } .split i { width: 10px; height: 10px; border-radius: 3px; }
+.label { border: 2px solid var(--text); border-radius: 6px; padding: 8px 12px; margin: 0 16px; background: var(--surface); color: var(--text); font-size: 14px; }
+.label h4 { margin: 0; font-size: 20px; font-weight: 900; border-bottom: 6px solid var(--text); padding-bottom: 4px; }
+.label .lr { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: .5px solid var(--text); }
+.label .lr.sub { padding-left: 14px; color: var(--muted); }
+.label .lr span:last-child { font-weight: 600; } .label .lr .tap { color: var(--accent); border-bottom: 1.5px dotted var(--accent); }
+.label .lr .tr2 { color: var(--muted); font-style: italic; font-weight: 500; }
+.steps { display: flex; gap: 6px; justify-content: center; margin: 4px 0 10px; } .steps i { width: 26px; height: 5px; border-radius: 3px; background: var(--surface2); } .steps i.on { background: var(--accent); }
+.hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0 4px; }
+.photo { width: 92px; height: 92px; border-radius: 28px; background: var(--accentDim); display: grid; place-items: center; font-size: 44px; position: relative; }
+.photo .cam2 { position: absolute; right: -4px; bottom: -4px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--text); }
+.photo .cam2 svg { width: 15px; height: 15px; }
+.bigname { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+.wizard-q { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.02em; padding: 4px 20px 2px; }
+.wizard-s { font-size: 14px; color: var(--muted); padding: 0 20px 14px; }
+.optcard { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 22px; background: var(--surface); margin: 0 16px 10px; border: 2px solid transparent; color: var(--text); font-size: 15px; }
+.optcard.on { border-color: var(--accent); } .optcard small { display: block; color: var(--muted); font-size: 12.5px; }
+.optcard .fv { width: 44px; height: 44px; font-size: 22px; }
+.acc2 { display: flex; gap: 6px; padding: 8px 10px; align-items: center; }
+.acc2 button { height: 38px; padding: 0 13px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--text); }
+.acc2 .sp { flex: 1; }
+.notecard { border: 1.5px dashed var(--border); background: transparent; }
+.combo-g { font-size: 11px; font-weight: 700; color: var(--accent); }
+.badge2 { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accentDim); color: var(--accent); }
+.dsheet { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 34px 34px 0 0; padding: 0 0 36px; box-shadow: 0 -10px 30px rgba(0,0,0,.18); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+.dsheet .navbar .title { font-size: 16px; }
+.dimmer { position: absolute; inset: 0; z-index: 29; background: rgba(0,0,0,.25); }
+.kpop { margin: 0 8px 8px; border-radius: 30px; padding: 10px 12px 12px; animation: up .28s cubic-bezier(.2,.9,.3,1); }
+.kh { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; } .kh b { flex: 1; text-align: center; font-size: 15px; color: var(--text); }
+.addbtn { height: 34px; padding: 0 14px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 14px; }
+.kpop .seg { margin: 0; } .kf { font-size: 12px; color: var(--muted); text-align: center; margin-top: 7px; }
+
+/* ——— app board ——— */
+.kindlbl { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+.kindlbl.alt { background: var(--accentDim); color: var(--accent); }
+.kindlbl.flow { background: rgba(8,104,120,.12); color: #086878; }
+body.dark .kindlbl.flow { background: rgba(79,209,227,.14); color: #4fd1e3; }
+.sp-s { --sp: #466400; } .sp-r { --sp: #9d430a; } .sp-c { --sp: #086878; }
+body.dark .sp-s { --sp: #c8f73c; } body.dark .sp-r { --sp: #ff8a4c; } body.dark .sp-c { --sp: #4fd1e3; }
+.spdot { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 auto; color: var(--sp); background: color-mix(in srgb, var(--sp) 14%, transparent); font-weight: 800; font-size: 15px; }
+.spdot svg { width: 20px; height: 20px; }
+.statline { display: flex; gap: 18px; padding: 0 20px; }
+.statline div { font-size: 12px; color: var(--muted); } .statline b { display: block; font-size: 20px; color: var(--text); letter-spacing: -.02em; }
+.starttiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px; }
+.starttiles button { height: 92px; border-radius: 22px; background: var(--surface); display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 12px; font-weight: 700; font-size: 14px; color: var(--text); }
+.banner { margin: 0 16px; border-radius: 26px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; color: var(--text); }
+.banner .t { flex: 1; } .banner .t small { display: block; color: var(--muted); font-size: 12.5px; } .banner .t b { font-size: 16px; }
+.cta { height: 44px; padding: 0 18px; border-radius: 999px; background: var(--accentFill); color: var(--onAccent); font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
+.cta.wide { width: calc(100% - 32px); margin: 0 16px; justify-content: center; height: 52px; font-size: 16px; }
+.weekdots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 0 16px; text-align: center; font-size: 11px; color: var(--muted); font-weight: 600; }
+.weekdots i { display: block; width: 30px; height: 30px; margin: 4px auto 0; border-radius: 50%; background: var(--surface); }
+.weekdots i.s { background: #466400; } .weekdots i.r { background: #c2540f; } .weekdots i.c { background: #0d7e8c; } .weekdots i.t { outline: 2px solid var(--accent); outline-offset: 2px; }
+.carousel { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 4px; scrollbar-width: none; }
+.rcard { flex: 0 0 250px; border-radius: 26px; background: var(--surface); padding: 16px; color: var(--text); display: flex; flex-direction: column; gap: 8px; }
+.rcard b { font-size: 18px; } .rcard small { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.libgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
+.libgrid div { border-radius: 22px; background: var(--surface); padding: 14px; color: var(--text); font-weight: 700; display: flex; flex-direction: column; gap: 2px; }
+.libgrid small { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+.ex { margin: 12px 16px 0; border-radius: 24px; background: var(--surface); overflow: hidden; color: var(--text); }
+.ex .hd { display: flex; align-items: center; gap: 10px; padding: 12px 14px 8px; } .ex .hd b { flex: 1; font-size: 16px; } .ex .hd small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; }
+.sets { display: grid; grid-template-columns: 34px 1fr 64px 52px 34px; gap: 6px; align-items: center; padding: 3px 14px; font-size: 15px; }
+.sets.h { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding-bottom: 2px; }
+.sets .ty { width: 28px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface2); color: var(--muted); }
+.sets .ty.w { color: #865500; background: rgba(251,191,36,.18); }
+.sets .prev { color: var(--muted); font-size: 13px; }
+.sets .cell { height: 34px; border-radius: 10px; background: var(--surface2); display: grid; place-items: center; font-weight: 600; }
+.sets .cell.on { outline: 2px solid var(--accent); background: var(--accentDim); }
+.sets .ok { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface2); color: var(--muted); }
+.sets .ok.sd { background: var(--accentFill); color: var(--onAccent); }
+.sets.sd .cell { background: transparent; }
+.addset { display: block; margin: 6px 14px 12px; font-size: 14px; font-weight: 600; color: var(--accent); }
+.timer { display: flex; align-items: center; gap: 8px; height: 50px; border-radius: 999px; padding: 0 16px; font-weight: 700; font-size: 16px; color: var(--text); }
+.timer .ring2 { width: 26px; height: 26px; }
+.focus-hd { text-align: center; padding: 6px 20px 0; color: var(--text); }
+.focus-hd small { color: var(--muted); font-size: 13px; } .focus-hd b { display: block; font-size: 26px; letter-spacing: -.02em; margin-top: 2px; }
+.setdots { display: flex; gap: 6px; justify-content: center; margin: 12px 0 4px; } .setdots i { width: 30px; height: 6px; border-radius: 3px; background: var(--surface2); } .setdots i.d { background: var(--accent); } .setdots i.c { background: var(--accentFill); outline: 1.5px solid var(--accent); }
+.twodial { display: grid; gap: 10px; margin-top: 12px; }
+.lab { text-align: center; font-size: 12px; color: var(--muted); margin-top: -4px; }
+.barbell { display: flex; align-items: center; justify-content: center; gap: 2px; height: 90px; }
+.barbell .bar { width: 120px; height: 8px; border-radius: 4px; background: #9ba095; }
+.barbell .pl { width: 14px; border-radius: 4px; } .barbell .sleeve { width: 30px; height: 12px; background: #b9bdb3; border-radius: 3px; }
+.pchips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 0 12px; }
+.pchips span { padding: 6px 11px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--surface); color: var(--text); }
+.hero2 { text-align: center; padding: 10px 20px; color: var(--text); }
+.hero2 .big { font-size: 56px; font-weight: 800; letter-spacing: -.045em; line-height: 1; }
+.hero2 small { color: var(--muted); font-size: 14px; }
+.pr { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; color: var(--onAccent); background: var(--accentFill); border-radius: 999px; padding: 2px 8px; }
+.delta { font-size: 12.5px; font-weight: 700; color: var(--accent); } .delta.dn { color: var(--danger); } .delta.eq { color: var(--muted); }
+.line { height: 150px; position: relative; }
+.line svg { width: 100%; height: 100%; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 0 16px; text-align: center; font-size: 12px; color: var(--muted); }
+.cal span { height: 42px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--text); font-weight: 600; font-size: 13px; }
+.cal span i { display: flex; gap: 2px; } .cal span i b { width: 5px; height: 5px; border-radius: 3px; background: var(--sp); }
+.cal span.on { background: var(--accentFill); color: var(--onAccent); } .cal span.m { color: var(--muted); opacity: .4; }
+.code6 { display: flex; gap: 8px; justify-content: center; margin: 10px 0; }
+.code6 span { width: 44px; height: 56px; border-radius: 14px; background: var(--surface2); display: grid; place-items: center; font-size: 26px; font-weight: 800; color: var(--text); border: 2px solid transparent; }
+.code6 span.on { border-color: var(--accent); }
+.lstep { display: flex; gap: 6px; padding: 0 16px; } .lstep span { flex: 1; text-align: center; padding: 8px 0; border-radius: 14px; font-size: 13px; font-weight: 700; background: var(--surface); color: var(--muted); } .lstep span.d { color: var(--accent); } .lstep span.on { background: var(--accentFill); color: var(--onAccent); }
+.lb .row .pos { width: 26px; font-weight: 800; color: var(--muted); text-align: center; } .lb .row:first-child .pos { color: var(--accent); }
+.avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #c8f73c, #4fd1e3); display: grid; place-items: center; font-size: 28px; font-weight: 800; color: #0a0b09; }
+.ico { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex: 0 0 auto; } .ico svg { width: 17px; height: 17px; }
+.thumbs3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 0 16px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text); }
+.thumbs3 .ph { height: 150px; border-radius: 18px; border: 2px solid transparent; margin-bottom: 8px; position: relative; overflow: hidden; }
+.thumbs3 .on .ph { border-color: var(--accent); }
+.thumbs3 .ph i { position: absolute; left: 10px; right: 10px; height: 10px; border-radius: 5px; }
+.brand { font-size: 40px; font-weight: 900; letter-spacing: -.04em; color: var(--text); }
+.sigbtn { width: calc(100% - 40px); margin: 0 20px 10px; height: 52px; border-radius: 999px; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.sigbtn.apple { background: var(--text); color: var(--bg); } .sigbtn.alt2 { background: var(--surface); color: var(--text); }
+.onb { margin: 0 16px; height: 330px; border-radius: 32px; background: linear-gradient(160deg, #c8f73c 0%, #8fd16a 40%, #4fd1e3 100%); position: relative; overflow: hidden; color: #0a0b09; padding: 22px; display: flex; flex-direction: column; justify-content: flex-end; }
+.onb b { font-size: 28px; letter-spacing: -.03em; line-height: 1.1; } .onb small { font-size: 14px; opacity: .75; margin-top: 6px; }
+.pager { display: flex; gap: 6px; justify-content: center; margin: 12px 0 18px; } .pager i { width: 7px; height: 7px; border-radius: 4px; background: var(--surface2); } .pager i.on { width: 20px; background: var(--text); }
+.effort { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 6px 16px 12px; }
+.effort span { height: 30px; border-radius: 8px; background: var(--surface2); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+.effort span.on { background: var(--accentFill); color: var(--onAccent); }
+.pacebig { text-align: center; padding: 16px; color: var(--text); } .pacebig b { font-size: 34px; letter-spacing: -.03em; } .pacebig small { display: block; color: var(--muted); font-size: 12.5px; }
+.handle { color: var(--muted); } .handle svg { width: 18px; height: 18px; }
+.wodtype { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, #c22b43 14%, transparent); color: #c22b43; text-transform: uppercase; letter-spacing: .03em; }
+body.dark .wodtype { color: #ff5d73; }
+.wodtext { font: 15px/1.6 var(--font); color: var(--text); white-space: pre-line; }
+.musc { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 10px; }
+.musc span { padding: 6px 11px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 600; color: var(--text); } .musc span.on { background: var(--text); color: var(--bg); }
+.fieldbig { margin: 0 16px; border-radius: 22px; background: var(--surface); padding: 12px 16px; color: var(--text); }
+.fieldbig small { display: block; font-size: 12px; color: var(--muted); } .fieldbig b { font-size: 34px; letter-spacing: -.03em; } .fieldbig b em { font-style: normal; font-size: 16px; color: var(--muted); font-weight: 500; }
+.fieldbig.on { outline: 2px solid var(--accent); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; } .two .fieldbig { margin: 0; }
+
+html{scroll-behavior:auto}a{color:var(--accent)}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}button:disabled{opacity:.45;cursor:default}button,input,select{touch-action:manipulation}input,select{font:inherit;color:var(--text)}
+.board-wrap{max-width:1440px;margin:auto;padding:32px} .mast{display:flex;align-items:start;justify-content:space-between;gap:24px}.mast h1{font-size:32px;letter-spacing:-1px;margin:8px 0}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}.lede{max-width:780px;font-size:16px;line-height:1.6;color:var(--muted)}.control{border:1px solid var(--border);background:var(--surface);border-radius:12px;min-height:44px;padding:10px 16px;font-weight:600}.board-nav{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0}.board-nav a{padding:10px 16px;background:var(--surface);border-radius:12px;text-decoration:none;font-size:14px}.critique{background:var(--surface);padding:20px 24px;border-radius:18px;max-width:1080px;line-height:1.6}.critique ol{padding-left:24px;margin:8px 0}.critique li{padding:4px}.part{padding-top:42px;scroll-margin-top:20px}.part h2{font-size:26px;letter-spacing:-.6px;margin:6px 0}.section-copy{max-width:850px;color:var(--muted);line-height:1.6}.phones{display:flex;gap:42px;flex-wrap:wrap;padding:24px 10px 24px}.study{width:393px;max-width:100%}.study h3{font-size:18px;margin:8px 0}.study .caption{font-size:13px;line-height:1.5;color:var(--muted);min-height:58px;margin:0 0 20px}.badge{font-size:11px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}.native-note{font-size:12px;color:var(--muted);line-height:1.5;margin:24px 0 0}.phone{background:var(--bg);box-shadow:0 0 0 8px #232620,0 18px 40px #0002}.canvas{position:absolute;inset:54px 0 0;display:flex;flex-direction:column}.nav2{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px;min-height:60px;flex-shrink:0}.nav2 .center-title{text-align:center;font-size:17px;font-weight:600;line-height:1.3}.center-title small{display:block;font-size:12px;font-weight:400;color:var(--muted)}.round-btn{border-radius:50%;width:44px;height:44px;display:grid;place-items:center;font-size:21px;background:var(--surface)}.round-btn.accent{background:var(--accentFill);color:var(--onAccent)}.scroll2{overflow:auto;flex:1;min-height:0;padding:0 16px 24px;scrollbar-width:none}.large-title{font-size:34px;letter-spacing:-.8px;margin:14px 0 4px}.smallline{font-size:13px;color:var(--muted);line-height:1.5}.headline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 10px}.headline h4{margin:0;font-size:18px}.headline button{min-height:44px;max-width:100%;text-align:left;font-weight:700}.group2{background:var(--surface);border-radius:14px;overflow:hidden;margin:12px 0}.row2{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--sep);width:100%;text-align:left}.row2:last-child{border:0}.row2 small{display:block;font-size:12px;color:var(--muted);margin-top:4px;font-weight:400}.row2 b{font-size:15px}.row2 .tail{color:var(--muted);font-size:14px;flex-shrink:0}.table2{background:var(--surface);border-radius:14px;overflow:hidden}.set2{display:grid;grid-template-columns:28px 1fr 62px 44px 28px;gap:8px;align-items:center;min-height:52px;padding:6px 12px;width:100%;text-align:center;border-top:1px solid var(--sep);font-size:15px;font-variant-numeric:tabular-nums}.set2 small{font-size:11px;color:var(--muted)}.set2.header{font-size:11px;color:var(--muted);min-height:34px;border:0}.set2.logged .done{background:var(--accentDim);color:var(--accent)}.set2.next{background:var(--accentDim)}.done{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:var(--surface2);font-size:13px}.block2{border:1px solid var(--border);border-radius:18px;padding:0 14px 14px;margin-top:20px;background:var(--surface)}.block2 .row2{padding:10px 0}.block-top{display:flex;justify-content:space-between;align-items:center;padding:16px 0 10px;font-size:16px;font-weight:700}.block-top button{min-height:44px;text-align:left}.block-symbol{font-size:11px;background:var(--surface2);border-radius:6px;padding:5px;font-weight:700}.progress-track{height:4px;border-radius:4px;background:var(--surface2);margin:12px 0}.progress-track i{display:block;width:33%;height:4px;background:var(--accent);border-radius:4px}.bar2{padding:12px 16px 30px;display:flex;align-items:center;gap:10px;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0}.bar2 button{min-height:46px}.main-action{border-radius:999px;background:var(--accentFill);color:var(--onAccent);padding:13px 20px;font-weight:700;min-height:46px}.neutral-action{border-radius:999px;background:var(--surface);padding:12px 16px;font-weight:600;min-height:44px}.wide2{width:100%;margin-top:16px}.timer2{border-radius:999px;background:var(--surface);padding:12px 14px;font-variant-numeric:tabular-nums;font-size:15px}.flex1{flex:1}.editor-name{text-align:center;padding:16px 0 8px}.editor-name h3{font-size:24px;letter-spacing:-.5px;margin:0 0 6px}.stepfield{margin:16px 0;background:var(--surface);border-radius:999px;display:flex;align-items:center;padding:10px;min-height:100px;gap:6px}.stepfield button{border-radius:50%;height:64px;width:64px;background:var(--surface2);font-size:28px;flex-shrink:0}.stepfield label{flex:1;text-align:center;min-width:0}.stepfield input{width:100%;font-size:38px;letter-spacing:-1px;font-weight:750;border:0;background:transparent;text-align:center;padding:0;font-variant-numeric:tabular-nums}.stepfield small{font-size:12px;color:var(--muted)}input::-webkit-inner-spin-button{appearance:none}.mode{display:flex;background:var(--surface2);padding:4px;border-radius:12px;margin:16px 0}.mode button{flex:1;min-height:38px;font-size:14px;border-radius:9px}.mode button[aria-pressed=true]{background:var(--surface);box-shadow:0 1px 3px #0001;font-weight:700}.select2{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;max-width:180px}.note2{font-size:13px;line-height:1.55;color:var(--muted);padding:0 2px}.notice{padding:12px 14px;border-radius:12px;background:var(--accentDim);font-size:13px;line-height:1.5;margin:12px 0}.warning{background:var(--surface2);color:var(--warn)}.result{font-size:36px;font-weight:750;letter-spacing:-1px;font-variant-numeric:tabular-nums;margin:6px 0}.result small{font-size:16px;font-weight:400;letter-spacing:0}.formula{font-size:13px;color:var(--muted)}.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.type-grid button{padding:14px 12px;text-align:left;background:var(--surface);border-radius:14px;border:2px solid transparent;min-height:72px;font-size:15px;font-weight:700}.type-grid button small{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:5px}.type-grid button[aria-pressed=true]{border-color:var(--accent);background:var(--accentDim)}.number-small{width:70px;border:0;background:var(--surface2);text-align:right;padding:8px;border-radius:8px;font-size:17px}.clock-hero{text-align:center;padding:24px 0 16px}.clock-hero .digits{font-size:52px;font-weight:750;letter-spacing:-2px;font-variant-numeric:tabular-nums}.round-chip{display:inline-block;padding:6px 12px;border-radius:999px;background:var(--accentDim);color:var(--accent);font-size:12px;font-weight:650;margin-top:10px}.active-row{border-left:3px solid var(--accent);background:var(--accentDim)}.menu2{position:absolute;z-index:70;right:16px;top:62px;width:260px;border-radius:18px;overflow:hidden;background:var(--surface);box-shadow:0 10px 60px #0004;border:1px solid var(--border)}.menu2 button{width:100%;text-align:left;padding:14px 16px;border-bottom:1px solid var(--sep);min-height:48px;font-size:14px}.danger{color:var(--danger)}.sheet-layer{position:absolute;z-index:50;inset:54px 0 0;background:var(--bg);border-radius:24px 24px 0 0;display:flex;flex-direction:column;box-shadow:0 -10px 50px #0004}.toast2{position:absolute;z-index:90;bottom:100px;left:20px;right:20px;padding:14px;border-radius:14px;background:var(--text);color:var(--bg);font-size:14px;text-align:center}.status-picker{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.status-picker button{background:var(--surface);padding:8px 12px;min-height:40px;border-radius:10px;font-size:13px}.status-picker button[aria-pressed=true]{background:var(--text);color:var(--bg)}.inventory{max-width:1080px;font-size:14px;line-height:1.6}.inventory summary{cursor:pointer;font-weight:650;min-height:44px;padding:12px 0}.review-notes{margin:20px 0;padding:20px;background:var(--surface);border-radius:18px;max-width:950px;font-size:14px;line-height:1.6}.review-notes h3{margin:0 0 6px}.review-notes p{margin:6px 0}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.phone.large-text .smallline,.phone.large-text .note2{font-size:16px}.phone.large-text .row2{min-height:64px}.phone.large-text .row2 b{font-size:19px}.phone.large-text .set2{min-height:62px;font-size:18px}.phone.large-text .header{font-size:13px}
+@media(max-width:480px){.board-wrap{padding:20px 12px}.mast{display:block}.phones{padding:20px 8px;gap:36px;overflow-x:auto;flex-wrap:nowrap}.study{flex:0 0 393px;max-width:none}.mast h1{font-size:28px}.critique{padding:14px}.section-copy{font-size:14px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+
+/* Round 2: Foundry surfaces, compact overview and contextual set editing. */
+.r2wrap{max-width:1400px;margin:auto;padding:28px 32px 72px}.r2intro{max-width:850px;line-height:1.5;color:var(--muted);font-size:15px}.r2crit{max-width:1080px;display:grid;gap:8px;padding:16px 20px;background:var(--surface);border-radius:14px;font-size:14px;line-height:1.5}.r2crit div{display:flex;gap:12px}.r2crit b{color:var(--accent)}.r2board{display:flex;flex-wrap:wrap;gap:40px;padding:18px 8px 30px}.r2part{padding-top:24px;scroll-margin-top:16px}.r2part h2{font-size:25px;margin:8px 0;letter-spacing:-.5px}.r2part>p{max-width:850px;color:var(--muted);line-height:1.5;font-size:14px}.r2study{width:393px}.r2study>h3{font-size:18px;margin:6px 0}.r2study>p{font-size:13px;line-height:1.5;color:var(--muted);min-height:40px;margin:6px 0 20px}.r2study>footer{font-size:12px;line-height:1.5;margin:20px 0;color:var(--muted)}.r2phone{color:var(--text);text-align:left;user-select:text}.r2canvas{position:absolute;inset:54px 0 0;display:flex;flex-direction:column}.r2nav{min-height:60px;display:flex;align-items:center;gap:8px;padding:8px 16px;flex-shrink:0}.r2nav .title2{flex:1;font-size:17px;font-weight:650;line-height:1.3}.r2nav small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:4px}.r2icon{width:44px;height:44px;display:grid;place-items:center;background:var(--surface);border-radius:50%;font-size:20px;flex-shrink:0}.r2scroll{overflow:auto;scrollbar-width:none;flex:1;min-height:0;padding:0 16px 18px}.r2foot{border-top:1px solid var(--border);padding:12px 16px 30px;background:var(--bg);display:flex;gap:10px;align-items:center;flex-shrink:0}.r2foot button{min-height:46px}.r2primary{border-radius:999px;background:var(--accentFill);color:var(--onAccent);font-weight:700;padding:12px 18px;min-height:46px}.r2primary small{display:block;font-size:11px;font-weight:500;margin-top:3px}.r2muted{color:var(--muted);font-size:12px;line-height:1.5}.r2section{margin-top:18px}.r2line{display:flex;align-items:center;justify-content:space-between;gap:8px}.r2line h4{font-size:18px;margin:0}.r2title{font-size:34px;letter-spacing:-.8px;margin:10px 0 4px}.r2surface{border-radius:14px;background:var(--surface);overflow:hidden;margin:12px 0}.r2row{min-height:52px;padding:12px 14px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;border-bottom:1px solid var(--sep);font-size:15px}.r2row:last-child{border:0}.r2row small{display:block;font-size:12px;color:var(--muted);font-weight:400;line-height:1.4;margin-top:3px}.r2row>b{font-size:15px}.r2row>button{text-align:left}.r2subhead{font-size:12px;color:var(--muted);padding:12px 0 0}.r2metrics{display:grid;grid-template-columns:1fr 1fr 1.25fr;border-bottom:1px solid var(--sep);padding:10px 0}.r2metrics button{padding:5px 10px;text-align:left;border-right:1px solid var(--sep);min-height:44px}.r2metrics button:last-child{border:0}.r2metrics span{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.02em}.r2metrics strong{font-size:16px}.r2metrics small{font-size:11px;font-weight:400}.r2table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}.r2table th{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600;padding:10px;text-align:left}.r2table td{padding:0 10px;border-top:1px solid var(--sep);height:44px}.r2table td button{min-height:44px;width:100%;text-align:left}.r2table tr.warm{color:var(--muted)}.r2table td:last-child,.r2table th:last-child{text-align:right}.r2table td:last-child button{text-align:right}.r2planned{background:var(--accentDim)}.r2card-actions{display:flex;gap:8px;padding:12px}.r2card-actions>.r2primary{flex:1}.r2repeat{width:54px;border-radius:999px;background:var(--surface2);font-size:20px}.r2block-label{font-size:11px;letter-spacing:.04em;color:var(--accent);font-weight:700;text-transform:uppercase}.r2switch{min-height:36px;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:600;background:var(--surface);display:flex;align-items:center;gap:7px}.r2switch i{display:block;width:26px;height:16px;border-radius:999px;background:var(--surface2);padding:2px}.r2switch i:after{content:'';display:block;height:12px;width:12px;border-radius:50%;background:var(--muted)}.r2switch[aria-pressed=true] i{background:var(--accentFill)}.r2switch[aria-pressed=true] i:after{background:var(--onAccent);transform:translateX(10px)}.r2capsule{display:flex;align-items:center;gap:8px;padding:8px;border-radius:999px;background:var(--surface);margin:10px 0;min-height:84px}.r2capsule>button{width:52px;height:52px;border-radius:50%;background:var(--surface2);font-size:26px;flex-shrink:0}.r2capsule label{flex:1;min-width:0;text-align:center}.r2capsule input{width:100%;border:0;background:transparent;text-align:center;font-size:32px;font-weight:750;font-variant-numeric:tabular-nums;padding:0;line-height:1.1}.r2capsule small{display:block;font-size:11px;color:var(--muted);line-height:1.4}.r2chips{display:flex;gap:6px;overflow:auto;scrollbar-width:none;padding:8px 0}.r2chip{min-height:44px;min-width:56px;border-radius:12px;padding:7px 9px;background:var(--surface);border:1px solid var(--border);font-size:13px;white-space:nowrap}.r2chip small{display:block;font-size:10px;color:var(--muted);margin-top:3px}.r2chip[aria-pressed=true]{border-color:var(--accent);background:var(--accentDim);color:var(--accent);font-weight:700}.r2sources .r2chip{font-size:12px;min-width:0;flex:1}.r2source-line{display:flex;align-items:center;justify-content:space-between;font-size:12px;gap:8px}.r2source-line button{min-height:36px;color:var(--accent);font-weight:600}.r2feedback{border-left:3px solid var(--accent);padding:9px 12px;background:var(--accentDim);border-radius:0 10px 10px 0;font-size:12px;line-height:1.5;margin:12px 0}.r2feedback b{display:block;font-size:13px}.r2suggest{display:flex;align-items:center;gap:12px;border-top:1px solid var(--sep);padding:10px 0;font-size:12px;color:var(--muted);line-height:1.4}.r2suggest button{color:var(--accent);font-size:12px;min-height:44px;padding:6px;font-weight:600;flex-shrink:0}.r2types{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:14px 0}.r2types button{min-height:40px;border-radius:9px;border:1px solid var(--border);font-size:11px}.r2types button[aria-pressed=true]{background:var(--accentDim);border-color:var(--accent);color:var(--accent);font-weight:700}.r2rpe{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:8px}.r2rpe button{min-height:44px;border-radius:9px;background:var(--surface);font-size:15px;border:1px solid var(--border)}.r2rpe button[aria-pressed=true]{background:var(--accentFill);color:var(--onAccent);border-color:transparent;font-weight:750}.r2rpe-extra{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:7px 0 12px;gap:12px}.r2rpe-extra input{width:62px;padding:6px;border:1px solid var(--border);background:var(--surface);border-radius:8px;text-align:center;font-size:14px}.r2rpe-extra button{min-height:36px;color:var(--muted);font-size:12px}.r2anchor{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.r2anchor button{text-align:left;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--surface)}.r2anchor button[aria-pressed=true]{border-color:var(--accent);background:var(--accentDim)}.r2anchor strong{font-size:28px;font-weight:750;letter-spacing:-.5px;display:block;margin:5px 0}.r2anchor small{display:block;font-size:11px;color:var(--muted);line-height:1.5}.r2rep-table td,.r2rep-table th{text-align:right;padding:0 10px}.r2rep-table th{height:36px}.r2rep-table td:first-child,.r2rep-table th:first-child{text-align:left}.r2rep-table button{color:var(--accent);font-size:14px;min-height:44px;text-align:right!important}.r2percent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.r2percent-grid button{padding:10px 4px;border:1px solid var(--border);background:var(--surface);border-radius:10px;min-height:64px;font-size:13px}.r2percent-grid small{font-size:10px;color:var(--muted);display:block;margin-top:5px}.r2notice{background:var(--surface2);padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5;margin:12px 0}.r2overlay{position:absolute;z-index:55;inset:54px 0 0;display:flex;flex-direction:column;background:var(--bg);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px #0004;overflow:hidden}.r2menu{position:absolute;z-index:80;top:112px;right:16px;width:270px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:0 10px 50px #0005;overflow:hidden}.r2menu button{width:100%;padding:14px;text-align:left;min-height:48px;border-bottom:1px solid var(--sep);font-size:14px}.r2toast{position:absolute;z-index:90;bottom:100px;left:16px;right:16px;background:var(--text);color:var(--bg);border-radius:14px;padding:12px;font-size:13px;line-height:1.4}.r2error{color:var(--danger);font-size:12px;line-height:1.5;margin:8px 0}.r2notes{max-width:1000px;font-size:13px;line-height:1.6;background:var(--surface);padding:18px 20px;border-radius:14px;margin:16px 0}.r2notes summary{cursor:pointer;font-weight:650;min-height:32px}.r2notes p{margin:8px 0}.r2block-form select,.r2block-form input{max-width:170px;background:var(--surface2);padding:10px;border:0;border-radius:8px;font-size:14px}.r2block-form input{width:70px;text-align:right}.r2block-row{display:grid;grid-template-columns:32px 1fr 44px;gap:8px;align-items:center;padding:12px 14px;border-top:1px solid var(--sep)}.r2block-row small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:4px}.r2block-row button{text-align:left;min-height:44px}.r2block-row.active{background:var(--accentDim)}.r2block-row .r2done{width:32px;height:32px;background:var(--surface2);border-radius:50%;display:grid;place-items:center;font-size:12px}.r2block-row.complete .r2done{background:var(--accentFill);color:var(--onAccent)}.r2bigclock{font-size:40px;letter-spacing:-1px;font-weight:700;font-variant-numeric:tabular-nums;margin:8px 0}.r2safe{min-height:44px}.r2phone.large-text .r2row{font-size:19px}.r2phone.large-text .r2muted{font-size:16px}.r2phone.large-text .r2table{font-size:18px}.r2phone.large-text .r2table td{height:54px}.r2phone.large-text .r2row small{font-size:15px}
+@media(max-width:500px){.r2wrap{padding:20px 12px}.r2board{overflow-x:auto;flex-wrap:nowrap;padding-left:8px}.r2study{flex:0 0 393px}.r2crit{font-size:13px}.r2intro{font-size:14px}}
+
+.r3percent-wrap{display:flex;gap:8px;margin:8px 0 10px;align-items:stretch}.r3percent-strip{display:flex;gap:6px;overflow:auto;scrollbar-width:none;flex:1;min-width:0}.r3percent-strip .r2chip{min-width:57px}.r3custom{min-width:66px;max-width:80px}.r3custom-row{display:flex;align-items:center;gap:10px;margin:8px 0 12px;font-size:13px;background:var(--surface);padding:10px 12px;border-radius:12px}.r3custom-row input{min-width:0;width:74px;border:1px solid var(--border);background:var(--surface2);padding:8px;text-align:center;border-radius:8px}.r3custom-row button{min-height:40px;color:var(--accent);font-weight:600;margin-left:auto}.r3selection{font-size:12px;line-height:1.4;color:var(--muted);min-height:20px}.r2rpe{gap:5px}.r2rpe button{height:64px;min-width:0}.r2rpe button b{font-size:18px;display:block}.r2rpe button small{font-size:10px;display:block;line-height:1.4;color:var(--muted);margin-top:5px;white-space:nowrap}.r2rpe button[aria-pressed=true] small{color:var(--onAccent)}.r3rpehint{font-size:12px;color:var(--muted);line-height:1.5;margin:4px 0 10px}.r3profile .r2rep-table td{height:44px}.r3profile .r2rep-table td button{min-height:44px}.r3profile .r2anchor{margin-top:4px}.r3profile .r2anchor strong{font-size:26px}.r3profile .r2anchor button{padding:12px}.r3profile .r2source-line{min-height:36px}.r3profile .r2surface{margin:8px 0}.r3profile .r2rep-table button small{font-size:10px}.r2study>p{min-height:40px}.r2intro{max-width:850px}
+</style></head><body><div class="r2wrap"><header class="mast"><div><div class="eyebrow">Krachtsessie · ronde 3 · gerichte verfijning</div><h1>Krachtprofiel en gevoel naast elkaar</h1><p class="r2intro">Het rep-maxoverzicht blijft. Daarboven komt één percentagerij met een vaste knop voor een eigen percentage. RPE krijgt betekenis: hoeveel herhalingen had je nog kunnen doen?</p><a href="session_round2.html">← Ronde 2</a></div><button class="control" id="r2theme">Donker</button></header><div class="r2crit" style="margin:22px 0 10px"><div><b>1.</b><span><strong>Percentage hoort bij het krachtprofiel.</strong> Kies bron → percentage of rep max → neem het gewicht mee naar je set. Geen tweede raster met dezelfde waarden.</span></div><div><b>2.</b><span><strong>RPE moet zonder uitleg te kiezen zijn.</strong> Iedere knop toont reps over. De inschatting vooraf en jouw antwoord achteraf blijven apart.</span></div></div><section class="r2part" id="advanced" data-section="2"><div class="r2board" id="r2-advanced"></div></section><div hidden><div id="r2-overview"></div><div id="r2-blocks"></div><div id="r2-states"></div><div id="r2-states-controls"></div></div><div class="r2notes"><b>Probeer dit</b><p>Kies 60% of vul via Eigen bijvoorbeeld 67,5% in. Wissel tussen gemeten en geschat. Tik een gewicht in de rep-maxtabel. De editor volgt je keuze, maar slaat niets vanzelf op. Kies daarna RPE 7: “3 over”.</p><p><b>Behouden:</b> A als sessieoverzicht, B als invoer, geavanceerde opties, optionele halve RPE-stappen en herhaalbare blokken. Deze ronde beoordeelt alleen het krachtprofiel en RPE; het overige ontwerp is nog open.</p><details><summary>Native en betekenis van de getallen</summary><p>Het krachtprofiel opent vanuit de seteditor. Een keuze keert terug met ingevuld gewicht; pas Vastleggen bewaart de set. Hergebruik de bestaande SetEditSheet en numerieke formuliercomponenten. De RPE–reps-over-labels zijn benaderingen van jouw gevoel, geen meting. Een lege RPE blijft leeg.</p><p>Rep maxes: gelogd versus Epley-schatting, op basis van de gekozen referentie. Gewichten worden afgerond op 2,5 kg; gemeten 1RM en geschatte 1RM houden hun eigen herkomst. Bronnen en eerdere rondes blijven zoals vastgelegd in ronde 2. Dit is nog een ontwerpstudie.</p></details></div></div><script>
+const svg = (p, sw = 2.2, fill = "none") => `<svg class="i" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const I = {
+	x: svg('<path d="M6 6l12 12M18 6L6 18"/>'), check: svg('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.6),
+	plus: svg('<path d="M12 5v14M5 12h14"/>', 2.4), minus: svg('<path d="M5 12h14"/>', 2.4),
+	right: svg('<path d="M9 6l6 6-6 6"/>'), left: svg('<path d="M15 6l-6 6 6 6"/>'), chev: svg('<path d="M8 10l4-4 4 4M8 14l4 4 4-4"/>'),
+	search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'), scan: svg('<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M8 9v6M11 9v6M14 9v6M17 9v6"/>', 1.9),
+	copy: svg('<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>', 1.9),
+	move: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2), combo: svg('<rect x="3" y="4" width="8" height="8" rx="2"/><rect x="13" y="4" width="8" height="8" rx="2"/><rect x="8" y="13" width="8" height="8" rx="2"/>', 1.9),
+	trash: svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', 1.9), more: svg('<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>', 0, "currentColor"),
+	cal: svg('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>', 1.9),
+	cam: svg('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 1.9),
+	star: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', 1.8),
+	dumb: svg('<path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12"/>', 2.2), fork: svg('<path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 0-3 2-3 6s1 4 3 4v8"/>', 2),
+	pulse: svg('<path d="M3 12h4l3-7 4 14 3-7h4"/>', 2), person: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>', 2),
+	note: svg('<path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4"/>', 1.8), sort: svg('<path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3"/>', 1.9),
+	back: svg('<path d="M21 6H9l-6 6 6 6h12zM17 10l-4 4M13 10l4 4"/>', 1.7), cloud: svg('<path d="M7 18a5 5 0 01-.6-10A6 6 0 0118 9a4.5 4.5 0 01-1 9z"/>', 1.9),
+};
+const signal = '<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg>';
+const battery = '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".75" y=".75" width="22.5" height="11.5" rx="3.5" stroke="currentColor" stroke-opacity=".4" stroke-width="1.5"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="currentColor"/></svg>';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span class="icons">${signal}${battery}</span></div>`;
+const tabbar = (on = 1) => `<div class="tabbar glass">${[["Training", I.dumb], ["Voeding", I.fork], ["Activiteit", I.pulse], ["Profiel", I.person]].map(([l, i], n) => `<span class="${n === on ? "on" : ""}">${i}${l}</span>`).join("")}</div>`;
+const gbtn = (icon, extra = "") => `<button class="gbtn glass press" ${extra}>${icon}</button>`;
+const tick = (on) => `<span class="chk ${on ? "on" : ""}">${on ? I.check.replace('class="i"', 'class="i" style="width:14px;height:14px"') : ""}</span>`;
+
+/** Root (tab) screen */
+const root = (inner, overlay = "", tab = 1) => `<div class="phone"><div class="root"><div class="content">${inner}</div>${overlay}${tab === null ? "" : tabbar(tab)}</div>${status}<div class="home"></div></div>`;
+/** Sheet screen */
+const sheet = (left, title, right, inner, overlay = "") => `<div class="phone"><div class="behind"><div class="h">Voeding</div><div class="ring"></div></div><div class="scrim"></div>${status}
+	<div class="sheet"><div class="grabber"></div><div class="navbar">${left}<div class="title">${title}</div>${right}</div><div class="body" style="overflow-y:auto;padding-bottom:110px;scrollbar-width:none">${inner}</div>${overlay}</div><div class="home"></div></div>`;
+const ringSvg = (size, stroke, parts) => { const r = (size - stroke) / 2, C = 2 * Math.PI * r; let off = 0; return `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="${stroke}"/>${parts.map(([p, c]) => { const s = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${c}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${Math.max(0, p * C - 0.1)} ${C}" stroke-dashoffset="${-off * C}"/>`; off += p; return s; }).join("")}</svg>`; };
+
+
+Object.assign(I, {
+	run: svg('<circle cx="14" cy="4.5" r="2"/><path d="M8 21l3-6 3 2v5M6 12l3-4 4 1 3 4 3 1"/>', 2),
+	bike: svg('<circle cx="6" cy="17" r="3.5"/><circle cx="18" cy="17" r="3.5"/><path d="M6 17l4-8h5l3 8M10 9l-1.5-3H6M15 9l-2 8"/>', 1.9),
+	play: svg('<path d="M8 5v14l11-7z"/>', 0, "currentColor"), grip: svg('<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>', 3),
+	share: svg('<path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/>', 2), trophy: svg('<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H4v1a4 4 0 004 4M16 6h4v1a4 4 0 01-4 4M10 14h4v3h-4zM8 20h8"/>', 1.8),
+	globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>', 1.8), sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>', 1.8),
+	ruler: svg('<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>', 1.8), out: svg('<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>', 1.9),
+	key: svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/>', 1.9), mail: svg('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/>', 1.8),
+	users: svg('<circle cx="9" cy="8" r="3.5"/><path d="M2 20c.8-3.5 3.5-5 7-5s6.2 1.5 7 5M16 4a3.5 3.5 0 010 7M18 15c2 .6 3.4 2.2 4 5"/>', 1.8), clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', 2),
+	apple: '<svg class="i" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-4zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>',
+});
+const sp = (k) => `<span class="spdot sp-${k}">${k === "s" ? I.dumb : k === "r" ? I.run : I.bike}</span>`;
+const numkb = (acc) => `<div class="kbdwrap" style="z-index:40"><div class="acc2">${acc}</div><div class="kbd">${["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0"].map((k) => `<button ${k === "," ? 'class="fn"' : ""}>${k}</button>`).join("")}<button class="fn">${I.back}</button></div></div>`;
+const accBtns = (labels, done = "Klaar") => labels.map((l) => `<button class="glass press">${l}</button>`).join("") + `<span class="sp"></span><button class="glass tint press">${done}</button>`;
+const lt = (title, sub = "", acts = "") => `<div class="lt"><h1>${sub ? `<small>${sub}</small>` : ""}${title}</h1><div class="acts">${acts}</div></div>`;
+const rows = (list) => `<div class="card" style="overflow:hidden">${list.join("")}</div>`;
+const r = (lead, title, sub = "", trail = "") => `<div class="row">${lead}<span class="t">${title}${sub ? `<small>${sub}</small>` : ""}</span>${trail}</div>`;
+const chev = `<span style="color:var(--muted)">${I.right}</span>`;
+const RECENT = [["r", "Ochtendloop", "Vandaag · 6,2 km · 32:10", "5:11 /km"], ["s", "Push dag", "Gisteren · 6 oefeningen · 54 min", "8.240 kg"], ["c", "Rit naar werk", "Wo · 14,8 km · 38 min", "23,4 km/u"], ["s", "Pull dag", "Ma · 5 oefeningen · 48 min", "7.120 kg"]];
+const recentRows = (n = 4) => rows(RECENT.slice(0, n).map(([k, t, s, v]) => r(sp(k), t, s, `<span class="v">${v}</span>`)));
+
+
+const number = n => new Intl.NumberFormat('nl-NL',{maximumFractionDigits:1}).format(n);
+const roundLoad = n => Math.round(n / 2.5) * 2.5;
+const sources = { estimated:{name:'Geschat',value:126,date:'12 sep',origin:'105 kg × 6',kind:'Epley'}, measured:{name:'Gemeten',value:120,date:'3 mrt',origin:'120 kg × 1',kind:'Uitgevoerde single'}, custom:{name:'Eigen',value:125,date:'deze sessie',origin:'Zelf gekozen referentie',kind:'Handmatig'} };
+const records = {1:[120,'3 mrt'],3:[110,'21 jul'],5:[105,'28 aug'],6:[105,'12 sep'],8:[95,'5 sep'],10:[90,'19 aug']};
+let rowId=4;
+const session={advanced:true,expanded:'squat',sets:[{id:0,type:'Opwarm',weight:20,reps:10,rpe:null,source:126},{id:1,type:'Opwarm',weight:50,reps:5,rpe:null,source:126},{id:2,type:'Werk',weight:75,reps:8,rpe:6,source:126},{id:3,type:'Werk',weight:75,reps:8,rpe:6.5,source:126}]};
+const contexts={};
+function draft(key,advanced=false,extra={}) {contexts[key]={key,name:'Back squat',advanced,weight:75,reps:8,type:'Werk',rpe:null,source:'estimated',percent:60,entry:'percent',editing:null,dirty:false,failed:false,customValid:true,missing:false,equipment:'barbell',unit:'kg · totaalgewicht',...extra};return contexts[key]}
+draft('simple');draft('advanced',false);
+const block={type:'Superset',rounds:3,minutes:12,interval:60,scope:'one',round:1,done:0,started:false,paused:false,elapsed:0,expired:false,sets:[],exerciseNames:['Romanian deadlift','Split squat'],added:false};
+let activeState='Geen 1RM';
+function b(text,action,cls='',attrs=''){return `<button class="${cls}" data-act="${action}" ${attrs}>${text}</button>`}
+function nav2(title,action='menu',extra=''){return `<div class="r2nav"><div class="title2">${title}</div>${extra}${b(['close','dismiss'].includes(action)?'×':'⋯',action,'r2icon',`aria-label="${['close','dismiss'].includes(action)?'Sluiten':'Menu'}"`)}</div>`}
+function phone2(id,title,content,foot='',action='menu'){return `<div class="phone r2phone" id="${id}">${status}<div class="r2canvas">${nav2(title,action)}<div class="r2scroll">${content}</div>${foot?'<div class="r2foot">'+foot+'</div>':''}</div><div class="home"></div></div>`}
+function art(tag,title,note,html,native){return `<article class="r2study"><span class="badge">${tag}</span><h3>${title}</h3><p>${note}</p>${html}<footer>Native: ${native}</footer></article>`}
+function loggedTable(){let work=0;return `<table class="r2table"><thead><tr><th>Set</th><th>kg × reps</th>${session.advanced?'<th>% ref.</th>':''}<th>RPE</th></tr></thead><tbody>${session.sets.map(s=>`<tr class="${s.type==='Opwarm'?'warm':''}"><td>${s.type==='Opwarm'?'W':++work}</td><td>${b(`${number(s.weight)} × ${s.reps}`,'edit-row','',`data-id="${s.id}" aria-label="Bewerk set ${s.id+1}"`)}</td>${session.advanced?`<td>${number(s.weight/s.source*100)}%</td>`:''}<td>${s.rpe===null?'—':number(s.rpe)}</td></tr>`).join('')}</tbody></table>`}
+function overview2(){const n=session.sets.filter(s=>s.type!=='Opwarm').length;return `<div class="r2line"><h1 class="r2title">Beendag</h1>${b('Afronden','finish','r2primary')}</div><div class="r2muted">42:18 bezig · gestart om 18:02</div><div class="r2surface"><div class="r2row"><button data-act="expand-squat"><b>Back squat</b><small>Uit routine · ${n} van 4 werksets ${session.expanded==='squat'?'⌃':'⌄'}</small></button>${b('◎','open-profile','r2icon','aria-label="Krachtprofiel Back squat"')}</div>${session.expanded==='squat'?`${session.advanced?`<div class="r2metrics">${b('<span>Gemeten 1RM</span><strong>120 <small>kg</small></strong>','open-profile')}${b('<span>Geschat 1RM</span><strong>≈126 <small>kg</small></strong>','open-profile')}${b('<span>Doel</span><strong>8 <small>×</small> 60%</strong>','next-set')}</div>`:'<div class="r2row"><span class="r2muted">Doel · 4 × 8 op 75 kg</span></div>'}${loggedTable()}<div class="r2card-actions">${b(`+ Set ${n+1} vastleggen<small>Gepland · 75 kg × 8</small>`,'next-set','r2primary')}${b('↻','repeat-set','r2repeat','aria-label="Vorige set overnemen"')}</div>`:''}</div><div class="r2surface"><button class="r2row" data-act="expand-rdl"><span><b>Leg curl</b><small>${session.expanded==='rdl'?'Doel · 3 × 12 bij RPE 7':'0 van 3 sets · doel 12 reps bij RPE 7'}</small></span><span class="r2muted">25 kg ›</span></button>${session.expanded==='rdl'?'<div class="r2card-actions">'+b('+ Eerste set · 25 kg × 12','rdl-set','r2primary')+'</div>':''}</div><div class="r2surface"><button class="r2row" data-act="show-blocks"><span><span class="r2block-label">↻ Superset · 3 rondes</span><small style="color:var(--text)">Romanian deadlift + split squat</small><small>0 van 3 rondes · 60 sec rust</small></span><span>›</span></button></div>${block.added?'<div class="r2notice">'+block.type+' toegevoegd aan deze demonstratiesessie.</div>':''}${b('+ Oefening of blok','add-menu','neutral-action wide2')}<p class="r2muted">Percentages in de tabel horen bij de referentie die bij die set is bewaard. Een nieuwe bronkeuze verandert het verleden niet.</p>`}
+function drawOverview(){const existing=document.querySelector('#workout-phone');const html=phone2('workout-phone','Krachtsessie',overview2(),b('◷ Rust · 1:24','rest','neutral-action')+'<span class="flex1"></span>'+b(session.advanced?'Geavanceerd ✓':'Geavanceerd','view-mode','neutral-action'));if(existing)existing.outerHTML=html;else document.querySelector('#r2-overview').innerHTML=art('Recommended','De actieve oefening centraal','Open een set, neem de vorige over of klap een andere oefening uit.',html,'StrengthSessionScreen, gegroepeerde setrijen en de bestaande sessiemutaties.')+art('State · basis','Set invoeren zonder omweg','Tik Geavanceerd: dezelfde invoer krijgt extra context. De keuze voor RPE blijft aan jou.',editorPhone('simple'),'SetEditSheet met InlineNumberFieldRow, directe invoer en optionele RPE.')}
+function valid(c){return c.customValid!==false&&Number.isFinite(c.weight)&&c.weight>=0&&Number.isInteger(c.reps)&&c.reps>0&&(c.rpe===null||(Number.isFinite(c.rpe)&&c.rpe>=1&&c.rpe<=10))&&(!c.advanced||c.entry==='kg'||c.missing||(Number.isFinite(c.percent)&&c.percent>0&&c.percent<=200))}
+function source(c){return sources[c.source]||sources.estimated}
+function plateText(weight){if(!Number.isFinite(weight)||weight<20)return 'Platen bekijken';let side=(weight-20)/2;const p=[];for(const w of [25,20,15,10,5,2.5,1.25]){let count=Math.floor((side+0.0001)/w);if(count){p.push((count>1?count+'×':'')+new Intl.NumberFormat('nl-NL',{maximumFractionDigits:2}).format(w));side-=count*w}}return (p.length?p.join(' + '):'geen platen')+' per kant'+(side>.01?' · niet exact laadbaar':'')}
+function capsule(c,key,label,unit,delta){return `<div class="r2capsule">${b('−','change-value','',`data-field="${key}" data-delta="-${delta}" aria-label="${label} verlagen"`)}<label><span class="visually-hidden">${label}</span><input data-field="${key}" aria-label="${label}" type="number" inputmode="decimal" step="${delta}" min="${key==='reps'?1:0}" value="${c[key]}"><small>${unit}</small></label>${b('+','change-value','',`data-field="${key}" data-delta="${delta}" aria-label="${label} verhogen"`)}</div>`}
+function advancedTools(c){const s=source(c);return `<div class="r2source-line"><span>Doel op basis van</span>${b('Krachtprofiel ›','profile-for-draft')}</div><div class="r2chips r2sources">${Object.entries(sources).map(([key,v])=>b(`${v.name} ${key==='estimated'?'≈':''}${number(v.value)}`,'pick-source','r2chip',`data-source="${key}" aria-pressed="${c.source===key}"`)).join('')}</div>${c.source==='custom'?`<label class="r2rpe-extra">Eigen referentie (kg)<input aria-label="Eigen 1RM" data-field="custom" type="number" min="1" step="2.5" value="${sources.custom.value}"></label>`:''}<div class="r2muted">${s.origin} · ${s.date}</div><div class="r2chips">${[50,55,60,65,70,75,80,85].map(p=>b(`${p}%<small>${number(roundLoad(s.value*p/100))} kg</small>`,'pick-percent','r2chip',`data-percent="${p}" aria-pressed="${c.entry==='percent'&&c.percent===p}"`)).join('')}</div><label class="r2rpe-extra"><span>Eigen percentage</span><span><input aria-label="Percentage 1RM" type="number" step="1" min="1" max="200" data-field="percent" value="${c.percent}"> %</span></label>`}
+function feedback(c){if(c.missing)return '<b>Geen 1RM bekend</b>Gewicht en reps blijven beschikbaar. Er wordt niets geschat uit een andere oefening.';if(!Number.isFinite(c.weight)||c.weight<=0||!Number.isFinite(c.reps)||c.reps<=0)return '<b>Vul gewicht en reps in</b>Daarna verschijnt de vergelijking.';const rm=source(c).value;const possible=30*(rm/c.weight-1);const remaining=possible-c.reps;if(possible>10)return '<b>Ruimte over volgens het model</b>Geen precies aantal reps over bij deze lichte belasting. Vul in hoe de set echt voelde.';if(remaining<0)return '<b>Boven de modelverwachting</b>De geplande reps liggen boven de theoretische rep max voor dit gewicht. Het blijft een schatting.';return `<b>Model: ongeveer ${Math.max(0,Math.round(remaining))} reps over</b>${c.reps} gepland · theoretisch ≈${Math.max(0,Math.floor(possible))} mogelijk. Dit is geen gemeten RPE.`}
+function suggestion(c){return c.name==='Back squat'&&c.weight===75&&c.reps===8?`<span class="flex1">Vorige keer 75 × 8 · RPE 6,5.<br>Een gewichtstap hoger bekijken?</span>${b('77,5 kg ›','suggest-load')}`:`<span class="flex1">${c.name==='Back squat'?'Vorige keer · 75 kg × 8 · RPE 6,5':'Vorige prestatie blijft zichtbaar naast het plan.'}</span>${c.name==='Back squat'?b('Neem over','use-last'):''}`}
+function rpeHint(c){if(c.rpe===null)return 'Kies wat je na deze set nog over had. Een voorspelling kiest niets voor je.';const left=10-c.rpe;return 'RPE '+number(c.rpe)+' · '+(left>=5?'ongeveer 5 of meer reps over':left===0?'geen herhaling meer over':Number.isInteger(left)?'ongeveer '+left+' reps over':'ongeveer '+Math.floor(left)+'–'+Math.ceil(left)+' reps over')}
+function rpeGroup(c){return `<div class="r2line"><b style="font-size:14px">Hoeveel had je nog over?</b><span class="r2muted">RPE · optioneel</span></div><div class="r2rpe">${[5,6,7,8,9,10].map(n=>b(`<b>${n}</b><small>${n===5?'5+ over':n===10?'0 · max':(10-n)+' over'}</small>`,'rpe','',`data-rpe="${n}" aria-pressed="${c.rpe===n}" aria-label="RPE ${n}, ongeveer ${n===5?'5 of meer':10-n} herhalingen over"`)).join('')}</div><div class="r3rpehint" data-role="rpe-hint">${rpeHint(c)}</div><div class="r2rpe-extra"><label>Halve of andere RPE <input data-field="rpe" aria-label="Eigen RPE, ook halve stappen" type="number" min="1" max="10" step="0.5" placeholder="—" value="${c.rpe===null?'':c.rpe}"></label>${b('Wis RPE','clear-rpe')}</div>`}
+function bestReps(c){if(c.name!=='Back squat')return 'geen exact record';const matches=[...Object.entries(records).filter(([r,v])=>v[0]===c.weight).map(([r])=>Number(r)),...session.sets.filter(s=>s.weight===c.weight).map(s=>s.reps)];return matches.length?Math.max(...matches)+' reps gelogd':'geen exact record'}
+function editorContent(c){return `${c.failed?'<div class="r2error" role="alert">Opslaan mislukt. Je invoer staat nog klaar.</div>':''}${c.advanced&&!c.missing?advancedTools(c):''}${capsule(c,'weight','Gewicht',c.unit,c.equipment==='dumbbell'?1:2.5)}<div class="r2line r2muted" style="padding:0 8px">${c.equipment==='barbell'?b(plateText(c.weight),'plates','r2muted'):'<span>'+c.unit+'</span>'}<span data-role="target"></span></div>${capsule(c,'reps','Herhalingen','herhalingen',1)}<div class="r2muted" data-role="best">Beste bij dit gewicht: ${bestReps(c)}</div><div class="r2feedback" data-role="effort">${feedback(c)}</div><div class="r2suggest" data-role="suggest">${suggestion(c)}</div><div class="r2types">${['Opwarm','Werk','Drop','Falen'].map(t=>b(t,'set-type','',`data-type="${t}" aria-pressed="${c.type===t}"`)).join('')}</div>${rpeGroup(c)}<div class="r2error" data-role="validation"></div>`}
+function editorHeader(c){const type=c.editing!==null?'Bewerk gelogde set':'Volgende set';return nav2(`${c.name}<small>${type}${c.name==='Back squat'?' · vorige 75 kg × 8':''}</small>`,'close',`<button class="r2switch" data-act="advanced-toggle" aria-pressed="${c.advanced}">Geavanceerd<i></i></button>`)}
+function editorFoot(c){return `<div class="r2foot">${b(`${c.failed?'Opnieuw opslaan':c.editing!==null?'Bewaar':'✓ Vastleggen'} · ${number(c.weight)} kg × ${c.reps}`,'save','r2primary flex1','data-role="save"')}${c.editing!==null?b('⋯','set-menu','r2icon','aria-label="Setacties"'):''}</div>`}
+function editorPhone(key){const c=contexts[key];return `<div class="phone r2phone" id="${key}-phone" data-ctx="${key}">${status}<div class="r2canvas">${editorHeader(c)}<div class="r2scroll">${editorContent(c)}</div>${editorFoot(c)}</div><div class="home"></div></div>`}
+function refreshEditor(key){const c=contexts[key],root=document.querySelector(`[data-ctx="${key}"]`);if(!root)return;const sc=root.querySelector('.r2scroll'),scroll=sc?.scrollTop||0;if(root.classList.contains('r2overlay'))root.innerHTML=editorHeader(c)+`<div class="r2scroll">${editorContent(c)}</div>`+editorFoot(c);else root.outerHTML=editorPhone(key);const after=document.querySelector(`[data-ctx="${key}"]`);after.querySelector('.r2scroll').scrollTop=scroll;updateDerived(key)}
+function updateDerived(key){const c=contexts[key],root=document.querySelector(`[data-ctx="${key}"]`);if(!root)return;const hint=root.querySelector('[data-role="rpe-hint"]');if(hint)hint.textContent=rpeHint(c);const s=source(c);root.querySelector('[data-role="effort"]').innerHTML=feedback(c);root.querySelector('[data-role="suggest"]').innerHTML=suggestion(c);root.querySelector('[data-role="target"]').textContent=c.missing?'':c.entry==='percent'?`Doel ${number(c.percent)}% · werkelijk ${number(c.weight/s.value*100)}%`:number(c.weight/s.value*100)+'% van referentie';root.querySelector('[data-role="best"]').textContent='Beste bij dit gewicht: '+bestReps(c);const save=root.querySelector('[data-role="save"]');save.textContent=`${c.failed?'Opnieuw opslaan':c.editing!==null?'Bewaar':'✓ Vastleggen'} · ${number(c.weight)} kg × ${c.reps}`;save.disabled=!valid(c);root.querySelector('[data-role="validation"]').textContent=valid(c)?'':'Controleer gewicht, gehele reps (>0), percentage en RPE (1–10).';root.querySelectorAll('[data-act="rpe"]').forEach(e=>e.setAttribute('aria-pressed',String(Number(e.dataset.rpe)===c.rpe)));root.querySelectorAll('[data-act="pick-percent"]').forEach(e=>e.setAttribute('aria-pressed',String(c.entry==='percent'&&Number(e.dataset.percent)===c.percent)));}
+function profileContent(key){const c=contexts[key],s=source(c);const custom=c.customPercentage||false;return `<div class="r3profile"><div class="r2anchor">${['measured','estimated'].map(k=>b(`<small>${sources[k].name} 1RM</small><strong>${k==='estimated'?'≈':''}${sources[k].value}<small style="display:inline"> kg</small></strong><small>${sources[k].origin} · ${sources[k].date}</small>`,'profile-source','',`data-key="${key}" data-source="${k}" aria-pressed="${c.source===k}"`)).join('')}</div><div class="r2source-line"><span>% van <b>${s.name.toLowerCase()} ${number(s.value)} kg</b></span>${b('Eigen 1RM','profile-custom','',`data-key="${key}"`)}</div><div class="r3percent-wrap"><div class="r3percent-strip">${[50,55,60,65,70,75,80,85,90,95].map(p=>b(`${p}%<small>${number(roundLoad(s.value*p/100))} kg</small>`,'profile-percent','r2chip',`data-key="${key}" data-percent="${p}" aria-pressed="${c.entry==='percent'&&c.percent===p&&!custom}"`)).join('')}</div>${b('Eigen…','custom-percent','r2chip r3custom',`data-key="${key}" aria-pressed="${custom}"`)}</div>${custom?`<label class="r3custom-row"><span>Eigen %</span><input id="custom-pct" aria-label="Eigen percentage van 1RM" type="number" inputmode="decimal" min="1" max="200" step="0.5" value="${Number.isFinite(c.percent)?c.percent:60}"><span>%</span>${b('Gebruik','apply-custom-percent','',`data-key="${key}"`)}</label><div id="custom-pct-error" class="r2error" role="status"></div>`:''}<div class="r3selection">${c.entry==='percent'?number(c.percent)+'% × '+number(s.value)+' = '+number(c.percent*s.value/100)+' kg → <b>'+number(c.weight)+' kg</b>':'Gekozen: <b>'+number(c.weight)+' kg × '+c.reps+'</b>'}</div><div class="r2line" style="margin-top:16px"><b>Rep maxes</b><span class="r2muted">kg · tik een gewicht</span></div><div class="r2surface"><table class="r2table r2rep-table"><thead><tr><th>Reps</th><th>Beste gelogd</th><th>Theoretisch</th></tr></thead><tbody>${[1,2,3,5,6,8,10,12].map(n=>{const raw=n===1?s.value:s.value/(1+n/30),value=n===1?raw:roundLoad(raw),record=records[n];return `<tr><td>${n}</td><td>${record?b(`${number(record[0])}<small class="r2muted" style="display:block">${record[1]}</small>`,'use-record','',`data-key="${key}" data-weight="${record[0]}" data-reps="${n}" aria-label="Gebruik gelogd ${record[0]} kg voor ${n} reps"`):'—'}</td><td>${b(`≈${number(value)}${n>10?'<small style="display:block;font-size:10px">onzeker</small>':''}`,'use-model','',`data-key="${key}" data-weight="${roundLoad(raw)}" data-reps="${n}" aria-label="Gebruik theoretisch ${roundLoad(raw)} kg voor ${n} reps"`)}</td></tr>`}).join('')}</tbody></table></div><p class="r2muted">Theorie: ${s.name.toLowerCase()} ${number(s.value)} kg · ${s.kind}. Afronding op 2,5 kg. Boven 10 reps: onzekere indicatie.</p></div>`}
+function profilePhone(){return phone2('profile-phone','Back squat <small>Krachtprofiel · gewichten in kg</small>',profileContent('advanced'),'','profile-menu')}
+function drawAdvanced(){document.querySelector('#r2-advanced').innerHTML=art('Recommended · verfijnd','Krachtprofiel + percentage','Eén rij voor percentages. Eigen blijft bereikbaar terwijl je door de snelle keuzes veegt.',profilePhone(),'Krachtprofiel vanuit de seteditor; een keuze vult de draft in en keert terug.')+art('State · RPE met betekenis','Hoeveel reps had je nog over?','Het getal en de betekenis staan op dezelfde knop. Ook 6,5 blijft mogelijk.',editorPhone('advanced'),'Optionele RPE op de bestaande set; labels beschrijven geschatte reps in reserve.');updateDerived('advanced')}
+function blockBuilder2(){return `<div class="r2surface r2block-form"><label class="r2row"><span>Vorm</span><select id="r2-kind" aria-label="Blokvorm">${['Superset','Rondes','AMRAP','EMOM'].map(t=>`<option ${block.type===t?'selected':''}>${t}</option>`).join('')}</select></label>${['Superset','Rondes'].includes(block.type)?`<label class="r2row"><span>Rondes</span><input id="r2-rounds" aria-label="Aantal rondes" type="number" min="1" max="30" value="${block.rounds}"></label>`:`<label class="r2row"><span>Duur in minuten</span><input id="r2-minutes" aria-label="Duur in minuten" type="number" min="1" max="60" value="${block.minutes}"></label>`}${block.type==='EMOM'?`<label class="r2row"><span>Interval</span><select id="r2-interval" aria-label="Interval"><option value="60" ${block.interval===60?'selected':''}>1 minuut</option><option value="120" ${block.interval===120?'selected':''}>2 minuten</option></select></label><label class="r2row"><span>Per interval</span><select id="r2-scope" aria-label="Oefeningen per interval"><option value="one" ${block.scope==='one'?'selected':''}>Eén oefening</option><option value="all" ${block.scope==='all'?'selected':''}>Hele reeks</option></select></label>`:''}</div><h3 style="font-size:17px">Oefeningen in volgorde</h3><div class="r2surface">${block.exerciseNames.map((n,i)=>`<div class="r2block-row"><span class="r2done">${i+1}</span><button data-act="block-edit" data-exercise="${i}"><b>${n}</b><small>${blockExercise(i).description}</small></button>${b('↕','reorder-block','r2icon','aria-label="Volgorde wisselen"')}</div>`).join('')}</div><div class="r2notice">${block.type==='EMOM'?(block.scope==='one'?'Interval 1: '+block.exerciseNames[0]+'. Interval 2: '+block.exerciseNames[1]+'. Daarna herhaalt de reeks.':'Voer beide oefeningen uit binnen elk interval. Daarna begint de reeks opnieuw.'):block.type==='AMRAP'?'Herhaal de reeks binnen de tijd. Alleen bevestigde rondes en extra reps tellen.':`${block.rounds} rondes. Beide oefeningen achter elkaar, daarna 60 sec rust.`}</div><p class="r2muted">Een percentage gebruikt de 1RM van die oefening. Een onbekende referentie blokkeert kg-invoer niet.</p>`}
+function blockRunner2(){const next=block.done%2;const timed=['AMRAP','EMOM'].includes(block.type);return `<div class="r2subhead">${block.type} A · ${timed?block.minutes+' minuten':block.rounds+' rondes'}</div><h2 style="font-size:24px;margin:8px 0">Ronde ${Math.floor(block.done/2)+1}</h2><div class="r2muted">${Math.floor(block.done/2)} volledige rondes · ${block.done%2} van 2 oefeningen in deze ronde</div>${timed?`<div class="r2bigclock" id="r2-clock">${block.type==='EMOM'?block.interval/60:block.minutes}:00</div><div class="r2muted">${block.type==='EMOM'?'Resterend in interval':'Resterend in blok'}</div>`:'<div class="r2notice">Rust start pas nadat beide oefeningen zijn vastgelegd.</div>'}<div class="r2surface">${block.exerciseNames.map((n,i)=>`<div class="r2block-row ${i===next?'active':''} ${i<next?'complete':''}"><span class="r2done">${i<next?'✓':i+1}</span><button data-act="block-log" data-exercise="${i}"><b>${n}</b><small>${blockExercise(i).description}</small></button><span>›</span></div>`).join('')}</div>${b('Set invoeren · '+block.exerciseNames[next],'block-log','r2primary wide2',`data-exercise="${next}"`)}<div class="r2notice" id="r2-block-message">Elke set opent dezelfde editor. Vastleggen bewaart de oefening én de ronde.</div>${block.sets.length?'<div class="r2surface">'+block.sets.map(s=>`<div class="r2row"><span>${s.name}<small>Ronde ${s.round} · RPE ${s.rpe??'—'}</small></span><b>${number(s.weight)} × ${s.reps}</b></div>`).join('')+'</div>':''}`}
+function drawBlocks(){document.querySelector('#r2-blocks').innerHTML=art('Recommended','Blok instellen','De EMOM-keuze maakt expliciet wat er binnen één interval gebeurt.',phone2('block-builder','Blok toevoegen',blockBuilder2(),b('Voeg toe aan sessie','add-block','r2primary flex1')),'FormSection en bestaande oefeningkiezer; blokmodel is nieuw.')+art('State · uitvoering','Elke oefening blijft een set','Leg een set vast in de editor. Daarna gaat de reeks naar de volgende oefening.',phone2('block-runner','Beendag <small>Actief blok</small>',blockRunner2(),b(block.started&&!block.paused?'Pauzeer':'Start / hervat','block-clock','neutral-action flex1')+b('Stop blok','block-stop','neutral-action')),'SetEditSheet hergebruiken; blokklok als aparte uitbreiding op de timer.')}
+function drawStates(){document.querySelector('#r2-states-controls').innerHTML=['Geen 1RM','Opslaan mislukt','Grote tekst'].map(s=>b(s,'state','',`data-state="${s}" aria-pressed="${activeState===s}"`)).join('');draft('state',false,{name:activeState==='Geen 1RM'?'Nieuwe oefening':'Back squat',missing:activeState==='Geen 1RM',failed:activeState==='Opslaan mislukt',rpe:activeState==='Opslaan mislukt'?6.5:null,weight:activeState==='Geen 1RM'?20:77.5});document.querySelector('#r2-states').innerHTML=art('State',activeState,'Hetzelfde formulier behoudt de taak en de ingevoerde waarden.',editorPhone('state'),'Bestaande foutafhandeling en draftbehoud; grotere tekst apart native verifiëren.');if(activeState==='Grote tekst')document.querySelector('#state-phone').classList.add('large-text');updateDerived('state')}
+function notify2(p,text){if(!p)return;p.querySelector('.r2toast')?.remove();const t=document.createElement('div');t.className='r2toast';t.setAttribute('role','status');t.textContent=text;p.append(t);setTimeout(()=>t.remove(),4200)}
+function overlay2(p,title,body,foot=''){p.querySelector('.r2overlay')?.remove();const el=document.createElement('div');el.className='r2overlay';el.innerHTML=nav2(title,'dismiss')+`<div class="r2scroll">${body}</div>${foot?'<div class="r2foot">'+foot+'</div>':''}`;p.append(el);return el}
+function menu2(p,items){p.querySelector('.r2menu')?.remove();const m=document.createElement('div');m.className='r2menu';m.innerHTML=items.map(([title,action,attrs])=>b(title,action,action.includes('delete')||action==='cancel-session'?'danger':'',attrs||'')).join('')+b('Sluiten','dismiss-menu');p.append(m)}
+function openEditor(p,extra={}){p.querySelector('.r2overlay')?.remove();const c=draft('modal',false,extra);const el=document.createElement('div');el.className='r2overlay';el.dataset.ctx='modal';el.innerHTML=editorHeader(c)+`<div class="r2scroll">${editorContent(c)}</div>`+editorFoot(c);p.append(el);updateDerived('modal')}
+function openProfile(p,key){const c=contexts[key];const el=overlay2(p,`${c.name}<small>Krachtprofiel · kies een gewicht</small>`,profileContent(key));el.dataset.returnKey=key}
+function updateProfile(){const e=document.querySelector('#profile-phone .r2scroll');if(e)e.innerHTML=profileContent('advanced')}
+function applyFromProfile(p,key,change){const c=contexts[key];Object.assign(c,change,{dirty:true});if(p.querySelector('.r2overlay[data-return-key]')){const layer=p.querySelector('.r2overlay');layer.dataset.ctx=key;delete layer.dataset.returnKey;refreshEditor(key)}else {refreshEditor(key);updateProfile();notify2(p,'Klaargezet in de seteditor · nog niet opgeslagen')} }
+function reveal(n){document.querySelectorAll('.r2part').forEach(s=>s.hidden=false);document.querySelector(`[data-section="${n}"]`).scrollIntoView({behavior:'smooth'})}
+function confirmDiscard(p,c){menu2(p,[['Verder bewerken','dismiss-menu'],['Concept sluiten zonder opslaan','discard',`data-key="${c.key}"`]])}
+function resetBlock(){block.done=0;block.elapsed=0;block.started=false;block.paused=false;block.expired=false;block.sets=[]}
+function blockExercise(i){const name=block.exerciseNames[i];return name==='Romanian deadlift'?{name,weight:80,reps:10,description:'10 reps · 80 kg · RPE-doel 7'}:{name,weight:12,reps:8,equipment:'dumbbell',unit:'kg · per hand',description:'8 per been · 12 kg per hand'}}
+function handleField(input){const root=input.closest('[data-ctx]');if(!root)return;const c=contexts[root.dataset.ctx],field=input.dataset.field;let v=input.value===''?NaN:Number(input.value);if(field==='rpe')c.rpe=input.value===''?null:v;else if(field==='custom'){if(Number.isFinite(v)&&v>0){c.customValid=true;sources.custom.value=v;c.weight=roundLoad(v*c.percent/100);root.querySelector('[data-field="weight"]').value=c.weight;updateProfile()}else{c.customValid=false;root.querySelector('[data-role="save"]').disabled=true;root.querySelector('[data-role="validation"]').textContent='Eigen 1RM moet groter dan 0 zijn.';return}}else{c[field]=v;if(field==='percent'&&Number.isFinite(v)){c.entry='percent';c.weight=roundLoad(source(c).value*v/100);root.querySelector('[data-field="weight"]').value=c.weight}}c.dirty=true;updateDerived(c.key)}
+document.addEventListener('input',e=>{if(e.target.matches('input[data-field]'))handleField(e.target)});
+document.addEventListener('change',e=>{if(e.target.id==='r2-kind'){block.type=e.target.value;resetBlock();drawBlocks()}if(['r2-rounds','r2-minutes','r2-interval','r2-scope'].includes(e.target.id)){const field={'r2-rounds':'rounds','r2-minutes':'minutes','r2-interval':'interval','r2-scope':'scope'}[e.target.id];const v=field==='scope'?e.target.value:Number(e.target.value);if(field!=='scope'&&(!Number.isInteger(v)||v<1)){notify2(e.target.closest('.phone'),'Kies een positief geheel aantal');return}block[field]=v;resetBlock();drawBlocks()}});
+document.addEventListener('click',e=>{const btn=e.target.closest('[data-act]');if(!btn)return;const act=btn.dataset.act,p=btn.closest('.phone'),root=btn.closest('[data-ctx]'),c=root?contexts[root.dataset.ctx]:null;const key=c?.key;const savedKey=btn.dataset.key;if(act!=='menu'&&act!=='set-menu')p?.querySelector('.r2menu')?.remove();switch(act){
+case 'next-set':openEditor(p);break;
+case 'edit-row':{const s=session.sets.find(s=>s.id===Number(btn.dataset.id));openEditor(p,{...s,editing:s.id,source:s.sourceKind||'estimated',percent:s.target||60});break}
+case 'repeat-set':{const s=session.sets.at(-1);openEditor(p,{weight:s.weight,reps:s.reps,type:s.type,rpe:null,entry:'kg'});break}
+case 'expand-squat':session.expanded=session.expanded==='squat'?'':'squat';drawOverview();break;
+case 'expand-rdl':session.expanded=session.expanded==='rdl'?'':'rdl';drawOverview();break;
+case 'rdl-set':openEditor(p,{name:'Leg curl',weight:25,reps:12,missing:true,entry:'kg',equipment:'machine',unit:'kg · machinegewicht'});break;
+case 'view-mode':session.advanced=!session.advanced;drawOverview();break;
+case 'advanced-toggle':c.advanced=!c.advanced;refreshEditor(key);break;
+case 'change-value':{const field=btn.dataset.field;const minimum=field==='reps'?1:0;c[field]=Math.max(minimum,(Number.isFinite(c[field])?c[field]:0)+Number(btn.dataset.delta));c.dirty=true;refreshEditor(key);break}
+case 'pick-source':c.source=btn.dataset.source;c.customValid=true;if(c.entry==='percent')c.weight=roundLoad(source(c).value*c.percent/100);c.dirty=true;refreshEditor(key);updateProfile();break;
+case 'pick-percent':c.percent=Number(btn.dataset.percent);c.entry='percent';c.weight=roundLoad(source(c).value*c.percent/100);c.dirty=true;refreshEditor(key);break;
+case 'set-type':c.type=btn.dataset.type;c.dirty=true;refreshEditor(key);break;
+case 'rpe':c.rpe=c.rpe===Number(btn.dataset.rpe)?null:Number(btn.dataset.rpe);c.dirty=true;refreshEditor(key);break;
+case 'clear-rpe':c.rpe=null;c.dirty=true;refreshEditor(key);break;
+case 'use-last':c.weight=75;c.reps=8;c.rpe=null;c.dirty=true;refreshEditor(key);break;
+case 'suggest-load':menu2(p,[[`77,5 kg × 8 · ${number(77.5/source(c).value*100)}% van referentie`,'dismiss-menu'],['Gebruik +2,5 kg','accept-suggestion',`data-key="${key}"`],['Behoud 75 kg','dismiss-menu']]);break;
+case 'accept-suggestion':{const d=contexts[savedKey];d.weight=77.5;d.dirty=true;refreshEditor(savedKey);break}
+case 'save':{if(!valid(c))break;if(c.blockIndex!==undefined){const expected=block.done%2;if(c.blockIndex!==expected){notify2(p,'Rond eerst de huidige oefening af');break}block.sets.push({name:c.name,weight:c.weight,reps:c.reps,rpe:c.rpe,round:Math.floor(block.done/2)+1});block.done++;p.querySelector('.r2overlay')?.remove();drawBlocks();const runner=document.querySelector('#block-runner');notify2(runner,block.done%2?'Set bewaard · volgende oefening':'Ronde bewaard · '+(['Superset','Rondes'].includes(block.type)?'rust 60 sec':'blokklok loopt door'));if(['Superset','Rondes'].includes(block.type)&&block.done>=block.rounds*2){runner.querySelectorAll('[data-act="block-log"],[data-act="block-clock"]').forEach(b=>b.disabled=true);runner.querySelector('#r2-block-message').textContent='Alle rondes voltooid · sets staan in je sessie.'}break}if(c.name==='Back squat'){const item={id:c.editing??rowId++,weight:c.weight,reps:c.reps,type:c.type,rpe:c.rpe,source:source(c).value,sourceKind:c.source,target:c.entry==='percent'?c.percent:null};if(c.editing!==null){const i=session.sets.findIndex(s=>s.id===c.editing);if(i>=0)session.sets[i]=item}else session.sets.push(item)}const savedRpe=c.rpe;c.dirty=false;c.failed=false;if(c.editing===null)c.rpe=null;if(p.querySelector('.r2overlay'))p.querySelector('.r2overlay').remove();drawOverview();if(key!=='modal')refreshEditor(key);notify2(document.querySelector('#'+p.id)||document.querySelector('#workout-phone'),'Set bewaard in dit voorbeeld · RPE '+(savedRpe===null?'niet ingevuld':number(savedRpe)));break}
+case 'close':if(c?.dirty)confirmDiscard(p,c);else if(root?.classList.contains('r2overlay'))root.remove();else notify2(p,'Editor sluiten · terug naar de sessie');break;
+case 'discard':{const d=contexts[savedKey];if(p.querySelector('.r2overlay'))p.querySelector('.r2overlay').remove();else{draft(savedKey,d.advanced);refreshEditor(savedKey)}break}
+case 'set-menu':menu2(p,[['Dupliceren als nieuwe set','duplicate',`data-key="${key}"`],['Verwijderen','delete-set',`data-key="${key}"`]]);break;
+case 'duplicate':{const d=contexts[savedKey];d.editing=null;d.rpe=null;d.dirty=true;refreshEditor(savedKey);notify2(p,'Nieuwe set klaargezet · bevestig na uitvoering');break}
+case 'delete-set':menu2(p,[['Set echt verwijderen?','dismiss-menu'],['Verwijder gelogde set','confirm-delete',`data-key="${savedKey}"`],['Behoud set','dismiss-menu']]);break;
+case 'confirm-delete':{const d=contexts[savedKey];session.sets=session.sets.filter(s=>s.id!==d.editing);p.querySelector('.r2overlay')?.remove();drawOverview();break}
+case 'open-profile':openProfile(p,'advanced');break;
+case 'profile-for-draft':if(c.missing){notify2(p,'Nog geen krachtprofiel voor deze oefening');break}openProfile(p,key);break;
+case 'profile-source':{const d=contexts[savedKey];d.source=btn.dataset.source;if(d.entry==='percent')d.weight=roundLoad(source(d).value*d.percent/100);d.dirty=true;if(p.querySelector('.r2overlay[data-return-key]'))p.querySelector('.r2overlay .r2scroll').innerHTML=profileContent(savedKey);else{refreshEditor(savedKey);updateProfile()}break}
+case 'custom-percent':{const d=contexts[savedKey];d.customPercentage=true;if(p.querySelector('.r2overlay[data-return-key]'))p.querySelector('.r2overlay .r2scroll').innerHTML=profileContent(savedKey);else updateProfile();p.querySelector('#custom-pct')?.focus();break;}
+case 'apply-custom-percent':{const d=contexts[savedKey],input=p.querySelector('#custom-pct'),pct=Number(input.value);if(!input.value||!Number.isFinite(pct)||pct<=0||pct>200){p.querySelector('#custom-pct-error').textContent='Kies een percentage groter dan 0, tot en met 200.';break}d.customPercentage=true;applyFromProfile(p,savedKey,{percent:pct,entry:'percent',weight:roundLoad(source(d).value*pct/100)});break;}
+case 'profile-custom':{const d=contexts[savedKey];d.source='custom';d.advanced=true;applyFromProfile(p,savedKey,{weight:roundLoad(source(d).value*d.percent/100)});break}
+case 'use-record':case 'use-model':applyFromProfile(p,savedKey,{weight:Number(btn.dataset.weight),reps:Number(btn.dataset.reps),entry:'kg'});break;
+case 'profile-percent':{const d=contexts[savedKey],pct=Number(btn.dataset.percent);d.customPercentage=false;applyFromProfile(p,savedKey,{percent:pct,entry:'percent',weight:roundLoad(source(d).value*pct/100)});break}
+case 'profile-menu':menu2(p,[['Herkomst van schatting','source-info'],['Sluiten','dismiss-menu']]);break;
+case 'source-info':overlay2(p,'Herkomst schatting','<div class="r2notice">105 kg × 6, uitgevoerd op 12 september. Epley: 105 × (1 + 6 / 30) = 126 kg.</div><p class="r2muted">Deze waarde is geschat. Het gemeten record blijft de uitgevoerde single van 120 kg.</p>');break;
+case 'plates':{const w=c?.weight??75;menu2(p,[[`Stang 20 kg · totaal ${number(w)} kg`,'dismiss-menu'],[plateText(w),'dismiss-menu'],['Sluiten','dismiss-menu']]);break}
+case 'menu':menu2(p,[['Oefening of blok toevoegen','add-menu'],['Rusttimer','rest'],['Afronden','finish'],['Sessie annuleren','cancel-session']]);break;
+case 'add-menu':menu2(p,[['Losse oefening','add-exercise'],['Superset / rondes / AMRAP / EMOM','show-blocks']]);break;
+case 'add-exercise':overlay2(p,'Oefening toevoegen','<div class="r2surface">'+['Leg curl','Calf raise','Leg extension'].map(n=>b(n,'choose-exercise','r2row',`data-name="${n}"`)).join('')+'</div><p class="r2muted">Verkorte weergave van de bestaande oefeningkiezer.</p>');break;
+case 'choose-exercise':openEditor(p,{name:btn.dataset.name,weight:20,reps:12,missing:true,entry:'kg',equipment:'machine',unit:'kg'});break;
+case 'show-blocks':reveal(3);break;
+case 'add-block':block.added=true;drawOverview();notify2(p,block.type+' toegevoegd aan de voorbeeldsessie');break;
+case 'reorder-block':block.exerciseNames.reverse();resetBlock();drawBlocks();break;
+case 'block-edit':case 'block-log':{const i=Number(btn.dataset.exercise),exercise=blockExercise(i);openEditor(p,{...exercise,blockIndex:act==='block-log'?i:undefined,missing:true,entry:'kg'});break}
+case 'block-clock':block.started=true;block.paused=!block.paused;if(block.elapsed===0)block.paused=false;btn.textContent=block.paused?'Hervat':'Pauzeer';if(!['AMRAP','EMOM'].includes(block.type))notify2(p,'Volg de reeks · rust na de ronde');break;
+case 'block-stop':block.paused=true;notify2(p,'Blok gestopt · gelogde sets blijven staan');break;
+case 'state':activeState=btn.dataset.state;drawStates();break;
+case 'rest':overlay2(p,'Rusttimer',`<div class="r2bigclock" id="rest-value">1:24</div><div class="r2chips">${b('−15','rest-change','r2chip','data-seconds="-15"')}${b('Pauzeer','rest-pause','r2chip')}${b('+15','rest-change','r2chip','data-seconds="15"')}</div><label class="r2row">Voorkeursduur<select class="select2" aria-label="Voorkeursduur rust"><option>60 sec</option><option selected>90 sec</option><option>120 sec</option><option>180 sec</option></select></label>`,b('Stop timer','dismiss','neutral-action flex1'));break;
+case 'rest-change':{const t=p.querySelector('#rest-value');const [m,s]=t.textContent.split(':').map(Number);const total=Math.max(0,m*60+s+Number(btn.dataset.seconds));t.textContent=Math.floor(total/60)+':'+String(total%60).padStart(2,'0');break}
+case 'rest-pause':btn.textContent=btn.textContent==='Pauzeer'?'Hervat':'Pauzeer';break;
+case 'finish':overlay2(p,'Afronden?',`<h2 style="font-size:24px">${session.sets.length} sets vastgelegd</h2><p class="r2muted">Je blok is nog niet afgerond. Alleen uitgevoerde sets tellen mee. Openstaande doelen worden niet automatisch gelogd.</p>`,b('Verder trainen','dismiss','neutral-action')+b('Naar samenvatting','finish-demo','r2primary'));break;
+case 'finish-demo':overlay2(p,'Sessie afgerond',`<h2>${session.sets.length} sets</h2><p class="r2muted">Dit is een ontwerpvoorbeeld. Er zijn geen gegevens naar de app verzonden.</p>`);break;
+case 'cancel-session':overlay2(p,'Sessie annuleren?','<p class="r2muted">Al gelogde sets blijven behouden.</p>',b('Verder trainen','dismiss','neutral-action')+b('Annuleren · demo','finish-demo','neutral-action danger'));break;
+case 'dismiss':{const layer=p.querySelector('.r2overlay');const returnKey=layer?.dataset.returnKey;if(returnKey&&p.dataset.ctx===returnKey){layer.remove();refreshEditor(returnKey)}else if(returnKey==='modal'){layer.dataset.ctx=returnKey;delete layer.dataset.returnKey;refreshEditor(returnKey)}else layer?.remove();break}
+case 'dismiss-menu':break;
+}});
+document.querySelector('#r2theme').addEventListener('click',e=>{document.body.classList.toggle('dark');e.target.textContent=document.body.classList.contains('dark')?'Licht':'Donker'});
+drawOverview();updateDerived('simple');drawAdvanced();drawBlocks();drawStates();
+
+setInterval(()=>{if(!block.started||block.paused||block.expired||!['AMRAP','EMOM'].includes(block.type))return;block.elapsed++;const limit=block.type==='AMRAP'?block.minutes*60:block.interval;const remaining=Math.max(0,limit-block.elapsed),clock=document.querySelector('#r2-clock');if(clock)clock.textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');if(!remaining){block.expired=true;block.paused=true;document.querySelector('#r2-block-message').textContent=block.type==='AMRAP'?'Tijd afgelopen · controleer volledige rondes en extra reps.':'Interval voorbij · onafgemaakte oefeningen blijven onbevestigd. Er wordt niets automatisch gelogd.'}},1000);
+</script></body></html>
