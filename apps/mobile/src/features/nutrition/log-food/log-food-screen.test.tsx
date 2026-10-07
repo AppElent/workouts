@@ -483,6 +483,24 @@ describe("browsing shipped foods", () => {
 		expect(repository.search("training gel", "en")).toHaveLength(1);
 	});
 
+	it("shows product details inside the sheet, so the next food still opens", async () => {
+		renderApp();
+		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		fireEvent.press((await screen.findAllByText("Apple")).at(-1) as never);
+		fireEvent.press(await screen.findByLabelText("Product details"));
+		// No route was pushed over the sheet: details are a page inside it.
+		expect(
+			(await screen.findAllByText(/^Nutrition per 100/)).length,
+		).toBeGreaterThan(0);
+		fireEvent.press(screen.getByLabelText("Go back"));
+		fireEvent.press(await screen.findByLabelText("Close serving options"));
+
+		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "pear");
+		fireEvent.press((await screen.findAllByText(/^Pear/)).at(-1) as never);
+		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
+	});
+
 	it("edits and deletes a Personal Food without changing its stable id", async () => {
 		const { repository } = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));

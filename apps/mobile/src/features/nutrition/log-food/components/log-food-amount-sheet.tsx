@@ -29,6 +29,7 @@ import { AmountDestination } from "../../components/amount-destination";
 import { AmountEditor } from "../../components/amount-editor";
 import { AmountEditorHeader } from "../../components/amount-editor-header";
 import { NutritionChoiceMenu } from "../../components/nutrition-choice-menu";
+import { FoodViewScreen } from "../../food/food-view-screen";
 import { useAmountSelection } from "../../use-amount-selection";
 import {
 	createFoodSnapshot,
@@ -127,6 +128,7 @@ export function LogFoodAmountSheet({
 			: false,
 	);
 	const [adding, setAdding] = useState(false);
+	const [showingDetails, setShowingDetails] = useState(false);
 	const [logging, setLogging] = useState(false);
 	const lock = useRef(false);
 	const preview = servingPreview(
@@ -220,6 +222,25 @@ export function LogFoodAmountSheet({
 		],
 	].filter((section) => section.length > 0);
 
+	// Details open inside this sheet: it is a React Native Modal, and a
+	// native sheet presented over it dismisses it behind React's back, which
+	// left Log food unable to open another food.
+	if (showingDetails)
+		return (
+			<View style={{ flex: 1, backgroundColor: colors.bg }}>
+				<AmountEditorHeader
+					title={t.diaryEntry.details}
+					closeLabel={t.common.back}
+					confirmLabel={t.common.back}
+					canConfirm={false}
+					hideConfirm
+					backGlyph
+					onClose={() => setShowingDetails(false)}
+					onConfirm={() => undefined}
+				/>
+				<FoodViewScreen food={food} />
+			</View>
+		);
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
 			<AmountEditorHeader
@@ -255,12 +276,7 @@ export function LogFoodAmountSheet({
 					valueLabel: pick?.valueLabel,
 					all: true,
 				}}
-				onOpenDetails={() =>
-					router.push({
-						pathname: "/nutrition-food-details",
-						params: { source: selection.kind, id: food.id },
-					})
-				}
+				onOpenDetails={() => setShowingDetails(true)}
 				below={
 					selection.kind === "shipped" || correctedSource ? (
 						<View style={{ gap: spacing.xs, paddingHorizontal: spacing.xs }}>

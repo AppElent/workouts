@@ -18,9 +18,15 @@ export function AmountEditorHeader({
 	busy = false,
 	busyLabel,
 	disabled = false,
+	hideConfirm = false,
+	backGlyph = false,
 	onClose,
 	onConfirm,
 }: {
+	/** A page inside the sheet with nothing to confirm, such as details. */
+	hideConfirm?: boolean;
+	/** ‹ instead of ✕: the button returns within the sheet. */
+	backGlyph?: boolean;
 	title: string;
 	subtitle?: string;
 	closeLabel: string;
@@ -35,7 +41,7 @@ export function AmountEditorHeader({
 	const colors = useTokens();
 	const button = (
 		label: string,
-		glyph: "xmark" | "checkmark",
+		glyph: "xmark" | "checkmark" | "chevron.left",
 		onPress: () => void,
 		off: boolean,
 		prominent = false,
@@ -59,8 +65,18 @@ export function AmountEditorHeader({
 			<SymbolView
 				name={{
 					ios: glyph,
-					android: glyph === "xmark" ? "close" : "check",
-					web: glyph === "xmark" ? "close" : "check",
+					android:
+						glyph === "xmark"
+							? "close"
+							: glyph === "chevron.left"
+								? "chevron_left"
+								: "check",
+					web:
+						glyph === "xmark"
+							? "close"
+							: glyph === "chevron.left"
+								? "chevron_left"
+								: "check",
 				}}
 				size={19}
 				weight="semibold"
@@ -78,7 +94,12 @@ export function AmountEditorHeader({
 			}}
 		>
 			<GlassSurface capsule>
-				{button(closeLabel, "xmark", onClose, busy || disabled)}
+				{button(
+					closeLabel,
+					backGlyph ? "chevron.left" : "xmark",
+					onClose,
+					busy || disabled,
+				)}
 			</GlassSurface>
 			<View
 				style={{ flex: 1, alignItems: "center", marginHorizontal: spacing.sm }}
@@ -92,21 +113,28 @@ export function AmountEditorHeader({
 					</AppText>
 				) : null}
 			</View>
-			<GlassSurface capsule>
-				{busy ? (
-					<View style={{ width: 44, height: 44, justifyContent: "center" }}>
-						<ActivityIndicator accessibilityLabel={busyLabel ?? confirmLabel} />
-					</View>
-				) : (
-					button(
-						confirmLabel,
-						"checkmark",
-						onConfirm,
-						!canConfirm || disabled,
-						canConfirm && !disabled,
-					)
-				)}
-			</GlassSurface>
+			{hideConfirm ? (
+				// Keeps the title centred where ✓ would be.
+				<View style={{ width: 44 }} />
+			) : (
+				<GlassSurface capsule>
+					{busy ? (
+						<View style={{ width: 44, height: 44, justifyContent: "center" }}>
+							<ActivityIndicator
+								accessibilityLabel={busyLabel ?? confirmLabel}
+							/>
+						</View>
+					) : (
+						button(
+							confirmLabel,
+							"checkmark",
+							onConfirm,
+							!canConfirm || disabled,
+							canConfirm && !disabled,
+						)
+					)}
+				</GlassSurface>
+			)}
 		</View>
 	);
 }
