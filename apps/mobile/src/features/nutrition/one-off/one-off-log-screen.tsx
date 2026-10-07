@@ -117,14 +117,23 @@ export function OneOffLogScreen({
 		}).then((ok) => {
 			if (!ok) return;
 			draft.photo.discard();
-			navigation.dispatch(data.action);
+			// Lift the guard first; re-dispatching under it would be blocked again.
+			setExit(() => () => navigation.dispatch(data.action));
 		});
 	});
 
 	// Latest handlers for header items that outlive a render; options only
 	// change with what they show (Stack.Screen sets them on every new object).
-	const handlers = useRef({ log: draft.log, close: () => router.back() });
-	handlers.current = { log: draft.log, close: () => router.back() };
+	// Opened with nothing beneath it (a deep link), ✕ lands on the diary.
+	const close = () =>
+		router.canGoBack()
+			? router.back()
+			: router.replace({
+					pathname: "/nutrition",
+					params: { date: draft.destination.date },
+				});
+	const handlers = useRef({ log: draft.log, close });
+	handlers.current = { log: draft.log, close };
 	const menu = destination.menu;
 	const menuRef = useRef(menu);
 	menuRef.current = menu;

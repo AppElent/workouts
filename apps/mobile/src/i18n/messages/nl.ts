@@ -37,7 +37,7 @@ export const nl = {
 		units: "Eenheden",
 		notifications: "Meldingen",
 		connectedApps: "Gekoppelde apps",
-		personalMeasures: "Persoonlijke maten",
+		personalMeasures: "Eigen maten",
 		language: "Taal",
 	},
 
@@ -64,45 +64,50 @@ export const nl = {
 	nutrition: {
 		title: "Voeding",
 		personalMeasures: {
-			title: "Persoonlijke maten",
-			emptyTitle: "Nog geen persoonlijke maten",
-			emptyBody:
-				"Bewaar herbruikbare exacte hoeveelheden, zoals Klein glas · 250 ml of Eiwitschep · 35 g.",
-			add: "Persoonlijke maat toevoegen",
-			edit: "Persoonlijke maat bewerken",
+			title: "Eigen maten",
+			weight: "Gewicht",
+			volume: "Volume",
+			help: {
+				g: "Te kiezen bij alle voeding in gram.",
+				ml: "Te kiezen bij alle voeding in milliliter.",
+			},
+			intro:
+				"Bewaar hoeveelheden die je vaak gebruikt. Ze verschijnen bij het loggen naast de porties van het product.",
+			example: {
+				g: "Bijv. Eiwitschep · 35 g",
+				ml: "Bijv. Klein glas · 200 ml",
+			},
+			add: "Nieuwe maat",
+			addIn: "Maat in {unit} toevoegen",
+			edit: "Maat wijzigen",
 			name: "Naam",
 			amount: "Hoeveelheid",
-			unit: "Eenheid",
 			unitChangeTitle: "Eenheid van deze maat wijzigen?",
 			unitChangeBody:
-				"De maat verdwijnt bij voedingsmiddelen met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
+				"De maat verdwijnt bij voeding met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
 			unitChangeConfirm: "Eenheid wijzigen",
 			grams: "Gram",
 			millilitres: "Milliliter",
-			save: "Maat opslaan",
+			confirmAdd: "Toevoegen",
+			save: "Bewaar",
 			cancel: "Annuleren",
-			delete: "Persoonlijke maat verwijderen",
-			deleteTitle: "Persoonlijke maat verwijderen?",
+			editAction: "Wijzigen",
+			delete: "Verwijderen",
+			deleteTitle: "‘{name}’ verwijderen?",
 			deleteBody:
-				"Eerdere dagboekitems veranderen niet. Deze maat verdwijnt uit toekomstige keuzes.",
-			deleteFailure: "Deze persoonlijke maat kon niet worden verwijderd.",
+				"Verdwijnt uit de portiekeuze. Eerdere dagboekitems veranderen niet.",
+			deleteFailure: "Deze maat kon niet worden verwijderd.",
 			saveFailure:
-				"Deze persoonlijke maat kon niet worden opgeslagen. Je wijzigingen staan er nog.",
-			reorderFailure: "De persoonlijke maten konden niet worden herschikt.",
+				"Deze maat kon niet worden bewaard. Wat je typte staat er nog.",
+			reorderFailure: "De maten konden niet worden herschikt.",
 			validation:
-				"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met maximaal één decimaal in.",
-			formHelp: "Persoonlijke namen blijven in elke app-taal hetzelfde.",
-			compatibilityHelp:
-				"Een persoonlijke maat verschijnt alleen bij voeding met dezelfde basiseenheid g of ml.",
-			offlineTitle: "Maak verbinding om persoonlijke maten te beheren",
+				"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met hooguit één decimaal in.",
+			offline: "Offline",
 			offlineBody:
-				"Opgeslagen maten blijven beschikbaar bij het loggen, maar wijzigingen vereisen nu een verbinding.",
+				"Je maten werken bij het loggen. Wijzigen kan weer met verbinding.",
 			moveUp: "Omhoog",
 			moveDown: "Omlaag",
-			manage: "Persoonlijke maten beheren",
-			incompatibleReturn:
-				"Deze maat gebruikt een andere eenheid; de vorige portiekeuze bleef staan.",
-			loading: "Persoonlijke maten laden",
+			loading: "Maten laden",
 		},
 
 		day: {

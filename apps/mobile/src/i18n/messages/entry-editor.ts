@@ -10,7 +10,7 @@ export const entryEditorEn = {
 	changeServing: "Change serving",
 	saveServing: "Save",
 	foodServings: "Food servings",
-	personalMeasures: "Personal measures",
+	personalMeasures: "My measures",
 	personalMeasure: "Personal measure",
 	foodScope: "This food",
 	ownScope: "Personal measure",

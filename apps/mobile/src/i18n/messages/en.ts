@@ -43,7 +43,7 @@ export const en = {
 		units: "Units",
 		notifications: "Notifications",
 		connectedApps: "Connected apps",
-		personalMeasures: "Personal measures",
+		personalMeasures: "My measures",
 		language: "Language",
 	},
 
@@ -70,45 +70,50 @@ export const en = {
 	nutrition: {
 		title: "Nutrition",
 		personalMeasures: {
-			title: "Personal measures",
-			emptyTitle: "No personal measures yet",
-			emptyBody:
-				"Save reusable exact amounts such as Small glass · 250 ml or Protein scoop · 35 g.",
-			add: "Add personal measure",
-			edit: "Edit personal measure",
+			title: "My measures",
+			weight: "Weight",
+			volume: "Volume",
+			help: {
+				g: "Offered for every food measured in grams.",
+				ml: "Offered for every food measured in millilitres.",
+			},
+			intro:
+				"Keep amounts you use often. They appear next to a product's servings when you log.",
+			example: {
+				g: "E.g. Protein scoop · 35 g",
+				ml: "E.g. Small glass · 200 ml",
+			},
+			add: "New measure",
+			addIn: "Add a measure in {unit}",
+			edit: "Change measure",
 			name: "Name",
 			amount: "Amount",
-			unit: "Unit",
 			unitChangeTitle: "Change this measure's unit?",
 			unitChangeBody:
 				"It will stop appearing for foods that use the previous unit. Past diary entries will not change.",
 			unitChangeConfirm: "Change unit",
 			grams: "Grams",
 			millilitres: "Millilitres",
-			save: "Save measure",
+			confirmAdd: "Add",
+			save: "Save",
 			cancel: "Cancel",
-			delete: "Delete personal measure",
-			deleteTitle: "Delete personal measure?",
+			editAction: "Change",
+			delete: "Delete",
+			deleteTitle: "Delete ‘{name}’?",
 			deleteBody:
-				"Past diary entries will not change. This measure will disappear from future choices.",
-			deleteFailure: "This personal measure could not be deleted.",
+				"It disappears from the serving choice. Earlier diary entries do not change.",
+			deleteFailure: "This measure could not be deleted.",
 			saveFailure:
-				"This personal measure could not be saved. Your changes are still here.",
-			reorderFailure: "The personal measures could not be reordered.",
+				"This measure could not be saved. What you typed is still here.",
+			reorderFailure: "The measures could not be reordered.",
 			validation:
-				"Enter a unique name and an amount from 0.1 to 10,000 with at most one decimal place.",
-			formHelp: "Names are personal and stay the same in every app language.",
-			compatibilityHelp:
-				"A personal measure appears only for foods with the same g or ml base unit.",
-			offlineTitle: "Connect to manage personal measures",
+				"Enter a unique name and an amount from 0.1 to 10,000 with at most one decimal.",
+			offline: "Offline",
 			offlineBody:
-				"Cached measures remain available while logging, but changes require a connection for now.",
+				"Your measures work while logging. Changing them needs a connection again.",
 			moveUp: "Move up",
 			moveDown: "Move down",
-			manage: "Manage personal measures",
-			incompatibleReturn:
-				"This measure uses a different unit, so the previous serving choice was kept.",
-			loading: "Loading personal measures",
+			loading: "Loading measures",
 		},
 
 		day: {

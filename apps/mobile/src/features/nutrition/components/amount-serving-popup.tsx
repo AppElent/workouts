@@ -27,7 +27,26 @@ export function AmountServingPopup({
 	onBusyChange,
 	initial,
 	onFoodServing,
+	measure,
 }: {
+	/**
+	 * My measures: the popup writes a personal measure, and a Gram/Millilitre
+	 * segment takes the place of "this food or my own measure".
+	 */
+	measure?: {
+		readonly title: string;
+		readonly confirmLabel: string;
+		/** The line under the segment, per unit. */
+		readonly help: Readonly<Record<"g" | "ml", string>>;
+		/** Asked before an existing measure changes unit; false keeps it. */
+		readonly confirmUnitChange?: () => Promise<boolean>;
+		/** Saves; a rejection keeps the popup and what was typed. */
+		readonly onSubmit: (value: {
+			name: string;
+			amount: number;
+			unit: "g" | "ml";
+		}) => Promise<void>;
+	};
 	/**
 	 * The serving being changed. Its values show grey; typing replaces them and
 	 * a field left empty keeps them. Changing offers only "this food".
@@ -43,7 +62,7 @@ export function AmountServingPopup({
 	unit: "g" | "ml" | "serving";
 	/** Where a new serving of a shipped food is kept; absent for other foods. */
 	additions?: ReturnType<typeof useSupplementaryServings>;
-	onAdded: (option: ServingOption) => void;
+	onAdded?: (option: ServingOption) => void;
 	onCancel: () => void;
 	onBusyChange?: (busy: boolean) => void;
 }) {
@@ -71,8 +90,10 @@ export function AmountServingPopup({
 	const form = useForm({
 		defaultValues: {
 			name: "",
-			amount: initial ? "" : "250",
+			// A new measure starts empty, with an example in grey.
+			amount: initial || measure ? "" : "250",
 			scope: foodScope ? "food" : "own",
+			unit: unit === "ml" ? ("ml" as const) : ("g" as const),
 		},
 		onSubmit: async ({ value }) => {
 			if (lock.current) return;
@@ -93,10 +114,29 @@ export function AmountServingPopup({
 			}
 			const { name: servingName, amount } = result.data;
 			if (
-				value.scope === "own" &&
+				(value.scope === "own" || measure) &&
 				Math.abs(amount * 10 - Math.round(amount * 10)) > 1e-9
 			) {
 				setError(copy.invalidMeasure);
+				return;
+			}
+			if (measure) {
+				lock.current = true;
+				setPending(true);
+				setError(undefined);
+				try {
+					Keyboard.dismiss();
+					await measure.onSubmit({
+						name: servingName,
+						amount,
+						unit: value.unit,
+					});
+				} catch {
+					// The caller said why; what was typed stays.
+				} finally {
+					lock.current = false;
+					setPending(false);
+				}
 				return;
 			}
 			if (value.scope === "food" && onFoodServing) {
@@ -162,7 +202,7 @@ export function AmountServingPopup({
 					throw new Error("unavailable");
 				}
 				Keyboard.dismiss();
-				onAdded(option);
+				onAdded?.(option);
 			} catch {
 				setError(copy.addFailure);
 			} finally {
@@ -195,7 +235,9 @@ export function AmountServingPopup({
 					}}
 				>
 					<AppText variant="caption">
-						{key === "name" ? copy.name : `${copy.amount} (${unit})`}
+						{key === "name"
+							? copy.name
+							: `${copy.amount} (${measure ? values.unit : unit})`}
 					</AppText>
 					<TextInput
 						ref={key === "name" ? nameRef : amountRef}
@@ -208,7 +250,11 @@ export function AmountServingPopup({
 								? initial[key]
 								: key === "name"
 									? copy.namePlaceholder
-									: undefined
+									: measure
+										? values.unit === "ml"
+											? "250"
+											: "60"
+										: undefined
 						}
 						placeholderTextColor={colors.textFaint}
 						selectionColor={colors.accent}
@@ -254,7 +300,7 @@ export function AmountServingPopup({
 					<AppText variant="title">×</AppText>
 				</Pressable>
 				<AppText variant="control" style={{ flex: 1, textAlign: "center" }}>
-					{initial ? copy.changeServing : copy.newServing}
+					{measure?.title ?? (initial ? copy.changeServing : copy.newServing)}
 				</AppText>
 				<Pressable
 					disabled={pending}
@@ -272,31 +318,58 @@ export function AmountServingPopup({
 					<AppText variant="control" style={{ color: colors.onAccent }}>
 						{pending
 							? t.nutrition.entryEditor.saving
-							: initial
-								? copy.saveServing
-								: copy.add}
+							: (measure?.confirmLabel ??
+								(initial ? copy.saveServing : copy.add))}
 					</AppText>
 				</Pressable>
 			</View>
 			{fields}
-			<Segmented
-				options={[
-					...(foodScope ? [{ value: "food", label: name }] : []),
-					...(unit !== "serving" && !initial
-						? [{ value: "own", label: copy.ownScope }]
-						: []),
-				]}
-				value={values.scope}
-				onChange={(value) => {
-					if (!pending) form.setFieldValue("scope", value);
-				}}
-			/>
-			<AppText variant="caption" style={{ textAlign: "center" }}>
-				{values.scope === "food" ? copy.foodHelp : fmt(copy.ownHelp, { unit })}
-			</AppText>
-			{error && (
-				<AppText accessibilityRole="alert" style={{ color: colors.danger }}>
+			{measure ? (
+				<Segmented
+					options={[
+						{ value: "g", label: t.nutrition.personalMeasures.grams },
+						{ value: "ml", label: t.nutrition.personalMeasures.millilitres },
+					]}
+					value={values.unit}
+					onChange={(next) => {
+						if (pending || next === values.unit) return;
+						void (measure.confirmUnitChange?.() ?? Promise.resolve(true)).then(
+							(ok) => {
+								if (ok) form.setFieldValue("unit", next as "g" | "ml");
+							},
+						);
+					}}
+				/>
+			) : (
+				<Segmented
+					options={[
+						...(foodScope ? [{ value: "food", label: name }] : []),
+						...(unit !== "serving" && !initial
+							? [{ value: "own", label: copy.ownScope }]
+							: []),
+					]}
+					value={values.scope}
+					onChange={(value) => {
+						if (!pending) form.setFieldValue("scope", value);
+					}}
+				/>
+			)}
+			{/* An error takes the help line's place. */}
+			{error ? (
+				<AppText
+					accessibilityRole="alert"
+					variant="caption"
+					style={{ color: colors.danger, textAlign: "center" }}
+				>
 					{error}
+				</AppText>
+			) : (
+				<AppText variant="caption" style={{ textAlign: "center" }}>
+					{measure
+						? measure.help[values.unit]
+						: values.scope === "food"
+							? copy.foodHelp
+							: fmt(copy.ownHelp, { unit })}
 				</AppText>
 			)}
 		</GlassSurface>

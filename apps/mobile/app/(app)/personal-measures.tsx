@@ -1,4 +1,4 @@
-export { PersonalMeasuresScreen as default } from "../../src/screens/personal-measures";
+export { PersonalMeasuresScreen as default } from "../../src/features/nutrition/personal-measures/personal-measures-screen";
 
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";
