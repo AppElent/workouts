@@ -33,7 +33,15 @@ async function correctTheApple(meal = "Lunch", allFoods = "Catalogue") {
 	fireEvent.press(
 		await screen.findByText(allFoods === "Catalogus" ? "Appel" : "Apple"),
 	);
-	fireEvent.press(await screen.findByText("Correct this food"));
+	await sheetMenu("Correct this food");
+}
+
+/** Opens the amount sheet's ⋯ menu and picks an item. */
+async function sheetMenu(label: string) {
+	fireEvent.press(
+		(await screen.findAllByLabelText(/^(More|Meer)$/)).at(-1) as never,
+	);
+	fireEvent.press((await screen.findAllByText(label)).at(-1) as never);
 }
 
 describe("correcting a shipped food", () => {
@@ -135,7 +143,7 @@ describe("correcting a shipped food", () => {
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
-		fireEvent.press(screen.getByText("Delete Personal Food"));
+		await sheetMenu("Delete Personal Food");
 		expect(await screen.findByText("Delete this correction?")).toBeTruthy();
 		expect(
 			screen.getByText(
@@ -165,7 +173,7 @@ describe("what a correction does to the diary", () => {
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
-		fireEvent.press(screen.getByText("Add & continue"));
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -191,7 +199,7 @@ describe("what a correction does to the diary", () => {
 		fireEvent.press(await screen.findByRole("tab", { name: "Catalogue" }));
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
 		fireEvent.press(await screen.findByText("Apple"));
-		fireEvent.press(screen.getByText("Add & continue"));
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		const before = structuredClone(log.mock.calls[0][0]);
 		// There is no "Done" any more — the pushed route's back chevron closes the
@@ -227,7 +235,7 @@ describe("correcting a shipped food offline", () => {
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
 
-		fireEvent.press(screen.getByText("Add & continue"));
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		expect(
 			await screen.findByText(
@@ -256,7 +264,7 @@ describe("correcting a shipped food in Dutch", () => {
 		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
 		fireEvent.press(await screen.findByText("Appel"));
 
-		fireEvent.press(await screen.findByText("Dit voedingsmiddel corrigeren"));
+		await sheetMenu("Dit voedingsmiddel corrigeren");
 		expect(await screen.findByLabelText("Naam")).toBeTruthy();
 		fireEvent.press(
 			screen.getByLabelText("Persoonlijk voedingsmiddel opslaan"),
@@ -301,5 +309,6 @@ it("copies supplementary Servings into a correction once", async () => {
 	expect(await screen.findByText(/My bowl/)).toBeTruthy();
 	fireEvent.press(screen.getByLabelText("Save Personal Food"));
 	await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
-	expect(screen.getByText(/My bowl/)).toBeTruthy();
+	fireEvent.press(screen.getByLabelText("Choose serving"));
+	expect(screen.getAllByText(/My bowl/).length).toBeGreaterThan(0);
 });

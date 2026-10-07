@@ -66,11 +66,9 @@ describe("the app's language", () => {
 		// The default "Alles" chip already searches the whole catalogue.
 		fireEvent.changeText(await screen.findByLabelText("Zoek eten"), "appel");
 		fireEvent.press(screen.getByText("Appel"));
-		expect(
-			within(await screen.findByTestId("log-food-serving-preview")).getByText(
-				"Appel × 1",
-			),
-		).toBeTruthy();
+		expect(await screen.findByTestId("amount-editor-card")).toBeTruthy();
+		expect(screen.getByLabelText("Aantal").props.value).toBe("1");
+		expect(screen.getAllByText("Appel").length).toBeGreaterThan(0);
 	});
 
 	it("renders the goal editor and validation in Dutch", async () => {

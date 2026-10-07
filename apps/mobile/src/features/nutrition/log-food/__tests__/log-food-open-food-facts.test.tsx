@@ -95,7 +95,7 @@ describe("scanning a barcode", () => {
 		expect((await screen.findAllByText("Scanned Soup")).length).toBeGreaterThan(
 			0,
 		);
-		expect(screen.getByText("Add & continue")).toBeTruthy();
+		expect(screen.getByLabelText("Add & continue")).toBeTruthy();
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
@@ -131,7 +131,7 @@ describe("scanning a barcode", () => {
 			bakedBeans.image_front_small_url,
 			"right",
 		);
-		fireEvent.press(screen.getByText("Add & continue"));
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0].provenance).toMatchObject({

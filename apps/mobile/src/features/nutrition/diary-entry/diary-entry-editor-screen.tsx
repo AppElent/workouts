@@ -5,19 +5,13 @@ import type { ComponentProps } from "react";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Keyboard, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-	formatShortDate,
-	shiftIsoDate,
-	todayIsoDate,
-} from "../../../data/calendar-day";
-import { MEAL_SLOTS } from "../../../data/nutrition-day";
+import { todayIsoDate } from "../../../data/calendar-day";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
-import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { GlassSurface } from "../../../ui/glass-surface";
-import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
+import { AmountDestination } from "../components/amount-destination";
 import { AmountEditor } from "../components/amount-editor";
 import {
 	type DiaryEntryEditorProps,
@@ -47,7 +41,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 			pendingNavigation.current = null;
 		}
 	}, [allowDiscard]);
-	const [dateOpen, setDateOpen] = useState(false);
+	const [_dateOpen, _setDateOpen] = useState(false);
 	useEffect(() => {
 		if (leaving) props.onClose();
 	}, [leaving, props.onClose]);
@@ -76,7 +70,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 	);
 	const entry = props.entry;
 	const validAmount = draft.valid ? draft.amount : entry.amount;
-	const today = todayIsoDate();
+	const _today = todayIsoDate();
 	const action = (
 		label: string,
 		glyph: ComponentProps<typeof SymbolView>["name"],
@@ -214,62 +208,13 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 				onCreatingChange={setCreating}
 				toolbar={
 					<>
-						<GlassSurface capsule>
-							<SelectionMenu
-								label={t.nutrition.meals[draft.nextMeal]}
-								accessibilityLabel={t.nutrition.entryEditor.meal}
-								disabled={draft.busy || adding}
-								groups={[
-									{
-										options: MEAL_SLOTS.map((slot) => ({
-											id: slot,
-											label: t.nutrition.meals[slot],
-											selected: draft.nextMeal === slot,
-										})),
-									},
-								]}
-								onSelect={(id) => {
-									const slot = MEAL_SLOTS.find((slot) => slot === id);
-									if (slot) draft.setMeal(slot);
-								}}
-							/>
-						</GlassSurface>
-						<GlassSurface capsule>
-							<SelectionMenu
-								label={
-									draft.nextDate === today
-										? copy.today
-										: formatShortDate(draft.nextDate, locale)
-								}
-								accessibilityLabel={t.nutrition.entryEditor.date}
-								disabled={draft.busy || adding}
-								groups={[
-									{
-										options: [
-											{
-												id: shiftIsoDate(today, -1),
-												label: copy.yesterday,
-												selected: draft.nextDate === shiftIsoDate(today, -1),
-											},
-											{
-												id: today,
-												label: copy.today,
-												selected: draft.nextDate === today,
-											},
-											{
-												id: shiftIsoDate(today, 1),
-												label: copy.tomorrow,
-												selected: draft.nextDate === shiftIsoDate(today, 1),
-											},
-											{ id: "other", label: copy.otherDate },
-										],
-									},
-								]}
-								onSelect={(id) =>
-									id === "other" ? setDateOpen(true) : draft.setDate(id)
-								}
-							/>
-						</GlassSurface>
+						<AmountDestination
+							meal={draft.nextMeal}
+							date={draft.nextDate}
+							disabled={draft.busy || adding}
+							onMealChange={draft.setMeal}
+							onDateChange={draft.setDate}
+						/>
 						<View style={{ flex: 1 }} />
 						<GlassSurface capsule>
 							{action(
@@ -282,18 +227,6 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 						</GlassSurface>
 					</>
 				}
-			/>
-			<DatePickerSheet
-				visible={dateOpen}
-				date={draft.nextDate}
-				today={today}
-				locale={locale}
-				title={t.nutrition.entryEditor.date}
-				todayLabel={copy.today}
-				doneLabel={copy.done}
-				closeLabel={copy.cancel}
-				onSelect={draft.setDate}
-				onClose={() => setDateOpen(false)}
 			/>
 		</View>
 	);

@@ -97,11 +97,11 @@ describe("Capture Drafts in the diary", () => {
 		const app = seedLunchNote("apple");
 		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
 		fireEvent.press(await screen.findByText("Apple"));
-		fireEvent.press(await screen.findByText("Add & continue"));
+		fireEvent.press(await screen.findByLabelText("Add & continue"));
 		// The serving sheet closing is the signal the log landed; there is no
 		// confirmation line on the browser any more.
 		await waitFor(() =>
-			expect(screen.queryByText("Add & continue")).toBeNull(),
+			expect(screen.queryByLabelText("Add & continue")).toBeNull(),
 		);
 
 		testRouter.back();

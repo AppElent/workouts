@@ -37,7 +37,23 @@ afterEach(() => {
  */
 /** The serving sheet's preview, which repeats the row's portion label. */
 async function servingPreview() {
-	return within(await screen.findByTestId("log-food-serving-preview"));
+	return within(await screen.findByTestId("amount-editor-card"));
+}
+
+/** The amount sheet's serving pill and quantity: "Scoop" × "2". */
+async function expectServing(label: string, quantity: string) {
+	expect((await screen.findAllByText(label)).length).toBeGreaterThan(0);
+	const input = await screen.findByLabelText("Quantity");
+	fireEvent(input, "blur");
+	expect(screen.getByLabelText("Quantity").props.value).toBe(quantity);
+}
+
+/** Picks a serving from the amount sheet's serving menu. */
+function chooseServing(label: string) {
+	fireEvent.press(screen.getByLabelText("Choose serving"));
+	fireEvent.press(
+		screen.getAllByRole("checkbox", { name: label }).at(-1) as never,
+	);
 }
 
 /** Picks the meal from the title menu, the screen's one destination control. */
@@ -64,6 +80,14 @@ async function showAllFoods(query?: string) {
 	if (query) {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), query);
 	}
+}
+
+/** Opens the amount sheet's ⋯ menu and picks an item. */
+async function sheetMenu(label: string) {
+	fireEvent.press(
+		(await screen.findAllByLabelText(/^(More|Meer)$/)).at(-1) as never,
+	);
+	fireEvent.press((await screen.findAllByText(label)).at(-1) as never);
 }
 
 describe("browsing shipped foods", () => {
@@ -105,13 +129,18 @@ describe("browsing shipped foods", () => {
 		await showAllFoods("training drink");
 		fireEvent.press(await screen.findByText("Training drink"));
 
+		fireEvent.press(screen.getByLabelText("Choose serving"));
 		expect(screen.getByText("Small glass (250 ml)")).toBeTruthy();
 		expect(screen.queryByText("Scoop (35 g)")).toBeNull();
 		// Personal Measures are choices, never a global default. With no memory,
 		// this base-only Food keeps its normal 100 ml starting amount.
-		expect(screen.getByText("100 ml")).toBeTruthy();
-		fireEvent.press(screen.getByText("Small glass (250 ml)"));
-		expect(screen.getByText("Small glass (250 ml) × 1")).toBeTruthy();
+		expect(screen.getAllByText("100 ml").length).toBeGreaterThan(0);
+		fireEvent.press(
+			screen
+				.getAllByRole("checkbox", { name: "Small glass (250 ml)" })
+				.at(-1) as never,
+		);
+		await expectServing("Small glass (250 ml)", "1");
 		expect(screen.getByText("250 ml")).toBeTruthy();
 	});
 
@@ -199,11 +228,8 @@ describe("browsing shipped foods", () => {
 		expect(screen.queryByText("Ordinary shake")).toBeNull();
 		fireEvent.press(await screen.findByText("Pasta bowl"));
 		expect(screen.getByLabelText("Quantity").props.value).toBe("1");
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "");
-		// No amount, no preview (the row itself still shows its own 550 kcal).
-		expect(screen.queryByTestId("log-food-serving-preview")).toBeNull();
 		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
-		fireEvent.press(screen.getByText("Add & continue"));
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
 			estimated: true,
@@ -253,11 +279,11 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(await screen.findByText("Base-only shake"));
 
 		expect(screen.getByLabelText("Quantity").props.value).toBe("100");
+		await expectServing("Millilitre (ml)", "100");
 		expect(
-			(await servingPreview()).getByText("Millilitre (ml) × 100"),
-		).toBeTruthy();
-		expect((await servingPreview()).getByText("42 kcal")).toBeTruthy();
-		fireEvent.press(screen.getByText("Add & continue"));
+			(await servingPreview()).getAllByText("42 kcal").length,
+		).toBeGreaterThan(0);
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -357,10 +383,12 @@ describe("browsing shipped foods", () => {
 			"shortcut oats",
 		);
 		fireEvent.press(await screen.findByText("Shortcut oats"));
-		fireEvent.press(screen.getByText("½"));
-		expect(await screen.findByText("Scoop × 0.5")).toBeTruthy();
-		fireEvent.press(screen.getByText("2"));
-		expect(await screen.findByText("Scoop × 2")).toBeTruthy();
+		fireEvent(screen.getByLabelText("Quantity"), "focus");
+		fireEvent.press(screen.getByText("0.5"));
+		await expectServing("Scoop", "0.5");
+		fireEvent(screen.getByLabelText("Quantity"), "focus");
+		fireEvent.press(screen.getAllByText("2").at(-1) as never);
+		await expectServing("Scoop", "2");
 		expect(screen.getByText("240 kcal")).toBeTruthy();
 	});
 
@@ -397,7 +425,7 @@ describe("browsing shipped foods", () => {
 			"training oats",
 		);
 		fireEvent.press(await screen.findByText("Training oats"));
-		fireEvent.press(screen.getByText("Add & continue"));
+		fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -436,7 +464,7 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(screen.getByText("Add"));
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
-		expect((await servingPreview()).getByText("Pouch × 1")).toBeTruthy();
+		await expectServing("Pouch", "1");
 		expect((await servingPreview()).getByText("104 kcal")).toBeTruthy();
 		fireEvent.press(screen.getByLabelText("Close serving options"));
 		fireEvent.changeText(
@@ -463,7 +491,7 @@ describe("browsing shipped foods", () => {
 		await screen.findAllByText("Morning mix");
 		const originalId = repository.list()[0].id;
 
-		fireEvent.press(await screen.findByText("Edit Personal Food"));
+		await sheetMenu("Edit Personal Food");
 		fireEvent.changeText(screen.getByLabelText("Name"), "Morning oats");
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		expect((await screen.findAllByText("Morning oats")).length).toBeGreaterThan(
@@ -471,7 +499,7 @@ describe("browsing shipped foods", () => {
 		);
 		expect(repository.list()[0].id).toBe(originalId);
 
-		fireEvent.press(screen.getByText("Delete Personal Food"));
+		await sheetMenu("Delete Personal Food");
 		expect(await screen.findByText("Delete this Personal Food?")).toBeTruthy();
 		const deleteButtons = screen.getAllByText("Delete Personal Food", {
 			exact: true,
@@ -527,7 +555,7 @@ describe("browsing shipped foods", () => {
 		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "peach");
 		fireEvent.press(await screen.findByText("Peach"));
 
-		expect((await servingPreview()).getByText("Peach × 1")).toBeTruthy();
+		await expectServing("Peach", "1");
 		expect(screen.getAllByText("Trace").length).toBeGreaterThan(0);
 		expect(
 			screen.getByText(
@@ -547,7 +575,9 @@ describe("browsing shipped foods", () => {
 		await showAllFoods();
 		fireEvent.press(await screen.findByText("Black nightshade raw"));
 
-		expect(screen.getAllByText("Not available").length).toBeGreaterThan(0);
+		// Absent stays "—" in the table rather than becoming 0.
+		const card = within(await screen.findByTestId("amount-editor-card"));
+		expect(card.getAllByText("—").length).toBeGreaterThan(0);
 	});
 
 	it("offers exact grams and scales the preview when quantity changes", async () => {
@@ -555,11 +585,11 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await showAllFoods("apple");
 		fireEvent.press(await screen.findByText("Apple"));
-		fireEvent.press(screen.getByText("Gram (g)"));
+		chooseServing("Gram (g)");
 		fireEvent.changeText(screen.getByLabelText("Quantity"), "100");
 
-		expect(await screen.findByText("Gram (g) × 100")).toBeTruthy();
-		expect(screen.getByText("56 kcal")).toBeTruthy();
+		await expectServing("Gram (g)", "100");
+		expect(screen.getAllByText("56 kcal").length).toBeGreaterThan(0);
 	});
 
 	it("shows scan beside search and logs the selected snapshot once", async () => {
@@ -573,7 +603,7 @@ describe("browsing shipped foods", () => {
 		expect(screen.getByLabelText("Scan barcode")).toBeTruthy();
 		await showAllFoods("apple");
 		fireEvent.press(screen.getByText("Apple"));
-		fireEvent.press(await screen.findByText("Add & continue"));
+		fireEvent.press(await screen.findByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -593,7 +623,7 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await showAllFoods("apple");
 		fireEvent.press(screen.getByText("Apple"));
-		const button = await screen.findByText("Add & continue");
+		const button = await screen.findByLabelText("Add & continue");
 		fireEvent.press(button);
 		fireEvent.press(button);
 
@@ -602,7 +632,7 @@ describe("browsing shipped foods", () => {
 				"This food could not be logged. Your selection is still here.",
 			),
 		).toBeTruthy();
-		expect((await servingPreview()).getByText("Apple × 1")).toBeTruthy();
+		await expectServing("Apple", "1");
 		expect(log).toHaveBeenCalledTimes(1);
 	});
 
@@ -623,7 +653,7 @@ describe("browsing shipped foods", () => {
 		] as const) {
 			fireEvent.changeText(screen.getByPlaceholderText("Search foods"), query);
 			fireEvent.press(await screen.findByText(food));
-			fireEvent.press(screen.getByText("Add & continue"));
+			fireEvent.press(screen.getByLabelText("Add & continue"));
 			await waitFor(() =>
 				expect(log).toHaveBeenCalledTimes(
 					["apple", "peach", "hagelslag"].indexOf(query) + 1,
@@ -658,13 +688,13 @@ describe("browsing shipped foods", () => {
 		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await showAllFoods("apple");
 		fireEvent.press(screen.getByText("Apple"));
-		fireEvent.press(await screen.findByText("Add & continue"));
-		fireEvent.press(screen.getByText("Add & close"));
+		fireEvent.press(await screen.findByLabelText("Add & continue"));
+		await sheetMenu("Add & close");
 
 		expect(log).toHaveBeenCalledTimes(1);
 		resolveLog();
 		await waitFor(() =>
-			expect(screen.queryByText("Add & continue")).toBeNull(),
+			expect(screen.queryByLabelText("Add & continue")).toBeNull(),
 		);
 		expect(await destination("Dinner")).toBeGreaterThan(0);
 	});

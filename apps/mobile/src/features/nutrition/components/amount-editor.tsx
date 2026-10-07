@@ -50,6 +50,7 @@ export function AmountEditor({
 	onAddingChange,
 	onCreatingChange,
 	servingMenu = true,
+	allNutrients = false,
 }: {
 	name: string;
 	visual?: FoodVisual;
@@ -76,6 +77,8 @@ export function AmountEditor({
 	onCreatingChange?: (creating: boolean) => void;
 	/** False when the amount has no servings to choose, such as whole combos. */
 	servingMenu?: boolean;
+	/** All eight values instead of energy and macros, before something is logged. */
+	allNutrients?: boolean;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.diaryEntry;
@@ -187,6 +190,7 @@ export function AmountEditor({
 						</AppText>
 					)}
 					<View
+						testID="amount-editor-card"
 						style={{
 							backgroundColor: colors.surface,
 							borderRadius: 26,
@@ -234,6 +238,7 @@ export function AmountEditor({
 						{notice}
 						<NutrientTable
 							compact
+							all={allNutrients}
 							nutrients={nutrients}
 							factor={factor}
 							referenceFactor={referenceFactor}

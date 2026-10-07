@@ -83,6 +83,7 @@ import { useToast } from "../../../ui/toast";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { LogFoodAmountSheet } from "./components/log-food-amount-sheet";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
 import { LogFoodComboRow } from "./components/log-food-combo-row";
 import { LogFoodDestinationMenu } from "./components/log-food-destination-menu";
@@ -93,7 +94,6 @@ import type { LogFoodMenuProps } from "./components/log-food-menu-props";
 import { LogFoodOffSection } from "./components/log-food-off-section";
 import { LogFoodRow } from "./components/log-food-row";
 import { LogFoodSectionHeader } from "./components/log-food-section-header";
-import { LogFoodServingSheet } from "./components/log-food-serving-sheet";
 import { LogFoodToolbar } from "./components/log-food-toolbar";
 import {
 	compactEnergyPer100,
@@ -735,7 +735,7 @@ export function LogFoodScreen({
 
 	const servingSheet =
 		selectedFood && !editor ? (
-			<LogFoodServingSheet
+			<LogFoodAmountSheet
 				key={`${selectedFood.kind}:${selectedFood.food.id}`}
 				selection={selectedFood}
 				meal={selectedMeal}
