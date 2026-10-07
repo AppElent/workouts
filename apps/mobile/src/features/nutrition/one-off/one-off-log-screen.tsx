@@ -21,7 +21,6 @@ import {
 	type FoodVisualPresetId,
 } from "../../../data/personal-food-repository";
 import { useI18n } from "../../../i18n";
-import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-copy";
 import { spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { FoodVisualView } from "../../../ui/food-visual";
 import { FoodVisualMenu } from "../../../ui/food-visual-menu";
@@ -37,6 +36,7 @@ import {
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
+import { foodEditorCopy } from "../components/food-editor-copy";
 import { type OneOffLogCopy, oneOffLogCopy } from "./one-off-log-copy";
 
 const EMPTY_NUTRIENT_INPUTS = Object.fromEntries(
@@ -100,7 +100,7 @@ function OneOffLogger({
 	const insets = useSafeAreaInsets();
 	const router = useRouter();
 	const authoringIntent = useFoodAuthoringIntent();
-	const visualCopy = personalFoodEditorCopy[locale];
+	const visualCopy = foodEditorCopy[locale];
 	const [name, setName] = useState("");
 	const [amount, setAmount] = useState("");
 	const [baseUnit, setBaseUnit] = useState<"g" | "ml" | "serving">("serving");

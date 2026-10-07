@@ -55,46 +55,54 @@ export function NutritionChoiceMenu({
 					>
 						<ScrollView>
 							{title ? <AppText variant="caption">{title}</AppText> : null}
-							{sections.map((items, index) => (
-								<View
-									key={items[0]?.id ?? index}
-									style={
-										index > 0
-											? {
-													borderTopWidth: 0.5,
-													borderTopColor: colors.separator,
-												}
-											: undefined
-									}
-								>
-									{items.map((item) => (
-										<Pressable
-											key={item.id}
-											accessibilityRole="button"
-											accessibilityState={{ selected: item.selected }}
-											onPress={() => {
-												setOpen(false);
-												onSelect(item.id);
-											}}
-											style={{ minHeight: 48, justifyContent: "center" }}
-										>
-											<AppText
-												style={
-													item.destructive
-														? { color: colors.danger }
-														: undefined
-												}
+							{sections
+								// Menus do not nest here: a submenu's choices follow as a section.
+								.flatMap((items) => [
+									items,
+									...items.flatMap((item) =>
+										item.submenu ? [item.submenu] : [],
+									),
+								])
+								.map((items, index) => (
+									<View
+										key={items[0]?.id ?? index}
+										style={
+											index > 0
+												? {
+														borderTopWidth: 0.5,
+														borderTopColor: colors.separator,
+													}
+												: undefined
+										}
+									>
+										{items.map((item) => (
+											<Pressable
+												key={item.id}
+												accessibilityRole="button"
+												accessibilityState={{ selected: item.selected }}
+												onPress={() => {
+													setOpen(false);
+													onSelect(item.id);
+												}}
+												style={{ minHeight: 48, justifyContent: "center" }}
 											>
-												{item.selected ? "✓ " : ""}
-												{item.label}
-											</AppText>
-											{item.hint ? (
-												<AppText variant="caption">{item.hint}</AppText>
-											) : null}
-										</Pressable>
-									))}
-								</View>
-							))}
+												<AppText
+													style={
+														item.destructive
+															? { color: colors.danger }
+															: undefined
+													}
+												>
+													{item.selected ? "✓ " : ""}
+													{item.label}
+												</AppText>
+												{item.hint ? (
+													<AppText variant="caption">{item.hint}</AppText>
+												) : null}
+											</Pressable>
+										))}
+									</View>
+								))}
 						</ScrollView>
 					</View>
 				</Pressable>

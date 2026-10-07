@@ -14,16 +14,16 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useI18n } from "../i18n";
+import { useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
 	type Tokens,
 	useThemedStyles,
 	useTokens,
-} from "../theme";
-import { GhostButton } from "../ui/button";
-import { AppText } from "../ui/text";
+} from "../../../theme";
+import { GhostButton } from "../../../ui/button";
+import { AppText } from "../../../ui/text";
 
 export function BarcodeScanner({
 	onScanned,

@@ -14,9 +14,12 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { todayIsoDate } from "../data/calendar-day";
-import { PREFERENCE_KEYS, writePreference } from "../prefs/local-preference";
-import { renderApp } from "../test-support/render-app";
+import { todayIsoDate } from "../../../../data/calendar-day";
+import {
+	PREFERENCE_KEYS,
+	writePreference,
+} from "../../../../prefs/local-preference";
+import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
 

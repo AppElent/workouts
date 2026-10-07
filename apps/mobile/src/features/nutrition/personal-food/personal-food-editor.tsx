@@ -22,7 +22,6 @@ import {
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
-import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-copy";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { FoodVisualView } from "../../../ui/food-visual";
@@ -30,9 +29,10 @@ import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
+import { foodEditorCopy } from "../components/food-editor-copy";
+import { FoodKeyboardBar } from "../components/food-keyboard-bar";
+import { FoodValueField } from "../components/food-value-field";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
-import { PersonalFoodKeyboardBar } from "./components/personal-food-keyboard-bar";
-import { PersonalFoodValueField } from "./components/personal-food-value-field";
 import {
 	type NutrientInput,
 	parseFoodNumber,
@@ -82,7 +82,7 @@ export function PersonalFoodEditor({
 }: PersonalFoodEditorProps) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.foodEditor;
-	const photoCopy = personalFoodEditorCopy[locale];
+	const photoCopy = foodEditorCopy[locale];
 	const colors = useTokens();
 	const confirm = useConfirm();
 	const navigation = useNavigation();
@@ -813,7 +813,7 @@ export function PersonalFoodEditor({
 										: copy.ofWhichSaturated
 									: t.nutrition.nutrients[key]}
 							</AppText>
-							<PersonalFoodValueField
+							<FoodValueField
 								inputRef={(input) => {
 									if (input) inputs.current.set(key, input);
 									else inputs.current.delete(key);
@@ -978,7 +978,7 @@ export function PersonalFoodEditor({
 						)
 					: null}
 			</ScrollView>
-			<PersonalFoodKeyboardBar
+			<FoodKeyboardBar
 				visible={focused !== null && servingEditor === null}
 				traceLabel={copy.trace}
 				unknownLabel={copy.unknown}

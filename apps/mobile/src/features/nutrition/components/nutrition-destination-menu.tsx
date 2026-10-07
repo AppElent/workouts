@@ -8,17 +8,17 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import { haptics } from "../../../../feedback/haptics";
-import { useReduceMotion } from "../../../../feedback/reduce-motion";
+import { haptics } from "../../../feedback/haptics";
+import { useReduceMotion } from "../../../feedback/reduce-motion";
 import {
 	spacing,
 	type Tokens,
 	useThemedStyles,
 	useTokens,
-} from "../../../../theme";
-import { GlassSurface } from "../../../../ui/glass-surface";
-import { AppText } from "../../../../ui/text";
-import type { LogFoodDestinationMenuProps } from "./log-food-destination-menu-props";
+} from "../../../theme";
+import { GlassSurface } from "../../../ui/glass-surface";
+import { AppText } from "../../../ui/text";
+import type { NutritionDestinationMenuProps } from "./nutrition-destination-menu-props";
 
 /** Design `.menu`: 282pt wide, 26pt corners, popping in under the title. */
 const MENU_WIDTH = 282;
@@ -42,7 +42,7 @@ interface Anchor {
  * second line and indents only the checked meal, which is the layout the
  * design rejects.
  */
-export function LogFoodDestinationMenu(props: LogFoodDestinationMenuProps) {
+export function NutritionDestinationMenu(props: NutritionDestinationMenuProps) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const reduceMotion = useReduceMotion();

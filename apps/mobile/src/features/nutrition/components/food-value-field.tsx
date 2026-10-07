@@ -1,14 +1,14 @@
 import { type Ref, useImperativeHandle, useRef, useState } from "react";
 import { Pressable, TextInput } from "react-native";
-import { type, useTokens } from "../../../../theme";
-import { AppText } from "../../../../ui/text";
+import { type, useTokens } from "../../../theme";
+import { AppText } from "../../../ui/text";
 
 /**
  * A value that is its own field. Focus greys the current value into the
  * placeholder so the first keystroke replaces it; leaving empty keeps it.
  * The unit after it belongs to the field: tapping "g" edits the number too.
  */
-export function PersonalFoodValueField({
+export function FoodValueField({
 	display,
 	unit,
 	accessibilityLabel,

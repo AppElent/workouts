@@ -42,6 +42,40 @@ export function NutritionChoiceMenu({
 	style,
 }: NutritionChoiceMenuProps) {
 	const colors = useTokens();
+	const renderItem = (item: NutritionChoiceMenuItem) =>
+		item.selected !== undefined ? (
+			<Toggle
+				key={item.id}
+				isOn={item.selected}
+				onIsOnChange={() => onSelect(item.id)}
+			>
+				{itemContent(item)}
+			</Toggle>
+		) : item.destructive ? (
+			<Button
+				key={item.id}
+				label={item.label}
+				systemImage={item.symbol ?? "trash"}
+				role={DESTRUCTIVE}
+				onPress={() => onSelect(item.id)}
+			/>
+		) : item.symbol && !item.hint ? (
+			<Button
+				key={item.id}
+				label={item.label}
+				systemImage={item.symbol}
+				modifiers={[tint(colors.text)]}
+				onPress={() => onSelect(item.id)}
+			/>
+		) : (
+			<Button
+				key={item.id}
+				modifiers={[tint(colors.text)]}
+				onPress={() => onSelect(item.id)}
+			>
+				{itemContent(item)}
+			</Button>
+		);
 	return (
 		<Host matchContents colorScheme={useHostScheme()} style={style}>
 			<Menu
@@ -58,30 +92,16 @@ export function NutritionChoiceMenu({
 						title={index === 0 ? title : undefined}
 					>
 						{items.map((item) =>
-							item.selected !== undefined ? (
-								<Toggle
+							item.submenu ? (
+								<Menu
 									key={item.id}
-									isOn={item.selected}
-									onIsOnChange={() => onSelect(item.id)}
+									label={itemContent(item)}
+									systemImage={item.symbol}
 								>
-									{itemContent(item)}
-								</Toggle>
-							) : item.destructive ? (
-								<Button
-									key={item.id}
-									label={item.label}
-									systemImage="trash"
-									role={DESTRUCTIVE}
-									onPress={() => onSelect(item.id)}
-								/>
+									{item.submenu.map((choice) => renderItem(choice))}
+								</Menu>
 							) : (
-								<Button
-									key={item.id}
-									modifiers={[tint(colors.text)]}
-									onPress={() => onSelect(item.id)}
-								>
-									{itemContent(item)}
-								</Button>
+								renderItem(item)
 							),
 						)}
 					</Section>

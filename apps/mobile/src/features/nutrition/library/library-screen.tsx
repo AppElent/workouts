@@ -13,7 +13,6 @@ import {
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useStalledOffline } from "../../../data/stalled-offline";
 import { fmt, useI18n } from "../../../i18n";
-import { BarcodeScanner } from "../../../screens/barcode-scanner";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { EmptyState } from "../../../ui/empty-state";
@@ -25,6 +24,7 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { BarcodeScanner } from "../components/barcode-scanner";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionEnergyValue } from "../components/nutrition-energy-value";
 import { NutritionListRowLeading } from "../components/nutrition-list-row-leading";

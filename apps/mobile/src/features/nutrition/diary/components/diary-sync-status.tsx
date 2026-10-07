@@ -2,12 +2,12 @@ import { View } from "react-native";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
-} from "../data/nutrition-operation-service";
-import { useI18n } from "../i18n";
-import { GhostButton } from "../ui/button";
-import { AppText } from "../ui/text";
+} from "../../../../data/nutrition-operation-service";
+import { useI18n } from "../../../../i18n";
+import { GhostButton } from "../../../../ui/button";
+import { AppText } from "../../../../ui/text";
 
-export function NutritionSyncStatus() {
+export function DiarySyncStatus() {
 	const service = useNutritionOperations();
 	useNutritionOperationVersion();
 	const { locale } = useI18n();

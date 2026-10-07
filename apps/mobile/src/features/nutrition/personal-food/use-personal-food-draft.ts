@@ -20,8 +20,8 @@ import {
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
-import { personalFoodEditorCopy } from "../../../screens/personal-food-editor-copy";
 import { useToast } from "../../../ui/toast";
+import { foodEditorCopy } from "../components/food-editor-copy";
 
 export type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 export type ServingInput = {
@@ -89,7 +89,7 @@ export function usePersonalFoodDraft({
 	onSaved: (saved: PersonalFood) => void;
 }) {
 	const { t, locale } = useI18n();
-	const copy = personalFoodEditorCopy[locale];
+	const copy = foodEditorCopy[locale];
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
 	const initial = food ?? seed;

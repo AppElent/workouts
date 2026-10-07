@@ -1,7 +1,7 @@
-import type { FoodVisualPresetId } from "../data/personal-food-repository";
-import type { Locale } from "../i18n";
+import type { FoodVisualPresetId } from "../../../data/personal-food-repository";
+import type { Locale } from "../../../i18n";
 
-export type PersonalFoodEditorCopy = {
+export type FoodEditorCopy = {
 	save: string;
 	saving: string;
 	visual: string;
@@ -54,7 +54,7 @@ export type PersonalFoodEditorCopy = {
 	servingAmount: string;
 };
 
-export const personalFoodEditorCopy: Record<Locale, PersonalFoodEditorCopy> = {
+export const foodEditorCopy: Record<Locale, FoodEditorCopy> = {
 	en: {
 		save: "Save",
 		saving: "Saving…",

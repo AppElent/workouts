@@ -1,12 +1,12 @@
 import { SymbolView } from "expo-symbols";
 import { Keyboard, Pressable, View } from "react-native";
-import { radius, spacing, useTokens } from "../../../../theme";
-import { GlassSurface } from "../../../../ui/glass-surface";
-import { AppText } from "../../../../ui/text";
-import { NutritionKeyboardOverlay } from "../../components/nutrition-keyboard-overlay";
+import { radius, spacing, useTokens } from "../../../theme";
+import { GlassSurface } from "../../../ui/glass-surface";
+import { AppText } from "../../../ui/text";
+import { NutritionKeyboardOverlay } from "./nutrition-keyboard-overlay";
 
 /** Trace and Unknown replace the per-row menus; ‹ › walk the values in order. */
-export function PersonalFoodKeyboardBar({
+export function FoodKeyboardBar({
 	visible,
 	traceLabel,
 	unknownLabel,

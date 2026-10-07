@@ -64,7 +64,6 @@ import {
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
 import { useI18n } from "../../../i18n";
-import { BarcodeScanner } from "../../../screens/barcode-scanner";
 import {
 	radius,
 	spacing,
@@ -79,14 +78,15 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { BarcodeScanner } from "../components/barcode-scanner";
 import type { FoodRowPosition } from "../components/food-row-layout";
+import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { LogFoodAmountSheet } from "./components/log-food-amount-sheet";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
 import { LogFoodComboRow } from "./components/log-food-combo-row";
-import { LogFoodDestinationMenu } from "./components/log-food-destination-menu";
 import { LogFoodEmptyState } from "./components/log-food-empty-state";
 import { LogFoodFindControls } from "./components/log-food-find-controls";
 import { LogFoodMealSummary } from "./components/log-food-meal-summary";
@@ -917,7 +917,7 @@ export function LogFoodScreen({
 					options={{
 						title: mealName,
 						headerTitle: () => (
-							<LogFoodDestinationMenu
+							<NutritionDestinationMenu
 								label={copy.destinationLabel(
 									mealName,
 									formatLongDate(date, locale),

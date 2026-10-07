@@ -1,22 +1,25 @@
 /** Edit a device-only Capture Draft's text or Meal Slot in a page sheet. */
 import { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
-import { MEAL_SLOTS, type MealSlot } from "../data/nutrition-day";
-import type { CaptureDraft } from "../data/nutrition-draft-repository";
-import { useNutritionDrafts } from "../data/nutrition-drafts";
-import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { useI18n } from "../i18n";
-import { spacing } from "../theme";
+import { MEAL_SLOTS, type MealSlot } from "../../../../data/nutrition-day";
+import type { CaptureDraft } from "../../../../data/nutrition-draft-repository";
+import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
+import {
+	modalAnimation,
+	useReduceMotion,
+} from "../../../../feedback/reduce-motion";
+import { useI18n } from "../../../../i18n";
+import { spacing } from "../../../../theme";
 import {
 	FormScreen,
 	FormSection,
 	FormSegmentedRow,
 	FormTextField,
-} from "../ui/form";
-import { AppText } from "../ui/text";
-import { useToast } from "../ui/toast";
+} from "../../../../ui/form";
+import { AppText } from "../../../../ui/text";
+import { useToast } from "../../../../ui/toast";
 
-export function NutritionDraftEditor({
+export function DiaryDraftEditor({
 	draft,
 	onClose,
 }: {

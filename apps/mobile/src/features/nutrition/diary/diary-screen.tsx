@@ -23,8 +23,6 @@ import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useStalledOffline } from "../../../data/stalled-offline";
 import { useTrainingMarker } from "../../../data/training-marker";
 import { fmt, useI18n } from "../../../i18n";
-import { NutritionDraftEditor } from "../../../screens/nutrition-draft-editor";
-import { NutritionSyncStatus } from "../../../screens/nutrition-sync-status";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -34,9 +32,11 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { NutritionHeaderMenu } from "../components/nutrition-header-menu";
 import { DiaryDatePicker } from "./components/diary-date-picker";
+import { DiaryDraftEditor } from "./components/diary-draft-editor";
 import { DiaryMealCard } from "./components/diary-meal-card";
 import { DiarySelectionActions } from "./components/diary-selection-actions";
 import { DiarySummary } from "./components/diary-summary";
+import { DiarySyncStatus } from "./components/diary-sync-status";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
 import { useDiaryDateRequest } from "./use-diary-date-request";
 
@@ -303,7 +303,7 @@ export function DiaryScreen({
 					</SkeletonGroup>
 				) : (
 					<>
-						<NutritionSyncStatus />
+						<DiarySyncStatus />
 						{!state.day.complete ? (
 							<AppText variant="caption">
 								{locale === "nl"
@@ -509,7 +509,7 @@ export function DiaryScreen({
 				</View>
 			) : null}
 			{editingDraft ? (
-				<NutritionDraftEditor
+				<DiaryDraftEditor
 					draft={editingDraft}
 					onClose={() => setEditingDraft(undefined)}
 				/>
