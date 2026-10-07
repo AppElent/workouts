@@ -1,6 +1,10 @@
-import type { NutrientKey, NutrientValue } from "@workouts/core/nutrition";
-import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
-import { groupWeekSources } from "./week-sources";
+import { describe, expect, it } from "vitest";
+import { groupFoodNutrientSources } from "./nutrient-sources";
+import {
+	NUTRIENT_KEYS,
+	type NutrientKey,
+	type NutrientValue,
+} from "./nutrients";
 
 function entry(
 	id: string,
@@ -24,9 +28,9 @@ function entry(
 	};
 }
 
-describe("groupWeekSources", () => {
+describe("groupFoodNutrientSources", () => {
 	it("adds up one food across days and ranks foods by amount", () => {
-		const result = groupWeekSources(
+		const result = groupFoodNutrientSources(
 			[
 				entry("a", "2026-09-29", "Lasagne", 34),
 				entry("b", "2026-10-01", "Lasagne", 34),

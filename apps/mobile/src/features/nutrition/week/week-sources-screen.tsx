@@ -1,4 +1,8 @@
-import { type NutrientKey, roundForDisplay } from "@workouts/core/nutrition";
+import {
+	groupFoodNutrientSources,
+	type NutrientKey,
+	roundForDisplay,
+} from "@workouts/core/nutrition";
 import { router, Stack } from "expo-router";
 import {
 	ActionSheetIOS,
@@ -25,7 +29,7 @@ import {
 	weekNumber,
 	weekUnit,
 } from "./week-format";
-import { groupWeekSources } from "./week-sources";
+
 import {
 	isoWeekNumber,
 	weekAverage,
@@ -133,11 +137,11 @@ export function WeekSourcesScreen({
 								)
 								.map((day) => day.date),
 						);
-						const sources = groupWeekSources(
+						const sources = groupFoodNutrientSources(
 							entries.filter((entry) => counted.has(entry.date)),
 							nutrient,
 						);
-						const missing = groupWeekSources(
+						const missing = groupFoodNutrientSources(
 							entries.filter((entry) => entry.date <= today),
 							nutrient,
 						).missingByDate;
