@@ -5,11 +5,10 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 } from "@workouts/core/nutrition";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
 	type FoodPhotoCropPosition,
 	type FoodPhotoManager,
-	type FoodPhotoSource,
 	foodPhotos,
 } from "../../../data/food-photo-manager";
 import {
@@ -22,6 +21,7 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { foodEditorCopy } from "../components/food-editor-copy";
+import { useStagedFoodVisual } from "../use-staged-food-visual";
 
 export type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 export type ServingInput = {
@@ -30,9 +30,7 @@ export type ServingInput = {
 	nl: string;
 	amount: string;
 };
-export type EditorVisual =
-	| FoodVisual
-	| { readonly kind: "remote"; readonly uri: string };
+export type { EditorVisual } from "../use-staged-food-visual";
 
 function toText(value: number) {
 	return String(value).replace(".", ",");
@@ -93,18 +91,7 @@ export function usePersonalFoodDraft({
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
 	const initial = food ?? seed;
-	const [visual, setVisual] = useState<EditorVisual | undefined>(() =>
-		initial?.visual
-			? initial.visual
-			: initial?.provenance.imageUrl && (!food || food.visualMigrationPending)
-				? { kind: "remote", uri: initial.provenance.imageUrl }
-				: undefined,
-	);
-	const [visualError, setVisualError] = useState<string>();
-	const [photoBusy, setPhotoBusy] = useState(false);
 	const [remoteCrop, setRemoteCrop] = useState<FoodPhotoCropPosition>("center");
-	const stagedPhoto = useRef<string | undefined>(undefined);
-	const savedPhoto = useRef(false);
 	const [name, setNameState] = useState(
 		initial?.name[locale] ?? initialName ?? "",
 	);
@@ -133,14 +120,20 @@ export function usePersonalFoodDraft({
 	const saveLock = useRef(false);
 	const [touched, setTouched] = useState(false);
 	const touch = () => setTouched(true);
-
-	useEffect(
-		() => () => {
-			if (!savedPhoto.current && stagedPhoto.current)
-				photoManager.remove({ kind: "photo", uri: stagedPhoto.current });
+	const photo = useStagedFoodVisual({
+		initial: initial?.visual
+			? initial.visual
+			: initial?.provenance.imageUrl && (!food || food.visualMigrationPending)
+				? { kind: "remote", uri: initial.provenance.imageUrl }
+				: undefined,
+		photoManager,
+		messages: {
+			permissionDenied: copy.photoPermissionDenied,
+			failure: copy.photoFailure,
 		},
-		[photoManager],
-	);
+		onChange: touch,
+	});
+	const { visual } = photo;
 
 	const source = useMemo(
 		() => (initial ? forkSource(initial) : undefined),
@@ -210,37 +203,6 @@ export function usePersonalFoodDraft({
 		};
 	}
 
-	function replaceVisual(next: EditorVisual | undefined) {
-		if (
-			stagedPhoto.current &&
-			(next?.kind !== "photo" || next.uri !== stagedPhoto.current)
-		) {
-			photoManager.remove({ kind: "photo", uri: stagedPhoto.current });
-			stagedPhoto.current = undefined;
-		}
-		setVisual(next);
-		setVisualError(undefined);
-		touch();
-	}
-
-	async function choosePhoto(from: FoodPhotoSource) {
-		if (photoBusy) return;
-		setPhotoBusy(true);
-		setVisualError(undefined);
-		try {
-			const choice = await photoManager.choose(from);
-			if (choice.kind === "denied") setVisualError(copy.photoPermissionDenied);
-			else if (choice.kind === "selected") {
-				replaceVisual(choice.visual);
-				stagedPhoto.current = choice.visual.uri;
-			}
-		} catch {
-			setVisualError(copy.photoFailure);
-		} finally {
-			setPhotoBusy(false);
-		}
-	}
-
 	/** Returns false when the draft is not valid; the caller scrolls to the name. */
 	async function save(): Promise<boolean> {
 		if (saving || saveLock.current) return true;
@@ -281,7 +243,7 @@ export function usePersonalFoodDraft({
 				(saved.visual?.kind !== "photo" || food.visual.uri !== saved.visual.uri)
 			)
 				photoManager.remove(food.visual);
-			savedPhoto.current = true;
+			photo.keep();
 		} catch {
 			if (importedPhoto) photoManager.remove(importedPhoto);
 			toast.error(t.nutrition.personalFood.saveFailure);
@@ -296,20 +258,13 @@ export function usePersonalFoodDraft({
 		return true;
 	}
 
-	function discardStagedPhoto() {
-		if (stagedPhoto.current) {
-			photoManager.remove({ kind: "photo", uri: stagedPhoto.current });
-			stagedPhoto.current = undefined;
-		}
-	}
-
 	return {
 		food,
 		initial,
 		source,
 		visual,
-		visualError,
-		photoBusy,
+		visualError: photo.error,
+		photoBusy: photo.busy,
 		remoteCrop,
 		setRemoteCrop: (crop: FoodPhotoCropPosition) => {
 			setRemoteCrop(crop);
@@ -392,10 +347,10 @@ export function usePersonalFoodDraft({
 		},
 		dirty: touched,
 		saving,
-		choosePhoto,
-		replaceVisual,
+		choosePhoto: photo.choose,
+		replaceVisual: photo.replace,
 		save,
-		discardStagedPhoto,
+		discardStagedPhoto: photo.discard,
 		buildDraft,
 	};
 }

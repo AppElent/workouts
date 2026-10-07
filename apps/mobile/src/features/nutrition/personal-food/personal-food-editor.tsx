@@ -1,5 +1,4 @@
 import { type NutrientKey, roundForDisplay } from "@workouts/core/nutrition";
-import { Image } from "expo-image";
 import { Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
@@ -14,17 +13,14 @@ import {
 	View,
 } from "react-native";
 import type { FoodPhotoManager } from "../../../data/food-photo-manager";
-import {
-	FOOD_VISUAL_PRESET_IDS,
-	type FoodVisualPresetId,
-	type PersonalFood,
-	type PersonalFoodDraft,
+import type {
+	PersonalFood,
+	PersonalFoodDraft,
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
-import { FoodVisualView } from "../../../ui/food-visual";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
@@ -32,6 +28,7 @@ import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import { foodEditorCopy } from "../components/food-editor-copy";
 import { FoodKeyboardBar } from "../components/food-keyboard-bar";
 import { FoodValueField } from "../components/food-value-field";
+import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import {
 	type NutrientInput,
@@ -450,107 +447,14 @@ export function PersonalFoodEditor({
 				<View
 					style={{ alignItems: "center", gap: 6, marginBottom: spacing.sm }}
 				>
-					<NutritionChoiceMenu
-						accessibilityLabel={photoCopy.visual}
-						sections={[
-							[
-								{ id: "camera", label: photoCopy.takePhoto },
-								{ id: "library", label: photoCopy.choosePhoto },
-								...(draft.visual?.kind === "photo" ||
-								draft.visual?.kind === "remote"
-									? [
-											{
-												id: "remove",
-												label: photoCopy.removePhoto,
-												destructive: true,
-											},
-										]
-									: []),
-							],
-							[
-								{
-									id: "default",
-									label: photoCopy.defaultVisual,
-									selected: draft.visual === undefined,
-								},
-								...FOOD_VISUAL_PRESET_IDS.map((preset) => ({
-									id: preset,
-									label: photoCopy.visualPresets[preset],
-									selected:
-										draft.visual?.kind === "icon" &&
-										draft.visual.preset === preset,
-								})),
-							],
-							...(draft.visual?.kind === "remote"
-								? [
-										(["center", "top", "bottom", "left", "right"] as const).map(
-											(position) => ({
-												id: `crop:${position}`,
-												label: photoCopy.cropPositions[position],
-												hint: photoCopy.cropPosition,
-												selected: draft.remoteCrop === position,
-											}),
-										),
-									]
-								: []),
-						]}
-						onSelect={(id) => {
-							if (id.startsWith("crop:"))
-								draft.setRemoteCrop(
-									id.slice(5) as "center" | "top" | "bottom" | "left" | "right",
-								);
-							else if (id === "camera" || id === "library")
-								void draft.choosePhoto(id);
-							else if (id === "remove" || id === "default")
-								draft.replaceVisual(undefined);
-							else
-								draft.replaceVisual({
-									kind: "icon",
-									preset: id as FoodVisualPresetId,
-								});
-						}}
-					>
-						<View style={{ width: 96, height: 96 }}>
-							{draft.visual?.kind === "remote" ? (
-								<Image
-									source={draft.visual.uri}
-									contentFit="cover"
-									contentPosition={draft.remoteCrop}
-									style={{ width: 96, height: 96, borderRadius: radius.lg }}
-								/>
-							) : (
-								<FoodVisualView
-									visual={draft.visual}
-									label={draft.name || copy.namePlaceholder}
-									size={96}
-								/>
-							)}
-							<View
-								style={{
-									position: "absolute",
-									right: -4,
-									bottom: -4,
-									width: 28,
-									height: 28,
-									borderRadius: 14,
-									backgroundColor: colors.surface,
-									alignItems: "center",
-									justifyContent: "center",
-									boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-								}}
-							>
-								<SymbolView
-									name={{
-										ios: "camera",
-										android: "photo_camera",
-										web: "photo_camera",
-									}}
-									size={13}
-									tintColor={colors.text}
-								/>
-							</View>
-						</View>
-					</NutritionChoiceMenu>
+					<FoodVisualPicker
+						visual={draft.visual}
+						name={draft.name || copy.namePlaceholder}
+						crop={draft.remoteCrop}
+						onPhoto={(source) => void draft.choosePhoto(source)}
+						onVisual={draft.replaceVisual}
+						onCrop={draft.setRemoteCrop}
+					/>
 					<TextInput
 						accessibilityLabel={photoCopy.name}
 						value={draft.name}

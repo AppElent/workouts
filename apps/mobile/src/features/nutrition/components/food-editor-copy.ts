@@ -8,6 +8,8 @@ export type FoodEditorCopy = {
 	defaultVisual: string;
 	visualPresets: Readonly<Record<FoodVisualPresetId, string>>;
 	takePhoto: string;
+	/** The submenu of preset icons. */
+	icon: string;
 	choosePhoto: string;
 	replacePhoto: string;
 	removePhoto: string;
@@ -75,6 +77,7 @@ export const foodEditorCopy: Record<Locale, FoodEditorCopy> = {
 			condiment: "Condiment",
 		},
 		takePhoto: "Take photo",
+		icon: "Icon",
 		choosePhoto: "Choose photo",
 		replacePhoto: "Replace photo",
 		removePhoto: "Remove photo",
@@ -148,6 +151,7 @@ export const foodEditorCopy: Record<Locale, FoodEditorCopy> = {
 			condiment: "Saus of smaakmaker",
 		},
 		takePhoto: "Foto maken",
+		icon: "Icoon",
 		choosePhoto: "Foto kiezen",
 		replacePhoto: "Foto vervangen",
 		removePhoto: "Foto verwijderen",
