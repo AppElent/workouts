@@ -5,7 +5,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { usePersonalFoods } from "../../../src/data/personal-foods";
-import { PersonalFoodEditor } from "../../../src/screens/personal-food-editor";
+import { PersonalFoodEditor } from "../../../src/features/nutrition/personal-food/personal-food-editor";
 
 export { ErrorBoundary } from "../nutrition-library";
 

@@ -66,7 +66,6 @@ import {
 } from "../../../feedback/reduce-motion";
 import { fmt, useI18n } from "../../../i18n";
 import { BarcodeScanner } from "../../../screens/barcode-scanner";
-import { PersonalFoodEditor } from "../../../screens/personal-food-editor";
 import {
 	radius,
 	spacing,
@@ -86,6 +85,7 @@ import { useComboTarget } from "../combo/use-combo-target";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { LogFoodAmountSheet } from "./components/log-food-amount-sheet";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
 import { LogFoodComboRow } from "./components/log-food-combo-row";

@@ -6,8 +6,8 @@ import type { PersonalFoodDraft } from "@workouts/core/nutrition";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useOpenFoodFacts } from "../../src/data/open-food-facts-context";
+import { PersonalFoodEditor } from "../../src/features/nutrition/personal-food/personal-food-editor";
 import { useI18n } from "../../src/i18n";
-import { PersonalFoodEditor } from "../../src/screens/personal-food-editor";
 import { SkeletonBlock, SkeletonGroup } from "../../src/ui/skeleton";
 import { useToast } from "../../src/ui/toast";
 
