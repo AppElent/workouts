@@ -159,6 +159,14 @@ describe("Workouts environment routing", () => {
 			expect(
 				sentry.filter((placement) => placement.entry.secret),
 			).toEqual([
+				...(environment === "local" ? [expect.objectContaining({
+					name: "SENTRY_AUTH_TOKEN", consumer: "local-tooling",
+					destination: { kind: "file", path: ".env.local" },
+				})] : []),
+				...(environment === "preview" ? [expect.objectContaining({
+					name: "SENTRY_AUTH_TOKEN", consumer: "workflow",
+					destination: { kind: "github", scope: "repo" },
+				})] : []),
 				expect.objectContaining({
 					name: "SENTRY_AUTH_TOKEN",
 					consumer: "eas-tooling",

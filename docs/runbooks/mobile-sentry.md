@@ -4,7 +4,44 @@ The mobile app uses `@sentry/react-native` 8.28.0 with Expo SDK 57 for
 JavaScript and native errors, following Sentry's Expo integration guide.
 Shaking the device opens Sentry's feedback form through
 `feedbackIntegration({ enableShakeToReport: true })` and `Sentry.wrap`.
-The setup does not enable tracing, profiling, session replay, or log ingestion.
+It also enables navigation/app-start/network tracing, frame/stall measurements,
+Hermes/native profiling, masked session replay, and structured failure logs.
+The web app and Convex server runtime are outside this mobile integration.
+
+## Coverage and sampling
+
+Release bundles report errors at the SDK default rate (100%). Local development
+bundles disable event delivery, including feedback delivery; test with a release
+preview build. Expo Go has no native replay, profiling, or frame tracking.
+
+| Signal | Sampling |
+| --- | --- |
+| Transactions | 20% on the production channel, 100% on other release channels |
+| Profiles | 25% of sampled native transactions |
+| Replay | 5% of native sessions, 100% of sessions with a reported error |
+| Structured logs | Explicit operation-failure logs only; no console/native log ingestion |
+
+`expoRouterIntegration` registers navigation automatically with templated route
+names and time-to-initial-display measurements. The SDK's default Expo Updates
+integration attaches update ID, channel, runtime version, lifecycle breadcrumbs,
+and emergency-launch warnings. Native release/version/build attribution remains
+SDK-managed so source-map and debug-symbol matching stays consistent.
+
+The shared Convex client traces mutations/actions and reports rejected calls
+even when screens catch them for a toast. It rethrows the original error and
+does not attach arguments or results. Route fallbacks report render/query errors.
+Reporting deduplicates the same Error instance across these boundaries.
+Other caught failures can use `src/observability/errors.ts`'s `reportError` with
+a fixed operation name. Real-time query subscription latency is not measured as
+an HTTP request; this does not instrument execution inside Convex.
+
+Clerk supplies only its opaque account ID, cleared on sign-out/unmount. Default
+PII stays disabled. Replay masks all text, images, and vectors. Screenshots and
+view hierarchy attachments are disabled. JavaScript event hooks remove request
+bodies, headers, query strings, extras, and stack-frame locals; redact common
+credentials and email addresses; and discard console breadcrumbs. Do not add
+workout/nutrition payloads to messages, tags, logs, or custom contexts. User
+feedback remains explicitly user-submitted content.
 
 ## Configuration
 
@@ -58,10 +95,32 @@ rather than Expo Go.
    `Sentry.captureException(new Error("Mobile Sentry verification"))` in a
    local test build; confirm its stack is symbolicated and remove the test code.
 
-Native builds upload symbols/source maps through the Expo plugin. After an
-EAS Update, upload that update's exported maps from `apps/mobile` with
-`pnpm exec sentry-expo-upload-sourcemaps dist` using the same Sentry build
-credentials. If overriding the DSN, use the same override for the build and update.
+Native builds upload symbols/source maps through the Expo plugin. Publish OTA
+updates from `apps/mobile` with `pnpm preview:ios:update`, or
+`pnpm update:publish --platform ios --channel production --environment production`.
+These commands require a local `SENTRY_AUTH_TOKEN` before publishing and upload
+the exported `dist` maps after EAS Update. An EAS secret available only during
+native builds does not populate your local shell. If the upload fails after EAS
+published successfully, preserve `dist` and retry
+`SENTRY_ORG=appelent SENTRY_PROJECT=foundry pnpm exec sentry-expo-upload-sourcemaps dist`;
+do not republish just to retry the upload. Direct `eas update` bypasses this guard.
+If overriding the DSN, align the Expo plugin's organization/project and local
+`SENTRY_ORG`/`SENTRY_PROJECT` with that project, and use the same DSN for build and update.
+
+4. Confirm a navigation transaction and profile appear in Sentry Performance.
+   Production sampling means an individual navigation might not be selected.
+5. Trigger a caught mutation failure and a route render failure in a test build;
+   confirm both arrive with operation/account/release/update context, and that
+   the error toast or retry still works. Sign out and confirm later events have
+   no account ID.
+6. Inspect a replay and event payload: text/images must be masked; credentials,
+   request bodies, and nutrition/workout values must not appear. Native controls
+   need device verification as well as React Native views.
+
+In the Sentry dashboard, configure production alerts for new/regressed issues,
+crash-free sessions, and `expo.updates.emergency_launch:true`. Link the project to
+EAS to show issues/replays in its deployment dashboard. These are dashboard
+configuration steps, not repository settings.
 
 Expo SDK 57's compatibility list still recommends Sentry 7.11.x. We explicitly
 select Sentry 8 for its documented Expo support and built-in shake-to-report
@@ -85,3 +144,22 @@ References: [Sentry Expo setup](https://docs.sentry.io/platforms/react-native/gu
 [Sentry 8 migration](https://docs.sentry.io/platforms/react-native/migration/v7-to-v8/),
 [user feedback](https://docs.sentry.io/platforms/react-native/user-feedback/), and
 [Expo dependency validation](https://docs.expo.dev/more/expo-cli/#configuring-dependency-validation).
+
+## Optional screenshots and reporting
+
+Profile → Report a problem opens the same form as shake-to-report. The form is
+localized in English/Dutch, hides name/email fields, and offers an optional image
+picker. Native builds also offer Take screenshot: the form hides, the user takes
+the app screenshot through Sentry's control, and the form returns with a preview.
+The user can remove the image before submitting. Images are user-submitted
+content and are not covered by replay masking. The description reminds users to
+remove personal information before sending. Automatic error screenshots and
+view hierarchies stay disabled; no OS screenshot listener is installed.
+
+The root tracks a `screen` tag from Expo Router's file segments (including dynamic
+placeholders rather than actual record IDs). This also provides context for
+shake-to-report on the affected screen. Replay remains independently sampled.
+Test attachment delivery in a compatible release/test build and inspect the
+feedback event in Sentry; local development still disables delivery. Native
+feedback capture is fire-and-forget, so its confirmation alone does not prove
+server receipt.

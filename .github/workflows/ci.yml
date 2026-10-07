@@ -31,3 +31,6 @@ jobs:
       # miss. preview.yml only builds on pull_request, so without this a build-only
       # failure could land green on a direct push to main.
       - run: pnpm build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          VITE_SENTRY_ENVIRONMENT: ci

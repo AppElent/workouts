@@ -170,10 +170,14 @@ export const ENTRIES = [
 	{
 		key: "sentryDsn",
 		infisicalKey: "sentry-dsn",
-		description: "Public Sentry DSN for mobile error reporting and shake-to-report.",
+		description: "Public Sentry DSN for client errors, performance, replay, and feedback.",
 		secret: false,
 		optional: true,
 		lands: {
+			"vite-build": {
+				name: "VITE_SENTRY_DSN",
+				environments: ["local", "preview", "dev", "production"],
+			},
 			"expo-build": {
 				name: "EXPO_PUBLIC_SENTRY_DSN",
 				environments: ["local", "preview", "dev", "production"],
@@ -191,6 +195,8 @@ export const ENTRIES = [
 		secret: true,
 		optional: true,
 		lands: {
+			"local-tooling": { name: "SENTRY_AUTH_TOKEN", environments: ["local"] },
+			workflow: { name: "SENTRY_AUTH_TOKEN", environments: ["preview"] },
 			"eas-tooling": {
 				name: "SENTRY_AUTH_TOKEN",
 				environments: ["local", "preview", "dev", "production"],

@@ -33,6 +33,12 @@ verifyDepsBeforeRun: false
 # Clerk's config plugin imports this at runtime but only declares it as a
 # devDependency. EAS loads the plugin directly, without pnpm's NODE_PATH shim.
 packageExtensions:
+  # Worklets' Babel plugin imports these directly but omits them from its manifest.
+  # Declare them explicitly so fresh pnpm installs do not depend on hoisting.
+  'react-native-worklets@0.10.1':
+    dependencies:
+      '@babel/generator': '7.29.7'
+      '@babel/traverse': '7.29.7'
   '@clerk/expo@4.2.8':
     dependencies:
       '@expo/config-plugins': '~57.0.9'

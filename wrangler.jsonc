@@ -5,7 +5,7 @@
   "observability": {
     "enabled": true
   },
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
   "compatibility_flags": [
     "nodejs_compat"
   ],

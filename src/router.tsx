@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { RouteErrorFallback } from "#/components/RouteErrorFallback";
 import { routeTree } from "./routeTree.gen";
@@ -11,6 +12,16 @@ export function getRouter() {
 		defaultErrorComponent: RouteErrorFallback,
 	});
 
+	if (!router.isServer) {
+		const trackScreen = () => {
+			Sentry.setTag("screen", router.state.matches.at(-1)?.routeId || "/");
+		};
+		router.subscribe("onResolved", trackScreen);
+		trackScreen();
+		Sentry.addIntegration(
+			Sentry.tanstackRouterBrowserTracingIntegration(router),
+		);
+	}
 	return router;
 }
 

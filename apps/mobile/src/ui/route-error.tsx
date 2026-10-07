@@ -11,7 +11,9 @@
  * development only: it is written for whoever wrote the code, not for whoever
  * is holding the phone.
  */
+import { useEffect } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { reportError } from "../observability/errors";
 import { spacing, type Tokens, useThemedStyles, useTokens } from "../theme";
 import { PrimaryButton } from "./button";
 import { AppText } from "./text";
@@ -31,6 +33,9 @@ export function RouteError({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	useEffect(() => {
+		if (error) reportError(error, "route.render");
+	}, [error]);
 	return (
 		<ScrollView
 			contentInsetAdjustmentBehavior="automatic"
