@@ -6,6 +6,7 @@ export const comboEditorEn = {
 	confirm: "Save",
 	logTitle: "Log combo",
 	wholeCombos: "{count} × combo",
+	wholeUnit: "× combo",
 	partsThisTime: "Parts for this time",
 	partsThisTimeFooter:
 		"Turn a part off or tap it to change it for this log only.",
@@ -63,6 +64,7 @@ export const comboEditorNl: typeof comboEditorEn = {
 	confirm: "Bewaren",
 	logTitle: "Combo loggen",
 	wholeCombos: "{count} × combo",
+	wholeUnit: "× combo",
 	partsThisTime: "Onderdelen voor deze keer",
 	partsThisTimeFooter:
 		"Zet een onderdeel uit of tik om het alleen voor deze keer te wijzigen.",

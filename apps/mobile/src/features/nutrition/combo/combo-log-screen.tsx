@@ -75,6 +75,12 @@ export function ComboLogScreen({
 				choices={[]}
 				additions={noAdditions}
 				servingMenu={false}
+				quantityUnit={copy.wholeUnit}
+				caption={
+					combo.parts.length === 1
+						? copy.partCountOne
+						: fmt(copy.partCount, { count: combo.parts.length })
+				}
 				nutrients={draft.nutrients}
 				factor={draft.whole.valid ? draft.whole.quantity : 1}
 				referenceFactor={1}

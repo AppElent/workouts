@@ -42,6 +42,8 @@ export function AmountEditor({
 	referenceFactor,
 	referenceLabel,
 	onOpenDetails,
+	caption,
+	quantityUnit,
 	notice,
 	below,
 	toolbar,
@@ -68,6 +70,10 @@ export function AmountEditor({
 	referenceFactor: number;
 	referenceLabel: string;
 	onOpenDetails?: () => void;
+	/** The card's line under the name, when it is not about product details. */
+	caption?: string;
+	/** What the capsule counts in, when that is not the base unit. */
+	quantityUnit?: string;
 	notice?: ReactNode;
 	below?: ReactNode;
 	toolbar?: ReactNode;
@@ -153,7 +159,7 @@ export function AmountEditor({
 					<AmountQuantity
 						value={selection.quantityText}
 						amount={selection.amount}
-						unit={unit}
+						unit={quantityUnit ?? unit}
 						baseUnitSelected={selected.kind === "base-unit"}
 						valid={selection.valid}
 						disabled={disabled || adding}
@@ -220,7 +226,8 @@ export function AmountEditor({
 							<View style={{ flex: 1 }}>
 								<AppText variant="control">{name}</AppText>
 								<AppText variant="caption">
-									{onOpenDetails ? copy.detailsHint : copy.unavailable}
+									{caption ??
+										(onOpenDetails ? copy.detailsHint : copy.unavailable)}
 								</AppText>
 							</View>
 							{onOpenDetails && (

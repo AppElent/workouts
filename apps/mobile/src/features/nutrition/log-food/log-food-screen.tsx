@@ -331,9 +331,17 @@ export function LogFoodScreen({
 		[],
 	);
 	// The native search bar owns its text; seed it with a note being resolved.
+	// The header mounts it a few frames after this screen, so wait for it.
 	useEffect(() => {
-		if (bottomToolbar && initialQuery)
-			searchBarRef.current?.setText(initialQuery);
+		if (!bottomToolbar || !initialQuery) return;
+		let frame = 0;
+		let tries = 0;
+		const seed = () => {
+			if (searchBarRef.current) searchBarRef.current.setText(initialQuery);
+			else if (tries++ < 30) frame = requestAnimationFrame(seed);
+		};
+		seed();
+		return () => cancelAnimationFrame(frame);
 	}, [bottomToolbar, initialQuery]);
 
 	// Durable shortcuts, refreshed by the operation-version subscription above
@@ -893,7 +901,7 @@ export function LogFoodScreen({
 				title: copy.results,
 				detail: items.length ? String(items.length) : undefined,
 			}
-		: filter === "pool"
+		: filter === "pool" && !comboTarget
 			? { title: copy.forMeal(mealName), detail: copy.forMealHint }
 			: undefined;
 
@@ -924,20 +932,27 @@ export function LogFoodScreen({
 							{ name: comboTarget.combo.name },
 						),
 						headerTitle: undefined,
-						headerRight: () => (
-							<Pressable
-								accessibilityRole="button"
-								accessibilityLabel={comboCopy.done}
-								onPress={onClose}
-								style={styles.headerButton}
-							>
-								<SymbolView
-									name={{ ios: "checkmark", android: "check", web: "check" }}
-									size={20}
-									tintColor={colors.accentInk}
-								/>
-							</Pressable>
-						),
+						// Replacing ends with the pick; only adding needs Done.
+						headerRight: comboTarget.replacing
+							? () => null
+							: () => (
+									<Pressable
+										accessibilityRole="button"
+										accessibilityLabel={comboCopy.done}
+										onPress={onClose}
+										style={styles.headerButton}
+									>
+										<SymbolView
+											name={{
+												ios: "checkmark",
+												android: "check",
+												web: "check",
+											}}
+											size={20}
+											tintColor={colors.accentInk}
+										/>
+									</Pressable>
+								),
 					}}
 				/>
 			) : (
@@ -1079,7 +1094,9 @@ export function LogFoodScreen({
 							showsHorizontalScrollIndicator={false}
 							contentContainerStyle={styles.chipList}
 						>
-							{SCOPE_CHIPS.map(({ scope, copyKey }) => (
+							{SCOPE_CHIPS.filter(
+								({ scope }) => !comboTarget || scope !== "combos",
+							).map(({ scope, copyKey }) => (
 								<NutritionScopeChip
 									key={scope}
 									label={copy[copyKey]}
