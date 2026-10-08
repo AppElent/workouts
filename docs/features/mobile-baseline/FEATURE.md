@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.4.0
 description: Configure an existing Expo Router target while preserving native identity and release boundaries.
 ---
 
@@ -47,6 +47,8 @@ The plugin registers automatically; open the Device Hub URL printed by Metro (un
 ## Build and release boundaries
 
 The development profile enables a development client and internal distribution; preview creates an internal build; production uses remote version ownership. Review and adapt those choices before the first EAS build. Add profile-specific environment/channel mappings explicitly. Keep existing release profiles intact.
+
+For pnpm builds across Windows/macOS, keep the same virtual-store path-length policy: native autolinking paths can affect Expo fingerprints even with identical package versions.
 
 Native dependency, config-plugin, entitlement, or runtime changes require a compatible binary. The [OTA guard example](examples/ota-guard.ts) compares resolved runtime evidence, profile, environment, and channel. It does not query EAS and a fingerprint policy string is not a resolved runtime fingerprint. No update command is generated automatically. Store submission, signing, production rollout, and device acceptance remain separate tasks.
 

@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.4.0
 description: Install and update the complete AppElent toolkit without a developer CLI package.
 ---
 
@@ -19,7 +19,7 @@ Commit installed files and .appelent/devtools.json. Keep credentials outside Git
 
 ## Ownership and conflicts
 
-Shared guides, scripts, and source templates are toolkit-owned. CODING_STANDARDS.md and DESIGN_SYSTEM.md are project-owned: sync creates them when missing, then updates only their appelent-standards blocks. These blocks enumerate all shared guideline/feature files and explain script ownership and reading triggers. Local content outside the blocks may change freely. Workflows/components created from templates belong to the application. Project guidance and content outside managed agent blocks are preserved. Changed toolkit files stop the entire update before content writes; reconcile deliberately rather than deleting receipts. Existing identical files can be adopted without overwriting them.
+Shared guides, scripts, and source templates are toolkit-owned. CODING_STANDARDS.md and DESIGN_SYSTEM.md are project-owned: sync creates them when missing, then updates only their appelent-standards blocks. These blocks select platform guidance and route optional capabilities through the feature index. AGENTS.md owns the task entry point; the managed CLAUDE.md block only points to AGENTS.md. Existing content outside either block is preserved: migrate any independent Claude rules into their authoritative owner during project cleanup. Local content outside the blocks may change freely. Workflows/components created from templates belong to the application. Project guidance and content outside managed agent blocks are preserved. Changed toolkit files stop the entire update before content writes; reconcile deliberately rather than deleting receipts. Existing identical files can be adopted without overwriting them.
 
 A legacy .appelent/guidelines.json receipt supplies ownership for unchanged files during first adoption and is retained as historical evidence. New offline checks use .appelent/devtools.json, which records standards block hashes instead of whole-file hashes. An older whole-file receipt is migrated only when that file is unchanged. Existing project-coding.md, project-design.md, and app.md are preserved; move their decisions into the root files when migrating that project. New installs do not create those extra decision files.
 

@@ -10,9 +10,16 @@ owns vocabulary, and [ADRs](../adr/README.md) own architectural boundaries.
 | Running and cycling | [V1 contract](running-cycling-v1.md) | [Endurance verification](../verification/endurance.md) |
 | Personal Foods, Recipes, and estimates | [Implementation brief](personal-food-recipes-estimates.md) | [Implementation record](../verification/personal-food-recipes-estimates.md) |
 | Capture Drafts in the diary | [Agreed behavior and original inventory](capture-drafts-in-diary.md) | [Nutrition review](../verification/nutrition/REVIEW.md) |
-
 | Diary Entry redesign | [Editor brief](diary-entry-editor-redesign.md) | [Implementation and device evidence](../verification/diary-entry-editor/README.md) |
 | Live Nutrition Diary redesign | [Diary brief](nutrition-diary-redesign.md) | [Implementation and device evidence](../verification/nutrition-diary/README.md) |
 
 The dedicated Capture Draft repository and diary UI now exist. Its brief's
 pre-implementation inventory is historical; outstanding acceptance stays visible.
+
+## Mobile interaction contracts
+
+Read only the affected product area. Shared patterns remain in the design system.
+
+- [Nutrition](mobile-nutrition.md): approved diary, library, and editor behavior.
+- [Training](mobile-training.md): routines, activity picker, and start recovery.
+- [Profile](mobile-profile.md): settings, account, and all-time summaries.

@@ -1,5 +1,5 @@
 ---
-version: 1.1.1
+version: 1.2.0
 description: Find AppElent feature implementation guides and portable scripts.
 ---
 
@@ -20,9 +20,11 @@ All guides and supporting files are distributed. Read only what the task needs; 
 | Isolated worktree resource lifecycle | [Workspaces](workspaces/FEATURE.md) |
 | PR backend/Worker deployments | [Previews](previews/FEATURE.md) |
 | Browser installability and service worker | [PWA](pwa/FEATURE.md) |
+| Sentry reporting, privacy, environment boundaries, and artifact uploads | [Sentry](sentry/FEATURE.md) |
+| GitHub requests and investigation maps | [Issue tracking](issue-tracking/FEATURE.md) |
 | Authenticated in-app GitHub feedback | [Issue reporter](issue-reporter/FEATURE.md) |
 | Local/remote protocol tools | [MCP](mcp/FEATURE.md) |
 
 Run scripts from the project root (or use --path). Baselines preview by default; --apply writes configuration. env/workspace command names retain their existing effect boundaries. Read their guide before running provider operations.
 
-Stages 3–4 provide guides and portable scripts. Existing apps still need deliberate import, configuration, and runtime migrations before removing old packages. Updating a guide is not evidence an application was fixed. Capture reusable improvements through the developer-tools skill with source evidence and migration steps.
+Existing runtime packages remain until their import, configuration, and behavior migrations are verified. Capture reusable improvements in the canonical toolkit with applicability and evidence.

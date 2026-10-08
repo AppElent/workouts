@@ -1,7 +1,7 @@
 # Design inventory
 
-[Project design decisions](../docs/guidelines/project/design.md) and the
-[mobile design system](../docs/guidelines/project/mobile-design.md) own implementation
+[Project design decisions](../DESIGN_SYSTEM.md) and the
+[mobile design system](../apps/mobile/DESIGN_SYSTEM.md) own implementation
 rules. Runtime tokens own shipped values. These artifacts support exploration and
 review; a mockup named `final` records design selection, not completed implementation.
 

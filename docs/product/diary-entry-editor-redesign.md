@@ -115,7 +115,7 @@ Allow people to add Servings to Personal Foods or Shipped Foods and create reusa
 
 - Published as [GitHub issue #91](https://github.com/AppElent/workouts/issues/91), labelled `ready-for-agent`.
 - Authoritative visual reference and example code: [Round 5 design](../../designs/entry-editor/round5.html). Earlier rounds contain alternatives; Round 5 is the selected direction.
-- Structural contract: [Mobile folder structure](../guidelines/project/mobile-folder-structure.md). Adopt it for this implementation without treating the whole existing app as already migrated.
+- Structural contract: [Mobile folder structure](../../apps/mobile/CODING_STANDARDS.md). Adopt it for this implementation without treating the whole existing app as already migrated.
 - Domain vocabulary: [Project glossary](../../CONTEXT.md).
 - Accepted storage decision: [Personal Servings for Shipped Foods](../adr/0010-personal-servings-for-shipped-foods.md), including one-time copying when a later Fork is created. This extends the existing local-first nutrition and read-only shipped-catalog decisions.
 - Implementation report must list every created/changed file, where it lives, why that owner is appropriate, which components/patterns can be reused, verification performed, and limitations. Specific implementation paths belong in that report rather than this spec's implementation decisions.

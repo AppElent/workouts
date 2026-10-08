@@ -8,7 +8,7 @@ Partial iOS evidence and remaining visual acceptance are recorded in the
 
 - Implement the selected `designs/nutrition/diary_final.html` closely, including its interactive states. The reference currently exists in the main working directory, `/Users/ericjansen/Developer/workouts`, but is absent from the local committed main tree.
 - Replace everyday mobile screens and route into the redesign through live navigation. This delivery is not Labs-only.
-- Adopt the current [mobile folder contract](../guidelines/project/mobile-folder-structure.md) for new or changed mobile feature code. The previously proposed path is no longer present. Keep routes responsible for navigation and presentation, feature subjects responsible for their screens and state, and canonical services/core responsible for persistence and domain calculations.
+- Adopt the current [mobile folder contract](../../apps/mobile/CODING_STANDARDS.md) for new or changed mobile feature code. The previously proposed path is no longer present. Keep routes responsible for navigation and presentation, feature subjects responsible for their screens and state, and canonical services/core responsible for persistence and domain calculations.
 - Reuse the first Diary Entry redesign and its established components where their contracts match. Its live promotion also needs to replace its Labs-only food-detail destination.
 - Produce an implementation report describing created/moved files, their owners and placement rationale, reference fidelity, verification evidence, and remaining limitations.
 

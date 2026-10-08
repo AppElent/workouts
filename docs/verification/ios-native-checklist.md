@@ -7,7 +7,7 @@ results must identify their limits. The app now supports system/light/dark appea
 
 Use a development client matching this checkout's native dependencies. Follow
 [mobile releases](../runbooks/mobile-releases.md) for build/start commands and
-[project verification](../../.claude/skills/verify/SKILL.md) for target checks.
+[project verification](../runbooks/verification.md) for target checks.
 Do not assume Expo Go contains this app's native integrations.
 
 | Flow | Verify on the iPhone |
