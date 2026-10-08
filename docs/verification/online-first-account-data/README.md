@@ -2,6 +2,13 @@
 
 ## Current status
 
+The implementation is now merged into local main and deployed to regular dev.
+See the [2026-10-08 dev rollout](dev-rollout.md) for merged checks, complete dev
+migration results, simulator acceptance and pending user testing. Production and
+preview are pending. The evidence below records the earlier isolated branch run.
+
+## Original isolated verification
+
 Verified 2026-10-07/08 on `t3code/offline-behavior-decision`, against task-start
 `c59d8fb` plus this commit's working tree. Backend: isolated cloud development
 `earnest-cobra-841`, project `workout-tracker`, worktree
