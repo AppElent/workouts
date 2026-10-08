@@ -8,6 +8,8 @@
  * signal: a basement gym.
  *
  * No dismiss button, deliberately. It disappears when the condition does.
+ * It also waits out the same grace period as the screens: every cold start
+ * begins disconnected, and flashing the banner there shifted the whole layout.
  *
  * The sentence comes from the message tree: this banner floats over every
  * screen including the Nutrition ones, and an English strip across a Dutch app
@@ -16,6 +18,7 @@
 import { useConvexConnectionState } from "convex/react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useStalledOffline } from "../data/stalled-offline";
 import { useI18n } from "../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
@@ -25,8 +28,9 @@ export function OfflineBanner() {
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const insets = useSafeAreaInsets();
 	const { t } = useI18n();
+	const offline = useStalledOffline(true, isWebSocketConnected);
 
-	if (isWebSocketConnected) return null;
+	if (!offline) return null;
 
 	return (
 		<View
