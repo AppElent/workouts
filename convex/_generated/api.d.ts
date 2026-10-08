@@ -20,6 +20,8 @@ import type * as hostedWorkouts from "../hostedWorkouts.js";
 import type * as lib_exerciseCatalog from "../lib/exerciseCatalog.js";
 import type * as lib_exerciseMigrationModel from "../lib/exerciseMigrationModel.js";
 import type * as lib_hostedDto from "../lib/hostedDto.js";
+import type * as lib_strengthReferences from "../lib/strengthReferences.js";
+import type * as lib_strengthSession from "../lib/strengthSession.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as nutritionActivityMarker from "../nutritionActivityMarker.js";
 import type * as nutritionDiary from "../nutritionDiary.js";
@@ -66,6 +68,8 @@ declare const fullApi: ApiFromModules<{
   "lib/exerciseCatalog": typeof lib_exerciseCatalog;
   "lib/exerciseMigrationModel": typeof lib_exerciseMigrationModel;
   "lib/hostedDto": typeof lib_hostedDto;
+  "lib/strengthReferences": typeof lib_strengthReferences;
+  "lib/strengthSession": typeof lib_strengthSession;
   "lib/validate": typeof lib_validate;
   nutritionActivityMarker: typeof nutritionActivityMarker;
   nutritionDiary: typeof nutritionDiary;

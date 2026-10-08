@@ -12,3 +12,5 @@ retain existing numbers so references remain stable.
 
 - [0010: Personal servings for shipped foods](0010-personal-servings-for-shipped-foods.md)
 - [0011: Explicit nutrient correction](0011-explicit-nutrient-correction-from-diary.md)
+- [0012: Separate planned sets from performance](0012-separate-planned-sets-from-performance.md)
+- [0013: Sourced strength references and session snapshots](0013-sourced-strength-references-and-session-snapshots.md)

@@ -30,8 +30,14 @@ An Exercise created by a person for their own training.
 **Set**:
 One recorded performance of an Exercise, including its repetitions, load, and optional effort or set classification.
 
+**Planned Set**:
+A target for one performance of an Exercise, such as intended repetitions and load. A Planned Set is not evidence that the performance occurred.
+
+**Set Draft**:
+Unfinished input for a Set within one Exercise and Strength Session. It becomes recorded performance only when the person explicitly logs it.
+
 **Routine**:
-A reusable sequence of Exercises with suggested Sets, repetitions, and loads for starting a Strength Session.
+A reusable sequence of Exercises with suggested Planned Sets, repetitions, and loads for starting a Strength Session.
 _Avoid_: Program, template
 
 **WOD**:
@@ -44,6 +50,18 @@ _Avoid_: WOD
 
 **One-rep Max**:
 The greatest known or estimated load a person can lift once for an Exercise.
+
+**Measured One-rep Max**:
+A One-rep Max evidenced by a logged single-repetition performance of an Exercise.
+
+**Estimated One-rep Max**:
+A One-rep Max inferred from logged multi-repetition performance of an Exercise.
+
+**Manual One-rep Max**:
+A person's explicitly entered One-rep Max reference for an Exercise. It is independent of measured or estimated references and is not proof that a single was performed.
+
+**Strength Profile**:
+A person's measured, estimated, and manually entered One-rep Max references for an Exercise, together with their sources and dates.
 
 **Personal Record**:
 A person's best comparable performance. One-rep Maxes and best WOD Results are different kinds of Personal Record.

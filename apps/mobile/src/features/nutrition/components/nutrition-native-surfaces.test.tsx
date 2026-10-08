@@ -4,7 +4,6 @@ import { renderThemed as render } from "../../../test-support/render-themed";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet.ios";
 import { FoodEditorSheet } from "../../../ui/food-editor-sheet.ios";
 import { NativeSwipeableRow } from "../../../ui/native-swipeable-row.ios";
-import { SetEditSheetPresentation } from "../../../ui/set-edit-sheet-presentation.ios";
 import { NutritionHeaderMenu } from "./nutrition-header-menu.ios";
 
 it("keeps native swipe deletion tap-only and screen-reader reachable", () => {
@@ -94,34 +93,6 @@ it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 	expect(onOpenFoodLibrary).toHaveBeenCalledTimes(1);
 	expect(onOpenSettings).toHaveBeenCalledTimes(1);
 	expect(onToggleDataSources).toHaveBeenCalledTimes(1);
-});
-
-it("disables interactive Set Edit dismissal while dirty or pending", () => {
-	render(
-		<SetEditSheetPresentation
-			setNumber={1}
-			exerciseName="Squat"
-			weight={100}
-			reps={5}
-			setType="working"
-			weightStep={2.5}
-			busy={false}
-			dirty
-			onWeightChange={jest.fn()}
-			onRepsChange={jest.fn()}
-			onSetTypeChange={jest.fn()}
-			onRequestClose={jest.fn()}
-			onSave={jest.fn()}
-			onDuplicate={jest.fn()}
-			onDelete={jest.fn()}
-		/>,
-	);
-
-	const modifiers = screen.getByTestId("swiftui-group").props.modifiers;
-	expect(modifiers).toContainEqual({
-		type: "interactiveDismissDisabled",
-		args: [true],
-	});
 });
 
 it("presents food editing as a full-height native sheet with a drag indicator", () => {

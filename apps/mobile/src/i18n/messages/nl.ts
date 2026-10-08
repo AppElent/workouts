@@ -1,3 +1,6 @@
+import { profileNl } from "./profile";
+import { strengthNl } from "./strength";
+import { trainingNl } from "./training";
 /**
  * Dutch. The `satisfies typeof en` at the bottom is the whole safety net: a key
  * present in English and missing here fails typecheck, and a key here that
@@ -14,6 +17,9 @@ import { goalEditorNl } from "./goal-editor";
 import { weekReviewNl } from "./week-review";
 
 export const nl = {
+	profile: profileNl,
+	training: trainingNl,
+	strength: strengthNl,
 	diaryEntry: entryEditorNl,
 	exercises: exerciseLibraryNl,
 	tabs: {

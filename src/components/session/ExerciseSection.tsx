@@ -1,10 +1,14 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import { convertLoad } from "@workouts/core";
 import type { Exercise, ExerciseId } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { ConvexError } from "convex/values";
 import { ChevronUp, Plus, Weight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { useToast } from "#/components/ui/toast";
 import { getWeightStep } from "#/lib/exerciseWeightConfig";
 import { PlateSheet } from "./PlateSheet";
 import { useRestTimer } from "./RestTimer";
@@ -18,6 +22,10 @@ interface Props {
 	weightIncrement?: number;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];
+	plannedSets: { reps: number; weight: number; unit: "kg" | "lbs" }[];
+	repeated: Doc<"sets"> | null;
+	busy: boolean;
+	write: (action: () => Promise<unknown>) => Promise<boolean>;
 	onEditSet: (
 		set: Doc<"sets">,
 		exerciseName: string,
@@ -36,10 +44,22 @@ export function ExerciseSection({
 	sessionId,
 	sets,
 	onEditSet,
+	plannedSets,
+	repeated,
+	busy,
+	write,
 }: Props) {
+	const toast = useToast();
+	const [attempt, setAttempt] = useState<FunctionArgs<
+		typeof api.sets.add
+	> | null>(null);
+	const locked = busy || attempt !== null;
 	const addSet = useMutation(api.sets.add);
 	const { start: startRest } = useRestTimer();
-	const lastExerciseSet = useQuery(api.sets.getLastForExercise, { exerciseId });
+	const lastExerciseSet = useQuery(api.sets.getLastForExercise, {
+		exerciseId,
+		excludeSessionId: sessionId,
+	});
 
 	const isBodyweight = equipment === "bodyweight";
 	const weightStep = getWeightStep(equipment, weightIncrement);
@@ -47,38 +67,78 @@ export function ExerciseSection({
 	const handleEdit = (set: Doc<"sets">) =>
 		onEditSet(set, exerciseName, weightStep);
 
-	const [weight, setWeight] = useState(sets[sets.length - 1]?.weight ?? 0);
+	const [weight, setWeight] = useState(() => {
+		const previous = sets.at(-1);
+		return previous ? convertLoad(previous.weight, previous.unit, "kg") : 0;
+	});
 	const [reps, setReps] = useState(8);
-	const [rpe, setRpe] = useState(8);
+	const [rpe, setRpe] = useState<number | undefined>(undefined);
 	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
 	const [expanded, setExpanded] = useState(false);
 	const [showPlates, setShowPlates] = useState(false);
 
+	const consumedRepeat = useRef<Doc<"sets"> | null>(null);
+	const valid =
+		Number.isFinite(weight) &&
+		weight >= 0 &&
+		weight <= 2000 &&
+		Number.isInteger(reps) &&
+		reps >= 1 &&
+		reps <= 1000 &&
+		(rpe === undefined ||
+			(Number.isFinite(rpe) &&
+				rpe >= 1 &&
+				rpe <= 10 &&
+				Number.isInteger(rpe * 2)));
 	const isBarbell = equipment === "barbell";
+	useEffect(() => {
+		if (!repeated || attempt || consumedRepeat.current === repeated) return;
+		consumedRepeat.current = repeated;
+		setWeight(convertLoad(repeated.weight, repeated.unit, "kg"));
+		setReps(repeated.reps);
+		setRpe(repeated.rpe);
+		setSetType(repeated.setType);
+		setExpanded(true);
+		setWeightInitialized(true);
+	}, [repeated, attempt]);
 
 	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
 	useEffect(() => {
 		if (!weightInitialized && lastExerciseSet !== undefined) {
-			setWeight(lastExerciseSet?.weight ?? 0);
+			const source = plannedSets[sets.length] ?? lastExerciseSet;
+			setWeight(source ? convertLoad(source.weight, source.unit, "kg") : 0);
+			setReps(plannedSets[sets.length]?.reps ?? 8);
 			setWeightInitialized(true);
 		}
-	}, [lastExerciseSet, weightInitialized]);
+	}, [lastExerciseSet, weightInitialized, plannedSets, sets.length]);
 
 	async function handleLogSet() {
-		if (reps < 1) return;
-		await addSet({
+		if (!valid || busy) return;
+		const payload = attempt ?? {
+			operationId: crypto.randomUUID(),
 			sessionId,
 			exerciseId,
-			setNumber: sets.length + 1,
+			setNumber: sets.reduce((max, set) => Math.max(max, set.setNumber), 0) + 1,
 			reps,
 			weight,
-			unit: "kg",
+			unit: "kg" as const,
 			rpe,
 			setType,
-		});
-		// Auto-start the rest timer after a working/failure/drop set (skip warmups).
-		if (setType !== "warmup") startRest();
+		};
+		try {
+			const saved = await write(() => {
+				setAttempt(payload);
+				return addSet(payload);
+			});
+			if (!saved) return;
+			setAttempt(null);
+			// Auto-start the rest timer after a working/failure/drop set (skip warmups).
+			if (payload.setType !== "warmup") startRest();
+		} catch (error) {
+			if (error instanceof ConvexError) setAttempt(null);
+			toast.error("Couldn't log set", "Your input is kept. Please try again.");
+		}
 	}
 
 	return (
@@ -97,7 +157,20 @@ export function ExerciseSection({
 				)}
 			</div>
 
+			{!valid && (
+				<p role="alert" className="text-sm text-[var(--text-muted)]">
+					Enter weight up to 2000 kg, 1–1000 whole reps, and optional RPE from 1
+					to 10 in half steps.
+				</p>
+			)}
 			{/* Desktop: table */}
+			{plannedSets.length > sets.length ? (
+				<p className="text-xs text-[var(--text-muted)] mb-3">
+					{plannedSets.length - sets.length} planned sets remaining ·{" "}
+					{plannedSets[sets.length]?.weight} {plannedSets[sets.length]?.unit} ×{" "}
+					{plannedSets[sets.length]?.reps}
+				</p>
+			) : null}
 			{sets.length > 0 && (
 				<div className="hidden sm:block mb-4 overflow-x-auto">
 					<table className="w-full text-sm">
@@ -174,53 +247,62 @@ export function ExerciseSection({
 					</button>
 				</div>
 
-				<Stepper
-					value={weight}
-					onChange={setWeight}
-					step={weightStep}
-					unit="kg"
-					label={isBodyweight ? "Added weight" : "Weight"}
-				/>
+				<fieldset disabled={locked} className="contents">
+					<Stepper
+						value={weight}
+						onChange={setWeight}
+						step={weightStep}
+						unit="kg"
+						label={isBodyweight ? "Added weight" : "Weight"}
+					/>
 
-				<Stepper
-					value={reps}
-					onChange={setReps}
-					step={1}
-					min={1}
-					max={100}
-					label="Reps"
-				/>
-				<Stepper
-					value={rpe}
-					onChange={setRpe}
-					step={0.5}
-					min={1}
-					max={10}
-					label="RPE"
-				/>
+					<Stepper
+						value={reps}
+						onChange={setReps}
+						step={1}
+						min={1}
+						max={100}
+						label="Reps"
+					/>
+					<Stepper
+						value={rpe ?? 8}
+						onChange={setRpe}
+						step={0.5}
+						min={1}
+						max={10}
+						label="RPE"
+					/>
 
-				<div className="flex gap-1.5 mt-1">
-					{SET_TYPES.map((type) => (
-						<button
-							key={type}
-							type="button"
-							onClick={() => setSetType(type)}
-							className={[
-								"flex-1 h-9 rounded-lg text-xs font-medium capitalize transition-all touch-manipulation",
-								setType === type
-									? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
-									: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
-							].join(" ")}
-						>
-							{type}
-						</button>
-					))}
-				</div>
+					<div className="flex gap-1.5 mt-1">
+						{SET_TYPES.map((type) => (
+							<button
+								key={type}
+								type="button"
+								onClick={() => setSetType(type)}
+								className={[
+									"flex-1 h-9 rounded-lg text-xs font-medium capitalize transition-all touch-manipulation",
+									setType === type
+										? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
+										: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
+								].join(" ")}
+							>
+								{type}
+							</button>
+						))}
+					</div>
 
+					<button
+						type="button"
+						onClick={() => setRpe(undefined)}
+						className="text-xs text-[var(--text-muted)]"
+					>
+						{rpe === undefined ? "RPE not recorded" : "Clear RPE"}
+					</button>
+				</fieldset>
 				<button
 					type="button"
 					onClick={() => void handleLogSet()}
-					disabled={reps < 1}
+					disabled={!valid || busy}
 					className="w-full h-12 rounded-full bg-[var(--accent)] text-black text-[15px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40 disabled:pointer-events-none mt-1"
 				>
 					<Plus size={18} />
@@ -236,82 +318,88 @@ export function ExerciseSection({
 				}}
 				className="hidden sm:flex flex-wrap items-end gap-2"
 			>
-				<div className="flex flex-col gap-1">
-					<label
-						htmlFor="set-type"
-						className="text-[10px] text-[var(--text-muted)] uppercase"
-					>
-						Type
-					</label>
-					<select
-						id="set-type"
-						value={setType}
-						onChange={(e) => setSetType(e.target.value as SetType)}
-						className="h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-					>
-						{SET_TYPES.map((t) => (
-							<option key={t} value={t} className="capitalize">
-								{t}
-							</option>
-						))}
-					</select>
-				</div>
+				<fieldset disabled={locked} className="contents">
+					<div className="flex flex-col gap-1">
+						<label
+							htmlFor="set-type"
+							className="text-[10px] text-[var(--text-muted)] uppercase"
+						>
+							Type
+						</label>
+						<select
+							id="set-type"
+							value={setType}
+							onChange={(e) => setSetType(e.target.value as SetType)}
+							className="h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						>
+							{SET_TYPES.map((t) => (
+								<option key={t} value={t} className="capitalize">
+									{t}
+								</option>
+							))}
+						</select>
+					</div>
 
-				<div className="flex flex-col gap-1">
-					<label
-						htmlFor="set-weight"
-						className="text-[10px] text-[var(--text-muted)] uppercase"
-					>
-						{isBodyweight ? "added kg" : "kg"}
-					</label>
-					<input
-						id="set-weight"
-						type="number"
-						min="0"
-						step={weightStep}
-						value={weight}
-						onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-						className="w-16 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-					/>
-				</div>
+					<div className="flex flex-col gap-1">
+						<label
+							htmlFor="set-weight"
+							className="text-[10px] text-[var(--text-muted)] uppercase"
+						>
+							{isBodyweight ? "added kg" : "kg"}
+						</label>
+						<input
+							id="set-weight"
+							type="number"
+							min="0"
+							step={weightStep}
+							value={weight}
+							onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+							className="w-16 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						/>
+					</div>
 
-				<div className="flex flex-col gap-1">
-					<label
-						htmlFor="set-reps"
-						className="text-[10px] text-[var(--text-muted)] uppercase"
-					>
-						Reps
-					</label>
-					<input
-						id="set-reps"
-						type="number"
-						min="1"
-						value={reps}
-						onChange={(e) => setReps(parseInt(e.target.value, 10) || 0)}
-						className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-					/>
-				</div>
-				<div className="flex flex-col gap-1">
-					<label
-						htmlFor="set-rpe"
-						className="text-[10px] text-[var(--text-muted)] uppercase"
-					>
-						RPE
-					</label>
-					<input
-						id="set-rpe"
-						type="number"
-						min="1"
-						max="10"
-						step="0.5"
-						value={rpe}
-						onChange={(e) => setRpe(parseFloat(e.target.value) || 8)}
-						className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-					/>
-				</div>
+					<div className="flex flex-col gap-1">
+						<label
+							htmlFor="set-reps"
+							className="text-[10px] text-[var(--text-muted)] uppercase"
+						>
+							Reps
+						</label>
+						<input
+							id="set-reps"
+							type="number"
+							min="1"
+							value={reps}
+							onChange={(e) => setReps(parseInt(e.target.value, 10) || 0)}
+							className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						/>
+					</div>
+					<div className="flex flex-col gap-1">
+						<label
+							htmlFor="set-rpe"
+							className="text-[10px] text-[var(--text-muted)] uppercase"
+						>
+							RPE
+						</label>
+						<input
+							id="set-rpe"
+							type="number"
+							min="1"
+							max="10"
+							step="0.5"
+							value={rpe ?? ""}
+							onChange={(e) =>
+								setRpe(
+									e.target.value === "" ? undefined : Number(e.target.value),
+								)
+							}
+							className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						/>
+					</div>
+				</fieldset>
 				<button
 					type="submit"
-					disabled={reps < 1}
+					disabled={!valid || busy}
 					className="h-8 flex items-center gap-1 px-3 rounded border border-[var(--accent)]/40 text-[var(--accent)] text-xs font-medium hover:bg-[var(--accent-dim)] transition-colors disabled:opacity-40 disabled:pointer-events-none"
 				>
 					<Plus size={13} />

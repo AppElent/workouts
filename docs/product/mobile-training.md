@@ -30,11 +30,10 @@ tracked separately.
   refresh or a lost connection; offline cold start has no assumed cached list.
   Guard new mutations while offline, show pending on the initiating action,
   and preserve data after errors. Use the existing confirmation and toast seams.
-- **Implementation seam.** Extend the existing InsetRow platform interface for
-  the visible play/menu controls; it does not currently expose trailing action
-  slots. Preserve native swipe/context behavior and independent accessible hit
-  targets. The final study documents the remaining connection/retry integration
-  and verification requirements.
+- **Implementation seam.** Reuse InsetRow's existing `trailing` slot for play
+  and menu controls. Preserve native swipe/context behavior and verify independent
+  accessible hit targets on both platforms. The study's older claim that slots
+  must be added is superseded by the component.
 
 Settled in the [Start activity study](../../designs/app/start-activity_final.html).
 These decisions describe the approved design, not completed implementation.
@@ -68,3 +67,38 @@ These decisions describe the approved design, not completed implementation.
   callers. Sheet nesting, keyboard behavior, focus, and native dismissal still
   require implementation and device verification; the final study records
   the actual component owners and installed versions.
+
+Settled in the [strength set editor study](../../designs/app/session_final.html),
+following approval of round 5. This selects the editor and strength data sheet;
+it is not native implementation acceptance or approval of the entire workout flow.
+
+The [app redesign contract](app-redesign.md) records the agreed
+delivery scope, planned/performed boundary, sourced references, session snapshots,
+bodyweight limitation and durable Set Draft behavior. Full block flows are deferred.
+
+- **Set editor.** A focused bottom sheet holds weight, reps, set type and optional
+  RPE. RPE choices show reps remaining; half values remain reachable. Avoid an
+  advanced mode or source selector in this basic editor.
+- **Two references at once.** Under the inputs, show measured and estimated 1RM,
+  the entered weight as a percentage of each, and total theoretical reps at RPE
+  10 for each. Both rep counts are estimates. Do not replace entered reps or
+  reported RPE with predictions. Missing references stay unknown and do not
+  prevent logging.
+- **Separate strength data sheet.** Krachtprofiel contains both reference values
+  and sources, percentages including custom input, rep-max tables and the 1RM
+  estimate from weight plus reps. Use the same draft owner across destinations.
+- **Choose, apply, log.** Selecting a percentage/table result stages a candidate.
+  Apply copies weight/reps into the draft; Back keeps the original draft and RPE.
+  Only an explicit log/save action mutates sets. Browsing and draft calculations
+  never overwrite profile references. Preserve a new-set draft on close/reopen;
+  retain existing saved-set discard protection and duplicate/delete actions.
+- **Calculation ownership.** Extend `calculateOneRepMax`'s owner in
+  `@workouts/core` for percentage/inverse calculations. Calculate displayed
+  percentages from the entered weight after equipment-specific rounding. Label
+  high-rep results as approximate, use the single-rep boundary, and do not apply
+  an unstated RPE correction to the weight-plus-reps estimate.
+- **Implementation.** The editor and strength-data sheet now live under
+  `apps/mobile/src/features/strength-session/`, sharing the Set Draft owner.
+  The [app contract](app-redesign.md) owns sourced-reference behavior; the
+  [implementation report](../verification/app-redesign/README.md) records
+  verified transitions and remaining device acceptance.

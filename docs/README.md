@@ -25,3 +25,6 @@ observations and unresolved acceptance. Dataset provenance stays with
 [NEVO](../data/nevo/README.md), [Lidl](../data/lidl/README.md),
 [core nutrition](../packages/core/src/nutrition/README.md), and
 [core exercises](../packages/core/src/exercises/README.md).
+
+`docs/agents/` retains thin adapters required by the engineering skills; their
+policies live in coding standards and the issue-tracker runbook.

@@ -1,13 +1,9 @@
 import { NUTRIENT_KEYS, totalNutrients } from "@workouts/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import {
-	formatLongDate,
-	isoDayOffset,
-	todayIsoDate,
-} from "../../../data/calendar-day";
+import { formatLongDate, isoDayOffset } from "../../../data/calendar-day";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import {
 	type DiaryEntry,
@@ -22,6 +18,7 @@ import { useNutritionOperations } from "../../../data/nutrition-operation-servic
 import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useStalledOffline } from "../../../data/stalled-offline";
 import { useTrainingMarker } from "../../../data/training-marker";
+import { useToday } from "../../../data/use-today";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -52,10 +49,18 @@ export function DiaryScreen({
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const [today] = useState(todayIsoDate);
+	const today = useToday();
 	const [date, setDate] = useState(
 		initialDate && isRealIsoDate(initialDate) ? initialDate : today,
 	);
+	// Someone looking at "today" when midnight passes means the new today.
+	const previousToday = useRef(today);
+	useEffect(() => {
+		const previous = previousToday.current;
+		previousToday.current = today;
+		if (previous !== today)
+			setDate((shown) => (shown === previous ? today : shown));
+	}, [today]);
 	const [showTools, setShowTools] = useState(false);
 	const [selecting, setSelecting] = useState(Boolean(startSelecting));
 	const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
@@ -70,6 +75,16 @@ export function DiaryScreen({
 	const stalled = useStalledOffline(state.status === "loading", connected);
 	const goalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsPending),
+		connected,
+	);
+	// Cached data stands in for a moment on every day switch; only say so once
+	// it is clearly not being replaced, or the notice flashes and shifts the list.
+	const incompleteStalled = useStalledOffline(
+		state.status === "ready" && !state.day.complete,
+		connected,
+	);
+	const cachedGoalsStalled = useStalledOffline(
+		state.status === "ready" && Boolean(state.day.goalsCached),
 		connected,
 	);
 	const { setHidden } = useTabBarVisibility();
@@ -304,14 +319,14 @@ export function DiaryScreen({
 				) : (
 					<>
 						<DiarySyncStatus />
-						{!state.day.complete ? (
+						{incompleteStalled ? (
 							<AppText variant="caption">
 								{locale === "nl"
 									? "Alleen lokaal beschikbare invoer. Dagtotaal is onvolledig."
 									: "Only locally available entries. Day totals are incomplete."}
 							</AppText>
 						) : null}
-						{state.day.goalsCached ? (
+						{cachedGoalsStalled ? (
 							<AppText variant="caption">
 								{locale === "nl"
 									? "Laatst opgeslagen doelen; mogelijk niet actueel."

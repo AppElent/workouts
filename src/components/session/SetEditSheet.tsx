@@ -8,6 +8,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useConfirm } from "#/components/ui/confirm-dialog";
+import { useToast } from "#/components/ui/toast";
 
 type SetType = Doc<"sets">["setType"];
 type Unit = Doc<"sets">["unit"];
@@ -17,6 +19,9 @@ interface Props {
 	exerciseName: string;
 	weightStep: number;
 	onClose: () => void;
+	onRepeat: (set: Doc<"sets">) => void;
+	busy: boolean;
+	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }
 
 interface Draft {
@@ -63,10 +68,14 @@ export function SetEditSheet({
 	exerciseName,
 	weightStep,
 	onClose,
+	onRepeat,
+	busy,
+	write,
 }: Props) {
+	const toast = useToast();
+	const confirm = useConfirm();
 	const updateSet = useMutation(api.sets.update);
 	const removeSet = useMutation(api.sets.remove);
-	const duplicateSet = useMutation(api.sets.duplicate);
 
 	const [draft, setDraft] = useState<Draft | null>(null);
 	const [confirmingDiscard, setConfirmingDiscard] = useState(false);
@@ -87,6 +96,7 @@ export function SetEditSheet({
 	const dirty = !!set && !!draft && isDirty(set, draft);
 
 	const requestClose = () => {
+		if (busy) return;
 		if (dirty) {
 			setConfirmingDiscard(true);
 			return;
@@ -102,7 +112,7 @@ export function SetEditSheet({
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [set, dirty]);
+	}, [set, dirty, busy]);
 
 	// While the sheet is open, lock background scroll and disable the browser's
 	// pull-to-refresh so a near-miss on the drag handle can't reload the page.
@@ -127,28 +137,59 @@ export function SetEditSheet({
 	const repsJumps = [-2, -1, +1, +2];
 
 	const update = (patch: Partial<Draft>) =>
-		setDraft((d) => (d ? { ...d, ...patch } : d));
+		setDraft((d) => (d && !busy ? { ...d, ...patch } : d));
 
 	const handleSave = async () => {
-		if (!set || !draft) return;
-		await updateSet({
-			id: set._id,
-			weight: draft.weight,
-			reps: draft.reps,
-			rpe: draft.rpe,
-			setType: draft.setType,
-			unit: draft.unit,
-		});
-		onClose();
+		if (!set || !draft || busy) return;
+		try {
+			const saved = await write(() =>
+				updateSet({
+					id: set._id,
+					weight: draft.weight,
+					reps: draft.reps,
+					rpe: draft.rpe ?? null,
+					setType: draft.setType,
+					unit: draft.unit,
+				}),
+			);
+			if (saved) onClose();
+		} catch {
+			toast.error(
+				"Could not save set",
+				"Your changes are kept. Please try again.",
+			);
+		}
 	};
 
 	const handleDelete = async () => {
-		await removeSet({ id: set._id });
-		onClose();
+		if (
+			busy ||
+			!(await confirm({
+				title: "Delete this set?",
+				confirmLabel: "Delete set",
+				destructive: true,
+			}))
+		)
+			return;
+		try {
+			if (await write(() => removeSet({ id: set._id }))) onClose();
+		} catch {
+			toast.error("Could not delete set", "Please try again.");
+		}
 	};
 
 	const handleDuplicate = async () => {
-		await duplicateSet({ id: set._id });
+		if (busy) return;
+		if (
+			dirty &&
+			!(await confirm({
+				title: "Discard changes to this saved set?",
+				confirmLabel: "Discard",
+				destructive: true,
+			}))
+		)
+			return;
+		onRepeat(set);
 		onClose();
 	};
 
@@ -386,12 +427,12 @@ export function SetEditSheet({
 							className="flex items-center gap-1.5 px-3.5 py-3 rounded-lg bg-[var(--surface-2)] text-white text-[13px] font-semibold border border-[var(--border)]"
 						>
 							<Copy size={14} />
-							Duplicate
+							Repeat
 						</button>
 						<button
 							type="button"
 							onClick={() => void handleSave()}
-							disabled={!dirty}
+							disabled={!dirty || busy}
 							className="flex-1 px-4 py-3 rounded-lg bg-[var(--accent)] text-black text-[13px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							Save

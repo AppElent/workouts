@@ -15,7 +15,10 @@ const TYPE_DOT_COLOR: Record<Doc<"sets">["setType"], string> = {
 };
 
 export function SetCard({ set, onEdit }: Props) {
-	const orm = set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
+	const orm =
+		set.performanceVerified && set.referenceKind
+			? calculateOneRepMax(set.weight, set.reps)
+			: null;
 	const dotColor = TYPE_DOT_COLOR[set.setType];
 
 	return (

@@ -9,6 +9,11 @@ Reusable interactions come from the shared [patterns](../guidelines/shared/patte
 
 Settled in the profile study ([approved study](../../designs/app/profile_final.html)).
 
+The [app redesign contract](app-redesign.md#profile-and-settings) defines the
+scoped delivery exception: new Profile capabilities use clearly marked placeholders
+until enhancement #93, while real identity and working settings stay available.
+That contract also owns truthful sign-out and draft-retention behavior.
+
 - **Settings rows carry a colored icon tile.** A row that leads to a setting may
   have a 30-point continuous-corner tile with a white SF Symbol on a fixed tint.
   This is the only exception to the single lime accent. Use the `icon` prop on

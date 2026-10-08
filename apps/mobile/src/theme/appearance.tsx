@@ -7,7 +7,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { Appearance, useColorScheme } from "react-native";
+import { Appearance, Platform, useColorScheme } from "react-native";
 import {
 	PREFERENCE_KEYS,
 	readPreference,
@@ -40,6 +40,14 @@ type AppearanceValue = {
 const AppearanceContext = createContext<AppearanceValue | null>(null);
 
 /** Phone-local preference, available before auth and before the first frame. */
+/** React Native Web has no native appearance to override. */
+function overrideNativeScheme(preference: AppearancePreference) {
+	if (Platform.OS === "web") return;
+	Appearance.setColorScheme(
+		preference === "system" ? "unspecified" : preference,
+	);
+}
+
 export function AppearanceProvider({ children }: { children: ReactNode }) {
 	const [preference, setStoredPreference] = useState(readAppearance);
 	const nativeScheme = useColorScheme();
@@ -51,15 +59,13 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 			: preference;
 
 	useLayoutEffect(() => {
-		Appearance.setColorScheme(
-			preference === "system" ? "unspecified" : preference,
-		);
+		overrideNativeScheme(preference);
 	}, [preference]);
 
 	const setPreference = useCallback((next: AppearancePreference) => {
 		// Reset the native override before rendering System. RN reads the device
 		// preference synchronously when its override becomes unspecified.
-		Appearance.setColorScheme(next === "system" ? "unspecified" : next);
+		overrideNativeScheme(next);
 		const persisted = writePreference(PREFERENCE_KEYS.appearance, next);
 		setStoredPreference(next);
 		return persisted;

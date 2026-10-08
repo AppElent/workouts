@@ -32,8 +32,14 @@ export function SelectionMenu(props: SelectionMenuProps) {
 						spacing={6}
 						modifiers={[padding({ horizontal: 12, vertical: 12 })]}
 					>
-						<Text>{props.label}</Text>
-						<Image systemName="chevron.up.chevron.down" size={12} />
+						{props.trigger === "ellipsis" ? (
+							<Image systemName="ellipsis" size={20} />
+						) : (
+							<>
+								<Text>{props.label}</Text>
+								<Image systemName="chevron.up.chevron.down" size={12} />
+							</>
+						)}
 					</HStack>
 				}
 				modifiers={[
@@ -57,6 +63,7 @@ export function SelectionMenu(props: SelectionMenuProps) {
 									key={option.id}
 									label={option.label}
 									systemImage={option.symbol}
+									role={option.destructive ? "destructive" : "default"}
 									modifiers={[
 										disabled(Boolean(option.disabled)),
 										...(option.emphasized

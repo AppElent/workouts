@@ -11,6 +11,14 @@ For native changes, read [mobile standards](apps/mobile/CODING_STANDARDS.md).
 For verification, use [project checks](docs/runbooks/verification.md); for upgrades,
 use [dependency upgrades](docs/runbooks/dependency-upgrades.md).
 
+## Domain documentation
+
+Workouts uses one context across web, mobile, and core. Skills requesting
+`GLOSSARY.md` use [CONTEXT.md](CONTEXT.md); use its terms in code, hypotheses,
+and issue titles. Record newly resolved terms there. Read [ADRs](docs/adr/README.md)
+for the affected boundary, number new decisions after the highest existing ADR,
+and explicitly identify conflicts with an accepted decision before reopening it.
+
 ## Adopted capabilities and exceptions
 
 Workouts selects Convex and Clerk, English/Dutch localization, Cloudflare hosting,

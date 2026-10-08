@@ -282,7 +282,7 @@ describe("Nutrition Combos", () => {
 		await openLibraryCombo("Morning Combo");
 		await openComboLog();
 		fireEvent.press(screen.getByLabelText("Meal"));
-		fireEvent.press(await screen.findByText("Dinner"));
+		fireEvent.press(await screen.findByRole("checkbox", { name: "Dinner" }));
 		fireEvent.press(screen.getByLabelText("Log Combo"));
 		await waitForLogClosed();
 
