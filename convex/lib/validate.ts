@@ -24,3 +24,13 @@ export function assertOptionalRange(
 	if (value === undefined) return
 	assertRange(value, min, max, label)
 }
+
+export function assertIntegerRange(value: number, min: number, max: number, label: string): void {
+ assertRange(value, min, max, label)
+ if (!Number.isInteger(value)) throw new Error(`${label} must be a whole number.`)
+}
+
+export function assertOptionalRpe(value: number | undefined): void {
+ assertOptionalRange(value, 1, 10, 'RPE')
+ if (value !== undefined && !Number.isInteger(value * 2)) throw new Error('RPE must use whole or half steps.')
+}

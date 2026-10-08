@@ -23,7 +23,7 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import { api, type Doc } from "../convex/api";
+import { api, type Doc, type Id } from "../convex/api";
 import {
 	radius,
 	spacing,
@@ -46,7 +46,13 @@ export const WOD_TYPE_LABEL: Record<Doc<"wods">["type"], string> = {
 	load: "Load",
 };
 
-export function WodsScreen() {
+export function WodsScreen({
+	onOpen,
+	onCreate,
+}: {
+	onOpen?: (id: Id<"wods">) => void;
+	onCreate?: () => void;
+} = {}) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const wods = useQuery(api.wods.list, {});
@@ -68,7 +74,10 @@ export function WodsScreen() {
 		<Screen edges={["bottom"]}>
 			<ScreenHeader
 				title={"WODs"}
-				action={{ label: "Add WOD", onPress: () => router.push("/wod-editor") }}
+				action={{
+					label: "Add WOD",
+					onPress: onCreate ?? (() => router.push("/wod-editor")),
+				}}
 			/>
 
 			<View style={styles.filters}>
@@ -114,14 +123,20 @@ export function WodsScreen() {
 							</AppText>
 						</View>
 					}
-					renderItem={({ item }) => <WodRow wod={item} />}
+					renderItem={({ item }) => <WodRow wod={item} onOpen={onOpen} />}
 				/>
 			)}
 		</Screen>
 	);
 }
 
-function WodRow({ wod }: { wod: Doc<"wods"> }) {
+function WodRow({
+	wod,
+	onOpen,
+}: {
+	wod: Doc<"wods">;
+	onOpen?: (id: Id<"wods">) => void;
+}) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
@@ -130,7 +145,9 @@ function WodRow({ wod }: { wod: Doc<"wods"> }) {
 	return (
 		<Pressable
 			onPress={() =>
-				router.push({ pathname: "/wod/[id]", params: { id: wod._id } })
+				onOpen
+					? onOpen(wod._id)
+					: router.push({ pathname: "/wod/[id]", params: { id: wod._id } })
 			}
 			style={({ pressed }) => [
 				styles.row,

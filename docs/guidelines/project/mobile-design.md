@@ -249,6 +249,11 @@ them to other composite objects and to every amount task.
 Settled in the profile study (`designs/app/profile_final.html`). Apply them to
 other settings and account screens.
 
+The [app redesign contract](../../product/app-redesign.md#profile-and-settings)
+defines a scoped delivery exception: new Profile capabilities use clearly marked
+placeholders until enhancement #93, while real identity and working settings stay
+available. That contract also owns truthful sign-out and draft-retention behavior.
+
 - **Settings rows carry a colored icon tile.** A row that leads to a setting may
   have a 30-point continuous-corner tile with a white SF Symbol on a fixed tint.
   This is the only exception to the single lime accent. Use the `icon` prop on
@@ -295,11 +300,11 @@ tracked separately.
   refresh or a lost connection; offline cold start has no assumed cached list.
   Guard new mutations while offline, show pending on the initiating action,
   and preserve data after errors. Use the existing confirmation and toast seams.
-- **Implementation seam.** Extend the existing InsetRow platform interface for
-  the visible play/menu controls; it does not currently expose trailing action
-  slots. Preserve native swipe/context behavior and independent accessible hit
-  targets. The final study documents the remaining connection/retry integration
-  and verification requirements.
+- **Implementation seam.** Reuse the existing InsetRow `trailing` slot for visible
+  play/menu controls. Preserve native swipe/context behavior and verify independent
+  accessible hit targets on both platforms before extending the interface. The
+  final study documents connection/retry and verification requirements; its older
+  claim that trailing slots must be added is superseded by the current component.
 
 Settled in the [Start activity study](../../../designs/app/start-activity_final.html).
 These decisions describe the approved design, not completed implementation.
@@ -367,6 +372,41 @@ them to other create-and-log forms that do not save a library object.
   listing the presets in the main menu.
 - **Switching kind keeps input.** The Personal food / Recipe / One-off segment
   carries the name and photo to the other form.
+
+Settled in the [strength set editor study](../../../designs/app/session_final.html),
+following approval of round 5. This selects the editor and strength data sheet;
+it is not native implementation acceptance or approval of the entire workout flow.
+
+The [app redesign contract](../../product/app-redesign.md) records the agreed
+delivery scope, planned/performed boundary, sourced references, session snapshots,
+bodyweight limitation and durable Set Draft behavior. Full block flows are deferred.
+
+- **Set editor.** A focused bottom sheet holds weight, reps, set type and optional
+  RPE. RPE choices show reps remaining; half values remain reachable. Avoid an
+  advanced mode or source selector in this basic editor.
+- **Two references at once.** Under the inputs, show measured and estimated 1RM,
+  the entered weight as a percentage of each, and total theoretical reps at RPE
+  10 for each. Both rep counts are estimates. Do not replace entered reps or
+  reported RPE with predictions. Missing references stay unknown and do not
+  prevent logging.
+- **Separate strength data sheet.** Krachtprofiel contains both reference values
+  and sources, percentages including custom input, rep-max tables and the 1RM
+  estimate from weight plus reps. Use the same draft owner across destinations.
+- **Choose, apply, log.** Selecting a percentage/table result stages a candidate.
+  Apply copies weight/reps into the draft; Back keeps the original draft and RPE.
+  Only an explicit log/save action mutates sets. Browsing and draft calculations
+  never overwrite profile references. Preserve a new-set draft on close/reopen;
+  retain existing saved-set discard protection and duplicate/delete actions.
+- **Calculation ownership.** Extend `calculateOneRepMax`'s owner in
+  `@workouts/core` for percentage/inverse calculations. Calculate displayed
+  percentages from the entered weight after equipment-specific rounding. Label
+  high-rep results as approximate, use the single-rep boundary, and do not apply
+  an unstated RPE correction to the weight-plus-reps estimate.
+- **Implementation gaps.** Extend `SetEditSheet` / `SetEditorContent` for RPE and
+  profile data. The current oneRepMaxes current-record API does not guarantee
+  independent measured and estimated references; derive auditable sources from
+  history or extend the query, preserving units and manual overrides. The final
+  study records presentation, RPE-clearing and native verification requirements.
 
 ## Device acceptance
 

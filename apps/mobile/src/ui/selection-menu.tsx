@@ -9,6 +9,7 @@ export function SelectionMenu({
 	groups,
 	onSelect,
 	disabled,
+	trigger,
 }: SelectionMenuProps) {
 	const [open, setOpen] = useState(false);
 	const colors = useTokens();
@@ -26,7 +27,7 @@ export function SelectionMenu({
 					justifyContent: "center",
 				}}
 			>
-				<AppText>{label} ↕</AppText>
+				<AppText>{trigger === "ellipsis" ? "⋯" : `${label} ↕`}</AppText>
 			</Pressable>
 			<Modal
 				visible={open}
@@ -46,6 +47,7 @@ export function SelectionMenu({
 				>
 					<View
 						accessibilityViewIsModal
+						accessibilityRole="menu"
 						style={{
 							backgroundColor: colors.surface,
 							borderRadius: radius.sheet,
@@ -74,7 +76,15 @@ export function SelectionMenu({
 												onSelect(option.id);
 											}}
 										>
-											<AppText>{option.label}</AppText>
+											<AppText
+												style={
+													option.destructive
+														? { color: colors.danger }
+														: undefined
+												}
+											>
+												{option.label}
+											</AppText>
 										</Pressable>
 									))}
 								</View>

@@ -1,2 +1,2 @@
-/** Route for the strength session log. See `src/screens/strength-session.tsx`. */
-export { StrengthSessionScreen as default } from "../../src/screens/strength-session";
+/** Route for the strength session log. See `src/features/strength-session/strength-session-screen.tsx`. */
+export { StrengthSessionScreen as default } from "../../src/features/strength-session/strength-session-screen";

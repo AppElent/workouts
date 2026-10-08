@@ -1,6 +1,6 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
 import type { ExerciseId } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
@@ -57,6 +57,7 @@ function ActiveSessionPage() {
 
 	const finishSession = useMutation(api.workoutSessions.finish);
 	const cancelSession = useMutation(api.workoutSessions.cancel);
+	const addExercise = useMutation(api.workoutSessions.addExercise);
 	const confirm = useConfirm();
 	const toast = useToast();
 	const submitHostedScore = useMutation(
@@ -64,7 +65,21 @@ function ActiveSessionPage() {
 	);
 
 	const [showAddExercise, setShowAddExercise] = useState(false);
-	const [exerciseOrder, setExerciseOrder] = useState<ExerciseId[]>([]);
+	const [repeated, setRepeated] = useState<Doc<"sets"> | null>(null);
+	const [busy, setBusy] = useState(false);
+	const writePending = useRef(false);
+	async function write(action: () => Promise<unknown>) {
+		if (writePending.current) return false;
+		writePending.current = true;
+		setBusy(true);
+		try {
+			await action();
+			return true;
+		} finally {
+			writePending.current = false;
+			setBusy(false);
+		}
+	}
 	const [editing, setEditing] = useState<{
 		setId: Id<"sets">;
 		exerciseName: string;
@@ -83,7 +98,8 @@ function ActiveSessionPage() {
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const prevCountRef = useRef<number | null>(null);
 
-	const exerciseIds: ExerciseId[] = [];
+	const exerciseIds: ExerciseId[] =
+		session?.exercises?.map((exercise) => exercise.exerciseId) ?? [];
 	for (const set of sets) {
 		if (!exerciseIds.includes(set.exerciseId)) {
 			exerciseIds.push(set.exerciseId);
@@ -95,9 +111,6 @@ function ActiveSessionPage() {
 				exerciseIds.push(block.exerciseId);
 			}
 		}
-	}
-	for (const id of exerciseOrder) {
-		if (!exerciseIds.includes(id)) exerciseIds.push(id);
 	}
 
 	useEffect(() => {
@@ -113,15 +126,55 @@ function ActiveSessionPage() {
 	const exercises = useExercises() ?? [];
 	const exerciseMap = new Map(exercises.map((ex) => [ex._id as string, ex]));
 
-	function handleExerciseSelect(exerciseId: ExerciseId) {
-		setExerciseOrder((prev) => [...prev, exerciseId]);
-		setShowAddExercise(false);
+	async function handleExerciseSelect(exerciseId: ExerciseId) {
+		try {
+			if (
+				await write(() =>
+					addExercise({
+						sessionId: sessionId as Id<"workoutSessions">,
+						exerciseId,
+					}),
+				)
+			)
+				setShowAddExercise(false);
+		} catch (error) {
+			toast.error(
+				"Couldn't add exercise",
+				getConvexErrorMessage(error, "Please try again."),
+			);
+		}
 	}
 
 	async function handleFinish() {
+		if (writePending.current) return;
+		const unfinished = session?.exercises?.some(
+			(exercise) =>
+				sets.filter((set) => set.exerciseId === exercise.exerciseId).length <
+				exercise.plannedSets.length,
+		);
+		if (
+			!(await confirm({
+				title: sets.length === 0 ? "End this session?" : "Finish this session?",
+				description: unfinished
+					? "Unfinished targets will not be logged. Only saved performance is counted."
+					: "Only saved performance is counted.",
+				confirmLabel: "Finish",
+				cancelLabel: "Keep going",
+			}))
+		)
+			return;
 		try {
-			await finishSession({ id: sessionId as Id<"workoutSessions"> });
+			await write(() =>
+				finishSession({
+					id: sessionId as Id<"workoutSessions">,
+					discardUnfinished: true,
+				}),
+			);
 		} catch (err) {
+			if (getConvexErrorMessage(err, "").includes("empty")) {
+				await handleCancel();
+				return;
+			}
 			toast.error(
 				"Couldn't finish workout",
 				getConvexErrorMessage(err, "Please try again."),
@@ -130,6 +183,7 @@ function ActiveSessionPage() {
 	}
 
 	async function handleCancel() {
+		if (writePending.current) return;
 		const ok = await confirm({
 			title: "Cancel this workout?",
 			description: "All logged sets will be kept.",
@@ -139,7 +193,9 @@ function ActiveSessionPage() {
 		});
 		if (!ok) return;
 		try {
-			await cancelSession({ id: sessionId as Id<"workoutSessions"> });
+			await write(() =>
+				cancelSession({ id: sessionId as Id<"workoutSessions"> }),
+			);
 		} catch (err) {
 			toast.error(
 				"Couldn't cancel workout",
@@ -176,6 +232,7 @@ function ActiveSessionPage() {
 						<button
 							type="button"
 							onClick={() => void handleFinish()}
+							disabled={busy}
 							className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
 						>
 							<CheckCircle size={15} />
@@ -184,6 +241,7 @@ function ActiveSessionPage() {
 						<button
 							type="button"
 							onClick={() => void handleCancel()}
+							disabled={busy}
 							className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-red-400 hover:border-red-400/30 transition-colors"
 						>
 							<XCircle size={15} />
@@ -208,6 +266,14 @@ function ActiveSessionPage() {
 								weightIncrement={exercise.weightIncrement}
 								sessionId={sessionId as Id<"workoutSessions">}
 								sets={exerciseSets}
+								plannedSets={
+									session.exercises?.find(
+										(exercise) => exercise.exerciseId === exerciseId,
+									)?.plannedSets ?? []
+								}
+								repeated={repeated?.exerciseId === exerciseId ? repeated : null}
+								busy={busy}
+								write={write}
 								onEditSet={(s, name, step) =>
 									setEditing({
 										setId: s._id,
@@ -259,12 +325,19 @@ function ActiveSessionPage() {
 								}),
 							)}
 							submitLabel="Submit hosted score"
-							onSubmit={(payload) =>
-								submitHostedScore({
-									sessionId: sessionId as Id<"workoutSessions">,
-									...payload,
-								})
-							}
+							onSubmit={async (payload) => {
+								if (
+									!(await write(() =>
+										submitHostedScore({
+											sessionId: sessionId as Id<"workoutSessions">,
+											...payload,
+										}),
+									))
+								)
+									throw new Error(
+										"Another session change is still saving. Please try again.",
+									);
+							}}
 						/>
 					</div>
 				) : (
@@ -276,6 +349,9 @@ function ActiveSessionPage() {
 					exerciseName={editing?.exerciseName ?? ""}
 					weightStep={editing?.weightStep ?? 2.5}
 					onClose={() => setEditing(null)}
+					onRepeat={(set) => setRepeated({ ...set })}
+					busy={busy}
+					write={write}
 				/>
 			</div>
 		</RestTimerProvider>

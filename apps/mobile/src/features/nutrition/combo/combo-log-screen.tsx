@@ -133,6 +133,9 @@ export function ComboLogScreen({
 													accessibilityLabel={snapshot.name[locale]}
 													value={included}
 													disabled={missing || draft.logging}
+													accessibilityState={{
+														disabled: missing || draft.logging,
+													}}
 													onValueChange={() => draft.toggle(part)}
 													trackColor={{ true: colors.accentFill }}
 												/>

@@ -2,6 +2,8 @@ import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
 import { recalcOneRepMax } from "./sets"
+import { exerciseReference, normalizeExerciseReferences } from "./lib/exerciseCatalog"
+import { ensureSessionExercise } from "./lib/strengthSession"
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -42,7 +44,7 @@ export const getById = query({
     const userId = await requireUser(ctx)
     const session = await ctx.db.get(id)
     if (!session || session.userId !== userId) return null
-    return session
+    return { ...session, exercises: session.exercises ? await normalizeExerciseReferences(ctx, session.exercises) : undefined }
   },
 })
 
@@ -63,17 +65,33 @@ export const create = mutation({
       date: now,
       startTime: now,
       name,
+      exercises: [],
       status: 'active',
     })
   },
 })
 
+export const addExercise = mutation({
+  args: { sessionId: v.id('workoutSessions'), exerciseId: exerciseReference },
+  handler: async (ctx, { sessionId, exerciseId }) => {
+    const userId = await requireUser(ctx)
+    return ensureSessionExercise(ctx, userId, sessionId, exerciseId)
+  },
+})
+
 export const finish = mutation({
-  args: { id: v.id('workoutSessions') },
-  handler: async (ctx, { id }) => {
+  args: { id: v.id('workoutSessions'), discardUnfinished: v.optional(v.boolean()) },
+  handler: async (ctx, { id, discardUnfinished }) => {
     const userId = await requireUser(ctx)
     const session = await ctx.db.get(id)
     if (!session || session.userId !== userId) throw new Error('Unauthorized')
+    if (session.status === 'completed') return
+    if (session.status !== 'active') throw new Error('This session has ended.')
+    const sets = await ctx.db.query('sets').withIndex('by_session', q => q.eq('sessionId', id)).collect()
+    const wod = await ctx.db.query('wodResults').withIndex('by_session', q => q.eq('sessionId', id)).first()
+    if (sets.length === 0 && !wod) throw new Error('Discard the empty session instead of completing it.')
+    const unfinished = session.exercises?.some(exercise => sets.filter(set => set.exerciseId === exercise.exerciseId).length < exercise.plannedSets.length)
+    if (unfinished && !discardUnfinished) throw new Error('Confirm leaving unfinished targets before finishing.')
     await ctx.db.patch(id, { status: 'completed', endTime: Date.now() })
   },
 })
@@ -84,7 +102,9 @@ export const cancel = mutation({
     const userId = await requireUser(ctx)
     const session = await ctx.db.get(id)
     if (!session || session.userId !== userId) throw new Error('Unauthorized')
-    await ctx.db.patch(id, { status: 'cancelled' })
+    if (session.status === 'cancelled') return
+    if (session.status !== 'active') throw new Error('This session has ended.')
+    await ctx.db.patch(id, { status: 'cancelled', endTime: Date.now() })
   },
 })
 

@@ -2,7 +2,7 @@ import {
 	getShippedExercise,
 	getShippedExerciseByName,
 } from "@workouts/core/exercises";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 
@@ -183,6 +183,6 @@ export async function requireExercise(
 	userId: string,
 ) {
 	if (!(await resolveExercise(ctx, id, userId)))
-		throw new Error("Exercise not found");
+		throw new ConvexError("Exercise not found");
 	return canonicalExerciseId(ctx, id);
 }

@@ -4,6 +4,9 @@ import { exerciseLibraryEn } from "./exercise-library";
 import { foodEditorEn } from "./food-editor";
 import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
+import { profileEn } from "./profile";
+import { strengthEn } from "./strength";
+import { trainingEn } from "./training";
 import { weekReviewEn } from "./week-review";
 /**
  * The phone's words, in the source language.
@@ -21,6 +24,9 @@ import { weekReviewEn } from "./week-review";
  * `nl.ts` from satisfying this shape.
  */
 export const en = {
+	profile: profileEn,
+	training: trainingEn,
+	strength: strengthEn,
 	diaryEntry: entryEditorEn,
 	exercises: exerciseLibraryEn,
 	tabs: {

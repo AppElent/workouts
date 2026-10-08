@@ -117,55 +117,57 @@ export function InsetRow({
 		accessibilityLabel ?? (secondary ? `${title}, ${secondary}` : title);
 
 	const body = (accessibility?: RowAccessibilityProps): ReactNode => (
-		<Pressable
-			onPress={onPress}
-			disabled={!onPress && !accessibility}
-			accessibilityRole={
-				selected !== undefined ? "checkbox" : onPress ? "button" : undefined
-			}
-			accessibilityState={
-				selected !== undefined ? { checked: selected } : undefined
-			}
-			accessibilityLabel={label}
-			{...accessibility}
-			style={({ pressed }) => [
-				styles.row,
-				pressed && onPress ? { backgroundColor: tokens.surface2 } : null,
-			]}
-		>
-			{leading ? <Leading leading={leading} /> : null}
-			<View style={styles.text}>
-				<AppText
-					variant="row"
-					numberOfLines={2}
-					style={destructive ? { color: tokens.danger } : null}
-				>
-					{title}
-				</AppText>
-				{secondary ? (
-					<AppText variant="footnote" numberOfLines={2}>
-						{secondary}
+		<View style={{ flexDirection: "row", alignItems: "center" }}>
+			<Pressable
+				onPress={onPress}
+				disabled={!onPress && !accessibility}
+				accessibilityRole={
+					selected !== undefined ? "checkbox" : onPress ? "button" : undefined
+				}
+				accessibilityState={
+					selected !== undefined ? { checked: selected } : undefined
+				}
+				accessibilityLabel={label}
+				{...accessibility}
+				style={({ pressed }) => [
+					styles.row,
+					{ flex: 1 },
+					pressed && onPress ? { backgroundColor: tokens.surface2 } : null,
+				]}
+			>
+				{leading ? <Leading leading={leading} /> : null}
+				<View style={styles.text}>
+					<AppText
+						variant="row"
+						numberOfLines={2}
+						style={destructive ? { color: tokens.danger } : null}
+					>
+						{title}
+					</AppText>
+					{secondary ? (
+						<AppText variant="footnote" numberOfLines={2}>
+							{secondary}
+						</AppText>
+					) : null}
+				</View>
+				{!trailing && value ? (
+					<AppText variant="secondary" style={styles.value}>
+						{value}
 					</AppText>
 				) : null}
-			</View>
-			{trailing ? (
-				trailing
-			) : value ? (
-				<AppText variant="secondary" style={styles.value}>
-					{value}
-				</AppText>
-			) : null}
-			{chevron ? (
-				<AppText
-					variant="row"
-					style={[styles.chevron, { color: tokens.textFaint }]}
-					accessibilityElementsHidden
-					importantForAccessibility="no"
-				>
-					›
-				</AppText>
-			) : null}
-		</Pressable>
+				{chevron ? (
+					<AppText
+						variant="row"
+						style={[styles.chevron, { color: tokens.textFaint }]}
+						accessibilityElementsHidden
+						importantForAccessibility="no"
+					>
+						›
+					</AppText>
+				) : null}
+			</Pressable>
+			{trailing}
+		</View>
 	);
 
 	const content =

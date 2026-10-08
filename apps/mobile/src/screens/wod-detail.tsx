@@ -59,7 +59,11 @@ function parseNumber(raw: string) {
 	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function WodDetailScreen() {
+export function WodDetailScreen({
+	onEdit,
+}: {
+	onEdit?: (id: Id<"wods">) => void;
+} = {}) {
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
@@ -224,7 +228,12 @@ export function WodDetailScreen() {
 				<View style={styles.actions}>
 					<Pressable
 						onPress={() =>
-							router.push({ pathname: "/wod-editor", params: { id: wod._id } })
+							onEdit
+								? onEdit(wod._id)
+								: router.push({
+										pathname: "/wod-editor",
+										params: { id: wod._id },
+									})
 						}
 						style={styles.ghostBtn}
 					>

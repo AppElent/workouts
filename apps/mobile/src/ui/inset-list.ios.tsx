@@ -226,16 +226,35 @@ export function InsetRow({
 			modifiers={[
 				contentShape(shapes.rectangle()),
 				listRowBackground(tokens.surface),
-				accessibilityElement("ignore"),
+				...(trailing ? [] : [accessibilityElement("ignore")]),
 				...(selected ? [accessibilityAddTraits(["isSelected"])] : []),
-				accessibilityLabel(spoken),
-				...(onPress
+				...(trailing ? [] : [accessibilityLabel(spoken)]),
+				...(onPress && !trailing
 					? [onTapGesture(onPress), accessibilityAddTraits(["isButton"])]
 					: []),
 			]}
 		>
 			{leading ? <Leading leading={leading} /> : null}
-			<VStack alignment="leading" spacing={1}>
+			<VStack
+				alignment="leading"
+				spacing={1}
+				modifiers={
+					trailing
+						? [
+								frame({ minHeight: 48 }),
+								contentShape(shapes.rectangle()),
+								accessibilityElement("ignore"),
+								accessibilityLabel(spoken),
+								...(onPress
+									? [
+											onTapGesture(onPress),
+											accessibilityAddTraits(["isButton"]),
+										]
+									: []),
+							]
+						: []
+				}
+			>
 				<Text
 					modifiers={[
 						font({ textStyle: "body", weight: "semibold" }),
