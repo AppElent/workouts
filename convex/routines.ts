@@ -1,12 +1,24 @@
+import { assertIntegerRange, assertRange } from "./lib/validate";
+import type { Doc } from "./_generated/dataModel";
 import { exerciseReference, requireExercise, resolveExercise, canonicalExerciseId, normalizeExerciseReferences } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
+import { snapshotStrengthReferences } from './lib/strengthReferences'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
   if (!identity) throw new Error('Unauthenticated')
   return identity.subject
+}
+
+function validatePrescription(exercises: Doc<"routines">["exercises"]) {
+ assertIntegerRange(exercises.length, 0, 100, "Exercise count")
+ for (const exercise of exercises) {
+  assertIntegerRange(exercise.defaultSets, 1, 100, "Planned sets")
+  assertIntegerRange(exercise.defaultReps, 0, 1000, "Planned reps")
+  assertRange(exercise.defaultWeight ?? 0, 0, 2000, "Planned weight")
+ }
 }
 
 export const list = query({
@@ -59,6 +71,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
+    validatePrescription(args.exercises)
     const exercises = await Promise.all(args.exercises.map(async (ex) => ({ ...ex, exerciseId: await requireExercise(ctx, ex.exerciseId, userId) })))
     return ctx.db.insert('routines', { ...args, exercises, userId })
   },
@@ -91,6 +104,7 @@ export const update = mutation({
     const userId = await requireUser(ctx)
     const routine = await ctx.db.get(args.id)
     if (!routine || routine.userId !== userId) throw new Error('Unauthorized')
+    validatePrescription(args.exercises)
     await ctx.db.patch(args.id, {
       name: args.name,
       exercises: await Promise.all(args.exercises.map(async (ex) => ({ ...ex, exerciseId: await requireExercise(ctx, ex.exerciseId, userId) }))),
@@ -112,6 +126,15 @@ export const startSession = mutation({
       )
       .first()
     if (existing) throw new Error('A session is already active.')
+    validatePrescription(routine.exercises)
+    const exercises: NonNullable<Doc<"workoutSessions">["exercises"]> = []
+    for (const ex of routine.exercises) {
+      const exerciseId = await requireExercise(ctx, ex.exerciseId, userId)
+      const existingExercise = exercises.find(entry => entry.exerciseId === exerciseId)
+      const entry = existingExercise ?? { exerciseId, references: await snapshotStrengthReferences(ctx, userId, exerciseId), plannedSets: [] }
+      entry.plannedSets.push(...Array.from({ length: ex.defaultSets }, () => ({ reps: ex.defaultReps, weight: ex.defaultWeight ?? 0, unit: 'kg' as const })))
+      if (!existingExercise) exercises.push(entry)
+    }
     const now = Date.now()
     const sessionId = await ctx.db.insert('workoutSessions', {
       userId,
@@ -119,24 +142,9 @@ export const startSession = mutation({
       startTime: now,
       name: routine.name,
       routineId,
+      exercises,
       status: 'active',
     })
-    for (const ex of routine.exercises) {
-      const exerciseId = await requireExercise(ctx, ex.exerciseId, userId)
-      for (let s = 1; s <= ex.defaultSets; s++) {
-        await ctx.db.insert('sets', {
-          userId,
-          sessionId,
-          exerciseId,
-          setNumber: s,
-          reps: ex.defaultReps,
-          weight: ex.defaultWeight ?? 0,
-          unit: 'kg',
-          setType: 'working',
-          loggedAt: now,
-        })
-      }
-    }
     return sessionId
   },
 })

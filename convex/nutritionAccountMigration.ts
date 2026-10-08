@@ -1,7 +1,7 @@
-import { calculateOneRepMax } from "@workouts/core";
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
+import { performanceReference, recalcStrengthReferences } from "./lib/strengthReferences";
 
 /** Operator-only, resumable pages. Repeat a cursor safely after an interrupted run. */
 export const backfill = internalMutation({
@@ -19,8 +19,15 @@ export const backfill = internalMutation({
    return { isDone: page.isDone, continueCursor: page.continueCursor, scanned: page.page.length, changed };
   }
   const page = await ctx.db.query("sets").paginate({ cursor, numItems: 100 });
-  for (const row of page.page) if (row.estimatedMax === undefined) {
-   if (!dryRun) await ctx.db.patch(row._id, { estimatedMax: row.weight > 0 ? calculateOneRepMax(row.weight, row.reps).value : 0 });
+  for (const row of page.page) {
+   // Preserve unverified historical performances. Only repair references whose
+   // performance was explicitly logged under the planned/performed boundary.
+   const fields = await performanceReference(ctx, row.userId, row);
+   if (row.referenceKind === fields.referenceKind && row.referenceValueKg === fields.referenceValueKg) continue;
+   if (!dryRun) {
+    await ctx.db.patch(row._id, fields);
+    await recalcStrengthReferences(ctx, row.userId, row.exerciseId);
+   }
    changed++;
   }
   return { isDone: page.isDone, continueCursor: page.continueCursor, scanned: page.page.length, changed };

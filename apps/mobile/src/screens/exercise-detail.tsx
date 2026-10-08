@@ -309,6 +309,7 @@ function ProgressTab({
 	currentOrm: { value: number } | null;
 }) {
 	const colors = useTokens();
+	const { t } = useI18n();
 	const ormHistory = useQuery(
 		api.oneRepMaxes.listForExercise,
 		exerciseId ? { exerciseId } : "skip",
@@ -330,7 +331,7 @@ function ProgressTab({
 	const actualCurve = useMemo(() => {
 		const best = new Map<number, number>();
 		for (const set of history ?? []) {
-			if (set.weight <= 0) continue;
+			if (!set.performanceVerified || !set.referenceKind) continue;
 			const existing = best.get(set.reps) ?? 0;
 			if (set.weight > existing) best.set(set.reps, set.weight);
 		}
@@ -356,7 +357,17 @@ function ProgressTab({
 
 	return (
 		<>
-			<TrendChart title="1RM over time" points={ormPoints} />
+			<TrendChart
+				title="1RM over time"
+				points={ormPoints}
+				note={
+					ormHistory?.some(
+						(record) => record.source !== "manual" && !record.sourceSetId,
+					)
+						? t.strength.unverifiedHistory
+						: undefined
+				}
+			/>
 
 			{hasCurve ? (
 				<TrendChart

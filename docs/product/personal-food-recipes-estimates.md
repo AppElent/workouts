@@ -2,7 +2,7 @@
 
 > Accepted implementation brief; the original task instructions below describe the implementation effort. See the [implementation record](../verification/personal-food-recipes-estimates.md) for results and outstanding acceptance.
 
-> Storage-policy update, 2026-10-07: [ADR 0012](../adr/0012-online-first-account-data.md)
+> Storage-policy update, 2026-10-07: [ADR 0014](../adr/0014-online-first-account-data.md)
 > and [issue 89's contract](online-first-account-data.md) supersede the original
 > local ownership, optional backup, offline-write, and manual conflict policies.
 > The SQLite/backup steps below are historical implementation context, not a
@@ -23,7 +23,7 @@ Read `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, and `docs/adr/0005-local-first-nutr
 - Diary snapshots retain estimate status. Later Food edits affect future logs only.
 - The diary shows a compact icon beside estimated entries with an accessible label. Do not add a large badge or a day-total warning.
 - Combos keep their existing semantics: referenced Foods resolve current figures for a new log, and the resulting Diary Entries are frozen snapshots.
-- Capture Drafts remain separate from Personal Foods. Saved Capture Drafts become account-owned under ADR 0012; issue 89 owns migration from device-only storage.
+- Capture Drafts remain separate from Personal Foods. Saved Capture Drafts become account-owned under ADR 0014; issue 89 owns migration from device-only storage.
 
 ## Module shape
 
@@ -50,7 +50,7 @@ Keep legacy payloads readable throughout. Backend validation must accept old cli
 
 Preserve historical nutrition snapshots, deletion meaning, and account-safe legacy
 claims. Issue 89 deliberately changes ADR 0005's offline-first, optional-backup,
-and manual-conflict policies under ADR 0012; retain existing local data and
+and manual-conflict policies under ADR 0014; retain existing local data and
 pending operations until the migration is acknowledged.
 
 ## Verification

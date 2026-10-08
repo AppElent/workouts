@@ -16,7 +16,7 @@ creation, changes, and deletion. Confirming creation saves the Serving
 independently of the enclosing Diary Entry edit. Historical Diary Entries retain
 their snapshots when a Serving changes or is deleted.
 
-[ADR 0012](0012-online-first-account-data.md) now requires a connection to save
+[ADR 0014](0014-online-first-account-data.md) now requires a connection to save
 the resulting Diary Entry too; cached selection does not imply offline logging.
 
 If a person later creates a Fork to correct nutrition, copy their additional

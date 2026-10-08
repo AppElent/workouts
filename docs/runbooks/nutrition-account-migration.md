@@ -11,7 +11,9 @@ and [branch evidence](../verification/online-first-account-data/README.md) befor
    into a release environment.
 2. Deploy the additive schema/indexes and `nutritionAccountMigration:backfill`
    before distributing the new client. Wait for index readiness. Existing writes
-   populate library index fields and Set `estimatedMax` in the deployed functions.
+   populate library index fields and sourced strength-reference fields in the
+   deployed functions. The merged strength implementation owns derived maxima;
+   there is no separate account-data estimate index.
 3. Dry-run **both** tables from a null cursor:
 
    ```sh
@@ -28,12 +30,14 @@ and [branch evidence](../verification/online-first-account-data/README.md) befor
 5. Repeat from null with `dryRun:false`, saving each completed cursor. An
    interrupted page/cursor can be retried: only missing derived fields are
    patched. Library payloads, owners, revisions and tombstones are preserved.
-   Sets keep their historical values; only the derived estimate is added.
+   Sets keep their historical values and verification state. Reference fields
+   are repaired from eligible, explicitly verified performance; unverified
+   legacy rows are never promoted into measured or estimated evidence.
 6. Run a complete dry-run again from null. Require zero changed rows and verify
    authenticated browse/search/barcode/fork lookups and latest/best Set reads.
    Complete this before distributing the account-first client: old library rows
-   without derived fields are invisible to the new indexed browse. Best-Set reads
-   retain a legacy fallback until the Set backfill finishes.
+   without derived fields are invisible to the new indexed browse. Current
+   strength references continue to obey ADR 0013's verified-performance boundary.
 
 If old clients or functions can still create rows without derived fields, repeat
 the full check after their transition. Do not remove compatibility paths until

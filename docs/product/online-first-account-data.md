@@ -5,7 +5,7 @@ Status: accepted implementation contract for
 Implemented on the issue 89 branch, with [verification and measured usage](../verification/online-first-account-data/README.md).
 Production rollout requires the [migration runbook](../runbooks/nutrition-account-migration.md).
 This replaces the earlier durable-offline scope. See
-[ADR 0012](../adr/0012-online-first-account-data.md) and the
+[ADR 0014](../adr/0014-online-first-account-data.md) and the
 [research/interview record](../research/issue-89-online-offline.md).
 
 ## Problem
@@ -114,7 +114,7 @@ sync without measured justification.
 
 ## Documentation transition
 
-ADR 0012 is accepted and supersedes ADR 0005's ownership, optional backup,
+ADR 0014 is accepted and supersedes ADR 0005's ownership, optional backup,
 offline-write, and manual conflict policies. ADR 0005's historical nutrition
 guarantees remain in force. Related briefs identify this revised boundary;
 Branch verification does not establish that production migration or rollout has

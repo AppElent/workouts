@@ -123,7 +123,7 @@ await live.close();
 const sessionId = await client.mutation("workoutSessions:create", { name: "Issue 89 usage fixture" });
 const exerciseId = SHIPPED_EXERCISES[0]._id;
 function sets(start, count) {
-	return Array.from({ length: count }, (_, index) => ({ userId: subject, sessionId, exerciseId, setNumber: start + index + 1, reps: 5, weight: 60 + index % 30, unit: "kg", setType: "working", loggedAt: start + index, estimatedMax: calculateOneRepMax(60 + index % 30, 5).value }));
+	return Array.from({ length: count }, (_, index) => ({ userId: subject, sessionId, exerciseId, setNumber: start + index + 1, reps: 5, weight: 60 + index % 30, unit: "kg", setType: "working", loggedAt: start + index, performanceVerified: true, referenceKind: "calculated", referenceValueKg: calculateOneRepMax(60 + index % 30, 5).value }));
 }
 let latest;
 for (const [start, count] of [[0, 1000], [1000, 9000]]) {

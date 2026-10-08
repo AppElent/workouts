@@ -4,6 +4,7 @@ import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
 import { calculateOneRepMax } from '@workouts/core'
 import { assertRange } from './lib/validate'
+import { readStrengthReferences } from './lib/strengthReferences'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -11,14 +12,22 @@ async function requireUser(ctx: QueryCtx | MutationCtx) {
   return identity.subject
 }
 
+export const getReferences = query({
+  args: { exerciseId: exerciseReference },
+  handler: async (ctx, { exerciseId }) => {
+    const userId = await requireUser(ctx)
+    return readStrengthReferences(ctx, userId, await canonicalExerciseId(ctx, exerciseId))
+  },
+})
+
 export const getCurrentForExercise = query({
   args: { exerciseId: exerciseReference },
   handler: async (ctx, { exerciseId }) => {
     const userId = await requireUser(ctx)
     exerciseId = await canonicalExerciseId(ctx, exerciseId)
-    const all = await exerciseOneRepMaxes(ctx, userId, exerciseId)
-    if (all.length === 0) return null
-    return all.reduce((best, cur) => (cur.date > best.date ? cur : best))
+    const references = await readStrengthReferences(ctx, userId, exerciseId)
+    if (references.manual) return references.manual
+    return [references.measured, references.estimated].filter(record => record !== null).sort((a, b) => b.date - a.date)[0] ?? null
   },
 })
 
@@ -33,9 +42,10 @@ export const listCurrentForUser = query({
     // Keep only the most recent record per exercise.
     const byExercise = new Map<string, (typeof all)[number]>()
     for (const orm of await normalizeExerciseReferences(ctx, all)) {
+      if (orm.source !== 'manual' && !orm.sourceSetId) continue
       const key = orm.exerciseId as string
       const existing = byExercise.get(key)
-      if (!existing || orm.date > existing.date) byExercise.set(key, orm)
+      if (!existing || (orm.source === 'manual' && existing.source !== 'manual') || (orm.source === existing.source && orm.date > existing.date) || (existing.source !== 'manual' && orm.date > existing.date)) byExercise.set(key, orm)
     }
     return Array.from(byExercise.values())
   },
@@ -87,7 +97,7 @@ export const calculateAndStore = mutation({
     const all = await exerciseOneRepMaxes(ctx, userId, exerciseId)
     if (all.some((orm) => orm.source === 'manual')) return
     const { value, source, formula } = calculateOneRepMax(weight, reps)
-    const current = all.filter((orm) => orm.source !== 'manual').sort((a, b) => b.value - a.value)[0]
+    const current = all.filter((orm) => orm.source !== 'manual' && !orm.sourceSetId).sort((a, b) => b.value - a.value)[0]
     if (current && value <= current.value) return
     if (current) await ctx.db.delete(current._id)
     await ctx.db.insert('oneRepMaxes', {

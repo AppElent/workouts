@@ -1,7 +1,7 @@
 # Issue 89: online/offline decision evidence
 
 Status: completed design interview and supporting research, 2026-10-07.
-[ADR 0012](../adr/0012-online-first-account-data.md) and the
+[ADR 0014](../adr/0014-online-first-account-data.md) and the
 [revised issue 89 contract](../product/online-first-account-data.md) are accepted.
 Runtime migration remains pending. Source inspection: `c59d8fb`.
 
@@ -166,7 +166,7 @@ Final scope answer:
 The user confirmed the assembled scope and authorized updating issue 89. The
 design frontier is closed. The accepted
 [implementation contract](../product/online-first-account-data.md) and
-[ADR](../adr/0012-online-first-account-data.md) record the resulting direction.
+[ADR](../adr/0014-online-first-account-data.md) record the resulting direction.
 No application changes have been made.
 
 Current Set updates already patch supplied fields without a revision check.

@@ -4,6 +4,7 @@ import { ConvexError, v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { toPublicHostedTemplate } from './lib/hostedDto'
+import { hostedSessionExercises } from './lib/strengthSession'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -300,6 +301,7 @@ export const open = mutation({
           date: hosted.scheduledAt ?? now,
           startTime: now,
           name: hosted.title,
+          exercises: await hostedSessionExercises(ctx, hostUserId, hosted.template.strengthBlocks),
           status: 'active',
         })
         await ctx.db.insert('hostedWorkoutParticipants', {
@@ -334,8 +336,12 @@ async function finishParticipantSessions(
   for (const participant of participants) {
     const session = await ctx.db.get(participant.sessionId)
     if (session && session.status === 'active') {
+      const [set, wod] = await Promise.all([
+        ctx.db.query('sets').withIndex('by_session', q => q.eq('sessionId', session._id)).first(),
+        ctx.db.query('wodResults').withIndex('by_session', q => q.eq('sessionId', session._id)).first(),
+      ])
       await ctx.db.patch(participant.sessionId, {
-        status: 'completed',
+        status: set || wod ? 'completed' : 'cancelled',
         endTime: now,
       })
     }
@@ -377,4 +383,3 @@ export const remove = mutation({
     await ctx.db.delete(id)
   },
 })
-

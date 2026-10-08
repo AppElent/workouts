@@ -2,7 +2,7 @@
 
 > Implementation/brief record (pre-implementation). Its original state and verification claims are dated; use [current docs](../README.md) and source for current behavior. Outstanding acceptance is preserved below.
 
-> Storage-policy update, 2026-10-07: [ADR 0012](../adr/0012-online-first-account-data.md)
+> Storage-policy update, 2026-10-07: [ADR 0014](../adr/0014-online-first-account-data.md)
 > and [issue 89's contract](online-first-account-data.md) supersede the device-only
 > storage, local-only counts, and "on this device" disclosure below. Saved Capture
 > Drafts become account-owned, with explicit online Save and no remote writes

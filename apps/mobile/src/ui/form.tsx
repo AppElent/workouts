@@ -1,6 +1,12 @@
 import { HeaderHeightContext } from "expo-router/react-navigation";
 import { SymbolView } from "expo-symbols";
-import { Children, type ReactNode, type Ref, useContext } from "react";
+import {
+	Children,
+	type ComponentProps,
+	type ReactNode,
+	type Ref,
+	useContext,
+} from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -158,6 +164,7 @@ export function FormScreen({
 
 /** A grouped mobile section with a title outside and row separators inside. */
 export function FormSection({
+	separatorInset,
 	title,
 	footer,
 	children,
@@ -167,6 +174,7 @@ export function FormSection({
 	footer?: string;
 	children: ReactNode;
 	style?: ViewStyle;
+	separatorInset?: number;
 }) {
 	const styles = useThemedStyles(createStyles);
 	return (
@@ -175,7 +183,16 @@ export function FormSection({
 			<View style={styles.group}>
 				{Children.map(children, (row, index) => (
 					<>
-						{index > 0 ? <View style={styles.separator} /> : null}
+						{index > 0 ? (
+							<View
+								style={[
+									styles.separator,
+									separatorInset === undefined
+										? undefined
+										: { marginLeft: separatorInset },
+								]}
+							/>
+						) : null}
 						{row}
 					</>
 				))}
@@ -306,23 +323,57 @@ export function DisclosureRow({
 	expanded,
 	accessibilityLabel,
 	onPress,
+	icon,
+	disabled = false,
+	destructive = false,
 }: {
 	label: string;
 	value?: string;
 	expanded?: boolean;
 	accessibilityLabel?: string;
-	onPress: () => void;
+	onPress?: () => void;
+	icon?: { name: ComponentProps<typeof SymbolView>["name"]; color: string };
+	disabled?: boolean;
+	destructive?: boolean;
 }) {
 	const styles = useThemedStyles(createStyles);
+	const colors = useTokens();
 	return (
 		<Pressable
 			onPress={onPress}
+			disabled={disabled}
 			accessibilityRole="button"
 			accessibilityLabel={accessibilityLabel ?? label}
-			accessibilityState={expanded === undefined ? undefined : { expanded }}
+			accessibilityValue={value ? { text: value } : undefined}
+			accessibilityState={{
+				disabled,
+				...(expanded === undefined ? {} : { expanded }),
+			}}
 			style={({ pressed }) => [styles.actionRow, pressed && styles.pressedRow]}
 		>
-			<AppText style={styles.rowLabel}>{label}</AppText>
+			{icon ? (
+				<View
+					style={{
+						width: 30,
+						height: 30,
+						borderRadius: 7,
+						borderCurve: "continuous",
+						backgroundColor: icon.color,
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<SymbolView name={icon.name} tintColor="#ffffff" size={18} />
+				</View>
+			) : null}
+			<AppText
+				style={[
+					styles.rowLabel,
+					destructive ? { color: colors.danger } : undefined,
+				]}
+			>
+				{label}
+			</AppText>
 			{value ? <AppText variant="caption">{value}</AppText> : null}
 			<AppText style={styles.disclosureGlyph}>
 				{expanded === undefined ? "›" : expanded ? "−" : "+"}
@@ -720,19 +771,26 @@ export function FormChoiceRow({
 	selected,
 	onPress,
 	leading,
+	secondary,
+	disabled = false,
+	role = "checkbox",
 }: {
 	label: string;
 	selected: boolean;
 	onPress: () => void;
 	leading?: ReactNode;
+	secondary?: string;
+	disabled?: boolean;
+	role?: "checkbox" | "radio";
 }) {
 	const colors = useTokens();
 	return (
 		<Pressable
 			onPress={onPress}
-			accessibilityRole="checkbox"
+			disabled={disabled}
+			accessibilityRole={role}
 			accessibilityLabel={label}
-			accessibilityState={{ checked: selected }}
+			accessibilityState={{ checked: selected, disabled }}
 			style={({ pressed }) => ({
 				minHeight: 52,
 				paddingHorizontal: spacing.md,
@@ -744,9 +802,10 @@ export function FormChoiceRow({
 			})}
 		>
 			{leading}
-			<AppText variant="body" style={{ flex: 1 }}>
-				{label}
-			</AppText>
+			<View style={{ flex: 1, gap: spacing.xs }}>
+				<AppText variant="body">{label}</AppText>
+				{secondary && <AppText variant="footnote">{secondary}</AppText>}
+			</View>
 			<View
 				style={{
 					width: 24,

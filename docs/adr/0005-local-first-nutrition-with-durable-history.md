@@ -1,15 +1,15 @@
 ---
-status: partially superseded by ADR-0012
+status: partially superseded by ADR-0014
 ---
 
 # Keep nutrition local-first without allowing history to drift
 
-On 2026-10-07, [ADR 0012](0012-online-first-account-data.md) superseded this
+On 2026-10-07, [ADR 0014](0014-online-first-account-data.md) superseded this
 decision's offline-write, local ownership, optional backup, device-only Capture
 Draft, and manual conflict policies. Its historical nutrition guarantees remain:
 frozen Diary Entry snapshots, current-source resolution for future Combo logs,
 and effective-dated Nutrition Goals. The original decision below records the
-existing behavior that issue 89 must migrate safely; acceptance of ADR 0012 does
+existing behavior that issue 89 must migrate safely; acceptance of ADR 0014 does
 not mean that runtime migration has shipped.
 
 ## Original decision

@@ -3,6 +3,7 @@ import { mutation, query } from './_generated/server'
 import { ConvexError, v } from 'convex/values'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { toHostedSessionDto } from './lib/hostedDto'
+import { hostedSessionExercises } from './lib/strengthSession'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity()
@@ -43,6 +44,7 @@ export const join = mutation({
       date: hosted.scheduledAt ?? now,
       startTime: now,
       name: hosted.title,
+      exercises: await hostedSessionExercises(ctx, userId, hosted.template.strengthBlocks),
       status: 'active',
     })
     await ctx.db.insert('hostedWorkoutParticipants', {
