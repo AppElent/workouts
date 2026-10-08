@@ -10,3 +10,17 @@ Before implementing or reviewing code, read CODING_STANDARDS.md.
 For UI work, also read DESIGN_SYSTEM.md. Follow their task-specific links.
 Read docs/features/README.md for feature implementation and toolkit scripts.
 <!-- appelent-guidelines:end -->
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for AppElent/workouts, managed with `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` is the glossary, decisions live in `docs/adr/`. See `docs/agents/domain.md`.
