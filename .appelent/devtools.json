@@ -4,7 +4,7 @@
   "scope": "project",
   "ref": "main",
   "commit": "local",
-  "manifestHash": "2b64e69f3a1c12f255fb0335778d491952552221dd99ba664e9bcda723051952",
+  "manifestHash": "f99f7e7d9e1550bf2201c40bb214f0442a785d5375367f7361534ffc770dfa50",
   "files": {
     "docs/features/app-cli/examples/args.ts": {
       "sha256": "d4b58ff5f763d06f513af586038f12520c97c66932c54c189c270a1a6c4533a0"
@@ -104,8 +104,8 @@
       "sha256": "289feb472d01d52047d137fb8d65de5394f6cfb15b81e00a1bc9b4ddf8821456"
     },
     "docs/features/mobile-baseline/FEATURE.md": {
-      "sha256": "e76133b646bbd7c17a92143088aabc026c2020eaddff9bec57d234ca54b5107c",
-      "version": "1.3.0"
+      "sha256": "d55926d756125d74f99464eb773e07f541a2eec105f8cf8e3977b77acf1a8d2b",
+      "version": "1.4.0"
     },
     "docs/features/previews/FEATURE.md": {
       "sha256": "9fb9ca5780a8edec125e922b0ff335733bef2615f9517ee4ab7d4d5b3fc95c48",
@@ -128,12 +128,12 @@
       "sha256": "6d53f308f65c9aca379905a3dcb35dd8aa2496fcd6ea698651581dbcf7a71aec"
     },
     "docs/features/README.md": {
-      "sha256": "42a88bffc8f28b34e896c5b169c78b6c52302f95d2997559fc68f1cf4bb7415d",
-      "version": "1.1.1"
+      "sha256": "f3309a7e9768c05dfa01a837ebf2c2e813ab80cad0be54d2846f176f8f5b0e20",
+      "version": "1.2.0"
     },
     "docs/features/toolkit/FEATURE.md": {
-      "sha256": "b1edd67bbe43332b0e1e186beed9b781d0e2a231e1af6e161febe818837545b4",
-      "version": "1.3.0"
+      "sha256": "f50bffdf1657e8c9f3d00987fd2ec047da997d798d9c84ec19c77f2ee4934fba",
+      "version": "1.4.0"
     },
     "docs/features/web-baseline/examples/confirm-dialog.tsx": {
       "sha256": "5be8e7dcab78ce4c765b90ed6d917134eadbb0a6be51e1757cf6185ac6aa8386"
@@ -169,28 +169,28 @@
       "version": "1.1.0"
     },
     "docs/guidelines/shared/general/coding.md": {
-      "sha256": "d120dcb1b9c819b51639eefd3e781e5e41e1eb4dd91328f03867bc0698e46416",
-      "version": "1.2.0"
+      "sha256": "5440ce6968c80137c131fcd949369fd2a50016de697253f2e4431e1fcdd1b3ec",
+      "version": "1.3.0"
     },
     "docs/guidelines/shared/general/design.md": {
-      "sha256": "542555aa6883602a2779dda7092438203c6bd855c2ea6e6788f492b127aa8e2c",
-      "version": "1.2.0"
+      "sha256": "93b31bf162f9738b7670962a993dc310f51c27060e356a57bddf2b293bfa8d2c",
+      "version": "1.3.0"
     },
     "docs/guidelines/shared/general/specialist-skills.md": {
       "sha256": "1e375f936d8e1b71052f8fa3b41709d65aecc7e87ec97d83fac26788cf32ebf4",
       "version": "1.1.0"
     },
     "docs/guidelines/shared/ios/design.md": {
-      "sha256": "e715a9dd237436c450a45ee1b1f9522f930a4ca85260722ce2fb0a065c311458",
-      "version": "1.1.0"
+      "sha256": "840681fd6c6d656e216268763a82f50ccb2ad2cb98f5891ca4f74ffdfc006bf5",
+      "version": "1.2.0"
     },
     "docs/guidelines/shared/mobile/design.md": {
       "sha256": "7c91efab334431d8c4641a001cdf321b928e88d9988a4641278435ebd1a3395d",
       "version": "1.1.0"
     },
     "docs/guidelines/shared/README.md": {
-      "sha256": "0c44878b370d7bea6e30ae535f2eb16e7189daf811047e296b7a11a0617180be",
-      "version": "1.1.1"
+      "sha256": "fa3a00247849d534160f48ae6586a670118551bdae4b684b60313807809d426e",
+      "version": "1.2.0"
     },
     "docs/guidelines/shared/web/design.md": {
       "sha256": "f780399b20d8ec160ee1e80cfc5448f179f39de848264937ed58f9f687752cf6",
@@ -287,16 +287,56 @@
       "sha256": "4c84cc10f0b9b2694a471cfef6cf125bc8d3dbf58cfe0a7801ddb302aff032eb"
     },
     "scripts/sync-devtools.mjs": {
-      "sha256": "10ab9b07f7fef64cb579e63005b72680d73f06bbe78c7149588388d85b0e56e2"
+      "sha256": "9d3c013453a373ff8916667326248a3765fc51003a1989a4f9d7ccdfa8e5e705"
     },
     "scripts/workspace.mjs": {
       "sha256": "4a913d63a48fdebb952f1939d4719cc1b3096534bddcea966771440caeeca587"
+    },
+    "docs/features/sentry/FEATURE.md": {
+      "sha256": "453cb9b801abc6dcc01623b3f4e1f8a8cbbabe2b37d24ccc8ec7c9ba03d240d7",
+      "version": "1.0.1"
+    },
+    "docs/guidelines/shared/general/documentation.md": {
+      "sha256": "e6a60375586025e010438b5f6b20c9d7783655fa1ae61797f80761950c9ffd03",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/general/verification.md": {
+      "sha256": "05690c49cc53a27ec268a4218490a264a89f1b2ae9c4280a2816f02a4911a19d",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/mobile/coding.md": {
+      "sha256": "ceb754457522bacdd09832959cd99bf2634e75e685ae769d9c298dd4d902558b",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/patterns/editors.md": {
+      "sha256": "41f16f156eb3c255657335183f1452ad414d11ffa2bab5979c1d918bd6cb7fc9",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/patterns/lists.md": {
+      "sha256": "1c981a4592fc249d6374f92ad7cbef1553fbc9c6c5d90346f0398623d3028508",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/patterns/number-fields.md": {
+      "sha256": "3af7573123bb5edb749b19cfb173475c1b9dda682e2ec06bd63ed0409e6c3af6",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/patterns/README.md": {
+      "sha256": "9bf01e687352f78aff2f384f8a04e042f8a2369f2091626510339e6781ae7cac",
+      "version": "1.0.0"
+    },
+    "docs/guidelines/shared/patterns/design-studies.md": {
+      "sha256": "625640e7c079bc667efebc13b973b8e0a8e4204a8183cfbfaf876c87e74e1ffc",
+      "version": "1.0.0"
+    },
+    "docs/features/issue-tracking/FEATURE.md": {
+      "sha256": "afaa269b7f1e8508c253cbb24704814393fc52acf5acefc19ef0e2096616faf8",
+      "version": "1.0.0"
     }
   },
   "blocks": {
-    "AGENTS.md": "edf310b0700c224ef8b382dee23325e5297676d8d86657c881e7521d5dd070b2",
-    "CLAUDE.md": "edf310b0700c224ef8b382dee23325e5297676d8d86657c881e7521d5dd070b2",
-    "CODING_STANDARDS.md": "d711d5a7995dc80fc8084506d67408fd435b624b80f0bb00d1be57f11578b777",
-    "DESIGN_SYSTEM.md": "7a0f897ab05876de237c677ab98206cfd5f558cc49689b500df1676e7c1f07e7"
+    "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
+    "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
+    "CODING_STANDARDS.md": "d085f83a3148ac7f9c4d8edad37d659c638fcfa49e5fb385bcbc0a744e4cba3c",
+    "DESIGN_SYSTEM.md": "96bcc6ffa01c5c5d759d9ac408f9da8dbe9f45ce1f93dca2c181dde159563e82"
   }
 }

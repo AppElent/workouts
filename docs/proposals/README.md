@@ -1,9 +1,7 @@
 # Proposals and open decisions
 
 These items await agreement or a separate migration. They do not override current
-[project guidelines](../guidelines/project/README.md).
-
-The [mobile folder structure](../guidelines/project/mobile-folder-structure.md) is adopted incrementally by the live Nutrition Diary and Diary Entry implementations. Its rules now live with project guidelines.
+[project standards](../../CODING_STANDARDS.md).
 
 Open choices retained from the previous docs index:
 

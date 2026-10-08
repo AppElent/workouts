@@ -1,6 +1,6 @@
 # Verification and acceptance evidence
 
-Follow the [verification workflow](../../.claude/skills/verify/SKILL.md) for current
+Follow the [verification workflow](../runbooks/verification.md) for current
 commands and target selection. Reports describe their recorded build, device,
 backend, and date; they do not establish acceptance for later changes. Pending
 checks remain pending when a document moves or a plan is archived.

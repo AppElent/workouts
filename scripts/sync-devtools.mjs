@@ -16,7 +16,8 @@ const end = '<!-- appelent-guidelines:end -->';
 const standardsStart = '<!-- appelent-standards:start -->';
 const standardsEnd = '<!-- appelent-standards:end -->';
 const standardsPaths = ['CODING_STANDARDS.md', 'DESIGN_SYSTEM.md'];
-const block = `${start}\nBefore implementing or reviewing code, read CODING_STANDARDS.md.\nFor UI work, also read DESIGN_SYSTEM.md. Follow their task-specific links.\nRead docs/features/README.md for feature implementation and toolkit scripts.\n${end}`;
+const block = `${start}\nBefore implementing or reviewing code, read CODING_STANDARDS.md.\nFor UI work, also read DESIGN_SYSTEM.md. Follow their task-specific links.\n${end}`;
+const claudeBlock = `${start}\nRead [AGENTS.md](AGENTS.md).\n${end}`;
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 
 export function safePath(path) {
@@ -214,13 +215,14 @@ export async function sync(options = {}) {
   }
   if (scope === 'project') {
     for (const path of ['AGENTS.md', 'CLAUDE.md']) {
+      const agentBlock = path === 'CLAUDE.md' ? claudeBlock : block;
       const current = await inspect(root, path), oldBlock = extractBlock(current);
       observed.set(path, current);
-      if (oldBlock && hash(oldBlock) !== previous.blocks?.[path] && oldBlock !== block) conflicts.push(path);
+      if (oldBlock && hash(oldBlock) !== previous.blocks?.[path] && oldBlock !== agentBlock) conflicts.push(path);
       if (!oldBlock && previous.blocks?.[path]) conflicts.push(path);
-      const value = oldBlock ? current.replace(oldBlock, block) : `${current ?? ''}${current ? '\n' : ''}${block}\n`;
+      const value = oldBlock ? current.replace(oldBlock, agentBlock) : `${current ?? ''}${current ? '\n' : ''}${agentBlock}\n`;
       if (value !== current) operations.push({ path, before: current, after: value });
-      next.blocks[path] = hash(block);
+      next.blocks[path] = hash(agentBlock);
     }
     for (const [path, { text, managed }] of standards) {
       const current = await inspect(root, path);

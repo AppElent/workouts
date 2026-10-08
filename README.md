@@ -5,9 +5,8 @@ Personal workout tracker with real-time session logging, exercise library, 1RM t
 ## Project guidance
 
 The web uses TanStack Start; the Foundry mobile app uses Expo. Both share a Convex
-backend and Clerk authentication. Read [coding standards](CODING_STANDARDS.md)
-for the stack, workspace boundaries, and current integration exceptions, and
-[design standards](DESIGN_SYSTEM.md) for the web/mobile component owners.
+backend and Clerk authentication. Use [coding standards](CODING_STANDARDS.md) for integration boundaries and
+[design standards](DESIGN_SYSTEM.md) for visual and interaction decisions.
 The [docs index](docs/README.md) separates current contracts and runbooks from
 historical proposals and verification records.
 
@@ -63,43 +62,14 @@ The current test-login shortcut uses a Clerk test key and optional public client
 variables. Follow the [environment contract](docs/runbooks/environment.md); a test key
 alone does not establish which backend or deployment is being tested.
 
-## Environment Variables
+## Environment and commands
 
-See the [environment contract](docs/runbooks/environment.md) for source setup, routing,
-generated-file ownership, and the shared `@appelent/dev` commands. `.env.example`
-is a canonical source-key catalog; do not copy it into `.env.local`. Existing
-human-owned files require review and explicit ownership adoption before apply.
+[Environment routing](docs/runbooks/environment.md) owns source setup and generated
+file ownership. `.env.example` catalogs source keys; it is not a template for
+`.env.local`. Existing human-owned environment files need explicit adoption.
 
-| Variable | Description |
-|---|---|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard) |
-| `VITE_CONVEX_URL` | Convex deployment URL for the frontend client |
-| `CONVEX_DEPLOYMENT` | Convex deployment reference (set automatically by `pnpm exec convex dev`) |
-| `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` | Optional — enables the dev test-login button above |
-
-The Convex backend itself reads `CLERK_JWT_ISSUER_DOMAIN` from its own environment (`pnpm exec convex env set CLERK_JWT_ISSUER_DOMAIN <value>`), not from a `.env` file.
-
-## Commands
-
-```bash
-pnpm dev:watch    # Convex (watch mode) + Vite, concurrently (recommended)
-pnpm build        # Production build
-pnpm typecheck    # Root tsc --noEmit
-pnpm --filter @workouts/mobile typecheck  # Mobile types
-pnpm --filter @workouts/mobile test       # Mobile Jest tests
-pnpm test         # Run Vitest tests
-pnpm lint         # Biome lint
-pnpm lint:fix     # Biome lint + format, auto-fix
-pnpm format       # Biome format
-pnpm check        # Biome lint + format check
-pnpm workouts     # Run the repo-local Workouts CLI
-pnpm cli:smoke    # Smoke-test the CLI wrapper
-pnpm seed:exercises  # Compatibility no-op; exercises ship with the app
-pnpm seed:wods       # Seed the default benchmark WODs (idempotent)
-pnpm deploy       # Full prod flow: convex deploy + build + Cloudflare deploy
-pnpm deploy:dev   # Push Convex dev functions + dev build + deploy to Cloudflare (dev env)
-pnpm cf-typegen   # Generate Cloudflare Workers TypeScript types
-```
+Use `pnpm run` and the target package manifest for commands. Required checks and
+non-obvious target boundaries are in [verification](docs/runbooks/verification.md).
 
 ## CLI
 

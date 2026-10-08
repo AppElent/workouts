@@ -381,7 +381,7 @@ continue authorized work and ask only about material design trade-offs.
 
 ### What belongs in coding standards and folder guidance
 
-The existing [folder contract](../../guidelines/project/mobile-folder-structure.md) is mostly the right
+The existing [folder contract](../../../apps/mobile/CODING_STANDARDS.md) is mostly the right
 one. The lesson is to enforce ownership, not to introduce more folder layers.
 
 | Boundary | Rule to retain or clarify | Example from this implementation |

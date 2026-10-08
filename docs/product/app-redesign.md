@@ -185,7 +185,7 @@ convention is defined. Preserve existing reference data; do not infer body mass.
 ## Implementation ownership and baseline
 
 Build on the recent redesigns and the
-[mobile folder contract](../guidelines/project/mobile-folder-structure.md): thin
+[mobile folder contract](../../apps/mobile/CODING_STANDARDS.md): thin
 routes own parameters/navigation/presentation; feature subjects own screens and
 state; supporting UI stays in subject-local `components/`; app-wide controls and
 platform adapters stay in `src/ui/`. Reuse canonical data services and core domain

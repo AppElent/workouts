@@ -1,5 +1,5 @@
 ---
-version: 1.1.1
+version: 1.2.0
 description: Select shared guidelines by the task and target platform.
 ---
 
@@ -11,6 +11,10 @@ All platforms are installed; read only the relevant files.
 - All UI: [general design](general/design.md).
 - Browser UI: [web design](web/design.md).
 - Native UI: [mobile design](mobile/design.md), plus [iOS](ios/design.md) or [Android](android/design.md).
+- Documentation: [ownership](general/documentation.md).
+- Verification: [acceptance contract](general/verification.md).
+- Native code: [mobile architecture](mobile/coding.md).
+- Interaction patterns: [pattern index](patterns/README.md).
 - Specialist tasks: [external skill routing](general/specialist-skills.md).
 
 These files are toolkit-owned. Record project decisions outside the managed blocks in [CODING_STANDARDS.md](../../../CODING_STANDARDS.md) and [DESIGN_SYSTEM.md](../../../DESIGN_SYSTEM.md). Update with `node scripts/sync-devtools.mjs` from the project root. Feature implementation and script procedures live in [the feature index](../../features/README.md).

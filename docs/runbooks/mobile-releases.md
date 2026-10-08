@@ -1,7 +1,7 @@
 # iOS test builds and OTA updates
 
 For error reporting configuration, see
-[mobile Sentry](mobile-sentry.md). New builds need the Sentry environment
+[mobile Sentry](sentry.md). New builds need the Sentry environment
 values there; OTA updates also need their source maps uploaded.
 
 Run these commands from `apps/mobile`. Use the `preview` profile for a
@@ -23,14 +23,6 @@ From macOS (zsh), in `apps/mobile`:
 EXPO_NO_DOTENV=1 pnpm exec eas build --platform ios --profile preview --clear-cache --auto-submit
 ```
 
-From PowerShell:
-
-```powershell
-Set-Location D:\Dev\workouts\apps\mobile
-$env:EXPO_NO_DOTENV = "1"
-pnpm exec eas build --platform ios --profile preview --clear-cache --auto-submit
-```
-
 The environment setting prevents local `.env.local` values from entering the
 release configuration. EAS supplies `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and
 `EXPO_PUBLIC_CONVEX_URL` from its `preview` environment. Its `NODE_AUTH_TOKEN`
@@ -40,11 +32,6 @@ The first submission may ask for Apple credentials and the App Store Connect
 app. After Apple processes the build, install it through TestFlight. Native
 compilation, signing, and submission are verified by that cloud build; local
 TypeScript checks and bundle exports cannot verify them.
-
-The clean cache is intentional for the first rebuild: the previous failed iOS
-build used Expo Modules Core 57.0.10 and lacked symbols required by Expo UI.
-The current lockfile resolves 57.0.19, whose source includes those symbols.
-Subsequent builds can omit `--clear-cache` unless troubleshooting build caches.
 
 ## Local iOS development on macOS
 
@@ -74,11 +61,11 @@ pnpm exec expo prebuild --platform ios --clean
 Expo Device Hub is the standard local simulator/emulator dashboard. Start Metro
 with `pnpm start:dev-client` from `apps/mobile`, then open the Device Hub URL
 printed in the terminal (`http://localhost:<port>/_expo/plugins/expo-device-hub`).
-It registers automatically and uses Metro's selected port. Use the dashboard to
+It registers automatically and uses Metro's selected port. Use host device tools when available, or this dashboard to
 view and control local devices; Android requires the Android SDK's `emulator`
 and `adb`. The workspace explicitly allows `node-datachannel`'s native install
 script for Android streaming. Application device acceptance still follows the
-[verification workflow](../../.claude/skills/verify/SKILL.md).
+[verification workflow](verification.md).
 
 Keep durable native settings in `app.json` and config plugins; `ios/` and
 `android/` remain generated and ignored. Disabling Sentry uploads is only for
@@ -91,11 +78,10 @@ it is not required for simulator development.
 
 ## Publish subsequent OTA updates
 
-From the same directory:
+From `apps/mobile`, with the local Sentry upload token configured:
 
-```powershell
-$env:EXPO_NO_DOTENV = "1"
-pnpm exec eas update --platform ios --channel preview --environment preview --message "Describe the changes"
+```sh
+EXPO_NO_DOTENV=1 pnpm preview:ios:update --message "Describe the changes"
 ```
 
 Publish JavaScript and asset changes this way after validation. The app checks
@@ -121,26 +107,13 @@ publishing updates. Keep the fingerprint policy enabled.
 
 ## Local preflight
 
-From the repository root:
+Run the applicable [project checks](verification.md), then Expo dependency
+validation and a preview-environment bundle export from `apps/mobile`:
 
-```powershell
-pnpm install --frozen-lockfile
-pnpm check
-pnpm typecheck
-pnpm test
-pnpm --filter @workouts/mobile typecheck
-pnpm --filter @workouts/mobile test --runInBand
-pnpm build
-```
-
-Then from `apps/mobile`:
-
-```powershell
-$env:EXPO_NO_DOTENV = "1"
+```sh
 pnpm dlx expo-doctor
-pnpm exec eas env:exec preview 'pnpm exec expo export --platform ios --output-dir dist/ios-preflight' --non-interactive
+EXPO_NO_DOTENV=1 pnpm exec eas env:exec preview 'pnpm exec expo export --platform ios --output-dir dist/ios-preflight' --non-interactive
 ```
 
-See Expo's [EAS Update setup](https://docs.expo.dev/eas-update/getting-started/)
-and [runtime compatibility](https://docs.expo.dev/eas-update/runtime-versions/)
-documentation.
+Check the native runtime against the intended binary using the shared
+[mobile release boundaries](../features/mobile-baseline/FEATURE.md#build-and-release-boundaries).
