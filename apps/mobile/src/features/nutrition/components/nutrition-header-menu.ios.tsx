@@ -1,5 +1,10 @@
 import { Button, Divider, Host, Image, Menu } from "@expo/ui/swift-ui";
-import { accessibilityLabel } from "@expo/ui/swift-ui/modifiers";
+import {
+	accessibilityLabel,
+	contentShape,
+	frame,
+	shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet } from "react-native";
 import { useAppearance, useTokens } from "../../../theme";
 import type { NutritionHeaderMenuProps } from "./nutrition-header-menu-props";
@@ -12,7 +17,12 @@ export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 		<Host colorScheme={scheme} seedColor={colors.accent} style={styles.host}>
 			<Menu
 				label={<Image systemName="ellipsis" size={22} color={colors.text} />}
-				modifiers={[accessibilityLabel(props.label)]}
+				// The whole 44pt host is the target, not just the glyph inside it.
+				modifiers={[
+					accessibilityLabel(props.label),
+					frame({ width: 44, height: 44 }),
+					contentShape(shapes.rectangle()),
+				]}
 			>
 				{props.onSelect ? (
 					<>
