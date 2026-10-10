@@ -1,5 +1,6 @@
 import { profileNl } from "./profile";
 import { strengthNl } from "./strength";
+import { testDataNl } from "./test-data";
 import { trainingNl } from "./training";
 /**
  * Dutch. The `satisfies typeof en` at the bottom is the whole safety net: a key
@@ -17,6 +18,7 @@ import { goalEditorNl } from "./goal-editor";
 import { weekReviewNl } from "./week-review";
 
 export const nl = {
+	testData: testDataNl,
 	profile: profileNl,
 	training: trainingNl,
 	strength: strengthNl,

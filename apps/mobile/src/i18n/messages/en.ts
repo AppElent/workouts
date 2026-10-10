@@ -6,6 +6,7 @@ import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
 import { profileEn } from "./profile";
 import { strengthEn } from "./strength";
+import { testDataEn } from "./test-data";
 import { trainingEn } from "./training";
 import { weekReviewEn } from "./week-review";
 /**
@@ -24,6 +25,7 @@ import { weekReviewEn } from "./week-review";
  * `nl.ts` from satisfying this shape.
  */
 export const en = {
+	testData: testDataEn,
 	profile: profileEn,
 	training: trainingEn,
 	strength: strengthEn,

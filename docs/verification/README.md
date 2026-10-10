@@ -7,6 +7,7 @@ checks remain pending when a document moves or a plan is archived.
 
 - [iOS acceptance checklist](ios-native-checklist.md): record results by build/device; an unchecked row is not a passed release check.
 - [Endurance verification](endurance.md): run/ride flows, automated results, and device limitations.
+- [In-app test data](in-app-test-data.md): authenticated reset boundaries, web/iOS flows, native cleanup, and limitations.
 - [Personal Food/Recipe/estimate implementation record](personal-food-recipes-estimates.md): implementation results and outstanding acceptance.
 - [Nutrition and appearance evidence](nutrition/README.md): coverage inventory and colocated screenshots/recordings; start with the [review](nutrition/REVIEW.md), [merge selection](nutrition/MERGE-SELECTION.md), and [SQLite regression record](nutrition/SQLITE-REVIEW.md).
 - [Exercise library implementation and verification](exercise-library/README.md): native flow results and colocated assets; the [design study](../../designs/exercise-library/README.md) remains separate.

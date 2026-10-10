@@ -237,3 +237,23 @@ export function openNutritionDraftRepository(): NutritionDraftRepository {
 		) as SyncSQLiteDatabase,
 	);
 }
+
+/** Clear only this account; preserve unrelated accounts and preferences. */
+export function clearNutritionDraftAccount(subject: string) {
+	const database = openNutritionDatabase(NUTRITION_COOKING_DATABASE_NAME);
+	try {
+		createNutritionDraftRepository(database);
+		database.withTransactionSync(() => {
+			database.runSync(
+				"DELETE FROM nutrition_capture_drafts WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_capture_draft_migrations WHERE subject = ?",
+				subject,
+			);
+		});
+	} finally {
+		database.closeSync();
+	}
+}

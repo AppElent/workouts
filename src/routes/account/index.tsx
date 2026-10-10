@@ -3,6 +3,7 @@ import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ExportDataCard } from "#/components/account/ExportDataCard";
 import { ReportProblem } from "#/components/account/ReportProblem";
+import { TestDataCard } from "#/components/account/TestDataCard";
 
 export const Route = createFileRoute("/account/")({
 	ssr: false,
@@ -28,6 +29,7 @@ function AccountPage() {
 			<h1 className="text-2xl font-bold text-white">Account</h1>
 			<ProfilePanel />
 			<ExportDataCard />
+			<TestDataCard />
 			<ReportProblem />
 		</div>
 	);

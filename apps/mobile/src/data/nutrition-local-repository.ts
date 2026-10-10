@@ -809,3 +809,53 @@ export function openNutritionLocalRepository(): NutritionLocalRepository {
 export function operationPayload(envelope: NutritionOperationEnvelope): string {
 	return canonicalJson(envelope);
 }
+
+/** Clear only this account; preserve unrelated accounts and preferences. */
+export function clearNutritionLocalAccount(
+	subject: string,
+	removePhoto: (visual: NutritionDiarySnapshot["visual"]) => void,
+) {
+	const database = openNutritionDatabase(NUTRITION_STATE_DATABASE_NAME);
+	try {
+		createNutritionLocalRepository(database);
+		for (const day of database.getAllSync<{ entries_json: string }>(
+			"SELECT entries_json FROM nutrition_cached_days WHERE subject = ?",
+			subject,
+		)) {
+			const entries: NutritionDiarySnapshot[] = JSON.parse(day.entries_json);
+			for (const entry of entries) removePhoto(entry.visual);
+		}
+		database.withTransactionSync(() => {
+			database.runSync(
+				"DELETE FROM nutrition_operations WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_days WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_entry_mappings WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_food_shortcuts WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_goals WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_personal_measures WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_supplementary_servings WHERE subject = ?",
+				subject,
+			);
+		});
+	} finally {
+		database.closeSync();
+	}
+}

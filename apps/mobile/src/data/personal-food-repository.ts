@@ -1063,3 +1063,20 @@ export function openOpenFoodFactsCache(): OpenFoodFactsCache {
 		openNutritionDatabase(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
 	);
 }
+
+/** Clear a per-account cache only; callers choose its account database name. */
+export function clearPersonalFoodCache(
+	databaseName: string,
+	removePhoto: (visual: FoodVisual | undefined) => void,
+) {
+	const database = openNutritionDatabase(databaseName);
+	try {
+		const repository = createPersonalFoodRepository(database, {
+			partialCache: true,
+		});
+		for (const food of repository.list()) removePhoto(food.visual);
+		repository.replaceFromBackup({ foods: [], combos: [] });
+	} finally {
+		database.closeSync();
+	}
+}

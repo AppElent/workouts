@@ -420,6 +420,12 @@ export function PersonalFoodsProvider({
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const owner = useRef(subject);
 	owner.current = subject;
+	useEffect(() => {
+		owner.current = subject;
+		return () => {
+			owner.current = undefined;
+		};
+	}, [subject]);
 	const receiveServerPage = useCallback(
 		(records: readonly LibraryRecord[]) => {
 			const owned = records.filter(
