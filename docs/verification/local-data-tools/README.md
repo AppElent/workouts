@@ -166,3 +166,13 @@ account before pruning them. Cleanup removes only acknowledged data for the
 current account; other-account data and optional preferences can remain. TestFlight
 installation and successful phone cleanup have not yet been confirmed; the user
 will check later.
+
+Physical-device follow-up: the user reported that the action succeeded. A
+read-only production query traversed the complete library (78 records): 72
+legacy Foods and 6 legacy combos, all revision-acknowledged and none deleted.
+These totals match the pre-cleanup phone backup; this count check does not compare
+individual payloads or record identifiers.
+[Production totals after reported upload](production-library-after-upload-2026-10-11.json).
+The environment/build used for the reported action awaits clarification. A second
+CoreDevice inspection failed because Apple could not read developer disk image
+metadata; post-cleanup phone SQLite counts are therefore not independently verified.

@@ -41,7 +41,21 @@
         "dryRun": true
       }
     ],
-    "testDataResetAvailable": false
+    "testDataResetAvailable": false,
+    "libraryAfterReportedUpload": {
+      "isDone": true,
+      "owners": [
+        {
+          "acknowledged": 78,
+          "combos": 6,
+          "deleted": 0,
+          "foods": 72,
+          "legacyCombos": 6,
+          "legacyFoods": 72
+        }
+      ],
+      "scanned": 78
+    }
   },
   "ci": {
     "main": 38137159129,
@@ -65,6 +79,9 @@
     "installKind": "development",
     "developmentLaunchAccepted": true,
     "metroConnectionVerified": false,
-    "previewBuild20Running": false
+    "previewBuild20Running": false,
+    "cleanupSuccessReportedByUser": true,
+    "cleanupReportedEnvironment": "awaiting clarification",
+    "postCleanupSqliteInspection": "Unavailable: CoreDevice developer disk image metadata error"
   }
 }

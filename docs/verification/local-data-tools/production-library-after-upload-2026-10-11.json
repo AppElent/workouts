@@ -1,0 +1,14 @@
+{
+  "isDone": true,
+  "owners": [
+    {
+      "acknowledged": 78,
+      "combos": 6,
+      "deleted": 0,
+      "foods": 72,
+      "legacyCombos": 6,
+      "legacyFoods": 72
+    }
+  ],
+  "scanned": 78
+}
