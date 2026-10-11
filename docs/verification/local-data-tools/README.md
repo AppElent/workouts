@@ -158,14 +158,13 @@ operation was present.
 [Physical development database counts before cleanup](physical-dev-before-cleanup-2026-10-11.json).
 The copied database stays in local temporary storage; only counts are recorded here.
 
-Remaining physical-device acceptance: verify the development app loads main on
-port 8189. Install/open build 20 from TestFlight, verify existing online data loads,
-and run **Upload and clean local data** there. Development and TestFlight use
-separate Convex databases; upload the phone's legacy originals to its production
-account before pruning them. Cleanup removes only acknowledged data for the
-current account; other-account data and optional preferences can remain. TestFlight
-installation and successful phone cleanup have not yet been confirmed; the user
-will check later.
+Physical-device acceptance: the user confirmed **Upload and clean local data**
+completed successfully in **TestFlight build 20**. This establishes that build 20
+ran on the phone and that its production upload/cleanup action succeeded.
+Development and TestFlight use separate Convex databases. Cleanup removes only
+acknowledged data for the current account; other-account data and optional
+preferences can remain. Physical development-client UI acceptance remains
+unconfirmed; development runtime and cleanup were verified on the simulator.
 
 Physical-device follow-up: the user reported that the action succeeded. A
 read-only production query traversed the complete library (78 records): 72
@@ -173,6 +172,7 @@ legacy Foods and 6 legacy combos, all revision-acknowledged and none deleted.
 These totals match the pre-cleanup phone backup; this count check does not compare
 individual payloads or record identifiers.
 [Production totals after reported upload](production-library-after-upload-2026-10-11.json).
-The environment/build used for the reported action awaits clarification. A second
+The user identified the successful action as **TestFlight build 20**. A second
 CoreDevice inspection failed because Apple could not read developer disk image
-metadata; post-cleanup phone SQLite counts are therefore not independently verified.
+metadata; cleanup acceptance is based on the user's success report, while
+post-cleanup phone SQLite counts are not independently verified.

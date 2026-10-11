@@ -74,14 +74,18 @@
     "buildUrl": "https://expo.dev/accounts/appelent/projects/foundry/builds/ce9feed2-916c-413a-b17c-4d10f407be73"
   },
   "physicalDevice": {
-    "existingBuildNumber": "19",
     "sqliteCleanupVerified": false,
-    "installKind": "development",
     "developmentLaunchAccepted": true,
     "metroConnectionVerified": false,
-    "previewBuild20Running": false,
+    "previewBuild20Running": true,
     "cleanupSuccessReportedByUser": true,
-    "cleanupReportedEnvironment": "awaiting clarification",
-    "postCleanupSqliteInspection": "Unavailable: CoreDevice developer disk image metadata error"
+    "cleanupReportedEnvironment": "TestFlight build 20",
+    "postCleanupSqliteInspection": "Unavailable: CoreDevice developer disk image metadata error",
+    "beforeRolloutBuildNumber": "19",
+    "beforeRolloutInstallKind": "development",
+    "currentBuildNumber": "20",
+    "installKind": "TestFlight",
+    "previewBuild20AcceptanceSource": "user confirmation",
+    "cleanupAcceptance": "User confirmed Upload and clean local data completed successfully; raw SQLite counts not independently verified"
   }
 }
