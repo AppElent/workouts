@@ -158,8 +158,11 @@ operation was present.
 [Physical development database counts before cleanup](physical-dev-before-cleanup-2026-10-11.json).
 The copied database stays in local temporary storage; only counts are recorded here.
 
-Remaining physical-device acceptance: verify the development app loads main, run
-**Upload and clean local data**, then install/open build 20 from TestFlight and
-verify existing online data loads. Cleanup removes only acknowledged data for the
+Remaining physical-device acceptance: verify the development app loads main on
+port 8189. Install/open build 20 from TestFlight, verify existing online data loads,
+and run **Upload and clean local data** there. Development and TestFlight use
+separate Convex databases; upload the phone's legacy originals to its production
+account before pruning them. Cleanup removes only acknowledged data for the
 current account; other-account data and optional preferences can remain. TestFlight
-installation and successful phone cleanup have not yet been confirmed.
+installation and successful phone cleanup have not yet been confirmed; the user
+will check later.
