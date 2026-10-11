@@ -7,6 +7,7 @@ import { MEAL_SLOTS, useNutritionDay } from "../../../data/nutrition-day";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { DateStepper } from "../../../ui/date-stepper";
+import { DisclosureRow } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 export function DiaryEntryLabsScreen() {
 	const { t, locale } = useI18n();
@@ -21,6 +22,12 @@ export function DiaryEntryLabsScreen() {
 			<Stack.Screen options={{ title: t.diaryEntry.labs }} />
 			<AppText variant="title">{t.diaryEntry.labTitle}</AppText>
 			<AppText>{t.diaryEntry.labIntro}</AppText>
+			{__DEV__ ? (
+				<DisclosureRow
+					label={locale === "nl" ? "SQLite-browser" : "SQLite browser"}
+					onPress={() => router.push("/local-database")}
+				/>
+			) : null}
 			<DateStepper
 				date={date}
 				locale={locale}

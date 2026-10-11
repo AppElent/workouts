@@ -30,6 +30,7 @@
 		"@tanstack/react-form": "^1.33.1",
 		"@workouts/core": "workspace:*",
 		"convex": "^1.42.1",
+		"convex-helpers": "0.1.120",
 		"expo": "~57.0.25",
 		"expo-asset": "~57.0.18",
 		"expo-audio": "~57.0.5",

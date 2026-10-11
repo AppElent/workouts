@@ -50,7 +50,10 @@ branch verification.
 - Known-owner SQLite Foods/Combos and saved Capture Drafts upload automatically
   after that same account authenticates online. Pending legacy operations replay
   with their original stable IDs and receipt identities.
-- Unowned libraries require **Import this device library** in Library settings.
+- Unowned libraries require **Upload local data** in Profile → Local data and
+  library settings. The button also retries this account's pending library and
+  diary changes and saved-note migrations. It shows remaining uploads and waits
+  for server acknowledgement before reporting completion.
   Copies use stable `device:` IDs and rewrite Combo references. The original claim
   owner is recorded; another account cannot claim the same pending work.
 - Preserve original records and journals until server acknowledgement. Interrupted
@@ -63,7 +66,12 @@ branch verification.
   conflict handling.
 - Local Food photos stay on their original device. Portable records omit photos
   and remain usable on a new installation. Local portions/recents are optional.
-- Library settings exposes remaining legacy uploads and retry. A failure must
+- Library settings exposes remaining legacy uploads and retry. Development
+  builds also provide Profile → Labs → SQLite browser for read-only database,
+  table and row inspection. Local rows can be already-acknowledged caches or
+  retained originals; a nonempty table is not itself evidence of pending uploads.
+  See [tool verification and the storage inventory](../verification/local-data-tools/README.md).
+  A failure must
   retain the journal and originals. Resolve genuine invalid-record errors from
   retained evidence rather than discarding pending data.
 

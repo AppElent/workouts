@@ -1,9 +1,9 @@
 /**
  * Nutrition-day data boundary.
  *
- * Current goals come from Convex and deliberately apply to every selected day.
- * Diary entries remain the #72 seam. Shared nutrient and goal vocabulary comes
- * from `@workouts/core/nutrition` so every client and backend uses one contract.
+ * Effective-dated goals and frozen diary entries come from Convex. Retained
+ * subscriptions support quick navigation; disk snapshots support cached reads
+ * after restart. Shared nutrient vocabulary comes from `@workouts/core/nutrition`.
  */
 import {
 	type GoalDirection,
@@ -14,9 +14,10 @@ import {
 	type NutrientValue,
 	type NutritionGoalValue,
 } from "@workouts/core/nutrition";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect } from "react";
 import { api } from "../convex/api";
+import { useCachedQuery as useQuery } from "../convex/query-cache";
 import type { IsoDate } from "./calendar-day";
 import {
 	useNutritionOperations,

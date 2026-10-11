@@ -1,0 +1,103 @@
+diff --git a/react/cache/provider.js b/react/cache/provider.js
+index 60405795d148fef2f58a9a361febd28801d213b4..ea62d3858487e7df2b447322c99d675f64610672 100644
+--- a/react/cache/provider.js
++++ b/react/cache/provider.js
+@@ -1,7 +1,7 @@
+ "use client";
+ import { jsx as _jsx } from "react/jsx-runtime";
+ import { useConvex, ConvexReactClient } from "convex/react";
+-import { createContext, useMemo } from "react";
++import { createContext, useEffect, useMemo } from "react";
+ export const ConvexQueryCacheContext = createContext({
+     registry: null,
+ });
+@@ -21,6 +21,7 @@ export const ConvexQueryCacheProvider = ({ children, debug, expiration, maxIdleE
+             "See https://docs.convex.dev/quick-start#set-up-convex-in-your-react-app");
+     }
+     const registry = useMemo(() => new CacheRegistry(convex, { debug, expiration, maxIdleEntries }), [convex, debug, expiration, maxIdleEntries]);
++    useEffect(() => () => registry.dispose(), [registry]);
+     return (_jsx(ConvexQueryCacheContext.Provider, { value: { registry }, children: children }));
+ };
+ const DEFAULT_EXPIRATION_MS = 300_000; // 5 minutes
+@@ -91,7 +92,7 @@ class CacheRegistry {
+                 }
+                 else {
+                     this.idle += 1;
+-                    const evictTimer = window.setTimeout(() => {
++                    const evictTimer = globalThis.setTimeout(() => {
+                         this.idle -= 1;
+                         remove();
+                     }, this.timeout);
+@@ -100,6 +101,16 @@ class CacheRegistry {
+             }
+         }
+     }
++    // Release subscriptions and timers when the provider scope/options change.
++    dispose() {
++        for (const entry of this.queries.values()) {
++            if (entry.evictTimer !== null) clearTimeout(entry.evictTimer);
++            entry.unsub();
++        }
++        this.queries.clear();
++        this.subs.clear();
++        this.idle = 0;
++    }
+     debug() {
+         console.log("DEBUG CACHE");
+         console.log(`IDLE = ${this.idle}`);
+diff --git a/react/cache/provider.tsx b/react/cache/provider.tsx
+index fa7fecbf1f5405f40779385adf06cd8b92695a29..a697dd384e4c2f12adf91b2554d39f16e73e2d73 100644
+--- a/react/cache/provider.tsx
++++ b/react/cache/provider.tsx
+@@ -2,7 +2,7 @@
+ import { useConvex, ConvexReactClient } from "convex/react";
+ import type { FunctionArgs, FunctionReference } from "convex/server";
+ import type { FC, PropsWithChildren } from "react";
+-import { createContext, useMemo } from "react";
++import { createContext, useEffect, useMemo } from "react";
+ 
+ export const ConvexQueryCacheContext = createContext({
+   registry: null as CacheRegistry | null,
+@@ -31,6 +31,7 @@ export const ConvexQueryCacheProvider: FC<
+     () => new CacheRegistry(convex, { debug, expiration, maxIdleEntries }),
+     [convex, debug, expiration, maxIdleEntries],
+   );
++  useEffect(() => () => registry.dispose(), [registry]);
+   return (
+     <ConvexQueryCacheContext.Provider value={{ registry }}>
+       {children}
+@@ -75,7 +76,7 @@ type SubKey = string;
+ type QueryKey = string;
+ type CachedQuery = {
+   refs: Set<string>;
+-  evictTimer: number | null; // SetTimeout
++  evictTimer: ReturnType<typeof globalThis.setTimeout> | null; // SetTimeout
+   unsub: () => void;
+ };
+ 
+@@ -149,7 +150,7 @@ class CacheRegistry {
+           remove();
+         } else {
+           this.idle += 1;
+-          const evictTimer = window.setTimeout(() => {
++          const evictTimer = globalThis.setTimeout(() => {
+             this.idle -= 1;
+             remove();
+           }, this.timeout);
+@@ -158,6 +159,16 @@ class CacheRegistry {
+       }
+     }
+   }
++  // Release subscriptions and timers when the provider scope/options change.
++  dispose() {
++    for (const entry of this.queries.values()) {
++      if (entry.evictTimer !== null) clearTimeout(entry.evictTimer);
++      entry.unsub();
++    }
++    this.queries.clear();
++    this.subs.clear();
++    this.idle = 0;
++  }
+   debug() {
+     console.log("DEBUG CACHE");
+     console.log(`IDLE = ${this.idle}`);

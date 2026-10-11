@@ -58,6 +58,15 @@ measurement. TanStack Query is an option only if a demonstrated need justifies
 the additional integration, not a required cache or offline engine. Lightweight
 remembered portions do not require an offline write queue or new settings UI.
 
+The mobile pilot selects `convex-helpers/react/cache` for short subscription
+retention on Routines, Strength Session data, and Nutrition day queries. The
+account/session owns the cache; backgrounding releases its subscriptions without
+remounting editors. Searches and growing history pages retain their existing
+query lifetimes. Persistent Nutrition read caches, Set Drafts, preferences, and
+legacy migration journals keep their separate purposes. See the
+[pilot verification](../verification/query-subscription-cache/README.md) before
+extending retention to additional queries or retiring disk caches.
+
 Before declaring usage acceptable, inspect actual Convex allowances and current
 consumption. Record database I/O, function calls, and client bytes separately,
 with record sizes and active-device assumptions. Use a representative

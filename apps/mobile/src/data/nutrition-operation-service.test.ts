@@ -32,6 +32,42 @@ const snapshot: NutritionDiarySnapshot = {
 };
 
 describe("nutrition replay service", () => {
+	it("manual upload immediately retries a saved legacy diary change and waits for its acknowledgement", async () => {
+		const repo = createNutritionLocalRepository(new SQLiteTestDatabase());
+		const operationId = mintNutritionUuid();
+		repo.accept("alice", {
+			version: 1,
+			operationId,
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: { ...snapshot, clientEntryId: mintNutritionUuid() },
+			},
+		});
+		repo.markNeedsAttention(
+			"alice",
+			operationId,
+			"Temporary migration configuration",
+		);
+		const remote = jest
+			.fn()
+			.mockResolvedValue({ entryIds: ["saved"], clientEntryIds: [], days: [] });
+		const service = new NutritionOperationService(
+			repo,
+			remote,
+			{},
+			false,
+			false,
+			true,
+		);
+		service.setSubject("alice");
+		service.setOnline(true);
+		await service.uploadPending("alice");
+		expect(service.getOperations("alice")[0].status).toBe("acknowledged");
+		expect(remote.mock.calls[0][0].operationId).toBe(operationId);
+		await expect(service.uploadPending("bob")).rejects.toThrow("account");
+		service.dispose();
+	});
 	it("online saves report success only after acknowledgement and never queue disconnected input", async () => {
 		const db = new SQLiteTestDatabase();
 		const repo = createNutritionLocalRepository(db);

@@ -3,28 +3,27 @@ import type { FunctionReturnType } from "convex/server";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { api } from "../convex/api";
-import { foodPhotos } from "../data/food-photo-manager";
-import { useNutritionDrafts } from "../data/nutrition-drafts";
-import { useOpenFoodFacts } from "../data/open-food-facts-context";
+import { api } from "../../../convex/api";
+import { foodPhotos } from "../../../data/food-photo-manager";
+import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import {
 	type OffRefreshProgress,
 	openFoodFactsImports,
 	refreshOpenFoodFactsImports,
-} from "../data/open-food-facts-sync";
-import { usePersonalFoods } from "../data/personal-foods";
-import { useI18n } from "../i18n";
-import { spacing, type Tokens, useThemedStyles } from "../theme";
-import { PrimaryButton } from "../ui/button";
-import { useConfirm } from "../ui/confirm-dialog";
+} from "../../../data/open-food-facts-sync";
+import { usePersonalFoods } from "../../../data/personal-foods";
+import { useI18n } from "../../../i18n";
+import { spacing, type Tokens, useThemedStyles } from "../../../theme";
+import { useConfirm } from "../../../ui/confirm-dialog";
 import {
 	DisclosureRow,
 	FormSection,
 	GroupedSurface,
 	TextAction,
-} from "../ui/form";
-import { AppText } from "../ui/text";
-import { useToast } from "../ui/toast";
+} from "../../../ui/form";
+import { AppText } from "../../../ui/text";
+import { useToast } from "../../../ui/toast";
+import { LocalDataUploadPanel } from "./local-data-upload-panel";
 import { nutritionLibraryCopy } from "./nutrition-library-copy";
 
 export function NutritionSettingsScreen() {
@@ -33,7 +32,6 @@ export function NutritionSettingsScreen() {
 	const router = useRouter();
 	const copy = nutritionLibraryCopy[locale];
 	const foods = usePersonalFoods();
-	const drafts = useNutritionDrafts();
 	const client = useConvex();
 	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
@@ -41,22 +39,6 @@ export function NutritionSettingsScreen() {
 	const [offRefreshing, setOffRefreshing] = useState(false);
 	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
 	const { isWebSocketConnected } = useConvexConnectionState();
-	const importLegacy = async () => {
-		if (
-			!(await confirm({
-				title: copy.confirmImportTitle,
-				message: copy.confirmImportBody,
-				confirmLabel: copy.confirmImport,
-			}))
-		)
-			return;
-		try {
-			foods.account.importLegacy();
-			toast.success(copy.imported);
-		} catch {
-			toast.error(copy.failure);
-		}
-	};
 	const refreshImports = async () => {
 		if (offRefreshing || !isWebSocketConnected) return;
 		if (
@@ -122,30 +104,7 @@ export function NutritionSettingsScreen() {
 			<GroupedSurface style={styles.card}>
 				<AppText variant="caption">{copy.photoNotice}</AppText>
 			</GroupedSurface>
-			{foods.account.hasLegacy ? (
-				<GroupedSurface style={styles.card}>
-					<AppText variant="heading">{copy.import}</AppText>
-					<AppText variant="caption">{copy.importHelp}</AppText>
-					<PrimaryButton
-						label={copy.import}
-						onPress={() => void importLegacy()}
-					/>
-				</GroupedSurface>
-			) : null}
-			{foods.account.operations.length || drafts.migrationError ? (
-				<GroupedSurface style={styles.card}>
-					<AppText variant="heading">{copy.pending}</AppText>
-					<AppText variant="caption">{copy.migrationHelp}</AppText>
-					<TextAction
-						label={copy.retryUpload}
-						disabled={!isWebSocketConnected}
-						onPress={() => {
-							foods.account.retry();
-							drafts.retryMigration();
-						}}
-					/>
-				</GroupedSurface>
-			) : null}
+			<LocalDataUploadPanel key={foods.account.subject ?? "signed-out"} />
 			<GroupedSurface style={styles.card}>
 				<AppText variant="heading">{copy.offTitle}</AppText>
 				<AppText variant="caption">{copy.offHelp}</AppText>

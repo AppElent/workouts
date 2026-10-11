@@ -61,6 +61,8 @@ export type NutritionDraftsValue = {
 	readonly revision: number;
 	readonly loading: boolean;
 	readonly migrationError?: string;
+	readonly pendingMigrationCount: number;
+	uploadPending(): Promise<void>;
 	retryMigration(): void;
 	listForDate(date: string): CaptureDraft[];
 	summariseOtherDays(date: string): OtherDaysSummary;
@@ -120,7 +122,7 @@ function NutritionDraftScope({
 	);
 	const [revision, setRevision] = useState(0);
 	const [migrationError, setMigrationError] = useState<string>();
-	const migrationRunning = useRef(false);
+	const migrationRunning = useRef<Promise<void> | undefined>(undefined);
 	const createIds = useRef(new Map<string, string>());
 	const retryIds = useRef(new Map<string, string>());
 	const active = useRef(true);
@@ -149,41 +151,45 @@ function NutritionDraftScope({
 		},
 		[subject],
 	);
-	const migrate = useCallback(async () => {
-		if (
-			!subject ||
-			!isWebSocketConnected ||
-			migrationRunning.current ||
-			!active.current
-		)
-			return;
-		migrationRunning.current = true;
+	const migrate = useCallback((): Promise<void> => {
+		if (migrationRunning.current) return migrationRunning.current;
+		if (!subject || !isWebSocketConnected || !active.current)
+			return Promise.reject(new Error("A connection is required to upload."));
 		const account = subject;
-		try {
-			for (const draft of repository.pendingMigrations(account)) {
-				if (!active.current || operations.getSubject() !== account) break;
-				const saved = await saveRemote({
-					expectedSubject: account,
-					operationId: `draft-migration:${draft.id}:${draft.updatedAt}`,
-					id: draft.id,
-					action: "migrate",
-					input: { date: draft.date, meal: draft.meal, note: draft.note },
-					createdAt: draft.createdAt,
-				});
-				if (!saved) throw new Error("Missing Capture Draft acknowledgement.");
-				if (!active.current) break;
-				repository.acknowledgeMigration(draft);
-				receive([saved]);
+		const run = async () => {
+			try {
+				for (const draft of repository.pendingMigrations(account)) {
+					if (!active.current || operations.getSubject() !== account)
+						throw new Error("The account changed while uploading.");
+					const saved = await saveRemote({
+						expectedSubject: account,
+						operationId: `draft-migration:${draft.id}:${draft.updatedAt}`,
+						id: draft.id,
+						action: "migrate",
+						input: { date: draft.date, meal: draft.meal, note: draft.note },
+						createdAt: draft.createdAt,
+					});
+					if (!saved) throw new Error("Missing Capture Draft acknowledgement.");
+					if (!active.current || operations.getSubject() !== account)
+						throw new Error("The account changed while uploading.");
+					repository.acknowledgeMigration(draft);
+					receive([saved]);
+				}
+				if (active.current) setMigrationError(undefined);
+			} catch (error) {
+				if (active.current)
+					setMigrationError(
+						error instanceof Error ? error.message : String(error),
+					);
+				throw error;
 			}
-			if (active.current) setMigrationError(undefined);
-		} catch (error) {
-			if (active.current)
-				setMigrationError(
-					error instanceof Error ? error.message : String(error),
-				);
-		} finally {
-			migrationRunning.current = false;
-		}
+		};
+		const task = run().finally(() => {
+			migrationRunning.current = undefined;
+			if (active.current) setRevision((value) => value + 1);
+		});
+		migrationRunning.current = task;
+		return task;
 	}, [
 		subject,
 		isWebSocketConnected,
@@ -193,8 +199,8 @@ function NutritionDraftScope({
 		receive,
 	]);
 	useEffect(() => {
-		void migrate();
-	}, [migrate]);
+		if (subject && isWebSocketConnected) void migrate().catch(() => {});
+	}, [migrate, subject, isWebSocketConnected]);
 	const write = useCallback(
 		async (
 			action: "create" | "update" | "remove",
@@ -233,7 +239,11 @@ function NutritionDraftScope({
 			subject,
 			revision,
 			migrationError,
-			retryMigration: () => void migrate(),
+			pendingMigrationCount: subject
+				? repository.pendingMigrations(subject).length
+				: 0,
+			uploadPending: migrate,
+			retryMigration: () => void migrate().catch(() => {}),
 			receive,
 			listForDate: (date) =>
 				[...records.values()]
@@ -259,7 +269,16 @@ function NutritionDraftScope({
 				return true;
 			},
 		}),
-		[subject, records, revision, migrationError, receive, write, migrate],
+		[
+			subject,
+			records,
+			revision,
+			migrationError,
+			receive,
+			write,
+			migrate,
+			repository,
+		],
 	);
 	return (
 		<NutritionDraftsContext value={value}>{children}</NutritionDraftsContext>

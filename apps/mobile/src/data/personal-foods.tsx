@@ -82,6 +82,7 @@ type PersonalFoodsValue = {
 			lastError?: string;
 		}[];
 		importLegacy(): void;
+		uploadPending(): Promise<void>;
 		isDeleted(id: string): boolean;
 		retry(): void;
 		receiveServerPage(records: readonly LibraryRecord[]): void;
@@ -641,6 +642,10 @@ export function PersonalFoodsProvider({
 				}
 			},
 			retry: () => void service?.replay(),
+			uploadPending: async () => {
+				if (!service) throw new Error("Sign in before uploading local data.");
+				await service.uploadPending();
+			},
 			receiveServerPage,
 		}),
 		[

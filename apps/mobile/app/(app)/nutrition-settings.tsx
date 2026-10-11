@@ -1,2 +1,2 @@
-import { NutritionSettingsScreen } from "../../src/screens/nutrition-library";
+import { NutritionSettingsScreen } from "../../src/features/nutrition/settings/nutrition-settings-screen";
 export default NutritionSettingsScreen;

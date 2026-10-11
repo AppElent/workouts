@@ -15,6 +15,54 @@ import { createNutritionLocalRepository } from "./nutrition-local-repository";
 import { NutritionOperationsProvider } from "./nutrition-operation-service";
 
 describe("Capture Draft online save", () => {
+	it("manual upload joins an automatic saved-note migration and reports completion only after acknowledgement", async () => {
+		const repository = createNutritionDraftRepository(new SQLiteTestDatabase());
+		const original = repository.create("alice", {
+			date: "2026-10-07",
+			meal: "lunch",
+			note: "Local soup",
+		});
+		let acknowledge!: (draft: typeof original) => void;
+		jest.mocked(useMutation).mockReturnValue(
+			jest.fn(
+				() =>
+					new Promise((resolve) => {
+						acknowledge = resolve;
+					}),
+			) as never,
+		);
+		jest
+			.mocked(useConvexConnectionState)
+			.mockReturnValue({ isWebSocketConnected: true } as never);
+		let notes!: ReturnType<typeof useNutritionDrafts>;
+		function Reader() {
+			notes = useNutritionDrafts();
+			return <Text>Notes</Text>;
+		}
+		const view = render(
+			<NutritionOperationsProvider
+				subject="alice"
+				repository={createNutritionLocalRepository(new SQLiteTestDatabase())}
+			>
+				<NutritionDraftsProvider repository={repository}>
+					<Reader />
+				</NutritionDraftsProvider>
+			</NutritionOperationsProvider>,
+		);
+		let complete = false;
+		const upload = notes.uploadPending().then(() => {
+			complete = true;
+		});
+		await Promise.resolve();
+		expect(complete).toBe(false);
+		await act(async () => {
+			acknowledge(original);
+			await upload;
+		});
+		expect(notes.pendingMigrationCount).toBe(0);
+		expect(repository.get("alice", original.id)).toEqual(original);
+		view.unmount();
+	});
 	it("retries an interrupted legacy upload with the same identity and retains the original", async () => {
 		const repository = createNutritionDraftRepository(new SQLiteTestDatabase());
 		const original = repository.create("alice", {

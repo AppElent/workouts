@@ -11,6 +11,8 @@ checks remain pending when a document moves or a plan is archived.
 - [Nutrition and appearance evidence](nutrition/README.md): coverage inventory and colocated screenshots/recordings; start with the [review](nutrition/REVIEW.md), [merge selection](nutrition/MERGE-SELECTION.md), and [SQLite regression record](nutrition/SQLITE-REVIEW.md).
 - [Exercise library implementation and verification](exercise-library/README.md): native flow results and colocated assets; the [design study](../../designs/exercise-library/README.md) remains separate.
 - [Online-first account data](online-first-account-data/README.md): issue 89 checks, connectivity/restart evidence, measured Convex usage and migration rollout gate.
+- [Query subscription cache](query-subscription-cache/README.md): mobile pilot, lifecycle checks and read-only navigation measurements.
+- [Local data tools](local-data-tools/README.md): manual acknowledged upload, development SQLite browser, storage inventory and native evidence.
 
 - [Diary Entry editor](diary-entry-editor/README.md): promoted editor, keyboard overlays, and device evidence.
 - [Live Nutrition Diary](nutrition-diary/README.md): production routes, folder ownership, corrections, visual review, and outstanding acceptance.

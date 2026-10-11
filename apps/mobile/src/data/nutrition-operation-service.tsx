@@ -89,6 +89,7 @@ export class NutritionOperationService {
 	private readonly listeners = new Set<() => void>();
 	private activeSubject: string | undefined;
 	private replaying = new Set<string>();
+	private readonly replayFinished = new Map<string, Promise<void>>();
 	private version = 0;
 	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	private online = true;
@@ -249,19 +250,44 @@ export class NutritionOperationService {
 		return envelope.operationId;
 	}
 
-	async replay(subject: string): Promise<void> {
-		if (
-			!this.online ||
-			subject !== this.activeSubject ||
-			this.replaying.has(subject)
-		)
-			return;
+	async uploadPending(subject: string) {
+		if (subject !== this.activeSubject)
+			throw new Error("The account changed while uploading.");
+		if (!this.online) throw new Error("A connection is required to upload.");
+		await this.replayFinished.get(subject);
+		if (subject !== this.activeSubject || !this.online)
+			throw new Error("The account or connection changed while uploading.");
+		for (const operation of this.getOperations(subject))
+			if (operation.status === "needs-attention")
+				this.repository.markQueued(subject, operation.operationId);
+		await this.replay(subject, true);
+		if (subject !== this.activeSubject || !this.online)
+			throw new Error("The account or connection changed while uploading.");
+		const pending = this.getOperations(subject).filter(
+			(operation) => operation.status !== "acknowledged",
+		);
+		if (pending.length)
+			throw new Error(
+				pending[0].lastError ?? "Diary changes still need uploading.",
+			);
+	}
+
+	async replay(subject: string, retryNow = false): Promise<void> {
+		if (this.replaying.has(subject)) return this.replayFinished.get(subject);
+		if (!this.online || subject !== this.activeSubject) return;
+		let finish!: () => void;
+		this.replayFinished.set(
+			subject,
+			new Promise<void>((resolve) => {
+				finish = resolve;
+			}),
+		);
 		this.replaying.add(subject);
 		try {
 			for (const operation of this.repository.listOperations(subject)) {
 				if (!this.online || subject !== this.activeSubject) break;
 				if (operation.status !== "queued") continue;
-				if (operation.nextAttemptAt > Date.now()) continue;
+				if (!retryNow && operation.nextAttemptAt > Date.now()) continue;
 				if (this.isBlockedByPredecessor(subject, operation)) continue;
 				this.repository.markSending(subject, operation.operationId);
 				this.notify();
@@ -305,6 +331,8 @@ export class NutritionOperationService {
 			}
 		} finally {
 			this.replaying.delete(subject);
+			this.replayFinished.delete(subject);
+			finish();
 			if (this.online && subject === this.activeSubject) {
 				clearTimeout(this.retryTimer);
 				const queued = this.repository

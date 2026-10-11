@@ -549,6 +549,18 @@ jest.mock("@clerk/expo", () => ({
 
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: undefined }));
 
+// Screen/save tests use the existing mocked Convex transport. Cache lifecycle
+// tests unmock this boundary and exercise the real helper and subscription hooks.
+jest.mock("./src/convex/query-cache", () => {
+	const convex = jest.requireMock("convex/react");
+	return {
+		AppQueryCacheProvider: ({ children }: { children: React.ReactNode }) =>
+			children,
+		useCachedQuery: (...args: unknown[]) => convex.useQuery(...args),
+		useCachedQueries: (...args: unknown[]) => convex.useQueries(...args),
+	};
+});
+
 jest.mock("convex/react", () => {
 	const emptyQueryResult: never[] = [];
 	const emptyDiary = { entries: [], totals: {} };

@@ -67,6 +67,62 @@ function comboDraft(foodId: string): ComboDraft {
 	};
 }
 
+it("manual upload retries a failed saved record with its original identity", async () => {
+	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
+	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const food = foods.create(foodDraft());
+	const remote = jest
+		.fn()
+		.mockRejectedValueOnce(
+			new Error("Invalid temporary migration configuration"),
+		)
+		.mockResolvedValue({ record: libraryRecordFromFood(food, 1) });
+	const service = new NutritionLibraryService(
+		"alice",
+		state,
+		foods,
+		remote,
+		true,
+	);
+	service.setOnline(true);
+	await service.replay();
+	const failed = service.getOperations()[0];
+	expect(failed.status).toBe("needs-attention");
+	await service.uploadPending();
+	expect(service.getOperations()).toEqual([]);
+	expect(remote.mock.calls[1][0].operationId).toBe(failed.operationId);
+	service.dispose();
+});
+
+it("manual upload waits for an existing upload and leaves nothing pending after acknowledgement", async () => {
+	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
+	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const food = foods.create(foodDraft());
+	let acknowledge!: (result: { record: LibraryRecord }) => void;
+	const service = new NutritionLibraryService(
+		"alice",
+		state,
+		foods,
+		() =>
+			new Promise((resolve) => {
+				acknowledge = resolve;
+			}),
+		true,
+	);
+	service.setOnline(true);
+	let complete = false;
+	const upload = service.uploadPending().then(() => {
+		complete = true;
+	});
+	await Promise.resolve();
+	expect(complete).toBe(false);
+	acknowledge({ record: libraryRecordFromFood(food, 1) });
+	await upload;
+	expect(service.getOperations()).toEqual([]);
+	await service.uploadPending();
+	service.dispose();
+});
+
 function remoteServer() {
 	const records = new Map<string, LibraryRecord>();
 	const receipts = new Map<string, { record: LibraryRecord }>();

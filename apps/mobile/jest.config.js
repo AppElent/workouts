@@ -26,6 +26,7 @@ const mustTransform = [
 	"@react-native",
 	"@react-navigation",
 	"@testing-library",
+	"convex-helpers",
 	"expo",
 	"expo-.*",
 	"jest-expo",

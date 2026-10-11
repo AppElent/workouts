@@ -60,6 +60,7 @@ export class NutritionLibraryService {
 	// the provider explicitly enables transport after it knows connection state.
 	private online = false;
 	private replaying = false;
+	private replayFinished?: Promise<void>;
 	private disposed = false;
 	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	private readonly listeners = new Set<() => void>();
@@ -272,8 +273,33 @@ export class NutritionLibraryService {
 		return this.state.listConflicts(this.subject);
 	}
 
+	/** Explicit migration action; completion means every journal entry was acknowledged. */
+	async uploadPending() {
+		if (this.disposed || !this.online)
+			throw new Error("A connection is required to upload.");
+		await this.replayFinished;
+		if (this.disposed || !this.online)
+			throw new Error("The account or connection changed while uploading.");
+		for (const operation of this.getOperations())
+			if (operation.status === "needs-attention")
+				this.state.markQueued(this.subject, operation.operationId, "");
+		await this.replay();
+		if (this.disposed || !this.online)
+			throw new Error("The account or connection changed while uploading.");
+		const pending = this.getOperations();
+		if (pending.length)
+			throw new Error(
+				pending[0].lastError ?? "Library records still need uploading.",
+			);
+	}
+
 	async replay() {
-		if (this.disposed || !this.online || this.replaying) return;
+		if (this.replaying) return this.replayFinished;
+		if (this.disposed || !this.online) return;
+		let finish!: () => void;
+		this.replayFinished = new Promise<void>((resolve) => {
+			finish = resolve;
+		});
 		clearTimeout(this.retryTimer);
 		this.replaying = true;
 		let stoppedByFailure = false;
@@ -338,6 +364,8 @@ export class NutritionLibraryService {
 			}
 		} finally {
 			this.replaying = false;
+			this.replayFinished = undefined;
+			finish();
 			if (!this.disposed && this.online && stoppedByFailure) {
 				// Retain the durable outbox and retry a transient failure even if the
 				// connection stays up and the user makes no further library changes.

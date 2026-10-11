@@ -23,18 +23,6 @@ export const nutritionLibraryCopy = {
 			`${completed} of ${total} checked`,
 		offSummary: (updated: number, unchanged: number, failed: number) =>
 			`${updated} updated · ${unchanged} unchanged · ${failed} not refreshed`,
-		import: "Import this device library",
-		importHelp:
-			"Add the Personal Foods and Combos saved on this device to your account.",
-		retryUpload: "Retry upload",
-		pending: "Legacy records waiting to upload",
-		migrationHelp:
-			"Originals stay on this device until their upload is acknowledged. Conflicting versions are preserved as separate records.",
-		confirmImportTitle: "Import this device library?",
-		confirmImportBody:
-			"Add this device’s Personal Foods and Combos to your account? Meals already logged will stay unchanged.",
-		confirmImport: "Import device library",
-		imported: "Device library queued for account migration.",
 		failure:
 			"The action could not be saved. Your input is still available while this editor stays open.",
 		offline: "A connection is required to save.",
@@ -63,18 +51,6 @@ export const nutritionLibraryCopy = {
 			`${completed} van ${total} gecontroleerd`,
 		offSummary: (updated: number, unchanged: number, failed: number) =>
 			`${updated} vernieuwd · ${unchanged} ongewijzigd · ${failed} niet vernieuwd`,
-		import: "Deze apparaatbibliotheek importeren",
-		importHelp:
-			"Voeg de Persoonlijke Voedingsmiddelen en Combo's van dit apparaat toe aan je account.",
-		retryUpload: "Upload opnieuw proberen",
-		pending: "Oude gegevens wachten op upload",
-		migrationHelp:
-			"Originelen blijven op dit apparaat totdat de upload bevestigd is. Conflicterende versies worden als aparte records bewaard.",
-		confirmImportTitle: "Deze apparaatbibliotheek importeren?",
-		confirmImportBody:
-			"Persoonlijke Voedingsmiddelen en Combo's van dit apparaat aan je account toevoegen? Eerder gelogde maaltijden blijven ongewijzigd.",
-		confirmImport: "Apparaatbibliotheek importeren",
-		imported: "Apparaatbibliotheek staat klaar voor accountmigratie.",
 		failure:
 			"De actie kon niet worden opgeslagen. Je invoer blijft beschikbaar zolang dit formulier open is.",
 		offline: "Opslaan vereist verbinding.",
