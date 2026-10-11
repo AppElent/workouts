@@ -1,6 +1,9 @@
 import type { NutrientKey, NutrientValue } from "@workouts/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
-import { migrateLegacyRecipes } from "./legacy-recipe-migration";
+import {
+	cleanLegacyRecipes,
+	migrateLegacyRecipes,
+} from "./legacy-recipe-migration";
 import { resolveComboPart } from "./nutrition-combo";
 import { createNutritionLibraryStateRepository } from "./nutrition-library-repository";
 import { NutritionLibraryService } from "./nutrition-library-service";
@@ -47,6 +50,30 @@ function source() {
 	};
 	return { database, add };
 }
+
+it("removes acknowledged recipe sources without affecting another owner or replaying deleted recipes", () => {
+	const { database, add } = source();
+	add("alice", "recipe-a", "grams", 200);
+	add("bob", "recipe-b", "grams", 200);
+	const library = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
+	const [id] = migrateLegacyRecipes(database, "alice", library);
+	expect(() => cleanLegacyRecipes(database, "alice", state)).toThrow("upload");
+	state.commitServerRecord("alice", {
+		id,
+		kind: "food",
+		payload: null,
+		revision: 2,
+		deleted: true,
+	});
+	cleanLegacyRecipes(database, "alice", state);
+	library.remove(id);
+	migrateLegacyRecipes(database, "alice", library);
+	expect(library.list()).toEqual([]);
+	const other = createPersonalFoodRepository(new SQLiteTestDatabase());
+	migrateLegacyRecipes(database, "bob", other);
+	expect(other.list()).toHaveLength(1);
+});
 
 describe("legacy Recipe migration through the Personal Library", () => {
 	it("preserves IDs, bilingual version descriptions, gram and serving meaning without claiming estimates", () => {

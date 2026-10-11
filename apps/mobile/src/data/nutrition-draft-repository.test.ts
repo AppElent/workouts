@@ -6,6 +6,26 @@ import { createNutritionCookingRepository } from "./nutrition-cooking-repository
 import { createNutritionDraftRepository } from "./nutrition-draft-repository";
 
 describe("Capture Draft SQLite repository", () => {
+	it("cleans only acknowledged, unchanged originals for the selected account", () => {
+		const repository = createNutritionDraftRepository(new SQLiteTestDatabase());
+		const input = { date: "2026-10-11", meal: "lunch" as const, note: "Soup" };
+		const saved = repository.create("alice", input);
+		const changed = repository.create("alice", input);
+		const pending = repository.create("alice", input);
+		const other = repository.create("bob", input);
+		for (const draft of [saved, changed, other])
+			repository.acknowledgeMigration(draft);
+		repository.update("alice", changed.id, { ...input, note: "Updated soup" });
+		repository.cleanAcknowledged("alice");
+		expect(repository.get("alice", saved.id)).toBeUndefined();
+		expect(
+			repository
+				.pendingMigrations("alice")
+				.map((draft) => draft.id)
+				.sort(),
+		).toEqual([changed.id, pending.id].sort());
+		expect(repository.get("bob", other.id)).toEqual(other);
+	});
 	it("keeps migration originals until acknowledgement and isolates completion by owner", () => {
 		const db = new SQLiteTestDatabase();
 		const repository = createNutritionDraftRepository(db);

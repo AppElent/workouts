@@ -7,6 +7,7 @@ import {
 	libraryRecordFromFood,
 } from "./nutrition-library-repository";
 import {
+	cleanLegacyLibrary,
 	type NutritionLibraryOperationEnvelope,
 	NutritionLibraryService,
 } from "./nutrition-library-service";
@@ -41,6 +42,25 @@ function foodDraft(name = "Oats"): PersonalFoodDraft {
 		},
 	};
 }
+
+it("cleans claimed migration originals only after every record is acknowledged", () => {
+	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
+	const legacy = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const food = legacy.create(foodDraft());
+	state.claimLegacy("alice");
+	expect(() => cleanLegacyLibrary("alice", state, legacy)).toThrow("upload");
+	expect(legacy.find(food.id)).toBeDefined();
+	const record = { ...libraryRecordFromFood(food, 1), id: `device:${food.id}` };
+	state.commitServerRecord("alice", record);
+	cleanLegacyLibrary("bob", state, legacy);
+	expect(legacy.find(food.id)).toBeDefined();
+	state.queueUpsert("alice", record, "unfinished");
+	expect(() => cleanLegacyLibrary("alice", state, legacy)).toThrow("upload");
+	state.acknowledge("alice", "unfinished", { ...record, revision: 2 });
+	cleanLegacyLibrary("alice", state, legacy);
+	expect(legacy.list()).toEqual([]);
+	expect(state.legacyClaimedBy()).toBe("alice");
+});
 
 function comboDraft(foodId: string): ComboDraft {
 	return {

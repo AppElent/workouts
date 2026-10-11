@@ -709,3 +709,31 @@ export function applyLibraryRecord(
 		{ merge: true, preserveLocalPhotos: true },
 	);
 }
+
+/** Clear only this account; preserve unrelated accounts and preferences. */
+export function clearNutritionLibraryAccount(subject: string) {
+	const database = openNutritionDatabase(NUTRITION_LIBRARY_STATE_DATABASE_NAME);
+	try {
+		createNutritionLibraryStateRepository(database);
+		database.withTransactionSync(() => {
+			database.runSync(
+				"DELETE FROM nutrition_library_records WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_library_operations WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_library_prepared WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_library_conflicts WHERE subject = ?",
+				subject,
+			);
+		});
+	} finally {
+		database.closeSync();
+	}
+}

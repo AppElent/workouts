@@ -58,7 +58,12 @@ branch verification.
   owner is recorded; another account cannot claim the same pending work.
 - Preserve original records and journals until server acknowledgement. Interrupted
   claims resume missing records rather than recopying acknowledged or deleted ones.
-  Originals remain available locally; this release does not erase them as cleanup.
+  **Upload and clean local data** waits for all three upload owners, then removes
+  acknowledged migration originals and diary caches with data providers unmounted.
+  Pending or changed originals block cleanup. Stable claim/migration receipts,
+  library mirrors (including local photo references), optional preferences,
+  remembered portions and unfinished Set Drafts remain. Disposable caches can
+  refill during ordinary use. Cleanup never deletes Convex account records.
 - Conflicting legacy versions are retained as separate records automatically.
   A lower-schema legacy version cannot downgrade a newer account record; a deleted
   account record is not recreated. Keep any recovery copy linked to the migration

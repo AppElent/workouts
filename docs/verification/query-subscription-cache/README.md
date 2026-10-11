@@ -22,7 +22,8 @@ actively consumed queries. Hidden screens stop consuming queries even when the
 navigation stack leaves them mounted.
 
 The authenticated Clerk session scopes the cache. Sign-out/account replacement
-disposes it. Background/inactive transitions release both active and idle pilot
+disposes it. Account maintenance also unmounts the cache before test-data reset
+or local cleanup, so prior results cannot leak into the reopened screens. Background/inactive transitions release both active and idle pilot
 subscriptions; returning foreground starts needed subscriptions again. Changing
 cache options preserves children/editor state. Ordinary Convex queries elsewhere
 are not controlled by this pilot.

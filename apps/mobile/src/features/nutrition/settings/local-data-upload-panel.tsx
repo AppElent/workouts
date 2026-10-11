@@ -10,8 +10,9 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { spacing } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
-import { GroupedSurface } from "../../../ui/form";
+import { GroupedSurface, TextAction } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
+import { useLocalDataCleanup } from "../../local-data/account-data-maintenance-provider";
 
 const copy = {
 	en: {
@@ -22,6 +23,9 @@ const copy = {
 			`${library} library changes · ${notes} saved notes · ${diary} diary changes waiting to upload`,
 		upload: "Upload local data",
 		uploading: "Uploading local data…",
+		clean: "Upload and clean local data",
+		cleanHelp:
+			"After acknowledgement, remove migrated originals and diary caches. Preferences, remembered portions, Set Drafts and the library mirror with device photos remain. Caches can refill as you use the app.",
 		done: "All eligible local data has been acknowledged by your account. There are no remaining uploads.",
 		failure:
 			"Some data could not be uploaded. Originals are still on this device. Reconnect and retry.",
@@ -38,6 +42,9 @@ const copy = {
 			`${library} bibliotheekwijzigingen · ${notes} opgeslagen notities · ${diary} dagboekwijzigingen wachten op upload`,
 		upload: "Lokale gegevens uploaden",
 		uploading: "Lokale gegevens uploaden…",
+		clean: "Lokale gegevens uploaden en opruimen",
+		cleanHelp:
+			"Verwijder na bevestiging gemigreerde originelen en dagboekcache. Voorkeuren, onthouden porties, Setconcepten en de bibliotheekkopie met apparaatfoto's blijven bewaard. Cache kan weer gevuld worden tijdens gebruik.",
 		done: "Alle uploadbare lokale gegevens zijn door je account bevestigd. Er zijn geen resterende uploads.",
 		failure:
 			"Sommige gegevens konden niet worden geüpload. Originelen staan nog op dit apparaat. Herstel de verbinding en probeer opnieuw.",
@@ -53,6 +60,7 @@ export function LocalDataUploadPanel() {
 	const foods = usePersonalFoods();
 	const drafts = useNutritionDrafts();
 	const operations = useNutritionOperations();
+	const cleanLocalData = useLocalDataCleanup();
 	useNutritionOperationVersion();
 	const subject = foods.account.subject;
 	const online = useConvexConnectionState().isWebSocketConnected;
@@ -74,7 +82,7 @@ export function LocalDataUploadPanel() {
 		: 0;
 	const remaining =
 		foods.account.operations.length + drafts.pendingMigrationCount + diary;
-	async function upload() {
+	async function upload(clean = false) {
 		if (pending.current || !online || !subject) return;
 		pending.current = true;
 		setBusy(true);
@@ -93,6 +101,10 @@ export function LocalDataUploadPanel() {
 			if (!mounted.current || operations.getSubject() !== subject) return;
 			const failed = results.find((entry) => entry.status === "rejected");
 			if (failed?.status === "rejected") throw failed.reason;
+			if (clean) {
+				cleanLocalData();
+				return;
+			}
 			setResult("done");
 		} catch (error) {
 			if (mounted.current) {
@@ -133,9 +145,15 @@ export function LocalDataUploadPanel() {
 			<PrimaryButton
 				label={busy ? c.uploading : c.upload}
 				loading={busy}
-				disabled={!online || !subject}
+				disabled={!online || !subject || busy}
 				onPress={() => void upload()}
 			/>
+			<TextAction
+				label={c.clean}
+				disabled={!online || !subject || busy}
+				onPress={() => void upload(true)}
+			/>
+			<AppText variant="caption">{c.cleanHelp}</AppText>
 			<AppText variant="caption">{c.limits}</AppText>
 		</GroupedSurface>
 	);

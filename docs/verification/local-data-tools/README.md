@@ -77,3 +77,40 @@ Native upload failure/offline paths, a table larger than 25 rows, Android, a
 physical device and release-build route rejection were not exercised in this
 pass. Save failure/retry/ownership are covered by automated public interfaces;
 those checks do not substitute for the remaining native scenarios.
+
+## Main/test-data integration — 2026-10-11
+
+Integrated main's #99 before rollout. Account maintenance owns provider remounting
+and the subscription cache boundary. Load/Clear also remove the current owner's
+claimed legacy sources, Recipe sources and Set Drafts, preventing re-import after
+reset. Production still rejects test-data reset; preview TestFlight currently uses
+the production backend and consequently has no test-data reset controls.
+
+**Upload and clean local data** first joins all three acknowledged upload owners.
+Only then does it unmount providers and prune migrated originals, acknowledged
+diary journals/mappings, and diary/goals/measures/servings caches. It leaves library
+mirrors/revisions with photo references, claim/migration receipts, optional portion
+preferences, Set Drafts and login intact. SQLite is intentionally not an empty
+file after cleanup, and disposable caches refill during normal use.
+
+Four new repository behavior tests were observed red then green: unchanged note
+ACK cleanup; pending diary cleanup rejection; claimed-library ACK gating; and
+Recipe source cleanup without cross-account deletion or resurrection. Combined
+checks: 94 mobile suites / 622 tests, 62 root suites / 450 tests, both typechecks,
+Biome/architecture, web build and iOS Hermes export passed. Expo Doctor reports
+one existing SDK patch-version check (11 recommendations); versions were retained
+for compatibility with the installed TestFlight runtime.
+
+Native verification used the dedicated iOS 27 QA simulator and isolated deployment
+`earnest-cobra-841`. In-app cleanup removed the previously uploaded legacy Food,
+cleared diary/goals caches, retained preferences/library mirror, and returned to
+existing online training history. In-app Load then Clear displayed the synthetic
+baseline followed immediately by empty Home and Nutrition views. No prior query
+result appeared on re-entry. Read-only counts are recorded in
+[before cleanup](cleanup-before-2026-10-11.json),
+[after cleanup](cleanup-after-2026-10-11.json), and
+[after test-data clear](reset-after-2026-10-11.json).
+
+Physical-device SQLite cleanup remains a separate acceptance action: use the
+new button on that installation after the preview update is active. These
+simulator counts do not describe the physical device's database.

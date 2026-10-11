@@ -7,6 +7,7 @@ import {
 } from "@workouts/core/nutrition";
 import { NUTRITION_COOKING_DATABASE_NAME } from "./nutrition-cooking-repository";
 import { openNutritionDatabase } from "./nutrition-database";
+import type { NutritionLibraryStateRepository } from "./nutrition-library-repository";
 import { mintNutritionUuid } from "./nutrition-operation-service";
 import type {
 	PersonalFoodRepository,
@@ -200,4 +201,39 @@ export function migrateDeviceRecipes(
 	} finally {
 		database.closeSync();
 	}
+}
+
+/** Keep stable mappings/completion markers so a deleted recipe never reappears. */
+export function cleanLegacyRecipes(
+	database: SyncSQLiteDatabase,
+	subject: string,
+	state?: NutritionLibraryStateRepository,
+) {
+	if (
+		!database.getFirstSync(
+			"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'nutrition_cooking_recipes'",
+		)
+	)
+		return;
+	const rows = database.getAllSync<{ id: string }>(
+		"SELECT id FROM nutrition_cooking_recipes WHERE subject = ?",
+		subject,
+	);
+	if (state)
+		for (const row of rows) {
+			const mapping = database.getFirstSync<{ food_id: string }>(
+				"SELECT food_id FROM nutrition_recipe_migration_ids WHERE subject = ? AND recipe_id = ?",
+				subject,
+				row.id,
+			);
+			if (
+				!mapping ||
+				(state.getRecord(subject, mapping.food_id)?.revision ?? 0) < 1
+			)
+				throw new Error("Recipe originals still need uploading.");
+		}
+	database.runSync(
+		"DELETE FROM nutrition_cooking_recipes WHERE subject = ?",
+		subject,
+	);
 }

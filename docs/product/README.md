@@ -7,6 +7,7 @@ owns vocabulary, and [ADRs](../adr/README.md) own architectural boundaries.
 
 | Feature | Contract / brief | Evidence |
 | --- | --- | --- |
+| In-app test data | [Agreed load, clear, and testcase scope](in-app-test-data.md) | [Implementation and runtime checks](../verification/in-app-test-data.md) |
 | Online-first account data | [Accepted issue 89 scope](online-first-account-data.md) | [Design evidence; runtime migration pending](../research/issue-89-online-offline.md) |
 | Running and cycling | [V1 contract](running-cycling-v1.md) | [Endurance verification](../verification/endurance.md) |
 | Personal Foods, Recipes, and estimates | [Implementation brief](personal-food-recipes-estimates.md) | [Implementation record](../verification/personal-food-recipes-estimates.md) |

@@ -50,6 +50,27 @@ function isPermanent(error: unknown) {
 	);
 }
 
+/** Remove claimed originals, retaining account mirrors (including device photos). */
+export function cleanLegacyLibrary(
+	subject: string,
+	state: NutritionLibraryStateRepository,
+	legacy: PersonalFoodRepository,
+) {
+	if (state.legacyClaimedBy() !== subject) return;
+	if (
+		state.listOperations(subject).length ||
+		state.listPrepared(subject).length ||
+		state.listConflicts(subject).length
+	)
+		throw new Error("Library changes still need uploading.");
+	for (const source of [...legacy.list(), ...legacy.listCombos()]) {
+		const record = state.getRecord(subject, `device:${source.id}`);
+		if (!record || record.revision < 1)
+			throw new Error("Library originals still need uploading.");
+	}
+	legacy.replaceFromBackup({ foods: [], combos: [] });
+}
+
 /**
  * Owns one signed-in account's local-first library synchronization. The actual
  * food repository stays synchronous for callers; this service only adds a

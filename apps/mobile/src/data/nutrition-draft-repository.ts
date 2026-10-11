@@ -37,6 +37,7 @@ export type NutritionDraftRepository = {
 	listForDate(subject: string, date: string): CaptureDraft[];
 	pendingMigrations(subject: string): CaptureDraft[];
 	acknowledgeMigration(draft: CaptureDraft): void;
+	cleanAcknowledged(subject: string): void;
 	/** Drafts on every day except `date` — what the diary's banner reports. */
 	summariseOtherDays(subject: string, date: string): OtherDaysSummary;
 	get(subject: string, id: string): CaptureDraft | undefined;
@@ -136,6 +137,15 @@ export function createNutritionDraftRepository(
 	}
 
 	return {
+		cleanAcknowledged(subject) {
+			database.runSync(
+				`DELETE FROM nutrition_capture_drafts WHERE subject = ? AND EXISTS (
+				 SELECT 1 FROM nutrition_capture_draft_migrations m
+				 WHERE m.subject = nutrition_capture_drafts.subject AND m.id = nutrition_capture_drafts.id
+				 AND m.updated_at = nutrition_capture_drafts.updated_at)`,
+				subject,
+			);
+		},
 		pendingMigrations(subject) {
 			return database
 				.getAllSync<DraftRow>(
@@ -236,4 +246,24 @@ export function openNutritionDraftRepository(): NutritionDraftRepository {
 			NUTRITION_COOKING_DATABASE_NAME,
 		) as SyncSQLiteDatabase,
 	);
+}
+
+/** Clear only this account; preserve unrelated accounts and preferences. */
+export function clearNutritionDraftAccount(subject: string) {
+	const database = openNutritionDatabase(NUTRITION_COOKING_DATABASE_NAME);
+	try {
+		createNutritionDraftRepository(database);
+		database.withTransactionSync(() => {
+			database.runSync(
+				"DELETE FROM nutrition_capture_drafts WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_capture_draft_migrations WHERE subject = ?",
+				subject,
+			);
+		});
+	} finally {
+		database.closeSync();
+	}
 }

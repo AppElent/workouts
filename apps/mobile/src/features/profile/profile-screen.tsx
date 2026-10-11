@@ -12,6 +12,7 @@ import { useConfirm } from "../../ui/confirm-dialog";
 import { DisclosureRow, FormScreen, FormSection } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
+import { TestDataSection } from "../test-data/test-data-section";
 
 export function ProfileScreen() {
 	const { user } = useUser();
@@ -196,6 +197,7 @@ export function ProfileScreen() {
 					onPress={() => router.push("/labs")}
 				/>
 			</FormSection>
+			<TestDataSection />
 			<FormSection>
 				<Pressable
 					accessibilityRole="button"

@@ -20,23 +20,16 @@
  * the handshake is a few hundred milliseconds behind a splash screen that is
  * still up, and a spinner that flashes for one frame reads as a glitch.
  */
-import { useAuth } from "@clerk/expo";
 import { useConvexAuth } from "convex/react";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { AppQueryCacheProvider } from "../convex/query-cache";
 import { type Tokens, useThemedStyles } from "../theme";
 
 export function ConvexSessionGate({ children }: { children: ReactNode }) {
 	const { isAuthenticated } = useConvexAuth();
-	const { userId, sessionId } = useAuth();
 	const styles = useThemedStyles(createStyles);
 	if (!isAuthenticated) return <View style={styles.root} />;
-	return (
-		<AppQueryCacheProvider scope={sessionId ?? userId ?? "signed-out"}>
-			{children}
-		</AppQueryCacheProvider>
-	);
+	return children;
 }
 
 const createStyles = (colors: Tokens) =>

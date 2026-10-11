@@ -120,6 +120,7 @@ export type NutritionOperationResult = {
 };
 
 export type NutritionLocalRepository = {
+	cleanAcknowledged(subject: string): void;
 	getSupplementaryServings(
 		subject: string,
 		foodId: string,
@@ -718,6 +719,25 @@ export function createNutritionLocalRepository(
 				JSON.stringify(displayOrder),
 			);
 		},
+		cleanAcknowledged(subject) {
+			transaction(database, () => {
+				if (
+					this.listOperations(subject).some(
+						(operation) => operation.status !== "acknowledged",
+					)
+				)
+					throw new Error("Diary changes still need uploading.");
+				for (const table of [
+					"nutrition_operations",
+					"nutrition_entry_mappings",
+					"nutrition_cached_days",
+					"nutrition_cached_goals",
+					"nutrition_cached_personal_measures",
+					"nutrition_cached_supplementary_servings",
+				])
+					database.runSync(`DELETE FROM ${table} WHERE subject = ?`, subject);
+			});
+		},
 		getSupplementaryServings(subject, foodId) {
 			const row = database.getFirstSync<{ payload: string }>(
 				"SELECT payload FROM nutrition_cached_supplementary_servings WHERE subject = ? AND food_id = ?",
@@ -808,4 +828,54 @@ export function openNutritionLocalRepository(): NutritionLocalRepository {
 
 export function operationPayload(envelope: NutritionOperationEnvelope): string {
 	return canonicalJson(envelope);
+}
+
+/** Clear only this account; preserve unrelated accounts and preferences. */
+export function clearNutritionLocalAccount(
+	subject: string,
+	removePhoto: (visual: NutritionDiarySnapshot["visual"]) => void,
+) {
+	const database = openNutritionDatabase(NUTRITION_STATE_DATABASE_NAME);
+	try {
+		createNutritionLocalRepository(database);
+		for (const day of database.getAllSync<{ entries_json: string }>(
+			"SELECT entries_json FROM nutrition_cached_days WHERE subject = ?",
+			subject,
+		)) {
+			const entries: NutritionDiarySnapshot[] = JSON.parse(day.entries_json);
+			for (const entry of entries) removePhoto(entry.visual);
+		}
+		database.withTransactionSync(() => {
+			database.runSync(
+				"DELETE FROM nutrition_operations WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_days WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_entry_mappings WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_food_shortcuts WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_goals WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_personal_measures WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_cached_supplementary_servings WHERE subject = ?",
+				subject,
+			);
+		});
+	} finally {
+		database.closeSync();
+	}
 }

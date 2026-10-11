@@ -128,3 +128,10 @@ offline-write, and manual conflict policies. ADR 0005's historical nutrition
 guarantees remain in force. Related briefs identify this revised boundary;
 Branch verification does not establish that production migration or rollout has
 completed. The operator backfill is a release gate.
+
+The explicit **Upload and clean local data** action waits for acknowledgement
+before pruning migrated Foods/Combos, Capture Draft and Recipe originals, and
+diary caches/journals. Library mirrors and migration receipts remain to preserve
+device photos and prevent resurrection; optional preferences and Set Drafts
+remain. A confirmed test-data Load/Clear instead discards the account’s personal
+local state and resets subscription retention before reopening providers.

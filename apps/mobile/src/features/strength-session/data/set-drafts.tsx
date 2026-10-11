@@ -35,6 +35,11 @@ const draftsSchema = z.array(draftSchema);
 function storageKey(subject: string) {
 	return `strength-set-drafts:v1:${subject}`;
 }
+
+/** Only a confirmed account reset discards unfinished Set Drafts. */
+export function clearAccountSetDrafts(subject: string) {
+	Storage.removeItemSync(storageKey(subject));
+}
 function sameDraft(
 	a: Pick<SetDraft, "sessionId" | "exerciseId">,
 	b: Pick<SetDraft, "sessionId" | "exerciseId">,

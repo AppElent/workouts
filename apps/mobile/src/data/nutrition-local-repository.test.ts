@@ -75,6 +75,35 @@ function cachedDay(
 }
 
 describe("durable nutrition local repository", () => {
+	it("refuses cleanup with pending diary work, then clears disposable copies while keeping preferences and other accounts", () => {
+		const repository = createNutritionLocalRepository(new SQLiteTestDatabase());
+		const day = cachedDay("2026-09-05", [snapshot()], 1);
+		repository.putDay("alice", day);
+		repository.putDay("bob", { ...day, subject: "bob" });
+		repository.putGoalDisplayOrder("alice", ["protein", "energy"]);
+		repository.accept(
+			"alice",
+			envelope("pending", {
+				kind: "create",
+				entry: { ...snapshot(), clientEntryId: "pending-entry" },
+			}),
+		);
+		expect(() => repository.cleanAcknowledged("alice")).toThrow("upload");
+		expect(repository.getDay("alice", day.date)).toBeDefined();
+		repository.acknowledge("alice", "pending", {
+			entryIds: [],
+			clientEntryIds: [],
+			days: [],
+		});
+		repository.cleanAcknowledged("alice");
+		expect(repository.listOperations("alice")).toEqual([]);
+		expect(repository.getDay("alice", day.date)).toBeUndefined();
+		expect(repository.getDay("bob", day.date)).toBeDefined();
+		expect(repository.getGoalDisplayOrder("alice")).toEqual([
+			"protein",
+			"energy",
+		]);
+	});
 	it("keeps serving estimates through create, edit, move and acknowledged cache reconciliation", () => {
 		const database = new SQLiteTestDatabase();
 		const repository = createNutritionLocalRepository(database);
