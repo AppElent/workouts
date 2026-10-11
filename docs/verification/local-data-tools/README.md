@@ -114,3 +114,52 @@ result appeared on re-entry. Read-only counts are recorded in
 Physical-device SQLite cleanup remains a separate acceptance action: use the
 new button on that installation after the preview update is active. These
 simulator counts do not describe the physical device's database.
+
+Normal-dev follow-up: main revision `8649be4` was pushed; main CI and CLI workflows
+passed. The normal iOS development client ran from main/Metro 8189 against
+`colorless-sturgeon-704`, in Dutch. In-app cleanup cleared its diary/goals caches
+while retaining preferences and online history. Evidence:
+[settings](normal-dev-settings.png),
+[before](normal-dev-cleanup-before-2026-10-11.json),
+[after](normal-dev-cleanup-after-2026-10-11.json).
+The remaining Personal Measure row is an already acknowledged read cache that
+refilled on provider remount; it is not pending data.
+
+Normal dev's exercise migration was only a completed dry run. A deployment ZIP
+was exported before applying it; the apply completed with zero `verify:*` changes.
+Production's exercise migration was already applied and verified. Account-data
+backfill audits traversed every page: dev library 1 / Sets 246; prod library 0 /
+Sets 26; all changed counts zero. No account-data backfill writes were needed.
+The combined backend was deployed to both targets. Preview TestFlight still uses
+`fine-akita-444`; test-data availability was independently verified false there.
+[Rollout metadata](rollout-2026-10-11.json) records identities and verification
+boundaries. Build 20 uses the committed app source; physical-device acceptance
+must not be inferred from simulator results or an EAS submission being queued.
+
+After normal-dev cleanup, navigating to October 5 loaded the existing 303 kcal
+Diary Entry and account goals from Convex, with no local day cache preceding the
+read. A read-only deployment query independently confirmed the saved date.
+[Online diary after cleanup](normal-dev-online-diary.png) records that result.
+
+TestFlight build **0.1.0 (20)** completed and was accepted by Apple with
+`processingState: VALID`, `internalState: IN_BETA_TESTING`, and `expired: false`.
+It is available to internal testers. The build uses revision `8649be4` and runtime
+`3720fa5dde1b2d8bf1948b572edf25e2bb1f2f41`.
+[Build details](https://expo.dev/accounts/appelent/projects/foundry/builds/ce9feed2-916c-413a-b17c-4d10f407be73).
+
+The connected iPhone's existing build 19 is a **development installation**, not a
+TestFlight installation. CoreDevice accepted the development-client launch URL
+for main/Metro 8189, but the phone did not appear in Metro's connected runtime
+list at the time of inspection. Device UI acceptance remains pending. A read-only
+copy of its SQLite directory showed 72 legacy personal Foods, 6 legacy combos,
+51 Open Food Facts cache rows, 276 already acknowledged diary journal operations,
+32 day/goals cache rows, and 90 remembered portion shortcuts. No pending diary
+operation was present.
+[Physical development database counts before cleanup](physical-dev-before-cleanup-2026-10-11.json).
+The copied database stays in local temporary storage; only counts are recorded here.
+
+Remaining physical-device acceptance: verify the development app loads main, run
+**Upload and clean local data**, then install/open build 20 from TestFlight and
+verify existing online data loads. Cleanup removes only acknowledged data for the
+current account; other-account data and optional preferences can remain. TestFlight
+installation and successful phone cleanup have not yet been confirmed.

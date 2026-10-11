@@ -1,0 +1,39 @@
+{
+  "workouts-nutrition-library-state.db": {
+    "nutrition_library_settings": 0,
+    "nutrition_library_records": 1,
+    "nutrition_library_operations": 0,
+    "nutrition_library_prepared": 0,
+    "nutrition_library_conflicts": 0,
+    "nutrition_library_legacy_claim": 0
+  },
+  "workouts-nutrition-state.db": {
+    "nutrition_operations": 0,
+    "nutrition_cached_days": 2,
+    "nutrition_entry_mappings": 0,
+    "nutrition_food_shortcuts": 0,
+    "nutrition_cached_goals": 2,
+    "nutrition_goal_preferences": 1,
+    "nutrition_cached_personal_measures": 1,
+    "nutrition_cached_supplementary_servings": 0
+  },
+  "workouts-nutrition-cooking.db": {
+    "nutrition_recipe_migration_accounts": 1,
+    "nutrition_recipe_migration_ids": 0,
+    "nutrition_capture_drafts": 0,
+    "nutrition_capture_draft_migrations": 0
+  },
+  "workouts-nutrition-library-757365725f3274546c626d535468346b62586d67397636454e37595733423464.db": {
+    "off_cache": 0,
+    "nutrition_combos": 0,
+    "personal_foods": 0
+  },
+  "workouts-nutrition.db": {
+    "off_cache": 0,
+    "nutrition_combos": 0,
+    "personal_foods": 0
+  },
+  "ExpoSQLiteStorage": {
+    "storage": 0
+  }
+}

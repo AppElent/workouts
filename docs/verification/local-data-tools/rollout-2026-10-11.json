@@ -1,0 +1,70 @@
+{
+  "sourceRevision": "8649be4a44d9cf96dd3362a554452545cdf10afd",
+  "normalDev": {
+    "deployment": "colorless-sturgeon-704",
+    "metroPort": 8189,
+    "simulator": "0C88AD53-63AF-4886-854E-5D39C4CC1842",
+    "exerciseMigrationApplied": true,
+    "accountMigrationAudit": [
+      {
+        "table": "library",
+        "pages": 1,
+        "scanned": 1,
+        "changed": 0,
+        "dryRun": true
+      },
+      {
+        "table": "sets",
+        "pages": 3,
+        "scanned": 246,
+        "changed": 0,
+        "dryRun": true
+      }
+    ]
+  },
+  "previewBackend": {
+    "deployment": "fine-akita-444",
+    "exerciseMigrationAlreadyComplete": true,
+    "accountMigrationAudit": [
+      {
+        "table": "library",
+        "pages": 1,
+        "scanned": 0,
+        "changed": 0,
+        "dryRun": true
+      },
+      {
+        "table": "sets",
+        "pages": 1,
+        "scanned": 26,
+        "changed": 0,
+        "dryRun": true
+      }
+    ],
+    "testDataResetAvailable": false
+  },
+  "ci": {
+    "main": 38137159129,
+    "cli": 38137159137,
+    "conclusion": "success"
+  },
+  "previewBuild": {
+    "id": "ce9feed2-916c-413a-b17c-4d10f407be73",
+    "buildNumber": "20",
+    "submissionId": "4313f08f-8367-4aef-905c-971862f503dc",
+    "status": "Available to internal TestFlight testers",
+    "runtimeVersion": "3720fa5dde1b2d8bf1948b572edf25e2bb1f2f41",
+    "processingState": "VALID",
+    "internalState": "IN_BETA_TESTING",
+    "expired": false,
+    "buildUrl": "https://expo.dev/accounts/appelent/projects/foundry/builds/ce9feed2-916c-413a-b17c-4d10f407be73"
+  },
+  "physicalDevice": {
+    "existingBuildNumber": "19",
+    "sqliteCleanupVerified": false,
+    "installKind": "development",
+    "developmentLaunchAccepted": true,
+    "metroConnectionVerified": false,
+    "previewBuild20Running": false
+  }
+}
