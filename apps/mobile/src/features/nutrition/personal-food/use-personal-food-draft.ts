@@ -4,7 +4,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useMemo, useRef, useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import {

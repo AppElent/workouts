@@ -2,7 +2,7 @@
  * A new Personal Food or recipe, as a sheet with ✕ and ✓. With `barcode` it
  * starts from the Open Food Facts product, reviewed before it is saved.
  */
-import type { PersonalFoodDraft } from "@workouts/core/nutrition";
+import type { PersonalFoodDraft } from "@foundry/core/nutrition";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useOpenFoodFacts } from "../../src/data/open-food-facts-context";

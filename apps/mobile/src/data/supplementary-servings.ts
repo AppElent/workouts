@@ -1,4 +1,4 @@
-import type { SupplementaryServing } from "@workouts/core/nutrition";
+import type { SupplementaryServing } from "@foundry/core/nutrition";
 import {
 	useConvexConnectionState,
 	useMutation,

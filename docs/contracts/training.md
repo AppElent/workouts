@@ -96,7 +96,7 @@ affect only later sessions. Percentages use the entered weight after equipment
 rounding. Bodyweight exercises log added load (`+kg`, zero allowed); their
 references, percentages, and predictions stay unavailable until a load convention
 exists. Percentage and inverse calculations live beside `calculateOneRepMax` in
-`@workouts/core`.
+`@foundry/core`.
 
 ## States
 

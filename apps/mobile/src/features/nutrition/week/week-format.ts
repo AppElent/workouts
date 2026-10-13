@@ -1,4 +1,4 @@
-import type { NutrientKey } from "@workouts/core/nutrition";
+import type { NutrientKey } from "@foundry/core/nutrition";
 import { type IsoDate, isoDateToLocalDate } from "../../../data/calendar-day";
 import type { WeeklyGoal } from "../../../data/nutrition-weekly-review";
 import { fmt } from "../../../i18n";

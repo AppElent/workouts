@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, type NutrientTotal } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS, type NutrientTotal } from "@foundry/core/nutrition";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";

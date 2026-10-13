@@ -57,11 +57,11 @@ export function useFoodPhotoUpload(): FoodPhotoUpload {
 
 /** Frozen Diary snapshots carry durable photo IDs, never newly created file paths. */
 export async function prepareDiaryPhotoOperation(
-	operation: import("@workouts/core").NutritionDiaryOperation,
+	operation: import("@foundry/core").NutritionDiaryOperation,
 	upload: FoodPhotoUpload,
-): Promise<import("@workouts/core").NutritionDiaryOperation> {
+): Promise<import("@foundry/core").NutritionDiaryOperation> {
 	async function entry<
-		T extends { visual?: import("@workouts/core").FoodVisual },
+		T extends { visual?: import("@foundry/core").FoodVisual },
 	>(value: T): Promise<T> {
 		if (value.visual?.kind !== "photo") return value;
 		const photo = value.visual.storageId

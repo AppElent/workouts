@@ -15,62 +15,62 @@ function createRuntime() {
 	};
 }
 
-const options = { appName: "workouts" };
+const options = { appName: "foundry" };
 
 describe("runCli", () => {
 	it("prints top-level help", async () => {
 		const { runtime, stdout } = createRuntime();
 		const result = await runCli(["--help"], runtime, options);
 		expect(result.exitCode).toBe(0);
-		expect(stdout.join("\n")).toContain("workouts auth login");
-		expect(stdout.join("\n")).toContain("workouts config get");
+		expect(stdout.join("\n")).toContain("foundry auth login");
+		expect(stdout.join("\n")).toContain("foundry config get");
 	});
 
 	it("prints top-level help for short help flag", async () => {
 		const { runtime, stdout } = createRuntime();
 		const result = await runCli(["-h"], runtime, options);
 		expect(result.exitCode).toBe(0);
-		expect(stdout.join("\n")).toContain("workouts auth login");
+		expect(stdout.join("\n")).toContain("foundry auth login");
 	});
 
 	it("prints top-level help for empty argv", async () => {
 		const { runtime, stdout } = createRuntime();
 		const result = await runCli([], runtime, options);
 		expect(result.exitCode).toBe(0);
-		expect(stdout.join("\n")).toContain("workouts auth login");
+		expect(stdout.join("\n")).toContain("foundry auth login");
 	});
 
 	it("prints top-level help for inline boolean flags", async () => {
 		const { runtime, stdout } = createRuntime();
 		const result = await runCli(["--help=true"], runtime, options);
 		expect(result.exitCode).toBe(0);
-		expect(stdout.join("\n")).toContain("workouts auth login");
+		expect(stdout.join("\n")).toContain("foundry auth login");
 	});
 
 	it("appends registered command usage lines to help", async () => {
 		const { runtime, stdout } = createRuntime();
 		const result = await runCli(["--help"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 			commands: [
 				{
 					name: "exercise",
-					usage: ["workouts exercise list"],
+					usage: ["foundry exercise list"],
 					handle: async () => 0,
 				},
 			],
 		});
 		expect(result.exitCode).toBe(0);
-		expect(stdout.join("\n")).toContain("workouts exercise list");
+		expect(stdout.join("\n")).toContain("foundry exercise list");
 	});
 
 	it("dispatches registered app-specific commands", async () => {
 		const { runtime, stdout } = createRuntime();
 		const result = await runCli(["exercise", "list"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 			commands: [
 				{
 					name: "exercise",
-					usage: ["workouts exercise list"],
+					usage: ["foundry exercise list"],
 					handle: async (_positionals, _flags, rt) => {
 						rt.writeOut("no exercises\n");
 						return 0;

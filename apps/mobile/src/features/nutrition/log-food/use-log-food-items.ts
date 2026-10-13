@@ -2,7 +2,7 @@ import {
 	type FoodResult,
 	foodResults,
 	getShippedFood,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useMemo } from "react";
 import type {
 	Combo,

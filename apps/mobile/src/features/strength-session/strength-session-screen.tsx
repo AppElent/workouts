@@ -1,5 +1,5 @@
-import { convertLoad } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
+import { convertLoad } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";

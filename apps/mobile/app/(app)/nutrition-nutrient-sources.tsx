@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS } from "@foundry/core/nutrition";
 import { useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/data/calendar-day";
 import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";

@@ -41,7 +41,7 @@ revision. The script rejects an unexpected revision or unmapped metadata.
 
 ## Runtime and rollout
 
-`@workouts/core/exercises` is a separate web/mobile bundle entry. Permanent keys
+`@foundry/core/exercises` is a separate web/mobile bundle entry. Permanent keys
 live in `ids.json`; preserve them when editing names or updating upstream data.
 The generator requires an explicitly assigned ID for every imported name.
 

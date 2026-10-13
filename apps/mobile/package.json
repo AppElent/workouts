@@ -1,5 +1,5 @@
 {
-	"name": "@workouts/mobile",
+	"name": "@foundry/mobile",
 	"main": "expo-router/entry",
 	"version": "0.1.0",
 	"private": true,
@@ -26,7 +26,7 @@
 		"@expo/ui": "~57.0.22",
 		"@sentry/react-native": "~8.30.0",
 		"@tanstack/react-form": "^1.33.5",
-		"@workouts/core": "workspace:*",
+		"@foundry/core": "workspace:*",
 		"convex": "^1.46.0",
 		"convex-helpers": "0.1.120",
 		"expo": "~57.0.27",

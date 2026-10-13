@@ -424,7 +424,7 @@ section.sect details.code { max-width: 1180px; margin: 0 0 8px; }
 		<tr><td>Sheets</td><td><code>presentation: "formSheet"</code>, <code>sheetAllowedDetents</code>, <code>sheetGrabberVisible</code></td><td>Kopiëren/verplaatsen, doelen vandaag, bronnen.</td></tr>
 		<tr><td>Segmenten / datum</td><td><code>Segmented</code> (<code>src/ui/segmented</code>), SwiftUI <code>DatePicker</code> graphical</td><td>Bestaande seams.</td></tr>
 		<tr><td>Ring, doelbalken</td><td><code>ProgressRing</code>-seam (aanpassen voor energie) en <code>GoalProgressRow</code></td><td>Statuslogica (min/max/bereik, ≥, ~) bestaat al in <code>outcome()</code>.</td></tr>
-		<tr><td>Bronnen-ranking</td><td>Pure functie in <code>@workouts/core</code></td><td>Eén berekening voor web en mobiel.</td></tr>
+		<tr><td>Bronnen-ranking</td><td>Pure functie in <code>@foundry/core</code></td><td>Eén berekening voor web en mobiel.</td></tr>
 		<tr><td>Kaarten</td><td><code>GroupedSurface</code> / <code>FormSection</code> — ondoorzichtig</td><td>Glass alleen op de functionele laag.</td></tr>
 	</table>
 	<p>De mock benadert glass, blur en de header met CSS; neem die waarden niet over. Telefoonchrome, statusbalk en tabbalk zijn mock.</p>
@@ -786,7 +786,7 @@ const SECTIONS = [
 		code: CODE.selection + "\n\n" + CODE.transfer,
 		phones: [["Selectiemodus", "state", Selection, "Tik rijen en ‘Alles’."], ["Nabije dag", "state", () => CopySheet(false), "Eén tik op dag en maaltijd, ✓."], ["Andere dag", "state", () => CopySheet(true), "Kalender klapt uit in de sheet."]] },
 	{ h: "6 · Doelen vandaag en bronnen", p: "‘Alle doelen’ opent een sheet met elk doel, status en voedingsstoffen zonder doel. Een doel aantikken toont de bronnen: verdeling per maaltijd en items van hoog naar laag. Onvolledige totalen tonen eerst de items zonder waarde.",
-		impl: "<b>Lost op:</b> ‘welk item veroorzaakte zoveel vet?’ en het uitklappen van de doelenkaart op het dagboek. <b>Native:</b> <code>formSheet</code> met detents; <code>GoalProgressRow</code>/<code>outcome()</code> hergebruiken; ranking als pure functie in <code>@workouts/core</code>. <b>Risico:</b> combo-items tellen als één bron of per onderdeel; kies per onderdeel met de combo-naam als context.",
+		impl: "<b>Lost op:</b> ‘welk item veroorzaakte zoveel vet?’ en het uitklappen van de doelenkaart op het dagboek. <b>Native:</b> <code>formSheet</code> met detents; <code>GoalProgressRow</code>/<code>outcome()</code> hergebruiken; ranking als pure functie in <code>@foundry/core</code>. <b>Risico:</b> combo-items tellen als één bron of per onderdeel; kies per onderdeel met de combo-naam als context.",
 		code: CODE.goals + "\n\n" + CODE.sources,
 		phones: [["Ingang", "state", G1closed, "‘1 te veel’ maakt de afwijking zichtbaar."], ["Doelen vandaag", "state", G1, "Bewerk → doelenscherm."], ["Bronnen: vet", "state", C1, "Item → item-editor."], ["Doel lang ingedrukt", "state", LongGoal, "Bronnen, bewerken, volgorde."], ["Onvolledig totaal", "state", Incomplete, "Aanvullen → voedingsmiddel-editor."], ["Geen doelen", "state", NoGoals, "Totalen als tekst + uitnodiging."]] },
 ];

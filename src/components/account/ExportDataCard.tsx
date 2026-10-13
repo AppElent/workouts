@@ -92,7 +92,7 @@ export function ExportDataCard() {
 					cursor = page.cursor;
 				}
 				download(
-					`workouts-export-${stamp}.json`,
+					`foundry-export-${stamp}.json`,
 					JSON.stringify(
 						{ ...data, activities, enduranceActivityDetails },
 						null,
@@ -102,7 +102,7 @@ export function ExportDataCard() {
 				);
 			} else {
 				download(
-					`workouts-sets-${stamp}.csv`,
+					`foundry-sets-${stamp}.csv`,
 					setsToCsv(data),
 					"text/csv;charset=utf-8",
 				);

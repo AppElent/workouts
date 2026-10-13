@@ -6,12 +6,12 @@
  * both, so the rows simply do not offer what would fail.
  *
  * Each row shows your best score for that WOD, ranked by `bestScore` from
- * `@workouts/core` — the same function Convex uses in `wodResults.getBest`.
+ * `@foundry/core` — the same function Convex uses in `wodResults.getBest`.
  * Ranking a For Time result is not "smaller is better" once time caps exist,
  * which is exactly why it is one shared function and not a comparison written
  * per screen.
  */
-import { formatScore } from "@workouts/core";
+import { formatScore } from "@foundry/core";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";

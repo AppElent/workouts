@@ -1,4 +1,4 @@
-import { calcPlates, DEFAULT_BAR, generateWarmup } from "@workouts/core";
+import { calcPlates, DEFAULT_BAR, generateWarmup } from "@foundry/core";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { fmt, useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";

@@ -9,7 +9,7 @@ import {
 
 const byKey = (key) => ENTRIES.find((entry) => entry.key === key);
 
-describe("Workouts environment routing", () => {
+describe("Foundry environment routing", () => {
 	it("uses the app's real environment and provider identities", () => {
 		expect(ENVIRONMENTS).toEqual([
 			"local",

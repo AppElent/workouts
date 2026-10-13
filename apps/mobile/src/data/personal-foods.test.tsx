@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/expo";
+import { foodResults, type NutrientValue } from "@foundry/core/nutrition";
 import { act, render, waitFor } from "@testing-library/react-native";
-import { foodResults, type NutrientValue } from "@workouts/core/nutrition";
 import {
 	useConvex,
 	useConvexConnectionState,

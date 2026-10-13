@@ -1,4 +1,4 @@
-import type { NutrientKey, NutrientValue } from "@workouts/core/nutrition";
+import type { NutrientKey, NutrientValue } from "@foundry/core/nutrition";
 import {
 	OFF_REFRESH_INTERVAL_MS,
 	refreshOpenFoodFactsImports,

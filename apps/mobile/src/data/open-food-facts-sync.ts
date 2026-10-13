@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS } from "@foundry/core/nutrition";
 import type { OffLookupOutcome } from "./open-food-facts";
 import type {
 	FoodVisual,

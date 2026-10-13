@@ -1,5 +1,5 @@
 import type { Doc } from "@convex/_generated/dataModel";
-import { calculateOneRepMax } from "@workouts/core";
+import { calculateOneRepMax } from "@foundry/core";
 import { Pencil } from "lucide-react";
 
 interface Props {

@@ -1,4 +1,4 @@
-import type { ActivitySport } from "@workouts/core";
+import type { ActivitySport } from "@foundry/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";

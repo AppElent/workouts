@@ -104,7 +104,7 @@ function CliAuthLoginPage() {
 	if (!isSignedIn) {
 		return (
 			<AuthCard
-				title="Sign in to Workouts CLI"
+				title="Sign in to Foundry CLI"
 				subtitle="Continue to connect this terminal."
 			>
 				<SignInForm onSuccess={() => setError(undefined)} />

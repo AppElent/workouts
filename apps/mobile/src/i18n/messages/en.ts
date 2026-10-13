@@ -30,7 +30,7 @@ import { workoutToolsEn } from "./workout-tools";
  *
  * English is written here and Dutch follows in `nl.ts`, which is typed
  * `satisfies typeof en` — so a key added here without a Dutch counterpart is a
- * `pnpm --filter @workouts/mobile typecheck` failure rather than a blank label
+ * `pnpm --filter @foundry/mobile typecheck` failure rather than a blank label
  * discovered on a device.
  *
  * Deliberately not shared with the web app's `src/lib/i18n/messages/`. There is
@@ -143,7 +143,7 @@ export const en = {
 	language: {
 		title: "Language",
 		description:
-			"Workouts starts in your phone's language and stays in the one you choose here.",
+			"Foundry starts in your phone's language and stays in the one you choose here.",
 		names: {
 			en: "English",
 			nl: "Nederlands",

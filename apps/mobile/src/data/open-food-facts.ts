@@ -17,7 +17,7 @@ import {
 	parseProviderNumber,
 	parseProviderNutrient,
 	saltFromSodium,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type {
 	OpenFoodFactsCache,
 	PersonalFoodDraft,

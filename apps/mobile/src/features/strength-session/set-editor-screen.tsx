@@ -1,4 +1,4 @@
-import { convertLoad, estimatedMaxReps } from "@workouts/core";
+import { convertLoad, estimatedMaxReps } from "@foundry/core";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {

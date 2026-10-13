@@ -1,4 +1,4 @@
-import type { ExerciseId } from "@workouts/core/exercises";
+import type { ExerciseId } from "@foundry/core/exercises";
 /**
  * The reads every screen shares: what is running now, what ran recently, and
  * the exercise catalog. Grouped into one hook because Home, Train and Progress

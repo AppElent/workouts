@@ -3,7 +3,7 @@ import {
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import {
 	Stack,
 	useLocalSearchParams,

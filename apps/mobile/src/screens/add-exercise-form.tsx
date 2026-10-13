@@ -1,4 +1,4 @@
-import type { Exercise } from "@workouts/core/exercises";
+import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack } from "expo-router";
 import { useState } from "react";

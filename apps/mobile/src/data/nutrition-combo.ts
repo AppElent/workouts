@@ -8,7 +8,7 @@ import {
 	rescaleNutrients,
 	roundForDisplay,
 	shippedSourceMeta,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { formatSnapshotAmount } from "./nutrition-one-off";
 import type {
 	Combo,

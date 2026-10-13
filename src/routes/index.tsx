@@ -69,7 +69,7 @@ function IntroPage() {
 					>
 						W
 					</div>
-					<span className="text-white font-bold text-sm">Workout Tracker</span>
+					<span className="text-white font-bold text-sm">Foundry</span>
 				</div>
 
 				<nav className="hidden sm:flex items-center gap-7">

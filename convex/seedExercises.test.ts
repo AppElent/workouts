@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
 	SHIPPED_EXERCISES,
 	mergeExerciseCatalog,
-} from "@workouts/core/exercises";
+} from "@foundry/core/exercises";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 

@@ -1,6 +1,6 @@
-# Workouts
+# Foundry
 
-Workouts helps a person relate training and nutrition. This glossary names the domain concepts shared by those experiences.
+Foundry helps a person relate training and nutrition. This glossary names the domain concepts shared by those experiences.
 
 ## Training
 

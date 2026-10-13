@@ -1,6 +1,6 @@
+import type { PersonalFood, ServingOption } from "@foundry/core/nutrition";
+import { withPersonalMeasures } from "@foundry/core/nutrition";
 import { useForm, useStore } from "@tanstack/react-form";
-import type { PersonalFood, ServingOption } from "@workouts/core/nutrition";
-import { withPersonalMeasures } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, TextInput, View } from "react-native";

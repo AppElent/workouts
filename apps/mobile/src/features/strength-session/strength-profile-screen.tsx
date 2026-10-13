@@ -3,7 +3,7 @@ import {
 	convertLoad,
 	roundLoad,
 	weightForRepMax,
-} from "@workouts/core";
+} from "@foundry/core";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";

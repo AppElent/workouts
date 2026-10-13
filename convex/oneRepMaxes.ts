@@ -2,7 +2,7 @@ import { exerciseReference, canonicalExerciseId, requireExercise, exerciseOneRep
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from '@workouts/core'
+import { calculateOneRepMax } from '@foundry/core'
 import { assertRange } from './lib/validate'
 import { readStrengthReferences } from './lib/strengthReferences'
 

@@ -4,7 +4,7 @@ import {
 	type ShippedFood,
 	type SupplementaryServing,
 	shippedLibrary,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";

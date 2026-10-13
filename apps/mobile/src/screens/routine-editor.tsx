@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseId } from "@workouts/core/exercises";
+import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
  * Build or change a routine. Ported from the web's
  * `src/components/routines/CreateRoutineForm.tsx` and `EditRoutineModal.tsx`,

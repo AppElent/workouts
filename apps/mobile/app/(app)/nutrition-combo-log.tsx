@@ -1,5 +1,5 @@
 /** Logging a saved combo onto a day and meal, as a sheet over where it was chosen. */
-import { mealSlotAt } from "@workouts/core/nutrition";
+import { mealSlotAt } from "@foundry/core/nutrition";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { todayIsoDate } from "../../src/data/calendar-day";

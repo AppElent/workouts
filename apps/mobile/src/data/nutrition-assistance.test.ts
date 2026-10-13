@@ -1,7 +1,4 @@
-import {
-	normalizePersonalFood,
-	totalNutrients,
-} from "@workouts/core/nutrition";
+import { normalizePersonalFood, totalNutrients } from "@foundry/core/nutrition";
 import {
 	type AssistanceFood,
 	allAssistanceRowsSelected,

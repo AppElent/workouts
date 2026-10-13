@@ -2,7 +2,7 @@ import {
 	rankNutrientSources,
 	roundForDisplay,
 	totalNutrients,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";

@@ -13,7 +13,7 @@ import {
 	shippedSourceMeta,
 	withPersonalMeasures,
 	withSupplementaryServings,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type { DiaryEntry, MealSlot } from "../../../data/nutrition-day";
 import { foodSourceKey } from "../../../data/nutrition-shortcuts";
 import type { PersonalFood } from "../../../data/personal-food-repository";
@@ -52,8 +52,8 @@ export function formatNutrient(
 
 export function servingChoices(
 	selection: FoodSelection,
-	personalMeasures: readonly import("@workouts/core/nutrition").PersonalMeasure[],
-	supplementary: readonly import("@workouts/core/nutrition").SupplementaryServing[] = [],
+	personalMeasures: readonly import("@foundry/core/nutrition").PersonalMeasure[],
+	supplementary: readonly import("@foundry/core/nutrition").SupplementaryServing[] = [],
 ): ServingOption[] {
 	const foodOptions =
 		selection.kind === "shipped"

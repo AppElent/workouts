@@ -37,7 +37,7 @@ Studies: [diary](../../designs/nutrition/diary_final.html),
   sources ranked by contribution and split per Meal Slot; a source opens its
   editor. Incomplete totals (`≥`) list items without a value first, each with a
   fill-in action; approximate totals (`~`) say so. Ranking is a pure function in
-  `@workouts/core`.
+  `@foundry/core`.
 
 ### Corrections
 

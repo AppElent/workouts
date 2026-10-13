@@ -61,7 +61,7 @@ export type ForkProvenance = {
 /**
  * The pre-populated Personal Food a correction starts from.
  *
- * Structurally a device `PersonalFoodDraft` — `@workouts/core` cannot import
+ * Structurally a device `PersonalFoodDraft` — `@foundry/core` cannot import
  * the repository's types (it must stay dependency-free and platform-free), so
  * the two shapes meet structurally and the repository validates the result.
  */

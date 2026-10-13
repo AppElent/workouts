@@ -14,7 +14,7 @@ permits fixed-tint icon tiles for settings, an exception to the single lime acce
 
 ## Adopted patterns
 
-| Task | Shared contract | Workouts binding |
+| Task | Shared contract | Foundry binding |
 | --- | --- | --- |
 | Numeric input | [Number fields](../../docs/standards/number-fields.md) | InlineNumberFieldRow for rows; Diary Entry quantity composition for amount tasks. Goals study selects replace-on-focus; the existing component has no such prop yet. |
 | Editing | [Editor presentations](../../docs/standards/editors.md) | Native Stack screens/formSheet; serving creation uses the Diary Entry keyboard overlay. |
