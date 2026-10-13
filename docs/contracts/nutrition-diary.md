@@ -86,7 +86,7 @@ explained, and no Personal Food is created. See
 - A `formSheet` draft editor with ✕/✓ that locks while saving; failures use the
   retry toast.
 - Values are inline fields in their rows with the shared
-  [replace-on-focus](../guidelines/shared/patterns/number-fields.md) behavior; on
+  [replace-on-focus](../standards/number-fields.md) behavior; on
   iOS an input accessory offers ‹ › and "Klaar". A deep link focuses its field.
 - A value's kind (minimum, maximum, range) is a row menu under its name, also
   holding remove; long press opens it; swipe reveals only remove.

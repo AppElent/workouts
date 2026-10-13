@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when adding, moving, or reviewing documentation or agent instructions.
-version: 2.0.0
+version: 2.0.1
 applies_to: [all]
 ---
 
@@ -57,7 +57,7 @@ file from its folder and frontmatter.
 | --- | --- |
 | `standard` | `kind`: platform, capability, pattern; `applies_to` |
 | `contract` | `status`: draft, current |
-| `decision` | `status`: proposed, accepted, superseded; `date`; `superseded_by` |
+| `decision` | `status`: proposed, accepted, superseded; `date`; `superseded_by` only when superseded |
 | `record` | `kind`; `status`: open, closed; `date` |
 
 - **Required:** version living documents: major when a relied-on rule, behavior, or
@@ -78,7 +78,7 @@ file from its folder and frontmatter.
 1. Copy the folder's managed `.template.md` (this folder's is [the standard
    template](.template.md)) and start at `version: 1.0.0`.
 2. A document with assets is a folder: `<name>/README.md` for records,
-   `<name>/examples/` for standards. Commit only assets it cites.
+   `<name>/` for standards (examples, templates, long setup detail). Commit only assets it cites.
 3. Moving a document moves its incoming links in the same change.
 4. List open records in `docs/README.md`; remove them when closed.
 

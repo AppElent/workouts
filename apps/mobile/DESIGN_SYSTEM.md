@@ -16,9 +16,9 @@ permits fixed-tint icon tiles for settings, an exception to the single lime acce
 
 | Task | Shared contract | Workouts binding |
 | --- | --- | --- |
-| Numeric input | [Number fields](../../docs/guidelines/shared/patterns/number-fields.md) | InlineNumberFieldRow for rows; Diary Entry quantity composition for amount tasks. Goals study selects replace-on-focus; the existing component has no such prop yet. |
-| Editing | [Editor presentations](../../docs/guidelines/shared/patterns/editors.md) | Native Stack screens/formSheet; serving creation uses the Diary Entry keyboard overlay. |
-| Row actions | [Actionable lists](../../docs/guidelines/shared/patterns/lists.md) | InsetList/InsetRow on iOS; SwipeableRow on Android and text-input rows. Product contracts select the tap action. |
+| Numeric input | [Number fields](../../docs/standards/number-fields.md) | InlineNumberFieldRow for rows; Diary Entry quantity composition for amount tasks. Goals study selects replace-on-focus; the existing component has no such prop yet. |
+| Editing | [Editor presentations](../../docs/standards/editors.md) | Native Stack screens/formSheet; serving creation uses the Diary Entry keyboard overlay. |
+| Row actions | [Actionable lists](../../docs/standards/lists.md) | InsetList/InsetRow on iOS; SwipeableRow on Android and text-input rows. Product contracts select the tap action. |
 
 `src/ui/form.tsx` is the design-system seam for data entry and grouped content:
 

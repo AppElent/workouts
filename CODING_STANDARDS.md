@@ -3,15 +3,22 @@
 <!-- appelent-standards:start -->
 ## Shared guidance
 
-Before code changes or review, read [coding rules](docs/guidelines/shared/general/coding.md).
+Before code changes or review, read [general coding](docs/standards/general-coding.md) and the [shared baseline](docs/standards/baseline.md).
 
 | Task | Read |
 | --- | --- |
-| Browser code | [Web baseline](docs/features/web-baseline/FEATURE.md) |
-| Native code | [Mobile architecture](docs/guidelines/shared/mobile/coding.md) and [mobile baseline](docs/features/mobile-baseline/FEATURE.md) |
-| Verification | [Verification contract](docs/guidelines/shared/general/verification.md), then the project's check commands |
-| Integration or repository tooling | The matching standard in `docs/standards/`, else the [feature index](docs/features/README.md) |
-| Documentation or instruction changes | [Documentation standard](docs/standards/documentation.md) |
+| Browser code | [Web baseline](docs/standards/web-baseline.md) |
+| Native code | [Mobile coding](docs/standards/mobile-coding.md) and [mobile baseline](docs/standards/mobile-baseline.md) |
+| Verification | [Verification](docs/standards/verification.md), then the project's check commands |
+| Environment variables and secrets | [Environments](docs/standards/environments.md) |
+| Worktrees and isolated backends | [Workspaces](docs/standards/workspaces.md) |
+| Authentication | [Auth](docs/standards/auth.md) |
+| Localization | [i18n](docs/standards/i18n.md) |
+| Error reporting and source maps | [Sentry monitoring](docs/standards/sentry-monitoring.md) |
+| Pull-request previews | [Previews](docs/standards/previews.md) |
+| Other integration or repository tooling | The [feature index](docs/features/README.md) |
+| Documentation or instruction changes | [Documentation](docs/standards/documentation.md) |
+| Specialist tasks | [Specialist skills](docs/guidelines/shared/general/specialist-skills.md) |
 
 Project decisions below select implementations and explain deviations from shared defaults.
 <!-- appelent-standards:end -->

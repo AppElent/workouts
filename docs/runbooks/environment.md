@@ -11,7 +11,7 @@ Workouts value each web, mobile, Convex, CI, and workspace consumer reads. The
 legacy `scripts/env-legacy.mjs` wrapper still runs the shared `@appelent/dev`
 environment engine through the `pnpm env:*` aliases. The distributed standalone
 `scripts/env.mjs` is installed for a future migration; see the
-[shared guide](../features/environments/FEATURE.md). Installing it did not change
+[shared guide](../standards/environments.md). Installing it did not change
 those aliases or validate this app against its loader.
 
 The app has four environments: `local`, per-PR `preview`, stable `dev`, and

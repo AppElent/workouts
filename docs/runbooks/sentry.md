@@ -6,7 +6,7 @@ version: 1.0.0
 
 # Workouts Sentry operations
 
-Apply the shared [Sentry feature](../features/sentry/FEATURE.md) for instrumentation,
+Apply the shared [Sentry standard](../standards/sentry-monitoring.md) for instrumentation,
 privacy, local suppression, artifacts, feedback, and per-surface acceptance.
 
 ## Project bindings

@@ -6,7 +6,7 @@ version: 1.0.0
 
 # Workouts design studies
 
-Follow the shared [design study procedure](../guidelines/shared/patterns/design-studies.md)
+Follow the shared [design study procedure](../standards/design-studies.md)
 with these bindings:
 
 - Location: `designs/<area>/`. `<screen>_round<n>.html` records an iteration;

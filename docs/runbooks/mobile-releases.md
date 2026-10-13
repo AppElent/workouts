@@ -122,4 +122,4 @@ EXPO_NO_DOTENV=1 pnpm exec eas env:exec preview 'pnpm exec expo export --platfor
 ```
 
 Check the native runtime against the intended binary using the shared
-[mobile release boundaries](../features/mobile-baseline/FEATURE.md#build-and-release-boundaries).
+[mobile release boundaries](../standards/mobile-baseline.md#build-and-release-boundaries).

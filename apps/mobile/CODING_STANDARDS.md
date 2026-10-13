@@ -1,6 +1,6 @@
 # Workouts mobile coding standards
 
-Apply the shared [mobile architecture](../../docs/guidelines/shared/mobile/coding.md).
+Apply the shared [mobile architecture](../../docs/standards/mobile-coding.md).
 
 ## Bindings and migration scope
 

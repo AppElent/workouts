@@ -6,7 +6,7 @@ version: 1.0.0
 
 # Verify Workouts
 
-Binds the shared [verification contract](../guidelines/shared/general/verification.md)
+Binds the shared [verification contract](../standards/verification.md)
 to Workouts targets and credentials.
 
 ## Checks

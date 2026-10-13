@@ -3,17 +3,16 @@
 <!-- appelent-standards:start -->
 ## Shared guidance
 
-For UI work, read [interaction rules](docs/guidelines/shared/general/design.md) and the affected platform:
+For UI work, read [general design](docs/standards/general-design.md) and the affected platform:
 
 | Platform | Read |
 | --- | --- |
-| Browser | [Web](docs/guidelines/shared/web/design.md) |
-| Native | [Mobile](docs/guidelines/shared/mobile/design.md), plus [iOS](docs/guidelines/shared/ios/design.md) or [Android](docs/guidelines/shared/android/design.md) |
+| Browser | [Web design](docs/standards/web-design.md) |
+| Native | [Mobile design](docs/standards/mobile-design.md), plus [iOS](docs/standards/ios-design.md) or [Android](docs/standards/android-design.md) |
 
-For number entry, editing presentations, or actionable lists, select the relevant
-[design pattern](docs/guidelines/shared/patterns/README.md), or a `kind: pattern` standard in
-`docs/standards/`. Project decisions below
-bind these contracts to product components, identity, and justified exceptions.
+Interaction patterns: [number fields](docs/standards/number-fields.md), [editors](docs/standards/editors.md),
+[actionable lists](docs/standards/lists.md), and [design studies](docs/standards/design-studies.md). Project
+decisions below bind these standards to product components, identity, and justified exceptions.
 <!-- appelent-standards:end -->
 
 ## Web
