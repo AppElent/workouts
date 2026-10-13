@@ -1,3 +1,11 @@
+---
+type: decision
+description: Read before changing the shipped exercise catalog or exercise IDs.
+version: 1.0.0
+status: accepted
+date: 2026-09-26
+---
+
 # Ship the exercise catalog and migrate historical references
 
 Default exercises ship in `@workouts/core/exercises`, a separate package entry

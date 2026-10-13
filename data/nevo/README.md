@@ -75,7 +75,7 @@ these dataset notes do not override the runtime nutrient model.
 `NEVO-code` is an integer, unique, no leading zeros, 1–5,610 across 2,328 rows — the code space
 is 41% used, and material changes mint a new code rather than mutate an old one (background info
 §5.5 records margarine 2063 being replaced by a new code 5562). That is consistent with
-retire-don't-reuse, but the documentation never states it. The later [identity research](../../docs/research/nevo-code-stability.md) proves
+retire-don't-reuse, but the documentation never states it. The later [identity research](../../docs/records/2026-09-04-nevo-code-stability.md) proves
 retirement/reactivation; [ADR 0006](../../docs/adr/0006-ship-nevo-as-generated-core-data.md)
 therefore requires permanent application IDs and explicit reconciliation.
 

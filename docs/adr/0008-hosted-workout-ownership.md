@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before changing Hosted Workout ownership, Submissions, or participant history.
+version: 1.0.0
 status: accepted
+date: 2026-09-16
 ---
 
 # Keep hosted prescriptions shared and participant history personal

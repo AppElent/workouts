@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.3.1
 description: "Ownership, shared behavior, and verification."
 ---
 
@@ -11,5 +11,5 @@ description: "Ownership, shared behavior, and verification."
 - Treat generated files as outputs. Change their source or generator and regenerate; never patch generated route trees, API bindings, or datasets by hand.
 - Preserve the existing environment/credential routing. Keep secrets out of tracked files and client bundles.
 - Before completion, follow the [verification contract](verification.md) and the affected project's check commands.
-- For documentation, follow [ownership and disclosure](documentation.md). Keep domain vocabulary in CONTEXT.md and hard-to-reverse, surprising trade-offs in ADRs.
+- For documentation, follow [documentation standard](../../../standards/documentation.md). Keep domain vocabulary in GLOSSARY.md and hard-to-reverse, surprising trade-offs in ADRs.
 - Consult [specialist skills](specialist-skills.md) only when task-specific expertise is useful.

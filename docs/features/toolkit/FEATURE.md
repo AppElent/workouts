@@ -1,5 +1,5 @@
 ---
-version: 1.4.0
+version: 1.5.0
 description: Install and update the complete AppElent toolkit without a developer CLI package.
 ---
 
@@ -49,6 +49,8 @@ Omit -g for project installation. This updater does not inspect, install, update
 Updating a feature guide is not proof of application migration. Read the changed feature's migration notes if used, inspect actual app code, apply the relevant correction, and run its checks. Portable baseline, environment, workspace, and read-only project-check scripts are now available. Follow their feature guides; old CLI/package dependencies remain until each consuming project migrates and verifies them.
 
 ## Migrating from earlier updaters
+
+Standards and per-folder templates install to `docs/standards/` and `docs/{adr,contracts,records,runbooks}/.template.md`. Earlier updaters reject these destinations: copy the current scripts/sync-devtools.mjs once, then sync. Rename a project's `docs/product/` to `docs/contracts/` and update its links; the toolkit does not move project documents.
 
 Copy the current reviewed scripts/sync-devtools.mjs once before upgrading: distribution schema 2 excludes skills and old bootstraps refuse it before self-update. Remove --scope, --agent, and --skill-scope options; install skills with npx skills separately. Existing project receipts remain readable. Pending updates must be recovered before upgrading; this updater retains recovery support for earlier journals.
 

@@ -1,6 +1,6 @@
 /**
  * Capture Drafts: a note about intake, filed under a day and Meal Slot, that
- * does not count as intake until it becomes Diary Entries (see CONTEXT.md).
+ * does not count as intake until it becomes Diary Entries (see GLOSSARY.md).
  *
  * This store retains pre-ADR-0012 notes for acknowledged account migration. They share the cooking
  * database file because that is where the table was born; this module now owns

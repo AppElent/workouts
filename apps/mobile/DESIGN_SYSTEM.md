@@ -46,12 +46,13 @@ is the current binding; preserve platform fallbacks.
 
 ## Product flows
 
-Read only the affected contract:
+Read the affected contract:
 
-- [Nutrition](../../docs/product/mobile-nutrition.md): diary, food search, goals,
-  library, composite amounts, measures, and one-off logging.
-- [Training](../../docs/product/mobile-training.md): routines and start activity.
-- [Profile](../../docs/product/mobile-profile.md): account, settings, and summaries.
+- [Nutrition Diary](../../docs/contracts/nutrition-diary.md): diary, weekly review, goals, Capture Drafts.
+- [Nutrition logging](../../docs/contracts/nutrition-logging.md): food search, amount editor, Servings, one-off logging.
+- [Nutrition foods](../../docs/contracts/nutrition-foods.md): library, food editor, Combos, measures.
+- [Training](../../docs/contracts/training.md): routines, start activity, Strength Sessions.
+- [Profile](../../docs/contracts/profile.md): account, settings, and summaries.
 
 ## Diary Entry exception
 
@@ -65,7 +66,4 @@ owns quantity interaction and serving creation.
 The installed runtime crashes when SwiftUI hosts enter `InputAccessoryView`'s
 keyboard window. Keep those hosts in the keyboard-avoiding overlay inside the
 sheet, with the keyboard observer mounted before focus. This is a runtime-specific
-workaround, not a general popup restriction. See the [observed evidence](../../docs/verification/diary-entry-editor/README.md).
-
-Use [project verification](../../docs/runbooks/verification.md) for current checks
-and pending device acceptance. Design studies alone do not certify native behavior.
+workaround, not a general popup restriction. See the [observed evidence](../../docs/records/2026-10-04-diary-entry-editor/README.md).

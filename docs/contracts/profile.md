@@ -1,0 +1,43 @@
+---
+type: contract
+description: Read when changing Profile, settings, account actions, or sign-out.
+version: 1.0.0
+status: current
+---
+
+# Profile
+
+A person sees their identity and all-time totals and reaches every setting in one
+tap. Study: [profile](../../designs/app/profile_final.html).
+
+## Behavior
+
+- **Settings one tap deep.** Preferences and Nutrition are `FormSection`s on
+  Profile; no pushed screen with a single row. Appearance, language, nutrition
+  destinations, Feedback, Labs, and sign-out stay reachable.
+- **Icon tiles.** A settings row may carry a 30-pt continuous-corner tile with a
+  white SF Symbol on a fixed tint (same in dark mode), via `DisclosureRow`'s
+  `icon`. The only exception to the single lime accent.
+- **Account.** The account row (Clerk name, email, photo) opens Account with
+  sign-in details, export, and deletion. Deletion names what is removed and points
+  to export first.
+- **Summary.** All-time totals, no period menu. Each figure links to its source view.
+- **Sign out.** A red row in its own bottom section, always confirmed. The
+  confirmation states the real pending and device-local state, with a count and
+  "Toch uitloggen" when changes are waiting. Set Drafts stay on the device for the
+  same account only.
+
+## States
+
+Settings work in every state. Only the summary loads, fails, or is empty. Offline
+is one line above the account row.
+
+## Out of scope
+
+Until [#93](https://github.com/AppElent/workouts/issues/93): account editing,
+export, deletion, lifetime totals, and distance breakdown. They show dashes or a
+"coming soon" mark; never invented figures or simulated success.
+
+## Acceptance
+
+Evidence: [app redesign](../records/2026-10-07-app-redesign/README.md).

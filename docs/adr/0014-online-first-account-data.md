@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before changing data ownership, offline behavior, or save semantics.
+version: 1.0.0
 status: accepted
+date: 2026-10-07
 ---
 
 # Keep personal data account-owned and online-first
@@ -36,14 +40,14 @@ tracked separately from acceptance.
 Optimize Convex usage through bounded reads and measured subscription lifetimes.
 Choose additional cache libraries only for demonstrated benefits. TanStack Query
 is not selected as an offline engine or assumed to reduce costs. See the
-[research and interview record](../research/issue-89-online-offline.md).
+[research and interview record](../records/2026-10-07-online-offline-research.md).
 
 Accepted on 2026-10-07. See the
-[implementation contract](../product/online-first-account-data.md). The research
+[implementation contract](../contracts/account-data.md). The research
 record retains the desired behavior and conditional sign-out policy for the
 deferred recovery investigation; they are not requirements of issue 89.
 
-Implementation evidence: [account data verification and usage](../verification/online-first-account-data/README.md).
+Implementation evidence: [account data verification and usage](../records/2026-10-08-online-first-account-data/README.md).
 Food photos remain device-only visual conveniences; the account Food record is
 usable without them. Production adoption follows the
 [migration runbook](../runbooks/nutrition-account-migration.md).

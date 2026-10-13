@@ -31,7 +31,8 @@ export function safePath(path) {
 function allowed(path, scope = 'project') {
   safePath(path);
   const skill = /^(\.agents|\.claude)\/skills\/[a-z0-9][a-z0-9-]*\//.test(path);
-  if (skill || (scope === 'project' && (/^(scripts|docs\/features|docs\/guidelines\/shared)\//.test(path) ||
+  if (skill || (scope === 'project' && (/^(scripts|docs\/features|docs\/guidelines\/shared|docs\/standards)\//.test(path) ||
+      /^docs\/(adr|contracts|records|runbooks)\/\.template\.md$/.test(path) ||
       ['CODING_STANDARDS.md', 'DESIGN_SYSTEM.md'].includes(path)))) return;
   throw new Error(`Unsupported destination: ${path}`);
 }
@@ -204,8 +205,8 @@ export async function sync(options = {}) {
     const current = await inspect(root, path), value = desired.get(path) ?? null;
     observed.set(path, current);
     const old = previous.files[path];
-    // Bootstrap may already be copied into place; exact content needs no overwrite.
-    if (old ? current === null || hash(current) !== old.sha256 : current !== null && current !== value) conflicts.push(path);
+    // A bootstrap copied into place already matches; exact content needs no overwrite.
+    if (current !== value && (old ? current === null || hash(current) !== old.sha256 : current !== null)) conflicts.push(path);
     if (value !== null) {
       next.files[path] = { sha256: hash(value), ...(path.endsWith('.md') ? { version: metadata(value, path).version } : {}) };
       const oldVersion = old?.version, newVersion = next.files[path].version;

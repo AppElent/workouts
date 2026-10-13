@@ -1,3 +1,9 @@
+---
+type: runbook
+description: Read when using or changing the Workouts MCP server.
+version: 1.0.0
+---
+
 # Workouts MCP
 
 Workouts exposes a read-only MCP endpoint at:

@@ -1,7 +1,13 @@
+---
+type: runbook
+description: Read when rolling out the nutrition account-storage migration.
+version: 1.0.0
+---
+
 # Nutrition account migration
 
-Issue 89 makes account storage automatic. Read the [contract](../product/online-first-account-data.md)
-and [branch evidence](../verification/online-first-account-data/README.md) before rollout.
+Issue 89 makes account storage automatic. Read the [contract](../contracts/account-data.md)
+and [branch evidence](../records/2026-10-08-online-first-account-data/README.md) before rollout.
 
 ## Server release gate
 
@@ -75,7 +81,7 @@ branch verification.
   builds also provide Profile → Labs → SQLite browser for read-only database,
   table and row inspection. Local rows can be already-acknowledged caches or
   retained originals; a nonempty table is not itself evidence of pending uploads.
-  See [tool verification and the storage inventory](../verification/local-data-tools/README.md).
+  See [tool verification and the storage inventory](../records/2026-10-08-local-data-tools/README.md).
   A failure must
   retain the journal and originals. Resolve genuine invalid-record errors from
   retained evidence rather than discarding pending data.

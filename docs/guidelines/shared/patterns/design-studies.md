@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.0.1
 description: Iterate on interactive screen studies and promote decisions to their owners.
 ---
 
@@ -37,7 +37,7 @@ constraints, and remaining runtime questions. Keep earlier rounds as history.
 HTML studies establish design intent, not native acceptance. Follow the shared
 [verification procedure](../general/verification.md) for implementation comparison.
 
-Classify each accepted decision using [documentation ownership](../general/documentation.md).
+Classify each accepted decision using [documentation standard](../../../standards/documentation.md).
 Extract reusable patterns into their canonical toolkit source; product standards
 retain identity, bindings, domain behavior, and explicit exceptions. If shared
 adoption is unresolved, label it proposed with applicability and evidence.

@@ -1,5 +1,10 @@
 ---
-status: partially superseded by ADR-0014
+type: decision
+description: Read for the nutrition history guarantees that still apply; its ownership and offline policies are superseded.
+version: 1.0.0
+status: superseded
+date: 2026-09-16
+superseded_by: 0014-online-first-account-data.md
 ---
 
 # Keep nutrition local-first without allowing history to drift

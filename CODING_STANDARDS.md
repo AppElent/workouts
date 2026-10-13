@@ -1,44 +1,5 @@
 # Workouts coding standards
 
-## Ownership
-
-`src/` is the TanStack Start web app, `convex/` the shared backend, and
-`apps/mobile/` the Expo app. `packages/core/` owns domain calculations and shipped
-catalogs shared by all three; build its ESM output before dependent checks.
-The backend and web stay at the root to preserve existing deployment wiring.
-
-For native changes, read [mobile standards](apps/mobile/CODING_STANDARDS.md).
-For verification, use [project checks](docs/runbooks/verification.md); for upgrades,
-use [dependency upgrades](docs/runbooks/dependency-upgrades.md).
-
-## Domain documentation
-
-Workouts uses one context across web, mobile, and core. Skills requesting
-`GLOSSARY.md` use [CONTEXT.md](CONTEXT.md); use its terms in code, hypotheses,
-and issue titles. Record newly resolved terms there. Read [ADRs](docs/adr/README.md)
-for the affected boundary, number new decisions after the highest existing ADR,
-and explicitly identify conflicts with an accepted decision before reopening it.
-
-## Adopted capabilities and exceptions
-
-Workouts selects Convex and Clerk, English/Dutch localization, Cloudflare hosting,
-and EAS mobile distribution. Shared capability guides own reusable behavior;
-these are the remaining local integration boundaries:
-
-| Capability | Current binding and reason to retain it |
-| --- | --- |
-| Auth | Web uses `@appelent/auth` and `@clerk/clerk-react`; mobile uses `@clerk/expo`. Retain these adapters until a deliberate migration. Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows remain public. |
-| Localization | `@appelent/i18n` owns the existing runtime seam; messages remain app-owned. A guidance update does not replace it. |
-| CLI | `cli/index.ts` wraps `@appelent/cli`. Keep domain commands here; migrate generic login/config behavior only with runtime verification. |
-| Environments | `pnpm env:*` still uses `scripts/env-legacy.mjs` / `@appelent/dev`, not installed `scripts/env.mjs`. Follow the [environment contract](docs/runbooks/environment.md). |
-| Worktrees | `scripts/setup-worktree.mjs` owns the current lifecycle; use [worktree setup](docs/runbooks/worktree-setup.md) until the standalone workspace script is verified for this app. |
-| Test login | Non-production builds retain public test-account variables. This legacy exception needs an auth migration; [verification](docs/runbooks/verification.md) constrains their use. |
-| Observability | Adopt the shared Sentry feature; [Sentry operations](docs/runbooks/sentry.md) owns enabled surfaces, project bindings, sampling, and outstanding acceptance. |
-
-Private `@appelent` runtime packages still need registry access; setup is in README.
-Provider/deployment identities belong in runbooks, not shared defaults.
-
-
 <!-- appelent-standards:start -->
 ## Shared guidance
 
@@ -49,8 +10,42 @@ Before code changes or review, read [coding rules](docs/guidelines/shared/genera
 | Browser code | [Web baseline](docs/features/web-baseline/FEATURE.md) |
 | Native code | [Mobile architecture](docs/guidelines/shared/mobile/coding.md) and [mobile baseline](docs/features/mobile-baseline/FEATURE.md) |
 | Verification | [Verification contract](docs/guidelines/shared/general/verification.md), then the project's check commands |
-| Integration or repository tooling | Select the capability in the [feature index](docs/features/README.md) |
-| Documentation or instruction changes | [Documentation ownership](docs/guidelines/shared/general/documentation.md) |
+| Integration or repository tooling | The matching standard in `docs/standards/`, else the [feature index](docs/features/README.md) |
+| Documentation or instruction changes | [Documentation standard](docs/standards/documentation.md) |
 
 Project decisions below select implementations and explain deviations from shared defaults.
 <!-- appelent-standards:end -->
+
+## Workspaces
+
+| Path | Owns |
+| --- | --- |
+| `src/` | TanStack Start web app; routes in `src/routes/`, navigation in `src/components/navItems.ts` |
+| `convex/` | Shared backend |
+| `apps/mobile/` | Expo app (Foundry); read [mobile standards](apps/mobile/CODING_STANDARDS.md) before native changes |
+| `packages/core/` | Domain calculations and shipped catalogs; build its ESM output before dependent checks |
+
+Web and backend stay at the root to preserve deployment wiring. Run the
+[project checks](docs/runbooks/verification.md) for every affected target.
+
+## Domain documentation
+
+[GLOSSARY.md](GLOSSARY.md) is the single vocabulary for web, mobile, and core: use
+its terms in code, hypotheses, and issue titles, and record newly resolved terms
+there. Read the ADRs in `docs/adr/` for the affected boundary and name any conflict with
+an accepted ADR before reopening it.
+
+## Local bindings and exceptions
+
+Workouts selects Convex, Clerk, English/Dutch localization, Cloudflare hosting,
+and EAS distribution. These bindings deviate from or narrow the shared guidance:
+
+| Capability | Binding |
+| --- | --- |
+| Auth | Web: `@appelent/auth` + `@clerk/clerk-react`; mobile: `@clerk/expo`. Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
+| Localization | `@appelent/i18n` owns the runtime seam; messages stay app-owned. |
+| CLI | `cli/index.ts` wraps `@appelent/cli` and owns domain commands. Migrating generic login/config needs runtime verification. |
+| Environments | `pnpm env:*` runs `scripts/env-legacy.mjs` (`@appelent/dev`), not the installed `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |
+| Worktrees | `scripts/setup-worktree.mjs` owns the lifecycle, not `scripts/workspace.mjs`. See [worktree setup](docs/runbooks/worktree-setup.md). |
+| Test login | Non-production builds embed public test-account variables; a legacy exception pending an auth migration. |
+| Observability | Shared Sentry feature; [Sentry operations](docs/runbooks/sentry.md) owns surfaces, projects, and sampling. |

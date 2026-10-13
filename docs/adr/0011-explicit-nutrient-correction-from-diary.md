@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before changing nutrient correction from the diary.
+version: 1.0.0
 status: accepted
+date: 2026-10-06
 ---
 
 # Correct source nutrition and one explicitly selected Diary Entry

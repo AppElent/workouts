@@ -1,3 +1,9 @@
+---
+type: runbook
+description: Read when creating a worktree or its isolated Convex deployment.
+version: 1.0.0
+---
+
 # Worktree setup
 
 Each worktree must use its own Convex deployment. The repository-owned setup command works from PowerShell, cmd.exe, bash, and zsh; editor actions should call it instead of embedding shell-specific setup logic.
