@@ -15,7 +15,6 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
-      packages: read
     env:
       WORKER_NAME: workouts-pr-${{ github.event.pull_request.number }}
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
@@ -32,15 +31,6 @@ jobs:
         with:
           node-version: ">=22.15.0"
           cache: pnpm
-
-      # @appelent/* is a private GitHub Packages scope. pnpm does not expand
-      # env vars in the committed project .npmrc, so write the token to the
-      # runner's user-level ~/.npmrc (where pnpm does expand it).
-      - name: Configure GitHub Packages auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
 
       - run: pnpm install --frozen-lockfile
 
@@ -114,7 +104,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
     steps:
       - uses: actions/checkout@v4
 
@@ -124,12 +113,6 @@ jobs:
         with:
           node-version: ">=22.15.0"
           cache: pnpm
-
-      - name: Configure GitHub Packages auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
 
       - run: pnpm install --frozen-lockfile
 

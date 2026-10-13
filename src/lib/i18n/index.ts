@@ -1,6 +1,6 @@
-import { createI18n } from "@appelent/i18n";
 import { en, type Messages } from "./messages/en";
 import { nl } from "./messages/nl";
+import { createI18n } from "./runtime";
 
 export const SUPPORTED_LOCALES = ["en", "nl"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
@@ -18,4 +18,4 @@ export const {
 	messages: { en, nl },
 });
 
-export { fmt, plural } from "@appelent/i18n";
+export { fmt, plural } from "./runtime";

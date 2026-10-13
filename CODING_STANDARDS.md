@@ -63,10 +63,10 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 
 | Capability | Binding |
 | --- | --- |
-| Auth | Web: `@appelent/auth` + `@clerk/clerk-react`; mobile: `@clerk/expo`. Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
-| Localization | `@appelent/i18n` owns the runtime seam; messages stay app-owned. |
-| CLI | `cli/index.ts` wraps `@appelent/cli` and owns domain commands. Migrating generic login/config needs runtime verification. |
-| Environments | `pnpm env:*` runs `scripts/env-legacy.mjs` (`@appelent/dev`), not the installed `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |
+| Auth | Web: app-owned `src/lib/auth` + `@clerk/clerk-react`; mobile: `@clerk/expo`. Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
+| Localization | App-owned runtime in `src/lib/i18n/runtime` (mobile copies `core.ts`); messages stay app-owned. |
+| CLI | `cli/index.ts` wraps the app-owned `cli/runtime` and owns domain commands. |
+| Environments | `pnpm env:*` runs `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |
 | Worktrees | `scripts/setup-worktree.mjs` owns the lifecycle, not `scripts/workspace.mjs`. See [worktree setup](docs/runbooks/worktree-setup.md). |
 | Test login | Non-production builds embed public test-account variables; a legacy exception pending an auth migration. |
 | Observability | Shared Sentry feature; [Sentry operations](docs/runbooks/sentry.md) owns surfaces, projects, and sampling. |

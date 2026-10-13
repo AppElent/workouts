@@ -31,8 +31,7 @@ EXPO_NO_DOTENV=1 pnpm exec eas build --platform ios --profile preview --clear-ca
 
 The environment setting prevents local `.env.local` values from entering the
 release configuration. EAS supplies `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and
-`EXPO_PUBLIC_CONVEX_URL` from its `preview` environment. Its `NODE_AUTH_TOKEN`
-secret lets the build pre-install hook authenticate to GitHub Packages.
+`EXPO_PUBLIC_CONVEX_URL` from its `preview` environment.
 
 The first submission may ask for Apple credentials and the App Store Connect
 app. After Apple processes the build, install it through TestFlight. Native

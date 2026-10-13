@@ -56,7 +56,7 @@ export default defineConfig({
 				extends: true,
 				test: {
 					name: "cli",
-					include: ["cli/src/**/*.test.ts"],
+					include: ["cli/**/*.test.ts"],
 					environment: "node",
 					globals: true,
 				},

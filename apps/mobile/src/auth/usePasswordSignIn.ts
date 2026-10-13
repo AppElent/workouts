@@ -5,7 +5,7 @@
  * leaves the sign-in `'complete'` but **not** signed in. `finalize()` is
  * what promotes it to the active session — skipping it produces a flow that
  * reports success and leaves the person exactly where they were. This is
- * genuinely different from the web app's Core 2 (`@appelent/auth` /
+ * genuinely different from the web app's Core 2 (`src/lib/auth` /
  * `@clerk/clerk-react`), which throws on failure and uses `setActive()`.
  *
  * Nothing here navigates. When `finalize()` lands, `isSignedIn` flips, the

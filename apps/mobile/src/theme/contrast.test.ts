@@ -22,25 +22,24 @@ describe.each<[string, Tokens]>([
 	["light", lightColors],
 	["dark", darkColors],
 ])("%s semantic palette", (_name, colors) => {
-	it.each([
-		"bg",
-		"surface",
-		"surface2",
-	] as const)("keeps normal text and actions readable on %s", (surface) => {
-		for (const ink of [
-			"text",
-			"textMuted",
-			"textFaint",
-			"accent",
-			"danger",
-			"success",
-			"warn",
-		] as const) {
-			expect(contrast(colors[ink], colors[surface])).toBeGreaterThanOrEqual(
-				4.5,
-			);
-		}
-	});
+	it.each(["bg", "surface", "surface2"] as const)(
+		"keeps normal text and actions readable on %s",
+		(surface) => {
+			for (const ink of [
+				"text",
+				"textMuted",
+				"textFaint",
+				"accent",
+				"danger",
+				"success",
+				"warn",
+			] as const) {
+				expect(contrast(colors[ink], colors[surface])).toBeGreaterThanOrEqual(
+					4.5,
+				);
+			}
+		},
+	);
 	it("keeps labels readable on normal and pressed primary actions", () => {
 		expect(contrast(colors.onAccent, colors.accentFill)).toBeGreaterThanOrEqual(
 			4.5,

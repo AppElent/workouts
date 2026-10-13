@@ -1,6 +1,6 @@
-import { HeaderUser } from "@appelent/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Dumbbell, TrendingUp } from "lucide-react";
+import { HeaderUser } from "#/lib/auth";
 
 export const Route = createFileRoute("/")({
 	component: IntroPage,

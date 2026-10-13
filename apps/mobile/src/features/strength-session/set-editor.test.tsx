@@ -375,26 +375,26 @@ it("does not replace stored input or send a Log when durable storage fails", asy
 		write.mockRestore();
 	}
 });
-it.each([
-	"completed",
-	"cancelled",
-])("refuses to log a recovered draft into a %s session", async (status) => {
-	const app = mount();
-	fireEvent.changeText(await openEditor(), "87.5");
-	app.unmount();
-	currentSession = { ...session, status };
-	renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
-		"set-editor/_layout": EditorLayout,
-		"set-editor/index": EditorRoute,
-	});
-	expect(
-		await screen.findByText(
-			"This session has ended. Unfinished sets cannot be logged.",
-		),
-	).toBeTruthy();
-	expect(screen.getByRole("button", { name: "Log set" })).toBeDisabled();
-	expect(add).not.toHaveBeenCalled();
-});
+it.each(["completed", "cancelled"])(
+	"refuses to log a recovered draft into a %s session",
+	async (status) => {
+		const app = mount();
+		fireEvent.changeText(await openEditor(), "87.5");
+		app.unmount();
+		currentSession = { ...session, status };
+		renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
+			"set-editor/_layout": EditorLayout,
+			"set-editor/index": EditorRoute,
+		});
+		expect(
+			await screen.findByText(
+				"This session has ended. Unfinished sets cannot be logged.",
+			),
+		).toBeTruthy();
+		expect(screen.getByRole("button", { name: "Log set" })).toBeDisabled();
+		expect(add).not.toHaveBeenCalled();
+	},
+);
 it("keeps historical saved-set corrections available without allowing new performance", async () => {
 	currentSession = { ...session, status: "completed" };
 	loggedSets = [loggedSet];

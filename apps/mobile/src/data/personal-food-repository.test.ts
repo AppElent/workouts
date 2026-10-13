@@ -672,17 +672,18 @@ it("reopens a version 7 nutrition library without losing personal foods", () => 
 	).toBe(7);
 });
 
-it.each([
-	7, 8,
-])("rejects an unrecognized nutrition schema %i without downgrading it", (version) => {
-	const database = new SQLiteTestDatabase();
-	createPersonalFoodRepository(database);
-	database.execSync(`PRAGMA user_version = ${version}`);
-	expect(() => createPersonalFoodRepository(database)).toThrow(
-		`This nutrition database is newer than this version of Workouts (${version}).`,
-	);
-	expect(
-		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
-			?.user_version,
-	).toBe(version);
-});
+it.each([7, 8])(
+	"rejects an unrecognized nutrition schema %i without downgrading it",
+	(version) => {
+		const database = new SQLiteTestDatabase();
+		createPersonalFoodRepository(database);
+		database.execSync(`PRAGMA user_version = ${version}`);
+		expect(() => createPersonalFoodRepository(database)).toThrow(
+			`This nutrition database is newer than this version of Workouts (${version}).`,
+		);
+		expect(
+			database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
+				?.user_version,
+		).toBe(version);
+	},
+);

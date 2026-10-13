@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createCli } from "@appelent/cli";
+import { createCli } from "./runtime/index";
 
 const { runCli } = createCli({ appName: "workouts" });
 

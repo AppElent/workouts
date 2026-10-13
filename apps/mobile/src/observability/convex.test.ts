@@ -23,30 +23,30 @@ it("preserves successful mutation results without sending payloads to Sentry", a
 	expect(Sentry.captureException).not.toHaveBeenCalled();
 });
 
-it.each([
-	"mutation",
-	"action",
-] as const)("reports %s failures and rethrows the original error for existing UI recovery", async (kind) => {
-	const error = new Error("Server unavailable");
-	const failed = jest.fn().mockRejectedValue(error);
-	const client = instrumentConvexClient({
-		mutation: failed,
-		action: failed,
-	} as unknown as ConvexReactClient);
-	const promise =
-		kind === "mutation"
-			? client.mutation(
-					makeFunctionReference<"mutation">("nutritionDiary:apply"),
-					{},
-				)
-			: client.action(
-					makeFunctionReference<"action">("nutritionDiary:apply"),
-					{},
-				);
-	await expect(promise).rejects.toBe(error);
-	expect(Sentry.captureException).toHaveBeenCalledWith(error, {
-		tags: { operation: "nutritionDiary:apply", handled: true },
-	});
-	reportError(error, "route.render");
-	expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-});
+it.each(["mutation", "action"] as const)(
+	"reports %s failures and rethrows the original error for existing UI recovery",
+	async (kind) => {
+		const error = new Error("Server unavailable");
+		const failed = jest.fn().mockRejectedValue(error);
+		const client = instrumentConvexClient({
+			mutation: failed,
+			action: failed,
+		} as unknown as ConvexReactClient);
+		const promise =
+			kind === "mutation"
+				? client.mutation(
+						makeFunctionReference<"mutation">("nutritionDiary:apply"),
+						{},
+					)
+				: client.action(
+						makeFunctionReference<"action">("nutritionDiary:apply"),
+						{},
+					);
+		await expect(promise).rejects.toBe(error);
+		expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+			tags: { operation: "nutritionDiary:apply", handled: true },
+		});
+		reportError(error, "route.render");
+		expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+	},
+);

@@ -8,11 +8,8 @@ version: 1.0.0
 
 [`env.manifest.ts`](../../env.manifest.ts) is the source of truth for which
 Workouts value each web, mobile, Convex, CI, and workspace consumer reads. The
-legacy `scripts/env-legacy.mjs` wrapper still runs the shared `@appelent/dev`
-environment engine through the `pnpm env:*` aliases. The distributed standalone
-`scripts/env.mjs` is installed for a future migration; see the
-[shared guide](../standards/environments.md). Installing it did not change
-those aliases or validate this app against its loader.
+`pnpm env:*` aliases run the app-owned `scripts/env.mjs` engine; see the
+[shared guide](../standards/environments.md).
 
 The app has four environments: `local`, per-PR `preview`, stable `dev`, and
 `production`. There is no Workouts staging environment. Stable Convex targets
@@ -63,10 +60,9 @@ selection.
 
 The preview workflow similarly obtains `VITE_CONVEX_URL` from `convex deploy`.
 The manifest preserves its existing `PREVIEW_CLERK_PUBLISHABLE_KEY`,
-`CONVEX_DEPLOY_KEY`, `NODE_AUTH_TOKEN`, `CLOUDFLARE_API_TOKEN`, and
-`CLOUDFLARE_ACCOUNT_ID` names. EAS uses the existing `development`, `preview`,
-and `production` environments, and reads `NODE_AUTH_TOKEN` for private package
-installation.
+`CONVEX_DEPLOY_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID`
+names. EAS uses the existing `development`, `preview`, and `production`
+environments.
 
 The test-user email and password are optional but public client values because
 Vite and Metro embed them in bundles. They are deliberately absent from every

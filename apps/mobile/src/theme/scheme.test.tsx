@@ -28,18 +28,18 @@ describe("scheme plumbing follows the device by default", () => {
 	});
 	afterEach(() => scheme.mockRestore());
 
-	it.each([
-		"light",
-		"dark",
-	] as const)("matches the OS %s scheme in content and native hosts", (mode) => {
-		scheme.mockReturnValue(mode);
-		render(<Probe />);
-		const tokens = mode === "dark" ? colors : colorsLight;
-		expect(screen.getByTestId("probe").props.children).toBe(
-			`${tokens.bg}|${mode}`,
-		);
-		expect(colorsLight.bg).not.toBe(colors.bg);
-	});
+	it.each(["light", "dark"] as const)(
+		"matches the OS %s scheme in content and native hosts",
+		(mode) => {
+			scheme.mockReturnValue(mode);
+			render(<Probe />);
+			const tokens = mode === "dark" ? colors : colorsLight;
+			expect(screen.getByTestId("probe").props.children).toBe(
+				`${tokens.bg}|${mode}`,
+			);
+			expect(colorsLight.bg).not.toBe(colors.bg);
+		},
+	);
 
 	it("AppText takes its ink from the tokens, and a caller's style still wins", () => {
 		scheme.mockReturnValue("light");

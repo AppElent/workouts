@@ -1,9 +1,9 @@
-import { HeaderUser } from "@appelent/auth";
 import { useAuth } from "@clerk/clerk-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useState } from "react";
 import { LanguageToggle } from "#/components/LanguageToggle";
+import { HeaderUser } from "#/lib/auth";
 import { useMessages } from "#/lib/i18n";
 import { isNavItemLocked, useNavItems } from "./navItems";
 

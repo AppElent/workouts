@@ -6,7 +6,7 @@ import { type Locale, SUPPORTED_LOCALES } from "./index";
 // seam so its server-only imports never execute in the browser bundle.
 export const getSsrLocale = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const { createGetSsrLocale } = await import("@appelent/i18n/server");
+		const { createGetSsrLocale } = await import("./runtime/server");
 		return createGetSsrLocale(SUPPORTED_LOCALES, "en" satisfies Locale)();
 	},
 );
