@@ -1,3 +1,4 @@
+import { accountNl } from "./account";
 import { activityNl } from "./activity";
 import { bodyMetricsNl } from "./body-metrics";
 import { diaryNl } from "./diary";
@@ -42,6 +43,7 @@ export const nl = {
 	workoutTools: workoutToolsNl,
 	signIn: signInNl,
 	profile: profileNl,
+	account: accountNl,
 	training: trainingNl,
 	strength: strengthNl,
 	diaryEntry: entryEditorNl,

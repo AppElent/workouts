@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import {
@@ -27,7 +27,10 @@ import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { clearAccountSetDrafts } from "../strength-session/data/set-drafts";
 
-type Request = { mode: "load" | "clear" | "local"; subject: string };
+type Request = {
+	mode: "load" | "clear" | "local" | "deleteData" | "deleteAccount";
+	subject: string;
+};
 const AccountDataContext = createContext<
 	((mode: Request["mode"]) => void) | null
 >(null);
@@ -50,47 +53,67 @@ export function AccountDataMaintenanceProvider({
 	}, []);
 	const online = useConvexConnectionState().isWebSocketConnected;
 	const reset = useMutation(api.testData.reset);
+	const deleteData = useMutation(api.account.deleteData);
+	const { user } = useUser();
 	const { t } = useI18n();
 
 	const toast = useToast();
 	const [request, setRequest] = useState<Request | null>(null);
-	const c = request?.mode === "local" ? t.localData.maintenance : t.testData;
+	const deleting =
+		request?.mode === "deleteData" || request?.mode === "deleteAccount";
+	const c =
+		request?.mode === "local"
+			? t.localData.maintenance
+			: deleting
+				? t.account.deletion
+				: t.testData;
 	const [cleanupFailed, setCleanupFailed] = useState(false);
 	const running = useRef(false);
 	const processed = useRef<Request | null>(null);
 	const owner = useRef(userId);
 	owner.current = userId;
 	const finishCleanup = useCallback(
-		(subject: string) => {
+		async (subject: string) => {
 			try {
 				if (request?.mode === "local") clearNutritionAccountCache(subject);
 				else cleanup(subject);
-				setRequest(null);
-				setCleanupFailed(false);
-				toast.success(c.success);
 			} catch {
 				setCleanupFailed(true);
+				return;
 			}
+			setCleanupFailed(false);
+			if (request?.mode === "deleteAccount") {
+				try {
+					// Ends the session; the signed-in layout then redirects to sign-in.
+					await user?.delete();
+				} catch {
+					toast.error(t.account.deletion.accountError);
+					setRequest(null);
+					return;
+				}
+			}
+			setRequest(null);
+			toast.success(c.success);
 		},
-		[toast, c.success, request?.mode],
+		[toast, c.success, request?.mode, user, t.account.deletion.accountError],
 	);
 	useEffect(() => {
 		if (!request || processed.current === request) return;
 		processed.current = request;
 		running.current = true;
 		// This effect runs after the old data providers' unmount cleanup.
+		const { mode, subject } = request;
 		const remote =
-			request.mode === "local"
+			mode === "local"
 				? Promise.resolve()
-				: reset({
-						mode: request.mode,
-						today: todayIsoDate(),
-						expectedSubject: request.subject,
-					});
+				: mode === "load" || mode === "clear"
+					? reset({ mode, today: todayIsoDate(), expectedSubject: subject })
+					: (async () => {
+							// Each batch commits; a retry after an error resumes deleting.
+							while (!(await deleteData({ expectedSubject: subject })).done);
+						})();
 		void remote
-			.then(() => {
-				finishCleanup(request.subject);
-			})
+			.then(() => finishCleanup(subject))
 			.catch((error) => {
 				const reason = error instanceof ConvexError ? error.data : null;
 				toast.error(
@@ -103,7 +126,7 @@ export function AccountDataMaintenanceProvider({
 			.finally(() => {
 				running.current = false;
 			});
-	}, [request, reset, finishCleanup, toast, c]);
+	}, [request, reset, deleteData, finishCleanup, toast, c]);
 	if (request)
 		return (
 			<FormScreen>
@@ -113,7 +136,7 @@ export function AccountDataMaintenanceProvider({
 						<AppText accessibilityRole="alert">{c.cleanupError}</AppText>
 						<PrimaryButton
 							label={c.retryCleanup}
-							onPress={() => finishCleanup(request.subject)}
+							onPress={() => void finishCleanup(request.subject)}
 						/>
 						{request.mode === "local" ? (
 							<TextAction
@@ -137,7 +160,13 @@ export function AccountDataMaintenanceProvider({
 		<AccountDataContext
 			value={(mode) => {
 				if (!online || !owner.current || running.current) {
-					toast.error(c.offline);
+					toast.error(
+						mode === "local"
+							? t.localData.maintenance.offline
+							: mode === "load" || mode === "clear"
+								? t.testData.offline
+								: t.account.deletion.offline,
+					);
 					return;
 				}
 				setRequest({ mode, subject: owner.current });
@@ -154,6 +183,13 @@ export function useTestDataReset() {
 	const reset = use(AccountDataContext);
 	if (!reset) throw new Error("AccountDataMaintenanceProvider is missing");
 	return reset;
+}
+
+/** Permanently deletes the account's personal data, optionally then the account. */
+export function useAccountDeletion() {
+	const maintain = use(AccountDataContext);
+	if (!maintain) throw new Error("AccountDataMaintenanceProvider is missing");
+	return (mode: "deleteData" | "deleteAccount") => maintain(mode);
 }
 
 export function useLocalDataCleanup() {

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as account from "../account.js";
 import type * as activities from "../activities.js";
 import type * as bodyMetrics from "../bodyMetrics.js";
 import type * as enduranceActivities from "../enduranceActivities.js";
@@ -21,6 +22,7 @@ import type * as lib_exerciseCatalog from "../lib/exerciseCatalog.js";
 import type * as lib_exerciseMigrationModel from "../lib/exerciseMigrationModel.js";
 import type * as lib_hostedDto from "../lib/hostedDto.js";
 import type * as lib_nutritionLibraryIndex from "../lib/nutritionLibraryIndex.js";
+import type * as lib_personalData from "../lib/personalData.js";
 import type * as lib_strengthReferences from "../lib/strengthReferences.js";
 import type * as lib_strengthSession from "../lib/strengthSession.js";
 import type * as lib_testDataBaseline from "../lib/testDataBaseline.js";
@@ -63,6 +65,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  account: typeof account;
   activities: typeof activities;
   bodyMetrics: typeof bodyMetrics;
   enduranceActivities: typeof enduranceActivities;
@@ -76,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   "lib/exerciseMigrationModel": typeof lib_exerciseMigrationModel;
   "lib/hostedDto": typeof lib_hostedDto;
   "lib/nutritionLibraryIndex": typeof lib_nutritionLibraryIndex;
+  "lib/personalData": typeof lib_personalData;
   "lib/strengthReferences": typeof lib_strengthReferences;
   "lib/strengthSession": typeof lib_strengthSession;
   "lib/testDataBaseline": typeof lib_testDataBaseline;
