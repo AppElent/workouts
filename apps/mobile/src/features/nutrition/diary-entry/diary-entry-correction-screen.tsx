@@ -20,7 +20,7 @@ import {
 } from "../../../data/nutrition-operation-service";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useSupplementaryServings } from "../../../data/supplementary-servings";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { FormScreen, FormSection, FormTextField } from "../../../ui/form";
@@ -79,6 +79,7 @@ export function DiaryEntryCorrectionScreen(props: CorrectionProps) {
 
 function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 	const { t, locale } = useI18n();
+	const copy = t.diaryEntry.correction;
 	const colors = useTokens();
 	const foods = usePersonalFoods();
 	const operations = useNutritionOperations();
@@ -129,10 +130,7 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 		}
 	}, [leaving]);
 	const mismatch = source !== undefined && source.baseUnit !== entry.baseUnit;
-	const failure =
-		locale === "nl"
-			? "Opslaan mislukt. Je wijzigingen staan er nog; probeer opnieuw."
-			: "Could not save. Your changes are still here; try again.";
+	const failure = copy.failure;
 	const form = useForm({
 		defaultValues: { nutrients: initial, convertedAmount: "" },
 		onSubmit: async ({ value }) => {
@@ -260,11 +258,7 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 		if (busy) return;
 		void confirm({
 			title: t.diaryEntry.discardTitle,
-			message: sourceSaved
-				? locale === "nl"
-					? "Het voedingsmiddel is al opgeslagen. De correctie in het dagboek is nog niet opgeslagen."
-					: "The Food is already saved. The diary correction has not been saved."
-				: t.diaryEntry.discardBody,
+			message: sourceSaved ? copy.sourceSavedDiscard : t.diaryEntry.discardBody,
 			confirmLabel: t.diaryEntry.discard,
 			cancelLabel: t.diaryEntry.keepEditing,
 			destructive: true,
@@ -275,15 +269,14 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 			}
 		});
 	});
-	const saveLabel = locale === "nl" ? "Correctie opslaan" : "Save correction";
+	const saveLabel = copy.save;
 	const disabled =
 		!dirty || !valid || busy || (Boolean(shippedId) && additions.loading);
 	return (
 		<>
 			<Stack.Screen
 				options={{
-					title:
-						locale === "nl" ? "Voedingswaarden aanvullen" : "Fill in nutrition",
+					title: copy.title,
 					gestureEnabled: !busy,
 					headerLeft: () => (
 						<Pressable
@@ -319,40 +312,23 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 				}}
 			>
 				<AppText variant="heading">{entry.name[locale]}</AppText>
-				<AppText>
-					{source
-						? locale === "nl"
-							? "Wijzigt het voedingsmiddel en alleen dit dagboekitem. Andere invoer blijft gelijk."
-							: "Updates the Food and only this diary entry. Other entries stay unchanged."
-						: locale === "nl"
-							? "Geen beschikbaar voedingsmiddel. Je wijzigt alleen dit dagboekitem."
-							: "No source Food is available. You are changing only this diary entry."}
-				</AppText>
+				<AppText>{source ? copy.updatesSource : copy.noSource}</AppText>
 				{shippedId && !foods.findForkOf(shippedId) ? (
-					<AppText variant="caption">
-						{locale === "nl"
-							? "Er wordt een persoonlijke versie van dit voedingsmiddel opgeslagen."
-							: "A personal version of this shipped Food will be saved."}
-					</AppText>
+					<AppText variant="caption">{copy.forkNotice}</AppText>
 				) : null}
 				<AppText variant="label">
-					{locale === "nl" ? "Waarden voor" : "Values for"} {basisAmount}{" "}
-					{baseUnit}
+					{fmt(copy.valuesFor, { amount: basisAmount, unit: baseUnit })}
 				</AppText>
-				<AppText variant="caption">
-					{locale === "nl"
-						? "Leeg = onbekend · ~ = spoor · 0 = nul"
-						: "Blank = unknown · ~ = trace · 0 = zero"}
-				</AppText>
+				<AppText variant="caption">{copy.legend}</AppText>
 				{mismatch ? (
 					<form.Field name="convertedAmount">
 						{(field) => (
 							<FormTextField
-								label={
-									locale === "nl"
-										? `Deze invoer (${entry.amount} ${entry.baseUnit}) komt overeen met hoeveel ${baseUnit}?`
-										: `How many ${baseUnit} equal this entry (${entry.amount} ${entry.baseUnit})?`
-								}
+								label={fmt(copy.convertAmount, {
+									unit: baseUnit,
+									amount: entry.amount,
+									entryUnit: entry.baseUnit,
+								})}
 								value={field.state.value}
 								onChangeText={field.handleChange}
 								keyboardType="decimal-pad"
@@ -373,9 +349,7 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 										keyboardType="numbers-and-punctuation"
 										error={
 											!nutrientInput.safeParse(field.state.value).success
-												? locale === "nl"
-													? "Vul een geldig, niet-negatief getal in."
-													: "Enter a valid, nonnegative number."
+												? copy.invalidNumber
 												: undefined
 										}
 									/>
@@ -385,11 +359,7 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 					)}
 				</FormSection>
 				{sourceSaved && error ? (
-					<AppText accessibilityRole="alert">
-						{locale === "nl"
-							? "Voedingsmiddel opgeslagen; dagboekcorrectie mislukt. Probeer opnieuw."
-							: "Food saved; diary correction failed. Try again."}
-					</AppText>
+					<AppText accessibilityRole="alert">{copy.sourceSavedFailure}</AppText>
 				) : null}
 				{error ? (
 					<AppText accessibilityRole="alert" style={{ color: colors.danger }}>

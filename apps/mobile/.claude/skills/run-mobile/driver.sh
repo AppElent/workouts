@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# Drive the Workouts (Foundry) Expo dev client on an iOS simulator.
+# Usage: driver.sh <command> [args]   (run from anywhere; see SKILL.md)
+set -euo pipefail
+
+BUNDLE_ID=com.appelent.foundry
+AGENT_DEVICE=(npx -y agent-device@0.21.27)
+
+MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+CHECKOUT_ID="$(printf '%s' "$MOBILE_DIR" | shasum | cut -c1-8)"
+STATE="${RUN_MOBILE_STATE:-${TMPDIR:-/tmp}/run-mobile-$CHECKOUT_ID}"
+SIM_NAME="${RUN_MOBILE_SIM:-Workouts run-mobile $CHECKOUT_ID}"
+DEVICE_TYPE="${RUN_MOBILE_DEVICE_TYPE:-iPhone 18 Pro}"
+PORT="${RUN_MOBILE_PORT:-8090}"
+mkdir -p "$STATE"
+
+log() { printf '[run-mobile] %s\n' "$*" >&2; }
+die() { log "ERROR: $*"; exit 1; }
+
+udid() {
+	xcrun simctl list devices -j | node -e '
+		const name = process.argv[1];
+		const all = Object.values(JSON.parse(require("fs").readFileSync(0, "utf8")).devices).flat();
+		const d = all.find((x) => x.name === name && x.isAvailable);
+		if (d) process.stdout.write(d.udid);
+	' "$SIM_NAME"
+}
+
+require_udid() {
+	local u
+	u="$(udid)"
+	[ -n "$u" ] || die "simulator '$SIM_NAME' missing; run: driver.sh up"
+	printf '%s' "$u"
+}
+
+# agent-device keys its session by cwd, so always run it from the state dir.
+ad() {
+	local rc
+	set +o pipefail
+	(cd "$STATE" && "${AGENT_DEVICE[@]}" "$@" 2>&1; echo "__rc=$?") | grep -v '^npm notice' >"$STATE/ad.out"
+	set -o pipefail
+	rc="$(sed -n 's/^__rc=//p' "$STATE/ad.out")"
+	grep -v '^__rc=' "$STATE/ad.out" || true
+	return "${rc:-1}"
+}
+
+find_dev_client() {
+	if [ -n "${RUN_MOBILE_APP:-}" ]; then printf '%s' "$RUN_MOBILE_APP"; return; fi
+	ls -dt "$HOME"/Library/Developer/Xcode/DerivedData/Foundry-*/Build/Products/Debug-iphonesimulator/Foundry.app 2>/dev/null | head -1
+}
+
+set_lang() {
+	local u="$1" lang="$2" locale
+	case "$lang" in en) locale=en_US ;; nl) locale=nl_NL ;; *) die "lang must be en or nl" ;; esac
+	xcrun simctl spawn "$u" defaults write -g AppleLanguages -array "$lang"
+	xcrun simctl spawn "$u" defaults write -g AppleLocale -string "$locale"
+}
+
+metro_cwd() {
+	local pid
+	pid="$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1)"
+	[ -n "$pid" ] || return 0
+	lsof -a -p "$pid" -d cwd -Fn | sed -n 's/^n//p'
+}
+
+ensure_metro() {
+	local cwd
+	cwd="$(metro_cwd)"
+	if [ -n "$cwd" ]; then
+		[ "$cwd" = "$MOBILE_DIR" ] || die "port $PORT is Metro for $cwd, not this checkout; set RUN_MOBILE_PORT"
+		log "reusing Metro on :$PORT"
+		return
+	fi
+	log "starting Metro on :$PORT (log: $STATE/metro.log)"
+	(cd "$MOBILE_DIR" && nohup pnpm exec expo start --dev-client --port "$PORT" >"$STATE/metro.log" 2>&1 & echo $! >"$STATE/metro.pid")
+	for _ in $(seq 1 60); do
+		curl -sf "http://127.0.0.1:$PORT/status" | grep -q running && return
+		sleep 1
+	done
+	die "Metro did not come up; see $STATE/metro.log"
+}
+
+cmd_up() {
+	local lang=en u app fresh=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--lang) lang="$2"; shift 2 ;;
+			*) die "unknown flag $1" ;;
+		esac
+	done
+
+	u="$(udid)"
+	if [ -z "$u" ]; then
+		log "creating simulator '$SIM_NAME' ($DEVICE_TYPE)"
+		u="$(xcrun simctl create "$SIM_NAME" "$DEVICE_TYPE")"
+		fresh=1
+	fi
+	if [ "$fresh" = 1 ] || [ "$(cat "$STATE/lang" 2>/dev/null)" != "$lang" ]; then
+		# Language only applies after a reboot; defaults need a booted device.
+		xcrun simctl boot "$u" 2>/dev/null || true
+		xcrun simctl bootstatus "$u" -b >/dev/null
+		set_lang "$u" "$lang"
+		xcrun simctl shutdown "$u" 2>/dev/null || true
+		for _ in $(seq 1 30); do
+			xcrun simctl list devices | grep -q "$u) (Shutdown)" && break
+			sleep 1
+		done
+		echo "$lang" >"$STATE/lang"
+	fi
+	xcrun simctl boot "$u" 2>/dev/null || true
+	xcrun simctl bootstatus "$u" -b >/dev/null
+
+	if ! xcrun simctl get_app_container "$u" "$BUNDLE_ID" >/dev/null 2>&1; then
+		app="$(find_dev_client)"
+		[ -n "$app" ] || die "no Foundry.app dev client build found; run 'pnpm devbuild:ios' once or set RUN_MOBILE_APP"
+		log "installing $app"
+		xcrun simctl install "$u" "$app"
+	fi
+	ensure_metro
+
+	xcrun simctl terminate "$u" "$BUNDLE_ID" 2>/dev/null || true
+	local before
+	before="$(grep -c 'iOS Bundled' "$STATE/metro.log" 2>/dev/null || true)"
+	# Flags (expo-dev-launcher EXDevLauncherURLHelper.swift) skip the dev-menu
+	# onboarding sheet and hide the floating gear that covers header buttons.
+	xcrun simctl openurl "$u" "$BUNDLE_ID://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A$PORT&disableOnboarding=1&disableFab=1&disableAutoLaunch=1"
+	# First deep link per simulator raises an "Open in Foundry?" system prompt.
+	ad alert accept 5000 --platform ios --udid "$u" >/dev/null || true
+	ad open "$BUNDLE_ID" --platform ios --udid "$u" >/dev/null
+	for _ in $(seq 1 90); do
+		[ -f "$STATE/metro.log" ] && [ "$(grep -c 'iOS Bundled' "$STATE/metro.log" || true)" -gt "${before:-0}" ] && break
+		grep -q 'Bundling failed' "$STATE/metro.log" 2>/dev/null && die "bundle failed; see $STATE/metro.log"
+		sleep 2
+	done
+	sleep 3
+	log "up: udid=$u port=$PORT lang=$lang"
+}
+
+cmd_signin() {
+	ad wait text "Sign in" 20000 >/dev/null || die "sign-in screen not visible (already signed in?)"
+	ad press 'label="Sign in"' >/dev/null
+	ad wait 'role=tab-bar' 30000 >/dev/null || die "tab bar not visible after sign-in"
+	log "signed in"
+}
+
+cmd_ss() {
+	local out="${1:-$STATE/screen-$(date +%H%M%S).png}"
+	xcrun simctl io "$(require_udid)" screenshot "$out" >/dev/null 2>&1
+	echo "$out"
+}
+
+cmd_reload() {
+	curl -sf -X POST "http://127.0.0.1:$PORT/reload" >/dev/null || die "Metro not reachable on :$PORT"
+	log "reload sent"
+}
+
+cmd_down() {
+	local u
+	ad close >/dev/null || true
+	if [ -f "$STATE/metro.pid" ]; then
+		pkill -P "$(cat "$STATE/metro.pid")" 2>/dev/null || true
+		kill "$(cat "$STATE/metro.pid")" 2>/dev/null || true
+		rm -f "$STATE/metro.pid"
+	fi
+	u="$(udid)"
+	[ -z "$u" ] || xcrun simctl shutdown "$u" 2>/dev/null || true
+	log "down"
+}
+
+case "${1:-}" in
+	up) shift; cmd_up "$@" ;;
+	signin) cmd_signin ;;
+	ad) shift; ad "$@" ;;
+	ss) shift; cmd_ss "$@" ;;
+	reload) cmd_reload ;;
+	logs) tail -n "${2:-40}" "$STATE/metro.log" ;;
+	udid) require_udid; echo ;;
+	state) echo "$STATE" ;;
+	down) cmd_down ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
+esac

@@ -51,6 +51,47 @@ describe("mobile architecture", () => {
 			[],
 		);
 	});
+	it("rejects per-screen copy dictionaries outside the message catalog", () => {
+		for (const file of [
+			"apps/mobile/src/screens/activity-copy.ts",
+			"apps/mobile/src/features/nutrition/log-food/log-food-copy.ts",
+			"apps/mobile/src/ui/sheet-copy.tsx",
+		])
+			expect(inspect("export const en = {};", file)).toEqual([
+				expect.objectContaining({ rule: "message-catalog" }),
+			]);
+		expect(
+			inspect(
+				"export const en = {};",
+				"apps/mobile/src/i18n/messages/log-food.ts",
+			),
+		).toEqual([]);
+	});
+	it("rejects locale branches that choose UI text, outside the catalog", () => {
+		for (const source of [
+			'const a = locale === "nl" ? "Opslaan" : "Save";',
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source text
+			'const b = locale !== "en" ? `${n} items` : `${n} items`;',
+			'const c = props.locale === "nl" ? "Kies datum" : undefined;',
+		])
+			expect(
+				inspect(source, "apps/mobile/src/screens/home.tsx").map(
+					(issue) => issue.rule,
+				),
+			).toEqual(["inline-locale-text"]);
+		for (const source of [
+			'const tag = locale === "nl" ? "nl-NL" : "en-GB";',
+			'const sep = locale === "nl" ? "," : ".";',
+			'const name = locale === "en" ? serving.en : serving.nl;',
+		])
+			expect(inspect(source, "apps/mobile/src/screens/home.tsx")).toEqual([]);
+		expect(
+			inspect(
+				'const a = locale === "nl" ? "Opslaan" : "Save";',
+				"apps/mobile/src/i18n/index.tsx",
+			),
+		).toEqual([]);
+	});
 	it("rejects camel-case feature filenames and reports useful locations", () => {
 		expect(
 			inspect(

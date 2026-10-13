@@ -36,7 +36,7 @@ const feedback = Sentry.feedbackIntegration({
 });
 
 export function configureFeedbackLanguage(locale: "en" | "nl") {
-	const text = (locale === "nl" ? nl : en).feedback;
+	const text = { en, nl }[locale].feedback;
 	Object.assign(feedback.options, {
 		formTitle: text.report,
 		messageLabel: text.message,

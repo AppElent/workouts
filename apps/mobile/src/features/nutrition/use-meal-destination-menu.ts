@@ -6,9 +6,8 @@ import {
 	type MealSlot,
 	useNutritionDay,
 } from "../../data/nutrition-day";
-import { useI18n } from "../../i18n";
+import { fmt, plural, useI18n } from "../../i18n";
 import type { NutritionDestinationMenuProps } from "./components/nutrition-destination-menu-props";
-import { logFoodCopy } from "./log-food/log-food-copy";
 
 function energyLabel(entries: readonly DiaryEntry[]): string | undefined {
 	if (!entries.length) return undefined;
@@ -37,13 +36,16 @@ export function useMealDestinationMenu({
 	onOtherDay: () => void;
 }) {
 	const { t, locale } = useI18n();
-	const copy = logFoodCopy(locale);
+	const copy = t.nutrition.logFood;
 	const day = useNutritionDay(date);
 	const entriesFor = (slot: MealSlot) =>
 		day.status === "ready" ? day.day.entries[slot] : [];
 	const mealName = t.nutrition.meals[meal];
 	const menu: NutritionDestinationMenuProps = {
-		label: copy.destinationLabel(mealName, formatLongDate(date, locale)),
+		label: fmt(copy.destinationLabel, {
+			meal: mealName,
+			day: formatLongDate(date, locale),
+		}),
 		mealName,
 		dayLabel:
 			date === today
@@ -59,7 +61,9 @@ export function useMealDestinationMenu({
 				selected: slot === meal,
 				label: t.nutrition.meals[slot],
 				detail: entries.length
-					? copy.mealTally(entries.length, energyLabel(entries))
+					? [plural(locale, entries.length, copy.items), energyLabel(entries)]
+							.filter(Boolean)
+							.join(" · ")
 					: copy.mealNothing,
 			};
 		}),

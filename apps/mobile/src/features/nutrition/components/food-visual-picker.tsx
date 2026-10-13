@@ -13,7 +13,6 @@ import { useI18n } from "../../../i18n";
 import { radius, useTokens } from "../../../theme";
 import { FoodVisualView } from "../../../ui/food-visual";
 import type { EditorVisual } from "../use-staged-food-visual";
-import { foodEditorCopy } from "./food-editor-copy";
 import { NutritionChoiceMenu } from "./nutrition-choice-menu";
 
 const CROP_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
@@ -42,8 +41,8 @@ export function FoodVisualPicker({
 	onVisual: (next: EditorVisual | undefined) => void;
 	onCrop?: (position: FoodPhotoCropPosition) => void;
 }) {
-	const { locale } = useI18n();
-	const copy = foodEditorCopy[locale];
+	const { t } = useI18n();
+	const copy = t.nutrition.foodEditor.form;
 	const colors = useTokens();
 	const hasPhoto = visual?.kind === "photo" || visual?.kind === "remote";
 	const preset = visual?.kind === "icon" ? visual.preset : undefined;

@@ -11,13 +11,12 @@ import { EmptyState } from "../ui/empty-state";
 import { SkeletonCard, SkeletonGroup, SkeletonList } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { ActivityRow, activityDuration } from "./activity-components";
-import { activityCopy } from "./activity-copy";
 
 export function HomeScreen() {
 	const router = useRouter();
 	const colors = useTokens();
-	const { locale } = useI18n();
-	const copy = activityCopy(locale);
+	const { locale, t } = useI18n();
+	const copy = t.activity;
 	const active = useActiveSession();
 	const recent = useActivityPages({ limit: 4 });
 	const week = activityWeek();

@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet } from "react-native";
 import { api, type Id } from "../../src/convex/api";
 import { useStalledOffline } from "../../src/data/stalled-offline";
 import { useI18n } from "../../src/i18n";
-import { enduranceCopy } from "../../src/screens/endurance-copy";
 import { EnduranceEditorScreen } from "../../src/screens/endurance-editor";
 import {
 	metrics,
@@ -23,8 +22,8 @@ import {
 
 export default function EnduranceEditorRoute() {
 	const { id, sport } = useLocalSearchParams<{ id?: string; sport?: string }>();
-	const { locale } = useI18n();
-	const copy = enduranceCopy[locale];
+	const { t } = useI18n();
+	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);
 	const [retryNonce, setRetryNonce] = useState(0);
 	const activity = useQuery(
@@ -104,13 +103,13 @@ export function ErrorBoundary({
 	error: Error;
 	retry: () => Promise<void>;
 }) {
-	const { locale } = useI18n();
-	const copy = enduranceCopy[locale];
+	const { t } = useI18n();
+	const copy = t.endurance;
 	return (
 		<RouteError
 			title={copy.missing}
 			body={copy.saveError}
-			retryLabel={locale === "nl" ? "Opnieuw proberen" : "Retry"}
+			retryLabel={t.common.retry}
 			onRetry={() => void retry()}
 			error={error}
 		/>

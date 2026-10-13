@@ -2,7 +2,7 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import type { PersonalFoodDraft } from "../../../../data/personal-food-repository";
-import type { Messages } from "../../../../i18n";
+import { fmt, type Messages, plural } from "../../../../i18n";
 import {
 	radius,
 	spacing,
@@ -14,7 +14,6 @@ import { SkeletonBlock, SkeletonGroup } from "../../../../ui/skeleton";
 import { AppText } from "../../../../ui/text";
 import { FoodRowLayout } from "../../components/food-row-layout";
 import { compactEnergyPer100, offFailureMessage } from "../log-food-captions";
-import type { LogFoodCopy } from "../log-food-copy";
 import type { OffSearchState } from "../use-off-search";
 import { LogFoodMediaSlot } from "./log-food-media-slot";
 import { LogFoodSectionHeader } from "./log-food-section-header";
@@ -43,7 +42,7 @@ export function LogFoodOffSection({
 }: {
 	state: OffSearchState;
 	query: string;
-	copy: LogFoodCopy;
+	copy: Messages["nutrition"]["logFood"];
 	messages: Messages["nutrition"];
 	locale: "en" | "nl";
 	/** Nothing can be asked: the manual row gives way to the offline notice. */
@@ -79,7 +78,7 @@ export function LogFoodOffSection({
 		state.kind === "loading"
 			? copy.searchingOnline
 			: state.kind === "found"
-				? copy.offCount(state.drafts.length)
+				? plural(locale, state.drafts.length, copy.offCount)
 				: undefined;
 	return (
 		<View testID="off-section" style={styles.section}>
@@ -136,7 +135,7 @@ export function LogFoodOffSection({
 								style={[styles.showAll, styles.divided]}
 							>
 								<AppText style={styles.accent}>
-									{copy.offShowAll(state.drafts.length)}
+									{fmt(copy.offShowAll, { count: state.drafts.length })}
 								</AppText>
 							</Pressable>
 						) : null}
@@ -148,7 +147,7 @@ export function LogFoodOffSection({
 			) : null}
 			{state.kind === "none" ? (
 				<AppText variant="caption" style={styles.note}>
-					{copy.offNone(term)}
+					{fmt(copy.offNone, { query: term })}
 				</AppText>
 			) : null}
 			{state.kind === "failed" ? (
@@ -187,7 +186,7 @@ function ManualSearch({
 	onCommit,
 }: {
 	term: string;
-	copy: LogFoodCopy;
+	copy: Messages["nutrition"]["logFood"];
 	onCommit: () => void;
 }) {
 	const styles = useThemedStyles(createStyles);
@@ -203,7 +202,7 @@ function ManualSearch({
 				/>
 				<View style={styles.flex}>
 					<AppText style={styles.accent}>
-						{copy.searchOnlineQuery(term)}
+						{fmt(copy.searchOnlineQuery, { query: term })}
 					</AppText>
 					<AppText variant="caption">{copy.searchOnlineHint}</AppText>
 				</View>
@@ -213,14 +212,22 @@ function ManualSearch({
 }
 
 /** The seconds left on a rate limit, ticking down once a second. */
-function Countdown({ until, copy }: { until: number; copy: LogFoodCopy }) {
+function Countdown({
+	until,
+	copy,
+}: {
+	until: number;
+	copy: Messages["nutrition"]["logFood"];
+}) {
 	const [now, setNow] = useState(Date.now);
 	useEffect(() => {
 		const timer = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(timer);
 	}, []);
 	const seconds = Math.max(0, Math.ceil((until - now) / 1000));
-	return <Notice symbol="timer" text={copy.offCooling(seconds)} live bare />;
+	return (
+		<Notice symbol="timer" text={fmt(copy.offCooling, { seconds })} live bare />
+	);
 }
 
 function Notice({

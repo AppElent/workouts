@@ -6,14 +6,26 @@ import ts from "typescript";
 const sourceRoot = "apps/mobile/src/";
 const featureRoot = `${sourceRoot}features/`;
 const uiRoot = `${sourceRoot}ui/`;
+const messagesRoot = `${sourceRoot}i18n/`;
+const routeRoot = "apps/mobile/app";
 
 /** Check syntax and direct dependency boundaries; component ownership needs review. */
 export function inspectMobileSource(filename, source, resolveImport) {
 	const file = filename.replaceAll("\\", "/");
 	const feature = file.startsWith(featureRoot);
 	const ui = file.startsWith(uiRoot);
-	if (!feature && !ui) return [];
 	const issues = [];
+	if (!file.startsWith(messagesRoot) && /-copy\.tsx?$/.test(file)) {
+		issues.push({
+			file,
+			line: 1,
+			rule: "message-catalog",
+			message:
+				"Put UI text in an i18n/messages/ area module and read it through useI18n().",
+		});
+	}
+	const messages = file.startsWith(messagesRoot);
+	if (!feature && !ui && messages) return issues;
 	const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
 	const report = (node, rule, message) => {
 		const line =
@@ -53,7 +65,52 @@ export function inspectMobileSource(filename, source, resolveImport) {
 			(ts.isPrefixUnaryExpression(node) && ts.isNumericLiteral(node.operand))
 		);
 	};
+	const unwrap = (node) =>
+		ts.isParenthesizedExpression(node) ? unwrap(node.expression) : node;
+	const comparesLocale = (condition) => {
+		condition = unwrap(condition);
+		if (
+			!ts.isBinaryExpression(condition) ||
+			![
+				ts.SyntaxKind.EqualsEqualsEqualsToken,
+				ts.SyntaxKind.ExclamationEqualsEqualsToken,
+			].includes(condition.operatorToken.kind)
+		)
+			return false;
+		const named = (side) =>
+			(ts.isIdentifier(side) || ts.isPropertyAccessExpression(side)) &&
+			/locale$/i.test(side.getText(tree));
+		const literal = (side) => ts.isStringLiteralLike(side);
+		return (
+			(named(condition.left) && literal(condition.right)) ||
+			(literal(condition.left) && named(condition.right))
+		);
+	};
+	/** Words or sentences, not separators or BCP 47 tags such as "nl-NL". */
+	const isText = (node) => {
+		node = unwrap(node);
+		const text = ts.isStringLiteralLike(node)
+			? node.text
+			: ts.isTemplateExpression(node)
+				? [
+						node.head.text,
+						...node.templateSpans.map((s) => s.literal.text),
+					].join("")
+				: undefined;
+		return text !== undefined && /\p{L}{3,}|\s/u.test(text);
+	};
 	const visit = (node) => {
+		if (
+			!messages &&
+			ts.isConditionalExpression(node) &&
+			comparesLocale(node.condition) &&
+			(isText(node.whenTrue) || isText(node.whenFalse))
+		)
+			report(
+				node,
+				"inline-locale-text",
+				"Put UI text in an i18n/messages/ area module instead of branching on the locale.",
+			);
 		if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
 			checkDependency(node.moduleSpecifier);
 		if (
@@ -150,7 +207,10 @@ export function checkMobileArchitecture(root) {
 					resolveImport,
 				);
 			});
-	return [...scan(featureRoot.slice(0, -1)), ...scan(uiRoot.slice(0, -1))];
+	return [
+		...scan(sourceRoot.slice(0, -1)),
+		...(fs.existsSync(path.join(root, routeRoot)) ? scan(routeRoot) : []),
+	];
 }
 
 if (

@@ -10,7 +10,6 @@ import { BucketChart, TrendChart } from "../ui/chart";
 import { Chip, Eyebrow } from "../ui/coach";
 import { Segmented } from "../ui/segmented";
 import { AppText } from "../ui/text";
-import { activityCopy } from "./activity-copy";
 import { BodyMetricsPanel } from "./body-metrics";
 import { EnduranceProgress } from "./endurance-progress";
 
@@ -21,8 +20,8 @@ export function ProgressScreen() {
 	const styles = useThemedStyles(createStyles);
 	const [tab, setTab] = useState<Tab>("Exercises");
 	const { exercises } = useShellData();
-	const { locale } = useI18n();
-	const copy = activityCopy(locale);
+	const { t } = useI18n();
+	const copy = t.activity;
 
 	return (
 		<ScrollView

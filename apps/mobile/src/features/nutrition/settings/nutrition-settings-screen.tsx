@@ -12,7 +12,7 @@ import {
 	refreshOpenFoodFactsImports,
 } from "../../../data/open-food-facts-sync";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import {
@@ -24,13 +24,12 @@ import {
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { LocalDataSettingsPanel } from "./local-data-settings-panel";
-import { nutritionLibraryCopy } from "./nutrition-library-copy";
 
 export function NutritionSettingsScreen() {
 	const styles = useThemedStyles(createStyles);
-	const { locale } = useI18n();
+	const { t } = useI18n();
 	const router = useRouter();
-	const copy = nutritionLibraryCopy[locale];
+	const copy = t.nutrition.settings;
 	const foods = usePersonalFoods();
 	const client = useConvex();
 	const openFoodFacts = useOpenFoodFacts();
@@ -94,11 +93,7 @@ export function NutritionSettingsScreen() {
 			) : null}
 			<FormSection>
 				<DisclosureRow
-					label={
-						locale === "nl"
-							? "Persoonlijke maten beheren"
-							: "Manage personal measures"
-					}
+					label={copy.manageMeasures}
 					onPress={() => router.push("/personal-measures")}
 				/>
 			</FormSection>
@@ -117,15 +112,18 @@ export function NutritionSettingsScreen() {
 				{offProgress ? (
 					<View style={styles.offStatus} accessibilityLiveRegion="polite">
 						<AppText variant="caption">
-							{copy.offProgress(offProgress.completed, offProgress.total)}
+							{fmt(copy.offProgress, {
+								completed: offProgress.completed,
+								total: offProgress.total,
+							})}
 						</AppText>
 						{offProgress.completed === offProgress.total ? (
 							<AppText variant="caption">
-								{copy.offSummary(
-									offProgress.updated,
-									offProgress.unchanged,
-									offProgress.failed,
-								)}
+								{fmt(copy.offSummary, {
+									updated: offProgress.updated,
+									unchanged: offProgress.unchanged,
+									failed: offProgress.failed,
+								})}
 							</AppText>
 						) : null}
 					</View>

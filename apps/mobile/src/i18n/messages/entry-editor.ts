@@ -55,6 +55,46 @@ export const entryEditorEn = {
 	missingEntry: "This entry is no longer available.",
 	loading: "Loading entry…",
 	uncachedDay: "This day is not cached. Connect to load its entries.",
+	correctedFor: "Corrected for this entry: ",
+	correction: {
+		title: "Fill in nutrition",
+		save: "Save correction",
+		failure: "Could not save. Your changes are still here; try again.",
+		sourceSavedDiscard:
+			"The Food is already saved. The diary correction has not been saved.",
+		updatesSource:
+			"Updates the Food and only this diary entry. Other entries stay unchanged.",
+		noSource:
+			"No source Food is available. You are changing only this diary entry.",
+		forkNotice: "A personal version of this shipped Food will be saved.",
+		valuesFor: "Values for {amount} {unit}",
+		legend: "Blank = unknown · ~ = trace · 0 = zero",
+		convertAmount: "How many {unit} equal this entry ({amount} {entryUnit})?",
+		invalidNumber: "Enter a valid, nonnegative number.",
+		sourceSavedFailure: "Food saved; diary correction failed. Try again.",
+	},
+	transfer: {
+		destinationDate: "Destination date",
+		destinationMeal: "Destination meal",
+		chooseDate: "Choose destination date",
+		modeCopy: "Copy",
+		modeMove: "Move",
+		snacksShort: "Snacks",
+		copy: {
+			title: { one: "Copy 1 item", other: "Copy {count} items" },
+			submit: "Copy entry",
+			pending: "Copying…",
+			failure:
+				"This entry could not be copied. Your destination is still here.",
+		},
+		move: {
+			title: { one: "Move 1 item", other: "Move {count} items" },
+			submit: "Move entry",
+			pending: "Moving…",
+			failure: "This entry could not be moved. Your destination is still here.",
+		},
+	},
+	sqliteBrowser: "SQLite browser",
 };
 export const entryEditorNl: typeof entryEditorEn = {
 	labs: "Labs",
@@ -114,4 +154,48 @@ export const entryEditorNl: typeof entryEditorEn = {
 	loading: "Item laden…",
 	uncachedDay:
 		"Deze dag is niet opgeslagen. Maak verbinding om de items te laden.",
+	correctedFor: "Aangevuld voor deze invoer: ",
+	correction: {
+		title: "Voedingswaarden aanvullen",
+		save: "Correctie opslaan",
+		failure: "Opslaan mislukt. Je wijzigingen staan er nog; probeer opnieuw.",
+		sourceSavedDiscard:
+			"Het voedingsmiddel is al opgeslagen. De correctie in het dagboek is nog niet opgeslagen.",
+		updatesSource:
+			"Wijzigt het voedingsmiddel en alleen dit dagboekitem. Andere invoer blijft gelijk.",
+		noSource:
+			"Geen beschikbaar voedingsmiddel. Je wijzigt alleen dit dagboekitem.",
+		forkNotice:
+			"Er wordt een persoonlijke versie van dit voedingsmiddel opgeslagen.",
+		valuesFor: "Waarden voor {amount} {unit}",
+		legend: "Leeg = onbekend · ~ = spoor · 0 = nul",
+		convertAmount:
+			"Deze invoer ({amount} {entryUnit}) komt overeen met hoeveel {unit}?",
+		invalidNumber: "Vul een geldig, niet-negatief getal in.",
+		sourceSavedFailure:
+			"Voedingsmiddel opgeslagen; dagboekcorrectie mislukt. Probeer opnieuw.",
+	},
+	transfer: {
+		destinationDate: "Doeldatum",
+		destinationMeal: "Doelmaaltijd",
+		chooseDate: "Kies doeldatum",
+		modeCopy: "Kopiëren",
+		modeMove: "Verplaatsen",
+		snacksShort: "Snack",
+		copy: {
+			title: { one: "1 item kopiëren", other: "{count} items kopiëren" },
+			submit: "Item kopiëren",
+			pending: "Kopiëren…",
+			failure:
+				"Dit item kon niet worden gekopieerd. Je bestemming staat er nog.",
+		},
+		move: {
+			title: { one: "1 item verplaatsen", other: "{count} items verplaatsen" },
+			submit: "Item verplaatsen",
+			pending: "Verplaatsen…",
+			failure:
+				"Dit item kon niet worden verplaatst. Je bestemming staat er nog.",
+		},
+	},
+	sqliteBrowser: "SQLite-browser",
 };

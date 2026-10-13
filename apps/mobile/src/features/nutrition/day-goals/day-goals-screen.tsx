@@ -13,7 +13,7 @@ import { AppText } from "../../../ui/text";
 import { NutritionGoalCard } from "./components/nutrition-goal-card";
 import { displayAmount } from "./goal-presentation";
 export function DayGoalsScreen({ date }: { date: string }) {
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 	const state = useNutritionDay(date);
 	const colors = useTokens();
 	const entries =
@@ -36,7 +36,7 @@ export function DayGoalsScreen({ date }: { date: string }) {
 		<>
 			<Stack.Screen
 				options={{
-					title: locale === "nl" ? "Dagdoelen" : "Daily goals",
+					title: t.nutrition.goals.dailyTitle,
 					headerTitleStyle: { color: colors.text },
 					headerLeft: () => (
 						<Pressable
@@ -67,7 +67,7 @@ export function DayGoalsScreen({ date }: { date: string }) {
 							}}
 						>
 							<AppText style={{ color: colors.accent }}>
-								{locale === "nl" ? "Bewerk" : "Edit"}
+								{t.nutrition.goals.editShort}
 							</AppText>
 						</Pressable>
 					),
@@ -103,7 +103,7 @@ export function DayGoalsScreen({ date }: { date: string }) {
 						{withoutGoals.length ? (
 							<>
 								<AppText variant="label">
-									{locale === "nl" ? "Zonder doel" : "Without a goal"}
+									{t.nutrition.goals.withoutGoal}
 								</AppText>
 								<View
 									style={{ backgroundColor: colors.surface, borderRadius: 24 }}
@@ -134,11 +134,7 @@ export function DayGoalsScreen({ date }: { date: string }) {
 								</View>
 							</>
 						) : null}
-						<AppText variant="caption">
-							{locale === "nl"
-								? "≥ = ten minste: niet alle items hebben een waarde. ~ = bevat geschatte waarden."
-								: "≥ = at least: some items have no value. ~ = includes estimated values."}
-						</AppText>
+						<AppText variant="caption">{t.nutrition.goals.legend}</AppText>
 					</>
 				)}
 			</ScrollView>

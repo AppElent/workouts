@@ -1,7 +1,7 @@
 import { useConvexConnectionState } from "convex/react";
 import { useState } from "react";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { useI18n } from "../../../i18n";
+import { plural, useI18n } from "../../../i18n";
 import { spacing } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { GroupedSurface, TextAction } from "../../../ui/form";
@@ -9,32 +9,25 @@ import { AppText } from "../../../ui/text";
 import { useLocalDataCleanup } from "../../local-data/account-data-maintenance-provider";
 
 export function LocalDataSettingsPanel() {
-	const { locale } = useI18n();
+	const { locale, t } = useI18n();
+	const copy = t.localData.settings;
 	const foods = usePersonalFoods();
 	const clearCache = useLocalDataCleanup();
 	const online = useConvexConnectionState().isWebSocketConnected;
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string>();
-	const nl = locale === "nl";
+
 	return (
 		<GroupedSurface style={{ gap: spacing.sm }}>
-			<AppText variant="heading">
-				{nl ? "Foto’s en cache" : "Photos and cache"}
-			</AppText>
-			<AppText variant="caption">
-				{nl
-					? "Je opgeslagen gegevens staan in je account. Eigen foto’s staan in Convex; Open Food Facts-foto’s worden vanaf de bron geladen en op dit apparaat gecachet."
-					: "Your saved data belongs to your account. Your own photos use Convex storage; Open Food Facts photos load from their source and are cached on this device."}
-			</AppText>
+			<AppText variant="heading">{copy.title}</AppText>
+			<AppText variant="caption">{copy.body}</AppText>
 			{foods.account.devicePhotoCount > 0 ? (
 				<>
 					<AppText>
-						{nl
-							? `${foods.account.devicePhotoCount} apparaatfoto’s moeten nog worden geüpload.`
-							: `${foods.account.devicePhotoCount} device photos still need uploading.`}
+						{plural(locale, foods.account.devicePhotoCount, copy.pendingPhotos)}
 					</AppText>
 					<PrimaryButton
-						label={nl ? "Apparaatfoto’s uploaden" : "Upload device photos"}
+						label={copy.uploadPhotos}
 						loading={busy}
 						disabled={!online || busy}
 						onPress={() => {
@@ -53,15 +46,11 @@ export function LocalDataSettingsPanel() {
 			) : null}
 			{error ? <AppText accessibilityRole="alert">{error}</AppText> : null}
 			<TextAction
-				label={nl ? "Accountcache wissen" : "Clear cached account data"}
+				label={copy.clearCache}
 				disabled={!online || busy || foods.account.devicePhotoCount > 0}
 				onPress={clearCache}
 			/>
-			<AppText variant="caption">
-				{nl
-					? "Voorkeuren, laatst gebruikte porties en onafgemaakte Setconcepten blijven bewaard. Accountgegevens worden opnieuw geladen."
-					: "Preferences, last-used portions and unfinished Set Drafts remain. Account data reloads from Convex."}
-			</AppText>
+			<AppText variant="caption">{copy.clearCacheNote}</AppText>
 		</GroupedSurface>
 	);
 }

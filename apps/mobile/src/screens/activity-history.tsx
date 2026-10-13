@@ -10,7 +10,6 @@ import { EmptyState } from "../ui/empty-state";
 import { Segmented } from "../ui/segmented";
 import { SkeletonGroup, SkeletonList } from "../ui/skeleton";
 import { ActivityRow } from "./activity-components";
-import { activityCopy } from "./activity-copy";
 
 export function ActivityHistoryScreen() {
 	const params = useLocalSearchParams<{ sport?: string }>();
@@ -21,8 +20,8 @@ export function ActivityHistoryScreen() {
 			? params.sport
 			: "all",
 	);
-	const { locale } = useI18n();
-	const copy = activityCopy(locale);
+	const { t } = useI18n();
+	const copy = t.activity;
 	const colors = useTokens();
 	const router = useRouter();
 	const { items, loading, hasMore, loadMore } = useActivityPages(

@@ -11,7 +11,6 @@ import { useTokens } from "../theme";
 import { SportIcon } from "../ui/coach";
 import { RouteError } from "../ui/route-error";
 import { AppText } from "../ui/text";
-import { activityCopy } from "./activity-copy";
 import { formatPace } from "./endurance-form-state";
 
 export function activityDuration(seconds: number) {
@@ -39,8 +38,8 @@ export function activityRate(
 export function ActivityRow({ item }: { item: ActivitySummary }) {
 	const router = useRouter();
 	const colors = useTokens();
-	const { locale } = useI18n();
-	const copy = activityCopy(locale);
+	const { locale, t } = useI18n();
+	const copy = t.activity;
 	const title =
 		item.title ||
 		(item.sport === "running"
@@ -100,8 +99,8 @@ export function ActivityRow({ item }: { item: ActivitySummary }) {
 }
 
 export function ActivityErrorBoundary({ error, retry }: ErrorBoundaryProps) {
-	const { locale } = useI18n();
-	const copy = activityCopy(locale);
+	const { t } = useI18n();
+	const copy = t.activity;
 	return (
 		<RouteError
 			title={copy.errorTitle}

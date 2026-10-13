@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useStalledOffline } from "../data/stalled-offline";
-import { useI18n } from "../i18n";
+import { dateLocale, useI18n } from "../i18n";
 import { metrics, spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
@@ -17,12 +17,11 @@ import { FormSection, GroupedSurface, TextAction } from "../ui/form";
 import { SkeletonBlock, SkeletonCard, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { enduranceCopy } from "./endurance-copy";
 import { formatPace } from "./endurance-form-state";
 
 export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
-	const { locale } = useI18n();
-	const copy = enduranceCopy[locale];
+	const { locale, t } = useI18n();
+	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const confirm = useConfirm();
@@ -131,10 +130,10 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 		speed === null || !Number.isFinite(speed)
 			? "—"
 			: `${speed.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
-	const dateText = new Intl.DateTimeFormat(
-		locale === "nl" ? "nl-NL" : "en-GB",
-		{ dateStyle: "full", timeStyle: "short" },
-	).format(new Date(activity.occurredAt));
+	const dateText = new Intl.DateTimeFormat(dateLocale(locale), {
+		dateStyle: "full",
+		timeStyle: "short",
+	}).format(new Date(activity.occurredAt));
 	const h = Math.floor(activity.durationSeconds / 3600);
 	const m = Math.floor((activity.durationSeconds % 3600) / 60);
 	const s = activity.durationSeconds % 60;

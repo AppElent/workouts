@@ -2,7 +2,7 @@ import type { NutrientTotal } from "@workouts/core/nutrition";
 import { Pressable, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import type { NutrientGoal, NutrientKey } from "../../../../data/nutrition-day";
-import { useI18n } from "../../../../i18n";
+import { fmt, useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import {
@@ -23,6 +23,7 @@ export function DiarySummary({
 	onSetup: () => void;
 }) {
 	const { t, locale } = useI18n();
+	const copy = t.nutrition.diary.summary;
 	const colors = useTokens();
 	const amount = (n: NutrientKey, value?: NutrientTotal) =>
 		displayAmount(n, value).replace(/\d+(?:\.\d+)?/, (number) =>
@@ -60,9 +61,7 @@ export function DiarySummary({
 			>
 				<Pressable
 					accessibilityRole="button"
-					accessibilityLabel={
-						locale === "nl" ? "Alle voedingsstoffen" : "All nutrients"
-					}
+					accessibilityLabel={copy.allNutrients}
 					onPress={onOpen}
 					style={{
 						backgroundColor: colors.surface,
@@ -73,9 +72,7 @@ export function DiarySummary({
 				>
 					<AppText variant="metric">
 						{amount("energy", total)}{" "}
-						<AppText variant="secondary">
-							kcal {locale === "nl" ? "vandaag" : "today"}
-						</AppText>
+						<AppText variant="secondary">{copy.kcalToday}</AppText>
 					</AppText>
 					<AppText variant="footnote">
 						{(["protein", "carbs", "fat"] as const)
@@ -85,7 +82,7 @@ export function DiarySummary({
 							.join(" · ")}
 					</AppText>
 					<AppText variant="caption" style={{ color: colors.accent }}>
-						{locale === "nl" ? "Alle voedingsstoffen" : "All nutrients"} ›
+						{copy.allNutrients} ›
 					</AppText>
 				</Pressable>
 				<View
@@ -102,11 +99,7 @@ export function DiarySummary({
 				>
 					<View style={{ flex: 1, gap: 4 }}>
 						<AppText>{t.nutrition.goals.empty.title}</AppText>
-						<AppText variant="caption">
-							{locale === "nl"
-								? "Begin met je profiel of kies een preset"
-								: "Start with your profile or choose a preset"}
-						</AppText>
+						<AppText variant="caption">{copy.goalsPrompt}</AppText>
 					</View>
 					<Pressable
 						accessibilityRole="button"
@@ -189,14 +182,15 @@ export function DiarySummary({
 					</AppText>
 					<AppText variant="caption">
 						{denominator
-							? `${locale === "nl" ? "van" : "of"} ${new Intl.NumberFormat(locale).format(denominator)}`
+							? fmt(copy.ofTarget, {
+									amount: new Intl.NumberFormat(locale).format(denominator),
+								})
 							: "kcal"}
 					</AppText>
 				</View>
 				<View style={{ flex: 1, minWidth: 170, gap: spacing.sm }}>
 					<AppText variant="body" style={{ fontWeight: "700" }}>
-						{energyStatus?.label ??
-							(locale === "nl" ? "Je voeding vandaag" : "Your daily nutrition")}
+						{energyStatus?.label ?? copy.dailyNutrition}
 					</AppText>
 					<View style={{ flexDirection: "row", gap: spacing.sm }}>
 						{(["protein", "carbs", "fat"] as const).map((n) => {
@@ -211,11 +205,7 @@ export function DiarySummary({
 										variant="caption"
 										accessibilityLabel={t.nutrition.nutrients[n]}
 									>
-										{n === "carbs"
-											? locale === "nl"
-												? "Koolh."
-												: "Carbs"
-											: t.nutrition.nutrients[n]}
+										{n === "carbs" ? copy.carbsShort : t.nutrition.nutrients[n]}
 									</AppText>
 									<AppText
 										variant="body"
@@ -267,9 +257,7 @@ export function DiarySummary({
 					gap: spacing.sm,
 				}}
 			>
-				<AppText style={{ flex: 1 }}>
-					{locale === "nl" ? "Alle doelen" : "All goals"}
-				</AppText>
+				<AppText style={{ flex: 1 }}>{copy.allGoals}</AppText>
 				{exceeded ? (
 					<AppText
 						variant="caption"
@@ -280,7 +268,9 @@ export function DiarySummary({
 							paddingVertical: 3,
 							borderRadius: 10,
 						}}
-					>{`${exceeded} ${locale === "nl" ? "te veel" : "over target"}`}</AppText>
+					>
+						{fmt(copy.overTarget, { count: exceeded })}
+					</AppText>
 				) : incomplete ? (
 					<AppText variant="caption">{t.nutrition.goals.incomplete}</AppText>
 				) : null}

@@ -40,7 +40,7 @@ import { ToastProvider } from "../../src/ui/toast";
 export default function AppLayout() {
 	const colors = useTokens();
 	const { isSignedIn } = useAuth();
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 	if (!isSignedIn) {
 		return <Redirect href="/sign-in" />;
 	}
@@ -104,28 +104,19 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="activity-history"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Activiteitengeschiedenis"
-																				: "Activity history",
+																		title: t.routes.activityHistory,
 																	}}
 																/>
 																<Stack.Screen
 																	name="endurance-editor"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Activiteit vastleggen"
-																				: "Log activity",
+																		title: t.routes.logActivity,
 																	}}
 																/>
 																<Stack.Screen
 																	name="endurance/[id]"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Activiteit"
-																				: "Activity",
+																		title: t.routes.activity,
 																	}}
 																/>
 																<Stack.Screen
@@ -226,19 +217,13 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="settings"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Instellingen"
-																				: "Settings",
+																		title: t.routes.settings,
 																	}}
 																/>
 																<Stack.Screen
 																	name="nutrition-settings"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Voedingsinstellingen"
-																				: "Nutrition Settings",
+																		title: t.routes.nutritionSettings,
 																	}}
 																/>
 																<Stack.Screen
@@ -323,8 +308,7 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="nutrition-one-off"
 																	options={{
-																		title:
-																			locale === "nl" ? "Eenmalig" : "One-off",
+																		title: t.routes.oneOff,
 																		// Full height: the keyboard opens at once on the name.
 																		presentation: "formSheet",
 																		sheetAllowedDetents: [1],
@@ -334,19 +318,13 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="nutrition-assistance"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Hulp bij invoeren"
-																				: "Logging assistance",
+																		title: t.routes.assistance,
 																	}}
 																/>
 																<Stack.Screen
 																	name="nutrition-weekly-review"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Weekoverzicht"
-																				: "Week overview",
+																		title: t.routes.weekOverview,
 																	}}
 																/>
 																<Stack.Screen
@@ -400,10 +378,7 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="nutrition-library"
 																	options={{
-																		title:
-																			locale === "nl"
-																				? "Voedingsbibliotheek"
-																				: "Food library",
+																		title: t.routes.foodLibrary,
 																	}}
 																/>
 															</Stack>

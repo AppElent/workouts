@@ -16,11 +16,10 @@ import { EmptyState } from "../ui/empty-state";
 import { SkeletonCard, SkeletonGroup } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { activityDuration, activityRate } from "./activity-components";
-import { activityCopy } from "./activity-copy";
 
 export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
-	const { locale } = useI18n();
-	const copy = activityCopy(locale);
+	const { locale, t } = useI18n();
+	const copy = t.activity;
 	const current = activityWeek();
 	const [selected, setSelected] = useState(current.start);
 	const selectedWeek = activityWeek(selected);

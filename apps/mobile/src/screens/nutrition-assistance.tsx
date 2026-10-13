@@ -33,8 +33,8 @@ import type {
 } from "../data/personal-food-repository";
 import { usePersonalFoods } from "../data/personal-foods";
 import { PersonalFoodEditor } from "../features/nutrition/personal-food/personal-food-editor";
-import { fmt, useI18n } from "../i18n";
-import { getNutritionAssistanceMessages } from "../i18n/messages/nutrition-assistance";
+import { fmt, type Messages, useI18n } from "../i18n";
+
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { PrimaryButton } from "../ui/button";
 import { Card } from "../ui/coach";
@@ -70,8 +70,8 @@ export function NutritionAssistanceScreen({
 	onClose: () => void;
 }) {
 	const styles = useThemedStyles(createStyles);
-	const { locale } = useI18n();
-	const messages = getNutritionAssistanceMessages(locale);
+	const { locale, t } = useI18n();
+	const messages = t.nutrition.assistance;
 	const personalFoods = usePersonalFoods();
 	const operations = useNutritionOperations();
 	const toast = useToast();
@@ -351,7 +351,7 @@ export function NutritionAssistanceScreen({
 						{ value: "label", label: messages.labelMode },
 						{
 							value: "estimate",
-							label: locale === "nl" ? "Schatting" : "Estimate",
+							label: messages.estimate,
 							accessibilityLabel: messages.estimateMode,
 						},
 					]}
@@ -545,7 +545,7 @@ function AssistanceRowView({
 }: {
 	row: AssistanceRow;
 	locale: "en" | "nl";
-	messages: ReturnType<typeof getNutritionAssistanceMessages>;
+	messages: Messages["nutrition"]["assistance"];
 	onSelect: (candidateId: string) => void;
 	onReparse: (text: string) => void;
 }) {
@@ -614,7 +614,7 @@ function LabelReview({
 	onParse,
 	onSave,
 }: {
-	messages: ReturnType<typeof getNutritionAssistanceMessages>;
+	messages: Messages["nutrition"]["assistance"];
 	locale: "en" | "nl";
 	labelText: string;
 	setLabelText: (value: string) => void;

@@ -19,7 +19,7 @@ import type {
 	PersonalFoodDraft,
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, localizeDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { SwipeableRow } from "../../../ui/swipeable-row";
@@ -27,7 +27,6 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
-import { foodEditorCopy } from "../components/food-editor-copy";
 import {
 	FoodFormCard,
 	FoodFormMenuValue,
@@ -78,7 +77,7 @@ export function PersonalFoodEditor({
 }: PersonalFoodEditorProps) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.foodEditor;
-	const photoCopy = foodEditorCopy[locale];
+	const photoCopy = copy.form;
 	const colors = useTokens();
 	const confirm = useConfirm();
 	const navigation = useNavigation();
@@ -826,7 +825,7 @@ export function PersonalFoodEditor({
 						draft.upsertServing(
 							servingEditor === "new" ? undefined : servingEditor,
 							name,
-							String(amount).replace(".", locale === "nl" ? "," : "."),
+							localizeDecimal(String(amount), locale),
 						);
 						setServingEditor(null);
 					}}

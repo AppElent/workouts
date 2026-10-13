@@ -238,7 +238,7 @@ export function NutrientSourcesScreen({
 						{sources.missing.length ? (
 							<>
 								<AppText variant="heading">
-									{locale === "nl" ? "Waarden ontbreken" : "Missing values"}
+									{t.nutrition.goals.missingValues}
 								</AppText>
 								<AppText variant="caption">
 									{t.nutrition.goals.incomplete}
@@ -269,7 +269,7 @@ export function NutrientSourcesScreen({
 														variant="label"
 														style={{ color: colors.accent }}
 													>
-														{locale === "nl" ? "Aanvullen" : "Fill in"}
+														{t.nutrition.goals.fillIn}
 													</AppText>
 												</View>
 											}
@@ -290,7 +290,7 @@ export function NutrientSourcesScreen({
 							</>
 						) : null}
 						<AppText variant="heading">
-							{locale === "nl" ? "Grootste bronnen" : "Largest sources"}
+							{t.nutrition.goals.largestSources}
 						</AppText>
 						{entries.length === 0 ? (
 							<AppText>{t.nutrition.mealEmpty}</AppText>
@@ -333,11 +333,7 @@ export function NutrientSourcesScreen({
 								))}
 							</InsetList>
 						)}
-						<AppText variant="caption">
-							{locale === "nl"
-								? "Tik een item om de hoeveelheid aan te passen."
-								: "Tap an item to adjust its amount."}
-						</AppText>
+						<AppText variant="caption">{t.nutrition.goals.tapToAdjust}</AppText>
 					</>
 				)}
 			</ScrollView>

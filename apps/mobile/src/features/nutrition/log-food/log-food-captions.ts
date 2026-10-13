@@ -64,36 +64,6 @@ export function compactEnergyPer100(
 		: `${amount} kcal/100 ${food.baseUnit}`;
 }
 
-export function resultEnergyCaption(
-	food: {
-		nutrients: Record<NutrientKey, NutrientValue>;
-		baseUnit: "g" | "ml" | "serving";
-	},
-	messages: Messages["nutrition"],
-	locale: "en" | "nl",
-): string {
-	const energy = food.nutrients.energy;
-	const unit = food.baseUnit;
-	if (unit === "serving") {
-		const amount =
-			energy.kind === "value"
-				? `${roundForDisplay("energy", energy.amount)} kcal`
-				: energy.kind === "trace"
-					? "~0 kcal"
-					: "— kcal";
-		return `${amount} / ${locale === "nl" ? "portie" : "serving"}`;
-	}
-	if (energy.kind === "value") {
-		return fmt(messages.foodBrowser.energyPer100, {
-			amount: roundForDisplay("energy", energy.amount),
-			unit,
-		});
-	}
-	return energy.kind === "trace"
-		? fmt(messages.foodBrowser.energyTracePer100, { unit })
-		: fmt(messages.foodBrowser.energyUnavailablePer100, { unit });
-}
-
 export function offProductCaption(
 	provenance: PersonalFood["provenance"],
 	fallback: string,

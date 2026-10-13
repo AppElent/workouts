@@ -106,9 +106,7 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 				notice={
 					entry.correctedNutrients?.length ? (
 						<AppText variant="caption" style={{ padding: spacing.md }}>
-							{locale === "nl"
-								? "Aangevuld voor deze invoer: "
-								: "Corrected for this entry: "}
+							{t.diaryEntry.correctedFor}
 							{entry.correctedNutrients
 								.map((n) => t.nutrition.nutrients[n])
 								.join(", ")}

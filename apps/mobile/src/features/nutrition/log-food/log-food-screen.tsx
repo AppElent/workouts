@@ -54,7 +54,7 @@ import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
-import { useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
@@ -94,9 +94,9 @@ import {
 	offFailureMessage,
 	quickEnergyAmount,
 } from "./log-food-captions";
-import { type FoodBrowserTab, logFoodCopy } from "./log-food-copy";
 import {
 	createFoodSnapshot,
+	type FoodBrowserTab,
 	type FoodFilter,
 	type FoodSelection,
 	selectionSourceKey,
@@ -210,7 +210,7 @@ export function LogFoodScreen({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
-	const copy = logFoodCopy(locale);
+	const copy = t.nutrition.logFood;
 	const router = useRouter();
 	const authoringIntent = useFoodAuthoringIntent();
 	const operations = useNutritionOperations();
@@ -519,7 +519,10 @@ export function LogFoodScreen({
 		if (existing && existing !== barcode) {
 			const approved = await confirm({
 				title: copy.replaceBarcodeTitle,
-				message: copy.replaceBarcodeBody(food.name[locale], existing),
+				message: fmt(copy.replaceBarcodeBody, {
+					food: food.name[locale],
+					barcode: existing,
+				}),
 				confirmLabel: copy.replaceBarcodeConfirm,
 				cancelLabel: copy.cancel,
 			});
@@ -532,7 +535,7 @@ export function LogFoodScreen({
 				provenance: { ...food.provenance, barcode },
 			});
 			setLinkingBarcode(undefined);
-			toast.success(copy.barcodeLinked(food.name[locale]));
+			toast.success(fmt(copy.barcodeLinked, { food: food.name[locale] }));
 			return true;
 		} catch {
 			toast.error(copy.barcodeLinkFailure);
@@ -661,18 +664,21 @@ export function LogFoodScreen({
 					haptics.entryLogged();
 					setMealFlash((key) => key + 1);
 					markJustLogged(sourceKey);
-					toast.success(copy.logged(foodName, loggedMeal), {
-						action: {
-							label: copy.undo,
-							onPress: () =>
-								operations.remove(
-									subject,
-									{ kind: "clientEntryId", id: clientEntryId },
-									undefined,
-									() => toast.error(copy.undoFailure),
-								),
+					toast.success(
+						fmt(copy.logged, { food: foodName, meal: loggedMeal }),
+						{
+							action: {
+								label: copy.undo,
+								onPress: () =>
+									operations.remove(
+										subject,
+										{ kind: "clientEntryId", id: clientEntryId },
+										undefined,
+										() => toast.error(copy.undoFailure),
+									),
+							},
 						},
-					});
+					);
 				},
 			);
 		} catch {
@@ -698,7 +704,7 @@ export function LogFoodScreen({
 							systemImage: "plus" as const,
 							label: browserTarget
 								? browserTarget.addLabel(quickPreview)
-								: copy.logPortion(quickPreview),
+								: fmt(copy.logPortion, { portion: quickPreview }),
 							onPress: () => quickLog(selection),
 							swipe: false,
 						},
@@ -906,7 +912,12 @@ export function LogFoodScreen({
 				detail: items.length ? String(items.length) : undefined,
 			}
 		: filter === "pool" && !browserTarget
-			? { title: copy.forMeal(mealName), detail: copy.forMealHint }
+			? {
+					title: fmt(copy.forMeal, {
+						meal: mealName.toLocaleLowerCase(locale),
+					}),
+					detail: copy.forMealHint,
+				}
 			: undefined;
 
 	return (
@@ -1091,11 +1102,13 @@ export function LogFoodScreen({
 						</ScrollView>
 						{browserTarget ? null : (
 							<LogFoodMealSummary
-								label={copy.mealSummary(
+								label={[
 									mealName,
-									mealEntries.length,
+									plural(locale, mealEntries.length, copy.items),
 									energyLabel(mealEntries),
-								)}
+								]
+									.filter(Boolean)
+									.join(" · ")}
 								expandLabel={mealOpen ? copy.collapseMeal : copy.expandMeal}
 								hint={copy.mealHint}
 								open={mealOpen}
@@ -1127,7 +1140,7 @@ export function LogFoodScreen({
 						{linkingBarcode ? (
 							<View style={styles.linking} accessibilityLiveRegion="polite">
 								<AppText variant="caption" style={styles.flex}>
-									{copy.barcodeLinking(linkingBarcode)}
+									{fmt(copy.barcodeLinking, { barcode: linkingBarcode })}
 								</AppText>
 								<Pressable
 									accessibilityRole="button"
@@ -1148,7 +1161,7 @@ export function LogFoodScreen({
 						) : null}
 						{!items.length && hasQuery && offAnswering ? (
 							<AppText variant="caption" style={styles.localNone}>
-								{copy.localNone(query.trim())}
+								{fmt(copy.localNone, { query: query.trim() })}
 							</AppText>
 						) : null}
 					</View>
@@ -1188,7 +1201,9 @@ export function LogFoodScreen({
 							</AppText>
 						) : null}
 						<AppText variant="caption" style={styles.poolNote}>
-							{copy.poolNote(catalogueSize.toLocaleString(locale))}
+							{fmt(copy.poolNote, {
+								count: catalogueSize.toLocaleString(locale),
+							})}
 						</AppText>
 					</View>
 				}
@@ -1215,11 +1230,15 @@ export function LogFoodScreen({
 						return (
 							<LogFoodComboRow
 								name={item.combo.name}
-								caption={copy.comboParts(item.combo.parts.length)}
+								caption={plural(
+									locale,
+									item.combo.parts.length,
+									copy.comboParts,
+								)}
 								energy={energy === undefined ? undefined : `${energy} kcal`}
 								portion={copy.wholeCombo}
 								position={position}
-								detailLabel={copy.comboDetail(item.combo.name)}
+								detailLabel={fmt(copy.comboDetail, { combo: item.combo.name })}
 								onDetail={openCombo}
 								logLabel={copy.log}
 								onLog={openCombo}
@@ -1253,7 +1272,9 @@ export function LogFoodScreen({
 							quickLabel={
 								browserTarget
 									? browserTarget.addLabel(item.selection.food.name[locale])
-									: copy.quickLog(item.selection.food.name[locale])
+									: fmt(copy.quickLog, {
+											food: item.selection.food.name[locale],
+										})
 							}
 							quickValue={quickKcal ? `${quickKcal} kcal` : undefined}
 							quickPortion={quickPreview?.label}

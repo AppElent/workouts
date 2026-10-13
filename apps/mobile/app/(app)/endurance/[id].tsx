@@ -2,7 +2,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 import type { Id } from "../../../src/convex/api";
 import { useI18n } from "../../../src/i18n";
-import { enduranceCopy } from "../../../src/screens/endurance-copy";
 import { EnduranceDetailScreen } from "../../../src/screens/endurance-detail";
 import {
 	metrics,
@@ -15,8 +14,8 @@ import { RouteError } from "../../../src/ui/route-error";
 
 export default function EnduranceDetailRoute() {
 	const { id } = useLocalSearchParams<{ id?: string }>();
-	const { locale } = useI18n();
-	const copy = enduranceCopy[locale];
+	const { t } = useI18n();
+	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);
 	return (
 		<>
@@ -43,13 +42,13 @@ export function ErrorBoundary({
 	error: Error;
 	retry: () => Promise<void>;
 }) {
-	const { locale } = useI18n();
-	const copy = enduranceCopy[locale];
+	const { t } = useI18n();
+	const copy = t.endurance;
 	return (
 		<RouteError
 			title={copy.missing}
 			body={copy.missingBody}
-			retryLabel={locale === "nl" ? "Opnieuw proberen" : "Retry"}
+			retryLabel={t.common.retry}
 			onRetry={() => void retry()}
 			error={error}
 		/>

@@ -1,3 +1,11 @@
+import { activityNl } from "./activity";
+import { diaryNl } from "./diary";
+import { enduranceNl } from "./endurance";
+import { localDataNl } from "./local-data";
+import { logFoodNl } from "./log-food";
+import { nutritionAssistanceNl } from "./nutrition-assistance";
+import { nutritionSettingsNl } from "./nutrition-settings";
+import { oneOffLogNl } from "./one-off-log";
 import { profileNl } from "./profile";
 import { strengthNl } from "./strength";
 import { testDataNl } from "./test-data";
@@ -24,12 +32,26 @@ export const nl = {
 	strength: strengthNl,
 	diaryEntry: entryEditorNl,
 	exercises: exerciseLibraryNl,
+	activity: activityNl,
+	endurance: enduranceNl,
+	localData: localDataNl,
 	tabs: {
 		home: "Home",
 		train: "Trainen",
 		nutrition: "Voeding",
 		progress: "Voortgang",
 		profile: "Profiel",
+	},
+	routes: {
+		activityHistory: "Activiteitengeschiedenis",
+		logActivity: "Activiteit vastleggen",
+		activity: "Activiteit",
+		settings: "Instellingen",
+		nutritionSettings: "Voedingsinstellingen",
+		oneOff: "Eenmalig",
+		assistance: "Hulp bij invoeren",
+		weekOverview: "Weekoverzicht",
+		foodLibrary: "Voedingsbibliotheek",
 	},
 
 	feedback: {
@@ -51,6 +73,16 @@ export const nl = {
 		back: "Terug",
 		retry: "Opnieuw proberen",
 		offline: "Offline — maak verbinding om wijzigingen op te slaan",
+		calendar: {
+			previousMonth: "Vorige maand",
+			nextMonth: "Volgende maand",
+			today: "Vandaag",
+			selected: "Geselecteerd",
+		},
+	},
+	exercisesUnavailable: {
+		title: "Oefeningen niet beschikbaar",
+		body: "Probeer het opnieuw om je oefeningen te laden.",
 	},
 
 	preferences: {
@@ -208,11 +240,27 @@ export const nl = {
 				within: "Binnen",
 				exceeded: "Over",
 			},
+			dailyTitle: "Dagdoelen",
+			editShort: "Bewerk",
+			withoutGoal: "Zonder doel",
+			legend:
+				"≥ = ten minste: niet alle items hebben een waarde. ~ = bevat geschatte waarden.",
+			largestSources: "Grootste bronnen",
+			editGoal: "Doel bewerken",
+			changeOrder: "Volgorde wijzigen",
+			missingValues: "Waarden ontbreken",
+			fillIn: "Aanvullen",
+			tapToAdjust: "Tik een item om de hoeveelheid aan te passen.",
 		},
 		week: weekReviewNl,
 		library: foodLibraryNl,
 		foodEditor: foodEditorNl,
 		comboEditor: comboEditorNl,
+		assistance: nutritionAssistanceNl,
+		diary: diaryNl,
+		logFood: logFoodNl,
+		oneOff: oneOffLogNl,
+		settings: nutritionSettingsNl,
 		goalEditor: {
 			...goalEditorNl,
 			presets: {
@@ -270,50 +318,18 @@ export const nl = {
 				"{count} notitie(s) op deze dag zijn nog niet als voeding gelogd. Ze blijven op dit toestel.",
 		},
 		foodBrowser: {
-			title: "Zoek eten voor {meal}",
-			searchPlaceholder: "Zoek eten",
-			scanBarcode: "Scan barcode",
-			searchAll: "Doorzoek alle 2.328 voedingsmiddelen",
-			searchOnline: "Zoek in Open Food Facts",
-			searchingOnline: "Zoeken in Open Food Facts…",
-			onlineResults: "Resultaten uit Open Food Facts",
-			showMore: "Toon meer voedingsmiddelen",
-			promotedResults: "Alledaagse voeding",
-			allResults: "Alle NEVO-voedingsmiddelen",
-			empty: "Geen voedingsmiddelen gevonden.",
 			per100: "Voedingswaarde per 100",
 			closeServingLabel: "Sluit portiekeuze",
-			closeServing: "Klaar",
-			sheetHandle: "Portiekeuzes",
-			serving: "Portie",
 			quantity: "Aantal",
 			trace: "Spoor",
 			absent: "Niet beschikbaar",
-			log: "Eten loggen",
 			logging: "Eten loggen…",
 			logFailure: "Dit eten kon niet worden gelogd. Je selectie staat er nog.",
-			energyPer100: "{amount} kcal / 100 {unit}",
-			energyUnavailablePer100: "Energie niet beschikbaar / 100 {unit}",
-			energyTracePer100: "Spoor / 100 {unit}",
 			addFood: "Eten toevoegen",
 			addAndContinue: "Toevoegen en doorgaan",
 			addAndClose: "Toevoegen en sluiten",
-			addedToMeal: "{food} toegevoegd aan {meal}",
-			addedThisVisit: "Deze sessie toegevoegd",
-			removeAddedFood: "Verwijder {food} uit {meal}",
-			mealPicker: "Maaltijd",
-			done: "Klaar",
-			quantityHalf: "½",
-			quantityOne: "1",
-			quantityTwo: "2",
-			recent: "Recent",
-			favorites: "Favorieten",
-			allFoods: "Alle voeding",
-			combosFilter: "Combo's",
-			lastUsed: "Laatst gebruikt",
 			favorite: "Favoriet",
 			removeFavorite: "Favoriet verwijderen",
-			savedOnDevice: "Op dit apparaat opgeslagen, wacht op synchronisatie.",
 		},
 		barcode: {
 			scanTitle: "Scan barcode",

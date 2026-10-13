@@ -21,7 +21,6 @@ import {
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
-import { foodEditorCopy } from "../components/food-editor-copy";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 
@@ -87,7 +86,7 @@ export function usePersonalFoodDraft({
 	onSaved: (saved: PersonalFood) => void;
 }) {
 	const { t, locale } = useI18n();
-	const copy = foodEditorCopy[locale];
+	const copy = t.nutrition.foodEditor.form;
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
 	const initial = food ?? seed;

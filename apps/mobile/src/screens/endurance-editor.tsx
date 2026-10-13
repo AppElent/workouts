@@ -11,7 +11,8 @@ import { View } from "react-native";
 import { z } from "zod";
 import { api, type Id } from "../convex/api";
 import { isoDateToLocalDate, todayIsoDate } from "../data/calendar-day";
-import { useI18n } from "../i18n";
+import { dateLocale, useI18n } from "../i18n";
+import { en } from "../i18n/messages/en";
 import { spacing, useTokens } from "../theme";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { DatePickerSheet } from "../ui/date-picker-sheet";
@@ -26,7 +27,6 @@ import {
 } from "../ui/form";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { enduranceCopy } from "./endurance-copy";
 import {
 	type EnduranceDetail,
 	type EnduranceValues,
@@ -60,7 +60,7 @@ const enduranceFormSchema = z
 		effort: z.string(),
 	})
 	.superRefine((values, context) => {
-		const result = parseEnduranceValues(values, enduranceCopy.en);
+		const result = parseEnduranceValues(values, en.endurance);
 		if (result.error)
 			context.addIssue({ code: "custom", message: result.error });
 	});
@@ -103,8 +103,8 @@ export function EnduranceEditorScreen({
 	const router = useRouter();
 	const colors = useTokens();
 	const navigation = useNavigation();
-	const { locale } = useI18n();
-	const copy = enduranceCopy[locale];
+	const { locale, t } = useI18n();
+	const copy = t.endurance;
 	const toast = useToast();
 	const confirm = useConfirm();
 	const create = useMutation(api.enduranceActivities.create);
@@ -268,7 +268,7 @@ export function EnduranceEditorScreen({
 					<DisclosureRow
 						label={copy.date}
 						value={isoDateToLocalDate(values.date).toLocaleDateString(
-							locale === "nl" ? "nl-NL" : "en-GB",
+							dateLocale(locale),
 							{ dateStyle: "medium" },
 						)}
 						onPress={() => setShowDatePicker(true)}

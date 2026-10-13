@@ -294,8 +294,7 @@ export function NutritionGoalCard({
 	onSources?: (nutrient: NutrientKey) => void;
 	showAll?: boolean;
 }) {
-	const { locale } = useI18n();
-	const sourcesLabel = locale === "nl" ? "Grootste bronnen" : "Largest sources";
+	const sourcesLabel = t.nutrition.goals.largestSources;
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const [expanded, setExpanded] = useState(showAll);
@@ -596,10 +595,8 @@ export function NutritionGoalCard({
 								onEdit={() => onEdit(group.nutrient)}
 								onReorder={groups.length > 1 ? beginReorder : undefined}
 								sourcesLabel={sourcesLabel}
-								editLabel={locale === "nl" ? "Doel bewerken" : "Edit goal"}
-								reorderLabel={
-									locale === "nl" ? "Volgorde wijzigen" : "Change order"
-								}
+								editLabel={t.nutrition.goals.editGoal}
+								reorderLabel={t.nutrition.goals.changeOrder}
 							>
 								{(onLongPress) => (
 									<GoalProgressRow

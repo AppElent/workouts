@@ -1,4 +1,4 @@
-import type { EnduranceCopy } from "./endurance-copy";
+import type { Messages } from "../i18n";
 
 export type EnduranceValues = {
 	date: string;
@@ -96,7 +96,7 @@ export type ParsedEnduranceValues = {
 
 export function parseEnduranceValues(
 	values: EnduranceValues,
-	copy: EnduranceCopy,
+	copy: Messages["endurance"],
 ):
 	| { value: ParsedEnduranceValues; error?: never }
 	| { value?: never; error: string } {

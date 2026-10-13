@@ -11,7 +11,12 @@ jest.mock("expo-router", () => ({
 	Stack: { Screen: () => null },
 }));
 jest.mock("../data/activity-data", () => ({ useActivityPages: jest.fn() }));
-jest.mock("../i18n", () => ({ useI18n: () => ({ locale: "en" }) }));
+jest.mock("../i18n", () => ({
+	useI18n: () => ({
+		locale: "en",
+		t: jest.requireActual("../i18n/messages/en").en,
+	}),
+}));
 jest.mock("../ui/chart", () => ({ BucketChart: () => null }));
 
 const mockPages = jest.mocked(useActivityPages);

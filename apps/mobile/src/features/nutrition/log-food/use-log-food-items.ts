@@ -11,7 +11,6 @@ import type {
 import type { usePersonalFoods } from "../../../data/personal-foods";
 import type { Messages } from "../../../i18n";
 import { resultCaption } from "./log-food-captions";
-import type { LogFoodCopy } from "./log-food-copy";
 import type { FoodFilter, FoodSelection } from "./log-food-selection";
 
 /**
@@ -115,7 +114,7 @@ export function useLogFoodItems({
 	recentShortcuts: readonly { readonly sourceKey: string }[];
 	favoriteShortcuts: readonly { readonly sourceKey: string }[];
 	messages: Messages["nutrition"];
-	copy: LogFoodCopy;
+	copy: Messages["nutrition"]["logFood"];
 }): readonly LogFoodItem[] {
 	/**
 	 * `promoted` is a curated everyday subset, not "the ordinary ranking" —

@@ -8,7 +8,7 @@ import {
 	toIsoDate,
 } from "../../../../data/calendar-day";
 import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
-import { useI18n } from "../../../../i18n";
+import { plural, useI18n } from "../../../../i18n";
 import { radius, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
@@ -22,7 +22,7 @@ export function DiaryWeekStrip({
 	onChange: (date: string) => void;
 	loggedDates?: ReadonlySet<string>;
 }) {
-	const { locale } = useI18n();
+	const { locale, t } = useI18n();
 	const colors = useTokens();
 	const scroll = useRef<ScrollView>(null);
 	const [width, setWidth] = useState(0);
@@ -64,10 +64,11 @@ export function DiaryWeekStrip({
 							const day = shiftIsoDate(monday, week * 7 + i);
 							const selected = day === date;
 							const noteCount = drafts.listForDate(day).length;
-							const noteLabel =
-								locale === "nl"
-									? `${noteCount} ${noteCount === 1 ? "onverwerkte notitie" : "onverwerkte notities"}`
-									: `${noteCount} unresolved ${noteCount === 1 ? "note" : "notes"}`;
+							const noteLabel = plural(
+								locale,
+								noteCount,
+								t.nutrition.diary.unresolvedNotes,
+							);
 							const local = isoDateToLocalDate(day);
 							return (
 								<Pressable

@@ -1,6 +1,7 @@
 import { SymbolView } from "expo-symbols";
 import type { ComponentProps } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { fmt, type Messages } from "../../../../i18n";
 import {
 	radius,
 	spacing,
@@ -9,7 +10,6 @@ import {
 	useTokens,
 } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
-import type { LogFoodCopy } from "../log-food-copy";
 import type { FoodFilter } from "../log-food-selection";
 
 type Symbol = ComponentProps<typeof SymbolView>["name"];
@@ -50,7 +50,7 @@ export function LogFoodEmptyState({
 }: {
 	tab: FoodFilter;
 	query: string;
-	copy: LogFoodCopy;
+	copy: Messages["nutrition"]["logFood"];
 	/** Open Food Facts has not been asked about this query yet. */
 	offPending: boolean;
 	onSearchOnline: () => void;
@@ -61,7 +61,7 @@ export function LogFoodEmptyState({
 		return (
 			<EmptyCard
 				symbol={SEARCH}
-				title={copy.noResultsTitle(term)}
+				title={fmt(copy.noResultsTitle, { query: term })}
 				body={copy.noResultsBody}
 				actions={[
 					...(offPending
@@ -77,7 +77,7 @@ export function LogFoodEmptyState({
 					{
 						key: "create",
 						symbol: NEW_FOOD,
-						label: copy.newFoodNamed(term),
+						label: fmt(copy.newFoodNamed, { query: term }),
 						onPress: () => onCreateFood(term),
 					},
 				]}

@@ -1,6 +1,4 @@
-import type { Locale } from "../i18n";
-
-const en = {
+export const activityEn = {
 	history: "Activity history",
 	all: "All",
 	strength: "Strength",
@@ -43,7 +41,7 @@ const en = {
 	body: "Body",
 	volume: "Every set type, warmups included.",
 };
-const nl: typeof en = {
+export const activityNl: typeof activityEn = {
 	history: "Activiteitengeschiedenis",
 	all: "Alles",
 	strength: "Kracht",
@@ -88,4 +86,3 @@ const nl: typeof en = {
 	body: "Lichaam",
 	volume: "Alle soorten sets, inclusief opwarming.",
 };
-export const activityCopy = (locale: Locale) => (locale === "nl" ? nl : en);

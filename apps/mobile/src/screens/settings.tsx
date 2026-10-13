@@ -7,7 +7,7 @@ import { AppText } from "../ui/text";
 export function SettingsScreen() {
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
-	const { locale, t } = useI18n();
+	const { t } = useI18n();
 	return (
 		<ScrollView style={styles.root} contentContainerStyle={styles.content}>
 			<Pressable
@@ -15,9 +15,7 @@ export function SettingsScreen() {
 				accessibilityRole="button"
 				style={styles.row}
 			>
-				<AppText variant="heading">
-					{locale === "nl" ? "Voeding" : "Nutrition"}
-				</AppText>
+				<AppText variant="heading">{t.tabs.nutrition}</AppText>
 				<AppText style={styles.chevron}>›</AppText>
 			</Pressable>
 			<Pressable

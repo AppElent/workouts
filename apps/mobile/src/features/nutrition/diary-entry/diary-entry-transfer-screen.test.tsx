@@ -31,7 +31,10 @@ jest.mock("../../../feedback/reduce-motion", () => ({
 	modalAnimation: () => "none",
 	useReduceMotion: () => false,
 }));
-jest.mock("../../../i18n", () => ({ useI18n: jest.fn() }));
+jest.mock("../../../i18n", () => ({
+	...jest.requireActual("../../../i18n"),
+	useI18n: jest.fn(),
+}));
 jest.mock("../../../ui/toast", () => ({ useToast: jest.fn() }));
 
 const mockMintNutritionUuid = jest.mocked(mintNutritionUuid);

@@ -902,7 +902,7 @@ export function LibraryScreen() {
 				)}
 				{library.loading ? (
 					<AppText variant="caption" style={{ margin: spacing.md }}>
-						{locale === "nl" ? "Bibliotheek laden…" : "Loading library…"}
+						{t.nutrition.library.loading}
 					</AppText>
 				) : null}
 				{library.canLoadMore ? (
@@ -915,7 +915,7 @@ export function LibraryScreen() {
 							justifyContent: "center",
 						}}
 					>
-						<AppText>{locale === "nl" ? "Meer laden" : "Load more"}</AppText>
+						<AppText>{t.nutrition.library.loadMore}</AppText>
 					</Pressable>
 				) : null}
 			</ScrollView>

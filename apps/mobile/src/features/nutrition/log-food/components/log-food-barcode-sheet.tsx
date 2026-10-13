@@ -5,6 +5,7 @@ import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../../feedback/reduce-motion";
+import type { Messages } from "../../../../i18n";
 import {
 	radius,
 	spacing,
@@ -13,7 +14,6 @@ import {
 	useTokens,
 } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
-import type { LogFoodCopy } from "../log-food-copy";
 
 const ACTIONS = [
 	{
@@ -40,7 +40,7 @@ export function LogFoodBarcodeSheet({
 	onClose,
 }: {
 	barcode: string | undefined;
-	copy: LogFoodCopy;
+	copy: Messages["nutrition"]["logFood"];
 	closeLabel: string;
 	onCreate: () => void;
 	onSearchByName: () => void;

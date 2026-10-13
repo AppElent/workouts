@@ -24,7 +24,7 @@ export function DiaryEntryLabsScreen() {
 			<AppText>{t.diaryEntry.labIntro}</AppText>
 			{__DEV__ ? (
 				<DisclosureRow
-					label={locale === "nl" ? "SQLite-browser" : "SQLite browser"}
+					label={t.diaryEntry.sqliteBrowser}
 					onPress={() => router.push("/local-database")}
 				/>
 			) : null}

@@ -53,6 +53,24 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 const DICTIONARIES: Record<Locale, Messages> = { en, nl };
 
 /**
+ * Locale-specific formatting lives here so screens never branch on the locale.
+ * `toLocaleString` is not used for the decimal separator because a typed
+ * value must round-trip exactly as entered.
+ */
+const DECIMAL_SEPARATOR: Record<Locale, "." | ","> = { en: ".", nl: "," };
+const DATE_LOCALE: Record<Locale, string> = { en: "en-GB", nl: "nl-NL" };
+
+/** Writes a typed or stored decimal with the locale's separator. */
+export function localizeDecimal(text: string, locale: Locale): string {
+	return text.replace(".", DECIMAL_SEPARATOR[locale]);
+}
+
+/** The BCP 47 tag used for date formatting (day-month order for English). */
+export function dateLocale(locale: Locale): string {
+	return DATE_LOCALE[locale];
+}
+
+/**
  * `resolveLocale`'s third argument is a saved choice and its fourth an
  * Accept-Language-shaped string, so the device's ordered locale list is joined
  * into one. `getLocales()` is a synchronous native read on both platforms.

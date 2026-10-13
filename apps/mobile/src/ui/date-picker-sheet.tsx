@@ -66,16 +66,7 @@ export function DatePickerSheet({
 						onSelect={onSelect}
 						locale={locale}
 						today={today}
-						labels={
-							locale === "nl"
-								? {
-										previousMonth: "Vorige maand",
-										nextMonth: "Volgende maand",
-										today: todayLabel,
-										selected: "Geselecteerd",
-									}
-								: undefined
-						}
+						labels={{ today: todayLabel }}
 					/>
 				</Pressable>
 			</Pressable>

@@ -26,7 +26,6 @@ import { FormScreen, TextAction } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { clearAccountSetDrafts } from "../strength-session/data/set-drafts";
-import { localDataMaintenanceCopy } from "./local-data-maintenance-copy";
 
 type Request = { mode: "load" | "clear" | "local"; subject: string };
 const AccountDataContext = createContext<
@@ -51,12 +50,11 @@ export function AccountDataMaintenanceProvider({
 	}, []);
 	const online = useConvexConnectionState().isWebSocketConnected;
 	const reset = useMutation(api.testData.reset);
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 
 	const toast = useToast();
 	const [request, setRequest] = useState<Request | null>(null);
-	const c =
-		request?.mode === "local" ? localDataMaintenanceCopy[locale] : t.testData;
+	const c = request?.mode === "local" ? t.localData.maintenance : t.testData;
 	const [cleanupFailed, setCleanupFailed] = useState(false);
 	const running = useRef(false);
 	const processed = useRef<Request | null>(null);
@@ -119,7 +117,7 @@ export function AccountDataMaintenanceProvider({
 						/>
 						{request.mode === "local" ? (
 							<TextAction
-								label={localDataMaintenanceCopy[locale].back}
+								label={t.localData.maintenance.back}
 								onPress={() => {
 									setCleanupFailed(false);
 									setRequest(null);

@@ -3,7 +3,6 @@ import {
 	draftToGoals,
 	emptyGoalDraft,
 	goalDraftEquals,
-	goalHistoryLabel,
 	goalKind,
 	parseGoalNumber,
 	referenceGoalTarget,
@@ -49,23 +48,6 @@ describe("nutrition goal history helpers", () => {
 		]);
 		expect(goalDraftEquals(dirty, refreshed)).toBe(false);
 		expect(dirty.energy.max).toBe("2100");
-	});
-
-	it("labels a legacy reference separately from a dated version", () => {
-		expect(
-			goalHistoryLabel({
-				basis: "reference",
-				effectiveFrom: null,
-				locale: "en",
-			}),
-		).toContain("legacy");
-		expect(
-			goalHistoryLabel({
-				basis: "effective",
-				effectiveFrom: "2026-09-12",
-				locale: "nl",
-			}),
-		).toContain("2026-09-12");
 	});
 
 	it("reads the kind of a goal from which bounds are filled", () => {

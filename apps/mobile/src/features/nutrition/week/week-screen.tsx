@@ -6,7 +6,7 @@ import type { IsoDate } from "../../../data/calendar-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { weekEndDate } from "../../../data/nutrition-weekly-review";
 import { fmt, useI18n } from "../../../i18n";
-import { getNutritionAssistanceMessages } from "../../../i18n/messages/nutrition-assistance";
+
 import { radius, spacing, useTokens } from "../../../theme";
 import { EmptyState } from "../../../ui/empty-state";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -40,7 +40,7 @@ import {
 export function WeekScreen({ startDate }: { startDate?: string }) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.week;
-	const offlineCopy = getNutritionAssistanceMessages(locale);
+	const offlineCopy = t.nutrition.assistance;
 	const colors = useTokens();
 	const review = useWeekReview(startDate);
 	const { today, week, days } = review;

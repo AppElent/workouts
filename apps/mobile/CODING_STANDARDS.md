@@ -28,7 +28,10 @@ subscription expiry. The [pilot evidence](../../docs/records/2026-10-08-query-su
 records adoption and usage limits.
 
 `pnpm check:mobile-architecture` runs in `pnpm check`. It is this project's copy of
-the structure standard's check: UI-to-feature imports, feature filenames, and
-literal feature font sizes. It does not establish
+the structure standard's check: UI-to-feature imports, feature filenames,
+literal feature font sizes, `*-copy.ts` dictionaries outside `src/i18n/`, and
+`locale === …` branches that choose text (UI text belongs in the
+[message catalog](../../docs/standards/i18n.md); locale-specific formatting goes
+through `localizeDecimal` and `dateLocale` in `src/i18n`). It does not establish
 semantic ownership, indirect dependencies, or whole-app adoption. Review draft,
 keyboard, scroll, and dismissal ownership together.

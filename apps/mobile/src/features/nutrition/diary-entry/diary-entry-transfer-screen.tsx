@@ -29,7 +29,7 @@ import {
 	useNutritionOperations,
 } from "../../../data/nutrition-operation-service";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { useI18n } from "../../../i18n";
+import { plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { convexErrorMessage } from "../../../ui/confirm-dialog";
 import { NutritionCalendar } from "../../../ui/nutrition-calendar";
@@ -38,89 +38,6 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 
 type TransferMode = "copy" | "move";
-
-type TransferCopy = {
-	title: string;
-	intro: string;
-	destinationDate: string;
-	destinationMeal: string;
-	chooseDate: string;
-	cancel: string;
-	submit: string;
-	pending: string;
-	failure: string;
-};
-
-const _CALENDAR_LABELS = {
-	en: {
-		previousMonth: "Previous month",
-		nextMonth: "Next month",
-		today: "Today",
-		selected: "Selected",
-	},
-	nl: {
-		previousMonth: "Vorige maand",
-		nextMonth: "Volgende maand",
-		today: "Vandaag",
-		selected: "Geselecteerd",
-	},
-} as const;
-
-function transferCopy(mode: TransferMode, locale: "en" | "nl"): TransferCopy {
-	if (locale === "nl") {
-		return mode === "copy"
-			? {
-					title: "Item kopiëren",
-					intro: "Kies waar je een nieuwe kopie van dit item wilt toevoegen.",
-					destinationDate: "Doeldatum",
-					destinationMeal: "Doelmaaltijd",
-					chooseDate: "Kies doeldatum",
-					cancel: "Annuleren",
-					submit: "Item kopiëren",
-					pending: "Kopiëren…",
-					failure:
-						"Dit item kon niet worden gekopieerd. Je bestemming staat er nog.",
-				}
-			: {
-					title: "Item verplaatsen",
-					intro: "Kies waar je dit item wilt verplaatsen.",
-					destinationDate: "Doeldatum",
-					destinationMeal: "Doelmaaltijd",
-					chooseDate: "Kies doeldatum",
-					cancel: "Annuleren",
-					submit: "Item verplaatsen",
-					pending: "Verplaatsen…",
-					failure:
-						"Dit item kon niet worden verplaatst. Je bestemming staat er nog.",
-				};
-	}
-
-	return mode === "copy"
-		? {
-				title: "Copy entry",
-				intro: "Choose where to add a new copy of this entry.",
-				destinationDate: "Destination date",
-				destinationMeal: "Destination meal",
-				chooseDate: "Choose destination date",
-				cancel: "Cancel",
-				submit: "Copy entry",
-				pending: "Copying…",
-				failure:
-					"This entry could not be copied. Your destination is still here.",
-			}
-		: {
-				title: "Move entry",
-				intro: "Choose where to move this entry.",
-				destinationDate: "Destination date",
-				destinationMeal: "Destination meal",
-				chooseDate: "Choose destination date",
-				cancel: "Cancel",
-				submit: "Move entry",
-				pending: "Moving…",
-				failure:
-					"This entry could not be moved. Your destination is still here.",
-			};
-}
 
 /**
  * Snapshots intentionally do not carry a Combo group. Copying a single part
@@ -171,7 +88,10 @@ export function DiaryEntryTransferScreen({
 	// unmounts account-bound views on a switch, but this guard also prevents a
 	// stale native sheet from accepting a previous person's entry.
 	const [sourceSubject] = useState(() => operations.getSubject());
-	const copy = transferCopy(mode, locale);
+	const copy = {
+		...t.diaryEntry.transfer,
+		...t.diaryEntry.transfer[mode],
+	};
 	const selectedEntries = entries ?? (entry ? [entry] : []);
 	const primary = selectedEntries[0] ?? entry;
 	const sourceMeal = meal ?? entries?.[0]?.meal ?? "breakfast";
@@ -245,10 +165,7 @@ export function DiaryEntryTransferScreen({
 	};
 
 	const energy = totalNutrients(selectedEntries.map((e) => e.nutrients)).energy;
-	const title =
-		locale === "nl"
-			? `${selectedEntries.length} ${selectedEntries.length === 1 ? "item" : "items"} ${mode === "copy" ? "kopiëren" : "verplaatsen"}`
-			: `${mode === "copy" ? "Copy" : "Move"} ${selectedEntries.length} ${selectedEntries.length === 1 ? "item" : "items"}`;
+	const title = plural(locale, selectedEntries.length, copy.title);
 	return (
 		<>
 			<Stack.Screen
@@ -315,8 +232,8 @@ export function DiaryEntryTransferScreen({
 					value={mode}
 					onChange={setMode}
 					options={[
-						{ value: "copy", label: locale === "nl" ? "Kopiëren" : "Copy" },
-						{ value: "move", label: locale === "nl" ? "Verplaatsen" : "Move" },
+						{ value: "copy", label: copy.modeCopy },
+						{ value: "move", label: copy.modeMove },
 					]}
 				/>
 				<View style={{ gap: spacing.sm }}>
@@ -401,9 +318,7 @@ export function DiaryEntryTransferScreen({
 						options={MEAL_SLOTS.map((slot) => ({
 							value: slot,
 							label:
-								slot === "snacks" && locale === "nl"
-									? "Snack"
-									: t.nutrition.meals[slot],
+								slot === "snacks" ? copy.snacksShort : t.nutrition.meals[slot],
 							accessibilityLabel: t.nutrition.meals[slot],
 						}))}
 					/>

@@ -6,7 +6,7 @@ import {
 	listLocalDatabases,
 	openLocalDatabaseInspector,
 } from "../../data/local-database-inspector";
-import { useI18n } from "../../i18n";
+import { fmt, plural, useI18n } from "../../i18n";
 import { spacing } from "../../theme";
 import {
 	DisclosureRow,
@@ -15,7 +15,6 @@ import {
 	TextAction,
 } from "../../ui/form";
 import { AppText } from "../../ui/text";
-import { localDatabaseCopy } from "./local-database-copy";
 
 type Inspector = ReturnType<typeof openLocalDatabaseInspector>;
 type Page = ReturnType<Inspector["readPage"]>;
@@ -39,8 +38,8 @@ function readableRow(row: LocalRow) {
 }
 
 export function LocalDatabaseScreen() {
-	const { locale } = useI18n();
-	const c = localDatabaseCopy[locale];
+	const { t } = useI18n();
+	const c = t.localData.database;
 	return (
 		<FormScreen>
 			<Stack.Screen options={{ title: c.title }} />
@@ -50,8 +49,8 @@ export function LocalDatabaseScreen() {
 }
 
 function LocalDatabaseBrowser() {
-	const { locale } = useI18n();
-	const c = localDatabaseCopy[locale];
+	const { locale, t } = useI18n();
+	const c = t.localData.database;
 	const [revision, setRevision] = useState(0);
 	const [databases, setDatabases] = useState<string[]>([]);
 	const [database, setDatabase] = useState<string>();
@@ -122,7 +121,7 @@ function LocalDatabaseBrowser() {
 						<DisclosureRow
 							key={item.name}
 							label={item.name}
-							value={c.rows(item.count)}
+							value={plural(locale, item.count, c.rows)}
 							onPress={() => {
 								setTable(item.name);
 								setPage(0);
@@ -146,7 +145,11 @@ function LocalDatabaseBrowser() {
 						{result.name}
 					</AppText>
 					<AppText variant="caption">
-						{c.rows(result.count)} · {c.page(page + 1, result.count)}
+						{plural(locale, result.count, c.rows)} ·{" "}
+						{fmt(c.page, {
+							page: page + 1,
+							pages: Math.max(1, Math.ceil(result.count / 25)),
+						})}
 					</AppText>
 					<AppText selectable variant="caption">
 						{result.columns

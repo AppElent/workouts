@@ -1,5 +1,7 @@
 export const foodLibraryEn = {
 	title: "Library",
+	loading: "Loading library…",
+	loadMore: "Load more",
 	itemCount: "{count} loaded items",
 	itemCountOne: "1 loaded item",
 	chips: {
@@ -83,6 +85,8 @@ export const foodLibraryEn = {
 
 export const foodLibraryNl: typeof foodLibraryEn = {
 	title: "Bibliotheek",
+	loading: "Bibliotheek laden…",
+	loadMore: "Meer laden",
 	itemCount: "{count} geladen items",
 	itemCountOne: "1 geladen item",
 	chips: {

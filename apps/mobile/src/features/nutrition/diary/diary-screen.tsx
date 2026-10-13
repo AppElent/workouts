@@ -19,7 +19,7 @@ import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useStalledOffline } from "../../../data/stalled-offline";
 import { useTrainingMarker } from "../../../data/training-marker";
 import { useToday } from "../../../data/use-today";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -44,6 +44,7 @@ export function DiaryScreen({
 	startSelecting?: string;
 } = {}) {
 	const { t, locale } = useI18n();
+	const copy = t.nutrition.diary;
 	const colors = useTokens();
 	const router = useRouter();
 	const confirm = useConfirm();
@@ -176,8 +177,8 @@ export function DiaryScreen({
 		if (deleting || !selectedEntries.length) return;
 		if (
 			!(await confirm({
-				title: locale === "nl" ? "Selectie verwijderen?" : "Delete selection?",
-				message: `${selectedEntries.length} items`,
+				title: copy.deleteSelectionTitle,
+				message: plural(locale, selectedEntries.length, copy.items),
 				confirmLabel: t.nutrition.entryActions.delete,
 				destructive: true,
 			}))
@@ -212,20 +213,16 @@ export function DiaryScreen({
 		router.push({ pathname: "/nutrition-food", params: { meal, date } });
 	const menu = (
 		<NutritionHeaderMenu
-			label={locale === "nl" ? "Meer voedingsfuncties" : "More nutrition tools"}
+			label={copy.moreTools}
 			closeLabel={t.diaryEntry.cancel}
-			selectLabel={locale === "nl" ? "Selecteer" : "Select"}
+			selectLabel={copy.select}
 			onSelect={() => beginSelection([])}
-			weekOverviewLabel={locale === "nl" ? "Weekoverzicht" : "Week overview"}
-			foodLibraryLabel={
-				locale === "nl" ? "Voedingsbibliotheek" : "Food library"
-			}
-			settingsLabel={locale === "nl" ? "Instellingen" : "Settings"}
-			assistanceLabel={
-				locale === "nl" ? "Tekst en voedingsetiket" : "Text and nutrition label"
-			}
+			weekOverviewLabel={copy.weekOverview}
+			foodLibraryLabel={copy.foodLibrary}
+			settingsLabel={copy.settings}
+			assistanceLabel={copy.assistance}
 			goalsLabel={t.nutrition.goals.edit}
-			dataSourcesLabel={locale === "nl" ? "Gegevensbronnen" : "Data sources"}
+			dataSourcesLabel={copy.dataSources}
 			onOpenWeekOverview={() =>
 				router.push({
 					pathname: "/nutrition-weekly-review",
@@ -246,11 +243,11 @@ export function DiaryScreen({
 			onToggleDataSources={() => setShowTools((v) => !v)}
 		/>
 	);
-	const calendarLabel = locale === "nl" ? "Kies datum" : "Choose date";
+	const calendarLabel = copy.chooseDate;
 	const actionLabels = {
-		copy: locale === "nl" ? "Kopiëren" : "Copy",
-		move: locale === "nl" ? "Verplaatsen" : "Move",
-		combo: locale === "nl" ? "Combo maken" : "Make combo",
+		copy: copy.copy,
+		move: copy.move,
+		combo: copy.makeCombo,
 	};
 	return (
 		<>
@@ -319,35 +316,17 @@ export function DiaryScreen({
 					<>
 						{drafts.loading ? (
 							<AppText variant="caption">
-								{locale === "nl"
-									? connected
-										? "Opgeslagen notities laden…"
-										: "Maak verbinding om opgeslagen notities te laden."
-									: connected
-										? "Loading saved notes…"
-										: "Connect to load saved notes."}
+								{connected ? copy.notesLoading : copy.notesOffline}
 							</AppText>
 						) : null}
 						{incompleteStalled ? (
-							<AppText variant="caption">
-								{locale === "nl"
-									? "Alleen lokaal beschikbare invoer. Dagtotaal is onvolledig."
-									: "Only locally available entries. Day totals are incomplete."}
-							</AppText>
+							<AppText variant="caption">{copy.partialDay}</AppText>
 						) : null}
 						{cachedGoalsStalled ? (
-							<AppText variant="caption">
-								{locale === "nl"
-									? "Laatst opgeslagen doelen; mogelijk niet actueel."
-									: "Last cached goals; may not be current."}
-							</AppText>
+							<AppText variant="caption">{copy.cachedGoals}</AppText>
 						) : null}
 						{state.day.goalBasis === "reference" && offset !== 0 ? (
-							<AppText variant="caption">
-								{locale === "nl"
-									? "Referentiedoelen — historische doelen zijn niet bekend."
-									: "Reference goals — historical targets are not known."}
-							</AppText>
+							<AppText variant="caption">{copy.referenceGoals}</AppText>
 						) : null}
 						{selecting ? null : state.day.goalsPending ? (
 							goalsStalled ? (
@@ -435,7 +414,7 @@ export function DiaryScreen({
 			<Stack.Screen
 				options={{
 					title: selecting
-						? `${selectedEntries.length} ${locale === "nl" ? "geselecteerd" : "selected"}`
+						? fmt(copy.selected, { count: selectedEntries.length })
 						: dayLabel,
 					headerLargeTitleEnabled: true,
 					headerRight: () =>

@@ -1,7 +1,7 @@
 import type { ServingOption } from "@workouts/core/nutrition";
 import { useState } from "react";
 import { servingKey } from "../../data/nutrition-shortcuts";
-import { useI18n } from "../../i18n";
+import { localizeDecimal, useI18n } from "../../i18n";
 
 /**
  * The serving and quantity an amount editor is setting. The exact amount is
@@ -18,8 +18,7 @@ export function useAmountSelection({
 	amount: number;
 }) {
 	const { locale } = useI18n();
-	const asText = (value: number) =>
-		locale === "nl" ? String(value).replace(".", ",") : String(value);
+	const asText = (value: number) => localizeDecimal(String(value), locale);
 	const [initial] = useState(() => ({
 		option,
 		amount: initialAmount,
@@ -47,7 +46,7 @@ export function useAmountSelection({
 			amount !== initial.amount ||
 			servingKey(selected) !== servingKey(initial.option),
 		setQuantity(text: string) {
-			setQuantityText(locale === "nl" ? text.replace(".", ",") : text);
+			setQuantityText(localizeDecimal(text, locale));
 			setAmount(Number(text.replace(",", ".")) * selected.amount);
 		},
 		select(next: ServingOption) {

@@ -148,19 +148,3 @@ export function goalDraftEquals(left: GoalDraft, right: GoalDraft): boolean {
 			left[nutrient].max === right[nutrient].max,
 	);
 }
-
-export function goalHistoryLabel({
-	basis,
-	effectiveFrom,
-	locale,
-}: {
-	basis: "effective" | "reference";
-	effectiveFrom: string | null;
-	locale: string;
-}): string {
-	if (basis === "reference")
-		return locale === "nl" ? "Referentie (oud)" : "Reference (legacy)";
-	return locale === "nl"
-		? `Geldig vanaf ${effectiveFrom}`
-		: `Applies from ${effectiveFrom}`;
-}

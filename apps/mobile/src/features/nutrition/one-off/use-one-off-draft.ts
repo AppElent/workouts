@@ -11,11 +11,9 @@ import {
 	mintNutritionUuid,
 	useNutritionOperations,
 } from "../../../data/nutrition-operation-service";
-import { useI18n } from "../../../i18n";
-import { foodEditorCopy } from "../components/food-editor-copy";
+import { fmt, useI18n } from "../../../i18n";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
-import { oneOffLogCopy } from "./one-off-log-copy";
 import { type OneOffBasis, oneOffNutrients } from "./one-off-values";
 
 const EMPTY = Object.fromEntries(
@@ -42,9 +40,9 @@ export function useOneOffDraft({
 	/** Logging failed; the form stays open with its values. */
 	onFailed: () => void;
 }) {
-	const { locale } = useI18n();
-	const copy = oneOffLogCopy(locale);
-	const photoCopy = foodEditorCopy[locale];
+	const { locale, t } = useI18n();
+	const copy = t.nutrition.oneOff;
+	const photoCopy = t.nutrition.foodEditor.form;
 	const operations = useNutritionOperations();
 	const [touched, setTouched] = useState(false);
 	const touch = () => setTouched(true);
@@ -81,7 +79,7 @@ export function useOneOffDraft({
 	/** "You ate 350 g, that is: …" under per-100 values. */
 	const totals =
 		basis === "per100" && nutrients
-			? copy.totals({
+			? fmt(copy.totals, {
 					amount,
 					unit: copy.units[unit],
 					...(Object.fromEntries(

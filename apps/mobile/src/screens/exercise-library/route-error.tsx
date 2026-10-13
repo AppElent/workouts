@@ -7,19 +7,11 @@ export function ExerciseRouteError({
 	error: Error;
 	retry: () => Promise<void>;
 }) {
-	const { locale, t } = useI18n();
+	const { t } = useI18n();
 	return (
 		<RouteError
-			title={
-				locale === "nl"
-					? "Oefeningen niet beschikbaar"
-					: "Exercises unavailable"
-			}
-			body={
-				locale === "nl"
-					? "Probeer het opnieuw om je oefeningen te laden."
-					: "Try again to load your exercises."
-			}
+			title={t.exercisesUnavailable.title}
+			body={t.exercisesUnavailable.body}
 			retryLabel={t.common.retry}
 			onRetry={() => void retry()}
 			error={error}

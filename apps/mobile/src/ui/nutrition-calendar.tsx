@@ -7,6 +7,7 @@ import {
 	todayIsoDate,
 	toIsoDate,
 } from "../data/calendar-day";
+import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
@@ -15,20 +16,6 @@ export type NutritionCalendarLabels = {
 	nextMonth: string;
 	today: string;
 	selected: string;
-};
-
-const DEFAULT_LABELS: NutritionCalendarLabels = {
-	previousMonth: "Previous month",
-	nextMonth: "Next month",
-	today: "Today",
-	selected: "Selected",
-};
-
-const DUTCH_LABELS: NutritionCalendarLabels = {
-	previousMonth: "Vorige maand",
-	nextMonth: "Volgende maand",
-	today: "Vandaag",
-	selected: "Geselecteerd",
 };
 
 const FALLBACK_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -92,10 +79,8 @@ export function NutritionCalendar({
 	onMonthChange?: (date: string) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
-	const copy = {
-		...(locale === "nl" ? DUTCH_LABELS : DEFAULT_LABELS),
-		...labels,
-	};
+	const { t } = useI18n();
+	const copy = { ...t.common.calendar, ...labels };
 	const [visibleMonth, setVisibleMonth] = useState(() =>
 		monthAnchor(selectedDate),
 	);

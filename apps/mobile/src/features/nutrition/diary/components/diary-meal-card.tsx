@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
 import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
-import { fmt, useI18n } from "../../../../i18n";
+import { fmt, plural, useI18n } from "../../../../i18n";
 import { spacing, useTokens } from "../../../../theme";
 import { FoodVisualView } from "../../../../ui/food-visual";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
@@ -47,6 +47,7 @@ export function DiaryMealCard({
 	onDeleteDraft: (draft: CaptureDraft) => void;
 }) {
 	const { t, locale } = useI18n();
+	const copy = t.nutrition.diary;
 	const colors = useTokens();
 	const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 	const total = totalNutrients(entries.map((e) => e.nutrients)).energy;
@@ -56,7 +57,7 @@ export function DiaryMealCard({
 			: value.kind === "trace"
 				? t.nutrition.foodBrowser.trace
 				: t.nutrition.foodBrowser.absent;
-	const selectLabel = locale === "nl" ? "Items selecteren" : "Select items";
+	const selectLabel = copy.selectItems;
 	const actions = [
 		{
 			label: selectLabel,
@@ -71,7 +72,7 @@ export function DiaryMealCard({
 			onPress: () => onTransfer(entries, "copy"),
 		},
 		{
-			label: locale === "nl" ? "Maaltijd verplaatsen…" : "Move meal…",
+			label: copy.moveMeal,
 			systemImage: "arrow.right" as const,
 			onPress: () => onTransfer(entries, "move"),
 		},
@@ -111,11 +112,7 @@ export function DiaryMealCard({
 							name="sparkles"
 							size={14}
 							tintColor={colors.textMuted}
-							accessibilityLabel={
-								locale === "nl"
-									? "Geschatte voedingswaarden"
-									: "Estimated nutrition"
-							}
+							accessibilityLabel={copy.estimated}
 						/>
 					) : null}
 				</View>
@@ -126,12 +123,7 @@ export function DiaryMealCard({
 						? t.nutrition.combos.selectEntry
 						: t.nutrition.entryEditor.editEntry,
 					{ name: entry.name[locale] },
-				) +
-				(entry.estimated
-					? locale === "nl"
-						? ". Geschatte voedingswaarden"
-						: ". Estimated nutrition"
-					: "")
+				) + (entry.estimated ? `. ${copy.estimated}` : "")
 			}
 			onPress={() => (selecting ? onToggle([entry]) : onEdit(entry))}
 			actions={
@@ -140,14 +132,14 @@ export function DiaryMealCard({
 					: [
 							{
 								key: "edit",
-								menuLabel: locale === "nl" ? "Bewerken" : "Edit",
+								menuLabel: copy.edit,
 								systemImage: "pencil",
 								label: t.nutrition.entryActions.edit,
 								onPress: () => onEdit(entry),
 							},
 							{
 								key: "select",
-								menuLabel: locale === "nl" ? "Selecteer" : "Select",
+								menuLabel: copy.select,
 								systemImage: "checkmark.circle",
 								dividerAfter: true,
 								label: selectLabel,
@@ -156,24 +148,24 @@ export function DiaryMealCard({
 							},
 							{
 								key: "copy",
-								menuLabel: locale === "nl" ? "Kopiëren…" : "Copy…",
+								menuLabel: copy.copyMenu,
 								systemImage: "doc.on.doc",
-								label: locale === "nl" ? "Kopiëren" : "Copy",
+								label: copy.copy,
 								onPress: () => onTransfer([entry], "copy"),
 								swipe: false,
 							},
 							{
 								key: "move",
-								menuLabel: locale === "nl" ? "Verplaatsen…" : "Move…",
+								menuLabel: copy.moveMenu,
 								systemImage: "arrow.right",
 								dividerAfter: true,
-								label: locale === "nl" ? "Verplaatsen" : "Move",
+								label: copy.move,
 								onPress: () => onTransfer([entry], "move"),
 								swipe: false,
 							},
 							{
 								key: "delete",
-								menuLabel: locale === "nl" ? "Verwijderen" : "Delete",
+								menuLabel: copy.delete,
 								systemImage: "trash",
 								label: t.nutrition.entryActions.delete,
 								onPress: () => onDelete(entry),
@@ -202,7 +194,7 @@ export function DiaryMealCard({
 						{entries.length && !selecting ? (
 							<DiaryMealMenu
 								title={`${t.nutrition.meals[slot]} · ${entries.length} items`}
-								label={`${t.nutrition.meals[slot]}: ${locale === "nl" ? "acties" : "actions"}`}
+								label={fmt(copy.mealActions, { meal: t.nutrition.meals[slot] })}
 								closeLabel={t.diaryEntry.cancel}
 								actions={actions}
 								trigger={{
@@ -217,13 +209,15 @@ export function DiaryMealCard({
 						)}
 						<AppText variant="caption">
 							{entries.length
-								? `${entries.length} items · ${total?.incomplete ? "≥ " : ""}${roundForDisplay("energy", total?.amount ?? 0)} kcal`
+								? `${plural(locale, entries.length, copy.items)} · ${total?.incomplete ? "≥ " : ""}${roundForDisplay("energy", total?.amount ?? 0)} kcal`
 								: drafts.length
-									? `${drafts.length} ${locale === "nl" ? "notitie" : "note"}`
+									? drafts.length === 1
+										? t.nutrition.drafts.countOne
+										: fmt(t.nutrition.drafts.countMany, {
+												count: drafts.length,
+											})
 									: complete
-										? locale === "nl"
-											? "Nog niets"
-											: "Nothing yet"
+										? copy.nothingYet
 										: t.nutrition.offline.uncachedMeal}
 						</AppText>
 					</View>
@@ -236,12 +230,8 @@ export function DiaryMealCard({
 							>
 								<AppText style={{ color: colors.accent }}>
 									{entries.every((e) => selected.has(e.id))
-										? locale === "nl"
-											? "Geen"
-											: "None"
-										: locale === "nl"
-											? "Alles"
-											: "All"}
+										? copy.selectNone
+										: copy.selectAll}
 								</AppText>
 							</Pressable>
 						) : null
@@ -295,7 +285,7 @@ export function DiaryMealCard({
 								? `Select Combo ${group.name}`
 								: `${open ? "Collapse" : "Expand"} Combo ${group.name}`
 						}
-						secondary={`COMBO · ${parts.length} ${locale === "nl" ? "onderdelen" : "parts"}`}
+						secondary={plural(locale, parts.length, copy.comboParts)}
 						value={`${roundForDisplay("energy", totalNutrients(parts.map((e) => e.nutrients)).energy?.amount ?? 0)} kcal`}
 						leading={{
 							symbol: selecting
@@ -318,7 +308,7 @@ export function DiaryMealCard({
 						actions={[
 							{
 								key: "select",
-								menuLabel: locale === "nl" ? "Selecteer" : "Select",
+								menuLabel: copy.select,
 								systemImage: "checkmark.circle",
 								dividerAfter: true,
 								label: selectLabel,
@@ -327,18 +317,18 @@ export function DiaryMealCard({
 							},
 							{
 								key: "copy",
-								menuLabel: locale === "nl" ? "Kopiëren…" : "Copy…",
+								menuLabel: copy.copyMenu,
 								systemImage: "doc.on.doc",
-								label: locale === "nl" ? "Kopiëren" : "Copy",
+								label: copy.copy,
 								onPress: () => onTransfer(parts, "copy"),
 								swipe: false,
 							},
 							{
 								key: "move",
-								menuLabel: locale === "nl" ? "Verplaatsen…" : "Move…",
+								menuLabel: copy.moveMenu,
 								systemImage: "arrow.right",
 								dividerAfter: true,
-								label: locale === "nl" ? "Verplaatsen" : "Move",
+								label: copy.move,
 								onPress: () => onTransfer(parts, "move"),
 								swipe: false,
 							},
@@ -356,20 +346,20 @@ export function DiaryMealCard({
 							})}
 							title={draft.note}
 							secondary={t.nutrition.drafts.onDevice}
-							value={locale === "nl" ? "Verwerk" : "Review"}
+							value={copy.review}
 							leading={{ symbol: "note.text" }}
 							onPress={() => onResolveDraft(draft)}
 							actions={[
 								{
 									key: "edit",
-									menuLabel: locale === "nl" ? "Bewerken" : "Edit",
+									menuLabel: copy.edit,
 									systemImage: "pencil",
 									label: t.nutrition.entryActions.edit,
 									onPress: () => onEditDraft(draft),
 								},
 								{
 									key: "delete",
-									menuLabel: locale === "nl" ? "Verwijderen" : "Delete",
+									menuLabel: copy.delete,
 									systemImage: "trash",
 									label: t.nutrition.entryActions.delete,
 									onPress: () => onDeleteDraft(draft),

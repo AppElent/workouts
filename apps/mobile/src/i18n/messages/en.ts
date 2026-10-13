@@ -1,9 +1,17 @@
+import { activityEn } from "./activity";
 import { comboEditorEn } from "./combo-editor";
+import { diaryEn } from "./diary";
+import { enduranceEn } from "./endurance";
 import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
 import { foodEditorEn } from "./food-editor";
 import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
+import { localDataEn } from "./local-data";
+import { logFoodEn } from "./log-food";
+import { nutritionAssistanceEn } from "./nutrition-assistance";
+import { nutritionSettingsEn } from "./nutrition-settings";
+import { oneOffLogEn } from "./one-off-log";
 import { profileEn } from "./profile";
 import { strengthEn } from "./strength";
 import { testDataEn } from "./test-data";
@@ -31,12 +39,27 @@ export const en = {
 	strength: strengthEn,
 	diaryEntry: entryEditorEn,
 	exercises: exerciseLibraryEn,
+	activity: activityEn,
+	endurance: enduranceEn,
+	localData: localDataEn,
 	tabs: {
 		home: "Home",
 		train: "Train",
 		nutrition: "Nutrition",
 		progress: "Progress",
 		profile: "Profile",
+	},
+	/** Stack screen titles that no screen sets itself. */
+	routes: {
+		activityHistory: "Activity history",
+		logActivity: "Log activity",
+		activity: "Activity",
+		settings: "Settings",
+		nutritionSettings: "Nutrition Settings",
+		oneOff: "One-off",
+		assistance: "Logging assistance",
+		weekOverview: "Week overview",
+		foodLibrary: "Food library",
 	},
 
 	feedback: {
@@ -58,6 +81,16 @@ export const en = {
 		back: "Go back",
 		retry: "Try again",
 		offline: "Offline — connect to save changes",
+		calendar: {
+			previousMonth: "Previous month",
+			nextMonth: "Next month",
+			today: "Today",
+			selected: "Selected",
+		},
+	},
+	exercisesUnavailable: {
+		title: "Exercises unavailable",
+		body: "Try again to load your exercises.",
 	},
 
 	preferences: {
@@ -220,11 +253,27 @@ export const en = {
 				within: "Within",
 				exceeded: "Over",
 			},
+			dailyTitle: "Daily goals",
+			editShort: "Edit",
+			withoutGoal: "Without a goal",
+			legend:
+				"≥ = at least: some items have no value. ~ = includes estimated values.",
+			largestSources: "Largest sources",
+			editGoal: "Edit goal",
+			changeOrder: "Change order",
+			missingValues: "Missing values",
+			fillIn: "Fill in",
+			tapToAdjust: "Tap an item to adjust its amount.",
 		},
 		week: weekReviewEn,
 		library: foodLibraryEn,
 		foodEditor: foodEditorEn,
 		comboEditor: comboEditorEn,
+		assistance: nutritionAssistanceEn,
+		diary: diaryEn,
+		logFood: logFoodEn,
+		oneOff: oneOffLogEn,
+		settings: nutritionSettingsEn,
 		goalEditor: {
 			...goalEditorEn,
 			presets: {
@@ -284,51 +333,19 @@ export const en = {
 				"{count} note(s) on this day have not been logged as food. They stay on this device.",
 		},
 		foodBrowser: {
-			title: "Find food for {meal}",
-			searchPlaceholder: "Search foods",
-			scanBarcode: "Scan barcode",
-			searchAll: "Search all 2,328 foods",
-			searchOnline: "Search Open Food Facts",
-			searchingOnline: "Searching Open Food Facts…",
-			onlineResults: "Open Food Facts results",
-			showMore: "Show more foods",
-			promotedResults: "Everyday foods",
-			allResults: "All NEVO foods",
-			empty: "No foods match this search.",
 			per100: "Nutrition per 100",
 			closeServingLabel: "Close serving options",
-			closeServing: "Done",
-			sheetHandle: "Serving options sheet",
-			serving: "Serving",
 			quantity: "Quantity",
 			trace: "Trace",
 			absent: "Not available",
-			log: "Log food",
 			logging: "Logging food…",
 			logFailure:
 				"This food could not be logged. Your selection is still here.",
-			energyPer100: "{amount} kcal / 100 {unit}",
-			energyUnavailablePer100: "Energy unavailable / 100 {unit}",
-			energyTracePer100: "Trace / 100 {unit}",
 			addFood: "Add food",
 			addAndContinue: "Add & continue",
 			addAndClose: "Add & close",
-			addedToMeal: "Added {food} to {meal}",
-			addedThisVisit: "Added this visit",
-			removeAddedFood: "Remove {food} from {meal}",
-			mealPicker: "Meal",
-			done: "Done",
-			quantityHalf: "½",
-			quantityOne: "1",
-			quantityTwo: "2",
-			recent: "Recent",
-			favorites: "Favorites",
-			allFoods: "All foods",
-			combosFilter: "Combos",
-			lastUsed: "Last used",
 			favorite: "Favorite",
 			removeFavorite: "Remove favorite",
-			savedOnDevice: "Saved on this device, waiting to sync.",
 		},
 		/**
 		 * Every message here is a failure exit, not just a status line — spec #68

@@ -2,7 +2,19 @@ import { fireEvent, screen } from "@testing-library/react-native";
 import { renderThemed as render } from "../test-support/render-themed";
 import { NutritionCalendar } from "./nutrition-calendar";
 
+let mockLocale: "en" | "nl" = "en";
+jest.mock("../i18n", () => ({
+	useI18n: () => ({
+		locale: mockLocale,
+		t: jest.requireActual(`../i18n/messages/${mockLocale}`)[mockLocale],
+	}),
+}));
+
 describe("NutritionCalendar", () => {
+	afterEach(() => {
+		mockLocale = "en";
+	});
+
 	it("renders an actual leap-month grid and lets the user select a day", () => {
 		const onSelect = jest.fn();
 		render(
@@ -46,6 +58,7 @@ describe("NutritionCalendar", () => {
 	});
 
 	it("localizes navigation labels in Dutch", () => {
+		mockLocale = "nl";
 		const onSelect = jest.fn();
 		render(
 			<NutritionCalendar

@@ -14,14 +14,13 @@ import {
 import { todayIsoDate } from "../../../data/calendar-day";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import type { MealSlot } from "../../../data/nutrition-day";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
-import { foodEditorCopy } from "../components/food-editor-copy";
 import {
 	FoodFormCard,
 	FoodFormMenuValue,
@@ -33,10 +32,8 @@ import { FoodValueField } from "../components/food-value-field";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
-import { logFoodCopy } from "../log-food/log-food-copy";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { useNutrientFields } from "../use-nutrient-fields";
-import { oneOffLogCopy } from "./one-off-log-copy";
 import { useOneOffDraft } from "./use-one-off-draft";
 
 /**
@@ -53,10 +50,10 @@ export function OneOffLogScreen({
 	meal: MealSlot;
 }) {
 	const { t, locale } = useI18n();
-	const copy = oneOffLogCopy(locale);
-	const browseCopy = logFoodCopy(locale);
+	const copy = t.nutrition.oneOff;
+	const browseCopy = t.nutrition.logFood;
 	const foodCopy = t.nutrition.foodEditor;
-	const photoCopy = foodEditorCopy[locale];
+	const photoCopy = foodCopy.form;
 	const colors = useTokens();
 	const router = useRouter();
 	const navigation = useNavigation();
@@ -110,7 +107,9 @@ export function OneOffLogScreen({
 	usePreventRemove(draft.dirty && !exit, ({ data }) => {
 		void confirm({
 			title: copy.discardTitle,
-			message: copy.discardBody(draft.name.trim()),
+			message: draft.name.trim()
+				? fmt(copy.discardBody, { name: draft.name.trim() })
+				: copy.discardBodyUnnamed,
 			confirmLabel: copy.discard,
 			cancelLabel: copy.keepEditing,
 			destructive: true,
@@ -205,10 +204,10 @@ export function OneOffLogScreen({
 	const amountText = draft.amount.trim();
 	const basisLabel =
 		draft.basis === "per100"
-			? copy.per100(draft.unit === "ml" ? "ml" : "g")
+			? fmt(copy.per100, { unit: draft.unit === "ml" ? "ml" : "g" })
 			: draft.errors.amount || !amountText
 				? copy.forWholeAmount
-				: copy.forAmount(amountText, unitLabel);
+				: fmt(copy.forAmount, { amount: amountText, unit: unitLabel });
 
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -362,12 +361,12 @@ export function OneOffLogScreen({
 									},
 									{
 										id: "g",
-										label: copy.per100("g"),
+										label: fmt(copy.per100, { unit: "g" }),
 										selected: draft.basis === "per100" && draft.unit === "g",
 									},
 									{
 										id: "ml",
-										label: copy.per100("ml"),
+										label: fmt(copy.per100, { unit: "ml" }),
 										selected: draft.basis === "per100" && draft.unit === "ml",
 									},
 								],
