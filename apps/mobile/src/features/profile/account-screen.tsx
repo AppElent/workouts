@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import { useConvex, useConvexConnectionState, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { api } from "../../convex/api";
@@ -9,6 +10,7 @@ import { useI18n } from "../../i18n";
 import { spacing, useTokens } from "../../theme";
 import { useConfirm } from "../../ui/confirm-dialog";
 import {
+	DisclosureRow,
 	FormScreen,
 	FormSection,
 	FormTextField,
@@ -18,6 +20,8 @@ import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { useAccountDeletion } from "../local-data/account-data-maintenance-provider";
 import { exportAccountData } from "./account-export";
+
+const PRIVACY_STATEMENT_URL = "https://foundry.appelent.nl/privacy";
 
 export function AccountScreen() {
 	const { user } = useUser();
@@ -219,6 +223,13 @@ export function AccountScreen() {
 					onPress={() =>
 						void run("export", () => exportAccountData(convex), c.exportError)
 					}
+				/>
+			</FormSection>
+
+			<FormSection>
+				<DisclosureRow
+					label={t.profile.privacy}
+					onPress={() => WebBrowser.openBrowserAsync(PRIVACY_STATEMENT_URL)}
 				/>
 			</FormSection>
 

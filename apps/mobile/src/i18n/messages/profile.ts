@@ -1,6 +1,7 @@
 export const profileEn = {
 	account: "Account",
 	accountDetails: "Account details",
+	privacy: "Privacy statement",
 	sessions: "Sessions",
 	distance: "Distance",
 	records: "Records",
@@ -21,6 +22,7 @@ export const profileEn = {
 export const profileNl: typeof profileEn = {
 	account: "Account",
 	accountDetails: "Accountgegevens",
+	privacy: "Privacyverklaring",
 	sessions: "Sessies",
 	distance: "Afstand",
 	records: "Records",
