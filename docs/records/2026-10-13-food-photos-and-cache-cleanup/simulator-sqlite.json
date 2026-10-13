@@ -1,0 +1,12 @@
+{
+  "workouts-off-cache.db": {
+    "off_cache": 0
+  },
+  "workouts-nutrition-state.db": {
+    "nutrition_food_shortcuts": 0,
+    "nutrition_goal_preferences": 1
+  },
+  "ExpoSQLiteStorage": {
+    "storage": 1
+  }
+}

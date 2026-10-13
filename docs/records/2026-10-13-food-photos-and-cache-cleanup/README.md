@@ -9,6 +9,9 @@ date: 2026-10-13
 
 # Food photos and local account cache retirement
 
+Revision `a72f220`; iPhone 18 Pro simulator, iOS 27.0, regular development
+`colorless-sturgeon-704`; preview backend `fine-akita-444`.
+
 Follow-up to issue 89 after the sole user confirmed build 20 upload and cleanup.
 Manual Food and One-off Entry photos now use Convex storage IDs; OFF visuals use
 provider URLs with `expo-image` memory/disk caching. Existing ambiguous OFF images
@@ -40,12 +43,33 @@ failed editor input remains available for retry while the editor stays open.
 
 Regular development backend `colorless-sturgeon-704` deployed successfully.
 The old isolated deployment `earnest-cobra-841` is no longer accessible.
-Native photo flow, production photo adoption and preview distribution are pending
-verification at this checkpoint. Physical phone SQLite counts are not inferred
-from simulator or unit-test results.
+Production backend `fine-akita-444` deployed successfully. Provider adoption
+changed five Foods and four Diary Entries in development, and 54 Foods and 110
+Diary Entries in production. A complete second dry run found zero eligible
+changes in either deployment. Nutrition values remain frozen.
+
+A native manual photo save completed; its stored record contains a storage ID
+and no device URI. Independent cloud retrieval returned a 34,091-byte JPEG.
+After deleting only that QA photo source and the disposable image cache, a cold
+start reloaded the Food and displayed its image from Convex. The temporary QA Food
+was removed afterward. Its uploaded file is retained under the same policy as
+historical photos; no account-wide destructive reset was run.
+
+![Cloud photo after deleting its local source and cache](cloud-photo-cold-start.png)
+
+The simulator’s SQLite directory contains only `workouts-off-cache.db`,
+`workouts-nutrition-state.db` and `ExpoSQLiteStorage`; account mirrors, migration
+files and durable diary journals are gone. [Table counts](simulator-sqlite.json).
+Physical phone SQLite counts are not inferred from these simulator results.
+
+EAS preview build 21 finished and its submission finished. Apple processing and
+internal-tester access remain to be checked. Build ID
+`2ba643b2-cb4e-4e74-984d-e3b3ec574ce0`; submission
+`b1444919-8527-401e-a302-d10eb50e9343`; source revision `a72f220`.
+Regular development is running from this branch on port 8191. Main’s documentation
+restructure was merged first, preserving its layout and unrelated mobile changes.
 
 ## Open
 
-- [ ] Native photo save and cold-start retrieval.
-- [ ] Production OFF image adoption and preview TestFlight availability.
+- [ ] Apple processing and internal TestFlight availability for build 21.
 - [ ] Physical phone installation and SQLite cleanup verification.

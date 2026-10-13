@@ -11,7 +11,7 @@ date: 2026-10-08
 
 The sections below record the build 20 migration implementation. Current photo
 ownership and cache retirement are described in the
-[2026-10-13 follow-up](../2026-10-13-food-photos-and-cache-cleanup.md).
+[2026-10-13 follow-up](../2026-10-13-food-photos-and-cache-cleanup/README.md).
 
 ## Current status
 

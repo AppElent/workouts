@@ -33,4 +33,4 @@ Test Data Clear/Load removes that account’s uploaded files too.
 
 Accepted on 2026-10-13. See the
 [product contract](../contracts/account-data.md) and
-[cleanup verification](../records/2026-10-13-food-photos-and-cache-cleanup.md).
+[cleanup verification](../records/2026-10-13-food-photos-and-cache-cleanup/README.md).

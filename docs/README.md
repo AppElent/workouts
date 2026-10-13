@@ -35,4 +35,4 @@ Pending acceptance lives in each record's `## Open` section:
 - [Sentry](records/2026-10-08-sentry-acceptance.md)
 - [In-app test data](records/2026-10-10-in-app-test-data.md)
 
-- [Food photos and cache cleanup](records/2026-10-13-food-photos-and-cache-cleanup.md)
+- [Food photos and cache cleanup](records/2026-10-13-food-photos-and-cache-cleanup/README.md)
