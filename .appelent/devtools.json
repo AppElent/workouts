@@ -4,7 +4,7 @@
   "scope": "project",
   "ref": "main",
   "commit": "local",
-  "manifestHash": "cf6361cc3417292b18ef6429830e74d4e7c7bbceb3b815f364440df0ecd4b9ea",
+  "manifestHash": "0249ba43da678eeaed9f6cc139990ac5a4f40999836c8bff6bd0fd237fd6f42d",
   "files": {
     "docs/features/app-cli/examples/args.ts": {
       "sha256": "d4b58ff5f763d06f513af586038f12520c97c66932c54c189c270a1a6c4533a0"
@@ -216,8 +216,8 @@
       "version": "1.0.2"
     },
     "docs/standards/editors.md": {
-      "sha256": "9a89c8add8e017594907535e6ee6967e32d9fe0f4f2a14813f25292bcf3f4e63",
-      "version": "1.0.1"
+      "sha256": "0bee4ab73a00aed69dafc65f8d1f48b0a1b6ef67e3ad4d3a4fc620d6e9d19425",
+      "version": "1.1.0"
     },
     "docs/standards/environments.md": {
       "sha256": "1b305d825634576bbd5e84222d186549a5105b2f4f3acfaabc2a2dd2153a97b6",
@@ -338,12 +338,19 @@
     "docs/standards/issue-reporting.md": {
       "sha256": "3a983c7a89a53dbc6b479379e906887a263729ad9c22c74b4af3625a67b521e9",
       "version": "2.0.0"
+    },
+    "docs/standards/mobile-structure.md": {
+      "sha256": "77f425e722c3b7813c20161f91af4e6d7dccef81391f62d51ca95602fcc38470",
+      "version": "1.0.0"
+    },
+    "docs/standards/mobile-structure/examples/check-mobile-structure.mjs": {
+      "sha256": "69e60cd17a4ae9c5f9d6c2a8ff95e698f3c104152b65153dabe167d29a5434e0"
     }
   },
   "blocks": {
     "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
     "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
-    "CODING_STANDARDS.md": "215f5f3cf0d838c318665f5886e2db43ea25c23342d43e94b002adb5564827ea",
-    "DESIGN_SYSTEM.md": "785958e02f1476111bf0211b8dad748872011904adceb03624eb72fb8690e769"
+    "CODING_STANDARDS.md": "ec7756f6a1fd945faa2504a3d441619b52678b1ae893863ffcfe3ed7aaa62c0b",
+    "DESIGN_SYSTEM.md": "47a654e3d684ca6b60820fd200aafa6834776f793c1ae6a3ab2094ab82e78ee1"
   }
 }

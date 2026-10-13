@@ -1,12 +1,12 @@
 # Workouts mobile coding standards
 
-Apply the shared [mobile architecture](../../docs/standards/mobile-coding.md).
+Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
+[mobile structure](../../docs/standards/mobile-structure.md) standards.
 
 ## Bindings and migration scope
 
-- `app/` owns routes; `src/features/<feature>/<subject>/` owns screens and state.
-  Shared nutrition UI lives in `src/features/nutrition/components/`; cross-subject
-  hooks live at the nutrition root. `src/ui/` owns domain-independent adapters.
+- Structure bindings: shared nutrition UI lives in `src/features/nutrition/components/`;
+  cross-subject nutrition hooks live at the nutrition root.
 - `src/data/` owns nutrition persistence; `@workouts/core` owns shared calculations
   and catalogs. Preserve these owners when restructuring screens.
 - Feature ownership is adopted by live Nutrition Diary and Diary Entry. New work
@@ -27,7 +27,8 @@ Keep retained feature state where it still supports refresh errors or reads afte
 subscription expiry. The [pilot evidence](../../docs/records/2026-10-08-query-subscription-cache/README.md)
 records adoption and usage limits.
 
-`pnpm check:mobile-architecture` runs in `pnpm check`. It checks UI-to-feature
-imports, feature filenames, and literal feature font sizes. It does not establish
+`pnpm check:mobile-architecture` runs in `pnpm check`. It is this project's copy of
+the structure standard's check: UI-to-feature imports, feature filenames, and
+literal feature font sizes. It does not establish
 semantic ownership, indirect dependencies, or whole-app adoption. Review draft,
 keyboard, scroll, and dismissal ownership together.

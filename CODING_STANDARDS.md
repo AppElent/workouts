@@ -3,12 +3,17 @@
 <!-- appelent-standards:start -->
 ## Shared guidance
 
-Before code changes or review, read [general coding](docs/standards/general-coding.md) and the [shared baseline](docs/standards/baseline.md).
+Read only what the task needs; never preload every standard.
+
+1. **Every code change:** [general coding](docs/standards/general-coding.md), plus [mobile coding](docs/standards/mobile-coding.md) for native code.
+2. **When the task matches a row:** the linked standard.
 
 | Task | Read |
 | --- | --- |
-| Browser code | [Web baseline](docs/standards/web-baseline.md) |
-| Native code | [Mobile coding](docs/standards/mobile-coding.md) and [mobile baseline](docs/standards/mobile-baseline.md) |
+| Adding, moving, or naming native files | [Mobile structure](docs/standards/mobile-structure.md) |
+| Repository, package manager, formatter, types, tests, or CI | [Baseline](docs/standards/baseline.md) |
+| Web app stack, UI states, or browser capabilities | [Web baseline](docs/standards/web-baseline.md) |
+| Expo setup, native configuration, builds, or releases | [Mobile baseline](docs/standards/mobile-baseline.md) |
 | Verification | [Verification](docs/standards/verification.md), then the project's check commands |
 | Environment variables and secrets | [Environments](docs/standards/environments.md) |
 | Worktrees and isolated backends | [Workspaces](docs/standards/workspaces.md) |
@@ -20,6 +25,12 @@ Before code changes or review, read [general coding](docs/standards/general-codi
 | Other integration or repository tooling | The [feature index](docs/features/README.md) |
 | Documentation or instruction changes | [Documentation](docs/standards/documentation.md) |
 | Specialist tasks | [Specialist skills](docs/guidelines/shared/general/specialist-skills.md) |
+
+### Working with standards
+
+- **Conform:** follow standards as written. Installed copies are never edited in the project.
+- **Improve:** when a standard is wrong, unclear, or missing a rule other projects would share, propose the change upstream with the `tools-developer` skill: a pull request when concrete, an issue when not.
+- **Differ:** when this project needs something else, discuss it with the user first; never deviate silently. Record the agreed exception below: rule, scope, replacement, reason.
 
 Project decisions below select implementations and explain deviations from shared defaults.
 <!-- appelent-standards:end -->
