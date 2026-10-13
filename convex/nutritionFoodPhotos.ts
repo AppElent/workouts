@@ -2,7 +2,7 @@ import {paginationOptsValidator} from "convex/server";
 import type {PersonalFood} from "@workouts/core";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { mutation, query, type QueryCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 
 async function subject(ctx: Pick<QueryCtx, "auth">) {
 	const identity = await ctx.auth.getUserIdentity();
@@ -54,7 +54,7 @@ export const url = query({
 });
 
 /** Explicit, bounded adoption of provider images; nutrition snapshots stay unchanged. */
-export const useProviderImages = mutation({
+export const useProviderImages = internalMutation({
 	args: {expectedSubject: v.string(), table: v.union(v.literal("library"),v.literal("diary")), dryRun: v.optional(v.boolean()), paginationOpts: paginationOptsValidator},
 	returns: v.object({changed:v.number(), scanned:v.number(), isDone:v.boolean(), continueCursor:v.string()}),
 	handler: async (ctx, args) => {

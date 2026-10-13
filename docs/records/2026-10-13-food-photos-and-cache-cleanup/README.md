@@ -62,14 +62,16 @@ The simulator’s SQLite directory contains only `workouts-off-cache.db`,
 files and durable diary journals are gone. [Table counts](simulator-sqlite.json).
 Physical phone SQLite counts are not inferred from these simulator results.
 
-EAS preview build 21 finished and its submission finished. Apple processing and
-internal-tester access remain to be checked. Build ID
+EAS preview build 21 and its submission finished. Apple processing is `VALID`;
+its internal state is `IN_BETA_TESTING`. Group lookup completed and confirmed
+access through the existing **Team (Expo)** internal group (all-build access).
+Apple build ID `4c540e02-65c4-47ee-8a44-ee39fae3a0cf`. EAS build ID
 `2ba643b2-cb4e-4e74-984d-e3b3ec574ce0`; submission
 `b1444919-8527-401e-a302-d10eb50e9343`; source revision `a72f220`.
-Regular development is running from this branch on port 8191. Main’s documentation
+Main is merged and pushed; GitHub CI and CLI checks passed at `55038a4`.
+Regular development is running from this checkout on port 8191. Main’s documentation
 restructure was merged first, preserving its layout and unrelated mobile changes.
 
 ## Open
 
-- [ ] Apple processing and internal TestFlight availability for build 21.
 - [ ] Physical phone installation and SQLite cleanup verification.
