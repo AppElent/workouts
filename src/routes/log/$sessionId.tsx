@@ -44,10 +44,10 @@ function ActiveSessionPage() {
 	const session = useQuery(api.workoutSessions.getById, {
 		id: sessionId as Id<"workoutSessions">,
 	});
-	const sets =
-		useQuery(api.sets.listForSession, {
-			sessionId: sessionId as Id<"workoutSessions">,
-		}) ?? [];
+	const loadedSets = useQuery(api.sets.listForSession, {
+		sessionId: sessionId as Id<"workoutSessions">,
+	});
+	const sets = loadedSets ?? [];
 	const hostedParticipant = useQuery(
 		api.hostedWorkoutParticipants.getBySession,
 		{
@@ -113,7 +113,15 @@ function ActiveSessionPage() {
 		}
 	}
 
+	const exercisesLoaded =
+		session !== undefined &&
+		loadedSets !== undefined &&
+		hostedParticipant !== undefined;
+
+	// Only scroll when an exercise is added after the page has hydrated, not
+	// when the initial query results arrive.
 	useEffect(() => {
+		if (!exercisesLoaded) return;
 		if (
 			prevCountRef.current !== null &&
 			exerciseIds.length > prevCountRef.current
@@ -121,7 +129,7 @@ function ActiveSessionPage() {
 			bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 		}
 		prevCountRef.current = exerciseIds.length;
-	}, [exerciseIds.length]);
+	}, [exercisesLoaded, exerciseIds.length]);
 
 	const exercises = useExercises() ?? [];
 	const exerciseMap = new Map(exercises.map((ex) => [ex._id as string, ex]));
