@@ -29,7 +29,7 @@ Read only what the task needs; never preload every standard.
 ### Working with standards
 
 - **Conform:** follow standards as written. Installed copies are never edited in the project.
-- **Improve:** when a standard is wrong, unclear, or missing a rule other projects would share, propose the change upstream with the `tools-developer` skill: a pull request when concrete, an issue when not.
+- **Improve:** when a standard is wrong, unclear, or missing a rule other projects would share, propose the change upstream with the `developer-tools` skill: a pull request when concrete, an issue when not.
 - **Differ:** when this project needs something else, discuss it with the user first; never deviate silently. Record the agreed exception below: rule, scope, replacement, reason.
 
 Project decisions below select implementations and explain deviations from shared defaults.
