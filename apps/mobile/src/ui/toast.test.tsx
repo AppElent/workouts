@@ -33,9 +33,30 @@ describe("a toast with an action", () => {
 			</SafeAreaProvider>,
 		);
 		expect(screen.getByText("Appel toegevoegd aan Lunch")).toBeTruthy();
+		act(() => jest.advanceTimersByTime(700));
 		fireEvent.press(screen.getByRole("button", { name: "Ongedaan maken" }));
 		expect(undo).toHaveBeenCalledTimes(1);
 		expect(screen.queryByText("Appel toegevoegd aan Lunch")).toBeNull();
+	});
+
+	it("ignores a tap that lands as it appears, aimed at the row beneath", () => {
+		const undo = jest.fn();
+		render(
+			<SafeAreaProvider
+				initialMetrics={{
+					frame: { x: 0, y: 0, width: 390, height: 844 },
+					insets: { top: 47, left: 0, right: 0, bottom: 34 },
+				}}
+			>
+				<ToastProvider>
+					<Trigger onUndo={undo} />
+				</ToastProvider>
+			</SafeAreaProvider>,
+		);
+		act(() => jest.advanceTimersByTime(300));
+		fireEvent.press(screen.getByRole("button", { name: "Ongedaan maken" }));
+		expect(undo).not.toHaveBeenCalled();
+		expect(screen.getByText("Appel toegevoegd aan Lunch")).toBeTruthy();
 	});
 
 	it("stays long enough to reach the action", () => {

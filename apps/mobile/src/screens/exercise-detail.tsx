@@ -22,7 +22,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import { useExercise } from "../data/exercises";
 import { formatSessionDate } from "../data/session-data";
-import { useI18n } from "../i18n";
+import { dateLocale, useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -120,9 +120,9 @@ export function ExerciseDetailScreen() {
 	if (exercise === null) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="heading">Exercise not found</AppText>
+				<AppText variant="heading">{t.exercises.detail.notFound}</AppText>
 				<AppText variant="caption" style={styles.centeredText}>
-					It may have been deleted, or belong to someone else.
+					{t.exercises.detail.notFoundHint}
 				</AppText>
 			</View>
 		);
@@ -210,13 +210,11 @@ export function ExerciseDetailScreen() {
 			{tab === "Overview" ? (
 				<>
 					<Card style={styles.ormCard}>
-						<Eyebrow>Current 1RM</Eyebrow>
+						<Eyebrow>{t.exercises.detail.currentOrm}</Eyebrow>
 						{currentOrm === undefined ? (
 							<SkeletonBlock height={40} />
 						) : currentOrm === null ? (
-							<AppText variant="caption">
-								No 1RM yet — log a set and one appears.
-							</AppText>
+							<AppText variant="caption">{t.exercises.detail.noOrm}</AppText>
 						) : (
 							<>
 								<AppText style={styles.ormValue}>
@@ -225,10 +223,10 @@ export function ExerciseDetailScreen() {
 								</AppText>
 								<AppText variant="caption">
 									{currentOrm.source === "calculated"
-										? "Estimated from your best set (Epley)"
+										? t.exercises.detail.calculated
 										: currentOrm.source === "actual"
-											? "An actual single you lifted"
-											: "Entered manually"}
+											? t.exercises.detail.actual
+											: t.exercises.detail.manual}
 								</AppText>
 							</>
 						)}
@@ -236,16 +234,16 @@ export function ExerciseDetailScreen() {
 
 					{records ? (
 						<>
-							<Eyebrow>Personal records</Eyebrow>
+							<Eyebrow>{t.exercises.detail.records}</Eyebrow>
 							<View style={styles.statRow}>
 								<StatBox
 									value={String(records.heaviest.weight)}
 									unit="kg"
-									label="Heaviest"
+									label={t.exercises.detail.heaviest}
 								/>
 								<StatBox
 									value={String(records.mostReps.reps)}
-									label="Most reps"
+									label={t.exercises.detail.mostReps}
 								/>
 								<StatBox
 									value={
@@ -254,7 +252,7 @@ export function ExerciseDetailScreen() {
 											: "—"
 									}
 									unit={records.bestEstimate > 0 ? "kg" : undefined}
-									label="Best est. 1RM"
+									label={t.exercises.detail.bestEstimate}
 									color={colors.accent}
 								/>
 							</View>
@@ -263,7 +261,7 @@ export function ExerciseDetailScreen() {
 
 					{exercise.notes ? (
 						<>
-							<Eyebrow>Notes</Eyebrow>
+							<Eyebrow>{t.exercises.detail.notes}</Eyebrow>
 							<Card>
 								<AppText variant="body">{exercise.notes}</AppText>
 							</Card>
@@ -272,7 +270,7 @@ export function ExerciseDetailScreen() {
 
 					{exercise.instructions && exercise.instructions.length > 0 ? (
 						<>
-							<Eyebrow>How to</Eyebrow>
+							<Eyebrow>{t.exercises.detail.howTo}</Eyebrow>
 							<Card style={styles.instructions}>
 								{exercise.instructions.map((line, i) => (
 									// Instructions are a fixed ordered list with no ids; the
@@ -309,7 +307,7 @@ function ProgressTab({
 	currentOrm: { value: number } | null;
 }) {
 	const colors = useTokens();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const ormHistory = useQuery(
 		api.oneRepMaxes.listForExercise,
 		exerciseId ? { exerciseId } : "skip",
@@ -319,12 +317,12 @@ function ProgressTab({
 		() =>
 			(ormHistory ?? []).map((o) => ({
 				value: o.value,
-				label: new Date(o.date).toLocaleDateString(undefined, {
+				label: new Date(o.date).toLocaleDateString(dateLocale(locale), {
 					day: "numeric",
 					month: "short",
 				}),
 			})),
-		[ormHistory],
+		[ormHistory, locale],
 	);
 
 	/** Heaviest weight actually logged at each rep count in `CURVE_REPS`. */
@@ -358,7 +356,7 @@ function ProgressTab({
 	return (
 		<>
 			<TrendChart
-				title="1RM over time"
+				title={t.exercises.detail.ormOverTime}
 				points={ormPoints}
 				note={
 					ormHistory?.some(
@@ -371,16 +369,16 @@ function ProgressTab({
 
 			{hasCurve ? (
 				<TrendChart
-					title="Strength curve — logged"
-					note="Heaviest set at each rep count."
+					title={t.exercises.detail.curveLogged}
+					note={t.exercises.detail.curveLoggedNote}
 					points={actualCurve.filter((p) => p.value > 0)}
 				/>
 			) : null}
 
 			{theoreticalCurve.length > 0 ? (
 				<TrendChart
-					title="Strength curve — predicted"
-					note="What Epley expects at each rep count, from your current 1RM."
+					title={t.exercises.detail.curvePredicted}
+					note={t.exercises.detail.curvePredictedNote}
 					points={theoreticalCurve}
 					color={colors.textMuted}
 				/>
@@ -396,6 +394,8 @@ function HistoryTab({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const { t } = useI18n();
+	const copy = t.exercises.detail;
 	if (history === undefined) {
 		return <SkeletonBlock height={40} />;
 	}
@@ -404,10 +404,10 @@ function HistoryTab({
 		return (
 			<View style={styles.empty}>
 				<AppText variant="heading" style={{ color: colors.textMuted }}>
-					Nothing logged yet
+					{copy.nothingLogged}
 				</AppText>
 				<AppText variant="caption" style={styles.centeredText}>
-					Sets you log for this exercise show up here.
+					{copy.nothingLoggedHint}
 				</AppText>
 			</View>
 		);
@@ -419,13 +419,13 @@ function HistoryTab({
 	return (
 		<View style={styles.historyList}>
 			<View style={styles.historyHead}>
-				<AppText style={[styles.th, styles.flex]}>Date</AppText>
+				<AppText style={[styles.th, styles.flex]}>{copy.date}</AppText>
 				<AppText style={[styles.th, styles.center, { width: 56 }]}>kg</AppText>
 				<AppText style={[styles.th, styles.center, { width: 44 }]}>
-					Reps
+					{copy.reps}
 				</AppText>
 				<AppText style={[styles.th, styles.center, { width: 64 }]}>
-					Est. 1RM
+					{copy.estimate}
 				</AppText>
 			</View>
 			{rows.map((set) => {
@@ -438,7 +438,7 @@ function HistoryTab({
 								{formatSessionDate(set.sessionDate)}
 							</AppText>
 							<AppText variant="caption" style={styles.historyType}>
-								{set.setType}
+								{t.strength[set.setType]}
 							</AppText>
 						</View>
 						<AppText style={[styles.td, styles.center, { width: 56 }]}>

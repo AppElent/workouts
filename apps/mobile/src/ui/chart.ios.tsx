@@ -1,12 +1,16 @@
 /**
  * Swift Charts — the framework the Health and Fitness apps draw with. One
  * series in the accent ink, 2pt line with 3pt points, 16pt bars with a rounded
- * top, no grid (Foundry, "Charts"). Under two points a trend says "Not enough
- * data yet." instead of drawing.
+ * top (Foundry, "Charts"). Under two points a trend says "Not enough data yet."
+ * instead of drawing.
+ *
+ * The system axes stay on: without them a trend has no scale to read. Expo UI's
+ * `showGrid` switches the axes and their grid lines together, so the light
+ * system grid comes with them.
  */
 import { Chart, Host } from "@expo/ui/swift-ui";
 import { StyleSheet } from "react-native";
-import { useHostScheme, useTokens } from "../theme";
+import { spacing, useHostScheme, useTokens } from "../theme";
 import {
 	CHART_HEIGHT,
 	ChartFrame,
@@ -30,7 +34,7 @@ export function TrendChart({ title, note, points, color }: ChartProps) {
 				<Chart
 					type="line"
 					data={toData(points)}
-					showGrid={false}
+					showGrid
 					animate={false}
 					lineStyle={{
 						width: 2,
@@ -54,7 +58,7 @@ export function BucketChart({ title, note, points, color }: ChartProps) {
 				<Chart
 					type="bar"
 					data={toData(points).map((d) => ({ ...d, color: ink }))}
-					showGrid={false}
+					showGrid
 					animate={false}
 					barStyle={{ cornerRadius: 4, width: 16 }}
 				/>
@@ -64,5 +68,5 @@ export function BucketChart({ title, note, points, color }: ChartProps) {
 }
 
 const styles = StyleSheet.create({
-	host: { width: "100%", height: CHART_HEIGHT },
+	host: { width: "100%", height: CHART_HEIGHT, marginTop: spacing.xs },
 });

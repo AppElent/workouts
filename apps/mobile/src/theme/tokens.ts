@@ -96,7 +96,6 @@ export const colorsLight = lightColors;
  */
 export const sportMeta = {
 	strength: {
-		label: "Strength",
 		glyph: "S",
 		color: "#c8f73c",
 		dim: "rgba(200, 247, 60, 0.14)",
@@ -106,7 +105,6 @@ export const sportMeta = {
 		implemented: true,
 	},
 	running: {
-		label: "Running",
 		glyph: "R",
 		color: "#ff8a4c",
 		dim: "rgba(255, 138, 76, 0.14)",
@@ -115,7 +113,6 @@ export const sportMeta = {
 		implemented: true,
 	},
 	cycling: {
-		label: "Cycling",
 		glyph: "C",
 		color: "#4fd1e3",
 		dim: "rgba(79, 209, 227, 0.14)",

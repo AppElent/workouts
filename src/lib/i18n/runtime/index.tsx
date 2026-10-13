@@ -66,6 +66,7 @@ export function createI18n<L extends string, M>(config: I18nConfig<L, M>) {
 
 		const setLocale = useCallback((next: L) => {
 			setLocaleState(next);
+			// biome-ignore lint/suspicious/noDocumentCookie: a synchronous write keeps the SSR locale cookie in step with this render; the async Cookie Store API is missing from older Safari.
 			document.cookie = `${cookieName}=${next}; path=/; max-age=31536000; samesite=lax`;
 			document.documentElement.lang = next;
 		}, []);

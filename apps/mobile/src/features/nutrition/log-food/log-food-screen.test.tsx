@@ -8,6 +8,7 @@ import {
 } from "expo-router/testing-library";
 import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
+import { armToastAction } from "../../../test-support/toast-action";
 
 const mockUseMutation = jest.mocked(useMutation);
 const mockUsePaginatedQuery = jest.mocked(usePaginatedQuery);
@@ -924,6 +925,7 @@ describe("the redesigned food browser", () => {
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(await screen.findByText("Added Apple to Breakfast")).toBeTruthy();
 
+		await armToastAction();
 		fireEvent.press(screen.getByRole("button", { name: "Undo" }));
 		expect(screen.queryByText("Added Apple to Breakfast")).toBeNull();
 		// Undo removes exactly the entry this + created, by its client id.

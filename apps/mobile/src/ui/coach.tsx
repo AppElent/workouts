@@ -7,7 +7,7 @@
  * here only so seven screens don't each grow their own card.
  */
 import type { ReactNode } from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
 	type SportKey,
 	type Tokens,
@@ -33,14 +33,17 @@ export function Chip({
 	label,
 	active,
 	color,
+	onPress,
 }: {
 	label: string;
 	active?: boolean;
 	color?: string;
+	/** Makes the chip a selectable button rather than a static tag. */
+	onPress?: () => void;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	return (
+	const chip = (
 		<View
 			style={[
 				styles.chip,
@@ -59,6 +62,17 @@ export function Chip({
 				{label}
 			</AppText>
 		</View>
+	);
+	if (!onPress) return chip;
+	return (
+		<Pressable
+			onPress={onPress}
+			accessibilityRole="button"
+			accessibilityState={{ selected: Boolean(active) }}
+			hitSlop={8}
+		>
+			{chip}
+		</Pressable>
 	);
 }
 

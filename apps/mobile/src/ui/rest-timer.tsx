@@ -30,6 +30,7 @@ import {
 } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
@@ -61,6 +62,7 @@ function format(seconds: number) {
 
 export function RestTimerProvider({ children }: { children: ReactNode }) {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.workoutTools.restTimer;
 	const insets = useSafeAreaInsets();
 	const [defaultSeconds, setDefaultSeconds] = useState(FALLBACK_SECONDS);
 	const [endsAt, setEndsAt] = useState<number | null>(null);
@@ -160,17 +162,22 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 					onPress={() => adjust(-15)}
 					hitSlop={8}
 					accessibilityRole="button"
-					accessibilityLabel="Subtract 15 seconds"
+					accessibilityLabel={copy.subtract}
 				>
 					<AppText style={styles.adjust}>−15</AppText>
 				</Pressable>
 
-				<Pressable onPress={togglePause} style={styles.readout}>
+				<Pressable
+					onPress={togglePause}
+					accessibilityRole="button"
+					accessibilityLabel={paused !== null ? copy.resume : copy.pause}
+					style={styles.readout}
+				>
 					<AppText style={styles.time}>
-						{remaining <= 0 ? "Rest over" : format(remaining)}
+						{remaining <= 0 ? copy.over : format(remaining)}
 					</AppText>
 					{paused !== null ? (
-						<AppText style={styles.pausedLabel}>paused</AppText>
+						<AppText style={styles.pausedLabel}>{copy.paused}</AppText>
 					) : null}
 				</Pressable>
 
@@ -178,7 +185,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 					onPress={() => adjust(15)}
 					hitSlop={8}
 					accessibilityRole="button"
-					accessibilityLabel="Add 15 seconds"
+					accessibilityLabel={copy.add}
 				>
 					<AppText style={styles.adjust}>+15</AppText>
 				</Pressable>
@@ -187,7 +194,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 					onPress={api.stop}
 					hitSlop={8}
 					accessibilityRole="button"
-					accessibilityLabel="Dismiss rest timer"
+					accessibilityLabel={copy.dismiss}
 				>
 					<AppText style={styles.dismiss}>✕</AppText>
 				</Pressable>

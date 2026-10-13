@@ -153,14 +153,13 @@ describe("Nutrition accessibility", () => {
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByRole("button", { name: "Select" }));
 
-		const row = await screen.findByLabelText("Select Oatmeal for Combo");
+		const row = await screen.findByLabelText("Select Oatmeal");
 		expect(row.props.accessibilityRole).toBe("checkbox");
 		expect(row.props.accessibilityState).toMatchObject({ checked: false });
 
 		fireEvent.press(row);
 		expect(
-			screen.getByLabelText("Select Oatmeal for Combo").props
-				.accessibilityState,
+			screen.getByLabelText("Select Oatmeal").props.accessibilityState,
 		).toMatchObject({ checked: true });
 	});
 

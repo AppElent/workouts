@@ -2,12 +2,14 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import type { Id } from "../../src/convex/api";
 import { useRoutines, useShellData } from "../../src/data/session-data";
+import { useI18n } from "../../src/i18n";
 import { RoutineEditor } from "../../src/screens/routine-editor";
 import { type Tokens, useThemedStyles } from "../../src/theme";
 import { AppText } from "../../src/ui/text";
 
 export default function RoutineEditorRoute() {
 	const router = useRouter();
+	const copy = useI18n().t.workoutTools.routineEditor;
 	const { id } = useLocalSearchParams<{ id?: string }>();
 	const routines = useRoutines();
 	const { exercises } = useShellData();
@@ -17,10 +19,10 @@ export default function RoutineEditorRoute() {
 	const close = () => router.back();
 
 	if (id && routines === undefined) {
-		return <Status label="Loading routine…" />;
+		return <Status label={copy.loading} />;
 	}
 	if (id && !routine) {
-		return <Status label="Routine not found" />;
+		return <Status label={copy.notFound} />;
 	}
 
 	return (
@@ -33,7 +35,9 @@ export default function RoutineEditorRoute() {
 			/>
 			{Platform.OS === "ios" ? (
 				<Stack.Toolbar placement="left">
-					<Stack.Toolbar.Button onPress={close}>Cancel</Stack.Toolbar.Button>
+					<Stack.Toolbar.Button onPress={close}>
+						{copy.cancel}
+					</Stack.Toolbar.Button>
 				</Stack.Toolbar>
 			) : null}
 		</>

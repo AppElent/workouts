@@ -5,6 +5,7 @@ import {
 } from "@workouts/core/nutrition";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { renderApp } from "../../../test-support/render-app";
+import { armToastAction } from "../../../test-support/toast-action";
 
 function nutrients(energy: number): Record<NutrientKey, NutrientValue> {
 	const values = Object.fromEntries(
@@ -82,6 +83,7 @@ describe("combo editor", () => {
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(2),
 		);
+		await armToastAction();
 		fireEvent.press(screen.getByLabelText("Undo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
@@ -123,6 +125,7 @@ describe("combo editor", () => {
 		expect(added?.snapshot.amount).toBe(100);
 		// The browser stays open for the next part.
 		expect(app.getPathname()).toBe("/nutrition-food");
+		await armToastAction();
 		fireEvent.press(screen.getByLabelText("Undo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
@@ -187,6 +190,7 @@ describe("combo editor", () => {
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(2),
 		);
+		await armToastAction();
 		fireEvent.press(screen.getByLabelText("Undo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),

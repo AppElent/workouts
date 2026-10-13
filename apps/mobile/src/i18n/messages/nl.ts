@@ -1,15 +1,22 @@
 import { activityNl } from "./activity";
+import { bodyMetricsNl } from "./body-metrics";
 import { diaryNl } from "./diary";
 import { enduranceNl } from "./endurance";
+import { hostedNl } from "./hosted";
 import { localDataNl } from "./local-data";
 import { logFoodNl } from "./log-food";
 import { nutritionAssistanceNl } from "./nutrition-assistance";
 import { nutritionSettingsNl } from "./nutrition-settings";
 import { oneOffLogNl } from "./one-off-log";
 import { profileNl } from "./profile";
+import { progressNl } from "./progress";
+import { signInNl } from "./sign-in";
 import { strengthNl } from "./strength";
 import { testDataNl } from "./test-data";
 import { trainingNl } from "./training";
+import { wodsNl } from "./wods";
+import { workoutSummaryNl } from "./workout-summary";
+import { workoutToolsNl } from "./workout-tools";
 /**
  * Dutch. The `satisfies typeof en` at the bottom is the whole safety net: a key
  * present in English and missing here fails typecheck, and a key here that
@@ -27,6 +34,13 @@ import { weekReviewNl } from "./week-review";
 
 export const nl = {
 	testData: testDataNl,
+	wods: wodsNl,
+	workoutSummary: workoutSummaryNl,
+	progress: progressNl,
+	bodyMetrics: bodyMetricsNl,
+	hosted: hostedNl,
+	workoutTools: workoutToolsNl,
+	signIn: signInNl,
 	profile: profileNl,
 	training: trainingNl,
 	strength: strengthNl,
@@ -52,6 +66,14 @@ export const nl = {
 		assistance: "Hulp bij invoeren",
 		weekOverview: "Weekoverzicht",
 		foodLibrary: "Voedingsbibliotheek",
+		exercises: "Oefeningen",
+		exercise: "Oefening",
+		newExercise: "Nieuwe oefening",
+		hosted: "Groepstrainingen",
+		hostedWorkout: "Groepstraining",
+		routine: "Routine",
+		workout: "Training",
+		summary: "Samenvatting",
 	},
 
 	feedback: {
@@ -73,6 +95,9 @@ export const nl = {
 		back: "Terug",
 		retry: "Opnieuw proberen",
 		offline: "Offline — maak verbinding om wijzigingen op te slaan",
+		keep: "Behouden",
+		decrease: "Verlaag {label}",
+		increase: "Verhoog {label}",
 		calendar: {
 			previousMonth: "Vorige maand",
 			nextMonth: "Volgende maand",
@@ -414,7 +439,6 @@ export const nl = {
 				"Deze Combo kon niet worden opgeslagen. Je naam en selectie staan er nog.",
 			selectionHelp:
 				"Kies dagboekitems of een hele gelogde Combo uit één maaltijd.",
-			selectEntry: "Selecteer {name} voor Combo",
 			cancel: "Annuleren",
 			continueOne: "Ga verder met 1 onderdeel",
 			continueMany: "Ga verder met {count} onderdelen",

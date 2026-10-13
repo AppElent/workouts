@@ -19,6 +19,7 @@ import {
 	type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { fmt, useI18n } from "../i18n";
 import {
 	metrics,
 	radius,
@@ -549,13 +550,14 @@ export function StepperField({
 	onChange: (value: number) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
+	const { t } = useI18n();
 	const round = (number: number) => Math.round(number * 10) / 10;
 	return (
 		<View style={styles.stepperField}>
 			<Pressable
 				onPress={() => onChange(round(Math.max(min, value - step)))}
 				accessibilityRole="button"
-				accessibilityLabel={`Decrease ${label}`}
+				accessibilityLabel={fmt(t.common.decrease, { label })}
 				style={styles.stepperButton}
 			>
 				<AppText style={styles.stepperGlyph}>−</AppText>
@@ -567,7 +569,7 @@ export function StepperField({
 			<Pressable
 				onPress={() => onChange(round(value + step))}
 				accessibilityRole="button"
-				accessibilityLabel={`Increase ${label}`}
+				accessibilityLabel={fmt(t.common.increase, { label })}
 				style={styles.stepperButton}
 			>
 				<AppText style={styles.stepperGlyph}>＋</AppText>

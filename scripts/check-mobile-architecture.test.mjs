@@ -51,6 +51,45 @@ describe("mobile architecture", () => {
 			[],
 		);
 	});
+	it("rejects UI text written outside the message catalog", () => {
+		const screenFile = "apps/mobile/src/screens/summary.tsx";
+		const rules = (source) =>
+			inspect(source, screenFile).map((issue) => issue.rule);
+		for (const source of [
+			"const a = <Text>Workout complete</Text>;",
+			'const a = <Input placeholder="Search WODs" />;',
+			"const a = <Row accessibilityLabel={`Remove movement $" + "{n}`} />;",
+			"const a = <Row accessibilityLabel={open ? `Collapse $" +
+				'{n}` : "Expand"} />;',
+			'const a = <Text>{busy ? "Saving…" : copy.save}</Text>;',
+			'confirm({ title: "Delete this workout?" });',
+			'toast.error(convexErrorMessage(error, "Could not delete."));',
+		])
+			expect(rules(source)).toEqual(["hardcoded-ui-text"]);
+	});
+	it("allows catalog text, units, separators, platform checks and tests", () => {
+		const screenFile = "apps/mobile/src/screens/summary.tsx";
+		for (const source of [
+			"const a = <Text>{copy.title}</Text>;",
+			"const a = <Text>{value} kcal</Text>;",
+			"const a = <Row accessibilityLabel={`$" + "{name}, $" + "{detail}`} />;",
+			'const a = <>{Platform.OS === "ios" && <Bar />}</>;',
+			'const a = <Input placeholder="—" />;',
+		])
+			expect(inspect(source, screenFile)).toEqual([]);
+		expect(
+			inspect(
+				"const a = <Text>Workout complete</Text>;",
+				"apps/mobile/src/screens/summary.test.tsx",
+			),
+		).toEqual([]);
+		expect(
+			inspect(
+				'errors.push({ key: "range", message: "range" });',
+				"apps/mobile/src/data/goal-history.ts",
+			),
+		).toEqual([]);
+	});
 	it("rejects per-screen copy dictionaries outside the message catalog", () => {
 		for (const file of [
 			"apps/mobile/src/screens/activity-copy.ts",

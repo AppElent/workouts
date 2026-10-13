@@ -29,8 +29,10 @@ records adoption and usage limits.
 
 `pnpm check:mobile-architecture` runs in `pnpm check`. It is this project's copy of
 the structure standard's check: UI-to-feature imports, feature filenames,
-literal feature font sizes, `*-copy.ts` dictionaries outside `src/i18n/`, and
-`locale === …` branches that choose text (UI text belongs in the
+literal feature font sizes, `*-copy.ts` dictionaries outside `src/i18n/`,
+`locale === …` branches that choose text, and literal UI text in JSX children,
+readable props (labels, titles, placeholders) and toast/confirm messages outside
+tests and the catalog (UI text belongs in the
 [message catalog](../../docs/standards/i18n.md); locale-specific formatting goes
 through `localizeDecimal` and `dateLocale` in `src/i18n`). It does not establish
 semantic ownership, indirect dependencies, or whole-app adoption. Review draft,
