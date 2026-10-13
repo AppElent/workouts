@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Workouts.
-version: 1.0.0
+version: 2.0.0
 ---
 
 # Verify Workouts
@@ -52,7 +52,7 @@ keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence
 changes, verify readable cached history and an explicit unavailable-day state.
 Physical haptics remain a device check.
 
-Record results in a verification record under `docs/records/`, with its evidence
-(copy `docs/records/.template.md`).
+Report results in the PR. Write a record under `docs/records/` only when a contract
+or ADR cites the evidence; pending acceptance becomes a GitHub issue.
 The [iOS checklist](ios-acceptance.md) supplements affected
 flow checks; its unchecked rows remain pending.

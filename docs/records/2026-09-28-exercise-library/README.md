@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for native exercise library evidence.
 version: 1.0.0
-status: open
 date: 2026-09-28
 ---
 
@@ -47,8 +46,8 @@ Android could not be run: the local Android SDK is missing command-line tools. A
 - Personal and default rows share the same horizontal layout. Personal rows reveal Edit/Delete on swipe. Default rows consume horizontal drags without moving, activating the row, or playing swipe feedback; long-press opens Clone. Automated coverage checks iOS menu haptic dispatch and menu-only swipe feedback; tactile output still needs a physical device.
 - Cloned Barbell Bench Press from its long-press action, verified copied instructions and empty history, edited its notes using the dots menu, saved with the keyboard open and verified the updated detail. Deleted only that QA copy using the confirmed Delete menu action; the user's personal exercise remains.
 - Final checks: 462 mobile tests (70 suites), 8 backend exercise/migration tests, mobile/root TypeScript, Biome and diff whitespace check passed. Backend tests cover authentication, ownership, shipped/default immutability, optional-field clearing and retained set references.
-- Updated screenshots are `assets/compact-sheet.png`, `assets/personal-row.png`, `assets/exercise-actions.png`. The follow-up motion recording is `assets/edit-clone.mp4`.
+- Updated screenshots are `assets/compact-sheet.png`, `assets/personal-row.png`, `assets/exercise-actions.png`. The follow-up motion recording is a recording (not kept).
 
-## Open
+## Follow-up
 
-- [ ] Tactile haptics on a physical device.
+Pending acceptance: #103.

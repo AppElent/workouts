@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read before reporting any change as complete or accepted.
-version: 1.0.1
+version: 2.0.0
 applies_to: [all]
 ---
 
@@ -21,7 +21,7 @@ Completion claims rest on the target's checks and observed runtime evidence, wit
 
 ## Implementation
 
-1. Record results in a verification record (`docs/records/.template.md`): one current-status section with revision and pending acceptance in `## Open`; older observations remain dated evidence.
+1. Report results in the PR. Write a verification record (`docs/records/.template.md`) only when a contract or decision cites the evidence; pending acceptance goes to a GitHub issue.
 2. Save noisy diagnostic output locally and inspect the failure excerpt with its exit status.
 
 ## Verify

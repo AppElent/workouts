@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for local data upload, SQLite inspection, and the 2026-10-11 rollout to dev and TestFlight.
 version: 1.0.0
-status: open
 date: 2026-10-08
 ---
 
@@ -190,6 +189,6 @@ CoreDevice inspection failed because Apple could not read developer disk image
 metadata; cleanup acceptance is based on the user's success report, while
 post-cleanup phone SQLite counts are not independently verified.
 
-## Open
+## Follow-up
 
-- [ ] Physical development-client UI acceptance.
+Pending acceptance: #107.

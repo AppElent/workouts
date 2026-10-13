@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for Diary Entry editor implementation, file ownership, and device evidence.
 version: 1.0.0
-status: open
 date: 2026-10-04
 ---
 
@@ -207,7 +206,7 @@ the sticky-accessory implementation description above.
 
 ![Serving popup after native fix](assets/ios-serving-keyboard-fixed.png)
 
-Recording: `evidence/diary-entry-editor/ios-keyboard-fix.mp4` captures decimal
+Recording: a recording (not kept) captures decimal
 editing, cancellation and reopening. Physical-device confirmation, Dynamic Type,
 VoiceOver, dark/English appearance, and the remaining gestures are still pending.
 The user's subsequent visual review identified fidelity gaps in the quantity
@@ -252,7 +251,7 @@ Text size was restored to Large afterward. Evidence:
 - `evidence/diary-entry-editor/ios-quantity-keyboard-round5.png`
 - `evidence/diary-entry-editor/ios-gram-keyboard-round5.png`
 - `evidence/diary-entry-editor/ios-round5-xl.png`
-- `evidence/diary-entry-editor/ios-round5-visual.mp4`
+- a recording (not kept)
 
 The system keyboard, menus, and sheet chrome intentionally retain native styling.
 The shortcut pills use native glass surfaces on iOS. This pass does not claim
@@ -482,7 +481,6 @@ UI typography and legacy screens are not newly required to migrate. The check
 covers direct dependencies and literal syntax, not transitive graphs or computed
 style values. Choosing a shared component's owner remains a review decision.
 
-## Open
+## Follow-up
 
-- [ ] Physical device, Dynamic Type, VoiceOver, dark/English appearance, and remaining gestures.
-- [ ] Round 5 visual acceptance is not marked complete.
+Pending acceptance: #104.

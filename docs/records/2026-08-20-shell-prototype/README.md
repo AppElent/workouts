@@ -3,7 +3,6 @@ type: record
 kind: research
 description: Read for the issue 46 app shell variants and screenshots.
 version: 1.0.0
-status: closed
 date: 2026-08-20
 ---
 

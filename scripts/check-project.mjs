@@ -22,7 +22,7 @@ export async function checkProject(root) {
     for (const role of ['check', 'typecheck', 'test']) add(pkg.scripts?.[role] ? 'pass' : 'warn', `Package script: ${role}`);
     for (const lock of ['package-lock.json', 'yarn.lock', 'bun.lock', 'bun.lockb']) if (await read(lock) !== null) add('warn', `Review package-manager ownership: ${lock}`);
   } else add('info', 'No package.json; no JavaScript baseline assumed');
-  for (const path of ['CODING_STANDARDS.md', 'DESIGN_SYSTEM.md', 'docs/features/README.md']) add(await read(path) === null ? 'warn' : 'pass', `Toolkit routing: ${path}`);
+  for (const path of ['CODING_STANDARDS.md', 'DESIGN_SYSTEM.md', 'docs/standards/documentation.md']) add(await read(path) === null ? 'warn' : 'pass', `Toolkit routing: ${path}`);
   if (await read('env.manifest.ts') !== null) add('info', 'Environment manifest exists; use env.mjs check for trusted execution and validation');
   add('info', 'Read-only file checks; no app code, dotenv values, providers, builds, or live acceptance were inspected');
   return { ok: !findings.some(x => x.level === 'fail'), findings };

@@ -3,17 +3,9 @@
   "repository": "AppElent/developer-tools",
   "scope": "project",
   "ref": "main",
-  "commit": "local",
-  "manifestHash": "5a2fc09aeb275274bd06fcaabff784544374abad9b92a0d6c4c7693efc8bcb2f",
+  "commit": "56eb81228d6029dc8bc3776ce97f876f40d057ce",
+  "manifestHash": "4684121646c9ecf626c5a6ac45b87e538e470e3a0e199d102478e581e31fe4a0",
   "files": {
-    "docs/features/README.md": {
-      "sha256": "be62a2a6d8a2e401bf8d41cf513ef50361faa8db15c60e885c410abcdb04ff91",
-      "version": "6.0.0"
-    },
-    "docs/guidelines/shared/README.md": {
-      "sha256": "071493b51ed6c1e237fa892e2c921a20cbba3b76e6942b8afe4be200432ea800",
-      "version": "3.0.0"
-    },
     "scripts/baseline-mobile.mjs": {
       "sha256": "2ca4cd7d820efda7ad5b902c0c987b724d87197e2c1a4e15d446e39a1085aedf"
     },
@@ -24,7 +16,7 @@
       "sha256": "4726d6f3bca71abb237b358676385f1209af0ddea8590699f322fd96cd3aa724"
     },
     "scripts/check-project.mjs": {
-      "sha256": "826244094f1131202e2987b4d3a03e64a5b0a43c99297c7a36bd1912a4bf6118"
+      "sha256": "f34515713620986ed40c76e440ba201c65fe8d6ba4044366aa0f5fe63eb1ec59"
     },
     "scripts/env.mjs": {
       "sha256": "b2e835b6a27f245d59dd8d84547e375fe4a03724716f5662d978bf0f567f77e2"
@@ -105,7 +97,7 @@
       "sha256": "4c84cc10f0b9b2694a471cfef6cf125bc8d3dbf58cfe0a7801ddb302aff032eb"
     },
     "scripts/sync-devtools.mjs": {
-      "sha256": "bd656cf8600e39cfe4f80027ab4e5f2603a31b1cf7da76f29d8a359e2a4c4f89"
+      "sha256": "661eed5fe9cc29258945d0d09d6db32a1b4a51f7a38b2008816d428256a8e2b8"
     },
     "scripts/workspace.mjs": {
       "sha256": "4a913d63a48fdebb952f1939d4719cc1b3096534bddcea966771440caeeca587"
@@ -119,20 +111,20 @@
       "version": "1.0.0"
     },
     "docs/records/.template.md": {
-      "sha256": "6e6e935cef043accaeb58e5cd3c9c5b6b6603ba353ee2a06e653d6ce14469448",
-      "version": "1.0.0"
+      "sha256": "b9b9ca3bbe6c47b588202b50ea3737275cc331622f600966c777ea17de8f1bfa",
+      "version": "2.0.0"
     },
     "docs/runbooks/.template.md": {
-      "sha256": "524b8c33eeca3b75daf5b88f46e1c18943b770f6d06e217d8fdff0f624c0e445",
-      "version": "1.0.0"
+      "sha256": "fbf8e016298668fceaf2b8fe95d94dc3710db57738c8b0cc6f008d530935daf6",
+      "version": "2.0.0"
     },
     "docs/standards/.template.md": {
       "sha256": "6087b18bfbbe9ddd29da78b079a706c63fad4f49e4a69f4b300cdbcc09cbff75",
       "version": "1.1.0"
     },
     "docs/standards/documentation.md": {
-      "sha256": "f2d7ffd72351065fb3eb85da21099bc1aa5eed7537af00ae5681ae05e1c79f09",
-      "version": "2.0.1"
+      "sha256": "5b66bcfd70c39551f96ba90e1b108a37427987441efee63777d868981fa64182",
+      "version": "3.0.0"
     },
     "docs/standards/android-design.md": {
       "sha256": "9eceddab181206531375aa9559a9f24c44c705d4af9cf1688dd636ca5b7e8142",
@@ -237,8 +229,8 @@
       "version": "1.0.0"
     },
     "docs/standards/verification.md": {
-      "sha256": "d10eefdcc7c5a7b000172cc3468b1840296b466e16c69d0eb4f30f989f9810f9",
-      "version": "1.0.1"
+      "sha256": "814265d19630119e9dda189dae5dadc580d18ee2c2b48b037e3f99652e1c5bb0",
+      "version": "2.0.0"
     },
     "docs/standards/web-baseline.md": {
       "sha256": "5fb8b1d779a47f7a086090d18dc58f51483f5b165c4b71e65f522705f313a509",

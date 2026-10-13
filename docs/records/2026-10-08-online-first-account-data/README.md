@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for account-data implementation checks, migration results, and measured Convex usage.
 version: 1.0.0
-status: closed
 date: 2026-10-08
 ---
 
@@ -91,7 +90,7 @@ isolated backend before writes. No dependency/native-runtime changes were needed
   below the keyboard; its modal now owns keyboard avoidance and bottom safe-area
   padding. Repeated focus/edit, keyboard completion, acknowledged save, reopen
   with the new name and Cancel dismissal on the corrected bundle. See
-  [visible rename](combo-rename-keyboard.png) and [flow recording](combo-rename.mp4).
+  [visible rename](combo-rename-keyboard.png) and flow recording (video not kept).
 
 The temporary network proxy was stopped and the ignored mobile environment
 restored to the direct isolated URL. The Expo floating tools button intercepted

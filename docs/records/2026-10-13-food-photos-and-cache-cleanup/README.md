@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for food photo storage and local cache cleanup evidence as of 2026-10-13.
 version: 1.0.0
-status: open
 date: 2026-10-13
 ---
 
@@ -72,6 +71,6 @@ Main is merged and pushed; GitHub CI and CLI checks passed at `55038a4`.
 Regular development is running from this checkout on port 8191. Main’s documentation
 restructure was merged first, preserving its layout and unrelated mobile changes.
 
-## Open
+## Follow-up
 
-- [ ] Physical phone installation and SQLite cleanup verification.
+Pending acceptance: #110.

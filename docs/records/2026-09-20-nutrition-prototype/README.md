@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for nutrition and appearance coverage, Android captures, and the iPhone review checklist.
 version: 1.0.0
-status: open
 date: 2026-09-20
 ---
 
@@ -157,9 +156,9 @@ been hidden. Evidence from an earlier layout is identified below.
 
 | Journey / surface | Result | Evidence |
 | --- | --- | --- |
-| Profile -> Appearance | System default, immediate Dark/Light override; explicit Light survives dark system toggle; System reacts dark -> light live | [Dark](android-appearance-dark.png), [System/light](android-appearance-system-light-return.png), [recording](android-appearance.mp4) |
+| Profile -> Appearance | System default, immediate Dark/Light override; explicit Light survives dark system toggle; System reacts dark -> light live | [Dark](android-appearance-dark.png), [System/light](android-appearance-system-light-return.png), recording (video not kept) |
 | Diary | Empty and populated reachable, readable in both palettes | [Empty light](android-diary-empty-light.png), [Populated light](android-diary-populated-light.png), [Populated dark](android-diary-populated-dark.png) |
-| Search -> serving -> log -> edit | Searched Apple, chose one apple (130 g / 73 kcal), logged to Breakfast, edited quantity to 2 (146 kcal), returned to updated diary | [Search + keyboard](android-food-search-keyboard-light.png), [recording](android-log-food-light.mp4); recording predates compact serving/entry form polish |
+| Search -> serving -> log -> edit | Searched Apple, chose one apple (130 g / 73 kcal), logged to Breakfast, edited quantity to 2 (146 kcal), returned to updated diary | [Search + keyboard](android-food-search-keyboard-light.png), recording (video not kept); recording predates compact serving/entry form polish |
 | Entry form polish | Shared grouped form, full serving labels, fixed Save action; palette switch retains quantity | [Light](android-entry-light.png), [Dark](android-entry-dark.png) |
 | Create Combo | Selected the Apple diary entry, named and saved Prototype Apple Combo, returned to collapsed Logged Combo | [Light](android-combo-builder-light.png), [Dark](android-combo-builder-dark.png) |
 | Log Combo | Opened saved Combo, scaled to 0.5, selected Lunch, previewed 130 g and logged; Lunch shows 73 kcal | [Light](android-combo-log-light.png), [Dark](android-combo-log-dark.png) |
@@ -240,7 +239,7 @@ Android review at 320 dp width (960 x 2100, density 480), font scale 1.3:
 - Resolving the draft opens search; choosing Appel and logging one apple removes
   the note and increases total intake to 291 kcal:
   [serving sheet](android-serving-dark-nl-compact-xl.png),
-  [conversion recording](android-draft-conversion-dark.mp4).
+  conversion recording (video not kept).
 - Fixed translucent toast backgrounds discovered during validation; toasts now
   use an opaque semantic surface and announce errors to accessibility services.
 - The native iPhone review remains pending. Android font scale 1.3 is a stress
@@ -277,12 +276,12 @@ English, Android 17, 1280 x 2856 at 480 dpi and font scale 1.0:
   Lunch returned to that date's diary. The temporary copied entry was deleted.
   [Selection](android-copy-populated-light.png),
   [destination diary](android-copy-return-diary-light.png),
-  [retest recording](android-copy-direct-return.mp4).
+  retest recording (video not kept).
 - Moving the copied Apple from Dinner to Snacks retained 73 kcal and emptied
   Dinner. Same-destination submission was disabled, and Cancel returned to the
   diary: [dark](android-transfer-dark.png), [light](android-transfer-light.png),
   [reopened same-destination state](android-transfer-light-reopened.png),
-  [recording](android-move-entry.mp4). Sampled frames confirm the disabled
+  recording (video not kept). Sampled frames confirm the disabled
   destination, new selection, and resulting diary. Full motion review remains.
 - Delete confirmation identifies the entry, meal and date, with readable
   destructive button text: [light](android-delete-entry-light.png),
@@ -302,7 +301,6 @@ bundle). See REVIEW.md for final checks and device coverage. Physical iPhone
 connection and the flows listed above are user-confirmed on iPhone 17 Pro Max,
 iOS 27; the remaining checklist follows the report.
 
-## Open
+## Follow-up
 
-- [ ] States marked pending in the coverage table.
-- [ ] Physical iOS acceptance (see [review](review.md)).
+Pending acceptance: #101.
