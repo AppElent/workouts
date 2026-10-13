@@ -15,11 +15,12 @@
  */
 import { calculateOneRepMax } from "@workouts/core";
 import type { ExerciseId } from "@workouts/core/exercises";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { useExercise } from "../data/exercises";
 import { formatSessionDate } from "../data/session-data";
 import { useI18n } from "../i18n";

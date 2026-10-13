@@ -12,7 +12,7 @@
  * Convex uses server-side in `wodResults.getBest`.
  */
 import { formatScore, prImprovement } from "@workouts/core";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -23,6 +23,7 @@ import {
 	View,
 } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import {
 	radius,

@@ -69,4 +69,5 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 | Environments | `pnpm env:*` runs `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |
 | Worktrees | `scripts/setup-worktree.mjs` owns the lifecycle, not `scripts/workspace.mjs`. See [worktree setup](docs/runbooks/worktree-setup.md). |
 | Test login | Non-production builds embed public test-account variables; a legacy exception pending an auth migration. |
+| Convex query caching | Mobile: `retention` flavor in `apps/mobile/src/convex/query-cache.tsx`, 5 min expiration, 20 idle entries; no disk cache (`last-known` not adopted). Web: not adopted. Standard pending in [developer-tools#17](https://github.com/AppElent/developer-tools/pull/17). |
 | Observability | Shared Sentry feature; [Sentry operations](docs/runbooks/sentry.md) owns surfaces, projects, and sampling. |

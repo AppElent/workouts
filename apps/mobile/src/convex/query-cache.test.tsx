@@ -12,8 +12,8 @@ import { useState } from "react";
 import { AppState, type AppStateStatus, Pressable, Text } from "react-native";
 import {
 	AppQueryCacheProvider,
-	useCachedQueries,
-	useCachedQuery,
+	useQueries as useCachedQueries,
+	useQuery as useCachedQuery,
 } from "./query-cache";
 
 const day = makeFunctionReference<"query", { date: string }, string>(
@@ -130,7 +130,9 @@ it("reuses a live updated result on return, then releases an abandoned query", (
 	expect(screen.getByText("Updated meal")).toBeTruthy();
 	expect(remote.starts).toBe(1);
 	view.rerender(tree(false));
-	act(() => jest.advanceTimersByTime(30_000));
+	act(() => jest.advanceTimersByTime(4 * 60_000));
+	expect(remote.active).toBe(1);
+	act(() => jest.advanceTimersByTime(60_000));
 	expect(remote.active).toBe(0);
 	view.rerender(tree(true));
 	expect(remote.starts).toBe(2);
@@ -181,7 +183,7 @@ it("drops idle subscriptions on account change before revisiting their queries",
 	view.unmount();
 });
 
-it("releases active and idle queries in background without resetting editor input", () => {
+it("releases idle queries in background, keeps mounted ones, and preserves editor input", () => {
 	const remote = transport();
 	function Editor() {
 		const [input, setInput] = useState("Unfinished input");
@@ -206,7 +208,7 @@ it("releases active and idle queries in background without resetting editor inpu
 	act(() => {
 		for (const notify of lifecycle) notify("background");
 	});
-	expect(remote.active).toBe(0);
+	expect(remote.active).toBe(1);
 	expect(screen.getByText("Edited input")).toBeTruthy();
 	act(() => {
 		for (const notify of lifecycle) notify("active");
@@ -230,7 +232,7 @@ it("bounds idle subscriptions when browsing many distinct dates", () => {
 	for (let index = 1; index <= 25; index++) view.rerender(tree(String(index)));
 	view.rerender(tree());
 	expect(remote.active).toBe(20);
-	act(() => jest.advanceTimersByTime(30_000));
+	act(() => jest.advanceTimersByTime(5 * 60_000));
 	expect(remote.active).toBe(0);
 	view.unmount();
 });

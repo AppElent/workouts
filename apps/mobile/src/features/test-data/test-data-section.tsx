@@ -1,6 +1,7 @@
-import { useConvexConnectionState, useQuery } from "convex/react";
+import { useConvexConnectionState } from "convex/react";
 import { useRef } from "react";
 import { api } from "../../convex/api";
+import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
 import { useConfirm } from "../../ui/confirm-dialog";
 import { FormSection, TextAction } from "../../ui/form";

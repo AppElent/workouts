@@ -12,7 +12,6 @@
  * per screen.
  */
 import { formatScore } from "@workouts/core";
-import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -24,6 +23,7 @@ import {
 	View,
 } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import {
 	radius,
 	spacing,

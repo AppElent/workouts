@@ -1,5 +1,4 @@
 import type { PersonalMeasure } from "@workouts/core/nutrition";
-import { usePaginatedQuery } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -10,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { api } from "../convex/api";
+import { usePaginatedQuery } from "../convex/query-cache";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
