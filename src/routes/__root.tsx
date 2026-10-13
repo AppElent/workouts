@@ -36,6 +36,7 @@ const BARE_ROUTES = [
 	"/login",
 	"/api/cli/auth",
 	"/mcp/auth",
+	"/privacy",
 ];
 
 export const Route = createRootRoute({

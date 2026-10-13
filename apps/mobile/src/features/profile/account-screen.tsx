@@ -1,9 +1,12 @@
 import { useUser } from "@clerk/expo";
+import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, View } from "react-native";
 import { useI18n } from "../../i18n";
 import { spacing } from "../../theme";
 import { DisclosureRow, FormScreen, FormSection } from "../../ui/form";
 import { AppText } from "../../ui/text";
+
+const PRIVACY_STATEMENT_URL = "https://foundry.appelent.nl/privacy";
 
 export function AccountScreen() {
 	const { user } = useUser();
@@ -30,6 +33,12 @@ export function AccountScreen() {
 					<DisclosureRow label={label} value={t.profile.comingSoon} disabled />
 				</FormSection>
 			))}
+			<FormSection>
+				<DisclosureRow
+					label={t.profile.privacy}
+					onPress={() => WebBrowser.openBrowserAsync(PRIVACY_STATEMENT_URL)}
+				/>
+			</FormSection>
 		</FormScreen>
 	);
 }
