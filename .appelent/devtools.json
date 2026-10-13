@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-tools",
   "scope": "project",
   "ref": "main",
-  "commit": "56eb81228d6029dc8bc3776ce97f876f40d057ce",
-  "manifestHash": "4684121646c9ecf626c5a6ac45b87e538e470e3a0e199d102478e581e31fe4a0",
+  "commit": "3247bb34f3b8ac8ae252f678fc3f046568dcfb8c",
+  "manifestHash": "11f284f9f5da02d32707f890f4973ad33aeba6698321bf136df22ce0ef181af1",
   "files": {
     "scripts/baseline-mobile.mjs": {
       "sha256": "2ca4cd7d820efda7ad5b902c0c987b724d87197e2c1a4e15d446e39a1085aedf"
@@ -157,8 +157,8 @@
       "sha256": "fee7f704e0833f6566811487c3f584221e8aba46cbb9516e900f7192f7c5da67"
     },
     "docs/standards/general-coding.md": {
-      "sha256": "0b34be5f982d387eadae7822c99c62fe7bf3aa03161cdc5b558e5d6268876a66",
-      "version": "1.3.3"
+      "sha256": "a0dc6af69ecfb5b5d5fa3bd5779dec5cf9ee8b94097d4a0d57996ba3d52be970",
+      "version": "2.0.0"
     },
     "docs/standards/general-design.md": {
       "sha256": "51722dcb827b1f9ef673c5346e0e01d05cff66aa363b96158f20dd97d776b399",

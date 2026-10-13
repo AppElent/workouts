@@ -2,13 +2,13 @@
 type: standard
 kind: platform
 description: Read before implementing or reviewing any code change.
-version: 1.3.3
+version: 2.0.0
 applies_to: [all]
 ---
 
 # General coding
 
-Changes extend existing owners, keep generated output generated, and finish verified.
+Changes extend existing owners, add complexity only when its cost is justified, keep generated output generated, and finish verified.
 
 ## Rules
 
@@ -20,8 +20,21 @@ Changes extend existing owners, keep generated output generated, and finish veri
 - For documentation, follow the [documentation standard](documentation.md). Keep domain vocabulary in GLOSSARY.md and hard-to-reverse, surprising trade-offs in ADRs.
 - **Default:** consult [specialist skills](specialist-skills.md) only when task-specific expertise is useful.
 
+### Complexity cost
+
+Every dependency, abstraction, code path, state, schema, service, flag, and native module is paid for in reading, testing, upgrading, and debugging, by people and agents, for as long as it exists. Weigh that cost in every design choice.
+
+- Prefer the cheapest option that delivers the required behavior, in this order: change nothing or narrow the scope, delete or reuse what exists, use the platform or framework, write small local code, share an abstraction, add a dependency, add a service.
+- Decide routine cases yourself (a small dependency, a local helper) and note them in the PR. Raise it with the user, with a recommendation, only when:
+  - a clearly cheaper option exists but changes the requested behavior or scope;
+  - the complexity is hard to reverse or large: a new service or provider, persisted schema or data migration, caching/offline/sync, or a second way to do something the codebase already does.
+- Never trade behavior away silently.
+- State accepted complexity in the PR: what was added, why, and the cheaper option rejected. Hard-to-reverse choices also get an ADR.
+- Remove complexity that loses its last caller or reason in the same change.
+
 ## Verify
 
+- The PR names added complexity with its justification and the rejected cheaper option.
 - Before completion, follow the [verification standard](verification.md) and the affected project's check commands.
 
 ## Exceptions
