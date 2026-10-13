@@ -14,18 +14,12 @@ import { ActivityIndicator } from "react-native";
 import { api } from "../../convex/api";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
 import { todayIsoDate } from "../../data/calendar-day";
-import { foodPhotos } from "../../data/food-photo-manager";
 import {
-	cleanUploadedNutritionAccount,
-	discardLegacyNutritionAccount,
+	clearNutritionAccountCache,
+	retireLegacyNutritionData,
 } from "../../data/nutrition-account-cleanup";
-import { clearNutritionDraftAccount } from "../../data/nutrition-draft-repository";
-import {
-	clearNutritionLibraryAccount,
-	nutritionLibraryDatabaseName,
-} from "../../data/nutrition-library-repository";
 import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
-import { clearPersonalFoodCache } from "../../data/personal-food-repository";
+import { discardPersonalFoodSources } from "../../data/personal-food-session";
 import { useI18n } from "../../i18n";
 import { PrimaryButton } from "../../ui/button";
 import { FormScreen, TextAction } from "../../ui/form";
@@ -40,15 +34,9 @@ const AccountDataContext = createContext<
 >(null);
 
 function cleanup(subject: string) {
-	discardLegacyNutritionAccount(subject);
 	clearAccountSetDrafts(subject);
-	clearPersonalFoodCache(
-		nutritionLibraryDatabaseName(subject),
-		foodPhotos.remove,
-	);
-	clearNutritionLocalAccount(subject, foodPhotos.remove);
-	clearNutritionLibraryAccount(subject);
-	clearNutritionDraftAccount(subject);
+	discardPersonalFoodSources(subject);
+	clearNutritionLocalAccount(subject);
 }
 
 /** Unmount data providers while resetting, then reopen them without stale memory. */
@@ -58,6 +46,9 @@ export function AccountDataMaintenanceProvider({
 	children: ReactNode;
 }) {
 	const { userId, sessionId } = useAuth();
+	useEffect(() => {
+		retireLegacyNutritionData();
+	}, []);
 	const online = useConvexConnectionState().isWebSocketConnected;
 	const reset = useMutation(api.testData.reset);
 	const { t, locale } = useI18n();
@@ -74,7 +65,7 @@ export function AccountDataMaintenanceProvider({
 	const finishCleanup = useCallback(
 		(subject: string) => {
 			try {
-				if (request?.mode === "local") cleanUploadedNutritionAccount(subject);
+				if (request?.mode === "local") clearNutritionAccountCache(subject);
 				else cleanup(subject);
 				setRequest(null);
 				setCleanupFailed(false);

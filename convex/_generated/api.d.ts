@@ -31,6 +31,7 @@ import type * as nutritionDiary from "../nutritionDiary.js";
 import type * as nutritionDiaryModel from "../nutritionDiaryModel.js";
 import type * as nutritionDraftTables from "../nutritionDraftTables.js";
 import type * as nutritionDrafts from "../nutritionDrafts.js";
+import type * as nutritionFoodPhotos from "../nutritionFoodPhotos.js";
 import type * as nutritionGoalModel from "../nutritionGoalModel.js";
 import type * as nutritionGoalTables from "../nutritionGoalTables.js";
 import type * as nutritionGoals from "../nutritionGoals.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   nutritionDiaryModel: typeof nutritionDiaryModel;
   nutritionDraftTables: typeof nutritionDraftTables;
   nutritionDrafts: typeof nutritionDrafts;
+  nutritionFoodPhotos: typeof nutritionFoodPhotos;
   nutritionGoalModel: typeof nutritionGoalModel;
   nutritionGoalTables: typeof nutritionGoalTables;
   nutritionGoals: typeof nutritionGoals;

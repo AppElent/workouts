@@ -5,7 +5,6 @@ import {
 	formatLongDate as diaryDateLabel,
 	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-	todayIsoDate,
 } from "../../../../data/calendar-day";
 import type { NutrientGoal } from "../../../../data/nutrition-day";
 import { OFFLINE_GRACE_MS } from "../../../../data/stalled-offline";
@@ -49,53 +48,6 @@ it("keeps a downloaded diary usable while its goals are still loading", async ()
 	expect(screen.queryByText("No nutrition goals")).toBeNull();
 	expect(screen.getByLabelText("Loading goals")).toBeTruthy();
 	expect(screen.getByLabelText("Add food to Breakfast")).toBeEnabled();
-});
-
-it("does not call uncached meals empty after a local entry is added", async () => {
-	jest.mocked(useQuery).mockReturnValue(undefined);
-	const app = renderApp();
-	app.nutritionRepository.accept("test-user", {
-		version: 1,
-		operationId: "offline-entry",
-		expectedSubject: "test-user",
-		operation: {
-			kind: "create",
-			entry: {
-				clientEntryId: "offline-apple",
-				date: todayIsoDate(),
-				meal: "breakfast",
-				name: { en: "Apple", nl: "Appel" },
-				serving: { en: "Apple × 1", nl: "Appel × 1" },
-				quantity: 1,
-				amount: 130,
-				baseUnit: "g",
-				provenance: { source: "oneOff" },
-				nutrients: {
-					energy: { kind: "value", amount: 73 },
-					protein: { kind: "absent" },
-					carbs: { kind: "absent" },
-					fat: { kind: "absent" },
-					saturatedFat: { kind: "absent" },
-					fibre: { kind: "absent" },
-					sugars: { kind: "absent" },
-					salt: { kind: "absent" },
-				},
-			},
-		},
-	});
-	// Date navigation rereads the actual local projection.
-	fireEvent.press(
-		screen.getByLabelText(diaryDateLabel(diaryShift(diaryToday(), 1), "en")),
-	);
-	fireEvent.press(screen.getByLabelText(diaryDateLabel(diaryToday(), "en")));
-	expect(await screen.findByText("Apple")).toBeTruthy();
-	expect(
-		screen.queryAllByText("Nothing logged yet. Use + to add a food."),
-	).toHaveLength(0);
-	expect(
-		screen.getAllByText("No entries for this meal are on this phone yet."),
-	).toHaveLength(3);
-	expect(screen.getByLabelText("Add food to Lunch")).toBeEnabled();
 });
 
 it("explains uncached goals offline without hiding the available diary", async () => {

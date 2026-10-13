@@ -23,6 +23,11 @@ import { AppState } from "react-native";
 import { api } from "../convex/api";
 import type { DiaryEntry, MealSlot } from "./nutrition-day";
 import {
+	type FoodPhotoUpload,
+	prepareDiaryPhotoOperation,
+	useFoodPhotoUpload,
+} from "./nutrition-food-photo-upload";
+import {
 	type CachedGoalHistory,
 	type DirectFoodUse,
 	type LocalProjectionHint,
@@ -36,18 +41,10 @@ type RemoteApply = (
 	includeDays?: boolean,
 ) => Promise<NutritionOperationResult | undefined>;
 
-type LegacyFallback = () => Promise<unknown>;
-
-type LegacyWriters = {
-	readonly create?: (snapshot: unknown) => Promise<unknown>;
-	readonly update?: (args: unknown) => Promise<unknown>;
-	readonly remove?: (args: unknown) => Promise<unknown>;
-	readonly combo?: (args: unknown) => Promise<unknown>;
-};
-
 type ServiceOptions = {
 	readonly repository?: NutritionLocalRepository;
 	readonly subject?: string;
+	readonly uploadPhoto?: FoodPhotoUpload;
 };
 
 export function mintNutritionUuid(): string {
@@ -66,33 +63,11 @@ export function mintNutritionUuid(): string {
 		.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 }
 
-function classifyError(error: unknown): "permanent" | "transient" {
-	const message = error instanceof Error ? error.message : String(error);
-	return /invalid|unauthorized|subject|conflict|already exists|different payload|diary entry no longer exists/i.test(
-		message,
-	)
-		? "permanent"
-		: "transient";
-}
-
-function operationTargets(operation: NutritionDiaryOperation) {
-	if ("target" in operation) return [operation.target];
-	if ("targets" in operation) return operation.targets;
-	return [];
-}
-
 export class NutritionOperationService {
-	private readonly fallbacks = new Map<string, LegacyFallback>();
-	private readonly fallbackPromises = new Map<string, Promise<unknown>>();
-	private readonly errorHandlers = new Map<string, (error: unknown) => void>();
-	private readonly successHandlers = new Map<string, () => void>();
 	private readonly listeners = new Set<() => void>();
 	private activeSubject: string | undefined;
-	private replaying = new Set<string>();
-	private readonly replayFinished = new Map<string, Promise<void>>();
 	private version = 0;
-	private retryTimer: ReturnType<typeof setTimeout> | undefined;
-	private online = true;
+	private online = false;
 	private readonly onlineRetries = new Map<
 		string,
 		NutritionOperationEnvelope
@@ -101,14 +76,7 @@ export class NutritionOperationService {
 	constructor(
 		private readonly repository: NutritionLocalRepository,
 		private readonly remoteApply: RemoteApply,
-		private readonly legacy: LegacyWriters = {},
-		private readonly legacyCompatibility = false,
-		private readonly allowTestFallback = false,
-		/** Old durable journals replay for migration; new saves wait for the server. */
-		private readonly onlineWrites = false,
-	) {
-		if (onlineWrites) this.online = false;
-	}
+	) {}
 
 	subscribe = (listener: () => void) => {
 		this.listeners.add(listener);
@@ -125,274 +93,101 @@ export class NutritionOperationService {
 	setSubject(subject: string | undefined) {
 		if (this.activeSubject === subject) return;
 		this.activeSubject = subject;
-		clearTimeout(this.retryTimer);
-		if (subject) {
-			this.repository.recoverSending(subject);
-			void this.replay(subject);
-		}
+		this.onlineRetries.clear();
 		this.notify();
 	}
-
 	setOnline(online: boolean) {
 		this.online = online;
-		if (!online) clearTimeout(this.retryTimer);
-		else if (this.activeSubject) void this.replay(this.activeSubject);
 	}
-
 	dispose() {
 		this.activeSubject = undefined;
-		clearTimeout(this.retryTimer);
+		this.onlineRetries.clear();
 	}
 
 	accept(
 		subject: string,
 		operation: NutritionDiaryOperation,
-		hint?: LocalProjectionHint,
-		fallback?: LegacyFallback,
+		_hint?: LocalProjectionHint,
 		directFoodUse?: DirectFoodUse,
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
 	): string {
 		if (subject !== this.activeSubject)
 			throw new Error("Unauthorized nutrition account.");
+		if (!this.online) throw new Error("A connection is required to save.");
 		let envelope: NutritionOperationEnvelope = {
 			version: 1,
 			operationId: mintNutritionUuid(),
 			expectedSubject: subject,
 			operation,
 		};
-		if (this.onlineWrites && !this.legacyCompatibility) {
-			if (!this.online) throw new Error("A connection is required to save.");
-			// Input stays in the editor; only its retry identity lives here until ACK.
-			const withoutGeneratedIds = (entry: NutritionDiarySnapshot) => {
-				const { clientEntryId: _id, comboGroup, ...input } = entry;
-				return {
-					...input,
-					...(comboGroup
-						? {
-								comboGroup: {
-									comboId: comboGroup.comboId,
-									name: comboGroup.name,
-								},
-							}
-						: {}),
-				};
+		// Input stays in the editor; only its retry identity lives here until ACK.
+		const withoutGeneratedIds = (entry: NutritionDiarySnapshot) => {
+			const { clientEntryId: _id, comboGroup, ...input } = entry;
+			return {
+				...input,
+				...(comboGroup
+					? {
+							comboGroup: {
+								comboId: comboGroup.comboId,
+								name: comboGroup.name,
+							},
+						}
+					: {}),
 			};
-			const retryKey = canonicalJson({
-				subject,
-				operation:
-					operation.kind === "create"
+		};
+		const retryKey = canonicalJson({
+			subject,
+			operation:
+				operation.kind === "create"
+					? {
+							kind: operation.kind,
+							entry: withoutGeneratedIds(operation.entry),
+						}
+					: operation.kind === "createBatch"
 						? {
-								kind: operation.kind,
-								entry: withoutGeneratedIds(operation.entry),
+								...operation,
+								entries: operation.entries.map((entry) =>
+									withoutGeneratedIds({
+										...entry,
+										date: operation.date,
+										meal: operation.meal,
+									}),
+								),
 							}
-						: operation.kind === "createBatch"
+						: operation.kind === "group"
 							? {
 									...operation,
-									entries: operation.entries.map((entry) =>
-										withoutGeneratedIds({
-											...entry,
-											date: operation.date,
-											meal: operation.meal,
-										}),
-									),
+									comboGroup: {
+										comboId: operation.comboGroup.comboId,
+										name: operation.comboGroup.name,
+									},
 								}
-							: operation.kind === "group"
-								? {
-										...operation,
-										comboGroup: {
-											comboId: operation.comboGroup.comboId,
-											name: operation.comboGroup.name,
-										},
-									}
-								: operation,
-			});
-			envelope = this.onlineRetries.get(retryKey) ?? envelope;
-			this.onlineRetries.set(retryKey, envelope);
-			void this.remoteApply(envelope, false)
-				.then((result) => {
-					if (!result) throw new Error("Missing nutrition operation receipt.");
-					// Keep completion under its original owner, even after account changes.
-					// These are acknowledged records, never an outbox for new offline input.
-					this.repository.accept(subject, envelope, hint, directFoodUse);
-					this.repository.acknowledge(subject, envelope.operationId, result);
-					this.onlineRetries.delete(retryKey);
-					if (subject === this.activeSubject) {
-						this.notify();
-						onSuccess?.();
-					}
-				})
-				.catch((error: unknown) => {
-					if (subject === this.activeSubject) onError?.(error);
-				});
-			return envelope.operationId;
-		}
-		this.repository.accept(subject, envelope, hint, directFoodUse);
-		if (fallback) this.fallbacks.set(envelope.operationId, fallback);
-		if (this.legacyCompatibility && fallback) {
-			try {
-				this.fallbackPromises.set(
-					envelope.operationId,
-					Promise.resolve(fallback()),
-				);
-			} catch (error) {
-				this.fallbackPromises.set(envelope.operationId, Promise.reject(error));
-			}
-		}
-		if (this.legacyCompatibility) {
-			if (onError) this.errorHandlers.set(envelope.operationId, onError);
-			if (onSuccess) this.successHandlers.set(envelope.operationId, onSuccess);
-		}
-		this.notify();
-		// Production callers finish at the SQLite commit, never at a network ACK.
-		if (!this.legacyCompatibility) onSuccess?.();
-		void this.replay(subject);
-		return envelope.operationId;
-	}
-
-	async uploadPending(subject: string) {
-		if (subject !== this.activeSubject)
-			throw new Error("The account changed while uploading.");
-		if (!this.online) throw new Error("A connection is required to upload.");
-		await this.replayFinished.get(subject);
-		if (subject !== this.activeSubject || !this.online)
-			throw new Error("The account or connection changed while uploading.");
-		for (const operation of this.getOperations(subject))
-			if (operation.status === "needs-attention")
-				this.repository.markQueued(subject, operation.operationId);
-		await this.replay(subject, true);
-		if (subject !== this.activeSubject || !this.online)
-			throw new Error("The account or connection changed while uploading.");
-		const pending = this.getOperations(subject).filter(
-			(operation) => operation.status !== "acknowledged",
-		);
-		if (pending.length)
-			throw new Error(
-				pending[0].lastError ?? "Diary changes still need uploading.",
-			);
-	}
-
-	async replay(subject: string, retryNow = false): Promise<void> {
-		if (this.replaying.has(subject)) return this.replayFinished.get(subject);
-		if (!this.online || subject !== this.activeSubject) return;
-		let finish!: () => void;
-		this.replayFinished.set(
-			subject,
-			new Promise<void>((resolve) => {
-				finish = resolve;
-			}),
-		);
-		this.replaying.add(subject);
-		try {
-			for (const operation of this.repository.listOperations(subject)) {
-				if (!this.online || subject !== this.activeSubject) break;
-				if (operation.status !== "queued") continue;
-				if (!retryNow && operation.nextAttemptAt > Date.now()) continue;
-				if (this.isBlockedByPredecessor(subject, operation)) continue;
-				this.repository.markSending(subject, operation.operationId);
-				this.notify();
-				try {
-					let result = await this.remoteApply(operation.envelope);
-					if (result === undefined) {
-						if (!this.legacyCompatibility && !this.allowTestFallback)
-							throw new Error("Missing nutrition operation receipt.");
-						const fallback = this.fallbacks.get(operation.operationId);
-						const fallbackResult = this.fallbackPromises.get(
-							operation.operationId,
-						);
-						if (fallbackResult) await fallbackResult;
-						else if (fallback) await fallback();
-						result = { entryIds: [], clientEntryIds: [], days: [] };
-					}
-					this.repository.acknowledge(subject, operation.operationId, result);
-					this.fallbacks.delete(operation.operationId);
-					this.fallbackPromises.delete(operation.operationId);
-					this.errorHandlers.delete(operation.operationId);
-					if (subject === this.activeSubject)
-						this.successHandlers.get(operation.operationId)?.();
-					this.successHandlers.delete(operation.operationId);
-				} catch (error) {
-					this.errorHandlers.get(operation.operationId)?.(error);
-					if (classifyError(error) === "permanent") {
-						this.repository.markNeedsAttention(
-							subject,
-							operation.operationId,
-							error instanceof Error ? error.message : String(error),
-						);
-					} else {
-						this.repository.markQueued(
-							subject,
-							operation.operationId,
-							error instanceof Error ? error.message : String(error),
-						);
-					}
-				}
-				this.notify();
-			}
-		} finally {
-			this.replaying.delete(subject);
-			this.replayFinished.delete(subject);
-			finish();
-			if (this.online && subject === this.activeSubject) {
-				clearTimeout(this.retryTimer);
-				const queued = this.repository
-					.listOperations(subject)
-					.filter(
-						(operation) =>
-							operation.status === "queued" &&
-							!this.isBlockedByPredecessor(subject, operation),
-					);
-				if (queued.length) {
-					const delay = Math.max(
-						100,
-						Math.min(...queued.map((operation) => operation.nextAttemptAt)) -
-							Date.now(),
-					);
-					this.retryTimer = setTimeout(() => void this.replay(subject), delay);
-				}
-			}
-		}
-	}
-
-	private isBlockedByPredecessor(
-		subject: string,
-		operation: { operationId: string; envelope: NutritionOperationEnvelope },
-	) {
-		// Batch moves/removals must wait for creates and earlier writes too.
-		const targets = operationTargets(operation.envelope.operation);
-		if (targets.length === 0) return false;
-		return this.repository.listOperations(subject).some((candidate) => {
-			if (
-				candidate.operationId === operation.operationId ||
-				candidate.sequence >
-					(this.repository.getOperation(subject, operation.operationId)
-						?.sequence ?? 0)
-			)
-				return false;
-			const created = candidate.envelope.operation;
-			const predecessorTargets = operationTargets(created);
-			if (
-				predecessorTargets.some((previous) =>
-					targets.some(
-						(target) =>
-							previous.kind === target.kind && previous.id === target.id,
-					),
-				)
-			)
-				return candidate.status !== "acknowledged";
-			const ids =
-				created.kind === "create"
-					? [created.entry.clientEntryId]
-					: created.kind === "createBatch"
-						? created.entries.map((entry) => entry.clientEntryId)
-						: [];
-			return targets.some(
-				(target) =>
-					target.kind === "clientEntryId" &&
-					ids.includes(target.id) &&
-					candidate.status !== "acknowledged",
-			);
+							: operation,
 		});
+		envelope = this.onlineRetries.get(retryKey) ?? envelope;
+		this.onlineRetries.set(retryKey, envelope);
+		void this.remoteApply(envelope, false)
+			.then((result) => {
+				if (!result) throw new Error("Missing nutrition operation receipt.");
+				// Keep completion under its original owner, even after account changes.
+				// These are acknowledged records, never an outbox for new offline input.
+				this.repository.recordAcknowledged(
+					subject,
+					envelope,
+					result,
+					directFoodUse,
+				);
+				this.onlineRetries.delete(retryKey);
+				if (subject === this.activeSubject) {
+					this.notify();
+					onSuccess?.();
+				}
+			})
+			.catch((error: unknown) => {
+				if (subject === this.activeSubject) onError?.(error);
+			});
+		return envelope.operationId;
 	}
 
 	getProjectedDay(subject: string, date: string) {
@@ -488,13 +283,6 @@ export class NutritionOperationService {
 		this.notify();
 	}
 
-	retry(subject: string, operationId: string) {
-		const operation = this.repository.getOperation(subject, operationId);
-		if (!operation) return;
-		this.repository.markQueued(subject, operationId);
-		void this.replay(subject);
-	}
-
 	getOperations(subject: string) {
 		return this.repository.listOperations(subject);
 	}
@@ -533,9 +321,6 @@ export class NutritionOperationService {
 				},
 			},
 			undefined,
-			this.legacy.create
-				? () => this.legacy.create?.(snapshot) as Promise<unknown>
-				: undefined,
 			directFoodUse,
 			onError,
 			onSuccess,
@@ -559,23 +344,6 @@ export class NutritionOperationService {
 				entries: entries.map(({ date: _date, meal: _meal, ...entry }) => entry),
 			},
 			undefined,
-			this.legacy.combo
-				? () =>
-						this.legacy.combo?.({
-							date,
-							meal,
-							combo: entries[0]?.comboGroup
-								? {
-										id: entries[0].comboGroup.comboId,
-										name: entries[0].comboGroup.name,
-									}
-								: { id: "copy", name: "Copied meal" },
-							parts: entries.map(
-								({ clientEntryId: _id, date: _date, meal: _meal, ...entry }) =>
-									entry,
-							),
-						}) as Promise<unknown>
-				: undefined,
 			undefined,
 			onError,
 			onSuccess,
@@ -648,7 +416,6 @@ export class NutritionOperationService {
 			},
 			undefined,
 			undefined,
-			undefined,
 			onError,
 			onSuccess,
 		);
@@ -685,13 +452,6 @@ export class NutritionOperationService {
 				...patch,
 			},
 			hint,
-			!patch.correction && target.kind === "serverId" && this.legacy.update
-				? () =>
-						this.legacy.update?.({
-							id: target.id,
-							...patch,
-						}) as Promise<unknown>
-				: undefined,
 			undefined,
 			onError,
 			onSuccess,
@@ -716,9 +476,6 @@ export class NutritionOperationService {
 							| { kind: "clientEntryId"; id: string }),
 			},
 			hint,
-			this.legacy.remove
-				? () => this.legacy.remove?.({ id: target.id }) as Promise<unknown>
-				: undefined,
 			undefined,
 			onError,
 			onSuccess,
@@ -734,7 +491,6 @@ export class NutritionOperationService {
 		return this.accept(
 			subject,
 			{ kind: "removeBatch", targets: targets.map(normalizeTarget) },
-			undefined,
 			undefined,
 			undefined,
 			onError,
@@ -753,7 +509,6 @@ export class NutritionOperationService {
 		return this.accept(
 			subject,
 			{ kind: "moveBatch", targets: targets.map(normalizeTarget), date, meal },
-			undefined,
 			undefined,
 			undefined,
 			onError,
@@ -778,6 +533,7 @@ export function NutritionOperationsProvider({
 	children,
 	repository,
 	subject,
+	uploadPhoto,
 }: ServiceOptions & { readonly children: ReactNode }) {
 	const auth = useAuth();
 	const account =
@@ -786,6 +542,7 @@ export function NutritionOperationsProvider({
 		<NutritionOperationsSession
 			key={account ?? "signed-out"}
 			repository={repository}
+			uploadPhoto={uploadPhoto}
 			subject={account}
 		>
 			{children}
@@ -797,36 +554,40 @@ function NutritionOperationsSession({
 	children,
 	repository,
 	subject: forcedSubject,
+	uploadPhoto: suppliedUploadPhoto,
 }: ServiceOptions & { readonly children: ReactNode }) {
 	const { isSignedIn, userId } = useAuth();
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const applyOperation = useMutation(api.nutritionDiary.applyOperation);
+	const uploadPhoto = useFoodPhotoUpload();
 	const local = useMemo(
 		() => repository ?? openNutritionLocalRepository(),
 		[repository],
 	);
 	const service = useMemo(
 		() =>
-			new NutritionOperationService(
-				local,
-				async (envelope, includeDays) =>
-					(await applyOperation({
-						...envelope,
-						...(includeDays === false ? { includeDays } : {}),
-					} as never)) as NutritionOperationResult,
-				{},
-				false,
-				false,
-				true,
-			),
-		[applyOperation, local],
+			new NutritionOperationService(local, async (envelope, includeDays) => {
+				const operation = await prepareDiaryPhotoOperation(
+					envelope.operation,
+					suppliedUploadPhoto ?? uploadPhoto,
+				);
+				return (await applyOperation({
+					...envelope,
+					operation,
+					...(includeDays === false ? { includeDays } : {}),
+				} as never)) as NutritionOperationResult;
+			}),
+		[applyOperation, local, uploadPhoto, suppliedUploadPhoto],
 	);
 	const subject =
 		forcedSubject ?? (isSignedIn ? (userId ?? undefined) : undefined);
 	useEffect(() => {
 		service.setSubject(subject);
-		return () => service.dispose();
-	}, [service, subject]);
+		return () => {
+			service.dispose();
+			if (!repository) local.close();
+		};
+	}, [service, subject, repository, local]);
 	useEffect(() => {
 		service.setOnline(isWebSocketConnected);
 		const subscription = AppState.addEventListener("change", (state) => {

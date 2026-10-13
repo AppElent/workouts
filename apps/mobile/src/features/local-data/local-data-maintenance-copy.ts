@@ -1,24 +1,24 @@
 export const localDataMaintenanceCopy = {
 	en: {
-		title: "Local data cleanup",
-		pending: "Cleaning uploaded local data…",
+		title: "Account cache",
+		pending: "Clearing cached account data…",
 		cleanupError:
 			"Cleanup could not finish. Pending data is preserved. Retry to finish safely.",
 		retryCleanup: "Retry cleanup",
 		back: "Back to the app",
-		success: "Uploaded originals and diary caches cleaned.",
+		success: "Account cache cleared.",
 		error: "Local data could not be cleaned.",
-		offline: "Connect to upload and clean local data.",
+		offline: "Connect to clear cached account data.",
 	},
 	nl: {
 		title: "Lokale gegevens opruimen",
-		pending: "Geüploade lokale gegevens opruimen…",
+		pending: "Accountcache wissen…",
 		cleanupError:
 			"Het opruimen is niet voltooid. Wachtende gegevens blijven bewaard. Probeer opnieuw om veilig af te ronden.",
 		retryCleanup: "Opruimen opnieuw proberen",
 		back: "Terug naar de app",
-		success: "Geüploade originelen en dagboekcache opgeruimd.",
+		success: "Accountcache gewist.",
 		error: "Lokale gegevens konden niet worden opgeruimd.",
-		offline: "Maak verbinding om lokale gegevens te uploaden en op te ruimen.",
+		offline: "Maak verbinding om accountcache te wissen.",
 	},
 };

@@ -44,6 +44,6 @@ record retains the desired behavior and conditional sign-out policy for the
 deferred recovery investigation; they are not requirements of issue 89.
 
 Implementation evidence: [account data verification and usage](../verification/online-first-account-data/README.md).
-Food photos remain device-only visual conveniences; the account Food record is
-usable without them. Production adoption follows the
+The original device-only Food photo exception is superseded by
+[ADR 0015](0015-account-food-photos-and-cache-retirement.md). Production adoption follows the
 [migration runbook](../runbooks/nutrition-account-migration.md).

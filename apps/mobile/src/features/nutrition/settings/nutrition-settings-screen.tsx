@@ -23,7 +23,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { LocalDataUploadPanel } from "./local-data-upload-panel";
+import { LocalDataSettingsPanel } from "./local-data-settings-panel";
 import { nutritionLibraryCopy } from "./nutrition-library-copy";
 
 export function NutritionSettingsScreen() {
@@ -59,6 +59,7 @@ export function NutritionSettingsScreen() {
 				const page: FunctionReturnType<typeof api.nutritionLibrary.browse> =
 					await client.query(api.nutritionLibrary.browse, {
 						query: "",
+						photoVersion: 3,
 						paginationOpts: { cursor, numItems: 100 },
 					});
 				foods.account.receiveServerPage(page.page);
@@ -104,7 +105,7 @@ export function NutritionSettingsScreen() {
 			<GroupedSurface style={styles.card}>
 				<AppText variant="caption">{copy.photoNotice}</AppText>
 			</GroupedSurface>
-			<LocalDataUploadPanel key={foods.account.subject ?? "signed-out"} />
+			<LocalDataSettingsPanel key={foods.account.subject ?? "signed-out"} />
 			<GroupedSurface style={styles.card}>
 				<AppText variant="heading">{copy.offTitle}</AppText>
 				<AppText variant="caption">{copy.offHelp}</AppText>

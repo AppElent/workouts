@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, use, useState } from "react";
+import { createContext, type ReactNode, use, useEffect, useState } from "react";
 import {
 	completeOffSearchDraft,
 	type FetchLike,
@@ -41,6 +41,12 @@ export function OpenFoodFactsProvider({
 }) {
 	const [cache] = useState<OpenFoodFactsCache>(
 		() => suppliedCache ?? openOpenFoodFactsCache(),
+	);
+	useEffect(
+		() => () => {
+			if (!suppliedCache) cache.close?.();
+		},
+		[cache, suppliedCache],
 	);
 	const [value] = useState<OpenFoodFactsValue>(() => {
 		// One budget per app session, shared by search and barcode lookups.

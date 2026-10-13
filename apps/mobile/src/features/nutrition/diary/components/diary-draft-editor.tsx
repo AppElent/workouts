@@ -1,8 +1,8 @@
 /** Edit an account-owned Capture Draft's text or Meal Slot in a page sheet. */
 import { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
+import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
 import { MEAL_SLOTS, type MealSlot } from "../../../../data/nutrition-day";
-import type { CaptureDraft } from "../../../../data/nutrition-draft-repository";
 import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
 import {
 	modalAnimation,

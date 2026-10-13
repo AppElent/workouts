@@ -6,7 +6,6 @@ import {
 } from "convex/react";
 import { AppState, Text } from "react-native";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
-import { createNutritionDraftRepository } from "./nutrition-draft-repository";
 import {
 	NutritionDraftsProvider,
 	useNutritionDrafts,
@@ -15,101 +14,7 @@ import { createNutritionLocalRepository } from "./nutrition-local-repository";
 import { NutritionOperationsProvider } from "./nutrition-operation-service";
 
 describe("Capture Draft online save", () => {
-	it("manual upload joins an automatic saved-note migration and reports completion only after acknowledgement", async () => {
-		const repository = createNutritionDraftRepository(new SQLiteTestDatabase());
-		const original = repository.create("alice", {
-			date: "2026-10-07",
-			meal: "lunch",
-			note: "Local soup",
-		});
-		let acknowledge!: (draft: typeof original) => void;
-		jest.mocked(useMutation).mockReturnValue(
-			jest.fn(
-				() =>
-					new Promise((resolve) => {
-						acknowledge = resolve;
-					}),
-			) as never,
-		);
-		jest
-			.mocked(useConvexConnectionState)
-			.mockReturnValue({ isWebSocketConnected: true } as never);
-		let notes!: ReturnType<typeof useNutritionDrafts>;
-		function Reader() {
-			notes = useNutritionDrafts();
-			return <Text>Notes</Text>;
-		}
-		const view = render(
-			<NutritionOperationsProvider
-				subject="alice"
-				repository={createNutritionLocalRepository(new SQLiteTestDatabase())}
-			>
-				<NutritionDraftsProvider repository={repository}>
-					<Reader />
-				</NutritionDraftsProvider>
-			</NutritionOperationsProvider>,
-		);
-		let complete = false;
-		const upload = notes.uploadPending().then(() => {
-			complete = true;
-		});
-		await Promise.resolve();
-		expect(complete).toBe(false);
-		await act(async () => {
-			acknowledge(original);
-			await upload;
-		});
-		expect(notes.pendingMigrationCount).toBe(0);
-		expect(repository.get("alice", original.id)).toEqual(original);
-		view.unmount();
-	});
-	it("retries an interrupted legacy upload with the same identity and retains the original", async () => {
-		const repository = createNutritionDraftRepository(new SQLiteTestDatabase());
-		const original = repository.create("alice", {
-			date: "2026-10-07",
-			meal: "lunch",
-			note: "Legacy soup",
-		});
-		const operations = createNutritionLocalRepository(new SQLiteTestDatabase());
-		const remote = jest
-			.fn()
-			.mockRejectedValueOnce(new Error("Disconnected after sending"))
-			.mockResolvedValue({ ...original, updatedAt: 20 });
-		jest.mocked(useMutation).mockReturnValue(remote as never);
-		jest
-			.mocked(useConvexConnectionState)
-			.mockReturnValue({ isWebSocketConnected: true } as never);
-		let notes!: ReturnType<typeof useNutritionDrafts>;
-		function Reader() {
-			notes = useNutritionDrafts();
-			return <Text>{notes.migrationError ?? "Ready"}</Text>;
-		}
-		const tree = (
-			<NutritionOperationsProvider subject="alice" repository={operations}>
-				<NutritionDraftsProvider repository={repository}>
-					<Reader />
-				</NutritionDraftsProvider>
-			</NutritionOperationsProvider>
-		);
-		const screen = render(tree);
-		await act(async () => {
-			await Promise.resolve();
-		});
-		expect(repository.pendingMigrations("alice")).toEqual([original]);
-		expect(notes.migrationError).toContain("Disconnected");
-		await act(async () => {
-			notes.retryMigration();
-			await Promise.resolve();
-		});
-		expect(remote.mock.calls[1][0]).toEqual(remote.mock.calls[0][0]);
-		expect(repository.pendingMigrations("alice")).toEqual([]);
-		expect(repository.get("alice", original.id)).toEqual(original);
-		expect(repository.pendingMigrations("bob")).toEqual([]);
-		screen.unmount();
-	});
-
 	it("keeps unsaved input out of saved notes until acknowledgement and rejects disconnected saves", async () => {
-		const repository = createNutritionDraftRepository(new SQLiteTestDatabase());
 		const operations = createNutritionLocalRepository(new SQLiteTestDatabase());
 		let connected = true;
 		jest
@@ -148,7 +53,7 @@ describe("Capture Draft online save", () => {
 		}
 		const tree = (
 			<NutritionOperationsProvider subject="alice" repository={operations}>
-				<NutritionDraftsProvider repository={repository}>
+				<NutritionDraftsProvider>
 					<Reader />
 				</NutritionDraftsProvider>
 			</NutritionOperationsProvider>
@@ -179,7 +84,7 @@ describe("Capture Draft online save", () => {
 		connected = false;
 		screen.rerender(
 			<NutritionOperationsProvider subject="alice" repository={operations}>
-				<NutritionDraftsProvider repository={repository}>
+				<NutritionDraftsProvider>
 					<Reader />
 				</NutritionDraftsProvider>
 			</NutritionOperationsProvider>,
@@ -237,9 +142,7 @@ it("retains acknowledged notes while a date subscription is skipped in the backg
 			subject="alice"
 			repository={createNutritionLocalRepository(new SQLiteTestDatabase())}
 		>
-			<NutritionDraftsProvider
-				repository={createNutritionDraftRepository(new SQLiteTestDatabase())}
-			>
+			<NutritionDraftsProvider>
 				<Reader />
 			</NutritionDraftsProvider>
 		</NutritionOperationsProvider>,

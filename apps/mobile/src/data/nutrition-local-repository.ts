@@ -1,9 +1,7 @@
 import {
 	canonicalJson,
-	type NutritionDiaryOperation,
 	type NutritionDiarySnapshot,
 	type NutritionOperationEnvelope,
-	rescaleNutrients,
 	totalNutrients,
 } from "@workouts/core";
 import type {
@@ -12,12 +10,11 @@ import type {
 	PersonalMeasure,
 	SupplementaryServing,
 } from "@workouts/core/nutrition";
-import { correctDiaryNutrients } from "@workouts/core/nutrition";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
-const DATABASE_VERSION = 6;
+const DATABASE_VERSION = 7;
 
 export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
@@ -120,7 +117,6 @@ export type NutritionOperationResult = {
 };
 
 export type NutritionLocalRepository = {
-	cleanAcknowledged(subject: string): void;
 	getSupplementaryServings(
 		subject: string,
 		foodId: string,
@@ -139,28 +135,15 @@ export type NutritionLocalRepository = {
 	): void;
 	getGoalDisplayOrder(subject: string): NutrientKey[] | undefined;
 	putGoalDisplayOrder(subject: string, displayOrder: NutrientKey[]): void;
-	accept(
+	recordAcknowledged(
 		subject: string,
 		envelope: NutritionOperationEnvelope,
-		hint?: LocalProjectionHint,
+		result: NutritionOperationResult,
 		directFoodUse?: DirectFoodUse,
-	): NutritionLocalOperation;
+	): void;
 	listOperations(subject: string): NutritionLocalOperation[];
-	getOperation(
-		subject: string,
-		operationId: string,
-	): NutritionLocalOperation | undefined;
-	markSending(subject: string, operationId: string): void;
-	markQueued(subject: string, operationId: string, error?: string): void;
-	markNeedsAttention(subject: string, operationId: string, error: string): void;
-	recoverSending(subject: string): void;
 	getDay(subject: string, date: string): NutritionCachedDay | undefined;
 	putDay(subject: string, day: NutritionCachedDay): void;
-	acknowledge(
-		subject: string,
-		operationId: string,
-		result: NutritionOperationResult,
-	): void;
 	projectDay(subject: string, date: string): NutritionProjectedDay;
 	listRecent(subject: string, limit?: number): FoodShortcut[];
 	listFavorites(subject: string): FoodShortcut[];
@@ -169,160 +152,12 @@ export type NutritionLocalRepository = {
 	close(): void;
 };
 
-type OperationRow = {
-	sequence: number;
-	subject: string;
-	operation_id: string;
-	payload_json: string;
-	status: LocalOperationStatus;
-	attempts: number;
-	next_attempt_at: number;
-	last_error: string | null;
-	hint_json: string | null;
-	created_at: number;
-};
-
-type DayRow = {
-	subject: string;
-	date: string;
-	revision: number;
-	complete: number;
-	entries_json: string;
-	updated_at: number;
-};
-
 type ShortcutRow = {
 	source_key: string;
 	last_used_at: number | null;
 	portion_json: string | null;
 	favorite: number;
 };
-
-function migrate(database: SyncSQLiteDatabase): void {
-	const current =
-		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
-			?.user_version ?? 0;
-	if (current > DATABASE_VERSION) {
-		throw new Error(
-			`This nutrition state database is newer than this version of Workouts (${current}).`,
-		);
-	}
-	if (current === DATABASE_VERSION) return;
-	database.execSync("BEGIN IMMEDIATE");
-	try {
-		if (current < 1) {
-			database.execSync(`
-				CREATE TABLE IF NOT EXISTS nutrition_operations (
-					sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-					subject TEXT NOT NULL,
-					operation_id TEXT NOT NULL,
-					payload_json TEXT NOT NULL,
-					status TEXT NOT NULL CHECK (status IN ('queued', 'sending', 'acknowledged', 'needs-attention')),
-					attempts INTEGER NOT NULL DEFAULT 0,
-					next_attempt_at INTEGER NOT NULL,
-					last_error TEXT,
-					hint_json TEXT,
-					created_at INTEGER NOT NULL,
-					UNIQUE(subject, operation_id)
-				);
-				CREATE INDEX IF NOT EXISTS nutrition_operations_by_subject_sequence
-					ON nutrition_operations(subject, sequence ASC);
-				CREATE TABLE IF NOT EXISTS nutrition_cached_days (
-					subject TEXT NOT NULL,
-					date TEXT NOT NULL,
-					revision INTEGER NOT NULL,
-					complete INTEGER NOT NULL,
-					entries_json TEXT NOT NULL,
-					updated_at INTEGER NOT NULL,
-					PRIMARY KEY(subject, date)
-				);
-				CREATE TABLE IF NOT EXISTS nutrition_entry_mappings (
-					subject TEXT NOT NULL,
-					client_entry_id TEXT NOT NULL,
-					server_entry_id TEXT NOT NULL,
-					PRIMARY KEY(subject, client_entry_id)
-				);
-			`);
-		}
-		if (current < 2) {
-			database.execSync(`
-				CREATE TABLE IF NOT EXISTS nutrition_food_shortcuts (
-					subject TEXT NOT NULL,
-					source_key TEXT NOT NULL,
-					last_used_at INTEGER,
-					portion_json TEXT,
-					favorite INTEGER NOT NULL DEFAULT 0,
-					PRIMARY KEY(subject, source_key)
-				);
-				CREATE INDEX IF NOT EXISTS nutrition_food_shortcuts_by_recent
-					ON nutrition_food_shortcuts(subject, last_used_at DESC, source_key ASC);
-			`);
-		}
-		if (current < 3)
-			database.execSync(
-				"CREATE TABLE nutrition_cached_goals (subject TEXT NOT NULL, date TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, date))",
-			);
-		if (current < 5)
-			database.execSync(`
-				CREATE TABLE IF NOT EXISTS nutrition_goal_preferences (
-					subject TEXT PRIMARY KEY,
-					display_order_json TEXT NOT NULL
-				);
-				CREATE TABLE IF NOT EXISTS nutrition_cached_personal_measures (
-					subject TEXT PRIMARY KEY NOT NULL,
-					payload TEXT NOT NULL
-				);
-			`);
-		if (current < 6)
-			database.execSync(
-				"CREATE TABLE IF NOT EXISTS nutrition_cached_supplementary_servings (subject TEXT NOT NULL, food_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(subject, food_id))",
-			);
-		database.execSync(`PRAGMA user_version = ${DATABASE_VERSION}`);
-		database.execSync("COMMIT");
-	} catch (error) {
-		database.execSync("ROLLBACK");
-		throw error;
-	}
-}
-
-function transaction(database: SyncSQLiteDatabase, work: () => void): void {
-	database.execSync("BEGIN IMMEDIATE");
-	try {
-		work();
-		database.execSync("COMMIT");
-	} catch (error) {
-		database.execSync("ROLLBACK");
-		throw error;
-	}
-}
-
-function rowToOperation(row: OperationRow): NutritionLocalOperation {
-	return {
-		sequence: row.sequence,
-		subject: row.subject,
-		operationId: row.operation_id,
-		envelope: JSON.parse(row.payload_json) as NutritionOperationEnvelope,
-		status: row.status,
-		attempts: row.attempts,
-		nextAttemptAt: row.next_attempt_at,
-		...(row.last_error ? { lastError: row.last_error } : {}),
-		...(row.hint_json
-			? { hint: JSON.parse(row.hint_json) as LocalProjectionHint }
-			: {}),
-		createdAt: row.created_at,
-	};
-}
-
-function rowToDay(row: DayRow): NutritionCachedDay {
-	return {
-		subject: row.subject,
-		date: row.date,
-		revision: row.revision,
-		complete: row.complete === 1,
-		entries: JSON.parse(row.entries_json) as NutritionServerEntry[],
-		updatedAt: row.updated_at,
-	};
-}
 
 function rowToShortcut(row: ShortcutRow): FoodShortcut {
 	return {
@@ -335,373 +170,155 @@ function rowToShortcut(row: ShortcutRow): FoodShortcut {
 	};
 }
 
-function entryForSnapshot(
-	snapshot: NutritionDiarySnapshot,
-	pendingOperationId?: string,
-): NutritionProjectedEntry {
-	return {
-		_id: `client:${snapshot.clientEntryId ?? pendingOperationId ?? "local"}`,
-		...snapshot,
-		...(pendingOperationId ? { pendingOperationId } : {}),
-	};
-}
-
-function entryMatches(
-	entry: NutritionProjectedEntry,
-	target:
-		| { kind: "serverId"; id: string }
-		| { kind: "clientEntryId"; id: string },
-) {
-	return target.kind === "serverId"
-		? entry._id === target.id
-		: entry.clientEntryId === target.id;
-}
-
-function applyUpdate(
-	entries: NutritionProjectedEntry[],
-	operation: Extract<NutritionDiaryOperation, { kind: "update" }>,
-	operationId: string,
-	hint?: LocalProjectionHint,
-) {
-	let entry = entries.find((candidate) =>
-		entryMatches(candidate, operation.target),
-	);
-	if (!entry && hint?.targetEntry) {
-		entry = entryForSnapshot(hint.targetEntry);
-		entries.push(entry);
-	}
-	if (!entry) return;
-	if (
-		operation.correction &&
-		(operation.quantity !== undefined || operation.selection)
-	) {
-		throw new Error("A nutrient correction cannot change the amount");
-	}
-	const oldQuantity = entry.quantity;
-	const quantity =
-		operation.selection?.quantity ?? operation.quantity ?? oldQuantity;
-	const factor = operation.selection
-		? operation.selection.amount / entry.amount
-		: quantity / oldQuantity;
-	const moved =
-		(operation.date !== undefined && operation.date !== entry.date) ||
-		(operation.meal !== undefined && operation.meal !== entry.meal);
-	const next = {
-		...entry,
-		...(operation.date ? { date: operation.date } : {}),
-		...(operation.meal ? { meal: operation.meal } : {}),
-		...(operation.selection
-			? {
-					quantity,
-					amount: operation.selection.amount,
-					serving: operation.selection.serving,
-					personalMeasureId: operation.selection.personalMeasureId ?? undefined,
-					nutrients: rescaleNutrients(entry.nutrients, factor),
-				}
-			: operation.quantity
-				? {
-						quantity,
-						amount: entry.amount * factor,
-						nutrients: rescaleNutrients(entry.nutrients, factor),
-					}
-				: {}),
-		pendingOperationId: operationId,
-	};
-	if (operation.correction)
-		Object.assign(next, correctDiaryNutrients(next, operation.correction));
-	if (moved) {
-		delete next.comboGroup;
-	}
-	const index = entries.indexOf(entry);
-	entries[index] = next;
-}
-
-function applyGroup(
-	entries: NutritionProjectedEntry[],
-	operation: Extract<NutritionDiaryOperation, { kind: "group" }>,
-	operationId: string,
-) {
-	for (const target of operation.targets) {
-		const index = entries.findIndex((entry) => entryMatches(entry, target));
-		if (index < 0) continue;
-		entries[index] = {
-			...entries[index],
-			comboGroup: operation.comboGroup,
-			pendingOperationId: operationId,
-		};
-	}
-}
-
-function applyOperations(
-	base: NutritionCachedDay | undefined,
-	date: string,
-	operations: readonly NutritionLocalOperation[],
-): NutritionProjectedDay {
-	const entries = (base?.entries ?? []).map((entry) => ({ ...entry }));
-	const pendingOperationIds: string[] = [];
-	for (const local of operations) {
-		if (local.status === "acknowledged") continue;
-		const operation = local.envelope.operation;
-		if (operation.kind === "create") {
-			if (
-				operation.entry.date === date &&
-				!entries.some(
-					(entry) => entry.clientEntryId === operation.entry.clientEntryId,
-				)
-			) {
-				entries.push(entryForSnapshot(operation.entry, local.operationId));
-			}
-			pendingOperationIds.push(local.operationId);
-		}
-		if (operation.kind === "createBatch") {
-			if (operation.date === date) {
-				for (const entry of operation.entries) {
-					if (
-						!entries.some(
-							(candidate) => candidate.clientEntryId === entry.clientEntryId,
-						)
-					) {
-						entries.push(
-							entryForSnapshot(
-								{ ...entry, date: operation.date, meal: operation.meal },
-								local.operationId,
-							),
-						);
-					}
-				}
-			}
-			pendingOperationIds.push(local.operationId);
-		}
-		if (operation.kind === "update") {
-			applyUpdate(entries, operation, local.operationId, local.hint);
-			pendingOperationIds.push(local.operationId);
-		}
-		if (operation.kind === "group") {
-			applyGroup(entries, operation, local.operationId);
-			pendingOperationIds.push(local.operationId);
-		}
-		if (operation.kind === "remove") {
-			const index = entries.findIndex((entry) =>
-				entryMatches(entry, operation.target),
+function migrate(database: SyncSQLiteDatabase) {
+	const version =
+		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
+			?.user_version ?? 0;
+	if (version > DATABASE_VERSION)
+		throw new Error("This nutrition state database is newer than this app.");
+	if (version === DATABASE_VERSION) return;
+	database.execSync("BEGIN IMMEDIATE");
+	try {
+		const journal = database.getFirstSync(
+			"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'nutrition_operations'",
+		);
+		if (
+			journal &&
+			database.getFirstSync(
+				"SELECT 1 FROM nutrition_operations WHERE status != 'acknowledged' LIMIT 1",
+			)
+		)
+			throw new Error(
+				"Upload legacy diary changes with build 20 before updating this app.",
 			);
-			if (index >= 0) entries.splice(index, 1);
-			pendingOperationIds.push(local.operationId);
-		}
-		if (operation.kind === "removeBatch") {
-			for (const target of operation.targets) {
-				const index = entries.findIndex((entry) => entryMatches(entry, target));
-				if (index >= 0) entries.splice(index, 1);
-			}
-			pendingOperationIds.push(local.operationId);
-		}
-		if (operation.kind === "moveBatch") {
-			for (const target of operation.targets) {
-				applyUpdate(
-					entries,
-					{
-						kind: "update",
-						target,
-						date: operation.date,
-						meal: operation.meal,
-					},
-					local.operationId,
-				);
-			}
-			pendingOperationIds.push(local.operationId);
-		}
+		database.execSync(`
+			CREATE TABLE IF NOT EXISTS nutrition_food_shortcuts (
+				subject TEXT NOT NULL, source_key TEXT NOT NULL, last_used_at INTEGER,
+				portion_json TEXT, favorite INTEGER NOT NULL DEFAULT 0,
+				PRIMARY KEY(subject, source_key)
+			);
+			CREATE INDEX IF NOT EXISTS nutrition_food_shortcuts_by_recent ON nutrition_food_shortcuts(subject, last_used_at DESC, source_key ASC);
+			CREATE TABLE IF NOT EXISTS nutrition_goal_preferences (subject TEXT PRIMARY KEY, display_order_json TEXT NOT NULL);
+			DROP TABLE IF EXISTS nutrition_operations;
+			DROP TABLE IF EXISTS nutrition_entry_mappings;
+			DROP TABLE IF EXISTS nutrition_cached_days;
+			DROP TABLE IF EXISTS nutrition_cached_goals;
+			DROP TABLE IF EXISTS nutrition_cached_personal_measures;
+			DROP TABLE IF EXISTS nutrition_cached_supplementary_servings;
+			PRAGMA user_version = 7;
+		`);
+		database.execSync("COMMIT");
+	} catch (error) {
+		database.execSync("ROLLBACK");
+		throw error;
 	}
-	const visible = entries.filter((entry) => entry.date === date);
-	return {
-		date,
-		revision: base?.revision ?? 0,
-		complete: base?.complete ?? false,
-		entries: visible,
-		totals: totalNutrients(visible.map((entry) => entry.nutrients)),
-		pendingOperationIds: [...new Set(pendingOperationIds)],
-	};
 }
 
+/** Server snapshots are bounded session memory; only optional defaults use SQLite. */
 export function createNutritionLocalRepository(
 	database: SyncSQLiteDatabase,
 	now: () => number = Date.now,
 ): NutritionLocalRepository {
 	migrate(database);
+	const days = new Map<string, NutritionCachedDay>();
+	const goals = new Map<string, CachedGoalHistory>();
+	const measures = new Map<string, PersonalMeasure[]>();
+	const servings = new Map<string, SupplementaryServing[]>();
+	const acknowledged = new Map<string, NutritionLocalOperation>();
+	const key = (subject: string, id: string) => canonicalJson([subject, id]);
+	function retain<T>(cache: Map<string, T>, id: string, value: T) {
+		cache.delete(id);
+		cache.set(id, value);
+		const oldest = cache.keys().next().value;
+		if (cache.size > 32 && oldest !== undefined) cache.delete(oldest);
+	}
 	return {
-		accept(subject, envelope, hint, directFoodUse) {
+		recordAcknowledged(subject, envelope, result, directFoodUse) {
 			if (envelope.expectedSubject !== subject)
 				throw new Error("Subject mismatch.");
 			const timestamp = now();
-			const payload = operationPayload(envelope);
-			transaction(database, () => {
-				database.runSync(
-					`INSERT INTO nutrition_operations
-					 (subject, operation_id, payload_json, status, attempts, next_attempt_at, hint_json, created_at)
-					VALUES (?, ?, ?, 'queued', 0, 0, ?, ?)`,
+			acknowledged.set(key(subject, envelope.operationId), {
+				sequence: acknowledged.size + 1,
+				subject,
+				operationId: envelope.operationId,
+				envelope,
+				status: "acknowledged",
+				attempts: 1,
+				nextAttemptAt: 0,
+				createdAt: timestamp,
+			});
+			for (const day of result.days)
+				this.putDay(subject, {
 					subject,
-					envelope.operationId,
-					payload,
-					hint ? JSON.stringify(hint) : null,
-					timestamp,
-				);
-				if (directFoodUse) {
+					date: day.date,
+					revision: day.revision,
+					complete: true,
+					entries: day.entries,
+					updatedAt: timestamp,
+				});
+			// Optional defaults must never turn an acknowledged server save into a failed save.
+			try {
+				if (directFoodUse)
 					database.runSync(
-						`INSERT INTO nutrition_food_shortcuts(subject, source_key, last_used_at, portion_json, favorite)
-						 VALUES (?, ?, ?, ?, 0)
-						 ON CONFLICT(subject, source_key) DO UPDATE SET
-						 last_used_at = excluded.last_used_at,
-						 portion_json = excluded.portion_json`,
+						`
+				INSERT INTO nutrition_food_shortcuts(subject, source_key, last_used_at, portion_json, favorite)
+				VALUES (?, ?, ?, ?, 0) ON CONFLICT(subject, source_key) DO UPDATE SET
+				last_used_at = excluded.last_used_at, portion_json = excluded.portion_json`,
 						subject,
 						directFoodUse.sourceKey,
 						timestamp,
 						JSON.stringify(directFoodUse.portion),
 					);
-				}
-			});
-			const created = this.getOperation(subject, envelope.operationId);
-			if (!created) throw new Error("Local nutrition operation was not saved.");
-			return created;
+			} catch {
+				/* The server snapshot and receipt above remain authoritative. */
+			}
 		},
 		listOperations(subject) {
-			return database
-				.getAllSync<OperationRow>(
-					"SELECT * FROM nutrition_operations WHERE subject = ? ORDER BY sequence ASC",
-					subject,
-				)
-				.map(rowToOperation);
-		},
-		getOperation(subject, operationId) {
-			const row = database.getFirstSync<OperationRow>(
-				"SELECT * FROM nutrition_operations WHERE subject = ? AND operation_id = ?",
-				subject,
-				operationId,
-			);
-			return row ? rowToOperation(row) : undefined;
-		},
-		markSending(subject, operationId) {
-			database.runSync(
-				"UPDATE nutrition_operations SET status = 'sending', attempts = attempts + 1 WHERE subject = ? AND operation_id = ?",
-				subject,
-				operationId,
-			);
-		},
-		markQueued(subject, operationId, error) {
-			const operation = this.getOperation(subject, operationId);
-			const attempts = operation?.attempts ?? 0;
-			const delay = Math.min(60_000, 1_000 * 2 ** Math.min(attempts, 6));
-			database.runSync(
-				"UPDATE nutrition_operations SET status = 'queued', next_attempt_at = ?, last_error = ? WHERE subject = ? AND operation_id = ?",
-				now() + delay,
-				error ?? null,
-				subject,
-				operationId,
-			);
-		},
-		markNeedsAttention(subject, operationId, error) {
-			database.runSync(
-				"UPDATE nutrition_operations SET status = 'needs-attention', last_error = ? WHERE subject = ? AND operation_id = ?",
-				error,
-				subject,
-				operationId,
-			);
-		},
-		recoverSending(subject) {
-			database.runSync(
-				"UPDATE nutrition_operations SET status = 'queued' WHERE subject = ? AND status = 'sending'",
-				subject,
+			return [...acknowledged.values()].filter(
+				(operation) => operation.subject === subject,
 			);
 		},
 		getDay(subject, date) {
-			const row = database.getFirstSync<DayRow>(
-				"SELECT * FROM nutrition_cached_days WHERE subject = ? AND date = ?",
-				subject,
-				date,
-			);
-			return row ? rowToDay(row) : undefined;
+			return days.get(key(subject, date));
 		},
 		putDay(subject, day) {
-			const current = this.getDay(subject, day.date);
-			if (current && current.revision > day.revision) return;
-			database.runSync(
-				`INSERT INTO nutrition_cached_days(subject, date, revision, complete, entries_json, updated_at)
-				 VALUES (?, ?, ?, ?, ?, ?)
-				 ON CONFLICT(subject, date) DO UPDATE SET
-				 revision = excluded.revision,
-				 complete = excluded.complete,
-				 entries_json = excluded.entries_json,
-				 updated_at = excluded.updated_at`,
-				subject,
-				day.date,
-				day.revision,
-				day.complete ? 1 : 0,
-				JSON.stringify(day.entries),
-				day.updatedAt,
-			);
-		},
-		acknowledge(subject, operationId, result) {
-			transaction(database, () => {
-				for (const day of result.days) {
-					this.putDay(subject, {
-						subject,
-						date: day.date,
-						revision: day.revision,
-						complete: true,
-						entries: day.entries,
-						updatedAt: now(),
-					});
-				}
-				for (let index = 0; index < result.clientEntryIds.length; index += 1) {
-					const clientEntryId = result.clientEntryIds[index];
-					const serverEntryId = result.entryIds[index];
-					if (!clientEntryId || !serverEntryId) continue;
-					database.runSync(
-						`INSERT INTO nutrition_entry_mappings(subject, client_entry_id, server_entry_id)
-						 VALUES (?, ?, ?)
-						 ON CONFLICT(subject, client_entry_id) DO UPDATE SET server_entry_id = excluded.server_entry_id`,
-						subject,
-						clientEntryId,
-						serverEntryId,
-					);
-				}
-				database.runSync(
-					"UPDATE nutrition_operations SET status = 'acknowledged', last_error = NULL WHERE subject = ? AND operation_id = ?",
-					subject,
-					operationId,
-				);
-			});
+			const id = key(subject, day.date);
+			if ((days.get(id)?.revision ?? -1) <= day.revision) retain(days, id, day);
 		},
 		projectDay(subject, date) {
-			return applyOperations(
-				this.getDay(subject, date),
+			const day = this.getDay(subject, date);
+			const entries = day?.entries ?? [];
+			return {
 				date,
-				this.listOperations(subject),
-			);
+				revision: day?.revision ?? 0,
+				complete: day?.complete ?? false,
+				entries,
+				totals: totalNutrients(entries.map((entry) => entry.nutrients)),
+				pendingOperationIds: [],
+			};
 		},
 		getGoals(subject, date) {
-			const row = database.getFirstSync<{ payload: string }>(
-				"SELECT payload FROM nutrition_cached_goals WHERE subject = ? AND date = ?",
-				subject,
-				date,
-			);
-			if (!row) return undefined;
-			const history = JSON.parse(row.payload) as CachedGoalHistory;
+			const history = goals.get(key(subject, date));
+			if (!history) return undefined;
 			const displayOrder = this.getGoalDisplayOrder(subject);
 			return displayOrder ? { ...history, displayOrder } : history;
 		},
 		putGoals(subject, date, history) {
-			transaction(database, () => {
-				database.runSync(
-					"INSERT INTO nutrition_cached_goals(subject, date, payload) VALUES (?, ?, ?) ON CONFLICT(subject, date) DO UPDATE SET payload = excluded.payload",
-					subject,
-					date,
-					JSON.stringify(history),
-				);
-				if (history.displayOrder)
-					database.runSync(
-						"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
-						subject,
-						JSON.stringify(history.displayOrder),
-					);
-			});
+			retain(goals, key(subject, date), history);
+			if (history.displayOrder)
+				this.putGoalDisplayOrder(subject, history.displayOrder);
+		},
+		getSupplementaryServings(subject, foodId) {
+			return servings.get(key(subject, foodId)) ?? [];
+		},
+		putSupplementaryServings(subject, foodId, values) {
+			retain(servings, key(subject, foodId), [...values]);
+		},
+		getPersonalMeasures(subject) {
+			return measures.get(subject) ?? [];
+		},
+		putPersonalMeasures(subject, values) {
+			retain(measures, subject, [...values]);
 		},
 		getGoalDisplayOrder(subject) {
 			const row = database.getFirstSync<{ display_order_json: string }>(
@@ -717,55 +334,6 @@ export function createNutritionLocalRepository(
 				"INSERT INTO nutrition_goal_preferences(subject, display_order_json) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET display_order_json = excluded.display_order_json",
 				subject,
 				JSON.stringify(displayOrder),
-			);
-		},
-		cleanAcknowledged(subject) {
-			transaction(database, () => {
-				if (
-					this.listOperations(subject).some(
-						(operation) => operation.status !== "acknowledged",
-					)
-				)
-					throw new Error("Diary changes still need uploading.");
-				for (const table of [
-					"nutrition_operations",
-					"nutrition_entry_mappings",
-					"nutrition_cached_days",
-					"nutrition_cached_goals",
-					"nutrition_cached_personal_measures",
-					"nutrition_cached_supplementary_servings",
-				])
-					database.runSync(`DELETE FROM ${table} WHERE subject = ?`, subject);
-			});
-		},
-		getSupplementaryServings(subject, foodId) {
-			const row = database.getFirstSync<{ payload: string }>(
-				"SELECT payload FROM nutrition_cached_supplementary_servings WHERE subject = ? AND food_id = ?",
-				subject,
-				foodId,
-			);
-			return row ? (JSON.parse(row.payload) as SupplementaryServing[]) : [];
-		},
-		putSupplementaryServings(subject, foodId, servings) {
-			database.runSync(
-				"INSERT INTO nutrition_cached_supplementary_servings(subject, food_id, payload) VALUES (?, ?, ?) ON CONFLICT(subject, food_id) DO UPDATE SET payload = excluded.payload",
-				subject,
-				foodId,
-				JSON.stringify(servings),
-			);
-		},
-		getPersonalMeasures(subject) {
-			const row = database.getFirstSync<{ payload: string }>(
-				"SELECT payload FROM nutrition_cached_personal_measures WHERE subject = ?",
-				subject,
-			);
-			return row ? (JSON.parse(row.payload) as PersonalMeasure[]) : [];
-		},
-		putPersonalMeasures(subject, measures) {
-			database.runSync(
-				"INSERT INTO nutrition_cached_personal_measures(subject, payload) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET payload = excluded.payload",
-				subject,
-				JSON.stringify(measures),
 			);
 		},
 		listRecent(subject, limit = 50) {
@@ -820,58 +388,22 @@ export function createNutritionLocalRepository(
 
 export function openNutritionLocalRepository(): NutritionLocalRepository {
 	return createNutritionLocalRepository(
-		openNutritionDatabase(
-			NUTRITION_STATE_DATABASE_NAME,
-		) as unknown as SyncSQLiteDatabase,
+		openNutritionDatabase(NUTRITION_STATE_DATABASE_NAME),
 	);
 }
 
-export function operationPayload(envelope: NutritionOperationEnvelope): string {
-	return canonicalJson(envelope);
-}
-
-/** Clear only this account; preserve unrelated accounts and preferences. */
-export function clearNutritionLocalAccount(
-	subject: string,
-	removePhoto: (visual: NutritionDiarySnapshot["visual"]) => void,
-) {
+/** Confirmed test-data resets remove the account's optional defaults. */
+export function clearNutritionLocalAccount(subject: string) {
 	const database = openNutritionDatabase(NUTRITION_STATE_DATABASE_NAME);
 	try {
 		createNutritionLocalRepository(database);
-		for (const day of database.getAllSync<{ entries_json: string }>(
-			"SELECT entries_json FROM nutrition_cached_days WHERE subject = ?",
-			subject,
-		)) {
-			const entries: NutritionDiarySnapshot[] = JSON.parse(day.entries_json);
-			for (const entry of entries) removePhoto(entry.visual);
-		}
 		database.withTransactionSync(() => {
-			database.runSync(
-				"DELETE FROM nutrition_operations WHERE subject = ?",
-				subject,
-			);
-			database.runSync(
-				"DELETE FROM nutrition_cached_days WHERE subject = ?",
-				subject,
-			);
-			database.runSync(
-				"DELETE FROM nutrition_entry_mappings WHERE subject = ?",
-				subject,
-			);
 			database.runSync(
 				"DELETE FROM nutrition_food_shortcuts WHERE subject = ?",
 				subject,
 			);
 			database.runSync(
-				"DELETE FROM nutrition_cached_goals WHERE subject = ?",
-				subject,
-			);
-			database.runSync(
-				"DELETE FROM nutrition_cached_personal_measures WHERE subject = ?",
-				subject,
-			);
-			database.runSync(
-				"DELETE FROM nutrition_cached_supplementary_servings WHERE subject = ?",
+				"DELETE FROM nutrition_goal_preferences WHERE subject = ?",
 				subject,
 			);
 		});

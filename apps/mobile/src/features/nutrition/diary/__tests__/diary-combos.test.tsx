@@ -197,11 +197,11 @@ describe("Nutrition Combos", () => {
 	it("retries diary grouping with the already acknowledged Combo", async () => {
 		showDiary([diaryEntry("entry-1", "Oats", "lunch")]);
 		const app = renderApp();
-		const accept = jest
-			.spyOn(app.nutritionRepository, "accept")
-			.mockImplementationOnce(() => {
-				throw new Error("disk full");
-			});
+		const apply = app.accountTransport.apply.getMockImplementation();
+		if (!apply) throw new Error("Missing account transport");
+		app.accountTransport.apply.mockRejectedValueOnce(
+			new Error("Network unavailable"),
+		);
 		await screen.findByText("Oats");
 
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
@@ -219,7 +219,7 @@ describe("Nutrition Combos", () => {
 		expect(screen.getByDisplayValue("My oats")).toBeTruthy();
 		expect(app.repository.listCombos()).toHaveLength(1);
 		const id = app.repository.listCombos()[0].id;
-		accept.mockRestore();
+		app.accountTransport.apply.mockImplementation(apply);
 		fireEvent.press(screen.getByLabelText("Save Combo"));
 		await waitFor(() =>
 			expect(screen.queryByLabelText("Combo name")).toBeNull(),

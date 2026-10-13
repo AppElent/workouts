@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { formatLongDate, isoDayOffset } from "../../../data/calendar-day";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
+import type { CaptureDraft } from "../../../data/nutrition-capture-draft";
 import {
 	type DiaryEntry,
 	type DiaryEntryWithMeal,
@@ -12,7 +13,6 @@ import {
 	type MealSlot,
 	useNutritionDay,
 } from "../../../data/nutrition-day";
-import type { CaptureDraft } from "../../../data/nutrition-draft-repository";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
@@ -33,7 +33,6 @@ import { DiaryDraftEditor } from "./components/diary-draft-editor";
 import { DiaryMealCard } from "./components/diary-meal-card";
 import { DiarySelectionActions } from "./components/diary-selection-actions";
 import { DiarySummary } from "./components/diary-summary";
-import { DiarySyncStatus } from "./components/diary-sync-status";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
 import { useDiaryDateRequest } from "./use-diary-date-request";
 
@@ -318,7 +317,6 @@ export function DiaryScreen({
 					</SkeletonGroup>
 				) : (
 					<>
-						<DiarySyncStatus />
 						{drafts.loading ? (
 							<AppText variant="caption">
 								{locale === "nl"

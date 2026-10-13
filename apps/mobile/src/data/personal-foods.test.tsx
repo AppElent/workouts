@@ -15,7 +15,11 @@ import {
 	createNutritionLibraryStateRepository,
 	libraryRecordFromFood,
 } from "./nutrition-library-repository";
-import type { NutritionLibraryOperationEnvelope } from "./nutrition-library-service";
+
+type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
+	typeof import("../convex/api").api.nutritionLibrary.save
+>;
+
 import {
 	createPersonalFoodRepository,
 	type PersonalFoodDraft,
@@ -57,64 +61,6 @@ beforeEach(() => {
 });
 
 describe("PersonalFoodsProvider library journal", () => {
-	it("resumes an explicit device claim after local interruption without recopying acknowledged records", async () => {
-		jest
-			.mocked(useAuth)
-			.mockReturnValue({ isSignedIn: true, userId: "account-a" } as never);
-		jest
-			.mocked(useConvexConnectionState)
-			.mockReturnValue({ isWebSocketConnected: true } as never);
-		const original = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const food = original.create(draft);
-		const cache = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const state = createNutritionLibraryStateRepository(
-			new SQLiteTestDatabase(),
-		);
-		const remote = jest.fn(
-			async (envelope: NutritionLibraryOperationEnvelope) => {
-				if (envelope.operation.kind !== "upsert")
-					throw new Error("Expected upsert");
-				return {
-					record: { ...envelope.operation.record, revision: 1, deleted: false },
-				};
-			},
-		);
-		jest.mocked(useMutation).mockReturnValue(remote as never);
-		let value!: ReturnType<typeof usePersonalFoods>;
-		function Reader() {
-			value = usePersonalFoods();
-			return <Text>{value.account.hasLegacy ? "Claim" : "Owned"}</Text>;
-		}
-		const screen = render(
-			<PersonalFoodsProvider
-				repository={cache}
-				legacyRepository={original}
-				libraryState={state}
-			>
-				<Reader />
-			</PersonalFoodsProvider>,
-		);
-		jest.spyOn(cache, "replaceFromBackup").mockImplementationOnce(() => {
-			throw new Error("Local interruption");
-		});
-		expect(() => value.account.importLegacy()).toThrow("Local interruption");
-		expect(state.legacyClaimedBy()).toBe("account-a");
-		expect(original.find(food.id)).toEqual(food);
-		await act(async () => {
-			value.account.importLegacy();
-			await Promise.resolve();
-		});
-		await waitFor(() => expect(state.listOperations("account-a")).toEqual([]));
-		expect(cache.find(`device:${food.id}`)?.name.en).toBe("Prepared oats");
-		await act(async () => {
-			value.account.importLegacy();
-			await Promise.resolve();
-		});
-		expect(remote).toHaveBeenCalledTimes(1);
-		expect(original.find(food.id)).toEqual(food);
-		expect(state.claimLegacy("account-b")).toBe(false);
-		screen.unmount();
-	});
 	it("loads the visible library without opening settings", async () => {
 		jest.mocked(useMutation).mockReturnValue(jest.fn() as never);
 		jest
@@ -140,7 +86,6 @@ describe("PersonalFoodsProvider library journal", () => {
 		const state = createNutritionLibraryStateRepository(
 			new SQLiteTestDatabase(),
 		);
-		state.setEnabled("account-a", true);
 		function Reader() {
 			const personal = usePersonalFoods({ browse: {} });
 			return (
@@ -214,7 +159,6 @@ describe("PersonalFoodsProvider library journal", () => {
 			save = value.create(draft);
 		});
 		expect(screen.getByText("Empty")).toBeTruthy();
-		expect(state.listOperations("account-a")).toEqual([]);
 		const envelope = remote.mock.calls[0][0];
 		if (envelope.operation.kind !== "upsert")
 			throw new Error("Expected upsert");
@@ -232,7 +176,6 @@ describe("PersonalFoodsProvider library journal", () => {
 		);
 		await expect(value.create(draft)).rejects.toThrow("connection");
 		expect(value.list()).toHaveLength(1);
-		expect(state.listOperations("account-a")).toEqual([]);
 	});
 });
 

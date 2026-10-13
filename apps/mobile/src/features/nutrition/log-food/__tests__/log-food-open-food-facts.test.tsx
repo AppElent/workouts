@@ -125,7 +125,8 @@ describe("scanning a barcode", () => {
 		);
 		expect(repository.list()[0].visual).toEqual({
 			kind: "photo",
-			uri: "file:///documents/food-photos/baked-beans.jpg",
+			uri: "https://fixture.invalid/photo.jpg",
+			storageId: "fixture-photo",
 		});
 		expect(foodPhotos.importRemote).toHaveBeenCalledWith(
 			bakedBeans.image_front_small_url,
@@ -146,7 +147,7 @@ describe("scanning a barcode", () => {
 		);
 	});
 
-	it("still saves an imported food when its proposed photo cannot be downloaded", async () => {
+	it("saves an OFF image reference without making the save depend on a photo download", async () => {
 		jest
 			.mocked(foodPhotos.importRemote)
 			.mockRejectedValueOnce(new Error("offline"));
@@ -162,17 +163,21 @@ describe("scanning a barcode", () => {
 		fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
-		expect(repository.list()[0].visual).toBeUndefined();
+		expect(repository.list()[0].visual).toEqual({
+			kind: "remote",
+			uri: bakedBeans.image_front_small_url,
+		});
+		expect(foodPhotos.importRemote).not.toHaveBeenCalled();
 		// The neutral fallback, in the serving sheet and in the row behind it —
 		// the pooled list shows the food you just saved without switching scope.
 		expect(
 			(await screen.findAllByLabelText("Baked Beans visual")).length,
 		).toBeGreaterThan(0);
 		expect(
-			await screen.findByText(
+			screen.queryByText(
 				"The product was saved, but its photo could not be downloaded.",
 			),
-		).toBeTruthy();
+		).toBeNull();
 	});
 
 	it("marks a Food Import as locally edited only when the reviewer changes a field", async () => {

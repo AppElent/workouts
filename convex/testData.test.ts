@@ -273,3 +273,17 @@ describe("in-app test data", () => {
 		}
 	});
 });
+
+it("clears only the resetting account's uploaded photos", async () => {
+ vi.stubEnv("CLERK_JWT_ISSUER_DOMAIN", "https://test.clerk.accounts.dev");
+ vi.stubEnv("CONVEX_CLOUD_URL", "https://test-local.convex.cloud");
+ const t = convexTest(schema, modules);
+ const [alicePhoto, bobPhoto] = await t.run(async (ctx) => [await ctx.storage.store(new Blob(["alice"], {type:"image/jpeg"})), await ctx.storage.store(new Blob(["bob"], {type:"image/jpeg"}))]);
+ const alice = t.withIdentity({subject:"alice"});
+ const bob = t.withIdentity({subject:"bob"});
+ await alice.mutation(api.nutritionFoodPhotos.registerUpload, {storageId:alicePhoto, expectedSubject:"alice"});
+ await bob.mutation(api.nutritionFoodPhotos.registerUpload, {storageId:bobPhoto, expectedSubject:"bob"});
+ await alice.mutation(api.testData.reset, {mode:"clear", today:"2026-10-13", expectedSubject:"alice"});
+ expect(await alice.query(api.nutritionFoodPhotos.url, {storageId:alicePhoto})).toBeNull();
+ expect(await bob.query(api.nutritionFoodPhotos.url, {storageId:bobPhoto})).toBeTruthy();
+});

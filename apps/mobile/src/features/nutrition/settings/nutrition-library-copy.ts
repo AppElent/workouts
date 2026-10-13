@@ -5,7 +5,7 @@ export const nutritionLibraryCopy = {
 		intro:
 			"Personal Foods and Combos are saved to your account. Saving requires a connection. Meals already logged keep their original nutrition values.",
 		photoNotice:
-			"Food photos stay on this device. On another device, Foods keep preset icons and use the default visual where a photo is unavailable.",
+			"Your own Food photos are saved to your account. Open Food Facts photos are loaded from the provider and cached on this device.",
 		offTitle: "Open Food Facts",
 		offHelp:
 			"Refresh imported products from their barcodes. Your edited names, nutrition values, custom portions, and chosen Food Visual stay unchanged.",
@@ -33,7 +33,7 @@ export const nutritionLibraryCopy = {
 		intro:
 			"Persoonlijke Voedingsmiddelen en Combo's worden in je account opgeslagen. Opslaan vereist verbinding. Eerder gelogde maaltijden behouden hun oorspronkelijke voedingswaarden.",
 		photoNotice:
-			"Voedingsfoto's blijven op dit apparaat. Op een ander apparaat behouden voedingsmiddelen gekozen iconen en gebruiken ze de standaardafbeelding waar een foto ontbreekt.",
+			"Je eigen voedingsfoto’s worden in je account opgeslagen. Open Food Facts-foto’s worden vanaf de bron geladen en op dit apparaat gecachet.",
 		offTitle: "Open Food Facts",
 		offHelp:
 			"Vernieuw geïmporteerde producten via hun barcode. Je aangepaste namen, voedingswaarden, eigen porties en gekozen voedingsvisual blijven ongewijzigd.",

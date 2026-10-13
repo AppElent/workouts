@@ -1,3 +1,4 @@
+import {requireFoodPhotoOwner} from "./nutritionFoodPhotos";
 import {
 	canonicalJson,
  correctDiaryNutrients,
@@ -217,7 +218,11 @@ async function daySnapshot(ctx: QueryCtx | MutationCtx, userId: string, date: st
 		.collect();
 	return {
 		date,
-		entries,
+		entries: await Promise.all(entries.map(async (entry) => {
+			if (entry.visual?.kind !== "photo" || !entry.visual.storageId) return entry;
+			const uri = await ctx.storage.getUrl(entry.visual.storageId);
+			return {...entry, visual: uri ? {...entry.visual, uri} : undefined};
+		})),
 		totals: totalNutrients(entries.map((entry) => entry.nutrients)),
 		revision: await getRevision(ctx, userId, date),
 	};
@@ -249,6 +254,7 @@ export const log = mutation({
 	handler: async (ctx, snapshot) => {
 		const userId = await requireUser(ctx);
 		assertSnapshot(snapshot);
+		if (snapshot.visual?.kind === "photo" && snapshot.visual.storageId) await requireFoodPhotoOwner(ctx, snapshot.visual.storageId);
 		if (snapshot.clientEntryId) {
 			await assertClientEntryAvailable(ctx, userId, snapshot.clientEntryId);
 		}
@@ -282,6 +288,7 @@ export const logCombo = mutation({
 		if (parts.length === 0) throw new Error("A Combo needs at least one part.");
 		for (const part of parts) {
 			assertSnapshot({ ...part, date, meal });
+			if (part.visual?.kind === "photo" && part.visual.storageId) await requireFoodPhotoOwner(ctx, part.visual.storageId);
 		}
 		const loggedAt = Date.now();
 		const comboGroup = {
@@ -443,6 +450,8 @@ export const applyOperation = mutation({
 		const entryIds: Id<"nutritionDiaryEntries">[] = [];
 		const clientEntryIds: string[] = [];
 		const operation = args.operation as unknown as NutritionDiaryOperation;
+		const photoEntries = operation.kind === "create" ? [operation.entry] : operation.kind === "createBatch" ? operation.entries : [];
+		for (const entry of photoEntries) if (entry.visual?.kind === "photo" && entry.visual.storageId) await requireFoodPhotoOwner(ctx, entry.visual.storageId);
 
 		if (operation.kind === "create") {
 			assertSnapshot(operation.entry);

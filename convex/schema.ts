@@ -14,6 +14,7 @@ export default defineSchema({
   exerciseMigrations: exerciseMigrationTable,
   ...nutritionGoalTables,
   ...nutritionLibraryTables,
+  nutritionFoodPhotos: defineTable({userId: v.string(), storageId: v.id("_storage")}).index("by_storage", ["storageId"]).index("by_user", ["userId"]),
   ...nutritionDraftTables,
   ...personalMeasureTables,
   ...supplementaryServingTables,

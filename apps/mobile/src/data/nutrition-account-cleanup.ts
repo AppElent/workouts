@@ -1,72 +1,68 @@
-import { foodPhotos } from "./food-photo-manager";
-import { cleanLegacyRecipes } from "./legacy-recipe-migration";
-import { NUTRITION_COOKING_DATABASE_NAME } from "./nutrition-cooking-repository";
+import { File } from "expo-file-system";
+import { defaultDatabaseDirectory } from "expo-sqlite";
 import { openNutritionDatabase } from "./nutrition-database";
-import { openNutritionDraftRepository } from "./nutrition-draft-repository";
-import {
-	createNutritionLibraryStateRepository,
-	NUTRITION_LIBRARY_STATE_DATABASE_NAME,
-} from "./nutrition-library-repository";
-import { cleanLegacyLibrary } from "./nutrition-library-service";
-import { openNutritionLocalRepository } from "./nutrition-local-repository";
-import {
-	createPersonalFoodRepository,
-	PERSONAL_FOOD_DATABASE_NAME,
-} from "./personal-food-repository";
+import { nutritionLibraryDatabaseName } from "./nutrition-library-repository";
+import { openPersonalFoodRepository } from "./personal-food-repository";
+import { discardPersonalFoodSources } from "./personal-food-session";
 
-/** Call only with account providers unmounted; every step is safe to retry. */
-export function cleanUploadedNutritionAccount(subject: string) {
-	const stateDatabase = openNutritionDatabase(
-		NUTRITION_LIBRARY_STATE_DATABASE_NAME,
-	);
-	const state = createNutritionLibraryStateRepository(stateDatabase);
-	const legacyDatabase = openNutritionDatabase(PERSONAL_FOOD_DATABASE_NAME);
-	const legacy = createPersonalFoodRepository(legacyDatabase);
-	const drafts = openNutritionDraftRepository();
-	const local = openNutritionLocalRepository();
-	const cooking = openNutritionDatabase(NUTRITION_COOKING_DATABASE_NAME);
-	try {
-		if (
-			state.listOperations(subject).length ||
-			state.listPrepared(subject).length ||
-			state.listConflicts(subject).length ||
-			drafts.pendingMigrations(subject).length ||
-			local
-				.listOperations(subject)
-				.some((operation) => operation.status !== "acknowledged")
-		)
-			throw new Error("Some local data still needs uploading.");
-		cleanLegacyRecipes(cooking, subject, state);
-		cleanLegacyLibrary(subject, state, legacy);
-		drafts.cleanAcknowledged(subject);
-		local.cleanAcknowledged(subject);
-	} finally {
-		cooking.closeSync();
-		local.close();
-		drafts.close();
-		legacyDatabase.closeSync();
-		stateDatabase.closeSync();
+/** Empty migration sources can be retired; unknown originals remain untouched. */
+export function retireLegacyNutritionData() {
+	for (const [name, sourceTables] of [
+		["workouts-nutrition.db", ["personal_foods", "nutrition_combos"]],
+		[
+			"workouts-nutrition-cooking.db",
+			["nutrition_capture_drafts", "nutrition_cooking_recipes"],
+		],
+	] as const) {
+		const file = new File(defaultDatabaseDirectory, name);
+		if (!file.exists) continue;
+		const database = openNutritionDatabase(name);
+		let empty = true;
+		try {
+			for (const table of sourceTables) {
+				if (
+					database.getFirstSync(
+						"SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+						table,
+					) &&
+					database.getFirstSync(`SELECT 1 FROM ${table} LIMIT 1`)
+				)
+					empty = false;
+			}
+		} finally {
+			database.closeSync();
+		}
+		if (empty) file.delete();
 	}
 }
 
-/** A confirmed test-account reset explicitly discards the owner's old sources. */
-export function discardLegacyNutritionAccount(subject: string) {
-	const stateDatabase = openNutritionDatabase(
-		NUTRITION_LIBRARY_STATE_DATABASE_NAME,
+/** Remount providers after this call; account data refills from Convex. */
+export function clearNutritionAccountCache(subject: string) {
+	const file = new File(
+		defaultDatabaseDirectory,
+		nutritionLibraryDatabaseName(subject),
 	);
-	const state = createNutritionLibraryStateRepository(stateDatabase);
-	const legacyDatabase = openNutritionDatabase(PERSONAL_FOOD_DATABASE_NAME);
-	const legacy = createPersonalFoodRepository(legacyDatabase);
-	const cooking = openNutritionDatabase(NUTRITION_COOKING_DATABASE_NAME);
-	try {
-		if (state.legacyClaimedBy() === subject) {
-			for (const food of legacy.list()) foodPhotos.remove(food.visual);
-			legacy.replaceFromBackup({ foods: [], combos: [] });
+	if (file.exists) {
+		const cache = openPersonalFoodRepository(
+			nutritionLibraryDatabaseName(subject),
+			{ partialCache: true },
+		);
+		try {
+			if (
+				cache
+					.list()
+					.some(
+						(food) =>
+							food.visual?.kind === "photo" &&
+							!food.visual.storageId &&
+							food.provenance.nutritionSource !== "openfoodfacts",
+					)
+			)
+				throw new Error("Upload device photos before clearing this cache.");
+		} finally {
+			cache.close?.();
 		}
-		cleanLegacyRecipes(cooking, subject);
-	} finally {
-		cooking.closeSync();
-		legacyDatabase.closeSync();
-		stateDatabase.closeSync();
+		discardPersonalFoodSources(subject);
 	}
+	retireLegacyNutritionData();
 }

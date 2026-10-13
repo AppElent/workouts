@@ -1,5 +1,9 @@
 # Local data upload and SQLite inspection
 
+The sections below record the build 20 migration implementation. Current photo
+ownership and cache retirement are described in the
+[2026-10-13 follow-up](cleanup-2026-10-13.md).
+
 ## Current status
 
 2026-10-08, working changes on `t3code/offline-behavior-decision`, based on

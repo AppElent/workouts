@@ -2,7 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const libraryRecordKind = v.union(v.literal("food"), v.literal("combo"));
-export const librarySchemaVersion = v.union(v.literal(1), v.literal(2));
+export const librarySchemaVersion = v.union(v.literal(1), v.literal(2), v.literal(3));
 
 /** Parent schema composes this object with the existing application tables. */
 export const nutritionLibraryTables = {

@@ -75,10 +75,15 @@ export function createFoodPhotoManager(
 			}
 		},
 		remove(visual) {
-			if (visual?.kind === "photo") native.remove(visual.uri);
+			if (visual?.kind === "photo" && visual.uri.startsWith("file://"))
+				native.remove(visual.uri);
 		},
 		isAvailable(visual) {
-			return visual?.kind !== "photo" || native.exists(visual.uri);
+			return (
+				visual?.kind !== "photo" ||
+				!!visual.storageId ||
+				native.exists(visual.uri)
+			);
 		},
 		removeOrphans(referenced) {
 			const keep = new Set(

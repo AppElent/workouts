@@ -60,7 +60,7 @@ export function FoodVisualView({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	if (visual?.kind === "photo") {
+	if (visual?.kind === "photo" || visual?.kind === "remote") {
 		return (
 			<FoodPhoto
 				key={visual.uri}
@@ -116,6 +116,7 @@ function FoodPhoto({
 	return (
 		<Image
 			source={uri}
+			cachePolicy="memory-disk"
 			accessibilityLabel={accessibilityLabel}
 			contentFit="cover"
 			onError={() => setFailed(true)}

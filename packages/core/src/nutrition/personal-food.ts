@@ -35,9 +35,20 @@ export const FOOD_VISUAL_PRESET_IDS = [
 
 export type FoodVisualPresetId = (typeof FOOD_VISUAL_PRESET_IDS)[number];
 
+export type FoodPhotoStorageId = string & { readonly __tableName: "_storage" };
+
+function isFoodPhotoStorageId(value: unknown): value is FoodPhotoStorageId {
+	return typeof value === "string" && value.length > 0;
+}
+
 export type FoodVisual =
 	| { readonly kind: "icon"; readonly preset: FoodVisualPresetId }
-	| { readonly kind: "photo"; readonly uri: string };
+	| {
+			readonly kind: "photo";
+			readonly uri: string;
+			readonly storageId?: FoodPhotoStorageId;
+	  }
+	| { readonly kind: "remote"; readonly uri: string };
 
 export type PersonalFoodNutritionBasis =
 	| { readonly kind: "per100"; readonly unit: "g" | "ml" }
@@ -224,16 +235,32 @@ export function validateFoodVisual(value: unknown): FoodVisual | undefined {
 		}
 		return { kind: "icon", preset: value.preset as FoodVisualPresetId };
 	}
+	if (value.kind === "remote") {
+		if (
+			!("uri" in value) ||
+			typeof value.uri !== "string" ||
+			!value.uri.startsWith("https://")
+		)
+			throw new Error("Food provider photos must use HTTPS.");
+		return { kind: "remote", uri: value.uri };
+	}
 	if (value.kind === "photo") {
-		if (!("uri" in value) || typeof value.uri !== "string") {
-			throw new Error("Food photo is invalid.");
+		const uri =
+			"uri" in value && typeof value.uri === "string" ? value.uri.trim() : "";
+		const storageId =
+			"storageId" in value && isFoodPhotoStorageId(value.storageId)
+				? value.storageId
+				: undefined;
+		if (storageId) {
+			if (uri && !uri.startsWith("https://") && !uri.startsWith("file://"))
+				throw new Error("Food photo URI is invalid.");
+			return { kind: "photo", uri, storageId };
 		}
-		const uri = value.uri.trim();
-		if (!uri.startsWith("file://") || uri.length <= "file://".length) {
+		if (!uri.startsWith("file://") || uri.length <= "file://".length)
 			throw new Error("Food photos must use managed local files.");
-		}
 		return { kind: "photo", uri };
 	}
+
 	throw new Error("Food visual kind is invalid.");
 }
 

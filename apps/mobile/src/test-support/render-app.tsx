@@ -1,3 +1,10 @@
+import { z } from "zod";
+import type { Id } from "../convex/api";
+
+const photoStorageId = z.custom<Id<"_storage">>(
+	(value) => typeof value === "string",
+);
+
 import { SetDraftsProvider } from "../features/strength-session/data/set-drafts";
 import { RestTimerProvider } from "../ui/rest-timer";
 
@@ -67,16 +74,20 @@ import * as PersonalFoodRoute from "../../app/(app)/personal-food/[id]";
 import * as PersonalFoodNewRoute from "../../app/(app)/personal-food-new";
 import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
 import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
-import {
-	createNutritionDraftRepository,
-	type NutritionDraftRepository,
-} from "../data/nutrition-draft-repository";
 import { NutritionDraftsProvider } from "../data/nutrition-drafts";
 import {
 	libraryRecordFromCombo,
 	libraryRecordFromFood,
 } from "../data/nutrition-library-repository";
-import type { NutritionLibraryOperationEnvelope } from "../data/nutrition-library-service";
+import {
+	type CaptureDraftFixture,
+	createCaptureDraftFixture,
+} from "./capture-draft-fixture";
+
+type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
+	typeof import("../convex/api").api.nutritionLibrary.save
+>;
+
 import {
 	createNutritionLocalRepository,
 	type NutritionLocalRepository,
@@ -105,10 +116,24 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 	const mutation = jest.mocked(useMutation).getMockImplementation();
 	const query = jest.mocked(useQuery).getMockImplementation();
 	const paginated = jest.mocked(usePaginatedQuery).getMockImplementation();
+	const servePayload = (payload: string) => {
+		const food = JSON.parse(payload);
+		if (food.visual?.storageId)
+			return JSON.stringify({
+				...food,
+				visual: { ...food.visual, uri: "https://fixture.invalid/photo.jpg" },
+			});
+		return payload;
+	};
 	const save = jest.fn(async (args: NutritionLibraryOperationEnvelope) => ({
 		record:
 			args.operation.kind === "upsert"
-				? { ...args.operation.record, revision: 1, deleted: false }
+				? {
+						...args.operation.record,
+						payload: servePayload(args.operation.record.payload),
+						revision: 1,
+						deleted: false,
+					}
 				: {
 						id: args.operation.recordId,
 						kind: args.operation.recordKind,
@@ -120,6 +145,7 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 	const records = () => [
 		...repository.list().map((food) => ({
 			...libraryRecordFromFood(food, 1),
+			payload: servePayload(libraryRecordFromFood(food, 1).payload ?? "{}"),
 			subject: "test-user",
 		})),
 		...repository.listCombos().map((combo) => ({
@@ -202,13 +228,12 @@ export function TestLayout({
 	repository,
 	offCache,
 	nutritionRepository,
-	draftRepository,
 	fetchImpl,
 }: {
 	repository: PersonalFoodRepository;
 	offCache: OpenFoodFactsCache;
 	nutritionRepository: NutritionLocalRepository;
-	draftRepository: NutritionDraftRepository;
+	draftRepository: CaptureDraftFixture;
 	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
@@ -217,14 +242,22 @@ export function TestLayout({
 				<NativeAlertHost>
 					<ToastProvider>
 						<ConfirmProvider>
-							<PersonalFoodsProvider repository={repository}>
+							<PersonalFoodsProvider
+								repository={repository}
+								uploadPhoto={async () => ({
+									storageId: photoStorageId.parse("fixture-photo"),
+								})}
+							>
 								<FoodAuthoringIntentProvider>
 									<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
 										<NutritionOperationsProvider
 											repository={nutritionRepository}
+											uploadPhoto={async () => ({
+												storageId: photoStorageId.parse("fixture-photo"),
+											})}
 											subject="test-user"
 										>
-											<NutritionDraftsProvider repository={draftRepository}>
+											<NutritionDraftsProvider>
 												<PersonalMeasuresProvider>
 													<SetDraftsProvider>
 														<RestTimerProvider>
@@ -252,7 +285,7 @@ export function renderApp(
 	/** A fake fetch for tests that exercise the Open Food Facts network boundary. */
 	fetchImpl?: FetchLike,
 	seed?: (stores: {
-		draftRepository: NutritionDraftRepository;
+		draftRepository: CaptureDraftFixture;
 		nutritionRepository: NutritionLocalRepository;
 		personalFoods: ReturnType<typeof createPersonalFoodRepository>;
 	}) => void,
@@ -262,9 +295,7 @@ export function renderApp(
 	const nutritionRepository = createNutritionLocalRepository(
 		new SQLiteTestDatabase(),
 	);
-	const draftRepository = createNutritionDraftRepository(
-		new SQLiteTestDatabase(),
-	);
+	const draftRepository = createCaptureDraftFixture();
 	seed?.({ draftRepository, nutritionRepository, personalFoods: repository });
 	installLibraryTransport(repository);
 	const accountTransport = installAccountTransport(draftRepository);

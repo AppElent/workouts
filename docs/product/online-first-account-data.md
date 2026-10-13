@@ -22,9 +22,12 @@ complexity is no longer justified for this scope.
 - Convex owns acknowledged personal data: Personal Foods, Combos, reusable
   training definitions, personal history, Nutrition Goals, Body Metrics, and
   saved Capture Drafts. Account storage is automatic, not optional backup.
-- Food photos remain a device-only visual convenience. Portable Food records
-  preserve preset icons; another device uses the default visual when a photo is
-  unavailable. Photos are not required to read or use account data.
+- Own Food and One-off Entry photos use account-owned Convex storage. Save waits
+  for upload and server acknowledgement; records store the file identifier and
+  resolve its URL on read. Open Food Facts images retain their provider URL and
+  use a disposable image cache. An explicit crop/replacement becomes an own photo.
+  Existing ambiguous OFF copies adopt the provider image, as selected by the sole
+  user on 2026-10-13. Image unavailability does not block using nutrition data.
 - The app works after online sign-in on a fresh installation. Device-local
   recents, remembered portions, last-used choices, and view settings are optional
   conveniences. Missing or cleared caches must not prevent online operation.
@@ -62,8 +65,8 @@ The mobile pilot selects `convex-helpers/react/cache` for short subscription
 retention on Routines, Strength Session data, and Nutrition day queries. The
 account/session owns the cache; backgrounding releases its subscriptions without
 remounting editors. Searches and growing history pages retain their existing
-query lifetimes. Persistent Nutrition read caches, Set Drafts, preferences, and
-legacy migration journals keep their separate purposes. See the
+query lifetimes. Nutrition account snapshots now use session memory; only optional defaults and
+bounded OFF request/image caches persist. Set Drafts keep their separate purpose. See the
 [pilot verification](../verification/query-subscription-cache/README.md) before
 extending retention to additional queries or retiring disk caches.
 
@@ -129,9 +132,13 @@ guarantees remain in force. Related briefs identify this revised boundary;
 Branch verification does not establish that production migration or rollout has
 completed. The operator backfill is a release gate.
 
-The explicit **Upload and clean local data** action waits for acknowledgement
-before pruning migrated Foods/Combos, Capture Draft and Recipe originals, and
-diary caches/journals. Library mirrors and migration receipts remain to preserve
-device photos and prevent resurrection; optional preferences and Set Drafts
-remain. A confirmed test-data Load/Clear instead discards the account’s personal
-local state and resets subscription retention before reopening providers.
+The sole user confirmed the build 20 **Upload and clean local data** action
+completed. The follow-up cleanup removes the old migration/replay implementation
+and persistent account read copies. Upgrade refuses to discard unacknowledged
+legacy journal work; that work must be uploaded using build 20 first. Empty
+legacy source files are retired. A legacy manual photo source stays available
+until its upload is acknowledged; OFF originals use provider images. Optional
+preferences, remembered portions, OFF caches and Set Drafts remain. A confirmed
+test-data Load/Clear also deletes the account’s uploaded photo files and resets
+subscription retention before reopening providers. See
+[ADR 0015](../adr/0015-account-food-photos-and-cache-retirement.md).

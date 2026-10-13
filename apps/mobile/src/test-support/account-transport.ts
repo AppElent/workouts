@@ -2,20 +2,19 @@ import type { NutritionOperationEnvelope } from "@workouts/core";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { type FunctionArgs, getFunctionName } from "convex/server";
 import { api } from "../convex/api";
-import type {
-	CaptureDraft,
-	NutritionDraftRepository,
-} from "../data/nutrition-draft-repository";
+import type { CaptureDraft } from "../data/nutrition-capture-draft";
 import {
 	createNutritionLocalRepository,
 	type NutritionServerDayResult,
 } from "../data/nutrition-local-repository";
+import type { CaptureDraftFixture } from "./capture-draft-fixture";
+import { projectFixtureDay } from "./diary-operation-fixture";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
 
 /** Screen fixture server: acknowledgement and subsequent reads share account state.
  * Backend behavior itself is tested through convex-test, not this adapter.
  */
-export function installAccountTransport(drafts: NutritionDraftRepository) {
+export function installAccountTransport(drafts: CaptureDraftFixture) {
 	const mutation = jest.mocked(useMutation).getMockImplementation();
 	const query = jest.mocked(useQuery).getMockImplementation();
 	const paginated = jest.mocked(usePaginatedQuery).getMockImplementation();
@@ -28,9 +27,7 @@ export function installAccountTransport(drafts: NutritionDraftRepository) {
 	};
 	const server = createNutritionLocalRepository(new SQLiteTestDatabase());
 	const days = new Map<string, NutritionServerDayResult>();
-	const notes = new Map(
-		drafts.pendingMigrations("test-user").map((d) => [d.id, d]),
-	);
+	const notes = new Map(drafts.list("test-user").map((d) => [d.id, d]));
 	const receipts = new Map<string, unknown>();
 	const readDay = (date: string, initialize = false) => {
 		if (!days.has(date)) {
@@ -83,9 +80,24 @@ export function installAccountTransport(drafts: NutritionDraftRepository) {
 			(operation.kind === "update" && operation.date)
 		)
 			readDay(required(operation.date), true);
-		server.accept("test-user", args);
+		const pending = [
+			{
+				sequence: 1,
+				subject: "test-user",
+				operationId: args.operationId,
+				envelope: args,
+				status: "queued" as const,
+				attempts: 0,
+				nextAttemptAt: 0,
+				createdAt: 0,
+			},
+		];
 		const changed = [...days.keys()].map((date) => {
-			const projected = server.projectDay("test-user", date);
+			const projected = projectFixtureDay(
+				server.getDay("test-user", date),
+				date,
+				pending,
+			);
 			const entries = projected.entries.map(
 				({ pendingOperationId: _pending, ...entry }) => ({
 					...entry,
@@ -112,7 +124,7 @@ export function installAccountTransport(drafts: NutritionDraftRepository) {
 			clientEntryIds: created,
 			days: changed,
 		};
-		server.acknowledge("test-user", args.operationId, result);
+		server.recordAcknowledged("test-user", args, result);
 		for (const day of changed) days.set(day.date, day);
 		receipts.set(args.operationId, result);
 		return result;

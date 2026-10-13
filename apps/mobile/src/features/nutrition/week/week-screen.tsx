@@ -161,7 +161,6 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 						days={days}
 						today={today}
 						week={week}
-						pending={review.pending}
 						noteCount={(date) => drafts.listForDate(date).length}
 						onOpenDay={openDay}
 					/>
@@ -175,14 +174,12 @@ function WeekContent({
 	days,
 	today,
 	week,
-	pending,
 	noteCount,
 	onOpenDay,
 }: {
 	days: NonNullable<ReturnType<typeof useWeekReview>["days"]>;
 	today: IsoDate;
 	week: IsoDate;
-	pending: boolean;
 	noteCount: (date: IsoDate) => number;
 	onOpenDay: (date: IsoDate) => void;
 }) {
@@ -216,30 +213,6 @@ function WeekContent({
 	};
 	return (
 		<>
-			{pending ? (
-				<View
-					style={{
-						flexDirection: "row",
-						alignItems: "center",
-						gap: spacing.sm,
-						padding: spacing.md,
-						borderRadius: radius.contentCard,
-						backgroundColor: colors.surface2,
-					}}
-				>
-					<SymbolView
-						name={{ ios: "icloud", android: "cloud", web: "cloud" }}
-						size={16}
-						tintColor={colors.textMuted}
-					/>
-					<View style={{ flex: 1 }}>
-						<AppText variant="footnote" style={{ color: colors.text }}>
-							{copy.pending}
-						</AppText>
-						<AppText variant="caption">{copy.pendingBody}</AppText>
-					</View>
-				</View>
-			) : null}
 			<Card>
 				<View style={{ padding: spacing.md, gap: spacing.md }}>
 					<View style={{ flexDirection: "row", alignItems: "baseline" }}>

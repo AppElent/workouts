@@ -51,7 +51,8 @@ const foodVisual = v.union(
 			v.literal("condiment"),
 		),
 	}),
-	v.object({ kind: v.literal("photo"), uri: v.string() }),
+	v.object({ kind: v.literal("photo"), uri: v.string(), storageId: v.optional(v.id("_storage")) }),
+	v.object({ kind: v.literal("remote"), uri: v.string() }),
 );
 
 export const mealSlot = v.union(

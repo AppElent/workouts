@@ -67,6 +67,7 @@ export type SQLiteValue = string | number | null | Uint8Array;
 
 /** The synchronous subset shared by expo-sqlite and the real SQLite test adapter. */
 export type SyncSQLiteDatabase = {
+	closeSync?(): void;
 	execSync(source: string): void;
 	runSync(
 		source: string,
@@ -164,6 +165,7 @@ export type PersonalLibraryBackup = {
 };
 
 export type PersonalFoodRepository = {
+	close?(): void;
 	list(filter?: PersonalFoodFilter): PersonalFood[];
 	find(id: string): PersonalFood | undefined;
 	/** The Personal Food whose provenance carries this barcode, if any. */
@@ -593,7 +595,11 @@ export function portablePersonalFood(food: PersonalFood): PersonalFood {
 	const { visualMigrationPending: _pending, visual, ...portable } = food;
 	return {
 		...portable,
-		...(visual?.kind === "icon" ? { visual } : {}),
+		...(visual?.kind === "icon" || visual?.kind === "remote"
+			? { visual }
+			: visual?.kind === "photo" && visual.storageId
+				? { visual: { ...visual, uri: "" } }
+				: {}),
 	};
 }
 
@@ -834,6 +840,11 @@ export function createPersonalFoodRepository(
 					.changes > 0
 			);
 		},
+		close() {
+			(
+				database as SyncSQLiteDatabase & { closeSync?: () => void }
+			).closeSync?.();
+		},
 		exportBackup() {
 			return {
 				foods: this.list().map(portablePersonalFood),
@@ -951,6 +962,7 @@ export type OffCacheEntry = {
 };
 
 export type OpenFoodFactsCache = {
+	close?(): void;
 	get(key: string): OffCacheEntry | undefined;
 	set(key: string, kind: OffCacheKind, response: unknown): OffCacheEntry;
 	/**
@@ -983,18 +995,20 @@ function rowToCacheEntry(row: OffCacheRow): OffCacheEntry {
 }
 
 /**
- * The bounded Open Food Facts request cache (spec #68 D23). It shares its
- * migration sequence and its underlying database with Personal Foods, but has
- * its own table and its own lifetime: every row expires after
+ * The bounded Open Food Facts request cache (spec #68 D23). It has its own
+ * database and lifetime: every row expires after
  * `OFF_CACHE_TTL_MS`, and `set` prunes both expired rows and, past
  * `OFF_CACHE_MAX_ENTRIES`, the oldest survivors — so it stays a short-lived
  * request cache, never an offline mirror of the provider's catalogue.
  */
+export const OFF_REQUEST_CACHE_DATABASE_NAME = "workouts-off-cache.db";
+
 export function createOpenFoodFactsCache(
 	database: SyncSQLiteDatabase,
 	options: RepositoryOptions = {},
 ): OpenFoodFactsCache {
-	migrate(database);
+	database.execSync(`CREATE TABLE IF NOT EXISTS off_cache (cache_key TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('barcode','search')), response_json TEXT NOT NULL, fetched_at INTEGER NOT NULL, expires_at INTEGER NOT NULL);
+		CREATE INDEX IF NOT EXISTS off_cache_by_expiry ON off_cache(expires_at ASC);`);
 	const now = options.now ?? Date.now;
 
 	function cleanup(): number {
@@ -1054,13 +1068,18 @@ export function createOpenFoodFactsCache(
 			return { key, kind, response, fetchedAt: timestamp, expiresAt };
 		},
 		cleanup,
+		close() {
+			database.closeSync?.();
+		},
 	};
 }
 
-/** Open the same on-device database `openPersonalFoodRepository` uses, for the Open Food Facts request cache. */
+/** A bounded provider request cache, separate from retired account copies. */
 export function openOpenFoodFactsCache(): OpenFoodFactsCache {
 	return createOpenFoodFactsCache(
-		openNutritionDatabase(PERSONAL_FOOD_DATABASE_NAME) as SyncSQLiteDatabase,
+		openNutritionDatabase(
+			OFF_REQUEST_CACHE_DATABASE_NAME,
+		) as SyncSQLiteDatabase,
 	);
 }
 

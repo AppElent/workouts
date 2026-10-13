@@ -1,8 +1,9 @@
+import { requireFoodPhotoOwner } from "./nutritionFoodPhotos";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { paginationOptsValidator } from "convex/server";
 import { v, type Infer } from "convex/values";
 import { canonicalJson, normalizePersonalFood, type PersonalFood } from "@workouts/core";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { libraryRecordKind, librarySchemaVersion } from "./nutritionLibraryTables";
 
 const libraryRecord = v.object({
@@ -94,7 +95,7 @@ function assertNutrients(value: unknown) {
 function assertFoodPayload(payload: Record<string, unknown>, id: string) {
 	if (payload.id !== id) throw new Error("Food payload identity is invalid.");
 	const food = normalizePersonalFood(payload as PersonalFood);
-	if (food.visual?.kind === "photo") {
+	if (food.visual?.kind === "photo" && !food.visual.storageId) {
 		throw new Error("Device-local Food photos cannot be backed up.");
 	}
 }
@@ -151,7 +152,7 @@ function assertComboPayload(payload: Record<string, unknown>, id: string) {
 }
 
 /** Full server validation keeps malformed JSON from becoming a future restore. */
-function assertPayload(id: string, kind: "food" | "combo", payload: string, schemaVersion: 1 | 2) {
+function assertPayload(id: string, kind: "food" | "combo", payload: string, schemaVersion: 1 | 2 | 3) {
 	if (payload.length === 0 || payload.length > 200_000) {
 		throw new Error("Library payload is invalid.");
 	}
@@ -184,7 +185,7 @@ function asRecord(row: {
 	recordId: string;
 	recordKind: "food" | "combo";
 	payload?: string;
-	schemaVersion?: 1 | 2;
+	schemaVersion?: 1 | 2 | 3;
 	revision: number;
 	deleted: boolean;
 }) {
@@ -198,8 +199,25 @@ function asRecord(row: {
 	};
 }
 
+async function serveRecord(ctx: Pick<QueryCtx, "storage" | "db">, row: Parameters<typeof asRecord>[0], photoVersion = 3) {
+    const record = asRecord(row);
+    if (!record.deleted && record.kind === "food" && record.payload) {
+        const food: PersonalFood = JSON.parse(record.payload);
+        if (food.visual?.kind === "photo" && food.visual.storageId) {
+            const storageId = ctx.db.system.normalizeId("_storage", food.visual.storageId);
+            const uri = storageId ? await ctx.storage.getUrl(storageId) : null;
+            record.payload = JSON.stringify({...food, visual: uri ? {...food.visual, uri} : undefined});
+        }
+    }
+    if (photoVersion < 3 && record.kind === "food" && record.payload) {
+        const food: PersonalFood = JSON.parse(record.payload);
+        if (food.visual?.kind === "remote" || (food.visual?.kind === "photo" && food.visual.storageId)) record.payload = JSON.stringify({...food,visual:undefined});
+    }
+    return record;
+}
+
 export const list = query({
-	args: { paginationOpts: paginationOptsValidator },
+	args: { paginationOpts: paginationOptsValidator, photoVersion: v.optional(v.literal(3)) },
 	returns: v.object({
 		page: v.array(libraryRecord),
 		isDone: v.boolean(),
@@ -213,7 +231,7 @@ export const list = query({
 			.order("asc")
 			.paginate(args.paginationOpts);
 		return {
-			page: page.page.map(asRecord),
+			page: await Promise.all(page.page.map((row) => serveRecord(ctx, row, args.photoVersion ?? 2))),
 			isDone: page.isDone,
 			continueCursor: page.continueCursor,
 		};
@@ -253,6 +271,16 @@ async function applyLibraryOperation(ctx: MutationCtx, args: Infer<typeof operat
 		}
 		if (args.operation.kind === "upsert") {
 			assertPayload(target.id, target.kind, args.operation.record.payload, args.operation.record.schemaVersion ?? 1);
+            if (target.kind === "food") {
+                const food: PersonalFood = JSON.parse(args.operation.record.payload);
+                if (food.visual?.kind === "photo" && food.visual.storageId) {
+                    const storageId = ctx.db.system.normalizeId("_storage", food.visual.storageId);
+                    if (!storageId) throw new Error("Food photo identifier is invalid.");
+                    await requireFoodPhotoOwner(ctx, storageId);
+                }
+                if (food.visual?.kind === "remote" && (food.provenance.nutritionSource !== "openfoodfacts" || food.visual.uri !== food.provenance.imageUrl)) throw new Error("Provider photos must reference this Open Food Facts import.");
+                if ((food.visual?.kind === "remote" || (food.visual?.kind === "photo" && food.visual.storageId)) && (args.operation.record.schemaVersion ?? 1) < 3) throw new Error("Account photos require payload schema version 3.");
+            }
 		}
 		const current = await ctx.db
 			.query("nutritionLibraryRecords")
@@ -282,7 +310,7 @@ async function applyLibraryOperation(ctx: MutationCtx, args: Infer<typeof operat
             // A conflicting deletion never erases a newer live version. A conflicting
             // upsert keeps both versions as independently editable records.
             if (args.operation.kind === "remove") {
-                const result = { record: asRecord(current) };
+                const result = { record: await serveRecord(ctx, current) };
                 await ctx.db.insert("nutritionLibraryOperationReceipts", { userId, operationId: args.operationId, payload, result: canonicalJson(result), createdAt: Date.now() });
                 return result;
             }
@@ -296,9 +324,9 @@ async function applyLibraryOperation(ctx: MutationCtx, args: Infer<typeof operat
             const copy = { userId, recordId: copyId, recordKind: target.kind, payload: JSON.stringify(copyPayload), schemaVersion: preserveLocal ? args.operation.record.schemaVersion ?? 1 : current.schemaVersion ?? 1, revision: 1, deleted: false, updatedAt: Date.now() };
             assertPayload(copyId, copy.recordKind, copy.payload, copy.schemaVersion);
             await ctx.db.insert("nutritionLibraryRecords", { ...copy, ...libraryIndexFields(copy.recordKind, copy.payload) });
-            preservedRecords.push(asRecord(copy));
+            preservedRecords.push(await serveRecord(ctx, copy));
             if (preserveLocal) {
-                const result = { record: asRecord(current), preservedRecords };
+                const result = { record: await serveRecord(ctx, current), preservedRecords };
                 await ctx.db.insert("nutritionLibraryOperationReceipts", { userId, operationId: args.operationId, payload, result: canonicalJson(result), createdAt: Date.now() });
                 return result;
             }
@@ -317,7 +345,7 @@ async function applyLibraryOperation(ctx: MutationCtx, args: Infer<typeof operat
 		};
 		if (current) await ctx.db.replace(current._id, next);
 		else await ctx.db.insert("nutritionLibraryRecords", next);
-		const record = asRecord(next);
+		const record = await serveRecord(ctx, next);
 		const result = { record, ...(preservedRecords.length ? { preservedRecords } : {}) };
 		await ctx.db.insert("nutritionLibraryOperationReceipts", {
 			userId,
@@ -354,7 +382,7 @@ export const migrateOperation = mutation({
 
 const category = v.union(v.literal("food"), v.literal("recipe"), v.literal("combo"));
 export const browse = query({
- args: { query: v.string(), category: v.optional(category), paginationOpts: paginationOptsValidator },
+ args: { query: v.string(), category: v.optional(category), paginationOpts: paginationOptsValidator, photoVersion: v.optional(v.literal(3)) },
  returns: v.object({ page: v.array(libraryRecord), isDone: v.boolean(), continueCursor: v.string() }),
  handler: async (ctx, args) => {
   const userId = await requireUser(ctx);
@@ -366,13 +394,13 @@ export const browse = query({
    return args.category ? search.eq("category", args.category) : search;
   }) : args.category ? records.withIndex("by_user_deleted_category_name", q => q.eq("userId", userId).eq("deleted", false).eq("category", args.category)) : records.withIndex("by_user_deleted_name", q => q.eq("userId", userId).eq("deleted", false));
   const result = await selected.paginate({ ...args.paginationOpts, numItems: Math.min(100, args.paginationOpts.numItems) });
-  return { page: result.page.map(row => ({ ...asRecord(row), subject: userId })), isDone: result.isDone, continueCursor: result.continueCursor };
+  return { page: await Promise.all(result.page.map(async row => ({ ...await serveRecord(ctx, row, args.photoVersion ?? 2), subject: userId }))), isDone: result.isDone, continueCursor: result.continueCursor };
  },
 });
 
 /** Resolve selected records and their personal Combo sources, with a hard read bound. */
 export const getMany = query({
- args: { ids: v.array(v.string()), forkIds: v.optional(v.array(v.string())), barcode: v.optional(v.string()) },
+ args: { ids: v.array(v.string()), forkIds: v.optional(v.array(v.string())), barcode: v.optional(v.string()), photoVersion: v.optional(v.literal(3)) },
  returns: v.array(libraryRecord),
  handler: async (ctx, args) => {
   const userId = await requireUser(ctx);
@@ -380,16 +408,16 @@ export const getMany = query({
   const records = new Map<string, ReturnType<typeof asRecord>>();
   async function get(id: string) {
    const row = await ctx.db.query("nutritionLibraryRecords").withIndex("by_user_and_record", q => q.eq("userId", userId).eq("recordId", id)).unique();
-   if (row) records.set(row.recordId, asRecord(row));
+   if (row) records.set(row.recordId, await serveRecord(ctx, row, args.photoVersion ?? 2));
   }
   await Promise.all([...new Set(args.ids)].map(get));
   for (const forkId of args.forkIds ?? []) {
    const row = await ctx.db.query("nutritionLibraryRecords").withIndex("by_user_fork", q => q.eq("userId", userId).eq("forkedFrom", forkId).eq("deleted", false)).first();
-   if (row) records.set(row.recordId, asRecord(row));
+   if (row) records.set(row.recordId, await serveRecord(ctx, row, args.photoVersion ?? 2));
   }
   if (args.barcode) {
    const row = await ctx.db.query("nutritionLibraryRecords").withIndex("by_user_barcode", q => q.eq("userId", userId).eq("barcode", args.barcode).eq("deleted", false)).first();
-   if (row) records.set(row.recordId, asRecord(row));
+   if (row) records.set(row.recordId, await serveRecord(ctx, row, args.photoVersion ?? 2));
   }
   const sources = new Set<string>();
   // Resolve sources for the selected Combo, not every Combo in a shortcut list.

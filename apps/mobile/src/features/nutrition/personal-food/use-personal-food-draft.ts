@@ -198,7 +198,8 @@ export function usePersonalFoodDraft({
 			};
 		else if (initial && touched)
 			provenance = { ...provenance, locallyEdited: true };
-		const storedVisual = visual?.kind === "remote" ? undefined : visual;
+		const storedVisual =
+			visual?.kind === "remote" && remoteCrop !== "center" ? undefined : visual;
 		return {
 			...editable,
 			provenance,
@@ -227,7 +228,7 @@ export function usePersonalFoodDraft({
 		let importedPhoto: FoodVisual | undefined;
 		let saved: PersonalFood | undefined;
 		try {
-			if (visual?.kind === "remote") {
+			if (visual?.kind === "remote" && remoteCrop !== "center") {
 				try {
 					importedPhoto = await photoManager.importRemote(
 						visual.uri,

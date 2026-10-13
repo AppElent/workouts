@@ -91,6 +91,7 @@ export const reset = mutation({
 // Bound total reads/writes, including receipts; leave room for the baseline.
 async function clearPersonalData(ctx: MutationCtx, userId: string) {
 	const sources = [
+		ctx.db.query("nutritionFoodPhotos").withIndex("by_user", (q) => q.eq("userId", userId)),
 		ctx.db
 			.query("workoutSessions")
 			.withIndex("by_user", (q) => q.eq("userId", userId)),
@@ -165,6 +166,7 @@ async function clearPersonalData(ctx: MutationCtx, userId: string) {
 		remaining -= rows.length;
 		for (const row of rows) {
 			if ("isDefault" in row && row.isDefault) continue;
+			if ("storageId" in row) await ctx.storage.delete(row.storageId);
 			await ctx.db.delete(row._id);
 		}
 	}

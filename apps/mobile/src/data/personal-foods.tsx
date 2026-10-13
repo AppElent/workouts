@@ -6,8 +6,6 @@ import {
 	useConvexConnectionState,
 	useMutation,
 	usePaginatedQuery,
-	useQueries,
-	useQuery,
 } from "convex/react";
 import {
 	createContext,
@@ -18,23 +16,23 @@ import {
 	useMemo,
 	useRef,
 	useState,
-	useSyncExternalStore,
 } from "react";
 import { api } from "../convex/api";
-import { migrateDeviceRecipes } from "./legacy-recipe-migration";
+import {
+	useCachedQueries as useQueries,
+	useCachedQuery as useQuery,
+} from "../convex/query-cache";
+import {
+	type FoodPhotoUpload,
+	useFoodPhotoUpload,
+} from "./nutrition-food-photo-upload";
 import {
 	applyLibraryRecord,
 	type LibraryRecord,
 	type NutritionLibraryStateRepository,
-	nutritionLibraryDatabaseName,
 	openNutritionLibraryStateRepository,
 } from "./nutrition-library-repository";
-import {
-	type NutritionLibraryOperationEnvelope,
-	NutritionLibraryService,
-} from "./nutrition-library-service";
 import { mintNutritionUuid } from "./nutrition-operation-service";
-import { personalFoodLibraryView } from "./personal-food-library-view";
 import {
 	type Combo,
 	type ComboDraft,
@@ -47,6 +45,10 @@ import {
 	validateComboDraft,
 	validatePersonalFoodDraft,
 } from "./personal-food-repository";
+import {
+	openPersonalFoodSession,
+	type PersonalFoodSession,
+} from "./personal-food-session";
 import { useScreenQueryActive } from "./screen-query-active";
 
 type PersonalFoodsValue = {
@@ -75,16 +77,9 @@ type PersonalFoodsValue = {
 	removeCombo(id: string): Promise<boolean>;
 	account: {
 		subject?: string;
-		hasLegacy: boolean;
-		operations: readonly {
-			operationId: string;
-			status: string;
-			lastError?: string;
-		}[];
-		importLegacy(): void;
-		uploadPending(): Promise<void>;
 		isDeleted(id: string): boolean;
-		retry(): void;
+		uploadDevicePhotos(): Promise<void>;
+		devicePhotoCount: number;
 		receiveServerPage(records: readonly LibraryRecord[]): void;
 	};
 };
@@ -167,9 +162,6 @@ function PersonalFoodsScope({
 							? [
 									{
 										...JSON.parse(record.payload),
-										...(food.visual?.kind === "photo"
-											? { visual: food.visual }
-											: {}),
 									},
 								]
 							: [],
@@ -208,9 +200,6 @@ function PersonalFoodsScope({
 							? [
 									{
 										...JSON.parse(record.payload),
-										...(food.visual?.kind === "photo"
-											? { visual: food.visual }
-											: {}),
 									},
 								]
 							: [],
@@ -327,97 +316,67 @@ export function PersonalFoodsProvider({
 	children,
 	repository: suppliedRepository,
 	libraryState,
-	legacyRepository: suppliedLegacyRepository,
+	uploadPhoto,
 }: {
 	children: ReactNode;
 	repository?: PersonalFoodRepository;
-	/** Tests inject this alongside `repository`; production opens durable SQLite. */
 	libraryState?: NutritionLibraryStateRepository;
-	/** Public migration seam: an unowned device library separate from the account cache. */
-	legacyRepository?: PersonalFoodRepository;
+	uploadPhoto?: FoodPhotoUpload;
 }) {
 	const { isSignedIn, userId } = useAuth();
 	const subject = isSignedIn ? userId : undefined;
-	const state = useMemo(
+	return (
+		<PersonalFoodsAccount
+			key={subject ?? "signed-out"}
+			subject={subject}
+			repository={suppliedRepository}
+			libraryState={libraryState}
+			uploadPhoto={uploadPhoto}
+		>
+			{children}
+		</PersonalFoodsAccount>
+	);
+}
+
+function PersonalFoodsAccount({
+	children,
+	subject,
+	repository: suppliedRepository,
+	libraryState,
+	uploadPhoto: suppliedUploadPhoto,
+}: {
+	children: ReactNode;
+	subject?: string;
+	repository?: PersonalFoodRepository;
+	libraryState?: NutritionLibraryStateRepository;
+	uploadPhoto?: FoodPhotoUpload;
+}) {
+	const [state] = useState(
 		() =>
 			libraryState ??
 			(suppliedRepository ? undefined : openNutritionLibraryStateRepository()),
-		[libraryState, suppliedRepository],
 	);
-
+	const [session] = useState<PersonalFoodSession>(() =>
+		suppliedRepository
+			? {
+					repository: suppliedRepository,
+					acknowledged: () => {},
+					close: () => {},
+				}
+			: openPersonalFoodSession(subject),
+	);
+	const accountRepository = session.repository;
 	const [restoredRevision, setRestoredRevision] = useState(0);
-	const onPageRestored = useCallback(
-		() => setRestoredRevision((value) => value + 1),
-		[],
-	);
-	const enabled = !!subject && !!state;
-	const legacyOwner = state?.legacyClaimedBy();
-	const legacyRepository = useMemo(
-		() =>
-			suppliedLegacyRepository ??
-			suppliedRepository ??
-			openPersonalFoodRepository(),
-		[suppliedLegacyRepository, suppliedRepository],
-	);
-	const account = useMemo(() => {
-		if (suppliedRepository || !subject)
-			return {
-				repository: suppliedRepository ?? legacyRepository,
-				migratedIds: [] as readonly string[],
-			};
-		const repository = openPersonalFoodRepository(
-			nutritionLibraryDatabaseName(subject),
-			{ partialCache: true },
-		);
-		const migratedIds = migrateDeviceRecipes(subject, repository, [
-			...legacyRepository.list().map((food) => food.id),
-			...legacyRepository.listCombos().map((combo) => combo.id),
-			...(state?.listRecords(subject).map((record) => record.id) ?? []),
-		]);
-		return { repository, migratedIds };
-	}, [legacyRepository, state, subject, suppliedRepository]);
-	const accountRepository = account.repository;
-	const visibleRepository = useMemo(
-		() =>
-			subject && !enabled && legacyOwner === undefined && !suppliedRepository
-				? personalFoodLibraryView(legacyRepository, accountRepository)
-				: subject
-					? accountRepository
-					: legacyRepository,
-		[
-			accountRepository,
-			enabled,
-			legacyOwner,
-			legacyRepository,
-			subject,
-			suppliedRepository,
-		],
+	useEffect(
+		() => () => {
+			session.close();
+			if (!libraryState) state?.close();
+		},
+		[session, state, libraryState],
 	);
 	const client = useConvex();
-	const applyMutation = useMutation(api.nutritionLibrary.migrateOperation);
 	const onlineMutation = useMutation(api.nutritionLibrary.save);
-	const remote = useCallback(
-		(envelope: NutritionLibraryOperationEnvelope) => applyMutation(envelope),
-		[applyMutation],
-	);
-	const service = useMemo(
-		() =>
-			enabled && subject && state
-				? new NutritionLibraryService(
-						subject,
-						state,
-						accountRepository,
-						remote,
-						true,
-					)
-				: undefined,
-		[accountRepository, enabled, remote, state, subject],
-	);
-	const serviceVersion = useSyncExternalStore(
-		service ? service.subscribe : () => () => {},
-		service ? service.getVersion : () => 0,
-		() => 0,
-	);
+	const uploadPhoto = useFoodPhotoUpload();
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const owner = useRef(subject);
 	owner.current = subject;
@@ -432,19 +391,25 @@ export function PersonalFoodsProvider({
 			const owned = records.filter(
 				(record) => !record.subject || record.subject === subject,
 			);
-			if (service) service.receiveServerPage(owned);
-			else
-				for (const record of owned)
-					applyLibraryRecord(accountRepository, record);
-			onPageRestored();
+			for (const record of owned) {
+				const current = subject
+					? state?.getRecord(subject, record.id)
+					: undefined;
+				if (current && current.revision > record.revision) continue;
+				applyLibraryRecord(accountRepository, record);
+				if (subject) state?.commitServerRecord(subject, record);
+				session.acknowledged(record);
+			}
+			setRestoredRevision((value) => value + 1);
 		},
-		[service, accountRepository, onPageRestored, subject],
+		[state, accountRepository, subject, session],
 	);
 	const lookupBarcode = useCallback(
 		async (barcode: string) => {
 			if (!subject || !isWebSocketConnected)
 				throw new Error("A connection is required to look up your library.");
 			const records = await client.query(api.nutritionLibrary.getMany, {
+				photoVersion: 3,
 				ids: accountRepository
 					.list()
 					.filter((food) => food.provenance.barcode === barcode)
@@ -473,17 +438,22 @@ export function PersonalFoodsProvider({
 		async (record: LibraryRecord, remove = false) => {
 			if (!subject || !isWebSocketConnected)
 				throw new Error("A connection is required to save.");
-			const portableRecord =
-				record.kind === "food" && record.payload
-					? {
-							...record,
-							payload: JSON.stringify(
-								portablePersonalFood(
-									JSON.parse(record.payload) as PersonalFood,
-								),
-							),
-						}
-					: record;
+			let portableRecord = record;
+			if (record.kind === "food" && record.payload) {
+				let food: PersonalFood = JSON.parse(record.payload);
+				if (food.visual?.kind === "photo" && !food.visual.storageId) {
+					const uploaded = await (suppliedUploadPhoto ?? uploadPhoto)(
+						food.visual.uri,
+					);
+					if (owner.current !== subject)
+						throw new Error("The account changed while uploading a photo.");
+					food = { ...food, visual: { ...food.visual, ...uploaded } };
+				}
+				portableRecord = {
+					...record,
+					payload: JSON.stringify(portablePersonalFood(food)),
+				};
+			}
 			const retryKey = canonicalJson(portableRecord);
 			const operationId =
 				retryOperations.current.get(retryKey) ?? mintNutritionUuid();
@@ -505,7 +475,7 @@ export function PersonalFoodsProvider({
 								id: record.id,
 								kind: record.kind,
 								payload: portableRecord.payload ?? "",
-								schemaVersion: 2,
+								schemaVersion: 3,
 							},
 							expectedRevision: record.revision,
 						},
@@ -519,157 +489,71 @@ export function PersonalFoodsProvider({
 					: result.record;
 			applyLibraryRecord(accountRepository, accepted);
 			state?.commitServerRecord(subject, accepted);
+			session.acknowledged(accepted);
 			retryOperations.current.delete(retryKey);
 			return accepted;
 		},
-		[subject, isWebSocketConnected, onlineMutation, state, accountRepository],
+		[
+			subject,
+			isWebSocketConnected,
+			onlineMutation,
+			state,
+			accountRepository,
+			uploadPhoto,
+			suppliedUploadPhoto,
+			session,
+		],
 	);
 
-	useEffect(() => {
-		service?.setOnline(isWebSocketConnected);
-	}, [isWebSocketConnected, service]);
-	useEffect(() => () => service?.dispose(), [service]);
-	const syncSnapshot = useMemo(
-		() => ({
-			version: serviceVersion,
-			operations: service?.getOperations() ?? [],
-		}),
-		[service, serviceVersion],
-	);
 	const accountControls = useMemo<AccountControls>(
 		() => ({
 			...(subject ? { subject } : {}),
-			hasLegacy:
-				(!legacyOwner || legacyOwner === subject) &&
-				[...legacyRepository.list(), ...legacyRepository.listCombos()].some(
-					(record) =>
-						!subject || !state?.getRecord(subject, `device:${record.id}`),
-				),
-			operations: syncSnapshot.operations,
 			isDeleted: (id) => !!(subject && state?.getRecord(subject, id)?.deleted),
-			importLegacy: () => {
-				if (!service || !subject || !enabled) {
-					throw new Error("Sign in before importing this device library.");
-				}
-				if (!state?.claimLegacy(subject)) {
-					throw new Error(
-						"This device library was already imported by another account.",
+			devicePhotoCount: accountRepository
+				.list()
+				.filter(
+					(food) => food.visual?.kind === "photo" && !food.visual.storageId,
+				).length,
+			uploadDevicePhotos: async () => {
+				const localPhotos = accountRepository
+					.list()
+					.filter(
+						(food) => food.visual?.kind === "photo" && !food.visual.storageId,
 					);
+				for (let offset = 0; offset < localPhotos.length; offset += 100) {
+					const records = await client.query(api.nutritionLibrary.getMany, {
+						ids: localPhotos.slice(offset, offset + 100).map((food) => food.id),
+						photoVersion: 3,
+					});
+					if (owner.current !== subject)
+						throw new Error("The account changed while updating photos.");
+					receiveServerPage(records);
 				}
-				const original = legacyRepository.exportBackup();
-				// Retrying a partially completed claim copies only records not journaled yet.
-				// Acknowledged edits and tombstones must never be replaced by the original.
-				const exported = {
-					foods: original.foods.filter(
-						(food) => !state.getRecord(subject, `device:${food.id}`),
-					),
-					combos: original.combos.filter(
-						(combo) => !state.getRecord(subject, `device:${combo.id}`),
-					),
-				};
-				const ids = new Set(original.foods.map((food) => food.id));
-				const legacy = {
-					foods: exported.foods.map((food) => ({
-						...food,
-						id: `device:${food.id}`,
-					})),
-					combos: exported.combos.map((combo) => ({
-						...combo,
-						id: `device:${combo.id}`,
-						parts: combo.parts.map((part) =>
-							part.reference.kind === "personal" &&
-							ids.has(part.reference.foodId)
-								? {
-										...part,
-										reference: {
-											...part.reference,
-											foodId: `device:${part.reference.foodId}`,
-										},
-										snapshot: {
-											...part.snapshot,
-											provenance: {
-												...part.snapshot.provenance,
-												sourceId: `device:${part.reference.foodId}`,
-											},
-										},
-									}
-								: part,
-						),
-					})),
-				};
-				const preparations = [
-					...legacy.foods.map((food) => ({
-						transactionId: service.prepareUpsert(food.id, "food"),
-						kind: "food" as const,
-						value: food,
-					})),
-					...legacy.combos.map((combo) => ({
-						transactionId: service.prepareUpsert(combo.id, "combo"),
-						kind: "combo" as const,
-						value: combo,
-					})),
-				];
-				let localCommitted = false;
-				try {
-					accountRepository.replaceFromBackup(
-						{
-							foods: [
-								...legacy.foods,
-								...accountRepository
-									.list()
-									.filter(
-										(food) => !legacy.foods.some((item) => item.id === food.id),
-									),
-							],
-							combos: legacy.combos,
-						},
-						{ merge: true, preserveLocalPhotos: true },
-					);
-					localCommitted = true;
-					for (const prepared of preparations) {
-						if (prepared.kind === "food")
-							service.commitFood(
-								prepared.transactionId,
-								prepared.value as PersonalFood,
-							);
-						else
-							service.commitCombo(
-								prepared.transactionId,
-								prepared.value as Combo,
-							);
-					}
-					void service.replay();
-				} catch (error) {
-					if (!localCommitted) {
-						for (const prepared of preparations)
-							service.discardPrepared(prepared.transactionId);
-					}
-					throw error;
+				for (const food of accountRepository.list()) {
+					if (food.visual?.kind !== "photo" || food.visual.storageId) continue;
+					const revision = subject
+						? state?.getRecord(subject, food.id)?.revision
+						: undefined;
+					await saveRecord({
+						id: food.id,
+						kind: "food",
+						payload: JSON.stringify(food),
+						revision: revision ?? 0,
+						schemaVersion: 3,
+						deleted: false,
+					});
 				}
-			},
-			retry: () => void service?.replay(),
-			uploadPending: async () => {
-				if (!service) throw new Error("Sign in before uploading local data.");
-				await service.uploadPending();
+				setRestoredRevision((value) => value + 1);
 			},
 			receiveServerPage,
 		}),
-		[
-			legacyRepository,
-			accountRepository,
-			enabled,
-			service,
-			state,
-			legacyOwner,
-			subject,
-			syncSnapshot,
-			receiveServerPage,
-		],
+		[subject, state, receiveServerPage, accountRepository, saveRecord, client],
 	);
+
 	return (
 		<PersonalFoodsScope
 			key={subject ?? "signed-out"}
-			repository={visibleRepository}
+			repository={accountRepository}
 			account={accountControls}
 			remoteRevision={restoredRevision}
 			saveRecord={saveRecord}
@@ -711,6 +595,7 @@ export function usePersonalFoods(options?: {
 		enabled && options?.browse
 			? {
 					query: settledQuery.trim(),
+					photoVersion: 3,
 					...(options.browse.category
 						? { category: options.browse.category }
 						: {}),
@@ -741,7 +626,7 @@ export function usePersonalFoods(options?: {
 		string,
 		{
 			query: typeof api.nutritionLibrary.getMany;
-			args: { ids: string[]; forkIds: string[] };
+			args: { ids: string[]; forkIds: string[]; photoVersion: 3 };
 		}
 	> = {};
 	if (enabled)
@@ -750,6 +635,7 @@ export function usePersonalFoods(options?: {
 			extraForkQueries[String(offset)] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
+					photoVersion: 3,
 					forkIds: chunk,
 					ids: value
 						.forks()
@@ -775,6 +661,7 @@ export function usePersonalFoods(options?: {
 			extraForkQueries[`cached:${offset}`] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
+					photoVersion: 3,
 					ids: requestedIds.slice(offset, offset + 100).sort(),
 					forkIds: [],
 				},
@@ -811,6 +698,7 @@ export function usePersonalFoods(options?: {
 		api.nutritionLibrary.getMany,
 		enabled && (ids.length || forkIds.length || options?.barcode)
 			? {
+					photoVersion: 3,
 					ids,
 					...(forkIds.length ? { forkIds } : {}),
 					...(options?.barcode ? { barcode: options.barcode } : {}),

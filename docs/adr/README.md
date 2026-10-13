@@ -16,3 +16,5 @@ retain existing numbers so references remain stable.
 - [0013: Sourced strength references and session snapshots](0013-sourced-strength-references-and-session-snapshots.md)
 
 - [0014: Online-first account data](0014-online-first-account-data.md)
+
+- [0015: Account food photos and cache retirement](0015-account-food-photos-and-cache-retirement.md)

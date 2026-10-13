@@ -2,8 +2,8 @@
  * Nutrition-day data boundary.
  *
  * Effective-dated goals and frozen diary entries come from Convex. Retained
- * subscriptions support quick navigation; disk snapshots support cached reads
- * after restart. Shared nutrient vocabulary comes from `@workouts/core/nutrition`.
+ * subscriptions support quick navigation; bounded session snapshots support
+ * current screens. Account data is fetched again after restart. Shared nutrient vocabulary comes from `@workouts/core/nutrition`.
  */
 import {
 	type GoalDirection,

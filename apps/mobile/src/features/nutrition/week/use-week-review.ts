@@ -2,10 +2,7 @@ import { useConvexConnectionState, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/api";
 import { type IsoDate, todayIsoDate } from "../../../data/calendar-day";
-import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "../../../data/nutrition-operation-service";
+
 import {
 	isRealIsoDate,
 	type WeeklyReviewDay,
@@ -13,7 +10,7 @@ import {
 } from "../../../data/nutrition-weekly-review";
 import { useStalledOffline } from "../../../data/stalled-offline";
 
-/** The chosen week's server review plus whether device changes are still queued. */
+/** The chosen week's acknowledged account data. */
 export function useWeekReview(startDate: string | undefined) {
 	const [today] = useState(() => todayIsoDate());
 	const current = weekStartMonday(today);
@@ -29,14 +26,6 @@ export function useWeekReview(startDate: string | undefined) {
 		api.nutritionReview.week,
 		retrying ? "skip" : { startDate: week, today },
 	);
-	const operations = useNutritionOperations();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
-	const pending = subject
-		? operations
-				.getOperations(subject)
-				.some((operation) => operation.status !== "acknowledged")
-		: false;
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
 		result === undefined,
@@ -48,7 +37,6 @@ export function useWeekReview(startDate: string | undefined) {
 		week,
 		setWeek: (next: IsoDate) => setWeek(next > current ? current : next),
 		days,
-		pending,
 		stalledOffline,
 		retry: () => {
 			setRetrying(true);
