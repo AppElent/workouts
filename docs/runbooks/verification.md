@@ -1,7 +1,13 @@
+---
+type: runbook
+description: Read when running checks, dev servers, or test login for Workouts.
+version: 1.0.0
+---
+
 # Verify Workouts
 
-Apply the shared [verification contract](../guidelines/shared/general/verification.md).
-This runbook binds it to Workouts targets and credentials.
+Binds the shared [verification contract](../guidelines/shared/general/verification.md)
+to Workouts targets and credentials.
 
 ## Checks
 
@@ -18,7 +24,6 @@ pnpm --filter @workouts/mobile test --runInBand
 
 Root types/Vitest exclude mobile; mobile uses Jest. Build `@workouts/core` first
 when its output is missing: `pnpm --filter @workouts/core build`.
-Documentation-only work checks links, reading routes, and managed-file ownership.
 
 ## Backend and login
 
@@ -47,7 +52,7 @@ keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence
 changes, verify readable cached history and an explicit unavailable-day state.
 Physical haptics remain a device check.
 
-For supplied designs, follow the shared reference-comparison procedure. Record
-results beside their evidence under [verification](../verification/README.md).
-The [iOS checklist](../verification/ios-native-checklist.md) supplements affected
+Record results in a verification record under `docs/records/`, with its evidence
+(copy `docs/records/.template.md`).
+The [iOS checklist](ios-acceptance.md) supplements affected
 flow checks; its unchecked rows remain pending.

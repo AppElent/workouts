@@ -7,7 +7,6 @@ import { Segmented } from "./segmented";
 import { SkeletonCard, SkeletonList } from "./skeleton";
 
 // jest-expo resolves to the `.ios.tsx` files, against the `@expo/ui` mock.
-// Steps 2.3–2.5 of docs/archive/design/foundry-native-plan.md.
 
 describe("Segmented → system Picker", () => {
 	it("marks the selected option and reports a change by value", () => {

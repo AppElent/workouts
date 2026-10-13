@@ -1,3 +1,9 @@
+---
+type: runbook
+description: Read when changing Sentry coverage, project bindings, or source-map uploads.
+version: 1.0.0
+---
+
 # Workouts Sentry operations
 
 Apply the shared [Sentry feature](../features/sentry/FEATURE.md) for instrumentation,
@@ -97,12 +103,4 @@ check. Reassess this exception during SDK upgrades; retain types/tests/export
 and native-build checks. `@sentry/cli` is an explicit mobile dev dependency for
 predictable pnpm resolution; keep it compatible with the installed SDK.
 
-## Outstanding acceptance
-
-Repository tests cover redaction, rethrow/deduplication, and log selection.
-Live browser/Worker/native symbolication, native replay/profiling, feedback image
-delivery, dashboard alerts, and hosted backend forwarding still need deployment
-verification. Apply the shared acceptance procedure to each enabled surface.
-Check new/regressed issue and crash-free-session alerts, plus Expo emergency-launch
-alerts. Test a scheduled backend failure after hosting the forwarder; absence of
-that process is an unattended-coverage gap.
+Outstanding deployment acceptance: [Sentry acceptance](../records/2026-10-08-sentry-acceptance.md).

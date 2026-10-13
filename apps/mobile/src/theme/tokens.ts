@@ -4,9 +4,8 @@
  * The contract is `designs/foundry/` (readme + `tokens/*.css`); this file is
  * its React Native transcription. CSS custom properties cascade, these do not,
  * so every value is typed out. When the two disagree, Foundry wins — fix this
- * file, not the design system. The web app adopts the same palette
- * (`docs/archive/design/foundry-native-plan.md`), so there is no longer a "web look"
- * to keep this one apart from.
+ * file, not the design system. The web app adopts the same palette, so there
+ * is no longer a "web look" to keep this one apart from.
  *
  * System / Light / Dark is resolved by AppearanceProvider. Static palettes are
  * used only for token definitions and UIKit trait-adaptive chrome. Components

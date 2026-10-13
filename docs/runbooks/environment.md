@@ -1,3 +1,9 @@
+---
+type: runbook
+description: Read when changing environment variables, Infisical sources, or generated env files.
+version: 1.0.0
+---
+
 # Environment contract
 
 [`env.manifest.ts`](../../env.manifest.ts) is the source of truth for which

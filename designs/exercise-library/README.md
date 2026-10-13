@@ -46,4 +46,4 @@ The header menu now follows the supplied iOS Mail visual-picker reference: two s
 
 ## Implementation evidence
 
-See the [native implementation and verification record](../../docs/verification/exercise-library/README.md) for device coverage, limitations, screenshots, and recordings.
+See the [native implementation and verification record](../../docs/records/2026-09-28-exercise-library/README.md) for device coverage, limitations, screenshots, and recordings.

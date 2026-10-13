@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before adding an Activity type or changing the shared Activity envelope.
+version: 1.0.0
 status: accepted
+date: 2026-09-16
 ---
 
 # Model Activity as a closed family with shared envelopes

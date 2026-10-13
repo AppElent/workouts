@@ -1,3 +1,11 @@
+---
+type: decision
+description: Read before changing the shipped NEVO food dataset, its IDs, or licensing.
+version: 1.0.0
+status: accepted
+date: 2026-09-05
+---
+
 # Ship NEVO as a generated read-only core dataset
 
 The standard Nutrition food library ships as one generated, schema-validated JSON artifact in `@workouts/core`. Generation combines the unchanged NEVO 2025/9.0 extract, a hand-authored bilingual promotion overlay, and an append-only internal-ID lockfile. Runtime clients read this data but never mutate it; correcting a shipped food creates a Personal Food fork.

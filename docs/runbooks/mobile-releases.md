@@ -1,3 +1,9 @@
+---
+type: runbook
+description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
+version: 1.0.0
+---
+
 # iOS test builds and OTA updates
 
 For error reporting configuration, see

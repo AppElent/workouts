@@ -1,3 +1,9 @@
+---
+type: runbook
+description: Read when running or resuming the shipped exercise ID migration.
+version: 1.0.0
+---
+
 # Migrate history to shipped exercise IDs
 
 This migration rewrites `exerciseId` in sets, one-rep max records, routine entries,

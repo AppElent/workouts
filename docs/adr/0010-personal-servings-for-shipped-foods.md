@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before changing Servings for Shipped Foods or Forks.
+version: 1.0.0
 status: accepted
+date: 2026-10-04
 ---
 
 # Add personal Servings without forking Shipped Foods

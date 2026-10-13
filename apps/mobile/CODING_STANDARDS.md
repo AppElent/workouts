@@ -24,11 +24,10 @@ gaps, while ordinary Convex hooks retain their existing lifecycle. The cache sit
 below the authenticated session gate. Its helper cleanup patch is required for
 account/background disposal; reverify that behaviour when upgrading the helper.
 Keep retained feature state where it still supports refresh errors or reads after
-subscription expiry. The [pilot evidence](../../docs/verification/query-subscription-cache/README.md)
+subscription expiry. The [pilot evidence](../../docs/records/2026-10-08-query-subscription-cache/README.md)
 records adoption and usage limits.
 
 `pnpm check:mobile-architecture` runs in `pnpm check`. It checks UI-to-feature
 imports, feature filenames, and literal feature font sizes. It does not establish
 semantic ownership, indirect dependencies, or whole-app adoption. Review draft,
-keyboard, scroll, and dismissal ownership together; keep exceptions narrow.
-Use [project verification](../../docs/runbooks/verification.md) for target checks.
+keyboard, scroll, and dismissal ownership together.

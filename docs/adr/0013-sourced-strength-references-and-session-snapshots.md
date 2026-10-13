@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before changing One-rep Max references or session snapshots.
+version: 1.0.0
 status: accepted
+date: 2026-10-07
 ---
 
 # Keep sourced strength references and freeze their use within sessions
@@ -27,4 +31,4 @@ session snapshots preserve the context that was actually shown.
 
 Source eligibility and legacy provenance follow the
 [planned/performed boundary](0012-separate-planned-sets-from-performance.md) and
-the [implementation contract](../product/app-redesign.md#strength-references).
+the [implementation contract](../contracts/training.md).

@@ -1,5 +1,9 @@
 ---
+type: decision
+description: Read before changing food photo ownership or retiring migrated device stores.
+version: 1.0.0
 status: accepted
+date: 2026-10-13
 ---
 
 # Store own food photos with the account and retire migrated local copies
@@ -28,5 +32,5 @@ them. Deleting a Food does not delete its historical photo. Explicit account
 Test Data Clear/Load removes that account’s uploaded files too.
 
 Accepted on 2026-10-13. See the
-[product contract](../product/online-first-account-data.md) and
-[cleanup verification](../verification/local-data-tools/cleanup-2026-10-13.md).
+[product contract](../contracts/account-data.md) and
+[cleanup verification](../records/2026-10-13-food-photos-and-cache-cleanup.md).
