@@ -1,10 +1,10 @@
 import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
-import { useI18n } from "../i18n";
+import { dateLocale, useI18n } from "../i18n";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { BucketChart, TrendChart } from "../ui/chart";
 import { Chip, Eyebrow } from "../ui/coach";
@@ -69,6 +69,8 @@ function ExerciseProgress({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const { t, locale } = useI18n();
+	const copy = t.progress;
 	const [selected, setSelected] = useState<ExerciseId | null>(null);
 
 	const ormHistory = useQuery(
@@ -93,12 +95,12 @@ function ExerciseProgress({
 		() =>
 			(ormHistory ?? []).map((o) => ({
 				value: o.value,
-				label: new Date(o.date).toLocaleDateString(undefined, {
+				label: new Date(o.date).toLocaleDateString(dateLocale(locale), {
 					day: "numeric",
 					month: "short",
 				}),
 			})),
-		[ormHistory],
+		[ormHistory, locale],
 	);
 
 	const volumePoints = useMemo(
@@ -112,17 +114,17 @@ function ExerciseProgress({
 	);
 
 	if (currentOrms === undefined || exercises === undefined) {
-		return <AppText style={styles.muted}>Loading…</AppText>;
+		return <AppText style={styles.muted}>{copy.loading}</AppText>;
 	}
 
 	if (trained.length === 0) {
 		return (
 			<View style={styles.empty}>
 				<AppText variant="heading" style={{ color: colors.textMuted }}>
-					No exercise data yet
+					{copy.emptyTitle}
 				</AppText>
 				<AppText variant="caption" style={styles.centered}>
-					Log a few sets and your 1RM and volume trends appear here.
+					{copy.emptyHint}
 				</AppText>
 			</View>
 		);
@@ -130,27 +132,28 @@ function ExerciseProgress({
 
 	return (
 		<>
-			<Eyebrow>Exercise</Eyebrow>
+			<Eyebrow>{copy.exercise}</Eyebrow>
 			<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 				<View style={styles.chipRow}>
 					{trained.map((e) => (
-						<Pressable key={e._id} onPress={() => setSelected(e._id)}>
-							<Chip label={e.name} active={e._id === selected} />
-						</Pressable>
+						<Chip
+							key={e._id}
+							label={e.name}
+							active={e._id === selected}
+							onPress={() => setSelected(e._id)}
+						/>
 					))}
 				</View>
 			</ScrollView>
 
 			{selected === null ? (
-				<AppText style={styles.muted}>
-					Pick an exercise to see its trends.
-				</AppText>
+				<AppText style={styles.muted}>{copy.pick}</AppText>
 			) : (
 				<>
-					<TrendChart title="1RM over time" points={ormPoints} />
+					<TrendChart title={copy.oneRepMax} points={ormPoints} />
 					<BucketChart
-						title="Weekly volume"
-						note="Every set type, warmups included."
+						title={copy.weeklyVolume}
+						note={copy.weeklyVolumeNote}
 						points={volumePoints}
 					/>
 				</>

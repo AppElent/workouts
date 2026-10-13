@@ -147,11 +147,14 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		expect(screen.queryByLabelText("Select Lunch for Combo")).toBeNull();
-		fireEvent.press(screen.getByLabelText("Select Apple for Combo"));
-		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
+		expect(screen.queryByLabelText("Select Lunch")).toBeNull();
+		fireEvent.press(screen.getByLabelText("Select Apple"));
+		fireEvent.press(screen.getByLabelText("Select Oats"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
-		fireEvent.changeText(screen.getByLabelText("Combo name"), "Apple oats");
+		fireEvent.changeText(
+			await screen.findByLabelText("Combo name"),
+			"Apple oats",
+		);
 		fireEvent.press(screen.getByLabelText("Save Combo"));
 
 		await screen.findByText("Apple oats");
@@ -180,9 +183,9 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
+		fireEvent.press(screen.getByLabelText("Select Oats"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
-		fireEvent.changeText(screen.getByLabelText("Combo name"), "My oats");
+		fireEvent.changeText(await screen.findByLabelText("Combo name"), "My oats");
 		fireEvent.press(screen.getByLabelText("Save Combo"));
 
 		expect(
@@ -206,9 +209,9 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
+		fireEvent.press(screen.getByLabelText("Select Oats"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
-		fireEvent.changeText(screen.getByLabelText("Combo name"), "My oats");
+		fireEvent.changeText(await screen.findByLabelText("Combo name"), "My oats");
 		fireEvent.press(screen.getByLabelText("Save Combo"));
 
 		expect(
@@ -237,12 +240,15 @@ describe("Nutrition Combos", () => {
 
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(screen.getByLabelText("Select Apple for Combo"));
+		fireEvent.press(screen.getByLabelText("Select Apple"));
 
-		expect(screen.getByLabelText("Select Oats for Combo")).toBeEnabled();
-		fireEvent.press(screen.getByLabelText("Select Oats for Combo"));
+		expect(screen.getByLabelText("Select Oats")).toBeEnabled();
+		fireEvent.press(screen.getByLabelText("Select Oats"));
 		fireEvent.press(screen.getByLabelText("Make combo"));
-		fireEvent.changeText(screen.getByLabelText("Combo name"), "Mixed meals");
+		fireEvent.changeText(
+			await screen.findByLabelText("Combo name"),
+			"Mixed meals",
+		);
 		fireEvent.press(screen.getByLabelText("Save Combo"));
 		await screen.findByText("Today");
 		expect(app.repository.listCombos()[0]).toMatchObject({
@@ -270,7 +276,7 @@ describe("Nutrition Combos", () => {
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
 
-		expect(screen.queryByLabelText("Select Apple for Combo")).toBeNull();
+		expect(screen.queryByLabelText("Select Apple")).toBeNull();
 		fireEvent.press(screen.getByLabelText("Select Combo Apple oats"));
 		expect(screen.getByLabelText("Make combo")).toBeEnabled();
 	});

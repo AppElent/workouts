@@ -282,7 +282,7 @@ describe("Nutrition navigation", () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
+		fireEvent.press(await screen.findByLabelText("Select Apple"));
 		fireEvent.press(await screen.getByLabelText("Make combo"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combo-new"));
@@ -293,7 +293,7 @@ describe("Nutrition navigation", () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
+		fireEvent.press(await screen.findByLabelText("Select Apple"));
 		expect(screen.getByLabelText("Make combo")).toBeTruthy();
 		expect(screen.queryByText("All goals")).toBeNull();
 		expect(

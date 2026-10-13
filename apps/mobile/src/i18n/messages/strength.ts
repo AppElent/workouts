@@ -143,7 +143,7 @@ export const strengthNl: typeof strengthEn = {
 	cancelTitle: "Deze sessie annuleren?",
 	cancelMessage:
 		"Vastgelegde sets blijven bewaard. Onvoltooide sets worden verwijderd en er wordt geen activiteit aangemaakt.",
-	keepGoing: "Doorgaan",
+	keepGoing: "Verder trainen",
 	saveError: "Opslaan is niet gelukt. Je invoer is bewaard.",
 	exercises: "Oefeningen",
 	addExercise: "Oefening toevoegen",
@@ -153,7 +153,7 @@ export const strengthNl: typeof strengthEn = {
 	planned: "Gepland",
 	sets: "sets",
 	singleSet: "set",
-	repsShort: "Reps",
+	repsShort: "Herh.",
 	volume: "Volume",
 	elapsed: "Verstreken",
 	addSet: "Set toevoegen",

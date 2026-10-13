@@ -6,6 +6,7 @@
  */
 import type { ReactNode } from "react";
 import { type LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { useI18n } from "../i18n";
 import { radius, spacing, useTokens } from "../theme";
 import { AppText } from "./text";
 
@@ -36,6 +37,7 @@ export function ChartFrame({
 	onLayout?: (e: LayoutChangeEvent) => void;
 }) {
 	const tokens = useTokens();
+	const { t } = useI18n();
 	return (
 		<View
 			style={[
@@ -50,7 +52,7 @@ export function ChartFrame({
 			{note ? <AppText variant="caption">{note}</AppText> : null}
 			{empty ? (
 				<AppText variant="caption" style={styles.empty}>
-					Not enough data yet.
+					{t.progress.notEnoughData}
 				</AppText>
 			) : (
 				children

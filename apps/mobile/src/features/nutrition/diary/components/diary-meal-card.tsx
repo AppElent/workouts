@@ -118,12 +118,9 @@ export function DiaryMealCard({
 				</View>
 			}
 			accessibilityLabel={
-				fmt(
-					selecting
-						? t.nutrition.combos.selectEntry
-						: t.nutrition.entryEditor.editEntry,
-					{ name: entry.name[locale] },
-				) + (entry.estimated ? `. ${copy.estimated}` : "")
+				fmt(selecting ? copy.selectEntry : t.nutrition.entryEditor.editEntry, {
+					name: entry.name[locale],
+				}) + (entry.estimated ? `. ${copy.estimated}` : "")
 			}
 			onPress={() => (selecting ? onToggle([entry]) : onEdit(entry))}
 			actions={
@@ -193,7 +190,7 @@ export function DiaryMealCard({
 					<View style={{ flex: 1 }}>
 						{entries.length && !selecting ? (
 							<DiaryMealMenu
-								title={`${t.nutrition.meals[slot]} · ${entries.length} items`}
+								title={`${t.nutrition.meals[slot]} · ${plural(locale, entries.length, copy.items)}`}
 								label={fmt(copy.mealActions, { meal: t.nutrition.meals[slot] })}
 								closeLabel={t.diaryEntry.cancel}
 								actions={actions}
@@ -280,11 +277,14 @@ export function DiaryMealCard({
 						selected={
 							selecting ? parts.every((p) => selected.has(p.id)) : undefined
 						}
-						accessibilityLabel={
+						accessibilityLabel={fmt(
 							selecting
-								? `Select Combo ${group.name}`
-								: `${open ? "Collapse" : "Expand"} Combo ${group.name}`
-						}
+								? copy.selectCombo
+								: open
+									? copy.collapseCombo
+									: copy.expandCombo,
+							{ name: group.name },
+						)}
 						secondary={plural(locale, parts.length, copy.comboParts)}
 						value={`${roundForDisplay("energy", totalNutrients(parts.map((e) => e.nutrients)).energy?.amount ?? 0)} kcal`}
 						leading={{

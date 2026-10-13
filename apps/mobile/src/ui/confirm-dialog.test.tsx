@@ -1,7 +1,13 @@
 import { act, fireEvent, screen } from "@testing-library/react-native";
+import type { ReactElement } from "react";
 import { Alert, Pressable, Text } from "react-native";
-import { renderThemed as render } from "../test-support/render-themed";
+import { LocaleProvider } from "../i18n";
+import { renderThemed } from "../test-support/render-themed";
 import { ConfirmProvider, useConfirm } from "./confirm-dialog";
+
+/** These primitives read their fallback labels from the message catalog. */
+const render = (ui: ReactElement) =>
+	renderThemed(ui, { wrapper: LocaleProvider });
 
 function Prompt({ answered }: { answered: (value: boolean) => void }) {
 	const confirm = useConfirm();

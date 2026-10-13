@@ -15,6 +15,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
+import { fmt, useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -69,6 +70,7 @@ export function HostedSessionPanel({
 	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.hosted;
 	const data = useQuery(api.hostedWorkoutParticipants.getBySession, {
 		sessionId,
 	});
@@ -82,7 +84,7 @@ export function HostedSessionPanel({
 	return (
 		<View style={styles.wrap}>
 			<Card style={styles.planCard}>
-				<Eyebrow>Hosted · {hosted.title}</Eyebrow>
+				<Eyebrow>{fmt(copy.panelHeading, { title: hosted.title })}</Eyebrow>
 				{hosted.notes ? (
 					<AppText variant="caption">{hosted.notes}</AppText>
 				) : null}
@@ -139,6 +141,7 @@ function ScoreBox({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
+	const copy = useI18n().t.hosted;
 	const submit = useMutation(api.hostedWorkoutSubmissions.submitForSession);
 
 	const [level, setLevel] = useState<Level>("rx");
@@ -174,9 +177,9 @@ function ScoreBox({
 			if (!saved) return;
 			// The leaderboard is on the host's screen, not this one, so there is
 			// nothing on-screen to confirm the submission landed.
-			toast.success(`Score submitted for ${name}`);
+			toast.success(fmt(copy.submitted, { name }));
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not submit your score."));
+			toast.error(convexErrorMessage(error, copy.submitError));
 		}
 	};
 
@@ -186,9 +189,12 @@ function ScoreBox({
 
 			<View style={styles.chipRow}>
 				{LEVELS.map((l) => (
-					<Pressable key={l} onPress={() => setLevel(l)}>
-						<Chip label={LEVEL_LABEL[l]} active={l === level} />
-					</Pressable>
+					<Chip
+						key={l}
+						label={LEVEL_LABEL[l]}
+						active={l === level}
+						onPress={() => setLevel(l)}
+					/>
 				))}
 			</View>
 
@@ -198,16 +204,17 @@ function ScoreBox({
 
 			{type === "forTime" ? (
 				<>
-					<Pressable
-						onPress={() => setCapped(!capped)}
-						style={styles.selfStart}
-					>
-						<Chip label="Hit the time cap" active={capped} />
-					</Pressable>
+					<View style={styles.selfStart}>
+						<Chip
+							label={copy.hitTimeCap}
+							active={capped}
+							onPress={() => setCapped(!capped)}
+						/>
+					</View>
 					<TextInput
 						value={capped ? reps : time}
 						onChangeText={capped ? setReps : setTime}
-						placeholder={capped ? "Reps at the cap" : "Time — 8:42"}
+						placeholder={capped ? copy.repsAtCap : copy.time}
 						placeholderTextColor={colors.textFaint}
 						style={styles.input}
 						keyboardType={capped ? "number-pad" : "default"}
@@ -220,7 +227,7 @@ function ScoreBox({
 					<TextInput
 						value={rounds}
 						onChangeText={setRounds}
-						placeholder="Rounds"
+						placeholder={copy.rounds}
 						placeholderTextColor={colors.textFaint}
 						style={[styles.input, styles.flex]}
 						keyboardType="number-pad"
@@ -228,7 +235,7 @@ function ScoreBox({
 					<TextInput
 						value={reps}
 						onChangeText={setReps}
-						placeholder="+ reps"
+						placeholder={copy.plusReps}
 						placeholderTextColor={colors.textFaint}
 						style={[styles.input, styles.flex]}
 						keyboardType="number-pad"
@@ -240,7 +247,7 @@ function ScoreBox({
 				<TextInput
 					value={reps}
 					onChangeText={setReps}
-					placeholder="Total reps"
+					placeholder={copy.totalReps}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					keyboardType="number-pad"
@@ -251,7 +258,7 @@ function ScoreBox({
 				<TextInput
 					value={load}
 					onChangeText={setLoad}
-					placeholder="Load (kg)"
+					placeholder={copy.load}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					keyboardType="decimal-pad"
@@ -261,7 +268,7 @@ function ScoreBox({
 			<TextInput
 				value={notes}
 				onChangeText={setNotes}
-				placeholder="Notes (optional)"
+				placeholder={copy.notes}
 				placeholderTextColor={colors.textFaint}
 				style={styles.input}
 			/>
@@ -272,7 +279,7 @@ function ScoreBox({
 				style={[styles.submit, busy && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>
-					{busy ? "Submitting…" : "Submit score"}
+					{busy ? copy.submitting : copy.submit}
 				</AppText>
 			</Pressable>
 		</Card>

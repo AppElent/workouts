@@ -16,6 +16,7 @@ import { ActivityIndicator, StyleSheet, TextInput, View } from "react-native";
 
 import { devLogin } from "../../src/auth/config";
 import { usePasswordSignIn } from "../../src/auth/usePasswordSignIn";
+import { useI18n } from "../../src/i18n";
 import {
 	radius,
 	spacing,
@@ -30,6 +31,7 @@ import { AppText } from "../../src/ui/text";
 export default function SignIn() {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.signIn;
 	const { submit, busy, error } = usePasswordSignIn();
 	const [email, setEmail] = useState(devLogin?.email ?? "");
 	const [password, setPassword] = useState(devLogin?.password ?? "");
@@ -42,13 +44,13 @@ export default function SignIn() {
 			<View style={styles.root}>
 				<View style={styles.brand}>
 					<View style={styles.mark} />
-					<AppText variant="display">Workouts</AppText>
-					<AppText variant="caption">Log the set. Nothing else.</AppText>
+					<AppText variant="display">Foundry</AppText>
+					<AppText variant="caption">{copy.tagline}</AppText>
 				</View>
 
 				<TextInput
 					style={styles.input}
-					placeholder="Email"
+					placeholder={copy.email}
 					placeholderTextColor={colors.textFaint}
 					value={email}
 					onChangeText={setEmail}
@@ -63,7 +65,7 @@ export default function SignIn() {
 				<TextInput
 					ref={passwordRef}
 					style={styles.input}
-					placeholder="Password"
+					placeholder={copy.password}
 					placeholderTextColor={colors.textFaint}
 					value={password}
 					onChangeText={setPassword}
@@ -87,7 +89,7 @@ export default function SignIn() {
 					</View>
 				) : (
 					<PrimaryButton
-						label="Sign in"
+						label={copy.submit}
 						disabled={!ready}
 						style={!ready && styles.disabled}
 						onPress={() => submit(email, password)}
@@ -96,7 +98,7 @@ export default function SignIn() {
 
 				{devLogin ? (
 					<AppText variant="caption" style={styles.devNote}>
-						Dev build: test credentials pre-filled (EXPO_PUBLIC_TEST_USER_*).
+						{copy.devNote}
 					</AppText>
 				) : null}
 			</View>

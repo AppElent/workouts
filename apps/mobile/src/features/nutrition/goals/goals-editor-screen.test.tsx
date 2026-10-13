@@ -3,6 +3,7 @@ import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { OFFLINE_GRACE_MS } from "../../../data/stalled-offline";
 import { renderApp } from "../../../test-support/render-app";
+import { armToastAction } from "../../../test-support/toast-action";
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseMutation = jest.mocked(useMutation);
@@ -141,6 +142,7 @@ describe("nutrition goal editor", () => {
 		expect(
 			screen.getByText("No goals. The diary shows totals only."),
 		).toBeTruthy();
+		await armToastAction();
 		fireEvent.press(screen.getByLabelText("Undo"));
 		expect(screen.getByLabelText("Fat maximum").props.value).toBe("80");
 	});

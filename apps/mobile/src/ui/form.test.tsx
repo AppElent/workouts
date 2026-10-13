@@ -1,8 +1,13 @@
 import { fireEvent, screen } from "@testing-library/react-native";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { renderThemed as render } from "../test-support/render-themed";
+import { LocaleProvider } from "../i18n";
+import { renderThemed } from "../test-support/render-themed";
 import { AddRow, DisclosureRow, FormSection, StepperField } from "./form";
+
+/** These primitives read their fallback labels from the message catalog. */
+const render = (ui: ReactElement) =>
+	renderThemed(ui, { wrapper: LocaleProvider });
 
 function renderForm(children: ReactNode) {
 	return render(

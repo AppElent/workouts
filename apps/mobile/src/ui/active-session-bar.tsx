@@ -3,6 +3,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useActiveSession } from "../data/session-data";
+import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
@@ -20,6 +21,7 @@ function formatElapsed(ms: number) {
 
 export function ActiveSessionBar() {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.workoutTools.activeSession;
 	const router = useRouter();
 	const segments = useSegments();
 	const active = useActiveSession();
@@ -41,22 +43,22 @@ export function ActiveSessionBar() {
 				onPress={() => router.push("/session")}
 				style={({ pressed }) => [styles.bar, pressed && { opacity: 0.9 }]}
 				accessibilityRole="button"
-				accessibilityLabel="Resume active workout"
+				accessibilityLabel={copy.resumeLabel}
 			>
 				<View style={styles.dot} />
 				<View style={styles.flex}>
 					<AppText variant="caption" style={styles.label}>
-						In progress
+						{copy.inProgress}
 					</AppText>
 					<AppText variant="body" style={styles.name} numberOfLines={1}>
-						{active.name ?? "Free session"}
+						{active.name ?? copy.freeSession}
 					</AppText>
 				</View>
 				<AppText variant="body" style={styles.elapsed}>
 					{formatElapsed(now - active.startTime)}
 				</AppText>
 				<AppText variant="body" style={styles.resume}>
-					Resume
+					{copy.resume}
 				</AppText>
 			</Pressable>
 		</View>

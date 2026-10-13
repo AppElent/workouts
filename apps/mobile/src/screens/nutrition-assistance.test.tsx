@@ -202,7 +202,7 @@ describe("nutrition assistance screen", () => {
 		).toBeGreaterThan(0);
 	});
 
-	it("reuses the reviewed personal food if diary acceptance fails and the form is retried", () => {
+	it("reuses the reviewed personal food if diary acceptance fails and the form is retried", async () => {
 		mockDiaryCreate.mockImplementation((_subject, _entry, _hint, onError) => {
 			onError?.(new Error("local failure"));
 			return "operation";
@@ -222,6 +222,8 @@ describe("nutrition assistance screen", () => {
 		fireEvent.press(screen.getByText("Parse label"));
 		fireEvent.press(screen.getByText("Save food and log portion"));
 		fireEvent.press(screen.getByText("Save food and log portion"));
+		// The failed diary write settles after the saved food resolves.
+		await waitFor(() => expect(mockDiaryCreate).toHaveBeenCalled());
 		expect(mockPersonalCreate).toHaveBeenCalledTimes(1);
 		expect(screen.getByText("Save food and log portion")).toBeTruthy();
 	});

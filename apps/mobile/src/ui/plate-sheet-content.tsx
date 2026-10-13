@@ -1,5 +1,6 @@
 import { calcPlates, DEFAULT_BAR, generateWarmup } from "@workouts/core";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { fmt, useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { Eyebrow } from "./coach";
 import { AppText } from "./text";
@@ -17,6 +18,7 @@ export function PlateSheetContent({
 	onClose: () => void;
 }) {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.workoutTools.plates;
 	const unit = "kg" as const;
 	const bar = DEFAULT_BAR[unit];
 	const result = calcPlates(weight, bar, unit);
@@ -30,10 +32,10 @@ export function PlateSheetContent({
 					onPress={onClose}
 					hitSlop={12}
 					accessibilityRole="button"
-					accessibilityLabel="Close"
+					accessibilityLabel={copy.close}
 				>
 					<AppText variant="body" style={styles.close}>
-						Done
+						{copy.done}
 					</AppText>
 				</Pressable>
 			</View>
@@ -41,13 +43,11 @@ export function PlateSheetContent({
 				contentInsetAdjustmentBehavior="automatic"
 				showsVerticalScrollIndicator={false}
 			>
-				<Eyebrow>Per side</Eyebrow>
+				<Eyebrow>{copy.perSide}</Eyebrow>
 				{result.belowBar ? (
-					<AppText variant="caption">
-						Below the {bar} kg bar — nothing to load.
-					</AppText>
+					<AppText variant="caption">{fmt(copy.belowBar, { bar })}</AppText>
 				) : result.perSide.length === 0 ? (
-					<AppText variant="caption">Just the {bar} kg bar.</AppText>
+					<AppText variant="caption">{fmt(copy.justBar, { bar })}</AppText>
 				) : (
 					<>
 						<View style={styles.stack}>
@@ -62,19 +62,18 @@ export function PlateSheetContent({
 							))}
 						</View>
 						<AppText variant="caption">
-							{result.perSide.join(" + ")} per side, plus the {bar} kg bar.
+							{fmt(copy.summary, { plates: result.perSide.join(" + "), bar })}
 						</AppText>
 					</>
 				)}
 				{result.remainder > 0 ? (
 					<AppText variant="caption" style={styles.warn}>
-						{result.remainder} kg short — standard plates cannot make this
-						exactly.
+						{fmt(copy.short, { remainder: result.remainder })}
 					</AppText>
 				) : null}
 				{warmup.length > 0 ? (
 					<>
-						<Eyebrow>Warm-up</Eyebrow>
+						<Eyebrow>{copy.warmup}</Eyebrow>
 						<View style={styles.warmupList}>
 							{warmup.map((set) => (
 								<View key={`${set.weight}-${set.reps}`} style={styles.row}>
@@ -86,7 +85,7 @@ export function PlateSheetContent({
 									</AppText>
 									<AppText variant="caption">
 										{set.pct === null
-											? "empty bar"
+											? copy.emptyBar
 											: `${Math.round(set.pct * 100)}%`}
 									</AppText>
 								</View>

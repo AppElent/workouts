@@ -1,6 +1,6 @@
 import { NUTRIENT_KEYS, totalNutrients } from "@workouts/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
-import { Stack, useRouter } from "expo-router";
+import { type Href, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { formatLongDate, isoDayOffset } from "../../../data/calendar-day";
@@ -157,21 +157,36 @@ export function DiaryScreen({
 		setSelecting(false);
 		setSelected(new Set());
 	};
+	// Leaving selection swaps the native bottom toolbar, header button and tab
+	// bar. Doing that while a push is starting crashed iOS release builds
+	// (NSRangeException in unmountChildComponentView, FOUNDRY-R), so the
+	// selection ends first and the push waits for the next frame.
+	const [pendingRoute, setPendingRoute] = useState<Href>();
+	useEffect(() => {
+		if (selecting || !pendingRoute) return;
+		const frame = requestAnimationFrame(() => {
+			setPendingRoute(undefined);
+			router.push(pendingRoute);
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [selecting, pendingRoute, router]);
+	const leaveSelectionFor = (route: Href) => {
+		endSelection();
+		setPendingRoute(route);
+	};
 	const transfer = (items: readonly DiaryEntry[], mode: "copy" | "move") => {
 		if (!items.length) return;
-		router.push({
+		leaveSelectionFor({
 			pathname: "/nutrition-entry-transfer",
 			params: { date, entryIds: items.map((e) => e.id).join(","), mode },
 		});
-		endSelection();
 	};
 	const combo = (items: readonly DiaryEntry[]) => {
 		if (!items.length) return;
-		router.push({
+		leaveSelectionFor({
 			pathname: "/nutrition-combo-new",
 			params: { date, entryIds: items.map((e) => e.id).join(",") },
 		});
-		endSelection();
 	};
 	const removeSelected = async () => {
 		if (deleting || !selectedEntries.length) return;

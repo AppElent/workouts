@@ -127,26 +127,26 @@ export default function AppLayout() {
 																/>
 																<Stack.Screen
 																	name="exercises"
-																	options={{ title: "Exercises" }}
+																	options={{ title: t.routes.exercises }}
 																/>
 																<Stack.Screen
 																	name="exercise/[id]"
-																	options={{ title: "Exercise" }}
+																	options={{ title: t.routes.exercise }}
 																/>
 																<Stack.Screen
 																	name="exercise-new"
 																	options={{
-																		title: "New exercise",
+																		title: t.routes.newExercise,
 																		presentation: "formSheet",
 																	}}
 																/>
 																<Stack.Screen
 																	name="hosted"
-																	options={{ title: "Hosted workouts" }}
+																	options={{ title: t.routes.hosted }}
 																/>
 																<Stack.Screen
 																	name="hosted/[id]"
-																	options={{ title: "Hosted workout" }}
+																	options={{ title: t.routes.hostedWorkout }}
 																/>
 																<Stack.Screen
 																	name="wods"
@@ -184,18 +184,18 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="routine-editor"
 																	options={{
-																		title: "Routine",
+																		title: t.routes.routine,
 																		presentation: "formSheet",
 																	}}
 																/>
 																<Stack.Screen
 																	name="session"
-																	options={{ title: "Workout" }}
+																	options={{ title: t.routes.workout }}
 																/>
 																<Stack.Screen
 																	name="summary"
 																	options={{
-																		title: "Summary",
+																		title: t.routes.summary,
 																		headerBackVisible: false,
 																		gestureEnabled: false,
 																	}}

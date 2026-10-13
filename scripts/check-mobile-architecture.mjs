@@ -8,6 +8,21 @@ const featureRoot = `${sourceRoot}features/`;
 const uiRoot = `${sourceRoot}ui/`;
 const messagesRoot = `${sourceRoot}i18n/`;
 const routeRoot = "apps/mobile/app";
+/** Units and names that read the same in every supported language. */
+const UNTRANSLATED = /\b(?:kcal|kg|km|lb|RPE|1RM|WODs?|Foundry)\b/g;
+const hasWords = (text) => /\p{L}{3,}/u.test(text.replace(UNTRANSLATED, ""));
+/** JSX props that people read or hear; their literal text belongs in the catalog. */
+const TEXT_ATTRIBUTES = new Set([
+	"accessibilityLabel",
+	"accessibilityHint",
+	"placeholder",
+	"title",
+	"label",
+	"message",
+	"confirmLabel",
+	"cancelLabel",
+	"retryLabel",
+]);
 
 /** Check syntax and direct dependency boundaries; component ownership needs review. */
 export function inspectMobileSource(filename, source, resolveImport) {
@@ -99,7 +114,84 @@ export function inspectMobileSource(filename, source, resolveImport) {
 				: undefined;
 		return text !== undefined && /\p{L}{3,}|\s/u.test(text);
 	};
+	const jsx = file.endsWith(".tsx");
+	const tests = /(?:^|\/)(?:__tests__|test-support)\/|\.test\.tsx?$/.test(file);
+	const literalText = (node) => {
+		node = unwrap(node);
+		if (ts.isStringLiteralLike(node)) return node.text;
+		if (ts.isTemplateExpression(node))
+			return [
+				node.head.text,
+				...node.templateSpans.map((s) => s.literal.text),
+			].join(" ");
+		return undefined;
+	};
+	const textAttribute = (node) => {
+		if (!TEXT_ATTRIBUTES.has(node.name.getText(tree)) || !node.initializer)
+			return false;
+		const value = ts.isJsxExpression(node.initializer)
+			? node.initializer.expression
+			: node.initializer;
+		return Boolean(value && branchText(value));
+	};
+	const wordy = (node) => {
+		const text = literalText(node);
+		return text !== undefined && hasWords(text);
+	};
+	/** A rendered `{"…"}`, `{cond ? "…" : x}` or `{cond && "…"}` child. */
+	const branchText = (node) => {
+		node = unwrap(node);
+		if (ts.isConditionalExpression(node))
+			return branchText(node.whenTrue) || branchText(node.whenFalse);
+		if (
+			ts.isBinaryExpression(node) &&
+			[
+				ts.SyntaxKind.AmpersandAmpersandToken,
+				ts.SyntaxKind.BarBarToken,
+				ts.SyntaxKind.QuestionQuestionToken,
+			].includes(node.operatorToken.kind)
+		)
+			return (
+				(node.operatorToken.kind !== ts.SyntaxKind.AmpersandAmpersandToken &&
+					branchText(node.left)) ||
+				branchText(node.right)
+			);
+		return wordy(node);
+	};
+	const textProperty = (node) =>
+		(ts.isIdentifier(node.name) || ts.isStringLiteralLike(node.name)) &&
+		TEXT_ATTRIBUTES.has(node.name.text) &&
+		wordy(node.initializer);
+	/** `toast.error("…")`, `Alert.alert("…")`, `convexErrorMessage(e, "…")`. */
+	const textMessageCall = (node) => {
+		const callee = ts.isPropertyAccessExpression(node.expression)
+			? node.expression.name.text
+			: ts.isIdentifier(node.expression)
+				? node.expression.text
+				: "";
+		return (
+			/^(?:error|success|alert|convexErrorMessage)$/.test(callee) &&
+			node.arguments.some(wordy)
+		);
+	};
 	const visit = (node) => {
+		if (
+			!messages &&
+			!tests &&
+			((ts.isJsxText(node) && hasWords(node.text)) ||
+				(ts.isJsxAttribute(node) && textAttribute(node)) ||
+				(ts.isJsxExpression(node) &&
+					!ts.isJsxAttribute(node.parent) &&
+					node.expression &&
+					branchText(node.expression)) ||
+				(jsx && ts.isPropertyAssignment(node) && textProperty(node)) ||
+				(jsx && ts.isCallExpression(node) && textMessageCall(node)))
+		)
+			report(
+				node,
+				"hardcoded-ui-text",
+				"Put UI text in an i18n/messages/ area module and read it through useI18n().",
+			);
 		if (
 			!messages &&
 			ts.isConditionalExpression(node) &&

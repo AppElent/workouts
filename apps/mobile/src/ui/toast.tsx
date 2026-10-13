@@ -59,11 +59,18 @@ const ACTION_DISMISS_MS = 6000;
  * because it asks for a tap; a plain one stays at the top, out of the way.
  */
 const BOTTOM_TOOLBAR_CLEARANCE = 72;
+/**
+ * The action toast appears over list rows, so a tap aimed at the row beneath
+ * it (logging the next food, say) can land on Undo instead. Taps that arrive
+ * before the toast has been on screen this long were aimed elsewhere.
+ */
+export const ACTION_ARM_MS = 700;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
 	const styles = useThemedStyles(createStyles);
 	const colors = useTokens();
 	const [toast, setToast] = useState<Toast | null>(null);
+	const [armedId, setArmedId] = useState<number | null>(null);
 	const insets = useSafeAreaInsets();
 
 	// Keyed on the toast's id so a second toast restarts the clock rather than
@@ -74,6 +81,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 			() => setToast(null),
 			toast.action ? ACTION_DISMISS_MS : DISMISS_MS,
 		);
+		return () => clearTimeout(timer);
+	}, [toast]);
+
+	useEffect(() => {
+		if (!toast?.action) return;
+		const timer = setTimeout(() => setArmedId(toast.id), ACTION_ARM_MS);
 		return () => clearTimeout(timer);
 	}, [toast]);
 
@@ -136,6 +149,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 								accessibilityLabel={toast.action.label}
 								hitSlop={8}
 								onPress={() => {
+									if (armedId !== toast.id) return;
 									const action = toast.action;
 									setToast(null);
 									action?.onPress();

@@ -1,4 +1,5 @@
 import { activityEn } from "./activity";
+import { bodyMetricsEn } from "./body-metrics";
 import { comboEditorEn } from "./combo-editor";
 import { diaryEn } from "./diary";
 import { enduranceEn } from "./endurance";
@@ -7,16 +8,22 @@ import { exerciseLibraryEn } from "./exercise-library";
 import { foodEditorEn } from "./food-editor";
 import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
+import { hostedEn } from "./hosted";
 import { localDataEn } from "./local-data";
 import { logFoodEn } from "./log-food";
 import { nutritionAssistanceEn } from "./nutrition-assistance";
 import { nutritionSettingsEn } from "./nutrition-settings";
 import { oneOffLogEn } from "./one-off-log";
 import { profileEn } from "./profile";
+import { progressEn } from "./progress";
+import { signInEn } from "./sign-in";
 import { strengthEn } from "./strength";
 import { testDataEn } from "./test-data";
 import { trainingEn } from "./training";
 import { weekReviewEn } from "./week-review";
+import { wodsEn } from "./wods";
+import { workoutSummaryEn } from "./workout-summary";
+import { workoutToolsEn } from "./workout-tools";
 /**
  * The phone's words, in the source language.
  *
@@ -34,6 +41,13 @@ import { weekReviewEn } from "./week-review";
  */
 export const en = {
 	testData: testDataEn,
+	wods: wodsEn,
+	workoutSummary: workoutSummaryEn,
+	progress: progressEn,
+	bodyMetrics: bodyMetricsEn,
+	hosted: hostedEn,
+	workoutTools: workoutToolsEn,
+	signIn: signInEn,
 	profile: profileEn,
 	training: trainingEn,
 	strength: strengthEn,
@@ -60,6 +74,14 @@ export const en = {
 		assistance: "Logging assistance",
 		weekOverview: "Week overview",
 		foodLibrary: "Food library",
+		exercises: "Exercises",
+		exercise: "Exercise",
+		newExercise: "New exercise",
+		hosted: "Hosted workouts",
+		hostedWorkout: "Hosted workout",
+		routine: "Routine",
+		workout: "Workout",
+		summary: "Summary",
 	},
 
 	feedback: {
@@ -81,6 +103,9 @@ export const en = {
 		back: "Go back",
 		retry: "Try again",
 		offline: "Offline — connect to save changes",
+		keep: "Keep",
+		decrease: "Decrease {label}",
+		increase: "Increase {label}",
 		calendar: {
 			previousMonth: "Previous month",
 			nextMonth: "Next month",
@@ -429,7 +454,6 @@ export const en = {
 				"This Combo could not be saved. Your name and selection are still here.",
 			selectionHelp:
 				"Choose diary entries or an entire Logged Combo from one meal.",
-			selectEntry: "Select {name} for Combo",
 			cancel: "Cancel",
 			continueOne: "Continue with 1 part",
 			continueMany: "Continue with {count} parts",
