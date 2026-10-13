@@ -1,12 +1,8 @@
 ---
-version: 2.0.0
-description: Locate remaining shared guidelines; most rules are now standards.
+version: 3.0.0
+description: Locate remaining shared guidelines; every rule is now a standard.
 ---
 
 # Shared guidelines
 
-Platform, pattern, and capability rules moved to `docs/standards/`; `CODING_STANDARDS.md` and `DESIGN_SYSTEM.md` route to them.
-
-- Specialist tasks: [external skill routing](general/specialist-skills.md).
-
-These files are toolkit-owned. Update with `node scripts/sync-devtools.mjs` from the project root. Features not yet migrated to standards remain in [the feature index](../../features/README.md).
+Every guideline and feature guide has migrated to `docs/standards/`; `CODING_STANDARDS.md` and `DESIGN_SYSTEM.md` route to them. This index remains until the `guidelines/` distribution path is retired.

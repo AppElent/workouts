@@ -13,7 +13,7 @@ read it: `grep -r "^description:" docs/standards docs/contracts docs/runbooks do
 | `runbooks/` | `runbook`: procedures and project bindings | Living, versioned |
 | `records/` | `record`: dated research, verification, reviews, specs, with their assets | Frozen |
 | `agents/` | Pointers that engineering skills look up by path | — |
-| `guidelines/shared/`, `features/` | Developer-tools output; edit upstream, then `node scripts/sync-devtools.mjs` | Managed |
+| `guidelines/shared/`, `features/` | Retired developer-tools indexes; everything moved to `standards/` | Managed |
 
 Vocabulary: [GLOSSARY.md](../GLOSSARY.md). Design studies: [designs/](../designs/README.md).
 Dataset provenance stays beside the data: [NEVO](../data/nevo/README.md),

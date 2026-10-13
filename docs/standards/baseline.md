@@ -1,8 +1,8 @@
 ---
 type: standard
 kind: platform
-description: Read when setting up or changing repository, package-manager, formatter, type, test, or CI configuration.
-version: 2.0.0
+description: Read when setting up or changing repository, package-manager, formatter, type, test, or CI configuration, or when installing or updating the toolkit.
+version: 2.1.0
 applies_to: [all]
 ---
 
@@ -13,6 +13,8 @@ Every JavaScript/TypeScript repository uses the same package manager, checks, an
 ## Rules
 
 Use pnpm, TypeScript, and Biome for new JavaScript/TypeScript applications. Keep versions and formatter options in configuration. Commit the lockfile; CI installs it frozen and runs the affected targets' lint/format, types, tests, and build checks. Existing target-specific test runners remain valid: the web baseline uses Vitest and the mobile baseline uses Jest with Expo support. Respect the configured dependency release-age policy and build-script approvals; security overrides need a demonstrated advisory and compatible resolution.
+
+Install and update the toolkit with `scripts/sync-devtools.mjs`; it needs Node 22.15+ and GitHub CLI authenticated for AppElent/developer-tools. Commit installed files and `.appelent/devtools.json`. Never edit toolkit-owned files in the project: change them upstream. Sync never runs downloaded code, provisions resources, enables a capability, or migrates application code. Review changed scripts before running them. Install skills separately with the skills CLI.
 
 Repository layout, package names, aliases, and deployment identities remain project-owned. These standards describe defaults, not an automatic migration of existing projects. Record deliberate exceptions with scope and reason in CODING_STANDARDS.md.
 
@@ -36,11 +38,23 @@ Choose compatible Biome, TypeScript, and target-specific test dependencies in th
 
 For a new web or Expo app, create it with the supported upstream scaffold first, then follow [web](web-baseline.md) or [mobile](mobile-baseline.md). Those scripts include this shared setup; they are not independent package-manager policies.
 
+### Toolkit
+
+```sh
+node scripts/sync-devtools.mjs --dry-run   # preview upstream changes
+node scripts/sync-devtools.mjs             # install or update everything
+node scripts/sync-devtools.mjs --check     # offline drift check
+npx skills add https://github.com/AppElent/developer-tools/tree/main/skills --skill '*' -a codex claude-code -g
+npx skills update
+```
+
+Copy a reviewed `scripts/sync-devtools.mjs` once to bootstrap; it updates itself, and the new version runs on the next invocation. Updates resolve `main` once and fetch every file from that commit. After an update, read the migration notes of changed standards you use, apply them to the app, and run its checks: syncing a standard is not proof of migration. Options, conflicts, interruption recovery, and upgrades from earlier updaters: [toolkit sync detail](baseline/toolkit.md).
+
 ## Verify
 
 Setup output becomes app-owned. No capability catalog, adoption version, or permanent recipe receipt is added. Plans list paths and manual review items without dumping existing config values. Writes preflight expected contents and preserve symlink boundaries. They are individually atomic, not one transaction: after interruption inspect the diff and rerun; matching files are retained. A stale .appelent/baseline.lock requires verifying no setup process remains before manual removal.
 
-Run the actual install, check, typecheck, test, and build roles. A successful setup command proves configuration writes only. `check-project.mjs` reads metadata and routing files without executing app code, reading dotenv values, or contacting providers.
+`node scripts/sync-devtools.mjs --check` passes. Run the actual install, check, typecheck, test, and build roles. A successful setup command proves configuration writes only. `check-project.mjs` reads metadata and routing files without executing app code, reading dotenv values, or contacting providers.
 
 ## Migration
 

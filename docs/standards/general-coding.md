@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read before implementing or reviewing any code change.
-version: 1.3.2
+version: 1.3.3
 applies_to: [all]
 ---
 
@@ -18,7 +18,7 @@ Changes extend existing owners, keep generated output generated, and finish veri
 - Treat generated files as outputs. Change their source or generator and regenerate; never patch generated route trees, API bindings, or datasets by hand.
 - Preserve the existing environment/credential routing. Keep secrets out of tracked files and client bundles.
 - For documentation, follow the [documentation standard](documentation.md). Keep domain vocabulary in GLOSSARY.md and hard-to-reverse, surprising trade-offs in ADRs.
-- **Default:** consult [specialist skills](../guidelines/shared/general/specialist-skills.md) only when task-specific expertise is useful.
+- **Default:** consult [specialist skills](specialist-skills.md) only when task-specific expertise is useful.
 
 ## Verify
 

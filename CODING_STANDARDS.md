@@ -11,7 +11,7 @@ Read only what the task needs; never preload every standard.
 | Task | Read |
 | --- | --- |
 | Adding, moving, or naming native files | [Mobile structure](docs/standards/mobile-structure.md) |
-| Repository, package manager, formatter, types, tests, or CI | [Baseline](docs/standards/baseline.md) |
+| Repository, package manager, formatter, types, tests, CI, or toolkit sync | [Baseline](docs/standards/baseline.md) |
 | Web app stack, UI states, or browser capabilities | [Web baseline](docs/standards/web-baseline.md) |
 | Expo setup, native configuration, builds, or releases | [Mobile baseline](docs/standards/mobile-baseline.md) |
 | Verification | [Verification](docs/standards/verification.md), then the project's check commands |
@@ -22,9 +22,11 @@ Read only what the task needs; never preload every standard.
 | Error reporting and source maps | [Sentry monitoring](docs/standards/sentry-monitoring.md) |
 | In-app problem reports | [Issue reporting](docs/standards/issue-reporting.md) |
 | Pull-request previews | [Previews](docs/standards/previews.md) |
-| Other integration or repository tooling | The [feature index](docs/features/README.md) |
+| Web manifest, installability, or service worker | [PWA](docs/standards/pwa.md) |
+| Application CLI or browser login for it | [App CLI](docs/standards/app-cli.md) |
+| MCP server or tools | [MCP](docs/standards/mcp.md) |
 | Documentation or instruction changes | [Documentation](docs/standards/documentation.md) |
-| Specialist tasks | [Specialist skills](docs/guidelines/shared/general/specialist-skills.md) |
+| Specialist tasks | [Specialist skills](docs/standards/specialist-skills.md) |
 
 ### Working with standards
 

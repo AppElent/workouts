@@ -4,77 +4,15 @@
   "scope": "project",
   "ref": "main",
   "commit": "local",
-  "manifestHash": "34828c70b6ffce95c2601a1f91ead3cc33dca91528d5f282639c58c122517c06",
+  "manifestHash": "5a2fc09aeb275274bd06fcaabff784544374abad9b92a0d6c4c7693efc8bcb2f",
   "files": {
-    "docs/features/app-cli/examples/args.ts": {
-      "sha256": "d4b58ff5f763d06f513af586038f12520c97c66932c54c189c270a1a6c4533a0"
-    },
-    "docs/features/app-cli/examples/auth.ts": {
-      "sha256": "caca899d74af3816133ac5b40cde66c31fe5cf119d9ffdda83d090347fe950ef"
-    },
-    "docs/features/app-cli/examples/callbackServer.ts": {
-      "sha256": "cf22e849cc0a1978436477d2723fe1977d71c3fdf21a9720c418b8b10a24082a"
-    },
-    "docs/features/app-cli/examples/commands/auth.ts": {
-      "sha256": "e506f023a3495c604774d3758b5ba6dfba227d5e42369a1a45f07eca476d9684"
-    },
-    "docs/features/app-cli/examples/commands/config.ts": {
-      "sha256": "4d9d299e6a982dbb91eeb98043153a47b8188e57a19e7ffa1078ce46a7b663d6"
-    },
-    "docs/features/app-cli/examples/config.ts": {
-      "sha256": "4c951bb997910824f05203ccbca97b9c77987ce5ecde3a427f73cd595bd4abf2"
-    },
-    "docs/features/app-cli/examples/create.ts": {
-      "sha256": "972ca8be53db013c0958eaaf86b0a3522c95954f767892a83e5ed768c0e01e55"
-    },
-    "docs/features/app-cli/examples/errors.ts": {
-      "sha256": "78a3a1cb9847fd2846e2a4e06020078962543f2e5e7b2324b5685af8b9845ddd"
-    },
-    "docs/features/app-cli/examples/index.ts": {
-      "sha256": "53bfe86f7899aa4355d85a5a7e641d1dc91ddbd9ed229490e4c5e8110b7aa646"
-    },
-    "docs/features/app-cli/examples/output.ts": {
-      "sha256": "5e97cef3eccffd363213d4ead67677b505778bdaa6d2b10d23f30a4259ee79fc"
-    },
-    "docs/features/app-cli/examples/run.ts": {
-      "sha256": "b09f650bab6759fccefe0bf42a298d249373fc99cb7bd8c4802d2268011fd4c0"
-    },
-    "docs/features/app-cli/FEATURE.md": {
-      "sha256": "6cdcd782047b0e41b9ffe71920e9e5e88ada87fb641fdb86d62dfa25fbabec02",
-      "version": "1.0.0"
-    },
-    "docs/features/mcp/FEATURE.md": {
-      "sha256": "5328a97f59f9eaf8740769ac13279af9163b4c21c1abadb3a8a3f03a0c040ac2",
-      "version": "1.0.0"
-    },
-    "docs/features/pwa/FEATURE.md": {
-      "sha256": "46b464ed17fb34b97f30cd777615a7ccc4dbd47f7e181dee837530b9bf2e4f67",
-      "version": "1.0.0"
-    },
-    "docs/features/pwa/templates/generate-sw.mjs": {
-      "sha256": "2cf47d4861c9721a9a6f51819b5087a105b987286a90a06d8e966cf77956a4c1"
-    },
-    "docs/features/pwa/templates/manifest.webmanifest": {
-      "sha256": "c8b4920fdbe5493157725239cb6b109e6b9689d9b9357d8f2806edcea65762ec"
-    },
-    "docs/features/pwa/templates/PwaRegistration.tsx": {
-      "sha256": "6d53f308f65c9aca379905a3dcb35dd8aa2496fcd6ea698651581dbcf7a71aec"
-    },
     "docs/features/README.md": {
-      "sha256": "00dde96c9c73d5a882d5e81321b3a69c21b8ea89776e4aa715770f5b3e45797c",
-      "version": "3.0.0"
-    },
-    "docs/features/toolkit/FEATURE.md": {
-      "sha256": "b4221f74d9b71dc8a448ac7f58421daedf768f07be1bd5f1bb3f11956c869e8a",
-      "version": "1.5.0"
-    },
-    "docs/guidelines/shared/general/specialist-skills.md": {
-      "sha256": "1e375f936d8e1b71052f8fa3b41709d65aecc7e87ec97d83fac26788cf32ebf4",
-      "version": "1.1.0"
+      "sha256": "be62a2a6d8a2e401bf8d41cf513ef50361faa8db15c60e885c410abcdb04ff91",
+      "version": "6.0.0"
     },
     "docs/guidelines/shared/README.md": {
-      "sha256": "dd330a5451c00f535305f42544dc6310e5f585541824fcd7a8ed3c19b87ad0eb",
-      "version": "2.0.0"
+      "sha256": "071493b51ed6c1e237fa892e2c921a20cbba3b76e6942b8afe4be200432ea800",
+      "version": "3.0.0"
     },
     "scripts/baseline-mobile.mjs": {
       "sha256": "2ca4cd7d820efda7ad5b902c0c987b724d87197e2c1a4e15d446e39a1085aedf"
@@ -208,8 +146,8 @@
       "sha256": "8c57fc48f63fa035f3282574295bd36f85231523d748cfba8d725f7cde47617a"
     },
     "docs/standards/baseline.md": {
-      "sha256": "abbd7efb21072b36f9b674f668253835e8d0c01525982a0a6d52442181c0b2cd",
-      "version": "2.0.0"
+      "sha256": "a82f6563e35fe46aaa069d4f41251b991707cdea2d3b2f11b78772b0a9c02cd0",
+      "version": "2.1.0"
     },
     "docs/standards/design-studies.md": {
       "sha256": "ef304e9b7c830bee668485793647767bfa7af53a029d954611b8be7e53be4f48",
@@ -227,8 +165,8 @@
       "sha256": "fee7f704e0833f6566811487c3f584221e8aba46cbb9516e900f7192f7c5da67"
     },
     "docs/standards/general-coding.md": {
-      "sha256": "091968b36fff5e191bf67ce943aabdf6b55b30105d6960e1fe154d36634bb545",
-      "version": "1.3.2"
+      "sha256": "0b34be5f982d387eadae7822c99c62fe7bf3aa03161cdc5b558e5d6268876a66",
+      "version": "1.3.3"
     },
     "docs/standards/general-design.md": {
       "sha256": "51722dcb827b1f9ef673c5346e0e01d05cff66aa363b96158f20dd97d776b399",
@@ -303,8 +241,8 @@
       "version": "1.0.1"
     },
     "docs/standards/web-baseline.md": {
-      "sha256": "736c06ea5c95a46377bfa94db34a9afebd8bc6ffeb7c02ae3aaded8fa0908756",
-      "version": "2.0.1"
+      "sha256": "5fb8b1d779a47f7a086090d18dc58f51483f5b165c4b71e65f522705f313a509",
+      "version": "2.0.3"
     },
     "docs/standards/web-baseline/examples/confirm-dialog.tsx": {
       "sha256": "5be8e7dcab78ce4c765b90ed6d917134eadbb0a6be51e1757cf6185ac6aa8386"
@@ -345,12 +283,74 @@
     },
     "docs/standards/mobile-structure/examples/check-mobile-structure.mjs": {
       "sha256": "69e60cd17a4ae9c5f9d6c2a8ff95e698f3c104152b65153dabe167d29a5434e0"
+    },
+    "docs/standards/app-cli.md": {
+      "sha256": "9e774e393d0fce41aaac505eaeadd59a11f07baca989d81b79a0e95247b471f5",
+      "version": "2.0.0"
+    },
+    "docs/standards/app-cli/examples/args.ts": {
+      "sha256": "d4b58ff5f763d06f513af586038f12520c97c66932c54c189c270a1a6c4533a0"
+    },
+    "docs/standards/app-cli/examples/auth.ts": {
+      "sha256": "caca899d74af3816133ac5b40cde66c31fe5cf119d9ffdda83d090347fe950ef"
+    },
+    "docs/standards/app-cli/examples/callbackServer.ts": {
+      "sha256": "cf22e849cc0a1978436477d2723fe1977d71c3fdf21a9720c418b8b10a24082a"
+    },
+    "docs/standards/app-cli/examples/commands/auth.ts": {
+      "sha256": "e506f023a3495c604774d3758b5ba6dfba227d5e42369a1a45f07eca476d9684"
+    },
+    "docs/standards/app-cli/examples/commands/config.ts": {
+      "sha256": "4d9d299e6a982dbb91eeb98043153a47b8188e57a19e7ffa1078ce46a7b663d6"
+    },
+    "docs/standards/app-cli/examples/config.ts": {
+      "sha256": "4c951bb997910824f05203ccbca97b9c77987ce5ecde3a427f73cd595bd4abf2"
+    },
+    "docs/standards/app-cli/examples/create.ts": {
+      "sha256": "972ca8be53db013c0958eaaf86b0a3522c95954f767892a83e5ed768c0e01e55"
+    },
+    "docs/standards/app-cli/examples/errors.ts": {
+      "sha256": "78a3a1cb9847fd2846e2a4e06020078962543f2e5e7b2324b5685af8b9845ddd"
+    },
+    "docs/standards/app-cli/examples/index.ts": {
+      "sha256": "53bfe86f7899aa4355d85a5a7e641d1dc91ddbd9ed229490e4c5e8110b7aa646"
+    },
+    "docs/standards/app-cli/examples/output.ts": {
+      "sha256": "5e97cef3eccffd363213d4ead67677b505778bdaa6d2b10d23f30a4259ee79fc"
+    },
+    "docs/standards/app-cli/examples/run.ts": {
+      "sha256": "b09f650bab6759fccefe0bf42a298d249373fc99cb7bd8c4802d2268011fd4c0"
+    },
+    "docs/standards/baseline/toolkit.md": {
+      "sha256": "8538d7fef72a8d34393a55344f5ca31eaf93e24324d219ffcb3447e5178d4776",
+      "version": "1.0.0"
+    },
+    "docs/standards/mcp.md": {
+      "sha256": "fd2d1cd93e81a023d2723252fbe232ce843866165b1354072cb2f1398a55416c",
+      "version": "2.0.0"
+    },
+    "docs/standards/pwa.md": {
+      "sha256": "f3e2c80e8b437acdec6bf4f3591bd147848130a6bda8cb75fa6d2c67c332a61b",
+      "version": "2.0.0"
+    },
+    "docs/standards/pwa/templates/generate-sw.mjs": {
+      "sha256": "2cf47d4861c9721a9a6f51819b5087a105b987286a90a06d8e966cf77956a4c1"
+    },
+    "docs/standards/pwa/templates/manifest.webmanifest": {
+      "sha256": "c8b4920fdbe5493157725239cb6b109e6b9689d9b9357d8f2806edcea65762ec"
+    },
+    "docs/standards/pwa/templates/PwaRegistration.tsx": {
+      "sha256": "6d53f308f65c9aca379905a3dcb35dd8aa2496fcd6ea698651581dbcf7a71aec"
+    },
+    "docs/standards/specialist-skills.md": {
+      "sha256": "6488c7896982879accb1c4d54c0f019e69a8100c2a9f0d2249c07071d6960e04",
+      "version": "2.0.0"
     }
   },
   "blocks": {
     "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
     "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
-    "CODING_STANDARDS.md": "8058eed83d56e42369e44aee884a25e1da25790216ce5114def0dd76efd942af",
+    "CODING_STANDARDS.md": "cc8ab04473681da385aaebb5b45669eef44e26e1a969d741a8d90f8683077a88",
     "DESIGN_SYSTEM.md": "47a654e3d684ca6b60820fd200aafa6834776f793c1ae6a3ab2094ab82e78ee1"
   }
 }
