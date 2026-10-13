@@ -8,6 +8,7 @@ import { nl } from "../i18n/messages/nl";
 import {
 	sanitizeBreadcrumb,
 	sanitizeEvent,
+	sanitizeFeedbackEvent,
 	sanitizeText,
 } from "../observability/privacy";
 
@@ -100,4 +101,6 @@ Sentry.init({
 	],
 });
 
+// Feedback skips beforeSend; redact the typed report text separately.
+Sentry.addEventProcessor(sanitizeFeedbackEvent);
 Sentry.setTag("app", "foundry-mobile");

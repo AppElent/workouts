@@ -1,5 +1,10 @@
 import type { Event } from "@sentry/react-native";
-import { sanitizeBreadcrumb, sanitizeEvent, sanitizeText } from "./privacy";
+import {
+	sanitizeBreadcrumb,
+	sanitizeEvent,
+	sanitizeFeedbackEvent,
+	sanitizeText,
+} from "./privacy";
 
 it("redacts credentials and email addresses while retaining useful error text", () => {
 	expect(
@@ -69,4 +74,38 @@ it("drops console output and network payloads from breadcrumbs", () => {
 			},
 		})?.data,
 	).toEqual({ url: "https://api.test", status_code: 500 });
+});
+
+it("redacts typed feedback text, which bypasses beforeSend", () => {
+	const event: Event = {
+		type: "feedback",
+		user: { id: "user_123", email: "test@example.com" },
+		contexts: {
+			feedback: {
+				message:
+					"Login broke, my token is Bearer abc123 and mail me at test@example.com",
+				url: "app://profile?code=secret",
+				contact_email: "test@example.com",
+				name: "Test User",
+			},
+		},
+	};
+	expect(sanitizeFeedbackEvent(event)).toMatchObject({
+		user: { id: "user_123" },
+		contexts: {
+			feedback: {
+				message:
+					"Login broke, my token is Bearer [Filtered] and mail me at [Filtered]",
+				url: "app://profile",
+			},
+		},
+	});
+	expect(event.contexts?.feedback).not.toHaveProperty("contact_email");
+	expect(event.contexts?.feedback).not.toHaveProperty("name");
+	expect(event.user).not.toHaveProperty("email");
+});
+
+it("leaves non-feedback events to the error hooks", () => {
+	const event: Event = { message: "test@example.com" };
+	expect(sanitizeFeedbackEvent(event).message).toBe("test@example.com");
 });

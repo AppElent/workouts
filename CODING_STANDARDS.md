@@ -15,6 +15,7 @@ Before code changes or review, read [general coding](docs/standards/general-codi
 | Authentication | [Auth](docs/standards/auth.md) |
 | Localization | [i18n](docs/standards/i18n.md) |
 | Error reporting and source maps | [Sentry monitoring](docs/standards/sentry-monitoring.md) |
+| In-app problem reports | [Issue reporting](docs/standards/issue-reporting.md) |
 | Pull-request previews | [Previews](docs/standards/previews.md) |
 | Other integration or repository tooling | The [feature index](docs/features/README.md) |
 | Documentation or instruction changes | [Documentation](docs/standards/documentation.md) |

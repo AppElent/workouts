@@ -4,7 +4,7 @@
   "scope": "project",
   "ref": "main",
   "commit": "local",
-  "manifestHash": "472ac0d0a3d69a99f768ed0f8e2122b4357dc966ed0f1c9ee0fcc1c5d87d29c8",
+  "manifestHash": "cf6361cc3417292b18ef6429830e74d4e7c7bbceb3b815f364440df0ecd4b9ea",
   "files": {
     "docs/features/app-cli/examples/args.ts": {
       "sha256": "d4b58ff5f763d06f513af586038f12520c97c66932c54c189c270a1a6c4533a0"
@@ -43,19 +43,6 @@
       "sha256": "6cdcd782047b0e41b9ffe71920e9e5e88ada87fb641fdb86d62dfa25fbabec02",
       "version": "1.0.0"
     },
-    "docs/features/issue-reporter/FEATURE.md": {
-      "sha256": "7a35a0277c87fb6d853566bc87ceb1e1e1e8464fa21ae7ab8a36b01e5c79bd41",
-      "version": "1.0.0"
-    },
-    "docs/features/issue-reporter/templates/issue-reporter.ts": {
-      "sha256": "ebe595db723b8815e2fa09cd19b0e0bdf8e44922e30a95c8522153e2e35de8bf"
-    },
-    "docs/features/issue-reporter/templates/IssueReporter.tsx": {
-      "sha256": "b1c367648a8995f3f215661e50203bfc1324da515ea58c014bb22f9560197a21"
-    },
-    "docs/features/issue-reporter/templates/submit-issue.ts": {
-      "sha256": "10a0a2fe32b8e99b53e7d1cc68e09743fd53ccbbee53eaf053ef77bc5b1f6a73"
-    },
     "docs/features/mcp/FEATURE.md": {
       "sha256": "5328a97f59f9eaf8740769ac13279af9163b4c21c1abadb3a8a3f03a0c040ac2",
       "version": "1.0.0"
@@ -74,8 +61,8 @@
       "sha256": "6d53f308f65c9aca379905a3dcb35dd8aa2496fcd6ea698651581dbcf7a71aec"
     },
     "docs/features/README.md": {
-      "sha256": "741dac3e657a66b0cad9b527c00461d4bd24793818dd3021b6f022e6dcd512da",
-      "version": "2.0.0"
+      "sha256": "00dde96c9c73d5a882d5e81321b3a69c21b8ea89776e4aa715770f5b3e45797c",
+      "version": "3.0.0"
     },
     "docs/features/toolkit/FEATURE.md": {
       "sha256": "b4221f74d9b71dc8a448ac7f58421daedf768f07be1bd5f1bb3f11956c869e8a",
@@ -184,10 +171,6 @@
     },
     "scripts/workspace.mjs": {
       "sha256": "4a913d63a48fdebb952f1939d4719cc1b3096534bddcea966771440caeeca587"
-    },
-    "docs/features/issue-tracking/FEATURE.md": {
-      "sha256": "afaa269b7f1e8508c253cbb24704814393fc52acf5acefc19ef0e2096616faf8",
-      "version": "1.0.0"
     },
     "docs/adr/.template.md": {
       "sha256": "f28b286102fb1a00512455a06896e5da3c47d67a14b0ee6c08fa84258af24adf",
@@ -320,8 +303,8 @@
       "version": "1.0.1"
     },
     "docs/standards/web-baseline.md": {
-      "sha256": "a6485ff5bdad0330e2fc847d5523e4c76964b3a790056e47580b93a0bf7bf353",
-      "version": "2.0.0"
+      "sha256": "736c06ea5c95a46377bfa94db34a9afebd8bc6ffeb7c02ae3aaded8fa0908756",
+      "version": "2.0.1"
     },
     "docs/standards/web-baseline/examples/confirm-dialog.tsx": {
       "sha256": "5be8e7dcab78ce4c765b90ed6d917134eadbb0a6be51e1757cf6185ac6aa8386"
@@ -351,12 +334,16 @@
     },
     "docs/standards/workspaces/examples/appelent.json": {
       "sha256": "767dd5d9c605f258c0d94a6b51592b38cc6610a25ac64e49571fc75567fc6a76"
+    },
+    "docs/standards/issue-reporting.md": {
+      "sha256": "3a983c7a89a53dbc6b479379e906887a263729ad9c22c74b4af3625a67b521e9",
+      "version": "2.0.0"
     }
   },
   "blocks": {
     "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
     "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
-    "CODING_STANDARDS.md": "904e586430566ddfbbe05a4f66f4de2cf42aa23257495ad77f939b3b604be65a",
+    "CODING_STANDARDS.md": "215f5f3cf0d838c318665f5886e2db43ea25c23342d43e94b002adb5564827ea",
     "DESIGN_SYSTEM.md": "785958e02f1476111bf0211b8dad748872011904adceb03624eb72fb8690e769"
   }
 }

@@ -1,5 +1,5 @@
 ---
-version: 2.0.0
+version: 3.0.0
 description: Find AppElent feature implementation guides and portable scripts.
 ---
 
@@ -12,8 +12,6 @@ Guides not yet migrated to `docs/standards/`; migrated capabilities (baselines, 
 | Update toolkit files or install the skill | [Toolkit](toolkit/FEATURE.md) |
 | App-user commands and browser login | [Application CLI](app-cli/FEATURE.md) |
 | Browser installability and service worker | [PWA](pwa/FEATURE.md) |
-| GitHub requests and investigation maps | [Issue tracking](issue-tracking/FEATURE.md) |
-| Authenticated in-app GitHub feedback | [Issue reporter](issue-reporter/FEATURE.md) |
 | Local/remote protocol tools | [MCP](mcp/FEATURE.md) |
 
 Run scripts from the project root (or use --path). Baselines preview by default; --apply writes configuration. env/workspace command names retain their existing effect boundaries. Read the owning standard before running provider operations.

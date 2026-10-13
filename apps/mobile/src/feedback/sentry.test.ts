@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { sanitizeFeedbackEvent } from "../observability/privacy";
 import { configureFeedbackLanguage } from "./sentry";
 
 it("keeps automatic error screenshots off while permitting user-selected feedback attachments", () => {
@@ -26,4 +27,8 @@ it("localizes screenshot and feedback controls", () => {
 		formTitle: "Probleem melden",
 		removeScreenshotButtonLabel: "Screenshot verwijderen",
 	});
+});
+
+it("registers the feedback redaction processor", () => {
+	expect(Sentry.addEventProcessor).toHaveBeenCalledWith(sanitizeFeedbackEvent);
 });

@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when setting up or changing a TanStack Start web app stack, its UI states, or browser capabilities.
-version: 2.0.0
+version: 2.0.1
 applies_to: [web]
 ---
 
@@ -40,7 +40,7 @@ For a new Wrangler config, the script sets the TanStack server entry, today's co
 3. Validate env values at the application's build/runtime boundaries using its existing schema mechanism. Never expose backend secrets through VITE_ variables.
 4. Use the installed web/general design guidance. Build loading, empty, error, pending, and populated states together. Prefer existing app components; optional [skeleton](web-baseline/examples/skeleton.tsx), [empty state](web-baseline/examples/empty-state.tsx), [toast](web-baseline/examples/toast.tsx), [confirmation](web-baseline/examples/confirm-dialog.tsx), and [route error](web-baseline/examples/route-error.tsx) examples are app-owned starting points. Toast/confirmation examples require compatible Base UI and React versions, translated labels, and provider mounting.
 5. Review the [input-sizing CSS](web-baseline/templates/mobile-viewport.css) against existing styles. Keep inputs readable on iOS without disabling pinch zoom; verify text scaling and existing typography.
-6. Add [previews](previews.md), [issue reporting](../features/issue-reporter/FEATURE.md), [PWA](../features/pwa/FEATURE.md), [i18n](i18n.md), or [MCP](../features/mcp/FEATURE.md) only when needed.
+6. Add [previews](previews.md), [issue reporting](issue-reporting.md), [PWA](../features/pwa/FEATURE.md), [i18n](i18n.md), or [MCP](../features/mcp/FEATURE.md) only when needed.
 
 For workspace hooks and launch actions use [workspaces](workspaces.md). Setup completes before persistent backend/web processes start. Never copy a parent's deployment credentials into a child worktree.
 

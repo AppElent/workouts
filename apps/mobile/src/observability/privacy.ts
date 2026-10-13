@@ -58,3 +58,21 @@ export function sanitizeEvent<T extends Event>(event: T): T {
 	}
 	return event;
 }
+
+/**
+ * Feedback events skip `beforeSend`, so the report text the user typed needs
+ * its own pass. Registered as a global event processor.
+ */
+export function sanitizeFeedbackEvent<T extends Event>(event: T): T {
+	if (event.type !== "feedback") return event;
+	const feedback = event.contexts?.feedback as
+		| { message?: string; url?: string; contact_email?: string; name?: string }
+		| undefined;
+	if (feedback) {
+		if (feedback.message) feedback.message = sanitizeText(feedback.message);
+		if (feedback.url) feedback.url = sanitizeText(feedback.url.split("?")[0]);
+		delete feedback.contact_email;
+		delete feedback.name;
+	}
+	return sanitizeEvent(event);
+}

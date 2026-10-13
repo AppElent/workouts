@@ -101,6 +101,7 @@ jest.mock("@sentry/react-native", () => ({
 	init: jest.fn(),
 	wrap: (component: unknown) => component,
 	setTag: jest.fn(),
+	addEventProcessor: jest.fn(),
 	showFeedbackForm: jest.fn(),
 	setUser: jest.fn(),
 	captureException: jest.fn(),
