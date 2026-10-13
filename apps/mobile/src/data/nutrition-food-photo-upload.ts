@@ -27,7 +27,8 @@ export function useFoodPhotoUpload(): FoodPhotoUpload {
 	);
 	return useCallback(
 		(uri: string) => {
-			const existing = uploads.current.get(uri);
+			const key = JSON.stringify([userId, uri]);
+			const existing = uploads.current.get(key);
 			if (existing) return existing;
 			const upload = async () => {
 				if (!userId) throw new Error("Sign in to upload a photo.");
@@ -44,10 +45,10 @@ export function useFoodPhotoUpload(): FoodPhotoUpload {
 				return result;
 			};
 			const pending = upload().catch((error: unknown) => {
-				uploads.current.delete(uri);
+				uploads.current.delete(key);
 				throw error;
 			});
-			uploads.current.set(uri, pending);
+			uploads.current.set(key, pending);
 			return pending;
 		},
 		[generateUploadUrl, registerUpload, userId],
