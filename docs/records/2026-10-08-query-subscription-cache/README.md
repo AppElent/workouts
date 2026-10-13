@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for the mobile query subscription cache pilot and its measurements.
 version: 1.0.0
-status: closed
 date: 2026-10-08
 ---
 

@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for Profile, Training, Start activity, and Strength Session evidence.
 version: 1.0.0
-status: open
 date: 2026-10-07
 ---
 
@@ -101,12 +100,12 @@ intentional deviations; Supersets/AMRAP/EMOM workflows remain outside #94.
 | Training menu | Native ellipsis exposes Start/Edit/Delete; Edit verified. [Menu](evidence/ios-training-menu-en-dark.png). This earlier capture predates singular-count copy correction only. Native long-press, swipe/delete confirmation and all History filters still need device acceptance. Delete failure/row retention and independent targets are automated. |
 | Training larger text | Fresh launch at `accessibility-large` preserves readable row contents and independent controls. [Capture](evidence/ios-training-accessibility-large.png), predating singular-count copy correction only. Existing shell accessory limitation below. |
 | [Start activity final](../../../designs/app/start-activity_final.html): default selection and routines | Pass: empty Strength selected initially; routine is a selection, with counts; name field shown for empty Strength. [English/dark](evidence/ios-start-activity-en-dark.png). |
-| Start keyboard, dirty dismissal and nested navigation | Entered an optional name in Dutch, cancelled dismissal to keep editing, then discarded and reopened a clean sheet. Running changes Start to Continue and opens the existing endurance form in the same sheet, even with active strength work. Back retains Running; Close returns to tappable Training. [Nested flow recording](evidence/ios-start-nested-back.mp4). WOD nested completion and Cycling completion remain unverified on-device. |
+| Start keyboard, dirty dismissal and nested navigation | Entered an optional name in Dutch, cancelled dismissal to keep editing, then discarded and reopened a clean sheet. Running changes Start to Continue and opens the existing endurance form in the same sheet, even with active strength work. Back retains Running; Close returns to tappable Training. Nested flow recording (video not kept). WOD nested completion and Cycling completion remain unverified on-device. |
 | [Session overview A](../../../designs/app/session_round1.html): planned versus performed rows | Pass: routine opens three muted targets, zero logged sets/volume, previous-session values and no false checkmarks. [Planned session](evidence/ios-planned-session-en-dark.png). A performed set produces a checkmark/count/volume. [Earlier Dutch capture](evidence/ios-logged-session-nl.png) predates the short reps header and singular set correction. |
 | Session larger text | Native inspection prompted stacked rows instead of narrow columns at larger font scales. [Final stacked targets](evidence/ios-session-accessibility-large.png); previous values and target actions remain available. |
 | [Session final](../../../designs/app/session_final.html): editor input and local draft | Pass: type weight 60, switch to reps 5, close and reopen with values retained; optional RPE 7.5 entered and retained. Missing measured/estimated references show dashes. [Dutch draft](evidence/ios-set-draft-nl.png). Larger quantities stack full-width: [final larger-text editor](evidence/ios-editor-accessibility-large.png). |
-| Editor nested plate presentation and explicit Log | Opened/closed plate calculator, then logged 60 kg × 5 at RPE 7.5; returned to one logged set, 300 kg working volume and running rest timer. [Recording](evidence/ios-plates-log.mp4). No stuck overlay. Native saved-set correction opens with Save disabled until dirty; Close asks to discard; discarding retains original logged values. |
-| Strength Profile sources and Apply | Pass: measured 70 kg from 70 kg × 1; estimated 70 kg from 60 kg × 5; distinct dates/source labels and frozen-session explanation. [Sources](evidence/ios-strength-sources-en-dark.png). 80% rounds to 55 kg and displays actual 78.6%; Apply changes draft to 55 × 8 while logged count remains zero. [Apply recording](evidence/ios-strength-profile-apply.mp4), [result](evidence/ios-applied-set-en-dark.png). Back from the missing-reference view preserved input and Apply was disabled. Manual persistence and rep-max calculations are automated; manual/rep-table candidate selection still needs journey and native coverage. |
+| Editor nested plate presentation and explicit Log | Opened/closed plate calculator, then logged 60 kg × 5 at RPE 7.5; returned to one logged set, 300 kg working volume and running rest timer. Recording (video not kept). No stuck overlay. Native saved-set correction opens with Save disabled until dirty; Close asks to discard; discarding retains original logged values. |
+| Strength Profile sources and Apply | Pass: measured 70 kg from 70 kg × 1; estimated 70 kg from 60 kg × 5; distinct dates/source labels and frozen-session explanation. [Sources](evidence/ios-strength-sources-en-dark.png). 80% rounds to 55 kg and displays actual 78.6%; Apply changes draft to 55 × 8 while logged count remains zero. Apply recording (video not kept), [result](evidence/ios-applied-set-en-dark.png). Back from the missing-reference view preserved input and Apply was disabled. Manual persistence and rep-max calculations are automated; manual/rep-table candidate selection still needs journey and native coverage. |
 | Finish | Performed session Finish confirmation creates the expected summary/activity. Web also verifies unfinished-target confirmation. Native empty-session discard, cancellation, hosted score entry and failure/retry remain acceptance gaps; public API/mobile journeys cover their domain behavior. |
 
 ## Web compatibility
@@ -170,11 +169,6 @@ covered, so screenshot-observed coordinates were used where its references could
 not be activated. No application workaround was added for either tool/client
 limitation.
 
-## Open
+## Follow-up
 
-- [ ] Live Dynamic Type change clips mounted screens until relaunch.
-- [ ] Active-workout tab accessory clips at accessibility-large.
-- [ ] Spoken VoiceOver order and gestures.
-- [ ] Editor footer behind the numeric keyboard; full keyboard dismiss/submit pass.
-- [ ] Android adapters, Back, keyboard, and edge-to-edge layout.
-- [ ] Physical device haptics and feel.
+Pending acceptance: #106.

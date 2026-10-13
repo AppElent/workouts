@@ -3,7 +3,6 @@ type: record
 kind: research
 description: Read for evidence on NEVO code reuse across dataset versions.
 version: 1.0.0
-status: closed
 date: 2026-09-04
 ---
 

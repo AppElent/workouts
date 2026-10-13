@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for Personal Food, Recipe, and estimate implementation evidence.
 version: 1.0.0
-status: open
 date: 2026-09-16
 ---
 
@@ -87,7 +86,6 @@ and Dutch, including Dynamic Type XL, keyboard dismissal, safe areas, validation
 and storage errors. Save a serving estimate, log/copy/move/edit it, and check that
 the small icon remains accessible without adding a day-total warning.
 
-## Open
+## Follow-up
 
-- [ ] Android emulator and physical iPhone: food editor and Recipes serving sheet in English and Dutch, Dynamic Type XL, keyboard dismissal, safe areas, validation, and storage errors.
-- [ ] Log, copy, move, and edit an estimated serving; the small estimate icon stays accessible with no day-total warning.
+Pending acceptance: #100.

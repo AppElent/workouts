@@ -31,6 +31,7 @@ export function safePath(path) {
 function allowed(path, scope = 'project') {
   safePath(path);
   const skill = /^(\.agents|\.claude)\/skills\/[a-z0-9][a-z0-9-]*\//.test(path);
+  // docs/features and docs/guidelines/shared are retired; they stay allowed so older receipts still load and their files are removed.
   if (skill || (scope === 'project' && (/^(scripts|docs\/features|docs\/guidelines\/shared|docs\/standards)\//.test(path) ||
       /^docs\/(adr|contracts|records|runbooks)\/\.template\.md$/.test(path) ||
       ['CODING_STANDARDS.md', 'DESIGN_SYSTEM.md'].includes(path)))) return;

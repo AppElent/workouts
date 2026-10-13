@@ -3,7 +3,6 @@ type: record
 kind: research
 description: Read for the evidence and interview behind ADR 0014.
 version: 1.0.0
-status: closed
 date: 2026-10-07
 ---
 

@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for in-app test data checks and reset limits.
 version: 1.0.0
-status: open
 date: 2026-10-10
 ---
 
@@ -83,8 +82,6 @@ fixes to error messages, local-date handling, missing boundary cases, and the
 runtime navigation correction. The dedicated synthetic verification identity
 on the normal dev deployment was cleared after its smoke check.
 
-## Open
+## Follow-up
 
-- [ ] Android and physical devices.
-- [ ] Full theme and Dynamic Type matrix.
-- [ ] Native network-loss injection.
+Pending acceptance: #109.

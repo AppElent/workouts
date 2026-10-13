@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing Sentry coverage, project bindings, or source-map uploads.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # Workouts Sentry operations
@@ -103,4 +103,4 @@ check. Reassess this exception during SDK upgrades; retain types/tests/export
 and native-build checks. `@sentry/cli` is an explicit mobile dev dependency for
 predictable pnpm resolution; keep it compatible with the installed SDK.
 
-Outstanding deployment acceptance: [Sentry acceptance](../records/2026-10-08-sentry-acceptance.md).
+Outstanding deployment acceptance: [#108](https://github.com/AppElent/workouts/issues/108).

@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for Run and Ride logging evidence.
 version: 1.0.0
-status: open
 date: 2026-09-25
 ---
 
@@ -30,7 +29,6 @@ The main task's checks reported 451 passing mobile tests across 66 suites, passi
 
 Device interaction was limited to the iPhone 18 Pro simulator in Dutch. An Android emulator and physical iPhone were unavailable; exhaustive light/dark appearance, Dynamic Type XL, and accessibility testing were not run. The native tab bar minimized to its selected icon after a downward scroll, matching the existing `minimizeBehavior="onScrollDown"` configuration.
 
-## Open
+## Follow-up
 
-- [ ] Android emulator and physical iPhone.
-- [ ] Light/dark, Dynamic Type XL, and accessibility.
+Pending acceptance: #102.

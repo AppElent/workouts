@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for the Log food per-state design comparison and verification lessons.
 version: 1.0.0
-status: closed
 date: 2026-10-06
 ---
 

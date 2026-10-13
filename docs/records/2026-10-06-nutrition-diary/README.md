@@ -3,7 +3,6 @@ type: record
 kind: verification
 description: Read for Nutrition Diary redesign evidence and folder ownership.
 version: 1.0.0
-status: open
 date: 2026-10-06
 ---
 
@@ -164,7 +163,6 @@ keyboard/dirty/error journey; disconnected runtime acceptance; Android runtime a
 physical-device haptics. Automated tests cover the relevant behavior contracts but
 do not establish those native states. Full reference acceptance is not claimed.
 
-## Open
+## Follow-up
 
-- [ ] Full visual acceptance for the states under "Runtime evidence and remaining acceptance".
-- [ ] Native context-menu blur differs from the reference (unresolved).
+Pending acceptance: #105.
