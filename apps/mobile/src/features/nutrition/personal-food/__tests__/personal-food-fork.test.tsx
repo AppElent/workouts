@@ -4,7 +4,7 @@
  * Every assertion here is about what the screen shows and what reaches the
  * diary. Nothing looks at how a fork is stored, which SQL runs, or which
  * component rendered — the storage contract is covered at the repository
- * boundary and the ranking rules in `@workouts/core`.
+ * boundary and the ranking rules in `@foundry/core`.
  */
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { getFunctionName } from "convex/server";

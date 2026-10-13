@@ -1,5 +1,5 @@
 /**
- * Workouts environment routing.
+ * Foundry environment routing.
  *
  * Entries describe logical values and their consumers. destinationFor maps a
  * consumer in an app environment to the place that consumer reads from. The
@@ -8,7 +8,7 @@
  */
 
 export const ENV_CONFIG = {
-	appName: "Workouts",
+	appName: "Foundry",
 	source: {
 		environments: {
 			local: "dev",

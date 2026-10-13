@@ -4,7 +4,7 @@ import {
 	getShippedFood,
 	type NUTRIENT_KEYS,
 	type NutrientValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	type ComboDraft,
@@ -679,7 +679,7 @@ it.each([7, 8])(
 		createPersonalFoodRepository(database);
 		database.execSync(`PRAGMA user_version = ${version}`);
 		expect(() => createPersonalFoodRepository(database)).toThrow(
-			`This nutrition database is newer than this version of Workouts (${version}).`,
+			`This nutrition database is newer than this version of Foundry (${version}).`,
 		);
 		expect(
 			database.getFirstSync<{ user_version: number }>("PRAGMA user_version")

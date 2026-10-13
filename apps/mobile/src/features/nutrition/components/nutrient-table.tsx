@@ -5,7 +5,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	scaleNutrient,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useWindowDimensions, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";

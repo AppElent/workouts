@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";

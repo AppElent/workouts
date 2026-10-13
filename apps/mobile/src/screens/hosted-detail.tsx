@@ -7,11 +7,11 @@
  * Editing the template is web-only — see the note in `hosted-list.tsx`. This
  * screen drives the states around it: draft → open → closed, plus delete.
  *
- * Leaderboard ranking uses `scoreRank` from `@workouts/core`, which is what
+ * Leaderboard ranking uses `scoreRank` from `@foundry/core`, which is what
  * makes a capped For Time result sort below every finisher instead of looking
  * like a fast time.
  */
-import { formatScore, scoreRank, type WodType } from "@workouts/core";
+import { formatScore, scoreRank, type WodType } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";

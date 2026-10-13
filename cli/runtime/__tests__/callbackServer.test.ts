@@ -33,14 +33,14 @@ function createRuntime(configDir: string) {
 		runtime: {
 			writeOut: (value: string) => stdout.push(value),
 			writeErr: (value: string) => stderr.push(value),
-			env: { WORKOUTS_CONFIG_DIR: configDir },
+			env: { FOUNDRY_CONFIG_DIR: configDir },
 		},
 	};
 }
 
 describe("default browser launcher", () => {
 	it("reports a login error instead of crashing when the launcher binary is missing", async () => {
-		tempDir = await mkdtemp(join(tmpdir(), "workouts-cli-browser-"));
+		tempDir = await mkdtemp(join(tmpdir(), "foundry-cli-browser-"));
 		const { runtime, stderr } = createRuntime(tempDir);
 
 		spawnMock.mockImplementation(() => {
@@ -63,7 +63,7 @@ describe("default browser launcher", () => {
 		});
 
 		const result = await runCli(["auth", "login"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 
 		expect(result.exitCode).toBe(1);

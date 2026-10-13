@@ -11,17 +11,17 @@
 		},
 		{
 			"name": "Start Expo mobile",
-			"command": "pnpm --filter @workouts/mobile start:dev-client",
+			"command": "pnpm --filter @foundry/mobile start:dev-client",
 			"icon": "play"
 		},
 		{
 			"name": "Start Expo iOS",
-			"command": "pnpm --filter @workouts/mobile ios --dev-client",
+			"command": "pnpm --filter @foundry/mobile ios --dev-client",
 			"icon": "play"
 		},
 		{
 			"name": "Start Expo Android",
-			"command": "pnpm --filter @workouts/mobile android --dev-client",
+			"command": "pnpm --filter @foundry/mobile android --dev-client",
 			"icon": "play"
 		}
 	]

@@ -19,7 +19,7 @@ function SignInPage() {
 	}, [isSignedIn, navigate]);
 
 	return (
-		<AuthCard title="Sign in" subtitle="Welcome back to Workout Tracker.">
+		<AuthCard title="Sign in" subtitle="Welcome back to Foundry.">
 			<SignInForm onSuccess={() => navigate({ to: "/dashboard" })} />
 		</AuthCard>
 	);

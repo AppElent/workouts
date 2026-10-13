@@ -1,6 +1,6 @@
 ---
 name: run-mobile
-description: Run, start, launch, screenshot, and drive the Workouts (Foundry) Expo mobile app on an iOS simulator. Use when asked to run the mobile app, sign in, tap through a screen, take a simulator screenshot, reload Metro, or confirm a mobile change works in the real app.
+description: Run, start, launch, screenshot, and drive the Foundry Expo mobile app on an iOS simulator. Use when asked to run the mobile app, sign in, tap through a screen, take a simulator screenshot, reload Metro, or confirm a mobile change works in the real app.
 ---
 
 Drive the Expo dev client (bundle `com.appelent.foundry`) on a dedicated iOS
@@ -44,7 +44,7 @@ Prefer `label="…"` selectors. Refs such as `@e12` go stale after any action. U
 
 Knobs (env): `RUN_MOBILE_PORT` (default 8090), `RUN_MOBILE_DEVICE_TYPE`
 (default `iPhone 18 Pro`), `RUN_MOBILE_SIM`, `RUN_MOBILE_APP`. Each checkout gets
-its own simulator, `Workouts run-mobile <hash>`, and its own state dir (`$D state`).
+its own simulator, `Foundry run-mobile <hash>`, and its own state dir (`$D state`).
 The state dir holds `metro.log`.
 
 ## Test (no app)
@@ -52,7 +52,7 @@ The state dir holds `metro.log`.
 Most PRs touch `src/data/*` or feature hooks; Jest covers those directly:
 
 ```bash
-pnpm --filter @workouts/mobile test --runInBand src/data/nutrition-goal-history.test.ts
+pnpm --filter @foundry/mobile test --runInBand src/data/nutrition-goal-history.test.ts
 ```
 
 Full gates are in `docs/runbooks/verification.md`.

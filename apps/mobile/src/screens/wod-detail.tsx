@@ -8,10 +8,10 @@
  * once would be four ways to enter a score wrongly, so only the relevant pair
  * renders.
  *
- * Ranking and formatting both come from `@workouts/core`, the same functions
+ * Ranking and formatting both come from `@foundry/core`, the same functions
  * Convex uses server-side in `wodResults.getBest`.
  */
-import { formatScore, prImprovement } from "@workouts/core";
+import { formatScore, prImprovement } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";

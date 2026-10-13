@@ -1,9 +1,9 @@
-import type { NutrientKey } from "@workouts/core/nutrition";
+import type { NutrientKey } from "@foundry/core/nutrition";
 import {
 	NUTRIENT_KEYS,
 	personalFoodSnapshot,
 	shippedLibrary,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { formatLongDate } from "../data/calendar-day";

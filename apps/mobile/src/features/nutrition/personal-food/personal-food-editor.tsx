@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@workouts/core/nutrition";
+import { roundForDisplay } from "@foundry/core/nutrition";
 import { Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";

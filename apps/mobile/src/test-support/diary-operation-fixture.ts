@@ -5,7 +5,7 @@ import {
 	type NutritionDiarySnapshot,
 	rescaleNutrients,
 	totalNutrients,
-} from "@workouts/core";
+} from "@foundry/core";
 import type {
 	LocalProjectionHint,
 	NutritionCachedDay,

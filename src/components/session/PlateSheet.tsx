@@ -3,7 +3,7 @@ import {
 	DEFAULT_BAR,
 	generateWarmup,
 	type Unit,
-} from "@workouts/core";
+} from "@foundry/core";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 

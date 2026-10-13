@@ -35,7 +35,7 @@ import type { FoodCategory, ServingBasis } from "./types";
  * use, not legal serving sizes.
  *
  * To add a food: find its NEVO code in `data/nevo/NEVO2025_v9.0.csv`, add an
- * entry here, and run `pnpm --filter @workouts/core generate:foods`.
+ * entry here, and run `pnpm --filter @foundry/core generate:foods`.
  */
 
 export type OverlayServing = {

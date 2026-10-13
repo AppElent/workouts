@@ -1,4 +1,4 @@
-import type { PersonalFood, ShippedFood } from "@workouts/core/nutrition";
+import type { PersonalFood, ShippedFood } from "@foundry/core/nutrition";
 import { ScrollView, View } from "react-native";
 import { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { useI18n } from "../../../i18n";

@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS } from "@foundry/core/nutrition";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";

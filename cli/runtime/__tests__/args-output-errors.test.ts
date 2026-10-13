@@ -79,17 +79,14 @@ describe("output helpers", () => {
 
 describe("formatError", () => {
 	it("turns known CLI errors into concise messages", () => {
-		expect(formatError(new CliError("MissingAuth"), "workouts")).toBe(
-			"Not signed in. Run `workouts auth login`.",
+		expect(formatError(new CliError("MissingAuth"), "foundry")).toBe(
+			"Not signed in. Run `foundry auth login`.",
 		);
 	});
 
 	it("strips common Convex wrappers", () => {
 		expect(
-			formatError(
-				new Error("[CONVEX M(sets:add)] Unauthenticated"),
-				"workouts",
-			),
+			formatError(new Error("[CONVEX M(sets:add)] Unauthenticated"), "foundry"),
 		).toBe("Unauthenticated");
 	});
 });

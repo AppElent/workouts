@@ -4,7 +4,7 @@ description: Read when changing Sentry coverage, project bindings, or source-map
 version: 1.0.1
 ---
 
-# Workouts Sentry operations
+# Foundry Sentry operations
 
 Apply the shared [Sentry standard](../standards/sentry-monitoring.md) for instrumentation,
 privacy, local suppression, artifacts, feedback, and per-surface acceptance.
@@ -23,7 +23,7 @@ owns Infisical/EAS/CI setup. Installed SDK versions live in package/lockfiles.
 | Mobile | Navigation/app-start/network traces, frame/stall measurements, Hermes/native profiling, masked replay, shake-to-report. Sentry environment follows EAS Update channel, with development/production fallback. |
 | Convex | Free-plan log forwarder for failed executions, including scheduled functions; hosting is still outstanding. |
 
-| Signal | Workouts sampling |
+| Signal | Foundry sampling |
 | --- | --- |
 | Errors | SDK default, 100% |
 | Transactions | 20% production; 100% other release environments |
@@ -97,7 +97,7 @@ shared guide before migration.
 
 ## Mobile compatibility
 
-Workouts deliberately selects Sentry 8 for Expo support and shake-to-report.
+Foundry deliberately selects Sentry 8 for Expo support and shake-to-report.
 Only `@sentry/react-native` is excluded from Expo's dependency recommendation
 check. Reassess this exception during SDK upgrades; retain types/tests/export
 and native-build checks. `@sentry/cli` is an explicit mobile dev dependency for

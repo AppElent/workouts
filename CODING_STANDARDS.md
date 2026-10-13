@@ -1,4 +1,4 @@
-# Workouts coding standards
+# Foundry coding standards
 
 <!-- appelent-standards:start -->
 ## Shared guidance
@@ -58,7 +58,7 @@ an accepted ADR before reopening it.
 
 ## Local bindings and exceptions
 
-Workouts selects Convex, Clerk, English/Dutch localization, Cloudflare hosting,
+Foundry selects Convex, Clerk, English/Dutch localization, Cloudflare hosting,
 and EAS distribution. These bindings deviate from or narrow the shared guidance:
 
 | Capability | Binding |

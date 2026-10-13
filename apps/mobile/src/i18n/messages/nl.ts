@@ -135,7 +135,7 @@ export const nl = {
 	language: {
 		title: "Taal",
 		description:
-			"Workouts begint in de taal van je telefoon en blijft daarna in de taal die je hier kiest.",
+			"Foundry begint in de taal van je telefoon en blijft daarna in de taal die je hier kiest.",
 		names: {
 			en: "English",
 			nl: "Nederlands",

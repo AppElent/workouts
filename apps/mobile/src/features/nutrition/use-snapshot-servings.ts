@@ -6,7 +6,7 @@ import {
 	servingOptions,
 	withPersonalMeasures,
 	withSupplementaryServings,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { usePersonalFoods } from "../../data/personal-foods";
 import { usePersonalMeasures } from "../../data/personal-measures";
 import { useSupplementaryServings } from "../../data/supplementary-servings";

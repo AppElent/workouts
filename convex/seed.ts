@@ -1,5 +1,5 @@
 import { canonicalExerciseId } from "./lib/exerciseCatalog";
-import { getShippedExerciseByName } from "@workouts/core/exercises";
+import { getShippedExerciseByName } from "@foundry/core/exercises";
 // SEED MAINTENANCE: When adding new tables or features, update this file:
 //   - Default exercises ship in packages/core/src/exercises; do not insert them here.
 //   - seedTestData: add inserts for any new tables with per-user data
@@ -10,7 +10,7 @@ import { internalMutation, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from '@workouts/core'
+import { calculateOneRepMax } from '@foundry/core'
 import { DEFAULT_WODS } from './seedData/wods'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
-import { normalizePersonalFood, personalFoodSnapshot } from "@workouts/core";
-import { SHIPPED_EXERCISES } from "@workouts/core/exercises";
+import { normalizePersonalFood, personalFoodSnapshot } from "@foundry/core";
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import type { MutationCtx } from "../_generated/server";
 import { libraryIndexFields } from "./nutritionLibraryIndex";
 import {

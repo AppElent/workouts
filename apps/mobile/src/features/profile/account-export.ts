@@ -18,7 +18,7 @@ export async function exportAccountData(convex: ConvexReactClient) {
 		tables[page.table] = [...(tables[page.table] ?? []), ...page.rows];
 		cursor = page.next;
 	} while (cursor);
-	const file = new File(Paths.cache, `workouts-export-${todayIsoDate()}.json`);
+	const file = new File(Paths.cache, `foundry-export-${todayIsoDate()}.json`);
 	if (file.exists) file.delete();
 	file.create();
 	file.write(

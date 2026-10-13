@@ -1,13 +1,13 @@
 ---
 type: runbook
-description: Read when running checks, dev servers, or test login for Workouts.
+description: Read when running checks, dev servers, or test login for Foundry.
 version: 2.0.0
 ---
 
-# Verify Workouts
+# Verify Foundry
 
 Binds the shared [verification contract](../standards/verification.md)
-to Workouts targets and credentials.
+to Foundry targets and credentials.
 
 ## Checks
 
@@ -18,12 +18,12 @@ pnpm check
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm --filter @workouts/mobile typecheck
-pnpm --filter @workouts/mobile test --runInBand
+pnpm --filter @foundry/mobile typecheck
+pnpm --filter @foundry/mobile test --runInBand
 ```
 
-Root types/Vitest exclude mobile; mobile uses Jest. Build `@workouts/core` first
-when its output is missing: `pnpm --filter @workouts/core build`.
+Root types/Vitest exclude mobile; mobile uses Jest. Build `@foundry/core` first
+when its output is missing: `pnpm --filter @foundry/core build`.
 
 ## Backend and login
 

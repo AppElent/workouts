@@ -1,8 +1,8 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
+import { formatScore } from "@foundry/core";
+import type { Exercise } from "@foundry/core/exercises";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { formatScore } from "@workouts/core";
-import type { Exercise } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import {

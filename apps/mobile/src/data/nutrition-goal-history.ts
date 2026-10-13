@@ -5,7 +5,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 
 export type GoalDraft = Record<NutrientKey, { min: string; max: string }>;
 

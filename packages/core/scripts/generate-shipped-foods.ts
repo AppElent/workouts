@@ -25,13 +25,13 @@ import { readNevoExtract } from "./nevo";
  * unchanged NEVO extract, the hand-reviewed Lidl extract, the hand-authored
  * promotion overlay, and the append-only ID lockfile.
  *
- *   pnpm --filter @workouts/core generate:foods
- *   pnpm --filter @workouts/core generate:foods --check
- *   pnpm --filter @workouts/core generate:foods --mint-new
- *   pnpm --filter @workouts/core generate:foods --retire-missing
- *   pnpm --filter @workouts/core generate:foods --accept-change=2063,5562
- *   pnpm --filter @workouts/core generate:foods --remint=2063
- *   pnpm --filter @workouts/core generate:foods --accept-change=lidl:20652654
+ *   pnpm --filter @foundry/core generate:foods
+ *   pnpm --filter @foundry/core generate:foods --check
+ *   pnpm --filter @foundry/core generate:foods --mint-new
+ *   pnpm --filter @foundry/core generate:foods --retire-missing
+ *   pnpm --filter @foundry/core generate:foods --accept-change=2063,5562
+ *   pnpm --filter @foundry/core generate:foods --remint=2063
+ *   pnpm --filter @foundry/core generate:foods --accept-change=lidl:20652654
  *
  * A bare number names a NEVO code; `lidl:` prefixes a Lidl code.
  *
@@ -165,7 +165,7 @@ function main(): void {
 		}
 		if (staleness.length > 0) {
 			console.error(
-				`Out of date: ${staleness.join(", ")}. Run \`pnpm --filter @workouts/core generate:foods\` and commit the result.`,
+				`Out of date: ${staleness.join(", ")}. Run \`pnpm --filter @foundry/core generate:foods\` and commit the result.`,
 			);
 			process.exit(1);
 		}

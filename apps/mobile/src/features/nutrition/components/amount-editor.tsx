@@ -3,7 +3,7 @@ import type {
 	NutrientValue,
 	PersonalFood,
 	ServingOption,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useState } from "react";
 import { Keyboard, Pressable, ScrollView, View } from "react-native";

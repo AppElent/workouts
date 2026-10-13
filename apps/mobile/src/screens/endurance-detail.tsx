@@ -1,7 +1,4 @@
-import {
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@workouts/core";
+import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";

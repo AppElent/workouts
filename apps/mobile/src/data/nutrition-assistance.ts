@@ -2,7 +2,7 @@ import type {
 	NutritionDiarySnapshot,
 	NutritionMealSlot,
 	NutritionProvenance,
-} from "@workouts/core";
+} from "@foundry/core";
 import {
 	formatQuantity,
 	getShippedFood,
@@ -14,7 +14,7 @@ import {
 	type ShippedFood,
 	searchShippedFoods,
 	shippedSourceMeta,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type {
 	PersonalFood,
 	PersonalFoodDraft,

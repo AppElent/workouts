@@ -5,7 +5,7 @@ import { FOOD_CATEGORIES } from "./types";
  * The shipped artifact's schema.
  *
  * Imported by the generator and by tests only — never by `./index.ts`. `zod` is
- * a devDependency of `@workouts/core` (spec #68, D15) precisely so that the
+ * a devDependency of `@foundry/core` (spec #68, D15) precisely so that the
  * phone bundle stays dependency-free: the artifact the app reads has already
  * been validated at generation time and again in CI by `artifact.test.ts`.
  */

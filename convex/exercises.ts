@@ -1,5 +1,5 @@
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
-import { mergeExerciseCatalog } from "@workouts/core/exercises";
+import { mergeExerciseCatalog } from "@foundry/core/exercises";
 import { exerciseSets, exerciseDocument, exerciseReference, resolveExercise } from "./lib/exerciseCatalog";
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'

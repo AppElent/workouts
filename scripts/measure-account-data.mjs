@@ -6,8 +6,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ConvexClient, ConvexHttpClient } from "convex/browser";
-import { SHIPPED_EXERCISES } from "@workouts/core/exercises";
-import { calculateOneRepMax } from "@workouts/core";
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
+import { calculateOneRepMax } from "@foundry/core";
 
 const setup = JSON.parse(readFileSync(".worktree-setup.json", "utf8"));
 if (!setup.scopedKeyCreated || setup.mode !== "cloud" || !setup.reference.includes(":dev/")) {

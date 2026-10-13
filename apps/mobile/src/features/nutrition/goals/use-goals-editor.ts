@@ -6,7 +6,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";

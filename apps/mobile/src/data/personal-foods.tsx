@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/expo";
-import { canonicalJson } from "@workouts/core";
-import { foodResults } from "@workouts/core/nutrition";
+import { canonicalJson } from "@foundry/core";
+import { foodResults } from "@foundry/core/nutrition";
 import {
 	useConvex,
 	useConvexConnectionState,

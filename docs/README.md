@@ -1,4 +1,4 @@
-# Workouts docs
+# Foundry docs
 
 Rules for placing, naming, and formatting documents:
 [documentation standard](standards/documentation.md). Each folder

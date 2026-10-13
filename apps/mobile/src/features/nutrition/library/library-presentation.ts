@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@workouts/core/nutrition";
+import { roundForDisplay } from "@foundry/core/nutrition";
 import { comboEnergy } from "../../../data/nutrition-combo";
 import { fmt } from "../../../i18n";
 import type { foodLibraryEn } from "../../../i18n/messages/food-library";

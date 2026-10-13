@@ -1,4 +1,4 @@
-import type { ExerciseId } from "@workouts/core/exercises";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";

@@ -1,4 +1,4 @@
-import { calculateOneRepMax } from "@workouts/core";
+import { calculateOneRepMax } from "@foundry/core";
 
 interface HistorySet {
 	weight: number;

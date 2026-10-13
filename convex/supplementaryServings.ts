@@ -1,4 +1,4 @@
-import { getShippedFood } from '@workouts/core/nutrition';
+import { getShippedFood } from '@foundry/core/nutrition';
 import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';

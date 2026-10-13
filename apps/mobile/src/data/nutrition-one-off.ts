@@ -1,10 +1,10 @@
-import type { NutritionDiarySnapshot } from "@workouts/core";
+import type { NutritionDiarySnapshot } from "@foundry/core";
 import {
 	formatQuantity,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type { FoodVisual } from "./personal-food-repository";
 
 export function positiveOneOffNumber(value: string, label: string): number {

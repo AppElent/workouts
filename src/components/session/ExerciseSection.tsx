@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { convertLoad } from "@workouts/core";
-import type { Exercise, ExerciseId } from "@workouts/core/exercises";
+import { convertLoad } from "@foundry/core";
+import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { ConvexError } from "convex/values";

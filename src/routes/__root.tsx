@@ -25,7 +25,7 @@ import appCss from "../styles.css?url";
 
 const AUTH_CONFIG = {
 	...DEFAULT_AUTH_CONFIG,
-	appName: "Workout Tracker",
+	appName: "Foundry",
 };
 
 // Routes that render without the AppShell chrome (sidebar / bottom nav).
@@ -58,7 +58,7 @@ export const Route = createRootRoute({
 		meta: [
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
-			{ title: "Workout Tracker" },
+			{ title: "Foundry" },
 			{ name: "theme-color", content: "#000000" },
 			{ name: "apple-mobile-web-app-capable", content: "yes" },
 			{ name: "apple-mobile-web-app-status-bar-style", content: "default" },

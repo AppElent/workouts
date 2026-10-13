@@ -2,7 +2,7 @@ import {
 	allShippedFoods,
 	NUTRIENT_KEYS,
 	personalFoodSnapshot,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import { resolveComboPart, scaleComboSnapshot } from "./nutrition-combo";
 import { createPersonalFoodRepository } from "./personal-food-repository";

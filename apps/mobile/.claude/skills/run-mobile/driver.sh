@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drive the Workouts (Foundry) Expo dev client on an iOS simulator.
+# Drive the Foundry Expo dev client on an iOS simulator.
 # Usage: driver.sh <command> [args]   (run from anywhere; see SKILL.md)
 set -euo pipefail
 
@@ -9,7 +9,7 @@ AGENT_DEVICE=(npx -y agent-device@0.21.27)
 MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CHECKOUT_ID="$(printf '%s' "$MOBILE_DIR" | shasum | cut -c1-8)"
 STATE="${RUN_MOBILE_STATE:-${TMPDIR:-/tmp}/run-mobile-$CHECKOUT_ID}"
-SIM_NAME="${RUN_MOBILE_SIM:-Workouts run-mobile $CHECKOUT_ID}"
+SIM_NAME="${RUN_MOBILE_SIM:-Foundry run-mobile $CHECKOUT_ID}"
 DEVICE_TYPE="${RUN_MOBILE_DEVICE_TYPE:-iPhone 18 Pro}"
 PORT="${RUN_MOBILE_PORT:-8090}"
 mkdir -p "$STATE"

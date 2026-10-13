@@ -1,4 +1,4 @@
-import { formatQuantity, type PersonalMeasure } from "@workouts/core/nutrition";
+import { formatQuantity, type PersonalMeasure } from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { Pressable, View } from "react-native";
 import { fmt, useI18n } from "../../../../i18n";

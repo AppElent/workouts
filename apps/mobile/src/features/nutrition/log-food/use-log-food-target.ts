@@ -1,4 +1,4 @@
-import type { ServingOption } from "@workouts/core/nutrition";
+import type { ServingOption } from "@foundry/core/nutrition";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { comboPartFromEntry, kcalText } from "../combo/combo-parts";

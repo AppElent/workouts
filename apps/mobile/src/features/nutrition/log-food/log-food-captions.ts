@@ -3,7 +3,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	roundForDisplay,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type {
 	OffLookupOutcome,
 	OffSearchOutcome,

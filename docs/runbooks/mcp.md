@@ -1,18 +1,18 @@
 ---
 type: runbook
-description: Read when using or changing the Workouts MCP server.
+description: Read when using or changing the Foundry MCP server.
 version: 1.0.0
 ---
 
-# Workouts MCP
+# Foundry MCP
 
-Workouts exposes a read-only MCP endpoint at:
+Foundry exposes a read-only MCP endpoint at:
 
 ```text
 /mcp
 ```
 
-The endpoint is hosted by the same TanStack Start webapp as the Workouts UI.
+The endpoint is hosted by the same TanStack Start webapp as the Foundry UI.
 
 ## Auth
 
@@ -29,7 +29,7 @@ MCP clients can obtain a token by opening the browser-mediated auth endpoint:
 ```
 
 The callback URL must be local loopback over HTTP using `127.0.0.1` or `localhost`.
-The auth page signs the user in through Workouts, creates a Clerk token using the
+The auth page signs the user in through Foundry, creates a Clerk token using the
 `convex` template, and redirects back to the local callback with either:
 
 ```text

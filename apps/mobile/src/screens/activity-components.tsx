@@ -2,7 +2,7 @@ import {
 	type ActivitySummary,
 	paceSecondsPerKilometer,
 	speedKilometersPerHour,
-} from "@workouts/core";
+} from "@foundry/core";
 import type { ErrorBoundaryProps } from "expo-router";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";

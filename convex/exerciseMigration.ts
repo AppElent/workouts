@@ -1,7 +1,7 @@
 import {
 	getShippedExercise,
 	getShippedExerciseByName,
-} from "@workouts/core/exercises";
+} from "@foundry/core/exercises";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";

@@ -1,4 +1,4 @@
-import type { ServingOption } from "@workouts/core/nutrition";
+import type { ServingOption } from "@foundry/core/nutrition";
 import { useState } from "react";
 import { servingKey } from "../../data/nutrition-shortcuts";
 import { localizeDecimal, useI18n } from "../../i18n";

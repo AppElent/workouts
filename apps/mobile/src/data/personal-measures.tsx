@@ -1,4 +1,4 @@
-import type { PersonalMeasure } from "@workouts/core/nutrition";
+import type { PersonalMeasure } from "@foundry/core/nutrition";
 import { usePaginatedQuery } from "convex/react";
 import {
 	createContext,

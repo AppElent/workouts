@@ -1,4 +1,4 @@
-import { formatQuantity } from "@workouts/core/nutrition";
+import { formatQuantity } from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Keyboard, Pressable, TextInput, View } from "react-native";

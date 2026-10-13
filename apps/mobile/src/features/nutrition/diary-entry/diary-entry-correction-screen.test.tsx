@@ -4,7 +4,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";

@@ -1,6 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { formatScore } from "@workouts/core";
+import { formatScore } from "@foundry/core";
 import { useQuery } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";

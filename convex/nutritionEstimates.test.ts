@@ -3,7 +3,7 @@ import {
 	canonicalJson,
 	normalizePersonalFood,
 	personalFoodSnapshot,
-} from "@workouts/core";
+} from "@foundry/core";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";

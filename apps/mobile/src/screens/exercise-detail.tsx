@@ -13,8 +13,8 @@
  * Points below the line are rep ranges you have not pushed; points above mean
  * your 1RM estimate is stale.
  */
-import { calculateOneRepMax } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
+import { calculateOneRepMax } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";

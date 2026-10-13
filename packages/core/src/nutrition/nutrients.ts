@@ -1,7 +1,7 @@
 /**
  * The nutrient vocabulary for the Nutrition module.
  *
- * These keys are the single spelling used by `@workouts/core`, Convex, the
+ * These keys are the single spelling used by `@foundry/core`, Convex, the
  * device SQLite schema and the message trees (spec #68, D7). British `fibre`
  * is deliberate; so is `carbs` over `carbohydrates`.
  */

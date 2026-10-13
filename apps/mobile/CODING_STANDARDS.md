@@ -1,4 +1,4 @@
-# Workouts mobile coding standards
+# Foundry mobile coding standards
 
 Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 [mobile structure](../../docs/standards/mobile-structure.md) standards.
@@ -7,7 +7,7 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 
 - Structure bindings: shared nutrition UI lives in `src/features/nutrition/components/`;
   cross-subject nutrition hooks live at the nutrition root.
-- `src/data/` owns nutrition persistence; `@workouts/core` owns shared calculations
+- `src/data/` owns nutrition persistence; `@foundry/core` owns shared calculations
   and catalogs. Preserve these owners when restructuring screens.
 - Feature ownership is adopted by live Nutrition Diary and Diary Entry. New work
   follows it; migrate legacy screens when changing their behavior. Labs routes

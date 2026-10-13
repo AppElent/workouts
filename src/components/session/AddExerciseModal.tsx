@@ -1,4 +1,4 @@
-import type { ExerciseId } from "@workouts/core/exercises";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useExercises } from "#/lib/useExercises";

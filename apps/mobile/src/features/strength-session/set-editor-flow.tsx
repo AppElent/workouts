@@ -1,5 +1,5 @@
-import { convertLoad, getWeightStep } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
+import { convertLoad, getWeightStep } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useNavigation, useRouter } from "expo-router";

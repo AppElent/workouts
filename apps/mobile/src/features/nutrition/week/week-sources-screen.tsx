@@ -2,7 +2,7 @@ import {
 	groupFoodNutrientSources,
 	type NutrientKey,
 	roundForDisplay,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { router, Stack } from "expo-router";
 import {
 	ActionSheetIOS,

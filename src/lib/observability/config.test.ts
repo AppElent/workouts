@@ -13,7 +13,7 @@ it.each([
 
 it.each([
 	"https://foundry.appelent.nl/",
-	"https://workouts-pr-42.example.workers.dev/",
+	"https://foundry-pr-42.example.workers.dev/",
 	"https://localhost.example.com/",
 	"https://example.com/?redirect=http://localhost:3100/",
 ])("keeps deployed reporting enabled for %s", (url) => {

@@ -1,7 +1,7 @@
 import {
 	getShippedExercise,
 	getShippedExerciseByName,
-} from "@workouts/core/exercises";
+} from "@foundry/core/exercises";
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
