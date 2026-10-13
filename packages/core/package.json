@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"license": "UNLICENSED",
-	"description": "Shared, dependency-free logic between the workouts web app, its Convex backend, and apps/mobile. Built with tsup to ESM in dist/ \u2014 Convex's esbuild bundler cannot resolve raw .ts subpath exports the way Vite/Metro can (see issue #43).",
+	"description": "Shared, dependency-free logic between the workouts web app, its Convex backend, and apps/mobile. Built with tsup to ESM in dist/ — Convex's esbuild bundler cannot resolve raw .ts subpath exports the way Vite/Metro can (see issue #43).",
 	"files": [
 		"dist"
 	],
@@ -36,9 +36,9 @@
 	},
 	"devDependencies": {
 		"tsup": "^8.3.0",
-		"tsx": "^4.23.0",
+		"tsx": "^4.23.15",
 		"typescript": "^6.0.2",
 		"vitest": "^4.1.10",
-		"zod": "^4.4.3"
+		"zod": "^4.6.5"
 	}
 }

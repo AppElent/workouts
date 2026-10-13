@@ -89,7 +89,6 @@ describe("Workouts environment routing", () => {
 			expect.arrayContaining([
 				"PREVIEW_CLERK_PUBLISHABLE_KEY",
 				"CONVEX_DEPLOY_KEY",
-				"NODE_AUTH_TOKEN",
 				"CLOUDFLARE_API_TOKEN",
 				"CLOUDFLARE_ACCOUNT_ID",
 			]),
@@ -137,7 +136,7 @@ describe("Workouts environment routing", () => {
 	});
 
 	it("gives every logical value a unique evidenced source name", () => {
-		expect(ENTRIES).toHaveLength(13);
+		expect(ENTRIES).toHaveLength(12);
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
 		expect(sourceNames).not.toEqual(

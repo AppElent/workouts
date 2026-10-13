@@ -1,9 +1,4 @@
 import {
-	AuthConfigProvider,
-	DEFAULT_AUTH_CONFIG,
-	THEME_INIT_SCRIPT,
-} from "@appelent/auth";
-import {
 	createRootRoute,
 	HeadContent,
 	Outlet,
@@ -17,6 +12,11 @@ import { ConfirmDialogProvider } from "#/components/ui/confirm-dialog";
 import { ToastHost } from "#/components/ui/toast";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
+import {
+	AuthConfigProvider,
+	DEFAULT_AUTH_CONFIG,
+	THEME_INIT_SCRIPT,
+} from "#/lib/auth";
 import { type Locale, LocaleProvider, readClientLocale } from "#/lib/i18n";
 import { LanguageSync } from "#/lib/i18n/LanguageSync";
 import { getSsrLocale } from "#/lib/i18n/server";

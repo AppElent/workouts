@@ -3,7 +3,7 @@
  *
  * Entries describe logical values and their consumers. destinationFor maps a
  * consumer in an app environment to the place that consumer reads from. The
- * shared @appelent/dev environment engine performs checks and effects from the
+ * environment engine in scripts/env.mjs performs checks and effects from the
  * resulting placements.
  */
 
@@ -351,22 +351,6 @@ export const ENTRIES = [
 			"expo-local": {
 				name: "EXPO_PUBLIC_TEST_USER_PASSWORD",
 				environments: ["local"],
-			},
-		},
-	},
-	{
-		key: "nodeAuthToken",
-		infisicalKey: "node-auth-token",
-		description: "Read-packages token used by CI and EAS to install private packages.",
-		secret: true,
-		lands: {
-			workflow: {
-				name: "NODE_AUTH_TOKEN",
-				environments: ["preview"],
-			},
-			"eas-tooling": {
-				name: "NODE_AUTH_TOKEN",
-				environments: ["local", "preview", "dev", "production"],
 			},
 		},
 	},

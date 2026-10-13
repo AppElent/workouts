@@ -288,21 +288,20 @@ describe("searchOffProducts", () => {
 			],
 		});
 	});
-	it.each([
-		{ errors: [{ title: "Invalid query" }] },
-		{},
-		{ hits: null },
-	])("does not cache an invalid response as no matches: %j", async (body) => {
-		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-		const fetchImpl = fakeFetch(() => jsonResponse(200, body));
-		expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
-			kind: "unavailable",
-		});
-		expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
-			kind: "unavailable",
-		});
-		expect(fetchImpl).toHaveBeenCalledTimes(2);
-	});
+	it.each([{ errors: [{ title: "Invalid query" }] }, {}, { hits: null }])(
+		"does not cache an invalid response as no matches: %j",
+		async (body) => {
+			const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+			const fetchImpl = fakeFetch(() => jsonResponse(200, body));
+			expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
+				kind: "unavailable",
+			});
+			expect(await searchOffProducts("beans", { cache, fetchImpl })).toEqual({
+				kind: "unavailable",
+			});
+			expect(fetchImpl).toHaveBeenCalledTimes(2);
+		},
+	);
 	it("reports a provider-side timeout rather than caching partial results", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() =>

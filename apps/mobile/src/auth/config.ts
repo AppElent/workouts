@@ -11,7 +11,7 @@
  * **The dev-login gate is the key's prefix, not `__DEV__`.** A release build
  * pointed at the test instance (e.g. a PR preview) should offer the
  * shortcut; a dev build someone has pointed at production must not. This
- * mirrors the web app's rule (`@appelent/auth`'s dev test-login button),
+ * mirrors the web app's rule (`src/lib/auth`'s dev test-login button),
  * where the credentials are inlined into the client bundle either way — so
  * the account they name must never be one that exists on the live instance.
  */

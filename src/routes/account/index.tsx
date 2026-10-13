@@ -1,9 +1,9 @@
-import { ProfilePanel } from "@appelent/auth";
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ExportDataCard } from "#/components/account/ExportDataCard";
 import { ReportProblem } from "#/components/account/ReportProblem";
 import { TestDataCard } from "#/components/account/TestDataCard";
+import { ProfilePanel } from "#/lib/auth";
 
 export const Route = createFileRoute("/account/")({
 	ssr: false,

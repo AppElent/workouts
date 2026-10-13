@@ -338,17 +338,20 @@ describe("scanning a barcode", () => {
 				}),
 			"This product has too little nutrition data to import.",
 		],
-	] as const)("keeps Search and Enter manually reachable on %s", async (_case, impl, message) => {
-		const fetchImpl: FetchLike = jest.fn(async () => impl());
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+	] as const)(
+		"keeps Search and Enter manually reachable on %s",
+		async (_case, impl, message) => {
+			const fetchImpl: FetchLike = jest.fn(async () => impl());
+			renderApp("/nutrition", {}, fetchImpl);
+			fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+			fireEvent.press(screen.getByLabelText("Scan barcode"));
+			fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
 
-		expect(await screen.findByText(message)).toBeTruthy();
-		expect(screen.getByPlaceholderText("Search foods")).toBeTruthy();
-		expect(screen.getByLabelText("More food actions")).toBeTruthy();
-	});
+			expect(await screen.findByText(message)).toBeTruthy();
+			expect(screen.getByPlaceholderText("Search foods")).toBeTruthy();
+			expect(screen.getByLabelText("More food actions")).toBeTruthy();
+		},
+	);
 
 	it("reports a timed-out lookup distinctly and still leaves local exits reachable", async () => {
 		// Rejecting with the same error `AbortController` produces exercises the

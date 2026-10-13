@@ -104,23 +104,23 @@ it("defaults to System and follows live device changes", () => {
 	});
 });
 
-it.each([
-	"light",
-	"dark",
-] as const)("paints the first frame in saved %s appearance", (choice) => {
-	writePreference(PREFERENCE_KEYS.appearance, choice);
-	render(
-		<AppearanceProvider>
-			<Probe />
-		</AppearanceProvider>,
-	);
-	expect(screen.getByTestId("scheme").props.children).toEqual([
-		choice,
-		"/",
-		choice,
-	]);
-	expect(Appearance.setColorScheme).toHaveBeenCalledWith(choice);
-});
+it.each(["light", "dark"] as const)(
+	"paints the first frame in saved %s appearance",
+	(choice) => {
+		writePreference(PREFERENCE_KEYS.appearance, choice);
+		render(
+			<AppearanceProvider>
+				<Probe />
+			</AppearanceProvider>,
+		);
+		expect(screen.getByTestId("scheme").props.children).toEqual([
+			choice,
+			"/",
+			choice,
+		]);
+		expect(Appearance.setColorScheme).toHaveBeenCalledWith(choice);
+	},
+);
 
 it("keeps an override, updates mounted styles, and preserves input while switching", () => {
 	render(

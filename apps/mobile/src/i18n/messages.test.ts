@@ -7,8 +7,8 @@
  * placeholder or invents one — which reaches the user as a literal brace in the
  * middle of a sentence, in one language only.
  *
- * The web app gets this from `@appelent/i18n/test-utils`; that module is built
- * against jsdom and RTL-DOM, so the phone walks the trees itself.
+ * The web app gets this from `src/lib/i18n/runtime/test-utils.ts`; that module
+ * is written for Vitest, so the phone walks the trees itself under Jest.
  */
 import { en } from "./messages/en";
 import { nl } from "./messages/nl";

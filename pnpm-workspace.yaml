@@ -24,12 +24,6 @@ supportedArchitectures:
     - x64
     - arm64
 
-# pnpm 11 otherwise tries to install dependencies before it runs any package
-# script. EAS invokes eas-build-pre-install through pnpm, so that default creates
-# a bootstrap cycle: the install needs the authentication that the hook sets up.
-# Explicit install commands still run every supply-chain policy check.
-verifyDepsBeforeRun: false
-
 # Clerk's config plugin imports this at runtime but only declares it as a
 # devDependency. EAS loads the plugin directly, without pnpm's NODE_PATH shim.
 packageExtensions:
@@ -39,7 +33,7 @@ packageExtensions:
     dependencies:
       '@babel/generator': '7.29.7'
       '@babel/traverse': '7.29.7'
-  '@clerk/expo@4.2.8':
+  '@clerk/expo@4.10.1':
     dependencies:
       '@expo/config-plugins': '~57.0.9'
 
@@ -68,14 +62,11 @@ onlyBuiltDependencies:
 minimumReleaseAge: 4320
 
 # Packages exempt from the cooldown.
-#   @appelent/*  — our own private packages; we control their publishes, so a
-#                  cooldown on them is counterproductive (always permanent).
 #   es-toolkit, nanoid — third-party transitives that were <3 days old when the
 #                  lockfile was first generated; grandfathered so the current
 #                  pinned versions stay installable. Safe to remove on a future
 #                  `pnpm update` once they've aged past the cutoff.
 minimumReleaseAgeExclude:
-  - "@appelent/*"
   - es-toolkit
   - nanoid
 
@@ -85,9 +76,8 @@ minimumReleaseAgeExclude:
 overrides:
   ws: ">=8.21.0"
   # Clerk authorization-bypass (GHSA-w24r-5266-9c3c): <=5.61.5 is vulnerable
-  # when combining org/billing/reverification checks. @appelent/auth and convex
-  # both pull a vulnerable range transitively; force the patched line. (npm's
-  # hoisting masked this; pnpm's stricter layout surfaced it.)
+  # when combining org/billing/reverification checks. convex pulls a vulnerable
+  # range transitively; force the patched line.
   "@clerk/clerk-react": ">=5.61.6"
 
 # pnpm 11's actual per-install approval ledger for build scripts — without

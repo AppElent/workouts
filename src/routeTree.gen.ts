@@ -9,44 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as WodsIndexRouteImport } from './routes/wods/index'
-import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
-import { Route as ProgressIndexRouteImport } from './routes/progress/index'
-import { Route as ProfileIndexRouteImport } from './routes/profile/index'
-import { Route as LoginIndexRouteImport } from './routes/login/index'
-import { Route as LogIndexRouteImport } from './routes/log/index'
-import { Route as HostedWorkoutsIndexRouteImport } from './routes/hosted-workouts/index'
-import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
-import { Route as WodsIdRouteImport } from './routes/wods/$id'
-import { Route as McpAuthRouteImport } from './routes/mcp/auth'
-import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
-import { Route as JoinTokenRouteImport } from './routes/join/$token'
-import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
-import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
 import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
+import { Route as HostedWorkoutsIndexRouteImport } from './routes/hosted-workouts/index'
+import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
+import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
+import { Route as JoinTokenRouteImport } from './routes/join/$token'
+import { Route as LogIndexRouteImport } from './routes/log/index'
+import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as McpAuthRouteImport } from './routes/mcp/auth'
+import { Route as ProfileIndexRouteImport } from './routes/profile/index'
+import { Route as ProgressIndexRouteImport } from './routes/progress/index'
+import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
+import { Route as WodsIndexRouteImport } from './routes/wods/index'
+import { Route as WodsIdRouteImport } from './routes/wods/$id'
 import { Route as HostedWorkoutsEditIdRouteImport } from './routes/hosted-workouts/edit.$id'
 import { Route as ApiCliAuthLoginRouteImport } from './routes/api/cli/auth/login'
 
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -54,54 +44,19 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WodsIndexRoute = WodsIndexRouteImport.update({
-  id: '/wods/',
-  path: '/wods/',
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
-  id: '/routines/',
-  path: '/routines/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProgressIndexRoute = ProgressIndexRouteImport.update({
-  id: '/progress/',
-  path: '/progress/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileIndexRoute = ProfileIndexRouteImport.update({
-  id: '/profile/',
-  path: '/profile/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: '/login/',
-  path: '/login/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogIndexRoute = LogIndexRouteImport.update({
-  id: '/log/',
-  path: '/log/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HostedWorkoutsIndexRoute = HostedWorkoutsIndexRouteImport.update({
-  id: '/hosted-workouts/',
-  path: '/hosted-workouts/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExercisesIndexRoute = ExercisesIndexRouteImport.update({
-  id: '/exercises/',
-  path: '/exercises/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/dashboard/',
-  path: '/dashboard/',
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
@@ -109,29 +64,24 @@ const AccountIndexRoute = AccountIndexRouteImport.update({
   path: '/account/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WodsIdRoute = WodsIdRouteImport.update({
-  id: '/wods/$id',
-  path: '/wods/$id',
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/dashboard/',
+  path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const McpAuthRoute = McpAuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => McpRoute,
-} as any)
-const LogSessionIdRoute = LogSessionIdRouteImport.update({
-  id: '/log/$sessionId',
-  path: '/log/$sessionId',
+const ExercisesIndexRoute = ExercisesIndexRouteImport.update({
+  id: '/exercises/',
+  path: '/exercises/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JoinTokenRoute = JoinTokenRouteImport.update({
-  id: '/join/$token',
-  path: '/join/$token',
+const ExercisesIdRoute = ExercisesIdRouteImport.update({
+  id: '/exercises/$id',
+  path: '/exercises/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HostedWorkoutsNewRoute = HostedWorkoutsNewRouteImport.update({
-  id: '/hosted-workouts/new',
-  path: '/hosted-workouts/new',
+const HostedWorkoutsIndexRoute = HostedWorkoutsIndexRouteImport.update({
+  id: '/hosted-workouts/',
+  path: '/hosted-workouts/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HostedWorkoutsIdRoute = HostedWorkoutsIdRouteImport.update({
@@ -139,9 +89,59 @@ const HostedWorkoutsIdRoute = HostedWorkoutsIdRouteImport.update({
   path: '/hosted-workouts/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExercisesIdRoute = ExercisesIdRouteImport.update({
-  id: '/exercises/$id',
-  path: '/exercises/$id',
+const HostedWorkoutsNewRoute = HostedWorkoutsNewRouteImport.update({
+  id: '/hosted-workouts/new',
+  path: '/hosted-workouts/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinTokenRoute = JoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogIndexRoute = LogIndexRouteImport.update({
+  id: '/log/',
+  path: '/log/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogSessionIdRoute = LogSessionIdRouteImport.update({
+  id: '/log/$sessionId',
+  path: '/log/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/login/',
+  path: '/login/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpAuthRoute = McpAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => McpRoute,
+} as any)
+const ProfileIndexRoute = ProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressIndexRoute = ProgressIndexRouteImport.update({
+  id: '/progress/',
+  path: '/progress/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
+  id: '/routines/',
+  path: '/routines/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WodsIndexRoute = WodsIndexRouteImport.update({
+  id: '/wods/',
+  path: '/wods/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WodsIdRoute = WodsIdRouteImport.update({
+  id: '/wods/$id',
+  path: '/wods/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HostedWorkoutsEditIdRoute = HostedWorkoutsEditIdRouteImport.update({
@@ -343,25 +343,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -371,74 +357,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/wods/': {
-      id: '/wods/'
-      path: '/wods'
-      fullPath: '/wods/'
-      preLoaderRoute: typeof WodsIndexRouteImport
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/routines/': {
-      id: '/routines/'
-      path: '/routines'
-      fullPath: '/routines/'
-      preLoaderRoute: typeof RoutinesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/progress/': {
-      id: '/progress/'
-      path: '/progress'
-      fullPath: '/progress/'
-      preLoaderRoute: typeof ProgressIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile/': {
-      id: '/profile/'
-      path: '/profile'
-      fullPath: '/profile/'
-      preLoaderRoute: typeof ProfileIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login/': {
-      id: '/login/'
-      path: '/login'
-      fullPath: '/login/'
-      preLoaderRoute: typeof LoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/log/': {
-      id: '/log/'
-      path: '/log'
-      fullPath: '/log/'
-      preLoaderRoute: typeof LogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hosted-workouts/': {
-      id: '/hosted-workouts/'
-      path: '/hosted-workouts'
-      fullPath: '/hosted-workouts/'
-      preLoaderRoute: typeof HostedWorkoutsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/exercises/': {
-      id: '/exercises/'
-      path: '/exercises'
-      fullPath: '/exercises/'
-      preLoaderRoute: typeof ExercisesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/dashboard'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/': {
@@ -448,39 +385,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/wods/$id': {
-      id: '/wods/$id'
-      path: '/wods/$id'
-      fullPath: '/wods/$id'
-      preLoaderRoute: typeof WodsIdRouteImport
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mcp/auth': {
-      id: '/mcp/auth'
-      path: '/auth'
-      fullPath: '/mcp/auth'
-      preLoaderRoute: typeof McpAuthRouteImport
-      parentRoute: typeof McpRoute
-    }
-    '/log/$sessionId': {
-      id: '/log/$sessionId'
-      path: '/log/$sessionId'
-      fullPath: '/log/$sessionId'
-      preLoaderRoute: typeof LogSessionIdRouteImport
+    '/exercises/': {
+      id: '/exercises/'
+      path: '/exercises'
+      fullPath: '/exercises/'
+      preLoaderRoute: typeof ExercisesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/join/$token': {
-      id: '/join/$token'
-      path: '/join/$token'
-      fullPath: '/join/$token'
-      preLoaderRoute: typeof JoinTokenRouteImport
+    '/exercises/$id': {
+      id: '/exercises/$id'
+      path: '/exercises/$id'
+      fullPath: '/exercises/$id'
+      preLoaderRoute: typeof ExercisesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hosted-workouts/new': {
-      id: '/hosted-workouts/new'
-      path: '/hosted-workouts/new'
-      fullPath: '/hosted-workouts/new'
-      preLoaderRoute: typeof HostedWorkoutsNewRouteImport
+    '/hosted-workouts/': {
+      id: '/hosted-workouts/'
+      path: '/hosted-workouts'
+      fullPath: '/hosted-workouts/'
+      preLoaderRoute: typeof HostedWorkoutsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hosted-workouts/$id': {
@@ -490,11 +420,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HostedWorkoutsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/exercises/$id': {
-      id: '/exercises/$id'
-      path: '/exercises/$id'
-      fullPath: '/exercises/$id'
-      preLoaderRoute: typeof ExercisesIdRouteImport
+    '/hosted-workouts/new': {
+      id: '/hosted-workouts/new'
+      path: '/hosted-workouts/new'
+      fullPath: '/hosted-workouts/new'
+      preLoaderRoute: typeof HostedWorkoutsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join/$token': {
+      id: '/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof JoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/log/': {
+      id: '/log/'
+      path: '/log'
+      fullPath: '/log/'
+      preLoaderRoute: typeof LogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/log/$sessionId': {
+      id: '/log/$sessionId'
+      path: '/log/$sessionId'
+      fullPath: '/log/$sessionId'
+      preLoaderRoute: typeof LogSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/': {
+      id: '/login/'
+      path: '/login'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp/auth': {
+      id: '/mcp/auth'
+      path: '/auth'
+      fullPath: '/mcp/auth'
+      preLoaderRoute: typeof McpAuthRouteImport
+      parentRoute: typeof McpRoute
+    }
+    '/profile/': {
+      id: '/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress/': {
+      id: '/progress/'
+      path: '/progress'
+      fullPath: '/progress/'
+      preLoaderRoute: typeof ProgressIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/routines/': {
+      id: '/routines/'
+      path: '/routines'
+      fullPath: '/routines/'
+      preLoaderRoute: typeof RoutinesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wods/': {
+      id: '/wods/'
+      path: '/wods'
+      fullPath: '/wods/'
+      preLoaderRoute: typeof WodsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wods/$id': {
+      id: '/wods/$id'
+      path: '/wods/$id'
+      fullPath: '/wods/$id'
+      preLoaderRoute: typeof WodsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hosted-workouts/edit/$id': {

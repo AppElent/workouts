@@ -11,15 +11,10 @@ backend and Clerk authentication. Documentation is mapped in [docs/](docs/README
 - Node.js >= 22 and [pnpm](https://pnpm.io) >= 11
 - [Clerk](https://clerk.com), [Convex](https://convex.dev), and, for deploys,
   [Cloudflare](https://cloudflare.com) accounts
-- Read access to the private `@appelent` GitHub Packages scope (ask a maintainer)
 
 ## Setup
 
 ```bash
-# One-time, in your user-level ~/.npmrc (pnpm does not expand env vars from a
-# committed .npmrc), with NODE_AUTH_TOKEN a GitHub PAT with read:packages:
-#   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-
 pnpm install
 
 # Read the configured Infisical source and apply local values
