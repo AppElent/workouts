@@ -1,3 +1,4 @@
+import { accountEn } from "./account";
 import { activityEn } from "./activity";
 import { bodyMetricsEn } from "./body-metrics";
 import { comboEditorEn } from "./combo-editor";
@@ -49,6 +50,7 @@ export const en = {
 	workoutTools: workoutToolsEn,
 	signIn: signInEn,
 	profile: profileEn,
+	account: accountEn,
 	training: trainingEn,
 	strength: strengthEn,
 	diaryEntry: entryEditorEn,

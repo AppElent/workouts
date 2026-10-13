@@ -1,4 +1,5 @@
 import { resolveExercise } from "./lib/exerciseCatalog";
+import { exportTables, readPersonalTable } from "./lib/personalData";
 import { query } from './_generated/server'
 import type { QueryCtx } from './_generated/server'
 import { v } from 'convex/values'
@@ -123,6 +124,45 @@ export const endurancePage = query({
 			enduranceActivityDetails,
 			cursor: page.isDone ? null : page.continueCursor,
 			isDone: page.isDone,
+		}
+	},
+})
+
+// Account export walks every exported personal table in order. The cursor
+// names the table and its Convex cursor, so each page stays bounded.
+export const personalPage = query({
+	args: {
+		cursor: v.union(
+			v.object({ table: v.string(), cursor: v.union(v.string(), v.null()) }),
+			v.null(),
+		),
+	},
+	returns: v.object({
+		table: v.string(),
+		rows: v.array(v.any()),
+		next: v.union(
+			v.object({ table: v.string(), cursor: v.union(v.string(), v.null()) }),
+			v.null(),
+		),
+	}),
+	handler: async (ctx, { cursor }) => {
+		const userId = await requireUser(ctx)
+		const index = cursor ? exportTables.findIndex((t) => t === cursor.table) : 0
+		if (index < 0) throw new Error('Unknown export table.')
+		const table = exportTables[index]
+		const page = await readPersonalTable(ctx.db, table, userId).paginate({
+			cursor: cursor?.cursor ?? null,
+			numItems: 200,
+		})
+		const following = exportTables[index + 1]
+		return {
+			table,
+			rows: page.page,
+			next: !page.isDone
+				? { table, cursor: page.continueCursor }
+				: following
+					? { table: following, cursor: null }
+					: null,
 		}
 	},
 })
