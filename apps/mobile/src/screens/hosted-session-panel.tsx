@@ -274,6 +274,8 @@ function ScoreBox({
 			/>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy || !writable }}
 				onPress={() => void send()}
 				disabled={busy || !writable}
 				style={[styles.submit, busy && styles.dimmed]}

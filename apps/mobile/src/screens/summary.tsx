@@ -100,7 +100,11 @@ export function SummaryScreen() {
 		return (
 			<View style={[styles.root, styles.centered]}>
 				<AppText variant="heading">{copy.notFound}</AppText>
-				<Pressable onPress={() => router.replace("/")} style={styles.ghostBtn}>
+				<Pressable
+					accessibilityRole="button"
+					onPress={() => router.replace("/")}
+					style={styles.ghostBtn}
+				>
 					<AppText style={styles.ghostText}>{copy.backHome}</AppText>
 				</Pressable>
 			</View>
@@ -158,11 +162,17 @@ export function SummaryScreen() {
 
 			<SessionWodResults sessionId={sessionId} />
 
-			<Pressable onPress={() => router.replace("/")} style={styles.doneBtn}>
+			<Pressable
+				accessibilityRole="button"
+				onPress={() => router.replace("/")}
+				style={styles.doneBtn}
+			>
 				<AppText style={styles.doneText}>{copy.done}</AppText>
 			</Pressable>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy }}
 				onPress={() => void remove()}
 				disabled={busy}
 				style={[styles.deleteBtn, busy && styles.dimmed]}

@@ -140,6 +140,7 @@ function WodRow({
 
 	return (
 		<Pressable
+			accessibilityRole="button"
 			onPress={() =>
 				onOpen
 					? onOpen(wod._id)

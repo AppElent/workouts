@@ -136,7 +136,6 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 							<EmptyState
 								title={offlineCopy.offlineTitle}
 								body={offlineCopy.offlineBody}
-								action={{ label: offlineCopy.retry, onPress: review.retry }}
 							/>
 						</Card>
 					) : (

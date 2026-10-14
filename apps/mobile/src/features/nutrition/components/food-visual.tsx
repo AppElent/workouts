@@ -5,8 +5,13 @@ import { StyleSheet, View } from "react-native";
 import type {
 	FoodVisual,
 	FoodVisualPresetId,
-} from "../data/personal-food-repository";
-import { radius, type Tokens, useThemedStyles, useTokens } from "../theme";
+} from "../../../data/personal-food-repository";
+import {
+	radius,
+	type Tokens,
+	useThemedStyles,
+	useTokens,
+} from "../../../theme";
 
 const PRESET_SYMBOLS = {
 	fruit: { ios: "carrot.fill", android: "nutrition", web: "nutrition" },

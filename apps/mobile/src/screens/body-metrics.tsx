@@ -159,6 +159,8 @@ export function BodyMetricsPanel() {
 				style={styles.input}
 			/>
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: !canSave }}
 				onPress={() => void save()}
 				disabled={!canSave}
 				style={[styles.submit, !canSave && styles.dimmed]}

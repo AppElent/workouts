@@ -30,9 +30,15 @@ import {
 } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useI18n } from "../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
-import { AppText } from "./text";
+import { useI18n } from "../../../i18n";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	type,
+	useThemedStyles,
+} from "../../../theme";
+import { AppText } from "../../../ui/text";
 
 const STORAGE_KEY = "restTimer.defaultSeconds";
 const PRESETS = [60, 90, 120, 180];
@@ -203,6 +209,8 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 			<View style={styles.presets}>
 				{PRESETS.map((seconds) => (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ selected: seconds === defaultSeconds }}
 						key={seconds}
 						onPress={() => chooseDefault(seconds)}
 						style={[
@@ -267,14 +275,14 @@ const createStyles = (colors: Tokens) =>
 		done: { borderColor: colors.accent },
 		readout: { alignItems: "center", minWidth: 88 },
 		time: {
-			fontSize: 18,
+			...type.heading,
 			fontWeight: "800",
 			color: colors.text,
 			fontVariant: ["tabular-nums"],
 		},
-		pausedLabel: { fontSize: 9, color: colors.textMuted },
-		adjust: { fontSize: 13, fontWeight: "800", color: colors.textMuted },
-		dismiss: { fontSize: 15, fontWeight: "800", color: colors.textMuted },
+		pausedLabel: { ...type.micro, fontWeight: "400", color: colors.textMuted },
+		adjust: { ...type.label, fontWeight: "800", color: colors.textMuted },
+		dismiss: { ...type.body, fontWeight: "800", color: colors.textMuted },
 		presets: {
 			flexDirection: "row",
 			gap: spacing.xs,
@@ -287,6 +295,6 @@ const createStyles = (colors: Tokens) =>
 			backgroundColor: colors.surface,
 		},
 		presetActive: { backgroundColor: colors.accentFill },
-		presetText: { fontSize: 10, fontWeight: "700", color: colors.textMuted },
+		presetText: { ...type.micro, color: colors.textMuted },
 		presetTextActive: { color: colors.onAccent },
 	});

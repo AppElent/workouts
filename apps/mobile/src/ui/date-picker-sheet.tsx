@@ -4,7 +4,7 @@ import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { GhostButton } from "./button";
 import type { DatePickerSheetProps } from "./date-picker-sheet.types";
-import { NutritionCalendar } from "./nutrition-calendar";
+import { MonthCalendar } from "./month-calendar";
 import { AppText } from "./text";
 
 /**
@@ -61,7 +61,7 @@ export function DatePickerSheet({
 						/>
 						<GhostButton label={doneLabel} onPress={onClose} />
 					</View>
-					<NutritionCalendar
+					<MonthCalendar
 						selectedDate={date}
 						onSelect={onSelect}
 						locale={locale}

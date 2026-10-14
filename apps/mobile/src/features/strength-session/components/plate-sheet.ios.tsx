@@ -10,7 +10,7 @@ import {
 	useAppearance,
 	useThemedStyles,
 	useTokens,
-} from "../theme";
+} from "../../../theme";
 import { PlateSheetContent } from "./plate-sheet-content";
 
 export function PlateSheet({

@@ -6,9 +6,9 @@ import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
 import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
 import { fmt, plural, useI18n } from "../../../../i18n";
 import { spacing, useTokens } from "../../../../theme";
-import { FoodVisualView } from "../../../../ui/food-visual";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
 import { AppText } from "../../../../ui/text";
+import { FoodVisualView } from "../../components/food-visual";
 import { DiaryMealMenu } from "./diary-meal-menu";
 
 export function DiaryMealCard({

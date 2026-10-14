@@ -5,7 +5,6 @@ import type {
 } from "@foundry/core";
 import {
 	formatQuantity,
-	getShippedFood,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -538,11 +537,6 @@ export function personalFoodDraftFromLabel(
 			attribution: "Reviewed from pasted nutrition-label text.",
 		},
 	};
-}
-
-export function shippedCandidate(id: string): AssistanceFood | undefined {
-	const food = getShippedFood(id);
-	return food ? candidateFromShipped(food) : undefined;
 }
 
 /** A proposal remains an editable draft until the person explicitly saves the review. */
