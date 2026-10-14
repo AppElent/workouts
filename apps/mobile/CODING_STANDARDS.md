@@ -18,6 +18,9 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 
 ## Review and enforcement
 
+Screen tests render through `src/test-support/render-screen.tsx` (app-wide
+providers, iOS alerts as buttons); tests that navigate use `render-app.tsx`.
+
 Selected mobile reads use the app-owned hooks in `src/convex/query-cache.tsx`.
 Opt in deliberately: this preserves live subscriptions across short navigation
 gaps, while ordinary Convex hooks retain their existing lifecycle. The cache sits
