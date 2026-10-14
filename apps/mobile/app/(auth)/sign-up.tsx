@@ -24,6 +24,7 @@ import {
 	AuthSubmit,
 } from "../../src/auth/auth-form";
 import { type CodedError, pickError } from "../../src/auth/clerkErrors";
+import { SocialButtons } from "../../src/auth/social-buttons";
 import { useI18n } from "../../src/i18n";
 
 export default function SignUp() {
@@ -113,6 +114,8 @@ export default function SignUp() {
 				disabled={!ready}
 				onPress={submit}
 			/>
+
+			<SocialButtons />
 		</AuthScreen>
 	);
 }
