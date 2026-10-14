@@ -182,7 +182,7 @@ export function withAmount(
 	return {
 		...item,
 		amount,
-		amountLabel: `${formatQuantity(amount, locale)} ${item.unit}`,
+		amountLabel: `${formatQuantity(amount, locale)} ${unitOf(item)}`,
 		confidence: "high",
 		...(estimate ? { estimate } : {}),
 	};
@@ -203,6 +203,12 @@ function scale(
 			];
 		}),
 	) as Record<NutrientKey, NutrientValue>;
+}
+
+/** What the amount counts in: the matched food's base unit, else the AI's. */
+export function unitOf(item: ReviewItem): "g" | "ml" {
+	if (!item.food) return item.unit;
+	return item.food.baseUnit === "ml" ? "ml" : "g";
 }
 
 /** Totals for the item's amount, or undefined when it has neither food nor estimate. */

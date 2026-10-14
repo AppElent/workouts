@@ -236,7 +236,10 @@ export function AssistanceScreen({
 			name: names.join(", ").slice(0, 120),
 			nutrients: combinedNutrients(items),
 		});
-		router.replace({
+		// Replacing one sheet with another leaves the new sheet empty on iOS:
+		// close this one, then present the next.
+		close();
+		router.push({
 			pathname: "/nutrition-one-off",
 			params: { date: destination.date, meal: destination.meal },
 		});
@@ -284,17 +287,26 @@ export function AssistanceScreen({
 			mintNutritionUuid,
 		).map((entry) => comboPartFromEntry(entry));
 		return (
-			<ComboNewScreen
-				parts={parts}
-				onCreated={(combo) =>
-					logItems(phase.items, {
-						id: mintNutritionUuid(),
-						comboId: combo.id,
-						name: combo.name,
-					})
-				}
-				onSaved={() => close()}
-			/>
+			<>
+				{/* The combo form brings its own title and ✓; drop this sheet's. */}
+				<Stack.Screen
+					options={{
+						headerTitle: undefined,
+						unstable_headerRightItems: undefined,
+					}}
+				/>
+				<ComboNewScreen
+					parts={parts}
+					onCreated={(combo) =>
+						logItems(phase.items, {
+							id: mintNutritionUuid(),
+							comboId: combo.id,
+							name: combo.name,
+						})
+					}
+					onSaved={() => close()}
+				/>
+			</>
 		);
 	} else if (phase.kind === "analysing") {
 		body = (
@@ -345,16 +357,17 @@ export function AssistanceScreen({
 						toast.error(t.nutrition.drafts.saveFailure);
 					}
 				}}
-				onSearch={() =>
-					router.replace({
+				onSearch={() => {
+					close();
+					router.push({
 						pathname: "/nutrition-food",
 						params: {
 							date: destination.date,
 							meal: destination.meal,
 							query: session.text,
 						},
-					})
-				}
+					});
+				}}
 			/>
 		);
 	}
@@ -368,7 +381,12 @@ export function AssistanceScreen({
 				: plural(locale, reviewItems.length, copy.logItems);
 
 	return (
-		<View style={{ flex: 1, backgroundColor: colors.bg }}>
+		<View
+			// One stable child for the form sheet: its ScrollView sizing only
+			// copes with a fixed subview order.
+			collapsable={false}
+			style={{ flex: 1, backgroundColor: colors.bg }}
+		>
 			<Stack.Screen options={options} />
 			<DatePickerSheet
 				visible={choosingDay}
@@ -742,6 +760,8 @@ function Review({
 								variant="secondary"
 								style={{
 									flex: 1,
+									// Large text: the name keeps room and both sides wrap.
+									minWidth: "45%",
 									color: colors.text,
 									paddingVertical: spacing.sm,
 								}}
@@ -751,6 +771,8 @@ function Review({
 							<AppText
 								variant="secondary"
 								style={{
+									flexShrink: 1,
+									textAlign: "right",
 									color: uncertain ? colors.warn : colors.textMuted,
 									fontVariant: ["tabular-nums"],
 								}}

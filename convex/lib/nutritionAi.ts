@@ -189,7 +189,7 @@ const LABEL_SCHEMA = object({
 export type AiLocale = "en" | "nl";
 const LANGUAGE: Record<AiLocale, string> = { en: "English", nl: "Dutch" };
 
-const ITEM_RULES = `- One item per food someone would log separately. A standard dish normally eaten as one thing (stamppot, lasagne) may stay one item; otherwise split into components. Never list a dish and its own ingredients both.
+const ITEM_RULES = `- One item per single food someone would log separately: a sandwich or "boterham met kaas" is bread + cheese (+ butter only when mentioned), never "sandwich with cheese". Only a standard cooked dish normally eaten as one thing (stamppot, lasagne, soup) stays one item. Never list a dish and its own ingredients both.
 - amount: estimated edible weight as eaten (cooked weight for cooked foods) in g, or volume in ml for drinks.
 - When the amount is not stated, use typical Dutch portions (slice of bread ≈ 35 g, glass ≈ 200 ml, handful of nuts ≈ 25 g, thin layer of spread ≈ 10–15 g, medium banana ≈ 120 g edible). Photos: judge size from plate, cutlery and context.
 - Unstated variety = the everyday Dutch default, never a speciality: bread → brown/whole-wheat sliced bread, milk → semi-skimmed, cheese → Gouda 48+.
@@ -200,7 +200,7 @@ function describeSystem(locale: AiLocale) {
 First decide what the input is:
 - "label": a photo of a nutrition facts table on packaging. Return no items.
 - "meal": a description or photo of food or drink that was eaten.
-- "no_food": anything else. Return no items.
+- "no_food": only when the input mentions no food or drink at all (e.g. "asdf"). Any named food, however vague, is a meal.
 seen: one short sentence in ${LANGUAGE[locale]} describing what you understood, written so the person can correct it (e.g. "Boerenkoolstamppot met rookworst, één bord").
 For a meal:
 ${ITEM_RULES}
@@ -212,6 +212,7 @@ ${ITEM_RULES}
 
 const SELECT_SYSTEM = `You match diary items to foods in a nutrition database. Each item lists candidate foods as "ref — name".
 Pick the candidate whose nutrition best represents what was eaten: match preparation (cooked/raw/fried), fat level and variety. Prefer the plain everyday variant over speciality ones (Turkish, raisin, lactose-free, enriched) unless the item says so, and prefer a candidate from the named store or brand.
+Never pick a prepared candidate that already contains another listed item (e.g. porridge "bereid m melk" when the milk is its own item); pick the plain food instead.
 ref must be one of the item's candidate refs, or null when none is a reasonable nutritional proxy. Only when ref is null, give estimate: your best estimate of energy (kcal) and grams of protein, available carbs, fat, saturatedFat, sugars, fibre and salt for the item's stated amount. Otherwise estimate is null.`;
 
 function labelSystem(locale: AiLocale) {

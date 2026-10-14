@@ -210,7 +210,12 @@ export function OneOffLogScreen({
 				: fmt(copy.forAmount, { amount: amountText, unit: unitLabel });
 
 	return (
-		<View style={{ flex: 1, backgroundColor: colors.bg }}>
+		<View
+			// One stable child for the form sheet: its ScrollView sizing only
+			// copes with a fixed subview order.
+			collapsable={false}
+			style={{ flex: 1, backgroundColor: colors.bg }}
+		>
 			<Stack.Screen options={options} />
 			<DatePickerSheet
 				visible={choosingDay}
