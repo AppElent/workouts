@@ -12,6 +12,7 @@ import { oneOffLogNl } from "./one-off-log";
 import { profileNl } from "./profile";
 import { progressNl } from "./progress";
 import { signInNl } from "./sign-in";
+import { signUpNl, verifyEmailNl } from "./sign-up";
 import { strengthNl } from "./strength";
 import { testDataNl } from "./test-data";
 import { trainingNl } from "./training";
@@ -42,6 +43,8 @@ export const nl = {
 	hosted: hostedNl,
 	workoutTools: workoutToolsNl,
 	signIn: signInNl,
+	signUp: signUpNl,
+	verifyEmail: verifyEmailNl,
 	profile: profileNl,
 	account: accountNl,
 	training: trainingNl,

@@ -18,6 +18,7 @@ import { oneOffLogEn } from "./one-off-log";
 import { profileEn } from "./profile";
 import { progressEn } from "./progress";
 import { signInEn } from "./sign-in";
+import { signUpEn, verifyEmailEn } from "./sign-up";
 import { strengthEn } from "./strength";
 import { testDataEn } from "./test-data";
 import { trainingEn } from "./training";
@@ -49,6 +50,8 @@ export const en = {
 	hosted: hostedEn,
 	workoutTools: workoutToolsEn,
 	signIn: signInEn,
+	signUp: signUpEn,
+	verifyEmail: verifyEmailEn,
 	profile: profileEn,
 	account: accountEn,
 	training: trainingEn,

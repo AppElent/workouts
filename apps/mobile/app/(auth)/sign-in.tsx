@@ -1,36 +1,32 @@
 /**
- * Email and password — the whole signed-out surface. No sign-up, no reset, no
- * OAuth: #41 scopes V1 to an app you sign into with an account you already
- * have, and every one of those is a Clerk flow with its own screens.
+ * Email and password. No reset and no OAuth yet: each is a Clerk flow with its
+ * own screens. New accounts start at `sign-up`.
  *
  * The submit does not navigate: `finalize()` (in `usePasswordSignIn`) flips
  * `isSignedIn`, the `(auth)` layout above redirects to `/`, and this screen
  * unmounts.
  *
- * Rewritten off hardcoded hex onto `src/theme` (#46). The values are the same
- * ones it already used — the point is that they now come from one place, so
- * this screen cannot drift away from the app behind it.
+ * `autoComplete` / `textContentType` are what let the platform password
+ * manager fill this — and offer to save the password made on `sign-up`.
  */
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, TextInput, View } from "react-native";
+import type { TextInput } from "react-native";
 
+import {
+	AuthInput,
+	AuthLink,
+	AuthMessage,
+	AuthScreen,
+	AuthSubmit,
+} from "../../src/auth/auth-form";
 import { devLogin } from "../../src/auth/config";
 import { usePasswordSignIn } from "../../src/auth/usePasswordSignIn";
 import { useI18n } from "../../src/i18n";
-import {
-	radius,
-	spacing,
-	type Tokens,
-	useThemedStyles,
-	useTokens,
-} from "../../src/theme";
-import { PrimaryButton } from "../../src/ui/button";
-import { Screen } from "../../src/ui/screen";
 import { AppText } from "../../src/ui/text";
 
 export default function SignIn() {
-	const colors = useTokens();
-	const styles = useThemedStyles(createStyles);
+	const router = useRouter();
 	const copy = useI18n().t.signIn;
 	const { submit, busy, error } = usePasswordSignIn();
 	const [email, setEmail] = useState(devLogin?.email ?? "");
@@ -40,105 +36,58 @@ export default function SignIn() {
 	const ready = email.trim().length > 0 && password.length > 0;
 
 	return (
-		<Screen>
-			<View style={styles.root}>
-				<View style={styles.brand}>
-					<View style={styles.mark} />
-					<AppText variant="display">Foundry</AppText>
-					<AppText variant="caption">{copy.tagline}</AppText>
-				</View>
-
-				<TextInput
-					style={styles.input}
-					placeholder={copy.email}
-					placeholderTextColor={colors.textFaint}
-					value={email}
-					onChangeText={setEmail}
-					autoCapitalize="none"
-					autoCorrect={false}
-					keyboardType="email-address"
-					autoComplete="email"
-					textContentType="username"
-					returnKeyType="next"
-					onSubmitEditing={() => passwordRef.current?.focus()}
-				/>
-				<TextInput
-					ref={passwordRef}
-					style={styles.input}
-					placeholder={copy.password}
-					placeholderTextColor={colors.textFaint}
-					value={password}
-					onChangeText={setPassword}
-					secureTextEntry
-					autoCapitalize="none"
-					autoComplete="current-password"
-					textContentType="password"
-					returnKeyType="go"
-					onSubmitEditing={() => ready && submit(email, password)}
-				/>
-
-				{error ? (
-					<AppText variant="caption" style={{ color: colors.danger }}>
-						{error}
-					</AppText>
-				) : null}
-
-				{busy ? (
-					<View style={styles.busy}>
-						<ActivityIndicator color={colors.onAccent} />
-					</View>
-				) : (
-					<PrimaryButton
-						label={copy.submit}
-						disabled={!ready}
-						style={!ready && styles.disabled}
-						onPress={() => submit(email, password)}
+		<AuthScreen
+			title="Foundry"
+			subtitle={copy.tagline}
+			footer={
+				<>
+					<AuthLink
+						prompt={copy.noAccount}
+						label={copy.createAccount}
+						onPress={() => router.replace("/sign-up")}
 					/>
-				)}
+					{devLogin ? (
+						<AppText variant="caption" style={{ textAlign: "center" }}>
+							{copy.devNote}
+						</AppText>
+					) : null}
+				</>
+			}
+		>
+			<AuthInput
+				placeholder={copy.email}
+				value={email}
+				onChangeText={setEmail}
+				autoCapitalize="none"
+				autoCorrect={false}
+				keyboardType="email-address"
+				autoComplete="email"
+				textContentType="username"
+				returnKeyType="next"
+				submitBehavior="submit"
+				onSubmitEditing={() => passwordRef.current?.focus()}
+			/>
+			<AuthInput
+				ref={passwordRef}
+				placeholder={copy.password}
+				value={password}
+				onChangeText={setPassword}
+				secureTextEntry
+				autoCapitalize="none"
+				autoComplete="current-password"
+				textContentType="password"
+				returnKeyType="go"
+				onSubmitEditing={() => ready && submit(email, password)}
+			/>
 
-				{devLogin ? (
-					<AppText variant="caption" style={styles.devNote}>
-						{copy.devNote}
-					</AppText>
-				) : null}
-			</View>
-		</Screen>
+			<AuthMessage message={error} />
+
+			<AuthSubmit
+				label={copy.submit}
+				busy={busy}
+				disabled={!ready}
+				onPress={() => submit(email, password)}
+			/>
+		</AuthScreen>
 	);
 }
-
-const createStyles = (colors: Tokens) =>
-	StyleSheet.create({
-		root: {
-			flex: 1,
-			justifyContent: "center",
-			paddingHorizontal: spacing.lg,
-			gap: spacing.sm,
-		},
-		brand: { gap: spacing.xs, marginBottom: spacing.lg },
-		mark: {
-			width: 40,
-			height: 40,
-			borderRadius: radius.pill,
-			backgroundColor: colors.accentFill,
-			marginBottom: spacing.sm,
-		},
-		input: {
-			borderWidth: 1,
-			borderColor: colors.border,
-			backgroundColor: colors.surface,
-			borderRadius: radius.lg,
-			paddingHorizontal: spacing.md,
-			paddingVertical: 14,
-			fontSize: 16,
-			color: colors.text,
-		},
-		// Matches PrimaryButton's height so the layout does not jump on submit.
-		busy: {
-			backgroundColor: colors.accentFill,
-			borderRadius: radius.pill,
-			paddingVertical: 14,
-			alignItems: "center",
-		},
-		disabled: { opacity: 0.5 },
-		devNote: { textAlign: "center", marginTop: spacing.sm },
-	});
