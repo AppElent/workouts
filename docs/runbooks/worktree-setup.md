@@ -6,7 +6,7 @@ version: 1.1.0
 
 # Worktree setup
 
-Worktrees share the dev deployment `colorless-sturgeon-704` by default. Create an isolated Convex deployment only when the user asks for one. The repository-owned setup command works from PowerShell, cmd.exe, bash, and zsh; editor actions should call it instead of embedding shell-specific setup logic.
+Worktrees share the dev deployment `colorless-sturgeon-704` by default (a recorded exception in [CODING_STANDARDS.md](../../CODING_STANDARDS.md#local-bindings-and-exceptions)). Create an isolated Convex deployment only when the user asks for one. The repository-owned setup command works from PowerShell, cmd.exe, bash, and zsh; editor actions should call it instead of embedding shell-specific setup logic.
 
 The default is safe and does not configure Convex:
 

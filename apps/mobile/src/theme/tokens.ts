@@ -246,6 +246,8 @@ export const type = {
 	body: { fontSize: 15, fontWeight: "500" },
 	label: { fontSize: 13, fontWeight: "600" },
 	caption: { fontSize: 12, fontWeight: "500" },
+	/** Dense labels inside chips and plates; never body copy. */
+	micro: { fontSize: 10, fontWeight: "700" },
 	/** Numbers that are the point of the screen: reps, weight, set counts. */
 	metric: { fontSize: 28, fontWeight: "800" },
 

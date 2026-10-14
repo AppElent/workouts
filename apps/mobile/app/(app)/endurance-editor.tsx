@@ -1,6 +1,5 @@
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { api, type Id } from "../../src/convex/api";
 import { useStalledOffline } from "../../src/data/stalled-offline";
@@ -25,10 +24,9 @@ export default function EnduranceEditorRoute() {
 	const { t } = useI18n();
 	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);
-	const [retryNonce, setRetryNonce] = useState(0);
 	const activity = useQuery(
 		api.enduranceActivities.get,
-		id && retryNonce % 2 === 0 ? { id: id as Id<"activities"> } : "skip",
+		id ? { id: id as Id<"activities"> } : "skip",
 	);
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
@@ -53,17 +51,7 @@ export default function EnduranceEditorRoute() {
 					contentInsetAdjustmentBehavior="automatic"
 					contentContainerStyle={styles.content}
 				>
-					<EmptyState
-						title={copy.offlineTitle}
-						body={copy.offlineBody}
-						action={{
-							label: copy.retry,
-							onPress: () => {
-								setRetryNonce((n) => n + 1);
-								setTimeout(() => setRetryNonce((n) => n + 1), 0);
-							},
-						}}
-					/>
+					<EmptyState title={copy.offlineTitle} body={copy.offlineBody} />
 				</ScrollView>
 			) : id && activity === undefined ? (
 				<ScrollView

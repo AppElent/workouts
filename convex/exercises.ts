@@ -126,8 +126,9 @@ export const remove = mutation({
     if (exercise.userId !== userId) throw new Error('Unauthorized')
     const sets = await ctx.db
       .query('sets')
-      .withIndex('by_user', (q) => q.eq('userId', userId))
-      .filter((q) => q.eq(q.field('exerciseId'), id))
+      .withIndex('by_user_exercise', (q) =>
+        q.eq('userId', userId).eq('exerciseId', id),
+      )
       .collect()
     for (const set of sets) {
       await ctx.db.delete(set._id)

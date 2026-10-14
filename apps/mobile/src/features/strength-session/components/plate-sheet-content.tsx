@@ -1,9 +1,15 @@
 import { calcPlates, DEFAULT_BAR, generateWarmup } from "@foundry/core";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { fmt, useI18n } from "../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
-import { Eyebrow } from "./coach";
-import { AppText } from "./text";
+import { fmt, useI18n } from "../../../i18n";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	type,
+	useThemedStyles,
+} from "../../../theme";
+import { Eyebrow } from "../../../ui/coach";
+import { AppText } from "../../../ui/text";
 
 function plateHeight(weight: number) {
 	return Math.max(18, Math.min(56, 18 + weight * 1.5));
@@ -120,7 +126,7 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "center",
 			justifyContent: "center",
 		},
-		plateText: { fontSize: 9, fontWeight: "800", color: colors.onAccent },
+		plateText: { ...type.micro, fontWeight: "800", color: colors.onAccent },
 		warn: { color: colors.warn },
 		warmupList: { gap: spacing.xs },
 		row: {

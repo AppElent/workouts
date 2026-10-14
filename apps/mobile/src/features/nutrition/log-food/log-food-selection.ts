@@ -1,12 +1,9 @@
 import {
 	formatServingSelection,
 	NUTRIENT_KEYS,
-	NUTRIENT_UNITS,
-	type NutrientValue,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 	previewServing,
-	roundForDisplay,
 	type ServingOption,
 	type ShippedFood,
 	servingOptions,
@@ -39,16 +36,6 @@ export type FoodBrowserTab =
 	| "recipes"
 	| "all";
 export type FoodFilter = FoodBrowserTab;
-
-export function formatNutrient(
-	value: NutrientValue,
-	key: (typeof NUTRIENT_KEYS)[number],
-	messages: { trace: string; absent: string },
-): string {
-	if (value.kind === "trace") return messages.trace;
-	if (value.kind === "absent") return messages.absent;
-	return `${roundForDisplay(key, value.amount)} ${NUTRIENT_UNITS[key]}`;
-}
 
 export function servingChoices(
 	selection: FoodSelection,

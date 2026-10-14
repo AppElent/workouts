@@ -192,6 +192,8 @@ export function HostedDetailScreen() {
 			<View style={styles.actions}>
 				{hosted.status === "draft" ? (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy }}
 						onPress={() =>
 							hostedId &&
 							run(() => openWorkout({ id: hostedId }), copy.openError)
@@ -205,6 +207,8 @@ export function HostedDetailScreen() {
 
 				{hosted.status === "open" ? (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy }}
 						onPress={() => void close()}
 						disabled={busy}
 						style={[styles.primaryBtn, busy && styles.dimmed]}
@@ -214,6 +218,8 @@ export function HostedDetailScreen() {
 				) : null}
 
 				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ disabled: busy }}
 					onPress={() => void remove()}
 					disabled={busy}
 					style={[styles.ghostBtn, busy && styles.dimmed]}

@@ -7,14 +7,6 @@ import {
 } from "@foundry/core/nutrition";
 import type { FoodVisual } from "./personal-food-repository";
 
-export function positiveOneOffNumber(value: string, label: string): number {
-	const parsed = Number(value.replace(",", ".").trim());
-	if (!Number.isFinite(parsed) || parsed <= 0) {
-		throw new Error(`${label} must be greater than zero.`);
-	}
-	return parsed;
-}
-
 export function formatSnapshotAmount(
 	amount: number,
 	baseUnit: "g" | "ml" | "serving",

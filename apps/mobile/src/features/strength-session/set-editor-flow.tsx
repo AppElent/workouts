@@ -17,8 +17,8 @@ import { api, type Id } from "../../convex/api";
 import { useExercise } from "../../data/exercises";
 import { useI18n } from "../../i18n";
 import { convexErrorMessage, useConfirm } from "../../ui/confirm-dialog";
-import { useRestTimer } from "../../ui/rest-timer";
 import { useToast } from "../../ui/toast";
+import { useRestTimer } from "./components/rest-timer";
 import {
 	newLogOperationId,
 	type SetFields,

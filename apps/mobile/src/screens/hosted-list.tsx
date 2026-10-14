@@ -99,6 +99,8 @@ export function HostedListScreen() {
 						onSubmitEditing={() => void submitJoin()}
 					/>
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy || token.trim() === "" }}
 						onPress={() => void submitJoin()}
 						disabled={busy || token.trim() === ""}
 						style={[
@@ -129,6 +131,7 @@ export function HostedListScreen() {
 					<View style={styles.list}>
 						{hosted.map((h) => (
 							<Pressable
+								accessibilityRole="button"
 								key={h._id}
 								onPress={() =>
 									router.push({
