@@ -80,7 +80,12 @@ ensure_metro() {
 		echo $! >"$STATE/metro.pid"
 	)
 	for _ in $(seq 1 60); do
-		curl -sf "http://127.0.0.1:$PORT/status" | grep -q running && return
+		if curl -sf "http://127.0.0.1:$PORT/status" | grep -q running; then
+			# pnpm -> node puts the listener outside metro.pid's tree; record it
+			# so `down` stops exactly the Metro this driver started.
+			lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | head -1 >"$STATE/metro.listener"
+			return
+		fi
 		sleep 1
 	done
 	die "Metro did not come up; see $STATE/metro.log"
@@ -173,10 +178,12 @@ cmd_down() {
 		kill "$(cat "$STATE/metro.pid")" 2>/dev/null || true
 		rm -f "$STATE/metro.pid"
 	fi
-	# pnpm -> node leaves the listener outside the pid tree above; stop it only
-	# when it belongs to this checkout.
-	if [ "$(metro_cwd)" = "$MOBILE_DIR" ]; then
-		kill "$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | head -1)" 2>/dev/null || true
+	# Only the listener this driver recorded; a reused Metro stays running.
+	if [ -f "$STATE/metro.listener" ]; then
+		# Guard against pid reuse: the recorded pid must still own the port.
+		lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | grep -qx "$(cat "$STATE/metro.listener")" &&
+			kill "$(cat "$STATE/metro.listener")" 2>/dev/null || true
+		rm -f "$STATE/metro.listener"
 	fi
 	u="$(udid)"
 	[ -z "$u" ] || xcrun simctl shutdown "$u" 2>/dev/null || true
