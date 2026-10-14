@@ -5,7 +5,7 @@
  * Sign-in, sign-up and email verification share one look so that moving
  * between them reads as one flow. Third-party providers (Apple, Google, …)
  * slot in through `AuthScreen`'s `children` between the submit and the
- * footer once they are configured on the Clerk instance.
+ * footer — see `SocialButtons`.
  *
  * `AuthInput` takes `ref` as a plain prop (React 19), so a screen can move
  * focus from one field to the next on "return".
@@ -124,10 +124,12 @@ export function AuthLink({
 	prompt,
 	label,
 	onPress,
+	disabled = false,
 }: {
 	prompt?: string;
 	label: string;
 	onPress: () => void;
+	disabled?: boolean;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -136,10 +138,15 @@ export function AuthLink({
 			{prompt ? <AppText variant="caption">{prompt}</AppText> : null}
 			<Pressable
 				accessibilityRole="link"
+				accessibilityState={{ disabled }}
+				disabled={disabled}
 				onPress={onPress}
 				hitSlop={spacing.sm}
 			>
-				<AppText variant="caption" style={{ color: colors.accent }}>
+				<AppText
+					variant="caption"
+					style={{ color: disabled ? colors.textMuted : colors.accent }}
+				>
 					{label}
 				</AppText>
 			</Pressable>

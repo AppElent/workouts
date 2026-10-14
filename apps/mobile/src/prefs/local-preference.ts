@@ -35,6 +35,8 @@ export const PREFERENCE_KEYS = {
 	locale: "workouts:locale",
 	exerciseLibraryLayout: "workouts:exercise-library-layout",
 	appearance: "workouts:appearance",
+	/** Consent to send text and photos to the nutrition AI provider. */
+	nutritionAiConsent: "workouts:nutrition-ai-consent",
 } as const;
 
 export type PreferenceKey =

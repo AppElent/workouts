@@ -33,6 +33,7 @@ const sources = {
 	nutritionCaptureDrafts: { read: (db: Db, u: string) => db.query("nutritionCaptureDrafts").withIndex("by_user_and_record", (q) => q.eq("userId", u)) },
 	nutritionCaptureDraftCounts: { export: false, read: (db: Db, u: string) => db.query("nutritionCaptureDraftCounts").withIndex("by_user_and_date", (q) => q.eq("userId", u)) },
 	nutritionCaptureDraftReceipts: { export: false, read: (db: Db, u: string) => db.query("nutritionCaptureDraftReceipts").withIndex("by_user_and_operation", (q) => q.eq("userId", u)) },
+	nutritionAiUsage: { export: false, read: (db: Db, u: string) => db.query("nutritionAiUsage").withIndex("by_user_and_day", (q) => q.eq("userId", u)) },
 	personalMeasures: { read: (db: Db, u: string) => db.query("personalMeasures").withIndex("by_user_and_order", (q) => q.eq("userId", u)) },
 	supplementaryServings: { read: (db: Db, u: string) => db.query("supplementaryServings").withIndex("by_userId_and_foodId", (q) => q.eq("userId", u)) },
 } as const;

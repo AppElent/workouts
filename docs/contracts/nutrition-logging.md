@@ -10,7 +10,8 @@ status: current
 A person finds a food, sets an exact amount, and logs it to a Meal Slot and day.
 Studies: [log food](../../designs/nutrition/log_final.html),
 [entry editor round 5](../../designs/entry-editor/round5.html),
-[one-off](../../designs/nutrition/one-off_final.html).
+[one-off](../../designs/nutrition/one-off_final.html),
+[AI entry](../../designs/nutrition/ai-entry_final.html).
 
 ## Behavior
 
@@ -81,6 +82,34 @@ toolbar (meal/date/delete for entries; replace/remove for parts; none for one-ti
   basis menu with the total below. The snapshot stores totals.
 - The sheet title is the task; the meal + day below it is the destination menu.
 - The Personal food / Recipe / One-off segment carries name and photo across.
+
+### Hulp bij invoeren (AI entry)
+
+- **One input.** A `formSheet` with task title and the meal + day destination menu.
+  Text, camera, or photo library; the AI tells a nutrition label from a meal.
+  Replaces the strict text parser and pasted-label modes; manual estimates stay in
+  One-off. Entry points: ✨ in Log food (carries the query), Diary ⋯, and
+  "Verwerk met hulp" on a Capture Draft (carries the note; logging removes it).
+- **Review before anything is saved.** "Wat ik zag" / "Jouw beschrijving" stays on
+  top and is editable to re-run. Items are a plain table (name · amount · kcal ›)
+  followed by a "Totaal" table; uncertain amounts are orange with ~. Sources live
+  in the footer only. A row opens the [amount editor](#amount-editor) with
+  Vervangen and delete.
+- **Grounding.** The phone searches its Shipped and Personal Foods for each
+  item and the AI picks one candidate. With no match the item becomes an AI
+  estimate (~ geschat), logged as a One-off. Logged entries keep their Food
+  Reference and are estimated. Open Food Facts as a further source is not built yet.
+- **Opslaan als.** A menu row above the button: Losse items (default), Combo, or
+  Eén item (One-off or Recipe, values per portion). The button label follows it.
+- **Label.** A recognised label opens the personal food editor filled from the
+  label (see [label scanning](nutrition-foods.md#label-scanning)).
+- **Limits.** One-time consent before first use; a per-account daily limit of
+  analyses, each allowing one candidate selection. Offline keeps the text and
+  retries once connected (notes need a connection too); the limit state offers
+  "Opslaan als notitie" and "Zoek zelf". Calls run server-side.
+- **Units.** A matched food counts in its own base unit: an item described in
+  ml uses the AI's weight estimate for a per-gram food, and per-ml foods are
+  only offered for amounts described as a volume.
 
 ## States
 

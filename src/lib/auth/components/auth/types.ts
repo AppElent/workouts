@@ -17,6 +17,7 @@ export interface AuthConfig {
 		forgotPassword: string;
 		afterAuth: string;
 		account: string;
+		ssoCallback: string;
 	};
 	features: { forgotPassword: boolean };
 	socialProviders: SocialProvider[];

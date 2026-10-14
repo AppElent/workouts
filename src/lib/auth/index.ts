@@ -14,6 +14,7 @@ export { ForgotPasswordForm } from "#/lib/auth/components/auth/ForgotPasswordFor
 export { ProfilePanel } from "#/lib/auth/components/auth/ProfilePanel";
 export { SignInForm } from "#/lib/auth/components/auth/SignInForm";
 export { SignUpForm } from "#/lib/auth/components/auth/SignUpForm";
+export { SocialButtons } from "#/lib/auth/components/auth/SocialButtons";
 export { TestLoginButton } from "#/lib/auth/components/auth/TestLoginButton";
 export {
 	type AuthConfig,

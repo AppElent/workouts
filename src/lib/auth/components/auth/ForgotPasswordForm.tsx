@@ -1,5 +1,6 @@
 import { useSignIn } from "@clerk/clerk-react";
 import { useState } from "react";
+import { useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
@@ -7,6 +8,7 @@ import { clerkErrorMessage } from "./types";
 
 export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 	const { isLoaded, signIn, setActive } = useSignIn();
+	const { auth } = useMessages();
 	const [step, setStep] = useState<"request" | "reset">("request");
 	const [email, setEmail] = useState("");
 	const [code, setCode] = useState("");
@@ -51,7 +53,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 				await setActive({ session: result.createdSessionId });
 				onSuccess();
 			} else {
-				setError("Could not reset password.");
+				setError(auth.forgotPassword.failed);
 			}
 		} catch (err) {
 			setError(clerkErrorMessage(err));
@@ -65,7 +67,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 			<form onSubmit={resetPassword} noValidate className="flex flex-col gap-3">
 				<AuthError message={error} />
 				<AuthField
-					label="Code"
+					label={auth.forgotPassword.code}
 					type="text"
 					autoComplete="one-time-code"
 					value={code}
@@ -73,14 +75,14 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 					required
 				/>
 				<AuthField
-					label="New password"
+					label={auth.forgotPassword.newPassword}
 					type="password"
 					autoComplete="new-password"
 					value={password}
 					onChange={setPassword}
 					required
 				/>
-				<AuthButton loading={loading}>Reset password</AuthButton>
+				<AuthButton loading={loading}>{auth.forgotPassword.submit}</AuthButton>
 			</form>
 		);
 	}
@@ -89,14 +91,14 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 		<form onSubmit={requestCode} noValidate className="flex flex-col gap-3">
 			<AuthError message={error} />
 			<AuthField
-				label="Email"
+				label={auth.email}
 				type="email"
 				autoComplete="email"
 				value={email}
 				onChange={setEmail}
 				required
 			/>
-			<AuthButton loading={loading}>Send code</AuthButton>
+			<AuthButton loading={loading}>{auth.forgotPassword.sendCode}</AuthButton>
 		</form>
 	);
 }

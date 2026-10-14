@@ -35,6 +35,9 @@ const CODE_MAP: Record<string, string> = {
 	too_many_requests: "Too many attempts. Try again in a moment.",
 	rate_limit_exceeded: "Too many attempts. Try again in a moment.",
 	network_error: "Network error. Check your connection and try again.",
+	// Native Apple sheet: no Apple Account on the device, or its prompt closed.
+	ERR_REQUEST_UNKNOWN:
+		"Apple sign-in didn't finish. Check that you're signed in to your Apple Account in Settings.",
 };
 
 /** `null` in, `null` out — so a call site can render this straight into an error message. */
