@@ -43,3 +43,4 @@ docs/.generated
 data/*.zip
 # Lidl bake-off sheets — the hand-reviewed data/lidl/lidl-bakeoff.json is committed instead (14 MB PDF)
 data/lidl/*.pdf
+ops-snapshot.json

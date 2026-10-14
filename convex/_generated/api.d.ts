@@ -29,6 +29,7 @@ import type * as lib_strengthReferences from "../lib/strengthReferences.js";
 import type * as lib_strengthSession from "../lib/strengthSession.js";
 import type * as lib_testDataBaseline from "../lib/testDataBaseline.js";
 import type * as lib_validate from "../lib/validate.js";
+import type * as monitoring from "../monitoring.js";
 import type * as nutritionAccountMigration from "../nutritionAccountMigration.js";
 import type * as nutritionActivityMarker from "../nutritionActivityMarker.js";
 import type * as nutritionAi from "../nutritionAi.js";
@@ -90,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "lib/strengthSession": typeof lib_strengthSession;
   "lib/testDataBaseline": typeof lib_testDataBaseline;
   "lib/validate": typeof lib_validate;
+  monitoring: typeof monitoring;
   nutritionAccountMigration: typeof nutritionAccountMigration;
   nutritionActivityMarker: typeof nutritionActivityMarker;
   nutritionAi: typeof nutritionAi;
