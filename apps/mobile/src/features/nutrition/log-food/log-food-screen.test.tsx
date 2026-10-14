@@ -938,7 +938,7 @@ describe("the redesigned food browser", () => {
 	it("offers the AI entry point beside barcode rather than nowhere", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(await screen.findByLabelText("Describe a meal"));
+		fireEvent.press(await screen.findByLabelText("Entry help"));
 
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-assistance"),

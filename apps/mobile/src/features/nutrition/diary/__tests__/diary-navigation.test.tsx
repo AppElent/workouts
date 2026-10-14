@@ -172,7 +172,7 @@ describe("Nutrition navigation", () => {
 	it("opens assisted logging from the diary tools and returns to the diary", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Text and nutrition label"));
+		fireEvent.press(await screen.findByText("Entry help"));
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-assistance"),
 		);

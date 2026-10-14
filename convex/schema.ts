@@ -5,6 +5,7 @@ import { v } from 'convex/values'
 import { diarySnapshotFields } from './nutritionDiaryModel'
 import { nutritionGoalTables } from './nutritionGoalTables'
 import { nutritionDraftTables } from "./nutritionDraftTables";
+import { nutritionAiTables } from "./nutritionAiTables";
 import { nutritionLibraryTables } from './nutritionLibraryTables'
 import { supplementaryServingTables } from './supplementaryServingTables'
 import { personalMeasureTables } from './personalMeasureTables'
@@ -16,6 +17,7 @@ export default defineSchema({
   ...nutritionLibraryTables,
   nutritionFoodPhotos: defineTable({userId: v.string(), storageId: v.id("_storage")}).index("by_storage", ["storageId"]).index("by_user", ["userId"]),
   ...nutritionDraftTables,
+  ...nutritionAiTables,
   ...personalMeasureTables,
   ...supplementaryServingTables,
   nutritionDiaryEntries: defineTable({

@@ -44,8 +44,10 @@
     "sentry:convex": "node scripts/convex-sentry.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@base-ui/react": "^1.9.0",
     "@clerk/clerk-react": "^5.61.10",
+    "@foundry/core": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@sentry/cloudflare": "11.6.0",
     "@sentry/node": "11.6.0",
@@ -58,7 +60,6 @@
     "@tanstack/react-start": "^1.168.61",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/router-plugin": "^1.168.43",
-    "@foundry/core": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.46.0",

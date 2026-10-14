@@ -73,7 +73,7 @@ export const en = {
 		settings: "Settings",
 		nutritionSettings: "Nutrition Settings",
 		oneOff: "One-off",
-		assistance: "Logging assistance",
+		assistance: "Entry help",
 		weekOverview: "Week overview",
 		foodLibrary: "Food library",
 		exercises: "Exercises",

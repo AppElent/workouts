@@ -155,6 +155,25 @@ function blankFoodDraft(
 	};
 }
 
+/** Estimated values for one portion, as a one-off or AI entry hands over. */
+function portionFoodDraft(
+	name: string,
+	nutrients: PersonalFoodDraft["nutrients"],
+	portion: string,
+	visual?: FoodVisual,
+): PersonalFoodDraft {
+	return {
+		...blankFoodDraft(name, undefined, visual),
+		baseUnit: "serving",
+		estimated: true,
+		nutritionBasis: {
+			kind: "perServing",
+			label: { en: portion, nl: portion },
+		},
+		nutrients,
+	};
+}
+
 /** A correction is a new local food, never an edit of the shipped record. */
 function correctionDraft(
 	food: ShippedFood,
@@ -273,6 +292,8 @@ export function LogFoodScreen({
 	const [editingFood, setEditingFood] = useState<PersonalFood>();
 	const [forkDraft, setForkDraft] = useState<PersonalFoodDraft>();
 	const [newFoodSeed, setNewFoodSeed] = useState<PersonalFoodDraft>();
+	/** The new food starts with the label camera (unknown barcode). */
+	const [scanLabelOnOpen, setScanLabelOnOpen] = useState(false);
 	const [creatingFood, setCreatingFood] = useState(
 		initialCreateKind !== undefined,
 	);
@@ -281,10 +302,20 @@ export function LogFoodScreen({
 		const { intent, seed } = authoringIntent;
 		if (!intent || intent === "oneOff") return;
 		setFilter(intent === "recipe" ? "recipes" : "pool");
-		if (seed) setNewFoodSeed(blankFoodDraft(seed.name, undefined, seed.visual));
+		if (seed)
+			setNewFoodSeed(
+				seed.nutrients
+					? portionFoodDraft(
+							seed.name,
+							seed.nutrients,
+							t.nutrition.foodEditor.form.serving,
+							seed.visual,
+						)
+					: blankFoodDraft(seed.name, undefined, seed.visual),
+			);
 		setCreatingFood(true);
 		authoringIntent.consume();
-	}, [authoringIntent]);
+	}, [authoringIntent, t.nutrition.foodEditor.form.serving]);
 	const [scanning, setScanning] = useState(false);
 	const [barcodeStatus, setBarcodeStatus] = useState<string>();
 	const [unknownBarcode, setUnknownBarcode] = useState<string>();
@@ -420,6 +451,7 @@ export function LogFoodScreen({
 		setEditingFood(undefined);
 		setForkDraft(undefined);
 		setNewFoodSeed(undefined);
+		setScanLabelOnOpen(false);
 	}
 
 	function showSavedFood(food: PersonalFood) {
@@ -439,8 +471,9 @@ export function LogFoodScreen({
 		}
 	}
 
-	function createFood(name: string, barcode?: string) {
+	function createFood(name: string, barcode?: string, scanLabel = false) {
 		setNewFoodSeed(blankFoodDraft(name, barcode));
+		setScanLabelOnOpen(scanLabel);
 		setCreatingFood(true);
 	}
 
@@ -801,6 +834,7 @@ export function LogFoodScreen({
 			<PersonalFoodEditor
 				food={editingFood}
 				seed={forkDraft ?? newFoodSeed}
+				scanLabelOnOpen={scanLabelOnOpen}
 				defaultClassification={filter === "recipes" ? "recipe" : "ordinary"}
 				onCreateKindChange={
 					// Only a new food offers the segment; a correction or an edit does not.
@@ -901,10 +935,16 @@ export function LogFoodScreen({
 		},
 		onSaveAsNote: saveAsNote,
 	};
+	// The search text (or the note being processed) goes along as the description.
 	const describe = () =>
 		router.push({
 			pathname: "/nutrition-assistance",
-			params: { date, meal: selectedMeal },
+			params: {
+				date,
+				meal: selectedMeal,
+				...(query.trim() ? { text: query.trim() } : {}),
+				...(draftId ? { draftId } : {}),
+			},
 		});
 	const listHeading = hasQuery
 		? {
@@ -1024,6 +1064,11 @@ export function LogFoodScreen({
 					const barcode = unknownBarcode;
 					setUnknownBarcode(undefined);
 					createFood("", barcode);
+				}}
+				onScanLabel={() => {
+					const barcode = unknownBarcode;
+					setUnknownBarcode(undefined);
+					createFood("", barcode, true);
 				}}
 				onSearchByName={() => {
 					setLinkingBarcode(unknownBarcode);

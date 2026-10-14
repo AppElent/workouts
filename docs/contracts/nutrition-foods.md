@@ -11,7 +11,8 @@ A person keeps reusable foods, recipes, combos, and measures so logging stays fa
 Studies: [personal food](../../designs/nutrition/personal-food_final.html),
 [library](../../designs/nutrition/library_final.html),
 [combo](../../designs/nutrition/combo_final.html),
-[measures](../../designs/nutrition/measures_final.html).
+[measures](../../designs/nutrition/measures_final.html),
+[label scanning](../../designs/nutrition/ai-entry_final.html).
 
 ## Model
 
@@ -50,6 +51,21 @@ Studies: [personal food](../../designs/nutrition/personal-food_final.html),
 - **Trace and unknown.** Offered above the decimal keyboard beside ‹ ›.
 - **Photo popup.** Take photo, Choose photo, Icon › (presets, current shown), and
   Remove photo when one exists. Every food editor uses it.
+
+### Label scanning
+
+- **One entry, three places.** A full-width "Etiket scannen" row above Voedingswaarde
+  in the food editor, on an Open Food Facts product with missing values, and as the
+  primary action when a scanned barcode is unknown. Own camera screen with a frame
+  guide (`expo-camera`) and the photo library.
+- **What it fills.** Name, brand, barcode, net quantity, per-100 values, and up to
+  three Servings with everyday names derived from the label ("Portie (½ zak)",
+  "1 reep", "Hele verpakking"). Filled fields are marked "uit etiket"; nothing
+  saves until ✓.
+- **Never overwrite silently.** On an incomplete provider product only empty values
+  are filled. Values that differ from Open Food Facts or fail the energy, kJ/kcal,
+  saturated ≤ fat, sugars ≤ carbs, or EAN checks are flagged per row with
+  "Opnieuw scannen".
 
 ### Library
 
