@@ -21,11 +21,14 @@ import { type CodedError, readError } from "./clerkErrors";
 
 export type SocialProvider = "apple" | "google" | "microsoft";
 
-export const SOCIAL_PROVIDERS: readonly SocialProvider[] = [
-	"apple",
-	"google",
-	"microsoft",
-];
+/**
+ * Google only has working credentials on the development Clerk instance, so
+ * it is offered in local dev builds only. Drop the `__DEV__` gate once the
+ * production instance has its own Google OAuth client.
+ */
+export const SOCIAL_PROVIDERS: readonly SocialProvider[] = __DEV__
+	? ["apple", "google", "microsoft"]
+	: ["apple", "microsoft"];
 
 const INCOMPLETE =
 	"Your account needs another step this app doesn't support yet. Finish signing up on the web, then sign in here.";

@@ -28,7 +28,12 @@ const AUTH_CONFIG = {
 	...DEFAULT_AUTH_CONFIG,
 	appName: "Foundry",
 	socialProviders: [
-		{ id: "google", label: "Google", strategy: "oauth_google" },
+		// Google only has working credentials on the development Clerk
+		// instance; offer it on the local dev server only until production
+		// has its own Google OAuth client.
+		...(import.meta.env.DEV
+			? [{ id: "google", label: "Google", strategy: "oauth_google" as const }]
+			: []),
 		{ id: "microsoft", label: "Microsoft", strategy: "oauth_microsoft" },
 		{ id: "apple", label: "Apple", strategy: "oauth_apple" },
 	],

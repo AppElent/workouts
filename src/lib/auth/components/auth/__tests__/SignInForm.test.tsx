@@ -8,10 +8,16 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const create = vi.fn();
+const prepareFirstFactor = vi.fn();
+const attemptFirstFactor = vi.fn();
 const setActive = vi.fn();
 let isLoaded = true;
 vi.mock("@clerk/clerk-react", () => ({
-	useSignIn: () => ({ isLoaded, signIn: { create }, setActive }),
+	useSignIn: () => ({
+		isLoaded,
+		signIn: { create, prepareFirstFactor, attemptFirstFactor },
+		setActive,
+	}),
 }));
 
 import { LocaleProvider } from "#/lib/i18n";
@@ -39,6 +45,8 @@ describe("SignInForm", () => {
 		cleanup();
 		vi.unstubAllEnvs();
 		create.mockReset();
+		prepareFirstFactor.mockReset();
+		attemptFirstFactor.mockReset();
 		setActive.mockReset();
 		isLoaded = true;
 	});
@@ -72,5 +80,62 @@ describe("SignInForm", () => {
 		renderForm();
 		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 		expect(await screen.findByText("Invalid.")).toBeDefined();
+	});
+
+	it("signs in with an emailed code", async () => {
+		create.mockResolvedValue({
+			supportedFirstFactors: [
+				{ strategy: "password" },
+				{ strategy: "email_code", emailAddressId: "ea_1" },
+			],
+		});
+		attemptFirstFactor.mockResolvedValue({
+			status: "complete",
+			createdSessionId: "s2",
+		});
+		const onSuccess = vi.fn();
+		renderForm(onSuccess);
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.click(
+			screen.getByRole("button", { name: "Email me a sign-in code" }),
+		);
+		expect(
+			await screen.findByText("We sent a 6-digit code to a@b.com."),
+		).toBeDefined();
+		expect(create).toHaveBeenCalledWith({ identifier: "a@b.com" });
+		expect(prepareFirstFactor).toHaveBeenCalledWith({
+			strategy: "email_code",
+			emailAddressId: "ea_1",
+		});
+		fireEvent.change(screen.getByLabelText("Code"), {
+			target: { value: "123456" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+		await vi.waitFor(() =>
+			expect(setActive).toHaveBeenCalledWith({ session: "s2" }),
+		);
+		expect(attemptFirstFactor).toHaveBeenCalledWith({
+			strategy: "email_code",
+			code: "123456",
+		});
+		expect(onSuccess).toHaveBeenCalled();
+	});
+
+	it("explains when the account cannot use a code", async () => {
+		create.mockResolvedValue({
+			supportedFirstFactors: [{ strategy: "password" }],
+		});
+		renderForm();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Email me a sign-in code" }),
+		);
+		expect(
+			await screen.findByText(
+				"Sign-in codes aren't available for this account.",
+			),
+		).toBeDefined();
+		expect(prepareFirstFactor).not.toHaveBeenCalled();
 	});
 });

@@ -38,6 +38,14 @@ Nothing here lives in `env.manifest.ts`.
 | Apple on iOS | Native sheet; Android and web use the browser OAuth flow |
 | Preview deploys | Separate Clerk test instance; unaffected |
 
+Google is gated to local development (`import.meta.env.DEV` on web, `__DEV__`
+on mobile) because only the development instance has working Google
+credentials. Remove both gates once production has its own Google OAuth client.
+
+Email-code sign-in ("Email me a sign-in code") needs **Email verification code**
+enabled as a sign-in option under **User & authentication → Email**; it is on
+for both instances.
+
 Foundry's web app must be served from a subdomain of `appelent.nl`. Any other
 domain needs a Clerk satellite domain first.
 

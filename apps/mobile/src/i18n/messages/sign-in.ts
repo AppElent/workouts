@@ -5,6 +5,8 @@ export const signInEn = {
 	submit: "Sign in",
 	noAccount: "No account yet?",
 	createAccount: "Create one",
+	emailCode: "Email me a sign-in code",
+	emailFirst: "Enter your email first.",
 	devNote: "Dev build: test credentials pre-filled (EXPO_PUBLIC_TEST_USER_*).",
 	social: {
 		or: "or",
@@ -21,6 +23,8 @@ export const signInNl: typeof signInEn = {
 	submit: "Inloggen",
 	noAccount: "Nog geen account?",
 	createAccount: "Maak er een aan",
+	emailCode: "Stuur me een inlogcode",
+	emailFirst: "Vul eerst je e-mailadres in.",
 	devNote:
 		"Ontwikkelbuild: testgegevens vooraf ingevuld (EXPO_PUBLIC_TEST_USER_*).",
 	social: {
