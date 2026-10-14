@@ -4,6 +4,7 @@ import { AuthButton } from "./AuthButton";
 import { useAuthConfig } from "./AuthConfigProvider";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
+import { SocialButtons } from "./SocialButtons";
 import { TestLoginButton } from "./TestLoginButton";
 import { clerkErrorMessage } from "./types";
 
@@ -39,6 +40,7 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 
 	return (
 		<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
+			<SocialButtons />
 			<AuthError message={error} />
 			<AuthField
 				label="Email"

@@ -1,6 +1,6 @@
 /**
- * Email and password. No reset and no OAuth yet: each is a Clerk flow with its
- * own screens. New accounts start at `sign-up`.
+ * Email and password, or a social provider (`SocialButtons`). No reset yet: it
+ * is a Clerk flow with its own screens. New accounts start at `sign-up`.
  *
  * The submit does not navigate: `finalize()` (in `usePasswordSignIn`) flips
  * `isSignedIn`, the `(auth)` layout above redirects to `/`, and this screen
@@ -21,6 +21,7 @@ import {
 	AuthSubmit,
 } from "../../src/auth/auth-form";
 import { devLogin } from "../../src/auth/config";
+import { SocialButtons } from "../../src/auth/social-buttons";
 import { usePasswordSignIn } from "../../src/auth/usePasswordSignIn";
 import { useI18n } from "../../src/i18n";
 import { AppText } from "../../src/ui/text";
@@ -88,6 +89,8 @@ export default function SignIn() {
 				disabled={!ready}
 				onPress={() => submit(email, password)}
 			/>
+
+			<SocialButtons />
 		</AuthScreen>
 	);
 }

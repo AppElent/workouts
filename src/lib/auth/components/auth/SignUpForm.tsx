@@ -4,6 +4,7 @@ import { AuthButton } from "./AuthButton";
 import { useAuthConfig } from "./AuthConfigProvider";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
+import { SocialButtons } from "./SocialButtons";
 import { clerkErrorMessage } from "./types";
 
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
@@ -78,6 +79,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
 	return (
 		<form onSubmit={submitDetails} noValidate className="flex flex-col gap-3">
+			<SocialButtons />
 			<AuthError message={error} />
 			<AuthField
 				label="Email"

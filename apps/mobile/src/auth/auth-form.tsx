@@ -5,7 +5,7 @@
  * Sign-in, sign-up and email verification share one look so that moving
  * between them reads as one flow. Third-party providers (Apple, Google, …)
  * slot in through `AuthScreen`'s `children` between the submit and the
- * footer once they are configured on the Clerk instance.
+ * footer — see `SocialButtons`.
  *
  * `AuthInput` takes `ref` as a plain prop (React 19), so a screen can move
  * focus from one field to the next on "return".

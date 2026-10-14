@@ -6,6 +6,12 @@ export const signInEn = {
 	noAccount: "No account yet?",
 	createAccount: "Create one",
 	devNote: "Dev build: test credentials pre-filled (EXPO_PUBLIC_TEST_USER_*).",
+	social: {
+		or: "or",
+		apple: "Continue with Apple",
+		google: "Continue with Google",
+		microsoft: "Continue with Microsoft",
+	},
 };
 
 export const signInNl: typeof signInEn = {
@@ -17,4 +23,10 @@ export const signInNl: typeof signInEn = {
 	createAccount: "Maak er een aan",
 	devNote:
 		"Ontwikkelbuild: testgegevens vooraf ingevuld (EXPO_PUBLIC_TEST_USER_*).",
+	social: {
+		or: "of",
+		apple: "Doorgaan met Apple",
+		google: "Doorgaan met Google",
+		microsoft: "Doorgaan met Microsoft",
+	},
 };

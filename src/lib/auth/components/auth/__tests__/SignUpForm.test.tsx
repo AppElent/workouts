@@ -7,6 +7,7 @@ const prepare = vi.fn();
 const attempt = vi.fn();
 const setActive = vi.fn();
 vi.mock("@clerk/clerk-react", () => ({
+	useSignIn: () => ({ isLoaded: true, signIn: {} }),
 	useSignUp: () => ({
 		isLoaded: true,
 		signUp: {

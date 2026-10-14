@@ -13,6 +13,7 @@ import { ToastHost } from "#/components/ui/toast";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
 import {
+	type AuthConfig,
 	AuthConfigProvider,
 	DEFAULT_AUTH_CONFIG,
 	THEME_INIT_SCRIPT,
@@ -26,12 +27,18 @@ import appCss from "../styles.css?url";
 const AUTH_CONFIG = {
 	...DEFAULT_AUTH_CONFIG,
 	appName: "Foundry",
-};
+	socialProviders: [
+		{ id: "google", label: "Google", strategy: "oauth_google" },
+		{ id: "microsoft", label: "Microsoft", strategy: "oauth_microsoft" },
+		{ id: "apple", label: "Apple", strategy: "oauth_apple" },
+	],
+} satisfies AuthConfig;
 
 // Routes that render without the AppShell chrome (sidebar / bottom nav).
 const BARE_ROUTES = [
 	"/sign-in",
 	"/sign-up",
+	"/sso-callback",
 	"/forgot-password",
 	"/login",
 	"/api/cli/auth",
