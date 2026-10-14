@@ -59,7 +59,27 @@ export function useOneOffDraft({
 	const [amount, setAmount] = useState("1");
 	const [unit, setUnit] = useState<"serving" | "g" | "ml">("serving");
 	const [basis, setBasis] = useState<OneOffBasis>("total");
-	const [values, setValues] = useState(EMPTY);
+	// Seeded totals (AI entry, "Eén item") fill the values for one portion.
+	const [values, setValues] = useState(() =>
+		seed?.nutrients
+			? (Object.fromEntries(
+					NUTRIENT_KEYS.map((key) => {
+						const value = seed.nutrients?.[key] ?? { kind: "absent" };
+						return [
+							key,
+							{
+								kind: value.kind,
+								amount:
+									value.kind === "value"
+										? // At most 2 decimals: readable, and close enough to log.
+											String(Number(value.amount.toFixed(2))).replace(".", ",")
+										: "",
+							},
+						];
+					}),
+				) as Record<NutrientKey, NutrientInput>)
+			: EMPTY,
+	);
 	const [destination, setDestination] = useState({ date, meal });
 	const [errors, setErrors] = useState<{
 		name?: string;
@@ -190,11 +210,17 @@ export function useOneOffDraft({
 		/** Name and photo for a Personal food or Recipe form; it owns the photo. */
 		handOff: (): FoodAuthoringSeed => {
 			photo.keep();
+			// Values travel along only as one portion of a whole-amount entry.
+			const portion =
+				basis === "total" && unit === "serving" && amountValue === 1
+					? nutrients
+					: undefined;
 			return {
 				name,
 				...(photo.visual && photo.visual.kind !== "remote"
 					? { visual: photo.visual }
 					: {}),
+				...(portion ? { nutrients: portion } : {}),
 			};
 		},
 	};

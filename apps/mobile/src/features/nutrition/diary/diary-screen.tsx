@@ -403,6 +403,17 @@ export function DiaryScreen({
 										},
 									})
 								}
+								onAssistDraft={(draft) =>
+									router.push({
+										pathname: "/nutrition-assistance",
+										params: {
+											date: draft.date,
+											meal: draft.meal,
+											draftId: draft.id,
+											text: draft.note,
+										},
+									})
+								}
 								onEditDraft={setEditingDraft}
 								onDeleteDraft={(draft) => {
 									void confirm({

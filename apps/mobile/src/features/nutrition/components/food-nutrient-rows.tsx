@@ -17,9 +17,14 @@ import { FoodValueField } from "./food-value-field";
 export function FoodNutrientRows({
 	values,
 	fields,
+	marked,
+	markLabel,
 }: {
 	values: Readonly<Record<NutrientKey, NutrientInput>>;
 	fields: ReturnType<typeof useNutrientFields>;
+	/** Values filled from a scanned label, tagged with `markLabel`. */
+	marked?: ReadonlySet<NutrientKey>;
+	markLabel?: string;
 }) {
 	const { t } = useI18n();
 	const copy = t.nutrition.foodEditor;
@@ -48,6 +53,14 @@ export function FoodNutrientRows({
 							? copy.ofWhichSugars
 							: copy.ofWhichSaturated
 						: t.nutrition.nutrients[key]}
+					{marked?.has(key) && markLabel ? (
+						<AppText
+							variant="caption"
+							style={{ color: colors.accent, fontWeight: "700" }}
+						>
+							{`  ${markLabel.toUpperCase()}`}
+						</AppText>
+					) : null}
 				</AppText>
 				<FoodValueField
 					{...fields.field(key)}
