@@ -942,6 +942,7 @@ export function LogFoodScreen({
 			params: {
 				date,
 				meal: selectedMeal,
+				from: "food",
 				...(query.trim() ? { text: query.trim() } : {}),
 				...(draftId ? { draftId } : {}),
 			},

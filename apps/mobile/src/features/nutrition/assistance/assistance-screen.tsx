@@ -71,12 +71,15 @@ export function AssistanceScreen({
 	meal: initialMeal,
 	text: initialText = "",
 	draftId,
+	fromFoodBrowser = false,
 }: {
 	date: string;
 	meal: MealSlot;
 	text?: string;
 	/** The Capture Draft being processed; removed once its food is logged. */
 	draftId?: string;
+	/** Opened from Log food, which is then the screen beneath this sheet. */
+	fromFoodBrowser?: boolean;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.assistance;
@@ -237,11 +240,14 @@ export function AssistanceScreen({
 			nutrients: combinedNutrients(items),
 		});
 		// Replacing one sheet with another leaves the new sheet empty on iOS:
-		// close this one, then present the next.
+		// close this one, then present the next. The One-off sits above Log
+		// food, which turns its Recipe/Personal food switch into an editor.
+		const params = { date: destination.date, meal: destination.meal };
 		close();
+		if (!fromFoodBrowser) router.push({ pathname: "/nutrition-food", params });
 		router.push({
 			pathname: "/nutrition-one-off",
-			params: { date: destination.date, meal: destination.meal },
+			params: { ...params, ...(draftId ? { draftId } : {}) },
 		});
 	}
 
@@ -259,7 +265,16 @@ export function AssistanceScreen({
 			<PersonalFoodEditor
 				seed={phase.draft}
 				chrome="route"
-				reviewNotice={{ title: copy.labelDetectedTitle }}
+				reviewNotice={{
+					title: phase.checks.length
+						? copy.checksTitle
+						: copy.labelDetectedTitle,
+					...(phase.checks.length
+						? {
+								attribution: phase.checks.map((check) => copy[check]).join(" "),
+							}
+						: {}),
+				}}
 				onCancel={session.edit}
 				onSaved={(food) => {
 					const [candidate] = buildAssistanceFoodCatalog([], [food]);
@@ -270,6 +285,8 @@ export function AssistanceScreen({
 							described: food.name[locale],
 							amount: portion,
 							unit: food.baseUnit === "ml" ? "ml" : "g",
+							grams: portion,
+							...(food.baseUnit === "ml" ? { ml: portion } : {}),
 							amountLabel: food.servings[0]?.label[locale] ?? `${portion} g`,
 							confidence: "medium",
 							candidates: [candidate],
@@ -650,7 +667,7 @@ function InputCard({
 							onCamera,
 						)}
 						{pill(copy.library, { ios: "photo", android: "image" }, onLibrary)}
-						{problem === "offline" || problem === "limit"
+						{problem === "limit"
 							? pill(
 									t.nutrition.drafts.saveAsNote,
 									{ ios: "note.text", android: "note" },
@@ -672,7 +689,7 @@ function InputCard({
 			</AppText>
 			<PrimaryButton
 				label={copy.analyse}
-				disabled={!canAnalyse || problem === "offline" || problem === "limit"}
+				disabled={!canAnalyse || problem === "limit"}
 				onPress={() => void session.analyse()}
 			/>
 		</View>
@@ -820,7 +837,13 @@ function Review({
 								fontVariant: ["tabular-nums"],
 							}}
 						>
-							{`${roundForDisplay(key, totals[key]).toLocaleString(locale)} ${key === "energy" ? "kcal" : "g"}`}
+							{
+								// Unknown is never shown as zero: "—" when no item has the
+								// figure, and the known part marked incomplete otherwise.
+								totals[key].known === 0
+									? "—"
+									: `${roundForDisplay(key, totals[key].amount).toLocaleString(locale)} ${key === "energy" ? "kcal" : "g"}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
+							}
 						</AppText>
 					</View>
 				))}

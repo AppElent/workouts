@@ -78,7 +78,10 @@ export function PersonalFoodLabelScan({
 				return;
 			}
 			const applied = draft.applyLabel(reading, mode);
-			setOutcome({ ...applied, checks: labelChecks(reading) });
+			setOutcome({
+				...applied,
+				checks: labelChecks(reading, draft.initial?.provenance.barcode),
+			});
 		} catch (error) {
 			const failure =
 				error instanceof Error && error.message === "offline"

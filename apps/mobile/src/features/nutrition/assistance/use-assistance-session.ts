@@ -5,6 +5,8 @@ import {
 	chooseInput,
 	groundItems,
 	type ImageInput,
+	type LabelCheck,
+	labelChecks,
 	personalFoodDraftFromReading,
 	prepareImage,
 	type ReviewItem,
@@ -27,7 +29,11 @@ export type AssistancePhase =
 			readonly seen: string;
 			readonly items: readonly ReviewItem[];
 	  }
-	| { readonly kind: "label"; readonly draft: PersonalFoodDraft };
+	| {
+			readonly kind: "label";
+			readonly draft: PersonalFoodDraft;
+			readonly checks: readonly LabelCheck[];
+	  };
 
 /**
  * One Hulp bij invoeren session: the input, the analysis, and the reviewed
@@ -71,7 +77,11 @@ export function useAssistanceSession(initialText: string) {
 				if (!live()) return;
 				setPhase(
 					reading.isLabel
-						? { kind: "label", draft: personalFoodDraftFromReading(reading) }
+						? {
+								kind: "label",
+								draft: personalFoodDraftFromReading(reading),
+								checks: labelChecks(reading),
+							}
 						: { kind: "input", problem: "noFood" },
 				);
 				return;

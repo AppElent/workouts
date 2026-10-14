@@ -18,6 +18,7 @@ type Item = {
 	name: string;
 	amount: number;
 	unit: "g" | "ml";
+	grams: number;
 	amountLabel: string;
 	confidence: "high" | "medium" | "low";
 	brand: string | null;
@@ -28,6 +29,7 @@ const bread: Item = {
 	name: "Volkorenbrood",
 	amount: 70,
 	unit: "g",
+	grams: 70,
 	amountLabel: "2 sneetjes",
 	confidence: "high",
 	brand: null,
@@ -37,6 +39,7 @@ const pancake: Item = {
 	...bread,
 	name: "Grandma's banana pancake",
 	amount: 120,
+	grams: 120,
 	amountLabel: "1 piece",
 	confidence: "low",
 	searchTerms: ["zzz unknown"],

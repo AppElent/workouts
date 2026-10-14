@@ -44,7 +44,7 @@ export const nutritionAssistanceEn = {
 		"Describe what and how much you ate, e.g. “bowl of yoghurt with muesli”.",
 	offlineHelpTitle: "No connection",
 	offlineHelpBody:
-		"Entry help only works online. Save your text as a note and process it later.",
+		"Entry help only works online. Your text stays here; try again once you are connected.",
 	limitTitle: "You reached today's {count} analyses",
 	limitBody: "It works again tomorrow. Search yourself or save this as a note.",
 	searchInstead: "Search yourself",
@@ -92,6 +92,9 @@ export const nutritionAssistanceEn = {
 	checksTitle: "Check these values",
 	energyMismatch: "Energy does not match protein, carbohydrates and fat.",
 	kjMismatch: "kJ and kcal do not match.",
+	barcodeInvalid:
+		"The barcode in the photo could not be read reliably. Scan again or check it.",
+	barcodeMismatch: "The barcode on the label belongs to another product.",
 	saturatedAboveFat: "Saturated fat is higher than fat.",
 	sugarsAboveCarbs: "Sugars are higher than carbohydrates.",
 	fromLabel: "from label",
@@ -190,7 +193,7 @@ export const nutritionAssistanceNl: typeof nutritionAssistanceEn = {
 	noFoodBody: "Beschrijf wat en hoeveel je at, bijv. “kom yoghurt met muesli”.",
 	offlineHelpTitle: "Geen verbinding",
 	offlineHelpBody:
-		"Hulp bij invoeren werkt alleen online. Bewaar je tekst als notitie en verwerk die later.",
+		"Hulp bij invoeren werkt alleen online. Je tekst blijft staan; probeer het opnieuw zodra je verbinding hebt.",
 	limitTitle: "Je hebt vandaag {count} analyses gedaan",
 	limitBody: "Morgen kan het weer. Zoek zelf of bewaar dit als notitie.",
 	searchInstead: "Zoek zelf",
@@ -240,6 +243,9 @@ export const nutritionAssistanceNl: typeof nutritionAssistanceEn = {
 	checksTitle: "Controleer deze waarden",
 	energyMismatch: "Energie past niet bij eiwit, koolhydraten en vet.",
 	kjMismatch: "kJ en kcal passen niet bij elkaar.",
+	barcodeInvalid:
+		"De barcode op de foto was niet goed leesbaar. Scan opnieuw of controleer hem.",
+	barcodeMismatch: "De barcode op het etiket hoort bij een ander product.",
 	saturatedAboveFat: "Verzadigd vet is hoger dan vet.",
 	sugarsAboveCarbs: "Suikers zijn hoger dan koolhydraten.",
 	fromLabel: "uit etiket",

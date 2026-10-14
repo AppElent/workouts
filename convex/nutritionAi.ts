@@ -85,16 +85,46 @@ export const consumeAnalysis = internalMutation({
 			.withIndex("by_user_and_day", (q) => q.eq("userId", userId).eq("day", day))
 			.unique();
 		if ((row?.count ?? 0) >= DAILY_ANALYSES) throw new ConvexError("limit");
-		if (row) await ctx.db.patch(row._id, { count: row.count + 1 });
-		else await ctx.db.insert("nutritionAiUsage", { userId, day, count: 1 });
+		// Each analysis allows one candidate selection, so `choose` cannot be
+		// called on its own to reach the provider outside the daily limit.
+		if (row)
+			await ctx.db.patch(row._id, {
+				count: row.count + 1,
+				choices: (row.choices ?? 0) + 1,
+			});
+		else
+			await ctx.db.insert("nutritionAiUsage", {
+				userId,
+				day,
+				count: 1,
+				choices: 1,
+			});
 		return null;
 	},
 });
 
+export const consumeChoice = internalMutation({
+	args: { userId: v.string(), day: v.string() },
+	returns: v.null(),
+	handler: async (ctx, { userId, day }) => {
+		const row = await ctx.db
+			.query("nutritionAiUsage")
+			.withIndex("by_user_and_day", (q) =>
+				q.eq("userId", userId).eq("day", day),
+			)
+			.unique();
+		if (!row || (row.choices ?? 0) <= 0) throw new ConvexError("limit");
+		await ctx.db.patch(row._id, { choices: (row.choices ?? 0) - 1 });
+		return null;
+	},
+});
+
+const today = () => new Date().toISOString().slice(0, 10);
+
 async function consume(ctx: ActionCtx, userId: string) {
 	await ctx.runMutation(internal.nutritionAi.consumeAnalysis, {
 		userId,
-		day: new Date().toISOString().slice(0, 10),
+		day: today(),
 	});
 }
 
@@ -109,6 +139,7 @@ export const describe = action({
 				name: v.string(),
 				amount: v.number(),
 				unit,
+				grams: v.number(),
 				amountLabel: v.string(),
 				confidence,
 				brand: v.union(v.string(), v.null()),
@@ -161,7 +192,7 @@ export const choose = action({
 		}),
 	),
 	handler: async (ctx, { items }) => {
-		await requireUser(ctx);
+		const userId = await requireUser(ctx);
 		if (
 			items.length === 0 ||
 			items.length > MAX_ITEMS ||
@@ -169,6 +200,10 @@ export const choose = action({
 		)
 			throw new ConvexError("tooLarge");
 		const provider = requireProvider();
+		await ctx.runMutation(internal.nutritionAi.consumeChoice, {
+			userId,
+			day: today(),
+		});
 		return run("choose", () => select(provider, items));
 	},
 });
@@ -181,6 +216,7 @@ export const readLabel = action({
 		name: bilingual,
 		brand: v.union(v.string(), v.null()),
 		barcode: v.union(v.string(), v.null()),
+		barcodeInvalid: v.boolean(),
 		packAmount: nullableNumber,
 		basis: unit,
 		per100: v.object({

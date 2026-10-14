@@ -14,6 +14,7 @@ import {
 import { todayIsoDate } from "../../../data/calendar-day";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import type { MealSlot } from "../../../data/nutrition-day";
+import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -45,9 +46,12 @@ import { useOneOffDraft } from "./use-one-off-draft";
 export function OneOffLogScreen({
 	date,
 	meal,
+	draftId,
 }: {
 	date: string;
 	meal: MealSlot;
+	/** The Capture Draft this entry processes; removed once it is logged. */
+	draftId?: string;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.oneOff;
@@ -60,6 +64,11 @@ export function OneOffLogScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const authoring = useFoodAuthoringIntent();
+	const drafts = useNutritionDrafts({
+		startDate: date,
+		endDate: date,
+		recordId: draftId,
+	});
 	// Name and photo carried over from the Personal food or Recipe form.
 	const [seed] = useState(() =>
 		authoring.intent === "oneOff" ? authoring.seed : undefined,
@@ -78,14 +87,16 @@ export function OneOffLogScreen({
 		date,
 		meal,
 		seed,
-		onLogged: (loggedDate) =>
+		onLogged: (loggedDate) => {
+			if (draftId) void drafts.remove(draftId).catch(() => undefined);
 			setExit(
 				() => () =>
 					router.dismissTo({
 						pathname: "/nutrition",
 						params: { date: loggedDate },
 					}),
-			),
+			);
+		},
 		onFailed: () => toast.error(copy.logFailure),
 	});
 	const [today] = useState(todayIsoDate);

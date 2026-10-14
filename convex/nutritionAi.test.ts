@@ -11,6 +11,7 @@ const item = {
 	name: "Volkorenbrood",
 	amount: 70,
 	unit: "g",
+	grams: 70,
 	amountLabel: "2 sneetjes",
 	confidence: "high",
 	brand: null,
@@ -75,7 +76,16 @@ describe("nutrition AI", () => {
 				],
 			},
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		await t.run((ctx) =>
+			ctx.db.insert("nutritionAiUsage", {
+				userId: "alice",
+				day: new Date().toISOString().slice(0, 10),
+				count: 1,
+				choices: 1,
+			}),
+		);
 		const choices = await alice.action(api.nutritionAi.choose, {
 			items: [
 				{ name: "Pannenkoek", amount: 120, unit: "g", brand: null, candidates: [] },
@@ -126,6 +136,7 @@ describe("nutrition AI", () => {
 			locale: "nl",
 		});
 		expect(label.barcode).toBeNull();
+		expect(label.barcodeInvalid).toBe(true);
 		expect(label.servings).toHaveLength(3);
 		expect(label.per100).toEqual(per100);
 	});
@@ -150,5 +161,26 @@ describe("nutrition AI", () => {
 		await expect(
 			bob.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
 		).resolves.toMatchObject({ kind: "meal" });
+	});
+
+	it("allows one candidate selection per analysis, not on its own", async () => {
+		fake({
+			describe: { kind: "meal", seen: "brood", items: [item] },
+			select: { choices: [{ index: 0, ref: null, estimate: null }] },
+		});
+		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const choose = {
+			items: [
+				{ name: "Brood", amount: 70, unit: "g" as const, brand: null, candidates: [] },
+			],
+		};
+		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
+			"limit",
+		);
+		await alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" });
+		await alice.action(api.nutritionAi.choose, choose);
+		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
+			"limit",
+		);
 	});
 });

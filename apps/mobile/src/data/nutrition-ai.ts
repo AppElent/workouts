@@ -64,9 +64,13 @@ export type ReviewItem = {
 	readonly key: string;
 	/** The AI's name for what was eaten, shown when nothing matched. */
 	readonly described: string;
-	/** In the matched food's base unit, or g/ml for an estimate. */
+	/** In `unit`: the matched food's base unit, or the AI's unit for an estimate. */
 	readonly amount: number;
 	readonly unit: "g" | "ml";
+	/** The same amount as a weight; used for foods measured per gram. */
+	readonly grams: number;
+	/** The same amount as a volume, when the AI described it in ml. */
+	readonly ml?: number;
 	readonly amountLabel: string;
 	readonly confidence: DescribedItem["confidence"];
 	readonly candidates: readonly AssistanceFood[];
@@ -78,7 +82,8 @@ export type ReviewItem = {
 /**
  * Local candidates per item: every search term against the shipped and
  * personal library, best rank first. Foods measured per serving are left out
- * because the AI estimates grams or millilitres.
+ * because the AI estimates grams or millilitres, and foods measured per ml
+ * need an amount described as a volume: weight never silently becomes volume.
  */
 export function groundItems(
 	items: readonly DescribedItem[],
@@ -90,6 +95,7 @@ export function groundItems(
 		for (const term of [...item.searchTerms, item.name]) {
 			searchAssistanceFoods(term, catalog, locale, 8).forEach((food, rank) => {
 				if (food.baseUnit === "serving") return;
+				if (food.baseUnit === "ml" && item.unit !== "ml") return;
 				const prior = ranked.get(food.id);
 				if (!prior || prior.rank > rank) ranked.set(food.id, { food, rank });
 			});
@@ -99,6 +105,8 @@ export function groundItems(
 			described: item.name,
 			amount: item.amount,
 			unit: item.unit,
+			grams: item.grams,
+			...(item.unit === "ml" ? { ml: item.amount } : {}),
 			amountLabel: item.amountLabel,
 			confidence: item.confidence,
 			candidates: [...ranked.values()]
@@ -142,7 +150,7 @@ export function applyChoices(
 	return items.map((item, index) => {
 		const choice = choices.find((c) => c.index === index);
 		const food = item.candidates.find((c) => c.id === choice?.ref);
-		if (food) return { ...item, food };
+		if (food) return replaceFood(item, food);
 		const estimate = choice?.estimate;
 		return estimate
 			? {
@@ -158,12 +166,19 @@ export function applyChoices(
 	});
 }
 
+/** A matched food counts in its own base unit: grams, or ml when known. */
 export function replaceFood(
 	item: ReviewItem,
 	food: AssistanceFood,
 ): ReviewItem {
 	const { estimate: _estimate, ...rest } = item;
-	return { ...rest, food };
+	const perMl = food.baseUnit === "ml" && item.ml !== undefined;
+	return {
+		...rest,
+		food,
+		unit: perMl ? "ml" : "g",
+		amount: perMl ? (item.ml as number) : item.grams,
+	};
 }
 
 /**
@@ -176,13 +191,14 @@ export function withAmount(
 	locale: "en" | "nl",
 ): ReviewItem {
 	if (!(amount > 0)) return item;
-	const estimate = item.estimate
-		? scale(item.estimate, amount / item.amount)
-		: undefined;
+	const factor = amount / item.amount;
+	const estimate = item.estimate ? scale(item.estimate, factor) : undefined;
 	return {
 		...item,
 		amount,
-		amountLabel: `${formatQuantity(amount, locale)} ${unitOf(item)}`,
+		grams: item.grams * factor,
+		...(item.ml !== undefined ? { ml: item.ml * factor } : {}),
+		amountLabel: `${formatQuantity(amount, locale)} ${item.unit}`,
 		confidence: "high",
 		...(estimate ? { estimate } : {}),
 	};
@@ -205,12 +221,6 @@ function scale(
 	) as Record<NutrientKey, NutrientValue>;
 }
 
-/** What the amount counts in: the matched food's base unit, else the AI's. */
-export function unitOf(item: ReviewItem): "g" | "ml" {
-	if (!item.food) return item.unit;
-	return item.food.baseUnit === "ml" ? "ml" : "g";
-}
-
 /** Totals for the item's amount, or undefined when it has neither food nor estimate. */
 export function itemNutrients(
 	item: ReviewItem,
@@ -219,18 +229,34 @@ export function itemNutrients(
 	return item.estimate;
 }
 
+/** A total and whether any item lacked that figure (unknown is never zero). */
+export type ReviewTotal = {
+	readonly amount: number;
+	readonly known: number;
+	readonly missing: boolean;
+};
 export type ReviewTotals = Readonly<
-	Record<"energy" | "protein" | "carbs" | "fat", number>
+	Record<"energy" | "protein" | "carbs" | "fat", ReviewTotal>
 >;
 
-/** Absent figures add nothing; they are never read as zero elsewhere. */
 export function reviewTotals(items: readonly ReviewItem[]): ReviewTotals {
-	const totals = { energy: 0, protein: 0, carbs: 0, fat: 0 };
+	const keys = ["energy", "protein", "carbs", "fat"] as const;
+	const totals = Object.fromEntries(
+		keys.map((key) => [key, { amount: 0, known: 0, missing: false }]),
+	) as Record<
+		(typeof keys)[number],
+		{ amount: number; known: number; missing: boolean }
+	>;
 	for (const item of items) {
 		const nutrients = itemNutrients(item);
-		if (!nutrients) continue;
-		for (const key of Object.keys(totals) as (keyof typeof totals)[])
-			totals[key] += numericAmount(nutrients[key]) ?? 0;
+		for (const key of keys) {
+			const amount = nutrients ? numericAmount(nutrients[key]) : undefined;
+			if (amount === undefined) totals[key].missing = true;
+			else {
+				totals[key].amount += amount;
+				totals[key].known += 1;
+			}
+		}
 	}
 	return totals;
 }
@@ -352,15 +378,24 @@ export function labelNutrients(
 }
 
 export type LabelCheck =
+	| "barcodeInvalid"
+	| "barcodeMismatch"
 	| "energyMismatch"
 	| "kjMismatch"
 	| "saturatedAboveFat"
 	| "sugarsAboveCarbs";
 
 /** Arithmetic that catches a misread digit; each failure is shown, never fixed. */
-export function labelChecks(reading: LabelReading): LabelCheck[] {
+export function labelChecks(
+	reading: LabelReading,
+	/** The barcode the food already has, such as a scanned product's. */
+	knownBarcode?: string,
+): LabelCheck[] {
 	const p = reading.per100;
 	const failures: LabelCheck[] = [];
+	if (reading.barcodeInvalid) failures.push("barcodeInvalid");
+	else if (knownBarcode && reading.barcode && reading.barcode !== knownBarcode)
+		failures.push("barcodeMismatch");
 	if (
 		p.energy !== null &&
 		p.protein !== null &&

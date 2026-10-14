@@ -103,8 +103,13 @@ toolbar (meal/date/delete for entries; replace/remove for parts; none for one-ti
   Eén item (One-off or Recipe, values per portion). The button label follows it.
 - **Label.** A recognised label opens the personal food editor filled from the
   label (see [label scanning](nutrition-foods.md#label-scanning)).
-- **Limits.** One-time consent before first use; a per-account daily limit;
-  offline and limit states offer "Opslaan als notitie". Calls run server-side.
+- **Limits.** One-time consent before first use; a per-account daily limit of
+  analyses, each allowing one candidate selection. Offline keeps the text and
+  retries once connected (notes need a connection too); the limit state offers
+  "Opslaan als notitie" and "Zoek zelf". Calls run server-side.
+- **Units.** A matched food counts in its own base unit: an item described in
+  ml uses the AI's weight estimate for a per-gram food, and per-ml foods are
+  only offered for amounts described as a volume.
 
 ## States
 

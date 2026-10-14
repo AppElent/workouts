@@ -7,14 +7,21 @@ import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionOneOffRoute() {
-	const { date, meal } = useLocalSearchParams<{
+	const { date, meal, draftId } = useLocalSearchParams<{
 		date?: string;
 		meal?: string;
+		draftId?: string;
 	}>();
 	const targetMeal: MealSlot = MEAL_SLOTS.includes(meal as MealSlot)
 		? (meal as MealSlot)
 		: "breakfast";
-	return <OneOffLogScreen date={date ?? todayIsoDate()} meal={targetMeal} />;
+	return (
+		<OneOffLogScreen
+			date={date ?? todayIsoDate()}
+			meal={targetMeal}
+			draftId={draftId || undefined}
+		/>
+	);
 }
 
 export function ErrorBoundary({

@@ -123,6 +123,7 @@ const DESCRIBE_SCHEMA = object({
 			name: { type: "string" },
 			amount: { type: "number" },
 			unit,
+			grams: { type: "number" },
 			amountLabel: { type: "string" },
 			confidence,
 			brand: { type: ["string", "null"] },
@@ -191,6 +192,7 @@ const LANGUAGE: Record<AiLocale, string> = { en: "English", nl: "Dutch" };
 
 const ITEM_RULES = `- One item per single food someone would log separately: a sandwich or "boterham met kaas" is bread + cheese (+ butter only when mentioned), never "sandwich with cheese". Only a standard cooked dish normally eaten as one thing (stamppot, lasagne, soup) stays one item. Never list a dish and its own ingredients both.
 - amount: estimated edible weight as eaten (cooked weight for cooked foods) in g, or volume in ml for drinks.
+- grams: the same amount as a weight in g (for drinks: the volume times its density; water-like drinks 1 ml ≈ 1 g).
 - When the amount is not stated, use typical Dutch portions (slice of bread ≈ 35 g, glass ≈ 200 ml, handful of nuts ≈ 25 g, thin layer of spread ≈ 10–15 g, medium banana ≈ 120 g edible). Photos: judge size from plate, cutlery and context.
 - Unstated variety = the everyday Dutch default, never a speciality: bread → brown/whole-wheat sliced bread, milk → semi-skimmed, cheese → Gouda 48+.
 - confidence: "low" when the food or the amount is mostly a guess.`;
@@ -233,6 +235,8 @@ export type DescribedItem = {
 	readonly name: string;
 	readonly amount: number;
 	readonly unit: "g" | "ml";
+	/** The amount as a weight, so a per-gram food can be used for a drink. */
+	readonly grams: number;
 	readonly amountLabel: string;
 	readonly confidence: "high" | "medium" | "low";
 	readonly brand: string | null;
@@ -267,7 +271,7 @@ export async function describe(
 		schema: DESCRIBE_SCHEMA,
 	})) as Described;
 	const items = (raw.kind === "meal" ? raw.items : [])
-		.filter((item) => item.amount > 0 && item.name.trim())
+		.filter((item) => item.amount > 0 && item.grams > 0 && item.name.trim())
 		.slice(0, MAX_ITEMS)
 		.map((item) => ({ ...item, searchTerms: item.searchTerms.slice(0, 5) }));
 	return {
@@ -359,6 +363,8 @@ export type LabelReading = {
 	readonly name: { readonly en: string; readonly nl: string };
 	readonly brand: string | null;
 	readonly barcode: string | null;
+	/** True when the label showed a barcode whose checksum failed: rescan. */
+	readonly barcodeInvalid: boolean;
 	readonly packAmount: number | null;
 	readonly basis: "g" | "ml";
 	readonly per100: Readonly<Record<LabelNutrient, number | null>>;
@@ -383,9 +389,11 @@ export async function readLabel(
 		schema: LABEL_SCHEMA,
 	})) as LabelReading;
 	const barcode = raw.barcode?.replace(/\D/g, "") || null;
+	const barcodeValid = barcode !== null && validEan(barcode);
 	return {
 		...raw,
-		barcode: barcode && validEan(barcode) ? barcode : null,
+		barcode: barcodeValid ? barcode : null,
+		barcodeInvalid: barcode !== null && !barcodeValid,
 		servings: raw.isLabel
 			? raw.servings.filter((serving) => serving.amount > 0).slice(0, 3)
 			: [],

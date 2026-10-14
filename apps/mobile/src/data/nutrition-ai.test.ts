@@ -23,6 +23,7 @@ const bread: DescribedItem = {
 	name: "Volkorenbrood",
 	amount: 70,
 	unit: "g",
+	grams: 70,
 	amountLabel: "2 sneetjes",
 	confidence: "high",
 	brand: null,
@@ -32,6 +33,7 @@ const pancake: DescribedItem = {
 	...bread,
 	name: "Bananenpannenkoek van oma",
 	amount: 120,
+	grams: 120,
 	amountLabel: "1 stuk",
 	confidence: "low",
 	searchTerms: ["zzz onbekend"],
@@ -80,9 +82,48 @@ describe("AI entry grounding", () => {
 			amount: per100?.kind === "value" ? per100.amount * 0.7 : Number.NaN,
 		});
 		expect(readyToLog(items)).toBe(true);
-		expect(reviewTotals(items).energy).toBeCloseTo(
+		expect(reviewTotals(items).energy.amount).toBeCloseTo(
 			260 + (per100?.kind === "value" ? per100.amount * 0.7 : 0),
 		);
+	});
+
+	it("uses the weight for a drink matched to a food measured per gram", () => {
+		const milk: DescribedItem = {
+			...bread,
+			name: "Halfvolle melk",
+			amount: 200,
+			unit: "ml",
+			grams: 206,
+			amountLabel: "1 glas",
+			searchTerms: ["melk halfvolle", "melk"],
+		};
+		const [grounded] = groundItems([milk], catalog, "nl");
+		const perGram = grounded.candidates.find((food) => food.baseUnit === "g");
+		const [item] = applyChoices(
+			[grounded],
+			[{ index: 0, ref: perGram?.id ?? null, estimate: null }],
+		);
+		expect(item).toMatchObject({ amount: 206, unit: "g", ml: 200 });
+	});
+
+	it("never offers a per-ml food for an amount described as a weight", () => {
+		const grounded = groundItems([bread], catalog, "nl");
+		expect(grounded[0].candidates.every((food) => food.baseUnit !== "ml")).toBe(
+			true,
+		);
+	});
+
+	it("marks a total incomplete instead of counting an unknown as zero", () => {
+		const [item] = applyChoices(groundItems([pancake], catalog, "nl"), [
+			{ index: 0, ref: null, estimate },
+		]);
+		const unknownFat = {
+			...item,
+			estimate: { ...itemNutrients(item), fat: { kind: "absent" as const } },
+		} as typeof item;
+		const totals = reviewTotals([item, unknownFat]);
+		expect(totals.energy).toEqual({ amount: 520, known: 2, missing: false });
+		expect(totals.fat).toEqual({ amount: 8, known: 1, missing: true });
 	});
 
 	it("blocks logging an item with neither a food nor an estimate", () => {
@@ -157,6 +198,7 @@ const reading: LabelReading = {
 	name: { en: "Fresh tortellini", nl: "Verse tortellini" },
 	brand: "PLUS",
 	barcode: "8710624419011",
+	barcodeInvalid: false,
 	packAmount: 250,
 	basis: "g",
 	per100: {
@@ -218,5 +260,13 @@ describe("label scanning", () => {
 				per100: { ...reading.per100, fat: 17.1, saturatedFat: 21 },
 			}),
 		).toEqual(["energyMismatch", "saturatedAboveFat"]);
+	});
+
+	it("flags an unreadable barcode and one that belongs to another product", () => {
+		expect(
+			labelChecks({ ...reading, barcode: null, barcodeInvalid: true }),
+		).toEqual(["barcodeInvalid"]);
+		expect(labelChecks(reading, "8718452341208")).toEqual(["barcodeMismatch"]);
+		expect(labelChecks(reading, "8710624419011")).toEqual([]);
 	});
 });

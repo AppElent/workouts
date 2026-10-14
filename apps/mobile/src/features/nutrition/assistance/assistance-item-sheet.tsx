@@ -6,7 +6,6 @@ import {
 	itemNutrients,
 	type ReviewItem,
 	replaceFood,
-	unitOf,
 	withAmount,
 } from "../../../data/nutrition-ai";
 import {
@@ -54,7 +53,7 @@ export function AssistanceItemSheet({
 	const current = draft && valid ? withAmount(draft, parsed, locale) : draft;
 	const energy = current ? itemNutrients(current)?.energy : undefined;
 	// A matched food counts in its own base unit; NEVO drinks are per gram.
-	const unit = draft ? unitOf(draft) : "g";
+	const unit = draft?.unit ?? "g";
 
 	return (
 		<Modal

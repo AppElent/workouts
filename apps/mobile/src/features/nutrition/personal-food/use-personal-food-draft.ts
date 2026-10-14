@@ -363,9 +363,9 @@ export function usePersonalFoodDraft({
 		},
 		fromLabel,
 		/**
-		 * Fill the draft from a scanned label. `missing` only fills values that
-		 * are absent (an incomplete provider product) and reports the ones that
-		 * differ instead of overwriting them.
+		 * Fill the draft from a scanned label. Only absent values are filled;
+		 * a value the person or a provider already entered is never replaced,
+		 * and differing ones are reported for the person to decide.
 		 */
 		applyLabel: (reading: LabelReading, mode: "fill" | "missing") => {
 			const label = labelNutrients(reading);
@@ -376,7 +376,7 @@ export function usePersonalFoodDraft({
 				const value = label[key];
 				if (value.kind !== "value") continue;
 				const current = nutrients[key];
-				if (mode === "fill" || current.kind === "absent") {
+				if (current.kind === "absent") {
 					next[key] = { kind: "value", amount: toText(value.amount) };
 					filled.push(key);
 				} else if (current.kind === "value") {
@@ -390,8 +390,12 @@ export function usePersonalFoodDraft({
 			}
 			setNutrients(next);
 			setFromLabel(new Set(filled));
-			if (mode === "fill" || !name.trim()) setNameState(reading.name[locale]);
-			if (mode === "fill" && basisKind === "per100") setBaseUnit(reading.basis);
+			const wasEmpty = NUTRIENT_KEYS.every(
+				(key) => nutrients[key].kind === "absent",
+			);
+			if (!name.trim()) setNameState(reading.name[locale]);
+			if (mode === "fill" && wasEmpty && basisKind === "per100")
+				setBaseUnit(reading.basis);
 			if (servings.length === 0 && reading.servings.length)
 				setServings(
 					reading.servings.map((serving, index) => ({

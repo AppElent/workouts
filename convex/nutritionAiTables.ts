@@ -7,5 +7,7 @@ export const nutritionAiTables = {
 		userId: v.string(),
 		day: v.string(),
 		count: v.number(),
+		/** Candidate selections still allowed: one per analysis. */
+		choices: v.optional(v.number()),
 	}).index("by_user_and_day", ["userId", "day"]),
 };

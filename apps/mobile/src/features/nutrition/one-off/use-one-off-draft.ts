@@ -71,7 +71,8 @@ export function useOneOffDraft({
 								kind: value.kind,
 								amount:
 									value.kind === "value"
-										? String(roundForDisplay(key, value.amount)).replace(
+										? // Exact, minus float noise: these strings become the log.
+											String(Number(value.amount.toPrecision(12))).replace(
 												".",
 												",",
 											)

@@ -62,10 +62,10 @@ Studies: [personal food](../../designs/nutrition/personal-food_final.html),
   three Servings with everyday names derived from the label ("Portie (½ zak)",
   "1 reep", "Hele verpakking"). Filled fields are marked "uit etiket"; nothing
   saves until ✓.
-- **Never overwrite silently.** On an incomplete provider product only empty values
-  are filled. Values that differ from Open Food Facts or fail the energy, kJ/kcal,
-  saturated ≤ fat, sugars ≤ carbs, or EAN checks are flagged per row with
-  "Opnieuw scannen".
+- **Never overwrite.** A scan only fills empty values; existing values (typed
+  or from a provider) stay, and differing ones are listed. Failed energy,
+  kJ/kcal, saturated ≤ fat, sugars ≤ carbs, unreadable-EAN, or other-product-EAN
+  checks are shown with "Opnieuw scannen".
 
 ### Library
 
