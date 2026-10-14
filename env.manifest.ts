@@ -236,6 +236,18 @@ export const ENTRIES = [
 		},
 	},
 	{
+		key: "anthropicApiKey",
+		infisicalKey: "anthropic-api-key",
+		description: "Anthropic API key for nutrition AI help (Convex actions only).",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "ANTHROPIC_API_KEY",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
 		key: "convexUrl",
 		infisicalKey: "convex-url",
 		description: "Public URL of the Convex deployment used by each client.",

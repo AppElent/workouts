@@ -319,6 +319,9 @@ export default function AppLayout() {
 																	name="nutrition-assistance"
 																	options={{
 																		title: t.routes.assistance,
+																		presentation: "formSheet",
+																		sheetAllowedDetents: [1],
+																		sheetGrabberVisible: true,
 																	}}
 																/>
 																<Stack.Screen

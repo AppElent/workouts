@@ -16,6 +16,7 @@ import {
 import { AppText } from "../../../../ui/text";
 
 const ACTIONS = [
+	{ key: "scanLabel", ios: "camera", android: "photo_camera" },
 	{
 		key: "create",
 		ios: "square.and.pencil",
@@ -26,8 +27,8 @@ const ACTIONS = [
 ] as const;
 
 /**
- * An unknown barcode is a fork in the road, not an error toast: create the
- * food with the barcode already filled in, link the barcode to a food found
+ * An unknown barcode is a fork in the road, not an error toast: scan its
+ * label, create the food with the barcode already filled in, link the barcode to a food found
  * by name, or scan again.
  */
 export function LogFoodBarcodeSheet({
@@ -35,6 +36,7 @@ export function LogFoodBarcodeSheet({
 	copy,
 	closeLabel,
 	onCreate,
+	onScanLabel,
 	onSearchByName,
 	onRescan,
 	onClose,
@@ -43,6 +45,8 @@ export function LogFoodBarcodeSheet({
 	copy: Messages["nutrition"]["logFood"];
 	closeLabel: string;
 	onCreate: () => void;
+	/** Create the food from a photo of its nutrition label. */
+	onScanLabel: () => void;
 	onSearchByName: () => void;
 	onRescan: () => void;
 	onClose: () => void;
@@ -51,11 +55,13 @@ export function LogFoodBarcodeSheet({
 	const styles = useThemedStyles(createStyles);
 	const reduceMotion = useReduceMotion();
 	const labels = {
+		scanLabel: [copy.barcodeScanLabel, copy.barcodeScanLabelHint],
 		create: [copy.newPersonalFood, copy.barcodeNewFoodHint],
 		search: [copy.barcodeSearchByName, copy.barcodeSearchByNameHint],
 		rescan: [copy.barcodeRescan, undefined],
 	} as const;
 	const handlers = {
+		scanLabel: onScanLabel,
 		create: onCreate,
 		search: onSearchByName,
 		rescan: onRescan,

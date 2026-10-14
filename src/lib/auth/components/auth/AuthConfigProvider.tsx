@@ -9,6 +9,7 @@ export const DEFAULT_AUTH_CONFIG: AuthConfig = {
 		forgotPassword: "/forgot-password",
 		afterAuth: "/dashboard",
 		account: "/account",
+		ssoCallback: "/sso-callback",
 	},
 	features: { forgotPassword: true },
 	socialProviders: [],

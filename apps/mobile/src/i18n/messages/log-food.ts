@@ -6,7 +6,7 @@
 export const logFoodEn = {
 	search: "Search foods",
 	scanBarcode: "Scan barcode",
-	aiSearch: "Describe a meal",
+	aiSearch: "Entry help",
 	moreActions: "More food actions",
 	closeMenu: "Close",
 	logOnce: "Log once",
@@ -91,6 +91,8 @@ export const logFoodEn = {
 		"Offline. Cached foods and NEVO are available. Connect to log food, save a note, or use Open Food Facts. Your input stays here for retry.",
 	barcodeNotFound: "Barcode not found",
 	barcodeNotFoundBody: "Not in your own foods and not in Open Food Facts.",
+	barcodeScanLabel: "Scan label",
+	barcodeScanLabelHint: "Read the values from the package",
 	barcodeNewFoodHint:
 		"The barcode is filled in; the next scan finds it straight away",
 	barcodeSearchByName: "Search by name",
@@ -109,7 +111,7 @@ export const logFoodEn = {
 export const logFoodNl: typeof logFoodEn = {
 	search: "Zoek eten",
 	scanBarcode: "Barcode scannen",
-	aiSearch: "Beschrijf een maaltijd",
+	aiSearch: "Hulp bij invoeren",
 	moreActions: "Meer eetacties",
 	closeMenu: "Sluiten",
 	logOnce: "Eenmalig loggen",
@@ -201,6 +203,8 @@ export const logFoodNl: typeof logFoodEn = {
 		"Offline. Voeding in de cache en NEVO zijn beschikbaar. Maak verbinding om voeding te loggen, een notitie op te slaan of Open Food Facts te gebruiken. Je invoer blijft hier staan om opnieuw te proberen.",
 	barcodeNotFound: "Barcode niet gevonden",
 	barcodeNotFoundBody: "Niet in je eigen voeding en niet in Open Food Facts.",
+	barcodeScanLabel: "Etiket scannen",
+	barcodeScanLabelHint: "Lees de waarden van de verpakking",
 	barcodeNewFoodHint:
 		"Barcode is al ingevuld; de volgende scan vindt het direct",
 	barcodeSearchByName: "Zoek op naam",

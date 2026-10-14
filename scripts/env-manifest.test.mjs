@@ -136,7 +136,7 @@ describe("Foundry environment routing", () => {
 	});
 
 	it("gives every logical value a unique evidenced source name", () => {
-		expect(ENTRIES).toHaveLength(12);
+		expect(ENTRIES).toHaveLength(13);
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
 		expect(sourceNames).not.toEqual(
@@ -147,6 +147,18 @@ describe("Foundry environment routing", () => {
 				"CLOUDFLARE_ENV",
 			]),
 		);
+	});
+
+	it("keeps the AI provider key in Convex functions only", () => {
+		for (const environment of ENVIRONMENTS) {
+			const anthropic = placementsFor(environment).filter(
+				(placement) => placement.entry.key === "anthropicApiKey",
+			);
+			expect(anthropic.map((placement) => placement.consumer)).toEqual([
+				"convex-functions",
+			]);
+			expect(anthropic[0].entry.secret).toBe(true);
+		}
 	});
 
 	it("keeps Sentry upload credentials out of client bundles", () => {

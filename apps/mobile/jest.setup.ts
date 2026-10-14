@@ -597,6 +597,8 @@ jest.mock("convex/react", () => {
 			data: false,
 		})),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+		// AI entry actions; screen tests script answers per case.
+		useAction: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
 		useConvex: jest.fn(() => ({ query: jest.fn().mockResolvedValue([]) })),
 		usePaginatedQuery: jest.fn(() => ({
 			results: [],

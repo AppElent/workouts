@@ -20,7 +20,8 @@
 			"infoPlist": {
 				"CFBundleAllowMixedLocalizations": true,
 				"ITSAppUsesNonExemptEncryption": false
-			}
+			},
+			"usesAppleSignIn": true
 		},
 		"android": {
 			"package": "com.appelent.foundry",
@@ -72,6 +73,7 @@
 			"expo-sqlite",
 			"expo-audio",
 			"expo-web-browser",
+			"expo-apple-authentication",
 			"expo-sharing",
 			[
 				"expo-camera",
