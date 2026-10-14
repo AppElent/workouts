@@ -1,5 +1,6 @@
 import { useSignUp } from "@clerk/clerk-react";
 import { useState } from "react";
+import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { useAuthConfig } from "./AuthConfigProvider";
 import { AuthError } from "./AuthError";
@@ -10,6 +11,7 @@ import { clerkErrorMessage } from "./types";
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 	const { isLoaded, signUp, setActive } = useSignUp();
 	const config = useAuthConfig();
+	const { auth } = useMessages();
 	const [step, setStep] = useState<"details" | "verify">("details");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -48,7 +50,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 				await setActive({ session: result.createdSessionId });
 				onSuccess();
 			} else {
-				setError("Invalid or incomplete verification.");
+				setError(auth.signUp.invalidCode);
 			}
 		} catch (err) {
 			setError(clerkErrorMessage(err));
@@ -62,17 +64,17 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 			<form onSubmit={submitCode} noValidate className="flex flex-col gap-3">
 				<AuthError message={error} />
 				<p className="text-sm text-[var(--auth-muted)]">
-					We sent a code to {email}.
+					{fmt(auth.signUp.codeSent, { email })}
 				</p>
 				<AuthField
-					label="Verification code"
+					label={auth.signUp.code}
 					type="text"
 					autoComplete="one-time-code"
 					value={code}
 					onChange={setCode}
 					required
 				/>
-				<AuthButton loading={loading}>Verify</AuthButton>
+				<AuthButton loading={loading}>{auth.signUp.verify}</AuthButton>
 			</form>
 		);
 	}
@@ -82,7 +84,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 			<SocialButtons />
 			<AuthError message={error} />
 			<AuthField
-				label="Email"
+				label={auth.email}
 				type="email"
 				autoComplete="email"
 				value={email}
@@ -90,17 +92,17 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 				required
 			/>
 			<AuthField
-				label="Password"
+				label={auth.password}
 				type="password"
 				autoComplete="new-password"
 				value={password}
 				onChange={setPassword}
 				required
 			/>
-			<AuthButton loading={loading}>Create account</AuthButton>
+			<AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
 			<div className="mt-1 text-center text-xs text-[var(--auth-muted)]">
 				<a href={config.paths.signIn} className="hover:underline">
-					Already have an account? Sign in
+					{auth.signUp.haveAccount}
 				</a>
 			</div>
 		</form>

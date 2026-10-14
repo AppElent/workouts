@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render as rtlRender,
+	screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const create = vi.fn();
@@ -9,8 +14,17 @@ vi.mock("@clerk/clerk-react", () => ({
 	useSignIn: () => ({ isLoaded, signIn: { create }, setActive }),
 }));
 
+import { LocaleProvider } from "#/lib/i18n";
 import { AuthConfigProvider } from "../AuthConfigProvider";
 import { SignInForm } from "../SignInForm";
+
+function render(ui: React.ReactElement) {
+	return rtlRender(ui, {
+		wrapper: ({ children }) => (
+			<LocaleProvider initialLocale="en">{children}</LocaleProvider>
+		),
+	});
+}
 
 function renderForm(onSuccess = vi.fn()) {
 	return render(

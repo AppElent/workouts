@@ -1,9 +1,18 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render as rtlRender, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { LocaleProvider } from "#/lib/i18n";
 import { AuthButton } from "../AuthButton";
 import { AuthError } from "../AuthError";
 import { AuthField } from "../AuthField";
+
+function render(ui: React.ReactElement) {
+	return rtlRender(ui, {
+		wrapper: ({ children }) => (
+			<LocaleProvider initialLocale="en">{children}</LocaleProvider>
+		),
+	});
+}
 
 describe("auth primitives", () => {
 	afterEach(cleanup);

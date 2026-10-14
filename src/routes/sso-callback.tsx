@@ -1,6 +1,7 @@
 import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthCard, useAuthConfig } from "#/lib/auth";
+import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/sso-callback")({
 	ssr: false,
@@ -9,8 +10,9 @@ export const Route = createFileRoute("/sso-callback")({
 
 function SsoCallbackPage() {
 	const { paths } = useAuthConfig();
+	const { auth } = useMessages();
 	return (
-		<AuthCard title="Signing you in…">
+		<AuthCard title={auth.ssoCallback.title}>
 			<AuthenticateWithRedirectCallback
 				signInUrl={paths.signIn}
 				signUpUrl={paths.signUp}

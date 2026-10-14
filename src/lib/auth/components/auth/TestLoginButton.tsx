@@ -1,12 +1,14 @@
 import { useSignIn } from "@clerk/clerk-react";
 import { useState } from "react";
 import { shouldShowTestLogin } from "#/lib/auth/core";
+import { useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { clerkErrorMessage } from "./types";
 
 export function TestLoginButton({ onSuccess }: { onSuccess: () => void }) {
 	const { isLoaded, signIn, setActive } = useSignIn();
+	const { auth } = useMessages();
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 
@@ -29,7 +31,7 @@ export function TestLoginButton({ onSuccess }: { onSuccess: () => void }) {
 				await setActive({ session: result.createdSessionId });
 				onSuccess();
 			} else {
-				setError("Test user requires additional steps.");
+				setError(auth.testLogin.needsSteps);
 			}
 		} catch (err) {
 			setError(clerkErrorMessage(err));
@@ -46,7 +48,7 @@ export function TestLoginButton({ onSuccess }: { onSuccess: () => void }) {
 				loading={loading}
 				onClick={loginTestUser}
 			>
-				▶ Dev: log in as test user
+				{auth.testLogin.button}
 			</AuthButton>
 			<AuthError message={error} />
 		</div>

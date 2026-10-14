@@ -1,5 +1,6 @@
 import { useSignIn } from "@clerk/clerk-react";
 import { useState } from "react";
+import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { useAuthConfig } from "./AuthConfigProvider";
 import { AuthError } from "./AuthError";
@@ -14,6 +15,7 @@ import { clerkErrorMessage } from "./types";
 export function SocialButtons() {
 	const { isLoaded, signIn } = useSignIn();
 	const config = useAuthConfig();
+	const { auth } = useMessages();
 	const [pending, setPending] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
@@ -54,12 +56,12 @@ export function SocialButtons() {
 					loading={pending === provider.id}
 					onClick={() => start(provider.id, provider.strategy)}
 				>
-					Continue with {provider.label}
+					{fmt(auth.continueWith, { provider: provider.label })}
 				</AuthButton>
 			))}
 			<div className="my-1 flex items-center gap-3 text-xs text-[var(--auth-muted)]">
 				<span className="h-px flex-1 bg-[var(--auth-border)]" />
-				or
+				{auth.or}
 				<span className="h-px flex-1 bg-[var(--auth-border)]" />
 			</div>
 		</div>
