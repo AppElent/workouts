@@ -71,11 +71,8 @@ export function useOneOffDraft({
 								kind: value.kind,
 								amount:
 									value.kind === "value"
-										? // Exact, minus float noise: these strings become the log.
-											String(Number(value.amount.toPrecision(12))).replace(
-												".",
-												",",
-											)
+										? // At most 2 decimals: readable, and close enough to log.
+											String(Number(value.amount.toFixed(2))).replace(".", ",")
 										: "",
 							},
 						];
