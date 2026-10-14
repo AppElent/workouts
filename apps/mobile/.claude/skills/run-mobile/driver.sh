@@ -137,7 +137,25 @@ cmd_up() {
 }
 
 cmd_signin() {
+	local email="" password=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--email) email="$2"; shift 2 ;;
+			--password) password="$2"; shift 2 ;;
+			*) die "signin: unknown option $1" ;;
+		esac
+	done
 	ad wait text "Sign in" 20000 >/dev/null || die "sign-in screen not visible (already signed in?)"
+	if [ -n "$email" ]; then
+		[ -n "$password" ] || die "signin: --email needs --password"
+		local field secure
+		field=$(ad snapshot -i | grep -m1 '\[text-field\]' | grep -o '@e[0-9]*')
+		ad fill "$field" "$email" >/dev/null || die "could not fill email"
+		secure=$(ad snapshot -i | grep -m1 '\[securetextfield\]' | grep -o '@e[0-9]*')
+		ad fill "$secure" "$password" >/dev/null || die "could not fill password"
+		# Never fall through to the pre-filled shared account.
+		ad snapshot -i | grep -qF "[text-field] \"$email\"" || die "email field does not show $email; not signing in"
+	fi
 	ad press 'label="Sign in"' >/dev/null
 	ad wait 'role=tab-bar' 30000 >/dev/null || die "tab bar not visible after sign-in"
 	log "signed in"
@@ -169,7 +187,7 @@ cmd_down() {
 
 case "${1:-}" in
 	up) shift; cmd_up "$@" ;;
-	signin) cmd_signin ;;
+	signin) shift; cmd_signin "$@" ;;
 	ad) shift; ad "$@" ;;
 	ss) shift; cmd_ss "$@" ;;
 	reload) cmd_reload ;;
@@ -177,5 +195,5 @@ case "${1:-}" in
 	udid) require_udid; echo ;;
 	state) echo "$STATE" ;;
 	down) cmd_down ;;
-	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
 esac
