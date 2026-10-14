@@ -1,0 +1,179 @@
+<!doctype html>
+<!-- PROTOTYPE — throwaway playground for AI in the nutrition module. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE · Nutrition AI</title>
+<style>
+	:root { color-scheme: light dark; font: 14px/1.4 system-ui, sans-serif; }
+	body { margin: 0 auto; max-width: 1400px; padding: 16px; }
+	.banner { background: #fde68a; color: #422006; padding: 6px 10px; border-radius: 6px; margin-bottom: 12px; }
+	.tabs button { padding: 6px 14px; border: 1px solid #8884; background: none; border-radius: 6px 6px 0 0; cursor: pointer; }
+	.tabs button.on { background: #8882; font-weight: 600; }
+	.panel { border: 1px solid #8884; padding: 12px; border-radius: 0 6px 6px 6px; display: grid; gap: 10px; }
+	.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+	textarea { width: 100%; min-height: 60px; font: inherit; }
+	.thumbs img { height: 64px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
+	.thumbs img.on { border-color: #3b82f6; }
+	#preview { max-height: 180px; border-radius: 6px; }
+	.results { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; margin-top: 12px; }
+	.card { border: 1px solid #8884; border-radius: 6px; padding: 10px; overflow: auto; }
+	.card h3 { margin: 0 0 6px; font-size: 14px; }
+	table { border-collapse: collapse; width: 100%; font-size: 13px; }
+	td, th { border-bottom: 1px solid #8883; padding: 3px 5px; text-align: left; vertical-align: top; }
+	td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+	.ok { color: #16a34a; } .bad { color: #dc2626; } .muted { opacity: .65; }
+	.low { background: #f59e0b33; } .none { background: #dc262622; }
+	pre { font-size: 11px; max-height: 260px; overflow: auto; background: #8881; padding: 6px; }
+	button.run { padding: 8px 18px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="banner"><b>PROTOTYPE</b> — throwaway. Nothing is saved. Calls the API with the key from Infisical.</div>
+<div class="tabs">
+	<button type="button" data-flow="label" class="on">📄 Food label</button>
+	<button type="button" data-flow="text">⌨️ Text → products</button>
+	<button type="button" data-flow="photo">📷 Meal photo → products</button>
+</div>
+<div class="panel">
+	<div class="row">
+		<label>Provider <select id="provider"><option>anthropic</option><option disabled>openai (todo)</option></select></label>
+		<label>Model <select id="model"><option>claude-haiku-5-5</option><option>claude-sonnet-5-5</option></select></label>
+		<label>Effort <select id="effort"><option>off</option><option selected>low</option><option>medium</option><option>high</option></select></label>
+		<span id="strategies" class="row">Strategy:
+			<label><input type="checkbox" value="retrieve" checked /> B retrieve→select</label>
+			<label><input type="checkbox" value="catalog" /> D whole catalog</label>
+			<label><input type="checkbox" value="freeform" /> A free-form</label>
+		</span>
+		<label id="offWrap"><input type="checkbox" id="off" checked /> cross-check Open Food Facts</label>
+	</div>
+	<textarea id="text" placeholder="2 boterhammen met pindakaas en een glas halfvolle melk"></textarea>
+	<div id="imageWrap" class="row">
+		<div class="thumbs row" id="thumbs"></div>
+		<input type="file" id="file" accept="image/*" />
+		<img id="preview" alt="" />
+	</div>
+	<div><button type="button" class="run" id="run">Run</button> <span id="status" class="muted"></span></div>
+</div>
+<div class="results" id="results"></div>
+
+<script>
+const FIXTURES = {
+	label: ["l1-label.jpg", "l2-label-rotated.jpg", "l3-not-a-label.jpg"],
+	photo: ["m1-boerenkool.jpg", "m2-spaghetti.jpg", "m3-uitsmijter.jpg"],
+};
+let flow = "label";
+let image = null;
+const $ = (id) => document.getElementById(id);
+
+function setFlow(next) {
+	flow = next;
+	document.querySelectorAll(".tabs button").forEach((b) => {
+		b.classList.toggle("on", b.dataset.flow === flow);
+	});
+	$("text").style.display = flow === "label" ? "none" : "";
+	$("text").placeholder = flow === "photo" ? "Optional hint, e.g. 'ik heb de helft gegeten'" : "2 boterhammen met pindakaas en een glas halfvolle melk";
+	$("imageWrap").style.display = flow === "text" ? "none" : "";
+	$("strategies").style.display = flow === "label" ? "none" : "";
+	$("offWrap").style.display = flow === "label" ? "" : "none";
+	$("thumbs").innerHTML = "";
+	image = null; $("preview").removeAttribute("src");
+	for (const name of FIXTURES[flow] ?? []) {
+		const img = document.createElement("img");
+		img.src = `/fixtures/${name}`; img.title = name;
+		img.onclick = () => useUrl(img.src, img);
+		$("thumbs").append(img);
+	}
+}
+document.querySelectorAll(".tabs button").forEach((b) => {
+	b.onclick = () => setFlow(b.dataset.flow);
+});
+
+async function useBlob(blob) {
+	const dataUrl = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+	$("preview").src = dataUrl;
+	image = { mediaType: blob.type || "image/jpeg", base64: dataUrl.split(",")[1] };
+}
+async function useUrl(url, el) {
+	document.querySelectorAll(".thumbs img").forEach((i) => {
+		i.classList.toggle("on", i === el);
+	});
+	await useBlob(await (await fetch(url)).blob());
+}
+$("file").onchange = (e) => e.target.files[0] && useBlob(e.target.files[0]);
+
+const fmt = (n, d = 0) => (n == null ? "—" : Number(n).toFixed(d));
+const cost = (calls) => calls.reduce((a, c) => a + c.costUsd, 0);
+
+async function call(body) {
+	const res = await fetch("/api/run", { method: "POST", body: JSON.stringify(body) });
+	return res.json();
+}
+
+$("run").onclick = async () => {
+	const base = { flow, provider: $("provider").value, model: $("model").value, effort: $("effort").value, text: $("text").value, image, off: $("off").checked };
+	if (flow !== "text" && !image) return alert("Pick an image");
+	if (flow === "text" && !base.text.trim()) base.text = $("text").placeholder;
+	$("status").textContent = "running…";
+	const started = performance.now();
+	const strategies = flow === "label" ? ["label"] : [...document.querySelectorAll("#strategies input:checked")].map((i) => i.value);
+	const results = await Promise.all(strategies.map((s) => call({ ...base, strategy: s }).then((r) => [s, r])));
+	$("status").textContent = `done in ${((performance.now() - started) / 1000).toFixed(1)} s`;
+	const header = `${base.model.replace("claude-", "")} · effort ${base.effort}`;
+	for (const [s, r] of results.reverse()) $("results").prepend(r.error ? errorCard(s, r) : s === "label" ? labelCard(r, header) : mealCard(r, header));
+};
+
+function errorCard(s, r) {
+	const el = document.createElement("div"); el.className = "card";
+	el.innerHTML = `<h3 class="bad">${s} failed</h3><pre>${r.error}</pre>`; return el;
+}
+
+function labelCard(r, header) {
+	const d = r.data, p = d.per100;
+	const el = document.createElement("div"); el.className = "card";
+	const rows = Object.entries(p).map(([k, v]) => {
+		const offV = r.off?.per100?.[k];
+		return `<tr><td>${k}</td><td class="n">${fmt(v, 2)}</td><td class="n muted">${offV == null ? "" : fmt(offV, 2)}</td></tr>`;
+	}).join("");
+	const draft = d.is_label ? {
+		name: { nl: d.product_name, en: "(translate)" }, baseUnit: d.basis_unit,
+		nutritionBasis: { kind: "per100", unit: d.basis_unit },
+		nutrients: { energy: p.energy_kcal, protein: p.protein, carbs: p.carbs, fat: p.fat, saturatedFat: p.saturated_fat, sugars: p.sugars, fibre: p.fibre, salt: p.salt },
+		servings: d.serving ? [{ label: { nl: d.serving.label, en: d.serving.label }, amount: d.serving.amount }] : [],
+		provenance: { recordOrigin: "personal", nutritionSource: "manual", locallyEdited: false, barcode: d.barcode, brand: d.brand, quantity: d.pack_size ? `${d.pack_size.amount} ${d.pack_size.unit}` : undefined },
+		estimated: false,
+	} : null;
+	el.innerHTML = `<h3>📄 Label · ${header} · $${cost(r.calls).toFixed(5)} · ${(r.calls[0].ms / 1000).toFixed(1)} s</h3>
+		${d.is_label ? "" : `<p class="bad"><b>Not a nutrition label.</b> ${d.notes}</p>`}
+		<p><b>${d.product_name ?? "—"}</b> · ${d.brand ?? "—"} · EAN ${d.barcode ?? "—"} · pack ${d.pack_size ? d.pack_size.amount + d.pack_size.unit : "—"} · serving ${d.serving ? `${d.serving.label} (${d.serving.amount}${d.serving.unit})` : "—"}</p>
+		<table><tr><th>per 100 ${d.basis_unit}</th><th class="n">label</th><th class="n">OFF</th></tr>${rows}</table>
+		<p>${r.checks.map((c) => `<span class="${c.ok ? "ok" : "bad"}">${c.ok ? "✓" : "✗"} ${c.name}</span> <span class="muted">${c.detail}</span>`).join("<br>")}</p>
+		${d.notes ? `<p class="muted">Notes: ${d.notes}</p>` : ""}
+		<details><summary>→ PersonalFoodDraft</summary><pre>${JSON.stringify(draft, null, 2)}</pre></details>
+		<details><summary>raw</summary><pre>${JSON.stringify(r, null, 2)}</pre></details>`;
+	return el;
+}
+
+const NAMES = { retrieve: "B retrieve→select", catalog: "D whole catalog", freeform: "A free-form (baseline)" };
+function mealCard(r, header) {
+	const el = document.createElement("div"); el.className = "card";
+	const rows = r.items.map((i) => `<tr class="${i.confidence === "low" ? "low" : ""} ${r.strategy !== "freeform" && !i.ref ? "none" : ""}">
+		<td>${i.description}<br><span class="muted">${i.amountBasis}</span></td>
+		<td class="n">${fmt(i.grams)} g</td><td>${i.confidence}</td>
+		<td>${i.foodName ?? "<b>no match</b>"}<br><span class="muted">${i.ref ?? ""} ${i.reason ?? ""}</span>
+			${i.candidates ? `<details><summary class="muted">${i.candidates.length} candidates</summary><span class="muted">${i.candidates.join("<br>")}</span></details>` : ""}</td>
+		<td class="n">${fmt(i.totals?.energy)}</td><td class="n">${fmt(i.totals?.protein, 1)}</td><td class="n">${fmt(i.totals?.carbs, 1)}</td><td class="n">${fmt(i.totals?.fat, 1)}</td></tr>`).join("");
+	const t = r.totals;
+	el.innerHTML = `<h3>${NAMES[r.strategy]} · ${header} · $${r.costUsd.toFixed(5)} · ${(r.ms / 1000).toFixed(1)} s</h3>
+		${r.status === "no_food" ? `<p class="bad"><b>No food recognised.</b></p>` : ""}
+		<table><tr><th>item</th><th class="n">amount</th><th>conf.</th><th>NEVO match</th><th class="n">kcal</th><th class="n">P</th><th class="n">C</th><th class="n">F</th></tr>${rows}
+		<tr><th colspan="4">Total</th><th class="n">${fmt(t.energy)}</th><th class="n">${fmt(t.protein, 1)}</th><th class="n">${fmt(t.carbs, 1)}</th><th class="n">${fmt(t.fat, 1)}</th></tr></table>
+		<p class="muted">tokens in ${r.usage.input} · cache read ${r.usage.cacheRead} · cache write ${r.usage.cacheWrite} · out ${r.usage.output} · calls: ${r.calls.map((c) => `${c.step} ${(c.ms / 1000).toFixed(1)}s`).join(", ")}</p>
+		<details><summary>raw</summary><pre>${JSON.stringify(r.calls.map((c) => ({ step: c.step, raw: c.raw })), null, 2)}</pre></details>`;
+	return el;
+}
+setFlow("label");
+</script>
+</body>
+</html>

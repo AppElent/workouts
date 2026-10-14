@@ -32,9 +32,12 @@
 		"test": "vitest run",
 		"generate:foods": "tsx scripts/generate-shipped-foods.ts",
 		"bench:foods": "tsx scripts/benchmark-shipped-foods.ts",
-		"check:foods": "tsx scripts/generate-shipped-foods.ts --check"
+		"check:foods": "tsx scripts/generate-shipped-foods.ts --check",
+		"prototype:nutrition-ai": "infisical run --silent --env=dev --path=/foundry -- tsx scripts/nutrition-ai.prototype/server.ts",
+		"prototype:nutrition-ai:eval": "infisical run --silent --env=dev --path=/foundry -- tsx scripts/nutrition-ai.prototype/eval.ts"
 	},
 	"devDependencies": {
+		"@anthropic-ai/sdk": "^0.133.0",
 		"tsup": "^8.3.0",
 		"tsx": "^4.23.15",
 		"typescript": "^6.0.2",
