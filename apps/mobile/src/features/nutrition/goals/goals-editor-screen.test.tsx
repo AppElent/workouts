@@ -172,7 +172,7 @@ describe("nutrition goal editor", () => {
 		expect(screen.getByLabelText("Fat maximum").props.value).toBe("75");
 	});
 
-	it("shows a localized retry state when goals stall offline", async () => {
+	it("shows a localized offline state when goals stall offline", async () => {
 		jest.useFakeTimers();
 		mockUseConvexConnectionState.mockReturnValue({
 			isWebSocketConnected: false,
@@ -187,7 +187,7 @@ describe("nutrition goal editor", () => {
 		expect(
 			await screen.findByText("Your goals are not available offline yet."),
 		).toBeTruthy();
-		expect(screen.getByText("Try again")).toBeTruthy();
+		expect(screen.queryByText("Try again")).toBeNull();
 	});
 
 	it("submits at most once while a save is in flight", async () => {

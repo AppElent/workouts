@@ -119,6 +119,7 @@ export function AddExercisePicker({
 						}
 						renderItem={({ item }) => (
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => onSelect(item._id)}
 								style={({ pressed }) => [
 									styles.row,

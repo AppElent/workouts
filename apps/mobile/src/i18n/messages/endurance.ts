@@ -59,8 +59,7 @@ export const enduranceEn = {
 	offlineError: "Connect to save this activity. Your input is still here.",
 	offlineDeleteError: "Connect to delete this activity.",
 	offlineTitle: "Activity unavailable offline",
-	offlineBody: "Connect to load this activity, then try again.",
-	retry: "Try again",
+	offlineBody: "Connect to load this activity.",
 	timeHint: "HH:mm",
 };
 
@@ -126,8 +125,6 @@ export const enduranceNl: typeof enduranceEn = {
 		"Maak verbinding om deze activiteit op te slaan. Je invoer staat er nog.",
 	offlineDeleteError: "Maak verbinding om deze activiteit te verwijderen.",
 	offlineTitle: "Activiteit offline niet beschikbaar",
-	offlineBody:
-		"Maak verbinding om deze activiteit te laden en probeer het opnieuw.",
-	retry: "Opnieuw proberen",
+	offlineBody: "Maak verbinding om deze activiteit te laden.",
 	timeHint: "UU:mm",
 };

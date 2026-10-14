@@ -272,11 +272,7 @@ function GoalsEditor() {
 								marginTop: spacing.lg,
 							}}
 						>
-							<EmptyState
-								title={copy.offlineTitle}
-								body={copy.offlineBody}
-								action={{ label: copy.tryAgain, onPress: editor.retry }}
-							/>
+							<EmptyState title={copy.offlineTitle} body={copy.offlineBody} />
 						</View>
 					) : (
 						<SkeletonGroup label={copy.loading}>

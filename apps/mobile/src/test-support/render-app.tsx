@@ -5,8 +5,8 @@ const photoStorageId = z.custom<Id<"_storage">>(
 	(value) => typeof value === "string",
 );
 
+import { RestTimerProvider } from "../features/strength-session/components/rest-timer";
 import { SetDraftsProvider } from "../features/strength-session/data/set-drafts";
-import { RestTimerProvider } from "../ui/rest-timer";
 
 jest.mock("../features/nutrition/day-goals/components/goal-row-menu", () =>
 	jest.requireActual(

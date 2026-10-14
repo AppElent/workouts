@@ -11,7 +11,7 @@ import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
-export type NutritionCalendarLabels = {
+export type MonthCalendarLabels = {
 	previousMonth: string;
 	nextMonth: string;
 	today: string;
@@ -58,7 +58,7 @@ function weekdays(locale: string): string[] {
 	}
 }
 
-export function NutritionCalendar({
+export function MonthCalendar({
 	selectedDate,
 	onSelect,
 	locale = "en",
@@ -72,7 +72,7 @@ export function NutritionCalendar({
 	onSelect: (date: IsoDate) => void;
 	locale?: string;
 	today?: IsoDate;
-	labels?: Partial<NutritionCalendarLabels>;
+	labels?: Partial<MonthCalendarLabels>;
 	markedDates?: ReadonlySet<string>;
 	/** A span shown as one band, such as the chosen week. */
 	highlightedDates?: ReadonlySet<string>;

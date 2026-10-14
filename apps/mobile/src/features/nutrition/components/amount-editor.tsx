@@ -13,13 +13,13 @@ import type { FoodVisual } from "../../../data/personal-food-repository";
 import type { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
-import { FoodVisualView } from "../../../ui/food-visual";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
 import type { AmountSelection } from "../use-amount-selection";
 import { AmountQuantity, AmountQuantityAccessory } from "./amount-quantity";
 import { AmountServingPopup } from "./amount-serving-popup";
+import { FoodVisualView } from "./food-visual";
 import { NutrientTable } from "./nutrient-table";
 
 /** The servings an amount can switch to, and where a new one can go. */

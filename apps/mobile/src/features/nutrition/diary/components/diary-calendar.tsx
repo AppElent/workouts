@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isoDateToLocalDate, toIsoDate } from "../../../../data/calendar-day";
-import { NutritionCalendar } from "../../../../ui/nutrition-calendar";
+import { MonthCalendar } from "../../../../ui/month-calendar";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
 export function DiaryCalendar({
 	date,
@@ -16,7 +16,7 @@ export function DiaryCalendar({
 	const end = toIsoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0, 12));
 	const logged = useLoggedDiaryDates(month, end);
 	return (
-		<NutritionCalendar
+		<MonthCalendar
 			selectedDate={date}
 			onSelect={onSelect}
 			locale={locale}

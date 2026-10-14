@@ -27,8 +27,9 @@ when its output is missing: `pnpm --filter @foundry/core build`.
 
 ## Backend and login
 
-Use [isolated worktree setup](worktree-setup.md). Confirm backend identity before
-runtime writes: localhost and EAS profile names do not establish isolation.
+Runtime checks use the shared dev deployment unless the user asks for
+[isolated worktree setup](worktree-setup.md). Confirm backend identity before
+runtime writes: localhost and EAS profile names do not establish it.
 The web test-login shortcut needs a Clerk test key and configured public test-user
 variables. Use the documented test account on the verified target. Inspect variable
 names without printing credentials. Missing credentials limit acceptance.

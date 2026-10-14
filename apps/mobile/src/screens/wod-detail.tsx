@@ -232,6 +232,7 @@ export function WodDetailScreen({
 			{wod.isDefault ? null : (
 				<View style={styles.actions}>
 					<Pressable
+						accessibilityRole="button"
 						onPress={() =>
 							onEdit
 								? onEdit(wod._id)
@@ -244,7 +245,11 @@ export function WodDetailScreen({
 					>
 						<AppText style={styles.ghostText}>{copy.edit}</AppText>
 					</Pressable>
-					<Pressable onPress={() => void deleteWod()} style={styles.ghostBtn}>
+					<Pressable
+						accessibilityRole="button"
+						onPress={() => void deleteWod()}
+						style={styles.ghostBtn}
+					>
 						<AppText style={styles.deleteText}>{copy.deleteWod}</AppText>
 					</Pressable>
 				</View>
@@ -405,6 +410,8 @@ function LogResultForm({
 			/>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy }}
 				onPress={() => void submit()}
 				disabled={busy}
 				style={[styles.submit, busy && styles.dimmed]}

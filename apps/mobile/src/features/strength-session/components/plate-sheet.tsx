@@ -1,7 +1,10 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
+import {
+	modalAnimation,
+	useReduceMotion,
+} from "../../../feedback/reduce-motion";
+import { radius, spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { PlateSheetContent } from "./plate-sheet-content";
 
 export function PlateSheet({

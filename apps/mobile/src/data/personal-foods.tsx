@@ -36,7 +36,6 @@ import { mintNutritionUuid } from "./nutrition-operation-service";
 import {
 	type Combo,
 	type ComboDraft,
-	openPersonalFoodRepository,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	type PersonalFoodFilter,
@@ -90,14 +89,14 @@ type AccountControls = PersonalFoodsValue["account"];
 
 function PersonalFoodsScope({
 	children,
-	repository: suppliedRepository,
+	repository,
 	account,
 	remoteRevision = 0,
 	saveRecord,
 	lookupBarcode,
 }: {
 	children: ReactNode;
-	repository?: PersonalFoodRepository;
+	repository: PersonalFoodRepository;
 	account: AccountControls;
 	lookupBarcode(barcode: string): Promise<PersonalFood | undefined>;
 	remoteRevision?: number;
@@ -106,9 +105,6 @@ function PersonalFoodsScope({
 		remove?: boolean,
 	) => Promise<LibraryRecord>;
 }) {
-	const [repository] = useState(
-		() => suppliedRepository ?? openPersonalFoodRepository(),
-	);
 	const [revision, setRevision] = useState(0);
 	const createCandidates = useRef(
 		new Map<

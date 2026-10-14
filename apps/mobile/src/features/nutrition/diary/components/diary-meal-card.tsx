@@ -6,9 +6,9 @@ import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
 import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
 import { fmt, plural, useI18n } from "../../../../i18n";
 import { spacing, useTokens } from "../../../../theme";
-import { FoodVisualView } from "../../../../ui/food-visual";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
 import { AppText } from "../../../../ui/text";
+import { FoodVisualView } from "../../components/food-visual";
 import { DiaryMealMenu } from "./diary-meal-menu";
 
 export function DiaryMealCard({
@@ -26,6 +26,7 @@ export function DiaryMealCard({
 	onTransfer,
 	onCombo,
 	onResolveDraft,
+	onAssistDraft,
 	onEditDraft,
 	onDeleteDraft,
 }: {
@@ -43,6 +44,8 @@ export function DiaryMealCard({
 	onTransfer: (entries: readonly DiaryEntry[], mode: "copy" | "move") => void;
 	onCombo: (entries: readonly DiaryEntry[]) => void;
 	onResolveDraft: (draft: CaptureDraft) => void;
+	/** Process the note with Hulp bij invoeren. */
+	onAssistDraft: (draft: CaptureDraft) => void;
 	onEditDraft: (draft: CaptureDraft) => void;
 	onDeleteDraft: (draft: CaptureDraft) => void;
 }) {
@@ -350,6 +353,14 @@ export function DiaryMealCard({
 							leading={{ symbol: "note.text" }}
 							onPress={() => onResolveDraft(draft)}
 							actions={[
+								{
+									key: "assist",
+									menuLabel: t.nutrition.assistance.processNote,
+									systemImage: "sparkles",
+									label: t.nutrition.assistance.processNote,
+									onPress: () => onAssistDraft(draft),
+									swipe: false,
+								},
 								{
 									key: "edit",
 									menuLabel: copy.edit,

@@ -26,9 +26,9 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Platform, View } from "react-native";
 import { useActiveSession } from "../../../src/data/session-data";
+import { ActiveSessionBar } from "../../../src/features/strength-session/components/active-session-bar";
 import { useI18n } from "../../../src/i18n";
 import { chrome, useTokens } from "../../../src/theme";
-import { ActiveSessionBar } from "../../../src/ui/active-session-bar";
 import { isIOS26OrLater } from "../../../src/ui/platform";
 import {
 	TabBarVisibilityProvider,
