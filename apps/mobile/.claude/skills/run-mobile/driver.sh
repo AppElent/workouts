@@ -145,9 +145,11 @@ cmd_signin() {
 			*) die "signin: unknown option $1" ;;
 		esac
 	done
+	# Both or neither: one flag alone would sign in to the pre-filled shared account.
+	if [ -n "$email" ] && [ -z "$password" ]; then die "signin: --email needs --password"; fi
+	if [ -z "$email" ] && [ -n "$password" ]; then die "signin: --password needs --email"; fi
 	ad wait text "Sign in" 20000 >/dev/null || die "sign-in screen not visible (already signed in?)"
 	if [ -n "$email" ]; then
-		[ -n "$password" ] || die "signin: --email needs --password"
 		local field secure
 		field=$(ad snapshot -i | grep -m1 '\[text-field\]' | grep -o '@e[0-9]*')
 		ad fill "$field" "$email" >/dev/null || die "could not fill email"

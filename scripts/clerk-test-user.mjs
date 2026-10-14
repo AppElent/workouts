@@ -13,11 +13,23 @@ if (!["create", "exists"].includes(command) || !email || (command === "create" &
 	process.exit(2);
 }
 
+// The web app and the mobile-only setup name the same key differently.
+const sources = [
+	["../.env.local", "VITE_CLERK_PUBLISHABLE_KEY"],
+	["../apps/mobile/.env.local", "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY"],
+];
+function fromFile(path, name) {
+	try {
+		return readFileSync(new URL(path, import.meta.url), "utf8").match(
+			new RegExp(`^${name}=(\\S+)`, "m"),
+		)?.[1];
+	} catch {
+		return undefined;
+	}
+}
 const key =
-	process.env.VITE_CLERK_PUBLISHABLE_KEY ??
-	readFileSync(new URL("../.env.local", import.meta.url), "utf8").match(
-		/^VITE_CLERK_PUBLISHABLE_KEY=(\S+)/m,
-	)?.[1];
+	sources.map(([, name]) => process.env[name]).find(Boolean) ??
+	sources.map(([path, name]) => fromFile(path, name)).find(Boolean);
 if (!key?.startsWith("pk_test_")) {
 	console.error("A Clerk development publishable key (pk_test_) is required.");
 	process.exit(1);
