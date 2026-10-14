@@ -79,7 +79,7 @@ describe("deriving salt from sodium", () => {
 		expect(saltFromSodium(TRACE)).toEqual({ kind: "trace" });
 	});
 
-	test("marks salt, and only salt, as something Workouts derived", () => {
+	test("marks salt, and only salt, as something Foundry derived", () => {
 		expect(isDerivedNutrient("salt")).toBe(true);
 		expect(isDerivedNutrient("sodium")).toBe(false);
 		expect(isDerivedNutrient("protein")).toBe(false);

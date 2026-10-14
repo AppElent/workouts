@@ -1,10 +1,7 @@
 export const profileEn = {
 	account: "Account",
 	accountDetails: "Account details",
-	comingSoon: "Coming soon",
-	accountUnavailable: "Account editing, export and deletion are coming soon.",
-	export: "Export data",
-	deleteAccount: "Delete account",
+	privacy: "Privacy statement",
 	sessions: "Sessions",
 	distance: "Distance",
 	records: "Records",
@@ -25,11 +22,7 @@ export const profileEn = {
 export const profileNl: typeof profileEn = {
 	account: "Account",
 	accountDetails: "Accountgegevens",
-	comingSoon: "Binnenkort",
-	accountUnavailable:
-		"Account bewerken, exporteren en verwijderen komen binnenkort.",
-	export: "Gegevens exporteren",
-	deleteAccount: "Account verwijderen",
+	privacy: "Privacyverklaring",
 	sessions: "Sessies",
 	distance: "Afstand",
 	records: "Records",

@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@workouts/core/nutrition";
+import { roundForDisplay } from "@foundry/core/nutrition";
 import { Stack, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
@@ -37,6 +37,7 @@ import { FoodNutrientRows } from "../components/food-nutrient-rows";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { useNutrientFields } from "../use-nutrient-fields";
+import { PersonalFoodLabelScan } from "./personal-food-label-scan";
 import {
 	parseFoodNumber,
 	usePersonalFoodDraft,
@@ -61,6 +62,8 @@ export type PersonalFoodEditorProps = {
 	 * `inline`: it replaces a screen's content and draws ✕ and ✓ itself.
 	 */
 	chrome?: "route" | "inline";
+	/** Open the label camera at once, as after an unknown barcode. */
+	scanLabelOnOpen?: boolean;
 };
 
 export function PersonalFoodEditor({
@@ -74,6 +77,7 @@ export function PersonalFoodEditor({
 	photoManager,
 	initialName,
 	chrome = "inline",
+	scanLabelOnOpen = false,
 }: PersonalFoodEditorProps) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.foodEditor;
@@ -617,6 +621,17 @@ export function PersonalFoodEditor({
 						) : null}
 					</>
 				) : null}
+				{draft.basisKind === "per100" ? (
+					<PersonalFoodLabelScan
+						draft={draft}
+						mode={
+							draft.initial?.provenance.nutritionSource === "openfoodfacts"
+								? "missing"
+								: "fill"
+						}
+						openOnMount={scanLabelOnOpen}
+					/>
+				) : null}
 				<FoodFormSectionHeader
 					title={copy.nutrition}
 					trailing={
@@ -660,7 +675,12 @@ export function PersonalFoodEditor({
 					}
 				/>
 				<FoodFormCard>
-					<FoodNutrientRows values={draft.nutrients} fields={nutrientFields} />
+					<FoodNutrientRows
+						values={draft.nutrients}
+						fields={nutrientFields}
+						marked={draft.fromLabel}
+						markLabel={t.nutrition.assistance.fromLabel}
+					/>
 					<View
 						style={{
 							minHeight: 56,

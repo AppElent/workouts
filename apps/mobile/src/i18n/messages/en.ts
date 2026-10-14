@@ -1,4 +1,6 @@
+import { accountEn } from "./account";
 import { activityEn } from "./activity";
+import { bodyMetricsEn } from "./body-metrics";
 import { comboEditorEn } from "./combo-editor";
 import { diaryEn } from "./diary";
 import { enduranceEn } from "./endurance";
@@ -7,22 +9,29 @@ import { exerciseLibraryEn } from "./exercise-library";
 import { foodEditorEn } from "./food-editor";
 import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
+import { hostedEn } from "./hosted";
 import { localDataEn } from "./local-data";
 import { logFoodEn } from "./log-food";
 import { nutritionAssistanceEn } from "./nutrition-assistance";
 import { nutritionSettingsEn } from "./nutrition-settings";
 import { oneOffLogEn } from "./one-off-log";
 import { profileEn } from "./profile";
+import { progressEn } from "./progress";
+import { signInEn } from "./sign-in";
+import { signUpEn, verifyEmailEn } from "./sign-up";
 import { strengthEn } from "./strength";
 import { testDataEn } from "./test-data";
 import { trainingEn } from "./training";
 import { weekReviewEn } from "./week-review";
+import { wodsEn } from "./wods";
+import { workoutSummaryEn } from "./workout-summary";
+import { workoutToolsEn } from "./workout-tools";
 /**
  * The phone's words, in the source language.
  *
  * English is written here and Dutch follows in `nl.ts`, which is typed
  * `satisfies typeof en` — so a key added here without a Dutch counterpart is a
- * `pnpm --filter @workouts/mobile typecheck` failure rather than a blank label
+ * `pnpm --filter @foundry/mobile typecheck` failure rather than a blank label
  * discovered on a device.
  *
  * Deliberately not shared with the web app's `src/lib/i18n/messages/`. There is
@@ -34,7 +43,17 @@ import { weekReviewEn } from "./week-review";
  */
 export const en = {
 	testData: testDataEn,
+	wods: wodsEn,
+	workoutSummary: workoutSummaryEn,
+	progress: progressEn,
+	bodyMetrics: bodyMetricsEn,
+	hosted: hostedEn,
+	workoutTools: workoutToolsEn,
+	signIn: signInEn,
+	signUp: signUpEn,
+	verifyEmail: verifyEmailEn,
 	profile: profileEn,
+	account: accountEn,
 	training: trainingEn,
 	strength: strengthEn,
 	diaryEntry: entryEditorEn,
@@ -57,9 +76,17 @@ export const en = {
 		settings: "Settings",
 		nutritionSettings: "Nutrition Settings",
 		oneOff: "One-off",
-		assistance: "Logging assistance",
+		assistance: "Entry help",
 		weekOverview: "Week overview",
 		foodLibrary: "Food library",
+		exercises: "Exercises",
+		exercise: "Exercise",
+		newExercise: "New exercise",
+		hosted: "Hosted workouts",
+		hostedWorkout: "Hosted workout",
+		routine: "Routine",
+		workout: "Workout",
+		summary: "Summary",
 	},
 
 	feedback: {
@@ -81,6 +108,9 @@ export const en = {
 		back: "Go back",
 		retry: "Try again",
 		offline: "Offline — connect to save changes",
+		keep: "Keep",
+		decrease: "Decrease {label}",
+		increase: "Increase {label}",
 		calendar: {
 			previousMonth: "Previous month",
 			nextMonth: "Next month",
@@ -116,7 +146,7 @@ export const en = {
 	language: {
 		title: "Language",
 		description:
-			"Workouts starts in your phone's language and stays in the one you choose here.",
+			"Foundry starts in your phone's language and stays in the one you choose here.",
 		names: {
 			en: "English",
 			nl: "Nederlands",
@@ -429,7 +459,6 @@ export const en = {
 				"This Combo could not be saved. Your name and selection are still here.",
 			selectionHelp:
 				"Choose diary entries or an entire Logged Combo from one meal.",
-			selectEntry: "Select {name} for Combo",
 			cancel: "Cancel",
 			continueOne: "Continue with 1 part",
 			continueMany: "Continue with {count} parts",

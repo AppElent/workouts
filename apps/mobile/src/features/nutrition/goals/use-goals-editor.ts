@@ -6,7 +6,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";
@@ -89,11 +89,7 @@ export function useGoalsEditor({
 	const toast = useToast();
 	const [today] = useState(() => todayIsoDate());
 	const [date, setDate] = useState<IsoDate>(requestedDate ?? today);
-	const [retryNonce, setRetryNonce] = useState(0);
-	const response = useQuery(
-		api.nutritionGoals.forDate,
-		retryNonce % 2 === 0 ? { date } : "skip",
-	);
+	const response = useQuery(api.nutritionGoals.forDate, { date });
 	const replace = useMutation(api.nutritionGoals.replace);
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
@@ -242,10 +238,6 @@ export function useGoalsEditor({
 		/** The draft reflects the saved goals for `date`. */
 		ready: baseline !== null,
 		stalledOffline,
-		retry: () => {
-			setRetryNonce((value) => value + 1);
-			setTimeout(() => setRetryNonce((value) => value + 1), 0);
-		},
 		version,
 		values: draft.values,
 		preset: draft.preset,

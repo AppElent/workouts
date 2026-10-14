@@ -5,12 +5,12 @@ import {
 	formatQuantity,
 	rescaleNutrients,
 	totalNutrients,
-} from "@workouts/core";
+} from "@foundry/core";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import type { NutritionDiaryOperation } from "@workouts/core";
+import type { NutritionDiaryOperation } from "@foundry/core";
 import {
 	diaryPartSnapshotFields,
 	diarySnapshotFields,

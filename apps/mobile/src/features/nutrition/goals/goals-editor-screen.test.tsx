@@ -3,6 +3,7 @@ import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { OFFLINE_GRACE_MS } from "../../../data/stalled-offline";
 import { renderApp } from "../../../test-support/render-app";
+import { armToastAction } from "../../../test-support/toast-action";
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseMutation = jest.mocked(useMutation);
@@ -141,6 +142,7 @@ describe("nutrition goal editor", () => {
 		expect(
 			screen.getByText("No goals. The diary shows totals only."),
 		).toBeTruthy();
+		await armToastAction();
 		fireEvent.press(screen.getByLabelText("Undo"));
 		expect(screen.getByLabelText("Fat maximum").props.value).toBe("80");
 	});
@@ -170,7 +172,7 @@ describe("nutrition goal editor", () => {
 		expect(screen.getByLabelText("Fat maximum").props.value).toBe("75");
 	});
 
-	it("shows a localized retry state when goals stall offline", async () => {
+	it("shows a localized offline state when goals stall offline", async () => {
 		jest.useFakeTimers();
 		mockUseConvexConnectionState.mockReturnValue({
 			isWebSocketConnected: false,
@@ -185,7 +187,7 @@ describe("nutrition goal editor", () => {
 		expect(
 			await screen.findByText("Your goals are not available offline yet."),
 		).toBeTruthy();
-		expect(screen.getByText("Try again")).toBeTruthy();
+		expect(screen.queryByText("Try again")).toBeNull();
 	});
 
 	it("submits at most once while a save is in flight", async () => {

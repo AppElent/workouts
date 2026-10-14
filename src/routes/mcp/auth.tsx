@@ -104,7 +104,7 @@ function McpAuthLoginPage() {
 	if (!isSignedIn) {
 		return (
 			<AuthCard
-				title="Sign in to Workouts MCP"
+				title="Sign in to Foundry MCP"
 				subtitle="Continue to connect this MCP client."
 			>
 				<SignInForm onSuccess={() => setError(undefined)} />

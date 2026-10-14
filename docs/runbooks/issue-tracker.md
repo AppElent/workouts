@@ -4,7 +4,7 @@ description: Read when creating, labelling, or triaging GitHub issues.
 version: 1.0.1
 ---
 
-# Workouts issue tracker
+# Foundry issue tracker
 
 Requests and PRDs live in this repository's GitHub issues. Map and child-issue
 conventions come from the wayfinder skill when running that workflow.

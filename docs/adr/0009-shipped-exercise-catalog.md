@@ -8,7 +8,7 @@ date: 2026-09-26
 
 # Ship the exercise catalog and migrate historical references
 
-Default exercises ship in `@workouts/core/exercises`, a separate package entry
+Default exercises ship in `@foundry/core/exercises`, a separate package entry
 used by web, mobile, and backend validation. Personal exercises remain in Convex.
 Clients combine the bundle with paginated personal exercises. Neither the shipped
 catalog nor an ID mapping is fetched during normal browsing. The trade-off is a

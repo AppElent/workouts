@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { NutritionOperationEnvelope } from "@workouts/core";
+import type { NutritionOperationEnvelope } from "@foundry/core";
 import { diaryNutrientCorrection, diaryPartSnapshotFields, diarySnapshotFields, mealSlot } from "./nutritionDiaryModel";
 
 const operationTarget = v.union(

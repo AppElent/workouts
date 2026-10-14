@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";

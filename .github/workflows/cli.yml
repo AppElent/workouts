@@ -28,4 +28,4 @@ jobs:
 
       - run: pnpm cli:smoke
         env:
-          WORKOUTS_CONFIG_DIR: ${{ runner.temp }}/workouts-cli
+          FOUNDRY_CONFIG_DIR: ${{ runner.temp }}/foundry-cli

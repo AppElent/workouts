@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseId } from "@workouts/core/exercises";
+import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
  * The mid-session "add an exercise" picker, ported from the web's
  * `src/components/session/AddExerciseModal.tsx`.
@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
+import { fmt, useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -44,6 +45,7 @@ export function AddExercisePicker({
 	onClose: () => void;
 }) {
 	const colors = useTokens();
+	const copy = useI18n().t.exercises.picker;
 	const styles = useThemedStyles(createStyles);
 	const [search, setSearch] = useState("");
 	const insets = useSafeAreaInsets();
@@ -75,15 +77,15 @@ export function AddExercisePicker({
 				]}
 			>
 				<View style={styles.header}>
-					<AppText variant="heading">Add exercise</AppText>
+					<AppText variant="heading">{copy.title}</AppText>
 					<Pressable
 						onPress={onClose}
 						hitSlop={12}
 						accessibilityRole="button"
-						accessibilityLabel="Close"
+						accessibilityLabel={copy.close}
 					>
 						<AppText variant="body" style={styles.close}>
-							Done
+							{copy.done}
 						</AppText>
 					</Pressable>
 				</View>
@@ -91,7 +93,7 @@ export function AddExercisePicker({
 				<TextInput
 					value={search}
 					onChangeText={setSearch}
-					placeholder="Search exercises"
+					placeholder={copy.search}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					autoCorrect={false}
@@ -101,7 +103,7 @@ export function AddExercisePicker({
 
 				{exercises === undefined ? (
 					<AppText variant="caption" style={styles.pad}>
-						Loading…
+						{copy.loading}
 					</AppText>
 				) : (
 					<FlatList
@@ -112,11 +114,12 @@ export function AddExercisePicker({
 						contentContainerStyle={styles.list}
 						ListEmptyComponent={
 							<AppText variant="caption" style={styles.pad}>
-								No exercises match "{search.trim()}".
+								{fmt(copy.noMatches, { search: search.trim() })}
 							</AppText>
 						}
 						renderItem={({ item }) => (
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => onSelect(item._id)}
 								style={({ pressed }) => [
 									styles.row,

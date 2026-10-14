@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AuthCard, ForgotPasswordForm } from "#/lib/auth";
+import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/forgot-password")({
 	ssr: false,
@@ -8,8 +9,9 @@ export const Route = createFileRoute("/forgot-password")({
 
 function ForgotPasswordPage() {
 	const navigate = useNavigate();
+	const { auth } = useMessages();
 	return (
-		<AuthCard title="Reset your password">
+		<AuthCard title={auth.forgotPassword.title}>
 			<ForgotPasswordForm onSuccess={() => navigate({ to: "/dashboard" })} />
 		</AuthCard>
 	);

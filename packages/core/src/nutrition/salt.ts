@@ -36,7 +36,7 @@ export function saltFromSodium(sodium: NutrientValue): NutrientValue {
 	);
 }
 
-/** True for nutrients Workouts derives rather than reads from the source. */
+/** True for nutrients Foundry derives rather than reads from the source. */
 export function isDerivedNutrient(key: string): boolean {
 	return key === "salt";
 }

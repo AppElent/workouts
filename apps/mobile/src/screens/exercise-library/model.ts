@@ -1,4 +1,4 @@
-import type { Exercise } from "@workouts/core/exercises";
+import type { Exercise } from "@foundry/core/exercises";
 
 export const GROUPS = {
 	chest: ["chest"],

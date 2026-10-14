@@ -1,4 +1,4 @@
-import { calculateOneRepMax, convertLoad } from "@workouts/core";
+import { calculateOneRepMax, convertLoad } from "@foundry/core";
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";

@@ -1,5 +1,5 @@
-import { canonicalJson } from "@workouts/core";
-import type { ServingOption } from "@workouts/core/nutrition";
+import { canonicalJson } from "@foundry/core";
+import type { ServingOption } from "@foundry/core/nutrition";
 import type { PortionMemory } from "./nutrition-local-repository";
 
 export type RememberedSelection = {

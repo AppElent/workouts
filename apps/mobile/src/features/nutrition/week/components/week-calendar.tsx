@@ -9,7 +9,7 @@ import {
 	weekDates,
 	weekStartMonday,
 } from "../../../../data/nutrition-weekly-review";
-import { NutritionCalendar } from "../../../../ui/nutrition-calendar";
+import { MonthCalendar } from "../../../../ui/month-calendar";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../../diary/use-logged-diary-dates";
 
@@ -37,7 +37,7 @@ export function WeekCalendar({
 	const logged = useLoggedDiaryDates(month, end);
 	return (
 		<View style={{ gap: 4 }}>
-			<NutritionCalendar
+			<MonthCalendar
 				selectedDate={weekStart}
 				today={today}
 				locale={locale}

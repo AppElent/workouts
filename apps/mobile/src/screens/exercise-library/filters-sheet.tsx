@@ -8,7 +8,6 @@ import {
 	FormSegmentedRow,
 	TextAction,
 } from "../../ui/form";
-import { MuscleIcon } from "../../ui/muscle-icon";
 import {
 	EQUIPMENT,
 	emptyFilters,
@@ -16,6 +15,7 @@ import {
 	GROUP_KEYS,
 	toggleChoice,
 } from "./model";
+import { MuscleIcon } from "./muscle-icon";
 export function FiltersSheet({
 	draft,
 	onChange,

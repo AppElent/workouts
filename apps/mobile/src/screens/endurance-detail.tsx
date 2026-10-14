@@ -1,7 +1,4 @@
-import {
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@workouts/core";
+import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -27,11 +24,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const [retryNonce, setRetryNonce] = useState(0);
-	const activity = useQuery(
-		api.enduranceActivities.get,
-		retryNonce % 2 === 0 ? { id } : "skip",
-	);
+	const activity = useQuery(api.enduranceActivities.get, { id });
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
 		activity === undefined,
@@ -77,17 +70,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 					contentInsetAdjustmentBehavior="automatic"
 					contentContainerStyle={styles.content}
 				>
-					<EmptyState
-						title={copy.offlineTitle}
-						body={copy.offlineBody}
-						action={{
-							label: copy.retry,
-							onPress: () => {
-								setRetryNonce((n) => n + 1);
-								setTimeout(() => setRetryNonce((n) => n + 1), 0);
-							},
-						}}
-					/>
+					<EmptyState title={copy.offlineTitle} body={copy.offlineBody} />
 				</ScrollView>
 			);
 		return (

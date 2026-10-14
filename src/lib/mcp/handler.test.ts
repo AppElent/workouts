@@ -67,7 +67,7 @@ describe("handleWorkoutsMcpRequest", () => {
 		const json = (await response.json()) as {
 			result: { serverInfo: { name: string } };
 		};
-		expect(json.result.serverInfo.name).toBe("workouts");
+		expect(json.result.serverInfo.name).toBe("foundry");
 	});
 
 	it("handles MCP initialize without authentication", async () => {
@@ -97,7 +97,7 @@ describe("handleWorkoutsMcpRequest", () => {
 		const json = (await response.json()) as {
 			result: { serverInfo: { name: string } };
 		};
-		expect(json.result.serverInfo.name).toBe("workouts");
+		expect(json.result.serverInfo.name).toBe("foundry");
 	});
 
 	it("lists registered tools", async () => {

@@ -1,4 +1,4 @@
-import { FoodVisualView } from "../../../../ui/food-visual";
+import { FoodVisualView } from "../../components/food-visual";
 import type { FoodSelection } from "../log-food-selection";
 import { LogFoodMediaSlot, MEDIA_SLOT } from "./log-food-media-slot";
 

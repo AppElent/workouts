@@ -1,8 +1,10 @@
 import { cn } from "#/lib/auth/lib/utils";
+import { useMessages } from "#/lib/i18n";
 
 export function AuthButton({
 	children,
 	loading,
+	disabled,
 	variant = "primary",
 	type = "submit",
 	onClick,
@@ -10,15 +12,17 @@ export function AuthButton({
 }: {
 	children: React.ReactNode;
 	loading?: boolean;
+	disabled?: boolean;
 	variant?: "primary" | "ghost";
 	type?: "submit" | "button";
 	onClick?: () => void;
 	className?: string;
 }) {
+	const { auth } = useMessages();
 	return (
 		<button
 			type={type}
-			disabled={loading}
+			disabled={loading || disabled}
 			aria-busy={loading ?? false}
 			onClick={onClick}
 			className={cn(
@@ -29,7 +33,7 @@ export function AuthButton({
 				className,
 			)}
 		>
-			{loading ? "Please wait…" : children}
+			{loading ? auth.wait : children}
 		</button>
 	);
 }

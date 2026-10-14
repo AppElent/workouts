@@ -17,6 +17,7 @@ import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
+import { dateLocale, useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -43,6 +44,8 @@ export function BodyMetricsPanel() {
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const confirm = useConfirm();
+	const { t, locale } = useI18n();
+	const copy = t.bodyMetrics;
 	const entries = useQuery(api.bodyMetrics.list, {});
 	const addEntry = useMutation(api.bodyMetrics.add);
 	const removeEntry = useMutation(api.bodyMetrics.remove);
@@ -60,12 +63,12 @@ export function BodyMetricsPanel() {
 				.filter((e) => e.weight !== undefined)
 				.map((e) => ({
 					value: e.weight as number,
-					label: new Date(e.date).toLocaleDateString(undefined, {
+					label: new Date(e.date).toLocaleDateString(dateLocale(locale), {
 						day: "numeric",
 						month: "short",
 					}),
 				})),
-		[entries],
+		[entries, locale],
 	);
 
 	const latest = entries?.[0];
@@ -88,7 +91,7 @@ export function BodyMetricsPanel() {
 			setBodyFat("");
 			setNotes("");
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not save the entry."));
+			toast.error(convexErrorMessage(error, copy.saveError));
 		} finally {
 			setBusy(false);
 		}
@@ -96,16 +99,16 @@ export function BodyMetricsPanel() {
 
 	const remove = async (id: Id<"bodyMetrics">, date: number) => {
 		const confirmed = await confirm({
-			title: "Delete this entry?",
+			title: copy.deleteTitle,
 			message: formatSessionDate(date),
-			confirmLabel: "Delete entry",
+			confirmLabel: copy.deleteEntry,
 			destructive: true,
 		});
 		if (!confirmed) return;
 		try {
 			await removeEntry({ id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not delete the entry."));
+			toast.error(convexErrorMessage(error, copy.deleteError));
 		}
 	};
 
@@ -116,26 +119,26 @@ export function BodyMetricsPanel() {
 					<StatBox
 						value={latest.weight !== undefined ? String(latest.weight) : "—"}
 						unit={latest.weight !== undefined ? latest.unit : undefined}
-						label="Weight"
+						label={copy.weight}
 					/>
 					<StatBox
 						value={
 							latest.bodyFatPct !== undefined ? String(latest.bodyFatPct) : "—"
 						}
 						unit={latest.bodyFatPct !== undefined ? "%" : undefined}
-						label="Body fat"
+						label={copy.bodyFat}
 					/>
 				</View>
 			) : null}
 
-			<TrendChart title="Weight over time" points={weightPoints} />
+			<TrendChart title={copy.weightOverTime} points={weightPoints} />
 
-			<Eyebrow>Log an entry</Eyebrow>
+			<Eyebrow>{copy.logEntry}</Eyebrow>
 			<View style={styles.formRow}>
 				<TextInput
 					value={weight}
 					onChangeText={setWeight}
-					placeholder="Weight (kg)"
+					placeholder={copy.weightPlaceholder}
 					placeholderTextColor={colors.textFaint}
 					style={[styles.input, styles.flex]}
 					keyboardType="decimal-pad"
@@ -143,7 +146,7 @@ export function BodyMetricsPanel() {
 				<TextInput
 					value={bodyFat}
 					onChangeText={setBodyFat}
-					placeholder="Body fat %"
+					placeholder={copy.bodyFatPlaceholder}
 					placeholderTextColor={colors.textFaint}
 					style={[styles.input, styles.flex]}
 					keyboardType="decimal-pad"
@@ -152,29 +155,29 @@ export function BodyMetricsPanel() {
 			<TextInput
 				value={notes}
 				onChangeText={setNotes}
-				placeholder="Notes (optional)"
+				placeholder={copy.notes}
 				placeholderTextColor={colors.textFaint}
 				style={styles.input}
 			/>
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: !canSave }}
 				onPress={() => void save()}
 				disabled={!canSave}
 				style={[styles.submit, !canSave && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>
-					{busy ? "Saving…" : "Save entry"}
+					{busy ? copy.saving : copy.save}
 				</AppText>
 			</Pressable>
 
 			{entries === undefined ? (
-				<AppText style={styles.muted}>Loading…</AppText>
+				<AppText style={styles.muted}>{copy.loading}</AppText>
 			) : entries.length === 0 ? (
-				<AppText style={styles.muted}>
-					Nothing logged yet — the first entry starts the trend.
-				</AppText>
+				<AppText style={styles.muted}>{copy.empty}</AppText>
 			) : (
 				<>
-					<Eyebrow>History</Eyebrow>
+					<Eyebrow>{copy.history}</Eyebrow>
 					<View style={styles.list}>
 						{entries.map((e) => (
 							<View key={e._id} style={styles.row}>
@@ -192,10 +195,10 @@ export function BodyMetricsPanel() {
 									onPress={() => void remove(e._id, e.date)}
 									hitSlop={12}
 									accessibilityRole="button"
-									accessibilityLabel="Delete entry"
+									accessibilityLabel={copy.deleteEntry}
 								>
 									<AppText variant="caption" style={styles.delete}>
-										Delete
+										{copy.delete}
 									</AppText>
 								</Pressable>
 							</View>

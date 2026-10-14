@@ -1,4 +1,4 @@
-import { roundForDisplay, totalNutrients } from "@workouts/core/nutrition";
+import { roundForDisplay, totalNutrients } from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -6,9 +6,9 @@ import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
 import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
 import { fmt, plural, useI18n } from "../../../../i18n";
 import { spacing, useTokens } from "../../../../theme";
-import { FoodVisualView } from "../../../../ui/food-visual";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
 import { AppText } from "../../../../ui/text";
+import { FoodVisualView } from "../../components/food-visual";
 import { DiaryMealMenu } from "./diary-meal-menu";
 
 export function DiaryMealCard({
@@ -26,6 +26,7 @@ export function DiaryMealCard({
 	onTransfer,
 	onCombo,
 	onResolveDraft,
+	onAssistDraft,
 	onEditDraft,
 	onDeleteDraft,
 }: {
@@ -43,6 +44,8 @@ export function DiaryMealCard({
 	onTransfer: (entries: readonly DiaryEntry[], mode: "copy" | "move") => void;
 	onCombo: (entries: readonly DiaryEntry[]) => void;
 	onResolveDraft: (draft: CaptureDraft) => void;
+	/** Process the note with Hulp bij invoeren. */
+	onAssistDraft: (draft: CaptureDraft) => void;
 	onEditDraft: (draft: CaptureDraft) => void;
 	onDeleteDraft: (draft: CaptureDraft) => void;
 }) {
@@ -118,12 +121,9 @@ export function DiaryMealCard({
 				</View>
 			}
 			accessibilityLabel={
-				fmt(
-					selecting
-						? t.nutrition.combos.selectEntry
-						: t.nutrition.entryEditor.editEntry,
-					{ name: entry.name[locale] },
-				) + (entry.estimated ? `. ${copy.estimated}` : "")
+				fmt(selecting ? copy.selectEntry : t.nutrition.entryEditor.editEntry, {
+					name: entry.name[locale],
+				}) + (entry.estimated ? `. ${copy.estimated}` : "")
 			}
 			onPress={() => (selecting ? onToggle([entry]) : onEdit(entry))}
 			actions={
@@ -193,7 +193,7 @@ export function DiaryMealCard({
 					<View style={{ flex: 1 }}>
 						{entries.length && !selecting ? (
 							<DiaryMealMenu
-								title={`${t.nutrition.meals[slot]} · ${entries.length} items`}
+								title={`${t.nutrition.meals[slot]} · ${plural(locale, entries.length, copy.items)}`}
 								label={fmt(copy.mealActions, { meal: t.nutrition.meals[slot] })}
 								closeLabel={t.diaryEntry.cancel}
 								actions={actions}
@@ -280,11 +280,14 @@ export function DiaryMealCard({
 						selected={
 							selecting ? parts.every((p) => selected.has(p.id)) : undefined
 						}
-						accessibilityLabel={
+						accessibilityLabel={fmt(
 							selecting
-								? `Select Combo ${group.name}`
-								: `${open ? "Collapse" : "Expand"} Combo ${group.name}`
-						}
+								? copy.selectCombo
+								: open
+									? copy.collapseCombo
+									: copy.expandCombo,
+							{ name: group.name },
+						)}
 						secondary={plural(locale, parts.length, copy.comboParts)}
 						value={`${roundForDisplay("energy", totalNutrients(parts.map((e) => e.nutrients)).energy?.amount ?? 0)} kcal`}
 						leading={{
@@ -350,6 +353,14 @@ export function DiaryMealCard({
 							leading={{ symbol: "note.text" }}
 							onPress={() => onResolveDraft(draft)}
 							actions={[
+								{
+									key: "assist",
+									menuLabel: t.nutrition.assistance.processNote,
+									systemImage: "sparkles",
+									label: t.nutrition.assistance.processNote,
+									onPress: () => onAssistDraft(draft),
+									swipe: false,
+								},
 								{
 									key: "edit",
 									menuLabel: copy.edit,

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { SHIPPED_EXERCISES } from "@workouts/core/exercises";
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import { convexTest } from "convex-test";
 import { expect, it } from "vitest";
 import { api } from "./_generated/api";

@@ -27,9 +27,10 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import { api, type Doc } from "../convex/api";
+import { api } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
+import { useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -44,17 +45,12 @@ import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 
-const STATUS_LABEL: Record<Doc<"hostedWorkouts">["status"], string> = {
-	draft: "Draft",
-	open: "Open",
-	closed: "Closed",
-};
-
 export function HostedListScreen() {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
+	const copy = useI18n().t.hosted;
 	const hosted = useQuery(api.hostedWorkouts.listMine, {});
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 
@@ -72,7 +68,7 @@ export function HostedListScreen() {
 			setToken("");
 			router.push({ pathname: "/session", params: { id: sessionId } });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not join that workout."));
+			toast.error(convexErrorMessage(error, copy.joinError));
 		} finally {
 			setBusy(false);
 		}
@@ -80,7 +76,7 @@ export function HostedListScreen() {
 
 	return (
 		<Screen edges={["bottom"]}>
-			<ScreenHeader title={"Hosted workouts"} />
+			<ScreenHeader title={copy.title} />
 
 			<ScrollView
 				contentInsetAdjustmentBehavior="automatic"
@@ -90,12 +86,12 @@ export function HostedListScreen() {
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 			>
-				<Eyebrow>Join with a code</Eyebrow>
+				<Eyebrow>{copy.joinHeading}</Eyebrow>
 				<View style={styles.joinRow}>
 					<TextInput
 						value={token}
 						onChangeText={setToken}
-						placeholder="Join code"
+						placeholder={copy.joinCode}
 						placeholderTextColor={colors.textFaint}
 						style={[styles.input, styles.flex]}
 						autoCapitalize="none"
@@ -104,6 +100,8 @@ export function HostedListScreen() {
 						onSubmitEditing={() => void submitJoin()}
 					/>
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy || token.trim() === "" }}
 						onPress={() => void submitJoin()}
 						disabled={busy || token.trim() === ""}
 						style={[
@@ -112,32 +110,29 @@ export function HostedListScreen() {
 						]}
 					>
 						<AppText style={styles.joinBtnText}>
-							{busy ? "Joining…" : "Join"}
+							{busy ? copy.joining : copy.join}
 						</AppText>
 					</Pressable>
 				</View>
-				<AppText variant="caption">
-					Joining starts a session for you. Finish or cancel any workout you
-					already have running first.
-				</AppText>
+				<AppText variant="caption">{copy.joinHint}</AppText>
 
-				<Eyebrow>Hosting</Eyebrow>
+				<Eyebrow>{copy.hosting}</Eyebrow>
 				{hosted === undefined ? (
-					<AppText style={styles.muted}>Loading…</AppText>
+					<AppText style={styles.muted}>{copy.loading}</AppText>
 				) : hosted.length === 0 ? (
 					<View style={styles.empty}>
 						<AppText variant="heading" style={{ color: colors.textMuted }}>
-							Not hosting anything
+							{copy.notHosting}
 						</AppText>
 						<AppText variant="caption" style={styles.centered}>
-							Build a hosted workout on the web app — then open, run and score
-							it from here.
+							{copy.notHostingHint}
 						</AppText>
 					</View>
 				) : (
 					<View style={styles.list}>
 						{hosted.map((h) => (
 							<Pressable
+								accessibilityRole="button"
 								key={h._id}
 								onPress={() =>
 									router.push({
@@ -161,7 +156,7 @@ export function HostedListScreen() {
 									</AppText>
 								</View>
 								<Chip
-									label={STATUS_LABEL[h.status]}
+									label={copy.status[h.status]}
 									active={h.status === "open"}
 								/>
 								<AppText style={styles.chevron}>›</AppText>

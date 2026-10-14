@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Dumbbell, TrendingUp } from "lucide-react";
 import { HeaderUser } from "#/lib/auth";
+import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/")({
 	component: IntroPage,
@@ -25,6 +26,7 @@ const features = [
 ];
 
 function IntroPage() {
+	const { privacy } = useMessages();
 	return (
 		<div
 			className="relative min-h-screen flex flex-col overflow-hidden"
@@ -67,7 +69,7 @@ function IntroPage() {
 					>
 						W
 					</div>
-					<span className="text-white font-bold text-sm">Workout Tracker</span>
+					<span className="text-white font-bold text-sm">Foundry</span>
 				</div>
 
 				<nav className="hidden sm:flex items-center gap-7">
@@ -202,6 +204,15 @@ function IntroPage() {
 					))}
 				</div>
 			</section>
+
+			<footer className="relative z-10 pb-8 text-center text-xs">
+				<Link
+					to="/privacy"
+					className="text-[var(--text-muted)] hover:text-white"
+				>
+					{privacy.title}
+				</Link>
+			</footer>
 		</div>
 	);
 }

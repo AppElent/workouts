@@ -529,7 +529,7 @@ body.dark .attn .ic { background: rgba(251,191,36,.12); }
 		<tr><td>Bevestigen, toast, leeg, laden</td><td><code>useConfirm</code>, <code>useToast</code>, <code>EmptyState</code>, <code>Skeleton</code></td><td>Bestaande owners; geen tweede systeem.</td></tr>
 		<tr><td>Editors</td><td><code>PersonalFoodEditor</code> (push); combo → <code>/nutrition-combo/[id]</code></td><td>Niet meer in dezelfde view.</td></tr>
 	</table>
-	<p>Nieuw in <code>@workouts/core</code>: groeperen/sorteren van bibliotheekitems en <code>combosUsing(foodId)</code>. Android en iOS &lt; 26 houden een zoekrij en + in de content.</p>
+	<p>Nieuw in <code>@foundry/core</code>: groeperen/sorteren van bibliotheekitems en <code>combosUsing(foodId)</code>. Android en iOS &lt; 26 houden een zoekrij en + in de content.</p>
 </section>
 <main id="board"></main>
 
@@ -875,7 +875,7 @@ const CODE = {
 </Stack.Toolbar>
 
 // features/nutrition/library/library-screen.tsx
-const sections = useLibrarySections({ scope, query, sort });   // pure grouping in @workouts/core
+const sections = useLibrarySections({ scope, query, sort });   // pure grouping in @foundry/core
 <SectionList sections={sections} contentInsetAdjustmentBehavior="automatic"
   ListHeaderComponent={<><ScopeChips value={scope} onChange={setScope} /><LibraryStatusRow /></>}
   renderSectionHeader={({ section }) => <LibrarySectionHeader section={section} />}  // title = menu, none when empty
@@ -900,7 +900,7 @@ function rowActions(item: LibraryItem): RowAction[] {
 }
 // open(): food/recipe → PersonalFoodEditor (pushed); combo → /nutrition-combo/[id] (combo_final.html)`,
 	delete: `async function confirmDelete(item: LibraryItem) {
-  const usedIn = combosUsing(library.listCombos(), item.id);   // NEW pure fn in @workouts/core
+  const usedIn = combosUsing(library.listCombos(), item.id);   // NEW pure fn in @foundry/core
   const ok = await confirm({ title: fmt(copy.deleteTitle, { name: item.name }),
     message: usedIn.length ? fmt(copy.deleteUsedIn, { names: listFormat(usedIn.map((c) => c.name)) }) : copy.deleteDiaryKept,
     confirmLabel: copy.delete, destructive: true });
@@ -938,7 +938,7 @@ const SECTIONS = [
 		impl: IMPL("bulkacties.", "Zelfde selectie-state als in het dagboek; Combo maken opent de sheet ‘Nieuwe combo’ uit <code>combo_final</code>.", "Bibliotheekitems krijgen hun standaardportie (eerste <code>servings</code>, anders 100 g/ml)."),
 		phones: [["Selectie", "state", Selection, "Interactief."]] },
 	{ h: "6 · Vraagt aandacht, verwijderen", p: "De statusregel opent elk probleem met de actie die het oplost. Verwijderen noemt de combo's die het item gebruiken; het dagboek verandert niet. Daarna een toast, zonder ongedaan maken.",
-		impl: IMPL("conflicten en ontbrekende onderdelen stonden alleen in Instellingen of bij het loggen.", "formSheet; <code>backup.conflicts</code>, <code>Combo.parts[].status</code>; <code>useConfirm</code> met <code>destructive</code>.", "<code>combosUsing(foodId)</code> is nieuw in <code>@workouts/core</code>."),
+		impl: IMPL("conflicten en ontbrekende onderdelen stonden alleen in Instellingen of bij het loggen.", "formSheet; <code>backup.conflicts</code>, <code>Combo.parts[].status</code>; <code>useConfirm</code> met <code>destructive</code>.", "<code>combosUsing(foodId)</code> is nieuw in <code>@foundry/core</code>."),
 		code: CODE.delete, phones: [["Vraagt aandacht", "state", AttentionF, ""], ["Verwijderen", "state", DelOne, ""], ["Selectie verwijderen", "state", DelMany, ""], ["Verwijderd", "state", DelDone, ""]] },
 	{ h: "7 · Leeg, laden, offline, fout", p: "Eerste keer: uitleg en drie manieren om te beginnen. Een lege sectie blijft staan met één uitlegregel en zonder menu. Status gebruikt de plek van ‘Vraagt aandacht’, één regel tegelijk.",
 		impl: IMPL("drie losse lege staten; status alleen in Instellingen.", "<code>EmptyState</code>; <code>Skeleton</code>; <code>backup.restoreError</code>/<code>restore()</code>; <code>useConvexConnectionState</code>.", "Volgorde bij meerdere staten: herstellen › fout › aandacht › offline."),

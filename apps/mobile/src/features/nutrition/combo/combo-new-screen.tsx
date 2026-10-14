@@ -1,4 +1,4 @@
-import { canonicalJson } from "@workouts/core";
+import { canonicalJson } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";

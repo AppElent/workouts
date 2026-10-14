@@ -3,13 +3,13 @@ import {
 	type NutritionDiarySnapshot,
 	type NutritionOperationEnvelope,
 	totalNutrients,
-} from "@workouts/core";
+} from "@foundry/core";
 import type {
 	NutrientKey,
 	NutritionGoalValue,
 	PersonalMeasure,
 	SupplementaryServing,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 

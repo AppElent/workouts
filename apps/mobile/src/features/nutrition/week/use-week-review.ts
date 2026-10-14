@@ -22,11 +22,10 @@ export function useWeekReview(startDate: string | undefined) {
 	const [week, setWeek] = useState<IsoDate>(
 		requested > current ? current : requested,
 	);
-	const [retrying, setRetrying] = useState(false);
-	const result = useQuery(
-		api.nutritionReview.week,
-		retrying ? "skip" : { startDate: week, today },
-	);
+	const result = useQuery(api.nutritionReview.week, {
+		startDate: week,
+		today,
+	});
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
 		result === undefined,
@@ -39,9 +38,5 @@ export function useWeekReview(startDate: string | undefined) {
 		setWeek: (next: IsoDate) => setWeek(next > current ? current : next),
 		days,
 		stalledOffline,
-		retry: () => {
-			setRetrying(true);
-			setTimeout(() => setRetrying(false), 0);
-		},
 	};
 }

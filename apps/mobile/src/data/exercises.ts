@@ -1,7 +1,7 @@
 import {
 	getShippedExercise,
 	mergeExerciseCatalog,
-} from "@workouts/core/exercises";
+} from "@foundry/core/exercises";
 import { useEffect, useMemo } from "react";
 import { api } from "../convex/api";
 import { usePaginatedQuery, useQuery } from "../convex/query-cache";

@@ -29,12 +29,12 @@ import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
 import { PersonalMeasuresProvider } from "../../src/data/personal-measures";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
+import { RestTimerProvider } from "../../src/features/strength-session/components/rest-timer";
 import { SetDraftsProvider } from "../../src/features/strength-session/data/set-drafts";
 import { useI18n } from "../../src/i18n";
 import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
-import { RestTimerProvider } from "../../src/ui/rest-timer";
 import { ToastProvider } from "../../src/ui/toast";
 
 export default function AppLayout() {
@@ -127,39 +127,39 @@ export default function AppLayout() {
 																/>
 																<Stack.Screen
 																	name="exercises"
-																	options={{ title: "Exercises" }}
+																	options={{ title: t.routes.exercises }}
 																/>
 																<Stack.Screen
 																	name="exercise/[id]"
-																	options={{ title: "Exercise" }}
+																	options={{ title: t.routes.exercise }}
 																/>
 																<Stack.Screen
 																	name="exercise-new"
 																	options={{
-																		title: "New exercise",
+																		title: t.routes.newExercise,
 																		presentation: "formSheet",
 																	}}
 																/>
 																<Stack.Screen
 																	name="hosted"
-																	options={{ title: "Hosted workouts" }}
+																	options={{ title: t.routes.hosted }}
 																/>
 																<Stack.Screen
 																	name="hosted/[id]"
-																	options={{ title: "Hosted workout" }}
+																	options={{ title: t.routes.hostedWorkout }}
 																/>
 																<Stack.Screen
 																	name="wods"
-																	options={{ title: "WODs" }}
+																	options={{ title: t.wods.title }}
 																/>
 																<Stack.Screen
 																	name="wod/[id]"
-																	options={{ title: "WOD" }}
+																	options={{ title: t.training.wod }}
 																/>
 																<Stack.Screen
 																	name="wod-editor"
 																	options={{
-																		title: "WOD",
+																		title: t.training.wod,
 																		presentation: "formSheet",
 																	}}
 																/>
@@ -184,18 +184,18 @@ export default function AppLayout() {
 																<Stack.Screen
 																	name="routine-editor"
 																	options={{
-																		title: "Routine",
+																		title: t.routes.routine,
 																		presentation: "formSheet",
 																	}}
 																/>
 																<Stack.Screen
 																	name="session"
-																	options={{ title: "Workout" }}
+																	options={{ title: t.routes.workout }}
 																/>
 																<Stack.Screen
 																	name="summary"
 																	options={{
-																		title: "Summary",
+																		title: t.routes.summary,
 																		headerBackVisible: false,
 																		gestureEnabled: false,
 																	}}
@@ -319,6 +319,9 @@ export default function AppLayout() {
 																	name="nutrition-assistance"
 																	options={{
 																		title: t.routes.assistance,
+																		presentation: "formSheet",
+																		sheetAllowedDetents: [1],
+																		sheetGrabberVisible: true,
 																	}}
 																/>
 																<Stack.Screen

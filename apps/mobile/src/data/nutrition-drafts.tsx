@@ -1,5 +1,5 @@
 /** Saved Capture Drafts belong to Convex; editor input stays in its presentation. */
-import { canonicalJson } from "@workouts/core";
+import { canonicalJson } from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,

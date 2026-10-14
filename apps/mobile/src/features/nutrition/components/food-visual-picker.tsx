@@ -11,8 +11,8 @@ import {
 } from "../../../data/personal-food-repository";
 import { useI18n } from "../../../i18n";
 import { radius, useTokens } from "../../../theme";
-import { FoodVisualView } from "../../../ui/food-visual";
 import type { EditorVisual } from "../use-staged-food-visual";
+import { FoodVisualView } from "./food-visual";
 import { NutritionChoiceMenu } from "./nutrition-choice-menu";
 
 const CROP_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;

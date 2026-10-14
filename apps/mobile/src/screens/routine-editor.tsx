@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseId } from "@workouts/core/exercises";
+import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
  * Build or change a routine. Ported from the web's
  * `src/components/routines/CreateRoutineForm.tsx` and `EditRoutineModal.tsx`,
@@ -20,6 +20,7 @@ import { Modal, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
 import type { useRoutines } from "../data/session-data";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
+import { useI18n } from "../i18n";
 import { spacing } from "../theme";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import {
@@ -64,6 +65,7 @@ export function RoutineEditor({
 	onClose: () => void;
 }) {
 	const toast = useToast();
+	const copy = useI18n().t.workoutTools.routineEditor;
 	const reduceMotion = useReduceMotion();
 	const createRoutine = useMutation(api.routines.create);
 	const updateRoutine = useMutation(api.routines.update);
@@ -113,7 +115,7 @@ export function RoutineEditor({
 			onClose();
 		} catch (error) {
 			// Input is kept on failure — the sheet stays open with everything typed.
-			toast.error(convexErrorMessage(error, "Could not save the routine."));
+			toast.error(convexErrorMessage(error, copy.saveError));
 		} finally {
 			setBusy(false);
 		}
@@ -127,13 +129,13 @@ export function RoutineEditor({
 				title={
 					presentation === "modal"
 						? routine
-							? "Edit routine"
-							: "New routine"
+							? copy.editTitle
+							: copy.newTitle
 						: undefined
 				}
 				onCancel={presentation === "modal" && !busy ? onClose : undefined}
 				primaryAction={{
-					label: busy ? "Saving…" : routine ? "Save changes" : "Create routine",
+					label: busy ? copy.saving : routine ? copy.save : copy.create,
 					onPress: () => void submit(),
 					loading: busy,
 					disabled: !canSave,
@@ -141,29 +143,25 @@ export function RoutineEditor({
 			>
 				<FormSection>
 					<FormTextField
-						label="Routine name"
+						label={copy.name}
 						value={name}
 						onChangeText={setName}
-						placeholder="Push day"
+						placeholder={copy.namePlaceholder}
 						autoCorrect={false}
 						returnKeyType="next"
 					/>
 				</FormSection>
 
 				<FormSection
-					title="Exercises"
-					footer={
-						entries.length === 0
-							? "Add at least one exercise to save."
-							: undefined
-					}
+					title={copy.exercises}
+					footer={entries.length === 0 ? copy.needsExercise : undefined}
 				>
 					{entries.map((entry, index) => (
 						<View key={entry.exerciseId} style={styles.entry}>
 							<View style={styles.entryHead}>
 								<AppText style={styles.entryName}>{entry.name}</AppText>
 								<TextAction
-									label="Remove"
+									label={copy.remove}
 									tone="destructive"
 									onPress={() =>
 										setEntries((current) =>
@@ -174,13 +172,13 @@ export function RoutineEditor({
 							</View>
 							<View style={styles.numberRow}>
 								<StepperField
-									label="sets"
+									label={copy.sets}
 									value={entry.defaultSets}
 									min={1}
 									onChange={(value) => patch(index, { defaultSets: value })}
 								/>
 								<StepperField
-									label="reps"
+									label={copy.reps}
 									value={entry.defaultReps}
 									min={1}
 									onChange={(value) => patch(index, { defaultReps: value })}
@@ -194,7 +192,7 @@ export function RoutineEditor({
 							</View>
 						</View>
 					))}
-					<AddRow label="Add exercise" onPress={() => setPicking(true)} />
+					<AddRow label={copy.addExercise} onPress={() => setPicking(true)} />
 				</FormSection>
 			</FormScreen>
 
@@ -211,7 +209,7 @@ export function RoutineEditor({
 									...prev,
 									{
 										exerciseId: id,
-										name: found?.name ?? "Exercise",
+										name: found?.name ?? copy.exercise,
 										defaultSets: 3,
 										defaultReps: 8,
 										defaultWeight: 0,

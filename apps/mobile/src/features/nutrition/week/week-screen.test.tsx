@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS } from "@foundry/core/nutrition";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";
@@ -112,7 +112,7 @@ describe("week overview", () => {
 		expect(screen.getByText("Open Monday in diary")).toBeTruthy();
 	});
 
-	it("keeps the strip and offers a retry when the week stalls offline", async () => {
+	it("keeps the strip and explains when the week stalls offline", async () => {
 		jest.useFakeTimers();
 		mockConnection.mockReturnValue({
 			isWebSocketConnected: false,
@@ -123,7 +123,10 @@ describe("week overview", () => {
 			jest.advanceTimersByTime(OFFLINE_GRACE_MS);
 		});
 
-		expect(await screen.findByText("Try again")).toBeTruthy();
+		expect(
+			await screen.findByText("This Week overview is not on this phone yet"),
+		).toBeTruthy();
+		expect(screen.queryByText("Try again")).toBeNull();
 		expect(screen.getAllByText("WK").length).toBe(5);
 	});
 });

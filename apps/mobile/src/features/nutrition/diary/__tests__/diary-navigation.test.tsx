@@ -19,7 +19,7 @@ import {
  * hardware button perform.
  */
 
-import { totalNutrients } from "@workouts/core/nutrition";
+import { totalNutrients } from "@foundry/core/nutrition";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -172,7 +172,7 @@ describe("Nutrition navigation", () => {
 	it("opens assisted logging from the diary tools and returns to the diary", async () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Text and nutrition label"));
+		fireEvent.press(await screen.findByText("Entry help"));
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-assistance"),
 		);
@@ -282,7 +282,7 @@ describe("Nutrition navigation", () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
+		fireEvent.press(await screen.findByLabelText("Select Apple"));
 		fireEvent.press(await screen.getByLabelText("Make combo"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combo-new"));
@@ -293,7 +293,7 @@ describe("Nutrition navigation", () => {
 		const app = renderApp();
 		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(await screen.findByLabelText("Select Apple for Combo"));
+		fireEvent.press(await screen.findByLabelText("Select Apple"));
 		expect(screen.getByLabelText("Make combo")).toBeTruthy();
 		expect(screen.queryByText("All goals")).toBeNull();
 		expect(

@@ -1,5 +1,5 @@
 {
-	"name": "@workouts/core",
+	"name": "@foundry/core",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",

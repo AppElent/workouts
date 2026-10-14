@@ -28,7 +28,7 @@ Choose the editing presentation by attention, space, and navigation needs, and n
 
 ## Implementation
 
-The developer-tools mobile lab demonstrates native inputs. Workouts' Diary Entry and goals editors are product bindings with dated evidence. Workouts' InputAccessoryView/SwiftUI crash workaround is runtime-specific, not a ban on keyboard-anchored editors.
+The developer-tools mobile lab demonstrates native inputs. Foundry's Diary Entry and goals editors are product bindings with dated evidence. Foundry's InputAccessoryView/SwiftUI crash workaround is runtime-specific, not a ban on keyboard-anchored editors.
 
 ## Verify
 

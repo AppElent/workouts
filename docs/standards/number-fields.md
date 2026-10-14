@@ -22,7 +22,7 @@ Numbers are edited inline, parsed separately from their text, and validated at a
 
 ## Implementation
 
-Origin: Workouts' InlineNumberFieldRow and Diary Entry quantity editor. These are examples, not proof that all variants or locales pass.
+Origin: Foundry's InlineNumberFieldRow and Diary Entry quantity editor. These are examples, not proof that all variants or locales pass.
 
 ## Verify
 

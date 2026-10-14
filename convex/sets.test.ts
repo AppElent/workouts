@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { expect, it } from "vitest";
-import { SHIPPED_EXERCISES } from "@workouts/core/exercises";
-import { calculateOneRepMax } from "@workouts/core";
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
+import { calculateOneRepMax } from "@foundry/core";
 import { api } from "./_generated/api";
 import schema from "./schema";
 const modules = import.meta.glob("./**/*.*s");

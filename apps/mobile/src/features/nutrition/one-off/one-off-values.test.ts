@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, type NutrientKey } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS, type NutrientKey } from "@foundry/core/nutrition";
 import type { NutrientInput } from "../use-nutrient-fields";
 import { oneOffNutrients } from "./one-off-values";
 

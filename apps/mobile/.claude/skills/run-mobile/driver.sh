@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drive the Workouts (Foundry) Expo dev client on an iOS simulator.
+# Drive the Foundry Expo dev client on an iOS simulator.
 # Usage: driver.sh <command> [args]   (run from anywhere; see SKILL.md)
 set -euo pipefail
 
@@ -9,7 +9,7 @@ AGENT_DEVICE=(npx -y agent-device@0.21.27)
 MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CHECKOUT_ID="$(printf '%s' "$MOBILE_DIR" | shasum | cut -c1-8)"
 STATE="${RUN_MOBILE_STATE:-${TMPDIR:-/tmp}/run-mobile-$CHECKOUT_ID}"
-SIM_NAME="${RUN_MOBILE_SIM:-Workouts run-mobile $CHECKOUT_ID}"
+SIM_NAME="${RUN_MOBILE_SIM:-Foundry run-mobile $CHECKOUT_ID}"
 DEVICE_TYPE="${RUN_MOBILE_DEVICE_TYPE:-iPhone 18 Pro}"
 PORT="${RUN_MOBILE_PORT:-8090}"
 mkdir -p "$STATE"
@@ -137,7 +137,27 @@ cmd_up() {
 }
 
 cmd_signin() {
+	local email="" password=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--email) email="$2"; shift 2 ;;
+			--password) password="$2"; shift 2 ;;
+			*) die "signin: unknown option $1" ;;
+		esac
+	done
+	# Both or neither: one flag alone would sign in to the pre-filled shared account.
+	if [ -n "$email" ] && [ -z "$password" ]; then die "signin: --email needs --password"; fi
+	if [ -z "$email" ] && [ -n "$password" ]; then die "signin: --password needs --email"; fi
 	ad wait text "Sign in" 20000 >/dev/null || die "sign-in screen not visible (already signed in?)"
+	if [ -n "$email" ]; then
+		local field secure
+		field=$(ad snapshot -i | grep -m1 '\[text-field\]' | grep -o '@e[0-9]*')
+		ad fill "$field" "$email" >/dev/null || die "could not fill email"
+		secure=$(ad snapshot -i | grep -m1 '\[securetextfield\]' | grep -o '@e[0-9]*')
+		ad fill "$secure" "$password" >/dev/null || die "could not fill password"
+		# Never fall through to the pre-filled shared account.
+		ad snapshot -i | grep -qF "[text-field] \"$email\"" || die "email field does not show $email; not signing in"
+	fi
 	ad press 'label="Sign in"' >/dev/null
 	ad wait 'role=tab-bar' 30000 >/dev/null || die "tab bar not visible after sign-in"
 	log "signed in"
@@ -169,7 +189,7 @@ cmd_down() {
 
 case "${1:-}" in
 	up) shift; cmd_up "$@" ;;
-	signin) cmd_signin ;;
+	signin) shift; cmd_signin "$@" ;;
 	ad) shift; ad "$@" ;;
 	ss) shift; cmd_ss "$@" ;;
 	reload) cmd_reload ;;
@@ -177,5 +197,5 @@ case "${1:-}" in
 	udid) require_udid; echo ;;
 	state) echo "$STATE" ;;
 	down) cmd_down ;;
-	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
 esac

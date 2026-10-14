@@ -1,5 +1,5 @@
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { SHIPPED_EXERCISES } from "@workouts/core/exercises";
 import { useMutation } from "convex/react";
 import { getFunctionName } from "convex/server";
 import type { ComponentProps } from "react";

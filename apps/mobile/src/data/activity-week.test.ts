@@ -1,4 +1,4 @@
-import type { ActivitySummary } from "@workouts/core";
+import type { ActivitySummary } from "@foundry/core";
 import { activityTotals, activityWeek, activityWeeks } from "./activity-week";
 
 it("uses Monday to Monday local calendar boundaries", () => {

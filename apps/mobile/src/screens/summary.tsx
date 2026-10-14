@@ -13,8 +13,8 @@
  * The WOD-results section the web shows below the exercise breakdown is not
  * here yet; it lands with the WOD screens.
  */
-import { formatScore } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
+import { formatScore } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -30,6 +30,7 @@ import {
 	useShellData,
 	workingVolume,
 } from "../data/session-data";
+import { fmt, useI18n } from "../i18n";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { Eyebrow, StatBox } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
@@ -42,6 +43,7 @@ export function SummaryScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
+	const copy = useI18n().t.workoutSummary;
 	const params = useLocalSearchParams<{ id?: string }>();
 	const sessionId = params.id as Id<"workoutSessions"> | undefined;
 
@@ -62,17 +64,17 @@ export function SummaryScreen() {
 		if (!sets) return [];
 		return orderExercisesByFirstSet(sets).map((exerciseId) => ({
 			exerciseId,
-			name: nameById.get(exerciseId) ?? "Exercise",
+			name: nameById.get(exerciseId) ?? copy.exercise,
 			sets: sets.filter((s) => s.exerciseId === exerciseId),
 		}));
-	}, [sets, nameById]);
+	}, [sets, nameById, copy.exercise]);
 
 	const remove = async () => {
 		if (!sessionId || busy) return;
 		const confirmed = await confirm({
-			title: "Delete this workout?",
-			message: "Every set logged in it goes too. This cannot be undone.",
-			confirmLabel: "Delete workout",
+			title: copy.deleteTitle,
+			message: copy.deleteMessage,
+			confirmLabel: copy.delete,
 			destructive: true,
 		});
 		if (!confirmed) return;
@@ -81,7 +83,7 @@ export function SummaryScreen() {
 			await removeSession({ id: sessionId });
 			router.replace("/");
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not delete the session."));
+			toast.error(convexErrorMessage(error, copy.deleteError));
 		} finally {
 			setBusy(false);
 		}
@@ -90,7 +92,7 @@ export function SummaryScreen() {
 	if (session === undefined || sets === undefined) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="caption">Loading…</AppText>
+				<AppText variant="caption">{copy.loading}</AppText>
 			</View>
 		);
 	}
@@ -98,9 +100,13 @@ export function SummaryScreen() {
 	if (session === null) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="heading">Session not found</AppText>
-				<Pressable onPress={() => router.replace("/")} style={styles.ghostBtn}>
-					<AppText style={styles.ghostText}>Back to home</AppText>
+				<AppText variant="heading">{copy.notFound}</AppText>
+				<Pressable
+					accessibilityRole="button"
+					onPress={() => router.replace("/")}
+					style={styles.ghostBtn}
+				>
+					<AppText style={styles.ghostText}>{copy.backHome}</AppText>
 				</Pressable>
 			</View>
 		);
@@ -119,32 +125,30 @@ export function SummaryScreen() {
 			<View style={styles.badgeRow}>
 				<View style={[styles.badge, cancelled ? styles.badgeMuted : null]}>
 					<AppText style={cancelled ? styles.badgeMutedText : styles.badgeText}>
-						{cancelled ? "Workout cancelled" : "Workout complete"}
+						{cancelled ? copy.cancelled : copy.complete}
 					</AppText>
 				</View>
 			</View>
 
-			<AppText style={styles.h1}>{session.name ?? "Free session"}</AppText>
+			<AppText style={styles.h1}>{session.name ?? copy.freeSession}</AppText>
 			<AppText style={styles.muted}>{formatSessionDate(session.date)}</AppText>
 
 			<View style={styles.statRow}>
-				<StatBox value={duration ?? "—"} label="Duration" />
-				<StatBox value={String(sets.length)} label="Sets" />
+				<StatBox value={duration ?? "—"} label={copy.duration} />
+				<StatBox value={String(sets.length)} label={copy.sets} />
 				<StatBox
 					value={volume > 0 ? String(Math.round(volume)) : "—"}
 					unit={volume > 0 ? "kg" : undefined}
-					label="Volume"
+					label={copy.volume}
 					color={colors.accent}
 				/>
 			</View>
 
 			{groups.length === 0 ? (
-				<AppText style={styles.muted}>
-					No sets were logged in this session.
-				</AppText>
+				<AppText style={styles.muted}>{copy.noSets}</AppText>
 			) : (
 				<>
-					<Eyebrow>Exercises</Eyebrow>
+					<Eyebrow>{copy.exercises}</Eyebrow>
 					<View style={styles.list}>
 						{groups.map((group) => (
 							<ExerciseRecap
@@ -159,16 +163,22 @@ export function SummaryScreen() {
 
 			<SessionWodResults sessionId={sessionId} />
 
-			<Pressable onPress={() => router.replace("/")} style={styles.doneBtn}>
-				<AppText style={styles.doneText}>Done</AppText>
+			<Pressable
+				accessibilityRole="button"
+				onPress={() => router.replace("/")}
+				style={styles.doneBtn}
+			>
+				<AppText style={styles.doneText}>{copy.done}</AppText>
 			</Pressable>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy }}
 				onPress={() => void remove()}
 				disabled={busy}
 				style={[styles.deleteBtn, busy && styles.dimmed]}
 			>
-				<AppText style={styles.deleteText}>Delete workout</AppText>
+				<AppText style={styles.deleteText}>{copy.delete}</AppText>
 			</Pressable>
 		</ScrollView>
 	);
@@ -184,6 +194,7 @@ function SessionWodResults({
 	sessionId: Id<"workoutSessions"> | undefined;
 }) {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.workoutSummary;
 	const results = useQuery(
 		api.wodResults.listForSession,
 		sessionId ? { sessionId } : "skip",
@@ -196,7 +207,7 @@ function SessionWodResults({
 
 	return (
 		<>
-			<Eyebrow>WOD results</Eyebrow>
+			<Eyebrow>{copy.wodResults}</Eyebrow>
 			<View style={styles.list}>
 				{results.map((r) => {
 					const wod = nameById.get(r.wodId);
@@ -205,7 +216,7 @@ function SessionWodResults({
 							<AppText style={styles.rowTitle}>{wod?.name ?? "WOD"}</AppText>
 							<AppText style={styles.rowSub}>
 								{wod ? formatScore(wod.type, r) : "—"} ·{" "}
-								{r.rxScaled === "rx" ? "Rx" : "Scaled"}
+								{r.rxScaled === "rx" ? copy.rx : copy.scaled}
 							</AppText>
 						</View>
 					);
@@ -217,6 +228,7 @@ function SessionWodResults({
 
 function ExerciseRecap({ name, sets }: { name: string; sets: Doc<"sets">[] }) {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.workoutSummary;
 	// "Best" is the heaviest set, matching the web. Not the same as the highest
 	// estimated 1RM — a heavy double can out-rank a heavier single there.
 	const best = sets.reduce(
@@ -242,14 +254,16 @@ function ExerciseRecap({ name, sets }: { name: string; sets: Doc<"sets">[] }) {
 								s.setType === "warmup" && styles.warmupChipText,
 							]}
 						>
-							{s.weight > 0 ? `${s.weight} × ${s.reps}` : `${s.reps} reps`}
+							{s.weight > 0
+								? `${s.weight} × ${s.reps}`
+								: fmt(copy.repsOnly, { reps: s.reps })}
 						</AppText>
 					</View>
 				))}
 			</View>
 			{best && best.weight > 0 ? (
 				<AppText style={styles.rowSub}>
-					Best: {best.weight} kg × {best.reps}
+					{fmt(copy.best, { weight: best.weight, reps: best.reps })}
 				</AppText>
 			) : null}
 		</View>

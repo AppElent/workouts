@@ -1,7 +1,4 @@
-import {
-	combinedNutrients,
-	type ServingOption,
-} from "@workouts/core/nutrition";
+import { combinedNutrients, type ServingOption } from "@foundry/core/nutrition";
 import { useRef, useState } from "react";
 import {
 	resolveComboPart,

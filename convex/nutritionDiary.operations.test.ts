@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import type { NutritionDiarySnapshot } from "@workouts/core";
+import type { NutritionDiarySnapshot } from "@foundry/core";
 import type { FunctionArgs } from "convex/server";
 import { api } from "./_generated/api";
 import schema from "./schema";

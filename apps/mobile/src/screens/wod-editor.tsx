@@ -12,7 +12,7 @@
  * carries anything more elaborate.
  */
 import { useMutation } from "convex/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	Modal,
 	Platform,
@@ -25,6 +25,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Doc } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
+import { fmt, useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -36,12 +37,12 @@ import { Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { WOD_TYPE_LABEL } from "./wods-list";
 
 const TYPES = ["forTime", "amrap", "emom", "load"] as const;
 type WodType = (typeof TYPES)[number];
 
-type Movement = { name: string; reps: string };
+/** `key` is a client-only row id; it never reaches the server. */
+type Movement = { key: number; name: string; reps: string };
 
 /** Minutes in the form, seconds in the schema. */
 function minutesToSeconds(raw: string) {
@@ -65,6 +66,7 @@ export function WodEditor({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
+	const copy = useI18n().t.wods;
 	const insets = useSafeAreaInsets();
 	const reduceMotion = useReduceMotion();
 	const createWod = useMutation(api.wods.create);
@@ -80,12 +82,19 @@ export function WodEditor({
 	const [duration, setDuration] = useState(
 		wod?.durationSeconds ? String(wod.durationSeconds / 60) : "",
 	);
+	const nextMovementKey = useRef(0);
+	const blankMovement = (): Movement => ({
+		key: nextMovementKey.current++,
+		name: "",
+		reps: "",
+	});
 	const [movements, setMovements] = useState<Movement[]>(
 		() =>
 			wod?.movements.map((m) => ({
+				...blankMovement(),
 				name: m.name,
 				reps: m.reps !== undefined ? String(m.reps) : "",
-			})) ?? [{ name: "", reps: "" }],
+			})) ?? [blankMovement()],
 	);
 	const [busy, setBusy] = useState(false);
 
@@ -132,7 +141,7 @@ export function WodEditor({
 			}
 			onClose();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not save the WOD."));
+			toast.error(convexErrorMessage(error, copy.editor.saveError));
 		} finally {
 			setBusy(false);
 		}
@@ -156,15 +165,17 @@ export function WodEditor({
 		>
 			{presentation === "modal" ? (
 				<View style={styles.header}>
-					<AppText variant="heading">{wod ? "Edit WOD" : "New WOD"}</AppText>
+					<AppText variant="heading">
+						{wod ? copy.editor.editTitle : copy.editor.newTitle}
+					</AppText>
 					<Pressable
 						onPress={onClose}
 						hitSlop={12}
 						accessibilityRole="button"
-						accessibilityLabel="Cancel"
+						accessibilityLabel={copy.editor.cancel}
 					>
 						<AppText variant="body" style={styles.cancel}>
-							Cancel
+							{copy.editor.cancel}
 						</AppText>
 					</Pressable>
 				</View>
@@ -178,28 +189,31 @@ export function WodEditor({
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 			>
-				<Eyebrow>Name</Eyebrow>
+				<Eyebrow>{copy.editor.name}</Eyebrow>
 				<TextInput
 					value={name}
 					onChangeText={setName}
-					placeholder="Fran"
+					placeholder={copy.editor.namePlaceholder}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					autoFocus
 				/>
 
-				<Eyebrow>Type</Eyebrow>
+				<Eyebrow>{copy.editor.type}</Eyebrow>
 				<View style={styles.chipWrap}>
 					{TYPES.map((t) => (
-						<Pressable key={t} onPress={() => setType(t)}>
-							<Chip label={WOD_TYPE_LABEL[t]} active={type === t} />
-						</Pressable>
+						<Chip
+							key={t}
+							label={copy.types[t]}
+							active={type === t}
+							onPress={() => setType(t)}
+						/>
 					))}
 				</View>
 
 				{type === "forTime" ? (
 					<>
-						<Eyebrow>Time cap (minutes)</Eyebrow>
+						<Eyebrow>{copy.editor.timeCap}</Eyebrow>
 						<TextInput
 							value={cap}
 							onChangeText={setCap}
@@ -213,7 +227,7 @@ export function WodEditor({
 
 				{type === "amrap" || type === "emom" ? (
 					<>
-						<Eyebrow>Duration (minutes)</Eyebrow>
+						<Eyebrow>{copy.editor.duration}</Eyebrow>
 						<TextInput
 							value={duration}
 							onChangeText={setDuration}
@@ -225,7 +239,7 @@ export function WodEditor({
 					</>
 				) : null}
 
-				<Eyebrow>Rep scheme</Eyebrow>
+				<Eyebrow>{copy.editor.repScheme}</Eyebrow>
 				<TextInput
 					value={repScheme}
 					onChangeText={setRepScheme}
@@ -234,27 +248,20 @@ export function WodEditor({
 					style={styles.input}
 				/>
 
-				<Eyebrow>Movements</Eyebrow>
+				<Eyebrow>{copy.editor.movements}</Eyebrow>
 				{movements.map((m, index) => (
-					<View
-						// Movement rows have no id and can hold identical text while
-						// being typed; position is the only thing that distinguishes
-						// them, and rows are only ever appended or removed at the end.
-						// biome-ignore lint/suspicious/noArrayIndexKey: positional rows, no stable id
-						key={index}
-						style={styles.movementRow}
-					>
+					<View key={m.key} style={styles.movementRow}>
 						<TextInput
 							value={m.name}
 							onChangeText={(v) => patchMovement(index, { name: v })}
-							placeholder="Thruster"
+							placeholder={copy.editor.movementPlaceholder}
 							placeholderTextColor={colors.textFaint}
 							style={[styles.input, styles.flex]}
 						/>
 						<TextInput
 							value={m.reps}
 							onChangeText={(v) => patchMovement(index, { reps: v })}
-							placeholder="reps"
+							placeholder={copy.editor.repsPlaceholder}
 							placeholderTextColor={colors.textFaint}
 							style={[styles.input, styles.repsInput]}
 							keyboardType="number-pad"
@@ -267,7 +274,9 @@ export function WodEditor({
 								hitSlop={8}
 								style={styles.removeBtn}
 								accessibilityRole="button"
-								accessibilityLabel={`Remove movement ${index + 1}`}
+								accessibilityLabel={fmt(copy.editor.removeMovement, {
+									number: index + 1,
+								})}
 							>
 								<AppText style={styles.remove}>✕</AppText>
 							</Pressable>
@@ -275,31 +284,36 @@ export function WodEditor({
 					</View>
 				))}
 				<Pressable
-					onPress={() =>
-						setMovements((prev) => [...prev, { name: "", reps: "" }])
-					}
+					accessibilityRole="button"
+					onPress={() => setMovements((prev) => [...prev, blankMovement()])}
 					style={styles.addBtn}
 				>
-					<AppText style={styles.addBtnText}>+ Add movement</AppText>
+					<AppText style={styles.addBtnText}>{copy.editor.addMovement}</AppText>
 				</Pressable>
 
-				<Eyebrow>Description (optional)</Eyebrow>
+				<Eyebrow>{copy.editor.description}</Eyebrow>
 				<TextInput
 					value={description}
 					onChangeText={setDescription}
-					placeholder="Scaling notes, standards, anything else"
+					placeholder={copy.editor.descriptionPlaceholder}
 					placeholderTextColor={colors.textFaint}
 					style={[styles.input, styles.multiline]}
 					multiline
 				/>
 
 				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ disabled: !canSave }}
 					onPress={() => void submit()}
 					disabled={!canSave}
 					style={[styles.submit, !canSave && styles.dimmed]}
 				>
 					<AppText style={styles.submitText}>
-						{busy ? "Saving…" : wod ? "Save changes" : "Create WOD"}
+						{busy
+							? copy.editor.saving
+							: wod
+								? copy.editor.save
+								: copy.editor.create}
 					</AppText>
 				</Pressable>
 			</ScrollView>

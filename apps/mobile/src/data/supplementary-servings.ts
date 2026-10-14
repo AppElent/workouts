@@ -1,4 +1,4 @@
-import type { SupplementaryServing } from "@workouts/core/nutrition";
+import type { SupplementaryServing } from "@foundry/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../convex/api";

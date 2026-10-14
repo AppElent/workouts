@@ -1,4 +1,4 @@
-# Workouts
+# Foundry
 
 Personal training and nutrition tracker: real-time strength session logging,
 exercise library, routines, 1RM tracking, runs and rides, and a nutrition diary.
@@ -43,9 +43,9 @@ TestFlight, and OTA updates are in [mobile releases](docs/runbooks/mobile-releas
 ## CLI
 
 ```bash
-pnpm workouts --help
-pnpm workouts config set api-url http://localhost:3000
-pnpm workouts auth login            # browser flow; --token <token> as fallback
+pnpm foundry --help
+pnpm foundry config set api-url http://localhost:3000
+pnpm foundry auth login            # browser flow; --token <token> as fallback
 ```
 
 ## Deployment

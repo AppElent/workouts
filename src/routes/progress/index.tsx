@@ -1,7 +1,7 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute } from "@tanstack/react-router";
-import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { useState } from "react";

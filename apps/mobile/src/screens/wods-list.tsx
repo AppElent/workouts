@@ -6,12 +6,12 @@
  * both, so the rows simply do not offer what would fail.
  *
  * Each row shows your best score for that WOD, ranked by `bestScore` from
- * `@workouts/core` — the same function Convex uses in `wodResults.getBest`.
+ * `@foundry/core` — the same function Convex uses in `wodResults.getBest`.
  * Ranking a For Time result is not "smaller is better" once time caps exist,
  * which is exactly why it is one shared function and not a comparison written
  * per screen.
  */
-import { formatScore } from "@workouts/core";
+import { formatScore } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
+import { useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -38,14 +39,6 @@ import { AppText } from "../ui/text";
 
 const TYPES = ["forTime", "amrap", "emom", "load"] as const;
 
-/** Short human labels — the schema's camelCase is not for reading. */
-export const WOD_TYPE_LABEL: Record<Doc<"wods">["type"], string> = {
-	forTime: "For time",
-	amrap: "AMRAP",
-	emom: "EMOM",
-	load: "Load",
-};
-
 export function WodsScreen({
 	onOpen,
 	onCreate,
@@ -55,6 +48,7 @@ export function WodsScreen({
 } = {}) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.wods;
 	const wods = useQuery(api.wods.list, {});
 
 	const [search, setSearch] = useState("");
@@ -73,9 +67,9 @@ export function WodsScreen({
 	return (
 		<Screen edges={["bottom"]}>
 			<ScreenHeader
-				title={"WODs"}
+				title={copy.title}
 				action={{
-					label: "Add WOD",
+					label: copy.add,
 					onPress: onCreate ?? (() => router.push("/wod-editor")),
 				}}
 			/>
@@ -84,17 +78,20 @@ export function WodsScreen({
 				<TextInput
 					value={search}
 					onChangeText={setSearch}
-					placeholder="Search WODs"
+					placeholder={copy.search}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					autoCorrect={false}
 				/>
 				<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 					<View style={styles.chipRow}>
-						{TYPES.map((t) => (
-							<Pressable key={t} onPress={() => setType(type === t ? null : t)}>
-								<Chip label={WOD_TYPE_LABEL[t]} active={type === t} />
-							</Pressable>
+						{TYPES.map((kind) => (
+							<Chip
+								key={kind}
+								label={copy.types[kind]}
+								active={type === kind}
+								onPress={() => setType(type === kind ? null : kind)}
+							/>
 						))}
 					</View>
 				</ScrollView>
@@ -102,7 +99,7 @@ export function WodsScreen({
 
 			{wods === undefined ? (
 				<AppText variant="caption" style={styles.status}>
-					Loading…
+					{copy.loading}
 				</AppText>
 			) : (
 				<FlatList
@@ -114,12 +111,10 @@ export function WodsScreen({
 					ListEmptyComponent={
 						<View style={styles.empty}>
 							<AppText variant="heading" style={{ color: colors.textMuted }}>
-								Nothing matches
+								{copy.noMatches}
 							</AppText>
 							<AppText variant="caption" style={styles.centered}>
-								{wods.length === 0
-									? "No WODs yet — add one, or seed the benchmarks."
-									: "Try clearing a filter."}
+								{wods.length === 0 ? copy.emptyLibrary : copy.clearFilter}
 							</AppText>
 						</View>
 					}
@@ -140,10 +135,12 @@ function WodRow({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
+	const copy = useI18n().t.wods;
 	const best = useQuery(api.wodResults.getBest, { wodId: wod._id });
 
 	return (
 		<Pressable
+			accessibilityRole="button"
 			onPress={() =>
 				onOpen
 					? onOpen(wod._id)
@@ -159,8 +156,8 @@ function WodRow({
 					{wod.name}
 				</AppText>
 				<AppText variant="caption">
-					{WOD_TYPE_LABEL[wod.type]}
-					{wod.isDefault ? " · benchmark" : ""}
+					{copy.types[wod.type]}
+					{wod.isDefault ? ` · ${copy.benchmark}` : ""}
 				</AppText>
 			</View>
 			{best ? (

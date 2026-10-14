@@ -19,6 +19,7 @@ import {
 	type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { fmt, useI18n } from "../i18n";
 import {
 	metrics,
 	radius,
@@ -402,104 +403,6 @@ export function AddRow({
 	);
 }
 
-export function EditableValueRow({
-	label,
-	value,
-	deleteLabel,
-	deleteAccessibilityLabel,
-	onPress,
-	onDelete,
-	disabled,
-}: {
-	label: string;
-	value: string;
-	deleteLabel?: string;
-	deleteAccessibilityLabel?: string;
-	onPress: () => void;
-	onDelete?: () => void;
-	disabled?: boolean;
-}) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.editableRow}>
-			<Pressable
-				onPress={onPress}
-				disabled={disabled}
-				accessibilityRole="button"
-				accessibilityState={{ disabled }}
-				style={({ pressed }) => [
-					styles.editableMain,
-					pressed && styles.pressedRow,
-					disabled && styles.disabled,
-				]}
-			>
-				<View style={styles.editableCopy}>
-					<AppText style={styles.rowLabel}>{label}</AppText>
-					<AppText variant="caption">{value}</AppText>
-				</View>
-				<AppText style={styles.chevron}>›</AppText>
-			</Pressable>
-			{onDelete && deleteLabel ? (
-				<Pressable
-					onPress={onDelete}
-					disabled={disabled}
-					accessibilityRole="button"
-					accessibilityState={{ disabled }}
-					accessibilityLabel={deleteAccessibilityLabel ?? deleteLabel}
-					style={({ pressed }) => [
-						styles.deleteAction,
-						pressed && styles.pressedRow,
-					]}
-				>
-					<AppText variant="caption" style={styles.deleteText}>
-						{deleteLabel}
-					</AppText>
-				</Pressable>
-			) : null}
-		</View>
-	);
-}
-
-export function InlineActionRow({ children }: { children: ReactNode }) {
-	const styles = useThemedStyles(createStyles);
-	return <View style={styles.inlineActions}>{children}</View>;
-}
-
-export function FormPreview({ children }: { children: ReactNode }) {
-	const styles = useThemedStyles(createStyles);
-	return <View style={styles.preview}>{children}</View>;
-}
-
-export function FormChoiceChips<const Id extends string>({
-	options,
-	selectedId,
-	onSelect,
-}: {
-	options: readonly { id: Id; label: string }[];
-	selectedId?: Id;
-	onSelect: (id: Id) => void;
-}) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.choiceChips} accessibilityRole="radiogroup">
-			{options.map((option) => (
-				<Pressable
-					key={option.id}
-					onPress={() => onSelect(option.id)}
-					accessibilityRole="radio"
-					accessibilityState={{ checked: selectedId === option.id }}
-					style={[
-						styles.choiceChip,
-						selectedId === option.id && styles.choiceChipSelected,
-					]}
-				>
-					<AppText>{option.label}</AppText>
-				</Pressable>
-			))}
-		</View>
-	);
-}
-
 export function TextAction({
 	label,
 	tone = "accent",
@@ -549,13 +452,14 @@ export function StepperField({
 	onChange: (value: number) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
+	const { t } = useI18n();
 	const round = (number: number) => Math.round(number * 10) / 10;
 	return (
 		<View style={styles.stepperField}>
 			<Pressable
 				onPress={() => onChange(round(Math.max(min, value - step)))}
 				accessibilityRole="button"
-				accessibilityLabel={`Decrease ${label}`}
+				accessibilityLabel={fmt(t.common.decrease, { label })}
 				style={styles.stepperButton}
 			>
 				<AppText style={styles.stepperGlyph}>−</AppText>
@@ -567,7 +471,7 @@ export function StepperField({
 			<Pressable
 				onPress={() => onChange(round(value + step))}
 				accessibilityRole="button"
-				accessibilityLabel={`Increase ${label}`}
+				accessibilityLabel={fmt(t.common.increase, { label })}
 				style={styles.stepperButton}
 			>
 				<AppText style={styles.stepperGlyph}>＋</AppText>
@@ -688,51 +592,6 @@ const createStyles = (colors: Tokens) =>
 		},
 		addGlyph: { color: colors.accent, fontSize: 20, fontWeight: "700" },
 		actionLabel: { flex: 1, color: colors.accent, fontWeight: "700" },
-		editableRow: { flexDirection: "row", alignItems: "stretch" },
-		editableMain: {
-			flex: 1,
-			minHeight: 60,
-			paddingLeft: spacing.md,
-			paddingVertical: spacing.sm,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: spacing.sm,
-		},
-		editableCopy: { flex: 1, minWidth: 0, gap: 2 },
-		chevron: { color: colors.textFaint, fontSize: 24 },
-		deleteAction: {
-			minWidth: 72,
-			paddingHorizontal: spacing.sm,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		deleteText: { color: colors.danger, fontWeight: "700" },
-		inlineActions: {
-			padding: spacing.sm,
-			flexDirection: "row",
-			justifyContent: "flex-end",
-			alignItems: "center",
-			gap: spacing.sm,
-		},
-		preview: { gap: spacing.sm, padding: spacing.md },
-		choiceChips: {
-			flexDirection: "row",
-			flexWrap: "wrap",
-			gap: spacing.sm,
-			padding: spacing.md,
-		},
-		choiceChip: {
-			minHeight: metrics.hitTarget,
-			justifyContent: "center",
-			paddingHorizontal: spacing.md,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-			borderRadius: radius.pill,
-		},
-		choiceChipSelected: {
-			borderColor: colors.accent,
-			backgroundColor: colors.accentDim,
-		},
 		textAction: {
 			minHeight: metrics.hitTarget,
 			paddingHorizontal: spacing.md,

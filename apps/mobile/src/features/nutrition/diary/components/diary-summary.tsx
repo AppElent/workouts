@@ -1,4 +1,4 @@
-import type { NutrientTotal } from "@workouts/core/nutrition";
+import type { NutrientTotal } from "@foundry/core/nutrition";
 import { Pressable, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import type { NutrientGoal, NutrientKey } from "../../../../data/nutrition-day";

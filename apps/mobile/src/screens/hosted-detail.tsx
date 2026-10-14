@@ -7,11 +7,11 @@
  * Editing the template is web-only — see the note in `hosted-list.tsx`. This
  * screen drives the states around it: draft → open → closed, plus delete.
  *
- * Leaderboard ranking uses `scoreRank` from `@workouts/core`, which is what
+ * Leaderboard ranking uses `scoreRank` from `@foundry/core`, which is what
  * makes a capped For Time result sort below every finisher instead of looking
  * like a fast time.
  */
-import { formatScore, scoreRank, type WodType } from "@workouts/core";
+import { formatScore, scoreRank, type WodType } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -19,6 +19,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
+import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
@@ -38,6 +39,7 @@ export function HostedDetailScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
+	const copy = useI18n().t.hosted;
 	const params = useLocalSearchParams<{ id?: string }>();
 	const hostedId = params.id as Id<"hostedWorkouts"> | undefined;
 
@@ -65,23 +67,20 @@ export function HostedDetailScreen() {
 
 	const close = async () => {
 		const confirmed = await confirm({
-			title: "Close this workout?",
-			message: "Every participant's session is finished for them.",
-			confirmLabel: "Close workout",
+			title: copy.closeTitle,
+			message: copy.closeMessage,
+			confirmLabel: copy.close,
 		});
 		if (!confirmed) return;
 		if (!hostedId) return;
-		await run(
-			() => closeWorkout({ id: hostedId }),
-			"Could not close the workout.",
-		);
+		await run(() => closeWorkout({ id: hostedId }), copy.closeError);
 	};
 
 	const remove = async () => {
 		const confirmed = await confirm({
-			title: "Delete this workout?",
-			message: "Participants, submissions and the leaderboard all go with it.",
-			confirmLabel: "Delete workout",
+			title: copy.deleteTitle,
+			message: copy.deleteMessage,
+			confirmLabel: copy.deleteWorkout,
 			destructive: true,
 		});
 		if (!confirmed || !hostedId) return;
@@ -90,7 +89,7 @@ export function HostedDetailScreen() {
 			await removeWorkout({ id: hostedId });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not delete the workout."));
+			toast.error(convexErrorMessage(error, copy.deleteError));
 		} finally {
 			setBusy(false);
 		}
@@ -99,7 +98,7 @@ export function HostedDetailScreen() {
 	if (data === undefined) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="caption">Loading…</AppText>
+				<AppText variant="caption">{copy.loading}</AppText>
 			</View>
 		);
 	}
@@ -107,9 +106,9 @@ export function HostedDetailScreen() {
 	if (data === null) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="heading">Workout not found</AppText>
+				<AppText variant="heading">{copy.notFound}</AppText>
 				<AppText variant="caption" style={styles.centeredText}>
-					It may have been deleted, or you may not be its host.
+					{copy.notFoundHint}
 				</AppText>
 			</View>
 		);
@@ -135,19 +134,19 @@ export function HostedDetailScreen() {
 							: formatSessionDate(hosted.createdAt)}
 					</AppText>
 				</View>
-				<Chip label={hosted.status} active={hosted.status === "open"} />
+				<Chip
+					label={copy.status[hosted.status]}
+					active={hosted.status === "open"}
+				/>
 			</View>
 
 			{hosted.status === "open" ? (
 				<Card style={styles.tokenCard}>
-					<Eyebrow>Join code</Eyebrow>
+					<Eyebrow>{copy.joinCode}</Eyebrow>
 					<AppText style={styles.token} selectable>
 						{hosted.joinToken}
 					</AppText>
-					<AppText variant="caption">
-						Anyone signed in can join with this. The web app also turns it into
-						a QR code and a guest link.
-					</AppText>
+					<AppText variant="caption">{copy.joinCodeHint}</AppText>
 				</Card>
 			) : null}
 
@@ -159,7 +158,7 @@ export function HostedDetailScreen() {
 
 			{hosted.template.strengthBlocks.length > 0 ? (
 				<>
-					<Eyebrow>Strength</Eyebrow>
+					<Eyebrow>{copy.strength}</Eyebrow>
 					<View style={styles.list}>
 						{hosted.template.strengthBlocks.map((block) => (
 							<View key={block.blockId} style={styles.row}>
@@ -194,36 +193,39 @@ export function HostedDetailScreen() {
 			<View style={styles.actions}>
 				{hosted.status === "draft" ? (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy }}
 						onPress={() =>
 							hostedId &&
-							run(
-								() => openWorkout({ id: hostedId }),
-								"Could not open the workout.",
-							)
+							run(() => openWorkout({ id: hostedId }), copy.openError)
 						}
 						disabled={busy}
 						style={[styles.primaryBtn, busy && styles.dimmed]}
 					>
-						<AppText style={styles.primaryText}>Open for joining</AppText>
+						<AppText style={styles.primaryText}>{copy.open}</AppText>
 					</Pressable>
 				) : null}
 
 				{hosted.status === "open" ? (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy }}
 						onPress={() => void close()}
 						disabled={busy}
 						style={[styles.primaryBtn, busy && styles.dimmed]}
 					>
-						<AppText style={styles.primaryText}>Close workout</AppText>
+						<AppText style={styles.primaryText}>{copy.close}</AppText>
 					</Pressable>
 				) : null}
 
 				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ disabled: busy }}
 					onPress={() => void remove()}
 					disabled={busy}
 					style={[styles.ghostBtn, busy && styles.dimmed]}
 				>
-					<AppText style={styles.deleteText}>Delete</AppText>
+					<AppText style={styles.deleteText}>{copy.delete}</AppText>
 				</Pressable>
 			</View>
 		</ScrollView>
@@ -241,30 +243,32 @@ function WodBlockBoard({
 	submissions: Doc<"hostedWorkoutSubmissions">[];
 }) {
 	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.hosted;
 	const nameOf = useMemo(() => {
 		const map = new Map<Id<"hostedWorkoutParticipants">, string>();
 		for (const p of participants) {
-			map.set(p._id, p.displayName ?? "Athlete");
+			map.set(p._id, p.displayName ?? copy.athlete);
 		}
 		return map;
-	}, [participants]);
+	}, [participants, copy.athlete]);
 
 	const ranked = useMemo(() => {
 		return submissions
 			.filter((s) => s.wodBlockId === block.blockId)
 			.map((s) => ({
 				submission: s,
-				name: s.guestName ?? nameOf.get(s.participantId as never) ?? "Athlete",
+				name:
+					s.guestName ?? nameOf.get(s.participantId as never) ?? copy.athlete,
 				rank: scoreRank(block.type as WodType, s),
 			}))
 			.sort((a, b) => b.rank - a.rank);
-	}, [submissions, block, nameOf]);
+	}, [submissions, block, nameOf, copy.athlete]);
 
 	return (
 		<>
 			<Eyebrow>{block.name}</Eyebrow>
 			{ranked.length === 0 ? (
-				<AppText style={styles.muted}>No scores submitted yet.</AppText>
+				<AppText style={styles.muted}>{copy.noScores}</AppText>
 			) : (
 				<View style={styles.list}>
 					{ranked.map((entry, index) => (

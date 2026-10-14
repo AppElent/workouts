@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
@@ -49,6 +51,11 @@ const McpRoute = McpRouteImport.update({
   path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -57,6 +64,11 @@ const SignInRoute = SignInRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SsoCallbackRoute = SsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
@@ -159,8 +171,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
@@ -185,8 +199,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
@@ -212,8 +228,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
@@ -240,8 +258,10 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/mcp'
+    | '/privacy'
     | '/sign-in'
     | '/sign-up'
+    | '/sso-callback'
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
@@ -266,8 +286,10 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/mcp'
+    | '/privacy'
     | '/sign-in'
     | '/sign-up'
+    | '/sso-callback'
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
@@ -292,8 +314,10 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/mcp'
+    | '/privacy'
     | '/sign-in'
     | '/sign-up'
+    | '/sso-callback'
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
@@ -319,8 +343,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   McpRoute: typeof McpRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  SsoCallbackRoute: typeof SsoCallbackRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
   HostedWorkoutsIdRoute: typeof HostedWorkoutsIdRoute
   HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
@@ -364,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
@@ -376,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sso-callback': {
+      id: '/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sso-callback'
+      preLoaderRoute: typeof SsoCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/': {
@@ -528,8 +568,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   McpRoute: McpRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  SsoCallbackRoute: SsoCallbackRoute,
   ExercisesIdRoute: ExercisesIdRoute,
   HostedWorkoutsIdRoute: HostedWorkoutsIdRoute,
   HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,

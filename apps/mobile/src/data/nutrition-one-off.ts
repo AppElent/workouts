@@ -1,19 +1,11 @@
-import type { NutritionDiarySnapshot } from "@workouts/core";
+import type { NutritionDiarySnapshot } from "@foundry/core";
 import {
 	formatQuantity,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type { FoodVisual } from "./personal-food-repository";
-
-export function positiveOneOffNumber(value: string, label: string): number {
-	const parsed = Number(value.replace(",", ".").trim());
-	if (!Number.isFinite(parsed) || parsed <= 0) {
-		throw new Error(`${label} must be greater than zero.`);
-	}
-	return parsed;
-}
 
 export function formatSnapshotAmount(
 	amount: number,

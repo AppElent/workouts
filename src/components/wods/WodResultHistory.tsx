@@ -4,7 +4,7 @@ import {
 	formatScore,
 	prImprovement,
 	scoreRank,
-} from "@workouts/core";
+} from "@foundry/core";
 import { format } from "date-fns";
 import { Trophy } from "lucide-react";
 import {

@@ -1,4 +1,4 @@
-import { GOAL_PRESET_KEYS, type GoalPresetKey } from "@workouts/core/nutrition";
+import { GOAL_PRESET_KEYS, type GoalPresetKey } from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { Pressable, View } from "react-native";
 import { useI18n } from "../../../../i18n";

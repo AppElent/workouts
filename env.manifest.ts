@@ -1,5 +1,5 @@
 /**
- * Workouts environment routing.
+ * Foundry environment routing.
  *
  * Entries describe logical values and their consumers. destinationFor maps a
  * consumer in an app environment to the place that consumer reads from. The
@@ -8,7 +8,7 @@
  */
 
 export const ENV_CONFIG = {
-	appName: "Workouts",
+	appName: "Foundry",
 	source: {
 		environments: {
 			local: "dev",
@@ -231,6 +231,18 @@ export const ENTRIES = [
 		lands: {
 			"convex-functions": {
 				name: "CLERK_JWT_ISSUER_DOMAIN",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "anthropicApiKey",
+		infisicalKey: "anthropic-api-key",
+		description: "Anthropic API key for nutrition AI help (Convex actions only).",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "ANTHROPIC_API_KEY",
 				environments: ["local", "preview", "dev", "production"],
 			},
 		},

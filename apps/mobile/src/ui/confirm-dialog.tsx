@@ -32,6 +32,7 @@ import {
 } from "react-native";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
+import { useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -58,6 +59,7 @@ const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const colors = useTokens();
+	const { t } = useI18n();
 	const styles = useThemedStyles(createStyles);
 	const [options, setOptions] = useState<ConfirmOptions | null>(null);
 	const reduceMotion = useReduceMotion();
@@ -138,6 +140,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
 						<View style={styles.actions}>
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => settle(false)}
 								style={({ pressed }) => [
 									styles.button,
@@ -146,11 +149,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 								]}
 							>
 								<AppText variant="body">
-									{options?.cancelLabel ?? "Keep"}
+									{options?.cancelLabel ?? t.common.keep}
 								</AppText>
 							</Pressable>
 
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => settle(true)}
 								style={({ pressed }) => [
 									styles.button,

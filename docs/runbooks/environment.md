@@ -7,28 +7,28 @@ version: 1.0.0
 # Environment contract
 
 [`env.manifest.ts`](../../env.manifest.ts) is the source of truth for which
-Workouts value each web, mobile, Convex, CI, and workspace consumer reads. The
+Foundry value each web, mobile, Convex, CI, and workspace consumer reads. The
 `pnpm env:*` aliases run the app-owned `scripts/env.mjs` engine; see the
 [shared guide](../standards/environments.md).
 
 The app has four environments: `local`, per-PR `preview`, stable `dev`, and
-`production`. There is no Workouts staging environment. Stable Convex targets
+`production`. There is no Foundry staging environment. Stable Convex targets
 and the preview project come from the existing Wrangler and worktree setup
-metadata. The preview Worker remains `workouts-pr-<number>`, the development
-Worker remains `workouts-dev`, and production remains `workouts`.
+metadata. The preview Worker is `foundry-pr-<number>`, the development Worker is
+`foundry-dev`, and production is `foundry`.
 
 ## Source prerequisite
 
-Workouts uses the same Infisical project reference as Gather and keeps its
+Foundry uses the same Infisical project reference as Gather and keeps its
 app-specific values under `/foundry`. Its `local` source is `dev`, both PR
 `preview` and stable app `dev` use the project's `staging` source, and
 `production` uses `prod`. The app environment remains named `dev`; the
-provider's `staging` slug does not introduce a Workouts staging deployment.
+provider's `staging` slug does not introduce a Foundry staging deployment.
 
 The source lookup order is `/` followed by `/foundry`; a value in the app
 folder overrides the same source name at the root. Shared values retain
 Gather's existing canonical source keys, while each landing keeps the exact
-Workouts variable name consumed by code or CI. `.infisical.json` contains only
+Foundry variable name consumed by code or CI. `.infisical.json` contains only
 the nonsecret project reference. Values remain in memory and are written only
 to destinations declared by the manifest.
 

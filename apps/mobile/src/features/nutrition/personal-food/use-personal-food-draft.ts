@@ -4,7 +4,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useMemo, useRef, useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import {
@@ -12,6 +12,7 @@ import {
 	type FoodPhotoManager,
 	foodPhotos,
 } from "../../../data/food-photo-manager";
+import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
 import {
 	type FoodVisual,
 	type PersonalFood,
@@ -136,6 +137,15 @@ export function usePersonalFoodDraft({
 		onChange: touch,
 	});
 	const { visual } = photo;
+	/** Provider details a scanned label adds; existing ones are kept. */
+	const [labelExtras, setLabelExtras] = useState<{
+		barcode?: string;
+		brand?: string;
+		quantity?: string;
+	}>({});
+	const [fromLabel, setFromLabel] = useState<ReadonlySet<NutrientKey>>(
+		() => new Set(),
+	);
 
 	const source = useMemo(
 		() => (initial ? forkSource(initial) : undefined),
@@ -183,10 +193,13 @@ export function usePersonalFoodDraft({
 							amount: parseFoodNumber(serving.amount),
 						})),
 		};
-		let provenance = initial?.provenance ?? {
-			recordOrigin: "personal" as const,
-			nutritionSource: "manual" as const,
-			locallyEdited: false,
+		let provenance = {
+			...labelExtras,
+			...(initial?.provenance ?? {
+				recordOrigin: "personal" as const,
+				nutritionSource: "manual" as const,
+				locallyEdited: false,
+			}),
 		};
 		if (source)
 			provenance = {
@@ -347,6 +360,60 @@ export function usePersonalFoodDraft({
 				...current.filter((_, at) => at !== index),
 			]);
 			touch();
+		},
+		fromLabel,
+		/**
+		 * Fill the draft from a scanned label. Only absent values are filled;
+		 * a value the person or a provider already entered is never replaced,
+		 * and differing ones are reported for the person to decide.
+		 */
+		applyLabel: (reading: LabelReading, mode: "fill" | "missing") => {
+			const label = labelNutrients(reading);
+			const filled: NutrientKey[] = [];
+			const differences: { key: NutrientKey; label: number }[] = [];
+			const next = { ...nutrients };
+			for (const key of NUTRIENT_KEYS) {
+				const value = label[key];
+				if (value.kind !== "value") continue;
+				const current = nutrients[key];
+				if (current.kind === "absent") {
+					next[key] = { kind: "value", amount: toText(value.amount) };
+					filled.push(key);
+				} else if (current.kind === "value") {
+					const existing = parseFoodNumber(current.amount);
+					if (
+						Math.abs(existing - value.amount) >
+						Math.max(0.05, value.amount * 0.03)
+					)
+						differences.push({ key, label: value.amount });
+				}
+			}
+			setNutrients(next);
+			setFromLabel(new Set(filled));
+			const wasEmpty = NUTRIENT_KEYS.every(
+				(key) => nutrients[key].kind === "absent",
+			);
+			if (!name.trim()) setNameState(reading.name[locale]);
+			if (mode === "fill" && wasEmpty && basisKind === "per100")
+				setBaseUnit(reading.basis);
+			if (servings.length === 0 && reading.servings.length)
+				setServings(
+					reading.servings.map((serving, index) => ({
+						key: `label-${index}`,
+						en: serving.name.en,
+						nl: serving.name.nl,
+						amount: toText(serving.amount),
+					})),
+				);
+			setLabelExtras({
+				...(reading.barcode ? { barcode: reading.barcode } : {}),
+				...(reading.brand ? { brand: reading.brand } : {}),
+				...(reading.packAmount
+					? { quantity: `${toText(reading.packAmount)} ${reading.basis}` }
+					: {}),
+			});
+			touch();
+			return { filled, differences };
 		},
 		dirty: touched,
 		saving,

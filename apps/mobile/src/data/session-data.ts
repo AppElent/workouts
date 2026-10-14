@@ -1,4 +1,4 @@
-import type { ExerciseId } from "@workouts/core/exercises";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { api, type Doc, type Id } from "../convex/api";
 /**
  * The reads every screen shares: what is running now, what ran recently, and

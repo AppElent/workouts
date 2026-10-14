@@ -8,10 +8,10 @@
  * once would be four ways to enter a score wrongly, so only the relevant pair
  * renders.
  *
- * Ranking and formatting both come from `@workouts/core`, the same functions
+ * Ranking and formatting both come from `@foundry/core`, the same functions
  * Convex uses server-side in `wodResults.getBest`.
  */
-import { formatScore, prImprovement } from "@workouts/core";
+import { formatScore, prImprovement } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -25,6 +25,7 @@ import {
 import { api, type Doc, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
+import { fmt, useI18n } from "../i18n";
 import {
 	radius,
 	spacing,
@@ -37,7 +38,6 @@ import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
-import { WOD_TYPE_LABEL } from "./wods-list";
 
 /** "12:30" or "750" both mean 750 seconds. */
 function parseTime(raw: string) {
@@ -69,6 +69,7 @@ export function WodDetailScreen({
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
+	const copy = useI18n().t.wods;
 	const params = useLocalSearchParams<{ id?: string }>();
 	const wodId = params.id as Id<"wods"> | undefined;
 
@@ -85,9 +86,9 @@ export function WodDetailScreen({
 	const deleteWod = async () => {
 		if (!wodId) return;
 		const confirmed = await confirm({
-			title: `Delete ${wod?.name ?? "this WOD"}?`,
-			message: "Your logged results for it go too.",
-			confirmLabel: "Delete WOD",
+			title: fmt(copy.deleteWodTitle, { name: wod?.name ?? copy.thisWod }),
+			message: copy.deleteWodMessage,
+			confirmLabel: copy.deleteWod,
 			destructive: true,
 		});
 		if (!confirmed) return;
@@ -95,28 +96,28 @@ export function WodDetailScreen({
 			await removeWod({ id: wodId });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not delete the WOD."));
+			toast.error(convexErrorMessage(error, copy.deleteWodError));
 		}
 	};
 
 	const deleteResult = async (id: Id<"wodResults">) => {
 		const confirmed = await confirm({
-			title: "Delete this result?",
-			confirmLabel: "Delete result",
+			title: copy.deleteResultTitle,
+			confirmLabel: copy.deleteResult,
 			destructive: true,
 		});
 		if (!confirmed) return;
 		try {
 			await removeResult({ id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not delete the result."));
+			toast.error(convexErrorMessage(error, copy.deleteResultError));
 		}
 	};
 
 	if (wod === undefined) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="caption">Loading…</AppText>
+				<AppText variant="caption">{copy.loading}</AppText>
 			</View>
 		);
 	}
@@ -124,7 +125,7 @@ export function WodDetailScreen({
 	if (wod === null) {
 		return (
 			<View style={[styles.root, styles.centered]}>
-				<AppText variant="heading">WOD not found</AppText>
+				<AppText variant="heading">{copy.notFound}</AppText>
 			</View>
 		);
 	}
@@ -143,8 +144,8 @@ export function WodDetailScreen({
 				<View style={styles.flex}>
 					<ScreenHeader title={wod.name} />
 					<AppText variant="caption">
-						{WOD_TYPE_LABEL[wod.type]}
-						{wod.isDefault ? " · benchmark" : ""}
+						{copy.types[wod.type]}
+						{wod.isDefault ? ` · ${copy.benchmark}` : ""}
 					</AppText>
 				</View>
 			</View>
@@ -163,12 +164,16 @@ export function WodDetailScreen({
 				))}
 				{wod.timeCapSeconds ? (
 					<AppText variant="caption">
-						Time cap {Math.round(wod.timeCapSeconds / 60)} min
+						{fmt(copy.timeCap, {
+							minutes: Math.round(wod.timeCapSeconds / 60),
+						})}
 					</AppText>
 				) : null}
 				{wod.durationSeconds ? (
 					<AppText variant="caption">
-						{Math.round(wod.durationSeconds / 60)} min
+						{fmt(copy.minutes, {
+							minutes: Math.round(wod.durationSeconds / 60),
+						})}
 					</AppText>
 				) : null}
 				{wod.description ? (
@@ -178,12 +183,12 @@ export function WodDetailScreen({
 
 			{best ? (
 				<Card style={styles.bestCard}>
-					<Eyebrow>Your best</Eyebrow>
+					<Eyebrow>{copy.best}</Eyebrow>
 					<AppText style={styles.bestValue}>
 						{formatScore(wod.type, best)}
 					</AppText>
 					<AppText variant="caption">
-						{best.rxScaled === "rx" ? "Rx" : "Scaled"} ·{" "}
+						{best.rxScaled === "rx" ? copy.rx : copy.scaled} ·{" "}
 						{formatSessionDate(best.date)}
 					</AppText>
 				</Card>
@@ -191,11 +196,11 @@ export function WodDetailScreen({
 
 			<LogResultForm wod={wod} best={best ?? null} />
 
-			<Eyebrow>History</Eyebrow>
+			<Eyebrow>{copy.history}</Eyebrow>
 			{results === undefined ? (
-				<AppText style={styles.muted}>Loading…</AppText>
+				<AppText style={styles.muted}>{copy.loading}</AppText>
 			) : results.length === 0 ? (
-				<AppText style={styles.muted}>Nothing logged yet.</AppText>
+				<AppText style={styles.muted}>{copy.nothingLogged}</AppText>
 			) : (
 				<View style={styles.list}>
 					{[...results].reverse().map((r) => (
@@ -205,7 +210,7 @@ export function WodDetailScreen({
 									{formatScore(wod.type, r)}
 								</AppText>
 								<AppText variant="caption">
-									{r.rxScaled === "rx" ? "Rx" : "Scaled"} ·{" "}
+									{r.rxScaled === "rx" ? copy.rx : copy.scaled} ·{" "}
 									{formatSessionDate(r.date)}
 									{r.notes ? ` · ${r.notes}` : ""}
 								</AppText>
@@ -214,10 +219,10 @@ export function WodDetailScreen({
 								onPress={() => void deleteResult(r._id)}
 								hitSlop={12}
 								accessibilityRole="button"
-								accessibilityLabel="Delete result"
+								accessibilityLabel={copy.deleteResult}
 							>
 								<AppText variant="caption" style={styles.delete}>
-									Delete
+									{copy.delete}
 								</AppText>
 							</Pressable>
 						</View>
@@ -228,6 +233,7 @@ export function WodDetailScreen({
 			{wod.isDefault ? null : (
 				<View style={styles.actions}>
 					<Pressable
+						accessibilityRole="button"
 						onPress={() =>
 							onEdit
 								? onEdit(wod._id)
@@ -238,10 +244,14 @@ export function WodDetailScreen({
 						}
 						style={styles.ghostBtn}
 					>
-						<AppText style={styles.ghostText}>Edit</AppText>
+						<AppText style={styles.ghostText}>{copy.edit}</AppText>
 					</Pressable>
-					<Pressable onPress={() => void deleteWod()} style={styles.ghostBtn}>
-						<AppText style={styles.deleteText}>Delete WOD</AppText>
+					<Pressable
+						accessibilityRole="button"
+						onPress={() => void deleteWod()}
+						style={styles.ghostBtn}
+					>
+						<AppText style={styles.deleteText}>{copy.deleteWod}</AppText>
 					</Pressable>
 				</View>
 			)}
@@ -259,6 +269,7 @@ function LogResultForm({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
+	const copy = useI18n().t.wods;
 	const logResult = useMutation(api.wodResults.log);
 
 	const [time, setTime] = useState("");
@@ -295,7 +306,7 @@ function LogResultForm({
 			// A new personal best is worth saying out loud — it is the one outcome
 			// the history list below does not make obvious at a glance.
 			const improvement = best ? prImprovement(wod.type, score, best) : null;
-			if (improvement) toast.success(`New PR — ${improvement}`);
+			if (improvement) toast.success(fmt(copy.newPr, { improvement }));
 			setTime("");
 			setRounds("");
 			setReps("");
@@ -303,7 +314,7 @@ function LogResultForm({
 			setNotes("");
 			setCapped(false);
 		} catch (error) {
-			toast.error(convexErrorMessage(error, "Could not log the result."));
+			toast.error(convexErrorMessage(error, copy.logError));
 		} finally {
 			setBusy(false);
 		}
@@ -311,29 +322,27 @@ function LogResultForm({
 
 	return (
 		<>
-			<Eyebrow>Log a result</Eyebrow>
+			<Eyebrow>{copy.logResultHeading}</Eyebrow>
 
 			<View style={styles.chipRow}>
-				<Pressable onPress={() => setRx(true)}>
-					<Chip label="Rx" active={rx} />
-				</Pressable>
-				<Pressable onPress={() => setRx(false)}>
-					<Chip label="Scaled" active={!rx} />
-				</Pressable>
+				<Chip label={copy.rx} active={rx} onPress={() => setRx(true)} />
+				<Chip label={copy.scaled} active={!rx} onPress={() => setRx(false)} />
 			</View>
 
 			{wod.type === "forTime" ? (
 				<>
 					<View style={styles.chipRow}>
-						<Pressable onPress={() => setCapped(!capped)}>
-							<Chip label="Hit the time cap" active={capped} />
-						</Pressable>
+						<Chip
+							label={copy.hitTimeCap}
+							active={capped}
+							onPress={() => setCapped(!capped)}
+						/>
 					</View>
 					{capped ? (
 						<TextInput
 							value={reps}
 							onChangeText={setReps}
-							placeholder="Reps completed at the cap"
+							placeholder={copy.repsAtCap}
 							placeholderTextColor={colors.textFaint}
 							style={styles.input}
 							keyboardType="number-pad"
@@ -342,7 +351,7 @@ function LogResultForm({
 						<TextInput
 							value={time}
 							onChangeText={setTime}
-							placeholder="Time — 8:42"
+							placeholder={copy.time}
 							placeholderTextColor={colors.textFaint}
 							style={styles.input}
 						/>
@@ -355,7 +364,7 @@ function LogResultForm({
 					<TextInput
 						value={rounds}
 						onChangeText={setRounds}
-						placeholder="Rounds"
+						placeholder={copy.rounds}
 						placeholderTextColor={colors.textFaint}
 						style={[styles.input, styles.flex]}
 						keyboardType="number-pad"
@@ -363,7 +372,7 @@ function LogResultForm({
 					<TextInput
 						value={reps}
 						onChangeText={setReps}
-						placeholder="+ reps"
+						placeholder={copy.plusReps}
 						placeholderTextColor={colors.textFaint}
 						style={[styles.input, styles.flex]}
 						keyboardType="number-pad"
@@ -375,7 +384,7 @@ function LogResultForm({
 				<TextInput
 					value={reps}
 					onChangeText={setReps}
-					placeholder="Total reps"
+					placeholder={copy.totalReps}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					keyboardType="number-pad"
@@ -386,7 +395,7 @@ function LogResultForm({
 				<TextInput
 					value={load}
 					onChangeText={setLoad}
-					placeholder="Load (kg)"
+					placeholder={copy.load}
 					placeholderTextColor={colors.textFaint}
 					style={styles.input}
 					keyboardType="decimal-pad"
@@ -396,18 +405,20 @@ function LogResultForm({
 			<TextInput
 				value={notes}
 				onChangeText={setNotes}
-				placeholder="Notes (optional)"
+				placeholder={copy.notes}
 				placeholderTextColor={colors.textFaint}
 				style={styles.input}
 			/>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy }}
 				onPress={() => void submit()}
 				disabled={busy}
 				style={[styles.submit, busy && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>
-					{busy ? "Logging…" : "Log result"}
+					{busy ? copy.logging : copy.logResult}
 				</AppText>
 			</Pressable>
 		</>

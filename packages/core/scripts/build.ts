@@ -137,7 +137,7 @@ export type ReconcileResult = {
 };
 
 export const LOCK_NOTE =
-	'Append-only map from source code (NEVO code, or Lidl code under src: "lidl") to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @workouts/core generate:foods`.';
+	'Append-only map from source code (NEVO code, or Lidl code under src: "lidl") to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @foundry/core generate:foods`.';
 
 export const EMPTY_LOCK: ShippedLock = {
 	schemaVersion: LOCK_SCHEMA_VERSION,
