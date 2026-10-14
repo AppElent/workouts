@@ -4,6 +4,7 @@ import { useMessages } from "#/lib/i18n";
 export function AuthButton({
 	children,
 	loading,
+	disabled,
 	variant = "primary",
 	type = "submit",
 	onClick,
@@ -11,6 +12,7 @@ export function AuthButton({
 }: {
 	children: React.ReactNode;
 	loading?: boolean;
+	disabled?: boolean;
 	variant?: "primary" | "ghost";
 	type?: "submit" | "button";
 	onClick?: () => void;
@@ -20,7 +22,7 @@ export function AuthButton({
 	return (
 		<button
 			type={type}
-			disabled={loading}
+			disabled={loading || disabled}
 			aria-busy={loading ?? false}
 			onClick={onClick}
 			className={cn(

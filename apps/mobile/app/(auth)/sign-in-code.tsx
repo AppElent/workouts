@@ -22,7 +22,8 @@ export default function SignInCode() {
 	const router = useRouter();
 	const copy = useI18n().t.verifyEmail;
 	const { email } = useLocalSearchParams<{ email?: string }>();
-	const { verify, resend, busy, error } = useEmailCodeSignIn();
+	const { verify, resend, resending, startOver, busy, error } =
+		useEmailCodeSignIn();
 	const [code, setCode] = useState("");
 	const [notice, setNotice] = useState<string | null>(null);
 
@@ -39,8 +40,18 @@ export default function SignInCode() {
 			subtitle={fmt(copy.subtitle, { email: email ?? "" })}
 			footer={
 				<>
-					<AuthLink label={copy.resend} onPress={onResend} />
-					<AuthLink label={copy.changeEmail} onPress={() => router.back()} />
+					<AuthLink
+						label={copy.resend}
+						onPress={onResend}
+						disabled={resending}
+					/>
+					<AuthLink
+						label={copy.changeEmail}
+						onPress={async () => {
+							await startOver();
+							router.back();
+						}}
+					/>
 				</>
 			}
 		>

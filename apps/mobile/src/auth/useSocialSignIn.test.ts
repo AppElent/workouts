@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react-native";
 import { Platform } from "react-native";
+import { LocaleProvider } from "../i18n";
 import { useSocialSignIn } from "./useSocialSignIn";
 
 const mockStartSSOFlow = jest.fn();
@@ -21,7 +22,7 @@ afterEach(() => {
 });
 
 async function run(provider: "apple" | "google" | "microsoft") {
-	const hook = renderHook(() => useSocialSignIn());
+	const hook = renderHook(() => useSocialSignIn(), { wrapper: LocaleProvider });
 	await act(() => hook.result.current.start(provider));
 	return hook.result.current;
 }

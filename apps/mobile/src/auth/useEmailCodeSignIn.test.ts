@@ -4,6 +4,7 @@ import { useEmailCodeSignIn } from "./useEmailCodeSignIn";
 const mockSendCode = jest.fn();
 const mockVerifyCode = jest.fn();
 const mockFinalize = jest.fn();
+const mockReset = jest.fn();
 const mockErrors = { fields: {}, global: null };
 
 jest.mock("@clerk/expo", () => ({
@@ -11,6 +12,7 @@ jest.mock("@clerk/expo", () => ({
 		signIn: {
 			emailCode: { sendCode: mockSendCode, verifyCode: mockVerifyCode },
 			finalize: mockFinalize,
+			reset: mockReset,
 		},
 		errors: mockErrors,
 	}),
@@ -58,4 +60,37 @@ it("does not finalize when the code is wrong", async () => {
 	expect(mockFinalize).not.toHaveBeenCalled();
 	expect(result.current.error).toMatch(/code is not right/i);
 	expect(result.current.busy).toBe(false);
+});
+
+it("starts over so a corrected address gets a fresh sign-in", async () => {
+	mockReset.mockResolvedValue({ error: null });
+	const { result } = renderHook(() => useEmailCodeSignIn());
+	await act(() => result.current.startOver());
+	expect(mockReset).toHaveBeenCalled();
+});
+
+it("ignores a second resend while one is in flight", async () => {
+	let settle: (v: { error: null }) => void = () => {};
+	mockSendCode.mockReturnValue(
+		new Promise((resolve) => {
+			settle = resolve;
+		}),
+	);
+	const { result } = renderHook(() => useEmailCodeSignIn());
+	let first: Promise<boolean> = Promise.resolve(false);
+	act(() => {
+		first = result.current.resend();
+	});
+	expect(result.current.resending).toBe(true);
+	let second = true;
+	await act(async () => {
+		second = await result.current.resend();
+	});
+	expect(second).toBe(false);
+	await act(async () => {
+		settle({ error: null });
+		await first;
+	});
+	expect(mockSendCode).toHaveBeenCalledTimes(1);
+	expect(result.current.resending).toBe(false);
 });

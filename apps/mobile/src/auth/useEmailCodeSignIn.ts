@@ -36,14 +36,27 @@ export function useEmailCodeSignIn() {
 	);
 
 	/** Re-sends to the address of the sign-in already in progress. */
+	const [resending, setResending] = useState(false);
 	const resend = useCallback(async (): Promise<boolean> => {
+		if (resending) return false;
+		setResending(true);
 		setReturned(null);
 		const sent = await signIn.emailCode.sendCode();
+		setResending(false);
 		if (sent.error) {
 			setReturned(sent.error);
 			return false;
 		}
 		return true;
+	}, [signIn, resending]);
+
+	/**
+	 * Drops the attempt so a corrected address starts a fresh sign-in: once
+	 * one exists, `sendCode` must not be given an address again.
+	 */
+	const startOver = useCallback(async () => {
+		setReturned(null);
+		await signIn.reset();
 	}, [signIn]);
 
 	const verify = useCallback(
@@ -65,5 +78,13 @@ export function useEmailCodeSignIn() {
 		[signIn],
 	);
 
-	return { send, resend, verify, busy, error: pickError(errors, returned) };
+	return {
+		send,
+		resend,
+		resending,
+		startOver,
+		verify,
+		busy,
+		error: pickError(errors, returned),
+	};
 }

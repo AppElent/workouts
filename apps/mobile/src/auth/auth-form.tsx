@@ -124,10 +124,12 @@ export function AuthLink({
 	prompt,
 	label,
 	onPress,
+	disabled = false,
 }: {
 	prompt?: string;
 	label: string;
 	onPress: () => void;
+	disabled?: boolean;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -136,10 +138,15 @@ export function AuthLink({
 			{prompt ? <AppText variant="caption">{prompt}</AppText> : null}
 			<Pressable
 				accessibilityRole="link"
+				accessibilityState={{ disabled }}
+				disabled={disabled}
 				onPress={onPress}
 				hitSlop={spacing.sm}
 			>
-				<AppText variant="caption" style={{ color: colors.accent }}>
+				<AppText
+					variant="caption"
+					style={{ color: disabled ? colors.textMuted : colors.accent }}
+				>
 					{label}
 				</AppText>
 			</Pressable>

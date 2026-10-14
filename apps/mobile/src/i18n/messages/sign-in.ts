@@ -13,6 +13,8 @@ export const signInEn = {
 		apple: "Continue with Apple",
 		google: "Continue with Google",
 		microsoft: "Continue with Microsoft",
+		incomplete:
+			"Your account needs another step this app doesn't support yet. Finish signing up on the web, then sign in here.",
 	},
 };
 
@@ -32,5 +34,7 @@ export const signInNl: typeof signInEn = {
 		apple: "Doorgaan met Apple",
 		google: "Doorgaan met Google",
 		microsoft: "Doorgaan met Microsoft",
+		incomplete:
+			"Je account heeft nog een stap nodig die deze app nog niet ondersteunt. Rond je aanmelding af op het web en log daarna hier in.",
 	},
 };

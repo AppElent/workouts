@@ -17,6 +17,7 @@ import { useSignInWithApple } from "@clerk/expo/apple";
 import { useSSO } from "@clerk/expo/experimental";
 import { useCallback, useState } from "react";
 import { Platform } from "react-native";
+import { useI18n } from "../i18n";
 import { type CodedError, readError } from "./clerkErrors";
 
 export type SocialProvider = "apple" | "google" | "microsoft";
@@ -30,9 +31,6 @@ export const SOCIAL_PROVIDERS: readonly SocialProvider[] = __DEV__
 	? ["apple", "google", "microsoft"]
 	: ["apple", "microsoft"];
 
-const INCOMPLETE =
-	"Your account needs another step this app doesn't support yet. Finish signing up on the web, then sign in here.";
-
 /** Clerk throws either a bare `{ code }` or an `{ errors: [{ code }] }` wrapper. */
 function toCoded(err: unknown): CodedError {
 	const e = err as { code?: string; errors?: CodedError[] } | null;
@@ -40,6 +38,7 @@ function toCoded(err: unknown): CodedError {
 }
 
 export function useSocialSignIn() {
+	const incomplete = useI18n().t.signIn.social.incomplete;
 	const { startSSOFlow } = useSSO();
 	const { startAppleAuthenticationFlow } = useSignInWithApple();
 	const [pending, setPending] = useState<SocialProvider | null>(null);
@@ -67,7 +66,7 @@ export function useSocialSignIn() {
 					}
 					if (createdSessionId || signIn?.existingSession) return;
 				}
-				setError(INCOMPLETE);
+				setError(incomplete);
 			} catch (err) {
 				const coded = toCoded(err);
 				if (coded.code !== "ERR_REQUEST_CANCELED") {
@@ -76,7 +75,7 @@ export function useSocialSignIn() {
 			}
 			setPending(null);
 		},
-		[startSSOFlow, startAppleAuthenticationFlow],
+		[startSSOFlow, startAppleAuthenticationFlow, incomplete],
 	);
 
 	return { start, pending, error };

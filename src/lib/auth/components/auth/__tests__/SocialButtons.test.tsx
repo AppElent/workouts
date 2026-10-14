@@ -89,4 +89,18 @@ describe("SocialButtons", () => {
 		).toBeDefined();
 		expect(screen.getByText("of")).toBeDefined();
 	});
+
+	it("blocks every provider while one redirect is starting", () => {
+		authenticateWithRedirect.mockReturnValue(new Promise(() => {}));
+		renderButtons();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Continue with Google" }),
+		);
+		const microsoft = screen.getByRole("button", {
+			name: "Continue with Microsoft",
+		}) as HTMLButtonElement;
+		expect(microsoft.disabled).toBe(true);
+		fireEvent.click(microsoft);
+		expect(authenticateWithRedirect).toHaveBeenCalledTimes(1);
+	});
 });

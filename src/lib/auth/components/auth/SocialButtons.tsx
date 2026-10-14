@@ -54,6 +54,7 @@ export function SocialButtons() {
 					variant="ghost"
 					className="border-solid border-[var(--auth-border)]"
 					loading={pending === provider.id}
+					disabled={pending !== null}
 					onClick={() => start(provider.id, provider.strategy)}
 				>
 					{fmt(auth.continueWith, { provider: provider.label })}
