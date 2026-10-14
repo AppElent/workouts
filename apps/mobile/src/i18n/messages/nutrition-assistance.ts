@@ -144,7 +144,6 @@ export const nutritionAssistanceEn = {
 	offlineTitle: "This Week overview is not on this phone yet",
 	offlineBody:
 		"Reconnect to load the seven-day overview. Missing data is unknown, not zero.",
-	retry: "Try again",
 	pendingNotice:
 		"Some saved meals are still waiting to sync; this overview shows synced diary data only.",
 };
@@ -295,7 +294,6 @@ export const nutritionAssistanceNl: typeof nutritionAssistanceEn = {
 	offlineTitle: "Dit weekoverzicht staat nog niet op dit apparaat",
 	offlineBody:
 		"Maak opnieuw verbinding om het weekoverzicht te laden. Ontbrekende gegevens zijn onbekend, niet nul.",
-	retry: "Opnieuw proberen",
 	pendingNotice:
 		"Sommige opgeslagen maaltijden wachten nog op synchronisatie; dit overzicht toont alleen gesynchroniseerde dagboekgegevens.",
 };

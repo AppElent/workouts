@@ -1,6 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react-native";
 import { renderThemed as render } from "../test-support/render-themed";
-import { NutritionCalendar } from "./nutrition-calendar";
+import { MonthCalendar } from "./month-calendar";
 
 let mockLocale: "en" | "nl" = "en";
 jest.mock("../i18n", () => ({
@@ -10,7 +10,7 @@ jest.mock("../i18n", () => ({
 	}),
 }));
 
-describe("NutritionCalendar", () => {
+describe("MonthCalendar", () => {
 	afterEach(() => {
 		mockLocale = "en";
 	});
@@ -18,7 +18,7 @@ describe("NutritionCalendar", () => {
 	it("renders an actual leap-month grid and lets the user select a day", () => {
 		const onSelect = jest.fn();
 		render(
-			<NutritionCalendar
+			<MonthCalendar
 				selectedDate="2028-02-29"
 				today="2028-02-01"
 				onSelect={onSelect}
@@ -32,7 +32,7 @@ describe("NutritionCalendar", () => {
 	it("moves to the next month without snapping back and selects its date", () => {
 		const onSelect = jest.fn();
 		render(
-			<NutritionCalendar
+			<MonthCalendar
 				selectedDate="2026-01-15"
 				today="2026-01-15"
 				onSelect={onSelect}
@@ -47,7 +47,7 @@ describe("NutritionCalendar", () => {
 	it("has an accessible Today action", () => {
 		const onSelect = jest.fn();
 		render(
-			<NutritionCalendar
+			<MonthCalendar
 				selectedDate="2026-01-15"
 				today="2026-03-03"
 				onSelect={onSelect}
@@ -61,7 +61,7 @@ describe("NutritionCalendar", () => {
 		mockLocale = "nl";
 		const onSelect = jest.fn();
 		render(
-			<NutritionCalendar
+			<MonthCalendar
 				selectedDate="2026-01-15"
 				onSelect={onSelect}
 				locale="nl"

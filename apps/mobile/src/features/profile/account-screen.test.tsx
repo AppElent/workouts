@@ -1,18 +1,8 @@
-import {
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from "@testing-library/react-native";
+import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
-import { LocaleProvider } from "../../i18n";
-import { NativeAlertHost } from "../../test-support/native-alert-host";
-import { AppearanceProvider } from "../../theme";
-import { ConfirmProvider } from "../../ui/confirm-dialog";
-import { ToastProvider } from "../../ui/toast";
+import { renderScreen } from "../../test-support/render-screen";
 import { AccountDataMaintenanceProvider } from "../local-data/account-data-maintenance-provider";
 import { clearAccountSetDrafts } from "../strength-session/data/set-drafts";
 import { AccountScreen } from "./account-screen";
@@ -79,30 +69,12 @@ beforeEach(() => {
 		);
 });
 
-function renderAccount() {
-	return render(
-		<SafeAreaProvider
-			initialMetrics={{
-				frame: { x: 0, y: 0, width: 390, height: 844 },
-				insets: { top: 0, left: 0, right: 0, bottom: 0 },
-			}}
-		>
-			<LocaleProvider>
-				<AppearanceProvider>
-					<NativeAlertHost>
-						<ToastProvider>
-							<ConfirmProvider>
-								<AccountDataMaintenanceProvider>
-									<AccountScreen />
-								</AccountDataMaintenanceProvider>
-							</ConfirmProvider>
-						</ToastProvider>
-					</NativeAlertHost>
-				</AppearanceProvider>
-			</LocaleProvider>
-		</SafeAreaProvider>,
+const renderAccount = () =>
+	renderScreen(
+		<AccountDataMaintenanceProvider>
+			<AccountScreen />
+		</AccountDataMaintenanceProvider>,
 	);
-}
 
 async function confirmAction(label: string) {
 	fireEvent.press(screen.getByRole("button", { name: label }));

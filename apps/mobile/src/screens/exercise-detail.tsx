@@ -33,13 +33,13 @@ import {
 import { TrendChart } from "../ui/chart";
 import { Card, Chip, Eyebrow, StatBox } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
-import { MuscleIcon } from "../ui/muscle-icon";
 import { ScreenHeader } from "../ui/screen-header";
 import { Segmented } from "../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { primaryGroup } from "./exercise-library/model";
+import { MuscleIcon } from "./exercise-library/muscle-icon";
 
 type Tab = "Overview" | "Progress" | "History";
 

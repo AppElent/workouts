@@ -12,7 +12,7 @@
  * carries anything more elaborate.
  */
 import { useMutation } from "convex/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	Modal,
 	Platform,
@@ -41,7 +41,8 @@ import { useToast } from "../ui/toast";
 const TYPES = ["forTime", "amrap", "emom", "load"] as const;
 type WodType = (typeof TYPES)[number];
 
-type Movement = { name: string; reps: string };
+/** `key` is a client-only row id; it never reaches the server. */
+type Movement = { key: number; name: string; reps: string };
 
 /** Minutes in the form, seconds in the schema. */
 function minutesToSeconds(raw: string) {
@@ -81,12 +82,19 @@ export function WodEditor({
 	const [duration, setDuration] = useState(
 		wod?.durationSeconds ? String(wod.durationSeconds / 60) : "",
 	);
+	const nextMovementKey = useRef(0);
+	const blankMovement = (): Movement => ({
+		key: nextMovementKey.current++,
+		name: "",
+		reps: "",
+	});
 	const [movements, setMovements] = useState<Movement[]>(
 		() =>
 			wod?.movements.map((m) => ({
+				...blankMovement(),
 				name: m.name,
 				reps: m.reps !== undefined ? String(m.reps) : "",
-			})) ?? [{ name: "", reps: "" }],
+			})) ?? [blankMovement()],
 	);
 	const [busy, setBusy] = useState(false);
 
@@ -242,14 +250,7 @@ export function WodEditor({
 
 				<Eyebrow>{copy.editor.movements}</Eyebrow>
 				{movements.map((m, index) => (
-					<View
-						// Movement rows have no id and can hold identical text while
-						// being typed; position is the only thing that distinguishes
-						// them, and rows are only ever appended or removed at the end.
-						// biome-ignore lint/suspicious/noArrayIndexKey: positional rows, no stable id
-						key={index}
-						style={styles.movementRow}
-					>
+					<View key={m.key} style={styles.movementRow}>
 						<TextInput
 							value={m.name}
 							onChangeText={(v) => patchMovement(index, { name: v })}
@@ -283,9 +284,8 @@ export function WodEditor({
 					</View>
 				))}
 				<Pressable
-					onPress={() =>
-						setMovements((prev) => [...prev, { name: "", reps: "" }])
-					}
+					accessibilityRole="button"
+					onPress={() => setMovements((prev) => [...prev, blankMovement()])}
 					style={styles.addBtn}
 				>
 					<AppText style={styles.addBtnText}>{copy.editor.addMovement}</AppText>
@@ -302,6 +302,8 @@ export function WodEditor({
 				/>
 
 				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ disabled: !canSave }}
 					onPress={() => void submit()}
 					disabled={!canSave}
 					style={[styles.submit, !canSave && styles.dimmed]}

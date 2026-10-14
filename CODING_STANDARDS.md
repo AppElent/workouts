@@ -67,6 +67,6 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 | Localization | App-owned runtime in `src/lib/i18n/runtime` (mobile copies `core.ts`); messages stay app-owned. |
 | CLI | `cli/index.ts` wraps the app-owned `cli/runtime` and owns domain commands. |
 | Environments | `pnpm env:*` runs `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |
-| Worktrees | `scripts/setup-worktree.mjs` owns the lifecycle, not `scripts/workspace.mjs`. See [worktree setup](docs/runbooks/worktree-setup.md). |
+| Worktrees | `scripts/setup-worktree.mjs` owns the lifecycle, not `scripts/workspace.mjs`. See [worktree setup](docs/runbooks/worktree-setup.md). Exception to per-worktree isolated resources: worktrees share the dev Convex deployment `colorless-sturgeon-704` by default, so a worktree is usable without provisioning and seeding its own backend; runtime writes are visible to every worktree, so use throwaway accounts for destructive checks. `pnpm setup:worktree -- --convex=cloud` provisions an isolated deployment when asked. |
 | Test login | Non-production builds embed public test-account variables; a legacy exception pending an auth migration. |
 | Observability | Shared Sentry feature; [Sentry operations](docs/runbooks/sentry.md) owns surfaces, projects, and sampling. |

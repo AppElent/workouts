@@ -140,6 +140,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
 						<View style={styles.actions}>
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => settle(false)}
 								style={({ pressed }) => [
 									styles.button,
@@ -153,6 +154,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 							</Pressable>
 
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => settle(true)}
 								style={({ pressed }) => [
 									styles.button,

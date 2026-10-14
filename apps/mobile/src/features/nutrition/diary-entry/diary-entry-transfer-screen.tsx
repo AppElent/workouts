@@ -32,7 +32,7 @@ import { useReduceMotion } from "../../../feedback/reduce-motion";
 import { plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { convexErrorMessage } from "../../../ui/confirm-dialog";
-import { NutritionCalendar } from "../../../ui/nutrition-calendar";
+import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
@@ -299,7 +299,7 @@ export function DiaryEntryTransferScreen({
 					</View>
 
 					{showCalendar ? (
-						<NutritionCalendar
+						<MonthCalendar
 							selectedDate={destinationDate}
 							locale={locale}
 							onSelect={(next) => {

@@ -30,7 +30,6 @@ permits fixed-tint icon tiles for settings, an exception to the single lime acce
 | `FormTextField` | Labeled text entry with semantic error placement |
 | `InlineNumberFieldRow` | Compact numerical entry with unit and accessory |
 | `DisclosureRow` | Progressive disclosure or navigation to more detail |
-| `EditableValueRow` | A saved repeated value summarized in one row |
 | `AddRow` | Add an item inside the section it affects |
 | `StepperField` | Small bounded numeric adjustment with a 44-point hit area |
 | `TextAction` | Cancel, neutral, or destructive secondary action |

@@ -78,7 +78,6 @@ export const goalEditorEn = {
 	keepEditing: "Keep editing",
 	offlineTitle: "Your goals are not available offline yet.",
 	offlineBody: "Reconnect to load your saved goals. Your draft stays here.",
-	tryAgain: "Try again",
 };
 
 export const goalEditorNl: typeof goalEditorEn = {
@@ -164,5 +163,4 @@ export const goalEditorNl: typeof goalEditorEn = {
 	offlineTitle: "Je doelen zijn offline nog niet beschikbaar.",
 	offlineBody:
 		"Maak opnieuw verbinding om je opgeslagen doelen te laden. Je concept blijft bewaard.",
-	tryAgain: "Opnieuw proberen",
 };
