@@ -68,13 +68,24 @@ ensure_metro() {
 	cwd="$(metro_cwd)"
 	if [ -n "$cwd" ]; then
 		[ "$cwd" = "$MOBILE_DIR" ] || die "port $PORT is Metro for $cwd, not this checkout; set RUN_MOBILE_PORT"
-		log "reusing Metro on :$PORT"
+		log "reusing Metro on :$PORT (after dependency or config changes, or to toggle --debug-queries: driver.sh down, then up)"
 		return
 	fi
 	log "starting Metro on :$PORT (log: $STATE/metro.log)"
-	(cd "$MOBILE_DIR" && nohup pnpm exec expo start --dev-client --port "$PORT" >"$STATE/metro.log" 2>&1 & echo $! >"$STATE/metro.pid")
+	# Background only the command, never a `cd && …` list: a backgrounded list is
+	# a subshell that keeps the caller's stdout, so `up | tail` would never end.
+	(
+		cd "$MOBILE_DIR" || exit 1
+		nohup pnpm exec expo start --dev-client --port "$PORT" </dev/null >"$STATE/metro.log" 2>&1 &
+		echo $! >"$STATE/metro.pid"
+	)
 	for _ in $(seq 1 60); do
-		curl -sf "http://127.0.0.1:$PORT/status" | grep -q running && return
+		if curl -sf "http://127.0.0.1:$PORT/status" | grep -q running; then
+			# pnpm -> node puts the listener outside metro.pid's tree; record it
+			# so `down` stops exactly the Metro this driver started.
+			lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | head -1 >"$STATE/metro.listener"
+			return
+		fi
 		sleep 1
 	done
 	die "Metro did not come up; see $STATE/metro.log"
@@ -85,6 +96,7 @@ cmd_up() {
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			--lang) lang="$2"; shift 2 ;;
+			--debug-queries) export EXPO_PUBLIC_DEBUG_QUERIES=1; shift ;;
 			*) die "unknown flag $1" ;;
 		esac
 	done
@@ -127,11 +139,15 @@ cmd_up() {
 	# First deep link per simulator raises an "Open in Foundry?" system prompt.
 	ad alert accept 5000 --platform ios --udid "$u" >/dev/null || true
 	ad open "$BUNDLE_ID" --platform ios --udid "$u" >/dev/null
+	log "waiting for the iOS bundle (max 180s)"
+	local bundled=0
 	for _ in $(seq 1 90); do
-		[ -f "$STATE/metro.log" ] && [ "$(grep -c 'iOS Bundled' "$STATE/metro.log" || true)" -gt "${before:-0}" ] && break
-		grep -q 'Bundling failed' "$STATE/metro.log" 2>/dev/null && die "bundle failed; see $STATE/metro.log"
+		[ -f "$STATE/metro.log" ] && [ "$(grep -c 'iOS Bundled' "$STATE/metro.log" || true)" -gt "${before:-0}" ] && { bundled=1; break; }
+		grep -qE 'Bundling failed|PluginError|Unable to resolve' "$STATE/metro.log" 2>/dev/null &&
+			die "Metro error; see $STATE/metro.log (stale Metro? driver.sh down, then up)"
 		sleep 2
 	done
+	[ "$bundled" = 1 ] || die "no new iOS bundle after 180s; see $STATE/metro.log"
 	sleep 3
 	log "up: udid=$u port=$PORT lang=$lang"
 }
@@ -182,6 +198,13 @@ cmd_down() {
 		kill "$(cat "$STATE/metro.pid")" 2>/dev/null || true
 		rm -f "$STATE/metro.pid"
 	fi
+	# Only the listener this driver recorded; a reused Metro stays running.
+	if [ -f "$STATE/metro.listener" ]; then
+		# Guard against pid reuse: the recorded pid must still own the port.
+		lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | grep -qx "$(cat "$STATE/metro.listener")" &&
+			kill "$(cat "$STATE/metro.listener")" 2>/dev/null || true
+		rm -f "$STATE/metro.listener"
+	fi
 	u="$(udid)"
 	[ -z "$u" ] || xcrun simctl shutdown "$u" 2>/dev/null || true
 	log "down"
@@ -197,5 +220,5 @@ case "${1:-}" in
 	udid) require_udid; echo ;;
 	state) echo "$STATE" ;;
 	down) cmd_down ;;
-	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] [--debug-queries] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
 esac
