@@ -1,9 +1,10 @@
 import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
-import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import { useConvexConnectionState, useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { useStalledOffline } from "../data/stalled-offline";
 import { dateLocale, useI18n } from "../i18n";
 import { metrics, spacing, type Tokens, useThemedStyles } from "../theme";

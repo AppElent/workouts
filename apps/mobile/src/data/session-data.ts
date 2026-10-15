@@ -1,4 +1,5 @@
 import type { ExerciseId } from "@foundry/core/exercises";
+import { api, type Doc, type Id } from "../convex/api";
 /**
  * The reads every screen shares: what is running now, what ran recently, and
  * the exercise catalog. Grouped into one hook because Home, Train and Progress
@@ -8,8 +9,7 @@ import type { ExerciseId } from "@foundry/core/exercises";
  * Reads only. Mutations live with the screen that fires them, so that a screen
  * reading this file is provably incapable of writing.
  */
-import { useQuery } from "convex/react";
-import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { useExercises } from "./exercises";
 
 export function useShellData() {

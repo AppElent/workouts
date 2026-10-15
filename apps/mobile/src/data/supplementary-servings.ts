@@ -1,11 +1,8 @@
 import type { SupplementaryServing } from "@foundry/core/nutrition";
-import {
-	useConvexConnectionState,
-	useMutation,
-	usePaginatedQuery,
-} from "convex/react";
+import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../convex/api";
+import { usePaginatedQuery } from "../convex/query-cache";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,

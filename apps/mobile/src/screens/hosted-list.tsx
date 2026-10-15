@@ -17,7 +17,7 @@
  *    native equivalent — the app is Clerk-gated before this screen renders — so
  *    the phone joins as a signed-in participant only.
  */
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -28,6 +28,7 @@ import {
 	View,
 } from "react-native";
 import { api } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { useI18n } from "../i18n";
 import {

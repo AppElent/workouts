@@ -1,12 +1,7 @@
 import { useAuth } from "@clerk/expo";
 import { canonicalJson } from "@foundry/core";
 import { foodResults } from "@foundry/core/nutrition";
-import {
-	useConvex,
-	useConvexConnectionState,
-	useMutation,
-	usePaginatedQuery,
-} from "convex/react";
+import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -18,10 +13,7 @@ import {
 	useState,
 } from "react";
 import { api } from "../convex/api";
-import {
-	useCachedQueries as useQueries,
-	useCachedQuery as useQuery,
-} from "../convex/query-cache";
+import { usePaginatedQuery, useQueries, useQuery } from "../convex/query-cache";
 import {
 	type FoodPhotoUpload,
 	useFoodPhotoUpload,

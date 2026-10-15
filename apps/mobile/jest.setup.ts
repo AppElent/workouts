@@ -557,8 +557,10 @@ jest.mock("./src/convex/query-cache", () => {
 	return {
 		AppQueryCacheProvider: ({ children }: { children: React.ReactNode }) =>
 			children,
-		useCachedQuery: (...args: unknown[]) => convex.useQuery(...args),
-		useCachedQueries: (...args: unknown[]) => convex.useQueries(...args),
+		useQuery: (...args: unknown[]) => convex.useQuery(...args),
+		useQueries: (...args: unknown[]) => convex.useQueries(...args),
+		usePaginatedQuery: (...args: unknown[]) =>
+			convex.usePaginatedQuery(...args),
 	};
 });
 
