@@ -44,6 +44,13 @@ export const darkColors = {
 	mediaScrim: "rgba(10, 11, 9, 0.72)",
 	onMedia: "#ffffff",
 	surfaceTransparent: "rgba(20, 22, 19, 0)",
+	/** iOS settings icon tiles (DESIGN_SYSTEM.md exception); the system colours per scheme. */
+	tileIndigo: "#5e5ce6",
+	tileBlue: "#0a84ff",
+	tileOrange: "#ff9f0a",
+	tileGreen: "#30d158",
+	tilePurple: "#bf5af2",
+	tileTeal: "#64d2ff",
 } as const;
 
 export const colors = darkColors;
@@ -78,6 +85,12 @@ export const lightColors: Tokens = {
 	mediaScrim: "rgba(10, 11, 9, 0.72)",
 	onMedia: "#ffffff",
 	surfaceTransparent: "rgba(255, 255, 255, 0)",
+	tileIndigo: "#5856d6",
+	tileBlue: "#007aff",
+	tileOrange: "#ff9500",
+	tileGreen: "#34c759",
+	tilePurple: "#af52de",
+	tileTeal: "#5ac8fa",
 };
 
 export const colorsLight = lightColors;
