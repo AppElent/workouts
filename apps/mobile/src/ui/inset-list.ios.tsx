@@ -139,6 +139,7 @@ export function InsetList({
 					>
 						{headerContent ? (
 							<HStack
+								spacing={0}
 								modifiers={[
 									frame({ minHeight: 64 }),
 									listRowInsets({ top: 0, bottom: 0, leading: 0, trailing: 0 }),
@@ -328,6 +329,7 @@ export function InsetRow({
 			<ContextMenu.Trigger>{row}</ContextMenu.Trigger>
 			<ContextMenu.Preview>
 				<VStack
+					spacing={0}
 					modifiers={[frame({ width: width - 64 }), padding({ all: 16 })]}
 				>
 					{row}
