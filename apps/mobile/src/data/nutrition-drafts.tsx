@@ -1,11 +1,6 @@
 /** Saved Capture Drafts belong to Convex; editor input stays in its presentation. */
 import { canonicalJson } from "@foundry/core";
-import {
-	useConvexConnectionState,
-	useMutation,
-	usePaginatedQuery,
-	useQuery,
-} from "convex/react";
+import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -17,6 +12,7 @@ import {
 	useState,
 } from "react";
 import { api } from "../convex/api";
+import { usePaginatedQuery, useQuery } from "../convex/query-cache";
 import type {
 	CaptureDraft,
 	CaptureDraftInput,

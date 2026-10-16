@@ -1,11 +1,12 @@
 import { useUser } from "@clerk/expo";
-import { useConvex, useConvexConnectionState, useQuery } from "convex/react";
+import { useConvex, useConvexConnectionState } from "convex/react";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { api } from "../../convex/api";
+import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
 import { spacing, useTokens } from "../../theme";
 import { useConfirm } from "../../ui/confirm-dialog";

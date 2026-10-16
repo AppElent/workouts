@@ -1,7 +1,7 @@
-import { useQueries } from "convex/react";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
+import { useQueries } from "../../../convex/query-cache";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";

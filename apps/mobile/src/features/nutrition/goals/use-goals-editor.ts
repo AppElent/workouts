@@ -7,9 +7,10 @@ import {
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@foundry/core/nutrition";
-import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";
+import { useQuery } from "../../../convex/query-cache";
 import { type IsoDate, todayIsoDate } from "../../../data/calendar-day";
 import {
 	draftFromGoals,

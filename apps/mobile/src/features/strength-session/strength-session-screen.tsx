@@ -1,10 +1,11 @@
 import { convertLoad } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { api, type Id } from "../../convex/api";
+import { useQuery } from "../../convex/query-cache";
 import { useExercises } from "../../data/exercises";
 import { useI18n } from "../../i18n";
 import { AddExercisePicker } from "../../screens/add-exercise-picker";

@@ -36,6 +36,7 @@ $D ss /tmp/shot.png        # simulator screenshot -> prints path
 $D reload                  # Metro reload (JS change without relaunch)
 $D logs 40                 # Metro log tail (console.log / bundling errors)
 $D up --lang nl            # reboot sim in Dutch (en is default); sign-in survives
+$D up --debug-queries     # log Convex query watchers: $D logs 200 | grep convex-query
 $D down                    # close session, stop Metro we started, shut down sim
 ```
 
@@ -101,6 +102,9 @@ port 8081, which collides with other checkouts. Avoid it for agent work.
   (`xcrun simctl delete "$($D udid)"`) so `up` reinstalls the newest `Foundry.app`.
 
 ## Troubleshooting
+
+- `up` reuses a running Metro for this checkout. After dependency or config changes, or to
+  toggle `--debug-queries`, run `$D down` first; `up` fails fast on Metro config errors.
 
 - `port 8090 is Metro for <other path>` → `RUN_MOBILE_PORT=8091 $D up`.
 - `Unable to boot device in current state: Booted` on a language change → fixed in the

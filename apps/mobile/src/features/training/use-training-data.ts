@@ -3,7 +3,7 @@ import { useConvexConnectionState } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../convex/api";
-import { useCachedQueries } from "../../convex/query-cache";
+import { useQueries } from "../../convex/query-cache";
 
 export type Routine = FunctionReturnType<typeof api.routines.list>[number];
 type Active = FunctionReturnType<typeof api.workoutSessions.getActive>;
@@ -24,7 +24,7 @@ export function useTrainingData() {
 		}),
 		[queryScope],
 	);
-	const results = useCachedQueries(queries);
+	const results = useQueries(queries);
 	const routines = results[`routines${queryScope}`] as
 		| Routine[]
 		| Error

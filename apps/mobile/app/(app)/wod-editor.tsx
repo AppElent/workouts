@@ -1,7 +1,7 @@
-import { useQuery } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { api, type Id } from "../../src/convex/api";
+import { useQuery } from "../../src/convex/query-cache";
 import { useI18n } from "../../src/i18n";
 import { WodEditor } from "../../src/screens/wod-editor";
 import { type Tokens, useThemedStyles } from "../../src/theme";

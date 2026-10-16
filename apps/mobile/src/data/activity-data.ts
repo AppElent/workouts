@@ -1,7 +1,7 @@
 import type { ActivitySport, ActivitySummary } from "@foundry/core";
-import { useQueries } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../convex/api";
+import { useQueries } from "../convex/query-cache";
 
 type Page = {
 	items: ActivitySummary[];

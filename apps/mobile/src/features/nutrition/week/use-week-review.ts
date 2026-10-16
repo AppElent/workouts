@@ -1,6 +1,7 @@
-import { useConvexConnectionState, useQuery } from "convex/react";
+import { useConvexConnectionState } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/api";
+import { useQuery } from "../../../convex/query-cache";
 import { type IsoDate, todayIsoDate } from "../../../data/calendar-day";
 
 import {

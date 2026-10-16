@@ -35,5 +35,30 @@ export function instrumentConvexClient(client: ConvexReactClient) {
 			},
 		);
 	};
+	if (__DEV__ && process.env.EXPO_PUBLIC_DEBUG_QUERIES === "1")
+		logSubscriptions(client);
 	return client;
+}
+
+/**
+ * Development aid (`driver.sh up --debug-queries`): log every watcher start and
+ * stop as `[convex-query] +/- name`. Identical watchers share one wire
+ * subscription, so a query stays subscribed while any of its watchers is open.
+ */
+function logSubscriptions(client: ConvexReactClient) {
+	const watch = client.watchQuery.bind(client);
+	client.watchQuery = (reference, ...args) => {
+		const watcher = watch(reference, ...args);
+		const name = getFunctionName(reference);
+		const onUpdate = watcher.onUpdate.bind(watcher);
+		watcher.onUpdate = (callback) => {
+			console.log(`[convex-query] + ${name}`);
+			const stop = onUpdate(callback);
+			return () => {
+				console.log(`[convex-query] - ${name}`);
+				stop();
+			};
+		};
+		return watcher;
+	};
 }

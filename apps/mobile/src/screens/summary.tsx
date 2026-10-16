@@ -15,11 +15,12 @@
  */
 import { formatScore } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import {
 	formatDuration,
 	formatSessionDate,

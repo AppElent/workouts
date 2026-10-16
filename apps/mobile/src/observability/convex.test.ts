@@ -50,3 +50,13 @@ it.each(["mutation", "action"] as const)(
 		expect(Sentry.captureException).toHaveBeenCalledTimes(1);
 	},
 );
+
+it("leaves query watchers untouched unless query debugging is enabled", () => {
+	const watchQuery = jest.fn();
+	const client = instrumentConvexClient({
+		mutation: jest.fn(),
+		action: jest.fn(),
+		watchQuery,
+	} as unknown as ConvexReactClient);
+	expect(client.watchQuery).toBe(watchQuery);
+});

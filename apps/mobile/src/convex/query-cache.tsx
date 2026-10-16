@@ -1,21 +1,25 @@
+/**
+ * The app query module (`retention` flavor of the Convex query caching
+ * standard). Screens import query hooks from here, never from `convex/react`.
+ */
+
+import { usePaginatedQuery } from "convex/react";
 import {
 	ConvexQueryCacheProvider,
-	useQueries as useHelperQueries,
-	useQuery as useHelperQuery,
+	useQueries,
+	useQuery,
 } from "convex-helpers/react/cache";
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { AppState } from "react-native";
-import { useScreenQueryActive } from "../data/screen-query-active";
 
-const CacheActiveContext = createContext(false);
+// Paginated queries pass through: the helper's page ids change on every
+// mount, so retaining them never produces a hit.
+export { usePaginatedQuery, useQueries, useQuery };
 
-/** Retain a small number of live queries for quick returns within one account. */
+const EXPIRATION_MS = 5 * 60_000;
+const MAX_IDLE_ENTRIES = 20;
+
+/** Retain recently left subscriptions within one account; release idle ones in background. */
 export function AppQueryCacheProvider({
 	scope,
 	children,
@@ -33,32 +37,12 @@ export function AppQueryCacheProvider({
 		return () => listener.remove();
 	}, []);
 	return (
-		<CacheActiveContext.Provider value={foreground}>
-			<ConvexQueryCacheProvider
-				key={scope}
-				expiration={foreground ? 30_000 : 0}
-				maxIdleEntries={foreground ? 20 : 0}
-			>
-				{children}
-			</ConvexQueryCacheProvider>
-		</CacheActiveContext.Provider>
+		<ConvexQueryCacheProvider
+			key={scope}
+			expiration={foreground ? EXPIRATION_MS : 0}
+			maxIdleEntries={foreground ? MAX_IDLE_ENTRIES : 0}
+		>
+			{children}
+		</ConvexQueryCacheProvider>
 	);
 }
-
-function useCacheActive() {
-	const foreground = useContext(CacheActiveContext);
-	const screenActive = useScreenQueryActive();
-	return foreground && screenActive;
-}
-
-// Keep the helper's query/argument inference at the app boundary. Searches and
-// large histories opt in separately; importing these hooks selects retention.
-export const useCachedQuery: typeof useHelperQuery = (query, ...args) => {
-	const active = useCacheActive();
-	return useHelperQuery(query, ...(active ? args : ["skip"]));
-};
-
-export const useCachedQueries: typeof useHelperQueries = (queries) => {
-	const active = useCacheActive();
-	return useHelperQueries(active ? queries : {});
-};
