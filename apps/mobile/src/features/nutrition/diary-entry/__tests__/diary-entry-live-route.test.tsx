@@ -13,6 +13,7 @@ import {
 	shiftIsoDate,
 	todayIsoDate,
 } from "../../../../data/calendar-day";
+import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseQuery = jest.mocked(useQuery);
@@ -62,8 +63,8 @@ function mockMutations(fn: string, impl: jest.Mock) {
 }
 
 async function openEditor() {
-	renderApp();
-	fireEvent.press(await screen.findByLabelText("Edit entry: Apple"));
+	await renderApp();
+	await fireEvent.press(await screen.findByLabelText("Edit entry: Apple"));
 	await screen.findByLabelText("Quantity");
 }
 
@@ -89,8 +90,8 @@ describe("editing a diary entry", () => {
 		mockMutations("update", update);
 		await openEditor();
 
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
-		fireEvent.press(screen.getByLabelText("Save changes"));
+		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0]).toMatchObject({
@@ -121,10 +122,10 @@ describe("editing a diary entry", () => {
 		mockMutations("update", update);
 		await openEditor();
 
-		fireEvent.press(screen.getByLabelText("Choose serving"));
-		fireEvent.press(await screen.findByText("Large portion (450 g)"));
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
-		fireEvent.press(screen.getByLabelText("Save changes"));
+		await fireEvent.press(screen.getByLabelText("Choose serving"));
+		await fireEvent.press(await screen.findByText("Large portion (450 g)"));
+		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0]).toMatchObject({
@@ -170,9 +171,9 @@ describe("editing a diary entry", () => {
 		mockMutations("update", update);
 		await openEditor();
 
-		fireEvent.press(screen.getByLabelText("Meal"));
-		fireEvent.press(await screen.findByText("Dinner"));
-		fireEvent.press(screen.getByLabelText("Save changes"));
+		await fireEvent.press(screen.getByLabelText("Meal"));
+		await fireEvent.press(await screen.findByText("Dinner"));
+		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0]).toMatchObject({ meal: "dinner" });
@@ -183,9 +184,9 @@ describe("editing a diary entry", () => {
 		mockMutations("update", update);
 		await openEditor();
 
-		fireEvent.press(screen.getByLabelText("Date"));
-		fireEvent.press(await screen.findByText("Tomorrow"));
-		fireEvent.press(screen.getByLabelText("Save changes"));
+		await fireEvent.press(screen.getByLabelText("Date"));
+		await fireEvent.press(await screen.findByText("Tomorrow"));
+		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0]).toMatchObject({
@@ -200,10 +201,10 @@ describe("editing a diary entry", () => {
 		mockMutations("applyOperation", update);
 		await openEditor();
 
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		const button = screen.getByLabelText("Save changes");
-		fireEvent.press(button);
-		fireEvent.press(button);
+		await fireEvent.press(button);
+		await fireEvent.press(button);
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		await waitFor(() =>
@@ -218,7 +219,9 @@ describe("editing a diary entry", () => {
 		mockMutations("remove", remove);
 		await openEditor();
 
-		fireEvent.press(screen.getByLabelText("Delete entry"));
+		const { settled: cancelling } = await pressPending(
+			screen.getByLabelText("Delete entry"),
+		);
 
 		expect(await screen.findByText("Delete this entry?")).toBeTruthy();
 		expect(
@@ -228,18 +231,22 @@ describe("editing a diary entry", () => {
 		).toBeTruthy();
 
 		// Cancelling keeps the entry: no mutation, dialog gone.
-		fireEvent.press(screen.getByText("Keep entry"));
+		await fireEvent.press(screen.getByText("Keep entry"));
+		await cancelling;
 		expect(screen.queryByText("Delete this entry?")).toBeNull();
 		expect(remove).not.toHaveBeenCalled();
 		await waitFor(() =>
 			expect(screen.getByLabelText("Delete entry")).toBeEnabled(),
 		);
 
-		fireEvent.press(screen.getByLabelText("Delete entry"));
+		const { settled: deleting } = await pressPending(
+			screen.getByLabelText("Delete entry"),
+		);
 		await screen.findByText("Delete this entry?");
 		// The dialog's own confirm button, appended after the screen in the tree.
 		const confirmButtons = screen.getAllByText("Delete entry");
-		fireEvent.press(confirmButtons[confirmButtons.length - 1]);
+		await fireEvent.press(confirmButtons[confirmButtons.length - 1]);
+		await deleting;
 
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
 		expect(remove.mock.calls[0][0]).toMatchObject({ id: "entry-1" });
@@ -251,10 +258,13 @@ describe("editing a diary entry", () => {
 		mockMutations("applyOperation", remove);
 		await openEditor();
 
-		fireEvent.press(screen.getByLabelText("Delete entry"));
+		const { settled: deleting } = await pressPending(
+			screen.getByLabelText("Delete entry"),
+		);
 		await screen.findByText("Delete this entry?");
 		const confirmButtons = screen.getAllByText("Delete entry");
-		fireEvent.press(confirmButtons[confirmButtons.length - 1]);
+		await fireEvent.press(confirmButtons[confirmButtons.length - 1]);
+		await deleting;
 
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
 		await waitFor(() =>

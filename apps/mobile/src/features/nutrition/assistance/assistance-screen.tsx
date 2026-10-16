@@ -1,8 +1,8 @@
 import { nevoAttribution, roundForDisplay } from "@foundry/core/nutrition";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useRouter } from "expo-router";
-import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import {

@@ -9,15 +9,15 @@ import { Segmented } from "./segmented";
 import { SkeletonCard, SkeletonList } from "./skeleton";
 
 /** These primitives read their fallback labels from the message catalog. */
-const render = (ui: ReactElement) =>
-	renderThemed(ui, { wrapper: LocaleProvider });
+const render = async (ui: ReactElement) =>
+	await renderThemed(ui, { wrapper: LocaleProvider });
 
 // jest-expo resolves to the `.ios.tsx` files, against the `@expo/ui` mock.
 
 describe("Segmented → system Picker", () => {
-	it("marks the selected option and reports a change by value", () => {
+	it("marks the selected option and reports a change by value", async () => {
 		const onChange = jest.fn();
-		render(
+		await render(
 			<Segmented
 				value="nl"
 				onChange={onChange}
@@ -30,14 +30,14 @@ describe("Segmented → system Picker", () => {
 		expect(screen.getByLabelText("Dutch").props.accessibilityState).toEqual({
 			selected: true,
 		});
-		fireEvent.press(screen.getByLabelText("English"));
+		await fireEvent.press(screen.getByLabelText("English"));
 		expect(onChange).toHaveBeenCalledWith("en");
 	});
 });
 
 describe("EmptyState", () => {
-	it("uses the system ContentUnavailableView for the search appearance", () => {
-		render(
+	it("uses the system ContentUnavailableView for the search appearance", async () => {
+		await render(
 			<EmptyState
 				appearance="search"
 				title="Nothing matches"
@@ -49,29 +49,29 @@ describe("EmptyState", () => {
 		expect(screen.getByText("Try clearing a filter or two.")).toBeTruthy();
 	});
 
-	it("keeps the inline appearance in React Native, with its action", () => {
+	it("keeps the inline appearance in React Native, with its action", async () => {
 		const add = jest.fn();
-		render(
+		await render(
 			<EmptyState
 				body="A routine is a template."
 				action={{ label: "New routine", onPress: add }}
 			/>,
 		);
 		expect(screen.queryByTestId("swiftui-content-unavailable")).toBeNull();
-		fireEvent.press(screen.getByText("New routine"));
+		await fireEvent.press(screen.getByText("New routine"));
 		expect(add).toHaveBeenCalled();
 	});
 });
 
 describe("Charts → Swift Charts", () => {
-	it("says so under two points instead of drawing a trend", () => {
-		render(<TrendChart title="1RM" points={[{ value: 100 }]} />);
+	it("says so under two points instead of drawing a trend", async () => {
+		await render(<TrendChart title="1RM" points={[{ value: 100 }]} />);
 		expect(screen.getByText("Not enough data yet.")).toBeTruthy();
 		expect(screen.queryByTestId("swiftui-chart-line")).toBeNull();
 	});
 
-	it("draws a line for a trend and bars for buckets, keyed by label", () => {
-		render(
+	it("draws a line for a trend and bars for buckets, keyed by label", async () => {
+		await render(
 			<>
 				<TrendChart
 					title="1RM"
@@ -94,8 +94,8 @@ describe("Charts → Swift Charts", () => {
 });
 
 describe("ProgressRing → Gauge", () => {
-	it("is a bounded, spoken progress indicator with the count in the hole", () => {
-		render(
+	it("is a bounded, spoken progress indicator with the count in the hole", async () => {
+		await render(
 			<ProgressRing
 				value={3}
 				max={5}
@@ -109,15 +109,15 @@ describe("ProgressRing → Gauge", () => {
 		expect(screen.getByText("this wk")).toBeTruthy();
 	});
 
-	it("never overflows the bound", () => {
-		render(<ProgressRing value={9} max={5} accessibilityLabel="over" />);
+	it("never overflows the bound", async () => {
+		await render(<ProgressRing value={9} max={5} accessibilityLabel="over" />);
 		expect(screen.getByLabelText("over").props.accessibilityValue.now).toBe(5);
 	});
 });
 
 describe("Skeletons", () => {
-	it("render the requested shapes without any text", () => {
-		render(
+	it("render the requested shapes without any text", async () => {
+		await render(
 			<>
 				<SkeletonList rows={4} />
 				<SkeletonCard lines={3} />

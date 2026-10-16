@@ -1,6 +1,11 @@
 import { SymbolView } from "expo-symbols";
 import type { Ref } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import {
+	StyleSheet,
+	TextInput,
+	type TextInputInstance,
+	View,
+} from "react-native";
 import {
 	radius,
 	spacing,
@@ -29,7 +34,7 @@ export function LogFoodFindControls({
 	onScan,
 	onDescribe,
 }: {
-	inputRef?: Ref<TextInput>;
+	inputRef?: Ref<TextInputInstance>;
 	query: string;
 	placeholder: string;
 	scanLabel: string;

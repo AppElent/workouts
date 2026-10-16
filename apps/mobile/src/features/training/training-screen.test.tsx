@@ -16,12 +16,12 @@ const routine = { _id: "routine-1", name: "Push day", exercises: [] };
 
 const routines = [routine];
 
-function pressLastDelete() {
+async function pressLastDelete() {
 	const button = screen
 		.getAllByRole("button", { name: "Delete routine" })
 		.at(-1);
 	if (!button) throw new Error("Delete action missing");
-	fireEvent.press(button);
+	await fireEvent.press(button);
 }
 it("gives the routine its own play target and keeps the row after failed deletion", async () => {
 	jest
@@ -43,14 +43,19 @@ it("gives the routine its own play target and keeps the row after failed deletio
 				{ withOptimisticUpdate: jest.fn() },
 			),
 		);
-	renderApp("/train", { train: TrainRoute, "routine-editor": RoutineRoute });
+	await renderApp("/train", {
+		train: TrainRoute,
+		"routine-editor": RoutineRoute,
+	});
 	expect(
 		await screen.findByRole("button", { name: "Start Push day" }),
 	).toBeTruthy();
-	fireEvent.press(screen.getByRole("button", { name: "Actions for Push day" }));
-	pressLastDelete();
+	await fireEvent.press(
+		screen.getByRole("button", { name: "Actions for Push day" }),
+	);
+	await pressLastDelete();
 	expect(await screen.findByText("Delete Push day?")).toBeTruthy();
-	pressLastDelete();
+	await pressLastDelete();
 	expect(await screen.findByText("Try again")).toBeTruthy();
 	expect(screen.getByText("Push day")).toBeTruthy();
 });

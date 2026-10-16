@@ -9,7 +9,7 @@ import { renderThemed } from "../test-support/render-themed";
 import { ToastProvider } from "../ui/toast";
 import { AddExerciseForm } from "./add-exercise-form";
 
-function setup(
+async function setup(
 	save: jest.Mock,
 	props: Partial<ComponentProps<typeof AddExerciseForm>> = {},
 	update = save,
@@ -23,7 +23,7 @@ function setup(
 					: save) as unknown as ReturnType<typeof useMutation>,
 		);
 	const close = jest.fn();
-	renderThemed(
+	await renderThemed(
 		<SafeAreaProvider
 			initialMetrics={{
 				frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -41,21 +41,27 @@ function setup(
 }
 it("blocks invalid weight steps and preserves the draft after a failed save", async () => {
 	const save = jest.fn().mockRejectedValue(new Error("Save unavailable"));
-	const close = setup(save);
-	fireEvent.changeText(screen.getByLabelText("Name"), " My press ");
-	fireEvent.changeText(screen.getByLabelText("Weight step (optional)"), "-1");
-	fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	const close = await setup(save);
+	await fireEvent.changeText(screen.getByLabelText("Name"), " My press ");
+	await fireEvent.changeText(
+		screen.getByLabelText("Weight step (optional)"),
+		"-1",
+	);
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
 	expect(save).not.toHaveBeenCalled();
 	expect(screen.getByText("Enter a number greater than zero.")).toBeTruthy();
-	fireEvent.changeText(screen.getByLabelText("Weight step (optional)"), "2,5");
-	fireEvent.press(screen.getByRole("button", { name: "Muscle groups" }));
-	fireEvent.press(screen.getByRole("checkbox", { name: "Chest" }));
-	fireEvent.press(screen.getByRole("checkbox", { name: "Arms" }));
-	fireEvent.changeText(
+	await fireEvent.changeText(
+		screen.getByLabelText("Weight step (optional)"),
+		"2,5",
+	);
+	await fireEvent.press(screen.getByRole("button", { name: "Muscle groups" }));
+	await fireEvent.press(screen.getByRole("checkbox", { name: "Chest" }));
+	await fireEvent.press(screen.getByRole("checkbox", { name: "Arms" }));
+	await fireEvent.changeText(
 		screen.getByLabelText("Additional muscles (optional)"),
 		"triceps, chest",
 	);
-	fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
 	await waitFor(() =>
 		expect(save).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -77,11 +83,11 @@ it("prevents duplicate submission and cancellation until save resolves", async (
 				resolve = r;
 			}),
 	);
-	const close = setup(save);
-	fireEvent.changeText(screen.getByLabelText("Name"), "Test press");
-	fireEvent.press(screen.getByRole("button", { name: "Save" }));
-	fireEvent.press(screen.getByRole("button", { name: "Saving…" }));
-	fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
+	const close = await setup(save);
+	await fireEvent.changeText(screen.getByLabelText("Name"), "Test press");
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Saving…" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
 	expect(save).toHaveBeenCalledTimes(1);
 	expect(close).not.toHaveBeenCalled();
 	await act(async () => resolve());
@@ -100,12 +106,12 @@ it("prefills and updates a personal exercise without creating another record", a
 	};
 	const create = jest.fn();
 	const update = jest.fn().mockResolvedValue(null);
-	const close = setup(create, { mode: "edit", exercise: source }, update);
+	const close = await setup(create, { mode: "edit", exercise: source }, update);
 	expect(screen.getByLabelText("Name").props.value).toBe("My press");
 	expect(screen.getByLabelText("Notes (optional)").props.value).toBe("Pause");
-	fireEvent.changeText(screen.getByLabelText("Name"), "My edited press");
-	fireEvent.changeText(screen.getByLabelText("Notes (optional)"), "");
-	fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	await fireEvent.changeText(screen.getByLabelText("Name"), "My edited press");
+	await fireEvent.changeText(screen.getByLabelText("Notes (optional)"), "");
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
 	await waitFor(() => expect(close).toHaveBeenCalledWith("My edited press"));
 	expect(update).toHaveBeenCalledWith(
 		expect.objectContaining({
@@ -126,12 +132,12 @@ it("clones exact muscle names and instructions only after Save", async () => {
 	};
 	const create = jest.fn().mockResolvedValue("new-id");
 	const update = jest.fn();
-	setup(create, { mode: "clone", exercise: source }, update);
+	await setup(create, { mode: "clone", exercise: source }, update);
 	expect(screen.getByLabelText("Name").props.value).toBe(
 		`${source.name} (copy)`,
 	);
 	expect(create).not.toHaveBeenCalled();
-	fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
 	await waitFor(() =>
 		expect(create).toHaveBeenCalledWith(
 			expect.objectContaining({

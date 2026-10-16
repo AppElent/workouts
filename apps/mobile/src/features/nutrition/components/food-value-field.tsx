@@ -1,5 +1,5 @@
 import { type Ref, useImperativeHandle, useRef, useState } from "react";
-import { Pressable, TextInput } from "react-native";
+import { Pressable, TextInput, type TextInputInstance } from "react-native";
 import { type, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
 
@@ -26,7 +26,7 @@ export function FoodValueField({
 	/** Shown after the value, such as "g" or "kcal"; empty keeps its space. */
 	unit?: string;
 	accessibilityLabel: string;
-	inputRef?: Ref<TextInput | null>;
+	inputRef?: Ref<TextInputInstance | null>;
 	/** Called on every keystroke; "" means "back to the value from before". */
 	onChange: (text: string) => void;
 	onFocus?: () => void;
@@ -38,8 +38,8 @@ export function FoodValueField({
 }) {
 	const colors = useTokens();
 	const [buffer, setBuffer] = useState<string | null>(null);
-	const input = useRef<TextInput>(null);
-	useImperativeHandle(inputRef, () => input.current as TextInput);
+	const input = useRef<TextInputInstance>(null);
+	useImperativeHandle(inputRef, () => input.current as TextInputInstance);
 	const editing = buffer !== null;
 	const field = (
 		<TextInput

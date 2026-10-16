@@ -8,8 +8,7 @@ import {
 	type PersonalFoodDraft,
 } from "@foundry/core/nutrition";
 import { useForm, useStore } from "@tanstack/react-form";
-import { router, Stack, useNavigation } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { router, Stack, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable } from "react-native";
 import { z } from "zod";

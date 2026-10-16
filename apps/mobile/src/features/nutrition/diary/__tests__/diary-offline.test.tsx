@@ -94,7 +94,7 @@ describe("the Nutrition day with no connection", () => {
 	it("says the diary has not arrived instead of waiting on a skeleton forever", async () => {
 		goOffline();
 		noCachedDay();
-		renderApp();
+		await renderApp();
 		await passTheGracePeriod();
 
 		expect(
@@ -107,7 +107,7 @@ describe("the Nutrition day with no connection", () => {
 	it("does not claim the day is empty when it simply does not know", async () => {
 		goOffline();
 		noCachedDay();
-		renderApp();
+		await renderApp();
 		await passTheGracePeriod();
 
 		expect(screen.getAllByText("Not available offline")).toHaveLength(4);
@@ -118,14 +118,14 @@ describe("the Nutrition day with no connection", () => {
 	it("still lets every meal be logged into, because logging offline works", async () => {
 		goOffline();
 		noCachedDay();
-		const app = renderApp();
+		const app = await renderApp();
 		await passTheGracePeriod();
 
 		for (const meal of ["Breakfast", "Lunch", "Dinner", "Snacks"]) {
 			expect(screen.getByLabelText(`Add food to ${meal}`)).toBeTruthy();
 		}
 
-		fireEvent.press(screen.getByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Add food to Lunch"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		// The shipped library ships in the bundle, so search works with no socket.
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
@@ -134,7 +134,7 @@ describe("the Nutrition day with no connection", () => {
 	it("shows a day it already had, rather than hiding it behind the offline notice", async () => {
 		goOffline();
 		cachedDay();
-		renderApp();
+		await renderApp();
 		await passTheGracePeriod();
 
 		expect(screen.getByText("Oatmeal")).toBeTruthy();
@@ -145,7 +145,7 @@ describe("the Nutrition day with no connection", () => {
 
 	it("keeps waiting normally when the socket is up and the day is merely slow", async () => {
 		noCachedDay();
-		renderApp();
+		await renderApp();
 		await passTheGracePeriod();
 
 		expect(screen.getByLabelText("Loading the day")).toBeTruthy();
@@ -159,7 +159,7 @@ describe("the Nutrition day with no connection", () => {
 		// milliseconds. Saying so would be a worse lie than the skeleton.
 		goOffline();
 		noCachedDay();
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByLabelText("Loading the day")).toBeTruthy();
 		expect(
@@ -170,13 +170,13 @@ describe("the Nutrition day with no connection", () => {
 	it("goes back to waiting if the socket comes up before the notice does", async () => {
 		goOffline();
 		noCachedDay();
-		renderApp();
+		await renderApp();
 		await screen.findByLabelText("Loading the day");
 
 		setConnected(true);
 		// Re-render with the connection restored, then let the old grace period
 		// have elapsed: the notice must never arrive.
-		fireEvent.press(
+		await fireEvent.press(
 			screen.getAllByLabelText(
 				diaryDateLabel(diaryShift(diaryToday(), 1), "en"),
 			)[0],

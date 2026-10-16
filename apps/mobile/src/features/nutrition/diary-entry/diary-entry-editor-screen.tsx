@@ -1,5 +1,4 @@
-import { router, useNavigation } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { router, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, View } from "react-native";
 import { useI18n } from "../../../i18n";

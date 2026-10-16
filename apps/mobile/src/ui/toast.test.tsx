@@ -18,9 +18,9 @@ beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
 describe("a toast with an action", () => {
-	it("offers the action and dismisses itself once it is used", () => {
+	it("offers the action and dismisses itself once it is used", async () => {
 		const undo = jest.fn();
-		render(
+		await render(
 			<SafeAreaProvider
 				initialMetrics={{
 					frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -33,15 +33,17 @@ describe("a toast with an action", () => {
 			</SafeAreaProvider>,
 		);
 		expect(screen.getByText("Appel toegevoegd aan Lunch")).toBeTruthy();
-		act(() => jest.advanceTimersByTime(700));
-		fireEvent.press(screen.getByRole("button", { name: "Ongedaan maken" }));
+		await act(() => jest.advanceTimersByTime(700));
+		await fireEvent.press(
+			screen.getByRole("button", { name: "Ongedaan maken" }),
+		);
 		expect(undo).toHaveBeenCalledTimes(1);
 		expect(screen.queryByText("Appel toegevoegd aan Lunch")).toBeNull();
 	});
 
-	it("ignores a tap that lands as it appears, aimed at the row beneath", () => {
+	it("ignores a tap that lands as it appears, aimed at the row beneath", async () => {
 		const undo = jest.fn();
-		render(
+		await render(
 			<SafeAreaProvider
 				initialMetrics={{
 					frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -53,14 +55,16 @@ describe("a toast with an action", () => {
 				</ToastProvider>
 			</SafeAreaProvider>,
 		);
-		act(() => jest.advanceTimersByTime(300));
-		fireEvent.press(screen.getByRole("button", { name: "Ongedaan maken" }));
+		await act(() => jest.advanceTimersByTime(300));
+		await fireEvent.press(
+			screen.getByRole("button", { name: "Ongedaan maken" }),
+		);
 		expect(undo).not.toHaveBeenCalled();
 		expect(screen.getByText("Appel toegevoegd aan Lunch")).toBeTruthy();
 	});
 
-	it("stays long enough to reach the action", () => {
-		render(
+	it("stays long enough to reach the action", async () => {
+		await render(
 			<SafeAreaProvider
 				initialMetrics={{
 					frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -72,9 +76,9 @@ describe("a toast with an action", () => {
 				</ToastProvider>
 			</SafeAreaProvider>,
 		);
-		act(() => jest.advanceTimersByTime(4500));
+		await act(() => jest.advanceTimersByTime(4500));
 		expect(screen.getByText("Appel toegevoegd aan Lunch")).toBeTruthy();
-		act(() => jest.advanceTimersByTime(2000));
+		await act(() => jest.advanceTimersByTime(2000));
 		expect(screen.queryByText("Appel toegevoegd aan Lunch")).toBeNull();
 	});
 });

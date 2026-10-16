@@ -27,15 +27,9 @@ supportedArchitectures:
 # Clerk's config plugin imports this at runtime but only declares it as a
 # devDependency. EAS loads the plugin directly, without pnpm's NODE_PATH shim.
 packageExtensions:
-  # Worklets' Babel plugin imports these directly but omits them from its manifest.
-  # Declare them explicitly so fresh pnpm installs do not depend on hoisting.
-  'react-native-worklets@0.10.1':
-    dependencies:
-      '@babel/generator': '7.29.7'
-      '@babel/traverse': '7.29.7'
   '@clerk/expo@4.10.1':
     dependencies:
-      '@expo/config-plugins': '~57.0.9'
+      '@expo/config-plugins': '~58.0.8'
 
 # Supply-chain hardening: only these packages may run install/build lifecycle
 # scripts. Everything else is install-script-sandboxed (default-deny), which
@@ -105,6 +99,10 @@ allowBuilds:
   dtrace-provider: false # EAS CLI's optional native tracing; JS fallback is sufficient
   protobufjs: false # postinstall only checks dependency version notation
   node-datachannel: true # Expo Device Hub's Android streaming needs the native binary
+  # Jest 30 (apps/mobile) pulls these in; their optional platform packages
+  # supply prebuilt binaries, so no install-time compile is needed.
+  '@parcel/watcher': false
+  unrs-resolver: false
 
 patchedDependencies:
   convex-helpers@0.1.120: patches/convex-helpers@0.1.120.patch

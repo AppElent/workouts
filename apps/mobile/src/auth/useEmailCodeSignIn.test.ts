@@ -22,7 +22,7 @@ afterEach(() => jest.resetAllMocks());
 
 it("sends a code to the trimmed address", async () => {
 	mockSendCode.mockResolvedValue({ error: null });
-	const { result } = renderHook(() => useEmailCodeSignIn());
+	const { result } = await renderHook(() => useEmailCodeSignIn());
 	let sent = false;
 	await act(async () => {
 		sent = await result.current.send("  a@b.com ");
@@ -35,7 +35,7 @@ it("reports a failed send and stays on the screen", async () => {
 	mockSendCode.mockResolvedValue({
 		error: { code: "form_identifier_not_found" },
 	});
-	const { result } = renderHook(() => useEmailCodeSignIn());
+	const { result } = await renderHook(() => useEmailCodeSignIn());
 	let sent = true;
 	await act(async () => {
 		sent = await result.current.send("nobody@b.com");
@@ -47,7 +47,7 @@ it("reports a failed send and stays on the screen", async () => {
 it("verifies the code and finalizes the session", async () => {
 	mockVerifyCode.mockResolvedValue({ error: null });
 	mockFinalize.mockResolvedValue({ error: null });
-	const { result } = renderHook(() => useEmailCodeSignIn());
+	const { result } = await renderHook(() => useEmailCodeSignIn());
 	await act(() => result.current.verify("123456"));
 	expect(mockVerifyCode).toHaveBeenCalledWith({ code: "123456" });
 	expect(mockFinalize).toHaveBeenCalled();
@@ -55,7 +55,7 @@ it("verifies the code and finalizes the session", async () => {
 
 it("does not finalize when the code is wrong", async () => {
 	mockVerifyCode.mockResolvedValue({ error: { code: "form_code_incorrect" } });
-	const { result } = renderHook(() => useEmailCodeSignIn());
+	const { result } = await renderHook(() => useEmailCodeSignIn());
 	await act(() => result.current.verify("000000"));
 	expect(mockFinalize).not.toHaveBeenCalled();
 	expect(result.current.error).toMatch(/code is not right/i);
@@ -64,7 +64,7 @@ it("does not finalize when the code is wrong", async () => {
 
 it("starts over so a corrected address gets a fresh sign-in", async () => {
 	mockReset.mockResolvedValue({ error: null });
-	const { result } = renderHook(() => useEmailCodeSignIn());
+	const { result } = await renderHook(() => useEmailCodeSignIn());
 	await act(() => result.current.startOver());
 	expect(mockReset).toHaveBeenCalled();
 });
@@ -76,9 +76,9 @@ it("ignores a second resend while one is in flight", async () => {
 			settle = resolve;
 		}),
 	);
-	const { result } = renderHook(() => useEmailCodeSignIn());
+	const { result } = await renderHook(() => useEmailCodeSignIn());
 	let first: Promise<boolean> = Promise.resolve(false);
-	act(() => {
+	await act(() => {
 		first = result.current.resend();
 	});
 	expect(result.current.resending).toBe(true);

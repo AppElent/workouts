@@ -15,9 +15,9 @@ describe("MonthCalendar", () => {
 		mockLocale = "en";
 	});
 
-	it("renders an actual leap-month grid and lets the user select a day", () => {
+	it("renders an actual leap-month grid and lets the user select a day", async () => {
 		const onSelect = jest.fn();
-		render(
+		await render(
 			<MonthCalendar
 				selectedDate="2028-02-29"
 				today="2028-02-01"
@@ -25,42 +25,42 @@ describe("MonthCalendar", () => {
 			/>,
 		);
 		expect(screen.getByText("February 2028")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText(/Tuesday, February 29, 2028/));
+		await fireEvent.press(screen.getByLabelText(/Tuesday, February 29, 2028/));
 		expect(onSelect).toHaveBeenCalledWith("2028-02-29");
 	});
 
-	it("moves to the next month without snapping back and selects its date", () => {
+	it("moves to the next month without snapping back and selects its date", async () => {
 		const onSelect = jest.fn();
-		render(
+		await render(
 			<MonthCalendar
 				selectedDate="2026-01-15"
 				today="2026-01-15"
 				onSelect={onSelect}
 			/>,
 		);
-		fireEvent.press(screen.getByLabelText("Next month"));
+		await fireEvent.press(screen.getByLabelText("Next month"));
 		expect(screen.getByText("February 2026")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText(/February 10, 2026/));
+		await fireEvent.press(screen.getByLabelText(/February 10, 2026/));
 		expect(onSelect).toHaveBeenCalledWith("2026-02-10");
 	});
 
-	it("has an accessible Today action", () => {
+	it("has an accessible Today action", async () => {
 		const onSelect = jest.fn();
-		render(
+		await render(
 			<MonthCalendar
 				selectedDate="2026-01-15"
 				today="2026-03-03"
 				onSelect={onSelect}
 			/>,
 		);
-		fireEvent.press(screen.getByLabelText("Today"));
+		await fireEvent.press(screen.getByLabelText("Today"));
 		expect(onSelect).toHaveBeenCalledWith("2026-03-03");
 	});
 
-	it("localizes navigation labels in Dutch", () => {
+	it("localizes navigation labels in Dutch", async () => {
 		mockLocale = "nl";
 		const onSelect = jest.fn();
-		render(
+		await render(
 			<MonthCalendar
 				selectedDate="2026-01-15"
 				onSelect={onSelect}

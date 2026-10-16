@@ -58,9 +58,9 @@ describe("Capture Draft online save", () => {
 				</NutritionDraftsProvider>
 			</NutritionOperationsProvider>
 		);
-		const screen = render(tree);
+		const screen = await render(tree);
 		let pending!: Promise<unknown>;
-		act(() => {
+		await act(() => {
 			pending = notes.create({
 				date: "2026-10-07",
 				meal: "lunch",
@@ -82,7 +82,7 @@ describe("Capture Draft online save", () => {
 		});
 		expect(screen.getByText("Soup")).toBeTruthy();
 		connected = false;
-		screen.rerender(
+		await await screen.rerender(
 			<NutritionOperationsProvider subject="alice" repository={operations}>
 				<NutritionDraftsProvider>
 					<Reader />
@@ -137,7 +137,7 @@ it("retains acknowledged notes while a date subscription is skipped in the backg
 			</Text>
 		);
 	}
-	const view = render(
+	const view = await render(
 		<NutritionOperationsProvider
 			subject="alice"
 			repository={createNutritionLocalRepository(new SQLiteTestDatabase())}
@@ -148,9 +148,9 @@ it("retains acknowledged notes while a date subscription is skipped in the backg
 		</NutritionOperationsProvider>,
 	);
 	expect(view.getByText("Soup")).toBeTruthy();
-	act(() => change("background"));
+	await act(() => change("background"));
 	expect(notes.listForDate(draft.date)).toEqual([draft]);
-	act(() => change("active"));
+	await act(() => change("active"));
 	expect(view.getByText("Soup")).toBeTruthy();
-	view.unmount();
+	await view.unmount();
 });

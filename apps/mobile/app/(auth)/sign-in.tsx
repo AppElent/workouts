@@ -12,7 +12,7 @@
  */
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import type { TextInput } from "react-native";
+import type { TextInputInstance } from "react-native";
 
 import {
 	AuthInput,
@@ -36,7 +36,7 @@ export default function SignIn() {
 	const [codeHint, setCodeHint] = useState<string | null>(null);
 	const [email, setEmail] = useState(devLogin?.email ?? "");
 	const [password, setPassword] = useState(devLogin?.password ?? "");
-	const passwordRef = useRef<TextInput>(null);
+	const passwordRef = useRef<TextInputInstance>(null);
 
 	const ready = email.trim().length > 0 && password.length > 0;
 

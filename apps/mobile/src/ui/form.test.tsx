@@ -6,11 +6,11 @@ import { renderThemed } from "../test-support/render-themed";
 import { AddRow, DisclosureRow, FormSection, StepperField } from "./form";
 
 /** These primitives read their fallback labels from the message catalog. */
-const render = (ui: ReactElement) =>
-	renderThemed(ui, { wrapper: LocaleProvider });
+const render = async (ui: ReactElement) =>
+	await renderThemed(ui, { wrapper: LocaleProvider });
 
-function renderForm(children: ReactNode) {
-	return render(
+async function renderForm(children: ReactNode) {
+	return await render(
 		<SafeAreaProvider
 			initialMetrics={{
 				frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -22,10 +22,10 @@ function renderForm(children: ReactNode) {
 	);
 }
 
-it("exposes semantic grouped actions without prescribing screen layout", () => {
+it("exposes semantic grouped actions without prescribing screen layout", async () => {
 	const onDisclosure = jest.fn();
 	const onAdd = jest.fn();
-	renderForm(
+	await renderForm(
 		<FormSection title="Portions" footer="Optional amounts you use often.">
 			<DisclosureRow
 				label="More nutrients"
@@ -36,20 +36,20 @@ it("exposes semantic grouped actions without prescribing screen layout", () => {
 		</FormSection>,
 	);
 
-	fireEvent.press(screen.getByRole("button", { name: "More nutrients" }));
-	fireEvent.press(screen.getByRole("button", { name: "Add portion" }));
+	await fireEvent.press(screen.getByRole("button", { name: "More nutrients" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Add portion" }));
 	expect(onDisclosure).toHaveBeenCalledTimes(1);
 	expect(onAdd).toHaveBeenCalledTimes(1);
 });
 
-it("keeps stepper bounds and increments inside the design-system seam", () => {
+it("keeps stepper bounds and increments inside the design-system seam", async () => {
 	const onChange = jest.fn();
-	renderForm(
+	await renderForm(
 		<StepperField label="sets" value={1} min={1} onChange={onChange} />,
 	);
 
-	fireEvent.press(screen.getByRole("button", { name: "Decrease sets" }));
-	fireEvent.press(screen.getByRole("button", { name: "Increase sets" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Decrease sets" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Increase sets" }));
 	expect(onChange).toHaveBeenNthCalledWith(1, 1);
 	expect(onChange).toHaveBeenNthCalledWith(2, 2);
 });

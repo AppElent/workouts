@@ -1,8 +1,7 @@
 import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useConvexConnectionState, useMutation } from "convex/react";
-import { useNavigation, useRouter } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { z } from "zod";

@@ -41,12 +41,12 @@ beforeEach(() => {
 });
 afterEach(() => jest.useRealTimers());
 
-function render(
+async function render(
 	client: ReturnType<typeof fakeClient>,
 	initial: { query: string; online?: boolean },
 	isImported: (barcode: string) => boolean = () => false,
 ) {
-	return renderHook(
+	return await renderHook(
 		({ query, online }: { query: string; online?: boolean }) =>
 			useOffSearch(query, { client, online: online ?? true, isImported }),
 		{ initialProps: initial },
@@ -60,14 +60,14 @@ describe("when the food browser asks Open Food Facts", () => {
 			drafts: [draft("Optimel")],
 			fromCache: false,
 		});
-		const { result, rerender } = render(client, { query: "a" });
+		const { result, rerender } = await render(client, { query: "a" });
 		expect(result.current.state.kind).toBe("waiting");
-		rerender({ query: "aa" });
-		rerender({ query: "aar" });
-		act(() => jest.advanceTimersByTime(OFF_IDLE_MS - 1));
+		await rerender({ query: "aa" });
+		await rerender({ query: "aar" });
+		await act(() => jest.advanceTimersByTime(OFF_IDLE_MS - 1));
 		expect(client.search).not.toHaveBeenCalled();
-		rerender({ query: "aard" });
-		act(() => jest.advanceTimersByTime(OFF_IDLE_MS));
+		await rerender({ query: "aard" });
+		await act(() => jest.advanceTimersByTime(OFF_IDLE_MS));
 		await flush();
 		expect(client.search).toHaveBeenCalledTimes(1);
 		expect(client.search).toHaveBeenCalledWith("aard");
@@ -76,11 +76,11 @@ describe("when the food browser asks Open Food Facts", () => {
 
 	it("never asks on its own for fewer than three characters, but asks at once on Search", async () => {
 		const client = fakeClient();
-		const { result } = render(client, { query: "ei" });
-		act(() => jest.advanceTimersByTime(OFF_IDLE_MS * 3));
+		const { result } = await render(client, { query: "ei" });
+		await act(() => jest.advanceTimersByTime(OFF_IDLE_MS * 3));
 		expect(client.search).not.toHaveBeenCalled();
 		expect(result.current.state.kind).toBe("waiting");
-		act(() => result.current.commit());
+		await act(() => result.current.commit());
 		await flush();
 		expect(client.search).toHaveBeenCalledWith("ei");
 		expect(result.current.state.kind).toBe("none");
@@ -88,10 +88,10 @@ describe("when the food browser asks Open Food Facts", () => {
 
 	it("asks once per term, even when Search follows the idle request", async () => {
 		const client = fakeClient();
-		const { result } = render(client, { query: "kwark" });
-		act(() => jest.advanceTimersByTime(OFF_IDLE_MS));
+		const { result } = await render(client, { query: "kwark" });
+		await act(() => jest.advanceTimersByTime(OFF_IDLE_MS));
 		await flush();
-		act(() => result.current.commit());
+		await act(() => result.current.commit());
 		await flush();
 		expect(client.search).toHaveBeenCalledTimes(1);
 	});
@@ -102,12 +102,12 @@ describe("when the food browser asks Open Food Facts", () => {
 			drafts: [draft("Mine", "111"), draft("New", "222"), draft("No code")],
 			fromCache: false,
 		});
-		const { result } = render(
+		const { result } = await render(
 			client,
 			{ query: "yoghurt" },
 			(code) => code === "111",
 		);
-		act(() => result.current.commit());
+		await act(() => result.current.commit());
 		await flush();
 		const state = result.current.state;
 		expect(state.kind).toBe("found");
@@ -124,24 +124,24 @@ describe("when the food browser asks Open Food Facts", () => {
 			drafts: [draft("Mine", "111")],
 			fromCache: false,
 		});
-		const { result } = render(client, { query: "yoghurt" }, () => true);
-		act(() => result.current.commit());
+		const { result } = await render(client, { query: "yoghurt" }, () => true);
+		await act(() => result.current.commit());
 		await flush();
 		expect(result.current.state.kind).toBe("none");
 	});
 
 	it("counts down while rate-limited and retries on its own once the window opens", async () => {
 		const client = fakeClient({ kind: "rate-limited" });
-		const { result } = render(client, { query: "optimel" });
+		const { result } = await render(client, { query: "optimel" });
 		client.setCooling(40_000);
-		act(() => result.current.commit());
+		await act(() => result.current.commit());
 		await flush();
 		expect(result.current.state).toEqual({ kind: "cooling", until: 40_000 });
 		expect(client.search).toHaveBeenCalledTimes(1);
 
 		client.search.mockResolvedValue({ kind: "not-found" });
 		client.setCooling(undefined);
-		act(() => jest.advanceTimersByTime(40_000));
+		await act(() => jest.advanceTimersByTime(40_000));
 		await flush();
 		expect(client.search).toHaveBeenCalledTimes(2);
 		expect(result.current.state.kind).toBe("none");
@@ -154,30 +154,30 @@ describe("when the food browser asks Open Food Facts", () => {
 			fromCache: true,
 		});
 		client.setCooling(40_000);
-		const { result } = render(client, { query: "optimel" });
-		act(() => result.current.commit());
+		const { result } = await render(client, { query: "optimel" });
+		await act(() => result.current.commit());
 		await flush();
 		expect(result.current.state.kind).toBe("found");
 	});
 
 	it("waits a minute after the provider says 429 when the budget has no better answer", async () => {
 		const client = fakeClient({ kind: "rate-limited" });
-		const { result } = render(client, { query: "optimel" });
-		act(() => result.current.commit());
+		const { result } = await render(client, { query: "optimel" });
+		await act(() => result.current.commit());
 		await flush();
 		expect(result.current.state).toEqual({ kind: "cooling", until: 60_000 });
 	});
 
 	it("says offline instead of asking, and asks once the connection returns", async () => {
 		const client = fakeClient();
-		const { result, rerender } = render(client, {
+		const { result, rerender } = await render(client, {
 			query: "kip",
 			online: false,
 		});
-		act(() => result.current.commit());
+		await act(() => result.current.commit());
 		expect(result.current.state.kind).toBe("offline");
 		expect(client.search).not.toHaveBeenCalled();
-		rerender({ query: "kip", online: true });
+		await rerender({ query: "kip", online: true });
 		await flush();
 		expect(client.search).toHaveBeenCalledWith("kip");
 	});
@@ -191,17 +191,17 @@ describe("when the food browser asks Open Food Facts", () => {
 					resolve = done;
 				}),
 		);
-		const { result, rerender } = render(client, { query: "appel" });
-		act(() => result.current.commit());
+		const { result, rerender } = await render(client, { query: "appel" });
+		await act(() => result.current.commit());
 		expect(result.current.state.kind).toBe("loading");
-		rerender({ query: "peer" });
+		await rerender({ query: "peer" });
 		resolve({ kind: "found", drafts: [draft("Appel")], fromCache: false });
 		await flush();
 		expect(result.current.state.kind).toBe("waiting");
 	});
 
-	it("is idle without a query", () => {
-		const { result } = render(fakeClient(), { query: "  " });
+	it("is idle without a query", async () => {
+		const { result } = await render(fakeClient(), { query: "  " });
 		expect(result.current.state.kind).toBe("idle");
 	});
 });

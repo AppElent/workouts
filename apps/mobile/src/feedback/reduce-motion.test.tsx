@@ -45,19 +45,19 @@ afterEach(() => jest.restoreAllMocks());
 describe("reduced motion", () => {
 	it("follows the system setting once the platform has answered", async () => {
 		mockPlatform(true);
-		render(<Probe />);
+		await render(<Probe />);
 		expect(await screen.findByText("reduced")).toBeTruthy();
 	});
 
 	it("leaves motion alone when nobody asked for it to stop", async () => {
 		mockPlatform(false);
-		render(<Probe />);
+		await render(<Probe />);
 		expect(await screen.findByText("full")).toBeTruthy();
 	});
 
 	it("follows a change made while the app is already open", async () => {
 		const platform = mockPlatform(false);
-		render(<Probe />);
+		await render(<Probe />);
 		expect(await screen.findByText("full")).toBeTruthy();
 		await platform.change(true);
 		expect(screen.getByText("reduced")).toBeTruthy();
@@ -70,7 +70,7 @@ describe("reduced motion", () => {
 		jest
 			.spyOn(AccessibilityInfo, "addEventListener")
 			.mockReturnValue({ remove: () => undefined } as never);
-		render(<Probe />);
+		await render(<Probe />);
 		expect(await screen.findByText("full")).toBeTruthy();
 	});
 

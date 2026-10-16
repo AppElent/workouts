@@ -1,6 +1,5 @@
-import { Stack, useNavigation, useRouter } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
-import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
+import type { NativeStackNavigationOptions } from "expo-router";
+import { Stack, useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -8,7 +7,7 @@ import {
 	Pressable,
 	ScrollView,
 	TextInput as TextField,
-	type TextInput,
+	type TextInputInstance,
 	View,
 } from "react-native";
 import { todayIsoDate } from "../../../data/calendar-day";
@@ -112,7 +111,7 @@ export function OneOffLogScreen({
 		values: draft.values,
 		onChange: draft.setValue,
 	});
-	const amountInput = useRef<TextInput | null>(null);
+	const amountInput = useRef<TextInputInstance | null>(null);
 	const [amountFocused, setAmountFocused] = useState(false);
 
 	usePreventRemove(draft.dirty && !exit, ({ data }) => {

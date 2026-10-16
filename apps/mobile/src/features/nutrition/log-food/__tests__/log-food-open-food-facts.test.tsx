@@ -62,7 +62,7 @@ afterEach(() => jest.restoreAllMocks());
 describe("scanning a barcode", () => {
 	it("checks local Personal Foods before calling Open Food Facts", async () => {
 		const fetchImpl: FetchLike = jest.fn();
-		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = await renderApp("/nutrition", {}, fetchImpl);
 		repository.create({
 			name: { en: "Scanned Soup", nl: "Gescande soep" },
 			baseUnit: "g",
@@ -86,9 +86,11 @@ describe("scanning a barcode", () => {
 			},
 		});
 
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
 
 		// The serving sheet opens over the results, so the name is both the
 		// sheet's title and the row it came from.
@@ -107,18 +109,20 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 1, product: bakedBeans }),
 		);
-		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = await renderApp("/nutrition", {}, fetchImpl);
 
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
 
 		expect(await screen.findByLabelText("Name")).toBeTruthy();
 		expect(screen.getByDisplayValue("Baked Beans")).toBeTruthy();
 		expect(screen.getByText(/Product data from Open Food Facts/)).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Food visual"));
-		fireEvent.press(screen.getByText("Right"));
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.press(screen.getByLabelText("Food visual"));
+		await fireEvent.press(screen.getByText("Right"));
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		expect((await screen.findAllByText("Baked Beans")).length).toBeGreaterThan(
 			0,
@@ -132,7 +136,7 @@ describe("scanning a barcode", () => {
 			bakedBeans.image_front_small_url,
 			"right",
 		);
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0].provenance).toMatchObject({
@@ -154,13 +158,15 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 1, product: bakedBeans }),
 		);
-		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = await renderApp("/nutrition", {}, fetchImpl);
 
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
 		await screen.findByLabelText("Name");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
 		expect(repository.list()[0].visual).toEqual({
@@ -184,18 +190,20 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 1, product: bakedBeans }),
 		);
-		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = await renderApp("/nutrition", {}, fetchImpl);
 
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
 		await screen.findByLabelText("Name");
 
-		fireEvent.changeText(
+		await fireEvent.changeText(
 			screen.getByLabelText("Name"),
 			"Baked Beans in Tomato Sauce",
 		);
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		await waitFor(() => expect(repository.list()).toHaveLength(1));
 		expect(repository.list()[0].provenance.locallyEdited).toBe(true);
@@ -212,12 +220,12 @@ describe("scanning a barcode", () => {
 			jest.fn(),
 			jest.fn(),
 		]);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
 
 		expect(await screen.findByText(/Camera access was refused/)).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Close"));
+		await fireEvent.press(screen.getByLabelText("Close"));
 
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
 		expect(screen.getByLabelText("More food actions")).toBeTruthy();
@@ -234,13 +242,13 @@ describe("scanning a barcode", () => {
 			jest.fn(),
 			jest.fn(),
 		]);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
 
 		expect(await screen.findByText(/Camera access is restricted/)).toBeTruthy();
 		expect(screen.queryByText("Allow camera access")).toBeNull();
-		fireEvent.press(screen.getByLabelText("Close"));
+		await fireEvent.press(screen.getByLabelText("Close"));
 
 		expect(await screen.findByPlaceholderText("Search foods")).toBeTruthy();
 	});
@@ -249,10 +257,12 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 0 }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
 
 		expect(await screen.findByText("Barcode not found")).toBeTruthy();
 		expect(screen.getByText("5000112637922")).toBeTruthy();
@@ -265,7 +275,7 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 0 }),
 		);
-		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = await renderApp("/nutrition", {}, fetchImpl);
 		repository.create({
 			name: { en: "Mum's pasta", nl: "Pasta van mama" },
 			baseUnit: "g",
@@ -286,18 +296,23 @@ describe("scanning a barcode", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
-		fireEvent.press(await screen.findByText("Search by name"));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
+		await fireEvent.press(await screen.findByText("Search by name"));
 
 		expect(
 			await screen.findByText(
 				"Choose one of your own foods for barcode 5000112637922",
 			),
 		).toBeTruthy();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "pasta");
-		fireEvent.press(await screen.findByText("Mum's pasta"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"pasta",
+		);
+		await fireEvent.press(await screen.findByText("Mum's pasta"));
 		expect(
 			await screen.findByText("Barcode linked to Mum's pasta"),
 		).toBeTruthy();
@@ -310,11 +325,13 @@ describe("scanning a barcode", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { status: 0 }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
-		fireEvent.press(await screen.findByText("New Personal Food"));
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
+		await fireEvent.press(await screen.findByText("New Personal Food"));
 
 		expect(await screen.findByLabelText("Name")).toBeTruthy();
 	});
@@ -342,10 +359,12 @@ describe("scanning a barcode", () => {
 		"keeps Search and Enter manually reachable on %s",
 		async (_case, impl, message) => {
 			const fetchImpl: FetchLike = jest.fn(async () => impl());
-			renderApp("/nutrition", {}, fetchImpl);
-			fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-			fireEvent.press(screen.getByLabelText("Scan barcode"));
-			fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+			await renderApp("/nutrition", {}, fetchImpl);
+			await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+			await fireEvent.press(screen.getByLabelText("Scan barcode"));
+			await fireEvent.press(
+				await screen.findByLabelText("Simulated camera preview"),
+			);
 
 			expect(await screen.findByText(message)).toBeTruthy();
 			expect(screen.getByPlaceholderText("Search foods")).toBeTruthy();
@@ -361,10 +380,12 @@ describe("scanning a barcode", () => {
 			error.name = "AbortError";
 			throw error;
 		});
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("Scan barcode"));
-		fireEvent.press(await screen.findByLabelText("Simulated camera preview"));
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Scan barcode"));
+		await fireEvent.press(
+			await screen.findByLabelText("Simulated camera preview"),
+		);
 
 		expect(
 			await screen.findByText("The Open Food Facts request timed out."),
@@ -374,10 +395,10 @@ describe("scanning a barcode", () => {
 });
 
 /** Submits the search field, as the keyboard's Search key does. */
-function submitSearch(query: string) {
+async function submitSearch(query: string) {
 	const field = screen.getByPlaceholderText("Search foods");
-	fireEvent.changeText(field, query);
-	fireEvent(field, "submitEditing");
+	await fireEvent.changeText(field, query);
+	await fireEvent(field, "submitEditing");
 }
 
 function product(code: string, name: string) {
@@ -390,14 +411,17 @@ describe("Open Food Facts in the results", () => {
 			.fn()
 			.mockResolvedValueOnce(jsonResponse(503, {}))
 			.mockResolvedValueOnce(jsonResponse(200, { hits: [bakedBeans] }));
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		submitSearch("baked beans");
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await submitSearch("baked beans");
 		expect(await screen.findByTestId("off-search-feedback")).toHaveTextContent(
 			/Open Food Facts is temporarily unavailable/,
 		);
 		expect(screen.getByDisplayValue("baked beans")).toBeTruthy();
-		fireEvent(screen.getByPlaceholderText("Search foods"), "submitEditing");
+		await fireEvent(
+			screen.getByPlaceholderText("Search foods"),
+			"submitEditing",
+		);
 		expect(await screen.findByText("Baked Beans")).toBeTruthy();
 		expect(screen.queryByTestId("off-search-feedback")).toBeNull();
 	});
@@ -406,11 +430,14 @@ describe("Open Food Facts in the results", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { hits: [] }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
 
 		expect(screen.queryByTestId("off-section")).toBeNull();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(fetchImpl).not.toHaveBeenCalled();
 		expect(screen.getByText("Search ‘apple’ in Open Food Facts")).toBeTruthy();
@@ -423,13 +450,16 @@ describe("Open Food Facts in the results", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { hits: [] }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "ei");
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"ei",
+		);
 		// The router test harness runs on fake timers: walk past the idle delay.
-		act(() => jest.advanceTimersByTime(1700));
+		await act(() => jest.advanceTimersByTime(1700));
 		expect(fetchImpl).not.toHaveBeenCalled();
-		fireEvent.press(screen.getByText("Search ‘ei’ in Open Food Facts"));
+		await fireEvent.press(screen.getByText("Search ‘ei’ in Open Food Facts"));
 		await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
 	});
 
@@ -437,14 +467,14 @@ describe("Open Food Facts in the results", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { hits: [bakedBeans] }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		submitSearch("baked beans");
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await submitSearch("baked beans");
 
 		expect(await screen.findByText("1 result")).toBeTruthy();
 		// Brand and pack first, then the figure (design: "Campina · 1 L · …").
 		expect(screen.getByText("Heinz · 415 g · 75 kcal/100 g")).toBeTruthy();
-		fireEvent.press(screen.getByText("Baked Beans"));
+		await fireEvent.press(screen.getByText("Baked Beans"));
 
 		expect(await screen.findByLabelText("Name")).toBeTruthy();
 	});
@@ -457,13 +487,13 @@ describe("Open Food Facts in the results", () => {
 				),
 			}),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		submitSearch("yoghurt");
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await submitSearch("yoghurt");
 
 		expect(await screen.findByText("Yoghurt 3")).toBeTruthy();
 		expect(screen.queryByText("Yoghurt 4")).toBeNull();
-		fireEvent.press(screen.getByText("Show all 5"));
+		await fireEvent.press(screen.getByText("Show all 5"));
 		expect(screen.getByText("Yoghurt 5")).toBeTruthy();
 	});
 
@@ -473,7 +503,7 @@ describe("Open Food Facts in the results", () => {
 				hits: [product("111", "Already mine"), product("222", "New to me")],
 			}),
 		);
-		const { repository } = renderApp("/nutrition", {}, fetchImpl);
+		const { repository } = await renderApp("/nutrition", {}, fetchImpl);
 		repository.create({
 			name: { en: "My yoghurt", nl: "Mijn yoghurt" },
 			baseUnit: "g",
@@ -495,8 +525,8 @@ describe("Open Food Facts in the results", () => {
 				barcode: "111",
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		submitSearch("yoghurt");
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await submitSearch("yoghurt");
 
 		expect(await screen.findByText("New to me")).toBeTruthy();
 		expect(screen.queryByText("Already mine")).toBeNull();
@@ -504,9 +534,9 @@ describe("Open Food Facts in the results", () => {
 
 	it("counts down only its own section when rate-limited", async () => {
 		const fetchImpl: FetchLike = jest.fn(async () => jsonResponse(429, {}));
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		submitSearch("apple");
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await submitSearch("apple");
 
 		expect(
 			await screen.findByText(
@@ -521,9 +551,9 @@ describe("Open Food Facts in the results", () => {
 		const fetchImpl: FetchLike = jest.fn(async () =>
 			jsonResponse(200, { hits: [] }),
 		);
-		renderApp("/nutrition", {}, fetchImpl);
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.changeText(
+		await renderApp("/nutrition", {}, fetchImpl);
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"zzzznotfound",
 		);
@@ -531,11 +561,11 @@ describe("Open Food Facts in the results", () => {
 		expect(
 			await screen.findByText("No results for ‘zzzznotfound’"),
 		).toBeTruthy();
-		fireEvent.press(screen.getByText("Search Open Food Facts"));
+		await fireEvent.press(screen.getByText("Search Open Food Facts"));
 		expect(
 			await screen.findByText("Nothing in Open Food Facts for ‘zzzznotfound’."),
 		).toBeTruthy();
-		fireEvent.press(screen.getByText("New Personal Food ‘zzzznotfound’"));
+		await fireEvent.press(screen.getByText("New Personal Food ‘zzzznotfound’"));
 		// The editor opens with the typed term as the food's name.
 		expect(await screen.findByLabelText("Name")).toHaveProp(
 			"value",

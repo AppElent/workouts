@@ -44,7 +44,7 @@ describe("My measures", () => {
 					? create
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
-		renderApp("/personal-measures");
+		await renderApp("/personal-measures");
 
 		// Empty: one explanation, and an example row in each unit's section.
 		expect(
@@ -54,10 +54,10 @@ describe("My measures", () => {
 		).toBeTruthy();
 		expect(screen.getByText("E.g. Small glass · 200 ml")).toBeTruthy();
 		// The Volume section's + starts the popup in millilitres.
-		fireEvent.press(screen.getByLabelText("Add a measure in ml"));
-		fireEvent.changeText(screen.getByLabelText("Name"), "Small glass");
-		fireEvent.changeText(screen.getByLabelText("Amount"), "250");
-		fireEvent.press(screen.getByText("Add"));
+		await fireEvent.press(screen.getByLabelText("Add a measure in ml"));
+		await fireEvent.changeText(screen.getByLabelText("Name"), "Small glass");
+		await fireEvent.changeText(screen.getByLabelText("Amount"), "250");
+		await fireEvent.press(screen.getByText("Add"));
 
 		await waitFor(() =>
 			expect(create).toHaveBeenCalledWith({
@@ -95,7 +95,7 @@ describe("My measures", () => {
 			inflightActions: 0,
 		});
 
-		renderApp("/personal-measures");
+		await renderApp("/personal-measures");
 
 		expect(await screen.findByText("Offline")).toBeTruthy();
 		expect(screen.getByText("Small glass")).toBeTruthy();
@@ -117,11 +117,11 @@ describe("My measures", () => {
 			status: "Exhausted",
 			loadMore: jest.fn(),
 		} as never);
-		renderApp("/personal-measures");
+		await renderApp("/personal-measures");
 
-		fireEvent.press(await screen.findByText("Scoop"));
+		await fireEvent.press(await screen.findByText("Scoop"));
 		expect(await screen.findByText("Change measure")).toBeTruthy();
-		fireEvent.press(screen.getByText("Millilitres"));
+		await fireEvent.press(screen.getByText("Millilitres"));
 
 		expect(await screen.findByText("Change this measure's unit?")).toBeTruthy();
 		expect(
@@ -148,11 +148,15 @@ describe("My measures", () => {
 					? reorder
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
-		renderApp("/personal-measures");
+		await renderApp("/personal-measures");
 
-		fireEvent(await screen.findByLabelText(/^Bowl/), "accessibilityAction", {
-			nativeEvent: { actionName: "up" },
-		});
+		await fireEvent(
+			await screen.findByLabelText(/^Bowl/),
+			"accessibilityAction",
+			{
+				nativeEvent: { actionName: "up" },
+			},
+		);
 		// Bowl now leads the grams; the millilitres keep their own order.
 		await waitFor(() =>
 			expect(reorder).toHaveBeenCalledWith({ ids: ["c", "a", "b"] }),

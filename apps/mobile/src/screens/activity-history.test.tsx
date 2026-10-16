@@ -30,18 +30,18 @@ beforeEach(() => {
 	});
 });
 
-it("filters the history and opens the matching logger", () => {
-	renderThemed(<ActivityHistoryScreen />);
-	fireEvent.press(screen.getByRole("radio", { name: "Cycling" }));
+it("filters the history and opens the matching logger", async () => {
+	await renderThemed(<ActivityHistoryScreen />);
+	await fireEvent.press(screen.getByRole("radio", { name: "Cycling" }));
 	expect(mockPages).toHaveBeenLastCalledWith({ sport: "cycling" });
-	fireEvent.press(screen.getByRole("button", { name: "Log ride" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Log ride" }));
 	expect(mockPush).toHaveBeenCalledWith({
 		pathname: "/endurance-editor",
 		params: { sport: "cycling" },
 	});
 });
 
-it("opens endurance details and keeps strength summary navigation", () => {
+it("opens endurance details and keeps strength summary navigation", async () => {
 	mockPages.mockReturnValue({
 		items: [
 			{
@@ -64,20 +64,20 @@ it("opens endurance details and keeps strength summary navigation", () => {
 		hasMore: false,
 		loadMore: jest.fn(),
 	});
-	renderThemed(<ActivityHistoryScreen />);
-	fireEvent.press(screen.getByText("Morning run"));
+	await renderThemed(<ActivityHistoryScreen />);
+	await fireEvent.press(screen.getByText("Morning run"));
 	expect(mockPush).toHaveBeenLastCalledWith({
 		pathname: "/endurance/[id]",
 		params: { id: "run-id" },
 	});
-	fireEvent.press(screen.getByText("Push day"));
+	await fireEvent.press(screen.getByText("Push day"));
 	expect(mockPush).toHaveBeenLastCalledWith({
 		pathname: "/summary",
 		params: { id: "strength-id" },
 	});
 });
 
-it("derives running pace from totals rather than averaging individual paces", () => {
+it("derives running pace from totals rather than averaging individual paces", async () => {
 	const now = Date.now();
 	mockPages.mockReturnValue({
 		items: [
@@ -100,7 +100,7 @@ it("derives running pace from totals rather than averaging individual paces", ()
 		hasMore: false,
 		loadMore: jest.fn(),
 	});
-	renderThemed(<EnduranceProgress sport="running" />);
+	await renderThemed(<EnduranceProgress sport="running" />);
 	expect(screen.getByText("6:00 /km")).toBeTruthy();
 	expect(screen.queryByText("6:30 /km")).toBeNull();
 });

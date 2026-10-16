@@ -19,9 +19,9 @@ function Child() {
 	return <Text>Signed-in shell</Text>;
 }
 
-it("withholds the subtree while the Convex handshake is still in flight", () => {
+it("withholds the subtree while the Convex handshake is still in flight", async () => {
 	convexAuth.mockReturnValue({ isAuthenticated: false, isLoading: true });
-	render(
+	await render(
 		<ConvexSessionGate>
 			<Child />
 		</ConvexSessionGate>,
@@ -29,9 +29,9 @@ it("withholds the subtree while the Convex handshake is still in flight", () => 
 	expect(screen.queryByText("Signed-in shell")).toBeNull();
 });
 
-it("renders the subtree once Convex reports the session as authenticated", () => {
+it("renders the subtree once Convex reports the session as authenticated", async () => {
 	convexAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
-	render(
+	await render(
 		<ConvexSessionGate>
 			<Child />
 		</ConvexSessionGate>,

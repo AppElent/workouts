@@ -29,12 +29,12 @@ beforeEach(() => {
 });
 
 it("replaces the loading region with received goals", async () => {
-	renderApp();
+	await renderApp();
 	await screen.findByText("Breakfast");
 	expect(screen.getByLabelText("Loading goals")).toBeTruthy();
 	goals = [{ nutrient: "energy", direction: "max", target: 2100 }];
 	// Navigating dates samples the newly available query response.
-	fireEvent.press(
+	await fireEvent.press(
 		screen.getByLabelText(diaryDateLabel(diaryShift(diaryToday(), 1), "en")),
 	);
 	expect(screen.queryByLabelText("Loading goals")).toBeNull();
@@ -43,7 +43,7 @@ it("replaces the loading region with received goals", async () => {
 });
 
 it("keeps a downloaded diary usable while its goals are still loading", async () => {
-	renderApp();
+	await renderApp();
 	await screen.findByText("Breakfast");
 	expect(screen.queryByText("No nutrition goals")).toBeNull();
 	expect(screen.getByLabelText("Loading goals")).toBeTruthy();
@@ -57,9 +57,9 @@ it("explains uncached goals offline without hiding the available diary", async (
 		isWebSocketConnected: false,
 	});
 	try {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Breakfast");
-		act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
+		await act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
 		expect(screen.queryByText("No nutrition goals")).toBeNull();
 		expect(screen.queryByLabelText("Loading goals")).toBeNull();
 		expect(

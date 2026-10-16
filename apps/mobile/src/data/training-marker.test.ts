@@ -12,37 +12,37 @@ import { useTrainingMarker } from "./training-marker";
 const mockUseQuery = jest.mocked(useQuery_experimental);
 
 describe("the training marker's own hook", () => {
-	it("is hidden while the lookup is still pending", () => {
+	it("is hidden while the lookup is still pending", async () => {
 		mockUseQuery.mockReturnValue({ status: "pending" });
 
-		const { result } = renderHook(() => useTrainingMarker("2026-09-05"));
+		const { result } = await renderHook(() => useTrainingMarker("2026-09-05"));
 
 		expect(result.current).toBe("hidden");
 	});
 
-	it("is hidden when the lookup fails", () => {
+	it("is hidden when the lookup fails", async () => {
 		mockUseQuery.mockReturnValue({
 			status: "error",
 			error: new Error("offline"),
 		});
 
-		const { result } = renderHook(() => useTrainingMarker("2026-09-05"));
+		const { result } = await renderHook(() => useTrainingMarker("2026-09-05"));
 
 		expect(result.current).toBe("hidden");
 	});
 
-	it("is hidden when no completed Activity is found", () => {
+	it("is hidden when no completed Activity is found", async () => {
 		mockUseQuery.mockReturnValue({ status: "success", data: false });
 
-		const { result } = renderHook(() => useTrainingMarker("2026-09-05"));
+		const { result } = await renderHook(() => useTrainingMarker("2026-09-05"));
 
 		expect(result.current).toBe("hidden");
 	});
 
-	it("is visible when a completed Activity is found", () => {
+	it("is visible when a completed Activity is found", async () => {
 		mockUseQuery.mockReturnValue({ status: "success", data: true });
 
-		const { result } = renderHook(() => useTrainingMarker("2026-09-05"));
+		const { result } = await renderHook(() => useTrainingMarker("2026-09-05"));
 
 		expect(result.current).toBe("visible");
 	});

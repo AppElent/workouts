@@ -8,18 +8,18 @@ import { renderApp } from "../test-support/render-app";
 
 describe("the app's language", () => {
 	it("is reachable from Profile → Preferences", async () => {
-		renderApp("/profile");
+		await renderApp("/profile");
 
-		fireEvent.press(await screen.findByText("Language"));
+		await fireEvent.press(await screen.findByText("Language"));
 
 		expect(await screen.findByText("Nederlands")).toBeTruthy();
 	});
 
 	it("changes the day's words when Dutch is chosen", async () => {
-		renderApp("/language");
-		fireEvent.press(await screen.findByLabelText("Nederlands"));
+		await renderApp("/language");
+		await fireEvent.press(await screen.findByLabelText("Nederlands"));
 
-		testRouter.navigate("/nutrition");
+		await testRouter.navigate("/nutrition");
 
 		expect(await screen.findByText("Vandaag")).toBeTruthy();
 		expect(screen.getByText("Ontbijt")).toBeTruthy();
@@ -29,13 +29,13 @@ describe("the app's language", () => {
 		expect(screen.getByLabelText("Voeg eten toe aan Diner")).toBeTruthy();
 	});
 
-	it("paints the first frame in the stored language, never English first", () => {
+	it("paints the first frame in the stored language, never English first", async () => {
 		// The choice a previous launch wrote. Reading it has to happen during the
 		// first render — an effect or an awaited read would paint one English
 		// frame before correcting itself, which is the defect this guards.
 		writePreference(PREFERENCE_KEYS.locale, "nl");
 
-		renderApp("/nutrition");
+		await renderApp("/nutrition");
 
 		// No `await`, deliberately: this is the first committed frame.
 		expect(screen.getByText("Vandaag")).toBeTruthy();
@@ -43,37 +43,45 @@ describe("the app's language", () => {
 	});
 
 	it("keeps a chosen language for the next launch", async () => {
-		const first = renderApp("/language");
-		fireEvent.press(await screen.findByLabelText("Nederlands"));
-		first.unmount();
+		const first = await renderApp("/language");
+		await fireEvent.press(await screen.findByLabelText("Nederlands"));
+		await first.unmount();
 
-		renderApp("/nutrition");
+		await renderApp("/nutrition");
 
 		expect(screen.getByText("Vandaag")).toBeTruthy();
 	});
 
 	it("uses Dutch food names and serving labels in the browser", async () => {
-		renderApp("/language");
-		fireEvent.press(await screen.findByLabelText("Nederlands"));
-		testRouter.navigate("/nutrition");
-		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
+		await renderApp("/language");
+		await fireEvent.press(await screen.findByLabelText("Nederlands"));
+		await testRouter.navigate("/nutrition");
+		await fireEvent.press(
+			await screen.findByLabelText("Voeg eten toe aan Lunch"),
+		);
 
 		// The default "Alles" chip already searches the whole catalogue.
-		fireEvent.changeText(await screen.findByLabelText("Zoek eten"), "appel");
-		fireEvent.press(screen.getByText("Appel"));
+		await fireEvent.changeText(
+			await screen.findByLabelText("Zoek eten"),
+			"appel",
+		);
+		await fireEvent.press(screen.getByText("Appel"));
 		expect(await screen.findByTestId("amount-editor-card")).toBeTruthy();
 		expect(screen.getByLabelText("Aantal").props.value).toBe("1");
 		expect(screen.getAllByText("Appel").length).toBeGreaterThan(0);
 	});
 
 	it("renders the goal editor and validation in Dutch", async () => {
-		renderApp("/language");
-		fireEvent.press(await screen.findByLabelText("Nederlands"));
-		testRouter.navigate("/nutrition-goals");
+		await renderApp("/language");
+		await fireEvent.press(await screen.findByLabelText("Nederlands"));
+		await testRouter.navigate("/nutrition-goals");
 
-		fireEvent.press(await screen.findByText("Zelf instellen"));
-		fireEvent.changeText(await screen.findByLabelText("Energie maximum"), "0");
-		fireEvent.press(screen.getByLabelText("Doelen opslaan"));
+		await fireEvent.press(await screen.findByText("Zelf instellen"));
+		await fireEvent.changeText(
+			await screen.findByLabelText("Energie maximum"),
+			"0",
+		);
+		await fireEvent.press(screen.getByLabelText("Doelen opslaan"));
 		expect(
 			await screen.findByText("Vul een getal groter dan nul in."),
 		).toBeTruthy();

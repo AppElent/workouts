@@ -44,6 +44,7 @@ import { getFunctionName } from "convex/server";
 import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ReactNode } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
 import * as ProfileRoute from "../../app/(app)/(coach)/profile";
 import * as AppearanceRoute from "../../app/(app)/appearance";
@@ -237,48 +238,53 @@ export function TestLayout({
 	fetchImpl?: FetchLike;
 }): ReactNode {
 	return (
-		<AppearanceProvider>
-			<LocaleProvider>
-				<NativeAlertHost>
-					<ToastProvider>
-						<ConfirmProvider>
-							<PersonalFoodsProvider
-								repository={repository}
-								uploadPhoto={async () => ({
-									storageId: photoStorageId.parse("fixture-photo"),
-								})}
-							>
-								<FoodAuthoringIntentProvider>
-									<OpenFoodFactsProvider cache={offCache} fetchImpl={fetchImpl}>
-										<NutritionOperationsProvider
-											repository={nutritionRepository}
-											uploadPhoto={async () => ({
-												storageId: photoStorageId.parse("fixture-photo"),
-											})}
-											subject="test-user"
+		<GestureHandlerRootView>
+			<AppearanceProvider>
+				<LocaleProvider>
+					<NativeAlertHost>
+						<ToastProvider>
+							<ConfirmProvider>
+								<PersonalFoodsProvider
+									repository={repository}
+									uploadPhoto={async () => ({
+										storageId: photoStorageId.parse("fixture-photo"),
+									})}
+								>
+									<FoodAuthoringIntentProvider>
+										<OpenFoodFactsProvider
+											cache={offCache}
+											fetchImpl={fetchImpl}
 										>
-											<NutritionDraftsProvider>
-												<PersonalMeasuresProvider>
-													<SetDraftsProvider>
-														<RestTimerProvider>
-															<Stack />
-														</RestTimerProvider>
-													</SetDraftsProvider>
-												</PersonalMeasuresProvider>
-											</NutritionDraftsProvider>
-										</NutritionOperationsProvider>
-									</OpenFoodFactsProvider>
-								</FoodAuthoringIntentProvider>
-							</PersonalFoodsProvider>
-						</ConfirmProvider>
-					</ToastProvider>
-				</NativeAlertHost>
-			</LocaleProvider>
-		</AppearanceProvider>
+											<NutritionOperationsProvider
+												repository={nutritionRepository}
+												uploadPhoto={async () => ({
+													storageId: photoStorageId.parse("fixture-photo"),
+												})}
+												subject="test-user"
+											>
+												<NutritionDraftsProvider>
+													<PersonalMeasuresProvider>
+														<SetDraftsProvider>
+															<RestTimerProvider>
+																<Stack />
+															</RestTimerProvider>
+														</SetDraftsProvider>
+													</PersonalMeasuresProvider>
+												</NutritionDraftsProvider>
+											</NutritionOperationsProvider>
+										</OpenFoodFactsProvider>
+									</FoodAuthoringIntentProvider>
+								</PersonalFoodsProvider>
+							</ConfirmProvider>
+						</ToastProvider>
+					</NativeAlertHost>
+				</LocaleProvider>
+			</AppearanceProvider>
+		</GestureHandlerRootView>
 	);
 }
 
-export function renderApp(
+export async function renderApp(
 	initialUrl = "/nutrition",
 	/** Replace a route module — used to make a route throw on purpose. */
 	overrides: Record<string, unknown> = {},
@@ -310,7 +316,7 @@ export function renderApp(
 			/>
 		);
 	}
-	const rendered = renderRouter(
+	const rendered = await renderRouter(
 		{
 			_layout: Layout as never,
 			nutrition: NutritionRoute as never,

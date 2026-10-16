@@ -96,7 +96,7 @@ describe("Nutrition accessibility", () => {
 				};
 			return previous?.(reference, args);
 		});
-		renderApp();
+		await renderApp();
 		const icon = await screen.findByLabelText("Estimated nutrition");
 		expect(icon.props.size).toBe(14);
 		expect(
@@ -105,7 +105,7 @@ describe("Nutrition accessibility", () => {
 		expect(screen.queryByText("Estimated nutrition")).toBeNull();
 	});
 	it("names every icon-only control on the day", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
 
 		// The four meal plus buttons say which meal they add to, so four
@@ -127,9 +127,9 @@ describe("Nutrition accessibility", () => {
 	});
 
 	it("says how a goal is doing in words, not only in colour", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
-		fireEvent.press(screen.getByText("All goals"));
+		await fireEvent.press(screen.getByText("All goals"));
 
 		// A minimum that has been reached and a maximum that has been passed use
 		// direction-specific sentences, and both are spoken as part of the row.
@@ -141,23 +141,27 @@ describe("Nutrition accessibility", () => {
 	});
 
 	it("opens nutrient details from a named button and returns to the day", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByRole("button", { name: "All goals" }));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByRole("button", { name: /^All goals/ }),
+		);
 		expect(await screen.findByText("Daily goals")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Close"));
+		await fireEvent.press(screen.getByLabelText("Close"));
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
 	it("announces a Combo selection as a checkbox that is checked", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByRole("button", { name: "Select" }));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Select" }),
+		);
 
 		const row = await screen.findByLabelText("Select Oatmeal");
 		expect(row.props.accessibilityRole).toBe("checkbox");
 		expect(row.props.accessibilityState).toMatchObject({ checked: false });
 
-		fireEvent.press(row);
+		await fireEvent.press(row);
 		expect(
 			screen.getByLabelText("Select Oatmeal").props.accessibilityState,
 		).toMatchObject({ checked: true });
@@ -165,7 +169,7 @@ describe("Nutrition accessibility", () => {
 
 	it("gives the loading day one spoken name rather than a screen of blank shapes", async () => {
 		jest.mocked(useQuery).mockReturnValue(undefined);
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByLabelText("Loading the day")).toBeTruthy();
 	});

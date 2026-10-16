@@ -2,8 +2,7 @@ import { convertLoad, getWeightStep } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useNavigation, useRouter } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import {
 	createContext,
 	type ReactNode,

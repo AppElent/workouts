@@ -20,8 +20,8 @@ jest.mock("expo-router", () => {
 	return { Stack };
 });
 
-it("configures tab roots with native large titles and minimal back buttons", () => {
-	render(
+it("configures tab roots with native large titles and minimal back buttons", async () => {
+	await render(
 		<View>
 			<CoachTabStack title="Train" />
 		</View>,

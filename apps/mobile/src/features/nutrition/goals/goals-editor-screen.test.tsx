@@ -62,14 +62,14 @@ describe("nutrition goal editor", () => {
 		serveGoals([]);
 		const save = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(asMutation(save));
-		renderApp("/nutrition-goals");
+		await renderApp("/nutrition-goals");
 
-		fireEvent.press(await screen.findByText("Choose a starting point"));
-		fireEvent.press(screen.getByLabelText(/^Build muscle,/));
+		await fireEvent.press(await screen.findByText("Choose a starting point"));
+		await fireEvent.press(screen.getByLabelText(/^Build muscle,/));
 		expect(screen.getByText("Build muscle applied")).toBeTruthy();
 		expect(screen.getByLabelText("Protein minimum").props.value).toBe("100");
 
-		fireEvent.press(screen.getByLabelText("Save goals"));
+		await fireEvent.press(screen.getByLabelText("Save goals"));
 		await waitFor(() => expect(save).toHaveBeenCalled());
 		const goals = save.mock.calls[0][0].goals as Goal[];
 		expect(goals).toHaveLength(8);
@@ -79,42 +79,44 @@ describe("nutrition goal editor", () => {
 	});
 
 	it("keeps ✓ off until something changes", async () => {
-		renderApp("/nutrition-goals");
+		await renderApp("/nutrition-goals");
 		expect(await screen.findByLabelText("Save goals")).toBeDisabled();
-		fireEvent.changeText(screen.getByLabelText("Fat maximum"), "75");
+		await fireEvent.changeText(screen.getByLabelText("Fat maximum"), "75");
 		expect(screen.getByLabelText("Save goals")).not.toBeDisabled();
 	});
 
 	it("replaces the number on the first keystroke and keeps it when left untouched", async () => {
-		renderApp("/nutrition-goals");
+		await renderApp("/nutrition-goals");
 		const protein = await screen.findByLabelText("Protein minimum");
-		fireEvent(protein, "focus");
+		await fireEvent(protein, "focus");
 		expect(screen.getByLabelText("Protein minimum").props.value).toBe("");
 		expect(screen.getByLabelText("Protein minimum").props.placeholder).toBe(
 			"120",
 		);
-		fireEvent(screen.getByLabelText("Protein minimum"), "blur");
+		await fireEvent(screen.getByLabelText("Protein minimum"), "blur");
 		expect(screen.getByLabelText("Protein minimum").props.value).toBe("120");
 		expect(screen.getByLabelText("Save goals")).toBeDisabled();
 
-		fireEvent(screen.getByLabelText("Protein minimum"), "focus");
-		fireEvent.changeText(screen.getByLabelText("Protein minimum"), "13");
-		fireEvent(screen.getByLabelText("Protein minimum"), "blur");
+		await fireEvent(screen.getByLabelText("Protein minimum"), "focus");
+		await fireEvent.changeText(screen.getByLabelText("Protein minimum"), "13");
+		await fireEvent(screen.getByLabelText("Protein minimum"), "blur");
 		expect(screen.getByLabelText("Protein minimum").props.value).toBe("13");
 	});
 
 	it("changes a goal's kind from its menu", async () => {
-		renderApp("/nutrition-goals");
-		fireEvent.press(await screen.findByLabelText("Goal type for Protein"));
-		fireEvent.press(screen.getAllByText("Range").at(-1) as never);
+		await renderApp("/nutrition-goals");
+		await fireEvent.press(
+			await screen.findByLabelText("Goal type for Protein"),
+		);
+		await fireEvent.press(screen.getAllByText("Range").at(-1) as never);
 		expect(screen.getByLabelText("Protein minimum").props.value).toBe("120");
 		expect(screen.getByLabelText("Protein maximum").props.value).toBe("120");
 	});
 
 	it("adds a nutrient at its reference value in its default direction", async () => {
-		renderApp("/nutrition-goals");
+		await renderApp("/nutrition-goals");
 		expect(await screen.findByText("reference max. 20 g")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Add Saturated fat goal"));
+		await fireEvent.press(screen.getByLabelText("Add Saturated fat goal"));
 		expect(screen.getByLabelText("Saturated fat maximum").props.value).toBe(
 			"20",
 		);
@@ -123,12 +125,12 @@ describe("nutrition goal editor", () => {
 	it("shows a crossed range inline and does not save", async () => {
 		const save = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(asMutation(save));
-		renderApp("/nutrition-goals");
-		fireEvent.changeText(
+		await renderApp("/nutrition-goals");
+		await fireEvent.changeText(
 			await screen.findByLabelText("Energy minimum"),
 			"2800",
 		);
-		fireEvent.press(screen.getByLabelText("Save goals"));
+		await fireEvent.press(screen.getByLabelText("Save goals"));
 		expect(
 			await screen.findByText("Minimum is higher than maximum."),
 		).toBeTruthy();
@@ -137,19 +139,19 @@ describe("nutrition goal editor", () => {
 	});
 
 	it("removes every goal in the draft with undo", async () => {
-		renderApp("/nutrition-goals");
-		fireEvent.press(await screen.findByText("Remove all goals"));
+		await renderApp("/nutrition-goals");
+		await fireEvent.press(await screen.findByText("Remove all goals"));
 		expect(
 			screen.getByText("No goals. The diary shows totals only."),
 		).toBeTruthy();
 		await armToastAction();
-		fireEvent.press(screen.getByLabelText("Undo"));
+		await fireEvent.press(screen.getByLabelText("Undo"));
 		expect(screen.getByLabelText("Fat maximum").props.value).toBe("80");
 	});
 
 	it("says which days a backdated change covers", async () => {
 		serveGoals(saved, { nextEffectiveFrom: null });
-		renderApp("/nutrition-goals?date=2026-09-28");
+		await renderApp("/nutrition-goals?date=2026-09-28");
 		expect(
 			await screen.findByText(/Also applies to .*28.* through today\./),
 		).toBeTruthy();
@@ -160,9 +162,12 @@ describe("nutrition goal editor", () => {
 		mockUseMutation.mockReturnValue(
 			asMutation(jest.fn().mockRejectedValue(new Error("offline"))),
 		);
-		renderApp("/nutrition-goals");
-		fireEvent.changeText(await screen.findByLabelText("Fat maximum"), "75");
-		fireEvent.press(screen.getByLabelText("Save goals"));
+		await renderApp("/nutrition-goals");
+		await fireEvent.changeText(
+			await screen.findByLabelText("Fat maximum"),
+			"75",
+		);
+		await fireEvent.press(screen.getByLabelText("Save goals"));
 		expect(
 			await screen.findByText(
 				"Your goals could not be saved. Your changes are still here.",
@@ -179,7 +184,7 @@ describe("nutrition goal editor", () => {
 		} as ReturnType<typeof useConvexConnectionState>);
 		mockUseQuery.mockReturnValue(undefined);
 
-		renderApp("/nutrition-goals");
+		await renderApp("/nutrition-goals");
 		await act(async () => {
 			jest.advanceTimersByTime(OFFLINE_GRACE_MS);
 		});
@@ -199,11 +204,14 @@ describe("nutrition goal editor", () => {
 				}),
 		);
 		mockUseMutation.mockReturnValue(asMutation(save));
-		renderApp("/nutrition-goals");
-		fireEvent.changeText(await screen.findByLabelText("Fat maximum"), "75");
+		await renderApp("/nutrition-goals");
+		await fireEvent.changeText(
+			await screen.findByLabelText("Fat maximum"),
+			"75",
+		);
 		const saveButton = screen.getByLabelText("Save goals");
-		fireEvent.press(saveButton);
-		fireEvent.press(saveButton);
+		await fireEvent.press(saveButton);
+		await fireEvent.press(saveButton);
 
 		expect(save).toHaveBeenCalledTimes(1);
 		await act(async () => resolveSave());

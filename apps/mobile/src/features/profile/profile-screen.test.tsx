@@ -19,14 +19,14 @@ jest.mock("@clerk/expo", () => ({
 }));
 
 it("shows the signed-in identity and unavailable totals, and always confirms sign-out", async () => {
-	renderApp("/profile");
+	await renderApp("/profile");
 	expect(await screen.findByText("Alex Athlete")).toBeTruthy();
 	expect(screen.getByText("alex@example.test")).toBeTruthy();
 	expect(screen.queryByText("142")).toBeNull();
 	expect(screen.getAllByText("—")).toHaveLength(3);
-	fireEvent.press(screen.getByRole("button", { name: "Sign out" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Sign out" }));
 	expect(await screen.findByText("Sign out?")).toBeTruthy();
 	expect(mockSignOut).not.toHaveBeenCalled();
-	fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
 	expect(mockSignOut).not.toHaveBeenCalled();
 });
