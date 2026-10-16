@@ -1,13 +1,13 @@
 import { roundForDisplay } from "@foundry/core/nutrition";
-import { Stack, useNavigation } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
-import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
+import type { NativeStackNavigationOptions } from "expo-router";
+import { Stack, useNavigation, usePreventRemove } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Keyboard,
 	Pressable,
 	ScrollView,
+	type ScrollViewInstance,
 	Switch,
 	TextInput,
 	View,
@@ -99,7 +99,7 @@ export function PersonalFoodEditor({
 			onSaved(saved);
 		},
 	});
-	const scroll = useRef<ScrollView>(null);
+	const scroll = useRef<ScrollViewInstance>(null);
 	/** The latest handlers, for header items that outlive a render. */
 	const actions = useRef<{
 		save: () => unknown;

@@ -19,38 +19,12 @@ import { ConfirmProvider } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { ToastProvider } from "../ui/toast";
 
-// Expo Router's native prevent-remove provider mutates its parent during
-// react-test-renderer effect cleanup. The router still dispatches the real
-// beforeRemove action here; this adapter tests the screen's decision without
-// that renderer-only provider warning.
-jest.mock("expo-router/build/react-navigation/core", () => ({
-	...jest.requireActual("expo-router/build/react-navigation/core"),
-	usePreventRemove: (
-		preventRemove: boolean,
-		callback: (event: { data: { action: unknown } }) => void,
-	) => {
-		const React = require("react") as typeof import("react");
-		const { useNavigation } =
-			require("expo-router") as typeof import("expo-router");
-		const navigation = useNavigation();
-		React.useEffect(
-			() =>
-				navigation.addListener("beforeRemove", (event) => {
-					if (!preventRemove) return;
-					event.preventDefault();
-					callback({ data: event.data });
-				}),
-			[navigation, preventRemove, callback],
-		);
-	},
-}));
-
 const mockUseMutation = jest.mocked(useMutation);
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseConnectionState = jest.mocked(useConvexConnectionState);
 
-afterEach(() => {
-	act(() => cleanup());
+afterEach(async () => {
+	await act(() => cleanup());
 });
 
 const saved = {
@@ -98,8 +72,8 @@ function History() {
 	return <AppText>Activity history</AppText>;
 }
 
-function renderEditor(path = "/endurance-editor?sport=running") {
-	return renderRouter(
+async function renderEditor(path = "/endurance-editor?sport=running") {
+	return await renderRouter(
 		{
 			_layout: Layout,
 			index: Home,
@@ -122,9 +96,7 @@ function mockMutations(impl: Record<string, jest.Mock>) {
 }
 
 async function pressAndFlush(label: string) {
-	await act(async () => {
-		fireEvent.press(screen.getByText(label));
-	});
+	await fireEvent.press(screen.getByText(label));
 }
 
 beforeEach(() => {
@@ -142,10 +114,10 @@ describe("endurance editor", () => {
 			.mockRejectedValueOnce(new Error("offline"))
 			.mockResolvedValue("run-1");
 		mockMutations({ "enduranceActivities:create": create });
-		renderEditor();
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5.2");
-		fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
-		fireEvent.press(screen.getByText("Save activity"));
+		await renderEditor();
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5.2");
+		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
+		await fireEvent.press(screen.getByText("Save activity"));
 		expect(await screen.findByText("offline")).toBeTruthy();
 		expect(screen.getByLabelText("Distance").props.value).toBe("5.2");
 		await pressAndFlush("Save activity");
@@ -161,10 +133,10 @@ describe("endurance editor", () => {
 			isWebSocketConnected: false,
 		} as ReturnType<typeof useConvexConnectionState>);
 		mockMutations({ "enduranceActivities:create": create });
-		renderEditor();
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5");
-		fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
-		fireEvent.press(screen.getByText("Save activity"));
+		await renderEditor();
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
+		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
+		await fireEvent.press(screen.getByText("Save activity"));
 		expect(
 			await screen.findByText(
 				"Connect to save this activity. Your input is still here.",
@@ -175,8 +147,8 @@ describe("endurance editor", () => {
 	});
 
 	it("opens the date picker from the grouped date row", async () => {
-		renderEditor();
-		fireEvent.press(screen.getByLabelText("Date"));
+		await renderEditor();
+		await fireEvent.press(screen.getByLabelText("Date"));
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
@@ -189,12 +161,12 @@ describe("endurance editor", () => {
 				}),
 		);
 		mockMutations({ "enduranceActivities:create": create });
-		renderEditor();
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5");
-		fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
+		await renderEditor();
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
+		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
 		const button = screen.getByText("Save activity");
-		fireEvent.press(button);
-		fireEvent.press(button);
+		await fireEvent.press(button);
+		await fireEvent.press(button);
 		await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
 		await act(async () => resolveSave("run-1"));
 	});
@@ -208,12 +180,12 @@ describe("endurance editor", () => {
 				}),
 		);
 		mockMutations({ "enduranceActivities:create": create });
-		renderEditor("/");
-		fireEvent.press(screen.getByText("Open editor"));
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5");
-		fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
-		fireEvent.press(screen.getByText("Save activity"));
-		act(() => router.back());
+		await renderEditor("/");
+		await fireEvent.press(screen.getByText("Open editor"));
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
+		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
+		await fireEvent.press(screen.getByText("Save activity"));
+		await act(() => router.back());
 		expect(screen.getByLabelText("Distance").props.value).toBe("5");
 		expect(screen.queryByText("Discard changes?")).toBeNull();
 		await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
@@ -230,12 +202,12 @@ describe("endurance editor", () => {
 			"enduranceActivities:create": create,
 			"enduranceActivities:update": update,
 		});
-		renderEditor();
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5");
-		fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
-		fireEvent.press(screen.getByText("Save activity"));
+		await renderEditor();
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
+		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
+		await fireEvent.press(screen.getByText("Save activity"));
 		await screen.findByText("offline");
-		fireEvent.changeText(screen.getByLabelText("Distance"), "6");
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "6");
 		await pressAndFlush("Save activity");
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(create.mock.calls[0][0]).toEqual(create.mock.calls[1][0]);
@@ -258,13 +230,13 @@ describe("endurance editor", () => {
 			"enduranceActivities:create": create,
 			"enduranceActivities:update": update,
 		});
-		renderEditor();
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5");
-		fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
-		fireEvent.press(screen.getByText("Save activity"));
+		await renderEditor();
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
+		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
+		await fireEvent.press(screen.getByText("Save activity"));
 		await screen.findByText("offline");
-		fireEvent.changeText(screen.getByLabelText("Distance"), "6");
-		fireEvent.press(screen.getByText("Save activity"));
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "6");
+		await fireEvent.press(screen.getByText("Save activity"));
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		await waitFor(() =>
 			expect(
@@ -284,13 +256,13 @@ describe("endurance editor", () => {
 		const update = jest.fn().mockResolvedValue(null);
 		mockUseQuery.mockReturnValue(saved);
 		mockMutations({ "enduranceActivities:update": update });
-		renderEditor("/endurance/run-1");
-		fireEvent.press(screen.getByText("Edit"));
-		fireEvent.changeText(screen.getByLabelText("Title"), "");
-		fireEvent.changeText(screen.getByLabelText("Notes"), "");
-		fireEvent.changeText(screen.getByLabelText("Elevation gain"), "");
-		fireEvent.changeText(screen.getByLabelText("Average heart rate"), "");
-		fireEvent.changeText(screen.getByLabelText("Effort"), "");
+		await renderEditor("/endurance/run-1");
+		await fireEvent.press(screen.getByText("Edit"));
+		await fireEvent.changeText(screen.getByLabelText("Title"), "");
+		await fireEvent.changeText(screen.getByLabelText("Notes"), "");
+		await fireEvent.changeText(screen.getByLabelText("Elevation gain"), "");
+		await fireEvent.changeText(screen.getByLabelText("Average heart rate"), "");
+		await fireEvent.changeText(screen.getByLabelText("Effort"), "");
 		await pressAndFlush("Save activity");
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0]).toMatchObject({
@@ -303,12 +275,12 @@ describe("endurance editor", () => {
 	});
 
 	it("asks before discarding an edited form on Back", async () => {
-		renderEditor("/");
-		fireEvent.press(screen.getByText("Open editor"));
-		fireEvent.changeText(screen.getByLabelText("Distance"), "5");
-		act(() => router.back());
+		await renderEditor("/");
+		await fireEvent.press(screen.getByText("Open editor"));
+		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
+		await act(() => router.back());
 		expect(await screen.findByText("Discard changes?")).toBeTruthy();
-		fireEvent.press(screen.getByText("Keep editing"));
+		await fireEvent.press(screen.getByText("Keep editing"));
 		expect(screen.getByLabelText("Distance").props.value).toBe("5");
 	});
 });
@@ -321,8 +293,8 @@ describe("endurance detail", () => {
 		} as ReturnType<typeof useConvexConnectionState>);
 		mockUseQuery.mockReturnValue(saved);
 		mockMutations({ "enduranceActivities:remove": remove });
-		renderEditor("/endurance/run-1");
-		fireEvent.press(screen.getByText("Delete"));
+		await renderEditor("/endurance/run-1");
+		await fireEvent.press(screen.getByText("Delete"));
 		expect(
 			await screen.findByText("Connect to delete this activity."),
 		).toBeTruthy();
@@ -334,8 +306,8 @@ describe("endurance detail", () => {
 		const remove = jest.fn().mockResolvedValue(null);
 		mockUseQuery.mockReturnValue(saved);
 		mockMutations({ "enduranceActivities:remove": remove });
-		renderEditor("/endurance/run-1");
-		fireEvent.press(screen.getByText("Delete"));
+		await renderEditor("/endurance/run-1");
+		await fireEvent.press(screen.getByText("Delete"));
 		expect(await screen.findByText("Delete this activity?")).toBeTruthy();
 		expect(remove).not.toHaveBeenCalled();
 		await pressAndFlush("Delete run");

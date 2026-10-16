@@ -15,6 +15,7 @@ import {
 	Pressable,
 	StyleSheet,
 	TextInput,
+	type TextInputInstance,
 	type TextInputProps,
 	View,
 } from "react-native";
@@ -62,7 +63,7 @@ export function AuthScreen({
 export function AuthInput({
 	ref,
 	...rest
-}: TextInputProps & { ref?: Ref<TextInput> }) {
+}: TextInputProps & { ref?: Ref<TextInputInstance> }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	return (

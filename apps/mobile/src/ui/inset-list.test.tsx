@@ -6,9 +6,9 @@ import { InsetList, InsetRow } from "./inset-list";
 // iOS), against the `@expo/ui` mock in jest.setup.ts. The RN drawing is
 // covered by the Android device pass, not here.
 
-it("renders a section with header, footer and rows the user can press", () => {
+it("renders a section with header, footer and rows the user can press", async () => {
 	const open = jest.fn();
-	render(
+	await render(
 		<InsetList header="Library" footer="Benchmarks and your own.">
 			<InsetRow
 				title="Exercises"
@@ -23,16 +23,16 @@ it("renders a section with header, footer and rows the user can press", () => {
 	expect(screen.getByText("Library")).toBeTruthy();
 	expect(screen.getByText("Benchmarks and your own.")).toBeTruthy();
 	expect(screen.getByText("12")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Exercises, 42 exercises"));
+	await fireEvent.press(screen.getByLabelText("Exercises, 42 exercises"));
 	expect(open).toHaveBeenCalledTimes(1);
 	// A row without onPress is not announced as a button.
 	expect(screen.getByLabelText("WODs").props.accessibilityRole).toBeUndefined();
 });
 
-it("puts every action in the context menu and only swipeable ones in the swipe", () => {
+it("puts every action in the context menu and only swipeable ones in the swipe", async () => {
 	const edit = jest.fn();
 	const remove = jest.fn();
-	render(
+	await render(
 		<InsetList>
 			<InsetRow
 				title="Push day"
@@ -52,12 +52,12 @@ it("puts every action in the context menu and only swipeable ones in the swipe",
 	expect(swipe.props.allowsFullSwipe).toBe(false);
 	expect(screen.getAllByLabelText("Delete routine")).toHaveLength(2);
 	expect(screen.getAllByLabelText("Edit routine")).toHaveLength(1);
-	fireEvent.press(screen.getAllByLabelText("Delete routine")[0]);
+	await fireEvent.press(screen.getAllByLabelText("Delete routine")[0]);
 	expect(remove).toHaveBeenCalledTimes(1);
 });
 
-it("keeps a row without actions free of swipe and menu wrappers", () => {
-	render(
+it("keeps a row without actions free of swipe and menu wrappers", async () => {
+	await render(
 		<InsetList>
 			<InsetRow title="Language" value="Nederlands" chevron />
 		</InsetList>,

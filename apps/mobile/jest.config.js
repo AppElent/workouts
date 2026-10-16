@@ -35,7 +35,13 @@ const mustTransform = [
 
 module.exports = {
 	preset: "jest-expo",
-	setupFiles: ["<rootDir>/jest.setup.ts"],
+	setupFiles: [
+		require.resolve("react-native-gesture-handler/jestSetup"),
+		"<rootDir>/jest.setup.ts",
+	],
+	// Reanimated 4.7 / Worklets 0.13 (SDK 58) load JSI-only `.native` builds
+	// unless Jest resolves their test entry points through Reanimated's resolver.
+	resolver: require.resolve("react-native-reanimated/jest/resolver"),
 	testMatch: ["<rootDir>/src/**/*.test.ts", "<rootDir>/src/**/*.test.tsx"],
 	// Both separators everywhere: on Windows these patterns are tested against
 	// backslash paths, and a `node_modules/` written with a forward slash alone

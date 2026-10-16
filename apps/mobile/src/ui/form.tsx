@@ -12,8 +12,10 @@ import {
 	Platform,
 	Pressable,
 	ScrollView,
+	type ScrollViewInstance,
 	StyleSheet,
 	TextInput,
+	type TextInputInstance,
 	type TextInputProps,
 	View,
 	type ViewStyle,
@@ -65,7 +67,7 @@ export function FormScreen({
 	primaryAction?: PrimaryAction;
 	primaryActionPlacement?: "fixed" | "header";
 	contentStyle?: ViewStyle;
-	scrollRef?: Ref<ScrollView>;
+	scrollRef?: Ref<ScrollViewInstance>;
 	/** Keep the scroll view at the native sheet root so UIKit owns its gestures. */
 	nativeSheet?: boolean;
 }) {
@@ -294,7 +296,7 @@ export function InlineNumberFieldRow({
 	suffix: string;
 	accessory?: ReactNode;
 	inputStyle?: TextInputProps["style"];
-	inputRef?: Ref<TextInput>;
+	inputRef?: Ref<TextInputInstance>;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -395,6 +397,7 @@ export function AddRow({
 		<Pressable
 			onPress={onPress}
 			accessibilityRole="button"
+			accessibilityLabel={label}
 			style={({ pressed }) => [styles.actionRow, pressed && styles.pressedRow]}
 		>
 			<AppText style={styles.addGlyph}>＋</AppText>

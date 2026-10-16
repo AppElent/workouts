@@ -1,6 +1,11 @@
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	type ScrollViewInstance,
+	View,
+} from "react-native";
 import {
 	formatLongDate,
 	isoDateToLocalDate,
@@ -24,7 +29,7 @@ export function DiaryWeekStrip({
 }) {
 	const { locale, t } = useI18n();
 	const colors = useTokens();
-	const scroll = useRef<ScrollView>(null);
+	const scroll = useRef<ScrollViewInstance>(null);
 	const [width, setWidth] = useState(0);
 	const d = isoDateToLocalDate(date);
 	d.setDate(d.getDate() - ((d.getDay() + 6) % 7));

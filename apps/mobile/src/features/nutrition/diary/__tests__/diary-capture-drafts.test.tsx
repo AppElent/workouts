@@ -28,7 +28,7 @@ beforeEach(() => {
 
 describe("Capture Drafts in the diary", () => {
 	it("shows a note under its meal without counting it as intake", async () => {
-		renderApp(undefined, undefined, undefined, ({ draftRepository }) =>
+		await renderApp(undefined, undefined, undefined, ({ draftRepository }) =>
 			draftRepository.create("test-user", {
 				date: todayIsoDate(),
 				meal: "lunch",
@@ -44,18 +44,18 @@ describe("Capture Drafts in the diary", () => {
 	});
 
 	it("saves the search text as a note and lands back on the diary", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 		// Saving a note lives in the + menu now. With nothing typed there is
 		// nothing to file, so the menu does not offer it.
-		fireEvent.press(await screen.findByLabelText("More food actions"));
+		await fireEvent.press(await screen.findByLabelText("More food actions"));
 		expect(screen.queryByText("Save as note")).toBeNull();
 
-		fireEvent.changeText(
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"  wrap from the station ",
 		);
-		fireEvent.press(await screen.findByText("Save as note"));
+		await fireEvent.press(await screen.findByText("Save as note"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(await screen.findByText("  wrap from the station ")).toBeTruthy();
@@ -66,19 +66,23 @@ describe("Capture Drafts in the diary", () => {
 		).toMatchObject([{ meal: "lunch", note: "  wrap from the station " }]);
 	});
 
-	function seedLunchNote(note = "apple") {
-		return renderApp(undefined, undefined, undefined, ({ draftRepository }) =>
-			draftRepository.create("test-user", {
-				date: todayIsoDate(),
-				meal: "lunch",
-				note,
-			}),
+	async function seedLunchNote(note = "apple") {
+		return await renderApp(
+			undefined,
+			undefined,
+			undefined,
+			({ draftRepository }) =>
+				draftRepository.create("test-user", {
+					date: todayIsoDate(),
+					meal: "lunch",
+					note,
+				}),
 		);
 	}
 
 	it("tapping a note reopens the search with the note as the query", async () => {
-		const app = seedLunchNote("apple");
-		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
+		const app = await seedLunchNote("apple");
+		await fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(app.getSearchParams()).toMatchObject({
@@ -91,22 +95,22 @@ describe("Capture Drafts in the diary", () => {
 		);
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		// Resolving a note never offers to file the same text as a second note.
-		fireEvent.press(screen.getByLabelText("More food actions"));
+		await fireEvent.press(screen.getByLabelText("More food actions"));
 		expect(screen.queryByText("Save as note")).toBeNull();
 	});
 
 	it("removes the note once the resolving session logged something for that meal", async () => {
-		const app = seedLunchNote("apple");
-		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
-		fireEvent.press(await screen.findByText("Apple"));
-		fireEvent.press(await screen.findByLabelText("Add & continue"));
+		const app = await seedLunchNote("apple");
+		await fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
+		await fireEvent.press(await screen.findByText("Apple"));
+		await fireEvent.press(await screen.findByLabelText("Add & continue"));
 		// The serving sheet closing is the signal the log landed; there is no
 		// confirmation line on the browser any more.
 		await waitFor(() =>
 			expect(screen.queryByLabelText("Add & continue")).toBeNull(),
 		);
 
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 
 		await waitFor(() =>
@@ -120,18 +124,18 @@ describe("Capture Drafts in the diary", () => {
 	});
 
 	it("keeps the note when the resolving session logged nothing", async () => {
-		const app = seedLunchNote("apple");
-		fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
+		const app = await seedLunchNote("apple");
+		await fireEvent.press(await screen.findByLabelText("Resolve note: apple"));
 		await screen.findByText("Apple");
 
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 
 		expect(await screen.findByLabelText("Resolve note: apple")).toBeTruthy();
 	});
 
 	it("marks dates with unresolved notes and opens the chosen day", async () => {
-		renderApp(undefined, undefined, undefined, ({ draftRepository }) => {
+		await renderApp(undefined, undefined, undefined, ({ draftRepository }) => {
 			draftRepository.create("test-user", {
 				date: shiftIsoDate(todayIsoDate(), -1),
 				meal: "dinner",
@@ -146,7 +150,7 @@ describe("Capture Drafts in the diary", () => {
 		await screen.findByText("Today");
 		expect(screen.queryByText("Pizza")).toBeNull();
 
-		fireEvent.press(
+		await fireEvent.press(
 			await screen.findByLabelText(
 				`${formatLongDate(shiftIsoDate(todayIsoDate(), -3), "en")}, 1 unresolved note`,
 			),

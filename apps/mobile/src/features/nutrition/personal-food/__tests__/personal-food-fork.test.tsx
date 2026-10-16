@@ -25,31 +25,41 @@ const mockUseMutation = jest.mocked(useMutation);
 
 /** Open Find Food for a meal and start correcting the promoted apple. */
 async function correctTheApple(meal = "Lunch", allFoods = "Catalogue") {
-	fireEvent.press(await screen.findByLabelText(`Add food to ${meal}`));
-	fireEvent.press(await screen.findByRole("tab", { name: allFoods }));
-	fireEvent.changeText(
+	await fireEvent.press(await screen.findByLabelText(`Add food to ${meal}`));
+	await fireEvent.press(await screen.findByRole("tab", { name: allFoods }));
+	await fireEvent.changeText(
 		screen.getByPlaceholderText(
 			allFoods === "Catalogus" ? "Zoek eten" : "Search foods",
 		),
 		allFoods === "Catalogus" ? "appel" : "apple",
 	);
-	fireEvent.press(
+	await fireEvent.press(
 		await screen.findByText(allFoods === "Catalogus" ? "Appel" : "Apple"),
 	);
 	await sheetMenu("Correct this food");
 }
 
+/**
+ * The correction's row, topmost first: the amount sheet's Modal stays open over
+ * the list, and RNTL 14 no longer hides the list behind it.
+ */
+async function findCorrection() {
+	return (
+		await screen.findAllByText(/^Your correction of Apple w skin av( · |$)/)
+	).at(-1) as never;
+}
+
 /** Opens the amount sheet's ⋯ menu and picks an item. */
 async function sheetMenu(label: string) {
-	fireEvent.press(
+	await fireEvent.press(
 		(await screen.findAllByLabelText(/^(More|Meer)$/)).at(-1) as never,
 	);
-	fireEvent.press((await screen.findAllByText(label)).at(-1) as never);
+	await fireEvent.press((await screen.findAllByText(label)).at(-1) as never);
 }
 
 describe("correcting a shipped food", () => {
 	it("opens Personal Food authoring pre-populated from the shipped food", async () => {
-		renderApp();
+		await renderApp();
 		await correctTheApple();
 
 		expect(await screen.findByLabelText("Name")).toBeTruthy();
@@ -61,12 +71,12 @@ describe("correcting a shipped food", () => {
 	});
 
 	it("saves a new food under its own id, leaving the shipped one alone", async () => {
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		await correctTheApple();
-		fireEvent.changeText(screen.getByLabelText("Energy"), "41");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "41");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await findCorrection();
 		const [fork] = repository.list();
 		expect(fork.id).not.toBe("shipped:apple-w-skin-av");
 		expect(fork.nutrients.energy).toEqual({ kind: "value", amount: 41 });
@@ -75,12 +85,12 @@ describe("correcting a shipped food", () => {
 	});
 
 	it("records the shipped source, NEVO figures and the local edit", async () => {
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		await correctTheApple();
-		fireEvent.changeText(screen.getByLabelText("Energy"), "41");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "41");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await findCorrection();
 		expect(repository.list()[0].provenance).toEqual({
 			recordOrigin: "personal",
 			nutritionSource: "nevo",
@@ -96,26 +106,29 @@ describe("correcting a shipped food", () => {
 	});
 
 	it("uses one name and records the resulting local correction", async () => {
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		await correctTheApple();
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await findCorrection();
 		expect(repository.list()[0].name).toEqual({ en: "Apple", nl: "Apple" });
 		expect(repository.list()[0].provenance.locallyEdited).toBe(true);
 		expect(screen.getByText("You changed this food.")).toBeTruthy();
 	});
 
 	it("replaces the shipped food in ordinary search", async () => {
-		renderApp();
+		await renderApp();
 		await correctTheApple();
-		fireEvent.changeText(screen.getByLabelText("Name"), "Elstar apple");
-		fireEvent.changeText(screen.getByLabelText("Energy"), "41");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
-		fireEvent.press(screen.getByLabelText("Close serving options"));
+		await fireEvent.changeText(screen.getByLabelText("Name"), "Elstar apple");
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "41");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await findCorrection();
+		await fireEvent.press(screen.getByLabelText("Close serving options"));
 
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 
 		expect(await screen.findByText("Elstar apple")).toBeTruthy();
 		// The full catalogue is the deliberate broader library: it retains the
@@ -127,13 +140,16 @@ describe("correcting a shipped food", () => {
 	});
 
 	it("keeps the replaced-source provenance visible in the full catalogue", async () => {
-		renderApp();
+		await renderApp();
 		await correctTheApple();
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
-		fireEvent.press(screen.getByLabelText("Close serving options"));
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await findCorrection();
+		await fireEvent.press(screen.getByLabelText("Close serving options"));
 
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 		expect((await screen.findAllByText("Apple")).length).toBeGreaterThan(0);
 		expect(
 			screen.getByText(/^Replaced by your correction( · |$)/),
@@ -141,10 +157,10 @@ describe("correcting a shipped food", () => {
 	});
 
 	it("restores the shipped food when the correction is deleted", async () => {
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		await correctTheApple();
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await findCorrection();
 
 		await sheetMenu("Delete Personal Food");
 		expect(await screen.findByText("Delete this correction?")).toBeTruthy();
@@ -156,10 +172,13 @@ describe("correcting a shipped food", () => {
 		const buttons = screen.getAllByText("Delete Personal Food", {
 			exact: true,
 		});
-		fireEvent.press(buttons[buttons.length - 1]);
+		await fireEvent.press(buttons[buttons.length - 1]);
 
 		await waitFor(() => expect(repository.list()).toEqual([]));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 		expect(await screen.findByText("Apple")).toBeTruthy();
 	});
 });
@@ -170,13 +189,13 @@ describe("what a correction does to the diary", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		await correctTheApple();
-		fireEvent.changeText(screen.getByLabelText("Energy"), "41");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "41");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await findCorrection();
 
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -197,22 +216,27 @@ describe("what a correction does to the diary", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(await screen.findByRole("tab", { name: "Catalogue" }));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent.press(await screen.findByText("Apple"));
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await fireEvent.press(
+			await screen.findByRole("tab", { name: "Catalogue" }),
+		);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		await fireEvent.press(await screen.findByText("Apple"));
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		const before = structuredClone(log.mock.calls[0][0]);
 		// There is no "Done" any more — the pushed route's back chevron closes the
 		// browser, and every row has already committed its own log.
-		testRouter.back();
+		await testRouter.back();
 
 		await correctTheApple("Dinner");
-		fireEvent.changeText(screen.getByLabelText("Energy"), "41");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "41");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await findCorrection();
 
 		// The snapshot already written is untouched: same id, same figures. The
 		// correction changes what the next search returns, never what history says.
@@ -232,13 +256,13 @@ describe("correcting a shipped food offline", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		await correctTheApple();
-		fireEvent.changeText(screen.getByLabelText("Energy"), "41");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
-		await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "41");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await findCorrection();
 
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		expect(
 			await screen.findByText(
@@ -248,37 +272,48 @@ describe("correcting a shipped food offline", () => {
 		expect(repository.list()[0].provenance.forkedFrom).toBe(
 			"shipped:apple-w-skin-av",
 		);
-		fireEvent.press(screen.getByLabelText("Close serving options"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		expect(
-			await screen.findByText(/^Your correction of Apple w skin av( · |$)/),
-		).toBeTruthy();
+		await fireEvent.press(screen.getByLabelText("Close serving options"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		expect(await findCorrection()).toBeTruthy();
 		expect(screen.queryByText("Apple w skin av")).toBeNull();
 	});
 });
 
 describe("correcting a shipped food in Dutch", () => {
 	it("names the correction, its source and its restoration in Dutch", async () => {
-		renderApp("/language");
-		fireEvent.press(await screen.findByLabelText("Nederlands"));
-		testRouter.navigate("/nutrition");
-		fireEvent.press(await screen.findByLabelText("Voeg eten toe aan Lunch"));
-		fireEvent.press(await screen.findByRole("tab", { name: "Catalogus" }));
-		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
-		fireEvent.press(await screen.findByText("Appel"));
+		await renderApp("/language");
+		await fireEvent.press(await screen.findByLabelText("Nederlands"));
+		await testRouter.navigate("/nutrition");
+		await fireEvent.press(
+			await screen.findByLabelText("Voeg eten toe aan Lunch"),
+		);
+		await fireEvent.press(
+			await screen.findByRole("tab", { name: "Catalogus" }),
+		);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Zoek eten"),
+			"appel",
+		);
+		await fireEvent.press(await screen.findByText("Appel"));
 
 		await sheetMenu("Dit voedingsmiddel corrigeren");
 		expect(await screen.findByLabelText("Naam")).toBeTruthy();
-		fireEvent.press(
+		await fireEvent.press(
 			screen.getByLabelText("Persoonlijk voedingsmiddel opslaan"),
 		);
 
 		expect(
 			await screen.findByText("Jouw correctie van Appel m schil gem"),
 		).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Sluit portiekeuze"));
-		fireEvent.changeText(screen.getByPlaceholderText("Zoek eten"), "appel");
-		fireEvent.press(screen.getByRole("tab", { name: "Catalogus" }));
+		await fireEvent.press(screen.getByLabelText("Sluit portiekeuze"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Zoek eten"),
+			"appel",
+		);
+		await fireEvent.press(screen.getByRole("tab", { name: "Catalogus" }));
 
 		expect(
 			await screen.findByText(/^Vervangen door jouw correctie( · |$)/),
@@ -307,11 +342,11 @@ it("copies supplementary Servings into a correction once", async () => {
 				loadMore: jest.fn(),
 			}) as never,
 	);
-	renderApp();
+	await renderApp();
 	await correctTheApple();
 	expect(await screen.findByText(/My bowl/)).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Save Personal Food"));
-	await screen.findByText(/^Your correction of Apple w skin av( · |$)/);
-	fireEvent.press(screen.getByLabelText("Choose serving"));
+	await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+	await findCorrection();
+	await fireEvent.press(screen.getByLabelText("Choose serving"));
 	expect(screen.getAllByText(/My bowl/).length).toBeGreaterThan(0);
 });

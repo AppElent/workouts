@@ -17,6 +17,13 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// Gesture Handler 3 installs UI-runtime bindings at import time, but Worklets'
+// web build (the one Jest resolves) throws from `getUIRuntimeHolder`.
+jest.mock("react-native-worklets", () => ({
+	...jest.requireActual("react-native-worklets"),
+	getUIRuntimeHolder: () => ({}),
+}));
+
 // UIKit renders native header items outside React's test tree. Expose their
 // public callbacks and accessibility state without mocking the navigation stack.
 jest.mock(

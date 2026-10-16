@@ -27,28 +27,6 @@ jest.mock("../../ui/inset-list", () =>
 jest.mock("../../ui/selection-menu", () =>
 	jest.requireActual("../../ui/selection-menu.tsx"),
 );
-jest.mock("expo-router/build/react-navigation/core", () => ({
-	...jest.requireActual("expo-router/build/react-navigation/core"),
-	usePreventRemove: (
-		blocked: boolean,
-		callback: (event: { data: { action: unknown } }) => void,
-	) => {
-		const React = require("react") as typeof import("react");
-		const navigation = (
-			require("expo-router") as typeof import("expo-router")
-		).useNavigation();
-		React.useEffect(
-			() =>
-				navigation.addListener("beforeRemove", (event) => {
-					if (blocked) {
-						event.preventDefault();
-						callback({ data: event.data });
-					}
-				}),
-			[navigation, blocked, callback],
-		);
-	},
-}));
 const exerciseId = "shipped:exercise:barbell-back-squat";
 const session = {
 	_id: "session-1",
@@ -157,8 +135,8 @@ beforeEach(() => {
 			),
 		);
 });
-function mount() {
-	return renderApp("/session?id=session-1", {
+async function mount() {
+	return await renderApp("/session?id=session-1", {
 		session: SessionRoute,
 		"set-editor/_layout": EditorLayout,
 		"set-editor/index": EditorRoute,
@@ -166,39 +144,39 @@ function mount() {
 	});
 }
 async function openEditor() {
-	fireEvent.press(
+	await fireEvent.press(
 		await screen.findByRole("button", { name: "Add set Barbell Back Squat" }),
 	);
 	return screen.findByLabelText("Weight");
 }
 it("keeps an unfinished set across closing and a fresh app mount without logging", async () => {
-	let app = mount();
-	fireEvent.changeText(await openEditor(), "72.5");
-	fireEvent.changeText(screen.getByLabelText("Reps"), "5");
-	act(() => router.back());
-	app.unmount();
-	app = mount();
+	let app = await mount();
+	await fireEvent.changeText(await openEditor(), "72.5");
+	await fireEvent.changeText(screen.getByLabelText("Reps"), "5");
+	await act(() => router.back());
+	await app.unmount();
+	app = await mount();
 	await openEditor();
 	expect(screen.getByDisplayValue("72.5")).toBeTruthy();
 	expect(screen.getByDisplayValue("5")).toBeTruthy();
 	expect(add).not.toHaveBeenCalled();
-	app.unmount();
+	await app.unmount();
 });
 it("recovers a committed Log after losing its response and restarting without a second write", async () => {
-	const app = mount();
+	const app = await mount();
 	await openEditor();
 	add.mockImplementation(async () => {
 		receipt = { setId: "set-1", status: "saved" };
 		throw new Error("Response lost");
 	});
-	fireEvent.press(screen.getByRole("button", { name: "Log set" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Log set" }));
 	await screen.findByText("Response lost");
 	const original = add.mock.calls[0][0];
 	expect(original.operationId).toBeTruthy();
-	app.unmount();
+	await app.unmount();
 	recoveryVisible = true;
-	mount();
-	fireEvent.press(
+	await mount();
+	await fireEvent.press(
 		await screen.findByRole("button", { name: "Add set Barbell Back Squat" }),
 	);
 	expect(
@@ -207,14 +185,18 @@ it("recovers a committed Log after losing its response and restarting without a 
 	expect(add).toHaveBeenCalledTimes(1);
 });
 it("stages a profile load until Apply and preserves RPE", async () => {
-	mount();
+	await mount();
 	await openEditor();
-	fireEvent.changeText(screen.getByLabelText("RPE"), "8.5");
-	fireEvent.press(screen.getByRole("button", { name: "Strength profile" }));
-	fireEvent.press(await screen.findByLabelText("80%"));
+	await fireEvent.changeText(screen.getByLabelText("RPE"), "8.5");
+	await fireEvent.press(
+		screen.getByRole("button", { name: "Strength profile" }),
+	);
+	await fireEvent.press(await screen.findByLabelText("80%"));
 	expect(add).not.toHaveBeenCalled();
-	fireEvent.press(screen.getByRole("radio", { name: "Measured 1RM: 80 kg" }));
-	fireEvent.press(screen.getByRole("button", { name: "Apply to set" }));
+	await fireEvent.press(
+		screen.getByRole("radio", { name: "Measured 1RM: 80 kg" }),
+	);
+	await fireEvent.press(screen.getByRole("button", { name: "Apply to set" }));
 	expect(await screen.findByDisplayValue("80")).toBeTruthy();
 	expect(screen.getByDisplayValue("8.5")).toBeTruthy();
 	expect(add).not.toHaveBeenCalled();
@@ -222,21 +204,21 @@ it("stages a profile load until Apply and preserves RPE", async () => {
 
 it("protects saved edits on Back and explicitly clears optional effort", async () => {
 	loggedSets = [loggedSet];
-	mount();
-	fireEvent.press(
+	await mount();
+	await fireEvent.press(
 		await screen.findByRole("button", {
 			name: "Edit set 1 Barbell Back Squat",
 		}),
 	);
-	fireEvent.changeText(await screen.findByLabelText("Weight"), "75");
-	act(() => router.back());
+	await fireEvent.changeText(await screen.findByLabelText("Weight"), "75");
+	await act(() => router.back());
 	expect(await screen.findByText("Discard changes?")).toBeTruthy();
-	fireEvent.press(screen.getByRole("button", { name: "Keep editing" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Keep editing" }));
 	expect(screen.getByDisplayValue("75")).toBeTruthy();
 	expect(update).not.toHaveBeenCalled();
-	fireEvent.changeText(screen.getByLabelText("Weight"), "70");
-	fireEvent.changeText(screen.getByLabelText("RPE"), "");
-	fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
+	await fireEvent.changeText(screen.getByLabelText("Weight"), "70");
+	await fireEvent.changeText(screen.getByLabelText("RPE"), "");
+	await fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
 	await screen.findByRole("button", { name: "Add set Barbell Back Squat" });
 	expect(update).toHaveBeenCalledWith({
 		id: "set-1",
@@ -249,20 +231,20 @@ it("protects saved edits on Back and explicitly clears optional effort", async (
 });
 it("prepares Repeat as input and records it only after Log", async () => {
 	loggedSets = [loggedSet];
-	mount();
-	fireEvent.press(
+	await mount();
+	await fireEvent.press(
 		await screen.findByRole("button", {
 			name: "Edit set 1 Barbell Back Squat",
 		}),
 	);
-	fireEvent.press(
+	await fireEvent.press(
 		await screen.findByRole("button", { name: "Repeat as new set" }),
 	);
 	await openEditor();
 	expect(screen.getByDisplayValue("70")).toBeTruthy();
 	expect(screen.getByDisplayValue("8.5")).toBeTruthy();
 	expect(add).not.toHaveBeenCalled();
-	fireEvent.press(screen.getByRole("button", { name: "Log set" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Log set" }));
 	await screen.findByRole("button", { name: "Add set Barbell Back Squat" });
 	expect(add).toHaveBeenCalledWith(
 		expect.objectContaining({ weight: 70, reps: 5, rpe: 8.5, setNumber: 2 }),
@@ -276,20 +258,20 @@ it("locks a pending Log against edits, dismissal and duplicate submissions", asy
 				resolve = done;
 			}),
 	);
-	mount();
+	await mount();
 	await openEditor();
-	fireEvent.press(screen.getByRole("button", { name: "Log set" }));
-	fireEvent.press(screen.getByRole("button", { name: "Saving…" }));
-	act(() => router.back());
+	await fireEvent.press(screen.getByRole("button", { name: "Log set" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Saving…" }));
+	await act(() => router.back());
 	expect(screen.getByLabelText("Weight")).toBeDisabled();
 	expect(add).toHaveBeenCalledTimes(1);
 	await act(async () => resolve?.());
 	await screen.findByRole("button", { name: "Add set Barbell Back Squat" });
 });
 it("allows offline input recovery while refusing to record performance", async () => {
-	const app = mount();
-	fireEvent.changeText(await openEditor(), "82.5");
-	app.unmount();
+	const app = await mount();
+	await fireEvent.changeText(await openEditor(), "82.5");
+	await app.unmount();
 	jest.mocked(useConvexConnectionState).mockReturnValue({
 		isWebSocketConnected: false,
 		hasEverConnected: true,
@@ -300,19 +282,19 @@ it("allows offline input recovery while refusing to record performance", async (
 		hasInflightRequests: false,
 		timeOfOldestInflightRequest: null,
 	});
-	mount();
+	await mount();
 	await openEditor();
 	expect(screen.getByDisplayValue("82.5")).toBeTruthy();
-	fireEvent.changeText(screen.getByLabelText("Reps"), "4");
+	await fireEvent.changeText(screen.getByLabelText("Reps"), "4");
 	expect(screen.getByRole("button", { name: "Log set" })).toBeDisabled();
 	expect(add).not.toHaveBeenCalled();
 });
 it("keeps input when session verification fails and never writes from an unverified session", async () => {
-	const app = mount();
-	fireEvent.changeText(await openEditor(), "77.5");
-	app.unmount();
+	const app = await mount();
+	await fireEvent.changeText(await openEditor(), "77.5");
+	await app.unmount();
 	currentSession = new Error("Unavailable");
-	renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
+	await renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
 		"set-editor/_layout": EditorLayout,
 		"set-editor/index": EditorRoute,
 		"set-editor/strength-profile": ProfileRoute,
@@ -322,14 +304,16 @@ it("keeps input when session verification fails and never writes from an unverif
 	expect(add).not.toHaveBeenCalled();
 });
 it("leaves weight, reps and RPE unchanged when returning without Apply", async () => {
-	mount();
+	await mount();
 	await openEditor();
-	fireEvent.changeText(screen.getByLabelText("RPE"), "7.5");
-	fireEvent.press(screen.getByRole("button", { name: "Strength profile" }));
-	fireEvent.press(
+	await fireEvent.changeText(screen.getByLabelText("RPE"), "7.5");
+	await fireEvent.press(
+		screen.getByRole("button", { name: "Strength profile" }),
+	);
+	await fireEvent.press(
 		await screen.findByRole("radio", { name: "Measured 1RM: 80 kg" }),
 	);
-	act(() => router.back());
+	await act(() => router.back());
 	expect(await screen.findByDisplayValue("60")).toBeTruthy();
 	expect(screen.getByDisplayValue("8")).toBeTruthy();
 	expect(screen.getByDisplayValue("7.5")).toBeTruthy();
@@ -337,32 +321,35 @@ it("leaves weight, reps and RPE unchanged when returning without Apply", async (
 });
 
 it("isolates unfinished input by account and restores it when its owner returns", async () => {
-	let app = mount();
-	fireEvent.changeText(await openEditor(), "91.5");
-	app.unmount();
+	let app = await mount();
+	await fireEvent.changeText(await openEditor(), "91.5");
+	await app.unmount();
 	mockSubject = "other-user";
-	app = renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
-		"set-editor/_layout": EditorLayout,
-		"set-editor/index": EditorRoute,
-	});
+	app = await renderApp(
+		`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`,
+		{
+			"set-editor/_layout": EditorLayout,
+			"set-editor/index": EditorRoute,
+		},
+	);
 	expect(screen.queryByDisplayValue("91.5")).toBeNull();
 	expect(screen.getByRole("button", { name: "Log set" })).toBeDisabled();
-	app.unmount();
+	await app.unmount();
 	mockSubject = "test-user";
-	mount();
+	await mount();
 	await openEditor();
 	expect(screen.getByDisplayValue("91.5")).toBeTruthy();
 	expect(add).not.toHaveBeenCalled();
 });
 it("does not replace stored input or send a Log when durable storage fails", async () => {
-	mount();
+	await mount();
 	await openEditor();
 	const stored = Storage.getItemSync("strength-set-drafts:v1:test-user");
 	const write = jest.spyOn(Storage, "setItemSync").mockImplementation(() => {
 		throw new Error("Disk unavailable");
 	});
 	try {
-		fireEvent.changeText(screen.getByLabelText("Weight"), "95");
+		await fireEvent.changeText(screen.getByLabelText("Weight"), "95");
 		expect(
 			await screen.findAllByText(/Could not access local set storage/),
 		).not.toHaveLength(0);
@@ -378,14 +365,17 @@ it("does not replace stored input or send a Log when durable storage fails", asy
 it.each(["completed", "cancelled"])(
 	"refuses to log a recovered draft into a %s session",
 	async (status) => {
-		const app = mount();
-		fireEvent.changeText(await openEditor(), "87.5");
-		app.unmount();
+		const app = await mount();
+		await fireEvent.changeText(await openEditor(), "87.5");
+		await app.unmount();
 		currentSession = { ...session, status };
-		renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
-			"set-editor/_layout": EditorLayout,
-			"set-editor/index": EditorRoute,
-		});
+		await renderApp(
+			`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`,
+			{
+				"set-editor/_layout": EditorLayout,
+				"set-editor/index": EditorRoute,
+			},
+		);
 		expect(
 			await screen.findByText(
 				"This session has ended. Unfinished sets cannot be logged.",
@@ -398,14 +388,14 @@ it.each(["completed", "cancelled"])(
 it("keeps historical saved-set corrections available without allowing new performance", async () => {
 	currentSession = { ...session, status: "completed" };
 	loggedSets = [loggedSet];
-	mount();
-	fireEvent.press(
+	await mount();
+	await fireEvent.press(
 		await screen.findByRole("button", {
 			name: "Edit set 1 Barbell Back Squat",
 		}),
 	);
-	fireEvent.changeText(await screen.findByLabelText("RPE"), "");
-	fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
+	await fireEvent.changeText(await screen.findByLabelText("RPE"), "");
+	await fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
 	await screen.findByRole("button", { name: "Edit set 1 Barbell Back Squat" });
 	expect(update).toHaveBeenCalledWith(
 		expect.objectContaining({ id: "set-1", rpe: null }),
@@ -424,18 +414,18 @@ it("retains a separate unfinished set for each exercise", async () => {
 			},
 		],
 	};
-	mount();
-	fireEvent.changeText(await openEditor(), "92.5");
-	act(() => router.back());
-	fireEvent.press(
+	await mount();
+	await fireEvent.changeText(await openEditor(), "92.5");
+	await act(() => router.back());
+	await fireEvent.press(
 		await screen.findByRole("button", { name: "Add set Barbell Bench Press" }),
 	);
-	fireEvent.changeText(await screen.findByLabelText("Weight"), "42.5");
-	act(() => router.back());
+	await fireEvent.changeText(await screen.findByLabelText("Weight"), "42.5");
+	await act(() => router.back());
 	await openEditor();
 	expect(screen.getByDisplayValue("92.5")).toBeTruthy();
-	act(() => router.back());
-	fireEvent.press(
+	await act(() => router.back());
+	await fireEvent.press(
 		await screen.findByRole("button", { name: "Add set Barbell Bench Press" }),
 	);
 	expect(await screen.findByDisplayValue("42.5")).toBeTruthy();
@@ -444,31 +434,31 @@ it("retains a separate unfinished set for each exercise", async () => {
 
 it("unlocks kept input after a confirmed rejected Log", async () => {
 	add.mockRejectedValue(new ConvexError("Set rejected"));
-	mount();
+	await mount();
 	await openEditor();
-	fireEvent.press(screen.getByRole("button", { name: "Log set" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Log set" }));
 	expect(await screen.findByText("Set rejected")).toBeTruthy();
 	expect(screen.getByLabelText("Weight")).not.toBeDisabled();
-	fireEvent.changeText(screen.getByLabelText("Weight"), "65");
+	await fireEvent.changeText(screen.getByLabelText("Weight"), "65");
 	expect(screen.getByDisplayValue("65")).toBeTruthy();
 });
 it("shows above-reference loads without claiming a zero-rep prediction", async () => {
-	mount();
-	fireEvent.changeText(await openEditor(), "120");
+	await mount();
+	await fireEvent.changeText(await openEditor(), "120");
 	expect(screen.getAllByText("Above 1RM")).toHaveLength(2);
 	expect(screen.queryByText("≈0")).toBeNull();
 });
 it("distinguishes unavailable references while preserving recovered input in Strength Profile", async () => {
-	const app = mount();
-	fireEvent.changeText(await openEditor(), "77.5");
-	app.unmount();
+	const app = await mount();
+	await fireEvent.changeText(await openEditor(), "77.5");
+	await app.unmount();
 	currentSession = new Error("Unavailable");
-	renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
+	await renderApp(`/set-editor?sessionId=session-1&exerciseId=${exerciseId}`, {
 		"set-editor/_layout": EditorLayout,
 		"set-editor/index": EditorRoute,
 		"set-editor/strength-profile": ProfileRoute,
 	});
-	fireEvent.press(
+	await fireEvent.press(
 		await screen.findByRole("button", { name: "Strength profile" }),
 	);
 	expect(
@@ -476,6 +466,6 @@ it("distinguishes unavailable references while preserving recovered input in Str
 			"Strength references are unavailable. Your unfinished input is kept.",
 		),
 	).toBeTruthy();
-	act(() => router.back());
+	await act(() => router.back());
 	expect(await screen.findByDisplayValue("77.5")).toBeTruthy();
 });

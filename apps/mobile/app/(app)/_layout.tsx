@@ -37,6 +37,9 @@ import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
 import { ToastProvider } from "../../src/ui/toast";
 
+// Keeps Coach beneath deep-linked app routes.
+export const unstable_settings = { anchor: "(coach)" };
+
 export default function AppLayout() {
 	const colors = useTokens();
 	const { isSignedIn } = useAuth();
@@ -63,7 +66,6 @@ export default function AppLayout() {
 														>
 															<OfflineBanner />
 															<Stack
-																initialRouteName="(coach)"
 																screenOptions={{
 																	headerShown: true,
 																	headerTintColor: colors.accent,

@@ -1,5 +1,6 @@
 import { render } from "@testing-library/react-native";
 import type { ReactElement } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
@@ -14,22 +15,24 @@ const metrics = {
 
 /**
  * Renders one screen or component outside the router with the app-wide
- * providers it needs: safe area, locale, theme, toasts, and confirmations.
+ * providers it needs: gesture root, safe area, locale, theme, toasts, and confirmations.
  * iOS confirmations go through `Alert.alert`; `NativeAlertHost` renders them as
  * pressable buttons. Use `renderApp` instead when navigation is under test.
  */
-export function renderScreen(ui: ReactElement) {
-	return render(
-		<SafeAreaProvider initialMetrics={metrics}>
-			<LocaleProvider>
-				<AppearanceProvider>
-					<NativeAlertHost>
-						<ToastProvider>
-							<ConfirmProvider>{ui}</ConfirmProvider>
-						</ToastProvider>
-					</NativeAlertHost>
-				</AppearanceProvider>
-			</LocaleProvider>
-		</SafeAreaProvider>,
+export async function renderScreen(ui: ReactElement) {
+	return await render(
+		<GestureHandlerRootView>
+			<SafeAreaProvider initialMetrics={metrics}>
+				<LocaleProvider>
+					<AppearanceProvider>
+						<NativeAlertHost>
+							<ToastProvider>
+								<ConfirmProvider>{ui}</ConfirmProvider>
+							</ToastProvider>
+						</NativeAlertHost>
+					</AppearanceProvider>
+				</LocaleProvider>
+			</SafeAreaProvider>
+		</GestureHandlerRootView>,
 	);
 }

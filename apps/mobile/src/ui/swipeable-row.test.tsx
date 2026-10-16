@@ -13,7 +13,7 @@ jest.mock("react-native-gesture-handler", () => ({
 		children,
 }));
 afterEach(() => jest.restoreAllMocks());
-it("opens the iOS long-press menu with feedback but ignores swipe feedback when no actions can be revealed", () => {
+it("opens the iOS long-press menu with feedback but ignores swipe feedback when no actions can be revealed", async () => {
 	const menuHaptic = jest
 		.spyOn(haptics, "menuOpened")
 		.mockImplementation(() => {});
@@ -24,7 +24,7 @@ it("opens the iOS long-press menu with feedback but ignores swipe feedback when 
 		.spyOn(ActionSheetIOS, "showActionSheetWithOptions")
 		.mockImplementation(() => {});
 	const pan = jest.spyOn(Gesture, "Pan");
-	renderThemed(
+	await renderThemed(
 		<SafeAreaProvider
 			initialMetrics={{
 				frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -56,7 +56,7 @@ it("opens the iOS long-press menu with feedback but ignores swipe feedback when 
 	pan.mock.results[0].value.handlers.onUpdate({ translationX: -160 });
 	pan.mock.results[0].value.handlers.onEnd();
 	expect(swipeHaptic).not.toHaveBeenCalled();
-	fireEvent(screen.getByLabelText("Bench press"), "longPress");
+	await fireEvent(screen.getByLabelText("Bench press"), "longPress");
 	expect(menu).toHaveBeenCalledWith(
 		expect.objectContaining({ options: ["Clone exercise", "Cancel"] }),
 		expect.any(Function),

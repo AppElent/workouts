@@ -1,5 +1,5 @@
 import { type Ref, useRef, useState } from "react";
-import { Platform, TextInput } from "react-native";
+import { Platform, TextInput, type TextInputInstance } from "react-native";
 import { parseGoalNumber } from "../../../../data/nutrition-goal-history";
 import { radius, type, useTokens } from "../../../../theme";
 
@@ -30,7 +30,7 @@ export function GoalNumberField({
 	accessibilityLabel: string;
 	invalid: boolean;
 	disabled: boolean;
-	inputRef?: Ref<TextInput>;
+	inputRef?: Ref<TextInputInstance>;
 	onChange: (value: string) => void;
 	onFocus?: () => void;
 	onBlur?: () => void;

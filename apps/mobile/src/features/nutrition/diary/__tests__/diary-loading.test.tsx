@@ -20,15 +20,15 @@ jest.mock("../../../../data/nutrition-day", () => {
 });
 
 describe("a day that is still loading", () => {
-	it("shows a skeleton of the day rather than a spinner or a blank", () => {
-		renderApp();
+	it("shows a skeleton of the day rather than a spinner or a blank", async () => {
+		await renderApp();
 
 		expect(screen.getByLabelText("Loading the day")).toBeTruthy();
 		expect(screen.queryByText("Breakfast")).toBeNull();
 	});
 
-	it("keeps the date navigation usable while it waits", () => {
-		renderApp();
+	it("keeps the date navigation usable while it waits", async () => {
+		await renderApp();
 
 		expect(
 			screen.getByLabelText(diaryDateLabel(diaryShift(diaryToday(), -1), "en")),

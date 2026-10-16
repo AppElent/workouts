@@ -22,7 +22,9 @@ afterEach(() => {
 });
 
 async function run(provider: "apple" | "google" | "microsoft") {
-	const hook = renderHook(() => useSocialSignIn(), { wrapper: LocaleProvider });
+	const hook = await renderHook(() => useSocialSignIn(), {
+		wrapper: LocaleProvider,
+	});
 	await act(() => hook.result.current.start(provider));
 	return hook.result.current;
 }

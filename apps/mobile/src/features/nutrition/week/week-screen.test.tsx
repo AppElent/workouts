@@ -76,7 +76,7 @@ describe("week overview", () => {
 
 	it("summarises the week against each day's goal", async () => {
 		serveWeek(fullWeek());
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
 		expect(await screen.findByText("Fat 2× too much")).toBeTruthy();
 		expect(screen.getByText("avg. 2,300")).toBeTruthy();
@@ -87,9 +87,9 @@ describe("week overview", () => {
 
 	it("opens the goals of the week with day counts", async () => {
 		serveWeek(fullWeek());
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
-		fireEvent.press(await screen.findByText("All goals"));
+		await fireEvent.press(await screen.findByText("All goals"));
 
 		expect(await screen.findByText("Goals this week")).toBeTruthy();
 		expect(screen.getByText("2 of 3 days too much")).toBeTruthy();
@@ -98,7 +98,7 @@ describe("week overview", () => {
 
 	it("shows totals and a way to set goals when none applied", async () => {
 		serveWeek(fullWeek(false));
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
 		expect(await screen.findByText("Set goals")).toBeTruthy();
 		expect(screen.queryByText("All goals")).toBeNull();
@@ -106,7 +106,7 @@ describe("week overview", () => {
 
 	it("offers the diary from an empty week", async () => {
 		serveWeek(dates.map((date) => reviewDay(date, null)));
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
 		expect(await screen.findByText("Nothing logged this week")).toBeTruthy();
 		expect(screen.getByText("Open Monday in diary")).toBeTruthy();
@@ -118,7 +118,7 @@ describe("week overview", () => {
 			isWebSocketConnected: false,
 		} as ReturnType<typeof useConvexConnectionState>);
 		serveWeek(undefined);
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 		await act(async () => {
 			jest.advanceTimersByTime(OFFLINE_GRACE_MS);
 		});

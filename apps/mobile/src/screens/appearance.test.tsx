@@ -13,16 +13,16 @@ beforeEach(() => {
 });
 
 it("opens from Profile and persists a selection after navigating away", async () => {
-	renderApp("/profile");
-	fireEvent.press(await screen.findByText("Appearance"));
-	fireEvent.press(await screen.findByRole("radio", { name: "Dark" }));
+	await renderApp("/profile");
+	await fireEvent.press(await screen.findByText("Appearance"));
+	await fireEvent.press(await screen.findByRole("radio", { name: "Dark" }));
 	expect(
 		screen.getByRole("radio", { name: "Dark" }).props.accessibilityState
 			.checked,
 	).toBe(true);
-	testRouter.navigate("/nutrition");
+	await testRouter.navigate("/nutrition");
 	expect(await screen.findByText("Today")).toBeTruthy();
-	testRouter.navigate("/appearance");
+	await testRouter.navigate("/appearance");
 	expect(
 		await screen.findByRole("radio", { name: "Dark", checked: true }),
 	).toBeTruthy();
@@ -30,9 +30,9 @@ it("opens from Profile and persists a selection after navigating away", async ()
 
 it("provides Dutch appearance choices", async () => {
 	writePreference(PREFERENCE_KEYS.locale, "nl");
-	renderApp("/appearance");
+	await renderApp("/appearance");
 	expect(await screen.findByRole("radio", { name: "Systeem" })).toBeTruthy();
-	fireEvent.press(screen.getByRole("radio", { name: "Licht" }));
+	await fireEvent.press(screen.getByRole("radio", { name: "Licht" }));
 	expect(
 		screen.getByRole("radio", { name: "Licht", checked: true }),
 	).toBeTruthy();
@@ -43,8 +43,8 @@ it("reports a failed preference write while keeping the visible choice", async (
 		throw new Error("disk full");
 	});
 	try {
-		renderApp("/appearance");
-		fireEvent.press(await screen.findByRole("radio", { name: "Light" }));
+		await renderApp("/appearance");
+		await fireEvent.press(await screen.findByRole("radio", { name: "Light" }));
 		expect(
 			await screen.findByText(
 				"Appearance changed, but could not be saved. Choose it again to retry.",

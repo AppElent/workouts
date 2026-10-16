@@ -31,7 +31,11 @@ export function NativeAlertHost({ children }: { children: ReactNode }) {
 		const spy = jest
 			.spyOn(Alert, "alert")
 			.mockImplementation((title, message, buttons) => {
-				setAlert({ title, message, buttons: buttons ?? [] });
+				setAlert({
+					title: title ?? "",
+					message: message ?? undefined,
+					buttons: buttons ?? [],
+				});
 			});
 		return () => {
 			spy.mockRestore();

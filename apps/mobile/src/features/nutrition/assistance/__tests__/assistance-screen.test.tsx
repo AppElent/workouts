@@ -93,8 +93,8 @@ beforeEach(() => {
 describe("Hulp bij invoeren", () => {
 	it("asks for consent once before anything is sent", async () => {
 		clearPreference(PREFERENCE_KEYS.nutritionAiConsent);
-		renderApp(url);
-		fireEvent.press(await screen.findByText("Continue"));
+		await renderApp(url);
+		await fireEvent.press(await screen.findByText("Continue"));
 		expect(await screen.findByText("Analyse")).toBeTruthy();
 		expect(describeMeal).not.toHaveBeenCalled();
 	});
@@ -105,10 +105,10 @@ describe("Hulp bij invoeren", () => {
 			seen: "Bread and a pancake",
 			items: [bread, pancake],
 		});
-		const app = renderApp();
+		const app = await renderApp();
 		await screen.findByText("Today");
-		testRouter.push(url);
-		fireEvent.press(await screen.findByText("Analyse"));
+		await testRouter.push(url);
+		await fireEvent.press(await screen.findByText("Analyse"));
 
 		expect(await screen.findByText("Bread and a pancake")).toBeTruthy();
 		expect(describeMeal).toHaveBeenCalledWith(
@@ -120,23 +120,23 @@ describe("Hulp bij invoeren", () => {
 		expect(screen.getByText("~ 1 piece · 260 kcal")).toBeTruthy();
 		expect(screen.getByText("Total")).toBeTruthy();
 
-		fireEvent.press(screen.getByText("Log 2 items"));
+		await fireEvent.press(screen.getByText("Log 2 items"));
 		expect(await screen.findByText("2 items logged to Lunch")).toBeTruthy();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 
 	it("says when nothing edible was recognised and keeps the text", async () => {
 		describeMeal.mockResolvedValue({ kind: "no_food", seen: "?", items: [] });
-		renderApp(url);
-		fireEvent.press(await screen.findByText("Analyse"));
+		await renderApp(url);
+		await fireEvent.press(await screen.findByText("Analyse"));
 		expect(await screen.findByText("No food recognised")).toBeTruthy();
 		expect(screen.getByDisplayValue("bread and a pancake")).toBeTruthy();
 	});
 
 	it("explains the daily limit and offers saving a note instead", async () => {
 		describeMeal.mockRejectedValue(new ConvexError("limit"));
-		renderApp(url);
-		fireEvent.press(await screen.findByText("Analyse"));
+		await renderApp(url);
+		await fireEvent.press(await screen.findByText("Analyse"));
 		expect(
 			await screen.findByText("You reached today's 50 analyses"),
 		).toBeTruthy();
@@ -147,8 +147,8 @@ describe("Hulp bij invoeren", () => {
 		const connection = jest.mocked(useConvexConnectionState);
 		const previous = connection.getMockImplementation();
 		connection.mockReturnValue({ isWebSocketConnected: false } as never);
-		renderApp(url);
-		fireEvent.press(await screen.findByText("Analyse"));
+		await renderApp(url);
+		await fireEvent.press(await screen.findByText("Analyse"));
 		expect(await screen.findByText("No connection")).toBeTruthy();
 		expect(describeMeal).not.toHaveBeenCalled();
 		if (previous) connection.mockImplementation(previous);

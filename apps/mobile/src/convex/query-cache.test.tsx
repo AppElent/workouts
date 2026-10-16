@@ -110,7 +110,7 @@ afterEach(() => {
 	jest.useRealTimers();
 });
 
-it("reuses a live updated result on return, then releases an abandoned query", () => {
+it("reuses a live updated result on return, then releases an abandoned query", async () => {
 	const remote = transport();
 	const tree = (shown: boolean) => (
 		<ConvexProvider client={remote.client}>
@@ -119,28 +119,28 @@ it("reuses a live updated result on return, then releases an abandoned query", (
 			</AppQueryCacheProvider>
 		</ConvexProvider>
 	);
-	const view = render(tree(true));
+	const view = await render(tree(true));
 	expect(screen.getByText("first:today")).toBeTruthy();
-	view.rerender(tree(false));
-	act(() => {
+	await view.rerender(tree(false));
+	await act(async () => {
 		jest.advanceTimersByTime(10_000);
 		remote.publish("today", "Updated meal");
 	});
-	view.rerender(tree(true));
+	await view.rerender(tree(true));
 	expect(screen.getByText("Updated meal")).toBeTruthy();
 	expect(remote.starts).toBe(1);
-	view.rerender(tree(false));
-	act(() => jest.advanceTimersByTime(4 * 60_000));
+	await view.rerender(tree(false));
+	await act(() => jest.advanceTimersByTime(4 * 60_000));
 	expect(remote.active).toBe(1);
-	act(() => jest.advanceTimersByTime(60_000));
+	await act(() => jest.advanceTimersByTime(60_000));
 	expect(remote.active).toBe(0);
-	view.rerender(tree(true));
+	await view.rerender(tree(true));
 	expect(remote.starts).toBe(2);
-	view.unmount();
+	await view.unmount();
 	expect(remote.active).toBe(0);
 });
 
-it("shares identical consumers and keeps different arguments separate", () => {
+it("shares identical consumers and keeps different arguments separate", async () => {
 	const remote = transport();
 	function Days() {
 		const values = useCachedQueries({
@@ -149,7 +149,7 @@ it("shares identical consumers and keeps different arguments separate", () => {
 		});
 		return <Text>{`${values.first}/${values.second}`}</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<ConvexProvider client={remote.client}>
 			<AppQueryCacheProvider scope="first">
 				<Day date="today" />
@@ -159,11 +159,11 @@ it("shares identical consumers and keeps different arguments separate", () => {
 	);
 	expect(screen.getByText("first:today/first:tomorrow")).toBeTruthy();
 	expect(remote.starts).toBe(2);
-	view.unmount();
+	await view.unmount();
 	expect(remote.active).toBe(0);
 });
 
-it("drops idle subscriptions on account change before revisiting their queries", () => {
+it("drops idle subscriptions on account change before revisiting their queries", async () => {
 	const remote = transport();
 	const tree = (scope: string, shown: boolean) => (
 		<ConvexProvider client={remote.client}>
@@ -172,18 +172,18 @@ it("drops idle subscriptions on account change before revisiting their queries",
 			</AppQueryCacheProvider>
 		</ConvexProvider>
 	);
-	const view = render(tree("first", true));
-	view.rerender(tree("first", false));
+	const view = await render(tree("first", true));
+	await view.rerender(tree("first", false));
 	remote.setOwner("second");
-	view.rerender(tree("second", false));
+	await view.rerender(tree("second", false));
 	expect(remote.active).toBe(0);
-	view.rerender(tree("second", true));
+	await view.rerender(tree("second", true));
 	expect(screen.getByText("second:today")).toBeTruthy();
 	expect(remote.starts).toBe(2);
-	view.unmount();
+	await view.unmount();
 });
 
-it("releases idle queries in background, keeps mounted ones, and preserves editor input", () => {
+it("releases idle queries in background, keeps mounted ones, and preserves editor input", async () => {
 	const remote = transport();
 	function Editor() {
 		const [input, setInput] = useState("Unfinished input");
@@ -202,24 +202,24 @@ it("releases idle queries in background, keeps mounted ones, and preserves edito
 			</AppQueryCacheProvider>
 		</ConvexProvider>
 	);
-	const view = render(tree(true));
-	fireEvent.press(screen.getByText("Unfinished input"));
-	view.rerender(tree(false));
-	act(() => {
+	const view = await render(tree(true));
+	await fireEvent.press(screen.getByText("Unfinished input"));
+	await view.rerender(tree(false));
+	await act(async () => {
 		for (const notify of lifecycle) notify("background");
 	});
 	expect(remote.active).toBe(1);
 	expect(screen.getByText("Edited input")).toBeTruthy();
-	act(() => {
+	await act(async () => {
 		for (const notify of lifecycle) notify("active");
 	});
 	expect(screen.getByText("first:active")).toBeTruthy();
 	expect(screen.getByText("Edited input")).toBeTruthy();
 	expect(remote.active).toBe(1);
-	view.unmount();
+	await view.unmount();
 });
 
-it("bounds idle subscriptions when browsing many distinct dates", () => {
+it("bounds idle subscriptions when browsing many distinct dates", async () => {
 	const remote = transport();
 	const tree = (date?: string) => (
 		<ConvexProvider client={remote.client}>
@@ -228,11 +228,12 @@ it("bounds idle subscriptions when browsing many distinct dates", () => {
 			</AppQueryCacheProvider>
 		</ConvexProvider>
 	);
-	const view = render(tree("0"));
-	for (let index = 1; index <= 25; index++) view.rerender(tree(String(index)));
-	view.rerender(tree());
+	const view = await render(tree("0"));
+	for (let index = 1; index <= 25; index++)
+		await view.rerender(tree(String(index)));
+	await view.rerender(tree());
 	expect(remote.active).toBe(20);
-	act(() => jest.advanceTimersByTime(5 * 60_000));
+	await act(() => jest.advanceTimersByTime(5 * 60_000));
 	expect(remote.active).toBe(0);
-	view.unmount();
+	await view.unmount();
 });

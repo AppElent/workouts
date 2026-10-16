@@ -3,9 +3,12 @@ import type { ReactElement, ReactNode } from "react";
 import { AppearanceProvider } from "../theme";
 
 /** Mount isolated UI with the same appearance boundary as the actual app. */
-export function renderThemed(component: ReactElement, options?: RenderOptions) {
+export async function renderThemed(
+	component: ReactElement,
+	options?: RenderOptions,
+) {
 	const Wrapper = options?.wrapper;
-	return render(component, {
+	return await render(component, {
 		...options,
 		wrapper: ({ children }: { children: ReactNode }) => (
 			<AppearanceProvider>

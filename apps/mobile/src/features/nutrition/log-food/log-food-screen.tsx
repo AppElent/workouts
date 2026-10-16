@@ -15,7 +15,7 @@ import {
 	Pressable,
 	ScrollView,
 	StyleSheet,
-	type TextInput,
+	type TextInputInstance,
 	View,
 } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
@@ -250,7 +250,7 @@ export function LogFoodScreen({
 	const offline = useStalledOffline(true, connected);
 	const bottomToolbar = isIOS26OrLater();
 	const searchBarRef = useRef<SearchBarCommands>(null);
-	const searchInputRef = useRef<TextInput>(null);
+	const searchInputRef = useRef<TextInputInstance>(null);
 	const seedQuery = initialQuery ?? browserTarget?.initialQuery;
 	const [query, setQuery] = useState(seedQuery ?? "");
 	const [savingNote, setSavingNote] = useState(false);
@@ -1213,7 +1213,7 @@ export function LogFoodScreen({
 					</View>
 				}
 				ListEmptyComponent={
-					hasQuery && offAnswering ? null : (
+					hasQuery && offAnswering ? undefined : (
 						<LogFoodEmptyState
 							tab={filter}
 							query={query}

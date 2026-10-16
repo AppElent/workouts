@@ -69,25 +69,25 @@ beforeEach(() => {
 		);
 });
 
-const renderAccount = () =>
-	renderScreen(
+const renderAccount = async () =>
+	await renderScreen(
 		<AccountDataMaintenanceProvider>
 			<AccountScreen />
 		</AccountDataMaintenanceProvider>,
 	);
 
 async function confirmAction(label: string) {
-	fireEvent.press(screen.getByRole("button", { name: label }));
+	await fireEvent.press(screen.getByRole("button", { name: label }));
 	await screen.findByText(/This cannot be undone/);
 	const buttons = screen.getAllByRole("button", { name: label });
 	expect(buttons).toHaveLength(2);
-	fireEvent.press(buttons[1]);
+	await fireEvent.press(buttons[1]);
 }
 
 it("saves an edited name through Clerk", async () => {
-	renderAccount();
-	fireEvent.changeText(screen.getByLabelText("First name"), " Sam ");
-	fireEvent.press(screen.getByRole("button", { name: "Save name" }));
+	await renderAccount();
+	await fireEvent.changeText(screen.getByLabelText("First name"), " Sam ");
+	await fireEvent.press(screen.getByRole("button", { name: "Save name" }));
 	await waitFor(() =>
 		expect(mockUser.update).toHaveBeenCalledWith({
 			firstName: "Sam",
@@ -98,7 +98,7 @@ it("saves an edited name through Clerk", async () => {
 });
 
 it("deletes all data in batches after confirmation and keeps the account", async () => {
-	renderAccount();
+	await renderAccount();
 	expect(screen.getAllByText(/Export your data first/)).toHaveLength(2);
 	await confirmAction("Delete my data");
 	expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
@@ -110,7 +110,7 @@ it("deletes all data in batches after confirmation and keeps the account", async
 });
 
 it("deletes the Clerk account only after the data is gone", async () => {
-	renderAccount();
+	await renderAccount();
 	await confirmAction("Delete account");
 	expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
 	expect(mockUser.delete).toHaveBeenCalled();
@@ -120,15 +120,15 @@ it("deletes the Clerk account only after the data is gone", async () => {
 	);
 });
 
-it("explains and disables deletion while an Activity is running", () => {
+it("explains and disables deletion while an Activity is running", async () => {
 	blocker = "activeActivity";
-	renderAccount();
+	await renderAccount();
 	expect(
 		screen.getByText(
 			"Finish or cancel the running Activity before deleting your data.",
 		),
 	).toBeTruthy();
-	fireEvent.press(screen.getByRole("button", { name: "Delete my data" }));
+	await fireEvent.press(screen.getByRole("button", { name: "Delete my data" }));
 	expect(
 		screen.queryAllByRole("button", { name: "Delete my data" }),
 	).toHaveLength(1);

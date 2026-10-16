@@ -6,6 +6,7 @@ import {
 	Platform,
 	StyleSheet,
 	View,
+	type ViewInstance,
 } from "react-native";
 
 /**
@@ -19,7 +20,7 @@ export function NutritionKeyboardOverlay({
 }: {
 	children: ReactNode;
 }) {
-	const frame = useRef<View>(null);
+	const frame = useRef<ViewInstance>(null);
 	const [frameBottom, setFrameBottom] = useState<number>();
 	const [keyboardTop, setKeyboardTop] = useState<number>();
 	const measure = useCallback(() => {

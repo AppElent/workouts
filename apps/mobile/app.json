@@ -48,14 +48,7 @@
 		"plugins": [
 			"expo-router",
 			"@clerk/expo",
-			[
-				"expo-build-properties",
-				{
-					"ios": {
-						"enableSceneSupport": true
-					}
-				}
-			],
+			"expo-build-properties",
 			[
 				"expo-secure-store",
 				{

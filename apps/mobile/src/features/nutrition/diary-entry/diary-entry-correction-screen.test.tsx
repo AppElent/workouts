@@ -15,7 +15,7 @@ const sourceId = "shipped:apple-w-skin-av";
 const absent = Object.fromEntries(
 	NUTRIENT_KEYS.map((n) => [n, ABSENT]),
 ) as Record<NutrientKey, NutrientValue>;
-function setup(source: "shipped" | "oneOff" = "shipped") {
+async function setup(source: "shipped" | "oneOff" = "shipped") {
 	const entry = {
 		_id: "entry-1",
 		date,
@@ -56,23 +56,23 @@ function setup(source: "shipped" | "oneOff" = "shipped") {
 					? apply
 					: other) as never,
 		);
-	const app = renderApp(
+	const app = await renderApp(
 		`/nutrition-nutrient-sources?date=${date}&nutrient=fibre`,
 	);
 	return { app, apply };
 }
 async function openCorrection() {
-	fireEvent.press(await screen.findByText("Apple"));
+	await fireEvent.press(await screen.findByText("Apple"));
 	await screen.findByLabelText("Fibre (g)");
 }
-function save() {
-	fireEvent.press(screen.getAllByLabelText("Save correction")[0]);
+async function save() {
+	await fireEvent.press(screen.getAllByLabelText("Save correction")[0]);
 }
 it("saves a source Fork and only the selected snapshot, scaling only changed nutrients", async () => {
-	const { app } = setup();
+	const { app } = await setup();
 	await openCorrection();
-	fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "4");
-	save();
+	await fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "4");
+	await save();
 	await waitFor(() => expect(app.repository.forks()).toHaveLength(1));
 	expect(app.repository.findForkOf(sourceId)?.nutrients.fibre).toEqual({
 		kind: "value",
@@ -95,10 +95,10 @@ it("saves a source Fork and only the selected snapshot, scaling only changed nut
 	);
 });
 it("can fill a missing snapshot from an already known source value", async () => {
-	const { app } = setup();
+	const { app } = await setup();
 	await openCorrection();
 	expect(screen.getAllByLabelText("Save correction")[0]).toBeEnabled();
-	save();
+	await save();
 	await waitFor(() => expect(app.repository.forks()).toHaveLength(1));
 	const fibre = getShippedFood(sourceId)?.nutrients.fibre;
 	expect(fibre?.kind).toBe("value");
@@ -112,12 +112,12 @@ it("can fill a missing snapshot from an already known source value", async () =>
 	);
 });
 it("keeps a one-off correction on the entry and distinguishes zero from unknown", async () => {
-	const { app } = setup("oneOff");
+	const { app } = await setup("oneOff");
 	await openCorrection();
-	fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "-2");
+	await fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "-2");
 	expect(screen.getAllByLabelText("Save correction")[0]).toBeDisabled();
-	fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "0");
-	save();
+	await fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "0");
+	await save();
 	await waitFor(() =>
 		expect(
 			app.nutritionRepository
@@ -128,17 +128,17 @@ it("keeps a one-off correction on the entry and distinguishes zero from unknown"
 	expect(app.repository.list()).toEqual([]);
 });
 it("keeps the form after diary acknowledgement fails and reuses the saved Fork on retry", async () => {
-	const { app, apply } = setup();
+	const { app, apply } = await setup();
 	await openCorrection();
 	apply.mockRejectedValueOnce(new Error("offline"));
-	fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "4");
-	save();
+	await fireEvent.changeText(screen.getByLabelText("Fibre (g)"), "4");
+	await save();
 	expect(
 		await screen.findByText("Food saved; diary correction failed. Try again."),
 	).toBeTruthy();
 	expect(screen.getByLabelText("Fibre (g)").props.value).toBe("4");
 	expect(app.repository.forks()).toHaveLength(1);
-	save();
+	await save();
 	await waitFor(() =>
 		expect(
 			app.nutritionRepository

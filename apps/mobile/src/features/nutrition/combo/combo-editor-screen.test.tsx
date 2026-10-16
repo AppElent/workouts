@@ -32,7 +32,7 @@ function oneOff(name: string, energy: number) {
 
 async function openCombo() {
 	let id = "";
-	const app = renderApp("/nutrition-library", {}, undefined, (stores) => {
+	const app = await renderApp("/nutrition-library", {}, undefined, (stores) => {
 		id = stores.personalFoods.createCombo({
 			name: "Wrap lunch",
 			parts: [oneOff("Wrap", 200), oneOff("Hummus", 141), oneOff("Feta", 141)],
@@ -49,7 +49,7 @@ async function openCombo() {
 			},
 		});
 	});
-	fireEvent.press(await screen.findByText("Wrap lunch"));
+	await fireEvent.press(await screen.findByText("Wrap lunch"));
 	await waitFor(() => expect(app.getPathname()).toBe(`/nutrition-combo/${id}`));
 	return { app, id };
 }
@@ -59,7 +59,7 @@ describe("combo editor", () => {
 		const { app, id } = await openCombo();
 		expect(await screen.findByText(/^482/)).toBeTruthy();
 
-		fireEvent(screen.getByLabelText(/^Feta, /), "accessibilityAction", {
+		await fireEvent(screen.getByLabelText(/^Feta, /), "accessibilityAction", {
 			nativeEvent: { actionName: "up" },
 		});
 		await waitFor(() =>
@@ -73,7 +73,7 @@ describe("combo editor", () => {
 
 	it("removes a part with undo", async () => {
 		const { app, id } = await openCombo();
-		fireEvent(
+		await fireEvent(
 			await screen.findByLabelText(/^Hummus, /),
 			"accessibilityAction",
 			{
@@ -84,7 +84,7 @@ describe("combo editor", () => {
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(2),
 		);
 		await armToastAction();
-		fireEvent.press(screen.getByLabelText("Undo"));
+		await fireEvent.press(screen.getByLabelText("Undo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
 		);
@@ -92,12 +92,12 @@ describe("combo editor", () => {
 
 	it("edits a part's portion in the amount editor", async () => {
 		const { app, id } = await openCombo();
-		fireEvent.press(await screen.findByLabelText(/^Wrap, /));
+		await fireEvent.press(await screen.findByLabelText(/^Wrap, /));
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-combo-part"),
 		);
-		fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
-		fireEvent.press(screen.getByLabelText("Save"));
+		await fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+		await fireEvent.press(screen.getByLabelText("Save"));
 		await waitFor(() => {
 			const energy =
 				app.repository.findCombo(id)?.parts[0].snapshot.nutrients.energy;
@@ -108,11 +108,14 @@ describe("combo editor", () => {
 
 	it("adds a food at its default portion from the browser, with undo", async () => {
 		const { app, id } = await openCombo();
-		fireEvent.press(await screen.findByText("Add part"));
+		await fireEvent.press(await screen.findByText("Add part"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(screen.getByText("to Wrap lunch · 3 parts")).toBeTruthy();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "oats");
-		fireEvent.press((await screen.findAllByLabelText("Add Oats"))[0]);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"oats",
+		);
+		await fireEvent.press((await screen.findAllByLabelText("Add Oats"))[0]);
 
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(4),
@@ -126,7 +129,7 @@ describe("combo editor", () => {
 		// The browser stays open for the next part.
 		expect(app.getPathname()).toBe("/nutrition-food");
 		await armToastAction();
-		fireEvent.press(screen.getByLabelText("Undo"));
+		await fireEvent.press(screen.getByLabelText("Undo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
 		);
@@ -134,16 +137,16 @@ describe("combo editor", () => {
 
 	it("adds a food at a chosen portion", async () => {
 		const { app, id } = await openCombo();
-		fireEvent.press(await screen.findByText("Add part"));
-		fireEvent.changeText(
+		await fireEvent.press(await screen.findByText("Add part"));
+		await fireEvent.changeText(
 			await screen.findByPlaceholderText("Search foods"),
 			"oats",
 		);
 		// The library underneath lists it too; the browser row is the last match.
-		fireEvent.press((await screen.findAllByText("Oats")).at(-1) as never);
+		await fireEvent.press((await screen.findAllByText("Oats")).at(-1) as never);
 		// NEVO's oat flakes come by the 40 g portion.
-		fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
-		fireEvent.press(screen.getByLabelText("Add"));
+		await fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+		await fireEvent.press(screen.getByLabelText("Add"));
 
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts[3]?.snapshot).toMatchObject({
@@ -155,7 +158,7 @@ describe("combo editor", () => {
 
 	it("replaces a part in its place after confirming the portion", async () => {
 		const { app, id } = await openCombo();
-		fireEvent(
+		await fireEvent(
 			await screen.findByLabelText(/^Hummus, /),
 			"accessibilityAction",
 			{ nativeEvent: { actionName: "replace" } },
@@ -164,12 +167,17 @@ describe("combo editor", () => {
 		// The search starts from the old part's name, under what it was.
 		expect(screen.getByDisplayValue("Hummus")).toBeTruthy();
 		expect(screen.getByText("Was: 1 portion · 141 kcal")).toBeTruthy();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "oats");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"oats",
+		);
 		expect(await screen.findByText("Choose a replacement")).toBeTruthy();
 		// Replacing has no quick +: a tap confirms the portion first.
 		expect(screen.queryByLabelText("Add Oats")).toBeNull();
-		fireEvent.press((await screen.findAllByText("Oats")).at(-1) as never);
-		fireEvent.press((await screen.findAllByLabelText("Save")).at(-1) as never);
+		await fireEvent.press((await screen.findAllByText("Oats")).at(-1) as never);
+		await fireEvent.press(
+			(await screen.findAllByLabelText("Save")).at(-1) as never,
+		);
 
 		await waitFor(() =>
 			expect(
@@ -185,13 +193,13 @@ describe("combo editor", () => {
 
 	it("removes a part from its sheet with undo", async () => {
 		const { app, id } = await openCombo();
-		fireEvent.press(await screen.findByLabelText(/^Feta, /));
-		fireEvent.press(await screen.findByLabelText("Remove from combo"));
+		await fireEvent.press(await screen.findByLabelText(/^Feta, /));
+		await fireEvent.press(await screen.findByLabelText("Remove from combo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(2),
 		);
 		await armToastAction();
-		fireEvent.press(screen.getByLabelText("Undo"));
+		await fireEvent.press(screen.getByLabelText("Undo"));
 		await waitFor(() =>
 			expect(app.repository.findCombo(id)?.parts).toHaveLength(3),
 		);
@@ -199,14 +207,14 @@ describe("combo editor", () => {
 
 	it("shows the new combo total under a changed part", async () => {
 		await openCombo();
-		fireEvent.press(await screen.findByLabelText(/^Wrap, /));
+		await fireEvent.press(await screen.findByLabelText(/^Wrap, /));
 		expect(
 			await screen.findByText(
 				"Wrap lunch: 482 kcal. Meals logged earlier stay as they were.",
 			),
 		).toBeTruthy();
 		expect(screen.getByText("This part")).toBeTruthy();
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		expect(
 			screen.getByText(
 				"Wrap lunch: 482 → 682 kcal. Meals logged earlier stay as they were.",
@@ -216,9 +224,9 @@ describe("combo editor", () => {
 
 	it("makes the combo a favourite from its menu", async () => {
 		await openCombo();
-		fireEvent.press(await screen.findByLabelText("More"));
-		fireEvent.press(await screen.findByText("Make favourite"));
-		fireEvent.press(await screen.findByLabelText("More"));
+		await fireEvent.press(await screen.findByLabelText("More"));
+		await fireEvent.press(await screen.findByText("Make favourite"));
+		await fireEvent.press(await screen.findByLabelText("More"));
 		expect(await screen.findByText("Remove favourite")).toBeTruthy();
 	});
 });

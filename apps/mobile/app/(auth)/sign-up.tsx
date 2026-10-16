@@ -14,7 +14,7 @@
 import { useSignUp } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import type { TextInput } from "react-native";
+import type { TextInputInstance } from "react-native";
 
 import {
 	AuthInput,
@@ -35,7 +35,7 @@ export default function SignUp() {
 	const [password, setPassword] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [returned, setReturned] = useState<CodedError | null>(null);
-	const passwordRef = useRef<TextInput>(null);
+	const passwordRef = useRef<TextInputInstance>(null);
 
 	const ready = email.trim().length > 0 && password.length > 0;
 	const error = pickError(errors, returned);

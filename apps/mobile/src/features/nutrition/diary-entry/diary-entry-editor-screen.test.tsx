@@ -10,6 +10,7 @@ import {
 	PREFERENCE_KEYS,
 	writePreference,
 } from "../../../prefs/local-preference";
+import { pressPending } from "../../../test-support/press-pending";
 import { renderApp } from "../../../test-support/render-app";
 
 const entry = {
@@ -51,12 +52,12 @@ it("resets base units to 100 and saves the resulting amount", async () => {
 					? update
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
 	expect(await screen.findByDisplayValue("1.25")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("Millilitre (ml)"));
+	await fireEvent.press(screen.getByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("Millilitre (ml)"));
 	expect(await screen.findByDisplayValue("100")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Save changes"));
+	await fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
 	expect(update.mock.calls[0][0].selection.amount).toBe(100);
 });
@@ -76,12 +77,12 @@ it("creates a Personal Measure independently and selects it at quantity one", as
 					? create
 					: jest.fn()) as never,
 		);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("New serving"));
-	fireEvent.changeText(await screen.findByLabelText("Name"), "My mug");
-	fireEvent.changeText(screen.getByLabelText("Amount"), "330");
-	fireEvent.press(screen.getByText("Add"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("New serving"));
+	await fireEvent.changeText(await screen.findByLabelText("Name"), "My mug");
+	await fireEvent.changeText(screen.getByLabelText("Amount"), "330");
+	await fireEvent.press(screen.getByText("Add"));
 	await waitFor(() =>
 		expect(create).toHaveBeenCalledWith({
 			name: "My mug",
@@ -93,13 +94,13 @@ it("creates a Personal Measure independently and selects it at quantity one", as
 	expect(screen.getByText("330 ml")).toBeTruthy();
 });
 it("asks before discarding a dirty draft and retains it when editing continues", async () => {
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
-	fireEvent.press(screen.getByLabelText("Cancel"));
-	fireEvent.press(await screen.findByText("Keep editing"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+	await fireEvent.press(screen.getByLabelText("Cancel"));
+	await fireEvent.press(await screen.findByText("Keep editing"));
 	expect(screen.getByDisplayValue("2")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Cancel"));
-	fireEvent.press(await screen.findByText("Discard changes"));
+	await fireEvent.press(screen.getByLabelText("Cancel"));
+	await fireEvent.press(await screen.findByText("Discard changes"));
 	expect(await screen.findByText("Today")).toBeTruthy();
 });
 it("opens read-only product details and retains the entry draft on return", async () => {
@@ -120,13 +121,13 @@ it("opens read-only product details and retains the entry draft on return", asyn
 					totals: {},
 				},
 	);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
-	fireEvent.press(screen.getByLabelText("Product details"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+	await fireEvent.press(screen.getByLabelText("Product details"));
 	expect(await screen.findByText("Apple")).toBeTruthy();
 	expect(screen.queryByLabelText("Name")).toBeNull();
 	// Details open as a sheet over the entry; closing it keeps the draft.
-	fireEvent.press(screen.getByLabelText("Close"));
+	await fireEvent.press(screen.getByLabelText("Close"));
 	expect(await screen.findByDisplayValue("2")).toBeTruthy();
 });
 it("keeps cached supplementary Servings usable offline and prevents online-only creation", async () => {
@@ -152,7 +153,7 @@ it("keeps cached supplementary Servings usable offline and prevents online-only 
 	connection.mockReturnValue({ ...online, isWebSocketConnected: false });
 	const create = jest.fn();
 	jest.mocked(useMutation).mockReturnValue(create as never);
-	const app = renderApp(
+	const app = await renderApp(
 		"/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04",
 		{},
 		undefined,
@@ -172,13 +173,13 @@ it("keeps cached supplementary Servings usable offline and prevents online-only 
 			);
 		},
 	);
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("My bowl"));
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("My bowl"));
 	expect(screen.getByDisplayValue("1")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("New serving"));
-	fireEvent.changeText(await screen.findByLabelText("Name"), "My plate");
-	fireEvent.press(screen.getByText("Add"));
+	await fireEvent.press(screen.getByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("New serving"));
+	await fireEvent.changeText(await screen.findByLabelText("Name"), "My plate");
+	await fireEvent.press(screen.getByText("Add"));
 	expect(await screen.findByText(/Connect to add/)).toBeTruthy();
 	expect(create).not.toHaveBeenCalled();
 	expect(
@@ -193,12 +194,12 @@ it("keeps cached supplementary Servings usable offline and prevents online-only 
 it("moves an entry to a different meal and date through the diary operation", async () => {
 	const update = jest.fn().mockResolvedValue(undefined);
 	jest.mocked(useMutation).mockReturnValue(update as never);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.press(await screen.findByLabelText("Meal"));
-	fireEvent.press(await screen.findByText("Dinner"));
-	fireEvent.press(screen.getByLabelText("Date"));
-	fireEvent.press(await screen.findByText("Tomorrow"));
-	fireEvent.press(screen.getByLabelText("Save changes"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.press(await screen.findByLabelText("Meal"));
+	await fireEvent.press(await screen.findByText("Dinner"));
+	await fireEvent.press(screen.getByLabelText("Date"));
+	await fireEvent.press(await screen.findByText("Tomorrow"));
+	await fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
 	expect(update.mock.calls[0][0]).toMatchObject({
 		meal: "dinner",
@@ -210,14 +211,14 @@ it("moves an entry to a different meal and date through the diary operation", as
 it("retains invalid input and recovers after a failed creation", async () => {
 	const create = jest.fn().mockRejectedValue(new Error("network unavailable"));
 	jest.mocked(useMutation).mockReturnValue(create as never);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("New serving"));
-	fireEvent.press(screen.getByText("Add"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("New serving"));
+	await fireEvent.press(screen.getByText("Add"));
 	expect(await screen.findByText(/Enter a name/)).toBeTruthy();
 	expect(create).not.toHaveBeenCalled();
-	fireEvent.changeText(screen.getByLabelText("Name"), "Travel mug");
-	fireEvent.press(screen.getByText("Add"));
+	await fireEvent.changeText(screen.getByLabelText("Name"), "Travel mug");
+	await fireEvent.press(screen.getByText("Add"));
 	expect(await screen.findByText(/Could not add/)).toBeTruthy();
 	expect(screen.getByDisplayValue("Travel mug")).toBeTruthy();
 	create.mockResolvedValue({
@@ -227,7 +228,7 @@ it("retains invalid input and recovers after a failed creation", async () => {
 		unit: "ml",
 		order: 0,
 	});
-	fireEvent.press(screen.getByText("Add"));
+	await fireEvent.press(screen.getByText("Add"));
 	expect(await screen.findByDisplayValue("1")).toBeTruthy();
 	expect(screen.getByText("250 ml")).toBeTruthy();
 });
@@ -235,13 +236,13 @@ it("retains invalid input and recovers after a failed creation", async () => {
 it("closes a clean entry without asking and cancels creation without a write", async () => {
 	const create = jest.fn();
 	jest.mocked(useMutation).mockReturnValue(create as never);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("New serving"));
-	fireEvent.changeText(screen.getByLabelText("Name"), "Abandoned mug");
-	fireEvent.press(screen.getByLabelText("Cancel new serving"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("New serving"));
+	await fireEvent.changeText(screen.getByLabelText("Name"), "Abandoned mug");
+	await fireEvent.press(screen.getByLabelText("Cancel new serving"));
 	expect(screen.queryByDisplayValue("Abandoned mug")).toBeNull();
-	fireEvent.press(screen.getByLabelText("Cancel"));
+	await fireEvent.press(screen.getByLabelText("Cancel"));
 	expect(await screen.findByText("Today")).toBeTruthy();
 	expect(screen.queryByText("Discard changes?")).toBeNull();
 	expect(create).not.toHaveBeenCalled();
@@ -249,26 +250,27 @@ it("closes a clean entry without asking and cancels creation without a write", a
 
 it("resets named servings to one and accepts Dutch decimal input", async () => {
 	writePreference(PREFERENCE_KEYS.locale, "nl");
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
 	expect(await screen.findByDisplayValue("1,25")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Portie kiezen"));
-	fireEvent.press(await screen.findByText("Milliliter (ml)"));
+	await fireEvent.press(screen.getByLabelText("Portie kiezen"));
+	await fireEvent.press(await screen.findByText("Milliliter (ml)"));
 	expect(screen.getByDisplayValue("100")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Portie kiezen"));
-	fireEvent.press(await screen.findByText(/Glas · Vorige waarde/));
+	await fireEvent.press(screen.getByLabelText("Portie kiezen"));
+	await fireEvent.press(await screen.findByText(/Glas · Vorige waarde/));
 	expect(screen.getByDisplayValue("1")).toBeTruthy();
-	fireEvent.changeText(screen.getByLabelText("Aantal"), "2,5");
+	await fireEvent.changeText(screen.getByLabelText("Aantal"), "2,5");
 	expect(screen.getByText("375 ml")).toBeTruthy();
 });
 
 it("blocks conflicting actions while creation is pending", async () => {
 	const create = jest.fn(() => new Promise(() => {}));
 	jest.mocked(useMutation).mockReturnValue(create as never);
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("New serving"));
-	fireEvent.changeText(screen.getByLabelText("Name"), "Pending mug");
-	fireEvent.press(screen.getByText("Add"));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("New serving"));
+	await fireEvent.changeText(screen.getByLabelText("Name"), "Pending mug");
+	// Creation never settles, so neither does the press.
+	await pressPending(screen.getByText("Add"));
 	expect(await screen.findByText("Saving…")).toBeTruthy();
 	expect(screen.getByLabelText("Delete entry")).toBeDisabled();
 	expect(screen.getByLabelText("Cancel new serving")).toBeDisabled();
@@ -309,17 +311,17 @@ it("keeps a completed Shipped Food serving when the outer draft is discarded, wi
 					? create
 					: update) as never,
 		);
-	const app = renderApp(
+	const app = await renderApp(
 		"/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04",
 	);
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText("New serving"));
-	fireEvent.changeText(screen.getByLabelText("Name"), "My bowl");
-	fireEvent.press(screen.getByText("Add"));
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText("New serving"));
+	await fireEvent.changeText(screen.getByLabelText("Name"), "My bowl");
+	await fireEvent.press(screen.getByText("Add"));
 	expect(await screen.findByDisplayValue("1")).toBeTruthy();
 	expect(screen.getByText("250 g")).toBeTruthy();
-	fireEvent.press(screen.getByLabelText("Cancel"));
-	fireEvent.press(await screen.findByText("Discard changes"));
+	await fireEvent.press(screen.getByLabelText("Cancel"));
+	await fireEvent.press(await screen.findByText("Discard changes"));
 	expect(await screen.findByText("Today")).toBeTruthy();
 	expect(
 		app.nutritionRepository.getSupplementaryServings("test-user", foodId),
@@ -331,23 +333,23 @@ it("keeps a completed Shipped Food serving when the outer draft is discarded, wi
 });
 
 it("leaves the quantity unchanged when selecting the current serving", async () => {
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
-	fireEvent.press(await screen.findByLabelText("Choose serving"));
-	fireEvent.press(await screen.findByText(/Glass · Previous value/));
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await fireEvent.press(await screen.findByLabelText("Choose serving"));
+	await fireEvent.press(await screen.findByText(/Glass · Previous value/));
 	expect(screen.getByDisplayValue("1.25")).toBeTruthy();
 	expect(screen.getByLabelText("Save changes")).toBeDisabled();
 });
 it("shows the original quantity as a replacement placeholder and keeps it on empty dismissal", async () => {
-	renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
 	const input = await screen.findByLabelText("Quantity");
-	fireEvent(input, "focus");
+	await fireEvent(input, "focus");
 	expect(screen.getByPlaceholderText("1.25")).toHaveProp("value", "");
-	fireEvent(input, "blur");
+	await fireEvent(input, "blur");
 	expect(screen.getByDisplayValue("1.25")).toBeTruthy();
 	expect(screen.getByLabelText("Save changes")).toBeDisabled();
-	fireEvent(input, "focus");
-	fireEvent.changeText(input, "2");
+	await fireEvent(input, "focus");
+	await fireEvent.changeText(input, "2");
 	expect(screen.getByText("300 ml")).toBeTruthy();
-	fireEvent(input, "blur");
+	await fireEvent(input, "blur");
 	expect(screen.getByDisplayValue("2")).toBeTruthy();
 });

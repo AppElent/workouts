@@ -10,8 +10,8 @@ import { OfflineBanner } from "./offline-banner";
 
 const mockConnection = jest.mocked(useConvexConnectionState);
 
-const render = (ui: ReactElement) =>
-	renderThemed(ui, {
+const render = async (ui: ReactElement) =>
+	await renderThemed(ui, {
 		wrapper: ({ children }: { children: ReactNode }) => (
 			<SafeAreaProvider
 				initialMetrics={{
@@ -33,20 +33,20 @@ function connected(isWebSocketConnected: boolean) {
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
-it("does not flash while the socket connects on start", () => {
+it("does not flash while the socket connects on start", async () => {
 	connected(false);
-	const view = render(<OfflineBanner />);
+	const view = await render(<OfflineBanner />);
 	expect(screen.queryByText(en.common.offline)).toBeNull();
 
 	connected(true);
-	view.rerender(<OfflineBanner />);
-	act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
+	await view.rerender(<OfflineBanner />);
+	await act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
 	expect(screen.queryByText(en.common.offline)).toBeNull();
 });
 
-it("shows once the socket stays down past the grace period", () => {
+it("shows once the socket stays down past the grace period", async () => {
 	connected(false);
-	render(<OfflineBanner />);
-	act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
+	await render(<OfflineBanner />);
+	await act(() => jest.advanceTimersByTime(OFFLINE_GRACE_MS));
 	expect(screen.getByText(en.common.offline)).toBeTruthy();
 });
