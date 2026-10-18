@@ -12,12 +12,18 @@
 			"environment": "development",
 			"android": {
 				"buildType": "apk"
+			},
+			"env": {
+				"APP_VARIANT": "development"
 			}
 		},
 		"preview": {
 			"autoIncrement": true,
 			"channel": "preview",
-			"environment": "preview"
+			"environment": "preview",
+			"env": {
+				"APP_VARIANT": "preview"
+			}
 		},
 		"preview-internal": {
 			"extends": "preview",
@@ -29,15 +35,13 @@
 		"production": {
 			"autoIncrement": true,
 			"channel": "production",
-			"environment": "production"
+			"environment": "production",
+			"env": {
+				"APP_VARIANT": "production"
+			}
 		}
 	},
 	"submit": {
-		"preview": {
-			"ios": {
-				"ascAppId": "6811609419"
-			}
-		},
 		"production": {
 			"ios": {
 				"ascAppId": "6811609419"

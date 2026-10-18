@@ -1,7 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import {
+	APPLE_CLIENT_IDS,
 	appleCredentials,
+	isAppleClientId,
 	revokeAppleAuthorization,
 } from "./lib/appleSignIn";
 import {
@@ -54,21 +56,27 @@ const MAX_AUTHORIZATION_CODE = 2000;
 
 /**
  * Revokes the signed-in account's Sign in with Apple grant before the account
- * is deleted. The code comes from a fresh native Apple sheet on iOS. Failures
- * are one stable code; callers still delete the account.
+ * is deleted. The code comes from a fresh native Apple sheet on iOS, together
+ * with the bundle ID of the build that showed it; builds from before install
+ * variants send none and are production. Failures are one stable code;
+ * callers still delete the account.
  */
 export const revokeAppleSignIn = action({
-	args: { authorizationCode: v.string() },
+	args: { authorizationCode: v.string(), bundleId: v.optional(v.string()) },
 	returns: v.null(),
-	handler: async (ctx, { authorizationCode }) => {
+	handler: async (ctx, { authorizationCode, bundleId = APPLE_CLIENT_IDS[0] }) => {
 		if (!(await ctx.auth.getUserIdentity()))
 			throw new ConvexError("unauthenticated");
-		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
+		if (
+			!authorizationCode ||
+			authorizationCode.length > MAX_AUTHORIZATION_CODE ||
+			!isAppleClientId(bundleId)
+		)
 			throw new ConvexError("invalid");
 		const credentials = appleCredentials();
 		if (!credentials) throw new ConvexError("unavailable");
 		try {
-			await revokeAppleAuthorization(credentials, authorizationCode);
+			await revokeAppleAuthorization(credentials, authorizationCode, bundleId);
 		} catch (error) {
 			console.error("account.revokeAppleSignIn failed", error);
 			throw new ConvexError("failed");

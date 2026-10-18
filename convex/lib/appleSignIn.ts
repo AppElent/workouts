@@ -9,7 +9,16 @@
  */
 
 const APPLE = "https://appleid.apple.com";
-export const APPLE_CLIENT_ID = "com.appelent.foundry";
+export const APPLE_CLIENT_IDS = [
+	"com.appelent.foundry",
+	"com.appelent.foundry.preview",
+	"com.appelent.foundry.dev",
+] as const;
+export type AppleClientId = (typeof APPLE_CLIENT_IDS)[number];
+
+export function isAppleClientId(value: string): value is AppleClientId {
+	return (APPLE_CLIENT_IDS as readonly string[]).includes(value);
+}
 /** Apple accepts client secrets valid for up to six months; one use needs minutes. */
 const SECRET_LIFETIME_SECONDS = 300;
 
@@ -46,6 +55,7 @@ function pkcs8(privateKey: string) {
 /** ES256 JWT that authenticates Foundry to Apple's token endpoints. */
 export async function clientSecret(
 	credentials: AppleCredentials,
+	clientId: AppleClientId,
 	now = Date.now(),
 ) {
 	const issuedAt = Math.floor(now / 1000);
@@ -58,7 +68,7 @@ export async function clientSecret(
 			iat: issuedAt,
 			exp: issuedAt + SECRET_LIFETIME_SECONDS,
 			aud: APPLE,
-			sub: APPLE_CLIENT_ID,
+			sub: clientId,
 		}),
 	);
 	const key = await crypto.subtle.importKey(
@@ -95,11 +105,12 @@ async function post(path: string, form: Record<string, string>) {
 export async function revokeAppleAuthorization(
 	credentials: AppleCredentials,
 	authorizationCode: string,
+	clientId: AppleClientId,
 ) {
-	const secret = await clientSecret(credentials);
+	const secret = await clientSecret(credentials, clientId);
 	const tokens = (await (
 		await post("/auth/token", {
-			client_id: APPLE_CLIENT_ID,
+			client_id: clientId,
 			client_secret: secret,
 			code: authorizationCode,
 			grant_type: "authorization_code",
@@ -110,7 +121,7 @@ export async function revokeAppleAuthorization(
 		: [tokens.access_token, "access_token"];
 	if (!token) throw new Error("Apple /auth/token returned no token");
 	await post("/auth/revoke", {
-		client_id: APPLE_CLIENT_ID,
+		client_id: clientId,
 		client_secret: secret,
 		token,
 		token_type_hint: hint,

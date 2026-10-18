@@ -9,6 +9,10 @@ and lime hero follow Foundry's brand palette. No text or corner mask is baked in
 - `icon.png`: 1024 × 1024, opaque iOS and general Expo icon.
 - `adaptive-icon.png`: 1024 × 1024, with the subject inside the Android safe zone.
 - `favicon.png`: 192 × 192, Expo web favicon.
+- `icon-preview.png`, `icon-dev.png`, `adaptive-icon-preview.png`,
+  `adaptive-icon-dev.png`: the same art with an orange DEV or blue PREVIEW
+  label, for the [install variants](../app.config.ts). Bands sit at the bottom
+  of the iOS icon; Android pills stay inside the circular safe zone.
 
 Assets were resized with macOS `sips`. Native icon changes require a rebuild;
 an OTA update cannot change the launcher icon.

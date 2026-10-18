@@ -32,3 +32,7 @@ it("localizes screenshot and feedback controls", () => {
 it("registers the feedback redaction processor", () => {
 	expect(Sentry.addEventProcessor).toHaveBeenCalledWith(sanitizeFeedbackEvent);
 });
+
+it("tags events with the install variant", () => {
+	expect(Sentry.setTag).toHaveBeenCalledWith("app.variant", expect.any(String));
+});

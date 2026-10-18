@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Social sign-in
@@ -32,8 +32,8 @@ the Apple revocation key below.
 | Web provider list | `AUTH_CONFIG.socialProviders` in `src/routes/__root.tsx` |
 | Web callback route | `/sso-callback` (`src/routes/sso-callback.tsx`) |
 | Mobile provider list | `SOCIAL_PROVIDERS` in `apps/mobile/src/auth/useSocialSignIn.ts` |
-| Foundry iOS bundle ID | `com.appelent.foundry` |
-| Foundry mobile redirect | `foundry://sso-callback` |
+| Foundry bundle IDs | `com.appelent.foundry`, `.preview`, `.dev` ([install variants](#install-variants)) |
+| Foundry mobile redirects | `foundry://`, `foundry-preview://`, `foundry-dev://` + `sso-callback` |
 | Apple primary App ID | `com.appelent.foundry` (other apps group under it) |
 | Apple Services ID | `nl.appelent.web` |
 | Apple on iOS | Native sheet; Android and web use the browser OAuth flow |
@@ -114,11 +114,32 @@ Sign in with Apple for Email Communication**.
 
 ### 5. Register Foundry's native app (both instances)
 
-**Configure → Native applications** in Clerk:
+**Configure → Native applications** in Clerk, for each
+[install variant](#install-variants) that uses the instance:
 
-1. iOS: App ID Prefix = Team ID, Bundle ID = `com.appelent.foundry`. Native
-   Apple sign-in needs this even with shared development credentials.
-2. Allowlist for mobile SSO redirect: `foundry://sso-callback`.
+1. iOS: App ID Prefix = Team ID, Bundle ID. Native Apple sign-in needs this
+   even with shared development credentials.
+2. Android: package name.
+3. Allowlist for mobile SSO redirect: `<scheme>://sso-callback`.
+
+### Install variants
+
+Production, preview and development builds are separate apps
+([mobile releases](mobile-releases.md#install-variants)). Each needs:
+
+| Variant | Bundle ID / package | Redirect | Clerk instance |
+| --- | --- | --- | --- |
+| Production | `com.appelent.foundry` | `foundry://sso-callback` | production |
+| Preview | `com.appelent.foundry.preview` | `foundry-preview://sso-callback` | production |
+| Development | `com.appelent.foundry.dev` | `foundry-dev://sso-callback` | development |
+
+In Apple Developer, register `com.appelent.foundry.preview` and
+`com.appelent.foundry.dev` with Sign in with Apple, **grouped with**
+`com.appelent.foundry`. EAS registers missing App IDs on the first build, but
+does not group them. The preview variant has its own App Store Connect app; development needs
+none. Until `submit.preview.ios.ascAppId` is set in `eas.json`, the first
+`eas submit --profile preview` asks for an Apple login and creates the
+"Foundry Preview" app. Then record its Apple ID there.
 
 ### 6. Ship a native build
 
@@ -162,8 +183,10 @@ Infisical (`apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`).
 `APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`. Without them the action
 fails with `unavailable`.
 
-Native codes are issued to the bundle ID, so `client_id` is
-`com.appelent.foundry` (`APPLE_CLIENT_ID` in `convex/lib/appleSignIn.ts`).
+Native codes are issued to the requesting build's bundle ID, so the app sends
+it and Convex uses it as `client_id` after checking it against
+`APPLE_CLIENT_IDS` in `convex/lib/appleSignIn.ts`. Builds that send none are
+treated as production.
 Android has no native sheet, so an Apple-linked account deleted there is not
 revoked.
 
@@ -193,8 +216,10 @@ revoked.
 - Mobile button fails at once with "Redirect url mismatch" (often on a
   `preview` build, which uses production): step 5 was skipped on that
   instance.
-- Mobile browser returns but stays signed out: `foundry://sso-callback` is
-  missing from the mobile redirect allowlist.
+- Mobile browser returns but stays signed out, or opens another Foundry
+  variant: that variant's `<scheme>://sso-callback` is missing from the
+  mobile redirect allowlist, or an OTA update was published without its
+  `APP_VARIANT`.
 - Mobile shows "Finish signing up on the web": a required sign-up field the
   provider does not supply; make it optional.
 - Apple sheet fails on iOS: build predates `usesAppleSignIn`, or the bundle ID

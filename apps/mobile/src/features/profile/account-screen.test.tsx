@@ -33,6 +33,12 @@ jest.mock("@clerk/expo", () => ({
 }));
 
 jest.mock("expo-apple-authentication", () => ({ signInAsync: jest.fn() }));
+jest.mock("expo-constants", () => ({
+	__esModule: true,
+	default: {
+		expoConfig: { ios: { bundleIdentifier: "com.appelent.foundry.preview" } },
+	},
+}));
 jest.mock("../../observability/errors", () => ({ reportError: jest.fn() }));
 
 jest.mock("../../data/nutrition-account-cleanup", () => ({
@@ -159,6 +165,7 @@ describe("an account that signs in with Apple on iOS", () => {
 		);
 		expect(action.mock.calls[0][1]).toEqual({
 			authorizationCode: "apple-code",
+			bundleId: "com.appelent.foundry.preview",
 		});
 		expect(action.mock.invocationCallOrder[0]).toBeLessThan(
 			deleteData.mock.invocationCallOrder[0],

@@ -6,8 +6,8 @@
  * else opens the provider in an in-app browser via Core 3's experimental
  * `useSSO()`, which also turns an unknown account into a sign-up and
  * activates the session itself. That browser returns to
- * `foundry://sso-callback`, which must be on the Clerk instance's allowed
- * redirect URLs.
+ * `<scheme>://sso-callback` (one scheme per install variant, see
+ * `app.config.ts`), which must be on the Clerk instance's allowed redirect URLs.
  *
  * Like `usePasswordSignIn`, nothing here navigates: a new session flips
  * `isSignedIn`, the `(auth)` layout redirects, and the caller unmounts.
