@@ -683,7 +683,11 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("prevents duplicate logs and preserves the serving after a failure", async () => {
-		const log = jest.fn().mockRejectedValue(new Error("offline"));
+		// The log stays in flight across the double tap, then fails.
+		let failLog: (error: Error) => void = () => {};
+		const log = jest.fn(
+			() => new Promise<string>((_, reject) => (failLog = reject)),
+		);
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
@@ -694,6 +698,8 @@ describe("browsing shipped foods", () => {
 		const button = await screen.findByLabelText("Add & continue");
 		await fireEvent.press(button);
 		await fireEvent.press(button);
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		await act(async () => failLog(new Error("offline")));
 
 		expect(
 			await screen.findByText(
