@@ -33,6 +33,7 @@ function PrivacyPage() {
 				<Section title={copy.providers.title}>
 					<p>{copy.providers.intro}</p>
 					<List items={copy.providers.items} />
+					<p>{copy.providers.signIn}</p>
 					<p>{copy.providers.openFoodFacts}</p>
 					<p>{copy.providers.transfers}</p>
 				</Section>
