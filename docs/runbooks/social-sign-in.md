@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.2.0
+version: 2.2.1
 ---
 
 # Social sign-in
@@ -136,10 +136,9 @@ Production, preview and development builds are separate apps
 In Apple Developer, register `com.appelent.foundry.preview` and
 `com.appelent.foundry.dev` with Sign in with Apple, **grouped with**
 `com.appelent.foundry`. EAS registers missing App IDs on the first build, but
-does not group them. The preview variant has its own App Store Connect app; development needs
-none. Until `submit.preview.ios.ascAppId` is set in `eas.json`, the first
-`eas submit --profile preview` asks for an Apple login and creates the
-"Foundry Preview" app. Then record its Apple ID there.
+does not group them. The preview variant has its own App Store Connect app, "Foundry Preview"
+(`6824221239`, `submit.preview.ios.ascAppId` in `eas.json`); development
+needs none. TestFlight testers must accept that app's invite separately.
 
 ### 6. Ship a native build
 
