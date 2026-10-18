@@ -44,6 +44,10 @@ $D down                    # close session, stop Metro we started, shut down sim
 Prefer `label="…"` selectors. Refs such as `@e12` go stale after any action. Use the
 `@e12~s123` form printed in the latest diff, or re-run `snapshot -i`.
 
+`up` takes over the simulator if an interrupted run's agent-device session still
+holds it (`DEVICE_IN_USE`). If `up` still fails, inspect with `$D ad session list`
+and release with `$D ad close --session <name>`.
+
 Knobs (env): `RUN_MOBILE_PORT` (default 8090), `RUN_MOBILE_DEVICE_TYPE`
 (default `iPhone 18 Pro`), `RUN_MOBILE_SIM`, `RUN_MOBILE_APP`. Each checkout gets
 its own simulator, `Foundry run-mobile <hash>`, and its own state dir (`$D state`).

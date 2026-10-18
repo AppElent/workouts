@@ -25,6 +25,8 @@
 			"!**/src/routeTree.gen.ts",
 			"!designs",
 			"!apps/mobile/expo-env.d.ts",
+			"!apps/mobile/ios",
+			"!apps/mobile/android",
 			"!**/src/styles.css",
 			"!packages/core/src/nutrition/shipped-foods.json",
 			"!packages/core/src/nutrition/shipped-foods.lock.json"
