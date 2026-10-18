@@ -23,7 +23,7 @@
  * alongside the new one was deliberate (#69): a tab bar with four English
  * labels and one Dutch is worse than either extreme.
  */
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import { Platform, View } from "react-native";
 import { useActiveSession } from "../../../src/data/session-data";
 import { ActiveSessionBar } from "../../../src/features/strength-session/components/active-session-bar";
