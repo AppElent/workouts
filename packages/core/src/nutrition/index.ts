@@ -42,6 +42,7 @@ export {
 	SALT_DERIVATION_DISCLOSURE,
 } from "./attribution";
 export * from "./diary-correction";
+export * from "./food-snapshot";
 export {
 	type FoodResult,
 	type FoodResultsInput,
@@ -139,6 +140,7 @@ export {
 	withPersonalMeasures,
 	withSupplementaryServings,
 } from "./servings";
+export * from "./snapshot-rescale";
 export {
 	type Bilingual,
 	FOOD_CATEGORIES,

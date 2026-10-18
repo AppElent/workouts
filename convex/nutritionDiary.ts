@@ -2,8 +2,8 @@ import {requireFoodPhotoOwner} from "./nutritionFoodPhotos";
 import {
 	canonicalJson,
  correctDiaryNutrients,
-	formatQuantity,
-	rescaleNutrients,
+	rescaleToQuantity,
+	rescaleToSelection,
 	totalNutrients,
 } from "@workouts/core";
 import { v } from "convex/values";
@@ -238,17 +238,6 @@ async function affectedDays(
 	);
 }
 
-/**
- * `serving` is a snapshot string — "Glass (200 ml) × 1" — not a reference back
- * to the food, so a quantity edit updates only the multiplier at the end of
- * it. This is string surgery on the snapshot, never a re-read of the source.
- */
-function rescaleServingLabel(label: string, quantity: number, locale: "en" | "nl") {
-	const separator = label.lastIndexOf(" × ");
-	const name = separator === -1 ? label : label.slice(0, separator);
-	return `${name} × ${formatQuantity(quantity, locale)}`;
-}
-
 export const log = mutation({
 	args: diarySnapshotFields,
 	handler: async (ctx, snapshot) => {
@@ -375,22 +364,19 @@ export const update = mutation({
 			}
 			assertFinitePositive(selection.quantity, "Quantity");
 			assertFinitePositive(selection.amount, "Amount");
-			const factor = selection.amount / entry.amount;
-			patch.quantity = selection.quantity;
-			patch.amount = selection.amount;
-			patch.nutrients = rescaleNutrients(entry.nutrients, factor);
-			patch.serving = selection.serving;
+			const next = rescaleToSelection(entry, selection);
+			patch.quantity = next.quantity;
+			patch.amount = next.amount;
+			patch.nutrients = next.nutrients;
+			patch.serving = next.serving;
 			patch.personalMeasureId = selection.personalMeasureId ?? undefined;
 		} else if (quantity !== undefined) {
 			if (!(quantity > 0)) throw new Error("Quantity must be greater than zero.");
-			const factor = quantity / entry.quantity;
-			patch.quantity = quantity;
-			patch.amount = entry.amount * factor;
-			patch.nutrients = rescaleNutrients(entry.nutrients, factor);
-			patch.serving = {
-				en: rescaleServingLabel(entry.serving.en, quantity, "en"),
-				nl: rescaleServingLabel(entry.serving.nl, quantity, "nl"),
-			};
+			const next = rescaleToQuantity(entry, quantity);
+			patch.quantity = next.quantity;
+			patch.amount = next.amount;
+			patch.nutrients = next.nutrients;
+			patch.serving = next.serving;
 		}
 
 		if (Object.keys(patch).length > 0) await ctx.db.patch(id, patch);
@@ -513,23 +499,20 @@ export const applyOperation = mutation({
 				}
 				assertFinitePositive(operation.selection.quantity, "Quantity");
 				assertFinitePositive(operation.selection.amount, "Amount");
-				const factor = operation.selection.amount / entry.amount;
-				patch.quantity = operation.selection.quantity;
-				patch.amount = operation.selection.amount;
-				patch.nutrients = rescaleNutrients(entry.nutrients, factor);
-				patch.serving = operation.selection.serving;
+				const next = rescaleToSelection(entry, operation.selection);
+				patch.quantity = next.quantity;
+				patch.amount = next.amount;
+				patch.nutrients = next.nutrients;
+				patch.serving = next.serving;
 				patch.personalMeasureId =
 					operation.selection.personalMeasureId ?? undefined;
 			} else if (operation.quantity !== undefined) {
 				assertFinitePositive(operation.quantity, "Quantity");
-				const factor = operation.quantity / entry.quantity;
-				patch.quantity = operation.quantity;
-				patch.amount = entry.amount * factor;
-				patch.nutrients = rescaleNutrients(entry.nutrients, factor);
-				patch.serving = {
-					en: rescaleServingLabel(entry.serving.en, operation.quantity, "en"),
-					nl: rescaleServingLabel(entry.serving.nl, operation.quantity, "nl"),
-				};
+				const next = rescaleToQuantity(entry, operation.quantity);
+				patch.quantity = next.quantity;
+				patch.amount = next.amount;
+				patch.nutrients = next.nutrients;
+				patch.serving = next.serving;
 			}
 			if (operation.correction) {
  if (operation.quantity !== undefined || operation.selection !== undefined) throw new Error("Correct nutrition separately from quantity.");

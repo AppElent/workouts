@@ -1,4 +1,5 @@
 import {
+	foodSnapshot,
 	forkShippedFood,
 	NUTRIENT_KEYS,
 	type ShippedFood,
@@ -95,7 +96,6 @@ import {
 	quickEnergyAmount,
 } from "./log-food-captions";
 import {
-	createFoodSnapshot,
 	type FoodBrowserTab,
 	type FoodFilter,
 	type FoodSelection,
@@ -635,18 +635,15 @@ export function LogFoodScreen({
 		const loggedMeal = t.nutrition.meals[selectedMeal];
 		try {
 			const clientEntryId = mintNutritionUuid();
-			const { common, provenance } = createFoodSnapshot(
-				selection,
-				selectedServing,
-				quantity,
+			const entry = {
+				...foodSnapshot(selection, selectedServing, quantity),
 				date,
-				selectedMeal,
+				meal: selectedMeal,
 				clientEntryId,
-				locale,
-			);
+			};
 			operations.create(
 				subject,
-				{ ...common, provenance },
+				entry,
 				{
 					sourceKey,
 					portion: portionMemoryFor(
@@ -673,7 +670,6 @@ export function LogFoodScreen({
 									operations.remove(
 										subject,
 										{ kind: "clientEntryId", id: clientEntryId },
-										undefined,
 										() => toast.error(copy.undoFailure),
 									),
 							},

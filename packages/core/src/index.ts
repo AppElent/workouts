@@ -28,6 +28,7 @@ export {
 } from "./nutrition/operations";
 export * from "./nutrition/personal-food";
 export { formatQuantity } from "./nutrition/servings";
+export * from "./nutrition/snapshot-rescale";
 export * from "./oneRepMax";
 export * from "./plates";
 export * from "./wodScore";

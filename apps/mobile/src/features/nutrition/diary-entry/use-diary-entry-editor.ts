@@ -72,23 +72,6 @@ export function useDiaryEntryEditor({
 				fail();
 				return;
 			}
-			const targetEntry = {
-				_id: entry.id,
-				date,
-				meal,
-				name: entry.name,
-				serving: entry.serving,
-				quantity: entry.quantity,
-				amount: entry.amount,
-				baseUnit: entry.baseUnit,
-				nutrients: entry.nutrients,
-				provenance: entry.provenance,
-				...(entry.personalMeasureId
-					? { personalMeasureId: entry.personalMeasureId }
-					: {}),
-				...(entry.estimated ? { estimated: entry.estimated } : {}),
-				...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
-			};
 			const historicalSelection =
 				servingKey(selected) === servingKey(historical);
 			operations.update(
@@ -112,7 +95,6 @@ export function useDiaryEntryEditor({
 								},
 							}),
 				},
-				{ targetEntry },
 				fail,
 				() => {
 					setSaving(false);

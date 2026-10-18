@@ -8,7 +8,7 @@ import {
 	type NutritionServerDayResult,
 } from "../data/nutrition-local-repository";
 import type { CaptureDraftFixture } from "./capture-draft-fixture";
-import { projectFixtureDay } from "./diary-operation-fixture";
+import { applyFixtureOperation } from "./diary-operation-fixture";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
 
 /** Screen fixture server: acknowledgement and subsequent reads share account state.
@@ -80,37 +80,17 @@ export function installAccountTransport(drafts: CaptureDraftFixture) {
 			(operation.kind === "update" && operation.date)
 		)
 			readDay(required(operation.date), true);
-		const pending = [
-			{
-				sequence: 1,
-				subject: "test-user",
-				operationId: args.operationId,
-				envelope: args,
-				status: "queued" as const,
-				attempts: 0,
-				nextAttemptAt: 0,
-				createdAt: 0,
-			},
-		];
 		const changed = [...days.keys()].map((date) => {
-			const projected = projectFixtureDay(
+			const { entries, totals } = applyFixtureOperation(
 				server.getDay("test-user", date),
 				date,
-				pending,
-			);
-			const entries = projected.entries.map(
-				({ pendingOperationId: _pending, ...entry }) => ({
-					...entry,
-					_id: entry._id.startsWith("local:")
-						? `server:${entry.clientEntryId}`
-						: entry._id,
-				}),
+				operation,
 			);
 			return {
 				date,
 				revision: required(readDay(date)).revision + 1,
 				entries,
-				totals: projected.totals,
+				totals,
 			};
 		});
 		const created =

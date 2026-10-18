@@ -1,13 +1,9 @@
-import type { ServingOption } from "@workouts/core/nutrition";
+import { foodSnapshot, type ServingOption } from "@workouts/core/nutrition";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { comboPartFromEntry, kcalText } from "../combo/combo-parts";
 import { useComboTarget } from "../combo/use-combo-target";
-import {
-	type FoodSelection,
-	foodPartSnapshot,
-	selectionSourceKey,
-} from "./log-food-selection";
+import { type FoodSelection, selectionSourceKey } from "./log-food-selection";
 
 /** Which combo Log food adds to, or which part it replaces. */
 export type LogFoodTargetParams = {
@@ -41,14 +37,8 @@ export function useLogFoodTarget(
 		quantity: number,
 	) => {
 		try {
-			const { part, provenance } = foodPartSnapshot(
-				selection,
-				serving,
-				quantity,
-				locale,
-			);
 			const undo = await target.write(
-				comboPartFromEntry({ ...part, provenance }),
+				comboPartFromEntry(foodSnapshot(selection, serving, quantity)),
 			);
 			toast.success(
 				fmt(replacing ? copy.replaced : copy.added, {

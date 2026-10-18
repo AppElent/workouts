@@ -205,11 +205,7 @@ export function DiaryScreen({
 		try {
 			operations.removeBatch(
 				subject,
-				selectedEntries.map((e) =>
-					e.id.startsWith("client:")
-						? { kind: "clientEntryId", id: e.id.slice(7) }
-						: { kind: "serverId", id: e.id },
-				),
+				selectedEntries.map((e) => ({ kind: "serverId", id: e.id })),
 				() => {
 					setDeleting(false);
 					toast.error(t.nutrition.error.body);

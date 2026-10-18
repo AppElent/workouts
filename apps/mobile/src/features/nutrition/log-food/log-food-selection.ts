@@ -1,26 +1,20 @@
 import {
-	formatServingSelection,
-	NUTRIENT_KEYS,
+	type LibraryFood,
 	NUTRIENT_UNITS,
+	type NutrientKey,
 	type NutrientValue,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 	previewServing,
 	roundForDisplay,
 	type ServingOption,
-	type ShippedFood,
 	servingOptions,
-	shippedSourceMeta,
 	withPersonalMeasures,
 	withSupplementaryServings,
 } from "@workouts/core/nutrition";
-import type { DiaryEntry, MealSlot } from "../../../data/nutrition-day";
 import { foodSourceKey } from "../../../data/nutrition-shortcuts";
-import type { PersonalFood } from "../../../data/personal-food-repository";
 
-export type FoodSelection =
-	| { readonly kind: "shipped"; readonly food: ShippedFood }
-	| { readonly kind: "personal"; readonly food: PersonalFood };
+export type FoodSelection = LibraryFood;
 
 export type LogOutcome = "continue" | "close";
 
@@ -42,7 +36,7 @@ export type FoodFilter = FoodBrowserTab;
 
 export function formatNutrient(
 	value: NutrientValue,
-	key: (typeof NUTRIENT_KEYS)[number],
+	key: NutrientKey,
 	messages: { trace: string; absent: string },
 ): string {
 	if (value.kind === "trace") return messages.trace;
@@ -90,73 +84,6 @@ export function servingPreview(
 		label: snapshot.serving[locale],
 		nutrients: snapshot.nutrients,
 	};
-}
-
-/**
- * A food at a serving and quantity, without a day or meal: what a diary
- * entry and a combo part both store.
- */
-export function foodPartSnapshot(
-	selection: FoodSelection,
-	selectedServing: ServingOption,
-	quantity: number,
-	locale: "en" | "nl",
-) {
-	const measure =
-		selectedServing.kind === "personal-measure"
-			? { personalMeasureId: selectedServing.id }
-			: {};
-	if (selection.kind === "personal") {
-		const { provenance, ...part } = personalFoodSnapshot(selection.food, {
-			quantity,
-			serving: selectedServing,
-		});
-		return { part: { ...part, ...measure }, provenance };
-	}
-	const preview = servingPreview(selection, selectedServing, quantity, locale);
-	const part = {
-		name: selection.food.name,
-		serving: {
-			en: formatServingSelection(selectedServing, quantity, "en"),
-			nl: formatServingSelection(selectedServing, quantity, "nl"),
-		},
-		quantity,
-		amount: preview.amount,
-		baseUnit: selection.food.baseUnit,
-		...measure,
-		nutrients: Object.fromEntries(
-			NUTRIENT_KEYS.map((key) => [key, preview.nutrients[key]]),
-		) as Pick<ShippedFood["nutrients"], (typeof NUTRIENT_KEYS)[number]>,
-	};
-	const source = shippedSourceMeta(selection.food);
-	const provenance: DiaryEntry["provenance"] = {
-		source: "shipped",
-		sourceId: selection.food.id,
-		dataset: source.name,
-		edition: source.edition,
-		sourceCode: selection.food.code,
-		sourceName: selection.food.sourceName,
-		saltDerived: source.saltDerived,
-	};
-	return { part, provenance };
-}
-
-export function createFoodSnapshot(
-	selection: FoodSelection,
-	selectedServing: ServingOption,
-	quantity: number,
-	date: string,
-	meal: MealSlot,
-	clientEntryId: string,
-	locale: "en" | "nl",
-) {
-	const { part, provenance } = foodPartSnapshot(
-		selection,
-		selectedServing,
-		quantity,
-		locale,
-	);
-	return { common: { ...part, date, meal, clientEntryId }, provenance };
 }
 
 /** The durable shortcut key for a selection (favorite, recent, remembered portion). */

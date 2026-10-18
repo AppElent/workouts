@@ -76,9 +76,6 @@ function snapshot(source: DiaryEntry, date: string, meal: MealSlot) {
 		nutrients: source.nutrients,
 		provenance: source.provenance,
 		...(source.comboGroup ? { comboGroup: source.comboGroup } : {}),
-		...(source.id.startsWith("client:")
-			? { clientEntryId: source.id.slice("client:".length) }
-			: {}),
 	};
 }
 
@@ -160,7 +157,7 @@ describe("DiaryEntryTransferScreen", () => {
 			"en",
 			[
 				{ ...entry, meal: "lunch" },
-				{ ...entry, id: "client:pending-entry", meal: "dinner" },
+				{ ...entry, id: "entry-2", meal: "dinner" },
 			],
 		);
 		expect(screen.getByLabelText("Move entry")).toBeEnabled();
@@ -169,7 +166,7 @@ describe("DiaryEntryTransferScreen", () => {
 			"account-a",
 			[
 				{ kind: "serverId", id: "entry-1" },
-				{ kind: "clientEntryId", id: "pending-entry" },
+				{ kind: "serverId", id: "entry-2" },
 			],
 			"2026-09-12",
 			"lunch",
@@ -222,7 +219,7 @@ describe("DiaryEntryTransferScreen", () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it("moves the existing local entry with one normalized atomic batch", () => {
+	it("moves the entry with one atomic batch", () => {
 		const moveBatch = jest.fn(
 			(
 				_subject: string,
@@ -240,7 +237,7 @@ describe("DiaryEntryTransferScreen", () => {
 				createBatch: jest.fn(),
 				moveBatch,
 			},
-			{ id: "client:offline-entry" },
+			{ id: "entry-9" },
 		);
 
 		fireEvent.press(screen.getByText("Dinner"));
@@ -249,7 +246,7 @@ describe("DiaryEntryTransferScreen", () => {
 
 		expect(moveBatch).toHaveBeenCalledWith(
 			"account-a",
-			[{ kind: "clientEntryId", id: "offline-entry" }],
+			[{ kind: "serverId", id: "entry-9" }],
 			"2026-09-13",
 			"dinner",
 			expect.any(Function),

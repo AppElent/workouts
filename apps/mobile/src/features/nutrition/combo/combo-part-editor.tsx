@@ -1,6 +1,6 @@
 import {
 	formatServingSelection,
-	rescaleNutrients,
+	rescaleToSelection,
 } from "@workouts/core/nutrition";
 import { useState } from "react";
 import { View } from "react-native";
@@ -24,8 +24,9 @@ import { snapshotEnergy } from "./combo-parts";
 /**
  * A combo part in the one amount editor. Saved mode edits the combo in its
  * own routed sheet (toolbar: replace and remove); once mode adjusts a single
- * log inside the log sheet and has no toolbar. Values rescale from the part's
- * saved snapshot, not its live source.
+ * log inside the log sheet and has no toolbar. Values rescale from the
+ * snapshot it is given: the saved one, or in once mode the Combo log plan's
+ * current figures.
  */
 export function ComboPartEditor({
 	part,
@@ -75,24 +76,24 @@ export function ComboPartEditor({
 		if (!canConfirm) return;
 		setSaving(true);
 		try {
-			await onConfirm({
-				...snapshot,
-				quantity: selection.quantity,
-				amount: selection.amount,
-				serving: {
-					en: formatServingSelection(
-						selection.selected,
-						selection.quantity,
-						"en",
-					),
-					nl: formatServingSelection(
-						selection.selected,
-						selection.quantity,
-						"nl",
-					),
-				},
-				nutrients: rescaleNutrients(snapshot.nutrients, factor),
-			});
+			await onConfirm(
+				rescaleToSelection(snapshot, {
+					quantity: selection.quantity,
+					amount: selection.amount,
+					serving: {
+						en: formatServingSelection(
+							selection.selected,
+							selection.quantity,
+							"en",
+						),
+						nl: formatServingSelection(
+							selection.selected,
+							selection.quantity,
+							"nl",
+						),
+					},
+				}),
+			);
 		} finally {
 			setSaving(false);
 		}

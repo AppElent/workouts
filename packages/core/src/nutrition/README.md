@@ -30,6 +30,7 @@ Full text: `data/nevo/Conditions of use NEVO-online 2025 dataset.pdf`. Rationale
 | `overlay.ts` | **Hand-authored.** The promoted NEVO foods: bilingual names, aliases, emoji, category, servings. This is the file to edit. |
 | `schema.ts` | Zod schema for both generated files. Generation and tests only — `zod` is a devDependency and must not reach the phone. |
 | `library.ts` `search.ts` `servings.ts` `aggregate.ts` `salt.ts` `nutrients.ts` `attribution.ts` | The public API. |
+| `food-snapshot.ts` `snapshot-rescale.ts` | Diary Entry and Combo part snapshots: building one from a Food, and rescaling one with its Serving label. `snapshot-rescale.ts` is artifact-free and also exported from the `@workouts/core` barrel for Convex. |
 | `../../scripts/` | The generator, its NEVO and Lidl readers, and the benchmark. |
 
 ## Two sources, one artifact
@@ -38,8 +39,9 @@ Every food carries a `source` (`"nevo"` or `"lidl"`) and a source-local `code`. 
 unique per source, never across sources: identity is `${source}:${code}`, the lockfile
 namespaces Lidl entries with `src: "lidl"`, and Lidl ids are minted as `shipped:lidl-…`.
 The artifact's `sources` table gives each source its dataset name, edition and whether salt
-is derived — read it through `shippedSourceMeta(food)` when writing provenance, never from
-`meta.dataset` (which is NEVO's).
+is derived. Write provenance with `shippedFoodProvenance(food)` (or a whole snapshot with
+`foodSnapshot`, in `food-snapshot.ts`), which reads it through `shippedSourceMeta(food)`, never
+from `meta.dataset` (which is NEVO's).
 
 Lidl products (`data/lidl/lidl-bakeoff.json`, see its README) are promoted automatically
 with one serving — the piece weight from the sheet — and are filed under the single
