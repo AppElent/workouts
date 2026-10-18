@@ -48,7 +48,6 @@
 		"plugins": [
 			"expo-router",
 			"@clerk/expo",
-			"expo-build-properties",
 			[
 				"expo-secure-store",
 				{
