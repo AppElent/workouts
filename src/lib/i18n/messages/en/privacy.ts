@@ -2,7 +2,7 @@
 // compare every paragraph and list item between locales.
 export const privacy = {
 	title: "Privacy statement",
-	updated: "Last updated: 13 October 2026",
+	updated: "Last updated: 18 October 2026",
 	back: "Back to home",
 	intro: {
 		title: "Who we are",
@@ -21,7 +21,9 @@ export const privacy = {
 				"Training data: workouts, sets, routines, WODs, endurance activities, and personal records you log.",
 			health:
 				"Nutrition and body data: your food diary, foods, combos, nutrition goals, body metrics such as weight, and personal measures. This can be health data; we only process it because you choose to log it.",
-			photos: "Photos you add to foods or diary entries.",
+			photos:
+				"Photos you add to foods or diary entries, and your profile photo.",
+			ai: "AI entry help: in the mobile app, the meal text and photos you send to AI entry help, after you agree to it.",
 			shared:
 				"Shared workouts: when you host or join a shared workout, your display name and submitted results are visible to the host and other participants. Guests provide a name with their result.",
 			diagnostics:
@@ -56,7 +58,11 @@ export const privacy = {
 			cloudflare: "Cloudflare: hosting of the web app.",
 			sentry: "Sentry: error monitoring and problem reports.",
 			expo: "Expo: delivery of mobile app updates.",
+			anthropic:
+				"Anthropic: AI entry help in the mobile app. Your text and photos are sent only after you agree, to recognise foods. They are not stored in your account and not used to train models.",
 		},
+		signIn:
+			"If you sign in with Apple or Microsoft, that company confirms your identity and shares your name and email address with us. Their own privacy policies apply to that sign-in.",
 		openFoodFacts:
 			"When you scan a barcode or search for a food, the barcode or search text is sent to Open Food Facts to look up product information. This request is not linked to your account.",
 		transfers:
@@ -66,7 +72,7 @@ export const privacy = {
 		title: "How long we keep it",
 		body: {
 			account:
-				"We keep your data for as long as you have an account. After you ask us to delete your account, we delete your data within 30 days.",
+				"We keep your data for as long as you have an account. When you delete your account in the mobile app, your data and account are deleted right away. If you ask us by email instead, we delete them within 30 days.",
 			diagnostics:
 				"Diagnostics and problem reports are deleted automatically after at most 90 days.",
 		},
@@ -77,7 +83,7 @@ export const privacy = {
 			rights:
 				"You have the right to access, correct, delete, or export your data, to restrict or object to its processing, and to withdraw consent.",
 			howTo:
-				"You can export your data from the Account page in the web app. For other requests, including deleting your account, email privacy@appelent.nl. We respond within one month.",
+				"You can export your data, delete your data, or delete your account from the Account screen in the mobile app. You can also export your data from the Account page in the web app. To delete your account by email, or for any other request, email privacy@appelent.nl. We respond within one month.",
 			complaint:
 				"If you are not satisfied with how we handle your data, you can file a complaint with the Dutch Data Protection Authority (Autoriteit Persoonsgegevens) or the data protection authority in your country.",
 		},
