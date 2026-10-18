@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
-import { APPLE_CLIENT_ID, clientSecret } from "./lib/appleSignIn";
+import { clientSecret } from "./lib/appleSignIn";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -65,6 +65,7 @@ describe("Sign in with Apple client secret", () => {
 		const now = Date.UTC(2026, 9, 18);
 		const jwt = await clientSecret(
 			{ teamId: "TEAM123456", keyId: "KEY1234567", privateKey: key.pem },
+			"com.appelent.foundry",
 			now,
 		);
 		const [header, claims, signature] = jwt.split(".");
@@ -77,7 +78,7 @@ describe("Sign in with Apple client secret", () => {
 			iat: now / 1000,
 			exp: now / 1000 + 300,
 			aud: "https://appleid.apple.com",
-			sub: APPLE_CLIENT_ID,
+			sub: "com.appelent.foundry",
 		});
 		await expect(
 			crypto.subtle.verify(
@@ -108,6 +109,36 @@ describe("account.revokeAppleSignIn", () => {
 		expect(calls).toEqual([]);
 	});
 
+	it("rejects a bundle ID that is not a Foundry build", async () => {
+		await configure();
+		const { calls } = appleResponses({});
+		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, {
+				authorizationCode: "code",
+				bundleId: "com.example.other",
+			}),
+		).rejects.toThrow("invalid");
+		expect(calls).toEqual([]);
+	});
+
+	it("uses the bundle ID of the build that asked", async () => {
+		await configure();
+		const { calls } = appleResponses({
+			"/auth/token": Response.json({ refresh_token: "refresh" }),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		await alice.action(api.account.revokeAppleSignIn, {
+			authorizationCode: "code",
+			bundleId: "com.appelent.foundry.preview",
+		});
+		expect(calls.map(({ form }) => form.get("client_id"))).toEqual([
+			"com.appelent.foundry.preview",
+			"com.appelent.foundry.preview",
+		]);
+	});
+
 	it("exchanges the code and revokes the refresh token", async () => {
 		await configure();
 		const { calls } = appleResponses({
@@ -129,12 +160,12 @@ describe("account.revokeAppleSignIn", () => {
 			Object.fromEntries(form),
 		);
 		expect(exchange).toMatchObject({
-			client_id: APPLE_CLIENT_ID,
+			client_id: "com.appelent.foundry",
 			code: "code",
 			grant_type: "authorization_code",
 		});
 		expect(revoke).toMatchObject({
-			client_id: APPLE_CLIENT_ID,
+			client_id: "com.appelent.foundry",
 			token: "refresh",
 			token_type_hint: "refresh_token",
 		});

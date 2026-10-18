@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # iOS test builds and OTA updates
@@ -20,6 +20,29 @@ on 2026-09-29, `preview` points to the live Convex deployment `fine-akita-444`,
 also used by the production web app. Check the target before deploying backend
 changes. This release requires the completed
 [exercise-history migration](exercise-migration.md) before client distribution.
+
+## Install variants
+
+Each EAS profile builds its own app, so all three install side by side on one
+device. `app.config.ts` picks the identity from `APP_VARIANT`, which
+`eas.json` sets per profile:
+
+| Variant | Profiles | Bundle ID / package | Home screen | Scheme | Distribution |
+|---|---|---|---|---|---|
+| Production | `production` | `com.appelent.foundry` | Foundry | `foundry` | App Store |
+| Preview | `preview`, `preview-internal` | `com.appelent.foundry.preview` | Foundry Preview | `foundry-preview` | TestFlight (own ASC app) |
+| Development | `development` | `com.appelent.foundry.dev` | Foundry Dev | `foundry-dev` | Internal dev client |
+
+An unset `APP_VARIANT` means development, so local `expo run` builds never
+replace the App Store install. Preview and development icons carry a coloured
+PREVIEW / DEV band. `pnpm update:publish` derives `APP_VARIANT` from
+`--channel`; a raw `eas update` must set it explicitly, or the update carries
+the development scheme and bundle ID.
+
+Each bundle ID needs its own App ID (with Sign in with Apple, grouped under
+`com.appelent.foundry`) and Clerk registration: see
+[social sign-in](social-sign-in.md#install-variants). Account deletion revokes
+the Apple grant against the bundle ID of the build that asks.
 
 ## Build and install
 
@@ -79,7 +102,8 @@ and `adb`. The workspace explicitly allows `node-datachannel`'s native install
 script for Android streaming. Application device acceptance still follows the
 [verification workflow](verification.md).
 
-Keep durable native settings in `app.json` and config plugins; `ios/` and
+Keep durable native settings in `app.json`, `app.config.ts` (per-variant
+identity) and config plugins; `ios/` and
 `android/` remain generated and ignored. Disabling Sentry uploads is only for
 local development without upload credentials; EAS preview builds use their
 configured `SENTRY_AUTH_TOKEN` and upload source maps normally.
@@ -102,7 +126,8 @@ uses it on a subsequent launch. To test delivery, open the app with a network
 connection, allow the download to finish, then fully close and reopen it.
 An already-running workout is not forcibly reloaded.
 
-`app.json` uses the `fingerprint` runtime policy. Native dependencies, Expo SDK
+`app.json` uses the `fingerprint` runtime policy. Variants have different
+native identities, so each gets its own fingerprint and needs its own build. Native dependencies, Expo SDK
 upgrades, and native configuration changes can change the runtime fingerprint
 and require a new TestFlight build. An OTA update cannot add native modules or
 permissions to an existing binary. Publish from the same dependency lockfile
@@ -124,7 +149,7 @@ validation and a preview-environment bundle export from `apps/mobile`:
 
 ```sh
 pnpm dlx expo-doctor
-EXPO_NO_DOTENV=1 pnpm exec eas env:exec preview 'pnpm exec expo export --platform ios --output-dir dist/ios-preflight' --non-interactive
+EXPO_NO_DOTENV=1 pnpm exec eas env:exec preview 'APP_VARIANT=preview pnpm exec expo export --platform ios --output-dir dist/ios-preflight' --non-interactive
 ```
 
 Check the native runtime against the intended binary using the shared

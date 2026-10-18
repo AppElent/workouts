@@ -1,5 +1,6 @@
 import type { ConvexReactClient } from "convex/react";
 import * as AppleAuthentication from "expo-apple-authentication";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { api } from "../../convex/api";
 import { reportError } from "../../observability/errors";
@@ -25,6 +26,9 @@ function appleUserIds(user: AppleLinkedUser) {
  * be the person linked to this account. A code for anyone else is never sent,
  * so another person's grant is never revoked.
  *
+ * Apple issues the code to this build's bundle ID, which differs per install
+ * variant, so Convex is told which one to revoke against.
+ *
  * Only iOS has the native sheet. Android Apple sign-in goes through Clerk's
  * browser flow, whose tokens the app cannot reach (issue #125).
  */
@@ -41,7 +45,10 @@ export async function revokeAppleSignIn(
 		const { authorizationCode } = credential;
 		if (!authorizationCode)
 			throw new Error("Apple returned no authorization code");
-		await convex.action(api.account.revokeAppleSignIn, { authorizationCode });
+		await convex.action(api.account.revokeAppleSignIn, {
+			authorizationCode,
+			bundleId: Constants.expoConfig?.ios?.bundleIdentifier,
+		});
 	} catch (error) {
 		if ((error as { code?: string } | null)?.code === "ERR_REQUEST_CANCELED")
 			return "cancelled";

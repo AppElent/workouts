@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
+import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
@@ -104,3 +105,8 @@ Sentry.init({
 // Feedback skips beforeSend; redact the typed report text separately.
 Sentry.addEventProcessor(sanitizeFeedbackEvent);
 Sentry.setTag("app", "foundry-mobile");
+// Which install sent it: production, preview or development (app.config.ts).
+Sentry.setTag(
+	"app.variant",
+	String(Constants.expoConfig?.extra?.appVariant ?? "unknown"),
+);

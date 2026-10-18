@@ -1,7 +1,5 @@
 {
 	"expo": {
-		"name": "Foundry",
-		"icon": "./assets/icon.png",
 		"slug": "foundry",
 		"version": "1.0.0",
 		"runtimeVersion": {
@@ -11,12 +9,10 @@
 			"url": "https://u.expo.dev/9cd74697-33c2-4706-a53e-89627a3b1994"
 		},
 		"orientation": "portrait",
-		"scheme": "foundry",
 		"userInterfaceStyle": "automatic",
 		"backgroundColor": "#f4f5f0",
 		"ios": {
 			"supportsTablet": true,
-			"bundleIdentifier": "com.appelent.foundry",
 			"infoPlist": {
 				"CFBundleAllowMixedLocalizations": true,
 				"ITSAppUsesNonExemptEncryption": false
@@ -24,9 +20,7 @@
 			"usesAppleSignIn": true
 		},
 		"android": {
-			"package": "com.appelent.foundry",
 			"adaptiveIcon": {
-				"foregroundImage": "./assets/adaptive-icon.png",
 				"backgroundColor": "#0a0b09"
 			},
 			"backgroundColor": "#f4f5f0",
