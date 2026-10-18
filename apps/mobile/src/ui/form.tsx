@@ -320,6 +320,15 @@ export function InlineNumberFieldRow({
 	);
 }
 
+const TILE_COLORS = {
+	indigo: "tileIndigo",
+	blue: "tileBlue",
+	orange: "tileOrange",
+	green: "tileGreen",
+	purple: "tilePurple",
+	teal: "tileTeal",
+} as const;
+
 export function DisclosureRow({
 	label,
 	value,
@@ -335,7 +344,11 @@ export function DisclosureRow({
 	expanded?: boolean;
 	accessibilityLabel?: string;
 	onPress?: () => void;
-	icon?: { name: ComponentProps<typeof SymbolView>["name"]; color: string };
+	/** iOS draws a settings tile; Android shows the plain icon, as Material does. */
+	icon?: {
+		name: ComponentProps<typeof SymbolView>["name"];
+		tile: "indigo" | "blue" | "orange" | "green" | "purple" | "teal";
+	};
 	disabled?: boolean;
 	destructive?: boolean;
 }) {
@@ -361,12 +374,19 @@ export function DisclosureRow({
 						height: 30,
 						borderRadius: 7,
 						borderCurve: "continuous",
-						backgroundColor: icon.color,
+						backgroundColor:
+							Platform.OS === "ios"
+								? colors[TILE_COLORS[icon.tile]]
+								: undefined,
 						alignItems: "center",
 						justifyContent: "center",
 					}}
 				>
-					<SymbolView name={icon.name} tintColor="#ffffff" size={18} />
+					<SymbolView
+						name={icon.name}
+						tintColor={Platform.OS === "ios" ? "#ffffff" : colors.textMuted}
+						size={Platform.OS === "ios" ? 18 : 22}
+					/>
 				</View>
 			) : null}
 			<AppText
