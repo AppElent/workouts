@@ -68,7 +68,7 @@ pnpm exec expo prebuild --platform ios --clean
 ```
 
 Prebuild rewrites `apps/mobile/package.json` (the `ios`/`android` scripts and
-its indentation). Restore it with `git checkout apps/mobile/package.json`.
+its indentation). Restore it with `git checkout -- package.json`.
 
 Expo Device Hub is the standard local simulator/emulator dashboard. Start Metro
 with `pnpm start:dev-client` from `apps/mobile`, then open the Device Hub URL
