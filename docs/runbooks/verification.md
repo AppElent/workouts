@@ -44,7 +44,8 @@ Wrangler. Routes are in `src/routes/`; navigation comes from
 ## Mobile
 
 Use [mobile releases](mobile-releases.md) for a compatible development client and
-Metro. Select a free port, then confirm this checkout's bundle and backend. Expo Go
+Metro. Select a free port, then confirm this checkout's bundle and backend with
+`node scripts/check-mobile-backend.mjs --port <port>`. Expo Go
 does not supply this app's custom native modules. Use host device tools when
 available; Device Hub is the local dashboard fallback.
 To launch, sign in, and drive the app on a simulator, use the `run-mobile` skill
