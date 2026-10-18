@@ -7,7 +7,7 @@
  */
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
 import {
 	formatLongDate,
 	shiftIsoDate,
@@ -197,7 +197,11 @@ describe("editing a diary entry", () => {
 	it("keeps the edited quantity open after a failed acknowledgement", async () => {
 		// A non-`Error` rejection, so the assertion is on the localized fallback
 		// text rather than convexErrorMessage's Convex-specific pass-through.
-		const update = jest.fn().mockRejectedValue("offline");
+		// The save stays in flight across the double tap, then fails.
+		let failUpdate: (reason: unknown) => void = () => {};
+		const update = jest.fn(
+			() => new Promise((_, reject) => (failUpdate = reject)),
+		);
 		mockMutations("applyOperation", update);
 		await openEditor();
 
@@ -207,6 +211,7 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(button);
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+		await act(async () => failUpdate("offline"));
 		await waitFor(() =>
 			expect(screen.getByLabelText("Save changes")).toBeEnabled(),
 		);
