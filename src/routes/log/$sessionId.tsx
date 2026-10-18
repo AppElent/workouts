@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { ExerciseId } from "@foundry/core/exercises";
@@ -28,12 +28,12 @@ export const Route = createFileRoute("/log/$sessionId")({
 function ActiveSessionPageGuarded() {
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<ActiveSessionPage />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

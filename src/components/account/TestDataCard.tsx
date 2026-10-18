@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";

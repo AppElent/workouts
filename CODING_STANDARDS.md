@@ -63,7 +63,7 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 
 | Capability | Binding |
 | --- | --- |
-| Auth | Web: app-owned `src/lib/auth` + `@clerk/clerk-react`; mobile: `@clerk/expo`. Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
+| Auth | Web: app-owned `src/lib/auth` + `@clerk/react`; mobile: `@clerk/expo` (both Clerk Core 3). Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
 | Localization | App-owned runtime in `src/lib/i18n/runtime` (mobile copies `core.ts`); messages stay app-owned. |
 | CLI | `cli/index.ts` wraps the app-owned `cli/runtime` and owns domain commands. |
 | Environments | `pnpm env:*` runs `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |

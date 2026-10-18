@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/react";
 import { useEffect } from "react";
 import { isLocale } from "./core";
 import type { I18nValue } from "./index";
@@ -40,9 +40,7 @@ export function createLanguageSync<L extends string, M>({
 				return;
 			}
 			user
-				.update({
-					unsafeMetadata: { ...user.unsafeMetadata, language: locale },
-				})
+				.updateMetadata({ unsafeMetadata: { language: locale } })
 				.catch(() => {
 					// Best-effort sync; the cookie already holds the choice locally.
 				});

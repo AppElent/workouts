@@ -4,9 +4,8 @@
  * Clerk **Core 3** (`@clerk/expo`) trap: a successful `signIn.password()`
  * leaves the sign-in `'complete'` but **not** signed in. `finalize()` is
  * what promotes it to the active session — skipping it produces a flow that
- * reports success and leaves the person exactly where they were. This is
- * genuinely different from the web app's Core 2 (`src/lib/auth` /
- * `@clerk/clerk-react`), which throws on failure and uses `setActive()`.
+ * reports success and leaves the person exactly where they were. The web
+ * forms (`src/lib/auth`, `@clerk/react`) follow the same Core 3 contract.
  *
  * Nothing here navigates. When `finalize()` lands, `isSignedIn` flips, the
  * `(auth)` layout redirects, and this component unmounts out from under the

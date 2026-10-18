@@ -1,4 +1,4 @@
-import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
+import { AuthenticateWithRedirectCallback } from "@clerk/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthCard, useAuthConfig } from "#/lib/auth";
 import { useMessages } from "#/lib/i18n";

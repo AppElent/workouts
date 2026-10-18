@@ -7,10 +7,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const authenticateWithRedirect = vi.fn();
-vi.mock("@clerk/clerk-react", () => ({
-	useSignIn: () => ({ isLoaded: true, signIn: { authenticateWithRedirect } }),
-}));
+const sso = vi.fn();
+vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn: { sso } }) }));
 
 import { LocaleProvider } from "#/lib/i18n";
 import { AuthConfigProvider, DEFAULT_AUTH_CONFIG } from "../AuthConfigProvider";
@@ -44,7 +42,7 @@ function renderButtons(config: AuthConfig = CONFIG) {
 describe("SocialButtons", () => {
 	afterEach(() => {
 		cleanup();
-		authenticateWithRedirect.mockReset();
+		sso.mockReset();
 	});
 
 	it("renders nothing without configured providers", () => {
@@ -53,21 +51,21 @@ describe("SocialButtons", () => {
 	});
 
 	it("redirects to the chosen provider via the SSO callback", () => {
-		authenticateWithRedirect.mockResolvedValue(undefined);
+		sso.mockResolvedValue({ error: null });
 		renderButtons();
 		fireEvent.click(
 			screen.getByRole("button", { name: "Continue with Microsoft" }),
 		);
-		expect(authenticateWithRedirect).toHaveBeenCalledWith({
+		expect(sso).toHaveBeenCalledWith({
 			strategy: "oauth_microsoft",
-			redirectUrl: "/sso-callback",
-			redirectUrlComplete: "/dashboard",
+			redirectCallbackUrl: "/sso-callback",
+			redirectUrl: "/dashboard",
 		});
 	});
 
 	it("shows a readable error when the redirect cannot start", async () => {
-		authenticateWithRedirect.mockRejectedValue({
-			errors: [{ message: "Provider disabled." }],
+		sso.mockResolvedValue({
+			error: { errors: [{ message: "Provider disabled." }] },
 		});
 		renderButtons();
 		fireEvent.click(
@@ -91,7 +89,7 @@ describe("SocialButtons", () => {
 	});
 
 	it("blocks every provider while one redirect is starting", () => {
-		authenticateWithRedirect.mockReturnValue(new Promise(() => {}));
+		sso.mockReturnValue(new Promise(() => {}));
 		renderButtons();
 		fireEvent.click(
 			screen.getByRole("button", { name: "Continue with Google" }),
@@ -101,6 +99,6 @@ describe("SocialButtons", () => {
 		}) as HTMLButtonElement;
 		expect(microsoft.disabled).toBe(true);
 		fireEvent.click(microsoft);
-		expect(authenticateWithRedirect).toHaveBeenCalledTimes(1);
+		expect(sso).toHaveBeenCalledTimes(1);
 	});
 });

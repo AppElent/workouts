@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExportDataCard } from "#/components/account/ExportDataCard";
 import { ReportProblem } from "#/components/account/ReportProblem";
@@ -14,12 +14,12 @@ export const Route = createFileRoute("/account/")({
 function AccountPageGuarded() {
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<AccountPage />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }
