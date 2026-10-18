@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.1.0
+version: 1.2.0
 status: current
 ---
 
@@ -15,9 +15,12 @@ tap. Study: [profile](../../designs/app/profile_final.html).
 - **Settings one tap deep.** Preferences and Nutrition are `FormSection`s on
   Profile; no pushed screen with a single row. Appearance, language, nutrition
   destinations, Feedback, Labs, and sign-out stay reachable.
-- **Icon tiles.** A settings row may carry a 30-pt continuous-corner tile with a
-  white SF Symbol on a fixed tint (same in dark mode), via `DisclosureRow`'s
-  `icon`. The only exception to the single lime accent.
+- **Icon tiles.** On iOS, a settings row may carry a 30-pt continuous-corner tile
+  with a white SF Symbol on an iOS system tint, via `DisclosureRow`'s `icon`. Each
+  tint uses the system colour for the current scheme (`tile*` tokens), so dark
+  mode gets the dark variant. On Android the same row shows the plain Material
+  symbol in `textMuted` with no tile, following Material settings lists. The only
+  exception to the single lime accent.
 - **Account.** The account row (Clerk name, email, photo) opens Account with
   sign-in details, export, and deletion. Deletion names what is removed and points
   to export first.

@@ -10,7 +10,8 @@ spacing scale, semantic colors, and corners.
 
 Pills identify principal actions and compact chips. Cards represent objects or
 summaries; grouped fields use rows and separators. The approved Profile study
-permits fixed-tint icon tiles for settings, an exception to the single lime accent.
+permits iOS settings icon tiles in the system tints (`tile*` tokens, per scheme),
+an exception to the single lime accent. Android shows the plain icon instead.
 
 ## Adopted patterns
 
