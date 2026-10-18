@@ -36,7 +36,8 @@ Nothing here lives in `env.manifest.ts`.
 | Apple primary App ID | `com.appelent.foundry` (other apps group under it) |
 | Apple Services ID | `nl.appelent.web` |
 | Apple on iOS | Native sheet; Android and web use the browser OAuth flow |
-| Preview deploys | Separate Clerk test instance; unaffected |
+| Web PR preview deploys | Separate Clerk test instance; unaffected |
+| EAS builds → Clerk instance | `development` → development; `preview` and `production` → production |
 
 Google is gated to local development (`import.meta.env.DEV` on web, `__DEV__`
 on mobile) because only the development instance has working Google
@@ -163,6 +164,9 @@ Only these are per app; everything above is already shared:
   personal Microsoft accounts.
 - Microsoft stops working everywhere: client secret expired; create a new one
   and update Clerk.
+- Mobile button fails at once with "Redirect url mismatch" (often on a
+  `preview` build, which uses production): step 5 was skipped on that
+  instance.
 - Mobile browser returns but stays signed out: `foundry://sso-callback` is
   missing from the mobile redirect allowlist.
 - Mobile shows "Finish signing up on the web": a required sign-up field the
