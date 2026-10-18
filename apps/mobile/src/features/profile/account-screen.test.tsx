@@ -1,7 +1,10 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
+import * as AppleAuthentication from "expo-apple-authentication";
+import { Platform } from "react-native";
 import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
+import { reportError } from "../../observability/errors";
 import { renderScreen } from "../../test-support/render-screen";
 import { AccountDataMaintenanceProvider } from "../local-data/account-data-maintenance-provider";
 import { clearAccountSetDrafts } from "../strength-session/data/set-drafts";
@@ -16,7 +19,7 @@ const mockUser = {
 	hasImage: false,
 	imageUrl: "",
 	passwordEnabled: true,
-	externalAccounts: [],
+	externalAccounts: [] as { provider: string }[],
 	primaryEmailAddress: { emailAddress: "alex@example.test" },
 	emailAddresses: [{ id: "e1", emailAddress: "alex@example.test" }],
 	deleteSelfEnabled: true,
@@ -28,6 +31,9 @@ jest.mock("@clerk/expo", () => ({
 	useAuth: () => ({ userId: "test-user", sessionId: "s1", isSignedIn: true }),
 	useUser: () => ({ user: mockUser }),
 }));
+
+jest.mock("expo-apple-authentication", () => ({ signInAsync: jest.fn() }));
+jest.mock("../../observability/errors", () => ({ reportError: jest.fn() }));
 
 jest.mock("../../data/nutrition-account-cleanup", () => ({
 	clearNutritionAccountCache: jest.fn(),
@@ -44,11 +50,23 @@ jest.mock("../strength-session/data/set-drafts", () => ({
 }));
 
 const deleteData = jest.fn();
+const action = jest.fn();
 let blocker: "activeActivity" | null = null;
+const originalOS = Platform.OS;
+
+afterEach(() => {
+	Platform.OS = originalOS;
+	mockUser.externalAccounts = [];
+});
 
 beforeEach(() => {
 	jest.clearAllMocks();
 	blocker = null;
+	action.mockResolvedValue(null);
+	jest.mocked(useConvex).mockReturnValue({
+		query: jest.fn().mockResolvedValue([]),
+		action,
+	} as unknown as ReturnType<typeof useConvex>);
 	deleteData
 		.mockResolvedValueOnce({ done: false })
 		.mockResolvedValueOnce({ done: true });
@@ -118,6 +136,70 @@ it("deletes the Clerk account only after the data is gone", async () => {
 	expect(deleteData.mock.invocationCallOrder[1]).toBeLessThan(
 		mockUser.delete.mock.invocationCallOrder[0],
 	);
+});
+
+describe("an account that signs in with Apple on iOS", () => {
+	beforeEach(() => {
+		Platform.OS = "ios";
+		mockUser.externalAccounts = [{ provider: "apple" }];
+	});
+
+	it("revokes the Apple grant before deleting anything", async () => {
+		jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+			authorizationCode: "apple-code",
+		} as AppleAuthentication.AppleAuthenticationCredential);
+		await renderAccount();
+		await confirmAction("Delete account");
+		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		expect(getFunctionName(action.mock.calls[0][0])).toBe(
+			"account:revokeAppleSignIn",
+		);
+		expect(action.mock.calls[0][1]).toEqual({
+			authorizationCode: "apple-code",
+		});
+		expect(action.mock.invocationCallOrder[0]).toBeLessThan(
+			deleteData.mock.invocationCallOrder[0],
+		);
+		expect(mockUser.delete).toHaveBeenCalled();
+	});
+
+	it("keeps the account when the Apple sheet is dismissed", async () => {
+		jest
+			.mocked(AppleAuthentication.signInAsync)
+			.mockRejectedValue(
+				Object.assign(new Error("canceled"), { code: "ERR_REQUEST_CANCELED" }),
+			);
+		await renderAccount();
+		await confirmAction("Delete account");
+		await waitFor(() =>
+			expect(AppleAuthentication.signInAsync).toHaveBeenCalled(),
+		);
+		expect(action).not.toHaveBeenCalled();
+		expect(deleteData).not.toHaveBeenCalled();
+		expect(mockUser.delete).not.toHaveBeenCalled();
+	});
+
+	it("still deletes the account when revoking fails", async () => {
+		jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+			authorizationCode: "apple-code",
+		} as AppleAuthentication.AppleAuthenticationCredential);
+		action.mockRejectedValue(new Error("failed"));
+		await renderAccount();
+		await confirmAction("Delete account");
+		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		expect(reportError).toHaveBeenCalledWith(
+			expect.any(Error),
+			"account.revokeAppleSignIn",
+		);
+		expect(mockUser.delete).toHaveBeenCalled();
+	});
+
+	it("does not ask Apple when only the data is deleted", async () => {
+		await renderAccount();
+		await confirmAction("Delete my data");
+		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		expect(AppleAuthentication.signInAsync).not.toHaveBeenCalled();
+	});
 });
 
 it("explains and disables deletion while an Activity is running", async () => {

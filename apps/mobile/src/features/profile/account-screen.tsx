@@ -21,6 +21,7 @@ import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { useAccountDeletion } from "../local-data/account-data-maintenance-provider";
 import { exportAccountData } from "./account-export";
+import { revokeAppleSignIn } from "./apple-revocation";
 
 const PRIVACY_STATEMENT_URL = "https://foundry.appelent.nl/privacy";
 
@@ -127,19 +128,21 @@ export function AccountScreen() {
 		if (pending.current) return;
 		pending.current = true;
 		try {
+			const confirmed = await confirm({
+				title: mode === "deleteData" ? c.deleteData : c.deleteAccount,
+				message:
+					mode === "deleteData" ? c.deleteDataConfirm : c.deleteAccountConfirm,
+				confirmLabel: mode === "deleteData" ? c.deleteData : c.deleteAccount,
+				cancelLabel: c.cancel,
+				destructive: true,
+			});
+			if (!confirmed || !user) return;
 			if (
-				await confirm({
-					title: mode === "deleteData" ? c.deleteData : c.deleteAccount,
-					message:
-						mode === "deleteData"
-							? c.deleteDataConfirm
-							: c.deleteAccountConfirm,
-					confirmLabel: mode === "deleteData" ? c.deleteData : c.deleteAccount,
-					cancelLabel: c.cancel,
-					destructive: true,
-				})
+				mode === "deleteAccount" &&
+				(await revokeAppleSignIn(user, convex)) === "cancelled"
 			)
-				deleteAccountData(mode);
+				return;
+			deleteAccountData(mode);
 		} finally {
 			pending.current = false;
 		}

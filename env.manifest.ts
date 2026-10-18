@@ -248,6 +248,42 @@ export const ENTRIES = [
 		},
 	},
 	{
+		key: "appleTeamId",
+		infisicalKey: "apple-team-id",
+		description: "Apple Developer team ID; signs the Sign in with Apple client secret.",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "APPLE_TEAM_ID",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "appleSignInKeyId",
+		infisicalKey: "apple-sso-key-id",
+		description: "Key ID of the Sign in with Apple private key.",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "APPLE_SIGN_IN_KEY_ID",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "appleSignInPrivateKey",
+		infisicalKey: "apple-sso-key-value",
+		description: "Sign in with Apple .p8 private key; Convex revokes Apple grants on account deletion.",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "APPLE_SIGN_IN_PRIVATE_KEY",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
 		key: "convexUrl",
 		infisicalKey: "convex-url",
 		description: "Public URL of the Convex deployment used by each client.",

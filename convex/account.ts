@@ -1,5 +1,9 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import {
+	appleCredentials,
+	revokeAppleAuthorization,
+} from "./lib/appleSignIn";
 import {
 	deletePersonalData,
 	personalDataBlocker,
@@ -42,5 +46,33 @@ export const deleteData = mutation({
 				keepPreferences: false,
 			}),
 		};
+	},
+});
+
+/** Apple authorization codes are opaque strings of a few hundred characters. */
+const MAX_AUTHORIZATION_CODE = 2000;
+
+/**
+ * Revokes the signed-in account's Sign in with Apple grant before the account
+ * is deleted. The code comes from a fresh native Apple sheet on iOS. Failures
+ * are one stable code; callers still delete the account.
+ */
+export const revokeAppleSignIn = action({
+	args: { authorizationCode: v.string() },
+	returns: v.null(),
+	handler: async (ctx, { authorizationCode }) => {
+		if (!(await ctx.auth.getUserIdentity()))
+			throw new ConvexError("unauthenticated");
+		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
+			throw new ConvexError("invalid");
+		const credentials = appleCredentials();
+		if (!credentials) throw new ConvexError("unavailable");
+		try {
+			await revokeAppleAuthorization(credentials, authorizationCode);
+		} catch (error) {
+			console.error("account.revokeAppleSignIn failed", error);
+			throw new ConvexError("failed");
+		}
+		return null;
 	},
 });
