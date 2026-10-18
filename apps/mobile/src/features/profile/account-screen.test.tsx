@@ -19,7 +19,7 @@ const mockUser = {
 	hasImage: false,
 	imageUrl: "",
 	passwordEnabled: true,
-	externalAccounts: [] as { provider: string }[],
+	externalAccounts: [] as { provider: string; providerUserId: string }[],
 	primaryEmailAddress: { emailAddress: "alex@example.test" },
 	emailAddresses: [{ id: "e1", emailAddress: "alex@example.test" }],
 	deleteSelfEnabled: true,
@@ -141,11 +141,14 @@ it("deletes the Clerk account only after the data is gone", async () => {
 describe("an account that signs in with Apple on iOS", () => {
 	beforeEach(() => {
 		Platform.OS = "ios";
-		mockUser.externalAccounts = [{ provider: "apple" }];
+		mockUser.externalAccounts = [
+			{ provider: "apple", providerUserId: "apple-alex" },
+		];
 	});
 
 	it("revokes the Apple grant before deleting anything", async () => {
 		jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+			user: "apple-alex",
 			authorizationCode: "apple-code",
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		await renderAccount();
@@ -181,12 +184,29 @@ describe("an account that signs in with Apple on iOS", () => {
 
 	it("still deletes the account when revoking fails", async () => {
 		jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+			user: "apple-alex",
 			authorizationCode: "apple-code",
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		action.mockRejectedValue(new Error("failed"));
 		await renderAccount();
 		await confirmAction("Delete account");
 		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		expect(reportError).toHaveBeenCalledWith(
+			expect.any(Error),
+			"account.revokeAppleSignIn",
+		);
+		expect(mockUser.delete).toHaveBeenCalled();
+	});
+
+	it("never revokes a different Apple Account's grant", async () => {
+		jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+			user: "apple-someone-else",
+			authorizationCode: "other-code",
+		} as AppleAuthentication.AppleAuthenticationCredential);
+		await renderAccount();
+		await confirmAction("Delete account");
+		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		expect(action).not.toHaveBeenCalled();
 		expect(reportError).toHaveBeenCalledWith(
 			expect.any(Error),
 			"account.revokeAppleSignIn",

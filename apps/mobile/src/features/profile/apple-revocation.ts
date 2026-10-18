@@ -5,13 +5,14 @@ import { api } from "../../convex/api";
 import { reportError } from "../../observability/errors";
 
 type AppleLinkedUser = {
-	externalAccounts: readonly { provider: string }[];
+	externalAccounts: readonly { provider: string; providerUserId: string }[];
 };
 
-export function usesAppleSignIn(user: AppleLinkedUser) {
-	return user.externalAccounts.some(
-		({ provider }) => provider.replace(/^oauth_/, "") === "apple",
-	);
+/** Apple's stable user identifiers linked to this account. */
+function appleUserIds(user: AppleLinkedUser) {
+	return user.externalAccounts
+		.filter(({ provider }) => provider.replace(/^oauth_/, "") === "apple")
+		.map(({ providerUserId }) => providerUserId);
 }
 
 /**
@@ -20,6 +21,10 @@ export function usesAppleSignIn(user: AppleLinkedUser) {
  * revokes. Backing out of the sheet cancels the deletion; any other failure is
  * reported and the deletion continues, so Apple never blocks it.
  *
+ * The sheet signs in whoever owns the device's Apple Account, which need not
+ * be the person linked to this account. A code for anyone else is never sent,
+ * so another person's grant is never revoked.
+ *
  * Only iOS has the native sheet. Android Apple sign-in goes through Clerk's
  * browser flow, whose tokens the app cannot reach (issue #125).
  */
@@ -27,9 +32,13 @@ export async function revokeAppleSignIn(
 	user: AppleLinkedUser,
 	convex: Pick<ConvexReactClient, "action">,
 ): Promise<"continue" | "cancelled"> {
-	if (Platform.OS !== "ios" || !usesAppleSignIn(user)) return "continue";
+	const linked = appleUserIds(user);
+	if (Platform.OS !== "ios" || linked.length === 0) return "continue";
 	try {
-		const { authorizationCode } = await AppleAuthentication.signInAsync();
+		const credential = await AppleAuthentication.signInAsync();
+		if (!linked.includes(credential.user))
+			throw new Error("Apple sheet returned a different Apple Account");
+		const { authorizationCode } = credential;
 		if (!authorizationCode)
 			throw new Error("Apple returned no authorization code");
 		await convex.action(api.account.revokeAppleSignIn, { authorizationCode });
