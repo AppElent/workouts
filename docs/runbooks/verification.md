@@ -47,6 +47,9 @@ Use [mobile releases](mobile-releases.md) for a compatible development client an
 Metro. Select a free port, then confirm this checkout's bundle and backend. Expo Go
 does not supply this app's custom native modules. Use host device tools when
 available; Device Hub is the local dashboard fallback.
+To launch, sign in, and drive the app on a simulator, use the `run-mobile` skill
+([`apps/mobile/.claude/skills/run-mobile`](../../apps/mobile/.claude/skills/run-mobile/SKILL.md)).
+It is only listed in sessions started from `apps/mobile`.
 
 Exercise English/Dutch, supported themes, Dynamic Type XL, native navigation,
 keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence

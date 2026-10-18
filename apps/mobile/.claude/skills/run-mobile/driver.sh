@@ -91,6 +91,18 @@ ensure_metro() {
 	die "Metro did not come up; see $STATE/metro.log"
 }
 
+# The simulator belongs to this checkout, so a session still holding it is left
+# over from an interrupted run (DEVICE_IN_USE). Close that session and retry once.
+open_app() {
+	local u="$1" out owner
+	if out="$(ad open "$BUNDLE_ID" --platform ios --udid "$u")"; then return; fi
+	owner="$(printf '%s' "$out" | grep -o 'close --session [^ .,"]*' | head -1 | cut -d' ' -f3)"
+	[ -n "$owner" ] || die "agent-device open failed: $out"
+	log "simulator held by stale session '$owner'; closing it"
+	ad close --session "$owner" >/dev/null || true
+	ad open "$BUNDLE_ID" --platform ios --udid "$u" >/dev/null || die "agent-device open failed after closing '$owner'; see: driver.sh ad session list"
+}
+
 cmd_up() {
 	local lang=en u app fresh=0
 	while [ $# -gt 0 ]; do
@@ -138,7 +150,7 @@ cmd_up() {
 	xcrun simctl openurl "$u" "$BUNDLE_ID://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A$PORT&disableOnboarding=1&disableFab=1&disableAutoLaunch=1"
 	# First deep link per simulator raises an "Open in Foundry?" system prompt.
 	ad alert accept 5000 --platform ios --udid "$u" >/dev/null || true
-	ad open "$BUNDLE_ID" --platform ios --udid "$u" >/dev/null
+	open_app "$u"
 	log "waiting for the iOS bundle (max 180s)"
 	local bundled=0
 	for _ in $(seq 1 90); do
