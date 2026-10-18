@@ -1,1 +1,1 @@
-Follow [Workouts issue tracking](../runbooks/issue-tracker.md).
+Follow [Foundry issue tracking](../runbooks/issue-tracker.md).

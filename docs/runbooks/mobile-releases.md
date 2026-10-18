@@ -34,7 +34,11 @@ release configuration. EAS supplies `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and
 `EXPO_PUBLIC_CONVEX_URL` from its `preview` environment.
 
 The first submission may ask for Apple credentials and the App Store Connect
-app. After Apple processes the build, install it through TestFlight. Native
+app. After Apple processes the build, install it through TestFlight.
+`eas submission:view` does not reliably report whether the upload arrived. Check
+App Store Connect instead with `asc builds list --app 6811609419 --limit 1`.
+Allow about 30 minutes before re-submitting. Apple rejects a second upload of
+the same build number, so an early retry fails as a duplicate. Native
 compilation, signing, and submission are verified by that cloud build; local
 TypeScript checks and bundle exports cannot verify them.
 
@@ -62,6 +66,9 @@ project first. Preserve any manual native changes before using `--clean`:
 ```sh
 pnpm exec expo prebuild --platform ios --clean
 ```
+
+Prebuild rewrites `apps/mobile/package.json` (the `ios`/`android` scripts and
+its indentation). Restore it with `git checkout -- package.json`.
 
 Expo Device Hub is the standard local simulator/emulator dashboard. Start Metro
 with `pnpm start:dev-client` from `apps/mobile`, then open the Device Hub URL

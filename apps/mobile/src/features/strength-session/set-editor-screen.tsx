@@ -1,4 +1,4 @@
-import { convertLoad, estimatedMaxReps } from "@workouts/core";
+import { convertLoad, estimatedMaxReps } from "@foundry/core";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -16,9 +16,9 @@ import {
 	FormSection,
 	FormTextField,
 } from "../../ui/form";
-import { PlateSheet } from "../../ui/plate-sheet";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
+import { PlateSheet } from "./components/plate-sheet";
 import { QuantityField } from "./components/quantity-field";
 import { parseSetFields, useSetEditor } from "./set-editor-flow";
 

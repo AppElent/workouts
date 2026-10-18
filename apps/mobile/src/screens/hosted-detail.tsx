@@ -7,16 +7,17 @@
  * Editing the template is web-only — see the note in `hosted-list.tsx`. This
  * screen drives the states around it: draft → open → closed, plus delete.
  *
- * Leaderboard ranking uses `scoreRank` from `@workouts/core`, which is what
+ * Leaderboard ranking uses `scoreRank` from `@foundry/core`, which is what
  * makes a capped For Time result sort below every finisher instead of looking
  * like a fast time.
  */
-import { formatScore, scoreRank, type WodType } from "@workouts/core";
-import { useMutation, useQuery } from "convex/react";
+import { formatScore, scoreRank, type WodType } from "@foundry/core";
+import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
@@ -192,6 +193,8 @@ export function HostedDetailScreen() {
 			<View style={styles.actions}>
 				{hosted.status === "draft" ? (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy }}
 						onPress={() =>
 							hostedId &&
 							run(() => openWorkout({ id: hostedId }), copy.openError)
@@ -205,6 +208,8 @@ export function HostedDetailScreen() {
 
 				{hosted.status === "open" ? (
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy }}
 						onPress={() => void close()}
 						disabled={busy}
 						style={[styles.primaryBtn, busy && styles.dimmed]}
@@ -214,6 +219,8 @@ export function HostedDetailScreen() {
 				) : null}
 
 				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ disabled: busy }}
 					onPress={() => void remove()}
 					disabled={busy}
 					style={[styles.ghostBtn, busy && styles.dimmed]}

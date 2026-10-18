@@ -125,7 +125,7 @@ export function ProfileScreen() {
 							android: "contrast",
 							web: "contrast",
 						},
-						color: "#5856d6",
+						tile: "indigo",
 					}}
 					onPress={() => router.push("/appearance")}
 				/>
@@ -134,7 +134,7 @@ export function ProfileScreen() {
 					value={t.language.names[locale]}
 					icon={{
 						name: { ios: "globe", android: "language", web: "language" },
-						color: "#007aff",
+						tile: "blue",
 					}}
 					onPress={() => router.push("/language")}
 				/>
@@ -144,7 +144,7 @@ export function ProfileScreen() {
 					label={c.goals}
 					icon={{
 						name: { ios: "target", android: "my_location", web: "my_location" },
-						color: "#ff9500",
+						tile: "orange",
 					}}
 					onPress={() => router.push("/nutrition-goals")}
 				/>
@@ -156,7 +156,7 @@ export function ProfileScreen() {
 							android: "library_books",
 							web: "library_books",
 						},
-						color: "#34c759",
+						tile: "green",
 					}}
 					onPress={() => router.push("/nutrition-library")}
 				/>
@@ -168,7 +168,7 @@ export function ProfileScreen() {
 							android: "straighten",
 							web: "straighten",
 						},
-						color: "#af52de",
+						tile: "purple",
 					}}
 					onPress={() => router.push("/personal-measures")}
 				/>
@@ -176,7 +176,7 @@ export function ProfileScreen() {
 					label={c.backup}
 					icon={{
 						name: { ios: "icloud.fill", android: "cloud", web: "cloud" },
-						color: "#5ac8fa",
+						tile: "teal",
 					}}
 					onPress={() => router.push("/nutrition-settings")}
 				/>

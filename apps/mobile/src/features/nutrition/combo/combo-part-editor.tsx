@@ -1,7 +1,7 @@
 import {
 	formatServingSelection,
 	rescaleToSelection,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useState } from "react";
 import { View } from "react-native";
 import type {

@@ -1,4 +1,4 @@
-import type { NutritionProvenance } from "@workouts/core";
+import type { NutritionProvenance } from "@foundry/core";
 import {
 	type FoodVisual,
 	type FoodVisualPresetId,
@@ -11,7 +11,7 @@ import {
 	type PersonalFoodDraft,
 	type ShippedFood,
 	validatePersonalFoodDraft,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { openNutritionDatabase } from "./nutrition-database";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
@@ -86,12 +86,12 @@ export type {
 	PersonalFoodDraft,
 	PersonalFoodProvenance,
 	PersonalServing,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 export {
 	FOOD_VISUAL_PRESET_IDS,
 	validateFoodVisual,
 	validatePersonalFoodDraft,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 
 export type PersonalFoodFilter = {
 	readonly classification?: PersonalFoodClassification;
@@ -241,7 +241,7 @@ function migrate(database: SyncSQLiteDatabase): void {
 			return;
 		}
 		throw new Error(
-			`This nutrition database is newer than this version of Workouts (${current}).`,
+			`This nutrition database is newer than this version of Foundry (${current}).`,
 		);
 	}
 	if (current === DATABASE_VERSION) return;
@@ -1063,21 +1063,4 @@ export function openOpenFoodFactsCache(): OpenFoodFactsCache {
 			OFF_REQUEST_CACHE_DATABASE_NAME,
 		) as SyncSQLiteDatabase,
 	);
-}
-
-/** Clear a per-account cache only; callers choose its account database name. */
-export function clearPersonalFoodCache(
-	databaseName: string,
-	removePhoto: (visual: FoodVisual | undefined) => void,
-) {
-	const database = openNutritionDatabase(databaseName);
-	try {
-		const repository = createPersonalFoodRepository(database, {
-			partialCache: true,
-		});
-		for (const food of repository.list()) removePhoto(food.visual);
-		repository.replaceFromBackup({ foods: [], combos: [] });
-	} finally {
-		database.closeSync();
-	}
 }

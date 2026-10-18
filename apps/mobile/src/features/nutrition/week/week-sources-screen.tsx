@@ -2,7 +2,7 @@ import {
 	groupFoodNutrientSources,
 	type NutrientKey,
 	roundForDisplay,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { router, Stack } from "expo-router";
 import {
 	ActionSheetIOS,
@@ -15,10 +15,10 @@ import {
 import type { IsoDate } from "../../../data/calendar-day";
 import { fmt, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
-import { FoodVisualView } from "../../../ui/food-visual";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
+import { FoodVisualView } from "../components/food-visual";
 import { NutrientSourceValue } from "../nutrient-sources/components/nutrient-source-value";
 import { WeekBars } from "./components/week-bars";
 import { useWeekEntries, type WeekEntry } from "./use-week-entries";

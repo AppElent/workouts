@@ -1,4 +1,4 @@
-import type { NutritionOperationEnvelope } from "@workouts/core";
+import type { NutritionOperationEnvelope } from "@foundry/core";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { type FunctionArgs, getFunctionName } from "convex/server";
 import { api } from "../convex/api";

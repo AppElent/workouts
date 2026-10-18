@@ -3,7 +3,7 @@
  *
  * Effective-dated goals and frozen diary entries come from Convex. Retained
  * subscriptions support quick navigation; bounded session snapshots support
- * current screens. Account data is fetched again after restart. Shared nutrient vocabulary comes from `@workouts/core/nutrition`.
+ * current screens. Account data is fetched again after restart. Shared nutrient vocabulary comes from `@foundry/core/nutrition`.
  */
 import {
 	type GoalDirection,
@@ -13,11 +13,11 @@ import {
 	type NutrientTotal,
 	type NutrientValue,
 	type NutritionGoalValue,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useMutation } from "convex/react";
 import { useEffect } from "react";
 import { api } from "../convex/api";
-import { useCachedQuery as useQuery } from "../convex/query-cache";
+import { useQuery } from "../convex/query-cache";
 import type { IsoDate } from "./calendar-day";
 import {
 	useNutritionOperations,

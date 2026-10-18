@@ -25,6 +25,8 @@
 			"!**/src/routeTree.gen.ts",
 			"!designs",
 			"!apps/mobile/expo-env.d.ts",
+			"!apps/mobile/ios",
+			"!apps/mobile/android",
 			"!**/src/styles.css",
 			"!packages/core/src/nutrition/shipped-foods.json",
 			"!packages/core/src/nutrition/shipped-foods.lock.json"
@@ -34,7 +36,13 @@
 		"enabled": true,
 		"indentStyle": "tab"
 	},
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {
@@ -45,5 +53,37 @@
 		"formatter": {
 			"quoteStyle": "double"
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"apps/mobile/src/**",
+				"apps/mobile/app/**",
+				"!**/*.test.*",
+				"!apps/mobile/src/test-support/**",
+				"!apps/mobile/src/convex/query-cache.tsx"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"convex/react": {
+										"importNames": [
+											"useQuery",
+											"useQueries",
+											"usePaginatedQuery"
+										],
+										"message": "Import query hooks from src/convex/query-cache (docs/standards/convex-query-caching.md)."
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }

@@ -29,13 +29,16 @@ import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
 import { PersonalFoodsProvider } from "../../src/data/personal-foods";
 import { PersonalMeasuresProvider } from "../../src/data/personal-measures";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
+import { RestTimerProvider } from "../../src/features/strength-session/components/rest-timer";
 import { SetDraftsProvider } from "../../src/features/strength-session/data/set-drafts";
 import { useI18n } from "../../src/i18n";
 import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
-import { RestTimerProvider } from "../../src/ui/rest-timer";
 import { ToastProvider } from "../../src/ui/toast";
+
+// Keeps Coach beneath deep-linked app routes.
+export const unstable_settings = { anchor: "(coach)" };
 
 export default function AppLayout() {
 	const colors = useTokens();
@@ -63,7 +66,6 @@ export default function AppLayout() {
 														>
 															<OfflineBanner />
 															<Stack
-																initialRouteName="(coach)"
 																screenOptions={{
 																	headerShown: true,
 																	headerTintColor: colors.accent,
@@ -150,16 +152,16 @@ export default function AppLayout() {
 																/>
 																<Stack.Screen
 																	name="wods"
-																	options={{ title: "WODs" }}
+																	options={{ title: t.wods.title }}
 																/>
 																<Stack.Screen
 																	name="wod/[id]"
-																	options={{ title: "WOD" }}
+																	options={{ title: t.training.wod }}
 																/>
 																<Stack.Screen
 																	name="wod-editor"
 																	options={{
-																		title: "WOD",
+																		title: t.training.wod,
 																		presentation: "formSheet",
 																	}}
 																/>
@@ -319,6 +321,9 @@ export default function AppLayout() {
 																	name="nutrition-assistance"
 																	options={{
 																		title: t.routes.assistance,
+																		presentation: "formSheet",
+																		sheetAllowedDetents: [1],
+																		sheetGrabberVisible: true,
 																	}}
 																/>
 																<Stack.Screen

@@ -1,4 +1,4 @@
-import type { PersonalMeasure } from "@workouts/core/nutrition";
+import type { PersonalMeasure } from "@foundry/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";

@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from "convex/server";
-import type { PersonalFood } from "@workouts/core";
+import type { PersonalFood } from "@foundry/core";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import {

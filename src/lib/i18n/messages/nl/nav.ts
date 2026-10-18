@@ -1,7 +1,7 @@
 import type { nav as enNav } from "../en/nav";
 
 export const nav = {
-	appName: "Workout Tracker",
+	appName: "Foundry",
 	dashboard: { label: "Dashboard", shortLabel: "Dashboard" },
 	log: { label: "Training loggen", shortLabel: "Log" },
 	exercises: { label: "Oefeningen", shortLabel: "Oefeningen" },

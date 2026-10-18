@@ -19,7 +19,7 @@ beforeEach(() => {
 	mockQueries.mockReset();
 });
 
-it("renders with the real Convex subscription hook when options are recreated", () => {
+it("renders with the real Convex subscription hook when options are recreated", async () => {
 	const actual =
 		jest.requireActual<typeof import("convex/react")>("convex/react");
 	mockQueries.mockImplementation(actual.useQueries);
@@ -34,7 +34,7 @@ it("renders with the real Convex subscription hook when options are recreated", 
 			journal: () => undefined,
 		}),
 	} as unknown as ConvexReactClient;
-	const { result, rerender } = renderHook(
+	const { result, rerender } = await renderHook(
 		() => useActivityPages({ limit: 4 }),
 		{
 			wrapper: ({ children }) => (
@@ -43,7 +43,7 @@ it("renders with the real Convex subscription hook when options are recreated", 
 		},
 	);
 	expect(result.current.items[0].id).toBe("live");
-	rerender({});
+	await rerender({});
 	expect(result.current.items[0].id).toBe("live");
 });
 
@@ -58,7 +58,7 @@ it("loads every page before reporting complete totals", async () => {
 			]),
 		),
 	);
-	const { result } = renderHook(() =>
+	const { result } = await renderHook(() =>
 		useActivityPages({ from: 0, to: 200 }, true),
 	);
 	await waitFor(() => expect(result.current.loading).toBe(false));
@@ -78,15 +78,15 @@ it("loads older history only when requested and resets pages for a new sport", a
 			]),
 		),
 	);
-	const { result, rerender } = renderHook(
+	const { result, rerender } = await renderHook(
 		({ sport }: { sport: "running" | "cycling" }) =>
 			useActivityPages({ sport }),
 		{ initialProps: { sport: "running" } },
 	);
 	expect(result.current.items).toHaveLength(1);
-	act(() => result.current.loadMore());
+	await act(() => result.current.loadMore());
 	await waitFor(() => expect(result.current.items).toHaveLength(2));
-	rerender({ sport: "cycling" });
+	await rerender({ sport: "cycling" });
 	expect(result.current.items.map((item) => item.id)).toEqual([
 		"cycling-first",
 	]);
@@ -108,12 +108,14 @@ it("invalidates later pages when a live edit changes the preceding cursor", asyn
 			]),
 		),
 	);
-	const { result, rerender } = renderHook(() => useActivityPages({}, true));
+	const { result, rerender } = await renderHook(() =>
+		useActivityPages({}, true),
+	);
 	await waitFor(() =>
 		expect(result.current.items.map((item) => item.id)).toEqual(["1", "old"]),
 	);
 	edited = true;
-	rerender({});
+	await rerender({});
 	await waitFor(() =>
 		expect(result.current.items.map((item) => item.id)).toEqual([
 			"changed",

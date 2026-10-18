@@ -1,7 +1,8 @@
-import { type RequestForQueries, useQueries } from "convex/react";
+import type { RequestForQueries } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useMemo } from "react";
 import { api, type Id } from "../../../convex/api";
+import { useQueries } from "../../../convex/query-cache";
 
 /** Read failures must leave the durable draft accessible, including an uncertain Log. */
 export function useSetHistory(

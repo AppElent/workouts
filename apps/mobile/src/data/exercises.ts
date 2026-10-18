@@ -1,10 +1,10 @@
 import {
 	getShippedExercise,
 	mergeExerciseCatalog,
-} from "@workouts/core/exercises";
-import { usePaginatedQuery, useQuery } from "convex/react";
+} from "@foundry/core/exercises";
 import { useEffect, useMemo } from "react";
 import { api } from "../convex/api";
+import { usePaginatedQuery, useQuery } from "../convex/query-cache";
 
 export function useExercises() {
 	const { results, status, loadMore } = usePaginatedQuery(

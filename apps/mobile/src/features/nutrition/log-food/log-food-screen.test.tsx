@@ -1,6 +1,7 @@
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
+	act,
 	fireEvent,
 	screen,
 	waitFor,
@@ -22,7 +23,7 @@ function emptyDay(reference: Parameters<typeof getFunctionName>[0]) {
 	return [];
 }
 
-afterEach(() => {
+afterEach(async () => {
 	mockUsePaginatedQuery.mockReturnValue({
 		results: [],
 		status: "Exhausted",
@@ -45,22 +46,22 @@ async function servingPreview() {
 async function expectServing(label: string, quantity: string) {
 	expect((await screen.findAllByText(label)).length).toBeGreaterThan(0);
 	const input = await screen.findByLabelText("Quantity");
-	fireEvent(input, "blur");
+	await fireEvent(input, "blur");
 	expect(screen.getByLabelText("Quantity").props.value).toBe(quantity);
 }
 
 /** Picks a serving from the amount sheet's serving menu. */
-function chooseServing(label: string) {
-	fireEvent.press(screen.getByLabelText("Choose serving"));
-	fireEvent.press(
+async function chooseServing(label: string) {
+	await fireEvent.press(screen.getByLabelText("Choose serving"));
+	await fireEvent.press(
 		screen.getAllByRole("checkbox", { name: label }).at(-1) as never,
 	);
 }
 
 /** Picks the meal from the title menu, the screen's one destination control. */
 async function chooseMeal(meal: string) {
-	fireEvent.press((await screen.findAllByLabelText(/^Logging into /))[0]);
-	fireEvent.press(
+	await fireEvent.press((await screen.findAllByLabelText(/^Logging into /))[0]);
+	await fireEvent.press(
 		(
 			await screen.findAllByRole("button", {
 				name: new RegExp(`^${meal}\\b`),
@@ -77,18 +78,21 @@ async function destination(meal: string) {
 }
 
 async function showAllFoods(query?: string) {
-	fireEvent.press(await screen.findByRole("tab", { name: "Catalogue" }));
+	await fireEvent.press(await screen.findByRole("tab", { name: "Catalogue" }));
 	if (query) {
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), query);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			query,
+		);
 	}
 }
 
 /** Opens the amount sheet's ⋯ menu and picks an item. */
 async function sheetMenu(label: string) {
-	fireEvent.press(
+	await fireEvent.press(
 		(await screen.findAllByLabelText(/^(More|Meer)$/)).at(-1) as never,
 	);
-	fireEvent.press((await screen.findAllByText(label)).at(-1) as never);
+	await fireEvent.press((await screen.findAllByText(label)).at(-1) as never);
 }
 
 describe("browsing shipped foods", () => {
@@ -105,7 +109,7 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		repository.create({
 			name: { en: "Training drink", nl: "Trainingsdrank" },
 			baseUnit: "ml",
@@ -126,17 +130,19 @@ describe("browsing shipped foods", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await showAllFoods("training drink");
-		fireEvent.press(await screen.findByText("Training drink"));
+		await fireEvent.press(await screen.findByText("Training drink"));
 
-		fireEvent.press(screen.getByLabelText("Choose serving"));
+		await fireEvent.press(screen.getByLabelText("Choose serving"));
 		expect(screen.getByText("Small glass (250 ml)")).toBeTruthy();
 		expect(screen.queryByText("Scoop (35 g)")).toBeNull();
 		// Personal Measures are choices, never a global default. With no memory,
 		// this base-only Food keeps its normal 100 ml starting amount.
 		expect(screen.getAllByText("100 ml").length).toBeGreaterThan(0);
-		fireEvent.press(
+		await fireEvent.press(
 			screen
 				.getAllByRole("checkbox", { name: "Small glass (250 ml)" })
 				.at(-1) as never,
@@ -146,7 +152,7 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("shows a Personal Food's selected visual and the neutral fallback in search", async () => {
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		const base = {
 			baseUnit: "g" as const,
 			nutrients: {
@@ -176,7 +182,9 @@ describe("browsing shipped foods", () => {
 			name: { en: "Plain apple", nl: "Gewone appel" },
 		});
 
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await showAllFoods("apple");
 
 		expect(screen.getByLabelText("Icon apple visual")).toBeTruthy();
@@ -188,7 +196,7 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		const nutrients = {
 			energy: { kind: "value" as const, amount: 550 },
 			protein: { kind: "trace" as const },
@@ -224,13 +232,15 @@ describe("browsing shipped foods", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.press(await screen.findByRole("tab", { name: "Recipes" }));
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.press(await screen.findByRole("tab", { name: "Recipes" }));
 		expect(screen.queryByText("Ordinary shake")).toBeNull();
-		fireEvent.press(await screen.findByText("Pasta bowl"));
+		await fireEvent.press(await screen.findByText("Pasta bowl"));
 		expect(screen.getByLabelText("Quantity").props.value).toBe("1");
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
 			estimated: true,
@@ -250,7 +260,7 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		repository.create({
 			name: { en: "Base-only shake", nl: "Shake zonder portie" },
 			baseUnit: "ml",
@@ -271,20 +281,22 @@ describe("browsing shipped foods", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await showAllFoods();
-		fireEvent.changeText(
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"base-only shake",
 		);
-		fireEvent.press(await screen.findByText("Base-only shake"));
+		await fireEvent.press(await screen.findByText("Base-only shake"));
 
 		expect(screen.getByLabelText("Quantity").props.value).toBe("100");
 		await expectServing("Millilitre (ml)", "100");
 		expect(
 			(await servingPreview()).getAllByText("42 kcal").length,
 		).toBeGreaterThan(0);
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -296,29 +308,39 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("keeps Recent honest and quick-logs the remembered default once", async () => {
-		const log = jest.fn().mockResolvedValue("entry-1");
+		// The log stays in flight across the double tap.
+		let finishLog: (id: string) => void = () => {};
+		const log = jest.fn(
+			() => new Promise<string>((resolve) => (finishLog = resolve)),
+		);
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 
 		expect(await screen.findByText("Find food to log")).toBeTruthy();
 		expect(screen.queryByText("Apple")).toBeNull();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 		expect(
 			screen.getByRole("tab", { name: "All" }).props.accessibilityState,
 		).toMatchObject({ selected: true });
-		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
-		fireEvent.press(screen.getByLabelText("Quick log Apple"));
+		await fireEvent.press(await screen.findByLabelText("Quick log Apple"));
+		await fireEvent.press(screen.getByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		fireEvent.press(screen.getByRole("tab", { name: "Recent" }));
+		await act(async () => finishLog("entry-1"));
+		await fireEvent.press(screen.getByRole("tab", { name: "Recent" }));
 		expect(await screen.findByText("Apple")).toBeTruthy();
 	});
 
 	it("shows saved Combos inline with detail and log actions", async () => {
-		const app = renderApp();
+		const app = await renderApp();
 		const combo = app.repository.createCombo({
 			name: "Training lunch",
 			parts: [
@@ -345,18 +367,18 @@ describe("browsing shipped foods", () => {
 				},
 			],
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(await screen.findByRole("tab", { name: "Combos" }));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(await screen.findByRole("tab", { name: "Combos" }));
 
 		expect(await screen.findByText("Training lunch")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Open Combo Training lunch"));
+		await fireEvent.press(screen.getByLabelText("Open Combo Training lunch"));
 		await waitFor(() =>
 			expect(app.getSearchParams()).toMatchObject({ comboId: combo.id }),
 		);
 	});
 
 	it("uses absolute authored-serving quantity shortcuts", async () => {
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		repository.create({
 			name: { en: "Shortcut oats", nl: "Snelhavermout" },
 			baseUnit: "g",
@@ -377,18 +399,20 @@ describe("browsing shipped foods", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await showAllFoods();
-		fireEvent.changeText(
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"shortcut oats",
 		);
-		fireEvent.press(await screen.findByText("Shortcut oats"));
-		fireEvent(screen.getByLabelText("Quantity"), "focus");
-		fireEvent.press(screen.getByText("0.5"));
+		await fireEvent.press(await screen.findByText("Shortcut oats"));
+		await fireEvent(screen.getByLabelText("Quantity"), "focus");
+		await fireEvent.press(screen.getByText("0.5"));
 		await expectServing("Scoop", "0.5");
-		fireEvent(screen.getByLabelText("Quantity"), "focus");
-		fireEvent.press(screen.getAllByText("2").at(-1) as never);
+		await fireEvent(screen.getByLabelText("Quantity"), "focus");
+		await fireEvent.press(screen.getAllByText("2").at(-1) as never);
 		await expectServing("Scoop", "2");
 		expect(screen.getByText("240 kcal")).toBeTruthy();
 	});
@@ -398,7 +422,7 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		const { repository } = renderApp();
+		const { repository } = await renderApp();
 		const personalFood = repository.create({
 			name: { en: "Training oats", nl: "Trainingshavermout" },
 			baseUnit: "g",
@@ -419,14 +443,14 @@ describe("browsing shipped foods", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 		await showAllFoods();
-		fireEvent.changeText(
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"training oats",
 		);
-		fireEvent.press(await screen.findByText("Training oats"));
-		fireEvent.press(screen.getByLabelText("Add & continue"));
+		await fireEvent.press(await screen.findByText("Training oats"));
+		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -453,26 +477,26 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("creates a Personal Food and finds it ahead of shipped foods in ordinary search", async () => {
-		const { repository } = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(screen.getByLabelText("More food actions"));
-		fireEvent.press(screen.getByText("New Personal Food"));
-		fireEvent.changeText(screen.getByLabelText("Name"), "Training gel");
-		fireEvent.changeText(screen.getByLabelText("Energy"), "260");
-		fireEvent.press(screen.getByLabelText("Add serving"));
-		fireEvent.changeText(
+		const { repository } = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("More food actions"));
+		await fireEvent.press(screen.getByText("New Personal Food"));
+		await fireEvent.changeText(screen.getByLabelText("Name"), "Training gel");
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "260");
+		await fireEvent.press(screen.getByLabelText("Add serving"));
+		await fireEvent.changeText(
 			screen.getAllByLabelText("Name").at(-1) as never,
 			"Pouch",
 		);
-		fireEvent.changeText(screen.getByLabelText("Amount"), "40");
-		fireEvent.press(screen.getByText("Add"));
+		await fireEvent.changeText(screen.getByLabelText("Amount"), "40");
+		await fireEvent.press(screen.getByText("Add"));
 		await screen.findByLabelText(/^Pouch, /);
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 
 		await expectServing("Pouch", "1");
 		expect((await servingPreview()).getByText("104 kcal")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Close serving options"));
-		fireEvent.changeText(
+		await fireEvent.press(screen.getByLabelText("Close serving options"));
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"training gel",
 		);
@@ -485,38 +509,52 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("shows product details inside the sheet, so the next food still opens", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent.press((await screen.findAllByText("Apple")).at(-1) as never);
-		fireEvent.press(await screen.findByLabelText("Product details"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		await fireEvent.press(
+			(await screen.findAllByText("Apple")).at(-1) as never,
+		);
+		await fireEvent.press(await screen.findByLabelText("Product details"));
 		// No route was pushed over the sheet: details are a page inside it.
 		expect(
 			(await screen.findAllByText(/^Nutrition per 100/)).length,
 		).toBeGreaterThan(0);
-		fireEvent.press(screen.getByLabelText("Go back"));
-		fireEvent.press(await screen.findByLabelText("Close serving options"));
+		await fireEvent.press(screen.getByLabelText("Go back"));
+		await fireEvent.press(
+			await screen.findByLabelText("Close serving options"),
+		);
 
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "pear");
-		fireEvent.press((await screen.findAllByText(/^Pear/)).at(-1) as never);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"pear",
+		);
+		await fireEvent.press(
+			(await screen.findAllByText(/^Pear/)).at(-1) as never,
+		);
 		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
 	});
 
 	it("edits and deletes a Personal Food without changing its stable id", async () => {
-		const { repository } = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.press(screen.getByLabelText("More food actions"));
-		fireEvent.press(screen.getByText("New Personal Food"));
-		fireEvent.changeText(screen.getByLabelText("Name"), "Morning mix");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		const { repository } = await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.press(screen.getByLabelText("More food actions"));
+		await fireEvent.press(screen.getByText("New Personal Food"));
+		await fireEvent.changeText(screen.getByLabelText("Name"), "Morning mix");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		// The serving sheet opens over the results, so the new food's name is
 		// both the sheet's title and the row behind it.
 		await screen.findAllByText("Morning mix");
 		const originalId = repository.list()[0].id;
 
 		await sheetMenu("Edit Personal Food");
-		fireEvent.changeText(screen.getByLabelText("Name"), "Morning oats");
-		fireEvent.press(screen.getByLabelText("Save Personal Food"));
+		await fireEvent.changeText(screen.getByLabelText("Name"), "Morning oats");
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
 		expect((await screen.findAllByText("Morning oats")).length).toBeGreaterThan(
 			0,
 		);
@@ -527,21 +565,21 @@ describe("browsing shipped foods", () => {
 		const deleteButtons = screen.getAllByText("Delete Personal Food", {
 			exact: true,
 		});
-		fireEvent.press(deleteButtons[deleteButtons.length - 1]);
+		await fireEvent.press(deleteButtons[deleteButtons.length - 1]);
 		await waitFor(() => expect(repository.find(originalId)).toBeUndefined());
 		expect(screen.queryByText("Morning oats")).toBeNull();
 	});
 
 	it("opens the promoted library for the chosen meal and searches pooled aliases", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 
 		expect(await destination("Lunch")).toBeGreaterThan(0);
 		expect(screen.getByText("Find food to log")).toBeTruthy();
 		await showAllFoods("apple");
 		expect(screen.getByText("Apple")).toBeTruthy();
 
-		fireEvent.changeText(
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"hagelslag",
 		);
@@ -549,9 +587,11 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("reaches the full NEVO catalogue from the default pool, without switching scope", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.changeText(
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"apple strudel",
 		);
@@ -563,8 +603,10 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("virtualizes the complete catalogue instead of showing a launcher stack", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await showAllFoods();
 
 		expect(await screen.findByText("Abricots dried and soaked")).toBeTruthy();
@@ -572,11 +614,14 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("previews authored servings and preserves trace nutrient states", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
 		await showAllFoods();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "peach");
-		fireEvent.press(await screen.findByText("Peach"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"peach",
+		);
+		await fireEvent.press(await screen.findByText("Peach"));
 
 		await expectServing("Peach", "1");
 		expect(screen.getAllByText("Trace").length).toBeGreaterThan(0);
@@ -589,14 +634,14 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("does not turn an absent source nutrient into zero", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
-		fireEvent.changeText(
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Snacks"));
+		await fireEvent.changeText(
 			screen.getByPlaceholderText("Search foods"),
 			"black nightshade",
 		);
 		await showAllFoods();
-		fireEvent.press(await screen.findByText("Black nightshade raw"));
+		await fireEvent.press(await screen.findByText("Black nightshade raw"));
 
 		// Absent stays "—" in the table rather than becoming 0.
 		const card = within(await screen.findByTestId("amount-editor-card"));
@@ -604,12 +649,12 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("offers exact grams and scales the preview when quantity changes", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await showAllFoods("apple");
-		fireEvent.press(await screen.findByText("Apple"));
-		chooseServing("Gram (g)");
-		fireEvent.changeText(screen.getByLabelText("Quantity"), "100");
+		await fireEvent.press(await screen.findByText("Apple"));
+		await chooseServing("Gram (g)");
+		await fireEvent.changeText(screen.getByLabelText("Quantity"), "100");
 
 		await expectServing("Gram (g)", "100");
 		expect(screen.getAllByText("56 kcal").length).toBeGreaterThan(0);
@@ -620,13 +665,13 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
 
 		expect(screen.getByLabelText("Scan barcode")).toBeTruthy();
 		await showAllFoods("apple");
-		fireEvent.press(screen.getByText("Apple"));
-		fireEvent.press(await screen.findByLabelText("Add & continue"));
+		await fireEvent.press(screen.getByText("Apple"));
+		await fireEvent.press(await screen.findByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -638,17 +683,23 @@ describe("browsing shipped foods", () => {
 	});
 
 	it("prevents duplicate logs and preserves the serving after a failure", async () => {
-		const log = jest.fn().mockRejectedValue(new Error("offline"));
+		// The log stays in flight across the double tap, then fails.
+		let failLog: (error: Error) => void = () => {};
+		const log = jest.fn(
+			() => new Promise<string>((_, reject) => (failLog = reject)),
+		);
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await showAllFoods("apple");
-		fireEvent.press(screen.getByText("Apple"));
+		await fireEvent.press(screen.getByText("Apple"));
 		const button = await screen.findByLabelText("Add & continue");
-		fireEvent.press(button);
-		fireEvent.press(button);
+		await fireEvent.press(button);
+		await fireEvent.press(button);
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		await act(async () => failLog(new Error("offline")));
 
 		expect(
 			await screen.findByText(
@@ -664,7 +715,7 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
+		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
 		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
 		await chooseMeal("Lunch");
 		await showAllFoods();
@@ -674,9 +725,12 @@ describe("browsing shipped foods", () => {
 			["peach", "Peach"],
 			["hagelslag", "Chocolate sprinkles"],
 		] as const) {
-			fireEvent.changeText(screen.getByPlaceholderText("Search foods"), query);
-			fireEvent.press(await screen.findByText(food));
-			fireEvent.press(screen.getByLabelText("Add & continue"));
+			await fireEvent.changeText(
+				screen.getByPlaceholderText("Search foods"),
+				query,
+			);
+			await fireEvent.press(await screen.findByText(food));
+			await fireEvent.press(screen.getByLabelText("Add & continue"));
 			await waitFor(() =>
 				expect(log).toHaveBeenCalledTimes(
 					["apple", "peach", "hagelslag"].indexOf(query) + 1,
@@ -707,11 +761,11 @@ describe("browsing shipped foods", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await showAllFoods("apple");
-		fireEvent.press(screen.getByText("Apple"));
-		fireEvent.press(await screen.findByLabelText("Add & continue"));
+		await fireEvent.press(screen.getByText("Apple"));
+		await fireEvent.press(await screen.findByLabelText("Add & continue"));
 		await sheetMenu("Add & close");
 
 		expect(log).toHaveBeenCalledTimes(1);
@@ -789,7 +843,7 @@ describe("the redesigned food browser", () => {
 	}
 
 	it("pools Combos, Personal Foods and the catalogue into one list", async () => {
-		const app = renderApp();
+		const app = await renderApp();
 		app.repository.createCombo({
 			name: "Fixed breakfast",
 			parts: [oneOffPart("Oats", 222), oneOffPart("Milk", 115)],
@@ -814,16 +868,24 @@ describe("the redesigned food browser", () => {
 				locallyEdited: false,
 			},
 		});
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 
 		// No chip is touched between these three: the default pool holds a
 		// Combo, a Personal Food and a NEVO record at once.
 		expect(await screen.findByText("Fixed breakfast")).toBeTruthy();
 		expect(screen.getByText("Combo · 2 foods")).toBeTruthy();
 		expect(screen.getByText("337 kcal")).toBeTruthy();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "cheese");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"cheese",
+		);
 		expect(await screen.findByText("Cheese twister")).toBeTruthy();
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 		expect(await screen.findByText("Apple")).toBeTruthy();
 	});
 
@@ -832,21 +894,24 @@ describe("the redesigned food browser", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
+		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
 
 		// "Dinner ⌄" over the day: the meal is chosen from the title menu, the
 		// calendar stays the direct route to the day.
 		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
 		await chooseMeal("Dinner");
-		fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
-		fireEvent(
+		await fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
+		await fireEvent(
 			await screen.findByTestId("swiftui-date-picker"),
 			"dateChange",
 			new Date(2026, 7, 21, 12),
 		);
 
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		await fireEvent.press(await screen.findByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(log.mock.calls[0][0]).toMatchObject({
@@ -856,14 +921,14 @@ describe("the redesigned food browser", () => {
 	});
 
 	it("resets to today from inside the picker, where the date it resets is visible", async () => {
-		renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
+		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
 		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
 		// "Today" is not in the navigation bar: there it is disabled exactly when
 		// you are already on today, which is most of the time.
 		expect(screen.queryByLabelText("Today")).toBeNull();
 
-		fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
-		fireEvent.press(await screen.findByLabelText("Today"));
+		await fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
+		await fireEvent.press(await screen.findByLabelText("Today"));
 
 		expect(
 			await screen.findAllByLabelText(
@@ -873,21 +938,25 @@ describe("the redesigned food browser", () => {
 	});
 
 	it("has no Done: closing is the stack's job, and each row commits its own log", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await screen.findByPlaceholderText("Search foods");
 
 		expect(screen.queryByText("Done")).toBeNull();
 	});
 
 	it("puts authoring behind the + rather than an inline panel", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 		await screen.findByPlaceholderText("Search foods");
 
 		expect(screen.queryByText("Log once")).toBeNull();
 		expect(screen.queryByText("New recipe")).toBeNull();
-		fireEvent.press(screen.getByLabelText("More food actions"));
+		await fireEvent.press(screen.getByLabelText("More food actions"));
 
 		expect(await screen.findByText("Log once")).toBeTruthy();
 		expect(screen.getByText("New Personal Food")).toBeTruthy();
@@ -896,14 +965,16 @@ describe("the redesigned food browser", () => {
 
 	it("carries the meal's running total, and what is in it, into the browser", async () => {
 		seedBreakfast();
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
 
 		// The bar has to be right before a single row is tapped.
 		expect(
 			await screen.findByText("Breakfast · 1 item · 180 kcal"),
 		).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Show what is logged"));
+		await fireEvent.press(screen.getByLabelText("Show what is logged"));
 		expect(await screen.findByText("Oatmeal")).toBeTruthy();
 		expect(screen.getByText("Bowl × 1")).toBeTruthy();
 
@@ -917,16 +988,21 @@ describe("the redesigned food browser", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent.press(await screen.findByLabelText("Quick log Apple"));
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		await fireEvent.press(await screen.findByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		expect(await screen.findByText("Added Apple to Breakfast")).toBeTruthy();
 
 		await armToastAction();
-		fireEvent.press(screen.getByRole("button", { name: "Undo" }));
+		await fireEvent.press(screen.getByRole("button", { name: "Undo" }));
 		expect(screen.queryByText("Added Apple to Breakfast")).toBeNull();
 		// Undo removes exactly the entry this + created, by its client id.
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(2));
@@ -936,9 +1012,9 @@ describe("the redesigned food browser", () => {
 	});
 
 	it("offers the AI entry point beside barcode rather than nowhere", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		fireEvent.press(await screen.findByLabelText("Describe a meal"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(await screen.findByLabelText("Entry help"));
 
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-assistance"),

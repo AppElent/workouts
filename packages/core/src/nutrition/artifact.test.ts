@@ -12,7 +12,7 @@ import { FOOD_CATEGORIES, type ShippedFood } from "./types";
 
 /**
  * The committed artifact is a build output, so these are contract tests on it:
- * would a reader of `@workouts/core/nutrition` get what the spec promises?
+ * would a reader of `@foundry/core/nutrition` get what the spec promises?
  */
 describe("the committed shipped artifact", () => {
 	test("validates against the schema it was generated under", () => {

@@ -15,11 +15,11 @@ import {
  * So what these assert is the thing the platform gestures are built on: the
  * router's own state. Each sub-screen has its own address, arrives with the
  * day and slot the user was looking at, and can be gone back from onto the
- * diary. `testRouter.back()` is the same navigation the edge swipe and the
+ * diary. `await testRouter.back()` is the same navigation the edge swipe and the
  * hardware button perform.
  */
 
-import { totalNutrients } from "@workouts/core/nutrition";
+import { totalNutrients } from "@foundry/core/nutrition";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -98,8 +98,8 @@ beforeEach(() => {
 
 /** A library combo opens its editor; logging starts from its ⋯ menu. */
 async function openComboLog() {
-	fireEvent.press(await screen.findByLabelText("More"));
-	fireEvent.press(await screen.findByText("Log…"));
+	await fireEvent.press(await screen.findByLabelText("More"));
+	await fireEvent.press(await screen.findByText("Log…"));
 }
 
 describe("Nutrition navigation", () => {
@@ -110,15 +110,18 @@ describe("Nutrition navigation", () => {
 		});
 		jest.mocked(useMutation).mockReturnValue(jest.fn(() => pending) as never);
 		const date = "2026-09-24";
-		const app = renderApp(`/nutrition-one-off?date=${date}&meal=dinner`);
-		fireEvent.changeText(await screen.findByLabelText("Name"), "One-off soup");
-		fireEvent.changeText(screen.getByLabelText("Amount"), "1");
-		fireEvent.changeText(screen.getByLabelText("Energy"), "120");
+		const app = await renderApp(`/nutrition-one-off?date=${date}&meal=dinner`);
+		await fireEvent.changeText(
+			await screen.findByLabelText("Name"),
+			"One-off soup",
+		);
+		await fireEvent.changeText(screen.getByLabelText("Amount"), "1");
+		await fireEvent.changeText(screen.getByLabelText("Energy"), "120");
 		// The photo popup's Icon › submenu.
-		fireEvent.press(screen.getByLabelText("Food visual"));
-		fireEvent.press(await screen.findByText("Icon"));
-		fireEvent.press(await screen.findByText("Fruit"));
-		fireEvent.press(screen.getByLabelText("Log"));
+		await fireEvent.press(screen.getByLabelText("Food visual"));
+		await fireEvent.press(await screen.findByText("Icon"));
+		await fireEvent.press(await screen.findByText("Fruit"));
+		await fireEvent.press(screen.getByLabelText("Log"));
 		expect(app.getPathname()).toBe("/nutrition-one-off");
 		expect(screen.getByDisplayValue("One-off soup")).toBeTruthy();
 		acknowledge();
@@ -129,10 +132,13 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("explains invalid One-off Entry amounts and keeps the entered values", async () => {
-		renderApp("/nutrition-one-off");
-		fireEvent.changeText(await screen.findByLabelText("Name"), "One-off soup");
-		fireEvent.changeText(screen.getByLabelText("Amount"), "0");
-		fireEvent.press(screen.getByLabelText("Log"));
+		await renderApp("/nutrition-one-off");
+		await fireEvent.changeText(
+			await screen.findByLabelText("Name"),
+			"One-off soup",
+		);
+		await fireEvent.changeText(screen.getByLabelText("Amount"), "0");
+		await fireEvent.press(screen.getByLabelText("Log"));
 		expect(
 			await screen.findByText("Enter an amount greater than zero."),
 		).toBeTruthy();
@@ -141,38 +147,38 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("opens Week overview first from the menu and returns to the selected day", async () => {
-		const app = renderApp();
+		const app = await renderApp();
 		const selectedDate = shiftIsoDate(todayIsoDate(), -1);
-		fireEvent.press(
+		await fireEvent.press(
 			await screen.findByLabelText(
 				diaryDateLabel(diaryShift(diaryToday(), -1), "en"),
 			),
 		);
 		expect(screen.queryByLabelText("Week overview")).toBeNull();
 
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
 		const menuActions = screen.getAllByRole("button");
 		const weekAction = await screen.findByText("Week overview");
 		expect(
 			menuActions.indexOf(screen.getByLabelText("Week overview")),
 		).toBeLessThan(menuActions.indexOf(screen.getByLabelText("Food library")));
-		fireEvent.press(weekAction);
+		await fireEvent.press(weekAction);
 
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-weekly-review"),
 		);
 		expect(app.getSearchParams()).toMatchObject({ startDate: selectedDate });
 		const monday = weekStartMonday(selectedDate);
-		fireEvent.press(await screen.findByText("Open Monday in diary"));
+		await fireEvent.press(await screen.findByText("Open Monday in diary"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(app.getSearchParams()).toMatchObject({ date: monday });
 	});
 
 	it("opens assisted logging from the diary tools and returns to the diary", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Text and nutrition label"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByText("Entry help"));
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-assistance"),
 		);
@@ -181,12 +187,12 @@ describe("Nutrition navigation", () => {
 			meal: "breakfast",
 		});
 		expect(testRouter.canGoBack()).toBe(true);
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 	it("pushes the food browser with the meal and day it was opened from", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(app.getSearchParams()).toMatchObject({
@@ -199,10 +205,10 @@ describe("Nutrition navigation", () => {
 		).toBeGreaterThan(0);
 	});
 	it("preserves Dinner when switching from Add food to Log once", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(await screen.findByLabelText("More food actions"));
-		fireEvent.press(await screen.findByText("Log once"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await fireEvent.press(await screen.findByLabelText("More food actions"));
+		await fireEvent.press(await screen.findByText("Log once"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-one-off"));
 		expect(app.getSearchParams()).toMatchObject({
 			date: todayIsoDate(),
@@ -214,46 +220,46 @@ describe("Nutrition navigation", () => {
 		).toBeGreaterThan(0);
 		expect(screen.getByLabelText("Carbohydrates")).toBeTruthy();
 		expect(screen.getByLabelText("Salt")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Cancel"));
+		await fireEvent.press(screen.getByLabelText("Cancel"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(app.getSearchParams()).toMatchObject({ meal: "dinner" });
 	});
 
 	it("switches between One-off and reusable food authoring", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
-		fireEvent.press(await screen.findByLabelText("More food actions"));
-		fireEvent.press(await screen.findByText("Log once"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		await fireEvent.press(await screen.findByLabelText("More food actions"));
+		await fireEvent.press(await screen.findByText("Log once"));
 
 		// What was typed goes along to the other kind of form, and back.
-		fireEvent.changeText(await screen.findByLabelText("Name"), "Soup");
-		fireEvent.press(
+		await fireEvent.changeText(await screen.findByLabelText("Name"), "Soup");
+		await fireEvent.press(
 			await screen.findByRole("radio", { name: "Personal food" }),
 		);
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 		expect(await screen.findByDisplayValue("Soup")).toBeTruthy();
 
-		fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
+		await fireEvent.press(screen.getByRole("radio", { name: "One-off" }));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-one-off"));
 		expect(await screen.findByDisplayValue("Soup")).toBeTruthy();
 	});
 
 	it("goes back from the food browser onto the diary it was pushed from", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Add food to Dinner"));
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-food"));
 
 		// The same navigation iOS's edge swipe and Android's back button perform.
 		expect(testRouter.canGoBack()).toBe(true);
-		testRouter.back();
+		await testRouter.back();
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
 	it("pushes the entry editor addressed by the entry it edits", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Edit entry: Apple"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Edit entry: Apple"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-entry"));
 		expect(app.getSearchParams()).toMatchObject({
@@ -262,38 +268,38 @@ describe("Nutrition navigation", () => {
 		});
 		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
 
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 
 	it("pushes the Food library from the nutrition menu", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Food library"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByText("Food library"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-library"));
 		expect(await screen.findByText("Your own foods live here")).toBeTruthy();
 
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 
 	it("carries the chosen entries to the Combo builder by id", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(await screen.findByLabelText("Select Apple"));
-		fireEvent.press(await screen.getByLabelText("Make combo"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByText("Select"));
+		await fireEvent.press(await screen.findByLabelText("Select Apple"));
+		await fireEvent.press(await screen.getByLabelText("Make combo"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-combo-new"));
 		expect(app.getSearchParams()).toMatchObject({ entryIds: "entry-1" });
 	});
 
 	it("ends selection before browsing another day", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Select"));
-		fireEvent.press(await screen.findByLabelText("Select Apple"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByText("Select"));
+		await fireEvent.press(await screen.findByLabelText("Select Apple"));
 		expect(screen.getByLabelText("Make combo")).toBeTruthy();
 		expect(screen.queryByText("All goals")).toBeNull();
 		expect(
@@ -301,9 +307,9 @@ describe("Nutrition navigation", () => {
 				diaryDateLabel(diaryShift(diaryToday(), -1), "en"),
 			),
 		).toBeNull();
-		fireEvent.press(screen.getByText("Cancel"));
+		await fireEvent.press(screen.getByText("Cancel"));
 
-		fireEvent.press(
+		await fireEvent.press(
 			screen.getAllByLabelText(
 				diaryDateLabel(diaryShift(diaryToday(), -1), "en"),
 			)[0],
@@ -320,7 +326,7 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("leaves the diary itself at the root, with nothing behind it", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
 		// The tab is the bottom of the stack: back from here must not unwind
 		// out of Nutrition into some other screen.
@@ -328,7 +334,7 @@ describe("Nutrition navigation", () => {
 	});
 
 	it("pushes a Combo's options so back returns to the library before the diary", async () => {
-		const app = renderApp();
+		const app = await renderApp();
 		const combo = app.repository.createCombo({
 			name: "Breakfast",
 			parts: [
@@ -346,10 +352,10 @@ describe("Nutrition navigation", () => {
 				},
 			],
 		});
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Food library"));
-		fireEvent.press((await screen.findAllByText("Combos"))[0]);
-		fireEvent.press(await screen.findByText("Breakfast"));
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByText("Food library"));
+		await fireEvent.press((await screen.findAllByText("Combos"))[0]);
+		await fireEvent.press(await screen.findByText("Breakfast"));
 		await openComboLog();
 		await waitFor(() =>
 			expect(app.getSearchParams()).toMatchObject({
@@ -357,13 +363,13 @@ describe("Nutrition navigation", () => {
 				date: todayIsoDate(),
 			}),
 		);
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() =>
 			expect(app.getPathname()).toBe(`/nutrition-combo/${combo.id}`),
 		);
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition-library"));
-		testRouter.back();
+		await testRouter.back();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 	});
 });

@@ -79,7 +79,7 @@ function snapshot(source: DiaryEntry, date: string, meal: MealSlot) {
 	};
 }
 
-function renderTransfer(
+async function renderTransfer(
 	mode: "copy" | "move",
 	operations: Record<string, jest.Mock>,
 	overrides: Partial<DiaryEntry> = {},
@@ -95,7 +95,7 @@ function renderTransfer(
 	mockUseToast.mockReturnValue(toast);
 	mockUseNutritionOperations.mockReturnValue(operations as never);
 	const onClose = jest.fn();
-	renderRouter(
+	await renderRouter(
 		{
 			index: () => (
 				<SafeAreaProvider
@@ -131,9 +131,9 @@ beforeEach(() => {
 });
 
 describe("DiaryEntryTransferScreen", () => {
-	it("defaults a batch move to its source meal and blocks an unchanged destination", () => {
+	it("defaults a batch move to its source meal and blocks an unchanged destination", async () => {
 		const moveBatch = jest.fn();
-		renderTransfer(
+		await renderTransfer(
 			"move",
 			{ getSubject: jest.fn(() => "account-a"), moveBatch },
 			{},
@@ -145,12 +145,12 @@ describe("DiaryEntryTransferScreen", () => {
 		);
 		expect(screen.getByRole("radio", { name: "Dinner" })).toBeSelected();
 		expect(screen.getByLabelText("Move entry")).toBeDisabled();
-		fireEvent.press(screen.getByLabelText("Move entry"));
+		await fireEvent.press(screen.getByLabelText("Move entry"));
 		expect(moveBatch).not.toHaveBeenCalled();
 	});
-	it("moves a mixed-meal selection together without mistaking it for an unchanged move", () => {
+	it("moves a mixed-meal selection together without mistaking it for an unchanged move", async () => {
 		const moveBatch = jest.fn();
-		renderTransfer(
+		await renderTransfer(
 			"move",
 			{ getSubject: jest.fn(() => "account-a"), moveBatch },
 			{},
@@ -161,7 +161,7 @@ describe("DiaryEntryTransferScreen", () => {
 			],
 		);
 		expect(screen.getByLabelText("Move entry")).toBeEnabled();
-		fireEvent.press(screen.getByLabelText("Move entry"));
+		await fireEvent.press(screen.getByLabelText("Move entry"));
 		expect(moveBatch).toHaveBeenCalledWith(
 			"account-a",
 			[
@@ -174,7 +174,7 @@ describe("DiaryEntryTransferScreen", () => {
 			expect.any(Function),
 		);
 	});
-	it("creates a fresh, ungrouped snapshot at the selected destination", () => {
+	it("creates a fresh, ungrouped snapshot at the selected destination", async () => {
 		const createBatch = jest.fn(
 			(
 				_subject: string,
@@ -185,15 +185,15 @@ describe("DiaryEntryTransferScreen", () => {
 				onSuccess: () => void,
 			) => onSuccess(),
 		);
-		const { onClose } = renderTransfer("copy", {
+		const { onClose } = await renderTransfer("copy", {
 			getSubject: jest.fn(() => "account-a"),
 			createBatch,
 			moveBatch: jest.fn(),
 		});
 
-		fireEvent.press(screen.getByText("Dinner"));
-		fireEvent.press(screen.getByLabelText("Sunday, September 13"));
-		fireEvent.press(screen.getByLabelText("Copy entry"));
+		await fireEvent.press(screen.getByText("Dinner"));
+		await fireEvent.press(screen.getByLabelText("Sunday, September 13"));
+		await fireEvent.press(screen.getByLabelText("Copy entry"));
 
 		expect(createBatch).toHaveBeenCalledWith(
 			"account-a",
@@ -219,7 +219,7 @@ describe("DiaryEntryTransferScreen", () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it("moves the entry with one atomic batch", () => {
+	it("moves the entry with one atomic batch", async () => {
 		const moveBatch = jest.fn(
 			(
 				_subject: string,
@@ -230,7 +230,7 @@ describe("DiaryEntryTransferScreen", () => {
 				onSuccess: () => void,
 			) => onSuccess(),
 		);
-		renderTransfer(
+		await renderTransfer(
 			"move",
 			{
 				getSubject: jest.fn(() => "account-a"),
@@ -240,9 +240,9 @@ describe("DiaryEntryTransferScreen", () => {
 			{ id: "entry-9" },
 		);
 
-		fireEvent.press(screen.getByText("Dinner"));
-		fireEvent.press(screen.getByLabelText("Sunday, September 13"));
-		fireEvent.press(screen.getByLabelText("Move entry"));
+		await fireEvent.press(screen.getByText("Dinner"));
+		await fireEvent.press(screen.getByLabelText("Sunday, September 13"));
+		await fireEvent.press(screen.getByLabelText("Move entry"));
 
 		expect(moveBatch).toHaveBeenCalledWith(
 			"account-a",
@@ -254,39 +254,39 @@ describe("DiaryEntryTransferScreen", () => {
 		);
 	});
 
-	it("blocks an unchanged move", () => {
+	it("blocks an unchanged move", async () => {
 		const moveBatch = jest.fn();
-		renderTransfer("move", {
+		await renderTransfer("move", {
 			getSubject: jest.fn(() => "account-a"),
 			createBatch: jest.fn(),
 			moveBatch,
 		});
 
-		fireEvent.press(screen.getByLabelText("Move entry"));
+		await fireEvent.press(screen.getByLabelText("Move entry"));
 		expect(moveBatch).not.toHaveBeenCalled();
 	});
 
-	it("does not transfer an entry after its source account changes", () => {
+	it("does not transfer an entry after its source account changes", async () => {
 		const getSubject = jest
 			.fn()
 			.mockReturnValueOnce("account-a")
 			.mockReturnValue("account-b");
 		const createBatch = jest.fn();
-		const { toast } = renderTransfer("copy", {
+		const { toast } = await renderTransfer("copy", {
 			getSubject,
 			createBatch,
 			moveBatch: jest.fn(),
 		});
 
-		fireEvent.press(screen.getByText("Dinner"));
-		fireEvent.press(screen.getByLabelText("Copy entry"));
+		await fireEvent.press(screen.getByText("Dinner"));
+		await fireEvent.press(screen.getByLabelText("Copy entry"));
 
 		expect(createBatch).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith("Nutrition account changed.");
 	});
 
-	it("localizes the expanded calendar controls for Dutch", () => {
-		renderTransfer(
+	it("localizes the expanded calendar controls for Dutch", async () => {
+		await renderTransfer(
 			"copy",
 			{
 				getSubject: jest.fn(() => "account-a"),
@@ -298,13 +298,13 @@ describe("DiaryEntryTransferScreen", () => {
 		);
 
 		expect(screen.getByLabelText("Tussendoortjes")).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Kies doeldatum"));
+		await fireEvent.press(screen.getByLabelText("Kies doeldatum"));
 		expect(screen.getByLabelText("Vorige maand")).toBeTruthy();
 		expect(screen.getByLabelText("Volgende maand")).toBeTruthy();
 		expect(screen.getByLabelText("Vandaag")).toBeTruthy();
 	});
 
-	it("blocks a synchronous double submit and keeps the destination after failure", () => {
+	it("blocks a synchronous double submit and keeps the destination after failure", async () => {
 		let fail!: (error: unknown) => void;
 		const createBatch = jest.fn(
 			(
@@ -322,15 +322,15 @@ describe("DiaryEntryTransferScreen", () => {
 			createBatch,
 			moveBatch: jest.fn(),
 		};
-		const { toast } = renderTransfer("copy", operations);
-		fireEvent.press(screen.getByText("Dinner"));
-		fireEvent.press(screen.getByLabelText("Sunday, September 13"));
+		const { toast } = await renderTransfer("copy", operations);
+		await fireEvent.press(screen.getByText("Dinner"));
+		await fireEvent.press(screen.getByLabelText("Sunday, September 13"));
 		const copyButton = screen.getByLabelText("Copy entry");
-		fireEvent.press(copyButton);
-		fireEvent.press(copyButton);
+		await fireEvent.press(copyButton);
+		await fireEvent.press(copyButton);
 		expect(createBatch).toHaveBeenCalledTimes(1);
 
-		act(() => fail("offline"));
+		await act(() => fail("offline"));
 		expect(toast.error).toHaveBeenCalledWith(
 			"This entry could not be copied. Your destination is still here.",
 		);
@@ -341,7 +341,7 @@ describe("DiaryEntryTransferScreen", () => {
 			"dinner",
 		);
 
-		fireEvent.press(screen.getByLabelText("Copy entry"));
+		await fireEvent.press(screen.getByLabelText("Copy entry"));
 		expect(createBatch).toHaveBeenCalledTimes(2);
 	});
 

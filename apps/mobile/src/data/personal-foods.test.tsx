@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/expo";
+import { foodResults, type NutrientValue } from "@foundry/core/nutrition";
 import { act, render, waitFor } from "@testing-library/react-native";
-import { foodResults, type NutrientValue } from "@workouts/core/nutrition";
 import {
 	useConvex,
 	useConvexConnectionState,
@@ -98,7 +98,7 @@ describe("PersonalFoodsProvider library journal", () => {
 			);
 		}
 		try {
-			const screen = render(
+			const screen = await render(
 				<PersonalFoodsProvider repository={foods} libraryState={state}>
 					<Reader />
 				</PersonalFoodsProvider>,
@@ -149,13 +149,13 @@ describe("PersonalFoodsProvider library journal", () => {
 				</Text>
 			);
 		}
-		const screen = render(
+		const screen = await render(
 			<PersonalFoodsProvider repository={foods} libraryState={state}>
 				<Reader />
 			</PersonalFoodsProvider>,
 		);
 		let save!: Promise<unknown>;
-		act(() => {
+		await act(() => {
 			save = value.create(draft);
 		});
 		expect(screen.getByText("Empty")).toBeTruthy();
@@ -169,7 +169,7 @@ describe("PersonalFoodsProvider library journal", () => {
 		});
 		expect(screen.getByText("Prepared oats")).toBeTruthy();
 		connected = false;
-		screen.rerender(
+		await await screen.rerender(
 			<PersonalFoodsProvider repository={foods} libraryState={state}>
 				<Reader />
 			</PersonalFoodsProvider>,
@@ -200,20 +200,20 @@ it("keeps a newer subscription revision when an older save acknowledgement arriv
 		value = usePersonalFoods();
 		return <Text>{value.find(original.id)?.name.en}</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<PersonalFoodsProvider repository={foods} libraryState={state}>
 			<Reader />
 		</PersonalFoodsProvider>,
 	);
 	let pending!: Promise<unknown>;
-	act(() => {
+	await act(() => {
 		pending = value.update(original.id, {
 			...draft,
 			name: { en: "Older edit", nl: "Older edit" },
 		});
 	});
 	const latest = { ...original, name: { en: "Newer edit", nl: "Newer edit" } };
-	act(() =>
+	await act(() =>
 		value.account.receiveServerPage([libraryRecordFromFood(latest, 3)]),
 	);
 	await act(async () => {
@@ -227,7 +227,7 @@ it("keeps a newer subscription revision when an older save acknowledgement arriv
 	});
 	expect(view.getByText("Newer edit")).toBeTruthy();
 	expect(state.getRecord("account-a", original.id)?.revision).toBe(3);
-	view.unmount();
+	await view.unmount();
 });
 it("does not return a cached barcode after the server removes it", async () => {
 	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
@@ -248,7 +248,7 @@ it("does not return a cached barcode after the server removes it", async () => {
 		value = usePersonalFoods();
 		return <Text>Ready</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<PersonalFoodsProvider repository={foods} libraryState={state}>
 			<Reader />
 		</PersonalFoodsProvider>,
@@ -263,7 +263,7 @@ it("does not return a cached barcode after the server removes it", async () => {
 		]),
 	);
 	expect(found).toBeUndefined();
-	view.unmount();
+	await view.unmount();
 });
 it("resolves a cached correction identity so server deletion stops shadowing its source", async () => {
 	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
@@ -294,13 +294,13 @@ it("resolves a cached correction identity so server deletion stops shadowing its
 		value = usePersonalFoods({ forkIds: ["shipped:apple"] });
 		return <Text>{value.forks().length}</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<PersonalFoodsProvider repository={foods} libraryState={state}>
 			<Reader />
 		</PersonalFoodsProvider>,
 	);
 	await waitFor(() => expect(value.forks()).toEqual([]));
-	view.unmount();
+	await view.unmount();
 });
 
 it("loads corrections beyond the first hundred shipped matches in bounded pages on a fresh cache", async () => {
@@ -346,7 +346,7 @@ it("loads corrections beyond the first hundred shipped matches in bounded pages 
 		});
 		return <Text>{value.forks().length}</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<PersonalFoodsProvider
 			repository={createPersonalFoodRepository(new SQLiteTestDatabase())}
 			libraryState={createNutritionLibraryStateRepository(
@@ -366,7 +366,7 @@ it("loads corrections beyond the first hundred shipped matches in bounded pages 
 			expect(
 				(item as { args: { forkIds: string[] } }).args.forkIds.length,
 			).toBeLessThanOrEqual(100);
-	view.unmount();
+	await view.unmount();
 });
 
 it("keeps the latest subscription value when a delayed barcode lookup resolves", async () => {
@@ -391,20 +391,20 @@ it("keeps the latest subscription value when a delayed barcode lookup resolves",
 		value = usePersonalFoods();
 		return <Text>{value.find(food.id)?.name.en}</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<PersonalFoodsProvider repository={foods} libraryState={state}>
 			<Reader />
 		</PersonalFoodsProvider>,
 	);
 	let lookup!: Promise<unknown>;
-	act(() => {
+	await act(() => {
 		lookup = value.lookupBarcode("12345678");
 	});
 	const latest = {
 		...food,
 		name: { en: "Latest barcode edit", nl: "Laatste" },
 	};
-	act(() =>
+	await act(() =>
 		value.account.receiveServerPage([libraryRecordFromFood(latest, 3)]),
 	);
 	let found: unknown;
@@ -415,7 +415,7 @@ it("keeps the latest subscription value when a delayed barcode lookup resolves",
 	expect(found).toEqual(latest);
 	expect(view.getByText("Latest barcode edit")).toBeTruthy();
 	expect(state.getRecord("account-a", food.id)?.revision).toBe(3);
-	view.unmount();
+	await view.unmount();
 });
 
 it("checks cached fork deletions even when a hundred shortcut identities fill the first request", async () => {
@@ -460,12 +460,12 @@ it("checks cached fork deletions even when a hundred shortcut identities fill th
 		});
 		return <Text>{value.forks().length}</Text>;
 	}
-	const view = render(
+	const view = await render(
 		<PersonalFoodsProvider repository={foods} libraryState={state}>
 			<Reader />
 		</PersonalFoodsProvider>,
 	);
 	await waitFor(() => expect(value.forks()).toEqual([]));
 	expect(state.getRecord("account-a", correction.id)?.deleted).toBe(true);
-	view.unmount();
+	await view.unmount();
 });

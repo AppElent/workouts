@@ -3,7 +3,7 @@ import { type RequestForQueries, useConvexConnectionState } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useMemo, useState } from "react";
 import { api, type Id } from "../../../convex/api";
-import { useCachedQueries } from "../../../convex/query-cache";
+import { useQueries } from "../../../convex/query-cache";
 
 export type SessionRecord = NonNullable<
 	FunctionReturnType<typeof api.workoutSessions.getById>
@@ -29,7 +29,7 @@ export function useStrengthSession(id?: Id<"workoutSessions">) {
 			},
 		};
 	}, [id, scope]);
-	const results = useCachedQueries(queries);
+	const results = useQueries(queries);
 	const session = results[`session${scope}`] as
 		| SessionRecord
 		| null

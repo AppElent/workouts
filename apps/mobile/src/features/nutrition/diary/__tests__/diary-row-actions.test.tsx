@@ -65,16 +65,16 @@ beforeEach(() => {
 });
 
 /** The confirm dialog is appended after the screen, so its button is the last. */
-function pressConfirm(label: string) {
+async function pressConfirm(label: string) {
 	const buttons = screen.getAllByText(label);
-	fireEvent.press(buttons[buttons.length - 1]);
+	await fireEvent.press(buttons[buttons.length - 1]);
 }
 
 describe("diary row accelerators", () => {
 	it("keeps meal copy in the meal's visible actions menu", async () => {
-		const app = renderApp();
-		fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
-		fireEvent.press(await screen.findByText("Copy meal…"));
+		const app = await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
+		await fireEvent.press(await screen.findByText("Copy meal…"));
 		await waitFor(() =>
 			expect(app.getPathname()).toBe("/nutrition-entry-transfer"),
 		);
@@ -85,31 +85,31 @@ describe("diary row accelerators", () => {
 	});
 
 	it("starts a Combo from the selected meal's entries", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
-		fireEvent.press(await screen.findByText("Create Combo"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
+		await fireEvent.press(await screen.findByText("Create Combo"));
 		expect(await screen.findByLabelText("Combo name")).toBeTruthy();
 		expect(screen.getByText("Oatmeal")).toBeTruthy();
 	});
 	it("asks before deleting an entry reached through the revealed swipe action", async () => {
-		renderApp();
+		await renderApp();
 		// The revealed action is in the tree behind the row from the start; the
 		// swipe uncovers it rather than creating it.
-		fireEvent.press(await screen.findByLabelText("Delete"));
+		await fireEvent.press(await screen.findByLabelText("Delete"));
 
 		expect(await screen.findByText("Delete this entry?")).toBeTruthy();
 		expect(remove).not.toHaveBeenCalled();
 
-		pressConfirm("Delete entry");
+		await pressConfirm("Delete entry");
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
 		expect(remove.mock.calls[0][0]).toMatchObject({ id: "entry-1" });
 	});
 
 	it("removes nothing when the confirmation is declined", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Delete"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Delete"));
 		await screen.findByText("Delete this entry?");
-		fireEvent.press(screen.getByText("Keep entry"));
+		await fireEvent.press(screen.getByText("Keep entry"));
 
 		await waitFor(() =>
 			expect(screen.queryByText("Delete this entry?")).toBeNull(),
@@ -118,14 +118,14 @@ describe("diary row accelerators", () => {
 	});
 
 	it("offers the same actions to a long press as it does to a swipe", async () => {
-		renderApp();
+		await renderApp();
 		const row = await screen.findByLabelText("Edit entry: Oatmeal");
 		// Before the long press, each action exists once — behind the row.
 		expect(screen.getAllByLabelText("Edit")).toHaveLength(1);
 		expect(screen.getAllByLabelText("Delete")).toHaveLength(1);
 		expect(screen.queryByLabelText("Close")).toBeNull();
 
-		fireEvent(row, "longPress");
+		await fireEvent(row, "longPress");
 
 		// The menu offers the same two verbs and a way out of it.
 		expect(await screen.findByText("Close")).toBeTruthy();
@@ -136,30 +136,30 @@ describe("diary row accelerators", () => {
 	});
 
 	it("opens Copy from the visible row menu without a gesture", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
-		fireEvent.press(await screen.findByText("Copy meal…"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("Breakfast: actions"));
+		await fireEvent.press(await screen.findByText("Copy meal…"));
 		expect(
 			(await screen.findAllByLabelText("Copy entry")).length,
 		).toBeGreaterThan(0);
 	});
 
 	it("opens Move from the row's screen-reader action", async () => {
-		renderApp();
-		fireEvent(
+		await renderApp();
+		await fireEvent(
 			await screen.findByLabelText("Edit entry: Oatmeal"),
 			"accessibilityAction",
 			{ nativeEvent: { actionName: "move" } },
 		);
 		const buttons = await screen.findAllByLabelText("Move entry");
 		expect(buttons[buttons.length - 1]).toBeDisabled();
-		fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
+		await fireEvent.press(screen.getByRole("radio", { name: "Lunch" }));
 		const enabled = screen.getAllByLabelText("Move entry");
 		expect(enabled[enabled.length - 1]).toBeEnabled();
 	});
 
 	it("gives a screen reader the row's actions without any gesture", async () => {
-		renderApp();
+		await renderApp();
 		const row = await screen.findByLabelText("Edit entry: Oatmeal");
 
 		expect(row.props.accessibilityActions).toEqual([
@@ -171,7 +171,7 @@ describe("diary row accelerators", () => {
 		]);
 
 		// Invoking the custom delete action lands on the same confirmation.
-		fireEvent(row, "accessibilityAction", {
+		await fireEvent(row, "accessibilityAction", {
 			nativeEvent: { actionName: "delete" },
 		});
 		expect(await screen.findByText("Delete this entry?")).toBeTruthy();
@@ -179,9 +179,9 @@ describe("diary row accelerators", () => {
 	});
 
 	it("keeps a visible non-gesture route to both actions", async () => {
-		renderApp();
+		await renderApp();
 		// A plain tap — no gesture — opens the editor.
-		fireEvent.press(await screen.findByLabelText("Edit entry: Oatmeal"));
+		await fireEvent.press(await screen.findByLabelText("Edit entry: Oatmeal"));
 
 		expect(await screen.findByLabelText("Quantity")).toBeTruthy();
 		// …which carries its own visible Delete, so neither action depends on

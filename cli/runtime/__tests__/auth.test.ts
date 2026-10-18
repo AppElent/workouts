@@ -11,7 +11,7 @@ import { runCli } from "../run";
 let tempDir: string | undefined;
 
 async function createConfigDir() {
-	tempDir = await mkdtemp(join(tmpdir(), "workouts-cli-auth-"));
+	tempDir = await mkdtemp(join(tmpdir(), "foundry-cli-auth-"));
 	return tempDir;
 }
 
@@ -25,17 +25,17 @@ function createRuntime(configDir: string) {
 		runtime: {
 			writeOut: (value: string) => stdout.push(value),
 			writeErr: (value: string) => stderr.push(value),
-			env: { WORKOUTS_CONFIG_DIR: configDir },
+			env: { FOUNDRY_CONFIG_DIR: configDir },
 		},
 	};
 }
 
 function createConfigRuntime(configDir: string) {
 	return {
-		appName: "workouts",
+		appName: "foundry",
 		writeOut: () => {},
 		writeErr: () => {},
-		env: { WORKOUTS_CONFIG_DIR: configDir },
+		env: { FOUNDRY_CONFIG_DIR: configDir },
 		defaultApiUrl: "http://localhost:3000",
 	};
 }
@@ -106,14 +106,14 @@ describe("auth command", () => {
 		const { runtime, stdout } = createRuntime(configDir);
 
 		const result = await runCli(["auth", "login", "--token", token], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 
 		expect(result.exitCode).toBe(0);
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toMatchObject({
 			credential: { token, expiresAt: expect.any(Number) },
@@ -126,7 +126,7 @@ describe("auth command", () => {
 		const { runtime, stdout } = createRuntime(configDir);
 
 		const result = await runCli(["auth", "status"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -139,12 +139,12 @@ describe("auth command", () => {
 		const { runtime, stdout } = createRuntime(configDir);
 
 		await runCli(["auth", "login", "--token", token], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 		stdout.length = 0;
 
 		const result = await runCli(["auth", "status", "--json"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -158,12 +158,12 @@ describe("auth command", () => {
 		const { runtime, stdout } = createRuntime(configDir);
 
 		await runCli(["auth", "login", "--token", token], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 		stdout.length = 0;
 
 		const result = await runCli(["auth", "status"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -176,20 +176,20 @@ describe("auth command", () => {
 		const { runtime, stdout } = createRuntime(configDir);
 
 		await runCli(["auth", "login", "--token", token], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 		stdout.length = 0;
 
 		const result = await runCli(["auth", "logout"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 		});
 
 		expect(result.exitCode).toBe(0);
 		expect(stdout.join("")).toContain("Signed out of the CLI.");
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toEqual({
 			apiUrl: "http://localhost:3000",
@@ -202,7 +202,7 @@ describe("auth command", () => {
 		const { runtime, stdout } = createRuntime(configDir);
 
 		const result = await runCli(["auth", "login"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 			auth: {
 				loginPath: "/custom-cli-login",
 				callbackPath: "/custom-cli-callback",
@@ -232,8 +232,8 @@ describe("auth command", () => {
 		expect(stdout.join("")).toContain("Signed in through browser.");
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toMatchObject({
 			credential: { token, expiresAt: expect.any(Number) },
@@ -246,7 +246,7 @@ describe("auth command", () => {
 		const { runtime, stderr } = createRuntime(configDir);
 
 		const result = await runCli(["auth", "login"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 			auth: {
 				openBrowser: async (loginUrl) => {
 					const url = new URL(loginUrl);
@@ -266,8 +266,8 @@ describe("auth command", () => {
 		expect(stderr.join("")).toContain("Browser login state did not match.");
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.not.toHaveProperty("credential");
 	});
@@ -277,7 +277,7 @@ describe("auth command", () => {
 		const { runtime, stderr } = createRuntime(configDir);
 
 		const result = await runCli(["auth", "login"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 			auth: {
 				openBrowser: async (loginUrl) => {
 					const url = new URL(loginUrl);
@@ -306,7 +306,7 @@ describe("auth command", () => {
 		const { runtime, stderr } = createRuntime(configDir);
 
 		const result = await runCli(["auth", "login"], runtime, {
-			appName: "workouts",
+			appName: "foundry",
 			auth: {
 				timeoutMs: 5,
 				openBrowser: () => undefined,

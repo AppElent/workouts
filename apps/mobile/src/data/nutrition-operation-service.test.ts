@@ -1,4 +1,4 @@
-import { isUuid, type NutritionDiarySnapshot } from "@workouts/core";
+import { isUuid, type NutritionDiarySnapshot } from "@foundry/core";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import { createNutritionLocalRepository } from "./nutrition-local-repository";
 import {

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type {
 	NutritionDiarySnapshot,
 	NutritionProvenance,
-} from "@workouts/core";
+} from "@foundry/core";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	createNutritionLocalRepository,

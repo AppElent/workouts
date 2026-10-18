@@ -7,7 +7,7 @@ import {
 	type NutrientValue,
 	rescaleToQuantity,
 	roundForDisplay,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type {
 	Combo,
 	ComboPart,

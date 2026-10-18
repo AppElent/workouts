@@ -1,6 +1,6 @@
-import type { NutrientKey, NutrientValue } from "@workouts/core/nutrition";
+import type { NutrientKey, NutrientValue } from "@foundry/core/nutrition";
 import { useRef, useState } from "react";
-import { Keyboard, type TextInput } from "react-native";
+import { Keyboard, type TextInputInstance } from "react-native";
 
 /** A nutrient as typed: its kind, and the text of a value. */
 export type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
@@ -40,7 +40,7 @@ export function useNutrientFields({
 	onChange: (key: NutrientKey, next: NutrientInput) => void;
 }) {
 	const [focused, setFocused] = useState<NutrientKey | null>(null);
-	const inputs = useRef(new Map<NutrientKey, TextInput>());
+	const inputs = useRef(new Map<NutrientKey, TextInputInstance>());
 	const before = useRef<NutrientInput | undefined>(undefined);
 	const index = focused ? ORDER.indexOf(focused) : -1;
 	const focus = (key: NutrientKey) =>
@@ -55,7 +55,7 @@ export function useNutrientFields({
 		focus,
 		/** Props for one row's value field. */
 		field: (key: NutrientKey) => ({
-			inputRef: (input: TextInput | null) => {
+			inputRef: (input: TextInputInstance | null) => {
 				if (input) inputs.current.set(key, input);
 				else inputs.current.delete(key);
 			},

@@ -2,9 +2,9 @@
  * Clerk's error codes, turned into a message worth showing.
  *
  * Every Clerk **Core 3** call (`@clerk/expo`) resolves to
- * `{ error: ClerkError | null }` rather than throwing, and `useSignIn()`
- * additionally exposes the last fetch's errors split into `fields` and
- * `global`. Both shapes carry a machine-stable `code` and a `message` Clerk's
+ * `{ error: ClerkError | null }` rather than throwing, and `useSignIn()` /
+ * `useSignUp()` additionally expose the last fetch's errors split into
+ * `fields` and `global`. Both shapes carry a machine-stable `code` and a `message` Clerk's
  * own docs say not to show to a person, so the code is what gets mapped.
  *
  * A code not in `CODE_MAP` falls back to a generic message and — in dev —
@@ -21,11 +21,23 @@ const GENERIC = "Something went wrong. Please try again.";
 const CODE_MAP: Record<string, string> = {
 	form_identifier_not_found: "No account found with that email.",
 	form_password_incorrect: "That password is not right.",
+	form_identifier_exists: "An account with that email already exists.",
+	form_password_length_too_short: "That password is too short.",
+	form_password_pwned:
+		"That password has appeared in a data breach. Choose another.",
+	form_password_validation_failed: "That password is not strong enough.",
+	form_code_incorrect: "That code is not right.",
+	verification_failed: "That code is not right.",
+	verification_expired: "That code has expired. Send a new one.",
 	form_param_format_invalid: "Enter a valid email address.",
 	form_param_nil: "This field is required.",
 	form_param_missing: "This field is required.",
 	too_many_requests: "Too many attempts. Try again in a moment.",
+	rate_limit_exceeded: "Too many attempts. Try again in a moment.",
 	network_error: "Network error. Check your connection and try again.",
+	// Native Apple sheet: no Apple Account on the device, or its prompt closed.
+	ERR_REQUEST_UNKNOWN:
+		"Apple sign-in didn't finish. Check that you're signed in to your Apple Account in Settings.",
 };
 
 /** `null` in, `null` out — so a call site can render this straight into an error message. */
@@ -41,7 +53,7 @@ export function readError(error: CodedError | null | undefined): string | null {
 	return mapped;
 }
 
-/** The shape of `useSignIn().errors`. */
+/** The shape of `useSignIn().errors` / `useSignUp().errors`. */
 export interface ErrorSignal<TFields extends object> {
 	fields: TFields;
 	global: readonly CodedError[] | null;

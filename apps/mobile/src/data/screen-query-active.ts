@@ -1,4 +1,5 @@
-import { NavigationContext } from "expo-router/build/react-navigation/core";
+// SDK 58 dropped the public export; useIsFocused throws outside a route tree.
+import { NavigationContext } from "expo-router/build/react-navigation/core/NavigationContext";
 import { useContext, useEffect, useState } from "react";
 import { AppState } from "react-native";
 

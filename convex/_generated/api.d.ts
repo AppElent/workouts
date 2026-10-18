@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as account from "../account.js";
 import type * as activities from "../activities.js";
 import type * as bodyMetrics from "../bodyMetrics.js";
 import type * as enduranceActivities from "../enduranceActivities.js";
@@ -17,16 +18,21 @@ import type * as exportData from "../exportData.js";
 import type * as hostedWorkoutParticipants from "../hostedWorkoutParticipants.js";
 import type * as hostedWorkoutSubmissions from "../hostedWorkoutSubmissions.js";
 import type * as hostedWorkouts from "../hostedWorkouts.js";
+import type * as lib_appleSignIn from "../lib/appleSignIn.js";
 import type * as lib_exerciseCatalog from "../lib/exerciseCatalog.js";
 import type * as lib_exerciseMigrationModel from "../lib/exerciseMigrationModel.js";
 import type * as lib_hostedDto from "../lib/hostedDto.js";
+import type * as lib_nutritionAi from "../lib/nutritionAi.js";
 import type * as lib_nutritionLibraryIndex from "../lib/nutritionLibraryIndex.js";
+import type * as lib_personalData from "../lib/personalData.js";
 import type * as lib_strengthReferences from "../lib/strengthReferences.js";
 import type * as lib_strengthSession from "../lib/strengthSession.js";
 import type * as lib_testDataBaseline from "../lib/testDataBaseline.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as nutritionAccountMigration from "../nutritionAccountMigration.js";
 import type * as nutritionActivityMarker from "../nutritionActivityMarker.js";
+import type * as nutritionAi from "../nutritionAi.js";
+import type * as nutritionAiTables from "../nutritionAiTables.js";
 import type * as nutritionDiary from "../nutritionDiary.js";
 import type * as nutritionDiaryModel from "../nutritionDiaryModel.js";
 import type * as nutritionDraftTables from "../nutritionDraftTables.js";
@@ -63,6 +69,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  account: typeof account;
   activities: typeof activities;
   bodyMetrics: typeof bodyMetrics;
   enduranceActivities: typeof enduranceActivities;
@@ -72,16 +79,21 @@ declare const fullApi: ApiFromModules<{
   hostedWorkoutParticipants: typeof hostedWorkoutParticipants;
   hostedWorkoutSubmissions: typeof hostedWorkoutSubmissions;
   hostedWorkouts: typeof hostedWorkouts;
+  "lib/appleSignIn": typeof lib_appleSignIn;
   "lib/exerciseCatalog": typeof lib_exerciseCatalog;
   "lib/exerciseMigrationModel": typeof lib_exerciseMigrationModel;
   "lib/hostedDto": typeof lib_hostedDto;
+  "lib/nutritionAi": typeof lib_nutritionAi;
   "lib/nutritionLibraryIndex": typeof lib_nutritionLibraryIndex;
+  "lib/personalData": typeof lib_personalData;
   "lib/strengthReferences": typeof lib_strengthReferences;
   "lib/strengthSession": typeof lib_strengthSession;
   "lib/testDataBaseline": typeof lib_testDataBaseline;
   "lib/validate": typeof lib_validate;
   nutritionAccountMigration: typeof nutritionAccountMigration;
   nutritionActivityMarker: typeof nutritionActivityMarker;
+  nutritionAi: typeof nutritionAi;
+  nutritionAiTables: typeof nutritionAiTables;
   nutritionDiary: typeof nutritionDiary;
   nutritionDiaryModel: typeof nutritionDiaryModel;
   nutritionDraftTables: typeof nutritionDraftTables;

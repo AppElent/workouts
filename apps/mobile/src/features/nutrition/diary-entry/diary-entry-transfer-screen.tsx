@@ -5,8 +5,8 @@
  * single batch operation: it retains the entries' identities and lets the local
  * projection move it atomically between the two day/meal views.
  */
-import type { NutritionDiarySnapshot } from "@workouts/core";
-import { roundForDisplay, totalNutrients } from "@workouts/core/nutrition";
+import type { NutritionDiarySnapshot } from "@foundry/core";
+import { roundForDisplay, totalNutrients } from "@foundry/core/nutrition";
 import { Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
@@ -32,7 +32,7 @@ import { useReduceMotion } from "../../../feedback/reduce-motion";
 import { plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { convexErrorMessage } from "../../../ui/confirm-dialog";
-import { NutritionCalendar } from "../../../ui/nutrition-calendar";
+import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
@@ -297,7 +297,7 @@ export function DiaryEntryTransferScreen({
 					</View>
 
 					{showCalendar ? (
-						<NutritionCalendar
+						<MonthCalendar
 							selectedDate={destinationDate}
 							locale={locale}
 							onSelect={(next) => {

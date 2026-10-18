@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseId } from "@workouts/core/exercises";
+import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
  * The mid-session "add an exercise" picker, ported from the web's
  * `src/components/session/AddExerciseModal.tsx`.
@@ -119,6 +119,7 @@ export function AddExercisePicker({
 						}
 						renderItem={({ item }) => (
 							<Pressable
+								accessibilityRole="button"
 								onPress={() => onSelect(item._id)}
 								style={({ pressed }) => [
 									styles.row,

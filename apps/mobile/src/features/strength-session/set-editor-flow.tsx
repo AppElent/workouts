@@ -1,9 +1,8 @@
-import { convertLoad, getWeightStep } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
+import { convertLoad, getWeightStep } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useNavigation, useRouter } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import {
 	createContext,
 	type ReactNode,
@@ -17,8 +16,8 @@ import { api, type Id } from "../../convex/api";
 import { useExercise } from "../../data/exercises";
 import { useI18n } from "../../i18n";
 import { convexErrorMessage, useConfirm } from "../../ui/confirm-dialog";
-import { useRestTimer } from "../../ui/rest-timer";
 import { useToast } from "../../ui/toast";
+import { useRestTimer } from "./components/rest-timer";
 import {
 	newLogOperationId,
 	type SetFields,

@@ -1,4 +1,4 @@
 {
-	"NSCameraUsageDescription": "Geef Foundry toegang tot je camera om barcodes voor voedingswaarden te scannen, voedings- en voortgangsfoto's te maken en techniekvideo's op te nemen.",
-	"NSPhotoLibraryUsageDescription": "Geef Foundry toegang om voedings- en voortgangsfoto's uit je bibliotheek te kiezen."
+	"NSCameraUsageDescription": "Foundry gebruikt de camera om barcodes te scannen voor voedingswaarden en om voedings- en profielfoto's te maken.",
+	"NSPhotoLibraryUsageDescription": "Foundry gebruikt je fotobibliotheek zodat je voedings- en profielfoto's kunt kiezen."
 }

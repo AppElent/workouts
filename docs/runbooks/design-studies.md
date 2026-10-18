@@ -4,7 +4,7 @@ description: Read when creating or adopting a design study.
 version: 1.0.0
 ---
 
-# Workouts design studies
+# Foundry design studies
 
 Follow the shared [design study procedure](../standards/design-studies.md)
 with these bindings:

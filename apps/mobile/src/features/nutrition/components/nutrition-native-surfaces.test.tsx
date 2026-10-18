@@ -1,71 +1,16 @@
 import { fireEvent, screen } from "@testing-library/react-native";
-import { Pressable, Text } from "react-native";
+import { Text } from "react-native";
 import { renderThemed as render } from "../../../test-support/render-themed";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet.ios";
 import { FoodEditorSheet } from "../../../ui/food-editor-sheet.ios";
-import { NativeSwipeableRow } from "../../../ui/native-swipeable-row.ios";
 import { NutritionHeaderMenu } from "./nutrition-header-menu.ios";
 
-it("keeps native swipe deletion tap-only and screen-reader reachable", () => {
-	const open = jest.fn();
-	const remove = jest.fn();
-	render(
-		<NativeSwipeableRow
-			menuTitle="Squat"
-			closeMenuLabel="Close"
-			actions={[
-				{ key: "open", label: "View exercise", onPress: open },
-				{ key: "delete", label: "Delete", destructive: true, onPress: remove },
-			]}
-		>
-			{(accessibility) => (
-				<Pressable accessibilityLabel="Squat" {...accessibility}>
-					<Text>Squat</Text>
-				</Pressable>
-			)}
-		</NativeSwipeableRow>,
-	);
-
-	expect(
-		screen.getByTestId("swiftui-swipe-actions").props.allowsFullSwipe,
-	).toBe(false);
-	fireEvent.press(screen.getByLabelText("Delete"));
-	expect(remove).toHaveBeenCalledTimes(1);
-	fireEvent(screen.getByLabelText("Squat"), "accessibilityAction", {
-		nativeEvent: { actionName: "open" },
-	});
-	expect(open).toHaveBeenCalledTimes(1);
-});
-
-it("keeps a native swipe row full-width and lets its child handle a plain tap", () => {
-	const open = jest.fn();
-	render(
-		<NativeSwipeableRow
-			menuTitle="Squat"
-			closeMenuLabel="Close"
-			actions={[{ key: "open", label: "View exercise", onPress: open }]}
-		>
-			{(accessibility) => (
-				<Pressable onPress={open} accessibilityLabel="Squat" {...accessibility}>
-					<Text>Squat</Text>
-				</Pressable>
-			)}
-		</NativeSwipeableRow>,
-	);
-
-	expect(screen.getByTestId("native-swipeable-row").props.style).toEqual(
-		expect.objectContaining({ width: "100%" }),
-	);
-	fireEvent.press(screen.getByLabelText("Squat"));
-	expect(open).toHaveBeenCalledTimes(1);
-});
-
-it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
+it("binds the Nutrition SwiftUI menu directly to feature callbacks", async () => {
 	const onOpenFoodLibrary = jest.fn();
 	const onOpenSettings = jest.fn();
 	const onOpenWeekOverview = jest.fn();
 	const onToggleDataSources = jest.fn();
-	render(
+	await render(
 		<NutritionHeaderMenu
 			label="More nutrition tools"
 			closeLabel="Close"
@@ -84,19 +29,19 @@ it("binds the Nutrition SwiftUI menu directly to feature callbacks", () => {
 		/>,
 	);
 
-	fireEvent.press(screen.getByLabelText("More nutrition tools"));
-	fireEvent.press(screen.getByLabelText("Week overview"));
-	fireEvent.press(screen.getByLabelText("Food library"));
-	fireEvent.press(screen.getByLabelText("Settings"));
-	fireEvent.press(screen.getByLabelText("Data sources"));
+	await fireEvent.press(screen.getByLabelText("More nutrition tools"));
+	await fireEvent.press(screen.getByLabelText("Week overview"));
+	await fireEvent.press(screen.getByLabelText("Food library"));
+	await fireEvent.press(screen.getByLabelText("Settings"));
+	await fireEvent.press(screen.getByLabelText("Data sources"));
 	expect(onOpenWeekOverview).toHaveBeenCalledTimes(1);
 	expect(onOpenFoodLibrary).toHaveBeenCalledTimes(1);
 	expect(onOpenSettings).toHaveBeenCalledTimes(1);
 	expect(onToggleDataSources).toHaveBeenCalledTimes(1);
 });
 
-it("presents food editing as a full-height native sheet with a drag indicator", () => {
-	render(
+it("presents food editing as a full-height native sheet with a drag indicator", async () => {
+	await render(
 		<FoodEditorSheet visible onClose={jest.fn()}>
 			<Text>Food editor</Text>
 		</FoodEditorSheet>,
@@ -113,7 +58,7 @@ it("presents food editing as a full-height native sheet with a drag indicator", 
 	});
 });
 
-it("leaves no native overlay behind when the date picker is closed", () => {
+it("leaves no native overlay behind when the date picker is closed", async () => {
 	const props = {
 		date: "2026-10-04",
 		today: "2026-10-04",
@@ -125,11 +70,11 @@ it("leaves no native overlay behind when the date picker is closed", () => {
 		onSelect: jest.fn(),
 		onClose: jest.fn(),
 	};
-	const view = render(<DatePickerSheet {...props} visible={false} />);
+	const view = await render(<DatePickerSheet {...props} visible={false} />);
 	expect(view.toJSON()).toBeNull();
-	view.rerender(<DatePickerSheet {...props} visible />);
-	fireEvent.press(screen.getByText("Done"));
+	await view.rerender(<DatePickerSheet {...props} visible />);
+	await fireEvent.press(screen.getByText("Done"));
 	expect(props.onClose).toHaveBeenCalledTimes(1);
-	view.rerender(<DatePickerSheet {...props} visible={false} />);
+	await view.rerender(<DatePickerSheet {...props} visible={false} />);
 	expect(view.toJSON()).toBeNull();
 });

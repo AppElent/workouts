@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AuthCard, SignInForm } from "#/lib/auth";
+import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/sign-in")({
 	ssr: false,
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/sign-in")({
 function SignInPage() {
 	const navigate = useNavigate();
 	const { isSignedIn } = useAuth();
+	const { auth } = useMessages();
 
 	useEffect(() => {
 		if (isSignedIn) {
@@ -19,7 +21,7 @@ function SignInPage() {
 	}, [isSignedIn, navigate]);
 
 	return (
-		<AuthCard title="Sign in" subtitle="Welcome back to Workout Tracker.">
+		<AuthCard title={auth.signIn.title} subtitle={auth.signIn.subtitle}>
 			<SignInForm onSuccess={() => navigate({ to: "/dashboard" })} />
 		</AuthCard>
 	);

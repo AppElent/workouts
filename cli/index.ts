@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createCli } from "./runtime/index";
 
-const { runCli } = createCli({ appName: "workouts" });
+const { runCli } = createCli({ appName: "foundry" });
 
 const result = await runCli(process.argv.slice(2), {
 	writeOut: (value) => console.log(value),

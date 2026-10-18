@@ -1,1 +1,1 @@
-Use [Workouts triage labels](../runbooks/issue-tracker.md#triage-labels).
+Use [Foundry triage labels](../runbooks/issue-tracker.md#triage-labels).

@@ -8,7 +8,7 @@ import { runCli } from "../run";
 let tempDir: string | undefined;
 
 async function createTempConfigDir() {
-	tempDir = await mkdtemp(join(tmpdir(), "workouts-cli-"));
+	tempDir = await mkdtemp(join(tmpdir(), "foundry-cli-"));
 	return tempDir;
 }
 
@@ -24,13 +24,13 @@ describe("config store", () => {
 		const configDir = await createTempConfigDir();
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toEqual({ apiUrl: "http://localhost:3000" });
 	});
 
-	it("saves and loads config under WORKOUTS_CONFIG_DIR", async () => {
+	it("saves and loads config under FOUNDRY_CONFIG_DIR", async () => {
 		const configDir = await createTempConfigDir();
 		await saveConfig(
 			{
@@ -38,13 +38,13 @@ describe("config store", () => {
 				convexUrl: "https://example.convex.cloud",
 				credential: { token: "abc", expiresAt: 123 },
 			},
-			{ appName: "workouts", env: { WORKOUTS_CONFIG_DIR: configDir } },
+			{ appName: "foundry", env: { FOUNDRY_CONFIG_DIR: configDir } },
 		);
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toEqual({
 			apiUrl: "http://localhost:3000",
@@ -61,18 +61,18 @@ describe("config store", () => {
 				convexUrl: "https://example.convex.cloud",
 				credential: { token: "abc", expiresAt: 123 },
 			},
-			{ appName: "workouts", env: { WORKOUTS_CONFIG_DIR: configDir } },
+			{ appName: "foundry", env: { FOUNDRY_CONFIG_DIR: configDir } },
 		);
 
 		await clearCredential({
-			appName: "workouts",
-			env: { WORKOUTS_CONFIG_DIR: configDir },
+			appName: "foundry",
+			env: { FOUNDRY_CONFIG_DIR: configDir },
 		});
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toEqual({
 			apiUrl: "http://localhost:3000",
@@ -84,16 +84,16 @@ describe("config store", () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 			"{ not json",
 		);
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).rejects.toThrow(/Invalid config file/i);
 	});
@@ -102,16 +102,16 @@ describe("config store", () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 			JSON.stringify({ apiUrl: "   " }),
 		);
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).rejects.toThrow(/apiUrl must be a non-empty string/i);
 	});
@@ -120,16 +120,16 @@ describe("config store", () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 			JSON.stringify({ apiUrl: " http://localhost:3000 " }),
 		);
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).rejects.toThrow(/apiUrl must be a non-empty string/i);
 	});
@@ -138,16 +138,16 @@ describe("config store", () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 			JSON.stringify({ apiUrl: "http://localhost:3000", convexUrl: "" }),
 		);
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).rejects.toThrow(/convexUrl must be a non-empty string/i);
 	});
@@ -156,8 +156,8 @@ describe("config store", () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 			JSON.stringify({
 				apiUrl: "http://localhost:3000",
@@ -167,8 +167,8 @@ describe("config store", () => {
 
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).rejects.toThrow(/credential must include a token string/i);
 	});
@@ -183,7 +183,7 @@ describe("config command", () => {
 				convexUrl: "https://example.convex.cloud",
 				credential: { token: "abc", expiresAt: 123 },
 			},
-			{ appName: "workouts", env: { WORKOUTS_CONFIG_DIR: configDir } },
+			{ appName: "foundry", env: { FOUNDRY_CONFIG_DIR: configDir } },
 		);
 
 		const stdout: string[] = [];
@@ -192,9 +192,9 @@ describe("config command", () => {
 			{
 				writeOut: (value) => stdout.push(value),
 				writeErr: () => undefined,
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(0);
@@ -209,8 +209,8 @@ describe("config command", () => {
 		const configDir = await createTempConfigDir();
 		await writeFile(
 			configPath({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 			JSON.stringify({ apiUrl: 123 }),
 		);
@@ -221,9 +221,9 @@ describe("config command", () => {
 			{
 				writeOut: () => undefined,
 				writeErr: (value) => stderr.push(value),
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(1);
@@ -238,17 +238,17 @@ describe("config command", () => {
 			{
 				writeOut: (value) => stdout.push(value),
 				writeErr: () => undefined,
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(0);
 		expect(stdout.join("")).toContain("Saved api-url.");
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toMatchObject({
 			apiUrl: "https://api.example.test",
@@ -263,17 +263,17 @@ describe("config command", () => {
 			{
 				writeOut: (value) => stdout.push(value),
 				writeErr: () => undefined,
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(0);
 		expect(stdout.join("")).toContain("Saved convex-url.");
 		await expect(
 			loadConfig({
-				appName: "workouts",
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				appName: "foundry",
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			}),
 		).resolves.toMatchObject({
 			convexUrl: "https://convex.example.test",
@@ -288,14 +288,14 @@ describe("config command", () => {
 			{
 				writeOut: () => undefined,
 				writeErr: (value) => stderr.push(value),
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(1);
 		expect(stderr.join("")).toContain(
-			"Usage: workouts config set <key> <value>",
+			"Usage: foundry config set <key> <value>",
 		);
 	});
 
@@ -307,14 +307,14 @@ describe("config command", () => {
 			{
 				writeOut: () => undefined,
 				writeErr: (value) => stderr.push(value),
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(1);
 		expect(stderr.join("")).toContain(
-			"Usage: workouts config set <key> <value>",
+			"Usage: foundry config set <key> <value>",
 		);
 	});
 
@@ -327,15 +327,15 @@ describe("config command", () => {
 			{
 				writeOut: (value) => stdout.push(value),
 				writeErr: (value) => stderr.push(value),
-				env: { WORKOUTS_CONFIG_DIR: configDir },
+				env: { FOUNDRY_CONFIG_DIR: configDir },
 			},
-			{ appName: "workouts" },
+			{ appName: "foundry" },
 		);
 
 		expect(result.exitCode).toBe(1);
 		expect(stdout).toHaveLength(0);
 		expect(stderr.join("")).toContain(
-			"Usage: workouts config set <key> <value>",
+			"Usage: foundry config set <key> <value>",
 		);
 	});
 });

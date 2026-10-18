@@ -17,7 +17,7 @@
  *    native equivalent — the app is Clerk-gated before this screen renders — so
  *    the phone joins as a signed-in participant only.
  */
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -28,6 +28,7 @@ import {
 	View,
 } from "react-native";
 import { api } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { useI18n } from "../i18n";
 import {
@@ -99,6 +100,8 @@ export function HostedListScreen() {
 						onSubmitEditing={() => void submitJoin()}
 					/>
 					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ disabled: busy || token.trim() === "" }}
 						onPress={() => void submitJoin()}
 						disabled={busy || token.trim() === ""}
 						style={[
@@ -129,6 +132,7 @@ export function HostedListScreen() {
 					<View style={styles.list}>
 						{hosted.map((h) => (
 							<Pressable
+								accessibilityRole="button"
 								key={h._id}
 								onPress={() =>
 									router.push({

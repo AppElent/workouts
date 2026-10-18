@@ -5,7 +5,7 @@
  *  READ THIS BEFORE PUTTING THE NUTRITION MODULE BEHIND A PAYWALL.
  *
  *  The NEVO-online 2025 conditions of use forbid charging end users for the
- *  data. If Workouts ever becomes a paid product — subscription, one-off
+ *  data. If Foundry ever becomes a paid product — subscription, one-off
  *  purchase, paid tier that includes the diary — the bundled NEVO dataset
  *  must be REMOVED or SEPARATELY RELICENSED with RIVM first. Deleting the
  *  shipped artifact is a product decision, not a build detail: the food
@@ -53,8 +53,8 @@ export function nevoAttribution(onlyShippedSources: boolean): string {
  * This one IS translated — it is our sentence, not RIVM's.
  */
 export const SALT_DERIVATION_DISCLOSURE: { en: string; nl: string } = {
-	en: "Salt is not published by NEVO. Workouts derives it from the source sodium figure as salt (g) = sodium (mg) × 2.5 / 1000.",
-	nl: "Zout wordt niet door NEVO gepubliceerd. Workouts leidt het af uit de natriumwaarde als zout (g) = natrium (mg) × 2,5 / 1000.",
+	en: "Salt is not published by NEVO. Foundry derives it from the source sodium figure as salt (g) = sodium (mg) × 2.5 / 1000.",
+	nl: "Zout wordt niet door NEVO gepubliceerd. Foundry leidt het af uit de natriumwaarde als zout (g) = natrium (mg) × 2,5 / 1000.",
 };
 
 /** The three licence clauses that bind what the app may do with this data. */

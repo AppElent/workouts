@@ -2,7 +2,7 @@ import {
 	allShippedFoods,
 	NUTRIENT_KEYS,
 	personalFoodSnapshot,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	comboLogEntries,
@@ -134,7 +134,7 @@ describe("Combo snapshots", () => {
 			estimated: true,
 			amount: 150,
 			nutrients: { energy: { amount: 300 }, carbs: { kind: "absent" } },
-			serving: { en: "100 g × 1.5", nl: "100 g × 1,5" },
+			serving: { en: "150 g", nl: "150 g" },
 		});
 		expect(combo.parts[0].snapshot.amount).toBe(100);
 		expect(() => comboLogEntries(plan, 0)).toThrow("greater than zero");

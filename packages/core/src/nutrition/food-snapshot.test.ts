@@ -135,6 +135,7 @@ describe("Snapshot rescaling", () => {
 	const entry = {
 		quantity: 1,
 		amount: 200,
+		baseUnit: "ml" as const,
 		serving: { en: "Glass (200 ml) × 1", nl: "Glas (200 ml) × 1" },
 		nutrients: {
 			energy: { kind: "value" as const, amount: 100 },
@@ -144,13 +145,28 @@ describe("Snapshot rescaling", () => {
 	};
 
 	it("changes only the trailing multiplier of a Serving label", () => {
-		expect(relabelServing(entry.serving, 1.5)).toEqual({
+		expect(relabelServing(entry, 1.5, 300)).toEqual({
 			en: "Glass (200 ml) × 1.5",
 			nl: "Glas (200 ml) × 1,5",
 		});
-		expect(relabelServing({ en: "150 g", nl: "150 g" }, 2)).toEqual({
-			en: "150 g × 2",
-			nl: "150 g × 2",
+	});
+
+	it("restates a total-amount label instead of appending a multiplier", () => {
+		// A Combo part saved from a scaled One-off Entry: 200 g at quantity 2.
+		const total = {
+			...entry,
+			quantity: 2,
+			amount: 200,
+			baseUnit: "g" as const,
+			serving: { en: "200 g", nl: "200 g" },
+		};
+		expect(rescaleToQuantity(total, 2).serving).toEqual({
+			en: "200 g",
+			nl: "200 g",
+		});
+		expect(rescaleToQuantity(total, 3).serving).toEqual({
+			en: "300 g",
+			nl: "300 g",
 		});
 	});
 

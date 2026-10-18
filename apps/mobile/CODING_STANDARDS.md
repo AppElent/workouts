@@ -1,4 +1,4 @@
-# Workouts mobile coding standards
+# Foundry mobile coding standards
 
 Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 [mobile structure](../../docs/standards/mobile-structure.md) standards.
@@ -7,7 +7,7 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 
 - Structure bindings: shared nutrition UI lives in `src/features/nutrition/components/`;
   cross-subject nutrition hooks live at the nutrition root.
-- `src/data/` owns nutrition persistence; `@workouts/core` owns shared calculations
+- `src/data/` owns nutrition persistence; `@foundry/core` owns shared calculations
   and catalogs. Preserve these owners when restructuring screens.
 - Feature ownership is adopted by live Nutrition Diary and Diary Entry. New work
   follows it; migrate legacy screens when changing their behavior. Labs routes
@@ -17,6 +17,9 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 - Sentry's dependency-validation exception is documented in [Sentry operations](../../docs/runbooks/sentry.md#mobile-compatibility).
 
 ## Review and enforcement
+
+Screen tests render through `src/test-support/render-screen.tsx` (app-wide
+providers, iOS alerts as buttons); tests that navigate use `render-app.tsx`.
 
 Selected mobile reads use the app-owned hooks in `src/convex/query-cache.tsx`.
 Opt in deliberately: this preserves live subscriptions across short navigation

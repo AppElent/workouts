@@ -1,8 +1,8 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute } from "@tanstack/react-router";
-import type { ExerciseId } from "@workouts/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { CheckCircle, Plus, XCircle } from "lucide-react";

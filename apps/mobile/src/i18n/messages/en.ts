@@ -1,3 +1,4 @@
+import { accountEn } from "./account";
 import { activityEn } from "./activity";
 import { bodyMetricsEn } from "./body-metrics";
 import { comboEditorEn } from "./combo-editor";
@@ -17,6 +18,7 @@ import { oneOffLogEn } from "./one-off-log";
 import { profileEn } from "./profile";
 import { progressEn } from "./progress";
 import { signInEn } from "./sign-in";
+import { signUpEn, verifyEmailEn } from "./sign-up";
 import { strengthEn } from "./strength";
 import { testDataEn } from "./test-data";
 import { trainingEn } from "./training";
@@ -29,7 +31,7 @@ import { workoutToolsEn } from "./workout-tools";
  *
  * English is written here and Dutch follows in `nl.ts`, which is typed
  * `satisfies typeof en` — so a key added here without a Dutch counterpart is a
- * `pnpm --filter @workouts/mobile typecheck` failure rather than a blank label
+ * `pnpm --filter @foundry/mobile typecheck` failure rather than a blank label
  * discovered on a device.
  *
  * Deliberately not shared with the web app's `src/lib/i18n/messages/`. There is
@@ -48,7 +50,10 @@ export const en = {
 	hosted: hostedEn,
 	workoutTools: workoutToolsEn,
 	signIn: signInEn,
+	signUp: signUpEn,
+	verifyEmail: verifyEmailEn,
 	profile: profileEn,
+	account: accountEn,
 	training: trainingEn,
 	strength: strengthEn,
 	diaryEntry: entryEditorEn,
@@ -71,7 +76,7 @@ export const en = {
 		settings: "Settings",
 		nutritionSettings: "Nutrition Settings",
 		oneOff: "One-off",
-		assistance: "Logging assistance",
+		assistance: "Entry help",
 		weekOverview: "Week overview",
 		foodLibrary: "Food library",
 		exercises: "Exercises",
@@ -141,7 +146,7 @@ export const en = {
 	language: {
 		title: "Language",
 		description:
-			"Workouts starts in your phone's language and stays in the one you choose here.",
+			"Foundry starts in your phone's language and stays in the one you choose here.",
 		names: {
 			en: "English",
 			nl: "Nederlands",

@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"note": "Append-only map from NEVO code to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @workouts/core generate:foods`.",
+	"note": "Append-only map from NEVO code to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @foundry/core generate:foods`.",
 	"entries": [
 		{"code":1,"id":"shipped:potatoes-raw","status":"active","identity":"57f3dbd2649bab42","mintedIn":"2025/9.0"},
 		{"code":2,"id":"shipped:potatoes-new-raw","status":"active","identity":"fb65bc6459b087eb","mintedIn":"2025/9.0"},

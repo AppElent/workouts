@@ -1,13 +1,13 @@
 ---
 type: runbook
-description: Read when running checks, dev servers, or test login for Workouts.
+description: Read when running checks, dev servers, or test login for Foundry.
 version: 2.0.0
 ---
 
-# Verify Workouts
+# Verify Foundry
 
 Binds the shared [verification contract](../standards/verification.md)
-to Workouts targets and credentials.
+to Foundry targets and credentials.
 
 ## Checks
 
@@ -18,17 +18,18 @@ pnpm check
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm --filter @workouts/mobile typecheck
-pnpm --filter @workouts/mobile test --runInBand
+pnpm --filter @foundry/mobile typecheck
+pnpm --filter @foundry/mobile test --runInBand
 ```
 
-Root types/Vitest exclude mobile; mobile uses Jest. Build `@workouts/core` first
-when its output is missing: `pnpm --filter @workouts/core build`.
+Root types/Vitest exclude mobile; mobile uses Jest. Build `@foundry/core` first
+when its output is missing: `pnpm --filter @foundry/core build`.
 
 ## Backend and login
 
-Use [isolated worktree setup](worktree-setup.md). Confirm backend identity before
-runtime writes: localhost and EAS profile names do not establish isolation.
+Runtime checks use the shared dev deployment unless the user asks for
+[isolated worktree setup](worktree-setup.md). Confirm backend identity before
+runtime writes: localhost and EAS profile names do not establish it.
 The web test-login shortcut needs a Clerk test key and configured public test-user
 variables. Use the documented test account on the verified target. Inspect variable
 names without printing credentials. Missing credentials limit acceptance.
@@ -46,6 +47,9 @@ Use [mobile releases](mobile-releases.md) for a compatible development client an
 Metro. Select a free port, then confirm this checkout's bundle and backend. Expo Go
 does not supply this app's custom native modules. Use host device tools when
 available; Device Hub is the local dashboard fallback.
+To launch, sign in, and drive the app on a simulator, use the `run-mobile` skill
+([`apps/mobile/.claude/skills/run-mobile`](../../apps/mobile/.claude/skills/run-mobile/SKILL.md)).
+It is only listed in sessions started from `apps/mobile`.
 
 Exercise English/Dutch, supported themes, Dynamic Type XL, native navigation,
 keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence

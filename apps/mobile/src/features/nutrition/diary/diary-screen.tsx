@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -396,6 +396,17 @@ export function DiaryScreen({
 											meal: draft.meal,
 											draftId: draft.id,
 											query: draft.note,
+										},
+									})
+								}
+								onAssistDraft={(draft) =>
+									router.push({
+										pathname: "/nutrition-assistance",
+										params: {
+											date: draft.date,
+											meal: draft.meal,
+											draftId: draft.id,
+											text: draft.note,
 										},
 									})
 								}

@@ -19,7 +19,7 @@ Every row action is discoverable without gestures, and bulk work uses an explici
 
 ## Implementation
 
-The Workouts nutrition diary is the originating example; its domain actions and platform adapters remain local.
+The Foundry nutrition diary is the originating example; its domain actions and platform adapters remain local.
 
 ## Verify
 

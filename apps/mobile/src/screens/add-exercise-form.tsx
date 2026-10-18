@@ -1,4 +1,4 @@
-import type { Exercise } from "@workouts/core/exercises";
+import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack } from "expo-router";
 import { useState } from "react";
@@ -17,7 +17,6 @@ import {
 	FormTextField,
 	InlineNumberFieldRow,
 } from "../ui/form";
-import { MuscleIcon } from "../ui/muscle-icon";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import {
@@ -27,6 +26,7 @@ import {
 	type Group,
 	toggleChoice,
 } from "./exercise-library/model";
+import { MuscleIcon } from "./exercise-library/muscle-icon";
 
 export function AddExerciseForm({
 	visible = true,

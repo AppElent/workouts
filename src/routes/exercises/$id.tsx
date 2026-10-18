@@ -1,8 +1,8 @@
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convex/_generated/api";
+import { calculateOneRepMax } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { calculateOneRepMax } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";

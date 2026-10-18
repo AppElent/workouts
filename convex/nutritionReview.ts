@@ -2,7 +2,7 @@ import {
 	totalNutrients,
 	type NutrientKey,
 	type NutrientTotal,
-} from "@workouts/core";
+} from "@foundry/core";
 import { query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import {

@@ -30,9 +30,9 @@ describe("scheme plumbing follows the device by default", () => {
 
 	it.each(["light", "dark"] as const)(
 		"matches the OS %s scheme in content and native hosts",
-		(mode) => {
+		async (mode) => {
 			scheme.mockReturnValue(mode);
-			render(<Probe />);
+			await render(<Probe />);
 			const tokens = mode === "dark" ? colors : colorsLight;
 			expect(screen.getByTestId("probe").props.children).toBe(
 				`${tokens.bg}|${mode}`,
@@ -41,9 +41,9 @@ describe("scheme plumbing follows the device by default", () => {
 		},
 	);
 
-	it("AppText takes its ink from the tokens, and a caller's style still wins", () => {
+	it("AppText takes its ink from the tokens, and a caller's style still wins", async () => {
 		scheme.mockReturnValue("light");
-		render(
+		await render(
 			<>
 				<AppText testID="body">a</AppText>
 				<AppText testID="muted" variant="footnote">
@@ -61,9 +61,9 @@ describe("scheme plumbing follows the device by default", () => {
 		expect(flat("override").color).toBe("#123456");
 	});
 
-	it("SportIcon draws the light hue", () => {
+	it("SportIcon draws the light hue", async () => {
 		scheme.mockReturnValue("light");
-		render(<SportIcon sport="running" />);
+		await render(<SportIcon sport="running" />);
 		const glyph = screen.getByText(sportMeta.running.glyph);
 		expect(ReactNative.StyleSheet.flatten(glyph.props.style).color).toBe(
 			"#9d430a",

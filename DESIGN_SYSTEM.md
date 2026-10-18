@@ -1,4 +1,4 @@
-# Workouts design system
+# Foundry design system
 
 <!-- appelent-standards:start -->
 ## Shared guidance

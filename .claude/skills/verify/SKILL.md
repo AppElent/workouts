@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Workouts changes using the affected target's checks and runtime evidence.
+description: Verify Foundry changes using the affected target's checks and runtime evidence.
 ---
 
-Follow [Workouts verification](../../../docs/runbooks/verification.md).
+Follow [Foundry verification](../../../docs/runbooks/verification.md).

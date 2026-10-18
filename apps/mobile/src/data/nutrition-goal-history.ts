@@ -5,7 +5,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 
 export type GoalDraft = Record<NutrientKey, { min: string; max: string }>;
 
@@ -42,15 +42,6 @@ export function parseGoalNumber(input: string): number | null {
 	if (!normalized) return null;
 	const value = Number(normalized);
 	return Number.isFinite(value) && value > 0 ? value : Number.NaN;
-}
-
-export function enabledGoalNutrients(draft: GoalDraft): NutrientKey[] {
-	return NUTRIENT_KEYS.filter(
-		(nutrient) =>
-			nutrient === "energy" ||
-			draft[nutrient].min.trim().length > 0 ||
-			draft[nutrient].max.trim().length > 0,
-	);
 }
 
 export function draftToGoals(draft: GoalDraft): {

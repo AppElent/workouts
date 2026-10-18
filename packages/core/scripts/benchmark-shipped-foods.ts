@@ -17,7 +17,7 @@ import { resetSearchIndex, searchShippedFoods } from "../src/nutrition/search";
  * re-measures on device. The public search API is stable either way, so the
  * internal strategy can change without touching callers.
  *
- *   pnpm --filter @workouts/core bench:foods
+ *   pnpm --filter @foundry/core bench:foods
  *   node --expose-gc ./node_modules/.bin/tsx scripts/benchmark-shipped-foods.ts
  */
 

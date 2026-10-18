@@ -1,1 +1,1 @@
-export { getWeightStep } from "@workouts/core";
+export { getWeightStep } from "@foundry/core";

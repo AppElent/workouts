@@ -30,18 +30,18 @@ jest.mock("../../../../data/nutrition-day", () => {
 
 describe("a day with no goals", () => {
 	it("offers a way to set them instead of showing an empty box", async () => {
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByText("No nutrition goals")).toBeTruthy();
 
-		fireEvent.press(screen.getByText("Set up goals"));
+		await fireEvent.press(screen.getByText("Set up goals"));
 
 		expect(await screen.findByText("Choose a starting point")).toBeTruthy();
 	});
 
 	it("still shows every nutrient, since none of them is targeted", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("All nutrients"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("All nutrients"));
 
 		expect(await screen.findByText("Energy")).toBeTruthy();
 		expect(screen.getAllByText("Protein").length).toBeGreaterThan(0);

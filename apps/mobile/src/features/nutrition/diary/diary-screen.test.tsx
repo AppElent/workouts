@@ -26,10 +26,10 @@ const mockUseTrainingMarkerQuery = jest.mocked(useQuery_experimental);
 
 describe("the nutrition day", () => {
 	it("opens the calendar from the date and can browse another month", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
-		fireEvent.press(screen.getByLabelText("Choose date"));
-		fireEvent.press(await screen.findByLabelText("Next month"));
+		await fireEvent.press(screen.getByLabelText("Choose date"));
+		await fireEvent.press(await screen.findByLabelText("Next month"));
 		const today = new Date();
 		const next = new Date(today.getFullYear(), today.getMonth() + 1, 1, 12);
 		expect(
@@ -39,7 +39,7 @@ describe("the nutrition day", () => {
 		).toBeTruthy();
 	});
 	it("opens on today, with the four meal slots in order", async () => {
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByText("Today")).toBeTruthy();
 		for (const meal of ["Breakfast", "Lunch", "Dinner", "Snacks"]) {
@@ -48,7 +48,7 @@ describe("the nutrition day", () => {
 	});
 
 	it("puts the goals above the meal slots", async () => {
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByText("No nutrition goals")).toBeTruthy();
 		expect(screen.getByText("Set up goals")).toBeTruthy();
@@ -85,19 +85,25 @@ describe("the nutrition day", () => {
 				};
 			return { entries: [], totals: {} };
 		});
-		renderApp();
-		fireEvent.press(await screen.findByText("All goals"));
+		await renderApp();
+		await fireEvent.press(await screen.findByText("All goals"));
 
-		fireEvent(
+		await fireEvent(
 			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
 			"longPress",
 		);
-		fireEvent.press(await screen.findByText("Reorder goals"));
-		fireEvent(screen.getByLabelText("Move Energy"), "accessibilityAction", {
-			nativeEvent: { actionName: "increment" },
-		});
-		fireEvent.press(screen.getByText("Done"));
-		fireEvent.press(screen.getByText(/Done/));
+		await fireEvent.press(await screen.findByText("Reorder goals"));
+		await fireEvent(
+			screen.getByLabelText("Move Energy"),
+			"accessibilityAction",
+			{
+				nativeEvent: { actionName: "increment" },
+			},
+		);
+		// A double tap on Done saves the order once.
+		const done = screen.getByText("Done");
+		await fireEvent.press(done);
+		await fireEvent.press(done);
 
 		expect(saveOrder).toHaveBeenCalledTimes(1);
 		expect(saveOrder).toHaveBeenCalledWith({
@@ -143,19 +149,19 @@ describe("the nutrition day", () => {
 				};
 			return { entries: [], totals: {} };
 		});
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByText("Protein")).toBeTruthy();
 		expect(screen.getByLabelText("Carbohydrates")).toBeTruthy();
 		expect(screen.getByText("Fat")).toBeTruthy();
-		fireEvent.press(screen.getByText("All goals"));
+		await fireEvent.press(screen.getByText("All goals"));
 		expect(
 			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
 		).toBeTruthy();
 		expect(
 			screen.getByLabelText("Fat: 0 / ≤70 g. Nothing logged."),
 		).toBeTruthy();
-		fireEvent.press(screen.getByLabelText("Close"));
+		await fireEvent.press(screen.getByLabelText("Close"));
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
@@ -196,8 +202,8 @@ describe("the nutrition day", () => {
 				},
 			};
 		});
-		renderApp();
-		fireEvent.press(await screen.findByText("All goals"));
+		await renderApp();
+		await fireEvent.press(await screen.findByText("All goals"));
 
 		expect(
 			await screen.findByLabelText(
@@ -259,8 +265,8 @@ describe("the nutrition day", () => {
 		});
 
 		try {
-			renderApp();
-			fireEvent.press(await screen.findByText("All goals"));
+			await renderApp();
+			await fireEvent.press(await screen.findByText("All goals"));
 			expect(
 				await screen.findByLabelText(
 					"Energy: 1950 / 1800–2100 kcal. Within range.",
@@ -303,15 +309,15 @@ describe("the nutrition day", () => {
 				};
 			return { entries: [], totals: {} };
 		});
-		renderApp();
-		fireEvent.press(await screen.findByText("All goals"));
+		await renderApp();
+		await fireEvent.press(await screen.findByText("All goals"));
 
-		fireEvent(
+		await fireEvent(
 			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
 			"longPress",
 		);
-		fireEvent.press(await screen.findByText("Reorder goals"));
-		fireEvent.press(screen.getByText("Done"));
+		await fireEvent.press(await screen.findByText("Reorder goals"));
+		await fireEvent.press(screen.getByText("Done"));
 
 		expect(
 			await screen.findByText(
@@ -349,14 +355,14 @@ describe("the nutrition day", () => {
 			if (name === "nutritionGoals:forDate") return history;
 			return { entries: [], totals: {} };
 		});
-		renderApp();
-		fireEvent.press(
+		await renderApp();
+		await fireEvent.press(
 			await screen.findByLabelText(
 				diaryDateLabel(diaryShift(diaryToday(), -1), "en"),
 			),
 		);
-		fireEvent.press(await screen.findByText("All goals"));
-		fireEvent.press(screen.getByText("Edit"));
+		await fireEvent.press(await screen.findByText("All goals"));
+		await fireEvent.press(screen.getByText("Edit"));
 
 		expect(
 			await screen.findByText(/Also applies to .* through today\./),
@@ -389,9 +395,9 @@ describe("the nutrition day", () => {
 			if (name === "nutritionGoals:forDate") return history;
 			return { entries: [], totals: {} };
 		});
-		renderApp();
-		fireEvent.press(await screen.findByText("All goals"));
-		fireEvent(
+		await renderApp();
+		await fireEvent.press(await screen.findByText("All goals"));
+		await fireEvent(
 			await screen.findByLabelText("Protein: 0 / ≥120 g. Nothing logged."),
 			"accessibilityAction",
 			{ nativeEvent: { actionName: "edit" } },
@@ -401,10 +407,10 @@ describe("the nutrition day", () => {
 	});
 
 	it("gives each meal slot's icon-only plus a spoken name", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Breakfast");
 
-		fireEvent.press(screen.getByLabelText("Add food to Lunch"));
+		await fireEvent.press(screen.getByLabelText("Add food to Lunch"));
 
 		expect(
 			(await screen.findAllByLabelText(/^Logging into Lunch, /)).length,
@@ -412,29 +418,31 @@ describe("the nutrition day", () => {
 	});
 
 	it("explains an empty meal slot rather than leaving it blank", async () => {
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findAllByText("Nothing yet")).toHaveLength(4);
 	});
 
 	it("steps back a day and returns to today", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
 
-		fireEvent.press(
+		await fireEvent.press(
 			screen.getByLabelText(diaryDateLabel(diaryShift(diaryToday(), -1), "en")),
 		);
 		expect(await screen.findByText("Yesterday")).toBeTruthy();
 
-		fireEvent.press(screen.getByLabelText(diaryDateLabel(diaryToday(), "en")));
+		await fireEvent.press(
+			screen.getByLabelText(diaryDateLabel(diaryToday(), "en")),
+		);
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 
 	it("steps forward a day", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
 
-		fireEvent.press(
+		await fireEvent.press(
 			screen.getByLabelText(diaryDateLabel(diaryShift(diaryToday(), 1), "en")),
 		);
 
@@ -442,12 +450,12 @@ describe("the nutrition day", () => {
 	});
 
 	it("carries the selected date into Find Food", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText("Today");
-		fireEvent.press(
+		await fireEvent.press(
 			screen.getByLabelText(diaryDateLabel(diaryShift(diaryToday(), -1), "en")),
 		);
-		fireEvent.press(screen.getByLabelText("Add food to Breakfast"));
+		await fireEvent.press(screen.getByLabelText("Add food to Breakfast"));
 
 		// The browser's own title, which is the date it will log into.
 		expect(
@@ -458,12 +466,12 @@ describe("the nutrition day", () => {
 	});
 
 	it("keeps the non-targeted nutrients collapsed until asked for them", async () => {
-		renderApp();
+		await renderApp();
 		await screen.findByText(/All goals|All nutrients/);
 
 		expect(screen.queryByText("Saturated fat")).toBeNull();
 
-		fireEvent.press(screen.getByText(/All goals|All nutrients/));
+		await fireEvent.press(screen.getByText(/All goals|All nutrients/));
 
 		expect(await screen.findByText("Saturated fat")).toBeTruthy();
 		expect(screen.getByText("Fibre")).toBeTruthy();
@@ -472,9 +480,9 @@ describe("the nutrition day", () => {
 	});
 
 	it("carries the NEVO and derived-salt disclosures on the day itself", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("More nutrition tools"));
-		fireEvent.press(await screen.findByText("Data sources"));
+		await renderApp();
+		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));
+		await fireEvent.press(await screen.findByText("Data sources"));
 
 		expect(
 			await screen.findByText("Nutrition figures include NEVO 2025/9.0 data."),
@@ -544,19 +552,19 @@ describe("the nutrition day", () => {
 				},
 			};
 		});
-		renderApp();
+		await renderApp();
 
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(screen.getByText("Piece × 1")).toBeTruthy();
 		expect(screen.getByText("Approximate")).toBeTruthy();
 		expect(screen.queryByText("1924 kcal remaining")).toBeNull();
-		fireEvent.press(screen.getByText("All goals"));
+		await fireEvent.press(screen.getByText("All goals"));
 		expect((await screen.findAllByText(/~ 0 g/)).length).toBeGreaterThan(0);
 		expect(screen.getByText(/≥ 0 g/)).toBeTruthy();
 	});
 
 	it("does not reserve space for the training marker on a day without a completed Activity", async () => {
-		renderApp();
+		await renderApp();
 
 		await screen.findByText("Today");
 		expect(
@@ -611,7 +619,7 @@ describe("the nutrition day", () => {
 			};
 		});
 
-		renderApp();
+		await renderApp();
 
 		// Present: the marker itself, accessibly described.
 		expect(

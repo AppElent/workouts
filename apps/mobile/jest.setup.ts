@@ -17,6 +17,13 @@
 process.env.EXPO_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
 process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_jest";
 
+// Gesture Handler 3 installs UI-runtime bindings at import time, but Worklets'
+// web build (the one Jest resolves) throws from `getUIRuntimeHolder`.
+jest.mock("react-native-worklets", () => ({
+	...jest.requireActual("react-native-worklets"),
+	getUIRuntimeHolder: () => ({}),
+}));
+
 // UIKit renders native header items outside React's test tree. Expose their
 // public callbacks and accessibility state without mocking the navigation stack.
 jest.mock(
@@ -557,8 +564,10 @@ jest.mock("./src/convex/query-cache", () => {
 	return {
 		AppQueryCacheProvider: ({ children }: { children: React.ReactNode }) =>
 			children,
-		useCachedQuery: (...args: unknown[]) => convex.useQuery(...args),
-		useCachedQueries: (...args: unknown[]) => convex.useQueries(...args),
+		useQuery: (...args: unknown[]) => convex.useQuery(...args),
+		useQueries: (...args: unknown[]) => convex.useQueries(...args),
+		usePaginatedQuery: (...args: unknown[]) =>
+			convex.usePaginatedQuery(...args),
 	};
 });
 
@@ -597,6 +606,8 @@ jest.mock("convex/react", () => {
 			data: false,
 		})),
 		useMutation: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+		// AI entry actions; screen tests script answers per case.
+		useAction: jest.fn(() => jest.fn().mockResolvedValue(undefined)),
 		useConvex: jest.fn(() => ({ query: jest.fn().mockResolvedValue([]) })),
 		usePaginatedQuery: jest.fn(() => ({
 			results: [],

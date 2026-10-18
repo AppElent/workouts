@@ -1,3 +1,4 @@
+import { accountNl } from "./account";
 import { activityNl } from "./activity";
 import { bodyMetricsNl } from "./body-metrics";
 import { diaryNl } from "./diary";
@@ -11,6 +12,7 @@ import { oneOffLogNl } from "./one-off-log";
 import { profileNl } from "./profile";
 import { progressNl } from "./progress";
 import { signInNl } from "./sign-in";
+import { signUpNl, verifyEmailNl } from "./sign-up";
 import { strengthNl } from "./strength";
 import { testDataNl } from "./test-data";
 import { trainingNl } from "./training";
@@ -41,7 +43,10 @@ export const nl = {
 	hosted: hostedNl,
 	workoutTools: workoutToolsNl,
 	signIn: signInNl,
+	signUp: signUpNl,
+	verifyEmail: verifyEmailNl,
 	profile: profileNl,
+	account: accountNl,
 	training: trainingNl,
 	strength: strengthNl,
 	diaryEntry: entryEditorNl,
@@ -133,7 +138,7 @@ export const nl = {
 	language: {
 		title: "Taal",
 		description:
-			"Workouts begint in de taal van je telefoon en blijft daarna in de taal die je hier kiest.",
+			"Foundry begint in de taal van je telefoon en blijft daarna in de taal die je hier kiest.",
 		names: {
 			en: "English",
 			nl: "Nederlands",

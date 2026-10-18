@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing data ownership, saving, caching, Convex usage, or local-data migration.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -58,14 +58,16 @@ measurement. TanStack Query is an option only if a demonstrated need justifies
 the additional integration, not a required cache or offline engine. Lightweight
 remembered portions do not require an offline write queue or new settings UI.
 
-The mobile pilot selects `convex-helpers/react/cache` for short subscription
-retention on Routines, Strength Session data, and Nutrition day queries. The
-account/session owns the cache; backgrounding releases its subscriptions without
-remounting editors. Searches and growing history pages retain their existing
-query lifetimes. Nutrition account snapshots now use session memory; only optional defaults and
-bounded OFF request/image caches persist. Set Drafts keep their separate purpose. See the
-[pilot verification](../records/2026-10-08-query-subscription-cache/README.md) before
-extending retention to additional queries or retiring disk caches.
+Mobile uses the `retention` flavor of the Convex query caching standard. Every
+`useQuery`/`useQueries` read goes through `apps/mobile/src/convex/query-cache.tsx`,
+which retains a left subscription for 5 minutes (at most 20 idle). The account
+owns the cache; backgrounding releases idle subscriptions without remounting
+editors. Paginated queries are not retained. There is no on-device copy of query
+results. Nutrition account snapshots use session memory; only optional defaults and
+bounded OFF request/image caches persist. Set Drafts keep their separate purpose.
+Adding a disk cache means adopting the `last-known` flavor, which is a separate
+decision. Measurements for the earlier 30-second pilot are in the
+[pilot verification](../records/2026-10-08-query-subscription-cache/README.md).
 
 Before declaring usage acceptable, inspect actual Convex allowances and current
 consumption. Record database I/O, function calls, and client bytes separately,

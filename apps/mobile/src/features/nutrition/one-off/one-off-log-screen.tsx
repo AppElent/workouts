@@ -1,6 +1,5 @@
-import { Stack, useNavigation, useRouter } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
-import type { NativeStackNavigationOptions } from "expo-router/build/react-navigation/native-stack";
+import type { NativeStackNavigationOptions } from "expo-router";
+import { Stack, useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -8,12 +7,13 @@ import {
 	Pressable,
 	ScrollView,
 	TextInput as TextField,
-	type TextInput,
+	type TextInputInstance,
 	View,
 } from "react-native";
 import { todayIsoDate } from "../../../data/calendar-day";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import type { MealSlot } from "../../../data/nutrition-day";
+import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -45,9 +45,12 @@ import { useOneOffDraft } from "./use-one-off-draft";
 export function OneOffLogScreen({
 	date,
 	meal,
+	draftId,
 }: {
 	date: string;
 	meal: MealSlot;
+	/** The Capture Draft this entry processes; removed once it is logged. */
+	draftId?: string;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.oneOff;
@@ -60,6 +63,11 @@ export function OneOffLogScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const authoring = useFoodAuthoringIntent();
+	const drafts = useNutritionDrafts({
+		startDate: date,
+		endDate: date,
+		recordId: draftId,
+	});
 	// Name and photo carried over from the Personal food or Recipe form.
 	const [seed] = useState(() =>
 		authoring.intent === "oneOff" ? authoring.seed : undefined,
@@ -78,14 +86,16 @@ export function OneOffLogScreen({
 		date,
 		meal,
 		seed,
-		onLogged: (loggedDate) =>
+		onLogged: (loggedDate) => {
+			if (draftId) void drafts.remove(draftId).catch(() => undefined);
 			setExit(
 				() => () =>
 					router.dismissTo({
 						pathname: "/nutrition",
 						params: { date: loggedDate },
 					}),
-			),
+			);
+		},
 		onFailed: () => toast.error(copy.logFailure),
 	});
 	const [today] = useState(todayIsoDate);
@@ -101,7 +111,7 @@ export function OneOffLogScreen({
 		values: draft.values,
 		onChange: draft.setValue,
 	});
-	const amountInput = useRef<TextInput | null>(null);
+	const amountInput = useRef<TextInputInstance | null>(null);
 	const [amountFocused, setAmountFocused] = useState(false);
 
 	usePreventRemove(draft.dirty && !exit, ({ data }) => {
@@ -210,7 +220,12 @@ export function OneOffLogScreen({
 				: fmt(copy.forAmount, { amount: amountText, unit: unitLabel });
 
 	return (
-		<View style={{ flex: 1, backgroundColor: colors.bg }}>
+		<View
+			// One stable child for the form sheet: its ScrollView sizing only
+			// copes with a fixed subview order.
+			collapsable={false}
+			style={{ flex: 1, backgroundColor: colors.bg }}
+		>
 			<Stack.Screen options={options} />
 			<DatePickerSheet
 				visible={choosingDay}

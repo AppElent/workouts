@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@workouts/core/nutrition";
+import { NUTRIENT_KEYS } from "@foundry/core/nutrition";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";
@@ -76,7 +76,7 @@ describe("week overview", () => {
 
 	it("summarises the week against each day's goal", async () => {
 		serveWeek(fullWeek());
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
 		expect(await screen.findByText("Fat 2× too much")).toBeTruthy();
 		expect(screen.getByText("avg. 2,300")).toBeTruthy();
@@ -87,9 +87,9 @@ describe("week overview", () => {
 
 	it("opens the goals of the week with day counts", async () => {
 		serveWeek(fullWeek());
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
-		fireEvent.press(await screen.findByText("All goals"));
+		await fireEvent.press(await screen.findByText("All goals"));
 
 		expect(await screen.findByText("Goals this week")).toBeTruthy();
 		expect(screen.getByText("2 of 3 days too much")).toBeTruthy();
@@ -98,7 +98,7 @@ describe("week overview", () => {
 
 	it("shows totals and a way to set goals when none applied", async () => {
 		serveWeek(fullWeek(false));
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
 		expect(await screen.findByText("Set goals")).toBeTruthy();
 		expect(screen.queryByText("All goals")).toBeNull();
@@ -106,24 +106,27 @@ describe("week overview", () => {
 
 	it("offers the diary from an empty week", async () => {
 		serveWeek(dates.map((date) => reviewDay(date, null)));
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 
 		expect(await screen.findByText("Nothing logged this week")).toBeTruthy();
 		expect(screen.getByText("Open Monday in diary")).toBeTruthy();
 	});
 
-	it("keeps the strip and offers a retry when the week stalls offline", async () => {
+	it("keeps the strip and explains when the week stalls offline", async () => {
 		jest.useFakeTimers();
 		mockConnection.mockReturnValue({
 			isWebSocketConnected: false,
 		} as ReturnType<typeof useConvexConnectionState>);
 		serveWeek(undefined);
-		renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
+		await renderApp(`/nutrition-weekly-review?startDate=${lastWeek}`);
 		await act(async () => {
 			jest.advanceTimersByTime(OFFLINE_GRACE_MS);
 		});
 
-		expect(await screen.findByText("Try again")).toBeTruthy();
+		expect(
+			await screen.findByText("This Week overview is not on this phone yet"),
+		).toBeTruthy();
+		expect(screen.queryByText("Try again")).toBeNull();
 		expect(screen.getAllByText("WK").length).toBe(5);
 	});
 });

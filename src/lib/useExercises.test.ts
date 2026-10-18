@@ -1,5 +1,5 @@
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import { renderHook } from "@testing-library/react";
-import { SHIPPED_EXERCISES } from "@workouts/core/exercises";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useExercise, useExercises } from "./useExercises";

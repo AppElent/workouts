@@ -1,7 +1,13 @@
-import { formatQuantity } from "@workouts/core/nutrition";
+import { formatQuantity } from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
-import { Keyboard, Pressable, TextInput, View } from "react-native";
+import {
+	Keyboard,
+	Pressable,
+	TextInput,
+	type TextInputInstance,
+	View,
+} from "react-native";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -35,7 +41,7 @@ export function AmountQuantity({
 	const colors = useTokens();
 	const [buffer, setBuffer] = useState<string | null>(null);
 	const original = useRef(value);
-	const input = useRef<TextInput>(null);
+	const input = useRef<TextInputInstance>(null);
 	function change(text: string) {
 		setBuffer(text);
 		onChange(text === "" ? original.current : text);

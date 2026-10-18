@@ -1,5 +1,5 @@
 /**
- * Workouts environment routing.
+ * Foundry environment routing.
  *
  * Entries describe logical values and their consumers. destinationFor maps a
  * consumer in an app environment to the place that consumer reads from. The
@@ -8,7 +8,7 @@
  */
 
 export const ENV_CONFIG = {
-	appName: "Workouts",
+	appName: "Foundry",
 	source: {
 		environments: {
 			local: "dev",
@@ -231,6 +231,54 @@ export const ENTRIES = [
 		lands: {
 			"convex-functions": {
 				name: "CLERK_JWT_ISSUER_DOMAIN",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "anthropicApiKey",
+		infisicalKey: "anthropic-api-key",
+		description: "Anthropic API key for nutrition AI help (Convex actions only).",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "ANTHROPIC_API_KEY",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "appleTeamId",
+		infisicalKey: "apple-team-id",
+		description: "Apple Developer team ID; signs the Sign in with Apple client secret.",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "APPLE_TEAM_ID",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "appleSignInKeyId",
+		infisicalKey: "apple-sso-key-id",
+		description: "Key ID of the Sign in with Apple private key.",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "APPLE_SIGN_IN_KEY_ID",
+				environments: ["local", "preview", "dev", "production"],
+			},
+		},
+	},
+	{
+		key: "appleSignInPrivateKey",
+		infisicalKey: "apple-sso-key-value",
+		description: "Sign in with Apple .p8 private key; Convex revokes Apple grants on account deletion.",
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "APPLE_SIGN_IN_PRIVATE_KEY",
 				environments: ["local", "preview", "dev", "production"],
 			},
 		},

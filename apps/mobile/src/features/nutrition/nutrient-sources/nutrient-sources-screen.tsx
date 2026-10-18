@@ -2,7 +2,7 @@ import {
 	rankNutrientSources,
 	roundForDisplay,
 	totalNutrients,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
@@ -15,9 +15,9 @@ import {
 } from "../../../data/nutrition-day";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
-import { FoodVisualView } from "../../../ui/food-visual";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { AppText } from "../../../ui/text";
+import { FoodVisualView } from "../components/food-visual";
 import {
 	groupGoals,
 	localizedGoalStatus,

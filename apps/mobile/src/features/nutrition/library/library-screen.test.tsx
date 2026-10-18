@@ -3,7 +3,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFoodDraft,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import type { createPersonalFoodRepository } from "../../../data/personal-food-repository";
 import { renderApp } from "../../../test-support/render-app";
@@ -64,31 +64,31 @@ function seedLibrary(foods: Repository) {
 	});
 }
 
-function renderLibrary(seed = true) {
-	return renderApp("/nutrition-library", {}, undefined, (stores) => {
+async function renderLibrary(seed = true) {
+	return await renderApp("/nutrition-library", {}, undefined, (stores) => {
 		if (seed) seedLibrary(stores.personalFoods);
 	});
 }
 
 describe("food library", () => {
 	it("lists foods, recipes and combos with a preview and show all", async () => {
-		renderLibrary();
+		await renderLibrary();
 
 		expect(await screen.findByText("8 loaded items")).toBeTruthy();
 		expect(screen.getByText("Lentil soup")).toBeTruthy();
 		expect(screen.getByText("Breakfast bowl")).toBeTruthy();
 		expect(screen.queryByText("Shake")).toBeNull();
 
-		fireEvent.press(screen.getByText("Show all 6 foods"));
+		await fireEvent.press(screen.getByText("Show all 6 foods"));
 		expect(await screen.findByText("Shake")).toBeTruthy();
 		expect(screen.getByText("OFF · Etos")).toBeTruthy();
 		expect(screen.queryByText("Lentil soup")).toBeNull();
 	});
 
 	it("names the combos that use a food before deleting it", async () => {
-		renderLibrary();
+		await renderLibrary();
 		const oats = await screen.findByLabelText(/^Oats, Own/);
-		fireEvent(oats, "accessibilityAction", {
+		await fireEvent(oats, "accessibilityAction", {
 			nativeEvent: { actionName: "delete" },
 		});
 
@@ -97,36 +97,38 @@ describe("food library", () => {
 				"Used in ‘Breakfast bowl’; those combos keep its values. Your diary doesn't change.",
 			),
 		).toBeTruthy();
-		fireEvent.press(screen.getAllByText("Delete").at(-1) as never);
+		await fireEvent.press(screen.getAllByText("Delete").at(-1) as never);
 		expect(await screen.findByText("‘Oats’ deleted")).toBeTruthy();
 		await waitFor(() => expect(screen.queryByText("Oats")).toBeNull());
 	});
 
 	it("makes a combo a favourite like a food", async () => {
-		renderLibrary();
+		await renderLibrary();
 		const combo = await screen.findByLabelText(/^Breakfast bowl, /);
-		fireEvent(combo, "accessibilityAction", {
+		await fireEvent(combo, "accessibilityAction", {
 			nativeEvent: { actionName: "favorite" },
 		});
 		expect(await screen.findByText("Breakfast bowl ★")).toBeTruthy();
 	});
 
 	it("selects items and deletes them together", async () => {
-		renderLibrary();
-		fireEvent.press(await screen.findByLabelText("More"));
-		fireEvent.press(screen.getAllByText("Select").at(-1) as never);
+		await renderLibrary();
+		await fireEvent.press(await screen.findByLabelText("More"));
+		await fireEvent.press(screen.getAllByText("Select").at(-1) as never);
 
-		fireEvent.press(await screen.findByLabelText("Pear, Select"));
-		fireEvent.press(screen.getByLabelText("Plum, Select"));
+		await fireEvent.press(await screen.findByLabelText("Pear, Select"));
+		await fireEvent.press(screen.getByLabelText("Plum, Select"));
 		expect(screen.getByText("2 selected")).toBeTruthy();
 
-		fireEvent.press(screen.getByLabelText("Delete"));
-		fireEvent.press((await screen.findAllByText("Delete")).at(-1) as never);
+		await fireEvent.press(screen.getByLabelText("Delete"));
+		await fireEvent.press(
+			(await screen.findAllByText("Delete")).at(-1) as never,
+		);
 		expect(await screen.findByText("2 items deleted")).toBeTruthy();
 	});
 
 	it("starts empty with three ways in", async () => {
-		renderLibrary(false);
+		await renderLibrary(false);
 
 		expect(await screen.findByText("Your own foods live here")).toBeTruthy();
 		expect(screen.getByText("Scan a barcode")).toBeTruthy();
@@ -135,12 +137,12 @@ describe("food library", () => {
 	});
 
 	it("creates a food named after a search without results", async () => {
-		const app = renderLibrary();
-		fireEvent.changeText(
+		const app = await renderLibrary();
+		await fireEvent.changeText(
 			await screen.findByLabelText("Search library"),
 			"Skyr",
 		);
-		fireEvent.press(await screen.findByText("New food ‘Skyr’"));
+		await fireEvent.press(await screen.findByText("New food ‘Skyr’"));
 		await waitFor(() => expect(app.getPathname()).toBe("/personal-food-new"));
 		expect(screen.getByLabelText("Name").props.value).toBe("Skyr");
 	});

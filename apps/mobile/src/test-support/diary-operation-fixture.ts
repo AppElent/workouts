@@ -7,7 +7,7 @@ import {
 	rescaleToQuantity,
 	rescaleToSelection,
 	totalNutrients,
-} from "@workouts/core";
+} from "@foundry/core";
 import type {
 	NutritionCachedDay,
 	NutritionServerEntry,

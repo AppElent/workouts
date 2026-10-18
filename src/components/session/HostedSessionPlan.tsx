@@ -1,4 +1,4 @@
-import type { ExerciseId } from "@workouts/core/exercises";
+import type { ExerciseId } from "@foundry/core/exercises";
 
 export type HostedStrengthBlock = {
 	blockId: string;

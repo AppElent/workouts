@@ -13,13 +13,14 @@
  * Points below the line are rep ranges you have not pushed; points above mean
  * your 1RM estimate is stale.
  */
-import { calculateOneRepMax } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
-import { useMutation, useQuery } from "convex/react";
+import { calculateOneRepMax } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
+import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { useExercise } from "../data/exercises";
 import { formatSessionDate } from "../data/session-data";
 import { dateLocale, useI18n } from "../i18n";
@@ -33,13 +34,13 @@ import {
 import { TrendChart } from "../ui/chart";
 import { Card, Chip, Eyebrow, StatBox } from "../ui/coach";
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
-import { MuscleIcon } from "../ui/muscle-icon";
 import { ScreenHeader } from "../ui/screen-header";
 import { Segmented } from "../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../ui/skeleton";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 import { primaryGroup } from "./exercise-library/model";
+import { MuscleIcon } from "./exercise-library/muscle-icon";
 
 type Tab = "Overview" | "Progress" | "History";
 

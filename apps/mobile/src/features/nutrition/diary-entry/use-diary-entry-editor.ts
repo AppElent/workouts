@@ -1,5 +1,5 @@
+import { formatServingSelection } from "@foundry/core/nutrition";
 import { useForm, useStore } from "@tanstack/react-form";
-import { formatServingSelection } from "@workouts/core/nutrition";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";

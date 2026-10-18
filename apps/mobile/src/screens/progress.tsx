@@ -1,8 +1,8 @@
-import type { ExerciseId } from "@workouts/core/exercises";
-import { useQuery } from "convex/react";
+import type { ExerciseId } from "@foundry/core/exercises";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { useShellData } from "../data/session-data";
 import { dateLocale, useI18n } from "../i18n";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";

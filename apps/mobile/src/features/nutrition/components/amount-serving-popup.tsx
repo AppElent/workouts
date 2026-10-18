@@ -1,9 +1,15 @@
+import type { PersonalFood, ServingOption } from "@foundry/core/nutrition";
+import { withPersonalMeasures } from "@foundry/core/nutrition";
 import { useForm, useStore } from "@tanstack/react-form";
-import type { PersonalFood, ServingOption } from "@workouts/core/nutrition";
-import { withPersonalMeasures } from "@workouts/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, Pressable, TextInput, View } from "react-native";
+import {
+	Keyboard,
+	Pressable,
+	TextInput,
+	type TextInputInstance,
+	View,
+} from "react-native";
 import { z } from "zod";
 import { api } from "../../../convex/api";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
@@ -74,8 +80,8 @@ export function AmountServingPopup({
 	const operations = useNutritionOperations();
 	const createMeasure = useMutation(api.personalMeasures.create);
 	const connected = useConvexConnectionState().isWebSocketConnected;
-	const nameRef = useRef<TextInput>(null);
-	const amountRef = useRef<TextInput>(null);
+	const nameRef = useRef<TextInputInstance>(null);
+	const amountRef = useRef<TextInputInstance>(null);
 	useEffect(() => {
 		// Focus after the overlay and its native inputs have mounted.
 		const frame = requestAnimationFrame(() => nameRef.current?.focus());

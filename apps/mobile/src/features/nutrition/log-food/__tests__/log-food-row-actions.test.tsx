@@ -18,15 +18,20 @@ async function rowFor(name: string) {
 
 describe("a result row's actions", () => {
 	it("offers the full set on long press: log, other portion, favorite and correct", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
 		await screen.findByLabelText("Quick log Apple");
 
 		const sheet = jest
 			.spyOn(ActionSheetIOS, "showActionSheetWithOptions")
 			.mockImplementation(() => {});
-		fireEvent(await rowFor("Apple"), "longPress");
+		await fireEvent(await rowFor("Apple"), "longPress");
 		expect(sheet).toHaveBeenCalledTimes(1);
 		expect(sheet.mock.calls[0][0].options).toEqual([
 			expect.stringMatching(/^Log · Apple × 1/),
@@ -38,15 +43,20 @@ describe("a result row's actions", () => {
 	});
 
 	it("favorites from the row, and the food then appears under Favorites", async () => {
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent(await rowFor("Apple"), "accessibilityAction", {
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		await fireEvent(await rowFor("Apple"), "accessibilityAction", {
 			nativeEvent: { actionName: "favorite" },
 		});
 
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "");
-		fireEvent.press(screen.getByRole("tab", { name: "Favorites" }));
+		await fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "");
+		await fireEvent.press(screen.getByRole("tab", { name: "Favorites" }));
 		expect(await screen.findByText("Apple")).toBeTruthy();
 	});
 
@@ -55,10 +65,15 @@ describe("a result row's actions", () => {
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
-		renderApp();
-		fireEvent.press(await screen.findByLabelText("Add food to Breakfast"));
-		fireEvent.changeText(screen.getByPlaceholderText("Search foods"), "apple");
-		fireEvent(await rowFor("Apple"), "accessibilityAction", {
+		await renderApp();
+		await fireEvent.press(
+			await screen.findByLabelText("Add food to Breakfast"),
+		);
+		await fireEvent.changeText(
+			screen.getByPlaceholderText("Search foods"),
+			"apple",
+		);
+		await fireEvent(await rowFor("Apple"), "accessibilityAction", {
 			nativeEvent: { actionName: "log" },
 		});
 

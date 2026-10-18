@@ -2,7 +2,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientTotal,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import {
 	type IsoDate,
 	isoDateToLocalDate,

@@ -1,4 +1,4 @@
-import type { Exercise } from "@workouts/core/exercises";
+import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -28,7 +28,6 @@ import {
 import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { FormSearchField } from "../ui/form";
-import { MuscleIcon } from "../ui/muscle-icon";
 import { Segmented } from "../ui/segmented";
 import { SkeletonGroup, SkeletonList } from "../ui/skeleton";
 import { SwipeableRow } from "../ui/swipeable-row";
@@ -44,6 +43,7 @@ import {
 	type Layout,
 	primaryGroup,
 } from "./exercise-library/model";
+import { MuscleIcon } from "./exercise-library/muscle-icon";
 
 export function ExercisesScreen() {
 	const colors = useTokens();

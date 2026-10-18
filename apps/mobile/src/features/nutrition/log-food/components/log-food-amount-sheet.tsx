@@ -4,7 +4,7 @@ import {
 	NEVO_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 	type ServingOption,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";

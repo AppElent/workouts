@@ -1,5 +1,5 @@
 ---
-description: Upgrade Workouts dependencies with the shared workflow and project checks.
+description: Upgrade Foundry dependencies with the shared workflow and project checks.
 allowed-tools: Bash(pnpm:*), Bash(git:*), Read, Edit
 ---
 

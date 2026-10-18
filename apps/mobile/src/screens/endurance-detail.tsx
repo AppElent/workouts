@@ -1,12 +1,10 @@
-import {
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@workouts/core";
-import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
+import { useConvexConnectionState, useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { useStalledOffline } from "../data/stalled-offline";
 import { dateLocale, useI18n } from "../i18n";
 import { metrics, spacing, type Tokens, useThemedStyles } from "../theme";
@@ -26,11 +24,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const [retryNonce, setRetryNonce] = useState(0);
-	const activity = useQuery(
-		api.enduranceActivities.get,
-		retryNonce % 2 === 0 ? { id } : "skip",
-	);
+	const activity = useQuery(api.enduranceActivities.get, { id });
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
 		activity === undefined,
@@ -76,17 +70,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 					contentInsetAdjustmentBehavior="automatic"
 					contentContainerStyle={styles.content}
 				>
-					<EmptyState
-						title={copy.offlineTitle}
-						body={copy.offlineBody}
-						action={{
-							label: copy.retry,
-							onPress: () => {
-								setRetryNonce((n) => n + 1);
-								setTimeout(() => setRetryNonce((n) => n + 1), 0);
-							},
-						}}
-					/>
+					<EmptyState title={copy.offlineTitle} body={copy.offlineBody} />
 				</ScrollView>
 			);
 		return (

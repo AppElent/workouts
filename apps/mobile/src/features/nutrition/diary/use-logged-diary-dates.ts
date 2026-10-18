@@ -1,5 +1,5 @@
-import { useQuery } from "convex/react";
 import { api } from "../../../convex/api";
+import { useQuery } from "../../../convex/query-cache";
 import { isoDayOffset, shiftIsoDate } from "../../../data/calendar-day";
 import {
 	useNutritionOperations,

@@ -1,8 +1,8 @@
 /**
- * `@workouts/core/nutrition` — the shipped food library and the pure functions
+ * `@foundry/core/nutrition` — the shipped food library and the pure functions
  * around it.
  *
- * This is a SEPARATE entry point from the `@workouts/core` barrel on purpose
+ * This is a SEPARATE entry point from the `@foundry/core` barrel on purpose
  * (spec #68, D13): it carries the ~500 KB generated NEVO artifact, and esbuild
  * inlines that into any bundle that can reach it. The web app and Convex import
  * the barrel and must never pull this in.
@@ -11,7 +11,7 @@
  *   - `./overlay` — generation input, folded into the artifact already.
  *   - `./schema`  — the Zod validation schema, used by the generator and tests.
  *     `zod` is a devDependency; keeping it out of this entry is what keeps
- *     `@workouts/core` free of runtime dependencies on the phone.
+ *     `@foundry/core` free of runtime dependencies on the phone.
  */
 
 export {

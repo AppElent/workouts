@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drive the Workouts (Foundry) Expo dev client on an iOS simulator.
+# Drive the Foundry Expo dev client on an iOS simulator.
 # Usage: driver.sh <command> [args]   (run from anywhere; see SKILL.md)
 set -euo pipefail
 
@@ -9,7 +9,7 @@ AGENT_DEVICE=(npx -y agent-device@0.21.27)
 MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CHECKOUT_ID="$(printf '%s' "$MOBILE_DIR" | shasum | cut -c1-8)"
 STATE="${RUN_MOBILE_STATE:-${TMPDIR:-/tmp}/run-mobile-$CHECKOUT_ID}"
-SIM_NAME="${RUN_MOBILE_SIM:-Workouts run-mobile $CHECKOUT_ID}"
+SIM_NAME="${RUN_MOBILE_SIM:-Foundry run-mobile $CHECKOUT_ID}"
 DEVICE_TYPE="${RUN_MOBILE_DEVICE_TYPE:-iPhone 18 Pro}"
 PORT="${RUN_MOBILE_PORT:-8090}"
 mkdir -p "$STATE"
@@ -68,16 +68,39 @@ ensure_metro() {
 	cwd="$(metro_cwd)"
 	if [ -n "$cwd" ]; then
 		[ "$cwd" = "$MOBILE_DIR" ] || die "port $PORT is Metro for $cwd, not this checkout; set RUN_MOBILE_PORT"
-		log "reusing Metro on :$PORT"
+		log "reusing Metro on :$PORT (after dependency or config changes, or to toggle --debug-queries: driver.sh down, then up)"
 		return
 	fi
 	log "starting Metro on :$PORT (log: $STATE/metro.log)"
-	(cd "$MOBILE_DIR" && nohup pnpm exec expo start --dev-client --port "$PORT" >"$STATE/metro.log" 2>&1 & echo $! >"$STATE/metro.pid")
+	# Background only the command, never a `cd && …` list: a backgrounded list is
+	# a subshell that keeps the caller's stdout, so `up | tail` would never end.
+	(
+		cd "$MOBILE_DIR" || exit 1
+		nohup pnpm exec expo start --dev-client --port "$PORT" </dev/null >"$STATE/metro.log" 2>&1 &
+		echo $! >"$STATE/metro.pid"
+	)
 	for _ in $(seq 1 60); do
-		curl -sf "http://127.0.0.1:$PORT/status" | grep -q running && return
+		if curl -sf "http://127.0.0.1:$PORT/status" | grep -q running; then
+			# pnpm -> node puts the listener outside metro.pid's tree; record it
+			# so `down` stops exactly the Metro this driver started.
+			lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | head -1 >"$STATE/metro.listener"
+			return
+		fi
 		sleep 1
 	done
 	die "Metro did not come up; see $STATE/metro.log"
+}
+
+# The simulator belongs to this checkout, so a session still holding it is left
+# over from an interrupted run (DEVICE_IN_USE). Close that session and retry once.
+open_app() {
+	local u="$1" out owner
+	if out="$(ad open "$BUNDLE_ID" --platform ios --udid "$u")"; then return; fi
+	owner="$(printf '%s' "$out" | grep -o 'close --session [^ .,"]*' | head -1 | cut -d' ' -f3)"
+	[ -n "$owner" ] || die "agent-device open failed: $out"
+	log "simulator held by stale session '$owner'; closing it"
+	ad close --session "$owner" >/dev/null || true
+	ad open "$BUNDLE_ID" --platform ios --udid "$u" >/dev/null || die "agent-device open failed after closing '$owner'; see: driver.sh ad session list"
 }
 
 cmd_up() {
@@ -85,6 +108,7 @@ cmd_up() {
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			--lang) lang="$2"; shift 2 ;;
+			--debug-queries) export EXPO_PUBLIC_DEBUG_QUERIES=1; shift ;;
 			*) die "unknown flag $1" ;;
 		esac
 	done
@@ -126,18 +150,42 @@ cmd_up() {
 	xcrun simctl openurl "$u" "$BUNDLE_ID://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A$PORT&disableOnboarding=1&disableFab=1&disableAutoLaunch=1"
 	# First deep link per simulator raises an "Open in Foundry?" system prompt.
 	ad alert accept 5000 --platform ios --udid "$u" >/dev/null || true
-	ad open "$BUNDLE_ID" --platform ios --udid "$u" >/dev/null
+	open_app "$u"
+	log "waiting for the iOS bundle (max 180s)"
+	local bundled=0
 	for _ in $(seq 1 90); do
-		[ -f "$STATE/metro.log" ] && [ "$(grep -c 'iOS Bundled' "$STATE/metro.log" || true)" -gt "${before:-0}" ] && break
-		grep -q 'Bundling failed' "$STATE/metro.log" 2>/dev/null && die "bundle failed; see $STATE/metro.log"
+		[ -f "$STATE/metro.log" ] && [ "$(grep -c 'iOS Bundled' "$STATE/metro.log" || true)" -gt "${before:-0}" ] && { bundled=1; break; }
+		grep -qE 'Bundling failed|PluginError|Unable to resolve' "$STATE/metro.log" 2>/dev/null &&
+			die "Metro error; see $STATE/metro.log (stale Metro? driver.sh down, then up)"
 		sleep 2
 	done
+	[ "$bundled" = 1 ] || die "no new iOS bundle after 180s; see $STATE/metro.log"
 	sleep 3
 	log "up: udid=$u port=$PORT lang=$lang"
 }
 
 cmd_signin() {
+	local email="" password=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--email) email="$2"; shift 2 ;;
+			--password) password="$2"; shift 2 ;;
+			*) die "signin: unknown option $1" ;;
+		esac
+	done
+	# Both or neither: one flag alone would sign in to the pre-filled shared account.
+	if [ -n "$email" ] && [ -z "$password" ]; then die "signin: --email needs --password"; fi
+	if [ -z "$email" ] && [ -n "$password" ]; then die "signin: --password needs --email"; fi
 	ad wait text "Sign in" 20000 >/dev/null || die "sign-in screen not visible (already signed in?)"
+	if [ -n "$email" ]; then
+		local field secure
+		field=$(ad snapshot -i | grep -m1 '\[text-field\]' | grep -o '@e[0-9]*')
+		ad fill "$field" "$email" >/dev/null || die "could not fill email"
+		secure=$(ad snapshot -i | grep -m1 '\[securetextfield\]' | grep -o '@e[0-9]*')
+		ad fill "$secure" "$password" >/dev/null || die "could not fill password"
+		# Never fall through to the pre-filled shared account.
+		ad snapshot -i | grep -qF "[text-field] \"$email\"" || die "email field does not show $email; not signing in"
+	fi
 	ad press 'label="Sign in"' >/dev/null
 	ad wait 'role=tab-bar' 30000 >/dev/null || die "tab bar not visible after sign-in"
 	log "signed in"
@@ -162,6 +210,13 @@ cmd_down() {
 		kill "$(cat "$STATE/metro.pid")" 2>/dev/null || true
 		rm -f "$STATE/metro.pid"
 	fi
+	# Only the listener this driver recorded; a reused Metro stays running.
+	if [ -f "$STATE/metro.listener" ]; then
+		# Guard against pid reuse: the recorded pid must still own the port.
+		lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t | grep -qx "$(cat "$STATE/metro.listener")" &&
+			kill "$(cat "$STATE/metro.listener")" 2>/dev/null || true
+		rm -f "$STATE/metro.listener"
+	fi
 	u="$(udid)"
 	[ -z "$u" ] || xcrun simctl shutdown "$u" 2>/dev/null || true
 	log "down"
@@ -169,7 +224,7 @@ cmd_down() {
 
 case "${1:-}" in
 	up) shift; cmd_up "$@" ;;
-	signin) cmd_signin ;;
+	signin) shift; cmd_signin "$@" ;;
 	ad) shift; ad "$@" ;;
 	ss) shift; cmd_ss "$@" ;;
 	reload) cmd_reload ;;
@@ -177,5 +232,5 @@ case "${1:-}" in
 	udid) require_udid; echo ;;
 	state) echo "$STATE" ;;
 	down) cmd_down ;;
-	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] | signin | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] [--debug-queries] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
 esac

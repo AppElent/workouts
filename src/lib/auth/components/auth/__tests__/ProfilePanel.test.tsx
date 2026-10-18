@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render as rtlRender,
+	screen,
+} from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 // jsdom here ships without localStorage (opaque origin) or matchMedia; the
@@ -41,7 +46,16 @@ vi.mock("@clerk/clerk-react", () => ({
 	useClerk: () => ({ signOut }),
 }));
 
+import { LocaleProvider } from "#/lib/i18n";
 import { ProfilePanel } from "../ProfilePanel";
+
+function render(ui: React.ReactElement) {
+	return rtlRender(ui, {
+		wrapper: ({ children }) => (
+			<LocaleProvider initialLocale="en">{children}</LocaleProvider>
+		),
+	});
+}
 
 describe("ProfilePanel", () => {
 	afterEach(() => {

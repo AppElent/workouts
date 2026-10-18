@@ -65,7 +65,7 @@ export function DatePickerSheet({
 					]}
 				>
 					<VStack spacing={12} modifiers={[padding({ all: 16 })]}>
-						<HStack>
+						<HStack spacing={0}>
 							<Button
 								label={todayLabel}
 								onPress={() => onSelect(today)}

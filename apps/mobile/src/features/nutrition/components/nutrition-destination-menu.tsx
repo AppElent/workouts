@@ -7,6 +7,7 @@ import {
 	StyleSheet,
 	useWindowDimensions,
 	View,
+	type ViewInstance,
 } from "react-native";
 import { haptics } from "../../../feedback/haptics";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
@@ -47,7 +48,7 @@ export function NutritionDestinationMenu(props: NutritionDestinationMenuProps) {
 	const styles = useThemedStyles(createStyles);
 	const reduceMotion = useReduceMotion();
 	const window = useWindowDimensions();
-	const trigger = useRef<View>(null);
+	const trigger = useRef<ViewInstance>(null);
 	const pop = useRef(new Animated.Value(0)).current;
 	const [open, setOpen] = useState(false);
 	const [anchor, setAnchor] = useState<Anchor | null>(null);

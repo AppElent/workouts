@@ -2,7 +2,7 @@ import { requireFoodPhotoOwner } from "./nutritionFoodPhotos";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { paginationOptsValidator } from "convex/server";
 import { v, type Infer } from "convex/values";
-import { canonicalJson, normalizePersonalFood, type PersonalFood } from "@workouts/core";
+import { canonicalJson, normalizePersonalFood, type PersonalFood } from "@foundry/core";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { libraryRecordKind, librarySchemaVersion } from "./nutritionLibraryTables";
 

@@ -2,10 +2,10 @@
 import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { useActiveSession } from "../data/session-data";
-import { useI18n } from "../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
-import { AppText } from "./text";
+import { useActiveSession } from "../../../data/session-data";
+import { useI18n } from "../../../i18n";
+import { radius, spacing, type Tokens, useThemedStyles } from "../../../theme";
+import { AppText } from "../../../ui/text";
 
 /** "0:42" under an hour, "1:02:47" over it. */
 function formatElapsed(ms: number) {

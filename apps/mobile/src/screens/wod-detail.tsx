@@ -8,11 +8,11 @@
  * once would be four ways to enter a score wrongly, so only the relevant pair
  * renders.
  *
- * Ranking and formatting both come from `@workouts/core`, the same functions
+ * Ranking and formatting both come from `@foundry/core`, the same functions
  * Convex uses server-side in `wodResults.getBest`.
  */
-import { formatScore, prImprovement } from "@workouts/core";
-import { useMutation, useQuery } from "convex/react";
+import { formatScore, prImprovement } from "@foundry/core";
+import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -23,6 +23,7 @@ import {
 	View,
 } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { fmt, useI18n } from "../i18n";
 import {
@@ -232,6 +233,7 @@ export function WodDetailScreen({
 			{wod.isDefault ? null : (
 				<View style={styles.actions}>
 					<Pressable
+						accessibilityRole="button"
 						onPress={() =>
 							onEdit
 								? onEdit(wod._id)
@@ -244,7 +246,11 @@ export function WodDetailScreen({
 					>
 						<AppText style={styles.ghostText}>{copy.edit}</AppText>
 					</Pressable>
-					<Pressable onPress={() => void deleteWod()} style={styles.ghostBtn}>
+					<Pressable
+						accessibilityRole="button"
+						onPress={() => void deleteWod()}
+						style={styles.ghostBtn}
+					>
 						<AppText style={styles.deleteText}>{copy.deleteWod}</AppText>
 					</Pressable>
 				</View>
@@ -405,6 +411,8 @@ function LogResultForm({
 			/>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy }}
 				onPress={() => void submit()}
 				disabled={busy}
 				style={[styles.submit, busy && styles.dimmed]}

@@ -6,11 +6,11 @@ import {
 	type NutritionMealSlot,
 	type NutritionOperationEnvelope,
 	type NutritionOperationTarget,
-} from "@workouts/core";
+} from "@foundry/core";
 import type {
 	DiaryNutrientCorrection,
 	NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -203,7 +203,7 @@ export class NutritionOperationService {
 	cacheSupplementaryServings(
 		subject: string,
 		foodId: string,
-		servings: readonly import("@workouts/core/nutrition").SupplementaryServing[],
+		servings: readonly import("@foundry/core/nutrition").SupplementaryServing[],
 	) {
 		if (
 			canonicalJson(
@@ -220,7 +220,7 @@ export class NutritionOperationService {
 
 	cachePersonalMeasures(
 		subject: string,
-		measures: readonly import("@workouts/core/nutrition").PersonalMeasure[],
+		measures: readonly import("@foundry/core/nutrition").PersonalMeasure[],
 	) {
 		if (
 			canonicalJson(this.repository.getPersonalMeasures(subject)) ===

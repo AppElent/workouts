@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { Exercise, ExerciseId } from "@workouts/core/exercises";
-import { mergeExerciseCatalog } from "@workouts/core/exercises";
+import type { Exercise, ExerciseId } from "@foundry/core/exercises";
+import { mergeExerciseCatalog } from "@foundry/core/exercises";
 import { ConvexHttpClient } from "convex/browser";
 
 export type ExerciseSummary = {
@@ -70,7 +70,7 @@ export type WorkoutsMcpDataClient = {
 
 export class McpAuthRequiredError extends Error {
 	constructor() {
-		super("Authentication is required for Workouts MCP tools.");
+		super("Authentication is required for Foundry MCP tools.");
 		this.name = "McpAuthRequiredError";
 		Object.setPrototypeOf(this, McpAuthRequiredError.prototype);
 	}

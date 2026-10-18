@@ -13,13 +13,14 @@
  * The WOD-results section the web shows below the exercise breakdown is not
  * here yet; it lands with the WOD screens.
  */
-import { formatScore } from "@workouts/core";
-import type { ExerciseId } from "@workouts/core/exercises";
-import { useMutation, useQuery } from "convex/react";
+import { formatScore } from "@foundry/core";
+import type { ExerciseId } from "@foundry/core/exercises";
+import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import {
 	formatDuration,
 	formatSessionDate,
@@ -100,7 +101,11 @@ export function SummaryScreen() {
 		return (
 			<View style={[styles.root, styles.centered]}>
 				<AppText variant="heading">{copy.notFound}</AppText>
-				<Pressable onPress={() => router.replace("/")} style={styles.ghostBtn}>
+				<Pressable
+					accessibilityRole="button"
+					onPress={() => router.replace("/")}
+					style={styles.ghostBtn}
+				>
 					<AppText style={styles.ghostText}>{copy.backHome}</AppText>
 				</Pressable>
 			</View>
@@ -158,11 +163,17 @@ export function SummaryScreen() {
 
 			<SessionWodResults sessionId={sessionId} />
 
-			<Pressable onPress={() => router.replace("/")} style={styles.doneBtn}>
+			<Pressable
+				accessibilityRole="button"
+				onPress={() => router.replace("/")}
+				style={styles.doneBtn}
+			>
 				<AppText style={styles.doneText}>{copy.done}</AppText>
 			</Pressable>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy }}
 				onPress={() => void remove()}
 				disabled={busy}
 				style={[styles.deleteBtn, busy && styles.dimmed]}

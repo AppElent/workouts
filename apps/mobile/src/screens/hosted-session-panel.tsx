@@ -11,10 +11,11 @@
  * block replaces the first rather than stacking. That is what makes it safe to
  * correct a number without a delete step.
  */
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { fmt, useI18n } from "../i18n";
 import {
 	radius,
@@ -274,6 +275,8 @@ function ScoreBox({
 			/>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: busy || !writable }}
 				onPress={() => void send()}
 				disabled={busy || !writable}
 				style={[styles.submit, busy && styles.dimmed]}

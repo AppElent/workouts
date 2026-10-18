@@ -12,8 +12,10 @@ import {
 	Platform,
 	Pressable,
 	ScrollView,
+	type ScrollViewInstance,
 	StyleSheet,
 	TextInput,
+	type TextInputInstance,
 	type TextInputProps,
 	View,
 	type ViewStyle,
@@ -65,7 +67,7 @@ export function FormScreen({
 	primaryAction?: PrimaryAction;
 	primaryActionPlacement?: "fixed" | "header";
 	contentStyle?: ViewStyle;
-	scrollRef?: Ref<ScrollView>;
+	scrollRef?: Ref<ScrollViewInstance>;
 	/** Keep the scroll view at the native sheet root so UIKit owns its gestures. */
 	nativeSheet?: boolean;
 }) {
@@ -294,7 +296,7 @@ export function InlineNumberFieldRow({
 	suffix: string;
 	accessory?: ReactNode;
 	inputStyle?: TextInputProps["style"];
-	inputRef?: Ref<TextInput>;
+	inputRef?: Ref<TextInputInstance>;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -318,6 +320,15 @@ export function InlineNumberFieldRow({
 	);
 }
 
+const TILE_COLORS = {
+	indigo: "tileIndigo",
+	blue: "tileBlue",
+	orange: "tileOrange",
+	green: "tileGreen",
+	purple: "tilePurple",
+	teal: "tileTeal",
+} as const;
+
 export function DisclosureRow({
 	label,
 	value,
@@ -333,7 +344,11 @@ export function DisclosureRow({
 	expanded?: boolean;
 	accessibilityLabel?: string;
 	onPress?: () => void;
-	icon?: { name: ComponentProps<typeof SymbolView>["name"]; color: string };
+	/** iOS draws a settings tile; Android shows the plain icon, as Material does. */
+	icon?: {
+		name: ComponentProps<typeof SymbolView>["name"];
+		tile: "indigo" | "blue" | "orange" | "green" | "purple" | "teal";
+	};
 	disabled?: boolean;
 	destructive?: boolean;
 }) {
@@ -359,12 +374,19 @@ export function DisclosureRow({
 						height: 30,
 						borderRadius: 7,
 						borderCurve: "continuous",
-						backgroundColor: icon.color,
+						backgroundColor:
+							Platform.OS === "ios"
+								? colors[TILE_COLORS[icon.tile]]
+								: undefined,
 						alignItems: "center",
 						justifyContent: "center",
 					}}
 				>
-					<SymbolView name={icon.name} tintColor="#ffffff" size={18} />
+					<SymbolView
+						name={icon.name}
+						tintColor={Platform.OS === "ios" ? "#ffffff" : colors.textMuted}
+						size={Platform.OS === "ios" ? 18 : 22}
+					/>
 				</View>
 			) : null}
 			<AppText
@@ -395,109 +417,12 @@ export function AddRow({
 		<Pressable
 			onPress={onPress}
 			accessibilityRole="button"
+			accessibilityLabel={label}
 			style={({ pressed }) => [styles.actionRow, pressed && styles.pressedRow]}
 		>
 			<AppText style={styles.addGlyph}>＋</AppText>
 			<AppText style={styles.actionLabel}>{label}</AppText>
 		</Pressable>
-	);
-}
-
-export function EditableValueRow({
-	label,
-	value,
-	deleteLabel,
-	deleteAccessibilityLabel,
-	onPress,
-	onDelete,
-	disabled,
-}: {
-	label: string;
-	value: string;
-	deleteLabel?: string;
-	deleteAccessibilityLabel?: string;
-	onPress: () => void;
-	onDelete?: () => void;
-	disabled?: boolean;
-}) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.editableRow}>
-			<Pressable
-				onPress={onPress}
-				disabled={disabled}
-				accessibilityRole="button"
-				accessibilityState={{ disabled }}
-				style={({ pressed }) => [
-					styles.editableMain,
-					pressed && styles.pressedRow,
-					disabled && styles.disabled,
-				]}
-			>
-				<View style={styles.editableCopy}>
-					<AppText style={styles.rowLabel}>{label}</AppText>
-					<AppText variant="caption">{value}</AppText>
-				</View>
-				<AppText style={styles.chevron}>›</AppText>
-			</Pressable>
-			{onDelete && deleteLabel ? (
-				<Pressable
-					onPress={onDelete}
-					disabled={disabled}
-					accessibilityRole="button"
-					accessibilityState={{ disabled }}
-					accessibilityLabel={deleteAccessibilityLabel ?? deleteLabel}
-					style={({ pressed }) => [
-						styles.deleteAction,
-						pressed && styles.pressedRow,
-					]}
-				>
-					<AppText variant="caption" style={styles.deleteText}>
-						{deleteLabel}
-					</AppText>
-				</Pressable>
-			) : null}
-		</View>
-	);
-}
-
-export function InlineActionRow({ children }: { children: ReactNode }) {
-	const styles = useThemedStyles(createStyles);
-	return <View style={styles.inlineActions}>{children}</View>;
-}
-
-export function FormPreview({ children }: { children: ReactNode }) {
-	const styles = useThemedStyles(createStyles);
-	return <View style={styles.preview}>{children}</View>;
-}
-
-export function FormChoiceChips<const Id extends string>({
-	options,
-	selectedId,
-	onSelect,
-}: {
-	options: readonly { id: Id; label: string }[];
-	selectedId?: Id;
-	onSelect: (id: Id) => void;
-}) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.choiceChips} accessibilityRole="radiogroup">
-			{options.map((option) => (
-				<Pressable
-					key={option.id}
-					onPress={() => onSelect(option.id)}
-					accessibilityRole="radio"
-					accessibilityState={{ checked: selectedId === option.id }}
-					style={[
-						styles.choiceChip,
-						selectedId === option.id && styles.choiceChipSelected,
-					]}
-				>
-					<AppText>{option.label}</AppText>
-				</Pressable>
-			))}
-		</View>
 	);
 }
 
@@ -690,51 +615,6 @@ const createStyles = (colors: Tokens) =>
 		},
 		addGlyph: { color: colors.accent, fontSize: 20, fontWeight: "700" },
 		actionLabel: { flex: 1, color: colors.accent, fontWeight: "700" },
-		editableRow: { flexDirection: "row", alignItems: "stretch" },
-		editableMain: {
-			flex: 1,
-			minHeight: 60,
-			paddingLeft: spacing.md,
-			paddingVertical: spacing.sm,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: spacing.sm,
-		},
-		editableCopy: { flex: 1, minWidth: 0, gap: 2 },
-		chevron: { color: colors.textFaint, fontSize: 24 },
-		deleteAction: {
-			minWidth: 72,
-			paddingHorizontal: spacing.sm,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		deleteText: { color: colors.danger, fontWeight: "700" },
-		inlineActions: {
-			padding: spacing.sm,
-			flexDirection: "row",
-			justifyContent: "flex-end",
-			alignItems: "center",
-			gap: spacing.sm,
-		},
-		preview: { gap: spacing.sm, padding: spacing.md },
-		choiceChips: {
-			flexDirection: "row",
-			flexWrap: "wrap",
-			gap: spacing.sm,
-			padding: spacing.md,
-		},
-		choiceChip: {
-			minHeight: metrics.hitTarget,
-			justifyContent: "center",
-			paddingHorizontal: spacing.md,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-			borderRadius: radius.pill,
-		},
-		choiceChipSelected: {
-			borderColor: colors.accent,
-			backgroundColor: colors.accentDim,
-		},
 		textAction: {
 			minHeight: metrics.hitTarget,
 			paddingHorizontal: spacing.md,

@@ -1,3 +1,4 @@
+import type { NutrientKey, NutrientValue } from "@foundry/core/nutrition";
 import {
 	createContext,
 	type ReactNode,
@@ -17,6 +18,8 @@ export type FoodAuthoringIntent = "personal" | "recipe" | "oneOff";
 export type FoodAuthoringSeed = {
 	readonly name: string;
 	readonly visual?: FoodVisual;
+	/** Estimated values for one portion, such as combined AI entry items. */
+	readonly nutrients?: Readonly<Record<NutrientKey, NutrientValue>>;
 };
 
 type FoodAuthoringIntentValue = {

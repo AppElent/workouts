@@ -1,4 +1,4 @@
-import type { EnduranceSport } from "@workouts/core";
+import type { EnduranceSport } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import { useActivityPages } from "../data/activity-data";

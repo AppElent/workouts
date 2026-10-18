@@ -1,4 +1,4 @@
-import type { ActivitySummary } from "@workouts/core";
+import type { ActivitySummary } from "@foundry/core";
 import {
 	isoDateToLocalDayRangeMs,
 	shiftIsoDate,

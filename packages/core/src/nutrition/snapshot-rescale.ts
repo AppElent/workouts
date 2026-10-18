@@ -4,11 +4,12 @@ import { formatQuantity } from "./servings";
 
 /**
  * Rescaling a Diary Entry or Combo part snapshot. Artifact-free, so the
- * `@workouts/core` barrel (web and Convex) can share it with mobile.
+ * `@foundry/core` barrel (web and Convex) can share it with mobile.
  */
 type RescalableSnapshot = {
 	readonly quantity: number;
 	readonly amount: number;
+	readonly baseUnit: "g" | "ml" | "serving";
 	readonly serving: NutritionBilingual;
 	readonly nutrients: Readonly<Record<string, NutrientValue>>;
 };
@@ -20,24 +21,41 @@ function positive(value: number, label: string): number {
 	return value;
 }
 
-function relabel(label: string, quantity: number, locale: "en" | "nl") {
-	const separator = label.lastIndexOf(" × ");
-	const name = separator === -1 ? label : label.slice(0, separator);
-	return `${name} × ${formatQuantity(quantity, locale)}`;
+const MULTIPLIER = " × ";
+
+/** A total-amount Serving label, such as "150 g" for a One-off Entry. */
+export function formatSnapshotAmount(
+	amount: number,
+	baseUnit: "g" | "ml" | "serving",
+): NutritionBilingual {
+	return {
+		en: `${formatQuantity(amount, "en")} ${baseUnit === "serving" ? "serving(s)" : baseUnit}`,
+		nl: `${formatQuantity(amount, "nl")} ${baseUnit === "serving" ? "portie(s)" : baseUnit}`,
+	};
+}
+
+function withMultiplier(label: string, quantity: number, locale: "en" | "nl") {
+	const name = label.slice(0, label.lastIndexOf(MULTIPLIER));
+	return `${name}${MULTIPLIER}${formatQuantity(quantity, locale)}`;
 }
 
 /**
- * `serving` is snapshot text — "Glass (200 ml) × 1" — not a reference back to
- * a Food, so a new quantity changes only the multiplier at its end. A label
- * without one gains it.
+ * `serving` is snapshot text, not a reference back to a Food. A Serving
+ * label — "Glass (200 ml) × 1" — changes only the multiplier at its end. A
+ * label without one states the total amount — "150 g" — so it is restated
+ * from the new amount rather than gaining a multiplier it never meant.
  */
 export function relabelServing(
-	serving: NutritionBilingual,
+	snapshot: Pick<RescalableSnapshot, "serving" | "baseUnit">,
 	quantity: number,
+	amount: number,
 ): NutritionBilingual {
+	const { serving } = snapshot;
+	if (!serving.en.includes(MULTIPLIER) || !serving.nl.includes(MULTIPLIER))
+		return formatSnapshotAmount(amount, snapshot.baseUnit);
 	return {
-		en: relabel(serving.en, quantity, "en"),
-		nl: relabel(serving.nl, quantity, "nl"),
+		en: withMultiplier(serving.en, quantity, "en"),
+		nl: withMultiplier(serving.nl, quantity, "nl"),
 	};
 }
 
@@ -47,11 +65,12 @@ export function rescaleToQuantity<T extends RescalableSnapshot>(
 	quantity: number,
 ): T {
 	const factor = positive(quantity, "Quantity") / snapshot.quantity;
+	const amount = snapshot.amount * factor;
 	return {
 		...snapshot,
 		quantity,
-		amount: snapshot.amount * factor,
-		serving: relabelServing(snapshot.serving, quantity),
+		amount,
+		serving: relabelServing(snapshot, quantity, amount),
 		nutrients: rescaleNutrients(snapshot.nutrients, factor),
 	};
 }

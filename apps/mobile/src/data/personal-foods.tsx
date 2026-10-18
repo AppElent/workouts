@@ -1,12 +1,7 @@
 import { useAuth } from "@clerk/expo";
-import { canonicalJson } from "@workouts/core";
-import { foodResults } from "@workouts/core/nutrition";
-import {
-	useConvex,
-	useConvexConnectionState,
-	useMutation,
-	usePaginatedQuery,
-} from "convex/react";
+import { canonicalJson } from "@foundry/core";
+import { foodResults } from "@foundry/core/nutrition";
+import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -18,10 +13,7 @@ import {
 	useState,
 } from "react";
 import { api } from "../convex/api";
-import {
-	useCachedQueries as useQueries,
-	useCachedQuery as useQuery,
-} from "../convex/query-cache";
+import { usePaginatedQuery, useQueries, useQuery } from "../convex/query-cache";
 import {
 	type FoodPhotoUpload,
 	useFoodPhotoUpload,
@@ -36,7 +28,6 @@ import { mintNutritionUuid } from "./nutrition-operation-service";
 import {
 	type Combo,
 	type ComboDraft,
-	openPersonalFoodRepository,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	type PersonalFoodFilter,
@@ -90,14 +81,14 @@ type AccountControls = PersonalFoodsValue["account"];
 
 function PersonalFoodsScope({
 	children,
-	repository: suppliedRepository,
+	repository,
 	account,
 	remoteRevision = 0,
 	saveRecord,
 	lookupBarcode,
 }: {
 	children: ReactNode;
-	repository?: PersonalFoodRepository;
+	repository: PersonalFoodRepository;
 	account: AccountControls;
 	lookupBarcode(barcode: string): Promise<PersonalFood | undefined>;
 	remoteRevision?: number;
@@ -106,9 +97,6 @@ function PersonalFoodsScope({
 		remove?: boolean,
 	) => Promise<LibraryRecord>;
 }) {
-	const [repository] = useState(
-		() => suppliedRepository ?? openPersonalFoodRepository(),
-	);
 	const [revision, setRevision] = useState(0);
 	const createCandidates = useRef(
 		new Map<

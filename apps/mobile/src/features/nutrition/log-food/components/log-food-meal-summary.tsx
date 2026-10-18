@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@workouts/core/nutrition";
+import { roundForDisplay } from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";

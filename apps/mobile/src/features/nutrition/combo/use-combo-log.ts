@@ -1,4 +1,4 @@
-import type { ServingOption } from "@workouts/core/nutrition";
+import type { ServingOption } from "@foundry/core/nutrition";
 import { useRef, useState } from "react";
 import {
 	type ComboPartChoice,

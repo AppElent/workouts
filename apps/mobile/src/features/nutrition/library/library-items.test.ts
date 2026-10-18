@@ -3,7 +3,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFood,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import type { Combo } from "../../../data/personal-food-repository";
 import {
 	combosUsing,

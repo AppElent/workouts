@@ -1,4 +1,3 @@
-import { useForm, useStore } from "@tanstack/react-form";
 import {
 	correctDiaryNutrients,
 	forkShippedFood,
@@ -7,9 +6,9 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFoodDraft,
-} from "@workouts/core/nutrition";
-import { router, Stack, useNavigation } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+} from "@foundry/core/nutrition";
+import { useForm, useStore } from "@tanstack/react-form";
+import { router, Stack, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable } from "react-native";
 import { z } from "zod";

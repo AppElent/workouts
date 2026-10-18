@@ -24,6 +24,7 @@ export function GlassSurface({
 					ignoreSafeArea="all"
 				>
 					<VStack
+						spacing={0}
 						modifiers={[
 							frame({ maxWidth: Infinity, maxHeight: Infinity }),
 							glassEffect({

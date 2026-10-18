@@ -1,5 +1,5 @@
 export const nav = {
-	appName: "Workout Tracker",
+	appName: "Foundry",
 	dashboard: { label: "Dashboard", shortLabel: "Dashboard" },
 	log: { label: "Log Workout", shortLabel: "Log" },
 	exercises: { label: "Exercises", shortLabel: "Exercises" },

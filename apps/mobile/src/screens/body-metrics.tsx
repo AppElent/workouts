@@ -11,10 +11,11 @@
  * re-validated here — a second copy of the bounds is a second thing to keep in
  * step, and the toast surfaces the server's message verbatim.
  */
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
+import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { dateLocale, useI18n } from "../i18n";
 import {
@@ -159,6 +160,8 @@ export function BodyMetricsPanel() {
 				style={styles.input}
 			/>
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: !canSave }}
 				onPress={() => void save()}
 				disabled={!canSave}
 				style={[styles.submit, !canSave && styles.dimmed]}

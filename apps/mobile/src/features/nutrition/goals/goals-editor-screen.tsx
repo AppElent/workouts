@@ -3,14 +3,14 @@ import {
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
-} from "@workouts/core/nutrition";
+} from "@foundry/core/nutrition";
 import {
 	Stack,
 	useLocalSearchParams,
 	useNavigation,
+	usePreventRemove,
 	useRouter,
 } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
@@ -18,7 +18,8 @@ import {
 	Keyboard,
 	Pressable,
 	ScrollView,
-	type TextInput,
+	type ScrollViewInstance,
+	type TextInputInstance,
 	useWindowDimensions,
 	View,
 } from "react-native";
@@ -79,10 +80,10 @@ function GoalsEditor() {
 	});
 	const [dateOpen, setDateOpen] = useState(false);
 	const [focused, setFocused] = useState<GoalFieldKey | null>(null);
-	const inputs = useRef(new Map<GoalFieldKey, TextInput>());
+	const inputs = useRef(new Map<GoalFieldKey, TextInputInstance>());
 	const rowOffsets = useRef(new Map<NutrientKey, number>());
 	const goalsTop = useRef(0);
-	const scroll = useRef<ScrollView>(null);
+	const scroll = useRef<ScrollViewInstance>(null);
 	const pendingFocus = useRef<GoalFieldKey | null>(null);
 	const requestedNutrient =
 		typeof params.nutrient === "string" &&
@@ -272,11 +273,7 @@ function GoalsEditor() {
 								marginTop: spacing.lg,
 							}}
 						>
-							<EmptyState
-								title={copy.offlineTitle}
-								body={copy.offlineBody}
-								action={{ label: copy.tryAgain, onPress: editor.retry }}
-							/>
+							<EmptyState title={copy.offlineTitle} body={copy.offlineBody} />
 						</View>
 					) : (
 						<SkeletonGroup label={copy.loading}>

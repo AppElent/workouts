@@ -1,11 +1,11 @@
-# `@workouts/core/nutrition`
+# `@foundry/core/nutrition`
 
 The shipped food library and the pure functions around it. Imported by `apps/mobile`; **not**
-imported by the web app or Convex, and not re-exported from the `@workouts/core` barrel.
+imported by the web app or Convex, and not re-exported from the `@foundry/core` barrel.
 
 ## Before you charge money for anything that includes this
 
-The NEVO-online 2025 conditions of use forbid charging end users for the data. If Workouts becomes a
+The NEVO-online 2025 conditions of use forbid charging end users for the data. If Foundry becomes a
 paid product — a subscription, a one-off purchase, or a paid tier that includes the food diary — the
 bundled dataset must be **removed or separately relicensed with RIVM first**.
 
@@ -30,7 +30,7 @@ Full text: `data/nevo/Conditions of use NEVO-online 2025 dataset.pdf`. Rationale
 | `overlay.ts` | **Hand-authored.** The promoted NEVO foods: bilingual names, aliases, emoji, category, servings. This is the file to edit. |
 | `schema.ts` | Zod schema for both generated files. Generation and tests only — `zod` is a devDependency and must not reach the phone. |
 | `library.ts` `search.ts` `servings.ts` `aggregate.ts` `salt.ts` `nutrients.ts` `attribution.ts` | The public API. |
-| `food-snapshot.ts` `snapshot-rescale.ts` | Diary Entry and Combo part snapshots: building one from a Food, and rescaling one with its Serving label. `snapshot-rescale.ts` is artifact-free and also exported from the `@workouts/core` barrel for Convex. |
+| `food-snapshot.ts` `snapshot-rescale.ts` | Diary Entry and Combo part snapshots: building one from a Food, and rescaling one with its Serving label. `snapshot-rescale.ts` is artifact-free and also exported from the `@foundry/core` barrel for Convex. |
 | `../../scripts/` | The generator, its NEVO and Lidl readers, and the benchmark. |
 
 ## Two sources, one artifact
@@ -51,9 +51,9 @@ with one serving — the piece weight from the sheet — and are filed under the
 ## Regenerating
 
 ```bash
-pnpm --filter @workouts/core generate:foods          # normal run
-pnpm --filter @workouts/core check:foods             # verify the committed files are current
-pnpm --filter @workouts/core bench:foods             # timings and memory
+pnpm --filter @foundry/core generate:foods          # normal run
+pnpm --filter @foundry/core check:foods             # verify the committed files are current
+pnpm --filter @foundry/core bench:foods             # timings and memory
 ```
 
 Two consecutive runs produce byte-identical files. If they do not, that is a bug.

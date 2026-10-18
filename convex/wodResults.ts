@@ -1,7 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import type { QueryCtx, MutationCtx } from './_generated/server'
-import { bestScore } from '@workouts/core'
+import { bestScore } from '@foundry/core'
 import { assertOptionalRange } from './lib/validate'
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {

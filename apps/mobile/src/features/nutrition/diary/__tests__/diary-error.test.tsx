@@ -18,7 +18,7 @@ describe("a day whose render throws", () => {
 		// made the screen throw in the first place.
 		let shouldThrow = true;
 
-		renderApp("/nutrition", {
+		await renderApp("/nutrition", {
 			nutrition: {
 				...NutritionRoute,
 				default: () => {
@@ -33,7 +33,7 @@ describe("a day whose render throws", () => {
 		).toBeTruthy();
 
 		shouldThrow = false;
-		fireEvent.press(screen.getByText("Try again"));
+		await fireEvent.press(screen.getByText("Try again"));
 
 		expect(await screen.findByText("Breakfast")).toBeTruthy();
 	});

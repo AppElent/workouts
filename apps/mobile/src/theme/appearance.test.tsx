@@ -51,9 +51,9 @@ function Probe() {
 let system: "light" | "dark";
 let override: "light" | "dark" | "unspecified";
 const listeners = new Set<(event: { colorScheme: "light" | "dark" }) => void>();
-function changeSystem(next: "light" | "dark") {
+async function changeSystem(next: "light" | "dark") {
 	system = next;
-	act(() => {
+	await act(async () => {
 		for (const listener of listeners)
 			listener({ colorScheme: override === "unspecified" ? system : override });
 	});
@@ -83,8 +83,8 @@ afterEach(() => {
 	jest.restoreAllMocks();
 });
 
-it("defaults to System and follows live device changes", () => {
-	render(
+it("defaults to System and follows live device changes", async () => {
+	await render(
 		<AppearanceProvider>
 			<Probe />
 		</AppearanceProvider>,
@@ -94,11 +94,11 @@ it("defaults to System and follows live device changes", () => {
 		"/",
 		"light",
 	]);
-	changeSystem("dark");
+	await changeSystem("dark");
 	expect(screen.getByTestId("surface")).toHaveStyle({
 		backgroundColor: darkColors.bg,
 	});
-	changeSystem("light");
+	await changeSystem("light");
 	expect(screen.getByTestId("surface")).toHaveStyle({
 		backgroundColor: lightColors.bg,
 	});
@@ -106,9 +106,9 @@ it("defaults to System and follows live device changes", () => {
 
 it.each(["light", "dark"] as const)(
 	"paints the first frame in saved %s appearance",
-	(choice) => {
+	async (choice) => {
 		writePreference(PREFERENCE_KEYS.appearance, choice);
-		render(
+		await render(
 			<AppearanceProvider>
 				<Probe />
 			</AppearanceProvider>,
@@ -122,35 +122,35 @@ it.each(["light", "dark"] as const)(
 	},
 );
 
-it("keeps an override, updates mounted styles, and preserves input while switching", () => {
-	render(
+it("keeps an override, updates mounted styles, and preserves input while switching", async () => {
+	await render(
 		<AppearanceProvider>
 			<Probe />
 		</AppearanceProvider>,
 	);
-	fireEvent.changeText(screen.getByLabelText("Draft"), "Unsaved recipe");
-	fireEvent.press(screen.getByLabelText("dark"));
-	changeSystem("light");
+	await fireEvent.changeText(screen.getByLabelText("Draft"), "Unsaved recipe");
+	await fireEvent.press(screen.getByLabelText("dark"));
+	await changeSystem("light");
 	expect(screen.getByTestId("surface")).toHaveStyle({
 		backgroundColor: darkColors.bg,
 	});
 	expect(screen.getByLabelText("Draft").props.value).toBe("Unsaved recipe");
-	fireEvent.press(screen.getByLabelText("system"));
+	await fireEvent.press(screen.getByLabelText("system"));
 	expect(screen.getByTestId("surface")).toHaveStyle({
 		backgroundColor: lightColors.bg,
 	});
 	expect(screen.getByLabelText("Draft").props.value).toBe("Unsaved recipe");
 });
 
-it("persists the selected appearance across provider remounts", () => {
-	const first = render(
+it("persists the selected appearance across provider remounts", async () => {
+	const first = await render(
 		<AppearanceProvider>
 			<Probe />
 		</AppearanceProvider>,
 	);
-	fireEvent.press(screen.getByLabelText("dark"));
-	first.unmount();
-	render(
+	await fireEvent.press(screen.getByLabelText("dark"));
+	await first.unmount();
+	await render(
 		<AppearanceProvider>
 			<Probe />
 		</AppearanceProvider>,
@@ -162,11 +162,11 @@ it("persists the selected appearance across provider remounts", () => {
 	]);
 });
 
-it("falls back to System for invalid or unreadable stored choices", () => {
+it("falls back to System for invalid or unreadable stored choices", async () => {
 	jest.spyOn(Storage, "getItemSync").mockImplementation(() => {
 		throw new Error("storage unavailable");
 	});
-	render(
+	await render(
 		<AppearanceProvider>
 			<Probe />
 		</AppearanceProvider>,

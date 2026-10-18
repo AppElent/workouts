@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AuthCard, SignUpForm } from "#/lib/auth";
+import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/sign-up")({
 	ssr: false,
@@ -8,8 +9,9 @@ export const Route = createFileRoute("/sign-up")({
 
 function SignUpPage() {
 	const navigate = useNavigate();
+	const { auth } = useMessages();
 	return (
-		<AuthCard title="Create your account">
+		<AuthCard title={auth.signUp.title}>
 			<SignUpForm onSuccess={() => navigate({ to: "/dashboard" })} />
 		</AuthCard>
 	);
