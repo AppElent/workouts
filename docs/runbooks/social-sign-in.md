@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Social sign-in
@@ -13,7 +13,8 @@ All Appelent apps share **one Clerk application** on `appelent.nl`. Provider
 credentials, sign-up requirements, and the redirect URI are therefore
 instance-wide: configure each provider once, brand it as Appelent, and add
 only the per-app entries (bundle ID, mobile redirect) when a new app joins.
-Nothing here lives in `env.manifest.ts`.
+Provider settings live in Clerk, not `env.manifest.ts`. The one exception is
+the Apple revocation key below.
 
 ## Prerequisites
 
@@ -143,6 +144,29 @@ Only these are per app; everything above is already shared:
    `<scheme>://sso-callback` redirect.
 3. Its web app on an `appelent.nl` subdomain, or a satellite domain.
 
+## Apple token revocation
+
+Apple requires apps that offer Sign in with Apple to revoke the user's Apple
+grant when the account is deleted. Clerk does not do this, so Foundry does:
+
+1. On iOS, Delete account opens the native Apple sheet once more for an
+   Apple-linked account (`apps/mobile/src/features/profile/apple-revocation.ts`).
+   Dismissing the sheet cancels the deletion.
+2. Convex `account.revokeAppleSignIn` exchanges the code at Apple's
+   `/auth/token` and revokes the refresh token at `/auth/revoke`.
+3. Any other failure is reported to Sentry, and the account is deleted anyway.
+
+The action signs Apple's client secret with the Sign in with Apple key from
+Infisical (`apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`).
+`pnpm env:apply <environment> --only convex` lands them as `APPLE_TEAM_ID`,
+`APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`. Without them the action
+fails with `unavailable`.
+
+Native codes are issued to the bundle ID, so `client_id` is
+`com.appelent.foundry` (`APPLE_CLIENT_ID` in `convex/lib/appleSignIn.ts`).
+Android has no native sheet, so an Apple-linked account deleted there is not
+revoked.
+
 ## Verify
 
 - Web: each button lands on `/dashboard`; an unknown email creates an
@@ -150,6 +174,8 @@ Only these are per app; everything above is already shared:
 - iOS build: Apple shows the system sheet and returns signed in.
 - Google and Microsoft on mobile: in-app browser opens, closes, signed in.
 - Cancelling any flow returns to the form without an error.
+- Account deletion (iOS, Apple-linked account): after Delete account, Foundry
+  disappears from Settings → Apple ID → Sign in with Apple.
 
 ## Troubleshooting
 

@@ -136,7 +136,7 @@ describe("Foundry environment routing", () => {
 	});
 
 	it("gives every logical value a unique evidenced source name", () => {
-		expect(ENTRIES).toHaveLength(13);
+		expect(ENTRIES).toHaveLength(16);
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
 		expect(sourceNames).not.toEqual(
@@ -158,6 +158,20 @@ describe("Foundry environment routing", () => {
 				"convex-functions",
 			]);
 			expect(anthropic[0].entry.secret).toBe(true);
+		}
+	});
+
+	it("keeps the Sign in with Apple key in Convex functions only", () => {
+		const apple = ["appleTeamId", "appleSignInKeyId", "appleSignInPrivateKey"];
+		for (const environment of ENVIRONMENTS) {
+			const placements = placementsFor(environment).filter((placement) =>
+				apple.includes(placement.entry.key),
+			);
+			expect(placements).toHaveLength(apple.length);
+			for (const placement of placements) {
+				expect(placement.consumer).toBe("convex-functions");
+				expect(placement.entry.secret).toBe(true);
+			}
 		}
 	});
 
