@@ -1,21 +1,13 @@
 import type { NutritionDiarySnapshot } from "@foundry/core";
 import {
-	formatQuantity,
+	formatSnapshotAmount,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 } from "@foundry/core/nutrition";
 import type { FoodVisual } from "./personal-food-repository";
 
-export function formatSnapshotAmount(
-	amount: number,
-	baseUnit: "g" | "ml" | "serving",
-) {
-	return {
-		en: `${formatQuantity(amount, "en")} ${baseUnit === "serving" ? "serving(s)" : baseUnit}`,
-		nl: `${formatQuantity(amount, "nl")} ${baseUnit === "serving" ? "portie(s)" : baseUnit}`,
-	};
-}
+export { formatSnapshotAmount };
 
 /** A reviewed one-off estimate is intake without creating a reusable Food. */
 export function oneOffLogSnapshot(input: {

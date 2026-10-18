@@ -12,11 +12,8 @@ import { router, Stack, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable } from "react-native";
 import { z } from "zod";
-import type { DiaryEntry, MealSlot } from "../../../data/nutrition-day";
-import {
-	snapshotFromDiaryEntry,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
+import type { DiaryEntry } from "../../../data/nutrition-day";
+import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { fmt, useI18n } from "../../../i18n";
@@ -53,8 +50,6 @@ function parseValue(value: string): NutrientValue {
 
 type CorrectionProps = {
 	entry: DiaryEntry;
-	date: string;
-	meal: MealSlot;
 	nutrient: NutrientKey;
 };
 
@@ -76,7 +71,7 @@ export function DiaryEntryCorrectionScreen(props: CorrectionProps) {
 	return <CorrectionForm {...props} />;
 }
 
-function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
+function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 	const { t, locale } = useI18n();
 	const copy = t.diaryEntry.correction;
 	const colors = useTokens();
@@ -211,16 +206,8 @@ function CorrectionForm({ entry, date, meal, nutrient }: CorrectionProps) {
 				}
 				operations.update(
 					subject,
-					entry.id.startsWith("client:")
-						? { kind: "clientEntryId", id: entry.id.slice(7) }
-						: { kind: "serverId", id: entry.id },
+					{ kind: "serverId", id: entry.id },
 					{ correction },
-					{
-						targetEntry: {
-							_id: entry.id,
-							...snapshotFromDiaryEntry(entry, date, meal),
-						},
-					},
 					() => {
 						lock.current = false;
 						setBusy(false);

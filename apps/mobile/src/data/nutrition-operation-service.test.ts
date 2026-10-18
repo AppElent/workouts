@@ -76,11 +76,7 @@ describe("nutrition replay service", () => {
 			service.setOnline(false);
 			expect(() => service.create("alice", snapshot)).toThrow("connection");
 			expect(remote).toHaveBeenCalledTimes(1);
-			expect(
-				repo
-					.listOperations("alice")
-					.every((operation) => operation.status === "acknowledged"),
-			).toBe(true);
+			expect(repo.listOperations("alice")).toHaveLength(1);
 		} finally {
 			service.dispose();
 			db.closeSync();
@@ -111,7 +107,7 @@ describe("nutrition replay service", () => {
 			service.setSubject("bob");
 			await Promise.resolve();
 			expect(saved).not.toHaveBeenCalled();
-			expect(repo.listOperations("alice")[0].status).toBe("acknowledged");
+			expect(repo.listOperations("alice")).toHaveLength(1);
 			expect(repo.listOperations("bob")).toEqual([]);
 		} finally {
 			service.dispose();

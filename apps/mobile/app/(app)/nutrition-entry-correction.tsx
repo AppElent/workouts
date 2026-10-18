@@ -39,8 +39,6 @@ export default function DiaryEntryCorrectionRoute() {
 		<DiaryEntryCorrectionScreen
 			key={retained.current.id}
 			entry={retained.current}
-			date={date}
-			meal={meal}
 			nutrient={NUTRIENT_KEYS.find((n) => n === params.nutrient) ?? "fibre"}
 		/>
 	);

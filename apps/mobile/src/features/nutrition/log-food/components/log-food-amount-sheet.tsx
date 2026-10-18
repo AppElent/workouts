@@ -1,4 +1,5 @@
 import {
+	foodSnapshot,
 	forkSource,
 	NEVO_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
@@ -7,7 +8,7 @@ import {
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";
-import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
+import type { MealSlot } from "../../../../data/nutrition-day";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
@@ -31,7 +32,6 @@ import { NutritionChoiceMenu } from "../../components/nutrition-choice-menu";
 import { FoodViewScreen } from "../../food/food-view-screen";
 import { useAmountSelection } from "../../use-amount-selection";
 import {
-	createFoodSnapshot,
 	type FoodSelection,
 	type LogOutcome,
 	selectionSourceKey,
@@ -60,7 +60,7 @@ export function LogFoodAmountSheet({
 	meal: MealSlot;
 	date: string;
 	onBack: () => void;
-	onLogged: (outcome: LogOutcome, foodName: string, entry: DiaryEntry) => void;
+	onLogged: (outcome: LogOutcome) => void;
 	onPendingChange: (pending: boolean) => void;
 	onEdit?: () => void;
 	onDelete?: () => void;
@@ -152,18 +152,15 @@ export function LogFoodAmountSheet({
 		try {
 			if (!subject) throw new Error("Not signed in.");
 			const clientEntryId = mintNutritionUuid();
-			const { common, provenance } = createFoodSnapshot(
-				selection,
-				amount.selected,
-				amount.quantity,
-				destination.date,
-				destination.meal,
+			const entry = {
+				...foodSnapshot(selection, amount.selected, amount.quantity),
+				date: destination.date,
+				meal: destination.meal,
 				clientEntryId,
-				locale,
-			);
+			};
 			operations.create(
 				subject,
-				{ ...common, provenance },
+				entry,
 				{
 					sourceKey,
 					portion: portionMemoryFor(
@@ -178,11 +175,7 @@ export function LogFoodAmountSheet({
 					lock.current = false;
 					setLogging(false);
 					onPendingChange(false);
-					onLogged(outcome, food.name[locale], {
-						id: `client:${clientEntryId}`,
-						...common,
-						provenance,
-					});
+					onLogged(outcome);
 				},
 			);
 		} catch {

@@ -45,7 +45,6 @@ export interface NutrientGoal extends NutritionGoalValue {
 
 export interface DiaryEntry {
 	id: string;
-	pendingOperationId?: string;
 	name: { en: string; nl: string };
 	/** "1 bowl (250 g)" — serving name × quantity, already formatted. */
 	serving: { en: string; nl: string };
@@ -77,7 +76,6 @@ export interface NutritionDay {
 	/** Day totals per nutrient. Absent from the map means "nothing logged". */
 	totals: Partial<Record<NutrientKey, NutrientTotal>>;
 	entries: Record<MealSlot, DiaryEntry[]>;
-	pendingOperationIds: readonly string[];
 }
 
 export type NutritionDayState =
@@ -161,11 +159,9 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 		dinner: [],
 		snacks: [],
 	} as Record<MealSlot, DiaryEntry[]>;
-	const hasPendingOperations = (local?.pendingOperationIds.length ?? 0) > 0;
+	// A write's receipt can carry a newer day than the subscription has yet.
 	const useLocal =
-		hasPendingOperations ||
-		diary === undefined ||
-		(local?.revision ?? -1) > remoteRevision;
+		diary === undefined || (local?.revision ?? -1) > remoteRevision;
 	const sourceEntries = useLocal
 		? (local?.entries ?? [])
 		: (diary?.entries ?? []);
@@ -186,8 +182,6 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 				? { correctedNutrients: entry.correctedNutrients }
 				: {}),
 			comboGroup: entry.comboGroup,
-			pendingOperationId:
-				"pendingOperationId" in entry ? entry.pendingOperationId : undefined,
 		});
 	}
 	return {
@@ -202,7 +196,6 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 			goalsPending: goals === undefined,
 			totals: useLocal ? (local?.totals ?? {}) : (diary?.totals ?? {}),
 			entries,
-			pendingOperationIds: local?.pendingOperationIds ?? [],
 		},
 	};
 }

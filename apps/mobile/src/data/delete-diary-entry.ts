@@ -71,22 +71,6 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 					operations.remove(
 						subject,
 						{ kind: "serverId", id: entry.id },
-						{
-							targetEntry: {
-								_id: entry.id,
-								date,
-								meal,
-								name: entry.name,
-								serving: entry.serving,
-								quantity: entry.quantity,
-								amount: entry.amount,
-								baseUnit: entry.baseUnit,
-								nutrients: entry.nutrients,
-								provenance: entry.provenance,
-								...(entry.estimated ? { estimated: true as const } : {}),
-								...(entry.comboGroup ? { comboGroup: entry.comboGroup } : {}),
-							},
-						},
 						(error) => {
 							setDeleting(false);
 							toast.error(

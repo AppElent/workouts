@@ -23,12 +23,6 @@ export type CachedGoalHistory = {
 	displayOrder?: NutrientKey[];
 };
 
-export type LocalOperationStatus =
-	| "queued"
-	| "sending"
-	| "acknowledged"
-	| "needs-attention";
-
 export type NutritionServerEntry = NutritionDiarySnapshot & {
 	readonly _id: string;
 	readonly _creationTime?: number;
@@ -46,10 +40,6 @@ export type NutritionCachedDay = {
 	readonly complete: boolean;
 	readonly entries: readonly NutritionServerEntry[];
 	readonly updatedAt: number;
-};
-
-export type LocalProjectionHint = {
-	readonly targetEntry?: NutritionServerEntry;
 };
 
 export type PortionMemory = {
@@ -77,30 +67,21 @@ export type FoodShortcut = {
 	readonly favorite: boolean;
 };
 
-export type NutritionLocalOperation = {
-	readonly sequence: number;
+/** A diary write the server acknowledged during this session. */
+export type AcknowledgedOperation = {
 	readonly subject: string;
 	readonly operationId: string;
 	readonly envelope: NutritionOperationEnvelope;
-	readonly status: LocalOperationStatus;
-	readonly attempts: number;
-	readonly nextAttemptAt: number;
-	readonly lastError?: string;
-	readonly hint?: LocalProjectionHint;
 	readonly createdAt: number;
 };
 
-export type NutritionProjectedEntry = NutritionServerEntry & {
-	readonly pendingOperationId?: string;
-};
-
-export type NutritionProjectedDay = {
+/** The newest server snapshot of a day seen in this session. */
+export type NutritionSessionDay = {
 	readonly date: string;
 	readonly revision: number;
 	readonly complete: boolean;
-	readonly entries: readonly NutritionProjectedEntry[];
+	readonly entries: readonly NutritionServerEntry[];
 	readonly totals: ReturnType<typeof totalNutrients>;
-	readonly pendingOperationIds: readonly string[];
 };
 
 export type NutritionServerDayResult = {
@@ -141,10 +122,10 @@ export type NutritionLocalRepository = {
 		result: NutritionOperationResult,
 		directFoodUse?: DirectFoodUse,
 	): void;
-	listOperations(subject: string): NutritionLocalOperation[];
+	listOperations(subject: string): AcknowledgedOperation[];
 	getDay(subject: string, date: string): NutritionCachedDay | undefined;
 	putDay(subject: string, day: NutritionCachedDay): void;
-	projectDay(subject: string, date: string): NutritionProjectedDay;
+	projectDay(subject: string, date: string): NutritionSessionDay;
 	listRecent(subject: string, limit?: number): FoodShortcut[];
 	listFavorites(subject: string): FoodShortcut[];
 	getShortcut(subject: string, sourceKey: string): FoodShortcut | undefined;
@@ -224,7 +205,7 @@ export function createNutritionLocalRepository(
 	const goals = new Map<string, CachedGoalHistory>();
 	const measures = new Map<string, PersonalMeasure[]>();
 	const servings = new Map<string, SupplementaryServing[]>();
-	const acknowledged = new Map<string, NutritionLocalOperation>();
+	const acknowledged = new Map<string, AcknowledgedOperation>();
 	const key = (subject: string, id: string) => canonicalJson([subject, id]);
 	function retain<T>(cache: Map<string, T>, id: string, value: T) {
 		cache.delete(id);
@@ -238,13 +219,9 @@ export function createNutritionLocalRepository(
 				throw new Error("Subject mismatch.");
 			const timestamp = now();
 			acknowledged.set(key(subject, envelope.operationId), {
-				sequence: acknowledged.size + 1,
 				subject,
 				operationId: envelope.operationId,
 				envelope,
-				status: "acknowledged",
-				attempts: 1,
-				nextAttemptAt: 0,
 				createdAt: timestamp,
 			});
 			for (const day of result.days)
@@ -294,7 +271,6 @@ export function createNutritionLocalRepository(
 				complete: day?.complete ?? false,
 				entries,
 				totals: totalNutrients(entries.map((entry) => entry.nutrients)),
-				pendingOperationIds: [],
 			};
 		},
 		getGoals(subject, date) {

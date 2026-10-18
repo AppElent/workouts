@@ -5,6 +5,7 @@ import {
 	type NutritionDiarySnapshot,
 	type NutritionMealSlot,
 	type NutritionOperationEnvelope,
+	type NutritionOperationTarget,
 } from "@foundry/core";
 import type {
 	DiaryNutrientCorrection,
@@ -30,7 +31,6 @@ import {
 import {
 	type CachedGoalHistory,
 	type DirectFoodUse,
-	type LocalProjectionHint,
 	type NutritionLocalRepository,
 	type NutritionOperationResult,
 	openNutritionLocalRepository,
@@ -107,7 +107,6 @@ export class NutritionOperationService {
 	accept(
 		subject: string,
 		operation: NutritionDiaryOperation,
-		_hint?: LocalProjectionHint,
 		directFoodUse?: DirectFoodUse,
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
@@ -320,7 +319,6 @@ export class NutritionOperationService {
 					clientEntryId: snapshot.clientEntryId ?? mintNutritionUuid(),
 				},
 			},
-			undefined,
 			directFoodUse,
 			onError,
 			onSuccess,
@@ -344,7 +342,6 @@ export class NutritionOperationService {
 				entries: entries.map(({ date: _date, meal: _meal, ...entry }) => entry),
 			},
 			undefined,
-			undefined,
 			onError,
 			onSuccess,
 		);
@@ -354,24 +351,16 @@ export class NutritionOperationService {
 		subject: string,
 		date: string,
 		meal: NutritionMealSlot,
-		targets: readonly (
-			| { kind: "serverId"; id: string }
-			| { kind: "clientEntryId"; id: string }
-		)[],
+		targets: readonly NutritionOperationTarget[],
 		comboGroup: { id: string; comboId: string; name: string },
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
 	) {
-		const normalizedTargets = targets.map((target) =>
-			target.id.startsWith("client:")
-				? { kind: "clientEntryId" as const, id: target.id.slice(7) }
-				: target,
-		);
 		const uniqueTargets = new Set(
-			normalizedTargets.map((target) => `${target.kind}:${target.id}`),
+			targets.map((target) => `${target.kind}:${target.id}`),
 		);
 		const projectedEntries = this.repository.projectDay(subject, date).entries;
-		const entries = normalizedTargets.map((target) =>
+		const entries = targets.map((target) =>
 			projectedEntries.find((entry) =>
 				target.kind === "serverId"
 					? entry._id === target.id
@@ -379,9 +368,9 @@ export class NutritionOperationService {
 			),
 		);
 		if (
-			normalizedTargets.length < 1 ||
-			normalizedTargets.length > 100 ||
-			uniqueTargets.size !== normalizedTargets.length ||
+			targets.length < 1 ||
+			targets.length > 100 ||
+			uniqueTargets.size !== targets.length ||
 			entries.some((entry) => !entry || entry.meal !== meal)
 		) {
 			throw new Error(
@@ -411,10 +400,9 @@ export class NutritionOperationService {
 			subject,
 			{
 				kind: "group",
-				targets: normalizedTargets,
+				targets: targets,
 				comboGroup,
 			},
-			undefined,
 			undefined,
 			onError,
 			onSuccess,
@@ -423,9 +411,7 @@ export class NutritionOperationService {
 
 	update(
 		subject: string,
-		target:
-			| { kind: "serverId"; id: string }
-			| { kind: "clientEntryId"; id: string },
+		target: NutritionOperationTarget,
 		patch: {
 			correction?: DiaryNutrientCorrection;
 			quantity?: number;
@@ -438,20 +424,12 @@ export class NutritionOperationService {
 			date?: string;
 			meal?: "breakfast" | "lunch" | "dinner" | "snacks";
 		},
-		hint?: LocalProjectionHint,
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
 	) {
 		return this.accept(
 			subject,
-			{
-				kind: "update",
-				target: target.id.startsWith("client:")
-					? { kind: "clientEntryId", id: target.id.slice(7) }
-					: target,
-				...patch,
-			},
-			hint,
+			{ kind: "update", target, ...patch },
 			undefined,
 			onError,
 			onSuccess,
@@ -460,22 +438,13 @@ export class NutritionOperationService {
 
 	remove(
 		subject: string,
-		target: { kind: "serverId" | "clientEntryId"; id: string },
-		hint?: LocalProjectionHint,
+		target: NutritionOperationTarget,
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
 	) {
 		return this.accept(
 			subject,
-			{
-				kind: "remove",
-				target: target.id.startsWith("client:")
-					? { kind: "clientEntryId", id: target.id.slice(7) }
-					: (target as
-							| { kind: "serverId"; id: string }
-							| { kind: "clientEntryId"; id: string }),
-			},
-			hint,
+			{ kind: "remove", target },
 			undefined,
 			onError,
 			onSuccess,
@@ -484,14 +453,13 @@ export class NutritionOperationService {
 
 	removeBatch(
 		subject: string,
-		targets: readonly { kind: "serverId" | "clientEntryId"; id: string }[],
+		targets: readonly NutritionOperationTarget[],
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
 	) {
 		return this.accept(
 			subject,
-			{ kind: "removeBatch", targets: targets.map(normalizeTarget) },
-			undefined,
+			{ kind: "removeBatch", targets },
 			undefined,
 			onError,
 			onSuccess,
@@ -500,7 +468,7 @@ export class NutritionOperationService {
 
 	moveBatch(
 		subject: string,
-		targets: readonly { kind: "serverId" | "clientEntryId"; id: string }[],
+		targets: readonly NutritionOperationTarget[],
 		date: string,
 		meal: NutritionMealSlot,
 		onError?: (error: unknown) => void,
@@ -508,22 +476,12 @@ export class NutritionOperationService {
 	) {
 		return this.accept(
 			subject,
-			{ kind: "moveBatch", targets: targets.map(normalizeTarget), date, meal },
-			undefined,
+			{ kind: "moveBatch", targets, date, meal },
 			undefined,
 			onError,
 			onSuccess,
 		);
 	}
-}
-
-function normalizeTarget(target: {
-	kind: "serverId" | "clientEntryId";
-	id: string;
-}) {
-	return target.id.startsWith("client:")
-		? { kind: "clientEntryId" as const, id: target.id.slice("client:".length) }
-		: target;
 }
 
 const NutritionOperationsContext =
@@ -640,9 +598,6 @@ export function snapshotFromDiaryEntry(
 		...(entry.estimated ? { estimated: true as const } : {}),
 		...(entry.correctedNutrients
 			? { correctedNutrients: entry.correctedNutrients }
-			: {}),
-		...(entry.id.startsWith("client:")
-			? { clientEntryId: entry.id.slice("client:".length) }
 			: {}),
 	};
 }

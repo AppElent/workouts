@@ -145,9 +145,6 @@ describe("optional nutrition defaults and session snapshots", () => {
 		store.putDay("alice", cachedDay("2026-09-05", [snapshot()], 2));
 		store.putDay("alice", cachedDay("2026-09-05", [], 1));
 		expect(store.projectDay("alice", "2026-09-05").entries).toHaveLength(1);
-		expect(store.projectDay("alice", "2026-09-05").pendingOperationIds).toEqual(
-			[],
-		);
 		expect(store.projectDay("bob", "2026-09-05").complete).toBe(false);
 		db.closeSync();
 	});

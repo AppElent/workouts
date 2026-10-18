@@ -6,7 +6,7 @@ import {
 	personalFoodSnapshot,
 	type ShippedFood,
 	searchShippedFoods,
-	shippedSourceMeta,
+	shippedFoodProvenance,
 } from "@foundry/core/nutrition";
 import type { PersonalFood } from "./personal-food-repository";
 
@@ -40,22 +40,13 @@ function candidateFromShipped(food: ShippedFood): AssistanceFood {
 	const nutrients = Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => [key, food.nutrients[key]]),
 	) as Record<NutrientKey, NutrientValue>;
-	const source = shippedSourceMeta(food);
 	return {
 		id: food.id,
 		kind: "shipped",
 		name: food.name,
 		baseUnit: food.baseUnit,
 		nutrients,
-		provenance: {
-			source: "shipped",
-			sourceId: food.id,
-			dataset: source.name,
-			edition: source.edition,
-			sourceCode: food.code,
-			sourceName: food.sourceName,
-			saltDerived: source.saltDerived,
-		},
+		provenance: shippedFoodProvenance(food),
 	};
 }
 

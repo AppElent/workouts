@@ -1,3 +1,4 @@
+import type { NutritionProvenance } from "@foundry/core";
 import {
 	type FoodVisual,
 	type FoodVisualPresetId,
@@ -96,27 +97,8 @@ export type PersonalFoodFilter = {
 	readonly classification?: PersonalFoodClassification;
 };
 
-export type ComboSnapshotProvenance =
-	| {
-			readonly source: "shipped";
-			readonly sourceId: string;
-			readonly dataset: string;
-			readonly edition: string;
-			readonly sourceCode: number;
-			readonly sourceName: { readonly en: string; readonly nl: string };
-			readonly saltDerived: boolean;
-	  }
-	| {
-			readonly source: "personal" | "import";
-			readonly sourceId: string;
-			readonly nutritionSource: "manual" | "nevo" | "lidl" | "openfoodfacts";
-			readonly locallyEdited: boolean;
-			readonly forkedFrom?: string;
-			readonly provider?: string;
-			readonly barcode?: string;
-			readonly attribution?: string;
-	  }
-	| { readonly source: "oneOff" };
+/** Food Provenance as a Diary Entry or Combo part snapshot records it. */
+export type ComboSnapshotProvenance = NutritionProvenance;
 
 /** A date- and meal-free diary snapshot saved as one fixed Combo part. */
 export type ComboPartSnapshot = {

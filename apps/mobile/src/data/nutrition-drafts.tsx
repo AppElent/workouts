@@ -18,7 +18,7 @@ import type {
 	CaptureDraftInput,
 	OtherDaysSummary,
 } from "./nutrition-capture-draft";
-import type { NutritionLocalOperation } from "./nutrition-local-repository";
+import type { AcknowledgedOperation } from "./nutrition-local-repository";
 import {
 	mintNutritionUuid,
 	useNutritionOperations,
@@ -33,13 +33,12 @@ import { useScreenQueryActive } from "./screen-query-active";
  * note listed; one that logged nothing leaves the reminder in place.
  */
 export function intakeLoggedSince(
-	operations: readonly NutritionLocalOperation[],
+	operations: readonly AcknowledgedOperation[],
 	draft: Pick<CaptureDraft, "date" | "meal">,
 	since: number,
 ): boolean {
 	return operations.some((operation) => {
-		if (operation.status !== "acknowledged" || operation.createdAt < since)
-			return false;
+		if (operation.createdAt < since) return false;
 		const change = operation.envelope.operation;
 		if (change.kind === "create")
 			return (

@@ -1,8 +1,9 @@
-import { combinedNutrients, type ServingOption } from "@foundry/core/nutrition";
+import type { ServingOption } from "@foundry/core/nutrition";
 import { useRef, useState } from "react";
 import {
-	resolveComboPart,
-	scaleComboSnapshot,
+	type ComboPartChoice,
+	comboLogEntries,
+	comboLogPlan,
 } from "../../../data/nutrition-combo";
 import type { MealSlot } from "../../../data/nutrition-day";
 import {
@@ -23,12 +24,6 @@ const WHOLE_COMBO: ServingOption = {
 	index: -1,
 	amount: 1,
 	label: { en: "combo", nl: "combo" },
-};
-
-type PartChoice = {
-	included: boolean;
-	/** An "only this time" amount, rescaled from the saved snapshot. */
-	once?: ComboPartSnapshot;
 };
 
 /**
@@ -57,26 +52,12 @@ export function useComboLog({
 		amount: 1,
 	});
 	const [destination, setDestination] = useState({ meal, date });
-	const [choices, setChoices] = useState<Record<string, PartChoice>>({});
+	const [choices, setChoices] = useState<Record<string, ComboPartChoice>>({});
 	const [logging, setLogging] = useState(false);
 	const lock = useRef(false);
-	// A part whose source is gone stays off: there is nothing to log it from.
-	const choiceFor = (part: ComboPart): PartChoice =>
-		part.status === "missing"
-			? { included: false }
-			: (choices[part.id] ?? { included: true });
-	const parts = combo.parts.map((part) => {
-		const choice = choiceFor(part);
-		return { part, ...choice, snapshot: choice.once ?? part.snapshot };
-	});
-	const included = parts.filter((item) => item.included);
-	const missing = combo.parts.filter((part) => part.status === "missing");
+	const plan = comboLogPlan(combo, choices, foods.find);
 	const canLog =
-		whole.valid && included.length > 0 && !logging && !foods.loading;
-	/** Per-combo values of what is included, before the whole-combo factor. */
-	const nutrients = combinedNutrients(
-		included.map(({ snapshot }) => snapshot.nutrients),
-	);
+		whole.valid && plan.included.length > 0 && !logging && !foods.loading;
 
 	function log() {
 		if (!canLog || lock.current) return;
@@ -99,11 +80,8 @@ export function useComboLog({
 				subject,
 				destination.date,
 				destination.meal,
-				included.map(({ part, once }) => ({
-					...scaleComboSnapshot(
-						once ?? resolveComboPart(part, foods.find),
-						whole.quantity,
-					),
+				comboLogEntries(plan, whole.quantity).map((snapshot) => ({
+					...snapshot,
 					date: destination.date,
 					meal: destination.meal,
 					comboGroup,
@@ -128,19 +106,23 @@ export function useComboLog({
 			setDestination((current) => ({ ...current, meal: next })),
 		setDate: (next: string) =>
 			setDestination((current) => ({ ...current, date: next })),
-		parts,
-		included,
-		missing,
-		nutrients,
+		parts: plan.parts,
+		included: plan.included,
+		missing: plan.missing,
+		/** Per-combo values of what is included, before the whole-combo factor. */
+		nutrients: plan.nutrients,
 		canLog,
 		logging,
 		log,
 		toggle: (part: ComboPart) => {
 			if (part.status === "missing") return;
-			setChoices((current) => ({
-				...current,
-				[part.id]: { ...choiceFor(part), included: !choiceFor(part).included },
-			}));
+			setChoices((current) => {
+				const choice = current[part.id] ?? { included: true };
+				return {
+					...current,
+					[part.id]: { ...choice, included: !choice.included },
+				};
+			});
 		},
 		setOnce: (partId: string, snapshot: ComboPartSnapshot) =>
 			setChoices((current) => ({

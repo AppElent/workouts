@@ -23,7 +23,6 @@ jest.mock("../../../../data/nutrition-day", () => {
 				displayOrder: actual.NUTRIENT_KEYS,
 				totals: {},
 				entries: { breakfast: [], lunch: [], dinner: [], snacks: [] },
-				pendingOperationIds: [],
 			},
 		}),
 	};

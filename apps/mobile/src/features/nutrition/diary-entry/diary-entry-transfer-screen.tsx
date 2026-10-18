@@ -58,9 +58,7 @@ export function copiedEntrySnapshot(
 }
 
 function updateTarget(entry: DiaryEntry) {
-	return entry.id.startsWith("client:")
-		? { kind: "clientEntryId" as const, id: entry.id.slice("client:".length) }
-		: { kind: "serverId" as const, id: entry.id };
+	return { kind: "serverId" as const, id: entry.id };
 }
 
 export function DiaryEntryTransferScreen({
