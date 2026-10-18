@@ -1,12 +1,12 @@
-import { paginationOptsValidator } from "convex/server";
 import type { PersonalFood } from "@foundry/core";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import {
 	internalMutation,
 	mutation,
-	query,
 	type QueryCtx,
+	query,
 } from "./_generated/server";
 
 async function subject(ctx: Pick<QueryCtx, "auth">) {

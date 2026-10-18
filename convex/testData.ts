@@ -1,13 +1,9 @@
 import { ConvexError, v } from "convex/values";
-import { assertDiaryDate } from "./nutritionDiary";
 import { destinationFor } from "../env.manifest";
-import {
-	mutation,
-	query,
-	type MutationCtx,
-} from "./_generated/server";
+import { type MutationCtx, mutation, query } from "./_generated/server";
 import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
 import { loadTestDataBaseline } from "./lib/testDataBaseline";
+import { assertDiaryDate } from "./nutritionDiary";
 
 function enabled() {
 	const production = destinationFor("convex-functions", "production");
@@ -40,7 +36,9 @@ export const availability = query({
 		return {
 			available,
 			blocker:
-				available && identity ? await personalDataBlocker(ctx, identity.subject) : null,
+				available && identity
+					? await personalDataBlocker(ctx, identity.subject)
+					: null,
 		};
 	},
 });
@@ -55,15 +53,15 @@ export const reset = mutation({
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new ConvexError("unauthenticated");
-		if (!enabled())
-			throw new ConvexError("unavailable");
+		if (!enabled()) throw new ConvexError("unavailable");
 		if (identity.subject !== args.expectedSubject)
 			throw new ConvexError("accountChanged");
 		const reason = await personalDataBlocker(ctx, identity.subject);
 		if (reason) throw new ConvexError(reason);
 		assertDiaryDate(args.today);
 		await clearPersonalData(ctx, identity.subject);
-		if (args.mode === "load") await loadTestDataBaseline(ctx, identity.subject, args.today);
+		if (args.mode === "load")
+			await loadTestDataBaseline(ctx, identity.subject, args.today);
 		return null;
 	},
 });
@@ -71,6 +69,11 @@ export const reset = mutation({
 // One transaction: a rejected or oversized reset never leaves half an account.
 // Bound total reads/writes, including receipts; leave room for the baseline.
 async function clearPersonalData(ctx: MutationCtx, userId: string) {
-	if (!(await deletePersonalData(ctx, userId, { budget: 6000, keepPreferences: true })))
+	if (
+		!(await deletePersonalData(ctx, userId, {
+			budget: 6000,
+			keepPreferences: true,
+		}))
+	)
 		throw new ConvexError("tooLarge");
 }

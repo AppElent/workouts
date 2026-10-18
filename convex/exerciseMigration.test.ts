@@ -240,7 +240,9 @@ describe("migration to shipped exercise references", () => {
 		expect(await t.run((ctx) => ctx.db.get(setId))).toMatchObject({
 			exerciseId: shipped._id,
 		});
-		const repeated = await alice.mutation(api.sets.duplicate, { id: ids.sets[5] });
+		const repeated = await alice.mutation(api.sets.duplicate, {
+			id: ids.sets[5],
+		});
 		await alice.mutation(api.sets.add, repeated);
 		await t.mutation(internal.exerciseMigration.resume, {});
 		expect(await finish(t)).toMatchObject({ phase: "complete" });

@@ -1,12 +1,15 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
-import { describe, expect, it } from "vitest";
+
 import type { NutritionDiarySnapshot } from "@foundry/core";
 import type { FunctionArgs } from "convex/server";
+import { convexTest } from "convex-test";
+import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 
-type ApplyOperationArgs = FunctionArgs<typeof api.nutritionDiary.applyOperation>;
+type ApplyOperationArgs = FunctionArgs<
+	typeof api.nutritionDiary.applyOperation
+>;
 
 const modules = import.meta.glob("./**/*.*s");
 
@@ -49,55 +52,102 @@ function envelope<T extends ApplyOperationArgs["operation"]>(
 	operationId: string,
 	operation: T,
 	expectedSubject = "alice",
-	): Omit<ApplyOperationArgs, "operation"> & { operation: T } {
+): Omit<ApplyOperationArgs, "operation"> & { operation: T } {
 	return { version: 1 as const, operationId, expectedSubject, operation };
 }
 
 describe("retry-safe nutrition diary operations", () => {
-    it("acknowledges an online save without retransferring the entire day", async () => {
-        const t = convexTest(schema, modules);
-        const alice = t.withIdentity({ subject: "alice" });
-        const request = { ...envelope("compact-save", { kind: "create", entry: snapshot() }), includeDays: false };
-        const result = await alice.mutation(api.nutritionDiary.applyOperation, request);
-        expect(result.days).toEqual([]);
-        expect(result.entryIds).toHaveLength(1);
-        expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
-        expect(await alice.mutation(api.nutritionDiary.applyOperation, request)).toEqual(result);
-    });
+	it("acknowledges an online save without retransferring the entire day", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const request = {
+			...envelope("compact-save", { kind: "create", entry: snapshot() }),
+			includeDays: false,
+		};
+		const result = await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			request,
+		);
+		expect(result.days).toEqual([]);
+		expect(result.entryIds).toHaveLength(1);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(1);
+		expect(
+			await alice.mutation(api.nutritionDiary.applyOperation, request),
+		).toEqual(result);
+	});
 
 	it.each(["removeBatch", "moveBatch"] as const)(
 		"acknowledges %s with deleted or stale targets and still applies surviving entries",
 		async (kind) => {
 			const t = convexTest(schema, modules);
 			const alice = t.withIdentity({ subject: "alice" });
-			const deleted = await alice.mutation(api.nutritionDiary.applyOperation,
-				envelope("create-deleted", { kind: "create", entry: snapshot() }));
-			const surviving = await alice.mutation(api.nutritionDiary.applyOperation,
-				envelope("create-surviving", { kind: "create", entry: snapshot({ clientEntryId: "surviving" }) }));
-			await alice.mutation(api.nutritionDiary.remove, { id: deleted.entryIds[0] });
+			const deleted = await alice.mutation(
+				api.nutritionDiary.applyOperation,
+				envelope("create-deleted", { kind: "create", entry: snapshot() }),
+			);
+			const surviving = await alice.mutation(
+				api.nutritionDiary.applyOperation,
+				envelope("create-surviving", {
+					kind: "create",
+					entry: snapshot({ clientEntryId: "surviving" }),
+				}),
+			);
+			await alice.mutation(api.nutritionDiary.remove, {
+				id: deleted.entryIds[0],
+			});
 			const missingTargets = [
 				{ kind: "serverId" as const, id: deleted.entryIds[0] },
 				{ kind: "clientEntryId" as const, id: "client-entry-1" },
 				{ kind: "serverId" as const, id: "stale-deployment-id" },
 			];
-			const targets = [...missingTargets, { kind: "serverId" as const, id: surviving.entryIds[0] }];
-			const operation = envelope("stale-batch", kind === "moveBatch"
-				? { kind, targets, date: "2026-09-06", meal: "dinner" }
-				: { kind, targets });
-			const result = await alice.mutation(api.nutritionDiary.applyOperation, operation);
+			const targets = [
+				...missingTargets,
+				{ kind: "serverId" as const, id: surviving.entryIds[0] },
+			];
+			const operation = envelope(
+				"stale-batch",
+				kind === "moveBatch"
+					? { kind, targets, date: "2026-09-06", meal: "dinner" }
+					: { kind, targets },
+			);
+			const result = await alice.mutation(
+				api.nutritionDiary.applyOperation,
+				operation,
+			);
 			expect(result.entryIds).toEqual(surviving.entryIds);
-			expect(await alice.mutation(api.nutritionDiary.applyOperation, operation)).toEqual(result);
-			expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(0);
-			const destination = await alice.query(api.nutritionDiary.day, { date: "2026-09-06" });
+			expect(
+				await alice.mutation(api.nutritionDiary.applyOperation, operation),
+			).toEqual(result);
+			expect(
+				(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+					.entries,
+			).toHaveLength(0);
+			const destination = await alice.query(api.nutritionDiary.day, {
+				date: "2026-09-06",
+			});
 			expect(destination.entries).toHaveLength(kind === "moveBatch" ? 1 : 0);
-			if (kind === "moveBatch") expect(destination.entries[0].meal).toBe("dinner");
+			if (kind === "moveBatch")
+				expect(destination.entries[0].meal).toBe("dinner");
 
 			const emptyOperation = envelope("all-stale-batch", {
-				...operation.operation, targets: missingTargets,
+				...operation.operation,
+				targets: missingTargets,
 			} as ApplyOperationArgs["operation"]);
-			const emptyResult = await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation);
-			expect(emptyResult).toEqual({ entryIds: [], clientEntryIds: [], days: [] });
-			expect(await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation)).toEqual(emptyResult);
+			const emptyResult = await alice.mutation(
+				api.nutritionDiary.applyOperation,
+				emptyOperation,
+			);
+			expect(emptyResult).toEqual({
+				entryIds: [],
+				clientEntryIds: [],
+				days: [],
+			});
+			expect(
+				await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation),
+			).toEqual(emptyResult);
 		},
 	);
 
@@ -110,21 +160,40 @@ describe("retry-safe nutrition diary operations", () => {
 			const comboGroup = { id: "group", comboId: "combo", name: "Lunch" };
 			const created = [];
 			for (const clientEntryId of ["part-1", "part-2"]) {
-				created.push(await alice.mutation(api.nutritionDiary.applyOperation,
-					envelope(`create-${clientEntryId}`, { kind: "create", entry: snapshot({ clientEntryId, comboGroup }) })));
+				created.push(
+					await alice.mutation(
+						api.nutritionDiary.applyOperation,
+						envelope(`create-${clientEntryId}`, {
+							kind: "create",
+							entry: snapshot({ clientEntryId, comboGroup }),
+						}),
+					),
+				);
 			}
 			const targets = [
 				{ kind: "clientEntryId" as const, id: "missing" },
 				{ kind: "serverId" as const, id: created[0].entryIds[0] },
 			];
-			const operation = kind === "moveBatch"
-				? { kind, targets, date: "2026-09-06", meal: "dinner" as const }
-				: { kind, targets };
-			await expect(bob.mutation(api.nutritionDiary.applyOperation,
-				envelope("foreign-batch", operation, "bob"))).rejects.toThrow("Unauthorized");
-			await expect(alice.mutation(api.nutritionDiary.applyOperation,
-				envelope("partial-batch", operation))).rejects.toThrow("selected as a whole");
-			expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(2);
+			const operation =
+				kind === "moveBatch"
+					? { kind, targets, date: "2026-09-06", meal: "dinner" as const }
+					: { kind, targets };
+			await expect(
+				bob.mutation(
+					api.nutritionDiary.applyOperation,
+					envelope("foreign-batch", operation, "bob"),
+				),
+			).rejects.toThrow("Unauthorized");
+			await expect(
+				alice.mutation(
+					api.nutritionDiary.applyOperation,
+					envelope("partial-batch", operation),
+				),
+			).rejects.toThrow("selected as a whole");
+			expect(
+				(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+					.entries,
+			).toHaveLength(2);
 		},
 	);
 
@@ -139,7 +208,10 @@ describe("retry-safe nutrition diary operations", () => {
 		});
 
 		expect(replay).toEqual(first);
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(1);
 		expect(
 			alice.mutation(api.nutritionDiary.applyOperation, {
 				...envelope("op-create", {
@@ -167,7 +239,10 @@ describe("retry-safe nutrition diary operations", () => {
 				entry: snapshot({ clientEntryId: "client-entry-2" }),
 			}),
 		});
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(2);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(2);
 	});
 
 	it("replays batch, update and remove without multiplying or resurrecting rows", async () => {
@@ -179,22 +254,41 @@ describe("retry-safe nutrition diary operations", () => {
 				date: "2026-09-05",
 				meal: "lunch",
 				entries: [
-					{ ...snapshot({ clientEntryId: "batch-1" }), date: undefined, meal: undefined },
-					{ ...snapshot({ clientEntryId: "batch-2" }), date: undefined, meal: undefined },
+					{
+						...snapshot({ clientEntryId: "batch-1" }),
+						date: undefined,
+						meal: undefined,
+					},
+					{
+						...snapshot({ clientEntryId: "batch-2" }),
+						date: undefined,
+						meal: undefined,
+					},
 				].map(({ date: _date, meal: _meal, ...entry }) => entry),
 			}),
 		});
-		const batchReplay = await alice.mutation(api.nutritionDiary.applyOperation, {
-			...envelope("op-batch", {
-				kind: "createBatch",
-				date: "2026-09-05",
-				meal: "lunch",
-				entries: [
-					{ ...snapshot({ clientEntryId: "batch-1" }), date: undefined, meal: undefined },
-					{ ...snapshot({ clientEntryId: "batch-2" }), date: undefined, meal: undefined },
-				].map(({ date: _date, meal: _meal, ...entry }) => entry),
-			}),
-		});
+		const batchReplay = await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			{
+				...envelope("op-batch", {
+					kind: "createBatch",
+					date: "2026-09-05",
+					meal: "lunch",
+					entries: [
+						{
+							...snapshot({ clientEntryId: "batch-1" }),
+							date: undefined,
+							meal: undefined,
+						},
+						{
+							...snapshot({ clientEntryId: "batch-2" }),
+							date: undefined,
+							meal: undefined,
+						},
+					].map(({ date: _date, meal: _meal, ...entry }) => entry),
+				}),
+			},
+		);
 		expect(batchReplay).toEqual(created);
 
 		await alice.mutation(api.nutritionDiary.applyOperation, {
@@ -211,8 +305,13 @@ describe("retry-safe nutrition diary operations", () => {
 				quantity: 2,
 			}),
 		});
-		const afterUpdate = await alice.query(api.nutritionDiary.day, { date: "2026-09-05" });
-		expect(afterUpdate.entries.find((entry) => entry.clientEntryId === "batch-1")?.quantity).toBe(2);
+		const afterUpdate = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		});
+		expect(
+			afterUpdate.entries.find((entry) => entry.clientEntryId === "batch-1")
+				?.quantity,
+		).toBe(2);
 
 		await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-remove", {
@@ -226,19 +325,33 @@ describe("retry-safe nutrition diary operations", () => {
 				target: { kind: "clientEntryId", id: "batch-1" },
 			}),
 		});
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(1);
 		await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-batch", {
 				kind: "createBatch",
 				date: "2026-09-05",
 				meal: "lunch",
 				entries: [
-					{ ...snapshot({ clientEntryId: "batch-1" }), date: undefined, meal: undefined },
-					{ ...snapshot({ clientEntryId: "batch-2" }), date: undefined, meal: undefined },
+					{
+						...snapshot({ clientEntryId: "batch-1" }),
+						date: undefined,
+						meal: undefined,
+					},
+					{
+						...snapshot({ clientEntryId: "batch-2" }),
+						date: undefined,
+						meal: undefined,
+					},
 				].map(({ date: _date, meal: _meal, ...entry }) => entry),
 			}),
 		});
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(1);
 	});
 
 	it("switches serving snapshots without re-reading the source food", async () => {
@@ -267,9 +380,11 @@ describe("retry-safe nutrition diary operations", () => {
 			}),
 		});
 
-		const entry = (await alice.query(api.nutritionDiary.day, {
-			date: "2026-09-05",
-		})).entries[0];
+		const entry = (
+			await alice.query(api.nutritionDiary.day, {
+				date: "2026-09-05",
+			})
+		).entries[0];
 		expect(entry).toMatchObject({
 			quantity: 2,
 			amount: 900,
@@ -293,41 +408,71 @@ describe("retry-safe nutrition diary operations", () => {
 					date: "2026-09-05",
 					meal: "lunch",
 					entries: [
-						{ ...snapshot({ clientEntryId: "good" }), date: undefined, meal: undefined },
-						{ ...snapshot({ clientEntryId: "bad", amount: 0 }), date: undefined, meal: undefined },
+						{
+							...snapshot({ clientEntryId: "good" }),
+							date: undefined,
+							meal: undefined,
+						},
+						{
+							...snapshot({ clientEntryId: "bad", amount: 0 }),
+							date: undefined,
+							meal: undefined,
+						},
 					].map(({ date: _date, meal: _meal, ...entry }) => entry),
 				}),
 			}),
 		).rejects.toThrow("Amount");
-		const empty = await alice.query(api.nutritionDiary.day, { date: "2026-09-05" });
+		const empty = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		});
 		expect(empty.entries).toHaveLength(0);
 		expect(empty.revision).toBe(0);
 
 		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
-			...envelope("op-owned", { kind: "create", entry: snapshot({ clientEntryId: "owned" }) }),
+			...envelope("op-owned", {
+				kind: "create",
+				entry: snapshot({ clientEntryId: "owned" }),
+			}),
 		});
 		const bob = t.withIdentity({ subject: "bob" });
 		await expect(
 			bob.mutation(api.nutritionDiary.applyOperation, {
-				...envelope("op-bob", {
-					kind: "remove",
-					target: { kind: "serverId", id: created.entryIds[0] },
-				}, "bob"),
+				...envelope(
+					"op-bob",
+					{
+						kind: "remove",
+						target: { kind: "serverId", id: created.entryIds[0] },
+					},
+					"bob",
+				),
 			}),
 		).rejects.toThrow("Unauthorized");
 		await expect(
 			alice.mutation(api.nutritionDiary.applyOperation, {
-				...envelope("op-subject", { kind: "remove", target: { kind: "serverId", id: created.entryIds[0] } }, "bob"),
+				...envelope(
+					"op-subject",
+					{
+						kind: "remove",
+						target: { kind: "serverId", id: created.entryIds[0] },
+					},
+					"bob",
+				),
 			}),
 		).rejects.toThrow("Subject mismatch");
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(1);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(1);
 	});
 
 	it("increments both revisions when an entry moves and includes an empty day after removal", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
-			...envelope("op-move-create", { kind: "create", entry: snapshot({ clientEntryId: "move-me" }) }),
+			...envelope("op-move-create", {
+				kind: "create",
+				entry: snapshot({ clientEntryId: "move-me" }),
+			}),
 		});
 		const moved = (await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-move", {
@@ -341,9 +486,14 @@ describe("retry-safe nutrition diary operations", () => {
 			["2026-09-06", 1],
 		]);
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			...envelope("op-remove-moved", { kind: "remove", target: { kind: "clientEntryId", id: "move-me" } }),
+			...envelope("op-remove-moved", {
+				kind: "remove",
+				target: { kind: "clientEntryId", id: "move-me" },
+			}),
 		});
-		const empty = await alice.query(api.nutritionDiary.day, { date: "2026-09-06" });
+		const empty = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-06",
+		});
 		expect(empty.entries).toHaveLength(0);
 		expect(empty.revision).toBe(2);
 	});
@@ -357,54 +507,146 @@ describe("retry-safe nutrition diary operations", () => {
 				date: "2026-09-05",
 				meal: "lunch",
 				entries: ["batch-a", "batch-b"].map((clientEntryId) => {
-					const { date: _date, meal: _meal, ...entry } = snapshot({ clientEntryId });
+					const {
+						date: _date,
+						meal: _meal,
+						...entry
+					} = snapshot({ clientEntryId });
 					return entry;
 				}),
 			}),
 		});
 		const move = envelope("op-batch-move", {
 			kind: "moveBatch",
-			targets: created.entryIds.map((id) => ({ kind: "serverId" as const, id })),
+			targets: created.entryIds.map((id) => ({
+				kind: "serverId" as const,
+				id,
+			})),
 			date: "2026-09-06",
 			meal: "dinner",
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, move);
 		await alice.mutation(api.nutritionDiary.applyOperation, move);
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-05" })).entries).toHaveLength(0);
-		const moved = await alice.query(api.nutritionDiary.day, { date: "2026-09-06" });
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
+				.entries,
+		).toHaveLength(0);
+		const moved = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-06",
+		});
 		expect(moved.entries).toHaveLength(2);
 		expect(moved.entries.every((entry) => entry.meal === "dinner")).toBe(true);
 
 		await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-batch-remove", {
 				kind: "removeBatch",
-				targets: created.entryIds.map((id) => ({ kind: "serverId" as const, id })),
+				targets: created.entryIds.map((id) => ({
+					kind: "serverId" as const,
+					id,
+				})),
 			}),
 		});
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-09-06" })).entries).toHaveLength(0);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-09-06" }))
+				.entries,
+		).toHaveLength(0);
 	});
 });
 
-describe("explicit nutrient corrections",()=>{
- it("corrects only the tapped entry, is retry-safe, and scales with later quantity edits",async()=>{
-  const t=convexTest(schema,modules);const alice=t.withIdentity({subject:"alice"});
-  const first=await alice.mutation(api.nutritionDiary.applyOperation,envelope("correct-first",{kind:"create",entry:snapshot()}));
-  const second=await alice.mutation(api.nutritionDiary.applyOperation,envelope("correct-second",{kind:"create",entry:snapshot({clientEntryId:"second"})}));
-  const request=envelope("correct-fat",{kind:"update",target:{kind:"serverId",id:first.entryIds[0]},correction:{baseUnit:"g",basisAmount:100,nutrients:{fat:{kind:"value",amount:2}}}});
-  const result=await alice.mutation(api.nutritionDiary.applyOperation,request);
-  expect(await alice.mutation(api.nutritionDiary.applyOperation,request)).toEqual(result);
-  let day=await alice.query(api.nutritionDiary.day,{date:"2026-09-05"});
-  const corrected=day.entries.find(e=>e._id===first.entryIds[0]);
-  expect(corrected?.nutrients.fat).toEqual({kind:"value",amount:2.7});expect(corrected?.nutrients.energy).toEqual(snapshot().nutrients.energy);expect(corrected?.correctedNutrients).toEqual(["fat"]);expect(corrected?.provenance).toEqual(snapshot().provenance);
-  expect(day.entries.find(e=>e._id===second.entryIds[0])?.nutrients.fat).toEqual({kind:"absent"});
-  await alice.mutation(api.nutritionDiary.applyOperation,envelope("resize-corrected",{kind:"update",target:{kind:"serverId",id:first.entryIds[0]},quantity:2}));
-  day=await alice.query(api.nutritionDiary.day,{date:"2026-09-05"});expect(day.entries.find(e=>e._id===first.entryIds[0])?.nutrients.fat).toEqual({kind:"value",amount:5.4});
-  const bob=t.withIdentity({subject:"bob"});await expect(bob.mutation(api.nutritionDiary.applyOperation,{...request,operationId:"bob-correction",expectedSubject:"bob"})).rejects.toThrow("Unauthorized");
-  await expect(alice.mutation(api.nutritionDiary.applyOperation,envelope("bad-unit",{...request.operation,correction:{baseUnit:"ml",basisAmount:100,nutrients:{fat:{kind:"trace"}}}}))).rejects.toThrow();
- });
- it("returns only the account's logged calendar days",async()=>{
-  const t=convexTest(schema,modules);const alice=t.withIdentity({subject:"alice"});await alice.mutation(api.nutritionDiary.applyOperation,envelope("calendar-entry",{kind:"create",entry:snapshot()}));
-  expect(await alice.query(api.nutritionDiary.loggedDates,{startDate:"2026-09-01",endDate:"2026-09-30"})).toEqual(["2026-09-05"]);
-  expect(await t.withIdentity({subject:"bob"}).query(api.nutritionDiary.loggedDates,{startDate:"2026-09-01",endDate:"2026-09-30"})).toEqual([]);
- });
+describe("explicit nutrient corrections", () => {
+	it("corrects only the tapped entry, is retry-safe, and scales with later quantity edits", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const first = await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			envelope("correct-first", { kind: "create", entry: snapshot() }),
+		);
+		const second = await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			envelope("correct-second", {
+				kind: "create",
+				entry: snapshot({ clientEntryId: "second" }),
+			}),
+		);
+		const request = envelope("correct-fat", {
+			kind: "update",
+			target: { kind: "serverId", id: first.entryIds[0] },
+			correction: {
+				baseUnit: "g",
+				basisAmount: 100,
+				nutrients: { fat: { kind: "value", amount: 2 } },
+			},
+		});
+		const result = await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			request,
+		);
+		expect(
+			await alice.mutation(api.nutritionDiary.applyOperation, request),
+		).toEqual(result);
+		let day = await alice.query(api.nutritionDiary.day, { date: "2026-09-05" });
+		const corrected = day.entries.find((e) => e._id === first.entryIds[0]);
+		expect(corrected?.nutrients.fat).toEqual({ kind: "value", amount: 2.7 });
+		expect(corrected?.nutrients.energy).toEqual(snapshot().nutrients.energy);
+		expect(corrected?.correctedNutrients).toEqual(["fat"]);
+		expect(corrected?.provenance).toEqual(snapshot().provenance);
+		expect(
+			day.entries.find((e) => e._id === second.entryIds[0])?.nutrients.fat,
+		).toEqual({ kind: "absent" });
+		await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			envelope("resize-corrected", {
+				kind: "update",
+				target: { kind: "serverId", id: first.entryIds[0] },
+				quantity: 2,
+			}),
+		);
+		day = await alice.query(api.nutritionDiary.day, { date: "2026-09-05" });
+		expect(
+			day.entries.find((e) => e._id === first.entryIds[0])?.nutrients.fat,
+		).toEqual({ kind: "value", amount: 5.4 });
+		const bob = t.withIdentity({ subject: "bob" });
+		await expect(
+			bob.mutation(api.nutritionDiary.applyOperation, {
+				...request,
+				operationId: "bob-correction",
+				expectedSubject: "bob",
+			}),
+		).rejects.toThrow("Unauthorized");
+		await expect(
+			alice.mutation(
+				api.nutritionDiary.applyOperation,
+				envelope("bad-unit", {
+					...request.operation,
+					correction: {
+						baseUnit: "ml",
+						basisAmount: 100,
+						nutrients: { fat: { kind: "trace" } },
+					},
+				}),
+			),
+		).rejects.toThrow();
+	});
+	it("returns only the account's logged calendar days", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		await alice.mutation(
+			api.nutritionDiary.applyOperation,
+			envelope("calendar-entry", { kind: "create", entry: snapshot() }),
+		);
+		expect(
+			await alice.query(api.nutritionDiary.loggedDates, {
+				startDate: "2026-09-01",
+				endDate: "2026-09-30",
+			}),
+		).toEqual(["2026-09-05"]);
+		expect(
+			await t
+				.withIdentity({ subject: "bob" })
+				.query(api.nutritionDiary.loggedDates, {
+					startDate: "2026-09-01",
+					endDate: "2026-09-30",
+				}),
+		).toEqual([]);
+	});
 });

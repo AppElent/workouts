@@ -286,7 +286,10 @@ export type SelectInput = {
 	readonly amount: number;
 	readonly unit: "g" | "ml";
 	readonly brand: string | null;
-	readonly candidates: readonly { readonly ref: string; readonly name: string }[];
+	readonly candidates: readonly {
+		readonly ref: string;
+		readonly name: string;
+	}[];
 };
 
 export type EstimateNutrients = Readonly<

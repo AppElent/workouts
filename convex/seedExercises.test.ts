@@ -1,10 +1,11 @@
 /// <reference types="vite/client" />
+
+import {
+	mergeExerciseCatalog,
+	SHIPPED_EXERCISES,
+} from "@foundry/core/exercises";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import {
-	SHIPPED_EXERCISES,
-	mergeExerciseCatalog,
-} from "@foundry/core/exercises";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
@@ -34,9 +35,7 @@ describe("shipped exercise references", () => {
 			paginationOpts: { numItems: 100, cursor: null },
 		});
 		expect(personal.page).toEqual([]);
-		expect(mergeExerciseCatalog(personal.page)).toHaveLength(
-			673,
-		);
+		expect(mergeExerciseCatalog(personal.page)).toHaveLength(673);
 	});
 
 	it("logs, calculates PRs, starts routines, and exports shipped exercises without inserting them", async () => {
