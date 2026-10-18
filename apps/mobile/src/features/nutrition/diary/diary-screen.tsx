@@ -83,6 +83,8 @@ export function DiaryScreen({
 		state.status === "ready" && !state.day.complete,
 		connected,
 	);
+	// Notes arrive quickly when connected; announcing the wait only shifts the list.
+	const notesStalled = useStalledOffline(drafts.loading, connected);
 	const cachedGoalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsCached),
 		connected,
@@ -325,10 +327,8 @@ export function DiaryScreen({
 					</SkeletonGroup>
 				) : (
 					<>
-						{drafts.loading ? (
-							<AppText variant="caption">
-								{connected ? copy.notesLoading : copy.notesOffline}
-							</AppText>
+						{notesStalled ? (
+							<AppText variant="caption">{copy.notesOffline}</AppText>
 						) : null}
 						{incompleteStalled ? (
 							<AppText variant="caption">{copy.partialDay}</AppText>

@@ -12,7 +12,7 @@ import {
 	useState,
 } from "react";
 import { api } from "../convex/api";
-import { usePaginatedQuery, useQuery } from "../convex/query-cache";
+import { usePausablePaginatedQuery, useQuery } from "../convex/query-cache";
 import type {
 	CaptureDraft,
 	CaptureDraftInput,
@@ -204,12 +204,13 @@ export function useNutritionDrafts(range?: {
 		);
 	const screenActive = useScreenQueryActive();
 	const queryEnabled = !!value.subject && screenActive;
-	const result = usePaginatedQuery(
+	const result = usePausablePaginatedQuery(
 		api.nutritionDrafts.list,
-		queryEnabled && range
+		value.subject && range
 			? { startDate: range.startDate, endDate: range.endDate }
 			: "skip",
 		{ initialNumItems: 50 },
+		screenActive,
 	);
 	const summary = useQuery(
 		api.nutritionDrafts.summary,
