@@ -568,6 +568,11 @@ jest.mock("./src/convex/query-cache", () => {
 		useQueries: (...args: unknown[]) => convex.useQueries(...args),
 		usePaginatedQuery: (...args: unknown[]) =>
 			convex.usePaginatedQuery(...args),
+		// The real hook, over the mocked `usePaginatedQuery`.
+		usePausablePaginatedQuery: (...args: unknown[]) =>
+			jest
+				.requireActual("./src/convex/query-cache")
+				.usePausablePaginatedQuery(...args),
 	};
 });
 

@@ -18,6 +18,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useSyncExternalStore,
 } from "react";
 import { AppState } from "react-native";
@@ -522,9 +523,14 @@ function NutritionOperationsSession({
 		() => repository ?? openNutritionLocalRepository(),
 		[repository],
 	);
-	const service = useMemo(
-		() =>
-			new NutritionOperationService(local, async (envelope, includeDays) => {
+	const subject =
+		forcedSubject ?? (isSignedIn ? (userId ?? undefined) : undefined);
+	const currentSubject = useRef(subject);
+	currentSubject.current = subject;
+	const service = useMemo(() => {
+		const created = new NutritionOperationService(
+			local,
+			async (envelope, includeDays) => {
 				const operation = await prepareDiaryPhotoOperation(
 					envelope.operation,
 					suppliedUploadPhoto ?? uploadPhoto,
@@ -534,11 +540,13 @@ function NutritionOperationsSession({
 					operation,
 					...(includeDays === false ? { includeDays } : {}),
 				} as never)) as NutritionOperationResult;
-			}),
-		[applyOperation, local, uploadPhoto, suppliedUploadPhoto],
-	);
-	const subject =
-		forcedSubject ?? (isSignedIn ? (userId ?? undefined) : undefined);
+			},
+		);
+		// Known from the first render: consumers key account-scoped subtrees on
+		// it, and a later change remounts the navigator they wrap.
+		created.setSubject(currentSubject.current);
+		return created;
+	}, [applyOperation, local, uploadPhoto, suppliedUploadPhoto]);
 	useEffect(() => {
 		service.setSubject(subject);
 		return () => {

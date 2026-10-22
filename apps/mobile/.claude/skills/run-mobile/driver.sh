@@ -3,7 +3,8 @@
 # Usage: driver.sh <command> [args]   (run from anywhere; see SKILL.md)
 set -euo pipefail
 
-BUNDLE_ID=com.appelent.foundry
+# Development variant (app.config.ts): its own bundle ID and app name.
+BUNDLE_ID=com.appelent.foundry.dev
 AGENT_DEVICE=(npx -y agent-device@0.21.27)
 
 MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -46,7 +47,7 @@ ad() {
 
 find_dev_client() {
 	if [ -n "${RUN_MOBILE_APP:-}" ]; then printf '%s' "$RUN_MOBILE_APP"; return; fi
-	ls -dt "$HOME"/Library/Developer/Xcode/DerivedData/Foundry-*/Build/Products/Debug-iphonesimulator/Foundry.app 2>/dev/null | head -1
+	ls -dt "$HOME"/Library/Developer/Xcode/DerivedData/FoundryDev-*/Build/Products/Debug-iphonesimulator/FoundryDev.app 2>/dev/null | head -1
 }
 
 set_lang() {
@@ -136,7 +137,7 @@ cmd_up() {
 
 	if ! xcrun simctl get_app_container "$u" "$BUNDLE_ID" >/dev/null 2>&1; then
 		app="$(find_dev_client)"
-		[ -n "$app" ] || die "no Foundry.app dev client build found; run 'pnpm devbuild:ios' once or set RUN_MOBILE_APP"
+		[ -n "$app" ] || die "no FoundryDev.app dev client build found; run 'pnpm devbuild:ios' once or set RUN_MOBILE_APP"
 		log "installing $app"
 		xcrun simctl install "$u" "$app"
 	fi
