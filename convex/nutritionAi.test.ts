@@ -36,7 +36,9 @@ describe("nutrition AI", () => {
 
 	it("reports an unconfigured provider instead of failing silently", async () => {
 		vi.stubEnv("ANTHROPIC_API_KEY", "");
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		await expect(
 			alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
 		).rejects.toThrow("unavailable");
@@ -46,7 +48,9 @@ describe("nutrition AI", () => {
 		fake({
 			describe: { kind: "meal", seen: "?", items: [{ ...item, amount: 0 }] },
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		const result = await alice.action(api.nutritionAi.describe, {
 			text: "asdf",
 			locale: "nl",
@@ -88,7 +92,13 @@ describe("nutrition AI", () => {
 		);
 		const choices = await alice.action(api.nutritionAi.choose, {
 			items: [
-				{ name: "Pannenkoek", amount: 120, unit: "g", brand: null, candidates: [] },
+				{
+					name: "Pannenkoek",
+					amount: 120,
+					unit: "g",
+					brand: null,
+					candidates: [],
+				},
 				{
 					name: "Brood",
 					amount: 70,
@@ -130,7 +140,9 @@ describe("nutrition AI", () => {
 				notes: "",
 			},
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		const label = await alice.action(api.nutritionAi.readLabel, {
 			image: { mediaType: "image/jpeg", base64: "aGk=" },
 			locale: "nl",
@@ -153,7 +165,10 @@ describe("nutrition AI", () => {
 				count: DAILY_ANALYSES - 1,
 			}),
 		);
-		await alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" });
+		await alice.action(api.nutritionAi.describe, {
+			text: "brood",
+			locale: "nl",
+		});
 		await expect(
 			alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
 		).rejects.toThrow("limit");
@@ -168,16 +183,27 @@ describe("nutrition AI", () => {
 			describe: { kind: "meal", seen: "brood", items: [item] },
 			select: { choices: [{ index: 0, ref: null, estimate: null }] },
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		const choose = {
 			items: [
-				{ name: "Brood", amount: 70, unit: "g" as const, brand: null, candidates: [] },
+				{
+					name: "Brood",
+					amount: 70,
+					unit: "g" as const,
+					brand: null,
+					candidates: [],
+				},
 			],
 		};
 		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
 			"limit",
 		);
-		await alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" });
+		await alice.action(api.nutritionAi.describe, {
+			text: "brood",
+			locale: "nl",
+		});
 		await alice.action(api.nutritionAi.choose, choose);
 		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
 			"limit",

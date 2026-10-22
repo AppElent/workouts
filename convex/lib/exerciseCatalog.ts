@@ -4,7 +4,7 @@ import {
 } from "@foundry/core/exercises";
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 
 // Shipped references are application keys, not Convex document IDs. Mutations
 // additionally resolve the key against the bundled catalog or an owned record.

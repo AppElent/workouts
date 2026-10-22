@@ -2,7 +2,11 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const libraryRecordKind = v.union(v.literal("food"), v.literal("combo"));
-export const librarySchemaVersion = v.union(v.literal(1), v.literal(2), v.literal(3));
+export const librarySchemaVersion = v.union(
+	v.literal(1),
+	v.literal(2),
+	v.literal(3),
+);
 
 /** Parent schema composes this object with the existing application tables. */
 export const nutritionLibraryTables = {
@@ -17,19 +21,29 @@ export const nutritionLibraryTables = {
 		revision: v.number(),
 		deleted: v.boolean(),
 		updatedAt: v.number(),
-        name: v.optional(v.string()),
-        searchText: v.optional(v.string()),
-        category: v.optional(v.union(v.literal("food"), v.literal("recipe"), v.literal("combo"))),
-        barcode: v.optional(v.string()),
-        forkedFrom: v.optional(v.string()),
+		name: v.optional(v.string()),
+		searchText: v.optional(v.string()),
+		category: v.optional(
+			v.union(v.literal("food"), v.literal("recipe"), v.literal("combo")),
+		),
+		barcode: v.optional(v.string()),
+		forkedFrom: v.optional(v.string()),
 	})
 		.index("by_user_and_record", ["userId", "recordId"])
 		.index("by_user_and_updated_at", ["userId", "updatedAt"])
-        .index("by_user_deleted_name", ["userId", "deleted", "name"])
-        .index("by_user_deleted_category_name", ["userId", "deleted", "category", "name"])
-        .index("by_user_barcode", ["userId", "barcode", "deleted"])
-        .index("by_user_fork", ["userId", "forkedFrom", "deleted"])
-        .searchIndex("search_library", { searchField: "searchText", filterFields: ["userId", "deleted", "category"] }),
+		.index("by_user_deleted_name", ["userId", "deleted", "name"])
+		.index("by_user_deleted_category_name", [
+			"userId",
+			"deleted",
+			"category",
+			"name",
+		])
+		.index("by_user_barcode", ["userId", "barcode", "deleted"])
+		.index("by_user_fork", ["userId", "forkedFrom", "deleted"])
+		.searchIndex("search_library", {
+			searchField: "searchText",
+			filterFields: ["userId", "deleted", "category"],
+		}),
 
 	nutritionLibraryOperationReceipts: defineTable({
 		userId: v.string(),

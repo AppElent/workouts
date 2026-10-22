@@ -1,6 +1,11 @@
-import { v } from "convex/values";
 import type { NutritionOperationEnvelope } from "@foundry/core";
-import { diaryNutrientCorrection, diaryPartSnapshotFields, diarySnapshotFields, mealSlot } from "./nutritionDiaryModel";
+import { v } from "convex/values";
+import {
+	diaryNutrientCorrection,
+	diaryPartSnapshotFields,
+	diarySnapshotFields,
+	mealSlot,
+} from "./nutritionDiaryModel";
 
 const operationTarget = v.union(
 	v.object({ kind: v.literal("serverId"), id: v.id("nutritionDiaryEntries") }),
@@ -29,11 +34,13 @@ const servingSelection = v.object({
 
 const operationPart = v.object({
 	...diaryPartSnapshotFields,
-	comboGroup: v.optional(v.object({
-		id: v.string(),
-		comboId: v.string(),
-		name: v.string(),
-	})),
+	comboGroup: v.optional(
+		v.object({
+			id: v.string(),
+			comboId: v.string(),
+			name: v.string(),
+		}),
+	),
 	clientEntryId: v.string(),
 });
 
@@ -54,7 +61,7 @@ export const operationArgs = {
 			target: operationTarget,
 			quantity: v.optional(v.number()),
 			selection: v.optional(servingSelection),
- correction: v.optional(diaryNutrientCorrection),
+			correction: v.optional(diaryNutrientCorrection),
 			date: v.optional(v.string()),
 			meal: v.optional(mealSlot),
 		}),

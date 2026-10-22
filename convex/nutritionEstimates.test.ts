@@ -289,77 +289,76 @@ describe("Personal Food estimate compatibility", () => {
 		).toEqual([]);
 	});
 
-	it.each([
-		"reference",
-		"nutritionSource",
-	])("rejects an array masquerading as a Combo %s enum", async (field) => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		const snapshot = personalFoodSnapshot(estimated, { quantity: 1 });
-		const combo = {
-			id: "invalid-combo",
-			name: "Invalid Combo",
-			createdAt: 1,
-			updatedAt: 2,
-			parts: [
-				{
-					id: "part",
-					reference: {
-						kind: field === "reference" ? ["personal"] : "personal",
-						foodId: "soup",
-					},
-					snapshot: {
-						...snapshot,
-						provenance: {
-							...snapshot.provenance,
-							...(field === "nutritionSource"
-								? { nutritionSource: ["manual"] }
-								: {}),
+	it.each(["reference", "nutritionSource"])(
+		"rejects an array masquerading as a Combo %s enum",
+		async (field) => {
+			const t = convexTest(schema, modules);
+			const alice = t.withIdentity({ subject: "alice" });
+			const snapshot = personalFoodSnapshot(estimated, { quantity: 1 });
+			const combo = {
+				id: "invalid-combo",
+				name: "Invalid Combo",
+				createdAt: 1,
+				updatedAt: 2,
+				parts: [
+					{
+						id: "part",
+						reference: {
+							kind: field === "reference" ? ["personal"] : "personal",
+							foodId: "soup",
+						},
+						snapshot: {
+							...snapshot,
+							provenance: {
+								...snapshot.provenance,
+								...(field === "nutritionSource"
+									? { nutritionSource: ["manual"] }
+									: {}),
+							},
 						},
 					},
-				},
-			],
-		};
-		await expect(
-			alice.mutation(api.nutritionLibrary.applyOperation, {
-				version: 1,
-				expectedSubject: "alice",
-				operationId: `invalid-${field}`,
-				operation: {
-					kind: "upsert",
-					expectedRevision: 0,
-					record: {
-						id: combo.id,
-						kind: "combo",
-						schemaVersion: 2,
-						payload: JSON.stringify(combo),
+				],
+			};
+			await expect(
+				alice.mutation(api.nutritionLibrary.applyOperation, {
+					version: 1,
+					expectedSubject: "alice",
+					operationId: `invalid-${field}`,
+					operation: {
+						kind: "upsert",
+						expectedRevision: 0,
+						record: {
+							id: combo.id,
+							kind: "combo",
+							schemaVersion: 2,
+							payload: JSON.stringify(combo),
+						},
 					},
-				},
-			}),
-		).rejects.toThrow("invalid");
-		expect(
-			(
-				await alice.query(api.nutritionLibrary.list, {
-					paginationOpts: { cursor: null, numItems: 10 },
-				})
-			).page,
-		).toEqual([]);
-	});
+				}),
+			).rejects.toThrow("invalid");
+			expect(
+				(
+					await alice.query(api.nutritionLibrary.list, {
+						paginationOpts: { cursor: null, numItems: 10 },
+					})
+				).page,
+			).toEqual([]);
+		},
+	);
 
-	it.each([
-		"classification",
-		"estimated",
-		"nutritionBasis",
-	])("rejects explicit null %s in versioned backup payloads", async (key) => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert(`null-${key}`, 0, { ...estimated, [key]: null }, 2),
-			),
-		).rejects.toThrow("invalid");
-	});
+	it.each(["classification", "estimated", "nutritionBasis"])(
+		"rejects explicit null %s in versioned backup payloads",
+		async (key) => {
+			const t = convexTest(schema, modules);
+			const alice = t.withIdentity({ subject: "alice" });
+			await expect(
+				alice.mutation(
+					api.nutritionLibrary.applyOperation,
+					upsert(`null-${key}`, 0, { ...estimated, [key]: null }, 2),
+				),
+			).rejects.toThrow("invalid");
+		},
+	);
 
 	it("preserves estimates through logging workflows and aggregates their nutrient states in weekly review", async () => {
 		const t = convexTest(schema, modules);
@@ -437,7 +436,9 @@ describe("Personal Food estimate compatibility", () => {
 			startDate: "2026-09-14",
 		});
 		const loggedDays = week.days.filter((entry) => entry.entryCount > 0);
-		expect(loggedDays.reduce((sum, entry) => sum + entry.entryCount, 0)).toBe(4);
+		expect(loggedDays.reduce((sum, entry) => sum + entry.entryCount, 0)).toBe(
+			4,
+		);
 		expect(
 			loggedDays.every(
 				(entry) =>

@@ -3,7 +3,8 @@
 # Usage: driver.sh <command> [args]   (run from anywhere; see SKILL.md)
 set -euo pipefail
 
-BUNDLE_ID=com.appelent.foundry
+# Development variant (app.config.ts): its own bundle ID and app name.
+BUNDLE_ID=com.appelent.foundry.dev
 AGENT_DEVICE=(npx -y agent-device@0.21.27)
 
 MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -12,6 +13,7 @@ STATE="${RUN_MOBILE_STATE:-${TMPDIR:-/tmp}/run-mobile-$CHECKOUT_ID}"
 SIM_NAME="${RUN_MOBILE_SIM:-Foundry run-mobile $CHECKOUT_ID}"
 DEVICE_TYPE="${RUN_MOBILE_DEVICE_TYPE:-iPhone 18 Pro}"
 PORT="${RUN_MOBILE_PORT:-8090}"
+METRO_FLAGS=()
 mkdir -p "$STATE"
 
 log() { printf '[run-mobile] %s\n' "$*" >&2; }
@@ -46,7 +48,7 @@ ad() {
 
 find_dev_client() {
 	if [ -n "${RUN_MOBILE_APP:-}" ]; then printf '%s' "$RUN_MOBILE_APP"; return; fi
-	ls -dt "$HOME"/Library/Developer/Xcode/DerivedData/Foundry-*/Build/Products/Debug-iphonesimulator/Foundry.app 2>/dev/null | head -1
+	ls -dt "$HOME"/Library/Developer/Xcode/DerivedData/FoundryDev-*/Build/Products/Debug-iphonesimulator/FoundryDev.app 2>/dev/null | head -1
 }
 
 set_lang() {
@@ -68,6 +70,7 @@ ensure_metro() {
 	cwd="$(metro_cwd)"
 	if [ -n "$cwd" ]; then
 		[ "$cwd" = "$MOBILE_DIR" ] || die "port $PORT is Metro for $cwd, not this checkout; set RUN_MOBILE_PORT"
+		[ "${#METRO_FLAGS[@]}" = 0 ] || die "Metro is already running; driver.sh down, then up ${METRO_FLAGS[*]}"
 		log "reusing Metro on :$PORT (after dependency or config changes, or to toggle --debug-queries: driver.sh down, then up)"
 		return
 	fi
@@ -76,7 +79,7 @@ ensure_metro() {
 	# a subshell that keeps the caller's stdout, so `up | tail` would never end.
 	(
 		cd "$MOBILE_DIR" || exit 1
-		nohup pnpm exec expo start --dev-client --port "$PORT" </dev/null >"$STATE/metro.log" 2>&1 &
+		nohup pnpm exec expo start --dev-client --port "$PORT" ${METRO_FLAGS[@]+"${METRO_FLAGS[@]}"} </dev/null >"$STATE/metro.log" 2>&1 &
 		echo $! >"$STATE/metro.pid"
 	)
 	for _ in $(seq 1 60); do
@@ -109,6 +112,7 @@ cmd_up() {
 		case "$1" in
 			--lang) lang="$2"; shift 2 ;;
 			--debug-queries) export EXPO_PUBLIC_DEBUG_QUERIES=1; shift ;;
+			--clear) METRO_FLAGS+=(--clear); shift ;;
 			*) die "unknown flag $1" ;;
 		esac
 	done
@@ -136,7 +140,7 @@ cmd_up() {
 
 	if ! xcrun simctl get_app_container "$u" "$BUNDLE_ID" >/dev/null 2>&1; then
 		app="$(find_dev_client)"
-		[ -n "$app" ] || die "no Foundry.app dev client build found; run 'pnpm devbuild:ios' once or set RUN_MOBILE_APP"
+		[ -n "$app" ] || die "no FoundryDev.app dev client build found; run 'pnpm devbuild:ios' once or set RUN_MOBILE_APP"
 		log "installing $app"
 		xcrun simctl install "$u" "$app"
 	fi
@@ -160,6 +164,7 @@ cmd_up() {
 		sleep 2
 	done
 	[ "$bundled" = 1 ] || die "no new iOS bundle after 180s; see $STATE/metro.log"
+	cmd_backend >&2 || die "the app is not on the configured backend; make no writes"
 	sleep 3
 	log "up: udid=$u port=$PORT lang=$lang"
 }
@@ -197,6 +202,11 @@ cmd_ss() {
 	echo "$out"
 }
 
+# Prints only Convex origins: bundles also inline the test user's password.
+cmd_backend() {
+	node "$MOBILE_DIR/../../scripts/check-mobile-backend.mjs" --port "$PORT"
+}
+
 cmd_reload() {
 	curl -sf -X POST "http://127.0.0.1:$PORT/reload" >/dev/null || die "Metro not reachable on :$PORT"
 	log "reload sent"
@@ -228,9 +238,10 @@ case "${1:-}" in
 	ad) shift; ad "$@" ;;
 	ss) shift; cmd_ss "$@" ;;
 	reload) cmd_reload ;;
+	backend) cmd_backend ;;
 	logs) tail -n "${2:-40}" "$STATE/metro.log" ;;
 	udid) require_udid; echo ;;
 	state) echo "$STATE" ;;
 	down) cmd_down ;;
-	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] [--debug-queries] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | logs [n] | udid | state | down"; exit 2 ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] [--debug-queries] [--clear] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | backend | logs [n] | udid | state | down"; exit 2 ;;
 esac

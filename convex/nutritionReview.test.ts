@@ -14,7 +14,17 @@ function nutrient(reading: Reading) {
 	return { kind: "value" as const, amount: reading };
 }
 
-const snapshot = ({ date, energy, protein, suffix = "entry" }: { date: string; energy: Reading; protein: Reading; suffix?: string }) => ({
+const snapshot = ({
+	date,
+	energy,
+	protein,
+	suffix = "entry",
+}: {
+	date: string;
+	energy: Reading;
+	protein: Reading;
+	suffix?: string;
+}) => ({
 	date,
 	meal: "breakfast" as const,
 	name: { en: "Test food", nl: "Testvoeding" },
@@ -39,10 +49,16 @@ const snapshot = ({ date, energy, protein, suffix = "entry" }: { date: string; e
 describe("authenticated nutrition Week overview", () => {
 	it("requires authentication and validates real dates", async () => {
 		const t = convexTest(schema, modules);
-		await expect(t.query(api.nutritionReview.week, { startDate: "2026-09-07" })).rejects.toThrow("Unauthenticated");
+		await expect(
+			t.query(api.nutritionReview.week, { startDate: "2026-09-07" }),
+		).rejects.toThrow("Unauthenticated");
 		const alice = t.withIdentity({ subject: "alice" });
-		await expect(alice.query(api.nutritionReview.week, { startDate: "2026-02-30" })).rejects.toThrow("Invalid review date");
-		await expect(alice.query(api.nutritionReview.week, { startDate: "2026-09-08" })).rejects.toThrow("must start on Monday");
+		await expect(
+			alice.query(api.nutritionReview.week, { startDate: "2026-02-30" }),
+		).rejects.toThrow("Invalid review date");
+		await expect(
+			alice.query(api.nutritionReview.week, { startDate: "2026-09-08" }),
+		).rejects.toThrow("must start on Monday");
 	});
 
 	it("returns seven isolated days with the goals effective on each date", async () => {
@@ -63,7 +79,10 @@ describe("authenticated nutrition Week overview", () => {
 				{ nutrient: "energy", direction: "max", target: 2200 },
 			],
 		});
-		await alice.mutation(api.nutritionDiary.log, snapshot({ date: "2026-09-07", energy: 1900, protein: 90 }));
+		await alice.mutation(
+			api.nutritionDiary.log,
+			snapshot({ date: "2026-09-07", energy: 1900, protein: 90 }),
+		);
 		const beforeHistory = await alice.query(api.nutritionReview.week, {
 			startDate: "2026-08-24",
 		});
@@ -73,9 +92,17 @@ describe("authenticated nutrition Week overview", () => {
 			effectiveFrom: null,
 		});
 
-		const review = await alice.query(api.nutritionReview.week, { startDate: "2026-09-07" });
+		const review = await alice.query(api.nutritionReview.week, {
+			startDate: "2026-09-07",
+		});
 		expect(review.days.map((day) => day.date)).toEqual([
-			"2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13",
+			"2026-09-07",
+			"2026-09-08",
+			"2026-09-09",
+			"2026-09-10",
+			"2026-09-11",
+			"2026-09-12",
+			"2026-09-13",
 		]);
 		expect(review.days[0]).toMatchObject({
 			entryCount: 1,
@@ -91,17 +118,31 @@ describe("authenticated nutrition Week overview", () => {
 		]);
 		expect(review).not.toHaveProperty("coverage");
 		expect(review.days[0]).not.toHaveProperty("markedComplete");
-		expect((await bob.query(api.nutritionReview.week, { startDate: "2026-09-07" })).days[0]).toMatchObject({ entryCount: 0, goals: [] });
+		expect(
+			(await bob.query(api.nutritionReview.week, { startDate: "2026-09-07" }))
+				.days[0],
+		).toMatchObject({ entryCount: 0, goals: [] });
 	});
 
 	it("keeps completeness per nutrient and includes qualified results in averages", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
-		await alice.mutation(api.nutritionDiary.log, snapshot({ date: "2026-09-07", energy: 100, protein: 10 }));
-		await alice.mutation(api.nutritionDiary.log, snapshot({ date: "2026-09-08", energy: undefined, protein: 20 }));
-		await alice.mutation(api.nutritionDiary.log, snapshot({ date: "2026-09-09", energy: 200, protein: "trace" }));
+		await alice.mutation(
+			api.nutritionDiary.log,
+			snapshot({ date: "2026-09-07", energy: 100, protein: 10 }),
+		);
+		await alice.mutation(
+			api.nutritionDiary.log,
+			snapshot({ date: "2026-09-08", energy: undefined, protein: 20 }),
+		);
+		await alice.mutation(
+			api.nutritionDiary.log,
+			snapshot({ date: "2026-09-09", energy: 200, protein: "trace" }),
+		);
 
-		const review = await alice.query(api.nutritionReview.week, { startDate: "2026-09-07" });
+		const review = await alice.query(api.nutritionReview.week, {
+			startDate: "2026-09-07",
+		});
 		expect(review.days[1]?.totals.energy.incomplete).toBe(true);
 		expect(review.days[1]?.totals.protein.incomplete).toBe(false);
 		expect(review.averages).toEqual({
@@ -117,8 +158,14 @@ describe("authenticated nutrition Week overview", () => {
 	it("excludes upcoming days from current-week averages", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
-		await alice.mutation(api.nutritionDiary.log, snapshot({ date: "2026-09-14", energy: 100, protein: 10 }));
-		await alice.mutation(api.nutritionDiary.log, snapshot({ date: "2026-09-17", energy: 900, protein: 90 }));
+		await alice.mutation(
+			api.nutritionDiary.log,
+			snapshot({ date: "2026-09-14", energy: 100, protein: 10 }),
+		);
+		await alice.mutation(
+			api.nutritionDiary.log,
+			snapshot({ date: "2026-09-17", energy: 900, protein: 90 }),
+		);
 
 		const review = await alice.query(api.nutritionReview.week, {
 			startDate: "2026-09-14",

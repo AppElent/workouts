@@ -13,7 +13,11 @@ import {
 	useState,
 } from "react";
 import { api } from "../convex/api";
-import { usePaginatedQuery, useQueries, useQuery } from "../convex/query-cache";
+import {
+	usePausablePaginatedQuery,
+	useQueries,
+	useQuery,
+} from "../convex/query-cache";
 import {
 	type FoodPhotoUpload,
 	useFoodPhotoUpload,
@@ -576,11 +580,11 @@ export function usePersonalFoods(options?: {
 		return () => clearTimeout(timer);
 	}, [query]);
 	const screenActive = useScreenQueryActive();
-	const enabled =
-		!!value.account.subject && options?.active !== false && screenActive;
-	const browse = usePaginatedQuery(
+	const subscribed = !!value.account.subject && options?.active !== false;
+	const enabled = subscribed && screenActive;
+	const browse = usePausablePaginatedQuery(
 		api.nutritionLibrary.browse,
-		enabled && options?.browse
+		subscribed && options?.browse
 			? {
 					query: settledQuery.trim(),
 					photoVersion: 3,
@@ -590,6 +594,7 @@ export function usePersonalFoods(options?: {
 				}
 			: "skip",
 		{ initialNumItems: 50 },
+		screenActive,
 	);
 	let ids = [...new Set(options?.ids ?? [])].sort();
 	const allForkIds = [
@@ -694,7 +699,7 @@ export function usePersonalFoods(options?: {
 			: "skip",
 	);
 	const key = canonicalJson([
-		...(enabled && options?.browse ? browse.results : []),
+		...(subscribed && options?.browse ? browse.results : []),
 		...(enabled && Array.isArray(details) ? details : []),
 		...extraRecords,
 	]);
@@ -716,7 +721,9 @@ export function usePersonalFoods(options?: {
 			)
 			.map((record) => record.id),
 	);
-	const bounded = !!options?.browse && enabled;
+	// Stays bounded while the screen is hidden, so the list it returns to is
+	// the one it left.
+	const bounded = !!options?.browse && subscribed;
 	const sourcesResolved =
 		enabled &&
 		ids.length === 1 &&

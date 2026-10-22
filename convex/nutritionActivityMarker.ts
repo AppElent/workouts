@@ -14,8 +14,8 @@
  * boundaries (see `apps/mobile/src/data/calendar-day.ts`) and passes them in.
  */
 import { v } from "convex/values";
-import { query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
+import { query } from "./_generated/server";
 
 async function requireUser(ctx: QueryCtx) {
 	const identity = await ctx.auth.getUserIdentity();
@@ -28,16 +28,28 @@ export const hasCompletedActivity = query({
 	returns: v.boolean(),
 	handler: async (ctx, { from, to }) => {
 		const userId = await requireUser(ctx);
-		if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || !(from < to)) throw new Error("Invalid range.");
+		if (
+			!Number.isSafeInteger(from) ||
+			!Number.isSafeInteger(to) ||
+			!(from < to)
+		)
+			throw new Error("Invalid range.");
 		const strength = await ctx.db
 			.query("workoutSessions")
 			.withIndex("by_user_status_date", (q) =>
-				q.eq("userId", userId).eq("status", "completed").gte("date", from).lt("date", to),
+				q
+					.eq("userId", userId)
+					.eq("status", "completed")
+					.gte("date", from)
+					.lt("date", to),
 			)
 			.first();
 		if (strength) return true;
-		const endurance = await ctx.db.query("activities")
-			.withIndex("by_user_occurred_at", (q) => q.eq("userId", userId).gte("occurredAt", from).lt("occurredAt", to))
+		const endurance = await ctx.db
+			.query("activities")
+			.withIndex("by_user_occurred_at", (q) =>
+				q.eq("userId", userId).gte("occurredAt", from).lt("occurredAt", to),
+			)
 			.first();
 		return endurance !== null;
 	},
