@@ -41,7 +41,7 @@ const user = {
 	update,
 	updatePassword,
 };
-vi.mock("@clerk/clerk-react", () => ({
+vi.mock("@clerk/react", () => ({
 	useUser: () => ({ isLoaded: true, isSignedIn: true, user }),
 	useClerk: () => ({ signOut }),
 }));

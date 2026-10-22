@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
@@ -12,12 +12,12 @@ export const Route = createFileRoute("/hosted-workouts/")({
 function HostedWorkoutsGuarded() {
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<HostedWorkoutsPage />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

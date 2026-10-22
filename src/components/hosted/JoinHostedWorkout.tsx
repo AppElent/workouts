@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-react";
+import { Show, useAuth, useUser } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -100,7 +100,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 						)}
 					</div>
 
-					<SignedIn>
+					<Show when="signed-in">
 						<div className="flex flex-col gap-2 sm:w-56">
 							<label className="flex flex-col gap-1 text-xs font-medium uppercase text-[var(--text-muted)]">
 								Your name
@@ -122,8 +122,8 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 								{joining ? "Joining..." : "Join workout"}
 							</button>
 						</div>
-					</SignedIn>
-					<SignedOut>
+					</Show>
+					<Show when="signed-out">
 						<Link
 							to="/sign-in"
 							className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-white"
@@ -131,7 +131,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 							<LogIn size={15} />
 							Sign in to join
 						</Link>
-					</SignedOut>
+					</Show>
 				</div>
 				{joinError && <p className="mt-3 text-sm text-red-400">{joinError}</p>}
 			</header>

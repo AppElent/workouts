@@ -1,12 +1,10 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["apps", "packages", "node_modules"],
+  "exclude": ["apps", "packages", "node_modules", "docs"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
     "paths": {
       "#/*": ["./src/*"],
       "@/*": ["./src/*"],

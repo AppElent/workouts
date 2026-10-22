@@ -1,4 +1,4 @@
-import { SignedIn } from "@clerk/clerk-react";
+import { Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
@@ -177,7 +177,7 @@ function ExercisesPage() {
 									{ex.name}
 								</p>
 								{!ex.isDefault && (
-									<SignedIn>
+									<Show when="signed-in">
 										<button
 											type="button"
 											onClick={(e) => {
@@ -189,7 +189,7 @@ function ExercisesPage() {
 										>
 											<Trash2 size={12} />
 										</button>
-									</SignedIn>
+									</Show>
 								)}
 							</div>
 							<p className="text-[10px] text-[var(--text-muted)] mb-2 capitalize">
@@ -216,7 +216,7 @@ function ExercisesPage() {
 			)}
 
 			{/* FAB (auth only) */}
-			<SignedIn>
+			<Show when="signed-in">
 				<button
 					type="button"
 					onClick={() => setModalOpen(true)}
@@ -227,7 +227,7 @@ function ExercisesPage() {
 				</button>
 
 				<AddExerciseModal open={modalOpen} onOpenChange={setModalOpen} />
-			</SignedIn>
+			</Show>
 		</div>
 	);
 }

@@ -1,9 +1,10 @@
-import { useSignIn } from "@clerk/clerk-react";
+import { useSignIn } from "@clerk/react";
 import { useState } from "react";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { useAuthConfig } from "./AuthConfigProvider";
 import { AuthError } from "./AuthError";
+import { orThrow } from "./clerkResult";
 import { clerkErrorMessage } from "./types";
 
 /**
@@ -13,7 +14,7 @@ import { clerkErrorMessage } from "./types";
  * transfers an unknown account to a sign-up on the callback.
  */
 export function SocialButtons() {
-	const { isLoaded, signIn } = useSignIn();
+	const { signIn } = useSignIn();
 	const config = useAuthConfig();
 	const { auth } = useMessages();
 	const [pending, setPending] = useState<string | null>(null);
@@ -24,20 +25,17 @@ export function SocialButtons() {
 	}
 
 	async function start(id: string, strategy: `oauth_${string}`) {
-		if (!isLoaded) {
-			return;
-		}
 		setError(null);
 		setPending(id);
 		try {
-			await signIn.authenticateWithRedirect({
-				// Clerk's strategy union is narrower than our config type.
-				strategy: strategy as Parameters<
-					typeof signIn.authenticateWithRedirect
-				>[0]["strategy"],
-				redirectUrl: config.paths.ssoCallback,
-				redirectUrlComplete: config.paths.afterAuth,
-			});
+			await orThrow(
+				signIn.sso({
+					// Clerk's strategy union is narrower than our config type.
+					strategy: strategy as Parameters<typeof signIn.sso>[0]["strategy"],
+					redirectCallbackUrl: config.paths.ssoCallback,
+					redirectUrl: config.paths.afterAuth,
+				}),
+			);
 		} catch (err) {
 			setError(clerkErrorMessage(err));
 			setPending(null);

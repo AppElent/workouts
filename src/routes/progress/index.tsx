@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute } from "@tanstack/react-router";
@@ -27,12 +27,12 @@ export const Route = createFileRoute("/progress/")({
 function ProgressPageGuarded() {
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<ProgressPage />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

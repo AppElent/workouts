@@ -212,7 +212,7 @@ describe("retry-safe nutrition diary operations", () => {
 			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
 				.entries,
 		).toHaveLength(1);
-		expect(
+		await expect(
 			alice.mutation(api.nutritionDiary.applyOperation, {
 				...envelope("op-create", {
 					kind: "create",

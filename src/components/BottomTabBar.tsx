@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { isNavItemLocked, useNavItems } from "./navItems";
 
