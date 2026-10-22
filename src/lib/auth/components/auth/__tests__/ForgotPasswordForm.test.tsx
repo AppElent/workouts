@@ -87,4 +87,40 @@ describe("ForgotPasswordForm", () => {
 		expect(submitPassword).toHaveBeenCalledWith({ password: "newpw123!" });
 		expect(onSuccess).toHaveBeenCalled();
 	});
+
+	it("retries only the password after it is rejected", async () => {
+		create.mockImplementation(ok({ status: "needs_first_factor" }));
+		sendCode.mockImplementation(ok());
+		verifyCode.mockImplementation(ok({ status: "needs_new_password" }));
+		submitPassword
+			.mockResolvedValueOnce({
+				error: { errors: [{ message: "Password too weak." }] },
+			})
+			.mockImplementation(ok({ status: "complete" }));
+		finalize.mockImplementation(ok());
+		const onSuccess = vi.fn();
+		renderForm(onSuccess);
+
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+		fireEvent.change(await screen.findByLabelText(/code/i), {
+			target: { value: "123456" },
+		});
+		fireEvent.change(screen.getByLabelText(/new password/i), {
+			target: { value: "weak" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /reset password/i }));
+		expect(await screen.findByText("Password too weak.")).toBeDefined();
+
+		fireEvent.change(screen.getByLabelText(/new password/i), {
+			target: { value: "newpw123!" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /reset password/i }));
+		await vi.waitFor(() => expect(finalize).toHaveBeenCalled());
+		expect(verifyCode).toHaveBeenCalledTimes(1);
+		expect(submitPassword).toHaveBeenLastCalledWith({ password: "newpw123!" });
+		expect(onSuccess).toHaveBeenCalled();
+	});
 });

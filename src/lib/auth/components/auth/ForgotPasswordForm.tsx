@@ -37,7 +37,11 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 		setError(null);
 		setLoading(true);
 		try {
-			await orThrow(signIn.resetPasswordEmailCode.verifyCode({ code }));
+			// A rejected password leaves the code verified; retrying must only
+			// resubmit the password.
+			if (signIn.status !== "needs_new_password") {
+				await orThrow(signIn.resetPasswordEmailCode.verifyCode({ code }));
+			}
 			await orThrow(signIn.resetPasswordEmailCode.submitPassword({ password }));
 			if (signIn.status === "complete") {
 				await orThrow(signIn.finalize());
