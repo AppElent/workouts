@@ -1,64 +1,65 @@
-import { canonicalExerciseId } from "./lib/exerciseCatalog";
 import { getShippedExerciseByName } from "@foundry/core/exercises";
+import { canonicalExerciseId } from "./lib/exerciseCatalog";
+
 // SEED MAINTENANCE: When adding new tables or features, update this file:
 //   - Default exercises ship in packages/core/src/exercises; do not insert them here.
 //   - seedTestData: add inserts for any new tables with per-user data
 //   - clearUserData: add delete queries for any new per-user tables
 //   - Schema additions: check for new required fields on existing tables
 
-import { internalMutation, mutation } from './_generated/server'
-import { v } from 'convex/values'
-import type { Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
-import { calculateOneRepMax } from '@foundry/core'
-import { DEFAULT_WODS } from './seedData/wods'
+import { calculateOneRepMax } from "@foundry/core";
+import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import { internalMutation, mutation } from "./_generated/server";
+import { DEFAULT_WODS } from "./seedData/wods";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 async function deleteUserData(ctx: MutationCtx, userId: string): Promise<void> {
 	const sessions = await ctx.db
-		.query('workoutSessions')
-		.withIndex('by_user', (q) => q.eq('userId', userId))
-		.collect()
+		.query("workoutSessions")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
 	for (const session of sessions) {
 		const sets = await ctx.db
-			.query('sets')
-			.withIndex('by_session', (q) => q.eq('sessionId', session._id))
-			.collect()
-		for (const set of sets) await ctx.db.delete(set._id)
-		await ctx.db.delete(session._id)
+			.query("sets")
+			.withIndex("by_session", (q) => q.eq("sessionId", session._id))
+			.collect();
+		for (const set of sets) await ctx.db.delete(set._id);
+		await ctx.db.delete(session._id);
 	}
 	const orms = await ctx.db
-		.query('oneRepMaxes')
-		.withIndex('by_user', (q) => q.eq('userId', userId))
-		.collect()
-	for (const orm of orms) await ctx.db.delete(orm._id)
+		.query("oneRepMaxes")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
+	for (const orm of orms) await ctx.db.delete(orm._id);
 	const routines = await ctx.db
-		.query('routines')
-		.withIndex('by_user', (q) => q.eq('userId', userId))
-		.collect()
-	for (const routine of routines) await ctx.db.delete(routine._id)
+		.query("routines")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
+	for (const routine of routines) await ctx.db.delete(routine._id);
 	const bodyMetrics = await ctx.db
-		.query('bodyMetrics')
-		.withIndex('by_user', (q) => q.eq('userId', userId))
-		.collect()
-	for (const m of bodyMetrics) await ctx.db.delete(m._id)
+		.query("bodyMetrics")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
+	for (const m of bodyMetrics) await ctx.db.delete(m._id);
 	const wodResults = await ctx.db
-		.query('wodResults')
-		.withIndex('by_user', (q) => q.eq('userId', userId))
-		.collect()
-	for (const r of wodResults) await ctx.db.delete(r._id)
+		.query("wodResults")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
+	for (const r of wodResults) await ctx.db.delete(r._id);
 	const userWods = await ctx.db
-		.query('wods')
-		.withIndex('by_user', (q) => q.eq('userId', userId))
-		.collect()
-	for (const w of userWods) await ctx.db.delete(w._id)
+		.query("wods")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
+	for (const w of userWods) await ctx.db.delete(w._id);
 }
 
 async function getExerciseId(ctx: MutationCtx, name: string): Promise<string> {
-	const shipped = getShippedExerciseByName(name)
-	if (!shipped) throw new Error(`Exercise not found: ${name}`)
-	return canonicalExerciseId(ctx, shipped._id)
+	const shipped = getShippedExerciseByName(name);
+	if (!shipped) throw new Error(`Exercise not found: ${name}`);
+	return canonicalExerciseId(ctx, shipped._id);
 }
 
 // Kept for existing setup scripts. The shipped catalog never needs database rows.
@@ -67,111 +68,186 @@ export const seedExercises = internalMutation({
 	args: {},
 	returns: v.object({ shipped: v.boolean() }),
 	handler: async () => ({ shipped: true }),
-})
+});
 
 // ─── seedWods ────────────────────────────────────────────────────────────────
 
 export const seedWods = mutation({
 	args: {},
 	handler: async (ctx) => {
-		let inserted = 0
-		let skipped = 0
+		let inserted = 0;
+		let skipped = 0;
 		for (const wod of DEFAULT_WODS) {
 			const existing = await ctx.db
-				.query('wods')
-				.withIndex('by_name', (q) => q.eq('name', wod.name))
-				.first()
+				.query("wods")
+				.withIndex("by_name", (q) => q.eq("name", wod.name))
+				.first();
 			if (existing) {
-				skipped++
-				continue
+				skipped++;
+				continue;
 			}
-			await ctx.db.insert('wods', { ...wod, isDefault: true, userId: '' })
-			inserted++
+			await ctx.db.insert("wods", { ...wod, isDefault: true, userId: "" });
+			inserted++;
 		}
-		return { inserted, skipped, total: DEFAULT_WODS.length }
+		return { inserted, skipped, total: DEFAULT_WODS.length };
 	},
-})
+});
 
 // ─── clearUserData ───────────────────────────────────────────────────────────
 
 export const clearUserData = internalMutation({
 	args: { userId: v.string() },
 	handler: async (ctx, { userId }) => {
-		await deleteUserData(ctx, userId)
-		return { cleared: true }
+		await deleteUserData(ctx, userId);
+		return { cleared: true };
 	},
-})
+});
 
 // ─── seedTestData ────────────────────────────────────────────────────────────
 
 export const seedTestData = internalMutation({
 	args: { userId: v.string() },
 	handler: async (ctx, { userId }) => {
-		await deleteUserData(ctx, userId)
+		await deleteUserData(ctx, userId);
 
 		const exIds = {
-			squat: await getExerciseId(ctx, 'Barbell Back Squat'),
-			bench: await getExerciseId(ctx, 'Barbell Bench Press'),
-			deadlift: await getExerciseId(ctx, 'Barbell Deadlift'),
-			ohp: await getExerciseId(ctx, 'Barbell Overhead Press'),
-			row: await getExerciseId(ctx, 'Barbell Row'),
-			pullUp: await getExerciseId(ctx, 'Pull-Up'),
-			curl: await getExerciseId(ctx, 'Dumbbell Curl'),
-			tricepPush: await getExerciseId(ctx, 'Tricep Pushdown'),
-			legPress: await getExerciseId(ctx, 'Leg Press'),
-			rdl: await getExerciseId(ctx, 'Romanian Deadlift'),
-			latRaise: await getExerciseId(ctx, 'Dumbbell Lateral Raise'),
-			cableRow: await getExerciseId(ctx, 'Cable Row'),
-			dbBench: await getExerciseId(ctx, 'Dumbbell Bench Press'),
-			inclineBench: await getExerciseId(ctx, 'Incline Barbell Press'),
-			kbSwing: await getExerciseId(ctx, 'Kettlebell Swing'),
-		}
+			squat: await getExerciseId(ctx, "Barbell Back Squat"),
+			bench: await getExerciseId(ctx, "Barbell Bench Press"),
+			deadlift: await getExerciseId(ctx, "Barbell Deadlift"),
+			ohp: await getExerciseId(ctx, "Barbell Overhead Press"),
+			row: await getExerciseId(ctx, "Barbell Row"),
+			pullUp: await getExerciseId(ctx, "Pull-Up"),
+			curl: await getExerciseId(ctx, "Dumbbell Curl"),
+			tricepPush: await getExerciseId(ctx, "Tricep Pushdown"),
+			legPress: await getExerciseId(ctx, "Leg Press"),
+			rdl: await getExerciseId(ctx, "Romanian Deadlift"),
+			latRaise: await getExerciseId(ctx, "Dumbbell Lateral Raise"),
+			cableRow: await getExerciseId(ctx, "Cable Row"),
+			dbBench: await getExerciseId(ctx, "Dumbbell Bench Press"),
+			inclineBench: await getExerciseId(ctx, "Incline Barbell Press"),
+			kbSwing: await getExerciseId(ctx, "Kettlebell Swing"),
+		};
 
 		// Routines
-		const pushId = await ctx.db.insert('routines', {
+		const pushId = await ctx.db.insert("routines", {
 			userId,
-			name: 'Push Day',
+			name: "Push Day",
 			exercises: [
-				{ exerciseId: exIds.bench, defaultSets: 4, defaultReps: 5, defaultWeight: 80 },
-				{ exerciseId: exIds.ohp, defaultSets: 3, defaultReps: 8, defaultWeight: 50 },
-				{ exerciseId: exIds.inclineBench, defaultSets: 3, defaultReps: 8, defaultWeight: 65 },
-				{ exerciseId: exIds.dbBench, defaultSets: 3, defaultReps: 10, defaultWeight: 30 },
-				{ exerciseId: exIds.tricepPush, defaultSets: 3, defaultReps: 12, defaultWeight: 30 },
-				{ exerciseId: exIds.latRaise, defaultSets: 3, defaultReps: 15, defaultWeight: 10 },
+				{
+					exerciseId: exIds.bench,
+					defaultSets: 4,
+					defaultReps: 5,
+					defaultWeight: 80,
+				},
+				{
+					exerciseId: exIds.ohp,
+					defaultSets: 3,
+					defaultReps: 8,
+					defaultWeight: 50,
+				},
+				{
+					exerciseId: exIds.inclineBench,
+					defaultSets: 3,
+					defaultReps: 8,
+					defaultWeight: 65,
+				},
+				{
+					exerciseId: exIds.dbBench,
+					defaultSets: 3,
+					defaultReps: 10,
+					defaultWeight: 30,
+				},
+				{
+					exerciseId: exIds.tricepPush,
+					defaultSets: 3,
+					defaultReps: 12,
+					defaultWeight: 30,
+				},
+				{
+					exerciseId: exIds.latRaise,
+					defaultSets: 3,
+					defaultReps: 15,
+					defaultWeight: 10,
+				},
 			],
-		})
+		});
 
-		const pullId = await ctx.db.insert('routines', {
+		const pullId = await ctx.db.insert("routines", {
 			userId,
-			name: 'Pull Day',
+			name: "Pull Day",
 			exercises: [
-				{ exerciseId: exIds.deadlift, defaultSets: 3, defaultReps: 5, defaultWeight: 120 },
-				{ exerciseId: exIds.row, defaultSets: 4, defaultReps: 6, defaultWeight: 70 },
-				{ exerciseId: exIds.pullUp, defaultSets: 3, defaultReps: 8, defaultWeight: 0 },
-				{ exerciseId: exIds.cableRow, defaultSets: 3, defaultReps: 10, defaultWeight: 55 },
-				{ exerciseId: exIds.curl, defaultSets: 3, defaultReps: 12, defaultWeight: 14 },
+				{
+					exerciseId: exIds.deadlift,
+					defaultSets: 3,
+					defaultReps: 5,
+					defaultWeight: 120,
+				},
+				{
+					exerciseId: exIds.row,
+					defaultSets: 4,
+					defaultReps: 6,
+					defaultWeight: 70,
+				},
+				{
+					exerciseId: exIds.pullUp,
+					defaultSets: 3,
+					defaultReps: 8,
+					defaultWeight: 0,
+				},
+				{
+					exerciseId: exIds.cableRow,
+					defaultSets: 3,
+					defaultReps: 10,
+					defaultWeight: 55,
+				},
+				{
+					exerciseId: exIds.curl,
+					defaultSets: 3,
+					defaultReps: 12,
+					defaultWeight: 14,
+				},
 			],
-		})
+		});
 
-		const legId = await ctx.db.insert('routines', {
+		const legId = await ctx.db.insert("routines", {
 			userId,
-			name: 'Leg Day',
+			name: "Leg Day",
 			exercises: [
-				{ exerciseId: exIds.squat, defaultSets: 4, defaultReps: 5, defaultWeight: 100 },
-				{ exerciseId: exIds.legPress, defaultSets: 3, defaultReps: 10, defaultWeight: 150 },
-				{ exerciseId: exIds.rdl, defaultSets: 3, defaultReps: 8, defaultWeight: 80 },
-				{ exerciseId: exIds.kbSwing, defaultSets: 3, defaultReps: 15, defaultWeight: 24 },
+				{
+					exerciseId: exIds.squat,
+					defaultSets: 4,
+					defaultReps: 5,
+					defaultWeight: 100,
+				},
+				{
+					exerciseId: exIds.legPress,
+					defaultSets: 3,
+					defaultReps: 10,
+					defaultWeight: 150,
+				},
+				{
+					exerciseId: exIds.rdl,
+					defaultSets: 3,
+					defaultReps: 8,
+					defaultWeight: 80,
+				},
+				{
+					exerciseId: exIds.kbSwing,
+					defaultSets: 3,
+					defaultReps: 15,
+					defaultWeight: 24,
+				},
 			],
-		})
+		});
 
 		// Timestamp helper
-		const DAY = 24 * 60 * 60 * 1000
-		const now = Date.now()
+		const DAY = 24 * 60 * 60 * 1000;
+		const now = Date.now();
 		function sessionTs(daysAgo: number) {
-			const d = now - daysAgo * DAY
-			const midnight = d - (d % DAY)
-			const start = midnight + 18 * 60 * 60 * 1000
-			return { start, end: start + 75 * 60 * 1000 }
+			const d = now - daysAgo * DAY;
+			const midnight = d - (d % DAY);
+			const start = midnight + 18 * 60 * 60 * 1000;
+			return { start, end: start + 75 * 60 * 1000 };
 		}
 
 		// Push day weights per appearance index (0–3)
@@ -180,7 +256,7 @@ export const seedTestData = internalMutation({
 			[80, 48.75, 65, 30, 30, 10],
 			[82.5, 50, 67.5, 30, 30, 10],
 			[85, 51.25, 70, 32, 32.5, 10],
-		]
+		];
 		const pushExercises = [
 			{ id: exIds.bench, reps: 5, sets: 4 },
 			{ id: exIds.ohp, reps: 8, sets: 3 },
@@ -188,145 +264,166 @@ export const seedTestData = internalMutation({
 			{ id: exIds.dbBench, reps: 10, sets: 3 },
 			{ id: exIds.tricepPush, reps: 12, sets: 3 },
 			{ id: exIds.latRaise, reps: 15, sets: 3 },
-		]
+		];
 
 		// Pull day weights per appearance index (0–2)
 		const pullWeights = [
 			[117.5, 67.5, 0, 52.5, 12],
 			[120, 70, 0, 55, 14],
 			[122.5, 72.5, 0, 57.5, 14],
-		]
+		];
 		const pullExercises = [
 			{ id: exIds.deadlift, reps: 5, sets: 3 },
 			{ id: exIds.row, reps: 6, sets: 4 },
 			{ id: exIds.pullUp, reps: 8, sets: 3 },
 			{ id: exIds.cableRow, reps: 10, sets: 3 },
 			{ id: exIds.curl, reps: 12, sets: 3 },
-		]
+		];
 
 		// Leg day weights per appearance index (0–2)
 		const legWeights = [
 			[97.5, 145, 77.5, 20],
 			[100, 150, 80, 24],
 			[102.5, 155, 82.5, 24],
-		]
+		];
 		const legExercises = [
 			{ id: exIds.squat, reps: 5, sets: 4 },
 			{ id: exIds.legPress, reps: 10, sets: 3 },
 			{ id: exIds.rdl, reps: 8, sets: 3 },
 			{ id: exIds.kbSwing, reps: 15, sets: 3 },
-		]
+		];
 
-		type BestSet = { weight: number; reps: number }
-		const bestSets = new Map<string, BestSet>()
+		type BestSet = { weight: number; reps: number };
+		const bestSets = new Map<string, BestSet>();
 
 		function trackBest(exerciseId: string, weight: number, reps: number) {
-			if (weight === 0) return
-			const existing = bestSets.get(exerciseId)
+			if (weight === 0) return;
+			const existing = bestSets.get(exerciseId);
 			if (!existing) {
-				bestSets.set(exerciseId, { weight, reps })
-				return
+				bestSets.set(exerciseId, { weight, reps });
+				return;
 			}
-			const newOrm = calculateOneRepMax(weight, reps).value
-			const oldOrm = calculateOneRepMax(existing.weight, existing.reps).value
-			if (newOrm > oldOrm) bestSets.set(exerciseId, { weight, reps })
+			const newOrm = calculateOneRepMax(weight, reps).value;
+			const oldOrm = calculateOneRepMax(existing.weight, existing.reps).value;
+			if (newOrm > oldOrm) bestSets.set(exerciseId, { weight, reps });
 		}
 
 		async function insertSets(
-			sessionId: Id<'workoutSessions'>,
+			sessionId: Id<"workoutSessions">,
 			sessionStart: number,
 			exercises: { id: string; reps: number; sets: number }[],
 			weights: number[],
 		) {
-			let setIndex = 0
+			let setIndex = 0;
 			for (let ei = 0; ei < exercises.length; ei++) {
-				const ex = exercises[ei]
-				const weight = weights[ei]
+				const ex = exercises[ei];
+				const weight = weights[ei];
 				for (let s = 0; s < ex.sets; s++) {
-					await ctx.db.insert('sets', {
+					await ctx.db.insert("sets", {
 						userId,
 						sessionId,
 						exerciseId: ex.id,
 						setNumber: s + 1,
 						reps: ex.reps,
 						weight,
-						unit: 'kg',
-						setType: 'working',
+						unit: "kg",
+						setType: "working",
 						loggedAt: sessionStart + setIndex * 3 * 60 * 1000,
-					})
-					trackBest(ex.id, weight, ex.reps)
-					setIndex++
+					});
+					trackBest(ex.id, weight, ex.reps);
+					setIndex++;
 				}
 			}
-			return setIndex
+			return setIndex;
 		}
 
 		// Sessions
 		const schedule = [
-			{ daysAgo: 28, type: 'push', idx: 0 },
-			{ daysAgo: 26, type: 'pull', idx: 0 },
-			{ daysAgo: 24, type: 'legs', idx: 0 },
-			{ daysAgo: 21, type: 'push', idx: 1 },
-			{ daysAgo: 19, type: 'pull', idx: 1 },
-			{ daysAgo: 17, type: 'legs', idx: 1 },
-			{ daysAgo: 14, type: 'push', idx: 2 },
-			{ daysAgo: 12, type: 'pull', idx: 2 },
-			{ daysAgo: 10, type: 'legs', idx: 2 },
-			{ daysAgo: 7, type: 'push', idx: 3 },
-		] as const
+			{ daysAgo: 28, type: "push", idx: 0 },
+			{ daysAgo: 26, type: "pull", idx: 0 },
+			{ daysAgo: 24, type: "legs", idx: 0 },
+			{ daysAgo: 21, type: "push", idx: 1 },
+			{ daysAgo: 19, type: "pull", idx: 1 },
+			{ daysAgo: 17, type: "legs", idx: 1 },
+			{ daysAgo: 14, type: "push", idx: 2 },
+			{ daysAgo: 12, type: "pull", idx: 2 },
+			{ daysAgo: 10, type: "legs", idx: 2 },
+			{ daysAgo: 7, type: "push", idx: 3 },
+		] as const;
 
-		let totalSets = 0
+		let totalSets = 0;
 
 		for (const s of schedule) {
-			const ts = sessionTs(s.daysAgo)
-			let routineId: Id<'routines'>
-			let name: string
-			if (s.type === 'push') {
-				routineId = pushId
-				name = 'Push Day'
-			} else if (s.type === 'pull') {
-				routineId = pullId
-				name = 'Pull Day'
+			const ts = sessionTs(s.daysAgo);
+			let routineId: Id<"routines">;
+			let name: string;
+			if (s.type === "push") {
+				routineId = pushId;
+				name = "Push Day";
+			} else if (s.type === "pull") {
+				routineId = pullId;
+				name = "Pull Day";
 			} else {
-				routineId = legId
-				name = 'Leg Day'
+				routineId = legId;
+				name = "Leg Day";
 			}
 
-			const sessionId = await ctx.db.insert('workoutSessions', {
+			const sessionId = await ctx.db.insert("workoutSessions", {
 				userId,
 				date: ts.start,
 				startTime: ts.start,
 				endTime: ts.end,
 				name,
 				routineId,
-				status: 'completed',
-			})
+				status: "completed",
+			});
 
-			if (s.type === 'push') {
-				totalSets += await insertSets(sessionId, ts.start, pushExercises, pushWeights[s.idx])
-			} else if (s.type === 'pull') {
-				totalSets += await insertSets(sessionId, ts.start, pullExercises, pullWeights[s.idx])
+			if (s.type === "push") {
+				totalSets += await insertSets(
+					sessionId,
+					ts.start,
+					pushExercises,
+					pushWeights[s.idx],
+				);
+			} else if (s.type === "pull") {
+				totalSets += await insertSets(
+					sessionId,
+					ts.start,
+					pullExercises,
+					pullWeights[s.idx],
+				);
 			} else {
-				totalSets += await insertSets(sessionId, ts.start, legExercises, legWeights[s.idx])
+				totalSets += await insertSets(
+					sessionId,
+					ts.start,
+					legExercises,
+					legWeights[s.idx],
+				);
 			}
 		}
 
 		// 1RMs from best sets
-		let ormCount = 0
+		let ormCount = 0;
 		for (const [exerciseId, best] of bestSets.entries()) {
-			const result = calculateOneRepMax(best.weight, best.reps)
-			await ctx.db.insert('oneRepMaxes', {
+			const result = calculateOneRepMax(best.weight, best.reps);
+			await ctx.db.insert("oneRepMaxes", {
 				userId,
 				exerciseId,
 				value: result.value,
-				unit: 'kg',
+				unit: "kg",
 				date: now,
 				source: result.source,
 				formula: result.formula,
-			})
-			ormCount++
+			});
+			ormCount++;
 		}
 
-		return { seeded: true, routines: 3, sessions: 10, sets: totalSets, oneRepMaxes: ormCount }
+		return {
+			seeded: true,
+			routines: 3,
+			sessions: 10,
+			sets: totalSets,
+			oneRepMaxes: ormCount,
+		};
 	},
-})
+});

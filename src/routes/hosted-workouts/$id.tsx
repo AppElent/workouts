@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
 import { HostedWorkoutDashboard } from "#/components/hosted/HostedWorkoutDashboard";
@@ -12,12 +12,12 @@ function HostedWorkoutDashboardGuarded() {
 
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<HostedWorkoutDashboard id={id as Id<"hostedWorkouts">} />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

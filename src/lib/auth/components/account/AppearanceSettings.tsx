@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -41,11 +41,9 @@ export function AppearanceSettings() {
 		setMode(next);
 		setThemeMode(next);
 		if (user) {
-			user
-				.update({ unsafeMetadata: { ...user.unsafeMetadata, theme: next } })
-				.catch(() => {
-					// non-fatal: local theme already applied
-				});
+			user.updateMetadata({ unsafeMetadata: { theme: next } }).catch(() => {
+				// non-fatal: local theme already applied
+			});
 		}
 	}
 

@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
+
 import { defineSchema } from "convex/server";
+import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
 import { personalMeasureTables } from "./personalMeasureTables";
@@ -14,9 +15,7 @@ describe("public Personal Measure operations", () => {
 		const paginationOpts = { numItems: 100, cursor: null };
 		await expect(
 			t.query(api.personalMeasures.list, { paginationOpts }),
-		).rejects.toThrow(
-			"Unauthenticated",
-		);
+		).rejects.toThrow("Unauthenticated");
 		const alice = t.withIdentity({ subject: "alice" });
 		const bob = t.withIdentity({ subject: "bob" });
 		await alice.mutation(api.personalMeasures.create, {
@@ -36,7 +35,9 @@ describe("public Personal Measure operations", () => {
 	});
 
 	it("validates names and amounts and enforces case-insensitive uniqueness", async () => {
-		const user = convexTest(testSchema, modules).withIdentity({ subject: "alice" });
+		const user = convexTest(testSchema, modules).withIdentity({
+			subject: "alice",
+		});
 		await user.mutation(api.personalMeasures.create, {
 			name: " Small glass ",
 			amount: 250,

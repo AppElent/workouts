@@ -1,15 +1,16 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
+
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
-import { nutritionGoalTables } from "./nutritionGoalTables";
 import {
 	resolveGoalHistory,
-	validateNutritionGoals,
 	utcTodayIsoDate,
+	validateNutritionGoals,
 } from "./nutritionGoalModel";
+import { nutritionGoalTables } from "./nutritionGoalTables";
 
 const modules = import.meta.glob("./**/*.*s");
 const legacyGoalsTable = defineTable({
@@ -107,7 +108,9 @@ describe("public nutrition goal operations", () => {
 	});
 
 	it("atomically replaces the current set and rejects duplicate bounds", async () => {
-		const t = convexTest(testSchema, modules).withIdentity({ subject: "alice" });
+		const t = convexTest(testSchema, modules).withIdentity({
+			subject: "alice",
+		});
 		await expect(
 			t.mutation(api.nutritionGoals.replace, {
 				goals: [
@@ -118,7 +121,12 @@ describe("public nutrition goal operations", () => {
 		).rejects.toThrow("duplicate");
 		await t.mutation(api.nutritionGoals.replace, {
 			goals: [
-				{ nutrient: "protein", direction: "min", target: 50, sourcePreset: "reference" },
+				{
+					nutrient: "protein",
+					direction: "min",
+					target: 50,
+					sourcePreset: "reference",
+				},
 			],
 		});
 		await t.mutation(api.nutritionGoals.replace, {
@@ -145,7 +153,10 @@ describe("public nutrition goal operations", () => {
 		const t = convexTest(testSchema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await t.run(async (ctx) => {
-			await ctx.db.insert("nutritionGoals", { userId: "alice", ...energy(2000) });
+			await ctx.db.insert("nutritionGoals", {
+				userId: "alice",
+				...energy(2000),
+			});
 		});
 		await alice.mutation(api.nutritionGoals.replace, {
 			goals: [energy(1800)],
@@ -194,7 +205,10 @@ describe("public nutrition goal operations", () => {
 
 		expect(
 			await alice.query(api.nutritionGoals.forDate, { date: "2026-01-15" }),
-		).toMatchObject({ effectiveFrom: "2026-01-01", nextEffectiveFrom: "2026-02-01" });
+		).toMatchObject({
+			effectiveFrom: "2026-01-01",
+			nextEffectiveFrom: "2026-02-01",
+		});
 		expect(
 			await alice.query(api.nutritionGoals.forDate, { date: "2026-02-01" }),
 		).toMatchObject({ effectiveFrom: "2026-02-01", nextEffectiveFrom: null });
@@ -204,7 +218,10 @@ describe("public nutrition goal operations", () => {
 		const t = convexTest(testSchema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await t.run(async (ctx) => {
-			await ctx.db.insert("nutritionGoals", { userId: "alice", ...energy(2000) });
+			await ctx.db.insert("nutritionGoals", {
+				userId: "alice",
+				...energy(2000),
+			});
 		});
 		await alice.mutation(api.nutritionGoals.replace, {
 			goals: [energy(1800)],
@@ -233,7 +250,10 @@ describe("public nutrition goal operations", () => {
 		const t = convexTest(testSchema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await t.run(async (ctx) => {
-			await ctx.db.insert("nutritionGoals", { userId: "alice", ...energy(2000) });
+			await ctx.db.insert("nutritionGoals", {
+				userId: "alice",
+				...energy(2000),
+			});
 		});
 		await alice.mutation(api.nutritionGoals.replace, {
 			goals: [energy(1800)],
@@ -254,7 +274,9 @@ describe("public nutrition goal operations", () => {
 	});
 
 	it("rejects invalid dates, non-positive/non-finite targets, duplicates, and crossed bounds", async () => {
-		const t = convexTest(testSchema, modules).withIdentity({ subject: "alice" });
+		const t = convexTest(testSchema, modules).withIdentity({
+			subject: "alice",
+		});
 		await expect(
 			t.mutation(api.nutritionGoals.replace, {
 				goals: [energy(0)],

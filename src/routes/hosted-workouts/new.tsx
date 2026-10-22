@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { HostedWorkoutBuilder } from "#/components/hosted/HostedWorkoutBuilder";
 
@@ -9,12 +9,12 @@ export const Route = createFileRoute("/hosted-workouts/new")({
 function NewHostedWorkoutGuarded() {
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<NewHostedWorkoutPage />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

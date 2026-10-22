@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, useClerk, useUser } from "@clerk/clerk-react";
+import { Show, useClerk, useUser } from "@clerk/react";
 import { useState } from "react";
 import { useAuthConfig } from "#/lib/auth/components/auth/AuthConfigProvider";
 import { cn } from "#/lib/auth/lib/utils";
@@ -16,7 +16,7 @@ export default function HeaderUser() {
 
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<div className="relative">
 					<button
 						type="button"
@@ -49,15 +49,15 @@ export default function HeaderUser() {
 						</div>
 					) : null}
 				</div>
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<a
 					href={config.paths.signIn}
 					className="text-sm font-medium text-[var(--auth-fg)] hover:underline"
 				>
 					Sign in
 				</a>
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

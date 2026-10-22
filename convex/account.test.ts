@@ -47,8 +47,7 @@ describe("account data", () => {
 		expect(tables.sets.length).toBeGreaterThan(0);
 		expect(tables).not.toHaveProperty("nutritionDiaryOperationReceipts");
 		for (const rows of Object.values(tables))
-			for (const row of rows)
-				expect(row).toMatchObject({ userId: "alice" });
+			for (const row of rows) expect(row).toMatchObject({ userId: "alice" });
 	});
 
 	it("deletes all personal data in resumable batches and leaves other accounts intact", async () => {
@@ -71,7 +70,9 @@ describe("account data", () => {
 		expect(
 			await t.run((ctx) => ctx.db.query("nutritionFoodPhotos").collect()),
 		).toEqual(
-			expect.not.arrayContaining([expect.objectContaining({ userId: "alice" })]),
+			expect.not.arrayContaining([
+				expect.objectContaining({ userId: "alice" }),
+			]),
 		);
 	});
 

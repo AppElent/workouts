@@ -1,6 +1,6 @@
 import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
 import { useConvexConnectionState } from "convex/react";
-import { type Href, Stack, useRouter } from "expo-router";
+import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { formatLongDate, isoDayOffset } from "../../../data/calendar-day";
@@ -60,6 +60,14 @@ export function DiaryScreen({
 		if (previous !== today)
 			setDate((shown) => (shown === previous ? today : shown));
 	}, [today]);
+	// A header toolbar mounted before the tab's first focus swallows the native
+	// tab selection: the tab shows, but navigation stays on the previous tab and
+	// this screen never receives focus or touches (#134).
+	const focused = useIsFocused();
+	const [toolbarReady, setToolbarReady] = useState(focused);
+	useEffect(() => {
+		if (focused) setToolbarReady(true);
+	}, [focused]);
 	const [showTools, setShowTools] = useState(false);
 	const [selecting, setSelecting] = useState(Boolean(startSelecting));
 	const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
@@ -81,6 +89,8 @@ export function DiaryScreen({
 		state.status === "ready" && !state.day.complete,
 		connected,
 	);
+	// Notes arrive quickly when connected; announcing the wait only shifts the list.
+	const notesStalled = useStalledOffline(drafts.loading, connected);
 	const cachedGoalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsCached),
 		connected,
@@ -313,10 +323,8 @@ export function DiaryScreen({
 					</SkeletonGroup>
 				) : (
 					<>
-						{drafts.loading ? (
-							<AppText variant="caption">
-								{connected ? copy.notesLoading : copy.notesOffline}
-							</AppText>
+						{notesStalled ? (
+							<AppText variant="caption">{copy.notesOffline}</AppText>
 						) : null}
 						{incompleteStalled ? (
 							<AppText variant="caption">{copy.partialDay}</AppText>
@@ -450,7 +458,7 @@ export function DiaryScreen({
 						),
 				}}
 			/>
-			{!selecting && Platform.OS === "ios" ? (
+			{toolbarReady && !selecting && Platform.OS === "ios" ? (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.View hidesSharedBackground>
 						<GlassSurface capsule>

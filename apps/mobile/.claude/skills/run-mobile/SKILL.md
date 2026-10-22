@@ -3,7 +3,7 @@ name: run-mobile
 description: Run, start, launch, screenshot, and drive the Foundry Expo mobile app on an iOS simulator. Use when asked to run the mobile app, sign in, tap through a screen, take a simulator screenshot, reload Metro, or confirm a mobile change works in the real app.
 ---
 
-Drive the Expo dev client (bundle `com.appelent.foundry`) on a dedicated iOS
+Drive the Expo dev client (development variant, bundle `com.appelent.foundry.dev`) on a dedicated iOS
 simulator with `.claude/skills/run-mobile/driver.sh`. It creates the simulator,
 installs the dev client, starts this checkout's Metro, and opens the app. You
 then interact through `driver.sh ad …`, which wraps
@@ -14,13 +14,15 @@ All paths are relative to `apps/mobile/`. macOS only (Xcode + iOS simulator runt
 ## Prerequisites
 
 - Xcode with an iOS simulator runtime. Dependencies come from `pnpm install` at the repo root.
-- A built simulator dev client (`Foundry.app` under `~/Library/Developer/Xcode/DerivedData/Foundry-*`).
+- A built simulator dev client (`FoundryDev.app` under `~/Library/Developer/Xcode/DerivedData/FoundryDev-*`).
   If none exists, build once with `SENTRY_DISABLE_AUTO_UPLOAD=true pnpm devbuild:ios`; see
-  `docs/runbooks/mobile-releases.md`. Point at another build with `RUN_MOBILE_APP=/path/Foundry.app`.
+  `docs/runbooks/mobile-releases.md`. Point at another build with `RUN_MOBILE_APP=/path/FoundryDev.app`.
 - `.env.local` with `EXPO_PUBLIC_CONVEX_URL`, the Clerk key, and `EXPO_PUBLIC_TEST_USER_*`.
-  **Check the backend before you make writes**:
-  `grep CONVEX_URL .env.local | cut -d/ -f3 | cut -d. -f1`. On 2026-10-13 it was the dev
-  deployment `colorless-sturgeon-704`. Preview/TestFlight uses `fine-akita-444`, the live backend.
+  `up` fails unless the running bundle uses the Convex deployment in `.env.local` (and the
+  root `.env.local`). Metro can keep an old inlined URL after the env changes; `$D backend`
+  re-checks. Preview/TestFlight uses `fine-akita-444`, the live backend.
+- **Never grep or print the bundle**: it inlines the test user's password. `$D backend`
+  prints only Convex origins.
 
 ## Run (agent path)
 
@@ -35,6 +37,8 @@ $D ad wait text "Nothing logged" 20000     # assert; exit 1 on timeout
 $D ss /tmp/shot.png        # simulator screenshot -> prints path
 $D reload                  # Metro reload (JS change without relaunch)
 $D logs 40                 # Metro log tail (console.log / bundling errors)
+$D backend                 # bundle's Convex deployment vs .env.local; exit 1 on mismatch
+$D down && $D up --clear   # restart Metro without its transform cache (stale env values)
 $D up --lang nl            # reboot sim in Dutch (en is default); sign-in survives
 $D up --debug-queries     # log Convex query watchers: $D logs 200 | grep convex-query
 $D down                    # close session, stop Metro we started, shut down sim
@@ -80,7 +84,7 @@ port 8081, which collides with other checkouts. Avoid it for agent work.
 - **The keyboard has no dismiss key**; scroll the form instead. `ad scroll up` may not reach the
   top of a long screen; `ad swipe 201 250 201 800` does.
 - **Files the app writes** (exports, caches) are under
-  `xcrun simctl get_app_container "$($D udid)" com.appelent.foundry data`.
+  `xcrun simctl get_app_container "$($D udid)" com.appelent.foundry.dev data`.
 - **Many Metros run at once** (other worktrees, port 8081–8086). `up` refuses a port whose
   Metro `cwd` is a different checkout. Never trust "something is on :8081".
 - **`simctl openurl` on a fresh sim raises a system "Open in Foundry?" prompt.** `up`
@@ -103,7 +107,7 @@ port 8081, which collides with other checkouts. Avoid it for agent work.
   authoring). If commands start failing with `Invalid device`, re-run `$D up`.
 - The installed dev client must match current native deps. After native or config-plugin
   changes, rebuild with `pnpm devbuild:ios`, then delete the sim
-  (`xcrun simctl delete "$($D udid)"`) so `up` reinstalls the newest `Foundry.app`.
+  (`xcrun simctl delete "$($D udid)"`) so `up` reinstalls the newest `FoundryDev.app`.
 
 ## Troubleshooting
 

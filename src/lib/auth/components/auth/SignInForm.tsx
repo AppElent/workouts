@@ -1,10 +1,11 @@
-import { useSignIn } from "@clerk/clerk-react";
+import { useSignIn } from "@clerk/react";
 import { useState } from "react";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { useAuthConfig } from "./AuthConfigProvider";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
+import { orThrow } from "./clerkResult";
 import { SocialButtons } from "./SocialButtons";
 import { TestLoginButton } from "./TestLoginButton";
 import { clerkErrorMessage } from "./types";
@@ -13,18 +14,14 @@ import { clerkErrorMessage } from "./types";
  * Email + password, or passwordless: "Email me a sign-in code" sends a
  * one-time code to the typed address and swaps the form for a code field.
  */
-type SignIn = NonNullable<ReturnType<typeof useSignIn>["signIn"]>;
-type FirstFactor = NonNullable<SignIn["supportedFirstFactors"]>[number];
-type EmailCodeFactor = Extract<FirstFactor, { strategy: "email_code" }>;
+type SignIn = ReturnType<typeof useSignIn>["signIn"];
 
-function emailCodeFactor(factors: SignIn["supportedFirstFactors"]) {
-	return factors?.find(
-		(f): f is EmailCodeFactor => f.strategy === "email_code",
-	);
+function hasEmailCodeFactor(signIn: SignIn) {
+	return signIn.supportedFirstFactors.some((f) => f.strategy === "email_code");
 }
 
 export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
-	const { isLoaded, signIn, setActive } = useSignIn();
+	const { signIn } = useSignIn();
 	const config = useAuthConfig();
 	const { auth } = useMessages();
 	const [step, setStep] = useState<"password" | "code">("password");
@@ -36,9 +33,6 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 	const [loading, setLoading] = useState(false);
 
 	async function run(action: (signIn: SignIn) => Promise<void>) {
-		if (!isLoaded) {
-			return;
-		}
 		setError(null);
 		setNotice(null);
 		setLoading(true);
@@ -51,9 +45,9 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 		}
 	}
 
-	async function finish(status: string | null, sessionId: string | null) {
-		if (status === "complete") {
-			await setActive?.({ session: sessionId });
+	async function finish(signIn: SignIn) {
+		if (signIn.status === "complete") {
+			await orThrow(signIn.finalize());
 			onSuccess();
 		} else {
 			setError(auth.signIn.needsVerification);
@@ -63,23 +57,19 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 	function submitPassword(e: React.FormEvent) {
 		e.preventDefault();
 		return run(async (signIn) => {
-			const result = await signIn.create({ identifier: email, password });
-			await finish(result.status, result.createdSessionId);
+			await orThrow(signIn.password({ identifier: email, password }));
+			await finish(signIn);
 		});
 	}
 
 	function sendCode() {
 		return run(async (signIn) => {
-			const attempt = await signIn.create({ identifier: email });
-			const factor = emailCodeFactor(attempt.supportedFirstFactors);
-			if (!factor) {
+			await orThrow(signIn.create({ identifier: email }));
+			if (!hasEmailCodeFactor(signIn)) {
 				setError(auth.signIn.codeUnavailable);
 				return;
 			}
-			await signIn.prepareFirstFactor({
-				strategy: "email_code",
-				emailAddressId: factor.emailAddressId,
-			});
+			await orThrow(signIn.emailCode.sendCode());
 			setCode("");
 			setStep("code");
 		});
@@ -87,14 +77,7 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 
 	function resendCode() {
 		return run(async (signIn) => {
-			const factor = emailCodeFactor(signIn.supportedFirstFactors);
-			if (!factor) {
-				return;
-			}
-			await signIn.prepareFirstFactor({
-				strategy: "email_code",
-				emailAddressId: factor.emailAddressId,
-			});
+			await orThrow(signIn.emailCode.sendCode());
 			setNotice(auth.signIn.resent);
 		});
 	}
@@ -102,11 +85,8 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 	function submitCode(e: React.FormEvent) {
 		e.preventDefault();
 		return run(async (signIn) => {
-			const result = await signIn.attemptFirstFactor({
-				strategy: "email_code",
-				code,
-			});
-			await finish(result.status, result.createdSessionId);
+			await orThrow(signIn.emailCode.verifyCode({ code }));
+			await finish(signIn);
 		});
 	}
 

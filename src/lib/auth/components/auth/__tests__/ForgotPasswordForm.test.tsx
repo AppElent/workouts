@@ -8,15 +8,25 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const create = vi.fn();
-const attemptFirstFactor = vi.fn();
-const setActive = vi.fn();
-vi.mock("@clerk/clerk-react", () => ({
-	useSignIn: () => ({
-		isLoaded: true,
-		signIn: { create, attemptFirstFactor },
-		setActive,
-	}),
-}));
+const sendCode = vi.fn();
+const verifyCode = vi.fn();
+const submitPassword = vi.fn();
+const finalize = vi.fn();
+// Core 3 methods resolve to `{ error }` and update the resource in place.
+const signIn = {
+	status: "needs_identifier",
+	create,
+	resetPasswordEmailCode: { sendCode, verifyCode, submitPassword },
+	finalize,
+};
+vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn }) }));
+
+function ok(update: Partial<typeof signIn> = {}) {
+	return async () => {
+		Object.assign(signIn, update);
+		return { error: null };
+	};
+}
 
 import { LocaleProvider } from "#/lib/i18n";
 import { AuthConfigProvider } from "../AuthConfigProvider";
@@ -41,15 +51,18 @@ function renderForm(onSuccess = vi.fn()) {
 describe("ForgotPasswordForm", () => {
 	afterEach(() => {
 		cleanup();
-		for (const m of [create, attemptFirstFactor, setActive]) m.mockReset();
+		for (const m of [create, sendCode, verifyCode, submitPassword, finalize]) {
+			m.mockReset();
+		}
+		signIn.status = "needs_identifier";
 	});
 
 	it("requests a reset code then sets a new password", async () => {
-		create.mockResolvedValue({});
-		attemptFirstFactor.mockResolvedValue({
-			status: "complete",
-			createdSessionId: "s1",
-		});
+		create.mockImplementation(ok({ status: "needs_first_factor" }));
+		sendCode.mockImplementation(ok());
+		verifyCode.mockImplementation(ok({ status: "needs_new_password" }));
+		submitPassword.mockImplementation(ok({ status: "complete" }));
+		finalize.mockImplementation(ok());
 		const onSuccess = vi.fn();
 		renderForm(onSuccess);
 
@@ -58,22 +71,20 @@ describe("ForgotPasswordForm", () => {
 		});
 		fireEvent.click(screen.getByRole("button", { name: /send code/i }));
 		await vi.waitFor(() =>
-			expect(create).toHaveBeenCalledWith({
-				strategy: "reset_password_email_code",
-				identifier: "a@b.com",
-			}),
+			expect(create).toHaveBeenCalledWith({ identifier: "a@b.com" }),
 		);
 
 		fireEvent.change(await screen.findByLabelText(/code/i), {
 			target: { value: "123456" },
 		});
+		expect(sendCode).toHaveBeenCalled();
 		fireEvent.change(screen.getByLabelText(/new password/i), {
 			target: { value: "newpw123!" },
 		});
 		fireEvent.click(screen.getByRole("button", { name: /reset password/i }));
-		await vi.waitFor(() =>
-			expect(setActive).toHaveBeenCalledWith({ session: "s1" }),
-		);
+		await vi.waitFor(() => expect(finalize).toHaveBeenCalled());
+		expect(verifyCode).toHaveBeenCalledWith({ code: "123456" });
+		expect(submitPassword).toHaveBeenCalledWith({ password: "newpw123!" });
 		expect(onSuccess).toHaveBeenCalled();
 	});
 });

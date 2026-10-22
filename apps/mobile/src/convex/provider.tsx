@@ -32,10 +32,9 @@ const convex = instrumentConvexClient(
 );
 
 export function AppConvexProvider({ children }: { children: ReactNode }) {
-	// `useAuth` here comes from `@clerk/expo` (Clerk Core 3) while the web
-	// passes `@clerk/clerk-react`'s (Core 2). Convex only ever calls the hook
-	// and reads a token off it, so this is the entire seam that lets mobile
-	// run a Clerk generation ahead of web without forcing a web bump.
+	// `useAuth` here comes from `@clerk/expo` while the web passes
+	// `@clerk/react`'s. Convex only ever calls the hook and reads a token off
+	// it, so this is the entire seam between the two Clerk SDKs.
 	return (
 		<ConvexProviderWithClerk client={convex} useAuth={useAuth}>
 			{children}

@@ -1,4 +1,4 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { RedirectToSignIn, Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
@@ -12,12 +12,12 @@ export const Route = createFileRoute("/wods/")({
 function WodsPageGuarded() {
 	return (
 		<>
-			<SignedIn>
+			<Show when="signed-in">
 				<WodsPage />
-			</SignedIn>
-			<SignedOut>
+			</Show>
+			<Show when="signed-out">
 				<RedirectToSignIn />
-			</SignedOut>
+			</Show>
 		</>
 	);
 }

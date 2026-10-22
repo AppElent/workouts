@@ -1,10 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import {
-	type ActionCtx,
-	action,
-	internalMutation,
-} from "./_generated/server";
+import { type ActionCtx, action, internalMutation } from "./_generated/server";
 import {
 	type AiLocale,
 	describe as describeMeal,
@@ -82,7 +78,9 @@ export const consumeAnalysis = internalMutation({
 	handler: async (ctx, { userId, day }) => {
 		const row = await ctx.db
 			.query("nutritionAiUsage")
-			.withIndex("by_user_and_day", (q) => q.eq("userId", userId).eq("day", day))
+			.withIndex("by_user_and_day", (q) =>
+				q.eq("userId", userId).eq("day", day),
+			)
 			.unique();
 		if ((row?.count ?? 0) >= DAILY_ANALYSES) throw new ConvexError("limit");
 		// Each analysis allows one candidate selection, so `choose` cannot be

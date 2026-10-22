@@ -9,7 +9,11 @@ import {
 
 const DAY = 86_400_000;
 
-export async function loadTestDataBaseline(ctx: MutationCtx, userId: string, today: string) {
+export async function loadTestDataBaseline(
+	ctx: MutationCtx,
+	userId: string,
+	today: string,
+) {
 	const now = Date.now();
 	const at = (daysAgo: number) => now - daysAgo * DAY;
 	const date = (daysAgo: number) =>

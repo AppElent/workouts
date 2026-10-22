@@ -1,21 +1,21 @@
-import {requireFoodPhotoOwner} from "./nutritionFoodPhotos";
+import type { NutritionDiaryOperation } from "@foundry/core";
 import {
 	canonicalJson,
- correctDiaryNutrients,
+	correctDiaryNutrients,
 	rescaleToQuantity,
 	rescaleToSelection,
 	totalNutrients,
 } from "@foundry/core";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import type { NutritionDiaryOperation } from "@foundry/core";
+import { mutation, query } from "./_generated/server";
 import {
 	diaryPartSnapshotFields,
 	diarySnapshotFields,
 	mealSlot,
 } from "./nutritionDiaryModel";
+import { requireFoodPhotoOwner } from "./nutritionFoodPhotos";
 import { operationArgs, operationResult } from "./nutritionOperationModel";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
@@ -158,7 +158,7 @@ async function existingOwnedGroupEntry(
 		{ kind: "group" }
 	>["targets"][number],
 ) {
-	let entry;
+	let entry: Doc<"nutritionDiaryEntries"> | null;
 	if (target.kind === "serverId") {
 		const id = ctx.db.normalizeId("nutritionDiaryEntries", target.id);
 		entry = id ? await ctx.db.get(id) : null;
@@ -189,7 +189,11 @@ async function assertClientEntryAvailable(
 	if (existing) throw new Error("Client entry ID already exists.");
 }
 
-async function getRevision(ctx: QueryCtx | MutationCtx, userId: string, date: string) {
+async function getRevision(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+	date: string,
+) {
 	const row = await ctx.db
 		.query("nutritionDiaryDayVersions")
 		.withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", date))
@@ -207,22 +211,33 @@ async function bumpRevision(ctx: MutationCtx, userId: string, date: string) {
 		await ctx.db.patch(row._id, { revision });
 		return revision;
 	}
-	await ctx.db.insert("nutritionDiaryDayVersions", { userId, date, revision: 1 });
+	await ctx.db.insert("nutritionDiaryDayVersions", {
+		userId,
+		date,
+		revision: 1,
+	});
 	return 1;
 }
 
-async function daySnapshot(ctx: QueryCtx | MutationCtx, userId: string, date: string) {
+async function daySnapshot(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+	date: string,
+) {
 	const entries = await ctx.db
 		.query("nutritionDiaryEntries")
 		.withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", date))
 		.collect();
 	return {
 		date,
-		entries: await Promise.all(entries.map(async (entry) => {
-			if (entry.visual?.kind !== "photo" || !entry.visual.storageId) return entry;
-			const uri = await ctx.storage.getUrl(entry.visual.storageId);
-			return {...entry, visual: uri ? {...entry.visual, uri} : undefined};
-		})),
+		entries: await Promise.all(
+			entries.map(async (entry) => {
+				if (entry.visual?.kind !== "photo" || !entry.visual.storageId)
+					return entry;
+				const uri = await ctx.storage.getUrl(entry.visual.storageId);
+				return { ...entry, visual: uri ? { ...entry.visual, uri } : undefined };
+			}),
+		),
 		totals: totalNutrients(entries.map((entry) => entry.nutrients)),
 		revision: await getRevision(ctx, userId, date),
 	};
@@ -243,7 +258,8 @@ export const log = mutation({
 	handler: async (ctx, snapshot) => {
 		const userId = await requireUser(ctx);
 		assertSnapshot(snapshot);
-		if (snapshot.visual?.kind === "photo" && snapshot.visual.storageId) await requireFoodPhotoOwner(ctx, snapshot.visual.storageId);
+		if (snapshot.visual?.kind === "photo" && snapshot.visual.storageId)
+			await requireFoodPhotoOwner(ctx, snapshot.visual.storageId);
 		if (snapshot.clientEntryId) {
 			await assertClientEntryAvailable(ctx, userId, snapshot.clientEntryId);
 		}
@@ -277,7 +293,8 @@ export const logCombo = mutation({
 		if (parts.length === 0) throw new Error("A Combo needs at least one part.");
 		for (const part of parts) {
 			assertSnapshot({ ...part, date, meal });
-			if (part.visual?.kind === "photo" && part.visual.storageId) await requireFoodPhotoOwner(ctx, part.visual.storageId);
+			if (part.visual?.kind === "photo" && part.visual.storageId)
+				await requireFoodPhotoOwner(ctx, part.visual.storageId);
 		}
 		const loggedAt = Date.now();
 		const comboGroup = {
@@ -326,12 +343,14 @@ export const update = mutation({
 	args: {
 		id: v.id("nutritionDiaryEntries"),
 		quantity: v.optional(v.number()),
-		selection: v.optional(v.object({
-			serving: v.object({ en: v.string(), nl: v.string() }),
-			quantity: v.number(),
-			amount: v.number(),
-			personalMeasureId: v.union(v.string(), v.null()),
-		})),
+		selection: v.optional(
+			v.object({
+				serving: v.object({ en: v.string(), nl: v.string() }),
+				quantity: v.number(),
+				amount: v.number(),
+				personalMeasureId: v.union(v.string(), v.null()),
+			}),
+		),
 		meal: v.optional(
 			v.union(
 				v.literal("breakfast"),
@@ -371,7 +390,8 @@ export const update = mutation({
 			patch.serving = next.serving;
 			patch.personalMeasureId = selection.personalMeasureId ?? undefined;
 		} else if (quantity !== undefined) {
-			if (!(quantity > 0)) throw new Error("Quantity must be greater than zero.");
+			if (!(quantity > 0))
+				throw new Error("Quantity must be greater than zero.");
 			const next = rescaleToQuantity(entry, quantity);
 			patch.quantity = next.quantity;
 			patch.amount = next.amount;
@@ -423,7 +443,9 @@ export const applyOperation = mutation({
 			.first();
 		if (previous) {
 			if (previous.payload !== payload) {
-				throw new Error("Operation ID was already used with a different payload.");
+				throw new Error(
+					"Operation ID was already used with a different payload.",
+				);
 			}
 			return JSON.parse(previous.result) as {
 				entryIds: Id<"nutritionDiaryEntries">[];
@@ -436,13 +458,24 @@ export const applyOperation = mutation({
 		const entryIds: Id<"nutritionDiaryEntries">[] = [];
 		const clientEntryIds: string[] = [];
 		const operation = args.operation as unknown as NutritionDiaryOperation;
-		const photoEntries = operation.kind === "create" ? [operation.entry] : operation.kind === "createBatch" ? operation.entries : [];
-		for (const entry of photoEntries) if (entry.visual?.kind === "photo" && entry.visual.storageId) await requireFoodPhotoOwner(ctx, entry.visual.storageId);
+		const photoEntries =
+			operation.kind === "create"
+				? [operation.entry]
+				: operation.kind === "createBatch"
+					? operation.entries
+					: [];
+		for (const entry of photoEntries)
+			if (entry.visual?.kind === "photo" && entry.visual.storageId)
+				await requireFoodPhotoOwner(ctx, entry.visual.storageId);
 
 		if (operation.kind === "create") {
 			assertSnapshot(operation.entry);
 			assertClientEntryId(operation.entry.clientEntryId);
-			await assertClientEntryAvailable(ctx, userId, operation.entry.clientEntryId);
+			await assertClientEntryAvailable(
+				ctx,
+				userId,
+				operation.entry.clientEntryId,
+			);
 			const id = await ctx.db.insert("nutritionDiaryEntries", {
 				userId,
 				...operation.entry,
@@ -460,9 +493,14 @@ export const applyOperation = mutation({
 			}
 			const ids = new Set<string>();
 			for (const entry of operation.entries) {
-				assertSnapshot({ ...entry, date: operation.date, meal: operation.meal });
+				assertSnapshot({
+					...entry,
+					date: operation.date,
+					meal: operation.meal,
+				});
 				assertClientEntryId(entry.clientEntryId);
-				if (ids.has(entry.clientEntryId)) throw new Error("Duplicate client entry ID.");
+				if (ids.has(entry.clientEntryId))
+					throw new Error("Duplicate client entry ID.");
 				ids.add(entry.clientEntryId);
 				await assertClientEntryAvailable(ctx, userId, entry.clientEntryId);
 			}
@@ -481,7 +519,11 @@ export const applyOperation = mutation({
 		}
 
 		if (operation.kind === "update") {
-			const entry = await ownedEntry(ctx, userId, backendTarget(operation.target));
+			const entry = await ownedEntry(
+				ctx,
+				userId,
+				backendTarget(operation.target),
+			);
 			const oldDate = entry.date;
 			if (operation.date !== undefined) assertDiaryDate(operation.date);
 			const patch: Partial<typeof entry> = {};
@@ -515,9 +557,16 @@ export const applyOperation = mutation({
 				patch.serving = next.serving;
 			}
 			if (operation.correction) {
- if (operation.quantity !== undefined || operation.selection !== undefined) throw new Error("Correct nutrition separately from quantity.");
- Object.assign(patch, correctDiaryNutrients(entry, operation.correction));
- }
+				if (
+					operation.quantity !== undefined ||
+					operation.selection !== undefined
+				)
+					throw new Error("Correct nutrition separately from quantity.");
+				Object.assign(
+					patch,
+					correctDiaryNutrients(entry, operation.correction),
+				);
+			}
 			if (Object.keys(patch).length > 0) {
 				await ctx.db.patch(entry._id, patch);
 				affectedDates.add(oldDate);
@@ -529,7 +578,9 @@ export const applyOperation = mutation({
 
 		if (operation.kind === "group") {
 			if (operation.targets.length < 1 || operation.targets.length > 100) {
-				throw new Error("A Logged Combo must contain between 1 and 100 entries.");
+				throw new Error(
+					"A Logged Combo must contain between 1 and 100 entries.",
+				);
 			}
 			assertText(operation.comboGroup.id, "Logged Combo ID");
 			assertText(operation.comboGroup.comboId, "Combo ID");
@@ -550,7 +601,9 @@ export const applyOperation = mutation({
 					(entry) => entry.date !== first.date || entry.meal !== first.meal,
 				)
 			) {
-				throw new Error("Logged Combo entries must share one date and Meal Slot.");
+				throw new Error(
+					"Logged Combo entries must share one date and Meal Slot.",
+				);
 			}
 			const selectedIds = new Set(entries.map((entry) => String(entry._id)));
 			const existingGroupIds = new Set(
@@ -567,10 +620,7 @@ export const applyOperation = mutation({
 						)
 						.take(operation.targets.length + 1);
 					if (
-						existingParts.some(
-						(entry) =>
-							!selectedIds.has(String(entry._id)),
-						)
+						existingParts.some((entry) => !selectedIds.has(String(entry._id)))
 					) {
 						throw new Error(
 							"Existing Logged Combos must be selected as a whole.",
@@ -589,7 +639,11 @@ export const applyOperation = mutation({
 		}
 
 		if (operation.kind === "remove") {
-			const entry = await ownedEntry(ctx, userId, backendTarget(operation.target));
+			const entry = await ownedEntry(
+				ctx,
+				userId,
+				backendTarget(operation.target),
+			);
 			await ctx.db.delete(entry._id);
 			affectedDates.add(entry.date);
 			entryIds.push(entry._id);
@@ -613,11 +667,22 @@ export const applyOperation = mutation({
 				if (entry) entries.push(entry);
 			}
 			const selectedIds = new Set(entries.map((entry) => String(entry._id)));
-			const groupIds = new Set(entries.map((entry) => entry.comboGroup?.id).filter((id): id is string => id !== undefined));
+			const groupIds = new Set(
+				entries
+					.map((entry) => entry.comboGroup?.id)
+					.filter((id): id is string => id !== undefined),
+			);
 			for (const groupId of groupIds) {
-				const parts = await ctx.db.query("nutritionDiaryEntries").withIndex("by_user_combo_group", (query) => query.eq("userId", userId).eq("comboGroup.id", groupId)).take(101);
+				const parts = await ctx.db
+					.query("nutritionDiaryEntries")
+					.withIndex("by_user_combo_group", (query) =>
+						query.eq("userId", userId).eq("comboGroup.id", groupId),
+					)
+					.take(101);
 				if (parts.some((entry) => !selectedIds.has(String(entry._id)))) {
-					throw new Error("Existing Logged Combos must be selected as a whole.");
+					throw new Error(
+						"Existing Logged Combos must be selected as a whole.",
+					);
 				}
 			}
 			if (operation.kind === "moveBatch") assertDiaryDate(operation.date);
@@ -627,7 +692,11 @@ export const applyOperation = mutation({
 				if (entry.clientEntryId) clientEntryIds.push(entry.clientEntryId);
 				if (operation.kind === "removeBatch") await ctx.db.delete(entry._id);
 				else {
-					await ctx.db.patch(entry._id, { date: operation.date, meal: operation.meal, comboGroup: undefined });
+					await ctx.db.patch(entry._id, {
+						date: operation.date,
+						meal: operation.meal,
+						comboGroup: undefined,
+					});
 					affectedDates.add(operation.date);
 				}
 			}
@@ -637,7 +706,10 @@ export const applyOperation = mutation({
 		const result = {
 			entryIds,
 			clientEntryIds,
-			days: args.includeDays === false ? [] : await affectedDays(ctx, userId, affectedDates),
+			days:
+				args.includeDays === false
+					? []
+					: await affectedDays(ctx, userId, affectedDates),
 		};
 		await ctx.db.insert("nutritionDiaryOperationReceipts", {
 			userId,
@@ -652,18 +724,31 @@ export const applyOperation = mutation({
 
 /** At most one indexed read per visible calendar day; intake totals are not needed. */
 export const loggedDates = query({
- args: { startDate: v.string(), endDate: v.string() },
- returns: v.array(v.string()),
- handler: async (ctx, { startDate, endDate }) => {
-  const userId=await requireUser(ctx);assertDiaryDate(startDate);assertDiaryDate(endDate);
-  const start=Date.parse(`${startDate}T12:00:00Z`);const end=Date.parse(`${endDate}T12:00:00Z`);
-  const count=Math.round((end-start)/86400000)+1;
-  if(count<1||count>62)throw new Error("Calendar range must contain 1–62 days.");
-  const dates=Array.from({length:count},(_,i)=>new Date(start+i*86400000).toISOString().slice(0,10));
-  const present=await Promise.all(dates.map(async date=>{
-   const row=await ctx.db.query("nutritionDiaryEntries").withIndex("by_user_date",q=>q.eq("userId",userId).eq("date",date)).first();
-   return row?date:null;
-  }));
-  return present.filter((date):date is string=>date!==null);
- },
+	args: { startDate: v.string(), endDate: v.string() },
+	returns: v.array(v.string()),
+	handler: async (ctx, { startDate, endDate }) => {
+		const userId = await requireUser(ctx);
+		assertDiaryDate(startDate);
+		assertDiaryDate(endDate);
+		const start = Date.parse(`${startDate}T12:00:00Z`);
+		const end = Date.parse(`${endDate}T12:00:00Z`);
+		const count = Math.round((end - start) / 86400000) + 1;
+		if (count < 1 || count > 62)
+			throw new Error("Calendar range must contain 1–62 days.");
+		const dates = Array.from({ length: count }, (_, i) =>
+			new Date(start + i * 86400000).toISOString().slice(0, 10),
+		);
+		const present = await Promise.all(
+			dates.map(async (date) => {
+				const row = await ctx.db
+					.query("nutritionDiaryEntries")
+					.withIndex("by_user_date", (q) =>
+						q.eq("userId", userId).eq("date", date),
+					)
+					.first();
+				return row ? date : null;
+			}),
+		);
+		return present.filter((date): date is string => date !== null);
+	},
 });

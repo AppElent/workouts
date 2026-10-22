@@ -5,25 +5,30 @@ import {
 	render as rtlRender,
 	screen,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const create = vi.fn();
-const prepare = vi.fn();
-const attempt = vi.fn();
-const setActive = vi.fn();
-vi.mock("@clerk/clerk-react", () => ({
-	useSignIn: () => ({ isLoaded: true, signIn: {} }),
-	useSignUp: () => ({
-		isLoaded: true,
-		signUp: {
-			create,
-			prepareEmailAddressVerification: prepare,
-			attemptEmailAddressVerification: attempt,
-			createdSessionId: "s1",
-		},
-		setActive,
-	}),
+const password = vi.fn();
+const sendEmailCode = vi.fn();
+const verifyEmailCode = vi.fn();
+const finalize = vi.fn();
+// Core 3 methods resolve to `{ error }` and update the resource in place.
+const signUp = {
+	status: "missing_requirements",
+	password,
+	verifications: { sendEmailCode, verifyEmailCode },
+	finalize,
+};
+vi.mock("@clerk/react", () => ({
+	useSignIn: () => ({ signIn: {} }),
+	useSignUp: () => ({ signUp }),
 }));
+
+function ok(update: Partial<typeof signUp> = {}) {
+	return async () => {
+		Object.assign(signUp, update);
+		return { error: null };
+	};
+}
 
 import { LocaleProvider } from "#/lib/i18n";
 import { AuthConfigProvider } from "../AuthConfigProvider";
@@ -48,12 +53,19 @@ function renderForm(onSuccess = vi.fn()) {
 describe("SignUpForm", () => {
 	afterEach(() => {
 		cleanup();
-		for (const m of [create, prepare, attempt, setActive]) m.mockReset();
+		for (const m of [password, sendEmailCode, verifyEmailCode, finalize]) {
+			m.mockReset();
+		}
+		signUp.status = "missing_requirements";
+	});
+
+	beforeEach(() => {
+		password.mockImplementation(ok());
+		sendEmailCode.mockImplementation(ok());
+		finalize.mockImplementation(ok());
 	});
 
 	it("moves to the verification step after creating the account", async () => {
-		create.mockResolvedValue({});
-		prepare.mockResolvedValue({});
 		renderForm();
 		fireEvent.change(screen.getByLabelText("Email"), {
 			target: { value: "a@b.com" },
@@ -63,13 +75,15 @@ describe("SignUpForm", () => {
 		});
 		fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 		expect(await screen.findByLabelText(/verification code/i)).toBeDefined();
-		expect(prepare).toHaveBeenCalledWith({ strategy: "email_code" });
+		expect(password).toHaveBeenCalledWith({
+			emailAddress: "a@b.com",
+			password: "pw12345!",
+		});
+		expect(sendEmailCode).toHaveBeenCalled();
 	});
 
 	it("verifies the code and completes sign-up", async () => {
-		create.mockResolvedValue({});
-		prepare.mockResolvedValue({});
-		attempt.mockResolvedValue({ status: "complete", createdSessionId: "s1" });
+		verifyEmailCode.mockImplementation(ok({ status: "complete" }));
 		const onSuccess = vi.fn();
 		renderForm(onSuccess);
 		fireEvent.change(screen.getByLabelText("Email"), {
@@ -82,9 +96,8 @@ describe("SignUpForm", () => {
 		const code = await screen.findByLabelText(/verification code/i);
 		fireEvent.change(code, { target: { value: "123456" } });
 		fireEvent.click(screen.getByRole("button", { name: /verify/i }));
-		await vi.waitFor(() =>
-			expect(setActive).toHaveBeenCalledWith({ session: "s1" }),
-		);
+		await vi.waitFor(() => expect(finalize).toHaveBeenCalled());
+		expect(verifyEmailCode).toHaveBeenCalledWith({ code: "123456" });
 		expect(onSuccess).toHaveBeenCalled();
 	});
 });

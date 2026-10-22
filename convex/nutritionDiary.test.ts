@@ -38,22 +38,38 @@ const snapshot = {
 describe("public nutrition diary operations", () => {
 	it("requires authentication and stores an immutable food snapshot", async () => {
 		const t = convexTest(schema, modules);
-		await expect(t.query(api.nutritionDiary.day, { date: snapshot.date })).rejects.toThrow(
-			"Unauthenticated",
-		);
+		await expect(
+			t.query(api.nutritionDiary.day, { date: snapshot.date }),
+		).rejects.toThrow("Unauthenticated");
 
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(api.nutritionDiary.log, snapshot);
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 
 		expect(day.entries).toHaveLength(1);
 		expect(day.entries[0]).toMatchObject(snapshot);
-		expect(day.totals.protein).toMatchObject({ amount: 0, traceCount: 1, qualified: true });
-		expect(day.totals.fat).toMatchObject({ amount: 0, absentCount: 1, incomplete: true });
-		expect(await alice.query(api.nutritionDiary.day, { date: "2026-09-04" })).toMatchObject({
+		expect(day.totals.protein).toMatchObject({
+			amount: 0,
+			traceCount: 1,
+			qualified: true,
+		});
+		expect(day.totals.fat).toMatchObject({
+			amount: 0,
+			absentCount: 1,
+			incomplete: true,
+		});
+		expect(
+			await alice.query(api.nutritionDiary.day, { date: "2026-09-04" }),
+		).toMatchObject({
 			entries: [],
 		});
-		expect(await t.withIdentity({ subject: "bob" }).query(api.nutritionDiary.day, { date: snapshot.date })).toMatchObject({
+		expect(
+			await t
+				.withIdentity({ subject: "bob" })
+				.query(api.nutritionDiary.day, { date: snapshot.date }),
+		).toMatchObject({
 			entries: [],
 		});
 	});
@@ -86,7 +102,9 @@ describe("public nutrition diary operations", () => {
 
 		await alice.mutation(api.nutritionDiary.log, personalSnapshot);
 		personalSnapshot.name.en = "Changed only on the phone";
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 
 		expect(day.entries[0]).toMatchObject({
 			name: { en: "Training oats", nl: "Trainingshavermout" },
@@ -96,10 +114,25 @@ describe("public nutrition diary operations", () => {
 				sourceId: "58b7a219-67e5-42fc-9400-d740e8837df8",
 			},
 		});
-		expect(day.totals.energy).toMatchObject({ amount: 111.375, incomplete: false });
-		expect(day.totals.protein).toMatchObject({ amount: 0, traceCount: 1, qualified: true });
-		expect(day.totals.carbs).toMatchObject({ amount: 0, absentCount: 1, incomplete: true });
-		expect(day.totals.sugars).toMatchObject({ amount: 0, valueCount: 1, incomplete: false });
+		expect(day.totals.energy).toMatchObject({
+			amount: 111.375,
+			incomplete: false,
+		});
+		expect(day.totals.protein).toMatchObject({
+			amount: 0,
+			traceCount: 1,
+			qualified: true,
+		});
+		expect(day.totals.carbs).toMatchObject({
+			amount: 0,
+			absentCount: 1,
+			incomplete: true,
+		});
+		expect(day.totals.sugars).toMatchObject({
+			amount: 0,
+			valueCount: 1,
+			incomplete: false,
+		});
 	});
 
 	it("rescales the stored snapshot on a quantity edit, never re-deriving it from a source", async () => {
@@ -108,7 +141,9 @@ describe("public nutrition diary operations", () => {
 		const id = await alice.mutation(api.nutritionDiary.log, snapshot);
 
 		await alice.mutation(api.nutritionDiary.update, { id, quantity: 2 });
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 
 		expect(day.entries[0]).toMatchObject({
 			quantity: 2,
@@ -130,10 +165,12 @@ describe("public nutrition diary operations", () => {
 		const alice = t.withIdentity({ subject: "alice" });
 		const id = await alice.mutation(api.nutritionDiary.log, snapshot);
 
-		await expect(alice.mutation(api.nutritionDiary.update, { id, quantity: 0 })).rejects.toThrow(
-			"Quantity must be greater than zero.",
-		);
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		await expect(
+			alice.mutation(api.nutritionDiary.update, { id, quantity: 0 }),
+		).rejects.toThrow("Quantity must be greater than zero.");
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 		expect(day.entries[0]).toMatchObject({ quantity: 1, amount: 135 });
 	});
 
@@ -143,7 +180,9 @@ describe("public nutrition diary operations", () => {
 		const id = await alice.mutation(api.nutritionDiary.log, snapshot);
 
 		await alice.mutation(api.nutritionDiary.update, { id, meal: "dinner" });
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 
 		expect(day.entries).toHaveLength(1);
 		expect(day.entries[0].meal).toBe("dinner");
@@ -156,8 +195,12 @@ describe("public nutrition diary operations", () => {
 
 		await alice.mutation(api.nutritionDiary.update, { id, date: "2026-09-06" });
 
-		const oldDay = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
-		const newDay = await alice.query(api.nutritionDiary.day, { date: "2026-09-06" });
+		const oldDay = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
+		const newDay = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-06",
+		});
 		expect(oldDay.entries).toHaveLength(0);
 		expect(oldDay.totals.energy).toMatchObject({ amount: 0, entryCount: 0 });
 		expect(newDay.entries).toHaveLength(1);
@@ -179,19 +222,25 @@ describe("public nutrition diary operations", () => {
 		const alice = t.withIdentity({ subject: "alice" });
 		const id = await alice.mutation(api.nutritionDiary.log, snapshot);
 
-		await expect(t.mutation(api.nutritionDiary.update, { id, quantity: 2 })).rejects.toThrow(
+		await expect(
+			t.mutation(api.nutritionDiary.update, { id, quantity: 2 }),
+		).rejects.toThrow("Unauthenticated");
+		await expect(t.mutation(api.nutritionDiary.remove, { id })).rejects.toThrow(
 			"Unauthenticated",
 		);
-		await expect(t.mutation(api.nutritionDiary.remove, { id })).rejects.toThrow("Unauthenticated");
 
 		const bob = t.withIdentity({ subject: "bob" });
-		await expect(bob.mutation(api.nutritionDiary.update, { id, quantity: 2 })).rejects.toThrow(
-			"Unauthorized",
-		);
-		await expect(bob.mutation(api.nutritionDiary.remove, { id })).rejects.toThrow("Unauthorized");
+		await expect(
+			bob.mutation(api.nutritionDiary.update, { id, quantity: 2 }),
+		).rejects.toThrow("Unauthorized");
+		await expect(
+			bob.mutation(api.nutritionDiary.remove, { id }),
+		).rejects.toThrow("Unauthorized");
 
 		// Untouched by the rejected attempts.
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 		expect(day.entries).toHaveLength(1);
 	});
 
@@ -201,7 +250,9 @@ describe("public nutrition diary operations", () => {
 		const id = await alice.mutation(api.nutritionDiary.log, snapshot);
 
 		await alice.mutation(api.nutritionDiary.remove, { id });
-		const day = await alice.query(api.nutritionDiary.day, { date: snapshot.date });
+		const day = await alice.query(api.nutritionDiary.day, {
+			date: snapshot.date,
+		});
 
 		expect(day.entries).toHaveLength(0);
 		expect(day.totals.energy).toMatchObject({ amount: 0, entryCount: 0 });
@@ -503,10 +554,7 @@ describe("public nutrition diary operations", () => {
 			date: snapshot.date,
 			meal: snapshot.meal,
 			combo: { id: "old-combo", name: "Old combo" },
-			parts: [
-				part,
-				{ ...part, name: { en: "Oats", nl: "Havermout" } },
-			],
+			parts: [part, { ...part, name: { en: "Oats", nl: "Havermout" } }],
 		});
 
 		await expect(

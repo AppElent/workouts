@@ -1,8 +1,8 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 const unitValidator = v.union(v.literal("g"), v.literal("ml"));
 const measureValidator = v.object({
@@ -154,11 +154,11 @@ export const reorder = mutation({
 			owned.length !== ids.length ||
 			owned.some((row) => !ids.includes(row._id))
 		) {
-			throw new Error("Personal Measure order must include every owned measure.");
+			throw new Error(
+				"Personal Measure order must include every owned measure.",
+			);
 		}
-		await Promise.all(
-			ids.map((id, order) => ctx.db.patch(id, { order })),
-		);
+		await Promise.all(ids.map((id, order) => ctx.db.patch(id, { order })));
 		return null;
 	},
 });

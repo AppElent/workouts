@@ -69,10 +69,10 @@ minimumReleaseAgeExclude:
 # pulls a vulnerable range, so pin ws here.
 overrides:
   ws: ">=8.21.0"
-  # Clerk authorization-bypass (GHSA-w24r-5266-9c3c): <=5.61.5 is vulnerable
-  # when combining org/billing/reverification checks. convex pulls a vulnerable
-  # range transitively; force the patched line.
-  "@clerk/clerk-react": ">=5.61.6"
+  # convex lists the deprecated @clerk/clerk-react as an optional peer next to
+  # @clerk/react, and pnpm auto-installs optional peers. The app is on
+  # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
+  "convex>@clerk/clerk-react": "-"
 
 # pnpm 11's actual per-install approval ledger for build scripts — without
 # a committed entry here, `pnpm install` (including CI's
