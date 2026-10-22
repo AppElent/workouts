@@ -23,7 +23,11 @@ describe("in-app test data", () => {
 		const session = await alice.mutation(api.workoutSessions.create, {});
 		for (const mode of ["load", "clear"] as const)
 			await expect(
-				alice.mutation(api.testData.reset, { mode, today: "2026-10-10", expectedSubject: "alice" }),
+				alice.mutation(api.testData.reset, {
+					mode,
+					today: "2026-10-10",
+					expectedSubject: "alice",
+				}),
 			).rejects.toThrow("activeActivity");
 		expect((await alice.query(api.testData.availability, {})).blocker).toBe(
 			"activeActivity",
@@ -39,7 +43,11 @@ describe("in-app test data", () => {
 		});
 		for (const mode of ["load", "clear"] as const)
 			await expect(
-				alice.mutation(api.testData.reset, { mode, today: "2026-10-10", expectedSubject: "alice" }),
+				alice.mutation(api.testData.reset, {
+					mode,
+					today: "2026-10-10",
+					expectedSubject: "alice",
+				}),
 			).rejects.toThrow("hostedWorkout");
 		expect((await alice.query(api.testData.availability, {})).blocker).toBe(
 			"hostedWorkout",
@@ -55,15 +63,36 @@ describe("in-app test data", () => {
 		const t = convexTest(schema, modules);
 		const host = t.withIdentity({ subject: "host" });
 		const participant = t.withIdentity({ subject: "participant" });
-		const id = await host.mutation(api.hostedWorkouts.createDraft, { title: "Shared event", hostParticipation: "hostOnly", template: { strengthBlocks: [{ blockId: "press", exerciseName: "Press" }], wodBlocks: [] } });
+		const id = await host.mutation(api.hostedWorkouts.createDraft, {
+			title: "Shared event",
+			hostParticipation: "hostOnly",
+			template: {
+				strengthBlocks: [{ blockId: "press", exerciseName: "Press" }],
+				wodBlocks: [],
+			},
+		});
 		await host.mutation(api.hostedWorkouts.open, { id });
 		const event = await host.query(api.hostedWorkouts.getMine, { id });
-		const sessionId = await participant.mutation(api.hostedWorkoutParticipants.join, { token: event!.hosted.joinToken });
+		const sessionId = await participant.mutation(
+			api.hostedWorkoutParticipants.join,
+			{ token: event!.hosted.joinToken },
+		);
 		await participant.mutation(api.workoutSessions.cancel, { id: sessionId });
 		const before = await host.query(api.hostedWorkouts.getMine, { id });
-		for (const mode of ["load", "clear"] as const) await expect(participant.mutation(api.testData.reset, { mode, today: "2026-10-10", expectedSubject: "participant" })).rejects.toThrow("hostedWorkout");
-		expect(await host.query(api.hostedWorkouts.getMine, { id })).toEqual(before);
-		expect(await participant.query(api.workoutSessions.getById, { id: sessionId })).toMatchObject({ status: "cancelled" });
+		for (const mode of ["load", "clear"] as const)
+			await expect(
+				participant.mutation(api.testData.reset, {
+					mode,
+					today: "2026-10-10",
+					expectedSubject: "participant",
+				}),
+			).rejects.toThrow("hostedWorkout");
+		expect(await host.query(api.hostedWorkouts.getMine, { id })).toEqual(
+			before,
+		);
+		expect(
+			await participant.query(api.workoutSessions.getById, { id: sessionId }),
+		).toMatchObject({ status: "cancelled" });
 	});
 	it("loads recent training and nutrition edge cases and clears their account records", async () => {
 		vi.stubEnv("CLERK_JWT_ISSUER_DOMAIN", "https://test.clerk.accounts.dev");
@@ -74,7 +103,8 @@ describe("in-app test data", () => {
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(api.testData.reset, {
 			mode: "load",
-			today: "2026-10-10", expectedSubject: "alice",
+			today: "2026-10-10",
+			expectedSubject: "alice",
 		});
 		const history = await alice.query(api.activities.list, { limit: 100 });
 		expect(new Set(history.items.map((item) => item.sport))).toEqual(
@@ -165,18 +195,36 @@ describe("in-app test data", () => {
 				})
 			).page,
 		).toHaveLength(1);
-		await alice.mutation(api.routines.create, { name: "Added after load", exercises: [] });
-		await alice.mutation(api.nutritionDiary.log, {
-			date: "2026-10-09", meal: "snacks", name: { en: "Manual snack", nl: "Handmatige snack" }, serving: { en: "Serving", nl: "Portie" }, quantity: 1, amount: 100, baseUnit: "g", nutrients: today.entries[0].nutrients, provenance: { source: "oneOff" },
+		await alice.mutation(api.routines.create, {
+			name: "Added after load",
+			exercises: [],
 		});
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-10-09" })).entries).toHaveLength(1);
+		await alice.mutation(api.nutritionDiary.log, {
+			date: "2026-10-09",
+			meal: "snacks",
+			name: { en: "Manual snack", nl: "Handmatige snack" },
+			serving: { en: "Serving", nl: "Portie" },
+			quantity: 1,
+			amount: 100,
+			baseUnit: "g",
+			nutrients: today.entries[0].nutrients,
+			provenance: { source: "oneOff" },
+		});
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-10-09" }))
+				.entries,
+		).toHaveLength(1);
 		await alice.mutation(api.testData.reset, {
 			mode: "clear",
-			today: "2026-10-10", expectedSubject: "alice",
+			today: "2026-10-10",
+			expectedSubject: "alice",
 		});
 		expect((await alice.query(api.activities.list, {})).items).toEqual([]);
 		expect(await alice.query(api.routines.list, {})).toEqual([]);
-		expect((await alice.query(api.nutritionDiary.day, { date: "2026-10-09" })).entries).toEqual([]);
+		expect(
+			(await alice.query(api.nutritionDiary.day, { date: "2026-10-09" }))
+				.entries,
+		).toEqual([]);
 		expect(await alice.query(api.bodyMetrics.list, {})).toEqual([]);
 		expect(
 			(
@@ -220,7 +268,8 @@ describe("in-app test data", () => {
 		for (let i = 0; i < 2; i++) {
 			await alice.mutation(api.testData.reset, {
 				mode: "load",
-				today: "2026-10-10", expectedSubject: "alice",
+				today: "2026-10-10",
+				expectedSubject: "alice",
 			});
 			expect(await alice.query(api.routines.list, {})).toHaveLength(2);
 			expect(
@@ -229,7 +278,8 @@ describe("in-app test data", () => {
 		}
 		await alice.mutation(api.testData.reset, {
 			mode: "clear",
-			today: "2026-10-10", expectedSubject: "alice",
+			today: "2026-10-10",
+			expectedSubject: "alice",
 		});
 		expect(await alice.query(api.routines.list, {})).toEqual([]);
 		expect(await alice.query(api.workoutSessions.listRecent, {})).toEqual([]);
@@ -244,14 +294,16 @@ describe("in-app test data", () => {
 		await expect(
 			t.mutation(api.testData.reset, {
 				mode: "clear",
-				today: "2026-10-10", expectedSubject: "alice",
+				today: "2026-10-10",
+				expectedSubject: "alice",
 			}),
 		).rejects.toThrow("unauthenticated");
 		const alice = t.withIdentity({ subject: "alice" });
 		await expect(
 			alice.mutation(api.testData.reset, {
 				mode: "clear",
-				today: "2026-10-10", expectedSubject: "bob",
+				today: "2026-10-10",
+				expectedSubject: "bob",
 			}),
 		).rejects.toThrow("accountChanged");
 		expect(await alice.query(api.testData.availability, {})).toEqual({
@@ -268,22 +320,43 @@ describe("in-app test data", () => {
 		});
 		for (const mode of ["load", "clear"] as const) {
 			await expect(
-				alice.mutation(api.testData.reset, { mode, today: "2026-10-10", expectedSubject: "alice" }),
+				alice.mutation(api.testData.reset, {
+					mode,
+					today: "2026-10-10",
+					expectedSubject: "alice",
+				}),
 			).rejects.toThrow("unavailable");
 		}
 	});
 });
 
 it("clears only the resetting account's uploaded photos", async () => {
- vi.stubEnv("CLERK_JWT_ISSUER_DOMAIN", "https://test.clerk.accounts.dev");
- vi.stubEnv("CONVEX_CLOUD_URL", "https://test-local.convex.cloud");
- const t = convexTest(schema, modules);
- const [alicePhoto, bobPhoto] = await t.run(async (ctx) => [await ctx.storage.store(new Blob(["alice"], {type:"image/jpeg"})), await ctx.storage.store(new Blob(["bob"], {type:"image/jpeg"}))]);
- const alice = t.withIdentity({subject:"alice"});
- const bob = t.withIdentity({subject:"bob"});
- await alice.mutation(api.nutritionFoodPhotos.registerUpload, {storageId:alicePhoto, expectedSubject:"alice"});
- await bob.mutation(api.nutritionFoodPhotos.registerUpload, {storageId:bobPhoto, expectedSubject:"bob"});
- await alice.mutation(api.testData.reset, {mode:"clear", today:"2026-10-13", expectedSubject:"alice"});
- expect(await alice.query(api.nutritionFoodPhotos.url, {storageId:alicePhoto})).toBeNull();
- expect(await bob.query(api.nutritionFoodPhotos.url, {storageId:bobPhoto})).toBeTruthy();
+	vi.stubEnv("CLERK_JWT_ISSUER_DOMAIN", "https://test.clerk.accounts.dev");
+	vi.stubEnv("CONVEX_CLOUD_URL", "https://test-local.convex.cloud");
+	const t = convexTest(schema, modules);
+	const [alicePhoto, bobPhoto] = await t.run(async (ctx) => [
+		await ctx.storage.store(new Blob(["alice"], { type: "image/jpeg" })),
+		await ctx.storage.store(new Blob(["bob"], { type: "image/jpeg" })),
+	]);
+	const alice = t.withIdentity({ subject: "alice" });
+	const bob = t.withIdentity({ subject: "bob" });
+	await alice.mutation(api.nutritionFoodPhotos.registerUpload, {
+		storageId: alicePhoto,
+		expectedSubject: "alice",
+	});
+	await bob.mutation(api.nutritionFoodPhotos.registerUpload, {
+		storageId: bobPhoto,
+		expectedSubject: "bob",
+	});
+	await alice.mutation(api.testData.reset, {
+		mode: "clear",
+		today: "2026-10-13",
+		expectedSubject: "alice",
+	});
+	expect(
+		await alice.query(api.nutritionFoodPhotos.url, { storageId: alicePhoto }),
+	).toBeNull();
+	expect(
+		await bob.query(api.nutritionFoodPhotos.url, { storageId: bobPhoto }),
+	).toBeTruthy();
 });

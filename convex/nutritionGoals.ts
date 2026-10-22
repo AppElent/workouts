@@ -1,14 +1,14 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import {
 	assertCalendarDate,
+	type EffectiveGoalVersion,
+	type NutritionGoal,
 	resolveGoalHistory,
 	utcTodayIsoDate,
 	validateNutritionGoals,
-	type EffectiveGoalVersion,
-	type NutritionGoal,
 } from "./nutritionGoalModel";
 import {
 	NUTRITION_NUTRIENTS,
@@ -50,7 +50,9 @@ async function readDisplayOrder(
 	return preference?.displayOrder ?? [...NUTRITION_NUTRIENTS];
 }
 
-function validateDisplayOrder(displayOrder: readonly NutritionNutrient[]): void {
+function validateDisplayOrder(
+	displayOrder: readonly NutritionNutrient[],
+): void {
 	if (
 		displayOrder.length !== NUTRITION_NUTRIENTS.length ||
 		new Set(displayOrder).size !== NUTRITION_NUTRIENTS.length ||

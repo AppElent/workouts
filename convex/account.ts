@@ -6,10 +6,7 @@ import {
 	isAppleClientId,
 	revokeAppleAuthorization,
 } from "./lib/appleSignIn";
-import {
-	deletePersonalData,
-	personalDataBlocker,
-} from "./lib/personalData";
+import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
 
 const blocker = v.union(
 	v.literal("activeActivity"),
@@ -64,7 +61,10 @@ const MAX_AUTHORIZATION_CODE = 2000;
 export const revokeAppleSignIn = action({
 	args: { authorizationCode: v.string(), bundleId: v.optional(v.string()) },
 	returns: v.null(),
-	handler: async (ctx, { authorizationCode, bundleId = APPLE_CLIENT_IDS[0] }) => {
+	handler: async (
+		ctx,
+		{ authorizationCode, bundleId = APPLE_CLIENT_IDS[0] },
+	) => {
 		if (!(await ctx.auth.getUserIdentity()))
 			throw new ConvexError("unauthenticated");
 		if (

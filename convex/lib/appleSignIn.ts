@@ -41,7 +41,10 @@ function base64Url(bytes: Uint8Array | string) {
 		typeof bytes === "string"
 			? bytes
 			: Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
-	return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+	return btoa(binary)
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
 }
 
 function pkcs8(privateKey: string) {

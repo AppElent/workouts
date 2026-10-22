@@ -17,7 +17,10 @@ describe("the training marker's only connection to Activity", () => {
 	it("requires authentication", async () => {
 		const t = convexTest(schema, modules);
 		await expect(
-			t.query(api.nutritionActivityMarker.hasCompletedActivity, localDayRange(Date.now())),
+			t.query(
+				api.nutritionActivityMarker.hasCompletedActivity,
+				localDayRange(Date.now()),
+			),
 		).rejects.toThrow("Unauthenticated");
 	});
 
@@ -25,7 +28,10 @@ describe("the training marker's only connection to Activity", () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		expect(
-			await alice.query(api.nutritionActivityMarker.hasCompletedActivity, localDayRange(Date.now())),
+			await alice.query(
+				api.nutritionActivityMarker.hasCompletedActivity,
+				localDayRange(Date.now()),
+			),
 		).toBe(false);
 	});
 
@@ -36,13 +42,27 @@ describe("the training marker's only connection to Activity", () => {
 
 		const sessionId = await alice.mutation(api.workoutSessions.create, {});
 		expect(
-			await alice.query(api.nutritionActivityMarker.hasCompletedActivity, today),
+			await alice.query(
+				api.nutritionActivityMarker.hasCompletedActivity,
+				today,
+			),
 		).toBe(false);
 
-		await alice.mutation(api.sets.add, { sessionId, exerciseId: "shipped:exercise:barbell-back-squat", setNumber: 1, weight: 60, reps: 8, unit: "kg", setType: "working" });
+		await alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: "shipped:exercise:barbell-back-squat",
+			setNumber: 1,
+			weight: 60,
+			reps: 8,
+			unit: "kg",
+			setType: "working",
+		});
 		await alice.mutation(api.workoutSessions.finish, { id: sessionId });
 		expect(
-			await alice.query(api.nutritionActivityMarker.hasCompletedActivity, today),
+			await alice.query(
+				api.nutritionActivityMarker.hasCompletedActivity,
+				today,
+			),
 		).toBe(true);
 	});
 
@@ -53,11 +73,22 @@ describe("the training marker's only connection to Activity", () => {
 		const yesterday = { from: today.from - 86_400_000, to: today.from };
 
 		const sessionId = await alice.mutation(api.workoutSessions.create, {});
-		await alice.mutation(api.sets.add, { sessionId, exerciseId: "shipped:exercise:barbell-back-squat", setNumber: 1, weight: 60, reps: 8, unit: "kg", setType: "working" });
+		await alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: "shipped:exercise:barbell-back-squat",
+			setNumber: 1,
+			weight: 60,
+			reps: 8,
+			unit: "kg",
+			setType: "working",
+		});
 		await alice.mutation(api.workoutSessions.finish, { id: sessionId });
 
 		expect(
-			await alice.query(api.nutritionActivityMarker.hasCompletedActivity, yesterday),
+			await alice.query(
+				api.nutritionActivityMarker.hasCompletedActivity,
+				yesterday,
+			),
 		).toBe(false);
 	});
 
@@ -68,7 +99,15 @@ describe("the training marker's only connection to Activity", () => {
 		const today = localDayRange(Date.now());
 
 		const sessionId = await alice.mutation(api.workoutSessions.create, {});
-		await alice.mutation(api.sets.add, { sessionId, exerciseId: "shipped:exercise:barbell-back-squat", setNumber: 1, weight: 60, reps: 8, unit: "kg", setType: "working" });
+		await alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: "shipped:exercise:barbell-back-squat",
+			setNumber: 1,
+			weight: 60,
+			reps: 8,
+			unit: "kg",
+			setType: "working",
+		});
 		await alice.mutation(api.workoutSessions.finish, { id: sessionId });
 
 		expect(
@@ -81,10 +120,21 @@ describe("the training marker's only connection to Activity", () => {
 		const alice = t.withIdentity({ subject: "alice" });
 		const today = localDayRange(Date.now());
 		const sessionId = await alice.mutation(api.workoutSessions.create, {});
-		await alice.mutation(api.sets.add, { sessionId, exerciseId: "shipped:exercise:barbell-back-squat", setNumber: 1, weight: 60, reps: 8, unit: "kg", setType: "working" });
+		await alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: "shipped:exercise:barbell-back-squat",
+			setNumber: 1,
+			weight: 60,
+			reps: 8,
+			unit: "kg",
+			setType: "working",
+		});
 		await alice.mutation(api.workoutSessions.finish, { id: sessionId });
 
-		const result = await alice.query(api.nutritionActivityMarker.hasCompletedActivity, today);
+		const result = await alice.query(
+			api.nutritionActivityMarker.hasCompletedActivity,
+			today,
+		);
 		expect(typeof result).toBe("boolean");
 	});
 
@@ -130,10 +180,21 @@ describe("the training marker's only connection to Activity", () => {
 
 		// A completed Activity appears on the same local day the food was logged.
 		const sessionId = await alice.mutation(api.workoutSessions.create, {});
-		await alice.mutation(api.sets.add, { sessionId, exerciseId: "shipped:exercise:barbell-back-squat", setNumber: 1, weight: 60, reps: 8, unit: "kg", setType: "working" });
+		await alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: "shipped:exercise:barbell-back-squat",
+			setNumber: 1,
+			weight: 60,
+			reps: 8,
+			unit: "kg",
+			setType: "working",
+		});
 		await alice.mutation(api.workoutSessions.finish, { id: sessionId });
 		expect(
-			await alice.query(api.nutritionActivityMarker.hasCompletedActivity, localDayRange(Date.now())),
+			await alice.query(
+				api.nutritionActivityMarker.hasCompletedActivity,
+				localDayRange(Date.now()),
+			),
 		).toBe(true);
 
 		const after = await alice.query(api.nutritionDiary.day, { date });

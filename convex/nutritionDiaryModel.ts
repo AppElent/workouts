@@ -51,7 +51,11 @@ const foodVisual = v.union(
 			v.literal("condiment"),
 		),
 	}),
-	v.object({ kind: v.literal("photo"), uri: v.string(), storageId: v.optional(v.id("_storage")) }),
+	v.object({
+		kind: v.literal("photo"),
+		uri: v.string(),
+		storageId: v.optional(v.id("_storage")),
+	}),
 	v.object({ kind: v.literal("remote"), uri: v.string() }),
 );
 
@@ -62,12 +66,30 @@ export const mealSlot = v.union(
 	v.literal("snacks"),
 );
 
-export const nutrientKey = v.union(v.literal("energy"),v.literal("protein"),v.literal("carbs"),v.literal("fat"),v.literal("saturatedFat"),v.literal("fibre"),v.literal("sugars"),v.literal("salt"));
+export const nutrientKey = v.union(
+	v.literal("energy"),
+	v.literal("protein"),
+	v.literal("carbs"),
+	v.literal("fat"),
+	v.literal("saturatedFat"),
+	v.literal("fibre"),
+	v.literal("sugars"),
+	v.literal("salt"),
+);
 
 export const diaryNutrientCorrection = v.object({
- baseUnit: v.union(v.literal("g"),v.literal("ml"),v.literal("serving")),
- basisAmount: v.number(),
- nutrients: v.object({energy: v.optional(nutrientValue),protein: v.optional(nutrientValue),carbs: v.optional(nutrientValue),fat: v.optional(nutrientValue),saturatedFat: v.optional(nutrientValue),fibre: v.optional(nutrientValue),sugars: v.optional(nutrientValue),salt: v.optional(nutrientValue)}),
+	baseUnit: v.union(v.literal("g"), v.literal("ml"), v.literal("serving")),
+	basisAmount: v.number(),
+	nutrients: v.object({
+		energy: v.optional(nutrientValue),
+		protein: v.optional(nutrientValue),
+		carbs: v.optional(nutrientValue),
+		fat: v.optional(nutrientValue),
+		saturatedFat: v.optional(nutrientValue),
+		fibre: v.optional(nutrientValue),
+		sugars: v.optional(nutrientValue),
+		salt: v.optional(nutrientValue),
+	}),
 });
 
 export const diaryPartSnapshotFields = {
@@ -79,7 +101,7 @@ export const diaryPartSnapshotFields = {
 	personalMeasureId: v.optional(v.string()),
 	visual: v.optional(foodVisual),
 	estimated: v.optional(v.literal(true)),
- correctedNutrients: v.optional(v.array(nutrientKey)),
+	correctedNutrients: v.optional(v.array(nutrientKey)),
 	nutrients: v.object({
 		energy: nutrientValue,
 		protein: nutrientValue,
@@ -90,21 +112,19 @@ export const diaryPartSnapshotFields = {
 		sugars: nutrientValue,
 		salt: nutrientValue,
 	}),
-	provenance: v.union(
-		shippedProvenance,
-		personalProvenance,
-		oneOffProvenance,
-	),
+	provenance: v.union(shippedProvenance, personalProvenance, oneOffProvenance),
 };
 
 export const diarySnapshotFields = {
 	date: v.string(),
 	meal: mealSlot,
-	comboGroup: v.optional(v.object({
-		id: v.string(),
-		comboId: v.string(),
-		name: v.string(),
-	})),
+	comboGroup: v.optional(
+		v.object({
+			id: v.string(),
+			comboId: v.string(),
+			name: v.string(),
+		}),
+	),
 	// Optional for release-one rows and legacy callers. Release-two operations
 	// always supply a device UUID so local and server identities can reconcile.
 	clientEntryId: v.optional(v.string()),

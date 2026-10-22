@@ -1,14 +1,14 @@
 import {
-	totalNutrients,
 	type NutrientKey,
 	type NutrientTotal,
+	totalNutrients,
 } from "@foundry/core";
-import { query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
+import { query } from "./_generated/server";
 import {
-	resolveGoalHistory,
 	type EffectiveGoalVersion,
 	type NutritionGoal,
+	resolveGoalHistory,
 } from "./nutritionGoalModel";
 import {
 	nutritionReviewWeekArgs,
@@ -70,7 +70,9 @@ function knownAverage(
 	);
 	if (known.length === 0) return { days: 0, qualified: false };
 	return {
-		value: known.reduce((sum, day) => sum + day.totals[key].amount, 0) / known.length,
+		value:
+			known.reduce((sum, day) => sum + day.totals[key].amount, 0) /
+			known.length,
 		days: known.length,
 		qualified: known.some((day) => day.totals[key].qualified),
 	};
@@ -131,7 +133,9 @@ export const week = query({
 		assertRealDate(startDate);
 		assertMonday(startDate);
 		if (today !== undefined) assertRealDate(today);
-		const dates = Array.from({ length: 7 }, (_, index) => addDays(startDate, index));
+		const dates = Array.from({ length: 7 }, (_, index) =>
+			addDays(startDate, index),
+		);
 		const goalHistory = await goalsForWeek(
 			ctx,
 			userId,
@@ -142,7 +146,9 @@ export const week = query({
 		for (const date of dates) {
 			const entries = await ctx.db
 				.query("nutritionDiaryEntries")
-				.withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", date))
+				.withIndex("by_user_date", (q) =>
+					q.eq("userId", userId).eq("date", date),
+				)
 				.take(MAX_ENTRIES_PER_DAY + 1);
 			if (entries.length > MAX_ENTRIES_PER_DAY) {
 				throw new Error("This review day contains too many entries.");
@@ -157,8 +163,7 @@ export const week = query({
 				date,
 				entryCount: entries.length,
 				totals: totalNutrients(entries.map((entry) => entry.nutrients)),
-				goals:
-					resolvedGoals.basis === "effective" ? resolvedGoals.goals : [],
+				goals: resolvedGoals.basis === "effective" ? resolvedGoals.goals : [],
 				goalBasis: resolvedGoals.basis,
 				effectiveFrom: resolvedGoals.effectiveFrom,
 			});

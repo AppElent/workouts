@@ -9,8 +9,7 @@ export const NUTRITION_GOAL_NUTRIENTS = [
 	"salt",
 ] as const;
 
-export type NutritionGoalNutrient =
-	(typeof NUTRITION_GOAL_NUTRIENTS)[number];
+export type NutritionGoalNutrient = (typeof NUTRITION_GOAL_NUTRIENTS)[number];
 export type NutritionGoalDirection = "min" | "max";
 export type NutritionGoalPreset = "reference" | "loseWeight" | "buildMuscle";
 

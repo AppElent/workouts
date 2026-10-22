@@ -39,9 +39,9 @@ async function configure() {
 	return key;
 }
 
-function appleResponses(
-	responses: Record<string, Response>,
-): { calls: { path: string; form: URLSearchParams }[] } {
+function appleResponses(responses: Record<string, Response>): {
+	calls: { path: string; form: URLSearchParams }[];
+} {
 	const calls: { path: string; form: URLSearchParams }[] = [];
 	vi.stubGlobal(
 		"fetch",
@@ -102,9 +102,13 @@ describe("account.revokeAppleSignIn", () => {
 
 	it("reports missing Apple credentials instead of calling Apple", async () => {
 		const { calls } = appleResponses({});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		await expect(
-			alice.action(api.account.revokeAppleSignIn, { authorizationCode: "code" }),
+			alice.action(api.account.revokeAppleSignIn, {
+				authorizationCode: "code",
+			}),
 		).rejects.toThrow("unavailable");
 		expect(calls).toEqual([]);
 	});
@@ -112,7 +116,9 @@ describe("account.revokeAppleSignIn", () => {
 	it("rejects a bundle ID that is not a Foundry build", async () => {
 		await configure();
 		const { calls } = appleResponses({});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		await expect(
 			alice.action(api.account.revokeAppleSignIn, {
 				authorizationCode: "code",
@@ -128,7 +134,9 @@ describe("account.revokeAppleSignIn", () => {
 			"/auth/token": Response.json({ refresh_token: "refresh" }),
 			"/auth/revoke": new Response(null, { status: 200 }),
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		await alice.action(api.account.revokeAppleSignIn, {
 			authorizationCode: "code",
 			bundleId: "com.appelent.foundry.preview",
@@ -148,7 +156,9 @@ describe("account.revokeAppleSignIn", () => {
 			}),
 			"/auth/revoke": new Response(null, { status: 200 }),
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		await alice.action(api.account.revokeAppleSignIn, {
 			authorizationCode: "code",
 		});
@@ -178,9 +188,13 @@ describe("account.revokeAppleSignIn", () => {
 		const { calls } = appleResponses({
 			"/auth/token": Response.json({ error: "invalid_grant" }, { status: 400 }),
 		});
-		const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
 		await expect(
-			alice.action(api.account.revokeAppleSignIn, { authorizationCode: "code" }),
+			alice.action(api.account.revokeAppleSignIn, {
+				authorizationCode: "code",
+			}),
 		).rejects.toThrow("failed");
 		expect(calls.map(({ path }) => path)).toEqual(["/auth/token"]);
 	});
