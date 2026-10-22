@@ -1,20 +1,16 @@
 import { nevoAttribution, roundForDisplay } from "@foundry/core/nutrition";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import type {
-	NativeStackNavigationOptions,
-	NativeStackNavigationProp,
-} from "expo-router";
-import { Stack, useNavigation, useRouter } from "expo-router";
+import type { NativeStackNavigationOptions } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Modal,
 	Pressable,
 	ScrollView,
 	TextInput,
-	type TextInputInstance,
 	View,
 } from "react-native";
 import { todayIsoDate } from "../../../data/calendar-day";
@@ -111,23 +107,6 @@ export function AssistanceScreen({
 	const [logging, setLogging] = useState(false);
 	const [makingCombo, setMakingCombo] = useState(false);
 	const lock = useRef(false);
-	// Focusing while the sheet still presents scrolls the field to where the
-	// header's inset will be, leaving the text under the header.
-	const navigation =
-		useNavigation<
-			NativeStackNavigationProp<Record<string, object | undefined>>
-		>();
-	const [presented, setPresented] = useState(false);
-	useEffect(() => {
-		const fallback = setTimeout(() => setPresented(true), 700);
-		const unsubscribe = navigation.addListener("transitionEnd", (event) => {
-			if (!event.data.closing) setPresented(true);
-		});
-		return () => {
-			clearTimeout(fallback);
-			unsubscribe();
-		};
-	}, [navigation]);
 	const destinationMenu = useMealDestinationMenu({
 		date: destination.date,
 		meal: destination.meal,
@@ -152,6 +131,11 @@ export function AssistanceScreen({
 		(): NativeStackNavigationOptions => ({
 			title: copy.title,
 			headerShown: true,
+			// A transparent header never insets this sheet's scroll view, which
+			// left the text field under it; an opaque one lays out below it.
+			headerTransparent: false,
+			headerStyle: { backgroundColor: colors.bg },
+			headerShadowVisible: false,
 			// Clears what the label editor put on the right while it owned the header.
 			unstable_headerRightItems: () => [],
 			headerTitle: () => (
@@ -178,7 +162,7 @@ export function AssistanceScreen({
 				</Pressable>
 			),
 		}),
-		[copy, colors.text, menu.label, menu.dayLabel, menu.mealName],
+		[copy, colors.bg, colors.text, menu.label, menu.dayLabel, menu.mealName],
 	);
 
 	const { phase } = session;
@@ -373,7 +357,6 @@ export function AssistanceScreen({
 		body = (
 			<InputCard
 				session={session}
-				focusReady={presented}
 				onCamera={() => setCamera(true)}
 				onLibrary={async () => {
 					const result = await ImagePicker.launchImageLibraryAsync({
@@ -556,15 +539,12 @@ function SeenCard({
 
 function InputCard({
 	session,
-	focusReady,
 	onCamera,
 	onLibrary,
 	onSaveNote,
 	onSearch,
 }: {
 	session: ReturnType<typeof useAssistanceSession>;
-	/** The sheet has finished presenting, so focusing cannot misplace the scroll. */
-	focusReady: boolean;
 	onCamera: () => void;
 	onLibrary: () => void;
 	onSaveNote: () => void;
@@ -576,12 +556,6 @@ function InputCard({
 	const problem =
 		session.phase.kind === "input" ? session.phase.problem : undefined;
 	const canAnalyse = Boolean(session.text.trim() || session.photo);
-	const input = useRef<TextInputInstance | null>(null);
-	const hasPhoto = useRef(Boolean(session.photo));
-	hasPhoto.current = Boolean(session.photo);
-	useEffect(() => {
-		if (focusReady && !hasPhoto.current) input.current?.focus();
-	}, [focusReady]);
 	const pill = (
 		label: string,
 		symbol: { ios: SFSymbol; android: string },
@@ -677,7 +651,6 @@ function InputCard({
 						</View>
 					) : null}
 					<TextInput
-						ref={input}
 						accessibilityLabel={copy.title}
 						value={session.text}
 						onChangeText={session.setText}
@@ -686,6 +659,7 @@ function InputCard({
 						}
 						placeholderTextColor={colors.textFaint}
 						multiline
+						autoFocus={!session.photo}
 						maxLength={2000}
 						style={{ ...type.body, color: colors.text, minHeight: 80 }}
 					/>
