@@ -19,12 +19,15 @@ export function FoodNutrientRows({
 	fields,
 	marked,
 	markLabel,
+	notes,
 }: {
 	values: Readonly<Record<NutrientKey, NutrientInput>>;
 	fields: ReturnType<typeof useNutrientFields>;
 	/** Values filled from a scanned label, tagged with `markLabel`. */
 	marked?: ReadonlySet<NutrientKey>;
 	markLabel?: string;
+	/** A short note after a row's label, such as the value a refresh replaced. */
+	notes?: Partial<Record<NutrientKey, string>>;
 }) {
 	const { t } = useI18n();
 	const copy = t.nutrition.foodEditor;
@@ -59,6 +62,11 @@ export function FoodNutrientRows({
 							style={{ color: colors.accent, fontWeight: "700" }}
 						>
 							{`  ${markLabel.toUpperCase()}`}
+						</AppText>
+					) : null}
+					{notes?.[key] ? (
+						<AppText variant="caption" style={{ color: colors.textMuted }}>
+							{`  ${notes[key]}`}
 						</AppText>
 					) : null}
 				</AppText>

@@ -14,7 +14,7 @@ import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
-const DATABASE_VERSION = 7;
+const DATABASE_VERSION = 8;
 
 export type CachedGoalHistory = {
 	goals: NutritionGoalValue[];
@@ -126,7 +126,8 @@ export type NutritionLocalRepository = {
 	getDay(subject: string, date: string): NutritionCachedDay | undefined;
 	putDay(subject: string, day: NutritionCachedDay): void;
 	projectDay(subject: string, date: string): NutritionSessionDay;
-	listRecent(subject: string, limit?: number): FoodShortcut[];
+	/** Newest first; with a meal, what was logged to that meal leads. */
+	listRecent(subject: string, limit?: number, meal?: string): FoodShortcut[];
 	listFavorites(subject: string): FoodShortcut[];
 	getShortcut(subject: string, sourceKey: string): FoodShortcut | undefined;
 	toggleFavorite(subject: string, sourceKey: string, favorite: boolean): void;
@@ -179,6 +180,10 @@ function migrate(database: SyncSQLiteDatabase) {
 				PRIMARY KEY(subject, source_key)
 			);
 			CREATE INDEX IF NOT EXISTS nutrition_food_shortcuts_by_recent ON nutrition_food_shortcuts(subject, last_used_at DESC, source_key ASC);
+			CREATE TABLE IF NOT EXISTS nutrition_food_meal_uses (
+				subject TEXT NOT NULL, source_key TEXT NOT NULL, meal TEXT NOT NULL,
+				last_used_at INTEGER NOT NULL, PRIMARY KEY(subject, source_key, meal)
+			);
 			CREATE TABLE IF NOT EXISTS nutrition_goal_preferences (subject TEXT PRIMARY KEY, display_order_json TEXT NOT NULL);
 			DROP TABLE IF EXISTS nutrition_operations;
 			DROP TABLE IF EXISTS nutrition_entry_mappings;
@@ -186,7 +191,7 @@ function migrate(database: SyncSQLiteDatabase) {
 			DROP TABLE IF EXISTS nutrition_cached_goals;
 			DROP TABLE IF EXISTS nutrition_cached_personal_measures;
 			DROP TABLE IF EXISTS nutrition_cached_supplementary_servings;
-			PRAGMA user_version = 7;
+			PRAGMA user_version = 8;
 		`);
 		database.execSync("COMMIT");
 	} catch (error) {
@@ -235,6 +240,22 @@ export function createNutritionLocalRepository(
 				});
 			// Optional defaults must never turn an acknowledged server save into a failed save.
 			try {
+				const meal =
+					envelope.operation.kind === "create"
+						? envelope.operation.entry.meal
+						: envelope.operation.kind === "createBatch"
+							? envelope.operation.meal
+							: undefined;
+				if (directFoodUse && meal)
+					database.runSync(
+						`INSERT INTO nutrition_food_meal_uses(subject, source_key, meal, last_used_at)
+						 VALUES (?, ?, ?, ?) ON CONFLICT(subject, source_key, meal) DO UPDATE SET
+						 last_used_at = excluded.last_used_at`,
+						subject,
+						directFoodUse.sourceKey,
+						meal,
+						timestamp,
+					);
 				if (directFoodUse)
 					database.runSync(
 						`
@@ -312,13 +333,17 @@ export function createNutritionLocalRepository(
 				JSON.stringify(displayOrder),
 			);
 		},
-		listRecent(subject, limit = 50) {
+		listRecent(subject, limit = 50, meal) {
 			return database
 				.getAllSync<ShortcutRow>(
-					`SELECT source_key, last_used_at, portion_json, favorite
-					 FROM nutrition_food_shortcuts
-					 WHERE subject = ? AND last_used_at IS NOT NULL
-					 ORDER BY last_used_at DESC, source_key ASC LIMIT ?`,
+					`SELECT s.source_key, s.last_used_at, s.portion_json, s.favorite
+					 FROM nutrition_food_shortcuts s
+					 LEFT JOIN nutrition_food_meal_uses m
+					 ON m.subject = s.subject AND m.source_key = s.source_key AND m.meal = ?
+					 WHERE s.subject = ? AND s.last_used_at IS NOT NULL
+					 ORDER BY m.last_used_at IS NULL, m.last_used_at DESC,
+					 s.last_used_at DESC, s.source_key ASC LIMIT ?`,
+					meal ?? "",
 					subject,
 					Math.min(50, Math.max(1, limit)),
 				)
@@ -376,6 +401,10 @@ export function clearNutritionLocalAccount(subject: string) {
 		database.withTransactionSync(() => {
 			database.runSync(
 				"DELETE FROM nutrition_food_shortcuts WHERE subject = ?",
+				subject,
+			);
+			database.runSync(
+				"DELETE FROM nutrition_food_meal_uses WHERE subject = ?",
 				subject,
 			);
 			database.runSync(

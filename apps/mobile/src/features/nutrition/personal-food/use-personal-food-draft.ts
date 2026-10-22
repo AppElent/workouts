@@ -13,6 +13,7 @@ import {
 	foodPhotos,
 } from "../../../data/food-photo-manager";
 import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
+import { replaceProviderMetadata } from "../../../data/open-food-facts-sync";
 import {
 	type FoodVisual,
 	type PersonalFood,
@@ -20,7 +21,7 @@ import {
 	validatePersonalFoodDraft,
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
@@ -119,7 +120,22 @@ export function usePersonalFoodDraft({
 	const [saving, setSaving] = useState(false);
 	const saveLock = useRef(false);
 	const [touched, setTouched] = useState(false);
-	const touch = () => setTouched(true);
+	/**
+	 * Provider details from an Open Food Facts refresh, and whether the person
+	 * changed anything after it: only their edits make the food locally edited.
+	 */
+	const [provider, setProvider] = useState<{
+		provenance: PersonalFoodDraft["provenance"];
+		editedAfter: boolean;
+	}>();
+	/** Rows a refresh changed, with the value each had before. */
+	const [replaced, setReplaced] = useState<
+		Partial<Record<NutrientKey, string>>
+	>({});
+	const touch = () => {
+		setTouched(true);
+		setProvider((current) => current && { ...current, editedAfter: true });
+	};
 	const photo = useStagedFoodVisual({
 		initial: initial?.visual
 			? initial.visual
@@ -195,11 +211,12 @@ export function usePersonalFoodDraft({
 		};
 		let provenance = {
 			...labelExtras,
-			...(initial?.provenance ?? {
-				recordOrigin: "personal" as const,
-				nutritionSource: "manual" as const,
-				locallyEdited: false,
-			}),
+			...(provider?.provenance ??
+				initial?.provenance ?? {
+					recordOrigin: "personal" as const,
+					nutritionSource: "manual" as const,
+					locallyEdited: false,
+				}),
 		};
 		if (source)
 			provenance = {
@@ -209,7 +226,12 @@ export function usePersonalFoodDraft({
 					forkHasLocalEdits({ ...editable, baseUnit: baseUnit }, source),
 			};
 		else if (initial && touched)
-			provenance = { ...provenance, locallyEdited: true };
+			provenance = {
+				...provenance,
+				locallyEdited: provider
+					? provider.editedAfter || provider.provenance.locallyEdited
+					: true,
+			};
 		const storedVisual =
 			visual?.kind === "remote" && remoteCrop !== "center" ? undefined : visual;
 		return {
@@ -414,6 +436,50 @@ export function usePersonalFoodDraft({
 			});
 			touch();
 			return { filled, differences };
+		},
+		replaced,
+		/**
+		 * Write an Open Food Facts refresh into the draft. `metadataOnly` keeps
+		 * the person's values and takes only the provider's details.
+		 */
+		applyProviderRefresh: (
+			latest: PersonalFoodDraft,
+			metadataOnly: boolean,
+		) => {
+			const current = initial?.provenance;
+			if (!current) return;
+			if (metadataOnly) {
+				setProvider({
+					provenance: replaceProviderMetadata(current, latest.provenance),
+					editedAfter: false,
+				});
+				setTouched(true);
+				return;
+			}
+			const next = initialNutrients(latest);
+			const display = (input: NutrientInput) =>
+				input.kind === "value"
+					? input.amount
+					: input.kind === "trace"
+						? copy.trace
+						: "—";
+			const changed: Partial<Record<NutrientKey, string>> = {};
+			for (const key of NUTRIENT_KEYS)
+				if (display(nutrients[key]) !== display(next[key]))
+					changed[key] = fmt(copy.was, { value: display(nutrients[key]) });
+			setNutrients(next);
+			setReplaced(changed);
+			if (latest.baseUnit !== "serving") {
+				setBaseUnit(latest.baseUnit);
+				setBasisKind("per100");
+			}
+			setServings(initialServings(latest));
+			setNameState(latest.name[locale]);
+			setProvider({
+				provenance: { ...latest.provenance, locallyEdited: false },
+				editedAfter: false,
+			});
+			setTouched(true);
 		},
 		dirty: touched,
 		saving,

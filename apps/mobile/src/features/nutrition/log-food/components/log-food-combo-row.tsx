@@ -14,6 +14,8 @@ export function LogFoodComboRow({
 	detailLabel,
 	onDetail,
 	logLabel,
+	logging,
+	justLogged,
 	onLog,
 }: {
 	name: string;
@@ -24,6 +26,8 @@ export function LogFoodComboRow({
 	detailLabel: string;
 	onDetail: () => void;
 	logLabel: string;
+	logging?: boolean;
+	justLogged?: boolean;
 	onLog: () => void;
 }) {
 	return (
@@ -44,7 +48,12 @@ export function LogFoodComboRow({
 			position={position}
 			rowLabel={detailLabel}
 			onPress={onDetail}
-			add={{ label: `${logLabel} ${name}`, onPress: onLog }}
+			add={{
+				label: `${logLabel} ${name}`,
+				busy: logging,
+				done: justLogged,
+				onPress: onLog,
+			}}
 		/>
 	);
 }

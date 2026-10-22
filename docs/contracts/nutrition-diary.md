@@ -21,6 +21,11 @@ Studies: [diary](../../designs/nutrition/diary_final.html),
   `headerTransparent` on iOS). Top-right holds at most one direct action (calendar)
   plus a ⋯ menu that keeps every existing screen action. The calendar shows
   logged-day indicators.
+- **Week strip.** Each day's fixed-height marker row shows, in order, a logged
+  dot, a bolt when a completed Activity falls on that local day (decorative; never
+  affects goals or totals), and a note icon for open Capture Drafts. No legend
+  and no separate "trained" line, so days never shift vertically. Selected:
+  [round 4](../../designs/nutrition/diary_round4.html), option A.
 - **Rows.** Tap opens the entry editor; other actions follow the shared
   actionable-list contract.
 - **Section menus.** A Meal Slot with actions makes its title the trigger

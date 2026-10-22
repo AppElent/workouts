@@ -71,6 +71,8 @@ export const logFoodEn = {
 	details: "Details",
 	log: "Log",
 	wholeCombo: "Whole Combo",
+	wholeCombos: "{count} × Combo",
+	loadingFoods: "Loading your foods…",
 	comboParts: { one: "Combo · 1 food", other: "Combo · {count} foods" },
 	comboDetail: "Open Combo {combo}",
 	onlineResults: "Open Food Facts",
@@ -180,6 +182,8 @@ export const logFoodNl: typeof logFoodEn = {
 	details: "Details",
 	log: "Loggen",
 	wholeCombo: "Hele combo",
+	wholeCombos: "{count} × combo",
+	loadingFoods: "Je voeding laden…",
 	comboParts: {
 		one: "Combo · 1 voedingsmiddel",
 		other: "Combo · {count} voedingsmiddelen",

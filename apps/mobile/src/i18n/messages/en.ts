@@ -239,8 +239,7 @@ export const en = {
 		 * carries none of those and never will.
 		 */
 		trainingMarker: {
-			label: "Trained",
-			description: "You completed a training session on this day.",
+			label: "trained",
 		},
 
 		goals: {

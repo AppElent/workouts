@@ -377,6 +377,46 @@ describe("browsing shipped foods", () => {
 		);
 	});
 
+	it("logs a whole Combo from its + without opening it", async () => {
+		const log = jest.fn().mockResolvedValue(undefined);
+		mockUseMutation.mockReturnValue(
+			log as unknown as ReturnType<typeof useMutation>,
+		);
+		const app = await renderApp();
+		app.repository.createCombo({
+			name: "Training lunch",
+			parts: [
+				{
+					reference: { kind: "oneOff" },
+					snapshot: {
+						name: { en: "Oats", nl: "Haver" },
+						serving: { en: "Bowl", nl: "Kom" },
+						quantity: 1,
+						amount: 100,
+						baseUnit: "g",
+						provenance: { source: "oneOff" },
+						nutrients: {
+							energy: { kind: "value", amount: 100 },
+							protein: { kind: "absent" },
+							carbs: { kind: "absent" },
+							fat: { kind: "absent" },
+							saturatedFat: { kind: "absent" },
+							fibre: { kind: "absent" },
+							sugars: { kind: "absent" },
+							salt: { kind: "absent" },
+						},
+					},
+				},
+			],
+		});
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(await screen.findByRole("tab", { name: "Combos" }));
+		await fireEvent.press(await screen.findByLabelText("Log Training lunch"));
+
+		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+		expect(app.getSearchParams()).not.toHaveProperty("comboId");
+	});
+
 	it("uses absolute authored-serving quantity shortcuts", async () => {
 		const { repository } = await renderApp();
 		repository.create({

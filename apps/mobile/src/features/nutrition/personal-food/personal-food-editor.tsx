@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import type { FoodPhotoManager } from "../../../data/food-photo-manager";
+import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
+import { openFoodFactsImports } from "../../../data/open-food-facts-sync";
 import type {
 	PersonalFood,
 	PersonalFoodDraft,
@@ -87,6 +89,7 @@ export function PersonalFoodEditor({
 	const navigation = useNavigation();
 	const personalFoods = usePersonalFoods();
 	const toast = useToast();
+	const openFoodFacts = useOpenFoodFacts();
 	const [leaving, setLeaving] = useState(false);
 	const draft = usePersonalFoodDraft({
 		food,
@@ -104,10 +107,12 @@ export function PersonalFoodEditor({
 	const actions = useRef<{
 		save: () => unknown;
 		remove: () => unknown;
+		refresh: () => unknown;
 		close: () => unknown;
 	}>({
 		save: () => undefined,
 		remove: () => undefined,
+		refresh: () => undefined,
 		close: () => undefined,
 	});
 	const [servingEditor, setServingEditor] = useState<number | "new" | null>(
@@ -181,6 +186,44 @@ export function PersonalFoodEditor({
 		}
 	};
 
+	/** Imported from Open Food Facts with a barcode, so it can be fetched again. */
+	const refreshable = Boolean(food && openFoodFactsImports([food]).length);
+	const refreshing = useRef(false);
+	const refresh = async () => {
+		const barcode = food?.provenance.barcode;
+		if (!food || !barcode || refreshing.current) return;
+		refreshing.current = true;
+		try {
+			let outcome: Awaited<ReturnType<typeof openFoodFacts.refreshBarcode>>;
+			try {
+				outcome = await openFoodFacts.refreshBarcode(barcode);
+			} catch {
+				outcome = { kind: "network-error" };
+			}
+			if (outcome.kind !== "found") {
+				toast.error(
+					outcome.kind === "not-found"
+						? copy.refreshNotFound
+						: copy.refreshUnavailable,
+				);
+				return;
+			}
+			// The person's own values are theirs to give up.
+			const keepValues =
+				(food.provenance.locallyEdited || draft.dirty) &&
+				!(await confirm({
+					title: copy.refreshEditedTitle,
+					message: copy.refreshEditedBody,
+					confirmLabel: copy.refreshReplace,
+					cancelLabel: copy.refreshKeep,
+				}));
+			draft.applyProviderRefresh(outcome.draft, keepValues);
+			toast.success(copy.refreshed);
+		} finally {
+			refreshing.current = false;
+		}
+	};
+
 	const title = food
 		? draft.name
 		: reviewNotice
@@ -245,6 +288,7 @@ export function PersonalFoodEditor({
 		<NutritionChoiceMenu
 			accessibilityLabel={copy.more}
 			sections={[
+				...(refreshable ? [[{ id: "refresh", label: copy.refreshOff }]] : []),
 				[
 					{
 						id: "delete",
@@ -257,6 +301,7 @@ export function PersonalFoodEditor({
 			]}
 			onSelect={(id) => {
 				if (id === "delete") void actions.current.remove();
+				if (id === "refresh") void actions.current.refresh();
 			}}
 		>
 			<View
@@ -298,7 +343,7 @@ export function PersonalFoodEditor({
 	// Native bar items, so UIKit draws the glass (mobile-design "Functional
 	// chrome"). Memoized with handlers in a ref: Stack.Screen sets options on
 	// every new object, and this screen re-renders when they are set.
-	actions.current = { save, remove, close };
+	actions.current = { save, remove, refresh, close };
 	const deleteLabel = food?.provenance.forkedFrom
 		? copy.deleteCorrection
 		: copy.delete;
@@ -321,6 +366,19 @@ export function PersonalFoodEditor({
 								icon: { type: "sfSymbol" as const, name: "ellipsis" as const },
 								menu: {
 									items: [
+										...(refreshable
+											? [
+													{
+														type: "action" as const,
+														label: copy.refreshOff,
+														icon: {
+															type: "sfSymbol" as const,
+															name: "arrow.clockwise" as const,
+														},
+														onPress: () => void actions.current.refresh(),
+													},
+												]
+											: []),
 										{
 											type: "action" as const,
 											label: deleteLabel,
@@ -361,6 +419,7 @@ export function PersonalFoodEditor({
 			deleteLabel,
 			hasFood,
 			headerTitle,
+			refreshable,
 		],
 	);
 
@@ -680,6 +739,7 @@ export function PersonalFoodEditor({
 						fields={nutrientFields}
 						marked={draft.fromLabel}
 						markLabel={t.nutrition.assistance.fromLabel}
+						notes={draft.replaced}
 					/>
 					<View
 						style={{

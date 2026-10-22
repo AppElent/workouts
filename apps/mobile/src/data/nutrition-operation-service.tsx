@@ -286,8 +286,8 @@ export class NutritionOperationService {
 		return this.repository.listOperations(subject);
 	}
 
-	listRecent(subject: string) {
-		return this.repository.listRecent(subject);
+	listRecent(subject: string, meal?: NutritionMealSlot) {
+		return this.repository.listRecent(subject, undefined, meal);
 	}
 
 	listFavorites(subject: string) {
@@ -332,6 +332,7 @@ export class NutritionOperationService {
 		entries: readonly (NutritionDiarySnapshot & { clientEntryId: string })[],
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
+		directFoodUse?: DirectFoodUse,
 	) {
 		return this.accept(
 			subject,
@@ -341,7 +342,7 @@ export class NutritionOperationService {
 				meal,
 				entries: entries.map(({ date: _date, meal: _meal, ...entry }) => entry),
 			},
-			undefined,
+			directFoodUse,
 			onError,
 			onSuccess,
 		);

@@ -24,7 +24,11 @@ import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { foodPhotos } from "../../../data/food-photo-manager";
-import { comboEnergy } from "../../../data/nutrition-combo";
+import {
+	comboEnergy,
+	comboLogEntries,
+	comboLogPlan,
+} from "../../../data/nutrition-combo";
 import type { MealSlot } from "../../../data/nutrition-day";
 import {
 	intakeLoggedSince,
@@ -41,6 +45,7 @@ import {
 } from "../../../data/nutrition-shortcuts";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import type {
+	Combo,
 	FoodVisual,
 	PersonalFood,
 	PersonalFoodDraft,
@@ -55,7 +60,7 @@ import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
-import { fmt, plural, useI18n } from "../../../i18n";
+import { fmt, localizeDecimal, plural, useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
@@ -67,6 +72,7 @@ import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { FoodEditorSheet } from "../../../ui/food-editor-sheet";
 import { isIOS26OrLater } from "../../../ui/platform";
+import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
@@ -379,7 +385,9 @@ export function LogFoodScreen({
 
 	// Durable shortcuts, refreshed by the operation-version subscription above
 	// after a quick log or a favorite toggle.
-	const recentShortcuts = subject ? operations.listRecent(subject) : [];
+	const recentShortcuts = subject
+		? operations.listRecent(subject, selectedMeal)
+		: [];
 	const favoriteShortcuts = subject ? operations.listFavorites(subject) : [];
 	const favoriteKeys = useMemo(
 		() => new Set(favoriteShortcuts.map((shortcut) => shortcut.sourceKey)),
@@ -415,10 +423,27 @@ export function LogFoodScreen({
 		messages: t.nutrition,
 		copy,
 	});
+	// Recents, favorites and Combos resolve from separate reads; showing each as
+	// it lands reorders the list under the finger. Hold it until they settle
+	// once, with a cap so a slow or offline read never hides the list.
+	const [settled, setSettled] = useState(() => !personalFoods.loading);
+	useEffect(() => {
+		if (settled) return;
+		const cap = setTimeout(() => setSettled(true), 1500);
+		const quiet = personalFoods.loading
+			? undefined
+			: setTimeout(() => setSettled(true), 150);
+		return () => {
+			clearTimeout(cap);
+			if (quiet) clearTimeout(quiet);
+		};
+	}, [settled, personalFoods.loading]);
 	// A combo cannot hold another combo.
-	const items = browserTarget
-		? browsed.filter((item) => item.kind !== "combo")
-		: browsed;
+	const items = !settled
+		? []
+		: browserTarget
+			? browsed.filter((item) => item.kind !== "combo")
+			: browsed;
 	const off = useOffSearch(query, {
 		client: openFoodFacts,
 		online: !offline,
@@ -708,6 +733,105 @@ export function LogFoodScreen({
 							},
 						},
 					);
+				},
+			);
+		} catch {
+			release();
+			toast.error(t.nutrition.foodBrowser.logFailure);
+		}
+	}
+
+	/** How many whole Combos the + logs: as many as last time, else one. */
+	function rememberedComboQuantity(combo: Combo) {
+		const quantity = subject
+			? operations.getShortcut(subject, `combo:${combo.id}`)?.portion?.quantity
+			: undefined;
+		return quantity && quantity > 0 ? quantity : 1;
+	}
+
+	/**
+	 * A Combo's +: logs every part again at the remembered whole-Combo count.
+	 * A Combo that cannot be logged as saved (a part is missing or its Food has
+	 * not loaded) opens the Combo log instead, where that gets resolved.
+	 */
+	function quickLogCombo(combo: Combo, openCombo: () => void) {
+		const sourceKey = `combo:${combo.id}`;
+		if (!subject || quickLoggingRef.current.has(sourceKey)) return;
+		const plan = comboLogPlan(combo, {}, personalFoods.find);
+		const quantity = rememberedComboQuantity(combo);
+		let entries: ReturnType<typeof comboLogEntries>;
+		try {
+			if (plan.missing.length) throw new Error("Combo part is missing.");
+			entries = comboLogEntries(plan, quantity);
+		} catch {
+			openCombo();
+			return;
+		}
+		const release = () => {
+			quickLoggingRef.current.delete(sourceKey);
+			setQuickLoggingKeys((keys) => {
+				const next = new Set(keys);
+				next.delete(sourceKey);
+				return next;
+			});
+		};
+		quickLoggingRef.current.add(sourceKey);
+		setQuickLoggingKeys((keys) => new Set(keys).add(sourceKey));
+		const comboGroup = {
+			id: mintNutritionUuid(),
+			comboId: combo.id,
+			name: combo.name,
+		};
+		const logged = entries.map((snapshot) => ({
+			...snapshot,
+			date,
+			meal: selectedMeal,
+			comboGroup,
+			clientEntryId: mintNutritionUuid(),
+		}));
+		const loggedMeal = t.nutrition.meals[selectedMeal];
+		try {
+			operations.createBatch(
+				subject,
+				date,
+				selectedMeal,
+				logged,
+				() => {
+					release();
+					toast.error(t.nutrition.foodBrowser.logFailure);
+				},
+				() => {
+					release();
+					haptics.entryLogged();
+					setMealFlash((key) => key + 1);
+					markJustLogged(sourceKey);
+					toast.success(
+						fmt(copy.logged, { food: combo.name, meal: loggedMeal }),
+						{
+							action: {
+								label: copy.undo,
+								onPress: () => {
+									for (const entry of logged)
+										operations.remove(
+											subject,
+											{ kind: "clientEntryId", id: entry.clientEntryId },
+											() => toast.error(copy.undoFailure),
+										);
+								},
+							},
+						},
+					);
+				},
+				{
+					sourceKey,
+					portion: {
+						kind: "authored",
+						servingKey: "combo",
+						baseUnit: "serving",
+						amount: 1,
+						quantity,
+						label: { en: "Combo", nl: "Combo" },
+					},
 				},
 			);
 		} catch {
@@ -1209,7 +1333,15 @@ export function LogFoodScreen({
 					</View>
 				}
 				ListEmptyComponent={
-					hasQuery && offAnswering ? undefined : (
+					!settled ? (
+						<View style={styles.loading}>
+							<SkeletonGroup label={copy.loadingFoods}>
+								<SkeletonBlock height={52} />
+								<SkeletonBlock height={52} />
+								<SkeletonBlock height={52} />
+							</SkeletonGroup>
+						</View>
+					) : hasQuery && offAnswering ? undefined : (
 						<LogFoodEmptyState
 							tab={filter}
 							query={query}
@@ -1259,7 +1391,13 @@ export function LogFoodScreen({
 									? "last"
 									: "middle";
 					if (item.kind === "combo") {
-						const energy = comboEnergy(item.combo);
+						const comboKey = `combo:${item.combo.id}`;
+						const quantity = rememberedComboQuantity(item.combo);
+						const perCombo = comboEnergy(item.combo);
+						const energy =
+							perCombo === undefined
+								? undefined
+								: Math.round(perCombo * quantity);
 						const openCombo = () =>
 							router.push({
 								pathname: "/nutrition-combo-log",
@@ -1278,12 +1416,20 @@ export function LogFoodScreen({
 									copy.comboParts,
 								)}
 								energy={energy === undefined ? undefined : `${energy} kcal`}
-								portion={copy.wholeCombo}
+								portion={
+									quantity === 1
+										? copy.wholeCombo
+										: fmt(copy.wholeCombos, {
+												count: localizeDecimal(String(quantity), locale),
+											})
+								}
 								position={position}
 								detailLabel={fmt(copy.comboDetail, { combo: item.combo.name })}
 								onDetail={openCombo}
 								logLabel={copy.log}
-								onLog={openCombo}
+								logging={quickLoggingKeys.has(comboKey)}
+								justLogged={justLogged.has(comboKey)}
+								onLog={() => quickLogCombo(item.combo, openCombo)}
 							/>
 						);
 					}
@@ -1377,6 +1523,7 @@ const createStyles = (colors: Tokens) =>
 		},
 		accent: { color: colors.accentInk, fontWeight: "600" },
 		localNone: { paddingHorizontal: spacing.md },
+		loading: { gap: spacing.sm, paddingHorizontal: spacing.md },
 		// Design `.sec-f`, centred under the list.
 		poolNote: {
 			marginHorizontal: 20,

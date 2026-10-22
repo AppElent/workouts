@@ -24,7 +24,8 @@ references. Studies: [training](../../designs/app/training_final.html),
   press expose Start, Edit, Delete. Swipe reveals Edit/Delete and never commits.
 - Deletion confirms and explains that past sessions remain; a failed deletion keeps
   the row.
-- The ActiveSessionBar stays in the shell accessory. Starting another Strength
+- The ActiveSessionBar stays in the shell accessory and shows only while the
+  Train tab is selected. Starting another Strength
   Session offers to resume the active one. An unresolved active-session query is
   not evidence of none; keep the server race fallback.
 

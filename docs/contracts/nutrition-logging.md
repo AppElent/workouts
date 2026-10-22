@@ -42,8 +42,10 @@ nutrient card, bottom toolbar. Editing a Diary Entry, a Combo part, logging a
 Combo, and one-time adjustments differ only in title, first table column, and
 toolbar (meal/date/delete for entries; replace/remove for parts; none for one-time).
 
-- **Quantity.** − and + adjust; typing accepts locale decimals; presets and Done
-  sit above the keyboard. The equivalent base amount is shown.
+- **Quantity.** The large − and + step by one (ten for a base unit); smaller
+  buttons between them step by a quarter (one for a base unit, half a Combo when
+  logging a Combo). Typing accepts locale decimals; presets and Done sit above
+  the keyboard. The equivalent base amount is shown.
 - **Exact amounts.** Switching Serving or unit preserves the exact amount
   (1.25 × 150 ml stays 187.5 ml) without display rounding or drift. Respect each
   food's base unit and conversion metadata; never assume g ↔ ml equivalence.

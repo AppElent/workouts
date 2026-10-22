@@ -58,7 +58,7 @@ Read the affected contract:
 
 The [Round 5 study](../../designs/entry-editor/round5.html) selects the quantity
 capsule, serving/menu pills, combined product/nutrient card, and keyboard accessory.
-Its 84pt circular step controls, `type.quantityCompact` (44pt), and `type.table`
+Its 72pt circular step controls with 40pt fine steps between them, `type.quantityCompact` (44pt), and `type.table`
 (14pt) are scoped to this editor; other screens retain the shared form composition.
 `GlassSurface` owns material, `SelectionMenu` platform selection, and the feature
 owns quantity interaction and serving creation.
