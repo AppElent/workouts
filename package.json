@@ -41,7 +41,8 @@
     "env:plan": "node scripts/env.mjs plan",
     "env:apply": "node scripts/env.mjs apply",
     "env:generate": "node scripts/env.mjs generate",
-    "sentry:convex": "node scripts/convex-sentry.mjs"
+    "sentry:convex": "node scripts/convex-sentry.mjs",
+    "monitor:snapshot": "node scripts/monitoring-snapshot.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",
