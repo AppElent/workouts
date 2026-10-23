@@ -449,9 +449,10 @@ export function usePersonalFoodDraft({
 			const current = initial?.provenance;
 			if (!current) return;
 			if (metadataOnly) {
+				// The kept values are the person's, so later refreshes leave them.
 				setProvider({
 					provenance: replaceProviderMetadata(current, latest.provenance),
-					editedAfter: false,
+					editedAfter: true,
 				});
 				setTouched(true);
 				return;

@@ -189,6 +189,9 @@ export function PersonalFoodEditor({
 	/** Imported from Open Food Facts with a barcode, so it can be fetched again. */
 	const refreshable = Boolean(food && openFoodFactsImports([food]).length);
 	const refreshing = useRef(false);
+	// Edits made while the barcode request is pending count too.
+	const dirty = useRef(draft.dirty);
+	dirty.current = draft.dirty;
 	const refresh = async () => {
 		const barcode = food?.provenance.barcode;
 		if (!food || !barcode || refreshing.current) return;
@@ -210,7 +213,7 @@ export function PersonalFoodEditor({
 			}
 			// The person's own values are theirs to give up.
 			const keepValues =
-				(food.provenance.locallyEdited || draft.dirty) &&
+				(food.provenance.locallyEdited || dirty.current) &&
 				!(await confirm({
 					title: copy.refreshEditedTitle,
 					message: copy.refreshEditedBody,
