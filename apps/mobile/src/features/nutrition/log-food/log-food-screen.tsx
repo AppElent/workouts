@@ -714,7 +714,7 @@ export function LogFoodScreen({
 					release();
 					toast.error(t.nutrition.foodBrowser.logFailure);
 				},
-				() => {
+				(saved) => {
 					release();
 					haptics.entryLogged();
 					setMealFlash((key) => key + 1);
@@ -724,12 +724,14 @@ export function LogFoodScreen({
 						{
 							action: {
 								label: copy.undo,
-								onPress: () =>
-									operations.remove(
-										subject,
-										{ kind: "clientEntryId", id: clientEntryId },
-										() => toast.error(copy.undoFailure),
-									),
+								onPress: () => {
+									for (const id of saved)
+										operations.remove(
+											subject,
+											{ kind: "clientEntryId", id },
+											() => toast.error(copy.undoFailure),
+										);
+								},
 							},
 						},
 					);
@@ -800,7 +802,7 @@ export function LogFoodScreen({
 					release();
 					toast.error(t.nutrition.foodBrowser.logFailure);
 				},
-				() => {
+				(saved) => {
 					release();
 					haptics.entryLogged();
 					setMealFlash((key) => key + 1);
@@ -811,10 +813,10 @@ export function LogFoodScreen({
 							action: {
 								label: copy.undo,
 								onPress: () => {
-									for (const entry of logged)
+									for (const id of saved)
 										operations.remove(
 											subject,
-											{ kind: "clientEntryId", id: entry.clientEntryId },
+											{ kind: "clientEntryId", id },
 											() => toast.error(copy.undoFailure),
 										);
 								},

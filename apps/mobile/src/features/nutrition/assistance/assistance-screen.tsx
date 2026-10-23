@@ -197,7 +197,7 @@ export function AssistanceScreen({
 					toast.error(copy.logFailure);
 					reject(error);
 				},
-				() => {
+				(saved) => {
 					lock.current = false;
 					setLogging(false);
 					if (draftId) void drafts.remove(draftId).catch(() => undefined);
@@ -210,10 +210,10 @@ export function AssistanceScreen({
 							action: {
 								label: t.nutrition.logFood.undo,
 								onPress: () => {
-									for (const entry of entries)
+									for (const id of saved)
 										operations.remove(
 											subject,
-											{ kind: "clientEntryId", id: entry.clientEntryId },
+											{ kind: "clientEntryId", id },
 											undefined,
 											() => toast.error(t.nutrition.logFood.undoFailure),
 										);

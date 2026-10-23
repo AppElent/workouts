@@ -157,4 +157,38 @@ describe("nutrition replay service", () => {
 		service.dispose();
 		db.closeSync();
 	});
+
+	it("reports the retried save's original entry ids so undo removes what was saved", async () => {
+		const db = new SQLiteTestDatabase();
+		const repo = createNutritionLocalRepository(db);
+		const remote = jest
+			.fn()
+			.mockRejectedValueOnce(new Error("Receipt lost"))
+			.mockResolvedValue({ entryIds: [], clientEntryIds: [], days: [] });
+		const service = new NutritionOperationService(repo, remote);
+		service.setSubject("alice");
+		service.setOnline(true);
+		const entry = (clientEntryId: string) => ({ ...snapshot, clientEntryId });
+		service.createBatch("alice", snapshot.date, snapshot.meal, [
+			entry(mintNutritionUuid()),
+		]);
+		await Promise.resolve();
+		await Promise.resolve();
+		const saved = jest.fn();
+		service.createBatch(
+			"alice",
+			snapshot.date,
+			snapshot.meal,
+			[entry(mintNutritionUuid())],
+			undefined,
+			saved,
+		);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(saved).toHaveBeenCalledWith([
+			remote.mock.calls[0][0].operation.entries[0].clientEntryId,
+		]);
+		service.dispose();
+		db.closeSync();
+	});
 });

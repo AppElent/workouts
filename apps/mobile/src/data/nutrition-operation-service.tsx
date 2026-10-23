@@ -64,6 +64,18 @@ export function mintNutritionUuid(): string {
 		.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 }
 
+function savedClientEntryIds(operation: NutritionDiaryOperation): string[] {
+	const entries =
+		operation.kind === "create"
+			? [operation.entry]
+			: operation.kind === "createBatch"
+				? operation.entries
+				: [];
+	return entries.flatMap((entry) =>
+		entry.clientEntryId ? [entry.clientEntryId] : [],
+	);
+}
+
 export class NutritionOperationService {
 	private readonly listeners = new Set<() => void>();
 	private activeSubject: string | undefined;
@@ -110,7 +122,8 @@ export class NutritionOperationService {
 		operation: NutritionDiaryOperation,
 		directFoodUse?: DirectFoodUse,
 		onError?: (error: unknown) => void,
-		onSuccess?: () => void,
+		/** Gets the client ids of the entries saved, which a retry keeps from its first try. */
+		onSuccess?: (clientEntryIds: readonly string[]) => void,
 	): string {
 		if (subject !== this.activeSubject)
 			throw new Error("Unauthorized nutrition account.");
@@ -181,7 +194,7 @@ export class NutritionOperationService {
 				this.onlineRetries.delete(retryKey);
 				if (subject === this.activeSubject) {
 					this.notify();
-					onSuccess?.();
+					onSuccess?.(savedClientEntryIds(envelope.operation));
 				}
 			})
 			.catch((error: unknown) => {
@@ -309,7 +322,7 @@ export class NutritionOperationService {
 		snapshot: NutritionDiarySnapshot,
 		directFoodUse?: DirectFoodUse,
 		onError?: (error: unknown) => void,
-		onSuccess?: () => void,
+		onSuccess?: (clientEntryIds: readonly string[]) => void,
 	) {
 		return this.accept(
 			subject,
@@ -332,7 +345,7 @@ export class NutritionOperationService {
 		meal: NutritionMealSlot,
 		entries: readonly (NutritionDiarySnapshot & { clientEntryId: string })[],
 		onError?: (error: unknown) => void,
-		onSuccess?: () => void,
+		onSuccess?: (clientEntryIds: readonly string[]) => void,
 		directFoodUse?: DirectFoodUse,
 	) {
 		return this.accept(
