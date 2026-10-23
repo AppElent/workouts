@@ -417,6 +417,64 @@ describe("browsing shipped foods", () => {
 		expect(app.getSearchParams()).not.toHaveProperty("comboId");
 	});
 
+	it("shows a Combo's kcal from its Foods' current figures", async () => {
+		const app = await renderApp();
+		const nutrients = (energy: number) => ({
+			energy: { kind: "value" as const, amount: energy },
+			protein: { kind: "absent" as const },
+			carbs: { kind: "absent" as const },
+			fat: { kind: "absent" as const },
+			saturatedFat: { kind: "absent" as const },
+			fibre: { kind: "absent" as const },
+			sugars: { kind: "absent" as const },
+			salt: { kind: "absent" as const },
+		});
+		const food = app.repository.create({
+			name: { en: "Oats", nl: "Haver" },
+			baseUnit: "g",
+			nutrients: nutrients(100),
+			servings: [],
+			provenance: {
+				recordOrigin: "personal",
+				nutritionSource: "manual",
+				locallyEdited: false,
+			},
+		});
+		app.repository.createCombo({
+			name: "Training lunch",
+			parts: [
+				{
+					reference: { kind: "personal", foodId: food.id },
+					snapshot: {
+						name: food.name,
+						serving: { en: "100 g × 1", nl: "100 g × 1" },
+						quantity: 1,
+						amount: 100,
+						baseUnit: "g",
+						nutrients: nutrients(100),
+						provenance: {
+							source: "personal",
+							sourceId: food.id,
+							nutritionSource: "manual",
+							locallyEdited: false,
+						},
+					},
+				},
+			],
+		});
+		app.repository.update(food.id, {
+			name: food.name,
+			baseUnit: "g",
+			nutrients: nutrients(200),
+			servings: [],
+			provenance: food.provenance,
+		});
+		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
+		await fireEvent.press(await screen.findByRole("tab", { name: "Combos" }));
+
+		expect(await screen.findByText("200 kcal")).toBeTruthy();
+	});
+
 	it("uses absolute authored-serving quantity shortcuts", async () => {
 		const { repository } = await renderApp();
 		repository.create({

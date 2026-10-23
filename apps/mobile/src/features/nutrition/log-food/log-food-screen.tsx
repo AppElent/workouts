@@ -25,9 +25,9 @@ import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import {
-	comboEnergy,
 	comboLogEntries,
 	comboLogPlan,
+	comboPlanEnergy,
 } from "../../../data/nutrition-combo";
 import type { MealSlot } from "../../../data/nutrition-day";
 import {
@@ -1393,7 +1393,10 @@ export function LogFoodScreen({
 					if (item.kind === "combo") {
 						const comboKey = `combo:${item.combo.id}`;
 						const quantity = rememberedComboQuantity(item.combo);
-						const perCombo = comboEnergy(item.combo);
+						// What the + logs: current Food figures, not the saved snapshots.
+						const perCombo = comboPlanEnergy(
+							comboLogPlan(item.combo, {}, personalFoods.find),
+						);
 						const energy =
 							perCombo === undefined
 								? undefined
