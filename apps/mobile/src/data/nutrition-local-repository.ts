@@ -10,6 +10,7 @@ import type {
 	PersonalMeasure,
 	SupplementaryServing,
 } from "@foundry/core/nutrition";
+import { reportError } from "../observability/errors";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
@@ -152,12 +153,21 @@ function rowToShortcut(row: ShortcutRow): FoodShortcut {
 	};
 }
 
+/** A newer build already migrated this file; this build cannot read it. */
+export class NewerNutritionStateError extends Error {
+	constructor(readonly version: number) {
+		super(
+			`This nutrition state database (${version}) is newer than this app (${DATABASE_VERSION}).`,
+		);
+		this.name = "NewerNutritionStateError";
+	}
+}
+
 function migrate(database: SyncSQLiteDatabase) {
 	const version =
 		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
 			?.user_version ?? 0;
-	if (version > DATABASE_VERSION)
-		throw new Error("This nutrition state database is newer than this app.");
+	if (version > DATABASE_VERSION) throw new NewerNutritionStateError(version);
 	if (version === DATABASE_VERSION) return;
 	database.execSync("BEGIN IMMEDIATE");
 	try {
@@ -387,10 +397,24 @@ export function createNutritionLocalRepository(
 	};
 }
 
-export function openNutritionLocalRepository(): NutritionLocalRepository {
-	return createNutritionLocalRepository(
-		openNutritionDatabase(NUTRITION_STATE_DATABASE_NAME),
-	);
+/**
+ * The file only holds optional defaults, so a file from a newer build (an
+ * installed build that is older than the last one) must not stop the app from
+ * opening. Leave that file untouched for the newer build and run this session
+ * from memory instead.
+ */
+export function openNutritionLocalRepository(
+	open: (name: string) => SyncSQLiteDatabase = openNutritionDatabase,
+): NutritionLocalRepository {
+	const database = open(NUTRITION_STATE_DATABASE_NAME);
+	try {
+		return createNutritionLocalRepository(database);
+	} catch (error) {
+		if (!(error instanceof NewerNutritionStateError)) throw error;
+		reportError(error, "nutrition.localState.open");
+		(database as SyncSQLiteDatabase & { closeSync?: () => void }).closeSync?.();
+		return createNutritionLocalRepository(open(":memory:"));
+	}
 }
 
 /** Confirmed test-data resets remove the account's optional defaults. */
