@@ -640,6 +640,8 @@ describe("Nutrition Combos", () => {
 		await openLibraryCombo("Morning Combo");
 		await openComboLog();
 		await fireEvent.press(screen.getByLabelText("Increase quantity"));
+		expect(screen.getByDisplayValue("2")).toBeTruthy();
+		await fireEvent.press(screen.getByLabelText("Decrease by 0.5"));
 		expect(screen.getByDisplayValue("1.5")).toBeTruthy();
 	});
 

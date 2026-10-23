@@ -227,8 +227,7 @@ export const nl = {
 		},
 
 		trainingMarker: {
-			label: "Getraind",
-			description: "Je hebt op deze dag een training voltooid.",
+			label: "getraind",
 		},
 
 		goals: {

@@ -563,21 +563,23 @@ describe("the nutrition day", () => {
 		expect(screen.getByText(/≥ 0 g/)).toBeTruthy();
 	});
 
-	it("does not reserve space for the training marker on a day without a completed Activity", async () => {
+	it("marks no day as trained without a completed Activity", async () => {
 		await renderApp();
 
 		await screen.findByText("Today");
-		expect(
-			screen.queryByLabelText("You completed a training session on this day."),
-		).toBeNull();
-		expect(screen.queryByText("Trained")).toBeNull();
+		expect(screen.queryByLabelText(/, trained/)).toBeNull();
 	});
 
-	it("shows the training marker on a day with a completed Activity, without changing goals or totals", async () => {
-		mockUseTrainingMarkerQuery.mockReturnValue({
-			status: "success",
-			data: true,
-		});
+	it("marks a day with a completed Activity in the week strip, without changing goals or totals", async () => {
+		mockUseTrainingMarkerQuery.mockImplementation(
+			(request) =>
+				({
+					status: "success",
+					data: (request as { args: { days: unknown[] } }).args.days.map(
+						() => true,
+					),
+				}) as never,
+		);
 		mockUseQuery.mockImplementation((reference, _args?) => {
 			if (getFunctionName(reference) === "nutritionGoals:forDate") {
 				return {
@@ -621,13 +623,10 @@ describe("the nutrition day", () => {
 
 		await renderApp();
 
-		// Present: the marker itself, accessibly described.
+		// Present: the marker on the day itself, accessibly described.
 		expect(
-			await screen.findByLabelText(
-				"You completed a training session on this day.",
-			),
-		).toBeTruthy();
-		expect(screen.getByText("Trained")).toBeTruthy();
+			(await screen.findAllByLabelText(/, trained/)).length,
+		).toBeGreaterThan(0);
 		// Unchanged: the same goal progress and food entry a day with no
 		// Activity at all would show for this exact diary and goal data — the
 		// completed session contributes nothing to either number.

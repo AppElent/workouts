@@ -39,7 +39,8 @@ const PROVIDER_METADATA_KEYS = [
 	"providerServing",
 ] as const;
 
-function replaceProviderMetadata(
+/** Takes the provider's details while keeping the person's values. */
+export function replaceProviderMetadata(
 	current: PersonalFoodProvenance,
 	latest: PersonalFoodProvenance,
 ): PersonalFoodProvenance {

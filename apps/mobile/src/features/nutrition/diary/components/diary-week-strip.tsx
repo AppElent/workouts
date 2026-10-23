@@ -13,6 +13,7 @@ import {
 	toIsoDate,
 } from "../../../../data/calendar-day";
 import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
+import { useTrainedDates } from "../../../../data/training-marker";
 import { plural, useI18n } from "../../../../i18n";
 import { radius, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
@@ -43,6 +44,10 @@ export function DiaryWeekStrip({
 		shiftIsoDate(monday, 13),
 	);
 	const loggedDates = new Set([...fetchedDates, ...(knownDates ?? [])]);
+	const trainedDates = useTrainedDates(
+		shiftIsoDate(monday, -7),
+		shiftIsoDate(monday, 13),
+	);
 	useEffect(() => {
 		if (width && monday)
 			scroll.current?.scrollTo({ x: width, animated: false });
@@ -74,12 +79,19 @@ export function DiaryWeekStrip({
 								noteCount,
 								t.nutrition.diary.unresolvedNotes,
 							);
+							const trained = trainedDates.has(day);
 							const local = isoDateToLocalDate(day);
 							return (
 								<Pressable
 									key={day}
 									accessibilityRole="button"
-									accessibilityLabel={`${formatLongDate(day, locale)}${noteCount ? `, ${noteLabel}` : ""}`}
+									accessibilityLabel={[
+										formatLongDate(day, locale),
+										trained ? t.nutrition.trainingMarker.label : "",
+										noteCount ? noteLabel : "",
+									]
+										.filter(Boolean)
+										.join(", ")}
 									accessibilityState={{ selected }}
 									onPress={() => onChange(day)}
 									style={{
@@ -129,6 +141,17 @@ export function DiaryWeekStrip({
 														? colors.onAccent
 														: colors.accent,
 												}}
+											/>
+										) : null}
+										{trained ? (
+											<SymbolView
+												name={{
+													ios: "bolt.fill",
+													android: "bolt",
+													web: "bolt",
+												}}
+												size={11}
+												tintColor={selected ? colors.onAccent : colors.accent}
 											/>
 										) : null}
 										{noteCount ? (

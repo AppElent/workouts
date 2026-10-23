@@ -5,6 +5,7 @@ import {
 	type PersonalFoodDraft,
 } from "@foundry/core/nutrition";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
+import type { FetchLike } from "../../../data/open-food-facts";
 import { renderApp } from "../../../test-support/render-app";
 
 function draft(
@@ -42,6 +43,37 @@ async function renderExisting(servings?: PersonalFoodDraft["servings"]) {
 	await fireEvent.press(await screen.findByText("Oats"));
 	await waitFor(() => expect(app.getPathname()).toBe(`/personal-food/${id}`));
 	return { app, id };
+}
+
+const offProduct = {
+	code: "5000112637922",
+	product_name: "Oats",
+	nutriments: { "energy-kcal_100g": 375 },
+};
+
+async function renderOffImport(fetchImpl: FetchLike) {
+	let id = "";
+	const app = await renderApp("/nutrition-library", {}, fetchImpl, (stores) => {
+		id = stores.personalFoods.create({
+			...draft(),
+			provenance: {
+				recordOrigin: "import",
+				nutritionSource: "openfoodfacts",
+				barcode: offProduct.code,
+				locallyEdited: false,
+			},
+		}).id;
+	});
+	await fireEvent.press(await screen.findByText("Oats"));
+	await waitFor(() => expect(app.getPathname()).toBe(`/personal-food/${id}`));
+	return { app, id };
+}
+
+async function pressRefresh() {
+	await fireEvent.press(await screen.findByLabelText("More"));
+	await fireEvent.press(
+		screen.getAllByText("Refresh from Open Food Facts").at(-1) as never,
+	);
 }
 
 describe("personal food editor", () => {
@@ -150,5 +182,47 @@ describe("personal food editor", () => {
 		);
 
 		await waitFor(() => expect(app.repository.find(id)).toBeUndefined());
+	});
+	it("keeps edits made while a refresh is pending unless replacing is confirmed", async () => {
+		let respond = (_: unknown) => {};
+		const fetchImpl: FetchLike = jest.fn(
+			() =>
+				new Promise((resolve) => {
+					respond = resolve as never;
+				}),
+		);
+		await renderOffImport(fetchImpl);
+		await pressRefresh();
+		await type("Energy", "400");
+		respond({
+			ok: true,
+			status: 200,
+			json: async () => ({ status: 1, product: offProduct }),
+		});
+
+		expect(await screen.findByText("Replace your changes?")).toBeTruthy();
+	});
+
+	it("still protects kept values from later refreshes", async () => {
+		const fetchImpl: FetchLike = jest.fn(async () => ({
+			ok: true,
+			status: 200,
+			json: async () => ({ status: 1, product: offProduct }),
+		}));
+		const { app, id } = await renderOffImport(fetchImpl);
+		await type("Energy", "400");
+		await pressRefresh();
+		await fireEvent.press(
+			(await screen.findAllByText("Keep my values")).at(-1) as never,
+		);
+		await fireEvent.press(screen.getByLabelText("Save Personal Food"));
+
+		await waitFor(() =>
+			expect(app.repository.find(id)?.provenance.locallyEdited).toBe(true),
+		);
+		expect(app.repository.find(id)?.nutrients.energy).toEqual({
+			kind: "value",
+			amount: 400,
+		});
 	});
 });

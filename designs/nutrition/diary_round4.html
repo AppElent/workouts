@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dagboek — ronde 4: training in de weekstrook</title>
+<style>
+:root {
+	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
+	--accent: #466400; --accentFill: #c8f73c; --onAccent: #0a0b09;
+	--text: #1a2015; --muted: #535e49; --border: rgba(26,32,21,.12); --track: rgba(26,32,21,.10);
+	--over: #b45309; --board: #dfe2d8; --ink: #1a2015;
+	--font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
+}
+body.dark {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --text: #f2f4ef; --muted: #9ba095; --border: rgba(255,255,255,.07); --track: rgba(255,255,255,.12);
+	--over: #fbbf24; --board: #050604; --ink: #f2f4ef;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; font-family: var(--font); background: var(--board); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+header { padding: 28px 32px 8px; display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+header h1 { font-size: 28px; margin: 0; letter-spacing: -.02em; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 84ch; line-height: 1.5; font-size: 14px; }
+.toggles { margin-left: auto; display: flex; gap: 8px; }
+.toggles button { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+.toggles button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.guide { margin: 8px 32px 0; padding: 16px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.guide h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+.guide b { color: var(--ink); }
+.guide ol { margin: 4px 0 0; padding-left: 20px; }
+main { display: flex; gap: 36px; padding: 24px 32px 64px; overflow-x: auto; align-items: flex-start; }
+.dir { flex: 0 0 auto; width: 393px; }
+.dir h2 { font-size: 19px; margin: 0 0 2px; }
+.dir .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.dir .pitch { font-size: 13.5px; color: var(--muted); line-height: 1.45; margin: 6px 0 14px; min-height: 60px; }
+.notes { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 14px; }
+.notes b { color: var(--ink); }
+.rec { outline: 2px solid var(--accent); outline-offset: 10px; border-radius: 34px; }
+.stage { background: var(--bg); border-radius: 32px; padding: 18px 16px 20px; }
+.h { font-size: 34px; font-weight: 800; color: var(--text); margin: 0 4px; letter-spacing: -.02em; }
+.sub { font-size: 15px; color: var(--muted); margin: 2px 4px 10px; }
+.strip { display: flex; }
+.day { flex: 1; margin: 0 3px; min-height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
+.day .wd { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; }
+.day .n { font-size: 17px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.day.sel { background: var(--accentFill); }
+.day.sel .wd, .day.sel .n { color: var(--onAccent); }
+.marks { height: 12px; display: flex; gap: 4px; align-items: center; justify-content: center; }
+.dot { width: 4px; height: 4px; border-radius: 2px; background: var(--accent); }
+.sel .dot { background: var(--onAccent); }
+.bolt { width: 11px; height: 11px; color: var(--accent); }
+.sel .bolt { color: var(--onAccent); }
+/* ring around the date number */
+.ringwrap { position: relative; width: 34px; height: 34px; display: grid; place-items: center; }
+.ringwrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.ringwrap .n { position: relative; font-size: 15px; }
+.trainbadge { position: absolute; top: 46px; right: 8px; width: 7px; height: 7px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.sel .trainbadge { box-shadow: 0 0 0 2px var(--accentFill); background: var(--onAccent); }
+.old { margin: 6px 6px 0; font-size: 12px; color: var(--muted); text-decoration: line-through; opacity: .6; }
+.legend { margin: 10px 6px 0; font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.card { margin-top: 12px; height: 92px; border-radius: 22px; background: var(--surface); display: flex; align-items: center; padding: 0 18px; gap: 14px; color: var(--text); font-weight: 600; }
+.card small { display: block; color: var(--muted); font-weight: 500; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+	<div>
+		<h1>Dagboek — ronde 4: training in de weekstrook</h1>
+		<p>Vraag: toon "getraind" op de dag in de weekstrook in plaats van als tekst eronder; eventueel een ring rond de dag gevuld met kcal. Vorige ronde: <a href="diary_round3.html">ronde 3</a>, gekozen: <a href="diary_final.html">diary final</a>. Tik op een dag.</p>
+	</div>
+	<div class="toggles">
+		<button id="light" aria-pressed="true">Licht</button>
+		<button id="dark" aria-pressed="false">Donker</button>
+	</div>
+</header>
+<section class="guide">
+	<h3>Kritiek op de huidige dag, op impact</h3>
+	<ol>
+		<li><b>"Getraind" staat los van de dag.</b> De tekstregel onder de strook geldt alleen voor de gekozen dag; de andere zes dagen tonen niets, dus je ziet je trainingsweek niet.</li>
+		<li><b>De markeerregel bestaat al.</b> Elke dag heeft een 12pt-regel met de gelogd-stip en het notitie-icoon. Training hoort daar, niet in een extra regel.</li>
+		<li><b>Een kcal-ring dupliceert.</b> De dagkaart eronder heeft al de kcal-ring voor de gekozen dag, en het weekoverzicht toont kcal per dag. Een ring per dag in de strook is veel inkt op 40pt breed en vraagt per dag doelen en totalen (een nieuwe weekquery).</li>
+	</ol>
+	<p><b>Aanbeveling: A.</b> Een klein trainingsicoon naast de gelogd-stip, voor alle zichtbare dagen. Kosten: één backendquery die voor een reeks lokale dagen teruggeeft welke een voltooide training hebben (dezelfde regel als de huidige marker, nog steeds geen duur of kcal). B voegt de kcal-ring toe als je die echt per dag wilt; C is de lichtste variant.</p>
+</section>
+<main>
+	<div class="dir rec">
+		<div class="tag">A · aanbevolen</div>
+		<h2>Icoon in de markeerregel</h2>
+		<p class="pitch">Bliksem (<code>bolt.fill</code>, 11pt) naast de gelogd-stip en het notitie-icoon. De tekstregel "Getraind" verdwijnt; VoiceOver leest "getraind" bij de dag.</p>
+		<div class="stage" data-variant="a"></div>
+		<p class="notes"><b>Toegankelijk:</b> label "Donderdag 22 oktober, getraind, 1 open notitie". <b>Kleur:</b> <code>accent</code>, op de geselecteerde dag <code>onAccent</code>, zoals de stip.</p>
+	</div>
+	<div class="dir">
+		<div class="tag">B</div>
+		<h2>kcal-ring + trainingsstip</h2>
+		<p class="pitch">Een dunne ring rond het datumcijfer vult tot het kcal-doel (oranje boven doel); een stip rechtsboven betekent getraind.</p>
+		<div class="stage" data-variant="b"></div>
+		<p class="notes"><b>Tegen:</b> 34pt ring in een 46pt kolom; de geselecteerde dag toont hetzelfde als de dagkaart. Vraagt een weekquery met totalen en doelen per dag. <b>Voor:</b> je ziet de week in één blik.</p>
+	</div>
+	<div class="dir">
+		<div class="tag">C</div>
+		<h2>Alleen een stip, andere vorm</h2>
+		<p class="pitch">Gelogd blijft de ronde stip; getraind wordt een klein streepje ernaast. Geen icoon.</p>
+		<div class="stage" data-variant="c"></div>
+		<p class="notes"><b>Voor:</b> rustigst. <b>Tegen:</b> vorm alleen is moeilijk te onderscheiden; vraagt de legenda.</p>
+	</div>
+</main>
+<script>
+const days = [
+	{ wd: "MA", n: 19, logged: true, trained: true, kcal: .92 },
+	{ wd: "DI", n: 20, logged: true, trained: false, kcal: 1.08 },
+	{ wd: "WO", n: 21, logged: true, trained: true, kcal: .74 },
+	{ wd: "DO", n: 22, logged: true, trained: true, kcal: .55, note: true },
+	{ wd: "VR", n: 23, logged: false, trained: false, kcal: 0 },
+	{ wd: "ZA", n: 24, logged: false, trained: false, kcal: 0 },
+	{ wd: "ZO", n: 25, logged: false, trained: false, kcal: 0 },
+];
+const full = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"];
+const bolt = '<svg class="bolt" viewBox="0 0 12 12"><path fill="currentColor" d="M7 0 1.5 7H5.5L4.5 12 10.5 4.8H6.5Z"/></svg>';
+const noteIcon = '<svg class="bolt" viewBox="0 0 12 12"><rect x="1.5" y="1" width="9" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 4.5h4.4M3.8 7h3" stroke="currentColor" stroke-width="1.2"/></svg>';
+function ring(k) {
+	const r = 15, c = 2 * Math.PI * r, v = Math.min(k, 1);
+	const color = k > 1 ? "var(--over)" : "var(--accent)";
+	return `<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--track)" stroke-width="2.5"/>${k ? `<circle cx="17" cy="17" r="${r}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${c * v} ${c}"/>` : ""}</svg>`;
+}
+function render(stage, sel) {
+	const v = stage.dataset.variant;
+	const cells = days.map((d, i) => {
+		const marks = [];
+		if (d.logged) marks.push('<span class="dot"></span>');
+		if (d.trained && v === "a") marks.push(bolt);
+		if (d.trained && v === "c") marks.push('<span class="dot" style="width:9px;border-radius:2px"></span>');
+		if (d.note) marks.push(noteIcon);
+		const label = [`${full[i]} ${d.n} oktober`, d.trained ? "getraind" : "", d.note ? "1 open notitie" : ""].filter(Boolean).join(", ");
+		const num = v === "b" ? `<div class="ringwrap">${ring(d.kcal)}<span class="n">${d.n}</span></div>` : `<span class="n">${d.n}</span>`;
+		const badge = v === "b" && d.trained ? '<span class="trainbadge"></span>' : "";
+		const markRow = v === "b" ? (d.note ? `<div class="marks">${noteIcon}</div>` : '<div class="marks"></div>') : `<div class="marks">${marks.join("")}</div>`;
+		return `<button class="day${i === sel ? " sel" : ""}" data-i="${i}" aria-label="${label}" aria-pressed="${i === sel}"><span class="wd">${d.wd}</span>${num}${markRow}${badge}</button>`;
+	}).join("");
+	const legend = v === "a"
+		? `<div class="legend"><span><span class="dot"></span>gelogd</span><span>${bolt}getraind</span></div>`
+		: v === "b"
+			? `<div class="legend"><span>ring = kcal t.o.v. doel</span><span><span class="dot"></span>getraind</span></div>`
+			: `<div class="legend"><span><span class="dot"></span>gelogd</span><span><span class="dot" style="width:9px;border-radius:2px"></span>getraind</span></div>`;
+	stage.innerHTML = `<div class="h">${sel === 3 ? "Vandaag" : full[sel][0].toUpperCase() + full[sel].slice(1)}</div><div class="sub">${full[sel]} ${days[sel].n} oktober</div><div class="strip">${cells}</div>${legend}<div class="old">Getraind (tekstregel vervalt)</div><div class="card"><div>1.540 kcal<small>van 2.300 · doel</small></div></div>`;
+	stage.querySelectorAll(".day").forEach((b) => (b.onclick = () => render(stage, Number(b.dataset.i))));
+}
+document.querySelectorAll(".stage").forEach((s) => render(s, 3));
+const setTheme = (dark) => {
+	document.body.classList.toggle("dark", dark);
+	document.getElementById("dark").setAttribute("aria-pressed", dark);
+	document.getElementById("light").setAttribute("aria-pressed", !dark);
+};
+document.getElementById("dark").onclick = () => setTheme(true);
+document.getElementById("light").onclick = () => setTheme(false);
+</script>
+</body>
+</html>

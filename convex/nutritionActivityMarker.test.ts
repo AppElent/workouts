@@ -203,4 +203,32 @@ describe("the training marker's only connection to Activity", () => {
 		expect(after).toEqual(before);
 		expect(goalsAfter).toEqual(goalsBefore);
 	});
+
+	it("answers per local day for the week strip, in order", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const today = localDayRange(Date.now());
+		const yesterday = { from: today.from - 86_400_000, to: today.from };
+		const sessionId = await alice.mutation(api.workoutSessions.create, {});
+		await alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: "shipped:exercise:barbell-back-squat",
+			setNumber: 1,
+			weight: 60,
+			reps: 8,
+			unit: "kg",
+			setType: "working",
+		});
+		await alice.mutation(api.workoutSessions.finish, { id: sessionId });
+		expect(
+			await alice.query(api.nutritionActivityMarker.completedActivityDays, {
+				days: [yesterday, today],
+			}),
+		).toEqual([false, true]);
+		await expect(
+			alice.query(api.nutritionActivityMarker.completedActivityDays, {
+				days: Array.from({ length: 32 }, () => today),
+			}),
+		).rejects.toThrow("Too many days.");
+	});
 });

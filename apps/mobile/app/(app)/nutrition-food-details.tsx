@@ -4,6 +4,7 @@ import { SymbolView } from "expo-symbols";
 import { Pressable } from "react-native";
 import { usePersonalFoods } from "../../src/data/personal-foods";
 import { FoodViewScreen } from "../../src/features/nutrition/food/food-view-screen";
+import { PersonalFoodEditor } from "../../src/features/nutrition/personal-food/personal-food-editor";
 import { useI18n } from "../../src/i18n";
 import { useTokens } from "../../src/theme";
 export default function NutritionFoodDetailsRoute() {
@@ -24,6 +25,16 @@ export default function NutritionFoodDetailsRoute() {
 					? foods.find(id)
 					: undefined
 			: undefined;
+	// A Personal Food opens as it does from the Library: one view of it everywhere.
+	if (food && !("source" in food))
+		return (
+			<PersonalFoodEditor
+				food={food}
+				chrome="route"
+				onCancel={() => router.back()}
+				onSaved={() => router.back()}
+			/>
+		);
 	return (
 		<>
 			<Stack.Screen

@@ -123,6 +123,14 @@ export function comboLogEntries(
 	});
 }
 
+/** The kcal one whole Combo logs under a plan, from its current Food figures. */
+export function comboPlanEnergy(plan: ComboLogPlan): number | undefined {
+	const energy = plan.nutrients.energy;
+	return energy.kind === "value"
+		? roundForDisplay("energy", energy.amount)
+		: undefined;
+}
+
 /**
  * A Combo's own kcal, summed from the snapshots it was saved with.
  *

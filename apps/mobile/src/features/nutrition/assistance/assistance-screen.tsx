@@ -131,6 +131,11 @@ export function AssistanceScreen({
 		(): NativeStackNavigationOptions => ({
 			title: copy.title,
 			headerShown: true,
+			// A transparent header never insets this sheet's scroll view, which
+			// left the text field under it; an opaque one lays out below it.
+			headerTransparent: false,
+			headerStyle: { backgroundColor: colors.bg },
+			headerShadowVisible: false,
 			// Clears what the label editor put on the right while it owned the header.
 			unstable_headerRightItems: () => [],
 			headerTitle: () => (
@@ -157,7 +162,7 @@ export function AssistanceScreen({
 				</Pressable>
 			),
 		}),
-		[copy, colors.text, menu.label, menu.dayLabel, menu.mealName],
+		[copy, colors.bg, colors.text, menu.label, menu.dayLabel, menu.mealName],
 	);
 
 	const { phase } = session;
@@ -192,7 +197,7 @@ export function AssistanceScreen({
 					toast.error(copy.logFailure);
 					reject(error);
 				},
-				() => {
+				(saved) => {
 					lock.current = false;
 					setLogging(false);
 					if (draftId) void drafts.remove(draftId).catch(() => undefined);
@@ -205,10 +210,10 @@ export function AssistanceScreen({
 							action: {
 								label: t.nutrition.logFood.undo,
 								onPress: () => {
-									for (const entry of entries)
+									for (const id of saved)
 										operations.remove(
 											subject,
-											{ kind: "clientEntryId", id: entry.clientEntryId },
+											{ kind: "clientEntryId", id },
 											undefined,
 											() => toast.error(t.nutrition.logFood.undoFailure),
 										);

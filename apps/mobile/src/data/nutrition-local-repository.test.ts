@@ -139,6 +139,56 @@ describe("optional nutrition defaults and session snapshots", () => {
 		db.closeSync();
 	});
 
+	it("lists what was logged to a meal first, then the other recents", () => {
+		const db = new SQLiteTestDatabase();
+		let clock = 0;
+		const store = createNutritionLocalRepository(db, () => ++clock);
+		const portion = {
+			kind: "base-unit" as const,
+			servingKey: "g",
+			baseUnit: "g" as const,
+			amount: 1,
+			quantity: 100,
+			label: { en: "g", nl: "g" },
+		};
+		const log = (sourceKey: string, meal: "breakfast" | "lunch") =>
+			store.recordAcknowledged(
+				"alice",
+				{
+					version: 1,
+					operationId: `op-${sourceKey}-${meal}`,
+					expectedSubject: "alice",
+					operation: {
+						kind: "create",
+						entry: {
+							...snapshot(),
+							clientEntryId: `entry-${sourceKey}-${meal}`,
+							meal,
+						},
+					},
+				},
+				{ entryIds: [], clientEntryIds: [], days: [] },
+				{ sourceKey, portion },
+			);
+		log("shipped:oats", "breakfast");
+		log("shipped:bread", "lunch");
+		log("shipped:apple", "lunch");
+		const keys = (meal?: string) =>
+			store.listRecent("alice", undefined, meal).map((item) => item.sourceKey);
+		expect(keys("breakfast")).toEqual([
+			"shipped:oats",
+			"shipped:apple",
+			"shipped:bread",
+		]);
+		expect(keys("lunch")).toEqual([
+			"shipped:apple",
+			"shipped:bread",
+			"shipped:oats",
+		]);
+		expect(keys()).toEqual(["shipped:apple", "shipped:bread", "shipped:oats"]);
+		db.closeSync();
+	});
+
 	it("keeps the newest complete server snapshot in memory without projecting unsaved entries", () => {
 		const db = new SQLiteTestDatabase();
 		const store = createNutritionLocalRepository(db);

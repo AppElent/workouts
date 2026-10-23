@@ -23,6 +23,7 @@
  * alongside the new one was deliberate (#69): a tab bar with four English
  * labels and one Dutch is worse than either extreme.
  */
+import { useSegments } from "expo-router";
 import { NativeTabs } from "expo-router/native-tabs";
 import { Platform, View } from "react-native";
 import { useActiveSession } from "../../../src/data/session-data";
@@ -47,12 +48,15 @@ function CoachTabs() {
 	const colors = useTokens();
 	const tabColors = Platform.OS === "ios" ? chrome : colors;
 	const { t } = useI18n();
-	const active = useActiveSession();
+	const segments = useSegments();
+	// The resume affordance belongs to training; other tabs keep their space.
+	const showSession =
+		Boolean(useActiveSession()) && segments.includes("train" as never);
 	const hasAccessory = isIOS26OrLater();
 
 	return (
 		<View style={{ flex: 1 }}>
-			{!hasAccessory && active ? <ActiveSessionBar /> : null}
+			{!hasAccessory && showSession ? <ActiveSessionBar /> : null}
 			<NativeTabs
 				hidden={hidden}
 				backgroundColor={Platform.OS === "ios" ? undefined : colors.surface}
@@ -67,7 +71,7 @@ function CoachTabs() {
 					selected: { color: tabColors.accentInk },
 				}}
 			>
-				{hasAccessory && active ? (
+				{hasAccessory && showSession ? (
 					<NativeTabs.BottomAccessory>
 						<ActiveSessionBar />
 					</NativeTabs.BottomAccessory>

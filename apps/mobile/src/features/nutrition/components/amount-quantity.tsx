@@ -8,7 +8,7 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
@@ -26,7 +26,10 @@ export function AmountQuantity({
 	onEditingChange,
 	step: stepSize,
 }: {
-	/** What − and + change by; tens of a base unit, quarters otherwise. */
+	/**
+	 * What the small − and + change by (quarters by default); the large ones
+	 * change by one. With a base unit selected: ones and tens.
+	 */
 	step?: number;
 	value: string;
 	amount: number;
@@ -52,25 +55,56 @@ export function AmountQuantity({
 		onChange(String(next));
 		Keyboard.dismiss();
 	}
-	const by = stepSize ?? 0.25;
+	const small = baseUnitSelected ? 1 : (stepSize ?? 0.25);
+	const large = baseUnitSelected ? 10 : 1;
+	const move = (by: number) =>
+		choose(
+			Math.max(
+				baseUnitSelected ? 0.1 : small,
+				(valid ? Number(value.replace(",", ".")) : 0) + by,
+			),
+		);
+	const smallLabel = formatQuantity(small, locale);
+	const fine = (direction: -1 | 1) => (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={fmt(
+				direction < 0 ? t.diaryEntry.lessBy : t.diaryEntry.moreBy,
+				{ step: smallLabel },
+			)}
+			disabled={disabled}
+			accessibilityState={{ disabled }}
+			hitSlop={4}
+			onPress={() => move(direction * small)}
+			style={({ pressed }) => ({
+				minWidth: 40,
+				height: 40,
+				paddingHorizontal: 6,
+				borderRadius: radius.pill,
+				backgroundColor: pressed ? colors.surface : colors.surface2,
+				alignItems: "center",
+				justifyContent: "center",
+				opacity: disabled ? 0.4 : 1,
+			})}
+		>
+			<AppText
+				variant="footnote"
+				style={{ color: colors.text, fontWeight: "600" }}
+			>
+				{`${direction < 0 ? "−" : "+"}${small === 0.25 ? "¼" : small === 0.5 ? "½" : smallLabel}`}
+			</AppText>
+		</Pressable>
+	);
 	const step = (direction: -1 | 1) => (
 		<Pressable
 			accessibilityRole="button"
 			accessibilityLabel={direction < 0 ? t.diaryEntry.less : t.diaryEntry.more}
 			disabled={disabled}
 			accessibilityState={{ disabled }}
-			onPress={() =>
-				choose(
-					Math.max(
-						baseUnitSelected ? 0.1 : by,
-						(valid ? Number(value.replace(",", ".")) : 0) +
-							direction * (baseUnitSelected ? 10 : by),
-					),
-				)
-			}
+			onPress={() => move(direction * large)}
 			style={({ pressed }) => ({
-				width: 84,
-				height: 84,
+				width: 72,
+				height: 72,
 				borderRadius: radius.pill,
 				backgroundColor: pressed ? colors.surface2 : colors.surface,
 				alignItems: "center",
@@ -97,10 +131,12 @@ export function AmountQuantity({
 				flexDirection: "row",
 				alignItems: "center",
 				paddingHorizontal: 10,
+				gap: 4,
 				minHeight: 104,
 			}}
 		>
 			{step(-1)}
+			{fine(-1)}
 			<View
 				style={{
 					flex: 1,
@@ -144,6 +180,7 @@ export function AmountQuantity({
 					{valid ? formatQuantity(amount, locale) : "—"} {unit}
 				</AppText>
 			</View>
+			{fine(1)}
 			{step(1)}
 		</GlassSurface>
 	);

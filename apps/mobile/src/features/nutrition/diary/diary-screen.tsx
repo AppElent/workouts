@@ -17,7 +17,6 @@ import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useStalledOffline } from "../../../data/stalled-offline";
-import { useTrainingMarker } from "../../../data/training-marker";
 import { useToday } from "../../../data/use-today";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
@@ -78,7 +77,6 @@ export function DiaryScreen({
 	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
 	const operations = useNutritionOperations();
 	const state = useNutritionDay(date);
-	const marker = useTrainingMarker(date);
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const stalled = useStalledOffline(state.status === "loading", connected);
 	const goalsStalled = useStalledOffline(
@@ -291,16 +289,6 @@ export function DiaryScreen({
 					/>
 				) : null}
 
-				{marker === "visible" ? (
-					<View
-						accessible
-						accessibilityLabel={t.nutrition.trainingMarker.description}
-					>
-						<AppText variant="caption">
-							{t.nutrition.trainingMarker.label}
-						</AppText>
-					</View>
-				) : null}
 				{showTools ? (
 					<View>
 						<AppText variant="caption">{t.nutrition.attribution.nevo}</AppText>

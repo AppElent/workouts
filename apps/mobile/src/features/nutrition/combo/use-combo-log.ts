@@ -46,9 +46,13 @@ export function useComboLog({
 }) {
 	const foods = usePersonalFoods({ ids: [combo.id] });
 	const operations = useNutritionOperations();
+	const subject = operations.getSubject();
+	const remembered = subject
+		? operations.getShortcut(subject, `combo:${combo.id}`)?.portion?.quantity
+		: undefined;
 	const whole = useAmountSelection({
 		option: WHOLE_COMBO,
-		quantity: 1,
+		quantity: remembered && remembered > 0 ? remembered : 1,
 		amount: 1,
 	});
 	const [destination, setDestination] = useState({ meal, date });
@@ -92,6 +96,18 @@ export function useComboLog({
 					lock.current = false;
 					setLogging(false);
 					onLogged();
+				},
+				// Remembered so the Combo's + in Log food logs this count next time.
+				{
+					sourceKey: `combo:${combo.id}`,
+					portion: {
+						kind: "authored",
+						servingKey: "combo",
+						baseUnit: "serving",
+						amount: 1,
+						quantity: whole.quantity,
+						label: WHOLE_COMBO.label,
+					},
 				},
 			);
 		} catch {

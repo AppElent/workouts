@@ -58,28 +58,40 @@ function dedupeItems(items: readonly LogFoodItem[]): LogFoodItem[] {
 	});
 }
 
-/** Resolves durable shortcut keys back to the foods they point at. */
-function useShortcutSelections(
+type ShortcutTarget =
+	| { readonly kind: "food"; readonly selection: FoodSelection }
+	| { readonly kind: "combo"; readonly combo: Combo };
+
+/** Resolves durable shortcut keys back to the foods and Combos they point at. */
+function useShortcutTargets(
 	shortcuts: readonly { readonly sourceKey: string }[],
 	personalFoods: ReturnType<typeof usePersonalFoods>,
-): FoodSelection[] {
+): ShortcutTarget[] {
 	return useMemo(
 		() =>
-			shortcuts.reduce<FoodSelection[]>((selections, shortcut) => {
+			shortcuts.reduce<ShortcutTarget[]>((targets, shortcut) => {
 				const separator = shortcut.sourceKey.indexOf(":");
 				const kind = shortcut.sourceKey.slice(0, separator);
 				const id = shortcut.sourceKey.slice(separator + 1);
 				if (kind === "shipped") {
 					const food = getShippedFood(id);
-					if (food) selections.push({ kind: "shipped", food });
-					return selections;
-				}
-				if (kind === "personal") {
+					if (food)
+						targets.push({
+							kind: "food",
+							selection: { kind: "shipped", food },
+						});
+				} else if (kind === "personal") {
 					const food = personalFoods.find(id);
-					if (food) selections.push({ kind: "personal", food });
-					return selections;
+					if (food)
+						targets.push({
+							kind: "food",
+							selection: { kind: "personal", food },
+						});
+				} else if (kind === "combo") {
+					const combo = personalFoods.findCombo(id);
+					if (combo) targets.push({ kind: "combo", combo });
 				}
-				return selections;
+				return targets;
 			}, []),
 		[personalFoods, shortcuts],
 	);
@@ -136,14 +148,8 @@ export function useLogFoodItems({
 			}),
 		[locale, personalFoods, query, catalogueLimit],
 	);
-	const recentSelections = useShortcutSelections(
-		recentShortcuts,
-		personalFoods,
-	);
-	const favoriteSelections = useShortcutSelections(
-		favoriteShortcuts,
-		personalFoods,
-	);
+	const recentTargets = useShortcutTargets(recentShortcuts, personalFoods);
+	const favoriteTargets = useShortcutTargets(favoriteShortcuts, personalFoods);
 	const combos = personalFoods.listCombos();
 	const recipes = personalFoods.search(query, locale, {
 		classification: "recipe",
@@ -153,35 +159,26 @@ export function useLogFoodItems({
 		const matches = (name: string) =>
 			!normalizedQuery || name.toLocaleLowerCase().includes(normalizedQuery);
 		const shortcutItems = (
-			selections: readonly FoodSelection[],
+			targets: readonly ShortcutTarget[],
 			caption: string,
-		) =>
-			selections
-				.filter((selection) => matches(selection.food.name[locale]))
-				.map((selection) => ({
-					kind: "food" as const,
-					selection,
-					caption,
-				}));
-		const recentItems = shortcutItems(recentSelections, copy.recent);
+		): LogFoodItem[] =>
+			targets
+				.filter((target) =>
+					matches(
+						target.kind === "combo"
+							? target.combo.name
+							: target.selection.food.name[locale],
+					),
+				)
+				.map((target) =>
+					target.kind === "combo" ? target : { ...target, caption },
+				);
+		const recentItems = shortcutItems(recentTargets, copy.recent);
 		const comboItems = combos.map((combo) => ({
 			kind: "combo" as const,
 			combo,
 		}));
-		const favoriteComboKeys = new Set(
-			favoriteShortcuts.map((shortcut) => shortcut.sourceKey),
-		);
-		const favoriteItems = [
-			...shortcutItems(favoriteSelections, copy.favoriteTag),
-			...[...favoriteComboKeys]
-				.filter((key) => key.startsWith("combo:"))
-				.flatMap((key) => {
-					const combo = personalFoods.findCombo(key.slice(6));
-					return combo && matches(combo.name)
-						? [{ kind: "combo" as const, combo }]
-						: [];
-				}),
-		];
+		const favoriteItems = shortcutItems(favoriteTargets, copy.favoriteTag);
 		const recipeItems = recipes.map((food) => ({
 			kind: "food" as const,
 			selection: { kind: "personal" as const, food },
@@ -234,14 +231,12 @@ export function useLogFoodItems({
 		broaderView,
 		combos,
 		copy,
-		favoriteSelections,
-		favoriteShortcuts,
+		favoriteTargets,
 		filter,
 		locale,
 		messages,
 		query,
-		personalFoods,
-		recentSelections,
+		recentTargets,
 		recipes,
 	]);
 }
