@@ -2,7 +2,9 @@ name: PR Preview
 
 # Opt-in: a PR gets a preview backend + Worker only while it carries the
 # `preview:web` label. Pushes to a labelled PR redeploy; removing the label or
-# closing the PR deletes the Worker. Other label changes are ignored.
+# closing the PR deletes the Worker. Close always cleans up, so Workers from
+# before the label gate are not left behind.
+# Other label changes are ignored.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled, closed]
@@ -113,7 +115,7 @@ jobs:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.login != 'dependabot[bot]' &&
-      ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'preview:web')) ||
+      (github.event.action == 'closed' ||
       (github.event.action == 'unlabeled' && github.event.label.name == 'preview:web'))
     concurrency:
       group: preview-${{ github.event.pull_request.number }}
