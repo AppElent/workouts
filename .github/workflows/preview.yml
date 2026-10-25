@@ -139,6 +139,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler delete --name "foundry-pr-${{ github.event.pull_request.number }}" || true
+        # Close always runs cleanup, so a PR that never deployed has no Worker.
+        # Tolerate only that; any other failure must stay visible.
+        run: |
+          status=0; out=$(pnpm exec wrangler delete --name "foundry-pr-${{ github.event.pull_request.number }}" 2>&1) || status=$?
+          echo "$out"
+          # Wrangler reports a missing Worker as code 10007 ("This Worker does not exist").
+          [ "$status" -eq 0 ] || echo "$out" | grep -qE "10007|does not exist" || exit "$status"
       # Convex preview deployments idle-expire automatically (~14 days).
       # No stable CLI delete command today; prune from the dashboard if needed.
