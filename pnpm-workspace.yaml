@@ -76,6 +76,7 @@ overrides:
   "nanoid@3": "^3.3.12"
   "minimatch@5": "^5.1.8"
   "joi@17": "^17.13.8"
+  "seroval@1": "^1.6.3"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
   # @clerk/react, and pnpm auto-installs optional peers. The app is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
