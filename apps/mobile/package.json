@@ -17,6 +17,8 @@
 		"typecheck": "tsc --noEmit",
 		"test": "jest",
 		"preview:ios:build": "eas build --platform ios --profile preview --clear-cache --auto-submit",
+		"preview:ios:build:local": "node ../../scripts/eas-local-build.mjs --profile preview",
+		"production:ios:build:local": "node ../../scripts/eas-local-build.mjs --profile production",
 		"preview:ios:update": "node scripts/publish-update.mjs --platform ios --channel preview --environment preview",
 		"update:publish": "node scripts/publish-update.mjs"
 	},
