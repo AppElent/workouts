@@ -58,6 +58,7 @@ export function FormScreen({
 	contentStyle,
 	scrollRef,
 	nativeSheet = false,
+	avoidKeyboard = true,
 }: {
 	children: ReactNode;
 	title?: string;
@@ -70,6 +71,12 @@ export function FormScreen({
 	scrollRef?: Ref<ScrollViewInstance>;
 	/** Keep the scroll view at the native sheet root so UIKit owns its gestures. */
 	nativeSheet?: boolean;
+	/**
+	 * Wrap the content in a `KeyboardAvoidingView`. Tab-root screens with no
+	 * inputs turn this off so the `ScrollView` is the screen's first native
+	 * child, which is what lets UIKit collapse the large title on scroll.
+	 */
+	avoidKeyboard?: boolean;
 }) {
 	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
@@ -154,6 +161,7 @@ export function FormScreen({
 		</>
 	);
 	if (nativeSheet) return content;
+	if (!avoidKeyboard) return <View style={styles.screen}>{content}</View>;
 	return (
 		<KeyboardAvoidingView
 			behavior={Platform.OS === "ios" ? "padding" : "height"}

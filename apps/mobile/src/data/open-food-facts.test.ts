@@ -253,6 +253,43 @@ describe("lookupOffBarcode", () => {
 	});
 });
 
+describe("lookupOffBarcode energy", () => {
+	async function energyFor(nutriments: Record<string, unknown>) {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch(() =>
+			jsonResponse(200, {
+				status: 1,
+				product: { ...bakedBeans, nutriments },
+			}),
+		);
+		const result = await lookupOffBarcode("5000112637922", {
+			cache,
+			fetchImpl,
+		});
+		if (result.kind !== "found") throw new Error("expected found");
+		return result.draft.nutrients.energy;
+	}
+
+	it("rounds a per-serving-derived kcal with many decimals", async () => {
+		expect(await energyFor({ "energy-kcal_100g": 52.380952381 })).toEqual({
+			kind: "value",
+			amount: 52.4,
+		});
+	});
+
+	it("keeps kcal when kJ agrees with it", async () => {
+		expect(
+			await energyFor({ "energy-kcal_100g": 75, "energy-kj_100g": 314 }),
+		).toEqual({ kind: "value", amount: 75 });
+	});
+
+	it("trusts kJ when kcal was entered as kJ and diverges from it", async () => {
+		expect(
+			await energyFor({ "energy-kcal_100g": 107.4, "energy-kj_100g": 1835 }),
+		).toEqual({ kind: "value", amount: 438.6 });
+	});
+});
+
 describe("searchOffProducts", () => {
 	it("uses public Search-a-licious and maps its hits without credentials", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
