@@ -51,5 +51,7 @@ pnpm foundry auth login            # browser flow; --token <token> as fallback
 ## Deployment
 
 Cloudflare Workers via Wrangler (`wrangler.jsonc` defines `production` and `dev`).
-Every pull request gets an isolated preview (per-PR Convex backend and Worker)
-from `.github/workflows/preview.yml`, linked in a PR comment.
+Add the `preview:web` label to a pull request for an isolated preview (per-PR
+Convex backend and Worker) from `.github/workflows/preview.yml`, linked in a PR
+comment. Removing the label or closing the PR deletes the Worker. Native builds
+are opt-in too: see [CI builds](docs/runbooks/mobile-releases.md#ci-builds).
