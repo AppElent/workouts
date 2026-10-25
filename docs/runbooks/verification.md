@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Verify Foundry
@@ -51,6 +51,15 @@ available; Device Hub is the local dashboard fallback.
 To launch, sign in, and drive the app on a simulator, use the `run-mobile` skill
 ([`apps/mobile/.claude/skills/run-mobile`](../../apps/mobile/.claude/skills/run-mobile/SKILL.md)).
 It is only listed in sessions started from `apps/mobile`.
+
+Maestro smoke flows in `apps/mobile/.maestro/` drive the development client
+through sign-in, the tabs, and an empty strength session (started, then discarded).
+Install the CLI once (`brew install mobile-dev-inc/tap/maestro`), start the app
+with `run-mobile`'s `up`, then run from `apps/mobile`:
+`maestro --device <udid> test -e METRO_PORT=<port> .maestro` (`pnpm test:e2e`
+uses one booted device and port 8090). Flows sign in with the pre-filled test
+account, select controls by `testID` or English labels, and force English at
+launch. Passing flows do not replace the device checks below.
 
 Exercise English/Dutch, supported themes, Dynamic Type XL, native navigation,
 keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence

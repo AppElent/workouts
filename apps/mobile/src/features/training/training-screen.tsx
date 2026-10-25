@@ -116,6 +116,7 @@ export function TrainingScreen() {
 					label={copy.startActivity}
 					onPress={() => router.push("/start-activity")}
 					disabled={busy}
+					testID="train-start-activity"
 				/>
 				<View style={styles.heading}>
 					<AppText variant="heading">{copy.routines}</AppText>

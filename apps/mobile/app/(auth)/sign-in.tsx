@@ -107,6 +107,7 @@ export default function SignIn() {
 				busy={busy || emailCode.busy}
 				disabled={!ready}
 				onPress={() => submit(email, password)}
+				testID="sign-in-submit"
 			/>
 
 			<SocialButtons />

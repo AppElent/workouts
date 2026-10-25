@@ -102,11 +102,13 @@ export function AuthSubmit({
 	busy,
 	disabled,
 	onPress,
+	testID,
 }: {
 	label: string;
 	busy: boolean;
 	disabled: boolean;
 	onPress: () => void;
+	testID?: string;
 }) {
 	const styles = useThemedStyles(createStyles);
 	return (
@@ -116,6 +118,7 @@ export function AuthSubmit({
 			disabled={disabled}
 			style={disabled && !busy && styles.disabled}
 			onPress={onPress}
+			testID={testID}
 		/>
 	);
 }

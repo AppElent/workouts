@@ -16,6 +16,7 @@
 		"devbuild:ios:eas": "eas build --platform ios --profile development",
 		"typecheck": "tsc --noEmit",
 		"test": "jest",
+		"test:e2e": "maestro test .maestro",
 		"preview:ios:build": "eas build --platform ios --profile preview --clear-cache --auto-submit",
 		"preview:ios:build:local": "node ../../scripts/eas-local-build.mjs --profile preview",
 		"production:ios:build:local": "node ../../scripts/eas-local-build.mjs --profile production",

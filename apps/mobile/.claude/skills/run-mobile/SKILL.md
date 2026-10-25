@@ -57,6 +57,18 @@ Knobs (env): `RUN_MOBILE_PORT` (default 8090), `RUN_MOBILE_DEVICE_TYPE`
 its own simulator, `Foundry run-mobile <hash>`, and its own state dir (`$D state`).
 The state dir holds `metro.log`.
 
+## GUI smoke flows (Maestro)
+
+After `$D up`, run the repeatable flows in `.maestro/` against the same simulator and port:
+
+```bash
+maestro --device "$($D udid)" test -e METRO_PORT=8090 .maestro      # all flows
+maestro --device "$($D udid)" test -e METRO_PORT=8090 .maestro/tabs.yaml
+```
+
+`--device` matters: other checkouts' simulators are often booted too. Add a flow when a
+check is worth repeating; give its controls a `testID` and reuse `subflows/launch.yaml`.
+
 ## Test (no app)
 
 Most PRs touch `src/data/*` or feature hooks; Jest covers those directly:
