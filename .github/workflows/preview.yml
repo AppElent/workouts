@@ -10,7 +10,8 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event.action != 'closed'
+    # Dependabot runs get no Actions secrets, so a preview deploy cannot work.
+    if: github.event.action != 'closed' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -100,7 +101,7 @@ jobs:
             }
 
   cleanup:
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
