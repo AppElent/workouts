@@ -426,6 +426,18 @@ export const ENTRIES = [
 			},
 		},
 	},
+	{
+		key: "expoToken",
+		infisicalKey: "expo-token",
+		description: "Expo access token used by CI for `eas build --local`.",
+		secret: true,
+		lands: {
+			workflow: {
+				name: "EXPO_TOKEN",
+				environments: ["preview"],
+			},
+		},
+	},
 ] as const satisfies readonly Entry[];
 
 export type Placement = {
