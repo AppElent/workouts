@@ -8,7 +8,9 @@ import type {
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	createNutritionLocalRepository,
+	NUTRITION_STATE_DATABASE_NAME,
 	type NutritionCachedDay,
+	openNutritionLocalRepository,
 } from "./nutrition-local-repository";
 
 const provenance: NutritionProvenance = {
@@ -216,6 +218,35 @@ it("refuses to retire an unacknowledged legacy journal and leaves it available f
 		createNutritionLocalRepository(database).listOperations("alice"),
 	).toEqual([]);
 	database.closeSync();
+});
+
+it("opens from memory and leaves the file alone when a newer build already migrated it", () => {
+	const directory = mkdtempSync(join(tmpdir(), "nutrition-newer-state-"));
+	try {
+		const path = join(directory, NUTRITION_STATE_DATABASE_NAME);
+		const newer = new SQLiteTestDatabase(path);
+		newer.execSync("PRAGMA user_version = 99;");
+		newer.closeSync();
+		const opened: string[] = [];
+		const store = openNutritionLocalRepository((name) => {
+			opened.push(name);
+			return new SQLiteTestDatabase(name === ":memory:" ? name : path);
+		});
+
+		store.toggleFavorite("alice", "shipped:apple", true);
+		expect(store.listFavorites("alice")).toEqual([
+			{ sourceKey: "shipped:apple", favorite: true },
+		]);
+		expect(opened).toEqual([NUTRITION_STATE_DATABASE_NAME, ":memory:"]);
+		store.close();
+		const file = new SQLiteTestDatabase(path);
+		expect(
+			file.getFirstSync<{ user_version: number }>("PRAGMA user_version"),
+		).toEqual({ user_version: 99 });
+		file.closeSync();
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
 });
 
 it("retains acknowledged server state even when optional last-used defaults cannot be written", () => {
