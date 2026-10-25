@@ -1,0 +1,88 @@
+# Software factory: implementer task. Design and setup: docs/runbooks/software-factory.md.
+name: Factory implementer
+on:
+  issues:
+    types: [labeled]
+# One implementer run at a time. GitHub keeps only one pending run per group and
+# cancels older pending ones; their issues keep `ready-for-agent` and need relabelling.
+concurrency:
+  group: factory-implementer
+  cancel-in-progress: false
+jobs:
+  implement:
+    # Only the owner's label starts a run: the issue text becomes the agent's prompt.
+    if: github.event.label.name == 'ready-for-agent' && github.event.sender.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write # Claude GitHub App token; its pushes and PRs start CI, GITHUB_TOKEN's would not.
+      actions: read
+    env:
+      ISSUE: ${{ github.event.issue.number }}
+      BRANCH: factory/issue-${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # Claim the issue so a second label event cannot start duplicate work.
+      - name: Claim issue
+        id: claim
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            gh issue comment "$ISSUE" --body "Factory implementer skipped: branch \`$BRANCH\` already exists. Delete it or finish its PR, then relabel \`ready-for-agent\`."
+            gh issue edit "$ISSUE" --remove-label ready-for-agent
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh label create agent-working --color 5319E7 --description "A factory run is working on this issue" --force
+          gh issue edit "$ISSUE" --remove-label ready-for-agent --add-label agent-working
+
+      - if: steps.claim.outputs.skip != 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.claim.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: ">=22.18.0", cache: pnpm }
+      - if: steps.claim.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile && pnpm build:packages
+
+      - if: steps.claim.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the implementer task of this repository's software factory
+            (docs/runbooks/software-factory.md). Implement GitHub issue #${{ env.ISSUE }}
+            in ${{ github.repository }}. No human is watching this run.
+
+            1. Read the issue and its comments: `gh issue view ${{ env.ISSUE }} --comments`.
+               Then read AGENTS.md and follow its routing.
+            2. If the issue is not specific enough to build without guessing, do not
+               write code. Comment your questions on the issue, then run
+               `gh issue edit ${{ env.ISSUE }} --remove-label agent-working --add-label needs-info`
+               and stop.
+            3. Otherwise run `git switch -c ${{ env.BRANCH }}`, implement the issue
+               with tests, and run every applicable check in
+               docs/runbooks/verification.md until they pass. Runtime, device and
+               simulator checks are unavailable here; list them in the PR as pending.
+            4. Commit with a conventional message, then
+               `git push -u origin ${{ env.BRANCH }}`.
+            5. Open a draft PR with `gh pr create --draft --base main`. Its body says
+               `Closes #${{ env.ISSUE }}`, what changed, the checks you ran, and what a
+               human must still verify. Then run
+               `gh issue edit ${{ env.ISSUE }} --remove-label agent-working`.
+
+            Stay within the issue's scope. If a check still fails after a few tries,
+            open the draft PR anyway and name the failure at the top of its body.
+          claude_args: |
+            --allowedTools "Read,Edit,Write,Glob,Grep,TodoWrite,Bash(pnpm:*),Bash(node:*),Bash(ls:*),Bash(cat:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git switch -c ${{ env.BRANCH }}),Bash(git push -u origin ${{ env.BRANCH }}),Bash(gh issue view:*),Bash(gh issue comment ${{ env.ISSUE }}:*),Bash(gh issue edit ${{ env.ISSUE }}:*),Bash(gh pr create:*),Bash(gh pr view:*)"
+
+      # A crashed or timed-out run hands the issue back to a human.
+      - name: Hand back on failure
+        if: failure() || cancelled()
+        run: |
+          gh issue comment "$ISSUE" --body "Factory implementer run failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Relabel \`ready-for-agent\` to retry."
+          gh issue edit "$ISSUE" --remove-label agent-working --add-label needs-triage

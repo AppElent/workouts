@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when creating, labelling, or triaging GitHub issues.
-version: 1.0.1
+version: 1.1.0
 ---
 
 # Foundry issue tracker
@@ -20,7 +20,8 @@ Skill role names map one-to-one to tracker labels:
 | --- | --- |
 | `needs-triage` | Maintainer needs to evaluate this issue |
 | `needs-info` | Waiting on reporter for more information |
-| `ready-for-agent` | Fully specified, ready for an AFK agent |
+| `ready-for-agent` | Fully specified, ready for an AFK agent; starts the [factory implementer](software-factory.md) |
+| `agent-working` | A factory run is working on this issue |
 | `ready-for-human` | Requires human implementation |
 | `wontfix` | Will not be actioned |
 
