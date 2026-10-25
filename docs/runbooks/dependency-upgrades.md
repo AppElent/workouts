@@ -21,7 +21,8 @@ Report versions, compatibility changes, failures, and untested browser/device pa
 
 [`.github/dependabot.yml`](../../.github/dependabot.yml) opens weekly grouped
 minor/patch PRs and monthly GitHub Actions PRs; security updates are separate.
-It ignores majors, Expo SDK-aligned packages, and patched `convex-helpers`;
+Version updates skip majors, Expo SDK-aligned packages, and patched
+`convex-helpers` (security updates still cover them);
 upgrade those with the skill above. Its cooldown must stay at or above
 `minimumReleaseAge` in `pnpm-workspace.yaml`. Dependabot PRs get no Actions
 secrets, so the preview deploy skips them. Review the changelog before merging.
