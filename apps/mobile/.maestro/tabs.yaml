@@ -1,0 +1,12 @@
+appId: com.appelent.foundry.dev
+tags:
+  - smoke
+---
+- runFlow: subflows/launch.yaml
+- tapOn: "Train"
+- assertVisible:
+    id: "train-start-activity"
+- tapOn: "Nutrition"
+- tapOn: "Progress"
+- tapOn: "Profile"
+- tapOn: "Home"

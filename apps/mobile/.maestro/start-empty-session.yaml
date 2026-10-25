@@ -1,0 +1,24 @@
+# Starts an empty strength session and discards it, so the shared test
+# account ends without a new session.
+appId: com.appelent.foundry.dev
+tags:
+  - smoke
+  - training
+---
+- runFlow: subflows/launch.yaml
+- tapOn: "Train"
+- tapOn:
+    id: "train-start-activity"
+- tapOn: "Strength"
+- tapOn: "Empty session"
+- tapOn: "Start"
+- extendedWaitUntil:
+    visible:
+      id: "session-add-exercise"
+    timeout: 15000
+- tapOn: "Finish"
+- tapOn: "Discard"
+- extendedWaitUntil:
+    visible:
+      id: "train-start-activity"
+    timeout: 15000

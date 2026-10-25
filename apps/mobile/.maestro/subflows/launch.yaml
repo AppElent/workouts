@@ -1,0 +1,31 @@
+# Opens this checkout's Metro bundle in the development client and signs in
+# with the pre-filled test account when the session is signed out.
+# `clearState` drops the app's saved preferences, including a language chosen
+# in Profile, so the device language below decides and English selectors match.
+# The Clerk session lives in the keychain and survives.
+appId: com.appelent.foundry.dev
+---
+- launchApp:
+    clearState: true
+    arguments:
+      AppleLanguages: "(en)"
+      AppleLocale: "en_US"
+- openLink: "com.appelent.foundry.dev://expo-development-client/?url=http%3A%2F%2F${METRO_HOST || '127.0.0.1'}%3A${METRO_PORT || 8090}&disableOnboarding=1&disableFab=1&disableAutoLaunch=1"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible: "Sign in|Home"
+    timeout: 90000
+- runFlow:
+    when:
+      visible:
+        id: "sign-in-submit"
+    commands:
+      - tapOn:
+          id: "sign-in-submit"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 30000

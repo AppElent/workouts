@@ -327,6 +327,7 @@ export function StrengthSessionScreen() {
 									label={copy.addExercise}
 									disabled={!data.online || busy}
 									onPress={() => setPicking(true)}
+									testID="session-add-exercise"
 								/>
 							)}
 							<HostedSessionPanel
