@@ -108,9 +108,38 @@ identity) and config plugins; `ios/` and
 local development without upload credentials; EAS preview builds use their
 configured `SENTRY_AUTH_TOKEN` and upload source maps normally.
 
-Use EAS cloud builds for the TestFlight flow above. Local `eas build --local`
-is optional and additionally needs Fastlane and locally supplied EAS secrets;
-it is not required for simulator development.
+Simulator development does not need `eas build --local`.
+
+## Build a TestFlight app locally
+
+When the EAS cloud build allowance runs low, build the same profile on this
+Mac. `eas build --local` does not use cloud builds; EAS still provides the
+project, managed signing credentials, and non-secret environment variables.
+Once, install `brew install fastlane` and run `infisical login`. Then, from
+`apps/mobile`:
+
+```sh
+pnpm preview:ios:build:local      # or production:ios:build:local
+```
+
+[`scripts/eas-local-build.mjs`](../../scripts/eas-local-build.mjs) reads the
+secret values that [`env.manifest.ts`](../../env.manifest.ts) routes to EAS
+(currently `SENTRY_AUTH_TOKEN`) from Infisical and passes them only to the
+build process, because EAS does not serve "Secret" variables to local builds.
+Add any new secret EAS variable to the manifest, or local builds will lack it.
+The script sets `EXPO_NO_DOTENV=1`, writes `dist/<profile>.ipa`, and uploads
+it with `eas submit`; `--profile preview-internal` or `development` only
+builds. Append `-- --no-submit` to skip the upload.
+
+If the credentials phase fails with "Distribution certificate … hasn't been
+imported successfully", the Mac lacks Apple's current intermediate
+certificate. Download `AppleWWDRCAG3.cer` from
+<https://www.apple.com/certificateauthority/> and import it into the login
+keychain (`security import AppleWWDRCAG3.cer -k ~/Library/Keychains/login.keychain-db`).
+
+Local builds have no build cache and ignore the tool versions in `eas.json`,
+so the installed Xcode and CocoaPods must suit the Expo SDK. Build numbers
+still increment remotely, so the duplicate-upload rule above applies.
 
 ## Publish subsequent OTA updates
 
