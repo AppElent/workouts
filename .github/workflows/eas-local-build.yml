@@ -59,10 +59,11 @@ jobs:
             --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} \
             --output "$RUNNER_TEMP/$ARTIFACT"
 
+      # Artifact names reject `/`, so manual runs use the run id, not the branch.
       - uses: actions/upload-artifact@v4
         id: upload
         with:
-          name: ${{ env.ARTIFACT }}-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || github.ref_name }}
+          name: ${{ env.ARTIFACT }}-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || format('run{0}', github.run_id) }}
           path: ${{ runner.temp }}/${{ env.ARTIFACT }}
           retention-days: 14
           if-no-files-found: error
