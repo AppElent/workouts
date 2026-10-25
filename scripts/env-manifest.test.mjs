@@ -136,7 +136,7 @@ describe("Foundry environment routing", () => {
 	});
 
 	it("gives every logical value a unique evidenced source name", () => {
-		expect(ENTRIES).toHaveLength(16);
+		expect(ENTRIES).toHaveLength(17);
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
 		expect(sourceNames).not.toEqual(

@@ -26,7 +26,9 @@ jobs:
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
       # miss. preview.yml only builds on pull_request, so without this a build-only
       # failure could land green on a direct push to main.
+      # No SENTRY_AUTH_TOKEN: this artifact is never deployed, so uploading
+      # its source maps would only add a Sentry release per CI run. Deploying
+      # builds (preview.yml, deploy:prod) upload instead.
       - run: pnpm build
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           VITE_SENTRY_ENVIRONMENT: ci

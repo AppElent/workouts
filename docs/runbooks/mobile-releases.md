@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # iOS test builds and OTA updates
@@ -140,6 +140,31 @@ keychain (`security import AppleWWDRCAG3.cer -k ~/Library/Keychains/login.keycha
 Local builds have no build cache and ignore the tool versions in `eas.json`,
 so the installed Xcode and CocoaPods must suit the Expo SDK. Build numbers
 still increment remotely, so the duplicate-upload rule above applies.
+
+## CI builds
+
+`.github/workflows/mobile-build.yml` runs `eas build --local` on GitHub-hosted
+runners (`macos-26` for iOS, Ubuntu for Android). This spends no EAS Build
+credits. The repository is public, so runner minutes are free too.
+
+| Trigger | Builds |
+|---|---|
+| PR label `build:ios` | iOS `development` profile when labelled, then on every push |
+| PR label `build:android` | Android `development` profile (APK), same rules |
+| Actions → Mobile Build → Run workflow | Chosen platform, branch and profile (`development` or `preview-internal`) |
+
+Remove the label to stop rebuilding. Forked PRs never build. The `.ipa` or
+`.apk` is a workflow artifact for 14 days, linked from the run summary. Nothing
+is submitted to a store; TestFlight stays on the cloud flow above.
+
+The `EXPO_TOKEN` repository secret authenticates with EAS. It is needed for the
+project, the profile's EAS environment variables and managed credentials. The
+runner cannot answer signing prompts, so the iOS ad hoc credentials for the
+profile's bundle ID must already exist on EAS, with your device registered
+(`pnpm devbuild:ios:eas` once, or `eas credentials`). Install the unzipped
+`.ipa` with `xcrun devicectl device install app --device <id> <file>.ipa` or
+Apple Configurator. EAS variables with Secret visibility do not reach local
+builds, and Sentry source-map upload is disabled in CI.
 
 ## Publish subsequent OTA updates
 
