@@ -220,16 +220,44 @@ function saltNutrient(
 	return saltFromSodium({ kind: "value", amount: sodiumGrams * 1000 });
 }
 
+const KJ_PER_KCAL = 4.184;
+/** How far Open Food Facts' kcal may stray from its own kJ before we distrust it. */
+const KCAL_KJ_TOLERANCE = 0.2;
+
+function roundTenth(value: number): number {
+	return Math.round(value * 10) / 10;
+}
+
+/**
+ * Open Food Facts derives `_100g` values from per-serving entries, and
+ * contributors sometimes type kJ into the kcal field, so a raw kcal can be
+ * unrounded (many decimals) or ~4× too low. Round it, and when the product's
+ * own kJ contradicts it by more than {@link KCAL_KJ_TOLERANCE} (kcal and kJ
+ * are the same energy), trust the kJ figure instead.
+ */
 function energyNutrient(
 	nutriments: Readonly<Record<string, unknown>> | undefined,
 ): NutrientValue {
 	const kcal = readNutrient(nutriments, "energy-kcal_100g");
-	if (kcal.kind !== "absent") return kcal;
 	const kilojoules =
 		parseProviderNumber(nutriments?.["energy-kj_100g"]) ??
 		parseProviderNumber(nutriments?.energy_100g);
-	if (kilojoules === undefined) return kcal;
-	return { kind: "value", amount: Math.round((kilojoules / 4.184) * 10) / 10 };
+	const fromKilojoules =
+		kilojoules === undefined ? undefined : roundTenth(kilojoules / KJ_PER_KCAL);
+	if (kcal.kind === "value") {
+		if (
+			fromKilojoules !== undefined &&
+			fromKilojoules > 0 &&
+			Math.abs(kcal.amount - fromKilojoules) / fromKilojoules >
+				KCAL_KJ_TOLERANCE
+		) {
+			return { kind: "value", amount: fromKilojoules };
+		}
+		return { kind: "value", amount: roundTenth(kcal.amount) };
+	}
+	if (kcal.kind !== "absent") return kcal;
+	if (fromKilojoules === undefined) return kcal;
+	return { kind: "value", amount: fromKilojoules };
 }
 
 const OFF_FIELD_BY_NUTRIENT: Readonly<

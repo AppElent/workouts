@@ -111,7 +111,7 @@ export function TrainingScreen() {
 					}}
 				/>
 			)}
-			<FormScreen>
+			<FormScreen avoidKeyboard={false}>
 				<PrimaryButton
 					label={copy.startActivity}
 					onPress={() => router.push("/start-activity")}

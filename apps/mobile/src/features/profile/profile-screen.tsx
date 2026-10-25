@@ -58,7 +58,7 @@ export function ProfileScreen() {
 		}
 	}
 	return (
-		<FormScreen>
+		<FormScreen avoidKeyboard={false}>
 			{!online ? <AppText variant="footnote">{c.offline}</AppText> : null}
 			<Pressable
 				accessibilityRole="button"
