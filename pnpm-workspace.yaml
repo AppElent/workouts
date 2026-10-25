@@ -69,6 +69,13 @@ minimumReleaseAgeExclude:
 # pulls a vulnerable range, so pin ws here.
 overrides:
   ws: ">=8.21.0"
+  # Dependabot advisories on transitive packages whose parents have not
+  # bumped yet; each selector only touches the vulnerable major.
+  "undici@7": "^7.30.1"
+  "fast-uri@3": "^3.1.9"
+  "nanoid@3": "^3.3.12"
+  "minimatch@5": "^5.1.8"
+  "joi@17": "^17.13.8"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
   # @clerk/react, and pnpm auto-installs optional peers. The app is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
