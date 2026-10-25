@@ -1,0 +1,48 @@
+# Dependabot handles security fixes and routine minor/patch bumps. Majors and
+# Expo SDK-aligned packages go through docs/runbooks/dependency-upgrades.md.
+version: 2
+updates:
+  - package-ecosystem: npm # pnpm workspace
+    directories: ["/", "/apps/mobile", "/packages/core"]
+    schedule: { interval: weekly, day: monday }
+    # Must stay >= minimumReleaseAge in pnpm-workspace.yaml (3 days), or the
+    # proposed lockfile fails `pnpm install --frozen-lockfile`.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(deps)" }
+    labels: [dependencies]
+    groups:
+      dev-minor-patch:
+        dependency-type: development
+        update-types: [minor, patch]
+      prod-minor-patch:
+        dependency-type: production
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Versions pinned by the Expo SDK; upgrade with `expo install --fix`.
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "jest-expo"
+      - dependency-name: "jest"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "@types/react"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native/*"
+      - dependency-name: "@sentry/react-native"
+      # Patched in patches/; a bump drops the patch.
+      - dependency-name: "convex-helpers"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: { interval: monthly }
+    commit-message: { prefix: "chore(ci)" }
+    labels: [dependencies]
+    groups:
+      actions:
+        patterns: ["*"]
