@@ -95,6 +95,6 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.5",
     "workbox-build": "^7.4.1",
-    "wrangler": "^4.151.0"
+    "wrangler": "^4.151.2"
   }
 }
