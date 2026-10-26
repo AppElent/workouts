@@ -77,6 +77,10 @@ overrides:
   "minimatch@5": "^5.1.8"
   "joi@17": "^17.13.8"
   "seroval@1": "^1.6.3"
+  "body-parser@2": "^2.4.0"
+  "tar@7": "^7.5.22"
+  "ajv@8": "^8.20.0"
+  "yaml@2": "^2.9.1"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
   # @clerk/react, and pnpm auto-installs optional peers. The app is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
