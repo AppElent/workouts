@@ -11,7 +11,7 @@ import { calculateOneRepMax } from "@foundry/core";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { internalMutation, mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { DEFAULT_WODS } from "./seedData/wods";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -72,7 +72,9 @@ export const seedExercises = internalMutation({
 
 // ─── seedWods ────────────────────────────────────────────────────────────────
 
-export const seedWods = mutation({
+// Internal: `convex run` can still call it, but no client can write the shared
+// default WODs without signing in.
+export const seedWods = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		let inserted = 0;
