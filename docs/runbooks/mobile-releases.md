@@ -184,7 +184,10 @@ An already-running workout is not forcibly reloaded.
 native identities, so each gets its own fingerprint and needs its own build. Native dependencies, Expo SDK
 upgrades, and native configuration changes can change the runtime fingerprint
 and require a new TestFlight build. An OTA update cannot add native modules or
-permissions to an existing binary. Publish from the same dependency lockfile
+permissions to an existing binary. `apps/mobile/fingerprint.config.js` keeps
+Expo's `balanced` preset and also ignores `package.json` scripts, so script edits
+do not need a new build. Before publishing, compare against the target build with
+`APP_VARIANT=preview pnpm exec eas fingerprint:compare --build-id <id>`. Publish from the same dependency lockfile
 and EAS environment as the target build. Backend changes must be deployed to
 the matching Convex environment separately.
 
