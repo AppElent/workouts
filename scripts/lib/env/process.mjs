@@ -112,3 +112,14 @@ export const runProcess = async (spec) => {
         child.stdin.end(spec.input);
     });
 };
+/** Runs a user command with inherited stdio and returns its exit code. */
+export const runCommand = (spec) => new Promise((done) => {
+    const child = spawn(spec.command, spec.args, {
+        cwd: spec.cwd,
+        env: { ...process.env, ...spec.env },
+        shell: false,
+        stdio: "inherit",
+    });
+    child.on("error", (error) => done({ exitCode: error.code === "ENOENT" ? 127 : 1 }));
+    child.on("close", (code, signal) => done({ exitCode: code ?? (signal ? 1 : 0) }));
+});

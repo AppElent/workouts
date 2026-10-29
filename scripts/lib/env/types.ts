@@ -90,6 +90,14 @@ export type ProcessResult =
 
 export type ProcessRunner = (spec: ProcessSpec) => Promise<ProcessResult>;
 
+/** exec's child command: inherited stdio, source values added to the environment. */
+export type CommandRunner = (spec: {
+	command: string;
+	args: string[];
+	env: Record<string, string>;
+	cwd: string;
+}) => Promise<{ exitCode: number }>;
+
 export type EnvironmentIo = {
 	writeOut(value: string): void;
 	writeErr(value: string): void;
@@ -104,6 +112,7 @@ export type EnvironmentDependencies = {
 		manifest: EnvironmentManifest;
 		runProcess: ProcessRunner;
 	}) => Promise<SourceValues>;
+	runCommand?: CommandRunner;
 	confirm?: (question: string) => Promise<string>;
 	environ?: Readonly<Record<string, string | undefined>>;
 };

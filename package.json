@@ -41,6 +41,7 @@
     "env:plan": "node scripts/env.mjs plan",
     "env:apply": "node scripts/env.mjs apply",
     "env:generate": "node scripts/env.mjs generate",
+    "env:exec": "node scripts/env.mjs exec",
     "sentry:convex": "node scripts/convex-sentry.mjs"
   },
   "dependencies": {

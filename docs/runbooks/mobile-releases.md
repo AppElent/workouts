@@ -168,11 +168,15 @@ builds, and Sentry source-map upload is disabled in CI.
 
 ## Publish subsequent OTA updates
 
-From `apps/mobile`, with the local Sentry upload token configured:
+From the repository root, after `infisical login`:
 
 ```sh
-EXPO_NO_DOTENV=1 pnpm preview:ios:update --message "Describe the changes"
+EXPO_NO_DOTENV=1 pnpm env:exec local --only file -- \
+  pnpm --dir apps/mobile preview:ios:update --message "Describe the changes"
 ```
+
+`env:exec` reads `SENTRY_AUTH_TOKEN` from Infisical and passes it only to the
+publish command; it is never written to a file or printed.
 
 Publish JavaScript and asset changes this way after validation. The app checks
 for updates on launch, downloads a compatible update in the background, and

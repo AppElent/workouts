@@ -6,8 +6,8 @@ import { applyEnvironment, checkEnvironment, checkManifestAndExample, } from "./
 import { atomicWrite } from "./files.mjs";
 import { loadEnvironmentManifest, renderEnvironmentExample, validateEnvironmentManifest, } from "./manifest.mjs";
 import { planOwnedRemovals, readOwnership } from "./ownership.mjs";
-import { planEnvironment } from "./planning.mjs";
-import { runProcess as defaultRunProcess } from "./process.mjs";
+import { execVariables, planEnvironment } from "./planning.mjs";
+import { runCommand as defaultRunCommand, runProcess as defaultRunProcess, } from "./process.mjs";
 import { loadInfisicalSource } from "./source.mjs";
 const kinds = new Set([
     "infisical",
@@ -30,6 +30,10 @@ function parse(args, environ) {
     const positionals = [];
     for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
+        if (arg === "--") {
+            result.commandArgs = args.slice(index + 1);
+            break;
+        }
         switch (arg) {
             case "--json":
                 result.json = true;
@@ -76,6 +80,10 @@ function parse(args, environ) {
     [result.command, result.environment] = positionals;
     if (positionals.length > 2)
         result.error = "Too many positional arguments";
+    if (result.command === "exec" && !result.commandArgs?.length)
+        result.error = "exec requires a command after --";
+    if (result.command !== "exec" && result.commandArgs)
+        result.error = "Only exec accepts a command after --";
     if (result.prNumber !== undefined && !/^[1-9][0-9]*$/.test(result.prNumber))
         result.error = "--pr requires a positive pull request number";
     return result;
@@ -87,6 +95,7 @@ function usage() {
         "  node scripts/env.mjs check [environment] [--ci] [--only <kind>] [--pr <n>] [--json]",
         "  node scripts/env.mjs plan <environment> [--only <kind>] [--pr <n>] [--json]",
         "  node scripts/env.mjs apply <environment> [--only <kind>] [--pr <n>] [--prune] [--yes] [--dry-run] [--json]",
+        "  node scripts/env.mjs exec <environment> [--only <kind>] [--pr <n>] -- <command> [args...]",
     ].join("\n");
 }
 function render(payload) {
@@ -107,6 +116,10 @@ function emit(io, json, root, payload, exitCode) {
     }
     else if (exitCode === 2) {
         io.writeErr(`${render(payload)}${usage()}\n`);
+    }
+    else if (payload.command === "exec") {
+        // stdout belongs to exec's child command.
+        io.writeErr(render(payload));
     }
     else {
         io.writeOut(render(payload));
@@ -149,9 +162,11 @@ export async function runEnvCli(args, options) {
     }
     if (parsed.error ||
         !parsed.command ||
-        !["check", "plan", "apply", "generate"].includes(parsed.command)) {
-        return finish(failure(parsed.command ?? "unknown", "usage", parsed.error ?? "Expected check, plan, apply, or generate"), 2);
+        !["check", "plan", "apply", "generate", "exec"].includes(parsed.command)) {
+        return finish(failure(parsed.command ?? "unknown", "usage", parsed.error ?? "Expected check, plan, apply, generate, or exec"), 2);
     }
+    if (parsed.command === "exec" && (parsed.json || parsed.dryRun || parsed.prune || parsed.ci))
+        return finish(failure("exec", "usage", "exec accepts only --only and --pr"), 2);
     let manifest;
     try {
         manifest =
@@ -238,6 +253,26 @@ export async function runEnvCli(args, options) {
         return finish(failure(parsed.command, `source.${kind}`, `Canonical source is ${kind}`, parsed.environment), 1);
     }
     const planOptions = { only: parsed.only, prNumber: parsed.prNumber };
+    if (parsed.command === "exec") {
+        let planned;
+        let variables;
+        try {
+            planned = planEnvironment(manifest, parsed.environment, source, planOptions);
+            variables = execVariables(planned.placements, source);
+        }
+        catch {
+            return finish(failure("exec", "exec.failed", "Environment variables could not be prepared", parsed.environment), 1);
+        }
+        const findings = [...planned.plan.findings, ...variables.findings].filter((item) => item.level !== "note");
+        const payload = { command: "exec", environment: parsed.environment, operations: [], findings };
+        if (findings.some((item) => item.level === "error"))
+            return finish(payload, 1);
+        if (findings.length > 0)
+            emit(io, false, options.root, payload, 0);
+        const [command, ...commandArgs] = parsed.commandArgs;
+        const run = options.dependencies?.runCommand ?? defaultRunCommand;
+        return run({ command, args: commandArgs, env: variables.env, cwd: process.cwd() });
+    }
     if (parsed.command === "plan" || parsed.dryRun) {
         try {
             const planned = planEnvironment(manifest, parsed.environment, source, planOptions);

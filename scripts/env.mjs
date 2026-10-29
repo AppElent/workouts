@@ -8,7 +8,9 @@ export { runEnvCli };
 // Run from the project root, or pass --path before the original command/options.
 export async function main(args = process.argv.slice(2)) {
   let root = process.cwd();
-  const index = args.indexOf('--path');
+  // Options after `--` belong to exec's command, not to this wrapper.
+  const end = args.includes('--') ? args.indexOf('--') : args.length;
+  const index = args.slice(0, end).indexOf('--path');
   if (index !== -1) {
     if (!args[index + 1] || args[index + 1].startsWith('-')) throw new Error('--path requires a project directory');
     args = [...args]; root = resolve(args[index + 1]); args.splice(index, 2);
