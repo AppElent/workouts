@@ -56,16 +56,17 @@ uploads; it does not verify symbolication. Worker maps remain local.
 
 For local native development without upload credentials, set
 `SENTRY_DISABLE_AUTO_UPLOAD=true`. Release builds follow [mobile releases](mobile-releases.md).
-For OTA, run from `apps/mobile`:
+For OTA, run from the repository root:
 
 ```sh
-pnpm preview:ios:update
+pnpm env:exec local --only file -- pnpm --dir apps/mobile preview:ios:update
 # Production only when publishing to production is intended:
-pnpm update:publish --platform ios --channel production --environment production
+pnpm env:exec local --only file -- pnpm --dir apps/mobile update:publish --platform ios --channel production --environment production
 ```
 
 The wrappers require the local upload token before publishing and upload the
-exported `dist` afterward. EAS build secrets do not populate the local shell.
+exported `dist` afterward. EAS build secrets do not populate the local shell;
+`env:exec` supplies the token from Infisical to the command only.
 After a successful publish but failed upload, retain that artifact and retry:
 
 ```sh

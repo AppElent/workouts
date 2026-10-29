@@ -86,3 +86,25 @@ export function planEnvironment(manifest, environment, source, options = {}) {
         placements,
     };
 }
+/** Child-process variables for exec. Values stay in the returned object only. */
+export function execVariables(placements, source) {
+    const env = Object.create(null);
+    const findings = [];
+    for (const placement of placements) {
+        if (placement.suppliedBy)
+            continue;
+        const value = source.values[placement.entry.infisicalKey];
+        if (value === undefined || value === "")
+            continue;
+        if (Object.hasOwn(env, placement.name) && env[placement.name] !== value) {
+            findings.push({
+                level: "error",
+                code: "exec.collision",
+                message: `${placement.name}: selected placements disagree; narrow them with --only`,
+            });
+            continue;
+        }
+        env[placement.name] = value;
+    }
+    return { env: { ...env }, findings };
+}

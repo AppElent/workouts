@@ -3,6 +3,6 @@ export { applyEnvironment, checkEnvironment, checkManifestAndExample, } from "./
 export { assertSafeProjectPath, DOTENV_EXPAND_MARKER, GENERATED_MARKER, parseEnvText, renderGeneratedEnv, } from "./files.mjs";
 export { destinationLabel, loadEnvironmentManifest, renderEnvironmentExample, validateEnvironmentManifest, } from "./manifest.mjs";
 export { OWNERSHIP_PATH, planOwnedRemovals, readOwnership } from "./ownership.mjs";
-export { planEnvironment, selectPlacements } from "./planning.mjs";
-export { runProcess } from "./process.mjs";
+export { execVariables, planEnvironment, selectPlacements } from "./planning.mjs";
+export { runCommand, runProcess } from "./process.mjs";
 export { EnvironmentSourceError, loadInfisicalSource, mergeInfisicalFolders, mergeSourceFolders, normalizeInfisicalExport, readInfisicalConfig, } from "./source.mjs";
