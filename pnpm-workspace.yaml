@@ -117,6 +117,7 @@ allowBuilds:
   # supply prebuilt binaries, so no install-time compile is needed.
   '@parcel/watcher': false
   unrs-resolver: false
+  lefthook: true # postinstall installs the git hooks
 
 patchedDependencies:
   convex-helpers@0.1.120: patches/convex-helpers@0.1.120.patch

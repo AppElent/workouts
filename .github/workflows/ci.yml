@@ -16,6 +16,8 @@ jobs:
         with: { node-version: ">=22.18.0", cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+      # Manifest and .env.example only; needs no credentials.
+      - run: pnpm env:check
       - run: pnpm run typecheck
       - run: pnpm test
       # apps/mobile is checked by nothing above: the root tsconfig excludes

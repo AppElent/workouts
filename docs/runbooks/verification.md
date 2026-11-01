@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Verify Foundry
@@ -24,6 +24,10 @@ pnpm --filter @foundry/mobile test --runInBand
 
 Root types/Vitest exclude mobile; mobile uses Jest. Build `@foundry/core` first
 when its output is missing: `pnpm --filter @foundry/core build`.
+
+`pnpm install` installs a lefthook pre-commit hook that runs
+`biome check --staged`. Skip it with `git commit --no-verify` or `LEFTHOOK=0`;
+CI still runs `pnpm check`.
 
 ## Backend and login
 
@@ -64,7 +68,9 @@ launch. Passing flows do not replace the device checks below.
 In CI, the `e2e:ios` PR label (or a manual run of **Mobile E2E**) builds the
 `development-simulator` profile with `eas build --local`, starts Metro with the
 EAS `development` values, and runs the `smoke` flows on an iOS simulator. The
-JUnit report and Maestro screenshots are uploaded as the `maestro-*` artifact.
+JUnit report and Maestro logs are uploaded as the `maestro-*` artifact; a failed
+run adds each failed flow's screenshot and view hierarchy, the simulator name and
+runtime (`simulator.txt`), the Metro log, and the final screen.
 It needs only the `EXPO_TOKEN` secret.
 
 Exercise English/Dutch, supported themes, Dynamic Type XL, native navigation,
