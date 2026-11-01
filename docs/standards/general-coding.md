@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read before implementing or reviewing any code change.
-version: 2.0.0
+version: 2.1.0
 applies_to: [all]
 ---
 
@@ -19,6 +19,14 @@ Changes extend existing owners, add complexity only when its cost is justified, 
 - Preserve the existing environment/credential routing. Keep secrets out of tracked files and client bundles.
 - For documentation, follow the [documentation standard](documentation.md). Keep domain vocabulary in GLOSSARY.md and hard-to-reverse, surprising trade-offs in ADRs.
 - **Default:** consult [specialist skills](specialist-skills.md) only when task-specific expertise is useful.
+
+### One-shot code
+
+Migrations, backfills, and compatibility shims run against a data shape and then are dead, yet they sit among live code and their tests keep passing whether or not the shape still exists. Each states, where it lives, what retires it:
+
+- **Migration code:** deleted when its record (issue, PR, or migration note) says it has run everywhere, or that something superseded it.
+- **Compatibility shim:** names the date or event after which it goes.
+- Code with no end condition is not one-shot code; it is ordinary code and is maintained as such.
 
 ### Complexity cost
 
