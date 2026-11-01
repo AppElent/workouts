@@ -112,6 +112,10 @@ jobs:
 
       - name: Run smoke flows
         working-directory: apps/mobile
+        env:
+          # The XCTest driver needs more than Maestro's default on a cold
+          # hosted runner: PR #162's first run gave up 11s before it came up.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
         run: |
           maestro --device "$UDID" test --include-tags smoke \
             -e METRO_PORT="$METRO_PORT" \
