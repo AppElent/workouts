@@ -1,10 +1,5 @@
 {
+  "schemaVersion": 1,
   "envManifest": "env.manifest.ts",
-  "features": {
-    "baseline": { "version": 6, "steps": [6, 14, 15, 16] },
-    "auth": { "version": 1 },
-    "cli": { "version": 1 },
-    "mcp": { "version": 1 },
-    "i18n": { "version": 1, "options": { "locales": ["en", "nl"] } }
-  }
+  "features": {}
 }
