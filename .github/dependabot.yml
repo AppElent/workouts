@@ -4,7 +4,10 @@ version: 2
 updates:
   - package-ecosystem: npm # pnpm workspace
     directories: ["/", "/apps/mobile", "/packages/core"]
-    schedule: { interval: weekly, day: monday }
+    # Monthly, not the shared weekly default: weekly groups kept going stale
+    # against hand upgrades and were closed unmerged (exception in
+    # CODING_STANDARDS.md). Security updates are not on this schedule.
+    schedule: { interval: monthly }
     # Must stay >= minimumReleaseAge in pnpm-workspace.yaml (3 days), or the
     # proposed lockfile fails `pnpm install --frozen-lockfile`.
     cooldown:
