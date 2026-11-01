@@ -1,7 +1,7 @@
 ---
 type: standard
 kind: capability
-version: 1.0.0
+version: 1.0.1
 applies_to: [web, mobile, backend]
 description: Per-surface Sentry setup detail for local previews, credentials, source maps, Convex, feedback, and replay.
 ---
@@ -34,7 +34,7 @@ Add a regression test for a localhost SSR 500 with production bindings: the app 
 | Value | Purpose | Destination |
 | --- | --- | --- |
 | DSN | Sends events to the selected project | Public browser/native config or server runtime |
-| `SENTRY_AUTH_TOKEN` | Authorizes build artifact uploads | Private local tooling, CI, and EAS build/upload processes |
+| `SENTRY_AUTH_TOKEN` | Authorizes build artifact uploads | Private local tooling, deploying CI jobs (not check-only builds), and EAS build/upload processes |
 | Organization/project | Selects the upload target | Build configuration aligned with the DSN |
 | Release/dist or debug IDs | Associates artifacts with emitted events | Matching build and runtime metadata for the selected upload mechanism |
 

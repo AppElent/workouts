@@ -2,7 +2,7 @@
 type: standard
 kind: pattern
 description: Read when iterating on interactive screen studies or promoting their decisions.
-version: 1.0.2
+version: 1.1.0
 applies_to: [web, mobile]
 ---
 
@@ -20,7 +20,7 @@ Studies iterate in self-contained rounds, cover every state before approval, and
 ## Implementation
 
 1. Show one screen at a time in the host's shared browser/preview. Serve local studies when needed; use a reachable address when the user is on another machine. Inspect the rendered result before presenting it.
-2. After approval, write a final artifact containing the selected states and links to the deciding rounds. Include actual component/API bindings, installed-version constraints, and remaining runtime questions. Keep earlier rounds as history.
+2. After approval, write a final artifact containing the selected states and links to the deciding rounds. Include actual component/API bindings, installed-version constraints, and remaining runtime questions. Beside it, write a Markdown companion with the implementation notes, every state, and the exact copy; implementers read the companion and use the HTML as the visual reference. Keep earlier rounds as history.
 3. Classify each accepted decision with the [documentation standard](documentation.md). Extract reusable patterns into a developer-tools standard; product contracts retain identity, bindings, domain behavior, and explicit exceptions. If shared adoption is unresolved, label it proposed with applicability and evidence.
 
 ## Verify

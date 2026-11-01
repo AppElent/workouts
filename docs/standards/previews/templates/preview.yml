@@ -1,14 +1,22 @@
 # Adapt APP_NAME, provider references, and the seed function before use.
+# Opt-in: deploys only while the PR carries the `preview:web` label; pushes
+# redeploy, removing the label or closing the PR deletes the Worker. Close
+# always cleans up, so Workers deployed before the label gate are not left behind.
 name: PR Preview
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
 jobs:
   deploy:
-    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'preview:web') &&
+      github.event.action != 'closed' && github.event.action != 'unlabeled' &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview:web')
+    # Job-level so a fully skipped run (unrelated label) cannot cancel a deploy.
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,7 +45,13 @@ jobs:
       - name: Deploy isolated Worker
         run: pnpm exec wrangler deploy --name "$WORKER_NAME"
   cleanup:
-    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'closed' ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'preview:web'))
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,4 +66,4 @@ jobs:
           node-version: 22.15.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec wrangler delete --force --name "APP_NAME-pr-${{ github.event.pull_request.number }}"
+      - run: pnpm exec wrangler delete --force --name "APP_NAME-pr-${{ github.event.pull_request.number }}" || true

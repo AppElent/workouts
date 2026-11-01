@@ -61,6 +61,12 @@ uses one booted device and port 8090). Flows sign in with the pre-filled test
 account, select controls by `testID` or English labels, and force English at
 launch. Passing flows do not replace the device checks below.
 
+In CI, the `e2e:ios` PR label (or a manual run of **Mobile E2E**) builds the
+`development-simulator` profile with `eas build --local`, starts Metro with the
+EAS `development` values, and runs the `smoke` flows on an iOS simulator. The
+JUnit report and Maestro screenshots are uploaded as the `maestro-*` artifact.
+It needs only the `EXPO_TOKEN` secret.
+
 Exercise English/Dutch, supported themes, Dynamic Type XL, native navigation,
 keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence
 changes, verify readable cached history and an explicit unavailable-day state.
