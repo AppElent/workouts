@@ -64,13 +64,19 @@ jobs:
           name: ${{ needs.build.outputs.artifact }}
           path: ${{ runner.temp }}/build
 
+      # The newest iOS runtime's first iPhone. Runtime keys sort by number,
+      # not text (iOS-26-10 after iOS-26-9).
       - name: Boot simulator and install the app
         run: |
-          UDID=$(xcrun simctl list devices available -j |
+          xcrun simctl list devices available -j |
             node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;
-              const ios=Object.entries(d).filter(([r])=>r.includes("iOS")).sort().reverse();
-              for (const [,list] of ios) { const p=list.find(x=>x.name.startsWith("iPhone")); if (p) { console.log(p.udid); break; } }')
+              const v=r=>(r.match(/iOS-(\d+)-(\d+)/)??[]).slice(1).map(Number);
+              const ios=Object.keys(d).filter(r=>v(r).length).sort((a,b)=>v(b)[0]-v(a)[0]||v(b)[1]-v(a)[1]);
+              for (const r of ios) { const p=d[r].find(x=>x.name.startsWith("iPhone")); if (p) { console.log(`${p.udid} ${p.name} (${r.split(".").pop()})`); break; } }' \
+            > "$RUNNER_TEMP/simulator.txt"
+          UDID=$(cut -d" " -f1 "$RUNNER_TEMP/simulator.txt")
           test -n "$UDID" || { echo "::error::No iPhone simulator available."; exit 1; }
+          echo "Simulator: $(cut -d" " -f2- "$RUNNER_TEMP/simulator.txt")"
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID"
@@ -96,7 +102,10 @@ jobs:
           curl -sf -o /dev/null --max-time 600 \
             "http://127.0.0.1:$METRO_PORT/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" || true
 
+      # Pinned so a Maestro release cannot change a passing run.
       - name: Install Maestro
+        env:
+          MAESTRO_VERSION: "2.12.0"
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
@@ -107,10 +116,16 @@ jobs:
           maestro --device "$UDID" test --include-tags smoke \
             -e METRO_PORT="$METRO_PORT" \
             --format junit --output "$RUNNER_TEMP/maestro/report.xml" \
-            --debug-output "$RUNNER_TEMP/maestro" .maestro
+            --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output .maestro
 
+      # A failed flow leaves its screenshot and view hierarchy in the
+      # artifact, next to the simulator, Metro log and final screen.
       - if: failure()
-        run: cat "$RUNNER_TEMP/metro.log" | tail -200
+        run: |
+          tail -200 "$RUNNER_TEMP/metro.log"
+          mkdir -p "$RUNNER_TEMP/maestro"
+          cp "$RUNNER_TEMP/simulator.txt" "$RUNNER_TEMP/metro.log" "$RUNNER_TEMP/maestro/" || true
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/maestro/final-screen.png" || true
 
       - if: always()
         uses: actions/upload-artifact@v4
