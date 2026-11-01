@@ -9,6 +9,10 @@ on:
     inputs:
       platform: { type: string, required: true }
       profile: { type: string, default: development }
+    outputs:
+      artifact:
+        description: Name of the uploaded workflow artifact.
+        value: ${{ jobs.build.outputs.artifact }}
 
 jobs:
   build:
@@ -16,12 +20,15 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: read
+    outputs:
+      artifact: ${{ steps.name.outputs.artifact }}
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       # GitHub has no Sentry upload token; builds that need uploaded source
       # maps stay on the EAS cloud flow in docs/runbooks/mobile-releases.md.
       SENTRY_DISABLE_AUTO_UPLOAD: "true"
-      ARTIFACT: foundry-${{ inputs.platform }}-${{ inputs.profile }}.${{ inputs.platform == 'ios' && 'ipa' || 'apk' }}
+      # iOS simulator profiles produce a tarred .app instead of an .ipa.
+      ARTIFACT: foundry-${{ inputs.platform }}-${{ inputs.profile }}.${{ inputs.platform == 'android' && 'apk' || endsWith(inputs.profile, '-simulator') && 'tar.gz' || 'ipa' }}
     steps:
       - name: Check Expo token
         run: |
@@ -60,10 +67,14 @@ jobs:
             --output "$RUNNER_TEMP/$ARTIFACT"
 
       # Artifact names reject `/`, so manual runs use the run id, not the branch.
+      - name: Artifact name
+        id: name
+        run: echo "artifact=$ARTIFACT-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || format('run{0}', github.run_id) }}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-artifact@v4
         id: upload
         with:
-          name: ${{ env.ARTIFACT }}-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || format('run{0}', github.run_id) }}
+          name: ${{ steps.name.outputs.artifact }}
           path: ${{ runner.temp }}/${{ env.ARTIFACT }}
           retention-days: 14
           if-no-files-found: error

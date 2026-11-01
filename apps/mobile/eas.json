@@ -17,6 +17,12 @@
 				"APP_VARIANT": "development"
 			}
 		},
+		"development-simulator": {
+			"extends": "development",
+			"ios": {
+				"simulator": true
+			}
+		},
 		"preview": {
 			"autoIncrement": true,
 			"channel": "preview",

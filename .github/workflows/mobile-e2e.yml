@@ -1,0 +1,121 @@
+name: Mobile E2E
+
+# Opt-in Maestro smoke flows on an iOS simulator. PR label `e2e:ios` runs them
+# when added and on every push while it stays; other label changes are
+# ignored. A manual run (Actions tab) runs them for any branch.
+#
+# The development client is built for the simulator by eas-local-build.yml
+# (no EAS Build credits, no signing) and loads this checkout's JS from Metro,
+# exactly as `pnpm test:e2e` does locally. Flows sign in with the test account
+# against the shared dev Convex deployment; they discard what they create.
+# See docs/runbooks/verification.md.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'e2e:ios') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'e2e:ios'))
+    concurrency:
+      group: mobile-e2e-build-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+    uses: ./.github/workflows/eas-local-build.yml
+    with:
+      platform: ios
+      profile: development-simulator
+    secrets: inherit
+
+  maestro:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 45
+    concurrency:
+      group: mobile-e2e-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      METRO_PORT: "8090"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ">=22.18.0"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Core exports compiled files that Metro resolves.
+      - run: pnpm build:packages
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: ${{ runner.temp }}/build
+
+      - name: Boot simulator and install the app
+        run: |
+          UDID=$(xcrun simctl list devices available -j |
+            node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;
+              const ios=Object.entries(d).filter(([r])=>r.includes("iOS")).sort().reverse();
+              for (const [,list] of ios) { const p=list.find(x=>x.name.startsWith("iPhone")); if (p) { console.log(p.udid); break; } }')
+          test -n "$UDID" || { echo "::error::No iPhone simulator available."; exit 1; }
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID"
+          mkdir "$RUNNER_TEMP/app"
+          tar -xzf "$RUNNER_TEMP"/build/*.tar.gz -C "$RUNNER_TEMP/app"
+          xcrun simctl install "$UDID" "$(find "$RUNNER_TEMP/app" -maxdepth 2 -name '*.app' | head -1)"
+
+      # EXPO_PUBLIC_* values (Clerk, Convex, test account) come from the EAS
+      # development environment, as in a local dev build.
+      - name: Start Metro
+        working-directory: apps/mobile
+        run: |
+          EXPO_NO_DOTENV=1 nohup pnpm exec eas env:exec development \
+            "pnpm exec expo start --dev-client --port $METRO_PORT" --non-interactive \
+            > "$RUNNER_TEMP/metro.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running && break
+            sleep 5
+          done
+          curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running ||
+            { cat "$RUNNER_TEMP/metro.log"; exit 1; }
+          # Compile the first bundle now, so the app's launch wait doesn't.
+          curl -sf -o /dev/null --max-time 600 \
+            "http://127.0.0.1:$METRO_PORT/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" || true
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run smoke flows
+        working-directory: apps/mobile
+        run: |
+          maestro --device "$UDID" test --include-tags smoke \
+            -e METRO_PORT="$METRO_PORT" \
+            --format junit --output "$RUNNER_TEMP/maestro/report.xml" \
+            --debug-output "$RUNNER_TEMP/maestro" .maestro
+
+      - if: failure()
+        run: cat "$RUNNER_TEMP/metro.log" | tail -200
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || format('run{0}', github.run_id) }}
+          path: ${{ runner.temp }}/maestro
+          retention-days: 14
+          if-no-files-found: ignore
