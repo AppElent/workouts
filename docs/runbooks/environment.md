@@ -68,7 +68,10 @@ The test-user email and password are optional but public client values because
 Vite and Metro embed them in bundles. They are deliberately absent from every
 production placement and must refer only to a Clerk test instance.
 
-`environment_name` stays a committed Wrangler constant. The legacy example's
+`environment_name` stays a committed Wrangler constant, and is the only
+Wrangler var. The Clerk publishable key and Convex URL reach the Worker only as
+build-time `VITE_*` values from this manifest; `wrangler.jsonc` does not repeat
+them. The legacy example's
 `CLERK_SECRET_KEY`, `VITE_CONVEX_SITE_URL`, `REGISTRY_OWNER`, and
 `CLOUDFLARE_ENV` names have no current source or workflow consumer and are not
 part of the manifest.
