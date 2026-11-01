@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when adding, routing, or checking environment variables and secrets.
-version: 2.2.0
+version: 2.3.0
 applies_to: [all]
 ---
 
@@ -32,6 +32,13 @@ Only recognized generated files are updated. Existing markers and .appelent/env-
 
 `exec <environment> -- <command>` runs a local command with the selected placements' source values added to its environment, under their destination names, so a tool can read values its provider will not serve locally (for example "Secret" EAS variables in `eas build --local`). Select with `--only`/`--pr`. Values are never written or printed. Findings go to stderr; a missing required value or one name with two different values stops the command. The command's exit code is returned.
 
+### CI
+
+A workflow holds its values in the job env (GitHub secrets and variables mapped onto destination names). Pass `--ci` to `check` and `apply` there.
+
+- Without Infisical credentials (`INFISICAL_TOKEN` unset), `check <environment> --ci` verifies that every GitHub-routed name the manifest places for that environment is set in the job env. It does not read the source, compare values, or contact other destinations, and says so in its notes. `apply <environment> --ci` reads each value from the job env under its destination name, for example a Worker secret in a preview job; unset names count as missing.
+- With an Infisical machine identity, `INFISICAL_TOKEN` is set and the Infisical CLI is installed, so `--ci` loads the source as usual and does the full comparison: job-env values for public entries are compared with the source. Get the token with `infisical login --method=universal-auth --client-id=… --client-secret=… --silent --plain`.
+
 Provider subprocesses use explicit args without a shell. Convex/GitHub/Worker values use stdin. EAS's --value argument can be visible to local process inspection while running. Worker secret operations may publish a Worker version. Provider name-only checks cannot prove secret equality.
 
 ## Implementation
@@ -55,7 +62,9 @@ The loader executes trusted app code after Node's built-in TypeScript type strip
 
 After `apply preview`, the preview destinations (GitHub variables, EAS `preview` environment) hold a production publishable key (`pk_live_` prefix) and the mobile preview holds the production backend URL; local and dev hold `pk_test_`. Plans show names only, so check the public values in the destination. Moving an existing app's preview from `dev` to `staging`: create the app folder in `staging`, copy the production values the preview app needs, update `ENV_CONFIG`, drop preview from test-user landings, then `plan` and `apply preview`. Rebuild the installed preview app; EAS updates cannot change values baked into an existing build.
 
-Replace the old thin @appelent/dev/env wrapper with the distributed env.mjs and lib directory; existing pnpm env:* aliases can stay. Preserve the manifest, source ordering, names, .env.example, ownership state, and ignore rules. Change implicit type imports to import type if the Node loader rejects them. Test `generate --dry-run`, check, plan, and a selected local apply before replacing live provider flows. `exec` is additive; existing commands are unchanged. Projects that export secrets into a shell before a local tool can switch to `exec`. Toolkit tests use synthetic sources/providers; live credentials and deployment acceptance remain project tasks.
+Replace the old thin @appelent/dev/env wrapper with the distributed env.mjs and lib directory; existing pnpm env:* aliases can stay. Preserve the manifest, source ordering, names, .env.example, ownership state, and ignore rules. Change implicit type imports to import type if the Node loader rejects them. Test `generate --dry-run`, check, plan, and a selected local apply before replacing live provider flows. `exec` is additive; existing commands are unchanged.
+
+From 2.2: `check <environment> --ci` no longer fails with "Canonical source is missing" in a job without Infisical credentials. Add `--ci` to CI `apply` steps (such as a preview's `apply preview --only worker --pr "$PR_NUMBER"`) and map each value onto its destination name in the step's env. To keep the full comparison in CI, add a machine identity and export `INFISICAL_TOKEN` before the check. Projects that export secrets into a shell before a local tool can switch to `exec`. Toolkit tests use synthetic sources/providers; live credentials and deployment acceptance remain project tasks.
 
 ## Exceptions
 
