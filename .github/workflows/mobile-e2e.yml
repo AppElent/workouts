@@ -90,7 +90,7 @@ jobs:
         working-directory: apps/mobile
         run: |
           EXPO_NO_DOTENV=1 nohup pnpm exec eas env:exec development \
-            "pnpm exec expo start --dev-client --port $METRO_PORT" --non-interactive \
+            "pnpm exec expo start --dev-client --localhost --port $METRO_PORT" --non-interactive \
             > "$RUNNER_TEMP/metro.log" 2>&1 &
           for _ in $(seq 1 60); do
             curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running && break
@@ -98,6 +98,14 @@ jobs:
           done
           curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running ||
             { cat "$RUNNER_TEMP/metro.log"; exit 1; }
+          # The manifest the dev client fetches first: log its timing and the
+          # bundle URL it points at. Without --localhost that URL used the
+          # runner's LAN address, and the client's loads timed out (PR #162).
+          curl -s -o "$RUNNER_TEMP/manifest.json" --max-time 120 \
+            -w "manifest: HTTP %{http_code} in %{time_total}s\n" \
+            -H "expo-platform: ios" -H "Accept: application/expo+json,application/json" \
+            "http://127.0.0.1:$METRO_PORT/" || true
+          grep -o '"url":"[^"]*"' "$RUNNER_TEMP/manifest.json" | head -1 || true
           # Compile the first bundle now, so the app's launch wait doesn't.
           curl -sf -o /dev/null --max-time 600 \
             "http://127.0.0.1:$METRO_PORT/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" || true
