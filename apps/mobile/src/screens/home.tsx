@@ -24,6 +24,7 @@ export function HomeScreen() {
 	const totals = activityTotals(weekly.items);
 	return (
 		<ScrollView
+			testID="home-screen"
 			contentInsetAdjustmentBehavior="automatic"
 			style={{ flex: 1, backgroundColor: colors.bg }}
 			contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 32 }}

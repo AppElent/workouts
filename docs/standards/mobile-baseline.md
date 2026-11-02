@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when setting up or changing an Expo Router app, its native configuration, or release boundaries.
-version: 2.4.0
+version: 2.5.0
 applies_to: [mobile]
 ---
 
@@ -19,6 +19,8 @@ All current mobile projects use Expo, React Native, and Expo Router. Use the [sh
 Use [Expo Device Hub](https://github.com/expo/expo-device-hub) as the standard local simulator/emulator dashboard on Expo SDK 57 or newer. Install it as development tooling in the Expo target. Older SDKs retain their existing device workflow until a deliberate SDK upgrade.
 
 Use native navigation and platform controls behind app-owned component interfaces. Consult the installed Expo UI skill for SDK-compatible @expo/ui controls before adding another control library. Use TanStack Form with Zod for validated forms behind those interfaces. Keep colors, spacing, typography, and motion in semantic tokens; do not copy the web Tailwind/DOM layer into native screens. iOS uses native chrome and SF Symbols; Android follows its own navigation/control conventions while preserving product outcomes. Large collections need a virtualized list; grouped native rows do not establish virtualization.
+
+One React version across web and mobile: the root web package pins the exact `react` and `react-dom` versions the Expo SDK installs in `apps/mobile`, so the lockfile resolves one React. A different web version is a recorded exception with its reason and the SDK upgrade that ends it. `apps/mobile/tsconfig.json` extends `expo/tsconfig.base` and keeps the root's strictness flags ([baseline](baseline.md)). Shared code layout: [repository layout](repo-layout.md).
 
 Share domain logic through a workspace module when there are real callers. Keep platform adapters, token storage, permissions, and native lifecycle handling in the mobile target. Backend/auth choices, identities, themes, supported platforms/locales, and release profiles remain project-owned. Existing apps retain their tested adapters until an explicit migration is verified.
 
@@ -78,6 +80,8 @@ The plugin registers automatically; open the Device Hub URL printed by Metro (un
 Replace mobile.foundation recipe configuration with this focused setup and app-owned wiring. Keep existing identities and workspace modules. The historical mobile.release guard is retained as an example, without freezing the old SDK version table. Runtime package removal and live app migration are separate from installing this guide.
 
 2.4.0: apps that publish with a raw `eas update` or their own script copy the publish wrapper and `fingerprint.mjs`, set its Sentry org and project, add `mobile:update:<channel>` scripts through `env:exec`, and update their runbook. Adding the fingerprint config changes the runtime fingerprint once, so rebuild installed preview and production builds before relying on OTA updates.
+
+2.5.0: align the root `react`/`react-dom` pins with the version in `apps/mobile`, or record the exception. Add the root's strictness flags to `apps/mobile/tsconfig.json`.
 
 ## Exceptions
 
