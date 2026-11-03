@@ -168,8 +168,12 @@ export function inspectMobileSource(filename, source, resolveImport) {
 				wordy(node.initializer)
 			);
 		if (jsx && ts.isCallExpression(node)) {
+			// `console.error(...)` logs for developers; it is not UI text.
 			const callee = ts.isPropertyAccessExpression(node.expression)
-				? node.expression.name.text
+				? ts.isIdentifier(node.expression.expression) &&
+					node.expression.expression.text === "console"
+					? ""
+					: node.expression.name.text
 				: ts.isIdentifier(node.expression)
 					? node.expression.text
 					: "";
