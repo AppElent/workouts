@@ -34,5 +34,6 @@ intentionally differs from the web until an explicit design migration.
 ## Both platforms
 
 UI copy, accessible names, validation, and navigation ship in English and Dutch
-through the i18n seam. For screen studies in `designs/`, follow
-[design studies](docs/runbooks/design-studies.md).
+through the i18n seam. For screen studies in `designs/` or on a Claude Design
+canvas, follow [design studies](docs/runbooks/design-studies.md). The canvas design
+system is the [Foundry Design System artifact](https://claude.ai/artifact/XavwDT8mweqXGUFhzCmkon).
