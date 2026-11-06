@@ -22,13 +22,13 @@
 		"production:ios:build:local": "node ../../scripts/eas-local-build.mjs --profile production"
 	},
 	"dependencies": {
-		"@clerk/expo": "^4.14.0",
+		"@clerk/expo": "^4.14.4",
 		"@expo/metro-runtime": "~58.0.14",
 		"@expo/ui": "~58.0.17",
 		"@foundry/core": "workspace:*",
 		"@sentry/react-native": "~8.31.0",
 		"@tanstack/react-form": "^1.33.5",
-		"convex": "^1.47.0",
+		"convex": "^1.49.0",
 		"convex-helpers": "0.1.120",
 		"expo": "~58.0.10",
 		"expo-apple-authentication": "~58.0.2",
