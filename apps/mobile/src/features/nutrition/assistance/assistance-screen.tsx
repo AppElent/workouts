@@ -477,7 +477,11 @@ export function AssistanceScreen({
 						{
 							...replaced,
 							id: mintNutritionUuid(),
-							entries,
+							// A retry keeps the ids of its first try.
+							entries: entries.map((entry, index) => ({
+								...entry,
+								clientEntryId: saved[index] ?? entry.clientEntryId,
+							})),
 							entryIds: saved,
 						},
 						subject,

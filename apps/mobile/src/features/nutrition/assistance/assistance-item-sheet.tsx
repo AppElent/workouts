@@ -95,10 +95,15 @@ export function AssistanceItemSheet({
 	const current = sized ? withTypedValues(sized, typed) : sized;
 	const energy = current ? itemNutrients(current)?.energy : undefined;
 	const nutrients = sized ? itemNutrients(sized) : undefined;
+	// A new amount scales what was typed too, so it becomes the baseline first.
+	const keepTyped = () => {
+		if (current !== sized) setDraft(current);
+		setTyped({});
+	};
 	const setFactor = (factor: number) => {
 		if (!valid) return;
 		setAmount(localizeDecimal(String(Math.round(parsed * factor)), locale));
-		setTyped({});
+		keepTyped();
 		setCount(undefined);
 	};
 	const step = (delta: number) => {
@@ -107,7 +112,7 @@ export function AssistanceItemSheet({
 		setAmount(
 			localizeDecimal(String(Math.round((parsed * next) / count)), locale),
 		);
-		setTyped({});
+		keepTyped();
 		setCount(next);
 	};
 	const dirty =
@@ -115,6 +120,7 @@ export function AssistanceItemSheet({
 		item !== undefined &&
 		(current.amount !== item.amount ||
 			current.food?.id !== item.food?.id ||
+			draft !== item ||
 			current !== sized);
 	const requestClose = () => {
 		if (!dirty) {

@@ -342,6 +342,39 @@ describe("Hulp bij invoeren", () => {
 			await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
 		});
 
+		it("keeps the ids of the restored entries when undo is retried", async () => {
+			const { app, session } = await logOnce();
+			await testRouter.push(
+				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
+			);
+			await fireEvent.press(await screen.findByText("Log as one item"));
+			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+			const create = jest
+				.spyOn(NutritionOperationService.prototype, "createBatch")
+				.mockImplementationOnce((_s, _d, _m, _e, onError) => {
+					onError?.(new Error("failed"));
+					return "op";
+				})
+				.mockImplementationOnce((_s, _d, _m, _e, _onError, onSuccess) => {
+					onSuccess?.(["restored-id"]);
+					return "op";
+				});
+			const armed = () =>
+				act(() => jest.advanceTimersByTime(ACTION_ARM_MS + 50));
+			const undo = await screen.findByText("Undo");
+			await armed();
+			await fireEvent.press(undo);
+			const again = await screen.findByText("Try again");
+			await armed();
+			await fireEvent.press(again);
+			await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+			const restored = aiSessionForText("log me", "test-user");
+			expect(restored?.entryIds).toEqual(["restored-id"]);
+			expect(restored?.entries.map((entry) => entry.clientEntryId)).toEqual([
+				"restored-id",
+			]);
+		});
+
 		it("does not replace a meal that was edited since", async () => {
 			const { session } = await logOnce();
 			const create = jest.spyOn(
