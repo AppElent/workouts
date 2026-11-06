@@ -23,6 +23,11 @@ export type AssistanceFood = {
 	readonly name: { readonly en: string; readonly nl: string };
 	readonly baseUnit: BaseUnit | "serving";
 	readonly personalFood?: PersonalFood;
+	/** Everyday portions from the library, in the base unit. */
+	readonly servings?: readonly {
+		readonly label: { readonly en: string; readonly nl: string };
+		readonly amount: number;
+	}[];
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
 };
@@ -45,6 +50,7 @@ function candidateFromShipped(food: ShippedFood): AssistanceFood {
 		kind: "shipped",
 		name: food.name,
 		baseUnit: food.baseUnit,
+		servings: food.servings,
 		nutrients,
 		provenance: shippedFoodProvenance(food),
 	};
@@ -57,6 +63,7 @@ function candidateFromPersonal(food: PersonalFood): AssistanceFood {
 		kind: "personal",
 		name: food.name,
 		baseUnit: food.baseUnit,
+		servings: food.servings,
 		nutrients: food.nutrients,
 		provenance: snapshot.provenance,
 		personalFood: food,
@@ -121,7 +128,8 @@ export function searchAssistanceFoods(
 				a.food.id.localeCompare(b.food.id),
 		)
 		.map(({ food }) => food);
-	return [...shippedMatches, ...personalMatches]
+	// Their own foods first: the limit must not cut what they saved themselves.
+	return [...personalMatches, ...shippedMatches]
 		.filter(
 			(food, index, all) =>
 				all.findIndex((item) => item.id === food.id) === index,

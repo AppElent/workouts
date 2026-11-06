@@ -11,6 +11,7 @@ import {
 	type DiaryEntryWithMeal,
 	MEAL_SLOTS,
 	type MealSlot,
+	mealForTime,
 	useNutritionDay,
 } from "../../../data/nutrition-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
@@ -253,7 +254,7 @@ export function DiaryScreen({
 			onOpenAssistance={() =>
 				router.push({
 					pathname: "/nutrition-assistance",
-					params: { date, meal: "breakfast" },
+					params: { date, meal: mealForTime() },
 				})
 			}
 			onOpenGoals={() =>

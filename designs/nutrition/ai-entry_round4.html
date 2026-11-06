@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hulp bij invoeren (AI) — ronde 4</title>
+<style>
+:root {
+	--bg: #f4f5f0; --surface: #ffffff; --surface2: #e9ece3;
+	--accent: #466400; --accentFill: #c8f73c; --onAccent: #0a0b09; --accentDim: rgba(70,100,0,.10);
+	--text: #1a2015; --muted: #535e49; --sep: rgba(60,62,50,.10); --border: rgba(26,32,21,.12);
+	--danger: #b42332; --warn: #865500; --warnDim: rgba(134,85,0,.10);
+	--glass: rgba(255,255,255,.52); --glassStrong: rgba(255,255,255,.74);
+	--glassEdge: rgba(255,255,255,.85); --glassShadow: 0 10px 30px rgba(26,32,21,.14), 0 1px 3px rgba(26,32,21,.08);
+	--glassTint: rgba(200,247,60,.6);
+	--board: #dfe2d8; --ink: #1a2015;
+	--font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
+}
+body.dark {
+	--bg: #0a0b09; --surface: #141613; --surface2: #1d201b;
+	--accent: #c8f73c; --accentDim: rgba(200,247,60,.13);
+	--text: #f2f4ef; --muted: #9ba095; --sep: rgba(255,255,255,.14); --border: rgba(255,255,255,.07);
+	--danger: #ff6b6b; --warn: #fbbf24; --warnDim: rgba(251,191,36,.13);
+	--glass: rgba(40,44,38,.5); --glassStrong: rgba(48,52,45,.78);
+	--glassEdge: rgba(255,255,255,.16); --glassShadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+	--glassTint: rgba(200,247,60,.88);
+	--board: #050604; --ink: #f2f4ef;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body { font-family: var(--font); background: var(--board); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+.tnum { font-variant-numeric: tabular-nums; }
+svg.i { width: 1em; height: 1em; flex: 0 0 auto; }
+a { color: var(--accent); }
+
+header.board { padding: 28px 32px 8px; display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+header.board h1 { font-size: 28px; margin: 0; letter-spacing: -.02em; }
+header.board p { margin: 6px 0 0; color: var(--muted); max-width: 90ch; line-height: 1.5; font-size: 14px; }
+.toggles { margin-left: auto; display: flex; gap: 8px; }
+.toggles button { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+.toggles button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+section.guide { margin: 12px 32px 0; padding: 16px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); max-width: 1180px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+section.guide h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+section.guide b { color: var(--ink); }
+section.guide ol, section.guide ul { margin: 4px 0 0; padding-left: 20px; }
+section.guide li { margin: 3px 0; }
+code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; background: var(--surface2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+h2.part { margin: 40px 32px 0; font-size: 22px; letter-spacing: -.01em; }
+p.partp { margin: 6px 32px 0; color: var(--muted); max-width: 95ch; font-size: 14px; line-height: 1.5; }
+main.grid { display: flex; gap: 32px; padding: 20px 32px 24px; overflow-x: auto; align-items: flex-start; }
+.dir { flex: 0 0 auto; width: 393px; }
+.dir .tag { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.dir .tag.alt { color: var(--warn); }
+.dir h3 { font-size: 17px; margin: 2px 0 2px; }
+.dir .pitch { font-size: 13px; color: var(--muted); line-height: 1.45; margin: 4px 0 12px; min-height: 56px; }
+
+/* phone */
+.phone { position: relative; width: 393px; height: 852px; border-radius: 55px; overflow: hidden; background: var(--bg); box-shadow: 0 0 0 10px #1b1c1a, 0 0 0 11px #3a3c38, 0 30px 60px rgba(0,0,0,.3); isolation: isolate; user-select: none; }
+.status { position: absolute; z-index: 30; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0 46px; font-weight: 600; font-size: 17px; color: var(--text); pointer-events: none; }
+.status .island { position: absolute; left: 50%; top: 11px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; }
+.home { position: absolute; z-index: 60; bottom: 8px; left: 50%; width: 139px; margin-left: -70px; height: 5px; border-radius: 3px; background: var(--text); opacity: .9; pointer-events: none; }
+.behind { position: absolute; inset: 0; background: var(--bg); padding: 64px 16px 0; transform: scale(.93); transform-origin: top center; border-radius: 40px; }
+.behind .h { font-size: 30px; font-weight: 800; color: var(--text); margin: 8px 4px 12px; }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.22); }
+body.dark .scrim { background: rgba(0,0,0,.45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 58px; z-index: 10; background: var(--bg); border-radius: 38px 38px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--text); opacity: .22; margin: 6px auto 0; flex: 0 0 auto; }
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding-top: 54px; }
+
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%); box-shadow: var(--glassShadow), inset 0 1px 0 var(--glassEdge); border: .5px solid var(--glassEdge); }
+.glass.tint { background: var(--glassTint); color: var(--onAccent); }
+.gbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; color: var(--text); }
+.gbtn.tint { color: var(--onAccent); }
+.navbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 0; }
+.navbar .title { flex: 1; text-align: center; font-weight: 600; font-size: 17px; color: var(--text); line-height: 1.2; }
+.navbar .title small { display: inline-flex; gap: 3px; align-items: center; font-weight: 600; font-size: 12px; color: var(--accent); }
+.scroll { flex: 1; overflow-y: auto; padding: 12px 16px 120px; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+
+.sechead { display: flex; align-items: center; justify-content: space-between; margin: 18px 4px 8px; font-size: 17px; font-weight: 700; color: var(--text); }
+.sechead .menu { font-size: 14px; font-weight: 600; color: var(--accent); display: inline-flex; align-items: center; gap: 4px; }
+.secfoot { font-size: 12.5px; color: var(--muted); margin: 6px 6px 0; line-height: 1.4; }
+.list { background: var(--surface); border-radius: 16px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 11px 12px; min-height: 48px; color: var(--text); font-size: 16px; position: relative; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 12px; right: 0; height: .5px; background: var(--sep); }
+.row .v { margin-left: auto; font-weight: 700; font-size: 16px; }
+.row .v small { font-weight: 500; font-size: 12px; color: var(--muted); }
+.row.sub { padding-left: 28px; font-size: 14px; color: var(--muted); }
+.row .chev { color: var(--muted); font-size: 14px; }
+
+/* food rows */
+.food { display: flex; align-items: center; gap: 12px; padding: 10px 12px; color: var(--text); position: relative; }
+.food + .food::before { content: ""; position: absolute; top: 0; left: 64px; right: 0; height: .5px; background: var(--sep); }
+.food .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--surface2); display: grid; place-items: center; font-size: 22px; flex: 0 0 auto; }
+.food .t { flex: 1; min-width: 0; }
+.food .t b { display: block; font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.food .t span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.food .k { text-align: right; font-size: 15px; font-weight: 700; }
+.food .k small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+.food.low { background: var(--warnDim); }
+.food.none .ic { background: var(--warnDim); color: var(--warn); }
+.food .t span.src, .food .t span.est-ic, .src { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .03em; padding: 1px 5px; border-radius: 5px; background: var(--surface2); color: var(--muted); vertical-align: 1px; margin-right: 4px; }
+.src.est { background: var(--warnDim); color: var(--warn); }
+.src.own { background: var(--accentDim); color: var(--accent); }
+.food .t span.est-ic { display: inline; }
+.est-ic { color: var(--warn); font-weight: 700; }
+
+/* input card */
+.inbox { background: var(--surface); border-radius: 22px; padding: 14px 14px 10px; color: var(--text); }
+.inbox .txt { font-size: 17px; line-height: 1.4; min-height: 74px; }
+.inbox .txt.ph { color: var(--muted); }
+.inbox .tools { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.pill { height: 36px; padding: 0 14px; border-radius: 999px; background: var(--surface2); font-size: 14px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; color: var(--text); }
+.pill.acc { background: var(--accentFill); color: var(--onAccent); }
+.pill.ghost { background: none; color: var(--accent); padding: 0 6px; }
+.thumb { width: 64px; height: 64px; border-radius: 14px; background-size: cover; background-position: center; flex: 0 0 auto; position: relative; }
+.thumb .x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 12px; display: grid; place-items: center; }
+.seen { background: var(--surface); border-radius: 16px; padding: 10px 12px; font-size: 14px; color: var(--text); line-height: 1.4; display: flex; gap: 10px; align-items: flex-start; }
+.seen .lbl { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+.seen .edit { margin-left: auto; color: var(--accent); font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+.totals { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0 0; }
+.totals span { padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--muted); background: var(--surface); }
+.totals span.k { background: var(--accentFill); color: var(--onAccent); }
+
+.toolbar { position: absolute; left: 16px; right: 16px; bottom: 30px; z-index: 20; display: flex; gap: 10px; align-items: center; }
+.cta { flex: 1; height: 52px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 17px; }
+.cta.tint { background: var(--glassTint); color: var(--onAccent); }
+
+.banner { border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; display: flex; gap: 10px; align-items: flex-start; color: var(--text); background: var(--surface); }
+.banner.ok { background: var(--accentDim); }
+.banner.warn { background: var(--warnDim); }
+.banner.err { background: rgba(180,35,50,.10); }
+.banner .ic { font-size: 17px; line-height: 1.1; }
+.banner b { display: block; }
+
+/* menus */
+.menu-pop { position: absolute; z-index: 40; border-radius: 22px; padding: 6px 0; min-width: 250px; background: var(--glassStrong); -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%); box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.menu-pop .mi { display: flex; align-items: center; gap: 12px; padding: 11px 16px; font-size: 16px; color: var(--text); }
+.menu-pop .mi small { display: block; font-size: 12.5px; color: var(--muted); }
+.menu-pop .mi .ic { width: 22px; text-align: center; margin-left: auto; color: var(--text); }
+.menu-pop .sep { height: 8px; background: rgba(0,0,0,.05); }
+body.dark .menu-pop .sep { background: rgba(255,255,255,.05); }
+
+/* camera */
+.cam { position: absolute; inset: 0; background: #111; }
+.cam .feed { position: absolute; inset: 0; background-size: cover; background-position: center; filter: saturate(.95); }
+.cam .frame { position: absolute; left: 34px; right: 34px; top: 230px; height: 260px; border-radius: 22px; box-shadow: 0 0 0 2000px rgba(0,0,0,.45); border: 2px solid rgba(255,255,255,.9); }
+.cam .hint { position: absolute; left: 0; right: 0; top: 160px; text-align: center; color: #fff; font-size: 16px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+.cam .hint small { display: block; font-weight: 500; font-size: 13px; opacity: .8; margin-top: 4px; }
+.cam .shutter { position: absolute; bottom: 70px; left: 50%; margin-left: -38px; width: 76px; height: 76px; border-radius: 50%; border: 4px solid #fff; display: grid; place-items: center; }
+.cam .shutter::after { content: ""; width: 60px; height: 60px; border-radius: 50%; background: #fff; }
+.cam .side { position: absolute; bottom: 84px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 20px; background: rgba(255,255,255,.18); }
+.cam .top { position: absolute; top: 60px; left: 16px; right: 16px; display: flex; justify-content: space-between; }
+.cam .top .gbtn { color: #fff; background: rgba(255,255,255,.18); }
+
+/* loading */
+.shimmer { height: 60px; border-radius: 12px; background: linear-gradient(90deg, var(--surface) 0%, var(--surface2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--accentDim); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; vertical-align: -3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* editor hero */
+.hero { text-align: center; padding: 6px 0 0; }
+.hero .ph { width: 88px; height: 88px; border-radius: 22px; background: var(--surface2); display: grid; place-items: center; font-size: 46px; margin: 0 auto; position: relative; }
+.hero h4 { margin: 10px 0 0; font-size: 24px; color: var(--text); letter-spacing: -.01em; }
+.hero p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.from { color: var(--accent); font-size: 11px; font-weight: 700; }
+.diff { font-size: 12px; color: var(--warn); font-weight: 600; }
+.old { background: var(--surface); border-radius: 12px; padding: 8px 10px; font-size: 13px; color: var(--muted); }
+
+.kbd { position: absolute; left: 0; right: 0; bottom: 0; height: 300px; z-index: 22; background: var(--surface2); border-top: .5px solid var(--sep); display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.notes { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 14px; }
+.notes b { color: var(--ink); }
+table.impl { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 8px; }
+table.impl td, table.impl th { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; color: var(--ink); }
+table.impl th { color: var(--muted); font-weight: 600; }
+/* round 4 additions */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.chip { height: 34px; padding: 0 13px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; color: var(--text); }
+.chip.on { background: var(--accentFill); color: var(--onAccent); border-color: transparent; }
+.ask { background: var(--surface); border-radius: 16px; padding: 10px 12px 12px; margin-top: 12px; color: var(--text); font-size: 14.5px; }
+.ask .lbl { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); display: flex; gap: 4px; align-items: center; margin-bottom: 2px; }
+.ask .chip { background: var(--surface2); border: 0; }
+.follow { position: absolute; left: 16px; right: 16px; bottom: 92px; z-index: 20; display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 14px; border-radius: 999px; }
+.follow .ph { flex: 1; color: var(--muted); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.follow .ph.typed { color: var(--text); }
+.follow .send { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface2); color: var(--muted); }
+.follow .send.on { background: var(--accentFill); color: var(--onAccent); }
+.trail { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.trail .t { align-self: flex-end; max-width: 85%; background: var(--accentDim); color: var(--text); padding: 7px 12px; border-radius: 16px 16px 4px 16px; font-size: 14px; }
+.comp { font-size: 12.5px; color: var(--muted); margin-top: 2px; white-space: normal !important; line-height: 1.35; }
+.delta { font-size: 11.5px; font-weight: 700; color: var(--accent); }
+.searchbar { margin: 10px 16px 0; height: 40px; border-radius: 12px; background: var(--surface2); display: flex; align-items: center; gap: 8px; padding: 0 10px; color: var(--text); font-size: 16px; }
+.searchbar .i { color: var(--muted); }
+.empty { background: var(--surface); border-radius: 22px; margin: 14px 16px 0; overflow: hidden; }
+.empty .top { text-align: center; padding: 22px 22px 14px; color: var(--text); }
+.empty .top .tile { width: 52px; height: 52px; border-radius: 16px; margin: 0 auto 8px; display: grid; place-items: center; background: var(--accentDim); color: var(--accent); font-size: 24px; }
+.empty .top b { display: block; font-size: 17px; }
+.empty .top span { font-size: 14px; color: var(--muted); }
+.act { display: flex; gap: 10px; align-items: center; min-height: 50px; padding: 0 14px; color: var(--accent); font-weight: 600; font-size: 15.5px; border-top: .5px solid var(--sep); }
+.act.ai { background: var(--accentDim); }
+.act small { display: block; font-weight: 500; font-size: 12.5px; color: var(--muted); }
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="board">
+	<div>
+		<h1>Hulp bij invoeren (AI) · ronde 4</h1>
+		<p>Verder op <a href="ai-entry_final.html">definitief</a>. Vraag: hoe wordt Hulp vrijer bij samengestelde producten (“broodje pittige kip van de Spar”), hoe bewaar je zo’n product voor de volgende keer, hoe kom je vanuit zoeken in Hulp, en hoe verfijn je het resultaat? Voorbeeldtekst in het Nederlands; tokens uit <code>apps/mobile/src/theme/tokens.ts</code>.</p>
+	</div>
+	<div class="toggles" role="group" aria-label="Weergave">
+		<button id="light" aria-pressed="true">Licht</button>
+		<button id="dark" aria-pressed="false">Donker</button>
+	</div>
+</header>
+
+<section class="guide">
+	<h3>Voorstel</h3>
+	<ol>
+		<li><b>Twee soorten items.</b> <i>Ingrediënt</i> (appel, halfvolle melk, zelfgesmeerde boterham) blijft gekoppeld aan NEVO of een eigen voedingsmiddel. <i>Product</i> (iets uit een winkel, restaurant of een kant-en-klaar gerecht met een naam) blijft één item: de AI schat het als geheel, met een zichtbare opbouw (meergranen bol · gefrituurde kip · spicy mayo · sla · ui). Geen geforceerde NEVO-match meer op “zacht wit bolletje + kip”.</li>
+		<li><b>Eigen voedingsmiddel eerst.</b> Een product wordt alleen gekoppeld aan een eigen voedingsmiddel met dezelfde naam; zo wordt het bewaarde Spar-broodje de volgende keer direct herkend, zonder schatting.</li>
+		<li><b>Opslaan als → Eigen voedingsmiddel</b> (vierde optie). Opent de bestaande eigen-voeding-editor, ingevuld: naam, merk/winkel, portie “1 broodje = 200 g”, waarden per 100 g, gemarkeerd als geschat. Na bewaren log je het direct.</li>
+		<li><b>Vanuit zoeken:</b> geen resultaat → een derde rij “✨ Beschrijf ‘…’ met hulp” onder “Nieuw voedingsmiddel”. Bij wél resultaten staat dezelfde rij onderaan de lijst.</li>
+		<li><b>Verfijnen:</b> (a) de AI mag maximaal één korte vraag stellen met antwoordknoppen, alleen als het antwoord de kcal flink verandert; (b) een vaste regel “Pas aan…” onder de lijst voor vrije correcties (“geen ui”, “groot broodje”, “de kip was gegrild”). Elke aanpassing is een nieuwe analyse met de vorige uitkomst als context, telt mee voor de daglimiet en laat zien wat er veranderde.</li>
+	</ol>
+</section>
+
+<h2 class="part">1 · Ingang vanuit zoeken</h2>
+<p class="partp">De zoektekst gaat mee als beschrijving. Hulp opent op de invoer, zodat je nog een foto kunt toevoegen of online zoeken aanzet, en start pas na Analyseer.</p>
+<main class="grid" id="entry"></main>
+
+<h2 class="part">2 · Product in plaats van losse NEVO-items</h2>
+<p class="partp">Links het huidige gedrag, rechts het voorstel. Een rij met opbouw opent het item met de componenten en hun schatting.</p>
+<main class="grid" id="product"></main>
+
+<h2 class="part">3 · Verfijnen met een vraag of vervolgopdracht</h2>
+<p class="partp">De vraag is optioneel en verdwijnt na antwoord. De vrije regel blijft altijd beschikbaar; eerdere aanpassingen staan onder “Jouw beschrijving”.</p>
+<main class="grid" id="refine"></main>
+
+<h2 class="part">4 · Bewaren als eigen voedingsmiddel</h2>
+<p class="partp">Hergebruikt de bestaande editor en het label-pad (“Na het bewaren kies je hoeveel je at”).</p>
+<main class="grid" id="save"></main>
+
+<section class="guide" style="margin-bottom:40px">
+	<h3>Implementatienotities</h3>
+	<table class="impl">
+		<tr><th>Onderdeel</th><th>Wijziging</th></tr>
+		<tr><td>Prompt describe</td><td>Elk item krijgt <code>kind: "ingredient" | "product"</code>. Producten: <code>components[]</code> met naam, gram en schatting; totaal = som. De regel “boterham = brood + beleg” geldt alleen voor zelf gemaakt eten. Nieuw: <code>title</code> (naam voor als eigen voedingsmiddel) en <code>question</code> (optioneel, met 2–4 antwoorden).</td></tr>
+		<tr><td>Vervolgopdracht</td><td><code>nutritionAi.describe</code> krijgt optioneel <code>previous</code> (vorige uitkomst als JSON) en <code>followUps[]</code>. Geen chatgeschiedenis op de server; de telefoon stuurt de context mee.</td></tr>
+		<tr><td>Koppelen</td><td>Ingrediënten: als nu (NEVO + eigen). Producten: alleen eigen voedingsmiddelen als kandidaat; geen match → schatting uit describe.</td></tr>
+		<tr><td>Opslaan</td><td><code>SaveAs = "food"</code> → <code>PersonalFoodDraft</code> per 100 g uit het totaal, portie = totaal gewicht, <code>estimated: true</code>.</td></tr>
+		<tr><td>Zoeken</td><td><code>LogFoodEmptyState</code> krijgt een actie “Beschrijf met hulp”; Hulp opent op de invoer met de tekst ingevuld (niet meteen analyseren).</td></tr>
+		<tr><td>Online zoeken</td><td>Schakelaar in de invoer, standaard uit, onthouden op de telefoon. Aan: eerst een aparte webzoekopdracht (<code>web_search</code>) als er een winkel- of merkproduct genoemd wordt; die bevindingen gaan als context mee naar describe. ~1–3 ct per keer tegen ~0,05 ct.</td></tr>
+	</table>
+</section>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const setTheme = (dark) => { document.body.classList.toggle("dark", dark); $("#light").setAttribute("aria-pressed", String(!dark)); $("#dark").setAttribute("aria-pressed", String(dark)); };
+$("#light").onclick = () => setTheme(false);
+$("#dark").onclick = () => setTheme(true);
+
+const svg = (d, w = 2) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const I = {
+	x: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+	check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.4),
+	back: svg('<path d="M15 5l-7 7 7 7"/>'),
+	more: svg('<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>', 0),
+	cam: svg('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 1.8),
+	img: svg('<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/>', 1.8),
+	sparkles: svg('<path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8z"/><path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/>', 1.7),
+	scan: svg('<path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M7 9v6M10 9v6M13 9v6M16 9v6"/>', 1.8),
+	plus: svg('<path d="M12 5v14M5 12h14"/>'),
+	search: svg('<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>'),
+	chev: svg('<path d="M9 6l6 6-6 6"/>'),
+	down: svg('<path d="M7 10l5 5 5-5"/>'),
+	label: svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 14h5M8 17h6"/>', 1.7),
+	swap: svg('<path d="M7 7h11l-3-3M17 17H6l3 3"/>'),
+	combo: svg('<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>', 1.6),
+	merge: svg('<path d="M6 4v5a6 6 0 006 6h0a6 6 0 006-6V4M12 15v5"/>', 1.8),
+	note: svg('<path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h4"/>', 1.7),
+	trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>', 1.7),
+	redo: svg('<path d="M19 8a8 8 0 10.5 7"/><path d="M19 3v5h-5"/>', 1.8),
+	wifi: svg('<path d="M3 3l18 18M8.5 16.5a5 5 0 017 0M5 12.5a10 10 0 015-2.6M14 10a10 10 0 015 2.5"/>', 1.8),
+};
+
+const statusBar = () => `<div class="status"><span>9:41</span><span class="island"></span><span class="icons">●●● ▮</span></div>`;
+const phone = (inner) => `<div class="phone">${statusBar()}${inner}<div class="home"></div></div>`;
+const sheet = (content, { behind = "Eten loggen" } = {}) => `<div class="behind"><div class="h">${behind}</div></div><div class="scrim"></div><div class="sheet"><div class="grabber"></div>${content}</div>`;
+const nav = ({ left = I.x, title, sub, right = "", rightTint = false }) => `<div class="navbar"><button class="gbtn glass">${left}</button><div class="title">${title}${sub ? `<br><small>${sub} ${I.down}</small>` : ""}</div>${right ? `<button class="gbtn glass ${rightTint ? "tint" : ""}">${right}</button>` : '<span style="width:44px"></span>'}</div>`;
+const dir = (tag, title, pitch, body, alt = false) => `<div class="dir"><div class="tag ${alt ? "alt" : ""}">${tag}</div><h3>${title}</h3><div class="pitch">${pitch}</div>${body}</div>`;
+
+const trow = ({ name, g, kcal, low, none }) => `<div class="row"><span style="flex:1;min-width:0">${name}</span><span class="tnum" style="font-size:15px;white-space:nowrap;color:${low || none ? "var(--warn)" : "var(--muted)"}">${low || none ? "~ " : ""}${g} · ${kcal} kcal</span><span class="chev">${I.chev}</span></div>`;
+const food = ({ ic, name, src = "NEVO", amount, kcal, low, none, sub }) => `<div class="food ${low ? "low" : ""} ${none ? "none" : ""}"><div class="ic">${ic}</div><div class="t"><b>${name}</b><span>${src === "~" ? '<span class="src est">~ GESCHAT</span>' : src === "Eigen" ? '<span class="src own">EIGEN</span>' : `<span class="src">${src}</span>`}${sub ?? amount}</span></div><div class="k tnum">${kcal}<small>kcal</small></div></div>`;
+const totals = (k, p, c, f) => `<div class="sechead">Totaal</div><div class="list">${[["Energie", k, "kcal"], ["Eiwit", p, "g"], ["Koolhydraten", c, "g"], ["Vet", f, "g"]].map(([n, v, u]) => `<div class="row">${n}<span class="v tnum">${v} <small>${u}</small></span></div>`).join("")}</div>`;
+const saveAs = (v = "Losse items") => `<div class="list" style="margin-top:16px"><div class="row">Opslaan als<span class="v" style="font-weight:600;color:var(--accent);font-size:16px">${v} ${I.down}</span></div></div>`;
+const pills = (k, p, c, f) => `<div class="totals"><span class="k">${k} kcal</span><span>${p} g eiwit</span><span>${c} g koolh.</span><span>${f} g vet</span></div>`;
+I.send = svg('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.2);
+I.bookmark = svg('<path d="M7 4h10v16l-5-4-5 4z"/>', 1.8);
+I.pencil = svg('<path d="M4 20h4L19 9l-4-4L4 16z"/>', 1.8);
+I.globe = svg('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/>', 1.6);
+
+const logFood = (content) => `<div class="screen" style="background:var(--bg)">${nav({ title: "Lunch", sub: "Vandaag", left: I.x })}${content}</div>`;
+const follow = (text = "Pas aan… bijv. “zonder ui”", typed = false) => `<div class="follow glass"><span class="ph ${typed ? "typed" : ""}">${text}</span><button class="send ${typed ? "on" : ""}">${I.send}</button></div>`;
+const seen = (lbl, text, extra = "") => `<div class="seen"><div style="flex:1"><span class="lbl">${lbl}</span>${text}${extra}</div><span class="edit">Wijzig</span></div>`;
+const product = ({ name, amount, kcal, comp, src = "~", delta = "" }) => `<div class="food low"><div class="ic">🥪</div><div class="t"><b>${name}</b><span>${src === "Eigen" ? '<span class="src own">EIGEN</span>' : '<span class="src est">~ GESCHAT</span>'}${amount}${delta ? ` <span class="delta">${delta}</span>` : ""}</span>${comp ? `<span class="comp">${comp}</span>` : ""}</div><div class="k tnum">${kcal}<small>kcal</small></div></div>`;
+const Q = "broodje pittige kip van de spar";
+
+$("#entry").innerHTML = [
+	dir("Geen resultaat", "Derde actie in de lege kaart", "Onder “Nieuw voedingsmiddel”. Licht gemarkeerd omdat het meestal de snelste weg is bij een beschrijving van meerdere woorden.",
+		phone(logFood(`<div class="searchbar">${I.search}<span style="flex:1">${Q}</span>${I.x}</div>
+			<div class="empty"><div class="top"><div class="tile">${I.search}</div><b>Geen resultaten voor ‘${Q}’</b><span>Zoek online, scan de verpakking of maak het zelf aan.</span></div>
+			<div class="act">${I.globe} Zoek online</div>
+			<div class="act">${I.pencil} Nieuw voedingsmiddel ‘${Q}’</div>
+			<div class="act ai">${I.sparkles}<span>Beschrijf ‘${Q}’ met hulp<small>AI schat het en je controleert alles</small></span></div></div>`))),
+	dir("Wel resultaten", "Rij onderaan de lijst", "Bij “broodje kip” zijn er NEVO-resultaten, maar geen van alle is het Spar-broodje. Eén rij onder de resultaten, niet bovenaan: zoeken blijft het hoofdpad.",
+		phone(logFood(`<div class="searchbar">${I.search}<span style="flex:1">broodje kip</span>${I.x}</div>
+			<div class="sechead" style="margin:14px 20px 8px">Resultaten <span class="menu" style="color:var(--muted)">3</span></div>
+			<div class="list" style="margin:0 16px">${food({ ic: "🥪", name: "Broodje kipfilet", amount: "per 100 g · 225 kcal", kcal: "" })}${food({ ic: "🥪", name: "Broodje kip-kerrie", amount: "per 100 g · 260 kcal", kcal: "" })}${food({ ic: "🍗", name: "Kipfilet bereid", amount: "per 100 g · 150 kcal", kcal: "" })}</div>
+			<div class="list" style="margin:12px 16px 0"><div class="act ai" style="border:0">${I.sparkles}<span>Niet gevonden? Beschrijf ‘broodje kip’ met hulp</span></div></div>`))),
+	dir("Gevolg", "Invoer met je tekst", "De zoektekst staat al in Hulp. Je kunt nog een foto toevoegen of online zoeken aanzetten; analyseren start pas na Analyseer.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			<div class="list" style="padding:12px 14px">
+				<div style="min-height:72px;font-size:17px">broodje pittige kip van de spar</div>
+				<div class="chips" style="margin-top:4px"><span class="chip" style="background:var(--surface2);border:0">📷 Camera</span><span class="chip" style="background:var(--surface2);border:0">🖼️ Foto's</span></div>
+				<div style="display:flex;align-items:center;gap:10px;margin:12px -14px -12px;padding:10px 14px;border-top:.5px solid var(--border)">
+					<div style="flex:1"><div style="font-size:15px">Zoek online naar winkelproducten</div><div style="font-size:12px;color:var(--muted)">Zoekt de gepubliceerde waarden op van een genoemd product. Trager, en iets duurder per keer.</div></div>
+					<span style="width:51px;height:31px;border-radius:16px;background:var(--accentFill);position:relative;flex:0 0 auto"><span style="position:absolute;right:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff"></span></span>
+				</div>
+			</div>
+			<div style="font-size:12px;color:var(--muted);margin:8px 4px">Een foto van je bord of een etiket helpt ook.</div></div>
+			<div class="toolbar"><button class="cta">Analyseer</button></div>`))),
+].join("");
+
+$("#product").innerHTML = [
+	dir("Nu", "Gekoppeld aan NEVO", "De regel “een broodje is brood + beleg” en de verplichte NEVO-keuze maken er een wit bolletje met kip van. ±330 kcal: veel te laag.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Broodje pittige kip van de Spar")}
+			<div class="sechead">2 items</div>
+			<div class="list">${trow({ name: "Zacht wit bolletje", g: "1 bolletje", kcal: 165 })}${trow({ name: "Kip", g: "70 g", kcal: 165 })}</div>
+			${totals(330, 28, 30, 9)}</div><div class="toolbar"><button class="cta glass tint">${I.check} Log 2 items</button></div>`)), true),
+	dir("Voorstel", "Eén product met opbouw", "De AI herkent een winkelproduct en schat het als geheel. De opbouw staat onder de naam; ~ en oranje blijven het signaal voor “geschat”.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Broodje pittige kip (Spar): meergranen bol met gefrituurde kip, spicy mayo, sla en ui")}
+			<div class="sechead">1 item</div>
+			<div class="list">${product({ name: "Broodje pittige kip (Spar)", amount: "1 broodje · 205 g", kcal: 545, comp: "Meergranen bol · gefrituurde kip · spicy mayo · sla · rode ui" })}</div>
+			${totals(545, 25, 50, 27)}
+			${saveAs("Losse items")}
+		</div>${follow()}<div class="toolbar"><button class="cta glass tint">${I.check} Log 1 item</button></div>`))),
+	dir("Item", "Opbouw aanpassen", "Componenten met hun schatting. Een component weghalen of de hoeveelheid wijzigen herrekent lokaal, zonder nieuwe AI-aanroep.",
+		phone(sheet(nav({ title: "Broodje pittige kip (Spar)", right: "Klaar" }) + `<div class="scroll">
+			<div class="list"><div class="row">Hoeveelheid<span class="v tnum">1 broodje <small>205 g</small></span></div></div>
+			<div class="secfoot">~545 kcal · Geschat door AI; controleer de waarden</div>
+			<div class="sechead">Opbouw</div>
+			<div class="list">${[["Meergranen bol", "90 g", 240], ["Gefrituurde kip", "70 g", 180], ["Spicy mayo", "20 g", 115], ["Sla", "15 g", 2], ["Rode ui", "10 g", 4]].map(([n, g, k]) => `<div class="row"><span style="flex:1">${n}</span><span class="tnum" style="color:var(--muted);font-size:15px">${g} · ${k} kcal</span><span style="color:var(--danger)">${I.x}</span></div>`).join("")}</div>
+			<div class="list" style="margin-top:16px"><div class="row" style="color:var(--accent);font-weight:600">${I.bookmark} Bewaar als eigen voedingsmiddel</div></div>
+			<div class="list" style="margin-top:16px"><div class="row" style="justify-content:center;color:var(--danger)">Item verwijderen</div></div></div>`, { behind: "Hulp bij invoeren" }))),
+	dir("Gemengd", "Ingrediënten blijven NEVO", "“Boterham met kaas en een broodje pittige kip van de Spar”: de zelfgemaakte boterham wordt brood + kaas (NEVO), het Spar-broodje blijft één product.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Boterham met Goudse kaas en een broodje pittige kip (Spar)")}
+			<div class="sechead">3 items</div>
+			<div class="list">${food({ ic: "🍞", name: "Brood volkoren", amount: "1 snee · 35 g", kcal: 80 })}${food({ ic: "🧀", name: "Kaas Gouds 48+", amount: "1 plak · 20 g", kcal: 75 })}${product({ name: "Broodje pittige kip (Spar)", amount: "1 broodje · 205 g", kcal: 545, comp: "Meergranen bol · gefrituurde kip · spicy mayo · sla · ui" })}</div>
+			${totals(700, 37, 64, 34)}</div>${follow()}<div class="toolbar"><button class="cta glass tint">${I.check} Log 3 items</button></div>`))),
+].join("");
+
+$("#refine").innerHTML = [
+	dir("Vraag", "Eén vraag met antwoordknoppen", "Alleen als het antwoord de schatting duidelijk verandert. Overslaan mag: het resultaat staat er al.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Broodje pittige kip (Spar): meergranen bol met gefrituurde kip, spicy mayo, sla en ui")}
+			<div class="ask"><span class="lbl">${I.sparkles} Klopt dit?</span>Was de kip gefrituurd of gegrild?<div class="chips"><span class="chip">Gefrituurd</span><span class="chip">Gegrild</span><span class="chip">Weet ik niet</span></div></div>
+			<div class="sechead">1 item</div>
+			<div class="list">${product({ name: "Broodje pittige kip (Spar)", amount: "1 broodje · 205 g", kcal: 545, comp: "Meergranen bol · gefrituurde kip · spicy mayo · sla · rode ui" })}</div>
+			${totals(545, 25, 50, 27)}</div>${follow()}<div class="toolbar"><button class="cta glass tint">${I.check} Log 1 item</button></div>`))),
+	dir("Vrij", "Vervolgopdracht typen", "De regel “Pas aan…” zweeft boven de knop. Versturen = nieuwe analyse met de vorige uitkomst als context.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Broodje pittige kip (Spar): meergranen bol met gefrituurde kip, spicy mayo, sla en ui")}
+			<div class="sechead">1 item</div>
+			<div class="list">${product({ name: "Broodje pittige kip (Spar)", amount: "1 broodje · 205 g", kcal: 545, comp: "Meergranen bol · gefrituurde kip · spicy mayo · sla · rode ui" })}</div></div>
+			<div class="follow glass" style="bottom:316px"><span class="ph typed">geen ui, en ik had er een flesje cola zero bij</span><button class="send on">${I.send}</button></div>
+			<div class="kbd">toetsenbord</div>`))),
+	dir("Na aanpassing", "Wat er veranderde", "Aanpassingen staan als bubbels onder de beschrijving. Gewijzigde of nieuwe rijen tonen het verschil; daarna gewoon loggen.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Broodje pittige kip (Spar) zonder ui, en een flesje cola zero", `<div class="trail"><span class="t">Gegrild</span><span class="t">geen ui, en ik had er een flesje cola zero bij</span></div>`)}
+			<div class="sechead">2 items</div>
+			<div class="list">${product({ name: "Broodje pittige kip (Spar)", amount: "1 broodje · 195 g", kcal: 465, delta: "−80 kcal", comp: "Meergranen bol · gegrilde kip · spicy mayo · sla" })}${food({ ic: "🥤", name: "Cola zero", amount: "1 flesje · 500 ml", kcal: 2, sub: '1 flesje · 500 ml <span class="delta">nieuw</span>' })}</div>
+			${totals(467, 30, 50, 17)}</div>${follow()}<div class="toolbar"><button class="cta glass tint">${I.check} Log 2 items</button></div>`))),
+].join("");
+
+$("#save").innerHTML = [
+	dir("Keuze", "Opslaan als → Eigen voedingsmiddel", "Vierde optie in het bestaande menu. Bij meerdere items wordt het totaal één voedingsmiddel (zoals “Eén item”), maar dan herbruikbaar.",
+		phone(sheet(nav({ title: "Hulp bij invoeren", sub: "Lunch · vandaag" }) + `<div class="scroll">
+			${seen("Jouw beschrijving", "Broodje pittige kip (Spar): meergranen bol met gefrituurde kip, spicy mayo, sla en ui")}
+			<div class="sechead">1 item</div>
+			<div class="list">${product({ name: "Broodje pittige kip (Spar)", amount: "1 broodje · 205 g", kcal: 545, comp: "Meergranen bol · gefrituurde kip · spicy mayo · sla · rode ui" })}</div>
+			${totals(545, 25, 50, 27)}${saveAs("Eigen voedingsmiddel")}</div>
+			<div class="menu-pop" style="right:16px;bottom:150px">
+				<div class="mi"><span>Losse items<small>Elk item apart in je dagboek</small></span></div>
+				<div class="mi"><span>Combo<small>Herbruikbaar, en nu loggen</small></span></div>
+				<div class="mi"><span>Eén item<small>Eenmalig of recept, alleen totalen</small></span></div>
+				<div class="sep"></div>
+				<div class="mi"><span>Eigen voedingsmiddel<small>Bewaren voor de volgende keer, en nu loggen</small></span><span class="ic">${I.check}</span></div>
+			</div>
+			<div class="toolbar"><button class="cta glass tint">Bewaar en log ${I.chev}</button></div>`))),
+	dir("Editor", "Ingevuld, geschat", "De bestaande editor met een melding bovenaan. Portie = het geschatte totaalgewicht; merk = de winkel uit de beschrijving.",
+		phone(sheet(nav({ title: "Nieuw voedingsmiddel", right: I.check, rightTint: true }) + `<div class="scroll">
+			<div class="banner warn"><span class="ic">~</span><div><b>Geschat door AI</b>Controleer de waarden; ze komen niet van een etiket.</div></div>
+			<div class="hero" style="margin-top:12px"><div class="ph">🥪</div><h4>Broodje pittige kip</h4><p>Spar</p></div>
+			<div class="sechead">Porties</div><div class="list"><div class="row">1 broodje<span class="v tnum">205 <small>g</small></span></div></div>
+			<div class="sechead">Voedingswaarde <span class="menu" style="color:var(--muted)">per 100 g</span></div>
+			<div class="list">${[["Energie", "266", "kcal"], ["Eiwit", "12,2", "g"], ["Koolhydraten", "24,4", "g"], ["Vet", "13,2", "g"]].map(([n, v, u]) => `<div class="row">${n}<span class="v tnum">${v} <small>${u}</small></span></div>`).join("")}</div></div>`, { behind: "Hulp bij invoeren" }))),
+	dir("Daarna", "Volgende keer: direct gevonden", "Zoeken vindt het eigen voedingsmiddel; en in Hulp koppelt “broodje pittige kip spar” er nu aan in plaats van te schatten.",
+		phone(logFood(`<div class="searchbar">${I.search}<span style="flex:1">pittige kip</span>${I.x}</div>
+			<div class="sechead" style="margin:14px 20px 8px">Resultaten <span class="menu" style="color:var(--muted)">1</span></div>
+			<div class="list" style="margin:0 16px">${food({ ic: "🥪", name: "Broodje pittige kip", src: "Eigen", amount: "Spar · 1 broodje · 545 kcal", kcal: "" })}</div>`))),
+].join("");
+</script>
+</body>
+</html>

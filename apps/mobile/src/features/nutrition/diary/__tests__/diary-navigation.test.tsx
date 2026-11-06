@@ -29,6 +29,7 @@ import {
 	waitFor,
 } from "expo-router/testing-library";
 import { shiftIsoDate, todayIsoDate } from "../../../../data/calendar-day";
+import { mealForTime } from "../../../../data/nutrition-day";
 import {
 	weekDates,
 	weekStartMonday,
@@ -184,7 +185,7 @@ describe("Nutrition navigation", () => {
 		);
 		expect(app.getSearchParams()).toMatchObject({
 			date: todayIsoDate(),
-			meal: "breakfast",
+			meal: mealForTime(),
 		});
 		expect(testRouter.canGoBack()).toBe(true);
 		await testRouter.back();

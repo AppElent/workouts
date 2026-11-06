@@ -14,9 +14,28 @@ export type NutritionAiFailure =
 	| "limit"
 	| "unavailable"
 	| "tooLarge"
+	| "timeout"
 	| "failed";
 
+/** An answer later than this is treated as failed; the input stays. */
+export const AI_TIMEOUT_MS = 30_000;
+/** A web lookup searches several pages first. */
+export const AI_WEB_TIMEOUT_MS = 75_000;
+
+const TIMED_OUT = "nutrition-ai-timeout";
+
+export function withAiTimeout<T>(call: Promise<T>, ms = AI_TIMEOUT_MS) {
+	let timer: ReturnType<typeof setTimeout>;
+	return Promise.race([
+		call,
+		new Promise<never>((_, reject) => {
+			timer = setTimeout(() => reject(new Error(TIMED_OUT)), ms);
+		}),
+	]).finally(() => clearTimeout(timer));
+}
+
 export function nutritionAiFailure(error: unknown): NutritionAiFailure {
+	if (error instanceof Error && error.message === TIMED_OUT) return "timeout";
 	const code = error instanceof ConvexError ? error.data : null;
 	return code === "limit" || code === "unavailable" || code === "tooLarge"
 		? code

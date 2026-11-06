@@ -59,6 +59,8 @@ export interface DiaryEntry {
 	correctedNutrients?: NutrientKey[];
 	provenance: ComboSnapshotProvenance;
 	comboGroup?: { id: string; comboId: string; name: string };
+	/** The device-minted ID this entry was logged with. */
+	clientEntryId?: string;
 }
 
 /** Keeps the source Meal Slot when entries are selected across the day. */
@@ -124,6 +126,15 @@ export function useSetNutritionDisplayOrder() {
  * returns `undefined` first and data second. Building the screen against that
  * from the start is what makes the skeleton a real branch instead of a mock-up.
  */
+/** The meal someone is most likely logging right now. */
+export function mealForTime(now = new Date()): MealSlot {
+	const hour = now.getHours();
+	if (hour < 11) return "breakfast";
+	if (hour < 15) return "lunch";
+	if (hour >= 17 && hour < 21) return "dinner";
+	return "snacks";
+}
+
 export function useNutritionDay(date: IsoDate): NutritionDayState {
 	const goalHistory = useQuery(api.nutritionGoals.forDate, { date });
 	const diary = useQuery(api.nutritionDiary.day, { date });
@@ -182,6 +193,7 @@ export function useNutritionDay(date: IsoDate): NutritionDayState {
 				? { correctedNutrients: entry.correctedNutrients }
 				: {}),
 			comboGroup: entry.comboGroup,
+			clientEntryId: entry.clientEntryId,
 		});
 	}
 	return {

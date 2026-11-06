@@ -11,12 +11,13 @@ function asMealSlot(value: string | undefined): MealSlot {
 
 /** Hulp bij invoeren: AI entry from text or a photo, reviewed before logging. */
 export default function NutritionAssistanceRoute() {
-	const { date, meal, text, draftId, from } = useLocalSearchParams<{
+	const { date, meal, text, draftId, from, resume } = useLocalSearchParams<{
 		date?: string;
 		meal?: string;
 		text?: string;
 		draftId?: string;
 		from?: string;
+		resume?: string;
 	}>();
 	return (
 		<AssistanceScreen
@@ -25,6 +26,7 @@ export default function NutritionAssistanceRoute() {
 			text={text}
 			draftId={draftId}
 			fromFoodBrowser={from === "food"}
+			resume={resume}
 		/>
 	);
 }

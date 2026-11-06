@@ -44,6 +44,35 @@ describe("nutrition AI", () => {
 		).rejects.toThrow("unavailable");
 	});
 
+	it("returns everything the model's schema asks of an item", async () => {
+		fake({
+			describe: {
+				kind: "meal",
+				seen: "Brood",
+				title: "Brood",
+				question: null,
+				items: [
+					{
+						...item,
+						id: null,
+						kind: "ingredient",
+						amountStated: false,
+						components: [],
+						estimate: null,
+					},
+				],
+			},
+		});
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
+		const result = await alice.action(api.nutritionAi.describe, {
+			text: "brood",
+			locale: "nl",
+		});
+		expect(result.items[0]?.amountStated).toBe(false);
+	});
+
 	it("turns a meal without usable items into no_food", async () => {
 		fake({
 			describe: { kind: "meal", seen: "?", items: [{ ...item, amount: 0 }] },
@@ -55,7 +84,14 @@ describe("nutrition AI", () => {
 			text: "asdf",
 			locale: "nl",
 		});
-		expect(result).toEqual({ kind: "no_food", seen: "?", items: [] });
+		expect(result).toEqual({
+			sources: [],
+			kind: "no_food",
+			seen: "?",
+			title: "?",
+			question: null,
+			items: [],
+		});
 	});
 
 	it("only accepts offered refs and keeps an estimate only for unmatched items", async () => {
@@ -90,6 +126,7 @@ describe("nutrition AI", () => {
 				choices: 1,
 			}),
 		);
+		// Analyses grant two selections (one retry); this row has one left.
 		const choices = await alice.action(api.nutritionAi.choose, {
 			items: [
 				{
@@ -178,7 +215,166 @@ describe("nutrition AI", () => {
 		).resolves.toMatchObject({ kind: "meal" });
 	});
 
-	it("allows one candidate selection per analysis, not on its own", async () => {
+	it("scales an estimate given per 100 to the item's amount", async () => {
+		const per100 = {
+			energy: 70,
+			protein: 2,
+			carbs: 12,
+			fat: 1,
+			saturatedFat: 0,
+			sugars: 0,
+			fibre: 1,
+			salt: 0,
+		};
+		fake({
+			describe: { kind: "meal", seen: "havermout", items: [item] },
+			select: { choices: [{ index: 0, ref: null, estimate: per100 }] },
+		});
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
+		await alice.action(api.nutritionAi.describe, {
+			text: "havermout",
+			locale: "nl",
+		});
+		const [choice] = await alice.action(api.nutritionAi.choose, {
+			items: [
+				{
+					name: "Havermout gekookt",
+					amount: 250,
+					unit: "g",
+					brand: null,
+					candidates: [],
+				},
+			],
+		});
+		expect(choice?.estimate?.energy).toBe(175);
+	});
+
+	it("treats 0 kcal as a failed estimate unless the food really has none", async () => {
+		const zero = {
+			energy: 0,
+			protein: 0,
+			carbs: 0,
+			fat: 0,
+			saturatedFat: 0,
+			sugars: 0,
+			fibre: 0,
+			salt: 0,
+		};
+		fake({
+			describe: { kind: "meal", seen: "x", items: [item] },
+			select: { choices: [{ index: 0, ref: null, estimate: zero }] },
+		});
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
+		const estimateFor = async (name: string) => {
+			await alice.action(api.nutritionAi.describe, {
+				text: name,
+				locale: "nl",
+			});
+			const [choice] = await alice.action(api.nutritionAi.choose, {
+				items: [{ name, amount: 200, unit: "g", brand: null, candidates: [] }],
+			});
+			return choice?.estimate;
+		};
+		for (const name of [
+			"Watermeloen",
+			"Ijsthee",
+			"Koffiekoek",
+			"Mayonaise light",
+			"Theelepel suiker",
+		])
+			expect(await estimateFor(name)).toBeNull();
+		for (const name of [
+			"Water",
+			"Kraanwater",
+			"Muntthee",
+			"Thee",
+			"Zwarte koffie",
+			"Cola zero",
+			"Cola light",
+		])
+			expect((await estimateFor(name))?.energy).toBe(0);
+	});
+
+	it("drops a fat nobody mentioned from a first analysis", async () => {
+		const oil = {
+			...item,
+			name: "Zonnebloemolie",
+			searchTerms: ["olie"],
+		};
+		fake({
+			describe: { kind: "meal", seen: "ei", items: [item, oil] },
+		});
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
+		const plain = await alice.action(api.nutritionAi.describe, {
+			text: "gebakken ei",
+			locale: "nl",
+		});
+		expect(plain.items).toHaveLength(1);
+		const twice = { ...item, name: "Boter (bakken)", searchTerms: ["boter"] };
+		fake({
+			describe: {
+				kind: "meal",
+				seen: "ei",
+				items: [
+					{ ...item, name: "Boter", searchTerms: ["boter"] },
+					{ ...item, name: "Gebakken ei" },
+					twice,
+				],
+			},
+		});
+		const spread = await alice.action(api.nutritionAi.describe, {
+			text: "boterham met boter en een gebakken ei",
+			locale: "nl",
+		});
+		expect(spread.items.map((row) => row.name)).toEqual([
+			"Boter",
+			"Gebakken ei",
+		]);
+		fake({
+			describe: { kind: "meal", seen: "ei", items: [item, oil] },
+		});
+		fake({
+			describe: {
+				kind: "meal",
+				seen: "ei",
+				items: [
+					item,
+					{ ...item, name: "Olijfolie (bakken)", searchTerms: ["olie"] },
+					{
+						...item,
+						name: "Gebakken champignons",
+						searchTerms: ["champignons"],
+					},
+				],
+			},
+		});
+		const named = await alice.action(api.nutritionAi.describe, {
+			text: "2 eieren in 30 g olie en gebakken champignons",
+			locale: "nl",
+		});
+		expect(named.items).toHaveLength(3);
+		fake({
+			describe: { kind: "meal", seen: "ei", items: [item, oil] },
+		});
+		const salad = await alice.action(api.nutritionAi.describe, {
+			text: "salade",
+			locale: "nl",
+		});
+		expect(salad.items).toHaveLength(2);
+		const fatNamed = await alice.action(api.nutritionAi.describe, {
+			text: "gebakken ei in olie",
+			locale: "nl",
+		});
+		expect(fatNamed.items).toHaveLength(2);
+	});
+
+	it("allows two candidate selections per analysis, not on their own", async () => {
 		fake({
 			describe: { kind: "meal", seen: "brood", items: [item] },
 			select: { choices: [{ index: 0, ref: null, estimate: null }] },
@@ -204,6 +400,8 @@ describe("nutrition AI", () => {
 			text: "brood",
 			locale: "nl",
 		});
+		// The second is the one retry the phone gets after a failed match.
+		await alice.action(api.nutritionAi.choose, choose);
 		await alice.action(api.nutritionAi.choose, choose);
 		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
 			"limit",

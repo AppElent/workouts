@@ -1,6 +1,11 @@
 import { router, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, View } from "react-native";
+import {
+	aiSessionForEntry,
+	sessionUnchanged,
+} from "../../../data/nutrition-ai-history";
+import { useNutritionDay } from "../../../data/nutrition-day";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -29,6 +34,18 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 	const [creating, setCreating] = useState(false);
 	const pendingNavigation = useRef<(() => void) | null>(null);
 	const [allowDiscard, setAllowDiscard] = useState(false);
+	// Logged with Hulp bij invoeren on this phone: it can be continued there.
+	const [loggedSession] = useState(() =>
+		aiSessionForEntry(props.entry.clientEntryId),
+	);
+	const diaryDay = useNutritionDay(props.date);
+	// Continuing replaces the whole meal: only while nothing in it was edited.
+	const aiSession =
+		loggedSession &&
+		diaryDay.status === "ready" &&
+		sessionUnchanged(loggedSession, diaryDay.day)
+			? loggedSession
+			: null;
 	useEffect(() => {
 		if (allowDiscard) {
 			pendingNavigation.current?.();
@@ -126,6 +143,30 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 							onDateChange={draft.setDate}
 						/>
 						<View style={{ flex: 1 }} />
+						{aiSession ? (
+							<AmountToolbarButton
+								label={copy.continueWithAi}
+								symbol={{
+									ios: "sparkles",
+									android: "auto_awesome",
+									web: "auto_awesome",
+								}}
+								onPress={() => {
+									// One sheet replaces another: close first, then present.
+									props.onClose();
+									router.push({
+										pathname: "/nutrition-assistance",
+										params: {
+											date: props.date,
+											meal: props.meal,
+											resume: aiSession.id,
+										},
+									});
+								}}
+								disabled={draft.busy || adding || draft.dirty}
+								iconOnly
+							/>
+						) : null}
 						<AmountToolbarButton
 							label={t.nutrition.entryEditor.delete}
 							symbol={{ ios: "trash", android: "delete", web: "delete" }}

@@ -1,7 +1,7 @@
 import { canonicalJson } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useRef, useState } from "react";
+import { type RefObject, useRef, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import type {
 	Combo,
@@ -17,7 +17,10 @@ import { useToast } from "../../../ui/toast";
  * A new combo from library foods: a name and the parts, saved with ✓ once it
  * has a name. The storage note shows only while backup is off.
  */
+export type AcceptedCombo = { combo: Combo; input: string };
+
 export function ComboNewScreen({
+	acceptedRef,
 	parts,
 	onCreated,
 	onSaved,
@@ -27,9 +30,12 @@ export function ComboNewScreen({
 	 * Runs right after the combo is saved, such as grouping the diary entries
 	 * it was made from. Failed follow-up work retries with the accepted Combo.
 	 */
-	onCreated?: (combo: Combo) => void | Promise<void>;
+	/** May answer false: the form stays open, and the caller has said why. */
+	onCreated?: (combo: Combo) => void | boolean | Promise<void | boolean>;
 	/** Where to go once saved; by default the new combo's editor. */
 	onSaved?: (combo: Combo) => void;
+	/** Outlives this form, so reopening it does not create the combo twice. */
+	acceptedRef?: RefObject<AcceptedCombo | undefined>;
 }) {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.comboEditor;
@@ -39,9 +45,8 @@ export function ComboNewScreen({
 	const [name, setName] = useState("");
 	const [saving, setSaving] = useState(false);
 	const saveLock = useRef(false);
-	const accepted = useRef<{ combo: Combo; input: string } | undefined>(
-		undefined,
-	);
+	const ownAccepted = useRef<AcceptedCombo | undefined>(undefined);
+	const accepted = acceptedRef ?? ownAccepted;
 	const canSave = name.trim().length > 0 && parts.length > 0 && !saving;
 	const save = async () => {
 		if (!canSave || saveLock.current) return;
@@ -57,7 +62,11 @@ export function ComboNewScreen({
 					: await library.updateCombo(previous.combo.id, input)
 				: await library.createCombo(input);
 			accepted.current = { combo, input: inputKey };
-			await onCreated?.(combo);
+			if ((await onCreated?.(combo)) === false) {
+				saveLock.current = false;
+				setSaving(false);
+				return;
+			}
 			toast.success(t.nutrition.combos.saved);
 			if (onSaved) onSaved(combo);
 			else

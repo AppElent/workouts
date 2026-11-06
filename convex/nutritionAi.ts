@@ -4,6 +4,7 @@ import { type ActionCtx, action, internalMutation } from "./_generated/server";
 import {
 	type AiLocale,
 	describe as describeMeal,
+	MAX_FOLLOW_UPS,
 	MAX_IMAGE_BASE64,
 	MAX_ITEMS,
 	MAX_TEXT,
@@ -83,19 +84,20 @@ export const consumeAnalysis = internalMutation({
 			)
 			.unique();
 		if ((row?.count ?? 0) >= DAILY_ANALYSES) throw new ConvexError("limit");
-		// Each analysis allows one candidate selection, so `choose` cannot be
-		// called on its own to reach the provider outside the daily limit.
+		// Each analysis allows a candidate selection and one retry of it, so
+		// `choose` cannot be called on its own to reach the provider outside the
+		// daily limit.
 		if (row)
 			await ctx.db.patch(row._id, {
 				count: row.count + 1,
-				choices: (row.choices ?? 0) + 1,
+				choices: (row.choices ?? 0) + 2,
 			});
 		else
 			await ctx.db.insert("nutritionAiUsage", {
 				userId,
 				day,
 				count: 1,
-				choices: 1,
+				choices: 2,
 			});
 		return null;
 	},
@@ -126,22 +128,46 @@ async function consume(ctx: ActionCtx, userId: string) {
 	});
 }
 
-/** Text and/or meal photo → what it is, and the items with search terms. */
+/**
+ * Text and/or meal photo → what it is, and the items with search terms.
+ * Refining sends the previous result back with the corrections; the server
+ * keeps no conversation.
+ */
 export const describe = action({
-	args: { text: v.optional(v.string()), image: v.optional(image), locale },
+	args: {
+		text: v.optional(v.string()),
+		image: v.optional(image),
+		locale,
+		previous: v.optional(v.string()),
+		followUps: v.optional(v.array(v.string())),
+		webSearch: v.optional(v.boolean()),
+	},
 	returns: v.object({
+		sources: v.array(v.object({ title: v.string(), url: v.string() })),
 		kind: v.union(v.literal("meal"), v.literal("label"), v.literal("no_food")),
 		seen: v.string(),
+		title: v.string(),
+		question: v.union(
+			v.object({ text: v.string(), options: v.array(v.string()) }),
+			v.null(),
+		),
 		items: v.array(
 			v.object({
+				kind: v.union(v.literal("ingredient"), v.literal("product")),
+				id: v.optional(v.union(v.string(), v.null())),
 				name: v.string(),
 				amount: v.number(),
 				unit,
 				grams: v.number(),
 				amountLabel: v.string(),
+				amountStated: v.optional(v.boolean()),
 				confidence,
 				brand: v.union(v.string(), v.null()),
 				searchTerms: v.array(v.string()),
+				components: v.array(
+					v.object({ name: v.string(), grams: v.number(), ...estimate.fields }),
+				),
+				estimate: v.union(estimate, v.null()),
 			}),
 		),
 	}),
@@ -149,6 +175,12 @@ export const describe = action({
 		const userId = await requireUser(ctx);
 		if (!args.text?.trim() && !args.image) throw new ConvexError("empty");
 		if ((args.text?.length ?? 0) > MAX_TEXT) throw new ConvexError("tooLarge");
+		if (
+			(args.previous?.length ?? 0) > MAX_TEXT * 8 ||
+			(args.followUps?.length ?? 0) > MAX_FOLLOW_UPS ||
+			args.followUps?.some((followUp) => followUp.length > 500)
+		)
+			throw new ConvexError("tooLarge");
 		checkImage(args.image);
 		const provider = requireProvider();
 		await consume(ctx, userId);
@@ -157,12 +189,20 @@ export const describe = action({
 				text: args.text,
 				image: args.image,
 				locale: args.locale as AiLocale,
+				previous: args.previous,
+				followUps: args.followUps,
+				webSearch: args.webSearch,
 			});
 			return {
 				...described,
+				sources: described.sources.map((source) => ({ ...source })),
+				question: described.question
+					? { ...described.question, options: [...described.question.options] }
+					: null,
 				items: described.items.map((item) => ({
 					...item,
 					searchTerms: [...item.searchTerms],
+					components: [...item.components],
 				})),
 			};
 		});
@@ -178,6 +218,7 @@ export const choose = action({
 				amount: v.number(),
 				unit,
 				brand: v.union(v.string(), v.null()),
+				product: v.optional(v.boolean()),
 				candidates: v.array(v.object({ ref: v.string(), name: v.string() })),
 			}),
 		),
@@ -187,6 +228,7 @@ export const choose = action({
 			index: v.number(),
 			ref: v.union(v.string(), v.null()),
 			estimate: v.union(estimate, v.null()),
+			guess: v.optional(v.boolean()),
 		}),
 	),
 	handler: async (ctx, { items }) => {
