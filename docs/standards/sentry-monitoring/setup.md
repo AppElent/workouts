@@ -1,7 +1,7 @@
 ---
 type: standard
 kind: capability
-version: 1.0.0
+version: 1.1.0
 applies_to: [web, mobile, backend]
 description: Per-surface Sentry setup detail for local previews, credentials, source maps, Convex, feedback, and replay.
 ---
@@ -34,7 +34,7 @@ Add a regression test for a localhost SSR 500 with production bindings: the app 
 | Value | Purpose | Destination |
 | --- | --- | --- |
 | DSN | Sends events to the selected project | Public browser/native config or server runtime |
-| `SENTRY_AUTH_TOKEN` | Authorizes build artifact uploads | Private local tooling, CI, and EAS build/upload processes |
+| `SENTRY_AUTH_TOKEN` | Authorizes build artifact uploads | Private local tooling, deploying CI jobs (not check-only builds), and EAS build/upload processes |
 | Organization/project | Selects the upload target | Build configuration aligned with the DSN |
 | Release/dist or debug IDs | Associates artifacts with emitted events | Matching build and runtime metadata for the selected upload mechanism |
 
@@ -52,7 +52,7 @@ Convex's [managed exception reporting](https://docs.convex.dev/production/integr
 
 On a free plan, client reporting can capture backend failures returned to active users. Scheduled jobs and other unattended failures need an always-on forwarder or another supported backend reporting path. If hosting is deferred, leave the forwarder ready to deploy and state that unattended coverage is inactive.
 
-A log-forwarder implementation should select one deployment explicitly, read structured Convex execution logs using the installed CLI's verified format, and forward failed completion records only. Allowlist function/type, deployment, timestamp, request/execution identifiers, and sanitized stack/message. Exclude console payloads, arguments, return values, and identity. Use stable event IDs, bounded deduplication, reader restart/backoff, bounded buffering, shutdown flush, and private deployment credentials. Document downtime/history gaps and whether delivery has a durable spool; an in-memory reader is best effort. Disable one backend reporting path when migrating to another to prevent duplicate ingestion. Source-map upload credentials are not required merely to send events.
+[`examples/convex-sentry.mjs`](examples/convex-sentry.mjs) implements the rules below as one dependency-light script (`@sentry/node` only); copy it to `scripts/` and run it on an always-on host with a private deploy key. A replacement implementation should select one deployment explicitly, read structured Convex execution logs using the installed CLI's verified format, and forward failed completion records only. Allowlist function/type, deployment, timestamp, request/execution identifiers, and sanitized stack/message. Exclude console payloads, arguments, return values, and identity. Use stable event IDs, bounded deduplication, reader restart/backoff, bounded buffering, shutdown flush, and private deployment credentials. Document downtime/history gaps and whether delivery has a durable spool; an in-memory reader is best effort. Disable one backend reporting path when migrating to another to prevent duplicate ingestion. Source-map upload credentials are not required merely to send events.
 
 ## Feedback, screenshots, and replay testing
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
 	checkMobileArchitecture,
 	inspectMobileSource,
-} from "./check-mobile-architecture.mjs";
+} from "./check-mobile-structure.mjs";
 
 const feature =
 	"apps/mobile/src/features/nutrition/diary-entry/diary-entry-screen.tsx";

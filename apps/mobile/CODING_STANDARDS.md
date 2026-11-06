@@ -30,8 +30,9 @@ Keep retained feature state where it still supports refresh errors or reads afte
 subscription expiry. The [pilot evidence](../../docs/records/2026-10-08-query-subscription-cache/README.md)
 records adoption and usage limits.
 
-`pnpm check:mobile-architecture` runs in `pnpm check`. It is this project's copy of
-the structure standard's check: UI-to-feature imports, feature filenames,
+`pnpm check:mobile-structure` runs in `pnpm check`. It is the structure
+standard's `check-mobile-structure.mjs`, unchanged except for Foundry's
+`UNTRANSLATED` words (refresh it from the example on sync): UI-to-feature imports, feature filenames,
 literal feature font sizes, `*-copy.ts` dictionaries outside `src/i18n/`,
 `locale === …` branches that choose text, and literal UI text in JSX children,
 readable props (labels, titles, placeholders) and toast/confirm messages outside

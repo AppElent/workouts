@@ -3,15 +3,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
-const sourceRoot = "apps/mobile/src/";
+// Adjust to the app. Set messagesRoot to null when the app has no message catalog.
+const mobileRoot = "apps/mobile/";
+const sourceRoot = `${mobileRoot}src/`;
+const routeRoot = `${mobileRoot}app/`;
 const featureRoot = `${sourceRoot}features/`;
 const uiRoot = `${sourceRoot}ui/`;
 const messagesRoot = `${sourceRoot}i18n/`;
-const routeRoot = "apps/mobile/app";
 /** Units and names that read the same in every supported language. */
 const UNTRANSLATED = /\b(?:kcal|kg|km|lb|RPE|1RM|WODs?|Foundry)\b/g;
-const hasWords = (text) => /\p{L}{3,}/u.test(text.replace(UNTRANSLATED, ""));
-/** JSX props that people read or hear; their literal text belongs in the catalog. */
+/** JSX props and object keys that people read or hear. */
 const TEXT_ATTRIBUTES = new Set([
 	"accessibilityLabel",
 	"accessibilityHint",
@@ -23,24 +24,77 @@ const TEXT_ATTRIBUTES = new Set([
 	"cancelLabel",
 	"retryLabel",
 ]);
+/** Calls whose literal arguments are shown to the user. */
+const MESSAGE_CALL = /^(?:error|success|alert|convexErrorMessage)$/;
+const CATALOG_MESSAGE =
+	"Put UI text in the message catalog and read it through the i18n hook.";
+
+const hasWords = (text) => /\p{L}{3,}/u.test(text.replace(UNTRANSLATED, ""));
+const unwrap = (node) =>
+	ts.isParenthesizedExpression(node) ? unwrap(node.expression) : node;
+const literalText = (node) => {
+	node = unwrap(node);
+	if (ts.isStringLiteralLike(node)) return node.text;
+	if (ts.isTemplateExpression(node))
+		return [
+			node.head.text,
+			...node.templateSpans.map((span) => span.literal.text),
+		].join(" ");
+	return undefined;
+};
+const wordy = (node) => {
+	const text = literalText(node);
+	return text !== undefined && hasWords(text);
+};
+/** A rendered `"…"`, `cond ? "…" : x` or `cond || "…"` value. */
+const branchText = (node) => {
+	node = unwrap(node);
+	if (ts.isConditionalExpression(node))
+		return branchText(node.whenTrue) || branchText(node.whenFalse);
+	if (
+		ts.isBinaryExpression(node) &&
+		[
+			ts.SyntaxKind.AmpersandAmpersandToken,
+			ts.SyntaxKind.BarBarToken,
+			ts.SyntaxKind.QuestionQuestionToken,
+		].includes(node.operatorToken.kind)
+	)
+		return (
+			(node.operatorToken.kind !== ts.SyntaxKind.AmpersandAmpersandToken &&
+				branchText(node.left)) ||
+			branchText(node.right)
+		);
+	return wordy(node);
+};
+const literalSize = (node) => {
+	node = unwrap(node);
+	return (
+		ts.isNumericLiteral(node) ||
+		ts.isStringLiteralLike(node) ||
+		(ts.isPrefixUnaryExpression(node) && ts.isNumericLiteral(node.operand))
+	);
+};
+const attributeValue = (node) =>
+	node.initializer && ts.isJsxExpression(node.initializer)
+		? node.initializer.expression
+		: node.initializer;
 
 /** Check syntax and direct dependency boundaries; component ownership needs review. */
 export function inspectMobileSource(filename, source, resolveImport) {
 	const file = filename.replaceAll("\\", "/");
 	const feature = file.startsWith(featureRoot);
 	const ui = file.startsWith(uiRoot);
+	const messages = messagesRoot !== null && file.startsWith(messagesRoot);
+	const route = file.startsWith(routeRoot);
 	const issues = [];
-	if (!file.startsWith(messagesRoot) && /-copy\.tsx?$/.test(file)) {
+	if (messagesRoot !== null && !messages && /-copy\.tsx?$/.test(file))
 		issues.push({
 			file,
 			line: 1,
 			rule: "message-catalog",
-			message:
-				"Put UI text in an i18n/messages/ area module and read it through useI18n().",
+			message: CATALOG_MESSAGE,
 		});
-	}
-	const messages = file.startsWith(messagesRoot);
-	if (!feature && !ui && messages) return issues;
+	if (!route && !file.startsWith(sourceRoot)) return issues;
 	const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
 	const report = (node, rule, message) => {
 		const line =
@@ -61,27 +115,21 @@ export function inspectMobileSource(filename, source, resolveImport) {
 				"Use a kebab-case basename; retain it for platform and test suffixes.",
 		});
 	}
+	const checkText =
+		messagesRoot !== null &&
+		!messages &&
+		!/(?:^|\/)(?:__tests__|test-support)\/|\.test\.tsx?$/.test(file);
+	const jsx = file.endsWith(".tsx");
 	const checkDependency = (literal) => {
 		if (!ui || !literal || !ts.isStringLiteralLike(literal)) return;
 		const target = resolveImport(literal.text, file)?.replaceAll("\\", "/");
-		if (target?.startsWith(featureRoot)) {
+		if (target?.startsWith(featureRoot))
 			report(
 				literal,
 				"ui-feature-import",
 				"Generic UI must not import or re-export feature code.",
 			);
-		}
 	};
-	const literalSize = (node) => {
-		if (ts.isParenthesizedExpression(node)) return literalSize(node.expression);
-		return (
-			ts.isNumericLiteral(node) ||
-			ts.isStringLiteralLike(node) ||
-			(ts.isPrefixUnaryExpression(node) && ts.isNumericLiteral(node.operand))
-		);
-	};
-	const unwrap = (node) =>
-		ts.isParenthesizedExpression(node) ? unwrap(node.expression) : node;
 	const comparesLocale = (condition) => {
 		condition = unwrap(condition);
 		if (
@@ -103,97 +151,42 @@ export function inspectMobileSource(filename, source, resolveImport) {
 	};
 	/** Words or sentences, not separators or BCP 47 tags such as "nl-NL". */
 	const isText = (node) => {
-		node = unwrap(node);
-		const text = ts.isStringLiteralLike(node)
-			? node.text
-			: ts.isTemplateExpression(node)
-				? [
-						node.head.text,
-						...node.templateSpans.map((s) => s.literal.text),
-					].join("")
-				: undefined;
+		const text = literalText(node);
 		return text !== undefined && /\p{L}{3,}|\s/u.test(text);
 	};
-	const jsx = file.endsWith(".tsx");
-	const tests = /(?:^|\/)(?:__tests__|test-support)\/|\.test\.tsx?$/.test(file);
-	const literalText = (node) => {
-		node = unwrap(node);
-		if (ts.isStringLiteralLike(node)) return node.text;
-		if (ts.isTemplateExpression(node))
-			return [
-				node.head.text,
-				...node.templateSpans.map((s) => s.literal.text),
-			].join(" ");
-		return undefined;
-	};
-	const textAttribute = (node) => {
-		if (!TEXT_ATTRIBUTES.has(node.name.getText(tree)) || !node.initializer)
-			return false;
-		const value = ts.isJsxExpression(node.initializer)
-			? node.initializer.expression
-			: node.initializer;
-		return Boolean(value && branchText(value));
-	};
-	const wordy = (node) => {
-		const text = literalText(node);
-		return text !== undefined && hasWords(text);
-	};
-	/** A rendered `{"…"}`, `{cond ? "…" : x}` or `{cond && "…"}` child. */
-	const branchText = (node) => {
-		node = unwrap(node);
-		if (ts.isConditionalExpression(node))
-			return branchText(node.whenTrue) || branchText(node.whenFalse);
-		if (
-			ts.isBinaryExpression(node) &&
-			[
-				ts.SyntaxKind.AmpersandAmpersandToken,
-				ts.SyntaxKind.BarBarToken,
-				ts.SyntaxKind.QuestionQuestionToken,
-			].includes(node.operatorToken.kind)
-		)
+	const hardcodedText = (node) => {
+		if (ts.isJsxText(node)) return hasWords(node.text);
+		if (ts.isJsxAttribute(node))
 			return (
-				(node.operatorToken.kind !== ts.SyntaxKind.AmpersandAmpersandToken &&
-					branchText(node.left)) ||
-				branchText(node.right)
+				TEXT_ATTRIBUTES.has(node.name.getText(tree)) &&
+				Boolean(attributeValue(node) && branchText(attributeValue(node)))
 			);
-		return wordy(node);
-	};
-	const textProperty = (node) =>
-		(ts.isIdentifier(node.name) || ts.isStringLiteralLike(node.name)) &&
-		TEXT_ATTRIBUTES.has(node.name.text) &&
-		wordy(node.initializer);
-	/** `toast.error("…")`, `Alert.alert("…")`, `convexErrorMessage(e, "…")`. */
-	const textMessageCall = (node) => {
-		const callee = ts.isPropertyAccessExpression(node.expression)
-			? node.expression.name.text
-			: ts.isIdentifier(node.expression)
-				? node.expression.text
-				: "";
-		return (
-			/^(?:error|success|alert|convexErrorMessage)$/.test(callee) &&
-			node.arguments.some(wordy)
-		);
+		if (ts.isJsxExpression(node))
+			return (
+				!ts.isJsxAttribute(node.parent) &&
+				Boolean(node.expression && branchText(node.expression))
+			);
+		if (jsx && ts.isPropertyAssignment(node))
+			return (
+				(ts.isIdentifier(node.name) || ts.isStringLiteralLike(node.name)) &&
+				TEXT_ATTRIBUTES.has(node.name.text) &&
+				wordy(node.initializer)
+			);
+		if (jsx && ts.isCallExpression(node)) {
+			const callee = ts.isPropertyAccessExpression(node.expression)
+				? node.expression.name.text
+				: ts.isIdentifier(node.expression)
+					? node.expression.text
+					: "";
+			return MESSAGE_CALL.test(callee) && node.arguments.some(wordy);
+		}
+		return false;
 	};
 	const visit = (node) => {
+		if (checkText && hardcodedText(node))
+			report(node, "hardcoded-ui-text", CATALOG_MESSAGE);
 		if (
-			!messages &&
-			!tests &&
-			((ts.isJsxText(node) && hasWords(node.text)) ||
-				(ts.isJsxAttribute(node) && textAttribute(node)) ||
-				(ts.isJsxExpression(node) &&
-					!ts.isJsxAttribute(node.parent) &&
-					node.expression &&
-					branchText(node.expression)) ||
-				(jsx && ts.isPropertyAssignment(node) && textProperty(node)) ||
-				(jsx && ts.isCallExpression(node) && textMessageCall(node)))
-		)
-			report(
-				node,
-				"hardcoded-ui-text",
-				"Put UI text in an i18n/messages/ area module and read it through useI18n().",
-			);
-		if (
-			!messages &&
+			checkText &&
 			ts.isConditionalExpression(node) &&
 			comparesLocale(node.condition) &&
 			(isText(node.whenTrue) || isText(node.whenFalse))
@@ -201,7 +194,7 @@ export function inspectMobileSource(filename, source, resolveImport) {
 			report(
 				node,
 				"inline-locale-text",
-				"Put UI text in an i18n/messages/ area module instead of branching on the locale.",
+				"Put UI text in the message catalog instead of branching on the locale.",
 			);
 		if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
 			checkDependency(node.moduleSpecifier);
@@ -217,38 +210,28 @@ export function inspectMobileSource(filename, source, resolveImport) {
 					node.expression.text === "require"))
 		)
 			checkDependency(node.arguments[0]);
-		if (feature && ts.isPropertyAssignment(node)) {
-			const name = ts.isComputedPropertyName(node.name)
-				? node.name.expression
-				: node.name;
-			if (
-				(ts.isIdentifier(name) || ts.isStringLiteralLike(name)) &&
-				name.text === "fontSize" &&
-				literalSize(node.initializer)
-			) {
-				report(
-					node,
-					"feature-font-size",
-					"Use a shared theme typography token instead of a literal fontSize.",
-				);
-			}
-		}
-		if (
+		const fontSize =
 			feature &&
-			ts.isJsxAttribute(node) &&
-			node.name.getText(tree) === "fontSize" &&
-			node.initializer
-		) {
-			const value = ts.isJsxExpression(node.initializer)
-				? node.initializer.expression
-				: node.initializer;
-			if (value && literalSize(value))
-				report(
-					node,
-					"feature-font-size",
-					"Use a shared theme typography token instead of a literal fontSize.",
-				);
-		}
+			(ts.isPropertyAssignment(node)
+				? (() => {
+						const name = ts.isComputedPropertyName(node.name)
+							? node.name.expression
+							: node.name;
+						return (
+							(ts.isIdentifier(name) || ts.isStringLiteralLike(name)) &&
+							name.text === "fontSize" &&
+							literalSize(node.initializer)
+						);
+					})()
+				: ts.isJsxAttribute(node) &&
+					node.name.getText(tree) === "fontSize" &&
+					Boolean(attributeValue(node) && literalSize(attributeValue(node))));
+		if (fontSize)
+			report(
+				node,
+				"feature-font-size",
+				"Use a shared theme typography token instead of a literal fontSize.",
+			);
 		ts.forEachChild(node, visit);
 	};
 	visit(tree);
@@ -256,7 +239,7 @@ export function inspectMobileSource(filename, source, resolveImport) {
 }
 
 export function checkMobileArchitecture(root) {
-	const configPath = path.join(root, "apps/mobile/tsconfig.json");
+	const configPath = path.join(root, mobileRoot, "tsconfig.json");
 	const config = ts.readConfigFile(configPath, ts.sys.readFile);
 	if (config.error)
 		throw new Error(
@@ -299,10 +282,10 @@ export function checkMobileArchitecture(root) {
 					resolveImport,
 				);
 			});
-	return [
-		...scan(sourceRoot.slice(0, -1)),
-		...(fs.existsSync(path.join(root, routeRoot)) ? scan(routeRoot) : []),
-	];
+	return [sourceRoot, routeRoot]
+		.map((directory) => directory.slice(0, -1))
+		.filter((directory) => fs.existsSync(path.join(root, directory)))
+		.flatMap(scan);
 }
 
 if (
@@ -317,5 +300,5 @@ if (
 			`${issue.file}:${issue.line} [${issue.rule}] ${issue.message}`,
 		);
 	if (issues.length) process.exitCode = 1;
-	else console.log("Mobile architecture checks passed.");
+	else console.log("Mobile structure checks passed.");
 }

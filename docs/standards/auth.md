@@ -2,7 +2,7 @@
 type: standard
 kind: capability
 description: Read when adding or changing Clerk/Convex authentication, session readiness, or account flows.
-version: 2.0.0
+version: 2.1.0
 applies_to: [web, mobile, backend]
 ---
 
@@ -50,6 +50,10 @@ const convex = new ConvexReactClient(publicConvexUrl);
 
 Use the installed SDK's adapter; preserve its generation and app-specific router options.
 
+### Web account UI
+
+For @clerk/clerk-react custom flows, copy the [web examples](auth/examples/web/index.ts) and their sibling files into an app-owned directory, preserving relative imports. They provide sign-in, sign-up, password reset, profile, header user menu, test login, and light/dark theme helpers, and need react, @clerk/clerk-react, clsx, tailwind-merge, and lucide-react. Import [tokens.css](auth/examples/web/tokens.css) from the app stylesheet and map its `--auth-*` variables onto the app palette. Add the [env typings](auth/examples/web/vite-env.d.ts) unless the app already declares those `ImportMetaEnv` keys. Routes, labels, and branding stay app-owned through `AuthConfigProvider` and component props. The test login needs a `pk_test_` key, email-code sign-in enabled, and a `+clerk_test` `VITE_TEST_USER_EMAIL`; it uses Clerk's development verification code, so no password is configured.
+
 ### Native and headless behavior
 
 Copy needed [native helper](auth/examples/native.ts) behavior into app-owned code. Use the installed @clerk/expo version's official token cache and session finalization. Keep provisioning, sign-out cleanup, navigation, and theming app-owned.
@@ -60,7 +64,7 @@ Never put login credentials in public build variables; a test-instance key does 
 
 Verify zero protected requests while Clerk is signed in and Convex is delayed, including provider-level subscriptions. Test authentication gained/lost/regained, account switching, draft handling, stalled-handshake recovery without redirect loops, new/existing accounts, incomplete/MFA flows, expired sessions, and unauthorized calls. Exercise cold launch and background/resume on a native device/build; report runtime verification separately from helper tests.
 
-Inventory @appelent/auth imports before migration; preserve customized routes/forms/branding. Remove dependencies only after imports, styles, types, build, and runtime flows pass. Guide updates alone do not fix applications.
+Inventory @appelent/auth imports before migration and replace them with the copied web examples; point the tokens.css import at the copy and drop any Tailwind `@source` for the package dist. Preserve customized routes/forms/branding. Remove dependencies only after imports, styles, types, build, and runtime flows pass. Guide updates alone do not fix applications.
 
 ## Exceptions
 

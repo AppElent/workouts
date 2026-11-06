@@ -30,7 +30,10 @@ Studies: [log food](../../designs/nutrition/log_final.html),
 - **Provider search.** Open Food Facts is its own section below local results
   whenever there is a query. Query only a settled term (search key, or 1.5 s idle
   with ≥ 3 characters), cache first, within an app budget below the provider's
-  limit. Rate limiting delays only that section.
+  limit. Rate limiting delays only that section. A known brand in the term filters
+  on that brand, and the app ranks the rest by every typed word, then products
+  sold in the Netherlands. One settled term spends one request; a second, for the
+  brand alone, only when the filtered one finds nothing.
 - **Target modes.** Adding to or replacing in a Combo, and saving a provider result
   to the library, reuse this browser with a narrow target mode ("Toevoegen" /
   "Vervangen"); + writes to the target.

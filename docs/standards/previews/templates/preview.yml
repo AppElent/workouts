@@ -1,14 +1,24 @@
 # Adapt APP_NAME, provider references, and the seed function before use.
+# wrangler.jsonc needs a route-free env for previews:
+#   "env": { "pr": { "name": "APP_NAME-pr", "workers_dev": true, "routes": [] } }
+# Opt-in: deploys only while the PR carries the `preview:web` label; pushes
+# redeploy, removing the label or closing the PR deletes the Worker. Close
+# always cleans up, so Workers deployed before the label gate are not left behind.
 name: PR Preview
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
 jobs:
   deploy:
-    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'preview:web') &&
+      github.event.action != 'closed' && github.event.action != 'unlabeled' &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview:web')
+    # Job-level so a fully skipped run (unrelated label) cannot cancel a deploy.
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,6 +29,9 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY }}
       VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_CLERK_PUBLISHABLE_KEY }}
+      # The Cloudflare Vite plugin picks the wrangler env at build time. `pr`
+      # clears the production routes, so a preview never claims the domain.
+      CLOUDFLARE_ENV: pr
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,9 +48,24 @@ jobs:
           --cmd-url-env-var-name CONVEX_URL
           --cmd 'VITE_CONVEX_URL=$CONVEX_URL pnpm build'
       - name: Deploy isolated Worker
-        run: pnpm exec wrangler deploy --name "$WORKER_NAME"
+        run: |
+          set -o pipefail
+          pnpm exec wrangler deploy --name "$WORKER_NAME" 2>&1 | tee "$RUNNER_TEMP/wrangler-deploy.log"
+      # A preview that inherits production routes takes over the production domain.
+      - name: Guard against custom domains
+        run: |
+          if grep -qi 'custom domain' "$RUNNER_TEMP/wrangler-deploy.log"; then
+            echo "::error::The preview Worker claimed a custom domain. Redeploy production, then fix the wrangler pr env."
+            exit 1
+          fi
   cleanup:
-    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'closed' ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'preview:web'))
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,4 +80,4 @@ jobs:
           node-version: 22.15.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec wrangler delete --force --name "APP_NAME-pr-${{ github.event.pull_request.number }}"
+      - run: pnpm exec wrangler delete --force --name "APP_NAME-pr-${{ github.event.pull_request.number }}" || true

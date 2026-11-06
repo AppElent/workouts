@@ -35,8 +35,8 @@ device. `app.config.ts` picks the identity from `APP_VARIANT`, which
 
 An unset `APP_VARIANT` means development, so local `expo run` builds never
 replace the App Store install. Preview and development icons carry a coloured
-PREVIEW / DEV band. `pnpm update:publish` derives `APP_VARIANT` from
-`--channel`; a raw `eas update` must set it explicitly, or the update carries
+PREVIEW / DEV band. `pnpm mobile:update:<channel>` derives `APP_VARIANT` from
+the channel; a raw `eas update` must set it explicitly, or the update carries
 the development scheme and bundle ID.
 
 Each bundle ID needs its own App ID (with Sign in with Apple, grouped under
@@ -171,12 +171,21 @@ builds, and Sentry source-map upload is disabled in CI.
 From the repository root, after `infisical login`:
 
 ```sh
-EXPO_NO_DOTENV=1 pnpm env:exec local --only file -- \
-  pnpm --dir apps/mobile preview:ios:update --message "Describe the changes"
+EXPO_NO_DOTENV=1 pnpm mobile:update:preview --platform ios --message "Describe the changes"
+# Production only when publishing to production is intended:
+EXPO_NO_DOTENV=1 pnpm mobile:update:production --platform ios --message "Describe the changes"
 ```
 
-`env:exec` reads `SENTRY_AUTH_TOKEN` from Infisical and passes it only to the
-publish command; it is never written to a file or printed.
+The scripts run `apps/mobile/scripts/publish-update.mjs` through `env:exec`,
+which reads `SENTRY_AUTH_TOKEN` from Infisical and passes it only to the
+publish command; it is never written to a file or printed. The wrapper sets
+`APP_VARIANT` and `--environment` from the channel, refuses to publish when no
+finished build on the channel has this checkout's runtime fingerprint
+(`--without-build` overrides), and uploads the source maps of the exact `dist/`
+it published. Production refuses to publish without the token; preview
+publishes without maps and warns. After a failed upload, re-run with
+`--upload-only` instead of publishing again.
+`node apps/mobile/scripts/fingerprint.mjs` prints the local runtime per variant.
 
 Publish JavaScript and asset changes this way after validation. The app checks
 for updates on launch, downloads a compatible update in the background, and

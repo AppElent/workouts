@@ -18,6 +18,11 @@ import {
 	parseProviderNutrient,
 	saltFromSodium,
 } from "@foundry/core/nutrition";
+import {
+	type OffSearchHit,
+	planOffSearch,
+	rankOffHits,
+} from "./open-food-facts-search";
 import type {
 	OpenFoodFactsCache,
 	PersonalFoodDraft,
@@ -32,6 +37,11 @@ const OFF_PROVIDER_LABEL = "Open Food Facts";
 const OFF_CACHE_SCHEMA = "details-v2";
 const PRODUCT_FIELDS =
 	"code,product_name,product_name_en,product_name_nl,brands,quantity,product_quantity_unit,serving_size,serving_quantity,serving_quantity_unit,image_front_small_url,image_front_url,nutriments";
+const SEARCH_FIELDS = `${PRODUCT_FIELDS},countries_tags,categories,categories_tags`;
+// Wide enough for the ranking to find the product among OR-matched hits (one
+// request of about 90 KB); only the best are kept and cached.
+const SEARCH_PAGE_SIZE = 100;
+const SEARCH_RESULT_LIMIT = 20;
 
 export type OffLookupOutcome =
 	| { readonly kind: "unavailable" }
@@ -59,12 +69,8 @@ export type OffSearchOutcome =
 	| { readonly kind: "timeout" }
 	| { readonly kind: "network-error" };
 
-type OffRawProduct = {
+type OffRawProduct = OffSearchHit & {
 	readonly code?: string;
-	readonly product_name?: string;
-	readonly product_name_en?: string;
-	readonly product_name_nl?: string;
-	readonly brands?: string | readonly string[];
 	readonly quantity?: string;
 	readonly product_quantity_unit?: string;
 	readonly serving_size?: string;
@@ -436,10 +442,10 @@ export async function searchOffProducts(
 	query: string,
 	options: OpenFoodFactsClientOptions,
 ): Promise<OffSearchOutcome> {
-	const trimmed = query.trim();
-	if (trimmed.length === 0) return { kind: "not-found" };
+	const plan = planOffSearch(query);
+	if (plan.query.length === 0) return { kind: "not-found" };
 	const fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike);
-	const cacheKey = `searchalicious:${OFF_CACHE_SCHEMA}:nl,en:${trimmed.toLocaleLowerCase()}`;
+	const cacheKey = `searchalicious-ranked:${OFF_CACHE_SCHEMA}:nl,en:${plan.query}`;
 	const cached = options.cache.get(cacheKey);
 	if (cached) {
 		const drafts = (cached.response as OffRawProduct[])
@@ -453,33 +459,51 @@ export async function searchOffProducts(
 			: { kind: "not-found" };
 	}
 
-	const params = new URLSearchParams({
-		q: trimmed,
-		langs: "nl,en",
-		page_size: "20",
-		fields: PRODUCT_FIELDS,
-	});
-	const result = await fetchJson(
-		`${OFF_SEARCH_URL}?${params.toString()}`,
-		fetchImpl,
-		options.timeoutMs ?? REQUEST_TIMEOUT_MS,
-	);
+	const ask = async (q: string) => {
+		const params = new URLSearchParams({
+			q,
+			langs: "nl,en",
+			page_size: String(SEARCH_PAGE_SIZE),
+			fields: SEARCH_FIELDS,
+		});
+		return fetchJson(
+			`${OFF_SEARCH_URL}?${params.toString()}`,
+			fetchImpl,
+			options.timeoutMs ?? REQUEST_TIMEOUT_MS,
+		);
+	};
+	let result = await ask(plan.query);
 	if (result.kind !== "ok") return { kind: result.kind };
 
-	const body = result.body as OffSearchResponse | null;
+	let body = result.body as OffSearchResponse | null;
 	if (!body || body.errors?.length || !Array.isArray(body.hits))
 		return { kind: "unavailable" };
 	if (body.timed_out) return { kind: "timeout" };
-	const products = body.hits.filter(
-		(product) => product !== null && typeof product === "object",
+	if (body.hits.length === 0 && plan.brandOnlyQuery) {
+		result = await ask(plan.brandOnlyQuery);
+		if (result.kind !== "ok") return { kind: result.kind };
+		body = result.body as OffSearchResponse | null;
+		if (!body || body.errors?.length || !Array.isArray(body.hits))
+			return { kind: "unavailable" };
+		if (body.timed_out) return { kind: "timeout" };
+	}
+	const best = rankOffHits(
+		body.hits.filter(
+			(product) => product !== null && typeof product === "object",
+		),
+		plan.words,
+	)
+		.flatMap((product) => {
+			const mapped = mapOffProductToDraft(product);
+			return "draft" in mapped ? [{ product, draft: mapped.draft }] : [];
+		})
+		.slice(0, SEARCH_RESULT_LIMIT);
+	options.cache.set(
+		cacheKey,
+		"search",
+		best.map(({ product }) => product),
 	);
-	options.cache.set(cacheKey, "search", products);
-	const drafts = products
-		.map(mapOffProductToDraft)
-		.filter(
-			(mapped): mapped is { draft: PersonalFoodDraft } => "draft" in mapped,
-		)
-		.map((mapped) => mapped.draft);
+	const drafts = best.map(({ draft }) => draft);
 	return drafts.length > 0
 		? { kind: "found", drafts, fromCache: false }
 		: { kind: "not-found" };

@@ -59,15 +59,16 @@ For local native development without upload credentials, set
 For OTA, run from the repository root:
 
 ```sh
-pnpm env:exec local --only file -- pnpm --dir apps/mobile preview:ios:update
+pnpm mobile:update:preview --platform ios
 # Production only when publishing to production is intended:
-pnpm env:exec local --only file -- pnpm --dir apps/mobile update:publish --platform ios --channel production --environment production
+pnpm mobile:update:production --platform ios
 ```
 
-The wrappers require the local upload token before publishing and upload the
-exported `dist` afterward. EAS build secrets do not populate the local shell;
-`env:exec` supplies the token from Infisical to the command only.
-After a successful publish but failed upload, retain that artifact and retry:
+The wrapper uploads the exported `dist` after publishing; production refuses
+to publish without the upload token. EAS build secrets do not populate the
+local shell; `env:exec` supplies the token from Infisical to the command only.
+After a successful publish but failed upload, keep `dist` and retry with
+`--upload-only` (`pnpm mobile:update:preview --upload-only`), or directly:
 
 ```sh
 SENTRY_ORG=appelent SENTRY_PROJECT=foundry pnpm exec sentry-expo-upload-sourcemaps dist

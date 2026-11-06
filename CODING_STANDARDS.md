@@ -12,16 +12,22 @@ Read only what the task needs; never preload every standard.
 | --- | --- |
 | Adding, moving, or naming native files | [Mobile structure](docs/standards/mobile-structure.md) |
 | Repository, package manager, formatter, types, tests, CI, or toolkit sync | [Baseline](docs/standards/baseline.md) |
+| Top-level folders, workspace packages, or shared code between web, Convex, and mobile | [Repository layout](docs/standards/repo-layout.md) |
+| Dependabot or automated dependency PRs | [Dependency updates](docs/standards/dependency-updates.md) |
 | Web app stack, UI states, or browser capabilities | [Web baseline](docs/standards/web-baseline.md) |
 | Expo setup, native configuration, builds, or releases | [Mobile baseline](docs/standards/mobile-baseline.md) |
+| Getting a build onto a phone, TestFlight, or OTA updates | [Mobile distribution](docs/standards/mobile-distribution.md) |
 | Verification | [Verification](docs/standards/verification.md), then the project's check commands |
 | Environment variables and secrets | [Environments](docs/standards/environments.md) |
 | Worktrees and isolated backends | [Workspaces](docs/standards/workspaces.md) |
 | Authentication | [Auth](docs/standards/auth.md) |
+| Convex functions, schema, migrations, seeds, tests, or account deletion and export | [Convex backend](docs/standards/convex.md) |
+| Convex query reads, subscription retention, or local read caches | [Convex query caching](docs/standards/convex-query-caching.md) |
 | Localization | [i18n](docs/standards/i18n.md) |
 | Error reporting and source maps | [Sentry monitoring](docs/standards/sentry-monitoring.md) |
 | In-app problem reports | [Issue reporting](docs/standards/issue-reporting.md) |
 | Pull-request previews | [Previews](docs/standards/previews.md) |
+| Staging or production deploys, deploy workflows, or branch rules | [Deployments](docs/standards/deployments.md) |
 | Web manifest, installability, or service worker | [PWA](docs/standards/pwa.md) |
 | Application CLI or browser login for it | [App CLI](docs/standards/app-cli.md) |
 | MCP server or tools | [MCP](docs/standards/mcp.md) |
@@ -69,5 +75,8 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 | Environments | `pnpm env:*` runs `scripts/env.mjs`. See [environment](docs/runbooks/environment.md). |
 | Worktrees | `scripts/setup-worktree.mjs` owns the lifecycle, not `scripts/workspace.mjs`. See [worktree setup](docs/runbooks/worktree-setup.md). Exception to per-worktree isolated resources: worktrees share the dev Convex deployment `colorless-sturgeon-704` by default, so a worktree is usable without provisioning and seeding its own backend; runtime writes are visible to every worktree, so use throwaway accounts for destructive checks. `pnpm setup:worktree -- --convex=cloud` provisions an isolated deployment when asked. |
 | Test login | Non-production builds embed public test-account variables; a legacy exception pending an auth migration. |
-| Convex query caching | Mobile: `retention` flavor in `apps/mobile/src/convex/query-cache.tsx`, 5 min expiration, 20 idle entries; no disk cache (`last-known` not adopted). Web: not adopted. Standard pending in [developer-tools#17](https://github.com/AppElent/developer-tools/pull/17). |
+| Convex query caching | Mobile: `retention` flavor in `apps/mobile/src/convex/query-cache.tsx`, 5 min expiration, 20 idle entries; no disk cache (`last-known` not adopted). Web: not adopted. |
+| Dependency updates | Exception to the weekly npm default: Dependabot proposes grouped npm minor/patch updates monthly. Weekly groups overlapped hand upgrades and were closed unmerged (#145, #148, #149, #154). Security updates are unaffected. |
+| Core package build | Exception to [repo layout](docs/standards/repo-layout.md)'s raw `.ts` exports: `packages/core` builds ESM to `dist/` with tsup, with a `react-native` condition pointing Metro at `src/`. Dependent typecheck, test, build and E2E steps run `pnpm build:packages` first. Reason: #43 found raw `.ts` subpath exports unverified against Convex's bundler, and the `nutrition` entry keeps the shipped-food JSON out of the web and Convex bundles. No failing import is recorded; switching to raw `.ts` is a separate change that verifies Convex deploy, the Worker build, Metro and the CLI. |
+| Pre-commit | Optional lefthook hook runs `biome check --staged` ([verification](docs/runbooks/verification.md)). |
 | Observability | Shared Sentry feature; [Sentry operations](docs/runbooks/sentry.md) owns surfaces, projects, and sampling. |
