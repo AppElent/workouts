@@ -8,11 +8,8 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import {
-	type LabelCheck,
-	labelChecks,
-	prepareImage,
-} from "../../../data/nutrition-ai";
+import { type LabelCheck, labelChecks } from "../../../data/nutrition-ai";
+import { prepareImage } from "../../../data/nutrition-ai-image";
 import {
 	modalAnimation,
 	useReduceMotion,

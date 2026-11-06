@@ -25,6 +25,11 @@ const FORK: Symbol = {
 	web: "restaurant",
 };
 const GLOBE: Symbol = { ios: "globe", android: "public", web: "public" };
+const SPARKLES: Symbol = {
+	ios: "sparkles",
+	android: "auto_awesome",
+	web: "auto_awesome",
+};
 const NEW_FOOD: Symbol = {
 	ios: "square.and.pencil",
 	android: "edit",
@@ -47,6 +52,7 @@ export function LogFoodEmptyState({
 	offPending,
 	onSearchOnline,
 	onCreateFood,
+	onDescribe,
 }: {
 	tab: FoodFilter;
 	query: string;
@@ -55,6 +61,8 @@ export function LogFoodEmptyState({
 	offPending: boolean;
 	onSearchOnline: () => void;
 	onCreateFood: (name: string) => void;
+	/** Hulp bij invoeren with the query as its description. */
+	onDescribe?: () => void;
 }) {
 	const term = query.trim();
 	if (term)
@@ -80,6 +88,18 @@ export function LogFoodEmptyState({
 						label: fmt(copy.newFoodNamed, { query: term }),
 						onPress: () => onCreateFood(term),
 					},
+					...(onDescribe
+						? [
+								{
+									key: "describe",
+									symbol: SPARKLES,
+									label: fmt(copy.describeQuery, { query: term }),
+									hint: copy.describeQueryHint,
+									highlight: true,
+									onPress: onDescribe,
+								},
+							]
+						: []),
 				]}
 			/>
 		);
@@ -111,6 +131,8 @@ function EmptyCard({
 		key: string;
 		symbol: Symbol;
 		label: string;
+		hint?: string;
+		highlight?: boolean;
 		onPress: () => void;
 	}[];
 }) {
@@ -138,14 +160,19 @@ function EmptyCard({
 					key={action.key}
 					accessibilityRole="button"
 					onPress={action.onPress}
-					style={styles.action}
+					style={[styles.action, action.highlight && styles.highlight]}
 				>
 					<SymbolView
 						name={action.symbol}
 						size={17}
 						tintColor={colors.accentInk}
 					/>
-					<AppText style={styles.actionLabel}>{action.label}</AppText>
+					<View style={styles.actionText}>
+						<AppText style={styles.actionLabel}>{action.label}</AppText>
+						{action.hint ? (
+							<AppText variant="caption">{action.hint}</AppText>
+						) : null}
+					</View>
 				</Pressable>
 			))}
 		</View>
@@ -190,5 +217,40 @@ const createStyles = (colors: Tokens) =>
 			borderTopWidth: StyleSheet.hairlineWidth,
 			borderTopColor: colors.separator,
 		},
-		actionLabel: { flex: 1, color: colors.accentInk, fontWeight: "600" },
+		actionText: { flex: 1, paddingVertical: spacing.sm },
+		actionLabel: { color: colors.accentInk, fontWeight: "600" },
+		highlight: { backgroundColor: colors.accentDim },
 	});
+
+/**
+ * Under search results: none of them may be what was eaten (“broodje kip”
+ * finds NEVO sandwiches, not the store's one), so Hulp is one tap away.
+ */
+export function LogFoodDescribeRow({
+	query,
+	copy,
+	onPress,
+}: {
+	query: string;
+	copy: Messages["nutrition"]["logFood"];
+	onPress: () => void;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	return (
+		<View style={styles.card}>
+			<Pressable
+				accessibilityRole="button"
+				onPress={onPress}
+				style={[styles.action, styles.highlight, { borderTopWidth: 0 }]}
+			>
+				<SymbolView name={SPARKLES} size={17} tintColor={colors.accentInk} />
+				<View style={styles.actionText}>
+					<AppText style={styles.actionLabel}>
+						{fmt(copy.describeQuery, { query: query.trim() })}
+					</AppText>
+				</View>
+			</Pressable>
+		</View>
+	);
+}

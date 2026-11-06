@@ -1,8 +1,14 @@
-import { roundForDisplay } from "@foundry/core/nutrition";
+import {
+	NUTRIENT_KEYS,
+	type NutrientKey,
+	type NutrientValue,
+	roundForDisplay,
+} from "@foundry/core/nutrition";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import {
+	countedPortion,
 	itemNutrients,
 	type ReviewItem,
 	replaceFood,
@@ -22,9 +28,38 @@ import {
 } from "../components/food-form-section";
 import { parseFoodNumber } from "../use-nutrient-fields";
 
+const VALUE_KEYS = ["energy", "protein", "carbs", "fat"] as const;
+type ValueKey = (typeof VALUE_KEYS)[number] & NutrientKey;
+
+/** Typed values replace the estimate's; its parts no longer add up to it then. */
+function withTypedValues(
+	item: ReviewItem,
+	typed: Partial<Record<ValueKey, string>>,
+): ReviewItem {
+	if (item.food) return item;
+	const estimate = {
+		...(Object.fromEntries(
+			NUTRIENT_KEYS.map((key) => [key, { kind: "absent" }]),
+		) as Record<NutrientKey, NutrientValue>),
+		...item.estimate,
+	};
+	let changed = false;
+	for (const key of VALUE_KEYS) {
+		const text = typed[key];
+		if (text === undefined) continue;
+		const value = parseFoodNumber(text);
+		if (!Number.isFinite(value) || value < 0) continue;
+		estimate[key] = { kind: "value", amount: value };
+		changed = true;
+	}
+	if (!changed) return item;
+	const { components: _components, ...rest } = item;
+	return { ...rest, estimate, edited: true };
+}
+
 /**
- * Adjusting one reviewed item: its amount, another of its candidates, or
- * removing it. Changes apply on Klaar; ✕ leaves the item as it was.
+ * Adjusting one reviewed item: its amount, its values when estimated,
+ * another of its candidates, or removing it. Changes apply on Klaar; ✕ leaves the item as it was.
  */
 export function AssistanceItemSheet({
 	item,
@@ -43,15 +78,54 @@ export function AssistanceItemSheet({
 	const reduceMotion = useReduceMotion();
 	const [draft, setDraft] = useState(item);
 	const [amount, setAmount] = useState("");
+	// Typed values, for this amount; an estimate can always be set by hand.
+	const [typed, setTyped] = useState<Partial<Record<ValueKey, string>>>({});
+	// "3 eieren" steps by the egg; a typed amount or a factor ends that.
+	const [count, setCount] = useState<number>();
 	useEffect(() => {
 		setDraft(item);
+		setCount(item ? countedPortion(item) : undefined);
 		setAmount(item ? localizeDecimal(String(item.amount), locale) : "");
+		setTyped({});
 	}, [item, locale]);
 
 	const parsed = parseFoodNumber(amount);
 	const valid = Number.isFinite(parsed) && parsed > 0;
-	const current = draft && valid ? withAmount(draft, parsed, locale) : draft;
+	const sized = draft && valid ? withAmount(draft, parsed, locale) : draft;
+	const current = sized ? withTypedValues(sized, typed) : sized;
 	const energy = current ? itemNutrients(current)?.energy : undefined;
+	const nutrients = sized ? itemNutrients(sized) : undefined;
+	const setFactor = (factor: number) => {
+		if (!valid) return;
+		setAmount(localizeDecimal(String(Math.round(parsed * factor)), locale));
+		setTyped({});
+		setCount(undefined);
+	};
+	const step = (delta: number) => {
+		if (!valid || !count || count + delta < 1) return;
+		const next = count + delta;
+		setAmount(
+			localizeDecimal(String(Math.round((parsed * next) / count)), locale),
+		);
+		setTyped({});
+		setCount(next);
+	};
+	const dirty =
+		current !== undefined &&
+		item !== undefined &&
+		(current.amount !== item.amount ||
+			current.food?.id !== item.food?.id ||
+			current !== sized);
+	const requestClose = () => {
+		if (!dirty) {
+			onClose();
+			return;
+		}
+		Alert.alert(copy.discardTitle, undefined, [
+			{ text: copy.discardKeep, style: "cancel" },
+			{ text: copy.discardConfirm, style: "destructive", onPress: onClose },
+		]);
+	};
 	// A matched food counts in its own base unit; NEVO drinks are per gram.
 	const unit = draft?.unit ?? "g";
 
@@ -60,7 +134,7 @@ export function AssistanceItemSheet({
 			visible={item !== undefined}
 			presentationStyle="formSheet"
 			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={onClose}
+			onRequestClose={requestClose}
 		>
 			{draft ? (
 				<ScrollView
@@ -78,7 +152,7 @@ export function AssistanceItemSheet({
 						<Pressable
 							accessibilityRole="button"
 							accessibilityLabel={copy.cancel}
-							onPress={onClose}
+							onPress={requestClose}
 							style={{ width: 44, height: 44, justifyContent: "center" }}
 						>
 							<SymbolView
@@ -97,8 +171,21 @@ export function AssistanceItemSheet({
 						</AppText>
 						<TextAction
 							label={copy.done}
+							// An amount that does not read as a number stays to be fixed.
+							disabled={!valid}
 							onPress={() => {
-								if (current && valid) onChange(current);
+								if (current && dirty) {
+									// "4 eieren" stays their words. "1 broodje" has no plural to
+									// reuse, so 2 of them read in grams.
+									const said = item?.amountLabel.match(/^(\d+)\s+(\p{L}+)/u);
+									onChange({
+										...current,
+										edited: true,
+										...(count && count > 1 && said && Number(said[1]) > 1
+											? { amountLabel: `${count} ${said[2]}` }
+											: {}),
+									});
+								}
 								onClose();
 							}}
 						/>
@@ -108,21 +195,110 @@ export function AssistanceItemSheet({
 							label={copy.amount}
 							suffix={unit}
 							value={amount}
-							onChangeText={setAmount}
+							onChangeText={(value) => {
+								setAmount(value);
+								setCount(undefined);
+							}}
 							keyboardType="decimal-pad"
 							selectTextOnFocus
 						/>
 					</FoodFormCard>
-					<AppText variant="caption" style={{ paddingHorizontal: spacing.xs }}>
-						{[
-							energy?.kind === "value"
-								? `${roundForDisplay("energy", energy.amount)} kcal`
-								: undefined,
-							draft.food ? undefined : copy.estimatedByAi,
-						]
-							.filter(Boolean)
-							.join(" · ")}
-					</AppText>
+					<View
+						style={{
+							flexDirection: "row",
+							alignItems: "center",
+							gap: spacing.sm,
+							paddingHorizontal: spacing.xs,
+						}}
+					>
+						<AppText variant="caption" style={{ flex: 1 }}>
+							{[
+								energy?.kind === "value"
+									? `${roundForDisplay("energy", energy.amount)} kcal`
+									: undefined,
+								draft.food ? undefined : copy.estimatedByAi,
+							]
+								.filter(Boolean)
+								.join(" · ")}
+						</AppText>
+						{count ? (
+							<>
+								<TextAction label={copy.oneLess} onPress={() => step(-1)} />
+								<TextAction label={copy.oneMore} onPress={() => step(1)} />
+							</>
+						) : null}
+						<TextAction label={copy.half} onPress={() => setFactor(0.5)} />
+						<TextAction label={copy.double} onPress={() => setFactor(2)} />
+					</View>
+					{!draft.food ? (
+						<>
+							<FoodFormSectionHeader title={copy.values} />
+							<FoodFormCard>
+								{VALUE_KEYS.map((key) => {
+									const value = nutrients?.[key];
+									return (
+										<InlineNumberFieldRow
+											key={key}
+											label={t.nutrition.nutrients[key]}
+											suffix={key === "energy" ? "kcal" : "g"}
+											value={
+												typed[key] ??
+												(value?.kind === "value"
+													? localizeDecimal(
+															String(roundForDisplay(key, value.amount)),
+															locale,
+														)
+													: "")
+											}
+											onChangeText={(text) =>
+												setTyped((previous) => ({ ...previous, [key]: text }))
+											}
+											keyboardType="decimal-pad"
+											selectTextOnFocus
+										/>
+									);
+								})}
+							</FoodFormCard>
+						</>
+					) : null}
+					{!current?.food && current?.components?.length ? (
+						<>
+							<FoodFormSectionHeader title={copy.components} />
+							<FoodFormCard>
+								{current.components.map((part, index) => (
+									<View
+										// biome-ignore lint/suspicious/noArrayIndexKey: parts have no identity
+										key={index}
+										style={{
+											minHeight: 44,
+											flexDirection: "row",
+											alignItems: "center",
+											gap: spacing.sm,
+											paddingHorizontal: spacing.md,
+											borderTopWidth: index ? 0.5 : 0,
+											borderTopColor: colors.separator,
+										}}
+									>
+										<AppText
+											variant="secondary"
+											style={{ flex: 1, color: colors.text }}
+										>
+											{part.name}
+										</AppText>
+										<AppText
+											variant="secondary"
+											style={{
+												color: colors.textMuted,
+												fontVariant: ["tabular-nums"],
+											}}
+										>
+											{`${Math.round(part.grams)} g · ${roundForDisplay("energy", part.energy)} kcal`}
+										</AppText>
+									</View>
+								))}
+							</FoodFormCard>
+						</>
+					) : null}
 					{draft.candidates.length ? (
 						<>
 							<FoodFormSectionHeader title={copy.otherCandidates} />
@@ -135,7 +311,12 @@ export function AssistanceItemSheet({
 											key={food.id}
 											accessibilityRole="button"
 											accessibilityState={{ selected: chosen }}
-											onPress={() => setDraft(replaceFood(draft, food))}
+											onPress={() =>
+												setDraft({
+													...replaceFood(draft, food),
+													confidence: "high",
+												})
+											}
 											style={{
 												minHeight: 50,
 												flexDirection: "row",

@@ -86,7 +86,10 @@ import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { LogFoodAmountSheet } from "./components/log-food-amount-sheet";
 import { LogFoodBarcodeSheet } from "./components/log-food-barcode-sheet";
 import { LogFoodComboRow } from "./components/log-food-combo-row";
-import { LogFoodEmptyState } from "./components/log-food-empty-state";
+import {
+	LogFoodDescribeRow,
+	LogFoodEmptyState,
+} from "./components/log-food-empty-state";
 import { LogFoodFindControls } from "./components/log-food-find-controls";
 import { LogFoodMealSummary } from "./components/log-food-meal-summary";
 import type { LogFoodMenuProps } from "./components/log-food-menu-props";
@@ -1147,7 +1150,7 @@ export function LogFoodScreen({
 					onChangeQuery={setQuery}
 					onSubmit={off.commit}
 					onScan={() => setScanning(true)}
-					onDescribe={browserTarget ? undefined : describe}
+					onDescribe={browserTarget ? undefined : () => describe()}
 				/>
 			) : null}
 			{editor || afterEditor ? (
@@ -1249,7 +1252,7 @@ export function LogFoodScreen({
 								onChangeQuery={setQuery}
 								onSubmit={off.commit}
 								onScan={() => setScanning(true)}
-								onDescribe={browserTarget ? undefined : describe}
+								onDescribe={browserTarget ? undefined : () => describe()}
 							/>
 						)}
 						<ScrollView
@@ -1321,6 +1324,18 @@ export function LogFoodScreen({
 								</Pressable>
 							</View>
 						) : null}
+						{/* Above the results, so a long list cannot hide it; the empty
+						    card offers the same when nothing shows at all. */}
+						{hasQuery &&
+						settled &&
+						!browserTarget &&
+						(items.length > 0 || offAnswering) ? (
+							<LogFoodDescribeRow
+								query={query}
+								copy={copy}
+								onPress={describe}
+							/>
+						) : null}
 						{items.length && listHeading ? (
 							<LogFoodSectionHeader
 								title={listHeading.title}
@@ -1351,6 +1366,7 @@ export function LogFoodScreen({
 							offPending={off.state.kind === "waiting"}
 							onSearchOnline={off.commit}
 							onCreateFood={(name) => createFood(name)}
+							onDescribe={browserTarget ? undefined : describe}
 						/>
 					)
 				}

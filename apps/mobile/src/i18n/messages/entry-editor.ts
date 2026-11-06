@@ -58,6 +58,7 @@ export const entryEditorEn = {
 	loading: "Loading entry…",
 	uncachedDay: "This day is not cached. Connect to load its entries.",
 	correctedFor: "Corrected for this entry: ",
+	continueWithAi: "Continue with help",
 	correction: {
 		title: "Fill in nutrition",
 		save: "Save correction",
@@ -159,6 +160,7 @@ export const entryEditorNl: typeof entryEditorEn = {
 	uncachedDay:
 		"Deze dag is niet opgeslagen. Maak verbinding om de items te laden.",
 	correctedFor: "Aangevuld voor deze invoer: ",
+	continueWithAi: "Verder met hulp",
 	correction: {
 		title: "Voedingswaarden aanvullen",
 		save: "Correctie opslaan",

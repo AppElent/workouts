@@ -37,6 +37,8 @@ export const PREFERENCE_KEYS = {
 	appearance: "workouts:appearance",
 	/** Consent to send text and photos to the nutrition AI provider. */
 	nutritionAiConsent: "workouts:nutrition-ai-consent",
+	/** Look named store products up on the web during AI entry ("1"). */
+	nutritionAiWebSearch: "workouts:nutrition-ai-web-search",
 } as const;
 
 export type PreferenceKey =
