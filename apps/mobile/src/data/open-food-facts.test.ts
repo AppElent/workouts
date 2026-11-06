@@ -381,6 +381,109 @@ describe("searchOffProducts", () => {
 		expect(fetchImpl).toHaveBeenCalledTimes(1);
 	});
 
+	it("finds a brand's product in one request and caches only the best results", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const nutriments = { "energy-kcal_100g": 400 };
+		const target = {
+			code: "8718907086912",
+			product_name: "Volkoren knäckebröd",
+			brands: ["Albert heijn", "ah"],
+			nutriments,
+		};
+		const others = Array.from({ length: 30 }, (_, index) => ({
+			code: `${index}`,
+			product_name: `Volkoren bollen ${index}`,
+			brands: ["AH"],
+			nutriments,
+		}));
+		const fetchImpl = fakeFetch((url) => {
+			const request = new URL(url);
+			expect(request.searchParams.get("q")).toBe(
+				'brands:("ah" OR "albert heijn") volkoren knackebrod',
+			);
+			expect(request.searchParams.get("page_size")).toBe("100");
+			return jsonResponse(200, { hits: [...others, target] });
+		});
+
+		const first = await searchOffProducts("ah volkoren knackebrod", {
+			cache,
+			fetchImpl,
+		});
+		if (first.kind !== "found") throw new Error("expected found");
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+		expect(first.drafts).toHaveLength(20);
+		expect(first.drafts[0].provenance.barcode).toBe("8718907086912");
+
+		const second = await searchOffProducts("AH volkoren knackebrod ", {
+			cache,
+			fetchImpl,
+		});
+		if (second.kind !== "found") throw new Error("expected found");
+		expect(second.fromCache).toBe(true);
+		expect(second.drafts).toEqual(first.drafts);
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+	});
+
+	it("asks for the brand alone only when the filtered query finds nothing", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const asked: (string | null)[] = [];
+		const fetchImpl = fakeFetch((url) => {
+			const q = new URL(url).searchParams.get("q");
+			asked.push(q);
+			return jsonResponse(200, {
+				hits:
+					q === 'brands:"duyvis"'
+						? [
+								{
+									code: "1",
+									product_name: "Borrelnoten",
+									brands: ["Duyvis"],
+									nutriments: { "energy-kcal_100g": 500 },
+								},
+								{
+									code: "2",
+									product_name: "Pinda's gezouten",
+									brands: ["Duyvis"],
+									nutriments: { "energy-kcal_100g": 600 },
+								},
+							]
+						: [],
+			});
+		});
+
+		const result = await searchOffProducts("duyvis pinda", {
+			cache,
+			fetchImpl,
+		});
+
+		expect(asked).toEqual(['brands:"duyvis" pinda', 'brands:"duyvis"']);
+		if (result.kind !== "found") throw new Error("expected found");
+		expect(result.drafts[0].provenance.barcode).toBe("2");
+		await searchOffProducts("duyvis pinda", { cache, fetchImpl });
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
+	it("reports a rate limit on the brand-only fallback", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch((url) =>
+			new URL(url).searchParams.get("q") === 'brands:"duyvis"'
+				? jsonResponse(429, {})
+				: jsonResponse(200, { hits: [] }),
+		);
+		expect(
+			await searchOffProducts("duyvis pinda", { cache, fetchImpl }),
+		).toEqual({ kind: "rate-limited" });
+	});
+
+	it("does not spend a request on a term that is only query syntax", async () => {
+		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
+		const fetchImpl = fakeFetch(() => jsonResponse(200, { hits: [] }));
+		expect(await searchOffProducts(' :"() ', { cache, fetchImpl })).toEqual({
+			kind: "not-found",
+		});
+		expect(fetchImpl).not.toHaveBeenCalled();
+	});
+
 	it("treats an empty query as not-found without calling the network", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() => jsonResponse(200, { hits: [] }));
