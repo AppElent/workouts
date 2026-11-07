@@ -241,6 +241,41 @@ it("recovers a committed log after losing its response, without a second write",
 	expect(add).toHaveBeenCalledTimes(1);
 });
 
+it("recovers an older build's unanswered log through its receipt, without a second write", async () => {
+	const fields = {
+		weight: "60",
+		reps: "8",
+		rpe: "",
+		unit: "kg",
+		setType: "working",
+	};
+	Storage.setItemSync(
+		"strength-set-drafts:v1:test-user",
+		JSON.stringify([
+			{
+				sessionId: "session-1",
+				exerciseId,
+				fields,
+				attempt: { operationId: "old-op", setNumber: 1, fields },
+			},
+		]),
+	);
+	receipt = undefined;
+	const app = await mount();
+	await screen.findAllByLabelText(/set 1, /);
+	expect(
+		allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+			(row) => row.attempt,
+		)?.attempt?.operationId,
+	).toBe("old-op");
+	await app.unmount();
+	receipt = { setId: "set-1", status: "saved" };
+	loggedSets = [serverSet("set-1", 8, 1)];
+	await mount();
+	expect(await screen.findByText(/1 logged/)).toBeTruthy();
+	expect(add).not.toHaveBeenCalled();
+});
+
 it("does not send a set while offline and says it failed", async () => {
 	online = false;
 	await mount();

@@ -16,6 +16,7 @@ import {
 	allRows,
 	type ExerciseFacts,
 	fillFromLast,
+	importOldDraft,
 	markFailed,
 	markLogged,
 	type PlanSet,
@@ -402,40 +403,7 @@ export function useSessionSync(workspace: SessionWorkspace) {
 			(draft) => draft.sessionId === workspace.sessionId,
 		);
 		if (!local.length) return;
-		let next = plan;
-		for (const draft of local) {
-			const open = allRows(next).find(
-				(row) => row.exerciseId === draft.exerciseId && !row.done,
-			);
-			const weight = Number(draft.fields.weight.replace(",", "."));
-			const reps = Number(draft.fields.reps);
-			if (
-				!open ||
-				!draft.fields.weight.trim() ||
-				!draft.fields.reps.trim() ||
-				!Number.isFinite(weight) ||
-				!Number.isInteger(reps)
-			)
-				continue;
-			const replace = {
-				...open,
-				kg: convertLoad(weight, draft.fields.unit, "kg"),
-				unit: draft.fields.unit,
-				typedLbs: draft.fields.unit === "lbs" ? weight : undefined,
-				reps,
-				kind: draft.fields.setType,
-				blank: undefined,
-			};
-			next = {
-				...next,
-				sets: Object.fromEntries(
-					Object.entries(next.sets).map(([id, rows]) => [
-						id,
-						rows.map((row) => (row.id === open.id ? replace : row)),
-					]),
-				),
-			};
-		}
+		const next = local.reduce(importOldDraft, plan);
 		workspaceStore.setPlan(key, next);
 		try {
 			store.clearSession(workspace.sessionId);

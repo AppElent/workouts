@@ -2086,6 +2086,92 @@ export function restoreRows(plan: SessionPlan, prior: PlanSet[]): SessionPlan {
 		),
 	};
 }
+/** An older build's unfinished Set Draft, as it was stored on the device. */
+interface OldDraftFields {
+	weight: string;
+	reps: string;
+	rpe: string;
+	unit: Unit;
+	setType: SetKind;
+}
+export interface OldDraft {
+	exerciseId: string;
+	fields: OldDraftFields;
+	attempt?: { operationId: string; setNumber: number; fields: OldDraftFields };
+}
+/** Becomes an open row; a send it never heard back on keeps its operation. */
+export function importOldDraft(
+	plan: SessionPlan,
+	draft: OldDraft,
+): SessionPlan {
+	const { attempt, exerciseId } = draft;
+	const rows = allRows(plan).filter((row) => row.exerciseId === exerciseId);
+	if (
+		attempt &&
+		rows.some((row) => row.done && row.setNumber === attempt.setNumber)
+	)
+		return plan;
+	const fields = attempt?.fields ?? draft.fields;
+	const weight = Number(fields.weight.replace(",", "."));
+	const reps = Number(fields.reps);
+	const rpe = Number(fields.rpe.replace(",", "."));
+	const hasLoad = fields.weight.trim() !== "" && Number.isFinite(weight);
+	const hasReps = fields.reps.trim() !== "" && Number.isInteger(reps);
+	if (!hasLoad && !hasReps) return plan;
+	const open = rows.find((row) => !row.done && !isUnsaved(row));
+	if (!open && groupOfExercise(plan, exerciseId)) return plan;
+	const base: PlanSet = open ?? {
+		id: newRowId(),
+		exerciseId,
+		kg: 0,
+		reps: 0,
+		unit: fields.unit,
+		percent: null,
+		kind: fields.setType,
+		rpe: null,
+		done: false,
+		free: true,
+		blank: true,
+	};
+	const row: PlanSet = {
+		...base,
+		kind: fields.setType,
+		...(hasLoad
+			? {
+					kg: convertLoad(weight, fields.unit, "kg"),
+					unit: fields.unit,
+					typedLbs: fields.unit === "lbs" ? weight : undefined,
+				}
+			: {}),
+		...(hasReps ? { reps } : {}),
+		...(fields.rpe.trim() !== "" && Number.isFinite(rpe) ? { rpe } : {}),
+		...(hasLoad && hasReps ? { blank: undefined } : {}),
+	};
+	const placed: PlanSet = attempt
+		? {
+				...row,
+				attempt: {
+					operationId: attempt.operationId,
+					setNumber: attempt.setNumber,
+					payload: payloadFor(row, attempt.setNumber),
+					sent: true,
+				},
+			}
+		: row;
+	if (open) return replaceRow(plan, open.id, placed);
+	return {
+		...plan,
+		sets: {
+			...plan.sets,
+			[exerciseId]: [...(plan.sets[exerciseId] ?? []), placed],
+		},
+		order: plan.order.some(
+			(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
+		)
+			? plan.order
+			: [...plan.order, { kind: "exercise", exerciseId }],
+	};
+}
 export function markFailed(
 	plan: SessionPlan,
 	id: string,
