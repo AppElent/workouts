@@ -583,6 +583,19 @@ describe("groups", () => {
 		plan = tickClocks(plan, 700_000);
 		expect(plan.groups[id]).toMatchObject({ state: "timeup", endsAt: null });
 	});
+	it("keeps the plan when a clock closes with nothing logged", () => {
+		const grouped = groupWith(two(), "squat", "curl");
+		const id = grouped.groupId as string;
+		const idle = setGroupMode(grouped.plan, id, "amrap").plan;
+		const running = startClock(idle, id, 0).plan;
+		const closed = closeGroup(stopClock(running, id, 100_000), id);
+		expect(closed.groups[id]).toMatchObject({
+			state: "idle",
+			endsAt: null,
+			stoppedRemaining: null,
+		});
+		expect(closed.groups[id]?.rounds).toEqual(idle.groups[id]?.rounds);
+	});
 	it("runs one clock at a time", () => {
 		const plan0 = plannedPlan({
 			squat: [{ reps: 5, weight: 95 }],
@@ -597,7 +610,7 @@ describe("groups", () => {
 		plan = startClock(plan, one.groupId as string, 0).plan;
 		expect(startClock(plan, two2.groupId as string, 0).refused).toBe(true);
 		expect(closeOpenClocks(plan).groups[one.groupId as string]?.state).toBe(
-			"closed",
+			"idle",
 		);
 	});
 });

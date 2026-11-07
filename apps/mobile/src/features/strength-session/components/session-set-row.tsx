@@ -1,4 +1,5 @@
 /** One set: a row to edit, a separate check to log, and the same actions three ways. */
+import { convertLoad } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useMemo } from "react";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
@@ -21,6 +22,7 @@ import {
 	repeatRow,
 	rowOneRepMax,
 	rowsOf,
+	shownLoad,
 	shownPercent,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
@@ -36,8 +38,8 @@ export function oneRmText(
 	const estimate = rowOneRepMax(row, bodyweight);
 	if (!estimate) return null;
 	return row.reps === 1
-		? formatNumber(row.kg, locale)
-		: `≈${Math.round(estimate.value)}`;
+		? formatNumber(shownLoad(row), locale)
+		: `≈${Math.round(convertLoad(estimate.value, "kg", row.unit))}`;
 }
 export function useRowFacts(row: PlanSet) {
 	const { plan, workspace } = useSessionScreen();

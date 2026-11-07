@@ -203,8 +203,8 @@ export function useExerciseMenu(exerciseId: string) {
 		if (id === "addSet") {
 			const result = addSet(current, exerciseId, facts);
 			actions.set(result.plan);
-			if (rows.at(-1)?.blank !== false && !rows.length)
-				openEditor(result.rowId);
+			const last = rows.at(-1);
+			if (!last || last.blank) openEditor(result.rowId);
 		} else if (id === "addWarmup") {
 			const result = addWarmup(current, exerciseId, facts);
 			actions.apply(result, { name, undoable: false });

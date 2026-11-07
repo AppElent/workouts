@@ -1877,6 +1877,20 @@ export function tickClocks(plan: SessionPlan, now: number): SessionPlan {
 export function closeGroup(plan: SessionPlan, groupId: string): SessionPlan {
 	const group = plan.groups[groupId];
 	if (group?.mode !== "amrap" || group.state === "closed") return plan;
+	// Nothing logged leaves nothing to close: the plan stays, ready to start again.
+	if (!group.rounds.some(hasLogged))
+		return {
+			...plan,
+			groups: {
+				...plan.groups,
+				[groupId]: {
+					...group,
+					state: "idle",
+					endsAt: null,
+					stoppedRemaining: null,
+				},
+			},
+		};
 	const rounds = group.rounds
 		.map((round) => ({
 			...round,

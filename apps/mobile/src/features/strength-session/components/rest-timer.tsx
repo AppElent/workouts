@@ -47,6 +47,7 @@ function load(): Stored {
 		return { endsAt: null, body: null, defaultSeconds: FALLBACK_SECONDS };
 	}
 }
+export const savedRestDefault = () => load().defaultSeconds;
 function save(value: Stored) {
 	try {
 		Storage.setItemSync(STORAGE_KEY, JSON.stringify(value));

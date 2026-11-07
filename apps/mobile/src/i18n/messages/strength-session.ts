@@ -72,7 +72,7 @@ export const strengthSessionEn = {
 	toastNoOneRm: "{load} logged · doesn't count for 1RM",
 	toastNewMeasured: "New measured 1RM {value} · was {was}",
 	toastNewMeasuredFirst: "New measured 1RM {value}",
-	toastNewEstimated: "New estimated 1RM ≈{value} kg · was ≈{was}",
+	toastNewEstimated: "New estimated 1RM ≈{value} · was ≈{was}",
 	toastLessReliable: " · less reliable",
 	toastCarried: ". Next rounds: {load}",
 	toastEdited: "Set changed · ≈{oneRm}",
@@ -85,7 +85,6 @@ export const strengthSessionEn = {
 	undo: "Undo",
 	blockedOffline: "Didn't work: no connection. Try again soon.",
 	blockedBusy: "One moment: a set is still being logged.",
-	blockedLocked: "This set is still being saved. Wait for the result.",
 	blockedStartClock: "Start the clock first.",
 	storageError: "This device could not store your session changes.",
 	notes: {
@@ -242,6 +241,7 @@ export const strengthSessionEn = {
 		discardMessage: "This logged set has changes that aren't saved.",
 		save: "Save",
 		discard: "Discard",
+		keepEditing: "Keep editing",
 		closeKeep: "Close, input stays",
 		closeLogged: "Close without saving",
 		deleteTitle: "Delete this set?",
@@ -315,10 +315,8 @@ export const strengthSessionEn = {
 		start: "Start clock · {minutes}:00",
 		stop: "Stop",
 		resume: "Resume clock",
-		timeUp: "Time's up",
-		stopped: "Clock stopped",
 		close: "Close · {score}",
-		closeEmpty: "Close without rounds",
+		closeEmpty: "Reset clock",
 		clockRound: "Round {round}",
 		repeatInGroup: "Add a round to repeat this",
 	},
@@ -376,10 +374,10 @@ export const strengthSessionEn = {
 		back: "Back to session",
 		saved: "{name} is in History.",
 		finishBlocked: "Couldn't finish: no connection. Try again soon.",
-		failedOpen: {
-			one: "1 failed set is not saved yet. Retry it or it stays out.",
+		failedBlocked: {
+			one: "1 failed set is not saved yet. Retry or remove it before finishing.",
 			other:
-				"{count} failed sets are not saved yet. Retry them or they stay out.",
+				"{count} failed sets are not saved yet. Retry or remove them before finishing.",
 		},
 	},
 	picker: {
@@ -482,7 +480,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 	toastNoOneRm: "{load} gelogd · telt niet voor 1RM",
 	toastNewMeasured: "Nieuw gemeten 1RM {value} · was {was}",
 	toastNewMeasuredFirst: "Nieuw gemeten 1RM {value}",
-	toastNewEstimated: "Nieuw geschat 1RM ≈{value} kg · was ≈{was}",
+	toastNewEstimated: "Nieuw geschat 1RM ≈{value} · was ≈{was}",
 	toastLessReliable: " · minder betrouwbaar",
 	toastCarried: ". Volgende rondes: {load}",
 	toastEdited: "Set aangepast · ≈{oneRm}",
@@ -497,7 +495,6 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 	undo: "Ongedaan",
 	blockedOffline: "Niet gelukt: geen verbinding. Probeer het zo opnieuw.",
 	blockedBusy: "Even wachten: er wordt nog een set gelogd.",
-	blockedLocked: "Deze set wordt nog opgeslagen. Wacht op het resultaat.",
 	blockedStartClock: "Start eerst de klok.",
 	storageError: "Dit apparaat kon je sessiewijzigingen niet bewaren.",
 	notes: {
@@ -659,6 +656,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 			"Deze gelogde set heeft wijzigingen die niet zijn opgeslagen.",
 		save: "Opslaan",
 		discard: "Weggooien",
+		keepEditing: "Verder bewerken",
 		closeKeep: "Sluiten, invoer blijft bewaard",
 		closeLogged: "Sluiten zonder op te slaan",
 		deleteTitle: "Deze set verwijderen?",
@@ -732,10 +730,8 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		start: "Start klok · {minutes}:00",
 		stop: "Stoppen",
 		resume: "Klok hervatten",
-		timeUp: "Tijd voorbij",
-		stopped: "Klok gestopt",
 		close: "Afsluiten · {score}",
-		closeEmpty: "Afsluiten zonder rondes",
+		closeEmpty: "Klok resetten",
 		clockRound: "Ronde {round}",
 		repeatInGroup: "Voeg een ronde toe om dit te herhalen",
 	},
@@ -791,10 +787,10 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		saved: "{name} staat in Geschiedenis.",
 		finishBlocked:
 			"Afronden lukt niet: geen verbinding. Probeer het zo opnieuw.",
-		failedOpen: {
-			one: "1 mislukte set is nog niet opgeslagen. Probeer opnieuw, anders telt die niet mee.",
+		failedBlocked: {
+			one: "1 mislukte set is nog niet opgeslagen. Probeer opnieuw of verwijder die voordat je afrondt.",
 			other:
-				"{count} mislukte sets zijn nog niet opgeslagen. Probeer opnieuw, anders tellen ze niet mee.",
+				"{count} mislukte sets zijn nog niet opgeslagen. Probeer opnieuw of verwijder ze voordat je afrondt.",
 		},
 	},
 	picker: {

@@ -20,7 +20,7 @@ import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { useRestTimer } from "./components/rest-timer";
-import { SessionDock } from "./components/session-dock";
+import { cancelClockAlerts, SessionDock } from "./components/session-dock";
 import { SessionExerciseBlock } from "./components/session-exercise-block";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { SessionGroupBlock } from "./components/session-group-block";
@@ -34,6 +34,7 @@ import {
 import { useSetDrafts } from "./data/set-drafts";
 import { formatClock } from "./session-format";
 import {
+	allRows,
 	closeOpenClocks,
 	failedRows,
 	findRow,
@@ -239,19 +240,25 @@ export function StrengthSessionScreen() {
 	const allDone = logged > 0 && open === 0;
 	const name = session?.name ?? legacy.freeSession;
 	const sending = plan
-		? Object.values(plan.sets)
-				.flat()
-				.some(
-					(row) =>
-						isLocked(row) &&
-						row.attempt &&
-						workspaceStore.inFlight(key).has(row.attempt.operationId),
-				)
+		? allRows(plan).some(
+				(row) =>
+					isLocked(row) &&
+					row.attempt &&
+					workspaceStore.inFlight(key).has(row.attempt.operationId),
+			)
 		: false;
 	async function finish() {
 		if (!plan || actions.blocked()) return;
 		if (sending) {
 			actions.say(copy.blockedBusy);
+			return;
+		}
+		const failed = failedRows(plan).length;
+		if (failed) {
+			actions.say(plural(locale, failed, copy.finish.failedBlocked), {
+				retryLabel: copy.retryAll,
+				retry: () => void actions.retryFailed(),
+			});
 			return;
 		}
 		if (logged === 0 && wods === 0) {
@@ -262,6 +269,7 @@ export function StrengthSessionScreen() {
 				cancel: copy.keepTraining,
 			});
 			if (yes && (await actions.cancelSession(false))) {
+				cancelClockAlerts(plan);
 				workspaceStore.clear(key);
 				rest.stop();
 				leave();
@@ -269,18 +277,14 @@ export function StrengthSessionScreen() {
 			return;
 		}
 		if (open > 0) {
-			const failed = failedRows(plan).length;
 			const yes = await choose({
 				title: copy.finish.title,
-				message: failed
-					? plural(locale, failed, copy.finish.failedOpen)
-					: `${plural(locale, open, copy.finish.open)} ${plural(locale, logged, copy.finish.loggedCounts)}`,
+				message: `${plural(locale, open, copy.finish.open)} ${plural(locale, logged, copy.finish.loggedCounts)}`,
 				confirm: { label: plural(locale, logged, copy.finish.confirmOpen) },
 				cancel: copy.keepTraining,
 			});
 			if (!yes) return;
 		}
-		rest.stop();
 		setRecapOpen(true);
 	}
 	async function confirmRecap() {
@@ -288,6 +292,7 @@ export function StrengthSessionScreen() {
 		const done = await actions.finishSession();
 		setFinishing(false);
 		if (!done) return;
+		if (plan) cancelClockAlerts(plan);
 		workspaceStore.clear(key);
 		rest.stop();
 		haptics.sessionSuccess();
@@ -296,6 +301,10 @@ export function StrengthSessionScreen() {
 	}
 	async function cancelWorkout() {
 		if (actions.blocked()) return;
+		if (sending) {
+			actions.say(copy.blockedBusy);
+			return;
+		}
 		const yes = await choose({
 			title: copy.finish.cancelTitle,
 			message: copy.finish.cancelMessage,
@@ -303,6 +312,7 @@ export function StrengthSessionScreen() {
 			cancel: copy.keepTraining,
 		});
 		if (yes && (await actions.cancelSession(logged > 0))) {
+			if (plan) cancelClockAlerts(plan);
 			workspaceStore.clear(key);
 			rest.stop();
 			leave();

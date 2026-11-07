@@ -30,6 +30,7 @@ import {
 	amrapScore,
 	closeGroup,
 	runningGroup,
+	type SessionPlan,
 	type SetGroup,
 	startClock,
 	stopClock,
@@ -38,6 +39,11 @@ import { useSessionScreen } from "../session-screen-context";
 import { useRestState, useRestTimer } from "./rest-timer";
 
 const alertId = (groupId: string) => `amrap:${groupId}`;
+/** Ending a session takes every clock's alert with it. */
+export function cancelClockAlerts(plan: SessionPlan) {
+	for (const id of Object.keys(plan.groups))
+		void cancelSessionAlert(alertId(id));
+}
 /** The one action a group's clock offers right now, with its alert kept in step. */
 export function useClockControls(group: SetGroup) {
 	const { actions } = useSessionScreen();
@@ -64,16 +70,17 @@ export function useClockControls(group: SetGroup) {
 			void cancelSessionAlert(alertId(group.id));
 		},
 	};
-	if (group.state === "timeup") return [close];
+	if (group.state === "timeup")
+		return group.stoppedRemaining
+			? [{ label: copy.resume, onPress: start }, close]
+			: [close];
 	if (group.state !== "idle") return [];
-	return group.stoppedRemaining === null
-		? [
-				{
-					label: fmt(copy.start, { minutes: group.capMinutes }),
-					onPress: start,
-				},
-			]
-		: [{ label: copy.resume, onPress: start }, close];
+	return [
+		{
+			label: fmt(copy.start, { minutes: group.capMinutes }),
+			onPress: start,
+		},
+	];
 }
 function closeLabel(
 	group: SetGroup,

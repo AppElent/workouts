@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { api, type Id } from "../../../convex/api";
 import { useQueries } from "../../../convex/query-cache";
 import { useExercises } from "../../../data/exercises";
+import { savedRestDefault } from "../components/rest-timer";
 import {
 	allRows,
 	type ExerciseFacts,
@@ -350,7 +351,10 @@ export function useSessionSync(workspace: SessionWorkspace) {
 		const server = sets as unknown as ServerSet[];
 		const current = workspaceStore.plan(key);
 		if (!current) {
-			workspaceStore.setPlan(key, seedPlan(exercises, server, getFacts));
+			workspaceStore.setPlan(
+				key,
+				seedPlan(exercises, server, getFacts, savedRestDefault()),
+			);
 			workspaceStore.markSeen(
 				key,
 				server.map((set) => set._id),
@@ -390,7 +394,13 @@ export function useSessionSync(workspace: SessionWorkspace) {
 			);
 			const weight = Number(draft.fields.weight.replace(",", "."));
 			const reps = Number(draft.fields.reps);
-			if (!open || !Number.isFinite(weight) || !Number.isInteger(reps))
+			if (
+				!open ||
+				!draft.fields.weight.trim() ||
+				!draft.fields.reps.trim() ||
+				!Number.isFinite(weight) ||
+				!Number.isInteger(reps)
+			)
 				continue;
 			const replace = {
 				...open,

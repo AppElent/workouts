@@ -195,7 +195,8 @@ export function SetEditorScreen() {
 	const choose = useChoice();
 	const restState = useRestState();
 	const stored = plan ? findRow(plan, params.rowId) : undefined;
-	const draft = drafts[params.rowId];
+	// An edit only ever applies to a set that is still logged.
+	const draft = stored?.done ? drafts[params.rowId] : undefined;
 	const row = draft ?? stored;
 	const facts = row ? getFacts(row.exerciseId) : null;
 	const [focus, setFocus] = useState<"kg" | "reps" | "percent" | null>(null);
@@ -242,7 +243,9 @@ export function SetEditorScreen() {
 				message: text.discardMessage,
 				confirm: { label: text.save },
 				cancel: text.discard,
+				dismiss: text.keepEditing,
 			});
+			if (save === null) return;
 			if (save && draft && !(await actions.setLogged(params.rowId, draft)))
 				return;
 			workspaceStore.setDraft(key, params.rowId, null);

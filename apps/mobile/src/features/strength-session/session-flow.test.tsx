@@ -106,10 +106,10 @@ beforeEach(() => {
 	update.mockReset();
 	finish.mockReset();
 	cancel.mockReset();
-	add.mockImplementation(async ({ operationId }) => {
+	add.mockImplementation(async () => {
 		const id = `set-${loggedSets.length + 1}`;
 		loggedSets = [...loggedSets, serverSet(id, 8, loggedSets.length + 1)];
-		return { setId: id, status: "saved", operationId };
+		return id;
 	});
 	finish.mockResolvedValue(undefined);
 	cancel.mockResolvedValue(undefined);
@@ -190,6 +190,11 @@ it("logs a planned set from its check, says what it was worth, and starts rest",
 	expect(add.mock.calls[0][0].operationId).toBeTruthy();
 	expect(await screen.findByText(/60 × 8 logged · ≈76 kg/)).toBeTruthy();
 	expect(await screen.findByTestId("session-rest-stop")).toBeTruthy();
+	// The answer links to the planned row rather than adding one beside it.
+	expect(screen.getAllByLabelText(/, Logged/)).toHaveLength(1);
+	expect(
+		screen.getAllByLabelText(/Log Barbell Back Squat 60 × 8/),
+	).toHaveLength(1);
 });
 
 it("keeps an unfinished edit across closing and a fresh app mount without logging", async () => {
@@ -242,6 +247,57 @@ it("retries under the same operation until the server says the first never lande
 	expect(add.mock.calls[1][0].operationId).toBe(
 		add.mock.calls[0][0].operationId,
 	);
+});
+
+it("starts rest when a send fails, but not again when it is retried", async () => {
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await fireEvent.press(await screen.findByTestId("session-rest-stop"));
+	await fireEvent.press(await screen.findByTestId("session-toast-action"));
+	expect(add).toHaveBeenCalledTimes(2);
+	expect(screen.queryByTestId("session-rest-stop")).toBeNull();
+});
+
+it("starts the next rest offline once the last one has run out", async () => {
+	online = false;
+	await mount();
+	await fireEvent.press(await firstCheck());
+	const realNow = Date.now();
+	const later = jest.spyOn(Date, "now").mockReturnValue(realNow + 3_600_000);
+	try {
+		await fireEvent.press(await firstCheck());
+		const stored = JSON.parse(Storage.getItemSync("strength-rest:v1") ?? "{}");
+		expect(stored.endsAt).toBeGreaterThan(realNow + 3_600_000);
+	} finally {
+		later.mockRestore();
+	}
+});
+
+it("won't remove a set whose send is still on its way", async () => {
+	add.mockImplementation(() => new Promise(() => {}));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await fireEvent.press(
+		screen.getAllByRole("button", {
+			name: "Delete",
+			includeHiddenElements: true,
+		})[0],
+	);
+	expect(await screen.findByText(/still being logged/)).toBeTruthy();
+});
+
+it("won't finish while a set failed, and offers the retry instead", async () => {
+	loggedSets = [serverSet("set-1", 8, 1)];
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
+	expect(screen.queryByText("Lower A done")).toBeNull();
+	expect(finish).not.toHaveBeenCalled();
 });
 
 it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {

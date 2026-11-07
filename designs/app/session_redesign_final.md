@@ -51,6 +51,8 @@ reconcile with logged Sets from the server.
   of stacking: both fit, and stacking pushes Log off the screen. Percent chips do
   go to two columns.
 - The resume bar stays on Train and the Home card, the existing placement.
+- A stopped clock with nothing logged offers Reset clock instead of closing, so an
+  empty close can't take the group's plan away.
 
 ## Limits
 

@@ -29,6 +29,7 @@ import {
 	type PlanNote,
 	type PlanResult,
 	type PlanSet,
+	payloadFor,
 	pendingManuals,
 	removeExercise,
 	removeRow,
@@ -38,7 +39,6 @@ import {
 	runningGroup,
 	type SessionPlan,
 	sessionExercises,
-	shownLoad,
 	swapExercise,
 	typoCheck,
 	updateRow,
@@ -63,7 +63,9 @@ export function useChoice() {
 			message?: string;
 			confirm: ActionChoice;
 			cancel: string;
-		}) => {
+			/** Adds a way out that does neither; choosing it or tapping away gives null. */
+			dismiss?: string;
+		}): Promise<boolean | null> => {
 			if (Platform.OS !== "ios")
 				return confirm({
 					title: input.title,
@@ -72,16 +74,18 @@ export function useChoice() {
 					cancelLabel: input.cancel,
 					destructive: input.confirm.destructive,
 				});
-			return new Promise<boolean>((resolve) => {
+			return new Promise<boolean | null>((resolve) => {
 				ActionSheetIOS.showActionSheetWithOptions(
 					{
 						title: input.title,
 						message: input.message,
-						options: [input.confirm.label, input.cancel],
-						cancelButtonIndex: 1,
+						options: input.dismiss
+							? [input.confirm.label, input.cancel, input.dismiss]
+							: [input.confirm.label, input.cancel],
+						cancelButtonIndex: input.dismiss ? 2 : 1,
 						...(input.confirm.destructive ? { destructiveButtonIndex: 0 } : {}),
 					},
-					(index) => resolve(index === 0),
+					(index) => resolve(input.dismiss && index === 2 ? null : index === 0),
 				);
 			});
 		},
@@ -116,14 +120,20 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const template = (copy.notes as Record<string, string>)[note.code] ?? "";
 			return fmt(template, { name: name ?? "", ...(note.values ?? {}) });
 		};
-		const snapshotUndo = (before: SessionPlan) => ({
+		const snapshotUndo = (before: SessionPlan, added?: string) => ({
 			undoLabel: copy.undo,
-			undo: () => set(before),
+			// The server keeps an added exercise, so undo has to keep it out of the plan.
+			undo: () =>
+				set(
+					added
+						? { ...before, removed: [...new Set([...before.removed, added])] }
+						: before,
+				),
 		});
 		/** Applies a local action. Refusals explain themselves; changes can be undone. */
 		const apply = (
 			result: PlanResult,
-			options: { name?: string; undoable?: boolean } = {},
+			options: { name?: string; undoable?: boolean; added?: string } = {},
 		) => {
 			const before = plan();
 			if (result.refused) {
@@ -134,7 +144,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (result.note)
 				say(
 					noteText(result.note, options.name),
-					options.undoable === false ? {} : snapshotUndo(before),
+					options.undoable === false ? {} : snapshotUndo(before, options.added),
 				);
 			return true;
 		};
@@ -157,10 +167,21 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				number: Math.max(number, 1),
 			});
 		}
-		function afterLogged(row: PlanSet, setId: string, setNumber: number) {
+		function restIfIdle(rowId: string) {
+			const seconds = restAfterLog(plan(), rowId);
+			const current = rest.current();
+			if (seconds !== null && (current === null || current <= Date.now()))
+				rest.start(seconds, restBody());
+		}
+		function afterLogged(
+			row: PlanSet,
+			setId: string,
+			setNumber: number,
+			startRest: boolean,
+		) {
 			const facts = getFacts(row.exerciseId);
 			const before = plan();
-			const seconds = restAfterLog(before, row.id);
+			const seconds = startRest ? restAfterLog(before, row.id) : null;
 			const record = newRecordFor(before, { ...row, done: true }, facts);
 			const result = markLogged(before, row.id, setId, setNumber, facts);
 			set(result.plan);
@@ -184,8 +205,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			else if (record?.kind === "estimated")
 				text =
 					fmt(copy.toastNewEstimated, {
-						value: Math.round(record.value),
-						was: Math.round(record.was as number),
+						value: formatOneRm(record.value, row.unit, locale),
+						was: formatOneRm(record.was as number, row.unit, locale),
 					}) + (row.reps > 10 ? copy.toastLessReliable : "");
 			else if (rm)
 				text = fmt(copy.toastOneRm, {
@@ -225,15 +246,19 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		async function send(rowId: string) {
 			const row = findRow(plan(), rowId);
 			if (!row || row.done) return;
+			const inFlight = workspaceStore.inFlight(key);
+			if (row.attempt && inFlight.has(row.attempt.operationId)) return;
+			// A retry comes long after the set itself, so it never starts rest.
+			const fresh = !row.failed;
 			const attempted = beginAttempt(plan(), rowId, newLogOperationId());
 			const attempt = attempted?.attempt;
 			if (!attempted || !attempt || !sessionId) return;
 			set(updateRow(plan(), rowId, attempted));
-			const inFlight = workspaceStore.inFlight(key);
 			inFlight.add(attempt.operationId);
 			const failNow = (keep: boolean, message: string) => {
 				if (findRow(plan(), rowId)?.done) return;
 				set(markFailed(plan(), rowId, keep));
+				if (keep && fresh) restIfIdle(rowId);
 				haptics.sessionWarning();
 				say(message, {
 					retryLabel: copy.retryAll,
@@ -257,7 +282,13 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				});
 				clearTimeout(stuck);
 				const latest = findRow(plan(), rowId);
-				if (latest) afterLogged(latest, setId, attempt.setNumber);
+				if (latest)
+					afterLogged(
+						latest,
+						setId,
+						attempt.setNumber,
+						fresh && !latest.failed,
+					);
 			} catch (error) {
 				clearTimeout(stuck);
 				if (error instanceof ConvexError)
@@ -305,9 +336,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				set(markFailed(plan(), rowId, Boolean(row.attempt)));
 				const count = failedRows(plan()).length;
 				haptics.sessionWarning();
-				const seconds = restAfterLog(plan(), rowId);
-				if (seconds !== null && rest.current() === null)
-					rest.start(seconds, restBody());
+				restIfIdle(rowId);
 				say(
 					count > 1
 						? fmt(copy.toastFailedMany, { count })
@@ -320,21 +349,26 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		}
 		async function retryFailed() {
 			if (blocked()) return;
-			for (const row of failedRows(plan())) await send(row.id);
+			const inFlight = workspaceStore.inFlight(key);
+			const rows = failedRows(plan());
+			const sending = (row: PlanSet) =>
+				Boolean(row.attempt && inFlight.has(row.attempt.operationId));
+			if (rows.some(sending)) say(copy.blockedBusy);
+			for (const row of rows) if (!sending(row)) await send(row.id);
 		}
 		async function setLogged(rowId: string, draft: PlanSet) {
 			if (blocked()) return false;
 			const stored = findRow(plan(), rowId);
 			if (!stored?.setId) return false;
-			const weight =
-				draft.unit === "lbs"
-					? shownLoad(draft)
-					: Math.round(draft.kg * 1e6) / 1e6;
+			const { weight } = payloadFor(draft, stored.setNumber ?? 0);
 			const before = plan();
 			const sameLoad = Math.abs(draft.kg - stored.kg) < 0.01;
 			const facts = getFacts(draft.exerciseId);
 			const next: PlanSet = {
 				...draft,
+				done: true,
+				setId: stored.setId,
+				setNumber: stored.setNumber,
 				loggedPercent: sameLoad ? stored.loggedPercent : undefined,
 			};
 			try {
@@ -378,6 +412,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				loggedPercent: undefined,
 			};
 			set(updateRow(before, rowId, open));
+			workspaceStore.setDraft(key, rowId, null);
 			await workspaceStore.hold(key, async () => {
 				try {
 					await removeSetMutation({ id: row.setId as Id<"sets"> });
@@ -391,6 +426,14 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		async function deleteRow(rowId: string) {
 			const row = findRow(plan(), rowId);
 			if (!row) return;
+			// A send still queued would land after the row is gone and bring it back.
+			if (
+				row.attempt &&
+				workspaceStore.inFlight(key).has(row.attempt.operationId)
+			) {
+				say(copy.blockedBusy);
+				return;
+			}
 			const before = plan();
 			if (!row.setId) {
 				set(removeRow(before, rowId));
@@ -496,7 +539,10 @@ export function useSessionActions(workspace: SessionWorkspace) {
 						exerciseId: to as ExerciseId,
 					});
 					const facts = await factsForNew(to);
-					return apply(swapExercise(plan(), from, to, facts), { name: label });
+					return apply(swapExercise(plan(), from, to, facts), {
+						name: label,
+						added: sessionExercises(plan()).includes(to) ? undefined : to,
+					});
 				});
 			} catch (error) {
 				say(convexErrorMessage(error, saveError));
