@@ -25,6 +25,7 @@ import {
 	type SessionPlan,
 	seedPlan,
 	setGroupMode,
+	setGroupRounds,
 	startClock,
 	stopClock,
 } from "./session-plan";
@@ -365,6 +366,47 @@ it("won't close a group while one of its sets failed", async () => {
 	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.state).toBe("timeup");
 });
 
+it("won't drop a failed set by shrinking its group or switching it to a clock", async () => {
+	const facts = {
+		bodyweight: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+	];
+	currentSession = { ...session, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	const plan = setGroupRounds(grouped.plan, id, 1).plan;
+	const rounds = plan.groups[id]?.rounds ?? [];
+	const row = rounds.at(-1)?.items[0] as PlanSet;
+	workspaceStore.setPlan(PLAN_KEY, markFailed(plan, row.id, false));
+	await mount();
+	await act(() =>
+		router.push(`/session-group?sessionId=session-1&groupId=${id}`),
+	);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "One round fewer" }),
+	);
+	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.rounds).toHaveLength(
+		rounds.length,
+	);
+	await fireEvent.press(await screen.findByLabelText("As many as possible"));
+	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.mode).toBe("rounds");
+});
+
 it("won't log the old value behind a cleared field", async () => {
 	await mount();
 	await fireEvent.press(await firstRow());
@@ -389,6 +431,27 @@ it("keeps a correction to a logged set in storage until it is saved or dropped",
 	]);
 	workspaceStore.clear(PLAN_KEY);
 	expect(Storage.getItemSync(`${PLAN_KEY}:drafts`)).toBeNull();
+});
+
+it("freezes a correction while its save is on its way", async () => {
+	loggedSets = [serverSet("set-1", 8, 1)];
+	let finishSave = () => {};
+	update.mockImplementation(
+		() =>
+			new Promise<void>((resolve) => {
+				finishSave = resolve;
+			}),
+	);
+	await mount();
+	await fireEvent.press((await screen.findAllByLabelText(/set 1, Logged/))[0]);
+	const load = await screen.findByTestId("session-editor-load");
+	await fireEvent.changeText(load, "75");
+	await fireEvent(load, "blur");
+	await fireEvent.press(screen.getByRole("button", { name: /^Save/ }));
+	expect(update).toHaveBeenCalledTimes(1);
+	expect(await screen.findByRole("button", { name: "Saving…" })).toBeDisabled();
+	expect(screen.getByTestId("session-editor-load").props.editable).toBe(false);
+	await act(async () => finishSave());
 });
 
 it("won't log a pasted negative value as the old one", async () => {

@@ -168,7 +168,9 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		/** Failed rows must be retried or removed, never dropped along with something else. */
 		const refusePending = (rows: PlanSet[]) => {
 			if (refuseSending(rows)) return true;
-			const failed = rows.filter((row) => row.failed && !row.done).length;
+			const failed = rows.filter(
+				(row) => (row.failed || row.attempt) && !row.done,
+			).length;
 			if (!failed) return false;
 			say(plural(locale, failed, copy.finish.failedBlocked), {
 				retryLabel: copy.retryAll,

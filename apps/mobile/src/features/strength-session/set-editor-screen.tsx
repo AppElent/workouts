@@ -226,11 +226,14 @@ export function SetEditorScreen() {
 	}, []);
 	const logged = Boolean(stored?.done);
 	const changed = Boolean(logged && stored && draft && !sameSet(draft, stored));
-	const sending = Boolean(
-		row?.attempt && workspaceStore.inFlight(key).has(row.attempt.operationId),
-	);
+	const [saving, setSaving] = useState(false);
+	const sending =
+		saving ||
+		Boolean(
+			row?.attempt && workspaceStore.inFlight(key).has(row.attempt.operationId),
+		);
 	// A send with an unknown result froze these values: a retry must match them.
-	const locked = Boolean(row?.attempt);
+	const locked = sending || Boolean(row?.attempt);
 	const close = () => {
 		if (router.canGoBack()) router.back();
 	};
@@ -550,7 +553,10 @@ export function SetEditorScreen() {
 				close();
 				return;
 			}
-			if (await actions.setLogged(row.id, confirmed)) {
+			setSaving(true);
+			const saved = await actions.setLogged(row.id, confirmed);
+			setSaving(false);
+			if (saved) {
 				workspaceStore.setDraft(key, row.id, null);
 				requestAnimationFrame(close);
 			}

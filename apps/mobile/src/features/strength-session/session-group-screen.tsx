@@ -110,10 +110,14 @@ export function SessionGroupScreen() {
 	const entry = { kind: "group", groupId: group.id } as const;
 	const locked = modeLocked(group);
 	const amrap = group.mode === "amrap";
-	const applyMode = (mode: GroupMode) =>
+	const applyMode = (mode: GroupMode) => {
+		// Amrap keeps one round in view: the others must not hide an unsaved set.
+		if (actions.refusePending(group.rounds.flatMap((round) => round.items)))
+			return;
 		void actions.apply(setGroupMode(actions.plan(), group.id, mode), {
 			undoable: false,
 		});
+	};
 	return (
 		<>
 			<Stack.Screen options={screenOptions} />
@@ -162,11 +166,13 @@ export function SessionGroupScreen() {
 						lessLabel={copy.fewerRounds}
 						moreLabel={copy.moreRounds}
 						lessDisabled={group.rounds.length <= 1}
-						onLess={() =>
+						onLess={() => {
+							if (actions.refusePending(group.rounds.at(-1)?.items ?? []))
+								return;
 							void actions.apply(setGroupRounds(actions.plan(), group.id, -1), {
 								undoable: false,
-							})
-						}
+							});
+						}}
 						onMore={() =>
 							void actions.apply(setGroupRounds(actions.plan(), group.id, 1), {
 								undoable: false,
