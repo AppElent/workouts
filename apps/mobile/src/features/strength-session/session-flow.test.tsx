@@ -17,6 +17,15 @@ import * as EditorRoute from "../../../app/(app)/set-editor/index";
 import * as ProfileRoute from "../../../app/(app)/set-editor/strength-profile";
 import { renderApp } from "../../test-support/render-app";
 import { workspaceStore } from "./data/session-workspace";
+import {
+	groupWith,
+	markFailed,
+	type PlanSet,
+	seedPlan,
+	setGroupMode,
+	startClock,
+	stopClock,
+} from "./session-plan";
 
 jest.mock("@clerk/expo", () => ({
 	useAuth: () => ({ userId: "test-user", isLoaded: true, isSignedIn: true }),
@@ -267,7 +276,9 @@ it("starts the next rest offline once the last one has run out", async () => {
 	const realNow = Date.now();
 	const later = jest.spyOn(Date, "now").mockReturnValue(realNow + 3_600_000);
 	try {
-		await fireEvent.press(await firstCheck());
+		await fireEvent.press(
+			(await screen.findAllByLabelText("Log Barbell Back Squat 60 × 8"))[1],
+		);
 		const stored = JSON.parse(Storage.getItemSync("strength-rest:v1") ?? "{}");
 		expect(stored.endsAt).toBeGreaterThan(realNow + 3_600_000);
 	} finally {
@@ -298,6 +309,68 @@ it("won't finish while a set failed, and offers the retry instead", async () => 
 	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
 	expect(screen.queryByText("Lower A done")).toBeNull();
 	expect(finish).not.toHaveBeenCalled();
+});
+
+it("won't close a group while one of its sets failed", async () => {
+	const facts = {
+		bodyweight: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+	];
+	currentSession = { ...session, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	let plan = setGroupMode(grouped.plan, id, "amrap").plan;
+	plan = startClock(plan, id, 0).plan;
+	plan = stopClock(plan, id, 1000);
+	const row = plan.groups[id]?.rounds[0]?.items[0] as PlanSet;
+	workspaceStore.setPlan(PLAN_KEY, markFailed(plan, row.id, false));
+	await mount();
+	await fireEvent.press(
+		await screen.findByRole("button", { name: /Reset clock|^Close/ }),
+	);
+	expect(await screen.findByText(/Retry or remove it first/)).toBeTruthy();
+	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.state).toBe("timeup");
+});
+
+it("won't log the old value behind a cleared field", async () => {
+	await mount();
+	await fireEvent.press(await firstRow());
+	const reps = await screen.findByTestId("session-editor-reps");
+	await fireEvent(reps, "focus");
+	await fireEvent.changeText(reps, "");
+	expect(screen.getByRole("button", { name: "Enter reps" })).toBeDisabled();
+	expect(add).not.toHaveBeenCalled();
+});
+
+it("keeps a correction to a logged set in storage until it is saved or dropped", async () => {
+	loggedSets = [serverSet("set-1", 8, 1)];
+	await mount();
+	await fireEvent.press((await screen.findAllByLabelText(/set 1, Logged/))[0]);
+	await fireEvent.changeText(
+		await screen.findByTestId("session-editor-load"),
+		"75",
+	);
+	const stored = JSON.parse(Storage.getItemSync(`${PLAN_KEY}:drafts`) ?? "{}");
+	expect(Object.values(stored)).toEqual([
+		expect.objectContaining({ kg: 75, setId: "set-1" }),
+	]);
+	workspaceStore.clear(PLAN_KEY);
+	expect(Storage.getItemSync(`${PLAN_KEY}:drafts`)).toBeNull();
 });
 
 it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {

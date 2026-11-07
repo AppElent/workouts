@@ -98,7 +98,9 @@ export function SessionGroupBlock({ group }: { group: SetGroup }) {
 		? closed
 			? scoreText
 			: group.state === "timeup"
-				? copy.subAmrapOver
+				? group.stoppedRemaining
+					? copy.subAmrapStopped
+					: copy.subAmrapOver
 				: idle
 					? group.capMinutes === 1
 						? copy.subAmrapIdleOne

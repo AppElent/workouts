@@ -66,6 +66,15 @@ function isPlan(value: unknown): value is SessionPlan {
 			plan.manual,
 	);
 }
+const draftsKey = (key: string) => `${key}:drafts`;
+function readDrafts(key: string): Record<string, PlanSet> {
+	try {
+		const parsed = JSON.parse(Storage.getItemSync(draftsKey(key)) ?? "{}");
+		return parsed && typeof parsed === "object" ? parsed : {};
+	} catch {
+		return {};
+	}
+}
 function entryFor(key: string): Entry {
 	const known = entries.get(key);
 	if (known) return known;
@@ -80,7 +89,7 @@ function entryFor(key: string): Entry {
 	}
 	const entry: Entry = {
 		plan,
-		drafts: {},
+		drafts: readDrafts(key),
 		notice: null,
 		holds: 0,
 		seen: null,
@@ -102,6 +111,11 @@ export const workspaceStore = {
 		const entry = entryFor(key);
 		const { [rowId]: _old, ...rest } = entry.drafts;
 		entry.drafts = row ? { ...rest, [rowId]: row } : rest;
+		try {
+			Storage.setItemSync(draftsKey(key), JSON.stringify(entry.drafts));
+		} catch {
+			entry.storageError = true;
+		}
 		emit(entry);
 	},
 	setPlan(key: string, plan: SessionPlan) {
@@ -129,6 +143,7 @@ export const workspaceStore = {
 		entry.seen = null;
 		try {
 			Storage.removeItemSync(key);
+			Storage.removeItemSync(draftsKey(key));
 		} catch {
 			entry.storageError = true;
 		}

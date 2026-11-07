@@ -66,6 +66,8 @@ export function useClockControls(group: SetGroup) {
 	const close = {
 		label: closeLabel(group, copy, locale),
 		onPress: () => {
+			if (actions.refusePending(group.rounds.flatMap((round) => round.items)))
+				return;
 			actions.set(closeGroup(actions.plan(), group.id));
 			void cancelSessionAlert(alertId(group.id));
 		},

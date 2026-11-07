@@ -596,6 +596,8 @@ export function reconcilePlan(
 		if (present || next.removed.includes(id)) continue;
 		changed = true;
 		next = seedExercise(next, exercise, serverSets, getFacts(id));
+		for (const set of serverSets)
+			if (set.exerciseId === id) linked.add(set._id);
 	}
 	for (const set of serverSets) {
 		if (linked.has(set._id)) continue;

@@ -16,6 +16,7 @@ import {
 	confirmKey,
 	dissolveGroup,
 	type ExerciseFacts,
+	emptyPlan,
 	failedRows,
 	fillFromLast,
 	findRow,
@@ -811,6 +812,15 @@ describe("reconcile", () => {
 		weight,
 		unit: "kg" as const,
 		setType: "working" as const,
+	});
+	it("takes in a set logged on an exercise it hasn't seen once", () => {
+		const next = reconcilePlan(
+			emptyPlan(),
+			[{ exerciseId: "squat", plannedSets: [] }],
+			[set("a", 1)],
+			lookup,
+		);
+		expect(next.sets.squat?.map((row) => row.setId)).toEqual(["a"]);
 	});
 	it("seeds logged sets, then the rest of the plan", () => {
 		const plan = seedPlan(

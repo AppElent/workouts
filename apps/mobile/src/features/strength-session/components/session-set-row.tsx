@@ -223,7 +223,12 @@ function rowSpeech(
 			? `, ${copy.logged}`
 			: "";
 	return `${setLabel}${state}, ${percent === null ? "" : fmt(copy.rowPercentSpoken, { percent })}${load}${
-		oneRm ? fmt(copy.rowOneRmSpoken, { value: oneRm.replace("≈", "") }) : ""
+		oneRm
+			? fmt(copy.rowOneRmSpoken, {
+					value: oneRm.replace("≈", ""),
+					unit: copy.unitSpoken[row.unit],
+				})
+			: ""
 	}`;
 }
 export function SessionSetRow({

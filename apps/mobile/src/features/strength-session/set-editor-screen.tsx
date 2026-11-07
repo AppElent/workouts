@@ -298,6 +298,12 @@ export function SetEditorScreen() {
 				: String(row.reps);
 	const valid = isValidRow(row, facts);
 	const midType = focus === "kg" || focus === "reps";
+	// A cleared or unreadable field isn't the old value: nothing logs until it's filled.
+	const typedEmpty =
+		(focus === "kg" &&
+			(loadText.trim() === "" || !Number.isFinite(parseNumber(loadText)))) ||
+		(focus === "reps" &&
+			(repsText.trim() === "" || !Number.isInteger(Number(repsText))));
 	const check = valid && !midType ? typoCheck(plan, row, facts, stored) : null;
 	const others = bestKnown(plan, row.exerciseId, facts, row.id);
 	const estimate = rowOneRepMax(row, bodyweight);
@@ -489,6 +495,9 @@ export function SetEditorScreen() {
 	} else if (clockIdle) {
 		primary = text.startClockFirst;
 		primaryEnabled = false;
+	} else if (typedEmpty) {
+		primaryEnabled = false;
+		primary = focus === "kg" ? text.enterLoad : text.enterReps;
 	} else if (!valid) {
 		primaryEnabled = false;
 		const noLoad = !bodyweight && !(row.kg > 0);
@@ -565,7 +574,12 @@ export function SetEditorScreen() {
 							},
 						]),
 				...(bodyweight ? [] : [{ id: "profile", label: copy.strengthProfile }]),
-				{ id: "delete", label: copy.rowDelete, destructive: true },
+				{
+					id: "delete",
+					label: copy.rowDelete,
+					destructive: true,
+					disabled: locked,
+				},
 			],
 		},
 	];
@@ -677,6 +691,7 @@ export function SetEditorScreen() {
 							)}
 							<Stack.Toolbar.MenuAction
 								destructive
+								disabled={locked}
 								onPress={() => void onMenu("delete")}
 							>
 								{copy.rowDelete}
@@ -1026,8 +1041,10 @@ export function SetEditorScreen() {
 							) : null}
 							<Pressable
 								accessibilityRole="button"
+								accessibilityState={{ disabled: locked }}
+								disabled={locked}
 								onPress={() => void onMenu("delete")}
-								style={styles.deleteRow}
+								style={[styles.deleteRow, locked && styles.primaryOff]}
 							>
 								<AppText variant="control" style={{ color: colors.danger }}>
 									{copy.rowDelete}

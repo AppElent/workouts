@@ -6,7 +6,7 @@ import { useCallback, useMemo } from "react";
 import { ActionSheetIOS, Platform } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { haptics } from "../../../feedback/haptics";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { convexErrorMessage, useConfirm } from "../../../ui/confirm-dialog";
 import { useRestTimer } from "../components/rest-timer";
 import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
@@ -16,7 +16,6 @@ import {
 	allRows,
 	beginAttempt,
 	canSwap,
-	closeOpenClocks,
 	type ExerciseFacts,
 	failedRows,
 	findRow,
@@ -36,6 +35,7 @@ import {
 	restAfterLog,
 	restoreRows,
 	rowOneRepMax,
+	rowsOf,
 	runningGroup,
 	type SessionPlan,
 	sessionExercises,
@@ -63,7 +63,7 @@ export function useChoice() {
 			message?: string;
 			confirm: ActionChoice;
 			cancel: string;
-			/** Adds a way out that does neither; choosing it or tapping away gives null. */
+			/** On iOS, adds a way out that does neither; choosing it or tapping away gives null. */
 			dismiss?: string;
 		}): Promise<boolean | null> => {
 			if (Platform.OS !== "ios")
@@ -151,6 +151,29 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		const blocked = () => {
 			if (online) return false;
 			say(copy.blockedOffline);
+			return true;
+		};
+		/** Says so when any of these rows is still being sent. */
+		const refuseSending = (rows: PlanSet[]) => {
+			const inFlight = workspaceStore.inFlight(key);
+			if (
+				!rows.some(
+					(row) => row.attempt && inFlight.has(row.attempt.operationId),
+				)
+			)
+				return false;
+			say(copy.blockedBusy);
+			return true;
+		};
+		/** Failed rows must be retried or removed, never dropped along with something else. */
+		const refusePending = (rows: PlanSet[]) => {
+			if (refuseSending(rows)) return true;
+			const failed = rows.filter((row) => row.failed && !row.done).length;
+			if (!failed) return false;
+			say(plural(locale, failed, copy.finish.failedBlocked), {
+				retryLabel: copy.retryAll,
+				retry: () => void retryFailed(),
+			});
 			return true;
 		};
 		const shortLoad = (row: PlanSet) =>
@@ -256,9 +279,11 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			set(updateRow(plan(), rowId, attempted));
 			inFlight.add(attempt.operationId);
 			const failNow = (keep: boolean, message: string) => {
-				if (findRow(plan(), rowId)?.done) return;
+				const current = findRow(plan(), rowId);
+				if (current?.done) return;
+				const firstFailure = fresh && !current?.failed;
 				set(markFailed(plan(), rowId, keep));
-				if (keep && fresh) restIfIdle(rowId);
+				if (keep && firstFailure) restIfIdle(rowId);
 				haptics.sessionWarning();
 				say(message, {
 					retryLabel: copy.retryAll,
@@ -333,10 +358,11 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const row = findRow(plan(), rowId);
 			if (!row) return;
 			if (!online) {
+				const firstFailure = !row.failed;
 				set(markFailed(plan(), rowId, Boolean(row.attempt)));
 				const count = failedRows(plan()).length;
 				haptics.sessionWarning();
-				restIfIdle(rowId);
+				if (firstFailure) restIfIdle(rowId);
 				say(
 					count > 1
 						? fmt(copy.toastFailedMany, { count })
@@ -427,13 +453,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const row = findRow(plan(), rowId);
 			if (!row) return;
 			// A send still queued would land after the row is gone and bring it back.
-			if (
-				row.attempt &&
-				workspaceStore.inFlight(key).has(row.attempt.operationId)
-			) {
-				say(copy.blockedBusy);
-				return;
-			}
+			if (refuseSending([row])) return;
 			const before = plan();
 			if (!row.setId) {
 				set(removeRow(before, rowId));
@@ -527,6 +547,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		async function swap(from: string, to: string, name?: string) {
 			if (blocked() || !sessionId) return false;
 			const label = name ?? nameOf(to);
+			if (refusePending(rowsOf(plan(), from))) return false;
 			const check = canSwap(plan(), from, to);
 			if (!check.ok) {
 				say(noteText({ code: check.code as string }, label));
@@ -563,6 +584,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			return apply(addToGroup(plan(), groupId, exerciseId), { name: label });
 		}
 		async function dropExercise(exerciseId: string) {
+			if (refuseSending(rowsOf(plan(), exerciseId))) return;
 			const result = removeExercise(plan(), exerciseId);
 			const label = nameOf(exerciseId);
 			if (result.refused) {
@@ -623,6 +645,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			noteText,
 			snapshotUndo,
 			blocked,
+			refusePending,
 			logRow,
 			logReady,
 			retryFailed,
@@ -637,7 +660,6 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			finishSession,
 			cancelSession,
 			stopRest: rest.stop,
-			closeClocks: () => closeOpenClocks(plan()),
 			runningGroup: () => runningGroup(plan()),
 		};
 	}, [

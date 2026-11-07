@@ -54,7 +54,8 @@ export const strengthSessionEn = {
 	rowRound: "round {number}",
 	rowDescription: "{set}, {percent}{load} × {reps} reps{oneRm}",
 	rowPercentSpoken: "{percent} percent, ",
-	rowOneRmSpoken: ", 1RM about {value} kilograms",
+	rowOneRmSpoken: ", 1RM about {value} {unit}",
+	unitSpoken: { kg: "kilograms", lbs: "pounds" },
 	close: "Close",
 	logged: "Logged",
 	refMeasured: "Measured 1RM {measured} kg",
@@ -306,7 +307,8 @@ export const strengthSessionEn = {
 		subAmrapIdle: "{minutes} minutes · start the clock and go",
 		subAmrapIdleOne: "1 minute · start the clock and go",
 		subAmrapRunning: "Round {round} · one set of each",
-		subAmrapOver: "Time's up · close the round",
+		subAmrapOver: "Time's up",
+		subAmrapStopped: "Clock stopped",
 		subAmrapClosed: "{score}",
 		score: "{rounds} + {sets}",
 		roundCount: { one: "1 round", other: "{count} rounds" },
@@ -375,9 +377,9 @@ export const strengthSessionEn = {
 		saved: "{name} is in History.",
 		finishBlocked: "Couldn't finish: no connection. Try again soon.",
 		failedBlocked: {
-			one: "1 failed set is not saved yet. Retry or remove it before finishing.",
+			one: "1 failed set is not saved yet. Retry or remove it first.",
 			other:
-				"{count} failed sets are not saved yet. Retry or remove them before finishing.",
+				"{count} failed sets are not saved yet. Retry or remove them first.",
 		},
 	},
 	picker: {
@@ -462,7 +464,8 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 	rowRound: "ronde {number}",
 	rowDescription: "{set}, {percent}{load} × {reps} reps{oneRm}",
 	rowPercentSpoken: "{percent} procent, ",
-	rowOneRmSpoken: ", 1RM ongeveer {value} kilo",
+	rowOneRmSpoken: ", 1RM ongeveer {value} {unit}",
+	unitSpoken: { kg: "kilo", lbs: "pond" },
 	close: "Sluiten",
 	logged: "Gelogd",
 	refMeasured: "Gemeten 1RM {measured} kg",
@@ -721,7 +724,8 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		subAmrapIdle: "{minutes} minuten · start de klok en ga",
 		subAmrapIdleOne: "1 minuut · start de klok en ga",
 		subAmrapRunning: "Ronde {round} · één set van elk",
-		subAmrapOver: "Tijd voorbij · sluit de ronde af",
+		subAmrapOver: "Tijd voorbij",
+		subAmrapStopped: "Klok gestopt",
 		subAmrapClosed: "{score}",
 		score: "{rounds} + {sets}",
 		roundCount: { one: "1 ronde", other: "{count} rondes" },
@@ -788,9 +792,9 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		finishBlocked:
 			"Afronden lukt niet: geen verbinding. Probeer het zo opnieuw.",
 		failedBlocked: {
-			one: "1 mislukte set is nog niet opgeslagen. Probeer opnieuw of verwijder die voordat je afrondt.",
+			one: "1 mislukte set is nog niet opgeslagen. Probeer eerst opnieuw of verwijder die.",
 			other:
-				"{count} mislukte sets zijn nog niet opgeslagen. Probeer opnieuw of verwijder ze voordat je afrondt.",
+				"{count} mislukte sets zijn nog niet opgeslagen. Probeer eerst opnieuw of verwijder ze.",
 		},
 	},
 	picker: {
