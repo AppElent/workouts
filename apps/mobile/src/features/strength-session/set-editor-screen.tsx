@@ -242,7 +242,13 @@ export function SetEditorScreen() {
 		// A changed logged set can't be swiped away: it asks to save or discard.
 		parent?.setOptions({ gestureEnabled: !changed });
 	}, [changed, parent]);
-	usePreventRemove(changed, ({ data }) => {
+	// The guard has to be off before the blocked action can be replayed.
+	const [leaving, setLeaving] = useState(false);
+	const afterLeave = useRef<(() => void) | null>(null);
+	useEffect(() => {
+		if (leaving) afterLeave.current?.();
+	}, [leaving]);
+	usePreventRemove(changed && !leaving, ({ data }) => {
 		void (async () => {
 			const save = await choose({
 				title: text.discardTitle,
@@ -255,7 +261,8 @@ export function SetEditorScreen() {
 			if (save && draft && !(await actions.setLogged(params.rowId, draft)))
 				return;
 			workspaceStore.setDraft(key, params.rowId, null);
-			navigation.dispatch(data.action);
+			afterLeave.current = () => navigation.dispatch(data.action);
+			setLeaving(true);
 		})();
 	});
 	useEffect(() => {

@@ -581,6 +581,9 @@ it("asks before dropping a change to a logged set", async () => {
 	await act(() => router.back());
 	expect(await screen.findByText("Save your changes?")).toBeTruthy();
 	expect(update).not.toHaveBeenCalled();
+	await fireEvent.press(await screen.findByRole("button", { name: "Discard" }));
+	expect(screen.queryByTestId("session-editor-load")).toBeNull();
+	expect(await screen.findAllByLabelText(/set 1, Logged/)).toBeTruthy();
 });
 
 it("finishes through the recap, saving only at Done", async () => {
