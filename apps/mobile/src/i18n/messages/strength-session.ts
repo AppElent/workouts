@@ -118,6 +118,8 @@ export const strengthSessionEn = {
 		addedToGroupWithSets: "{name} added to the group, {added} sets added",
 		addedToGroupWithSet: "{name} added to the group, 1 set added",
 		groupClosed: "This group is closed.",
+		unsavedSets:
+			"{name} has a set that isn't saved yet. Retry or remove it first.",
 		groupDissolved: "Group removed. All sets stay.",
 		takenOut: "{name} removed from the group",
 		modeLocked: "The type is fixed once you've started.",
@@ -537,6 +539,8 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		addedToGroupWithSets: "{name} toegevoegd aan de groep, {added} sets erbij",
 		addedToGroupWithSet: "{name} toegevoegd aan de groep, 1 set erbij",
 		groupClosed: "Deze groep is afgesloten.",
+		unsavedSets:
+			"{name} heeft een set die nog niet is opgeslagen. Probeer opnieuw of verwijder hem eerst.",
 		groupDissolved: "Groep opgeheven. Alle sets blijven staan.",
 		takenOut: "{name} uit de groep",
 		modeLocked: "Soort ligt vast zodra je bent begonnen.",

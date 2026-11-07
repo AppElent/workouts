@@ -246,6 +246,8 @@ export function referenceFor(
 		? null
 		: { value: facts.measured, source: "measured" };
 }
+/** What a person did but the server hasn't confirmed: never rewrite it. */
+const isUnsaved = (row: PlanSet) => Boolean(row.failed || row.attempt);
 export function targetPercent(
 	row: PlanSet,
 	reference: { value: number } | null,
@@ -1097,7 +1099,7 @@ function repriced(
 	const onPlan = (row: PlanSet) =>
 		row.exerciseId === exerciseId &&
 		!row.done &&
-		!row.attempt &&
+		!isUnsaved(row) &&
 		row.percent !== null &&
 		(!row.plan || near(row.kg, row.plan.kg)) &&
 		(old
@@ -1190,7 +1192,7 @@ export function clearManual(
 			...mapRows(plan, (row) => {
 				if (row.exerciseId !== exerciseId) return row;
 				if (row.done) return { ...row, loggedPercent: null };
-				return !row.attempt &&
+				return !isUnsaved(row) &&
 					row.basePlanKg !== undefined &&
 					(!old || targetPercent(row, old, facts.stepKg) === row.percent)
 					? {
@@ -1513,6 +1515,9 @@ export function addToGroup(
 	const rows = plan.sets[exerciseId] ?? [];
 	const open = rows.filter((row) => !row.done);
 	const done = rows.filter((row) => row.done);
+	// A clock keeps one open set per exercise, so the rest must be safe to lose.
+	if (group.mode === "amrap" && open.slice(1).some(isUnsaved))
+		return { plan, refused: true, note: { code: "unsavedSets" } };
 	const rounds = group.rounds.map((round) => ({
 		...round,
 		items: [...round.items],
@@ -2031,6 +2036,7 @@ export function markLogged(
 				index <= home ||
 				item.exerciseId !== row.exerciseId ||
 				item.done ||
+				isUnsaved(item) ||
 				!(near(item.kg, planKg) || item.carried)
 			)
 				return item;

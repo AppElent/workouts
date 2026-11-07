@@ -259,6 +259,51 @@ describe("units", () => {
 			shownPercent(row(), { value: 120 }, 2.5),
 		);
 	});
+	it("carries a load past a set that failed or is still unresolved", () => {
+		const planned = [
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+		];
+		const grouped = groupWith(
+			plannedPlan({ squat: planned, bench: planned }),
+			"squat",
+			"bench",
+		);
+		const rounds = grouped.plan.groups[grouped.groupId as string]?.rounds ?? [];
+		const [first, second, third] = rounds.map(
+			(round) => round.items[0] as PlanSet,
+		) as [PlanSet, PlanSet, PlanSet];
+		let plan = markFailed(grouped.plan, second.id, false);
+		plan = updateRow(
+			plan,
+			third.id,
+			beginAttempt(plan, third.id, "op-3") as PlanSet,
+		);
+		plan = updateRow(plan, first.id, { ...first, kg: first.kg + 10 });
+		const next = markLogged(plan, first.id, "s-1", 1, SQUAT).plan;
+		expect(findRow(next, second.id)?.kg).toBe(second.kg);
+		expect(findRow(next, third.id)?.kg).toBe(third.kg);
+	});
+	it("won't drop an unsaved set by adding its exercise to a clock", () => {
+		const planned = [
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+		];
+		const grouped = groupWith(
+			plannedPlan({ squat: planned, bench: planned, row: planned }),
+			"squat",
+			"bench",
+		);
+		const id = grouped.groupId as string;
+		const clock = setGroupMode(grouped.plan, id, "amrap").plan;
+		const later = clock.sets.row?.[1] as PlanSet;
+		const failed = markFailed(clock, later.id, false);
+		const result = addToGroup(failed, id, "row");
+		expect(result.refused).toBe(true);
+		expect(findRow(result.plan, later.id)?.failed).toBe(true);
+		expect(addToGroup(clock, id, "row").refused).toBeFalsy();
+	});
 	it("carried group weights keep their unit", () => {
 		let plan = plannedPlan({
 			squat: [
