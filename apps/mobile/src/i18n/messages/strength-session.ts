@@ -192,6 +192,8 @@ export const strengthSessionEn = {
 		startClockFirst: "Start the clock first",
 		retry: "Try again · {load}",
 		lockedBusy: "Saving…",
+		lockedUnknown:
+			"This set may already be saved. Edit it once that's checked.",
 		customPercent: "Custom %",
 		customPercentTitle: "Percentage",
 		percentMax: "Up to 120%",
@@ -611,6 +613,8 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		startClockFirst: "Start eerst de klok",
 		retry: "Opnieuw · {load}",
 		lockedBusy: "Opslaan…",
+		lockedUnknown:
+			"Deze set is misschien al opgeslagen. Bewerk hem zodra dat is gecheckt.",
 		customPercent: "Anders %",
 		customPercentTitle: "Percentage",
 		percentMax: "Maximaal 120%",

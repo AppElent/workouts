@@ -260,6 +260,22 @@ it("retries under the same operation until the server says the first never lande
 	);
 });
 
+it("keeps a set frozen while it is unknown whether its send landed", async () => {
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	const sent = add.mock.calls[0][0];
+	await fireEvent.press((await screen.findAllByLabelText(/set 1, /))[0]);
+	expect(await screen.findByText(/may already be saved/)).toBeTruthy();
+	const load = screen.getByDisplayValue(String(sent.weight));
+	expect(load.props.editable).toBe(false);
+	await fireEvent.press(screen.getByRole("button", { name: /^Try again/ }));
+	expect(add).toHaveBeenCalledTimes(2);
+	expect(add.mock.calls[1][0]).toEqual(sent);
+});
+
 it("starts rest when a send fails, but not again when it is retried", async () => {
 	receipt = undefined;
 	add.mockRejectedValueOnce(new Error("Connection lost"));

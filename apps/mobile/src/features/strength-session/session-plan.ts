@@ -1097,6 +1097,7 @@ function repriced(
 	const onPlan = (row: PlanSet) =>
 		row.exerciseId === exerciseId &&
 		!row.done &&
+		!row.attempt &&
 		row.percent !== null &&
 		(!row.plan || near(row.kg, row.plan.kg)) &&
 		(old
@@ -1113,9 +1114,7 @@ function repriced(
 		)
 			return {
 				...row,
-				loggedPercent:
-					targetPercent(row, old, facts.stepKg) ??
-					Math.round((row.kg / old.value) * 100),
+				loggedPercent: Math.round((row.kg / old.value) * 100),
 			};
 		if (onPlan(row)) {
 			const kg = snapLoad(
@@ -1191,7 +1190,8 @@ export function clearManual(
 			...mapRows(plan, (row) => {
 				if (row.exerciseId !== exerciseId) return row;
 				if (row.done) return { ...row, loggedPercent: null };
-				return row.basePlanKg !== undefined &&
+				return !row.attempt &&
+					row.basePlanKg !== undefined &&
 					(!old || targetPercent(row, old, facts.stepKg) === row.percent)
 					? {
 							...row,
@@ -1993,8 +1993,7 @@ export function markLogged(
 	if (!row) return { plan, carriedTo: null, prior: [] };
 	const reference = referenceFor(plan, facts, row.exerciseId);
 	const loggedPercent = reference
-		? (targetPercent(row, reference, facts.stepKg) ??
-			Math.round((row.kg / reference.value) * 100))
+		? Math.round((row.kg / reference.value) * 100)
 		: null;
 	const planKg = row.plan?.kg ?? row.pricedKg ?? 0;
 	const logged: PlanSet = {

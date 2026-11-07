@@ -226,9 +226,11 @@ export function SetEditorScreen() {
 	}, []);
 	const logged = Boolean(stored?.done);
 	const changed = Boolean(logged && stored && draft && !sameSet(draft, stored));
-	const locked = Boolean(
+	const sending = Boolean(
 		row?.attempt && workspaceStore.inFlight(key).has(row.attempt.operationId),
 	);
+	// A send with an unknown result froze these values: a retry must match them.
+	const locked = Boolean(row?.attempt);
 	const close = () => {
 		if (router.canGoBack()) router.back();
 	};
@@ -490,13 +492,18 @@ export function SetEditorScreen() {
 			? text.restOver
 			: fmt(text.restSub, { time: formatClock(restState.remaining) })
 		: null;
-	const subtitle = [previousLine, restLine].filter(Boolean).join(" · ");
+	const subtitle =
+		locked && !sending
+			? text.lockedUnknown
+			: [previousLine, restLine].filter(Boolean).join(" · ");
 
 	let primary = fmt(text.logLoad, { load: fullLoad });
 	let primaryEnabled = true;
-	if (locked) {
+	if (sending) {
 		primary = text.lockedBusy;
 		primaryEnabled = false;
+	} else if (locked) {
+		primary = fmt(text.retry, { load: fullLoad });
 	} else if (clockIdle) {
 		primary = text.startClockFirst;
 		primaryEnabled = false;
@@ -530,6 +537,11 @@ export function SetEditorScreen() {
 		Keyboard.dismiss();
 		// The field was still focused, so the button hasn't asked yet: show it first.
 		if (midType && plan && facts && typoCheck(plan, row, facts, stored)) return;
+		if (locked) {
+			actions.logReady(row.id);
+			close();
+			return;
+		}
 		const confirmed: PlanSet = check
 			? { ...row, confirmedKey: confirmKey(row) }
 			: row;
@@ -585,7 +597,7 @@ export function SetEditorScreen() {
 					id: "delete",
 					label: copy.rowDelete,
 					destructive: true,
-					disabled: locked,
+					disabled: sending,
 				},
 			],
 		},
@@ -1048,10 +1060,10 @@ export function SetEditorScreen() {
 							) : null}
 							<Pressable
 								accessibilityRole="button"
-								accessibilityState={{ disabled: locked }}
-								disabled={locked}
+								accessibilityState={{ disabled: sending }}
+								disabled={sending}
 								onPress={() => void onMenu("delete")}
-								style={[styles.deleteRow, locked && styles.primaryOff]}
+								style={[styles.deleteRow, sending && styles.primaryOff]}
 							>
 								<AppText variant="control" style={{ color: colors.danger }}>
 									{copy.rowDelete}

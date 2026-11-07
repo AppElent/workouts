@@ -282,6 +282,25 @@ describe("units", () => {
 });
 
 describe("logged percent", () => {
+	it("freezes what was lifted, not the percentage that was asked for", () => {
+		const plan = plannedPlan();
+		const row = applyPercent(firstOpen(plan), 80, { value: 120 }, SQUAT);
+		expect(row.kg).toBe(95);
+		const next = log(updateRow(plan, row.id, row), row);
+		expect(findRow(next, row.id)?.percent).toBe(80);
+		expect(findRow(next, row.id)?.loggedPercent).toBe(
+			Math.round((95 / 120) * 100),
+		);
+	});
+	it("leaves a set whose send is unresolved at the load it sent", () => {
+		const plan = plannedPlan();
+		const row = firstOpen(plan);
+		const sent = updateRow(plan, row.id, {
+			...(beginAttempt(plan, row.id, "op-1") as PlanSet),
+		});
+		const next = setManual(sent, "squat", 200, SQUAT).plan;
+		expect(findRow(next, row.id)?.kg).toBe(row.kg);
+	});
 	it("freezes at logging", () => {
 		const plan = plannedPlan();
 		const row = firstOpen(plan);
