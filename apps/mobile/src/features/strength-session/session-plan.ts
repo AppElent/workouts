@@ -1994,6 +1994,17 @@ export function restAfterLog(plan: SessionPlan, id: string) {
 	);
 	return openLeft || row.free ? plan.restDefault : null;
 }
+function carryLoad(item: PlanSet, from: PlanSet): PlanSet {
+	return {
+		...item,
+		kg: from.kg,
+		unit: from.unit,
+		typedLbs: from.typedLbs,
+		percent: from.percent,
+		carried: true,
+		blank: item.reps >= 1 ? undefined : item.blank,
+	};
+}
 export function markLogged(
 	plan: SessionPlan,
 	id: string,
@@ -2049,15 +2060,7 @@ export function markLogged(
 				return item;
 			prior.push(item);
 			carriedTo = shownLoad(row);
-			return {
-				...item,
-				kg: row.kg,
-				unit: row.unit,
-				typedLbs: row.typedLbs,
-				percent: row.percent,
-				carried: true,
-				blank: item.reps >= 1 ? undefined : item.blank,
-			};
+			return carryLoad(item, row);
 		}),
 	}));
 	return {
@@ -2072,6 +2075,14 @@ export function markLogged(
 		prior,
 	};
 }
+function sameRow(a: PlanSet, b: PlanSet) {
+	const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<
+		keyof PlanSet
+	>;
+	return [...keys].every(
+		(key) => JSON.stringify(a[key]) === JSON.stringify(b[key]),
+	);
+}
 /** Undo for one logged set: its row and anything the log carried go back. */
 export function restoreRows(plan: SessionPlan, prior: PlanSet[]): SessionPlan {
 	const [target, ...carried] = prior;
@@ -2080,7 +2091,9 @@ export function restoreRows(plan: SessionPlan, prior: PlanSet[]): SessionPlan {
 		if (row.id === target?.id) return target;
 		// A carried row someone has since logged or changed is no longer ours to undo.
 		const before = byId.get(row.id);
-		return before && row.carried && !row.done && !isUnsaved(row) ? before : row;
+		return before && target && sameRow(row, carryLoad(before, target))
+			? before
+			: row;
 	});
 	return {
 		...restored,

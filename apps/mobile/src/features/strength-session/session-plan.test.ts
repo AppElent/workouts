@@ -1085,6 +1085,42 @@ describe("undo and removal", () => {
 		expect(findRow(plan, second.id)?.kg).toBe(first.kg + 10);
 		expect(findRow(plan, third.id)?.kg).toBe(third.kg);
 	});
+	it("leaves a carried row alone once it was edited or carried on", () => {
+		const planned = [
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+		];
+		const grouped = groupWith(
+			plannedPlan({ squat: planned, bench: planned }),
+			"squat",
+			"bench",
+		);
+		const rounds = grouped.plan.groups[grouped.groupId as string]?.rounds ?? [];
+		const [first, second, third, fourth] = rounds.map(
+			(round) => round.items[0] as PlanSet,
+		) as [PlanSet, PlanSet, PlanSet, PlanSet];
+		const logged = markLogged(
+			updateRow(grouped.plan, first.id, { ...first, kg: first.kg + 10 }),
+			first.id,
+			"s-1",
+			1,
+			SQUAT,
+		);
+		const carried = findRow(logged.plan, second.id) as PlanSet;
+		const heavier = findRow(logged.plan, third.id) as PlanSet;
+		let plan = updateRow(logged.plan, second.id, { ...carried, reps: 3 });
+		plan = updateRow(plan, third.id, { ...heavier, kg: heavier.kg + 5 });
+		plan = restoreRows(plan, logged.prior);
+		expect(findRow(plan, second.id)).toMatchObject({
+			reps: 3,
+			kg: first.kg + 10,
+		});
+		expect(findRow(plan, third.id)?.kg).toBe(first.kg + 15);
+		expect(findRow(plan, fourth.id)?.kg).toBe(fourth.kg);
+		expect(findRow(plan, fourth.id)?.carried).toBeFalsy();
+	});
 	it("returns set ids to delete when removing an exercise", () => {
 		let plan = plannedPlan();
 		plan = log(plan, firstOpen(plan), "x");
