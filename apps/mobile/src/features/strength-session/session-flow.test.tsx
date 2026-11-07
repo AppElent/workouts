@@ -83,6 +83,7 @@ let receipt: { setId: string; status: "saved" } | null | undefined = null;
 let online = true;
 const add = jest.fn();
 const update = jest.fn();
+const removeSet = jest.fn();
 const finish = jest.fn();
 const cancel = jest.fn();
 
@@ -118,6 +119,7 @@ beforeEach(() => {
 	online = true;
 	add.mockReset();
 	update.mockReset();
+	removeSet.mockReset();
 	finish.mockReset();
 	cancel.mockReset();
 	add.mockImplementation(async () => {
@@ -155,11 +157,13 @@ beforeEach(() => {
 				? add
 				: name === "sets:update"
 					? update
-					: name === "workoutSessions:finish"
-						? finish
-						: name === "workoutSessions:cancel"
-							? cancel
-							: jest.fn().mockResolvedValue(undefined);
+					: name === "sets:remove"
+						? removeSet
+						: name === "workoutSessions:finish"
+							? finish
+							: name === "workoutSessions:cancel"
+								? cancel
+								: jest.fn().mockResolvedValue(undefined);
 		return Object.assign(fn, {
 			withOptimisticUpdate: jest.fn(() => fn),
 		}) as never;
@@ -415,6 +419,29 @@ it("won't take a Krachtprofiel value onto a set with an unresolved send", async 
 	) as PlanSet;
 	expect(after.kg).toBe(before.kg);
 	expect(after.attempt?.operationId).toBe(before.attempt?.operationId);
+});
+
+it("keeps other changes when undoing a log fails", async () => {
+	add.mockResolvedValue("set-1");
+	removeSet.mockRejectedValue(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	const plan = workspaceStore.plan(PLAN_KEY) as SessionPlan;
+	const other = allRows(plan).find((row) => !row.done) as PlanSet;
+	const logged = allRows(plan).find((row) => row.done) as PlanSet;
+	await act(async () =>
+		workspaceStore.update(PLAN_KEY, (current) =>
+			updateRow(current, other.id, { ...other, reps: 9 }),
+		),
+	);
+	await act(async () => {
+		fireEvent.press(screen.getByTestId("session-toast-action"));
+	});
+	const after = workspaceStore.plan(PLAN_KEY) as SessionPlan;
+	expect(removeSet).toHaveBeenCalledTimes(1);
+	expect(findRow(after, other.id)?.reps).toBe(9);
+	expect(findRow(after, logged.id)?.done).toBe(true);
 });
 
 it("won't close a group while one of its sets failed", async () => {

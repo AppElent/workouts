@@ -265,7 +265,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 						try {
 							await removeSetMutation({ id: setId as Id<"sets"> });
 						} catch (error) {
-							set(result.plan);
+							const logged = findRow(result.plan, row.id);
+							if (logged) set(updateRow(plan(), row.id, logged));
 							say(convexErrorMessage(error, saveError));
 						}
 					});
@@ -401,7 +402,6 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const stored = findRow(plan(), rowId);
 			if (!stored?.setId) return false;
 			const { weight } = payloadFor(draft, stored.setNumber ?? 0);
-			const before = plan();
 			const sameLoad = Math.abs(draft.kg - stored.kg) < 0.01;
 			const facts = getFacts(draft.exerciseId);
 			const next: PlanSet = {
@@ -433,7 +433,6 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				);
 				return true;
 			} catch (error) {
-				set(before);
 				say(convexErrorMessage(error, saveError));
 				return false;
 			}
@@ -458,7 +457,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					await removeSetMutation({ id: row.setId as Id<"sets"> });
 					say(fmt(copy.toastUnchecked, { load: shortLoad(row) }));
 				} catch (error) {
-					set(before);
+					set(updateRow(plan(), rowId, row));
 					say(convexErrorMessage(error, saveError));
 				}
 			});

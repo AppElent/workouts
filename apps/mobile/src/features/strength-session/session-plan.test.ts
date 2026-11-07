@@ -88,6 +88,11 @@ const TABLE: Record<string, ExerciseFacts> = {
 };
 const lookup = (id: string) => TABLE[id] ?? PLAIN;
 
+const mapZero = (plan: SessionPlan) =>
+	rowsOf(plan, "squat").reduce(
+		(next, row) => updateRow(next, row.id, { ...row, kg: 0 }),
+		plan,
+	);
 function plannedPlan(
 	sets: Record<string, { reps: number; weight: number }[]> = {
 		squat: [
@@ -933,6 +938,35 @@ describe("reconcile", () => {
 	it("returns the same plan when nothing changed", () => {
 		const plan = plannedPlan();
 		expect(reconcilePlan(plan, [], [], lookup)).toBe(plan);
+	});
+});
+
+describe("history prefill", () => {
+	it("leaves a set with a send or a failure at what was entered", () => {
+		const facts = { ...SQUAT, last: { kg: 80, reps: 5 } };
+		const seeded = plannedPlan({
+			squat: [
+				{ reps: 5, weight: 0 },
+				{ reps: 5, weight: 0 },
+				{ reps: 5, weight: 0 },
+			],
+		});
+		const [sent, failed, open] = rowsOf(seeded, "squat") as [
+			PlanSet,
+			PlanSet,
+			PlanSet,
+		];
+		const zero = mapZero(seeded);
+		let plan = updateRow(
+			zero,
+			sent.id,
+			beginAttempt(zero, sent.id, "op") as PlanSet,
+		);
+		plan = markFailed(plan, failed.id, false);
+		const next = fillFromLast(plan, "squat", facts);
+		expect(findRow(next, sent.id)?.kg).toBe(0);
+		expect(findRow(next, failed.id)?.kg).toBe(0);
+		expect(findRow(next, open.id)?.kg).toBe(80);
 	});
 });
 

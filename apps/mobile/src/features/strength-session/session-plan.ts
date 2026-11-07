@@ -662,7 +662,13 @@ export function fillFromLast(
 	if (plan.lastFilled.includes(exerciseId)) return plan;
 	const last = facts.last;
 	const fill = (row: PlanSet): PlanSet => {
-		if (row.exerciseId !== exerciseId || row.done || !last || row.kg > 0)
+		if (
+			row.exerciseId !== exerciseId ||
+			row.done ||
+			isUnsaved(row) ||
+			!last ||
+			row.kg > 0
+		)
 			return row;
 		const reps = row.reps >= 1 ? row.reps : last.reps;
 		return {
