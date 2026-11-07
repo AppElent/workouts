@@ -2235,9 +2235,6 @@ export function markFailed(
 export const failedRows = (plan: SessionPlan) =>
 	allRows(plan).filter((row) => row.failed && !row.done);
 
-/** Edits stay locked only while a request is out with an unknown result. */
-export const isLocked = (row: PlanSet) => Boolean(row.attempt);
-
 // --- Recap ------------------------------------------------------------------
 
 export interface RecapRow {
