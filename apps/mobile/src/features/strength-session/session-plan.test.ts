@@ -972,6 +972,38 @@ describe("undo and removal", () => {
 		const back = restoreRows(plan, [first[0] as PlanSet]);
 		expect(findRow(back, next.id)?.attempt?.operationId).toBe("op-2");
 	});
+	it("leaves a carried row alone once it has its own send or result", () => {
+		const planned = [
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+		];
+		const grouped = groupWith(
+			plannedPlan({ squat: planned, bench: planned }),
+			"squat",
+			"bench",
+		);
+		const rounds = grouped.plan.groups[grouped.groupId as string]?.rounds ?? [];
+		const [first, second, third] = rounds.map(
+			(round) => round.items[0] as PlanSet,
+		) as [PlanSet, PlanSet, PlanSet];
+		const heavier = updateRow(grouped.plan, first.id, {
+			...first,
+			kg: first.kg + 10,
+		});
+		const logged = markLogged(heavier, first.id, "s-1", 1, SQUAT);
+		expect(logged.prior).toHaveLength(3);
+		let plan = updateRow(
+			logged.plan,
+			second.id,
+			beginAttempt(logged.plan, second.id, "op-2") as PlanSet,
+		);
+		plan = restoreRows(plan, logged.prior);
+		expect(findRow(plan, first.id)?.done).toBeFalsy();
+		expect(findRow(plan, second.id)?.attempt?.operationId).toBe("op-2");
+		expect(findRow(plan, second.id)?.kg).toBe(first.kg + 10);
+		expect(findRow(plan, third.id)?.kg).toBe(third.kg);
+	});
 	it("returns set ids to delete when removing an exercise", () => {
 		let plan = plannedPlan();
 		plan = log(plan, firstOpen(plan), "x");

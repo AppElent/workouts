@@ -2068,8 +2068,14 @@ export function markLogged(
 }
 /** Undo for one logged set: its row and anything the log carried go back. */
 export function restoreRows(plan: SessionPlan, prior: PlanSet[]): SessionPlan {
-	const byId = new Map(prior.map((row) => [row.id, row]));
-	const restored = mapRows(plan, (row) => byId.get(row.id) ?? row);
+	const [target, ...carried] = prior;
+	const byId = new Map(carried.map((row) => [row.id, row]));
+	const restored = mapRows(plan, (row) => {
+		if (row.id === target?.id) return target;
+		// A carried row someone has since logged or changed is no longer ours to undo.
+		const before = byId.get(row.id);
+		return before && row.carried && !row.done && !isUnsaved(row) ? before : row;
+	});
 	return {
 		...restored,
 		groups: Object.fromEntries(
