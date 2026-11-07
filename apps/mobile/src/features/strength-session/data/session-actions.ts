@@ -387,7 +387,10 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		async function retryFailed() {
 			if (blocked()) return;
 			const inFlight = workspaceStore.inFlight(key);
-			const rows = failedRows(plan());
+			// After a restart a send can be unresolved without having failed here.
+			const rows = allRows(plan()).filter(
+				(row) => !row.done && (row.failed || row.attempt),
+			);
 			const sending = (row: PlanSet) =>
 				Boolean(row.attempt && inFlight.has(row.attempt.operationId));
 			if (rows.some(sending)) say(copy.blockedBusy);

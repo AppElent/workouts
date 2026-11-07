@@ -141,6 +141,12 @@ export function StrengthProfileScreen() {
 	};
 	function apply() {
 		if (!row || !chosen) return;
+		// A send with an unknown result froze this set: its values must match it.
+		if (row.attempt) {
+			actions.say(t.strength.plan.editor.lockedUnknown);
+			close();
+			return;
+		}
 		if (row.done) workspaceStore.setDraft(key, row.id, chosen);
 		else actions.set(updateRow(actions.plan(), row.id, chosen));
 		close();

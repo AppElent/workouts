@@ -19,6 +19,7 @@ import { renderApp } from "../../test-support/render-app";
 import { workspaceStore } from "./data/session-workspace";
 import {
 	allRows,
+	findRow,
 	groupWith,
 	markFailed,
 	type PlanSet,
@@ -28,6 +29,7 @@ import {
 	setGroupRounds,
 	startClock,
 	stopClock,
+	updateRow,
 } from "./session-plan";
 
 jest.mock("@clerk/expo", () => ({
@@ -363,6 +365,56 @@ it("won't finish while a set failed, and offers the retry instead", async () => 
 	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
 	expect(screen.queryByText("Lower A done")).toBeNull();
 	expect(finish).not.toHaveBeenCalled();
+});
+
+it("won't finish on a send left unresolved by a restart, and retries it", async () => {
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	loggedSets = [serverSet("set-1", 8, 1)];
+	let app = await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	await act(async () =>
+		workspaceStore.update(PLAN_KEY, (plan) => {
+			const row = allRows(plan).find((item) => item.attempt) as PlanSet;
+			return updateRow(plan, row.id, { ...row, failed: undefined });
+		}),
+	);
+	await app.unmount();
+	app = await mount();
+	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
+	expect(finish).not.toHaveBeenCalled();
+	const sent = add.mock.calls[0][0];
+	await fireEvent.press(screen.getByTestId("session-toast-action"));
+	expect(add).toHaveBeenCalledTimes(2);
+	expect(add.mock.calls[1][0].operationId).toBe(sent.operationId);
+	await app.unmount();
+});
+
+it("won't take a Krachtprofiel value onto a set with an unresolved send", async () => {
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	const before = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+		(item) => item.attempt,
+	) as PlanSet;
+	await fireEvent.press((await screen.findAllByLabelText(/set 1, /))[0]);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: /Strength profile/ }),
+	);
+	await fireEvent.press(await screen.findByText("80%"));
+	await fireEvent.press(
+		screen.getByRole("button", { name: /Apply · 80 kg × / }),
+	);
+	const after = findRow(
+		workspaceStore.plan(PLAN_KEY) as SessionPlan,
+		before.id,
+	) as PlanSet;
+	expect(after.kg).toBe(before.kg);
+	expect(after.attempt?.operationId).toBe(before.attempt?.operationId);
 });
 
 it("won't close a group while one of its sets failed", async () => {

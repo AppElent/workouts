@@ -36,7 +36,6 @@ import { formatClock } from "./session-format";
 import {
 	allRows,
 	closeOpenClocks,
-	failedRows,
 	findRow,
 	isLocked,
 	loggedCount,
@@ -250,18 +249,7 @@ export function StrengthSessionScreen() {
 		: false;
 	async function finish() {
 		if (!plan || actions.blocked()) return;
-		if (sending) {
-			actions.say(copy.blockedBusy);
-			return;
-		}
-		const failed = failedRows(plan).length;
-		if (failed) {
-			actions.say(plural(locale, failed, copy.finish.failedBlocked), {
-				retryLabel: copy.retryAll,
-				retry: () => void actions.retryFailed(),
-			});
-			return;
-		}
+		if (actions.refusePending(allRows(plan))) return;
 		if (logged === 0 && wods === 0) {
 			const yes = await choose({
 				title: copy.finish.emptyTitle,
@@ -296,6 +284,11 @@ export function StrengthSessionScreen() {
 		setRecapOpen(true);
 	}
 	async function confirmRecap() {
+		// A send can fail or come back unresolved while the recap is open.
+		if (actions.refusePending(allRows(actions.plan()))) {
+			setRecapOpen(false);
+			return;
+		}
 		setFinishing(true);
 		const done = await actions.finishSession();
 		setFinishing(false);
