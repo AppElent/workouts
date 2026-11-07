@@ -610,7 +610,7 @@ export function SetEditorScreen() {
 					id: "delete",
 					label: copy.rowDelete,
 					destructive: true,
-					disabled: sending,
+					disabled: locked,
 				},
 			],
 		},
@@ -1073,10 +1073,10 @@ export function SetEditorScreen() {
 							) : null}
 							<Pressable
 								accessibilityRole="button"
-								accessibilityState={{ disabled: sending }}
-								disabled={sending}
+								accessibilityState={{ disabled: locked }}
+								disabled={locked}
 								onPress={() => void onMenu("delete")}
-								style={[styles.deleteRow, sending && styles.primaryOff]}
+								style={[styles.deleteRow, locked && styles.primaryOff]}
 							>
 								<AppText variant="control" style={{ color: colors.danger }}>
 									{copy.rowDelete}

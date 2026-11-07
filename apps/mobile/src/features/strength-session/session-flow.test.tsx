@@ -359,6 +359,27 @@ it("won't remove a set whose send is still on its way", async () => {
 	expect(await screen.findByText(/still being logged/)).toBeTruthy();
 });
 
+it("won't remove a set until its lost send is settled", async () => {
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	const row = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+		(item) => item.attempt,
+	) as PlanSet;
+	await fireEvent.press(
+		screen.getAllByRole("button", {
+			name: "Delete",
+			includeHiddenElements: true,
+		})[0],
+	);
+	expect(await screen.findByText(/may already be saved/)).toBeTruthy();
+	expect(
+		findRow(workspaceStore.plan(PLAN_KEY) as SessionPlan, row.id),
+	).toBeTruthy();
+});
+
 it("won't finish while a set failed, and offers the retry instead", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
 	receipt = undefined;

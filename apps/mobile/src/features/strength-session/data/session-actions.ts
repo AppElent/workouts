@@ -174,6 +174,13 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			say(copy.blockedBusy);
 			return true;
 		};
+		/** Only the receipt can say a send didn't land, so these rows stay until it does. */
+		const refuseUnresolved = (rows: PlanSet[]) => {
+			if (refuseSending(rows)) return true;
+			if (!rows.some((row) => row.attempt && !row.done)) return false;
+			say(copy.editor.lockedUnknown);
+			return true;
+		};
 		/** Failed rows must be retried or removed, never dropped along with something else. */
 		const refusePending = (rows: PlanSet[]) => {
 			if (refuseSending(rows)) return true;
@@ -465,8 +472,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		async function deleteRow(rowId: string) {
 			const row = findRow(plan(), rowId);
 			if (!row) return;
-			// A send still queued would land after the row is gone and bring it back.
-			if (refuseSending([row])) return;
+			// A send that may have landed would bring the row back once it's gone.
+			if (refuseUnresolved([row])) return;
 			const before = plan();
 			if (!row.setId) {
 				set(removeRow(before, rowId));
@@ -598,7 +605,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			return apply(addToGroup(plan(), groupId, exerciseId), { name: label });
 		}
 		async function dropExercise(exerciseId: string) {
-			if (refuseSending(rowsOf(plan(), exerciseId))) return;
+			if (refuseUnresolved(rowsOf(plan(), exerciseId))) return;
 			const result = removeExercise(plan(), exerciseId);
 			const label = nameOf(exerciseId);
 			if (result.refused) {
