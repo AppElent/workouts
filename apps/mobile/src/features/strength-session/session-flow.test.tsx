@@ -407,6 +407,31 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.mode).toBe("rounds");
 });
 
+it("undoes a removed set, unless the session changed since", async () => {
+	const removeFirst = () =>
+		fireEvent.press(
+			screen.getAllByRole("button", {
+				name: "Delete",
+				includeHiddenElements: true,
+			})[0],
+		);
+	await mount();
+	await firstRow();
+	const start = workspaceStore.plan(PLAN_KEY);
+	await removeFirst();
+	await fireEvent.press(await screen.findByTestId("session-toast-action"));
+	expect(workspaceStore.plan(PLAN_KEY)).toBe(start);
+
+	await removeFirst();
+	await screen.findByTestId("session-toast-action");
+	await act(async () =>
+		workspaceStore.update(PLAN_KEY, (plan) => ({ ...plan, restDefault: 45 })),
+	);
+	await fireEvent.press(screen.getByTestId("session-toast-action"));
+	expect(await screen.findByText(/Can't undo/)).toBeTruthy();
+	expect(workspaceStore.plan(PLAN_KEY)?.restDefault).toBe(45);
+});
+
 it("won't log the old value behind a cleared field", async () => {
 	await mount();
 	await fireEvent.press(await firstRow());

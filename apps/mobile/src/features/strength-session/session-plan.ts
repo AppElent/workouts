@@ -1420,7 +1420,8 @@ function normalizeGroup(group: SetGroup): SetGroup {
 	return {
 		...group,
 		rounds: group.rounds.filter(
-			(round, index) => index <= at || hasLogged(round),
+			(round, index) =>
+				index <= at || hasLogged(round) || round.items.some(isUnsaved),
 		),
 	};
 }

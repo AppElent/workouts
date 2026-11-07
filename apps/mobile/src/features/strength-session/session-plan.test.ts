@@ -948,6 +948,30 @@ describe("undo and removal", () => {
 		const back = restoreRows(result.plan, [row]);
 		expect(findRow(back, row.id)).toEqual(row);
 	});
+	it("keeps a later clock round with an unresolved send through an undo", () => {
+		const planned = [{ reps: 5, weight: 95 }];
+		const grouped = groupWith(
+			plannedPlan({ squat: planned, bench: planned }),
+			"squat",
+			"bench",
+		);
+		const id = grouped.groupId as string;
+		let plan = startClock(
+			setGroupMode(grouped.plan, id, "amrap").plan,
+			id,
+			0,
+		).plan;
+		const first = plan.groups[id]?.rounds[0]?.items ?? [];
+		for (const item of first) plan = log(plan, item);
+		const next = plan.groups[id]?.rounds[1]?.items[0] as PlanSet;
+		plan = updateRow(
+			plan,
+			next.id,
+			beginAttempt(plan, next.id, "op-2") as PlanSet,
+		);
+		const back = restoreRows(plan, [first[0] as PlanSet]);
+		expect(findRow(back, next.id)?.attempt?.operationId).toBe("op-2");
+	});
 	it("returns set ids to delete when removing an exercise", () => {
 		let plan = plannedPlan();
 		plan = log(plan, firstOpen(plan), "x");

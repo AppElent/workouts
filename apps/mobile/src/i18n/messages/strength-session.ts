@@ -86,6 +86,7 @@ export const strengthSessionEn = {
 	undo: "Undo",
 	blockedOffline: "Didn't work: no connection. Try again soon.",
 	blockedBusy: "One moment: a set is still being logged.",
+	undoStale: "Can't undo: the session has changed since.",
 	blockedStartClock: "Start the clock first.",
 	storageError: "This device could not store your session changes.",
 	notes: {
@@ -506,6 +507,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 	undo: "Ongedaan",
 	blockedOffline: "Niet gelukt: geen verbinding. Probeer het zo opnieuw.",
 	blockedBusy: "Even wachten: er wordt nog een set gelogd.",
+	undoStale: "Ongedaan maken lukt niet: de sessie is intussen veranderd.",
 	blockedStartClock: "Start eerst de klok.",
 	storageError: "Dit apparaat kon je sessiewijzigingen niet bewaren.",
 	notes: {

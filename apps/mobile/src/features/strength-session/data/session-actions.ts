@@ -120,16 +120,25 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const template = (copy.notes as Record<string, string>)[note.code] ?? "";
 			return fmt(template, { name: name ?? "", ...(note.values ?? {}) });
 		};
-		const snapshotUndo = (before: SessionPlan, added?: string) => ({
-			undoLabel: copy.undo,
-			// The server keeps an added exercise, so undo has to keep it out of the plan.
-			undo: () =>
-				set(
-					added
-						? { ...before, removed: [...new Set([...before.removed, added])] }
-						: before,
-				),
-		});
+		/** Call after the change: a snapshot can only undo what came last. */
+		const snapshotUndo = (before: SessionPlan, added?: string) => {
+			const after = plan();
+			return {
+				undoLabel: copy.undo,
+				undo: () => {
+					if (plan() !== after) {
+						say(copy.undoStale);
+						return;
+					}
+					// The server keeps an added exercise, so undo has to keep it out of the plan.
+					set(
+						added
+							? { ...before, removed: [...new Set([...before.removed, added])] }
+							: before,
+					);
+				},
+			};
+		};
 		/** Applies a local action. Refusals explain themselves; changes can be undone. */
 		const apply = (
 			result: PlanResult,
