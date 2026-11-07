@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when adding, moving, or naming files in a native mobile app.
-version: 1.1.0
+version: 1.1.1
 applies_to: [mobile]
 ---
 
