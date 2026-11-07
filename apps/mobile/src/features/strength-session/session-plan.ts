@@ -1686,6 +1686,29 @@ function baseRound(group: SetGroup): GroupRound {
 	}
 	return { id: group.rounds[0]?.id ?? newRowId(), items: [...first.values()] };
 }
+/** The rounds as saved, with what changed on the clock since: edits and who's in the group. */
+function mergeSavedRounds(group: SetGroup, saved: GroupRound[]): GroupRound[] {
+	const current = groupRows(group);
+	const byId = new Map(current.map((row) => [row.id, row]));
+	const members = new Set(current.map((row) => row.exerciseId));
+	const known = new Set(
+		saved.flatMap((round) => round.items.map((item) => item.exerciseId)),
+	);
+	const joined = baseRound(group).items.filter(
+		(row) => !known.has(row.exerciseId),
+	);
+	return saved
+		.map((round, index) => ({
+			...round,
+			items: [
+				...round.items
+					.filter((item) => members.has(item.exerciseId))
+					.map((item) => byId.get(item.id) ?? item),
+				...joined.map((row) => (index === 0 ? row : cloneOpen(row))),
+			],
+		}))
+		.filter((round) => round.items.length > 0);
+}
 export function modeLocked(group: SetGroup) {
 	return (
 		groupRows(group).some((row) => row.done) ||
@@ -1716,7 +1739,8 @@ export function setGroupMode(
 					mode,
 					state: "idle",
 					savedRounds: undefined,
-					rounds: group.savedRounds ?? [
+					rounds: (group.savedRounds &&
+						mergeSavedRounds(group, group.savedRounds)) ?? [
 						baseRound(group),
 						...Array.from(
 							{ length: Math.max(0, (group.lastRounds ?? 3) - 1) },

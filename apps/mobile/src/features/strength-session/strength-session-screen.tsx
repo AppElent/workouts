@@ -37,7 +37,6 @@ import {
 	allRows,
 	closeOpenClocks,
 	findRow,
-	isLocked,
 	loggedCount,
 	openCount,
 	recapOf,
@@ -239,14 +238,6 @@ export function StrengthSessionScreen() {
 	const open = plan ? openCount(plan) : 0;
 	const allDone = logged > 0 && open === 0;
 	const name = session?.name ?? legacy.freeSession;
-	const sending = plan
-		? allRows(plan).some(
-				(row) =>
-					isLocked(row) &&
-					row.attempt &&
-					workspaceStore.inFlight(key).has(row.attempt.operationId),
-			)
-		: false;
 	async function finish() {
 		if (!plan || actions.blocked()) return;
 		if (actions.refusePending(allRows(plan))) return;
@@ -302,10 +293,7 @@ export function StrengthSessionScreen() {
 	}
 	async function cancelWorkout() {
 		if (actions.blocked()) return;
-		if (sending) {
-			actions.say(copy.blockedBusy);
-			return;
-		}
+		if (actions.refuseUnresolved(allRows(actions.plan()))) return;
 		const yes = await choose({
 			title: copy.finish.cancelTitle,
 			message: copy.finish.cancelMessage,

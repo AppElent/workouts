@@ -380,6 +380,20 @@ it("won't remove a set until its lost send is settled", async () => {
 	).toBeTruthy();
 });
 
+it("won't cancel the session until a lost send is settled", async () => {
+	receipt = undefined;
+	add.mockRejectedValueOnce(new Error("Connection lost"));
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	await fireEvent.press(
+		await screen.findByText("Cancel session", { includeHiddenElements: true }),
+	);
+	expect(await screen.findByText(/may already be saved/)).toBeTruthy();
+	expect(screen.queryByText("Cancel session?")).toBeNull();
+	expect(cancel).not.toHaveBeenCalled();
+});
+
 it("won't finish while a set failed, and offers the retry instead", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
 	receipt = undefined;

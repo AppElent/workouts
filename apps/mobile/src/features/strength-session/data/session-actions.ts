@@ -650,6 +650,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		}
 		async function cancelSession(flush: boolean) {
 			if (blocked() || !sessionId) return false;
+			// Ending here would throw away the only way to find out if a send landed.
+			if (refuseUnresolved(allRows(plan()))) return false;
 			try {
 				if (flush) await flushManuals();
 				await cancelMutation({ id: sessionId });
@@ -668,6 +670,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			snapshotUndo,
 			blocked,
 			refusePending,
+			refuseUnresolved,
 			logRow,
 			logReady,
 			retryFailed,

@@ -576,6 +576,34 @@ describe("groups", () => {
 		expect(findRow(back, round2.id)?.reps).toBe(8);
 		expect(back.groups[id]?.rounds).toHaveLength(3);
 	});
+	it("keeps an exercise added on the clock when going back to rounds", () => {
+		const planned = [
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+			{ reps: 5, weight: 95 },
+		];
+		const grouped = groupWith(
+			plannedPlan({ squat: planned, bench: planned, row: planned }),
+			"squat",
+			"bench",
+		);
+		const id = grouped.groupId as string;
+		const squat = rowsOf(grouped.plan, "squat");
+		const clock = setGroupMode(grouped.plan, id, "amrap").plan;
+		const added = addToGroup(clock, id, "row").plan;
+		const row = rowsOf(added, "row")[0] as PlanSet;
+		const base = squat[0] as PlanSet;
+		let plan = updateRow(added, row.id, { ...row, kg: 75, reps: 8 });
+		plan = updateRow(plan, base.id, { ...base, reps: 9 });
+		const back = setGroupMode(plan, id, "rounds").plan;
+		expect(back.groups[id]?.rounds).toHaveLength(3);
+		expect(findRow(back, row.id)).toMatchObject({ kg: 75, reps: 8 });
+		expect(findRow(back, base.id)?.reps).toBe(9);
+		expect(rowsOf(back, "row")).toHaveLength(3);
+		expect(rowsOf(back, "squat").map((item) => item.id)).toEqual(
+			squat.map((item) => item.id),
+		);
+	});
 	it("locks the mode once a set is logged", () => {
 		const grouped = groupWith(two(), "squat", "curl");
 		const id = grouped.groupId as string;
