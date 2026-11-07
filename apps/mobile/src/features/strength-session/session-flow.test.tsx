@@ -391,6 +391,10 @@ it("asks about a likely typo even when Log is tapped with the keyboard up", asyn
 	await fireEvent(load, "focus");
 	await fireEvent.changeText(load, "200");
 	await fireEvent.press(screen.getByRole("button", { name: /^Log · 200 kg/ }));
+	await fireEvent(load, "blur");
+	expect(
+		screen.getByRole("button", { name: /200 kg.*(right|correct)/i }),
+	).toBeTruthy();
 	expect(add).not.toHaveBeenCalled();
 });
 
