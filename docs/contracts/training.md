@@ -48,22 +48,32 @@ references. Studies: [training](../../designs/app/training_final.html),
   logging records performance; plans and drafts never count toward totals or
   references ([ADR 0012](../adr/0012-separate-planned-sets-from-performance.md)).
   Exercise membership and order persist without logged Sets.
+- The session is a table: per set the percentage of 1RM, weight × reps, the 1RM it
+  would produce, and a check that logs it. Tap opens the editor; swipe and long
+  press offer the same set actions. Sets can be added from an empty start.
 - Keep set edit/delete, repeat (prepares a draft), set types, previous performance,
   equipment increments, plates, rest timer, elapsed time, resume, and hosted score
   routes. Clearing a saved RPE leaves other fields unchanged.
+- **Default rest** is per session and set from session options.
+- **Set groups** repeat generically. Rounds rest between rounds; AMRAP runs a clock
+  and scores rounds plus sets, with no rest. Group classes are out of scope.
 - Finish confirms leaving unfinished targets or drafts and counts only logged Sets;
-  with none, it offers to discard. Cancel keeps logged Sets but is not a completed
-  Activity. Both clear drafts and wait for pending set writes.
+  with none, it offers to delete the session. Then a recap shows what was done: the
+  session saves at Gereed, "Terug naar sessie" reopens it, and closing the app there
+  keeps it open behind the resume bar. Work volume excludes warm-ups. Cancel keeps
+  logged Sets but is not a completed Activity. Both clear drafts and wait for pending
+  set writes.
 - Legacy history stays as recorded; never present prefilled targets as measured.
 
 ### Set editor
 
-- A focused sheet with weight, reps, set type, and optional RPE (showing reps
-  remaining; half values reachable). No advanced mode or source selector.
-- Under the inputs: measured and estimated 1RM, the weight as a percentage of
-  each, and theoretical reps at RPE 10 for each, marked approximate. Missing
-  references are unknown and do not block logging. Never replace entered reps or
-  RPE with predictions.
+- A focused sheet with weight and reps, percentage chips, and set details (set type,
+  optional RPE showing reps remaining, half values reachable) under Meer. There is no
+  advanced mode: Meer only folds details, and it offers no other way to log.
+- Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
+  saved. Choosing one changes the weight; the sheet shows the 1RM this set would
+  produce. Missing references are unknown and do not block logging. Never replace
+  entered reps or RPE with predictions.
 - Krachtprofiel is a destination in the same presentation sharing the draft:
   references and sources, percentages (custom too), rep-max tables, and a
   weight-plus-reps estimate. Selecting a result stages it; Apply copies weight and
@@ -71,11 +81,14 @@ references. Studies: [training](../../designs/app/training_final.html),
 
 ### Set Drafts
 
-- One new-set draft per account, session, and exercise on the device. It survives
-  dismissal, exercise changes, restart, and sign-out while the session is active.
-  Logging, discard, or session end clears it. Another account never sees it.
-- Recording a Set needs a connection. A stable operation identity prevents a
-  duplicate after a lost acknowledgement; input stays after failure.
+- The session plan and each set's draft live on the device per account and session.
+  They survive dismissal, restart, and sign-out while the session is active. Logging,
+  discard, or session end clears a draft. Another account never sees them, and they
+  do not sync between devices.
+- Recording a Set needs a connection. Offline, the set is marked failed without being
+  sent, rest still runs, and finishing is blocked until it is retried or removed. A
+  stable operation identity prevents a duplicate after a lost acknowledgement; input
+  stays after failure.
 
 ### Strength references
 
@@ -90,7 +103,10 @@ unit, and formula:
   active, completed, or cancelled sessions. Excludes plans, drafts, zero-rep
   attempts, and unverified legacy sources. Units normalized.
 - **Manual 1RM:** kept separate, labelled, selectable, never overwritten or shown
-  as measured.
+  as measured. Saved at finish or cancel with logged Sets, and used in place of
+  Measured only when newer.
+- **Warm-ups** are excluded from 1RM on the client: row, toast, recap, and work
+  volume. Server references still count warm-up singles until eligibility changes.
 
 Each session snapshots resolved references with provenance; later source changes
 affect only later sessions. Percentages use the entered weight after equipment
@@ -108,12 +124,13 @@ pending on the initiating action.
 
 ## Out of scope
 
-Superset, AMRAP, EMOM, and round flows; bodyweight load conventions; durable
-offline training; routine search, duplication, or bulk selection.
+EMOM flows and group classes; bodyweight load conventions; durable offline training;
+routine search, duplication, or bulk selection.
 
 ## Acceptance
 
-Web keeps working against the shared routine/session API. Evidence:
+Web keeps working against the shared routine/session API. Design:
+[session redesign](../../designs/app/session_redesign_final.md). Evidence:
 [app redesign](../records/2026-10-07-app-redesign/README.md),
 [exercise library](../records/2026-09-28-exercise-library/README.md).
 Original spec: issue #94.

@@ -22,6 +22,7 @@ export function NativeAlertHost({ children }: { children: ReactNode }) {
 			.mockImplementation((options, callback) => {
 				setAlert({
 					title: options.title ?? "",
+					message: options.message,
 					buttons: options.options.map((text, index) => ({
 						text,
 						onPress: () => callback(index),

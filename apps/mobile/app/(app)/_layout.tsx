@@ -179,7 +179,26 @@ export default function AppLayout() {
 																	options={{
 																		headerShown: false,
 																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.8, 1],
+																		sheetAllowedDetents: [1],
+																		sheetGrabberVisible: true,
+																	}}
+																/>
+																<Stack.Screen
+																	name="session-manual"
+																	options={{
+																		headerShown: false,
+																		title: t.strength.plan.profile.manual,
+																		presentation: "formSheet",
+																		sheetAllowedDetents: [0.6, 1],
+																		sheetGrabberVisible: true,
+																	}}
+																/>
+																<Stack.Screen
+																	name="session-group"
+																	options={{
+																		title: t.strength.plan.group.titleSheet,
+																		presentation: "formSheet",
+																		sheetAllowedDetents: [0.85, 1],
 																		sheetGrabberVisible: true,
 																	}}
 																/>
@@ -192,7 +211,10 @@ export default function AppLayout() {
 																/>
 																<Stack.Screen
 																	name="session"
-																	options={{ title: t.routes.workout }}
+																	options={{
+																		title: t.routes.workout,
+																		presentation: "modal",
+																	}}
 																/>
 																<Stack.Screen
 																	name="summary"

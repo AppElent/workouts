@@ -1,4 +1,7 @@
+import { strengthSessionEn, strengthSessionNl } from "./strength-session";
+
 export const strengthEn = {
+	plan: strengthSessionEn,
 	session: "Session",
 	freeSession: "Free session",
 	noActive: "No active session",
@@ -122,6 +125,7 @@ export const strengthEn = {
 	retry: "Try again",
 };
 export const strengthNl: typeof strengthEn = {
+	plan: strengthSessionNl,
 	session: "Sessie",
 	freeSession: "Vrije sessie",
 	noActive: "Geen actieve sessie",
