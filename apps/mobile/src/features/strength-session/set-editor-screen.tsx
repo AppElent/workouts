@@ -67,6 +67,7 @@ import {
 	rowOneRepMax,
 	rowsOf,
 	type SetKind,
+	sameSet,
 	shownLoad,
 	stepLoad,
 	switchUnit,
@@ -301,9 +302,13 @@ export function SetEditorScreen() {
 	// A cleared or unreadable field isn't the old value: nothing logs until it's filled.
 	const typedEmpty =
 		(focus === "kg" &&
-			(loadText.trim() === "" || !Number.isFinite(parseNumber(loadText)))) ||
+			(loadText.trim() === "" ||
+				!Number.isFinite(parseNumber(loadText)) ||
+				parseNumber(loadText) < 0)) ||
 		(focus === "reps" &&
-			(repsText.trim() === "" || !Number.isInteger(Number(repsText))));
+			(repsText.trim() === "" ||
+				!Number.isInteger(Number(repsText)) ||
+				Number(repsText) < 0));
 	const check = valid && !midType ? typoCheck(plan, row, facts, stored) : null;
 	const others = bestKnown(plan, row.exerciseId, facts, row.id);
 	const estimate = rowOneRepMax(row, bodyweight);
@@ -523,6 +528,8 @@ export function SetEditorScreen() {
 	async function onPrimary() {
 		if (!row || !primaryEnabled) return;
 		Keyboard.dismiss();
+		// The field was still focused, so the button hasn't asked yet: show it first.
+		if (midType && plan && facts && typoCheck(plan, row, facts, stored)) return;
 		const confirmed: PlanSet = check
 			? { ...row, confirmedKey: confirmKey(row) }
 			: row;
@@ -1202,15 +1209,6 @@ export function SetEditorScreen() {
 				</View>
 			</View>
 		</>
-	);
-}
-function sameSet(a: PlanSet, b: PlanSet) {
-	return (
-		near(a.kg, b.kg) &&
-		a.reps === b.reps &&
-		a.rpe === b.rpe &&
-		a.kind === b.kind &&
-		a.unit === b.unit
 	);
 }
 const createStyles = (colors: Tokens) =>

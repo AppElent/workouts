@@ -1920,6 +1920,26 @@ export function amrapScore(group: SetGroup) {
 	return { rounds, sets };
 }
 
+export function sameSet(a: PlanSet, b: PlanSet) {
+	return (
+		near(a.kg, b.kg) &&
+		a.reps === b.reps &&
+		a.rpe === b.rpe &&
+		a.kind === b.kind &&
+		a.unit === b.unit
+	);
+}
+/** Corrections to logged sets that were left without being saved. */
+export function unsavedEdits(
+	plan: SessionPlan,
+	drafts: Record<string, PlanSet>,
+) {
+	return Object.values(drafts).filter((draft) => {
+		const stored = findRow(plan, draft.id);
+		return stored?.done && !sameSet(draft, stored);
+	}).length;
+}
+
 // --- Logging ----------------------------------------------------------------
 
 export function beginAttempt(

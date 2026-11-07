@@ -348,6 +348,10 @@ export const strengthSessionEn = {
 			other: "Only the {count} logged sets count.",
 		},
 		confirmOpen: { one: "Finish · 1 set", other: "Finish · {count} sets" },
+		unsavedEdits: {
+			one: "1 change to a logged set is not saved.",
+			other: "{count} changes to logged sets are not saved.",
+		},
 		emptyTitle: "Nothing logged yet",
 		emptyMessage: "This session creates no activity.",
 		emptyConfirm: "Delete session",
@@ -762,6 +766,10 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 			other: "Alleen de {count} gelogde sets tellen mee.",
 		},
 		confirmOpen: { one: "Afronden · 1 set", other: "Afronden · {count} sets" },
+		unsavedEdits: {
+			one: "1 wijziging aan een gelogde set is niet opgeslagen.",
+			other: "{count} wijzigingen aan gelogde sets zijn niet opgeslagen.",
+		},
 		emptyTitle: "Nog niets gelogd",
 		emptyMessage: "Deze sessie maakt geen activiteit aan.",
 		emptyConfirm: "Sessie verwijderen",

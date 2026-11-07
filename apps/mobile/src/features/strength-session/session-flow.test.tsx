@@ -18,9 +18,11 @@ import * as ProfileRoute from "../../../app/(app)/set-editor/strength-profile";
 import { renderApp } from "../../test-support/render-app";
 import { workspaceStore } from "./data/session-workspace";
 import {
+	allRows,
 	groupWith,
 	markFailed,
 	type PlanSet,
+	type SessionPlan,
 	seedPlan,
 	setGroupMode,
 	startClock,
@@ -371,6 +373,43 @@ it("keeps a correction to a logged set in storage until it is saved or dropped",
 	]);
 	workspaceStore.clear(PLAN_KEY);
 	expect(Storage.getItemSync(`${PLAN_KEY}:drafts`)).toBeNull();
+});
+
+it("won't log a pasted negative value as the old one", async () => {
+	await mount();
+	await fireEvent.press(await firstRow());
+	const reps = await screen.findByTestId("session-editor-reps");
+	await fireEvent(reps, "focus");
+	await fireEvent.changeText(reps, "-1");
+	expect(screen.getByRole("button", { name: "Enter reps" })).toBeDisabled();
+});
+
+it("asks about a likely typo even when Log is tapped with the keyboard up", async () => {
+	await mount();
+	await fireEvent.press(await firstRow());
+	const load = await screen.findByTestId("session-editor-load");
+	await fireEvent(load, "focus");
+	await fireEvent.changeText(load, "200");
+	await fireEvent.press(screen.getByRole("button", { name: /^Log · 200 kg/ }));
+	expect(add).not.toHaveBeenCalled();
+});
+
+it("says so at Finish when a correction to a logged set isn't saved", async () => {
+	loggedSets = [serverSet("set-1", 8, 1)];
+	await mount();
+	await screen.findAllByLabelText(/set 1, Logged/);
+	const row = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+		(item) => item.done,
+	) as PlanSet;
+	await act(() =>
+		workspaceStore.setDraft(PLAN_KEY, row.id, { ...row, kg: 75 }),
+	);
+	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	expect(
+		await screen.findByText(/1 change to a logged set is not saved/),
+	).toBeTruthy();
+	expect(finish).not.toHaveBeenCalled();
+	workspaceStore.setDraft(PLAN_KEY, row.id, null);
 });
 
 it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {

@@ -43,6 +43,7 @@ import {
 	openCount,
 	recapOf,
 	sessionExercises,
+	unsavedEdits,
 } from "./session-plan";
 import {
 	type PickerRequest,
@@ -276,10 +277,17 @@ export function StrengthSessionScreen() {
 			}
 			return;
 		}
-		if (open > 0) {
+		const edits = unsavedEdits(plan, workspace.drafts);
+		if (open > 0 || edits > 0) {
 			const yes = await choose({
 				title: copy.finish.title,
-				message: `${plural(locale, open, copy.finish.open)} ${plural(locale, logged, copy.finish.loggedCounts)}`,
+				message: [
+					open > 0 && plural(locale, open, copy.finish.open),
+					edits > 0 && plural(locale, edits, copy.finish.unsavedEdits),
+					plural(locale, logged, copy.finish.loggedCounts),
+				]
+					.filter(Boolean)
+					.join(" "),
 				confirm: { label: plural(locale, logged, copy.finish.confirmOpen) },
 				cancel: copy.keepTraining,
 			});

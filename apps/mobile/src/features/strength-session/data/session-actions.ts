@@ -529,6 +529,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			openEditor?: EditorRequest,
 		) {
 			if (blocked()) return false;
+			if (forSwap && refusePending(rowsOf(plan(), forSwap))) return false;
 			try {
 				const id = await createExercise({
 					name,
