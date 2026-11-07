@@ -16,8 +16,8 @@ tags:
     visible:
       id: "session-add-exercise"
     timeout: 15000
-- tapOn: "Finish"
-- tapOn: "Discard"
+- tapOn: "Done"
+- tapOn: "Delete session"
 - extendedWaitUntil:
     visible:
       id: "train-start-activity"

@@ -128,10 +128,14 @@ export function SwipeableRow({
 	const offset = useRef(0);
 	const passedThreshold = useRef(false);
 	const armed = useRef(false);
+	// Closed buttons sit behind the row; a screen reader reaches them through the
+	// row's custom actions instead, so they must not be separate stops as well.
+	const [revealed, setRevealed] = useState(false);
 
 	const settle = useCallback(
 		(to: number) => {
 			offset.current = to;
+			setRevealed(to !== 0);
 			if (reduceMotion) {
 				translateX.setValue(to);
 				return;
@@ -257,6 +261,8 @@ export function SwipeableRow({
 			    until the swipe has actually revealed it. It grows with the swipe;
 			    a full-swipe action takes the extra width. */}
 			<Animated.View
+				accessibilityElementsHidden={!revealed}
+				importantForAccessibility={revealed ? "auto" : "no-hide-descendants"}
 				style={[
 					styles.actionsLayer,
 					{

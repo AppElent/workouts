@@ -67,3 +67,20 @@ The installed runtime crashes when SwiftUI hosts enter `InputAccessoryView`'s
 keyboard window. Keep those hosts in the keyboard-avoiding overlay inside the
 sheet, with the keyboard observer mounted before focus. This is a runtime-specific
 workaround, not a general popup restriction. See the [observed evidence](../../docs/records/2026-10-04-diary-entry-editor/README.md).
+
+## Strength session exception
+
+The [session redesign](../../designs/app/session_redesign_final.md) scopes these to
+the [session](src/features/strength-session/strength-session-screen.tsx) and
+[set editor](src/features/strength-session/set-editor-screen.tsx):
+
+- `type.quantityCompact` numerals with stepper pairs in the editor, because they are
+  read and tapped mid-set. The editor's Log is a bottom pill, not a toolbar item, to
+  stay in one-handed reach.
+- At `fontScale` 1.35 and up, rows go to two lines without column heads, the session
+  title moves into the body, percent chips go to two columns, and dock pills become
+  rounded cards. Sheet titles cap their scale at 1.3 and the recap title at 1.5.
+
+Native chrome owns material. The study's CSS glass values (dark chrome
+`rgba(40,44,38,.5)`, strong `rgba(48,52,45,.78)`, hairline .16, blur 22px saturate
+190%; light chrome .62, strong .84) only approximate it in HTML and are not tokens.

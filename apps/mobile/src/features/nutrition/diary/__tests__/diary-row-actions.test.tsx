@@ -93,9 +93,11 @@ describe("diary row accelerators", () => {
 	});
 	it("asks before deleting an entry reached through the revealed swipe action", async () => {
 		await renderApp();
-		// The revealed action is in the tree behind the row from the start; the
-		// swipe uncovers it rather than creating it.
-		await fireEvent.press(await screen.findByLabelText("Delete"));
+		// The revealed action is in the tree behind the row from the start, hidden
+		// from screen readers; the swipe uncovers it rather than creating it.
+		await fireEvent.press(
+			await screen.findByLabelText("Delete", { includeHiddenElements: true }),
+		);
 
 		expect(await screen.findByText("Delete this entry?")).toBeTruthy();
 		expect(remove).not.toHaveBeenCalled();
@@ -107,7 +109,9 @@ describe("diary row accelerators", () => {
 
 	it("removes nothing when the confirmation is declined", async () => {
 		await renderApp();
-		await fireEvent.press(await screen.findByLabelText("Delete"));
+		await fireEvent.press(
+			await screen.findByLabelText("Delete", { includeHiddenElements: true }),
+		);
 		await screen.findByText("Delete this entry?");
 		await fireEvent.press(screen.getByText("Keep entry"));
 
@@ -121,16 +125,24 @@ describe("diary row accelerators", () => {
 		await renderApp();
 		const row = await screen.findByLabelText("Edit entry: Oatmeal");
 		// Before the long press, each action exists once — behind the row.
-		expect(screen.getAllByLabelText("Edit")).toHaveLength(1);
-		expect(screen.getAllByLabelText("Delete")).toHaveLength(1);
+		expect(
+			screen.getAllByLabelText("Edit", { includeHiddenElements: true }),
+		).toHaveLength(1);
+		expect(
+			screen.getAllByLabelText("Delete", { includeHiddenElements: true }),
+		).toHaveLength(1);
 		expect(screen.queryByLabelText("Close")).toBeNull();
 
 		await fireEvent(row, "longPress");
 
 		// The menu offers the same two verbs and a way out of it.
 		expect(await screen.findByText("Close")).toBeTruthy();
-		expect(screen.getAllByText("Edit")).toHaveLength(2);
-		expect(screen.getAllByText("Delete")).toHaveLength(2);
+		expect(
+			screen.getAllByText("Edit", { includeHiddenElements: true }),
+		).toHaveLength(2);
+		expect(
+			screen.getAllByText("Delete", { includeHiddenElements: true }),
+		).toHaveLength(2);
 		expect(screen.getByText("Copy")).toBeTruthy();
 		expect(screen.getByText("Move")).toBeTruthy();
 	});

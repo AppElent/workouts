@@ -1,300 +1,190 @@
 /**
- * The between-sets rest timer, ported from the web's
- * `src/components/session/RestTimer.tsx`.
- *
- * The countdown is derived from an end timestamp rather than decremented on a
- * tick. `setInterval` drifts, and it stops entirely when the phone sleeps or
- * the app backgrounds — which is most of a rest period. Storing *when* it ends
- * and re-deriving the remainder each render means backgrounding the app for two
- * minutes leaves the timer correct, not two minutes behind.
- *
- * Completion buzzes via `expo-haptics`. The web also plays a synthesised beep
- * through `AudioContext`; that is deliberately not ported — it would mean a
- * media dependency and a bundled sound file for a cue the haptic already gives,
- * in a room that is usually loud.
- *
- * The default duration persists per device via `expo-secure-store` (the phone's
- * `localStorage` equivalent). It is a preference, not data — nothing syncs.
+ * The between-sets rest timer. The countdown is derived from a persisted end
+ * time, not decremented on a tick, so a lock or a restart leaves it correct.
+ * A foreground end gives a haptic and a lime pill; a background end is a local
+ * notification, which every adjustment reschedules or cancels.
  */
-import * as Haptics from "expo-haptics";
-import * as SecureStore from "expo-secure-store";
+import Storage from "expo-sqlite/kv-store";
 import {
 	createContext,
 	type ReactNode,
-	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useI18n } from "../../../i18n";
+import { AccessibilityInfo } from "react-native";
+import { haptics } from "../../../feedback/haptics";
+import { fmt, useI18n } from "../../../i18n";
 import {
-	radius,
-	spacing,
-	type Tokens,
-	type,
-	useThemedStyles,
-} from "../../../theme";
-import { AppText } from "../../../ui/text";
+	cancelSessionAlert,
+	scheduleSessionAlert,
+} from "../data/session-notifications";
 
-const STORAGE_KEY = "restTimer.defaultSeconds";
-const PRESETS = [60, 90, 120, 180];
+const STORAGE_KEY = "strength-rest:v1";
 const FALLBACK_SECONDS = 90;
+const ALERT_ID = "strength-rest";
 
-type RestTimerApi = {
-	/** Starts (or restarts) a countdown. Defaults to the saved preference. */
-	start: (seconds?: number) => void;
-	stop: () => void;
+type Stored = {
+	endsAt: number | null;
+	body: string | null;
+	defaultSeconds: number;
 };
-
-const RestTimerBarContext = createContext<ReactNode>(null);
-
-/** Rendered in the workout layout, so the scroll view reserves its full height. */
-export function RestTimerBar() {
-	return useContext(RestTimerBarContext);
+function load(): Stored {
+	try {
+		const raw = Storage.getItemSync(STORAGE_KEY);
+		const parsed = raw ? (JSON.parse(raw) as Partial<Stored>) : {};
+		return {
+			endsAt: typeof parsed.endsAt === "number" ? parsed.endsAt : null,
+			body: typeof parsed.body === "string" ? parsed.body : null,
+			defaultSeconds:
+				typeof parsed.defaultSeconds === "number" && parsed.defaultSeconds > 0
+					? parsed.defaultSeconds
+					: FALLBACK_SECONDS,
+		};
+	} catch {
+		return { endsAt: null, body: null, defaultSeconds: FALLBACK_SECONDS };
+	}
+}
+function save(value: Stored) {
+	try {
+		Storage.setItemSync(STORAGE_KEY, JSON.stringify(value));
+	} catch {
+		// Rest still runs for as long as the app stays open.
+	}
 }
 
-const RestTimerContext = createContext<RestTimerApi | null>(null);
-
-function format(seconds: number) {
-	const safe = Math.max(0, seconds);
-	const m = Math.floor(safe / 60);
-	const s = safe % 60;
-	return `${m}:${s.toString().padStart(2, "0")}`;
-}
+export type RestTimerApi = {
+	/** Starts or restarts a countdown. Defaults to the saved preference. */
+	start: (seconds?: number, body?: string) => void;
+	stop: () => void;
+	adjust: (delta: number) => void;
+	/** Puts back a previous end time, for undoing a log. */
+	restore: (endsAt: number | null) => void;
+	current: () => number | null;
+	defaultSeconds: number;
+	setDefault: (seconds: number) => void;
+};
+export type RestState = {
+	running: boolean;
+	remaining: number;
+	over: boolean;
+};
+const RestApiContext = createContext<RestTimerApi | null>(null);
+const RestStateContext = createContext<RestState>({
+	running: false,
+	remaining: 0,
+	over: false,
+});
 
 export function RestTimerProvider({ children }: { children: ReactNode }) {
-	const styles = useThemedStyles(createStyles);
-	const copy = useI18n().t.workoutTools.restTimer;
-	const insets = useSafeAreaInsets();
-	const [defaultSeconds, setDefaultSeconds] = useState(FALLBACK_SECONDS);
-	const [endsAt, setEndsAt] = useState<number | null>(null);
-	const [paused, setPaused] = useState<number | null>(null);
+	const copy = useI18n().t.strength.plan.rest;
+	const [stored, setStored] = useState(load);
 	const [now, setNow] = useState(() => Date.now());
-	// Guards the completion buzz so it fires once per countdown, not every tick
-	// after zero.
-	const firedRef = useRef(false);
-
-	// Load the saved preference. Reading secure storage can throw on a device
-	// with no keychain; the fallback is a working timer, so it is not worth
-	// surfacing.
+	const current = useRef(stored);
+	current.current = stored;
+	const previousRemaining = useRef<number | null>(null);
+	const running = stored.endsAt !== null;
 	useEffect(() => {
-		let cancelled = false;
-		SecureStore.getItemAsync(STORAGE_KEY)
-			.then((stored) => {
-				if (cancelled || !stored) return;
-				const parsed = Number.parseInt(stored, 10);
-				if (Number.isFinite(parsed) && parsed > 0) setDefaultSeconds(parsed);
-			})
-			.catch(() => {});
-		return () => {
-			cancelled = true;
-		};
-	}, []);
-
-	useEffect(() => {
-		if (endsAt === null || paused !== null) return;
-		const id = setInterval(() => setNow(Date.now()), 500);
-		return () => clearInterval(id);
-	}, [endsAt, paused]);
-
+		if (!running) return;
+		setNow(Date.now());
+		const timer = setInterval(() => setNow(Date.now()), 500);
+		return () => clearInterval(timer);
+	}, [running]);
 	const remaining =
-		paused ?? (endsAt === null ? 0 : Math.ceil((endsAt - now) / 1000));
-
+		stored.endsAt === null
+			? 0
+			: Math.max(0, Math.ceil((stored.endsAt - now) / 1000));
+	const over = running && remaining <= 0;
 	useEffect(() => {
-		if (endsAt === null || paused !== null || firedRef.current) return;
-		if (remaining > 0) return;
-		firedRef.current = true;
-		Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
-			() => {},
-		);
-	}, [remaining, endsAt, paused]);
-
-	const api = useMemo<RestTimerApi>(
-		() => ({
-			start: (seconds) => {
-				firedRef.current = false;
-				setPaused(null);
-				setEndsAt(Date.now() + (seconds ?? defaultSeconds) * 1000);
-				setNow(Date.now());
-			},
-			stop: () => {
-				setEndsAt(null);
-				setPaused(null);
-			},
-		}),
-		[defaultSeconds],
-	);
-
-	const adjust = useCallback(
-		(delta: number) => {
-			if (paused !== null) {
-				setPaused((prev) => Math.max(0, (prev ?? 0) + delta));
-				return;
-			}
-			setEndsAt((prev) => (prev === null ? prev : prev + delta * 1000));
-			firedRef.current = false;
-		},
-		[paused],
-	);
-
-	const togglePause = useCallback(() => {
-		if (paused !== null) {
-			setEndsAt(Date.now() + paused * 1000);
-			setPaused(null);
-			setNow(Date.now());
-		} else if (endsAt !== null) {
-			setPaused(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+		const before = previousRemaining.current;
+		previousRemaining.current = running ? remaining : null;
+		if (before === null || !running || before === remaining) return;
+		if (remaining === 0) {
+			haptics.sessionSuccess();
+			AccessibilityInfo.announceForAccessibility(copy.spokenOver);
+		} else if (remaining === 30 || remaining === 10) {
+			AccessibilityInfo.announceForAccessibility(
+				fmt(copy.spokenLeft, { seconds: remaining }),
+			);
 		}
-	}, [paused, endsAt]);
-
-	const chooseDefault = useCallback((seconds: number) => {
-		setDefaultSeconds(seconds);
-		SecureStore.setItemAsync(STORAGE_KEY, String(seconds)).catch(() => {});
-	}, []);
-
-	const running = endsAt !== null;
-
-	const bar = running ? (
-		<View
-			style={[styles.wrap, { paddingBottom: insets.bottom + spacing.xs }]}
-			pointerEvents="box-none"
-		>
-			<View style={[styles.pill, remaining <= 0 && styles.done]}>
-				<Pressable
-					onPress={() => adjust(-15)}
-					hitSlop={8}
-					accessibilityRole="button"
-					accessibilityLabel={copy.subtract}
-				>
-					<AppText style={styles.adjust}>−15</AppText>
-				</Pressable>
-
-				<Pressable
-					onPress={togglePause}
-					accessibilityRole="button"
-					accessibilityLabel={paused !== null ? copy.resume : copy.pause}
-					style={styles.readout}
-				>
-					<AppText style={styles.time}>
-						{remaining <= 0 ? copy.over : format(remaining)}
-					</AppText>
-					{paused !== null ? (
-						<AppText style={styles.pausedLabel}>{copy.paused}</AppText>
-					) : null}
-				</Pressable>
-
-				<Pressable
-					onPress={() => adjust(15)}
-					hitSlop={8}
-					accessibilityRole="button"
-					accessibilityLabel={copy.add}
-				>
-					<AppText style={styles.adjust}>+15</AppText>
-				</Pressable>
-
-				<Pressable
-					onPress={api.stop}
-					hitSlop={8}
-					accessibilityRole="button"
-					accessibilityLabel={copy.dismiss}
-				>
-					<AppText style={styles.dismiss}>✕</AppText>
-				</Pressable>
-			</View>
-
-			<View style={styles.presets}>
-				{PRESETS.map((seconds) => (
-					<Pressable
-						accessibilityRole="button"
-						accessibilityState={{ selected: seconds === defaultSeconds }}
-						key={seconds}
-						onPress={() => chooseDefault(seconds)}
-						style={[
-							styles.preset,
-							seconds === defaultSeconds && styles.presetActive,
-						]}
-					>
-						<AppText
-							style={[
-								styles.presetText,
-								seconds === defaultSeconds && styles.presetTextActive,
-							]}
-						>
-							{seconds}s
-						</AppText>
-					</Pressable>
-				))}
-			</View>
-		</View>
-	) : null;
+	}, [remaining, running, copy]);
+	const api = useMemo<RestTimerApi>(() => {
+		const write = (next: Stored) => {
+			current.current = next;
+			save(next);
+			setStored(next);
+			setNow(Date.now());
+		};
+		const schedule = (endsAt: number, body: string | null) =>
+			void scheduleSessionAlert(
+				ALERT_ID,
+				(endsAt - Date.now()) / 1000,
+				copy.notificationTitle,
+				body ?? copy.notificationPlain,
+			);
+		return {
+			start(seconds, body) {
+				const endsAt =
+					Date.now() + (seconds ?? current.current.defaultSeconds) * 1000;
+				write({ ...current.current, endsAt, body: body ?? null });
+				schedule(endsAt, body ?? null);
+			},
+			stop() {
+				write({ ...current.current, endsAt: null, body: null });
+				void cancelSessionAlert(ALERT_ID);
+			},
+			adjust(delta) {
+				const { endsAt, body } = current.current;
+				if (endsAt === null) return;
+				const nowMs = Date.now();
+				// Once rest is over −15 has nothing to take away; +15 starts it again.
+				if (endsAt <= nowMs && delta < 0) return;
+				const next = Math.max(nowMs, endsAt) + delta * 1000;
+				write({ ...current.current, endsAt: Math.max(nowMs, next), body });
+				schedule(Math.max(nowMs, next), body);
+			},
+			restore(endsAt) {
+				write({ ...current.current, endsAt });
+				if (endsAt === null) void cancelSessionAlert(ALERT_ID);
+				else schedule(endsAt, current.current.body);
+			},
+			current: () => current.current.endsAt,
+			get defaultSeconds() {
+				return current.current.defaultSeconds;
+			},
+			setDefault(seconds) {
+				write({ ...current.current, defaultSeconds: seconds });
+			},
+		};
+	}, [copy]);
+	const state = useMemo(
+		() => ({ running, remaining, over }),
+		[running, remaining, over],
+	);
 	return (
-		<RestTimerContext.Provider value={api}>
-			<RestTimerBarContext.Provider value={bar}>
+		<RestApiContext.Provider value={api}>
+			<RestStateContext.Provider value={state}>
 				{children}
-			</RestTimerBarContext.Provider>
-		</RestTimerContext.Provider>
+			</RestStateContext.Provider>
+		</RestApiContext.Provider>
 	);
 }
 
-/**
- * Returns a no-op timer outside the provider rather than throwing. A screen
- * that logs a set should not crash because it is rendered somewhere without
- * rest-timer chrome — the timer is a convenience, not a requirement.
- */
+/** A no-op outside the provider: logging a set must not depend on rest chrome. */
 export function useRestTimer(): RestTimerApi {
-	const api = useContext(RestTimerContext);
-	return api ?? NOOP_TIMER;
+	return useContext(RestApiContext) ?? NOOP_TIMER;
 }
-
-const NOOP_TIMER: RestTimerApi = { start: () => {}, stop: () => {} };
-
-const createStyles = (colors: Tokens) =>
-	StyleSheet.create({
-		wrap: {
-			paddingHorizontal: spacing.md,
-			paddingTop: spacing.xs,
-			gap: spacing.xs,
-			backgroundColor: colors.bg,
-		},
-		pill: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			gap: spacing.sm,
-			minHeight: 52,
-			paddingHorizontal: spacing.md,
-			borderRadius: radius.pill,
-			backgroundColor: colors.surface2,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-		},
-		done: { borderColor: colors.accent },
-		readout: { alignItems: "center", minWidth: 88 },
-		time: {
-			...type.heading,
-			fontWeight: "800",
-			color: colors.text,
-			fontVariant: ["tabular-nums"],
-		},
-		pausedLabel: { ...type.micro, fontWeight: "400", color: colors.textMuted },
-		adjust: { ...type.label, fontWeight: "800", color: colors.textMuted },
-		dismiss: { ...type.body, fontWeight: "800", color: colors.textMuted },
-		presets: {
-			flexDirection: "row",
-			gap: spacing.xs,
-			justifyContent: "center",
-		},
-		preset: {
-			paddingVertical: 4,
-			paddingHorizontal: 10,
-			borderRadius: radius.pill,
-			backgroundColor: colors.surface,
-		},
-		presetActive: { backgroundColor: colors.accentFill },
-		presetText: { ...type.micro, color: colors.textMuted },
-		presetTextActive: { color: colors.onAccent },
-	});
+export function useRestState() {
+	return useContext(RestStateContext);
+}
+const NOOP_TIMER: RestTimerApi = {
+	start: () => undefined,
+	stop: () => undefined,
+	adjust: () => undefined,
+	restore: () => undefined,
+	current: () => null,
+	defaultSeconds: FALLBACK_SECONDS,
+	setDefault: () => undefined,
+};

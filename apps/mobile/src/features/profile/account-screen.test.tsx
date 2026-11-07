@@ -51,6 +51,9 @@ jest.mock("../../data/nutrition-local-repository", () => ({
 jest.mock("../../data/personal-food-session", () => ({
 	discardPersonalFoodSources: jest.fn(),
 }));
+jest.mock("../strength-session/data/session-workspace", () => ({
+	clearAccountSessionPlans: jest.fn(),
+}));
 jest.mock("../strength-session/data/set-drafts", () => ({
 	clearAccountSetDrafts: jest.fn(),
 }));

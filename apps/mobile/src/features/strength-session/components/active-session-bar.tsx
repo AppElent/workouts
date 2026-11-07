@@ -3,9 +3,12 @@ import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
-import { useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../../../theme";
+import { isIOS26OrLater } from "../../../ui/platform";
 import { AppText } from "../../../ui/text";
+import { formatClock } from "../session-format";
+import { useRestState } from "./rest-timer";
 
 /** "0:42" under an hour, "1:02:47" over it. */
 function formatElapsed(ms: number) {
@@ -21,7 +24,10 @@ function formatElapsed(ms: number) {
 
 export function ActiveSessionBar() {
 	const styles = useThemedStyles(createStyles);
-	const copy = useI18n().t.workoutTools.activeSession;
+	const { t } = useI18n();
+	const copy = t.workoutTools.activeSession;
+	const resume = t.strength.plan.resume;
+	const rest = useRestState();
 	const router = useRouter();
 	const segments = useSegments();
 	const active = useActiveSession();
@@ -43,7 +49,9 @@ export function ActiveSessionBar() {
 				onPress={() => router.push("/session")}
 				style={({ pressed }) => [styles.bar, pressed && { opacity: 0.9 }]}
 				accessibilityRole="button"
-				accessibilityLabel={copy.resumeLabel}
+				accessibilityLabel={fmt(resume.label, {
+					name: active.name ?? copy.freeSession,
+				})}
 			>
 				<View style={styles.dot} />
 				<View style={styles.flex}>
@@ -55,7 +63,12 @@ export function ActiveSessionBar() {
 					</AppText>
 				</View>
 				<AppText variant="body" style={styles.elapsed}>
-					{formatElapsed(now - active.startTime)}
+					{rest.running
+						? fmt(rest.over ? resume.lineRestOver : resume.lineRest, {
+								time: formatElapsed(now - active.startTime),
+								rest: formatClock(rest.remaining),
+							})
+						: formatElapsed(now - active.startTime)}
 				</AppText>
 				<AppText variant="body" style={styles.resume}>
 					{copy.resume}
@@ -68,7 +81,7 @@ export function ActiveSessionBar() {
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		wrap: {
-			paddingHorizontal: spacing.md,
+			paddingHorizontal: isIOS26OrLater() ? spacing.xs : spacing.md,
 		},
 		bar: {
 			flexDirection: "row",
@@ -77,7 +90,8 @@ const createStyles = (colors: Tokens) =>
 			minHeight: 44,
 			paddingHorizontal: spacing.md,
 			borderRadius: radius.pill,
-			backgroundColor: colors.surface2,
+			// The native tab accessory already draws the glass capsule.
+			backgroundColor: isIOS26OrLater() ? "transparent" : colors.surface2,
 		},
 		dot: {
 			width: 8,

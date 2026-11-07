@@ -52,6 +52,29 @@ function play(run: () => Promise<void>): void {
 }
 
 export const haptics = {
+	/** A set was logged; the table changes under your thumb. */
+	setLogged(): void {
+		play(() =>
+			isAndroid()
+				? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm)
+				: Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+		);
+	},
+
+	/** A logged set beat what was known, or rest ended while the app is open. */
+	sessionSuccess(): void {
+		play(() =>
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+		);
+	},
+
+	/** A log failed, or a typo check needs an explicit second tap. */
+	sessionWarning(): void {
+		play(() =>
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning),
+		);
+	},
+
 	/**
 	 * A meaningful selection moved: a serving option, a meal slot, a goal
 	 * direction. Not every press — only the ones that change what a subsequent

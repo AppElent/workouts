@@ -25,6 +25,7 @@ import { PrimaryButton } from "../../ui/button";
 import { FormScreen, TextAction } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
+import { clearAccountSessionPlans } from "../strength-session/data/session-workspace";
 import { clearAccountSetDrafts } from "../strength-session/data/set-drafts";
 
 type Request = {
@@ -37,6 +38,7 @@ const AccountDataContext = createContext<
 
 function cleanup(subject: string) {
 	clearAccountSetDrafts(subject);
+	clearAccountSessionPlans(subject);
 	discardPersonalFoodSources(subject);
 	clearNutritionLocalAccount(subject);
 }
