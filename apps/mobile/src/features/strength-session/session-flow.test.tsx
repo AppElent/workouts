@@ -465,6 +465,38 @@ it("keeps other changes when undoing a log fails", async () => {
 	expect(findRow(after, logged.id)?.done).toBe(true);
 });
 
+it("keeps a set logged until the server has let it go", async () => {
+	add.mockResolvedValue("set-1");
+	let fail = (_error: Error) => {};
+	removeSet.mockImplementation(
+		() =>
+			new Promise((_resolve, reject) => {
+				fail = reject;
+			}),
+	);
+	await mount();
+	await fireEvent.press(await firstCheck());
+	await screen.findByTestId("session-toast-action");
+	const row = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+		(item) => item.done,
+	) as PlanSet;
+	const stored = () =>
+		findRow(workspaceStore.plan(PLAN_KEY) as SessionPlan, row.id) as PlanSet;
+	const later = Date.now() + 60_000;
+	const clock = jest.spyOn(Date, "now").mockReturnValue(later);
+	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
+	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
+	expect(removeSet).toHaveBeenCalledTimes(1);
+	expect(stored().done).toBe(true);
+	await act(async () => fail(new Error("Connection lost")));
+	expect(stored().done).toBe(true);
+	removeSet.mockResolvedValue(undefined);
+	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
+	clock.mockRestore();
+	expect(stored().done).toBe(false);
+	expect(stored().setId).toBeUndefined();
+});
+
 it("won't close a group while one of its sets failed", async () => {
 	const facts = {
 		bodyweight: false,

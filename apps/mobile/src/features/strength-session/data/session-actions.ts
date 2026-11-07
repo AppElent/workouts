@@ -265,20 +265,31 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			say(text, {
 				highlight: Boolean(record),
 				undoLabel: copy.undo,
-				undo: async () => {
-					set(restoreRows(plan(), result.prior.map(cleanForUndo)));
-					rest.restore(previousRest);
-					await workspaceStore.hold(key, async () => {
-						try {
-							await removeSetMutation({ id: setId as Id<"sets"> });
-						} catch (error) {
-							const logged = findRow(result.plan, row.id);
-							if (logged) set(updateRow(plan(), row.id, logged));
-							say(convexErrorMessage(error, saveError));
-						}
-					});
-				},
+				undo: () =>
+					removeLogged(setId, () => {
+						set(restoreRows(plan(), result.prior.map(cleanForUndo)));
+						rest.restore(previousRest);
+					}),
 			});
+		}
+		/** A logged row stays as it is until the server lets go, so nothing can be typed over it. */
+		async function removeLogged(setId: string, removed: () => void) {
+			const inFlight = workspaceStore.inFlight(key);
+			const marker = `remove:${setId}`;
+			if (inFlight.has(marker)) return;
+			inFlight.add(marker);
+			try {
+				await workspaceStore.hold(key, async () => {
+					try {
+						await removeSetMutation({ id: setId as Id<"sets"> });
+						removed();
+					} catch (error) {
+						say(convexErrorMessage(error, saveError));
+					}
+				});
+			} finally {
+				inFlight.delete(marker);
+			}
 		}
 		const cleanForUndo = (row: PlanSet): PlanSet => ({
 			...row,
@@ -449,24 +460,19 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (blocked()) return;
 			const row = findRow(plan(), rowId);
 			if (!row?.setId) return;
-			const before = plan();
-			const open: PlanSet = {
-				...row,
-				done: false,
-				setId: undefined,
-				setNumber: undefined,
-				loggedPercent: undefined,
-			};
-			set(updateRow(before, rowId, open));
-			workspaceStore.setDraft(key, rowId, null);
-			await workspaceStore.hold(key, async () => {
-				try {
-					await removeSetMutation({ id: row.setId as Id<"sets"> });
-					say(fmt(copy.toastUnchecked, { load: shortLoad(row) }));
-				} catch (error) {
-					set(updateRow(plan(), rowId, row));
-					say(convexErrorMessage(error, saveError));
-				}
+			await removeLogged(row.setId, () => {
+				const current = findRow(plan(), rowId) ?? row;
+				set(
+					updateRow(plan(), rowId, {
+						...current,
+						done: false,
+						setId: undefined,
+						setNumber: undefined,
+						loggedPercent: undefined,
+					}),
+				);
+				workspaceStore.setDraft(key, rowId, null);
+				say(fmt(copy.toastUnchecked, { load: shortLoad(row) }));
 			});
 		}
 		async function deleteRow(rowId: string) {
@@ -481,14 +487,9 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				return;
 			}
 			if (blocked()) return;
-			await workspaceStore.hold(key, async () => {
-				try {
-					await removeSetMutation({ id: row.setId as Id<"sets"> });
-					set(removeRow(plan(), rowId));
-					say(copy.toastRemoved);
-				} catch (error) {
-					say(convexErrorMessage(error, saveError));
-				}
+			await removeLogged(row.setId, () => {
+				set(removeRow(plan(), rowId));
+				say(copy.toastRemoved);
 			});
 		}
 		/** Reads what a new exercise's plan needs: its references and last result. */
