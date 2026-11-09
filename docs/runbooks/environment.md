@@ -63,8 +63,10 @@ pnpm mobile:update:preview
 ```
 
 `deploy:dev` pushes Convex functions to the deployment in `.env.local`
-(`colorless-sturgeon-704` unless the worktree has its own backend), and
-`deploy:production` uses your Convex and Wrangler logins. The preview workflow gets
+(`colorless-sturgeon-704` unless the worktree has its own backend).
+`deploy:production` targets Convex with the production `CONVEX_DEPLOY_KEY` from
+Infisical `prod`, which wins over any selector or worktree key in `.env.local`, and
+deploys the Worker with your Wrangler login. The preview workflow gets
 `VITE_CONVEX_URL` from `convex deploy`.
 
 ## Notes

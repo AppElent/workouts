@@ -108,6 +108,20 @@ describe("Foundry environment manifest", () => {
 			);
 	});
 
+	it("gives deploy:production an explicit Convex target", () => {
+		const github = placements("production").filter(
+			(placement) => placement.destination.kind === "github",
+		);
+		expect(github.map((placement) => placement.variable)).toContain(
+			"CONVEX_DEPLOY_KEY",
+		);
+		expect(
+			placements("dev").some(
+				(placement) => placement.variable === "CONVEX_DEPLOY_KEY",
+			),
+		).toBe(false);
+	});
+
 	it("never routes a secret to a public client", () => {
 		for (const entry of ENTRIES) {
 			if (!entry.secret) continue;

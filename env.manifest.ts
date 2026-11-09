@@ -179,7 +179,12 @@ export const ENTRIES = [
 		description: "Deploy key: preview kind in staging, production kind in prod",
 		secret: true,
 		lands: {
-			workflow: { name: "CONVEX_DEPLOY_KEY", environments: ["preview"] },
+			// Production: deploy:production's explicit Convex target, ahead of any
+			// CONVEX_DEPLOYMENT or worktree-scoped key in .env.local.
+			workflow: {
+				name: "CONVEX_DEPLOY_KEY",
+				environments: ["preview", "production"],
+			},
 		},
 	},
 	{
