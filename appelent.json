@@ -1,5 +1,19 @@
 {
   "schemaVersion": 1,
   "envManifest": "env.manifest.ts",
-  "features": {}
+  "workspace": {
+    "backend": {
+      "mode": "none",
+      "project": "eric-jansen:workout-tracker",
+      "expiration": "in 5 days",
+      "scopedCredential": true,
+      "push": true
+    },
+    "install": true,
+    "outputs": {
+      "rootEnv": ".env.local",
+      "mobileEnv": "apps/mobile/.env.local",
+      "mobileUrlName": "EXPO_PUBLIC_CONVEX_URL"
+    }
+  }
 }
