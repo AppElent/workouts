@@ -89,6 +89,25 @@ describe("Foundry environment manifest", () => {
 		expect(previewUrl?.suppliedBy).toContain("convex deploy");
 	});
 
+	it("gives web PR previews development auth and the preview app production auth", () => {
+		const clerk = (environment) =>
+			placements(environment)
+				.filter((placement) => /CLERK/.test(placement.name))
+				.map(
+					(placement) =>
+						`${placement.consumer} ${placement.entry.infisicalKey}`,
+				);
+		expect(clerk("preview")).toEqual([
+			"expo-build clerk-publishable-key",
+			"vite-build pr-clerk-publishable-key",
+			"convex-functions pr-clerk-jwt-issuer-domain",
+		]);
+		for (const environment of ["local", "dev", "production"])
+			expect(clerk(environment)).not.toContainEqual(
+				expect.stringContaining("pr-clerk"),
+			);
+	});
+
 	it("never routes a secret to a public client", () => {
 		for (const entry of ENTRIES) {
 			if (!entry.secret) continue;

@@ -20,6 +20,12 @@ its Infisical key, and which consumer reads it in which environment. The
 | `preview` | PR previews and the installed preview app | `staging` | per-PR preview | `foundry-pr-<n>` | repository, `PREVIEW_<name>` | `preview` |
 | `production` | Production | `prod` | `fine-akita-444` | `foundry` | Environment `production` | `production` |
 
+Auth follows lifetime. `local`, `dev`, and web PR previews use the Clerk development
+instance; the installed EAS preview app and `production` use production. Web previews
+read `pr-clerk-publishable-key` and `pr-clerk-jwt-issuer-domain` from Infisical
+`staging`: secret references to the `dev` values, landing only on the preview web
+build and the per-PR Convex backend.
+
 There is no Foundry staging environment. Infisical folders are read in the order
 `/`, then `/foundry`; a value in the app folder wins. `.infisical.json` holds only
 the project reference.
