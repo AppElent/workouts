@@ -23,7 +23,7 @@ jobs:
     outputs:
       artifact: ${{ steps.name.outputs.artifact }}
     env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
       # GitHub has no Sentry upload token; builds that need uploaded source
       # maps stay on the EAS cloud flow in docs/runbooks/mobile-releases.md.
       SENTRY_DISABLE_AUTO_UPLOAD: "true"
@@ -33,7 +33,7 @@ jobs:
       - name: Check Expo token
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "::error::Add an EXPO_TOKEN repository secret (expo.dev → Access tokens)."
+            echo "::error::Run pnpm env:apply preview --only github to write the PREVIEW_EXPO_TOKEN repository secret."
             exit 1
           fi
 

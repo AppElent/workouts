@@ -1,92 +1,74 @@
 ---
 type: runbook
 description: Read when changing environment variables, Infisical sources, or generated env files.
-version: 1.0.0
+version: 2.0.0
 ---
 
 # Environment contract
 
-[`env.manifest.ts`](../../env.manifest.ts) is the source of truth for which
-Foundry value each web, mobile, Convex, CI, and workspace consumer reads. The
-`pnpm env:*` aliases run the app-owned `scripts/env.mjs` engine; see the
-[shared guide](../standards/environments.md).
+[`env.manifest.ts`](../../env.manifest.ts) is data only: it names each Foundry value,
+its Infisical key, and which consumer reads it in which environment. The
+`pnpm env:*` scripts run `scripts/env.mjs`, which routes every landing with the
+[shared model](../standards/environments.md). Foundry records no routing exception.
 
-The app has four environments: `local`, per-PR `preview`, stable `dev`, and
-`production`. There is no Foundry staging environment. Stable Convex targets
-and the preview project come from the existing Wrangler and worktree setup
-metadata. The preview Worker is `foundry-pr-<number>`, the development Worker is
-`foundry-dev`, and production is `foundry`.
+## Environments
 
-## Source prerequisite
+| Environment | What it is | Infisical | Convex | Worker | GitHub | EAS |
+| --- | --- | --- | --- | --- | --- | --- |
+| `local` | Your machine and every worktree | `dev` | `colorless-sturgeon-704` | — | — | `development` |
+| `dev` | Shared deployed development backend | `dev` | `colorless-sturgeon-704` | `foundry-dev` | Environment `dev` | `development` |
+| `preview` | PR previews and the installed preview app | `staging` | per-PR preview | `foundry-pr-<n>` | repository, `PREVIEW_<name>` | `preview` |
+| `production` | Production | `prod` | `fine-akita-444` | `foundry` | Environment `production` | `production` |
 
-Foundry uses the same Infisical project reference as Gather and keeps its
-app-specific values under `/foundry`. Its `local` source is `dev`, both PR
-`preview` and stable app `dev` use the project's `staging` source, and
-`production` uses `prod`. The app environment remains named `dev`; the
-provider's `staging` slug does not introduce a Foundry staging deployment.
+There is no Foundry staging environment. Infisical folders are read in the order
+`/`, then `/foundry`; a value in the app folder wins. `.infisical.json` holds only
+the project reference.
 
-The source lookup order is `/` followed by `/foundry`; a value in the app
-folder overrides the same source name at the root. Shared values retain
-Gather's existing canonical source keys, while each landing keeps the exact
-Foundry variable name consumed by code or CI. `.infisical.json` contains only
-the nonsecret project reference. Values remain in memory and are written only
-to destinations declared by the manifest.
+## Commands
 
-Static commands do not require provider authentication:
+Static commands need no provider login:
 
 ```sh
 pnpm env:check
-pnpm env:generate
+pnpm env:generate   # rewrites .env.example; never edit it by hand
 ```
 
-Provider reads and all writes are explicit future invocations. Inspect the
-plan before applying an environment:
+Provider reads and writes show names and destinations only. Plan before applying:
 
 ```sh
-pnpm env:plan preview --pr 123
-pnpm env:apply local --only file
+pnpm env:plan <environment>          # preview: add --pr <n> for the Worker
+pnpm env:apply local --only file     # .env.local and apps/mobile/.env.local
+pnpm env:apply preview --only github # repository PREVIEW_<name> values
 ```
 
-Do not run a production apply as part of local workspace preparation.
+New worktrees get local files from `node scripts/workspace.mjs prepare`
+([worktree setup](worktree-setup.md)), never by copying another checkout's files.
 
-## Generated and app-owned values
+## Deploys and OTA updates
 
-The existing workspace setup owns `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`, the
-optional `CONVEX_SITE_URL`, and any deployment-scoped `CONVEX_DEPLOY_KEY` in
-the root `.env.local`. It also copies the selected public URL to
-`apps/mobile/.env.local`. Those placements are marked as supplied outputs, so
-the environment engine does not replace them with a parent workspace's
-selection.
+Deployed environments never read a `.env.<environment>.local` file. Local deploys
+and OTA publishes run through `env:exec`, which adds the environment's values to
+one command without writing them:
 
-The preview workflow similarly obtains `VITE_CONVEX_URL` from `convex deploy`.
-The manifest preserves its existing `PREVIEW_CLERK_PUBLISHABLE_KEY`,
-`CONVEX_DEPLOY_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID`
-names. EAS uses the existing `development`, `preview`, and `production`
-environments.
+```sh
+pnpm deploy:dev          # exec dev: convex dev --once, CLOUDFLARE_ENV=dev build, wrangler deploy
+pnpm deploy:production   # exec production: convex deploy, build, wrangler deploy
+pnpm mobile:update:preview
+```
 
-The test-user email and password are optional but public client values because
-Vite and Metro embed them in bundles. They are deliberately absent from every
-production placement and must refer only to a Clerk test instance.
+`deploy:dev` pushes Convex functions to the deployment in `.env.local`
+(`colorless-sturgeon-704` unless the worktree has its own backend), and
+`deploy:production` uses your Convex and Wrangler logins. The preview workflow gets
+`VITE_CONVEX_URL` from `convex deploy`.
 
-`environment_name` stays a committed Wrangler constant, and is the only
-Wrangler var. The Clerk publishable key and Convex URL reach the Worker only as
-build-time `VITE_*` values from this manifest; `wrangler.jsonc` does not repeat
-them. The legacy example's
-`CLERK_SECRET_KEY`, `VITE_CONVEX_SITE_URL`, `REGISTRY_OWNER`, and
-`CLOUDFLARE_ENV` names have no current source or workflow consumer and are not
-part of the manifest.
+## Notes
 
-Existing human-owned `.env.local` files stay untouched. Before using apply,
-review and migrate their values to the canonical source, then adopt the
-generated-file ownership separately. Apply never transfers ownership
-automatically and refuses to overwrite a file that lacks its generated marker.
-
-## Local ownership metadata
-
-The engine records only app/environment names, destination labels, and variable
-names in `.appelent/env-state.json`; it never stores values there. This local
-ledger is ignored by Git and lets `--prune` remove only names a prior
-successful apply wrote. `.appelent/env.lock/` serializes applies in one
-checkout and is also ignored. If an interrupted apply leaves the lock behind,
-first establish that no apply is still running, then remove that lock directory
-before retrying.
+- Test-user values land only in `local` and `dev`. They are public client values on
+  the Clerk development instance.
+- `environment_name` is a committed Wrangler var per Wrangler environment
+  (`production`, `development`, `preview`); no manifest value reaches the Worker at
+  runtime.
+- `.appelent/env-state.json` records only names a previous apply wrote, so `--prune`
+  removes only those. `.appelent/env.lock/` serializes applies. Both are ignored by
+  Git. If an interrupted apply leaves the lock, confirm no apply is running before
+  removing it.

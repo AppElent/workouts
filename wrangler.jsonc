@@ -16,12 +16,22 @@
   },
   "env": {
     // Deploys to foundry-dev.<subdomain>.workers.dev with `pnpm deploy:dev`,
-    // which builds with CLOUDFLARE_ENV=dev and .env.development.local.
+    // which builds with CLOUDFLARE_ENV=dev and values from `env.mjs exec dev`.
     "dev": {
       "name": "foundry-dev",
       "workers_dev": true,
       "vars": {
         "environment_name": "development"
+      }
+    },
+    // PR previews (preview.yml builds with CLOUDFLARE_ENV=pr and deploys as
+    // foundry-pr-<n>). No routes, so a preview never claims the custom domain.
+    "pr": {
+      "name": "foundry-pr",
+      "workers_dev": true,
+      "routes": [],
+      "vars": {
+        "environment_name": "preview"
       }
     }
   }

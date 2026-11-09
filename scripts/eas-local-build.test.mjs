@@ -1,5 +1,8 @@
-import * as manifest from "../env.manifest.ts";
+import * as loaded from "../env.manifest.ts";
+import { resolveEnvironmentManifest } from "./lib/env/index.mjs";
 import { easCommands, PROFILES, secretEasPlacements, secretEnv } from "./eas-local-build.mjs";
+
+const manifest = resolveEnvironmentManifest(loaded);
 
 describe("local EAS builds", () => {
 	it("injects only secret values routed to EAS", () => {

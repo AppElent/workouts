@@ -1,221 +1,67 @@
-/**
- * Foundry environment routing.
- *
- * Entries describe logical values and their consumers. destinationFor maps a
- * consumer in an app environment to the place that consumer reads from. The
- * environment engine in scripts/env.mjs performs checks and effects from the
- * resulting placements.
- */
+// Foundry environment manifest. Values live in Infisical, never here. Routing is
+// the shared model in docs/standards/environments.md: entries say which consumer
+// reads a value in which environment; the engine picks the destination.
+// Optional typing: import type { EnvironmentEntry } from "./scripts/lib/env/types.ts";
 
 export const ENV_CONFIG = {
 	appName: "Foundry",
-	source: {
-		environments: {
-			local: "dev",
-			preview: "staging",
-			dev: "staging",
-			production: "prod",
+	source: { paths: ["/", "/foundry"] },
+	convex: {
+		project: "eric-jansen:workout-tracker",
+		deployments: {
+			dev: "colorless-sturgeon-704",
+			production: "fine-akita-444",
 		},
-		paths: ["/", "/foundry"],
 	},
+	worker: { name: "foundry" },
 	mobile: { path: "apps/mobile" },
 	github: { repository: "AppElent/workouts" },
-} as const;
-
-export const ENVIRONMENTS = [
-	"local",
-	"preview",
-	"dev",
-	"production",
-] as const;
-export type Environment = (typeof ENVIRONMENTS)[number];
-
-export const CONSUMERS = [
-	"vite-build",
-	"local-tooling",
-	"convex-functions",
-	"workflow",
-	"expo-build",
-	"eas-tooling",
-	"expo-local",
-] as const;
-export type Consumer = (typeof CONSUMERS)[number];
-
-export type Destination =
-	| { kind: "file"; path: string }
-	| {
-			kind: "convex";
-			target: "dev" | "preview-default" | "production" | string;
-			deployment?: string;
-			project?: string;
-	  }
-	| { kind: "github"; scope: "repo" | string }
-	| { kind: "eas"; environment: "development" | "preview" | "production" };
-
-/** Preserve the repo secret names consumed by the existing preview workflow. */
-export function githubName(name: string, scope: string) {
-	if (scope === "repo" && name === "VITE_CLERK_PUBLISHABLE_KEY") {
-		return "PREVIEW_CLERK_PUBLISHABLE_KEY";
-	}
-	return name;
-}
-
-export function destinationFor(
-	consumer: Consumer,
-	environment: Environment,
-): Destination | null {
-	switch (consumer) {
-		case "vite-build":
-			switch (environment) {
-				case "local":
-					return { kind: "file", path: ".env.local" };
-				case "preview":
-					return { kind: "github", scope: "repo" };
-				case "dev":
-					return { kind: "file", path: ".env.development.local" };
-				case "production":
-					return { kind: "file", path: ".env.production.local" };
-			}
-			break;
-		case "local-tooling":
-			return environment === "local"
-				? { kind: "file", path: ".env.local" }
-				: null;
-		case "convex-functions":
-			switch (environment) {
-				case "local":
-					return { kind: "convex", target: "dev" };
-				case "preview":
-					return {
-						kind: "convex",
-						target: "preview-default",
-						project: "eric-jansen:workout-tracker",
-					};
-				case "dev":
-					return {
-						kind: "convex",
-						target: "dev",
-						deployment: "colorless-sturgeon-704",
-					};
-				case "production":
-					return {
-						kind: "convex",
-						target: "production",
-						deployment: "fine-akita-444",
-					};
-			}
-			break;
-		case "workflow":
-			return environment === "preview"
-				? { kind: "github", scope: "repo" }
-				: null;
-		case "expo-build":
-		case "eas-tooling":
-			switch (environment) {
-				case "local":
-				case "dev":
-					return { kind: "eas", environment: "development" };
-				case "preview":
-					return { kind: "eas", environment: "preview" };
-				case "production":
-					return { kind: "eas", environment: "production" };
-			}
-			break;
-		case "expo-local":
-			return environment === "local"
-				? { kind: "file", path: "apps/mobile/.env.local" }
-				: null;
-	}
-	return null;
-}
-
-type Landing = {
-	name: string;
-	environments: readonly Environment[];
-	suppliedIn?: Partial<Record<Environment, string>>;
 };
 
-type ViteLanding = Landing & { name: `VITE_${string}` };
-type ExpoLanding = Landing & { name: `EXPO_PUBLIC_${string}` };
+export const ENVIRONMENTS = ["local", "dev", "preview", "production"] as const;
 
-type Lands = Partial<
-	Record<Exclude<Consumer, "vite-build" | "expo-build" | "expo-local">, Landing>
-> & {
-	"vite-build"?: ViteLanding;
-	"expo-build"?: ExpoLanding;
-	"expo-local"?: ExpoLanding;
-};
-
-type BaseEntry = {
-	key: string;
-	/** Canonical source name in the shared Infisical project. */
-	infisicalKey: string;
-	description: string;
-	optional?: true;
-	lands: Lands;
-};
-
-export type Entry =
-	| (BaseEntry & { secret: false })
-	| (BaseEntry & {
-			secret: true;
-			lands: Omit<Lands, "vite-build" | "expo-build" | "expo-local"> & {
-				"vite-build"?: never;
-				"expo-build"?: never;
-				"expo-local"?: never;
-			};
-	  });
+const ALL = ["local", "dev", "preview", "production"];
+const DEV_ONLY = ["local", "dev"];
 
 export const ENTRIES = [
 	{
 		key: "sentryDsn",
 		infisicalKey: "sentry-dsn",
-		description: "Public Sentry DSN for client errors, performance, replay, and feedback.",
-		secret: false,
+		description:
+			"Public Sentry DSN for client errors, performance, replay, and feedback",
 		optional: true,
+		secret: false,
 		lands: {
-			"vite-build": {
-				name: "VITE_SENTRY_DSN",
-				environments: ["local", "preview", "dev", "production"],
-			},
-			"expo-build": {
-				name: "EXPO_PUBLIC_SENTRY_DSN",
-				environments: ["local", "preview", "dev", "production"],
-			},
-			"expo-local": {
-				name: "EXPO_PUBLIC_SENTRY_DSN",
-				environments: ["local"],
-			},
+			"vite-build": { name: "VITE_SENTRY_DSN", environments: ALL },
+			"expo-build": { name: "EXPO_PUBLIC_SENTRY_DSN", environments: ALL },
+			"expo-local": { name: "EXPO_PUBLIC_SENTRY_DSN", environments: ["local"] },
 		},
 	},
 	{
 		key: "sentryAuthToken",
 		infisicalKey: "sentry-auth-token",
-		description: "Build-only Sentry token for source-map and debug-symbol uploads.",
-		secret: true,
+		description: "Build-only Sentry token for source-map and debug-symbol uploads",
 		optional: true,
+		secret: true,
 		lands: {
 			"local-tooling": { name: "SENTRY_AUTH_TOKEN", environments: ["local"] },
-			workflow: { name: "SENTRY_AUTH_TOKEN", environments: ["preview"] },
-			"eas-tooling": {
+			workflow: {
 				name: "SENTRY_AUTH_TOKEN",
-				environments: ["local", "preview", "dev", "production"],
+				environments: ["preview", "production"],
 			},
+			"eas-tooling": { name: "SENTRY_AUTH_TOKEN", environments: ALL },
 		},
 	},
 	{
 		key: "clerkPublishableKey",
 		infisicalKey: "clerk-publishable-key",
-		description: "Clerk publishable key used by the web and mobile clients.",
+		description: "pk_test_ in dev, pk_live_ in staging and prod",
 		secret: false,
 		lands: {
-			"vite-build": {
-				name: "VITE_CLERK_PUBLISHABLE_KEY",
-				environments: ["local", "preview", "dev", "production"],
-			},
+			"vite-build": { name: "VITE_CLERK_PUBLISHABLE_KEY", environments: ALL },
 			"expo-build": {
 				name: "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
-				environments: ["local", "preview", "dev", "production"],
+				environments: ALL,
 			},
 			"expo-local": {
 				name: "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
@@ -226,154 +72,96 @@ export const ENTRIES = [
 	{
 		key: "clerkJwtIssuerDomain",
 		infisicalKey: "clerk-jwt-issuer-domain",
-		description: "Clerk issuer domain used by Convex to validate JWTs.",
+		description: "Issuer Convex trusts",
 		secret: false,
 		lands: {
-			"convex-functions": {
-				name: "CLERK_JWT_ISSUER_DOMAIN",
-				environments: ["local", "preview", "dev", "production"],
-			},
+			"convex-functions": { name: "CLERK_JWT_ISSUER_DOMAIN", environments: ALL },
 		},
 	},
 	{
 		key: "anthropicApiKey",
 		infisicalKey: "anthropic-api-key",
-		description: "Anthropic API key for nutrition AI help (Convex actions only).",
+		description: "Anthropic API key for nutrition AI help (Convex actions only)",
 		secret: true,
 		lands: {
-			"convex-functions": {
-				name: "ANTHROPIC_API_KEY",
-				environments: ["local", "preview", "dev", "production"],
-			},
+			"convex-functions": { name: "ANTHROPIC_API_KEY", environments: ALL },
 		},
 	},
 	{
 		key: "appleTeamId",
 		infisicalKey: "apple-team-id",
-		description: "Apple Developer team ID; signs the Sign in with Apple client secret.",
+		description: "Apple Developer team ID; signs the Sign in with Apple client secret",
 		secret: true,
 		lands: {
-			"convex-functions": {
-				name: "APPLE_TEAM_ID",
-				environments: ["local", "preview", "dev", "production"],
-			},
+			"convex-functions": { name: "APPLE_TEAM_ID", environments: ALL },
 		},
 	},
 	{
 		key: "appleSignInKeyId",
 		infisicalKey: "apple-sso-key-id",
-		description: "Key ID of the Sign in with Apple private key.",
+		description: "Key ID of the Sign in with Apple private key",
 		secret: true,
 		lands: {
-			"convex-functions": {
-				name: "APPLE_SIGN_IN_KEY_ID",
-				environments: ["local", "preview", "dev", "production"],
-			},
+			"convex-functions": { name: "APPLE_SIGN_IN_KEY_ID", environments: ALL },
 		},
 	},
 	{
 		key: "appleSignInPrivateKey",
 		infisicalKey: "apple-sso-key-value",
-		description: "Sign in with Apple .p8 private key; Convex revokes Apple grants on account deletion.",
+		description:
+			"Sign in with Apple .p8 private key; Convex revokes Apple grants on account deletion",
 		secret: true,
 		lands: {
 			"convex-functions": {
 				name: "APPLE_SIGN_IN_PRIVATE_KEY",
-				environments: ["local", "preview", "dev", "production"],
+				environments: ALL,
 			},
 		},
 	},
 	{
 		key: "convexUrl",
 		infisicalKey: "convex-url",
-		description: "Public URL of the Convex deployment used by each client.",
+		description: "Convex client URL",
 		secret: false,
 		lands: {
 			"vite-build": {
 				name: "VITE_CONVEX_URL",
-				environments: ["local", "preview", "dev", "production"],
-				suppliedIn: {
-					local: "scripts/setup-worktree.mjs selects the workspace deployment",
-					preview: "convex deploy --cmd-url-env-var-name CONVEX_URL",
-				},
+				environments: ALL,
+				suppliedIn: { preview: "convex deploy" },
 			},
-			"expo-build": {
-				name: "EXPO_PUBLIC_CONVEX_URL",
-				environments: ["local", "preview", "dev", "production"],
-			},
-			"expo-local": {
-				name: "EXPO_PUBLIC_CONVEX_URL",
-				environments: ["local"],
-				suppliedIn: {
-					local: "scripts/setup-worktree.mjs copies the selected public URL",
-				},
-			},
+			"expo-build": { name: "EXPO_PUBLIC_CONVEX_URL", environments: ALL },
+			"expo-local": { name: "EXPO_PUBLIC_CONVEX_URL", environments: ["local"] },
 		},
 	},
 	{
 		key: "convexDeployment",
 		infisicalKey: "convex-deployment",
-		description: "Selected Convex deployment reference for local tooling.",
+		description: "Deployment the local Convex CLI selects: the shared dev one",
 		secret: false,
 		lands: {
-			"local-tooling": {
-				name: "CONVEX_DEPLOYMENT",
-				environments: ["local"],
-				suppliedIn: {
-					local: "scripts/setup-worktree.mjs selects the workspace deployment",
-				},
-			},
-		},
-	},
-	{
-		key: "convexSiteUrl",
-		infisicalKey: "convex-site-url",
-		description: "Optional site URL emitted when the selected Convex deployment has one.",
-		optional: true,
-		secret: false,
-		lands: {
-			"local-tooling": {
-				name: "CONVEX_SITE_URL",
-				environments: ["local"],
-				suppliedIn: {
-					local: "Convex deployment selection writes the workspace output",
-				},
-			},
+			"local-tooling": { name: "CONVEX_DEPLOYMENT", environments: ["local"] },
 		},
 	},
 	{
 		key: "convexDeployKey",
 		infisicalKey: "convex-deploy-key",
-		description: "Convex deployment key used by preview CI or scoped to a workspace.",
+		description: "Deploy key: preview kind in staging, production kind in prod",
 		secret: true,
 		lands: {
-			"local-tooling": {
-				name: "CONVEX_DEPLOY_KEY",
-				environments: ["local"],
-				suppliedIn: {
-					local: "scripts/setup-worktree.mjs may mint a deployment-scoped key",
-				},
-			},
-			workflow: {
-				name: "CONVEX_DEPLOY_KEY",
-				environments: ["preview"],
-			},
+			workflow: { name: "CONVEX_DEPLOY_KEY", environments: ["preview"] },
 		},
 	},
 	{
 		key: "testUserEmail",
 		infisicalKey: "test-user-email",
-		description: "Optional Clerk test-user email published in non-production clients.",
+		description: "+clerk_test address on the development instance",
 		optional: true,
 		secret: false,
 		lands: {
-			"vite-build": {
-				name: "VITE_TEST_USER_EMAIL",
-				environments: ["local", "dev"],
-			},
+			"vite-build": { name: "VITE_TEST_USER_EMAIL", environments: DEV_ONLY },
 			"expo-build": {
 				name: "EXPO_PUBLIC_TEST_USER_EMAIL",
-				environments: ["local", "preview", "dev"],
+				environments: DEV_ONLY,
 			},
 			"expo-local": {
 				name: "EXPO_PUBLIC_TEST_USER_EMAIL",
@@ -384,17 +172,17 @@ export const ENTRIES = [
 	{
 		key: "testUserPassword",
 		infisicalKey: "test-user-password",
-		description: "Optional Clerk test-user password published in non-production clients.",
+		description: "Password of the development-instance test user",
 		optional: true,
 		secret: false,
 		lands: {
 			"vite-build": {
 				name: "VITE_TEST_USER_PASSWORD",
-				environments: ["local", "dev"],
+				environments: DEV_ONLY,
 			},
 			"expo-build": {
 				name: "EXPO_PUBLIC_TEST_USER_PASSWORD",
-				environments: ["local", "preview", "dev"],
+				environments: DEV_ONLY,
 			},
 			"expo-local": {
 				name: "EXPO_PUBLIC_TEST_USER_PASSWORD",
@@ -405,70 +193,28 @@ export const ENTRIES = [
 	{
 		key: "cloudflareApiToken",
 		infisicalKey: "cloudflare-account-token",
-		description: "Cloudflare token used by preview CI to deploy and remove Workers.",
+		description: "Worker deploy token for PR previews",
 		secret: true,
 		lands: {
-			workflow: {
-				name: "CLOUDFLARE_API_TOKEN",
-				environments: ["preview"],
-			},
+			workflow: { name: "CLOUDFLARE_API_TOKEN", environments: ["preview"] },
 		},
 	},
 	{
 		key: "cloudflareAccountId",
 		infisicalKey: "cloudflare-account-id",
-		description: "Cloudflare account identifier used by preview CI.",
-		secret: true,
+		description: "Cloudflare account for Worker deploys",
+		secret: false,
 		lands: {
-			workflow: {
-				name: "CLOUDFLARE_ACCOUNT_ID",
-				environments: ["preview"],
-			},
+			workflow: { name: "CLOUDFLARE_ACCOUNT_ID", environments: ["preview"] },
 		},
 	},
 	{
 		key: "expoToken",
 		infisicalKey: "expo-token",
-		description: "Expo access token used by CI for `eas build --local`.",
+		description: "Expo access token for CI `eas build --local` runs",
 		secret: true,
 		lands: {
-			workflow: {
-				name: "EXPO_TOKEN",
-				environments: ["preview"],
-			},
+			workflow: { name: "EXPO_TOKEN", environments: ["preview"] },
 		},
 	},
-] as const satisfies readonly Entry[];
-
-export type Placement = {
-	entry: Entry;
-	consumer: Consumer;
-	environment: Environment;
-	name: string;
-	destination: Destination;
-	suppliedBy: string | null;
-};
-
-export function placementsFor(environment: Environment): Placement[] {
-	const placements: Placement[] = [];
-	for (const entry of ENTRIES as readonly Entry[]) {
-		for (const consumer of CONSUMERS) {
-			const landing = entry.lands[consumer];
-			if (!landing || !landing.environments.includes(environment)) continue;
-			const destination = destinationFor(consumer, environment);
-			if (!destination) continue;
-			placements.push({
-				entry,
-				consumer,
-				environment,
-				name:
-					destination.kind === "github"
-						? githubName(landing.name, destination.scope)
-						: landing.name,
-				destination,
-				suppliedBy: landing.suppliedIn?.[environment] ?? null,
-			});
-		}
-	}
-	return placements;
-}
+];

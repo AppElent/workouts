@@ -15,15 +15,8 @@ backend and Clerk authentication. Documentation is mapped in [docs/](docs/README
 ## Setup
 
 ```bash
-pnpm install
-
-# Read the configured Infisical source and apply local values
-pnpm env:check
-pnpm env:plan local --only file
-pnpm env:apply local --only file
-
-# First time only: log in to Convex and write CONVEX_DEPLOYMENT
-pnpm exec convex dev --once
+# Install, then write .env.local and apps/mobile/.env.local from Infisical dev
+node scripts/workspace.mjs prepare
 ```
 
 `.env.example` catalogs source keys; it is not a template for `.env.local`. See
@@ -35,7 +28,7 @@ pnpm exec convex dev --once
 pnpm dev:watch   # Convex (watch) + Vite on http://localhost:3000
 ```
 
-Each concurrent worktree needs its own Convex deployment: use
+Worktrees share the dev Convex deployment; create an isolated one with
 [worktree setup](docs/runbooks/worktree-setup.md). Checks and the other dev
 scripts are in [verification](docs/runbooks/verification.md); mobile builds,
 TestFlight, and OTA updates are in [mobile releases](docs/runbooks/mobile-releases.md).
@@ -50,7 +43,9 @@ pnpm foundry auth login            # browser flow; --token <token> as fallback
 
 ## Deployment
 
-Cloudflare Workers via Wrangler (`wrangler.jsonc` defines `production` and `dev`).
+Cloudflare Workers via Wrangler (`wrangler.jsonc` defines production, `dev`, and the
+route-free `pr` env). `pnpm deploy:dev` and `pnpm deploy:production` deploy from your
+machine with values from Infisical ([environment](docs/runbooks/environment.md)).
 Add the `preview:web` label to a pull request for an isolated preview (per-PR
 Convex backend and Worker) from `.github/workflows/preview.yml`, linked in a PR
 comment. Removing the label or closing the PR deletes the Worker. Native builds

@@ -30,7 +30,7 @@ jobs:
       # failure could land green on a direct push to main.
       # No SENTRY_AUTH_TOKEN: this artifact is never deployed, so uploading
       # its source maps would only add a Sentry release per CI run. Deploying
-      # builds (preview.yml, deploy:prod) upload instead.
+      # builds (preview.yml, deploy:production) upload instead.
       - run: pnpm build
         env:
           VITE_SENTRY_ENVIRONMENT: ci
