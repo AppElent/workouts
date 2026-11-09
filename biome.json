@@ -20,6 +20,7 @@
 			"**/vitest.config.ts",
 			"apps/mobile/app/**/*",
 			"apps/mobile/*.{ts,tsx,js}",
+			"apps/mobile/plugins/**/*",
 			"packages/*/tsup.config.ts",
 			"packages/*/scripts/**/*",
 			"!!.claude/worktrees",

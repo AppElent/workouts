@@ -95,6 +95,7 @@
 					}
 				}
 			],
+			"./plugins/disable-shake-to-edit",
 			[
 				"@sentry/react-native/expo",
 				{
