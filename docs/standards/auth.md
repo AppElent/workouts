@@ -2,7 +2,7 @@
 type: standard
 kind: capability
 description: Read when adding or changing Clerk/Convex authentication, session readiness, or account flows.
-version: 2.1.0
+version: 3.0.0
 applies_to: [web, mobile, backend]
 ---
 
@@ -32,10 +32,10 @@ Use supported Clerk UI or custom flows covering verification, MFA, password rese
 
 ### Web wiring
 
-Follow [Convex's Clerk integration](https://docs.convex.dev/auth/clerk). Validate public configuration through the app's environment schema; keep server keys server-only. For existing @clerk/clerk-react apps:
+Follow [Convex's Clerk integration](https://docs.convex.dev/auth/clerk). Validate public configuration through the app's environment schema; keep server keys server-only. For @clerk/react (Clerk Core 3) apps:
 
 ```tsx
-import { ClerkProvider, useAuth } from '@clerk/clerk-react';
+import { ClerkProvider, useAuth } from '@clerk/react';
 import { ConvexReactClient } from 'convex/react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 
@@ -52,7 +52,7 @@ Use the installed SDK's adapter; preserve its generation and app-specific router
 
 ### Web account UI
 
-For @clerk/clerk-react custom flows, copy the [web examples](auth/examples/web/index.ts) and their sibling files into an app-owned directory, preserving relative imports. They provide sign-in, sign-up, password reset, profile, header user menu, test login, and light/dark theme helpers, and need react, @clerk/clerk-react, clsx, tailwind-merge, and lucide-react. Import [tokens.css](auth/examples/web/tokens.css) from the app stylesheet and map its `--auth-*` variables onto the app palette. Add the [env typings](auth/examples/web/vite-env.d.ts) unless the app already declares those `ImportMetaEnv` keys. Routes, labels, and branding stay app-owned through `AuthConfigProvider` and component props. The test login needs a `pk_test_` key, email-code sign-in enabled, and a `+clerk_test` `VITE_TEST_USER_EMAIL`; it uses Clerk's development verification code, so no password is configured.
+For @clerk/react (Clerk Core 3) custom flows, copy the [web examples](auth/examples/web/index.ts) and their sibling files into an app-owned directory, preserving relative imports. They provide sign-in, sign-up, password reset, profile, header user menu, test login, and light/dark theme helpers, and need react, @clerk/react, clsx, tailwind-merge, and lucide-react. Import [tokens.css](auth/examples/web/tokens.css) from the app stylesheet and map its `--auth-*` variables onto the app palette. Add the [env typings](auth/examples/web/vite-env.d.ts) unless the app already declares those `ImportMetaEnv` keys. Routes, labels, and branding stay app-owned through `AuthConfigProvider` and component props. Clerk Core 3 methods resolve to `{ error }` instead of throwing; the examples' `orThrow` keeps one catch path, and sign-in finalizes with `signIn.finalize()` after MFA or device-trust (`needs_client_trust`) verification. The test login needs a `pk_test_` key, email-code sign-in enabled, and a `+clerk_test` `VITE_TEST_USER_EMAIL`; it uses Clerk's development verification code, so no password is configured.
 
 ### Native and headless behavior
 

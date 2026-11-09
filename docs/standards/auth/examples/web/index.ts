@@ -22,6 +22,7 @@ export {
 	CLERK_TEST_VERIFICATION_CODE,
 	clerkErrorMessage,
 	isClerkTestEmail,
+	orThrow,
 	pickSecondFactor,
 	type SecondFactorStrategy,
 	shouldShowTestLogin,
