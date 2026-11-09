@@ -74,7 +74,8 @@ export function FormScreen({
 	/**
 	 * Wrap the content in a `KeyboardAvoidingView`. Tab-root screens with no
 	 * inputs turn this off so the `ScrollView` is the screen's first native
-	 * child, which is what lets UIKit collapse the large title on scroll.
+	 * child, which is what lets UIKit collapse the large title on scroll. Any
+	 * wrapping view, even a plain `View`, hides it from UIKit.
 	 */
 	avoidKeyboard?: boolean;
 }) {
@@ -82,6 +83,7 @@ export function FormScreen({
 	const insets = useSafeAreaInsets();
 	const headerHeight = useContext(HeaderHeightContext) ?? 0;
 
+	const unwrapped = nativeSheet || !avoidKeyboard;
 	const content = (
 		<>
 			{showHeader ? (
@@ -131,7 +133,7 @@ export function FormScreen({
 			) : null}
 			<ScrollView
 				ref={scrollRef}
-				style={nativeSheet ? styles.screen : undefined}
+				style={unwrapped ? styles.screen : undefined}
 				automaticallyAdjustKeyboardInsets={nativeSheet}
 				scrollToOverflowEnabled={nativeSheet}
 				contentInsetAdjustmentBehavior="automatic"
@@ -160,8 +162,7 @@ export function FormScreen({
 			) : null}
 		</>
 	);
-	if (nativeSheet) return content;
-	if (!avoidKeyboard) return <View style={styles.screen}>{content}</View>;
+	if (unwrapped) return content;
 	return (
 		<KeyboardAvoidingView
 			behavior={Platform.OS === "ios" ? "padding" : "height"}

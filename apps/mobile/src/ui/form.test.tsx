@@ -3,7 +3,13 @@ import type { ReactElement, ReactNode } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LocaleProvider } from "../i18n";
 import { renderThemed } from "../test-support/render-themed";
-import { AddRow, DisclosureRow, FormSection, StepperField } from "./form";
+import {
+	AddRow,
+	DisclosureRow,
+	FormScreen,
+	FormSection,
+	StepperField,
+} from "./form";
 
 /** These primitives read their fallback labels from the message catalog. */
 const render = async (ui: ReactElement) =>
@@ -21,6 +27,19 @@ async function renderForm(children: ReactNode) {
 		</SafeAreaProvider>,
 	);
 }
+
+it("renders the scroll view unwrapped so UIKit can collapse a large title", async () => {
+	await renderForm(
+		<FormScreen avoidKeyboard={false}>
+			<DisclosureRow label="Language" onPress={() => {}} />
+		</FormScreen>,
+	);
+	// The provider's host view is the stand-in for the native screen here: the
+	// scroll view must be its first child, with no View or KAV in between.
+	const root = screen.toJSON();
+	const [first] = (Array.isArray(root) ? root[0] : root)?.children ?? [];
+	expect(typeof first === "object" && first?.type).toBe("RCTScrollView");
+});
 
 it("exposes semantic grouped actions without prescribing screen layout", async () => {
 	const onDisclosure = jest.fn();
