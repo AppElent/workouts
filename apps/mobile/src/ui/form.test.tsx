@@ -28,17 +28,27 @@ async function renderForm(children: ReactNode) {
 	);
 }
 
-it("renders the scroll view unwrapped so UIKit can collapse a large title", async () => {
+/**
+ * The host type of the screen's first native child. The provider's host view
+ * stands in for the native screen, whose first child UIKit tracks.
+ */
+async function firstScreenChild(avoidKeyboard?: boolean) {
 	await renderForm(
-		<FormScreen avoidKeyboard={false}>
+		<FormScreen avoidKeyboard={avoidKeyboard}>
 			<DisclosureRow label="Language" onPress={() => {}} />
 		</FormScreen>,
 	);
-	// The provider's host view is the stand-in for the native screen here: the
-	// scroll view must be its first child, with no View or KAV in between.
 	const root = screen.toJSON();
 	const [first] = (Array.isArray(root) ? root[0] : root)?.children ?? [];
-	expect(typeof first === "object" && first?.type).toBe("RCTScrollView");
+	return typeof first === "object" ? first?.type : undefined;
+}
+
+it("renders the scroll view unwrapped so UIKit can collapse a large title", async () => {
+	expect(await firstScreenChild(false)).toBe("RCTScrollView");
+});
+
+it("keeps keyboard avoidance around forms by default", async () => {
+	expect(await firstScreenChild()).not.toBe("RCTScrollView");
 });
 
 it("exposes semantic grouped actions without prescribing screen layout", async () => {

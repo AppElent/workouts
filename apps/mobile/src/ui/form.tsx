@@ -75,7 +75,8 @@ export function FormScreen({
 	 * Wrap the content in a `KeyboardAvoidingView`. Tab-root screens with no
 	 * inputs turn this off so the `ScrollView` is the screen's first native
 	 * child, which is what lets UIKit collapse the large title on scroll. Any
-	 * wrapping view, even a plain `View`, hides it from UIKit.
+	 * wrapping view, even a plain `View`, hides it from UIKit, and so does a
+	 * `title` header rendered before it.
 	 */
 	avoidKeyboard?: boolean;
 }) {
