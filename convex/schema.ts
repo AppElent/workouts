@@ -9,6 +9,7 @@ import {
 	exerciseCategory,
 	exerciseReference,
 	hostedLevel,
+	libraryCategory,
 	libraryRecordKind,
 	librarySchemaVersion,
 	loadUnit,
@@ -18,6 +19,8 @@ import {
 	nutritionGoal,
 	oneRepMaxSource,
 	plannedSet,
+	rxScaled,
+	setReferenceSource,
 	setType,
 	strengthReferenceSnapshots,
 	wodMovement,
@@ -57,9 +60,7 @@ export default defineSchema({
 		updatedAt: v.number(),
 		name: v.optional(v.string()),
 		searchText: v.optional(v.string()),
-		category: v.optional(
-			v.union(v.literal("food"), v.literal("recipe"), v.literal("combo")),
-		),
+		category: v.optional(libraryCategory),
 		barcode: v.optional(v.string()),
 		forkedFrom: v.optional(v.string()),
 	})
@@ -268,9 +269,7 @@ export default defineSchema({
 		// Compatibility with the earlier issue 89 development schema; no new writes.
 		estimatedMax: v.optional(v.number()),
 		performanceVerified: v.optional(v.boolean()),
-		referenceKind: v.optional(
-			v.union(v.literal("actual"), v.literal("calculated")),
-		),
+		referenceKind: v.optional(setReferenceSource),
 		referenceValueKg: v.optional(v.number()),
 	})
 		.index("by_session", ["sessionId"])
@@ -357,7 +356,7 @@ export default defineSchema({
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
 		date: v.number(),
-		rxScaled: v.union(v.literal("rx"), v.literal("scaled")),
+		rxScaled,
 		...wodScoreFields,
 	})
 		.index("by_user", ["userId"])

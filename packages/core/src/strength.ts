@@ -1,5 +1,10 @@
 import type { Equipment } from "./exercise";
-import { calculateOneRepMax, weightForRepMax } from "./oneRepMax";
+import {
+	calculateOneRepMax,
+	SET_REFERENCE_SOURCES,
+	type SetReferenceSource,
+	weightForRepMax,
+} from "./oneRepMax";
 import { type NumberRange, type RangeCode, rangeCode } from "./range";
 import { type RuleResult, ruleIssues } from "./rules";
 import { type LoadUnit, toKg } from "./units";
@@ -188,7 +193,12 @@ export function repMaxCurve(
 	}));
 }
 
-export type StrengthReferenceSource = "actual" | "calculated" | "manual";
+export const STRENGTH_REFERENCE_SOURCES = [
+	...SET_REFERENCE_SOURCES,
+	"manual",
+] as const;
+export type StrengthReferenceSource =
+	(typeof STRENGTH_REFERENCE_SOURCES)[number];
 export type StrengthReferenceRecord = {
 	value: number;
 	unit: LoadUnit;
@@ -218,7 +228,7 @@ export function resolveStrengthReferences<T extends StrengthReferenceRecord>(
 		exercise?.equipment === "bodyweight"
 			? []
 			: records.filter((record) => record.sourceSetId);
-	const best = (source: "actual" | "calculated") =>
+	const best = (source: SetReferenceSource) =>
 		derived
 			.filter((record) => record.source === source)
 			.sort((a, b) => toKg(b.value, b.unit) - toKg(a.value, a.unit))[0] ?? null;

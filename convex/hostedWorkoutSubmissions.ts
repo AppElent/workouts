@@ -1,11 +1,12 @@
+import { validateWodScore } from "@foundry/core";
 import { type ObjectType, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { mutation } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
-import { appError } from "./lib/errors";
+import { appError, checked } from "./lib/errors";
 import { hostedLevel, wodScoreFields } from "./lib/validators";
-import { checkedWodScore, recordWodResult } from "./lib/wods";
+import { recordWodResult } from "./lib/wods";
 
 const scoreFields = { level: hostedLevel, ...wodScoreFields };
 
@@ -25,7 +26,7 @@ function scoredLevel(
 	if (!block) throw appError("notFound", "wodBlockId");
 	const level = block.levels.find((item) => item.level === score.level);
 	if (!level) throw appError("notFound", "level");
-	checkedWodScore(block.type, score);
+	checked(validateWodScore(block.type, score));
 	return { block, level };
 }
 

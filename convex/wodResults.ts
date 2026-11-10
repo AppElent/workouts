@@ -1,17 +1,16 @@
-import { bestScore } from "@foundry/core";
+import { bestScore, validateWodScore } from "@foundry/core";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireOwned, requireUserId } from "./lib/auth";
-import { appError } from "./lib/errors";
-import { wodScoreFields } from "./lib/validators";
-import { checkedWodScore } from "./lib/wods";
+import { appError, checked } from "./lib/errors";
+import { rxScaled, wodScoreFields } from "./lib/validators";
 
 export const log = mutation({
 	args: {
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
 		date: v.optional(v.number()),
-		rxScaled: v.union(v.literal("rx"), v.literal("scaled")),
+		rxScaled,
 		...wodScoreFields,
 	},
 	handler: async (ctx, { wodId, sessionId, date, rxScaled, ...input }) => {
@@ -19,7 +18,7 @@ export const log = mutation({
 		const wod = await ctx.db.get(wodId);
 		if (!wod || (!wod.isDefault && wod.userId !== userId))
 			throw appError("notFound", "wodId");
-		const score = checkedWodScore(wod.type, input);
+		const score = checked(validateWodScore(wod.type, input));
 		if (sessionId) await requireOwned(ctx, userId, sessionId);
 		return ctx.db.insert("wodResults", {
 			userId,

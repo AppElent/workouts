@@ -3,6 +3,7 @@ import {
 	convertLoad,
 	isReferenceEligible,
 	resolveStrengthReferences,
+	SET_REFERENCE_SOURCES,
 } from "@foundry/core";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -69,7 +70,7 @@ export async function recalcStrengthReferences(
 ) {
 	for (const reference of await exerciseOneRepMaxes(ctx, userId, exerciseId))
 		if (reference.sourceSetId) await ctx.db.delete(reference._id);
-	for (const source of ["actual", "calculated"] as const) {
+	for (const source of SET_REFERENCE_SOURCES) {
 		const best = await ctx.db
 			.query("sets")
 			.withIndex("by_strength_reference", (q) =>

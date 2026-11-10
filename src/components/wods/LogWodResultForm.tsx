@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import { RX_SCALED, type RxScaled } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
@@ -16,7 +17,7 @@ interface Props {
 export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 	const log = useMutation(api.wodResults.log);
 
-	const [rxScaled, setRxScaled] = useState<"rx" | "scaled">("rx");
+	const [rxScaled, setRxScaled] = useState<RxScaled>("rx");
 	const [minutes, setMinutes] = useState(5);
 	const [seconds, setSeconds] = useState(0);
 	const [timeCapped, setTimeCapped] = useState(false);
@@ -149,7 +150,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			)}
 
 			<div className="flex gap-2">
-				{(["rx", "scaled"] as const).map((v) => (
+				{RX_SCALED.map((v) => (
 					<button
 						key={v}
 						type="button"

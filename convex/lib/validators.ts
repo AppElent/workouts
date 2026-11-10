@@ -10,6 +10,8 @@ import {
 	GOAL_DIRECTIONS,
 	GOAL_PRESET_KEYS,
 	HOSTED_LEVELS,
+	LIBRARY_CATEGORIES,
+	LIBRARY_RECORD_KINDS,
 	LIBRARY_SCHEMA_VERSIONS,
 	LOAD_UNITS,
 	MEAL_SLOTS,
@@ -17,7 +19,10 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_SOURCES,
 	type NutrientKey,
+	RX_SCALED,
+	SET_REFERENCE_SOURCES,
 	SET_TYPES,
+	STRENGTH_REFERENCE_SOURCES,
 	SUPPORTED_LOCALES,
 	WOD_TYPES,
 } from "@foundry/core";
@@ -65,7 +70,10 @@ export const goalDirection = literals(GOAL_DIRECTIONS);
 export const goalPreset = literals(GOAL_PRESET_KEYS);
 export const librarySchemaVersion = literals(LIBRARY_SCHEMA_VERSIONS);
 export const locale = literals(SUPPORTED_LOCALES);
-export const libraryRecordKind = v.union(v.literal("food"), v.literal("combo"));
+export const libraryRecordKind = literals(LIBRARY_RECORD_KINDS);
+export const libraryCategory = literals(LIBRARY_CATEGORIES);
+export const rxScaled = literals(RX_SCALED);
+export const setReferenceSource = literals(SET_REFERENCE_SOURCES);
 
 /**
  * A shipped exercise key (`shipped:…`) or a personal exercise's document id;
@@ -99,11 +107,7 @@ export const wodScoreFields = {
 	notes: v.optional(v.string()),
 };
 
-export const oneRepMaxSource = v.union(
-	v.literal("manual"),
-	v.literal("calculated"),
-	v.literal("actual"),
-);
+export const oneRepMaxSource = literals(STRENGTH_REFERENCE_SOURCES);
 
 export const strengthReferenceSnapshot = v.object({
 	value: v.number(),

@@ -17,7 +17,11 @@ import { appError, withRuleErrors } from "./lib/errors";
 import { requireFoodPhotoOwner } from "./lib/foodPhotos";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { withOperationReceipt } from "./lib/operationReceipt";
-import { libraryRecordKind, librarySchemaVersion } from "./lib/validators";
+import {
+	libraryCategory,
+	libraryRecordKind,
+	librarySchemaVersion,
+} from "./lib/validators";
 
 const MAX_PAYLOAD_LENGTH = 200_000;
 const MAX_RECORD_ID_LENGTH = 512;
@@ -251,9 +255,7 @@ export const save = mutation({
 export const browse = query({
 	args: {
 		query: v.string(),
-		category: v.optional(
-			v.union(v.literal("food"), v.literal("recipe"), v.literal("combo")),
-		),
+		category: v.optional(libraryCategory),
 		paginationOpts: paginationOptsValidator,
 		photoVersion,
 	},
