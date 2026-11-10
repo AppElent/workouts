@@ -77,7 +77,7 @@ function registerReadOnlyTools(
 		{
 			title: "Get exercise volume",
 			description:
-				"Return weekly training volume for one exercise visible to the authenticated Foundry user.",
+				"Return weekly work volume in kg (warm-ups excluded, ISO weeks in UTC) for one exercise visible to the authenticated Foundry user.",
 			inputSchema: {
 				exerciseId: z.string().min(1),
 			},

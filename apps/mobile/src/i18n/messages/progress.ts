@@ -6,7 +6,7 @@ export const progressEn = {
 	pick: "Pick an exercise to see its trends.",
 	oneRepMax: "1RM over time",
 	weeklyVolume: "Weekly volume",
-	weeklyVolumeNote: "Every set type, warmups included.",
+	weeklyVolumeNote: "Every set except warm-ups, in kg.",
 	notEnoughData: "Not enough data yet.",
 };
 
@@ -19,6 +19,6 @@ export const progressNl: typeof progressEn = {
 	pick: "Kies een oefening om de trends te zien.",
 	oneRepMax: "1RM door de tijd",
 	weeklyVolume: "Volume per week",
-	weeklyVolumeNote: "Alle settypes, inclusief warming-ups.",
+	weeklyVolumeNote: "Alle sets behalve warming-ups, in kg.",
 	notEnoughData: "Nog niet genoeg data.",
 };
