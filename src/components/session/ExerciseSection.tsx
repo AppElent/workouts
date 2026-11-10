@@ -1,6 +1,14 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { convertLoad } from "@foundry/core";
+import {
+	convertLoad,
+	getWeightStep,
+	type LoadUnit,
+	SET_LIMITS,
+	SET_TYPES,
+	type SetType,
+	validateSetInput,
+} from "@foundry/core";
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
@@ -9,7 +17,6 @@ import { ChevronUp, Plus, Weight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
 import { useToast } from "#/components/ui/toast";
-import { getWeightStep } from "#/lib/exerciseWeightConfig";
 import { PlateSheet } from "./PlateSheet";
 import { useRestTimer } from "./RestTimer";
 import { SetCard } from "./SetCard";
@@ -22,7 +29,7 @@ interface Props {
 	weightIncrement?: number;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];
-	plannedSets: { reps: number; weight: number; unit: "kg" | "lbs" }[];
+	plannedSets: { reps: number; weight: number; unit: LoadUnit }[];
 	repeated: Doc<"sets"> | null;
 	busy: boolean;
 	write: (action: () => Promise<unknown>) => Promise<boolean>;
@@ -32,9 +39,6 @@ interface Props {
 		weightStep: number,
 	) => void;
 }
-
-const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
-type SetType = (typeof SET_TYPES)[number];
 
 export function ExerciseSection({
 	exerciseId,
@@ -79,18 +83,7 @@ export function ExerciseSection({
 	const [showPlates, setShowPlates] = useState(false);
 
 	const consumedRepeat = useRef<Doc<"sets"> | null>(null);
-	const valid =
-		Number.isFinite(weight) &&
-		weight >= 0 &&
-		weight <= 2000 &&
-		Number.isInteger(reps) &&
-		reps >= 1 &&
-		reps <= 1000 &&
-		(rpe === undefined ||
-			(Number.isFinite(rpe) &&
-				rpe >= 1 &&
-				rpe <= 10 &&
-				Number.isInteger(rpe * 2)));
+	const valid = validateSetInput({ weight, reps, rpe }).ok;
 	const isBarbell = equipment === "barbell";
 	useEffect(() => {
 		if (!repeated || attempt || consumedRepeat.current === repeated) return;
@@ -103,7 +96,6 @@ export function ExerciseSection({
 		setWeightInitialized(true);
 	}, [repeated, attempt]);
 
-	// Once the last-exercise query resolves, seed weight if no sets exist in this session yet
 	useEffect(() => {
 		if (!weightInitialized && lastExerciseSet !== undefined) {
 			const source = plannedSets[sets.length] ?? lastExerciseSet;
@@ -133,7 +125,6 @@ export function ExerciseSection({
 			});
 			if (!saved) return;
 			setAttempt(null);
-			// Auto-start the rest timer after a working/failure/drop set (skip warmups).
 			if (payload.setType !== "warmup") startRest();
 		} catch (error) {
 			if (error instanceof ConvexError) setAttempt(null);
@@ -159,11 +150,11 @@ export function ExerciseSection({
 
 			{!valid && (
 				<p role="alert" className="text-sm text-[var(--text-muted)]">
-					Enter weight up to 2000 kg, 1–1000 whole reps, and optional RPE from 1
-					to 10 in half steps.
+					Enter weight up to {SET_LIMITS.weight.max} kg, {SET_LIMITS.reps.min}–
+					{SET_LIMITS.reps.max} whole reps, and optional RPE from{" "}
+					{SET_LIMITS.rpe.min} to {SET_LIMITS.rpe.max} in half steps.
 				</p>
 			)}
-			{/* Desktop: table */}
 			{plannedSets.length > sets.length ? (
 				<p className="text-xs text-[var(--text-muted)] mb-3">
 					{plannedSets.length - sets.length} planned sets remaining ·{" "}
@@ -197,7 +188,6 @@ export function ExerciseSection({
 				</div>
 			)}
 
-			{/* Mobile: cards */}
 			{sets.length > 0 && (
 				<div className="flex sm:hidden flex-col gap-2 mb-4">
 					{sets.map((set) => (
@@ -206,7 +196,6 @@ export function ExerciseSection({
 				</div>
 			)}
 
-			{/* Mobile: collapsed trigger */}
 			{!expanded && (
 				<button
 					type="button"
@@ -229,7 +218,6 @@ export function ExerciseSection({
 				</button>
 			)}
 
-			{/* Mobile: stepper form */}
 			<div
 				className={`flex-col gap-2.5 sm:hidden ${expanded ? "flex" : "hidden"}`}
 			>
@@ -260,7 +248,7 @@ export function ExerciseSection({
 						value={reps}
 						onChange={setReps}
 						step={1}
-						min={1}
+						min={SET_LIMITS.reps.min}
 						max={100}
 						label="Reps"
 					/>
@@ -310,7 +298,6 @@ export function ExerciseSection({
 				</button>
 			</div>
 
-			{/* Desktop: compact form */}
 			<form
 				onSubmit={(e) => {
 					e.preventDefault();
@@ -368,7 +355,7 @@ export function ExerciseSection({
 						<input
 							id="set-reps"
 							type="number"
-							min="1"
+							min={SET_LIMITS.reps.min}
 							value={reps}
 							onChange={(e) => setReps(parseInt(e.target.value, 10) || 0)}
 							className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
@@ -407,14 +394,13 @@ export function ExerciseSection({
 				</button>
 			</form>
 
-			{showPlates && (
-				<PlateSheet
-					weight={weight}
-					unit="kg"
-					exerciseName={exerciseName}
-					onClose={() => setShowPlates(false)}
-				/>
-			)}
+			<PlateSheet
+				open={showPlates}
+				weight={weight}
+				unit="kg"
+				exerciseName={exerciseName}
+				onClose={() => setShowPlates(false)}
+			/>
 		</div>
 	);
 }

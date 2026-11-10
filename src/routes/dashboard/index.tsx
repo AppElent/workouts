@@ -1,5 +1,6 @@
 import { RedirectToSignIn, Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
+import type { LoadUnit, StrengthReferenceSource } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
@@ -166,8 +167,8 @@ function ExerciseOrmRow({
 	exerciseId: ExerciseId;
 	exerciseName: string;
 	value: number;
-	unit: "kg" | "lbs";
-	source: "manual" | "calculated" | "actual";
+	unit: LoadUnit;
+	source: StrengthReferenceSource;
 }) {
 	return (
 		<div className="py-2.5 flex items-center justify-between">

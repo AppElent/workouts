@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
-import { calculateOneRepMax } from "@foundry/core";
+import { calculateOneRepMax, exerciseRecords } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
@@ -20,9 +20,12 @@ import {
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { useExercise } from "#/lib/exercises";
+import { displayLoad, setReference } from "#/lib/load";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";
+
+const REP_RANGE = Array.from({ length: 10 }, (_, i) => i + 1);
 
 export const Route = createFileRoute("/exercises/$id")({
 	component: ExerciseDetailPage,
@@ -33,7 +36,7 @@ function SignInPrompt({ message }: { message: string }) {
 		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-6 flex flex-col items-center gap-3 text-center">
 			<p className="text-sm text-[var(--text-muted)]">{message}</p>
 			<Link
-				to="/login"
+				to="/sign-in"
 				className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-bold text-black hover:bg-[var(--accent-hover)] transition-colors"
 			>
 				Sign In
@@ -81,19 +84,15 @@ function ExerciseDetailPage() {
 		}));
 
 	const unit = history[0]?.unit ?? currentOrm?.unit ?? "kg";
-	const repRangeData = Array.from({ length: 10 }, (_, i) => {
-		const reps = i + 1;
-		const maxWeight = history
-			.filter((s) => s.reps === reps && s.unit === unit)
-			.reduce<number | null>(
-				(max, s) => (max === null || s.weight > max ? s.weight : max),
-				null,
-			);
+	const repMaxes = exerciseRecords(history, exercise, REP_RANGE).repMaxes;
+	const repRangeData = REP_RANGE.map((reps) => {
+		const best = repMaxes.find((r) => r.reps === reps);
+		const maxWeight = best ? displayLoad(best.valueKg, unit) : null;
 		const theoretical1RM =
 			maxWeight !== null ? calculateOneRepMax(maxWeight, reps).value : null;
 		return { label: `${reps}RM`, reps, maxWeight, theoretical1RM };
 	});
-	const hasRepRangeData = repRangeData.some((d) => d.maxWeight !== null);
+	const hasRepRangeData = repMaxes.length > 0;
 	// biome-ignore lint/suspicious/noExplicitAny: Recharts formatter type mismatch
 	const strengthCurveFormatter: any = (value: number | null, name: string) =>
 		value !== null ? [`${value} ${unit}`, name] : [null, name];
@@ -114,7 +113,6 @@ function ExerciseDetailPage() {
 				Back to exercises
 			</Link>
 
-			{/* Hero card */}
 			<div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-4 text-center">
 				<h1 className="text-2xl font-black text-white tracking-tight mb-2">
 					{exercise.name}
@@ -144,7 +142,6 @@ function ExerciseDetailPage() {
 				</div>
 			</div>
 
-			{/* Tabs */}
 			<div className="flex border-b border-[var(--border)] mb-4">
 				{tabs.map((tab) => (
 					<button
@@ -163,7 +160,6 @@ function ExerciseDetailPage() {
 				))}
 			</div>
 
-			{/* Overview tab */}
 			{activeTab === "overview" && (
 				<div className="flex flex-col gap-3">
 					{currentOrm && (
@@ -188,7 +184,11 @@ function ExerciseDetailPage() {
 					)}
 
 					{signedIn && history.length > 0 && (
-						<PersonalRecords history={history} />
+						<PersonalRecords
+							history={history}
+							exercise={exercise}
+							unit={unit}
+						/>
 					)}
 
 					{exercise.notes && (
@@ -215,7 +215,6 @@ function ExerciseDetailPage() {
 				</div>
 			)}
 
-			{/* Progress tab */}
 			{activeTab === "progress" && signedIn && (
 				<div className="flex flex-col gap-4">
 					<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
@@ -359,7 +358,6 @@ function ExerciseDetailPage() {
 				<SignInPrompt message="Sign in to track your 1RM progress and strength curve." />
 			)}
 
-			{/* History tab */}
 			{activeTab === "history" && signedIn && (
 				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 					<h2 className="text-sm font-semibold text-white mb-4">
@@ -390,7 +388,7 @@ function ExerciseDetailPage() {
 								</thead>
 								<tbody>
 									{[...history].reverse().map((set) => {
-										const orm = calculateOneRepMax(set.weight, set.reps);
+										const orm = setReference(set);
 										return (
 											<tr
 												key={set._id}
@@ -416,8 +414,8 @@ function ExerciseDetailPage() {
 													{set.rpe ?? "—"}
 												</td>
 												<td className="py-2 text-[var(--text-muted)] text-xs">
-													{orm.value}
-													{orm.source === "calculated" && (
+													{orm ? orm.value : "—"}
+													{orm?.kind === "calculated" && (
 														<span className="ml-0.5 text-[10px]">est.</span>
 													)}
 												</td>

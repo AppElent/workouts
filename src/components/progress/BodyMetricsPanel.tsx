@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import type { LoadUnit } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
@@ -13,8 +14,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-
-type Unit = "kg" | "lbs";
+import { getConvexErrorMessage } from "#/lib/convexError";
 
 export function BodyMetricsPanel() {
 	const entries = useQuery(api.bodyMetrics.list) ?? [];
@@ -22,7 +22,7 @@ export function BodyMetricsPanel() {
 	const addEntry = useMutation(api.bodyMetrics.add);
 	const removeEntry = useMutation(api.bodyMetrics.remove);
 
-	const [unit, setUnit] = useState<Unit>("kg");
+	const [unit, setUnit] = useState<LoadUnit>("kg");
 	const [weight, setWeight] = useState("");
 	const [bodyFat, setBodyFat] = useState("");
 	const [showMore, setShowMore] = useState(false);
@@ -71,7 +71,7 @@ export function BodyMetricsPanel() {
 			setThighs("");
 			setShowMore(false);
 		} catch (e) {
-			setError(e instanceof Error ? e.message : "Failed to save.");
+			setError(getConvexErrorMessage(e, "Failed to save."));
 		} finally {
 			setSaving(false);
 		}
