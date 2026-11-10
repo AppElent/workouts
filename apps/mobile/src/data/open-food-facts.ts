@@ -10,6 +10,7 @@
  * exceptions.
  */
 import {
+	kcalFromKilojoules,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -226,7 +227,6 @@ function saltNutrient(
 	return saltFromSodium({ kind: "value", amount: sodiumGrams * 1000 });
 }
 
-const KJ_PER_KCAL = 4.184;
 /** How far Open Food Facts' kcal may stray from its own kJ before we distrust it. */
 const KCAL_KJ_TOLERANCE = 0.2;
 
@@ -249,7 +249,7 @@ function energyNutrient(
 		parseProviderNumber(nutriments?.["energy-kj_100g"]) ??
 		parseProviderNumber(nutriments?.energy_100g);
 	const fromKilojoules =
-		kilojoules === undefined ? undefined : roundTenth(kilojoules / KJ_PER_KCAL);
+		kilojoules === undefined ? undefined : kcalFromKilojoules(kilojoules);
 	if (kcal.kind === "value") {
 		if (
 			fromKilojoules !== undefined &&

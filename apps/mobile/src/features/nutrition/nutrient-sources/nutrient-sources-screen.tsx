@@ -1,4 +1,5 @@
 import {
+	goalBounds,
 	MEAL_SLOTS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
@@ -17,7 +18,6 @@ import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { AppText } from "../../../ui/text";
 import { FoodVisualView } from "../components/food-visual";
 import {
-	groupGoals,
 	localizedGoalStatus,
 	outcome,
 	targetLabel,
@@ -52,7 +52,7 @@ export function NutrientSourcesScreen({
 	};
 	const group =
 		state.status === "ready"
-			? groupGoals(state.day.goals, [nutrient])[0]
+			? goalBounds(state.day.goals, [nutrient])[0]
 			: undefined;
 	const status = group ? outcome(colors, t, group, total) : undefined;
 	return (

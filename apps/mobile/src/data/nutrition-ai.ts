@@ -1,5 +1,6 @@
 import {
 	formatQuantity,
+	KJ_PER_KCAL,
 	type Locale,
 	type MealSlot,
 	NUTRIENT_KEYS,
@@ -1252,7 +1253,7 @@ export function labelNutrients(
 				amount === null &&
 				reading.per100.energyKj !== null
 			)
-				amount = Math.round(reading.per100.energyKj / 4.184);
+				amount = Math.round(reading.per100.energyKj / KJ_PER_KCAL);
 			return [
 				key,
 				amount === null ? { kind: "absent" } : { kind: "value", amount },
@@ -1291,7 +1292,11 @@ export function labelChecks(
 		if (p.energy > 0 && Math.abs(computed - p.energy) / p.energy > 0.08)
 			failures.push("energyMismatch");
 	}
-	if (p.energy && p.energyKj && Math.abs(p.energyKj / p.energy - 4.184) > 0.1)
+	if (
+		p.energy &&
+		p.energyKj &&
+		Math.abs(p.energyKj / p.energy - KJ_PER_KCAL) > 0.1
+	)
 		failures.push("kjMismatch");
 	if (p.saturatedFat !== null && p.fat !== null && p.saturatedFat > p.fat)
 		failures.push("saturatedAboveFat");

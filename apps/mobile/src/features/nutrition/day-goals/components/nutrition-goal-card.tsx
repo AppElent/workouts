@@ -1,4 +1,6 @@
 import {
+	type GoalBounds,
+	goalBounds,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
@@ -39,8 +41,6 @@ import { useToast } from "../../../../ui/toast";
 
 import {
 	displayAmount,
-	type GoalGroup,
-	groupGoals,
 	localizedGoalStatus,
 	outcome,
 	targetLabel,
@@ -54,7 +54,7 @@ function GoalProgressTrack({
 	total,
 }: {
 	t: Messages;
-	group: GoalGroup;
+	group: GoalBounds;
 	total?: NutrientTotal;
 }) {
 	const colors = useTokens();
@@ -99,7 +99,7 @@ function GoalProgressRow({
 	stacked,
 }: {
 	t: Messages;
-	group: GoalGroup;
+	group: GoalBounds;
 	total?: NutrientTotal;
 	onLongPress?: () => void;
 	onEdit?: () => void;
@@ -322,7 +322,7 @@ export function NutritionGoalCard({
 	const stackedRows = fontScale >= 1.6;
 	const activeOrder = reordering ? draftOrder : savedOrder;
 	const groups = useMemo(
-		() => groupGoals(goals, activeOrder),
+		() => goalBounds(goals, activeOrder),
 		[activeOrder, goals],
 	);
 	const hiddenCount = showAll ? 0 : Math.max(0, groups.length - 2);
@@ -403,7 +403,7 @@ export function NutritionGoalCard({
 	function move(nutrient: NutrientKey, direction: -1 | 1): boolean {
 		if (saveInFlight.current) return false;
 		const current = draftOrderRef.current;
-		const visibleNutrients = groupGoals(goals, current).map(
+		const visibleNutrients = goalBounds(goals, current).map(
 			(group) => group.nutrient,
 		);
 		const visibleIndex = visibleNutrients.indexOf(nutrient);
