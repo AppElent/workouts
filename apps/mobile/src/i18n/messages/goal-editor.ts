@@ -56,14 +56,15 @@ export const goalEditorEn = {
 	chooseStartFooter:
 		"No choice means no goals; the diary then shows totals only.",
 	presetSummary: {
-		reference: "2,000 kcal · EU 1169/2011 Annex XIII",
-		loseWeight: "1,700 kcal · Reference −300 kcal",
-		buildMuscle: "2,300 kcal · protein 100 g",
+		reference: "{energy} kcal · EU 1169/2011 Annex XIII",
+		loseWeight: "{energy} kcal · Reference {energyDelta} kcal",
+		buildMuscle: "{energy} kcal · protein {protein} g",
 	},
 	presetMenuHint: {
 		reference: "EU 1169/2011 Annex XIII, EFSA fibre",
-		loseWeight: "Reference, energy −300 kcal",
-		buildMuscle: "Reference, energy +300 kcal, protein +50 g",
+		loseWeight: "Reference, energy {energyDelta} kcal",
+		buildMuscle:
+			"Reference, energy {energyDelta} kcal, protein {proteinDelta} g",
 	},
 	field: "{nutrient} {direction}",
 	previousField: "Previous field",
@@ -144,14 +145,15 @@ export const goalEditorNl: typeof goalEditorEn = {
 	chooseStartFooter:
 		"Geen keuze = geen doelen; het dagboek toont dan alleen totalen.",
 	presetSummary: {
-		reference: "2.000 kcal · EU 1169/2011 bijlage XIII",
-		loseWeight: "1.700 kcal · Referentie −300 kcal",
-		buildMuscle: "2.300 kcal · eiwit 100 g",
+		reference: "{energy} kcal · EU 1169/2011 bijlage XIII",
+		loseWeight: "{energy} kcal · Referentie {energyDelta} kcal",
+		buildMuscle: "{energy} kcal · eiwit {protein} g",
 	},
 	presetMenuHint: {
 		reference: "EU 1169/2011 bijlage XIII, EFSA vezels",
-		loseWeight: "Referentie, energie −300 kcal",
-		buildMuscle: "Referentie, energie +300 kcal, eiwit +50 g",
+		loseWeight: "Referentie, energie {energyDelta} kcal",
+		buildMuscle:
+			"Referentie, energie {energyDelta} kcal, eiwit {proteinDelta} g",
 	},
 	field: "{nutrient} {direction}",
 	previousField: "Vorig veld",

@@ -60,6 +60,19 @@ export function localizeDecimal(text: string, locale: Locale): string {
 	return text.replace(".", DECIMAL_SEPARATOR[locale]);
 }
 
+const DECIMAL = /^[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/;
+
+/**
+ * Reads a typed decimal back. Either separator is accepted whatever the
+ * locale, because a keyboard or a paste may offer the other one; anything
+ * that is not a plain decimal (empty, thousands separators, exponents) is
+ * `undefined`.
+ */
+export function parseLocalizedDecimal(text: string): number | undefined {
+	const trimmed = text.trim();
+	return DECIMAL.test(trimmed) ? Number(trimmed.replace(",", ".")) : undefined;
+}
+
 /** The BCP 47 tag used for date formatting (day-month order for English). */
 export function dateLocale(locale: Locale): string {
 	return DATE_LOCALE[locale];

@@ -44,6 +44,7 @@ import { GoalNumberField } from "./components/goal-number-field";
 import { GoalKindLabel, GoalRow } from "./components/goal-row";
 import { GoalsKeyboardBar } from "./components/goals-keyboard-bar";
 import { GoalsStartPicker } from "./components/goals-start-picker";
+import { goalPresetMenuHint } from "./goal-preset-copy";
 import { goalsAppliesFrom } from "./goals-applies-from";
 import { type GoalFieldKey, useGoalsEditor } from "./use-goals-editor";
 
@@ -398,7 +399,7 @@ function GoalsEditor() {
 									GOAL_PRESET_KEYS.map((key) => ({
 										id: key,
 										label: copy.presets[key].name,
-										hint: copy.presetMenuHint[key],
+										hint: goalPresetMenuHint(copy, key, locale),
 										selected: key === editor.preset,
 									})),
 									...(editor.preset && editor.editedCount > 0
