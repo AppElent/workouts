@@ -8,7 +8,6 @@ import { useMemo, useRef, useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import {
 	type FoodPhotoCropPosition,
-	type FoodPhotoManager,
 	foodPhotos,
 } from "../../../data/food-photo-manager";
 import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
@@ -75,7 +74,6 @@ export function usePersonalFoodDraft({
 	seed,
 	defaultClassification,
 	initialName,
-	photoManager = foodPhotos,
 	onSaved,
 }: {
 	/** A new food's name, such as the search term it was created from. */
@@ -83,7 +81,6 @@ export function usePersonalFoodDraft({
 	food?: PersonalFood;
 	seed?: PersonalFoodDraft;
 	defaultClassification: "ordinary" | "recipe";
-	photoManager?: FoodPhotoManager;
 	onSaved: (saved: PersonalFood) => void;
 }) {
 	const { t, locale } = useI18n();
@@ -141,7 +138,6 @@ export function usePersonalFoodDraft({
 			: initial?.provenance.imageUrl && (!food || food.visualMigrationPending)
 				? { kind: "remote", uri: initial.provenance.imageUrl }
 				: undefined,
-		photoManager,
 		// A new food seeded with a local photo (handed over from a one-off) has
 		// not saved it anywhere yet: it is this form's to clean up.
 		adoptInitialPhoto: !food && initial?.visual?.kind === "photo",
@@ -263,10 +259,7 @@ export function usePersonalFoodDraft({
 		try {
 			if (visual?.kind === "remote" && remoteCrop !== "center") {
 				try {
-					importedPhoto = await photoManager.importRemote(
-						visual.uri,
-						remoteCrop,
-					);
+					importedPhoto = await foodPhotos.importRemote(visual.uri, remoteCrop);
 					draft = { ...draft, visual: importedPhoto };
 				} catch {
 					toast.error(copy.importPhotoFailure);
@@ -275,14 +268,9 @@ export function usePersonalFoodDraft({
 			saved = food
 				? await personalFoods.update(food.id, draft)
 				: await personalFoods.create(draft);
-			if (
-				food?.visual?.kind === "photo" &&
-				(saved.visual?.kind !== "photo" || food.visual.uri !== saved.visual.uri)
-			)
-				photoManager.remove(food.visual);
 			photo.keep();
 		} catch {
-			if (importedPhoto) photoManager.remove(importedPhoto);
+			if (importedPhoto) foodPhotos.remove(importedPhoto);
 			toast.error(t.nutrition.personalFood.saveFailure);
 		} finally {
 			saveLock.current = false;

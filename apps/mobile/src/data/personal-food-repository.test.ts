@@ -1,15 +1,9 @@
 import type { NUTRIENT_KEYS, NutrientValue } from "@foundry/core";
-import {
-	forkShippedFood,
-	forkSource,
-	getShippedFood,
-} from "@foundry/core/shipped-foods";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
-	type ComboDraft,
-	createPersonalFoodRepository,
-	FOOD_VISUAL_PRESET_IDS,
 	type PersonalFoodDraft,
+	readLegacyPersonalFoods,
+	type SyncSQLiteDatabase,
 } from "./personal-food-repository";
 
 function nutrientStates(): Record<
@@ -47,179 +41,48 @@ function draft(overrides: Partial<PersonalFoodDraft> = {}): PersonalFoodDraft {
 	};
 }
 
-/** Distinct, increasing timestamps so "most recent first" is unambiguous. */
-function stepwiseClock(): () => number {
-	let tick = 1_000;
-	return () => {
-		tick += 1_000;
-		return tick;
-	};
+function insertFood(
+	database: SyncSQLiteDatabase,
+	id: string,
+	food: PersonalFoodDraft,
+) {
+	database.runSync(
+		`INSERT INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json,
+			servings_json, provenance_json, classification, nutrition_basis_json,
+			estimated, visual_json, visual_migration_pending, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, 'ordinary', ?, 0, ?, 0, 10, 20)`,
+		id,
+		food.name.en,
+		food.name.nl,
+		food.baseUnit,
+		JSON.stringify(food.nutrients),
+		JSON.stringify(food.servings),
+		JSON.stringify(food.provenance),
+		JSON.stringify({ kind: "per100", unit: food.baseUnit }),
+		food.visual ? JSON.stringify(food.visual) : null,
+	);
 }
 
-function comboDraft(
-	personalFoodId: string,
-	overrides: Partial<ComboDraft> = {},
-): ComboDraft {
-	const snapshot = {
-		name: { en: "Training oats", nl: "Trainingshavermout" },
-		serving: { en: "Bowl × 1", nl: "Kom × 1" },
-		quantity: 1,
-		amount: 75.5,
-		baseUnit: "g" as const,
-		nutrients: nutrientStates(),
-	};
-	return {
-		name: "Post-workout breakfast",
-		parts: [
-			{
-				reference: { kind: "shipped", foodId: "shipped:missing-test-food" },
-				snapshot: {
-					...snapshot,
-					provenance: {
-						source: "shipped",
-						sourceId: "shipped:missing-test-food",
-						dataset: "NEVO",
-						edition: "2025/9.0",
-						sourceCode: 1,
-						sourceName: snapshot.name,
-						saltDerived: true,
-					},
-				},
-			},
-			{
-				reference: { kind: "personal", foodId: personalFoodId },
-				snapshot: {
-					...snapshot,
-					quantity: 2,
-					amount: 151,
-					provenance: {
-						source: "personal",
-						sourceId: personalFoodId,
-						nutritionSource: "manual",
-						locallyEdited: false,
-					},
-				},
-			},
-			{
-				reference: { kind: "oneOff" },
-				snapshot: {
-					...snapshot,
-					name: { en: "Pinch of cinnamon", nl: "Snuf kaneel" },
-					quantity: 0.5,
-					amount: 1,
-					provenance: { source: "oneOff" },
-				},
-			},
-		],
-		...overrides,
-	};
-}
-
-describe("PersonalFoodRepository public behavior", () => {
-	it("persists preset icons and managed local photos outside provenance", () => {
+describe("a library file from an earlier build", () => {
+	it("lists its foods with their device photos and forgets one once removed", () => {
 		const database = new SQLiteTestDatabase();
-		const repository = createPersonalFoodRepository(database);
-		const icon = repository.create(
-			draft({ visual: { kind: "icon", preset: "fruit" } }),
+		const legacy = readLegacyPersonalFoods(database);
+		insertFood(
+			database,
+			"photo-oats",
+			draft({ visual: { kind: "photo", uri: "file:///food-photos/oats.jpg" } }),
 		);
-		const photo = repository.create(
-			draft({
-				name: { en: "Photo oats", nl: "Fotohavermout" },
-				visual: {
-					kind: "photo",
-					uri: "file:///food-photos/photo-oats.jpg",
-				},
+
+		expect(readLegacyPersonalFoods(database).list()).toEqual([
+			expect.objectContaining({
+				id: "photo-oats",
+				visual: { kind: "photo", uri: "file:///food-photos/oats.jpg" },
 			}),
-		);
-
-		const reopened = createPersonalFoodRepository(database);
-		expect(reopened.find(icon.id)?.visual).toEqual({
-			kind: "icon",
-			preset: "fruit",
-		});
-		expect(reopened.find(photo.id)?.visual).toEqual({
-			kind: "photo",
-			uri: "file:///food-photos/photo-oats.jpg",
-		});
-		expect(reopened.find(photo.id)?.provenance).not.toHaveProperty("visual");
+		]);
+		legacy.remove("photo-oats");
+		expect(legacy.list()).toEqual([]);
 	});
 
-	it("accepts every curated preset and rejects unknown icons and remote photos", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		for (const preset of FOOD_VISUAL_PRESET_IDS) {
-			expect(
-				repository.create(
-					draft({
-						name: { en: preset, nl: preset },
-						visual: { kind: "icon", preset },
-					}),
-				).visual,
-			).toEqual({ kind: "icon", preset });
-		}
-		expect(() =>
-			repository.create(
-				draft({
-					visual: { kind: "icon", preset: "pizza" } as never,
-				}) as PersonalFoodDraft,
-			),
-		).toThrow(expect.objectContaining({ field: "visual", code: "invalid" }));
-		expect(() =>
-			repository.create(
-				draft({
-					visual: {
-						kind: "photo",
-						uri: "https://images.openfoodfacts.org/product.jpg",
-					},
-				}) as PersonalFoodDraft,
-			),
-		).toThrow(expect.objectContaining({ field: "visual", code: "invalid" }));
-	});
-
-	it("backs up icons but restores photo-backed Foods with an unset visual", () => {
-		const source = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const icon = source.create(
-			draft({ visual: { kind: "icon", preset: "grains" } }),
-		);
-		const photo = source.create(
-			draft({
-				name: { en: "Photo oats", nl: "Fotohavermout" },
-				visual: {
-					kind: "photo",
-					uri: "file:///food-photos/photo-oats.jpg",
-				},
-			}),
-		);
-
-		const backup = source.exportBackup();
-		expect(backup.foods.find((food) => food.id === icon.id)?.visual).toEqual({
-			kind: "icon",
-			preset: "grains",
-		});
-		expect(
-			backup.foods.find((food) => food.id === photo.id)?.visual,
-		).toBeUndefined();
-
-		const restored = createPersonalFoodRepository(new SQLiteTestDatabase());
-		restored.replaceFromBackup({
-			...backup,
-			foods: backup.foods.map((food) =>
-				food.id === photo.id
-					? {
-							...photo,
-							visual: {
-								kind: "photo" as const,
-								uri: "file:///another-device/private.jpg",
-							},
-						}
-					: food,
-			),
-		});
-		expect(restored.find(icon.id)?.visual).toEqual({
-			kind: "icon",
-			preset: "grains",
-		});
-		expect(restored.find(photo.id)?.visual).toBeUndefined();
-	});
 	it("migrates legacy persisted foods to required defaults without changing their identity or nutrition", () => {
 		const database = new SQLiteTestDatabase();
 		database.execSync(`
@@ -244,8 +107,8 @@ describe("PersonalFoodRepository public behavior", () => {
 			10,
 			20,
 		);
-		const repository = createPersonalFoodRepository(database);
-		expect(repository.find("legacy")).toMatchObject({
+		const [food] = readLegacyPersonalFoods(database).list();
+		expect(food).toMatchObject({
 			id: "legacy",
 			classification: "ordinary",
 			nutritionBasis: { kind: "per100", unit: "ml" },
@@ -254,9 +117,7 @@ describe("PersonalFoodRepository public behavior", () => {
 			createdAt: 10,
 			updatedAt: 20,
 		});
-		expect(createPersonalFoodRepository(database).find("legacy")).toEqual(
-			repository.find("legacy"),
-		);
+		expect(readLegacyPersonalFoods(database).list()).toEqual([food]);
 	});
 
 	it("merges the visual-only schema into the unified Personal Food model", () => {
@@ -288,9 +149,7 @@ describe("PersonalFoodRepository public behavior", () => {
 			20,
 		);
 
-		expect(
-			createPersonalFoodRepository(database).find("visual-v5"),
-		).toMatchObject({
+		expect(readLegacyPersonalFoods(database).list()[0]).toMatchObject({
 			classification: "ordinary",
 			nutritionBasis: { kind: "per100", unit: "g" },
 			estimated: false,
@@ -298,144 +157,6 @@ describe("PersonalFoodRepository public behavior", () => {
 			createdAt: 10,
 			updatedAt: 20,
 		});
-	});
-
-	it("persists per-serving estimates and filters recipes through the Personal Food query", () => {
-		const database = new SQLiteTestDatabase();
-		const repository = createPersonalFoodRepository(database);
-		const ordinary = repository.create(draft());
-		const recipe = repository.create(
-			draft({
-				classification: "recipe",
-				estimated: true,
-				baseUnit: "serving",
-				nutritionBasis: {
-					kind: "perServing",
-					label: { en: "Bowl", nl: "Kom" },
-				},
-				description: { en: "Restaurant bowl", nl: "Kom van restaurant" },
-				servings: [],
-			}),
-		);
-		const reopened = createPersonalFoodRepository(database);
-		expect(reopened.find(recipe.id)).toEqual(recipe);
-		expect(reopened.list({ classification: "recipe" })).toEqual([recipe]);
-		expect(
-			reopened.search("trainings", "en", { classification: "recipe" }),
-		).toEqual([recipe]);
-		expect(reopened.list({ classification: "ordinary" })).toEqual([ordinary]);
-		const originalPart = comboDraft(recipe.id).parts[1];
-		const combo = reopened.createCombo({
-			name: "Estimated serving Combo",
-			parts: [
-				{
-					...originalPart,
-					snapshot: {
-						...originalPart.snapshot,
-						baseUnit: "serving",
-						estimated: true,
-						quantity: 2,
-						amount: 2,
-					},
-				},
-			],
-		});
-		const restored = createPersonalFoodRepository(new SQLiteTestDatabase());
-		restored.replaceFromBackup(reopened.exportBackup());
-		expect(restored.find(recipe.id)).toEqual(recipe);
-		expect(restored.findCombo(combo.id)?.parts[0].snapshot).toMatchObject({
-			baseUnit: "serving",
-			estimated: true,
-			quantity: 2,
-			amount: 2,
-		});
-	});
-
-	it("mints a stable UUID and preserves zero, trace, absent, and three Servings", () => {
-		const database = new SQLiteTestDatabase();
-		const repository = createPersonalFoodRepository(database);
-
-		const created = repository.create(draft());
-		const found = repository.find(created.id);
-
-		expect(created.id).toMatch(
-			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-		);
-		expect(found).toEqual(created);
-		expect(found?.nutrients.energy).toEqual({ kind: "value", amount: 0 });
-		expect(found?.nutrients.protein).toEqual({ kind: "trace" });
-		expect(found?.nutrients.carbs).toEqual({ kind: "absent" });
-		expect(found?.servings).toHaveLength(3);
-	});
-
-	it("keeps more than three Servings", () => {
-		const database = new SQLiteTestDatabase();
-		const repository = createPersonalFoodRepository(database);
-		const servings = [
-			...draft().servings,
-			{ label: { en: "Fourth", nl: "Vierde" }, amount: 20 },
-		];
-
-		const created = repository.create(draft({ servings }));
-
-		expect(repository.find(created.id)?.servings).toEqual(servings);
-	});
-
-	it.each([
-		[
-			"a non-positive Serving amount",
-			draft({
-				servings: [{ label: { en: "Scoop", nl: "Schep" }, amount: 0 }],
-			}),
-			"notPositive",
-		],
-		[
-			"a negative per-100 nutrient",
-			draft({
-				nutrients: {
-					...nutrientStates(),
-					protein: { kind: "value", amount: -1 },
-				},
-			}),
-			"negative",
-		],
-	] as const)("rejects %s", (_case, invalid, message) => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		expect(() => repository.create(invalid)).toThrow(message);
-	});
-
-	it("keeps an id through edits and persists across repository recreation", () => {
-		const database = new SQLiteTestDatabase();
-		const firstRepository = createPersonalFoodRepository(database);
-		const created = firstRepository.create(draft());
-
-		const edited = firstRepository.update(
-			created.id,
-			draft({ name: { en: "Workout oats", nl: "Workouthavermout" } }),
-		);
-		const recreatedRepository = createPersonalFoodRepository(database);
-
-		expect(edited.id).toBe(created.id);
-		expect(recreatedRepository.find(created.id)?.name).toEqual({
-			en: "Workout oats",
-			nl: "Workouthavermout",
-		});
-		expect(recreatedRepository.search("trainings", "en")).toEqual([]);
-		expect(recreatedRepository.search("workouthaver", "en")).toEqual([
-			expect.objectContaining({ id: created.id }),
-		]);
-	});
-
-	it("removes lookup and search results without affecting copied values", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const created = repository.create(draft());
-		const copiedSnapshot = structuredClone(created.nutrients);
-
-		expect(repository.remove(created.id)).toBe(true);
-		expect(repository.find(created.id)).toBeUndefined();
-		expect(repository.search("oats", "en")).toEqual([]);
-		expect(copiedSnapshot).toEqual(nutrientStates());
-		expect(repository.remove(created.id)).toBe(false);
 	});
 
 	it("opens an existing v1 database without rewriting its Personal Food", () => {
@@ -473,216 +194,42 @@ describe("PersonalFoodRepository public behavior", () => {
 			1,
 		);
 
-		const repository = createPersonalFoodRepository(database);
-
-		expect(
-			repository.find("58b7a219-67e5-42fc-9400-d740e8837df8"),
-		).toMatchObject({
+		expect(readLegacyPersonalFoods(database).list()[0]).toMatchObject({
+			id: "58b7a219-67e5-42fc-9400-d740e8837df8",
 			name: { en: "Legacy oats", nl: "Bestaande havermout" },
 			nutrients: nutrientStates(),
 		});
 	});
-});
 
-describe("forks of shipped foods", () => {
-	function shippedApple() {
-		const food = getShippedFood("shipped:apple-w-skin-av");
-		if (!food) throw new Error("Expected the promoted apple in the library.");
-		return food;
-	}
-
-	it("stores a fork under a new id that is not its shipped source", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const source = shippedApple();
-
-		const fork = repository.create(forkShippedFood(source));
-
-		expect(fork.id).not.toBe(source.id);
-		expect(fork.id).toMatch(
-			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-		);
-		expect(repository.find(source.id)).toBeUndefined();
-	});
-
-	it("keeps the shipped source, NEVO provenance and edited state retrievable", () => {
+	it("reopens a version 7 file without losing its foods", () => {
 		const database = new SQLiteTestDatabase();
-		const source = shippedApple();
-		const fork = createPersonalFoodRepository(database).create(
-			forkShippedFood(source),
+		readLegacyPersonalFoods(database);
+		insertFood(database, "oats", draft());
+		database.execSync(
+			"ALTER TABLE nutrition_combos ADD COLUMN visual_json TEXT; PRAGMA user_version = 7;",
 		);
-
-		// A fresh repository over the same database — provenance is stored, not
-		// held in memory.
-		const reopened = createPersonalFoodRepository(database);
-		const reloaded = reopened.find(fork.id);
-
-		expect(reloaded?.provenance).toEqual({
-			recordOrigin: "personal",
-			nutritionSource: "nevo",
-			locallyEdited: false,
-			forkedFrom: source.id,
-		});
-		expect(reloaded && forkSource(reloaded)?.sourceName).toEqual(
-			source.sourceName,
-		);
-	});
-
-	it("lists forks most recently updated first and finds one by its source", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase(), {
-			now: stepwiseClock(),
-		});
-		const source = shippedApple();
-		const own = repository.create(draft());
-		const first = repository.create(forkShippedFood(source));
-		const second = repository.create({
-			...forkShippedFood(source),
-			name: { en: "Market apple", nl: "Marktappel" },
-		});
-
-		expect(repository.forks().map((food) => food.id)).toEqual([
-			second.id,
-			first.id,
+		expect(readLegacyPersonalFoods(database).list()).toEqual([
+			expect.objectContaining({ id: "oats", name: draft().name }),
 		]);
-		expect(repository.findForkOf(source.id)?.id).toBe(second.id);
-		expect(repository.forks().map((food) => food.id)).not.toContain(own.id);
-		expect(repository.findForkOf("shipped:banana")).toBeUndefined();
-	});
-
-	it("records a corrected figure without touching the shipped food", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const source = shippedApple();
-		const base = forkShippedFood(source);
-
-		const fork = repository.create({
-			...base,
-			nutrients: { ...base.nutrients, energy: { kind: "value", amount: 41 } },
-			provenance: { ...base.provenance, locallyEdited: true },
-		});
-
-		expect(fork.nutrients.energy).toEqual({ kind: "value", amount: 41 });
-		expect(fork.provenance.locallyEdited).toBe(true);
-		expect(getShippedFood(source.id)?.nutrients.energy).toEqual(
-			source.nutrients.energy,
-		);
-		expect(source.nutrients.energy).not.toEqual({ kind: "value", amount: 41 });
-	});
-
-	it("stops shadowing once the fork is deleted, leaving the source untouched", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const source = shippedApple();
-		const fork = repository.create(forkShippedFood(source));
-
-		expect(repository.remove(fork.id)).toBe(true);
-		expect(repository.forks()).toEqual([]);
-		expect(repository.findForkOf(source.id)).toBeUndefined();
-		expect(getShippedFood(source.id)?.name).toEqual(source.name);
-	});
-});
-
-describe("Combo behavior through the device nutrition repository", () => {
-	it("migrates a v1 database and persists a stable named Combo without a meal", () => {
-		const database = new SQLiteTestDatabase();
-		const firstRepository = createPersonalFoodRepository(database);
-		const food = firstRepository.create(draft());
-		const created = firstRepository.createCombo(comboDraft(food.id));
-		const reopened = createPersonalFoodRepository(database);
-
-		expect(created.id).toMatch(
-			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-		);
-		expect(reopened.findCombo(created.id)).toEqual(created);
-		expect(created).not.toHaveProperty("meal");
-		expect(reopened.find(food.id)?.name.en).toBe("Training oats");
-	});
-
-	it("keeps fixed quantities for shipped, Personal Food, and one-off parts", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const food = repository.create(draft());
-
-		const combo = repository.createCombo(comboDraft(food.id));
-
-		expect(combo.parts.map((part) => part.reference.kind)).toEqual([
-			"shipped",
-			"personal",
-			"oneOff",
-		]);
-		expect(combo.parts.map((part) => part.snapshot.quantity)).toEqual([
-			1, 2, 0.5,
-		]);
-	});
-
-	it("rejects an empty Combo and a nested Combo part", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-
-		expect(() => repository.createCombo({ name: "Empty", parts: [] })).toThrow(
-			"at least one",
-		);
-		expect(() =>
-			repository.createCombo({
-				name: "Nested",
-				parts: [
-					{
-						reference: { kind: "combo", comboId: "another" },
-						snapshot: {},
-					},
-				] as unknown as ComboDraft["parts"],
-			}),
-		).toThrow("cannot contain another Combo");
-	});
-
-	it("marks deleted and unknown references without following a replacement", () => {
-		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const original = repository.create(draft());
-		const combo = repository.createCombo(comboDraft(original.id));
-		const replacement = repository.create(
-			draft({ name: { en: "Replacement oats", nl: "Vervangende havermout" } }),
-		);
-
-		repository.remove(original.id);
-		const reopened = repository.findCombo(combo.id);
-
-		expect(reopened?.parts.map((part) => part.status)).toEqual([
-			"missing",
-			"missing",
-			"available",
-		]);
-		expect(reopened?.parts[1].reference).toEqual({
-			kind: "personal",
-			foodId: original.id,
-		});
-		expect(reopened?.parts[1].reference).not.toEqual(
-			expect.objectContaining({ foodId: replacement.id }),
-		);
-	});
-});
-
-it("reopens a version 7 nutrition library without losing personal foods", () => {
-	const database = new SQLiteTestDatabase();
-	const original = createPersonalFoodRepository(database);
-	const saved = original.create(draft());
-	database.execSync(
-		"ALTER TABLE nutrition_combos ADD COLUMN visual_json TEXT; PRAGMA user_version = 7;",
-	);
-	const reopened = createPersonalFoodRepository(database);
-	expect(reopened.find(saved.id)).toEqual(saved);
-	expect(
-		database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
-			?.user_version,
-	).toBe(7);
-});
-
-it.each([7, 8])(
-	"rejects an unrecognized nutrition schema %i without downgrading it",
-	(version) => {
-		const database = new SQLiteTestDatabase();
-		createPersonalFoodRepository(database);
-		database.execSync(`PRAGMA user_version = ${version}`);
-		expect(() => createPersonalFoodRepository(database)).toThrow(
-			`This nutrition database is newer than this version of Foundry (${version}).`,
-		);
 		expect(
 			database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
 				?.user_version,
-		).toBe(version);
-	},
-);
+		).toBe(7);
+	});
+
+	it.each([7, 8])(
+		"rejects an unrecognized nutrition schema %i without downgrading it",
+		(version) => {
+			const database = new SQLiteTestDatabase();
+			readLegacyPersonalFoods(database);
+			database.execSync(`PRAGMA user_version = ${version}`);
+			expect(() => readLegacyPersonalFoods(database)).toThrow(
+				`This nutrition database is newer than this version of Foundry (${version}).`,
+			);
+			expect(
+				database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
+					?.user_version,
+			).toBe(version);
+		},
+	);
+});

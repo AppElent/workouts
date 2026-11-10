@@ -174,12 +174,10 @@ describe("Nutrition Combos", () => {
 		]);
 	});
 
-	it("keeps the Combo name and selection visible when acknowledged cache saving fails", async () => {
+	it("keeps the Combo name and selection visible when saving the Combo fails", async () => {
 		showDiary([diaryEntry("entry-1", "Oats", "lunch")]);
 		const app = await renderApp();
-		jest.spyOn(app.repository, "replaceFromBackup").mockImplementation(() => {
-			throw new Error("disk full");
-		});
+		app.librarySave.mockRejectedValueOnce(new Error("Network unavailable"));
 		await screen.findByText("Oats");
 
 		await fireEvent.press(await screen.findByLabelText("More nutrition tools"));

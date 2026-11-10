@@ -1,6 +1,7 @@
 import { canonicalJson, type Locale } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
 import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import {
 	createContext,
 	type ReactNode,
@@ -18,21 +19,18 @@ import {
 	useQuery,
 } from "../convex/query-cache";
 import { mintUuid, useAccountWrite } from "./account-write";
+import { foodPhotos } from "./food-photo-manager";
 import { useFoodPhotoUpload } from "./nutrition-food-photo-upload";
-import {
-	applyLibraryRecord,
-	type LibraryRecord,
-	type NutritionLibraryStateRepository,
-	openNutritionLibraryStateRepository,
-} from "./nutrition-library-repository";
+import type { LibraryRecord } from "./nutrition-library-repository";
+import type { PersonalFoodCache } from "./personal-food-cache";
 import {
 	type Combo,
 	type ComboDraft,
+	hasUnuploadedPhoto,
 	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	type PersonalFoodFilter,
-	type PersonalFoodRepository,
 	portablePersonalFood,
 	validateComboDraft,
 } from "./personal-food-repository";
@@ -60,6 +58,7 @@ type PersonalFoodsValue = {
 	findForkOf(shippedId: string): PersonalFood | undefined;
 	create(draft: PersonalFoodDraft): Promise<PersonalFood>;
 	update(id: string, draft: PersonalFoodDraft): Promise<PersonalFood>;
+	/** Removes the food and, once that is saved, its photo file. */
 	remove(id: string): Promise<boolean>;
 	listCombos(): Combo[];
 	findCombo(id: string): Combo | undefined;
@@ -71,251 +70,39 @@ type PersonalFoodsValue = {
 		isDeleted(id: string): boolean;
 		uploadDevicePhotos(): Promise<void>;
 		devicePhotoCount: number;
-		receiveServerPage(records: readonly LibraryRecord[]): void;
+		/** Reads every library page, for a management action over all of it. */
+		loadEntireLibrary(): Promise<void>;
 	};
 };
 
-const PersonalFoodsContext = createContext<PersonalFoodsValue | null>(null);
+type PersonalFoodsContextValue = PersonalFoodsValue & {
+	receiveServerPage(records: readonly LibraryRecord[]): void;
+};
 
-type AccountControls = PersonalFoodsValue["account"];
+const PersonalFoodsContext = createContext<PersonalFoodsContextValue | null>(
+	null,
+);
 
-function PersonalFoodsScope({
-	children,
-	repository,
-	account,
-	remoteRevision = 0,
-	saveRecord,
-	lookupBarcode,
-}: {
-	children: ReactNode;
-	repository: PersonalFoodRepository;
-	account: AccountControls;
-	lookupBarcode(barcode: string): Promise<PersonalFood | undefined>;
-	remoteRevision?: number;
-	saveRecord: (
-		record: LibraryRecord,
-		remove?: boolean,
-	) => Promise<LibraryRecord>;
-}) {
-	const [revision, setRevision] = useState(0);
-	const createCandidates = useRef(
-		new Map<
-			string,
-			| PersonalFood
-			| (Omit<Combo, "parts"> & {
-					parts: readonly Omit<Combo["parts"][number], "status">[];
-			  })
-		>(),
-	);
-	const changed = useCallback(() => setRevision((value) => value + 1), []);
-
-	const value = useMemo<PersonalFoodsValue>(
-		() => ({
-			loading: false,
-			canLoadMore: false,
-			loadMore: () => {},
-			revision: revision + remoteRevision,
-			list: (filter) => repository.list(filter),
-			find: (id) => repository.find(id),
-			findByBarcode: (barcode) => repository.findByBarcode(barcode),
-			lookupBarcode,
-			search: (query, locale, filter) =>
-				repository.search(query, locale, filter),
-			forks: () => repository.forks(),
-			findForkOf: (shippedId) => repository.findForkOf(shippedId),
-			create: async (draft) => {
-				const timestamp = Date.now();
-				const candidateKey = canonicalJson(draft);
-				const food = (createCandidates.current.get(candidateKey) as
-					| PersonalFood
-					| undefined) ?? {
-					...normalizePersonalFoodDraft(draft),
-					id: mintUuid(),
-					createdAt: timestamp,
-					updatedAt: timestamp,
-				};
-				createCandidates.current.set(candidateKey, food);
-				const record = await saveRecord({
-					id: food.id,
-					kind: "food",
-					schemaVersion: 2,
-					payload: JSON.stringify(food),
-					revision: 0,
-					deleted: false,
-				});
-				applyLibraryRecord(repository, record);
-				repository.replaceFromBackup(
-					{
-						foods: record.payload
-							? [
-									{
-										...JSON.parse(record.payload),
-									},
-								]
-							: [],
-						combos: [],
-					},
-					{ merge: true, preserveLocalPhotos: true },
-				);
-				createCandidates.current.delete(candidateKey);
-				changed();
-				const saved = repository.find(food.id);
-				if (!saved)
-					throw new Error("The acknowledged record could not be loaded.");
-				return saved;
-			},
-			update: async (id, draft) => {
-				const current = repository.find(id);
-				if (!current) throw new Error("Personal Food not found.");
-				const food = {
-					...normalizePersonalFoodDraft(draft),
-					id,
-					createdAt: current.createdAt,
-					updatedAt: Date.now(),
-				};
-				const record = await saveRecord({
-					id,
-					kind: "food",
-					schemaVersion: 2,
-					payload: JSON.stringify(food),
-					revision: 1,
-					deleted: false,
-				});
-				applyLibraryRecord(repository, record);
-				repository.replaceFromBackup(
-					{
-						foods: record.payload
-							? [
-									{
-										...JSON.parse(record.payload),
-									},
-								]
-							: [],
-						combos: [],
-					},
-					{ merge: true, preserveLocalPhotos: true },
-				);
-				changed();
-				const saved = repository.find(id);
-				if (!saved)
-					throw new Error("The acknowledged record could not be loaded.");
-				return saved;
-			},
-			remove: async (id) => {
-				if (!repository.find(id)) return false;
-				const record = await saveRecord(
-					{ id, kind: "food", revision: 1, payload: null, deleted: true },
-					true,
-				);
-				applyLibraryRecord(repository, record);
-				changed();
-				return true;
-			},
-			listCombos: () => repository.listCombos(),
-			findCombo: (id) => repository.findCombo(id),
-			createCombo: async (draft) => {
-				const timestamp = Date.now();
-				const valid = validateComboDraft(draft);
-				const candidateKey = `combo:${canonicalJson(draft)}`;
-				const combo = (createCandidates.current.get(candidateKey) as
-					| Combo
-					| undefined) ?? {
-					...valid,
-					parts: valid.parts.map((part) => ({
-						...part,
-						id: part.id ?? mintUuid(),
-					})),
-					id: mintUuid(),
-					createdAt: timestamp,
-					updatedAt: timestamp,
-				};
-				createCandidates.current.set(candidateKey, combo);
-				const record = await saveRecord({
-					id: combo.id,
-					kind: "combo",
-					schemaVersion: 2,
-					payload: JSON.stringify(combo),
-					revision: 0,
-					deleted: false,
-				});
-				applyLibraryRecord(repository, record);
-				changed();
-				createCandidates.current.delete(candidateKey);
-				const saved = repository.findCombo(combo.id);
-				if (!saved)
-					throw new Error("The acknowledged record could not be loaded.");
-				return saved;
-			},
-			updateCombo: async (id, draft) => {
-				const current = repository.findCombo(id);
-				if (!current) throw new Error("Combo not found.");
-				const valid = validateComboDraft(draft);
-				const combo = {
-					...current,
-					...valid,
-					parts: valid.parts.map((part) => ({
-						...part,
-						id: part.id ?? mintUuid(),
-					})),
-					updatedAt: Date.now(),
-				};
-				const record = await saveRecord({
-					id,
-					kind: "combo",
-					schemaVersion: 2,
-					payload: JSON.stringify(combo),
-					revision: 1,
-					deleted: false,
-				});
-				applyLibraryRecord(repository, record);
-				changed();
-				const saved = repository.findCombo(id);
-				if (!saved)
-					throw new Error("The acknowledged record could not be loaded.");
-				return saved;
-			},
-			removeCombo: async (id) => {
-				if (!repository.findCombo(id)) return false;
-				const record = await saveRecord(
-					{ id, kind: "combo", revision: 1, payload: null, deleted: true },
-					true,
-				);
-				applyLibraryRecord(repository, record);
-				changed();
-				return true;
-			},
-			account,
-		}),
-		[
-			account,
-			changed,
-			remoteRevision,
-			repository,
-			revision,
-			saveRecord,
-			lookupBarcode,
-		],
-	);
-
-	return <PersonalFoodsContext value={value}>{children}</PersonalFoodsContext>;
-}
+type RecordWrite = {
+	readonly id: string;
+	readonly kind: LibraryRecord["kind"];
+	readonly payload: string | null;
+};
 
 export function PersonalFoodsProvider({
 	children,
-	repository: suppliedRepository,
-	libraryState,
+	cache,
 }: {
 	children: ReactNode;
-	repository?: PersonalFoodRepository;
-	libraryState?: NutritionLibraryStateRepository;
+	/** Stands in for the account's session cache, as tests do. */
+	cache?: PersonalFoodCache;
 }) {
 	const { subject } = useAccountWrite();
 	return (
 		<PersonalFoodsAccount
 			key={subject ?? "signed-out"}
 			subject={subject}
-			repository={suppliedRepository}
-			libraryState={libraryState}
+			suppliedCache={cache}
 		>
 			{children}
 		</PersonalFoodsAccount>
@@ -325,37 +112,21 @@ export function PersonalFoodsProvider({
 function PersonalFoodsAccount({
 	children,
 	subject,
-	repository: suppliedRepository,
-	libraryState,
+	suppliedCache,
 }: {
 	children: ReactNode;
 	subject?: string;
-	repository?: PersonalFoodRepository;
-	libraryState?: NutritionLibraryStateRepository;
+	suppliedCache?: PersonalFoodCache;
 }) {
-	const [state] = useState(
-		() =>
-			libraryState ??
-			(suppliedRepository ? undefined : openNutritionLibraryStateRepository()),
-	);
 	const [session] = useState<PersonalFoodSession>(() =>
-		suppliedRepository
-			? {
-					repository: suppliedRepository,
-					acknowledged: () => {},
-					close: () => {},
-				}
+		suppliedCache
+			? { cache: suppliedCache, close: () => {} }
 			: openPersonalFoodSession(subject),
 	);
-	const accountRepository = session.repository;
-	const [restoredRevision, setRestoredRevision] = useState(0);
-	useEffect(
-		() => () => {
-			session.close();
-			if (!libraryState) state?.close();
-		},
-		[session, state, libraryState],
-	);
+	const { cache } = session;
+	useEffect(() => () => session.close(), [session]);
+	const [revision, setRevision] = useState(0);
+	const changed = useCallback(() => setRevision((value) => value + 1), []);
 	const client = useConvex();
 	const onlineMutation = useMutation(api.nutritionLibrary.save);
 	const uploadPhoto = useFoodPhotoUpload();
@@ -370,21 +141,12 @@ function PersonalFoodsAccount({
 	}, [subject]);
 	const receiveServerPage = useCallback(
 		(records: readonly LibraryRecord[]) => {
-			const owned = records.filter(
-				(record) => !record.subject || record.subject === subject,
-			);
-			for (const record of owned) {
-				const current = subject
-					? state?.getRecord(subject, record.id)
-					: undefined;
-				if (current && current.revision > record.revision) continue;
-				applyLibraryRecord(accountRepository, record);
-				if (subject) state?.commitServerRecord(subject, record);
-				session.acknowledged(record);
-			}
-			setRestoredRevision((value) => value + 1);
+			for (const record of records)
+				if (!record.subject || record.subject === subject)
+					cache.receive(record);
+			changed();
 		},
-		[state, accountRepository, subject, session],
+		[cache, subject, changed],
 	);
 	const lookupBarcode = useCallback(
 		async (barcode: string) => {
@@ -392,7 +154,7 @@ function PersonalFoodsAccount({
 				throw new Error("A connection is required to look up your library.");
 			const records = await client.query(api.nutritionLibrary.getMany, {
 				photoVersion: 3,
-				ids: accountRepository
+				ids: cache
 					.list()
 					.filter((food) => food.provenance.barcode === barcode)
 					.slice(0, 100)
@@ -401,29 +163,24 @@ function PersonalFoodsAccount({
 			});
 			if (owner.current !== subject)
 				throw new Error("The account changed while looking up this food.");
-			receiveServerPage(records.filter((record) => record.subject === subject));
-			return records
-				.filter((record) => record.subject === subject)
-				.map((record) => accountRepository.find(record.id))
+			const owned = records.filter((record) => record.subject === subject);
+			receiveServerPage(owned);
+			return owned
+				.map((record) => cache.find(record.id))
 				.find((food) => food?.provenance.barcode === barcode);
 		},
-		[
-			client,
-			subject,
-			isWebSocketConnected,
-			accountRepository,
-			receiveServerPage,
-		],
+		[client, subject, isWebSocketConnected, cache, receiveServerPage],
 	);
 	const retryOperations = useRef(new Map<string, string>());
 	const saveRecord = useCallback(
-		async (record: LibraryRecord, remove = false) => {
+		async (write: RecordWrite, remove = false) => {
 			if (!subject || !isWebSocketConnected)
 				throw new Error("A connection is required to save.");
+			const record = { ...write, revision: cache.revisionOf(write.id) };
 			let portableRecord = record;
 			if (record.kind === "food" && record.payload) {
 				let food: PersonalFood = JSON.parse(record.payload);
-				if (food.visual?.kind === "photo" && !food.visual.storageId) {
+				if (food.visual?.kind === "photo" && hasUnuploadedPhoto(food)) {
 					const uploaded = await uploadPhoto(food.visual.uri);
 					if (owner.current !== subject)
 						throw new Error("The account changed while uploading a photo.");
@@ -461,85 +218,202 @@ function PersonalFoodsAccount({
 			});
 			if (owner.current !== subject)
 				throw new Error("The account changed while saving.");
-			const current = state?.getRecord(subject, result.record.id);
-			const accepted =
-				current && current.revision > result.record.revision
-					? current
-					: result.record;
-			applyLibraryRecord(accountRepository, accepted);
-			state?.commitServerRecord(subject, accepted);
-			session.acknowledged(accepted);
+			cache.receive(result.record);
 			retryOperations.current.delete(retryKey);
-			return accepted;
+			changed();
 		},
 		[
 			subject,
 			isWebSocketConnected,
 			onlineMutation,
-			state,
-			accountRepository,
+			cache,
 			uploadPhoto,
-			session,
+			changed,
 		],
 	);
+	const createCandidates = useRef(
+		new Map<
+			string,
+			| PersonalFood
+			| (Omit<Combo, "parts"> & {
+					parts: readonly Omit<Combo["parts"][number], "status">[];
+			  })
+		>(),
+	);
 
-	const accountControls = useMemo<AccountControls>(
-		() => ({
-			...(subject ? { subject } : {}),
-			isDeleted: (id) => !!(subject && state?.getRecord(subject, id)?.deleted),
-			devicePhotoCount: accountRepository
-				.list()
-				.filter(
-					(food) => food.visual?.kind === "photo" && !food.visual.storageId,
-				).length,
-			uploadDevicePhotos: async () => {
-				const localPhotos = accountRepository
-					.list()
-					.filter(
-						(food) => food.visual?.kind === "photo" && !food.visual.storageId,
-					);
-				for (let offset = 0; offset < localPhotos.length; offset += 100) {
-					const records = await client.query(api.nutritionLibrary.getMany, {
-						ids: localPhotos.slice(offset, offset + 100).map((food) => food.id),
-						photoVersion: 3,
-					});
-					if (owner.current !== subject)
-						throw new Error("The account changed while updating photos.");
-					receiveServerPage(records);
-				}
-				for (const food of accountRepository.list()) {
-					if (food.visual?.kind !== "photo" || food.visual.storageId) continue;
-					const revision = subject
-						? state?.getRecord(subject, food.id)?.revision
-						: undefined;
-					await saveRecord({
-						id: food.id,
-						kind: "food",
-						payload: JSON.stringify(food),
-						revision: revision ?? 0,
-						schemaVersion: 3,
-						deleted: false,
-					});
-				}
-				setRestoredRevision((value) => value + 1);
+	const value = useMemo<PersonalFoodsContextValue>(() => {
+		const savedFood = (id: string) => {
+			const saved = cache.find(id);
+			if (!saved)
+				throw new Error("The acknowledged record could not be loaded.");
+			return saved;
+		};
+		const savedCombo = (id: string) => {
+			const saved = cache.findCombo(id);
+			if (!saved)
+				throw new Error("The acknowledged record could not be loaded.");
+			return saved;
+		};
+		return {
+			loading: false,
+			canLoadMore: false,
+			loadMore: () => {},
+			revision,
+			list: (filter) => cache.list(filter),
+			find: (id) => cache.find(id),
+			findByBarcode: (barcode) => cache.findByBarcode(barcode),
+			lookupBarcode,
+			search: (query, locale, filter) => cache.search(query, locale, filter),
+			forks: () => cache.forks(),
+			findForkOf: (shippedId) => cache.findForkOf(shippedId),
+			create: async (draft) => {
+				const timestamp = Date.now();
+				const candidateKey = canonicalJson(draft);
+				const food = (createCandidates.current.get(candidateKey) as
+					| PersonalFood
+					| undefined) ?? {
+					...normalizePersonalFoodDraft(draft),
+					id: mintUuid(),
+					createdAt: timestamp,
+					updatedAt: timestamp,
+				};
+				createCandidates.current.set(candidateKey, food);
+				await saveRecord({
+					id: food.id,
+					kind: "food",
+					payload: JSON.stringify(food),
+				});
+				createCandidates.current.delete(candidateKey);
+				return savedFood(food.id);
+			},
+			update: async (id, draft) => {
+				const current = cache.find(id);
+				if (!current) throw new Error("Personal Food not found.");
+				const food = {
+					...normalizePersonalFoodDraft(draft),
+					id,
+					createdAt: current.createdAt,
+					updatedAt: Date.now(),
+				};
+				await saveRecord({ id, kind: "food", payload: JSON.stringify(food) });
+				const saved = savedFood(id);
+				if (
+					current.visual?.kind === "photo" &&
+					(saved.visual?.kind !== "photo" ||
+						current.visual.uri !== saved.visual.uri)
+				)
+					foodPhotos.remove(current.visual);
+				return saved;
+			},
+			remove: async (id) => {
+				const current = cache.find(id);
+				if (!current) return false;
+				await saveRecord({ id, kind: "food", payload: null }, true);
+				foodPhotos.remove(current.visual);
+				return true;
+			},
+			listCombos: () => cache.listCombos(),
+			findCombo: (id) => cache.findCombo(id),
+			createCombo: async (draft) => {
+				const timestamp = Date.now();
+				const valid = validateComboDraft(draft);
+				const candidateKey = `combo:${canonicalJson(draft)}`;
+				const combo = (createCandidates.current.get(candidateKey) as
+					| Combo
+					| undefined) ?? {
+					...valid,
+					parts: valid.parts.map((part) => ({
+						...part,
+						id: part.id ?? mintUuid(),
+					})),
+					id: mintUuid(),
+					createdAt: timestamp,
+					updatedAt: timestamp,
+				};
+				createCandidates.current.set(candidateKey, combo);
+				await saveRecord({
+					id: combo.id,
+					kind: "combo",
+					payload: JSON.stringify(combo),
+				});
+				createCandidates.current.delete(candidateKey);
+				return savedCombo(combo.id);
+			},
+			updateCombo: async (id, draft) => {
+				const current = cache.findCombo(id);
+				if (!current) throw new Error("Combo not found.");
+				const valid = validateComboDraft(draft);
+				const combo = {
+					...current,
+					...valid,
+					parts: valid.parts.map((part) => ({
+						...part,
+						id: part.id ?? mintUuid(),
+					})),
+					updatedAt: Date.now(),
+				};
+				await saveRecord({ id, kind: "combo", payload: JSON.stringify(combo) });
+				return savedCombo(id);
+			},
+			removeCombo: async (id) => {
+				if (!cache.findCombo(id)) return false;
+				await saveRecord({ id, kind: "combo", payload: null }, true);
+				return true;
+			},
+			account: {
+				...(subject ? { subject } : {}),
+				isDeleted: (id) => cache.isDeleted(id),
+				devicePhotoCount: cache.list().filter(hasUnuploadedPhoto).length,
+				uploadDevicePhotos: async () => {
+					const localPhotos = cache.list().filter(hasUnuploadedPhoto);
+					for (let offset = 0; offset < localPhotos.length; offset += 100) {
+						const records = await client.query(api.nutritionLibrary.getMany, {
+							ids: localPhotos
+								.slice(offset, offset + 100)
+								.map((food) => food.id),
+							photoVersion: 3,
+						});
+						if (owner.current !== subject)
+							throw new Error("The account changed while updating photos.");
+						receiveServerPage(records);
+					}
+					for (const food of cache.list().filter(hasUnuploadedPhoto))
+						await saveRecord({
+							id: food.id,
+							kind: "food",
+							payload: JSON.stringify(food),
+						});
+				},
+				loadEntireLibrary: async () => {
+					let cursor: string | null = null;
+					for (;;) {
+						const page: FunctionReturnType<typeof api.nutritionLibrary.browse> =
+							await client.query(api.nutritionLibrary.browse, {
+								query: "",
+								photoVersion: 3,
+								paginationOpts: { cursor, numItems: 100 },
+							});
+						if (owner.current !== subject)
+							throw new Error("The account changed while loading the library.");
+						receiveServerPage(page.page);
+						if (page.isDone) return;
+						cursor = page.continueCursor;
+					}
+				},
 			},
 			receiveServerPage,
-		}),
-		[subject, state, receiveServerPage, accountRepository, saveRecord, client],
-	);
+		};
+	}, [
+		cache,
+		client,
+		lookupBarcode,
+		receiveServerPage,
+		revision,
+		saveRecord,
+		subject,
+	]);
 
-	return (
-		<PersonalFoodsScope
-			key={subject ?? "signed-out"}
-			repository={accountRepository}
-			account={accountControls}
-			remoteRevision={restoredRevision}
-			saveRecord={saveRecord}
-			lookupBarcode={lookupBarcode}
-		>
-			{children}
-		</PersonalFoodsScope>
-	);
+	return <PersonalFoodsContext value={value}>{children}</PersonalFoodsContext>;
 }
 
 export function usePersonalFoods(options?: {
@@ -689,7 +563,7 @@ export function usePersonalFoods(options?: {
 		...(enabled && Array.isArray(details) ? details : []),
 		...extraRecords,
 	]);
-	const receive = value.account.receiveServerPage;
+	const receive = value.receiveServerPage;
 	const receivedKey = useRef("");
 	useEffect(() => {
 		const receiptKey = `${value.account.subject}:${key}`;
@@ -730,8 +604,9 @@ export function usePersonalFoods(options?: {
 					: part.status,
 		})),
 	});
+	const { receiveServerPage: _receive, ...foods } = value;
 	return {
-		...value,
+		...foods,
 		loading:
 			Object.values(extraForkResults).some((result) => result === undefined) ||
 			(key !== "[]" &&

@@ -10,17 +10,15 @@ import {
 import { FoodShortcutsProvider } from "./data/nutrition-shortcuts";
 import type { FetchLike } from "./data/open-food-facts";
 import { OpenFoodFactsProvider } from "./data/open-food-facts-context";
-import type {
-	OpenFoodFactsCache,
-	PersonalFoodRepository,
-} from "./data/personal-food-repository";
+import type { PersonalFoodCache } from "./data/personal-food-cache";
+import type { OpenFoodFactsCache } from "./data/personal-food-repository";
 import { PersonalFoodsProvider } from "./data/personal-foods";
 import { PersonalMeasuresProvider } from "./data/personal-measures";
 import { StrengthSessionProvider } from "./features/strength-session/data/strength-session-provider";
 
 /** Stores the screen tests inject; the app leaves every one to its default. */
 export type AppDataOverrides = {
-	personalFoods?: PersonalFoodRepository;
+	personalFoods?: PersonalFoodCache;
 	foodShortcuts?: FoodShortcutRepository;
 	openFoodFactsCache?: OpenFoodFactsCache;
 	fetchImpl?: FetchLike;
@@ -39,7 +37,7 @@ export function AppDataProviders({
 	return (
 		<AccountWriteProvider subject={overrides.subject}>
 			<FoodPhotoUploadProvider upload={overrides.uploadPhoto}>
-				<PersonalFoodsProvider repository={overrides.personalFoods}>
+				<PersonalFoodsProvider cache={overrides.personalFoods}>
 					<FoodAuthoringIntentProvider>
 						<OpenFoodFactsProvider
 							cache={overrides.openFoodFactsCache}

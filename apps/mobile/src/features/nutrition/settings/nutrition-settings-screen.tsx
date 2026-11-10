@@ -1,9 +1,7 @@
-import { useConvex, useConvexConnectionState } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import { useConvexConnectionState } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { api } from "../../../convex/api";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import {
@@ -31,7 +29,6 @@ export function NutritionSettingsScreen() {
 	const router = useRouter();
 	const copy = t.nutrition.settings;
 	const foods = usePersonalFoods();
-	const client = useConvex();
 	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -51,20 +48,7 @@ export function NutritionSettingsScreen() {
 		setOffRefreshing(true);
 		setOffProgress(undefined);
 		try {
-			// This explicit management action may enumerate the library. Ordinary navigation
-			// never does. Apply bounded pages to the existing cache, then refresh each import.
-			let cursor: string | null = null;
-			for (;;) {
-				const page: FunctionReturnType<typeof api.nutritionLibrary.browse> =
-					await client.query(api.nutritionLibrary.browse, {
-						query: "",
-						photoVersion: 3,
-						paginationOpts: { cursor, numItems: 100 },
-					});
-				foods.account.receiveServerPage(page.page);
-				if (page.isDone) break;
-				cursor = page.continueCursor;
-			}
+			await foods.account.loadEntireLibrary();
 			await refreshOpenFoodFactsImports({
 				foods: openFoodFactsImports(foods.list()),
 				refreshBarcode: openFoodFacts.refreshBarcode,
