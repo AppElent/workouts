@@ -5,7 +5,7 @@ import {
 	withPersonalMeasures,
 } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import {
 	Keyboard,
@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { z } from "zod";
 import { api } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import type { useSupplementaryServings } from "../../../data/supplementary-servings";
@@ -81,7 +82,7 @@ export function AmountServingPopup({
 	const foods = usePersonalFoods();
 	const measures = usePersonalMeasureActions();
 	const createMeasure = useMutation(api.personalMeasures.create);
-	const connected = useConvexConnectionState().isWebSocketConnected;
+	const connected = useOnline();
 	const nameRef = useRef<TextInputInstance>(null);
 	const amountRef = useRef<TextInputInstance>(null);
 	useEffect(() => {

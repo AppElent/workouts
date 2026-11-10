@@ -1,11 +1,12 @@
 import { useUser } from "@clerk/expo";
-import { useConvex, useConvexConnectionState } from "convex/react";
+import { useConvex } from "convex/react";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
 import { spacing, useTokens } from "../../theme";
@@ -37,7 +38,7 @@ export function AccountScreen() {
 	const confirm = useConfirm();
 	const convex = useConvex();
 	const deleteAccountData = useAccountDeletion();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const blocker = useQuery(api.account.deletionBlocker, {});
 	const [firstName, setFirstName] = useState(user?.firstName ?? "");
 	const [lastName, setLastName] = useState(user?.lastName ?? "");

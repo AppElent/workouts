@@ -3,11 +3,12 @@ import {
 	paceSecondsPerKilometer,
 	speedKilometersPerHour,
 } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import { dateLocale, useI18n } from "../../../i18n";
@@ -34,7 +35,7 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const confirm = useConfirm();
 	const toast = useToast();
 	const activity = useQuery(api.enduranceActivities.get, id ? { id } : "skip");
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const stalledOffline = useStalledOffline(
 		Boolean(id) && activity === undefined,
 	);
@@ -44,7 +45,7 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 
 	async function onDelete() {
 		if (!id || !activity || deleteLock.current) return;
-		if (!isWebSocketConnected) {
+		if (!online) {
 			toast.error(copy.offlineDeleteError);
 			return;
 		}

@@ -1,7 +1,7 @@
 import { MEAL_SLOTS } from "@foundry/core";
-import { useConvexConnectionState } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
+import { useOnline } from "../../src/convex/online";
 import { useNutritionDay } from "../../src/data/nutrition-day";
 import {
 	isoDateToLocalDate,
@@ -19,7 +19,7 @@ export default function NutritionEntryRoute() {
 		date?: string;
 	}>();
 	const { t } = useI18n();
-	const connected = useConvexConnectionState().isWebSocketConnected;
+	const connected = useOnline();
 	const date =
 		typeof params.date === "string" &&
 		/^\d{4}-\d{2}-\d{2}$/.test(params.date) &&

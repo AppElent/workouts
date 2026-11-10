@@ -4,11 +4,12 @@ import {
 	speedKilometersPerHour,
 } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { api, type Id } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { isoDateToLocalDate, todayIsoDate } from "../../../dates/calendar-day";
 import { dateLocale, useI18n } from "../../../i18n";
 import { useConvexErrorMessage } from "../../../i18n/errors";
@@ -83,7 +84,7 @@ export function EnduranceEditorForm({
 	const confirm = useConfirm();
 	const create = useMutation(api.enduranceActivities.create);
 	const update = useMutation(api.enduranceActivities.update);
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const initial = useRef(valuesForActivity(activity));
 	const today = useRef(todayIsoDate());
 	const clientEntryId = useRef(activityId());
@@ -167,7 +168,7 @@ export function EnduranceEditorForm({
 	async function save(submitted: EnduranceValues) {
 		const submission = parseEnduranceValues(submitted, copy);
 		if (!submission.value) return;
-		if (!isWebSocketConnected) {
+		if (!online) {
 			toast.error(copy.offlineError);
 			return;
 		}

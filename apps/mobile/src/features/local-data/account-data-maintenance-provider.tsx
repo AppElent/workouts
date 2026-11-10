@@ -1,6 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { convexErrorMessage } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -12,6 +12,7 @@ import {
 } from "react";
 import { ActivityIndicator } from "react-native";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
 import { clearNutritionAccountCache } from "../../data/nutrition-account-cleanup";
 import { todayIsoDate } from "../../dates/calendar-day";
@@ -37,7 +38,7 @@ export function AccountDataMaintenanceProvider({
 	children: ReactNode;
 }) {
 	const { userId, sessionId } = useAuth();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const reset = useMutation(api.testData.reset);
 	const deleteData = useMutation(api.account.deleteData);
 	const { user } = useUser();

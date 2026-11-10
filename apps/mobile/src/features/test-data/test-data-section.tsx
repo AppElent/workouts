@@ -1,6 +1,6 @@
-import { useConvexConnectionState } from "convex/react";
 import { useRef } from "react";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
 import { useConfirm } from "../../ui/confirm-dialog";
@@ -19,7 +19,7 @@ function TestDataActions({
 }: {
 	blocker: "activeActivity" | "hostedWorkout" | null;
 }) {
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const { t } = useI18n();
 	const c = t.testData;
 	const confirm = useConfirm();

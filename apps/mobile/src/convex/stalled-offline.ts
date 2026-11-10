@@ -12,8 +12,8 @@
  * is *still* loading and the socket is *still* down after the grace period
  * does the screen change its story. Reconnecting at any point cancels it.
  */
-import { useConvexConnectionState } from "convex/react";
 import { useEffect, useState } from "react";
+import { useOnline } from "./online";
 
 /**
  * Long enough to cover a normal handshake, short enough that someone genuinely
@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 export const OFFLINE_GRACE_MS = 2000;
 
 export function useStalledOffline(loading: boolean): boolean {
-	const connected = useConvexConnectionState().isWebSocketConnected;
+	const connected = useOnline();
 	const [stalled, setStalled] = useState(false);
 
 	useEffect(() => {

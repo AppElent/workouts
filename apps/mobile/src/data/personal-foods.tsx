@@ -4,7 +4,7 @@ import {
 	type Locale,
 } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
-import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
 	createContext,
@@ -132,9 +132,9 @@ function PersonalFoodsAccount({
 	const [revision, setRevision] = useState(0);
 	const changed = useCallback(() => setRevision((value) => value + 1), []);
 	const client = useConvex();
-	const onlineMutation = useMutation(api.nutritionLibrary.save);
+	const saveMutation = useMutation(api.nutritionLibrary.save);
+	const accountWrite = useAccountWrite();
 	const uploadPhoto = useFoodPhotoUpload();
-	const { isWebSocketConnected } = useConvexConnectionState();
 	const owner = useRef(subject);
 	owner.current = subject;
 	useEffect(() => {
@@ -154,7 +154,7 @@ function PersonalFoodsAccount({
 	);
 	const lookupBarcode = useCallback(
 		async (barcode: string) => {
-			if (!subject || !isWebSocketConnected)
+			if (!subject || !accountWrite.online)
 				throw new Error("A connection is required to look up your library.");
 			const records = await client.query(api.nutritionLibrary.getMany, {
 				ids: cache
@@ -172,65 +172,51 @@ function PersonalFoodsAccount({
 				.map((record) => cache.find(record.id))
 				.find((food) => food?.provenance.barcode === barcode);
 		},
-		[client, subject, isWebSocketConnected, cache, receiveServerPage],
+		[client, subject, accountWrite.online, cache, receiveServerPage],
 	);
-	const retryOperations = useRef(new Map<string, string>());
 	const saveRecord = useCallback(
 		async (write: RecordWrite, remove = false) => {
-			if (!subject || !isWebSocketConnected)
-				throw new Error("A connection is required to save.");
 			const record = { ...write, revision: cache.revisionOf(write.id) };
-			let portableRecord = record;
-			if (record.kind === "food" && record.payload) {
-				let food: PersonalFood = JSON.parse(record.payload);
-				if (food.visual?.kind === "photo" && hasUnuploadedPhoto(food)) {
-					const uploaded = await uploadPhoto(food.visual.uri);
-					if (owner.current !== subject)
-						throw new Error("The account changed while uploading a photo.");
-					food = { ...food, visual: { ...food.visual, ...uploaded } };
-				}
-				portableRecord = {
-					...record,
-					payload: JSON.stringify(portablePersonalFood(food)),
-				};
-			}
-			const retryKey = canonicalJson(portableRecord);
-			const operationId = retryOperations.current.get(retryKey) ?? mintUuid();
-			retryOperations.current.set(retryKey, operationId);
-			const result = await onlineMutation({
-				operationId,
-				expectedSubject: subject,
-				operation: remove
-					? {
-							kind: "remove",
-							recordId: record.id,
-							recordKind: record.kind,
-							expectedRevision: record.revision,
-						}
-					: {
-							kind: "upsert",
-							record: {
-								id: record.id,
-								kind: record.kind,
-								payload: portableRecord.payload ?? "",
-							},
-							expectedRevision: record.revision,
-						},
+			const result = await accountWrite.send({
+				identity: { record, remove },
+				prepare: async () => {
+					if (record.kind !== "food" || !record.payload) return record;
+					let food: PersonalFood = JSON.parse(record.payload);
+					if (food.visual?.kind === "photo" && hasUnuploadedPhoto(food)) {
+						const uploaded = await uploadPhoto(food.visual.uri);
+						food = { ...food, visual: { ...food.visual, ...uploaded } };
+					}
+					return {
+						...record,
+						payload: JSON.stringify(portablePersonalFood(food)),
+					};
+				},
+				deliver: (portable, { subject: expectedSubject, operationId }) =>
+					saveMutation({
+						operationId,
+						expectedSubject,
+						operation: remove
+							? {
+									kind: "remove",
+									recordId: portable.id,
+									recordKind: portable.kind,
+									expectedRevision: portable.revision,
+								}
+							: {
+									kind: "upsert",
+									record: {
+										id: portable.id,
+										kind: portable.kind,
+										payload: portable.payload ?? "",
+									},
+									expectedRevision: portable.revision,
+								},
+					}),
 			});
-			if (owner.current !== subject)
-				throw new Error("The account changed while saving.");
 			cache.receive(result.record);
-			retryOperations.current.delete(retryKey);
 			changed();
 		},
-		[
-			subject,
-			isWebSocketConnected,
-			onlineMutation,
-			cache,
-			uploadPhoto,
-			changed,
-		],
+		[accountWrite, saveMutation, cache, uploadPhoto, changed],
 	);
 	const createCandidates = useRef(
 		new Map<

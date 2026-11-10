@@ -1,8 +1,9 @@
 import { useAuth } from "@clerk/expo";
-import { type RequestForQueries, useConvexConnectionState } from "convex/react";
+import type { RequestForQueries } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useMemo } from "react";
 import { api, type Id } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { useQueries } from "../../../convex/query-cache";
 import { useRetained } from "../../../data/session-data";
 
@@ -58,6 +59,6 @@ export function useStrengthSession(id?: Id<"workoutSessions">) {
 			session instanceof Error ||
 			sets instanceof Error ||
 			wods instanceof Error,
-		online: useConvexConnectionState().isWebSocketConnected,
+		online: useOnline(),
 	};
 }

@@ -1,6 +1,5 @@
 import { useAuth } from "@clerk/expo";
 import { canonicalJson } from "@foundry/core";
-import { useConvexConnectionState } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -10,7 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { AppState } from "react-native";
+import { useOnline } from "../convex/online";
 
 export function mintUuid(): string {
 	if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -103,15 +102,7 @@ function AccountWriteScope({
 	children: ReactNode;
 	subject: string | undefined;
 }) {
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const [foreground, setForeground] = useState(true);
-	useEffect(() => {
-		const subscription = AppState.addEventListener("change", (state) =>
-			setForeground(state === "active"),
-		);
-		return () => subscription.remove();
-	}, []);
-	const online = isWebSocketConnected && foreground;
+	const online = useOnline();
 	const onlineRef = useRef(online);
 	onlineRef.current = online;
 	const mounted = useRef(true);

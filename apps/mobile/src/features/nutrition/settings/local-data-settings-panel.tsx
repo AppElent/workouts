@@ -1,5 +1,5 @@
-import { useConvexConnectionState } from "convex/react";
 import { useState } from "react";
+import { useOnline } from "../../../convex/online";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { plural, useI18n } from "../../../i18n";
 import { spacing } from "../../../theme";
@@ -13,7 +13,7 @@ export function LocalDataSettingsPanel() {
 	const copy = t.localData.settings;
 	const foods = usePersonalFoods();
 	const clearCache = useLocalDataCleanup();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string>();
 
