@@ -33,11 +33,6 @@ afterEach(async () => {
 	jest.mocked(useQuery).mockImplementation(emptyDay as never);
 });
 
-/**
- * The deliberate broader view (#75), which is now its own chip rather than the
- * last of five exclusive tabs. Tests that only need "search everything" no
- * longer come through here — the default pool already does that.
- */
 /** The serving sheet's preview, which repeats the row's portion label. */
 async function servingPreview() {
 	return within(await screen.findByTestId("amount-editor-card"));
@@ -877,7 +872,7 @@ describe("browsing shipped foods", () => {
 });
 
 /**
- * The redesign's own promises (design `Food logging.dc.html`, option 3a).
+ * The redesign's own promises.
  *
  * These are the five problems the screen was rebuilt to fix, asserted as
  * behaviour rather than layout: one list that always searches everything, a

@@ -1,7 +1,7 @@
 /**
  * What still works with no connection.
  *
- * Spec #68 draws the line clearly: the shipped library, Personal Foods, Combos
+ * The line: the shipped library, Personal Foods, Combos
  * and existing diary data stay useful offline, and a provider failure never
  * blocks manual logging. Three things follow, and all three are checkable
  * here:

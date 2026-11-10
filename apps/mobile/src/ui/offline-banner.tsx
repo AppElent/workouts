@@ -1,6 +1,4 @@
 /**
- * Ported from the web's `src/components/OfflineBanner.tsx`.
- *
  * Convex queues mutations while the socket is down and replays them on
  * reconnect, so the app stays usable offline — but a set that hasn't reached
  * the server yet looks identical to one that has. This banner is the only thing
@@ -13,7 +11,7 @@
  *
  * The sentence comes from the message tree: this banner floats over every
  * screen including the Nutrition ones, and an English strip across a Dutch app
- * is exactly the kind of gap #79 exists to close.
+ * must not happen.
  */
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

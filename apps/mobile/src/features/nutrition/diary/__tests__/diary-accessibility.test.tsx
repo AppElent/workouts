@@ -1,7 +1,7 @@
 /**
  * What a person who cannot see the screen, or cannot use a gesture, gets.
  *
- * Three of spec #68's accessibility rules are checkable here without a device,
+ * Three accessibility rules are checkable here without a device,
  * and they are the three that regress silently:
  *
  * 1. Icon-only controls have a name. A plus button, a chevron and a back arrow

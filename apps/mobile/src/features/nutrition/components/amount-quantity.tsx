@@ -14,7 +14,7 @@ import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
 import { NutritionKeyboardOverlay } from "./nutrition-keyboard-overlay";
 
-/** Round 5 replacement entry: an empty editing buffer never erases the saved draft. */
+/** An empty editing buffer never erases the saved draft. */
 export function AmountQuantity({
 	value,
 	amount,

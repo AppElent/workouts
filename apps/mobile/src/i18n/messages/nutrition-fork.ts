@@ -1,5 +1,5 @@
 /**
- * Correcting a shipped food (#75). A correction never edits the shipped
+ * Correcting a shipped food. A correction never edits the shipped
  * record: it creates the user's own food that stands in front of it. The
  * copy says "your correction", never "the fixed version", because nothing
  * here claims the user is right and NEVO is wrong.

@@ -1227,8 +1227,6 @@ export function combinedNutrients(
 	return totals;
 }
 
-// ───────────────────────────── label ─────────────────────────────
-
 const LABEL_KEYS: Record<NutrientKey, keyof LabelReading["per100"]> = {
 	energy: "energy",
 	protein: "protein",

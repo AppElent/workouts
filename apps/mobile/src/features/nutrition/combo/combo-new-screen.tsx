@@ -13,12 +13,12 @@ import { radius, spacing, type, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 
+export type AcceptedCombo = { combo: Combo; input: string };
+
 /**
  * A new combo from library foods: a name and the parts, saved with ✓ once it
  * has a name. The storage note shows only while backup is off.
  */
-export type AcceptedCombo = { combo: Combo; input: string };
-
 export function ComboNewScreen({
 	acceptedRef,
 	parts,
@@ -29,8 +29,8 @@ export function ComboNewScreen({
 	/**
 	 * Runs right after the combo is saved, such as grouping the diary entries
 	 * it was made from. Failed follow-up work retries with the accepted Combo.
+	 * May answer false: the form stays open, and the caller has said why.
 	 */
-	/** May answer false: the form stays open, and the caller has said why. */
 	onCreated?: (combo: Combo) => unknown;
 	/** Where to go once saved; by default the new combo's editor. */
 	onSaved?: (combo: Combo) => void;

@@ -19,7 +19,7 @@ const CROP_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
 
 /**
  * A food's photo or icon as the hero of its form, and the one popup that
- * changes it (mobile-design "Photo popup"): Take photo, Choose photo, Icon ›
+ * changes it: Take photo, Choose photo, Icon ›
  * with the current one beside it, and Remove photo only when there is one.
  * An imported photo not yet saved also offers where to crop it.
  */

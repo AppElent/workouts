@@ -188,10 +188,7 @@ export function SessionSummaryScreen() {
 	);
 }
 
-/**
- * WOD scores logged against this session. Fills the slot Phase 1 left open;
- * renders nothing when the session had no WODs, which is most of them.
- */
+/** WOD scores logged against this session; nothing when it had none. */
 function SessionWodResults({
 	sessionId,
 }: {

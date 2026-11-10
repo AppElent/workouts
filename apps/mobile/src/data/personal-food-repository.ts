@@ -132,7 +132,7 @@ function migrate(database: SyncSQLiteDatabase): void {
 			?.user_version ?? 0;
 	if (current > DATABASE_VERSION) {
 		// Schema 7 only adds an optional visual_json column to nutrition_combos.
-		// Older code does not read or write that column, so it can safely use
+		// This build does not read or write that column, so it can safely use
 		// this database as long as that known schema is present. Keep user_version
 		// at 7; lowering it would make the next schema-7 migration fail.
 		if (
@@ -169,11 +169,8 @@ function migrate(database: SyncSQLiteDatabase): void {
 			`);
 		}
 		if (current < 2) {
-			// The bounded Open Food Facts request cache (spec #68 D23): its own
-			// table in this same database and migration sequence, with a lifetime
-			// wholly separate from Personal Foods — rows expire and are pruned
-			// (see `openFoodFactsCache`), so this can never grow into a local
-			// mirror of the provider's catalogue.
+			// Schema 2's Open Food Facts cache table. The cache has since moved to
+			// its own database; this step stays so the schema sequence is unchanged.
 			database.execSync(`
 				CREATE TABLE IF NOT EXISTS off_cache (
 					cache_key TEXT PRIMARY KEY NOT NULL,
@@ -367,7 +364,6 @@ export type OpenFoodFactsCache = {
 	cleanup(): number;
 };
 
-/** Spec #68: "cached for seven days", with bounded cleanup so this table can never grow into a provider mirror. */
 export const OFF_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const OFF_CACHE_MAX_ENTRIES = 200;
 
@@ -390,7 +386,7 @@ function rowToCacheEntry(row: OffCacheRow): OffCacheEntry {
 }
 
 /**
- * The bounded Open Food Facts request cache (spec #68 D23). It has its own
+ * The bounded Open Food Facts request cache. It has its own
  * database and lifetime: every row expires after
  * `OFF_CACHE_TTL_MS`, and `set` prunes both expired rows and, past
  * `OFF_CACHE_MAX_ENTRIES`, the oldest survivors — so it stays a short-lived

@@ -13,7 +13,7 @@ export type LogFoodTargetParams = {
 };
 
 /**
- * Log food in a browser target mode (mobile-design "Browser target modes"):
+ * Log food in a browser target mode:
  * everything that differs from logging, decided in one place. Adding keeps
  * the browser open and marks the row; replacing confirms a portion, puts the
  * pick in the old part's place and closes.

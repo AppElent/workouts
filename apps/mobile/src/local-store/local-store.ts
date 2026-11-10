@@ -3,8 +3,8 @@
  * everything an account leaves on this device.
  *
  * **Synchronous on purpose.** Preferences such as the language and appearance
- * have to be known before the first frame (#69 forbids a frame painted in a
- * rejected language), and `expo-sqlite/kv-store` is the only Expo persistence
+ * have to be known before the first frame (no frame may paint in a rejected
+ * language), and `expo-sqlite/kv-store` is the only Expo persistence
  * module with a synchronous read (`getItemSync`). `expo-secure-store` has only
  * async reads, so it cannot serve here.
  *
@@ -147,13 +147,12 @@ export function clearAccountStores(subject: string) {
 interface AccountKeyspace {
 	/** `<prefix>:<subject>[:<part>…]` */
 	key(subject: string, ...parts: string[]): LocalKey;
-	/** Removes every key of this keyspace that belongs to `subject`. */
 	clear(subject: string): void;
 }
 
 /**
  * Keys owned by one account, registered for account reset under `prefix`.
- * The prefix carries its own version (`strength-set-drafts:v1`) so a shape
+ * The prefix carries its own version (`strength-rest:v1`) so a shape
  * change can start a fresh keyspace.
  */
 export function accountKeyspace(prefix: string): AccountKeyspace {

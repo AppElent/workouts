@@ -62,8 +62,7 @@ export function HostedSessionPanel({
 		sessionId,
 	});
 
-	// Not a hosted session (or still loading) — render nothing, so the normal
-	// logging screen looks exactly as it always does.
+	// Not a hosted session, or still loading.
 	if (!data) return null;
 
 	const { hosted } = data;

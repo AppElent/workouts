@@ -4,10 +4,10 @@ import type { Exercise, ExerciseId } from "@foundry/core/exercises";
  *
  * `routines.update` replaces the whole `exercises` array rather than patching
  * it, so the editor holds the entire list in state and sends it back complete.
- * That also makes reordering and removal free.
  *
- * A weight of 0 is stored as "no default weight" (`undefined`) — the distinction matters because 0 is a legitimate load for a bodyweight
- * movement, while "unset" means the session should ask.
+ * A weight of 0 is stored as "no default weight" (`undefined`): 0 is a
+ * legitimate load for a bodyweight movement, while "unset" means the session
+ * should ask.
  */
 import { useMutation } from "convex/react";
 import { useState } from "react";
@@ -39,11 +39,7 @@ type Entry = {
 	defaultWeight: number;
 };
 
-/**
- * The shape `routines.list` returns — the doc, but with each entry's
- * `exerciseName` resolved server-side. Derived from the query rather than
- * hand-written so it cannot drift from what Convex actually sends.
- */
+/** `routines.list`'s doc, with each entry's `exerciseName` resolved server-side. */
 type RoutineWithNames = NonNullable<ReturnType<typeof useRoutines>>[number];
 
 /** Omit `routineId` to create a new routine; pass one to edit it in place. */

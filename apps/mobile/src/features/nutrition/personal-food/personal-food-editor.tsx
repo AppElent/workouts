@@ -338,9 +338,9 @@ export function PersonalFoodEditor({
 		</Pressable>
 	);
 
-	// Native bar items, so UIKit draws the glass (mobile-design "Functional
-	// chrome"). Memoized with handlers in a ref: Stack.Screen sets options on
-	// every new object, and this screen re-renders when they are set.
+	// Native bar items, so UIKit draws the glass. Memoized with handlers in a
+	// ref: Stack.Screen sets options on every new object, and this screen
+	// re-renders when they are set.
 	actions.current = { save, remove, refresh, close };
 	const deleteLabel = food?.provenance.forkedFrom
 		? copy.deleteCorrection

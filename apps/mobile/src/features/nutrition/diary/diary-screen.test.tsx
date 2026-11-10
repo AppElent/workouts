@@ -2,9 +2,9 @@
  * The day, driven the way somebody holding the phone would drive it.
  *
  * Every assertion here is on something a user can see or a screen reader can
- * say. Nothing asserts which component rendered, which hook ran, or what the
- * placeholder data module returned — those are all replaced by #70 and #72, and
- * a test that noticed would be a test that has to be rewritten for no reason.
+ * say. Nothing asserts which component rendered, which hook ran, or what a
+ * data module returned: a test that noticed would have to be rewritten for no
+ * reason.
  */
 
 import { shiftIsoDate as diaryShift, shiftIsoDate } from "@foundry/core";

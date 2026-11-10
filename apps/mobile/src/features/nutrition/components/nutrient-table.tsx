@@ -10,7 +10,6 @@ import { useWindowDimensions, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
-/** Used by the entry snapshot comparison and read-only food details. */
 export function NutrientTable({
 	nutrients,
 	factor = 1,

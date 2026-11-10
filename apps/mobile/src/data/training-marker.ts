@@ -1,6 +1,5 @@
 /**
- * Which days of a range have a completed Activity session — the only v1
- * connection between Activity and Nutrition (ticket #78). The wire contract
+ * Which days of a range have a completed Activity session. The wire contract
  * (`convex/nutritionActivityMarker.ts`) is one bare boolean per day, so there
  * is no duration, intensity, calories, or training load for this hook to
  * carry even if it wanted to; it cannot feed Nutrition's goal or total

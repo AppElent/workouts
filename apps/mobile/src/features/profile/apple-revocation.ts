@@ -9,7 +9,6 @@ type AppleLinkedUser = {
 	externalAccounts: readonly { provider: string; providerUserId: string }[];
 };
 
-/** Apple's stable user identifiers linked to this account. */
 function appleUserIds(user: AppleLinkedUser) {
 	return user.externalAccounts
 		.filter(({ provider }) => provider.replace(/^oauth_/, "") === "apple")
@@ -30,7 +29,7 @@ function appleUserIds(user: AppleLinkedUser) {
  * variant, so Convex is told which one to revoke against.
  *
  * Only iOS has the native sheet. Android Apple sign-in goes through Clerk's
- * browser flow, whose tokens the app cannot reach (issue #125).
+ * browser flow, whose tokens the app cannot reach.
  */
 export async function revokeAppleSignIn(
 	user: AppleLinkedUser,

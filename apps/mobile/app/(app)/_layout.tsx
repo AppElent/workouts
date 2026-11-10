@@ -15,7 +15,6 @@
  * group, which is a screen of this stack — expo-router keeps navigation state
  * per route and crashes if a route's navigator type changes underneath it, so
  * `NativeTabs` gets its own route rather than replacing this one.
- *
  */
 
 import { useAuth } from "@clerk/expo";

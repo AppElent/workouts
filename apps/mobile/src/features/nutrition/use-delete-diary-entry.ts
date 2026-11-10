@@ -3,8 +3,8 @@
  *
  * There are three routes to this in the app — the entry editor's visible
  * Delete, the diary row's revealed swipe action, and the same row's long-press
- * menu — and spec #68 requires all of them to raise the same verb-specific
- * confirmation before anything is removed. Three copies of that sentence would
+ * menu — and all of them must raise the same verb-specific confirmation
+ * before anything is removed. Three copies of that sentence would
  * be three chances for one of them to drift into deleting silently, so there
  * is one copy and it lives here.
  *

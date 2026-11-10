@@ -1,5 +1,4 @@
 import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
-/** Edit an account-owned Capture Draft's text or Meal Slot in a page sheet. */
 import { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
@@ -19,6 +18,7 @@ import {
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
 
+/** Edit an account-owned Capture Draft's text or Meal Slot in a page sheet. */
 export function DiaryDraftEditor({
 	draft,
 	onClose,

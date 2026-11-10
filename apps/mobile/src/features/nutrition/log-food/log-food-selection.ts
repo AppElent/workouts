@@ -19,7 +19,7 @@ export type LogOutcome = "continue" | "close";
  * The log food screen's source scopes. They keep the "tab" name, but the screen
  * does not present them as exclusive tabs: `pool` is the default and searches
  * every source at once, and the rest narrow what is already in front of you.
- * `all` stays the deliberate broader view (spec #75) — the only place a
+ * `all` stays the deliberate broader view — the only place a
  * corrected shipped record is still listed — shown as "Catalogus".
  */
 export type FoodBrowserTab =

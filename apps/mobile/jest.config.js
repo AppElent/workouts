@@ -1,14 +1,9 @@
 /**
- * Jest, and only inside `apps/mobile`.
- *
- * The repo runs Vitest everywhere else and keeps doing so — this config does
- * not touch the root `vitest run`. The reason for the exception is that the
- * hard part of testing React Native is transforming Flow-typed `node_modules`
- * (`react-native`, every `expo-*`) and supplying the native-module mocks.
- * `jest-expo` is the only maintained preset that does both, and
- * `expo-router/testing-library` — the seam that mounts a real route by path —
- * is written against Jest's globals and `jest.mock`. Vitest can be made to work
- * and would have to be re-argued at every Expo upgrade.
+ * Jest, and only inside `apps/mobile`; the rest of the repo runs Vitest.
+ * `jest-expo` is the only maintained preset that both transforms Flow-typed
+ * `node_modules` (`react-native`, every `expo-*`) and supplies the
+ * native-module mocks, and `expo-router/testing-library` is written against
+ * Jest's globals and `jest.mock`.
  *
  * `transformIgnorePatterns` is the fiddly part under pnpm. Packages do not live
  * at `node_modules/<name>` but at `node_modules/.pnpm/<name>@<version>/node_modules/<name>`,
@@ -18,7 +13,6 @@
  * what makes the Flow-typed Expo packages transformable here.
  */
 
-/** Everything whose source Jest must run through Babel rather than `require` raw. */
 const mustTransform = [
 	"@expo",
 	"@react-native",

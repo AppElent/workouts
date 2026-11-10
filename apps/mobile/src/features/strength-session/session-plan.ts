@@ -133,8 +133,6 @@ function newRowId() {
 const near = (a: number, b: number) => Math.abs(a - b) < EPSILON;
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-// --- Load -------------------------------------------------------------------
-
 /** Lbs always land on a 5 lb step; kg on the exercise's own step. */
 export function snapLoad(kg: number, stepKg: number, unit: LoadUnit = "kg") {
 	if (unit === "lbs")
@@ -224,8 +222,6 @@ export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
 	};
 }
 
-// --- References -------------------------------------------------------------
-
 export function referenceFor(
 	plan: SessionPlan,
 	facts: ExerciseFacts,
@@ -280,8 +276,6 @@ export function rowOneRepMax(
 		return null;
 	return calculateOneRepMax(row.kg, row.reps);
 }
-
-// --- Finding sets -----------------------------------------------------------
 
 const groupRows = (group: SetGroup) => group.rounds.flatMap((r) => r.items);
 export function allRows(plan: SessionPlan) {
@@ -375,8 +369,6 @@ function mapRows(
 function replaceRow(plan: SessionPlan, id: string, next: PlanSet): SessionPlan {
 	return mapRows(plan, (row) => (row.id === id ? next : row));
 }
-
-// --- Seeding and server reconciliation --------------------------------------
 
 export interface ServerSet {
 	_id: string;
@@ -683,8 +675,6 @@ export function fillFromLast(
 	};
 }
 
-// --- Open-set edits ---------------------------------------------------------
-
 function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
 	const last = facts.last;
 	return {
@@ -957,8 +947,6 @@ export function removeExercise(
 	return { plan: next, setIds, note: { code: "exerciseRemoved" } };
 }
 
-// --- Typo guards ------------------------------------------------------------
-
 export interface TypoCheck {
 	kind: "reps" | "kg";
 	code: string;
@@ -1091,8 +1079,6 @@ export function manualIsOdd(
 	return top > 0 && (value > top * 1.25 || value < top * 0.5);
 }
 
-// --- Manual 1RM -------------------------------------------------------------
-
 function repriced(
 	plan: SessionPlan,
 	exerciseId: string,
@@ -1220,8 +1206,6 @@ export function pendingManuals(plan: SessionPlan) {
 		typeof value === "number" ? [{ exerciseId, value }] : [],
 	);
 }
-
-// --- Swap -------------------------------------------------------------------
 
 export function canSwap(plan: SessionPlan, from: string, to: string) {
 	if (from === to) return { ok: false, code: "swapSame" };
@@ -1391,8 +1375,6 @@ export function swapExercise(
 		},
 	};
 }
-
-// --- Groups -----------------------------------------------------------------
 
 const DEFAULT_GROUP_REST = 90;
 const DEFAULT_CAP_MINUTES = 10;
@@ -1972,8 +1954,6 @@ export function unsavedEdits(
 	}).length;
 }
 
-// --- Logging ----------------------------------------------------------------
-
 export function beginAttempt(
 	plan: SessionPlan,
 	id: string,
@@ -2144,8 +2124,6 @@ export function markFailed(
 }
 export const failedRows = (plan: SessionPlan) =>
 	allRows(plan).filter((row) => row.failed && !row.done);
-
-// --- Recap ------------------------------------------------------------------
 
 export interface RecapRow {
 	exerciseId: string;

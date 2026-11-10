@@ -32,7 +32,6 @@ function goalsFor(day: WeeklyReviewDay, nutrient: NutrientKey) {
 		: [];
 }
 
-/** The goal bounds that applied to `nutrient` on `day`. */
 export function dayGoalBounds(
 	day: WeeklyReviewDay,
 	nutrient: NutrientKey,

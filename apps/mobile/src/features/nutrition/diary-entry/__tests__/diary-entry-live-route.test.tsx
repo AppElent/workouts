@@ -2,8 +2,7 @@
  * Correcting a logged entry, driven the way somebody holding the phone would
  * drive it: tap the entry, change something, save — or delete through the
  * confirmation. Nothing here asserts which mutation ran internally beyond the
- * arguments it was actually given, which is the observable contract #73's
- * acceptance criteria are about.
+ * arguments it was actually given.
  */
 
 import { shiftIsoDate } from "@foundry/core";

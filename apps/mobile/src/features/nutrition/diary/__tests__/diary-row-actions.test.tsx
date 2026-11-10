@@ -1,5 +1,5 @@
 /**
- * The rules spec #68 puts on gestures, checked at the diary row.
+ * The rules on gestures, checked at the diary row.
  *
  * The whole point of these three is that a gesture is never load-bearing:
  *

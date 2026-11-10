@@ -1,11 +1,6 @@
 /**
- * The day a brand-new account opens: no goals set yet.
- *
- * The placeholder seam ships a goal set so the goals-first hierarchy is visible
- * before #70 builds the editor. This file replaces the seam with the state that
- * actually greets a new user, and checks the screen offers a way forward rather
- * than an empty box. When #70 lands, the mock goes and the fixture becomes a
- * user with no target rows.
+ * The day a brand-new account opens: no goals set yet. The screen offers a way
+ * forward rather than an empty box.
  */
 import { fireEvent, screen } from "expo-router/testing-library";
 import { renderApp } from "../../../../test-support/render-app";

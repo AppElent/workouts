@@ -3,7 +3,7 @@ import { FoodVisualView } from "../../components/food-visual";
 import type { FoodSelection } from "../log-food-selection";
 import { LogFoodMediaSlot, MEDIA_SLOT } from "./log-food-media-slot";
 
-/** A food's tile: its own visual, a legacy photo, or the catalogue emoji. */
+/** A food's tile: its own visual, its imported photo until that is migrated, or the catalogue emoji. */
 export function LogFoodRowLeading({
 	selection,
 	locale,

@@ -36,7 +36,6 @@ function sent<K extends Operation["kind"]>(app: App, kind: K) {
 		);
 }
 
-/** The server refuses the next `times` operations of one kind. */
 function refuse(app: App, kind: Operation["kind"], times = 1) {
 	const { apply } = app.accountTransport;
 	const real = apply.getMockImplementation();

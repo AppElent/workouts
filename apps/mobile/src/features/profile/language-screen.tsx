@@ -1,14 +1,7 @@
 /**
- * The language switch, pushed from Profile → Preferences.
- *
- * Behind the door on purpose. A signed-out person has stated no preference, so
- * the device decides for them; a signed-in person changes it here, once, and
- * the choice survives reinstallation of the session but not of the app.
- *
- * Changing the locale re-renders the whole tree from the provider in
- * `app/_layout.tsx`, so this screen's own words change under the finger that
- * changed them — which is the point, and the fastest way to see the switch
- * worked.
+ * The language switch, pushed from Profile → Preferences. A signed-out person
+ * has stated no preference, so the device decides for them. The choice belongs
+ * to this device, not to the account.
  */
 import { ScrollView, StyleSheet } from "react-native";
 import { type Locale, SUPPORTED_LOCALES, useI18n } from "../../i18n";

@@ -12,7 +12,7 @@
  * **Resolved before the first paint.** `useState(initialLocale)` takes the
  * *function*, so the store is read during the first render — synchronously,
  * once, before anything is drawn. An effect or an awaited read would paint one
- * frame in the wrong language, which is the specific defect #69 forbids. That
+ * frame in the wrong language, which must never happen. That
  * is also why persistence is `expo-sqlite/kv-store` and not `expo-secure-store`
  * (see `src/local-store/local-store.ts`).
  *
