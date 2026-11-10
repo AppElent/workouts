@@ -3,6 +3,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import {
 	convertLoad,
 	getWeightStep,
+	isLoadedEquipment,
 	type LoadUnit,
 	SET_LIMITS,
 	SET_TYPES,
@@ -65,7 +66,7 @@ export function ExerciseSection({
 		excludeSessionId: sessionId,
 	});
 
-	const isBodyweight = equipment === "bodyweight";
+	const isBodyweight = !isLoadedEquipment(equipment);
 	const weightStep = getWeightStep(equipment, weightIncrement);
 
 	const handleEdit = (set: Doc<"sets">) =>

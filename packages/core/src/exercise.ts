@@ -10,42 +10,36 @@ export const EQUIPMENT = [
 ] as const;
 export type Equipment = (typeof EQUIPMENT)[number];
 
-/** Equipment whose load is entered as a weight, so it has a weight increment. */
-const LOADED_EQUIPMENT = [
-	"barbell",
-	"dumbbell",
-	"cable",
-	"machine",
-	"kettlebell",
-	"other",
-] as const satisfies readonly Equipment[];
-type LoadedEquipment = (typeof LOADED_EQUIPMENT)[number];
+/**
+ * What logging a set on each piece of equipment means. `loaded`: the load is
+ * entered as a weight, so the set can feed One-rep Max references and the
+ * exercise has a weight increment; bodyweight alone is not. `step`: the
+ * default weight increment, in the set's unit.
+ */
+const EQUIPMENT_TRAITS: Readonly<
+	Record<Equipment, { readonly loaded: boolean; readonly step: number }>
+> = {
+	barbell: { loaded: true, step: 2.5 },
+	dumbbell: { loaded: true, step: 1 },
+	cable: { loaded: true, step: 5 },
+	machine: { loaded: true, step: 5 },
+	kettlebell: { loaded: true, step: 4 },
+	band: { loaded: true, step: 2.5 },
+	bodyweight: { loaded: false, step: 2.5 },
+	other: { loaded: true, step: 2.5 },
+};
 
-export function isLoadedEquipment(
-	equipment: Equipment,
-): equipment is LoadedEquipment {
-	return (LOADED_EQUIPMENT as readonly Equipment[]).includes(equipment);
+export function isLoadedEquipment(equipment: Equipment): boolean {
+	return EQUIPMENT_TRAITS[equipment].loaded;
 }
 
 export const EXERCISE_CATEGORIES = ["compound", "isolation"] as const;
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 
-/** Default weight increment per equipment, in the set's unit. */
-const EQUIPMENT_STEPS: Readonly<Record<Equipment, number>> = {
-	barbell: 2.5,
-	dumbbell: 1,
-	cable: 5,
-	machine: 5,
-	kettlebell: 4,
-	band: 2.5,
-	bodyweight: 2.5,
-	other: 2.5,
-};
-
 export function getWeightStep(equipment: Equipment, increment?: number) {
 	return increment !== undefined && Number.isFinite(increment) && increment > 0
 		? increment
-		: EQUIPMENT_STEPS[equipment];
+		: EQUIPMENT_TRAITS[equipment].step;
 }
 
 /**
