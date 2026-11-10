@@ -18,7 +18,7 @@ previews are in `.github/workflows/preview.yml`.
 | Workflow | `.github/workflows/deploy.yml`: push to `main` → `staging`; **Actions → Deploy → Run workflow** on `main` → `production` (the job refuses another ref) |
 | Checks | The `checks` job calls `ci.yml` through `workflow_call`, the same suite as pull requests. It gets no secrets, so its build uploads no source maps |
 | Workers (`wrangler.jsonc`) | `foundry` (production), `foundry-staging` (Wrangler env `staging`, custom domain `foundry-stg.appelent.nl`), `foundry-dev` (manual `deploy:dev` only), `foundry-pr-<n>` (Wrangler env `pr`) |
-| Convex | Production: `fine-akita-444`. Staging: its own deployment, picked by the `prod:` key in Infisical `prod` as `convex-staging-deploy-key`; its name goes in `ENV_CONFIG.convex.deployments.staging` |
+| Convex | Production: `fine-akita-444`. Staging: `fearless-mouse-671` (prod-type deployment `staging` in the same project), picked by its `prod:` key, `convex-staging-deploy-key` in Infisical `prod` |
 | Auth | Staging uses the production Clerk instance (Infisical `prod`), which accepts only `appelent.nl` hosts, so staging needs its custom domain rather than `workers.dev` |
 | Credentials | GitHub Environments `staging` and `production`, written by `pnpm env:apply <environment> --only github`. The `Check environment` step checks the `prod:` key prefix and every GitHub-routed name before anything ships |
 | Build | Both targets run `pnpm build:packages`, then `convex deploy --cmd` with `pnpm build`. `CLOUDFLARE_ENV` (`staging`, or empty for production) picks the Worker at build time; the `Guard Worker name` step compares `dist/server/wrangler.json` with the expected Worker |

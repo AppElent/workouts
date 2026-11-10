@@ -18,7 +18,7 @@ its Infisical key, and which consumer reads it in which environment. The
 | `local` | Your machine and every worktree | `dev` | `colorless-sturgeon-704` | — | — | `development` |
 | `dev` | Shared deployed development backend | `dev` | `colorless-sturgeon-704` | `foundry-dev` | Environment `dev` | `development` |
 | `preview` | Short-lived web PR previews | `staging` | per-PR preview | `foundry-pr-<n>` | repository, `PREVIEW_<name>` | — |
-| `staging` | Staging web (deployed on merge) and the installed preview app | `prod` | staging deployment (own `prod:` key) | `foundry-staging` | Environment `staging` | `preview` |
+| `staging` | Staging web (deployed on merge) and the installed preview app | `prod` | `fearless-mouse-671` (web only) | `foundry-staging` | Environment `staging` | `preview` |
 | `production` | Production | `prod` | `fine-akita-444` | `foundry` | Environment `production` | `production` |
 
 Auth follows the Infisical tier. `local`, `dev`, and web PR previews use the Clerk
@@ -31,9 +31,7 @@ Foundry's `staging` environment is two things that share Infisical `prod`: the s
 web, which [deploy](deploy.md) ships on every merge to `main` with its own Convex
 deployment, and the installed preview app in EAS `preview`, which stays on the
 production backend. The staging web's deploy key is `convex-staging-deploy-key`, so it
-never shares production's. Its Convex deployment name belongs in
-`ENV_CONFIG.convex.deployments.staging`; until it is there, `env:apply staging` writes
-no Convex values.
+never shares production's.
 
 Infisical folders are read in the order `/`, then `/foundry`; a value in the app
 folder wins. `.infisical.json` holds only the project reference.

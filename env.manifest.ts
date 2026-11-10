@@ -10,6 +10,8 @@ export const ENV_CONFIG = {
 		project: "eric-jansen:workout-tracker",
 		deployments: {
 			dev: "colorless-sturgeon-704",
+			// The staging web's own prod-type deployment (reference `staging`).
+			staging: "fearless-mouse-671",
 			production: "fine-akita-444",
 		},
 	},
@@ -20,9 +22,8 @@ export const ENV_CONFIG = {
 
 // "staging" is both the staging web (foundry-staging on foundry-stg.appelent.nl,
 // deployed on every merge to main) and the installed preview app (EAS preview).
-// Both read Infisical prod. The staging web has its own Convex deployment, whose
-// name goes in ENV_CONFIG.convex.deployments.staging once it exists; until then
-// convex-functions landings for staging have no destination.
+// Both read Infisical prod. The staging web has its own Convex deployment
+// (ENV_CONFIG.convex.deployments.staging); the preview app stays on production.
 export const ENVIRONMENTS = [
 	"local",
 	"dev",
