@@ -16,6 +16,7 @@ import {
 	calculateOneRepMax,
 	exerciseRecords,
 	primaryMuscleGroup,
+	repMaxCurve,
 	roundLoad,
 } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
@@ -338,16 +339,14 @@ function ProgressTab({
 		}));
 	}, [history]);
 
-	/**
-	 * Epley inverted: given a 1RM, the weight that formula predicts for n reps.
-	 * `1rm = w × (1 + n/30)`, so `w = 1rm ÷ (1 + n/30)`.
-	 */
 	const theoreticalCurve = useMemo(() => {
 		if (!currentOrm) return [];
-		return CURVE_REPS.map((reps) => ({
-			value: Math.round((currentOrm.value / (1 + reps / 30)) * 10) / 10,
-			label: `${reps}`,
-		}));
+		return repMaxCurve(currentOrm.value, CURVE_REPS).map(
+			({ reps, weight }) => ({
+				value: Math.round(weight * 10) / 10,
+				label: `${reps}`,
+			}),
+		);
 	}, [currentOrm]);
 
 	const hasCurve = actualCurve.some((p) => p.value > 0);
