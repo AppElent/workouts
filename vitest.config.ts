@@ -55,15 +55,6 @@ export default defineConfig({
 			{
 				extends: true,
 				test: {
-					name: "cli",
-					include: ["cli/**/*.test.ts"],
-					environment: "node",
-					globals: true,
-				},
-			},
-			{
-				extends: true,
-				test: {
 					name: "core",
 					// `packages/core` is dependency-free logic shared by the web app,
 					// Convex and the phone. Without this project its tests match no

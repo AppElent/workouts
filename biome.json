@@ -9,7 +9,6 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**/src/**/*",
-			"**/cli/**/*",
 			"convex/**/*",
 			"!convex/_generated",
 			"scripts/check-mobile-structure*",
