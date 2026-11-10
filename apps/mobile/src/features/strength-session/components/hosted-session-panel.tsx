@@ -11,12 +11,17 @@
  * block replaces the first rather than stacking. That is what makes it safe to
  * correct a number without a delete step.
  */
+import {
+	buildWodScore,
+	parseClockInput,
+	validateWodScore,
+} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
@@ -40,26 +45,6 @@ const LEVEL_LABEL: Record<Level, string> = {
 	l2: "L2",
 	l3: "L3",
 };
-
-function parseTime(raw: string) {
-	const trimmed = raw.trim();
-	if (trimmed === "") return undefined;
-	if (trimmed.includes(":")) {
-		const [m, s] = trimmed.split(":");
-		const minutes = Number.parseInt(m, 10);
-		const seconds = Number.parseInt(s, 10);
-		if (!Number.isFinite(minutes) || !Number.isFinite(seconds))
-			return undefined;
-		return minutes * 60 + seconds;
-	}
-	const parsed = Number.parseInt(trimmed, 10);
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function parseNumber(raw: string) {
-	const parsed = Number.parseFloat(raw.trim());
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
 
 export function HostedSessionPanel({
 	sessionId,
@@ -157,23 +142,25 @@ function ScoreBox({
 
 	const chosen = levels.find((l) => l.level === level);
 
+	const score = buildWodScore(type, {
+		timeSeconds: parseClockInput(time),
+		timeCapped: capped,
+		rounds: parseLocalizedDecimal(rounds),
+		reps: parseLocalizedDecimal(reps),
+		load: parseLocalizedDecimal(load),
+		loadUnit: "kg",
+	});
+	const complete = validateWodScore(type, score).ok;
+
 	const send = async () => {
-		if (busy || !writable) return;
+		if (busy || !writable || !complete) return;
 		try {
 			const saved = await write(() =>
 				submit({
 					sessionId,
 					wodBlockId: blockId,
 					level,
-					timeSeconds: type === "forTime" ? parseTime(time) : undefined,
-					rounds: type === "amrap" ? parseNumber(rounds) : undefined,
-					reps:
-						type === "amrap" || type === "emom" || capped
-							? parseNumber(reps)
-							: undefined,
-					timeCapped: type === "forTime" ? capped : undefined,
-					load: type === "load" ? parseNumber(load) : undefined,
-					loadUnit: type === "load" ? "kg" : undefined,
+					...score,
 					notes: notes.trim() === "" ? undefined : notes.trim(),
 				}),
 			);
@@ -280,7 +267,7 @@ function ScoreBox({
 				accessibilityRole="button"
 				accessibilityState={{ disabled: busy || !writable }}
 				onPress={() => void send()}
-				disabled={busy || !writable}
+				disabled={busy || !writable || !complete}
 				style={[styles.submit, busy && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>

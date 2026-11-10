@@ -263,7 +263,7 @@ export const strengthSessionEn = {
 		manualField: "1RM · kg",
 		manualSave: "Save 1RM",
 		manualConfirm: "Yes, {value} kg is right",
-		manualMax: "Up to 500 kg",
+		manualMax: "Up to 2000 kg",
 		manualOdd: "Your highest 1RM is {top} kg. Is that right?",
 	},
 	profile: {
@@ -694,7 +694,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		manualField: "1RM · kg",
 		manualSave: "1RM opslaan",
 		manualConfirm: "Ja, {value} kg klopt",
-		manualMax: "Maximaal 500 kg",
+		manualMax: "Maximaal 2000 kg",
 		manualOdd: "Je hoogste 1RM is {top} kg. Klopt dat?",
 	},
 	profile: {

@@ -1,4 +1,4 @@
-import type { Messages } from "../../../i18n";
+import { type Messages, parseLocalizedDecimal } from "../../../i18n";
 
 export type EnduranceValues = {
 	date: string;
@@ -68,9 +68,8 @@ export function valuesForActivity(
 }
 
 function decimal(raw: string) {
-	const normalized = raw.trim().replace(",", ".");
-	if (!/^(?:\d+)(?:\.\d+)?$/.test(normalized)) return Number.NaN;
-	return Number(normalized);
+	const value = parseLocalizedDecimal(raw);
+	return value === undefined || value < 0 ? Number.NaN : value;
 }
 
 function whole(raw: string) {

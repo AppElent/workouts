@@ -11,7 +11,13 @@
  * Ranking and formatting both come from `@foundry/core`, the same functions
  * Convex uses server-side in `wodResults.getBest`.
  */
-import { formatScore, prImprovement } from "@foundry/core";
+import {
+	buildWodScore,
+	formatScore,
+	parseClockInput,
+	prImprovement,
+	validateWodScore,
+} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -25,7 +31,7 @@ import {
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
@@ -41,27 +47,6 @@ import { useConfirm } from "../../../ui/confirm-dialog";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-
-/** "12:30" or "750" both mean 750 seconds. */
-function parseTime(raw: string) {
-	const trimmed = raw.trim();
-	if (trimmed === "") return undefined;
-	if (trimmed.includes(":")) {
-		const [m, s] = trimmed.split(":");
-		const minutes = Number.parseInt(m, 10);
-		const seconds = Number.parseInt(s, 10);
-		if (!Number.isFinite(minutes) || !Number.isFinite(seconds))
-			return undefined;
-		return minutes * 60 + seconds;
-	}
-	const parsed = Number.parseInt(trimmed, 10);
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function parseNumber(raw: string) {
-	const parsed = Number.parseFloat(raw.trim());
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
 
 export function WodDetailScreen({
 	onEdit,
@@ -285,19 +270,18 @@ function LogResultForm({
 	const [notes, setNotes] = useState("");
 	const [busy, setBusy] = useState(false);
 
+	const score = buildWodScore(wod.type, {
+		timeSeconds: parseClockInput(time),
+		timeCapped: capped,
+		rounds: parseLocalizedDecimal(rounds),
+		reps: parseLocalizedDecimal(reps),
+		load: parseLocalizedDecimal(load),
+		loadUnit: "kg",
+	});
+	const complete = validateWodScore(wod.type, score).ok;
+
 	const submit = async () => {
-		if (busy) return;
-		const score = {
-			timeSeconds: wod.type === "forTime" ? parseTime(time) : undefined,
-			rounds: wod.type === "amrap" ? parseNumber(rounds) : undefined,
-			reps:
-				wod.type === "amrap" || wod.type === "emom" || capped
-					? parseNumber(reps)
-					: undefined,
-			timeCapped: wod.type === "forTime" ? capped : undefined,
-			load: wod.type === "load" ? parseNumber(load) : undefined,
-			loadUnit: wod.type === "load" ? ("kg" as const) : undefined,
-		};
+		if (busy || !complete) return;
 
 		setBusy(true);
 		try {
@@ -418,7 +402,7 @@ function LogResultForm({
 				accessibilityRole="button"
 				accessibilityState={{ disabled: busy }}
 				onPress={() => void submit()}
-				disabled={busy}
+				disabled={busy || !complete}
 				style={[styles.submit, busy && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>

@@ -2,7 +2,7 @@
  * The set editor. Open sets change in place, so a closed sheet or a restart
  * keeps the input; a logged set's changes stay a draft until Save.
  */
-import { calcPlates, DEFAULT_BAR, SET_TYPES } from "@foundry/core";
+import { calcPlates, DEFAULT_BAR, SET_LIMITS, SET_TYPES } from "@foundry/core";
 import {
 	Stack,
 	useLocalSearchParams,
@@ -28,7 +28,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Id } from "../../convex/api";
-import { fmt, useI18n } from "../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
 import {
 	opacity,
 	radius,
@@ -60,8 +60,6 @@ import {
 	findRow,
 	groupOfRow,
 	isValidRow,
-	MAX_LOAD_KG,
-	MAX_REPS,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -81,7 +79,7 @@ import {
 const PRESETS = [60, 65, 70, 75, 80, 85, 90];
 const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
 type FieldRef = RefObject<ComponentRef<typeof TextInput> | null>;
-const parseNumber = (text: string) => Number(text.replace(",", "."));
+const parseNumber = (text: string) => parseLocalizedDecimal(text) ?? Number.NaN;
 
 function NumberField({
 	label,
@@ -531,7 +529,7 @@ export function SetEditorScreen() {
 					? text.enterLoad
 					: noReps
 						? text.enterReps
-						: row.kg > MAX_LOAD_KG
+						: shownLoad(row) > SET_LIMITS.weight.max
 							? text.checkLoad
 							: text.checkReps;
 	} else if (check)
@@ -589,7 +587,7 @@ export function SetEditorScreen() {
 		if (Number.isInteger(parsed) && parsed >= 0)
 			change({
 				...row,
-				reps: Math.min(parsed, MAX_REPS + 1),
+				reps: Math.min(parsed, SET_LIMITS.reps.max + 1),
 				blank: undefined,
 			});
 	};
@@ -645,7 +643,12 @@ export function SetEditorScreen() {
 	}
 	const applyCustom = () => {
 		const value = parseNumber(percentText);
-		if (reference && Number.isFinite(value) && value > 0 && value <= 120) {
+		if (
+			reference &&
+			Number.isFinite(value) &&
+			value > 0 &&
+			value <= SET_LIMITS.percentOfOneRepMax.max
+		) {
 			change(applyPercent(row, value, reference, facts));
 			setCustomOpen(false);
 			Keyboard.dismiss();

@@ -21,6 +21,8 @@ export const SET_LIMITS = {
 	plannedWeight: { min: 0, max: 2000 },
 	exercisesPerPrescription: { min: 0, max: 100, step: 1 },
 	manualOneRepMax: { min: 1, max: 2000 },
+	/** A load picked as a percentage of the 1RM reference; above 0. */
+	percentOfOneRepMax: { min: 0, max: 120 },
 } as const satisfies Record<string, NumberRange>;
 
 export type SetLimitField = keyof typeof SET_LIMITS;

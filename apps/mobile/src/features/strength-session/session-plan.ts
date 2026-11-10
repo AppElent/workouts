@@ -12,6 +12,7 @@ import {
 	type LoadUnit,
 	roundLoad,
 	type SetType,
+	validateSetInput,
 } from "@foundry/core";
 
 export type GroupMode = "rounds" | "amrap";
@@ -127,8 +128,6 @@ export interface PlanResult {
 }
 
 const EPSILON = 0.01;
-export const MAX_LOAD_KG = 500;
-export const MAX_REPS = 1000;
 export const DEFAULT_REST_SECONDS = 90;
 let counter = 0;
 export function newRowId() {
@@ -209,9 +208,8 @@ export function isValidRow(row: PlanSet, facts: ExerciseFacts) {
 		Number.isFinite(row.kg) &&
 		Number.isInteger(row.reps) &&
 		(facts.bodyweight ? row.kg >= 0 : row.kg > 0) &&
-		row.kg <= MAX_LOAD_KG &&
 		row.reps >= (row.blank ? 1 : 0) &&
-		row.reps <= MAX_REPS
+		validateSetInput({ weight: shownLoad(row), reps: row.reps }).ok
 	);
 }
 export function payloadFor(row: PlanSet, setNumber: number): LogPayload {

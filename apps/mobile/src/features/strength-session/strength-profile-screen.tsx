@@ -1,5 +1,5 @@
 /** Your references for one exercise, and every load they imply. */
-import { weightForRepMax } from "@foundry/core";
+import { SET_LIMITS, weightForRepMax } from "@foundry/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -12,7 +12,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Id } from "../../convex/api";
-import { dateLocale, fmt, plural, useI18n } from "../../i18n";
+import {
+	dateLocale,
+	fmt,
+	parseLocalizedDecimal,
+	plural,
+	useI18n,
+} from "../../i18n";
 import {
 	radius,
 	spacing,
@@ -151,7 +157,7 @@ export function StrengthProfileScreen() {
 		else actions.set(updateRow(actions.plan(), row.id, chosen));
 		close();
 	}
-	const customValue = Number(customText.replace(",", "."));
+	const customValue = parseLocalizedDecimal(customText) ?? Number.NaN;
 	const estimate = row ? rowOneRepMax(row, facts.bodyweight) : null;
 	return (
 		<>
@@ -288,9 +294,11 @@ export function StrengthProfileScreen() {
 													value={customText}
 													onChangeText={(value) => {
 														setCustomText(value);
-														const parsed = Number(value.replace(",", "."));
+														const parsed =
+															parseLocalizedDecimal(value) ?? Number.NaN;
 														setPick(
-															parsed > 0 && parsed <= 120
+															parsed > 0 &&
+																parsed <= SET_LIMITS.percentOfOneRepMax.max
 																? { kind: "percent", value: parsed }
 																: null,
 														);
@@ -301,7 +309,8 @@ export function StrengthProfileScreen() {
 													placeholderTextColor={colors.textMuted}
 													style={styles.customInput}
 												/>
-												{customValue > 0 && customValue <= 120 ? (
+												{customValue > 0 &&
+												customValue <= SET_LIMITS.percentOfOneRepMax.max ? (
 													<AppText variant="row" style={{ fontWeight: "700" }}>
 														{display(
 															priced((reference.value * customValue) / 100),

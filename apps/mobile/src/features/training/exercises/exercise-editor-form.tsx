@@ -4,7 +4,7 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import { Platform } from "react-native";
 import { api } from "../../../convex/api";
-import { useI18n } from "../../../i18n";
+import { parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import { useTokens } from "../../../theme";
 import {
@@ -76,7 +76,7 @@ export function ExerciseEditorForm({
 	const [notes, setNotes] = useState(exercise?.notes ?? "");
 	const [busy, setBusy] = useState(false);
 	const loaded = equipment !== "bodyweight" && equipment !== "band";
-	const parsed = Number(increment.replace(",", "."));
+	const parsed = parseLocalizedDecimal(increment) ?? Number.NaN;
 	const invalid =
 		loaded &&
 		increment.trim() !== "" &&

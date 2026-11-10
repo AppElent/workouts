@@ -1,3 +1,4 @@
+import { validateManualOneRepMax } from "@foundry/core";
 /** Enter or change a manual 1RM for one exercise. It applies to this session at once. */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -10,7 +11,7 @@ import {
 	View,
 } from "react-native";
 import type { Id } from "../../convex/api";
-import { fmt, useI18n } from "../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
 import {
 	radius,
 	spacing,
@@ -25,7 +26,6 @@ import { useSessionWorkspace } from "./data/session-workspace";
 import { formatNumber } from "./session-format";
 import {
 	bestKnown,
-	MAX_LOAD_KG,
 	manualIsOdd,
 	referenceFor,
 	setManual,
@@ -65,8 +65,8 @@ export function SessionManualScreen() {
 			hide.remove();
 		};
 	}, []);
-	const parsed = Number(value.replace(",", "."));
-	const inRange = value.trim() !== "" && parsed > 0 && parsed <= MAX_LOAD_KG;
+	const parsed = parseLocalizedDecimal(value) ?? Number.NaN;
+	const inRange = value.trim() !== "" && validateManualOneRepMax(parsed).ok;
 	const odd = Boolean(
 		plan && inRange && manualIsOdd(plan, params.exerciseId, parsed, facts),
 	);
