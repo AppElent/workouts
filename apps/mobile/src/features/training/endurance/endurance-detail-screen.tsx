@@ -1,8 +1,3 @@
-import {
-	formatPace,
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -25,6 +20,7 @@ import {
 } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { formatEnduranceRate, formatKilometers } from "./endurance-format";
 
 export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const errorMessage = useConvexErrorMessage();
@@ -109,20 +105,6 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 		);
 	}
 
-	const distanceKm = activity.distanceMeters / 1000;
-	const pace = paceSecondsPerKilometer(
-		activity.distanceMeters,
-		activity.durationSeconds,
-	);
-	const speed = speedKilometersPerHour(
-		activity.distanceMeters,
-		activity.durationSeconds,
-	);
-	const paceText = formatPace(pace) ?? "—";
-	const speedText =
-		speed === null || !Number.isFinite(speed)
-			? "—"
-			: `${speed.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
 	const dateText = new Intl.DateTimeFormat(dateLocale(locale), {
 		dateStyle: "full",
 		timeStyle: "short",
@@ -153,12 +135,17 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 				<View style={styles.metricGrid}>
 					<Metric
 						label={copy.distance}
-						value={`${distanceKm.toLocaleString(locale, { maximumFractionDigits: 2 })} km`}
+						value={`${formatKilometers(activity.distanceMeters, locale)} km`}
 					/>
 					<Metric label={copy.duration} value={durationText} />
 					<Metric
 						label={activity.sport === "running" ? copy.pace : copy.speed}
-						value={activity.sport === "running" ? paceText : speedText}
+						value={formatEnduranceRate(
+							activity.sport,
+							activity.distanceMeters,
+							activity.durationSeconds,
+							locale,
+						)}
 					/>
 				</View>
 			</GroupedSurface>

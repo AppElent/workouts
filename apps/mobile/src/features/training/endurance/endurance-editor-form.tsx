@@ -1,8 +1,3 @@
-import {
-	formatPace,
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
@@ -34,6 +29,7 @@ import {
 	parseEnduranceValues,
 	valuesForActivity,
 } from "./endurance-form-state";
+import { formatEnduranceRate } from "./endurance-format";
 
 function activityId() {
 	return `mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -147,23 +143,14 @@ export function EnduranceEditorForm({
 		form.setFieldValue(key as "date", value as string);
 	};
 	const parsed = parseEnduranceValues(values, copy);
-	const metric = parsed.value
-		? sport === "running"
-			? paceSecondsPerKilometer(
-					parsed.value.distanceMeters,
-					parsed.value.durationSeconds,
-				)
-			: speedKilometersPerHour(
-					parsed.value.distanceMeters,
-					parsed.value.durationSeconds,
-				)
-		: null;
-	const metricText =
-		sport === "running"
-			? (formatPace(metric) ?? "—")
-			: metric === null || !Number.isFinite(metric)
-				? "—"
-				: `${metric.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
+	const metricText = parsed.value
+		? formatEnduranceRate(
+				sport,
+				parsed.value.distanceMeters,
+				parsed.value.durationSeconds,
+				locale,
+			)
+		: "—";
 
 	async function save(submitted: EnduranceValues) {
 		const submission = parseEnduranceValues(submitted, copy);
