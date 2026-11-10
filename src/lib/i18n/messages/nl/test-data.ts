@@ -27,7 +27,4 @@ export const testData = {
 	success: "Testgegevens bijgewerkt.",
 	error:
 		"Testgegevens konden niet worden bijgewerkt. Maak verbinding en probeer opnieuw.",
-	cleanupError:
-		"De accountgegevens zijn bijgewerkt, maar het opschonen van dit apparaat is mislukt. Probeer het opschonen opnieuw voordat je doorgaat.",
-	retryCleanup: "Apparaat opnieuw opschonen",
 };
