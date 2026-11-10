@@ -6,16 +6,16 @@
  * placeholder data module returned — those are all replaced by #70 and #72, and
  * a test that noticed would be a test that has to be rewritten for no reason.
  */
+
+import { shiftIsoDate as diaryShift, shiftIsoDate } from "@foundry/core";
 import { useMutation, useQuery, useQuery_experimental } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import * as ReactNative from "react-native";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
 	formatShortDate,
-	shiftIsoDate,
 	todayIsoDate,
 } from "../../../dates/calendar-day";
 import { renderApp } from "../../../test-support/render-app";

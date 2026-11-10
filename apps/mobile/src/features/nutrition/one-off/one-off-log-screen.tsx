@@ -54,7 +54,7 @@ export function OneOffLogScreen({
 	/** The Capture Draft this entry processes; removed once it is logged. */
 	draftId?: string;
 }) {
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 	const copy = t.nutrition.oneOff;
 	const browseCopy = t.nutrition.logFood;
 	const foodCopy = t.nutrition.foodEditor;
@@ -226,7 +226,6 @@ export function OneOffLogScreen({
 				visible={choosingDay}
 				date={draft.destination.date}
 				today={today}
-				locale={locale}
 				title={browseCopy.chooseDate}
 				todayLabel={browseCopy.today}
 				doneLabel={browseCopy.doneChoosingDate}

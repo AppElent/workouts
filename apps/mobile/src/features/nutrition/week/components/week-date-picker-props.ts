@@ -1,5 +1,4 @@
-import type { Locale } from "@foundry/core";
-import type { IsoDate } from "../../../../dates/calendar-day";
+import type { IsoDate, Locale } from "@foundry/core";
 
 export interface WeekDatePickerProps {
 	weekStart: IsoDate;

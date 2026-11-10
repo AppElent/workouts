@@ -1,3 +1,4 @@
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";
@@ -5,7 +6,6 @@ import { OFFLINE_GRACE_MS } from "../../../../convex/stalled-offline";
 import type { NutrientGoal } from "../../../../data/nutrition-day";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
 } from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";

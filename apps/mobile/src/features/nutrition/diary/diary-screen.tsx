@@ -1,4 +1,5 @@
 import {
+	isoDayOffset,
 	MEAL_SLOTS,
 	type MealSlot,
 	mealSlotAt,
@@ -19,7 +20,7 @@ import {
 import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { useToday } from "../../../data/use-today";
-import { formatLongDate, isoDayOffset } from "../../../dates/calendar-day";
+import { formatLongDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -422,7 +423,6 @@ export function DiaryScreen() {
 								<DiaryDatePicker
 									date={date}
 									onSelect={changeDate}
-									locale={locale}
 									label={calendarLabel}
 								/>
 								{menu}
@@ -437,7 +437,6 @@ export function DiaryScreen() {
 							<DiaryDatePicker
 								date={date}
 								onSelect={changeDate}
-								locale={locale}
 								label={calendarLabel}
 							/>
 						</GlassSurface>

@@ -1,6 +1,6 @@
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
 } from "../../../../dates/calendar-day";
 /**
@@ -19,7 +19,7 @@ import {
  * hardware button perform.
  */
 
-import { mealSlotAt, totalNutrients } from "@foundry/core";
+import { mealSlotAt, shiftIsoDate, totalNutrients } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -32,7 +32,7 @@ import {
 	weekDates,
 	weekStartMonday,
 } from "../../../../data/nutrition-weekly-review";
-import { shiftIsoDate, todayIsoDate } from "../../../../dates/calendar-day";
+import { todayIsoDate } from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 

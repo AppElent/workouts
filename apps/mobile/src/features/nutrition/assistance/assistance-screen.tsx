@@ -657,7 +657,6 @@ export function AssistanceScreen({
 				visible={choosingDay}
 				date={destination.date}
 				today={today}
-				locale={locale}
 				title={t.nutrition.logFood.chooseDate}
 				todayLabel={t.nutrition.logFood.today}
 				doneLabel={t.nutrition.logFood.doneChoosingDate}

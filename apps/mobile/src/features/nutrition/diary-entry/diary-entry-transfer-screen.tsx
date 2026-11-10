@@ -9,6 +9,7 @@ import {
 	type MealSlot,
 	type NutritionDiarySnapshot,
 	roundForDisplay,
+	shiftIsoDate,
 	totalNutrients,
 } from "@foundry/core";
 import { Stack } from "expo-router";
@@ -25,10 +26,9 @@ import {
 	formatLongDate,
 	formatShortDate,
 	isoDateToLocalDate,
-	shiftIsoDate,
 } from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { plural, useI18n } from "../../../i18n";
+import { dateLocale, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
@@ -235,9 +235,12 @@ export function DiaryEntryTransferScreen({
 												destinationDate === day ? colors.onAccent : colors.text,
 										}}
 									>
-										{isoDateToLocalDate(day).toLocaleDateString(locale, {
-											weekday: "short",
-										})}
+										{isoDateToLocalDate(day).toLocaleDateString(
+											dateLocale(locale),
+											{
+												weekday: "short",
+											},
+										)}
 									</AppText>
 									<AppText
 										style={{
@@ -269,7 +272,6 @@ export function DiaryEntryTransferScreen({
 					{showCalendar ? (
 						<MonthCalendar
 							selectedDate={destinationDate}
-							locale={locale}
 							onSelect={(next) => {
 								setDestinationDate(next);
 								setShowCalendar(false);

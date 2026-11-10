@@ -16,7 +16,6 @@ export interface DatePickerSheetProps {
 	date: string;
 	/** What "today" means for this session, fixed at mount by the caller. */
 	today: string;
-	locale: string;
 	title: string;
 	todayLabel: string;
 	doneLabel: string;

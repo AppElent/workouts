@@ -5,6 +5,7 @@
  */
 import {
 	type GoalPresetKey,
+	type IsoDate,
 	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientKey,
@@ -17,7 +18,6 @@ import type { FunctionReturnType } from "convex/server";
 import { useEffect } from "react";
 import { api } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
-import type { IsoDate } from "../dates/calendar-day";
 import { accountSlot, useAccountSlot } from "./account-write";
 
 export interface NutrientGoal extends NutritionGoalValue {

@@ -937,7 +937,6 @@ export function LogFoodScreen({
 				visible={showCalendar}
 				date={date}
 				today={today}
-				locale={locale}
 				title={copy.chooseDate}
 				todayLabel={copy.today}
 				doneLabel={copy.doneChoosingDate}

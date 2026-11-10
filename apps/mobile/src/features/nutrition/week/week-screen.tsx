@@ -1,10 +1,10 @@
+import type { IsoDate } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { weekEndDate } from "../../../data/nutrition-weekly-review";
-import type { IsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 
 import { radius, spacing, useTokens } from "../../../theme";

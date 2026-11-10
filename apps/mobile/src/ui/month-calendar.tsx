@@ -1,8 +1,8 @@
+import type { IsoDate } from "@foundry/core";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import {
 	formatLongDate,
-	type IsoDate,
 	isoDateToLocalDate,
 	todayIsoDate,
 	toIsoDate,
@@ -57,7 +57,6 @@ function weekdays(locale: string): string[] {
 export function MonthCalendar({
 	selectedDate,
 	onSelect,
-	locale: localeOverride,
 	today = todayIsoDate(),
 	labels,
 	markedDates,
@@ -66,8 +65,6 @@ export function MonthCalendar({
 }: {
 	selectedDate: IsoDate;
 	onSelect: (date: IsoDate) => void;
-	/** A BCP 47 tag; defaults to the app language. */
-	locale?: string;
 	today?: IsoDate;
 	labels?: Partial<MonthCalendarLabels>;
 	markedDates?: ReadonlySet<string>;
@@ -76,8 +73,7 @@ export function MonthCalendar({
 	onMonthChange?: (date: string) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
-	const { t, locale: appLocale } = useI18n();
-	const locale = localeOverride ?? dateLocale(appLocale);
+	const { t, locale } = useI18n();
 	const copy = { ...t.common.calendar, ...labels };
 	const [visibleMonth, setVisibleMonth] = useState(() =>
 		monthAnchor(selectedDate),
@@ -129,7 +125,7 @@ export function MonthCalendar({
 					accessibilityRole="header"
 					style={styles.title}
 				>
-					{monthTitle(visibleMonth, locale)}
+					{monthTitle(visibleMonth, dateLocale(locale))}
 				</AppText>
 				<Pressable
 					accessibilityRole="button"
@@ -143,7 +139,7 @@ export function MonthCalendar({
 				</Pressable>
 			</View>
 			<View style={styles.weekdays}>
-				{weekdays(locale).map((weekday) => (
+				{weekdays(dateLocale(locale)).map((weekday) => (
 					<AppText key={weekday} variant="caption" style={styles.weekday}>
 						{weekday}
 					</AppText>

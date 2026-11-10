@@ -1,6 +1,6 @@
+import { type IsoDate, shiftIsoDate } from "@foundry/core";
 import { Pressable, View } from "react-native";
 import { weekDates } from "../../../../data/nutrition-weekly-review";
-import { type IsoDate, shiftIsoDate } from "../../../../dates/calendar-day";
 import { fmt, useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";

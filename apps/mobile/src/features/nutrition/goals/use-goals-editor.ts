@@ -2,6 +2,7 @@ import {
 	editedGoalCount,
 	type GoalDirection,
 	type GoalPresetKey,
+	type IsoDate,
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
@@ -24,7 +25,7 @@ import {
 	withGoal,
 	withoutGoal,
 } from "../../../data/nutrition-goal-history";
-import { type IsoDate, todayIsoDate } from "../../../dates/calendar-day";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import type { GoalVersionSummary } from "./goals-applies-from";
