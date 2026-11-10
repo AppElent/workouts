@@ -1,4 +1,4 @@
-import type { NutritionOperationEnvelope } from "@foundry/core";
+import { type NutritionOperationEnvelope, shiftIsoDate } from "@foundry/core";
 import { useAction, useConvexConnectionState } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -9,7 +9,7 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import Storage from "expo-sqlite/kv-store";
+import { formatLongDate, todayIsoDate } from "../../../../dates/calendar-day";
 import {
 	PREFERENCE_KEYS,
 	removeLocal,
@@ -17,11 +17,7 @@ import {
 } from "../../../../local-store/local-store";
 import { renderApp } from "../../../../test-support/render-app";
 import { ACTION_ARM_MS } from "../../../../ui/toast";
-import {
-	aiSessionForText,
-	forgetReview,
-	saveAiSession,
-} from "../assistance-history";
+import { forgetReview } from "../assistance-history";
 
 type App = Awaited<ReturnType<typeof renderApp>>;
 type Operation = NutritionOperationEnvelope["operation"];
@@ -93,6 +89,8 @@ function scriptActions() {
 }
 
 const url = "/nutrition-assistance?meal=lunch&text=bread+and+a+pancake";
+/** The diary row of the bread the help matched and logged. */
+const LOGGED_ENTRY = /^Edit entry: Wholemeal bread/;
 
 beforeEach(() => {
 	describeMeal.mockReset();
@@ -229,14 +227,18 @@ describe("Hulp bij invoeren", () => {
 	});
 
 	describe("logging and continuing", () => {
-		const loggedText = "/nutrition-assistance?meal=lunch&text=log+me";
-		// Each test continues the session it logged itself, not an earlier one.
+		// Each test logs words of its own, so it never continues an earlier
+		// test's meal or gets an earlier answer back.
+		let logged = 0;
+		let words = "";
 		beforeEach(() => {
-			for (const key of Storage.getAllKeysSync())
-				if (key.startsWith("nutrition-ai:v1:test-user:"))
-					Storage.removeItemSync(key);
+			logged += 1;
+			words = `log+me+${logged}`;
 		});
 		afterEach(() => jest.restoreAllMocks());
+
+		const assistWith = (text: string) =>
+			`/nutrition-assistance?meal=lunch&text=${text}`;
 
 		/** A continued meal can be logged once the day it replaces has loaded. */
 		async function logWhenReady() {
@@ -257,16 +259,22 @@ describe("Hulp bij invoeren", () => {
 				question: null,
 				items: [{ ...bread, name: "Logged bread", confidence: "low" }],
 			});
-			forgetReview("test-user", "log me", "en");
 			const app = await renderApp();
 			await screen.findByText("Today");
-			await testRouter.push(loggedText);
+			await testRouter.push(assistWith(words));
 			await fireEvent.press(await screen.findByText("Analyse"));
 			await fireEvent.press(await screen.findByText("Log as one item"));
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			const session = aiSessionForText("test-user", "log me");
-			if (!session) throw new Error("No session was saved.");
-			return { app, session };
+			return app;
+		}
+
+		/** Picks the logged meal up again from its entry, as a person does. */
+		async function continueFromDiary(app: App) {
+			await fireEvent.press(await screen.findByLabelText(LOGGED_ENTRY));
+			await fireEvent.press(await screen.findByLabelText("Continue with help"));
+			await waitFor(() =>
+				expect(app.getPathname()).toBe("/nutrition-assistance"),
+			);
 		}
 
 		it("reports a failed log instead of hanging, and can log again", async () => {
@@ -278,11 +286,10 @@ describe("Hulp bij invoeren", () => {
 				question: null,
 				items: [{ ...bread, name: "Logged bread" }],
 			});
-			forgetReview("test-user", "log me", "en");
 			const app = await renderApp();
 			refuse(app, "createBatch");
 			await screen.findByText("Today");
-			await testRouter.push(loggedText);
+			await testRouter.push(assistWith(words));
 			await fireEvent.press(await screen.findByText("Analyse"));
 			await fireEvent.press(await screen.findByText("Log as one item"));
 			await waitFor(() => expect(sent(app, "createBatch")).toHaveLength(1));
@@ -292,24 +299,24 @@ describe("Hulp bij invoeren", () => {
 		});
 
 		it("replaces the logged entries in the same write when continuing", async () => {
-			const { app, session } = await logOnce();
-			await testRouter.push(
-				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
-			);
+			const app = await logOnce();
+			const [first] = sent(app, "createBatch");
+			await continueFromDiary(app);
 			await logWhenReady();
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 			expect(sent(app, "createBatch")[1]?.replaces).toEqual(
-				session.entryIds.map((id) => ({ kind: "clientEntryId", id })),
+				first?.entries.map((entry) => ({
+					kind: "clientEntryId",
+					id: entry.clientEntryId,
+				})),
 			);
 			expect(sent(app, "removeBatch")).toHaveLength(0);
 		});
 
 		it("says the meal is as it was when replacing it fails", async () => {
-			const { app, session } = await logOnce();
+			const app = await logOnce();
 			refuse(app, "createBatch");
-			await testRouter.push(
-				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
-			);
+			await continueFromDiary(app);
 			await logWhenReady();
 			expect(
 				await screen.findByText(
@@ -320,7 +327,7 @@ describe("Hulp bij invoeren", () => {
 		});
 
 		it("offers undo again when it fails", async () => {
-			const { app } = await logOnce();
+			const app = await logOnce();
 			refuse(app, "removeBatch");
 			// A toast's action only takes taps once it has been on screen a moment.
 			const armed = () =>
@@ -334,11 +341,9 @@ describe("Hulp bij invoeren", () => {
 			await waitFor(() => expect(sent(app, "removeBatch")).toHaveLength(2));
 		});
 
-		it("keeps the ids of the restored entries when undo is retried", async () => {
-			const { app, session } = await logOnce();
-			await testRouter.push(
-				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
-			);
+		it("keeps the restored meal continuable when undo is retried", async () => {
+			const app = await logOnce();
+			await continueFromDiary(app);
 			await logWhenReady();
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 			refuse(app, "createBatch");
@@ -358,30 +363,39 @@ describe("Hulp bij invoeren", () => {
 					operation.entries.map((entry) => entry.clientEntryId),
 				);
 			expect(retried).toEqual(refused);
-			await waitFor(() =>
-				expect(aiSessionForText("test-user", "log me")?.entryIds).toEqual(
-					retried,
+			// The fixture server does not push, so the diary is read afresh by
+			// leaving the day and coming back to it.
+			await fireEvent.press(
+				screen.getByLabelText(
+					formatLongDate(shiftIsoDate(todayIsoDate(), -1), "en"),
 				),
 			);
-			const restored = aiSessionForText("test-user", "log me");
-			expect(restored?.entries.map((entry) => entry.clientEntryId)).toEqual(
-				retried,
+			await fireEvent.press(
+				await screen.findByLabelText(formatLongDate(todayIsoDate(), "en")),
 			);
+			// The meal that came back is the one the help remembers.
+			await continueFromDiary(app);
 		});
 
 		it("does not replace a meal that was edited since", async () => {
-			const { app, session } = await logOnce();
-			const stale = {
-				...session,
-				id: "stale-session",
-				entries: session.entries.map((entry) => ({
-					...entry,
-					amount: entry.amount + 5,
-				})),
-			};
-			saveAiSession("test-user", stale);
+			const app = await logOnce();
+			// A link to continuing, taken before the meal was edited.
+			await continueFromDiary(app);
+			const continuing = app.getSearchParams().resume;
+			await testRouter.back();
+			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+
+			await fireEvent.press(await screen.findByLabelText(LOGGED_ENTRY));
+			await fireEvent.changeText(await screen.findByLabelText("Quantity"), "2");
+			await fireEvent.press(screen.getByLabelText("Save changes"));
+			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
+
+			await fireEvent.press(await screen.findByLabelText(LOGGED_ENTRY));
+			await screen.findByLabelText("Quantity");
+			expect(screen.queryByLabelText("Continue with help")).toBeNull();
+
 			await testRouter.push(
-				"/nutrition-assistance?meal=lunch&resume=stale-session",
+				`/nutrition-assistance?meal=lunch&resume=${continuing}`,
 			);
 			await logWhenReady();
 			expect(sent(app, "createBatch")).toHaveLength(1);

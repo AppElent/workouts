@@ -69,7 +69,6 @@ function showDiary(
 				effectiveFrom: (args as { date?: string } | undefined)?.date,
 			};
 		}
-		if (name === "nutritionGoals:list") return [];
 		return [];
 	});
 }

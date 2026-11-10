@@ -40,7 +40,6 @@ const loggedEntry = {
 
 function mockDayWithLoggedEntry() {
 	mockUseQuery.mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [loggedEntry], totals: {} };
@@ -142,7 +141,6 @@ describe("editing a diary entry", () => {
 
 	it("keeps a deleted Personal Measure snapshot available as history", async () => {
 		mockUseQuery.mockImplementation((reference, _args?) => {
-			if (getFunctionName(reference) === "nutritionGoals:list") return [];
 			if (getFunctionName(reference) === "nutritionGoals:forDate")
 				return { goals: [], basis: "reference", effectiveFrom: null };
 			return {

@@ -351,7 +351,6 @@ describe("the nutrition day", () => {
 		};
 		mockUseQuery.mockImplementation((reference, _args?) => {
 			const name = getFunctionName(reference);
-			if (name === "nutritionGoals:list") return goals;
 			if (name === "nutritionGoals:forDate") return history;
 			return { entries: [], totals: {} };
 		});
@@ -391,7 +390,6 @@ describe("the nutrition day", () => {
 		};
 		mockUseQuery.mockImplementation((reference, _args?) => {
 			const name = getFunctionName(reference);
-			if (name === "nutritionGoals:list") return [...goals];
 			if (name === "nutritionGoals:forDate") return history;
 			return { entries: [], totals: {} };
 		});

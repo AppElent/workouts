@@ -44,7 +44,6 @@ function noCachedDay() {
 /** A day that was already downloaded before the connection dropped. */
 function cachedDay() {
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return {

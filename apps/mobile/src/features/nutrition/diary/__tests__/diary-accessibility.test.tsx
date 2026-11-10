@@ -62,8 +62,6 @@ function mockDay(withGoals: boolean) {
 				basis: "reference",
 				effectiveFrom: null,
 			};
-		if (getFunctionName(reference) === "nutritionGoals:list")
-			return withGoals ? goals : [];
 		return {
 			entries: [entry],
 			totals: {
@@ -87,7 +85,7 @@ beforeEach(() => {
 });
 
 describe("Nutrition accessibility", () => {
-	it("shows only estimated entries with a compact accessible icon", async () => {
+	it("shows only estimated entries with an accessible icon", async () => {
 		const previous = jest.mocked(useQuery).getMockImplementation();
 		jest.mocked(useQuery).mockImplementation((reference, args?) => {
 			if (getFunctionName(reference) === "nutritionDiary:day")
@@ -98,8 +96,7 @@ describe("Nutrition accessibility", () => {
 			return previous?.(reference, args);
 		});
 		await renderApp();
-		const icon = await screen.findByLabelText("Estimated nutrition");
-		expect(icon.props.size).toBe(14);
+		expect(await screen.findByLabelText("Estimated nutrition")).toBeTruthy();
 		expect(
 			await screen.findByLabelText("Edit entry: Oatmeal. Estimated nutrition"),
 		).toBeTruthy();

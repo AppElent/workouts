@@ -64,7 +64,6 @@ const loggedEntry = {
 beforeEach(() => {
 	jest.clearAllMocks();
 	jest.mocked(useQuery).mockImplementation((reference, args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		if (getFunctionName(reference) === "nutritionReview:week") {

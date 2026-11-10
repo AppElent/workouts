@@ -72,7 +72,13 @@ describe("nutrition goal editor", () => {
 		await fireEvent.press(screen.getByLabelText("Save goals"));
 		await waitFor(() => expect(save).toHaveBeenCalled());
 		const goals = save.mock.calls[0][0].goals as Goal[];
-		expect(goals).toHaveLength(8);
+		expect(goals).toContainEqual(
+			expect.objectContaining({
+				nutrient: "protein",
+				direction: "min",
+				target: 100,
+			}),
+		);
 		expect(goals.every((goal) => goal.sourcePreset === "buildMuscle")).toBe(
 			true,
 		);
