@@ -18,7 +18,13 @@ describe("Foundry environment manifest", () => {
 			"ENVIRONMENTS",
 			"ENV_CONFIG",
 		]);
-		expect(ENVIRONMENTS).toEqual(["local", "dev", "preview", "production"]);
+		expect(ENVIRONMENTS).toEqual([
+			"local",
+			"dev",
+			"preview",
+			"staging",
+			"production",
+		]);
 		expect(ENV_CONFIG.source.environments).toMatchObject(STANDARD_SOURCE);
 		expect(ENV_CONFIG.routes).toBeUndefined();
 		expect(
@@ -49,7 +55,7 @@ describe("Foundry environment manifest", () => {
 	});
 
 	it("never lands a deployed environment in a local file", () => {
-		for (const environment of ["dev", "preview", "production"])
+		for (const environment of ["dev", "preview", "staging", "production"])
 			for (const placement of placements(environment))
 				expect(placement.destination.kind).not.toBe("file");
 	});
@@ -97,15 +103,27 @@ describe("Foundry environment manifest", () => {
 					(placement) =>
 						`${placement.consumer} ${placement.entry.infisicalKey}`,
 				);
+		// Infisical staging (preview) holds dev Clerk values; prod (staging) live ones.
 		expect(clerk("preview")).toEqual([
-			"expo-build clerk-publishable-key",
-			"vite-build pr-clerk-publishable-key",
-			"convex-functions pr-clerk-jwt-issuer-domain",
+			"vite-build clerk-publishable-key",
+			"convex-functions clerk-jwt-issuer-domain",
 		]);
-		for (const environment of ["local", "dev", "production"])
-			expect(clerk(environment)).not.toContainEqual(
-				expect.stringContaining("pr-clerk"),
-			);
+		expect(clerk("staging")).toEqual(["expo-build clerk-publishable-key"]);
+	});
+
+	it("lands only the installed preview app in staging", () => {
+		const staging = placements("staging");
+		expect(staging.length).toBeGreaterThan(0);
+		for (const placement of staging)
+			expect(placement.destination).toEqual({
+				kind: "eas",
+				environment: "preview",
+			});
+		expect(
+			placements("preview").some(
+				(placement) => placement.destination.kind === "eas",
+			),
+		).toBe(false);
 	});
 
 	it("gives deploy:production an explicit Convex target", () => {
@@ -134,7 +152,7 @@ describe("Foundry environment manifest", () => {
 	it("lands test-user values only in local and dev", () => {
 		for (const key of ["testUserEmail", "testUserPassword"]) {
 			expect(byKey(key)).toMatchObject({ optional: true, secret: false });
-			for (const environment of ["preview", "production"])
+			for (const environment of ["preview", "staging", "production"])
 				expect(
 					placements(environment).some(
 						(placement) => placement.entry.key === key,
@@ -161,7 +179,8 @@ describe("Foundry environment manifest", () => {
 			"appleSignInKeyId",
 			"appleSignInPrivateKey",
 		];
-		for (const environment of ENVIRONMENTS) {
+		// Every environment with a backend; staging is only the installed app.
+		for (const environment of ENVIRONMENTS.filter((name) => name !== "staging")) {
 			const selected = placements(environment).filter((placement) =>
 				keys.includes(placement.entry.key),
 			);

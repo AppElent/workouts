@@ -13,7 +13,7 @@ describe("local EAS builds", () => {
 	});
 
 	it("maps source keys to build variable names and reports gaps", () => {
-		const placements = secretEasPlacements(manifest, "preview");
+		const placements = secretEasPlacements(manifest, "staging");
 		expect(secretEnv(placements, { "sentry-auth-token": "token" })).toEqual({
 			env: { SENTRY_AUTH_TOKEN: "token" },
 			missing: [],

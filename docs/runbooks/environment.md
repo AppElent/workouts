@@ -17,18 +17,21 @@ its Infisical key, and which consumer reads it in which environment. The
 | --- | --- | --- | --- | --- | --- | --- |
 | `local` | Your machine and every worktree | `dev` | `colorless-sturgeon-704` | — | — | `development` |
 | `dev` | Shared deployed development backend | `dev` | `colorless-sturgeon-704` | `foundry-dev` | Environment `dev` | `development` |
-| `preview` | PR previews and the installed preview app | `staging` | per-PR preview | `foundry-pr-<n>` | repository, `PREVIEW_<name>` | `preview` |
+| `preview` | Short-lived web PR previews | `staging` | per-PR preview | `foundry-pr-<n>` | repository, `PREVIEW_<name>` | — |
+| `staging` | The installed preview app only (no staging web) | `prod` | — | — | — | `preview` |
 | `production` | Production | `prod` | `fine-akita-444` | `foundry` | Environment `production` | `production` |
 
-Auth follows lifetime. `local`, `dev`, and web PR previews use the Clerk development
-instance; the installed EAS preview app and `production` use production. Web previews
-read `pr-clerk-publishable-key` and `pr-clerk-jwt-issuer-domain` from Infisical
-`staging`: secret references to the `dev` values, landing only on the preview web
-build and the per-PR Convex backend.
+Auth follows the Infisical tier. `local`, `dev`, and web PR previews use the Clerk
+development instance: Infisical `staging` holds `clerk-publishable-key` and
+`clerk-jwt-issuer-domain` as secret references to the `dev` values. The installed EAS
+preview app and `production` read Infisical `prod` and use the production instance.
 
-There is no Foundry staging environment. Infisical folders are read in the order
-`/`, then `/foundry`; a value in the app folder wins. `.infisical.json` holds only
-the project reference.
+Foundry's `staging` environment is the installed preview app: only `expo-build` and
+`eas-tooling` land there, in EAS `preview`. There is no staging web or backend, so
+web, Worker, workflow, and Convex landings never list it.
+
+Infisical folders are read in the order `/`, then `/foundry`; a value in the app
+folder wins. `.infisical.json` holds only the project reference.
 
 ## Commands
 
@@ -45,6 +48,7 @@ Provider reads and writes show names and destinations only. Plan before applying
 pnpm env:plan <environment>          # preview: add --pr <n> for the Worker
 pnpm env:apply local --only file     # .env.local and apps/mobile/.env.local
 pnpm env:apply preview --only github # repository PREVIEW_<name> values
+pnpm env:apply staging --only eas    # EAS preview: the installed preview app
 ```
 
 New worktrees get local files from `node scripts/workspace.mjs prepare`
@@ -59,7 +63,7 @@ one command without writing them:
 ```sh
 pnpm deploy:dev          # exec dev: convex dev --once, CLOUDFLARE_ENV=dev build, wrangler deploy
 pnpm deploy:production   # exec production: convex deploy, build, wrangler deploy
-pnpm mobile:update:preview
+pnpm mobile:update:preview   # exec staging: preview channel, EAS preview values
 ```
 
 `deploy:dev` pushes Convex functions to the deployment in `.env.local`

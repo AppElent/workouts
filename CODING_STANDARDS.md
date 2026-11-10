@@ -72,7 +72,7 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 | Auth | Web: app-owned `src/lib/auth` + `@clerk/react`; mobile: `@clerk/expo` (both Clerk Core 3). Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
 | Localization | App-owned runtime in `src/lib/i18n/runtime` (mobile copies `core.ts`); messages stay app-owned. |
 | CLI | `cli/index.ts` wraps the app-owned `cli/runtime` and owns domain commands. |
-| Environments | `pnpm env:*` runs `scripts/env.mjs` with the shared routing; environments are `local`, `dev`, `preview`, and `production` (no staging). See [environment](docs/runbooks/environment.md). |
+| Environments | `pnpm env:*` runs `scripts/env.mjs` with the shared routing; environments are `local`, `dev`, `preview`, `staging`, and `production`; `staging` is only the installed preview app (EAS `preview`), with no staging web. See [environment](docs/runbooks/environment.md). |
 | Worktrees | The editor hook runs `node scripts/workspace.mjs prepare --editor <host>` with `backend.mode: "none"` in `appelent.json`. See [worktree setup](docs/runbooks/worktree-setup.md). |
 | Test login | `local` and `dev` builds embed the public development-instance test-account variables; preview and production never receive them. |
 | Convex query caching | Mobile: `retention` flavor in `apps/mobile/src/convex/query-cache.tsx`, 5 min expiration, 20 idle entries; no disk cache (`last-known` not adopted). Web: not adopted. |

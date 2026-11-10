@@ -18,9 +18,18 @@ export const ENV_CONFIG = {
 	github: { repository: "AppElent/workouts" },
 };
 
-export const ENVIRONMENTS = ["local", "dev", "preview", "production"] as const;
+// "staging" is only the installed preview app (EAS preview, Infisical prod):
+// Foundry has no staging web, so web and backend landings never list it.
+export const ENVIRONMENTS = [
+	"local",
+	"dev",
+	"preview",
+	"staging",
+	"production",
+] as const;
 
-const ALL = ["local", "dev", "preview", "production"];
+const WEB = ["local", "dev", "preview", "production"];
+const APP = ["local", "dev", "staging", "production"];
 const DEV_ONLY = ["local", "dev"];
 
 export const ENTRIES = [
@@ -32,8 +41,8 @@ export const ENTRIES = [
 		optional: true,
 		secret: false,
 		lands: {
-			"vite-build": { name: "VITE_SENTRY_DSN", environments: ALL },
-			"expo-build": { name: "EXPO_PUBLIC_SENTRY_DSN", environments: ALL },
+			"vite-build": { name: "VITE_SENTRY_DSN", environments: WEB },
+			"expo-build": { name: "EXPO_PUBLIC_SENTRY_DSN", environments: APP },
 			"expo-local": { name: "EXPO_PUBLIC_SENTRY_DSN", environments: ["local"] },
 		},
 	},
@@ -49,22 +58,22 @@ export const ENTRIES = [
 				name: "SENTRY_AUTH_TOKEN",
 				environments: ["preview", "production"],
 			},
-			"eas-tooling": { name: "SENTRY_AUTH_TOKEN", environments: ALL },
+			"eas-tooling": { name: "SENTRY_AUTH_TOKEN", environments: APP },
 		},
 	},
 	{
 		key: "clerkPublishableKey",
 		infisicalKey: "clerk-publishable-key",
-		description: "pk_test_ in dev, pk_live_ in staging and prod",
+		description: "pk_test_ in Infisical dev and staging, pk_live_ in prod",
 		secret: false,
 		lands: {
 			"vite-build": {
 				name: "VITE_CLERK_PUBLISHABLE_KEY",
-				environments: ["local", "dev", "production"],
+				environments: WEB,
 			},
 			"expo-build": {
 				name: "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
-				environments: ALL,
+				environments: APP,
 			},
 			"expo-local": {
 				name: "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
@@ -80,32 +89,7 @@ export const ENTRIES = [
 		lands: {
 			"convex-functions": {
 				name: "CLERK_JWT_ISSUER_DOMAIN",
-				environments: ["local", "dev", "production"],
-			},
-		},
-	},
-	{
-		key: "prClerkPublishableKey",
-		infisicalKey: "pr-clerk-publishable-key",
-		description:
-			"Reference to the dev pk_test_ key: web PR previews are short-lived",
-		secret: false,
-		lands: {
-			"vite-build": {
-				name: "VITE_CLERK_PUBLISHABLE_KEY",
-				environments: ["preview"],
-			},
-		},
-	},
-	{
-		key: "prClerkJwtIssuerDomain",
-		infisicalKey: "pr-clerk-jwt-issuer-domain",
-		description: "Reference to the dev issuer the per-PR backend trusts",
-		secret: false,
-		lands: {
-			"convex-functions": {
-				name: "CLERK_JWT_ISSUER_DOMAIN",
-				environments: ["preview"],
+				environments: WEB,
 			},
 		},
 	},
@@ -115,7 +99,7 @@ export const ENTRIES = [
 		description: "Anthropic API key for nutrition AI help (Convex actions only)",
 		secret: true,
 		lands: {
-			"convex-functions": { name: "ANTHROPIC_API_KEY", environments: ALL },
+			"convex-functions": { name: "ANTHROPIC_API_KEY", environments: WEB },
 		},
 	},
 	{
@@ -124,7 +108,7 @@ export const ENTRIES = [
 		description: "Apple Developer team ID; signs the Sign in with Apple client secret",
 		secret: true,
 		lands: {
-			"convex-functions": { name: "APPLE_TEAM_ID", environments: ALL },
+			"convex-functions": { name: "APPLE_TEAM_ID", environments: WEB },
 		},
 	},
 	{
@@ -133,7 +117,7 @@ export const ENTRIES = [
 		description: "Key ID of the Sign in with Apple private key",
 		secret: true,
 		lands: {
-			"convex-functions": { name: "APPLE_SIGN_IN_KEY_ID", environments: ALL },
+			"convex-functions": { name: "APPLE_SIGN_IN_KEY_ID", environments: WEB },
 		},
 	},
 	{
@@ -145,7 +129,7 @@ export const ENTRIES = [
 		lands: {
 			"convex-functions": {
 				name: "APPLE_SIGN_IN_PRIVATE_KEY",
-				environments: ALL,
+				environments: WEB,
 			},
 		},
 	},
@@ -157,10 +141,10 @@ export const ENTRIES = [
 		lands: {
 			"vite-build": {
 				name: "VITE_CONVEX_URL",
-				environments: ALL,
+				environments: WEB,
 				suppliedIn: { preview: "convex deploy" },
 			},
-			"expo-build": { name: "EXPO_PUBLIC_CONVEX_URL", environments: ALL },
+			"expo-build": { name: "EXPO_PUBLIC_CONVEX_URL", environments: APP },
 			"expo-local": { name: "EXPO_PUBLIC_CONVEX_URL", environments: ["local"] },
 		},
 	},
