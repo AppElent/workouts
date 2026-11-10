@@ -8,8 +8,14 @@ function render(ui: ReactElement) {
 	return renderUi(<LocaleProvider initialLocale="en">{ui}</LocaleProvider>);
 }
 
-vi.mock("#/lib/exercises", () => ({
-	useExercises: vi.fn(() => []),
+vi.mock("convex/react", () => ({
+	usePaginatedQuery: () => ({
+		results: [],
+		status: "Exhausted",
+		isLoading: false,
+		loadMore: () => {},
+	}),
+	useQuery: () => undefined,
 }));
 
 const mockRoutine = {

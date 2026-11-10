@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import { LIBRARY_GET_MANY_LIMIT, LIBRARY_SCHEMA_VERSION } from "@foundry/core";
 import type { FunctionArgs } from "convex/server";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
@@ -156,13 +157,19 @@ describe("nutrition library account backup operations", () => {
 		).rejects.toMatchObject({ data: { code: "tooLong", field: "query" } });
 		await expect(
 			alice.query(api.nutritionLibrary.getMany, {
-				ids: Array.from({ length: 101 }, (_, i) => `food-${i}`),
+				ids: Array.from(
+					{ length: LIBRARY_GET_MANY_LIMIT + 1 },
+					(_, i) => `food-${i}`,
+				),
 			}),
 		).rejects.toMatchObject({ data: { code: "tooLarge", field: "ids" } });
 		await expect(
 			alice.query(api.nutritionLibrary.getMany, {
 				ids: [],
-				forkIds: Array.from({ length: 101 }, (_, i) => `food-${i}`),
+				forkIds: Array.from(
+					{ length: LIBRARY_GET_MANY_LIMIT + 1 },
+					(_, i) => `food-${i}`,
+				),
 			}),
 		).rejects.toMatchObject({ data: { code: "tooLarge", field: "forkIds" } });
 		await expect(
@@ -194,7 +201,10 @@ describe("nutrition library account backup operations", () => {
 			api.nutritionLibrary.save,
 			upsert("edit-legacy", "legacy", 1, food("legacy", "Edited")),
 		);
-		expect(next.record).toMatchObject({ schemaVersion: 3, revision: 2 });
+		expect(next.record).toMatchObject({
+			schemaVersion: LIBRARY_SCHEMA_VERSION,
+			revision: 2,
+		});
 	});
 
 	it("online edits use server acceptance order and cannot resurrect deleted records", async () => {

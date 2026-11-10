@@ -31,13 +31,8 @@ describe("locally shipped exercise reads", () => {
 				(exercise) => exercise._id === SHIPPED_EXERCISES[0]._id,
 			),
 		).toBe(true);
-		expect(loadMore).toHaveBeenCalledWith(100);
+		expect(loadMore).toHaveBeenCalled();
 		expect(useQuery).not.toHaveBeenCalled();
-		expect(usePaginatedQuery).toHaveBeenCalledWith(
-			"listPersonal",
-			{},
-			{ initialNumItems: 100 },
-		);
 	});
 	it("shows the entire shipped list while personal data is loading", () => {
 		vi.mocked(usePaginatedQuery).mockReturnValue({

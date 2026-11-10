@@ -1,12 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import { vi } from "vitest";
+import { ToastHost } from "#/components/ui/toast";
 import { LocaleProvider } from "#/lib/i18n";
 import { ReportProblem } from "./ReportProblem";
 
 const mocks = vi.hoisted(() => ({
 	send: vi.fn(),
-	error: vi.fn(),
-	success: vi.fn(),
 	enabled: true,
 }));
 vi.mock("@sentry/react", () => ({
@@ -16,9 +21,6 @@ vi.mock("@sentry/react", () => ({
 vi.mock("@tanstack/react-router", () => ({
 	useRouter: () => ({ state: { matches: [{ routeId: "/log/$sessionId" }] } }),
 }));
-vi.mock("#/components/ui/toast", () => ({
-	useToast: () => ({ error: mocks.error, success: mocks.success }),
-}));
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -26,10 +28,16 @@ beforeEach(() => {
 	mocks.send.mockResolvedValue("feedback-id");
 });
 
+const notifications = () =>
+	within(screen.getByRole("region", { name: "Notifications" }));
+const ERROR = "Could not send your report. Please try again.";
+
 function setup() {
 	render(
 		<LocaleProvider initialLocale="en">
-			<ReportProblem />
+			<ToastHost>
+				<ReportProblem />
+			</ToastHost>
 		</LocaleProvider>,
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
@@ -57,7 +65,7 @@ it("keeps the draft when submission fails", async () => {
 	mocks.send.mockRejectedValue(new Error("Network failure"));
 	setup();
 	fireEvent.click(screen.getByRole("button", { name: "Send report" }));
-	await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+	expect(await notifications().findByText(ERROR)).toBeTruthy();
 	expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe(
 		"Save did not work",
 	);
@@ -68,7 +76,7 @@ it("does not claim success when local reporting is disabled", async () => {
 	mocks.enabled = false;
 	setup();
 	fireEvent.click(screen.getByRole("button", { name: "Send report" }));
-	await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+	expect(await notifications().findByText(ERROR)).toBeTruthy();
 	expect(mocks.send).not.toHaveBeenCalled();
 });
 
