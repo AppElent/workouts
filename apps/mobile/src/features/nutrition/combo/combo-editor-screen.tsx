@@ -2,7 +2,6 @@ import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import { todayIsoDate } from "../../../data/calendar-day";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
@@ -10,6 +9,7 @@ import {
 import { comboSourceKey } from "../../../data/nutrition-shortcuts";
 import type { Combo } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";

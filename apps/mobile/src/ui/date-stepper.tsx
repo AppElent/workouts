@@ -5,7 +5,7 @@
  * accessible labels stay in one place instead of drifting apart.
  */
 import { Pressable, StyleSheet, View } from "react-native";
-import { formatLongDate, shiftIsoDate } from "../data/calendar-day";
+import { formatLongDate, shiftIsoDate } from "../dates/calendar-day";
 import { radius, spacing, useTokens } from "../theme";
 import { AppText } from "./text";
 

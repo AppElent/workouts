@@ -230,26 +230,6 @@ jest.mock("@expo/ui/swift-ui", () => {
 			{ Trigger: Container, Content: PopoverContent },
 		),
 		ContextMenu,
-		Gauge: ({
-			value,
-			max,
-			currentValueLabel,
-			modifiers,
-		}: {
-			value: number;
-			max?: number;
-			currentValueLabel?: React.ReactNode;
-			modifiers?: { type: string; args: unknown[] }[];
-		}) =>
-			React.createElement(
-				View,
-				{
-					testID: "swiftui-gauge",
-					accessibilityLabel: modifierArg(modifiers, "accessibilityLabel"),
-					accessibilityValue: { now: value, max },
-				},
-				currentValueLabel,
-			),
 		HStack: Stack,
 		List: Stack,
 		RoundedRectangle: Container,

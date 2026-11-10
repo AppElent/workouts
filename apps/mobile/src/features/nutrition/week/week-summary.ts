@@ -1,14 +1,14 @@
 import type { NutrientKey } from "@foundry/core";
 import {
-	type IsoDate,
-	isoDateToLocalDate,
-	shiftIsoDate,
-} from "../../../data/calendar-day";
-import {
 	evaluateNutrientGoal,
 	type WeeklyReviewDay,
 	weekStartMonday,
 } from "../../../data/nutrition-weekly-review";
+import {
+	type IsoDate,
+	isoDateToLocalDate,
+	shiftIsoDate,
+} from "../../../dates/calendar-day";
 
 /**
  * How one day did against the goal that applied on that day. Shape and

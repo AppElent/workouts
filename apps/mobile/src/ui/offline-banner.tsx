@@ -18,7 +18,7 @@
 import { useConvexConnectionState } from "convex/react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useStalledOffline } from "../data/stalled-offline";
+import { useStalledOffline } from "../convex/stalled-offline";
 import { useI18n } from "../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";

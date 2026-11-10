@@ -7,7 +7,7 @@ import {
 	activityWeek,
 	activityWeeks,
 } from "../data/activity-week";
-import { isoDateToLocalDate, shiftIsoDate } from "../data/calendar-day";
+import { isoDateToLocalDate, shiftIsoDate } from "../dates/calendar-day";
 import { useI18n } from "../i18n";
 import { GhostButton } from "../ui/button";
 import { BucketChart } from "../ui/chart";

@@ -1,6 +1,6 @@
-import type { IsoDate } from "../../../data/calendar-day";
 import { MEAL_SLOTS, useNutritionDay } from "../../../data/nutrition-day";
 import { weekDates } from "../../../data/nutrition-weekly-review";
+import type { IsoDate } from "../../../dates/calendar-day";
 
 type ReadyDay = Extract<
 	ReturnType<typeof useNutritionDay>,

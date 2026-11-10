@@ -3,7 +3,7 @@ import type { FunctionReturnType } from "convex/server";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { api } from "../../convex/api";
-import { todayIsoDate } from "../../data/calendar-day";
+import { todayIsoDate } from "../../dates/calendar-day";
 
 type Page = FunctionReturnType<typeof api.exportData.personalPage>;
 

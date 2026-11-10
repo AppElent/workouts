@@ -13,13 +13,13 @@ import {
 import { ActivityIndicator } from "react-native";
 import { api } from "../../convex/api";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
-import { todayIsoDate } from "../../data/calendar-day";
 import {
 	clearNutritionAccountCache,
 	retireLegacyNutritionData,
 } from "../../data/nutrition-account-cleanup";
 import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
 import { discardPersonalFoodSources } from "../../data/personal-food-session";
+import { todayIsoDate } from "../../dates/calendar-day";
 import { useI18n } from "../../i18n";
 import { PrimaryButton } from "../../ui/button";
 import { FormScreen, TextAction } from "../../ui/form";

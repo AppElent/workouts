@@ -23,12 +23,12 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import { type IsoDate, isoDateToLocalDate } from "../../../data/calendar-day";
 import {
 	type GoalKind,
 	goalKind,
 	referenceGoalTarget,
 } from "../../../data/nutrition-goal-history";
+import { type IsoDate, isoDateToLocalDate } from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";

@@ -19,12 +19,12 @@
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { OFFLINE_GRACE_MS } from "../../../../convex/stalled-offline";
 import {
 	formatLongDate as diaryDateLabel,
 	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-} from "../../../../data/calendar-day";
-import { OFFLINE_GRACE_MS } from "../../../../data/stalled-offline";
+} from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 function setConnected(isWebSocketConnected: boolean) {

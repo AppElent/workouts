@@ -2,9 +2,9 @@
 import { mealSlotAt } from "@foundry/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS } from "../../src/data/nutrition-day";
 import { usePersonalFoods } from "../../src/data/personal-foods";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { ComboLogScreen } from "../../src/features/nutrition/combo/combo-log-screen";
 
 export { ErrorBoundary } from "./nutrition-library";

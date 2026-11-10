@@ -14,12 +14,6 @@ import { Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import {
-	formatLongDate,
-	formatShortDate,
-	isoDateToLocalDate,
-	shiftIsoDate,
-} from "../../../data/calendar-day";
 import type {
 	DiaryEntry,
 	DiaryEntryWithMeal,
@@ -31,6 +25,12 @@ import {
 	snapshotFromDiaryEntry,
 	useNutritionOperations,
 } from "../../../data/nutrition-operation-service";
+import {
+	formatLongDate,
+	formatShortDate,
+	isoDateToLocalDate,
+	shiftIsoDate,
+} from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
 import { plural, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";

@@ -11,7 +11,7 @@ import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { type IsoDate, todayIsoDate } from "../../../data/calendar-day";
+import { useStalledOffline } from "../../../convex/stalled-offline";
 import {
 	draftFromGoals,
 	draftToGoals,
@@ -24,7 +24,7 @@ import {
 	withGoal,
 	withoutGoal,
 } from "../../../data/nutrition-goal-history";
-import { useStalledOffline } from "../../../data/stalled-offline";
+import { type IsoDate, todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import type { GoalVersionSummary } from "./goals-applies-from";

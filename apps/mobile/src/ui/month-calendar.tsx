@@ -6,7 +6,7 @@ import {
 	isoDateToLocalDate,
 	todayIsoDate,
 	toIsoDate,
-} from "../data/calendar-day";
+} from "../dates/calendar-day";
 import { useI18n } from "../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";

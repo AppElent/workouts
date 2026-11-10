@@ -11,7 +11,7 @@ import {
 	formatLongDate as diaryDateLabel,
 	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-} from "../../../../data/calendar-day";
+} from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 jest.mock("../../../../data/nutrition-day", () => {

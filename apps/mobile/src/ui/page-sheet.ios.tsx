@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { useAppearance, useTokens } from "../theme";
 
-export function FoodEditorSheet({
+export function PageSheet({
 	visible,
 	onClose,
 	onDismissed,

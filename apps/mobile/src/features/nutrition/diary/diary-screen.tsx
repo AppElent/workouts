@@ -3,7 +3,7 @@ import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import { formatLongDate, isoDayOffset } from "../../../data/calendar-day";
+import { useStalledOffline } from "../../../convex/stalled-offline";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import type { CaptureDraft } from "../../../data/nutrition-capture-draft";
 import {
@@ -17,8 +17,8 @@ import {
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
-import { useStalledOffline } from "../../../data/stalled-offline";
 import { useToday } from "../../../data/use-today";
+import { formatLongDate, isoDayOffset } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";

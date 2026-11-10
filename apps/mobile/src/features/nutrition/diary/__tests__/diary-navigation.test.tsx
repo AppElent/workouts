@@ -2,7 +2,7 @@ import {
 	formatLongDate as diaryDateLabel,
 	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-} from "../../../../data/calendar-day";
+} from "../../../../dates/calendar-day";
 /**
  * Nutrition's sub-screens are pushed routes, not conditional renders.
  *
@@ -28,12 +28,12 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { shiftIsoDate, todayIsoDate } from "../../../../data/calendar-day";
 import { mealForTime } from "../../../../data/nutrition-day";
 import {
 	weekDates,
 	weekStartMonday,
 } from "../../../../data/nutrition-weekly-review";
+import { shiftIsoDate, todayIsoDate } from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 const value = (amount: number) => ({ kind: "value" as const, amount });

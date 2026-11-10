@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { z } from "zod";
 import { api, type Id } from "../convex/api";
-import { isoDateToLocalDate, todayIsoDate } from "../data/calendar-day";
+import { isoDateToLocalDate, todayIsoDate } from "../dates/calendar-day";
 import { dateLocale, useI18n } from "../i18n";
 import { convexErrorMessage } from "../i18n/errors";
 import { en } from "../i18n/messages/en";

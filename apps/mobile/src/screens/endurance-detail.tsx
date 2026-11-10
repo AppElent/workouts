@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
-import { useStalledOffline } from "../data/stalled-offline";
+import { useStalledOffline } from "../convex/stalled-offline";
 import { dateLocale, useI18n } from "../i18n";
 import { convexErrorMessage } from "../i18n/errors";
 import { metrics, spacing, type Tokens, useThemedStyles } from "../theme";

@@ -17,7 +17,7 @@ import {
 	formatShortDate,
 	shiftIsoDate,
 	todayIsoDate,
-} from "../../../data/calendar-day";
+} from "../../../dates/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
 
 const mockUseQuery = jest.mocked(useQuery);

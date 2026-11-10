@@ -3,7 +3,7 @@ import {
 	isoDateToLocalDayRangeMs,
 	shiftIsoDate,
 	todayIsoDate,
-} from "./calendar-day";
+} from "../dates/calendar-day";
 import { weekStartMonday } from "./nutrition-weekly-review";
 
 export function activityWeek(date = todayIsoDate()) {

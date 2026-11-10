@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { DayGoalsScreen } from "../../src/features/nutrition/day-goals/day-goals-screen";
 
 export { ErrorBoundary } from "./nutrition-entry";

@@ -1,6 +1,6 @@
 import type { NutrientKey } from "@foundry/core";
-import { type IsoDate, isoDateToLocalDate } from "../../../data/calendar-day";
 import type { WeeklyGoal } from "../../../data/nutrition-weekly-review";
+import { type IsoDate, isoDateToLocalDate } from "../../../dates/calendar-day";
 import { fmt } from "../../../i18n";
 import type { weekReviewEn } from "../../../i18n/messages/week-review";
 

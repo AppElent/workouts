@@ -14,7 +14,7 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { todayIsoDate } from "../../../../data/calendar-day";
+import { todayIsoDate } from "../../../../dates/calendar-day";
 import {
 	PREFERENCE_KEYS,
 	writeLocal,

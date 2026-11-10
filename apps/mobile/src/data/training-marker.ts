@@ -18,7 +18,7 @@ import {
 	isoDateToLocalDayRangeMs,
 	isoDayOffset,
 	shiftIsoDate,
-} from "./calendar-day";
+} from "../dates/calendar-day";
 
 const NONE: ReadonlySet<IsoDate> = new Set();
 

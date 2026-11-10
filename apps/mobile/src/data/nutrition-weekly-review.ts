@@ -9,7 +9,7 @@ import {
 	shiftIsoDate,
 	todayIsoDate,
 	toIsoDate,
-} from "./calendar-day";
+} from "../dates/calendar-day";
 
 export type WeeklyReviewDay = {
 	readonly date: IsoDate;

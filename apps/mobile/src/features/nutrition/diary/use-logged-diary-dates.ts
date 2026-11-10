@@ -1,10 +1,10 @@
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { isoDayOffset, shiftIsoDate } from "../../../data/calendar-day";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
 } from "../../../data/nutrition-operation-service";
+import { isoDayOffset, shiftIsoDate } from "../../../dates/calendar-day";
 export function useLoggedDiaryDates(startDate: string, endDate: string) {
 	const remote = useQuery(api.nutritionDiary.loggedDates, {
 		startDate,

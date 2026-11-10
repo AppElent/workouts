@@ -1,6 +1,6 @@
 import type { Locale } from "@foundry/core";
 import { useState } from "react";
-import { isoDateToLocalDate, toIsoDate } from "../../../../data/calendar-day";
+import { isoDateToLocalDate, toIsoDate } from "../../../../dates/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
 export function DiaryCalendar({
