@@ -15,7 +15,7 @@
  * splash indefinitely. That belongs with the offline/availability work, not
  * with the shell.
  */
-import "../src/feedback/sentry";
+import "../src/observability/sentry";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import * as Sentry from "@sentry/react-native";
@@ -36,8 +36,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
-import { configureFeedbackLanguage } from "../src/feedback/sentry";
 import { LocaleProvider, useI18n } from "../src/i18n";
+import { configureFeedbackLanguage } from "../src/observability/sentry";
 import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();

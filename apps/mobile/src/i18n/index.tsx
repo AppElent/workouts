@@ -40,15 +40,12 @@ import {
 	readPreference,
 	writePreference,
 } from "../prefs/local-preference";
-import { en, type Messages } from "./messages/en";
-import { nl } from "./messages/nl";
+import { DICTIONARIES, type Messages } from "./dictionaries";
 
 export { fmt, plural } from "@foundry/core";
 export type { Messages };
 
 export { type Locale, SUPPORTED_LOCALES };
-
-const DICTIONARIES: Record<Locale, Messages> = { en, nl };
 
 /**
  * Locale-specific formatting lives here so screens never branch on the locale.

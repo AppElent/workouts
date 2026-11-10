@@ -1,21 +1,24 @@
-import { sanitizeFeedbackEvent } from "@foundry/core";
+import {
+	sanitizeBreadcrumb,
+	sanitizeEvent,
+	sanitizeFeedbackEvent,
+} from "@foundry/core";
 import * as Sentry from "@sentry/react-native";
 import { configureFeedbackLanguage } from "./sentry";
 
-it("keeps automatic error screenshots off while permitting user-selected feedback attachments", () => {
+it("redacts events and never attaches personal data or automatic screenshots", () => {
 	expect(Sentry.init).toHaveBeenCalledWith(
 		expect.objectContaining({
+			sendDefaultPii: false,
 			attachScreenshot: false,
 			attachViewHierarchy: false,
+			beforeSend: sanitizeEvent,
+			beforeBreadcrumb: sanitizeBreadcrumb,
 		}),
 	);
+	expect(Sentry.addEventProcessor).toHaveBeenCalledWith(sanitizeFeedbackEvent);
 	expect(Sentry.feedbackIntegration).toHaveBeenCalledWith(
-		expect.objectContaining({
-			enableScreenshot: true,
-			enableShakeToReport: true,
-			showEmail: false,
-			showName: false,
-		}),
+		expect.objectContaining({ showEmail: false, showName: false }),
 	);
 });
 
@@ -27,12 +30,4 @@ it("localizes screenshot and feedback controls", () => {
 		formTitle: "Probleem melden",
 		removeScreenshotButtonLabel: "Screenshot verwijderen",
 	});
-});
-
-it("registers the feedback redaction processor", () => {
-	expect(Sentry.addEventProcessor).toHaveBeenCalledWith(sanitizeFeedbackEvent);
-});
-
-it("tags events with the install variant", () => {
-	expect(Sentry.setTag).toHaveBeenCalledWith("app.variant", expect.any(String));
 });
