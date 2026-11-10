@@ -59,7 +59,7 @@ export function RoutineCard({ routine }: Props) {
 					<button
 						type="button"
 						onClick={() => void removeRoutine({ id: routine._id })}
-						className="p-1.5 text-[var(--text-muted)] hover:text-red-400 transition-colors"
+						className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
 						aria-label="Delete routine"
 					>
 						<Trash2 size={14} />

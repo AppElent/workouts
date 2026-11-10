@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/react";
 import { isLocale, SUPPORTED_LOCALES } from "@foundry/core";
 import { useEffect } from "react";
+import { reportError } from "#/lib/observability/errors";
 import { hasExplicitLocaleChoice, useI18n } from "./index";
 
 /**
@@ -23,9 +24,11 @@ export function LanguageSync() {
 			setLocale(savedLocale);
 			return;
 		}
-		user.updateMetadata({ unsafeMetadata: { language: locale } }).catch(() => {
-			// Best-effort mirror; the cookie already holds the choice locally.
-		});
+		// The cookie already holds the choice locally; a failed mirror only
+		// costs the cross-device copy.
+		user
+			.updateMetadata({ unsafeMetadata: { language: locale } })
+			.catch((error) => reportError(error, "mirrorLocale"));
 	}, [userId, locale, setLocale]);
 
 	return null;

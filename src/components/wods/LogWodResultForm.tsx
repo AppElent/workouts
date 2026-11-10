@@ -3,7 +3,10 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import { RX_SCALED, type RxScaled } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { Stepper } from "#/components/ui/Stepper";
+import {
+	useWodScoreDraft,
+	WodScoreFields,
+} from "#/components/wods/WodScoreFields";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import { wodScoreFromForm } from "#/lib/wodScore";
 
@@ -18,25 +21,14 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 	const log = useMutation(api.wodResults.log);
 
 	const [rxScaled, setRxScaled] = useState<RxScaled>("rx");
-	const [minutes, setMinutes] = useState(5);
-	const [seconds, setSeconds] = useState(0);
-	const [timeCapped, setTimeCapped] = useState(false);
-	const [rounds, setRounds] = useState(1);
-	const [reps, setReps] = useState(0);
-	const [load, setLoad] = useState(0);
+	const score = useWodScoreDraft();
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		const built = wodScoreFromForm(type, {
-			timeSeconds: minutes * 60 + seconds,
-			timeCapped,
-			rounds,
-			reps,
-			load,
-		});
+		const built = wodScoreFromForm(type, score.fields);
 		if (!built.ok) {
 			setError(built.message);
 			return;
@@ -67,87 +59,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 		>
 			<h2 className="text-sm font-semibold text-white">Log Result</h2>
 
-			{type === "forTime" && (
-				<>
-					<label className="flex items-center gap-2 text-sm text-white">
-						<input
-							type="checkbox"
-							checked={timeCapped}
-							onChange={(e) => setTimeCapped(e.target.checked)}
-						/>
-						Hit the time cap (didn't finish)
-					</label>
-					{timeCapped ? (
-						<Stepper
-							value={reps}
-							onChange={setReps}
-							min={0}
-							step={1}
-							label="Reps"
-						/>
-					) : (
-						<div className="flex gap-2">
-							<Stepper
-								value={minutes}
-								onChange={setMinutes}
-								min={0}
-								step={1}
-								unit="min"
-								label="Min"
-							/>
-							<Stepper
-								value={seconds}
-								onChange={setSeconds}
-								min={0}
-								max={59}
-								step={1}
-								unit="sec"
-								label="Sec"
-							/>
-						</div>
-					)}
-				</>
-			)}
-
-			{type === "amrap" && (
-				<>
-					<Stepper
-						value={rounds}
-						onChange={setRounds}
-						min={0}
-						step={1}
-						label="Rounds"
-					/>
-					<Stepper
-						value={reps}
-						onChange={setReps}
-						min={0}
-						step={1}
-						label="Reps"
-					/>
-				</>
-			)}
-
-			{type === "emom" && (
-				<Stepper
-					value={reps}
-					onChange={setReps}
-					min={0}
-					step={1}
-					label="Reps"
-				/>
-			)}
-
-			{type === "load" && (
-				<Stepper
-					value={load}
-					onChange={setLoad}
-					min={0}
-					step={2.5}
-					unit="kg"
-					label="Load"
-				/>
-			)}
+			<WodScoreFields type={type} draft={score.draft} onChange={score.update} />
 
 			<div className="flex gap-2">
 				{RX_SCALED.map((v) => (
@@ -182,7 +94,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			>
 				Log Result
 			</button>
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 		</form>
 	);
 }

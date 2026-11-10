@@ -72,7 +72,11 @@ function ExerciseDetailPage() {
 		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
 	}
 	if (exercise === null) {
-		return <div className="p-6 text-red-400 text-sm">Exercise not found.</div>;
+		return (
+			<div className="p-6 text-[var(--danger)] text-sm">
+				Exercise not found.
+			</div>
+		);
 	}
 
 	const ormChartData = [...ormHistory]
@@ -134,7 +138,7 @@ function ExerciseDetailPage() {
 					{exercise.muscleGroups.map((mg) => (
 						<span
 							key={mg}
-							className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[var(--accent-dim)] text-[var(--accent)] border border-[rgba(29,185,84,0.2)] capitalize"
+							className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/20 capitalize"
 						>
 							{mg}
 						</span>
@@ -230,12 +234,12 @@ function ExerciseDetailPage() {
 									/>
 									<XAxis
 										dataKey="date"
-										tick={{ fill: "#b3b3b3", fontSize: 11 }}
+										tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 										axisLine={false}
 										tickLine={false}
 									/>
 									<YAxis
-										tick={{ fill: "#b3b3b3", fontSize: 11 }}
+										tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 										unit="kg"
 										axisLine={false}
 										tickLine={false}
@@ -264,10 +268,10 @@ function ExerciseDetailPage() {
 									<Line
 										type="monotone"
 										dataKey="value"
-										stroke="#1DB954"
+										stroke="var(--accent)"
 										strokeWidth={2}
-										dot={{ fill: "#1DB954", r: 4, strokeWidth: 0 }}
-										activeDot={{ r: 6, fill: "#1ed760" }}
+										dot={{ fill: "var(--accent)", r: 4, strokeWidth: 0 }}
+										activeDot={{ r: 6, fill: "var(--accent-hover)" }}
 									/>
 								</LineChart>
 							</ResponsiveContainer>
@@ -294,12 +298,12 @@ function ExerciseDetailPage() {
 									/>
 									<XAxis
 										dataKey="label"
-										tick={{ fill: "#b3b3b3", fontSize: 11 }}
+										tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 										axisLine={false}
 										tickLine={false}
 									/>
 									<YAxis
-										tick={{ fill: "#b3b3b3", fontSize: 11 }}
+										tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 										unit={unit}
 										axisLine={false}
 										tickLine={false}
@@ -318,7 +322,7 @@ function ExerciseDetailPage() {
 									<Legend
 										wrapperStyle={{
 											fontSize: 11,
-											color: "#b3b3b3",
+											color: "var(--text-muted)",
 											paddingTop: 8,
 										}}
 									/>
@@ -326,20 +330,20 @@ function ExerciseDetailPage() {
 										type="monotone"
 										dataKey="maxWeight"
 										name="Max weight logged"
-										stroke="#1DB954"
+										stroke="var(--accent)"
 										strokeWidth={2}
-										dot={{ fill: "#1DB954", r: 4, strokeWidth: 0 }}
-										activeDot={{ r: 6, fill: "#1ed760" }}
+										dot={{ fill: "var(--accent)", r: 4, strokeWidth: 0 }}
+										activeDot={{ r: 6, fill: "var(--accent-hover)" }}
 										connectNulls={false}
 									/>
 									<Line
 										type="monotone"
 										dataKey="theoretical1RM"
 										name="Theoretical 1RM"
-										stroke="#b3b3b3"
+										stroke="var(--text-muted)"
 										strokeWidth={2}
 										strokeDasharray="4 2"
-										dot={{ fill: "#b3b3b3", r: 3, strokeWidth: 0 }}
+										dot={{ fill: "var(--text-muted)", r: 3, strokeWidth: 0 }}
 										activeDot={{ r: 5 }}
 										connectNulls={false}
 									/>

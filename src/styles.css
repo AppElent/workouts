@@ -19,38 +19,11 @@
   --danger:        #f87171;
   --danger-soft:   rgba(248,113,113,0.12);
   --success:       #4ade80;
-  --success-soft:  rgba(74,222,128,0.10);
   --warn:          #fbbf24;
-
-  /* Corner radii */
-  --r-xs:   4px;
-  --r-sm:   6px;
-  --r-md:   8px;
-  --r-lg:   12px;
-  --r-pill: 9999px;
 
   /* Elevation */
   --shadow-card:    0 1px 0 rgba(255,255,255,0.02) inset;
   --shadow-overlay: 0 16px 40px rgba(0,0,0,0.6);
-  --glow-accent:    0 0 0 3px rgba(29,185,84,0.20);
-
-  /* shadcn/ui CSS variable mapping */
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
-  --card: 0 0% 10%;
-  --card-foreground: 0 0% 100%;
-  --popover: 0 0% 10%;
-  --popover-foreground: 0 0% 100%;
-  --primary: 141 73% 42%;
-  --primary-foreground: 0 0% 0%;
-  --secondary: 0 0% 14%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 14%;
-  --muted-foreground: 0 0% 70%;
-  --destructive: 0 84% 60%;
-  --input: 0 0% 14%;
-  --ring: 141 73% 42%;
-  --radius: 0.5rem;
 
   /* Auth components */
   --auth-bg: var(--bg);
@@ -58,7 +31,7 @@
   --auth-muted: var(--text-muted);
   --auth-card-bg: var(--surface);
   --auth-border: var(--border);
-  --auth-radius: var(--r-lg);
+  --auth-radius: 12px;
   --auth-field-bg: var(--surface-2);
   --auth-accent: var(--accent);
   --auth-accent-fg: #000000;

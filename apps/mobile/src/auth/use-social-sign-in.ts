@@ -14,24 +14,27 @@
 
 import { useSignInWithApple } from "@clerk/expo/apple";
 import { useSSO } from "@clerk/expo/experimental";
-import { type ClerkErrorMessageKey, clerkErrorCode } from "@foundry/core";
+import {
+	type ClerkErrorMessageKey,
+	clerkErrorCode,
+	type SocialSignInProvider,
+} from "@foundry/core";
 import { useCallback, useState } from "react";
 import { Platform } from "react-native";
 import { useI18n } from "../i18n";
 import { clerkErrorKey } from "./clerk-errors";
-import type { SocialProvider } from "./config";
 
 export function useSocialSignIn() {
 	const { t } = useI18n();
 	const { startSSOFlow } = useSSO();
 	const { startAppleAuthenticationFlow } = useSignInWithApple();
-	const [pending, setPending] = useState<SocialProvider | null>(null);
+	const [pending, setPending] = useState<SocialSignInProvider | null>(null);
 	const [error, setError] = useState<
 		ClerkErrorMessageKey | "incomplete" | null
 	>(null);
 
 	const start = useCallback(
-		async (provider: SocialProvider) => {
+		async (provider: SocialSignInProvider) => {
 			setPending(provider);
 			setError(null);
 			try {

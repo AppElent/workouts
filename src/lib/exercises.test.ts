@@ -25,7 +25,7 @@ describe("locally shipped exercise reads", () => {
 			loadMore,
 		});
 		const { result } = renderHook(() => useExercises());
-		expect(result.current).toHaveLength(674);
+		expect(result.current).toHaveLength(SHIPPED_EXERCISES.length + 1);
 		expect(
 			result.current.some(
 				(exercise) => exercise._id === SHIPPED_EXERCISES[0]._id,
@@ -46,16 +46,19 @@ describe("locally shipped exercise reads", () => {
 			isLoading: true,
 			loadMore: vi.fn(),
 		});
-		expect(renderHook(() => useExercises()).result.current).toHaveLength(673);
+		expect(renderHook(() => useExercises()).result.current).toHaveLength(
+			SHIPPED_EXERCISES.length,
+		);
 	});
-	it("resolves an old bookmarked ID through the backend only when needed", () => {
+	it("reads a personal exercise from the backend", () => {
 		vi.mocked(useQuery).mockReturnValue({
 			...SHIPPED_EXERCISES[0],
-			_id: "legacy-id",
+			name: "My press",
+			_id: "personal-id",
 		});
-		const { result } = renderHook(() => useExercise("legacy-id"));
-		expect(result.current?.name).toBe(SHIPPED_EXERCISES[0].name);
-		expect(useQuery).toHaveBeenCalledWith("getById", { id: "legacy-id" });
+		const { result } = renderHook(() => useExercise("personal-id"));
+		expect(result.current?.name).toBe("My press");
+		expect(useQuery).toHaveBeenCalledWith("getById", { id: "personal-id" });
 	});
 	it("reads shipped instructions immediately without a network query", () => {
 		vi.mocked(useQuery).mockReturnValue(undefined);

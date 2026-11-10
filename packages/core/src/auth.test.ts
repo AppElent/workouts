@@ -4,6 +4,7 @@ import {
 	CLERK_ERROR_MESSAGE_KEYS,
 	clerkErrorMessageKey,
 	isTestLoginAvailable,
+	socialSignInProviders,
 } from "./auth";
 
 describe("isTestLoginAvailable", () => {
@@ -29,6 +30,17 @@ describe("isTestLoginAvailable", () => {
 	});
 });
 
+describe("socialSignInProviders", () => {
+	it("offers Google only on the development instance", () => {
+		expect(socialSignInProviders("pk_test_abc")).toContain("google");
+		expect(socialSignInProviders("pk_live_abc")).toEqual([
+			"apple",
+			"microsoft",
+		]);
+		expect(socialSignInProviders(undefined)).not.toContain("google");
+	});
+});
+
 describe("clerkErrorMessageKey", () => {
 	it("maps a Clerk code, including one nested in `errors`", () => {
 		expect(clerkErrorMessageKey({ code: "form_password_incorrect" })).toBe(
@@ -40,6 +52,32 @@ describe("clerkErrorMessageKey", () => {
 		expect(clerkErrorMessageKey({ code: "ERR_REQUEST_UNKNOWN" })).toBe(
 			"appleSignInIncomplete",
 		);
+	});
+
+	it("reads the nested code of a Clerk API response error", () => {
+		// Shape of @clerk/shared's ClerkAPIResponseError: own wrapper code, the
+		// API's codes in `errors[]`.
+		const error = Object.assign(new Error("Password is incorrect."), {
+			code: "api_response_error",
+			status: 422,
+			errors: [
+				{
+					code: "form_password_incorrect",
+					message: "Password is incorrect. Try again.",
+					longMessage: "Password is incorrect. Try again.",
+					meta: { paramName: "password" },
+				},
+			],
+		});
+		expect(clerkErrorMessageKey(error)).toBe("passwordIncorrect");
+		expect(
+			clerkErrorMessageKey(
+				Object.assign(new Error("x"), {
+					code: "api_response_error",
+					errors: [],
+				}),
+			),
+		).toBe("generic");
 	});
 
 	it("falls back to the generic key for anything unmapped", () => {

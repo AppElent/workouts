@@ -42,7 +42,7 @@ function IntroPage() {
 					width: 400,
 					height: 400,
 					background:
-						"radial-gradient(circle, rgba(29,185,84,0.12), transparent 65%)",
+						"radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%)",
 					pointerEvents: "none",
 				}}
 			/>
@@ -55,7 +55,7 @@ function IntroPage() {
 					width: 300,
 					height: 300,
 					background:
-						"radial-gradient(circle, rgba(29,185,84,0.06), transparent 65%)",
+						"radial-gradient(circle, color-mix(in srgb, var(--accent) 6%, transparent), transparent 65%)",
 					pointerEvents: "none",
 				}}
 			/>
@@ -64,7 +64,7 @@ function IntroPage() {
 				<div className="flex items-center gap-2.5">
 					<div
 						className="w-[30px] h-[30px] rounded-[6px] flex items-center justify-center font-black text-black text-[15px]"
-						style={{ background: "#1DB954" }}
+						style={{ background: "var(--accent)" }}
 					>
 						W
 					</div>
@@ -72,20 +72,6 @@ function IntroPage() {
 				</div>
 
 				<nav className="hidden sm:flex items-center gap-7">
-					{(["Features", "About"] as const).map((label) => (
-						<span
-							key={label}
-							className="text-[var(--text-muted)]"
-							style={{
-								fontSize: 11,
-								fontWeight: 700,
-								textTransform: "uppercase",
-								letterSpacing: "1.2px",
-							}}
-						>
-							{label}
-						</span>
-					))}
 					<HeaderUser />
 				</nav>
 			</header>
@@ -95,7 +81,7 @@ function IntroPage() {
 					<p
 						className="mb-6"
 						style={{
-							color: "#1DB954",
+							color: "var(--accent)",
 							fontSize: 12,
 							fontWeight: 700,
 							textTransform: "uppercase",
@@ -126,7 +112,7 @@ function IntroPage() {
 					<p
 						className="mb-9 mx-auto"
 						style={{
-							color: "#b3b3b3",
+							color: "var(--text-muted)",
 							fontSize: 16,
 							lineHeight: 1.6,
 							maxWidth: 560,
@@ -139,18 +125,7 @@ function IntroPage() {
 					<div className="flex flex-wrap items-center justify-center gap-3">
 						<Link
 							to="/log"
-							className="inline-flex items-center px-8 py-3 font-bold text-black text-sm transition-colors"
-							style={{
-								background: "#1DB954",
-								borderRadius: 9999,
-								fontWeight: 700,
-							}}
-							onMouseEnter={(e) => {
-								(e.currentTarget as HTMLElement).style.background = "#1ed760";
-							}}
-							onMouseLeave={(e) => {
-								(e.currentTarget as HTMLElement).style.background = "#1DB954";
-							}}
+							className="inline-flex items-center rounded-full bg-[var(--accent)] px-8 py-3 font-bold text-black text-sm transition-colors hover:bg-[var(--accent-hover)]"
 						>
 							Start Logging →
 						</Link>

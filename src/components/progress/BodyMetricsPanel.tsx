@@ -227,12 +227,12 @@ export function BodyMetricsPanel() {
 							/>
 							<XAxis
 								dataKey="date"
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<YAxis
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								axisLine={false}
 								tickLine={false}
 								width={40}
@@ -250,10 +250,10 @@ export function BodyMetricsPanel() {
 							<Line
 								type="monotone"
 								dataKey="weight"
-								stroke="#1DB954"
+								stroke="var(--accent)"
 								strokeWidth={2}
-								dot={{ fill: "#1DB954", r: 3, strokeWidth: 0 }}
-								activeDot={{ r: 6, fill: "#1ed760" }}
+								dot={{ fill: "var(--accent)", r: 3, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "var(--accent-hover)" }}
 							/>
 						</LineChart>
 					</ResponsiveContainer>

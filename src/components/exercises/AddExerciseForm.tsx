@@ -83,7 +83,7 @@ export function AddExerciseForm({
 								required
 							/>
 							{field.state.meta.errors.length > 0 && (
-								<p className="text-xs text-red-400">
+								<p className="text-xs text-[var(--danger)]">
 									{String(field.state.meta.errors[0])}
 								</p>
 							)}

@@ -130,12 +130,12 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 							/>
 							<XAxis
 								dataKey="date"
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<YAxis
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								unit="kg"
 								axisLine={false}
 								tickLine={false}
@@ -158,10 +158,10 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 							<Line
 								type="monotone"
 								dataKey="value"
-								stroke="#1DB954"
+								stroke="var(--accent)"
 								strokeWidth={2}
-								dot={{ fill: "#1DB954", r: 4, strokeWidth: 0 }}
-								activeDot={{ r: 6, fill: "#1ed760" }}
+								dot={{ fill: "var(--accent)", r: 4, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "var(--accent-hover)" }}
 							/>
 						</LineChart>
 					</ResponsiveContainer>
@@ -186,12 +186,12 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 							/>
 							<XAxis
 								dataKey="week"
-								tick={{ fill: "#b3b3b3", fontSize: 10 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 10 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<YAxis
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								unit="kg"
 								axisLine={false}
 								tickLine={false}
@@ -209,7 +209,7 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 							/>
 							<Bar
 								dataKey="volume"
-								fill="#1DB954"
+								fill="var(--accent)"
 								radius={[4, 4, 0, 0]}
 								maxBarSize={40}
 							/>

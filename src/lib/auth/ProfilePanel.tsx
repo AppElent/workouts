@@ -69,8 +69,8 @@ export function ProfilePanel() {
 		<div className="space-y-6">
 			<AuthError message={error} />
 
-			<section className="rm-panel p-4">
-				<p className="rm-label">{text.title}</p>
+			<section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+				<p className="text-sm font-semibold text-[var(--text)]">{text.title}</p>
 				<form
 					onSubmit={saveProfile}
 					className="mt-3 flex flex-col gap-3"
@@ -97,8 +97,10 @@ export function ProfilePanel() {
 				</form>
 			</section>
 
-			<section className="rm-panel p-4">
-				<p className="rm-label">{text.security}</p>
+			<section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+				<p className="text-sm font-semibold text-[var(--text)]">
+					{text.security}
+				</p>
 				<form
 					onSubmit={changePassword}
 					className="mt-3 flex flex-col gap-3"
@@ -124,8 +126,10 @@ export function ProfilePanel() {
 				</form>
 			</section>
 
-			<section className="rm-panel p-4">
-				<p className="rm-label">{text.session}</p>
+			<section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+				<p className="text-sm font-semibold text-[var(--text)]">
+					{text.session}
+				</p>
 				<div className="mt-3">
 					<AuthButton type="button" variant="ghost" onClick={() => signOut()}>
 						{text.signOut}

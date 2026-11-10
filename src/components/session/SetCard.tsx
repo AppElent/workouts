@@ -10,8 +10,8 @@ interface Props {
 const TYPE_DOT_COLOR: Record<Doc<"sets">["setType"], string> = {
 	warmup: "var(--text-faint)",
 	working: "var(--accent)",
-	drop: "#fbbf24",
-	failure: "#f87171",
+	drop: "var(--warn)",
+	failure: "var(--danger)",
 };
 
 export function SetCard({ set, onEdit }: Props) {

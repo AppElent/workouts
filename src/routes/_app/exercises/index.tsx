@@ -151,7 +151,7 @@ function ExercisesPage() {
 												e.preventDefault();
 												void removeExercise({ id: ex._id });
 											}}
-											className="p-0.5 text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
+											className="p-0.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors shrink-0"
 											aria-label={`Delete ${ex.name}`}
 										>
 											<Trash2 size={12} />

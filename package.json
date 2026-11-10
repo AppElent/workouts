@@ -7,9 +7,6 @@
     "node": ">=22.18.0",
     "pnpm": ">=11"
   },
-  "imports": {
-    "#/*": "./src/*"
-  },
   "scripts": {
     "dev": "vite dev --host",
     "dev:all": "pnpm build:packages && pnpm exec convex dev --once && pnpm dev",
@@ -52,13 +49,11 @@
     "@sentry/node": "11.10.0",
     "@sentry/react": "11.10.0",
     "@tailwindcss/vite": "^4.3.4",
-    "@tanstack/react-devtools": "^0.10.14",
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-router-devtools": "^1.167.2",
     "@tanstack/react-start": "^1.169.4",
     "@tanstack/router-plugin": "^1.168.48",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.49.0",
     "date-fns": "^4.4.0",
@@ -76,8 +71,6 @@
     "@cloudflare/vite-plugin": "^1.67.0",
     "@edge-runtime/vm": "^5.0.0",
     "@sentry/vite-plugin": "11.10.0",
-    "@tailwindcss/typography": "^0.5.20",
-    "@tanstack/devtools-vite": "^0.8.6",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",

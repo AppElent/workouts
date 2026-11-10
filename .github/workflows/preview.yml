@@ -39,7 +39,6 @@ jobs:
       VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_VITE_CLERK_PUBLISHABLE_KEY }}
       VITE_SENTRY_DSN: ${{ vars.PREVIEW_VITE_SENTRY_DSN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.PREVIEW_SENTRY_AUTH_TOKEN }}
-      VITE_SENTRY_ENVIRONMENT: preview
       # The Cloudflare Vite plugin picks the wrangler env at build time. `pr`
       # clears the production routes, so a preview never claims the domain.
       CLOUDFLARE_ENV: pr

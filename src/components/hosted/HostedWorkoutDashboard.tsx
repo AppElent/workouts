@@ -42,7 +42,9 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 
 	if (data === null) {
 		return (
-			<div className="p-6 text-sm text-red-400">Hosted workout not found.</div>
+			<div className="p-6 text-sm text-[var(--danger)]">
+				Hosted workout not found.
+			</div>
 		);
 	}
 
@@ -143,7 +145,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 						<button
 							type="button"
 							onClick={handleDelete}
-							className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-red-400 hover:border-red-400/40"
+							className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--danger)] hover:border-[var(--danger)]/40"
 						>
 							<Trash2 size={15} /> Delete
 						</button>

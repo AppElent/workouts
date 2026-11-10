@@ -1,5 +1,6 @@
 import type { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
+import { SET_LIMITS } from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
@@ -90,7 +91,7 @@ export function RoutineEditor({
 								setEntries((prev) => prev.filter((_, i) => i !== index))
 							}
 							aria-label={`Remove ${entry.name}`}
-							className="p-1 text-[var(--text-muted)] transition-colors hover:text-red-400"
+							className="p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
 						>
 							<X size={14} />
 						</button>
@@ -99,15 +100,15 @@ export function RoutineEditor({
 						label="Sets"
 						value={entry.defaultSets}
 						onChange={(value) => updateEntry(index, { defaultSets: value })}
-						min={1}
-						max={20}
+						min={SET_LIMITS.plannedSets.min}
+						max={SET_LIMITS.plannedSets.max}
 					/>
 					<Stepper
 						label="Reps"
 						value={entry.defaultReps}
 						onChange={(value) => updateEntry(index, { defaultReps: value })}
-						min={1}
-						max={100}
+						min={SET_LIMITS.plannedReps.min}
+						max={SET_LIMITS.plannedReps.max}
 					/>
 					<Stepper
 						label="Weight"
@@ -117,7 +118,8 @@ export function RoutineEditor({
 								defaultWeight: value === 0 ? undefined : value,
 							})
 						}
-						min={0}
+						min={SET_LIMITS.plannedWeight.min}
+						max={SET_LIMITS.plannedWeight.max}
 						step={2.5}
 						unit="kg"
 					/>
@@ -153,7 +155,7 @@ export function RoutineEditor({
 				</button>
 			)}
 
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
 			<div className="flex justify-end gap-3">
 				{onCancel && (
