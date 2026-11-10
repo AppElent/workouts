@@ -38,9 +38,9 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../../../prefs/local-preference";
+	readLocal,
+	writeLocal,
+} from "../../../local-store/local-store";
 import {
 	AI_TIMEOUT_MS,
 	AI_WEB_TIMEOUT_MS,
@@ -146,11 +146,11 @@ export function useAssistanceSession(
 	} | null>(null);
 	// Opt-in: a web lookup costs ~1–3 cents against ~0.05 for a plain analysis.
 	const [webSearch, setWebSearchState] = useState(
-		() => readPreference(PREFERENCE_KEYS.nutritionAiWebSearch) === "1",
+		() => readLocal(PREFERENCE_KEYS.nutritionAiWebSearch) === "1",
 	);
 	function setWebSearch(on: boolean) {
 		setWebSearchState(on);
-		writePreference(PREFERENCE_KEYS.nutritionAiWebSearch, on ? "1" : "0");
+		writeLocal(PREFERENCE_KEYS.nutritionAiWebSearch, on ? "1" : "0");
 	}
 	const described = useRef<{ result: Described; image?: ImageInput }>(
 		resume ? { result: resume.result } : undefined,

@@ -16,9 +16,9 @@ import { useI18n } from "../i18n";
 import { convexErrorMessage } from "../i18n/errors";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../prefs/local-preference";
+	readLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import {
 	radius,
 	spacing,
@@ -70,7 +70,7 @@ export function ExercisesScreen() {
 		}
 	}, [created, router]);
 	const [layout, setLayout] = useState<Layout>(() =>
-		readPreference(PREFERENCE_KEYS.exerciseLibraryLayout) === "groups"
+		readLocal(PREFERENCE_KEYS.exerciseLibraryLayout) === "groups"
 			? "groups"
 			: "list",
 	);
@@ -101,7 +101,7 @@ export function ExercisesScreen() {
 		(filters.category === "all" ? 0 : 1);
 	const changeLayout = (next: Layout) => {
 		setLayout(next);
-		writePreference(PREFERENCE_KEYS.exerciseLibraryLayout, next);
+		writeLocal(PREFERENCE_KEYS.exerciseLibraryLayout, next);
 	};
 	const clear = () => {
 		setSearch("");

@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react-native";
 import * as ReactNative from "react-native";
-import { clearPreference, PREFERENCE_KEYS } from "../prefs/local-preference";
+import { PREFERENCE_KEYS, removeLocal } from "../local-store/local-store";
 import { renderThemed as render } from "../test-support/render-themed";
 import { SportIcon } from "../ui/coach";
 import { AppText } from "../ui/text";
@@ -23,7 +23,7 @@ function Probe() {
 describe("scheme plumbing follows the device by default", () => {
 	let scheme: jest.SpyInstance;
 	beforeEach(() => {
-		clearPreference(PREFERENCE_KEYS.appearance);
+		removeLocal(PREFERENCE_KEYS.appearance);
 		scheme = jest.spyOn(ReactNative, "useColorScheme");
 	});
 	afterEach(() => scheme.mockRestore());

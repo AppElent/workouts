@@ -14,7 +14,7 @@
  * once, before anything is drawn. An effect or an awaited read would paint one
  * frame in the wrong language, which is the specific defect #69 forbids. That
  * is also why persistence is `expo-sqlite/kv-store` and not `expo-secure-store`
- * (see `src/prefs/local-preference.ts`).
+ * (see `src/local-store/local-store.ts`).
  *
  * **Mounted outside Clerk and Convex** (`app/_layout.tsx`). Language is a
  * property of this phone, not of the signed-in account: it has to apply to the
@@ -37,9 +37,9 @@ import {
 } from "react";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../prefs/local-preference";
+	readLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import { DICTIONARIES, type Messages } from "./dictionaries";
 
 export { fmt, plural } from "@foundry/core";
@@ -74,7 +74,7 @@ function initialLocale(): Locale {
 	return resolveLocale(
 		SUPPORTED_LOCALES,
 		"en",
-		readPreference(PREFERENCE_KEYS.locale) ?? undefined,
+		readLocal(PREFERENCE_KEYS.locale) ?? undefined,
 		getLocales()
 			.map(({ languageTag }) => languageTag)
 			.join(","),
@@ -95,7 +95,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
 	const setLocale = useCallback((next: Locale) => {
 		setStoredLocale(next);
-		writePreference(PREFERENCE_KEYS.locale, next);
+		writeLocal(PREFERENCE_KEYS.locale, next);
 	}, []);
 
 	const value = useMemo(

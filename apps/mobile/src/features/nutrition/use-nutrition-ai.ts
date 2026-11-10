@@ -4,9 +4,9 @@ import { useState } from "react";
 import { api } from "../../convex/api";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../../prefs/local-preference";
+	readLocal,
+	writeLocal,
+} from "../../local-store/local-store";
 
 /** Why an AI call did not produce a result, as the screens explain it. */
 export type NutritionAiFailure =
@@ -52,7 +52,7 @@ export function useNutritionAi() {
 	const readLabel = useAction(api.nutritionAi.readLabel);
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const [consented, setConsented] = useState(
-		() => readPreference(PREFERENCE_KEYS.nutritionAiConsent) === "granted",
+		() => readLocal(PREFERENCE_KEYS.nutritionAiConsent) === "granted",
 	);
 	return {
 		describe,
@@ -61,7 +61,7 @@ export function useNutritionAi() {
 		online: isWebSocketConnected,
 		consented,
 		grantConsent: () => {
-			writePreference(PREFERENCE_KEYS.nutritionAiConsent, "granted");
+			writeLocal(PREFERENCE_KEYS.nutritionAiConsent, "granted");
 			setConsented(true);
 		},
 	};

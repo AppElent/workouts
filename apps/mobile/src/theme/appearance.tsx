@@ -10,9 +10,9 @@ import {
 import { Appearance, Platform, useColorScheme } from "react-native";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../prefs/local-preference";
+	readLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import {
 	darkColors,
 	lightColors,
@@ -26,7 +26,7 @@ export type AppearancePreference = "system" | "light" | "dark";
 export type ColorScheme = "light" | "dark";
 
 function readAppearance(): AppearancePreference {
-	const saved = readPreference(PREFERENCE_KEYS.appearance);
+	const saved = readLocal(PREFERENCE_KEYS.appearance);
 	return saved === "light" || saved === "dark" ? saved : "system";
 }
 
@@ -66,7 +66,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 		// Reset the native override before rendering System. RN reads the device
 		// preference synchronously when its override becomes unspecified.
 		overrideNativeScheme(next);
-		const persisted = writePreference(PREFERENCE_KEYS.appearance, next);
+		const persisted = writeLocal(PREFERENCE_KEYS.appearance, next);
 		setStoredPreference(next);
 		return persisted;
 	}, []);

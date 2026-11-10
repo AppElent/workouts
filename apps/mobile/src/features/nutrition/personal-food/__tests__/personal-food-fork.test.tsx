@@ -17,8 +17,8 @@ import {
 import { todayIsoDate } from "../../../../data/calendar-day";
 import {
 	PREFERENCE_KEYS,
-	writePreference,
-} from "../../../../prefs/local-preference";
+	writeLocal,
+} from "../../../../local-store/local-store";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -322,7 +322,7 @@ describe("correcting a shipped food in Dutch", () => {
 });
 
 it("copies supplementary Servings into a correction once", async () => {
-	writePreference(PREFERENCE_KEYS.locale, "en");
+	writeLocal(PREFERENCE_KEYS.locale, "en");
 	jest.mocked(usePaginatedQuery).mockImplementation(
 		(ref, _args, _options) =>
 			({
