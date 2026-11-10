@@ -10,8 +10,7 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 - `src/data/` owns nutrition persistence; `@foundry/core` owns shared calculations
   and catalogs. Preserve these owners when restructuring screens.
 - Feature ownership is adopted by live Nutrition Diary and Diary Entry. New work
-  follows it; migrate legacy screens when changing their behavior. Labs routes
-  may be compatibility aliases, not the exclusive redesigned destinations.
+  follows it; migrate legacy screens when changing their behavior.
 - Charts use Swift Charts through Expo UI on iOS and react-native-gifted-charts
   on Android behind `src/ui/chart`, preserving the tested platform bindings.
 - Sentry's dependency-validation exception is documented in [Sentry operations](../../docs/runbooks/sentry.md#mobile-compatibility).

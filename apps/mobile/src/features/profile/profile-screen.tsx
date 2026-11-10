@@ -192,10 +192,12 @@ export function ProfileScreen() {
 						}
 					}}
 				/>
-				<DisclosureRow
-					label={t.diaryEntry.labs}
-					onPress={() => router.push("/labs")}
-				/>
+				{__DEV__ ? (
+					<DisclosureRow
+						label={t.diaryEntry.sqliteBrowser}
+						onPress={() => router.push("/local-database")}
+					/>
+				) : null}
 			</FormSection>
 			<TestDataSection />
 			<FormSection>

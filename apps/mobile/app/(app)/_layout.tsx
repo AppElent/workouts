@@ -69,20 +69,6 @@ export default function AppLayout() {
 									}}
 								>
 									<Stack.Screen
-										name="labs"
-										options={{ title: t.diaryEntry.labs }}
-									/>
-									<Stack.Screen
-										name="labs-entry"
-										options={{
-											title: t.nutrition.entryEditor.title,
-											presentation: "formSheet",
-											sheetAllowedDetents: [0.9, 1],
-											sheetInitialDetentIndex: 0,
-											sheetGrabberVisible: true,
-										}}
-									/>
-									<Stack.Screen
 										name="activity-history"
 										options={{
 											title: t.routes.activityHistory,

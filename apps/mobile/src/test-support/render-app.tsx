@@ -68,8 +68,6 @@ const photoStorageId = z.custom<Id<"_storage">>(
 /** Routes of the `(app)` stack that screen tests can reach. */
 const APP_ROUTES = [
 	"appearance",
-	"labs",
-	"labs-entry",
 	"language",
 	"nutrition-assistance",
 	"nutrition-combo-log",

@@ -1,10 +1,4 @@
 export const entryEditorEn = {
-	labs: "Labs",
-	labTitle: "Diary Entry redesign",
-	labIntro:
-		"Choose an entry to try the new editor. Changes are saved to your diary.",
-	empty:
-		"No entries for this day. Log food in Nutrition, or choose another date.",
 	chooseServing: "Choose serving",
 	newServing: "New serving",
 	changeServing: "Change serving",
@@ -93,11 +87,6 @@ export const entryEditorEn = {
 	sqliteBrowser: "SQLite browser",
 };
 export const entryEditorNl: typeof entryEditorEn = {
-	labs: "Labs",
-	labTitle: "Dagboekitem vernieuwd",
-	labIntro:
-		"Kies een item om de nieuwe editor te proberen. Wijzigingen worden opgeslagen in je dagboek.",
-	empty: "Geen items voor deze dag. Log voeding of kies een andere datum.",
 	chooseServing: "Portie kiezen",
 	newServing: "Nieuwe portie",
 	changeServing: "Portie wijzigen",
