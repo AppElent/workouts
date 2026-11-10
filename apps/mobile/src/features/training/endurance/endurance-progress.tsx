@@ -10,9 +10,10 @@ import { StatBox } from "../../../ui/coach";
 import { EmptyState } from "../../../ui/empty-state";
 import { SkeletonCard, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
-import { activityDuration, activityRate } from "../activity/activity-row";
+import { activityDuration } from "../activity/activity-row";
 import { activityWeek, activityWeeks } from "../activity/activity-week";
 import { useActivityPages } from "../activity/use-activity-pages";
+import { formatEnduranceRate, formatKilometers } from "./endurance-format";
 
 export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 	const { locale, t } = useI18n();
@@ -85,9 +86,7 @@ export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 			<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
 				<StatBox value={String(totals.count)} label={copy.activities} />
 				<StatBox
-					value={(totals.distanceMeters / 1000).toLocaleString(locale, {
-						maximumFractionDigits: 2,
-					})}
+					value={formatKilometers(totals.distanceMeters, locale)}
 					unit="km"
 					label={copy.distance}
 				/>
@@ -97,7 +96,7 @@ export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 				/>
 			</View>
 			<StatBox
-				value={activityRate(
+				value={formatEnduranceRate(
 					sport,
 					totals.distanceMeters,
 					totals.durationSeconds,

@@ -4,7 +4,7 @@ import {
 	type NutrientValue,
 	type PersonalFood,
 } from "@foundry/core";
-import type { Combo } from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import {
 	combosUsing,
 	filterLibrary,

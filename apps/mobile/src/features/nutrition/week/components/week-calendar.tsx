@@ -1,11 +1,11 @@
 import { type IsoDate, weekStartMonday } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
-import { weekDates } from "../../../../data/nutrition-weekly-review";
 import { isoDateToLocalDate, toIsoDate } from "../../../../dates/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../../diary/use-logged-diary-dates";
+import { weekDates } from "../weekly-review";
 
 /** The month calendar with the chosen week as one band; any day picks its week. */
 export function WeekCalendar({

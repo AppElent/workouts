@@ -1,22 +1,19 @@
-import type { MealSlot, ServingOption } from "@foundry/core";
-import { useRef, useState } from "react";
-import {
-	type ComboPartChoice,
-	comboLogEntries,
-	comboLogPlan,
-} from "../../../data/nutrition-combo";
-import { useNutritionDiary } from "../../../data/nutrition-diary";
+import type { ComboPartSnapshot, MealSlot, ServingOption } from "@foundry/core";
+import { useState } from "react";
 import {
 	comboPortion,
 	useFoodShortcuts,
 } from "../../../data/nutrition-shortcuts";
-import type {
-	Combo,
-	ComboPart,
-	ComboPartSnapshot,
-} from "../../../data/personal-food-repository";
+import type { Combo, ComboPart } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
+import { useI18n } from "../../../i18n";
 import { useAmountSelection } from "../use-amount-selection";
+import { useDiaryWrite } from "../use-diary-write";
+import {
+	type ComboPartChoice,
+	comboLogEntries,
+	comboLogPlan,
+} from "./combo-log-plan";
 
 /** Whole combos are the serving the capsule counts in. */
 const WHOLE_COMBO: ServingOption = {
@@ -36,16 +33,15 @@ export function useComboLog({
 	meal,
 	date,
 	onLogged,
-	onFailed,
 }: {
 	combo: Combo;
 	meal: MealSlot;
 	date: string;
 	onLogged: () => void;
-	onFailed: () => void;
 }) {
 	const foods = usePersonalFoods({ ids: [combo.id] });
-	const diary = useNutritionDiary();
+	const { t } = useI18n();
+	const write = useDiaryWrite();
 	const shortcuts = useFoodShortcuts();
 	const whole = useAmountSelection({
 		option: WHOLE_COMBO,
@@ -54,31 +50,25 @@ export function useComboLog({
 	});
 	const [destination, setDestination] = useState({ meal, date });
 	const [choices, setChoices] = useState<Record<string, ComboPartChoice>>({});
-	const [logging, setLogging] = useState(false);
-	const lock = useRef(false);
+	const logging = write.busy;
 	const plan = comboLogPlan(combo, choices, foods.find);
 	const canLog =
 		whole.valid && plan.included.length > 0 && !logging && !foods.loading;
 
 	async function log() {
-		if (!canLog || lock.current) return;
-		lock.current = true;
-		setLogging(true);
-		try {
-			await diary.logCombo(
-				combo,
-				destination.date,
-				destination.meal,
-				comboLogEntries(plan, whole.quantity),
-				whole.quantity,
-			);
-			onLogged();
-		} catch {
-			onFailed();
-		} finally {
-			lock.current = false;
-			setLogging(false);
-		}
+		if (!canLog) return;
+		const logged = await write.run(
+			t.nutrition.comboEditor.logFailure,
+			(diary) =>
+				diary.logCombo(
+					combo,
+					destination.date,
+					destination.meal,
+					comboLogEntries(plan, whole.quantity),
+					whole.quantity,
+				),
+		);
+		if (logged) onLogged();
 	}
 
 	return {

@@ -1,19 +1,16 @@
 import {
-	libraryRecordFromCombo,
-	libraryRecordFromFood,
-} from "../data/nutrition-library-repository";
-import {
-	createPersonalFoodCache,
-	type PersonalFoodCache,
-} from "../data/personal-food-cache";
-import {
-	type Combo,
 	type ComboDraft,
 	normalizeComboDraft,
 	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodDraft,
-} from "../data/personal-food-repository";
+} from "@foundry/core";
+import type { LibraryRecord } from "../data/nutrition-library-repository";
+import {
+	createPersonalFoodCache,
+	type PersonalFoodCache,
+} from "../data/personal-food-cache";
+import { type Combo, portablePersonalFood } from "../data/personal-food-model";
 
 /**
  * The account library as the server holds it: tests seed it, the provider
@@ -98,5 +95,31 @@ export function createLibraryFixture(): LibraryFixture {
 				updatedAt: Math.max(Date.now(), current.updatedAt + 1),
 			});
 		},
+	};
+}
+
+export function libraryRecordFromFood(
+	food: PersonalFood,
+	revision = 0,
+): LibraryRecord {
+	return {
+		id: food.id,
+		kind: "food",
+		payload: JSON.stringify(portablePersonalFood(food)),
+		revision,
+		deleted: false,
+	};
+}
+
+export function libraryRecordFromCombo(
+	combo: Combo,
+	revision = 0,
+): LibraryRecord {
+	return {
+		id: combo.id,
+		kind: "combo",
+		payload: JSON.stringify(combo),
+		revision,
+		deleted: false,
 	};
 }

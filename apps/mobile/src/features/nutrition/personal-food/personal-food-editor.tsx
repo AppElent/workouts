@@ -1,4 +1,8 @@
-import { roundForDisplay } from "@foundry/core";
+import {
+	type PersonalFood,
+	type PersonalFoodDraft,
+	roundForDisplay,
+} from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -12,13 +16,8 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import { openFoodFactsImports } from "../../../data/open-food-facts-sync";
-import type {
-	PersonalFood,
-	PersonalFoodDraft,
-} from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, localizeDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
@@ -26,6 +25,7 @@ import { useConfirm } from "../../../ui/confirm-dialog";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import {
@@ -37,6 +37,7 @@ import { FoodKeyboardBar } from "../components/food-keyboard-bar";
 import { FoodNutrientRows } from "../components/food-nutrient-rows";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
 import { useNutrientFields } from "../use-nutrient-fields";
 import { PersonalFoodLabelScan } from "./personal-food-label-scan";
 import {
@@ -144,6 +145,7 @@ export function PersonalFoodEditor({
 	);
 	// A save or delete can only leave once `leaving` has disabled the guard.
 	const pendingLeave = useRef<(() => void) | null>(null);
+	const screenWrite = useScreenWrite();
 	useEffect(() => {
 		if (leaving && pendingLeave.current) {
 			const leave = pendingLeave.current;
@@ -172,13 +174,11 @@ export function PersonalFoodEditor({
 			destructive: true,
 		});
 		if (!ok) return;
-		try {
+		await screenWrite.run(t.nutrition.personalFood.saveFailure, async () => {
 			await personalFoods.remove(food.id);
 			pendingLeave.current = onCancel;
 			setLeaving(true);
-		} catch {
-			toast.error(t.nutrition.personalFood.saveFailure);
-		}
+		});
 	};
 
 	/** Imported from Open Food Facts with a barcode, so it can be fetched again. */

@@ -1,44 +1,22 @@
-import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 /** One-off nutrition logging; Capture Drafts live in the Diary. */
 import { useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/dates/calendar-day";
+import { diaryRouteParams } from "../../src/features/nutrition/diary-route-params";
 import { OneOffLogScreen } from "../../src/features/nutrition/one-off/one-off-log-screen";
-import { useI18n } from "../../src/i18n";
-import { RouteError } from "../../src/ui/route-error";
 
 export default function NutritionOneOffRoute() {
-	const { date, meal, draftId } = useLocalSearchParams<{
+	const params = useLocalSearchParams<{
 		date?: string;
 		meal?: string;
 		draftId?: string;
 	}>();
-	const targetMeal: MealSlot = MEAL_SLOTS.includes(meal as MealSlot)
-		? (meal as MealSlot)
-		: "breakfast";
+	const { date, meal } = diaryRouteParams(params);
 	return (
 		<OneOffLogScreen
-			date={date ?? todayIsoDate()}
-			meal={targetMeal}
-			draftId={draftId || undefined}
-		/>
-	);
-}
-
-export function ErrorBoundary({
-	error,
-	retry,
-}: {
-	error: Error;
-	retry: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	return (
-		<RouteError
-			title={t.nutrition.error.title}
-			body={t.nutrition.error.body}
-			retryLabel={t.common.retry}
-			onRetry={() => void retry()}
-			error={error}
+			date={date}
+			meal={meal}
+			draftId={params.draftId || undefined}
 		/>
 	);
 }

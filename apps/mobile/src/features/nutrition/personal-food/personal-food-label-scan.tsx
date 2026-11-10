@@ -8,7 +8,6 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import { type LabelCheck, labelChecks } from "../../../data/nutrition-ai";
 import { prepareImage } from "../../../data/nutrition-ai-image";
 import {
 	modalAnimation,
@@ -21,6 +20,7 @@ import { useToast } from "../../../ui/toast";
 import { FoodFormCard } from "../components/food-form-section";
 import { FoodPhotoCamera } from "../components/food-photo-camera";
 import { NutritionAiConsent } from "../components/nutrition-ai-consent";
+import { type LabelCheck, labelChecks } from "../nutrition-ai";
 import { nutritionAiFailure, useNutritionAi } from "../use-nutrition-ai";
 import type { PersonalFoodDraftState } from "./use-personal-food-draft";
 

@@ -8,7 +8,6 @@ import {
 	View,
 } from "react-native";
 import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
-import { useTrainedDates } from "../../../../data/training-marker";
 import {
 	formatLongDate,
 	isoDateToLocalDate,
@@ -18,6 +17,7 @@ import { dateLocale, plural, useI18n } from "../../../../i18n";
 import { radius, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
+import { useTrainedDates } from "../use-trained-dates";
 
 export function DiaryWeekStrip({
 	date,

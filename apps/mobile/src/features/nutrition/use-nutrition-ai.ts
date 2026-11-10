@@ -1,7 +1,8 @@
 import { parseConvexError } from "@foundry/core";
-import { useAction, useConvexConnectionState } from "convex/react";
+import { useAction } from "convex/react";
 import { useState } from "react";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import {
 	PREFERENCE_KEYS,
 	readLocal,
@@ -50,7 +51,7 @@ export function useNutritionAi() {
 	const describe = useAction(api.nutritionAi.describe);
 	const choose = useAction(api.nutritionAi.choose);
 	const readLabel = useAction(api.nutritionAi.readLabel);
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const [consented, setConsented] = useState(
 		() => readLocal(PREFERENCE_KEYS.nutritionAiConsent) === "granted",
 	);
@@ -58,7 +59,7 @@ export function useNutritionAi() {
 		describe,
 		choose,
 		readLabel,
-		online: isWebSocketConnected,
+		online: online,
 		consented,
 		grantConsent: () => {
 			writeLocal(PREFERENCE_KEYS.nutritionAiConsent, "granted");

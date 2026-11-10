@@ -16,19 +16,17 @@ import {
 	sessionOneRepMax,
 	validateSetInput,
 } from "@foundry/core";
+import type { FunctionArgs } from "convex/server";
+import type { api, Doc } from "../../convex/api";
 
 export type GroupMode = "rounds" | "amrap";
 type GroupState = "idle" | "running" | "timeup" | "closed";
 
-export interface LogPayload {
-	exerciseId: string;
-	setNumber: number;
-	reps: number;
-	weight: number;
-	unit: LoadUnit;
-	rpe?: number;
-	setType: SetType;
-}
+/** A set as `sets.add` takes it, less the ids the session and the attempt supply. */
+export type LogPayload = Omit<
+	FunctionArgs<typeof api.sets.add>,
+	"operationId" | "sessionId" | "exerciseId"
+> & { exerciseId: string };
 interface LogAttempt {
 	operationId: string;
 	setNumber: number;
@@ -370,20 +368,16 @@ function replaceRow(plan: SessionPlan, id: string, next: PlanSet): SessionPlan {
 	return mapRows(plan, (row) => (row.id === id ? next : row));
 }
 
-export interface ServerSet {
-	_id: string;
+export type ServerSet = Pick<
+	Doc<"sets">,
+	"setNumber" | "reps" | "weight" | "unit" | "rpe" | "setType"
+> & { _id: string; exerciseId: string };
+export type ServerExercise = {
 	exerciseId: string;
-	setNumber: number;
-	reps: number;
-	weight: number;
-	unit: LoadUnit;
-	rpe?: number;
-	setType: SetType;
-}
-export interface ServerExercise {
-	exerciseId: string;
-	plannedSets: { reps: number; weight: number; unit: LoadUnit }[];
-}
+	plannedSets: NonNullable<
+		Doc<"workoutSessions">["exercises"]
+	>[number]["plannedSets"];
+};
 function rowFromServer(set: ServerSet): PlanSet {
 	return {
 		id: newRowId(),
@@ -1782,6 +1776,9 @@ export function setGroupRounds(
 		},
 	};
 }
+/** One press of a rest − or + button. */
+export const REST_STEP_SECONDS = 15;
+
 export function setGroupRest(
 	plan: SessionPlan,
 	groupId: string,

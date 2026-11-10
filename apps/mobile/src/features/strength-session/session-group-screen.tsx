@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { Id } from "../../convex/api";
-import { plural, useI18n } from "../../i18n";
+import { fmt, plural, useI18n } from "../../i18n";
 import {
 	opacity,
 	radius,
@@ -24,6 +24,7 @@ import {
 	groupExercises,
 	modeLocked,
 	moveEntry,
+	REST_STEP_SECONDS,
 	sessionExercises,
 	setGroupCap,
 	setGroupMode,
@@ -189,15 +190,15 @@ export function SessionGroupScreen() {
 						<Stepper
 							value={formatClock(group.restSeconds)}
 							label=""
-							lessLabel={copy.restLess}
-							moreLabel={copy.restMore}
+							lessLabel={fmt(copy.restLess, { seconds: REST_STEP_SECONDS })}
+							moreLabel={fmt(copy.restMore, { seconds: REST_STEP_SECONDS })}
 							lessDisabled={group.restSeconds <= 0}
 							onLess={() =>
 								actions.set(
 									setGroupRest(
 										actions.plan(),
 										group.id,
-										Math.max(0, group.restSeconds - 15),
+										Math.max(0, group.restSeconds - REST_STEP_SECONDS),
 									),
 								)
 							}
@@ -206,7 +207,7 @@ export function SessionGroupScreen() {
 									setGroupRest(
 										actions.plan(),
 										group.id,
-										group.restSeconds + 15,
+										group.restSeconds + REST_STEP_SECONDS,
 									),
 								)
 							}

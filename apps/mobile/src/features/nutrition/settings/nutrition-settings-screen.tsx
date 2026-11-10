@@ -1,7 +1,7 @@
-import { useConvexConnectionState } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { useOnline } from "../../../convex/online";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import {
@@ -21,6 +21,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { LocalDataSettingsPanel } from "./local-data-settings-panel";
 
 export function NutritionSettingsScreen() {
@@ -31,12 +32,13 @@ export function NutritionSettingsScreen() {
 	const foods = usePersonalFoods();
 	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const confirm = useConfirm();
 	const [offRefreshing, setOffRefreshing] = useState(false);
 	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const refreshImports = async () => {
-		if (offRefreshing || !isWebSocketConnected) return;
+		if (offRefreshing || !online) return;
 		if (
 			!(await confirm({
 				title: copy.offConfirmTitle,
@@ -57,8 +59,8 @@ export function NutritionSettingsScreen() {
 				onProgress: setOffProgress,
 				onPhotoFailure: () => toast.error(copy.offPhotoFailure),
 			});
-		} catch {
-			toast.error(copy.failure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, copy.failure));
 		} finally {
 			setOffRefreshing(false);
 		}
@@ -70,7 +72,7 @@ export function NutritionSettingsScreen() {
 			contentContainerStyle={styles.content}
 		>
 			<AppText variant="caption">{copy.intro}</AppText>
-			{!isWebSocketConnected ? (
+			{!online ? (
 				<GroupedSurface style={styles.card}>
 					<AppText>{copy.offline}</AppText>
 				</GroupedSurface>
@@ -90,7 +92,7 @@ export function NutritionSettingsScreen() {
 				<AppText variant="caption">{copy.offHelp}</AppText>
 				<TextAction
 					label={offRefreshing ? copy.offRefreshing : copy.offRefresh}
-					disabled={offRefreshing || !isWebSocketConnected}
+					disabled={offRefreshing || !online}
 					onPress={() => void refreshImports()}
 				/>
 				{offProgress ? (

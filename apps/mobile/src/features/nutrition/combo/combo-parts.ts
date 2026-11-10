@@ -1,4 +1,7 @@
 import {
+	type ComboDraft,
+	type ComboPartDraft,
+	type ComboPartReference,
 	comboNutrients,
 	type Locale,
 	type NutrientValue,
@@ -7,12 +10,7 @@ import {
 	roundForDisplay,
 } from "@foundry/core";
 import type { DiaryEntry } from "../../../data/nutrition-day";
-import type {
-	Combo,
-	ComboDraft,
-	ComboPartDraft,
-	ComboPartReference,
-} from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 
 /** A diary entry as a combo part: its food by reference, or a one-off snapshot. */
 export function comboPartFromEntry(

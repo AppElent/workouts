@@ -5,7 +5,10 @@ import { useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import { useFoodShortcuts } from "../../../data/nutrition-shortcuts";
+import {
+	libraryIdsFromSourceKeys,
+	useFoodShortcuts,
+} from "../../../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
@@ -19,6 +22,10 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import {
+	useScreenWrite,
+	useWriteFailureMessage,
+} from "../../../ui/use-screen-write";
 import { BarcodeScanner } from "../components/barcode-scanner";
 import { FoodVisualView } from "../components/food-visual";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
@@ -55,7 +62,8 @@ function itemKey(item: LibraryItem) {
 }
 
 export function LibraryScreen() {
-	const pendingItems = useRef(new Set<string>());
+	const screenWrite = useScreenWrite();
+	const writeFailureMessage = useWriteFailureMessage();
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.library;
 	const colors = useTokens();
@@ -70,12 +78,7 @@ export function LibraryScreen() {
 	const library = usePersonalFoods({
 		...(chip === "favorite"
 			? {
-					ids: [...favoriteKeys]
-						.filter(
-							(key) => key.startsWith("personal:") || key.startsWith("combo:"),
-						)
-						.slice(0, 100)
-						.map((key) => key.slice(key.indexOf(":") + 1)),
+					ids: libraryIdsFromSourceKeys([...favoriteKeys]),
 				}
 			: {
 					browse: {
@@ -134,36 +137,40 @@ export function LibraryScreen() {
 
 	const toggleFavorite = (item: LibraryItem) =>
 		shortcuts.setFavorite(favoriteKeyOf(item), !item.favorite);
-	const duplicate = async (item: LibraryItem) => {
-		if (pendingItems.current.has(item.id)) return;
-		pendingItems.current.add(item.id);
-		try {
-			if (item.kind === "combo") {
-				const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.combo;
-				await library.createCombo({
-					...draft,
-					name: `${draft.name}${copy.copySuffix}`,
-					parts: draft.parts.map(({ id: _part, status: _s, ...part }) => part),
-				});
-			} else {
-				const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.food;
-				await library.create({
-					...draft,
-					name: {
-						en: `${draft.name.en}${copy.copySuffix}`,
-						nl: `${draft.name.nl}${copy.copySuffix}`,
-					},
-				});
-			}
-			toast.success(
-				fmt(copy.duplicated, { name: libraryItemName(item, locale) }),
-			);
-		} catch {
-			toast.error(copy.actionFailure);
-		} finally {
-			pendingItems.current.delete(item.id);
-		}
-	};
+	const duplicate = (item: LibraryItem) =>
+		screenWrite.run(
+			copy.actionFailure,
+			async () => {
+				if (item.kind === "combo") {
+					const {
+						id: _id,
+						createdAt: _c,
+						updatedAt: _u,
+						...draft
+					} = item.combo;
+					await library.createCombo({
+						...draft,
+						name: `${draft.name}${copy.copySuffix}`,
+						parts: draft.parts.map(
+							({ id: _part, status: _s, ...part }) => part,
+						),
+					});
+				} else {
+					const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.food;
+					await library.create({
+						...draft,
+						name: {
+							en: `${draft.name.en}${copy.copySuffix}`,
+							nl: `${draft.name.nl}${copy.copySuffix}`,
+						},
+					});
+				}
+				toast.success(
+					fmt(copy.duplicated, { name: libraryItemName(item, locale) }),
+				);
+			},
+			{ key: item.id },
+		);
 	const remove = async (targets: readonly LibraryItem[]) => {
 		if (targets.length === 0) return;
 		const users = [
@@ -201,24 +208,22 @@ export function LibraryScreen() {
 			destructive: true,
 		});
 		if (!ok) return;
-		if (targets.some((item) => pendingItems.current.has(item.id))) return;
-		for (const item of targets) pendingItems.current.add(item.id);
-		try {
-			for (const item of targets) {
-				if (item.kind === "combo") await library.removeCombo(item.id);
-				else await library.remove(item.id);
-			}
-			setSelection(null);
-			toast.success(
-				targets.length === 1
-					? fmt(copy.deleted, { name: libraryItemName(targets[0], locale) })
-					: fmt(copy.deletedMany, { count: targets.length }),
-			);
-		} catch {
-			toast.error(copy.actionFailure);
-		} finally {
-			for (const item of targets) pendingItems.current.delete(item.id);
-		}
+		await screenWrite.run(
+			copy.actionFailure,
+			async () => {
+				for (const item of targets) {
+					if (item.kind === "combo") await library.removeCombo(item.id);
+					else await library.remove(item.id);
+				}
+				setSelection(null);
+				toast.success(
+					targets.length === 1
+						? fmt(copy.deleted, { name: libraryItemName(targets[0], locale) })
+						: fmt(copy.deletedMany, { count: targets.length }),
+				);
+			},
+			{ key: targets.map((item) => item.id) },
+		);
 	};
 	const actions = (item: LibraryItem): RowAction[] =>
 		item.kind === "combo"
@@ -515,8 +520,8 @@ export function LibraryScreen() {
 						let local: Awaited<ReturnType<typeof library.lookupBarcode>>;
 						try {
 							local = await library.lookupBarcode(barcode);
-						} catch {
-							toast.error(copy.actionFailure);
+						} catch (error) {
+							toast.error(writeFailureMessage(error, copy.actionFailure));
 							return;
 						}
 						if (local)

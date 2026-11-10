@@ -1,17 +1,12 @@
-import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
-import { useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/dates/calendar-day";
-import { AssistanceScreen } from "../../src/features/nutrition/assistance/assistance-screen";
-import { useI18n } from "../../src/i18n";
-import { RouteError } from "../../src/ui/route-error";
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
 
-function asMealSlot(value: string | undefined): MealSlot {
-	return MEAL_SLOTS.find((slot) => slot === value) ?? "breakfast";
-}
+import { useLocalSearchParams } from "expo-router";
+import { AssistanceScreen } from "../../src/features/nutrition/assistance/assistance-screen";
+import { diaryRouteParams } from "../../src/features/nutrition/diary-route-params";
 
 /** Hulp bij invoeren: AI entry from text or a photo, reviewed before logging. */
 export default function NutritionAssistanceRoute() {
-	const { date, meal, text, draftId, from, resume } = useLocalSearchParams<{
+	const params = useLocalSearchParams<{
 		date?: string;
 		meal?: string;
 		text?: string;
@@ -19,35 +14,16 @@ export default function NutritionAssistanceRoute() {
 		from?: string;
 		resume?: string;
 	}>();
+	const { text, draftId, from, resume } = params;
+	const { date, meal } = diaryRouteParams(params);
 	return (
 		<AssistanceScreen
-			date={date ?? todayIsoDate()}
-			meal={asMealSlot(meal)}
+			date={date}
+			meal={meal}
 			text={text}
 			draftId={draftId}
 			fromFoodBrowser={from === "food"}
 			resume={resume}
-		/>
-	);
-}
-
-export function ErrorBoundary({
-	error,
-	retry,
-}: {
-	error: Error;
-	retry: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	return (
-		<RouteError
-			title={t.nutrition.error.title}
-			body={t.nutrition.error.body}
-			retryLabel={t.common.retry}
-			onRetry={() => {
-				retry();
-			}}
-			error={error}
 		/>
 	);
 }

@@ -1,8 +1,8 @@
 import { useAuth } from "@clerk/expo";
-import { useConvexConnectionState } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState } from "react";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import { useQueries } from "../../convex/query-cache";
 import { useRetained } from "../../data/session-data";
 
@@ -12,7 +12,7 @@ type Active = FunctionReturnType<typeof api.workoutSessions.getActive>;
 /** Keep readable rows during a refresh, scoped to the signed-in account. */
 export function useTrainingData() {
 	const { userId } = useAuth();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const [revision, setRevision] = useState(0);
 	const queryScope = `${userId ?? "signed-out"}:${revision}`;
 	const queries = useMemo(

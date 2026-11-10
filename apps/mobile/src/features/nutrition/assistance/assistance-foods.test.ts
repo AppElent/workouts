@@ -3,7 +3,7 @@ import {
 	type AssistanceFood,
 	buildAssistanceFoodCatalog,
 	searchAssistanceFoods,
-} from "./nutrition-assistance";
+} from "./assistance-foods";
 
 const food = (
 	id: string,

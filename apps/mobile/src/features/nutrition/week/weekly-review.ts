@@ -6,7 +6,7 @@ import {
 	shiftIsoDate,
 	weekStartMonday,
 } from "@foundry/core";
-import { todayIsoDate } from "../dates/calendar-day";
+import { todayIsoDate } from "../../../dates/calendar-day";
 
 export type WeeklyReviewDay = {
 	readonly date: IsoDate;

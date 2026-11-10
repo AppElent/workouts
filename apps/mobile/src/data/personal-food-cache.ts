@@ -2,15 +2,12 @@ import {
 	type Locale,
 	normalizeCombo,
 	normalizePersonalFood,
+	type PersonalFood,
 	type Combo as StoredCombo,
 } from "@foundry/core";
 import { getShippedFood } from "@foundry/core/shipped-foods";
 import type { LibraryRecord } from "./nutrition-library-repository";
-import type {
-	Combo,
-	PersonalFood,
-	PersonalFoodFilter,
-} from "./personal-food-repository";
+import type { Combo, PersonalFoodFilter } from "./personal-food-model";
 
 /**
  * The account's library items received from Convex this session, with the

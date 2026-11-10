@@ -1,4 +1,4 @@
-import type { NutrientKey, NutrientValue } from "@foundry/core";
+import type { FoodVisual, NutrientKey, NutrientValue } from "@foundry/core";
 import {
 	createContext,
 	type ReactNode,
@@ -6,7 +6,6 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { FoodVisual } from "./personal-food-repository";
 
 export type FoodAuthoringIntent = "personal" | "recipe" | "oneOff";
 

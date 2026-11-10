@@ -22,19 +22,6 @@ import {
 	View,
 } from "react-native";
 import { mintUuid, useAccountWrite } from "../../../data/account-write";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
-import {
-	combinedNutrients,
-	diarySnapshots,
-	isUncertain,
-	itemNutrients,
-	oneEntrySnapshot,
-	preparationCaption,
-	type ReviewItem,
-	readyToLog,
-	reviewTotals,
-} from "../../../data/nutrition-ai";
-import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
 import { useNutritionDay } from "../../../data/nutrition-day";
 import {
 	type LoggedEntries,
@@ -55,6 +42,7 @@ import type { SFSymbol } from "../../../ui/inset-list.types";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { type AcceptedCombo, ComboNewScreen } from "../combo/combo-new-screen";
 import { comboPartFromEntry } from "../combo/combo-parts";
 import {
@@ -67,10 +55,25 @@ import { NutritionAiConsent } from "../components/nutrition-ai-consent";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
+import { formatNutrientAmount } from "../nutrient-amount";
+import {
+	combinedNutrients,
+	diarySnapshots,
+	isUncertain,
+	itemNutrients,
+	oneEntrySnapshot,
+	preparationCaption,
+	type ReviewItem,
+	readyToLog,
+	reviewTotals,
+} from "../nutrition-ai";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { Notice } from "../personal-food/personal-food-label-scan";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
+import { buildAssistanceFoodCatalog } from "./assistance-foods";
 import {
 	forgetAiSession,
 	readAiSession,
@@ -116,6 +119,7 @@ export function AssistanceScreen({
 	const colors = useTokens();
 	const router = useRouter();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const reduceMotion = useReduceMotion();
 	const diary = useNutritionDiary();
 	const account = useAccountWrite().subject;
@@ -340,13 +344,14 @@ export function AssistanceScreen({
 						combo,
 					)
 				: await diary.logBatch(date, meal, entries, combo);
-		} catch {
+		} catch (error) {
 			toast.error(
 				!session.ai.online
 					? copy.logOffline
-					: resumed
-						? copy.replaceFailure
-						: copy.logFailure,
+					: writeFailureMessage(
+							error,
+							resumed ? copy.replaceFailure : copy.logFailure,
+						),
 			);
 			return false;
 		} finally {
@@ -619,8 +624,10 @@ export function AssistanceScreen({
 							note: session.text.trim(),
 						});
 						close();
-					} catch {
-						toast.error(t.nutrition.drafts.saveFailure);
+					} catch (error) {
+						toast.error(
+							writeFailureMessage(error, t.nutrition.drafts.saveFailure),
+						);
 					}
 				}}
 				onSearch={() => {
@@ -1388,7 +1395,7 @@ function Review({
 			) : null}
 			<FoodFormSectionHeader title={copy.total} />
 			<FoodFormCard>
-				{(["energy", "protein", "carbs", "fat"] as const).map((key, index) => (
+				{HEADLINE_NUTRIENTS.map((key, index) => (
 					<View
 						key={key}
 						style={{
@@ -1419,7 +1426,7 @@ function Review({
 								// figure, and the known part marked incomplete otherwise.
 								totals[key].known === 0
 									? "—"
-									: `${approximate ? "~ " : ""}${roundForDisplay(key, totals[key].amount).toLocaleString(locale)} ${key === "energy" ? "kcal" : "g"}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
+									: `${approximate ? "~ " : ""}${formatNutrientAmount(key, totals[key].amount, locale, { unit: true })}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
 							}
 						</AppText>
 					</View>

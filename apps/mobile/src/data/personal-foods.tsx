@@ -1,10 +1,16 @@
 import {
+	type ComboDraft,
 	canonicalJson,
+	LIBRARY_GET_MANY_LIMIT,
 	type LibraryCategory,
 	type Locale,
+	normalizeComboDraft,
+	normalizePersonalFoodDraft,
+	type PersonalFood,
+	type PersonalFoodDraft,
 } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
-import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
 	createContext,
@@ -29,15 +35,10 @@ import type { LibraryRecord } from "./nutrition-library-repository";
 import type { PersonalFoodCache } from "./personal-food-cache";
 import {
 	type Combo,
-	type ComboDraft,
 	hasUnuploadedPhoto,
-	normalizeComboDraft,
-	normalizePersonalFoodDraft,
-	type PersonalFood,
-	type PersonalFoodDraft,
 	type PersonalFoodFilter,
 	portablePersonalFood,
-} from "./personal-food-repository";
+} from "./personal-food-model";
 import {
 	openPersonalFoodSession,
 	type PersonalFoodSession,
@@ -132,9 +133,9 @@ function PersonalFoodsAccount({
 	const [revision, setRevision] = useState(0);
 	const changed = useCallback(() => setRevision((value) => value + 1), []);
 	const client = useConvex();
-	const onlineMutation = useMutation(api.nutritionLibrary.save);
+	const saveMutation = useMutation(api.nutritionLibrary.save);
+	const accountWrite = useAccountWrite();
 	const uploadPhoto = useFoodPhotoUpload();
-	const { isWebSocketConnected } = useConvexConnectionState();
 	const owner = useRef(subject);
 	owner.current = subject;
 	useEffect(() => {
@@ -154,13 +155,13 @@ function PersonalFoodsAccount({
 	);
 	const lookupBarcode = useCallback(
 		async (barcode: string) => {
-			if (!subject || !isWebSocketConnected)
+			if (!subject || !accountWrite.online)
 				throw new Error("A connection is required to look up your library.");
 			const records = await client.query(api.nutritionLibrary.getMany, {
 				ids: cache
 					.list()
 					.filter((food) => food.provenance.barcode === barcode)
-					.slice(0, 100)
+					.slice(0, LIBRARY_GET_MANY_LIMIT)
 					.map((food) => food.id),
 				barcode,
 			});
@@ -172,65 +173,51 @@ function PersonalFoodsAccount({
 				.map((record) => cache.find(record.id))
 				.find((food) => food?.provenance.barcode === barcode);
 		},
-		[client, subject, isWebSocketConnected, cache, receiveServerPage],
+		[client, subject, accountWrite.online, cache, receiveServerPage],
 	);
-	const retryOperations = useRef(new Map<string, string>());
 	const saveRecord = useCallback(
 		async (write: RecordWrite, remove = false) => {
-			if (!subject || !isWebSocketConnected)
-				throw new Error("A connection is required to save.");
 			const record = { ...write, revision: cache.revisionOf(write.id) };
-			let portableRecord = record;
-			if (record.kind === "food" && record.payload) {
-				let food: PersonalFood = JSON.parse(record.payload);
-				if (food.visual?.kind === "photo" && hasUnuploadedPhoto(food)) {
-					const uploaded = await uploadPhoto(food.visual.uri);
-					if (owner.current !== subject)
-						throw new Error("The account changed while uploading a photo.");
-					food = { ...food, visual: { ...food.visual, ...uploaded } };
-				}
-				portableRecord = {
-					...record,
-					payload: JSON.stringify(portablePersonalFood(food)),
-				};
-			}
-			const retryKey = canonicalJson(portableRecord);
-			const operationId = retryOperations.current.get(retryKey) ?? mintUuid();
-			retryOperations.current.set(retryKey, operationId);
-			const result = await onlineMutation({
-				operationId,
-				expectedSubject: subject,
-				operation: remove
-					? {
-							kind: "remove",
-							recordId: record.id,
-							recordKind: record.kind,
-							expectedRevision: record.revision,
-						}
-					: {
-							kind: "upsert",
-							record: {
-								id: record.id,
-								kind: record.kind,
-								payload: portableRecord.payload ?? "",
-							},
-							expectedRevision: record.revision,
-						},
+			const result = await accountWrite.send({
+				identity: { record, remove },
+				prepare: async () => {
+					if (record.kind !== "food" || !record.payload) return record;
+					let food: PersonalFood = JSON.parse(record.payload);
+					if (food.visual?.kind === "photo" && hasUnuploadedPhoto(food)) {
+						const uploaded = await uploadPhoto(food.visual.uri);
+						food = { ...food, visual: { ...food.visual, ...uploaded } };
+					}
+					return {
+						...record,
+						payload: JSON.stringify(portablePersonalFood(food)),
+					};
+				},
+				deliver: (portable, { subject: expectedSubject, operationId }) =>
+					saveMutation({
+						operationId,
+						expectedSubject,
+						operation: remove
+							? {
+									kind: "remove",
+									recordId: portable.id,
+									recordKind: portable.kind,
+									expectedRevision: portable.revision,
+								}
+							: {
+									kind: "upsert",
+									record: {
+										id: portable.id,
+										kind: portable.kind,
+										payload: portable.payload ?? "",
+									},
+									expectedRevision: portable.revision,
+								},
+					}),
 			});
-			if (owner.current !== subject)
-				throw new Error("The account changed while saving.");
 			cache.receive(result.record);
-			retryOperations.current.delete(retryKey);
 			changed();
 		},
-		[
-			subject,
-			isWebSocketConnected,
-			onlineMutation,
-			cache,
-			uploadPhoto,
-			changed,
-		],
+		[accountWrite, saveMutation, cache, uploadPhoto, changed],
 	);
 	const createCandidates = useRef(
 		new Map<
@@ -367,10 +354,14 @@ function PersonalFoodsAccount({
 				devicePhotoCount: cache.list().filter(hasUnuploadedPhoto).length,
 				uploadDevicePhotos: async () => {
 					const localPhotos = cache.list().filter(hasUnuploadedPhoto);
-					for (let offset = 0; offset < localPhotos.length; offset += 100) {
+					for (
+						let offset = 0;
+						offset < localPhotos.length;
+						offset += LIBRARY_GET_MANY_LIMIT
+					) {
 						const records = await client.query(api.nutritionLibrary.getMany, {
 							ids: localPhotos
-								.slice(offset, offset + 100)
+								.slice(offset, offset + LIBRARY_GET_MANY_LIMIT)
 								.map((food) => food.id),
 						});
 						if (owner.current !== subject)
@@ -472,7 +463,7 @@ export function usePersonalFoods(options?: {
 				: []),
 		]),
 	].sort();
-	const forkIds = allForkIds.slice(0, 100);
+	const forkIds = allForkIds.slice(0, LIBRARY_GET_MANY_LIMIT);
 	const extraForkQueries: Record<
 		string,
 		{
@@ -481,8 +472,12 @@ export function usePersonalFoods(options?: {
 		}
 	> = {};
 	if (enabled)
-		for (let offset = 100; offset < allForkIds.length; offset += 100) {
-			const chunk = allForkIds.slice(offset, offset + 100);
+		for (
+			let offset = LIBRARY_GET_MANY_LIMIT;
+			offset < allForkIds.length;
+			offset += LIBRARY_GET_MANY_LIMIT
+		) {
+			const chunk = allForkIds.slice(offset, offset + LIBRARY_GET_MANY_LIMIT);
 			extraForkQueries[String(offset)] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
@@ -490,7 +485,7 @@ export function usePersonalFoods(options?: {
 					ids: value
 						.forks()
 						.filter((food) => chunk.includes(food.provenance.forkedFrom ?? ""))
-						.slice(0, 100)
+						.slice(0, LIBRARY_GET_MANY_LIMIT)
 						.map((food) => food.id)
 						.sort(),
 				},
@@ -505,13 +500,19 @@ export function usePersonalFoods(options?: {
 				.map((food) => food.id),
 		]),
 	];
-	ids = requestedIds.slice(0, 100).sort();
+	ids = requestedIds.slice(0, LIBRARY_GET_MANY_LIMIT).sort();
 	if (enabled)
-		for (let offset = 100; offset < requestedIds.length; offset += 100)
+		for (
+			let offset = LIBRARY_GET_MANY_LIMIT;
+			offset < requestedIds.length;
+			offset += LIBRARY_GET_MANY_LIMIT
+		)
 			extraForkQueries[`cached:${offset}`] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
-					ids: requestedIds.slice(offset, offset + 100).sort(),
+					ids: requestedIds
+						.slice(offset, offset + LIBRARY_GET_MANY_LIMIT)
+						.sort(),
 					forkIds: [],
 				},
 			};

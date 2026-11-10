@@ -2,6 +2,7 @@ import type { ServingOption } from "@foundry/core";
 import { foodSnapshot } from "@foundry/core/shipped-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { comboPartFromEntry, kcalText } from "../combo/combo-parts";
 import { useComboTarget } from "../combo/use-combo-target";
 import { type FoodSelection, selectionSourceKey } from "./log-food-selection";
@@ -28,6 +29,7 @@ export function useLogFoodTarget(
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.comboEditor;
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const target = useComboTarget(params?.comboId, params?.replacePartId);
 	if (!target) return undefined;
 	const { combo, replacing } = target;
@@ -54,8 +56,8 @@ export function useLogFoodTarget(
 					},
 				},
 			);
-		} catch {
-			toast.error(copy.saveFailure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, copy.saveFailure));
 			return false;
 		}
 		if (replacing) onClose();

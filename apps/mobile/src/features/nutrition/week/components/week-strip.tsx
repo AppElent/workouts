@@ -1,10 +1,10 @@
 import { type IsoDate, isoWeek, shiftIsoDate } from "@foundry/core";
 import { Pressable, View } from "react-native";
-import { weekDates } from "../../../../data/nutrition-weekly-review";
 import { fmt, useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../../diary/use-logged-diary-dates";
+import { weekDates } from "../weekly-review";
 
 /** Recent weeks as chips, ending at the current week; dots mark logged days. */
 export function WeekStrip({

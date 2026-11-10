@@ -1,14 +1,11 @@
-import type { Locale } from "@foundry/core";
+import type { Locale, PersonalFood } from "@foundry/core";
 import {
 	type FoodResult,
 	foodResults,
 	getShippedFood,
 } from "@foundry/core/shipped-foods";
 import { useMemo } from "react";
-import type {
-	Combo,
-	PersonalFood,
-} from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import type { usePersonalFoods } from "../../../data/personal-foods";
 import type { Messages } from "../../../i18n";
 import { resultCaption } from "./log-food-captions";

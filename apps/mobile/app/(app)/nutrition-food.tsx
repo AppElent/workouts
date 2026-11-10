@@ -1,4 +1,5 @@
-import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 /**
  * Route for finding and logging food into one meal on one day.
  *
@@ -7,36 +8,28 @@ import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
  * what a conditional render inside the tab could not: the iOS edge-swipe back
  * gesture, an Android hardware back that closes the browser instead of leaving
  * the app, and a real navigation stack the diary sits underneath.
- *
- * `meal` is validated rather than trusted: a deep link is user input, and the
- * four slots are a closed set.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/dates/calendar-day";
+import { diaryRouteParams } from "../../src/features/nutrition/diary-route-params";
 import { LogFoodScreen } from "../../src/features/nutrition/log-food/log-food-screen";
-import { useI18n } from "../../src/i18n";
-import { RouteError } from "../../src/ui/route-error";
-
-function asMealSlot(value: string | undefined): MealSlot {
-	return MEAL_SLOTS.find((slot) => slot === value) ?? "breakfast";
-}
 
 export default function NutritionFoodRoute() {
-	const { meal, date, draftId, query, create, comboId, replacePartId } =
-		useLocalSearchParams<{
-			meal?: string;
-			date?: string;
-			draftId?: string;
-			query?: string;
-			create?: string;
-			comboId?: string;
-			replacePartId?: string;
-		}>();
+	const params = useLocalSearchParams<{
+		meal?: string;
+		date?: string;
+		draftId?: string;
+		query?: string;
+		create?: string;
+		comboId?: string;
+		replacePartId?: string;
+	}>();
+	const { draftId, query, create, comboId, replacePartId } = params;
+	const { date, meal } = diaryRouteParams(params);
 
 	return (
 		<LogFoodScreen
-			meal={asMealSlot(meal)}
-			date={date ?? todayIsoDate()}
+			meal={meal}
+			date={date}
 			draftId={draftId || undefined}
 			initialQuery={query || undefined}
 			target={
@@ -48,27 +41,6 @@ export default function NutritionFoodRoute() {
 				create === "personal" || create === "recipe" ? create : undefined
 			}
 			onClose={() => router.back()}
-		/>
-	);
-}
-
-export function ErrorBoundary({
-	error,
-	retry,
-}: {
-	error: Error;
-	retry: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	return (
-		<RouteError
-			title={t.nutrition.error.title}
-			body={t.nutrition.error.body}
-			retryLabel={t.common.retry}
-			onRetry={() => {
-				retry();
-			}}
-			error={error}
 		/>
 	);
 }

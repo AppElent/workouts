@@ -1,7 +1,18 @@
-import { NUTRITION_AI_LIMITS } from "@foundry/core";
+import { NUTRITION_AI_LIMITS, type PersonalFoodDraft } from "@foundry/core";
 import { shippedLibrary } from "@foundry/core/shipped-foods";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccountWrite } from "../../../data/account-write";
+import {
+	type ImageInput,
+	prepareImage,
+} from "../../../data/nutrition-ai-image";
+import { usePersonalFoods } from "../../../data/personal-foods";
+import { useI18n } from "../../../i18n";
+import {
+	PREFERENCE_KEYS,
+	readLocal,
+	writeLocal,
+} from "../../../local-store/local-store";
 import {
 	applyChoices,
 	asksFor,
@@ -21,20 +32,7 @@ import {
 	reviewTotals,
 	sentenceWithoutRemoved,
 	withOmittedRows,
-} from "../../../data/nutrition-ai";
-import {
-	type ImageInput,
-	prepareImage,
-} from "../../../data/nutrition-ai-image";
-import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
-import type { PersonalFoodDraft } from "../../../data/personal-food-repository";
-import { usePersonalFoods } from "../../../data/personal-foods";
-import { useI18n } from "../../../i18n";
-import {
-	PREFERENCE_KEYS,
-	readLocal,
-	writeLocal,
-} from "../../../local-store/local-store";
+} from "../nutrition-ai";
 import {
 	AI_TIMEOUT_MS,
 	AI_WEB_TIMEOUT_MS,
@@ -43,6 +41,7 @@ import {
 	useNutritionAi,
 	withAiTimeout,
 } from "../use-nutrition-ai";
+import { buildAssistanceFoodCatalog } from "./assistance-foods";
 import {
 	aiSessionForText,
 	cacheReview,

@@ -1,8 +1,7 @@
-import type { Locale } from "@foundry/core";
+import type { Locale, PersonalFoodDraft } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import type { PersonalFoodDraft } from "../../../../data/personal-food-repository";
 import { fmt, type Messages, plural } from "../../../../i18n";
 import {
 	radius,

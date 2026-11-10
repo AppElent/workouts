@@ -11,7 +11,6 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, useI18n } from "../../../i18n";
@@ -19,7 +18,6 @@ import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { AppText } from "../../../ui/text";
-import { useToast } from "../../../ui/toast";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import {
 	FoodFormCard,
@@ -33,6 +31,7 @@ import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { useNutrientFields } from "../use-nutrient-fields";
@@ -63,7 +62,6 @@ export function OneOffLogScreen({
 	const router = useRouter();
 	const navigation = useNavigation();
 	const confirm = useConfirm();
-	const toast = useToast();
 	const authoring = useFoodAuthoringIntent();
 	const drafts = useNutritionDrafts({
 		startDate: date,
@@ -93,7 +91,6 @@ export function OneOffLogScreen({
 			requestDiaryDate(loggedDate);
 			setExit(() => () => router.dismissTo("/nutrition"));
 		},
-		onFailed: () => toast.error(copy.logFailure),
 	});
 	const [today] = useState(todayIsoDate);
 	const [choosingDay, setChoosingDay] = useState(false);

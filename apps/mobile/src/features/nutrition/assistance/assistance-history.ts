@@ -6,7 +6,6 @@
  */
 
 import { MEAL_SLOTS, type NutritionDiarySnapshot } from "@foundry/core";
-import type { Described, ReviewItem } from "../../../data/nutrition-ai";
 import type { NutritionDay } from "../../../data/nutrition-day";
 import {
 	accountKeyspace,
@@ -16,6 +15,7 @@ import {
 	writeLocal,
 	writeLocalJson,
 } from "../../../local-store/local-store";
+import type { Described, ReviewItem } from "../nutrition-ai";
 
 export type SavedAiSession = {
 	readonly id: string;

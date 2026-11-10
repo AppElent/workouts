@@ -1,9 +1,9 @@
+import type { FoodVisual } from "@foundry/core";
 import { useEffect, useRef, useState } from "react";
 import {
 	type FoodPhotoSource,
 	foodPhotos,
 } from "../../data/food-photo-manager";
-import type { FoodVisual } from "../../data/personal-food-repository";
 
 /** A food's visual while editing: a saved one, or an imported photo not yet copied. */
 export type EditorVisual =

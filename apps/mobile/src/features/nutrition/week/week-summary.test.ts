@@ -1,10 +1,5 @@
 import type { NutrientKey } from "@foundry/core";
 import {
-	emptyReviewTotals,
-	type WeeklyGoal,
-	type WeeklyReviewDay,
-} from "../../../data/nutrition-weekly-review";
-import {
 	weekDayStatus,
 	weekGoalChanges,
 	weekGoalCount,
@@ -12,6 +7,11 @@ import {
 	weekTitleKind,
 	worstGoal,
 } from "./week-summary";
+import {
+	emptyReviewTotals,
+	type WeeklyGoal,
+	type WeeklyReviewDay,
+} from "./weekly-review";
 
 const fatMax: WeeklyGoal = { nutrient: "fat", direction: "max", target: 80 };
 const proteinMin: WeeklyGoal = {

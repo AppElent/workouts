@@ -4,6 +4,7 @@ import { useConvex, useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useMemo } from "react";
 import { api, type Id } from "../../../convex/api";
+import { mintUuid } from "../../../data/account-write";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useConvexErrorMessage } from "../../../i18n/errors";
@@ -55,12 +56,6 @@ import {
 } from "./session-workspace";
 
 export type EditorRequest = (rowId: string) => void;
-function newLogOperationId() {
-	return (
-		globalThis.crypto?.randomUUID?.() ??
-		`set-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
-	);
-}
 
 export function useSessionActions(workspace: SessionWorkspace) {
 	const errorMessage = useConvexErrorMessage();
@@ -279,7 +274,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (row.attempt && inFlight.has(row.attempt.operationId)) return;
 			// A retry comes long after the set itself, so it never starts rest.
 			const fresh = !row.failed;
-			const attempted = beginAttempt(plan(), rowId, newLogOperationId());
+			const attempted = beginAttempt(plan(), rowId, mintUuid());
 			const attempt = attempted?.attempt;
 			if (!attempted || !attempt || !sessionId) return;
 			set(updateRow(plan(), rowId, attempted));
@@ -530,10 +525,10 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					muscleGroups: [],
 					category: "compound",
 					equipment: bodyweight ? "bodyweight" : "other",
-				} as never);
-				if (forSwap) return swap(forSwap, id as string, name);
-				if (groupId) return addExerciseToGroup(groupId, id as string, name);
-				return addExercise(id as string, openEditor, name);
+				});
+				if (forSwap) return swap(forSwap, id, name);
+				if (groupId) return addExerciseToGroup(groupId, id, name);
+				return addExercise(id, openEditor, name);
 			} catch (error) {
 				say(errorMessage(error, saveError));
 				return false;

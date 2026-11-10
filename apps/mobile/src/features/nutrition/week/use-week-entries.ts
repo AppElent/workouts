@@ -1,6 +1,6 @@
 import { type IsoDate, MEAL_SLOTS } from "@foundry/core";
 import { useNutritionDay } from "../../../data/nutrition-day";
-import { weekDates } from "../../../data/nutrition-weekly-review";
+import { weekDates } from "./weekly-review";
 
 type ReadyDay = Extract<
 	ReturnType<typeof useNutritionDay>,

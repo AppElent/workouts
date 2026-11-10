@@ -1,10 +1,4 @@
 export const entryEditorEn = {
-	labs: "Labs",
-	labTitle: "Diary Entry redesign",
-	labIntro:
-		"Choose an entry to try the new editor. Changes are saved to your diary.",
-	empty:
-		"No entries for this day. Log food in Nutrition, or choose another date.",
 	chooseServing: "Choose serving",
 	newServing: "New serving",
 	changeServing: "Change serving",
@@ -37,7 +31,7 @@ export const entryEditorEn = {
 	keepEditing: "Keep editing",
 	invalidQuantity: "Enter an amount greater than zero.",
 	invalidServing:
-		"Enter a name (1–40 characters) and an amount greater than zero, up to 10000.",
+		"Enter a name (1–{maxName} characters) and an amount greater than zero, up to {maxAmount}.",
 	invalidMeasure: "Personal Measures support at most one decimal place.",
 	offline:
 		"Connect to add a Serving or Personal Measure. Cached choices are still available offline.",
@@ -93,11 +87,6 @@ export const entryEditorEn = {
 	sqliteBrowser: "SQLite browser",
 };
 export const entryEditorNl: typeof entryEditorEn = {
-	labs: "Labs",
-	labTitle: "Dagboekitem vernieuwd",
-	labIntro:
-		"Kies een item om de nieuwe editor te proberen. Wijzigingen worden opgeslagen in je dagboek.",
-	empty: "Geen items voor deze dag. Log voeding of kies een andere datum.",
 	chooseServing: "Portie kiezen",
 	newServing: "Nieuwe portie",
 	changeServing: "Portie wijzigen",
@@ -130,7 +119,7 @@ export const entryEditorNl: typeof entryEditorEn = {
 	keepEditing: "Verder bewerken",
 	invalidQuantity: "Voer een hoeveelheid groter dan nul in.",
 	invalidServing:
-		"Voer een naam (1–40 tekens) en een hoeveelheid groter dan nul, maximaal 10000 in.",
+		"Voer een naam (1–{maxName} tekens) en een hoeveelheid groter dan nul, maximaal {maxAmount} in.",
 	invalidMeasure: "Eigen maten ondersteunen maximaal één decimaal.",
 	offline:
 		"Maak verbinding om een portie of eigen maat toe te voegen. Opgeslagen keuzes blijven offline beschikbaar.",

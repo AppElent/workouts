@@ -1,6 +1,4 @@
 import { registerLocalDatabase } from "../local-store/local-store";
-import type { Combo, PersonalFood } from "./personal-food-repository";
-import { portablePersonalFood } from "./personal-food-repository";
 
 type LibraryRecordKind = "food" | "combo";
 export type LibraryRecord = {
@@ -8,7 +6,6 @@ export type LibraryRecord = {
 	readonly id: string;
 	readonly kind: LibraryRecordKind;
 	readonly payload: string | null;
-	readonly schemaVersion?: 1 | 2 | 3;
 	readonly revision: number;
 	readonly deleted: boolean;
 };
@@ -21,29 +18,3 @@ export function nutritionLibraryDatabaseName(subject: string) {
 	return `workouts-nutrition-library-${encoded.slice(0, 160)}.db`;
 }
 registerLocalDatabase(/^workouts-nutrition-library-[0-9a-f]+\.db$/);
-
-export function libraryRecordFromFood(
-	food: PersonalFood,
-	revision = 0,
-): LibraryRecord {
-	return {
-		id: food.id,
-		kind: "food",
-		payload: JSON.stringify(portablePersonalFood(food)),
-		revision,
-		deleted: false,
-	};
-}
-
-export function libraryRecordFromCombo(
-	combo: Combo,
-	revision = 0,
-): LibraryRecord {
-	return {
-		id: combo.id,
-		kind: "combo",
-		payload: JSON.stringify(combo),
-		revision,
-		deleted: false,
-	};
-}

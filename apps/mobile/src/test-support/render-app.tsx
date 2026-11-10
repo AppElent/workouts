@@ -11,6 +11,7 @@
  * route's `ErrorBoundary` is registered here exactly as expo-router registers
  * it in the app.
  */
+
 import {
 	useConvex,
 	useMutation,
@@ -29,12 +30,8 @@ import {
 	createFoodShortcutRepository,
 	type FoodShortcutRepository,
 } from "../data/food-shortcut-repository";
-import {
-	libraryRecordFromCombo,
-	libraryRecordFromFood,
-} from "../data/nutrition-library-repository";
 import type { FetchLike } from "../data/open-food-facts";
-import { createOpenFoodFactsCache } from "../data/personal-food-repository";
+import { createOpenFoodFactsCache } from "../data/open-food-facts-cache";
 import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
 import { ConfirmProvider } from "../ui/confirm-dialog";
@@ -44,7 +41,12 @@ import {
 	type CaptureDraftFixture,
 	createCaptureDraftFixture,
 } from "./capture-draft-fixture";
-import { createLibraryFixture, type LibraryFixture } from "./library-fixture";
+import {
+	createLibraryFixture,
+	type LibraryFixture,
+	libraryRecordFromCombo,
+	libraryRecordFromFood,
+} from "./library-fixture";
 import { startMockLayers, underlying, wrapping } from "./mock-layers";
 import { NativeAlertHost } from "./native-alert-host";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
@@ -68,8 +70,6 @@ const photoStorageId = z.custom<Id<"_storage">>(
 /** Routes of the `(app)` stack that screen tests can reach. */
 const APP_ROUTES = [
 	"appearance",
-	"labs",
-	"labs-entry",
 	"language",
 	"nutrition-assistance",
 	"nutrition-combo-log",

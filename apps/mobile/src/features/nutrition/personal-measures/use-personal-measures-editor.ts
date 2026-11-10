@@ -1,7 +1,8 @@
 import type { PersonalMeasure } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import { fmt, useI18n } from "../../../i18n";
 import { useConvexErrorMessage } from "../../../i18n/errors";
@@ -22,7 +23,7 @@ export function usePersonalMeasuresEditor() {
 	const confirm = useConfirm();
 	const toast = useToast();
 	const { measures, loading } = usePersonalMeasureActions();
-	const connected = useConvexConnectionState().isWebSocketConnected;
+	const connected = useOnline();
 	const createMeasure = useMutation(api.personalMeasures.create);
 	const updateMeasure = useMutation(api.personalMeasures.update);
 	const removeMeasure = useMutation(api.personalMeasures.remove);

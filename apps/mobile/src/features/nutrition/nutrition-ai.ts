@@ -9,18 +9,18 @@ import {
 	type NutritionDiarySnapshot,
 	normaliseForSearch,
 	numericAmount,
+	type PersonalFoodDraft,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 } from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
-import type { api } from "../convex/api";
+import type { api } from "../../convex/api";
+import { oneOffLogSnapshot } from "../../data/nutrition-one-off";
 import {
 	type AssistanceFood,
 	searchAssistanceFoods,
-} from "./nutrition-assistance";
-import { oneOffLogSnapshot } from "./nutrition-one-off";
+} from "./assistance/assistance-foods";
 import { typicalPortion } from "./nutrition-portions";
-import type { PersonalFoodDraft } from "./personal-food-repository";
 
 /**
  * Hulp bij invoeren: the phone half of AI entry (designs/nutrition/ai-entry_final.html).
@@ -1227,24 +1227,13 @@ export function combinedNutrients(
 	return totals;
 }
 
-const LABEL_KEYS: Record<NutrientKey, keyof LabelReading["per100"]> = {
-	energy: "energy",
-	protein: "protein",
-	carbs: "carbs",
-	fat: "fat",
-	saturatedFat: "saturatedFat",
-	fibre: "fibre",
-	sugars: "sugars",
-	salt: "salt",
-};
-
 /** Label values as nutrient states; kJ fills energy only when kcal is missing. */
 export function labelNutrients(
 	reading: LabelReading,
 ): Record<NutrientKey, NutrientValue> {
 	return Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => {
-			let amount = reading.per100[LABEL_KEYS[key]];
+			let amount = reading.per100[key];
 			if (
 				key === "energy" &&
 				amount === null &&

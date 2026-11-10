@@ -10,7 +10,7 @@
 import type { IsoDate } from "@foundry/core";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
-import { todayIsoDate } from "../dates/calendar-day";
+import { todayIsoDate } from "../../../dates/calendar-day";
 
 function msUntilNextMidnight(now: Date): number {
 	const next = new Date(now);

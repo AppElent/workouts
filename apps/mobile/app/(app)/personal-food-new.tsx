@@ -1,3 +1,5 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 /**
  * A new Personal Food or recipe, as a sheet with ✕ and ✓. With `barcode` it
  * starts from the Open Food Facts product, reviewed before it is saved.
@@ -10,8 +12,6 @@ import { PersonalFoodEditor } from "../../src/features/nutrition/personal-food/p
 import { useI18n } from "../../src/i18n";
 import { SkeletonBlock, SkeletonGroup } from "../../src/ui/skeleton";
 import { useToast } from "../../src/ui/toast";
-
-export { ErrorBoundary } from "./nutrition-library";
 
 /** Deep links can open the editor with nothing beneath it. */
 const leave = () =>

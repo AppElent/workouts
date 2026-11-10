@@ -1,13 +1,9 @@
-import {
-	formatPace,
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import { dateLocale, useI18n } from "../../../i18n";
@@ -24,6 +20,7 @@ import {
 } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { formatEnduranceRate, formatKilometers } from "./endurance-format";
 
 export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const errorMessage = useConvexErrorMessage();
@@ -34,7 +31,7 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const confirm = useConfirm();
 	const toast = useToast();
 	const activity = useQuery(api.enduranceActivities.get, id ? { id } : "skip");
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const stalledOffline = useStalledOffline(
 		Boolean(id) && activity === undefined,
 	);
@@ -44,7 +41,7 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 
 	async function onDelete() {
 		if (!id || !activity || deleteLock.current) return;
-		if (!isWebSocketConnected) {
+		if (!online) {
 			toast.error(copy.offlineDeleteError);
 			return;
 		}
@@ -108,20 +105,6 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 		);
 	}
 
-	const distanceKm = activity.distanceMeters / 1000;
-	const pace = paceSecondsPerKilometer(
-		activity.distanceMeters,
-		activity.durationSeconds,
-	);
-	const speed = speedKilometersPerHour(
-		activity.distanceMeters,
-		activity.durationSeconds,
-	);
-	const paceText = formatPace(pace) ?? "—";
-	const speedText =
-		speed === null || !Number.isFinite(speed)
-			? "—"
-			: `${speed.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
 	const dateText = new Intl.DateTimeFormat(dateLocale(locale), {
 		dateStyle: "full",
 		timeStyle: "short",
@@ -152,12 +135,17 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 				<View style={styles.metricGrid}>
 					<Metric
 						label={copy.distance}
-						value={`${distanceKm.toLocaleString(locale, { maximumFractionDigits: 2 })} km`}
+						value={`${formatKilometers(activity.distanceMeters, locale)} km`}
 					/>
 					<Metric label={copy.duration} value={durationText} />
 					<Metric
 						label={activity.sport === "running" ? copy.pace : copy.speed}
-						value={activity.sport === "running" ? paceText : speedText}
+						value={formatEnduranceRate(
+							activity.sport,
+							activity.distanceMeters,
+							activity.durationSeconds,
+							locale,
+						)}
 					/>
 				</View>
 			</GroupedSurface>

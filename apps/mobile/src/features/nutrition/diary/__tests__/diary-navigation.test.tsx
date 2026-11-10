@@ -33,10 +33,10 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { weekDates } from "../../../../data/nutrition-weekly-review";
 import { todayIsoDate } from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
+import { weekDates } from "../../week/weekly-review";
 
 const value = (amount: number) => ({ kind: "value" as const, amount });
 

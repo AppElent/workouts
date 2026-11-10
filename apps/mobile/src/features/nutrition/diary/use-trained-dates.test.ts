@@ -7,7 +7,7 @@
  */
 import { renderHook } from "@testing-library/react-native";
 import { useQuery_experimental } from "convex/react";
-import { useTrainedDates } from "./training-marker";
+import { useTrainedDates } from "./use-trained-dates";
 
 const mockUseQuery = jest.mocked(useQuery_experimental);
 const week = () => useTrainedDates("2026-09-07", "2026-09-09");

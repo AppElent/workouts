@@ -1,3 +1,4 @@
+import type { PersonalFoodDraft } from "@foundry/core";
 import { createContext, type ReactNode, use, useEffect, useState } from "react";
 import {
 	completeOffSearchDraft,
@@ -11,8 +12,7 @@ import { createOffRequestBudget } from "./open-food-facts-budget";
 import {
 	type OpenFoodFactsCache,
 	openOpenFoodFactsCache,
-	type PersonalFoodDraft,
-} from "./personal-food-repository";
+} from "./open-food-facts-cache";
 
 type OpenFoodFactsValue = {
 	lookupBarcode(barcode: string): Promise<OffLookupOutcome>;

@@ -1,14 +1,10 @@
-import {
-	formatPace,
-	paceSecondsPerKilometer,
-	speedKilometersPerHour,
-} from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { api, type Id } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { isoDateToLocalDate, todayIsoDate } from "../../../dates/calendar-day";
 import { dateLocale, useI18n } from "../../../i18n";
 import { useConvexErrorMessage } from "../../../i18n/errors";
@@ -33,6 +29,7 @@ import {
 	parseEnduranceValues,
 	valuesForActivity,
 } from "./endurance-form-state";
+import { formatEnduranceRate } from "./endurance-format";
 
 function activityId() {
 	return `mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -83,7 +80,7 @@ export function EnduranceEditorForm({
 	const confirm = useConfirm();
 	const create = useMutation(api.enduranceActivities.create);
 	const update = useMutation(api.enduranceActivities.update);
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const initial = useRef(valuesForActivity(activity));
 	const today = useRef(todayIsoDate());
 	const clientEntryId = useRef(activityId());
@@ -146,28 +143,19 @@ export function EnduranceEditorForm({
 		form.setFieldValue(key as "date", value as string);
 	};
 	const parsed = parseEnduranceValues(values, copy);
-	const metric = parsed.value
-		? sport === "running"
-			? paceSecondsPerKilometer(
-					parsed.value.distanceMeters,
-					parsed.value.durationSeconds,
-				)
-			: speedKilometersPerHour(
-					parsed.value.distanceMeters,
-					parsed.value.durationSeconds,
-				)
-		: null;
-	const metricText =
-		sport === "running"
-			? (formatPace(metric) ?? "—")
-			: metric === null || !Number.isFinite(metric)
-				? "—"
-				: `${metric.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
+	const metricText = parsed.value
+		? formatEnduranceRate(
+				sport,
+				parsed.value.distanceMeters,
+				parsed.value.durationSeconds,
+				locale,
+			)
+		: "—";
 
 	async function save(submitted: EnduranceValues) {
 		const submission = parseEnduranceValues(submitted, copy);
 		if (!submission.value) return;
-		if (!isWebSocketConnected) {
+		if (!online) {
 			toast.error(copy.offlineError);
 			return;
 		}

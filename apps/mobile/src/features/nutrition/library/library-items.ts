@@ -9,7 +9,7 @@ import {
 	comboSourceKey,
 	foodSourceKey,
 } from "../../../data/nutrition-shortcuts";
-import type { Combo } from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 
 export type LibraryChip = "all" | LibraryCategory | "favorite";
 

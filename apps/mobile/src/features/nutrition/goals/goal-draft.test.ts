@@ -9,7 +9,7 @@ import {
 	setGoalKind,
 	withGoal,
 	withoutGoal,
-} from "./nutrition-goal-history";
+} from "./goal-draft";
 
 describe("nutrition goal history helpers", () => {
 	it("accepts Dutch decimal commas without changing the draft text", () => {

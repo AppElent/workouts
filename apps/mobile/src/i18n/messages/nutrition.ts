@@ -54,7 +54,6 @@ import {
 	nutritionTrainingMarkerEn,
 	nutritionTrainingMarkerNl,
 } from "./nutrition-training-marker";
-import { nutritionUnitsEn, nutritionUnitsNl } from "./nutrition-units";
 import { oneOffLogEn, oneOffLogNl } from "./one-off-log";
 import { weekReviewEn, weekReviewNl } from "./week-review";
 export const nutritionEn = {
@@ -87,7 +86,6 @@ export const nutritionEn = {
 	entryActions: nutritionEntryActionsEn,
 	entryEditor: nutritionEntryEditorEn,
 	nutrients: nutritionNutrientsEn,
-	units: nutritionUnitsEn,
 	attribution: nutritionAttributionEn,
 	error: nutritionErrorEn,
 };
@@ -121,7 +119,6 @@ export const nutritionNl: typeof nutritionEn = {
 	entryActions: nutritionEntryActionsNl,
 	entryEditor: nutritionEntryEditorNl,
 	nutrients: nutritionNutrientsNl,
-	units: nutritionUnitsNl,
 	attribution: nutritionAttributionNl,
 	error: nutritionErrorNl,
 };

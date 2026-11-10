@@ -1,11 +1,11 @@
-import { NUTRIENT_KEYS } from "@foundry/core";
+import {
+	type FoodVisual,
+	NUTRIENT_KEYS,
+	type PersonalFood,
+	type PersonalFoodDraft,
+	type PersonalFoodProvenance,
+} from "@foundry/core";
 import type { OffLookupOutcome } from "./open-food-facts";
-import type {
-	FoodVisual,
-	PersonalFood,
-	PersonalFoodDraft,
-	PersonalFoodProvenance,
-} from "./personal-food-repository";
 
 export const OFF_REFRESH_INTERVAL_MS = 4100;
 

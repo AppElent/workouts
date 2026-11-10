@@ -89,7 +89,7 @@ describe("the nutrition day", () => {
 		await fireEvent.press(await screen.findByText("All goals"));
 
 		await fireEvent(
-			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
+			await screen.findByLabelText("Energy: 0 / ≤2,000 kcal. Nothing logged."),
 			"longPress",
 		);
 		await fireEvent.press(await screen.findByText("Reorder goals"));
@@ -156,7 +156,7 @@ describe("the nutrition day", () => {
 		expect(screen.getByText("Fat")).toBeTruthy();
 		await fireEvent.press(screen.getByText("All goals"));
 		expect(
-			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
+			await screen.findByLabelText("Energy: 0 / ≤2,000 kcal. Nothing logged."),
 		).toBeTruthy();
 		expect(
 			screen.getByLabelText("Fat: 0 / ≤70 g. Nothing logged."),
@@ -207,7 +207,7 @@ describe("the nutrition day", () => {
 
 		expect(
 			await screen.findByLabelText(
-				"Energy: 1950 / 1800–2100 kcal. Within range.",
+				"Energy: 1,950 / 1,800–2,100 kcal. Within range.",
 			),
 		).toBeTruthy();
 		expect(screen.getByText("Within range")).toBeTruthy();
@@ -269,7 +269,7 @@ describe("the nutrition day", () => {
 			await fireEvent.press(await screen.findByText("All goals"));
 			expect(
 				await screen.findByLabelText(
-					"Energy: 1950 / 1800–2100 kcal. Within range.",
+					"Energy: 1,950 / 1,800–2,100 kcal. Within range.",
 				),
 			).toBeTruthy();
 			expect(
@@ -313,7 +313,7 @@ describe("the nutrition day", () => {
 		await fireEvent.press(await screen.findByText("All goals"));
 
 		await fireEvent(
-			await screen.findByLabelText("Energy: 0 / ≤2000 kcal. Nothing logged."),
+			await screen.findByLabelText("Energy: 0 / ≤2,000 kcal. Nothing logged."),
 			"longPress",
 		);
 		await fireEvent.press(await screen.findByText("Reorder goals"));
@@ -555,7 +555,7 @@ describe("the nutrition day", () => {
 		expect(await screen.findByText("Apple")).toBeTruthy();
 		expect(screen.getByText("Piece × 1")).toBeTruthy();
 		expect(screen.getByText("Approximate")).toBeTruthy();
-		expect(screen.queryByText("1924 kcal remaining")).toBeNull();
+		expect(screen.queryByText("1,924 kcal remaining")).toBeNull();
 		await fireEvent.press(screen.getByText("All goals"));
 		expect((await screen.findAllByText(/~ 0 g/)).length).toBeGreaterThan(0);
 		expect(screen.getByText(/≥ 0 g/)).toBeTruthy();
@@ -629,7 +629,7 @@ describe("the nutrition day", () => {
 		// Activity at all would show for this exact diary and goal data — the
 		// completed session contributes nothing to either number.
 		expect(await screen.findByText("Apple")).toBeTruthy();
-		expect(screen.getByText("1924 kcal remaining")).toBeTruthy();
+		expect(screen.getByText("1,924 kcal remaining")).toBeTruthy();
 		expect(screen.getByLabelText("Energy: 76 kcal")).toBeTruthy();
 	});
 });

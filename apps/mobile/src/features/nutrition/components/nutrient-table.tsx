@@ -1,7 +1,5 @@
 import {
-	NUTRIENT_DISPLAY_DECIMALS,
 	NUTRIENT_KEYS,
-	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
 	scaleNutrient,
@@ -10,6 +8,8 @@ import { useWindowDimensions, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
+import { formatNutrientAmount } from "../nutrient-amount";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
 export function NutrientTable({
 	nutrients,
 	factor = 1,
@@ -34,14 +34,12 @@ export function NutrientTable({
 		compact && fontScale < 1.5 ? { width: 76 * fontScale } : { flex: 1 };
 	const referenceColumn =
 		compact && fontScale < 1.5 ? { width: 70 * fontScale } : { flex: 1 };
-	const keys = all
-		? NUTRIENT_KEYS
-		: (["energy", "protein", "carbs", "fat"] as const);
+	const keys = all ? NUTRIENT_KEYS : HEADLINE_NUTRIENTS;
 	function value(key: NutrientKey, multiplier: number) {
 		const n = scaleNutrient(nutrients[key] ?? { kind: "absent" }, multiplier);
 		if (n.kind === "absent") return "—";
 		if (n.kind === "trace") return t.nutrition.foodBrowser.trace;
-		return `${n.amount.toLocaleString(locale, { maximumFractionDigits: NUTRIENT_DISPLAY_DECIMALS[key] })} ${NUTRIENT_UNITS[key]}`;
+		return formatNutrientAmount(key, n.amount, locale, { unit: true });
 	}
 	return (
 		<View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>

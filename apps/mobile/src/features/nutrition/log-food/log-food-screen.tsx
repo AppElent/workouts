@@ -1,6 +1,9 @@
 import {
+	type FoodVisual,
 	type MealSlot,
 	NUTRIENT_KEYS,
+	type PersonalFood,
+	type PersonalFoodDraft,
 	type ShippedFood,
 	type SupplementaryServing,
 } from "@foundry/core";
@@ -23,28 +26,17 @@ import {
 } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
-import {
-	comboLogEntries,
-	comboLogPlan,
-	comboPlanEnergy,
-} from "../../../data/nutrition-combo";
 import type { LoggedEntries } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import {
 	comboSourceKey,
+	libraryIdsFromSourceKeys,
 	portionMemoryFor,
 	rememberedSelection,
 	useFoodShortcuts,
 } from "../../../data/nutrition-shortcuts";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
-import type {
-	Combo,
-	FoodVisual,
-	PersonalFood,
-	PersonalFoodDraft,
-} from "../../../data/personal-food-repository";
-import { foodVisualForShippedFood } from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasures } from "../../../data/personal-measures";
 import {
@@ -73,12 +65,20 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import {
+	comboLogEntries,
+	comboLogPlan,
+	comboPlanEnergy,
+} from "../combo/combo-log-plan";
 import { BarcodeScanner } from "../components/barcode-scanner";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
+import { foodVisualForShippedFood } from "../shipped-food-visual";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useDeleteDiaryEntry } from "../use-delete-diary-entry";
 import { useDiaryWrite } from "../use-diary-write";
@@ -140,6 +140,7 @@ const SCOPE_CHIPS = [
 
 /** How long a row's + shows ✓ after a quick log. */
 const JUST_LOGGED_MS = 2000;
+const NOTE_WRITE = "note";
 
 /** A new Personal Food with nothing filled in but the name and the barcode. */
 function blankFoodDraft(
@@ -254,6 +255,7 @@ export function LogFoodScreen({
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const offline = useStalledOffline(true);
 	const bottomToolbar = isIOS26OrLater();
@@ -261,8 +263,6 @@ export function LogFoodScreen({
 	const searchInputRef = useRef<TextInputInstance>(null);
 	const seedQuery = initialQuery ?? browserTarget?.initialQuery;
 	const [query, setQuery] = useState(seedQuery ?? "");
-	const [savingNote, setSavingNote] = useState(false);
-	const noteSaveLock = useRef(false);
 	// Read once per mount: a browser whose "Vandaag" target moves under the
 	// person because midnight passed mid-session is worse than one that is
 	// right again on the next visit.
@@ -375,11 +375,9 @@ export function LogFoodScreen({
 					? { category: "combo" as const }
 					: {}),
 		},
-		ids: [...recentShortcuts, ...favoriteShortcuts]
-			.map((item) => item.sourceKey)
-			.filter((key) => key.startsWith("personal:") || key.startsWith("combo:"))
-			.slice(0, 100)
-			.map((key) => key.slice(key.indexOf(":") + 1)),
+		ids: libraryIdsFromSourceKeys(
+			[...recentShortcuts, ...favoriteShortcuts].map((item) => item.sourceKey),
+		),
 	});
 	const browsed = useLogFoodItems({
 		catalogueLimit,
@@ -492,12 +490,10 @@ export function LogFoodScreen({
 			destructive: true,
 		});
 		if (!approved) return;
-		try {
+		await write.run(t.nutrition.personalFood.deleteFailure, async () => {
 			await personalFoods.remove(food.id);
 			setSelectedFood(undefined);
-		} catch {
-			toast.error(t.nutrition.personalFood.deleteFailure);
-		}
+		});
 	}
 
 	async function handleBarcodeScanned(barcode: string) {
@@ -526,9 +522,11 @@ export function LogFoodScreen({
 					? copy.offline
 					: offFailureMessage(outcome.kind, t.nutrition.foodImport, false),
 			);
-		} catch {
+		} catch (error) {
 			setScanning(false);
-			toast.error(t.nutrition.foodImport.unavailable);
+			toast.error(
+				writeFailureMessage(error, t.nutrition.foodImport.unavailable),
+			);
 		} finally {
 			setBarcodeStatus(undefined);
 		}
@@ -549,7 +547,7 @@ export function LogFoodScreen({
 			});
 			if (!approved) return false;
 		}
-		try {
+		const linked = await write.run(copy.barcodeLinkFailure, async () => {
 			const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = food;
 			await personalFoods.update(food.id, {
 				...draft,
@@ -558,10 +556,8 @@ export function LogFoodScreen({
 			setLinkingBarcode(undefined);
 			toast.success(fmt(copy.barcodeLinked, { food: food.name[locale] }));
 			return true;
-		} catch {
-			toast.error(copy.barcodeLinkFailure);
-			return false;
-		}
+		});
+		return linked ?? false;
 	}
 
 	async function openFood(selection: FoodSelection) {
@@ -576,17 +572,14 @@ export function LogFoodScreen({
 	}
 
 	async function saveAsNote() {
-		if (savingNote || noteSaveLock.current) return;
-		noteSaveLock.current = true;
-		setSavingNote(true);
-		try {
-			await drafts.create({ date, meal: selectedMeal, note: query });
-			onClose();
-		} catch {
-			toast.error(t.nutrition.drafts.saveFailure);
-			setSavingNote(false);
-			noteSaveLock.current = false;
-		}
+		await write.run(
+			t.nutrition.drafts.saveFailure,
+			async () => {
+				await drafts.create({ date, meal: selectedMeal, note: query });
+				onClose();
+			},
+			NOTE_WRITE,
+		);
 	}
 
 	function resolveQuickSelection(selection: FoodSelection) {
@@ -1074,7 +1067,7 @@ export function LogFoodScreen({
 						{bottomToolbar && hasQuery && !draftId && !browserTarget ? (
 							<Pressable
 								accessibilityRole="button"
-								disabled={savingNote}
+								disabled={write.isPending(NOTE_WRITE)}
 								onPress={saveAsNote}
 								style={{ minHeight: 44, justifyContent: "center" }}
 							>

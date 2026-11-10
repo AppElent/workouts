@@ -4,7 +4,6 @@ import {
 	NUTRIENT_UNITS,
 	type NutrientKey,
 	rankNutrientSources,
-	roundForDisplay,
 	totalNutrients,
 } from "@foundry/core";
 import { router, Stack } from "expo-router";
@@ -17,11 +16,8 @@ import { spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { AppText } from "../../../ui/text";
 import { FoodVisualView } from "../components/food-visual";
-import {
-	localizedGoalStatus,
-	outcome,
-	targetLabel,
-} from "../day-goals/goal-presentation";
+import { outcome, targetLabel } from "../day-goals/goal-presentation";
+import { formatNutrientAmount, formatNutrientTotal } from "../nutrient-amount";
 import { NutrientSourceValue } from "./components/nutrient-source-value";
 export function NutrientSourcesScreen({
 	date,
@@ -54,7 +50,9 @@ export function NutrientSourcesScreen({
 		state.status === "ready"
 			? goalBounds(state.day.goals, [nutrient])[0]
 			: undefined;
-	const status = group ? outcome(colors, t, group, total) : undefined;
+	const status = group
+		? outcome(colors, { t, locale }, group, total)
+		: undefined;
 	return (
 		<>
 			<Stack.Screen
@@ -147,16 +145,16 @@ export function NutrientSourcesScreen({
 											: colors.text,
 								}}
 							>
-								{total.incomplete ? "≥ " : total.qualified ? "~ " : ""}
-								{new Intl.NumberFormat(locale).format(
-									roundForDisplay(nutrient, sources.total),
+								{formatNutrientTotal(
+									nutrient,
+									{ ...total, amount: sources.total },
+									locale,
 								)}
 								<AppText variant="heading"> {unit}</AppText>
 							</AppText>
 							{group ? (
 								<AppText style={{ textAlign: "center" }}>
-									{targetLabel(group, unit)} ·{" "}
-									{status ? localizedGoalStatus(status.label, locale) : ""}
+									{targetLabel(group, locale)} · {status?.label ?? ""}
 								</AppText>
 							) : null}
 							<View
@@ -219,15 +217,14 @@ export function NutrientSourcesScreen({
 										/>
 										<AppText variant="caption">
 											{t.nutrition.meals[meal]}{" "}
-											{new Intl.NumberFormat(locale).format(
-												roundForDisplay(
-													nutrient,
-													sources.ranked
-														.filter((r) => r.entry.meal === meal)
-														.reduce((sum, r) => sum + r.amount, 0),
-												),
-											)}{" "}
-											{unit}
+											{formatNutrientAmount(
+												nutrient,
+												sources.ranked
+													.filter((r) => r.entry.meal === meal)
+													.reduce((sum, r) => sum + r.amount, 0),
+												locale,
+												{ unit: true },
+											)}
 										</AppText>
 									</View>
 								))}
@@ -304,7 +301,7 @@ export function NutrientSourcesScreen({
 												label={
 													trace
 														? t.nutrition.foodBrowser.trace
-														: `${entry.estimated ? "~ " : ""}${roundForDisplay(nutrient, amount)} ${unit}`
+														: `${entry.estimated ? "~ " : ""}${formatNutrientAmount(nutrient, amount, locale, { unit: true })}`
 												}
 												share={share}
 												relativeShare={

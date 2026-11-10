@@ -1,6 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { convexErrorMessage } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -12,18 +12,18 @@ import {
 } from "react";
 import { ActivityIndicator } from "react-native";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
-import { clearNutritionAccountCache } from "../../data/nutrition-account-cleanup";
 import { todayIsoDate } from "../../dates/calendar-day";
 import { useI18n } from "../../i18n";
 import { clearAccountStores } from "../../local-store/local-store";
 import { PrimaryButton } from "../../ui/button";
-import { FormScreen, TextAction } from "../../ui/form";
+import { FormScreen } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 
 type Request = {
-	mode: "load" | "clear" | "local" | "deleteData" | "deleteAccount";
+	mode: "load" | "clear" | "deleteData" | "deleteAccount";
 	subject: string;
 };
 const AccountDataContext = createContext<
@@ -37,7 +37,7 @@ export function AccountDataMaintenanceProvider({
 	children: ReactNode;
 }) {
 	const { userId, sessionId } = useAuth();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const reset = useMutation(api.testData.reset);
 	const deleteData = useMutation(api.account.deleteData);
 	const { user } = useUser();
@@ -47,12 +47,7 @@ export function AccountDataMaintenanceProvider({
 	const [request, setRequest] = useState<Request | null>(null);
 	const deleting =
 		request?.mode === "deleteData" || request?.mode === "deleteAccount";
-	const c =
-		request?.mode === "local"
-			? t.localData.maintenance
-			: deleting
-				? t.account.deletion
-				: t.testData;
+	const c = deleting ? t.account.deletion : t.testData;
 	const [cleanupFailed, setCleanupFailed] = useState(false);
 	const running = useRef(false);
 	const processed = useRef<Request | null>(null);
@@ -61,8 +56,7 @@ export function AccountDataMaintenanceProvider({
 	const finishCleanup = useCallback(
 		async (subject: string) => {
 			try {
-				if (request?.mode === "local") clearNutritionAccountCache(subject);
-				else clearAccountStores(subject);
+				clearAccountStores(subject);
 			} catch {
 				// clearAccountStores reported what failed; the screen offers a retry.
 				setCleanupFailed(true);
@@ -91,14 +85,12 @@ export function AccountDataMaintenanceProvider({
 		// This effect runs after the old data providers' unmount cleanup.
 		const { mode, subject } = request;
 		const remote =
-			mode === "local"
-				? Promise.resolve()
-				: mode === "load" || mode === "clear"
-					? reset({ mode, today: todayIsoDate(), expectedSubject: subject })
-					: (async () => {
-							// Each batch commits; a retry after an error resumes deleting.
-							while (!(await deleteData({ expectedSubject: subject })).done);
-						})();
+			mode === "load" || mode === "clear"
+				? reset({ mode, today: todayIsoDate(), expectedSubject: subject })
+				: (async () => {
+						// Each batch commits; a retry after an error resumes deleting.
+						while (!(await deleteData({ expectedSubject: subject })).done);
+					})();
 		void remote
 			.then(() => finishCleanup(subject))
 			.catch((error) => {
@@ -123,15 +115,6 @@ export function AccountDataMaintenanceProvider({
 							label={c.retryCleanup}
 							onPress={() => void finishCleanup(request.subject)}
 						/>
-						{request.mode === "local" ? (
-							<TextAction
-								label={t.localData.maintenance.back}
-								onPress={() => {
-									setCleanupFailed(false);
-									setRequest(null);
-								}}
-							/>
-						) : null}
 					</>
 				) : (
 					<>
@@ -146,11 +129,9 @@ export function AccountDataMaintenanceProvider({
 			value={(mode) => {
 				if (!online || !owner.current || running.current) {
 					toast.error(
-						mode === "local"
-							? t.localData.maintenance.offline
-							: mode === "load" || mode === "clear"
-								? t.testData.offline
-								: t.account.deletion.offline,
+						mode === "load" || mode === "clear"
+							? t.testData.offline
+							: t.account.deletion.offline,
 					);
 					return;
 				}
@@ -175,10 +156,4 @@ export function useAccountDeletion() {
 	const maintain = use(AccountDataContext);
 	if (!maintain) throw new Error("AccountDataMaintenanceProvider is missing");
 	return (mode: "deleteData" | "deleteAccount") => maintain(mode);
-}
-
-export function useLocalDataCleanup() {
-	const maintain = use(AccountDataContext);
-	if (!maintain) throw new Error("AccountDataMaintenanceProvider is missing");
-	return () => maintain("local");
 }

@@ -1,16 +1,17 @@
-import { isRealIsoDate, MEAL_SLOTS } from "@foundry/core";
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
+import { MEAL_SLOTS } from "@foundry/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
 import {
 	type DiaryEntryWithMeal,
 	useNutritionDay,
 } from "../../src/data/nutrition-day";
-import { todayIsoDate } from "../../src/dates/calendar-day";
 import { DiaryEntryTransferScreen } from "../../src/features/nutrition/diary-entry/diary-entry-transfer-screen";
+import { diaryRouteParams } from "../../src/features/nutrition/diary-route-params";
 import { useI18n } from "../../src/i18n";
 import { AppText } from "../../src/ui/text";
 
-export { ErrorBoundary } from "./nutrition-entry";
 export default function NutritionEntryTransferRoute() {
 	const params = useLocalSearchParams<{
 		date?: string;
@@ -18,8 +19,7 @@ export default function NutritionEntryTransferRoute() {
 		mode?: string;
 	}>();
 	const { t } = useI18n();
-	const date =
-		params.date && isRealIsoDate(params.date) ? params.date : todayIsoDate();
+	const { date } = diaryRouteParams(params);
 	const state = useNutritionDay(date);
 	const retained = useRef<DiaryEntryWithMeal[] | null>(null);
 	if (!retained.current && state.status === "ready") {

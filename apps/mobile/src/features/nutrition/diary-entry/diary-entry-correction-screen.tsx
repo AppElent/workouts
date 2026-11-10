@@ -1,6 +1,7 @@
 import {
 	correctDiaryNutrients,
 	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFoodDraft,
@@ -20,6 +21,7 @@ import { useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { FormScreen, FormSection, FormTextField } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 const nutrientInput = z.string().refine((value) => {
 	const v = value.trim();
@@ -121,6 +123,7 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 	}, [leaving]);
 	const mismatch = source !== undefined && source.baseUnit !== entry.baseUnit;
 	const failure = copy.failure;
+	const writeFailureMessage = useWriteFailureMessage();
 	const form = useForm({
 		defaultValues: { nutrients: initial, convertedAmount: "" },
 		onSubmit: async ({ value }) => {
@@ -201,8 +204,8 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 				}
 				await diary.update({ kind: "serverId", id: entry.id }, { correction });
 				setLeaving(true);
-			} catch {
-				setError(failure);
+			} catch (error) {
+				setError(writeFailureMessage(error, failure));
 			} finally {
 				lock.current = false;
 				setBusy(false);
@@ -311,7 +314,7 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 								{(field) => (
 									<FormTextField
 										editable={!busy}
-										label={`${t.nutrition.nutrients[n]} (${n === "energy" ? "kcal" : "g"})`}
+										label={`${t.nutrition.nutrients[n]} (${NUTRIENT_UNITS[n]})`}
 										value={field.state.value}
 										onChangeText={field.handleChange}
 										keyboardType="numbers-and-punctuation"

@@ -74,7 +74,7 @@ check is worth repeating; give its controls a `testID` and reuse `subflows/launc
 Most PRs touch `src/data/*` or feature hooks; Jest covers those directly:
 
 ```bash
-pnpm --filter @foundry/mobile test --runInBand src/data/nutrition-goal-history.test.ts
+pnpm --filter @foundry/mobile test --runInBand src/features/nutrition/goals/goal-draft.test.ts
 ```
 
 Full gates are in `docs/runbooks/verification.md`.

@@ -2,8 +2,8 @@ import {
 	groupFoodNutrientSources,
 	type IsoDate,
 	isoWeek,
+	NUTRIENT_UNITS,
 	type NutrientKey,
-	roundForDisplay,
 	weekAverage,
 } from "@foundry/core";
 import { router, Stack } from "expo-router";
@@ -21,16 +21,12 @@ import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { FoodVisualView } from "../components/food-visual";
+import { formatNutrientAmount } from "../nutrient-amount";
 import { NutrientSourceValue } from "../nutrient-sources/components/nutrient-source-value";
 import { WeekBars } from "./components/week-bars";
 import { useWeekEntries, type WeekEntry } from "./use-week-entries";
 import { useWeekReview } from "./use-week-review";
-import {
-	weekDayParts,
-	weekGoalLabel,
-	weekNumber,
-	weekUnit,
-} from "./week-format";
+import { weekDayParts, weekGoalLabel } from "./week-format";
 import {
 	dayGoalBounds,
 	weekDayStatus,
@@ -51,7 +47,7 @@ export function WeekSourcesScreen({
 	const colors = useTokens();
 	const { days, today, week } = useWeekReview(startDate);
 	const entries = useWeekEntries(week);
-	const unit = weekUnit(nutrient);
+	const unit = NUTRIENT_UNITS[nutrient];
 	const name = t.nutrition.nutrients[nutrient];
 	const openEntry = (entry: WeekEntry) =>
 		router.push({
@@ -174,7 +170,9 @@ export function WeekSourcesScreen({
 													count?.kind === "over" ? colors.danger : colors.text,
 											}}
 										>
-											{average ? weekNumber(average.value, locale) : "–"}
+											{average
+												? formatNutrientAmount(nutrient, average.value, locale)
+												: "–"}
 											<AppText variant="heading"> {unit}</AppText>
 										</AppText>
 										<AppText variant="footnote" style={{ textAlign: "center" }}>
@@ -215,7 +213,7 @@ export function WeekSourcesScreen({
 												status,
 												minimum: bounds?.min,
 												maximum: bounds?.max,
-												accessibilityLabel: `${part.long}, ${weekNumber(day.totals[nutrient].amount, locale)} ${unit}, ${copy.status[status]}`,
+												accessibilityLabel: `${part.long}, ${formatNutrientAmount(nutrient, day.totals[nutrient].amount, locale)} ${unit}, ${copy.status[status]}`,
 											};
 										})}
 									/>
@@ -332,7 +330,14 @@ export function WeekSourcesScreen({
 													}
 													trailing={
 														<NutrientSourceValue
-															label={`${roundForDisplay(nutrient, source.amount)} ${unit}`}
+															label={formatNutrientAmount(
+																nutrient,
+																source.amount,
+																locale,
+																{
+																	unit: true,
+																},
+															)}
 															share={source.share}
 															relativeShare={
 																sources.ranked[0]?.amount

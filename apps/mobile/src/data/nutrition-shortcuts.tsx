@@ -1,6 +1,7 @@
 import {
 	type BaseUnit,
 	canonicalJson,
+	LIBRARY_GET_MANY_LIMIT,
 	type MealSlot,
 	type ServingOption,
 } from "@foundry/core";
@@ -42,6 +43,14 @@ export function foodSourceKey(
 /** The shortcut key of a saved combo, so it can be a favourite like a food. */
 export function comboSourceKey(id: string): string {
 	return `combo:${id}`;
+}
+
+/** The Personal Food and Combo ids behind shortcut keys, as many as one library read takes. */
+export function libraryIdsFromSourceKeys(keys: readonly string[]): string[] {
+	return keys
+		.filter((key) => key.startsWith("personal:") || key.startsWith("combo:"))
+		.slice(0, LIBRARY_GET_MANY_LIMIT)
+		.map((key) => key.slice(key.indexOf(":") + 1));
 }
 
 export function servingKey(option: ServingOption): string {

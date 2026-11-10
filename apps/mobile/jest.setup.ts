@@ -583,7 +583,7 @@ jest.mock("convex/react", () => {
 					: emptyQueryResult,
 		),
 		// The training marker's non-throwing query form (see
-		// `src/data/training-marker.ts`). Defaults to "no completed Activity
+		// `src/features/nutrition/diary/use-trained-dates.ts`). Defaults to "no completed Activity
 		// found"; marker-specific tests override this per case.
 		useQuery_experimental: jest.fn(() => ({
 			status: "success" as const,

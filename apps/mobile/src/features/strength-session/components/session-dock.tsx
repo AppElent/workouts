@@ -24,7 +24,12 @@ import { AppText } from "../../../ui/text";
 import { useRestState, useRestTimer } from "../data/rest-timer";
 import { workspaceStore } from "../data/session-workspace";
 import { formatScore } from "../session-format";
-import { amrapScore, runningGroup, type SetGroup } from "../session-plan";
+import {
+	amrapScore,
+	REST_STEP_SECONDS,
+	runningGroup,
+	type SetGroup,
+} from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
 
 /** The one action a group's clock offers right now. */
@@ -179,15 +184,15 @@ function RestPill() {
 	const controls = (
 		<View style={styles.controls}>
 			<RestButton
-				label="−15"
-				spoken={copy.subtract}
+				label={`−${REST_STEP_SECONDS}`}
+				spoken={fmt(copy.subtract, { seconds: REST_STEP_SECONDS })}
 				disabled={state.over}
-				onPress={() => rest.adjust(-15)}
+				onPress={() => rest.adjust(-REST_STEP_SECONDS)}
 			/>
 			<RestButton
-				label="+15"
-				spoken={copy.add}
-				onPress={() => rest.adjust(15)}
+				label={`+${REST_STEP_SECONDS}`}
+				spoken={fmt(copy.add, { seconds: REST_STEP_SECONDS })}
+				onPress={() => rest.adjust(REST_STEP_SECONDS)}
 			/>
 			<Pressable
 				accessibilityRole="button"
