@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 interface Props {
 	session: Doc<"workoutSessions">;
@@ -34,6 +34,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const removeSession = useMutation(api.workoutSessions.remove);
 	const confirm = useConfirm();
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 	const wodResults =
 		useQuery(api.wodResults.listForSession, { sessionId: session._id }) ?? [];
 	const wods = useQuery(api.wods.list) ?? [];
@@ -81,7 +82,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 		} catch (err) {
 			toast.error(
 				"Couldn't delete workout",
-				getConvexErrorMessage(err, "Please try again."),
+				errorMessage(err, "Please try again."),
 			);
 			return;
 		}

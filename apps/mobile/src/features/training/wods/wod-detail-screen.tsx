@@ -30,7 +30,7 @@ import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
 import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -51,6 +51,7 @@ export function WodDetailScreen({
 }: {
 	onEdit: (id: Id<"wods">) => void;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
@@ -83,7 +84,7 @@ export function WodDetailScreen({
 			await removeWod({ id: wodId });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteWodError));
+			toast.error(errorMessage(error, copy.deleteWodError));
 		}
 	};
 
@@ -97,7 +98,7 @@ export function WodDetailScreen({
 		try {
 			await removeResult({ id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteResultError));
+			toast.error(errorMessage(error, copy.deleteResultError));
 		}
 	};
 
@@ -246,6 +247,7 @@ function LogResultForm({
 	wod: Doc<"wods">;
 	best: Doc<"wodResults"> | null;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
@@ -293,7 +295,7 @@ function LogResultForm({
 			setNotes("");
 			setCapped(false);
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.logError));
+			toast.error(errorMessage(error, copy.logError));
 		} finally {
 			setBusy(false);
 		}

@@ -9,6 +9,7 @@ vi.mock("@convex/_generated/api", () => ({
 	api: { wodResults: { log: "log" } },
 }));
 
+import { LocaleProvider } from "#/lib/i18n";
 import { LogWodResultForm } from "./LogWodResultForm";
 
 afterEach(() => {
@@ -18,7 +19,11 @@ afterEach(() => {
 
 it("logs a load score in the chosen unit", async () => {
 	log.mockResolvedValue(undefined);
-	render(<LogWodResultForm wodId={"wod" as Id<"wods">} type="load" />);
+	render(
+		<LocaleProvider initialLocale="en">
+			<LogWodResultForm wodId={"wod" as Id<"wods">} type="load" />
+		</LocaleProvider>,
+	);
 	fireEvent.click(screen.getByRole("button", { name: /increase load/i }));
 	fireEvent.change(screen.getByLabelText("Load unit"), {
 		target: { value: "lbs" },

@@ -11,7 +11,7 @@ import { View } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { isoDateToLocalDate, todayIsoDate } from "../../../dates/calendar-day";
 import { dateLocale, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -73,6 +73,7 @@ export function EnduranceEditorForm({
 	onCreated?: (id: Id<"activities">) => void;
 	nativeSheet?: boolean;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const router = useRouter();
 	const colors = useTokens();
 	const navigation = useNavigation();
@@ -199,7 +200,7 @@ export function EnduranceEditorForm({
 			}
 			setAllowLeave(true);
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.saveError));
+			toast.error(errorMessage(error, copy.saveError));
 		}
 	}
 

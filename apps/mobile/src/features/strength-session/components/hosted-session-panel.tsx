@@ -21,7 +21,7 @@ import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -125,6 +125,7 @@ function ScoreBox({
 	writable: boolean;
 	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
@@ -168,7 +169,7 @@ function ScoreBox({
 			// nothing on-screen to confirm the submission landed.
 			toast.success(fmt(copy.submitted, { name }));
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.submitError));
+			toast.error(errorMessage(error, copy.submitError));
 		}
 	};
 

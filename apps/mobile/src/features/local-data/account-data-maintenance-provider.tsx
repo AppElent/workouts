@@ -1,5 +1,5 @@
 import { useAuth, useUser } from "@clerk/expo";
-import { parseConvexError } from "@foundry/core";
+import { convexErrorMessage } from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -102,16 +102,16 @@ export function AccountDataMaintenanceProvider({
 		void remote
 			.then(() => finishCleanup(subject))
 			.catch((error) => {
-				const { code } = parseConvexError(error);
+				const refusals = "refusals" in c ? c.refusals : {};
 				toast.error(
-					code && Object.hasOwn(c, code) ? c[code as keyof typeof c] : c.error,
+					convexErrorMessage(error, { ...t.errors, ...refusals }, c.error),
 				);
 				setRequest(null);
 			})
 			.finally(() => {
 				running.current = false;
 			});
-	}, [request, reset, deleteData, finishCleanup, toast, c]);
+	}, [request, reset, deleteData, finishCleanup, toast, c, t.errors]);
 	if (request)
 		return (
 			<FormScreen>

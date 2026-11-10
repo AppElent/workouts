@@ -18,7 +18,7 @@ import { SetEditSheet } from "#/components/session/SetEditSheet";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { Modal, ModalHeader } from "#/components/ui/Modal";
 import { useToast } from "#/components/ui/toast";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 
 function isEmptySessionError(error: unknown) {
@@ -51,6 +51,7 @@ function ActiveSessionPage() {
 	const addExercise = useMutation(api.workoutSessions.addExercise);
 	const confirm = useConfirm();
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 	const submitHostedScore = useMutation(
 		api.hostedWorkoutSubmissions.submitForSession,
 	);
@@ -131,7 +132,7 @@ function ActiveSessionPage() {
 		} catch (error) {
 			toast.error(
 				"Couldn't add exercise",
-				getConvexErrorMessage(error, "Please try again."),
+				errorMessage(error, "Please try again."),
 			);
 		}
 	}
@@ -168,7 +169,7 @@ function ActiveSessionPage() {
 			}
 			toast.error(
 				"Couldn't finish workout",
-				getConvexErrorMessage(err, "Please try again."),
+				errorMessage(err, "Please try again."),
 			);
 		}
 	}
@@ -190,7 +191,7 @@ function ActiveSessionPage() {
 		} catch (err) {
 			toast.error(
 				"Couldn't cancel workout",
-				getConvexErrorMessage(err, "Please try again."),
+				errorMessage(err, "Please try again."),
 			);
 		}
 	}

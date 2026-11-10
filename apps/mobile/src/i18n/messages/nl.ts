@@ -7,6 +7,7 @@ import { commonNl } from "./common";
 import type { en } from "./en";
 import { enduranceNl } from "./endurance";
 import { entryEditorNl } from "./entry-editor";
+import { errorsNl } from "./errors";
 import { exerciseLibraryNl } from "./exercise-library";
 import { feedbackNl } from "./feedback";
 import { hostedNl } from "./hosted";
@@ -53,6 +54,7 @@ export const nl = {
 	routes: routesNl,
 	feedback: feedbackNl,
 	common: commonNl,
+	errors: errorsNl,
 	preferences: preferencesNl,
 	appearance: appearanceNl,
 	language: languageNl,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import { fmt, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { useToast } from "../../../ui/toast";
 
@@ -16,6 +16,7 @@ export type MeasureUnit = "g" | "ml";
  * list. Changes need a connection; offline the lists stay readable.
  */
 export function usePersonalMeasuresEditor() {
+	const errorMessage = useConvexErrorMessage();
 	const { t } = useI18n();
 	const copy = t.nutrition.personalMeasures;
 	const confirm = useConfirm();
@@ -56,7 +57,7 @@ export function usePersonalMeasuresEditor() {
 				cache([...local, created]);
 			}
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.saveFailure));
+			toast.error(errorMessage(error, copy.saveFailure));
 			throw error;
 		} finally {
 			setPending(false);
@@ -78,7 +79,7 @@ export function usePersonalMeasuresEditor() {
 			await removeMeasure({ id: measure.id as never });
 			cache(local.filter((item) => item.id !== measure.id));
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteFailure));
+			toast.error(errorMessage(error, copy.deleteFailure));
 		} finally {
 			setPending(false);
 		}
@@ -105,7 +106,7 @@ export function usePersonalMeasuresEditor() {
 			await reorderMeasures({ ids: ordered.map((item) => item.id as never) });
 		} catch (error) {
 			cache(before);
-			toast.error(convexErrorMessage(error, copy.reorderFailure));
+			toast.error(errorMessage(error, copy.reorderFailure));
 		} finally {
 			setPending(false);
 		}

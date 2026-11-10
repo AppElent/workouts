@@ -13,7 +13,7 @@ import {
 	useWodScoreDraft,
 	WodScoreFields,
 } from "#/components/wods/WodScoreFields";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { wodScoreFromForm } from "#/lib/wodScore";
 
 export type HostedScorePayload = {
@@ -40,6 +40,7 @@ export function HostedScoreForm({
 	const selectedLevelMovements =
 		selectedWod?.levels.find((entry) => entry.level === level)?.movements ?? [];
 	const score = useWodScoreDraft();
+	const errorMessage = useConvexErrorMessage();
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export function HostedScoreForm({
 			setNotes("");
 			setMessage("Score submitted.");
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to submit score."));
+			setError(errorMessage(err, "Failed to submit score."));
 		} finally {
 			setSaving(false);
 		}

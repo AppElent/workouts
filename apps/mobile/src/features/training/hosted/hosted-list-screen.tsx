@@ -28,7 +28,7 @@ import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -45,6 +45,7 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 
 export function HostedListScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
@@ -68,7 +69,7 @@ export function HostedListScreen() {
 			setToken("");
 			router.push({ pathname: "/session", params: { id: sessionId } });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.joinError));
+			toast.error(errorMessage(error, copy.joinError));
 		} finally {
 			setBusy(false);
 		}

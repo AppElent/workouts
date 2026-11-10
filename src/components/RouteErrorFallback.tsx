@@ -1,9 +1,10 @@
+import { convexErrorMessage } from "@foundry/core";
 import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import { EmptyState } from "#/components/ui/empty-state";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { errors } from "#/lib/i18n/messages/en/errors";
 import { reportError } from "#/lib/observability/errors";
 
 /**
@@ -26,8 +27,9 @@ export function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
 			<EmptyState
 				icon={AlertTriangle}
 				title="Something went wrong"
-				description={getConvexErrorMessage(
+				description={convexErrorMessage(
 					error,
+					errors,
 					"An unexpected error occurred.",
 				)}
 				action={

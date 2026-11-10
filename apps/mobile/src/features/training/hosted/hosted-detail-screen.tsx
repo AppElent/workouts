@@ -18,7 +18,7 @@ import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -41,6 +41,7 @@ const LEVEL_LABEL: Record<string, string> = {
 };
 
 export function HostedDetailScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
@@ -66,7 +67,7 @@ export function HostedDetailScreen() {
 		try {
 			await action();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, fallback));
+			toast.error(errorMessage(error, fallback));
 		} finally {
 			setBusy(false);
 		}
@@ -96,7 +97,7 @@ export function HostedDetailScreen() {
 			await removeWorkout({ id: hostedId });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteError));
+			toast.error(errorMessage(error, copy.deleteError));
 		} finally {
 			setBusy(false);
 		}

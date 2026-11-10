@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
-import { parseConvexError } from "@foundry/core";
+import { convexErrorMessage } from "@foundry/core";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { useRef, useState } from "react";
@@ -9,26 +9,12 @@ import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { useMessages } from "#/lib/i18n";
 
-/** Convex error codes from testData.reset that have their own message. */
-const ERROR_CODES = [
-	"tooLarge",
-	"accountChanged",
-	"unauthenticated",
-	"unavailable",
-	"activeActivity",
-	"hostedWorkout",
-] as const;
-
-function isKnownError(code: string | undefined) {
-	return ERROR_CODES.find((known) => known === code);
-}
-
 export function TestDataCard() {
 	const { userId } = useAuth();
 	const status = useQuery(api.testData.availability, {});
 	const reset = useMutation(api.testData.reset);
 	const online = useConvexConnectionState().isWebSocketConnected;
-	const { testData: c } = useMessages();
+	const { testData: c, errors } = useMessages();
 	const confirm = useConfirm();
 	const toast = useToast();
 	const pending = useRef(false);
@@ -63,8 +49,9 @@ export function TestDataCard() {
 			// Web reads personal data reactively from Convex and has no durable food cache.
 			toast.success(c.success);
 		} catch (error) {
-			const code = isKnownError(parseConvexError(error).code);
-			toast.error(code ? c[code] : c.error);
+			toast.error(
+				convexErrorMessage(error, { ...errors, ...c.refusals }, c.error),
+			);
 		} finally {
 			pending.current = false;
 			setBusy(null);
@@ -79,7 +66,7 @@ export function TestDataCard() {
 			<h2 className="text-lg font-semibold">{c.title}</h2>
 			<p className="text-sm text-[var(--text-muted)]">{c.description}</p>
 			{status.blocker ? (
-				<p role="status">{c[status.blocker]}</p>
+				<p role="status">{c.refusals[status.blocker]}</p>
 			) : !online ? (
 				<p role="status">{c.offline}</p>
 			) : null}

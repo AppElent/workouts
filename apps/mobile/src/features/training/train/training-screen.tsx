@@ -6,7 +6,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
 import { plural, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing, useTokens } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -20,6 +20,7 @@ import { useStartStrengthSession } from "../use-start-strength-session";
 import { type Routine, useTrainingData } from "../use-training-data";
 
 export function TrainingScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const router = useRouter();
 	const {
@@ -65,7 +66,7 @@ export function TrainingScreen() {
 				return;
 			await removeRoutine({ id: routine._id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteError));
+			toast.error(errorMessage(error, copy.deleteError));
 		} finally {
 			deleting.current = false;
 			setRemoving(false);

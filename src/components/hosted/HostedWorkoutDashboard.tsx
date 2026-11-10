@@ -12,7 +12,7 @@ import {
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const data = useQuery(api.hostedWorkouts.getMine, { id });
@@ -27,6 +27,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirm();
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 
 	const joinUrl = useMemo(() => {
 		if (!data?.hosted.joinToken) return "";
@@ -55,10 +56,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 		try {
 			await action();
 		} catch (err) {
-			toast.error(
-				"Action failed",
-				getConvexErrorMessage(err, "Something went wrong."),
-			);
+			toast.error("Action failed", errorMessage(err, "Something went wrong."));
 		}
 	}
 

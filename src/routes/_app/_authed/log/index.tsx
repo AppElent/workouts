@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { Dumbbell, Play } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export const Route = createFileRoute("/_app/_authed/log/")({
 	component: LogPage,
@@ -14,6 +14,7 @@ function LogPage() {
 	const activeSession = useQuery(api.workoutSessions.getActive);
 	const routines = useQuery(api.routines.list) ?? [];
 	const createSession = useMutation(api.workoutSessions.create);
+	const errorMessage = useConvexErrorMessage();
 
 	const [sessionName, setSessionName] = useState("");
 	const [creating, setCreating] = useState(false);
@@ -40,7 +41,7 @@ function LogPage() {
 			});
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to start session"));
+			setError(errorMessage(err, "Failed to start session"));
 			setCreating(false);
 		}
 	}

@@ -5,7 +5,7 @@ import type { FunctionReturnType } from "convex/server";
 import { format } from "date-fns";
 import { Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 
 function download(filename: string, content: string, type: string) {
@@ -88,6 +88,7 @@ function setsToCsv(
 export function ExportDataCard() {
 	const convex = useConvex();
 	const exercises = useExercises();
+	const errorMessage = useConvexErrorMessage();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -118,7 +119,7 @@ export function ExportDataCard() {
 				);
 			}
 		} catch (e) {
-			setError(getConvexErrorMessage(e, "Export failed."));
+			setError(errorMessage(e, "Export failed."));
 		} finally {
 			setBusy(false);
 		}

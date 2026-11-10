@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Platform } from "react-native";
 import { api } from "../../../convex/api";
 import { parseLocalizedDecimal, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { useTokens } from "../../../theme";
 import {
 	DisclosureRow,
@@ -37,6 +37,7 @@ export function ExerciseEditorForm({
 	mode?: "new" | "edit" | "clone";
 	onClose: (createdName?: string) => void;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const { t } = useI18n();
 	const c = t.exercises;
 	const colors = useTokens();
@@ -142,10 +143,7 @@ export function ExerciseEditorForm({
 			onClose(name.trim());
 		} catch (error) {
 			toast.error(
-				convexErrorMessage(
-					error,
-					mode === "edit" ? c.updateError : c.createError,
-				),
+				errorMessage(error, mode === "edit" ? c.updateError : c.createError),
 			);
 		} finally {
 			setBusy(false);

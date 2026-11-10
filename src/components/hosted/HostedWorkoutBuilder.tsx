@@ -17,7 +17,7 @@ import {
 	wodTimingFromMinutes,
 	wodTimingMinutes,
 } from "#/components/hosted/wodBlock";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 
 type HostedWorkout = Doc<"hostedWorkouts">;
@@ -91,6 +91,7 @@ export function HostedWorkoutBuilder({
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
 	const exercises = useExercises();
+	const errorMessage = useConvexErrorMessage();
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [notes, setNotes] = useState(initial?.notes ?? "");
 	const [scheduledAt, setScheduledAt] = useState(
@@ -161,7 +162,7 @@ export function HostedWorkoutBuilder({
 				onSaved(id);
 			}
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to save workout"));
+			setError(errorMessage(err, "Failed to save workout"));
 		} finally {
 			setSaving(false);
 		}

@@ -10,7 +10,7 @@ import {
 	HostedStrengthBlocks,
 	HostedWodBlockCard,
 } from "#/components/hosted/HostedBlocks";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
@@ -19,6 +19,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 	const data = useQuery(api.hostedWorkouts.getByJoinToken, { token });
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const submitGuest = useMutation(api.hostedWorkoutSubmissions.submitGuest);
+	const errorMessage = useConvexErrorMessage();
 	const [joining, setJoining] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
 	// Prefill the leaderboard name from the Clerk identity, but let the athlete
@@ -39,7 +40,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 			});
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setJoinError(getConvexErrorMessage(err, "Failed to join workout."));
+			setJoinError(errorMessage(err, "Failed to join workout."));
 			setJoining(false);
 		}
 	}
