@@ -1,6 +1,7 @@
 import {
 	correctDiaryNutrients,
 	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFoodDraft,
@@ -313,7 +314,7 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 								{(field) => (
 									<FormTextField
 										editable={!busy}
-										label={`${t.nutrition.nutrients[n]} (${n === "energy" ? "kcal" : "g"})`}
+										label={`${t.nutrition.nutrients[n]} (${NUTRIENT_UNITS[n]})`}
 										value={field.state.value}
 										onChangeText={field.handleChange}
 										keyboardType="numbers-and-punctuation"

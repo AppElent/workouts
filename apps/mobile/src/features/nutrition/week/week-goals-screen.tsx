@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, weekAverage } from "@foundry/core";
+import { NUTRIENT_KEYS, NUTRIENT_UNITS, weekAverage } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
@@ -7,14 +7,10 @@ import { fmt, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
+import { formatNutrientAmount } from "../nutrient-amount";
 import { WeekStatusMark } from "./components/week-status-mark";
 import { useWeekReview } from "./use-week-review";
-import {
-	weekDayParts,
-	weekGoalLabel,
-	weekNumber,
-	weekUnit,
-} from "./week-format";
+import { weekDayParts, weekGoalLabel } from "./week-format";
 import { weekDayStatus, weekGoalCount } from "./week-summary";
 
 /** Every goal over the week: its average and how many days stayed within it. */
@@ -116,7 +112,7 @@ export function WeekGoalsScreen({ startDate }: { startDate?: string }) {
 								<Pressable
 									key={nutrient}
 									accessibilityRole="button"
-									accessibilityLabel={`${name}, ${goal ?? ""}, ${average ? `${weekNumber(average.value, locale)} ${weekUnit(nutrient)} ${copy.averageLabel}` : copy.noAverage}. ${countText ?? ""}`}
+									accessibilityLabel={`${name}, ${goal ?? ""}, ${average ? `${formatNutrientAmount(nutrient, average.value, locale)} ${NUTRIENT_UNITS[nutrient]} ${copy.averageLabel}` : copy.noAverage}. ${countText ?? ""}`}
 									onPress={() =>
 										router.push({
 											pathname: "/nutrition-week-sources",
@@ -160,11 +156,17 @@ export function WeekGoalsScreen({ startDate }: { startDate?: string }) {
 															: colors.text,
 												}}
 											>
-												{average ? weekNumber(average.value, locale) : "–"}
+												{average
+													? formatNutrientAmount(
+															nutrient,
+															average.value,
+															locale,
+														)
+													: "–"}
 											</AppText>
 											<AppText variant="caption">
 												{" "}
-												{weekUnit(nutrient)} {copy.averageLabel}
+												{NUTRIENT_UNITS[nutrient]} {copy.averageLabel}
 											</AppText>
 										</AppText>
 										<SymbolView

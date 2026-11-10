@@ -39,13 +39,8 @@ import { GroupedSurface } from "../../../../ui/form";
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
 import { useWriteFailureMessage } from "../../../../ui/use-screen-write";
-
-import {
-	displayAmount,
-	localizedGoalStatus,
-	outcome,
-	targetLabel,
-} from "../goal-presentation";
+import { formatNutrientTotal } from "../../nutrient-amount";
+import { outcome, targetLabel } from "../goal-presentation";
 
 import { GoalRowMenu } from "./goal-row-menu";
 
@@ -62,7 +57,8 @@ function GoalProgressTrack({
 	const styles = useThemedStyles(createStyles);
 	const denominator = group.max ?? group.min ?? 1;
 	const fraction = Math.max(0, Math.min(1, (total?.amount ?? 0) / denominator));
-	const status = outcome(colors, t, group, total);
+	const { locale } = useI18n();
+	const status = outcome(colors, { t, locale }, group, total);
 	const neutral = !total || total.incomplete || total.qualified;
 	return (
 		<View style={styles.track}>
@@ -111,15 +107,16 @@ function GoalProgressRow({
 	const { locale } = useI18n();
 	const styles = useThemedStyles(createStyles);
 	const colors = useTokens();
-	const unit = t.nutrition.units[NUTRIENT_UNITS[group.nutrient]];
-	const value = `${displayAmount(group.nutrient, total, locale)} / ${targetLabel(group, unit)}`;
-	const status = outcome(colors, t, group, total);
+	const unit = NUTRIENT_UNITS[group.nutrient];
+	const target = targetLabel(group, locale);
+	const value = `${formatNutrientTotal(group.nutrient, total, locale)} / ${target}`;
+	const status = outcome(colors, { t, locale }, group, total);
 	return (
 		<Pressable
 			accessible
 			disabled={!onPress && !onLongPress && !onEdit && !onReorder}
 			onPress={onPress}
-			accessibilityLabel={`${t.nutrition.nutrients[group.nutrient]}: ${value}. ${localizedGoalStatus(status.label, locale)}.`}
+			accessibilityLabel={`${t.nutrition.nutrients[group.nutrient]}: ${value}. ${status.label}.`}
 			accessibilityActions={
 				onEdit || onReorder
 					? [
@@ -154,7 +151,7 @@ function GoalProgressRow({
 					<AppText style={styles.goalName}>
 						{t.nutrition.nutrients[group.nutrient]}
 					</AppText>
-					<AppText variant="caption">{targetLabel(group, unit)}</AppText>
+					<AppText variant="caption">{target}</AppText>
 				</View>
 				<AppText
 					variant="control"
@@ -170,7 +167,7 @@ function GoalProgressRow({
 						},
 					]}
 				>
-					{displayAmount(group.nutrient, total, locale)}
+					{formatNutrientTotal(group.nutrient, total, locale)}
 					<AppText variant="footnote"> {unit}</AppText>
 				</AppText>
 				{onPress ? (
@@ -183,7 +180,7 @@ function GoalProgressRow({
 			</View>
 			<GoalProgressTrack t={t} group={group} total={total} />
 			<AppText variant="caption" style={{ color: status.color }}>
-				{localizedGoalStatus(status.label, locale)}
+				{status.label}
 			</AppText>
 		</Pressable>
 	);

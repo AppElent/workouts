@@ -1,13 +1,9 @@
-import {
-	type MealSlot,
-	NUTRIENT_KEYS,
-	type NutrientKey,
-	roundForDisplay,
-} from "@foundry/core";
+import { type MealSlot, NUTRIENT_KEYS, type NutrientKey } from "@foundry/core";
 import { useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
 import { fmt, useI18n } from "../../../i18n";
+import { formatNutrientAmount } from "../nutrient-amount";
 import { useDiaryWrite } from "../use-diary-write";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
@@ -101,7 +97,7 @@ export function useOneOffDraft({
 							return [
 								key,
 								value.kind === "value"
-									? roundForDisplay(key, value.amount).toLocaleString(locale)
+									? formatNutrientAmount(key, value.amount, locale)
 									: "—",
 							];
 						}),

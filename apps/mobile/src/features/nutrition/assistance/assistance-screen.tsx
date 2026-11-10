@@ -67,6 +67,7 @@ import { NutritionAiConsent } from "../components/nutrition-ai-consent";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { formatNutrientAmount } from "../nutrient-amount";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { Notice } from "../personal-food/personal-food-label-scan";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
@@ -1419,7 +1420,7 @@ function Review({
 								// figure, and the known part marked incomplete otherwise.
 								totals[key].known === 0
 									? "—"
-									: `${approximate ? "~ " : ""}${roundForDisplay(key, totals[key].amount).toLocaleString(locale)} ${key === "energy" ? "kcal" : "g"}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
+									: `${approximate ? "~ " : ""}${formatNutrientAmount(key, totals[key].amount, locale, { unit: true })}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
 							}
 						</AppText>
 					</View>

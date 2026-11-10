@@ -1,4 +1,9 @@
-import { type IsoDate, isoWeek, weekAverage } from "@foundry/core";
+import {
+	type IsoDate,
+	isoWeek,
+	NUTRIENT_UNITS,
+	weekAverage,
+} from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
@@ -14,6 +19,7 @@ import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { formatNutrientAmount } from "../nutrient-amount";
 import { WeekBars } from "./components/week-bars";
 import { WeekDatePicker } from "./components/week-date-picker";
 import { WeekMenu } from "./components/week-menu";
@@ -21,12 +27,7 @@ import { WeekStatusGrid } from "./components/week-status-grid";
 import { WeekStatusMark } from "./components/week-status-mark";
 import { WeekStrip } from "./components/week-strip";
 import { useWeekReview } from "./use-week-review";
-import {
-	weekDayParts,
-	weekGoalLabel,
-	weekNumber,
-	weekUnit,
-} from "./week-format";
+import { weekDayParts, weekGoalLabel } from "./week-format";
 import {
 	dayGoalBounds,
 	WEEK_NUTRIENTS,
@@ -209,7 +210,7 @@ function WeekContent({
 	const averageText = (nutrient: (typeof WEEK_NUTRIENTS)[number]) => {
 		const average = weekAverage(days, nutrient, today);
 		return average
-			? `${copy.averageLabel} ${weekNumber(average.value, locale)} ${weekUnit(nutrient)}`
+			? `${copy.averageLabel} ${formatNutrientAmount(nutrient, average.value, locale)} ${NUTRIENT_UNITS[nutrient]}`
 			: undefined;
 	};
 	return (
@@ -227,7 +228,11 @@ function WeekContent({
 							<AppText variant="secondary" style={{ color: colors.text }}>
 								<AppText style={{ fontWeight: "800" }}>
 									{fmt(copy.average, {
-										value: weekNumber(energyAverage.value, locale),
+										value: formatNutrientAmount(
+											"energy",
+											energyAverage.value,
+											locale,
+										),
 									})}
 								</AppText>{" "}
 								<AppText variant="caption">kcal</AppText>
@@ -252,7 +257,7 @@ function WeekContent({
 								status,
 								minimum: bounds?.min,
 								maximum: bounds?.max,
-								accessibilityLabel: `${parts[index].long}, ${weekNumber(day.totals.energy.amount, locale)} kcal, ${copy.status[status]}`,
+								accessibilityLabel: `${parts[index].long}, ${formatNutrientAmount("energy", day.totals.energy.amount, locale)} kcal, ${copy.status[status]}`,
 							};
 						})}
 					/>
@@ -369,7 +374,7 @@ function WeekContent({
 								.map((nutrient) => {
 									const average = weekAverage(days, nutrient, today);
 									return average
-										? `${t.nutrition.nutrients[nutrient].toLowerCase()} ${weekNumber(average.value, locale)} g`
+										? `${t.nutrition.nutrients[nutrient].toLowerCase()} ${formatNutrientAmount(nutrient, average.value, locale, { unit: true })}`
 										: undefined;
 								})
 								.filter(Boolean)
@@ -496,14 +501,18 @@ function WeekContent({
 										) : null}
 										<AppText variant="secondary" style={{ color: colors.text }}>
 											<AppText style={{ fontWeight: "700" }}>
-												{weekNumber(day.totals.energy.amount, locale)}
+												{formatNutrientAmount(
+													"energy",
+													day.totals.energy.amount,
+													locale,
+												)}
 											</AppText>{" "}
 											<AppText variant="caption">kcal</AppText>
 										</AppText>
 									</View>
 								}
 								chevron
-								accessibilityLabel={`${name} ${part.dayMonth}, ${items}${noteLabel}, ${weekNumber(day.totals.energy.amount, locale)} kcal. ${WEEK_NUTRIENTS.map((nutrient, index) => `${t.nutrition.nutrients[nutrient]} ${copy.status[statuses[index]]}`).join(", ")}`}
+								accessibilityLabel={`${name} ${part.dayMonth}, ${items}${noteLabel}, ${formatNutrientAmount("energy", day.totals.energy.amount, locale)} kcal. ${WEEK_NUTRIENTS.map((nutrient, index) => `${t.nutrition.nutrients[nutrient]} ${copy.status[statuses[index]]}`).join(", ")}`}
 								onPress={() => onOpenDay(day.date)}
 								actions={[
 									{

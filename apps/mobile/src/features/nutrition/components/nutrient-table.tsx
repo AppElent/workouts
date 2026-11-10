@@ -1,7 +1,5 @@
 import {
-	NUTRIENT_DISPLAY_DECIMALS,
 	NUTRIENT_KEYS,
-	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
 	scaleNutrient,
@@ -10,6 +8,7 @@ import { useWindowDimensions, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
+import { formatNutrientAmount } from "../nutrient-amount";
 export function NutrientTable({
 	nutrients,
 	factor = 1,
@@ -41,7 +40,7 @@ export function NutrientTable({
 		const n = scaleNutrient(nutrients[key] ?? { kind: "absent" }, multiplier);
 		if (n.kind === "absent") return "—";
 		if (n.kind === "trace") return t.nutrition.foodBrowser.trace;
-		return `${n.amount.toLocaleString(locale, { maximumFractionDigits: NUTRIENT_DISPLAY_DECIMALS[key] })} ${NUTRIENT_UNITS[key]}`;
+		return formatNutrientAmount(key, n.amount, locale, { unit: true });
 	}
 	return (
 		<View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>

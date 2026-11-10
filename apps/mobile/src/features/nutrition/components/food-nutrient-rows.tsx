@@ -1,4 +1,4 @@
-import type { NutrientKey } from "@foundry/core";
+import { NUTRIENT_UNITS, type NutrientKey } from "@foundry/core";
 import { View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
@@ -79,7 +79,7 @@ export function FoodNutrientRows({
 								? input.amount
 								: "—"
 					}
-					unit={input.kind === "value" ? (key === "energy" ? "kcal" : "g") : ""}
+					unit={input.kind === "value" ? NUTRIENT_UNITS[key] : ""}
 					accessibilityLabel={t.nutrition.nutrients[key]}
 					emphasis={input.kind === "value"}
 				/>

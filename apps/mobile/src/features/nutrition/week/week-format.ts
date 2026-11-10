@@ -2,39 +2,35 @@ import {
 	goalBounds,
 	type IsoDate,
 	type Locale,
+	NUTRIENT_UNITS,
 	type NutrientKey,
 } from "@foundry/core";
 import type { WeeklyGoal } from "../../../data/nutrition-weekly-review";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { dateLocale, fmt } from "../../../i18n";
 import type { weekReviewEn } from "../../../i18n/messages/week-review";
-
-export function weekUnit(nutrient: NutrientKey): string {
-	return nutrient === "energy" ? "kcal" : "g";
-}
-
-export function weekNumber(value: number, locale: string): string {
-	return value.toLocaleString(locale, {
-		maximumFractionDigits: value >= 10 ? 0 : 1,
-	});
-}
+import { formatNutrientAmount } from "../nutrient-amount";
 
 /** "2,300–2,700 kcal", "max. 80 g" or "min. 120 g"; undefined without a goal. */
 export function weekGoalLabel(
 	goals: readonly WeeklyGoal[],
 	nutrient: NutrientKey,
-	locale: string,
+	locale: Locale,
 	copy: typeof weekReviewEn,
 	withUnit = true,
 ): string | undefined {
 	const { min, max } = goalBounds(goals, [nutrient])[0] ?? {};
-	const unit = withUnit ? ` ${weekUnit(nutrient)}` : "";
+	const unit = withUnit ? ` ${NUTRIENT_UNITS[nutrient]}` : "";
 	if (min !== undefined && max !== undefined)
-		return `${weekNumber(min, locale)}–${weekNumber(max, locale)}${unit}`;
+		return `${formatNutrientAmount(nutrient, min, locale)}–${formatNutrientAmount(nutrient, max, locale)}${unit}`;
 	if (max !== undefined)
-		return fmt(copy.max, { value: `${weekNumber(max, locale)}${unit}` });
+		return fmt(copy.max, {
+			value: `${formatNutrientAmount(nutrient, max, locale)}${unit}`,
+		});
 	if (min !== undefined)
-		return fmt(copy.min, { value: `${weekNumber(min, locale)}${unit}` });
+		return fmt(copy.min, {
+			value: `${formatNutrientAmount(nutrient, min, locale)}${unit}`,
+		});
 	return undefined;
 }
 

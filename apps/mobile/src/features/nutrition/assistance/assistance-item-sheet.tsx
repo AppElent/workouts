@@ -1,5 +1,6 @@
 import {
 	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
 	roundForDisplay,
@@ -246,7 +247,7 @@ export function AssistanceItemSheet({
 										<InlineNumberFieldRow
 											key={key}
 											label={t.nutrition.nutrients[key]}
-											suffix={key === "energy" ? "kcal" : "g"}
+											suffix={NUTRIENT_UNITS[key]}
 											value={
 												typed[key] ??
 												(value?.kind === "value"

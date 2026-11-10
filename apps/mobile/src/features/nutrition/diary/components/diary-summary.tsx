@@ -9,7 +9,11 @@ import type { NutrientGoal } from "../../../../data/nutrition-day";
 import { fmt, useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
-import { displayAmount, outcome } from "../../day-goals/goal-presentation";
+import { outcome } from "../../day-goals/goal-presentation";
+import {
+	formatNutrientAmount,
+	formatNutrientTotal,
+} from "../../nutrient-amount";
 
 export function DiarySummary({
 	goals,
@@ -26,19 +30,8 @@ export function DiarySummary({
 	const copy = t.nutrition.diary.summary;
 	const colors = useTokens();
 	const amount = (n: NutrientKey, value?: NutrientTotal) =>
-		displayAmount(n, value).replace(/\d+(?:\.\d+)?/, (number) =>
-			new Intl.NumberFormat(locale).format(Number(number)),
-		);
-	const groups = goalBounds(goals, [
-		"energy",
-		"protein",
-		"carbs",
-		"fat",
-		"saturatedFat",
-		"fibre",
-		"sugars",
-		"salt",
-	]);
+		formatNutrientTotal(n, value, locale);
+	const groups = goalBounds(goals);
 	const energy = groups.find((g) => g.nutrient === "energy");
 	const total = totals.energy;
 	const denominator = energy?.max ?? energy?.min;
@@ -49,7 +42,9 @@ export function DiarySummary({
 		(g) => g.max !== undefined && (totals[g.nutrient]?.amount ?? 0) > g.max,
 	).length;
 	const incomplete = groups.some((g) => totals[g.nutrient]?.incomplete);
-	const energyStatus = energy ? outcome(colors, t, energy, total) : undefined;
+	const energyStatus = energy
+		? outcome(colors, { t, locale }, energy, total)
+		: undefined;
 	if (!goals.length)
 		return (
 			<View
@@ -183,7 +178,7 @@ export function DiarySummary({
 					<AppText variant="caption">
 						{denominator
 							? fmt(copy.ofTarget, {
-									amount: new Intl.NumberFormat(locale).format(denominator),
+									amount: formatNutrientAmount("energy", denominator, locale),
 								})
 							: "kcal"}
 					</AppText>
@@ -214,7 +209,7 @@ export function DiarySummary({
 										{amount(n, v)}
 										<AppText variant="caption">
 											{target
-												? `\n/ ${new Intl.NumberFormat(locale).format(target)}`
+												? `\n/ ${formatNutrientAmount(n, target, locale)}`
 												: " g"}
 										</AppText>
 									</AppText>
