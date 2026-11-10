@@ -13,6 +13,7 @@ import {
 	type LoadUnit,
 	roundLoad,
 	type SetType,
+	sessionOneRepMax,
 	validateSetInput,
 } from "@foundry/core";
 
@@ -238,15 +239,15 @@ export function referenceFor(
 	if (facts.bodyweight) return null;
 	const local = plan.manual[exerciseId];
 	if (typeof local === "number") return { value: local, source: "manual" };
-	if (
-		local === undefined &&
-		facts.savedManual &&
-		(facts.measuredDate === null || facts.savedManual.date > facts.measuredDate)
-	)
-		return { value: facts.savedManual.value, source: "manual" };
-	return facts.measured === null
-		? null
-		: { value: facts.measured, source: "measured" };
+	const chosen = sessionOneRepMax({
+		measured:
+			facts.measured === null
+				? null
+				: { value: facts.measured, date: facts.measuredDate ?? 0 },
+		estimated: null,
+		manual: local === undefined ? facts.savedManual : null,
+	});
+	return chosen && { value: chosen.reference.value, source: chosen.kind };
 }
 /** What a person did but the server hasn't confirmed: never rewrite it. */
 const isUnsaved = (row: PlanSet) => Boolean(row.failed || row.attempt);
