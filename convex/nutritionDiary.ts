@@ -21,6 +21,7 @@ import { withOperationReceipt } from "./lib/operationReceipt";
 import {
 	bilingual,
 	comboGroup,
+	diaryDay,
 	diaryNutrientCorrection,
 	diaryPartSnapshotFields,
 	diarySnapshotFields,
@@ -399,7 +400,7 @@ export const applyOperation = mutation({
 	returns: v.object({
 		entryIds: v.array(v.id("nutritionDiaryEntries")),
 		clientEntryIds: v.array(v.string()),
-		days: v.array(v.any()),
+		days: v.array(diaryDay),
 	}),
 	handler: async (ctx, { operationId, includeDays, ...envelope }) => {
 		const userId = await requireSubject(ctx, envelope.expectedSubject);
@@ -422,16 +423,13 @@ export const applyOperation = mutation({
 							);
 				return { ...entries, days };
 			},
-		) as Promise<{
-			entryIds: Id<"nutritionDiaryEntries">[];
-			clientEntryIds: string[];
-			days: unknown[];
-		}>;
+		);
 	},
 });
 
 export const day = query({
 	args: { date: v.string() },
+	returns: diaryDay,
 	handler: async (ctx, { date }) => {
 		const userId = await requireUserId(ctx);
 		assertIsoDate(date);
