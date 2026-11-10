@@ -4,7 +4,7 @@ import { Pressable, View } from "react-native";
 import { useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
-import { goalPresetSummary } from "../goal-preset-copy";
+import { goalPresetSummary } from "../goal-presets";
 
 /** With no goals yet, a starting point is the first step; "Set it yourself" is the other. */
 export function GoalsStartPicker({

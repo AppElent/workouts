@@ -44,7 +44,7 @@ import { GoalNumberField } from "./components/goal-number-field";
 import { GoalKindLabel, GoalRow } from "./components/goal-row";
 import { GoalsKeyboardBar } from "./components/goals-keyboard-bar";
 import { GoalsStartPicker } from "./components/goals-start-picker";
-import { goalPresetMenuHint } from "./goal-preset-copy";
+import { goalPresetMenuHint } from "./goal-presets";
 import { goalsAppliesFrom } from "./goals-applies-from";
 import { type GoalFieldKey, useGoalsEditor } from "./use-goals-editor";
 

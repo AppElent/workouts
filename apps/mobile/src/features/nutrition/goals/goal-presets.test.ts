@@ -1,6 +1,6 @@
 import { en } from "../../../i18n/messages/en";
 import { nl } from "../../../i18n/messages/nl";
-import { goalPresetMenuHint, goalPresetSummary } from "./goal-preset-copy";
+import { goalPresetMenuHint, goalPresetSummary } from "./goal-presets";
 
 it("quotes each preset's own targets in the phone's number format", () => {
 	const copy = en.nutrition.goalEditor;
