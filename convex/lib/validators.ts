@@ -66,8 +66,8 @@ export const baseUnit = literals(BASE_UNITS);
 export const measuredUnit = literals(MEASURED_UNITS);
 export const nutritionSource = literals(NUTRITION_SOURCES);
 export const nutrientKey = literals(NUTRIENT_KEYS);
-export const goalDirection = literals(GOAL_DIRECTIONS);
-export const goalPreset = literals(GOAL_PRESET_KEYS);
+const goalDirection = literals(GOAL_DIRECTIONS);
+const goalPreset = literals(GOAL_PRESET_KEYS);
 export const librarySchemaVersion = literals(LIBRARY_SCHEMA_VERSIONS);
 export const locale = literals(SUPPORTED_LOCALES);
 export const libraryRecordKind = literals(LIBRARY_RECORD_KINDS);
@@ -109,7 +109,7 @@ export const wodScoreFields = {
 
 export const oneRepMaxSource = literals(STRENGTH_REFERENCE_SOURCES);
 
-export const strengthReferenceSnapshot = v.object({
+const strengthReferenceSnapshot = v.object({
 	value: v.number(),
 	unit: loadUnit,
 	date: v.number(),
@@ -200,14 +200,18 @@ export const diaryPartSnapshotFields = {
 	provenance,
 };
 
+export const comboGroup = v.object({
+	id: v.string(),
+	comboId: v.string(),
+	name: v.string(),
+});
+
 export const diarySnapshotFields = {
 	date: v.string(),
 	meal: mealSlot,
 	// Rendering provenance only: each row stays an independently editable
 	// snapshot even after the Combo is gone.
-	comboGroup: v.optional(
-		v.object({ id: v.string(), comboId: v.string(), name: v.string() }),
-	),
+	comboGroup: v.optional(comboGroup),
 	// Absent on rows from before devices minted their own entry ids.
 	clientEntryId: v.optional(v.string()),
 	...diaryPartSnapshotFields,

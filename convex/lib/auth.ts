@@ -6,7 +6,7 @@ import { appError } from "./errors";
 type AuthCtx = { auth: Auth };
 
 /** Tables whose rows belong to one account through `userId`. */
-export type OwnedTable = {
+type OwnedTable = {
 	[T in TableNames]: "userId" extends keyof Doc<T> ? T : never;
 }[TableNames];
 
