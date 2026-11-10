@@ -243,7 +243,7 @@ export function AccountScreen() {
 					!online
 						? c.deletion.offline
 						: blocker
-							? c.deletion[blocker]
+							? c.deletion.refusals[blocker]
 							: c.deleteDataFooter
 				}
 			>

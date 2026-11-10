@@ -16,7 +16,7 @@ import { api, type Id } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
 import { useRoutines } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing } from "../../../theme";
 import {
 	AddRow,
@@ -81,6 +81,7 @@ function RoutineEditorForm({
 	exercises: Exercise[];
 	onClose: () => void;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const toast = useToast();
 	const copy = useI18n().t.workoutTools.routineEditor;
 	const createRoutine = useMutation(api.routines.create);
@@ -131,7 +132,7 @@ function RoutineEditorForm({
 			onClose();
 		} catch (error) {
 			// Input is kept on failure — the sheet stays open with everything typed.
-			toast.error(convexErrorMessage(error, copy.saveError));
+			toast.error(errorMessage(error, copy.saveError));
 		} finally {
 			setBusy(false);
 		}

@@ -198,7 +198,7 @@ describe("editing a diary entry", () => {
 
 	it("keeps the edited quantity open after a failed acknowledgement", async () => {
 		// A non-`Error` rejection, so the assertion is on the localized fallback
-		// text rather than convexErrorMessage's Convex-specific pass-through.
+		// text rather than the Convex error pass-through.
 		// The save stays in flight across the double tap, then fails.
 		let failUpdate: (reason: unknown) => void = () => {};
 		const update = jest.fn(

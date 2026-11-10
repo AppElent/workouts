@@ -11,7 +11,7 @@ import { api, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import { dateLocale, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { metrics, spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -26,6 +26,7 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 
 export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
+	const errorMessage = useConvexErrorMessage();
 	const { locale, t } = useI18n();
 	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);
@@ -63,7 +64,7 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 			await remove({ id });
 			router.replace("/activity-history");
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteError));
+			toast.error(errorMessage(error, copy.deleteError));
 		} finally {
 			deleteLock.current = false;
 			setDeleting(false);

@@ -14,13 +14,14 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export function BodyMetricsPanel() {
 	const entries = useQuery(api.bodyMetrics.list) ?? [];
 	const latest = useQuery(api.bodyMetrics.latest);
 	const addEntry = useMutation(api.bodyMetrics.add);
 	const removeEntry = useMutation(api.bodyMetrics.remove);
+	const errorMessage = useConvexErrorMessage();
 
 	const [unit, setUnit] = useState<LoadUnit>("kg");
 	const [weight, setWeight] = useState("");
@@ -71,7 +72,7 @@ export function BodyMetricsPanel() {
 			setThighs("");
 			setShowMore(false);
 		} catch (e) {
-			setError(getConvexErrorMessage(e, "Failed to save."));
+			setError(errorMessage(e, "Failed to save."));
 		} finally {
 			setSaving(false);
 		}

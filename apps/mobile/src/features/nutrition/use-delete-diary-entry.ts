@@ -20,7 +20,7 @@ import { formatLongDate } from "../../dates/calendar-day";
 import { fmt, useI18n } from "../../i18n";
 import { useConfirm } from "../../ui/confirm-dialog";
 import { useToast } from "../../ui/toast";
-import { writeFailureMessage } from "./use-diary-write";
+import { useWriteFailureMessage } from "./use-diary-write";
 
 export interface DeleteDiaryEntryRequest {
 	entry: DiaryEntry;
@@ -48,6 +48,7 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 	const toast = useToast();
 	const confirm = useConfirm();
 	const diary = useNutritionDiary();
+	const writeFailureMessage = useWriteFailureMessage();
 	const [deleting, setDeleting] = useState(false);
 
 	const deleteEntry = useCallback(
@@ -79,7 +80,7 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 				setDeleting(false);
 			}
 		},
-		[confirm, diary, locale, t, toast],
+		[confirm, diary, locale, t, toast, writeFailureMessage],
 	);
 
 	return { deleteEntry, deleting };

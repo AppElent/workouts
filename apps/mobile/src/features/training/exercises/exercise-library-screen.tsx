@@ -14,7 +14,7 @@ import {
 import { api } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
 import { plural, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	PREFERENCE_KEYS,
 	readLocal,
@@ -46,6 +46,7 @@ import { ExerciseLayoutMenu } from "./exercise-layout-menu";
 import { MuscleIcon } from "./muscle-icon";
 
 export function ExerciseLibraryScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
@@ -125,7 +126,7 @@ export function ExerciseLibraryScreen() {
 		try {
 			await removeExercise({ id: exercise._id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, c.deleteError));
+			toast.error(errorMessage(error, c.deleteError));
 		} finally {
 			setDeleting(null);
 		}

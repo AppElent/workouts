@@ -1,6 +1,12 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render as renderUi, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "#/lib/i18n";
 import { EditRoutineModal } from "./EditRoutineModal";
+
+function render(ui: ReactElement) {
+	return renderUi(<LocaleProvider initialLocale="en">{ui}</LocaleProvider>);
+}
 
 vi.mock("#/lib/exercises", () => ({
 	useExercises: vi.fn(() => []),

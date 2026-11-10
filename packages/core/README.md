@@ -39,7 +39,8 @@ imported by relative path from tests and `scripts/`, never from an entry.
 | `rules.ts` | `RuleResult`, `RuleError` and the helpers above. |
 | `i18n.ts` | `SUPPORTED_LOCALES`/`Locale`, locale resolution, `fmt`, `plural`, and `messageParityMismatches` for each app's message test. |
 | `observability.ts` | Sentry privacy passes over structural event types. |
-| `convex-error.ts` | `parseConvexError`: `{ code?, message }` from any failed Convex call. |
+| `account-export.ts` | `collectExportTables` pages through the personal-data export; `accountExportJson` writes the file both apps share. |
+| `convex-error.ts` | `APP_ERROR_CODES` the server throws; `parseConvexError`: `{ code?, message }` from any failed Convex call; `convexErrorMessage`: a client's message for the code, else the server's text, else a fallback. |
 | `auth.ts` | The dev test-login gate and the Clerk error code → message key map. |
 | `json.ts` `ids.ts` | `canonicalJson` (operation fingerprints) and `isUuid`. |
 

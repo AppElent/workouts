@@ -1,5 +1,5 @@
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
@@ -12,7 +12,7 @@ import {
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const data = useQuery(api.hostedWorkouts.getMine, { id });
@@ -27,6 +27,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirm();
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 
 	const joinUrl = useMemo(() => {
 		if (!data?.hosted.joinToken) return "";
@@ -50,15 +51,15 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 
 	const { hosted, participants, submissions } = data;
 	const participantById = new Map(participants.map((p) => [p._id, p]));
+	const participantName = (participant?: Doc<"hostedWorkoutParticipants">) =>
+		participant?.displayName ||
+		(participant?.userId === hosted.hostUserId ? "Host" : "Signed-in athlete");
 
 	async function runAction(action: () => Promise<unknown>) {
 		try {
 			await action();
 		} catch (err) {
-			toast.error(
-				"Action failed",
-				getConvexErrorMessage(err, "Something went wrong."),
-			);
+			toast.error("Action failed", errorMessage(err, "Something went wrong."));
 		}
 	}
 
@@ -180,7 +181,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 								className="rounded-lg border border-[var(--border)] px-3 py-2"
 							>
 								<p className="text-sm font-medium text-white">
-									{participant.displayName || "Signed-in athlete"}
+									{participantName(participant)}
 								</p>
 								<p className="mt-1 text-xs text-[var(--text-muted)]">
 									Joined {format(new Date(participant.joinedAt), "h:mm a")}
@@ -203,10 +204,11 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 								id: submission._id,
 								name:
 									submission.guestName ||
-									(submission.participantId
-										? participantById.get(submission.participantId)?.displayName
-										: undefined) ||
-									"Signed-in athlete",
+									participantName(
+										submission.participantId
+											? participantById.get(submission.participantId)
+											: undefined,
+									),
 								level: submission.level,
 								submittedAt: submission.submittedAt,
 								score: submission,

@@ -2,7 +2,7 @@ import { useMutation } from "convex/react";
 import { useRef, useState } from "react";
 import { api, type Id } from "../../convex/api";
 import { useI18n } from "../../i18n";
-import { convexErrorMessage } from "../../i18n/errors";
+import { useConvexErrorMessage } from "../../i18n/errors";
 import { useConfirm } from "../../ui/confirm-dialog";
 import { useToast } from "../../ui/toast";
 import type { useTrainingData } from "./use-training-data";
@@ -10,6 +10,7 @@ import type { useTrainingData } from "./use-training-data";
 export function useStartStrengthSession(
 	data: ReturnType<typeof useTrainingData>,
 ) {
+	const errorMessage = useConvexErrorMessage();
 	const create = useMutation(api.workoutSessions.create);
 	const startRoutine = useMutation(api.routines.startSession);
 	const confirm = useConfirm();
@@ -46,7 +47,7 @@ export function useStartStrengthSession(
 				? await startRoutine({ routineId: input.routineId })
 				: await create({ name: input.name?.trim() || undefined });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.startError));
+			toast.error(errorMessage(error, copy.startError));
 			return null;
 		} finally {
 			locked.current = false;

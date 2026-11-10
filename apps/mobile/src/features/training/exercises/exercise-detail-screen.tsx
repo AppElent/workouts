@@ -28,7 +28,7 @@ import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
 import { formatSessionDate } from "../../../data/session-data";
 import { dateLocale, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -53,6 +53,7 @@ type Tab = "Overview" | "Progress" | "History";
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export function ExerciseDetailScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const { t } = useI18n();
 	const router = useRouter();
@@ -84,7 +85,7 @@ export function ExerciseDetailScreen() {
 			await remove({ id: exercise._id });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, t.exercises.deleteError));
+			toast.error(errorMessage(error, t.exercises.deleteError));
 		} finally {
 			setDeleting(false);
 		}

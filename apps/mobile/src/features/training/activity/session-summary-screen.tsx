@@ -22,7 +22,7 @@ import {
 	useSessionSets,
 } from "../../../data/session-data";
 import { fmt, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	type Tokens,
@@ -36,6 +36,7 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 
 export function SessionSummaryScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
@@ -82,7 +83,7 @@ export function SessionSummaryScreen() {
 			await removeSession({ id: sessionId });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteError));
+			toast.error(errorMessage(error, copy.deleteError));
 		} finally {
 			setBusy(false);
 		}

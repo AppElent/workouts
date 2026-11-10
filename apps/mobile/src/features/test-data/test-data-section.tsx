@@ -46,7 +46,7 @@ function TestDataActions({
 	return (
 		<FormSection title={c.title} footer={c.description}>
 			{blocker ? (
-				<AppText>{c[blocker]}</AppText>
+				<AppText>{c.refusals[blocker]}</AppText>
 			) : !online ? (
 				<AppText>{c.offline}</AppText>
 			) : null}

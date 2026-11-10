@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { api, type Id } from "../../../convex/api";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
 import {
 	addExerciseToPlan,
@@ -63,6 +63,7 @@ function newLogOperationId() {
 }
 
 export function useSessionActions(workspace: SessionWorkspace) {
+	const errorMessage = useConvexErrorMessage();
 	const { key, subject, sessionId, getFacts, nameOf, online } = workspace;
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
@@ -259,7 +260,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 						await removeSetMutation({ id: setId as Id<"sets"> });
 						removed();
 					} catch (error) {
-						say(convexErrorMessage(error, saveError));
+						say(errorMessage(error, saveError));
 					}
 				});
 			} finally {
@@ -321,7 +322,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				if (error instanceof ConvexError)
 					failNow(
 						false,
-						convexErrorMessage(
+						errorMessage(
 							error,
 							fmt(copy.toastFailedServer, { load: shortLoad(row) }),
 						),
@@ -423,7 +424,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				);
 				return true;
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -510,7 +511,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					return true;
 				});
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -534,7 +535,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				if (groupId) return addExerciseToGroup(groupId, id as string, name);
 				return addExercise(id as string, openEditor, name);
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -560,7 +561,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					});
 				});
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -597,7 +598,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					set(removeExercise(plan(), exerciseId).plan);
 					if (result.note) say(noteText(result.note, label));
 				} catch (error) {
-					say(convexErrorMessage(error, saveError));
+					say(errorMessage(error, saveError));
 				}
 			});
 		}
@@ -617,7 +618,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				endSession(key, rest);
 				return true;
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -631,7 +632,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				endSession(key, rest);
 				return true;
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -714,6 +715,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		addManualMutation,
 		createExercise,
 		workspace.catalog,
+		errorMessage,
 	]);
 }
 export type SessionActions = ReturnType<typeof useSessionActions>;

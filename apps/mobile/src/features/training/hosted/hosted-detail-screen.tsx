@@ -18,7 +18,7 @@ import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -41,6 +41,7 @@ const LEVEL_LABEL: Record<string, string> = {
 };
 
 export function HostedDetailScreen() {
+	const errorMessage = useConvexErrorMessage();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
@@ -66,7 +67,7 @@ export function HostedDetailScreen() {
 		try {
 			await action();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, fallback));
+			toast.error(errorMessage(error, fallback));
 		} finally {
 			setBusy(false);
 		}
@@ -96,7 +97,7 @@ export function HostedDetailScreen() {
 			await removeWorkout({ id: hostedId });
 			router.back();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteError));
+			toast.error(errorMessage(error, copy.deleteError));
 		} finally {
 			setBusy(false);
 		}
@@ -192,6 +193,7 @@ export function HostedDetailScreen() {
 				<WodBlockBoard
 					key={block.blockId}
 					block={block}
+					hostUserId={hosted.hostUserId}
 					participants={participants}
 					submissions={submissions}
 				/>
@@ -242,10 +244,12 @@ export function HostedDetailScreen() {
 /** One WOD's leaderboard: everyone's score for that block, best first. */
 function WodBlockBoard({
 	block,
+	hostUserId,
 	participants,
 	submissions,
 }: {
 	block: Doc<"hostedWorkouts">["template"]["wodBlocks"][number];
+	hostUserId: string;
 	participants: Doc<"hostedWorkoutParticipants">[];
 	submissions: Doc<"hostedWorkoutSubmissions">[];
 }) {
@@ -254,10 +258,13 @@ function WodBlockBoard({
 	const nameOf = useMemo(() => {
 		const map = new Map<Id<"hostedWorkoutParticipants">, string>();
 		for (const p of participants) {
-			map.set(p._id, p.displayName ?? copy.athlete);
+			map.set(
+				p._id,
+				p.displayName ?? (p.userId === hostUserId ? copy.host : copy.athlete),
+			);
 		}
 		return map;
-	}, [participants, copy.athlete]);
+	}, [participants, hostUserId, copy.host, copy.athlete]);
 
 	const ranked = useMemo(() => {
 		return submissions

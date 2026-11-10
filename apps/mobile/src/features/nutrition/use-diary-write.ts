@@ -6,14 +6,17 @@ import {
 	useNutritionDiary,
 } from "../../data/nutrition-diary";
 import { useI18n } from "../../i18n";
-import { convexErrorMessage } from "../../i18n/errors";
+import { useConvexErrorMessage } from "../../i18n/errors";
 import { useToast } from "../../ui/toast";
 
 /** What a failed save shows: the server's explanation, else the screen's own. */
-export function writeFailureMessage(error: unknown, fallback: string): string {
-	return error instanceof ConvexError
-		? convexErrorMessage(error, fallback)
-		: fallback;
+export function useWriteFailureMessage() {
+	const errorMessage = useConvexErrorMessage();
+	return useCallback(
+		(error: unknown, fallback: string) =>
+			error instanceof ConvexError ? errorMessage(error, fallback) : fallback,
+		[errorMessage],
+	);
 }
 
 /**
@@ -25,6 +28,7 @@ export function useDiaryWrite() {
 	const diary = useNutritionDiary();
 	const toast = useToast();
 	const { t } = useI18n();
+	const writeFailureMessage = useWriteFailureMessage();
 	const copy = t.nutrition.logFood;
 	const running = useRef(new Set<string>());
 	const [pending, setPending] = useState<ReadonlySet<string>>(() => new Set());
@@ -65,7 +69,7 @@ export function useDiaryWrite() {
 				settle(key);
 			}
 		},
-		[diary, settle, toast],
+		[diary, settle, toast, writeFailureMessage],
 	);
 
 	/** A success toast whose action takes back what was just logged. */

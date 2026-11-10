@@ -7,7 +7,7 @@ import {
 	useWodScoreDraft,
 	WodScoreFields,
 } from "#/components/wods/WodScoreFields";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { wodScoreFromForm } from "#/lib/wodScore";
 
 interface Props {
@@ -22,6 +22,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 
 	const [rxScaled, setRxScaled] = useState<RxScaled>("rx");
 	const score = useWodScoreDraft();
+	const errorMessage = useConvexErrorMessage();
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			setNotes("");
 			onLogged?.();
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to log result."));
+			setError(errorMessage(err, "Failed to log result."));
 		} finally {
 			setSaving(false);
 		}

@@ -34,7 +34,7 @@ import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { writeFailureMessage } from "../use-diary-write";
+import { useWriteFailureMessage } from "../use-diary-write";
 
 type TransferMode = "copy" | "move";
 
@@ -79,6 +79,7 @@ export function DiaryEntryTransferScreen({
 	const [mode, setMode] = useState(initialMode);
 	const toast = useToast();
 	const diary = useNutritionDiary();
+	const writeFailureMessage = useWriteFailureMessage();
 	const _reduceMotion = useReduceMotion();
 	const copy = {
 		...t.diaryEntry.transfer,

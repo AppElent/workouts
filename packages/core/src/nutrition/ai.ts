@@ -1,3 +1,5 @@
+import type { AppErrorCode } from "../convex-error";
+
 /**
  * The contract between the nutrition assistant's Convex actions and the
  * clients that call them.
@@ -25,7 +27,7 @@ export const NUTRITION_AI_ERROR_CODES = [
 	"tooLarge",
 	"limit",
 	"empty",
-] as const;
+] as const satisfies readonly AppErrorCode[];
 export type NutritionAiErrorCode = (typeof NUTRITION_AI_ERROR_CODES)[number];
 
 export function isNutritionAiErrorCode(

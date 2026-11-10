@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseConvexError } from "./convex-error";
+import { convexErrorMessage, parseConvexError } from "./convex-error";
 
 /** The shape `convex/values` gives a ConvexError, without importing Convex. */
 function convexError(data: unknown) {
@@ -48,5 +48,49 @@ describe("parseConvexError", () => {
 		expect(parseConvexError(new Error("Offline\nstack"))).toEqual({
 			message: "Offline",
 		});
+	});
+});
+
+describe("convexErrorMessage", () => {
+	const messages = { sessionEnded: "This workout has ended." };
+
+	it("prefers the client's message for the code", () => {
+		expect(
+			convexErrorMessage(
+				convexError({ code: "sessionEnded", message: "Ended." }),
+				messages,
+				"Try again.",
+			),
+		).toBe("This workout has ended.");
+		expect(
+			convexErrorMessage(convexError("sessionEnded"), messages, "Try again."),
+		).toBe("This workout has ended.");
+	});
+
+	it("shows the server's text for a code the client has no message for", () => {
+		expect(
+			convexErrorMessage(
+				convexError({ code: "invalid", message: "Bad title." }),
+				messages,
+				"Try again.",
+			),
+		).toBe("Bad title.");
+	});
+
+	it("falls back when neither the code nor the server says anything", () => {
+		expect(
+			convexErrorMessage(
+				convexError({ code: "notFound" }),
+				messages,
+				"Try again.",
+			),
+		).toBe("Try again.");
+		expect(
+			convexErrorMessage(
+				convexError({ code: "toString" }),
+				messages,
+				"Try again.",
+			),
+		).toBe("Try again.");
 	});
 });

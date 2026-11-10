@@ -6,7 +6,7 @@ import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { ExercisePicker } from "#/components/exercises/ExercisePicker";
 import { Stepper } from "#/components/ui/Stepper";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export type RoutineWithNames = FunctionReturnType<
 	typeof api.routines.list
@@ -27,6 +27,7 @@ export function RoutineEditor({
 	onSubmit: (payload: RoutinePayload) => Promise<unknown>;
 	onCancel?: () => void;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const [name, setName] = useState(initial?.name ?? "");
 	const [entries, setEntries] = useState<Entry[]>(
 		() =>
@@ -56,7 +57,7 @@ export function RoutineEditor({
 				exercises: entries.map(({ name: _name, ...exercise }) => exercise),
 			});
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to save routine."));
+			setError(errorMessage(err, "Failed to save routine."));
 		} finally {
 			setSaving(false);
 		}

@@ -23,7 +23,7 @@ import {
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { fmt, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -71,6 +71,7 @@ function WodEditorForm({
 	wod: Doc<"wods"> | null;
 	onClose: () => void;
 }) {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
@@ -147,7 +148,7 @@ function WodEditorForm({
 			}
 			onClose();
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.editor.saveError));
+			toast.error(errorMessage(error, copy.editor.saveError));
 		} finally {
 			setBusy(false);
 		}

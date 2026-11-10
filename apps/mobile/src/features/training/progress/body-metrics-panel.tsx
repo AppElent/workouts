@@ -10,7 +10,7 @@ import { api, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
 import { dateLocale, useI18n } from "../../../i18n";
-import { convexErrorMessage } from "../../../i18n/errors";
+import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -35,6 +35,7 @@ function optionalNumber(raw: string) {
 }
 
 export function BodyMetricsPanel() {
+	const errorMessage = useConvexErrorMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
@@ -86,7 +87,7 @@ export function BodyMetricsPanel() {
 			setBodyFat("");
 			setNotes("");
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.saveError));
+			toast.error(errorMessage(error, copy.saveError));
 		} finally {
 			setBusy(false);
 		}
@@ -103,7 +104,7 @@ export function BodyMetricsPanel() {
 		try {
 			await removeEntry({ id });
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteError));
+			toast.error(errorMessage(error, copy.deleteError));
 		}
 	};
 
