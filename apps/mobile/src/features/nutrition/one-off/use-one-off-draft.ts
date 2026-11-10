@@ -1,8 +1,8 @@
 import { type MealSlot, NUTRIENT_KEYS, type NutrientKey } from "@foundry/core";
 import { useState } from "react";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
 import { fmt, useI18n } from "../../../i18n";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
 import { formatNutrientAmount } from "../nutrient-amount";
 import { useDiaryWrite } from "../use-diary-write";
 import {

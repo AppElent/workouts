@@ -1,11 +1,6 @@
 import type { ComboPartSnapshot, MealSlot, ServingOption } from "@foundry/core";
 import { useState } from "react";
 import {
-	type ComboPartChoice,
-	comboLogEntries,
-	comboLogPlan,
-} from "../../../data/nutrition-combo";
-import {
 	comboPortion,
 	useFoodShortcuts,
 } from "../../../data/nutrition-shortcuts";
@@ -14,6 +9,11 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { useAmountSelection } from "../use-amount-selection";
 import { useDiaryWrite } from "../use-diary-write";
+import {
+	type ComboPartChoice,
+	comboLogEntries,
+	comboLogPlan,
+} from "./combo-log-plan";
 
 /** Whole combos are the serving the capsule counts in. */
 const WHOLE_COMBO: ServingOption = {

@@ -1,7 +1,7 @@
 import { type Locale, roundForDisplay } from "@foundry/core";
-import { comboEnergy } from "../../../data/nutrition-combo";
 import { fmt, plural } from "../../../i18n";
 import type { foodLibraryEn } from "../../../i18n/messages/food-library";
+import { comboEnergy } from "../combo/combo-log-plan";
 import type { LibraryItem } from "./library-items";
 
 const SOURCE_BADGE = {

@@ -1,11 +1,11 @@
 import { NUTRIENT_KEYS, personalFoodSnapshot } from "@foundry/core";
 import { allShippedFoods } from "@foundry/core/shipped-foods";
-import { createLibraryFixture } from "../test-support/library-fixture";
+import { createLibraryFixture } from "../../../test-support/library-fixture";
 import {
 	comboLogEntries,
 	comboLogPlan,
 	resolveComboPart,
-} from "./nutrition-combo";
+} from "./combo-log-plan";
 
 const nutrients = {
 	energy: { kind: "value" as const, amount: 200 },

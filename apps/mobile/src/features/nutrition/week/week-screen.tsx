@@ -9,9 +9,7 @@ import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { weekEndDate } from "../../../data/nutrition-weekly-review";
 import { fmt, plural, useI18n } from "../../../i18n";
-
 import { radius, spacing, useTokens } from "../../../theme";
 import { EmptyState } from "../../../ui/empty-state";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -38,6 +36,7 @@ import {
 	weekTitleKind,
 	worstGoal,
 } from "./week-summary";
+import { weekEndDate } from "./weekly-review";
 
 export function WeekScreen({ startDate }: { startDate?: string }) {
 	const { t, locale } = useI18n();

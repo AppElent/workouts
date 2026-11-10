@@ -13,6 +13,10 @@ import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
+import { todayIsoDate } from "../../../dates/calendar-day";
+import { fmt, plural, useI18n } from "../../../i18n";
+import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import {
 	draftFromGoals,
 	draftToGoals,
@@ -24,11 +28,7 @@ import {
 	setGoalKind,
 	withGoal,
 	withoutGoal,
-} from "../../../data/nutrition-goal-history";
-import { todayIsoDate } from "../../../dates/calendar-day";
-import { fmt, plural, useI18n } from "../../../i18n";
-import { useToast } from "../../../ui/toast";
-import { useScreenWrite } from "../../../ui/use-screen-write";
+} from "./goal-draft";
 import type { GoalVersionSummary } from "./goals-applies-from";
 
 /** `nutrient.direction` → the preset a bound was copied from, if unchanged since. */

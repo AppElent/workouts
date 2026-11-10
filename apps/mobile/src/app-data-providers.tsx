@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { AccountWriteProvider } from "./data/account-write";
-import { FoodAuthoringIntentProvider } from "./data/food-authoring-intent";
 import type { FoodShortcutRepository } from "./data/food-shortcut-repository";
 import { NutritionDraftsProvider } from "./data/nutrition-drafts";
 import {
@@ -14,6 +13,7 @@ import { OpenFoodFactsProvider } from "./data/open-food-facts-context";
 import type { PersonalFoodCache } from "./data/personal-food-cache";
 import { PersonalFoodsProvider } from "./data/personal-foods";
 import { PersonalMeasuresProvider } from "./data/personal-measures";
+import { FoodAuthoringIntentProvider } from "./features/nutrition/food-authoring-intent";
 import { StrengthSessionProvider } from "./features/strength-session/data/strength-session-provider";
 
 /** Stores the screen tests inject; the app leaves every one to its default. */

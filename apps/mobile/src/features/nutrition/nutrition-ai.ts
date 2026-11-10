@@ -14,12 +14,12 @@ import {
 	personalFoodSnapshot,
 } from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
-import type { api } from "../convex/api";
+import type { api } from "../../convex/api";
+import { oneOffLogSnapshot } from "../../data/nutrition-one-off";
 import {
 	type AssistanceFood,
 	searchAssistanceFoods,
-} from "./nutrition-assistance";
-import { oneOffLogSnapshot } from "./nutrition-one-off";
+} from "./assistance/assistance-foods";
 import { typicalPortion } from "./nutrition-portions";
 
 /**

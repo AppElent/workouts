@@ -16,7 +16,6 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import { openFoodFactsImports } from "../../../data/open-food-facts-sync";
 import { usePersonalFoods } from "../../../data/personal-foods";
@@ -38,6 +37,7 @@ import { FoodKeyboardBar } from "../components/food-keyboard-bar";
 import { FoodNutrientRows } from "../components/food-nutrient-rows";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
 import { useNutrientFields } from "../use-nutrient-fields";
 import { PersonalFoodLabelScan } from "./personal-food-label-scan";
 import {

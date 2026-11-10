@@ -11,7 +11,6 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, useI18n } from "../../../i18n";
@@ -32,6 +31,7 @@ import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { useNutrientFields } from "../use-nutrient-fields";

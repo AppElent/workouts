@@ -13,8 +13,8 @@
 
 import { type IsoDate, isoDayOffset, shiftIsoDate } from "@foundry/core";
 import { useQuery_experimental as useQuery } from "convex/react";
-import { api } from "../convex/api";
-import { isoDateToLocalDayRangeMs } from "../dates/calendar-day";
+import { api } from "../../../convex/api";
+import { isoDateToLocalDayRangeMs } from "../../../dates/calendar-day";
 
 const NONE: ReadonlySet<IsoDate> = new Set();
 

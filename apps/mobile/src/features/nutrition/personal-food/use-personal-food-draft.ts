@@ -10,17 +10,17 @@ import {
 } from "@foundry/core";
 import { forkHasLocalEdits, forkSource } from "@foundry/core/shipped-foods";
 import { useMemo, useRef, useState } from "react";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import {
 	type FoodPhotoCropPosition,
 	foodPhotos,
 } from "../../../data/food-photo-manager";
-import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
 import { replaceProviderMetadata } from "../../../data/open-food-facts-sync";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { useScreenWrite } from "../../../ui/use-screen-write";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
+import { type LabelReading, labelNutrients } from "../nutrition-ai";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 

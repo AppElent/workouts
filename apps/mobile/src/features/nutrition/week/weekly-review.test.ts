@@ -1,4 +1,4 @@
-import { canGoToNextWeek, weekDates } from "./nutrition-weekly-review";
+import { canGoToNextWeek, weekDates } from "./weekly-review";
 
 describe("Week overview helpers", () => {
 	it("builds a stable Monday-to-Sunday week and stops after the current week", () => {

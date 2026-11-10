@@ -26,12 +26,6 @@ import {
 } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
-import {
-	comboLogEntries,
-	comboLogPlan,
-	comboPlanEnergy,
-} from "../../../data/nutrition-combo";
 import type { LoggedEntries } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import {
@@ -72,11 +66,17 @@ import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import {
+	comboLogEntries,
+	comboLogPlan,
+	comboPlanEnergy,
+} from "../combo/combo-log-plan";
 import { BarcodeScanner } from "../components/barcode-scanner";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { foodVisualForShippedFood } from "../shipped-food-visual";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";

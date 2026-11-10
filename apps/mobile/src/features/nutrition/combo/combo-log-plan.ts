@@ -13,7 +13,7 @@ import {
 	getShippedFood,
 	type LibraryFood,
 } from "@foundry/core/shipped-foods";
-import type { Combo, ComboPart } from "./personal-food-model";
+import type { Combo, ComboPart } from "../../../data/personal-food-model";
 
 /** Resolve stable references for each new log; one-offs keep their frozen figures. */
 export function resolveComboPart(

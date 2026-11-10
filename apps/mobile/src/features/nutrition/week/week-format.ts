@@ -5,11 +5,11 @@ import {
 	NUTRIENT_UNITS,
 	type NutrientKey,
 } from "@foundry/core";
-import type { WeeklyGoal } from "../../../data/nutrition-weekly-review";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { dateLocale, fmt } from "../../../i18n";
 import type { weekReviewEn } from "../../../i18n/messages/week-review";
 import { formatNutrientAmount } from "../nutrient-amount";
+import type { WeeklyGoal } from "./weekly-review";
 
 /** "2,300–2,700 kcal", "max. 80 g" or "min. 120 g"; undefined without a goal. */
 export function weekGoalLabel(

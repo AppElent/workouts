@@ -6,7 +6,7 @@ import {
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@foundry/core";
-import { parseLocalizedDecimal } from "../i18n";
+import { parseLocalizedDecimal } from "../../../i18n";
 
 export type GoalDraft = Record<NutrientKey, { min: string; max: string }>;
 

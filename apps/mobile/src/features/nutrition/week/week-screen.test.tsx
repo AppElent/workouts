@@ -3,12 +3,9 @@ import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";
 import { OFFLINE_GRACE_MS } from "../../../convex/stalled-offline";
-import {
-	emptyReviewTotals,
-	weekDates,
-} from "../../../data/nutrition-weekly-review";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
+import { emptyReviewTotals, weekDates } from "./weekly-review";
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockConnection = jest.mocked(useConvexConnectionState);

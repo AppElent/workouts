@@ -3,8 +3,8 @@ import { useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import type { WeeklyReviewDay } from "../../../data/nutrition-weekly-review";
 import { todayIsoDate } from "../../../dates/calendar-day";
+import type { WeeklyReviewDay } from "./weekly-review";
 
 /** The chosen week's acknowledged account data. */
 export function useWeekReview(startDate: string | undefined) {

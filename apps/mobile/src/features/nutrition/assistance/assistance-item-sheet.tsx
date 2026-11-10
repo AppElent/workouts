@@ -9,13 +9,6 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import {
-	countedPortion,
-	itemNutrients,
-	type ReviewItem,
-	replaceFood,
-	withAmount,
-} from "../../../data/nutrition-ai";
-import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
@@ -27,6 +20,13 @@ import {
 	FoodFormCard,
 	FoodFormSectionHeader,
 } from "../components/food-form-section";
+import {
+	countedPortion,
+	itemNutrients,
+	type ReviewItem,
+	replaceFood,
+	withAmount,
+} from "../nutrition-ai";
 import { HEADLINE_NUTRIENTS, parseFoodNumber } from "../use-nutrient-fields";
 
 const VALUE_KEYS = HEADLINE_NUTRIENTS;

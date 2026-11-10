@@ -36,7 +36,7 @@ export function isoDateToLocalDate(iso: IsoDate): Date {
  * The `[from, to)` epoch-ms bounds of this local calendar day, midnight to
  * midnight. For range-querying tables that (unlike the diary) still store
  * epoch-ms instants, such as `workoutSessions` — see the training marker in
- * `src/data/training-marker.ts`. Built from midnight rather than the noon
+ * `src/features/nutrition/diary/use-trained-dates.ts`. Built from midnight rather than the noon
  * anchor `isoDateToLocalDate` uses elsewhere: a range needs the true day
  * boundary, and `Date` normalizes the day-plus-one overflow correctly across a
  * DST transition.

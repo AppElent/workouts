@@ -18,7 +18,6 @@ import {
 } from "../../../data/nutrition-day";
 import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { useToday } from "../../../data/use-today";
 import { formatLongDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
@@ -41,6 +40,7 @@ import { DiarySelectionActions } from "./components/diary-selection-actions";
 import { DiarySummary } from "./components/diary-summary";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
 import { useDiaryDateRequest } from "./use-diary-date-request";
+import { useToday } from "./use-today";
 
 export function DiaryScreen() {
 	const { t, locale } = useI18n();

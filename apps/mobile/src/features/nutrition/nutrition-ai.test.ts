@@ -1,4 +1,5 @@
 import { shippedLibrary } from "@foundry/core/shipped-foods";
+import { buildAssistanceFoodCatalog } from "./assistance/assistance-foods";
 import {
 	applyChoices,
 	asksFor,
@@ -28,7 +29,6 @@ import {
 	withAmount,
 	withOmittedRows,
 } from "./nutrition-ai";
-import { buildAssistanceFoodCatalog } from "./nutrition-assistance";
 
 const catalog = buildAssistanceFoodCatalog(shippedLibrary().active, []);
 
