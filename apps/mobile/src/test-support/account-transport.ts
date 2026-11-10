@@ -19,12 +19,6 @@ export function installAccountTransport(drafts: CaptureDraftFixture) {
 	const query = jest.mocked(useQuery).getMockImplementation();
 	const paginated = jest.mocked(usePaginatedQuery).getMockImplementation();
 	const remote = mutation?.(api.nutritionDiary.applyOperation);
-	const legacy = {
-		create: mutation?.(api.nutritionDiary.log),
-		update: mutation?.(api.nutritionDiary.update),
-		remove: mutation?.(api.nutritionDiary.remove),
-		combo: mutation?.(api.nutritionDiary.logCombo),
-	};
 	const server = createNutritionLocalRepository(new SQLiteTestDatabase());
 	const days = new Map<string, NutritionServerDayResult>();
 	const notes = new Map(drafts.list("test-user").map((d) => [d.id, d]));
@@ -54,25 +48,8 @@ export function installAccountTransport(drafts: CaptureDraftFixture) {
 	const apply = jest.fn(async (args: NutritionOperationEnvelope) => {
 		if (receipts.has(args.operationId)) return receipts.get(args.operationId);
 		const operation = args.operation;
-		// Older screen fixtures observe the original API arguments. Keep that adapter
-		// at the fake-server boundary; the production provider has no legacy bypass.
-		const legacyWriter =
-			operation.kind === "create"
-				? legacy.create
-				: operation.kind === "createBatch"
-					? legacy.combo
-					: operation.kind === "update"
-						? legacy.update
-						: operation.kind === "remove"
-							? legacy.remove
-							: undefined;
-		if (legacyWriter && remote === legacyWriter) {
-			await legacyWriter(legacyArgs(operation) as never);
-		} else {
-			const result = await remote?.(args as never);
-			if (result !== undefined) return result;
-			if (legacyWriter) await legacyWriter(legacyArgs(operation) as never);
-		}
+		const remoteResult = await remote?.(args as never);
+		if (remoteResult !== undefined) return remoteResult;
 		if (operation.kind === "create") readDay(operation.entry.date, true);
 		if (
 			operation.kind === "createBatch" ||
@@ -120,7 +97,7 @@ export function installAccountTransport(drafts: CaptureDraftFixture) {
 							id: args.id,
 							subject: args.expectedSubject,
 							...required(args.input),
-							createdAt: old?.createdAt ?? args.createdAt ?? Date.now(),
+							createdAt: old?.createdAt ?? Date.now(),
 							updatedAt: Date.now(),
 						};
 			if (result) notes.set(args.id, result);
@@ -175,27 +152,6 @@ export function installAccountTransport(drafts: CaptureDraftFixture) {
 		};
 	}) as never);
 	return { apply, saveNote, notes };
-}
-function legacyArgs(operation: NutritionOperationEnvelope["operation"]) {
-	if (operation.kind === "create") return operation.entry;
-	if (operation.kind === "update") {
-		const { kind: _kind, target, ...patch } = operation;
-		return { id: target.id, ...patch };
-	}
-	if (operation.kind === "remove") return { id: operation.target.id };
-	if (operation.kind === "createBatch")
-		return {
-			date: operation.date,
-			meal: operation.meal,
-			combo: {
-				id: operation.entries[0]?.comboGroup?.comboId,
-				name: operation.entries[0]?.comboGroup?.name,
-			},
-			parts: operation.entries.map(
-				({ clientEntryId: _id, comboGroup: _group, ...part }) => part,
-			),
-		};
-	return operation;
 }
 
 function required<T>(value: T | undefined): T {

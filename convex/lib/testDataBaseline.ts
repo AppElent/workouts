@@ -1,13 +1,40 @@
-import { normalizePersonalFood, personalFoodSnapshot } from "@foundry/core";
+import {
+	LIBRARY_SCHEMA_VERSION,
+	normalizePersonalFood,
+	personalFoodSnapshot,
+} from "@foundry/core";
 import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import type { MutationCtx } from "../_generated/server";
+import { appError } from "./errors";
 import { libraryIndexFields } from "./nutritionLibraryIndex";
+import { deletePersonalData } from "./personalData";
 import {
 	performanceReference,
 	recalcStrengthReferences,
 } from "./strengthReferences";
 
 const DAY = 86_400_000;
+
+/**
+ * Clears the account's personal data (keeping preferences) and, for `load`,
+ * writes the baseline. One transaction, so a rejected or oversized reset never
+ * leaves half an account; the delete budget leaves room for the baseline.
+ */
+export async function resetTestData(
+	ctx: MutationCtx,
+	userId: string,
+	mode: "load" | "clear",
+	today: string,
+) {
+	if (
+		!(await deletePersonalData(ctx, userId, {
+			budget: 6000,
+			keepPreferences: true,
+		}))
+	)
+		throw appError("tooLarge");
+	if (mode === "load") await loadTestDataBaseline(ctx, userId, today);
+}
 
 export async function loadTestDataBaseline(
 	ctx: MutationCtx,
@@ -202,7 +229,7 @@ export async function loadTestDataBaseline(
 			recordId: item.id,
 			recordKind,
 			payload,
-			schemaVersion: 2,
+			schemaVersion: LIBRARY_SCHEMA_VERSION,
 			revision: 1,
 			deleted: false,
 			updatedAt: now,

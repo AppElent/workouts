@@ -1,4 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
+import { hostedPrescriptions, startSession } from "./strengthSession";
 
 export function toPublicHostedTemplate(
 	template: Doc<"hostedWorkouts">["template"],
@@ -26,4 +28,26 @@ export function toHostedSessionDto(hosted: Doc<"hostedWorkouts">) {
 			wodBlocks: toPublicHostedTemplate(hosted.template).wodBlocks,
 		},
 	};
+}
+
+/** Starts a participant's session for the workout and joins them to it. */
+export async function joinHosted(
+	ctx: MutationCtx,
+	hosted: Doc<"hostedWorkouts">,
+	userId: string,
+	displayName: string | undefined,
+) {
+	const sessionId = await startSession(ctx, userId, {
+		name: hosted.title,
+		date: hosted.scheduledAt,
+		prescriptions: hostedPrescriptions(hosted.template.strengthBlocks),
+	});
+	await ctx.db.insert("hostedWorkoutParticipants", {
+		hostedWorkoutId: hosted._id,
+		userId,
+		sessionId,
+		joinedAt: Date.now(),
+		displayName,
+	});
+	return sessionId;
 }

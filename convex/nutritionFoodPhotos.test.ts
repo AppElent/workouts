@@ -1,31 +1,43 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { expect, it } from "vitest";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
 
-it("makes an uploaded food photo retrievable by its account after a new client signs in", async () => {
+function photoUrl(t: ReturnType<typeof convexTest>, storageId: Id<"_storage">) {
+	return t.run((ctx) => ctx.storage.getUrl(storageId));
+}
+
+it("claims an uploaded food photo for its account and refuses it to another", async () => {
 	const t = convexTest(schema, modules);
+	const alice = t.withIdentity({ subject: "alice" });
+	await expect(
+		alice.mutation(api.nutritionFoodPhotos.generateUploadUrl, {
+			expectedSubject: "bob",
+		}),
+	).rejects.toMatchObject({ data: { code: "accountChanged" } });
+	expect(
+		await alice.mutation(api.nutritionFoodPhotos.generateUploadUrl, {
+			expectedSubject: "alice",
+		}),
+	).toEqual(expect.any(String));
 	const storageId = await t.run((ctx) =>
 		ctx.storage.store(new Blob(["photo"], { type: "image/jpeg" })),
 	);
-	const alice = t.withIdentity({ subject: "alice" });
 	await alice.mutation(api.nutritionFoodPhotos.registerUpload, {
 		storageId,
 		expectedSubject: "alice",
 	});
-	expect(
-		await t
-			.withIdentity({ subject: "alice" })
-			.query(api.nutritionFoodPhotos.url, { storageId }),
-	).toBeTruthy();
-	expect(
-		await t
-			.withIdentity({ subject: "bob" })
-			.query(api.nutritionFoodPhotos.url, { storageId }),
-	).toBeNull();
+	// A retry from a new client of the same account is a no-op.
+	await t
+		.withIdentity({ subject: "alice" })
+		.mutation(api.nutritionFoodPhotos.registerUpload, {
+			storageId,
+			expectedSubject: "alice",
+		});
 	await expect(
 		t
 			.withIdentity({ subject: "bob" })
@@ -33,7 +45,41 @@ it("makes an uploaded food photo retrievable by its account after a new client s
 				storageId,
 				expectedSubject: "bob",
 			}),
-	).rejects.toThrow("another account");
+	).rejects.toMatchObject({ data: { code: "notFound", field: "storageId" } });
+	expect(
+		await t.run((ctx) => ctx.db.query("nutritionFoodPhotos").collect()),
+	).toMatchObject([{ userId: "alice", storageId }]);
+});
+
+it("rejects a missing, non-JPEG or oversized upload without claiming it", async () => {
+	const t = convexTest(schema, modules);
+	const alice = t.withIdentity({ subject: "alice" });
+	const store = (blob: Blob) => t.run((ctx) => ctx.storage.store(blob));
+	const missing = await store(new Blob(["photo"], { type: "image/jpeg" }));
+	await t.run((ctx) => ctx.storage.delete(missing));
+	const cases = [
+		[missing, { code: "notFound", field: "storageId" }],
+		[
+			await store(new Blob(["photo"], { type: "image/png" })),
+			{ code: "invalid", field: "contentType" },
+		],
+		[
+			await store(
+				new Blob([new Uint8Array(2_000_001)], { type: "image/jpeg" }),
+			),
+			{ code: "tooLarge", field: "size" },
+		],
+	] as const;
+	for (const [storageId, data] of cases)
+		await expect(
+			alice.mutation(api.nutritionFoodPhotos.registerUpload, {
+				storageId,
+				expectedSubject: "alice",
+			}),
+		).rejects.toMatchObject({ data });
+	expect(
+		await t.run((ctx) => ctx.db.query("nutritionFoodPhotos").collect()),
+	).toEqual([]);
 });
 
 it("restores a manual food's uploaded photo from its storage identifier on a fresh library read", async () => {
@@ -87,9 +133,8 @@ it("restores a manual food's uploaded photo from its storage identifier on a fre
 		.query(api.nutritionLibrary.getMany, { ids: ["manual"], photoVersion: 3 });
 	const visual = JSON.parse(fresh[0].payload!).visual;
 	expect(visual.storageId).toBe(storageId);
-	expect(visual.uri).toBe(
-		await alice.query(api.nutritionFoodPhotos.url, { storageId }),
-	);
+	expect(visual.uri).toBe(await photoUrl(t, storageId));
+	expect(visual.uri).toBeTruthy();
 	await expect(
 		t.withIdentity({ subject: "bob" }).mutation(api.nutritionLibrary.save, {
 			version: 1,
@@ -101,7 +146,15 @@ it("restores a manual food's uploaded photo from its storage identifier on a fre
 				expectedRevision: 0,
 			},
 		}),
-	).rejects.toThrow("another account");
+	).rejects.toMatchObject({ data: { code: "notFound", field: "storageId" } });
+	expect(
+		await t
+			.withIdentity({ subject: "bob" })
+			.query(api.nutritionLibrary.getMany, {
+				ids: ["manual"],
+				photoVersion: 3,
+			}),
+	).toEqual([]);
 });
 
 it("keeps an uploaded photo readable in diary history and rejects another account's photo", async () => {
@@ -151,7 +204,7 @@ it("keeps an uploaded photo readable in diary history and rejects another accoun
 	expect(fresh.entries[0].visual).toEqual({
 		kind: "photo",
 		storageId,
-		uri: await alice.query(api.nutritionFoodPhotos.url, { storageId }),
+		uri: await photoUrl(t, storageId),
 	});
 	await expect(
 		t
@@ -162,93 +215,12 @@ it("keeps an uploaded photo readable in diary history and rejects another accoun
 				expectedSubject: "bob",
 				operation,
 			}),
-	).rejects.toThrow("another account");
-});
-
-it("replaces old OFF image copies in the library and diary with provider references without changing nutrition", async () => {
-	const t = convexTest(schema, modules);
-	const alice = t.withIdentity({ subject: "alice" });
-	const uri = "https://images.openfoodfacts.org/images/products/123/front.jpg";
-	const nutrients = {
-		energy: { kind: "value" as const, amount: 100 },
-		protein: { kind: "absent" as const },
-		carbs: { kind: "absent" as const },
-		fat: { kind: "absent" as const },
-		saturatedFat: { kind: "absent" as const },
-		fibre: { kind: "absent" as const },
-		sugars: { kind: "absent" as const },
-		salt: { kind: "absent" as const },
-	};
-	await alice.mutation(api.nutritionLibrary.save, {
-		version: 1,
-		expectedSubject: "alice",
-		operationId: "old-off",
-		operation: {
-			kind: "upsert",
-			expectedRevision: 0,
-			record: {
-				id: "off",
-				kind: "food",
-				schemaVersion: 2,
-				payload: JSON.stringify({
-					id: "off",
-					name: { en: "Soup", nl: "Soep" },
-					baseUnit: "g",
-					nutrients,
-					servings: [],
-					provenance: {
-						recordOrigin: "import",
-						nutritionSource: "openfoodfacts",
-						locallyEdited: false,
-						imageUrl: uri,
-						barcode: "123",
-					},
-					createdAt: 1,
-					updatedAt: 1,
-				}),
-			},
-		},
-	});
-	await alice.mutation(api.nutritionDiary.log, {
-		date: "2026-10-13",
-		meal: "lunch",
-		name: { en: "Soup", nl: "Soep" },
-		serving: { en: "Bowl", nl: "Kom" },
-		quantity: 1,
-		amount: 200,
-		baseUnit: "g",
-		nutrients,
-		provenance: {
-			source: "import",
-			sourceId: "off",
-			nutritionSource: "openfoodfacts",
-			locallyEdited: false,
-		},
-		visual: { kind: "photo", uri: "file:///cached-off.jpg" },
-	});
-	for (const table of ["library", "diary"] as const)
-		await t.mutation(internal.nutritionFoodPhotos.useProviderImages, {
-			expectedSubject: "alice",
-			table,
-			paginationOpts: { cursor: null, numItems: 100 },
-		});
-	const library = await alice.query(api.nutritionLibrary.getMany, {
-		ids: ["off"],
-		photoVersion: 3,
-	});
-	expect(JSON.parse(library[0].payload!).visual).toEqual({
-		kind: "remote",
-		uri,
-	});
-	const day = await alice.query(api.nutritionDiary.day, { date: "2026-10-13" });
-	expect(day.entries[0].visual).toEqual({ kind: "remote", uri });
-	expect(day.entries[0].nutrients).toEqual(nutrients);
-	const bob = await t
-		.withIdentity({ subject: "bob" })
-		.mutation(internal.nutritionFoodPhotos.useProviderImages, {
-			expectedSubject: "bob",
-			table: "diary",
-			paginationOpts: { cursor: null, numItems: 100 },
-		});
-	expect(bob.changed).toBe(0);
+	).rejects.toMatchObject({ data: { code: "notFound", field: "storageId" } });
+	expect(
+		(
+			await t
+				.withIdentity({ subject: "bob" })
+				.query(api.nutritionDiary.day, { date: "2026-10-13" })
+		).entries,
+	).toEqual([]);
 });

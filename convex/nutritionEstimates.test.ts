@@ -43,11 +43,18 @@ const estimated = normalizePersonalFood({
 	description: { en: "Family soup", nl: "Familiesoep" },
 });
 
+function getMany(
+	user: { query: ReturnType<typeof convexTest>["query"] },
+	ids: string[],
+) {
+	return user.query(api.nutritionLibrary.getMany, { ids, photoVersion: 3 });
+}
+
 function upsert(
 	operationId: string,
 	expectedRevision: number,
 	payload: unknown,
-	schemaVersion?: 1 | 2,
+	schemaVersion?: 1 | 2 | 3,
 ) {
 	return {
 		version: 1 as const,
@@ -100,49 +107,39 @@ describe("Personal Food estimate compatibility", () => {
 				result: JSON.stringify({ record: oldRecord }),
 			});
 		});
-		const listed = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
-		});
-		expect(listed.page).toEqual([{ ...oldRecord, schemaVersion: 1 }]);
+		expect(await getMany(alice, ["soup"])).toEqual([
+			{ ...oldRecord, schemaVersion: 1, subject: "alice" },
+		]);
 		expect(
-			await alice.mutation(api.nutritionLibrary.applyOperation, oldOperation),
+			await alice.mutation(api.nutritionLibrary.save, oldOperation),
 		).toEqual({ record: oldRecord });
 		const next = await alice.mutation(
-			api.nutritionLibrary.applyOperation,
+			api.nutritionLibrary.save,
 			upsert("legacy-update", 1, legacy),
 		);
 		expect(next.record).toMatchObject({ revision: 2, schemaVersion: 1 });
 	});
 
-	it("accepts legacy records, upgrades them, and prevents older shapes from erasing fields", async () => {
+	it("accepts legacy records, upgrades them, prevents older shapes from erasing fields, and keeps tombstones final", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
+			api.nutritionLibrary.save,
 			upsert("old-create", 0, legacy),
 		);
 		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
+			api.nutritionLibrary.save,
 			upsert("new-update", 1, estimated, 2),
 		);
-		const page = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
+		const [upgraded] = await getMany(alice, ["soup"]);
+		expect(upgraded).toMatchObject({ schemaVersion: 2, revision: 2 });
+		expect(JSON.parse(upgraded.payload ?? "null")).toEqual(estimated);
+		await expect(
+			alice.mutation(api.nutritionLibrary.save, upsert("downgrade", 2, legacy)),
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "schemaVersion" },
 		});
-		expect(page.page[0].schemaVersion).toBe(2);
-		expect(JSON.parse(page.page[0].payload ?? "null")).toEqual(estimated);
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("stale", 1, legacy),
-			),
-		).rejects.toThrow("Conflict");
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("downgrade", 2, legacy),
-			),
-		).rejects.toThrow("downgrade rejected");
-		await alice.mutation(api.nutritionLibrary.applyOperation, {
+		await alice.mutation(api.nutritionLibrary.save, {
 			version: 1,
 			expectedSubject: "alice",
 			operationId: "remove",
@@ -153,34 +150,33 @@ describe("Personal Food estimate compatibility", () => {
 				expectedRevision: 2,
 			},
 		});
-		const removed = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
-		});
-		expect(removed.page[0]).toMatchObject({
+		const removed = {
 			payload: null,
 			deleted: true,
 			schemaVersion: 2,
 			revision: 3,
-		});
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("old-restore", 3, legacy),
-			),
-		).rejects.toThrow("downgrade rejected");
-		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
-			upsert("restore", 3, estimated, 2),
-		);
+		};
+		expect((await getMany(alice, ["soup"]))[0]).toMatchObject(removed);
+		for (const [operationId, payload, version] of [
+			["old-restore", legacy, undefined],
+			["restore", estimated, 2],
+		] as const)
+			await expect(
+				alice.mutation(
+					api.nutritionLibrary.save,
+					upsert(operationId, 3, payload, version),
+				),
+			).rejects.toMatchObject({ data: { code: "recordDeleted" } });
+		expect((await getMany(alice, ["soup"]))[0]).toMatchObject(removed);
 		expect(
-			JSON.parse(
-				(
-					await alice.query(api.nutritionLibrary.list, {
-						paginationOpts: { cursor: null, numItems: 10 },
-					})
-				).page[0].payload ?? "null",
-			),
-		).toEqual(estimated);
+			(
+				await alice.query(api.nutritionLibrary.browse, {
+					query: "",
+					paginationOpts: { cursor: null, numItems: 10 },
+					photoVersion: 3,
+				})
+			).page,
+		).toEqual([]);
 	});
 
 	it("requires the current payload schema for new fields and validates basis consistently", async () => {
@@ -188,22 +184,28 @@ describe("Personal Food estimate compatibility", () => {
 		const alice = t.withIdentity({ subject: "alice" });
 		await expect(
 			alice.mutation(
-				api.nutritionLibrary.applyOperation,
+				api.nutritionLibrary.save,
 				upsert("unversioned", 0, estimated),
 			),
-		).rejects.toThrow("schema version 2");
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "schemaVersion" },
+		});
 		await expect(
 			alice.mutation(
-				api.nutritionLibrary.applyOperation,
+				api.nutritionLibrary.save,
 				upsert("bad-unit", 0, { ...estimated, baseUnit: "g" }, 2),
 			),
-		).rejects.toThrow('{"code":"unitMismatch","field":"nutritionBasis"}');
+		).rejects.toMatchObject({
+			data: { code: "unitMismatch", field: "nutritionBasis" },
+		});
 		await expect(
 			alice.mutation(
-				api.nutritionLibrary.applyOperation,
+				api.nutritionLibrary.save,
 				upsert("bad-estimate", 0, { ...estimated, estimated: "yes" }, 2),
 			),
-		).rejects.toThrow('{"code":"invalid","field":"estimated"}');
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "estimated" },
+		});
 	});
 
 	it("round-trips estimate snapshots in Combo backups without discarding unknown nutrient states", async () => {
@@ -222,7 +224,7 @@ describe("Personal Food estimate compatibility", () => {
 				},
 			],
 		};
-		const result = await alice.mutation(api.nutritionLibrary.applyOperation, {
+		const result = await alice.mutation(api.nutritionLibrary.save, {
 			version: 1,
 			expectedSubject: "alice",
 			operationId: "combo",
@@ -264,7 +266,7 @@ describe("Personal Food estimate compatibility", () => {
 			],
 		};
 		await expect(
-			alice.mutation(api.nutritionLibrary.applyOperation, {
+			alice.mutation(api.nutritionLibrary.save, {
 				version: 1,
 				expectedSubject: "alice",
 				operationId: "invalid-combo",
@@ -279,14 +281,13 @@ describe("Personal Food estimate compatibility", () => {
 					},
 				},
 			}),
-		).rejects.toThrow("zero or greater");
-		expect(
-			(
-				await alice.query(api.nutritionLibrary.list, {
-					paginationOpts: { cursor: null, numItems: 10 },
-				})
-			).page,
-		).toEqual([]);
+		).rejects.toMatchObject({
+			data: {
+				code: "negative",
+				field: "parts.0.snapshot.nutrients.energy",
+			},
+		});
+		expect(await getMany(alice, [combo.id])).toEqual([]);
 	});
 
 	it.each(["reference", "nutritionSource"])(
@@ -320,7 +321,7 @@ describe("Personal Food estimate compatibility", () => {
 				],
 			};
 			await expect(
-				alice.mutation(api.nutritionLibrary.applyOperation, {
+				alice.mutation(api.nutritionLibrary.save, {
 					version: 1,
 					expectedSubject: "alice",
 					operationId: `invalid-${field}`,
@@ -335,14 +336,16 @@ describe("Personal Food estimate compatibility", () => {
 						},
 					},
 				}),
-			).rejects.toThrow("invalid");
-			expect(
-				(
-					await alice.query(api.nutritionLibrary.list, {
-						paginationOpts: { cursor: null, numItems: 10 },
-					})
-				).page,
-			).toEqual([]);
+			).rejects.toMatchObject({
+				data: {
+					code: "invalid",
+					field:
+						field === "reference"
+							? "parts.0.reference"
+							: "parts.0.snapshot.provenance.nutritionSource",
+				},
+			});
+			expect(await getMany(alice, [combo.id])).toEqual([]);
 		},
 	);
 
@@ -353,10 +356,10 @@ describe("Personal Food estimate compatibility", () => {
 			const alice = t.withIdentity({ subject: "alice" });
 			await expect(
 				alice.mutation(
-					api.nutritionLibrary.applyOperation,
+					api.nutritionLibrary.save,
 					upsert(`null-${key}`, 0, { ...estimated, [key]: null }, 2),
 				),
-			).rejects.toThrow("invalid");
+			).rejects.toMatchObject({ data: { code: "invalid", field: key } });
 		},
 	);
 
@@ -368,12 +371,26 @@ describe("Personal Food estimate compatibility", () => {
 			date: "2026-09-14",
 			meal: "lunch",
 		});
-		const legacyId = await alice.mutation(api.nutritionDiary.log, snapshot);
-		await alice.mutation(api.nutritionDiary.update, {
-			id: legacyId,
-			quantity: 2,
-			date: "2026-09-15",
-			meal: "dinner",
+		const first = await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "create-first",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: { ...snapshot, clientEntryId: "entry-0" },
+			},
+		});
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "edit-move-first",
+			expectedSubject: "alice",
+			operation: {
+				kind: "update",
+				target: { kind: "serverId", id: first.entryIds[0] },
+				quantity: 2,
+				date: "2026-09-15",
+				meal: "dinner",
+			},
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
 			version: 1,

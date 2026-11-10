@@ -20,7 +20,7 @@ imported by relative path from tests and `scripts/`, never from an entry.
 ## Conventions
 
 - **Rules return codes, never display text.** A broken rule is a `field` and a `code`
-  (`RuleIssue`). Convex turns it into `ConvexError({ code, field })` (`convex/lib/ruleError.ts`) and
+  (`RuleIssue`). Convex turns it into `ConvexError({ code, field })` (`convex/lib/errors.ts`) and
   each client localizes it.
 - **`validate*` returns a `RuleResult`**: `{ ok: true, value }` or `{ ok: false, errors }` with
   every issue it found.

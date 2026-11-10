@@ -69,24 +69,24 @@ it("rejects unauthenticated, other-owner, shipped and legacy-default edits", asy
 	const id = await alice.mutation(api.exercises.create, values);
 	await expect(
 		t.mutation(api.exercises.update, { id, ...values }),
-	).rejects.toThrow("Unauthenticated");
+	).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	await expect(
 		t
 			.withIdentity({ subject: "bob" })
 			.mutation(api.exercises.update, { id, ...values }),
-	).rejects.toThrow("Unauthorized");
+	).rejects.toMatchObject({ data: { code: "notFound" } });
 	await expect(
 		alice.mutation(api.exercises.update, {
 			id: SHIPPED_EXERCISES[0]._id,
 			...values,
 		}),
-	).rejects.toThrow("Cannot edit a shipped exercise");
+	).rejects.toMatchObject({ data: { code: "readOnly" } });
 	const legacy = await t.run((ctx) =>
 		ctx.db.insert("exercises", { ...values, isDefault: true, userId: "alice" }),
 	);
 	await expect(
 		alice.mutation(api.exercises.update, { id: legacy, ...values }),
-	).rejects.toThrow("Cannot edit default exercises");
+	).rejects.toMatchObject({ data: { code: "readOnly" } });
 	expect(await alice.query(api.exercises.getById, { id })).toMatchObject(
 		values,
 	);
@@ -115,13 +115,13 @@ it("creates an independent personal copy including instructions and validates ed
 	expect(
 		await alice.query(api.exercises.getHistory, { exerciseId: id }),
 	).toEqual([]);
-	for (const input of [
-		{ ...values, name: " " },
-		{ ...values, weightIncrement: -1 },
-	]) {
+	for (const [input, field, code] of [
+		[{ ...values, name: " " }, "name", "required"],
+		[{ ...values, weightIncrement: -1 }, "weightIncrement", "invalid"],
+	] as const) {
 		await expect(
 			alice.mutation(api.exercises.update, { id, ...input }),
-		).rejects.toThrow();
+		).rejects.toMatchObject({ data: { code, field } });
 	}
 	expect(
 		await alice.query(api.exercises.getById, { id: source._id }),

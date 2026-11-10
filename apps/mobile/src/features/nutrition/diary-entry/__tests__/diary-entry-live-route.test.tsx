@@ -87,15 +87,15 @@ describe("editing a diary entry", () => {
 
 	it("rescales the stored snapshot on a quantity edit, not the source", async () => {
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({
-			id: "entry-1",
+		expect(update.mock.calls[0][0].operation).toMatchObject({
+			target: { id: "entry-1" },
 			quantity: 2,
 			meal: "lunch",
 			date: todayIsoDate(),
@@ -119,7 +119,7 @@ describe("editing a diary entry", () => {
 			loadMore: jest.fn(),
 		} as never);
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.press(screen.getByLabelText("Choose serving"));
@@ -128,8 +128,8 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({
-			id: "entry-1",
+		expect(update.mock.calls[0][0].operation).toMatchObject({
+			target: { id: "entry-1" },
 			selection: {
 				serving: {
 					en: "Large portion (450 g) × 2",
@@ -168,7 +168,7 @@ describe("editing a diary entry", () => {
 
 	it("moves an entry to another meal", async () => {
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.press(screen.getByLabelText("Meal"));
@@ -176,12 +176,12 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({ meal: "dinner" });
+		expect(update.mock.calls[0][0].operation).toMatchObject({ meal: "dinner" });
 	});
 
 	it("moves an entry to another calendar date", async () => {
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.press(screen.getByLabelText("Date"));
@@ -189,7 +189,7 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({
+		expect(update.mock.calls[0][0].operation).toMatchObject({
 			date: shiftIsoDate(todayIsoDate(), 1),
 		});
 	});
@@ -221,7 +221,7 @@ describe("editing a diary entry", () => {
 
 	it("deletes only through a named, destructive confirmation", async () => {
 		const remove = jest.fn().mockResolvedValue(undefined);
-		mockMutations("remove", remove);
+		mockMutations("applyOperation", remove);
 		await openEditor();
 
 		const { settled: cancelling } = await pressPending(
@@ -254,7 +254,10 @@ describe("editing a diary entry", () => {
 		await deleting;
 
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
-		expect(remove.mock.calls[0][0]).toMatchObject({ id: "entry-1" });
+		expect(remove.mock.calls[0][0].operation).toMatchObject({
+			kind: "remove",
+			target: { id: "entry-1" },
+		});
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 

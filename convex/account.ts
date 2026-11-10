@@ -1,4 +1,4 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import {
 	APPLE_CLIENT_IDS,
@@ -6,21 +6,21 @@ import {
 	isAppleClientId,
 	revokeAppleAuthorization,
 } from "./lib/appleSignIn";
-import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
-
-const blocker = v.union(
-	v.literal("activeActivity"),
-	v.literal("hostedWorkout"),
-	v.null(),
-);
+import { getOptionalUserId, requireSubject, requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import {
+	personalDataBlockerValidator as blocker,
+	deletePersonalData,
+	personalDataBlocker,
+} from "./lib/personalData";
 
 /** Why deleting this account's personal data is currently unsafe, if at all. */
 export const deletionBlocker = query({
 	args: {},
 	returns: blocker,
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		return identity ? await personalDataBlocker(ctx, identity.subject) : null;
+		const userId = await getOptionalUserId(ctx);
+		return userId ? await personalDataBlocker(ctx, userId) : null;
 	},
 });
 
@@ -33,14 +33,11 @@ export const deleteData = mutation({
 	args: { expectedSubject: v.string() },
 	returns: v.object({ done: v.boolean() }),
 	handler: async (ctx, { expectedSubject }) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new ConvexError("unauthenticated");
-		if (identity.subject !== expectedSubject)
-			throw new ConvexError("accountChanged");
-		const reason = await personalDataBlocker(ctx, identity.subject);
-		if (reason) throw new ConvexError(reason);
+		const userId = await requireSubject(ctx, expectedSubject);
+		const reason = await personalDataBlocker(ctx, userId);
+		if (reason) throw appError(reason);
 		return {
-			done: await deletePersonalData(ctx, identity.subject, {
+			done: await deletePersonalData(ctx, userId, {
 				budget: 2000,
 				keepPreferences: false,
 			}),
@@ -65,21 +62,17 @@ export const revokeAppleSignIn = action({
 		ctx,
 		{ authorizationCode, bundleId = APPLE_CLIENT_IDS[0] },
 	) => {
-		if (!(await ctx.auth.getUserIdentity()))
-			throw new ConvexError("unauthenticated");
-		if (
-			!authorizationCode ||
-			authorizationCode.length > MAX_AUTHORIZATION_CODE ||
-			!isAppleClientId(bundleId)
-		)
-			throw new ConvexError("invalid");
+		await requireUserId(ctx);
+		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
+			throw appError("invalid", "authorizationCode");
+		if (!isAppleClientId(bundleId)) throw appError("invalid", "bundleId");
 		const credentials = appleCredentials();
-		if (!credentials) throw new ConvexError("unavailable");
+		if (!credentials) throw appError("unavailable");
 		try {
 			await revokeAppleAuthorization(credentials, authorizationCode, bundleId);
 		} catch (error) {
 			console.error("account.revokeAppleSignIn failed", error);
-			throw new ConvexError("failed");
+			throw appError("failed");
 		}
 		return null;
 	},

@@ -45,7 +45,7 @@ it("resets base units to 100 and saves the resulting amount", async () => {
 		.mocked(useMutation)
 		.mockImplementation(
 			(ref) =>
-				(getFunctionName(ref) === "nutritionDiary:update"
+				(getFunctionName(ref) === "nutritionDiary:applyOperation"
 					? update
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
@@ -56,7 +56,7 @@ it("resets base units to 100 and saves the resulting amount", async () => {
 	expect(await screen.findByDisplayValue("100")).toBeTruthy();
 	await fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
-	expect(update.mock.calls[0][0].selection.amount).toBe(100);
+	expect(update.mock.calls[0][0].operation.selection.amount).toBe(100);
 });
 it("creates a Personal Measure independently and selects it at quantity one", async () => {
 	const create = jest.fn().mockResolvedValue({
@@ -198,11 +198,12 @@ it("moves an entry to a different meal and date through the diary operation", as
 	await fireEvent.press(await screen.findByText("Tomorrow"));
 	await fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
-	expect(update.mock.calls[0][0]).toMatchObject({
+	expect(update.mock.calls[0][0].operation).toMatchObject({
+		kind: "update",
 		meal: "dinner",
 		quantity: 1.25,
 	});
-	expect(update.mock.calls[0][0].date).not.toBe("2026-10-04");
+	expect(update.mock.calls[0][0].operation.date).not.toBe("2026-10-04");
 });
 
 it("retains invalid input and recovers after a failed creation", async () => {

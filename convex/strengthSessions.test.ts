@@ -1,11 +1,29 @@
 /// <reference types="vite/client" />
+
+import type { FunctionArgs } from "convex/server";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
+import { readStrengthReferences } from "./lib/strengthReferences";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
 const exerciseId = "shipped:exercise:barbell-bench-press";
+
+type Athlete = ReturnType<ReturnType<typeof convexTest>["withIdentity"]>;
+type SetInput = Omit<FunctionArgs<typeof api.sets.add>, "operationId"> & {
+	operationId?: string;
+};
+
+/** Logs a Set under a fresh operation id unless the test names one. */
+const logSet = (athlete: Athlete, values: SetInput) =>
+	athlete.mutation(api.sets.add, {
+		operationId: crypto.randomUUID(),
+		...values,
+	});
+
+const references = (t: ReturnType<typeof convexTest>, id = exerciseId) =>
+	t.run((ctx) => readStrengthReferences(ctx, "alice", id));
 
 describe("strength sessions", () => {
 	it("returns a definitive rejection when a drafted personal exercise is deleted", async () => {
@@ -25,7 +43,7 @@ describe("strength sessions", () => {
 		});
 		await athlete.mutation(api.exercises.remove, { id: personal });
 		await expect(
-			athlete.mutation(api.sets.add, {
+			logSet(athlete, {
 				operationId: "deleted-exercise",
 				sessionId,
 				exerciseId: personal,
@@ -35,7 +53,9 @@ describe("strength sessions", () => {
 				unit: "kg",
 				setType: "working",
 			}),
-		).rejects.toMatchObject({ data: "Exercise not found" });
+		).rejects.toMatchObject({
+			data: { code: "notFound", field: "exerciseId" },
+		});
 		expect(
 			await athlete.query(api.sets.getLogResult, {
 				operationId: "deleted-exercise",
@@ -89,15 +109,9 @@ describe("strength sessions", () => {
 			unit: "kg" as const,
 			setType: "working" as const,
 		};
-		await expect(
-			athlete.mutation(api.sets.add, { ...input, reps: 2.5 }),
-		).rejects.toThrow();
-		await expect(
-			athlete.mutation(api.sets.add, { ...input, setNumber: 0 }),
-		).rejects.toThrow();
-		await expect(
-			athlete.mutation(api.sets.add, { ...input, rpe: 7.3 }),
-		).rejects.toThrow();
+		await expect(logSet(athlete, { ...input, reps: 2.5 })).rejects.toThrow();
+		await expect(logSet(athlete, { ...input, setNumber: 0 })).rejects.toThrow();
+		await expect(logSet(athlete, { ...input, rpe: 7.3 })).rejects.toThrow();
 		expect(await athlete.query(api.sets.listForSession, { sessionId })).toEqual(
 			[],
 		);
@@ -185,8 +199,8 @@ describe("strength sessions", () => {
 		});
 		await expect(
 			athlete.mutation(api.workoutSessions.finish, { id: sessionId }),
-		).rejects.toThrow("empty");
-		await athlete.mutation(api.sets.add, {
+		).rejects.toMatchObject({ data: { code: "emptySession" } });
+		await logSet(athlete, {
 			sessionId,
 			exerciseId,
 			setNumber: 1,
@@ -197,13 +211,13 @@ describe("strength sessions", () => {
 		});
 		await expect(
 			athlete.mutation(api.workoutSessions.finish, { id: sessionId }),
-		).rejects.toThrow("unfinished");
+		).rejects.toMatchObject({ data: { code: "unfinishedTargets" } });
 		await athlete.mutation(api.workoutSessions.finish, {
 			id: sessionId,
 			discardUnfinished: true,
 		});
 		const next = await athlete.mutation(api.workoutSessions.create, {});
-		await athlete.mutation(api.sets.add, {
+		await logSet(athlete, {
 			sessionId: next,
 			exerciseId,
 			setNumber: 1,
@@ -222,7 +236,7 @@ describe("strength sessions", () => {
 			).items.map((item) => item.id),
 		).toEqual([sessionId]);
 		await expect(
-			athlete.mutation(api.sets.add, {
+			logSet(athlete, {
 				sessionId: next,
 				exerciseId,
 				setNumber: 2,
@@ -231,7 +245,7 @@ describe("strength sessions", () => {
 				unit: "kg",
 				setType: "working",
 			}),
-		).rejects.toThrow("ended");
+		).rejects.toMatchObject({ data: { code: "sessionEnded" } });
 	});
 
 	it("preserves legacy history without treating it or bodyweight load as measured evidence", async () => {
@@ -265,10 +279,7 @@ describe("strength sessions", () => {
 			});
 			return sessionId;
 		});
-		expect(
-			(await athlete.query(api.oneRepMaxes.getReferences, { exerciseId }))
-				.measured,
-		).toBeNull();
+		expect((await references(t)).measured).toBeNull();
 		expect(
 			await athlete.query(api.oneRepMaxes.getCurrentForExercise, {
 				exerciseId,
@@ -283,41 +294,36 @@ describe("strength sessions", () => {
 		expect(
 			await athlete.query(api.sets.listForSession, { sessionId: legacy }),
 		).toMatchObject([{ weight: 300, reps: 1, loggedAt: 1 }]);
-		const bodyweight = (await athlete.query(api.exercises.list, {})).find(
-			(exercise) => exercise.equipment === "bodyweight",
-		);
-		if (!bodyweight)
-			throw new Error("The shipped catalog needs bodyweight exercise");
+		const bodyweight = "shipped:exercise:bodyweight-squat";
 		const sessionId = await athlete.mutation(api.workoutSessions.create, {});
 		const values = {
 			sessionId,
-			exerciseId: bodyweight._id,
+			exerciseId: bodyweight,
 			setNumber: 1,
 			reps: 8,
 			weight: 0,
 			unit: "kg" as const,
 			setType: "working" as const,
 		};
-		await athlete.mutation(api.sets.add, values);
-		await athlete.mutation(api.sets.add, {
+		await logSet(athlete, values);
+		await logSet(athlete, {
 			...values,
 			setNumber: 2,
 			reps: 1,
 			weight: 20,
 		});
-		expect(
-			await athlete.query(api.oneRepMaxes.getReferences, {
-				exerciseId: bodyweight._id,
-			}),
-		).toMatchObject({ measured: null, estimated: null });
+		expect(await references(t, bodyweight)).toMatchObject({
+			measured: null,
+			estimated: null,
+		});
 	});
 
-	it("clears saved effort explicitly and repeats into input without recording another Set", async () => {
+	it("clears saved effort explicitly", async () => {
 		const athlete = convexTest(schema, modules).withIdentity({
 			subject: "alice",
 		});
 		const sessionId = await athlete.mutation(api.workoutSessions.create, {});
-		const id = await athlete.mutation(api.sets.add, {
+		const id = await logSet(athlete, {
 			sessionId,
 			exerciseId,
 			setNumber: 1,
@@ -328,8 +334,6 @@ describe("strength sessions", () => {
 			rpe: 7.5,
 		});
 		await athlete.mutation(api.sets.update, { id, rpe: null });
-		const draft = await athlete.mutation(api.sets.duplicate, { id });
-		expect(draft).toMatchObject({ reps: 8, weight: 60, setNumber: 2 });
 		const sets = await athlete.query(api.sets.listForSession, { sessionId });
 		expect(sets).toHaveLength(1);
 		expect(sets[0]).toMatchObject({
@@ -342,11 +346,10 @@ describe("strength sessions", () => {
 	});
 
 	it("freezes reference values and provenance for a session even after correcting or removing the source", async () => {
-		const athlete = convexTest(schema, modules).withIdentity({
-			subject: "alice",
-		});
+		const t = convexTest(schema, modules);
+		const athlete = t.withIdentity({ subject: "alice" });
 		const first = await athlete.mutation(api.workoutSessions.create, {});
-		const sourceSetId = await athlete.mutation(api.sets.add, {
+		const sourceSetId = await logSet(athlete, {
 			sessionId: first,
 			exerciseId,
 			setNumber: 1,
@@ -375,10 +378,7 @@ describe("strength sessions", () => {
 		});
 		await athlete.mutation(api.sets.update, { id: sourceSetId, weight: 110 });
 		await athlete.mutation(api.sets.remove, { id: sourceSetId });
-		expect(
-			(await athlete.query(api.oneRepMaxes.getReferences, { exerciseId }))
-				.measured,
-		).toBeNull();
+		expect((await references(t)).measured).toBeNull();
 		expect(
 			(await athlete.query(api.workoutSessions.getById, { id: second }))
 				?.exercises?.[0]?.references,
@@ -400,9 +400,8 @@ describe("strength sessions", () => {
 	});
 
 	it("keeps sourced measured, estimated and manual references independent and normalizes units", async () => {
-		const athlete = convexTest(schema, modules).withIdentity({
-			subject: "alice",
-		});
+		const t = convexTest(schema, modules);
+		const athlete = t.withIdentity({ subject: "alice" });
 		await athlete.mutation(api.oneRepMaxes.addManual, {
 			exerciseId,
 			value: 90,
@@ -418,22 +417,22 @@ describe("strength sessions", () => {
 			unit: "kg" as const,
 			setType: "warmup" as const,
 		};
-		const singleId = await athlete.mutation(api.sets.add, log);
-		const multiId = await athlete.mutation(api.sets.add, {
+		const singleId = await logSet(athlete, log);
+		const multiId = await logSet(athlete, {
 			...log,
 			setNumber: 2,
 			reps: 5,
 			weight: 90,
 			setType: "drop",
 		});
-		await athlete.mutation(api.sets.add, {
+		await logSet(athlete, {
 			...log,
 			setNumber: 3,
 			weight: 200,
 			unit: "lbs",
 			setType: "failure",
 		});
-		await athlete.mutation(api.sets.add, {
+		await logSet(athlete, {
 			...log,
 			setNumber: 4,
 			weight: 200,
@@ -441,9 +440,7 @@ describe("strength sessions", () => {
 		});
 		await athlete.mutation(api.workoutSessions.cancel, { id: sessionId });
 		const sets = await athlete.query(api.sets.listForSession, { sessionId });
-		expect(
-			await athlete.query(api.oneRepMaxes.getReferences, { exerciseId }),
-		).toMatchObject({
+		expect(await references(t)).toMatchObject({
 			measured: {
 				value: 100,
 				unit: "kg",
@@ -460,15 +457,12 @@ describe("strength sessions", () => {
 			manual: { value: 90, unit: "kg", source: "manual" },
 		});
 		await athlete.mutation(api.sets.update, { id: singleId, weight: 80 });
-		expect(
-			(await athlete.query(api.oneRepMaxes.getReferences, { exerciseId }))
-				.measured,
-		).toMatchObject({ value: 200, unit: "lbs" });
+		expect((await references(t)).measured).toMatchObject({
+			value: 200,
+			unit: "lbs",
+		});
 		await athlete.mutation(api.sets.remove, { id: multiId });
-		expect(
-			(await athlete.query(api.oneRepMaxes.getReferences, { exerciseId }))
-				.estimated,
-		).toBeNull();
+		expect((await references(t)).estimated).toBeNull();
 	});
 
 	it("recovers an acknowledged Log after ending or deleting without duplicating performance", async () => {
@@ -485,28 +479,28 @@ describe("strength sessions", () => {
 			unit: "kg" as const,
 			setType: "working" as const,
 		};
-		const id = await athlete.mutation(api.sets.add, input);
-		expect(await athlete.mutation(api.sets.add, input)).toBe(id);
+		const id = await logSet(athlete, input);
+		expect(await logSet(athlete, input)).toBe(id);
 		await expect(
-			athlete.mutation(api.sets.add, { ...input, weight: 80 }),
-		).rejects.toThrow("different details");
+			logSet(athlete, { ...input, weight: 80 }),
+		).rejects.toMatchObject({ data: { code: "operationConflict" } });
 		expect(
 			await t
 				.withIdentity({ subject: "bob" })
 				.query(api.sets.getLogResult, { operationId: input.operationId }),
 		).toBeNull();
 		await athlete.mutation(api.workoutSessions.finish, { id: sessionId });
-		expect(await athlete.mutation(api.sets.add, input)).toBe(id);
+		expect(await logSet(athlete, input)).toBe(id);
 		await expect(
-			athlete.mutation(api.sets.add, { ...input, operationId: "another-log" }),
-		).rejects.toThrow("ended");
+			logSet(athlete, { ...input, operationId: "another-log" }),
+		).rejects.toMatchObject({ data: { code: "sessionEnded" } });
 		await athlete.mutation(api.sets.remove, { id });
 		expect(
 			await athlete.query(api.sets.getLogResult, {
 				operationId: input.operationId,
 			}),
 		).toMatchObject({ setId: id, status: "removed" });
-		expect(await athlete.mutation(api.sets.add, input)).toBe(id);
+		expect(await logSet(athlete, input)).toBe(id);
 		expect(await athlete.query(api.sets.listForSession, { sessionId })).toEqual(
 			[],
 		);
@@ -537,7 +531,7 @@ describe("strength sessions", () => {
 		expect(await athlete.query(api.sets.listForSession, { sessionId })).toEqual(
 			[],
 		);
-		await athlete.mutation(api.sets.add, {
+		await logSet(athlete, {
 			sessionId,
 			exerciseId,
 			setNumber: 1,
@@ -553,22 +547,18 @@ describe("strength sessions", () => {
 			t
 				.withIdentity({ subject: "bob" })
 				.mutation(api.workoutSessions.addExercise, { sessionId, exerciseId }),
-		).rejects.toThrow("Unauthorized");
+		).rejects.toMatchObject({ data: { code: "notFound" } });
 	});
 
 	it("starts a three-by-eight Routine as targets with no performed Sets", async () => {
 		const athlete = convexTest(schema, modules).withIdentity({
 			subject: "alice",
 		});
-		const exercises = await athlete.query(api.exercises.list, {});
-		const exercise = exercises.find((item) => item.equipment === "barbell");
-		if (!exercise)
-			throw new Error("The shipped catalog needs a barbell exercise");
 		const routineId = await athlete.mutation(api.routines.create, {
 			name: "Three by eight",
 			exercises: [
 				{
-					exerciseId: exercise._id,
+					exerciseId,
 					defaultSets: 3,
 					defaultReps: 8,
 					defaultWeight: 60,
@@ -587,7 +577,7 @@ describe("strength sessions", () => {
 			name: "Three by eight",
 			exercises: [
 				{
-					exerciseId: exercise._id,
+					exerciseId,
 					plannedSets: [
 						{ reps: 8, weight: 60, unit: "kg" },
 						{ reps: 8, weight: 60, unit: "kg" },
@@ -597,53 +587,4 @@ describe("strength sessions", () => {
 			],
 		});
 	});
-});
-
-it("returns ordered previous-session performance without leaking another account", async () => {
-	const t = convexTest(schema, modules);
-	const athlete = t.withIdentity({ subject: "alice" });
-	const first = await athlete.mutation(api.workoutSessions.create, {});
-	const log = {
-		exerciseId,
-		reps: 8,
-		weight: 60,
-		unit: "kg" as const,
-		setType: "working" as const,
-	};
-	await athlete.mutation(api.sets.add, {
-		...log,
-		sessionId: first,
-		setNumber: 1,
-	});
-	await athlete.mutation(api.sets.add, {
-		...log,
-		sessionId: first,
-		setNumber: 2,
-		weight: 65,
-	});
-	await athlete.mutation(api.workoutSessions.cancel, { id: first });
-	const second = await athlete.mutation(api.workoutSessions.create, {});
-	await athlete.mutation(api.sets.add, {
-		...log,
-		sessionId: second,
-		setNumber: 1,
-		weight: 70,
-	});
-	expect(
-		await athlete.query(api.sets.getPreviousForExercise, {
-			exerciseId,
-			sessionId: second,
-		}),
-	).toMatchObject([
-		{ weight: 60, setNumber: 1 },
-		{ weight: 65, setNumber: 2 },
-	]);
-	expect(
-		await t
-			.withIdentity({ subject: "bob" })
-			.query(api.sets.getPreviousForExercise, {
-				exerciseId,
-				sessionId: second,
-			}),
-	).toEqual([]);
 });

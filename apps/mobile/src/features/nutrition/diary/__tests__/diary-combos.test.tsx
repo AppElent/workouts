@@ -289,10 +289,10 @@ describe("Nutrition Combos", () => {
 
 	it("logs all saved parts to the selected day and meal with one action", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		const logCombo = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:logCombo"
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
 					? logCombo
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
@@ -312,22 +312,30 @@ describe("Nutrition Combos", () => {
 		expect(logCombo).toHaveBeenCalledTimes(1);
 		expect(logCombo).toHaveBeenCalledWith(
 			expect.objectContaining({
-				date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-				meal: "dinner",
-				combo: { id: combo.id, name: "Morning Combo" },
-				parts: [
-					expect.objectContaining({ name: { en: "Oats", nl: "Havermout" } }),
-				],
+				operation: expect.objectContaining({
+					kind: "createBatch",
+					date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+					meal: "dinner",
+					entries: [
+						expect.objectContaining({
+							name: { en: "Oats", nl: "Havermout" },
+							comboGroup: expect.objectContaining({
+								comboId: combo.id,
+								name: "Morning Combo",
+							}),
+						}),
+					],
+				}),
 			}),
 		);
 	});
 
 	it("scales whole combos and can turn one part off for this log", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		const logCombo = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:logCombo"
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
 					? logCombo
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
@@ -357,13 +365,15 @@ describe("Nutrition Combos", () => {
 
 		expect(logCombo).toHaveBeenCalledWith(
 			expect.objectContaining({
-				parts: [
-					expect.objectContaining({
-						name: { en: "Oats", nl: "Havermout" },
-						amount: 50,
-						quantity: 0.5,
-					}),
-				],
+				operation: expect.objectContaining({
+					entries: [
+						expect.objectContaining({
+							name: { en: "Oats", nl: "Havermout" },
+							amount: 50,
+							quantity: 0.5,
+						}),
+					],
+				}),
 			}),
 		);
 		expect(app.repository.listCombos()[0].parts).toHaveLength(2);
@@ -371,10 +381,10 @@ describe("Nutrition Combos", () => {
 
 	it("does not round the whole-combo count it logs", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		const logCombo = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:logCombo"
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
 					? logCombo
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
@@ -387,7 +397,7 @@ describe("Nutrition Combos", () => {
 		await fireEvent.changeText(screen.getByLabelText("Quantity"), "0.123456");
 		await fireEvent.press(screen.getByLabelText("Log Combo"));
 		await waitForLogClosed();
-		expect(logCombo.mock.calls[0][0].parts[0].amount).toBeCloseTo(
+		expect(logCombo.mock.calls[0][0].operation.entries[0].amount).toBeCloseTo(
 			100 * 0.123456,
 			10,
 		);
@@ -424,10 +434,10 @@ describe("Nutrition Combos", () => {
 
 	it("resolves the same Personal Food id at logging time without chasing replacements", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
+		const logCombo = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:logCombo"
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
 					? logCombo
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
@@ -465,15 +475,17 @@ describe("Nutrition Combos", () => {
 
 		expect(logCombo).toHaveBeenCalledWith(
 			expect.objectContaining({
-				parts: [
-					expect.objectContaining({
-						name: { en: "Updated oats", nl: "Updated oats" },
-						nutrients: expect.objectContaining({
-							energy: { kind: "value", amount: 200 },
+				operation: expect.objectContaining({
+					entries: [
+						expect.objectContaining({
+							name: { en: "Updated oats", nl: "Updated oats" },
+							nutrients: expect.objectContaining({
+								energy: { kind: "value", amount: 200 },
+							}),
+							provenance: expect.objectContaining({ sourceId: food.id }),
 						}),
-						provenance: expect.objectContaining({ sourceId: food.id }),
-					}),
-				],
+					],
+				}),
 			}),
 		);
 	});

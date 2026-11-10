@@ -1,14 +1,14 @@
-import {
-	type EnduranceField,
-	type EnduranceInput,
-	validateEnduranceInput,
-} from "@foundry/core";
-import { ConvexError, v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { validateEnduranceInput } from "@foundry/core";
+import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
-
-const sport = v.union(v.literal("running"), v.literal("cycling"));
-const environment = v.union(v.literal("indoor"), v.literal("outdoor"));
+import { getOwned, requireOwned, requireUserId } from "./lib/auth";
+import { appError, checked } from "./lib/errors";
+import {
+	enduranceEnvironment as environment,
+	enduranceSport as sport,
+} from "./lib/validators";
 
 const requiredFields = {
 	occurredAt: v.number(),
@@ -53,32 +53,14 @@ const detailReturn = v.union(
 	}),
 );
 
-const ENDURANCE_MESSAGES: Record<EnduranceField, string> = {
-	occurredAt: "Invalid activity date.",
-	durationSeconds: "Duration must be positive.",
-	distanceMeters: "Distance must be positive.",
-	elevationGainMeters: "Elevation gain cannot be negative.",
-	averageHeartRate: "Average heart rate must be a positive whole number.",
-	effort: "Effort must be between 1 and 10.",
-	title: "Title is too long.",
-	notes: "Notes are too long.",
-};
-
-function assertEnduranceInput(input: EnduranceInput) {
-	const result = validateEnduranceInput(input);
-	if (result.ok) return;
-	const [{ field, code }] = result.errors;
-	throw new ConvexError(
-		code === "future"
-			? "Activity date cannot be in the future."
-			: ENDURANCE_MESSAGES[field],
-	);
-}
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
+async function requireDetails(ctx: QueryCtx, activityId: Id<"activities">) {
+	const details = await ctx.db
+		.query("enduranceActivityDetails")
+		.withIndex("by_activity", (q) => q.eq("activityId", activityId))
+		.unique();
+	if (!details)
+		throw new Error(`Activity ${activityId} has no endurance details`);
+	return details;
 }
 
 export const create = mutation({
@@ -90,10 +72,10 @@ export const create = mutation({
 	},
 	returns: v.id("activities"),
 	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		if (!args.clientEntryId.trim() || args.clientEntryId.length > 200)
-			throw new Error("Invalid client entry ID.");
-		assertEnduranceInput(args);
+			throw appError("invalid", "clientEntryId");
+		checked(validateEnduranceInput(args));
 		const existing = await ctx.db
 			.query("activities")
 			.withIndex("by_user_client_entry", (q) =>
@@ -101,11 +83,7 @@ export const create = mutation({
 			)
 			.unique();
 		if (existing) {
-			const saved = await ctx.db
-				.query("enduranceActivityDetails")
-				.withIndex("by_activity", (q) => q.eq("activityId", existing._id))
-				.unique();
-			if (!saved) throw new Error("Activity details are missing.");
+			const saved = await requireDetails(ctx, existing._id);
 			const matches =
 				existing.sport === args.sport &&
 				existing.occurredAt === args.occurredAt &&
@@ -117,8 +95,7 @@ export const create = mutation({
 				saved.elevationGainMeters === args.elevationGainMeters &&
 				saved.averageHeartRate === args.averageHeartRate &&
 				saved.effort === args.effort;
-			if (!matches)
-				throw new Error("Activity already exists with different details.");
+			if (!matches) throw appError("operationConflict");
 			return existing._id;
 		}
 		const now = Date.now();
@@ -150,14 +127,10 @@ export const get = query({
 	args: { id: v.id("activities") },
 	returns: detailReturn,
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const activity = await ctx.db.get(id);
-		if (!activity || activity.userId !== userId) return null;
-		const detail = await ctx.db
-			.query("enduranceActivityDetails")
-			.withIndex("by_activity", (q) => q.eq("activityId", id))
-			.unique();
-		if (!detail) throw new Error("Activity details are missing.");
+		const userId = await requireUserId(ctx);
+		const activity = await getOwned(ctx, userId, id);
+		if (!activity) return null;
+		const detail = await requireDetails(ctx, id);
 		return {
 			id,
 			sport: activity.sport,
@@ -180,16 +153,10 @@ export const update = mutation({
 	args: { id: v.id("activities"), ...requiredFields, ...editableFields },
 	returns: v.null(),
 	handler: async (ctx, { id, ...input }) => {
-		const userId = await requireUser(ctx);
-		const activity = await ctx.db.get(id);
-		if (!activity || activity.userId !== userId)
-			throw new Error("Activity not found.");
-		assertEnduranceInput(input);
-		const detail = await ctx.db
-			.query("enduranceActivityDetails")
-			.withIndex("by_activity", (q) => q.eq("activityId", id))
-			.unique();
-		if (!detail) throw new Error("Activity details are missing.");
+		const userId = await requireUserId(ctx);
+		const activity = await requireOwned(ctx, userId, id);
+		checked(validateEnduranceInput(input));
+		const detail = await requireDetails(ctx, id);
 		await ctx.db.patch(id, {
 			occurredAt: input.occurredAt,
 			durationSeconds: input.durationSeconds,
@@ -222,10 +189,8 @@ export const remove = mutation({
 	args: { id: v.id("activities") },
 	returns: v.null(),
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const activity = await ctx.db.get(id);
-		if (!activity || activity.userId !== userId)
-			throw new Error("Activity not found.");
+		const userId = await requireUserId(ctx);
+		await requireOwned(ctx, userId, id);
 		const detail = await ctx.db
 			.query("enduranceActivityDetails")
 			.withIndex("by_activity", (q) => q.eq("activityId", id))

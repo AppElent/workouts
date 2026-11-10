@@ -31,7 +31,7 @@ describe("nutrition AI", () => {
 		const t = convexTest(schema, modules);
 		await expect(
 			t.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
-		).rejects.toThrow("unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	});
 
 	it("reports an unconfigured provider instead of failing silently", async () => {
@@ -41,7 +41,7 @@ describe("nutrition AI", () => {
 		});
 		await expect(
 			alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
-		).rejects.toThrow("unavailable");
+		).rejects.toMatchObject({ data: { code: "unavailable" } });
 	});
 
 	it("returns everything the model's schema asks of an item", async () => {
@@ -208,7 +208,7 @@ describe("nutrition AI", () => {
 		});
 		await expect(
 			alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
-		).rejects.toThrow("limit");
+		).rejects.toMatchObject({ data: { code: "limit" } });
 		const bob = t.withIdentity({ subject: "bob" });
 		await expect(
 			bob.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
@@ -393,9 +393,9 @@ describe("nutrition AI", () => {
 				},
 			],
 		};
-		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
-			"limit",
-		);
+		await expect(
+			alice.action(api.nutritionAi.choose, choose),
+		).rejects.toMatchObject({ data: { code: "limit" } });
 		await alice.action(api.nutritionAi.describe, {
 			text: "brood",
 			locale: "nl",
@@ -403,8 +403,8 @@ describe("nutrition AI", () => {
 		// The second is the one retry the phone gets after a failed match.
 		await alice.action(api.nutritionAi.choose, choose);
 		await alice.action(api.nutritionAi.choose, choose);
-		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
-			"limit",
-		);
+		await expect(
+			alice.action(api.nutritionAi.choose, choose),
+		).rejects.toMatchObject({ data: { code: "limit" } });
 	});
 });

@@ -1,53 +1,32 @@
 import { bestScore } from "@foundry/core";
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
-import { assertOptionalRange } from "./lib/validate";
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
-
-const scoreFields = {
-	rxScaled: v.union(v.literal("rx"), v.literal("scaled")),
-	timeSeconds: v.optional(v.number()),
-	rounds: v.optional(v.number()),
-	reps: v.optional(v.number()),
-	timeCapped: v.optional(v.boolean()),
-	load: v.optional(v.number()),
-	loadUnit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-	notes: v.optional(v.string()),
-};
+import { requireOwned, requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { wodScoreFields } from "./lib/validators";
+import { checkedWodScore } from "./lib/wods";
 
 export const log = mutation({
 	args: {
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
 		date: v.optional(v.number()),
-		...scoreFields,
+		rxScaled: v.union(v.literal("rx"), v.literal("scaled")),
+		...wodScoreFields,
 	},
-	handler: async (ctx, { wodId, sessionId, date, ...score }) => {
-		const userId = await requireUser(ctx);
-		assertOptionalRange(score.timeSeconds, 0, 86400, "Time");
-		assertOptionalRange(score.rounds, 0, 10000, "Rounds");
-		assertOptionalRange(score.reps, 0, 100000, "Reps");
-		assertOptionalRange(score.load, 0, 2000, "Load");
+	handler: async (ctx, { wodId, sessionId, date, rxScaled, ...input }) => {
+		const userId = await requireUserId(ctx);
 		const wod = await ctx.db.get(wodId);
-		if (!wod) throw new Error("WOD not found");
-		if (!wod.isDefault && wod.userId !== userId)
-			throw new Error("Unauthorized");
-		if (sessionId) {
-			const session = await ctx.db.get(sessionId);
-			if (!session || session.userId !== userId)
-				throw new Error("Session not found");
-		}
+		if (!wod || (!wod.isDefault && wod.userId !== userId))
+			throw appError("notFound", "wodId");
+		const score = checkedWodScore(wod.type, input);
+		if (sessionId) await requireOwned(ctx, userId, sessionId);
 		return ctx.db.insert("wodResults", {
 			userId,
 			wodId,
 			sessionId,
 			date: date ?? Date.now(),
+			rxScaled,
 			...score,
 		});
 	},
@@ -56,7 +35,7 @@ export const log = mutation({
 export const listForWod = query({
 	args: { wodId: v.id("wods") },
 	handler: async (ctx, { wodId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const results = await ctx.db
 			.query("wodResults")
 			.withIndex("by_user_wod", (q) =>
@@ -70,19 +49,19 @@ export const listForWod = query({
 export const listForSession = query({
 	args: { sessionId: v.id("workoutSessions") },
 	handler: async (ctx, { sessionId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const results = await ctx.db
 			.query("wodResults")
 			.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
 			.collect();
-		return results.filter((r) => r.userId === userId);
+		return results.filter((result) => result.userId === userId);
 	},
 });
 
 export const getBest = query({
 	args: { wodId: v.id("wods") },
 	handler: async (ctx, { wodId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const wod = await ctx.db.get(wodId);
 		if (!wod) return null;
 		const results = await ctx.db
@@ -98,9 +77,7 @@ export const getBest = query({
 export const remove = mutation({
 	args: { id: v.id("wodResults") },
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const result = await ctx.db.get(id);
-		if (!result || result.userId !== userId) throw new Error("Unauthorized");
+		await requireOwned(ctx, await requireUserId(ctx), id);
 		await ctx.db.delete(id);
 	},
 });

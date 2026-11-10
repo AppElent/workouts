@@ -16,16 +16,12 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
-
-async function requireUser(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
+import { requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
 
 function assertRange(from: number, to: number) {
 	if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || !(from < to))
-		throw new Error("Invalid range.");
+		throw appError("invalid", "days");
 }
 
 async function completedIn(
@@ -54,27 +50,16 @@ async function completedIn(
 	return endurance !== null;
 }
 
-/** One local day. Kept for released builds that still mark only the open day. */
-export const hasCompletedActivity = query({
-	args: { from: v.number(), to: v.number() },
-	returns: v.boolean(),
-	handler: async (ctx, { from, to }) => {
-		const userId = await requireUser(ctx);
-		assertRange(from, to);
-		return completedIn(ctx, userId, from, to);
-	},
-});
-
 /**
- * The same yes/no for each local day of the diary week strip (at most 31), in
- * the order given. Still only booleans: nothing about what was trained.
+ * Whether each local day of the diary week strip (at most 31) holds a
+ * completed activity, in the order given. Still only booleans: nothing about what was trained.
  */
 export const completedActivityDays = query({
 	args: { days: v.array(v.object({ from: v.number(), to: v.number() })) },
 	returns: v.array(v.boolean()),
 	handler: async (ctx, { days }) => {
-		const userId = await requireUser(ctx);
-		if (days.length > 31) throw new Error("Too many days.");
+		const userId = await requireUserId(ctx);
+		if (days.length > 31) throw appError("tooLarge", "days");
 		for (const { from, to } of days) assertRange(from, to);
 		return Promise.all(
 			days.map(({ from, to }) => completedIn(ctx, userId, from, to)),

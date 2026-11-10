@@ -18,8 +18,7 @@ provide the same automatic update flow.
 The EAS profile name does not determine the backend environment. As verified
 on 2026-09-29, `preview` points to the live Convex deployment `fine-akita-444`,
 also used by the production web app. Check the target before deploying backend
-changes. This release requires the completed
-[exercise-history migration](exercise-migration.md) before client distribution.
+changes.
 
 ## Install variants
 

@@ -1,90 +1,47 @@
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getOwned, requireOwned, requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { recalcStrengthReferences } from "./lib/strengthReferences";
 import {
-	exerciseReference,
-	normalizeExerciseReferences,
-} from "./lib/exerciseCatalog";
-import { ensureSessionExercise } from "./lib/strengthSession";
-import { recalcOneRepMax } from "./sets";
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
+	ensureSessionExercise,
+	getActiveSession,
+	startSession,
+} from "./lib/strengthSession";
+import { exerciseReference } from "./lib/validators";
 
 export const getActive = query({
 	args: {},
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) return null;
-		return ctx.db
-			.query("workoutSessions")
-			.withIndex("by_user_status", (q) =>
-				q.eq("userId", identity.subject).eq("status", "active"),
-			)
-			.first();
-	},
+	handler: async (ctx) => getActiveSession(ctx, await requireUserId(ctx)),
 });
 
 export const listRecent = query({
 	args: { limit: v.optional(v.number()) },
 	handler: async (ctx, { limit = 5 }) => {
-		const userId = await requireUser(ctx);
-		const safeLimit = Math.min(limit, 50);
+		const userId = await requireUserId(ctx);
 		return ctx.db
 			.query("workoutSessions")
 			.withIndex("by_user_date", (q) => q.eq("userId", userId))
 			.order("desc")
-			.take(safeLimit);
+			.take(Math.min(limit, 50));
 	},
 });
 
 export const getById = query({
 	args: { id: v.id("workoutSessions") },
-	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const session = await ctx.db.get(id);
-		if (!session || session.userId !== userId) return null;
-		return {
-			...session,
-			exercises: session.exercises
-				? await normalizeExerciseReferences(ctx, session.exercises)
-				: undefined,
-		};
-	},
+	handler: async (ctx, { id }) => getOwned(ctx, await requireUserId(ctx), id),
 });
 
 export const create = mutation({
 	args: { name: v.optional(v.string()) },
-	handler: async (ctx, { name }) => {
-		const userId = await requireUser(ctx);
-		const existing = await ctx.db
-			.query("workoutSessions")
-			.withIndex("by_user_status", (q) =>
-				q.eq("userId", userId).eq("status", "active"),
-			)
-			.first();
-		if (existing) throw new Error("A session is already active.");
-		const now = Date.now();
-		return ctx.db.insert("workoutSessions", {
-			userId,
-			date: now,
-			startTime: now,
-			name,
-			exercises: [],
-			status: "active",
-		});
-	},
+	handler: async (ctx, { name }) =>
+		startSession(ctx, await requireUserId(ctx), { name, prescriptions: [] }),
 });
 
 export const addExercise = mutation({
 	args: { sessionId: v.id("workoutSessions"), exerciseId: exerciseReference },
-	handler: async (ctx, { sessionId, exerciseId }) => {
-		const userId = await requireUser(ctx);
-		return ensureSessionExercise(ctx, userId, sessionId, exerciseId);
-	},
+	handler: async (ctx, { sessionId, exerciseId }) =>
+		ensureSessionExercise(ctx, await requireUserId(ctx), sessionId, exerciseId),
 });
 
 export const finish = mutation({
@@ -93,11 +50,9 @@ export const finish = mutation({
 		discardUnfinished: v.optional(v.boolean()),
 	},
 	handler: async (ctx, { id, discardUnfinished }) => {
-		const userId = await requireUser(ctx);
-		const session = await ctx.db.get(id);
-		if (!session || session.userId !== userId) throw new Error("Unauthorized");
+		const session = await requireOwned(ctx, await requireUserId(ctx), id);
 		if (session.status === "completed") return;
-		if (session.status !== "active") throw new Error("This session has ended.");
+		if (session.status !== "active") throw appError("sessionEnded");
 		const sets = await ctx.db
 			.query("sets")
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
@@ -106,15 +61,13 @@ export const finish = mutation({
 			.query("wodResults")
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
 			.first();
-		if (sets.length === 0 && !wod)
-			throw new Error("Discard the empty session instead of completing it.");
+		if (sets.length === 0 && !wod) throw appError("emptySession");
 		const unfinished = session.exercises?.some(
 			(exercise) =>
 				sets.filter((set) => set.exerciseId === exercise.exerciseId).length <
 				exercise.plannedSets.length,
 		);
-		if (unfinished && !discardUnfinished)
-			throw new Error("Confirm leaving unfinished targets before finishing.");
+		if (unfinished && !discardUnfinished) throw appError("unfinishedTargets");
 		await ctx.db.patch(id, { status: "completed", endTime: Date.now() });
 	},
 });
@@ -122,11 +75,9 @@ export const finish = mutation({
 export const cancel = mutation({
 	args: { id: v.id("workoutSessions") },
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const session = await ctx.db.get(id);
-		if (!session || session.userId !== userId) throw new Error("Unauthorized");
+		const session = await requireOwned(ctx, await requireUserId(ctx), id);
 		if (session.status === "cancelled") return;
-		if (session.status !== "active") throw new Error("This session has ended.");
+		if (session.status !== "active") throw appError("sessionEnded");
 		await ctx.db.patch(id, { status: "cancelled", endTime: Date.now() });
 	},
 });
@@ -134,27 +85,20 @@ export const cancel = mutation({
 export const remove = mutation({
 	args: { id: v.id("workoutSessions") },
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const session = await ctx.db.get(id);
-		if (!session || session.userId !== userId) throw new Error("Unauthorized");
-		const sessionWodResults = await ctx.db
+		const userId = await requireUserId(ctx);
+		await requireOwned(ctx, userId, id);
+		const wodResults = await ctx.db
 			.query("wodResults")
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
 			.collect();
-		for (const r of sessionWodResults) {
-			if (r.userId === userId) await ctx.db.delete(r._id);
-		}
+		for (const result of wodResults) await ctx.db.delete(result._id);
 		const sets = await ctx.db
 			.query("sets")
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
 			.collect();
-		const exerciseIds = [...new Set(sets.map((s) => s.exerciseId))];
-		for (const set of sets) {
-			await ctx.db.delete(set._id);
-		}
-		for (const exerciseId of exerciseIds) {
-			await recalcOneRepMax(ctx, userId, exerciseId);
-		}
+		for (const set of sets) await ctx.db.delete(set._id);
+		for (const exerciseId of new Set(sets.map((set) => set.exerciseId)))
+			await recalcStrengthReferences(ctx, userId, exerciseId);
 		await ctx.db.delete(id);
 	},
 });
