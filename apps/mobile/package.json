@@ -22,7 +22,7 @@
 		"production:ios:build:local": "node ../../scripts/eas-local-build.mjs --profile production"
 	},
 	"dependencies": {
-		"@clerk/expo": "^4.14.4",
+		"@clerk/expo": "^4.14.5",
 		"@expo/metro-runtime": "~58.0.14",
 		"@expo/ui": "~58.0.17",
 		"@foundry/core": "workspace:*",
