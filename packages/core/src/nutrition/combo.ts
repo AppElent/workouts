@@ -44,7 +44,6 @@ export type ComboDraft = {
 	readonly parts: readonly ComboPartDraft[];
 };
 
-/** A Combo as the library stores it. */
 type ComboPart = ComboPartDraft & { readonly id: string };
 
 export type Combo = {

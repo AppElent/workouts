@@ -6,14 +6,14 @@ import type { ShippedFood } from "./types";
 /**
  * Search over the shipped library.
  *
- * Two tiers, as the spec requires. `promoted` — the ordinary path — returns
- * only the ~150 curated foods, so a search for "banaan" does not bury the
- * banana under twelve NEVO rows for banana bread. `all` reaches every shipped
+ * Two tiers. `promoted` — the ordinary path — returns only the ~150 curated
+ * foods, so a search for "banaan" does not bury the banana under twelve NEVO
+ * rows for banana bread. `all` reaches every shipped
  * row, still ranking promoted foods first.
  *
  * The public shape of this module is fixed even though the internal strategy is
  * not: today it is a lazily built in-memory index over normalised strings, and
- * it may become something else once device measurements say so (#71, D18).
+ * it may become something else once device measurements say so.
  */
 export type SearchScope = "promoted" | "all";
 

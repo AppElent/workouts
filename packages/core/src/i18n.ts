@@ -46,9 +46,8 @@ export function fmt(
 /**
  * Pick a plural form and fill {count}. Assumes one/other CLDR categories.
  *
- * Hermes may lack `Intl.PluralRules` (appelent-packages#16); the fallback is
- * exact for every locale whose CLDR `one` is `i = 1 and v = 0`, which English
- * and Dutch both are.
+ * Hermes may lack `Intl.PluralRules`; the fallback is exact for every locale
+ * whose CLDR `one` is `i = 1 and v = 0`, which English and Dutch both are.
  */
 export function plural<L extends string>(
 	locale: L,

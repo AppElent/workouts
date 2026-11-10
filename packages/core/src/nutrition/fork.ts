@@ -1,10 +1,10 @@
 /**
  * Forking a shipped food, and shadowing its original in search.
  *
- * A shipped record is immutable at runtime (spec #68). Correcting one does not
- * edit it: it mints a *new* device-local food that remembers where it came
- * from, and that fork then stands in front of its source in ordinary results
- * so nobody logs the version they just corrected.
+ * A shipped record is immutable at runtime. Correcting one does not edit it:
+ * it mints a *new* device-local food that remembers where it came from, and
+ * that fork then stands in front of its source in ordinary results so nobody
+ * logs the version they just corrected.
  *
  * Three properties this module exists to keep true:
  *
@@ -44,8 +44,7 @@ import type { ShippedFood, ShippedFoodId, ShippedSource } from "./types";
  * shipped source the figures started as, which is why source attribution
  * follows a fork into its detail view and its diary snapshots; `locallyEdited`
  * says whether the user has actually changed anything yet. Conflating the three
- * loses all three answers, so they stay separate (spec #68, "Provenance and
- * attribution").
+ * loses all three answers, so they stay separate.
  */
 type ForkProvenance = Pick<PersonalFoodProvenance, "locallyEdited"> & {
 	readonly recordOrigin: "personal";
@@ -188,8 +187,8 @@ export type FoodResultsInput<L extends LocalFoodLike> = {
  * with forks standing in front of the records they correct.
  *
  * Local foods lead because a person's own foods and corrections are what they
- * meant (spec #68, "Find and log food"); shipped ranking inside the tail is
- * whatever `searchShippedFoods` decided.
+ * meant; shipped ranking inside the tail is whatever `searchShippedFoods`
+ * decided.
  */
 export function foodResults<L extends LocalFoodLike>(
 	input: FoodResultsInput<L>,

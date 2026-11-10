@@ -12,7 +12,6 @@ export const LIBRARY_SCHEMA_VERSION = 3 satisfies LibrarySchemaVersion;
 export const LIBRARY_RECORD_KINDS = ["food", "combo"] as const;
 export type LibraryRecordKind = (typeof LIBRARY_RECORD_KINDS)[number];
 
-/** Library browse categories: a food record is a food or a recipe. */
 export const LIBRARY_CATEGORIES = ["food", "recipe", "combo"] as const;
 export type LibraryCategory = (typeof LIBRARY_CATEGORIES)[number];
 

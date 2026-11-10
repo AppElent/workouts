@@ -9,10 +9,9 @@ import {
 /**
  * Normalise a remote provider's free-text nutrient field to a plain
  * non-negative number in its stated unit, or `undefined` if it cannot be
- * read. Ported from gather's `parseNutritionValue`
- * (`convex/lib/nutrition.ts`, spec #68 D24) — real-world provider text looks
- * like "250 kcal", "12,5 g" (Dutch decimal comma), "1,200 kcal" (US thousands
- * comma), "1046 kJ", or "740 mg". Unparseable input never throws.
+ * read. Real-world provider text looks like "250 kcal", "12,5 g" (Dutch
+ * decimal comma), "1,200 kcal" (US thousands comma), "1046 kJ", or "740 mg".
+ * Unparseable input never throws.
  */
 export function parseProviderNumber(raw: unknown): number | undefined {
 	if (typeof raw === "number") {
@@ -39,14 +38,13 @@ export function parseProviderNumber(raw: unknown): number | undefined {
 /**
  * The literal words a provider uses for "present but unmeasurable" instead of
  * a number. Only an explicit word counts — a provider that omits a field
- * entirely is `absent`, not `trace` (spec #68 D8: the two are never the same
- * failure mode).
+ * entirely is `absent`, not `trace`: the two are never the same failure mode.
  */
 const TRACE_WORDS = /^\s*(trace|traces|sporen)\s*$/i;
 
 /**
  * Turn one provider nutrient field into a `NutrientValue`, preserving the
- * value/trace/absent distinction (D8) instead of collapsing a missing or
+ * value/trace/absent distinction instead of collapsing a missing or
  * unmeasurable reading into zero.
  */
 export function parseProviderNutrient(raw: unknown): NutrientValue {

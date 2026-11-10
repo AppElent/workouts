@@ -12,13 +12,13 @@ import { type LoadUnit, toKg } from "./units";
 export const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
 export type SetType = (typeof SET_TYPES)[number];
 
+/** The rest between sets when the athlete has not chosen one. */
+export const DEFAULT_REST_SECONDS = 90;
+
 /**
  * Write limits for logged and planned strength work. Weights are checked in
  * the set's own unit, so 2000 lbs is as valid as 2000 kg.
  */
-/** The rest between sets when the athlete has not chosen one. */
-export const DEFAULT_REST_SECONDS = 90;
-
 export const SET_LIMITS = {
 	weight: { min: 0, max: 2000 },
 	reps: { min: 0, max: 1000, step: 1 },

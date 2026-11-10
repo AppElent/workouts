@@ -9,10 +9,8 @@ export type AccountExportPage = {
 	readonly next: AccountExportCursor | null;
 };
 
-/** Exported rows grouped by table name. */
 type AccountExportTables = Record<string, unknown[]>;
 
-/** Reads the export page by page until it ends and groups the rows by table. */
 export async function collectExportTables(
 	fetchPage: (cursor: AccountExportCursor | null) => Promise<AccountExportPage>,
 ): Promise<AccountExportTables> {

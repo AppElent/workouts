@@ -13,7 +13,6 @@ interface PlateResult {
 	perSide: number[];
 	/** Weight that couldn't be matched by available plates (each side total ×2). */
 	remainder: number;
-	/** True when the target is below the bar weight. */
 	belowBar: boolean;
 }
 

@@ -55,7 +55,7 @@ const ARTIFACT_SCHEMA_VERSION = 1;
 const LOCK_SCHEMA_VERSION = 1;
 
 /**
- * NEVO's 27 food groups mapped onto the ten category keys (spec #68, D16).
+ * NEVO's 27 food groups mapped onto the ten category keys.
  * The NEVO English group name is the key, so a future edition renaming a group
  * fails loudly here rather than silently filing its foods under "other".
  *
@@ -97,8 +97,6 @@ const BEVERAGE_GROUPS = new Set([
 	"Non-alcoholic beverages",
 	"Alcoholic beverages",
 ]);
-
-// ---------------------------------------------------------------- identity --
 
 type ReconcileProblemKind = "new" | "changed" | "returning" | "missing";
 
@@ -412,8 +410,6 @@ function compareBySourceThenCode(
 	return a.id.localeCompare(b.id);
 }
 
-// ---------------------------------------------------------------- artifact --
-
 type NutrientCell = number | "t" | null;
 
 /**
@@ -431,7 +427,7 @@ function nutrientCell(row: NevoRow, key: NevoNutrient): NutrientCell {
 	return value;
 }
 
-/** Salt from sodium, preserving absence and trace (spec #68, "Nutrients"). */
+/** Salt from sodium, preserving absence and trace. */
 function saltCell(sodium: NutrientCell): NutrientCell {
 	if (sodium === null) return null;
 	if (sodium === "t") return "t";
@@ -754,8 +750,6 @@ export function buildArtifact({
 		foods,
 	};
 }
-
-// ------------------------------------------------------------- serialising --
 
 /**
  * A pinned serialisation: the header is indented for reading, and every food or

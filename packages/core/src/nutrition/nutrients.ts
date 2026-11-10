@@ -4,8 +4,8 @@ import { type RuleResult, ruleIssues } from "../rules";
  * The nutrient vocabulary for the Nutrition module.
  *
  * These keys are the single spelling used by `@foundry/core`, Convex, the
- * device SQLite schema and the message trees (spec #68, D7). British `fibre`
- * is deliberate; so is `carbs` over `carbohydrates`.
+ * device SQLite schema and the message trees. British `fibre` is deliberate;
+ * so is `carbs` over `carbohydrates`.
  */
 
 /** The eight nutrients a person can see, total and set a goal for. */
@@ -48,7 +48,7 @@ export const NUTRIENT_UNITS: Readonly<
 });
 
 /**
- * A nutrient figure, or the reason there isn't one (spec #68, D8).
+ * A nutrient figure, or the reason there isn't one.
  *
  * - `value` — a real figure, stored unrounded per 100 base units.
  * - `trace` — the source says "present in trace amounts". Contributes numeric
@@ -57,7 +57,7 @@ export const NUTRIENT_UNITS: Readonly<
  *
  * The three states stay distinct all the way from generation through
  * aggregation to the screen; collapsing trace or absent into 0 is the failure
- * mode the spec names in six user stories.
+ * mode to avoid.
  */
 export type NutrientValue =
 	| { readonly kind: "value"; readonly amount: number }
@@ -117,8 +117,7 @@ export function roundForDisplay(
  * `trace` and `absent` are invariant under scaling: the source never gave a
  * number for either, so no ratio can produce one. Only `value` carries an
  * amount to rescale. This is what lets a diary entry's quantity change without
- * ever consulting the food it came from (spec #68, ticket #73) — the snapshot
- * scales itself.
+ * ever consulting the food it came from — the snapshot scales itself.
  */
 export function scaleNutrient(
 	value: NutrientValue,

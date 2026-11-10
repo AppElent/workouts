@@ -4,10 +4,10 @@ import { FOOD_CATEGORIES } from "./types";
 /**
  * The shipped artifact's schema.
  *
- * Imported by the generator and by tests only — never by `./index.ts`. `zod` is
- * a devDependency of `@foundry/core` (spec #68, D15) precisely so that the
- * phone bundle stays dependency-free: the artifact the app reads has already
- * been validated at generation time and again in CI by `artifact.test.ts`.
+ * Imported by the generator and by tests only, never by the package entries.
+ * `zod` is a devDependency of `@foundry/core` precisely so that the phone
+ * bundle stays dependency-free: the artifact the app reads has already been
+ * validated at generation time and again in CI by `artifact.test.ts`.
  */
 
 const bilingualString = z.string().min(1);
@@ -46,7 +46,7 @@ const promotionSchema = z.object({
 	emoji: z.string().min(1).max(8),
 	aliasEn: z.array(bilingualString).optional(),
 	aliasNl: z.array(bilingualString).optional(),
-	// Three is the spec's cap: a picker longer than that stops being a shortcut.
+	// A picker longer than three stops being a shortcut.
 	servings: z.array(servingSchema).max(3),
 });
 
@@ -161,8 +161,8 @@ export const shippedArtifactSchema = z
 					message: `food ${food.id} comes from source ${food.src}, which has no entry in sources`,
 				});
 			}
-			// A drink nobody can portion is a bad search result, so the spec makes
-			// a practical serving the price of promotion.
+			// A drink nobody can portion is a bad search result, so a practical
+			// serving is the price of promotion.
 			if (food.p && food.cat === "drinks" && food.p.servings.length === 0) {
 				ctx.addIssue({
 					code: "custom",
@@ -192,7 +192,7 @@ const lockEntrySchema = z.object({
 	code: z.number().int().positive(),
 	id: z.string().regex(/^shipped:[a-z0-9-]+$/),
 	status: z.enum(["active", "retired"]),
-	/** Hash of the NEVO identity fields at the time this id was bound. */
+	/** Hash of the source's identity fields at the time this id was bound. */
 	identity: z.string().regex(/^[0-9a-f]{16}$/),
 	mintedIn: bilingualString,
 	retiredIn: bilingualString.optional(),

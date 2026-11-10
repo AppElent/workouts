@@ -239,7 +239,6 @@ export function prImprovement(
 	}
 }
 
-/** The highest-ranked score, or null for an empty list. */
 export function bestScore<T extends WodScoreInput>(
 	type: WodType,
 	scores: readonly T[],

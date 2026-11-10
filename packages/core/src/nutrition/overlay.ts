@@ -10,7 +10,7 @@ import type { FoodCategory, ServingBasis } from "./types";
  * actually use. A food listed here is *promoted* — it comes back from ordinary
  * search. Everything else stays reachable through "search all".
  *
- * Rules this file follows (spec #68):
+ * Rules this file follows:
  *
  *   1. NEVO's own values and names are never amended — we only add. The licence
  *      permits additions "provided that it is clear these are additional to the
@@ -76,7 +76,6 @@ export type OverlayEntry = {
 // 1 ml ≈ 1 g fallback.
 
 export const PROMOTION_OVERLAY: OverlayEntry[] = [
-	// ---------------------------------------------------------------- fruit --
 	{
 		code: 151,
 		en: "Banana",
@@ -252,7 +251,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		servings: [{ en: "Portion", nl: "Portie", amount: 100 }],
 	},
 
-	// ----------------------------------------------------------- vegetables --
 	{
 		code: 982,
 		en: "Boiled potatoes",
@@ -478,7 +476,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		servings: [{ en: "Leek", nl: "Prei", amount: 150 }],
 	},
 
-	// --------------------------------------------------------------- grains --
 	{
 		code: 236,
 		en: "Brown bread",
@@ -661,7 +658,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		servings: [{ en: "Pancake", nl: "Pannenkoek", amount: 90 }],
 	},
 
-	// -------------------------------------------------------------- protein --
 	{
 		code: 1634,
 		en: "Chicken breast (raw)",
@@ -912,7 +908,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		servings: [{ en: "Portion", nl: "Portie", amount: 100 }],
 	},
 
-	// ---------------------------------------------------------------- dairy --
 	// Milk is per 100 g like every other NEVO beverage, so a glass stores a
 	// mass: 200 ml × 1.03 g/ml ≈ 206 g.
 	{
@@ -1147,7 +1142,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		],
 	},
 
-	// ----------------------------------------------------------------- fats --
 	{
 		code: 879,
 		en: "Butter (salted)",
@@ -1250,10 +1244,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		servings: [{ en: "Tablespoon", nl: "Eetlepel", amount: 15 }],
 	},
 
-	// --------------------------------------------------------------- drinks --
-	// Every one of these is per 100 g in NEVO. Water-like drinks take the
-	// documented 1 ml ≈ 1 g fallback; everything with sugar, fat or alcohol in
-	// it gets an explicit density.
 	{
 		code: 1885,
 		en: "Tap water",
@@ -1585,7 +1575,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		],
 	},
 
-	// --------------------------------------------------------------- snacks --
 	{
 		code: 122,
 		en: "Crisps",
@@ -1763,7 +1752,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		],
 	},
 
-	// ---------------------------------------------------------------- meals --
 	{
 		code: 471,
 		en: "Nasi goreng",
@@ -1871,7 +1859,6 @@ export const PROMOTION_OVERLAY: OverlayEntry[] = [
 		servings: [{ en: "Bowl", nl: "Kom", amount: 250 }],
 	},
 
-	// ---------------------------------------------------------------- other --
 	{
 		code: 455,
 		en: "Peanut butter",

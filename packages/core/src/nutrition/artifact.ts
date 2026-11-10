@@ -54,7 +54,7 @@ type WirePromotion = {
 
 export type WireFood = {
 	readonly id: string;
-	/** Omitted for NEVO, which is every row the artifact started with. */
+	/** Omitted for NEVO. */
 	readonly src?: Exclude<ShippedSource, "nevo">;
 	/** Source-local code: NEVO code, or a Lidl EAN/article code. */
 	readonly code: number;
@@ -64,7 +64,7 @@ export type WireFood = {
 	readonly nl: string;
 	readonly cat: FoodCategory;
 	readonly grp: string;
-	/** Omitted when the base unit is grams, which is 2,275 of 2,328 rows. */
+	/** Omitted when the base unit is grams, as for almost every row. */
 	readonly unit?: "ml";
 	/** NEVO's own `Synoniem` column, split on "/". Dutch only. */
 	readonly syn?: readonly string[];
