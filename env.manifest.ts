@@ -108,7 +108,20 @@ export const ENTRIES = [
 		lands: {
 			"convex-functions": {
 				name: "MCP_RESOURCE_URLS",
-				environments: WEB,
+				environments: ["local", "dev", "preview", "production"],
+			},
+		},
+	},
+	{
+		key: "mcpStagingResourceUrls",
+		infisicalKey: "mcp-resource-urls-staging",
+		description:
+			"prod: MCP_RESOURCE_URLS of the staging web's Convex deployment (Infisical prod); `none` until staging serves MCP",
+		secret: false,
+		lands: {
+			"convex-functions": {
+				name: "MCP_RESOURCE_URLS",
+				environments: ["staging"],
 			},
 		},
 	},

@@ -103,8 +103,10 @@ pushing functions, or the push fails.
 | dev           | `http://localhost:3000/mcp,https://foundry-dev.appelent.workers.dev/mcp` |
 | staging       | `none` (PR previews)                                                  |
 | prod          | `https://foundry.appelent.nl/mcp`                                      |
+| prod, `mcp-resource-urls-staging` | `none` (staging web)                              |
 
-PR preview Workers have no MCP: their URLs change per PR.
+PR preview Workers and the staging web have no MCP. Preview URLs change per PR,
+and staging would need its own Clerk resource and a staging value.
 
 ## Verify
 
