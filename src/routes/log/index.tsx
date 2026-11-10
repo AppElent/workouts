@@ -4,6 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { Dumbbell, Play } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getConvexErrorMessage } from "#/lib/convexError";
 
 export const Route = createFileRoute("/log/")({
 	component: LogPageGuarded,
@@ -53,7 +54,7 @@ function LogPage() {
 			});
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to start session");
+			setError(getConvexErrorMessage(err, "Failed to start session"));
 			setCreating(false);
 		}
 	}

@@ -1,6 +1,7 @@
 import { RedirectToSignIn, Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import { parseConvexError } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -20,6 +21,14 @@ import { Modal, ModalHeader } from "#/components/ui/Modal";
 import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
+
+// Until Convex throws the `emptySession` code, match today's message too.
+function isEmptySessionError(error: unknown) {
+	const { code, message } = parseConvexError(error);
+	return (
+		code === "emptySession" || message.startsWith("Discard the empty session")
+	);
+}
 
 export const Route = createFileRoute("/log/$sessionId")({
 	component: ActiveSessionPageGuarded,
@@ -171,7 +180,7 @@ function ActiveSessionPage() {
 				}),
 			);
 		} catch (err) {
-			if (getConvexErrorMessage(err, "").includes("empty")) {
+			if (isEmptySessionError(err)) {
 				await handleCancel();
 				return;
 			}

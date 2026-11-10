@@ -78,8 +78,9 @@ deploys the Worker with your Wrangler login. The preview workflow gets
 - Test-user values land only in `local` and `dev`. They are public client values on
   the Clerk development instance.
 - `environment_name` is a committed Wrangler var per Wrangler environment
-  (`production`, `development`, `preview`); no manifest value reaches the Worker at
-  runtime.
+  (`production`, `development`, `preview`). `vite.config.ts` reads it for the
+  `CLOUDFLARE_ENV` being built and bakes it into the browser and Worker bundles as
+  the Sentry environment; no manifest value reaches the Worker at runtime.
 - `.appelent/env-state.json` records only names a previous apply wrote, so `--prune`
   removes only those. `.appelent/env.lock/` serializes applies. Both are ignored by
   Git. If an interrupted apply leaves the lock, confirm no apply is running before
