@@ -1,8 +1,8 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 import type { Id } from "../../../src/convex/api";
+import { EnduranceDetailScreen } from "../../../src/features/training/endurance/endurance-detail-screen";
 import { useI18n } from "../../../src/i18n";
-import { EnduranceDetailScreen } from "../../../src/screens/endurance-detail";
 import {
 	metrics,
 	spacing,

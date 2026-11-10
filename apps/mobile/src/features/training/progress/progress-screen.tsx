@@ -1,0 +1,183 @@
+import type { ExerciseId } from "@foundry/core/exercises";
+import { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { api } from "../../../convex/api";
+import { useQuery } from "../../../convex/query-cache";
+import { useShellData } from "../../../data/session-data";
+import { dateLocale, useI18n } from "../../../i18n";
+import { type Tokens, type, useThemedStyles, useTokens } from "../../../theme";
+import { BucketChart, TrendChart } from "../../../ui/chart";
+import { Chip, Eyebrow } from "../../../ui/coach";
+import { Segmented } from "../../../ui/segmented";
+import { AppText } from "../../../ui/text";
+import { EnduranceProgress } from "../endurance/endurance-progress";
+import { BodyMetricsPanel } from "./body-metrics-panel";
+
+const TABS = ["Exercises", "Running", "Cycling", "Body"] as const;
+type Tab = (typeof TABS)[number];
+
+export function ProgressScreen() {
+	const styles = useThemedStyles(createStyles);
+	const [tab, setTab] = useState<Tab>("Exercises");
+	const { exercises } = useShellData();
+	const { t } = useI18n();
+	const copy = t.activity;
+
+	return (
+		<ScrollView
+			contentInsetAdjustmentBehavior="automatic"
+			automaticallyAdjustKeyboardInsets
+			keyboardDismissMode="interactive"
+			style={styles.root}
+			contentContainerStyle={styles.content}
+			showsVerticalScrollIndicator={false}
+		>
+			<Segmented
+				value={tab}
+				onChange={setTab}
+				options={TABS.map((value) => ({
+					value,
+					label:
+						value === "Exercises"
+							? copy.exercises
+							: value === "Body"
+								? copy.body
+								: value === "Running"
+									? copy.running
+									: copy.cycling,
+				}))}
+			/>
+
+			{tab === "Exercises" ? (
+				<ExerciseProgress exercises={exercises} />
+			) : tab === "Running" || tab === "Cycling" ? (
+				<EnduranceProgress
+					key={tab}
+					sport={tab === "Running" ? "running" : "cycling"}
+				/>
+			) : (
+				<BodyMetricsPanel />
+			)}
+		</ScrollView>
+	);
+}
+
+function ExerciseProgress({
+	exercises,
+}: {
+	exercises: ReturnType<typeof useShellData>["exercises"];
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const { t, locale } = useI18n();
+	const copy = t.progress;
+	const [selected, setSelected] = useState<ExerciseId | null>(null);
+
+	const ormHistory = useQuery(
+		api.oneRepMaxes.listForExercise,
+		selected ? { exerciseId: selected } : "skip",
+	);
+	const weekly = useQuery(
+		api.progress.weeklyVolume,
+		selected ? { exerciseId: selected } : "skip",
+	);
+
+	// Only exercises the user has actually trained are worth offering — the
+	// catalog runs to hundreds of rows, almost none of which have a trend.
+	const currentOrms = useQuery(api.oneRepMaxes.listCurrentForUser, {});
+	const trained = useMemo(() => {
+		if (!exercises || !currentOrms) return [];
+		const ids = new Set(currentOrms.map((o) => o.exerciseId));
+		return exercises.filter((e) => ids.has(e._id));
+	}, [exercises, currentOrms]);
+
+	const ormPoints = useMemo(
+		() =>
+			(ormHistory ?? []).map((o) => ({
+				value: o.value,
+				label: new Date(o.date).toLocaleDateString(dateLocale(locale), {
+					day: "numeric",
+					month: "short",
+				}),
+			})),
+		[ormHistory, locale],
+	);
+
+	const volumePoints = useMemo(
+		() =>
+			(weekly ?? []).map((w) => ({
+				value: w.volume,
+				// "2026-W12" → "W12"; the year is constant across a chart this wide.
+				label: w.week.split("-")[1] ?? w.week,
+			})),
+		[weekly],
+	);
+
+	if (currentOrms === undefined || exercises === undefined) {
+		return <AppText style={styles.muted}>{copy.loading}</AppText>;
+	}
+
+	if (trained.length === 0) {
+		return (
+			<View style={styles.empty}>
+				<AppText variant="heading" style={{ color: colors.textMuted }}>
+					{copy.emptyTitle}
+				</AppText>
+				<AppText variant="caption" style={styles.centered}>
+					{copy.emptyHint}
+				</AppText>
+			</View>
+		);
+	}
+
+	return (
+		<>
+			<Eyebrow>{copy.exercise}</Eyebrow>
+			<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+				<View style={styles.chipRow}>
+					{trained.map((e) => (
+						<Chip
+							key={e._id}
+							label={e.name}
+							active={e._id === selected}
+							onPress={() => setSelected(e._id)}
+						/>
+					))}
+				</View>
+			</ScrollView>
+
+			{selected === null ? (
+				<AppText style={styles.muted}>{copy.pick}</AppText>
+			) : (
+				<>
+					<TrendChart title={copy.oneRepMax} points={ormPoints} />
+					<BucketChart
+						title={copy.weeklyVolume}
+						note={copy.weeklyVolumeNote}
+						points={volumePoints}
+					/>
+				</>
+			)}
+		</>
+	);
+}
+
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		root: { flex: 1, backgroundColor: colors.bg },
+		content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
+		tabRow: { flexDirection: "row", gap: 7 },
+		flex: { flex: 1 },
+		statRow: { flexDirection: "row", gap: 8 },
+		chipRow: { flexDirection: "row", gap: 7 },
+		muted: { fontSize: type.footnote.fontSize, color: colors.textMuted },
+		centered: { textAlign: "center" },
+		empty: {
+			alignItems: "center",
+			gap: 4,
+			paddingVertical: 24,
+			paddingHorizontal: 16,
+			backgroundColor: colors.surface,
+			borderRadius: 14,
+		},
+	});

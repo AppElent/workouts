@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { StartActivityProvider } from "../../../src/features/start-activity/start-activity-flow";
+import { StartActivityProvider } from "../../../src/features/training/start-activity/start-activity-flow";
 import { useTokens } from "../../../src/theme";
 export default function StartActivityLayout() {
 	const colors = useTokens();

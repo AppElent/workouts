@@ -2,8 +2,8 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import type { Id } from "../../src/convex/api";
 import { useRoutines, useShellData } from "../../src/data/session-data";
+import { RoutineEditorScreen } from "../../src/features/training/routines/routine-editor-screen";
 import { useI18n } from "../../src/i18n";
-import { RoutineEditor } from "../../src/screens/routine-editor";
 import { type Tokens, useThemedStyles } from "../../src/theme";
 import { AppText } from "../../src/ui/text";
 
@@ -27,7 +27,7 @@ export default function RoutineEditorRoute() {
 
 	return (
 		<>
-			<RoutineEditor
+			<RoutineEditorScreen
 				presentation="screen"
 				routine={routine}
 				exercises={exercises}

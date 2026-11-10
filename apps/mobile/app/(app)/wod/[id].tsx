@@ -1,2 +1,1 @@
-/** Route for one WOD's detail. See `src/screens/wod-detail.tsx`. */
-export { WodDetailScreen as default } from "../../../src/screens/wod-detail";
+export { WodDetailScreen as default } from "../../../src/features/training/wods/wod-detail-screen";

@@ -1,2 +1,1 @@
-/** Route for the post-session recap. See `src/screens/summary.tsx`. */
-export { SummaryScreen as default } from "../../src/screens/summary";
+export { SessionSummaryScreen as default } from "../../src/features/training/activity/session-summary-screen";

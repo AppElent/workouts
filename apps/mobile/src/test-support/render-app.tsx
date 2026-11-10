@@ -73,7 +73,6 @@ const APP_ROUTES = [
 	"appearance",
 	"labs",
 	"labs-entry",
-	"labs-food",
 	"language",
 	"nutrition-assistance",
 	"nutrition-combo-log",

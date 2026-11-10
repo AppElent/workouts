@@ -86,10 +86,6 @@ export default function AppLayout() {
 											}}
 										/>
 										<Stack.Screen
-											name="labs-food"
-											options={{ title: t.diaryEntry.details }}
-										/>
-										<Stack.Screen
 											name="activity-history"
 											options={{
 												title: t.routes.activityHistory,
@@ -222,12 +218,6 @@ export default function AppLayout() {
 											name="personal-measures"
 											options={{
 												title: t.nutrition.personalMeasures.title,
-											}}
-										/>
-										<Stack.Screen
-											name="settings"
-											options={{
-												title: t.routes.settings,
 											}}
 										/>
 										<Stack.Screen

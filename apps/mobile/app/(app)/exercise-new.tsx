@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
 import { useExercise } from "../../src/data/exercises";
+import { ExerciseEditorForm } from "../../src/features/training/exercises/exercise-editor-form";
 import { useI18n } from "../../src/i18n";
-import { AddExerciseForm } from "../../src/screens/add-exercise-form";
 import { EmptyState } from "../../src/ui/empty-state";
 import { SkeletonList } from "../../src/ui/skeleton";
 
@@ -31,7 +31,7 @@ export default function NewExerciseRoute() {
 			/>
 		);
 	return (
-		<AddExerciseForm
+		<ExerciseEditorForm
 			key={sourceId ?? "new"}
 			presentation="screen"
 			mode={edit ? "edit" : clone ? "clone" : "new"}
@@ -48,4 +48,4 @@ export default function NewExerciseRoute() {
 	);
 }
 
-export { ExerciseRouteError as ErrorBoundary } from "../../src/screens/exercise-library/route-error";
+export { ExerciseRouteError as ErrorBoundary } from "../../src/features/training/exercises/exercise-route-error";

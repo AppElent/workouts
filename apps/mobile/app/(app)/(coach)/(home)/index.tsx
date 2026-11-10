@@ -1,4 +1,2 @@
-/** Route for the Home tab. See `src/screens/home.tsx`. */
-
-export { ActivityErrorBoundary as ErrorBoundary } from "../../../../src/screens/activity-components";
-export { HomeScreen as default } from "../../../../src/screens/home";
+export { ActivityErrorBoundary as ErrorBoundary } from "../../../../src/features/training/activity/activity-row";
+export { HomeScreen as default } from "../../../../src/features/training/home/home-screen";
