@@ -49,12 +49,7 @@ No exercise seeding is required on a fresh database. Sets, routines, personal
 records, and hosted workouts store shipped keys directly; only personal exercises
 are stored in the exercises table. Backend validation reads the same bundled data.
 
-For an existing deployment, use the checkpointed reference migration described
-in `docs/runbooks/exercise-migration.md`. Deploy the backend, run a dry run, then apply and
-verify the migration before releasing updated clients. The backend supports
-mixed references during the rollout. Personal exercise IDs are never rewritten.
-
-`pnpm seed:exercises` is now a no-op retained for older setup scripts. It does not
-migrate history and never inserts default exercises.
+Existing deployments have completed the reference migration; personal
+exercise IDs were never rewritten.
 
 See `docs/adr/0009-shipped-exercise-catalog.md` for the identity/rollout trade-off.

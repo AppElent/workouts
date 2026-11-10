@@ -143,5 +143,5 @@ test-data Load/Clear also deletes the account’s uploaded photo files and reset
 subscription retention before reopening providers. See
 [ADR 0015](../adr/0015-account-food-photos-and-cache-retirement.md).
 
-Rollout uses the [migration runbook](../runbooks/nutrition-account-migration.md).
+The account migration has completed and its server endpoints are removed.
 Evidence: [implementation and usage](../records/2026-10-08-online-first-account-data/README.md).
