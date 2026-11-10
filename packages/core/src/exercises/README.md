@@ -49,7 +49,4 @@ No exercise seeding is required on a fresh database. Sets, routines, personal
 records, and hosted workouts store shipped keys directly; only personal exercises
 are stored in the exercises table. Backend validation reads the same bundled data.
 
-Existing deployments have completed the reference migration; personal
-exercise IDs were never rewritten.
-
 See `docs/adr/0009-shipped-exercise-catalog.md` for the identity/rollout trade-off.

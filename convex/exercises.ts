@@ -86,9 +86,7 @@ async function requirePersonalExercise(
 ) {
 	const documentId = ctx.db.normalizeId("exercises", id);
 	if (!documentId) throw appError("readOnly");
-	const exercise = await requireOwned(ctx, userId, documentId);
-	if (exercise.isDefault) throw appError("readOnly");
-	return exercise;
+	return requireOwned(ctx, userId, documentId);
 }
 
 export const create = mutation({
