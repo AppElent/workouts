@@ -13,6 +13,7 @@ import { GlassSurface } from "../../../ui/glass-surface";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { WeekBars } from "./components/week-bars";
 import { WeekDatePicker } from "./components/week-date-picker";
 import { WeekMenu } from "./components/week-menu";
@@ -59,8 +60,10 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 		to: weekDayParts(weekEndDate(week), locale).dayMonth,
 		number,
 	});
-	const openDay = (date: IsoDate) =>
-		router.dismissTo({ pathname: "/nutrition", params: { date } });
+	const openDay = (date: IsoDate) => {
+		requestDiaryDate(date);
+		router.dismissTo("/nutrition");
+	};
 	const picker = (
 		<WeekDatePicker
 			weekStart={week}

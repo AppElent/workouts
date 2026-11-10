@@ -127,7 +127,6 @@ describe("Nutrition navigation", () => {
 		expect(screen.getByDisplayValue("One-off soup")).toBeTruthy();
 		acknowledge();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-		expect(app.getSearchParams()).toMatchObject({ date });
 		expect(await screen.findByText("One-off soup")).toBeTruthy();
 		expect(screen.getByLabelText("One-off soup visual")).toBeTruthy();
 	});
@@ -173,7 +172,9 @@ describe("Nutrition navigation", () => {
 		await fireEvent.press(await screen.findByText("Open Monday in diary"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-		expect(app.getSearchParams()).toMatchObject({ date: monday });
+		expect(
+			await screen.findByLabelText(diaryDateLabel(monday, "en")),
+		).toBeSelected();
 	});
 
 	it("opens assisted logging from the diary tools and returns to the diary", async () => {

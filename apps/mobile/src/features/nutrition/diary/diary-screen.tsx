@@ -18,7 +18,6 @@ import {
 } from "../../../data/nutrition-day";
 import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useToday } from "../../../data/use-today";
 import { formatLongDate, isoDayOffset } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
@@ -39,13 +38,7 @@ import { DiarySummary } from "./components/diary-summary";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
 import { useDiaryDateRequest } from "./use-diary-date-request";
 
-export function DiaryScreen({
-	initialDate,
-	startSelecting,
-}: {
-	initialDate?: string;
-	startSelecting?: string;
-} = {}) {
+export function DiaryScreen() {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.diary;
 	const colors = useTokens();
@@ -53,9 +46,7 @@ export function DiaryScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const today = useToday();
-	const [date, setDate] = useState(
-		initialDate && isRealIsoDate(initialDate) ? initialDate : today,
-	);
+	const [date, setDate] = useState(today);
 	// Someone looking at "today" when midnight passes means the new today.
 	const previousToday = useRef(today);
 	useEffect(() => {
@@ -73,7 +64,7 @@ export function DiaryScreen({
 		if (focused) setToolbarReady(true);
 	}, [focused]);
 	const [showTools, setShowTools] = useState(false);
-	const [selecting, setSelecting] = useState(Boolean(startSelecting));
+	const [selecting, setSelecting] = useState(false);
 	const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 	const [deleting, setDeleting] = useState(false);
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
@@ -104,19 +95,6 @@ export function DiaryScreen({
 		setHidden(selecting);
 		return () => setHidden(false);
 	}, [selecting, setHidden]);
-	useEffect(() => {
-		if (initialDate && isRealIsoDate(initialDate)) {
-			setDate(initialDate);
-			setSelected(new Set());
-			setSelecting(false);
-		}
-	}, [initialDate]);
-	useEffect(() => {
-		if (startSelecting) {
-			setSelecting(true);
-			setSelected(new Set());
-		}
-	}, [startSelecting]);
 	const entries: DiaryEntryWithMeal[] =
 		state.status === "ready"
 			? MEAL_SLOTS.flatMap((meal) =>
@@ -149,7 +127,6 @@ export function DiaryScreen({
 		setSelecting(false);
 		setSelected(new Set());
 	};
-	// The log food screen above may have moved to another day; follow it.
 	useDiaryDateRequest(changeDate);
 	const beginSelection = (items: readonly DiaryEntry[]) => {
 		setSelected(new Set(items.map((e) => e.id)));
