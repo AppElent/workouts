@@ -65,6 +65,7 @@ import { FoodPhotoCamera } from "../components/food-photo-camera";
 import { NutritionAiConsent } from "../components/nutrition-ai-consent";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { Notice } from "../personal-food/personal-food-label-scan";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
@@ -165,12 +166,9 @@ export function AssistanceScreen({
 	const leaving = useRef(false);
 	const close = () => {
 		leaving.current = true;
-		return router.canGoBack()
-			? router.back()
-			: router.replace({
-					pathname: "/nutrition",
-					params: { date: destination.date },
-				});
+		if (router.canGoBack()) return router.back();
+		requestDiaryDate(destination.date);
+		router.replace("/nutrition");
 	};
 	// What was corrected by hand is not thrown away by one stray tap.
 	const requestClose = () => {
@@ -356,6 +354,7 @@ export function AssistanceScreen({
 			setLogging(false);
 		}
 		if (resumed) forgetAiSession(account, resumed);
+		requestDiaryDate(date);
 		const forgetAnswer = session.rememberLogged();
 		const logged = context
 			? {
