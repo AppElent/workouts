@@ -16,7 +16,8 @@ import { spacing, type Tokens, useAppearance, useThemedStyles } from "../theme";
 import { GhostButton } from "../ui/button";
 import { AppText } from "../ui/text";
 import { AuthMessage } from "./auth-form";
-import { SOCIAL_PROVIDERS, useSocialSignIn } from "./useSocialSignIn";
+import { socialProviders } from "./config";
+import { useSocialSignIn } from "./use-social-sign-in";
 
 const BUTTON_HEIGHT = 50;
 
@@ -33,7 +34,7 @@ export function SocialButtons() {
 				<AppText variant="caption">{copy.or}</AppText>
 				<View style={styles.line} />
 			</View>
-			{SOCIAL_PROVIDERS.map((provider) =>
+			{socialProviders.map((provider) =>
 				provider === "apple" && Platform.OS === "ios" ? (
 					<View
 						key={provider}

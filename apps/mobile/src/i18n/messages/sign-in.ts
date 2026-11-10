@@ -8,6 +8,8 @@ export const signInEn = {
 	emailCode: "Email me a sign-in code",
 	emailFirst: "Enter your email first.",
 	devNote: "Dev build: test credentials pre-filled (EXPO_PUBLIC_TEST_USER_*).",
+	unsupportedStep:
+		"Sign-in needs another step this app doesn't support yet. Try the web app instead.",
 	social: {
 		or: "or",
 		apple: "Continue with Apple",
@@ -29,6 +31,8 @@ export const signInNl: typeof signInEn = {
 	emailFirst: "Vul eerst je e-mailadres in.",
 	devNote:
 		"Ontwikkelbuild: testgegevens vooraf ingevuld (EXPO_PUBLIC_TEST_USER_*).",
+	unsupportedStep:
+		"Inloggen vraagt nog een stap die deze app nog niet ondersteunt. Probeer het in de webapp.",
 	social: {
 		or: "of",
 		apple: "Doorgaan met Apple",

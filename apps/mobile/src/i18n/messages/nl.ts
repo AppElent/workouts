@@ -1,5 +1,6 @@
 import { accountNl } from "./account";
 import { activityNl } from "./activity";
+import { authErrorsNl } from "./auth-errors";
 import { bodyMetricsNl } from "./body-metrics";
 import { diaryNl } from "./diary";
 import { enduranceNl } from "./endurance";
@@ -43,6 +44,7 @@ export const nl = {
 	hosted: hostedNl,
 	workoutTools: workoutToolsNl,
 	signIn: signInNl,
+	authErrors: authErrorsNl,
 	signUp: signUpNl,
 	verifyEmail: verifyEmailNl,
 	profile: profileNl,

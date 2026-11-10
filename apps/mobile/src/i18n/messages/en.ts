@@ -1,5 +1,6 @@
 import { accountEn } from "./account";
 import { activityEn } from "./activity";
+import { authErrorsEn } from "./auth-errors";
 import { bodyMetricsEn } from "./body-metrics";
 import { comboEditorEn } from "./combo-editor";
 import { diaryEn } from "./diary";
@@ -50,6 +51,7 @@ export const en = {
 	hosted: hostedEn,
 	workoutTools: workoutToolsEn,
 	signIn: signInEn,
+	authErrors: authErrorsEn,
 	signUp: signUpEn,
 	verifyEmail: verifyEmailEn,
 	profile: profileEn,
