@@ -95,7 +95,7 @@ describe("Foundry environment manifest", () => {
 		expect(previewUrl?.suppliedBy).toContain("convex deploy");
 	});
 
-	it("gives web PR previews development auth and the preview app production auth", () => {
+	it("gives web PR previews development auth and staging production auth", () => {
 		const clerk = (environment) =>
 			placements(environment)
 				.filter((placement) => /CLERK/.test(placement.name))
@@ -108,22 +108,60 @@ describe("Foundry environment manifest", () => {
 			"vite-build clerk-publishable-key",
 			"convex-functions clerk-jwt-issuer-domain",
 		]);
-		expect(clerk("staging")).toEqual(["expo-build clerk-publishable-key"]);
+		expect(STANDARD_SOURCE.staging).toBe("prod");
+		expect(clerk("staging")).toEqual(
+			expect.arrayContaining([
+				"vite-build clerk-publishable-key",
+				"expo-build clerk-publishable-key",
+			]),
+		);
 	});
 
-	it("lands only the installed preview app in staging", () => {
+	it("lands staging in the staging web and the installed preview app", () => {
 		const staging = placements("staging");
 		expect(staging.length).toBeGreaterThan(0);
 		for (const placement of staging)
-			expect(placement.destination).toEqual({
-				kind: "eas",
-				environment: "preview",
-			});
+			expect([
+				{ kind: "eas", environment: "preview" },
+				{ kind: "github", scope: "staging" },
+				{
+					kind: "convex",
+					target: "staging",
+					deployment: ENV_CONFIG.convex.deployments.staging,
+				},
+			]).toContainEqual(placement.destination);
 		expect(
 			placements("preview").some(
 				(placement) => placement.destination.kind === "eas",
 			),
 		).toBe(false);
+	});
+
+	it("gives the staging web its own Convex deploy key", () => {
+		const key = (environment) =>
+			placements(environment).find(
+				(placement) => placement.variable === "CONVEX_DEPLOY_KEY",
+			)?.entry.infisicalKey;
+		expect(key("staging")).toBe("convex-staging-deploy-key");
+		expect(key("production")).toBe("convex-deploy-key");
+	});
+
+	it("names every value deploy.yml reads in staging and production", () => {
+		for (const environment of ["staging", "production"]) {
+			const names = placements(environment)
+				.filter((placement) => placement.destination.kind === "github")
+				.map((placement) => placement.variable);
+			expect(names).toEqual(
+				expect.arrayContaining([
+					"CONVEX_DEPLOY_KEY",
+					"CLOUDFLARE_API_TOKEN",
+					"CLOUDFLARE_ACCOUNT_ID",
+					"SENTRY_AUTH_TOKEN",
+					"VITE_CLERK_PUBLISHABLE_KEY",
+					"VITE_SENTRY_DSN",
+				]),
+			);
+		}
 	});
 
 	it("gives deploy:production an explicit Convex target", () => {
@@ -179,8 +217,12 @@ describe("Foundry environment manifest", () => {
 			"appleSignInKeyId",
 			"appleSignInPrivateKey",
 		];
-		// Every environment with a backend; staging is only the installed app.
-		for (const environment of ENVIRONMENTS.filter((name) => name !== "staging")) {
+		// Every environment with a named backend. Staging's Convex deployment is
+		// named in ENV_CONFIG once it exists; until then it has no destination.
+		const withBackend = ENVIRONMENTS.filter(
+			(name) => name !== "staging" || ENV_CONFIG.convex.deployments.staging,
+		);
+		for (const environment of withBackend) {
 			const selected = placements(environment).filter((placement) =>
 				keys.includes(placement.entry.key),
 			);

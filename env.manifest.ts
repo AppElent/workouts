@@ -10,6 +10,8 @@ export const ENV_CONFIG = {
 		project: "eric-jansen:workout-tracker",
 		deployments: {
 			dev: "colorless-sturgeon-704",
+			// The staging web's own prod-type deployment (reference `staging`).
+			staging: "fearless-mouse-671",
 			production: "fine-akita-444",
 		},
 	},
@@ -18,8 +20,10 @@ export const ENV_CONFIG = {
 	github: { repository: "AppElent/workouts" },
 };
 
-// "staging" is only the installed preview app (EAS preview, Infisical prod):
-// Foundry has no staging web, so web and backend landings never list it.
+// "staging" is both the staging web (foundry-staging on foundry-stg.appelent.nl,
+// deployed on every merge to main) and the installed preview app (EAS preview).
+// Both read Infisical prod. The staging web has its own Convex deployment
+// (ENV_CONFIG.convex.deployments.staging); the preview app stays on production.
 export const ENVIRONMENTS = [
 	"local",
 	"dev",
@@ -28,7 +32,9 @@ export const ENVIRONMENTS = [
 	"production",
 ] as const;
 
-const WEB = ["local", "dev", "preview", "production"];
+const WEB = ["local", "dev", "preview", "staging", "production"];
+// Deployed by .github/workflows/deploy.yml, which reads the GitHub Environment.
+const DEPLOYED_WEB = ["staging", "production"];
 const APP = ["local", "dev", "staging", "production"];
 const DEV_ONLY = ["local", "dev"];
 
@@ -56,7 +62,7 @@ export const ENTRIES = [
 			"local-tooling": { name: "SENTRY_AUTH_TOKEN", environments: ["local"] },
 			workflow: {
 				name: "SENTRY_AUTH_TOKEN",
-				environments: ["preview", "production"],
+				environments: ["preview", ...DEPLOYED_WEB],
 			},
 			"eas-tooling": { name: "SENTRY_AUTH_TOKEN", environments: APP },
 		},
@@ -142,7 +148,12 @@ export const ENTRIES = [
 			"vite-build": {
 				name: "VITE_CONVEX_URL",
 				environments: WEB,
-				suppliedIn: { preview: "convex deploy" },
+				// deploy.yml and preview.yml bridge `convex deploy`'s URL into the build.
+				suppliedIn: {
+					preview: "convex deploy",
+					staging: "convex deploy",
+					production: "convex deploy",
+				},
 			},
 			"expo-build": { name: "EXPO_PUBLIC_CONVEX_URL", environments: APP },
 			"expo-local": { name: "EXPO_PUBLIC_CONVEX_URL", environments: ["local"] },
@@ -169,6 +180,16 @@ export const ENTRIES = [
 				name: "CONVEX_DEPLOY_KEY",
 				environments: ["preview", "production"],
 			},
+		},
+	},
+	{
+		key: "convexStagingDeployKey",
+		infisicalKey: "convex-staging-deploy-key",
+		description:
+			"prod: deploy key of the staging web's own Convex deployment (Infisical prod)",
+		secret: true,
+		lands: {
+			workflow: { name: "CONVEX_DEPLOY_KEY", environments: ["staging"] },
 		},
 	},
 	{
@@ -213,10 +234,13 @@ export const ENTRIES = [
 	{
 		key: "cloudflareApiToken",
 		infisicalKey: "cloudflare-account-token",
-		description: "Worker deploy token for PR previews",
+		description: "Worker deploy token for PR previews and deploy.yml",
 		secret: true,
 		lands: {
-			workflow: { name: "CLOUDFLARE_API_TOKEN", environments: ["preview"] },
+			workflow: {
+				name: "CLOUDFLARE_API_TOKEN",
+				environments: ["preview", ...DEPLOYED_WEB],
+			},
 		},
 	},
 	{
@@ -225,7 +249,10 @@ export const ENTRIES = [
 		description: "Cloudflare account for Worker deploys",
 		secret: false,
 		lands: {
-			workflow: { name: "CLOUDFLARE_ACCOUNT_ID", environments: ["preview"] },
+			workflow: {
+				name: "CLOUDFLARE_ACCOUNT_ID",
+				environments: ["preview", ...DEPLOYED_WEB],
+			},
 		},
 	},
 	{
