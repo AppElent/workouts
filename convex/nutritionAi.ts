@@ -1,3 +1,4 @@
+import { isoDateAt, NUTRITION_AI_LIMITS } from "@foundry/core";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { type ActionCtx, action, internalMutation } from "./_generated/server";
@@ -5,16 +6,17 @@ import { requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
 import {
 	describe as describeMeal,
-	MAX_FOLLOW_UPS,
-	MAX_IMAGE_BASE64,
-	MAX_ITEMS,
-	MAX_TEXT,
 	type NutritionAiProvider,
 	nutritionAiProvider,
 	readLabel as readNutritionLabel,
 	select,
 } from "./lib/nutritionAi";
-import { locale, measuredUnit as unit } from "./lib/validators";
+import {
+	bilingual,
+	locale,
+	perNutrient,
+	measuredUnit as unit,
+} from "./lib/validators";
 
 /** Analyses (describe + label) per account per UTC day. */
 export const DAILY_ANALYSES = 50;
@@ -33,17 +35,7 @@ const confidence = v.union(
 	v.literal("low"),
 );
 const nullableNumber = v.union(v.number(), v.null());
-const bilingual = v.object({ en: v.string(), nl: v.string() });
-const estimate = v.object({
-	energy: v.number(),
-	protein: v.number(),
-	carbs: v.number(),
-	fat: v.number(),
-	saturatedFat: v.number(),
-	sugars: v.number(),
-	fibre: v.number(),
-	salt: v.number(),
-});
+const estimate = perNutrient(v.number());
 
 function requireProvider(): NutritionAiProvider {
 	const provider = nutritionAiProvider();
@@ -63,7 +55,7 @@ async function run<T>(task: string, work: () => Promise<T>): Promise<T> {
 }
 
 function checkImage(input: { base64: string } | undefined) {
-	if (input && input.base64.length > MAX_IMAGE_BASE64)
+	if (input && input.base64.length > NUTRITION_AI_LIMITS.maxImageBase64)
 		throw appError("tooLarge");
 }
 
@@ -113,7 +105,7 @@ export const consumeChoice = internalMutation({
 	},
 });
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => isoDateAt(Date.now(), 0);
 
 async function consume(ctx: ActionCtx, userId: string) {
 	await ctx.runMutation(internal.nutritionAi.consumeAnalysis, {
@@ -168,38 +160,29 @@ export const describe = action({
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
 		if (!args.text?.trim() && !args.image) throw appError("empty");
-		if ((args.text?.length ?? 0) > MAX_TEXT) throw appError("tooLarge");
+		const limits = NUTRITION_AI_LIMITS;
 		if (
-			(args.previous?.length ?? 0) > MAX_TEXT * 8 ||
-			(args.followUps?.length ?? 0) > MAX_FOLLOW_UPS ||
-			args.followUps?.some((followUp) => followUp.length > 500)
+			(args.text?.length ?? 0) > limits.maxText ||
+			(args.previous?.length ?? 0) > limits.maxPreviousText ||
+			(args.followUps?.length ?? 0) > limits.maxFollowUps ||
+			args.followUps?.some(
+				(followUp) => followUp.length > limits.maxFollowUpText,
+			)
 		)
 			throw appError("tooLarge");
 		checkImage(args.image);
 		const provider = requireProvider();
 		await consume(ctx, userId);
-		return run("describe", async () => {
-			const described = await describeMeal(provider, {
+		return run("describe", () =>
+			describeMeal(provider, {
 				text: args.text,
 				image: args.image,
 				locale: args.locale,
 				previous: args.previous,
 				followUps: args.followUps,
 				webSearch: args.webSearch,
-			});
-			return {
-				...described,
-				sources: described.sources.map((source) => ({ ...source })),
-				question: described.question
-					? { ...described.question, options: [...described.question.options] }
-					: null,
-				items: described.items.map((item) => ({
-					...item,
-					searchTerms: [...item.searchTerms],
-					components: [...item.components],
-				})),
-			};
-		});
+			}),
+		);
 	},
 });
 
@@ -229,8 +212,10 @@ export const choose = action({
 		const userId = await requireUserId(ctx);
 		if (
 			items.length === 0 ||
-			items.length > MAX_ITEMS ||
-			items.some((item) => item.candidates.length > 15)
+			items.length > NUTRITION_AI_LIMITS.maxItems ||
+			items.some(
+				(item) => item.candidates.length > NUTRITION_AI_LIMITS.maxCandidates,
+			)
 		)
 			throw appError("tooLarge");
 		const provider = requireProvider();
@@ -272,12 +257,8 @@ export const readLabel = action({
 		checkImage(args.image);
 		const provider = requireProvider();
 		await consume(ctx, userId);
-		return run("readLabel", async () => {
-			const reading = await readNutritionLabel(provider, {
-				image: args.image,
-				locale: args.locale,
-			});
-			return { ...reading, servings: [...reading.servings] };
-		});
+		return run("readLabel", () =>
+			readNutritionLabel(provider, { image: args.image, locale: args.locale }),
+		);
 	},
 });

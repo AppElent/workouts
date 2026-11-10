@@ -7,6 +7,12 @@ export const NUTRITION_AI_LIMITS = {
 	maxText: 2000,
 	/** Follow-up turns sent with one request; older turns are dropped. */
 	maxFollowUps: 10,
+	/** Characters in one follow-up. */
+	maxFollowUpText: 500,
+	/** Characters of the previous result a refinement sends back. */
+	maxPreviousText: 16_000,
+	/** Library candidates offered for one item when choosing. */
+	maxCandidates: 15,
 	/** Base64 of a ~2 MB image; the phone resizes to ~1600 px before sending. */
 	maxImageBase64: 2_800_000,
 } as const;
