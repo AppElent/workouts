@@ -97,7 +97,7 @@ describe("account.revokeAppleSignIn", () => {
 		const t = convexTest(schema, modules);
 		await expect(
 			t.action(api.account.revokeAppleSignIn, { authorizationCode: "code" }),
-		).rejects.toThrow("unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	});
 
 	it("reports missing Apple credentials instead of calling Apple", async () => {
@@ -109,7 +109,7 @@ describe("account.revokeAppleSignIn", () => {
 			alice.action(api.account.revokeAppleSignIn, {
 				authorizationCode: "code",
 			}),
-		).rejects.toThrow("unavailable");
+		).rejects.toMatchObject({ data: { code: "unavailable" } });
 		expect(calls).toEqual([]);
 	});
 
@@ -124,7 +124,7 @@ describe("account.revokeAppleSignIn", () => {
 				authorizationCode: "code",
 				bundleId: "com.example.other",
 			}),
-		).rejects.toThrow("invalid");
+		).rejects.toMatchObject({ data: { code: "invalid", field: "bundleId" } });
 		expect(calls).toEqual([]);
 	});
 
@@ -195,7 +195,7 @@ describe("account.revokeAppleSignIn", () => {
 			alice.action(api.account.revokeAppleSignIn, {
 				authorizationCode: "code",
 			}),
-		).rejects.toThrow("failed");
+		).rejects.toMatchObject({ data: { code: "failed" } });
 		expect(calls.map(({ path }) => path)).toEqual(["/auth/token"]);
 	});
 });

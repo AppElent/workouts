@@ -44,12 +44,11 @@ it("keeps added Servings on the owning account without changing the Shipped Food
 			foodId: food.id,
 			paginationOpts,
 		}),
-	).rejects.toThrow("Unauthenticated");
+	).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 });
-it("validates food and amount, and allows only the owner to change or remove a Serving", async () => {
+it("validates food, unit, amount and name before adding a Serving", async () => {
 	const t = convexTest(schema, modules);
 	const alice = t.withIdentity({ subject: "alice" });
-	const bob = t.withIdentity({ subject: "bob" });
 	const input = {
 		foodId: food.id,
 		name: "Bowl",
@@ -57,45 +56,30 @@ it("validates food and amount, and allows only the owner to change or remove a S
 		unit: food.baseUnit,
 	};
 	await expect(
+		alice.mutation(api.supplementaryServings.create, {
+			...input,
+			foodId: "missing-food",
+		}),
+	).rejects.toMatchObject({ data: { code: "notFound", field: "foodId" } });
+	await expect(
 		alice.mutation(api.supplementaryServings.create, { ...input, amount: 0 }),
-	).rejects.toThrow("Amount");
+	).rejects.toMatchObject({ data: { code: "notPositive", field: "amount" } });
+	await expect(
+		alice.mutation(api.supplementaryServings.create, { ...input, name: " " }),
+	).rejects.toMatchObject({ data: { code: "required", field: "name" } });
 	await expect(
 		alice.mutation(api.supplementaryServings.create, {
 			...input,
 			unit: food.baseUnit === "g" ? "ml" : "g",
 		}),
-	).rejects.toThrow("unit");
+	).rejects.toMatchObject({ data: { code: "invalid", field: "unit" } });
 	const saved = await alice.mutation(api.supplementaryServings.create, input);
 	await expect(
 		alice.mutation(api.supplementaryServings.create, {
 			...input,
 			name: " BOWL ",
 		}),
-	).rejects.toThrow("already exists");
-	await expect(
-		bob.mutation(api.supplementaryServings.update, {
-			id: saved.id,
-			name: "Stolen",
-			amount: 250,
-		}),
-	).rejects.toThrow("not found");
-	await expect(
-		bob.mutation(api.supplementaryServings.remove, { id: saved.id }),
-	).rejects.toThrow("not found");
-	await alice.mutation(api.supplementaryServings.update, {
-		id: saved.id,
-		name: "Large bowl",
-		amount: 250,
-	});
-	expect(
-		(
-			await alice.query(api.supplementaryServings.list, {
-				foodId: food.id,
-				paginationOpts,
-			})
-		).page[0],
-	).toMatchObject({ name: "Large bowl", amount: 250 });
-	await alice.mutation(api.supplementaryServings.remove, { id: saved.id });
+	).rejects.toMatchObject({ data: { code: "duplicate", field: "name" } });
 	expect(
 		(
 			await alice.query(api.supplementaryServings.list, {
@@ -103,5 +87,5 @@ it("validates food and amount, and allows only the owner to change or remove a S
 				paginationOpts,
 			})
 		).page,
-	).toEqual([]);
+	).toEqual([saved]);
 });

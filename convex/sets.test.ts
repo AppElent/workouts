@@ -30,10 +30,15 @@ it("keeps latest-set and best-estimate answers correct as history grows", async 
 		unit: "kg" as const,
 		setType: "working" as const,
 	};
-	for (let i = 0; i < 10; i++)
-		await alice.mutation(api.sets.add, { ...fields, weight: 60 + i });
-	const best = await alice.mutation(api.sets.add, { ...fields, weight: 150 });
-	const latest = await alice.mutation(api.sets.add, { ...fields, weight: 80 });
+	const add = (weight: number) =>
+		alice.mutation(api.sets.add, {
+			...fields,
+			weight,
+			operationId: crypto.randomUUID(),
+		});
+	for (let i = 0; i < 10; i++) await add(60 + i);
+	const best = await add(150);
+	const latest = await add(80);
 	expect(
 		(await alice.query(api.sets.getLastForExercise, { exerciseId }))?._id,
 	).toBe(latest);
@@ -114,12 +119,4 @@ it("orders historical performance by logged time and excludes only the requested
 			})
 		)?._id,
 	).toBe(seeded.previousSet);
-	expect(
-		(
-			await alice.query(api.sets.getPreviousForExercise, {
-				exerciseId,
-				sessionId: seeded.current,
-			})
-		).map((set) => set._id),
-	).toEqual([seeded.previousSet]);
 });

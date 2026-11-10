@@ -1,10 +1,27 @@
 /// <reference types="vite/client" />
+
+import type { FunctionReturnType, GenericDocument } from "convex/server";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
+
+type Client = ReturnType<ReturnType<typeof convexTest>["withIdentity"]>;
+
+/** Walks the whole account export and returns one table's rows. */
+async function exportedRows(client: Client, table: string) {
+	const rows: GenericDocument[] = [];
+	let cursor: { table: string; cursor: string | null } | null = null;
+	do {
+		const page: FunctionReturnType<typeof api.exportData.personalPage> =
+			await client.query(api.exportData.personalPage, { cursor });
+		if (page.table === table) rows.push(...page.rows);
+		cursor = page.next;
+	} while (cursor);
+	return rows;
+}
 const base = {
 	clientEntryId: "client-1",
 	sport: "running" as const,
@@ -18,14 +35,14 @@ describe("endurance activities", () => {
 		const t = convexTest(schema, modules);
 		await expect(
 			t.mutation(api.enduranceActivities.create, base),
-		).rejects.toThrow("Unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		const alice = t.withIdentity({ subject: "alice" });
 		const bob = t.withIdentity({ subject: "bob" });
 		const id = await alice.mutation(api.enduranceActivities.create, base);
 		expect(await bob.query(api.enduranceActivities.get, { id })).toBeNull();
 		await expect(
 			bob.mutation(api.enduranceActivities.remove, { id }),
-		).rejects.toThrow("Activity not found");
+		).rejects.toMatchObject({ data: { code: "notFound" } });
 		expect(await bob.query(api.activities.list, {})).toMatchObject({
 			items: [],
 		});
@@ -48,7 +65,7 @@ describe("endurance activities", () => {
 		).toBe(id);
 		await expect(
 			alice.mutation(api.enduranceActivities.create, base),
-		).rejects.toThrow("different details");
+		).rejects.toMatchObject({ data: { code: "operationConflict" } });
 		await alice.mutation(api.enduranceActivities.update, {
 			id,
 			occurredAt: base.occurredAt,
@@ -129,7 +146,7 @@ describe("endurance activities", () => {
 		expect(first.items[0]?.id).toBe(ids[0]);
 		await expect(
 			bob.query(api.activities.list, { limit: 1, cursor: first.cursor }),
-		).rejects.toThrow("cursor");
+		).rejects.toMatchObject({ data: { code: "invalid", field: "cursor" } });
 		await alice.mutation(api.enduranceActivities.remove, { id: ids[1] });
 		const second = await alice.query(api.activities.list, {
 			limit: 1,
@@ -141,32 +158,31 @@ describe("endurance activities", () => {
 	it("includes endurance in the nutrition marker and JSON export", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
-		const range = { from: base.occurredAt, to: base.occurredAt + 86_400_000 };
+		const days = [{ from: base.occurredAt, to: base.occurredAt + 86_400_000 }];
 		expect(
-			await alice.query(
-				api.nutritionActivityMarker.hasCompletedActivity,
-				range,
-			),
-		).toBe(false);
+			await alice.query(api.nutritionActivityMarker.completedActivityDays, {
+				days,
+			}),
+		).toEqual([false]);
 		const id = await alice.mutation(api.enduranceActivities.create, base);
 		expect(
-			await alice.query(
-				api.nutritionActivityMarker.hasCompletedActivity,
-				range,
-			),
-		).toBe(true);
-		const exported = await alice.query(api.exportData.endurancePage, {});
+			await alice.query(api.nutritionActivityMarker.completedActivityDays, {
+				days,
+			}),
+		).toEqual([true]);
 		expect(
-			exported.activities.map((item: { _id: string }) => item._id),
+			(await exportedRows(alice, "activities")).map((row) => row._id),
 		).toEqual([id]);
-		expect(exported.enduranceActivityDetails).toHaveLength(1);
+		expect(await exportedRows(alice, "enduranceActivityDetails")).toHaveLength(
+			1,
+		);
 	});
 
-	it("exports all endurance records through bounded pages", async () => {
+	it("exports every endurance record of the account and none of another", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const bob = t.withIdentity({ subject: "bob" });
-		for (let i = 0; i < 105; i++) {
+		for (let i = 0; i < 201; i++) {
 			await alice.mutation(api.enduranceActivities.create, {
 				...base,
 				clientEntryId: `export-${i}`,
@@ -177,15 +193,9 @@ describe("endurance activities", () => {
 			...base,
 			clientEntryId: "bob",
 		});
-		const first = await alice.query(api.exportData.endurancePage, {});
-		expect(first.activities).toHaveLength(100);
-		expect(first.enduranceActivityDetails).toHaveLength(100);
-		expect(first.isDone).toBe(false);
-		const second = await alice.query(api.exportData.endurancePage, {
-			cursor: first.cursor,
-		});
-		expect(second.activities).toHaveLength(5);
-		expect(second.enduranceActivityDetails).toHaveLength(5);
-		expect(second.isDone).toBe(true);
+		expect(await exportedRows(alice, "activities")).toHaveLength(201);
+		expect(await exportedRows(alice, "enduranceActivityDetails")).toHaveLength(
+			201,
+		);
 	});
 });

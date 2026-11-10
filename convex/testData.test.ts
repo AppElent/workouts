@@ -2,6 +2,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
+import { readStrengthReferences } from "./lib/strengthReferences";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -28,7 +29,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "alice",
 				}),
-			).rejects.toThrow("activeActivity");
+			).rejects.toMatchObject({ data: { code: "activeActivity" } });
 		expect((await alice.query(api.testData.availability, {})).blocker).toBe(
 			"activeActivity",
 		);
@@ -48,7 +49,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "alice",
 				}),
-			).rejects.toThrow("hostedWorkout");
+			).rejects.toMatchObject({ data: { code: "hostedWorkout" } });
 		expect((await alice.query(api.testData.availability, {})).blocker).toBe(
 			"hostedWorkout",
 		);
@@ -86,7 +87,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "participant",
 				}),
-			).rejects.toThrow("hostedWorkout");
+			).rejects.toMatchObject({ data: { code: "hostedWorkout" } });
 		expect(await host.query(api.hostedWorkouts.getMine, { id })).toEqual(
 			before,
 		);
@@ -113,6 +114,7 @@ describe("in-app test data", () => {
 		expect(await alice.query(api.bodyMetrics.list, {})).toHaveLength(3);
 		const library = await alice.query(api.nutritionLibrary.browse, {
 			query: "",
+			photoVersion: 3,
 			paginationOpts: { cursor: null, numItems: 50 },
 		});
 		expect(
@@ -124,9 +126,9 @@ describe("in-app test data", () => {
 		const routine = (await alice.query(api.routines.list, {})).find(
 			(routine) => routine.name === "Test: Strength A",
 		)!;
-		const references = await alice.query(api.oneRepMaxes.getReferences, {
-			exerciseId: routine.exercises[0].exerciseId,
-		});
+		const references = await t.run((ctx) =>
+			readStrengthReferences(ctx, "alice", routine.exercises[0].exerciseId),
+		);
 		expect(references).toMatchObject({
 			measured: { source: "actual", value: 60 },
 			estimated: { source: "calculated" },
@@ -199,16 +201,25 @@ describe("in-app test data", () => {
 			name: "Added after load",
 			exercises: [],
 		});
-		await alice.mutation(api.nutritionDiary.log, {
-			date: "2026-10-09",
-			meal: "snacks",
-			name: { en: "Manual snack", nl: "Handmatige snack" },
-			serving: { en: "Serving", nl: "Portie" },
-			quantity: 1,
-			amount: 100,
-			baseUnit: "g",
-			nutrients: today.entries[0].nutrients,
-			provenance: { source: "oneOff" },
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			version: 1,
+			operationId: "manual-snack",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: {
+					clientEntryId: "manual-snack",
+					date: "2026-10-09",
+					meal: "snacks",
+					name: { en: "Manual snack", nl: "Handmatige snack" },
+					serving: { en: "Serving", nl: "Portie" },
+					quantity: 1,
+					amount: 100,
+					baseUnit: "g",
+					nutrients: today.entries[0].nutrients,
+					provenance: { source: "oneOff" },
+				},
+			},
 		});
 		expect(
 			(await alice.query(api.nutritionDiary.day, { date: "2026-10-09" }))
@@ -230,6 +241,7 @@ describe("in-app test data", () => {
 			(
 				await alice.query(api.nutritionLibrary.browse, {
 					query: "",
+					photoVersion: 3,
 					paginationOpts: { cursor: null, numItems: 50 },
 				})
 			).page,
@@ -297,7 +309,7 @@ describe("in-app test data", () => {
 				today: "2026-10-10",
 				expectedSubject: "alice",
 			}),
-		).rejects.toThrow("unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		const alice = t.withIdentity({ subject: "alice" });
 		await expect(
 			alice.mutation(api.testData.reset, {
@@ -305,7 +317,7 @@ describe("in-app test data", () => {
 				today: "2026-10-10",
 				expectedSubject: "bob",
 			}),
-		).rejects.toThrow("accountChanged");
+		).rejects.toMatchObject({ data: { code: "accountChanged" } });
 		expect(await alice.query(api.testData.availability, {})).toEqual({
 			available: true,
 			blocker: null,
@@ -325,7 +337,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "alice",
 				}),
-			).rejects.toThrow("unavailable");
+			).rejects.toMatchObject({ data: { code: "unavailable" } });
 		}
 	});
 });
@@ -354,9 +366,9 @@ it("clears only the resetting account's uploaded photos", async () => {
 		expectedSubject: "alice",
 	});
 	expect(
-		await alice.query(api.nutritionFoodPhotos.url, { storageId: alicePhoto }),
-	).toBeNull();
-	expect(
-		await bob.query(api.nutritionFoodPhotos.url, { storageId: bobPhoto }),
-	).toBeTruthy();
+		await t.run(async (ctx) => [
+			(await ctx.storage.get(alicePhoto)) !== null,
+			(await ctx.storage.get(bobPhoto)) !== null,
+		]),
+	).toEqual([false, true]);
 });
