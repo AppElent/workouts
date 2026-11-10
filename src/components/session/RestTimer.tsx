@@ -1,4 +1,4 @@
-import { formatClock } from "@foundry/core";
+import { DEFAULT_REST_SECONDS, formatClock } from "@foundry/core";
 import { Pause, Play, RotateCcw, Timer, X } from "lucide-react";
 import {
 	createContext,
@@ -12,14 +12,13 @@ import {
 } from "react";
 
 const STORAGE_KEY = "restTimer.defaultSeconds";
-const DEFAULT_SECONDS = 90;
 const PRESETS = [60, 90, 120, 180] as const;
 
 function loadDefault(): number {
-	if (typeof window === "undefined") return DEFAULT_SECONDS;
+	if (typeof window === "undefined") return DEFAULT_REST_SECONDS;
 	const raw = window.localStorage.getItem(STORAGE_KEY);
 	const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_SECONDS;
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_REST_SECONDS;
 }
 
 interface RestTimerContextValue {
