@@ -1,4 +1,8 @@
-import { canonicalJson, type Locale } from "@foundry/core";
+import {
+	canonicalJson,
+	type LibraryCategory,
+	type Locale,
+} from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
 import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
 import {
@@ -534,7 +538,7 @@ function PersonalFoodsAccount({
 }
 
 export function usePersonalFoods(options?: {
-	browse?: { query?: string; category?: "food" | "recipe" | "combo" };
+	browse?: { query?: string; category?: LibraryCategory };
 	ids?: readonly string[];
 	forkIds?: readonly string[];
 	/** Warm only the shipped matches displayed by the picker, after search debounce. */

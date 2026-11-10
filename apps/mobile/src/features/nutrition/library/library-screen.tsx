@@ -1,3 +1,4 @@
+import type { LibraryCategory } from "@foundry/core";
 import { useConvexConnectionState } from "convex/react";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -36,7 +37,6 @@ import {
 	filterLibrary,
 	type LibraryChip,
 	type LibraryItem,
-	type LibraryKind,
 	libraryItemName,
 	libraryItems,
 	librarySections,
@@ -128,7 +128,7 @@ export function LibraryScreen() {
 			pathname: "/personal-food-new",
 			params: { classification, ...(name ? { name } : {}) },
 		});
-	const startSelection = (kind?: LibraryKind) => {
+	const startSelection = (kind?: LibraryCategory) => {
 		setSelection(new Set());
 		if (kind) setChip(kind === "combo" ? "all" : kind);
 	};
@@ -370,7 +370,7 @@ export function LibraryScreen() {
 		);
 	};
 
-	const sectionMenu = (kind: LibraryKind) =>
+	const sectionMenu = (kind: LibraryCategory) =>
 		kind === "combo"
 			? [
 					{ id: "new", label: copy.newCombo },

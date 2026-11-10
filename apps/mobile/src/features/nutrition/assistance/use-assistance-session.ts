@@ -1,3 +1,4 @@
+import { NUTRITION_AI_LIMITS } from "@foundry/core";
 import { shippedLibrary } from "@foundry/core/shipped-foods";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccountWrite } from "../../../data/account-write";
@@ -55,9 +56,6 @@ export type AssistanceProblem =
 	| "matchFailed"
 	| "notApplied"
 	| NutritionAiFailure;
-
-/** Convex keeps this many; older ones are already in the previous result. */
-const MAX_FOLLOW_UPS_SENT = 10;
 
 /** A follow-up that answers the AI's question: what was asked, then the answer. */
 export const ANSWER_MARK = " → ";
@@ -447,7 +445,8 @@ export function useAssistanceSession(
 						items: currentDescription(rows, previous.result.items),
 						removedByPerson: gone.map((row) => row.name),
 					}),
-					followUps: next.slice(-MAX_FOLLOW_UPS_SENT),
+					// Older follow-ups are already in the previous result.
+					followUps: next.slice(-NUTRITION_AI_LIMITS.maxFollowUps),
 				}),
 				timeLeft(),
 			);

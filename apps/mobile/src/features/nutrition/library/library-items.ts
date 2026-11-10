@@ -1,12 +1,16 @@
-import type { Locale, PersonalFood } from "@foundry/core";
+import {
+	LIBRARY_CATEGORIES,
+	type LibraryCategory,
+	type Locale,
+	type PersonalFood,
+} from "@foundry/core";
 import {
 	comboSourceKey,
 	foodSourceKey,
 } from "../../../data/nutrition-shortcuts";
 import type { Combo } from "../../../data/personal-food-repository";
 
-export type LibraryKind = "food" | "recipe" | "combo";
-export type LibraryChip = "all" | LibraryKind | "favorite";
+export type LibraryChip = "all" | LibraryCategory | "favorite";
 
 export type LibraryItem =
 	| {
@@ -21,12 +25,6 @@ export type LibraryItem =
 			readonly combo: Combo;
 			readonly favorite: boolean;
 	  };
-
-export const LIBRARY_KINDS: readonly LibraryKind[] = [
-	"food",
-	"recipe",
-	"combo",
-];
 
 /** Every item the library lists, foods and recipes by name, combos last. */
 export function libraryItems(
@@ -111,14 +109,15 @@ export function filterLibrary(
 		.filter((item) => !term || haystack(item).includes(term))
 		.sort(
 			(a, b) =>
-				LIBRARY_KINDS.indexOf(a.kind) - LIBRARY_KINDS.indexOf(b.kind) ||
+				LIBRARY_CATEGORIES.indexOf(a.kind) -
+					LIBRARY_CATEGORIES.indexOf(b.kind) ||
 				libraryItemName(a, locale).localeCompare(libraryItemName(b, locale)),
 		);
 }
 
 /** One section per kind, in a fixed order; empty kinds are kept for their hint. */
 export function librarySections(items: readonly LibraryItem[]) {
-	return LIBRARY_KINDS.map((kind) => ({
+	return LIBRARY_CATEGORIES.map((kind) => ({
 		kind,
 		items: items.filter((item) => item.kind === kind),
 	}));
