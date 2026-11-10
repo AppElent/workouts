@@ -14,6 +14,7 @@ import {
 	formatNutrientAmount,
 	formatNutrientTotal,
 } from "../../nutrient-amount";
+import { MACRO_NUTRIENTS } from "../../use-nutrient-fields";
 
 export function DiarySummary({
 	goals,
@@ -70,11 +71,9 @@ export function DiarySummary({
 						<AppText variant="secondary">{copy.kcalToday}</AppText>
 					</AppText>
 					<AppText variant="footnote">
-						{(["protein", "carbs", "fat"] as const)
-							.map(
-								(n) => `${t.nutrition.nutrients[n]} ${amount(n, totals[n])} g`,
-							)
-							.join(" · ")}
+						{MACRO_NUTRIENTS.map(
+							(n) => `${t.nutrition.nutrients[n]} ${amount(n, totals[n])} g`,
+						).join(" · ")}
 					</AppText>
 					<AppText variant="caption" style={{ color: colors.accent }}>
 						{copy.allNutrients} ›
@@ -188,7 +187,7 @@ export function DiarySummary({
 						{energyStatus?.label ?? copy.dailyNutrition}
 					</AppText>
 					<View style={{ flexDirection: "row", gap: spacing.sm }}>
-						{(["protein", "carbs", "fat"] as const).map((n) => {
+						{MACRO_NUTRIENTS.map((n) => {
 							const group = groups.find((g) => g.nutrient === n);
 							const target = group?.max ?? group?.min;
 							const v = totals[n];

@@ -32,7 +32,8 @@ export function FoodNutrientRows({
 	const { t } = useI18n();
 	const copy = t.nutrition.foodEditor;
 	const colors = useTokens();
-	return FOOD_NUTRIENT_ROWS.map(({ key, indent }, index) => {
+	return FOOD_NUTRIENT_ROWS.map(({ key, ofWhich }, index) => {
+		const indent = ofWhich !== undefined;
 		const input = values[key];
 		return (
 			<View
@@ -51,11 +52,7 @@ export function FoodNutrientRows({
 					variant="secondary"
 					style={{ flex: 1, color: indent ? colors.textMuted : colors.text }}
 				>
-					{indent
-						? key === "sugars"
-							? copy.ofWhichSugars
-							: copy.ofWhichSaturated
-						: t.nutrition.nutrients[key]}
+					{ofWhich ? copy[ofWhich] : t.nutrition.nutrients[key]}
 					{marked?.has(key) && markLabel ? (
 						<AppText
 							variant="caption"

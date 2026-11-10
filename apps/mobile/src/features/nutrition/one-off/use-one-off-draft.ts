@@ -5,7 +5,11 @@ import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
 import { fmt, useI18n } from "../../../i18n";
 import { formatNutrientAmount } from "../nutrient-amount";
 import { useDiaryWrite } from "../use-diary-write";
-import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
+import {
+	HEADLINE_NUTRIENTS,
+	type NutrientInput,
+	parseFoodNumber,
+} from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 import { type OneOffBasis, oneOffNutrients } from "./one-off-values";
 
@@ -92,7 +96,7 @@ export function useOneOffDraft({
 					amount,
 					unit: copy.units[unit],
 					...(Object.fromEntries(
-						(["energy", "protein", "carbs", "fat"] as const).map((key) => {
+						HEADLINE_NUTRIENTS.map((key) => {
 							const value = nutrients[key];
 							return [
 								key,
@@ -101,7 +105,7 @@ export function useOneOffDraft({
 									: "—",
 							];
 						}),
-					) as Record<"energy" | "protein" | "carbs" | "fat", string>),
+					) as Record<(typeof HEADLINE_NUTRIENTS)[number], string>),
 				})
 			: undefined;
 

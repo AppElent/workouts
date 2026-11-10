@@ -72,6 +72,7 @@ import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { Notice } from "../personal-food/personal-food-label-scan";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
 import {
 	forgetAiSession,
 	readAiSession,
@@ -1389,7 +1390,7 @@ function Review({
 			) : null}
 			<FoodFormSectionHeader title={copy.total} />
 			<FoodFormCard>
-				{(["energy", "protein", "carbs", "fat"] as const).map((key, index) => (
+				{HEADLINE_NUTRIENTS.map((key, index) => (
 					<View
 						key={key}
 						style={{

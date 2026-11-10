@@ -8,6 +8,7 @@ import {
 	weekStartMonday,
 } from "@foundry/core";
 import type { WeeklyReviewDay } from "../../../data/nutrition-weekly-review";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
 
 /**
  * How one day did against the goal that applied on that day. Shape and
@@ -24,7 +25,7 @@ export type WeekDayStatus =
 	| "future";
 
 /** The four goals the week view puts in front. */
-export const WEEK_NUTRIENTS = ["energy", "protein", "carbs", "fat"] as const;
+export const WEEK_NUTRIENTS = HEADLINE_NUTRIENTS;
 
 function goalsFor(day: WeeklyReviewDay, nutrient: NutrientKey) {
 	return day.goalBasis === "effective"

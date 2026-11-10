@@ -9,6 +9,7 @@ import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
 import { formatNutrientAmount } from "../nutrient-amount";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
 export function NutrientTable({
 	nutrients,
 	factor = 1,
@@ -33,9 +34,7 @@ export function NutrientTable({
 		compact && fontScale < 1.5 ? { width: 76 * fontScale } : { flex: 1 };
 	const referenceColumn =
 		compact && fontScale < 1.5 ? { width: 70 * fontScale } : { flex: 1 };
-	const keys = all
-		? NUTRIENT_KEYS
-		: (["energy", "protein", "carbs", "fat"] as const);
+	const keys = all ? NUTRIENT_KEYS : HEADLINE_NUTRIENTS;
 	function value(key: NutrientKey, multiplier: number) {
 		const n = scaleNutrient(nutrients[key] ?? { kind: "absent" }, multiplier);
 		if (n.kind === "absent") return "—";

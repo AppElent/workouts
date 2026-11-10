@@ -20,6 +20,7 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { formatNutrientAmount } from "../nutrient-amount";
+import { MACRO_NUTRIENTS } from "../use-nutrient-fields";
 import { WeekBars } from "./components/week-bars";
 import { WeekDatePicker } from "./components/week-date-picker";
 import { WeekMenu } from "./components/week-menu";
@@ -288,17 +289,15 @@ function WeekContent({
 						<View style={{ padding: spacing.md }}>
 							<WeekStatusGrid
 								weekdayInitials={parts.map((part) => part.short.slice(0, 1))}
-								rows={(["protein", "carbs", "fat"] as const).map(
-									(nutrient) => ({
-										key: nutrient,
-										label: t.nutrition.nutrients[nutrient],
-										average: averageText(nutrient),
-										statuses: days.map((day) =>
-											weekDayStatus(day, nutrient, today),
-										),
-										accessibilityLabel: `${t.nutrition.nutrients[nutrient]}, ${averageText(nutrient) ?? copy.noAverage}. ${statusText(nutrient)}`,
-									}),
-								)}
+								rows={MACRO_NUTRIENTS.map((nutrient) => ({
+									key: nutrient,
+									label: t.nutrition.nutrients[nutrient],
+									average: averageText(nutrient),
+									statuses: days.map((day) =>
+										weekDayStatus(day, nutrient, today),
+									),
+									accessibilityLabel: `${t.nutrition.nutrients[nutrient]}, ${averageText(nutrient) ?? copy.noAverage}. ${statusText(nutrient)}`,
+								}))}
 							/>
 						</View>
 						<Separator />
@@ -370,13 +369,12 @@ function WeekContent({
 				) : (
 					<AppText variant="caption" style={{ padding: spacing.md }}>
 						{fmt(copy.averages, {
-							values: (["protein", "carbs", "fat"] as const)
-								.map((nutrient) => {
-									const average = weekAverage(days, nutrient, today);
-									return average
-										? `${t.nutrition.nutrients[nutrient].toLowerCase()} ${formatNutrientAmount(nutrient, average.value, locale, { unit: true })}`
-										: undefined;
-								})
+							values: MACRO_NUTRIENTS.map((nutrient) => {
+								const average = weekAverage(days, nutrient, today);
+								return average
+									? `${t.nutrition.nutrients[nutrient].toLowerCase()} ${formatNutrientAmount(nutrient, average.value, locale, { unit: true })}`
+									: undefined;
+							})
 								.filter(Boolean)
 								.join(" · "),
 						})}

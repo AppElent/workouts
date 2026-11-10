@@ -27,9 +27,9 @@ import {
 	FoodFormCard,
 	FoodFormSectionHeader,
 } from "../components/food-form-section";
-import { parseFoodNumber } from "../use-nutrient-fields";
+import { HEADLINE_NUTRIENTS, parseFoodNumber } from "../use-nutrient-fields";
 
-const VALUE_KEYS = ["energy", "protein", "carbs", "fat"] as const;
+const VALUE_KEYS = HEADLINE_NUTRIENTS;
 type ValueKey = (typeof VALUE_KEYS)[number] & NutrientKey;
 
 /** Typed values replace the estimate's; its parts no longer add up to it then. */

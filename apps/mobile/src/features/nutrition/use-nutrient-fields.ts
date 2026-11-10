@@ -11,17 +11,22 @@ export function parseFoodNumber(text: string): number {
 	return parseLocalizedDecimal(text) ?? Number.NaN;
 }
 
-/** Label order: what you read on a package, "of which" rows indented. */
+/** The macronutrients shown beside energy in summaries. */
+export const MACRO_NUTRIENTS = ["protein", "carbs", "fat"] as const;
+/** Energy and the macronutrients: the figures a compact summary shows. */
+export const HEADLINE_NUTRIENTS = ["energy", ...MACRO_NUTRIENTS] as const;
+
+/** Label order: what you read on a package, "of which" rows indented under their own label. */
 export const FOOD_NUTRIENT_ROWS: readonly {
 	key: NutrientKey;
-	indent?: boolean;
+	ofWhich?: "ofWhichSugars" | "ofWhichSaturated";
 }[] = [
 	{ key: "energy" },
 	{ key: "protein" },
 	{ key: "carbs" },
-	{ key: "sugars", indent: true },
+	{ key: "sugars", ofWhich: "ofWhichSugars" },
 	{ key: "fat" },
-	{ key: "saturatedFat", indent: true },
+	{ key: "saturatedFat", ofWhich: "ofWhichSaturated" },
 	{ key: "fibre" },
 	{ key: "salt" },
 ];
