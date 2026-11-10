@@ -1,7 +1,9 @@
+import type { AppErrorCode } from "@foundry/core";
 import type { GenericTableInfo, Query } from "convex/server";
 import { v } from "convex/values";
 import type { Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { literals } from "./validators";
 
 type Db = QueryCtx["db"];
 
@@ -195,9 +197,14 @@ export function readPersonalTable(db: Db, table: ExportTable, userId: string) {
 	return all[table].read(db, userId);
 }
 
+const PERSONAL_DATA_BLOCKERS = [
+	"activeActivity",
+	"hostedWorkout",
+] as const satisfies readonly AppErrorCode[];
+type PersonalDataBlocker = (typeof PERSONAL_DATA_BLOCKERS)[number];
+
 export const personalDataBlockerValidator = v.union(
-	v.literal("activeActivity"),
-	v.literal("hostedWorkout"),
+	literals(PERSONAL_DATA_BLOCKERS),
 	v.null(),
 );
 
@@ -205,14 +212,14 @@ export const personalDataBlockerValidator = v.union(
 export async function personalDataBlocker(
 	ctx: QueryCtx | MutationCtx,
 	userId: string,
-) {
+): Promise<PersonalDataBlocker | null> {
 	const active = await ctx.db
 		.query("workoutSessions")
 		.withIndex("by_user_status", (q) =>
 			q.eq("userId", userId).eq("status", "active"),
 		)
 		.first();
-	if (active) return "activeActivity" as const;
+	if (active) return "activeActivity";
 	const host = await ctx.db
 		.query("hostedWorkouts")
 		.withIndex("by_host", (q) => q.eq("hostUserId", userId))
@@ -221,7 +228,7 @@ export async function personalDataBlocker(
 		.query("hostedWorkoutParticipants")
 		.withIndex("by_user", (q) => q.eq("userId", userId))
 		.first();
-	return host || participant ? ("hostedWorkout" as const) : null;
+	return host || participant ? "hostedWorkout" : null;
 }
 
 /**
