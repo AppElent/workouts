@@ -1,12 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-	CURATED_EXERCISES,
-	DEFAULT_EXERCISES,
-	getShippedExercise,
-	mergeExerciseCatalog,
-	WRKOUT_EXERCISES,
-} from "./index";
+import { CURATED_EXERCISES, DEFAULT_EXERCISES } from "./exercises";
+import { getShippedExercise, mergeExerciseCatalog } from "./index";
+import { WRKOUT_EXERCISES } from "./wrkoutExercises";
 
 describe("shipped exercise catalog", () => {
 	it("keeps all permanent IDs and has unique names and usable instructions", () => {

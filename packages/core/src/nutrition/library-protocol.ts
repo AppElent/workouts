@@ -4,19 +4,10 @@
  * builds may still carry any version in LIBRARY_SCHEMA_VERSIONS.
  */
 export const LIBRARY_SCHEMA_VERSIONS = [1, 2, 3] as const;
-export type LibrarySchemaVersion = (typeof LIBRARY_SCHEMA_VERSIONS)[number];
+type LibrarySchemaVersion = (typeof LIBRARY_SCHEMA_VERSIONS)[number];
 
 /** Version 3 payloads may carry account photos (stored or remote visuals). */
 export const LIBRARY_SCHEMA_VERSION = 3 satisfies LibrarySchemaVersion;
-
-/** The first version whose payloads may carry estimates, visuals and serving units. */
-export const LIBRARY_FIELDS_SCHEMA_VERSION = 2 satisfies LibrarySchemaVersion;
-
-/**
- * Readers that send this version receive account photos; older readers get
- * those foods without a visual.
- */
-export const PHOTO_VERSION = 3;
 
 export const LIBRARY_RECORD_KINDS = ["food", "combo"] as const;
 export type LibraryRecordKind = (typeof LIBRARY_RECORD_KINDS)[number];

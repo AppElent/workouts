@@ -5,7 +5,7 @@
  * - `validate*` functions return a `RuleResult`.
  * - Functions that compute from input they expect to be valid (`normalize*`,
  *   rescaling, snapshots) throw a `RuleError` carrying the same `field`/`code`.
- *   `ruleValue` turns a result into that throw; `ruleResult` the other way.
+ *   `ruleValue` turns a result into that throw.
  */
 export type RuleIssue<
 	Field extends string = string,
@@ -41,11 +41,11 @@ export function isRuleError(error: unknown): error is RuleError {
 	return error instanceof RuleError;
 }
 
-export function ruleOk<T>(value: T): { readonly ok: true; readonly value: T } {
+function ruleOk<T>(value: T): { readonly ok: true; readonly value: T } {
 	return { ok: true, value };
 }
 
-export function ruleFail<Field extends string, Code extends string>(
+function ruleFail<Field extends string, Code extends string>(
 	errors: readonly RuleIssue<Field, Code>[],
 ): { readonly ok: false; readonly errors: readonly RuleIssue<Field, Code>[] } {
 	return { ok: false, errors };
@@ -58,23 +58,6 @@ export function ruleValue<T, Field extends string, Code extends string>(
 	if (result.ok) return result.value;
 	const [first] = result.errors;
 	throw new RuleError(first.field, first.code);
-}
-
-/** Runs a throwing computation and reports its `RuleError` as a result. */
-export function ruleResult<
-	T,
-	Field extends string = string,
-	Code extends string = string,
->(compute: () => T): RuleResult<T, Field, Code> {
-	try {
-		return ruleOk(compute());
-	} catch (error) {
-		if (error instanceof RuleError)
-			return ruleFail([
-				{ field: error.field as Field, code: error.code as Code },
-			]);
-		throw error;
-	}
 }
 
 /** Collects issues; `result(value)` passes only when nothing was reported. */

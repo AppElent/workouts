@@ -64,9 +64,9 @@ export function plural<L extends string>(
 	return fmt(category === "one" ? forms.one : forms.other, { count });
 }
 
-export type MessageTree = { readonly [key: string]: string | MessageTree };
+type MessageTree = { readonly [key: string]: string | MessageTree };
 
-export type MessageParityMismatch =
+type MessageParityMismatch =
 	| {
 			readonly kind: "missingKey";
 			readonly locale: string;

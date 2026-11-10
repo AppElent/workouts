@@ -4,20 +4,20 @@ import { type RuleResult, ruleIssues } from "../rules";
  * A named amount of a base unit: a Personal Measure ("my mug", 250 ml) or a
  * supplementary serving on a shipped food ("slice", 35 g).
  */
-export const NAMED_AMOUNT_KINDS = ["measure", "serving"] as const;
-export type NamedAmountKind = (typeof NAMED_AMOUNT_KINDS)[number];
+const NAMED_AMOUNT_KINDS = ["measure", "serving"] as const;
+type NamedAmountKind = (typeof NAMED_AMOUNT_KINDS)[number];
 
 export const NAMED_AMOUNT_LIMITS = { maxName: 40, maxAmount: 10_000 } as const;
 
-export type NamedAmountField = "name" | "amount";
-export type NamedAmountCode =
+type NamedAmountField = "name" | "amount";
+type NamedAmountCode =
 	| "required"
 	| "tooLong"
 	| "notPositive"
 	| "tooLarge"
 	| "tooPrecise";
 
-export type NamedAmount = {
+type NamedAmount = {
 	readonly name: string;
 	/** Case-folded name; one user cannot hold two with the same key. */
 	readonly normalizedName: string;

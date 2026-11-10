@@ -31,7 +31,7 @@ export const SHIPPED_NUTRIENT_KEYS = [...NUTRIENT_KEYS, "sodium"] as const;
 
 export type ShippedNutrientKey = (typeof SHIPPED_NUTRIENT_KEYS)[number];
 
-export type NutrientUnit = "kcal" | "g" | "mg";
+type NutrientUnit = "kcal" | "g" | "mg";
 
 export const NUTRIENT_UNITS: Readonly<
 	Record<ShippedNutrientKey, NutrientUnit>
@@ -154,7 +154,7 @@ export function kcalFromKilojoules(kilojoules: number): number {
 	return Math.round((kilojoules / KJ_PER_KCAL) * 10) / 10;
 }
 
-export type NutrientValueCode = "invalid" | "negative";
+type NutrientValueCode = "invalid" | "negative";
 
 /** One stored nutrient reading, or why it is not one. */
 export function checkNutrientValue(

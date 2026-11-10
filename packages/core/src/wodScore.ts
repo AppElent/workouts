@@ -33,7 +33,7 @@ export interface WodScoreInput {
 	loadUnit?: LoadUnit;
 }
 
-export const SCORE_LIMITS = {
+const SCORE_LIMITS = {
 	timeSeconds: { min: 0, max: 86_400 },
 	rounds: { min: 0, max: 10_000 },
 	reps: { min: 0, max: 100_000 },
@@ -170,7 +170,7 @@ export type LeaderboardEntry = {
 };
 
 /** Better score first; equal scores go to whoever submitted first. */
-export function compareLeaderboardEntries(
+function compareLeaderboardEntries(
 	type: WodType,
 	a: LeaderboardEntry,
 	b: LeaderboardEntry,

@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	EQUIPMENT,
-	EQUIPMENT_STEPS,
 	filterExercises,
 	isLoadedEquipment,
-	matchesMuscleGroup,
 	primaryMuscleGroup,
 } from "./exercise";
 import { SHIPPED_EXERCISES } from "./exercises";
@@ -23,19 +21,21 @@ describe("equipment", () => {
 			"band",
 		]);
 	});
-	it("has a step for every equipment", () => {
-		for (const item of EQUIPMENT)
-			expect(EQUIPMENT_STEPS[item]).toBeGreaterThan(0);
-	});
 });
 
 describe("muscle groups", () => {
 	it("matches the aliases the web chips used to miss", () => {
-		expect(matchesMuscleGroup(exercise("Crunch", ["Abs"]), "core")).toBe(true);
-		expect(matchesMuscleGroup(exercise("Twist", ["obliques"]), "core")).toBe(
-			true,
-		);
-		expect(matchesMuscleGroup(exercise("Curl", ["arms"]), "arms")).toBe(true);
+		const list = [
+			exercise("Crunch", ["Abs"]),
+			exercise("Twist", ["obliques"]),
+			exercise("Curl", ["arms"]),
+		];
+		expect(
+			filterExercises(list, { groups: ["core"] }).map((item) => item.name),
+		).toEqual(["Crunch", "Twist"]);
+		expect(
+			filterExercises(list, { groups: ["arms"] }).map((item) => item.name),
+		).toEqual(["Curl"]);
 	});
 	it("files an exercise under its first known muscle", () => {
 		expect(primaryMuscleGroup(exercise("Shrug", ["traps", "forearms"]))).toBe(

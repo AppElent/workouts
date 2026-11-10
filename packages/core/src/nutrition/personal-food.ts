@@ -1,4 +1,4 @@
-import { RuleError, type RuleResult, ruleResult } from "../rules";
+import { RuleError } from "../rules";
 import {
 	checkNutrientValue,
 	NUTRIENT_KEYS,
@@ -36,7 +36,7 @@ export type PersonalFoodClassification = "ordinary" | "recipe";
  * Field paths are dotted (`name.en`, `servings.0.amount`,
  * `provenance.imageUrl`, `nutrients.energy`).
  */
-export type PersonalFoodCode =
+type PersonalFoodCode =
 	| "required"
 	| "tooLong"
 	| "notPositive"
@@ -45,7 +45,7 @@ export type PersonalFoodCode =
 	| "unitMismatch"
 	| "basisChanged";
 
-export type PersonalFoodNutritionBasis =
+type PersonalFoodNutritionBasis =
 	| { readonly kind: "per100"; readonly unit: MeasuredUnit }
 	| { readonly kind: "perServing"; readonly label: Bilingual };
 
@@ -89,7 +89,7 @@ export type PersonalFoodDraft = {
 	readonly visualMigrationPending?: true;
 };
 
-export type NormalizedPersonalFoodDraft = PersonalFoodDraft & {
+type NormalizedPersonalFoodDraft = PersonalFoodDraft & {
 	readonly classification: PersonalFoodClassification;
 	readonly nutritionBasis: PersonalFoodNutritionBasis;
 	readonly estimated: boolean;
@@ -296,12 +296,6 @@ export function normalizePersonalFoodDraft(
 	};
 }
 
-export function validatePersonalFoodDraft(
-	draft: PersonalFoodDraft,
-): RuleResult<NormalizedPersonalFoodDraft, string, PersonalFoodCode> {
-	return ruleResult(() => normalizePersonalFoodDraft(draft));
-}
-
 /** A stored Personal Food. Throws `RuleError<string, PersonalFoodCode>`. */
 export function normalizePersonalFood(
 	food: PersonalFoodDraft & {
@@ -323,7 +317,7 @@ export function normalizePersonalFood(
 	};
 }
 
-export type PersonalFoodSnapshotSelection = {
+type PersonalFoodSnapshotSelection = {
 	readonly quantity: number;
 	/** Omit to log one nutrition basis (100 g/ml or one named serving). */
 	readonly serving?: PersonalServing;

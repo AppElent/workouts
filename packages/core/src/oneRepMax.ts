@@ -2,7 +2,7 @@
 export const SET_REFERENCE_SOURCES = ["actual", "calculated"] as const;
 export type SetReferenceSource = (typeof SET_REFERENCE_SOURCES)[number];
 
-export interface OneRepMaxResult {
+interface OneRepMaxResult {
 	value: number;
 	source: SetReferenceSource;
 	formula?: "epley";

@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-	CLERK_ERROR_CODE_MAP,
-	CLERK_ERROR_MESSAGE_KEYS,
 	clerkErrorMessageKey,
 	isTestLoginAvailable,
 	socialSignInProviders,
@@ -84,10 +82,5 @@ describe("clerkErrorMessageKey", () => {
 		expect(clerkErrorMessageKey({ code: "something_new" })).toBe("generic");
 		expect(clerkErrorMessageKey({ code: "toString" })).toBe("generic");
 		expect(clerkErrorMessageKey(null)).toBe("generic");
-	});
-
-	it("only maps to keys the clients translate", () => {
-		for (const key of Object.values(CLERK_ERROR_CODE_MAP))
-			expect(CLERK_ERROR_MESSAGE_KEYS).toContain(key);
 	});
 });

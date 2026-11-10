@@ -11,7 +11,7 @@ type RescalableSnapshot = {
 	readonly nutrients: Readonly<Record<string, NutrientValue>>;
 };
 
-export type RescaleField = "quantity" | "amount";
+type RescaleField = "quantity" | "amount";
 
 function positive(value: number, field: RescaleField): number {
 	if (typeof value !== "number" || !Number.isFinite(value) || value <= 0)

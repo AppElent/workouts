@@ -37,7 +37,7 @@ export type NutrientTotal = {
 export type NutrientContribution = Partial<Record<NutrientKey, NutrientValue>>;
 
 /** A Diary Entry or Combo part as a total sees it. */
-export type NutrientEntry = {
+type NutrientEntry = {
 	readonly nutrients: NutrientContribution;
 	/** An estimated figure makes every total it is part of approximate. */
 	readonly estimated?: boolean;

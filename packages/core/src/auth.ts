@@ -15,11 +15,7 @@ export function isTestLoginAvailable(env: {
 	);
 }
 
-export const SOCIAL_SIGN_IN_PROVIDERS = [
-	"apple",
-	"google",
-	"microsoft",
-] as const;
+const SOCIAL_SIGN_IN_PROVIDERS = ["apple", "google", "microsoft"] as const;
 export type SocialSignInProvider = (typeof SOCIAL_SIGN_IN_PROVIDERS)[number];
 
 /**
@@ -36,7 +32,7 @@ export function socialSignInProviders(
 }
 
 /** Message keys for Clerk errors; each client translates them. */
-export const CLERK_ERROR_MESSAGE_KEYS = [
+const CLERK_ERROR_MESSAGE_KEYS = [
 	"generic",
 	"identifierNotFound",
 	"passwordIncorrect",
@@ -55,7 +51,7 @@ export const CLERK_ERROR_MESSAGE_KEYS = [
 export type ClerkErrorMessageKey = (typeof CLERK_ERROR_MESSAGE_KEYS)[number];
 
 /** Clerk's stable error codes, mapped to the key a client translates. */
-export const CLERK_ERROR_CODE_MAP: Readonly<
+const CLERK_ERROR_CODE_MAP: Readonly<
 	Record<string, Exclude<ClerkErrorMessageKey, "generic">>
 > = {
 	form_identifier_not_found: "identifierNotFound",

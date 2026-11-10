@@ -20,7 +20,7 @@ export function formatClock(totalSeconds: number): string {
  * Hours and minutes of a finished session, rounded to the minute. A session
  * that ended counts at least one minute, so it never reads as "0m".
  */
-export function durationParts(durationMs: number): {
+function durationParts(durationMs: number): {
 	hours: number;
 	minutes: number;
 } {

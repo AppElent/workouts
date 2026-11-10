@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	durationParts,
-	formatClock,
-	formatDurationMinutes,
-	formatPace,
-} from "./format";
+import { formatClock, formatDurationMinutes, formatPace } from "./format";
 
 describe("formatClock", () => {
 	it("adds hours only from an hour and drops partial seconds", () => {
@@ -20,7 +15,6 @@ describe("formatClock", () => {
 
 describe("session duration", () => {
 	it("rounds to the minute and never reads as zero", () => {
-		expect(durationParts(20_000)).toEqual({ hours: 0, minutes: 1 });
 		expect(formatDurationMinutes(29_000)).toBe("1m");
 		expect(formatDurationMinutes(48 * 60_000)).toBe("48m");
 		expect(formatDurationMinutes(59 * 60_000 + 40_000)).toBe("1h");

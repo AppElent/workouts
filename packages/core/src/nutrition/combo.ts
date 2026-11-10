@@ -1,4 +1,4 @@
-import { RuleError, type RuleResult, ruleResult } from "../rules";
+import { RuleError } from "../rules";
 import { combinedNutrients } from "./aggregate";
 import {
 	checkNutrientValue,
@@ -45,7 +45,7 @@ export type ComboDraft = {
 };
 
 /** A Combo as the library stores it. */
-export type ComboPart = ComboPartDraft & { readonly id: string };
+type ComboPart = ComboPartDraft & { readonly id: string };
 
 export type Combo = {
 	readonly id: string;
@@ -59,7 +59,7 @@ export type Combo = {
  * Field paths are dotted (`name`, `parts.0.reference`,
  * `parts.1.snapshot.nutrients.energy`, `parts.2.snapshot.provenance`).
  */
-export type ComboCode =
+type ComboCode =
 	| "required"
 	| "tooLong"
 	| "invalid"
@@ -232,18 +232,6 @@ export function normalizeCombo(combo: unknown): Combo {
 		createdAt: combo.createdAt as number,
 		updatedAt: combo.updatedAt as number,
 	};
-}
-
-export function validateComboDraft(
-	draft: unknown,
-): RuleResult<ComboDraft, string, ComboCode> {
-	return ruleResult(() => normalizeComboDraft(draft));
-}
-
-export function validateCombo(
-	combo: unknown,
-): RuleResult<Combo, string, ComboCode> {
-	return ruleResult(() => normalizeCombo(combo));
 }
 
 /**

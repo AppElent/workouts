@@ -2,13 +2,13 @@ import type { IsoDate } from "../calendar";
 import type { NutrientTotal } from "./aggregate";
 import type { NutrientKey } from "./nutrients";
 
-export type WeekAverageDay = {
+type WeekAverageDay = {
 	readonly date: IsoDate;
 	readonly entryCount: number;
 	readonly totals: Readonly<Record<NutrientKey, NutrientTotal>>;
 };
 
-export type WeekAverage = {
+type WeekAverage = {
 	readonly value: number;
 	/** How many days the average is over. */
 	readonly days: number;

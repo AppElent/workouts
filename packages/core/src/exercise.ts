@@ -11,7 +11,7 @@ export const EQUIPMENT = [
 export type Equipment = (typeof EQUIPMENT)[number];
 
 /** Equipment whose load is entered as a weight, so it has a weight increment. */
-export const LOADED_EQUIPMENT = [
+const LOADED_EQUIPMENT = [
 	"barbell",
 	"dumbbell",
 	"cable",
@@ -19,7 +19,7 @@ export const LOADED_EQUIPMENT = [
 	"kettlebell",
 	"other",
 ] as const satisfies readonly Equipment[];
-export type LoadedEquipment = (typeof LOADED_EQUIPMENT)[number];
+type LoadedEquipment = (typeof LOADED_EQUIPMENT)[number];
 
 export function isLoadedEquipment(
 	equipment: Equipment,
@@ -31,7 +31,7 @@ export const EXERCISE_CATEGORIES = ["compound", "isolation"] as const;
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 
 /** Default weight increment per equipment, in the set's unit. */
-export const EQUIPMENT_STEPS: Readonly<Record<Equipment, number>> = {
+const EQUIPMENT_STEPS: Readonly<Record<Equipment, number>> = {
 	barbell: 2.5,
 	dumbbell: 1,
 	cable: 5,
@@ -80,7 +80,7 @@ function inGroup(muscle: string, group: MuscleGroup) {
 	);
 }
 
-export function matchesMuscleGroup(exercise: Muscled, group: MuscleGroup) {
+function matchesMuscleGroup(exercise: Muscled, group: MuscleGroup) {
 	return exercise.muscleGroups.some((muscle) => inGroup(muscle, group));
 }
 
@@ -93,7 +93,7 @@ export function primaryMuscleGroup(exercise: Muscled): MuscleGroup | "other" {
 	return "other";
 }
 
-export type ExerciseFilter = {
+type ExerciseFilter = {
 	/** Case-insensitive substring of the name; blank matches everything. */
 	readonly query?: string;
 	/** Matches when the exercise is in any of these groups; empty matches all. */

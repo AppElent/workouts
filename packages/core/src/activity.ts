@@ -5,7 +5,7 @@ export type EnduranceSport = (typeof ENDURANCE_SPORTS)[number];
 export const ACTIVITY_SPORTS = ["strength", ...ENDURANCE_SPORTS] as const;
 export type ActivitySport = (typeof ACTIVITY_SPORTS)[number];
 export const ENDURANCE_ENVIRONMENTS = ["indoor", "outdoor"] as const;
-export type EnduranceEnvironment = (typeof ENDURANCE_ENVIRONMENTS)[number];
+type EnduranceEnvironment = (typeof ENDURANCE_ENVIRONMENTS)[number];
 
 export type ActivitySummary = {
 	id: string;
@@ -16,7 +16,7 @@ export type ActivitySummary = {
 	distanceMeters?: number;
 };
 
-export type EnduranceInput = {
+type EnduranceInput = {
 	occurredAt: number;
 	durationSeconds: number;
 	distanceMeters: number;
@@ -28,7 +28,7 @@ export type EnduranceInput = {
 	effort?: number | null;
 };
 
-export const ENDURANCE_LIMITS = {
+const ENDURANCE_LIMITS = {
 	effort: { min: 1, max: 10 },
 	titleLength: 200,
 	notesLength: 10_000,
@@ -43,7 +43,7 @@ export type EnduranceField =
 	| "effort"
 	| "title"
 	| "notes";
-export type EnduranceCode =
+type EnduranceCode =
 	| "invalid"
 	| "future"
 	| "notPositive"
