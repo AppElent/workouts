@@ -1,15 +1,16 @@
 import { router, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, View } from "react-native";
-import {
-	aiSessionForEntry,
-	sessionUnchanged,
-} from "../../../data/nutrition-ai-history";
+import { useAccountWrite } from "../../../data/account-write";
 import { useNutritionDay } from "../../../data/nutrition-day";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { AppText } from "../../../ui/text";
+import {
+	aiSessionForEntry,
+	sessionUnchanged,
+} from "../assistance/assistance-history";
 import { AmountDestination } from "../components/amount-destination";
 import { AmountEditor } from "../components/amount-editor";
 import { AmountSheetHeader } from "../components/amount-sheet-header";
@@ -35,8 +36,9 @@ export function DiaryEntryEditorScreen(props: DiaryEntryEditorProps) {
 	const pendingNavigation = useRef<(() => void) | null>(null);
 	const [allowDiscard, setAllowDiscard] = useState(false);
 	// Logged with Hulp bij invoeren on this phone: it can be continued there.
+	const account = useAccountWrite().subject;
 	const [loggedSession] = useState(() =>
-		aiSessionForEntry(props.entry.clientEntryId),
+		account ? aiSessionForEntry(account, props.entry.clientEntryId) : null,
 	);
 	const diaryDay = useNutritionDay(props.date);
 	// Continuing replaces the whole meal: only while nothing in it was edited.

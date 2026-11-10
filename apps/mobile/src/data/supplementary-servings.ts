@@ -1,90 +1,49 @@
 import type { SupplementaryServing } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
-import { useEffect, useMemo, useState } from "react";
+import { useMutation } from "convex/react";
 import { api } from "../convex/api";
 import { usePaginatedQuery } from "../convex/query-cache";
+import { useAccountWrite } from "./account-write";
 import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "./nutrition-operation-service";
+	useCachedAccountList,
+	useCachedAccountLists,
+} from "./cached-account-list";
 
-/** Account/food scoped subscriptions; only complete pages replace the offline cache. */
+const servingsKey = (foodId: string) => `supplementary-servings:${foodId}`;
+
+/** A food's servings as last read this session, for decisions made at a tap. */
+export function useCachedSupplementaryServings() {
+	const cached = useCachedAccountLists();
+	return (foodId: string) =>
+		cached<SupplementaryServing>(servingsKey(foodId)) ?? [];
+}
+
 export function useSupplementaryServings(foodId?: string) {
-	const operations = useNutritionOperations();
-	const version = useNutritionOperationVersion();
-	const subject = operations.getSubject();
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const query = usePaginatedQuery(
+	const account = useAccountWrite();
+	const key = account.subject && foodId ? servingsKey(foodId) : undefined;
+	const page = usePaginatedQuery(
 		api.supplementaryServings.list,
-		subject && foodId ? { foodId } : "skip",
+		key && foodId ? { foodId } : "skip",
 		{ initialNumItems: 100 },
 	);
+	const { items, loading, markCreated } = useCachedAccountList(key, page);
 	const create = useMutation(api.supplementaryServings.create);
-	const [created, setCreated] = useState<{
-		subject: string;
-		serving: SupplementaryServing;
-	}>();
-	useEffect(() => {
-		if (query.status === "CanLoadMore") query.loadMore(100);
-	}, [query.status, query.loadMore]);
-	const pending =
-		created && created.subject === subject && created.serving.foodId === foodId
-			? created.serving
-			: undefined;
-	useEffect(() => {
-		if (
-			subject &&
-			foodId &&
-			connected &&
-			query.status === "Exhausted" &&
-			(!pending || query.results.some((item) => item.id === pending.id))
-		) {
-			operations.cacheSupplementaryServings(subject, foodId, query.results);
-			if (pending) setCreated(undefined);
-		}
-	}, [
-		subject,
-		foodId,
-		connected,
-		query.status,
-		query.results,
-		pending,
-		operations,
-	]);
-	const cached = useMemo(() => {
-		void version;
-		return subject && foodId
-			? operations.getSupplementaryServings(subject, foodId)
-			: [];
-	}, [subject, foodId, operations, version]);
-	const available =
-		subject && foodId
-			? connected && query.status === "Exhausted"
-				? query.results
-				: cached
-			: cached;
-	const servings = useMemo(
-		() =>
-			pending && !available.some((item) => item.id === pending.id)
-				? [...available, pending]
-				: available,
-		[available, pending],
-	);
 	return {
-		servings,
-		loading:
-			Boolean(foodId && subject) && connected && query.status !== "Exhausted",
-		async add(input: { name: string; amount: number; unit: "g" | "ml" }) {
-			if (!subject || !foodId || !connected) throw new Error("offline");
-			const serving = await create({ ...input, foodId });
-			// An account switch while the request was pending must not expose the result.
-			if (operations.getSubject() === subject) {
-				operations.cacheSupplementaryServings(subject, foodId, [
-					...servings.filter((item) => item.id !== serving.id),
-					serving,
-				]);
-				setCreated({ subject, serving });
-			}
+		servings: items,
+		loading,
+		async add(input: {
+			name: string;
+			amount: number;
+			unit: "g" | "ml";
+		}): Promise<SupplementaryServing> {
+			const serving = await account.send({
+				identity: { kind: "supplementaryServing", foodId, ...input },
+				prepare: () => {
+					if (!foodId) throw new Error("A food is required.");
+					return { ...input, foodId };
+				},
+				deliver: (args) => create(args),
+			});
+			markCreated(serving);
 			return serving;
 		},
 	};

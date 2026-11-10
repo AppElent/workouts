@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
+import { AccountWriteProvider } from "./data/account-write";
 import { FoodAuthoringIntentProvider } from "./data/food-authoring-intent";
+import type { FoodShortcutRepository } from "./data/food-shortcut-repository";
 import { NutritionDraftsProvider } from "./data/nutrition-drafts";
-import type { FoodPhotoUpload } from "./data/nutrition-food-photo-upload";
-import type { NutritionLocalRepository } from "./data/nutrition-local-repository";
-import { NutritionOperationsProvider } from "./data/nutrition-operation-service";
+import {
+	type FoodPhotoUpload,
+	FoodPhotoUploadProvider,
+} from "./data/nutrition-food-photo-upload";
+import { FoodShortcutsProvider } from "./data/nutrition-shortcuts";
 import type { FetchLike } from "./data/open-food-facts";
 import { OpenFoodFactsProvider } from "./data/open-food-facts-context";
 import type {
@@ -17,7 +21,7 @@ import { StrengthSessionProvider } from "./features/strength-session/data/streng
 /** Stores the screen tests inject; the app leaves every one to its default. */
 export type AppDataOverrides = {
 	personalFoods?: PersonalFoodRepository;
-	nutrition?: NutritionLocalRepository;
+	foodShortcuts?: FoodShortcutRepository;
 	openFoodFactsCache?: OpenFoodFactsCache;
 	fetchImpl?: FetchLike;
 	uploadPhoto?: FoodPhotoUpload;
@@ -33,28 +37,27 @@ export function AppDataProviders({
 	overrides?: AppDataOverrides;
 }) {
 	return (
-		<PersonalFoodsProvider
-			repository={overrides.personalFoods}
-			uploadPhoto={overrides.uploadPhoto}
-		>
-			<FoodAuthoringIntentProvider>
-				<OpenFoodFactsProvider
-					cache={overrides.openFoodFactsCache}
-					fetchImpl={overrides.fetchImpl}
-				>
-					<NutritionOperationsProvider
-						repository={overrides.nutrition}
-						uploadPhoto={overrides.uploadPhoto}
-						subject={overrides.subject}
-					>
-						<NutritionDraftsProvider>
-							<PersonalMeasuresProvider>
-								<StrengthSessionProvider>{children}</StrengthSessionProvider>
-							</PersonalMeasuresProvider>
-						</NutritionDraftsProvider>
-					</NutritionOperationsProvider>
-				</OpenFoodFactsProvider>
-			</FoodAuthoringIntentProvider>
-		</PersonalFoodsProvider>
+		<AccountWriteProvider subject={overrides.subject}>
+			<FoodPhotoUploadProvider upload={overrides.uploadPhoto}>
+				<PersonalFoodsProvider repository={overrides.personalFoods}>
+					<FoodAuthoringIntentProvider>
+						<OpenFoodFactsProvider
+							cache={overrides.openFoodFactsCache}
+							fetchImpl={overrides.fetchImpl}
+						>
+							<FoodShortcutsProvider repository={overrides.foodShortcuts}>
+								<NutritionDraftsProvider>
+									<PersonalMeasuresProvider>
+										<StrengthSessionProvider>
+											{children}
+										</StrengthSessionProvider>
+									</PersonalMeasuresProvider>
+								</NutritionDraftsProvider>
+							</FoodShortcutsProvider>
+						</OpenFoodFactsProvider>
+					</FoodAuthoringIntentProvider>
+				</PersonalFoodsProvider>
+			</FoodPhotoUploadProvider>
+		</AccountWriteProvider>
 	);
 }

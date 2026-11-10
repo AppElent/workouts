@@ -8,6 +8,7 @@ import {
 	within,
 } from "expo-router/testing-library";
 import { formatLongDate, todayIsoDate } from "../../../dates/calendar-day";
+import { pressPending } from "../../../test-support/press-pending";
 import { renderApp } from "../../../test-support/render-app";
 import { armToastAction } from "../../../test-support/toast-action";
 
@@ -309,9 +310,9 @@ describe("browsing shipped foods", () => {
 
 	it("keeps Recent honest and quick-logs the remembered default once", async () => {
 		// The log stays in flight across the double tap.
-		let finishLog: () => void = () => {};
+		let finishLog: (id: string) => void = () => {};
 		const log = jest.fn(
-			() => new Promise<void>((resolve) => (finishLog = resolve)),
+			() => new Promise<string>((resolve) => (finishLog = resolve)),
 		);
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
@@ -330,11 +331,11 @@ describe("browsing shipped foods", () => {
 		expect(
 			screen.getByRole("tab", { name: "All" }).props.accessibilityState,
 		).toMatchObject({ selected: true });
-		await fireEvent.press(await screen.findByLabelText("Quick log Apple"));
-		await fireEvent.press(screen.getByLabelText("Quick log Apple"));
+		await pressPending(await screen.findByLabelText("Quick log Apple"));
+		await pressPending(screen.getByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		await act(async () => finishLog());
+		await act(async () => finishLog("entry-1"));
 		await fireEvent.press(screen.getByRole("tab", { name: "Recent" }));
 		expect(await screen.findByText("Apple")).toBeTruthy();
 	});
@@ -988,7 +989,7 @@ describe("the redesigned food browser", () => {
 	});
 
 	it("makes meal and day one destination in the title, and logs into it", async () => {
-		const log = jest.fn().mockResolvedValue(undefined);
+		const log = jest.fn().mockResolvedValue("entry-1");
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
@@ -1082,7 +1083,7 @@ describe("the redesigned food browser", () => {
 	});
 
 	it("confirms a quick log with a toast that can undo it", async () => {
-		const log = jest.fn().mockResolvedValue(undefined);
+		const log = jest.fn().mockResolvedValue("entry-1");
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
@@ -1104,9 +1105,14 @@ describe("the redesigned food browser", () => {
 		expect(screen.queryByText("Added Apple to Breakfast")).toBeNull();
 		// Undo removes exactly the entry this + created, by its client id.
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(2));
-		expect(log.mock.calls[1][0].operation).toMatchObject({
-			kind: "remove",
-			target: { id: log.mock.calls[0][0].operation.entry.clientEntryId },
+		expect(log.mock.calls[1][0].operation).toEqual({
+			kind: "removeBatch",
+			targets: [
+				{
+					kind: "clientEntryId",
+					id: log.mock.calls[0][0].operation.entry.clientEntryId,
+				},
+			],
 		});
 	});
 

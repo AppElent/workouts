@@ -1,4 +1,4 @@
-import type { MealSlot } from "./nutrition-day";
+import type { MealSlot } from "@foundry/core";
 export type DraftMeal = MealSlot;
 export type CaptureDraft = {
 	readonly id: string;

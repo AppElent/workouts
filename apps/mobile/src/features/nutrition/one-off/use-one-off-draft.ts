@@ -1,16 +1,13 @@
 import {
+	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	roundForDisplay,
 } from "@foundry/core";
 import { useRef, useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
-import type { MealSlot } from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
-import {
-	mintNutritionUuid,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
 import { fmt, useI18n } from "../../../i18n";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
@@ -43,7 +40,7 @@ export function useOneOffDraft({
 	const { locale, t } = useI18n();
 	const copy = t.nutrition.oneOff;
 	const photoCopy = t.nutrition.foodEditor.form;
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
 	const [touched, setTouched] = useState(false);
 	const touch = () => setTouched(true);
 	const photo = useStagedFoodVisual({
@@ -116,7 +113,7 @@ export function useOneOffDraft({
 				})
 			: undefined;
 
-	function log() {
+	async function log() {
 		if (lock.current) return;
 		const next = {
 			name: name.trim() ? undefined : copy.nameRequired,
@@ -125,22 +122,14 @@ export function useOneOffDraft({
 		};
 		setErrors(next);
 		if (next.name || next.amount || next.values || !nutrients) return;
-		const subject = operations.getSubject();
-		if (!subject) return;
 		lock.current = true;
 		setLogging(true);
-		const fail = () => {
-			lock.current = false;
-			setLogging(false);
-			onFailed();
-		};
 		try {
 			const visual =
 				photo.visual && photo.visual.kind !== "remote"
 					? photo.visual
 					: undefined;
-			operations.create(
-				subject,
+			await diary.log(
 				oneOffLogSnapshot({
 					date: destination.date,
 					meal: destination.meal,
@@ -148,20 +137,16 @@ export function useOneOffDraft({
 					amount: amountValue,
 					baseUnit: unit,
 					nutrients,
-					clientEntryId: mintNutritionUuid(),
 					...(visual ? { visual } : {}),
 				}),
-				undefined,
-				fail,
-				() => {
-					photo.keep();
-					lock.current = false;
-					setLogging(false);
-					onLogged(destination.date);
-				},
 			);
+			photo.keep();
+			onLogged(destination.date);
 		} catch {
-			fail();
+			onFailed();
+		} finally {
+			lock.current = false;
+			setLogging(false);
 		}
 	}
 

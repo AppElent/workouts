@@ -1,3 +1,4 @@
+import type { MealSlot } from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -11,7 +12,6 @@ import {
 	View,
 } from "react-native";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
-import type { MealSlot } from "../../../data/nutrition-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, useI18n } from "../../../i18n";
@@ -32,6 +32,7 @@ import { FoodValueField } from "../components/food-value-field";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
+import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { useNutrientFields } from "../use-nutrient-fields";
 import { useOneOffDraft } from "./use-one-off-draft";
@@ -68,6 +69,7 @@ export function OneOffLogScreen({
 		endDate: date,
 		recordId: draftId,
 	});
+	useCaptureDraftResolution(drafts, draftId);
 	// Name and photo carried over from the Personal food or Recipe form.
 	const [seed] = useState(() =>
 		authoring.intent === "oneOff" ? authoring.seed : undefined,
@@ -87,7 +89,6 @@ export function OneOffLogScreen({
 		meal,
 		seed,
 		onLogged: (loggedDate) => {
-			if (draftId) void drafts.remove(draftId).catch(() => undefined);
 			setExit(
 				() => () =>
 					router.dismissTo({

@@ -19,7 +19,7 @@ import {
  * hardware button perform.
  */
 
-import { totalNutrients } from "@foundry/core";
+import { mealSlotAt, totalNutrients } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -28,12 +28,12 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { mealForTime } from "../../../../data/nutrition-day";
 import {
 	weekDates,
 	weekStartMonday,
 } from "../../../../data/nutrition-weekly-review";
 import { shiftIsoDate, todayIsoDate } from "../../../../dates/calendar-day";
+import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 
 const value = (amount: number) => ({ kind: "value" as const, amount });
@@ -122,7 +122,7 @@ describe("Nutrition navigation", () => {
 		await fireEvent.press(screen.getByLabelText("Food visual"));
 		await fireEvent.press(await screen.findByText("Icon"));
 		await fireEvent.press(await screen.findByText("Fruit"));
-		await fireEvent.press(screen.getByLabelText("Log"));
+		await pressPending(screen.getByLabelText("Log"));
 		expect(app.getPathname()).toBe("/nutrition-one-off");
 		expect(screen.getByDisplayValue("One-off soup")).toBeTruthy();
 		acknowledge();
@@ -185,7 +185,7 @@ describe("Nutrition navigation", () => {
 		);
 		expect(app.getSearchParams()).toMatchObject({
 			date: todayIsoDate(),
-			meal: mealForTime(),
+			meal: mealSlotAt(new Date()),
 		});
 		expect(testRouter.canGoBack()).toBe(true);
 		await testRouter.back();

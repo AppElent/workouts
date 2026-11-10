@@ -6,6 +6,7 @@ import {
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@foundry/core";
+import { parseLocalizedDecimal } from "../i18n";
 
 export type GoalDraft = Record<NutrientKey, { min: string; max: string }>;
 
@@ -38,10 +39,9 @@ export function draftFromGoals(goals: readonly GoalRow[]): GoalDraft {
 }
 
 export function parseGoalNumber(input: string): number | null {
-	const normalized = input.trim().replace(",", ".");
-	if (!normalized) return null;
-	const value = Number(normalized);
-	return Number.isFinite(value) && value > 0 ? value : Number.NaN;
+	if (!input.trim()) return null;
+	const value = parseLocalizedDecimal(input);
+	return value !== undefined && value > 0 ? value : Number.NaN;
 }
 
 export function draftToGoals(draft: GoalDraft): {

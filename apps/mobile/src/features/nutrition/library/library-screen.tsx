@@ -6,10 +6,7 @@ import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import { foodPhotos } from "../../../data/food-photo-manager";
-import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "../../../data/nutrition-operation-service";
+import { useFoodShortcuts } from "../../../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
@@ -68,13 +65,9 @@ export function LibraryScreen() {
 	const confirm = useConfirm();
 	const [chip, setChip] = useState<LibraryChip>("all");
 	const [query, setQuery] = useState("");
-	const operations = useNutritionOperations();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
+	const shortcuts = useFoodShortcuts();
 	const favoriteKeys = new Set(
-		(subject ? operations.listFavorites(subject) : []).map(
-			(shortcut) => shortcut.sourceKey,
-		),
+		shortcuts.favorites().map((shortcut) => shortcut.sourceKey),
 	);
 	const library = usePersonalFoods({
 		...(chip === "favorite"
@@ -142,10 +135,8 @@ export function LibraryScreen() {
 	// Foods and recipes can both be parts, so the selection shows every kind.
 	const newCombo = () => startSelection("combo");
 
-	const toggleFavorite = (item: LibraryItem) => {
-		if (!subject) return;
-		operations.toggleFavorite(subject, favoriteKeyOf(item), !item.favorite);
-	};
+	const toggleFavorite = (item: LibraryItem) =>
+		shortcuts.setFavorite(favoriteKeyOf(item), !item.favorite);
 	const duplicate = async (item: LibraryItem) => {
 		if (pendingItems.current.has(item.id)) return;
 		pendingItems.current.add(item.id);
@@ -479,10 +470,9 @@ export function LibraryScreen() {
 			icon: "star" as const,
 			disabled: selectedItems.length === 0,
 			onPress: () => {
-				if (!subject) return;
 				const allFavorite = selectedItems.every((item) => item.favorite);
 				for (const item of selectedItems)
-					operations.toggleFavorite(subject, favoriteKeyOf(item), !allFavorite);
+					shortcuts.setFavorite(favoriteKeyOf(item), !allFavorite);
 			},
 		},
 		{

@@ -1,4 +1,5 @@
-import { MEAL_SLOTS, useNutritionDay } from "../../../data/nutrition-day";
+import { MEAL_SLOTS } from "@foundry/core";
+import { useNutritionDay } from "../../../data/nutrition-day";
 import { weekDates } from "../../../data/nutrition-weekly-review";
 import type { IsoDate } from "../../../dates/calendar-day";
 

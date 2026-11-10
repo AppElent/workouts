@@ -80,12 +80,11 @@ it("saves a source Fork and only the selected snapshot, scaling only changed nut
 	});
 	await waitFor(() =>
 		expect(
-			app.nutritionRepository
-				.projectDay("test-user", date)
-				.entries.find((e) => e._id === "entry-1")?.nutrients.fibre.kind,
+			app.accountTransport.entries(date).find((e) => e._id === "entry-1")
+				?.nutrients.fibre.kind,
 		).toBe("value"),
 	);
-	const entries = app.nutritionRepository.projectDay("test-user", date).entries;
+	const entries = app.accountTransport.entries(date);
 	expect(entries.find((e) => e._id === "entry-1")?.nutrients).toMatchObject({
 		fibre: { kind: "value", amount: 6 },
 		energy: { kind: "value", amount: 77 },
@@ -105,9 +104,8 @@ it("can fill a missing snapshot from an already known source value", async () =>
 	if (fibre?.kind !== "value") throw new Error("Fixture needs known fibre");
 	await waitFor(() =>
 		expect(
-			app.nutritionRepository
-				.projectDay("test-user", date)
-				.entries.find((e) => e._id === "entry-1")?.nutrients.fibre,
+			app.accountTransport.entries(date).find((e) => e._id === "entry-1")
+				?.nutrients.fibre,
 		).toEqual({ kind: "value", amount: fibre.amount * 1.5 }),
 	);
 });
@@ -120,9 +118,8 @@ it("keeps a one-off correction on the entry and distinguishes zero from unknown"
 	await save();
 	await waitFor(() =>
 		expect(
-			app.nutritionRepository
-				.projectDay("test-user", date)
-				.entries.find((e) => e._id === "entry-1")?.nutrients.fibre,
+			app.accountTransport.entries(date).find((e) => e._id === "entry-1")
+				?.nutrients.fibre,
 		).toEqual({ kind: "value", amount: 0 }),
 	);
 	expect(app.repository.list()).toEqual([]);
@@ -141,9 +138,8 @@ it("keeps the form after diary acknowledgement fails and reuses the saved Fork o
 	await save();
 	await waitFor(() =>
 		expect(
-			app.nutritionRepository
-				.projectDay("test-user", date)
-				.entries.find((e) => e._id === "entry-1")?.nutrients.fibre,
+			app.accountTransport.entries(date).find((e) => e._id === "entry-1")
+				?.nutrients.fibre,
 		).toEqual({ kind: "value", amount: 6 }),
 	);
 	expect(app.repository.forks()).toHaveLength(1);

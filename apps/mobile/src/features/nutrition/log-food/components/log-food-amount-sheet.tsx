@@ -1,4 +1,5 @@
 import {
+	type MealSlot,
 	NEVO_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 	type ServingOption,
@@ -7,14 +8,11 @@ import { foodSnapshot, forkSource } from "@foundry/core/shipped-foods";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";
-import type { MealSlot } from "../../../../data/nutrition-day";
-import {
-	mintNutritionUuid,
-	useNutritionOperations,
-} from "../../../../data/nutrition-operation-service";
+import { useNutritionDiary } from "../../../../data/nutrition-diary";
 import {
 	portionMemoryFor,
 	rememberedSelection,
+	useFoodShortcuts,
 } from "../../../../data/nutrition-shortcuts";
 import { usePersonalMeasures } from "../../../../data/personal-measures";
 import { useSupplementaryServings } from "../../../../data/supplementary-servings";
@@ -80,7 +78,8 @@ export function LogFoodAmountSheet({
 	const { t, locale } = useI18n();
 	const colors = useTokens();
 	const toast = useToast();
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
+	const shortcuts = useFoodShortcuts();
 	const measures = usePersonalMeasures();
 	const food = selection.food;
 	const additions = useSupplementaryServings(
@@ -90,7 +89,6 @@ export function LogFoodAmountSheet({
 		() => servingChoices(selection, measures, additions.servings),
 		[measures, selection, additions.servings],
 	);
-	const subject = operations.getSubject();
 	const sourceKey = selectionSourceKey(selection);
 	const picking = pick !== undefined;
 	// A pick for a target starts at the default portion, not the last logged one.
@@ -101,11 +99,9 @@ export function LogFoodAmountSheet({
 				: rememberedSelection(
 						choices,
 						food.baseUnit,
-						subject
-							? operations.getShortcut(subject, sourceKey)?.portion
-							: undefined,
+						shortcuts.get(sourceKey)?.portion,
 					),
-		[choices, food.baseUnit, operations, picking, sourceKey, subject],
+		[choices, food.baseUnit, shortcuts, picking, sourceKey],
 	);
 	const [initial] = useState(() => {
 		const option =
@@ -119,11 +115,7 @@ export function LogFoodAmountSheet({
 	});
 	const amount = useAmountSelection(initial);
 	const [destination, setDestination] = useState({ meal, date });
-	const [favorite, setFavorite] = useState(() =>
-		subject
-			? Boolean(operations.getShortcut(subject, sourceKey)?.favorite)
-			: false,
-	);
+	const favorite = Boolean(shortcuts.get(sourceKey)?.favorite);
 	const [adding, setAdding] = useState(false);
 	const [showingDetails, setShowingDetails] = useState(false);
 	const [logging, setLogging] = useState(false);
@@ -137,29 +129,18 @@ export function LogFoodAmountSheet({
 	const correctedSource =
 		selection.kind === "personal" ? forkSource(selection.food) : undefined;
 
-	function log(outcome: LogOutcome) {
+	async function log(outcome: LogOutcome) {
 		if (!amount.valid || lock.current) return;
 		lock.current = true;
 		setLogging(true);
 		onPendingChange(true);
-		const fail = () => {
-			lock.current = false;
-			setLogging(false);
-			onPendingChange(false);
-			toast.error(t.nutrition.foodBrowser.logFailure);
-		};
 		try {
-			if (!subject) throw new Error("Not signed in.");
-			const clientEntryId = mintNutritionUuid();
-			const entry = {
-				...foodSnapshot(selection, amount.selected, amount.quantity),
-				date: destination.date,
-				meal: destination.meal,
-				clientEntryId,
-			};
-			operations.create(
-				subject,
-				entry,
+			await diary.log(
+				{
+					...foodSnapshot(selection, amount.selected, amount.quantity),
+					date: destination.date,
+					meal: destination.meal,
+				},
 				{
 					sourceKey,
 					portion: portionMemoryFor(
@@ -168,17 +149,15 @@ export function LogFoodAmountSheet({
 						food.baseUnit,
 					),
 				},
-				fail,
-				() => {
-					haptics.entryLogged();
-					lock.current = false;
-					setLogging(false);
-					onPendingChange(false);
-					onLogged(outcome);
-				},
 			);
+			haptics.entryLogged();
+			onLogged(outcome);
 		} catch {
-			fail();
+			toast.error(t.nutrition.foodBrowser.logFailure);
+		} finally {
+			lock.current = false;
+			setLogging(false);
+			onPendingChange(false);
 		}
 	}
 
@@ -326,9 +305,7 @@ export function LogFoodAmountSheet({
 									sections={menuItems}
 									onSelect={(id) => {
 										if (id === "favorite") {
-											if (!subject) return;
-											operations.toggleFavorite(subject, sourceKey, !favorite);
-											setFavorite(!favorite);
+											shortcuts.setFavorite(sourceKey, !favorite);
 										} else if (id === "close") log("close");
 										else if (id === "correct") onCorrect?.();
 										else if (id === "edit") onEdit?.();

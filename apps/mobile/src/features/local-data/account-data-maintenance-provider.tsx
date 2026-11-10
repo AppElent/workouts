@@ -13,10 +13,7 @@ import {
 import { ActivityIndicator } from "react-native";
 import { api } from "../../convex/api";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
-import {
-	clearNutritionAccountCache,
-	retireLegacyNutritionData,
-} from "../../data/nutrition-account-cleanup";
+import { clearNutritionAccountCache } from "../../data/nutrition-account-cleanup";
 import { todayIsoDate } from "../../dates/calendar-day";
 import { useI18n } from "../../i18n";
 import { clearAccountStores } from "../../local-store/local-store";
@@ -40,9 +37,6 @@ export function AccountDataMaintenanceProvider({
 	children: ReactNode;
 }) {
 	const { userId, sessionId } = useAuth();
-	useEffect(() => {
-		retireLegacyNutritionData();
-	}, []);
 	const online = useConvexConnectionState().isWebSocketConnected;
 	const reset = useMutation(api.testData.reset);
 	const deleteData = useMutation(api.account.deleteData);

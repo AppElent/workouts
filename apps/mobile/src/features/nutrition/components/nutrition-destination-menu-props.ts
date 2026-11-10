@@ -1,4 +1,4 @@
-import type { MealSlot } from "../../../data/nutrition-day";
+import type { MealSlot } from "@foundry/core";
 
 /**
  * The title as the destination: which meal on which day a log goes into.

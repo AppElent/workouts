@@ -1,5 +1,5 @@
+import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
-import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
 import { todayIsoDate } from "../../src/dates/calendar-day";
 import { AssistanceScreen } from "../../src/features/nutrition/assistance/assistance-screen";
 import { useI18n } from "../../src/i18n";

@@ -12,10 +12,10 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable } from "react-native";
 import { z } from "zod";
 import type { DiaryEntry } from "../../../data/nutrition-day";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useSupplementaryServings } from "../../../data/supplementary-servings";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { FormScreen, FormSection, FormTextField } from "../../../ui/form";
@@ -26,9 +26,7 @@ const nutrientInput = z.string().refine((value) => {
 	return (
 		!v ||
 		v === "~" ||
-		(/^\d*(?:[.,]\d+)?$/.test(v) &&
-			Number.isFinite(Number(v.replace(",", "."))) &&
-			Number(v.replace(",", ".")) >= 0)
+		(/^\d*(?:[.,]\d+)?$/.test(v) && (parseLocalizedDecimal(v) ?? -1) >= 0)
 	);
 });
 function inputValue(value: NutrientValue) {
@@ -44,7 +42,7 @@ function parseValue(value: string): NutrientValue {
 		? { kind: "absent" }
 		: v === "~"
 			? { kind: "trace" }
-			: { kind: "value", amount: Number(v.replace(",", ".")) };
+			: { kind: "value", amount: parseLocalizedDecimal(v) ?? Number.NaN };
 }
 
 type CorrectionProps = {
@@ -75,10 +73,9 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 	const copy = t.diaryEntry.correction;
 	const colors = useTokens();
 	const foods = usePersonalFoods();
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
 	const confirm = useConfirm();
 	const navigation = useNavigation();
-	const [subject] = useState(() => operations.getSubject());
 	const shippedId =
 		entry.provenance.source === "shipped"
 			? entry.provenance.sourceId
@@ -148,9 +145,8 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 			setBusy(true);
 			setError(undefined);
 			try {
-				if (!subject || operations.getSubject() !== subject)
-					throw new Error("Account changed");
-				const converted = Number(value.convertedAmount.replace(",", "."));
+				const converted =
+					parseLocalizedDecimal(value.convertedAmount) ?? Number.NaN;
 				if (mismatch && (!Number.isFinite(converted) || converted <= 0))
 					throw new Error("Conversion required");
 				// A correction carries the explicit historical amount basis, not stale totals.
@@ -203,24 +199,13 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 					else await foods.create(draft);
 					setSourceSaved(true);
 				}
-				operations.update(
-					subject,
-					{ kind: "serverId", id: entry.id },
-					{ correction },
-					() => {
-						lock.current = false;
-						setBusy(false);
-						setError(failure);
-					},
-					() => {
-						setBusy(false);
-						setLeaving(true);
-					},
-				);
+				await diary.update({ kind: "serverId", id: entry.id }, { correction });
+				setLeaving(true);
 			} catch {
+				setError(failure);
+			} finally {
 				lock.current = false;
 				setBusy(false);
-				setError(failure);
 			}
 		},
 	});
@@ -236,9 +221,7 @@ function CorrectionForm({ entry, nutrient }: CorrectionProps) {
 		NUTRIENT_KEYS.every(
 			(n) => nutrientInput.safeParse(values.nutrients[n]).success,
 		) &&
-		(!mismatch ||
-			(Number(values.convertedAmount.replace(",", ".")) > 0 &&
-				Number.isFinite(Number(values.convertedAmount.replace(",", ".")))));
+		(!mismatch || (parseLocalizedDecimal(values.convertedAmount) ?? 0) > 0);
 	usePreventRemove((dirty || busy) && !leaving, ({ data }) => {
 		if (busy) return;
 		void confirm({

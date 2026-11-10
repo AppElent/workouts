@@ -1111,8 +1111,7 @@ export function diarySnapshots(
 	items: readonly ReviewItem[],
 	date: string,
 	meal: MealSlot,
-	mintId: () => string,
-): (NutritionDiarySnapshot & { readonly clientEntryId: string })[] {
+): NutritionDiarySnapshot[] {
 	return items.map((item) => {
 		const food = item.food;
 		if (!food) {
@@ -1126,7 +1125,6 @@ export function diarySnapshots(
 					amount: item.amount,
 					baseUnit: item.unit,
 					nutrients: item.estimate,
-					clientEntryId: mintId(),
 				}),
 				serving: {
 					en: servingLabel(item, "en"),
@@ -1150,14 +1148,12 @@ export function diarySnapshots(
 					nl: servingLabel(item, "nl", unitOf(food)),
 				},
 				...guessed(item),
-				clientEntryId: mintId(),
 			};
 		}
 		const unit = food.baseUnit === "ml" ? "ml" : "g";
 		return {
 			date,
 			meal,
-			clientEntryId: mintId(),
 			name: food.name,
 			serving: {
 				en: servingLabel(item, "en", unit),
@@ -1179,8 +1175,7 @@ export function oneEntrySnapshot(
 	name: string,
 	date: string,
 	meal: MealSlot,
-	clientEntryId: string,
-): NutritionDiarySnapshot & { readonly clientEntryId: string } {
+): NutritionDiarySnapshot {
 	const [only] = items;
 	const drink = items.length === 1 && only?.unit === "ml";
 	const entry = oneOffLogSnapshot({
@@ -1192,7 +1187,6 @@ export function oneEntrySnapshot(
 			: items.reduce((total, item) => total + item.grams, 0),
 		baseUnit: drink ? "ml" : "g",
 		nutrients: combinedNutrients(items),
-		clientEntryId,
 	});
 	if (only && items.length === 1)
 		return {

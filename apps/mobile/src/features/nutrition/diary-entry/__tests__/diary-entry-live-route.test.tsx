@@ -95,7 +95,8 @@ describe("editing a diary entry", () => {
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0].operation).toMatchObject({
-			target: { id: "entry-1" },
+			kind: "update",
+			target: { kind: "serverId", id: "entry-1" },
 			quantity: 2,
 			meal: "lunch",
 			date: todayIsoDate(),
@@ -129,7 +130,8 @@ describe("editing a diary entry", () => {
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		expect(update.mock.calls[0][0].operation).toMatchObject({
-			target: { id: "entry-1" },
+			kind: "update",
+			target: { kind: "serverId", id: "entry-1" },
 			selection: {
 				serving: {
 					en: "Large portion (450 g) × 2",
@@ -207,8 +209,8 @@ describe("editing a diary entry", () => {
 
 		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		const button = screen.getByLabelText("Save changes");
-		await fireEvent.press(button);
-		await fireEvent.press(button);
+		await pressPending(button);
+		await pressPending(button);
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		await act(async () => failUpdate("offline"));
@@ -256,7 +258,7 @@ describe("editing a diary entry", () => {
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
 		expect(remove.mock.calls[0][0].operation).toMatchObject({
 			kind: "remove",
-			target: { id: "entry-1" },
+			target: { kind: "serverId", id: "entry-1" },
 		});
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});

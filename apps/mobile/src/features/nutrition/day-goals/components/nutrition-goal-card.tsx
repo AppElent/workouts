@@ -1,4 +1,9 @@
-import { NUTRIENT_KEYS, type NutrientTotal } from "@foundry/core";
+import {
+	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
+	type NutrientKey,
+	type NutrientTotal,
+} from "@foundry/core";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,9 +19,8 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import type { NutrientGoal, NutrientKey } from "../../../../data/nutrition-day";
 import {
-	nutrientUnit,
+	type NutrientGoal,
 	useSetNutritionDisplayOrder,
 } from "../../../../data/nutrition-day";
 import { haptics } from "../../../../feedback/haptics";
@@ -106,7 +110,7 @@ function GoalProgressRow({
 	const { locale } = useI18n();
 	const styles = useThemedStyles(createStyles);
 	const colors = useTokens();
-	const unit = t.nutrition.units[nutrientUnit(group.nutrient)];
+	const unit = t.nutrition.units[NUTRIENT_UNITS[group.nutrient]];
 	const value = `${displayAmount(group.nutrient, total, locale)} / ${targetLabel(group, unit)}`;
 	const status = outcome(colors, t, group, total);
 	return (

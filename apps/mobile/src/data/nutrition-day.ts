@@ -1,73 +1,39 @@
 /**
- * Nutrition-day data boundary.
- *
- * Effective-dated goals and frozen diary entries come from Convex. Retained
- * subscriptions support quick navigation; bounded session snapshots support
- * current screens. Account data is fetched again after restart. Shared nutrient vocabulary comes from `@foundry/core`.
+ * Effective-dated goals and frozen diary entries come from Convex. The last
+ * answer per date stays in session memory, so returning to a day shows it at
+ * once while its subscription starts again.
  */
 import {
-	type GoalDirection,
 	type GoalPresetKey,
+	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientTotal,
-	type NutrientValue,
+	type NutritionDiarySnapshot,
 	type NutritionGoalValue,
 } from "@foundry/core";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useEffect } from "react";
 import { api } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import type { IsoDate } from "../dates/calendar-day";
-import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "./nutrition-operation-service";
-import type {
-	ComboSnapshotProvenance,
-	FoodVisual,
-} from "./personal-food-repository";
-
-/** The eight nutrients the module stores and shows. Order is display order. */
-export { NUTRIENT_KEYS, type NutrientKey };
-
-/** The four diary slots. "Meal" means exactly these, never a Combo. */
-export const MEAL_SLOTS = ["breakfast", "lunch", "dinner", "snacks"] as const;
-
-export type MealSlot = (typeof MEAL_SLOTS)[number];
-
-/** `min` reads "at least"; `max` reads "no more than". Both are targetable. */
-export type { GoalDirection };
+import { accountSlot, useAccountSlot } from "./account-write";
 
 export interface NutrientGoal extends NutritionGoalValue {
 	sourcePreset?: GoalPresetKey;
 }
 
-export interface DiaryEntry {
-	id: string;
-	name: { en: string; nl: string };
-	/** "1 bowl (250 g)" — serving name × quantity, already formatted. */
-	serving: { en: string; nl: string };
-	nutrients: Record<NutrientKey, NutrientValue>;
-	/** The number of servings logged — what a quantity edit rescales from. */
-	quantity: number;
-	amount: number;
-	baseUnit: "g" | "ml" | "serving";
-	personalMeasureId?: string;
-	visual?: FoodVisual;
-	estimated?: true;
-	correctedNutrients?: NutrientKey[];
-	provenance: ComboSnapshotProvenance;
-	comboGroup?: { id: string; comboId: string; name: string };
-	/** The device-minted ID this entry was logged with. */
-	clientEntryId?: string;
-}
+export type DiaryEntry = Omit<NutritionDiarySnapshot, "date" | "meal"> & {
+	readonly id: string;
+};
 
 /** Keeps the source Meal Slot when entries are selected across the day. */
 export type DiaryEntryWithMeal = DiaryEntry & { meal: MealSlot };
 
 export interface NutritionDay {
 	date: IsoDate;
+	/** False while only this session's last copy of the day is shown. */
 	complete: boolean;
 	goals: NutrientGoal[];
 	displayOrder: readonly NutrientKey[];
@@ -84,129 +50,94 @@ export type NutritionDayState =
 	| { status: "loading" }
 	| { status: "ready"; day: NutritionDay };
 
-/**
- * How a total sits against its goal, as a word rather than a colour.
- *
- * Zero is neutral, not failure: a day nobody has logged yet must not read as
- * "under" on every minimum and "within" on every maximum, or the screen
- * congratulates and scolds an empty diary. A minimum distinguishes under from
- * met; a maximum distinguishes within from exceeded. Those are four different
- * words precisely because colour cannot be the only signal.
- */
-export type GoalState = "neutral" | "under" | "met" | "within" | "exceeded";
+type ServerDay = FunctionReturnType<typeof api.nutritionDiary.day>;
+type ServerGoals = FunctionReturnType<typeof api.nutritionGoals.forDate>;
 
-export function goalState(
-	direction: GoalDirection,
-	total: number | undefined,
-	target: number,
-): GoalState {
-	if (total === undefined || total === 0) return "neutral";
-	if (direction === "min") return total >= target ? "met" : "under";
-	return total > target ? "exceeded" : "within";
-}
+const RETAINED_DATES = 32;
 
-/** kcal for energy, grams for everything else. */
-export function nutrientUnit(nutrient: NutrientKey): "kcal" | "g" {
-	return nutrient === "energy" ? "kcal" : "g";
-}
-
-export function useSetNutritionDisplayOrder() {
-	const setRemoteOrder = useMutation(api.nutritionGoals.setDisplayOrder);
-	const operations = useNutritionOperations();
-	return async (displayOrder: readonly NutrientKey[]) => {
-		const nextOrder = [...displayOrder];
-		await setRemoteOrder({ displayOrder: nextOrder });
-		const subject = operations.getSubject();
-		if (subject) operations.cacheGoalDisplayOrder(subject, nextOrder);
+function retained<T>() {
+	const values = new Map<string, T>();
+	return {
+		get: (key: string) => values.get(key),
+		set(key: string, value: T) {
+			values.delete(key);
+			values.set(key, value);
+			const oldest = values.keys().next().value;
+			if (values.size > RETAINED_DATES && oldest !== undefined)
+				values.delete(oldest);
+		},
 	};
 }
 
-/**
- * Resolves on the render after mount, which is the shape `useQuery` has: it
- * returns `undefined` first and data second. Building the screen against that
- * from the start is what makes the skeleton a real branch instead of a mock-up.
- */
-/** The meal someone is most likely logging right now. */
-export function mealForTime(now = new Date()): MealSlot {
-	const hour = now.getHours();
-	if (hour < 11) return "breakfast";
-	if (hour < 15) return "lunch";
-	if (hour >= 17 && hour < 21) return "dinner";
-	return "snacks";
+const DAYS = accountSlot(() => retained<ServerDay>());
+const GOALS = accountSlot(() => retained<ServerGoals>());
+
+export function useSetNutritionDisplayOrder() {
+	const setDisplayOrder = useMutation(api.nutritionGoals.setDisplayOrder);
+	return (displayOrder: readonly NutrientKey[]) =>
+		setDisplayOrder({ displayOrder: [...displayOrder] });
+}
+
+export function diaryEntryFromServer(
+	entry: ServerDay["entries"][number],
+): DiaryEntry & { meal: MealSlot } {
+	const {
+		_id,
+		_creationTime: _created,
+		userId: _user,
+		loggedAt: _loggedAt,
+		date: _date,
+		...snapshot
+	} = entry;
+	return { ...snapshot, id: String(_id) };
+}
+
+/** The entry as a new snapshot for another day or meal, without its identity. */
+export function snapshotFromDiaryEntry(
+	entry: DiaryEntry,
+	date: string,
+	meal: MealSlot,
+): NutritionDiarySnapshot {
+	const { id: _id, clientEntryId: _clientEntryId, ...snapshot } = entry;
+	return { ...snapshot, date, meal };
 }
 
 export function useNutritionDay(date: IsoDate): NutritionDayState {
 	const goalHistory = useQuery(api.nutritionGoals.forDate, { date });
 	const diary = useQuery(api.nutritionDiary.day, { date });
-	const operations = useNutritionOperations();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
-	const cachedGoals = subject ? operations.getGoals(subject, date) : undefined;
+	const days = useAccountSlot(DAYS);
+	const goalCache = useAccountSlot(GOALS);
+	useEffect(() => {
+		if (goalHistory) goalCache.set(date, goalHistory);
+	}, [goalCache, date, goalHistory]);
+	useEffect(() => {
+		if (diary) days.set(date, diary);
+	}, [days, date, diary]);
+	const cachedGoals = goalCache.get(date);
 	const history = goalHistory ?? cachedGoals;
-	const goals = history?.goals;
-	const local = subject ? operations.getProjectedDay(subject, date) : undefined;
-	const remoteRevision = diary?.revision ?? 0;
-	useEffect(() => {
-		if (subject && goalHistory)
-			operations.cacheGoals(subject, date, goalHistory);
-	}, [operations, subject, date, goalHistory]);
-	useEffect(() => {
-		if (!subject || !diary) return;
-		operations.cacheServerDay(subject, {
-			date,
-			revision: remoteRevision,
-			entries: diary.entries as never,
-			totals: diary.totals,
-		});
-	}, [date, diary, operations, remoteRevision, subject]);
-	if (goals === undefined && !local?.complete && !local?.entries.length)
-		return { status: "loading" };
-	if (diary === undefined && !local?.complete && !local?.entries.length) {
-		return { status: "loading" };
-	}
-	const entries = {
+	const day = diary ?? days.get(date);
+	if (!day) return { status: "loading" };
+	const entries: Record<MealSlot, DiaryEntry[]> = {
 		breakfast: [],
 		lunch: [],
 		dinner: [],
 		snacks: [],
-	} as Record<MealSlot, DiaryEntry[]>;
-	// A write's receipt can carry a newer day than the subscription has yet.
-	const useLocal =
-		diary === undefined || (local?.revision ?? -1) > remoteRevision;
-	const sourceEntries = useLocal
-		? (local?.entries ?? [])
-		: (diary?.entries ?? []);
-	for (const entry of sourceEntries) {
-		entries[entry.meal].push({
-			id: String(entry._id),
-			name: entry.name,
-			serving: entry.serving,
-			nutrients: entry.nutrients,
-			quantity: entry.quantity,
-			amount: entry.amount,
-			baseUnit: entry.baseUnit,
-			personalMeasureId: entry.personalMeasureId,
-			visual: entry.visual,
-			provenance: entry.provenance,
-			...(entry.estimated ? { estimated: true as const } : {}),
-			...(entry.correctedNutrients
-				? { correctedNutrients: entry.correctedNutrients }
-				: {}),
-			comboGroup: entry.comboGroup,
-			clientEntryId: entry.clientEntryId,
-		});
+	};
+	for (const entry of day.entries) {
+		const { meal, ...diaryEntry } = diaryEntryFromServer(entry);
+		entries[meal].push(diaryEntry);
 	}
 	return {
 		status: "ready",
 		day: {
 			date,
-			complete: local?.complete || diary !== undefined,
-			goals: goals ?? [],
+			complete: diary !== undefined,
+			goals: history?.goals ?? [],
 			displayOrder: history?.displayOrder ?? NUTRIENT_KEYS,
 			goalBasis: history?.basis,
 			goalsCached: !goalHistory && !!cachedGoals,
-			goalsPending: goals === undefined,
-			totals: useLocal ? (local?.totals ?? {}) : (diary?.totals ?? {}),
+			goalsPending: history === undefined,
+			totals: day.totals,
 			entries,
 		},
 	};

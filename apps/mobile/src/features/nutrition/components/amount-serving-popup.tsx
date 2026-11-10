@@ -15,11 +15,10 @@ import {
 } from "react-native";
 import { z } from "zod";
 import { api } from "../../../convex/api";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import type { useSupplementaryServings } from "../../../data/supplementary-servings";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { Segmented } from "../../../ui/segmented";
@@ -80,7 +79,6 @@ export function AmountServingPopup({
 	const colors = useTokens();
 	const foods = usePersonalFoods();
 	const measures = usePersonalMeasureActions();
-	const operations = useNutritionOperations();
 	const createMeasure = useMutation(api.personalMeasures.create);
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const nameRef = useRef<TextInputInstance>(null);
@@ -113,9 +111,10 @@ export function AmountServingPopup({
 				})
 				.safeParse({
 					name: value.name.trim() || initial?.name || "",
-					amount: Number(
-						(value.amount.trim() || initial?.amount || "").replace(",", "."),
-					),
+					amount:
+						parseLocalizedDecimal(
+							value.amount.trim() || initial?.amount || "",
+						) ?? Number.NaN,
 				});
 			if (!result.success) {
 				setError(copy.invalidServing);
@@ -162,7 +161,6 @@ export function AmountServingPopup({
 			setPending(true);
 			onBusyChange?.(true);
 			setError(undefined);
-			const subject = operations.getSubject();
 			try {
 				let option: ServingOption;
 				if (value.scope === "own" && unit !== "serving") {
@@ -171,13 +169,7 @@ export function AmountServingPopup({
 						amount,
 						unit,
 					});
-					if (operations.getSubject() !== subject) return;
 					measures.markCreated(measure);
-					if (subject)
-						operations.cachePersonalMeasures(subject, [
-							...measures.measures.filter((item) => item.id !== measure.id),
-							measure,
-						]);
 					option = withPersonalMeasures([], unit, [measure])[0];
 				} else if (food && personal) {
 					const current = foods.find(food.id);
@@ -199,7 +191,6 @@ export function AmountServingPopup({
 						amount,
 						unit,
 					});
-					if (operations.getSubject() !== subject) return;
 					option = {
 						kind: "supplementary",
 						id: saved.id,

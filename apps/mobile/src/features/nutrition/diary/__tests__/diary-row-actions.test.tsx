@@ -104,8 +104,9 @@ describe("diary row accelerators", () => {
 
 		await pressConfirm("Delete entry");
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
-		expect(remove.mock.calls[0][0]).toMatchObject({
-			operation: { kind: "remove", target: { id: "entry-1" } },
+		expect(remove.mock.calls[0][0].operation).toMatchObject({
+			kind: "remove",
+			target: { kind: "serverId", id: "entry-1" },
 		});
 	});
 

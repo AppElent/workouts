@@ -20,7 +20,7 @@ jest.mock("../../../../data/nutrition-day", () => {
 				date,
 				complete: true,
 				goals: [],
-				displayOrder: actual.NUTRIENT_KEYS,
+				displayOrder: jest.requireActual("@foundry/core").NUTRIENT_KEYS,
 				totals: {},
 				entries: { breakfast: [], lunch: [], dinner: [], snacks: [] },
 			},

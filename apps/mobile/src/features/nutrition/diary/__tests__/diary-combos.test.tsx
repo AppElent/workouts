@@ -10,6 +10,7 @@ import type {
 	ComboDraft,
 	PersonalFoodDraft,
 } from "../../../../data/personal-food-repository";
+import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -261,7 +262,6 @@ describe("Nutrition Combos", () => {
 			name: "Mixed meals",
 			parts: [expect.anything(), expect.anything()],
 		});
-		expect(app.nutritionRepository.listOperations("test-user")).toEqual([]);
 		expect(screen.getByText("Apple")).toBeTruthy();
 		expect(screen.getByText("Oats")).toBeTruthy();
 	});
@@ -289,7 +289,7 @@ describe("Nutrition Combos", () => {
 
 	it("logs all saved parts to the selected day and meal with one action", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(undefined);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
 		mockUseMutation.mockImplementation(
 			(reference) =>
 				(getFunctionName(reference) === "nutritionDiary:applyOperation"
@@ -310,29 +310,27 @@ describe("Nutrition Combos", () => {
 		await waitForLogClosed();
 
 		expect(logCombo).toHaveBeenCalledTimes(1);
-		expect(logCombo).toHaveBeenCalledWith(
+		expect(logCombo.mock.calls[0][0].operation).toEqual(
 			expect.objectContaining({
-				operation: expect.objectContaining({
-					kind: "createBatch",
-					date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-					meal: "dinner",
-					entries: [
-						expect.objectContaining({
-							name: { en: "Oats", nl: "Havermout" },
-							comboGroup: expect.objectContaining({
-								comboId: combo.id,
-								name: "Morning Combo",
-							}),
+				kind: "createBatch",
+				date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+				meal: "dinner",
+				entries: [
+					expect.objectContaining({
+						name: { en: "Oats", nl: "Havermout" },
+						comboGroup: expect.objectContaining({
+							comboId: combo.id,
+							name: "Morning Combo",
 						}),
-					],
-				}),
+					}),
+				],
 			}),
 		);
 	});
 
 	it("scales whole combos and can turn one part off for this log", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(undefined);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
 		mockUseMutation.mockImplementation(
 			(reference) =>
 				(getFunctionName(reference) === "nutritionDiary:applyOperation"
@@ -363,17 +361,15 @@ describe("Nutrition Combos", () => {
 		await fireEvent.press(screen.getByLabelText("Log Combo"));
 		await waitForLogClosed();
 
-		expect(logCombo).toHaveBeenCalledWith(
+		expect(logCombo.mock.calls[0][0].operation).toEqual(
 			expect.objectContaining({
-				operation: expect.objectContaining({
-					entries: [
-						expect.objectContaining({
-							name: { en: "Oats", nl: "Havermout" },
-							amount: 50,
-							quantity: 0.5,
-						}),
-					],
-				}),
+				entries: [
+					expect.objectContaining({
+						name: { en: "Oats", nl: "Havermout" },
+						amount: 50,
+						quantity: 0.5,
+					}),
+				],
 			}),
 		);
 		expect(app.repository.listCombos()[0].parts).toHaveLength(2);
@@ -381,7 +377,7 @@ describe("Nutrition Combos", () => {
 
 	it("does not round the whole-combo count it logs", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(undefined);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
 		mockUseMutation.mockImplementation(
 			(reference) =>
 				(getFunctionName(reference) === "nutritionDiary:applyOperation"
@@ -434,7 +430,7 @@ describe("Nutrition Combos", () => {
 
 	it("resolves the same Personal Food id at logging time without chasing replacements", async () => {
 		showDiary([]);
-		const logCombo = jest.fn().mockResolvedValue(undefined);
+		const logCombo = jest.fn().mockResolvedValue(["entry-1"]);
 		mockUseMutation.mockImplementation(
 			(reference) =>
 				(getFunctionName(reference) === "nutritionDiary:applyOperation"
@@ -473,19 +469,17 @@ describe("Nutrition Combos", () => {
 		await fireEvent.press(screen.getByLabelText("Log Combo"));
 		await waitForLogClosed();
 
-		expect(logCombo).toHaveBeenCalledWith(
+		expect(logCombo.mock.calls[0][0].operation).toEqual(
 			expect.objectContaining({
-				operation: expect.objectContaining({
-					entries: [
-						expect.objectContaining({
-							name: { en: "Updated oats", nl: "Updated oats" },
-							nutrients: expect.objectContaining({
-								energy: { kind: "value", amount: 200 },
-							}),
-							provenance: expect.objectContaining({ sourceId: food.id }),
+				entries: [
+					expect.objectContaining({
+						name: { en: "Updated oats", nl: "Updated oats" },
+						nutrients: expect.objectContaining({
+							energy: { kind: "value", amount: 200 },
 						}),
-					],
-				}),
+						provenance: expect.objectContaining({ sourceId: food.id }),
+					}),
+				],
 			}),
 		);
 	});
@@ -508,14 +502,13 @@ describe("Nutrition Combos", () => {
 		await screen.findByText("Today");
 		await openLibraryCombo("Morning Combo");
 		await openComboLog();
-		await fireEvent.press(screen.getByLabelText("Log Combo"));
+		await pressPending(screen.getByLabelText("Log Combo"));
 		expect(screen.getByLabelText("Logging Combo…")).toBeTruthy();
 		rejectLog(new Error("offline"));
 		await waitFor(() =>
 			expect(screen.getByLabelText("Log Combo")).toBeEnabled(),
 		);
 		expect(screen.getByLabelText("Log Combo")).toBeTruthy();
-		expect(app.nutritionRepository.listOperations("test-user")).toEqual([]);
 		expect(log).toHaveBeenCalledTimes(1);
 	});
 

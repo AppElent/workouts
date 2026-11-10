@@ -219,7 +219,7 @@ export function weekTitleKind(
 export function weekStripWeeks(weekStart: IsoDate, today: IsoDate): IsoDate[] {
 	const current = weekStartMonday(today);
 	const plusTwo = shiftIsoDate(weekStart, 14);
-	const last = plusTwo < current ? plusTwo : current;
+	const last = [plusTwo, current].sort()[0] ?? current;
 	return Array.from({ length: 5 }, (_, index) =>
 		shiftIsoDate(last, (index - 4) * 7),
 	);

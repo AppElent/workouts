@@ -1,13 +1,11 @@
 import {
 	type Locale,
+	NUTRIENT_UNITS,
+	type NutrientKey,
 	type NutrientTotal,
 	roundForDisplay,
 } from "@foundry/core";
-import {
-	type NutrientGoal,
-	type NutrientKey,
-	nutrientUnit,
-} from "../../../data/nutrition-day";
+import type { NutrientGoal } from "../../../data/nutrition-day";
 import { fmt, type Messages } from "../../../i18n";
 import type { Tokens } from "../../../theme";
 export type GoalGroup = {
@@ -65,7 +63,7 @@ export function outcome(
 	if (total.qualified)
 		return { label: t.nutrition.goals.approximate, color: colors.textMuted };
 	const amount = total.amount;
-	const unit = t.nutrition.units[nutrientUnit(group.nutrient)];
+	const unit = t.nutrition.units[NUTRIENT_UNITS[group.nutrient]];
 	if (group.min !== undefined && group.max !== undefined) {
 		if (amount < group.min)
 			return {

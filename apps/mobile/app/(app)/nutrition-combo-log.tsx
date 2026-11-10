@@ -1,8 +1,7 @@
 /** Logging a saved combo onto a day and meal, as a sheet over where it was chosen. */
-import { mealSlotAt } from "@foundry/core";
+import { MEAL_SLOTS, mealSlotAt } from "@foundry/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
-import { MEAL_SLOTS } from "../../src/data/nutrition-day";
 import { usePersonalFoods } from "../../src/data/personal-foods";
 import { todayIsoDate } from "../../src/dates/calendar-day";
 import { ComboLogScreen } from "../../src/features/nutrition/combo/combo-log-screen";

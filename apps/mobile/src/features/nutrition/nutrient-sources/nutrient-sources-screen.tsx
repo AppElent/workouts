@@ -1,4 +1,7 @@
 import {
+	MEAL_SLOTS,
+	NUTRIENT_UNITS,
+	type NutrientKey,
 	rankNutrientSources,
 	roundForDisplay,
 	totalNutrients,
@@ -6,12 +9,7 @@ import {
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
-import {
-	MEAL_SLOTS,
-	type NutrientKey,
-	nutrientUnit,
-	useNutritionDay,
-} from "../../../data/nutrition-day";
+import { useNutritionDay } from "../../../data/nutrition-day";
 import { formatLongDate } from "../../../dates/calendar-day";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
@@ -42,7 +40,7 @@ export function NutrientSourcesScreen({
 				)
 			: [];
 	const sources = rankNutrientSources(entries, nutrient);
-	const unit = nutrientUnit(nutrient);
+	const unit = NUTRIENT_UNITS[nutrient];
 	const rawTotal = totalNutrients(entries)[nutrient];
 	const total = {
 		...rawTotal,

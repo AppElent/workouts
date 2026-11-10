@@ -1,6 +1,6 @@
 /** Saved Capture Drafts belong to Convex; editor input stays in its presentation. */
 import { canonicalJson } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	createContext,
 	type ReactNode,
@@ -8,47 +8,17 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
-	useRef,
 	useState,
 } from "react";
 import { api } from "../convex/api";
 import { usePausablePaginatedQuery, useQuery } from "../convex/query-cache";
+import { mintUuid, useAccountWrite } from "./account-write";
 import type {
 	CaptureDraft,
 	CaptureDraftInput,
 	OtherDaysSummary,
 } from "./nutrition-capture-draft";
-import type { AcknowledgedOperation } from "./nutrition-local-repository";
-import {
-	mintNutritionUuid,
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "./nutrition-operation-service";
 import { useScreenQueryActive } from "./screen-query-active";
-
-/**
- * Whether any Diary Entry was accepted for the draft's day and meal at or
- * after `since`. This is the whole removal rule: a resolving session that
- * logged at least one entry has done the note's job, however many items the
- * note listed; one that logged nothing leaves the reminder in place.
- */
-export function intakeLoggedSince(
-	operations: readonly AcknowledgedOperation[],
-	draft: Pick<CaptureDraft, "date" | "meal">,
-	since: number,
-): boolean {
-	return operations.some((operation) => {
-		if (operation.createdAt < since) return false;
-		const change = operation.envelope.operation;
-		if (change.kind === "create")
-			return (
-				change.entry.date === draft.date && change.entry.meal === draft.meal
-			);
-		if (change.kind === "createBatch")
-			return change.date === draft.date && change.meal === draft.meal;
-		return false;
-	});
-}
 
 export type NutritionDraftsValue = {
 	readonly revision: number;
@@ -71,42 +41,15 @@ type DraftScope = Omit<
 const NutritionDraftsContext = createContext<DraftScope | undefined>(undefined);
 
 export function NutritionDraftsProvider({ children }: { children: ReactNode }) {
-	const operations = useNutritionOperations();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
-	return (
-		<NutritionDraftScope key={subject ?? "signed-out"} subject={subject}>
-			{children}
-		</NutritionDraftScope>
-	);
-}
-
-function NutritionDraftScope({
-	children,
-	subject,
-}: {
-	children: ReactNode;
-	subject?: string;
-}) {
-	const operations = useNutritionOperations();
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const account = useAccountWrite();
+	const { subject } = account;
 	const saveRemote = useMutation(api.nutritionDrafts.save);
 	const [records, setRecords] = useState<ReadonlyMap<string, CaptureDraft>>(
 		new Map(),
 	);
 	const [revision, setRevision] = useState(0);
-	const createIds = useRef(new Map<string, string>());
-	const retryIds = useRef(new Map<string, string>());
-	const active = useRef(true);
-	useEffect(() => {
-		active.current = true;
-		return () => {
-			active.current = false;
-		};
-	}, []);
 	const receive = useCallback(
 		(drafts: CaptureDraft[], startDate?: string, endDate?: string) => {
-			if (!active.current) return;
 			setRecords((current) => {
 				const next = new Map(current);
 				if (startDate && endDate)
@@ -125,35 +68,32 @@ function NutritionDraftScope({
 	const write = useCallback(
 		async (
 			action: "create" | "update" | "remove",
-			id: string,
+			id: string | undefined,
 			input?: CaptureDraftInput,
 		) => {
-			if (!subject || !isWebSocketConnected)
-				throw new Error("A connection is required to save.");
-			const retryKey = canonicalJson({ action, id, input });
-			const operationId = retryIds.current.get(retryKey) ?? mintNutritionUuid();
-			retryIds.current.set(retryKey, operationId);
-			const saved = await saveRemote({
-				expectedSubject: subject,
-				operationId,
-				id,
-				action,
-				...(input ? { input } : {}),
+			const saved = await account.send({
+				identity: { kind: "captureDraft", action, id, input },
+				prepare: () => id ?? mintUuid(),
+				deliver: (draftId, { subject, operationId }) =>
+					saveRemote({
+						expectedSubject: subject,
+						operationId,
+						id: draftId,
+						action,
+						...(input ? { input } : {}),
+					}).then((draft) => ({ draftId, draft })),
 			});
-			if (!active.current || operations.getSubject() !== subject)
-				throw new Error("The account changed while saving.");
-			if (saved) receive([saved]);
+			if (saved.draft) receive([saved.draft]);
 			else
 				setRecords((current) => {
 					const next = new Map(current);
-					next.delete(id);
+					next.delete(saved.draftId);
 					return next;
 				});
-			retryIds.current.delete(retryKey);
 			setRevision((value) => value + 1);
-			return saved;
+			return saved.draft;
 		},
-		[subject, isWebSocketConnected, saveRemote, operations, receive],
+		[account, saveRemote, receive],
 	);
 	const value = useMemo<DraftScope>(
 		() => ({
@@ -166,11 +106,7 @@ function NutritionDraftScope({
 					.sort((a, b) => a.createdAt - b.createdAt),
 			get: (id) => records.get(id),
 			create: async (input) => {
-				const key = canonicalJson(input);
-				const id = createIds.current.get(key) ?? mintNutritionUuid();
-				createIds.current.set(key, id);
-				const saved = await write("create", id, input);
-				createIds.current.delete(key);
+				const saved = await write("create", undefined, input);
 				if (!saved) throw new Error("Missing Capture Draft acknowledgement.");
 				return saved;
 			},

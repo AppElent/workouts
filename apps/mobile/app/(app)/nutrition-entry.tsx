@@ -1,7 +1,8 @@
+import { MEAL_SLOTS } from "@foundry/core";
 import { useConvexConnectionState } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
-import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
+import { useNutritionDay } from "../../src/data/nutrition-day";
 import {
 	isoDateToLocalDate,
 	todayIsoDate,

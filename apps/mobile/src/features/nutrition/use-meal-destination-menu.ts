@@ -1,10 +1,5 @@
-import { roundForDisplay } from "@foundry/core";
-import {
-	type DiaryEntry,
-	MEAL_SLOTS,
-	type MealSlot,
-	useNutritionDay,
-} from "../../data/nutrition-day";
+import { MEAL_SLOTS, type MealSlot, roundForDisplay } from "@foundry/core";
+import { type DiaryEntry, useNutritionDay } from "../../data/nutrition-day";
 import { formatLongDate, formatShortDate } from "../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../i18n";
 import type { NutritionDestinationMenuProps } from "./components/nutrition-destination-menu-props";

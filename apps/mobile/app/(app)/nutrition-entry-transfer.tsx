@@ -1,8 +1,8 @@
+import { MEAL_SLOTS } from "@foundry/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
 import {
 	type DiaryEntryWithMeal,
-	MEAL_SLOTS,
 	useNutritionDay,
 } from "../../src/data/nutrition-day";
 import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";

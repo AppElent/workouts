@@ -1,8 +1,9 @@
+import { MEAL_SLOTS } from "@foundry/core";
 import { useConvexConnectionState } from "convex/react";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { MEAL_SLOTS, useNutritionDay } from "../../../data/nutrition-day";
+import { useNutritionDay } from "../../../data/nutrition-day";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";

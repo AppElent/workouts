@@ -1,7 +1,7 @@
-import type { NutrientTotal } from "@foundry/core";
+import type { NutrientKey, NutrientTotal } from "@foundry/core";
 import { Pressable, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import type { NutrientGoal, NutrientKey } from "../../../../data/nutrition-day";
+import type { NutrientGoal } from "../../../../data/nutrition-day";
 import { fmt, useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";

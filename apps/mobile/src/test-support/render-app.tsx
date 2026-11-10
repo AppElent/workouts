@@ -26,13 +26,13 @@ import { z } from "zod";
 import { type AppDataOverrides, AppDataProviders } from "../app-data-providers";
 import type { Id } from "../convex/api";
 import {
+	createFoodShortcutRepository,
+	type FoodShortcutRepository,
+} from "../data/food-shortcut-repository";
+import {
 	libraryRecordFromCombo,
 	libraryRecordFromFood,
 } from "../data/nutrition-library-repository";
-import {
-	createNutritionLocalRepository,
-	type NutritionLocalRepository,
-} from "../data/nutrition-local-repository";
 import type { FetchLike } from "../data/open-food-facts";
 import {
 	createOpenFoodFactsCache,
@@ -48,6 +48,7 @@ import {
 	type CaptureDraftFixture,
 	createCaptureDraftFixture,
 } from "./capture-draft-fixture";
+import { startMockLayers, underlying, wrapping } from "./mock-layers";
 import { NativeAlertHost } from "./native-alert-host";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
 
@@ -114,9 +115,11 @@ function routeModules(): Record<string, unknown> {
 
 /** Screen tests acknowledge the library transport at its public Convex boundary. */
 function installLibraryTransport(repository: PersonalFoodRepository) {
-	const mutation = jest.mocked(useMutation).getMockImplementation();
-	const query = jest.mocked(useQuery).getMockImplementation();
-	const paginated = jest.mocked(usePaginatedQuery).getMockImplementation();
+	const mutation = underlying(jest.mocked(useMutation).getMockImplementation());
+	const query = underlying(jest.mocked(useQuery).getMockImplementation());
+	const paginated = underlying(
+		jest.mocked(usePaginatedQuery).getMockImplementation(),
+	);
 	const servePayload = (payload: string) => {
 		const food = JSON.parse(payload);
 		if (food.visual?.storageId)
@@ -169,61 +172,77 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 	} as never);
 	jest
 		.mocked(useMutation)
-		.mockImplementation(((reference: never) =>
-			getFunctionName(reference) === "nutritionLibrary:save"
-				? save
-				: mutation?.(reference)) as never);
-	jest.mocked(useQuery).mockImplementation(((
-		reference: never,
-		args: { ids?: string[]; barcode?: string } | "skip",
-	) => {
-		if (getFunctionName(reference) !== "nutritionLibrary:getMany")
-			return query?.(reference, args as never);
-		return args === "skip"
-			? undefined
-			: records().filter(
-					(record) =>
-						args.ids?.includes(record.id) ||
-						(args.barcode &&
-							record.kind === "food" &&
-							repository.find(record.id)?.provenance.barcode === args.barcode),
-				);
-	}) as never);
-	jest.mocked(usePaginatedQuery).mockImplementation(((
-		reference: never,
-		args: { query?: string; category?: string } | "skip",
-		options: never,
-	) => {
-		if (getFunctionName(reference) !== "nutritionLibrary:browse")
-			return paginated?.(reference, args as never, options);
-		const selected =
-			args === "skip"
-				? []
-				: records().filter((record) => {
-						const parsed = JSON.parse(record.payload ?? "null");
-						const name =
-							record.kind === "food"
-								? `${parsed.name.en} ${parsed.name.nl}`
-								: parsed.name;
-						const category =
-							record.kind === "combo"
-								? "combo"
-								: parsed.classification === "recipe"
-									? "recipe"
-									: "food";
-						return (
-							(!args.query ||
-								name.toLowerCase().includes(args.query.toLowerCase())) &&
-							(!args.category || category === args.category)
+		.mockImplementation(
+			wrapping(
+				(reference: never) =>
+					getFunctionName(reference) === "nutritionLibrary:save"
+						? save
+						: mutation?.(reference),
+				mutation,
+			) as never,
+		);
+	jest.mocked(useQuery).mockImplementation(
+		wrapping(
+			(
+				reference: never,
+				args: { ids?: string[]; barcode?: string } | "skip",
+			) => {
+				if (getFunctionName(reference) !== "nutritionLibrary:getMany")
+					return query?.(reference, args as never);
+				return args === "skip"
+					? undefined
+					: records().filter(
+							(record) =>
+								args.ids?.includes(record.id) ||
+								(args.barcode &&
+									record.kind === "food" &&
+									repository.find(record.id)?.provenance.barcode ===
+										args.barcode),
 						);
-					});
-		return {
-			results: selected,
-			status: "Exhausted",
-			loadMore: jest.fn(),
-			isLoading: false,
-		};
-	}) as never);
+			},
+			query,
+		) as never,
+	);
+	jest.mocked(usePaginatedQuery).mockImplementation(
+		wrapping(
+			(
+				reference: never,
+				args: { query?: string; category?: string } | "skip",
+				options: never,
+			) => {
+				if (getFunctionName(reference) !== "nutritionLibrary:browse")
+					return paginated?.(reference, args as never, options);
+				const selected =
+					args === "skip"
+						? []
+						: records().filter((record) => {
+								const parsed = JSON.parse(record.payload ?? "null");
+								const name =
+									record.kind === "food"
+										? `${parsed.name.en} ${parsed.name.nl}`
+										: parsed.name;
+								const category =
+									record.kind === "combo"
+										? "combo"
+										: parsed.classification === "recipe"
+											? "recipe"
+											: "food";
+								return (
+									(!args.query ||
+										name.toLowerCase().includes(args.query.toLowerCase())) &&
+									(!args.category || category === args.category)
+								);
+							});
+				return {
+					results: selected,
+					status: "Exhausted",
+					loadMore: jest.fn(),
+					isLoading: false,
+				};
+			},
+			paginated,
+		) as never,
+	);
 }
 export function TestLayout({
 	overrides,
@@ -257,22 +276,21 @@ export async function renderApp(
 	fetchImpl?: FetchLike,
 	seed?: (stores: {
 		draftRepository: CaptureDraftFixture;
-		nutritionRepository: NutritionLocalRepository;
+		foodShortcuts: FoodShortcutRepository;
 		personalFoods: ReturnType<typeof createPersonalFoodRepository>;
 	}) => void,
 ) {
 	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-	const nutritionRepository = createNutritionLocalRepository(
-		new SQLiteTestDatabase(),
-	);
+	const foodShortcuts = createFoodShortcutRepository(new SQLiteTestDatabase());
 	const draftRepository = createCaptureDraftFixture();
-	seed?.({ draftRepository, nutritionRepository, personalFoods: repository });
+	seed?.({ draftRepository, foodShortcuts, personalFoods: repository });
+	startMockLayers();
 	installLibraryTransport(repository);
 	const accountTransport = installAccountTransport(draftRepository);
 	const data: AppDataOverrides = {
 		personalFoods: repository,
-		nutrition: nutritionRepository,
+		foodShortcuts,
 		openFoodFactsCache: offCache,
 		fetchImpl,
 		uploadPhoto: async () => ({
@@ -294,7 +312,7 @@ export async function renderApp(
 	return Object.assign(rendered, {
 		repository,
 		offCache,
-		nutritionRepository,
+		foodShortcuts,
 		draftRepository,
 		accountTransport,
 	});

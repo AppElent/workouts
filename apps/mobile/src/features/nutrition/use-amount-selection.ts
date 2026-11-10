@@ -1,7 +1,7 @@
 import type { ServingOption } from "@foundry/core";
 import { useState } from "react";
 import { servingKey } from "../../data/nutrition-shortcuts";
-import { localizeDecimal, useI18n } from "../../i18n";
+import { localizeDecimal, parseLocalizedDecimal, useI18n } from "../../i18n";
 
 /**
  * The serving and quantity an amount editor is setting. The exact amount is
@@ -28,7 +28,7 @@ export function useAmountSelection({
 		asText(initialQuantity),
 	);
 	const [amount, setAmount] = useState(initialAmount);
-	const quantity = Number(quantityText.replace(",", "."));
+	const quantity = parseLocalizedDecimal(quantityText) ?? Number.NaN;
 	const valid =
 		quantityText.trim().length > 0 &&
 		Number.isFinite(quantity) &&
@@ -47,7 +47,7 @@ export function useAmountSelection({
 			servingKey(selected) !== servingKey(initial.option),
 		setQuantity(text: string) {
 			setQuantityText(localizeDecimal(text, locale));
-			setAmount(Number(text.replace(",", ".")) * selected.amount);
+			setAmount((parseLocalizedDecimal(text) ?? Number.NaN) * selected.amount);
 		},
 		select(next: ServingOption) {
 			if (servingKey(next) === servingKey(selected)) return;

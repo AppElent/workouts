@@ -1,10 +1,11 @@
-import { useAuth } from "@clerk/expo";
+import type { FoodVisual, NutritionDiaryOperation } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { fetch } from "expo/fetch";
 import { File } from "expo-file-system";
-import { useCallback, useRef } from "react";
+import { createContext, type ReactNode, use, useCallback, useRef } from "react";
 import { z } from "zod";
 import { api, type Id } from "../convex/api";
+import { useAccountWrite } from "./account-write";
 
 const uploadedPhoto = z.object({
 	storageId: z.custom<Id<"_storage">>(
@@ -15,9 +16,23 @@ export type FoodPhotoUpload = (
 	uri: string,
 ) => Promise<{ storageId: Id<"_storage"> }>;
 
+const SuppliedUpload = createContext<FoodPhotoUpload | undefined>(undefined);
+
+/** Replaces the upload for everything beneath, as screen tests do. */
+export function FoodPhotoUploadProvider({
+	children,
+	upload,
+}: {
+	children: ReactNode;
+	upload?: FoodPhotoUpload;
+}) {
+	return <SuppliedUpload value={upload}>{children}</SuppliedUpload>;
+}
+
 /** Files enter account ownership before any Food or Diary save references them. */
 export function useFoodPhotoUpload(): FoodPhotoUpload {
-	const { userId } = useAuth();
+	const supplied = use(SuppliedUpload);
+	const userId = useAccountWrite().subject;
 	const generateUploadUrl = useMutation(
 		api.nutritionFoodPhotos.generateUploadUrl,
 	);
@@ -25,7 +40,7 @@ export function useFoodPhotoUpload(): FoodPhotoUpload {
 	const uploads = useRef(
 		new Map<string, Promise<{ storageId: Id<"_storage"> }>>(),
 	);
-	return useCallback(
+	const upload = useCallback(
 		(uri: string) => {
 			const key = JSON.stringify([userId, uri]);
 			const existing = uploads.current.get(key);
@@ -53,16 +68,17 @@ export function useFoodPhotoUpload(): FoodPhotoUpload {
 		},
 		[generateUploadUrl, registerUpload, userId],
 	);
+	return supplied ?? upload;
 }
 
 /** Frozen Diary snapshots carry durable photo IDs, never newly created file paths. */
 export async function prepareDiaryPhotoOperation(
-	operation: import("@foundry/core").NutritionDiaryOperation,
+	operation: NutritionDiaryOperation,
 	upload: FoodPhotoUpload,
-): Promise<import("@foundry/core").NutritionDiaryOperation> {
-	async function entry<
-		T extends { visual?: import("@foundry/core").FoodVisual },
-	>(value: T): Promise<T> {
+): Promise<NutritionDiaryOperation> {
+	async function entry<T extends { visual?: FoodVisual }>(
+		value: T,
+	): Promise<T> {
 		if (value.visual?.kind !== "photo") return value;
 		const photo = value.visual.storageId
 			? { storageId: value.visual.storageId }
