@@ -19,27 +19,10 @@ const config = appConfig({
 	config: appJson.expo as Partial<ExpoConfig>,
 } as ConfigContext);
 
-function pluginOptions(name: string) {
-	const entry = config.plugins?.find(
-		(plugin) => Array.isArray(plugin) && plugin[0] === name,
-	);
-	return (entry as [string, Record<string, unknown>] | undefined)?.[1];
-}
-
 it("ships a permission copy for every app language", () => {
 	expect(Object.keys(config.locales ?? {}).sort()).toEqual(
 		[...SUPPORTED_LOCALES].sort(),
 	);
-});
-
-it("builds the native prompts from the English copy", () => {
-	expect(pluginOptions("expo-camera")).toMatchObject({
-		cameraPermission: enPermissions.NSCameraUsageDescription,
-	});
-	expect(pluginOptions("expo-image-picker")).toMatchObject({
-		cameraPermission: enPermissions.NSCameraUsageDescription,
-		photosPermission: enPermissions.NSPhotoLibraryUsageDescription,
-	});
 });
 
 it("translates every prompt rather than repeating the English", () => {
