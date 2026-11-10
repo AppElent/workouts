@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** What floats over the session: the toast, a group's clock, and rest. */
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
@@ -22,7 +23,7 @@ import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
 import { useRestState, useRestTimer } from "../data/rest-timer";
 import { workspaceStore } from "../data/session-workspace";
-import { formatClock, formatScore } from "../session-format";
+import { formatScore } from "../session-format";
 import { amrapScore, runningGroup, type SetGroup } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
 

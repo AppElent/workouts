@@ -1,4 +1,8 @@
-import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
+import {
+	formatPace,
+	paceSecondsPerKilometer,
+	speedKilometersPerHour,
+} from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -20,7 +24,6 @@ import {
 } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { formatPace } from "./endurance-form-state";
 
 export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const { locale, t } = useI18n();
@@ -114,7 +117,7 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 		activity.distanceMeters,
 		activity.durationSeconds,
 	);
-	const paceText = formatPace(pace);
+	const paceText = formatPace(pace) ?? "—";
 	const speedText =
 		speed === null || !Number.isFinite(speed)
 			? "—"

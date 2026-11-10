@@ -1,3 +1,4 @@
+import { EQUIPMENT, MUSCLE_GROUP_KEYS } from "@foundry/core";
 import { Modal } from "react-native";
 import {
 	modalAnimation,
@@ -11,13 +12,7 @@ import {
 	FormSegmentedRow,
 	TextAction,
 } from "../../../ui/form";
-import {
-	EQUIPMENT,
-	emptyFilters,
-	type Filters,
-	GROUP_KEYS,
-	toggleChoice,
-} from "./exercise-filters";
+import { emptyFilters, type Filters, toggleChoice } from "./exercise-filters";
 import { MuscleIcon } from "./muscle-icon";
 export function ExerciseFiltersSheet({
 	draft,
@@ -54,7 +49,7 @@ export function ExerciseFiltersSheet({
 			>
 				<TextAction label={c.reset} onPress={() => onChange(emptyFilters())} />
 				<FormSection title={c.groups} footer={c.multiple}>
-					{GROUP_KEYS.map((group) => (
+					{MUSCLE_GROUP_KEYS.map((group) => (
 						<FormChoiceRow
 							key={group}
 							label={c.groupNames[group]}

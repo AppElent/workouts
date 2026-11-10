@@ -5,17 +5,6 @@ import { type PlanSet, shownLoad } from "./session-plan";
 export function formatNumber(value: number, locale: string, digits = 2) {
 	return value.toLocaleString(locale, { maximumFractionDigits: digits });
 }
-/** "1:30", and "1:02:47" past an hour. */
-export function formatClock(seconds: number) {
-	const safe = Math.max(0, Math.floor(seconds));
-	const hours = Math.floor(safe / 3600);
-	const minutes = Math.floor((safe % 3600) / 60);
-	const rest = safe % 60;
-	const pad = (value: number) => value.toString().padStart(2, "0");
-	return hours > 0
-		? `${hours}:${pad(minutes)}:${pad(rest)}`
-		: `${minutes}:${pad(rest)}`;
-}
 /** "95 × 5" for kg, "209,4 lbs × 5" for pounds, "+10 × 12" on bodyweight. */
 export function formatSetShort(
 	row: Pick<PlanSet, "kg" | "unit" | "typedLbs" | "reps">,

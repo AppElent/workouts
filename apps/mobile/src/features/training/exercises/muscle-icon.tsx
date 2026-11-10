@@ -1,5 +1,5 @@
+import type { MuscleGroup } from "@foundry/core";
 import { Image } from "expo-image";
-import type { Group } from "./exercise-filters";
 
 const sources = {
 	chest: require("../../../../../../public/muscle-icons/chest.png"),
@@ -15,7 +15,7 @@ export function MuscleIcon({
 	group,
 	size = 48,
 }: {
-	group: Group | "other";
+	group: MuscleGroup | "other";
 	size?: number;
 }) {
 	return (

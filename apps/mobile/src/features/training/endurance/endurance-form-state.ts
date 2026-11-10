@@ -1,3 +1,4 @@
+import { type EnduranceField, validateEnduranceInput } from "@foundry/core";
 import { type Messages, parseLocalizedDecimal } from "../../../i18n";
 
 export type EnduranceValues = {
@@ -32,13 +33,6 @@ export type EnduranceDetail = {
 };
 
 const pad = (value: number) => String(value).padStart(2, "0");
-
-export function formatPace(secondsPerKilometer: number | null) {
-	if (secondsPerKilometer === null || !Number.isFinite(secondsPerKilometer))
-		return "—";
-	const rounded = Math.round(secondsPerKilometer);
-	return `${Math.floor(rounded / 60)}:${pad(rounded % 60)} /km`;
-}
 
 export function valuesForActivity(
 	activity?: EnduranceDetail | null,
@@ -93,83 +87,58 @@ export type ParsedEnduranceValues = {
 	effort: number | null;
 };
 
+/** The typed date and time as a timestamp; NaN when it names no real minute. */
+function occurredAtFrom(date: string, time: string) {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
+	const clock = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time.trim());
+	if (!match || !clock) return Number.NaN;
+	const [year, month, day] = match.slice(1).map(Number);
+	const [hour, minute] = clock.slice(1).map(Number);
+	const value = new Date(year, month - 1, day, hour, minute);
+	return value.getFullYear() === year &&
+		value.getMonth() === month - 1 &&
+		value.getDate() === day &&
+		value.getHours() === hour &&
+		value.getMinutes() === minute
+		? value.getTime()
+		: Number.NaN;
+}
+
+/** Reads the form's text into an activity and checks it with the server's rules. */
 export function parseEnduranceValues(
 	values: EnduranceValues,
 	copy: Messages["endurance"],
 ):
 	| { value: ParsedEnduranceValues; error?: never }
 	| { value?: never; error: string } {
-	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(values.date.trim());
-	const clock = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(values.time.trim());
-	if (!match || !clock) return { error: copy.invalidDate };
-	const year = Number(match[1]);
-	const month = Number(match[2]);
-	const day = Number(match[3]);
-	const occurredAt = new Date(
-		year,
-		month - 1,
-		day,
-		Number(clock[1]),
-		Number(clock[2]),
-	);
-	if (
-		occurredAt.getFullYear() !== year ||
-		occurredAt.getMonth() !== month - 1 ||
-		occurredAt.getDate() !== day ||
-		occurredAt.getHours() !== Number(clock[1]) ||
-		occurredAt.getMinutes() !== Number(clock[2]) ||
-		occurredAt.getTime() > Date.now()
-	)
-		return { error: copy.invalidDate };
-	const distanceKm = decimal(values.distance);
-	if (!(distanceKm > 0) || !Number.isFinite(distanceKm * 1000))
-		return { error: copy.invalidDistance };
-	const hours = values.hours.trim() ? whole(values.hours) : 0;
-	const minutes = values.minutes.trim() ? whole(values.minutes) : 0;
-	const seconds = values.seconds.trim() ? whole(values.seconds) : 0;
-	const durationSeconds = hours * 3600 + minutes * 60 + seconds;
-	if (
-		!Number.isSafeInteger(durationSeconds) ||
-		durationSeconds <= 0 ||
-		minutes > 59 ||
-		seconds > 59
-	)
-		return { error: copy.invalidDuration };
-	const elevationGainMeters = values.elevation.trim()
-		? decimal(values.elevation)
-		: null;
-	if (
-		elevationGainMeters !== null &&
-		(!Number.isFinite(elevationGainMeters) || elevationGainMeters < 0)
-	)
-		return { error: copy.invalidElevation };
-	const averageHeartRate = values.heartRate.trim()
-		? whole(values.heartRate)
-		: null;
-	if (
-		averageHeartRate !== null &&
-		(!Number.isSafeInteger(averageHeartRate) || averageHeartRate <= 0)
-	)
-		return { error: copy.invalidHeartRate };
-	const effort = values.effort.trim() ? whole(values.effort) : null;
-	if (
-		effort !== null &&
-		(!Number.isSafeInteger(effort) || effort < 1 || effort > 10)
-	)
-		return { error: copy.invalidEffort };
-	if (values.title.trim().length > 200) return { error: copy.invalidTitle };
-	if (values.notes.trim().length > 10_000) return { error: copy.invalidNotes };
-	return {
-		value: {
-			occurredAt: occurredAt.getTime(),
-			distanceMeters: distanceKm * 1000,
-			durationSeconds,
-			title: optionalText(values.title),
-			notes: optionalText(values.notes),
-			environment: values.environment || null,
-			elevationGainMeters,
-			averageHeartRate,
-			effort,
-		},
+	const messages: Record<EnduranceField, string> = {
+		occurredAt: copy.invalidDate,
+		distanceMeters: copy.invalidDistance,
+		durationSeconds: copy.invalidDuration,
+		elevationGainMeters: copy.invalidElevation,
+		averageHeartRate: copy.invalidHeartRate,
+		effort: copy.invalidEffort,
+		title: copy.invalidTitle,
+		notes: copy.invalidNotes,
 	};
+	const optional = (raw: string, read: (raw: string) => number) =>
+		raw.trim() ? read(raw) : null;
+	const hours = optional(values.hours, whole) ?? 0;
+	const minutes = optional(values.minutes, whole) ?? 0;
+	const seconds = optional(values.seconds, whole) ?? 0;
+	const value: ParsedEnduranceValues = {
+		occurredAt: occurredAtFrom(values.date, values.time),
+		distanceMeters: decimal(values.distance) * 1000,
+		durationSeconds: hours * 3600 + minutes * 60 + seconds,
+		title: optionalText(values.title),
+		notes: optionalText(values.notes),
+		environment: values.environment || null,
+		elevationGainMeters: optional(values.elevation, decimal),
+		averageHeartRate: optional(values.heartRate, whole),
+		effort: optional(values.effort, whole),
+	};
+	const checked = validateEnduranceInput(value);
+	if (!checked.ok) return { error: messages[checked.errors[0].field] };
+	if (minutes > 59 || seconds > 59) return { error: copy.invalidDuration };
+	return { value };
 }

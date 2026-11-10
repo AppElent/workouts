@@ -1,4 +1,5 @@
 import type { EnduranceSport } from "@foundry/core";
+import { enduranceTotals } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import { isoDateToLocalDate, shiftIsoDate } from "../../../dates/calendar-day";
@@ -10,11 +11,7 @@ import { EmptyState } from "../../../ui/empty-state";
 import { SkeletonCard, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { activityDuration, activityRate } from "../activity/activity-row";
-import {
-	activityTotals,
-	activityWeek,
-	activityWeeks,
-} from "../activity/activity-week";
+import { activityWeek, activityWeeks } from "../activity/activity-week";
 import { useActivityPages } from "../activity/use-activity-pages";
 
 export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
@@ -36,7 +33,7 @@ export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 			</SkeletonGroup>
 		);
 	const weeks = activityWeeks(items, current.start);
-	const totals = activityTotals(
+	const totals = enduranceTotals(
 		items.filter(
 			(item) =>
 				item.occurredAt >= selectedWeek.from &&

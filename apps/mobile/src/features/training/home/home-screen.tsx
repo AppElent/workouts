@@ -1,3 +1,4 @@
+import { enduranceTotals } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
@@ -13,7 +14,7 @@ import {
 } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { ActivityRow, activityDuration } from "../activity/activity-row";
-import { activityTotals, activityWeek } from "../activity/activity-week";
+import { activityWeek } from "../activity/activity-week";
 import { useActivityPages } from "../activity/use-activity-pages";
 
 export function HomeScreen() {
@@ -25,7 +26,7 @@ export function HomeScreen() {
 	const recent = useActivityPages({ limit: 4 });
 	const week = activityWeek();
 	const weekly = useActivityPages({ from: week.from, to: week.to }, true);
-	const totals = activityTotals(weekly.items);
+	const totals = enduranceTotals(weekly.items);
 	return (
 		<ScrollView
 			testID="home-screen"

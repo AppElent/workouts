@@ -1,5 +1,6 @@
 import {
 	type ActivitySummary,
+	formatPace,
 	paceSecondsPerKilometer,
 	speedKilometersPerHour,
 } from "@foundry/core";
@@ -9,7 +10,6 @@ import { dateLocale, useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
 import { SportIcon } from "../../../ui/coach";
 import { AppText } from "../../../ui/text";
-import { formatPace } from "../endurance/endurance-form-state";
 
 export function activityDuration(seconds: number) {
 	const total = Math.round(seconds);
@@ -29,7 +29,7 @@ export function activityRate(
 			? paceSecondsPerKilometer(meters, seconds)
 			: speedKilometersPerHour(meters, seconds);
 	if (rate === null) return "—";
-	if (sport === "running") return formatPace(rate);
+	if (sport === "running") return formatPace(rate) ?? "—";
 	return `${rate.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
 }
 

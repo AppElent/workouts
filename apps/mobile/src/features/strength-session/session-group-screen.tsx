@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** How a set group repeats, its order, its exercises, and how to undo it. */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -17,7 +18,6 @@ import { AppText } from "../../ui/text";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
-import { formatClock } from "./session-format";
 import {
 	dissolveGroup,
 	type GroupMode,

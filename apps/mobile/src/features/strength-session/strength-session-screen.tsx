@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** The live strength session: one table per exercise, one tap to log. */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,7 +29,6 @@ import { SessionRecap } from "./components/session-recap";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
 import { useStrengthSessions } from "./data/strength-session-context";
-import { formatClock } from "./session-format";
 import {
 	allRows,
 	closeOpenClocks,

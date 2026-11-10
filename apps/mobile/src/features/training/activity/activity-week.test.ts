@@ -1,5 +1,5 @@
 import type { ActivitySummary } from "@foundry/core";
-import { activityTotals, activityWeek, activityWeeks } from "./activity-week";
+import { activityWeek, activityWeeks } from "./activity-week";
 
 it("uses Monday to Monday local calendar boundaries", () => {
 	const week = activityWeek("2026-09-27");
@@ -17,17 +17,16 @@ it("sums more than the old eight-row recent limit and assigns midnight to one we
 		durationSeconds: 1800,
 		distanceMeters: 5000,
 	}));
-	expect(activityTotals(rows)).toEqual({
-		count: 14,
-		durationSeconds: 25200,
-		distanceMeters: 70000,
-	});
 	const weeks = activityWeeks(
 		[...rows, { ...rows[0], id: "prior", occurredAt: week.from - 1 }],
 		week.start,
 	);
 	expect(weeks).toHaveLength(12);
-	expect(weeks[11].count).toBe(14);
+	expect(weeks[11]).toMatchObject({
+		count: 14,
+		durationSeconds: 25200,
+		distanceMeters: 70000,
+	});
 	expect(weeks[10].count).toBe(1);
 	expect(weeks[0].count).toBe(0);
 });

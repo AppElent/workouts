@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** Resume control, laid out by the native tab accessory or its inline fallback. */
 import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
@@ -14,19 +15,6 @@ import {
 import { isIOS26OrLater } from "../../../ui/platform";
 import { AppText } from "../../../ui/text";
 import { useRestState } from "../data/rest-timer";
-import { formatClock } from "../session-format";
-
-/** "0:42" under an hour, "1:02:47" over it. */
-function formatElapsed(ms: number) {
-	const total = Math.max(0, Math.floor(ms / 1000));
-	const hours = Math.floor(total / 3600);
-	const minutes = Math.floor((total % 3600) / 60);
-	const seconds = total % 60;
-	const pad = (n: number) => n.toString().padStart(2, "0");
-	return hours > 0
-		? `${hours}:${pad(minutes)}:${pad(seconds)}`
-		: `${minutes}:${pad(seconds)}`;
-}
 
 export function ActiveSessionBar() {
 	const styles = useThemedStyles(createStyles);
@@ -74,10 +62,10 @@ export function ActiveSessionBar() {
 				<AppText variant="body" style={styles.elapsed}>
 					{rest.running
 						? fmt(rest.over ? resume.lineRestOver : resume.lineRest, {
-								time: formatElapsed(now - active.startTime),
+								time: formatClock((now - active.startTime) / 1000),
 								rest: formatClock(rest.remaining),
 							})
-						: formatElapsed(now - active.startTime)}
+						: formatClock((now - active.startTime) / 1000)}
 				</AppText>
 				<AppText variant="body" style={styles.resume}>
 					{copy.resume}

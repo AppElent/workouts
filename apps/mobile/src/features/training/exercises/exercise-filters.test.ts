@@ -1,9 +1,6 @@
+import { primaryMuscleGroup } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
-import {
-	emptyFilters,
-	filterExercises,
-	primaryGroup,
-} from "./exercise-filters";
+import { emptyFilters, filterExercises } from "./exercise-filters";
 
 const catalog: Exercise[] = [
 	{
@@ -65,8 +62,13 @@ it("matches secondary muscles but groups an exercise under its primary muscle on
 			groups: ["arms"],
 		}).map((e) => e._id),
 	).toEqual(["bench", "row"]);
-	expect(catalog.map(primaryGroup)).toEqual(["chest", "chest", "back", "legs"]);
-	expect(primaryGroup({ ...catalog[0], muscleGroups: ["unknown"] })).toBe(
+	expect(catalog.map(primaryMuscleGroup)).toEqual([
+		"chest",
+		"chest",
+		"back",
+		"legs",
+	]);
+	expect(primaryMuscleGroup({ ...catalog[0], muscleGroups: ["unknown"] })).toBe(
 		"other",
 	);
 });

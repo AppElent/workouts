@@ -13,7 +13,12 @@
  * Points below the line are rep ranges you have not pushed; points above mean
  * your 1RM estimate is stale.
  */
-import { calculateOneRepMax } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	exerciseRecords,
+	primaryMuscleGroup,
+	roundLoad,
+} from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -41,7 +46,6 @@ import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { primaryGroup } from "./exercise-filters";
 import { MuscleIcon } from "./muscle-icon";
 
 type Tab = "Overview" | "Progress" | "History";
@@ -95,22 +99,10 @@ export function ExerciseDetailScreen() {
 		exerciseId ? { exerciseId } : "skip",
 	);
 
-	/** Heaviest set, most reps at any weight, and best estimated single. */
-	const records = useMemo(() => {
-		if (!history || history.length === 0) return null;
-		let heaviest = history[0];
-		let mostReps = history[0];
-		let bestEstimate = 0;
-		for (const set of history) {
-			if (set.weight > heaviest.weight) heaviest = set;
-			if (set.reps > mostReps.reps) mostReps = set;
-			if (set.weight > 0) {
-				const { value } = calculateOneRepMax(set.weight, set.reps);
-				if (value > bestEstimate) bestEstimate = value;
-			}
-		}
-		return { heaviest, mostReps, bestEstimate };
-	}, [history]);
+	const records = useMemo(
+		() => (history?.length ? exerciseRecords(history, exercise) : null),
+		[history, exercise],
+	);
 
 	if (exercise === undefined) {
 		return (
@@ -140,7 +132,7 @@ export function ExerciseDetailScreen() {
 			showsVerticalScrollIndicator={false}
 		>
 			<View style={styles.header}>
-				<MuscleIcon group={primaryGroup(exercise)} size={80} />
+				<MuscleIcon group={primaryMuscleGroup(exercise)} size={80} />
 				<View style={styles.flex}>
 					<ScreenHeader title={exercise.name} />
 					<Stack.Toolbar placement="right">
@@ -240,21 +232,25 @@ export function ExerciseDetailScreen() {
 							<Eyebrow>{t.exercises.detail.records}</Eyebrow>
 							<View style={styles.statRow}>
 								<StatBox
-									value={String(records.heaviest.weight)}
-									unit="kg"
+									value={
+										records.heaviest
+											? String(roundLoad(records.heaviest.valueKg, 0.1))
+											: "—"
+									}
+									unit={records.heaviest ? "kg" : undefined}
 									label={t.exercises.detail.heaviest}
 								/>
 								<StatBox
-									value={String(records.mostReps.reps)}
+									value={records.mostReps ? String(records.mostReps.reps) : "—"}
 									label={t.exercises.detail.mostReps}
 								/>
 								<StatBox
 									value={
-										records.bestEstimate > 0
-											? String(records.bestEstimate)
+										records.bestEstimate
+											? String(roundLoad(records.bestEstimate.valueKg, 0.1))
 											: "—"
 									}
-									unit={records.bestEstimate > 0 ? "kg" : undefined}
+									unit={records.bestEstimate ? "kg" : undefined}
 									label={t.exercises.detail.bestEstimate}
 									color={colors.accent}
 								/>

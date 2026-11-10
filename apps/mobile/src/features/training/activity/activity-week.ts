@@ -1,4 +1,4 @@
-import type { ActivitySummary } from "@foundry/core";
+import { type ActivitySummary, enduranceTotals } from "@foundry/core";
 import { weekStartMonday } from "../../../data/nutrition-weekly-review";
 import {
 	isoDateToLocalDayRangeMs,
@@ -15,17 +15,6 @@ export function activityWeek(date = todayIsoDate()) {
 	};
 }
 
-export function activityTotals(items: readonly ActivitySummary[]) {
-	return items.reduce(
-		(totals, item) => ({
-			count: totals.count + 1,
-			durationSeconds: totals.durationSeconds + item.durationSeconds,
-			distanceMeters: totals.distanceMeters + (item.distanceMeters ?? 0),
-		}),
-		{ count: 0, durationSeconds: 0, distanceMeters: 0 },
-	);
-}
-
 export function activityWeeks(
 	items: readonly ActivitySummary[],
 	current: string,
@@ -34,7 +23,7 @@ export function activityWeeks(
 		const week = activityWeek(shiftIsoDate(current, (index - 11) * 7));
 		return {
 			...week,
-			...activityTotals(
+			...enduranceTotals(
 				items.filter(
 					(item) => item.occurredAt >= week.from && item.occurredAt < week.to,
 				),

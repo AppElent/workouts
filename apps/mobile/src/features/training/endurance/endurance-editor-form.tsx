@@ -1,4 +1,8 @@
-import { paceSecondsPerKilometer, speedKilometersPerHour } from "@foundry/core";
+import {
+	formatPace,
+	paceSecondsPerKilometer,
+	speedKilometersPerHour,
+} from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
@@ -25,7 +29,6 @@ import { useToast } from "../../../ui/toast";
 import {
 	type EnduranceDetail,
 	type EnduranceValues,
-	formatPace,
 	type ParsedEnduranceValues,
 	parseEnduranceValues,
 	valuesForActivity,
@@ -155,7 +158,7 @@ export function EnduranceEditorForm({
 		: null;
 	const metricText =
 		sport === "running"
-			? formatPace(metric)
+			? (formatPace(metric) ?? "—")
 			: metric === null || !Number.isFinite(metric)
 				? "—"
 				: `${metric.toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;

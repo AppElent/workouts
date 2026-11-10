@@ -1,7 +1,6 @@
 import { en } from "../../../i18n/messages/en";
 import { nl } from "../../../i18n/messages/nl";
 import {
-	formatPace,
 	parseEnduranceValues,
 	valuesForActivity,
 } from "./endurance-form-state";
@@ -55,10 +54,6 @@ describe("endurance form values", () => {
 			averageHeartRate: null,
 			effort: null,
 		});
-	});
-
-	it("rounds pace across the minute boundary", () => {
-		expect(formatPace(359.8)).toBe("6:00 /km");
 	});
 
 	it("rejects text beyond the backend limits before save", () => {

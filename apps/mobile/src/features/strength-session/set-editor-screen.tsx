@@ -2,7 +2,13 @@
  * The set editor. Open sets change in place, so a closed sheet or a restart
  * keeps the input; a logged set's changes stay a draft until Save.
  */
-import { calcPlates, DEFAULT_BAR, SET_LIMITS, SET_TYPES } from "@foundry/core";
+import {
+	calcPlates,
+	DEFAULT_BAR,
+	formatClock,
+	SET_LIMITS,
+	SET_TYPES,
+} from "@foundry/core";
 import {
 	Stack,
 	useLocalSearchParams,
@@ -47,7 +53,6 @@ import { useRestState } from "./data/rest-timer";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace, workspaceStore } from "./data/session-workspace";
 import {
-	formatClock,
 	formatLoadOnly,
 	formatNumber,
 	formatSetFull,

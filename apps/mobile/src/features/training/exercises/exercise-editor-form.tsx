@@ -1,3 +1,10 @@
+import {
+	EQUIPMENT,
+	type Equipment,
+	isLoadedEquipment,
+	MUSCLE_GROUP_KEYS,
+	type MuscleGroup,
+} from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack } from "expo-router";
@@ -18,13 +25,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import {
-	EQUIPMENT,
-	type Equipment,
-	GROUP_KEYS,
-	type Group,
-	toggleChoice,
-} from "./exercise-filters";
+import { toggleChoice } from "./exercise-filters";
 import { MuscleIcon } from "./muscle-icon";
 
 export function ExerciseEditorForm({
@@ -50,8 +51,8 @@ export function ExerciseEditorForm({
 			? c.copyName.replace("{name}", exercise.name)
 			: (exercise?.name ?? ""),
 	);
-	const [groups, setGroups] = useState<Group[]>(() =>
-		GROUP_KEYS.filter((g) =>
+	const [groups, setGroups] = useState<MuscleGroup[]>(() =>
+		MUSCLE_GROUP_KEYS.filter((g) =>
 			exercise?.muscleGroups.includes(g === "legs" ? "quads" : g),
 		),
 	);
@@ -60,7 +61,8 @@ export function ExerciseEditorForm({
 		() =>
 			exercise?.muscleGroups
 				.filter(
-					(m) => !GROUP_KEYS.some((g) => m === (g === "legs" ? "quads" : g)),
+					(m) =>
+						!MUSCLE_GROUP_KEYS.some((g) => m === (g === "legs" ? "quads" : g)),
 				)
 				.join(", ") ?? "",
 	);
@@ -75,7 +77,7 @@ export function ExerciseEditorForm({
 	);
 	const [notes, setNotes] = useState(exercise?.notes ?? "");
 	const [busy, setBusy] = useState(false);
-	const loaded = equipment !== "bodyweight" && equipment !== "band";
+	const loaded = isLoadedEquipment(equipment);
 	const parsed = parseLocalizedDecimal(increment) ?? Number.NaN;
 	const invalid =
 		loaded &&
@@ -191,7 +193,7 @@ export function ExerciseEditorForm({
 				/>
 				{groupsOpen ? (
 					<>
-						{GROUP_KEYS.map((group) => (
+						{MUSCLE_GROUP_KEYS.map((group) => (
 							<FormChoiceRow
 								key={group}
 								label={c.groupNames[group]}

@@ -1,3 +1,4 @@
+import { MUSCLE_GROUP_KEYS, primaryMuscleGroup } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -38,9 +39,7 @@ import {
 	emptyFilters,
 	type Filters,
 	filterExercises,
-	GROUP_KEYS,
 	type Layout,
-	primaryGroup,
 } from "./exercise-filters";
 import { ExerciseFiltersSheet } from "./exercise-filters-sheet";
 import { ExerciseLayoutMenu } from "./exercise-layout-menu";
@@ -86,11 +85,11 @@ export function ExerciseLibraryScreen() {
 				? filtered.length
 					? [{ key: "all", title: "", data: filtered }]
 					: []
-				: [...GROUP_KEYS, "other" as const]
+				: [...MUSCLE_GROUP_KEYS, "other" as const]
 						.map((group) => ({
 							key: group,
 							title: c.groupNames[group],
-							data: filtered.filter((ex) => primaryGroup(ex) === group),
+							data: filtered.filter((ex) => primaryMuscleGroup(ex) === group),
 						}))
 						.filter((s) => s.data.length),
 		[filtered, layout, c.groupNames],
@@ -254,7 +253,7 @@ export function ExerciseLibraryScreen() {
 								pressed && { backgroundColor: colors.surface2 },
 							]}
 						>
-							<MuscleIcon group={primaryGroup(item)} />
+							<MuscleIcon group={primaryMuscleGroup(item)} />
 							<View style={styles.rowText}>
 								<AppText variant="row">{item.name}</AppText>
 								<AppText variant="footnote" style={{ color: colors.textMuted }}>

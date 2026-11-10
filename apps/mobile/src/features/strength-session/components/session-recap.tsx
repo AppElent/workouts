@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** The end of a session, before it is saved. Back to session reopens it. */
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,12 +12,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { AppText } from "../../../ui/text";
-import {
-	formatClock,
-	formatNumber,
-	formatScore,
-	formatSetShort,
-} from "../session-format";
+import { formatNumber, formatScore, formatSetShort } from "../session-format";
 import type { PlanFacts, RecapRow, recapOf } from "../session-plan";
 
 function tagText(
