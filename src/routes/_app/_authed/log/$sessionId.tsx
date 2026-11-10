@@ -21,12 +21,8 @@ import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 
-// Until Convex throws the `emptySession` code, match today's message too.
 function isEmptySessionError(error: unknown) {
-	const { code, message } = parseConvexError(error);
-	return (
-		code === "emptySession" || message.startsWith("Discard the empty session")
-	);
+	return parseConvexError(error).code === "emptySession";
 }
 
 export const Route = createFileRoute("/_app/_authed/log/$sessionId")({
