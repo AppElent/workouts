@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { type ConvexReactClient, useConvex } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import { accountExportJson, collectExportTables } from "@foundry/core";
+import { useConvex } from "convex/react";
 import { format } from "date-fns";
 import { Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
@@ -23,22 +23,6 @@ function download(filename: string, content: string, type: string) {
 function csvCell(value: unknown): string {
 	const s = value === undefined || value === null ? "" : String(value);
 	return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-type Page = FunctionReturnType<typeof api.exportData.personalPage>;
-
-/** Every exported personal table, in the format the mobile export writes. */
-async function exportTables(convex: ConvexReactClient) {
-	const tables: Record<string, unknown[]> = {};
-	let cursor: Page["next"] = null;
-	do {
-		const page: Page = await convex.query(api.exportData.personalPage, {
-			cursor,
-		});
-		tables[page.table] = [...(tables[page.table] ?? []), ...page.rows];
-		cursor = page.next;
-	} while (cursor);
-	return tables;
 }
 
 function setsToCsv(
@@ -96,16 +80,14 @@ export function ExportDataCard() {
 		setBusy(true);
 		setError(null);
 		try {
-			const tables = await exportTables(convex);
+			const tables = await collectExportTables((cursor) =>
+				convex.query(api.exportData.personalPage, { cursor }),
+			);
 			const stamp = format(new Date(), "yyyy-MM-dd");
 			if (kind === "json") {
 				download(
 					`foundry-export-${stamp}.json`,
-					JSON.stringify(
-						{ exportedAt: new Date().toISOString(), tables },
-						null,
-						2,
-					),
+					accountExportJson(tables, new Date()),
 					"application/json",
 				);
 			} else {
