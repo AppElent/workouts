@@ -1,9 +1,9 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 /** A saved combo part in the amount editor; each confirmed change is written at once. */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { ComboPartScreen } from "../../src/features/nutrition/combo/combo-part-screen";
-
-export { ErrorBoundary } from "./nutrition-library";
 
 const leave = () =>
 	router.canGoBack() ? router.back() : router.replace("/nutrition-library");

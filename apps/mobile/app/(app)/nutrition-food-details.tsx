@@ -1,3 +1,5 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 import { getShippedFood } from "@foundry/core/shipped-foods";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";

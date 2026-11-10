@@ -1,3 +1,5 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 import { isRealIsoDate, MEAL_SLOTS, NUTRIENT_KEYS } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
@@ -7,7 +9,6 @@ import { DiaryEntryCorrectionScreen } from "../../src/features/nutrition/diary-e
 import { useI18n } from "../../src/i18n";
 import { AppText } from "../../src/ui/text";
 
-export { ErrorBoundary } from "./nutrition-entry";
 export default function DiaryEntryCorrectionRoute() {
 	const params = useLocalSearchParams<{
 		id?: string;

@@ -1,9 +1,9 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/dates/calendar-day";
 import { AssistanceScreen } from "../../src/features/nutrition/assistance/assistance-screen";
-import { useI18n } from "../../src/i18n";
-import { RouteError } from "../../src/ui/route-error";
 
 function asMealSlot(value: string | undefined): MealSlot {
 	return MEAL_SLOTS.find((slot) => slot === value) ?? "breakfast";
@@ -27,27 +27,6 @@ export default function NutritionAssistanceRoute() {
 			draftId={draftId}
 			fromFoodBrowser={from === "food"}
 			resume={resume}
-		/>
-	);
-}
-
-export function ErrorBoundary({
-	error,
-	retry,
-}: {
-	error: Error;
-	retry: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	return (
-		<RouteError
-			title={t.nutrition.error.title}
-			body={t.nutrition.error.body}
-			retryLabel={t.common.retry}
-			onRetry={() => {
-				retry();
-			}}
-			error={error}
 		/>
 	);
 }

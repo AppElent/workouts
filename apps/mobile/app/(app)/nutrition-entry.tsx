@@ -1,3 +1,5 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
 import { MEAL_SLOTS } from "@foundry/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
@@ -10,7 +12,6 @@ import {
 } from "../../src/dates/calendar-day";
 import { DiaryEntryEditorScreen } from "../../src/features/nutrition/diary-entry/diary-entry-editor-screen";
 import { useI18n } from "../../src/i18n";
-import { RouteError } from "../../src/ui/route-error";
 import { AppText } from "../../src/ui/text";
 export default function NutritionEntryRoute() {
 	const params = useLocalSearchParams<{
@@ -55,27 +56,6 @@ export default function NutritionEntryRoute() {
 			onClose={() =>
 				router.canGoBack() ? router.back() : router.replace("/nutrition")
 			}
-		/>
-	);
-}
-
-export function ErrorBoundary({
-	error,
-	retry,
-}: {
-	error: Error;
-	retry: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	return (
-		<RouteError
-			title={t.nutrition.error.title}
-			body={t.nutrition.error.body}
-			retryLabel={t.common.retry}
-			onRetry={() => {
-				retry();
-			}}
-			error={error}
 		/>
 	);
 }
