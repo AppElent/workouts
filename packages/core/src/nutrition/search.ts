@@ -169,16 +169,6 @@ export function searchShippedFoods(
 	return results.slice(0, limit);
 }
 
-/** Promoted foods in one category, for browsing rather than searching. */
-export function browsePromotedByCategory(
-	category: string,
-	locale: Locale = "en",
-): ShippedFood[] {
-	return shippedLibrary()
-		.promoted.filter((food) => food.category === category)
-		.sort((a, b) => a.name[locale].localeCompare(b.name[locale]));
-}
-
 /** Drop the memoised index. Benchmarks and tests only. */
 export function resetSearchIndex(): void {
 	index = undefined;

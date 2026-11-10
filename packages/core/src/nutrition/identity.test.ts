@@ -238,7 +238,7 @@ describe("a retired NEVO code", () => {
 			(food) => food.id === "shipped:apple",
 		);
 		expect(shippedApple?.retired).toBe(true);
-		expect(shippedApple?.n[0]).toBe(88);
+		expect(shippedApple?.n[artifact.nutrientOrder.indexOf("energy")]).toBe(88);
 	});
 });
 
@@ -331,34 +331,32 @@ describe("nutrient states as generated", () => {
 		{ code: 3, nl: "Meloen", en: "Melon", sodium: "40" },
 	];
 
-	function artifact() {
-		return buildArtifact({
+	function nutrient(code: number, key: "salt" | "sodium") {
+		const built = buildArtifact({
 			extract: extractOf(rows),
 			lock: lockFor(rows),
 			overlay: [],
 		});
+		const food = built.foods.find((entry) => entry.code === code);
+		return food?.n[built.nutrientOrder.indexOf(key)];
 	}
 
 	test("reads a zero listed under 'contains traces of' as a trace", () => {
-		const food = artifact().foods.find((entry) => entry.code === 1);
-		expect(food?.n[8]).toBe("t");
+		expect(nutrient(1, "sodium")).toBe("t");
 	});
 
 	test("reads an empty cell as absent, not zero", () => {
-		const food = artifact().foods.find((entry) => entry.code === 2);
-		expect(food?.n[8]).toBeNull();
+		expect(nutrient(2, "sodium")).toBeNull();
 	});
 
 	test("derives salt from sodium and keeps the source figure", () => {
-		const food = artifact().foods.find((entry) => entry.code === 3);
-		expect(food?.n[8]).toBe(40);
-		expect(food?.n[7]).toBe(0.1);
+		expect(nutrient(3, "sodium")).toBe(40);
+		expect(nutrient(3, "salt")).toBe(0.1);
 	});
 
 	test("carries absence and trace through into salt", () => {
-		const built = artifact().foods;
-		expect(built.find((entry) => entry.code === 1)?.n[7]).toBe("t");
-		expect(built.find((entry) => entry.code === 2)?.n[7]).toBeNull();
+		expect(nutrient(1, "salt")).toBe("t");
+		expect(nutrient(2, "salt")).toBeNull();
 	});
 });
 

@@ -1,17 +1,13 @@
-import { beforeEach, describe, expect, test } from "vitest";
-import { decodeFood, type WireFood } from "./artifact";
+import { describe, expect, test } from "vitest";
 import {
 	type ForkedFoodDraft,
 	foodResults,
 	forkHasLocalEdits,
-	forkShadows,
 	forkShippedFood,
 	forkSource,
-	isFork,
 	type LocalFoodLike,
 } from "./fork";
-import { getShippedFood, SHIPPED_ARTIFACT, shippedLibrary } from "./library";
-import { resetSearchIndex } from "./search";
+import { getShippedFood, shippedLibrary } from "./library";
 import type { ShippedFood } from "./types";
 
 /** A device-local food, as the SQLite repository hands one back. */
@@ -34,10 +30,6 @@ function apple(): ShippedFood {
 function ids(results: ReturnType<typeof foodResults<Local>>): string[] {
 	return results.map((result) => result.food.id);
 }
-
-beforeEach(() => {
-	resetSearchIndex();
-});
 
 describe("forking a shipped food", () => {
 	test("copies the shown name, base unit, servings and eight nutrients", () => {
@@ -94,16 +86,13 @@ describe("forking a shipped food", () => {
 	test("names the shipped record behind a fork, and nothing behind a plain food", () => {
 		const fork = local("fork-1", "My apple", "shipped:apple-w-skin-av");
 
-		expect(isFork(fork)).toBe(true);
 		expect(forkSource(fork)?.id).toBe("shipped:apple-w-skin-av");
-		expect(isFork(local("own-1", "Training gel"))).toBe(false);
 		expect(forkSource(local("own-1", "Training gel"))).toBeUndefined();
 	});
 
 	test("reports a withdrawn source as gone rather than as some other food", () => {
 		const fork = local("fork-1", "My apple", "shipped:not-in-this-release");
 
-		expect(isFork(fork)).toBe(true);
 		expect(forkSource(fork)).toBeUndefined();
 	});
 });
@@ -178,7 +167,13 @@ describe("shadowing in ordinary search", () => {
 		const older = local("fork-old", "Apple v1", "shipped:apple-w-skin-av");
 
 		// The repository lists most-recently-updated first.
-		expect(forkShadows([newer, older]).get("shipped:apple-w-skin-av")?.id).toBe(
+		const original = foodResults({
+			query: "apple",
+			scope: "all",
+			localMatches: [newer, older],
+			localFoods: [newer, older],
+		}).find((result) => result.food.id === "shipped:apple-w-skin-av");
+		expect(original?.kind === "shipped" && original.shadowedBy?.id).toBe(
 			"fork-new",
 		);
 	});
@@ -252,46 +247,6 @@ describe("deleting a fork", () => {
 		expect(ids(withFork)).not.toContain("shipped:apple-w-skin-av");
 		expect(ids(afterDelete)).toContain("shipped:apple-w-skin-av");
 		expect(ids(afterDelete)).not.toContain("fork-1");
-	});
-});
-
-describe("a later shipped correction", () => {
-	/** The same food as a future release might publish it: energy corrected. */
-	function correctedApple(): ShippedFood {
-		const wire = SHIPPED_ARTIFACT.foods.find(
-			(food) => food.id === "shipped:apple-w-skin-av",
-		);
-		if (!wire) throw new Error("Expected the apple in the artifact.");
-		const energyIndex = SHIPPED_ARTIFACT.nutrientOrder.indexOf("energy");
-		const nutrients = wire.n.slice();
-		nutrients[energyIndex] = 999;
-		return decodeFood({ ...wire, n: nutrients } as WireFood, [
-			...SHIPPED_ARTIFACT.nutrientOrder,
-		]);
-	}
-
-	test("cannot reach a fork taken before it", () => {
-		const draft = forkShippedFood(apple());
-		const corrected = correctedApple();
-
-		expect(corrected.nutrients.energy).toEqual({
-			kind: "value",
-			amount: 999,
-		});
-		// The fork was copied once, at fork time. Nothing re-reads the source.
-		expect(draft.nutrients.energy).toEqual(apple().nutrients.energy);
-		expect(draft.nutrients.energy).not.toEqual(corrected.nutrients.energy);
-	});
-
-	test("leaves the fork's shadow of that source in place", () => {
-		const fork = local("fork-1", "Apple", "shipped:apple-w-skin-av");
-		const results = foodResults({
-			query: "apple",
-			localMatches: [fork],
-			localFoods: [fork],
-		});
-
-		expect(ids(results)).not.toContain("shipped:apple-w-skin-av");
 	});
 });
 

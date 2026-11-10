@@ -106,11 +106,6 @@ export type ForkRef = {
 /** The least a local food has to expose for shadowing to work. */
 export type LocalFoodLike = ForkRef & { readonly id: string };
 
-/** Whether a local food was created by correcting a shipped one. */
-export function isFork(food: ForkRef): boolean {
-	return typeof food.provenance.forkedFrom === "string";
-}
-
 /**
  * The shipped record a fork came from, if it is still in the library.
  *

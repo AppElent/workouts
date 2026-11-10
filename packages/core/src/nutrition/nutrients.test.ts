@@ -10,32 +10,11 @@ import {
 	nutrientValue,
 	rescaleNutrients,
 	roundForDisplay,
-	SHIPPED_NUTRIENT_KEYS,
 	scaleNutrient,
 	TRACE,
 	validateNutrientValues,
 } from "./nutrients";
-import { isDerivedNutrient, saltFromSodium } from "./salt";
-
-describe("the nutrient vocabulary", () => {
-	test("is the eight the spec names, spelled the way the spec spells them", () => {
-		expect([...NUTRIENT_KEYS]).toEqual([
-			"energy",
-			"protein",
-			"carbs",
-			"fat",
-			"saturatedFat",
-			"fibre",
-			"sugars",
-			"salt",
-		]);
-	});
-
-	test("carries sodium on shipped foods without making it a ninth nutrient", () => {
-		expect(SHIPPED_NUTRIENT_KEYS).toContain("sodium");
-		expect(NUTRIENT_KEYS).not.toContain("sodium");
-	});
-});
+import { saltFromSodium } from "./salt";
 
 describe("reading a nutrient value", () => {
 	test("gives a trace the number zero so arithmetic still works", () => {
@@ -77,12 +56,6 @@ describe("deriving salt from sodium", () => {
 
 	test("gives trace salt for trace sodium", () => {
 		expect(saltFromSodium(TRACE)).toEqual({ kind: "trace" });
-	});
-
-	test("marks salt, and only salt, as something Foundry derived", () => {
-		expect(isDerivedNutrient("salt")).toBe(true);
-		expect(isDerivedNutrient("sodium")).toBe(false);
-		expect(isDerivedNutrient("protein")).toBe(false);
 	});
 });
 

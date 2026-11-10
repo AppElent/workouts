@@ -1,10 +1,6 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { shippedLibrary } from "./library";
-import {
-	browsePromotedByCategory,
-	resetSearchIndex,
-	searchShippedFoods,
-} from "./search";
+import { searchShippedFoods } from "./search";
 import { normaliseForSearch } from "./search-text";
 
 function ids(
@@ -13,10 +9,6 @@ function ids(
 ): string[] {
 	return searchShippedFoods(query, options).map((result) => result.food.id);
 }
-
-beforeEach(() => {
-	resetSearchIndex();
-});
 
 describe("ordinary search", () => {
 	test("returns the promoted food, not the technical NEVO rows around it", () => {
@@ -127,14 +119,6 @@ describe("browsing", () => {
 
 	test("an empty query does not dump the whole catalogue in search-all", () => {
 		expect(searchShippedFoods("", { scope: "all" })).toEqual([]);
-	});
-
-	test("lists a category's promoted foods in name order", () => {
-		const drinks = browsePromotedByCategory("drinks", "en");
-		expect(drinks.length).toBeGreaterThan(0);
-		expect(drinks.every((entry) => entry.category === "drinks")).toBe(true);
-		const names = drinks.map((entry) => entry.name.en);
-		expect([...names].sort((a, b) => a.localeCompare(b))).toEqual(names);
 	});
 });
 

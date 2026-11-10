@@ -62,7 +62,7 @@ const LOCK_SCHEMA_VERSION = 1;
  * A promoted food's category comes from the overlay instead — this map is what
  * the other ~2,180 rows get.
  */
-export const GROUP_CATEGORIES: Readonly<Record<string, FoodCategory>> = {
+const GROUP_CATEGORIES: Readonly<Record<string, FoodCategory>> = {
 	"Potatoes and tubers": "vegetables",
 	Vegetables: "vegetables",
 	Fruits: "fruit",
