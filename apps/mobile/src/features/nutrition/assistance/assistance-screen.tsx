@@ -1,5 +1,6 @@
 import {
 	type MealSlot,
+	NUTRITION_AI_LIMITS,
 	type NutritionDiarySnapshot,
 	nevoAttribution,
 	roundForDisplay,
@@ -1039,7 +1040,7 @@ function InputCard({
 						placeholderTextColor={colors.textFaint}
 						multiline
 						autoFocus={!session.photo}
-						maxLength={2000}
+						maxLength={NUTRITION_AI_LIMITS.maxText}
 						submitBehavior="blurAndSubmit"
 						returnKeyType="go"
 						onSubmitEditing={() => {
@@ -1553,7 +1554,7 @@ function RefineField({
 						returnKeyType="send"
 						onSubmitEditing={send}
 						editable={!disabled}
-						maxLength={500}
+						maxLength={NUTRITION_AI_LIMITS.maxFollowUpText}
 						style={{ ...type.body, flex: 1, color: colors.text }}
 					/>
 					<Pressable

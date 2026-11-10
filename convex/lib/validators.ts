@@ -217,6 +217,32 @@ export const diarySnapshotFields = {
 	...diaryPartSnapshotFields,
 };
 
+export const nutrientTotal = v.object({
+	amount: v.number(),
+	entryCount: v.number(),
+	valueCount: v.number(),
+	traceCount: v.number(),
+	absentCount: v.number(),
+	incomplete: v.boolean(),
+	qualified: v.boolean(),
+});
+
+/** A diary day as devices read it: its entries, totals and revision. */
+export const diaryDay = v.object({
+	date: v.string(),
+	entries: v.array(
+		v.object({
+			_id: v.id("nutritionDiaryEntries"),
+			_creationTime: v.number(),
+			userId: v.string(),
+			loggedAt: v.number(),
+			...diarySnapshotFields,
+		}),
+	),
+	totals: perNutrient(nutrientTotal),
+	revision: v.number(),
+});
+
 export const captureDraft = v.object({
 	id: v.string(),
 	subject: v.string(),

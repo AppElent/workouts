@@ -185,7 +185,6 @@ export function libraryRecordFromFood(
 		id: food.id,
 		kind: "food",
 		payload: JSON.stringify(portablePersonalFood(food)),
-		schemaVersion: 2,
 		revision,
 		deleted: false,
 	};
@@ -199,7 +198,6 @@ export function libraryRecordFromCombo(
 		id: combo.id,
 		kind: "combo",
 		payload: JSON.stringify(combo),
-		schemaVersion: 2,
 		revision,
 		deleted: false,
 	};

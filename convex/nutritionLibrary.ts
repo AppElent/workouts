@@ -1,14 +1,14 @@
 import {
-	LIBRARY_FIELDS_SCHEMA_VERSION,
 	LIBRARY_GET_MANY_LIMIT,
 	LIBRARY_SCHEMA_VERSION,
-	type LibrarySchemaVersion,
 	normalizeCombo,
 	normalizePersonalFood,
 	type PersonalFood,
-	PHOTO_VERSION,
 } from "@foundry/core";
-import { paginationOptsValidator } from "convex/server";
+import {
+	paginationOptsValidator,
+	type WithoutSystemFields,
+} from "convex/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
@@ -36,9 +36,6 @@ const libraryRecord = v.object({
 	deleted: v.boolean(),
 });
 
-/** Readers must accept account photos; older builds no longer sync. */
-const photoVersion = v.literal(PHOTO_VERSION);
-
 type RecordKind = Doc<"nutritionLibraryRecords">["recordKind"];
 type StoredRecord = Pick<
 	Doc<"nutritionLibraryRecords">,
@@ -54,12 +51,7 @@ type StoredRecord = Pick<
  * Full validation keeps a malformed payload from becoming a future restore.
  * Returns the normalized food, or null for a Combo.
  */
-function parsePayload(
-	id: string,
-	kind: RecordKind,
-	payload: string,
-	schemaVersion: LibrarySchemaVersion,
-) {
+function parsePayload(id: string, kind: RecordKind, payload: string) {
 	if (!payload) throw appError("invalid", "payload");
 	if (payload.length > MAX_PAYLOAD_LENGTH)
 		throw appError("tooLarge", "payload");
@@ -74,24 +66,10 @@ function parsePayload(
 			normalizePersonalFood(parsed as PersonalFood),
 		);
 		if (food.id !== id) throw appError("invalid", "id");
-		const needsFields = [
-			"classification",
-			"nutritionBasis",
-			"estimated",
-			"description",
-			"visual",
-		].some((key) => (parsed as Record<string, unknown>)[key] !== undefined);
-		if (needsFields && schemaVersion < LIBRARY_FIELDS_SCHEMA_VERSION)
-			throw appError("invalid", "schemaVersion");
 		return food;
 	}
 	const combo = withRuleErrors(() => normalizeCombo(parsed));
 	if (combo.id !== id) throw appError("invalid", "id");
-	const needsFields = combo.parts.some(
-		({ snapshot }) => snapshot.estimated || snapshot.baseUnit === "serving",
-	);
-	if (needsFields && schemaVersion < LIBRARY_FIELDS_SCHEMA_VERSION)
-		throw appError("invalid", "schemaVersion");
 	return null;
 }
 
@@ -100,7 +78,6 @@ async function checkFoodVisual(
 	ctx: Pick<QueryCtx, "db">,
 	userId: string,
 	food: PersonalFood,
-	schemaVersion: LibrarySchemaVersion,
 ) {
 	const visual = food.visual;
 	if (visual?.kind === "photo") {
@@ -115,11 +92,6 @@ async function checkFoodVisual(
 			visual.uri !== food.provenance.imageUrl)
 	)
 		throw appError("invalid", "visual");
-	if (
-		(visual?.kind === "photo" || visual?.kind === "remote") &&
-		schemaVersion < LIBRARY_SCHEMA_VERSION
-	)
-		throw appError("invalid", "schemaVersion");
 }
 
 /** A stored record as devices read it, with a stored photo's current URL. */
@@ -158,7 +130,6 @@ async function serveRecord(
  */
 export const save = mutation({
 	args: {
-		version: v.literal(1),
 		operationId: v.string(),
 		expectedSubject: v.string(),
 		operation: v.union(
@@ -168,7 +139,6 @@ export const save = mutation({
 					id: v.string(),
 					kind: libraryRecordKind,
 					payload: v.string(),
-					schemaVersion: v.optional(librarySchemaVersion),
 				}),
 				expectedRevision: v.number(),
 			}),
@@ -201,14 +171,12 @@ export const save = mutation({
 				)
 					throw appError("invalid", "expectedRevision");
 				if (operation.kind === "upsert") {
-					const schemaVersion = operation.record.schemaVersion ?? 1;
 					const food = parsePayload(
 						target.id,
 						target.kind,
 						operation.record.payload,
-						schemaVersion,
 					);
-					if (food) await checkFoodVisual(ctx, userId, food, schemaVersion);
+					if (food) await checkFoodVisual(ctx, userId, food);
 				}
 				const current = await ctx.db
 					.query("nutritionLibraryRecords")
@@ -223,21 +191,13 @@ export const save = mutation({
 					(current?.deleted || (!current && operation.expectedRevision > 0))
 				)
 					throw appError("recordDeleted");
-				const currentVersion = current?.schemaVersion ?? 1;
-				const schemaVersion =
-					operation.kind === "upsert"
-						? (operation.record.schemaVersion ?? 1)
-						: currentVersion;
-				// A newer build wrote fields this payload's version cannot carry.
-				if (schemaVersion < currentVersion)
-					throw appError("invalid", "schemaVersion");
 				const payload =
 					operation.kind === "upsert" ? operation.record.payload : undefined;
-				const next = {
+				const next: WithoutSystemFields<Doc<"nutritionLibraryRecords">> = {
 					userId,
 					recordId: target.id,
 					recordKind: target.kind,
-					schemaVersion,
+					schemaVersion: LIBRARY_SCHEMA_VERSION,
 					revision: (current?.revision ?? 0) + 1,
 					deleted: operation.kind === "remove",
 					...(payload === undefined ? {} : { payload }),
@@ -257,7 +217,6 @@ export const browse = query({
 		query: v.string(),
 		category: v.optional(libraryCategory),
 		paginationOpts: paginationOptsValidator,
-		photoVersion,
 	},
 	returns: v.object({
 		page: v.array(libraryRecord),
@@ -310,7 +269,6 @@ export const getMany = query({
 		ids: v.array(v.string()),
 		forkIds: v.optional(v.array(v.string())),
 		barcode: v.optional(v.string()),
-		photoVersion,
 	},
 	returns: v.array(libraryRecord),
 	handler: async (ctx, args) => {

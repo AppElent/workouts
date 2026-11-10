@@ -58,7 +58,6 @@ export function NutritionSettingsScreen() {
 				const page: FunctionReturnType<typeof api.nutritionLibrary.browse> =
 					await client.query(api.nutritionLibrary.browse, {
 						query: "",
-						photoVersion: 3,
 						paginationOpts: { cursor, numItems: 100 },
 					});
 				foods.account.receiveServerPage(page.page);

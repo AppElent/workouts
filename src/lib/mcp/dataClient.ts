@@ -135,6 +135,7 @@ export function createConvexWorkoutsMcpDataClient({
 			requireAuth();
 			return client.query(api.progress.weeklyVolume, {
 				exerciseId: exerciseId as ExerciseId,
+				utcOffsetMinutes: 0,
 			});
 		},
 	};

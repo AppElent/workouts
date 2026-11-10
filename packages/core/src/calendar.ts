@@ -50,6 +50,11 @@ export function isoDateAt(instantMs: number, offsetMinutes: number): IsoDate {
 	return fromUtc(instantMs + offsetMinutes * 60_000);
 }
 
+/** This device's UTC offset at an instant, in `isoDateAt`'s convention. */
+export function deviceUtcOffsetMinutes(instantMs = Date.now()): number {
+	return -new Date(instantMs).getTimezoneOffset();
+}
+
 /** A well-formed date that exists on the calendar (no Feb 30). */
 export function isRealIsoDate(value: string): value is IsoDate {
 	const match = ISO_DATE.exec(value);

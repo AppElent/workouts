@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import {
-	APPLE_CLIENT_IDS,
 	appleCredentials,
 	isAppleClientId,
 	revokeAppleAuthorization,
@@ -51,17 +50,13 @@ const MAX_AUTHORIZATION_CODE = 2000;
 /**
  * Revokes the signed-in account's Sign in with Apple grant before the account
  * is deleted. The code comes from a fresh native Apple sheet on iOS, together
- * with the bundle ID of the build that showed it; builds from before install
- * variants send none and are production. Failures are one stable code;
- * callers still delete the account.
+ * with the bundle ID of the build that showed it. Failures are one stable
+ * code; callers still delete the account.
  */
 export const revokeAppleSignIn = action({
-	args: { authorizationCode: v.string(), bundleId: v.optional(v.string()) },
+	args: { authorizationCode: v.string(), bundleId: v.string() },
 	returns: v.null(),
-	handler: async (
-		ctx,
-		{ authorizationCode, bundleId = APPLE_CLIENT_IDS[0] },
-	) => {
+	handler: async (ctx, { authorizationCode, bundleId }) => {
 		await requireUserId(ctx);
 		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
 			throw appError("invalid", "authorizationCode");

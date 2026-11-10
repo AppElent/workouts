@@ -114,7 +114,6 @@ describe("in-app test data", () => {
 		expect(await alice.query(api.bodyMetrics.list, {})).toHaveLength(3);
 		const library = await alice.query(api.nutritionLibrary.browse, {
 			query: "",
-			photoVersion: 3,
 			paginationOpts: { cursor: null, numItems: 50 },
 		});
 		expect(
@@ -241,7 +240,6 @@ describe("in-app test data", () => {
 			(
 				await alice.query(api.nutritionLibrary.browse, {
 					query: "",
-					photoVersion: 3,
 					paginationOpts: { cursor: null, numItems: 50 },
 				})
 			).page,

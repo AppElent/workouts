@@ -1,3 +1,4 @@
+import { NUTRITION_AI_LIMITS } from "@foundry/core";
 import { shippedLibrary } from "@foundry/core/shipped-foods";
 import {
 	applyChoices,
@@ -70,7 +71,9 @@ describe("AI entry grounding", () => {
 	it("offers local candidates per item and sends only refs and names", () => {
 		const [grounded] = groundItems([bread], catalog, "nl");
 		expect(grounded.candidates.length).toBeGreaterThan(0);
-		expect(grounded.candidates.length).toBeLessThanOrEqual(12);
+		expect(grounded.candidates.length).toBeLessThanOrEqual(
+			NUTRITION_AI_LIMITS.maxCandidates,
+		);
 		const [input] = chooseInput([grounded], ["Lidl"]);
 		expect(input.brand).toBe("Lidl");
 		expect(input.candidates[0]).toEqual({

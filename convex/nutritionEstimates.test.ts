@@ -1,9 +1,5 @@
 /// <reference types="vite/client" />
-import {
-	canonicalJson,
-	normalizePersonalFood,
-	personalFoodSnapshot,
-} from "@foundry/core";
+import { normalizePersonalFood, personalFoodSnapshot } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
@@ -20,7 +16,7 @@ const nutrients = {
 	sugars: { kind: "value" as const, amount: 2 },
 	salt: { kind: "value" as const, amount: 0.1 },
 };
-const legacy = {
+const soup = {
 	id: "soup",
 	name: { en: "Soup", nl: "Soep" },
 	baseUnit: "g" as const,
@@ -35,7 +31,7 @@ const legacy = {
 	updatedAt: 2,
 };
 const estimated = normalizePersonalFood({
-	...legacy,
+	...soup,
 	classification: "recipe",
 	baseUnit: "serving",
 	estimated: true,
@@ -47,17 +43,15 @@ function getMany(
 	user: { query: ReturnType<typeof convexTest>["query"] },
 	ids: string[],
 ) {
-	return user.query(api.nutritionLibrary.getMany, { ids, photoVersion: 3 });
+	return user.query(api.nutritionLibrary.getMany, { ids });
 }
 
 function upsert(
 	operationId: string,
 	expectedRevision: number,
 	payload: unknown,
-	schemaVersion?: 1 | 2 | 3,
 ) {
 	return {
-		version: 1 as const,
 		expectedSubject: "alice",
 		operationId,
 		operation: {
@@ -67,133 +61,25 @@ function upsert(
 				id: "soup",
 				kind: "food" as const,
 				payload: JSON.stringify(payload),
-				...(schemaVersion ? { schemaVersion } : {}),
 			},
 		},
 	};
 }
 
-describe("Personal Food estimate compatibility", () => {
-	it("reads pre-upgrade rows and replays pre-upgrade receipts without requiring a version backfill", async () => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		const oldOperation = upsert("pre-upgrade", 0, legacy);
-		const oldRecord = {
-			id: "soup",
-			kind: "food" as const,
-			payload: JSON.stringify(legacy),
-			revision: 1,
-			deleted: false,
-		};
-		await t.run(async (ctx) => {
-			await ctx.db.insert("nutritionLibraryRecords", {
-				userId: "alice",
-				recordId: "soup",
-				recordKind: "food",
-				payload: oldRecord.payload,
-				revision: 1,
-				deleted: false,
-				updatedAt: 1,
-			});
-			await ctx.db.insert("nutritionLibraryOperationReceipts", {
-				userId: "alice",
-				operationId: "pre-upgrade",
-				createdAt: 1,
-				payload: canonicalJson({
-					version: oldOperation.version,
-					expectedSubject: oldOperation.expectedSubject,
-					operation: oldOperation.operation,
-				}),
-				result: JSON.stringify({ record: oldRecord }),
-			});
-		});
-		expect(await getMany(alice, ["soup"])).toEqual([
-			{ ...oldRecord, schemaVersion: 1, subject: "alice" },
-		]);
-		expect(
-			await alice.mutation(api.nutritionLibrary.save, oldOperation),
-		).toEqual({ record: oldRecord });
-		const next = await alice.mutation(
-			api.nutritionLibrary.save,
-			upsert("legacy-update", 1, legacy),
-		);
-		expect(next.record).toMatchObject({ revision: 2, schemaVersion: 1 });
-	});
-
-	it("accepts legacy records, upgrades them, prevents older shapes from erasing fields, and keeps tombstones final", async () => {
+describe("Personal Food estimates", () => {
+	it("stores estimated Personal Food fields unchanged and validates basis consistently", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(
 			api.nutritionLibrary.save,
-			upsert("old-create", 0, legacy),
+			upsert("create", 0, estimated),
 		);
-		await alice.mutation(
-			api.nutritionLibrary.save,
-			upsert("new-update", 1, estimated, 2),
-		);
-		const [upgraded] = await getMany(alice, ["soup"]);
-		expect(upgraded).toMatchObject({ schemaVersion: 2, revision: 2 });
-		expect(JSON.parse(upgraded.payload ?? "null")).toEqual(estimated);
-		await expect(
-			alice.mutation(api.nutritionLibrary.save, upsert("downgrade", 2, legacy)),
-		).rejects.toMatchObject({
-			data: { code: "invalid", field: "schemaVersion" },
-		});
-		await alice.mutation(api.nutritionLibrary.save, {
-			version: 1,
-			expectedSubject: "alice",
-			operationId: "remove",
-			operation: {
-				kind: "remove",
-				recordId: "soup",
-				recordKind: "food",
-				expectedRevision: 2,
-			},
-		});
-		const removed = {
-			payload: null,
-			deleted: true,
-			schemaVersion: 2,
-			revision: 3,
-		};
-		expect((await getMany(alice, ["soup"]))[0]).toMatchObject(removed);
-		for (const [operationId, payload, version] of [
-			["old-restore", legacy, undefined],
-			["restore", estimated, 2],
-		] as const)
-			await expect(
-				alice.mutation(
-					api.nutritionLibrary.save,
-					upsert(operationId, 3, payload, version),
-				),
-			).rejects.toMatchObject({ data: { code: "recordDeleted" } });
-		expect((await getMany(alice, ["soup"]))[0]).toMatchObject(removed);
-		expect(
-			(
-				await alice.query(api.nutritionLibrary.browse, {
-					query: "",
-					paginationOpts: { cursor: null, numItems: 10 },
-					photoVersion: 3,
-				})
-			).page,
-		).toEqual([]);
-	});
-
-	it("requires the current payload schema for new fields and validates basis consistently", async () => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
+		const [stored] = await getMany(alice, ["soup"]);
+		expect(JSON.parse(stored.payload ?? "null")).toEqual(estimated);
 		await expect(
 			alice.mutation(
 				api.nutritionLibrary.save,
-				upsert("unversioned", 0, estimated),
-			),
-		).rejects.toMatchObject({
-			data: { code: "invalid", field: "schemaVersion" },
-		});
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.save,
-				upsert("bad-unit", 0, { ...estimated, baseUnit: "g" }, 2),
+				upsert("bad-unit", 1, { ...estimated, baseUnit: "g" }),
 			),
 		).rejects.toMatchObject({
 			data: { code: "unitMismatch", field: "nutritionBasis" },
@@ -201,7 +87,7 @@ describe("Personal Food estimate compatibility", () => {
 		await expect(
 			alice.mutation(
 				api.nutritionLibrary.save,
-				upsert("bad-estimate", 0, { ...estimated, estimated: "yes" }, 2),
+				upsert("bad-estimate", 1, { ...estimated, estimated: "yes" }),
 			),
 		).rejects.toMatchObject({
 			data: { code: "invalid", field: "estimated" },
@@ -225,7 +111,6 @@ describe("Personal Food estimate compatibility", () => {
 			],
 		};
 		const result = await alice.mutation(api.nutritionLibrary.save, {
-			version: 1,
 			expectedSubject: "alice",
 			operationId: "combo",
 			operation: {
@@ -234,7 +119,6 @@ describe("Personal Food estimate compatibility", () => {
 				record: {
 					id: "lunch",
 					kind: "combo",
-					schemaVersion: 2,
 					payload: JSON.stringify(combo),
 				},
 			},
@@ -267,7 +151,6 @@ describe("Personal Food estimate compatibility", () => {
 		};
 		await expect(
 			alice.mutation(api.nutritionLibrary.save, {
-				version: 1,
 				expectedSubject: "alice",
 				operationId: "invalid-combo",
 				operation: {
@@ -276,7 +159,6 @@ describe("Personal Food estimate compatibility", () => {
 					record: {
 						id: combo.id,
 						kind: "combo",
-						schemaVersion: 2,
 						payload: JSON.stringify(combo),
 					},
 				},
@@ -322,7 +204,6 @@ describe("Personal Food estimate compatibility", () => {
 			};
 			await expect(
 				alice.mutation(api.nutritionLibrary.save, {
-					version: 1,
 					expectedSubject: "alice",
 					operationId: `invalid-${field}`,
 					operation: {
@@ -331,7 +212,6 @@ describe("Personal Food estimate compatibility", () => {
 						record: {
 							id: combo.id,
 							kind: "combo",
-							schemaVersion: 2,
 							payload: JSON.stringify(combo),
 						},
 					},
@@ -350,14 +230,14 @@ describe("Personal Food estimate compatibility", () => {
 	);
 
 	it.each(["classification", "estimated", "nutritionBasis"])(
-		"rejects explicit null %s in versioned backup payloads",
+		"rejects explicit null %s in backup payloads",
 		async (key) => {
 			const t = convexTest(schema, modules);
 			const alice = t.withIdentity({ subject: "alice" });
 			await expect(
 				alice.mutation(
 					api.nutritionLibrary.save,
-					upsert(`null-${key}`, 0, { ...estimated, [key]: null }, 2),
+					upsert(`null-${key}`, 0, { ...estimated, [key]: null }),
 				),
 			).rejects.toMatchObject({ data: { code: "invalid", field: key } });
 		},

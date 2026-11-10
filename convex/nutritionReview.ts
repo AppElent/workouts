@@ -10,19 +10,9 @@ import { requireUserId } from "./lib/auth";
 import { assertIsoDate } from "./lib/diaryDays";
 import { appError } from "./lib/errors";
 import { readGoalHistory } from "./lib/goalHistory";
-import { nutritionGoal, perNutrient } from "./lib/validators";
+import { nutrientTotal, nutritionGoal, perNutrient } from "./lib/validators";
 
 const MAX_ENTRIES_PER_DAY = 500;
-
-const nutrientTotal = v.object({
-	amount: v.number(),
-	entryCount: v.number(),
-	valueCount: v.number(),
-	traceCount: v.number(),
-	absentCount: v.number(),
-	incomplete: v.boolean(),
-	qualified: v.boolean(),
-});
 
 export const week = query({
 	args: { startDate: v.string(), today: v.optional(v.string()) },

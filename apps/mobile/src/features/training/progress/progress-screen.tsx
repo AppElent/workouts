@@ -1,3 +1,4 @@
+import { deviceUtcOffsetMinutes } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -79,7 +80,9 @@ function ExerciseProgress({
 	);
 	const weekly = useQuery(
 		api.progress.weeklyVolume,
-		selected ? { exerciseId: selected } : "skip",
+		selected
+			? { exerciseId: selected, utcOffsetMinutes: deviceUtcOffsetMinutes() }
+			: "skip",
 	);
 
 	// Only exercises the user has actually trained are worth offering — the

@@ -39,6 +39,8 @@ export async function revokeAppleSignIn(
 	const linked = appleUserIds(user);
 	if (Platform.OS !== "ios" || linked.length === 0) return "continue";
 	try {
+		const bundleId = Constants.expoConfig?.ios?.bundleIdentifier;
+		if (!bundleId) throw new Error("This build has no iOS bundle ID");
 		const credential = await AppleAuthentication.signInAsync();
 		if (!linked.includes(credential.user))
 			throw new Error("Apple sheet returned a different Apple Account");
@@ -47,7 +49,7 @@ export async function revokeAppleSignIn(
 			throw new Error("Apple returned no authorization code");
 		await convex.action(api.account.revokeAppleSignIn, {
 			authorizationCode,
-			bundleId: Constants.expoConfig?.ios?.bundleIdentifier,
+			bundleId,
 		});
 	} catch (error) {
 		if ((error as { code?: string } | null)?.code === "ERR_REQUEST_CANCELED")

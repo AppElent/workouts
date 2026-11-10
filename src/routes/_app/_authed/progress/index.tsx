@@ -1,4 +1,5 @@
 import { api } from "@convex/_generated/api";
+import { deviceUtcOffsetMinutes } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
@@ -94,7 +95,11 @@ function ProgressPage() {
 function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 	const ormRecords =
 		useQuery(api.oneRepMaxes.listForExercise, { exerciseId }) ?? [];
-	const volumeData = useQuery(api.progress.weeklyVolume, { exerciseId }) ?? [];
+	const volumeData =
+		useQuery(api.progress.weeklyVolume, {
+			exerciseId,
+			utcOffsetMinutes: deviceUtcOffsetMinutes(),
+		}) ?? [];
 
 	const ormChartData = [...ormRecords]
 		.sort((a, b) => a.date - b.date)
@@ -175,7 +180,7 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 				<h2 className="text-sm font-semibold text-white mb-1">Weekly Volume</h2>
 				<p className="text-xs text-[var(--text-muted)] mb-4">
-					Total kg lifted per week (weight × reps)
+					Kg lifted per week (weight × reps), warm-ups excluded
 				</p>
 				{volumeData.length > 0 ? (
 					<ResponsiveContainer width="100%" height={200}>
