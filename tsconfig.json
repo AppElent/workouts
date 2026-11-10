@@ -7,7 +7,6 @@
     "module": "ESNext",
     "paths": {
       "#/*": ["./src/*"],
-      "@/*": ["./src/*"],
       "@convex/*": ["./convex/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],

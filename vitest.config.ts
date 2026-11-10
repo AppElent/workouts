@@ -1,27 +1,13 @@
-import path from "node:path";
 import viteReact from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
 	plugins: [viteReact()],
-	resolve: {
-		alias: {
-			"#": path.resolve(import.meta.dirname, "src"),
-			"@": path.resolve(import.meta.dirname, "src"),
-			"@convex": path.resolve(import.meta.dirname, "convex"),
-		},
-	},
+	resolve: { tsconfigPaths: true },
 	test: {
 		globals: true,
-		// Nested worktrees and module-backup dirs carry their own sources and
-		// node_modules.
-		exclude: [
-			...configDefaults.exclude,
-			"**/.worktrees/**",
-			"**/.claude/**",
-			"**/node_modules_OLD/**",
-			"**/node_modules.*/**",
-		],
+		// Nested worktrees carry their own sources and node_modules.
+		exclude: [...configDefaults.exclude, "**/.worktrees/**", "**/.claude/**"],
 		projects: [
 			{
 				extends: true,
