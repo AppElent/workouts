@@ -14,7 +14,7 @@ import {
 	isoDateToLocalDate,
 	toIsoDate,
 } from "../../../../dates/calendar-day";
-import { plural, useI18n } from "../../../../i18n";
+import { dateLocale, plural, useI18n } from "../../../../i18n";
 import { radius, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
@@ -113,7 +113,9 @@ export function DiaryWeekStrip({
 										}}
 									>
 										{local
-											.toLocaleDateString(locale, { weekday: "short" })
+											.toLocaleDateString(dateLocale(locale), {
+												weekday: "short",
+											})
 											.slice(0, 2)}
 									</AppText>
 									<AppText

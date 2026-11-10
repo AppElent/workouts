@@ -1,6 +1,6 @@
-import { type IsoDate, shiftIsoDate } from "@foundry/core";
+import { type IsoDate, type Locale, shiftIsoDate } from "@foundry/core";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
-import { fmt } from "../../../i18n";
+import { dateLocale, fmt } from "../../../i18n";
 import type { goalEditorEn } from "../../../i18n/messages/goal-editor";
 
 /** The saved goal version in force on the chosen date, as `forDate` reports it. */
@@ -11,9 +11,9 @@ export type GoalVersionSummary = {
 	nextEffectiveFrom: IsoDate | null;
 };
 
-function formatGoalDay(iso: IsoDate, locale: string): string {
+function formatGoalDay(iso: IsoDate, locale: Locale): string {
 	try {
-		return isoDateToLocalDate(iso).toLocaleDateString(locale, {
+		return isoDateToLocalDate(iso).toLocaleDateString(dateLocale(locale), {
 			day: "numeric",
 			month: "short",
 		});
@@ -39,7 +39,7 @@ export function goalsAppliesFrom({
 	/** The diary day the editor was opened from, if any. */
 	requestedDate: IsoDate | undefined;
 	version: GoalVersionSummary;
-	locale: string;
+	locale: Locale;
 	copy: typeof goalEditorEn;
 }): { lead?: string; body: string } {
 	const day = (iso: IsoDate) => formatGoalDay(iso, locale);
