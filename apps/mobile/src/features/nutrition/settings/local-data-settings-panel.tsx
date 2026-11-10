@@ -4,15 +4,15 @@ import { usePersonalFoods } from "../../../data/personal-foods";
 import { plural, useI18n } from "../../../i18n";
 import { spacing } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
-import { GroupedSurface, TextAction } from "../../../ui/form";
+import { GroupedSurface } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
-import { useLocalDataCleanup } from "../../local-data/account-data-maintenance-provider";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 export function LocalDataSettingsPanel() {
 	const { locale, t } = useI18n();
 	const copy = t.localData.settings;
 	const foods = usePersonalFoods();
-	const clearCache = useLocalDataCleanup();
+	const writeFailureMessage = useWriteFailureMessage();
 	const online = useOnline();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string>();
@@ -37,7 +37,7 @@ export function LocalDataSettingsPanel() {
 							void foods.account
 								.uploadDevicePhotos()
 								.catch((e: unknown) =>
-									setError(e instanceof Error ? e.message : String(e)),
+									setError(writeFailureMessage(e, copy.uploadFailure)),
 								)
 								.finally(() => setBusy(false));
 						}}
@@ -45,12 +45,6 @@ export function LocalDataSettingsPanel() {
 				</>
 			) : null}
 			{error ? <AppText accessibilityRole="alert">{error}</AppText> : null}
-			<TextAction
-				label={copy.clearCache}
-				disabled={!online || busy || foods.account.devicePhotoCount > 0}
-				onPress={clearCache}
-			/>
-			<AppText variant="caption">{copy.clearCacheNote}</AppText>
 		</GroupedSurface>
 	);
 }

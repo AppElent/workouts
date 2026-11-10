@@ -71,7 +71,7 @@ export function openPersonalFoodSession(subject?: string): PersonalFoodSession {
 	};
 }
 
-export function discardPersonalFoodSources(subject: string) {
+function discardPersonalFoodSources(subject: string) {
 	const file = new File(
 		defaultDatabaseDirectory,
 		nutritionLibraryDatabaseName(subject),
