@@ -27,9 +27,10 @@ export const Route = createRootRoute({
 						? readClientLocale()
 						: await getSsrLocale(),
 			};
-		} catch {
-			// Best effort: the client re-runs the loader after hydration and
-			// reads the cookie or navigator.language.
+		} catch (error) {
+			// The client re-runs the loader after hydration and reads the
+			// cookie or navigator.language.
+			reportError(error, "resolveLocale");
 			return { locale: DEFAULT_LOCALE };
 		}
 	},
@@ -77,7 +78,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayout() {
-	const { locale } = Route.useLoaderData() ?? { locale: DEFAULT_LOCALE };
+	const { locale } = Route.useLoaderData();
 
 	useEffect(() => {
 		if (typeof window === "undefined" || !("serviceWorker" in navigator))
