@@ -31,12 +31,12 @@ import {
 	type Combo,
 	type ComboDraft,
 	hasUnuploadedPhoto,
+	normalizeComboDraft,
 	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	type PersonalFoodFilter,
 	portablePersonalFood,
-	validateComboDraft,
 } from "./personal-food-repository";
 import {
 	openPersonalFoodSession,
@@ -317,7 +317,7 @@ function PersonalFoodsAccount({
 			findCombo: (id) => cache.findCombo(id),
 			createCombo: async (draft) => {
 				const timestamp = Date.now();
-				const valid = validateComboDraft(draft);
+				const valid = normalizeComboDraft(draft);
 				const candidateKey = `combo:${canonicalJson(draft)}`;
 				const combo = (createCandidates.current.get(candidateKey) as
 					| Combo
@@ -343,7 +343,7 @@ function PersonalFoodsAccount({
 			updateCombo: async (id, draft) => {
 				const current = cache.findCombo(id);
 				if (!current) throw new Error("Combo not found.");
-				const valid = validateComboDraft(draft);
+				const valid = normalizeComboDraft(draft);
 				const combo = {
 					...current,
 					...valid,
