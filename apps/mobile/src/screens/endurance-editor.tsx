@@ -8,9 +8,10 @@ import { z } from "zod";
 import { api, type Id } from "../convex/api";
 import { isoDateToLocalDate, todayIsoDate } from "../data/calendar-day";
 import { dateLocale, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import { en } from "../i18n/messages/en";
 import { spacing, useTokens } from "../theme";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { DatePickerSheet } from "../ui/date-picker-sheet";
 import {
 	DisclosureRow,

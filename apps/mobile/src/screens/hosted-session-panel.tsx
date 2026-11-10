@@ -17,6 +17,7 @@ import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { fmt, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -25,7 +26,6 @@ import {
 	useTokens,
 } from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
-import { convexErrorMessage } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 

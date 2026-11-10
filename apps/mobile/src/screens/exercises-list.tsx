@@ -13,6 +13,7 @@ import {
 import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
 import { useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	PREFERENCE_KEYS,
 	readPreference,
@@ -25,7 +26,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../theme";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { FormSearchField } from "../ui/form";
 import { Segmented } from "../ui/segmented";

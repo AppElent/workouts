@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import {
@@ -24,7 +25,7 @@ export function WeekCalendar({
 }: {
 	weekStart: IsoDate;
 	today: IsoDate;
-	locale: "en" | "nl";
+	locale: Locale;
 	hint: string;
 	todayLabel: string;
 	onSelect: (weekStart: IsoDate) => void;

@@ -31,6 +31,7 @@ import { api } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -39,7 +40,6 @@ import {
 	useTokens,
 } from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
-import { convexErrorMessage } from "../ui/confirm-dialog";
 import { Screen } from "../ui/screen";
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";

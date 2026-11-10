@@ -33,8 +33,8 @@ import {
 } from "../../../data/nutrition-operation-service";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
 import { plural, useI18n } from "../../../i18n";
+import { convexErrorMessage } from "../../../i18n/errors";
 import { spacing, useTokens } from "../../../theme";
-import { convexErrorMessage } from "../../../ui/confirm-dialog";
 import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";

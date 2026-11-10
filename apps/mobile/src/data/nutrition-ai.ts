@@ -1,5 +1,6 @@
 import {
 	formatQuantity,
+	type Locale,
 	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientKey,
@@ -142,7 +143,7 @@ function nutrientValues(
 export function groundItems(
 	items: readonly DescribedItem[],
 	catalog: readonly AssistanceFood[],
-	locale: "en" | "nl",
+	locale: Locale,
 ): ReviewItem[] {
 	// Butter beside bread is a spread: it says nothing about how the rest was made.
 	const fatListed =
@@ -225,7 +226,7 @@ export function groundItems(
 function withTypicalPortion(
 	row: ReviewItem,
 	item: DescribedItem,
-	locale: "en" | "nl",
+	locale: Locale,
 ): ReviewItem {
 	const guessed = item.amountStated === false;
 	const count = countedPortion(row);
@@ -288,7 +289,7 @@ function foodWords(food: AssistanceFood) {
  * "3 plakken" of a food with a known slice is three of those slices, whatever
  * the AI guessed: the same words give the same grams.
  */
-function snapToServing(item: ReviewItem, locale: "en" | "nl"): ReviewItem {
+function snapToServing(item: ReviewItem, locale: Locale): ReviewItem {
 	const food = item.food;
 	const count = countedPortion(item);
 	const word = item.amountLabel.trim().match(/^\d+\s+(\p{L}+)/u)?.[1];
@@ -468,7 +469,7 @@ function preparationChanged(before: string, after: string): boolean {
  */
 export function preparationCaption(
 	item: ReviewItem,
-	locale: "en" | "nl",
+	locale: Locale,
 ): string | undefined {
 	const food = item.food?.name[locale];
 	return food && preparationChanged(food, item.described)
@@ -584,7 +585,7 @@ export function carryOver(
 	described: readonly DescribedItem[],
 	prior: readonly ReviewItem[],
 	priorDescribed: readonly DescribedItem[],
-	locale: "en" | "nl",
+	locale: Locale,
 	correction = "",
 ): (ReviewItem | undefined)[] {
 	const pool = [...prior];
@@ -847,7 +848,7 @@ export function chooseInput(
 export function applyChoices(
 	items: readonly ReviewItem[],
 	choices: readonly Choice[],
-	locale: "en" | "nl" = "nl",
+	locale: Locale = "nl",
 ): ReviewItem[] {
 	return items.map((item, index) => {
 		const choice = choices.find((c) => c.index === index);
@@ -996,7 +997,7 @@ export function replaceFood(
 export function withAmount(
 	item: ReviewItem,
 	amount: number,
-	locale: "en" | "nl",
+	locale: Locale,
 ): ReviewItem {
 	if (!(amount > 0) || amount === item.amount) return item;
 	const factor = amount / item.amount;
@@ -1084,7 +1085,7 @@ export function readyToLog(items: readonly ReviewItem[]): boolean {
 /** What the diary shows: the person's own words with the weight they mean. */
 function servingLabel(
 	item: ReviewItem,
-	locale: "en" | "nl",
+	locale: Locale,
 	unit: "g" | "ml" = item.unit,
 ) {
 	const measured = `${formatQuantity(Math.round(item.amount), locale)} ${unit}`;

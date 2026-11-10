@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import { useState } from "react";
 import { isoDateToLocalDate, toIsoDate } from "../../../../data/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
@@ -9,7 +10,7 @@ export function DiaryCalendar({
 }: {
 	date: string;
 	onSelect: (date: string) => void;
-	locale: "en" | "nl";
+	locale: Locale;
 }) {
 	const [month, setMonth] = useState(`${date.slice(0, 7)}-01`);
 	const d = isoDateToLocalDate(month);

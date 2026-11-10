@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@foundry/core";
+import { type Locale, roundForDisplay } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
@@ -45,7 +45,7 @@ export function LogFoodMealSummary({
 	entries: readonly DiaryEntry[];
 	/** Changes once per quick add; the bar lights up when it does. */
 	flashKey: number;
-	locale: "en" | "nl";
+	locale: Locale;
 	editLabel: string;
 	deleteLabel: string;
 	closeMenuLabel: string;

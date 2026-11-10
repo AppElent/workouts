@@ -31,9 +31,10 @@ import {
 	workingVolume,
 } from "../data/session-data";
 import { fmt, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import { type Tokens, useThemedStyles, useTokens } from "../theme";
 import { Eyebrow, StatBox } from "../ui/coach";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 

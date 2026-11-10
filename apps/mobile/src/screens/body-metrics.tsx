@@ -18,6 +18,7 @@ import { api, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { dateLocale, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -27,7 +28,7 @@ import {
 } from "../theme";
 import { TrendChart } from "../ui/chart";
 import { Eyebrow, StatBox } from "../ui/coach";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 

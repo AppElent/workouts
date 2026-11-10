@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import { FoodVisualView } from "../../components/food-visual";
 import type { FoodSelection } from "../log-food-selection";
 import { LogFoodMediaSlot, MEDIA_SLOT } from "./log-food-media-slot";
@@ -8,7 +9,7 @@ export function LogFoodRowLeading({
 	locale,
 }: {
 	selection: FoodSelection;
-	locale: "en" | "nl";
+	locale: Locale;
 }) {
 	const name = selection.food.name[locale];
 	const legacyImageUrl =

@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
@@ -7,7 +8,7 @@ import { DiaryCalendar } from "./diary-calendar";
 export interface DiaryDatePickerProps {
 	date: string;
 	onSelect: (date: string) => void;
-	locale: "en" | "nl";
+	locale: Locale;
 	label: string;
 }
 export function DiaryDatePicker(props: DiaryDatePickerProps) {

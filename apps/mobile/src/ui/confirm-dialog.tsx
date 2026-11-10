@@ -14,7 +14,6 @@
  * difference between a considered answer and a reflex.
  */
 
-import { parseConvexError } from "@foundry/core";
 import {
 	createContext,
 	type ReactNode,
@@ -194,11 +193,6 @@ export function useConfirm() {
 		throw new Error("useConfirm must be used inside <ConfirmProvider>");
 	}
 	return confirm;
-}
-
-/** The human part of a failed Convex call, or `fallback` when there is none. */
-export function convexErrorMessage(error: unknown, fallback: string) {
-	return parseConvexError(error).message || fallback;
 }
 
 const createStyles = (colors: Tokens) =>

@@ -7,7 +7,8 @@ import { ActionSheetIOS, Platform } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
-import { convexErrorMessage, useConfirm } from "../../../ui/confirm-dialog";
+import { convexErrorMessage } from "../../../i18n/errors";
+import { useConfirm } from "../../../ui/confirm-dialog";
 import { useRestTimer } from "../components/rest-timer";
 import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
 import {

@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/expo";
-import { canonicalJson } from "@foundry/core";
+import { canonicalJson, type Locale } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
 import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
 import {
@@ -57,7 +57,7 @@ type PersonalFoodsValue = {
 	lookupBarcode(barcode: string): Promise<PersonalFood | undefined>;
 	search(
 		query: string,
-		locale: "en" | "nl",
+		locale: Locale,
 		filter?: PersonalFoodFilter,
 	): PersonalFood[];
 	forks(): PersonalFood[];
@@ -561,7 +561,7 @@ export function usePersonalFoods(options?: {
 	ids?: readonly string[];
 	forkIds?: readonly string[];
 	/** Warm only the shipped matches displayed by the picker, after search debounce. */
-	forkSearch?: { locale: "en" | "nl"; limit?: number };
+	forkSearch?: { locale: Locale; limit?: number };
 	barcode?: string;
 	active?: boolean;
 }): PersonalFoodsValue {

@@ -1,4 +1,8 @@
-import { type NutrientTotal, roundForDisplay } from "@foundry/core";
+import {
+	type Locale,
+	type NutrientTotal,
+	roundForDisplay,
+} from "@foundry/core";
 import {
 	type NutrientGoal,
 	type NutrientKey,
@@ -31,7 +35,7 @@ export function groupGoals(
 export function displayAmount(
 	nutrient: NutrientKey,
 	total?: NutrientTotal,
-	locale: "en" | "nl" = "en",
+	locale: Locale = "en",
 ): string {
 	const amount = new Intl.NumberFormat(locale, { useGrouping: false }).format(
 		roundForDisplay(nutrient, total?.amount ?? 0),
@@ -113,7 +117,7 @@ export function outcome(
 }
 
 /** Keep translated status copy consistent with the user's decimal separator. */
-export function localizedGoalStatus(label: string, locale: "en" | "nl") {
+export function localizedGoalStatus(label: string, locale: Locale) {
 	return label.replace(/\d+\.\d+/g, (value) =>
 		new Intl.NumberFormat(locale, { useGrouping: false }).format(Number(value)),
 	);

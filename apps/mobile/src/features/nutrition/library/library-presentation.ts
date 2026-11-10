@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@foundry/core";
+import { type Locale, roundForDisplay } from "@foundry/core";
 import { comboEnergy } from "../../../data/nutrition-combo";
 import { fmt } from "../../../i18n";
 import type { foodLibraryEn } from "../../../i18n/messages/food-library";
@@ -13,7 +13,7 @@ const SOURCE_BADGE = {
 /** The line under a row's name: where its values come from, or its parts. */
 export function libraryCaption(
 	item: LibraryItem,
-	locale: "en" | "nl",
+	locale: Locale,
 	copy: typeof foodLibraryEn,
 ): string {
 	if (item.kind === "combo") {
@@ -41,7 +41,7 @@ export function libraryCaption(
 /** "389 kcal" over "per 100 g", "per bottle" or "whole combo". */
 export function libraryEnergy(
 	item: LibraryItem,
-	locale: "en" | "nl",
+	locale: Locale,
 	copy: typeof foodLibraryEn,
 ): { value: string; basis: string } {
 	if (item.kind === "combo") {

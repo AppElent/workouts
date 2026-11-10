@@ -13,7 +13,8 @@
  */
 import { useCallback, useState } from "react";
 import { fmt, useI18n } from "../i18n";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { convexErrorMessage } from "../i18n/errors";
+import { useConfirm } from "../ui/confirm-dialog";
 import { useToast } from "../ui/toast";
 import { formatLongDate } from "./calendar-day";
 import type { DiaryEntry, MealSlot } from "./nutrition-day";

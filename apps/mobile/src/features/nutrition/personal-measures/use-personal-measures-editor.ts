@@ -5,7 +5,8 @@ import { api } from "../../../convex/api";
 import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import { fmt, useI18n } from "../../../i18n";
-import { convexErrorMessage, useConfirm } from "../../../ui/confirm-dialog";
+import { convexErrorMessage } from "../../../i18n/errors";
+import { useConfirm } from "../../../ui/confirm-dialog";
 import { useToast } from "../../../ui/toast";
 
 export type MeasureUnit = "g" | "ml";
