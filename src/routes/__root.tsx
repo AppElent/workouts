@@ -1,69 +1,36 @@
+import { DEFAULT_LOCALE } from "@foundry/core";
 import {
 	createRootRoute,
 	HeadContent,
 	Outlet,
 	Scripts,
-	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
-import { AppShell } from "#/components/AppShell";
 import { ConfirmDialogProvider } from "#/components/ui/confirm-dialog";
 import { ToastHost } from "#/components/ui/toast";
 import AppClerkProvider from "#/integrations/clerk/provider";
 import AppConvexProvider from "#/integrations/convex/provider";
-import {
-	type AuthConfig,
-	AuthConfigProvider,
-	DEFAULT_AUTH_CONFIG,
-	THEME_INIT_SCRIPT,
-} from "#/lib/auth";
-import { type Locale, LocaleProvider, readClientLocale } from "#/lib/i18n";
+import { LocaleProvider, readClientLocale } from "#/lib/i18n";
 import { LanguageSync } from "#/lib/i18n/LanguageSync";
 import { getSsrLocale } from "#/lib/i18n/server";
+import { reportError } from "#/lib/observability/errors";
 
 import appCss from "../styles.css?url";
-
-const AUTH_CONFIG = {
-	...DEFAULT_AUTH_CONFIG,
-	appName: "Foundry",
-	socialProviders: [
-		// Google only has working credentials on the development Clerk
-		// instance; offer it on the local dev server only until production
-		// has its own Google OAuth client.
-		...(import.meta.env.DEV
-			? [{ id: "google", label: "Google", strategy: "oauth_google" as const }]
-			: []),
-		{ id: "microsoft", label: "Microsoft", strategy: "oauth_microsoft" },
-		{ id: "apple", label: "Apple", strategy: "oauth_apple" },
-	],
-} satisfies AuthConfig;
-
-// Routes that render without the AppShell chrome (sidebar / bottom nav).
-const BARE_ROUTES = [
-	"/sign-in",
-	"/sign-up",
-	"/sso-callback",
-	"/forgot-password",
-	"/login",
-	"/api/cli/auth",
-	"/mcp/auth",
-	"/privacy",
-];
 
 export const Route = createRootRoute({
 	loader: async () => {
 		try {
-			if (typeof document !== "undefined") {
-				return { locale: readClientLocale() };
-			}
-			const { locale } = (await getSsrLocale()) as { locale: Locale };
-			return { locale };
+			return {
+				locale:
+					typeof document !== "undefined"
+						? readClientLocale()
+						: await getSsrLocale(),
+			};
 		} catch {
-			// SSR locale resolution is best-effort; the client corrects it
-			// from the cookie/navigator.language once the loader re-runs
-			// after hydration.
-			return { locale: "en" as Locale };
+			// Best effort: the client re-runs the loader after hydration and
+			// reads the cookie or navigator.language.
+			return { locale: DEFAULT_LOCALE };
 		}
 	},
 	head: () => ({
@@ -97,10 +64,8 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang={DEFAULT_LOCALE}>
 			<head>
-				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: intentional inline theme init script */}
-				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 				<HeadContent />
 			</head>
 			<body>
@@ -112,14 +77,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayout() {
-	const { locale } = Route.useLoaderData() ?? { locale: "en" as Locale };
+	const { locale } = Route.useLoaderData() ?? { locale: DEFAULT_LOCALE };
 
 	useEffect(() => {
 		if (typeof window === "undefined" || !("serviceWorker" in navigator))
 			return;
-		navigator.serviceWorker.register("/sw.js").catch(() => {
-			// non-fatal: app still works without offline/installable support
-		});
+		navigator.serviceWorker
+			.register("/sw.js")
+			.catch((error) => reportError(error, "registerServiceWorker"));
 	}, []);
 
 	// Shell's <html lang> is a static SSR fallback (shellComponent renders
@@ -133,30 +98,15 @@ function RootLayout() {
 		<LocaleProvider initialLocale={locale}>
 			<AppClerkProvider>
 				<AppConvexProvider>
-					<AuthConfigProvider config={AUTH_CONFIG}>
-						<LanguageSync />
-						<ToastHost>
-							<ConfirmDialogProvider>
-								<AppContent />
-							</ConfirmDialogProvider>
-						</ToastHost>
-						{import.meta.env.DEV && <TanStackRouterDevtools />}
-					</AuthConfigProvider>
+					<LanguageSync />
+					<ToastHost>
+						<ConfirmDialogProvider>
+							<Outlet />
+						</ConfirmDialogProvider>
+					</ToastHost>
+					{import.meta.env.DEV && <TanStackRouterDevtools />}
 				</AppConvexProvider>
 			</AppClerkProvider>
 		</LocaleProvider>
 	);
-}
-
-function AppContent() {
-	const { location } = useRouterState();
-
-	if (
-		location.pathname === "/" ||
-		BARE_ROUTES.some((route) => location.pathname.startsWith(route))
-	) {
-		return <Outlet />;
-	}
-
-	return <AppShell />;
 }

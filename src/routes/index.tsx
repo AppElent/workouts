@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Dumbbell, TrendingUp } from "lucide-react";
-import { HeaderUser } from "#/lib/auth";
+import { HeaderUser } from "#/lib/auth/HeaderUser";
 import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/")({

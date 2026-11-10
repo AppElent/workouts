@@ -1,12 +1,10 @@
 import { useAuth } from "@clerk/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { AuthCard, SignInForm } from "#/lib/auth";
-import {
-	buildMcpAuthErrorRedirect,
-	buildMcpAuthTokenRedirect,
-	parseMcpAuthRequest,
-} from "#/lib/mcpAuthRedirect";
+import { useEffect, useMemo } from "react";
+import { AuthCard } from "#/lib/auth/AuthCard";
+import { SignInForm } from "#/lib/auth/SignInForm";
+import { mcpCallbackUrl, parseMcpAuthRequest } from "#/lib/mcp/authRedirect";
+import { reportError } from "#/lib/observability/errors";
 
 export const Route = createFileRoute("/mcp/auth")({
 	ssr: false,
@@ -15,7 +13,6 @@ export const Route = createFileRoute("/mcp/auth")({
 
 function McpAuthLoginPage() {
 	const { getToken, isLoaded, isSignedIn } = useAuth();
-	const [error, setError] = useState<string | undefined>();
 	const authRequest = useMemo(
 		() => parseMcpAuthRequest(window.location.href),
 		[],
@@ -23,49 +20,26 @@ function McpAuthLoginPage() {
 
 	useEffect(() => {
 		if (!authRequest.ok || !isLoaded || !isSignedIn) return;
-
 		let cancelled = false;
-		const request = authRequest;
-
-		async function redirectWithToken() {
-			try {
-				const token = await getToken({ template: "convex" });
-				if (cancelled) return;
-
-				if (!token) {
-					window.location.assign(
-						buildMcpAuthErrorRedirect({
-							redirectUri: request.redirectUri,
-							state: request.state,
-							error: "token_unavailable",
-							description: "Could not create an MCP token.",
-						}),
-					);
-					return;
-				}
-
-				window.location.assign(
-					buildMcpAuthTokenRedirect({
-						redirectUri: request.redirectUri,
-						state: request.state,
-						token,
-					}),
-				);
-			} catch {
+		getToken({ template: "convex" })
+			.catch((error) => {
+				reportError(error, "mcpAuthToken");
+				return null;
+			})
+			.then((token) => {
 				if (cancelled) return;
 				window.location.assign(
-					buildMcpAuthErrorRedirect({
-						redirectUri: request.redirectUri,
-						state: request.state,
-						error: "token_unavailable",
-						description: "Could not create an MCP token.",
-					}),
+					mcpCallbackUrl(
+						authRequest,
+						token
+							? { token }
+							: {
+									error: "token_unavailable",
+									error_description: "Could not create an MCP token.",
+								},
+					),
 				);
-			}
-		}
-
-		redirectWithToken();
-
+			});
 		return () => {
 			cancelled = true;
 		};
@@ -78,17 +52,6 @@ function McpAuthLoginPage() {
 				subtitle="This MCP login request is invalid."
 			>
 				<p className="text-sm text-red-400">{authRequest.message}</p>
-			</AuthCard>
-		);
-	}
-
-	if (error) {
-		return (
-			<AuthCard
-				title="MCP sign in"
-				subtitle="The MCP login could not continue."
-			>
-				<p className="text-sm text-red-400">{error}</p>
 			</AuthCard>
 		);
 	}
@@ -107,7 +70,7 @@ function McpAuthLoginPage() {
 				title="Sign in to Foundry MCP"
 				subtitle="Continue to connect this MCP client."
 			>
-				<SignInForm onSuccess={() => setError(undefined)} />
+				<SignInForm />
 			</AuthCard>
 		);
 	}

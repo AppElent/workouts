@@ -1,12 +1,15 @@
+import { SUPPORTED_LOCALES } from "@foundry/core";
 import { fmt, useI18n } from "#/lib/i18n";
-
-const LOCALE_NAMES = { en: "English", nl: "Nederlands" } as const;
 
 export function LanguageToggle() {
 	const { locale, messages, setLocale } = useI18n();
-	const next = locale === "en" ? "nl" : "en";
+	const next =
+		SUPPORTED_LOCALES[
+			(SUPPORTED_LOCALES.indexOf(locale) + 1) % SUPPORTED_LOCALES.length
+		];
 	const label = fmt(messages.common.header.switchLanguage, {
-		language: LOCALE_NAMES[next],
+		language:
+			new Intl.DisplayNames([next], { type: "language" }).of(next) ?? next,
 	});
 
 	return (

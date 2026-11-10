@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./lib/auth/tokens.css";
 
 :root {
   /* Spotify dark design tokens */
