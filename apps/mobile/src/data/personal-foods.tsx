@@ -1,5 +1,6 @@
 import {
 	canonicalJson,
+	LIBRARY_GET_MANY_LIMIT,
 	type LibraryCategory,
 	type Locale,
 } from "@foundry/core";
@@ -160,7 +161,7 @@ function PersonalFoodsAccount({
 				ids: cache
 					.list()
 					.filter((food) => food.provenance.barcode === barcode)
-					.slice(0, 100)
+					.slice(0, LIBRARY_GET_MANY_LIMIT)
 					.map((food) => food.id),
 				barcode,
 			});
@@ -353,10 +354,14 @@ function PersonalFoodsAccount({
 				devicePhotoCount: cache.list().filter(hasUnuploadedPhoto).length,
 				uploadDevicePhotos: async () => {
 					const localPhotos = cache.list().filter(hasUnuploadedPhoto);
-					for (let offset = 0; offset < localPhotos.length; offset += 100) {
+					for (
+						let offset = 0;
+						offset < localPhotos.length;
+						offset += LIBRARY_GET_MANY_LIMIT
+					) {
 						const records = await client.query(api.nutritionLibrary.getMany, {
 							ids: localPhotos
-								.slice(offset, offset + 100)
+								.slice(offset, offset + LIBRARY_GET_MANY_LIMIT)
 								.map((food) => food.id),
 						});
 						if (owner.current !== subject)
@@ -458,7 +463,7 @@ export function usePersonalFoods(options?: {
 				: []),
 		]),
 	].sort();
-	const forkIds = allForkIds.slice(0, 100);
+	const forkIds = allForkIds.slice(0, LIBRARY_GET_MANY_LIMIT);
 	const extraForkQueries: Record<
 		string,
 		{
@@ -467,8 +472,12 @@ export function usePersonalFoods(options?: {
 		}
 	> = {};
 	if (enabled)
-		for (let offset = 100; offset < allForkIds.length; offset += 100) {
-			const chunk = allForkIds.slice(offset, offset + 100);
+		for (
+			let offset = LIBRARY_GET_MANY_LIMIT;
+			offset < allForkIds.length;
+			offset += LIBRARY_GET_MANY_LIMIT
+		) {
+			const chunk = allForkIds.slice(offset, offset + LIBRARY_GET_MANY_LIMIT);
 			extraForkQueries[String(offset)] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
@@ -476,7 +485,7 @@ export function usePersonalFoods(options?: {
 					ids: value
 						.forks()
 						.filter((food) => chunk.includes(food.provenance.forkedFrom ?? ""))
-						.slice(0, 100)
+						.slice(0, LIBRARY_GET_MANY_LIMIT)
 						.map((food) => food.id)
 						.sort(),
 				},
@@ -491,13 +500,19 @@ export function usePersonalFoods(options?: {
 				.map((food) => food.id),
 		]),
 	];
-	ids = requestedIds.slice(0, 100).sort();
+	ids = requestedIds.slice(0, LIBRARY_GET_MANY_LIMIT).sort();
 	if (enabled)
-		for (let offset = 100; offset < requestedIds.length; offset += 100)
+		for (
+			let offset = LIBRARY_GET_MANY_LIMIT;
+			offset < requestedIds.length;
+			offset += LIBRARY_GET_MANY_LIMIT
+		)
 			extraForkQueries[`cached:${offset}`] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
-					ids: requestedIds.slice(offset, offset + 100).sort(),
+					ids: requestedIds
+						.slice(offset, offset + LIBRARY_GET_MANY_LIMIT)
+						.sort(),
 					forkIds: [],
 				},
 			};

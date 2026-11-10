@@ -33,6 +33,7 @@ import type { LoggedEntries } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import {
 	comboSourceKey,
+	libraryIdsFromSourceKeys,
 	portionMemoryFor,
 	rememberedSelection,
 	useFoodShortcuts,
@@ -376,11 +377,9 @@ export function LogFoodScreen({
 					? { category: "combo" as const }
 					: {}),
 		},
-		ids: [...recentShortcuts, ...favoriteShortcuts]
-			.map((item) => item.sourceKey)
-			.filter((key) => key.startsWith("personal:") || key.startsWith("combo:"))
-			.slice(0, 100)
-			.map((key) => key.slice(key.indexOf(":") + 1)),
+		ids: libraryIdsFromSourceKeys(
+			[...recentShortcuts, ...favoriteShortcuts].map((item) => item.sourceKey),
+		),
 	});
 	const browsed = useLogFoodItems({
 		catalogueLimit,

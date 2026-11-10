@@ -5,7 +5,10 @@ import { useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import { useFoodShortcuts } from "../../../data/nutrition-shortcuts";
+import {
+	libraryIdsFromSourceKeys,
+	useFoodShortcuts,
+} from "../../../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
@@ -75,12 +78,7 @@ export function LibraryScreen() {
 	const library = usePersonalFoods({
 		...(chip === "favorite"
 			? {
-					ids: [...favoriteKeys]
-						.filter(
-							(key) => key.startsWith("personal:") || key.startsWith("combo:"),
-						)
-						.slice(0, 100)
-						.map((key) => key.slice(key.indexOf(":") + 1)),
+					ids: libraryIdsFromSourceKeys([...favoriteKeys]),
 				}
 			: {
 					browse: {
