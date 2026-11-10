@@ -1,18 +1,13 @@
 export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
 
-import { MEAL_SLOTS } from "@foundry/core";
 import { router, useLocalSearchParams } from "expo-router";
-import { useRef } from "react";
 import { useOnline } from "../../src/convex/online";
-import { useNutritionDay } from "../../src/data/nutrition-day";
-import {
-	isoDateToLocalDate,
-	todayIsoDate,
-	toIsoDate,
-} from "../../src/dates/calendar-day";
 import { DiaryEntryEditorScreen } from "../../src/features/nutrition/diary-entry/diary-entry-editor-screen";
+import { useRetainedDiaryEntry } from "../../src/features/nutrition/diary-entry/use-retained-diary-entry";
+import { diaryRouteParams } from "../../src/features/nutrition/diary-route-params";
 import { useI18n } from "../../src/i18n";
 import { AppText } from "../../src/ui/text";
+
 export default function NutritionEntryRoute() {
 	const params = useLocalSearchParams<{
 		id?: string;
@@ -21,26 +16,12 @@ export default function NutritionEntryRoute() {
 	}>();
 	const { t } = useI18n();
 	const connected = useOnline();
-	const date =
-		typeof params.date === "string" &&
-		/^\d{4}-\d{2}-\d{2}$/.test(params.date) &&
-		toIsoDate(isoDateToLocalDate(params.date)) === params.date
-			? params.date
-			: todayIsoDate();
-	const meal = MEAL_SLOTS.find((slot) => slot === params.meal) ?? "breakfast";
-	const state = useNutritionDay(date);
-	const current =
-		state.status === "ready"
-			? state.day.entries[meal].find((entry) => entry.id === params.id)
-			: undefined;
-	const retained = useRef(current);
-	if (!retained.current && current) retained.current = current;
-	// Keep the editor mounted during its optimistic meal/date move.
-	const entry = retained.current;
+	const { date, meal } = diaryRouteParams(params);
+	const { entry, loading } = useRetainedDiaryEntry(date, meal, params.id);
 	if (!entry)
 		return (
 			<AppText>
-				{state.status === "loading"
+				{loading
 					? connected
 						? t.diaryEntry.loading
 						: t.diaryEntry.uncachedDay

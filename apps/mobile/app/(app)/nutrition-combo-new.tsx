@@ -8,26 +8,27 @@ export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutriti
  * longer match anything are dropped, and an empty selection closes the route.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/dates/calendar-day";
 import {
 	ComboNewFromDiary,
 	ComboNewFromLibrary,
 } from "../../src/features/nutrition/combo/combo-new-sources";
+import { diaryRouteParams } from "../../src/features/nutrition/diary-route-params";
 
 const ids = (value?: string) => (value ?? "").split(",").filter(Boolean);
 const leave = () => router.back();
 
 export default function NutritionComboNewRoute() {
-	const { foodIds, date, entryIds } = useLocalSearchParams<{
+	const params = useLocalSearchParams<{
 		foodIds?: string;
 		date?: string;
 		entryIds?: string;
 	}>();
+	const { foodIds, entryIds } = params;
 	return foodIds ? (
 		<ComboNewFromLibrary foodIds={ids(foodIds)} />
 	) : (
 		<ComboNewFromDiary
-			date={date ?? todayIsoDate()}
+			date={diaryRouteParams(params).date}
 			entryIds={ids(entryIds)}
 			onDone={leave}
 		/>
