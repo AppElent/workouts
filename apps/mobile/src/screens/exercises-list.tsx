@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
-import { useI18n } from "../i18n";
+import { plural, useI18n } from "../i18n";
 import { convexErrorMessage } from "../i18n/errors";
 import {
 	PREFERENCE_KEYS,
@@ -52,7 +52,7 @@ export function ExercisesScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const c = t.exercises;
 	const { exercises } = useShellData();
 	const removeExercise = useMutation(api.exercises.remove);
@@ -169,10 +169,7 @@ export function ExercisesScreen() {
 						/>
 						<View style={styles.summary}>
 							<AppText variant="footnote" style={{ color: colors.textMuted }}>
-								{(filtered.length === 1 ? c.countOne : c.count).replace(
-									"{count}",
-									String(filtered.length),
-								)}
+								{plural(locale, filtered.length, c.count)}
 							</AppText>
 							<Pressable
 								accessibilityRole="button"

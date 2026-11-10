@@ -1173,7 +1173,7 @@ export function setManual(
 		plan: { ...next, manual: { ...next.manual, [exerciseId]: value } },
 		note: moved
 			? {
-					code: moved === 1 ? "repricedOne" : "repriced",
+					code: "repriced",
 					values: { count: moved, value },
 				}
 			: { code: "manualSaved", values: { value } },
@@ -1497,14 +1497,12 @@ export function groupWith(
 		groupId: id,
 		note: {
 			code:
-				after - before > 1
+				after > before
 					? "groupedAdded"
-					: after > before
-						? "groupedAddedOne"
-						: rounds.length === 1
-							? "groupedOneRound"
-							: "grouped",
-			values: { rounds: rounds.length, added: after - before },
+					: rounds.length === 1
+						? "groupedOneRound"
+						: "grouped",
+			values: { rounds: rounds.length, count: after - before },
 		},
 	};
 }
@@ -1789,7 +1787,7 @@ export function setGroupRounds(
 				locked === 0
 					? { code: "minimumRound" }
 					: {
-							code: locked === 1 ? "roundsLoggedOne" : "roundsLogged",
+							code: "roundsLogged",
 							values: { count: locked },
 						},
 		};

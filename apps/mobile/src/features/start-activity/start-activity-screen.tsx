@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet } from "react-native";
-import { useI18n } from "../../i18n";
+import { plural, useI18n } from "../../i18n";
 import { spacing } from "../../theme";
 import { SportIcon } from "../../ui/coach";
 import {
@@ -16,6 +16,7 @@ export function StartActivityScreen() {
 	const router = useRouter();
 	const {
 		t: { training: copy },
+		locale,
 	} = useI18n();
 	const flow = useStartActivity();
 	const { data, pending, sport, routineId, name } = flow;
@@ -104,7 +105,7 @@ export function StartActivityScreen() {
 									key={routine._id}
 									role="radio"
 									label={routine.name}
-									secondary={`${routine.exercises.length} ${routine.exercises.length === 1 ? copy.singleExercise : copy.exerciseCount} · ${routine.exercises.reduce((sum, e) => sum + e.defaultSets, 0)} ${copy.setCount}`}
+									secondary={`${routine.exercises.length} ${plural(locale, routine.exercises.length, copy.exerciseCount)} · ${routine.exercises.reduce((sum, e) => sum + e.defaultSets, 0)} ${copy.setCount}`}
 									selected={routineId === routine._id}
 									disabled={pending}
 									onPress={() => flow.setRoutineId(routine._id)}

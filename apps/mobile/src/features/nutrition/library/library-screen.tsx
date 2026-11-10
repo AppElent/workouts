@@ -12,7 +12,7 @@ import {
 } from "../../../data/nutrition-operation-service";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useStalledOffline } from "../../../data/stalled-offline";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { EmptyState } from "../../../ui/empty-state";
@@ -590,9 +590,7 @@ export function LibraryScreen() {
 				>
 					{selecting
 						? copy.title
-						: items.length === 1
-							? copy.itemCountOne
-							: fmt(copy.itemCount, { count: items.length })}
+						: plural(locale, items.length, copy.itemCount)}
 				</AppText>
 				{bottomToolbar || selecting ? null : (
 					<View

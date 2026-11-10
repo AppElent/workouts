@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { api } from "../../convex/api";
 import { useExercises } from "../../data/exercises";
-import { useI18n } from "../../i18n";
+import { plural, useI18n } from "../../i18n";
 import { convexErrorMessage } from "../../i18n/errors";
 import { spacing, useTokens } from "../../theme";
 import { PrimaryButton } from "../../ui/button";
@@ -24,6 +24,7 @@ export function TrainingScreen() {
 	const router = useRouter();
 	const {
 		t: { training: copy },
+		locale,
 	} = useI18n();
 	const data = useTrainingData();
 	const { start, pending } = useStartStrengthSession(data);
@@ -190,7 +191,7 @@ export function TrainingScreen() {
 								<InsetRow
 									key={routine._id}
 									title={routine.name}
-									secondary={`${routine.exercises.length} ${routine.exercises.length === 1 ? copy.singleExercise : copy.exerciseCount} · ${routine.exercises.reduce((total, exercise) => total + exercise.defaultSets, 0)} ${copy.setCount}`}
+									secondary={`${routine.exercises.length} ${plural(locale, routine.exercises.length, copy.exerciseCount)} · ${routine.exercises.reduce((total, exercise) => total + exercise.defaultSets, 0)} ${copy.setCount}`}
 									onPress={() => edit(routine)}
 									actions={actions}
 									trailing={

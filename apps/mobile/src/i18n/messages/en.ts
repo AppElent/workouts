@@ -347,8 +347,10 @@ export const en = {
 			deleteBody: "It has not been logged as food.",
 			deleteConfirm: "Delete note",
 			deleteFailure: "This note could not be deleted.",
-			otherDaysOne: "1 unresolved note on another day",
-			otherDaysMany: "{count} unresolved notes on other days",
+			otherDays: {
+				one: "1 unresolved note on another day",
+				other: "{count} unresolved notes on other days",
+			},
 			otherDaysAction: "Go to oldest",
 			saveAsNote: "Save as note",
 			editTitle: "Edit note",
@@ -357,8 +359,7 @@ export const en = {
 			save: "Save note",
 			saveFailure: "This note could not be saved. Your text is still here.",
 			cancel: "Cancel",
-			countOne: "1 note",
-			countMany: "{count} notes",
+			count: { one: "1 note", other: "{count} notes" },
 			completeWithNotesTitle: "Mark complete with unresolved notes?",
 			completeWithNotesBody:
 				"{count} note(s) on this day have not been logged as food. They stay on this device.",
@@ -461,16 +462,16 @@ export const en = {
 			selectionHelp:
 				"Choose diary entries or an entire Logged Combo from one meal.",
 			cancel: "Cancel",
-			continueOne: "Continue with 1 part",
-			continueMany: "Continue with {count} parts",
+			continue: {
+				one: "Continue with 1 part",
+				other: "Continue with {count} parts",
+			},
 			destination: "Log to meal",
-			logOne: "Log 1 part",
-			logMany: "Log {count} parts",
+			logParts: { one: "Log 1 part", other: "Log {count} parts" },
 			logging: "Logging Combo…",
 			logFailure:
 				"This Combo could not be logged. Your selection is still here.",
-			partsOne: "1 part",
-			partsMany: "{count} parts",
+			parts: { one: "1 part", other: "{count} parts" },
 			needsAttention: "Needs attention",
 			missing: "Missing source",
 			missingBody:

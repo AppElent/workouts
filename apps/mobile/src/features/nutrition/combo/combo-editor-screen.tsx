@@ -10,7 +10,7 @@ import {
 import { comboSourceKey } from "../../../data/nutrition-shortcuts";
 import type { Combo } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -321,7 +321,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 							</AppText>
 						</View>
 						<AppText variant="footnote">
-							{count === 1 ? copy.partCountOne : fmt(copy.partCount, { count })}
+							{plural(locale, count, copy.partCount)}
 						</AppText>
 					</View>
 					{missing.length ? (

@@ -149,9 +149,7 @@ export function SessionRecap({
 										variant="secondary"
 										style={{ color: colors.textMuted }}
 									>
-										{row.sets === 1
-											? copy.rowOneSet
-											: plural(locale, row.sets, copy.rowSets)}
+										{plural(locale, row.sets, copy.rowSets)}
 										{row.topLoad
 											? ` · ${formatSetShort(row.topLoad, facts.bodyweight, locale)}`
 											: ""}

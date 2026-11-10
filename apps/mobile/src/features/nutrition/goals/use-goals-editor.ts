@@ -25,7 +25,7 @@ import {
 	withoutGoal,
 } from "../../../data/nutrition-goal-history";
 import { useStalledOffline } from "../../../data/stalled-offline";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import type { GoalVersionSummary } from "./goals-applies-from";
 
@@ -84,7 +84,7 @@ export function useGoalsEditor({
 	requestedDate: IsoDate | undefined;
 	onSaved: () => void;
 }) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const copy = t.nutrition.goalEditor;
 	const toast = useToast();
 	const [today] = useState(() => todayIsoDate());
@@ -195,9 +195,7 @@ export function useGoalsEditor({
 			}
 			setErrors(next);
 			const count = Object.keys(next).length;
-			toast.error(
-				count === 1 ? copy.invalidOne : fmt(copy.invalidCount, { count }),
-			);
+			toast.error(plural(locale, count, copy.invalidCount));
 			return order.find((nutrient) => next[nutrient]);
 		}
 		saving.current = true;

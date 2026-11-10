@@ -118,8 +118,14 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			extra: Partial<Parameters<typeof notify>[0]> = {},
 		) => notify({ text, ...(extra as object) });
 		const noteText = (note: PlanNote, name?: string) => {
-			const template = (copy.notes as Record<string, string>)[note.code] ?? "";
-			return fmt(template, { name: name ?? "", ...(note.values ?? {}) });
+			const template: string | { one: string; other: string } | undefined = (
+				copy.notes as Record<string, string | { one: string; other: string }>
+			)[note.code];
+			const text =
+				typeof template === "object"
+					? plural(locale, Number(note.values?.count ?? 0), template)
+					: (template ?? "");
+			return fmt(text, { name: name ?? "", ...(note.values ?? {}) });
 		};
 		/** Call after the change: a snapshot can only undo what came last. */
 		const snapshotUndo = (before: SessionPlan, added?: string) => {

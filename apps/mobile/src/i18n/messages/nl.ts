@@ -331,8 +331,10 @@ export const nl = {
 			deleteBody: "Deze is nog niet als voeding gelogd.",
 			deleteConfirm: "Notitie verwijderen",
 			deleteFailure: "Deze notitie kon niet worden verwijderd.",
-			otherDaysOne: "1 onverwerkte notitie op een andere dag",
-			otherDaysMany: "{count} onverwerkte notities op andere dagen",
+			otherDays: {
+				one: "1 onverwerkte notitie op een andere dag",
+				other: "{count} onverwerkte notities op andere dagen",
+			},
 			otherDaysAction: "Naar de oudste",
 			saveAsNote: "Opslaan als notitie",
 			editTitle: "Notitie bewerken",
@@ -342,8 +344,7 @@ export const nl = {
 			saveFailure:
 				"Deze notitie kon niet worden opgeslagen. Je tekst staat er nog.",
 			cancel: "Annuleren",
-			countOne: "1 notitie",
-			countMany: "{count} notities",
+			count: { one: "1 notitie", other: "{count} notities" },
 			completeWithNotesTitle: "Voltooien met onverwerkte notities?",
 			completeWithNotesBody:
 				"{count} notitie(s) op deze dag zijn nog niet als voeding gelogd. Ze blijven op dit toestel.",
@@ -446,16 +447,16 @@ export const nl = {
 			selectionHelp:
 				"Kies dagboekitems of een hele gelogde Combo uit één maaltijd.",
 			cancel: "Annuleren",
-			continueOne: "Ga verder met 1 onderdeel",
-			continueMany: "Ga verder met {count} onderdelen",
+			continue: {
+				one: "Ga verder met 1 onderdeel",
+				other: "Ga verder met {count} onderdelen",
+			},
 			destination: "Loggen bij maaltijd",
-			logOne: "Log 1 onderdeel",
-			logMany: "Log {count} onderdelen",
+			logParts: { one: "Log 1 onderdeel", other: "Log {count} onderdelen" },
 			logging: "Combo loggen…",
 			logFailure:
 				"Deze Combo kon niet worden gelogd. Je selectie staat er nog.",
-			partsOne: "1 onderdeel",
-			partsMany: "{count} onderdelen",
+			parts: { one: "1 onderdeel", other: "{count} onderdelen" },
 			needsAttention: "Aandacht nodig",
 			missing: "Bron ontbreekt",
 			missingBody:

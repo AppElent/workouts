@@ -30,7 +30,7 @@ import {
 	referenceGoalTarget,
 } from "../../../data/nutrition-goal-history";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -105,10 +105,7 @@ function GoalsEditor() {
 	usePreventRemove(editor.dirty && !leaving, ({ data }) => {
 		if (editor.pending) return;
 		void confirm({
-			title:
-				editor.changedCount === 1
-					? copy.discardMessageOne
-					: fmt(copy.discardMessage, { count: editor.changedCount }),
+			title: plural(locale, editor.changedCount, copy.discardMessage),
 			confirmLabel: copy.discard,
 			cancelLabel: copy.keepEditing,
 			destructive: true,
