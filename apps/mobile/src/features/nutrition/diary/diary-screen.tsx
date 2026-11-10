@@ -6,7 +6,6 @@ import {
 	NUTRIENT_KEYS,
 	totalNutrients,
 } from "@foundry/core";
-import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
@@ -73,23 +72,19 @@ export function DiaryScreen() {
 	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
 	const diary = useNutritionDiary();
 	const state = useNutritionDay(date);
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const stalled = useStalledOffline(state.status === "loading", connected);
+	const stalled = useStalledOffline(state.status === "loading");
 	const goalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsPending),
-		connected,
 	);
 	// Cached data stands in for a moment on every day switch; only say so once
 	// it is clearly not being replaced, or the notice flashes and shifts the list.
 	const incompleteStalled = useStalledOffline(
 		state.status === "ready" && !state.day.complete,
-		connected,
 	);
 	// Notes arrive quickly when connected; announcing the wait only shifts the list.
-	const notesStalled = useStalledOffline(drafts.loading, connected);
+	const notesStalled = useStalledOffline(drafts.loading);
 	const cachedGoalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsCached),
-		connected,
 	);
 	const { setHidden } = useTabBarVisibility();
 	useEffect(() => {

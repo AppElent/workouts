@@ -1,4 +1,3 @@
-import { useConvexConnectionState } from "convex/react";
 import { Stack } from "expo-router";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -25,9 +24,8 @@ export function EnduranceEditorScreen({
 }) {
 	const copy = useI18n().t.endurance;
 	const activity = useQuery(api.enduranceActivities.get, id ? { id } : "skip");
-	const { isWebSocketConnected } = useConvexConnectionState();
 	const loading = Boolean(id) && activity === undefined;
-	const stalledOffline = useStalledOffline(loading, isWebSocketConnected);
+	const stalledOffline = useStalledOffline(loading);
 	const currentSport = activity?.sport ?? sport;
 	const title = id
 		? currentSport === "cycling"

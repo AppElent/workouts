@@ -36,7 +36,6 @@ export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
 		Boolean(id) && activity === undefined,
-		isWebSocketConnected,
 	);
 	const remove = useMutation(api.enduranceActivities.remove);
 	const [deleting, setDeleting] = useState(false);

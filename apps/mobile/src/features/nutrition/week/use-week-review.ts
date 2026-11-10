@@ -1,5 +1,4 @@
 import type { IsoDate } from "@foundry/core";
-import { useConvexConnectionState } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
@@ -26,11 +25,7 @@ export function useWeekReview(startDate: string | undefined) {
 		startDate: week,
 		today,
 	});
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalledOffline = useStalledOffline(
-		result === undefined,
-		isWebSocketConnected,
-	);
+	const stalledOffline = useStalledOffline(result === undefined);
 	const days: readonly WeeklyReviewDay[] | undefined = result?.days;
 	return {
 		today,

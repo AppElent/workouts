@@ -9,7 +9,6 @@ import {
 	forkShippedFood,
 	shippedLibrary,
 } from "@foundry/core/shipped-foods";
-import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -256,8 +255,7 @@ export function LogFoodScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const { deleteEntry } = useDeleteDiaryEntry();
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const offline = useStalledOffline(true, connected);
+	const offline = useStalledOffline(true);
 	const bottomToolbar = isIOS26OrLater();
 	const searchBarRef = useRef<SearchBarCommands>(null);
 	const searchInputRef = useRef<TextInputInstance>(null);

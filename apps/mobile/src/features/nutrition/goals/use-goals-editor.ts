@@ -8,7 +8,7 @@ import {
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
@@ -92,11 +92,7 @@ export function useGoalsEditor({
 	const [date, setDate] = useState<IsoDate>(requestedDate ?? today);
 	const response = useQuery(api.nutritionGoals.forDate, { date });
 	const replace = useMutation(api.nutritionGoals.replace);
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalledOffline = useStalledOffline(
-		response === undefined,
-		isWebSocketConnected,
-	);
+	const stalledOffline = useStalledOffline(response === undefined);
 	const [draft, setDraft] = useState<Draft>(emptyDraft);
 	const [baseline, setBaseline] = useState<GoalDraft | null>(null);
 	const [started, setStarted] = useState(false);

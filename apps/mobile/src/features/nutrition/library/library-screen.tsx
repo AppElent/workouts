@@ -1,4 +1,3 @@
-import { useConvexConnectionState } from "convex/react";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
@@ -94,8 +93,7 @@ export function LibraryScreen() {
 	const [scanning, setScanning] = useState(false);
 	const bottomToolbar = isIOS26OrLater();
 	const searchRef = useRef<SearchBarCommands>(null);
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const offline = useStalledOffline(true, connected);
+	const offline = useStalledOffline(true);
 	const visible = filterLibrary(items, {
 		chip,
 		query: chip === "favorite" ? query : "",

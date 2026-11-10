@@ -15,7 +15,6 @@
  * screen including the Nutrition ones, and an English strip across a Dutch app
  * is exactly the kind of gap #79 exists to close.
  */
-import { useConvexConnectionState } from "convex/react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStalledOffline } from "../convex/stalled-offline";
@@ -25,10 +24,9 @@ import { AppText } from "./text";
 
 export function OfflineBanner() {
 	const styles = useThemedStyles(createStyles);
-	const { isWebSocketConnected } = useConvexConnectionState();
 	const insets = useSafeAreaInsets();
 	const { t } = useI18n();
-	const offline = useStalledOffline(true, isWebSocketConnected);
+	const offline = useStalledOffline(true);
 
 	if (!offline) return null;
 
