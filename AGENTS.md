@@ -27,6 +27,7 @@ Before the task, read the matching project doc:
 | Building a development client, shipping to TestFlight, or publishing an OTA update | [Mobile releases](docs/runbooks/mobile-releases.md) |
 | Adding or changing an environment variable or secret | [Environment](docs/runbooks/environment.md) |
 | Creating a worktree or its isolated Convex deployment | [Worktree setup](docs/runbooks/worktree-setup.md) |
+| Deploying staging or production, or changing `deploy.yml`, the deploy scripts, or `wrangler.jsonc` | [Deploy](docs/runbooks/deploy.md) |
 | Changing error reporting, source maps, or the `*_SENTRY_*` variables | [Sentry](docs/runbooks/sentry.md) |
 | Configuring Apple, Google, or Microsoft sign-in | [Social sign-in](docs/runbooks/social-sign-in.md) |
 | Using or changing the Foundry MCP server | [MCP](docs/runbooks/mcp.md) |
