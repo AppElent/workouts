@@ -51,7 +51,7 @@ function McpAuthLoginPage() {
 				title="MCP sign in"
 				subtitle="This MCP login request is invalid."
 			>
-				<p className="text-sm text-red-400">{authRequest.message}</p>
+				<p className="text-sm text-[var(--danger)]">{authRequest.message}</p>
 			</AuthCard>
 		);
 	}
@@ -59,7 +59,7 @@ function McpAuthLoginPage() {
 	if (!isLoaded) {
 		return (
 			<AuthCard title="MCP sign in" subtitle="Preparing your MCP session.">
-				<p className="text-sm text-muted-foreground">Loading...</p>
+				<p className="text-sm text-[var(--text-muted)]">Loading...</p>
 			</AuthCard>
 		);
 	}
@@ -77,7 +77,7 @@ function McpAuthLoginPage() {
 
 	return (
 		<AuthCard title="MCP sign in" subtitle="Returning to your MCP client.">
-			<p className="text-sm text-muted-foreground">Connecting...</p>
+			<p className="text-sm text-[var(--text-muted)]">Connecting...</p>
 		</AuthCard>
 	);
 }
