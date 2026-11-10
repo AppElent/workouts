@@ -106,7 +106,7 @@ not establish acceptance of unrelated native flows.
 ## Measured Convex workload
 
 Real isolated-deployment run at `2026-10-07T21:10:53.789Z`, using
-[measure-account-data.mjs](../../../scripts/measure-account-data.mjs).
+`scripts/measure-account-data.mjs` (deleted after this run; see git history).
 The script refuses a non-scoped/non-development/mismatched target and imports
 synthetic fixtures under a unique identity; do not run it on shared/production.
 Full sanitized results: [usage-results.json](usage-results.json).
