@@ -193,6 +193,7 @@ export function HostedDetailScreen() {
 				<WodBlockBoard
 					key={block.blockId}
 					block={block}
+					hostUserId={hosted.hostUserId}
 					participants={participants}
 					submissions={submissions}
 				/>
@@ -243,10 +244,12 @@ export function HostedDetailScreen() {
 /** One WOD's leaderboard: everyone's score for that block, best first. */
 function WodBlockBoard({
 	block,
+	hostUserId,
 	participants,
 	submissions,
 }: {
 	block: Doc<"hostedWorkouts">["template"]["wodBlocks"][number];
+	hostUserId: string;
 	participants: Doc<"hostedWorkoutParticipants">[];
 	submissions: Doc<"hostedWorkoutSubmissions">[];
 }) {
@@ -255,10 +258,13 @@ function WodBlockBoard({
 	const nameOf = useMemo(() => {
 		const map = new Map<Id<"hostedWorkoutParticipants">, string>();
 		for (const p of participants) {
-			map.set(p._id, p.displayName ?? copy.athlete);
+			map.set(
+				p._id,
+				p.displayName ?? (p.userId === hostUserId ? copy.host : copy.athlete),
+			);
 		}
 		return map;
-	}, [participants, copy.athlete]);
+	}, [participants, hostUserId, copy.host, copy.athlete]);
 
 	const ranked = useMemo(() => {
 		return submissions

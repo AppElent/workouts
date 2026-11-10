@@ -154,7 +154,9 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 								.filter((submission) => submission.wodBlockId === block.blockId)
 								.map((submission, index) => ({
 									id: `${submission.athleteName}-${submission.submittedAt}-${index}`,
-									name: submission.athleteName,
+									name:
+										submission.athleteName ??
+										(submission.byHost ? "Host" : "Signed-in athlete"),
 									level: submission.level,
 									submittedAt: submission.submittedAt,
 									score: submission,

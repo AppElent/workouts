@@ -155,14 +155,13 @@ export const getByJoinToken = query({
 			.collect();
 		const publicSubmissions = await Promise.all(
 			submissions.map(async (submission) => {
-				let athleteName = "Unknown athlete";
-				if (submission.guestName) athleteName = submission.guestName;
-				else if (submission.participantId) {
-					const participant = await ctx.db.get(submission.participantId);
-					athleteName = participant?.displayName ?? "Signed-in athlete";
-				}
+				const participant = submission.participantId
+					? await ctx.db.get(submission.participantId)
+					: null;
 				return {
-					athleteName,
+					/** `null` when the athlete gave no name; clients label them. */
+					athleteName: submission.guestName ?? participant?.displayName ?? null,
+					byHost: participant?.userId === hosted.hostUserId,
 					guestName: submission.guestName,
 					wodBlockId: submission.wodBlockId,
 					level: submission.level,
@@ -212,7 +211,8 @@ export const open = mutation({
 					q.eq("hostedWorkoutId", id).eq("userId", hosted.hostUserId),
 				)
 				.first();
-			if (!existing) await joinHosted(ctx, hosted, hosted.hostUserId, "Host");
+			if (!existing)
+				await joinHosted(ctx, hosted, hosted.hostUserId, undefined);
 		}
 	},
 });
