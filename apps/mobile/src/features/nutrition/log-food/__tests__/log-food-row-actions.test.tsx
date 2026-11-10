@@ -78,6 +78,8 @@ describe("a result row's actions", () => {
 		});
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({ meal: "breakfast" });
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
+			meal: "breakfast",
+		});
 	});
 });

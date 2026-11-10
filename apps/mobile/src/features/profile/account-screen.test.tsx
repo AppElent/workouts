@@ -3,7 +3,7 @@ import { useConvex, useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
-import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
+import { clearAccountStores } from "../../local-store/local-store";
 import { reportError } from "../../observability/errors";
 import { renderScreen } from "../../test-support/render-screen";
 import { AccountDataMaintenanceProvider } from "../local-data/account-data-maintenance-provider";
@@ -43,10 +43,10 @@ jest.mock("../../observability/errors", () => ({ reportError: jest.fn() }));
 
 jest.mock("../../data/nutrition-account-cleanup", () => ({
 	clearNutritionAccountCache: jest.fn(),
-	retireLegacyNutritionData: jest.fn(),
 }));
-jest.mock("../../data/nutrition-local-repository", () => ({
-	clearNutritionLocalAccount: jest.fn(),
+jest.mock("../../local-store/local-store", () => ({
+	...jest.requireActual("../../local-store/local-store"),
+	clearAccountStores: jest.fn(),
 }));
 jest.mock("../../data/personal-food-session", () => ({
 	discardPersonalFoodSources: jest.fn(),
@@ -132,7 +132,7 @@ it("deletes all data in batches after confirmation and keeps the account", async
 	expect(deleteData).toHaveBeenCalledTimes(2);
 	expect(deleteData).toHaveBeenCalledWith({ expectedSubject: "test-user" });
 	expect(mockUser.delete).not.toHaveBeenCalled();
-	expect(clearNutritionLocalAccount).toHaveBeenCalledWith("test-user");
+	expect(clearAccountStores).toHaveBeenCalledWith("test-user");
 	expect(clearAccountSetDrafts).toHaveBeenCalledWith("test-user");
 });
 

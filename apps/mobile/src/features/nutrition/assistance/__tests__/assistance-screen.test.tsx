@@ -1,3 +1,4 @@
+import type { NutritionOperationEnvelope } from "@foundry/core";
 import { useAction, useConvexConnectionState } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -10,18 +11,41 @@ import {
 } from "expo-router/testing-library";
 import Storage from "expo-sqlite/kv-store";
 import {
-	aiSessionForText,
-	reviewKey,
-	saveAiSession,
-} from "../../../../data/nutrition-ai-history";
-import { NutritionOperationService } from "../../../../data/nutrition-operation-service";
-import {
 	PREFERENCE_KEYS,
 	removeLocal,
 	writeLocal,
 } from "../../../../local-store/local-store";
 import { renderApp } from "../../../../test-support/render-app";
 import { ACTION_ARM_MS } from "../../../../ui/toast";
+import {
+	aiSessionForText,
+	forgetReview,
+	saveAiSession,
+} from "../assistance-history";
+
+type App = Awaited<ReturnType<typeof renderApp>>;
+type Operation = NutritionOperationEnvelope["operation"];
+
+/** The diary operations the fixture server received, of one kind. */
+function sent<K extends Operation["kind"]>(app: App, kind: K) {
+	return app.accountTransport.apply.mock.calls
+		.map(([args]) => args.operation)
+		.filter(
+			(operation): operation is Extract<Operation, { kind: K }> =>
+				operation.kind === kind,
+		);
+}
+
+/** The server refuses the next `times` operations of one kind. */
+function refuse(app: App, kind: Operation["kind"], times = 1) {
+	const { apply } = app.accountTransport;
+	const real = apply.getMockImplementation();
+	let left = times;
+	apply.mockImplementation(async (args) => {
+		if (args.operation.kind === kind && left-- > 0) throw new Error("failed");
+		return real?.(args);
+	});
+}
 
 type Item = {
 	name: string;
@@ -78,7 +102,7 @@ beforeEach(() => {
 	scriptActions();
 	writeLocal(PREFERENCE_KEYS.nutritionAiConsent, "granted");
 	// Each test analyses this text afresh; one test covers the cached answer.
-	Storage.removeItemSync(reviewKey("bread and a pancake", "en", "test-user"));
+	forgetReview("test-user", "bread and a pancake", "en");
 	// The first candidate for a known food; an estimate for an unknown one.
 	choose.mockImplementation(
 		async (args: { items: { candidates: { ref: string }[] }[] }) =>
@@ -207,7 +231,23 @@ describe("Hulp bij invoeren", () => {
 
 	describe("logging and continuing", () => {
 		const loggedText = "/nutrition-assistance?meal=lunch&text=log+me";
+		// Each test continues the session it logged itself, not an earlier one.
+		beforeEach(() => {
+			for (const key of Storage.getAllKeysSync())
+				if (key.startsWith("nutrition-ai:v1:test-user:"))
+					Storage.removeItemSync(key);
+		});
 		afterEach(() => jest.restoreAllMocks());
+
+		/** A continued meal can be logged once the day it replaces has loaded. */
+		async function logWhenReady() {
+			await waitFor(() =>
+				expect(
+					screen.getByRole("button", { name: "Log as one item" }),
+				).toBeEnabled(),
+			);
+			await fireEvent.press(screen.getByText("Log as one item"));
+		}
 
 		async function logOnce() {
 			describeMeal.mockResolvedValue({
@@ -218,14 +258,14 @@ describe("Hulp bij invoeren", () => {
 				question: null,
 				items: [{ ...bread, name: "Logged bread", confidence: "low" }],
 			});
-			Storage.removeItemSync(reviewKey("log me", "en", "test-user"));
+			forgetReview("test-user", "log me", "en");
 			const app = await renderApp();
 			await screen.findByText("Today");
 			await testRouter.push(loggedText);
 			await fireEvent.press(await screen.findByText("Analyse"));
 			await fireEvent.press(await screen.findByText("Log as one item"));
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			const session = aiSessionForText("log me", "test-user");
+			const session = aiSessionForText("test-user", "log me");
 			if (!session) throw new Error("No session was saved.");
 			return { app, session };
 		}
@@ -239,18 +279,14 @@ describe("Hulp bij invoeren", () => {
 				question: null,
 				items: [{ ...bread, name: "Logged bread" }],
 			});
-			Storage.removeItemSync(reviewKey("log me", "en", "test-user"));
-			const create = jest
-				.spyOn(NutritionOperationService.prototype, "createBatch")
-				.mockImplementationOnce(() => {
-					throw new Error("A connection is required to save.");
-				});
+			forgetReview("test-user", "log me", "en");
 			const app = await renderApp();
+			refuse(app, "createBatch");
 			await screen.findByText("Today");
 			await testRouter.push(loggedText);
 			await fireEvent.press(await screen.findByText("Analyse"));
 			await fireEvent.press(await screen.findByText("Log as one item"));
-			await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+			await waitFor(() => expect(sent(app, "createBatch")).toHaveLength(1));
 			expect(app.getPathname()).toBe("/nutrition-assistance");
 			await fireEvent.press(await screen.findByText("Log as one item"));
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
@@ -258,78 +294,52 @@ describe("Hulp bij invoeren", () => {
 
 		it("replaces the logged entries in one step when continuing", async () => {
 			const { app, session } = await logOnce();
-			const remove = jest.spyOn(
-				NutritionOperationService.prototype,
-				"removeBatch",
-			);
 			await testRouter.push(
 				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
 			);
-			await fireEvent.press(await screen.findByText("Log as one item"));
+			await logWhenReady();
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			expect(remove).toHaveBeenCalledTimes(1);
-			expect(remove.mock.calls[0]?.[1]).toEqual(
+			const removed = sent(app, "removeBatch");
+			expect(removed).toHaveLength(1);
+			expect(removed[0]?.targets).toEqual(
 				session.entryIds.map((id) => ({ kind: "clientEntryId", id })),
 			);
 		});
 
 		it("takes the new entries back when the old ones cannot be removed", async () => {
-			const { session } = await logOnce();
-			const remove = jest
-				.spyOn(NutritionOperationService.prototype, "removeBatch")
-				.mockImplementationOnce((_subject, _targets, onError) => {
-					onError?.(new Error("failed"));
-					return "op";
-				});
+			const { app, session } = await logOnce();
+			refuse(app, "removeBatch");
 			await testRouter.push(
 				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
 			);
-			await fireEvent.press(await screen.findByText("Log as one item"));
-			await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
-			const secondTargets = remove.mock.calls[1]?.[1] ?? [];
-			expect(secondTargets).toHaveLength(1);
-			expect(secondTargets).not.toEqual(remove.mock.calls[0]?.[1]);
+			await logWhenReady();
+			await waitFor(() => expect(sent(app, "removeBatch")).toHaveLength(2));
+			const [first, second] = sent(app, "removeBatch");
+			expect(second?.targets).toHaveLength(1);
+			expect(second?.targets).not.toEqual(first?.targets);
 		});
 
 		it("logs the current review after neither version could be removed", async () => {
 			const { app, session } = await logOnce();
-			const remove = jest
-				.spyOn(NutritionOperationService.prototype, "removeBatch")
-				.mockImplementationOnce((_subject, _targets, onError) => {
-					onError?.(new Error("failed"));
-					return "op";
-				})
-				.mockImplementationOnce((_subject, _targets, onError) => {
-					onError?.(new Error("failed"));
-					return "op";
-				});
-			const create = jest.spyOn(
-				NutritionOperationService.prototype,
-				"createBatch",
-			);
+			refuse(app, "removeBatch", 2);
 			await testRouter.push(
 				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
 			);
-			await fireEvent.press(await screen.findByText("Log as one item"));
-			await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
-			const firstTry = remove.mock.calls[1]?.[1] ?? [];
+			await logWhenReady();
+			await waitFor(() => expect(sent(app, "removeBatch")).toHaveLength(2));
+			const firstTry = sent(app, "removeBatch")[1]?.targets ?? [];
 			await fireEvent.press(await screen.findByText("Log as one item"));
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			expect(create).toHaveBeenCalledTimes(2);
-			expect(remove.mock.calls[2]?.[1]).toEqual([
+			expect(sent(app, "createBatch")).toHaveLength(3);
+			expect(sent(app, "removeBatch")[2]?.targets).toEqual([
 				...session.entryIds.map((id) => ({ kind: "clientEntryId", id })),
 				...firstTry,
 			]);
 		});
 
 		it("offers undo again when it fails", async () => {
-			await logOnce();
-			const remove = jest
-				.spyOn(NutritionOperationService.prototype, "removeBatch")
-				.mockImplementationOnce((_subject, _targets, onError) => {
-					onError?.(new Error("failed"));
-					return "op";
-				});
+			const { app } = await logOnce();
+			refuse(app, "removeBatch");
 			// A toast's action only takes taps once it has been on screen a moment.
 			const armed = () =>
 				act(() => jest.advanceTimersByTime(ACTION_ARM_MS + 50));
@@ -339,7 +349,7 @@ describe("Hulp bij invoeren", () => {
 			const again = await screen.findByText("Try again");
 			await armed();
 			await fireEvent.press(again);
-			await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
+			await waitFor(() => expect(sent(app, "removeBatch")).toHaveLength(2));
 		});
 
 		it("keeps the ids of the restored entries when undo is retried", async () => {
@@ -347,18 +357,9 @@ describe("Hulp bij invoeren", () => {
 			await testRouter.push(
 				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
 			);
-			await fireEvent.press(await screen.findByText("Log as one item"));
+			await logWhenReady();
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			const create = jest
-				.spyOn(NutritionOperationService.prototype, "createBatch")
-				.mockImplementationOnce((_s, _d, _m, _e, onError) => {
-					onError?.(new Error("failed"));
-					return "op";
-				})
-				.mockImplementationOnce((_s, _d, _m, _e, _onError, onSuccess) => {
-					onSuccess?.(["restored-id"]);
-					return "op";
-				});
+			refuse(app, "createBatch");
 			const armed = () =>
 				act(() => jest.advanceTimersByTime(ACTION_ARM_MS + 50));
 			const undo = await screen.findByText("Undo");
@@ -367,20 +368,27 @@ describe("Hulp bij invoeren", () => {
 			const again = await screen.findByText("Try again");
 			await armed();
 			await fireEvent.press(again);
-			await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
-			const restored = aiSessionForText("log me", "test-user");
-			expect(restored?.entryIds).toEqual(["restored-id"]);
-			expect(restored?.entries.map((entry) => entry.clientEntryId)).toEqual([
-				"restored-id",
-			]);
+			// Logged once, replaced once, then the restore: refused, then retried.
+			await waitFor(() => expect(sent(app, "createBatch")).toHaveLength(4));
+			const [refused, retried] = sent(app, "createBatch")
+				.slice(2)
+				.map((operation) =>
+					operation.entries.map((entry) => entry.clientEntryId),
+				);
+			expect(retried).toEqual(refused);
+			await waitFor(() =>
+				expect(aiSessionForText("test-user", "log me")?.entryIds).toEqual(
+					retried,
+				),
+			);
+			const restored = aiSessionForText("test-user", "log me");
+			expect(restored?.entries.map((entry) => entry.clientEntryId)).toEqual(
+				retried,
+			);
 		});
 
 		it("does not replace a meal that was edited since", async () => {
-			const { session } = await logOnce();
-			const create = jest.spyOn(
-				NutritionOperationService.prototype,
-				"createBatch",
-			);
+			const { app, session } = await logOnce();
 			const stale = {
 				...session,
 				id: "stale-session",
@@ -389,12 +397,12 @@ describe("Hulp bij invoeren", () => {
 					amount: entry.amount + 5,
 				})),
 			};
-			saveAiSession(stale);
+			saveAiSession("test-user", stale);
 			await testRouter.push(
 				"/nutrition-assistance?meal=lunch&resume=stale-session",
 			);
-			await fireEvent.press(await screen.findByText("Log as one item"));
-			expect(create).not.toHaveBeenCalled();
+			await logWhenReady();
+			expect(sent(app, "createBatch")).toHaveLength(1);
 		});
 	});
 
@@ -543,12 +551,7 @@ describe("Hulp bij invoeren", () => {
 			question: null,
 			items: [{ ...bread, kind: "ingredient", components: [], estimate: null }],
 		});
-		const create = jest.spyOn(
-			NutritionOperationService.prototype,
-			"createBatch",
-		);
-		create.mockClear();
-		await renderApp(url);
+		const app = await renderApp(url);
 		await fireEvent.press(await screen.findByText("Analyse"));
 		const field = await screen.findByLabelText("Adjust… e.g. “no onion”");
 		await fireEvent.changeText(field, "three slices");
@@ -556,7 +559,7 @@ describe("Hulp bij invoeren", () => {
 			await screen.findByText("Send your correction first, or clear it."),
 		).toBeTruthy();
 		await fireEvent.press(screen.getByText("Log as one item"));
-		expect(create).not.toHaveBeenCalled();
+		expect(sent(app, "createBatch")).toEqual([]);
 		await fireEvent.changeText(field, "");
 		await waitFor(() =>
 			expect(
@@ -566,7 +569,7 @@ describe("Hulp bij invoeren", () => {
 	});
 
 	it("explains the daily limit and offers saving a note instead", async () => {
-		describeMeal.mockRejectedValue(new ConvexError("limit"));
+		describeMeal.mockRejectedValue(new ConvexError({ code: "limit" }));
 		await renderApp(url);
 		await fireEvent.press(await screen.findByText("Analyse"));
 		expect(

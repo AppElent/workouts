@@ -165,18 +165,11 @@ describe("AI entry grounding", () => {
 			{ index: 0, ref: grounded[0].candidates[0].id, estimate: null },
 			{ index: 1, ref: null, estimate },
 		]);
-		let id = 0;
-		const [matched, guessed] = diarySnapshots(
-			items,
-			"2026-10-14",
-			"lunch",
-			() => `id-${++id}`,
-		);
+		const [matched, guessed] = diarySnapshots(items, "2026-10-14", "lunch");
 		expect(matched?.estimated).toBeUndefined();
 		expect(matched).toMatchObject({
 			amount: 70,
 			provenance: { source: "shipped", sourceId: grounded[0].candidates[0].id },
-			clientEntryId: "id-1",
 		});
 		expect(guessed).toMatchObject({
 			estimated: true,
@@ -966,7 +959,6 @@ describe("portions in the person's words", () => {
 			[chosen as ReviewItem],
 			"2026-10-14",
 			"lunch",
-			() => "id",
 		);
 		expect(entry?.serving.nl).toBe("200 ml");
 	});
@@ -981,7 +973,7 @@ describe("logging", () => {
 	};
 
 	it("shows the person's own portion in the diary", () => {
-		const [entry] = diarySnapshots(rows(), "2026-11-06", "lunch", () => "id");
+		const [entry] = diarySnapshots(rows(), "2026-11-06", "lunch");
 		expect(entry?.serving.nl).toBe("2 sneetjes (70 g)");
 		expect(entry?.amount).toBe(70);
 	});
@@ -995,12 +987,10 @@ describe("logging", () => {
 			"Boterhammen",
 			"2026-11-06",
 			"lunch",
-			"id",
 		);
 		expect(entry.name.nl).toBe("Boterhammen");
 		expect(entry.amount).toBe(140);
 		expect(entry.serving.nl).toBe("2 sneetjes, 2 sneetjes (140 g)");
-		expect(entry.clientEntryId).toBe("id");
 	});
 });
 

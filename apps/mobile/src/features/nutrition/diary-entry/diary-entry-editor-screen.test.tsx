@@ -45,7 +45,7 @@ it("resets base units to 100 and saves the resulting amount", async () => {
 		.mocked(useMutation)
 		.mockImplementation(
 			(ref) =>
-				(getFunctionName(ref) === "nutritionDiary:update"
+				(getFunctionName(ref) === "nutritionDiary:applyOperation"
 					? update
 					: jest.fn().mockResolvedValue(undefined)) as never,
 		);
@@ -56,7 +56,7 @@ it("resets base units to 100 and saves the resulting amount", async () => {
 	expect(await screen.findByDisplayValue("100")).toBeTruthy();
 	await fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
-	expect(update.mock.calls[0][0].selection.amount).toBe(100);
+	expect(update.mock.calls[0][0].operation.selection.amount).toBe(100);
 });
 it("creates a Personal Measure independently and selects it at quantity one", async () => {
 	const create = jest.fn().mockResolvedValue({
@@ -127,7 +127,7 @@ it("opens read-only product details and retains the entry draft on return", asyn
 	await fireEvent.press(screen.getByLabelText("Close"));
 	expect(await screen.findByDisplayValue("2")).toBeTruthy();
 });
-it("keeps cached supplementary Servings usable offline and prevents online-only creation", async () => {
+it("keeps known supplementary Servings usable offline and prevents online-only creation", async () => {
 	const connection = jest.mocked(useConvexConnectionState);
 	const online = connection();
 	jest.mocked(useQuery).mockImplementation((ref, _args?) =>
@@ -150,26 +150,26 @@ it("keeps cached supplementary Servings usable offline and prevents online-only 
 	connection.mockReturnValue({ ...online, isWebSocketConnected: false });
 	const create = jest.fn();
 	jest.mocked(useMutation).mockReturnValue(create as never);
-	const app = await renderApp(
-		"/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04",
-		{},
-		undefined,
-		({ nutritionRepository }) => {
-			nutritionRepository.putSupplementaryServings(
-				"test-user",
-				"shipped:apple-w-skin-av",
-				[
-					{
-						id: "cached-1",
-						foodId: "shipped:apple-w-skin-av",
-						name: "My bowl",
-						amount: 200,
-						unit: "g",
-					},
-				],
-			);
-		},
+	jest.mocked(usePaginatedQuery).mockImplementation(
+		(ref) =>
+			({
+				results:
+					getFunctionName(ref) === "supplementaryServings:list"
+						? [
+								{
+									id: "cached-1",
+									foodId: "shipped:apple-w-skin-av",
+									name: "My bowl",
+									amount: 200,
+									unit: "g",
+								},
+							]
+						: [],
+				status: "Exhausted",
+				loadMore: jest.fn(),
+			}) as never,
 	);
+	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
 	await fireEvent.press(await screen.findByLabelText("Choose serving"));
 	await fireEvent.press(await screen.findByText("My bowl"));
 	expect(screen.getByDisplayValue("1")).toBeTruthy();
@@ -179,12 +179,6 @@ it("keeps cached supplementary Servings usable offline and prevents online-only 
 	await fireEvent.press(screen.getByText("Add"));
 	expect(await screen.findByText(/Connect to add/)).toBeTruthy();
 	expect(create).not.toHaveBeenCalled();
-	expect(
-		app.nutritionRepository.getSupplementaryServings(
-			"another-user",
-			"shipped:apple-w-skin-av",
-		),
-	).toEqual([]);
 	connection.mockReturnValue(online);
 });
 
@@ -198,11 +192,12 @@ it("moves an entry to a different meal and date through the diary operation", as
 	await fireEvent.press(await screen.findByText("Tomorrow"));
 	await fireEvent.press(screen.getByLabelText("Save changes"));
 	await waitFor(() => expect(update).toHaveBeenCalled());
-	expect(update.mock.calls[0][0]).toMatchObject({
+	expect(update.mock.calls[0][0].operation).toMatchObject({
+		kind: "update",
 		meal: "dinner",
 		quantity: 1.25,
 	});
-	expect(update.mock.calls[0][0].date).not.toBe("2026-10-04");
+	expect(update.mock.calls[0][0].operation.date).not.toBe("2026-10-04");
 });
 
 it("retains invalid input and recovers after a failed creation", async () => {
@@ -320,11 +315,12 @@ it("keeps a completed Shipped Food serving when the outer draft is discarded, wi
 	await fireEvent.press(screen.getByLabelText("Cancel"));
 	await fireEvent.press(await screen.findByText("Discard changes"));
 	expect(await screen.findByText("Today")).toBeTruthy();
-	expect(
-		app.nutritionRepository.getSupplementaryServings("test-user", foodId),
-	).toEqual([
-		{ id: "addition-1", foodId, name: "My bowl", amount: 250, unit: "g" },
-	]);
+	expect(create).toHaveBeenCalledWith({
+		foodId,
+		name: "My bowl",
+		amount: 250,
+		unit: "g",
+	});
 	expect(app.repository.list()).toEqual([]);
 	expect(update).not.toHaveBeenCalled();
 });

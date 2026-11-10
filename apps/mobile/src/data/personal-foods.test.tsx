@@ -21,6 +21,7 @@ type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
 	typeof import("../convex/api").api.nutritionLibrary.save
 >;
 
+import { AccountWriteProvider } from "./account-write";
 import {
 	createPersonalFoodRepository,
 	type PersonalFoodDraft,
@@ -100,9 +101,11 @@ describe("PersonalFoodsProvider library journal", () => {
 		}
 		try {
 			const screen = await render(
-				<PersonalFoodsProvider repository={foods} libraryState={state}>
-					<Reader />
-				</PersonalFoodsProvider>,
+				<AccountWriteProvider>
+					<PersonalFoodsProvider repository={foods} libraryState={state}>
+						<Reader />
+					</PersonalFoodsProvider>
+				</AccountWriteProvider>,
 			);
 			await waitFor(() =>
 				expect(screen.getByText("Prepared oats")).toBeTruthy(),
@@ -151,9 +154,11 @@ describe("PersonalFoodsProvider library journal", () => {
 			);
 		}
 		const screen = await render(
-			<PersonalFoodsProvider repository={foods} libraryState={state}>
-				<Reader />
-			</PersonalFoodsProvider>,
+			<AccountWriteProvider>
+				<PersonalFoodsProvider repository={foods} libraryState={state}>
+					<Reader />
+				</PersonalFoodsProvider>
+			</AccountWriteProvider>,
 		);
 		let save!: Promise<unknown>;
 		await act(() => {
@@ -171,9 +176,11 @@ describe("PersonalFoodsProvider library journal", () => {
 		expect(screen.getByText("Prepared oats")).toBeTruthy();
 		connected = false;
 		await await screen.rerender(
-			<PersonalFoodsProvider repository={foods} libraryState={state}>
-				<Reader />
-			</PersonalFoodsProvider>,
+			<AccountWriteProvider>
+				<PersonalFoodsProvider repository={foods} libraryState={state}>
+					<Reader />
+				</PersonalFoodsProvider>
+			</AccountWriteProvider>,
 		);
 		await expect(value.create(draft)).rejects.toThrow("connection");
 		expect(value.list()).toHaveLength(1);
@@ -202,9 +209,11 @@ it("keeps a newer subscription revision when an older save acknowledgement arriv
 		return <Text>{value.find(original.id)?.name.en}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider repository={foods} libraryState={state}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	let pending!: Promise<unknown>;
 	await act(() => {
@@ -250,9 +259,11 @@ it("does not return a cached barcode after the server removes it", async () => {
 		return <Text>Ready</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider repository={foods} libraryState={state}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	let found: unknown;
 	await act(async () => {
@@ -296,9 +307,11 @@ it("resolves a cached correction identity so server deletion stops shadowing its
 		return <Text>{value.forks().length}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider repository={foods} libraryState={state}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	await waitFor(() => expect(value.forks()).toEqual([]));
 	await view.unmount();
@@ -348,14 +361,16 @@ it("loads corrections beyond the first hundred shipped matches in bounded pages 
 		return <Text>{value.forks().length}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider
-			repository={createPersonalFoodRepository(new SQLiteTestDatabase())}
-			libraryState={createNutritionLibraryStateRepository(
-				new SQLiteTestDatabase(),
-			)}
-		>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider
+				repository={createPersonalFoodRepository(new SQLiteTestDatabase())}
+				libraryState={createNutritionLibraryStateRepository(
+					new SQLiteTestDatabase(),
+				)}
+			>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	await waitFor(() =>
 		expect(value.findForkOf(correction.provenance.forkedFrom ?? "")?.id).toBe(
@@ -393,9 +408,11 @@ it("keeps the latest subscription value when a delayed barcode lookup resolves",
 		return <Text>{value.find(food.id)?.name.en}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider repository={foods} libraryState={state}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	let lookup!: Promise<unknown>;
 	await act(() => {
@@ -462,9 +479,11 @@ it("checks cached fork deletions even when a hundred shortcut identities fill th
 		return <Text>{value.forks().length}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider repository={foods} libraryState={state}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	await waitFor(() => expect(value.forks()).toEqual([]));
 	expect(state.getRecord("account-a", correction.id)?.deleted).toBe(true);

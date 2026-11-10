@@ -139,14 +139,14 @@ describe("scanning a barcode", () => {
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0].provenance).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry.provenance).toMatchObject({
 			source: "import",
 			nutritionSource: "openfoodfacts",
 			locallyEdited: true,
 			provider: "Open Food Facts",
 			barcode: "5000112637922",
 		});
-		expect(log.mock.calls[0][0].provenance.attribution).toMatch(
+		expect(log.mock.calls[0][0].operation.entry.provenance.attribution).toMatch(
 			/Open Food Facts/,
 		);
 	});

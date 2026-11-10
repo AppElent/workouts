@@ -198,7 +198,7 @@ describe("what a correction does to the diary", () => {
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			date: todayIsoDate(),
 			meal: "lunch",
 			provenance: {
@@ -228,7 +228,7 @@ describe("what a correction does to the diary", () => {
 		await fireEvent.press(await screen.findByText("Apple"));
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		const before = structuredClone(log.mock.calls[0][0]);
+		const before = structuredClone(log.mock.calls[0][0].operation.entry);
 		// There is no "Done" any more — the pushed route's back chevron closes the
 		// browser, and every row has already committed its own log.
 		await testRouter.back();
@@ -240,7 +240,7 @@ describe("what a correction does to the diary", () => {
 
 		// The snapshot already written is untouched: same id, same figures. The
 		// correction changes what the next search returns, never what history says.
-		expect(log.mock.calls[0][0]).toEqual(before);
+		expect(log.mock.calls[0][0].operation.entry).toEqual(before);
 		expect(before.provenance).toMatchObject({
 			source: "shipped",
 			sourceId: "shipped:apple-w-skin-av",

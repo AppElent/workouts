@@ -5,17 +5,14 @@ import {
 	usePaginatedQuery,
 } from "convex/react";
 import { AppState, Text } from "react-native";
-import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
+import { AccountWriteProvider } from "./account-write";
 import {
 	NutritionDraftsProvider,
 	useNutritionDrafts,
 } from "./nutrition-drafts";
-import { createNutritionLocalRepository } from "./nutrition-local-repository";
-import { NutritionOperationsProvider } from "./nutrition-operation-service";
 
 describe("Capture Draft online save", () => {
 	it("keeps unsaved input out of saved notes until acknowledgement and rejects disconnected saves", async () => {
-		const operations = createNutritionLocalRepository(new SQLiteTestDatabase());
 		let connected = true;
 		jest
 			.mocked(useConvexConnectionState)
@@ -52,11 +49,11 @@ describe("Capture Draft online save", () => {
 			);
 		}
 		const tree = (
-			<NutritionOperationsProvider subject="alice" repository={operations}>
+			<AccountWriteProvider subject="alice">
 				<NutritionDraftsProvider>
 					<Reader />
 				</NutritionDraftsProvider>
-			</NutritionOperationsProvider>
+			</AccountWriteProvider>
 		);
 		const screen = await render(tree);
 		let pending!: Promise<unknown>;
@@ -83,11 +80,11 @@ describe("Capture Draft online save", () => {
 		expect(screen.getByText("Soup")).toBeTruthy();
 		connected = false;
 		await await screen.rerender(
-			<NutritionOperationsProvider subject="alice" repository={operations}>
+			<AccountWriteProvider subject="alice">
 				<NutritionDraftsProvider>
 					<Reader />
 				</NutritionDraftsProvider>
-			</NutritionOperationsProvider>,
+			</AccountWriteProvider>,
 		);
 		await expect(
 			notes.create({
@@ -138,14 +135,11 @@ it("retains acknowledged notes while a date subscription is skipped in the backg
 		);
 	}
 	const view = await render(
-		<NutritionOperationsProvider
-			subject="alice"
-			repository={createNutritionLocalRepository(new SQLiteTestDatabase())}
-		>
+		<AccountWriteProvider subject="alice">
 			<NutritionDraftsProvider>
 				<Reader />
 			</NutritionDraftsProvider>
-		</NutritionOperationsProvider>,
+		</AccountWriteProvider>,
 	);
 	expect(view.getByText("Soup")).toBeTruthy();
 	await act(() => change("background"));

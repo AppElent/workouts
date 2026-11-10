@@ -1,8 +1,8 @@
+import { mintUuid } from "../data/account-write";
 import type {
 	CaptureDraft,
 	CaptureDraftInput,
 } from "../data/nutrition-capture-draft";
-import { mintNutritionUuid } from "../data/nutrition-operation-service";
 export function createCaptureDraftFixture() {
 	const records = new Map<string, CaptureDraft>();
 	return {
@@ -13,7 +13,7 @@ export function createCaptureDraftFixture() {
 			const draft = {
 				...input,
 				subject,
-				id: mintNutritionUuid(),
+				id: mintUuid(),
 				createdAt: Date.now(),
 				updatedAt: Date.now(),
 			};
