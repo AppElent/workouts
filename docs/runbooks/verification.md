@@ -22,8 +22,10 @@ pnpm --filter @foundry/mobile typecheck
 pnpm --filter @foundry/mobile test --runInBand
 ```
 
-Root types/Vitest exclude mobile; mobile uses Jest. Build `@foundry/core` first
-when its output is missing: `pnpm --filter @foundry/core build`.
+Root types/Vitest exclude mobile; mobile uses Jest. Each of these builds
+`@foundry/core` first where it needs the output. When core's scripts or the
+shipped-food data change, also run `pnpm --filter @foundry/core typecheck` and
+`pnpm --filter @foundry/core check:foods` (CI runs both).
 
 `pnpm install` installs a lefthook pre-commit hook that runs
 `biome check --staged`. Skip it with `git commit --no-verify` or `LEFTHOOK=0`;
