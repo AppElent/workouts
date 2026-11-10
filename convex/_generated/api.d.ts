@@ -48,7 +48,6 @@ import type * as progress from "../progress.js";
 import type * as routines from "../routines.js";
 import type * as seed from "../seed.js";
 import type * as seedData_wods from "../seedData/wods.js";
-import type * as seedPreview from "../seedPreview.js";
 import type * as sets from "../sets.js";
 import type * as supplementaryServings from "../supplementaryServings.js";
 import type * as testData from "../testData.js";
@@ -103,7 +102,6 @@ declare const fullApi: ApiFromModules<{
   routines: typeof routines;
   seed: typeof seed;
   "seedData/wods": typeof seedData_wods;
-  seedPreview: typeof seedPreview;
   sets: typeof sets;
   supplementaryServings: typeof supplementaryServings;
   testData: typeof testData;
