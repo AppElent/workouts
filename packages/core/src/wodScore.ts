@@ -43,6 +43,26 @@ const SCORE_LIMITS = {
 export type WodScoreField = keyof typeof SCORE_LIMITS | "loadUnit";
 export type WodScoreCode = RangeCode | "required";
 
+const missing = (field: WodScoreField, value: unknown): WodScoreField[] =>
+	value === undefined ? [field] : [];
+
+/** The fields a score still needs for its WOD type; either of two names the first. */
+const MISSING_FOR_TYPE: Record<
+	WodType,
+	(score: WodScoreInput) => WodScoreField[]
+> = {
+	forTime: (score) =>
+		score.timeCapped === true
+			? missing("reps", score.reps)
+			: missing("timeSeconds", score.timeSeconds),
+	amrap: (score) => missing("rounds", score.rounds ?? score.reps),
+	emom: (score) => missing("reps", score.reps ?? score.rounds),
+	load: (score) => [
+		...missing("load", score.load),
+		...missing("loadUnit", score.loadUnit),
+	],
+};
+
 /**
  * A score is complete for its WOD type: a finish time (or reps when capped),
  * rounds or reps for AMRAP, reps or rounds for EMOM, a load with its unit.
@@ -61,27 +81,43 @@ export function validateWodScore<T extends WodScoreInput>(
 		const code = rangeCode(value, SCORE_LIMITS[field]);
 		if (code) found.add(field, code);
 	}
-	switch (type) {
-		case "forTime":
-			if (score.timeCapped === true) {
-				if (score.reps === undefined) found.add("reps", "required");
-			} else if (score.timeSeconds === undefined)
-				found.add("timeSeconds", "required");
-			break;
-		case "amrap":
-			if (score.rounds === undefined && score.reps === undefined)
-				found.add("rounds", "required");
-			break;
-		case "emom":
-			if (score.reps === undefined && score.rounds === undefined)
-				found.add("reps", "required");
-			break;
-		case "load":
-			if (score.load === undefined) found.add("load", "required");
-			if (score.loadUnit === undefined) found.add("loadUnit", "required");
-			break;
-	}
+	for (const field of MISSING_FOR_TYPE[type](score))
+		found.add(field, "required");
 	return found.result(score);
+}
+
+export type WodTiming = { timeCapSeconds?: number; durationSeconds?: number };
+export type WodTimingField = keyof WodTiming;
+
+/** For Time stores a time cap, AMRAP and EMOM a duration; Load has no timing. */
+export const WOD_TIMING_FIELD: Record<WodType, WodTimingField | null> = {
+	forTime: "timeCapSeconds",
+	amrap: "durationSeconds",
+	emom: "durationSeconds",
+	load: null,
+};
+
+/** The timing for `minutes` entered on a WOD of `type`; the other field clears. */
+export function wodTimingFromMinutes(
+	type: WodType,
+	minutes: number | undefined,
+): WodTiming {
+	const field = WOD_TIMING_FIELD[type];
+	const seconds =
+		minutes !== undefined && minutes > 0 ? Math.round(minutes * 60) : undefined;
+	return {
+		timeCapSeconds: field === "timeCapSeconds" ? seconds : undefined,
+		durationSeconds: field === "durationSeconds" ? seconds : undefined,
+	};
+}
+
+/** The stored timing of a WOD in minutes, or undefined when it has none. */
+export function wodTimingMinutes(
+	wod: { type: WodType } & WodTiming,
+): number | undefined {
+	const field = WOD_TIMING_FIELD[wod.type];
+	const seconds = field ? wod[field] : undefined;
+	return seconds ? seconds / 60 : undefined;
 }
 
 export type WodScoreFields = {

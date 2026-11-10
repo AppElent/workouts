@@ -58,7 +58,7 @@ imported by relative path from tests and `scripts/`, never from an entry.
 | `nutrition/week.ts` | The weekly average (today counts once logged). |
 | `nutrition/meal-time.ts` | `mealSlotAt`, the default Meal Slot for a moment. |
 | `nutrition/named-amount.ts` | Personal Measure and supplementary serving names and amounts. |
-| `nutrition/ai.ts` | The nutrition assistant's limits, error codes and plausibility figures. |
+| `nutrition/ai.ts` | The nutrition assistant's limits and plausibility figures. |
 | `nutrition/library-protocol.ts` | Personal library sync versions and batch size. |
 | `nutrition/diary-correction.ts` `nutrition/snapshot-rescale.ts` | Correcting and rescaling a Diary Entry snapshot. |
 
@@ -69,11 +69,11 @@ The shipped food library itself is documented in `src/nutrition/README.md`.
 | Module | Owns |
 | --- | --- |
 | `units.ts` | `LOAD_UNITS`, `KG_PER_LB`, `convertLoad`/`toKg`, `DISTANCE_UNITS` |
-| `exercise.ts` | `EQUIPMENT` (+ loaded subset, weight steps), exercise categories, the muscle-group taxonomy, `filterExercises` |
+| `exercise.ts` | `EQUIPMENT` and its traits (loaded, default weight step), exercise categories, the muscle-group taxonomy, `filterExercises` |
 | `strength.ts` | `SET_TYPES`, `SET_LIMITS` and set/plan validators, One-rep Max reference eligibility and precedence, records, work volume, rep-max curve |
 | `oneRepMax.ts` | Epley and its inverse, load rounding |
 | `plates.ts` | plate breakdown and warm-up ramp |
-| `wodScore.ts` | WOD and hosted vocabulary, score limits and validation, building, ranking, leaderboard order, formatting |
+| `wodScore.ts` | WOD and hosted vocabulary, which timing field each WOD type stores, score limits and validation, building, ranking, leaderboard order, formatting |
 | `activity.ts` | Activity/endurance sports, endurance validation, pace/speed/totals |
 | `calendar.ts` | `IsoDate` day arithmetic and ISO weeks, with no implicit timezone |
 | `format.ts` | locale-neutral clock, session duration and pace strings |
@@ -88,4 +88,13 @@ Product rules these modules encode (change them here, not in an app):
 - Calendar helpers never read the device or server timezone: pass local date parts (`isoDateFrom`) or an instant with its UTC offset (`isoDateAt`).
 - Anything with words or decimal separators is rendered by the apps; `format.ts` returns strings that read the same in every locale.
 
+## Adding a value to a vocabulary
+
+Add it to the tuple and run `pnpm typecheck`: `Record<Tuple, …>` tables, exhaustive switches
+(`noImplicitReturns`) and Convex `literals()` validators fail until every place handles it. What the
+compiler cannot see is the stored data and prose:
+
+- **Nutrient**: Convex `perNutrient` makes every key required on stored rows, so a new key ships
+  optional there or after a backfill. The nutrition assistant's prompt text in
+  `convex/lib/nutritionAi.ts` names the nutrients in prose; its JSON schemas follow `NUTRIENT_KEYS`.
 `DefaultExercise` lives in `src/exercises/types.ts` so the generated `wrkoutExercises.ts` does not import the curated catalog. Regenerate it with `pnpm --filter @foundry/core import:exercises <wrkout checkout>` (see `src/exercises/README.md`).

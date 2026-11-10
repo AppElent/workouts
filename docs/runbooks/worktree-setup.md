@@ -27,7 +27,7 @@ Use your own Convex deployment for schema migrations, seeds, or destructive data
 ```sh
 node scripts/workspace.mjs clean   # the hook already prepared this worktree in none mode
 node scripts/workspace.mjs prepare --editor t3 --backend cloud --days 5
-pnpm seed:reset                    # optional, only on the isolated deployment
+pnpm seed:reset <clerk-user-id>    # optional, only on the isolated deployment
 ```
 
 Cloud mode needs `pnpm exec convex login`. It creates the deployment, applies its

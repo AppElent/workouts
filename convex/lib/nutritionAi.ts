@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
+	type Bilingual,
 	type Locale,
 	NUTRIENT_KEYS,
 	NUTRITION_AI_LIMITS,
@@ -194,16 +195,13 @@ const nullableNumber = { type: ["number", "null"] };
 const confidence = { enum: ["high", "medium", "low"] };
 const unit = { enum: ["g", "ml"] };
 
-const NUTRIENTS = {
-	energy: { type: "number" },
-	protein: { type: "number" },
-	carbs: { type: "number" },
-	fat: { type: "number" },
-	saturatedFat: { type: "number" },
-	sugars: { type: "number" },
-	fibre: { type: "number" },
-	salt: { type: "number" },
-};
+function perNutrient<T>(schema: T): Record<NutrientKey, T> {
+	return Object.fromEntries(
+		NUTRIENT_KEYS.map((key) => [key, schema]),
+	) as Record<NutrientKey, T>;
+}
+
+const NUTRIENTS = perNutrient({ type: "number" });
 
 const DESCRIBE_SCHEMA = object({
 	kind: { enum: ["meal", "label", "no_food"] },
@@ -262,17 +260,7 @@ const LABEL_SCHEMA = object({
 	barcode: { type: ["string", "null"] },
 	packAmount: nullableNumber,
 	basis: unit,
-	per100: object({
-		energyKj: nullableNumber,
-		energy: nullableNumber,
-		fat: nullableNumber,
-		saturatedFat: nullableNumber,
-		carbs: nullableNumber,
-		sugars: nullableNumber,
-		fibre: nullableNumber,
-		protein: nullableNumber,
-		salt: nullableNumber,
-	}),
+	per100: object({ energyKj: nullableNumber, ...perNutrient(nullableNumber) }),
 	servings: {
 		type: "array",
 		items: object({
@@ -672,20 +660,11 @@ function validEstimate(estimate: EstimateNutrients): boolean {
 	);
 }
 
-type LabelNutrient =
-	| "energyKj"
-	| "energy"
-	| "fat"
-	| "saturatedFat"
-	| "carbs"
-	| "sugars"
-	| "fibre"
-	| "protein"
-	| "salt";
+type LabelNutrient = NutrientKey | "energyKj";
 
 type LabelReading = {
 	isLabel: boolean;
-	name: { en: string; nl: string };
+	name: Bilingual;
 	brand: string | null;
 	barcode: string | null;
 	/** True when the label showed a barcode whose checksum failed: rescan. */
@@ -694,7 +673,7 @@ type LabelReading = {
 	basis: "g" | "ml";
 	per100: Record<LabelNutrient, number | null>;
 	servings: {
-		name: { en: string; nl: string };
+		name: Bilingual;
 		amount: number;
 	}[];
 	notes: string;

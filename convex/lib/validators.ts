@@ -97,6 +97,16 @@ export const wodMovement = v.object({
 	notes: v.optional(v.string()),
 });
 
+/** What defines a WOD, in the library and on a hosted workout's WOD block. */
+export const wodDefinitionFields = {
+	name: v.string(),
+	type: wodType,
+	description: v.optional(v.string()),
+	repScheme: v.optional(v.string()),
+	timeCapSeconds: v.optional(v.number()),
+	durationSeconds: v.optional(v.number()),
+};
+
 export const wodScoreFields = {
 	timeSeconds: v.optional(v.number()),
 	rounds: v.optional(v.number()),

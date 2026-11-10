@@ -2,12 +2,15 @@ import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { convexErrorMessage } from "@foundry/core";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { format } from "date-fns";
 import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { useMessages } from "#/lib/i18n";
+
+type Mode = FunctionArgs<typeof api.testData.reset>["mode"];
 
 export function TestDataCard() {
 	const { userId } = useAuth();
@@ -18,8 +21,8 @@ export function TestDataCard() {
 	const confirm = useConfirm();
 	const toast = useToast();
 	const pending = useRef(false);
-	const [busy, setBusy] = useState<"load" | "clear" | null>(null);
-	async function run(mode: "load" | "clear") {
+	const [busy, setBusy] = useState<Mode | null>(null);
+	async function run(mode: Mode) {
 		if (
 			pending.current ||
 			!userId ||

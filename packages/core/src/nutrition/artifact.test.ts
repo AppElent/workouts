@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { decodeArtifact } from "./artifact";
 import {
 	NEVO_ATTRIBUTION,
 	NEVO_ATTRIBUTION_MIXED,
@@ -194,6 +195,18 @@ describe("the committed shipped artifact", () => {
 	test("cites the dataset edition and publisher that were shipped", () => {
 		const { edition, publisher } = SHIPPED_ARTIFACT.dataset;
 		expect(NEVO_ATTRIBUTION).toContain(`version ${edition}, ${publisher}`);
+	});
+});
+
+describe("decoding an artifact", () => {
+	test("reads a nutrient the artifact's order does not list as absent", () => {
+		const [food] = decodeArtifact({
+			...SHIPPED_ARTIFACT,
+			nutrientOrder: ["energy"],
+			foods: [{ ...SHIPPED_ARTIFACT.foods[0], n: [100] }],
+		});
+		expect(food.nutrients.energy).toEqual({ kind: "value", amount: 100 });
+		expect(food.nutrients.salt).toEqual({ kind: "absent" });
 	});
 });
 

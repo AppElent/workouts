@@ -7,7 +7,7 @@ import {
 	personalDataBlocker,
 	personalDataBlockerValidator,
 } from "./lib/personalData";
-import { resetTestData } from "./lib/testDataBaseline";
+import { resetTestData, testDataMode } from "./lib/testDataBaseline";
 
 function enabled() {
 	const production = ENV_CONFIG.convex.deployments.production;
@@ -40,7 +40,7 @@ export const availability = query({
 
 export const reset = mutation({
 	args: {
-		mode: v.union(v.literal("load"), v.literal("clear")),
+		mode: testDataMode,
 		expectedSubject: v.string(),
 		today: v.string(),
 	},

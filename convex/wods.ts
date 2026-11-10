@@ -4,16 +4,12 @@ import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { getOptionalUserId, requireOwned, requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
-import { wodMovement, wodType } from "./lib/validators";
+import { wodDefinitionFields } from "./lib/validators";
+import schema from "./schema";
 
 const wodFields = {
-	name: v.string(),
-	type: wodType,
-	description: v.optional(v.string()),
-	repScheme: v.optional(v.string()),
-	timeCapSeconds: v.optional(v.number()),
-	durationSeconds: v.optional(v.number()),
-	movements: v.array(wodMovement),
+	...wodDefinitionFields,
+	movements: schema.tables.wods.validator.fields.movements,
 };
 
 async function requireOwnWod(ctx: MutationCtx, userId: string, id: Id<"wods">) {

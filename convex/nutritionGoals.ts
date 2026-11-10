@@ -1,4 +1,8 @@
-import { NUTRIENT_KEYS, validateNutritionGoals } from "@foundry/core";
+import {
+	NUTRIENT_KEYS,
+	type NutrientKey,
+	validateNutritionGoals,
+} from "@foundry/core";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
@@ -13,6 +17,11 @@ import { nutrientKey, nutritionGoal } from "./lib/validators";
 
 const goals = v.array(nutritionGoal);
 const displayOrder = v.array(nutrientKey);
+
+/** A saved order predates any nutrient added since; those follow it. */
+function withEveryNutrient(order: readonly NutrientKey[]): NutrientKey[] {
+	return [...order, ...NUTRIENT_KEYS.filter((key) => !order.includes(key))];
+}
 
 export const forDate = query({
 	args: { date: v.string() },
@@ -44,7 +53,7 @@ export const forDate = query({
 		return {
 			nextEffectiveFrom: next?.effectiveFrom ?? null,
 			...goalsOn(date),
-			displayOrder: preference?.displayOrder ?? [...NUTRIENT_KEYS],
+			displayOrder: withEveryNutrient(preference?.displayOrder ?? []),
 		};
 	},
 });

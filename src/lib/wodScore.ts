@@ -17,17 +17,23 @@ const FIELD_LABELS: Record<WodScoreField, string> = {
 	loadUnit: "Load unit",
 };
 
+const REQUIRED_MESSAGES: Record<WodType, (field: WodScoreField) => string> = {
+	forTime: (field) =>
+		field === "reps"
+			? "Reps are required for capped scores."
+			: "Time is required for this WOD.",
+	amrap: () => "Rounds or reps are required for this WOD.",
+	emom: () => "Completed reps or rounds are required for this WOD.",
+	load: (field) => `${FIELD_LABELS[field]} is required for this WOD.`,
+};
+
 function issueMessage(
 	type: WodType,
 	{ field, code }: RuleIssue<WodScoreField, WodScoreCode>,
 ): string {
-	if (code !== "required") return `${FIELD_LABELS[field]} is out of range.`;
-	if (type === "forTime" && field === "reps")
-		return "Reps are required for capped scores.";
-	if (type === "amrap") return "Rounds or reps are required for this WOD.";
-	if (type === "emom")
-		return "Completed reps or rounds are required for this WOD.";
-	return `${FIELD_LABELS[field]} is required for this WOD.`;
+	return code === "required"
+		? REQUIRED_MESSAGES[type](field)
+		: `${FIELD_LABELS[field]} is out of range.`;
 }
 
 /** The score a WOD form submits, or the first reason it can't be submitted. */

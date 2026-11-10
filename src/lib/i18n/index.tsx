@@ -22,7 +22,7 @@ export type { Locale, Messages };
 /** Holds an explicit language choice; the server reads it for SSR. */
 export const LOCALE_COOKIE = "lang";
 
-const MESSAGES: Record<Locale, Messages> = { en, nl };
+export const MESSAGES: Record<Locale, Messages> = { en, nl };
 
 function readLocaleCookie(): string | undefined {
 	return document.cookie

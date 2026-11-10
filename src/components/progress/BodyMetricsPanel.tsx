@@ -1,6 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { LoadUnit } from "@foundry/core";
+import { LOAD_UNITS, type LoadUnit } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
@@ -140,7 +140,14 @@ export function BodyMetricsPanel() {
 							/>
 							<button
 								type="button"
-								onClick={() => setUnit((u) => (u === "kg" ? "lbs" : "kg"))}
+								onClick={() =>
+									setUnit(
+										(u) =>
+											LOAD_UNITS[
+												(LOAD_UNITS.indexOf(u) + 1) % LOAD_UNITS.length
+											],
+									)
+								}
 								className="h-11 px-3 shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm font-semibold text-[var(--accent)]"
 							>
 								{unit}

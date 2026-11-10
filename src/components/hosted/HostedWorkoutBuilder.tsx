@@ -3,19 +3,20 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import {
 	HOSTED_LEVELS,
 	type HostedLevel,
+	LOAD_UNITS,
 	type LoadUnit,
 	WOD_TYPES,
 	type WodMovement,
+	wodTimingFromMinutes,
+	wodTimingMinutes,
 } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
 	HOSTED_LEVEL_LABELS,
-	WOD_TIMING,
 	WOD_TYPE_LABELS,
-	wodTimingFromMinutes,
-	wodTimingMinutes,
+	wodTimingLabel,
 } from "#/components/hosted/wodBlock";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
@@ -449,7 +450,7 @@ export function HostedWorkoutBuilder({
 							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
 							placeholder="WOD name"
 						/>
-						<div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+						<div className="mt-2 grid grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-fr">
 							{WOD_TYPES.map((type) => (
 								<button
 									key={type}
@@ -485,7 +486,7 @@ export function HostedWorkoutBuilder({
 								className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
 								placeholder="Rep scheme (e.g. 21-15-9)"
 							/>
-							{WOD_TIMING[block.type] && (
+							{wodTimingLabel(block.type) && (
 								<div className="flex items-center gap-2">
 									<input
 										type="number"
@@ -501,11 +502,11 @@ export function HostedWorkoutBuilder({
 												),
 											)
 										}
-										aria-label={`WOD ${index + 1} ${WOD_TIMING[
-											block.type
-										]?.label.toLowerCase()} in minutes`}
+										aria-label={`WOD ${index + 1} ${wodTimingLabel(
+											block.type,
+										)?.toLowerCase()} in minutes`}
 										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
-										placeholder={`${WOD_TIMING[block.type]?.label} (min)`}
+										placeholder={`${wodTimingLabel(block.type)} (min)`}
 									/>
 									<span className="text-xs text-[var(--text-muted)]">min</span>
 								</div>
@@ -575,8 +576,11 @@ export function HostedWorkoutBuilder({
 												aria-label={`${level.label} movement ${movementIndex + 1} unit`}
 												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-1 text-xs text-white"
 											>
-												<option value="kg">kg</option>
-												<option value="lbs">lbs</option>
+												{LOAD_UNITS.map((unit) => (
+													<option key={unit} value={unit}>
+														{unit}
+													</option>
+												))}
 											</select>
 											<button
 												type="button"

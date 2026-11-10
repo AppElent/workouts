@@ -15,10 +15,9 @@ const exercise = (
 ) => ({ name, muscleGroups, equipment, category });
 
 describe("equipment", () => {
-	it("treats only bodyweight and band as unloaded", () => {
+	it("treats only bodyweight as unloaded", () => {
 		expect(EQUIPMENT.filter((item) => !isLoadedEquipment(item))).toEqual([
 			"bodyweight",
-			"band",
 		]);
 	});
 });

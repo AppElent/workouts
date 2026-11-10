@@ -2,6 +2,7 @@ import {
 	ABSENT,
 	type NutrientValue,
 	nutrientValue,
+	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
 	TRACE,
 } from "./nutrients";
@@ -27,7 +28,7 @@ import type {
  *
  * Nutrients are a fixed-order array whose order the artifact states in
  * `nutrientOrder`, so an artifact generated before a nutrient was added still
- * decodes correctly:
+ * decodes, with that nutrient absent:
  *   number  → a value
  *   "t"     → a trace
  *   null    → absent
@@ -117,7 +118,9 @@ function decodeNutrients(
 	wire: WireNutrients,
 	order: readonly ShippedNutrientKey[],
 ): Record<ShippedNutrientKey, NutrientValue> {
-	const nutrients = {} as Record<ShippedNutrientKey, NutrientValue>;
+	const nutrients = Object.fromEntries(
+		SHIPPED_NUTRIENT_KEYS.map((key) => [key, ABSENT]),
+	) as Record<ShippedNutrientKey, NutrientValue>;
 	for (let index = 0; index < order.length; index += 1) {
 		const cell = wire[index];
 		const key = order[index];

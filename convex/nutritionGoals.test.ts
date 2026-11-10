@@ -106,6 +106,32 @@ describe("public nutrition goal operations", () => {
 		});
 	});
 
+	it("appends nutrients a saved display order does not list yet", async () => {
+		const t = convexTest(schema, modules);
+		await t.run((ctx) =>
+			ctx.db.insert("nutritionGoalPreferences", {
+				userId: "alice",
+				displayOrder: ["salt", "protein"],
+			}),
+		);
+		expect(
+			await t
+				.withIdentity({ subject: "alice" })
+				.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({
+			displayOrder: [
+				"salt",
+				"protein",
+				"energy",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+			],
+		});
+	});
+
 	it("atomically replaces the set for one effective date and rejects duplicate bounds", async () => {
 		const t = convexTest(schema, modules).withIdentity({
 			subject: "alice",

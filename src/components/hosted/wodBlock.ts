@@ -2,7 +2,10 @@ import type { Doc } from "@convex/_generated/dataModel";
 import {
 	formatClock,
 	type HostedLevel,
+	WOD_TIMING_FIELD,
 	type WodMovement,
+	type WodTiming,
+	type WodTimingField,
 	type WodType,
 } from "@foundry/core";
 
@@ -34,41 +37,20 @@ export const WOD_TYPE_LABELS: Record<WodType, string> = {
 	load: "Load",
 };
 
-type WodTiming = { timeCapSeconds?: number; durationSeconds?: number };
-
-/** For Time stores a time cap, AMRAP/EMOM a duration; Load has no timing. */
-export const WOD_TIMING: Record<
-	WodType,
-	{ field: keyof WodTiming; label: string } | null
-> = {
-	forTime: { field: "timeCapSeconds", label: "Time cap" },
-	amrap: { field: "durationSeconds", label: "Duration" },
-	emom: { field: "durationSeconds", label: "Duration" },
-	load: null,
+const WOD_TIMING_LABELS: Record<WodTimingField, string> = {
+	timeCapSeconds: "Time cap",
+	durationSeconds: "Duration",
 };
 
-/** The timing fields for `minutes` entered on a WOD of `type`; the other field clears. */
-export function wodTimingFromMinutes(
-	type: WodType,
-	minutes: number | undefined,
-): WodTiming {
-	const field = WOD_TIMING[type]?.field;
-	const seconds = minutes ? minutes * 60 : undefined;
-	return {
-		timeCapSeconds: field === "timeCapSeconds" ? seconds : undefined,
-		durationSeconds: field === "durationSeconds" ? seconds : undefined,
-	};
-}
-
-export function wodTimingMinutes(block: { type: WodType } & WodTiming) {
-	const field = WOD_TIMING[block.type]?.field;
-	const seconds = field ? block[field] : undefined;
-	return seconds ? seconds / 60 : undefined;
+/** "Time cap" or "Duration" for a WOD type that has timing, else null. */
+export function wodTimingLabel(type: WodType): string | null {
+	const field = WOD_TIMING_FIELD[type];
+	return field ? WOD_TIMING_LABELS[field] : null;
 }
 
 /** "Time cap 12:00" for For Time, "20 min" for AMRAP/EMOM, or null. */
 export function formatWodTiming(block: { type: WodType } & WodTiming) {
-	const field = WOD_TIMING[block.type]?.field;
+	const field = WOD_TIMING_FIELD[block.type];
 	const seconds = field ? block[field] : undefined;
 	if (!seconds) return null;
 	return field === "timeCapSeconds"
@@ -78,7 +60,14 @@ export function formatWodTiming(block: { type: WodType } & WodTiming) {
 
 /** Persisted movements have no id; read-only lists key them by content. */
 export function movementKey(prefix: string, movement: WodMovement): string {
-	return `${prefix}:${movement.name}:${movement.reps ?? ""}:${
-		movement.weight ?? ""
-	}:${movement.unit ?? ""}`;
+	return [
+		prefix,
+		movement.name,
+		movement.reps,
+		movement.weight,
+		movement.unit,
+		movement.distance,
+		movement.distanceUnit,
+		movement.notes,
+	].join(":");
 }

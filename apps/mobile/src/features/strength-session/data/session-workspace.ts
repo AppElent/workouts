@@ -8,6 +8,7 @@ import {
 	convertLoad,
 	DEFAULT_REST_SECONDS,
 	getWeightStep,
+	isLoadedEquipment,
 } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import type { RequestForQueries } from "convex/react";
@@ -231,7 +232,7 @@ export function factsFrom(
 ): ExerciseFacts {
 	const manual = toKg(references?.manual);
 	return {
-		bodyweight: exercise?.equipment === "bodyweight",
+		bodyweight: exercise ? !isLoadedEquipment(exercise.equipment) : false,
 		stepKg: getWeightStep(
 			exercise?.equipment ?? "barbell",
 			exercise?.weightIncrement,

@@ -1,4 +1,4 @@
-import type { Equipment } from "./exercise";
+import { type Equipment, isLoadedEquipment } from "./exercise";
 import {
 	calculateOneRepMax,
 	SET_REFERENCE_SOURCES,
@@ -100,7 +100,7 @@ export function isReferenceEligible(
 	return (
 		set.performanceVerified === true &&
 		!!exercise &&
-		exercise.equipment !== "bodyweight" &&
+		isLoadedEquipment(exercise.equipment) &&
 		set.weight > 0 &&
 		set.reps >= 1
 	);
@@ -230,7 +230,7 @@ export function resolveStrengthReferences<T extends StrengthReferenceRecord>(
 	exercise: { readonly equipment: Equipment } | null | undefined,
 ): StrengthReferences<T> {
 	const derived =
-		exercise?.equipment === "bodyweight"
+		exercise && !isLoadedEquipment(exercise.equipment)
 			? []
 			: records.filter((record) => record.sourceSetId);
 	const best = (source: SetReferenceSource) =>

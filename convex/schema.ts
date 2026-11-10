@@ -23,9 +23,9 @@ import {
 	setReferenceSource,
 	setType,
 	strengthReferenceSnapshots,
+	wodDefinitionFields,
 	wodMovement,
 	wodScoreFields,
-	wodType,
 } from "./lib/validators";
 
 export default defineSchema({
@@ -338,12 +338,7 @@ export default defineSchema({
 	wods: defineTable({
 		// Absent on the benchmark catalog (`isDefault`), which the seed owns.
 		userId: v.optional(v.string()),
-		name: v.string(),
-		type: wodType,
-		description: v.optional(v.string()),
-		repScheme: v.optional(v.string()),
-		timeCapSeconds: v.optional(v.number()),
-		durationSeconds: v.optional(v.number()),
+		...wodDefinitionFields,
 		movements: v.array(wodMovement),
 		isDefault: v.boolean(),
 	})
@@ -395,12 +390,7 @@ export default defineSchema({
 				v.object({
 					blockId: v.string(),
 					wodId: v.optional(v.id("wods")),
-					name: v.string(),
-					type: wodType,
-					description: v.optional(v.string()),
-					repScheme: v.optional(v.string()),
-					timeCapSeconds: v.optional(v.number()),
-					durationSeconds: v.optional(v.number()),
+					...wodDefinitionFields,
 					levels: v.array(
 						v.object({
 							level: hostedLevel,

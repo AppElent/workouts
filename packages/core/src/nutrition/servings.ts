@@ -162,16 +162,18 @@ export function servingAmount(option: ServingOption, quantity: number): number {
 	return option.amount * quantity;
 }
 
+const DECIMAL_SEPARATOR: Record<Locale, string> = { en: ".", nl: "," };
+
 /**
- * A quantity as a person writes it: no trailing zeros, and a decimal comma in
- * Dutch.
+ * A quantity as a person writes it: no trailing zeros, and the locale's
+ * decimal separator.
  *
  * Hand-rolled rather than `Intl.NumberFormat` because this runs on Hermes,
  * where the Intl surface depends on which JSC/Hermes variant the build carries.
  */
 export function formatQuantity(quantity: number, locale: Locale): string {
 	const text = String(Math.round(quantity * 1000) / 1000);
-	return locale === "nl" ? text.replace(".", ",") : text;
+	return text.replace(".", DECIMAL_SEPARATOR[locale]);
 }
 
 /**

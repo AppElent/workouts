@@ -242,9 +242,9 @@ export const list = query({
 			throw appError("invalid", "limit");
 		const state = decodeCursor(cursor, userId, sport, from, to);
 		const [strength, endurance] = await Promise.all([
-			sport === "running" || sport === "cycling"
-				? Promise.resolve([])
-				: fetchStrength(ctx, userId, state.strength, from, to, limit),
+			sport === undefined || sport === "strength"
+				? fetchStrength(ctx, userId, state.strength, from, to, limit)
+				: Promise.resolve([]),
 			sport === "strength"
 				? Promise.resolve([])
 				: fetchEndurance(ctx, userId, sport, state.endurance, from, to, limit),
