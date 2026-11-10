@@ -60,7 +60,6 @@ export function wodTimingFromMinutes(
 	};
 }
 
-/** The minutes a WOD's timing field holds, if any. */
 export function wodTimingMinutes(block: { type: WodType } & WodTiming) {
 	const field = WOD_TIMING[block.type]?.field;
 	const seconds = field ? block[field] : undefined;

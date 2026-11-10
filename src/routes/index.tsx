@@ -32,7 +32,6 @@ function IntroPage() {
 			className="relative min-h-screen flex flex-col overflow-hidden"
 			style={{ background: "#000" }}
 		>
-			{/* Decorative green glow. */}
 			<div
 				aria-hidden
 				style={{

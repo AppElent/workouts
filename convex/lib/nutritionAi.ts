@@ -181,8 +181,6 @@ export function nutritionAiProvider(): NutritionAiProvider | null {
 	return key ? new AnthropicProvider(key) : null;
 }
 
-// ───────────────────────────── schemas ─────────────────────────────
-
 function object(properties: Record<string, unknown>) {
 	return {
 		type: "object",
@@ -285,8 +283,6 @@ const LABEL_SCHEMA = object({
 	notes: { type: "string" },
 });
 
-// ───────────────────────────── prompts ─────────────────────────────
-
 const LANGUAGE: Record<Locale, string> = { en: "English", nl: "Dutch" };
 
 const ITEM_RULES = `- Every item is one of two kinds:
@@ -353,8 +349,6 @@ Transcribe the nutrition table exactly as printed — never compute, round, or e
 - If the image is not a nutrition label, set isLabel false, leave values null and servings empty.
 - notes: anything uncertain (blur, glare, cut-off text) in ${LANGUAGE[locale]}; empty string if nothing.`;
 }
-
-// ───────────────────────────── tasks ─────────────────────────────
 
 type Component = {
 	name: string;

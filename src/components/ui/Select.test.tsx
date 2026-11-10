@@ -63,8 +63,6 @@ describe("Select", () => {
 		expect(screen.getByRole("option", { name: "Isolation" })).toBeTruthy();
 	});
 
-	// Note: option-selection commits via Base UI's layout-dependent pointer
-	// tracking (@floating-ui), which jsdom cannot drive — the existing repo
-	// component tests assert structure only for the same reason. Selecting an
-	// option and the resulting filtering are verified in the browser preview.
+	// Selecting an option goes through Base UI's layout-dependent pointer
+	// tracking (@floating-ui), which jsdom cannot drive.
 });

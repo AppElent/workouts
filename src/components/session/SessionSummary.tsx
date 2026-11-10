@@ -91,7 +91,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 
 	return (
 		<div className="p-4 sm:p-6 max-w-3xl mx-auto">
-			{/* Header */}
 			<div className="mb-6">
 				<div className="flex items-center gap-2 mb-2">
 					{isCompleted ? (
@@ -126,7 +125,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				</div>
 			</div>
 
-			{/* Stats */}
 			<div className="grid grid-cols-2 gap-3 mb-6">
 				<div className="rounded-xl bg-white/5 p-4">
 					<p className="text-xs text-[var(--text-muted)] mb-1">Total Sets</p>
@@ -140,7 +138,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				</div>
 			</div>
 
-			{/* Exercise breakdown */}
 			<div className="flex flex-col gap-3 mb-8">
 				{exerciseBreakdown.length === 0 ? (
 					<div className="rounded-xl bg-white/5 p-4 text-sm text-[var(--text-muted)] flex items-center gap-2">
@@ -207,7 +204,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				</div>
 			)}
 
-			{/* Actions */}
 			<div className="flex flex-col sm:flex-row gap-3">
 				<Link
 					to="/dashboard"

@@ -15,7 +15,6 @@ export type RoutinePayload = Pick<Doc<"routines">, "name" | "exercises">;
 
 type Entry = Doc<"routines">["exercises"][number] & { name: string };
 
-/** Name and exercise list of a routine, for creating or editing one. */
 export function RoutineEditor({
 	initial,
 	submitLabel,
