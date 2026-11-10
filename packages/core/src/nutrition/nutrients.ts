@@ -6,6 +6,10 @@ import { type RuleResult, ruleIssues } from "../rules";
  * These keys are the single spelling used by `@foundry/core`, Convex, the
  * device SQLite schema and the message trees. British `fibre` is deliberate;
  * so is `carbs` over `carbohydrates`.
+ *
+ * Convex `perNutrient` requires every key on every stored diary, library and
+ * draft row: a new key ships optional there, or after a backfill, or the
+ * schema push fails.
  */
 
 /** The eight nutrients a person can see, total and set a goal for. */

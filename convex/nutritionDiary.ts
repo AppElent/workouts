@@ -1,4 +1,5 @@
 import {
+	type Bilingual,
 	correctDiaryNutrients,
 	isoDayOffset,
 	type NutritionDiaryOperation,
@@ -117,8 +118,8 @@ function assertBatchSize(items: readonly unknown[], field: string) {
 
 function assertSnapshot(snapshot: {
 	date: string;
-	name: { en: string; nl: string };
-	serving: { en: string; nl: string };
+	name: Bilingual;
+	serving: Bilingual;
 	quantity: number;
 	amount: number;
 	nutrients: unknown;
