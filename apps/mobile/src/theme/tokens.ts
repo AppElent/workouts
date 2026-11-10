@@ -17,14 +17,9 @@ import { darkColors, lightColors } from "./palette";
 export { darkColors, lightColors, type Tokens } from "./palette";
 
 /**
- * One entry per proposed Activity type. A closed set of code literals per
- * ADR-0001 —
- * not a user-extensible catalog, because each type needs its own detail schema
- * and logging UI that a data row cannot supply.
- *
- * Presentation metadata remains phone-local. A
- * future shared catalog belongs to the Activity migration; the colours stay
- * phone-side because they are presentation rather than domain language.
+ * One entry per Activity type: a closed set of code literals (ADR-0001), not
+ * a user-extensible catalog, because each type needs its own detail schema
+ * and logging UI. The colours are presentation, so they stay phone-side.
  */
 export const sportMeta = {
 	strength: {
@@ -79,7 +74,6 @@ export const lightSportMeta: Record<SportKey, SportStyle> = {
  * SwiftUI draws the surface the system's corners win.
  */
 export const radius = {
-	xs: 4,
 	sm: 6,
 	md: 8,
 	lg: 12,
@@ -117,8 +111,6 @@ export const metrics = {
 	rowMinHeight: 48,
 	fieldMinHeight: 44,
 	hitTarget: 44,
-	/** The primary capsule. */
-	controlHeight: 46,
 	sectionGap: 18,
 	/** Hairlines start here from the leading edge, never full-bleed. */
 	separatorInset: 16,
