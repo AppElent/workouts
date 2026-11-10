@@ -37,7 +37,7 @@ the Apple revocation key below.
 | Apple primary App ID | `com.appelent.foundry` (other apps group under it) |
 | Apple Services ID | `nl.appelent.web` |
 | Apple on iOS | Native sheet; Android and web use the browser OAuth flow |
-| Web PR preview deploys | Separate Clerk test instance; unaffected |
+| Web PR preview deploys | Clerk development instance (Infisical `staging` references the `dev` values); unaffected |
 | EAS builds → Clerk instance | `development` → development; `preview` and `production` → production |
 
 Google is gated to local development (`import.meta.env.DEV` on web, `__DEV__`

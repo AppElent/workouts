@@ -14,11 +14,14 @@ import {
 	runProcess,
 } from "./lib/env/index.mjs";
 
-/** EAS build profile → manifest environment, and whether it goes to TestFlight. */
+/**
+ * EAS build profile → manifest environment, and whether it goes to TestFlight.
+ * The installed preview app reads `staging` (EAS preview, Infisical prod).
+ */
 export const PROFILES = {
 	development: { environment: "local", submit: false },
-	preview: { environment: "preview", submit: true },
-	"preview-internal": { environment: "preview", submit: false },
+	preview: { environment: "staging", submit: true },
+	"preview-internal": { environment: "staging", submit: false },
 	production: { environment: "production", submit: true },
 };
 

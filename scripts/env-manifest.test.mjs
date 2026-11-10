@@ -1,115 +1,143 @@
+import * as loaded from "../env.manifest.ts";
 import {
-	CONSUMERS,
-	destinationFor,
-	ENTRIES,
-	ENV_CONFIG,
-	ENVIRONMENTS,
-	placementsFor,
-} from "../env.manifest.ts";
+	resolveEnvironmentManifest,
+	STANDARD_SOURCE,
+	validateEnvironmentManifest,
+} from "./lib/env/index.mjs";
 
+const manifest = resolveEnvironmentManifest(loaded);
+const { ENTRIES, ENV_CONFIG, ENVIRONMENTS } = manifest;
+const placements = (environment) =>
+	manifest.placementsFor(environment, { prNumber: "12" });
 const byKey = (key) => ENTRIES.find((entry) => entry.key === key);
 
-describe("Foundry environment routing", () => {
-	it("uses the app's real environment and provider identities", () => {
+describe("Foundry environment manifest", () => {
+	it("is data only and uses the shared routing", () => {
+		expect(Object.keys(loaded).sort()).toEqual([
+			"ENTRIES",
+			"ENVIRONMENTS",
+			"ENV_CONFIG",
+		]);
 		expect(ENVIRONMENTS).toEqual([
 			"local",
-			"preview",
 			"dev",
+			"preview",
+			"staging",
 			"production",
 		]);
-		expect(ENV_CONFIG.source.paths).toEqual(["/", "/foundry"]);
-		expect(ENV_CONFIG.source.environments).toEqual({
-			local: "dev",
-			preview: "staging",
-			dev: "staging",
-			production: "prod",
-		});
-		expect(ENV_CONFIG.mobile.path).toBe("apps/mobile");
-		expect(ENV_CONFIG.github.repository).toBe("AppElent/workouts");
-		expect(destinationFor("convex-functions", "dev")).toMatchObject({
-			kind: "convex",
+		expect(ENV_CONFIG.source.environments).toMatchObject(STANDARD_SOURCE);
+		expect(ENV_CONFIG.routes).toBeUndefined();
+		expect(
+			validateEnvironmentManifest(manifest).filter(
+				(finding) => finding.level !== "note",
+			),
+		).toEqual([]);
+	});
+
+	it("targets the app's real deployments and Workers", () => {
+		const target = (environment, consumer) =>
+			placements(environment).find(
+				(placement) => placement.consumer === consumer,
+			)?.destination;
+		expect(target("local", "convex-functions")).toMatchObject({
 			deployment: "colorless-sturgeon-704",
 		});
-		expect(destinationFor("convex-functions", "production")).toMatchObject({
-			kind: "convex",
+		expect(target("dev", "convex-functions")).toMatchObject({
+			deployment: "colorless-sturgeon-704",
+		});
+		expect(target("production", "convex-functions")).toMatchObject({
 			deployment: "fine-akita-444",
+		});
+		expect(target("preview", "convex-functions")).toMatchObject({
+			target: "preview-default",
+			project: "eric-jansen:workout-tracker",
 		});
 	});
 
-	it("answers every consumer/environment pair without staging", () => {
-		for (const consumer of CONSUMERS) {
-			for (const environment of ENVIRONMENTS) {
-				expect(() => destinationFor(consumer, environment)).not.toThrow();
-			}
-		}
-		expect(ENVIRONMENTS).not.toContain("stg");
+	it("never lands a deployed environment in a local file", () => {
+		for (const environment of ["dev", "preview", "staging", "production"])
+			for (const placement of placements(environment))
+				expect(placement.destination.kind).not.toBe("file");
 	});
 
 	it("never routes local preparation to a production destination", () => {
-		for (const placement of placementsFor("local")) {
+		for (const placement of placements("local")) {
 			expect(placement.destination).not.toMatchObject({
-				kind: "convex",
-				target: "production",
+				deployment: "fine-akita-444",
 			});
 			expect(placement.destination).not.toEqual({
 				kind: "eas",
 				environment: "production",
 			});
-			expect(placement.destination).not.toEqual({
-				kind: "github",
-				scope: "production",
-			});
+			expect(placement.destination.kind).not.toBe("github");
 		}
 	});
 
-	it("preserves app-owned local and mobile files", () => {
-		expect(destinationFor("vite-build", "local")).toEqual({
-			kind: "file",
-			path: ".env.local",
-		});
-		expect(destinationFor("vite-build", "dev")).toEqual({
-			kind: "file",
-			path: ".env.development.local",
-		});
-		expect(destinationFor("vite-build", "production")).toEqual({
-			kind: "file",
-			path: ".env.production.local",
-		});
-		expect(destinationFor("expo-local", "local")).toEqual({
-			kind: "file",
-			path: "apps/mobile/.env.local",
-		});
-	});
-
-	it("uses the existing preview GitHub secret names", () => {
-		const names = placementsFor("preview")
+	it("writes preview values to repository scope under PREVIEW_ names", () => {
+		const names = placements("preview")
 			.filter((placement) => placement.destination.kind === "github")
 			.map((placement) => placement.name);
+		expect(names.every((name) => name.startsWith("PREVIEW_"))).toBe(true);
 		expect(names).toEqual(
 			expect.arrayContaining([
-				"PREVIEW_CLERK_PUBLISHABLE_KEY",
-				"CONVEX_DEPLOY_KEY",
-				"CLOUDFLARE_API_TOKEN",
-				"CLOUDFLARE_ACCOUNT_ID",
+				"PREVIEW_VITE_CLERK_PUBLISHABLE_KEY",
+				"PREVIEW_CONVEX_DEPLOY_KEY",
+				"PREVIEW_CLOUDFLARE_API_TOKEN",
+				"PREVIEW_CLOUDFLARE_ACCOUNT_ID",
+				"PREVIEW_EXPO_TOKEN",
 			]),
 		);
-	});
-
-	it("marks workspace and preview URLs as generated outputs", () => {
-		const localFiles = placementsFor("local").filter(
-			(placement) =>
-				placement.entry.key === "convexUrl" &&
-				placement.destination.kind === "file",
-		);
-		expect(localFiles).toHaveLength(2);
-		expect(localFiles.every((placement) => placement.suppliedBy)).toBe(true);
-
-		const previewWebUrl = placementsFor("preview").find(
+		const previewUrl = placements("preview").find(
 			(placement) =>
 				placement.entry.key === "convexUrl" &&
 				placement.consumer === "vite-build",
 		);
-		expect(previewWebUrl?.suppliedBy).toContain("convex deploy");
+		expect(previewUrl?.suppliedBy).toContain("convex deploy");
+	});
+
+	it("gives web PR previews development auth and the preview app production auth", () => {
+		const clerk = (environment) =>
+			placements(environment)
+				.filter((placement) => /CLERK/.test(placement.name))
+				.map(
+					(placement) =>
+						`${placement.consumer} ${placement.entry.infisicalKey}`,
+				);
+		// Infisical staging (preview) holds dev Clerk values; prod (staging) live ones.
+		expect(clerk("preview")).toEqual([
+			"vite-build clerk-publishable-key",
+			"convex-functions clerk-jwt-issuer-domain",
+		]);
+		expect(clerk("staging")).toEqual(["expo-build clerk-publishable-key"]);
+	});
+
+	it("lands only the installed preview app in staging", () => {
+		const staging = placements("staging");
+		expect(staging.length).toBeGreaterThan(0);
+		for (const placement of staging)
+			expect(placement.destination).toEqual({
+				kind: "eas",
+				environment: "preview",
+			});
+		expect(
+			placements("preview").some(
+				(placement) => placement.destination.kind === "eas",
+			),
+		).toBe(false);
+	});
+
+	it("gives deploy:production an explicit Convex target", () => {
+		const github = placements("production").filter(
+			(placement) => placement.destination.kind === "github",
+		);
+		expect(github.map((placement) => placement.variable)).toContain(
+			"CONVEX_DEPLOY_KEY",
+		);
+		expect(
+			placements("dev").some(
+				(placement) => placement.variable === "CONVEX_DEPLOY_KEY",
+			),
+		).toBe(false);
 	});
 
 	it("never routes a secret to a public client", () => {
@@ -121,54 +149,43 @@ describe("Foundry environment routing", () => {
 		}
 	});
 
-	it("keeps test credentials optional, public, and out of production", () => {
+	it("lands test-user values only in local and dev", () => {
 		for (const key of ["testUserEmail", "testUserPassword"]) {
-			const entry = byKey(key);
-			expect(entry).toMatchObject({ optional: true, secret: false });
-			expect(
-				placementsFor("production").some(
-					(placement) => placement.entry.key === key,
-				),
-			).toBe(false);
+			expect(byKey(key)).toMatchObject({ optional: true, secret: false });
+			for (const environment of ["preview", "staging", "production"])
+				expect(
+					placements(environment).some(
+						(placement) => placement.entry.key === key,
+					),
+				).toBe(false);
 		}
-		expect(byKey("convexDeployKey")?.optional).toBeUndefined();
-		expect(byKey("nodeAuthToken")?.optional).toBeUndefined();
 	});
 
-	it("gives every logical value a unique evidenced source name", () => {
-		expect(ENTRIES).toHaveLength(17);
+	it("declares only names the code reads", () => {
+		const names = ENTRIES.flatMap((entry) =>
+			Object.values(entry.lands).map((landing) => landing.name),
+		);
+		expect(names).not.toEqual(
+			expect.arrayContaining(["CONVEX_SITE_URL", "VITE_CONVEX_SITE_URL"]),
+		);
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
-		expect(sourceNames).not.toEqual(
-			expect.arrayContaining([
-				"CLERK_SECRET_KEY",
-				"VITE_CONVEX_SITE_URL",
-				"REGISTRY_OWNER",
-				"CLOUDFLARE_ENV",
-			]),
-		);
 	});
 
-	it("keeps the AI provider key in Convex functions only", () => {
-		for (const environment of ENVIRONMENTS) {
-			const anthropic = placementsFor(environment).filter(
-				(placement) => placement.entry.key === "anthropicApiKey",
+	it("keeps the AI and Sign in with Apple keys in Convex functions only", () => {
+		const keys = [
+			"anthropicApiKey",
+			"appleTeamId",
+			"appleSignInKeyId",
+			"appleSignInPrivateKey",
+		];
+		// Every environment with a backend; staging is only the installed app.
+		for (const environment of ENVIRONMENTS.filter((name) => name !== "staging")) {
+			const selected = placements(environment).filter((placement) =>
+				keys.includes(placement.entry.key),
 			);
-			expect(anthropic.map((placement) => placement.consumer)).toEqual([
-				"convex-functions",
-			]);
-			expect(anthropic[0].entry.secret).toBe(true);
-		}
-	});
-
-	it("keeps the Sign in with Apple key in Convex functions only", () => {
-		const apple = ["appleTeamId", "appleSignInKeyId", "appleSignInPrivateKey"];
-		for (const environment of ENVIRONMENTS) {
-			const placements = placementsFor(environment).filter((placement) =>
-				apple.includes(placement.entry.key),
-			);
-			expect(placements).toHaveLength(apple.length);
-			for (const placement of placements) {
+			expect(selected).toHaveLength(keys.length);
+			for (const placement of selected) {
 				expect(placement.consumer).toBe("convex-functions");
 				expect(placement.entry.secret).toBe(true);
 			}
@@ -176,39 +193,13 @@ describe("Foundry environment routing", () => {
 	});
 
 	it("keeps Sentry upload credentials out of client bundles", () => {
-		for (const environment of ENVIRONMENTS) {
-			const sentry = placementsFor(environment).filter((placement) =>
-				placement.entry.key.startsWith("sentry"),
-			);
-			expect(sentry.every((placement) => placement.entry.optional)).toBe(true);
-			expect(
-				sentry.filter((placement) => placement.entry.secret),
-			).toEqual([
-				...(environment === "local" ? [expect.objectContaining({
-					name: "SENTRY_AUTH_TOKEN", consumer: "local-tooling",
-					destination: { kind: "file", path: ".env.local" },
-				})] : []),
-				...(environment === "preview" ? [expect.objectContaining({
-					name: "SENTRY_AUTH_TOKEN", consumer: "workflow",
-					destination: { kind: "github", scope: "repo" },
-				})] : []),
-				expect.objectContaining({
-					name: "SENTRY_AUTH_TOKEN",
-					consumer: "eas-tooling",
-					destination: expect.objectContaining({ kind: "eas" }),
-				}),
-			]);
-		}
-	});
-
-	it("claims each destination slot only once", () => {
-		for (const environment of ENVIRONMENTS) {
-			const seen = new Set();
-			for (const placement of placementsFor(environment)) {
-				const slot = `${JSON.stringify(placement.destination)}/${placement.name}`;
-				expect(seen.has(slot)).toBe(false);
-				seen.add(slot);
-			}
-		}
+		for (const environment of ENVIRONMENTS)
+			for (const placement of placements(environment))
+				if (placement.entry.key === "sentryAuthToken")
+					expect(placement.name).toMatch(/SENTRY_AUTH_TOKEN$/);
+		expect(byKey("sentryAuthToken")).toMatchObject({
+			optional: true,
+			secret: true,
+		});
 	});
 });

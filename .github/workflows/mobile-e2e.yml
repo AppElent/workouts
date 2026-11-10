@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: read
     env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
       METRO_PORT: "8090"
     steps:
       - uses: actions/checkout@v4
