@@ -16,6 +16,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
+import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
@@ -27,7 +28,6 @@ import { Route as JoinTokenRouteImport } from './routes/join/$token'
 import { Route as LogIndexRouteImport } from './routes/log/index'
 import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
-import { Route as McpAuthRouteImport } from './routes/mcp/auth'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as ProgressIndexRouteImport } from './routes/progress/index'
 import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
@@ -69,6 +69,11 @@ const SignUpRoute = SignUpRouteImport.update({
 const SsoCallbackRoute = SsoCallbackRouteImport.update({
   id: '/sso-callback',
   path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
+  id: '/.well-known/$',
+  path: '/.well-known/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
@@ -126,11 +131,6 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
   path: '/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const McpAuthRoute = McpAuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => McpRoute,
-} as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
@@ -170,17 +170,17 @@ const ApiCliAuthLoginRoute = ApiCliAuthLoginRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRouteWithChildren
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
-  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -198,17 +198,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRouteWithChildren
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
-  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account': typeof AccountIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -227,17 +227,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRouteWithChildren
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof ExercisesIdRoute
   '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
   '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
   '/join/$token': typeof JoinTokenRoute
   '/log/$sessionId': typeof LogSessionIdRoute
-  '/mcp/auth': typeof McpAuthRoute
   '/wods/$id': typeof WodsIdRoute
   '/account/': typeof AccountIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -262,12 +262,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/.well-known/$'
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
-    | '/mcp/auth'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
@@ -290,12 +290,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/.well-known/$'
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
-    | '/mcp/auth'
     | '/wods/$id'
     | '/account'
     | '/dashboard'
@@ -318,12 +318,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/.well-known/$'
     | '/exercises/$id'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
     | '/join/$token'
     | '/log/$sessionId'
-    | '/mcp/auth'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
@@ -342,11 +342,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  McpRoute: typeof McpRouteWithChildren
+  McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
+  DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   ExercisesIdRoute: typeof ExercisesIdRoute
   HostedWorkoutsIdRoute: typeof HostedWorkoutsIdRoute
   HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
@@ -416,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/sso-callback'
       fullPath: '/sso-callback'
       preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/$': {
+      id: '/.well-known/$'
+      path: '/.well-known/$'
+      fullPath: '/.well-known/$'
+      preLoaderRoute: typeof DotwellKnownSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/': {
@@ -495,13 +503,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mcp/auth': {
-      id: '/mcp/auth'
-      path: '/auth'
-      fullPath: '/mcp/auth'
-      preLoaderRoute: typeof McpAuthRouteImport
-      parentRoute: typeof McpRoute
-    }
     '/profile/': {
       id: '/profile/'
       path: '/profile'
@@ -554,24 +555,15 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface McpRouteChildren {
-  McpAuthRoute: typeof McpAuthRoute
-}
-
-const McpRouteChildren: McpRouteChildren = {
-  McpAuthRoute: McpAuthRoute,
-}
-
-const McpRouteWithChildren = McpRoute._addFileChildren(McpRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  McpRoute: McpRouteWithChildren,
+  McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   SsoCallbackRoute: SsoCallbackRoute,
+  DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   ExercisesIdRoute: ExercisesIdRoute,
   HostedWorkoutsIdRoute: HostedWorkoutsIdRoute,
   HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	exerciseReference,
 	normalizeExerciseReferences,
@@ -9,7 +10,7 @@ import { ensureSessionExercise } from "./lib/strengthSession";
 import { recalcOneRepMax } from "./sets";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }
@@ -17,7 +18,7 @@ async function requireUser(ctx: QueryCtx | MutationCtx) {
 export const getActive = query({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		if (!identity) return null;
 		return ctx.db
 			.query("workoutSessions")

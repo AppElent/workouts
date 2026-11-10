@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { ENV_CONFIG } from "../env.manifest";
 import { type MutationCtx, mutation, query } from "./_generated/server";
+import { getIdentity, rejectConnectedApps } from "./lib/connectedApps";
 import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
 import { loadTestDataBaseline } from "./lib/testDataBaseline";
 import { assertDiaryDate } from "./nutritionDiary";
@@ -31,7 +32,7 @@ export const availability = query({
 		),
 	}),
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		const available = !!identity && enabled();
 		return {
 			available,
@@ -51,7 +52,8 @@ export const reset = mutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
+		await rejectConnectedApps(ctx);
+		const identity = await getIdentity(ctx);
 		if (!identity) throw new ConvexError("unauthenticated");
 		if (!enabled()) throw new ConvexError("unavailable");
 		if (identity.subject !== args.expectedSubject)

@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import { assertOptionalRange } from "./lib/validate";
 
 // A non-open workout can't be scored. Word it for the actual status so a draft
@@ -16,7 +17,7 @@ function assertOpenForScoring(status: "draft" | "open" | "closed") {
 }
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new ConvexError("Unauthenticated");
 	return identity.subject;
 }

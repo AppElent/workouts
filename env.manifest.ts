@@ -100,6 +100,19 @@ export const ENTRIES = [
 		},
 	},
 	{
+		key: "mcpResourceUrls",
+		infisicalKey: "mcp-resource-urls",
+		description:
+			"Comma-separated MCP endpoint URLs whose Clerk OAuth tokens Convex accepts; `none` disables MCP",
+		secret: false,
+		lands: {
+			"convex-functions": {
+				name: "MCP_RESOURCE_URLS",
+				environments: WEB,
+			},
+		},
+	},
+	{
 		key: "anthropicApiKey",
 		infisicalKey: "anthropic-api-key",
 		description: "Anthropic API key for nutrition AI help (Convex actions only)",

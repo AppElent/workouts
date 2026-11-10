@@ -3,7 +3,7 @@ import {
 	normalizePersonalFood,
 	type PersonalFood,
 } from "@foundry/core";
-import { paginationOptsValidator } from "convex/server";
+import { type Auth, paginationOptsValidator } from "convex/server";
 import { type Infer, v } from "convex/values";
 import {
 	type MutationCtx,
@@ -11,6 +11,7 @@ import {
 	type QueryCtx,
 	query,
 } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { requireFoodPhotoOwner } from "./nutritionFoodPhotos";
 import {
@@ -54,10 +55,8 @@ const operationArgs = {
 	operation,
 };
 
-async function requireUser(ctx: {
-	auth: { getUserIdentity: () => Promise<{ subject: string } | null> };
-}) {
-	const identity = await ctx.auth.getUserIdentity();
+async function requireUser(ctx: { auth: Auth }) {
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }

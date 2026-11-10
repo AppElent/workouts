@@ -6,6 +6,7 @@ import {
 	isAppleClientId,
 	revokeAppleAuthorization,
 } from "./lib/appleSignIn";
+import { getIdentity, rejectConnectedApps } from "./lib/connectedApps";
 import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
 
 const blocker = v.union(
@@ -19,7 +20,7 @@ export const deletionBlocker = query({
 	args: {},
 	returns: blocker,
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		return identity ? await personalDataBlocker(ctx, identity.subject) : null;
 	},
 });
@@ -33,7 +34,8 @@ export const deleteData = mutation({
 	args: { expectedSubject: v.string() },
 	returns: v.object({ done: v.boolean() }),
 	handler: async (ctx, { expectedSubject }) => {
-		const identity = await ctx.auth.getUserIdentity();
+		await rejectConnectedApps(ctx);
+		const identity = await getIdentity(ctx);
 		if (!identity) throw new ConvexError("unauthenticated");
 		if (identity.subject !== expectedSubject)
 			throw new ConvexError("accountChanged");
@@ -65,8 +67,7 @@ export const revokeAppleSignIn = action({
 		ctx,
 		{ authorizationCode, bundleId = APPLE_CLIENT_IDS[0] },
 	) => {
-		if (!(await ctx.auth.getUserIdentity()))
-			throw new ConvexError("unauthenticated");
+		if (!(await getIdentity(ctx))) throw new ConvexError("unauthenticated");
 		if (
 			!authorizationCode ||
 			authorizationCode.length > MAX_AUTHORIZATION_CODE ||

@@ -70,6 +70,13 @@ const sources = {
 				.query("strengthLogReceipts")
 				.withIndex("by_user_operation", (q) => q.eq("userId", u)),
 	},
+	operationReceipts: {
+		export: false,
+		read: (db: Db, u: string) =>
+			db
+				.query("operationReceipts")
+				.withIndex("by_user_operation", (q) => q.eq("userId", u)),
+	},
 	nutritionDiaryEntries: {
 		read: (db: Db, u: string) =>
 			db

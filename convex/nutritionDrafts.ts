@@ -8,11 +8,12 @@ import {
 	type QueryCtx,
 	query,
 } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import { assertDiaryDate } from "./nutritionDiary";
 import { captureDraft, draftInput } from "./nutritionDraftTables";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }

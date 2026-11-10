@@ -10,6 +10,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	diaryPartSnapshotFields,
 	diarySnapshotFields,
@@ -19,7 +20,7 @@ import { requireFoodPhotoOwner } from "./nutritionFoodPhotos";
 import { operationArgs, operationResult } from "./nutritionOperationModel";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }

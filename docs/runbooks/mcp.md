@@ -1,69 +1,124 @@
 ---
 type: runbook
-description: Read when using or changing the Foundry MCP server.
-version: 1.0.0
+description: Read when connecting to, operating, or changing the Foundry MCP server.
+version: 2.0.0
 ---
 
 # Foundry MCP
 
-Foundry exposes a read-only MCP endpoint at:
+Foundry serves a remote MCP server at `/mcp` from the same Worker as the web app.
+Any Foundry user can connect Claude, ChatGPT, or another MCP client and read or
+log their own data. The design is in
+[ADR 0016](../adr/0016-clerk-oauth-for-mcp.md).
 
-```text
-/mcp
-```
+| Environment | Endpoint                                      | Clerk issuer                                 |
+| ----------- | --------------------------------------------- | -------------------------------------------- |
+| Production  | `https://foundry.appelent.nl/mcp`             | `https://clerk.appelent.nl`                  |
+| Dev Worker  | `https://foundry-dev.appelent.workers.dev/mcp` | `https://calm-cricket-82.clerk.accounts.dev` |
+| Local       | `http://localhost:3000/mcp`                   | dev issuer                                   |
 
-The endpoint is hosted by the same TanStack Start webapp as the Foundry UI.
+## Connect
 
-## Auth
+- **Claude.ai, Desktop, mobile:** Settings → Connectors → Add custom connector,
+  paste the endpoint, then sign in with Foundry.
+- **Claude Code:** `claude mcp add --transport http foundry https://foundry.appelent.nl/mcp`,
+  then run `/mcp` and choose Authenticate.
+- **ChatGPT and others:** add the endpoint as a remote MCP server with OAuth.
 
-Personal data tools require a Convex-compatible Clerk JWT:
+Clients discover everything else: the endpoint answers `401` with
+`WWW-Authenticate: Bearer resource_metadata=…`, the metadata names Clerk as the
+authorization server, and the client registers itself (DCR or CIMD) and signs
+the user in with PKCE.
 
-```http
-Authorization: Bearer <token>
-```
+## How a request is authorized
 
-MCP clients can obtain a token by opening the browser-mediated auth endpoint:
+1. The client sends `Authorization: Bearer <Clerk OAuth access token>`.
+2. The Worker verifies the JWT against Clerk's JWKS: issuer, RS256, and
+   `aud` exactly equal to this endpoint's URL (RFC 8707 `resource`).
+3. The token's `scope` decides which tools exist for this connection:
+   `foundry:read` lists read tools, `foundry:write` adds write tools. A token
+   with neither gets `403 insufficient_scope`.
+4. Tools call Convex with the same token. Convex trusts it through a
+   `customJwt` provider whose `applicationID` is the endpoint URL, so
+   `identity.subject` is the Clerk user ID and the usual ownership checks apply.
+5. Convex enforces the scopes again, because a client could call it directly
+   with the token: `getIdentity` in `convex/lib/connectedApps.ts` rejects
+   mutations and actions from an OAuth identity without `foundry:write`, and
+   account deletion and test-data reset reject every OAuth identity. Use
+   `getIdentity(ctx)`, never `ctx.auth.getUserIdentity()`, in new modules.
 
-```text
-/mcp/auth?redirect_uri=http://127.0.0.1:<port>/callback&state=<nonce>
-```
-
-The callback URL must be local loopback over HTTP using `127.0.0.1` or `localhost`.
-The auth page signs the user in through Foundry, creates a Clerk token using the
-`convex` template, and redirects back to the local callback with either:
-
-```text
-?state=<nonce>&token=<jwt>
-```
-
-or:
-
-```text
-?state=<nonce>&error=<code>&error_description=<message>
-```
+Browser `Origin`s are limited to claude.ai, claude.com, chatgpt.com, the app's
+own origin, and localhost against a local server. Server-side clients send none.
 
 ## Tools
 
-- `list_exercises`
-- `list_recent_workouts`
-- `get_workout_sets`
-- `list_personal_records`
-- `get_exercise_volume`
+Read (`foundry:read`): `get_current_user`, `list_activities`, `get_run_or_ride`,
+`list_body_metrics`, `list_wods`, `get_wod_results`, `list_exercises`,
+`get_exercise_history`, `get_exercise_volume`, `list_one_rep_maxes`,
+`list_routines`, `get_active_strength_session`, `get_strength_session`,
+`get_nutrition_day`, `get_nutrition_week`, `get_nutrition_goals`,
+`search_foods`.
 
-All tools are read-only in this first MCP slice.
+Write (`foundry:write`): `log_run_or_ride`, `update_run_or_ride`,
+`log_body_metrics`, `log_wod_result`, `start_strength_session`,
+`add_exercise_to_session`, `log_set`, `update_set`, `finish_strength_session`,
+`record_one_rep_max`, `log_food`, `log_custom_food`, `update_diary_entry`.
 
-## Local Verification
+Rules for every tool:
 
-Start the app:
+- Write tools that create data require an `idempotencyKey`. The server stores
+  it as `mcp:<key>`; a retry with the same key and input returns the first
+  result, and the same key with different input is rejected.
+- There are no delete tools. Users delete in the app.
+- Results are JSON in `structuredContent` and as text. Errors show validation
+  and Convex user messages only; internal errors become a generic message.
 
-```bash
-pnpm dev:watch
-```
+To add a tool, add it to a file in `src/lib/mcp/tools/` with `defineTool`, set
+`access`, and add a case to `src/lib/mcp/handler.test.ts`. A new create tool
+needs a Convex idempotency key (`operationId`, `clientEntryId`, or
+`withOperationReceipt`).
 
-Connect an MCP-capable client to:
+## Setup per environment
 
-```text
-http://localhost:3000/mcp
-```
+**Clerk instance** (shared by all AppElent apps):
 
-Use `/mcp/auth` to obtain a token before calling personal-data tools.
+- OAuth applications → Scopes: `foundry:read` and `foundry:write`. Creating
+  scopes is Dashboard-only.
+- OAuth settings, through the Backend API
+  `PATCH /v1/instance/oauth_application_settings`: `oauth_jwt_access_tokens`,
+  `dynamic_oauth_client_registration`, `pkce_required`, `aud_claim_enabled`,
+  and `default_scopes` = `openid profile email foundry:read foundry:write`.
+  Default scopes cover clients that register without a `scope`.
+- MCP resource for the endpoint URL (Clerk MCP `configure_mcp_server`, or the
+  Dashboard).
+
+**Convex:** `MCP_RESOURCE_URLS` (Infisical `/foundry/mcp-resource-urls`) is a
+comma-separated list of endpoint URLs. Convex requires every variable
+`auth.config.ts` reads on every deployment, so a deployment without MCP uses
+`none`. Apply it with `pnpm env:apply <environment> --only convex` **before**
+pushing functions, or the push fails.
+
+| Infisical env | Value                                                                 |
+| ------------- | --------------------------------------------------------------------- |
+| dev           | `http://localhost:3000/mcp,https://foundry-dev.appelent.workers.dev/mcp` |
+| staging       | `none` (PR previews)                                                  |
+| prod          | `https://foundry.appelent.nl/mcp`                                      |
+
+PR preview Workers have no MCP: their URLs change per PR.
+
+## Verify
+
+1. `curl -i -X POST <endpoint>`: expect `401` with `resource_metadata`.
+2. `curl <origin>/.well-known/oauth-protected-resource/mcp`: expect `resource`
+   equal to the endpoint and `scopes_supported` with both Foundry scopes.
+3. Connect Claude Code (above) and ask "Who am I in Foundry?". It should call
+   `get_current_user` and show the granted scopes.
+
+## Troubleshooting
+
+- **`401 invalid_token`:** the token's `aud` is not this endpoint. Check the
+  Clerk MCP resource and that the client sent `resource`.
+- **`403 insufficient_scope`:** the grant lacks Foundry scopes. Check the Clerk
+  scopes and `default_scopes`, then reconnect.
+- **Tools fail with "Not authenticated":** Convex does not trust the token.
+  Check `MCP_RESOURCE_URLS` on that deployment matches the endpoint exactly.

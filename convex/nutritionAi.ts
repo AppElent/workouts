@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { type ActionCtx, action, internalMutation } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	type AiLocale,
 	describe as describeMeal,
@@ -46,7 +47,7 @@ const estimate = v.object({
 });
 
 async function requireUser(ctx: ActionCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new ConvexError("unauthenticated");
 	return identity.subject;
 }

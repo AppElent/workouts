@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import { resolveExercise } from "./lib/exerciseCatalog";
 import { exportTables, readPersonalTable } from "./lib/personalData";
 
@@ -31,7 +32,7 @@ const enduranceDetailExport = v.object({
 });
 
 async function requireUser(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }

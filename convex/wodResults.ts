@@ -2,10 +2,12 @@ import { bestScore } from "@foundry/core";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
+import { withOperationReceipt } from "./lib/operationReceipts";
 import { assertOptionalRange } from "./lib/validate";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }
@@ -23,12 +25,13 @@ const scoreFields = {
 
 export const log = mutation({
 	args: {
+		operationId: v.optional(v.string()),
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
 		date: v.optional(v.number()),
 		...scoreFields,
 	},
-	handler: async (ctx, { wodId, sessionId, date, ...score }) => {
+	handler: async (ctx, { operationId, wodId, sessionId, date, ...score }) => {
 		const userId = await requireUser(ctx);
 		assertOptionalRange(score.timeSeconds, 0, 86400, "Time");
 		assertOptionalRange(score.rounds, 0, 10000, "Rounds");
@@ -43,13 +46,23 @@ export const log = mutation({
 			if (!session || session.userId !== userId)
 				throw new Error("Session not found");
 		}
-		return ctx.db.insert("wodResults", {
+		return withOperationReceipt(
+			ctx,
 			userId,
-			wodId,
-			sessionId,
-			date: date ?? Date.now(),
-			...score,
-		});
+			{
+				operationId,
+				kind: "wodResult",
+				payload: { wodId, sessionId, date, ...score },
+			},
+			() =>
+				ctx.db.insert("wodResults", {
+					userId,
+					wodId,
+					sessionId,
+					date: date ?? Date.now(),
+					...score,
+				}),
+		);
 	},
 });
 

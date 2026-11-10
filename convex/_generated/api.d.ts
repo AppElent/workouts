@@ -19,11 +19,13 @@ import type * as hostedWorkoutParticipants from "../hostedWorkoutParticipants.js
 import type * as hostedWorkoutSubmissions from "../hostedWorkoutSubmissions.js";
 import type * as hostedWorkouts from "../hostedWorkouts.js";
 import type * as lib_appleSignIn from "../lib/appleSignIn.js";
+import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_exerciseCatalog from "../lib/exerciseCatalog.js";
 import type * as lib_exerciseMigrationModel from "../lib/exerciseMigrationModel.js";
 import type * as lib_hostedDto from "../lib/hostedDto.js";
 import type * as lib_nutritionAi from "../lib/nutritionAi.js";
 import type * as lib_nutritionLibraryIndex from "../lib/nutritionLibraryIndex.js";
+import type * as lib_operationReceipts from "../lib/operationReceipts.js";
 import type * as lib_personalData from "../lib/personalData.js";
 import type * as lib_strengthReferences from "../lib/strengthReferences.js";
 import type * as lib_strengthSession from "../lib/strengthSession.js";
@@ -80,11 +82,13 @@ declare const fullApi: ApiFromModules<{
   hostedWorkoutSubmissions: typeof hostedWorkoutSubmissions;
   hostedWorkouts: typeof hostedWorkouts;
   "lib/appleSignIn": typeof lib_appleSignIn;
+  "lib/connectedApps": typeof lib_connectedApps;
   "lib/exerciseCatalog": typeof lib_exerciseCatalog;
   "lib/exerciseMigrationModel": typeof lib_exerciseMigrationModel;
   "lib/hostedDto": typeof lib_hostedDto;
   "lib/nutritionAi": typeof lib_nutritionAi;
   "lib/nutritionLibraryIndex": typeof lib_nutritionLibraryIndex;
+  "lib/operationReceipts": typeof lib_operationReceipts;
   "lib/personalData": typeof lib_personalData;
   "lib/strengthReferences": typeof lib_strengthReferences;
   "lib/strengthSession": typeof lib_strengthSession;

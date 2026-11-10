@@ -2,6 +2,7 @@ import { calculateOneRepMax } from "@foundry/core";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	canonicalExerciseId,
 	exerciseOneRepMaxes,
@@ -9,11 +10,12 @@ import {
 	normalizeExerciseReferences,
 	requireExercise,
 } from "./lib/exerciseCatalog";
+import { withOperationReceipt } from "./lib/operationReceipts";
 import { readStrengthReferences } from "./lib/strengthReferences";
 import { assertRange } from "./lib/validate";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }
@@ -84,23 +86,29 @@ export const listForExercise = query({
 
 export const addManual = mutation({
 	args: {
+		operationId: v.optional(v.string()),
 		exerciseId: exerciseReference,
 		value: v.number(),
 		unit: v.union(v.literal("kg"), v.literal("lbs")),
 		date: v.optional(v.number()),
 	},
-	handler: async (ctx, { exerciseId, value, unit, date }) => {
+	handler: async (ctx, { operationId, ...input }) => {
 		const userId = await requireUser(ctx);
-		assertRange(value, 1, 2000, "1RM");
-		exerciseId = await requireExercise(ctx, exerciseId, userId);
-		return ctx.db.insert("oneRepMaxes", {
+		assertRange(input.value, 1, 2000, "1RM");
+		return withOperationReceipt(
+			ctx,
 			userId,
-			exerciseId,
-			value,
-			unit,
-			date: date ?? Date.now(),
-			source: "manual",
-		});
+			{ operationId, kind: "oneRepMax", payload: input },
+			async () =>
+				ctx.db.insert("oneRepMaxes", {
+					userId,
+					exerciseId: await requireExercise(ctx, input.exerciseId, userId),
+					value: input.value,
+					unit: input.unit,
+					date: input.date ?? Date.now(),
+					source: "manual",
+				}),
+		);
 	},
 });
 
