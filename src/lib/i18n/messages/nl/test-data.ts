@@ -20,7 +20,6 @@ export const testData = {
 			"Dit account is betrokken bij een gezamenlijke training. Testgegevens wijzigen is niet beschikbaar om gedeelde gegevens te beschermen.",
 	},
 	offline: "Maak verbinding om testgegevens te wijzigen.",
-	pending: "Testgegevens bijwerken…",
 	success: "Testgegevens bijgewerkt.",
 	error:
 		"Testgegevens konden niet worden bijgewerkt. Maak verbinding en probeer opnieuw.",

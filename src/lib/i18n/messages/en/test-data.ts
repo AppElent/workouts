@@ -20,7 +20,6 @@ export const testData = {
 			"This account is involved in a Hosted Workout. Test-data reset is unavailable to protect shared records.",
 	},
 	offline: "Connect to change test data.",
-	pending: "Updating test data…",
 	success: "Test data updated.",
 	error: "Test data could not be updated. Reconnect and try again.",
 };
