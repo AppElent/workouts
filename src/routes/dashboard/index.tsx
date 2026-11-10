@@ -5,7 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { Clock, Dumbbell } from "lucide-react";
-import { useExercises } from "#/lib/useExercises";
+import { useExercises } from "#/lib/exercises";
 
 export const Route = createFileRoute("/dashboard/")({
 	component: DashboardPageGuarded,
@@ -28,7 +28,7 @@ function DashboardPage() {
 	const recentSessions =
 		useQuery(api.workoutSessions.listRecent, { limit: 5 }) ?? [];
 	const activeSession = useQuery(api.workoutSessions.getActive);
-	const exercises = useExercises() ?? [];
+	const exercises = useExercises();
 	const currentOrms = useQuery(api.oneRepMaxes.listCurrentForUser) ?? [];
 
 	const exerciseNameById = new Map(

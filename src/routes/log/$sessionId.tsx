@@ -7,8 +7,8 @@ import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { CheckCircle, Plus, XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ExercisePicker } from "#/components/exercises/ExercisePicker";
 import { HostedScoreForm } from "#/components/hosted/HostedScoreForm";
-import { AddExerciseModal } from "#/components/session/AddExerciseModal";
 import { ExerciseSection } from "#/components/session/ExerciseSection";
 import { HostedSessionPlan } from "#/components/session/HostedSessionPlan";
 import { RestTimerProvider } from "#/components/session/RestTimer";
@@ -16,9 +16,10 @@ import { SessionSummary } from "#/components/session/SessionSummary";
 import { SessionWods } from "#/components/session/SessionWods";
 import { SetEditSheet } from "#/components/session/SetEditSheet";
 import { useConfirm } from "#/components/ui/confirm-dialog";
+import { Modal, ModalHeader } from "#/components/ui/Modal";
 import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import { useExercises } from "#/lib/useExercises";
+import { useExercises } from "#/lib/exercises";
 
 export const Route = createFileRoute("/log/$sessionId")({
 	component: ActiveSessionPageGuarded,
@@ -122,7 +123,7 @@ function ActiveSessionPage() {
 		prevCountRef.current = exerciseIds.length;
 	}, [exerciseIds.length]);
 
-	const exercises = useExercises() ?? [];
+	const exercises = useExercises();
 	const exerciseMap = new Map(exercises.map((ex) => [ex._id as string, ex]));
 
 	async function handleExerciseSelect(exerciseId: ExerciseId) {
@@ -301,12 +302,13 @@ function ActiveSessionPage() {
 					Add Exercise
 				</button>
 
-				{showAddExercise && (
-					<AddExerciseModal
-						onSelect={handleExerciseSelect}
-						onClose={() => setShowAddExercise(false)}
+				<Modal open={showAddExercise} onOpenChange={setShowAddExercise}>
+					<ModalHeader title="Add Exercise" />
+					<ExercisePicker
+						autoFocus
+						onSelect={(exercise) => void handleExerciseSelect(exercise._id)}
 					/>
-				)}
+				</Modal>
 
 				{hostedParticipant ? (
 					<div className="mt-4">

@@ -17,7 +17,7 @@ import {
 	YAxis,
 } from "recharts";
 import { BodyMetricsPanel } from "#/components/progress/BodyMetricsPanel";
-import { useExercises } from "#/lib/useExercises";
+import { useExercises } from "#/lib/exercises";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/progress/")({
@@ -40,7 +40,7 @@ function ProgressPageGuarded() {
 type ProgressTab = "exercises" | "body";
 
 function ProgressPage() {
-	const exercises = useExercises() ?? [];
+	const exercises = useExercises();
 	const [selectedId, setSelectedId] = useState<ExerciseId | "">("");
 	const [tab, setTab] = useState<ProgressTab>("exercises");
 

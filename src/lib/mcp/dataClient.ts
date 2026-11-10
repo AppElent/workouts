@@ -1,57 +1,35 @@
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
-import { mergeExerciseCatalog } from "@foundry/core/exercises";
 import { ConvexHttpClient } from "convex/browser";
+import { loadExercises } from "#/lib/exercises";
 
-export type ExerciseSummary = {
-	id: string;
-	name: string;
-	muscleGroups: string[];
-	category: "compound" | "isolation";
-	equipment:
-		| "barbell"
-		| "dumbbell"
-		| "cable"
-		| "bodyweight"
-		| "machine"
-		| "kettlebell"
-		| "band"
-		| "other";
-	isDefault: boolean;
-	notes?: string;
-};
+export type ExerciseSummary = Pick<
+	Exercise,
+	"name" | "muscleGroups" | "category" | "equipment" | "isDefault" | "notes"
+> & { id: string };
 
-export type WorkoutSummary = {
-	id: string;
-	name?: string;
-	date: number;
-	status: "active" | "completed" | "cancelled";
-	startTime: number;
-	endTime?: number;
-};
+export type WorkoutSummary = Pick<
+	Doc<"workoutSessions">,
+	"name" | "date" | "status" | "startTime" | "endTime"
+> & { id: string };
 
-export type WorkoutSetSummary = {
-	id: string;
-	exerciseId: string;
-	setNumber: number;
-	reps: number;
-	weight: number;
-	unit: "kg" | "lbs";
-	rpe?: number;
-	setType: "warmup" | "working" | "drop" | "failure";
-	loggedAt: number;
-};
+export type WorkoutSetSummary = Pick<
+	Doc<"sets">,
+	| "exerciseId"
+	| "setNumber"
+	| "reps"
+	| "weight"
+	| "unit"
+	| "rpe"
+	| "setType"
+	| "loggedAt"
+> & { id: string };
 
-export type PersonalRecordSummary = {
-	id: string;
-	exerciseId: string;
-	value: number;
-	unit: "kg" | "lbs";
-	date: number;
-	source: "manual" | "calculated" | "actual";
-	formula?: string;
-};
+export type PersonalRecordSummary = Pick<
+	Doc<"oneRepMaxes">,
+	"exerciseId" | "value" | "unit" | "date" | "source" | "formula"
+> & { id: string };
 
 export type WeeklyVolumeSummary = {
 	week: string;
@@ -95,21 +73,7 @@ export function createConvexWorkoutsMcpDataClient({
 	return {
 		async listExercises() {
 			requireAuth();
-			const personal: Exercise[] = [];
-			let cursor: string | null = null;
-			for (;;) {
-				const page: {
-					page: Exercise[];
-					isDone: boolean;
-					continueCursor: string;
-				} = await client.query(api.exercises.listPersonal, {
-					paginationOpts: { numItems: 100, cursor },
-				});
-				personal.push(...page.page);
-				if (page.isDone) break;
-				cursor = page.continueCursor;
-			}
-			const exercises = mergeExerciseCatalog(personal);
+			const exercises = await loadExercises(client);
 			return exercises.map((exercise) => ({
 				id: exercise._id,
 				name: exercise.name,

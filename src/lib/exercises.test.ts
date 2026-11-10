@@ -2,7 +2,7 @@ import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import { renderHook } from "@testing-library/react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useExercise, useExercises } from "./useExercises";
+import { useExercise, useExercises } from "./exercises";
 
 vi.mock("convex/react", () => ({
 	useQuery: vi.fn(),

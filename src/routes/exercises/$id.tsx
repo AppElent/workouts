@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
-import { useExercise } from "#/lib/useExercises";
+import { useExercise } from "#/lib/exercises";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";

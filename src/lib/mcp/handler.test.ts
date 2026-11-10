@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkoutsMcpDataClient } from "./dataClient";
-import { handleWorkoutsMcpRequest } from "./handler";
+import { handleWorkoutsMcpRequest, serveWorkoutsMcp } from "./handler";
 
 function fakeDataClient(): WorkoutsMcpDataClient {
 	return {
@@ -43,8 +43,12 @@ function mcpRequest(
 }
 
 describe("handleWorkoutsMcpRequest", () => {
+	beforeEach(() => {
+		vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+	});
+
 	it("handles MCP initialize", async () => {
-		const response = await handleWorkoutsMcpRequest(
+		const response = await serveWorkoutsMcp(
 			mcpRequest({
 				jsonrpc: "2.0",
 				id: 1,
@@ -58,9 +62,7 @@ describe("handleWorkoutsMcpRequest", () => {
 					},
 				},
 			}),
-			{
-				createDataClient: () => fakeDataClient(),
-			},
+			fakeDataClient(),
 		);
 
 		expect(response.status).toBe(200);
@@ -88,9 +90,6 @@ describe("handleWorkoutsMcpRequest", () => {
 				},
 				{ authorization: null },
 			),
-			{
-				convexUrl: "https://example.convex.cloud",
-			},
 		);
 
 		expect(response.status).toBe(200);
@@ -101,15 +100,13 @@ describe("handleWorkoutsMcpRequest", () => {
 	});
 
 	it("lists registered tools", async () => {
-		const response = await handleWorkoutsMcpRequest(
+		const response = await serveWorkoutsMcp(
 			mcpRequest({
 				jsonrpc: "2.0",
 				id: 2,
 				method: "tools/list",
 			}),
-			{
-				createDataClient: () => fakeDataClient(),
-			},
+			fakeDataClient(),
 		);
 
 		expect(response.status).toBe(200);
@@ -137,9 +134,6 @@ describe("handleWorkoutsMcpRequest", () => {
 				},
 				{ authorization: null },
 			),
-			{
-				convexUrl: "https://example.convex.cloud",
-			},
 		);
 
 		expect(response.status).toBe(200);
@@ -156,7 +150,7 @@ describe("handleWorkoutsMcpRequest", () => {
 	});
 
 	it("calls a read-only tool", async () => {
-		const response = await handleWorkoutsMcpRequest(
+		const response = await serveWorkoutsMcp(
 			mcpRequest({
 				jsonrpc: "2.0",
 				id: 3,
@@ -166,9 +160,7 @@ describe("handleWorkoutsMcpRequest", () => {
 					arguments: {},
 				},
 			}),
-			{
-				createDataClient: () => fakeDataClient(),
-			},
+			fakeDataClient(),
 		);
 
 		expect(response.status).toBe(200);
@@ -192,9 +184,6 @@ describe("handleWorkoutsMcpRequest", () => {
 				},
 				{ authorization: null },
 			),
-			{
-				convexUrl: "https://example.convex.cloud",
-			},
 		);
 
 		expect(response.status).toBe(200);

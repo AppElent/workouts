@@ -91,16 +91,9 @@ async function withToolErrors(load: () => Promise<unknown>) {
 	try {
 		return jsonText(await load());
 	} catch (error) {
-		if (isMcpAuthRequiredError(error)) {
+		if (error instanceof McpAuthRequiredError) {
 			return errorText("Authentication is required. Start at /mcp/auth.");
 		}
 		return errorText("The Foundry MCP tool failed.");
 	}
-}
-
-function isMcpAuthRequiredError(error: unknown) {
-	return (
-		error instanceof McpAuthRequiredError ||
-		(error instanceof Error && error.name === "McpAuthRequiredError")
-	);
 }

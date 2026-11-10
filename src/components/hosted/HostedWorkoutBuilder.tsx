@@ -12,7 +12,7 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { HOSTED_LEVEL_LABELS } from "#/components/hosted/wodBlock";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import { useExercises } from "#/lib/useExercises";
+import { useExercises } from "#/lib/exercises";
 
 type HostedWorkout = Doc<"hostedWorkouts">;
 type StrengthBlock = HostedWorkout["template"]["strengthBlocks"][number];

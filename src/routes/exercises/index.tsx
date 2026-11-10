@@ -1,82 +1,59 @@
 import { Show } from "@clerk/react";
 import { api } from "@convex/_generated/api";
+import {
+	EQUIPMENT,
+	type Equipment,
+	EXERCISE_CATEGORIES,
+	type ExerciseCategory,
+	filterExercises,
+	MUSCLE_GROUP_KEYS,
+	type MuscleGroup,
+} from "@foundry/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { AddExerciseModal } from "#/components/exercises/AddExerciseModal";
+import { CreateExerciseModal } from "#/components/exercises/CreateExerciseModal";
 import { Select } from "#/components/ui/Select";
-import { useExercises } from "#/lib/useExercises";
+import { useExercises } from "#/lib/exercises";
 import { cn } from "#/lib/utils";
 
-const CHIP_FILTERS = [
-	{ label: "All", groups: null as string[] | null },
-	{ label: "Chest", groups: ["chest"] },
-	{ label: "Back", groups: ["back", "lats", "lower back", "traps"] },
-	{
-		label: "Legs",
-		groups: [
-			"quads",
-			"quadriceps",
-			"hamstrings",
-			"glutes",
-			"calves",
-			"adductors",
-			"abductors",
-		],
-	},
-	{
-		label: "Shoulders",
-		groups: ["shoulders", "front delts", "side delts", "rear delts", "traps"],
-	},
-	{ label: "Arms", groups: ["biceps", "triceps", "forearms"] },
-	{ label: "Core", groups: ["core"] },
-];
+const GROUP_LABELS: Record<MuscleGroup, string> = {
+	chest: "Chest",
+	back: "Back",
+	legs: "Legs",
+	shoulders: "Shoulders",
+	arms: "Arms",
+	core: "Core",
+};
 
-const CATEGORIES = ["compound", "isolation"] as const;
-const EQUIPMENT = [
-	"barbell",
-	"dumbbell",
-	"cable",
-	"bodyweight",
-	"machine",
-	"kettlebell",
-	"band",
-	"other",
-] as const;
+const capitalized = (value: string) =>
+	value.charAt(0).toUpperCase() + value.slice(1);
 
 export const Route = createFileRoute("/exercises/")({
 	component: ExercisesPage,
 });
 
 function ExercisesPage() {
-	const exercises = useExercises() ?? [];
+	const exercises = useExercises();
 	const removeExercise = useMutation(api.exercises.remove);
 
 	const [search, setSearch] = useState("");
-	const [activeChip, setActiveChip] = useState<string | null>(null);
-	const [filterCategory, setFilterCategory] = useState("");
-	const [filterEquipment, setFilterEquipment] = useState("");
+	const [group, setGroup] = useState<MuscleGroup | null>(null);
+	const [category, setCategory] = useState<ExerciseCategory | "">("");
+	const [equipment, setEquipment] = useState<Equipment | "">("");
 	const [modalOpen, setModalOpen] = useState(false);
 
-	const activeChipFilter = CHIP_FILTERS.find((c) => c.label === activeChip);
-
-	const filtered = useMemo(() => {
-		return exercises
-			.filter((ex) => {
-				if (search && !ex.name.toLowerCase().includes(search.toLowerCase()))
-					return false;
-				if (
-					activeChipFilter?.groups &&
-					!ex.muscleGroups.some((mg) => activeChipFilter.groups?.includes(mg))
-				)
-					return false;
-				if (filterCategory && ex.category !== filterCategory) return false;
-				if (filterEquipment && ex.equipment !== filterEquipment) return false;
-				return true;
-			})
-			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [exercises, search, activeChipFilter, filterCategory, filterEquipment]);
+	const filtered = useMemo(
+		() =>
+			filterExercises(exercises, {
+				query: search,
+				groups: group ? [group] : [],
+				equipment: equipment ? [equipment] : [],
+				category: category || undefined,
+			}),
+		[exercises, search, group, category, equipment],
+	);
 
 	return (
 		<div className="p-4 sm:p-6 max-w-5xl mx-auto pb-20 sm:pb-6">
@@ -89,7 +66,6 @@ function ExercisesPage() {
 				</span>
 			</div>
 
-			{/* Search */}
 			<div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 mb-3">
 				<Search size={14} className="text-[var(--text-muted)] shrink-0" />
 				<input
@@ -101,19 +77,14 @@ function ExercisesPage() {
 				/>
 			</div>
 
-			{/* Muscle group chips */}
 			<div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 scrollbar-none">
-				{CHIP_FILTERS.map((chip) => {
-					const isActive =
-						activeChip === chip.label ||
-						(chip.label === "All" && activeChip === null);
+				{([null, ...MUSCLE_GROUP_KEYS] as const).map((key) => {
+					const isActive = group === key;
 					return (
 						<button
-							key={chip.label}
+							key={key ?? "all"}
 							type="button"
-							onClick={() =>
-								setActiveChip(chip.label === "All" ? null : chip.label)
-							}
+							onClick={() => setGroup(isActive ? null : key)}
 							className={cn(
 								"shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors",
 								isActive
@@ -121,44 +92,40 @@ function ExercisesPage() {
 									: "bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-white",
 							)}
 						>
-							{chip.label}
-							{isActive && chip.label !== "All" && (
-								<span className="ml-1 opacity-70">✕</span>
-							)}
+							{key ? GROUP_LABELS[key] : "All"}
+							{isActive && key && <span className="ml-1 opacity-70">✕</span>}
 						</button>
 					);
 				})}
 			</div>
 
-			{/* Category + Equipment dropdowns */}
 			<div className="flex gap-2 mb-4">
 				<Select
 					aria-label="Filter by category"
 					className="flex-1"
-					value={filterCategory}
-					onValueChange={setFilterCategory}
+					value={category}
+					onValueChange={(value) => setCategory(value as ExerciseCategory | "")}
 					placeholder="Category"
 					allLabel="All categories"
-					options={CATEGORIES.map((c) => ({
-						value: c,
-						label: c.charAt(0).toUpperCase() + c.slice(1),
+					options={EXERCISE_CATEGORIES.map((value) => ({
+						value,
+						label: capitalized(value),
 					}))}
 				/>
 				<Select
 					aria-label="Filter by equipment"
 					className="flex-1"
-					value={filterEquipment}
-					onValueChange={setFilterEquipment}
+					value={equipment}
+					onValueChange={(value) => setEquipment(value as Equipment | "")}
 					placeholder="Equipment"
 					allLabel="All equipment"
-					options={EQUIPMENT.map((eq) => ({
-						value: eq,
-						label: eq.charAt(0).toUpperCase() + eq.slice(1),
+					options={EQUIPMENT.map((value) => ({
+						value,
+						label: capitalized(value),
 					}))}
 				/>
 			</div>
 
-			{/* Card grid */}
 			{filtered.length === 0 ? (
 				<p className="text-sm text-[var(--text-muted)] text-center py-12">
 					No exercises match your filters.
@@ -215,7 +182,6 @@ function ExercisesPage() {
 				</div>
 			)}
 
-			{/* FAB (auth only) */}
 			<Show when="signed-in">
 				<button
 					type="button"
@@ -226,7 +192,7 @@ function ExercisesPage() {
 					<Plus size={24} strokeWidth={2.5} />
 				</button>
 
-				<AddExerciseModal open={modalOpen} onOpenChange={setModalOpen} />
+				<CreateExerciseModal open={modalOpen} onOpenChange={setModalOpen} />
 			</Show>
 		</div>
 	);

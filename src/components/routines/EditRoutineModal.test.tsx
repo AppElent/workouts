@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EditRoutineModal } from "./EditRoutineModal";
 
-vi.mock("#/lib/useExercises", () => ({
+vi.mock("#/lib/exercises", () => ({
 	useExercises: vi.fn(() => []),
 }));
 
