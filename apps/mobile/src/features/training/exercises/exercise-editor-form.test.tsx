@@ -1,17 +1,31 @@
 import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
-import type { ComponentProps } from "react";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { LocaleProvider } from "../../../i18n";
-import { renderThemed } from "../../../test-support/render-themed";
-import { ToastProvider } from "../../../ui/toast";
-import { ExerciseEditorForm } from "./exercise-editor-form";
+import { useLocalSearchParams } from "expo-router";
+import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { Platform } from "react-native";
+import * as ExerciseNewRoute from "../../../../app/(app)/exercise-new";
+import { renderApp } from "../../../test-support/render-app";
+import { AppText } from "../../../ui/text";
+
+const originalOS = Platform.OS;
+// The Android header renders Save and Cancel in the screen; iOS puts them in the native toolbar.
+beforeEach(() => {
+	Platform.OS = "android";
+});
+afterEach(() => {
+	Platform.OS = originalOS;
+});
+
+function LibraryStub() {
+	const { created } = useLocalSearchParams<{ created?: string }>();
+	return <AppText>{`Library after ${created}`}</AppText>;
+}
 
 async function setup(
 	save: jest.Mock,
-	props: Partial<ComponentProps<typeof ExerciseEditorForm>> = {},
+	url = "/exercise-new",
+	exercises: Record<string, unknown> = {},
 	update = save,
 ) {
 	jest
@@ -22,26 +36,24 @@ async function setup(
 					? update
 					: save) as unknown as ReturnType<typeof useMutation>,
 		);
-	const close = jest.fn();
-	await renderThemed(
-		<SafeAreaProvider
-			initialMetrics={{
-				frame: { x: 0, y: 0, width: 390, height: 844 },
-				insets: { top: 0, right: 0, bottom: 34, left: 0 },
-			}}
-		>
-			<LocaleProvider>
-				<ToastProvider>
-					<ExerciseEditorForm {...props} onClose={close} />
-				</ToastProvider>
-			</LocaleProvider>
-		</SafeAreaProvider>,
-	);
-	return close;
+	jest
+		.mocked(useQuery)
+		.mockImplementation(((ref: never, args: { id: string } | "skip") =>
+			getFunctionName(ref) === "exercises:getById" && args !== "skip"
+				? (exercises[args.id] ?? null)
+				: undefined) as never);
+	await renderApp(url, {
+		"exercise-new": ExerciseNewRoute,
+		exercises: { default: LibraryStub },
+	});
 }
+
+const landedInLibrary = (name: string) =>
+	screen.findByText(`Library after ${name}`);
+
 it("blocks invalid weight steps and preserves the draft after a failed save", async () => {
 	const save = jest.fn().mockRejectedValue(new Error("Save unavailable"));
-	const close = await setup(save);
+	await setup(save);
 	await fireEvent.changeText(screen.getByLabelText("Name"), " My press ");
 	await fireEvent.changeText(
 		screen.getByLabelText("Weight step (optional)"),
@@ -73,8 +85,9 @@ it("blocks invalid weight steps and preserves the draft after a failed save", as
 	);
 	expect(await screen.findByText("Save unavailable")).toBeTruthy();
 	expect(screen.getByLabelText("Name").props.value).toBe(" My press ");
-	expect(close).not.toHaveBeenCalled();
+	expect(screen.queryByText(/Library after/)).toBeNull();
 });
+
 it("prevents duplicate submission and cancellation until save resolves", async () => {
 	let resolve: () => void = () => {};
 	const save = jest.fn(
@@ -83,15 +96,15 @@ it("prevents duplicate submission and cancellation until save resolves", async (
 				resolve = r;
 			}),
 	);
-	const close = await setup(save);
+	await setup(save);
 	await fireEvent.changeText(screen.getByLabelText("Name"), "Test press");
 	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
 	await fireEvent.press(screen.getByRole("button", { name: "Saving…" }));
 	await fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
 	expect(save).toHaveBeenCalledTimes(1);
-	expect(close).not.toHaveBeenCalled();
+	expect(screen.getByLabelText("Name")).toBeTruthy();
 	await act(async () => resolve());
-	expect(close).toHaveBeenCalledWith("Test press");
+	expect(await landedInLibrary("Test press")).toBeTruthy();
 });
 
 it("prefills and updates a personal exercise without creating another record", async () => {
@@ -106,13 +119,18 @@ it("prefills and updates a personal exercise without creating another record", a
 	};
 	const create = jest.fn();
 	const update = jest.fn().mockResolvedValue(null);
-	const close = await setup(create, { mode: "edit", exercise: source }, update);
+	await setup(
+		create,
+		"/exercise-new?edit=personal-id&returnTo=library",
+		{ "personal-id": source },
+		update,
+	);
 	expect(screen.getByLabelText("Name").props.value).toBe("My press");
 	expect(screen.getByLabelText("Notes (optional)").props.value).toBe("Pause");
 	await fireEvent.changeText(screen.getByLabelText("Name"), "My edited press");
 	await fireEvent.changeText(screen.getByLabelText("Notes (optional)"), "");
 	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
-	await waitFor(() => expect(close).toHaveBeenCalledWith("My edited press"));
+	expect(await landedInLibrary("My edited press")).toBeTruthy();
 	expect(update).toHaveBeenCalledWith(
 		expect.objectContaining({
 			id: "personal-id",
@@ -124,15 +142,22 @@ it("prefills and updates a personal exercise without creating another record", a
 	expect(create).not.toHaveBeenCalled();
 });
 
-it("clones exact muscle names and instructions only after Save", async () => {
+it("clones a personal exercise's exact muscle names and instructions only after Save", async () => {
 	const source = {
 		...SHIPPED_EXERCISES[0],
+		_id: "personal-squat",
+		isDefault: false,
 		muscleGroups: ["quads", "glutes", "hamstrings"],
 		instructions: ["Keep your back straight."],
 	};
 	const create = jest.fn().mockResolvedValue("new-id");
 	const update = jest.fn();
-	await setup(create, { mode: "clone", exercise: source }, update);
+	await setup(
+		create,
+		"/exercise-new?clone=personal-squat",
+		{ "personal-squat": source },
+		update,
+	);
 	expect(screen.getByLabelText("Name").props.value).toBe(
 		`${source.name} (copy)`,
 	);

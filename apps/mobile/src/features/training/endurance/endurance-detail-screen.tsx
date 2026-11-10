@@ -22,17 +22,17 @@ import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { formatPace } from "./endurance-form-state";
 
-export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
+export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
 	const { locale, t } = useI18n();
 	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const activity = useQuery(api.enduranceActivities.get, { id });
+	const activity = useQuery(api.enduranceActivities.get, id ? { id } : "skip");
 	const { isWebSocketConnected } = useConvexConnectionState();
 	const stalledOffline = useStalledOffline(
-		activity === undefined,
+		Boolean(id) && activity === undefined,
 		isWebSocketConnected,
 	);
 	const remove = useMutation(api.enduranceActivities.remove);
@@ -40,7 +40,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 	const deleteLock = useRef(false);
 
 	async function onDelete() {
-		if (!activity || deleteLock.current) return;
+		if (!id || !activity || deleteLock.current) return;
 		if (!isWebSocketConnected) {
 			toast.error(copy.offlineDeleteError);
 			return;
@@ -67,7 +67,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 		}
 	}
 
-	if (activity === undefined) {
+	if (id && activity === undefined) {
 		if (stalledOffline)
 			return (
 				<ScrollView
@@ -93,7 +93,7 @@ export function EnduranceDetailScreen({ id }: { id: Id<"activities"> }) {
 			</ScrollView>
 		);
 	}
-	if (activity === null) {
+	if (!activity) {
 		return (
 			<ScrollView
 				style={styles.root}

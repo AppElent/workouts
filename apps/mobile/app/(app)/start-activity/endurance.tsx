@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { EnduranceEditorScreen } from "../../../src/features/training/endurance/endurance-editor-screen";
+import { EnduranceEditorForm } from "../../../src/features/training/endurance/endurance-editor-form";
 import { useStartActivity } from "../../../src/features/training/start-activity/start-activity-flow";
 import { useI18n } from "../../../src/i18n";
 export default function StartEnduranceRoute() {
@@ -14,7 +14,7 @@ export default function StartEnduranceRoute() {
 					title: flow.sport === "cycling" ? copy.cycling : copy.running,
 				}}
 			/>
-			<EnduranceEditorScreen
+			<EnduranceEditorForm
 				nativeSheet
 				sport={flow.sport === "cycling" ? "cycling" : "running"}
 				onCreated={(id) =>

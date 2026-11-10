@@ -3,13 +3,11 @@ import {
 	paceSecondsPerKilometer,
 	speedKilometersPerHour,
 } from "@foundry/core";
-import type { ErrorBoundaryProps } from "expo-router";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
 import { SportIcon } from "../../../ui/coach";
-import { RouteError } from "../../../ui/route-error";
 import { AppText } from "../../../ui/text";
 import { formatPace } from "../endurance/endurance-form-state";
 
@@ -95,19 +93,5 @@ export function ActivityRow({ item }: { item: ActivitySummary }) {
 				) : null}
 			</View>
 		</Pressable>
-	);
-}
-
-export function ActivityErrorBoundary({ error, retry }: ErrorBoundaryProps) {
-	const { t } = useI18n();
-	const copy = t.activity;
-	return (
-		<RouteError
-			title={copy.errorTitle}
-			body={copy.errorBody}
-			retryLabel={copy.retry}
-			onRetry={retry}
-			error={error}
-		/>
 	);
 }

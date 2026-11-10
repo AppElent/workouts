@@ -11,26 +11,22 @@
  * mobile entry cost outweighs their use mid-class — the description field
  * carries anything more elaborate.
  */
+import { WOD_TYPES, type WodType } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useRef, useState } from "react";
 import {
-	Modal,
-	Platform,
 	Pressable,
 	ScrollView,
 	StyleSheet,
 	TextInput,
 	View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { api, type Doc } from "../../../convex/api";
-import {
-	modalAnimation,
-	useReduceMotion,
-} from "../../../feedback/reduce-motion";
+import { api, type Doc, type Id } from "../../../convex/api";
+import { useQuery } from "../../../convex/query-cache";
 import { fmt, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -41,9 +37,7 @@ import {
 import { Chip, Eyebrow } from "../../../ui/coach";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-
-const TYPES = ["forTime", "amrap", "emom", "load"] as const;
-type WodType = (typeof TYPES)[number];
+import { EditorStatus } from "../components/editor-status";
 
 /** `key` is a client-only row id; it never reaches the server. */
 type Movement = { key: number; name: string; reps: string };
@@ -55,24 +49,33 @@ function minutesToSeconds(raw: string) {
 	return Math.round(parsed * 60);
 }
 
+/** Omit `wodId` to create; pass one to edit it in place. */
 export function WodEditorScreen({
-	visible = true,
-	presentation = "modal",
+	wodId,
+	onClose,
+}: {
+	wodId?: Id<"wods">;
+	onClose: () => void;
+}) {
+	const copy = useI18n().t.wods;
+	const wod = useQuery(api.wods.getById, wodId ? { id: wodId } : "skip");
+	if (wodId && wod === undefined)
+		return <EditorStatus label={copy.loadingWod} />;
+	if (wodId && !wod) return <EditorStatus label={copy.notFound} />;
+	return <WodEditorForm wod={wod ?? null} onClose={onClose} />;
+}
+
+function WodEditorForm({
 	wod,
 	onClose,
 }: {
-	visible?: boolean;
-	presentation?: "modal" | "screen";
-	/** Omit to create; pass one to edit it in place. */
-	wod?: Doc<"wods"> | null;
+	wod: Doc<"wods"> | null;
 	onClose: () => void;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const copy = useI18n().t.wods;
-	const insets = useSafeAreaInsets();
-	const reduceMotion = useReduceMotion();
 	const createWod = useMutation(api.wods.create);
 	const updateWod = useMutation(api.wods.update);
 
@@ -153,38 +156,8 @@ export function WodEditorScreen({
 
 	const canSave = name.trim() !== "" && !busy;
 
-	const content = (
-		<View
-			style={[
-				styles.root,
-				{
-					paddingTop:
-						presentation === "screen"
-							? 0
-							: Platform.OS === "ios"
-								? spacing.md
-								: insets.top + spacing.sm,
-				},
-			]}
-		>
-			{presentation === "modal" ? (
-				<View style={styles.header}>
-					<AppText variant="heading">
-						{wod ? copy.editor.editTitle : copy.editor.newTitle}
-					</AppText>
-					<Pressable
-						onPress={onClose}
-						hitSlop={12}
-						accessibilityRole="button"
-						accessibilityLabel={copy.editor.cancel}
-					>
-						<AppText variant="body" style={styles.cancel}>
-							{copy.editor.cancel}
-						</AppText>
-					</Pressable>
-				</View>
-			) : null}
-
+	return (
+		<View style={styles.root}>
 			<ScrollView
 				contentInsetAdjustmentBehavior="automatic"
 				automaticallyAdjustKeyboardInsets
@@ -205,7 +178,7 @@ export function WodEditorScreen({
 
 				<Eyebrow>{copy.editor.type}</Eyebrow>
 				<View style={styles.chipWrap}>
-					{TYPES.map((t) => (
+					{WOD_TYPES.map((t) => (
 						<Chip
 							key={t}
 							label={copy.types[t]}
@@ -323,20 +296,6 @@ export function WodEditorScreen({
 			</ScrollView>
 		</View>
 	);
-
-	if (presentation === "screen") return content;
-
-	return (
-		<Modal
-			presentationStyle="pageSheet"
-			allowSwipeDismissal={!busy}
-			visible={visible}
-			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={onClose}
-		>
-			{content}
-		</Modal>
-	);
 }
 
 const createStyles = (colors: Tokens) =>
@@ -346,13 +305,6 @@ const createStyles = (colors: Tokens) =>
 			backgroundColor: colors.bg,
 			paddingHorizontal: spacing.md,
 		},
-		header: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			minHeight: 44,
-		},
-		cancel: { color: colors.accent, fontWeight: "700" },
 		content: { gap: spacing.sm, paddingBottom: spacing.xxl },
 		input: {
 			minHeight: 48,
@@ -414,5 +366,5 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "800",
 			color: colors.onAccent,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 	});

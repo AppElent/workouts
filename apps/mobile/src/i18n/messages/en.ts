@@ -7,7 +7,6 @@ import { commonEn } from "./common";
 import { enduranceEn } from "./endurance";
 import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
-import { exercisesUnavailableEn } from "./exercises-unavailable";
 import { feedbackEn } from "./feedback";
 import { hostedEn } from "./hosted";
 import { languageEn } from "./language";
@@ -64,7 +63,6 @@ export const en = {
 	routes: routesEn,
 	feedback: feedbackEn,
 	common: commonEn,
-	exercisesUnavailable: exercisesUnavailableEn,
 	preferences: preferencesEn,
 	appearance: appearanceEn,
 	language: languageEn,

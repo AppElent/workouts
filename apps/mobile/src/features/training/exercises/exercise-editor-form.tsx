@@ -2,12 +2,8 @@ import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack } from "expo-router";
 import { useState } from "react";
-import { Modal, Platform } from "react-native";
+import { Platform } from "react-native";
 import { api } from "../../../convex/api";
-import {
-	modalAnimation,
-	useReduceMotion,
-} from "../../../feedback/reduce-motion";
 import { useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import { useTokens } from "../../../theme";
@@ -32,24 +28,19 @@ import {
 import { MuscleIcon } from "./muscle-icon";
 
 export function ExerciseEditorForm({
-	visible = true,
-	presentation = "modal",
 	onClose,
 	exercise,
 	mode = "new",
 }: {
 	exercise?: Exercise;
 	mode?: "new" | "edit" | "clone";
-	visible?: boolean;
-	presentation?: "modal" | "screen";
 	onClose: (createdName?: string) => void;
 }) {
 	const { t } = useI18n();
 	const c = t.exercises;
 	const colors = useTokens();
-	const nativeHeader = presentation === "screen" && Platform.OS === "ios";
+	const nativeHeader = Platform.OS === "ios";
 	const toast = useToast();
-	const reduceMotion = useReduceMotion();
 	const create = useMutation(api.exercises.create);
 	const update = useMutation(api.exercises.update);
 	const title =
@@ -279,56 +270,44 @@ export function ExerciseEditorForm({
 			</FormSection>
 		</FormScreen>
 	);
-	if (presentation === "screen")
-		return (
-			<>
-				{content}
-				<Stack.Screen
-					options={{
-						title,
-						headerShown: nativeHeader,
-						headerTitleStyle: { color: colors.text },
-						gestureEnabled: !busy,
-						sheetGrabberVisible: true,
-						sheetAllowedDetents: [0.75, 1],
-						sheetExpandsWhenScrolledToEdge: false,
-					}}
-				/>
-				{Platform.OS === "ios" ? (
-					<>
-						<Stack.Toolbar placement="left">
-							<Stack.Toolbar.Button
-								hidesSharedBackground
-								tintColor={colors.textMuted}
-								disabled={busy}
-								onPress={close}
-							>
-								{c.cancel}
-							</Stack.Toolbar.Button>
-						</Stack.Toolbar>
-						<Stack.Toolbar placement="right">
-							<Stack.Toolbar.Button
-								hidesSharedBackground
-								tintColor={colors.accent}
-								disabled={busy || !name.trim() || invalid}
-								onPress={() => void submit()}
-							>
-								{busy ? c.saving : c.save}
-							</Stack.Toolbar.Button>
-						</Stack.Toolbar>
-					</>
-				) : null}
-			</>
-		);
 	return (
-		<Modal
-			visible={visible}
-			presentationStyle="pageSheet"
-			allowSwipeDismissal={!busy}
-			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={close}
-		>
+		<>
 			{content}
-		</Modal>
+			<Stack.Screen
+				options={{
+					title,
+					headerShown: nativeHeader,
+					headerTitleStyle: { color: colors.text },
+					gestureEnabled: !busy,
+					sheetGrabberVisible: true,
+					sheetAllowedDetents: [0.75, 1],
+					sheetExpandsWhenScrolledToEdge: false,
+				}}
+			/>
+			{Platform.OS === "ios" ? (
+				<>
+					<Stack.Toolbar placement="left">
+						<Stack.Toolbar.Button
+							hidesSharedBackground
+							tintColor={colors.textMuted}
+							disabled={busy}
+							onPress={close}
+						>
+							{c.cancel}
+						</Stack.Toolbar.Button>
+					</Stack.Toolbar>
+					<Stack.Toolbar placement="right">
+						<Stack.Toolbar.Button
+							hidesSharedBackground
+							tintColor={colors.accent}
+							disabled={busy || !name.trim() || invalid}
+							onPress={() => void submit()}
+						>
+							{busy ? c.saving : c.save}
+						</Stack.Toolbar.Button>
+					</Stack.Toolbar>
+				</>
+			) : null}
+		</>
 	);
 }

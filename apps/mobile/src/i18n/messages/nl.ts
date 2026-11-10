@@ -8,7 +8,6 @@ import type { en } from "./en";
 import { enduranceNl } from "./endurance";
 import { entryEditorNl } from "./entry-editor";
 import { exerciseLibraryNl } from "./exercise-library";
-import { exercisesUnavailableNl } from "./exercises-unavailable";
 import { feedbackNl } from "./feedback";
 import { hostedNl } from "./hosted";
 import { languageNl } from "./language";
@@ -54,7 +53,6 @@ export const nl = {
 	routes: routesNl,
 	feedback: feedbackNl,
 	common: commonNl,
-	exercisesUnavailable: exercisesUnavailableNl,
 	preferences: preferencesNl,
 	appearance: appearanceNl,
 	language: languageNl,

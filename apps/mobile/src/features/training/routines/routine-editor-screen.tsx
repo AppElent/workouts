@@ -16,13 +16,10 @@ import type { Exercise, ExerciseId } from "@foundry/core/exercises";
  */
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { Modal, StyleSheet, View } from "react-native";
-import { api } from "../../../convex/api";
-import type { useRoutines } from "../../../data/session-data";
-import {
-	modalAnimation,
-	useReduceMotion,
-} from "../../../feedback/reduce-motion";
+import { StyleSheet, View } from "react-native";
+import { api, type Id } from "../../../convex/api";
+import { useExercises } from "../../../data/exercises";
+import { useRoutines } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import { spacing } from "../../../theme";
@@ -36,6 +33,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { EditorStatus } from "../components/editor-status";
 import { ExercisePicker } from "../exercises/exercise-picker";
 
 type Entry = {
@@ -53,23 +51,43 @@ type Entry = {
  */
 type RoutineWithNames = NonNullable<ReturnType<typeof useRoutines>>[number];
 
+/** Omit `routineId` to create a new routine; pass one to edit it in place. */
 export function RoutineEditorScreen({
-	visible = true,
-	presentation = "modal",
+	routineId,
+	onClose,
+}: {
+	routineId?: Id<"routines">;
+	onClose: () => void;
+}) {
+	const copy = useI18n().t.workoutTools.routineEditor;
+	const routines = useRoutines();
+	const exercises = useExercises();
+	const routine = routineId
+		? routines?.find((candidate) => candidate._id === routineId)
+		: null;
+	if (routineId && routines === undefined)
+		return <EditorStatus label={copy.loading} />;
+	if (routineId && !routine) return <EditorStatus label={copy.notFound} />;
+	return (
+		<RoutineEditorForm
+			routine={routine ?? null}
+			exercises={exercises}
+			onClose={onClose}
+		/>
+	);
+}
+
+function RoutineEditorForm({
 	routine,
 	exercises,
 	onClose,
 }: {
-	visible?: boolean;
-	presentation?: "modal" | "screen";
-	/** Omit to create a new routine; pass one to edit it in place. */
-	routine?: RoutineWithNames | null;
-	exercises: Exercise[] | undefined;
+	routine: RoutineWithNames | null;
+	exercises: Exercise[];
 	onClose: () => void;
 }) {
 	const toast = useToast();
 	const copy = useI18n().t.workoutTools.routineEditor;
-	const reduceMotion = useReduceMotion();
 	const createRoutine = useMutation(api.routines.create);
 	const updateRoutine = useMutation(api.routines.update);
 
@@ -126,17 +144,9 @@ export function RoutineEditorScreen({
 
 	const canSave = name.trim() !== "" && entries.length > 0 && !busy;
 
-	const content = (
+	return (
 		<>
 			<FormScreen
-				title={
-					presentation === "modal"
-						? routine
-							? copy.editTitle
-							: copy.newTitle
-						: undefined
-				}
-				onCancel={presentation === "modal" && !busy ? onClose : undefined}
 				primaryAction={{
 					label: busy ? copy.saving : routine ? copy.save : copy.create,
 					onPress: () => void submit(),
@@ -223,20 +233,6 @@ export function RoutineEditorScreen({
 				}}
 			/>
 		</>
-	);
-
-	if (presentation === "screen") return content;
-
-	return (
-		<Modal
-			presentationStyle="pageSheet"
-			allowSwipeDismissal={!busy}
-			visible={visible}
-			animationType={modalAnimation(reduceMotion, "slide")}
-			onRequestClose={onClose}
-		>
-			{content}
-		</Modal>
 	);
 }
 

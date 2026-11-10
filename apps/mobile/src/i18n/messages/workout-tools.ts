@@ -1,7 +1,5 @@
 export const workoutToolsEn = {
 	routineEditor: {
-		newTitle: "New routine",
-		editTitle: "Edit routine",
 		loading: "Loading routine…",
 		notFound: "Routine not found",
 		cancel: "Cancel",
@@ -49,8 +47,6 @@ export const workoutToolsEn = {
 
 export const workoutToolsNl: typeof workoutToolsEn = {
 	routineEditor: {
-		newTitle: "Nieuwe routine",
-		editTitle: "Routine bewerken",
 		loading: "Routine laden…",
 		notFound: "Routine niet gevonden",
 		cancel: "Annuleren",

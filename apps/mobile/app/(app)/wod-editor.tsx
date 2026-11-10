@@ -1,30 +1,17 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Platform, StyleSheet, View } from "react-native";
-import { api, type Id } from "../../src/convex/api";
-import { useQuery } from "../../src/convex/query-cache";
+import { Platform } from "react-native";
+import type { Id } from "../../src/convex/api";
 import { WodEditorScreen } from "../../src/features/training/wods/wod-editor-screen";
 import { useI18n } from "../../src/i18n";
-import { type Tokens, useThemedStyles } from "../../src/theme";
-import { AppText } from "../../src/ui/text";
 
 export default function WodEditorRoute() {
 	const router = useRouter();
 	const copy = useI18n().t.wods;
 	const { id } = useLocalSearchParams<{ id?: string }>();
-	const wodId = id as Id<"wods"> | undefined;
-	const wod = useQuery(api.wods.getById, wodId ? { id: wodId } : "skip");
 	const close = () => router.back();
-
-	if (wodId && wod === undefined) return <Status label={copy.loadingWod} />;
-	if (wodId && !wod) return <Status label={copy.notFound} />;
-
 	return (
 		<>
-			<WodEditorScreen
-				presentation="screen"
-				wod={wod ?? null}
-				onClose={close}
-			/>
+			<WodEditorScreen wodId={id as Id<"wods"> | undefined} onClose={close} />
 			{Platform.OS === "ios" ? (
 				<Stack.Toolbar placement="left">
 					<Stack.Toolbar.Button onPress={close}>
@@ -35,22 +22,3 @@ export default function WodEditorRoute() {
 		</>
 	);
 }
-
-function Status({ label }: { label: string }) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.status}>
-			<AppText variant="caption">{label}</AppText>
-		</View>
-	);
-}
-
-const createStyles = (colors: Tokens) =>
-	StyleSheet.create({
-		status: {
-			flex: 1,
-			alignItems: "center",
-			justifyContent: "center",
-			backgroundColor: colors.bg,
-		},
-	});
