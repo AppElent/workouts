@@ -63,6 +63,9 @@ const ICONS: Record<string, MuscleIcon> = {
 const GROUP_TO_ICON: Record<string, string> = {
 	abs: "abs",
 	abdominals: "abs",
+	abductors: "glutes",
+	adductors: "quadriceps",
+	arms: "arms",
 	back: "back",
 	biceps: "arms",
 	calves: "calves",
@@ -76,6 +79,7 @@ const GROUP_TO_ICON: Record<string, string> = {
 	lats: "back",
 	"lower back": "lower back",
 	neck: "neck",
+	obliques: "abs",
 	quads: "quadriceps",
 	quadriceps: "quadriceps",
 	"rear delts": "shoulders",
