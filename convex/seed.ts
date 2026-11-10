@@ -1,3 +1,4 @@
+import { isoDateAt } from "@foundry/core";
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { resetTestData } from "./lib/testDataBaseline";
@@ -37,15 +38,11 @@ const testDataArgs = {
 	today: v.optional(v.string()),
 };
 
-function utcToday() {
-	return new Date().toISOString().slice(0, 10);
-}
-
 /** Replaces a development account's data with the test-data baseline. */
 export const seedTestData = internalMutation({
 	args: testDataArgs,
 	returns: v.null(),
-	handler: async (ctx, { userId, today = utcToday() }) => {
+	handler: async (ctx, { userId, today = isoDateAt(Date.now(), 0) }) => {
 		await resetTestData(ctx, userId, "load", today);
 		return null;
 	},
@@ -55,7 +52,7 @@ export const seedTestData = internalMutation({
 export const clearUserData = internalMutation({
 	args: testDataArgs,
 	returns: v.null(),
-	handler: async (ctx, { userId, today = utcToday() }) => {
+	handler: async (ctx, { userId, today = isoDateAt(Date.now(), 0) }) => {
 		await resetTestData(ctx, userId, "clear", today);
 		return null;
 	},

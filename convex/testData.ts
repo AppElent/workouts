@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { ENV_CONFIG } from "../env.manifest";
 import { mutation, query } from "./_generated/server";
 import { getOptionalUserId, requireSubject } from "./lib/auth";
-import { assertIsoDate } from "./lib/diaryDays";
 import { appError } from "./lib/errors";
 import {
 	personalDataBlocker,
@@ -51,7 +50,6 @@ export const reset = mutation({
 		if (!enabled()) throw appError("unavailable");
 		const reason = await personalDataBlocker(ctx, userId);
 		if (reason) throw appError(reason);
-		assertIsoDate(args.today, "today");
 		await resetTestData(ctx, userId, args.mode, args.today);
 		return null;
 	},

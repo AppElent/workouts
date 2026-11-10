@@ -2,9 +2,11 @@ import {
 	LIBRARY_SCHEMA_VERSION,
 	normalizePersonalFood,
 	personalFoodSnapshot,
+	shiftIsoDate,
 } from "@foundry/core";
 import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import type { MutationCtx } from "../_generated/server";
+import { assertIsoDate } from "./diaryDays";
 import { appError } from "./errors";
 import { libraryIndexFields } from "./nutritionLibraryIndex";
 import { deletePersonalData } from "./personalData";
@@ -26,6 +28,7 @@ export async function resetTestData(
 	mode: "load" | "clear",
 	today: string,
 ) {
+	assertIsoDate(today, "today");
 	if (
 		!(await deletePersonalData(ctx, userId, {
 			budget: 6000,
@@ -43,8 +46,7 @@ export async function loadTestDataBaseline(
 ) {
 	const now = Date.now();
 	const at = (daysAgo: number) => now - daysAgo * DAY;
-	const date = (daysAgo: number) =>
-		new Date(Date.parse(today) - daysAgo * DAY).toISOString().slice(0, 10);
+	const date = (daysAgo: number) => shiftIsoDate(today, -daysAgo);
 	const exercise = SHIPPED_EXERCISES.find(
 		(item) => item.equipment === "barbell",
 	);
