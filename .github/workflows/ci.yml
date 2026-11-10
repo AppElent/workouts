@@ -1,9 +1,14 @@
 name: CI
+# Pull requests, plus deploy.yml's `checks` job, which calls this workflow before
+# it deploys anything that lands on main, so a push trigger would only duplicate
+# that run.
 on:
-  push: { branches: [main] }
   pull_request:
+  workflow_call:
+# A new push cancels a PR's stale run. A call from deploy.yml gets its own group,
+# so a production deploy's checks never cancel a staging deploy's.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 jobs:
   check:
