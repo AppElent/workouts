@@ -339,7 +339,7 @@ export function SetEditSheet({
 				<div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">
 					Type
 				</div>
-				<div className="grid grid-cols-4 gap-1">
+				<div className="grid grid-flow-col auto-cols-fr gap-1">
 					{SET_TYPES.map((type) => {
 						const sel = draft.setType === type;
 						const color = TYPE_COLOR[type];

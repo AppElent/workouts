@@ -1,16 +1,21 @@
 /**
  * Create or edit a WOD.
  *
- * The type drives which fields matter: a time cap belongs to For Time, a
- * duration to AMRAP and EMOM, and neither to a Load workout. Rather than grey
- * out irrelevant inputs, the form only renders the ones the chosen type uses.
+ * Rather than grey out a timing input the chosen type does not use, the form
+ * leaves it out.
  *
  * Movements are free text plus optional reps. The schema allows weight,
  * distance and units per movement too; those are omitted here because the
  * mobile entry cost outweighs their use mid-class — the description field
  * carries anything more elaborate.
  */
-import { WOD_TYPES, type WodType } from "@foundry/core";
+import {
+	WOD_TIMING_FIELD,
+	WOD_TYPES,
+	type WodType,
+	wodTimingFromMinutes,
+	wodTimingMinutes,
+} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useRef, useState } from "react";
 import {
@@ -40,13 +45,6 @@ import { EditorStatus } from "../components/editor-status";
 
 /** `key` is a client-only row id; it never reaches the server. */
 type Movement = { key: number; name: string; reps: string };
-
-/** Minutes in the form, seconds in the schema. */
-function minutesToSeconds(raw: string) {
-	const parsed = parseLocalizedDecimal(raw);
-	if (parsed === undefined || parsed <= 0) return undefined;
-	return Math.round(parsed * 60);
-}
 
 /** Omit `wodId` to create; pass one to edit it in place. */
 export function WodEditorScreen({
@@ -83,12 +81,11 @@ function WodEditorForm({
 	const [type, setType] = useState<WodType>(wod?.type ?? "forTime");
 	const [description, setDescription] = useState(wod?.description ?? "");
 	const [repScheme, setRepScheme] = useState(wod?.repScheme ?? "");
-	const [cap, setCap] = useState(
-		wod?.timeCapSeconds ? String(wod.timeCapSeconds / 60) : "",
-	);
-	const [duration, setDuration] = useState(
-		wod?.durationSeconds ? String(wod.durationSeconds / 60) : "",
-	);
+	const [minutes, setMinutes] = useState(() => {
+		const stored = wod ? wodTimingMinutes(wod) : undefined;
+		return stored === undefined ? "" : String(stored);
+	});
+	const timingField = WOD_TIMING_FIELD[type];
 	const nextMovementKey = useRef(0);
 	const blankMovement = (): Movement => ({
 		key: nextMovementKey.current++,
@@ -131,11 +128,7 @@ function WodEditorForm({
 			type,
 			description: description.trim() === "" ? undefined : description.trim(),
 			repScheme: repScheme.trim() === "" ? undefined : repScheme.trim(),
-			timeCapSeconds: type === "forTime" ? minutesToSeconds(cap) : undefined,
-			durationSeconds:
-				type === "amrap" || type === "emom"
-					? minutesToSeconds(duration)
-					: undefined,
+			...wodTimingFromMinutes(type, parseLocalizedDecimal(minutes)),
 			movements: cleaned,
 		};
 
@@ -188,27 +181,17 @@ function WodEditorForm({
 					))}
 				</View>
 
-				{type === "forTime" ? (
+				{timingField ? (
 					<>
-						<Eyebrow>{copy.editor.timeCap}</Eyebrow>
+						<Eyebrow>
+							{timingField === "timeCapSeconds"
+								? copy.editor.timeCap
+								: copy.editor.duration}
+						</Eyebrow>
 						<TextInput
-							value={cap}
-							onChangeText={setCap}
-							placeholder="12"
-							placeholderTextColor={colors.textFaint}
-							style={styles.input}
-							keyboardType="decimal-pad"
-						/>
-					</>
-				) : null}
-
-				{type === "amrap" || type === "emom" ? (
-					<>
-						<Eyebrow>{copy.editor.duration}</Eyebrow>
-						<TextInput
-							value={duration}
-							onChangeText={setDuration}
-							placeholder="20"
+							value={minutes}
+							onChangeText={setMinutes}
+							placeholder={timingField === "timeCapSeconds" ? "12" : "20"}
 							placeholderTextColor={colors.textFaint}
 							style={styles.input}
 							keyboardType="decimal-pad"

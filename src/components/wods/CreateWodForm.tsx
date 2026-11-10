@@ -1,13 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { WOD_TYPES, type WodType } from "@foundry/core";
+import { WOD_TYPES, type WodType, wodTimingFromMinutes } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import {
-	WOD_TIMING,
-	WOD_TYPE_LABELS,
-	wodTimingFromMinutes,
-} from "#/components/hosted/wodBlock";
+import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
 
 interface MovementDraft {
 	id: string;
@@ -69,7 +65,7 @@ export function CreateWodForm() {
 		setMovements([newMovement()]);
 	}
 
-	const timing = WOD_TIMING[type];
+	const timingLabel = wodTimingLabel(type);
 	const inputCls =
 		"h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]";
 
@@ -115,11 +111,11 @@ export function CreateWodForm() {
 					onChange={(e) => setRepScheme(e.target.value)}
 					className={`${inputCls} flex-1`}
 				/>
-				{timing && (
+				{timingLabel && (
 					<input
 						type="number"
 						min="0"
-						placeholder={`${timing.label} (min)`}
+						placeholder={`${timingLabel} (min)`}
 						value={minutes}
 						onChange={(e) => setMinutes(e.target.value)}
 						className={`${inputCls} w-36`}

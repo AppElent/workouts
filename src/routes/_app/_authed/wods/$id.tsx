@@ -1,8 +1,10 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { formatMovement } from "@foundry/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
+import { movementKey } from "#/components/hosted/wodBlock";
 import { LogWodResultForm } from "#/components/wods/LogWodResultForm";
 import { WodResultHistory } from "#/components/wods/WodResultHistory";
 
@@ -46,14 +48,8 @@ function WodDetailPage() {
 				)}
 				<ul className="mt-3 flex flex-col gap-1">
 					{wod.movements.map((m) => (
-						<li
-							key={`${m.name}-${m.reps ?? ""}-${m.weight ?? ""}-${m.distance ?? ""}-${m.notes ?? ""}`}
-							className="text-sm text-white"
-						>
-							{m.reps ? `${m.reps} ` : ""}
-							{m.name}
-							{m.weight ? ` @ ${m.weight}${m.unit ?? "kg"}` : ""}
-							{m.distance ? ` ${m.distance}${m.distanceUnit ?? ""}` : ""}
+						<li key={movementKey("wod", m)} className="text-sm text-white">
+							{formatMovement(m)}
 						</li>
 					))}
 				</ul>
