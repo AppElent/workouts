@@ -8,6 +8,7 @@ import {
 	type SupplementaryServing,
 	totalNutrients,
 } from "@foundry/core";
+import { registerAccountStore } from "../local-store/local-store";
 import { reportError } from "../observability/errors";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
@@ -438,3 +439,7 @@ export function clearNutritionLocalAccount(subject: string) {
 		database.closeSync();
 	}
 }
+registerAccountStore({
+	name: "nutrition-local-state",
+	clear: clearNutritionLocalAccount,
+});

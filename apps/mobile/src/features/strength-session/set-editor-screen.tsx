@@ -2,7 +2,7 @@
  * The set editor. Open sets change in place, so a closed sheet or a restart
  * keeps the input; a logged set's changes stay a draft until Save.
  */
-import { calcPlates, DEFAULT_BAR } from "@foundry/core";
+import { calcPlates, DEFAULT_BAR, SET_TYPES } from "@foundry/core";
 import {
 	Stack,
 	useLocalSearchParams,
@@ -40,9 +40,10 @@ import {
 import { Segmented } from "../../ui/segmented";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
-import { useRestState } from "./components/rest-timer";
+import { useChoice } from "../../ui/use-choice";
 import { useLargeText } from "./components/session-set-row";
-import { useChoice, useSessionActions } from "./data/session-actions";
+import { useRestState } from "./data/rest-timer";
+import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace, workspaceStore } from "./data/session-workspace";
 import {
 	formatClock,
@@ -66,7 +67,6 @@ import {
 	resetToPlan,
 	rowOneRepMax,
 	rowsOf,
-	type SetKind,
 	sameSet,
 	shownLoad,
 	stepLoad,
@@ -78,7 +78,6 @@ import {
 } from "./session-plan";
 
 const PRESETS = [60, 65, 70, 75, 80, 85, 90];
-const KINDS: SetKind[] = ["warmup", "working", "drop", "failure"];
 const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
 type FieldRef = RefObject<ComponentRef<typeof TextInput> | null>;
 const parseNumber = (text: string) => Number(text.replace(",", "."));
@@ -1017,7 +1016,7 @@ export function SetEditorScreen() {
 								/>
 							</View>
 							<View style={styles.kinds}>
-								{KINDS.map((kind) => (
+								{SET_TYPES.map((kind) => (
 									<Pressable
 										key={kind}
 										accessibilityRole="button"

@@ -1,6 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
+import { parseConvexError } from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
-import { ConvexError } from "convex/values";
 import {
 	createContext,
 	type ReactNode,
@@ -17,16 +17,13 @@ import {
 	clearNutritionAccountCache,
 	retireLegacyNutritionData,
 } from "../../data/nutrition-account-cleanup";
-import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
-import { discardPersonalFoodSources } from "../../data/personal-food-session";
 import { todayIsoDate } from "../../dates/calendar-day";
 import { useI18n } from "../../i18n";
+import { clearAccountStores } from "../../local-store/local-store";
 import { PrimaryButton } from "../../ui/button";
 import { FormScreen, TextAction } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
-import { clearAccountSessionPlans } from "../strength-session/data/session-workspace";
-import { clearAccountSetDrafts } from "../strength-session/data/set-drafts";
 
 type Request = {
 	mode: "load" | "clear" | "local" | "deleteData" | "deleteAccount";
@@ -35,13 +32,6 @@ type Request = {
 const AccountDataContext = createContext<
 	((mode: Request["mode"]) => void) | null
 >(null);
-
-function cleanup(subject: string) {
-	clearAccountSetDrafts(subject);
-	clearAccountSessionPlans(subject);
-	discardPersonalFoodSources(subject);
-	clearNutritionLocalAccount(subject);
-}
 
 /** Unmount data providers while resetting, then reopen them without stale memory. */
 export function AccountDataMaintenanceProvider({
@@ -78,8 +68,9 @@ export function AccountDataMaintenanceProvider({
 		async (subject: string) => {
 			try {
 				if (request?.mode === "local") clearNutritionAccountCache(subject);
-				else cleanup(subject);
+				else clearAccountStores(subject);
 			} catch {
+				// clearAccountStores reported what failed; the screen offers a retry.
 				setCleanupFailed(true);
 				return;
 			}
@@ -117,11 +108,9 @@ export function AccountDataMaintenanceProvider({
 		void remote
 			.then(() => finishCleanup(subject))
 			.catch((error) => {
-				const reason = error instanceof ConvexError ? error.data : null;
+				const { code } = parseConvexError(error);
 				toast.error(
-					typeof reason === "string" && Object.hasOwn(c, reason)
-						? c[reason as keyof typeof c]
-						: c.error,
+					code && Object.hasOwn(c, code) ? c[code as keyof typeof c] : c.error,
 				);
 				setRequest(null);
 			})

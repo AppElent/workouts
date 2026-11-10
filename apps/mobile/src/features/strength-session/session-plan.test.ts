@@ -23,7 +23,6 @@ import {
 	type GroupRound,
 	groupOfExercise,
 	groupWith,
-	importOldDraft,
 	isValidRow,
 	manualIsOdd,
 	markFailed,
@@ -995,52 +994,6 @@ describe("history prefill", () => {
 		expect(findRow(next, sent.id)?.kg).toBe(0);
 		expect(findRow(next, failed.id)?.kg).toBe(0);
 		expect(findRow(next, open.id)?.kg).toBe(80);
-	});
-});
-
-describe("an older build's draft", () => {
-	const fields = {
-		weight: "72,5",
-		reps: "5",
-		rpe: "",
-		unit: "kg" as const,
-		setType: "working" as const,
-	};
-	it("fills the next open row", () => {
-		const plan = plannedPlan();
-		const next = importOldDraft(plan, { exerciseId: "squat", fields });
-		expect(firstOpen(next)).toMatchObject({ kg: 72.5, reps: 5 });
-	});
-	it("gets a row when nothing is open, and keeps partial input", () => {
-		const empty = plannedPlan({});
-		const next = importOldDraft(empty, {
-			exerciseId: "squat",
-			fields: { ...fields, reps: "" },
-		});
-		expect(rowsOf(next, "squat")[0]).toMatchObject({ kg: 72.5, blank: true });
-		expect(next.order).toEqual([{ kind: "exercise", exerciseId: "squat" }]);
-	});
-	it("keeps its unanswered send, frozen, on the row", () => {
-		const plan = plannedPlan();
-		const attempt = { operationId: "old-op", setNumber: 1, fields };
-		const row = firstOpen(
-			importOldDraft(plan, { exerciseId: "squat", fields, attempt }),
-		);
-		expect(row?.attempt).toMatchObject({
-			operationId: "old-op",
-			setNumber: 1,
-			sent: true,
-			payload: { weight: 72.5, reps: 5 },
-		});
-	});
-	it("adds nothing when that send is already a logged set", () => {
-		const seeded = plannedPlan();
-		const plan = log(seeded, firstOpen(seeded) as PlanSet);
-		const setNumber = rowsOf(plan, "squat")[0]?.setNumber as number;
-		const attempt = { operationId: "old-op", setNumber, fields };
-		expect(importOldDraft(plan, { exerciseId: "squat", fields, attempt })).toBe(
-			plan,
-		);
 	});
 });
 

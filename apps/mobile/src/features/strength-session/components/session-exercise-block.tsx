@@ -11,7 +11,7 @@ import {
 } from "../../../theme";
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
-import { useChoice } from "../data/session-actions";
+import { useChoice } from "../../../ui/use-choice";
 import { formatNumber, formatSetShort } from "../session-format";
 import {
 	addSet,

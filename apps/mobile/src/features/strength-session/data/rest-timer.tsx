@@ -4,7 +4,6 @@
  * A foreground end gives a haptic and a lime pill; a background end is a local
  * notification, which every adjustment reschedules or cancels.
  */
-import Storage from "expo-sqlite/kv-store";
 import {
 	createContext,
 	type ReactNode,
@@ -18,54 +17,41 @@ import { AccessibilityInfo } from "react-native";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, useI18n } from "../../../i18n";
 import {
+	accountKeyspace,
+	readLocalJson,
+	writeLocalJson,
+} from "../../../local-store/local-store";
+import {
 	cancelSessionAlert,
 	scheduleSessionAlert,
-} from "../data/session-notifications";
+} from "./session-notifications";
 
-const STORAGE_KEY = "strength-rest:v1";
-const FALLBACK_SECONDS = 90;
+const restKeys = accountKeyspace("strength-rest:v1");
 const ALERT_ID = "strength-rest";
 
-type Stored = {
-	endsAt: number | null;
-	body: string | null;
-	defaultSeconds: number;
-};
-function load(): Stored {
-	try {
-		const raw = Storage.getItemSync(STORAGE_KEY);
-		const parsed = raw ? (JSON.parse(raw) as Partial<Stored>) : {};
-		return {
-			endsAt: typeof parsed.endsAt === "number" ? parsed.endsAt : null,
-			body: typeof parsed.body === "string" ? parsed.body : null,
-			defaultSeconds:
-				typeof parsed.defaultSeconds === "number" && parsed.defaultSeconds > 0
-					? parsed.defaultSeconds
-					: FALLBACK_SECONDS,
-		};
-	} catch {
-		return { endsAt: null, body: null, defaultSeconds: FALLBACK_SECONDS };
-	}
+type Stored = { endsAt: number | null; body: string | null };
+const IDLE: Stored = { endsAt: null, body: null };
+function parseStored(value: unknown): Stored {
+	const stored = value as Partial<Stored> | null;
+	return {
+		endsAt: typeof stored?.endsAt === "number" ? stored.endsAt : null,
+		body: typeof stored?.body === "string" ? stored.body : null,
+	};
 }
-export const savedRestDefault = () => load().defaultSeconds;
-function save(value: Stored) {
-	try {
-		Storage.setItemSync(STORAGE_KEY, JSON.stringify(value));
-	} catch {
-		// Rest still runs for as long as the app stays open.
-	}
+function load(subject: string | null): Stored {
+	if (!subject) return IDLE;
+	const read = readLocalJson(restKeys.key(subject), parseStored);
+	return read.ok ? (read.value ?? IDLE) : IDLE;
 }
 
 export type RestTimerApi = {
-	/** Starts or restarts a countdown. Defaults to the saved preference. */
-	start: (seconds?: number, body?: string) => void;
+	/** Starts or restarts a countdown. */
+	start: (seconds: number, body?: string) => void;
 	stop: () => void;
 	adjust: (delta: number) => void;
 	/** Puts back a previous end time, for undoing a log. */
 	restore: (endsAt: number | null) => void;
 	current: () => number | null;
-	defaultSeconds: number;
-	setDefault: (seconds: number) => void;
 };
 export type RestState = {
 	running: boolean;
@@ -79,9 +65,16 @@ const RestStateContext = createContext<RestState>({
 	over: false,
 });
 
-export function RestTimerProvider({ children }: { children: ReactNode }) {
+/** One countdown per account; `subject` is null while signed out. */
+export function RestTimerProvider({
+	subject,
+	children,
+}: {
+	subject: string | null;
+	children: ReactNode;
+}) {
 	const copy = useI18n().t.strength.plan.rest;
-	const [stored, setStored] = useState(load);
+	const [stored, setStored] = useState(() => load(subject));
 	const [now, setNow] = useState(() => Date.now());
 	const current = useRef(stored);
 	current.current = stored;
@@ -114,7 +107,8 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 	const api = useMemo<RestTimerApi>(() => {
 		const write = (next: Stored) => {
 			current.current = next;
-			save(next);
+			// Rest still runs from memory when the store fails.
+			if (subject) writeLocalJson(restKeys.key(subject), next);
 			setStored(next);
 			setNow(Date.now());
 		};
@@ -127,13 +121,12 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 			);
 		return {
 			start(seconds, body) {
-				const endsAt =
-					Date.now() + (seconds ?? current.current.defaultSeconds) * 1000;
-				write({ ...current.current, endsAt, body: body ?? null });
+				const endsAt = Date.now() + seconds * 1000;
+				write({ endsAt, body: body ?? null });
 				schedule(endsAt, body ?? null);
 			},
 			stop() {
-				write({ ...current.current, endsAt: null, body: null });
+				write(IDLE);
 				void cancelSessionAlert(ALERT_ID);
 			},
 			adjust(delta) {
@@ -143,7 +136,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 				// Once rest is over −15 has nothing to take away; +15 starts it again.
 				if (endsAt <= nowMs && delta < 0) return;
 				const next = Math.max(nowMs, endsAt) + delta * 1000;
-				write({ ...current.current, endsAt: Math.max(nowMs, next), body });
+				write({ endsAt: Math.max(nowMs, next), body });
 				schedule(Math.max(nowMs, next), body);
 			},
 			restore(endsAt) {
@@ -152,14 +145,8 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 				else schedule(endsAt, current.current.body);
 			},
 			current: () => current.current.endsAt,
-			get defaultSeconds() {
-				return current.current.defaultSeconds;
-			},
-			setDefault(seconds) {
-				write({ ...current.current, defaultSeconds: seconds });
-			},
 		};
-	}, [copy]);
+	}, [copy, subject]);
 	const state = useMemo(
 		() => ({ running, remaining, over }),
 		[running, remaining, over],
@@ -186,6 +173,4 @@ const NOOP_TIMER: RestTimerApi = {
 	adjust: () => undefined,
 	restore: () => undefined,
 	current: () => null,
-	defaultSeconds: FALLBACK_SECONDS,
-	setDefault: () => undefined,
 };

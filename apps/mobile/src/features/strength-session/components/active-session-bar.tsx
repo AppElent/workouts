@@ -7,8 +7,8 @@ import { fmt, useI18n } from "../../../i18n";
 import { radius, spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { isIOS26OrLater } from "../../../ui/platform";
 import { AppText } from "../../../ui/text";
+import { useRestState } from "../data/rest-timer";
 import { formatClock } from "../session-format";
-import { useRestState } from "./rest-timer";
 
 /** "0:42" under an hour, "1:02:47" over it. */
 function formatElapsed(ms: number) {

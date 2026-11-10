@@ -14,24 +14,20 @@ import { api, type Id } from "../../convex/api";
 import { useQuery } from "../../convex/query-cache";
 import { haptics } from "../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../i18n";
-import { radius, spacing, useTokens } from "../../theme";
+import { opacity, radius, spacing, useTokens } from "../../theme";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
+import { useChoice } from "../../ui/use-choice";
 import { HostedSessionPanel } from "./components/hosted-session-panel";
-import { useRestTimer } from "./components/rest-timer";
-import { cancelClockAlerts, SessionDock } from "./components/session-dock";
+import { SessionDock } from "./components/session-dock";
 import { SessionExerciseBlock } from "./components/session-exercise-block";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { SessionGroupBlock } from "./components/session-group-block";
 import { SessionRecap } from "./components/session-recap";
-import { useChoice, useSessionActions } from "./data/session-actions";
-import {
-	useSessionSync,
-	useSessionWorkspace,
-	workspaceStore,
-} from "./data/session-workspace";
-import { useSetDrafts } from "./data/set-drafts";
+import { useSessionActions } from "./data/session-actions";
+import { useSessionWorkspace } from "./data/session-workspace";
+import { useStrengthSessions } from "./data/strength-session-context";
 import { formatClock } from "./session-format";
 import {
 	allRows,
@@ -104,7 +100,6 @@ export function StrengthSessionScreen() {
 	const active = useQuery(api.workoutSessions.getActive, id ? "skip" : {});
 	const sessionId = id ?? active?._id;
 	const workspace = useSessionWorkspace(sessionId);
-	useSessionSync(workspace);
 	const actions = useSessionActions(workspace);
 	const {
 		session,
@@ -112,7 +107,6 @@ export function StrengthSessionScreen() {
 		online,
 		writable,
 		own,
-		key,
 		catalog,
 		getFacts,
 		nameOf,
@@ -126,9 +120,8 @@ export function StrengthSessionScreen() {
 	const insets = useSafeAreaInsets();
 	const large = useWindowDimensions().fontScale >= 1.35;
 	const toast = useToast();
-	const rest = useRestTimer();
 	const choose = useChoice();
-	const store = useSetDrafts();
+	const sessions = useStrengthSessions();
 	const [picker, setPicker] = useState<PickerRequest | null>(null);
 	const [recapOpen, setRecapOpen] = useState(false);
 	const [finishing, setFinishing] = useState(false);
@@ -248,12 +241,7 @@ export function StrengthSessionScreen() {
 				confirm: { label: copy.finish.emptyConfirm, destructive: true },
 				cancel: copy.keepTraining,
 			});
-			if (yes && (await actions.cancelSession(false))) {
-				cancelClockAlerts(plan);
-				workspaceStore.clear(key);
-				rest.stop();
-				leave();
-			}
+			if (yes && (await actions.cancelSession(false))) leave();
 			return;
 		}
 		const edits = unsavedEdits(plan, workspace.drafts);
@@ -284,9 +272,6 @@ export function StrengthSessionScreen() {
 		const done = await actions.finishSession();
 		setFinishing(false);
 		if (!done) return;
-		if (plan) cancelClockAlerts(plan);
-		workspaceStore.clear(key);
-		rest.stop();
 		haptics.sessionSuccess();
 		toast.success(fmt(copy.finish.saved, { name }));
 		leave();
@@ -300,31 +285,9 @@ export function StrengthSessionScreen() {
 			confirm: { label: copy.cancelSession, destructive: true },
 			cancel: copy.keepTraining,
 		});
-		if (yes && (await actions.cancelSession(logged > 0))) {
-			if (plan) cancelClockAlerts(plan);
-			workspaceStore.clear(key);
-			rest.stop();
-			leave();
-		}
+		if (yes && (await actions.cancelSession(logged > 0))) leave();
 	}
-	const restDefault = plan?.restDefault ?? rest.defaultSeconds;
-	const setRestDefault = (seconds: number) => {
-		rest.setDefault(seconds);
-		workspaceStore.update(key, (current) => ({
-			...current,
-			restDefault: seconds,
-		}));
-	};
-	useEffect(() => {
-		if (session && own && session.status !== "active" && plan) {
-			workspaceStore.clear(key);
-			try {
-				store.clearSession(session._id);
-			} catch {
-				// A leftover local draft for an ended session is harmless.
-			}
-		}
-	}, [key, own, plan, session, store]);
+	const restDefault = plan?.restDefault ?? 0;
 	const startTime = session?.startTime;
 	const headerTitle = useCallback(
 		() =>
@@ -370,7 +333,7 @@ export function StrengthSessionScreen() {
 		if (option === "add") setPicker({ mode: "add" });
 		else if (option === "cancel") void cancelWorkout();
 		else if (option.startsWith("rest:"))
-			setRestDefault(Number(option.slice("rest:".length)));
+			actions.setRestDefault(Number(option.slice("rest:".length)));
 	};
 	const showChrome = Boolean(
 		session && own && plan && !recapOpen && workspace.active,
@@ -465,7 +428,7 @@ export function StrengthSessionScreen() {
 								<Stack.Toolbar.MenuAction
 									key={seconds}
 									isOn={seconds === restDefault}
-									onPress={() => setRestDefault(seconds)}
+									onPress={() => actions.setRestDefault(seconds)}
 								>
 									{formatClock(seconds)}
 								</Stack.Toolbar.MenuAction>
@@ -588,7 +551,7 @@ export function StrengthSessionScreen() {
 								sessionId={sessionId}
 								busy={false}
 								writable={writable}
-								write={(action) => store.run(sessionId, action)}
+								write={(action) => sessions.run(sessionId, action)}
 							/>
 						</ScrollView>
 						{plan.order.length === 0 && wods === 0 ? (
@@ -691,7 +654,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	dimmed: { opacity: 0.5 },
+	dimmed: { opacity: opacity.disabled },
 	androidHeaderButton: {
 		minWidth: 44,
 		minHeight: 44,
