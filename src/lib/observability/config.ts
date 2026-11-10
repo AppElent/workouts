@@ -1,14 +1,16 @@
-import { sanitizeBreadcrumb, sanitizeEvent } from "@foundry/core";
-
-const DEFAULT_SENTRY_DSN =
-	"https://43d3de8058924d6c718b133785d811c8@o4504753234051072.ingest.us.sentry.io/4512164168663040";
+import {
+	SENTRY_DSN,
+	sanitizeBreadcrumb,
+	sanitizeEvent,
+	sentryTracesSampleRate,
+} from "@foundry/core";
 
 const environment = import.meta.env.VITE_SENTRY_ENVIRONMENT;
 
 /** Options the Worker and the browser SDK share; each adds its own on top. */
-export function sentryOptions(dsn?: string) {
+export function sentryOptions() {
 	return {
-		dsn: dsn || import.meta.env.VITE_SENTRY_DSN || DEFAULT_SENTRY_DSN,
+		dsn: import.meta.env.VITE_SENTRY_DSN || SENTRY_DSN,
 		enabled: !import.meta.env.DEV,
 		environment,
 		release: import.meta.env.VITE_SENTRY_RELEASE,
@@ -24,7 +26,7 @@ export function sentryOptions(dsn?: string) {
 			graphQL: { document: false, variables: false },
 			genAI: { inputs: false, outputs: false },
 		},
-		tracesSampleRate: environment === "production" ? 0.2 : 1,
+		tracesSampleRate: sentryTracesSampleRate(environment),
 		traceLifecycle: "static" as const,
 		beforeSend: sanitizeEvent,
 		beforeSendTransaction: sanitizeEvent,

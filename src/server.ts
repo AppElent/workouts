@@ -6,15 +6,10 @@ import {
 	withoutConsole,
 } from "./lib/observability/config";
 
-type SentryEnv = { SENTRY_DSN?: string };
-
 const instrumentedHandler = Sentry.withSentry(
-	(env: SentryEnv) => ({
-		...sentryOptions(env.SENTRY_DSN),
-		integrations: withoutConsole,
-	}),
+	() => ({ ...sentryOptions(), integrations: withoutConsole }),
 	{
-		async fetch(request: Request, _env: SentryEnv, _ctx: ExecutionContext) {
+		async fetch(request: Request, _env: Env, _ctx: ExecutionContext) {
 			Sentry.setTag("app", "foundry-web-server");
 			const response = await handler.fetch(request);
 			// Start may turn a handled SSR error into a response instead of throwing.
@@ -30,7 +25,7 @@ const instrumentedHandler = Sentry.withSentry(
 );
 
 export default {
-	fetch(request: Request, env: SentryEnv, ctx: ExecutionContext) {
+	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		// Wrangler inherits production bindings even when serving localhost.
 		// Bypass instrumentation before it creates any spans or captures errors.
 		if (isLocalSentryUrl(request.url)) return handler.fetch(request);

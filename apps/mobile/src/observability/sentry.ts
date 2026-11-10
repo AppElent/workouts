@@ -1,9 +1,11 @@
 import {
 	type Locale,
+	SENTRY_DSN,
 	sanitizeBreadcrumb,
 	sanitizeEvent,
 	sanitizeFeedbackEvent,
 	sanitizeText,
+	sentryTracesSampleRate,
 } from "@foundry/core";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
@@ -12,12 +14,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 import { DICTIONARIES } from "../i18n/dictionaries";
-
-// A DSN is public client configuration, not an upload/auth token: the default
-// keeps every build reporting, and `EXPO_PUBLIC_SENTRY_DSN` (env.manifest
-// `sentry-dsn`) overrides it, e.g. for a separate test project.
-const DEFAULT_SENTRY_DSN =
-	"https://43d3de8058924d6c718b133785d811c8@o4504753234051072.ingest.us.sentry.io/4512164168663040";
 
 const native = Platform.OS !== "web" && !isRunningInExpoGo();
 const environment = Updates.channel || (__DEV__ ? "development" : "production");
@@ -67,12 +63,12 @@ export function configureFeedbackLanguage(locale: Locale) {
 configureFeedbackLanguage("en");
 
 Sentry.init({
-	dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || DEFAULT_SENTRY_DSN,
+	dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || SENTRY_DSN,
 	environment,
 	sendDefaultPii: false,
 	// Local development must not pollute production issues or consume quota.
 	enabled: !__DEV__,
-	tracesSampleRate: environment === "production" ? 0.2 : 1,
+	tracesSampleRate: sentryTracesSampleRate(environment),
 	profilesSampleRate: native ? 0.25 : 0,
 	replaysSessionSampleRate: native ? 0.05 : 0,
 	replaysOnErrorSampleRate: native ? 1 : 0,

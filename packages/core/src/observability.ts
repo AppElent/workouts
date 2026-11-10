@@ -32,6 +32,21 @@ const BREADCRUMB_DATA_KEYS = [
 	"state",
 ];
 
+/**
+ * The Foundry Sentry project's DSN. It is public client configuration, not a
+ * credential; each build may override it with `sentryDsn` from the env
+ * manifest (e.g. a separate test project).
+ */
+export const SENTRY_DSN =
+	"https://43d3de8058924d6c718b133785d811c8@o4504753234051072.ingest.us.sentry.io/4512164168663040";
+
+/** Production samples a fifth of traces; every other environment keeps all. */
+export function sentryTracesSampleRate(
+	environment: string | undefined,
+): number {
+	return environment === "production" ? 0.2 : 1;
+}
+
 /** Redact common credentials and identifiers even with default PII disabled. */
 export function sanitizeText(value: string): string {
 	return value
