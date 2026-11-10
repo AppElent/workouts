@@ -1,7 +1,6 @@
 import {
 	formatMovement,
 	type HostedLevel,
-	type LoadUnit,
 	type WodScoreInput,
 } from "@foundry/core";
 import { useState } from "react";
@@ -10,7 +9,10 @@ import {
 	levelLabel,
 	movementKey,
 } from "#/components/hosted/wodBlock";
-import { Stepper } from "#/components/ui/Stepper";
+import {
+	useWodScoreDraft,
+	WodScoreFields,
+} from "#/components/wods/WodScoreFields";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import { wodScoreFromForm } from "#/lib/wodScore";
 
@@ -37,13 +39,7 @@ export function HostedScoreForm({
 	const [level, setLevel] = useState<HostedLevel>("rx");
 	const selectedLevelMovements =
 		selectedWod?.levels.find((entry) => entry.level === level)?.movements ?? [];
-	const [minutes, setMinutes] = useState(5);
-	const [seconds, setSeconds] = useState(0);
-	const [timeCapped, setTimeCapped] = useState(false);
-	const [rounds, setRounds] = useState(1);
-	const [reps, setReps] = useState(0);
-	const [load, setLoad] = useState(0);
-	const [loadUnit, setLoadUnit] = useState<LoadUnit>("kg");
+	const score = useWodScoreDraft();
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
@@ -53,14 +49,7 @@ export function HostedScoreForm({
 		event.preventDefault();
 		if (!selectedWod || saving) return;
 
-		const built = wodScoreFromForm(selectedWod.type, {
-			timeSeconds: minutes * 60 + seconds,
-			timeCapped,
-			rounds,
-			reps,
-			load,
-			loadUnit,
-		});
+		const built = wodScoreFromForm(selectedWod.type, score.fields);
 		if (!built.ok) {
 			setError(built.message);
 			return;
@@ -143,69 +132,12 @@ export function HostedScoreForm({
 				</ul>
 			)}
 
-			{selectedWod?.type === "forTime" && (
-				<>
-					<label className="flex items-center gap-2 text-sm text-white">
-						<input
-							type="checkbox"
-							checked={timeCapped}
-							onChange={(event) => setTimeCapped(event.target.checked)}
-						/>
-						Hit the time cap
-					</label>
-					{timeCapped ? (
-						<Stepper value={reps} onChange={setReps} min={0} label="Reps" />
-					) : (
-						<div className="grid grid-cols-2 gap-2">
-							<Stepper
-								value={minutes}
-								onChange={setMinutes}
-								min={0}
-								unit="min"
-								label="Min"
-							/>
-							<Stepper
-								value={seconds}
-								onChange={setSeconds}
-								min={0}
-								max={59}
-								unit="sec"
-								label="Sec"
-							/>
-						</div>
-					)}
-				</>
-			)}
-
-			{selectedWod?.type === "amrap" && (
-				<div className="grid grid-cols-2 gap-2">
-					<Stepper value={rounds} onChange={setRounds} min={0} label="Rounds" />
-					<Stepper value={reps} onChange={setReps} min={0} label="Reps" />
-				</div>
-			)}
-
-			{selectedWod?.type === "emom" && (
-				<Stepper value={reps} onChange={setReps} min={0} label="Reps" />
-			)}
-
-			{selectedWod?.type === "load" && (
-				<div className="grid grid-cols-[1fr_84px] gap-2">
-					<Stepper
-						value={load}
-						onChange={setLoad}
-						min={0}
-						step={2.5}
-						label="Load"
-					/>
-					<select
-						value={loadUnit}
-						onChange={(event) => setLoadUnit(event.target.value as LoadUnit)}
-						className="h-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 text-sm text-white"
-					>
-						<option value="kg">kg</option>
-						<option value="lbs">lbs</option>
-					</select>
-				</div>
+			{selectedWod && (
+				<WodScoreFields
+					type={selectedWod.type}
+					draft={score.draft}
+					onChange={score.update}
+				/>
 			)}
 
 			<textarea

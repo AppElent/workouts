@@ -10,7 +10,13 @@ import {
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { HOSTED_LEVEL_LABELS } from "#/components/hosted/wodBlock";
+import {
+	HOSTED_LEVEL_LABELS,
+	WOD_TIMING,
+	WOD_TYPE_LABELS,
+	wodTimingFromMinutes,
+	wodTimingMinutes,
+} from "#/components/hosted/wodBlock";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 
@@ -460,7 +466,7 @@ export function HostedWorkoutBuilder({
 											: "border-[var(--border)] text-white"
 									}`}
 								>
-									{type}
+									{WOD_TYPE_LABELS[type]}
 								</button>
 							))}
 						</div>
@@ -478,41 +484,27 @@ export function HostedWorkoutBuilder({
 								className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
 								placeholder="Rep scheme (e.g. 21-15-9)"
 							/>
-							{block.type !== "load" && (
+							{WOD_TIMING[block.type] && (
 								<div className="flex items-center gap-2">
 									<input
 										type="number"
 										inputMode="numeric"
 										min={0}
-										value={
-											block.type === "forTime"
-												? block.timeCapSeconds
-													? block.timeCapSeconds / 60
-													: ""
-												: block.durationSeconds
-													? block.durationSeconds / 60
-													: ""
-										}
-										onChange={(event) => {
-											const minutes = parseOptionalNumber(event.target.value);
-											const seconds =
-												minutes === undefined ? undefined : minutes * 60;
+										value={wodTimingMinutes(block) ?? ""}
+										onChange={(event) =>
 											updateBlock(
 												index,
-												block.type === "forTime"
-													? { timeCapSeconds: seconds }
-													: { durationSeconds: seconds },
-											);
-										}}
-										aria-label={`WOD ${index + 1} ${
-											block.type === "forTime" ? "time cap" : "duration"
-										} in minutes`}
-										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
-										placeholder={
-											block.type === "forTime"
-												? "Time cap (min)"
-												: "Duration (min)"
+												wodTimingFromMinutes(
+													block.type,
+													parseOptionalNumber(event.target.value),
+												),
+											)
 										}
+										aria-label={`WOD ${index + 1} ${WOD_TIMING[
+											block.type
+										]?.label.toLowerCase()} in minutes`}
+										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+										placeholder={`${WOD_TIMING[block.type]?.label} (min)`}
 									/>
 									<span className="text-xs text-[var(--text-muted)]">min</span>
 								</div>
