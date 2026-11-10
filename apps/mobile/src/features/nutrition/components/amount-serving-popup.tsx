@@ -1,7 +1,7 @@
 import {
-	NAMED_AMOUNT_LIMITS,
 	type PersonalFood,
 	type ServingOption,
+	validateNamedAmount,
 	withPersonalMeasures,
 } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
@@ -14,7 +14,6 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { z } from "zod";
 import { api } from "../../../convex/api";
 import { useOnline } from "../../../convex/online";
 import { usePersonalFoods } from "../../../data/personal-foods";
@@ -106,30 +105,25 @@ export function AmountServingPopup({
 		},
 		onSubmit: async ({ value }) => {
 			if (lock.current) return;
-			const result = z
-				.object({
-					name: z.string().trim().min(1).max(NAMED_AMOUNT_LIMITS.maxName),
-					amount: z.number().positive().max(NAMED_AMOUNT_LIMITS.maxAmount),
-				})
-				.safeParse({
+			const result = validateNamedAmount(
+				{
 					name: value.name.trim() || initial?.name || "",
 					amount:
 						parseLocalizedDecimal(
 							value.amount.trim() || initial?.amount || "",
 						) ?? Number.NaN,
-				});
-			if (!result.success) {
-				setError(copy.invalidServing);
+				},
+				value.scope === "own" || measure ? "measure" : "serving",
+			);
+			if (!result.ok) {
+				setError(
+					result.errors.some((issue) => issue.code === "tooPrecise")
+						? copy.invalidMeasure
+						: copy.invalidServing,
+				);
 				return;
 			}
-			const { name: servingName, amount } = result.data;
-			if (
-				(value.scope === "own" || measure) &&
-				Math.abs(amount * 10 - Math.round(amount * 10)) > 1e-9
-			) {
-				setError(copy.invalidMeasure);
-				return;
-			}
+			const { name: servingName, amount } = result.value;
 			if (measure) {
 				lock.current = true;
 				setPending(true);
