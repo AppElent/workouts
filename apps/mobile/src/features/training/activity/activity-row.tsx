@@ -5,7 +5,7 @@ import {
 } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
-import { useI18n } from "../../../i18n";
+import { dateLocale, useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
 import { SportIcon } from "../../../ui/coach";
 import { AppText } from "../../../ui/text";
@@ -70,7 +70,7 @@ export function ActivityRow({ item }: { item: ActivitySummary }) {
 			<View style={{ flex: 1, gap: 4 }}>
 				<AppText variant="heading">{title}</AppText>
 				<AppText variant="caption">
-					{new Date(item.occurredAt).toLocaleDateString(locale, {
+					{new Date(item.occurredAt).toLocaleDateString(dateLocale(locale), {
 						day: "numeric",
 						month: "short",
 						year: "numeric",

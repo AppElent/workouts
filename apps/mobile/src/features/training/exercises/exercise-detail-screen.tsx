@@ -397,7 +397,7 @@ function HistoryTab({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const copy = t.exercises.detail;
 	if (history === undefined) {
 		return <SkeletonBlock height={40} />;
@@ -438,7 +438,7 @@ function HistoryTab({
 					<View key={set._id} style={styles.historyRow}>
 						<View style={styles.flex}>
 							<AppText variant="caption" style={styles.historyDate}>
-								{formatSessionDate(set.sessionDate)}
+								{formatSessionDate(set.sessionDate, locale)}
 							</AppText>
 							<AppText variant="caption" style={styles.historyType}>
 								{t.strength[set.setType]}

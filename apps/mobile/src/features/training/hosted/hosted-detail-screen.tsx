@@ -22,6 +22,7 @@ import { formatSessionDate } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -46,7 +47,8 @@ export function HostedDetailScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const copy = useI18n().t.hosted;
+	const { locale, t } = useI18n();
+	const copy = t.hosted;
 	const params = useLocalSearchParams<{ id?: string }>();
 	const hostedId = params.id as Id<"hostedWorkouts"> | undefined;
 
@@ -137,8 +139,8 @@ export function HostedDetailScreen() {
 					<ScreenHeader title={hosted.title} />
 					<AppText variant="caption">
 						{hosted.scheduledAt
-							? formatSessionDate(hosted.scheduledAt)
-							: formatSessionDate(hosted.createdAt)}
+							? formatSessionDate(hosted.scheduledAt, locale)
+							: formatSessionDate(hosted.createdAt, locale)}
 					</AppText>
 				</View>
 				<Chip
@@ -380,5 +382,5 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "700",
 			color: colors.danger,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 	});

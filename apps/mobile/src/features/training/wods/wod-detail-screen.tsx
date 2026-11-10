@@ -28,6 +28,7 @@ import { formatSessionDate } from "../../../data/session-data";
 import { fmt, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -71,7 +72,8 @@ export function WodDetailScreen({
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const copy = useI18n().t.wods;
+	const { locale, t } = useI18n();
+	const copy = t.wods;
 	const params = useLocalSearchParams<{ id?: string }>();
 	const wodId = params.id as Id<"wods"> | undefined;
 
@@ -191,7 +193,7 @@ export function WodDetailScreen({
 					</AppText>
 					<AppText variant="caption">
 						{best.rxScaled === "rx" ? copy.rx : copy.scaled} ·{" "}
-						{formatSessionDate(best.date)}
+						{formatSessionDate(best.date, locale)}
 					</AppText>
 				</Card>
 			) : null}
@@ -213,7 +215,7 @@ export function WodDetailScreen({
 								</AppText>
 								<AppText variant="caption">
 									{r.rxScaled === "rx" ? copy.rx : copy.scaled} ·{" "}
-									{formatSessionDate(r.date)}
+									{formatSessionDate(r.date, locale)}
 									{r.notes ? ` · ${r.notes}` : ""}
 								</AppText>
 							</View>
@@ -475,7 +477,7 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "800",
 			color: colors.onAccent,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 		muted: { fontSize: type.footnote.fontSize, color: colors.textMuted },
 		list: { gap: spacing.sm },
 		row: {

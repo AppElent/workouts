@@ -195,11 +195,7 @@ export default function AppLayout() {
 									/>
 									<Stack.Screen
 										name="summary"
-										options={{
-											title: t.routes.summary,
-											headerBackVisible: false,
-											gestureEnabled: false,
-										}}
+										options={{ title: t.routes.summary }}
 									/>
 									<Stack.Screen
 										name="appearance"

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fmt, plural, useI18n } from "../../../i18n";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -218,7 +219,7 @@ export function SessionRecap({
 					accessibilityRole="button"
 					disabled={busy}
 					onPress={onConfirm}
-					style={[styles.primary, busy && { opacity: 0.6 }]}
+					style={[styles.primary, busy && { opacity: opacity.disabled }]}
 					testID="session-recap-confirm"
 				>
 					<AppText

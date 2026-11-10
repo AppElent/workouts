@@ -19,6 +19,7 @@ import { useQuery } from "../../../convex/query-cache";
 import { fmt, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -322,5 +323,5 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "800",
 			color: colors.onAccent,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 	});

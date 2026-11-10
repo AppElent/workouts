@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
-import { useI18n } from "../../../i18n";
+import { dateLocale, useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
 import { GhostButton, PrimaryButton } from "../../../ui/button";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
@@ -35,7 +35,7 @@ export function HomeScreen() {
 		>
 			<View style={{ gap: 4 }}>
 				<AppText variant="caption">
-					{new Date().toLocaleDateString(locale, {
+					{new Date().toLocaleDateString(dateLocale(locale), {
 						weekday: "long",
 						day: "numeric",
 						month: "long",

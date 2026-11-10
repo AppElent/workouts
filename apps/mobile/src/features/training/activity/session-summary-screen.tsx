@@ -1,19 +1,12 @@
 /**
- * The post-session recap, ported from the web's
- * `src/components/session/SessionSummary.tsx`.
- *
- * Reads the finished session back from Convex rather than being handed totals
- * by the log screen. That costs a round trip, and buys the guarantee that these
- * numbers are the ones actually stored — a summary computed from the screen it
- * followed can only ever confirm that screen agreed with itself.
- *
- * Volume counts working sets only, matching the web. Warmups and drop sets are
- * real work but not the number anyone compares week to week.
- *
- * The WOD-results section the web shows below the exercise breakdown is not
- * here yet; it lands with the WOD screens.
+ * The post-session recap. Reads the finished session back from Convex so the
+ * numbers shown are the ones actually stored.
  */
-import { formatScore } from "@foundry/core";
+import {
+	formatDurationMinutes,
+	formatScore,
+	workingVolume,
+} from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,18 +14,22 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
+import { useExercises } from "../../../data/exercises";
 import {
-	formatDuration,
 	formatSessionDate,
 	orderExercisesByFirstSet,
 	useSession,
 	useSessionSets,
-	useShellData,
-	workingVolume,
 } from "../../../data/session-data";
 import { fmt, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
-import { type Tokens, type, useThemedStyles, useTokens } from "../../../theme";
+import {
+	opacity,
+	type Tokens,
+	type,
+	useThemedStyles,
+	useTokens,
+} from "../../../theme";
 import { Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { AppText } from "../../../ui/text";
@@ -44,13 +41,14 @@ export function SessionSummaryScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const copy = useI18n().t.workoutSummary;
+	const { locale, t } = useI18n();
+	const copy = t.workoutSummary;
 	const params = useLocalSearchParams<{ id?: string }>();
 	const sessionId = params.id as Id<"workoutSessions"> | undefined;
 
 	const session = useSession(sessionId);
 	const sets = useSessionSets(sessionId);
-	const { exercises } = useShellData();
+	const exercises = useExercises();
 	const removeSession = useMutation(api.workoutSessions.remove);
 	const [busy, setBusy] = useState(false);
 
@@ -82,7 +80,7 @@ export function SessionSummaryScreen() {
 		setBusy(true);
 		try {
 			await removeSession({ id: sessionId });
-			router.replace("/");
+			router.back();
 		} catch (error) {
 			toast.error(convexErrorMessage(error, copy.deleteError));
 		} finally {
@@ -104,17 +102,19 @@ export function SessionSummaryScreen() {
 				<AppText variant="heading">{copy.notFound}</AppText>
 				<Pressable
 					accessibilityRole="button"
-					onPress={() => router.replace("/")}
+					onPress={() => router.back()}
 					style={styles.ghostBtn}
 				>
-					<AppText style={styles.ghostText}>{copy.backHome}</AppText>
+					<AppText style={styles.ghostText}>{copy.back}</AppText>
 				</Pressable>
 			</View>
 		);
 	}
 
 	const cancelled = session.status === "cancelled";
-	const duration = formatDuration(session.startTime, session.endTime);
+	const duration = session.endTime
+		? formatDurationMinutes(session.endTime - session.startTime)
+		: null;
 	const volume = workingVolume(sets);
 
 	return (
@@ -132,7 +132,9 @@ export function SessionSummaryScreen() {
 			</View>
 
 			<AppText style={styles.h1}>{session.name ?? copy.freeSession}</AppText>
-			<AppText style={styles.muted}>{formatSessionDate(session.date)}</AppText>
+			<AppText style={styles.muted}>
+				{formatSessionDate(session.date, locale)}
+			</AppText>
 
 			<View style={styles.statRow}>
 				<StatBox value={duration ?? "—"} label={copy.duration} />
@@ -166,7 +168,7 @@ export function SessionSummaryScreen() {
 
 			<Pressable
 				accessibilityRole="button"
-				onPress={() => router.replace("/")}
+				onPress={() => router.back()}
 				style={styles.doneBtn}
 			>
 				<AppText style={styles.doneText}>{copy.done}</AppText>
@@ -356,7 +358,7 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "700",
 			color: colors.danger,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 		ghostBtn: {
 			minHeight: 44,
 			paddingHorizontal: 20,

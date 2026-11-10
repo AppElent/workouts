@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { Id } from "../../convex/api";
 import { plural, useI18n } from "../../i18n";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -334,5 +335,5 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.pill,
 		},
 		stepValue: { flex: 1, alignItems: "center" },
-		dimmed: { opacity: 0.4 },
+		dimmed: { opacity: opacity.disabled },
 	});

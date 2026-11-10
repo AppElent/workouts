@@ -12,6 +12,7 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("./use-activity-pages", () => ({ useActivityPages: jest.fn() }));
 jest.mock("../../../i18n", () => ({
+	...jest.requireActual("../../../i18n"),
 	useI18n: () => ({
 		locale: "en",
 		t: jest.requireActual("../../../i18n/messages/en").en,

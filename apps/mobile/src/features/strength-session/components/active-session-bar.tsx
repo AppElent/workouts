@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
 import { fmt, useI18n } from "../../../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../../../theme";
+import {
+	opacity,
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+} from "../../../theme";
 import { isIOS26OrLater } from "../../../ui/platform";
 import { AppText } from "../../../ui/text";
 import { useRestState } from "../data/rest-timer";
@@ -47,7 +53,10 @@ export function ActiveSessionBar() {
 		<View style={styles.wrap} pointerEvents="box-none">
 			<Pressable
 				onPress={() => router.push("/session")}
-				style={({ pressed }) => [styles.bar, pressed && { opacity: 0.9 }]}
+				style={({ pressed }) => [
+					styles.bar,
+					pressed && { opacity: opacity.pressed },
+				]}
 				accessibilityRole="button"
 				accessibilityLabel={fmt(resume.label, {
 					name: active.name ?? copy.freeSession,

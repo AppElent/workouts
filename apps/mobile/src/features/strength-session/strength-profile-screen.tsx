@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Id } from "../../convex/api";
-import { fmt, plural, useI18n } from "../../i18n";
+import { dateLocale, fmt, plural, useI18n } from "../../i18n";
 import {
 	radius,
 	spacing,
@@ -105,7 +105,7 @@ export function StrengthProfileScreen() {
 		formatNumber(Math.round(value * 10) / 10, locale);
 	const date = (value: number | null | undefined) =>
 		value
-			? new Date(value).toLocaleDateString(locale, {
+			? new Date(value).toLocaleDateString(dateLocale(locale), {
 					day: "numeric",
 					month: "short",
 				})

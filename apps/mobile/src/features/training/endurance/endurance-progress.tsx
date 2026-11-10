@@ -2,7 +2,7 @@ import type { EnduranceSport } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import { isoDateToLocalDate, shiftIsoDate } from "../../../dates/calendar-day";
-import { useI18n } from "../../../i18n";
+import { dateLocale, useI18n } from "../../../i18n";
 import { GhostButton } from "../../../ui/button";
 import { BucketChart } from "../../../ui/chart";
 import { StatBox } from "../../../ui/coach";
@@ -44,10 +44,13 @@ export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 		),
 	);
 	const points = weeks.map((week) => ({
-		label: isoDateToLocalDate(week.start).toLocaleDateString(locale, {
-			day: "numeric",
-			month: "short",
-		}),
+		label: isoDateToLocalDate(week.start).toLocaleDateString(
+			dateLocale(locale),
+			{
+				day: "numeric",
+				month: "short",
+			},
+		),
 		value: week.distanceMeters / 1000,
 	}));
 	return (
@@ -72,13 +75,13 @@ export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 				/>
 			</View>
 			<AppText variant="heading">
-				{isoDateToLocalDate(selected).toLocaleDateString(locale, {
+				{isoDateToLocalDate(selected).toLocaleDateString(dateLocale(locale), {
 					day: "numeric",
 					month: "long",
 				})}{" "}
 				–{" "}
 				{isoDateToLocalDate(shiftIsoDate(selected, 6)).toLocaleDateString(
-					locale,
+					dateLocale(locale),
 					{ day: "numeric", month: "long", year: "numeric" },
 				)}
 			</AppText>

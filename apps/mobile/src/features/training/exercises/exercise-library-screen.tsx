@@ -11,7 +11,7 @@ import {
 	View,
 } from "react-native";
 import { api } from "../../../convex/api";
-import { useShellData } from "../../../data/session-data";
+import { useExercises } from "../../../data/exercises";
 import { plural, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
@@ -54,7 +54,7 @@ export function ExerciseLibraryScreen() {
 	const confirm = useConfirm();
 	const { t, locale } = useI18n();
 	const c = t.exercises;
-	const { exercises } = useShellData();
+	const exercises = useExercises();
 	const removeExercise = useMutation(api.exercises.remove);
 	const [search, setSearch] = useState("");
 	const { created } = useLocalSearchParams<{ created?: string }>();

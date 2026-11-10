@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { useShellData } from "../../../data/session-data";
+import { useExercises } from "../../../data/exercises";
 import { dateLocale, useI18n } from "../../../i18n";
 import { type Tokens, type, useThemedStyles, useTokens } from "../../../theme";
 import { BucketChart, TrendChart } from "../../../ui/chart";
@@ -19,7 +19,7 @@ type Tab = (typeof TABS)[number];
 export function ProgressScreen() {
 	const styles = useThemedStyles(createStyles);
 	const [tab, setTab] = useState<Tab>("Exercises");
-	const { exercises } = useShellData();
+	const exercises = useExercises();
 	const { t } = useI18n();
 	const copy = t.activity;
 
@@ -65,7 +65,7 @@ export function ProgressScreen() {
 function ExerciseProgress({
 	exercises,
 }: {
-	exercises: ReturnType<typeof useShellData>["exercises"];
+	exercises: ReturnType<typeof useExercises>;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);

@@ -30,6 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Id } from "../../convex/api";
 import { fmt, useI18n } from "../../i18n";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -1352,8 +1353,8 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.lg,
 			borderCurve: "continuous",
 		},
-		pressed: { opacity: 0.6 },
-		dimmed: { opacity: 0.4 },
+		pressed: { opacity: opacity.pressed },
+		dimmed: { opacity: opacity.disabled },
 		primary: {
 			minHeight: 56,
 			alignItems: "center",

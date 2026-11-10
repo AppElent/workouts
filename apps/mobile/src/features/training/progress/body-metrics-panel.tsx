@@ -20,6 +20,7 @@ import { formatSessionDate } from "../../../data/session-data";
 import { dateLocale, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -102,7 +103,7 @@ export function BodyMetricsPanel() {
 	const remove = async (id: Id<"bodyMetrics">, date: number) => {
 		const confirmed = await confirm({
 			title: copy.deleteTitle,
-			message: formatSessionDate(date),
+			message: formatSessionDate(date, locale),
 			confirmLabel: copy.deleteEntry,
 			destructive: true,
 		});
@@ -189,7 +190,7 @@ export function BodyMetricsPanel() {
 										{e.bodyFatPct !== undefined ? ` · ${e.bodyFatPct}%` : ""}
 									</AppText>
 									<AppText variant="caption">
-										{formatSessionDate(e.date)}
+										{formatSessionDate(e.date, locale)}
 										{e.notes ? ` · ${e.notes}` : ""}
 									</AppText>
 								</View>
@@ -239,7 +240,7 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "800",
 			color: colors.onAccent,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 		muted: { fontSize: type.footnote.fontSize, color: colors.textMuted },
 		list: { gap: spacing.sm },
 		row: {

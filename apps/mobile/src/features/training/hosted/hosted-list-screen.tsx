@@ -33,6 +33,7 @@ import { formatSessionDate } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -51,7 +52,8 @@ export function HostedListScreen() {
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
-	const copy = useI18n().t.hosted;
+	const { locale, t } = useI18n();
+	const copy = t.hosted;
 	const hosted = useQuery(api.hostedWorkouts.listMine, {});
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 
@@ -152,8 +154,8 @@ export function HostedListScreen() {
 									</AppText>
 									<AppText variant="caption">
 										{h.scheduledAt
-											? formatSessionDate(h.scheduledAt)
-											: formatSessionDate(h.createdAt)}
+											? formatSessionDate(h.scheduledAt, locale)
+											: formatSessionDate(h.createdAt, locale)}
 									</AppText>
 								</View>
 								<Chip
@@ -210,7 +212,7 @@ const createStyles = (colors: Tokens) =>
 			fontWeight: "800",
 			color: colors.onAccent,
 		},
-		dimmed: { opacity: 0.5 },
+		dimmed: { opacity: opacity.disabled },
 		muted: { fontSize: type.footnote.fontSize, color: colors.textMuted },
 		centered: { textAlign: "center" },
 		empty: {
