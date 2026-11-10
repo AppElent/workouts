@@ -1,21 +1,23 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core";
+import {
+	MEAL_SLOTS,
+	type MealSlot,
+	mealSlotAt,
+	NUTRIENT_KEYS,
+	totalNutrients,
+} from "@foundry/core";
 import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import type { CaptureDraft } from "../../../data/nutrition-capture-draft";
 import {
 	type DiaryEntry,
 	type DiaryEntryWithMeal,
-	MEAL_SLOTS,
-	type MealSlot,
-	mealForTime,
 	useNutritionDay,
 } from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useToday } from "../../../data/use-today";
 import { formatLongDate, isoDayOffset } from "../../../dates/calendar-day";
@@ -28,6 +30,7 @@ import { useTabBarVisibility } from "../../../ui/tab-bar-visibility";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { NutritionHeaderMenu } from "../components/nutrition-header-menu";
+import { useDeleteDiaryEntry } from "../use-delete-diary-entry";
 import { DiaryDatePicker } from "./components/diary-date-picker";
 import { DiaryDraftEditor } from "./components/diary-draft-editor";
 import { DiaryMealCard } from "./components/diary-meal-card";
@@ -76,7 +79,7 @@ export function DiaryScreen({
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
 	const state = useNutritionDay(date);
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const stalled = useStalledOffline(state.status === "loading", connected);
@@ -208,25 +211,16 @@ export function DiaryScreen({
 			}))
 		)
 			return;
-		const subject = operations.getSubject();
-		if (!subject) return;
 		setDeleting(true);
 		try {
-			operations.removeBatch(
-				subject,
+			await diary.removeBatch(
 				selectedEntries.map((e) => ({ kind: "serverId", id: e.id })),
-				() => {
-					setDeleting(false);
-					toast.error(t.nutrition.error.body);
-				},
-				() => {
-					setDeleting(false);
-					endSelection();
-				},
 			);
+			endSelection();
 		} catch {
-			setDeleting(false);
 			toast.error(t.nutrition.error.body);
+		} finally {
+			setDeleting(false);
 		}
 	};
 	const add = (meal: MealSlot) =>
@@ -254,7 +248,7 @@ export function DiaryScreen({
 			onOpenAssistance={() =>
 				router.push({
 					pathname: "/nutrition-assistance",
-					params: { date, meal: mealForTime() },
+					params: { date, meal: mealSlotAt(new Date()) },
 				})
 			}
 			onOpenGoals={() =>

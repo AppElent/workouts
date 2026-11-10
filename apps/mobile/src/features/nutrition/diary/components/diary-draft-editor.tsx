@@ -1,8 +1,8 @@
+import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
 /** Edit an account-owned Capture Draft's text or Meal Slot in a page sheet. */
 import { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
-import { MEAL_SLOTS, type MealSlot } from "../../../../data/nutrition-day";
 import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
 import {
 	modalAnimation,

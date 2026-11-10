@@ -2,7 +2,6 @@ import type { PersonalMeasure } from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import { fmt, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
@@ -14,15 +13,13 @@ export type MeasureUnit = "g" | "ml";
 /**
  * My measures as two lists, one per unit, with what changes them: save
  * (create or update), remove after confirming, and move within a unit's
- * list. The device cache follows every change so logging sees it at once.
- * Changes need a connection; offline the lists stay readable.
+ * list. Changes need a connection; offline the lists stay readable.
  */
 export function usePersonalMeasuresEditor() {
 	const { t } = useI18n();
 	const copy = t.nutrition.personalMeasures;
 	const confirm = useConfirm();
 	const toast = useToast();
-	const operations = useNutritionOperations();
 	const { measures, loading } = usePersonalMeasureActions();
 	const connected = useConvexConnectionState().isWebSocketConnected;
 	const createMeasure = useMutation(api.personalMeasures.create);
@@ -39,11 +36,7 @@ export function usePersonalMeasuresEditor() {
 		ml: sorted.filter((measure) => measure.unit === "ml"),
 	};
 
-	function cache(next: PersonalMeasure[]) {
-		setLocal(next);
-		const subject = operations.getSubject();
-		if (subject) operations.cachePersonalMeasures(subject, next);
-	}
+	const cache = setLocal;
 
 	/** Creates or updates; rejects (after a toast) so the popup stays open. */
 	async function save(

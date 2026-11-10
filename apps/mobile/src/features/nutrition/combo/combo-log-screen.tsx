@@ -1,6 +1,6 @@
+import type { MealSlot } from "@foundry/core";
 import { useState } from "react";
 import { Modal, Switch, View } from "react-native";
-import type { MealSlot } from "../../../data/nutrition-day";
 import type { Combo } from "../../../data/personal-food-repository";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";

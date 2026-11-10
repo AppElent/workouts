@@ -20,7 +20,7 @@ export function useWeekReview(startDate: string | undefined) {
 			? weekStartMonday(startDate)
 			: current;
 	const [week, setWeek] = useState<IsoDate>(
-		requested > current ? current : requested,
+		[requested, current].sort()[0] ?? current,
 	);
 	const result = useQuery(api.nutritionReview.week, {
 		startDate: week,

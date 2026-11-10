@@ -1,3 +1,4 @@
+import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
 /**
  * Route for finding and logging food into one meal on one day.
  *
@@ -13,7 +14,6 @@
  * trusted: a deep link is user input, and the four slots are a closed set.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
 import { todayIsoDate } from "../../src/dates/calendar-day";
 import { LogFoodScreen } from "../../src/features/nutrition/log-food/log-food-screen";
 import { useI18n } from "../../src/i18n";

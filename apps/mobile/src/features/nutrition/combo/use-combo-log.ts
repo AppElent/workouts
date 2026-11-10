@@ -1,15 +1,15 @@
-import type { ServingOption } from "@foundry/core";
+import type { MealSlot, ServingOption } from "@foundry/core";
 import { useRef, useState } from "react";
 import {
 	type ComboPartChoice,
 	comboLogEntries,
 	comboLogPlan,
 } from "../../../data/nutrition-combo";
-import type { MealSlot } from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import {
-	mintNutritionUuid,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
+	comboPortion,
+	useFoodShortcuts,
+} from "../../../data/nutrition-shortcuts";
 import type {
 	Combo,
 	ComboPart,
@@ -23,7 +23,7 @@ const WHOLE_COMBO: ServingOption = {
 	kind: "authored",
 	index: -1,
 	amount: 1,
-	label: { en: "combo", nl: "combo" },
+	label: comboPortion(1).label,
 };
 
 /**
@@ -45,14 +45,11 @@ export function useComboLog({
 	onFailed: () => void;
 }) {
 	const foods = usePersonalFoods({ ids: [combo.id] });
-	const operations = useNutritionOperations();
-	const subject = operations.getSubject();
-	const remembered = subject
-		? operations.getShortcut(subject, `combo:${combo.id}`)?.portion?.quantity
-		: undefined;
+	const diary = useNutritionDiary();
+	const shortcuts = useFoodShortcuts();
 	const whole = useAmountSelection({
 		option: WHOLE_COMBO,
-		quantity: remembered && remembered > 0 ? remembered : 1,
+		quantity: shortcuts.comboQuantity(combo.id),
 		amount: 1,
 	});
 	const [destination, setDestination] = useState({ meal, date });
@@ -63,55 +60,24 @@ export function useComboLog({
 	const canLog =
 		whole.valid && plan.included.length > 0 && !logging && !foods.loading;
 
-	function log() {
+	async function log() {
 		if (!canLog || lock.current) return;
 		lock.current = true;
 		setLogging(true);
-		const fail = () => {
-			lock.current = false;
-			setLogging(false);
-			onFailed();
-		};
 		try {
-			const subject = operations.getSubject();
-			if (!subject) throw new Error("Not signed in.");
-			const comboGroup = {
-				id: mintNutritionUuid(),
-				comboId: combo.id,
-				name: combo.name,
-			};
-			operations.createBatch(
-				subject,
+			await diary.logCombo(
+				combo,
 				destination.date,
 				destination.meal,
-				comboLogEntries(plan, whole.quantity).map((snapshot) => ({
-					...snapshot,
-					date: destination.date,
-					meal: destination.meal,
-					comboGroup,
-					clientEntryId: mintNutritionUuid(),
-				})),
-				fail,
-				() => {
-					lock.current = false;
-					setLogging(false);
-					onLogged();
-				},
-				// Remembered so the Combo's + in Log food logs this count next time.
-				{
-					sourceKey: `combo:${combo.id}`,
-					portion: {
-						kind: "authored",
-						servingKey: "combo",
-						baseUnit: "serving",
-						amount: 1,
-						quantity: whole.quantity,
-						label: WHOLE_COMBO.label,
-					},
-				},
+				comboLogEntries(plan, whole.quantity),
+				whole.quantity,
 			);
+			onLogged();
 		} catch {
-			fail();
+			onFailed();
+		} finally {
+			lock.current = false;
+			setLogging(false);
 		}
 	}
 

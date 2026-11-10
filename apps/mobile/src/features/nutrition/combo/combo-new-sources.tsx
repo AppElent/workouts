@@ -1,9 +1,7 @@
+import { MEAL_SLOTS } from "@foundry/core";
 import { useEffect } from "react";
-import { MEAL_SLOTS, useNutritionDay } from "../../../data/nutrition-day";
-import {
-	mintNutritionUuid,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
+import { useNutritionDay } from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { ComboNewScreen } from "./combo-new-screen";
 import { comboPartFromEntry, comboPartFromFood } from "./combo-parts";
@@ -37,7 +35,7 @@ export function ComboNewFromDiary({
 	entryIds: readonly string[];
 	onDone: () => void;
 }) {
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
 	const state = useNutritionDay(date);
 	const wanted = new Set(entryIds);
 	const entries =
@@ -58,18 +56,9 @@ export function ComboNewFromDiary({
 			parts={entries.map(comboPartFromEntry)}
 			onCreated={(combo) => {
 				if (new Set(entries.map((entry) => entry.meal)).size > 1) return;
-				const subject = operations.getSubject();
-				if (!subject) throw new Error("Not signed in.");
-				return new Promise<void>((resolve, reject) =>
-					operations.group(
-						subject,
-						date,
-						entries[0].meal,
-						entries.map((entry) => ({ kind: "serverId", id: entry.id })),
-						{ id: mintNutritionUuid(), comboId: combo.id, name: combo.name },
-						reject,
-						resolve,
-					),
+				return diary.group(
+					entries.map((entry) => ({ kind: "serverId", id: entry.id })),
+					combo,
 				);
 			}}
 			onSaved={onDone}

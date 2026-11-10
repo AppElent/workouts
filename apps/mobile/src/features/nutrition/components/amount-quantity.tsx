@@ -8,7 +8,7 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
@@ -61,7 +61,7 @@ export function AmountQuantity({
 		choose(
 			Math.max(
 				baseUnitSelected ? 0.1 : small,
-				(valid ? Number(value.replace(",", ".")) : 0) + by,
+				(valid ? (parseLocalizedDecimal(value) ?? 0) : 0) + by,
 			),
 		);
 	const smallLabel = formatQuantity(small, locale);

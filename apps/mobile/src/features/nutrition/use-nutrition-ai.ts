@@ -1,5 +1,5 @@
+import { parseConvexError } from "@foundry/core";
 import { useAction, useConvexConnectionState } from "convex/react";
-import { ConvexError } from "convex/values";
 import { useState } from "react";
 import { api } from "../../convex/api";
 import {
@@ -36,7 +36,7 @@ export function withAiTimeout<T>(call: Promise<T>, ms = AI_TIMEOUT_MS) {
 
 export function nutritionAiFailure(error: unknown): NutritionAiFailure {
 	if (error instanceof Error && error.message === TIMED_OUT) return "timeout";
-	const code = error instanceof ConvexError ? error.data : null;
+	const { code } = parseConvexError(error);
 	return code === "limit" || code === "unavailable" || code === "tooLarge"
 		? code
 		: "failed";

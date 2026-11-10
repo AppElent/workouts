@@ -1,14 +1,14 @@
-import { formatServingSelection } from "@foundry/core";
+import { formatServingSelection, type MealSlot } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useRef, useState } from "react";
 import { z } from "zod";
-import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
-import type { DiaryEntry, MealSlot } from "../../../data/nutrition-day";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
+import type { DiaryEntry } from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { servingKey } from "../../../data/nutrition-shortcuts";
 import { useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import { useAmountSelection } from "../use-amount-selection";
+import { useDeleteDiaryEntry } from "../use-delete-diary-entry";
 import { useSnapshotServings } from "../use-snapshot-servings";
 
 export type DiaryEntryEditorProps = {
@@ -25,7 +25,7 @@ export function useDiaryEntryEditor({
 }: DiaryEntryEditorProps) {
 	const { t } = useI18n();
 	const toast = useToast();
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
 	const servings = useSnapshotServings(entry);
 	const { historical } = servings;
 	const selection = useAmountSelection({
@@ -61,21 +61,10 @@ export function useDiaryEntryEditor({
 		if (lock.current || saving || deleting || !valid || !dirty) return;
 		lock.current = true;
 		setSaving(true);
-		const fail = () => {
-			lock.current = false;
-			setSaving(false);
-			toast.error(t.nutrition.entryEditor.saveFailure);
-		};
 		try {
-			const subject = operations.getSubject();
-			if (!subject) {
-				fail();
-				return;
-			}
 			const historicalSelection =
 				servingKey(selected) === servingKey(historical);
-			operations.update(
-				subject,
+			await diary.update(
 				{ kind: "serverId", id: entry.id },
 				{
 					meal: nextMeal,
@@ -95,14 +84,13 @@ export function useDiaryEntryEditor({
 								},
 							}),
 				},
-				fail,
-				() => {
-					setSaving(false);
-					onClose();
-				},
 			);
+			onClose();
 		} catch {
-			fail();
+			toast.error(t.nutrition.entryEditor.saveFailure);
+		} finally {
+			lock.current = false;
+			setSaving(false);
 		}
 	}
 	async function remove() {

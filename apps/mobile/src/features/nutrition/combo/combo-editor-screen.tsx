@@ -3,10 +3,9 @@ import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "../../../data/nutrition-operation-service";
-import { comboSourceKey } from "../../../data/nutrition-shortcuts";
+	comboSourceKey,
+	useFoodShortcuts,
+} from "../../../data/nutrition-shortcuts";
 import type { Combo } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { todayIsoDate } from "../../../dates/calendar-day";
@@ -42,9 +41,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 	const toast = useToast();
 	const confirm = useConfirm();
 	const library = usePersonalFoods({ ids: [comboId] });
-	const operations = useNutritionOperations();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
+	const shortcuts = useFoodShortcuts();
 	const [renaming, setRenaming] = useState(false);
 	const writeLock = useRef(false);
 	const [saving, setSaving] = useState(false);
@@ -52,11 +49,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 
 	if (!combo) return null;
 	const favoriteKey = comboSourceKey(combo.id);
-	const favorite = subject
-		? operations
-				.listFavorites(subject)
-				.some((shortcut) => shortcut.sourceKey === favoriteKey)
-		: false;
+	const favorite = Boolean(shortcuts.get(favoriteKey)?.favorite);
 
 	const write = async (next: Combo) => {
 		if (writeLock.current) return false;
@@ -148,9 +141,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			pathname: "/nutrition-combo-log",
 			params: { comboId: combo.id, date: todayIsoDate() },
 		});
-	const toggleFavorite = () => {
-		if (subject) operations.toggleFavorite(subject, favoriteKey, !favorite);
-	};
+	const toggleFavorite = () => shortcuts.setFavorite(favoriteKey, !favorite);
 	const totals = comboTotals(combo);
 	const missing = combo.parts.filter((part) => part.status === "missing");
 	const count = combo.parts.length;

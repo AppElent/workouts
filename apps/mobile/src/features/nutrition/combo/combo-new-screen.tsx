@@ -31,7 +31,7 @@ export function ComboNewScreen({
 	 * it was made from. Failed follow-up work retries with the accepted Combo.
 	 */
 	/** May answer false: the form stays open, and the caller has said why. */
-	onCreated?: (combo: Combo) => void | boolean | Promise<void | boolean>;
+	onCreated?: (combo: Combo) => unknown;
 	/** Where to go once saved; by default the new combo's editor. */
 	onSaved?: (combo: Combo) => void;
 	/** Outlives this form, so reopening it does not create the combo twice. */

@@ -1,13 +1,14 @@
 import type { NutrientKey, NutrientValue } from "@foundry/core";
 import { useRef, useState } from "react";
 import { Keyboard, type TextInputInstance } from "react-native";
+import { parseLocalizedDecimal } from "../../i18n";
 
 /** A nutrient as typed: its kind, and the text of a value. */
 export type NutrientInput = { kind: NutrientValue["kind"]; amount: string };
 
 /** A typed number, with either decimal separator. NaN when it is none. */
 export function parseFoodNumber(text: string): number {
-	return Number(text.trim().replace(",", "."));
+	return parseLocalizedDecimal(text) ?? Number.NaN;
 }
 
 /** Label order: what you read on a package, "of which" rows indented. */

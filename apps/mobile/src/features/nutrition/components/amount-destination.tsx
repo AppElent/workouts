@@ -1,5 +1,5 @@
+import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
 import { useState } from "react";
-import { MEAL_SLOTS, type MealSlot } from "../../../data/nutrition-day";
 import {
 	formatShortDate,
 	shiftIsoDate,

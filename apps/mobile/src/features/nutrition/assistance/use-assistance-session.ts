@@ -1,5 +1,6 @@
 import { shippedLibrary } from "@foundry/core/shipped-foods";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAccountWrite } from "../../../data/account-write";
 import {
 	applyChoices,
 	asksFor,
@@ -21,18 +22,10 @@ import {
 	withOmittedRows,
 } from "../../../data/nutrition-ai";
 import {
-	aiSessionForText,
-	cacheReview,
-	forgetReview,
-	readCachedReview,
-	type SavedAiSession,
-} from "../../../data/nutrition-ai-history";
-import {
 	type ImageInput,
 	prepareImage,
 } from "../../../data/nutrition-ai-image";
 import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
 import type { PersonalFoodDraft } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
@@ -49,6 +42,13 @@ import {
 	useNutritionAi,
 	withAiTimeout,
 } from "../use-nutrition-ai";
+import {
+	aiSessionForText,
+	cacheReview,
+	forgetReview,
+	readCachedReview,
+	type SavedAiSession,
+} from "./assistance-history";
 
 export type AssistanceProblem =
 	| "noFood"
@@ -111,7 +111,7 @@ export function useAssistanceSession(
 	const { locale } = useI18n();
 	const ai = useNutritionAi();
 	const personalFoods = usePersonalFoods();
-	const account = useNutritionOperations().getSubject();
+	const account = useAccountWrite().subject;
 	const [text, setText] = useState(resume?.text ?? initialText);
 	const [photo, setPhoto] = useState<string>();
 	const [phase, setPhase] = useState<AssistancePhase>({ kind: "input" });
@@ -259,12 +259,12 @@ export function useAssistanceSession(
 				carried[index] ??
 				(failed ? { ...item, confidence: "low" as const } : item),
 		);
-		if (remember && !failed)
+		if (remember && !failed && account)
 			cacheReview(
+				account,
 				remember.text,
 				locale,
 				{ result, items },
-				account,
 				savedFoodsSignature(),
 			);
 		if (!prior) setLastReview(undefined);
@@ -329,9 +329,10 @@ export function useAssistanceSession(
 		}
 		// The same words give the same numbers, at once, also without a connection.
 		const cacheable = !photo && !webSearch;
-		const cached = cacheable
-			? readCachedReview(text, locale, account, savedFoodsSignature())
-			: null;
+		const cached =
+			cacheable && account
+				? readCachedReview(account, text, locale, savedFoodsSignature())
+				: null;
 		if (!cached && !ai.online) {
 			setPhase({ kind: "input", problem: "offline" });
 			return;
@@ -568,7 +569,7 @@ export function useAssistanceSession(
 	}, []);
 
 	const repeat = useMemo(
-		() => (photo ? null : aiSessionForText(text, account)),
+		() => (photo || !account ? null : aiSessionForText(account, text)),
 		[photo, text, account],
 	);
 
@@ -607,16 +608,19 @@ export function useAssistanceSession(
 				!photo &&
 				!described.current?.image &&
 				(resume?.repeatable ?? true) &&
-				text.trim()
+				text.trim() &&
+				account
 			)
 				cacheReview(
+					account,
 					text,
 					locale,
 					{ result, items: phase.items },
-					account,
 					savedFoodsSignature(),
 				);
-			return () => forgetReview(words, locale, account);
+			return () => {
+				if (account) forgetReview(account, words, locale);
+			};
 		},
 		/** What a logged meal needs to be continued later. */
 		context: () =>

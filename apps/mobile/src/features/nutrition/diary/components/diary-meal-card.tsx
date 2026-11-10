@@ -1,9 +1,9 @@
-import { roundForDisplay, totalNutrients } from "@foundry/core";
+import { type MealSlot, roundForDisplay, totalNutrients } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
-import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
+import type { DiaryEntry } from "../../../../data/nutrition-day";
 import { fmt, plural, useI18n } from "../../../../i18n";
 import { spacing, useTokens } from "../../../../theme";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
