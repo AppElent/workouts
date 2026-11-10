@@ -15,6 +15,26 @@ export function isTestLoginAvailable(env: {
 	);
 }
 
+export const SOCIAL_SIGN_IN_PROVIDERS = [
+	"apple",
+	"google",
+	"microsoft",
+] as const;
+export type SocialSignInProvider = (typeof SOCIAL_SIGN_IN_PROVIDERS)[number];
+
+/**
+ * The social providers a Clerk instance can serve. Google only has OAuth
+ * credentials on the development instance (`pk_test_`); add it for
+ * production once that instance has its own Google client.
+ */
+export function socialSignInProviders(
+	publishableKey: string | undefined,
+): readonly SocialSignInProvider[] {
+	return publishableKey?.startsWith("pk_test_")
+		? SOCIAL_SIGN_IN_PROVIDERS
+		: SOCIAL_SIGN_IN_PROVIDERS.filter((provider) => provider !== "google");
+}
+
 /** Message keys for Clerk errors; each client translates them. */
 export const CLERK_ERROR_MESSAGE_KEYS = [
 	"generic",

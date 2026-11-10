@@ -16,7 +16,7 @@
  * and on both the credentials are inlined into the client bundle either way — so
  * the account they name must never be one that exists on the live instance.
  */
-import { isTestLoginAvailable } from "@foundry/core";
+import { isTestLoginAvailable, socialSignInProviders } from "@foundry/core";
 
 const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const TEST_USER_EMAIL = process.env.EXPO_PUBLIC_TEST_USER_EMAIL;
@@ -42,14 +42,4 @@ export const devLogin: { email: string; password: string } | null =
 		? { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD }
 		: null;
 
-export type SocialProvider = "apple" | "google" | "microsoft";
-
-/**
- * Google only has OAuth credentials on the development Clerk instance
- * (`pk_test_`), so any build pointed at that instance offers it. Add it to
- * the production list once the production instance has its own Google client.
- */
-export const socialProviders: readonly SocialProvider[] =
-	PUBLISHABLE_KEY.startsWith("pk_test_")
-		? ["apple", "google", "microsoft"]
-		: ["apple", "microsoft"];
+export const socialProviders = socialSignInProviders(PUBLISHABLE_KEY);

@@ -4,6 +4,7 @@ import {
 	CLERK_ERROR_MESSAGE_KEYS,
 	clerkErrorMessageKey,
 	isTestLoginAvailable,
+	socialSignInProviders,
 } from "./auth";
 
 describe("isTestLoginAvailable", () => {
@@ -26,6 +27,17 @@ describe("isTestLoginAvailable", () => {
 		expect(
 			isTestLoginAvailable({ publishableKey: undefined, ...credentials }),
 		).toBe(false);
+	});
+});
+
+describe("socialSignInProviders", () => {
+	it("offers Google only on the development instance", () => {
+		expect(socialSignInProviders("pk_test_abc")).toContain("google");
+		expect(socialSignInProviders("pk_live_abc")).toEqual([
+			"apple",
+			"microsoft",
+		]);
+		expect(socialSignInProviders(undefined)).not.toContain("google");
 	});
 });
 

@@ -29,9 +29,10 @@ the Apple revocation key below.
 | Clerk redirect URI, production (all providers, all apps) | `https://clerk.appelent.nl/v1/oauth_callback` |
 | Clerk redirect URI, development | `https://calm-cricket-82.clerk.accounts.dev/v1/oauth_callback` |
 | Consent-screen branding | `Appelent` |
-| Web provider list | `SOCIAL_PROVIDERS` in `src/lib/auth/SocialButtons.tsx` |
+| Provider availability | `socialSignInProviders` in `packages/core/src/auth.ts` |
+| Web provider buttons | `SOCIAL_PROVIDERS` in `src/lib/auth/SocialButtons.tsx` |
 | Web callback route | `/sso-callback` (`src/routes/sso-callback.tsx`) |
-| Mobile provider list | `SOCIAL_PROVIDERS` in `apps/mobile/src/auth/useSocialSignIn.ts` |
+| Mobile provider buttons | `apps/mobile/src/auth/social-buttons.tsx` |
 | Foundry bundle IDs | `com.appelent.foundry`, `.preview`, `.dev` ([install variants](#install-variants)) |
 | Foundry mobile redirects | `foundry://`, `foundry-preview://`, `foundry-dev://` + `sso-callback` |
 | Apple primary App ID | `com.appelent.foundry` (other apps group under it) |
@@ -40,9 +41,11 @@ the Apple revocation key below.
 | Web PR preview deploys | Clerk development instance (Infisical `staging` references the `dev` values); unaffected |
 | EAS builds → Clerk instance | `development` → development; `preview` and `production` → production |
 
-Google is gated to local development (`import.meta.env.DEV` on web, `__DEV__`
-on mobile) because only the development instance has working Google
-credentials. Remove both gates once production has its own Google OAuth client.
+Google is offered only by builds on the development Clerk instance (a
+`pk_test_` publishable key), because only that instance has working Google
+credentials. Web and mobile share the rule through `socialSignInProviders`;
+add Google to its production list once production has its own Google OAuth
+client.
 
 Email-code sign-in ("Email me a sign-in code") needs **Email verification code**
 enabled as a sign-in option under **User & authentication → Email**; it is on

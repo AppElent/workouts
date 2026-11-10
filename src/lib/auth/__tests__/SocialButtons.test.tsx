@@ -5,7 +5,7 @@ import {
 	render as rtlRender,
 	screen,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sso = vi.fn();
 vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn: { sso } }) }));
@@ -26,9 +26,25 @@ function renderButtons() {
 }
 
 describe("SocialButtons", () => {
+	beforeEach(() => {
+		vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_x");
+	});
+
 	afterEach(() => {
 		cleanup();
+		vi.unstubAllEnvs();
 		sso.mockReset();
+	});
+
+	it("offers Google only on the development Clerk instance", () => {
+		vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_live_x");
+		renderButtons();
+		expect(screen.queryByRole("button", { name: "Continue with Google" })).toBe(
+			null,
+		);
+		expect(
+			screen.getByRole("button", { name: "Continue with Apple" }),
+		).toBeDefined();
 	});
 
 	it("redirects to the chosen provider via the SSO callback", () => {
