@@ -1,5 +1,10 @@
 import { act, renderHook } from "@testing-library/react-native";
 import { LocaleProvider } from "../i18n";
+import {
+	PREFERENCE_KEYS,
+	removeLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import { useEmailCodeSignIn } from "./use-email-code-sign-in";
 
 const mockSendCode = jest.fn();
@@ -19,7 +24,10 @@ jest.mock("@clerk/expo", () => ({
 	}),
 }));
 
-afterEach(() => jest.resetAllMocks());
+afterEach(() => {
+	jest.resetAllMocks();
+	removeLocal(PREFERENCE_KEYS.locale);
+});
 
 it("sends a code to the trimmed address", async () => {
 	mockSendCode.mockResolvedValue({ error: null });
@@ -69,6 +77,16 @@ it("does not finalize when the code is wrong", async () => {
 	expect(mockFinalize).not.toHaveBeenCalled();
 	expect(result.current.error).toMatch(/code is not right/i);
 	expect(result.current.busy).toBe(false);
+});
+
+it("explains a wrong code in the phone's language", async () => {
+	writeLocal(PREFERENCE_KEYS.locale, "nl");
+	mockVerifyCode.mockResolvedValue({ error: { code: "form_code_incorrect" } });
+	const { result } = await renderHook(() => useEmailCodeSignIn(), {
+		wrapper: LocaleProvider,
+	});
+	await act(() => result.current.verify("000000"));
+	expect(result.current.error).toBe("Die code klopt niet.");
 });
 
 it("starts over so a corrected address gets a fresh sign-in", async () => {
