@@ -1,7 +1,7 @@
 import { Directory, File } from "expo-file-system";
 import { defaultDatabaseDirectory } from "expo-sqlite";
+import type { SyncSQLiteDatabase } from "./nutrition-database";
 import { openNutritionDatabase } from "./nutrition-database";
-import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export type LocalTable = {
 	name: string;

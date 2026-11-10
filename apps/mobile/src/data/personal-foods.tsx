@@ -1,4 +1,3 @@
-import { useAuth } from "@clerk/expo";
 import { canonicalJson, type Locale } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
 import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
@@ -18,17 +17,14 @@ import {
 	useQueries,
 	useQuery,
 } from "../convex/query-cache";
-import {
-	type FoodPhotoUpload,
-	useFoodPhotoUpload,
-} from "./nutrition-food-photo-upload";
+import { mintUuid, useAccountWrite } from "./account-write";
+import { useFoodPhotoUpload } from "./nutrition-food-photo-upload";
 import {
 	applyLibraryRecord,
 	type LibraryRecord,
 	type NutritionLibraryStateRepository,
 	openNutritionLibraryStateRepository,
 } from "./nutrition-library-repository";
-import { mintNutritionUuid } from "./nutrition-operation-service";
 import {
 	type Combo,
 	type ComboDraft,
@@ -134,7 +130,7 @@ function PersonalFoodsScope({
 					| PersonalFood
 					| undefined) ?? {
 					...normalizePersonalFoodDraft(draft),
-					id: mintNutritionUuid(),
+					id: mintUuid(),
 					createdAt: timestamp,
 					updatedAt: timestamp,
 				};
@@ -227,9 +223,9 @@ function PersonalFoodsScope({
 					...valid,
 					parts: valid.parts.map((part) => ({
 						...part,
-						id: part.id ?? mintNutritionUuid(),
+						id: part.id ?? mintUuid(),
 					})),
-					id: mintNutritionUuid(),
+					id: mintUuid(),
 					createdAt: timestamp,
 					updatedAt: timestamp,
 				};
@@ -259,7 +255,7 @@ function PersonalFoodsScope({
 					...valid,
 					parts: valid.parts.map((part) => ({
 						...part,
-						id: part.id ?? mintNutritionUuid(),
+						id: part.id ?? mintUuid(),
 					})),
 					updatedAt: Date.now(),
 				};
@@ -308,22 +304,18 @@ export function PersonalFoodsProvider({
 	children,
 	repository: suppliedRepository,
 	libraryState,
-	uploadPhoto,
 }: {
 	children: ReactNode;
 	repository?: PersonalFoodRepository;
 	libraryState?: NutritionLibraryStateRepository;
-	uploadPhoto?: FoodPhotoUpload;
 }) {
-	const { isSignedIn, userId } = useAuth();
-	const subject = isSignedIn ? userId : undefined;
+	const { subject } = useAccountWrite();
 	return (
 		<PersonalFoodsAccount
 			key={subject ?? "signed-out"}
 			subject={subject}
 			repository={suppliedRepository}
 			libraryState={libraryState}
-			uploadPhoto={uploadPhoto}
 		>
 			{children}
 		</PersonalFoodsAccount>
@@ -335,13 +327,11 @@ function PersonalFoodsAccount({
 	subject,
 	repository: suppliedRepository,
 	libraryState,
-	uploadPhoto: suppliedUploadPhoto,
 }: {
 	children: ReactNode;
 	subject?: string;
 	repository?: PersonalFoodRepository;
 	libraryState?: NutritionLibraryStateRepository;
-	uploadPhoto?: FoodPhotoUpload;
 }) {
 	const [state] = useState(
 		() =>
@@ -434,9 +424,7 @@ function PersonalFoodsAccount({
 			if (record.kind === "food" && record.payload) {
 				let food: PersonalFood = JSON.parse(record.payload);
 				if (food.visual?.kind === "photo" && !food.visual.storageId) {
-					const uploaded = await (suppliedUploadPhoto ?? uploadPhoto)(
-						food.visual.uri,
-					);
+					const uploaded = await uploadPhoto(food.visual.uri);
 					if (owner.current !== subject)
 						throw new Error("The account changed while uploading a photo.");
 					food = { ...food, visual: { ...food.visual, ...uploaded } };
@@ -447,8 +435,7 @@ function PersonalFoodsAccount({
 				};
 			}
 			const retryKey = canonicalJson(portableRecord);
-			const operationId =
-				retryOperations.current.get(retryKey) ?? mintNutritionUuid();
+			const operationId = retryOperations.current.get(retryKey) ?? mintUuid();
 			retryOperations.current.set(retryKey, operationId);
 			const result = await onlineMutation({
 				version: 1,
@@ -492,7 +479,6 @@ function PersonalFoodsAccount({
 			state,
 			accountRepository,
 			uploadPhoto,
-			suppliedUploadPhoto,
 			session,
 		],
 	);

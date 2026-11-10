@@ -13,14 +13,11 @@ import {
 import { ActivityIndicator } from "react-native";
 import { api } from "../../convex/api";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
-import {
-	clearNutritionAccountCache,
-	retireLegacyNutritionData,
-} from "../../data/nutrition-account-cleanup";
-import { clearNutritionLocalAccount } from "../../data/nutrition-local-repository";
+import { clearNutritionAccountCache } from "../../data/nutrition-account-cleanup";
 import { discardPersonalFoodSources } from "../../data/personal-food-session";
 import { todayIsoDate } from "../../dates/calendar-day";
 import { useI18n } from "../../i18n";
+import { clearAccountStores } from "../../local-store/local-store";
 import { PrimaryButton } from "../../ui/button";
 import { FormScreen, TextAction } from "../../ui/form";
 import { AppText } from "../../ui/text";
@@ -40,7 +37,7 @@ function cleanup(subject: string) {
 	clearAccountSetDrafts(subject);
 	clearAccountSessionPlans(subject);
 	discardPersonalFoodSources(subject);
-	clearNutritionLocalAccount(subject);
+	clearAccountStores(subject);
 }
 
 /** Unmount data providers while resetting, then reopen them without stale memory. */
@@ -50,9 +47,6 @@ export function AccountDataMaintenanceProvider({
 	children: ReactNode;
 }) {
 	const { userId, sessionId } = useAuth();
-	useEffect(() => {
-		retireLegacyNutritionData();
-	}, []);
 	const online = useConvexConnectionState().isWebSocketConnected;
 	const reset = useMutation(api.testData.reset);
 	const deleteData = useMutation(api.account.deleteData);

@@ -17,10 +17,9 @@ export function oneOffLogSnapshot(input: {
 	amount: number;
 	baseUnit?: "g" | "ml" | "serving";
 	nutrients: Partial<Record<NutrientKey, NutrientValue>>;
-	clientEntryId: string;
 	visual?: FoodVisual;
 	note?: string;
-}): NutritionDiarySnapshot & { readonly clientEntryId: string } {
+}): NutritionDiarySnapshot {
 	if (!Number.isFinite(input.amount) || input.amount <= 0) {
 		throw new Error("Log once amount must be greater than zero.");
 	}
@@ -48,6 +47,5 @@ export function oneOffLogSnapshot(input: {
 		nutrients,
 		estimated: true,
 		provenance: { source: "oneOff" },
-		clientEntryId: input.clientEntryId,
 	};
 }
