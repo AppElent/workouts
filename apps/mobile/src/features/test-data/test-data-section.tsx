@@ -1,3 +1,4 @@
+import type { FunctionReturnType } from "convex/server";
 import { useRef } from "react";
 import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
@@ -17,7 +18,7 @@ export function TestDataSection() {
 function TestDataActions({
 	blocker,
 }: {
-	blocker: "activeActivity" | "hostedWorkout" | null;
+	blocker: FunctionReturnType<typeof api.testData.availability>["blocker"];
 }) {
 	const online = useOnline();
 	const { t } = useI18n();

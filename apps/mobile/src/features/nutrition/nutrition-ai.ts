@@ -1227,24 +1227,13 @@ export function combinedNutrients(
 	return totals;
 }
 
-const LABEL_KEYS: Record<NutrientKey, keyof LabelReading["per100"]> = {
-	energy: "energy",
-	protein: "protein",
-	carbs: "carbs",
-	fat: "fat",
-	saturatedFat: "saturatedFat",
-	fibre: "fibre",
-	sugars: "sugars",
-	salt: "salt",
-};
-
 /** Label values as nutrient states; kJ fills energy only when kcal is missing. */
 export function labelNutrients(
 	reading: LabelReading,
 ): Record<NutrientKey, NutrientValue> {
 	return Object.fromEntries(
 		NUTRIENT_KEYS.map((key) => {
-			let amount = reading.per100[LABEL_KEYS[key]];
+			let amount = reading.per100[key];
 			if (
 				key === "energy" &&
 				amount === null &&

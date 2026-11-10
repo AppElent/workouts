@@ -4,15 +4,14 @@
  * `{placeholder}`, which would reach the user as a literal brace.
  */
 import { isAppErrorCode, messageParityMismatches } from "@foundry/core";
-import { en } from "./messages/en";
-import { nl } from "./messages/nl";
+import { DICTIONARIES } from "./dictionaries";
 
-it("says the same things in both languages, with the same placeholders", () => {
-	expect(messageParityMismatches({ en, nl })).toEqual([]);
+it("says the same things in every language, with the same placeholders", () => {
+	expect(messageParityMismatches(DICTIONARIES)).toEqual([]);
 });
 
-it("words only server error codes, in both languages", () => {
-	for (const messages of [en, nl])
+it("words only server error codes, in every language", () => {
+	for (const messages of Object.values(DICTIONARIES))
 		expect(
 			Object.keys(messages.errors).filter((code) => !isAppErrorCode(code)),
 		).toEqual([]);
