@@ -530,10 +530,10 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					muscleGroups: [],
 					category: "compound",
 					equipment: bodyweight ? "bodyweight" : "other",
-				} as never);
-				if (forSwap) return swap(forSwap, id as string, name);
-				if (groupId) return addExerciseToGroup(groupId, id as string, name);
-				return addExercise(id as string, openEditor, name);
+				});
+				if (forSwap) return swap(forSwap, id, name);
+				if (groupId) return addExerciseToGroup(groupId, id, name);
+				return addExercise(id, openEditor, name);
 			} catch (error) {
 				say(errorMessage(error, saveError));
 				return false;
