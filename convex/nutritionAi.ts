@@ -1,8 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { type ActionCtx, action, internalMutation } from "./_generated/server";
+import { requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
 import {
-	type AiLocale,
 	describe as describeMeal,
 	MAX_FOLLOW_UPS,
 	MAX_IMAGE_BASE64,
@@ -13,11 +14,11 @@ import {
 	readLabel as readNutritionLabel,
 	select,
 } from "./lib/nutritionAi";
+import { locale, measuredUnit as unit } from "./lib/validators";
 
 /** Analyses (describe + label) per account per UTC day. */
 export const DAILY_ANALYSES = 50;
 
-const locale = v.union(v.literal("en"), v.literal("nl"));
 const image = v.object({
 	mediaType: v.union(
 		v.literal("image/jpeg"),
@@ -26,7 +27,6 @@ const image = v.object({
 	),
 	base64: v.string(),
 });
-const unit = v.union(v.literal("g"), v.literal("ml"));
 const confidence = v.union(
 	v.literal("high"),
 	v.literal("medium"),
@@ -45,15 +45,9 @@ const estimate = v.object({
 	salt: v.number(),
 });
 
-async function requireUser(ctx: ActionCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new ConvexError("unauthenticated");
-	return identity.subject;
-}
-
 function requireProvider(): NutritionAiProvider {
 	const provider = nutritionAiProvider();
-	if (!provider) throw new ConvexError("unavailable");
+	if (!provider) throw appError("unavailable");
 	return provider;
 }
 
@@ -64,13 +58,13 @@ async function run<T>(task: string, work: () => Promise<T>): Promise<T> {
 	} catch (error) {
 		if (error instanceof ConvexError) throw error;
 		console.error(`nutritionAi.${task} failed`, error);
-		throw new ConvexError("failed");
+		throw appError("failed");
 	}
 }
 
 function checkImage(input: { base64: string } | undefined) {
 	if (input && input.base64.length > MAX_IMAGE_BASE64)
-		throw new ConvexError("tooLarge");
+		throw appError("tooLarge");
 }
 
 export const consumeAnalysis = internalMutation({
@@ -83,7 +77,7 @@ export const consumeAnalysis = internalMutation({
 				q.eq("userId", userId).eq("day", day),
 			)
 			.unique();
-		if ((row?.count ?? 0) >= DAILY_ANALYSES) throw new ConvexError("limit");
+		if ((row?.count ?? 0) >= DAILY_ANALYSES) throw appError("limit");
 		// Each analysis allows a candidate selection and one retry of it, so
 		// `choose` cannot be called on its own to reach the provider outside the
 		// daily limit.
@@ -113,7 +107,7 @@ export const consumeChoice = internalMutation({
 				q.eq("userId", userId).eq("day", day),
 			)
 			.unique();
-		if (!row || (row.choices ?? 0) <= 0) throw new ConvexError("limit");
+		if (!row || (row.choices ?? 0) <= 0) throw appError("limit");
 		await ctx.db.patch(row._id, { choices: (row.choices ?? 0) - 1 });
 		return null;
 	},
@@ -172,15 +166,15 @@ export const describe = action({
 		),
 	}),
 	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
-		if (!args.text?.trim() && !args.image) throw new ConvexError("empty");
-		if ((args.text?.length ?? 0) > MAX_TEXT) throw new ConvexError("tooLarge");
+		const userId = await requireUserId(ctx);
+		if (!args.text?.trim() && !args.image) throw appError("empty");
+		if ((args.text?.length ?? 0) > MAX_TEXT) throw appError("tooLarge");
 		if (
 			(args.previous?.length ?? 0) > MAX_TEXT * 8 ||
 			(args.followUps?.length ?? 0) > MAX_FOLLOW_UPS ||
 			args.followUps?.some((followUp) => followUp.length > 500)
 		)
-			throw new ConvexError("tooLarge");
+			throw appError("tooLarge");
 		checkImage(args.image);
 		const provider = requireProvider();
 		await consume(ctx, userId);
@@ -188,7 +182,7 @@ export const describe = action({
 			const described = await describeMeal(provider, {
 				text: args.text,
 				image: args.image,
-				locale: args.locale as AiLocale,
+				locale: args.locale,
 				previous: args.previous,
 				followUps: args.followUps,
 				webSearch: args.webSearch,
@@ -232,13 +226,13 @@ export const choose = action({
 		}),
 	),
 	handler: async (ctx, { items }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		if (
 			items.length === 0 ||
 			items.length > MAX_ITEMS ||
 			items.some((item) => item.candidates.length > 15)
 		)
-			throw new ConvexError("tooLarge");
+			throw appError("tooLarge");
 		const provider = requireProvider();
 		await ctx.runMutation(internal.nutritionAi.consumeChoice, {
 			userId,
@@ -274,14 +268,14 @@ export const readLabel = action({
 		notes: v.string(),
 	}),
 	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		checkImage(args.image);
 		const provider = requireProvider();
 		await consume(ctx, userId);
 		return run("readLabel", async () => {
 			const reading = await readNutritionLabel(provider, {
 				image: args.image,
-				locale: args.locale as AiLocale,
+				locale: args.locale,
 			});
 			return { ...reading, servings: [...reading.servings] };
 		});

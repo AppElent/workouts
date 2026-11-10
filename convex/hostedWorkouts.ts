@@ -1,39 +1,28 @@
-import { ConvexError, v } from "convex/values";
+import { HOSTED_LEVELS } from "@foundry/core";
+import { type ObjectType, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { requireExercise } from "./lib/exerciseCatalog";
+import { joinHosted, toPublicHostedTemplate } from "./lib/hosted";
+import {
+	hostedPrescriptions,
+	validatePrescriptions,
+} from "./lib/strengthSession";
 import {
 	exerciseReference,
-	normalizeExerciseTemplate,
-	requireExercise,
-} from "./lib/exerciseCatalog";
-import { toPublicHostedTemplate } from "./lib/hostedDto";
-import { hostedSessionExercises } from "./lib/strengthSession";
+	hostedLevel,
+	loadUnit,
+	wodMovement,
+	wodType,
+} from "./lib/validators";
 
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new ConvexError("Unauthenticated");
-	return identity.subject;
-}
-
-const level = v.union(
-	v.literal("rx"),
-	v.literal("l1"),
-	v.literal("l2"),
-	v.literal("l3"),
+const hostParticipation = v.union(
+	v.literal("hostOnly"),
+	v.literal("hostAndParticipate"),
 );
-
-const movement = v.object({
-	name: v.string(),
-	reps: v.optional(v.number()),
-	weight: v.optional(v.number()),
-	unit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-	distance: v.optional(v.number()),
-	distanceUnit: v.optional(
-		v.union(v.literal("m"), v.literal("km"), v.literal("mi"), v.literal("cal")),
-	),
-	notes: v.optional(v.string()),
-});
 
 const template = v.object({
 	strengthBlocks: v.array(
@@ -45,7 +34,7 @@ const template = v.object({
 			defaultSets: v.optional(v.number()),
 			defaultReps: v.optional(v.number()),
 			defaultWeight: v.optional(v.number()),
-			unit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
+			unit: v.optional(loadUnit),
 			percentageOfOneRepMax: v.optional(v.number()),
 		}),
 	),
@@ -54,110 +43,113 @@ const template = v.object({
 			blockId: v.string(),
 			wodId: v.optional(v.id("wods")),
 			name: v.string(),
-			type: v.union(
-				v.literal("forTime"),
-				v.literal("amrap"),
-				v.literal("emom"),
-				v.literal("load"),
-			),
+			type: wodType,
 			description: v.optional(v.string()),
 			repScheme: v.optional(v.string()),
 			timeCapSeconds: v.optional(v.number()),
 			durationSeconds: v.optional(v.number()),
 			levels: v.array(
 				v.object({
-					level,
+					level: hostedLevel,
 					label: v.string(),
 					description: v.optional(v.string()),
-					movements: v.array(movement),
+					movements: v.array(wodMovement),
 				}),
 			),
 		}),
 	),
 });
 
-function createJoinToken() {
-	const alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-	const randomValues = new Uint32Array(18);
-	const cryptoApi = globalThis.crypto?.getRandomValues?.bind(globalThis.crypto);
-	if (!cryptoApi) {
-		throw new ConvexError("Crypto randomness is unavailable.");
-	}
-	cryptoApi(randomValues);
-	let token = "";
-	for (let i = 0; i < 18; i++) {
-		token += alphabet[randomValues[i] % alphabet.length];
-	}
-	return token;
-}
+const draftFields = {
+	title: v.string(),
+	notes: v.optional(v.string()),
+	scheduledAt: v.optional(v.number()),
+	hostParticipation,
+	template,
+};
 
-async function createUniqueJoinToken(ctx: QueryCtx | MutationCtx) {
+type Draft = ObjectType<typeof draftFields>;
+
+const JOIN_TOKEN_ALPHABET =
+	"abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+async function createJoinToken(ctx: MutationCtx) {
 	for (let attempt = 0; attempt < 5; attempt++) {
-		const token = createJoinToken();
+		const values = crypto.getRandomValues(new Uint32Array(18));
+		const token = Array.from(
+			values,
+			(value) => JOIN_TOKEN_ALPHABET[value % JOIN_TOKEN_ALPHABET.length],
+		).join("");
 		const existing = await ctx.db
 			.query("hostedWorkouts")
 			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
 			.first();
 		if (!existing) return token;
 	}
-	throw new ConvexError("Unable to create a unique join link.");
+	throw appError("failed", "joinToken");
 }
 
-function assertTemplateIsUsable(input: {
-	strengthBlocks: { exerciseName: string }[];
-	wodBlocks: { name: string; levels: { level: string }[] }[];
-}) {
-	if (input.strengthBlocks.length === 0 && input.wodBlocks.length === 0) {
-		throw new ConvexError("Add at least one strength block or WOD.");
+/** A draft as stored: trimmed text, canonical exercise ids, usable blocks. */
+async function checkedDraft(
+	ctx: MutationCtx,
+	hostUserId: string,
+	draft: Draft,
+) {
+	const title = draft.title.trim();
+	if (!title) throw appError("invalid", "title");
+	const { strengthBlocks, wodBlocks } = draft.template;
+	if (strengthBlocks.length === 0 && wodBlocks.length === 0)
+		throw appError("templateEmpty");
+	for (const block of strengthBlocks)
+		if (!block.exerciseName.trim()) throw appError("invalid", "exerciseName");
+	for (const block of wodBlocks) {
+		if (!block.name.trim()) throw appError("invalid", "name");
+		const levels = new Set(block.levels.map((item) => item.level));
+		if (HOSTED_LEVELS.some((level) => !levels.has(level)))
+			throw appError("levelsIncomplete");
 	}
-	for (const block of input.strengthBlocks) {
-		if (!block.exerciseName.trim())
-			throw new ConvexError("Exercise name is required.");
-	}
-	for (const block of input.wodBlocks) {
-		if (!block.name.trim()) throw new ConvexError("WOD name is required.");
-		const levels = new Set(block.levels.map((l) => l.level));
-		for (const required of ["rx", "l1", "l2", "l3"]) {
-			if (!levels.has(required))
-				throw new ConvexError("Each WOD needs Rx, L1, L2, and L3.");
-		}
-	}
+	validatePrescriptions(hostedPrescriptions(strengthBlocks));
+	return {
+		...draft,
+		title,
+		notes: draft.notes?.trim() || undefined,
+		template: {
+			wodBlocks,
+			strengthBlocks: await Promise.all(
+				strengthBlocks.map(async (block) =>
+					block.exerciseId
+						? {
+								...block,
+								exerciseId: await requireExercise(
+									ctx,
+									block.exerciseId,
+									hostUserId,
+								),
+							}
+						: block,
+				),
+			),
+		},
+	};
+}
+
+async function requireHosted(ctx: MutationCtx, id: Id<"hostedWorkouts">) {
+	const hostUserId = await requireUserId(ctx);
+	const hosted = await ctx.db.get(id);
+	if (!hosted || hosted.hostUserId !== hostUserId) throw appError("notFound");
+	return hosted;
 }
 
 export const createDraft = mutation({
-	args: {
-		title: v.string(),
-		notes: v.optional(v.string()),
-		scheduledAt: v.optional(v.number()),
-		hostParticipation: v.union(
-			v.literal("hostOnly"),
-			v.literal("hostAndParticipate"),
-		),
-		template,
-	},
-	handler: async (ctx, args) => {
-		const hostUserId = await requireUser(ctx);
-		if (!args.title.trim()) throw new ConvexError("Title is required.");
-		assertTemplateIsUsable(args.template);
-		for (const block of args.template.strengthBlocks) {
-			if (block.exerciseId)
-				block.exerciseId = await requireExercise(
-					ctx,
-					block.exerciseId,
-					hostUserId,
-				);
-		}
-		const now = Date.now();
+	args: draftFields,
+	handler: async (ctx, draft) => {
+		const hostUserId = await requireUserId(ctx);
 		return ctx.db.insert("hostedWorkouts", {
+			...(await checkedDraft(ctx, hostUserId, draft)),
 			hostUserId,
-			title: args.title.trim(),
-			notes: args.notes?.trim() || undefined,
-			scheduledAt: args.scheduledAt,
 			status: "draft",
-			joinToken: await createUniqueJoinToken(ctx),
-			hostParticipation: args.hostParticipation,
-			createdAt: now,
-			template: args.template,
+			joinToken: await createJoinToken(ctx),
+			createdAt: Date.now(),
 		});
 	},
 });
@@ -165,7 +157,7 @@ export const createDraft = mutation({
 export const listMine = query({
 	args: {},
 	handler: async (ctx) => {
-		const hostUserId = await requireUser(ctx);
+		const hostUserId = await requireUserId(ctx);
 		return ctx.db
 			.query("hostedWorkouts")
 			.withIndex("by_host", (q) => q.eq("hostUserId", hostUserId))
@@ -177,7 +169,7 @@ export const listMine = query({
 export const getMine = query({
 	args: { id: v.id("hostedWorkouts") },
 	handler: async (ctx, { id }) => {
-		const hostUserId = await requireUser(ctx);
+		const hostUserId = await requireUserId(ctx);
 		const hosted = await ctx.db.get(id);
 		if (!hosted || hosted.hostUserId !== hostUserId) return null;
 		const participants = await ctx.db
@@ -188,17 +180,11 @@ export const getMine = query({
 			.query("hostedWorkoutSubmissions")
 			.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", id))
 			.collect();
-		return {
-			hosted: {
-				...hosted,
-				template: await normalizeExerciseTemplate(ctx, hosted.template),
-			},
-			participants,
-			submissions,
-		};
+		return { hosted, participants, submissions };
 	},
 });
 
+/** Public: anyone with the join link sees an opened workout's leaderboard. */
 export const getByJoinToken = query({
 	args: { token: v.string() },
 	handler: async (ctx, { token }) => {
@@ -206,10 +192,7 @@ export const getByJoinToken = query({
 			.query("hostedWorkouts")
 			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
 			.first();
-		if (!hosted) return null;
-		// Don't expose a draft's plan to arbitrary token holders; the join link
-		// only resolves once the host opens the workout.
-		if (hosted.status === "draft") return null;
+		if (!hosted || hosted.status === "draft") return null;
 		const submissions = await ctx.db
 			.query("hostedWorkoutSubmissions")
 			.withIndex("by_hosted_workout", (q) =>
@@ -219,9 +202,8 @@ export const getByJoinToken = query({
 		const publicSubmissions = await Promise.all(
 			submissions.map(async (submission) => {
 				let athleteName = "Unknown athlete";
-				if (submission.guestName) {
-					athleteName = submission.guestName;
-				} else if (submission.participantId) {
+				if (submission.guestName) athleteName = submission.guestName;
+				else if (submission.participantId) {
 					const participant = await ctx.db.get(submission.participantId);
 					athleteName = participant?.displayName ?? "Signed-in athlete";
 				}
@@ -255,101 +237,36 @@ export const getByJoinToken = query({
 });
 
 export const updateDraft = mutation({
-	args: {
-		id: v.id("hostedWorkouts"),
-		title: v.string(),
-		notes: v.optional(v.string()),
-		scheduledAt: v.optional(v.number()),
-		hostParticipation: v.union(
-			v.literal("hostOnly"),
-			v.literal("hostAndParticipate"),
-		),
-		template,
-	},
-	handler: async (ctx, { id, ...patch }) => {
-		const hostUserId = await requireUser(ctx);
-		const hosted = await ctx.db.get(id);
-		if (!hosted || hosted.hostUserId !== hostUserId)
-			throw new ConvexError("Unauthorized");
-		if (hosted.status !== "draft")
-			throw new ConvexError("Only draft workouts can be edited.");
-		if (!patch.title.trim()) throw new ConvexError("Title is required.");
-		assertTemplateIsUsable(patch.template);
-		for (const block of patch.template.strengthBlocks) {
-			if (block.exerciseId)
-				block.exerciseId = await requireExercise(
-					ctx,
-					block.exerciseId,
-					hostUserId,
-				);
-		}
-		await ctx.db.patch(id, {
-			...patch,
-			title: patch.title.trim(),
-			notes: patch.notes?.trim() || undefined,
-		});
+	args: { id: v.id("hostedWorkouts"), ...draftFields },
+	handler: async (ctx, { id, ...draft }) => {
+		const hosted = await requireHosted(ctx, id);
+		if (hosted.status !== "draft") throw appError("hostedNotDraft");
+		await ctx.db.patch(id, await checkedDraft(ctx, hosted.hostUserId, draft));
 	},
 });
 
 export const open = mutation({
 	args: { id: v.id("hostedWorkouts") },
 	handler: async (ctx, { id }) => {
-		const hostUserId = await requireUser(ctx);
-		const hosted = await ctx.db.get(id);
-		if (!hosted || hosted.hostUserId !== hostUserId)
-			throw new ConvexError("Unauthorized");
-		if (hosted.status !== "draft")
-			throw new ConvexError("Only draft workouts can be opened.");
+		const hosted = await requireHosted(ctx, id);
+		if (hosted.status !== "draft") throw appError("hostedNotDraft");
 		await ctx.db.patch(id, { status: "open", openedAt: Date.now() });
 		if (hosted.hostParticipation === "hostAndParticipate") {
 			const existing = await ctx.db
 				.query("hostedWorkoutParticipants")
 				.withIndex("by_hosted_workout_user", (q) =>
-					q.eq("hostedWorkoutId", id).eq("userId", hostUserId),
+					q.eq("hostedWorkoutId", id).eq("userId", hosted.hostUserId),
 				)
 				.first();
-			if (!existing) {
-				const active = await ctx.db
-					.query("workoutSessions")
-					.withIndex("by_user_status", (q) =>
-						q.eq("userId", hostUserId).eq("status", "active"),
-					)
-					.first();
-				if (active)
-					throw new ConvexError(
-						"Finish or cancel your active workout before opening.",
-					);
-				const now = Date.now();
-				const sessionId = await ctx.db.insert("workoutSessions", {
-					userId: hostUserId,
-					date: hosted.scheduledAt ?? now,
-					startTime: now,
-					name: hosted.title,
-					exercises: await hostedSessionExercises(
-						ctx,
-						hostUserId,
-						hosted.template.strengthBlocks,
-					),
-					status: "active",
-				});
-				await ctx.db.insert("hostedWorkoutParticipants", {
-					hostedWorkoutId: id,
-					userId: hostUserId,
-					sessionId,
-					joinedAt: now,
-					displayName: "Host",
-				});
-			}
+			if (!existing) await joinHosted(ctx, hosted, hosted.hostUserId, "Host");
 		}
 	},
 });
 
-// Joining a hosted workout (via `join`, or `open` for host-and-participate)
-// creates a `workoutSessions` row with status 'active'. The app enforces a
-// single active session per user, so an active hosted session that is never
-// finished would lock the participant out of starting/joining anything else.
-// Whenever a hosted workout ends (closed or removed), finish every linked
-// session that is still active so no participant (nor the host) is stranded.
+/**
+ * Ends every participant session still active when the workout ends, so no
+ * one is left locked out of starting another session.
+ */
 async function finishParticipantSessions(
 	ctx: MutationCtx,
 	hostedWorkoutId: Id<"hostedWorkouts">,
@@ -363,34 +280,29 @@ async function finishParticipantSessions(
 	const now = Date.now();
 	for (const participant of participants) {
 		const session = await ctx.db.get(participant.sessionId);
-		if (session && session.status === "active") {
-			const [set, wod] = await Promise.all([
-				ctx.db
-					.query("sets")
-					.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-					.first(),
-				ctx.db
-					.query("wodResults")
-					.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-					.first(),
-			]);
-			await ctx.db.patch(participant.sessionId, {
-				status: set || wod ? "completed" : "cancelled",
-				endTime: now,
-			});
-		}
+		if (session?.status !== "active") continue;
+		const [set, wod] = await Promise.all([
+			ctx.db
+				.query("sets")
+				.withIndex("by_session", (q) => q.eq("sessionId", session._id))
+				.first(),
+			ctx.db
+				.query("wodResults")
+				.withIndex("by_session", (q) => q.eq("sessionId", session._id))
+				.first(),
+		]);
+		await ctx.db.patch(session._id, {
+			status: set || wod ? "completed" : "cancelled",
+			endTime: now,
+		});
 	}
 }
 
 export const close = mutation({
 	args: { id: v.id("hostedWorkouts") },
 	handler: async (ctx, { id }) => {
-		const hostUserId = await requireUser(ctx);
-		const hosted = await ctx.db.get(id);
-		if (!hosted || hosted.hostUserId !== hostUserId)
-			throw new ConvexError("Unauthorized");
-		if (hosted.status !== "open")
-			throw new ConvexError("Only open workouts can be closed.");
+		const hosted = await requireHosted(ctx, id);
+		if (hosted.status !== "open") throw appError("hostedNotOpen");
 		await ctx.db.patch(id, { status: "closed", closedAt: Date.now() });
 		await finishParticipantSessions(ctx, id);
 	},
@@ -399,22 +311,18 @@ export const close = mutation({
 export const remove = mutation({
 	args: { id: v.id("hostedWorkouts") },
 	handler: async (ctx, { id }) => {
-		const hostUserId = await requireUser(ctx);
-		const hosted = await ctx.db.get(id);
-		if (!hosted || hosted.hostUserId !== hostUserId)
-			throw new ConvexError("Unauthorized");
+		await requireHosted(ctx, id);
 		await finishParticipantSessions(ctx, id);
-		const submissions = await ctx.db
-			.query("hostedWorkoutSubmissions")
-			.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", id))
-			.collect();
-		for (const submission of submissions) await ctx.db.delete(submission._id);
-		const participants = await ctx.db
-			.query("hostedWorkoutParticipants")
-			.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", id))
-			.collect();
-		for (const participant of participants)
-			await ctx.db.delete(participant._id);
+		for (const table of [
+			"hostedWorkoutSubmissions",
+			"hostedWorkoutParticipants",
+		] as const) {
+			const rows = await ctx.db
+				.query(table)
+				.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", id))
+				.collect();
+			for (const row of rows) await ctx.db.delete(row._id);
+		}
 		await ctx.db.delete(id);
 	},
 });

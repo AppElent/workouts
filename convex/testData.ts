@@ -1,44 +1,40 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { ENV_CONFIG } from "../env.manifest";
-import { type MutationCtx, mutation, query } from "./_generated/server";
-import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
-import { loadTestDataBaseline } from "./lib/testDataBaseline";
-import { assertDiaryDate } from "./nutritionDiary";
+import { mutation, query } from "./_generated/server";
+import { getOptionalUserId, requireSubject } from "./lib/auth";
+import { assertIsoDate } from "./lib/diaryDays";
+import { appError } from "./lib/errors";
+import {
+	personalDataBlocker,
+	personalDataBlockerValidator,
+} from "./lib/personalData";
+import { resetTestData } from "./lib/testDataBaseline";
 
 function enabled() {
 	const production = ENV_CONFIG.convex.deployments.production;
 	const cloudUrl = process.env.CONVEX_CLOUD_URL;
 	const issuer = process.env.CLERK_JWT_ISSUER_DOMAIN;
 	if (!cloudUrl || !issuer || !production) return false;
-	try {
-		return (
-			new URL(cloudUrl).hostname.split(".")[0] !== production &&
-			new URL(issuer).hostname.endsWith(".clerk.accounts.dev")
-		);
-	} catch {
-		return false;
-	}
+	// A malformed URL is a broken deployment and throws rather than hiding it.
+	return (
+		new URL(cloudUrl).hostname.split(".")[0] !== production &&
+		new URL(issuer).hostname.endsWith(".clerk.accounts.dev")
+	);
 }
 
 export const availability = query({
 	args: {},
 	returns: v.object({
 		available: v.boolean(),
-		blocker: v.union(
-			v.literal("activeActivity"),
-			v.literal("hostedWorkout"),
-			v.null(),
-		),
+		blocker: personalDataBlockerValidator,
 	}),
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		const available = !!identity && enabled();
+		const userId = await getOptionalUserId(ctx);
+		const available = !!userId && enabled();
 		return {
 			available,
 			blocker:
-				available && identity
-					? await personalDataBlocker(ctx, identity.subject)
-					: null,
+				available && userId ? await personalDataBlocker(ctx, userId) : null,
 		};
 	},
 });
@@ -51,29 +47,12 @@ export const reset = mutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new ConvexError("unauthenticated");
-		if (!enabled()) throw new ConvexError("unavailable");
-		if (identity.subject !== args.expectedSubject)
-			throw new ConvexError("accountChanged");
-		const reason = await personalDataBlocker(ctx, identity.subject);
-		if (reason) throw new ConvexError(reason);
-		assertDiaryDate(args.today);
-		await clearPersonalData(ctx, identity.subject);
-		if (args.mode === "load")
-			await loadTestDataBaseline(ctx, identity.subject, args.today);
+		const userId = await requireSubject(ctx, args.expectedSubject);
+		if (!enabled()) throw appError("unavailable");
+		const reason = await personalDataBlocker(ctx, userId);
+		if (reason) throw appError(reason);
+		assertIsoDate(args.today, "today");
+		await resetTestData(ctx, userId, args.mode, args.today);
 		return null;
 	},
 });
-
-// One transaction: a rejected or oversized reset never leaves half an account.
-// Bound total reads/writes, including receipts; leave room for the baseline.
-async function clearPersonalData(ctx: MutationCtx, userId: string) {
-	if (
-		!(await deletePersonalData(ctx, userId, {
-			budget: 6000,
-			keepPreferences: true,
-		}))
-	)
-		throw new ConvexError("tooLarge");
-}

@@ -1,17 +1,12 @@
-import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
-import { exerciseReference, exerciseSets } from "./lib/exerciseCatalog";
-
-async function requireUser(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
+import { requireUserId } from "./lib/auth";
+import { exerciseSets } from "./lib/exerciseCatalog";
+import { exerciseReference } from "./lib/validators";
 
 export const weeklyVolume = query({
 	args: { exerciseId: exerciseReference },
 	handler: async (ctx, { exerciseId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const sets = await exerciseSets(ctx, userId, exerciseId);
 		const weekMap = new Map<string, number>();
 		for (const set of sets) {

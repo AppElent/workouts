@@ -1,51 +1,29 @@
-import { mergeExerciseCatalog } from "@foundry/core/exercises";
 import {
 	paginationOptsValidator,
 	paginationResultValidator,
 } from "convex/server";
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getOptionalUserId, requireOwned, requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
 import {
 	exerciseDocument,
-	exerciseReference,
+	exerciseOneRepMaxes,
 	exerciseSets,
 	resolveExercise,
 } from "./lib/exerciseCatalog";
+import { exerciseReference } from "./lib/validators";
 
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
-
-// Compatibility for older clients. Current clients merge the bundle locally.
-export const list = query({
-	args: {},
-	returns: v.array(
-		v.object({ ...exerciseDocument.fields, _id: exerciseReference }),
-	),
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) return mergeExerciseCatalog([]);
-		const userExercises = await ctx.db
-			.query("exercises")
-			.withIndex("by_user", (q) => q.eq("userId", identity.subject))
-			.collect();
-		return mergeExerciseCatalog(userExercises);
-	},
-});
-
-// New clients download only personal exercises.
 export const listPersonal = query({
 	args: { paginationOpts: paginationOptsValidator },
 	returns: paginationResultValidator(exerciseDocument),
 	handler: async (ctx, { paginationOpts }) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) return { page: [], isDone: true, continueCursor: "" };
+		const userId = await getOptionalUserId(ctx);
+		if (!userId) return { page: [], isDone: true, continueCursor: "" };
 		return ctx.db
 			.query("exercises")
-			.withIndex("by_user", (q) => q.eq("userId", identity.subject))
+			.withIndex("by_user", (q) => q.eq("userId", userId))
 			.paginate(paginationOpts);
 	},
 });
@@ -57,15 +35,14 @@ export const getById = query({
 		v.object({ ...exerciseDocument.fields, _id: exerciseReference }),
 	),
 	handler: async (ctx, { id }) => {
-		const identity = await ctx.auth.getUserIdentity();
-		return resolveExercise(ctx, id, identity?.subject);
+		return resolveExercise(ctx, id, await getOptionalUserId(ctx));
 	},
 });
 
 export const getHistory = query({
 	args: { exerciseId: exerciseReference },
 	handler: async (ctx, { exerciseId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const userSets = await exerciseSets(ctx, userId, exerciseId);
 		const result = [];
 		for (const set of userSets) {
@@ -93,13 +70,25 @@ function validateExerciseInput(args: {
 	name: string;
 	weightIncrement?: number;
 }) {
-	if (!args.name.trim()) throw new Error("Enter an exercise name");
+	if (!args.name.trim()) throw appError("required", "name");
 	if (
 		args.weightIncrement !== undefined &&
 		(!Number.isFinite(args.weightIncrement) || args.weightIncrement <= 0)
-	) {
-		throw new Error("Weight step must be greater than zero");
-	}
+	)
+		throw appError("invalid", "weightIncrement");
+}
+
+/** A personal exercise the caller owns; shipped ones are `readOnly`. */
+async function requirePersonalExercise(
+	ctx: MutationCtx,
+	userId: string,
+	id: string,
+) {
+	const documentId = ctx.db.normalizeId("exercises", id);
+	if (!documentId) throw appError("readOnly");
+	const exercise = await requireOwned(ctx, userId, documentId);
+	if (exercise.isDefault) throw appError("readOnly");
+	return exercise;
 }
 
 export const create = mutation({
@@ -109,7 +98,7 @@ export const create = mutation({
 	},
 	returns: v.id("exercises"),
 	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		validateExerciseInput(args);
 		return ctx.db.insert("exercises", {
 			...args,
@@ -124,14 +113,9 @@ export const update = mutation({
 	args: { id: exerciseReference, ...exerciseInput },
 	returns: v.null(),
 	handler: async (ctx, { id, ...args }) => {
-		const userId = await requireUser(ctx);
-		const documentId = ctx.db.normalizeId("exercises", id);
-		if (!documentId) throw new Error("Cannot edit a shipped exercise");
-		const exercise = await ctx.db.get(documentId);
-		if (!exercise) throw new Error("Exercise not found");
-		if (exercise.isDefault) throw new Error("Cannot edit default exercises");
-		if (exercise.userId !== userId) throw new Error("Unauthorized");
+		const userId = await requireUserId(ctx);
 		validateExerciseInput(args);
+		const { _id: documentId } = await requirePersonalExercise(ctx, userId, id);
 		// Patch in place: sets, records, routines and instructions keep their identity.
 		// Explicit undefined clears optional fields omitted by the form.
 		await ctx.db.patch(documentId, {
@@ -147,31 +131,13 @@ export const update = mutation({
 export const remove = mutation({
 	args: { id: exerciseReference },
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const documentId = ctx.db.normalizeId("exercises", id);
-		if (!documentId) throw new Error("Cannot delete a shipped exercise");
-		const exercise = await ctx.db.get(documentId);
-		if (!exercise) throw new Error("Exercise not found");
-		if (exercise.isDefault) throw new Error("Cannot delete default exercises");
-		if (exercise.userId !== userId) throw new Error("Unauthorized");
-		const sets = await ctx.db
-			.query("sets")
-			.withIndex("by_user_exercise", (q) =>
-				q.eq("userId", userId).eq("exerciseId", id),
-			)
-			.collect();
-		for (const set of sets) {
-			await ctx.db.delete(set._id);
-		}
-		const orms = await ctx.db
-			.query("oneRepMaxes")
-			.withIndex("by_user_exercise", (q) =>
-				q.eq("userId", userId).eq("exerciseId", id),
-			)
-			.collect();
-		for (const orm of orms) {
-			await ctx.db.delete(orm._id);
-		}
+		const userId = await requireUserId(ctx);
+		const { _id: documentId } = await requirePersonalExercise(ctx, userId, id);
+		const rows = [
+			...(await exerciseSets(ctx, userId, id)),
+			...(await exerciseOneRepMaxes(ctx, userId, id)),
+		];
+		for (const row of rows) await ctx.db.delete(row._id);
 		await ctx.db.delete(documentId);
 	},
 });

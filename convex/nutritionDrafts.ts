@@ -1,21 +1,19 @@
-import { canonicalJson } from "@foundry/core";
+import { isoDayOffset } from "@foundry/core";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
-import {
-	type MutationCtx,
-	mutation,
-	type QueryCtx,
-	query,
-} from "./_generated/server";
-import { assertDiaryDate } from "./nutritionDiary";
-import { captureDraft, draftInput } from "./nutritionDraftTables";
+import { type MutationCtx, mutation, query } from "./_generated/server";
+import { requireSubject, requireUserId } from "./lib/auth";
+import { assertIsoDate } from "./lib/diaryDays";
+import { appError } from "./lib/errors";
+import { withOperationReceipt } from "./lib/operationReceipt";
+import { captureDraft, mealSlot } from "./lib/validators";
 
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
+const MAX_RANGE_DAYS = 62;
+const MAX_NOTE_LENGTH = 10_000;
+/** Distinct draft days counted for the summary; drafts are short-lived. */
+const MAX_COUNTED_DAYS = 1000;
+
 function asDraft(row: Doc<"nutritionCaptureDrafts">) {
 	return {
 		id: row.recordId,
@@ -27,6 +25,7 @@ function asDraft(row: Doc<"nutritionCaptureDrafts">) {
 		updatedAt: row.updatedAt,
 	};
 }
+
 async function changeCount(
 	ctx: MutationCtx,
 	userId: string,
@@ -58,26 +57,25 @@ export const list = query({
 		isDone: v.boolean(),
 		continueCursor: v.string(),
 	}),
-	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
-		assertDiaryDate(args.startDate);
-		assertDiaryDate(args.endDate);
-		const days =
-			(Date.parse(args.endDate) - Date.parse(args.startDate)) / 86400000;
-		if (days < 0 || days > 61)
-			throw new Error("Draft range must contain 1–62 days.");
+	handler: async (ctx, { startDate, endDate, paginationOpts }) => {
+		const userId = await requireUserId(ctx);
+		assertIsoDate(startDate, "startDate");
+		assertIsoDate(endDate, "endDate");
+		const days = isoDayOffset(startDate, endDate);
+		if (days < 0 || days >= MAX_RANGE_DAYS)
+			throw appError("invalid", "endDate");
 		const result = await ctx.db
 			.query("nutritionCaptureDrafts")
 			.withIndex("by_user_and_deleted_and_date", (q) =>
 				q
 					.eq("userId", userId)
 					.eq("deleted", false)
-					.gte("date", args.startDate)
-					.lte("date", args.endDate),
+					.gte("date", startDate)
+					.lte("date", endDate),
 			)
 			.paginate({
-				...args.paginationOpts,
-				numItems: Math.min(args.paginationOpts.numItems, 100),
+				...paginationOpts,
+				numItems: Math.min(paginationOpts.numItems, 100),
 			});
 		return {
 			isDone: result.isDone,
@@ -91,7 +89,7 @@ export const get = query({
 	args: { id: v.string() },
 	returns: v.union(captureDraft, v.null()),
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const row = await ctx.db
 			.query("nutritionCaptureDrafts")
 			.withIndex("by_user_and_record", (q) =>
@@ -102,6 +100,7 @@ export const get = query({
 	},
 });
 
+/** Drafts on other days than `date`, and the oldest draft's date. */
 export const summary = query({
 	args: { date: v.string() },
 	returns: v.object({
@@ -109,37 +108,28 @@ export const summary = query({
 		oldestDate: v.union(v.string(), v.null()),
 	}),
 	handler: async (ctx, { date }) => {
-		const userId = await requireUser(ctx);
-		assertDiaryDate(date);
-		const [total, today, before, after] = await Promise.all([
+		const userId = await requireUserId(ctx);
+		assertIsoDate(date);
+		// Rows dated "" are the account total that earlier builds kept.
+		const [counts, oldest] = await Promise.all([
 			ctx.db
 				.query("nutritionCaptureDraftCounts")
 				.withIndex("by_user_and_date", (q) =>
-					q.eq("userId", userId).eq("date", ""),
+					q.eq("userId", userId).gt("date", ""),
 				)
-				.unique(),
-			ctx.db
-				.query("nutritionCaptureDraftCounts")
-				.withIndex("by_user_and_date", (q) =>
-					q.eq("userId", userId).eq("date", date),
-				)
-				.unique(),
+				.take(MAX_COUNTED_DAYS),
 			ctx.db
 				.query("nutritionCaptureDrafts")
 				.withIndex("by_user_and_deleted_and_date", (q) =>
-					q.eq("userId", userId).eq("deleted", false).lt("date", date),
-				)
-				.first(),
-			ctx.db
-				.query("nutritionCaptureDrafts")
-				.withIndex("by_user_and_deleted_and_date", (q) =>
-					q.eq("userId", userId).eq("deleted", false).gt("date", date),
+					q.eq("userId", userId).eq("deleted", false),
 				)
 				.first(),
 		]);
 		return {
-			count: (total?.count ?? 0) - (today?.count ?? 0),
-			oldestDate: before?.date ?? after?.date ?? null,
+			count: counts
+				.filter((row) => row.date !== date)
+				.reduce((total, row) => total + row.count, 0),
+			oldestDate: oldest?.date ?? null,
 		};
 	},
 });
@@ -153,133 +143,74 @@ export const save = mutation({
 			v.literal("create"),
 			v.literal("update"),
 			v.literal("remove"),
-			v.literal("migrate"),
 		),
-		input: v.optional(draftInput),
-		createdAt: v.optional(v.number()),
+		input: v.optional(
+			v.object({ date: v.string(), meal: mealSlot, note: v.string() }),
+		),
 	},
 	returns: v.union(captureDraft, v.null()),
 	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
-		if (userId !== args.expectedSubject) throw new Error("Subject mismatch.");
-		if (
-			!args.id.trim() ||
-			args.id.length > 2048 ||
-			!args.operationId.trim() ||
-			args.operationId.length > 1024
-		)
-			throw new Error("Draft identity is invalid.");
-		if (
-			args.createdAt !== undefined &&
-			(!Number.isFinite(args.createdAt) || args.createdAt < 0)
-		)
-			throw new Error("Draft timestamp is invalid.");
-		const payload = canonicalJson(args);
-		const receipt = await ctx.db
-			.query("nutritionCaptureDraftReceipts")
-			.withIndex("by_user_and_operation", (q) =>
-				q.eq("userId", userId).eq("operationId", args.operationId),
-			)
-			.unique();
-		if (receipt) {
-			if (receipt.payload !== payload)
-				throw new Error(
-					"Operation ID was already used with a different payload.",
-				);
-			return receipt.result;
-		}
-		const input = args.input;
-		if (args.action !== "remove") {
-			if (!input || !input.note.trim() || input.note.length > 10000)
-				throw new Error("Draft note is invalid.");
-			assertDiaryDate(input.date);
-		}
-		let recordId = args.id;
-		let current = await ctx.db
-			.query("nutritionCaptureDrafts")
-			.withIndex("by_user_and_record", (q) =>
-				q.eq("userId", userId).eq("recordId", recordId),
-			)
-			.unique();
-		if (
-			args.action === "migrate" &&
-			current &&
-			(current.deleted ||
-				current.date !== input?.date ||
-				current.meal !== input?.meal ||
-				current.note !== input?.note)
-		) {
-			// Preserve the account version and the legacy note, with a stable retry identity.
-			recordId = `legacy:${args.operationId}`;
-			current = await ctx.db
-				.query("nutritionCaptureDrafts")
-				.withIndex("by_user_and_record", (q) =>
-					q.eq("userId", userId).eq("recordId", recordId),
-				)
-				.unique();
-		}
-		if (args.action === "update" && (!current || current.deleted))
-			throw new Error("This Capture Draft was deleted.");
-		if (args.action === "create" && current)
-			throw new Error("This Capture Draft already exists or was deleted.");
-		let result: ReturnType<typeof asDraft> | null = null;
-		if (args.action === "remove") {
-			if (current && !current.deleted) {
-				await ctx.db.patch(current._id, {
-					deleted: true,
-					note: "",
-					updatedAt: Date.now(),
-				});
-				await changeCount(ctx, userId, current.date, -1);
-				await changeCount(ctx, userId, "", -1);
-			}
-		} else if (input) {
-			const next = {
-				userId,
-				recordId,
-				...input,
-				deleted: false,
-				createdAt: current?.createdAt ?? args.createdAt ?? Date.now(),
-				updatedAt: Date.now(),
-			};
-			if (current) {
-				if (args.action === "migrate") {
-					if (current.deleted)
-						throw new Error("This recovered Capture Draft was deleted.");
-					result = asDraft(current);
-				} else {
-					await ctx.db.patch(current._id, next);
-					result = {
-						id: recordId,
-						subject: userId,
-						...input,
-						createdAt: next.createdAt,
-						updatedAt: next.updatedAt,
-					};
+		const userId = await requireSubject(ctx, args.expectedSubject);
+		const { id: recordId, action, input } = args;
+		if (!recordId.trim() || recordId.length > 2048)
+			throw appError("invalid", "id");
+		return withOperationReceipt(
+			ctx,
+			"nutritionCaptureDraftReceipts",
+			{ userId, operationId: args.operationId, payload: args },
+			async () => {
+				const current = await ctx.db
+					.query("nutritionCaptureDrafts")
+					.withIndex("by_user_and_record", (q) =>
+						q.eq("userId", userId).eq("recordId", recordId),
+					)
+					.unique();
+				if (action === "remove") {
+					if (current && !current.deleted) {
+						await ctx.db.patch(current._id, {
+							deleted: true,
+							note: "",
+							updatedAt: Date.now(),
+						});
+						await changeCount(ctx, userId, current.date, -1);
+					}
+					return null;
+				}
+				if (!input) throw appError("required", "input");
+				if (!input.note.trim()) throw appError("required", "note");
+				if (input.note.length > MAX_NOTE_LENGTH)
+					throw appError("tooLong", "note");
+				assertIsoDate(input.date);
+				if (action === "update" && (!current || current.deleted))
+					throw appError("recordDeleted");
+				if (action === "create" && current) throw appError("duplicate", "id");
+				const now = Date.now();
+				const createdAt = current?.createdAt ?? now;
+				if (current) {
+					await ctx.db.patch(current._id, { ...input, updatedAt: now });
 					if (current.date !== input.date) {
 						await changeCount(ctx, userId, current.date, -1);
 						await changeCount(ctx, userId, input.date, 1);
 					}
+				} else {
+					await ctx.db.insert("nutritionCaptureDrafts", {
+						userId,
+						recordId,
+						...input,
+						deleted: false,
+						createdAt,
+						updatedAt: now,
+					});
+					await changeCount(ctx, userId, input.date, 1);
 				}
-			} else {
-				await ctx.db.insert("nutritionCaptureDrafts", next);
-				await changeCount(ctx, userId, input.date, 1);
-				await changeCount(ctx, userId, "", 1);
-				result = {
+				return {
 					id: recordId,
 					subject: userId,
 					...input,
-					createdAt: next.createdAt,
-					updatedAt: next.updatedAt,
+					createdAt,
+					updatedAt: now,
 				};
-			}
-		}
-		await ctx.db.insert("nutritionCaptureDraftReceipts", {
-			userId,
-			operationId: args.operationId,
-			payload,
-			result,
-		});
-		return result;
+			},
+		);
 	},
 });

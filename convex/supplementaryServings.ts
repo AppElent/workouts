@@ -1,28 +1,21 @@
+import { validateNamedAmount } from "@foundry/core";
 import { getShippedFood } from "@foundry/core/shipped-foods";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
+import { requireUserId } from "./lib/auth";
+import { appError, checked } from "./lib/errors";
+import { measuredUnit } from "./lib/validators";
 
-const unit = v.union(v.literal("g"), v.literal("ml"));
 const serving = v.object({
 	id: v.id("supplementaryServings"),
 	foodId: v.string(),
 	name: v.string(),
 	amount: v.number(),
-	unit,
+	unit: measuredUnit,
 });
-const input = {
-	foodId: v.string(),
-	name: v.string(),
-	amount: v.number(),
-	unit,
-};
-async function owner(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
+
 function present(row: Doc<"supplementaryServings">) {
 	return {
 		id: row._id,
@@ -32,14 +25,7 @@ function present(row: Doc<"supplementaryServings">) {
 		unit: row.unit,
 	};
 }
-function validateDefinition(rawName: string, amount: number) {
-	const name = rawName.trim();
-	if (!name || name.length > 40)
-		throw new Error("Name must contain between 1 and 40 characters.");
-	if (!Number.isFinite(amount) || amount <= 0 || amount > 10000)
-		throw new Error("Amount must be greater than zero and at most 10000.");
-	return { name, normalizedName: name.toLowerCase() };
-}
+
 export const list = query({
 	args: { foodId: v.string(), paginationOpts: paginationOptsValidator },
 	returns: v.object({
@@ -48,7 +34,7 @@ export const list = query({
 		continueCursor: v.string(),
 	}),
 	handler: async (ctx, args) => {
-		const userId = await owner(ctx);
+		const userId = await requireUserId(ctx);
 		const result = await ctx.db
 			.query("supplementaryServings")
 			.withIndex("by_userId_and_foodId", (q) =>
@@ -62,15 +48,24 @@ export const list = query({
 		};
 	},
 });
+
+/** Adds a named serving to a shipped food, in the food's own base unit. */
 export const create = mutation({
-	args: input,
+	args: {
+		foodId: v.string(),
+		name: v.string(),
+		amount: v.number(),
+		unit: measuredUnit,
+	},
 	returns: serving,
 	handler: async (ctx, args) => {
-		const userId = await owner(ctx);
+		const userId = await requireUserId(ctx);
 		const food = getShippedFood(args.foodId);
-		if (!food || food.baseUnit !== args.unit)
-			throw new Error("Food or unit unavailable.");
-		const { name, normalizedName } = validateDefinition(args.name, args.amount);
+		if (!food) throw appError("notFound", "foodId");
+		if (food.baseUnit !== args.unit) throw appError("invalid", "unit");
+		const { name, normalizedName, amount } = checked(
+			validateNamedAmount(args, "serving"),
+		);
 		const existing = await ctx.db
 			.query("supplementaryServings")
 			.withIndex("by_userId_and_foodId_and_normalizedName", (q) =>
@@ -80,57 +75,16 @@ export const create = mutation({
 					.eq("normalizedName", normalizedName),
 			)
 			.first();
-		if (existing) throw new Error("A Serving with this name already exists.");
-		const id = await ctx.db.insert("supplementaryServings", {
-			...args,
-			name,
-			normalizedName,
+		if (existing) throw appError("duplicate", "name");
+		const row = {
 			userId,
-		});
-		return {
-			id,
 			foodId: args.foodId,
 			name,
-			amount: args.amount,
+			normalizedName,
+			amount,
 			unit: args.unit,
 		};
-	},
-});
-export const update = mutation({
-	args: {
-		id: v.id("supplementaryServings"),
-		name: v.string(),
-		amount: v.number(),
-	},
-	returns: serving,
-	handler: async (ctx, args) => {
-		const userId = await owner(ctx);
-		const row = await ctx.db.get(args.id);
-		if (!row || row.userId !== userId) throw new Error("Serving not found.");
-		const { name, normalizedName } = validateDefinition(args.name, args.amount);
-		const existing = await ctx.db
-			.query("supplementaryServings")
-			.withIndex("by_userId_and_foodId_and_normalizedName", (q) =>
-				q
-					.eq("userId", userId)
-					.eq("foodId", row.foodId)
-					.eq("normalizedName", normalizedName),
-			)
-			.first();
-		if (existing && existing._id !== row._id)
-			throw new Error("A Serving with this name already exists.");
-		await ctx.db.patch(args.id, { name, normalizedName, amount: args.amount });
-		return present({ ...row, name, amount: args.amount });
-	},
-});
-export const remove = mutation({
-	args: { id: v.id("supplementaryServings") },
-	returns: v.null(),
-	handler: async (ctx, { id }) => {
-		const userId = await owner(ctx);
-		const row = await ctx.db.get(id);
-		if (!row || row.userId !== userId) throw new Error("Serving not found.");
-		await ctx.db.delete(id);
-		return null;
+		const id = await ctx.db.insert("supplementaryServings", row);
+		return present({ ...row, _id: id, _creationTime: Date.now() });
 	},
 });
