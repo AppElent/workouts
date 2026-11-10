@@ -20,6 +20,7 @@ import {
 	radius,
 	spacing,
 	type Tokens,
+	type,
 	useThemedStyles,
 	useTokens,
 } from "../theme";
@@ -150,7 +151,7 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.lg,
 			paddingHorizontal: spacing.md,
 			paddingVertical: 14,
-			fontSize: 16,
+			fontSize: type.control.fontSize,
 			color: colors.text,
 		},
 		footer: { marginTop: spacing.md, alignItems: "center", gap: spacing.sm },

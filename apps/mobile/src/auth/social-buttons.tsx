@@ -12,7 +12,13 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { useI18n } from "../i18n";
-import { spacing, type Tokens, useAppearance, useThemedStyles } from "../theme";
+import {
+	opacity,
+	spacing,
+	type Tokens,
+	useAppearance,
+	useThemedStyles,
+} from "../theme";
 import { GhostButton } from "../ui/button";
 import { AppText } from "../ui/text";
 import { AuthMessage } from "./auth-form";
@@ -80,5 +86,5 @@ const createStyles = (colors: Tokens) =>
 			backgroundColor: colors.border,
 		},
 		apple: { height: BUTTON_HEIGHT, width: "100%" },
-		disabled: { opacity: 0.5 },
+		disabled: { opacity: opacity.disabled },
 	});

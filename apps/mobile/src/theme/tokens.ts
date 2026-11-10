@@ -126,6 +126,14 @@ export const metrics = {
 	formMaxWidth: 640,
 } as const;
 
+/** Text glyphs used as icons: `+`, `›`, `‹`, `−`. */
+export const glyphSize = {
+	sm: 18,
+	md: 20,
+	lg: 22,
+	xl: 28,
+} as const;
+
 export const opacity = {
 	/** Press is a colour change, not a fade; this is for the few places that must fade. */
 	pressed: 0.7,
@@ -156,6 +164,17 @@ export const type = {
 	micro: { fontSize: 10, fontWeight: "700" },
 	/** Numbers that are the point of the screen: reps, weight, set counts. */
 	metric: { fontSize: 28, fontWeight: "800" },
+	/** The value in a compact stat tile. */
+	stat: { fontSize: 21, fontWeight: "800" },
+	/** A small uppercase label over a group. */
+	eyebrow: {
+		fontSize: 11,
+		fontWeight: "800",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+	},
+	/** Chart axis ticks. */
+	axis: { fontSize: 9, fontWeight: "400" },
 
 	/** Native iOS layer. */
 	largeTitle: {

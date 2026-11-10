@@ -23,10 +23,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fmt, useI18n } from "../i18n";
 import {
+	glyphSize,
 	metrics,
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
+	type,
 	useThemedStyles,
 	useTokens,
 } from "../theme";
@@ -566,7 +569,7 @@ const createStyles = (colors: Tokens) =>
 		plainInput: {
 			backgroundColor: "transparent",
 			paddingHorizontal: 0,
-			fontSize: 17,
+			fontSize: type.row.fontSize,
 		},
 		fieldRow: { padding: spacing.md, gap: spacing.sm },
 		segmentedRow: { padding: spacing.md },
@@ -577,7 +580,7 @@ const createStyles = (colors: Tokens) =>
 			backgroundColor: colors.surface2,
 			paddingHorizontal: spacing.md,
 			color: colors.text,
-			fontSize: 15,
+			...type.secondary,
 		},
 		error: { color: colors.danger },
 		inlineRow: {
@@ -603,7 +606,7 @@ const createStyles = (colors: Tokens) =>
 			backgroundColor: colors.surface2,
 			paddingHorizontal: spacing.sm,
 			color: colors.text,
-			fontSize: 15,
+			...type.secondary,
 			fontVariant: ["tabular-nums"],
 			textAlign: "right",
 		},
@@ -620,10 +623,14 @@ const createStyles = (colors: Tokens) =>
 			minWidth: 20,
 			textAlign: "center",
 			color: colors.accent,
-			fontSize: 22,
+			fontSize: glyphSize.lg,
 			fontWeight: "700",
 		},
-		addGlyph: { color: colors.accent, fontSize: 20, fontWeight: "700" },
+		addGlyph: {
+			color: colors.accent,
+			fontSize: glyphSize.md,
+			fontWeight: "700",
+		},
 		actionLabel: { flex: 1, color: colors.accent, fontWeight: "700" },
 		textAction: {
 			minHeight: metrics.hitTarget,
@@ -634,7 +641,7 @@ const createStyles = (colors: Tokens) =>
 			borderCurve: "continuous",
 		},
 		textActionLabel: { fontWeight: "700" },
-		disabled: { opacity: 0.5 },
+		disabled: { opacity: opacity.disabled },
 		stepperField: {
 			flex: 1,
 			minWidth: 96,
@@ -652,7 +659,11 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "center",
 			justifyContent: "center",
 		},
-		stepperGlyph: { color: colors.textMuted, fontSize: 18, fontWeight: "800" },
+		stepperGlyph: {
+			color: colors.textMuted,
+			fontSize: glyphSize.sm,
+			fontWeight: "800",
+		},
 		stepperValue: { alignItems: "center" },
 		tabularValue: { fontWeight: "800", fontVariant: ["tabular-nums"] },
 	});

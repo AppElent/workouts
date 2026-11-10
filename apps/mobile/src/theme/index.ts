@@ -12,6 +12,7 @@ export {
 export type { Scheme, SportKey, Tokens } from "./tokens";
 export {
 	chrome,
+	glyphSize,
 	metrics,
 	opacity,
 	radius,
