@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/expo";
-import type { NutrientValue } from "@foundry/core";
+import type { NutrientValue, PersonalFoodDraft } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
 import { act, render, waitFor } from "@testing-library/react-native";
 import {
@@ -19,7 +19,6 @@ type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
 >;
 
 import { AccountWriteProvider } from "./account-write";
-import type { PersonalFoodDraft } from "./personal-food-repository";
 import { PersonalFoodsProvider, usePersonalFoods } from "./personal-foods";
 
 jest.mock("@clerk/expo", () => ({

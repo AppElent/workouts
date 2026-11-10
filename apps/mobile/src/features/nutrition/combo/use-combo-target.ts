@@ -1,4 +1,4 @@
-import type { ComboPartDraft } from "../../../data/personal-food-repository";
+import type { ComboPartDraft } from "@foundry/core";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { comboDraft, withComboPart } from "./combo-parts";
 

@@ -1,4 +1,8 @@
-import { roundForDisplay } from "@foundry/core";
+import {
+	type PersonalFood,
+	type PersonalFoodDraft,
+	roundForDisplay,
+} from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -15,10 +19,6 @@ import {
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import { openFoodFactsImports } from "../../../data/open-food-facts-sync";
-import type {
-	PersonalFood,
-	PersonalFoodDraft,
-} from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, localizeDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";

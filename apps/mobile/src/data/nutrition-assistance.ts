@@ -5,6 +5,7 @@ import {
 	type NutrientValue,
 	type NutritionProvenance,
 	normaliseForSearch,
+	type PersonalFood,
 	personalFoodSnapshot,
 	type ShippedFood,
 } from "@foundry/core";
@@ -12,7 +13,6 @@ import {
 	searchShippedFoods,
 	shippedFoodProvenance,
 } from "@foundry/core/shipped-foods";
-import type { PersonalFood } from "./personal-food-repository";
 
 /**
  * The phone's food library as one searchable catalog (shipped + personal),

@@ -9,6 +9,7 @@ import {
 	type NutritionDiarySnapshot,
 	normaliseForSearch,
 	numericAmount,
+	type PersonalFoodDraft,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 } from "@foundry/core";
@@ -20,7 +21,6 @@ import {
 } from "./nutrition-assistance";
 import { oneOffLogSnapshot } from "./nutrition-one-off";
 import { typicalPortion } from "./nutrition-portions";
-import type { PersonalFoodDraft } from "./personal-food-repository";
 
 /**
  * Hulp bij invoeren: the phone half of AI entry (designs/nutrition/ai-entry_final.html).

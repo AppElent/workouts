@@ -2,6 +2,7 @@ import {
 	type Locale,
 	type NutrientKey,
 	type NutrientValue,
+	type PersonalFood,
 	roundForDisplay,
 } from "@foundry/core";
 import type { FoodResult } from "@foundry/core/shipped-foods";
@@ -9,7 +10,6 @@ import type {
 	OffLookupOutcome,
 	OffSearchOutcome,
 } from "../../../data/open-food-facts";
-import type { PersonalFood } from "../../../data/personal-food-repository";
 import { fmt, type Messages } from "../../../i18n";
 
 import type { servingPreview } from "./log-food-selection";

@@ -1,4 +1,11 @@
 import {
+	type ComboDraft,
+	normalizeComboDraft,
+	normalizePersonalFoodDraft,
+	type PersonalFood,
+	type PersonalFoodDraft,
+} from "@foundry/core";
+import {
 	libraryRecordFromCombo,
 	libraryRecordFromFood,
 } from "../data/nutrition-library-repository";
@@ -6,14 +13,7 @@ import {
 	createPersonalFoodCache,
 	type PersonalFoodCache,
 } from "../data/personal-food-cache";
-import {
-	type Combo,
-	type ComboDraft,
-	normalizeComboDraft,
-	normalizePersonalFoodDraft,
-	type PersonalFood,
-	type PersonalFoodDraft,
-} from "../data/personal-food-repository";
+import type { Combo } from "../data/personal-food-model";
 
 /**
  * The account library as the server holds it: tests seed it, the provider

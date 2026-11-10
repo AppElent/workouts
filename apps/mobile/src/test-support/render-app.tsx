@@ -11,6 +11,7 @@
  * route's `ErrorBoundary` is registered here exactly as expo-router registers
  * it in the app.
  */
+
 import {
 	useConvex,
 	useMutation,
@@ -34,7 +35,7 @@ import {
 	libraryRecordFromFood,
 } from "../data/nutrition-library-repository";
 import type { FetchLike } from "../data/open-food-facts";
-import { createOpenFoodFactsCache } from "../data/personal-food-repository";
+import { createOpenFoodFactsCache } from "../data/open-food-facts-cache";
 import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
 import { ConfirmProvider } from "../ui/confirm-dialog";

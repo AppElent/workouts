@@ -1,7 +1,11 @@
 import {
+	type FoodVisual,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
+	normalizePersonalFoodDraft,
+	type PersonalFood,
+	type PersonalFoodDraft,
 } from "@foundry/core";
 import { forkHasLocalEdits, forkSource } from "@foundry/core/shipped-foods";
 import { useMemo, useRef, useState } from "react";
@@ -12,12 +16,6 @@ import {
 } from "../../../data/food-photo-manager";
 import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
 import { replaceProviderMetadata } from "../../../data/open-food-facts-sync";
-import {
-	type FoodVisual,
-	normalizePersonalFoodDraft,
-	type PersonalFood,
-	type PersonalFoodDraft,
-} from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";

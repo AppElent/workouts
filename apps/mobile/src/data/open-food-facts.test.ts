@@ -5,7 +5,7 @@ import {
 	lookupOffBarcode,
 	searchOffProducts,
 } from "./open-food-facts";
-import { createOpenFoodFactsCache } from "./personal-food-repository";
+import { createOpenFoodFactsCache } from "./open-food-facts-cache";
 
 function jsonResponse(status: number, body: unknown) {
 	return {

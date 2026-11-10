@@ -3,7 +3,7 @@ import {
 	createOpenFoodFactsCache,
 	OFF_CACHE_MAX_ENTRIES,
 	OFF_CACHE_TTL_MS,
-} from "./personal-food-repository";
+} from "./open-food-facts-cache";
 
 describe("OpenFoodFactsCache public behavior", () => {
 	it("returns a cached response before expiry and nothing after", () => {

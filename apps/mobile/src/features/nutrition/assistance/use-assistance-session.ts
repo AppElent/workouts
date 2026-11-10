@@ -1,4 +1,4 @@
-import { NUTRITION_AI_LIMITS } from "@foundry/core";
+import { NUTRITION_AI_LIMITS, type PersonalFoodDraft } from "@foundry/core";
 import { shippedLibrary } from "@foundry/core/shipped-foods";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccountWrite } from "../../../data/account-write";
@@ -27,7 +27,6 @@ import {
 	prepareImage,
 } from "../../../data/nutrition-ai-image";
 import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
-import type { PersonalFoodDraft } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import {

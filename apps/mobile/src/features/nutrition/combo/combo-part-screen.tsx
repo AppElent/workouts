@@ -1,6 +1,6 @@
+import type { ComboPartDraft } from "@foundry/core";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import type { ComboPartDraft } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";

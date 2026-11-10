@@ -1,6 +1,9 @@
 import {
+	type FoodVisual,
 	type MealSlot,
 	NUTRIENT_KEYS,
+	type PersonalFood,
+	type PersonalFoodDraft,
 	type ShippedFood,
 	type SupplementaryServing,
 } from "@foundry/core";
@@ -39,13 +42,7 @@ import {
 	useFoodShortcuts,
 } from "../../../data/nutrition-shortcuts";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
-import type {
-	Combo,
-	FoodVisual,
-	PersonalFood,
-	PersonalFoodDraft,
-} from "../../../data/personal-food-repository";
-import { foodVisualForShippedFood } from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasures } from "../../../data/personal-measures";
 import {
@@ -81,6 +78,7 @@ import { NutritionDestinationMenu } from "../components/nutrition-destination-me
 import { NutritionScopeChip } from "../components/nutrition-scope-chip";
 import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
+import { foodVisualForShippedFood } from "../shipped-food-visual";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useDeleteDiaryEntry } from "../use-delete-diary-entry";
 import { useDiaryWrite } from "../use-diary-write";

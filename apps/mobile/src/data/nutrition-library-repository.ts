@@ -1,6 +1,6 @@
+import type { PersonalFood } from "@foundry/core";
 import { registerLocalDatabase } from "../local-store/local-store";
-import type { Combo, PersonalFood } from "./personal-food-repository";
-import { portablePersonalFood } from "./personal-food-repository";
+import { type Combo, portablePersonalFood } from "./personal-food-model";
 
 type LibraryRecordKind = "food" | "combo";
 export type LibraryRecord = {

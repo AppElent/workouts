@@ -1,8 +1,13 @@
 import {
+	type ComboDraft,
 	canonicalJson,
 	LIBRARY_GET_MANY_LIMIT,
 	type LibraryCategory,
 	type Locale,
+	normalizeComboDraft,
+	normalizePersonalFoodDraft,
+	type PersonalFood,
+	type PersonalFoodDraft,
 } from "@foundry/core";
 import { foodResults } from "@foundry/core/shipped-foods";
 import { useConvex, useMutation } from "convex/react";
@@ -30,15 +35,10 @@ import type { LibraryRecord } from "./nutrition-library-repository";
 import type { PersonalFoodCache } from "./personal-food-cache";
 import {
 	type Combo,
-	type ComboDraft,
 	hasUnuploadedPhoto,
-	normalizeComboDraft,
-	normalizePersonalFoodDraft,
-	type PersonalFood,
-	type PersonalFoodDraft,
 	type PersonalFoodFilter,
 	portablePersonalFood,
-} from "./personal-food-repository";
+} from "./personal-food-model";
 import {
 	openPersonalFoodSession,
 	type PersonalFoodSession,

@@ -1,4 +1,4 @@
-import type { MealSlot, ServingOption } from "@foundry/core";
+import type { ComboPartSnapshot, MealSlot, ServingOption } from "@foundry/core";
 import { useState } from "react";
 import {
 	type ComboPartChoice,
@@ -9,11 +9,7 @@ import {
 	comboPortion,
 	useFoodShortcuts,
 } from "../../../data/nutrition-shortcuts";
-import type {
-	Combo,
-	ComboPart,
-	ComboPartSnapshot,
-} from "../../../data/personal-food-repository";
+import type { Combo, ComboPart } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { useAmountSelection } from "../use-amount-selection";

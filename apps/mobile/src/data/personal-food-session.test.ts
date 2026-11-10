@@ -1,10 +1,11 @@
-import type { NUTRIENT_KEYS, NutrientValue } from "@foundry/core";
+import type {
+	NUTRIENT_KEYS,
+	NutrientValue,
+	PersonalFoodDraft,
+} from "@foundry/core";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
-import {
-	type PersonalFoodDraft,
-	readLegacyPersonalFoods,
-	type SyncSQLiteDatabase,
-} from "./personal-food-repository";
+import type { SyncSQLiteDatabase } from "./nutrition-database";
+import { readLegacyPersonalFoods } from "./personal-food-session";
 
 function nutrientStates(): Record<
 	(typeof NUTRIENT_KEYS)[number],
@@ -41,6 +42,29 @@ function draft(overrides: Partial<PersonalFoodDraft> = {}): PersonalFoodDraft {
 	};
 }
 
+/** The last file version (6; version 7 changed only the Combo table). */
+function lastVersionFile() {
+	const database = new SQLiteTestDatabase();
+	database.execSync(`
+		CREATE TABLE personal_foods (
+			id TEXT PRIMARY KEY NOT NULL,
+			name_en TEXT NOT NULL, name_nl TEXT NOT NULL,
+			base_unit TEXT NOT NULL,
+			nutrients_json TEXT NOT NULL, servings_json TEXT NOT NULL,
+			provenance_json TEXT NOT NULL,
+			classification TEXT NOT NULL,
+			nutrition_basis_json TEXT NOT NULL,
+			estimated INTEGER NOT NULL,
+			description_json TEXT,
+			visual_json TEXT,
+			visual_migration_pending INTEGER NOT NULL DEFAULT 1,
+			created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+		);
+		PRAGMA user_version = 6;
+	`);
+	return database;
+}
+
 function insertFood(
 	database: SyncSQLiteDatabase,
 	id: string,
@@ -65,7 +89,7 @@ function insertFood(
 
 describe("a library file from an earlier build", () => {
 	it("lists its foods with their device photos and forgets one once removed", () => {
-		const database = new SQLiteTestDatabase();
+		const database = lastVersionFile();
 		const legacy = readLegacyPersonalFoods(database);
 		insertFood(
 			database,
@@ -83,7 +107,7 @@ describe("a library file from an earlier build", () => {
 		expect(legacy.list()).toEqual([]);
 	});
 
-	it("migrates legacy persisted foods to required defaults without changing their identity or nutrition", () => {
+	it("reads a version 3 food with the defaults of the later columns", () => {
 		const database = new SQLiteTestDatabase();
 		database.execSync(`
 			CREATE TABLE personal_foods (
@@ -120,7 +144,7 @@ describe("a library file from an earlier build", () => {
 		expect(readLegacyPersonalFoods(database).list()).toEqual([food]);
 	});
 
-	it("merges the visual-only schema into the unified Personal Food model", () => {
+	it("reads the visual-only version 5 file", () => {
 		const database = new SQLiteTestDatabase();
 		database.execSync(`
 			CREATE TABLE personal_foods (
@@ -159,7 +183,7 @@ describe("a library file from an earlier build", () => {
 		});
 	});
 
-	it("opens an existing v1 database without rewriting its Personal Food", () => {
+	it("reads a version 1 file without rewriting it", () => {
 		const database = new SQLiteTestDatabase();
 		database.execSync(`
 			CREATE TABLE personal_foods (
@@ -199,37 +223,23 @@ describe("a library file from an earlier build", () => {
 			name: { en: "Legacy oats", nl: "Bestaande havermout" },
 			nutrients: nutrientStates(),
 		});
+		expect(
+			database
+				.getAllSync<{ name: string }>("PRAGMA table_info(personal_foods)")
+				.map((column) => column.name),
+		).not.toContain("visual_json");
 	});
 
-	it("reopens a version 7 file without losing its foods", () => {
-		const database = new SQLiteTestDatabase();
-		readLegacyPersonalFoods(database);
+	it("reads a file of a later version without changing its version", () => {
+		const database = lastVersionFile();
 		insertFood(database, "oats", draft());
-		database.execSync(
-			"ALTER TABLE nutrition_combos ADD COLUMN visual_json TEXT; PRAGMA user_version = 7;",
-		);
+		database.execSync("PRAGMA user_version = 8");
 		expect(readLegacyPersonalFoods(database).list()).toEqual([
 			expect.objectContaining({ id: "oats", name: draft().name }),
 		]);
 		expect(
 			database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
 				?.user_version,
-		).toBe(7);
+		).toBe(8);
 	});
-
-	it.each([7, 8])(
-		"rejects an unrecognized nutrition schema %i without downgrading it",
-		(version) => {
-			const database = new SQLiteTestDatabase();
-			readLegacyPersonalFoods(database);
-			database.execSync(`PRAGMA user_version = ${version}`);
-			expect(() => readLegacyPersonalFoods(database)).toThrow(
-				`This nutrition database is newer than this version of Foundry (${version}).`,
-			);
-			expect(
-				database.getFirstSync<{ user_version: number }>("PRAGMA user_version")
-					?.user_version,
-			).toBe(version);
-		},
-	);
 });

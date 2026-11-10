@@ -1,4 +1,4 @@
-import type { FoodVisualPresetId } from "../../data/personal-food-repository";
+import type { FoodVisualPresetId } from "@foundry/core";
 
 export const foodEditorEn = {
 	newFood: "New food",

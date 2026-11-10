@@ -1,4 +1,11 @@
-import type { NUTRIENT_KEYS, NutrientValue } from "@foundry/core";
+import {
+	type ComboDraft,
+	type NUTRIENT_KEYS,
+	type NutrientValue,
+	normalizePersonalFoodDraft,
+	type PersonalFood,
+	type PersonalFoodDraft,
+} from "@foundry/core";
 import { forkShippedFood, getShippedFood } from "@foundry/core/shipped-foods";
 import {
 	type LibraryRecord,
@@ -6,13 +13,7 @@ import {
 	libraryRecordFromFood,
 } from "./nutrition-library-repository";
 import { createPersonalFoodCache } from "./personal-food-cache";
-import {
-	type Combo,
-	type ComboDraft,
-	normalizePersonalFoodDraft,
-	type PersonalFood,
-	type PersonalFoodDraft,
-} from "./personal-food-repository";
+import type { Combo } from "./personal-food-model";
 
 function nutrients(): Record<(typeof NUTRIENT_KEYS)[number], NutrientValue> {
 	return {

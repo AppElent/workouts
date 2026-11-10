@@ -9,9 +9,9 @@ import {
 } from "./data/nutrition-food-photo-upload";
 import { FoodShortcutsProvider } from "./data/nutrition-shortcuts";
 import type { FetchLike } from "./data/open-food-facts";
+import type { OpenFoodFactsCache } from "./data/open-food-facts-cache";
 import { OpenFoodFactsProvider } from "./data/open-food-facts-context";
 import type { PersonalFoodCache } from "./data/personal-food-cache";
-import type { OpenFoodFactsCache } from "./data/personal-food-repository";
 import { PersonalFoodsProvider } from "./data/personal-foods";
 import { PersonalMeasuresProvider } from "./data/personal-measures";
 import { StrengthSessionProvider } from "./features/strength-session/data/strength-session-provider";

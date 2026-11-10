@@ -1,3 +1,4 @@
+import { FOOD_VISUAL_PRESET_IDS, type FoodVisualPresetId } from "@foundry/core";
 import { Image } from "expo-image";
 import { SymbolView } from "expo-symbols";
 import { View } from "react-native";
@@ -5,10 +6,6 @@ import type {
 	FoodPhotoCropPosition,
 	FoodPhotoSource,
 } from "../../../data/food-photo-manager";
-import {
-	FOOD_VISUAL_PRESET_IDS,
-	type FoodVisualPresetId,
-} from "../../../data/personal-food-repository";
 import { useI18n } from "../../../i18n";
 import { radius, useTokens } from "../../../theme";
 import type { EditorVisual } from "../use-staged-food-visual";

@@ -1,3 +1,4 @@
+import type { ComboDraft, PersonalFoodDraft } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -6,10 +7,6 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import type {
-	ComboDraft,
-	PersonalFoodDraft,
-} from "../../../../data/personal-food-repository";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 

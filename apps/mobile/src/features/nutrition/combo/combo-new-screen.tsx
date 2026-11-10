@@ -1,12 +1,9 @@
-import { canonicalJson } from "@foundry/core";
+import { type ComboPartDraft, canonicalJson } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { type RefObject, useRef, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import type {
-	Combo,
-	ComboPartDraft,
-} from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";

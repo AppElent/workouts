@@ -6,7 +6,7 @@ import {
 	comboSourceKey,
 	useFoodShortcuts,
 } from "../../../data/nutrition-shortcuts";
-import type { Combo } from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";

@@ -9,25 +9,24 @@
  * too little or invalid nutrition data are all first-class results, not
  * exceptions.
  */
+
 import {
 	kcalFromKilojoules,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 	OPEN_FOOD_FACTS_ATTRIBUTION,
+	type PersonalFoodDraft,
 	parseProviderNumber,
 	parseProviderNutrient,
 	saltFromSodium,
 } from "@foundry/core";
+import type { OpenFoodFactsCache } from "./open-food-facts-cache";
 import {
 	type OffSearchHit,
 	planOffSearch,
 	rankOffHits,
 } from "./open-food-facts-search";
-import type {
-	OpenFoodFactsCache,
-	PersonalFoodDraft,
-} from "./personal-food-repository";
 
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 // Legacy /cgi/search.pl requires authentication and returns 503 anonymously.

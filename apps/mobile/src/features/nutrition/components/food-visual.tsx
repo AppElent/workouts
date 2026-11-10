@@ -1,11 +1,8 @@
+import type { FoodVisual, FoodVisualPresetId } from "@foundry/core";
 import { Image } from "expo-image";
 import { SymbolView } from "expo-symbols";
 import { type ComponentProps, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import type {
-	FoodVisual,
-	FoodVisualPresetId,
-} from "../../../data/personal-food-repository";
 import {
 	radius,
 	type Tokens,

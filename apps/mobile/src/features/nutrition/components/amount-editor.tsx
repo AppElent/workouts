@@ -1,4 +1,5 @@
 import type {
+	FoodVisual,
 	NutrientKey,
 	NutrientValue,
 	PersonalFood,
@@ -9,7 +10,6 @@ import { type ReactNode, useState } from "react";
 import { Keyboard, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { servingKey } from "../../../data/nutrition-shortcuts";
-import type { FoodVisual } from "../../../data/personal-food-repository";
 import type { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
