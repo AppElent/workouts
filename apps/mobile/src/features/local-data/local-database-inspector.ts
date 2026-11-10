@@ -1,7 +1,10 @@
 import { Directory, File } from "expo-file-system";
-import { defaultDatabaseDirectory } from "expo-sqlite";
-import { openNutritionDatabase } from "./nutrition-database";
-import type { SyncSQLiteDatabase } from "./personal-food-repository";
+import {
+	defaultDatabaseDirectory,
+	openDatabaseSync,
+	type SQLiteDatabase,
+} from "expo-sqlite";
+import { isLocalDatabase } from "../../local-store/local-store";
 
 export type LocalTable = {
 	name: string;
@@ -20,12 +23,7 @@ export function listLocalDatabases(): string[] {
 	if (!directory.exists) return [];
 	return directory
 		.list()
-		.filter(
-			(entry) =>
-				entry instanceof File &&
-				(entry.name === "ExpoSQLiteStorage" ||
-					(entry.name.startsWith("workouts-") && entry.name.endsWith(".db"))),
-		)
+		.filter((entry) => entry instanceof File && isLocalDatabase(entry.name))
 		.map((entry) => entry.name)
 		.sort();
 }
@@ -36,7 +34,8 @@ const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
 export function openLocalDatabaseInspector(name: string) {
 	if (!listLocalDatabases().includes(name))
 		throw new Error("This local database is unavailable.");
-	const database = openNutritionDatabase(name);
+	// Its own connection, so closing it never closes a repository's.
+	const database = openDatabaseSync(name, { useNewConnection: true });
 	try {
 		return createLocalDatabaseInspector(database);
 	} catch (error) {
@@ -46,7 +45,10 @@ export function openLocalDatabaseInspector(name: string) {
 }
 
 export function createLocalDatabaseInspector(
-	database: SyncSQLiteDatabase & { closeSync(): void },
+	database: Pick<
+		SQLiteDatabase,
+		"execSync" | "getAllSync" | "getFirstSync" | "closeSync"
+	>,
 ) {
 	database.execSync("PRAGMA query_only = ON");
 	const names = database

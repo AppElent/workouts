@@ -8,12 +8,16 @@ import {
 	type SupplementaryServing,
 	totalNutrients,
 } from "@foundry/core";
-import { registerAccountStore } from "../local-store/local-store";
+import {
+	registerAccountStore,
+	registerLocalDatabase,
+} from "../local-store/local-store";
 import { reportError } from "../observability/errors";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
 
 export const NUTRITION_STATE_DATABASE_NAME = "workouts-nutrition-state.db";
+registerLocalDatabase(NUTRITION_STATE_DATABASE_NAME);
 const DATABASE_VERSION = 8;
 
 export type CachedGoalHistory = {

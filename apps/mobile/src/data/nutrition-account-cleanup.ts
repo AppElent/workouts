@@ -1,9 +1,12 @@
 import { File } from "expo-file-system";
 import { defaultDatabaseDirectory } from "expo-sqlite";
+import { registerLocalDatabase } from "../local-store/local-store";
 import { openNutritionDatabase } from "./nutrition-database";
 import { nutritionLibraryDatabaseName } from "./nutrition-library-repository";
 import { openPersonalFoodRepository } from "./personal-food-repository";
 import { discardPersonalFoodSources } from "./personal-food-session";
+
+registerLocalDatabase("workouts-nutrition-cooking.db");
 
 /** Empty migration sources can be retired; unknown originals remain untouched. */
 export function retireLegacyNutritionData() {
