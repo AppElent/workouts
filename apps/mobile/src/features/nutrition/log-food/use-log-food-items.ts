@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import {
 	type FoodResult,
 	foodResults,
@@ -121,7 +122,7 @@ export function useLogFoodItems({
 	catalogueLimit?: number;
 	query: string;
 	filter: FoodFilter;
-	locale: "en" | "nl";
+	locale: Locale;
 	personalFoods: ReturnType<typeof usePersonalFoods>;
 	recentShortcuts: readonly { readonly sourceKey: string }[];
 	favoriteShortcuts: readonly { readonly sourceKey: string }[];

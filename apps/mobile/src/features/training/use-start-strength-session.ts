@@ -2,7 +2,8 @@ import { useMutation } from "convex/react";
 import { useRef, useState } from "react";
 import { api, type Id } from "../../convex/api";
 import { useI18n } from "../../i18n";
-import { convexErrorMessage, useConfirm } from "../../ui/confirm-dialog";
+import { convexErrorMessage } from "../../i18n/errors";
+import { useConfirm } from "../../ui/confirm-dialog";
 import { useToast } from "../../ui/toast";
 import type { useTrainingData } from "./use-training-data";
 

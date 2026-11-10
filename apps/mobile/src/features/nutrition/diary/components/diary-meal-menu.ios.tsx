@@ -11,7 +11,7 @@ import {
 import { accessibilityLabel, tint } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
 import { type StyleProp, View, type ViewStyle } from "react-native";
-import { useHostScheme, useTokens } from "../../../../theme";
+import { useScheme, useTokens } from "../../../../theme";
 export function DiaryMealMenu({
 	label,
 	title,
@@ -37,7 +37,7 @@ export function DiaryMealMenu({
 	return (
 		<Host
 			matchContents
-			colorScheme={useHostScheme()}
+			colorScheme={useScheme()}
 			style={trigger?.style ?? { minWidth: 44, minHeight: 44 }}
 		>
 			<Menu

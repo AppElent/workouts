@@ -3,10 +3,10 @@ import Storage from "expo-sqlite/kv-store";
 import { useState } from "react";
 import { Appearance, Pressable, Text, TextInput, View } from "react-native";
 import {
-	clearPreference,
 	PREFERENCE_KEYS,
-	writePreference,
-} from "../prefs/local-preference";
+	removeLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import {
 	AppearanceProvider,
 	useAppearance,
@@ -60,7 +60,7 @@ async function changeSystem(next: "light" | "dark") {
 }
 
 beforeEach(() => {
-	clearPreference(PREFERENCE_KEYS.appearance);
+	removeLocal(PREFERENCE_KEYS.appearance);
 	system = "light";
 	override = "unspecified";
 	listeners.clear();
@@ -107,7 +107,7 @@ it("defaults to System and follows live device changes", async () => {
 it.each(["light", "dark"] as const)(
 	"paints the first frame in saved %s appearance",
 	async (choice) => {
-		writePreference(PREFERENCE_KEYS.appearance, choice);
+		writeLocal(PREFERENCE_KEYS.appearance, choice);
 		await render(
 			<AppearanceProvider>
 				<Probe />

@@ -13,8 +13,8 @@
  * trusted: a deep link is user input, and the four slots are a closed set.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { LogFoodScreen } from "../../src/features/nutrition/log-food/log-food-screen";
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";

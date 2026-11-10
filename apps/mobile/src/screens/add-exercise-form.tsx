@@ -6,8 +6,8 @@ import { Modal, Platform } from "react-native";
 import { api } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import { useTokens } from "../theme";
-import { convexErrorMessage } from "../ui/confirm-dialog";
 import {
 	DisclosureRow,
 	FormChoiceRow,

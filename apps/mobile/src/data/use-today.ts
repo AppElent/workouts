@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
-import { type IsoDate, todayIsoDate } from "./calendar-day";
+import { type IsoDate, todayIsoDate } from "../dates/calendar-day";
 
 function msUntilNextMidnight(now: Date): number {
 	const next = new Date(now);

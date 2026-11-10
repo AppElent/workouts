@@ -2,10 +2,10 @@ import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import type { IsoDate } from "../../../data/calendar-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
 import { weekEndDate } from "../../../data/nutrition-weekly-review";
-import { fmt, useI18n } from "../../../i18n";
+import type { IsoDate } from "../../../dates/calendar-day";
+import { fmt, plural, useI18n } from "../../../i18n";
 
 import { radius, spacing, useTokens } from "../../../theme";
 import { EmptyState } from "../../../ui/empty-state";
@@ -453,14 +453,11 @@ function WeekContent({
 					.map((day) => {
 						const part = weekDayParts(day.date, locale);
 						const notes = noteCount(day.date);
-						const items =
-							day.entryCount === 1
-								? copy.itemsOne
-								: fmt(copy.items, { count: day.entryCount });
+						const items = plural(locale, day.entryCount, copy.items);
 						const noteLabel =
 							notes === 0
 								? ""
-								: ` · ${notes === 1 ? t.nutrition.drafts.countOne : fmt(t.nutrition.drafts.countMany, { count: notes })}`;
+								: ` · ${plural(locale, notes, t.nutrition.drafts.count)}`;
 						const statuses = WEEK_NUTRIENTS.map((nutrient) =>
 							weekDayStatus(day, nutrient, today),
 						);

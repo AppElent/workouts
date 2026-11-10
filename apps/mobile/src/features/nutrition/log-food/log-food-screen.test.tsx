@@ -7,7 +7,7 @@ import {
 	waitFor,
 	within,
 } from "expo-router/testing-library";
-import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../dates/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
 import { armToastAction } from "../../../test-support/toast-action";
 

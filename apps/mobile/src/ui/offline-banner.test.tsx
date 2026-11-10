@@ -2,7 +2,7 @@ import { act, screen } from "@testing-library/react-native";
 import { useConvexConnectionState } from "convex/react";
 import type { ReactElement, ReactNode } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { OFFLINE_GRACE_MS } from "../data/stalled-offline";
+import { OFFLINE_GRACE_MS } from "../convex/stalled-offline";
 import { LocaleProvider } from "../i18n";
 import { en } from "../i18n/messages/en";
 import { renderThemed } from "../test-support/render-themed";

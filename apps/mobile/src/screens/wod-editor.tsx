@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Doc } from "../convex/api";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { fmt, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -34,7 +35,6 @@ import {
 	useTokens,
 } from "../theme";
 import { Chip, Eyebrow } from "../ui/coach";
-import { convexErrorMessage } from "../ui/confirm-dialog";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";
 

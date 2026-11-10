@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { AssistanceScreen } from "../../src/features/nutrition/assistance/assistance-screen";
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";

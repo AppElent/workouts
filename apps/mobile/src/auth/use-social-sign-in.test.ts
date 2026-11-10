@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react-native";
 import { Platform } from "react-native";
 import { LocaleProvider } from "../i18n";
-import { useSocialSignIn } from "./useSocialSignIn";
+import { useSocialSignIn } from "./use-social-sign-in";
 
 const mockStartSSOFlow = jest.fn();
 const mockStartApple = jest.fn();

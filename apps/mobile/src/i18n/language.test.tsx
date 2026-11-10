@@ -3,7 +3,7 @@
  * screen, in both languages, and the absence of a frame in the wrong one.
  */
 import { fireEvent, screen, testRouter } from "expo-router/testing-library";
-import { PREFERENCE_KEYS, writePreference } from "../prefs/local-preference";
+import { PREFERENCE_KEYS, writeLocal } from "../local-store/local-store";
 import { renderApp } from "../test-support/render-app";
 
 describe("the app's language", () => {
@@ -33,7 +33,7 @@ describe("the app's language", () => {
 		// The choice a previous launch wrote. Reading it has to happen during the
 		// first render — an effect or an awaited read would paint one English
 		// frame before correcting itself, which is the defect this guards.
-		writePreference(PREFERENCE_KEYS.locale, "nl");
+		writeLocal(PREFERENCE_KEYS.locale, "nl");
 
 		await renderApp("/nutrition");
 

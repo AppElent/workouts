@@ -23,14 +23,14 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import { type IsoDate, isoDateToLocalDate } from "../../../data/calendar-day";
 import {
 	type GoalKind,
 	goalKind,
 	referenceGoalTarget,
 } from "../../../data/nutrition-goal-history";
+import { type IsoDate, isoDateToLocalDate } from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -44,6 +44,7 @@ import { GoalNumberField } from "./components/goal-number-field";
 import { GoalKindLabel, GoalRow } from "./components/goal-row";
 import { GoalsKeyboardBar } from "./components/goals-keyboard-bar";
 import { GoalsStartPicker } from "./components/goals-start-picker";
+import { goalPresetMenuHint } from "./goal-presets";
 import { goalsAppliesFrom } from "./goals-applies-from";
 import { type GoalFieldKey, useGoalsEditor } from "./use-goals-editor";
 
@@ -105,10 +106,7 @@ function GoalsEditor() {
 	usePreventRemove(editor.dirty && !leaving, ({ data }) => {
 		if (editor.pending) return;
 		void confirm({
-			title:
-				editor.changedCount === 1
-					? copy.discardMessageOne
-					: fmt(copy.discardMessage, { count: editor.changedCount }),
+			title: plural(locale, editor.changedCount, copy.discardMessage),
 			confirmLabel: copy.discard,
 			cancelLabel: copy.keepEditing,
 			destructive: true,
@@ -401,7 +399,7 @@ function GoalsEditor() {
 									GOAL_PRESET_KEYS.map((key) => ({
 										id: key,
 										label: copy.presets[key].name,
-										hint: copy.presetMenuHint[key],
+										hint: goalPresetMenuHint(copy, key, locale),
 										selected: key === editor.preset,
 									})),
 									...(editor.preset && editor.editedCount > 0

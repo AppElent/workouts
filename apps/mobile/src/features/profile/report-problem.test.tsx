@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import { fireEvent, screen } from "expo-router/testing-library";
-import { renderApp } from "../test-support/render-app";
+import { renderApp } from "../../test-support/render-app";
 
 it("opens feedback from Profile without requiring a shake", async () => {
 	await renderApp("/profile");

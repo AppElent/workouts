@@ -12,7 +12,7 @@ import {
 	formatLongDate,
 	shiftIsoDate,
 	todayIsoDate,
-} from "../../../../data/calendar-day";
+} from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 

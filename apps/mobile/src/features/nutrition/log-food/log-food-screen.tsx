@@ -22,7 +22,7 @@ import {
 	View,
 } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
-import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
+import { useStalledOffline } from "../../../convex/stalled-offline";
 import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import { foodPhotos } from "../../../data/food-photo-manager";
@@ -55,8 +55,8 @@ import type {
 import { foodVisualForShippedFood } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasures } from "../../../data/personal-measures";
-import { useStalledOffline } from "../../../data/stalled-offline";
 import { useSupplementaryServings } from "../../../data/supplementary-servings";
+import { formatLongDate, todayIsoDate } from "../../../dates/calendar-day";
 import { haptics } from "../../../feedback/haptics";
 import {
 	modalAnimation,
@@ -72,7 +72,7 @@ import {
 } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
-import { FoodEditorSheet } from "../../../ui/food-editor-sheet";
+import { PageSheet } from "../../../ui/page-sheet";
 import { isIOS26OrLater } from "../../../ui/platform";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import type { RowAction } from "../../../ui/swipeable-row";
@@ -1156,7 +1156,7 @@ export function LogFoodScreen({
 				/>
 			) : null}
 			{editor || afterEditor ? (
-				<FoodEditorSheet
+				<PageSheet
 					visible={Boolean(editor)}
 					onClose={() => {
 						setReviewingImport(undefined);
@@ -1169,7 +1169,7 @@ export function LogFoodScreen({
 					}}
 				>
 					{editor}
-				</FoodEditorSheet>
+				</PageSheet>
 			) : null}
 			<Modal
 				visible={Boolean(servingSheet)}

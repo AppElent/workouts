@@ -12,10 +12,11 @@
  * restrained enough to be safe on its own — `ui/swipeable-row.tsx` does both.
  */
 import { useCallback, useState } from "react";
+import { formatLongDate } from "../dates/calendar-day";
 import { fmt, useI18n } from "../i18n";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { convexErrorMessage } from "../i18n/errors";
+import { useConfirm } from "../ui/confirm-dialog";
 import { useToast } from "../ui/toast";
-import { formatLongDate } from "./calendar-day";
 import type { DiaryEntry, MealSlot } from "./nutrition-day";
 import { useNutritionOperations } from "./nutrition-operation-service";
 

@@ -1,19 +1,19 @@
 import { fireEvent, screen } from "@testing-library/react-native";
-import { renderThemed as render } from "../test-support/render-themed";
+import type { ReactElement } from "react";
+import { LocaleProvider } from "../i18n";
+import {
+	PREFERENCE_KEYS,
+	removeLocal,
+	writeLocal,
+} from "../local-store/local-store";
+import { renderThemed } from "../test-support/render-themed";
 import { MonthCalendar } from "./month-calendar";
 
-let mockLocale: "en" | "nl" = "en";
-jest.mock("../i18n", () => ({
-	useI18n: () => ({
-		locale: mockLocale,
-		t: jest.requireActual(`../i18n/messages/${mockLocale}`)[mockLocale],
-	}),
-}));
+const render = (ui: ReactElement) =>
+	renderThemed(ui, { wrapper: LocaleProvider });
 
 describe("MonthCalendar", () => {
-	afterEach(() => {
-		mockLocale = "en";
-	});
+	afterEach(() => removeLocal(PREFERENCE_KEYS.locale));
 
 	it("renders an actual leap-month grid and lets the user select a day", async () => {
 		const onSelect = jest.fn();
@@ -25,7 +25,9 @@ describe("MonthCalendar", () => {
 			/>,
 		);
 		expect(screen.getByText("February 2028")).toBeTruthy();
-		await fireEvent.press(screen.getByLabelText(/Tuesday, February 29, 2028/));
+		await fireEvent.press(
+			screen.getByLabelText(/Tuesday 29 February, 2028-02-29/),
+		);
 		expect(onSelect).toHaveBeenCalledWith("2028-02-29");
 	});
 
@@ -40,7 +42,7 @@ describe("MonthCalendar", () => {
 		);
 		await fireEvent.press(screen.getByLabelText("Next month"));
 		expect(screen.getByText("February 2026")).toBeTruthy();
-		await fireEvent.press(screen.getByLabelText(/February 10, 2026/));
+		await fireEvent.press(screen.getByLabelText(/10 February, 2026-02-10/));
 		expect(onSelect).toHaveBeenCalledWith("2026-02-10");
 	});
 
@@ -57,18 +59,14 @@ describe("MonthCalendar", () => {
 		expect(onSelect).toHaveBeenCalledWith("2026-03-03");
 	});
 
-	it("localizes navigation labels in Dutch", async () => {
-		mockLocale = "nl";
-		const onSelect = jest.fn();
+	it("follows the app language for its labels, month and weekdays", async () => {
+		writeLocal(PREFERENCE_KEYS.locale, "nl");
 		await render(
-			<MonthCalendar
-				selectedDate="2026-01-15"
-				onSelect={onSelect}
-				locale="nl"
-			/>,
+			<MonthCalendar selectedDate="2026-01-15" onSelect={jest.fn()} />,
 		);
 
 		expect(screen.getByLabelText("Vorige maand")).toBeTruthy();
 		expect(screen.getByLabelText("Volgende maand")).toBeTruthy();
+		expect(screen.getByText(/januari 2026/i)).toBeTruthy();
 	});
 });

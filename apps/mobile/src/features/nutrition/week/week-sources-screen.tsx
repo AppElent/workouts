@@ -12,8 +12,8 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import type { IsoDate } from "../../../data/calendar-day";
-import { fmt, useI18n } from "../../../i18n";
+import type { IsoDate } from "../../../dates/calendar-day";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
@@ -263,11 +263,7 @@ export function WeekSourcesScreen({
 														{copy.notCounting}
 													</AppText>
 													<AppText variant="caption">
-														{missingCount === 1
-															? copy.missingValuesOne
-															: fmt(copy.missingValues, {
-																	count: missingCount,
-																})}
+														{plural(locale, missingCount, copy.missingValues)}
 													</AppText>
 												</View>
 												<Pressable

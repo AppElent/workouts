@@ -1,12 +1,12 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import {
 	type DiaryEntryWithMeal,
 	MEAL_SLOTS,
 	useNutritionDay,
 } from "../../src/data/nutrition-day";
 import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { DiaryEntryTransferScreen } from "../../src/features/nutrition/diary-entry/diary-entry-transfer-screen";
 import { useI18n } from "../../src/i18n";
 import { AppText } from "../../src/ui/text";

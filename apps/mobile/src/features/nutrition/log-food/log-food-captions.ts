@@ -1,4 +1,5 @@
 import {
+	type Locale,
 	type NutrientKey,
 	type NutrientValue,
 	roundForDisplay,
@@ -31,7 +32,7 @@ import type { servingPreview } from "./log-food-selection";
 export function resultCaption(
 	result: FoodResult<PersonalFood>,
 	messages: Messages["nutrition"],
-	locale: "en" | "nl",
+	locale: Locale,
 	sources: { readonly shipped: string; readonly own: string },
 ): string {
 	if (result.kind === "local") {

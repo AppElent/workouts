@@ -24,7 +24,7 @@ import {
 	formatLongDate as diaryDateLabel,
 	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-} from "../../../../data/calendar-day";
+} from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 const value = (amount: number) => ({ kind: "value" as const, amount });

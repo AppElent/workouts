@@ -16,10 +16,10 @@ import {
 } from "../../../../data/nutrition-ai-history";
 import { NutritionOperationService } from "../../../../data/nutrition-operation-service";
 import {
-	clearPreference,
 	PREFERENCE_KEYS,
-	writePreference,
-} from "../../../../prefs/local-preference";
+	removeLocal,
+	writeLocal,
+} from "../../../../local-store/local-store";
 import { renderApp } from "../../../../test-support/render-app";
 import { ACTION_ARM_MS } from "../../../../ui/toast";
 
@@ -76,7 +76,7 @@ beforeEach(() => {
 	choose.mockReset();
 	readLabel.mockReset();
 	scriptActions();
-	writePreference(PREFERENCE_KEYS.nutritionAiConsent, "granted");
+	writeLocal(PREFERENCE_KEYS.nutritionAiConsent, "granted");
 	// Each test analyses this text afresh; one test covers the cached answer.
 	Storage.removeItemSync(reviewKey("bread and a pancake", "en", "test-user"));
 	// The first candidate for a known food; an estimate for an unknown one.
@@ -103,7 +103,7 @@ beforeEach(() => {
 
 describe("Hulp bij invoeren", () => {
 	it("asks for consent once before anything is sent", async () => {
-		clearPreference(PREFERENCE_KEYS.nutritionAiConsent);
+		removeLocal(PREFERENCE_KEYS.nutritionAiConsent);
 		await renderApp(url);
 		await fireEvent.press(await screen.findByText("Continue"));
 		expect(await screen.findByText("Analyse")).toBeTruthy();

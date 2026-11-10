@@ -211,11 +211,7 @@ export function DiaryMealCard({
 							{entries.length
 								? `${plural(locale, entries.length, copy.items)} · ${total?.incomplete ? "≥ " : ""}${roundForDisplay("energy", total?.amount ?? 0)} kcal`
 								: drafts.length
-									? drafts.length === 1
-										? t.nutrition.drafts.countOne
-										: fmt(t.nutrition.drafts.countMany, {
-												count: drafts.length,
-											})
+									? plural(locale, drafts.length, t.nutrition.drafts.count)
 									: complete
 										? copy.nothingYet
 										: t.nutrition.offline.uncachedMeal}

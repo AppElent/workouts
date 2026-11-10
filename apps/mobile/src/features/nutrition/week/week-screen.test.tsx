@@ -2,13 +2,13 @@ import { NUTRIENT_KEYS } from "@foundry/core";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";
-import { shiftIsoDate, todayIsoDate } from "../../../data/calendar-day";
+import { OFFLINE_GRACE_MS } from "../../../convex/stalled-offline";
 import {
 	emptyReviewTotals,
 	weekDates,
 	weekStartMonday,
 } from "../../../data/nutrition-weekly-review";
-import { OFFLINE_GRACE_MS } from "../../../data/stalled-offline";
+import { shiftIsoDate, todayIsoDate } from "../../../dates/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
 
 const mockUseQuery = jest.mocked(useQuery);

@@ -26,6 +26,7 @@ import { api, type Doc, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
 import { formatSessionDate } from "../data/session-data";
 import { fmt, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -34,7 +35,7 @@ import {
 	useTokens,
 } from "../theme";
 import { Card, Chip, Eyebrow } from "../ui/coach";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
 import { AppText } from "../ui/text";
 import { useToast } from "../ui/toast";

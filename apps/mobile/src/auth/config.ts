@@ -1,5 +1,6 @@
 /**
- * The two things read out of the environment, and the gate on the second.
+ * What the build's environment says about auth: the Clerk key, the dev-login
+ * gate, and which social providers that Clerk instance can serve.
  *
  * **Static dot access is load-bearing.** Metro inlines `EXPO_PUBLIC_*` by
  * textually substituting `process.env.EXPO_PUBLIC_NAME` at build time. It is
@@ -40,3 +41,15 @@ export const devLogin: { email: string; password: string } | null =
 	TEST_USER_PASSWORD
 		? { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD }
 		: null;
+
+export type SocialProvider = "apple" | "google" | "microsoft";
+
+/**
+ * Google only has OAuth credentials on the development Clerk instance
+ * (`pk_test_`), so any build pointed at that instance offers it. Add it to
+ * the production list once the production instance has its own Google client.
+ */
+export const socialProviders: readonly SocialProvider[] =
+	PUBLISHABLE_KEY.startsWith("pk_test_")
+		? ["apple", "google", "microsoft"]
+		: ["apple", "microsoft"];

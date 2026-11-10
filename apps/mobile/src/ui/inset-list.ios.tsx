@@ -64,7 +64,7 @@ import { StyleSheet, useWindowDimensions, View } from "react-native";
 import {
 	metrics,
 	sportMeta,
-	useHostScheme,
+	useScheme,
 	useSportColors,
 	useTokens,
 } from "../theme";
@@ -99,7 +99,7 @@ export function InsetList({
 	return (
 		<View style={[styles.bleed, compact ? { marginHorizontal: -16 } : null]}>
 			<Host
-				colorScheme={useHostScheme()}
+				colorScheme={useScheme()}
 				seedColor={tokens.accent}
 				style={{ width: "100%", height }}
 			>

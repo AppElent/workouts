@@ -2,7 +2,7 @@ import { fireEvent, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { renderThemed as render } from "../../../test-support/render-themed";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet.ios";
-import { FoodEditorSheet } from "../../../ui/food-editor-sheet.ios";
+import { PageSheet } from "../../../ui/page-sheet.ios";
 import { NutritionHeaderMenu } from "./nutrition-header-menu.ios";
 
 it("binds the Nutrition SwiftUI menu directly to feature callbacks", async () => {
@@ -42,9 +42,9 @@ it("binds the Nutrition SwiftUI menu directly to feature callbacks", async () =>
 
 it("presents food editing as a full-height native sheet with a drag indicator", async () => {
 	await render(
-		<FoodEditorSheet visible onClose={jest.fn()}>
+		<PageSheet visible onClose={jest.fn()}>
 			<Text>Food editor</Text>
-		</FoodEditorSheet>,
+		</PageSheet>,
 	);
 
 	const modifiers = screen.getByTestId("swiftui-group").props.modifiers;

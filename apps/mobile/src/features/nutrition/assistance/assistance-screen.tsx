@@ -15,7 +15,6 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import { todayIsoDate } from "../../../data/calendar-day";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import {
 	combinedNutrients,
@@ -41,6 +40,7 @@ import {
 	mintNutritionUuid,
 	useNutritionOperations,
 } from "../../../data/nutrition-operation-service";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import {
 	modalAnimation,
 	useReduceMotion,

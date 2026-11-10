@@ -21,8 +21,8 @@ import { api } from "../convex/api";
 import type { useRoutines } from "../data/session-data";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import { spacing } from "../theme";
-import { convexErrorMessage } from "../ui/confirm-dialog";
 import {
 	AddRow,
 	FormScreen,

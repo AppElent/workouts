@@ -50,6 +50,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -494,7 +495,7 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 		},
 		actionLabel: { color: colors.textMuted },
-		actionPressed: { opacity: 0.7 },
+		actionPressed: { opacity: opacity.pressed },
 		row: {
 			backgroundColor: colors.surface,
 			flexDirection: "row",

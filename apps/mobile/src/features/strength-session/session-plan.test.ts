@@ -527,7 +527,7 @@ describe("groups", () => {
 		const result = groupWith(two(), "squat", "curl");
 		expect(result.note).toEqual({
 			code: "groupedAdded",
-			values: { rounds: 3, added: 2 },
+			values: { rounds: 3, count: 2 },
 		});
 	});
 	it("invents no sets for a fully logged exercise", () => {

@@ -2,7 +2,7 @@
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
@@ -102,9 +102,7 @@ export function SessionGroupBlock({ group }: { group: SetGroup }) {
 					? copy.subAmrapStopped
 					: copy.subAmrapOver
 				: idle
-					? group.capMinutes === 1
-						? copy.subAmrapIdleOne
-						: fmt(copy.subAmrapIdle, { minutes: group.capMinutes })
+					? plural(locale, group.capMinutes, copy.subAmrapIdle)
 					: fmt(copy.subAmrapRunning, {
 							round: Math.max(current, 0) + 1,
 						})

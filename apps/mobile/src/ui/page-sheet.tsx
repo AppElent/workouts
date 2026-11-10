@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef } from "react";
 import { Modal } from "react-native";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 
-export function FoodEditorSheet({
+export function PageSheet({
 	visible,
 	onClose,
 	onDismissed,

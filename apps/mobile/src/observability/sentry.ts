@@ -1,4 +1,5 @@
 import {
+	type Locale,
 	sanitizeBreadcrumb,
 	sanitizeEvent,
 	sanitizeFeedbackEvent,
@@ -10,8 +11,13 @@ import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
-import { en } from "../i18n/messages/en";
-import { nl } from "../i18n/messages/nl";
+import { DICTIONARIES } from "../i18n/dictionaries";
+
+// A DSN is public client configuration, not an upload/auth token: the default
+// keeps every build reporting, and `EXPO_PUBLIC_SENTRY_DSN` (env.manifest
+// `sentry-dsn`) overrides it, e.g. for a separate test project.
+const DEFAULT_SENTRY_DSN =
+	"https://43d3de8058924d6c718b133785d811c8@o4504753234051072.ingest.us.sentry.io/4512164168663040";
 
 const native = Platform.OS !== "web" && !isRunningInExpoGo();
 const environment = Updates.channel || (__DEV__ ? "development" : "production");
@@ -36,8 +42,8 @@ const feedback = Sentry.feedbackIntegration({
 	showEmail: false,
 });
 
-export function configureFeedbackLanguage(locale: "en" | "nl") {
-	const text = { en, nl }[locale].feedback;
+export function configureFeedbackLanguage(locale: Locale) {
+	const text = DICTIONARIES[locale].feedback;
 	Object.assign(feedback.options, {
 		formTitle: text.report,
 		messageLabel: text.message,
@@ -60,12 +66,8 @@ export function configureFeedbackLanguage(locale: "en" | "nl") {
 }
 configureFeedbackLanguage("en");
 
-// A DSN is public client configuration, not an upload/auth token. Keep Foundry
-// working in every build, with an optional override for a separate test project.
 Sentry.init({
-	dsn:
-		process.env.EXPO_PUBLIC_SENTRY_DSN ||
-		"https://43d3de8058924d6c718b133785d811c8@o4504753234051072.ingest.us.sentry.io/4512164168663040",
+	dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || DEFAULT_SENTRY_DSN,
 	environment,
 	sendDefaultPii: false,
 	// Local development must not pollute production issues or consume quota.

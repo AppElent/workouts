@@ -3,8 +3,8 @@
  *
  * Adapted from the same module in the sibling `gather` app (spec #68, D24),
  * narrowed to the three events spec #68 actually sanctions plus the two the
- * gestures in `ui/swipeable-row.tsx` and `ui/action-menu.tsx` need to stay
- * legible without watching the screen.
+ * gestures in `ui/swipeable-row.tsx` need to stay legible without watching the
+ * screen.
  *
  * **Call sites name events, never intensities.** `haptics.entryLogged()`, not
  * `notificationAsync(Success)` — so "how hard should a logged meal feel" is

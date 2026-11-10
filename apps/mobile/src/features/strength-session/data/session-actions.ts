@@ -7,7 +7,8 @@ import { ActionSheetIOS, Platform } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
-import { convexErrorMessage, useConfirm } from "../../../ui/confirm-dialog";
+import { convexErrorMessage } from "../../../i18n/errors";
+import { useConfirm } from "../../../ui/confirm-dialog";
 import { useRestTimer } from "../components/rest-timer";
 import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
 import {
@@ -117,8 +118,14 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			extra: Partial<Parameters<typeof notify>[0]> = {},
 		) => notify({ text, ...(extra as object) });
 		const noteText = (note: PlanNote, name?: string) => {
-			const template = (copy.notes as Record<string, string>)[note.code] ?? "";
-			return fmt(template, { name: name ?? "", ...(note.values ?? {}) });
+			const template: string | { one: string; other: string } | undefined = (
+				copy.notes as Record<string, string | { one: string; other: string }>
+			)[note.code];
+			const text =
+				typeof template === "object"
+					? plural(locale, Number(note.values?.count ?? 0), template)
+					: (template ?? "");
+			return fmt(text, { name: name ?? "", ...(note.values ?? {}) });
 		};
 		/** Call after the change: a snapshot can only undo what came last. */
 		const snapshotUndo = (before: SessionPlan, added?: string) => {

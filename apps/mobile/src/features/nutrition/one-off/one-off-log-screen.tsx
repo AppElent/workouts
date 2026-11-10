@@ -10,10 +10,10 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { todayIsoDate } from "../../../data/calendar-day";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
 import type { MealSlot } from "../../../data/nutrition-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";

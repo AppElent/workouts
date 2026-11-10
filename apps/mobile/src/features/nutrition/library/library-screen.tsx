@@ -4,15 +4,15 @@ import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
-import { todayIsoDate } from "../../../data/calendar-day";
+import { useStalledOffline } from "../../../convex/stalled-offline";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,
 } from "../../../data/nutrition-operation-service";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { useStalledOffline } from "../../../data/stalled-offline";
-import { fmt, useI18n } from "../../../i18n";
+import { todayIsoDate } from "../../../dates/calendar-day";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { EmptyState } from "../../../ui/empty-state";
@@ -590,9 +590,7 @@ export function LibraryScreen() {
 				>
 					{selecting
 						? copy.title
-						: items.length === 1
-							? copy.itemCountOne
-							: fmt(copy.itemCount, { count: items.length })}
+						: plural(locale, items.length, copy.itemCount)}
 				</AppText>
 				{bottomToolbar || selecting ? null : (
 					<View

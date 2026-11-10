@@ -1,6 +1,7 @@
 import {
 	type FoodVisual,
 	type FoodVisualPresetId,
+	type Locale,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -154,7 +155,7 @@ export type PersonalFoodRepository = {
 	findByBarcode(barcode: string): PersonalFood | undefined;
 	search(
 		query: string,
-		locale: "en" | "nl",
+		locale: Locale,
 		filter?: PersonalFoodFilter,
 	): PersonalFood[];
 	/**

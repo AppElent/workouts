@@ -1,6 +1,6 @@
 import { Modal } from "react-native";
 import { modalAnimation, useReduceMotion } from "../../feedback/reduce-motion";
-import { useI18n } from "../../i18n";
+import { plural, useI18n } from "../../i18n";
 import {
 	FormChoiceRow,
 	FormScreen,
@@ -29,7 +29,7 @@ export function FiltersSheet({
 	onApply: () => void;
 	onCancel: () => void;
 }) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const c = t.exercises;
 	const reduceMotion = useReduceMotion();
 	return (
@@ -45,10 +45,7 @@ export function FiltersSheet({
 				cancelLabel={c.cancel}
 				onCancel={onCancel}
 				primaryAction={{
-					label: (count === 1 ? c.applyOne : c.apply).replace(
-						"{count}",
-						String(count),
-					),
+					label: plural(locale, count, c.apply),
 					onPress: onApply,
 				}}
 			>

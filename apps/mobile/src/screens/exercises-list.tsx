@@ -12,12 +12,13 @@ import {
 } from "react-native";
 import { api } from "../convex/api";
 import { useShellData } from "../data/session-data";
-import { useI18n } from "../i18n";
+import { plural, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../prefs/local-preference";
+	readLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import {
 	radius,
 	spacing,
@@ -25,7 +26,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../theme";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { FormSearchField } from "../ui/form";
 import { Segmented } from "../ui/segmented";
@@ -51,7 +52,7 @@ export function ExercisesScreen() {
 	const router = useRouter();
 	const toast = useToast();
 	const confirm = useConfirm();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const c = t.exercises;
 	const { exercises } = useShellData();
 	const removeExercise = useMutation(api.exercises.remove);
@@ -69,7 +70,7 @@ export function ExercisesScreen() {
 		}
 	}, [created, router]);
 	const [layout, setLayout] = useState<Layout>(() =>
-		readPreference(PREFERENCE_KEYS.exerciseLibraryLayout) === "groups"
+		readLocal(PREFERENCE_KEYS.exerciseLibraryLayout) === "groups"
 			? "groups"
 			: "list",
 	);
@@ -100,7 +101,7 @@ export function ExercisesScreen() {
 		(filters.category === "all" ? 0 : 1);
 	const changeLayout = (next: Layout) => {
 		setLayout(next);
-		writePreference(PREFERENCE_KEYS.exerciseLibraryLayout, next);
+		writeLocal(PREFERENCE_KEYS.exerciseLibraryLayout, next);
 	};
 	const clear = () => {
 		setSearch("");
@@ -168,10 +169,7 @@ export function ExercisesScreen() {
 						/>
 						<View style={styles.summary}>
 							<AppText variant="footnote" style={{ color: colors.textMuted }}>
-								{(filtered.length === 1 ? c.countOne : c.count).replace(
-									"{count}",
-									String(filtered.length),
-								)}
+								{plural(locale, filtered.length, c.count)}
 							</AppText>
 							<Pressable
 								accessibilityRole="button"

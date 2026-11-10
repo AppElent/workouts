@@ -13,7 +13,7 @@ import {
 	formatLongDate,
 	shiftIsoDate,
 	todayIsoDate,
-} from "../../../../data/calendar-day";
+} from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);

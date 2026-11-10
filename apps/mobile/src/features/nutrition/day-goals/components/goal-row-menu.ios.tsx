@@ -7,7 +7,7 @@ import {
 } from "@expo/ui/swift-ui";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useWindowDimensions, View } from "react-native";
-import { useHostScheme, useTokens } from "../../../../theme";
+import { useScheme, useTokens } from "../../../../theme";
 import type { GoalRowMenuProps } from "./goal-row-menu";
 export function GoalRowMenu({
 	children,
@@ -19,7 +19,7 @@ export function GoalRowMenu({
 	reorderLabel,
 	disabled,
 }: GoalRowMenuProps) {
-	const scheme = useHostScheme();
+	const scheme = useScheme();
 	const colors = useTokens();
 	const { width } = useWindowDimensions();
 	if (disabled) return children();

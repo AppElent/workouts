@@ -6,10 +6,7 @@ import {
 } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import {
-	PREFERENCE_KEYS,
-	writePreference,
-} from "../../../prefs/local-preference";
+import { PREFERENCE_KEYS, writeLocal } from "../../../local-store/local-store";
 import { pressPending } from "../../../test-support/press-pending";
 import { renderApp } from "../../../test-support/render-app";
 
@@ -28,7 +25,7 @@ const entry = {
 	},
 };
 beforeEach(() => {
-	writePreference(PREFERENCE_KEYS.locale, "en");
+	writeLocal(PREFERENCE_KEYS.locale, "en");
 	jest
 		.mocked(useQuery)
 		.mockImplementation((ref, _args?) =>
@@ -249,7 +246,7 @@ it("closes a clean entry without asking and cancels creation without a write", a
 });
 
 it("resets named servings to one and accepts Dutch decimal input", async () => {
-	writePreference(PREFERENCE_KEYS.locale, "nl");
+	writeLocal(PREFERENCE_KEYS.locale, "nl");
 	await renderApp("/nutrition-entry?id=entry-1&meal=lunch&date=2026-10-04");
 	expect(await screen.findByDisplayValue("1,25")).toBeTruthy();
 	await fireEvent.press(screen.getByLabelText("Portie kiezen"));

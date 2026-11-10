@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -44,7 +45,7 @@ export function LogFoodOffSection({
 	query: string;
 	copy: Messages["nutrition"]["logFood"];
 	messages: Messages["nutrition"];
-	locale: "en" | "nl";
+	locale: Locale;
 	/** Nothing can be asked: the manual row gives way to the offline notice. */
 	offline: boolean;
 	onCommit: () => void;

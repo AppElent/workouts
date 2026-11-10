@@ -1,15 +1,15 @@
 import { fireEvent, screen, testRouter } from "expo-router/testing-library";
 import Storage from "expo-sqlite/kv-store";
 import {
-	clearPreference,
 	PREFERENCE_KEYS,
-	writePreference,
-} from "../prefs/local-preference";
+	removeLocal,
+	writeLocal,
+} from "../local-store/local-store";
 import { renderApp } from "../test-support/render-app";
 
 beforeEach(() => {
-	clearPreference(PREFERENCE_KEYS.appearance);
-	clearPreference(PREFERENCE_KEYS.locale);
+	removeLocal(PREFERENCE_KEYS.appearance);
+	removeLocal(PREFERENCE_KEYS.locale);
 });
 
 it("opens from Profile and persists a selection after navigating away", async () => {
@@ -29,7 +29,7 @@ it("opens from Profile and persists a selection after navigating away", async ()
 });
 
 it("provides Dutch appearance choices", async () => {
-	writePreference(PREFERENCE_KEYS.locale, "nl");
+	writeLocal(PREFERENCE_KEYS.locale, "nl");
 	await renderApp("/appearance");
 	expect(await screen.findByRole("radio", { name: "Systeem" })).toBeTruthy();
 	await fireEvent.press(screen.getByRole("radio", { name: "Licht" }));

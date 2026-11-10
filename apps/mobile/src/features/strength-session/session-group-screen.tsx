@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { Id } from "../../convex/api";
-import { useI18n } from "../../i18n";
+import { plural, useI18n } from "../../i18n";
 import {
 	radius,
 	spacing,
@@ -86,7 +86,7 @@ export function SessionGroupScreen() {
 	const actions = useSessionActions(workspace);
 	const { plan, nameOf, catalog } = workspace;
 	const router = useRouter();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const root = t.strength.plan;
 	const copy = root.group;
 	const colors = useTokens();
@@ -142,7 +142,7 @@ export function SessionGroupScreen() {
 				{amrap ? (
 					<Stepper
 						value={String(group.capMinutes)}
-						label={group.capMinutes === 1 ? copy.minuteUnit : copy.minutesUnit}
+						label={plural(locale, group.capMinutes, copy.minutesUnit)}
 						lessLabel={copy.fewerMinutes}
 						moreLabel={copy.moreMinutes}
 						lessDisabled={group.capMinutes <= 1}
@@ -162,7 +162,7 @@ export function SessionGroupScreen() {
 				) : (
 					<Stepper
 						value={String(group.rounds.length)}
-						label={group.rounds.length === 1 ? copy.roundUnit : copy.roundsUnit}
+						label={plural(locale, group.rounds.length, copy.roundsUnit)}
 						lessLabel={copy.fewerRounds}
 						moreLabel={copy.moreRounds}
 						lessDisabled={group.rounds.length <= 1}

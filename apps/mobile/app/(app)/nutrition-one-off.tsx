@@ -1,7 +1,7 @@
 /** One-off nutrition logging; Capture Drafts live in the Diary. */
 import { useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, type MealSlot } from "../../src/data/nutrition-day";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { OneOffLogScreen } from "../../src/features/nutrition/one-off/one-off-log-screen";
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";

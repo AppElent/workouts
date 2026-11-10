@@ -1,4 +1,5 @@
 import {
+	type Locale,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -85,7 +86,7 @@ export function buildAssistanceFoodCatalog(
 function scoreCandidate(
 	query: string,
 	food: AssistanceFood,
-	locale: "en" | "nl",
+	locale: Locale,
 ): number {
 	const wanted = normalise(query);
 	const name = normalise(food.name[locale]);
@@ -101,7 +102,7 @@ function scoreCandidate(
 export function searchAssistanceFoods(
 	query: string,
 	catalog: readonly AssistanceFood[],
-	locale: "en" | "nl",
+	locale: Locale,
 	limit = 8,
 ): readonly AssistanceFood[] {
 	const wanted = normalise(query);

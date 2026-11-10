@@ -1,5 +1,6 @@
 import {
 	combinedNutrients,
+	type Locale,
 	type NutrientValue,
 	type PersonalFood,
 	personalFoodSnapshotAtAmount,
@@ -113,7 +114,7 @@ export function snapshotEnergy(snapshot: {
 /** "389 kcal" in the reader's digits; undefined while the value is unknown. */
 export function kcalText(
 	value: NutrientValue,
-	locale: "en" | "nl",
+	locale: Locale,
 ): string | undefined {
 	return value.kind === "value"
 		? `${roundForDisplay("energy", value.amount).toLocaleString(locale)} kcal`

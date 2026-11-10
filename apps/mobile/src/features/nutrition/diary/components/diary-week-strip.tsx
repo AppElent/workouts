@@ -6,14 +6,14 @@ import {
 	type ScrollViewInstance,
 	View,
 } from "react-native";
+import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
+import { useTrainedDates } from "../../../../data/training-marker";
 import {
 	formatLongDate,
 	isoDateToLocalDate,
 	shiftIsoDate,
 	toIsoDate,
-} from "../../../../data/calendar-day";
-import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
-import { useTrainedDates } from "../../../../data/training-marker";
+} from "../../../../dates/calendar-day";
 import { plural, useI18n } from "../../../../i18n";
 import { radius, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";

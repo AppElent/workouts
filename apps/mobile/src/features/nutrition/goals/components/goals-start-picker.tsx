@@ -4,6 +4,7 @@ import { Pressable, View } from "react-native";
 import { useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
+import { goalPresetSummary } from "../goal-presets";
 
 /** With no goals yet, a starting point is the first step; "Set it yourself" is the other. */
 export function GoalsStartPicker({
@@ -13,7 +14,7 @@ export function GoalsStartPicker({
 	onPreset: (key: GoalPresetKey) => void;
 	onCustom: () => void;
 }) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const copy = t.nutrition.goalEditor;
 	const colors = useTokens();
 	const card = {
@@ -38,7 +39,7 @@ export function GoalsStartPicker({
 				<Pressable
 					key={key}
 					accessibilityRole="button"
-					accessibilityLabel={`${copy.presets[key].name}, ${copy.presetSummary[key]}`}
+					accessibilityLabel={`${copy.presets[key].name}, ${goalPresetSummary(copy, key, locale)}`}
 					onPress={() => onPreset(key)}
 					style={({ pressed }) => [
 						card,
@@ -65,7 +66,9 @@ export function GoalsStartPicker({
 						<AppText variant="secondary" style={{ color: colors.text }}>
 							{copy.presets[key].name}
 						</AppText>
-						<AppText variant="footnote">{copy.presetSummary[key]}</AppText>
+						<AppText variant="footnote">
+							{goalPresetSummary(copy, key, locale)}
+						</AppText>
 					</View>
 				</Pressable>
 			))}

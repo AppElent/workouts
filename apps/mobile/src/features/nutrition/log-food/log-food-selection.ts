@@ -1,4 +1,5 @@
 import {
+	type Locale,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 	previewServing,
@@ -55,7 +56,7 @@ export function servingPreview(
 	selection: FoodSelection,
 	option: ServingOption,
 	quantity: number,
-	locale: "en" | "nl",
+	locale: Locale,
 ) {
 	if (selection.kind === "shipped") {
 		return previewServing(selection.food, option, quantity, locale);

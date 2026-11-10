@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 import { api, type Id } from "../../src/convex/api";
 import { useQuery } from "../../src/convex/query-cache";
-import { useStalledOffline } from "../../src/data/stalled-offline";
+import { useStalledOffline } from "../../src/convex/stalled-offline";
 import { useI18n } from "../../src/i18n";
 import { EnduranceEditorScreen } from "../../src/screens/endurance-editor";
 import {

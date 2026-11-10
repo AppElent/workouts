@@ -18,7 +18,7 @@ import { useMutation } from "convex/react";
 import { useEffect } from "react";
 import { api } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
-import type { IsoDate } from "./calendar-day";
+import type { IsoDate } from "../dates/calendar-day";
 import {
 	useNutritionOperations,
 	useNutritionOperationVersion,

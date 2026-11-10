@@ -2,7 +2,7 @@ import {
 	type IsoDate,
 	isoDateToLocalDate,
 	shiftIsoDate,
-} from "../../../data/calendar-day";
+} from "../../../dates/calendar-day";
 import { fmt } from "../../../i18n";
 import type { goalEditorEn } from "../../../i18n/messages/goal-editor";
 

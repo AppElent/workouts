@@ -1,7 +1,7 @@
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { OFFLINE_GRACE_MS } from "../../../data/stalled-offline";
+import { OFFLINE_GRACE_MS } from "../../../convex/stalled-offline";
 import { renderApp } from "../../../test-support/render-app";
 import { armToastAction } from "../../../test-support/toast-action";
 

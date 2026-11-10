@@ -1,4 +1,4 @@
-import type { PersonalFood } from "@foundry/core";
+import type { Locale, PersonalFood } from "@foundry/core";
 import {
 	comboSourceKey,
 	foodSourceKey,
@@ -61,7 +61,7 @@ export function favoriteKeyOf(item: LibraryItem): string {
 		: foodSourceKey("personal", item.id);
 }
 
-export function libraryItemName(item: LibraryItem, locale: "en" | "nl") {
+export function libraryItemName(item: LibraryItem, locale: Locale) {
 	return item.kind === "combo" ? item.combo.name : item.food.name[locale];
 }
 
@@ -97,11 +97,7 @@ function haystack(item: LibraryItem): string {
 /** Local filtering only: the library never asks a provider while typing. */
 export function filterLibrary(
 	items: readonly LibraryItem[],
-	{
-		chip,
-		query,
-		locale,
-	}: { chip: LibraryChip; query: string; locale: "en" | "nl" },
+	{ chip, query, locale }: { chip: LibraryChip; query: string; locale: Locale },
 ): LibraryItem[] {
 	const term = normalize(query.trim());
 	return items

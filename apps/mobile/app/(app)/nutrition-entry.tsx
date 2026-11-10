@@ -1,12 +1,12 @@
 import { useConvexConnectionState } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
+import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
 import {
 	isoDateToLocalDate,
 	todayIsoDate,
 	toIsoDate,
-} from "../../src/data/calendar-day";
-import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
+} from "../../src/dates/calendar-day";
 import { DiaryEntryEditorScreen } from "../../src/features/nutrition/diary-entry/diary-entry-editor-screen";
 import { useI18n } from "../../src/i18n";
 import { RouteError } from "../../src/ui/route-error";

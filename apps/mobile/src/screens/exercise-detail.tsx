@@ -24,6 +24,7 @@ import { useQuery } from "../convex/query-cache";
 import { useExercise } from "../data/exercises";
 import { formatSessionDate } from "../data/session-data";
 import { dateLocale, useI18n } from "../i18n";
+import { convexErrorMessage } from "../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -33,7 +34,7 @@ import {
 } from "../theme";
 import { TrendChart } from "../ui/chart";
 import { Card, Chip, Eyebrow, StatBox } from "../ui/coach";
-import { convexErrorMessage, useConfirm } from "../ui/confirm-dialog";
+import { useConfirm } from "../ui/confirm-dialog";
 import { ScreenHeader } from "../ui/screen-header";
 import { Segmented } from "../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../ui/skeleton";

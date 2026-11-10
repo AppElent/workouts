@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { MEAL_SLOTS, type MealSlot } from "../../../data/nutrition-day";
 import {
 	formatShortDate,
 	shiftIsoDate,
 	todayIsoDate,
-} from "../../../data/calendar-day";
-import { MEAL_SLOTS, type MealSlot } from "../../../data/nutrition-day";
+} from "../../../dates/calendar-day";
 import { useI18n } from "../../../i18n";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { GlassSurface } from "../../../ui/glass-surface";

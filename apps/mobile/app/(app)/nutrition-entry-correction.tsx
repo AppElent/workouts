@@ -1,9 +1,9 @@
 import { NUTRIENT_KEYS } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
-import { todayIsoDate } from "../../src/data/calendar-day";
 import { MEAL_SLOTS, useNutritionDay } from "../../src/data/nutrition-day";
 import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { DiaryEntryCorrectionScreen } from "../../src/features/nutrition/diary-entry/diary-entry-correction-screen";
 import { useI18n } from "../../src/i18n";
 import { AppText } from "../../src/ui/text";

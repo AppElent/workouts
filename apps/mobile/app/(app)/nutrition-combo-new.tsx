@@ -9,7 +9,7 @@
  * offering to save a Combo with nothing in it.
  */
 import { router, useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/data/calendar-day";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import {
 	ComboNewFromDiary,
 	ComboNewFromLibrary,

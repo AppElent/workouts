@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { type LayoutChangeEvent, StyleSheet } from "react-native";
 import { BarChart, LineChart } from "react-native-gifted-charts";
-import { spacing, useTokens } from "../theme";
+import { spacing, type, useTokens } from "../theme";
 import {
 	CHART_HEIGHT,
 	ChartFrame,
@@ -115,5 +115,5 @@ export function BucketChart({
 }
 
 const styles = StyleSheet.create({
-	axis: { fontSize: 9 },
+	axis: type.axis,
 });

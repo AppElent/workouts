@@ -8,7 +8,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { useHostScheme, useTokens } from "../../../../theme";
+import { useScheme, useTokens } from "../../../../theme";
 import { DiaryCalendar } from "./diary-calendar";
 import type { DiaryDatePickerProps } from "./diary-date-picker";
 export function DiaryDatePicker(props: DiaryDatePickerProps) {
@@ -18,7 +18,7 @@ export function DiaryDatePicker(props: DiaryDatePickerProps) {
 	return (
 		<Host
 			ignoreSafeArea="all"
-			colorScheme={useHostScheme()}
+			colorScheme={useScheme()}
 			matchContents
 			style={{ width: 44, height: 44 }}
 		>
