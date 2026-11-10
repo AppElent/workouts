@@ -3,21 +3,28 @@ import {
 	validateWodScore,
 	type WodScoreInput,
 } from "@foundry/core";
+import type { ObjectType } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { getOwned } from "./auth";
 import { checked } from "./errors";
+import { wodDefinitionFields } from "./validators";
 
-type WodDefinition = Pick<
-	Doc<"wods">,
-	| "name"
-	| "type"
-	| "description"
-	| "repScheme"
-	| "timeCapSeconds"
-	| "durationSeconds"
-	| "movements"
->;
+type WodDefinitionFields = ObjectType<typeof wodDefinitionFields>;
+type WodDefinition = WodDefinitionFields & Pick<Doc<"wods">, "movements">;
+
+const WOD_DEFINITION_KEYS = Object.keys(
+	wodDefinitionFields,
+) as (keyof WodDefinitionFields)[];
+
+/** The WOD-defining fields of a library WOD or a hosted WOD block. */
+export function wodDefinitionOf(
+	source: WodDefinitionFields,
+): WodDefinitionFields {
+	return Object.fromEntries(
+		WOD_DEFINITION_KEYS.map((key) => [key, source[key]]),
+	) as WodDefinitionFields;
+}
 
 type Score = WodScoreInput & { notes?: string };
 

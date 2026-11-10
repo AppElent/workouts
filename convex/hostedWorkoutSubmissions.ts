@@ -6,7 +6,7 @@ import { mutation } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError, checked } from "./lib/errors";
 import { hostedLevel, wodScoreFields } from "./lib/validators";
-import { recordWodResult } from "./lib/wods";
+import { recordWodResult, wodDefinitionOf } from "./lib/wods";
 
 const scoreFields = { level: hostedLevel, ...wodScoreFields };
 
@@ -82,15 +82,7 @@ export const submitForSession = mutation({
 			(row) => row.participantId === participant._id,
 		);
 		const recorded = await recordWodResult(ctx, userId, {
-			wod: {
-				name: block.name,
-				type: block.type,
-				description: block.description,
-				repScheme: block.repScheme,
-				timeCapSeconds: block.timeCapSeconds,
-				durationSeconds: block.durationSeconds,
-				movements: level.movements,
-			},
+			wod: { ...wodDefinitionOf(block), movements: level.movements },
 			sessionId,
 			rxScaled: score.level === "rx" ? "rx" : "scaled",
 			score,
