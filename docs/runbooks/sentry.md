@@ -88,8 +88,11 @@ pnpm sentry:convex --deployment <verified-development-deployment>
 
 Select only one reader per deployment. `--prod` labels production; set
 `SENTRY_ENVIRONMENT=preview` for previews. This process needs an always-on host
-or supervisor, which has not been provisioned. It restarts the reader, replays
-100 entries, and deduplicates stable event IDs. Long downtime/high volume can
+or supervisor, which has not been provisioned. It restarts the reader with
+backoff up to 60 s, replays 100 entries, and deduplicates stable event IDs. It
+exits non-zero after a Convex auth error or five failed starts in a row, so the
+supervisor sees the failure. The DSN comes from `SENTRY_CONVEX_DSN`, else the
+`sentryDsn` value `pnpm env:apply local` wrote. Long downtime/high volume can
 exceed history; delivery has no durable queue. It supplies neither backend
 performance/distributed traces nor authenticated-user attribution.
 
