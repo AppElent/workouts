@@ -1,5 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { NUTRITION_AI_LIMITS, NUTRITION_AI_PLAUSIBILITY } from "@foundry/core";
+import {
+	type Locale,
+	NUTRITION_AI_LIMITS,
+	NUTRITION_AI_PLAUSIBILITY,
+} from "@foundry/core";
 
 /**
  * Provider-neutral AI help for nutrition entry (design: designs/nutrition/ai-entry_final.html).
@@ -282,7 +286,7 @@ const LABEL_SCHEMA = object({
 
 // ───────────────────────────── prompts ─────────────────────────────
 
-export type AiLocale = "en" | "nl";
+export type AiLocale = Locale;
 const LANGUAGE: Record<AiLocale, string> = { en: "English", nl: "Dutch" };
 
 const ITEM_RULES = `- Every item is one of two kinds:
@@ -524,7 +528,10 @@ export async function describe(
 			? // A failed lookup still gets an answer: an estimate, marked as one.
 				await provider
 					.research({ system: RESEARCH_SYSTEM, text: input.text })
-					.catch(() => ({ notes: "", sources: [] }))
+					.catch((error: unknown) => {
+						console.error("nutritionAi.research failed", error);
+						return { notes: "", sources: [] };
+					})
 			: { notes: "", sources: [] };
 	if (input.image) parts.push({ kind: "image", ...input.image });
 	parts.push({
