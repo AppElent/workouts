@@ -1,6 +1,5 @@
-import { NUTRIENT_KEYS } from "@foundry/core";
+import { isRealIsoDate, NUTRIENT_KEYS } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
-import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";
 import { todayIsoDate } from "../../src/dates/calendar-day";
 import { NutrientSourcesScreen } from "../../src/features/nutrition/nutrient-sources/nutrient-sources-screen";
 

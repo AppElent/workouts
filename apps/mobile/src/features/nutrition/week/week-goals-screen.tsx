@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@foundry/core";
+import { NUTRIENT_KEYS, weekAverage } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
@@ -15,7 +15,7 @@ import {
 	weekNumber,
 	weekUnit,
 } from "./week-format";
-import { weekAverage, weekDayStatus, weekGoalCount } from "./week-summary";
+import { weekDayStatus, weekGoalCount } from "./week-summary";
 
 /** Every goal over the week: its average and how many days stayed within it. */
 export function WeekGoalsScreen({ startDate }: { startDate?: string }) {

@@ -1,8 +1,10 @@
 import {
 	groupFoodNutrientSources,
 	type IsoDate,
+	isoWeek,
 	type NutrientKey,
 	roundForDisplay,
+	weekAverage,
 } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import {
@@ -30,8 +32,7 @@ import {
 	weekUnit,
 } from "./week-format";
 import {
-	isoWeekNumber,
-	weekAverage,
+	dayGoalBounds,
 	weekDayStatus,
 	weekGoalCount,
 	weekTitleKind,
@@ -101,7 +102,7 @@ export function WeekSourcesScreen({
 							<AppText variant="navTitle">{name}</AppText>
 							<AppText variant="caption">
 								{weekTitleKind(week, today) === "numbered"
-									? fmt(copy.title.numbered, { number: isoWeekNumber(week) })
+									? fmt(copy.title.numbered, { number: isoWeek(week).week })
 									: copy.title[weekTitleKind(week, today) as "current"]}
 							</AppText>
 						</View>
@@ -205,24 +206,15 @@ export function WeekSourcesScreen({
 										}
 										bars={days.map((day) => {
 											const part = weekDayParts(day.date, locale);
-											const goals =
-												day.goalBasis === "effective" ? day.goals : [];
+											const bounds = dayGoalBounds(day, nutrient);
 											const status = weekDayStatus(day, nutrient, today);
 											return {
 												date: day.date,
 												label: part.short,
 												amount: day.totals[nutrient].amount,
 												status,
-												minimum: goals.find(
-													(item) =>
-														item.nutrient === nutrient &&
-														item.direction === "min",
-												)?.target,
-												maximum: goals.find(
-													(item) =>
-														item.nutrient === nutrient &&
-														item.direction === "max",
-												)?.target,
+												minimum: bounds?.min,
+												maximum: bounds?.max,
 												accessibilityLabel: `${part.long}, ${weekNumber(day.totals[nutrient].amount, locale)} ${unit}, ${copy.status[status]}`,
 											};
 										})}

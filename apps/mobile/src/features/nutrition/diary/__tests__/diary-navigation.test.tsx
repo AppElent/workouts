@@ -19,7 +19,12 @@ import {
  * hardware button perform.
  */
 
-import { mealSlotAt, shiftIsoDate, totalNutrients } from "@foundry/core";
+import {
+	mealSlotAt,
+	shiftIsoDate,
+	totalNutrients,
+	weekStartMonday,
+} from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -28,10 +33,7 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import {
-	weekDates,
-	weekStartMonday,
-} from "../../../../data/nutrition-weekly-review";
+import { weekDates } from "../../../../data/nutrition-weekly-review";
 import { todayIsoDate } from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";

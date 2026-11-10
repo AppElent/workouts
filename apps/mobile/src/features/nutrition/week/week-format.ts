@@ -1,4 +1,4 @@
-import type { IsoDate, NutrientKey } from "@foundry/core";
+import { goalBounds, type IsoDate, type NutrientKey } from "@foundry/core";
 import type { WeeklyGoal } from "../../../data/nutrition-weekly-review";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { fmt } from "../../../i18n";
@@ -22,12 +22,7 @@ export function weekGoalLabel(
 	copy: typeof weekReviewEn,
 	withUnit = true,
 ): string | undefined {
-	const min = goals.find(
-		(goal) => goal.nutrient === nutrient && goal.direction === "min",
-	)?.target;
-	const max = goals.find(
-		(goal) => goal.nutrient === nutrient && goal.direction === "max",
-	)?.target;
+	const { min, max } = goalBounds(goals, [nutrient])[0] ?? {};
 	const unit = withUnit ? ` ${weekUnit(nutrient)}` : "";
 	if (min !== undefined && max !== undefined)
 		return `${weekNumber(min, locale)}–${weekNumber(max, locale)}${unit}`;

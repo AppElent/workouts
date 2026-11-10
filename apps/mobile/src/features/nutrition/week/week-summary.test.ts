@@ -5,8 +5,6 @@ import {
 	type WeeklyReviewDay,
 } from "../../../data/nutrition-weekly-review";
 import {
-	isoWeekNumber,
-	weekAverage,
 	weekDayStatus,
 	weekGoalChanges,
 	weekGoalCount,
@@ -32,17 +30,20 @@ function day(
 		entryCount?: number;
 	} = {},
 ): WeeklyReviewDay {
+	const entryCount =
+		options.entryCount ?? (Object.keys(amounts).length ? 5 : 0);
 	const totals = emptyReviewTotals();
 	for (const [key, amount] of Object.entries(amounts))
 		totals[key as NutrientKey] = {
 			...totals[key as NutrientKey],
 			amount: amount as number,
+			entryCount,
 			incomplete: options.incomplete?.includes(key as NutrientKey) ?? false,
 		};
 	const goals = options.goals ?? [fatMax, proteinMin];
 	return {
 		date,
-		entryCount: options.entryCount ?? (Object.keys(amounts).length ? 5 : 0),
+		entryCount,
 		totals,
 		goals,
 		goalBasis: goals.length ? "effective" : "reference",
@@ -86,14 +87,6 @@ describe("week summary", () => {
 			),
 		).toBe("noGoal");
 		expect(weekDayStatus(day("2026-09-27", {}), "fat", today)).toBe("empty");
-	});
-
-	it("averages closed, complete days only", () => {
-		expect(weekAverage(week, "fat", today)).toEqual({ value: 85, days: 3 });
-		expect(weekAverage(week, "protein", today)).toEqual({
-			value: (130 + 100 + 90 + 125) / 4,
-			days: 4,
-		});
 	});
 
 	it("counts days against the goal and leaves out days without one", () => {
@@ -150,9 +143,7 @@ describe("week summary", () => {
 		]);
 	});
 
-	it("titles and numbers weeks", () => {
-		expect(isoWeekNumber("2026-09-28")).toBe(40);
-		expect(isoWeekNumber("2027-01-01")).toBe(53);
+	it("titles weeks", () => {
 		expect(weekTitleKind("2026-09-28", "2026-10-02")).toBe("current");
 		expect(weekTitleKind("2026-09-21", "2026-10-02")).toBe("previous");
 		expect(weekTitleKind("2026-08-24", "2026-10-02")).toBe("numbered");
