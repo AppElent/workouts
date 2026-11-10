@@ -61,7 +61,7 @@ describe("a result row's actions", () => {
 	});
 
 	it("logs the remembered portion from the menu, the same as +", async () => {
-		const log = jest.fn().mockResolvedValue("entry-1");
+		const log = jest.fn().mockResolvedValue(undefined);
 		mockUseMutation.mockReturnValue(
 			log as unknown as ReturnType<typeof useMutation>,
 		);
@@ -78,6 +78,8 @@ describe("a result row's actions", () => {
 		});
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({ meal: "breakfast" });
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
+			meal: "breakfast",
+		});
 	});
 });

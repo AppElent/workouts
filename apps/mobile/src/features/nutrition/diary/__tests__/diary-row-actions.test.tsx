@@ -56,7 +56,7 @@ beforeEach(() => {
 		.mocked(useMutation)
 		.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:remove"
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
 					? remove
 					: jest.fn().mockResolvedValue(undefined)) as unknown as ReturnType<
 					typeof useMutation
@@ -104,7 +104,9 @@ describe("diary row accelerators", () => {
 
 		await pressConfirm("Delete entry");
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
-		expect(remove.mock.calls[0][0]).toMatchObject({ id: "entry-1" });
+		expect(remove.mock.calls[0][0]).toMatchObject({
+			operation: { kind: "remove", target: { id: "entry-1" } },
+		});
 	});
 
 	it("removes nothing when the confirmation is declined", async () => {
