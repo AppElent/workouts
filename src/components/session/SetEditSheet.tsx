@@ -40,7 +40,12 @@ const TYPE_COLOR: Record<SetType, string> = {
 	failure: "#f87171",
 };
 
-const RPE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+const RPE_OPTIONS = Array.from(
+	{
+		length: (SET_LIMITS.rpe.max - SET_LIMITS.rpe.min) / SET_LIMITS.rpe.step + 1,
+	},
+	(_, i) => SET_LIMITS.rpe.min + i * SET_LIMITS.rpe.step,
+);
 
 const DRAG_DISMISS_THRESHOLD = 120;
 
@@ -283,7 +288,8 @@ export function SetEditSheet({
 				<BigStepper
 					value={draft.weight}
 					step={inc}
-					min={0}
+					min={SET_LIMITS.weight.min}
+					max={SET_LIMITS.weight.max}
 					quickJumps={weightJumps}
 					onChange={(v) => update({ weight: v })}
 				/>
@@ -295,8 +301,9 @@ export function SetEditSheet({
 				</div>
 				<BigStepper
 					value={draft.reps}
-					step={1}
+					step={SET_LIMITS.reps.step}
 					min={SET_LIMITS.reps.min}
+					max={SET_LIMITS.reps.max}
 					quickJumps={repsJumps}
 					onChange={(v) => update({ reps: v })}
 				/>
@@ -306,7 +313,7 @@ export function SetEditSheet({
 				<div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">
 					RPE
 				</div>
-				<div className="flex gap-1">
+				<div className="grid grid-cols-10 gap-1">
 					{RPE_OPTIONS.map((v) => {
 						const sel = draft.rpe === v;
 						return (
@@ -315,7 +322,7 @@ export function SetEditSheet({
 								type="button"
 								onClick={() => update({ rpe: v })}
 								className={[
-									"flex-1 h-9 rounded-lg text-xs font-semibold border transition-colors",
+									"h-9 rounded-lg text-xs font-semibold border transition-colors",
 									sel
 										? "bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent-ring)]"
 										: "bg-[var(--surface-2)] text-[var(--text-muted)] border-[var(--border)]",
@@ -417,7 +424,8 @@ export function SetEditSheet({
 interface BigStepperProps {
 	value: number;
 	step: number;
-	min?: number;
+	min: number;
+	max: number;
 	quickJumps: number[];
 	onChange: (v: number) => void;
 }
@@ -425,11 +433,12 @@ interface BigStepperProps {
 function BigStepper({
 	value,
 	step,
-	min = 0,
+	min,
+	max,
 	quickJumps,
 	onChange,
 }: BigStepperProps) {
-	const clamp = (v: number) => Math.max(min, +v.toFixed(2));
+	const clamp = (v: number) => Math.min(max, Math.max(min, +v.toFixed(2)));
 	return (
 		<div>
 			<div className="flex items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl h-16 overflow-hidden">

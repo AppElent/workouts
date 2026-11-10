@@ -240,6 +240,8 @@ export function ExerciseSection({
 						value={weight}
 						onChange={setWeight}
 						step={weightStep}
+						min={SET_LIMITS.weight.min}
+						max={SET_LIMITS.weight.max}
 						unit="kg"
 						label={isBodyweight ? "Added weight" : "Weight"}
 					/>
@@ -247,17 +249,17 @@ export function ExerciseSection({
 					<Stepper
 						value={reps}
 						onChange={setReps}
-						step={1}
+						step={SET_LIMITS.reps.step}
 						min={SET_LIMITS.reps.min}
-						max={100}
+						max={SET_LIMITS.reps.max}
 						label="Reps"
 					/>
 					<Stepper
 						value={rpe ?? 8}
 						onChange={setRpe}
-						step={0.5}
-						min={1}
-						max={10}
+						step={SET_LIMITS.rpe.step}
+						min={SET_LIMITS.rpe.min}
+						max={SET_LIMITS.rpe.max}
 						label="RPE"
 					/>
 
@@ -337,7 +339,8 @@ export function ExerciseSection({
 						<input
 							id="set-weight"
 							type="number"
-							min="0"
+							min={SET_LIMITS.weight.min}
+							max={SET_LIMITS.weight.max}
 							step={weightStep}
 							value={weight}
 							onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
@@ -356,6 +359,7 @@ export function ExerciseSection({
 							id="set-reps"
 							type="number"
 							min={SET_LIMITS.reps.min}
+							max={SET_LIMITS.reps.max}
 							value={reps}
 							onChange={(e) => setReps(parseInt(e.target.value, 10) || 0)}
 							className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
@@ -371,9 +375,9 @@ export function ExerciseSection({
 						<input
 							id="set-rpe"
 							type="number"
-							min="1"
-							max="10"
-							step="0.5"
+							min={SET_LIMITS.rpe.min}
+							max={SET_LIMITS.rpe.max}
+							step={SET_LIMITS.rpe.step}
 							value={rpe ?? ""}
 							onChange={(e) =>
 								setRpe(
