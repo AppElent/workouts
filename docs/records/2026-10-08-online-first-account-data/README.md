@@ -2,7 +2,7 @@
 type: record
 kind: verification
 description: Read for account-data implementation checks, migration results, and measured Convex usage.
-version: 1.0.0
+version: 1.0.1
 date: 2026-10-08
 ---
 
@@ -21,8 +21,8 @@ Verified 2026-10-07/08 on `t3code/offline-behavior-decision`, against task-start
 `c59d8fb` plus this commit's working tree. Backend: isolated cloud development
 `earnest-cobra-841`, project `workout-tracker`, worktree
 `ericjansen-t3code/3be9d410`. This is branch evidence, not a production rollout.
-The [migration release gate](../../runbooks/nutrition-account-migration.md) must
-complete on the release deployment before the new client is distributed.
+The migration release gate (a since-removed runbook) had to complete on the
+release deployment before the new client was distributed.
 
 Personal Foods, Combos and explicit saved Capture Drafts now belong to the
 authenticated account. Ordinary Nutrition writes await server acknowledgement;

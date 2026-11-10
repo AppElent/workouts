@@ -1,7 +1,7 @@
 ---
 type: contract
-description: Read when changing data ownership, saving, caching, Convex usage, or local-data migration.
-version: 2.1.0
+description: Read when changing data ownership, saving, caching, Convex usage, or device-local account state.
+version: 3.0.0
 status: current
 ---
 
@@ -78,28 +78,19 @@ Explain repeated transfers and subscription reruns, fix demonstrated waste, and
 record a numerical usage budget from actual evidence. No savings or budget is
 assumed by this design conversation.
 
-## Migration and account isolation
+## Account isolation
 
-Inspect and extend existing owners before replacing local nutrition mechanisms.
-Migrate known-owner local records automatically; require an explicit account
-claim for unowned legacy records. Uploads must be authenticated, retry-safe, and
-isolated by account. Retain original records and pending operations until server
-acknowledgement; interrupted migration must not lose or duplicate data. Resolve
-legacy conflicts without silently discarding either unsynchronized version.
+Writes are authenticated, retry-safe, and isolated by account. Account switching
+isolates local defaults, cached data, in-flight requests, and late responses.
+Current builds read and write personal data only through Convex; they do not
+read, upload, or claim device-local data from before account storage.
 
-Only retire optional backup, local-only saved content, and the old offline-write
-paths after the migration is proven. Migration durability is required even
-though new ordinary offline writes are out of scope. Account switching must
-isolate local defaults, cached data, in-flight requests, and late responses.
+## Local state reset
 
-## Local data cleanup
-
-The explicit **Upload and clean local data** action waits for acknowledgement
-before pruning migrated Foods/Combos, Capture Draft and Recipe originals, and
-diary caches/journals. Library mirrors and migration receipts remain to preserve
-device photos and prevent resurrection; optional preferences and Set Drafts
-remain. A confirmed test-data Load/Clear instead discards the account’s personal
-local state and resets subscription retention before reopening providers.
+A confirmed test-data Load/Clear discards the account's personal local state,
+including its Set Drafts, deletes its uploaded photo files, and resets
+subscription retention before reopening providers. Optional preferences,
+remembered portions, and OFF caches remain.
 
 ## Out of scope
 
@@ -124,24 +115,16 @@ sync without measured justification.
   retryable input while the editor remains open, and no write per keystroke.
 - Public Convex API checks: authorization, validation, account isolation,
   overlapping edit ordering, retry behavior, and updates after deletion.
-- Migration: known-owner uploads, explicit legacy claims, interrupted uploads,
-  pending old operations, conflicting legacy versions, and account switching.
+- Account switching: no defaults, cached data, or late responses from the
+  previous account.
 - Regression checks: historical snapshots/goals and shared-event ownership.
 - Actual mobile connectivity and lifecycle checks, plus affected web flows.
   Report that unsent work is not guaranteed to survive process termination.
 - Real Convex usage evidence for the scenarios above. Mocked query values and
   request counts alone do not prove storage or database-cost behavior.
 
-The sole user confirmed the build 20 **Upload and clean local data** action
-completed. The follow-up cleanup removes the old migration/replay implementation
-and persistent account read copies. Upgrade refuses to discard unacknowledged
-legacy journal work; that work must be uploaded using build 20 first. Empty
-legacy source files are retired. A legacy manual photo source stays available
-until its upload is acknowledged; OFF originals use provider images. Optional
-preferences, remembered portions, OFF caches and Set Drafts remain. A confirmed
-test-data Load/Clear also deletes the account’s uploaded photo files and resets
-subscription retention before reopening providers. See
+The one-time migration of device-local data into the account completed (the
+sole user ran it on build 20). Its client and server code, the legacy guards,
+and persistent account read copies are removed. See
 [ADR 0015](../adr/0015-account-food-photos-and-cache-retirement.md).
-
-The account migration has completed and its server endpoints are removed.
 Evidence: [implementation and usage](../records/2026-10-08-online-first-account-data/README.md).
