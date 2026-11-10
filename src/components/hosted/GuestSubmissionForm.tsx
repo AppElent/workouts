@@ -1,31 +1,18 @@
 import { useState } from "react";
-import { HostedScoreForm } from "#/components/hosted/HostedScoreForm";
-import type {
-	HostedLevel,
-	HostedScore,
-	HostedWodType,
-} from "#/lib/hostedWorkouts";
-
-type WodBlock = {
-	blockId: string;
-	name: string;
-	type: HostedWodType;
-	levels: { level: HostedLevel; label: string }[];
-};
-
-type SubmitPayload = {
-	guestName: string;
-	wodBlockId: string;
-	level: HostedLevel;
-	notes?: string;
-} & HostedScore;
+import {
+	HostedScoreForm,
+	type HostedScorePayload,
+} from "#/components/hosted/HostedScoreForm";
+import type { HostedWodBlock } from "#/components/hosted/wodBlock";
 
 export function GuestSubmissionForm({
 	wodBlocks,
 	onSubmit,
 }: {
-	wodBlocks: WodBlock[];
-	onSubmit: (payload: SubmitPayload) => Promise<unknown>;
+	wodBlocks: Omit<HostedWodBlock, "wodId">[];
+	onSubmit: (
+		payload: HostedScorePayload & { guestName: string },
+	) => Promise<unknown>;
 }) {
 	const [guestName, setGuestName] = useState("");
 

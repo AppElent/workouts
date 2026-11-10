@@ -18,7 +18,6 @@ import { SetEditSheet } from "#/components/session/SetEditSheet";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import type { HostedWodType } from "#/lib/hostedWorkouts";
 import { useExercises } from "#/lib/useExercises";
 
 export const Route = createFileRoute("/log/$sessionId")({
@@ -312,18 +311,7 @@ function ActiveSessionPage() {
 				{hostedParticipant ? (
 					<div className="mt-4">
 						<HostedScoreForm
-							wodBlocks={hostedParticipant.hosted.template.wodBlocks.map(
-								(block) => ({
-									blockId: block.blockId,
-									name: block.name,
-									type: block.type as HostedWodType,
-									levels: block.levels.map((level) => ({
-										level: level.level,
-										label: level.label,
-										movements: level.movements,
-									})),
-								}),
-							)}
+							wodBlocks={hostedParticipant.hosted.template.wodBlocks}
 							submitLabel="Submit hosted score"
 							onSubmit={async (payload) => {
 								if (

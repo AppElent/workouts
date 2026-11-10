@@ -1,86 +1,46 @@
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import type { ExerciseId } from "@foundry/core/exercises";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import {
+	HOSTED_LEVELS,
+	type HostedLevel,
+	type LoadUnit,
+	WOD_TYPES,
+	type WodMovement,
+} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { HOSTED_LEVEL_LABELS } from "#/components/hosted/wodBlock";
 import { getConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/useExercises";
 
-type StrengthBlock = {
-	blockId: string;
-	exerciseId?: ExerciseId;
-	exerciseName: string;
-	instructions?: string;
-	defaultSets?: number;
-	defaultReps?: number;
-	defaultWeight?: number;
-	unit?: "kg" | "lbs";
-	percentageOfOneRepMax?: number;
-};
+type HostedWorkout = Doc<"hostedWorkouts">;
+type StrengthBlock = HostedWorkout["template"]["strengthBlocks"][number];
+type PersistedWodBlock = HostedWorkout["template"]["wodBlocks"][number];
+type PersistedLevel = PersistedWodBlock["levels"][number];
 
-type Level = "rx" | "l1" | "l2" | "l3";
+// Movement rows carry a client-only id so editable rows keep focus and state
+// when siblings are added or removed; handleSubmit strips it.
+type Movement = WodMovement & { id: string };
+type Level = Omit<PersistedLevel, "movements"> & { movements: Movement[] };
+type WodBlock = Omit<PersistedWodBlock, "levels"> & { levels: Level[] };
 
-type Movement = {
-	// Client-only stable id so editable movement rows keep focus/state when
-	// siblings are added or removed. Stripped before persisting (see handleSubmit).
-	id: string;
-	name: string;
-	reps?: number;
-	weight?: number;
-	unit?: "kg" | "lbs";
-	notes?: string;
-};
-
-type WodBlock = {
-	blockId: string;
-	name: string;
-	type: "forTime" | "amrap" | "emom" | "load";
-	description?: string;
-	repScheme?: string;
-	timeCapSeconds?: number;
-	durationSeconds?: number;
-	levels: {
-		level: Level;
-		label: string;
-		description?: string;
-		movements: Movement[];
-	}[];
-};
+type HostedWorkoutBuilderInitial = Pick<
+	HostedWorkout,
+	"title" | "notes" | "scheduledAt" | "hostParticipation" | "template"
+>;
 
 function emptyMovement(): Movement {
 	return { id: crypto.randomUUID(), name: "" };
 }
 
-const defaultLevels: WodBlock["levels"] = [
-	{ level: "rx", label: "Rx", movements: [emptyMovement()] },
-	{ level: "l1", label: "L1", movements: [emptyMovement()] },
-	{ level: "l2", label: "L2", movements: [emptyMovement()] },
-	{ level: "l3", label: "L3", movements: [emptyMovement()] },
-];
-
-function newBlockId() {
-	return crypto.randomUUID();
+function defaultLevels(): Level[] {
+	return HOSTED_LEVELS.map((level) => ({
+		level,
+		label: HOSTED_LEVEL_LABELS[level],
+		movements: [emptyMovement()],
+	}));
 }
-
-// Persisted movements have no client id; add one when seeding edit state.
-type PersistedMovement = Omit<Movement, "id">;
-type PersistedWodBlock = Omit<WodBlock, "levels"> & {
-	levels: (Omit<WodBlock["levels"][number], "movements"> & {
-		movements: PersistedMovement[];
-	})[];
-};
-
-export type HostedWorkoutBuilderInitial = {
-	title: string;
-	notes?: string;
-	scheduledAt?: number;
-	hostParticipation: "hostOnly" | "hostAndParticipate";
-	template: {
-		strengthBlocks: StrengthBlock[];
-		wodBlocks: PersistedWodBlock[];
-	};
-};
 
 function withMovementIds(blocks: PersistedWodBlock[]): WodBlock[] {
 	return blocks.map((block) => ({
@@ -124,14 +84,14 @@ export function HostedWorkoutBuilder({
 }) {
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
-	const exercises = useExercises() ?? [];
+	const exercises = useExercises();
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [notes, setNotes] = useState(initial?.notes ?? "");
 	const [scheduledAt, setScheduledAt] = useState(
 		initial?.scheduledAt ? toDateTimeLocal(initial.scheduledAt) : "",
 	);
 	const [hostParticipation, setHostParticipation] = useState<
-		"hostOnly" | "hostAndParticipate"
+		HostedWorkout["hostParticipation"]
 	>(initial?.hostParticipation ?? "hostOnly");
 	const [strengthBlocks, setStrengthBlocks] = useState<StrengthBlock[]>(
 		initial?.template.strengthBlocks ?? [],
@@ -163,11 +123,9 @@ export function HostedWorkoutBuilder({
 						description: level.description?.trim() || undefined,
 						movements: level.movements
 							.filter((movement) => movement.name.trim().length > 0)
-							.map((movement) => ({
+							.map(({ id: _id, ...movement }) => ({
+								...movement,
 								name: movement.name.trim(),
-								reps: movement.reps,
-								weight: movement.weight,
-								unit: movement.unit,
 								notes: movement.notes?.trim() || undefined,
 							})),
 					})),
@@ -213,7 +171,7 @@ export function HostedWorkoutBuilder({
 
 	function updateLevelDescription(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		description: string,
 	) {
 		setWodBlocks((prev) =>
@@ -232,7 +190,7 @@ export function HostedWorkoutBuilder({
 
 	function mutateLevel(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		mutator: (movements: Movement[]) => Movement[],
 	) {
 		setWodBlocks((prev) =>
@@ -253,7 +211,7 @@ export function HostedWorkoutBuilder({
 
 	function updateMovement(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		movementIndex: number,
 		patch: Partial<Movement>,
 	) {
@@ -264,7 +222,7 @@ export function HostedWorkoutBuilder({
 		);
 	}
 
-	function addMovement(blockIndex: number, levelKey: Level) {
+	function addMovement(blockIndex: number, levelKey: HostedLevel) {
 		mutateLevel(blockIndex, levelKey, (movements) => [
 			...movements,
 			emptyMovement(),
@@ -273,7 +231,7 @@ export function HostedWorkoutBuilder({
 
 	function removeMovement(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		movementIndex: number,
 	) {
 		mutateLevel(blockIndex, levelKey, (movements) =>
@@ -352,7 +310,7 @@ export function HostedWorkoutBuilder({
 						onClick={() =>
 							setStrengthBlocks((prev) => [
 								...prev,
-								{ blockId: newBlockId(), exerciseName: "" },
+								{ blockId: crypto.randomUUID(), exerciseName: "" },
 							])
 						}
 						className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-white"
@@ -452,10 +410,10 @@ export function HostedWorkoutBuilder({
 							setWodBlocks((prev) => [
 								...prev,
 								{
-									blockId: newBlockId(),
+									blockId: crypto.randomUUID(),
 									name: "",
 									type: "forTime",
-									levels: structuredClone(defaultLevels),
+									levels: defaultLevels(),
 								},
 							])
 						}
@@ -485,7 +443,7 @@ export function HostedWorkoutBuilder({
 							placeholder="WOD name"
 						/>
 						<div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-							{(["forTime", "amrap", "emom", "load"] as const).map((type) => (
+							{WOD_TYPES.map((type) => (
 								<button
 									key={type}
 									type="button"
@@ -618,7 +576,7 @@ export function HostedWorkoutBuilder({
 												value={movement.unit ?? "kg"}
 												onChange={(event) =>
 													updateMovement(index, level.level, movementIndex, {
-														unit: event.target.value as "kg" | "lbs",
+														unit: event.target.value as LoadUnit,
 													})
 												}
 												aria-label={`${level.label} movement ${movementIndex + 1} unit`}

@@ -3,10 +3,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import {
-	HostedWorkoutBuilder,
-	type HostedWorkoutBuilderInitial,
-} from "#/components/hosted/HostedWorkoutBuilder";
+import { HostedWorkoutBuilder } from "#/components/hosted/HostedWorkoutBuilder";
 
 export const Route = createFileRoute("/hosted-workouts/edit/$id")({
 	component: EditHostedWorkoutGuarded,
@@ -48,54 +45,12 @@ function EditHostedWorkoutPage() {
 		);
 	}
 
-	const { hosted } = data;
-	const initial: HostedWorkoutBuilderInitial = {
-		title: hosted.title,
-		notes: hosted.notes,
-		scheduledAt: hosted.scheduledAt,
-		hostParticipation: hosted.hostParticipation,
-		template: {
-			strengthBlocks: hosted.template.strengthBlocks.map((block) => ({
-				blockId: block.blockId,
-				exerciseId: block.exerciseId,
-				exerciseName: block.exerciseName,
-				instructions: block.instructions,
-				defaultSets: block.defaultSets,
-				defaultReps: block.defaultReps,
-				defaultWeight: block.defaultWeight,
-				unit: block.unit,
-				percentageOfOneRepMax: block.percentageOfOneRepMax,
-			})),
-			wodBlocks: hosted.template.wodBlocks.map((block) => ({
-				blockId: block.blockId,
-				name: block.name,
-				type: block.type,
-				description: block.description,
-				repScheme: block.repScheme,
-				timeCapSeconds: block.timeCapSeconds,
-				durationSeconds: block.durationSeconds,
-				levels: block.levels.map((level) => ({
-					level: level.level,
-					label: level.label,
-					description: level.description,
-					movements: level.movements.map((movement) => ({
-						name: movement.name,
-						reps: movement.reps,
-						weight: movement.weight,
-						unit: movement.unit,
-						notes: movement.notes,
-					})),
-				})),
-			})),
-		},
-	};
-
 	return (
 		<div className="mx-auto max-w-3xl p-4 sm:p-6">
 			<h1 className="mb-6 text-2xl font-bold text-white">Edit Workout</h1>
 			<HostedWorkoutBuilder
 				hostedWorkoutId={id as Id<"hostedWorkouts">}
-				initial={initial}
+				initial={data.hosted}
 				onSaved={(savedId) =>
 					void navigate({
 						to: "/hosted-workouts/$id",
