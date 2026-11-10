@@ -42,6 +42,7 @@ import type { SFSymbol } from "../../../ui/inset-list.types";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { type AcceptedCombo, ComboNewScreen } from "../combo/combo-new-screen";
 import { comboPartFromEntry } from "../combo/combo-parts";
 import {
@@ -118,6 +119,7 @@ export function AssistanceScreen({
 	const colors = useTokens();
 	const router = useRouter();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const reduceMotion = useReduceMotion();
 	const diary = useNutritionDiary();
 	const account = useAccountWrite().subject;
@@ -342,13 +344,14 @@ export function AssistanceScreen({
 						combo,
 					)
 				: await diary.logBatch(date, meal, entries, combo);
-		} catch {
+		} catch (error) {
 			toast.error(
 				!session.ai.online
 					? copy.logOffline
-					: resumed
-						? copy.replaceFailure
-						: copy.logFailure,
+					: writeFailureMessage(
+							error,
+							resumed ? copy.replaceFailure : copy.logFailure,
+						),
 			);
 			return false;
 		} finally {
@@ -621,8 +624,10 @@ export function AssistanceScreen({
 							note: session.text.trim(),
 						});
 						close();
-					} catch {
-						toast.error(t.nutrition.drafts.saveFailure);
+					} catch (error) {
+						toast.error(
+							writeFailureMessage(error, t.nutrition.drafts.saveFailure),
+						);
 					}
 				}}
 				onSearch={() => {
