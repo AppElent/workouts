@@ -20,7 +20,9 @@ function EditHostedWorkoutPage() {
 	}
 	if (data === null) {
 		return (
-			<div className="p-6 text-sm text-red-400">Hosted workout not found.</div>
+			<div className="p-6 text-sm text-[var(--danger)]">
+				Hosted workout not found.
+			</div>
 		);
 	}
 	if (data.hosted.status !== "draft") {

@@ -225,7 +225,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				<button
 					type="button"
 					onClick={() => void handleDelete()}
-					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-red-400 hover:border-red-400/30 transition-colors"
+					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--danger)] hover:border-[var(--danger)]/30 transition-colors"
 				>
 					<Trash2 size={15} />
 					Delete

@@ -36,8 +36,8 @@ interface Draft {
 const TYPE_COLOR: Record<SetType, string> = {
 	warmup: "var(--text-muted)",
 	working: "var(--accent)",
-	drop: "#fbbf24",
-	failure: "#f87171",
+	drop: "var(--warn)",
+	failure: "var(--danger)",
 };
 
 const RPE_OPTIONS = Array.from(

@@ -399,7 +399,7 @@ export function HostedWorkoutBuilder({
 									prev.filter((item) => item.blockId !== block.blockId),
 								)
 							}
-							className="mt-2 flex items-center gap-1.5 text-xs text-red-400"
+							className="mt-2 flex items-center gap-1.5 text-xs text-[var(--danger)]"
 						>
 							<Trash2 size={13} /> Remove
 						</button>
@@ -584,7 +584,7 @@ export function HostedWorkoutBuilder({
 												}
 												disabled={level.movements.length <= 1}
 												aria-label={`Remove ${level.label} movement ${movementIndex + 1}`}
-												className="flex h-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-red-400 disabled:opacity-30"
+												className="flex h-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] disabled:opacity-30"
 											>
 												<Trash2 size={13} />
 											</button>
@@ -620,7 +620,7 @@ export function HostedWorkoutBuilder({
 									prev.filter((item) => item.blockId !== block.blockId),
 								)
 							}
-							className="mt-3 flex items-center gap-1.5 text-xs text-red-400"
+							className="mt-3 flex items-center gap-1.5 text-xs text-[var(--danger)]"
 						>
 							<Trash2 size={13} /> Remove
 						</button>
@@ -628,7 +628,7 @@ export function HostedWorkoutBuilder({
 				))}
 			</div>
 
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 			<button
 				type="submit"
 				disabled={saving}

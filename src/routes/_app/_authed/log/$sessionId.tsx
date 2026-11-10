@@ -199,7 +199,9 @@ function ActiveSessionPage() {
 		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
 	}
 	if (session === null) {
-		return <div className="p-6 text-red-400 text-sm">Session not found.</div>;
+		return (
+			<div className="p-6 text-[var(--danger)] text-sm">Session not found.</div>
+		);
 	}
 
 	if (session.status !== "active") {
@@ -233,7 +235,7 @@ function ActiveSessionPage() {
 							type="button"
 							onClick={() => void handleCancel()}
 							disabled={busy}
-							className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-red-400 hover:border-red-400/30 transition-colors"
+							className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--danger)] hover:border-[var(--danger)]/30 transition-colors"
 						>
 							<XCircle size={15} />
 							Cancel

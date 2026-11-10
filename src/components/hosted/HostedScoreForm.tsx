@@ -156,7 +156,7 @@ export function HostedScoreForm({
 				{saving ? "Submitting..." : submitLabel}
 			</button>
 			{message && <p className="text-sm text-[var(--accent)]">{message}</p>}
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 		</form>
 	);
 }

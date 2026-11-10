@@ -20,7 +20,9 @@ function WodDetailPage() {
 		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
 	}
 	if (wod === null) {
-		return <div className="p-6 text-red-400 text-sm">WOD not found.</div>;
+		return (
+			<div className="p-6 text-[var(--danger)] text-sm">WOD not found.</div>
+		);
 	}
 
 	return (

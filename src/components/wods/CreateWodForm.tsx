@@ -162,7 +162,7 @@ export function CreateWodForm() {
 						<button
 							type="button"
 							onClick={() => removeMovement(m.id)}
-							className="p-1 text-[var(--text-muted)] hover:text-red-400 transition-colors"
+							className="p-1 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
 							aria-label="Remove movement"
 						>
 							<X size={14} />

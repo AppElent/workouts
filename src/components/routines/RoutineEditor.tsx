@@ -91,7 +91,7 @@ export function RoutineEditor({
 								setEntries((prev) => prev.filter((_, i) => i !== index))
 							}
 							aria-label={`Remove ${entry.name}`}
-							className="p-1 text-[var(--text-muted)] transition-colors hover:text-red-400"
+							className="p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
 						>
 							<X size={14} />
 						</button>
@@ -155,7 +155,7 @@ export function RoutineEditor({
 				</button>
 			)}
 
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
 			<div className="flex justify-end gap-3">
 				{onCancel && (

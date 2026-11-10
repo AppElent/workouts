@@ -52,7 +52,9 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 
 	if (data === null) {
 		return (
-			<div className="p-6 text-sm text-red-400">Hosted workout not found.</div>
+			<div className="p-6 text-sm text-[var(--danger)]">
+				Hosted workout not found.
+			</div>
 		);
 	}
 
@@ -115,7 +117,9 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 						</Link>
 					</Show>
 				</div>
-				{joinError && <p className="mt-3 text-sm text-red-400">{joinError}</p>}
+				{joinError && (
+					<p className="mt-3 text-sm text-[var(--danger)]">{joinError}</p>
+				)}
 			</header>
 
 			<HostedStrengthBlocks blocks={hosted.template.strengthBlocks} />
