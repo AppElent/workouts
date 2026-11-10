@@ -1,17 +1,17 @@
-import type { NutritionProvenance } from "@foundry/core";
 import {
 	type FoodVisual,
 	type FoodVisualPresetId,
-	getShippedFood,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
+	type NutritionProvenance,
+	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodClassification,
 	type PersonalFoodDraft,
 	type ShippedFood,
-	validatePersonalFoodDraft,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { getShippedFood } from "@foundry/core/shipped-foods";
 import { openNutritionDatabase } from "./nutrition-database";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
@@ -86,12 +86,12 @@ export type {
 	PersonalFoodDraft,
 	PersonalFoodProvenance,
 	PersonalServing,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 export {
 	FOOD_VISUAL_PRESET_IDS,
-	validateFoodVisual,
-	validatePersonalFoodDraft,
-} from "@foundry/core/nutrition";
+	normalizeFoodVisual,
+	normalizePersonalFoodDraft,
+} from "@foundry/core";
 
 export type PersonalFoodFilter = {
 	readonly classification?: PersonalFoodClassification;
@@ -547,7 +547,7 @@ export function validateComboDraft(draft: ComboDraft): ComboDraft {
 }
 
 function rowToFood(row: PersonalFoodRow): PersonalFood {
-	const draft = validatePersonalFoodDraft({
+	const draft = normalizePersonalFoodDraft({
 		name: { en: row.name_en, nl: row.name_nl },
 		baseUnit: row.base_unit as PersonalFood["baseUnit"],
 		classification: row.classification,
@@ -703,7 +703,7 @@ export function createPersonalFoodRepository(
 			);
 		},
 		create(draft, suppliedId) {
-			const valid = validatePersonalFoodDraft(draft);
+			const valid = normalizePersonalFoodDraft(draft);
 			const id = suppliedId ? validateText(suppliedId, "Food ID") : nextUuid();
 			const timestamp = now();
 			database.runSync(
@@ -735,7 +735,7 @@ export function createPersonalFoodRepository(
 		update(id, draft) {
 			const existing = find(id);
 			if (!existing) throw new Error("Personal Food not found.");
-			const valid = validatePersonalFoodDraft(draft);
+			const valid = normalizePersonalFoodDraft(draft);
 			const timestamp = now();
 			database.runSync(
 				`UPDATE personal_foods
@@ -842,7 +842,7 @@ export function createPersonalFoodRepository(
 				foodIds.add(food.id);
 				const normalized = {
 					id: validateText(food.id, "Food ID"),
-					...validatePersonalFoodDraft(food),
+					...normalizePersonalFoodDraft(food),
 					createdAt: food.createdAt,
 					updatedAt: food.updatedAt,
 				};

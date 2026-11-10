@@ -197,13 +197,13 @@ describe("Personal Food estimate compatibility", () => {
 				api.nutritionLibrary.applyOperation,
 				upsert("bad-unit", 0, { ...estimated, baseUnit: "g" }, 2),
 			),
-		).rejects.toThrow("base unit");
+		).rejects.toThrow('{"code":"unitMismatch","field":"nutritionBasis"}');
 		await expect(
 			alice.mutation(
 				api.nutritionLibrary.applyOperation,
 				upsert("bad-estimate", 0, { ...estimated, estimated: "yes" }, 2),
 			),
-		).rejects.toThrow("estimate status");
+		).rejects.toThrow('{"code":"invalid","field":"estimated"}');
 	});
 
 	it("round-trips estimate snapshots in Combo backups without discarding unknown nutrient states", async () => {
@@ -443,7 +443,8 @@ describe("Personal Food estimate compatibility", () => {
 			loggedDays.every(
 				(entry) =>
 					entry.totals.energy.incomplete === false &&
-					entry.totals.energy.qualified === false &&
+					// Every entry here is estimated, so every known total is approximate.
+					entry.totals.energy.qualified === true &&
 					entry.totals.protein.traceCount === entry.entryCount &&
 					entry.totals.protein.qualified === true &&
 					entry.totals.protein.incomplete === false &&

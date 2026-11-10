@@ -1,8 +1,5 @@
-import {
-	allShippedFoods,
-	NUTRIENT_KEYS,
-	personalFoodSnapshot,
-} from "@foundry/core/nutrition";
+import { NUTRIENT_KEYS, personalFoodSnapshot } from "@foundry/core";
+import { allShippedFoods } from "@foundry/core/shipped-foods";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	comboLogEntries,
@@ -101,7 +98,7 @@ describe("Combo snapshots", () => {
 			nutritionBasis: { kind: "per100", unit: "g" },
 		});
 		expect(() => resolveComboPart(combo.parts[0], foods.find)).toThrow(
-			"basis changed",
+			"basisChanged",
 		);
 		database.closeSync();
 	});

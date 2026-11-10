@@ -4,11 +4,10 @@
  *
  * **Chosen beats detected.** A saved choice wins over the device's language
  * list, which wins over English. That order lives in `resolveLocale`, which
- * comes from `./core` — a copy of the DOM-free helpers the web app keeps in
- * `src/lib/i18n/runtime/core.ts`. The web runtime's provider reaches for
- * `document.cookie` and `navigator.language` and would throw on React Native.
- * `plural` already guards `Intl.PluralRules`, which Hermes has historically
- * lacked.
+ * comes from `@foundry/core`, the DOM-free runtime both apps share. The web
+ * runtime's provider reaches for `document.cookie` and `navigator.language`
+ * and would throw on React Native. `plural` already guards
+ * `Intl.PluralRules`, which Hermes has historically lacked.
  *
  * **Resolved before the first paint.** `useState(initialLocale)` takes the
  * *function*, so the store is read during the first render — synchronously,
@@ -26,6 +25,7 @@
  * Profile → Preferences → Language, because a signed-out person has stated no
  * preference and the device decides for them.
  */
+import { type Locale, resolveLocale, SUPPORTED_LOCALES } from "@foundry/core";
 import { getLocales } from "expo-localization";
 import {
 	createContext,
@@ -40,15 +40,13 @@ import {
 	readPreference,
 	writePreference,
 } from "../prefs/local-preference";
-import { resolveLocale } from "./core";
 import { en, type Messages } from "./messages/en";
 import { nl } from "./messages/nl";
 
-export { fmt, plural } from "./core";
+export { fmt, plural } from "@foundry/core";
 export type { Messages };
 
-export const SUPPORTED_LOCALES = ["en", "nl"] as const;
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
+export { type Locale, SUPPORTED_LOCALES };
 
 const DICTIONARIES: Record<Locale, Messages> = { en, nl };
 

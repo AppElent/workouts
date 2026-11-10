@@ -1,15 +1,13 @@
 import {
 	canonicalJson,
+	type NutrientKey,
 	type NutritionDiarySnapshot,
+	type NutritionGoalValue,
 	type NutritionOperationEnvelope,
+	type PersonalMeasure,
+	type SupplementaryServing,
 	totalNutrients,
 } from "@foundry/core";
-import type {
-	NutrientKey,
-	NutritionGoalValue,
-	PersonalMeasure,
-	SupplementaryServing,
-} from "@foundry/core/nutrition";
 import { reportError } from "../observability/errors";
 import { openNutritionDatabase } from "./nutrition-database";
 import type { SyncSQLiteDatabase } from "./personal-food-repository";
@@ -301,7 +299,7 @@ export function createNutritionLocalRepository(
 				revision: day?.revision ?? 0,
 				complete: day?.complete ?? false,
 				entries,
-				totals: totalNutrients(entries.map((entry) => entry.nutrients)),
+				totals: totalNutrients(entries),
 			};
 		},
 		getGoals(subject, date) {

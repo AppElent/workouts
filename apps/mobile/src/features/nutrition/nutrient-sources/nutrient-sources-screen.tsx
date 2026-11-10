@@ -2,7 +2,7 @@ import {
 	rankNutrientSources,
 	roundForDisplay,
 	totalNutrients,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
@@ -43,7 +43,7 @@ export function NutrientSourcesScreen({
 			: [];
 	const sources = rankNutrientSources(entries, nutrient);
 	const unit = nutrientUnit(nutrient);
-	const rawTotal = totalNutrients(entries.map((e) => e.nutrients))[nutrient];
+	const rawTotal = totalNutrients(entries)[nutrient];
 	const total = {
 		...rawTotal,
 		qualified:

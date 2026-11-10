@@ -1,4 +1,4 @@
-import { formatQuantity } from "@foundry/core/nutrition";
+import { formatQuantity } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import {

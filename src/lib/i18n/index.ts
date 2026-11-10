@@ -1,10 +1,10 @@
+import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "@foundry/core";
 import { en, type Messages } from "./messages/en";
 import { nl } from "./messages/nl";
 import { createI18n } from "./runtime";
 
-export const SUPPORTED_LOCALES = ["en", "nl"] as const;
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export type { Messages };
+export { type Locale, SUPPORTED_LOCALES };
 
 export const {
 	LocaleProvider,
@@ -14,7 +14,7 @@ export const {
 	hasExplicitLocaleChoice,
 } = createI18n<Locale, Messages>({
 	locales: SUPPORTED_LOCALES,
-	fallback: "en",
+	fallback: DEFAULT_LOCALE,
 	messages: { en, nl },
 });
 

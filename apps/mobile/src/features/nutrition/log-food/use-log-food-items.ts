@@ -2,7 +2,7 @@ import {
 	type FoodResult,
 	foodResults,
 	getShippedFood,
-} from "@foundry/core/nutrition";
+} from "@foundry/core/shipped-foods";
 import { useMemo } from "react";
 import type {
 	Combo,

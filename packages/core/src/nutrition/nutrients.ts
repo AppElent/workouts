@@ -1,3 +1,5 @@
+import { type RuleResult, ruleIssues } from "../rules";
+
 /**
  * The nutrient vocabulary for the Nutrition module.
  *
@@ -142,4 +144,56 @@ export function rescaleNutrients<K extends string>(
 		scaled[key] = scaleNutrient(nutrients[key], factor);
 	}
 	return scaled;
+}
+
+/** Kilojoules in one kilocalorie (thermochemical calorie). */
+export const KJ_PER_KCAL = 4.184;
+
+/** Kilocalories from kilojoules, to a tenth: the precision energy is stored at. */
+export function kcalFromKilojoules(kilojoules: number): number {
+	return Math.round((kilojoules / KJ_PER_KCAL) * 10) / 10;
+}
+
+export type NutrientValueCode = "invalid" | "negative";
+
+/** One stored nutrient reading, or why it is not one. */
+export function checkNutrientValue(
+	value: unknown,
+): { ok: true; value: NutrientValue } | { ok: false; code: NutrientValueCode } {
+	if (!value || typeof value !== "object" || !("kind" in value))
+		return { ok: false, code: "invalid" };
+	if (value.kind === "absent") return { ok: true, value: ABSENT };
+	if (value.kind === "trace") return { ok: true, value: TRACE };
+	if (value.kind !== "value" || !("amount" in value))
+		return { ok: false, code: "invalid" };
+	const { amount } = value;
+	if (typeof amount !== "number" || !Number.isFinite(amount))
+		return { ok: false, code: "invalid" };
+	if (amount < 0) return { ok: false, code: "negative" };
+	return { ok: true, value: { kind: "value", amount } };
+}
+
+/**
+ * All eight nutrients as stored readings: every key present, each a value
+ * (finite, not negative), trace or absent.
+ */
+export function validateNutrientValues(
+	nutrients: unknown,
+): RuleResult<
+	Record<NutrientKey, NutrientValue>,
+	NutrientKey,
+	NutrientValueCode
+> {
+	const issues = ruleIssues<NutrientKey, NutrientValueCode>();
+	const values = {} as Record<NutrientKey, NutrientValue>;
+	const source =
+		nutrients && typeof nutrients === "object"
+			? (nutrients as Record<string, unknown>)
+			: {};
+	for (const key of NUTRIENT_KEYS) {
+		const checked = checkNutrientValue(source[key]);
+		if (checked.ok) values[key] = checked.value;
+		else issues.add(key, checked.code);
+	}
+	return issues.result(values);
 }

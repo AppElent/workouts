@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
+import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
@@ -21,7 +21,7 @@ export function DayGoalsScreen({ date }: { date: string }) {
 			? MEAL_SLOTS.flatMap((m) => state.day.entries[m])
 			: [];
 	const totals = {
-		...totalNutrients(entries.map((e) => e.nutrients)),
+		...totalNutrients(entries),
 		...(state.status === "ready" ? state.day.totals : {}),
 	};
 	for (const n of NUTRIENT_KEYS)

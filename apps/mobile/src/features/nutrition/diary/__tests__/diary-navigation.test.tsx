@@ -19,7 +19,7 @@ import {
  * hardware button perform.
  */
 
-import { totalNutrients } from "@foundry/core/nutrition";
+import { totalNutrients } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {

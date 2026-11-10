@@ -1,14 +1,10 @@
+import { sanitizeBreadcrumb, sanitizeEvent, sanitizeText } from "@foundry/core";
 import * as Sentry from "@sentry/react";
 import {
 	DEFAULT_SENTRY_DSN,
 	isLocalSentryUrl,
 	SENTRY_DATA_COLLECTION,
 } from "./lib/observability/config";
-import {
-	sanitizeBreadcrumb,
-	sanitizeEvent,
-	sanitizeText,
-} from "./lib/observability/privacy";
 
 const environment =
 	import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE;

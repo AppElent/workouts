@@ -6,7 +6,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";

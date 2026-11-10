@@ -1,3 +1,4 @@
+import { isLocale, resolveLocale } from "@foundry/core";
 import {
 	createContext,
 	useCallback,
@@ -5,9 +6,8 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { isLocale, resolveLocale } from "./core";
 
-export { fmt, isLocale, plural, resolveLocale } from "./core";
+export { fmt, isLocale, plural, resolveLocale } from "@foundry/core";
 
 export type I18nConfig<L extends string, M> = {
 	locales: readonly L[];

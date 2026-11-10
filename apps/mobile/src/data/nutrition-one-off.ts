@@ -1,13 +1,13 @@
-import type { NutritionDiarySnapshot } from "@foundry/core";
 import {
-	formatSnapshotAmount,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
+	type NutritionDiarySnapshot,
+	servingAmountLabel,
+} from "@foundry/core";
 import type { FoodVisual } from "./personal-food-repository";
 
-export { formatSnapshotAmount };
+export { servingAmountLabel };
 
 /** A reviewed one-off estimate is intake without creating a reusable Food. */
 export function oneOffLogSnapshot(input: {
@@ -41,7 +41,7 @@ export function oneOffLogSnapshot(input: {
 		meal: input.meal,
 		name: input.name,
 		...(input.visual ? { visual: input.visual } : {}),
-		serving: formatSnapshotAmount(input.amount, baseUnit),
+		serving: servingAmountLabel(input.amount, baseUnit),
 		quantity: 1,
 		amount: input.amount,
 		baseUnit,

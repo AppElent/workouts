@@ -26,32 +26,31 @@ export type NutrientTotal = {
 	 */
 	readonly incomplete: boolean;
 	/**
-	 * True when the total is not a plain number of a plain sum: something in it
-	 * was a trace or was missing. Distinct from `incomplete` so a
-	 * trace-qualified total is not reported as having a hole in it.
+	 * True when the total is not a plain sum of exact figures: something in it
+	 * was a trace, missing, or estimated. Distinct from `incomplete` so a
+	 * qualified total is not reported as having a hole in it.
 	 */
 	readonly qualified: boolean;
 };
 
-const EMPTY_TOTAL: NutrientTotal = Object.freeze({
-	amount: 0,
-	entryCount: 0,
-	valueCount: 0,
-	traceCount: 0,
-	absentCount: 0,
-	incomplete: false,
-	qualified: false,
-});
+/** One contribution to a day, meal or combo: a nutrient reading per key. */
+export type NutrientContribution = Partial<Record<NutrientKey, NutrientValue>>;
 
-/** Sum one nutrient across contributions, keeping absence and trace visible. */
-export function totalNutrient(values: readonly NutrientValue[]): NutrientTotal {
-	if (values.length === 0) return EMPTY_TOTAL;
+/** A Diary Entry or Combo part as a total sees it. */
+export type NutrientEntry = {
+	readonly nutrients: NutrientContribution;
+	/** An estimated figure makes every total it is part of approximate. */
+	readonly estimated?: boolean;
+};
 
+function totalNutrient(
+	values: readonly NutrientValue[],
+	estimatedCount: number,
+): NutrientTotal {
 	let amount = 0;
 	let valueCount = 0;
 	let traceCount = 0;
 	let absentCount = 0;
-
 	for (const value of values) {
 		if (value.kind === "value") {
 			amount += value.amount;
@@ -62,7 +61,6 @@ export function totalNutrient(values: readonly NutrientValue[]): NutrientTotal {
 			absentCount += 1;
 		}
 	}
-
 	return {
 		amount,
 		entryCount: values.length,
@@ -70,30 +68,29 @@ export function totalNutrient(values: readonly NutrientValue[]): NutrientTotal {
 		traceCount,
 		absentCount,
 		incomplete: absentCount > 0,
-		qualified: absentCount > 0 || traceCount > 0,
+		qualified: absentCount > 0 || traceCount > 0 || estimatedCount > 0,
 	};
 }
 
-/** One contribution to a day, meal or combo: a nutrient reading per key. */
-export type NutrientContribution = Partial<Record<NutrientKey, NutrientValue>>;
-
 /**
- * Sum a set of contributions across all eight nutrients.
+ * Sum entries across all eight nutrients.
  *
- * A key a contribution simply does not carry counts as absent — an entry that
- * never mentions fibre is an entry whose fibre is unknown, which is exactly the
- * state the spec wants preserved.
+ * A key an entry does not carry counts as absent: an entry that never
+ * mentions fibre is an entry whose fibre is unknown. A known reading from an
+ * estimated entry marks that nutrient's total as qualified.
  */
 export function totalNutrients(
-	contributions: readonly NutrientContribution[],
+	entries: readonly NutrientEntry[],
 ): Record<NutrientKey, NutrientTotal> {
 	const totals = {} as Record<NutrientKey, NutrientTotal>;
 	for (const key of NUTRIENT_KEYS) {
-		totals[key] = totalNutrient(
-			contributions.map(
-				(contribution) => contribution[key] ?? { kind: "absent" as const },
-			),
+		const values = entries.map(
+			(entry) => entry.nutrients[key] ?? { kind: "absent" as const },
 		);
+		const estimated = entries.filter(
+			(entry, index) => entry.estimated && values[index].kind !== "absent",
+		).length;
+		totals[key] = totalNutrient(values, estimated);
 	}
 	return totals;
 }
@@ -106,7 +103,9 @@ export function totalNutrients(
 export function combinedNutrients(
 	contributions: readonly NutrientContribution[],
 ): Record<NutrientKey, NutrientValue> {
-	const totals = totalNutrients(contributions);
+	const totals = totalNutrients(
+		contributions.map((nutrients) => ({ nutrients })),
+	);
 	const combined = {} as Record<NutrientKey, NutrientValue>;
 	for (const key of NUTRIENT_KEYS) {
 		const total = totals[key];

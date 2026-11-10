@@ -17,7 +17,7 @@ import {
 	parseProviderNumber,
 	parseProviderNutrient,
 	saltFromSodium,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import {
 	type OffSearchHit,
 	planOffSearch,

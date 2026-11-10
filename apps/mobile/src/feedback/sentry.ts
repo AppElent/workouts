@@ -1,3 +1,9 @@
+import {
+	sanitizeBreadcrumb,
+	sanitizeEvent,
+	sanitizeFeedbackEvent,
+	sanitizeText,
+} from "@foundry/core";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 import Constants from "expo-constants";
@@ -6,12 +12,6 @@ import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 import { en } from "../i18n/messages/en";
 import { nl } from "../i18n/messages/nl";
-import {
-	sanitizeBreadcrumb,
-	sanitizeEvent,
-	sanitizeFeedbackEvent,
-	sanitizeText,
-} from "../observability/privacy";
 
 const native = Platform.OS !== "web" && !isRunningInExpoGo();
 const environment = Updates.channel || (__DEV__ ? "development" : "production");

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { NUTRITION_AI_LIMITS, NUTRITION_AI_PLAUSIBILITY } from "@foundry/core";
 
 /**
  * Provider-neutral AI help for nutrition entry (design: designs/nutrition/ai-entry_final.html).
@@ -325,11 +326,14 @@ ${ITEM_RULES}
 When a previous result and corrections are given, return the complete updated result: apply every correction, keep everything the corrections do not touch (items, names, amounts, components) exactly as it was, and do not ask a question that was already answered. Every previous item has an id: return it on the item it became, also when renamed; a new item has id null, and on a first analysis every id is null. A correction naming a different dish replaces the items it is made of: "het was een tosti" after bread and cheese is one Tosti item with the weight of the whole dish (bread and filling together) and no bread or cheese row left, and seen never names a dish the items are not. Seen and title do not mention what was removed, also not to say it is gone: they describe only what is there. Something a correction replaces ("kip in plaats van shoarma") must be gone from the item's name, the seen sentence and the components, with the energy recalculated. Items in removedByPerson were deleted by the person: leave them out even though the description mentions them, unless a correction brings them back. After a correction, seen and title describe the result as it now is, and never mention what was removed or how it changed ("Bruin brood met kaas", not "... zonder melk" or "melk is weggelaten").`;
 }
 
+/** The same figures the phone checks a cooked estimate against. */
+const COOKED = NUTRITION_AI_PLAUSIBILITY.cookedKcalPer100g;
+
 const SELECT_SYSTEM = `You match diary items to foods in a nutrition database. Each item lists candidate foods as "ref — name".
 Pick the candidate whose nutrition best represents what was eaten: match preparation (cooked/raw/fried), fat level and variety. Prefer the plain everyday variant over speciality ones (Turkish, raisin, lactose-free, enriched) unless the item says so, and prefer a candidate from the named store or brand.
 A candidate marked "bereid" (prepared) covers the usual ways of cooking that food, baked, grilled or boiled alike: "Kipfilet gebakken" and "Kipfilet" pick "Kipfilet (bereid)", never an estimate. Estimate only when no candidate is that food.
 A composed food is never a pure ingredient: a sauce with meat is not plain mince. When a separate fat item (butter, oil) is listed, pick a boiled or plain variant of the food it was fried in, never a fried one, so the fat counts once. Never pick a prepared candidate that already contains another listed item (e.g. porridge "bereid m melk" when the milk is its own item); pick the plain food instead.
-An item whose amount is a cooked weight must not get a dry or raw candidate: "Havermout gekookt" is not dry oats, "Rijst gekookt" is not uncooked rice. Dried grains, pasta and legumes have 3–4 times the energy per gram. If only dry or raw candidates exist, ref is null and give an estimate for the cooked food (cooked oats about 70 kcal per 100 g, cooked rice about 130, cooked pasta about 150).
+An item whose amount is a cooked weight must not get a dry or raw candidate: "Havermout gekookt" is not dry oats, "Rijst gekookt" is not uncooked rice. Dried grains, pasta and legumes have 3–4 times the energy per gram. If only dry or raw candidates exist, ref is null and give an estimate for the cooked food (cooked oats about ${COOKED.oats} kcal per 100 g, cooked rice about ${COOKED.rice}, cooked pasta about ${COOKED.pasta}).
 Cheese without a stated fat level is the 48+ kind, not 20+ or 30+.
 An item marked "product" is a ready-made product: pick a candidate only when it is that same dish or product (the person's own saved food, or the same dish in the database such as "Appeltaart" for a slice of apple pie), never one of its ingredients; otherwise ref is null and estimate is null.
 ref must be one of the item's candidate refs, or null when none is a reasonable nutritional proxy. Only when ref is null, give estimate: your best estimate of energy (kcal) and grams of protein, available carbs, fat, saturatedFat, sugars, fibre and salt per 100 g (or per 100 ml for a drink) of the food as eaten, never for the whole portion. The figures must fit what the item's name says it is: protein powder ≈ 400 kcal per 100 g, a drink is a drink. Otherwise estimate is null.`;
@@ -390,11 +394,12 @@ export type Described = {
 	readonly items: readonly DescribedItem[];
 };
 
-export const MAX_ITEMS = 20;
-export const MAX_TEXT = 2000;
-export const MAX_FOLLOW_UPS = 10;
-/** Base64 of a ~2 MB image; the phone resizes to ~1600 px before sending. */
-export const MAX_IMAGE_BASE64 = 2_800_000;
+export const {
+	maxItems: MAX_ITEMS,
+	maxText: MAX_TEXT,
+	maxFollowUps: MAX_FOLLOW_UPS,
+	maxImageBase64: MAX_IMAGE_BASE64,
+} = NUTRITION_AI_LIMITS;
 
 const NUTRIENT_NAMES = [
 	"energy",

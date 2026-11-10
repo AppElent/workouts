@@ -1,4 +1,4 @@
-import type { PersonalFood } from "@foundry/core/nutrition";
+import type { PersonalFood } from "@foundry/core";
 import {
 	comboSourceKey,
 	foodSourceKey,

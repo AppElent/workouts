@@ -1,4 +1,4 @@
-import { totalNutrients } from "@foundry/core/nutrition";
+import { totalNutrients } from "@foundry/core";
 import {
 	type AssistanceFood,
 	buildAssistanceFoodCatalog,
@@ -53,9 +53,10 @@ describe("assistance food catalog", () => {
 		};
 		const catalog = buildAssistanceFoodCatalog([], [personal]);
 		expect(catalog).toHaveLength(1);
-		expect(totalNutrients([catalog[0]?.nutrients ?? {}]).energy.amount).toBe(
-			100,
-		);
+		expect(
+			totalNutrients([{ nutrients: catalog[0]?.nutrients ?? {} }]).energy
+				.amount,
+		).toBe(100);
 	});
 
 	it("only offers foods that are in the catalog", () => {

@@ -1,15 +1,12 @@
 import {
-	type NutrientKey,
-	type NutrientTotal,
-	totalNutrients,
-} from "@foundry/core";
-import type { QueryCtx } from "./_generated/server";
-import { query } from "./_generated/server";
-import {
 	type EffectiveGoalVersion,
 	type NutritionGoal,
 	resolveGoalHistory,
-} from "./nutritionGoalModel";
+	totalNutrients,
+	weekAverage,
+} from "@foundry/core";
+import type { QueryCtx } from "./_generated/server";
+import { query } from "./_generated/server";
 import {
 	nutritionReviewWeekArgs,
 	nutritionReviewWeekResult,
@@ -51,31 +48,6 @@ function addDays(date: string, days: number) {
 		String(result.getUTCMonth() + 1).padStart(2, "0"),
 		String(result.getUTCDate()).padStart(2, "0"),
 	].join("-");
-}
-
-function knownAverage(
-	days: readonly {
-		date: string;
-		entryCount: number;
-		totals: Record<NutrientKey, NutrientTotal>;
-	}[],
-	key: "energy" | "protein",
-	throughDate: string,
-) {
-	const known = days.filter(
-		(day) =>
-			day.date <= throughDate &&
-			day.entryCount > 0 &&
-			!day.totals[key].incomplete,
-	);
-	if (known.length === 0) return { days: 0, qualified: false };
-	return {
-		value:
-			known.reduce((sum, day) => sum + day.totals[key].amount, 0) /
-			known.length,
-		days: known.length,
-		qualified: known.some((day) => day.totals[key].qualified),
-	};
 }
 
 async function goalsForWeek(
@@ -162,26 +134,26 @@ export const week = query({
 			days.push({
 				date,
 				entryCount: entries.length,
-				totals: totalNutrients(entries.map((entry) => entry.nutrients)),
+				totals: totalNutrients(entries),
 				goals: resolvedGoals.basis === "effective" ? resolvedGoals.goals : [],
 				goalBasis: resolvedGoals.basis,
 				effectiveFrom: resolvedGoals.effectiveFrom,
 			});
 		}
 		const throughDate = today ?? (dates[6] as string);
-		const energy = knownAverage(days, "energy", throughDate);
-		const protein = knownAverage(days, "protein", throughDate);
+		const energy = weekAverage(days, "energy", throughDate);
+		const protein = weekAverage(days, "protein", throughDate);
 		return {
 			startDate,
 			endDate: dates[6] as string,
 			days,
 			averages: {
-				...(energy.value === undefined ? {} : { energy: energy.value }),
-				...(protein.value === undefined ? {} : { protein: protein.value }),
-				energyDays: energy.days,
-				proteinDays: protein.days,
-				energyQualified: energy.qualified,
-				proteinQualified: protein.qualified,
+				...(energy ? { energy: energy.value } : {}),
+				...(protein ? { protein: protein.value } : {}),
+				energyDays: energy?.days ?? 0,
+				proteinDays: protein?.days ?? 0,
+				energyQualified: energy?.qualified ?? false,
+				proteinQualified: protein?.qualified ?? false,
 			},
 		};
 	},

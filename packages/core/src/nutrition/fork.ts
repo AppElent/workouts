@@ -20,26 +20,22 @@
  *     not be one: the fork's figures are the user's, permanently and silently.
  *     {@link forkShippedFood} copies values out once, at fork time.
  */
+
+import type { Locale } from "../i18n";
 import { getShippedFood, shippedLibrary } from "./library";
 import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 } from "./nutrients";
-import { type SearchScope, searchShippedFoods } from "./search";
 import type {
-	Bilingual,
-	Locale,
-	ShippedFood,
-	ShippedFoodId,
-	ShippedSource,
-} from "./types";
-
-export type ForkedServing = {
-	readonly label: Bilingual;
-	/** Amount in the fork's base unit. */
-	readonly amount: number;
-};
+	PersonalFoodDraft,
+	PersonalFoodProvenance,
+	PersonalServing,
+} from "./personal-food";
+import { type SearchScope, searchShippedFoods } from "./search";
+import type { MeasuredUnit } from "./snapshot";
+import type { ShippedFood, ShippedFoodId, ShippedSource } from "./types";
 
 /**
  * What a fork records about where it came from.
@@ -51,25 +47,16 @@ export type ForkedServing = {
  * loses all three answers, so they stay separate (spec #68, "Provenance and
  * attribution").
  */
-export type ForkProvenance = {
+export type ForkProvenance = Pick<PersonalFoodProvenance, "locallyEdited"> & {
 	readonly recordOrigin: "personal";
 	readonly nutritionSource: ShippedSource;
-	readonly locallyEdited: boolean;
 	readonly forkedFrom: ShippedFoodId;
 };
 
-/**
- * The pre-populated Personal Food a correction starts from.
- *
- * Structurally a device `PersonalFoodDraft` — `@foundry/core` cannot import
- * the repository's types (it must stay dependency-free and platform-free), so
- * the two shapes meet structurally and the repository validates the result.
- */
-export type ForkedFoodValues = {
-	readonly name: Bilingual;
-	readonly baseUnit: "g" | "ml";
-	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
-	readonly servings: readonly ForkedServing[];
+/** The pre-populated Personal Food a correction starts from. */
+export type ForkedFoodValues = Pick<PersonalFoodDraft, "name" | "nutrients"> & {
+	readonly baseUnit: MeasuredUnit;
+	readonly servings: readonly PersonalServing[];
 };
 
 export type ForkedFoodDraft = ForkedFoodValues & {

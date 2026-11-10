@@ -1,4 +1,4 @@
-import { nevoAttribution, roundForDisplay } from "@foundry/core/nutrition";
+import { nevoAttribution, roundForDisplay } from "@foundry/core";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import type { NativeStackNavigationOptions } from "expo-router";

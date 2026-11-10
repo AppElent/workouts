@@ -1,4 +1,4 @@
-import type { NutrientKey, NutrientValue } from "@foundry/core/nutrition";
+import type { NutrientKey, NutrientValue } from "@foundry/core";
 import { useRef, useState } from "react";
 import { Keyboard, type TextInputInstance } from "react-native";
 

@@ -13,6 +13,8 @@
  * Confirm labels are verbs, never "OK" — a button that says what it does is the
  * difference between a considered answer and a reflex.
  */
+
+import { parseConvexError } from "@foundry/core";
 import {
 	createContext,
 	type ReactNode,
@@ -194,16 +196,9 @@ export function useConfirm() {
 	return confirm;
 }
 
-/**
- * Convex throws `Error: <message>\n    at handler ...` — the server's message
- * with a stack welded on. Screens surface the first line, which is the part a
- * human wrote (e.g. "A session is already active.").
- */
+/** The human part of a failed Convex call, or `fallback` when there is none. */
 export function convexErrorMessage(error: unknown, fallback: string) {
-	if (!(error instanceof Error)) return fallback;
-	const [firstLine] = error.message.split("\n");
-	const cleaned = firstLine.replace(/^\[.*?\]\s*/, "").trim();
-	return cleaned.length > 0 ? cleaned : fallback;
+	return parseConvexError(error).message || fallback;
 }
 
 const createStyles = (colors: Tokens) =>

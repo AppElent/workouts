@@ -3,7 +3,7 @@
 // structure, kcal against a band and a reference, correction content, latency
 // and spread between repeats. Writes JSON to the first arg; REPEATS=n repeats.
 import { writeFileSync } from "node:fs";
-import { shippedLibrary } from "@foundry/core/nutrition";
+import { shippedLibrary } from "@foundry/core/shipped-foods";
 import {
 	applyChoices,
 	asksFor,

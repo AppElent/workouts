@@ -1,13 +1,15 @@
 import {
 	combinedNutrients,
-	foodSnapshotAtAmount,
-	getShippedFood,
-	type LibraryFood,
 	type NutrientKey,
 	type NutrientValue,
 	rescaleToQuantity,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import {
+	foodSnapshotAtAmount,
+	getShippedFood,
+	type LibraryFood,
+} from "@foundry/core/shipped-foods";
 import type {
 	Combo,
 	ComboPart,

@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@foundry/core/nutrition";
+import { roundForDisplay } from "@foundry/core";
 import { formatLongDate, formatShortDate } from "../../data/calendar-day";
 import {
 	type DiaryEntry,

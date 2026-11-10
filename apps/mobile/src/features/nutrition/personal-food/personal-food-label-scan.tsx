@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, type NutrientKey } from "@foundry/core/nutrition";
+import { NUTRIENT_KEYS, type NutrientKey } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import {

@@ -1,4 +1,4 @@
-import type { NutrientKey } from "@foundry/core/nutrition";
+import type { NutrientKey } from "@foundry/core";
 import { View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";

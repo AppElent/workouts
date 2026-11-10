@@ -1,5 +1,5 @@
+import { sanitizeFeedbackEvent } from "@foundry/core";
 import * as Sentry from "@sentry/react-native";
-import { sanitizeFeedbackEvent } from "../observability/privacy";
 import { configureFeedbackLanguage } from "./sentry";
 
 it("keeps automatic error screenshots off while permitting user-selected feedback attachments", () => {

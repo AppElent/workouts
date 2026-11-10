@@ -1,4 +1,4 @@
-import { formatServingSelection } from "@foundry/core/nutrition";
+import { formatServingSelection } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useRef, useState } from "react";
 import { z } from "zod";

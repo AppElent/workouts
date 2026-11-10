@@ -1,12 +1,12 @@
-export type Unit = "kg" | "lbs";
+import type { LoadUnit } from "./units";
 
 // Standard loadable plates per side, heaviest first.
-const PLATES: Record<Unit, number[]> = {
+const PLATES: Record<LoadUnit, number[]> = {
 	kg: [25, 20, 15, 10, 5, 2.5, 1.25],
 	lbs: [45, 35, 25, 10, 5, 2.5],
 };
 
-export const DEFAULT_BAR: Record<Unit, number> = { kg: 20, lbs: 45 };
+export const DEFAULT_BAR: Record<LoadUnit, number> = { kg: 20, lbs: 45 };
 
 export interface PlateResult {
 	/** Plates to load on each side, heaviest first. */
@@ -25,7 +25,7 @@ export interface PlateResult {
 export function calcPlates(
 	target: number,
 	bar: number,
-	unit: Unit,
+	unit: LoadUnit,
 ): PlateResult {
 	if (target < bar) {
 		return { perSide: [], remainder: 0, belowBar: true };
@@ -57,7 +57,7 @@ export interface WarmupSet {
 export function generateWarmup(
 	workWeight: number,
 	bar: number,
-	unit: Unit,
+	unit: LoadUnit,
 ): WarmupSet[] {
 	if (workWeight <= bar) return [];
 	const increment = (PLATES[unit].at(-1) ?? 1.25) * 2;

@@ -1,4 +1,4 @@
-import { shippedLibrary } from "@foundry/core/nutrition";
+import { shippedLibrary } from "@foundry/core/shipped-foods";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	applyChoices,

@@ -1,10 +1,10 @@
 import {
 	ABSENT,
-	getShippedFood,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { getShippedFood } from "@foundry/core/shipped-foods";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";

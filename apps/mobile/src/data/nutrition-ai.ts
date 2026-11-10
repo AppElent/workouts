@@ -1,13 +1,14 @@
-import type { NutritionDiarySnapshot, NutritionMealSlot } from "@foundry/core";
 import {
 	formatQuantity,
+	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
+	type NutritionDiarySnapshot,
 	numericAmount,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "../convex/api";
 import {
@@ -1108,7 +1109,7 @@ function unitOf(food: AssistanceFood): "g" | "ml" {
 export function diarySnapshots(
 	items: readonly ReviewItem[],
 	date: string,
-	meal: NutritionMealSlot,
+	meal: MealSlot,
 	mintId: () => string,
 ): (NutritionDiarySnapshot & { readonly clientEntryId: string })[] {
 	return items.map((item) => {
@@ -1176,7 +1177,7 @@ export function oneEntrySnapshot(
 	items: readonly ReviewItem[],
 	name: string,
 	date: string,
-	meal: NutritionMealSlot,
+	meal: MealSlot,
 	clientEntryId: string,
 ): NutritionDiarySnapshot & { readonly clientEntryId: string } {
 	const [only] = items;

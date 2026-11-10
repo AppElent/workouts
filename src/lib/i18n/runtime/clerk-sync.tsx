@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
+import { isLocale } from "@foundry/core";
 import { useEffect } from "react";
-import { isLocale } from "./core";
 import type { I18nValue } from "./index";
 
 export type LanguageSyncDeps<L extends string, M> = {

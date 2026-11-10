@@ -1,4 +1,4 @@
-import { roundForDisplay, totalNutrients } from "@foundry/core/nutrition";
+import { roundForDisplay, totalNutrients } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -53,7 +53,7 @@ export function DiaryMealCard({
 	const copy = t.nutrition.diary;
 	const colors = useTokens();
 	const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-	const total = totalNutrients(entries.map((e) => e.nutrients)).energy;
+	const total = totalNutrients(entries).energy;
 	const kcal = (value: DiaryEntry["nutrients"]["energy"]) =>
 		value.kind === "value"
 			? `${roundForDisplay("energy", value.amount)} kcal`
@@ -289,7 +289,7 @@ export function DiaryMealCard({
 							{ name: group.name },
 						)}
 						secondary={plural(locale, parts.length, copy.comboParts)}
-						value={`${roundForDisplay("energy", totalNutrients(parts.map((e) => e.nutrients)).energy?.amount ?? 0)} kcal`}
+						value={`${roundForDisplay("energy", totalNutrients(parts).energy?.amount ?? 0)} kcal`}
 						leading={{
 							symbol: selecting
 								? parts.every((p) => selected.has(p.id))

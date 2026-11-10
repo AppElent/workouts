@@ -1,10 +1,9 @@
 import {
-	foodSnapshot,
-	forkSource,
 	NEVO_ATTRIBUTION,
 	SALT_DERIVATION_DISCLOSURE,
 	type ServingOption,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { foodSnapshot, forkSource } from "@foundry/core/shipped-foods";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";

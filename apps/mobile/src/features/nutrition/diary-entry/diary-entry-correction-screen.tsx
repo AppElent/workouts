@@ -1,12 +1,11 @@
 import {
 	correctDiaryNutrients,
-	forkShippedFood,
-	getShippedFood,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFoodDraft,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { forkShippedFood, getShippedFood } from "@foundry/core/shipped-foods";
 import { useForm, useStore } from "@tanstack/react-form";
 import { router, Stack, useNavigation, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";

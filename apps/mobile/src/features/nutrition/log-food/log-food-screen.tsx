@@ -1,11 +1,13 @@
 import {
-	foodSnapshot,
-	forkShippedFood,
 	NUTRIENT_KEYS,
 	type ShippedFood,
 	type SupplementaryServing,
+} from "@foundry/core";
+import {
+	foodSnapshot,
+	forkShippedFood,
 	shippedLibrary,
-} from "@foundry/core/nutrition";
+} from "@foundry/core/shipped-foods";
 import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";

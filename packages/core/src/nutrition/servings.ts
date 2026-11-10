@@ -1,10 +1,12 @@
+import type { Locale } from "../i18n";
 import {
 	type NutrientValue,
 	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
 	scaleNutrient,
 } from "./nutrients";
-import type { Bilingual, Locale, ShippedFood, ShippedServing } from "./types";
+import type { BaseUnit, Bilingual, MeasuredUnit } from "./snapshot";
+import type { ShippedFood, ShippedServing } from "./types";
 
 /**
  * What the serving picker offers for a food: the authored servings, then the
@@ -18,7 +20,7 @@ export type SupplementaryServing = {
 	readonly foodId: string;
 	readonly name: string;
 	readonly amount: number;
-	readonly unit: "g" | "ml";
+	readonly unit: MeasuredUnit;
 };
 
 export type ServingOption =
@@ -27,14 +29,14 @@ export type ServingOption =
 			readonly id: string;
 			readonly label: Bilingual;
 			readonly amount: number;
-			readonly unit: "g" | "ml";
+			readonly unit: MeasuredUnit;
 	  }
 	| {
 			readonly kind: "personal-measure";
 			readonly id: string;
 			readonly label: Bilingual;
 			readonly amount: number;
-			readonly unit: "g" | "ml";
+			readonly unit: MeasuredUnit;
 	  }
 	| {
 			readonly kind: "authored";
@@ -50,18 +52,18 @@ export type ServingOption =
 			readonly label: Bilingual;
 			/** One gram or one millilitre; quantity does the rest. */
 			readonly amount: 1;
-			readonly unit: "g" | "ml" | "serving";
+			readonly unit: BaseUnit;
 	  };
 
 export type PersonalMeasure = {
 	readonly id: string;
 	readonly name: string;
 	readonly amount: number;
-	readonly unit: "g" | "ml";
+	readonly unit: MeasuredUnit;
 	readonly order: number;
 };
 
-const BASE_UNIT_LABELS: Record<"g" | "ml" | "serving", Bilingual> = {
+const BASE_UNIT_LABELS: Record<BaseUnit, Bilingual> = {
 	g: { en: "Gram (g)", nl: "Gram (g)" },
 	ml: { en: "Millilitre (ml)", nl: "Milliliter (ml)" },
 	serving: { en: "Serving", nl: "Portie" },
@@ -69,7 +71,7 @@ const BASE_UNIT_LABELS: Record<"g" | "ml" | "serving", Bilingual> = {
 
 /** The base-unit choice for an amount: "I weighed it", or one serving. */
 export function baseUnitServingOption(
-	unit: "g" | "ml" | "serving",
+	unit: BaseUnit,
 	label: Bilingual = BASE_UNIT_LABELS[unit],
 ): ServingOption {
 	return { kind: "base-unit", label, amount: 1, unit };
@@ -93,7 +95,7 @@ export function servingOptions(food: ShippedFood): ServingOption[] {
 export function withSupplementaryServings(
 	foodOptions: readonly ServingOption[],
 	foodId: string | undefined,
-	baseUnit: "g" | "ml" | "serving",
+	baseUnit: BaseUnit,
 	additions: readonly SupplementaryServing[],
 ): ServingOption[] {
 	return [
@@ -116,7 +118,7 @@ export function withSupplementaryServings(
 /** Adds exact same-unit Personal Measures before a Food's own choices. */
 export function withPersonalMeasures(
 	foodOptions: readonly ServingOption[],
-	baseUnit: "g" | "ml" | "serving",
+	baseUnit: BaseUnit,
 	measures: readonly PersonalMeasure[],
 ): ServingOption[] {
 	if (baseUnit === "serving") return [...foodOptions];
@@ -173,15 +175,75 @@ export function formatQuantity(quantity: number, locale: Locale): string {
 }
 
 /**
+ * Serving labels are stored on Diary Entry and Combo part snapshots as text:
+ * `Glass (200 ml) × 1` for a chosen Serving, `150 g` for a bare amount.
+ * Existing diary rows carry that text, so this module is the only one that
+ * writes it and the only one that reads its multiplier back.
+ */
+const MULTIPLIER = " × ";
+
+/**
  * The unambiguous rendering of a selection: `Glass (200 ml) × 1` (story 39).
  * Always name × quantity, never a bare gram figure, and never quantity first.
  */
 export function formatServingSelection(
-	option: ServingOption,
+	option: Pick<ServingOption, "label">,
 	quantity: number,
 	locale: Locale,
 ): string {
-	return `${option.label[locale]} × ${formatQuantity(quantity, locale)}`;
+	return `${option.label[locale]}${MULTIPLIER}${formatQuantity(quantity, locale)}`;
+}
+
+/** The snapshot label for `quantity` × a named Serving, in both languages. */
+export function servingSelectionLabel(
+	label: Bilingual,
+	quantity: number,
+): Bilingual {
+	return {
+		en: formatServingSelection({ label }, quantity, "en"),
+		nl: formatServingSelection({ label }, quantity, "nl"),
+	};
+}
+
+const AMOUNT_UNIT: Record<BaseUnit, Bilingual> = {
+	g: { en: "g", nl: "g" },
+	ml: { en: "ml", nl: "ml" },
+	serving: { en: "serving(s)", nl: "portie(s)" },
+};
+
+/** The snapshot label for a bare total amount, such as "150 g" for a One-off Entry. */
+export function servingAmountLabel(
+	amount: number,
+	baseUnit: BaseUnit,
+): Bilingual {
+	return {
+		en: `${formatQuantity(amount, "en")} ${AMOUNT_UNIT[baseUnit].en}`,
+		nl: `${formatQuantity(amount, "nl")} ${AMOUNT_UNIT[baseUnit].nl}`,
+	};
+}
+
+function withQuantity(label: string, quantity: number, locale: Locale) {
+	const name = label.slice(0, label.lastIndexOf(MULTIPLIER));
+	return `${name}${MULTIPLIER}${formatQuantity(quantity, locale)}`;
+}
+
+/**
+ * A snapshot's Serving label at a new quantity. A Serving label changes only
+ * the multiplier at its end; a bare amount label is restated from the new
+ * amount rather than gaining a multiplier it never meant.
+ */
+export function requantifyServingLabel(
+	snapshot: { readonly serving: Bilingual; readonly baseUnit: BaseUnit },
+	quantity: number,
+	amount: number,
+): Bilingual {
+	const { serving } = snapshot;
+	if (!serving.en.includes(MULTIPLIER) || !serving.nl.includes(MULTIPLIER))
+		return servingAmountLabel(amount, snapshot.baseUnit);
+	return {
+		en: withQuantity(serving.en, quantity, "en"),
+		nl: withQuantity(serving.nl, quantity, "nl"),
+	};
 }
 
 /**
@@ -208,7 +270,7 @@ export type ServingPreview = {
 	readonly quantity: number;
 	/** Base units the selection comes to. */
 	readonly amount: number;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: MeasuredUnit;
 	/** `Glass (200 ml) × 1`, in the requested locale. */
 	readonly label: string;
 	readonly nutrients: Record<ShippedNutrientKey, NutrientValue>;

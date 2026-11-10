@@ -2,36 +2,21 @@
 // No React, no browser globals (window/document), no styling deps
 // (lucide-react/tailwind-merge/clsx). See AppElent/workouts#48.
 
+import { isTestLoginAvailable } from "@foundry/core";
+
 export interface TestLoginEnv {
 	VITE_CLERK_PUBLISHABLE_KEY?: string;
 	VITE_TEST_USER_EMAIL?: string;
 	VITE_TEST_USER_PASSWORD?: string;
 }
 
-/**
- * Show the dev test-login button only on a Clerk *test* instance with the
- * test-user credentials provided via env. Both conditions must hold, so the
- * button can never appear in production (pk_live_ + no creds in the bundle).
- *
- * This is bundler-agnostic by construction: it takes a plain env object
- * rather than reading `import.meta.env`/`process.env` itself, so any caller
- * can supply it regardless of bundler — Vite (`VITE_*`) on web, Expo
- * (`EXPO_PUBLIC_*`) on mobile, etc. The field names are kept as `VITE_*` to
- * stay byte-compatible with the existing `@appelent/auth` `.` export (which
- * already shipped this shape); a caller on another bundler maps its own
- * vars onto these same keys, e.g.:
- *
- *   shouldShowTestLogin({
- *     VITE_CLERK_PUBLISHABLE_KEY: env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
- *     VITE_TEST_USER_EMAIL: env.EXPO_PUBLIC_TEST_USER_EMAIL,
- *     VITE_TEST_USER_PASSWORD: env.EXPO_PUBLIC_TEST_USER_PASSWORD,
- *   })
- */
+/** Maps the web app's `VITE_*` variables onto the shared gate. */
 export function shouldShowTestLogin(env: TestLoginEnv): boolean {
-	const onTestInstance =
-		!!env.VITE_CLERK_PUBLISHABLE_KEY?.startsWith("pk_test_");
-	const hasCreds = !!env.VITE_TEST_USER_EMAIL && !!env.VITE_TEST_USER_PASSWORD;
-	return onTestInstance && hasCreds;
+	return isTestLoginAvailable({
+		publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
+		email: env.VITE_TEST_USER_EMAIL,
+		password: env.VITE_TEST_USER_PASSWORD,
+	});
 }
 
 interface ClerkLikeError {

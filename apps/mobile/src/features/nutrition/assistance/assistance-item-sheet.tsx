@@ -3,7 +3,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";

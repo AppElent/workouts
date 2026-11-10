@@ -1,12 +1,12 @@
 import {
 	baseUnitServingOption,
-	getShippedFood,
 	personalFoodServingOptions,
 	type ServingOption,
 	servingOptions,
 	withPersonalMeasures,
 	withSupplementaryServings,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { getShippedFood } from "@foundry/core/shipped-foods";
 import { usePersonalFoods } from "../../data/personal-foods";
 import { usePersonalMeasures } from "../../data/personal-measures";
 import { useSupplementaryServings } from "../../data/supplementary-servings";

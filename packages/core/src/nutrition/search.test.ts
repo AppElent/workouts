@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { shippedLibrary } from "./library";
 import {
 	browsePromotedByCategory,
-	normaliseForSearch,
 	resetSearchIndex,
 	searchShippedFoods,
 } from "./search";
+import { normaliseForSearch } from "./search-text";
 
 function ids(
 	query: string,

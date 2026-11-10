@@ -1,15 +1,12 @@
 /// <reference types="vite/client" />
 
+import { resolveGoalHistory } from "@foundry/core";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
-import {
-	resolveGoalHistory,
-	utcTodayIsoDate,
-	validateNutritionGoals,
-} from "./nutritionGoalModel";
+import { assertNutritionGoals, utcTodayIsoDate } from "./nutritionGoalModel";
 import { nutritionGoalTables } from "./nutritionGoalTables";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -326,7 +323,7 @@ describe("pure goal history rules", () => {
 			}),
 		).toMatchObject({ basis: "reference", effectiveFrom: null });
 		expect(() =>
-			validateNutritionGoals([
+			assertNutritionGoals([
 				{ nutrient: "energy", direction: "max", target: Number.NaN },
 			]),
 		).toThrow("greater than zero");

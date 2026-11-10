@@ -1,4 +1,4 @@
-import { getShippedFood } from "@foundry/core/nutrition";
+import { getShippedFood } from "@foundry/core/shipped-foods";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable } from "react-native";

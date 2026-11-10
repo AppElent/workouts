@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@foundry/core/nutrition";
+import { NUTRIENT_KEYS } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";

@@ -4,16 +4,6 @@ export interface OneRepMaxResult {
 	formula?: "epley";
 }
 
-/** International avoirdupois pound; preserve precision until display/rounding. */
-export function convertLoad(
-	value: number,
-	from: "kg" | "lbs",
-	to: "kg" | "lbs",
-) {
-	if (from === to) return value;
-	return from === "lbs" ? value * 0.45359237 : value / 0.45359237;
-}
-
 /**
  * Calculate 1RM using the Epley formula.
  * - reps === 1: weight is the actual 1RM (no formula)
@@ -55,23 +45,4 @@ export function weightForRepMax(reference: number, reps: number): number {
 export function roundLoad(load: number, step: number): number {
 	if (!Number.isFinite(load) || !Number.isFinite(step) || step <= 0) return 0;
 	return Math.max(0, Math.round(Math.round(load / step) * step * 1e6) / 1e6);
-}
-
-const EQUIPMENT_STEPS = {
-	barbell: 2.5,
-	dumbbell: 1,
-	cable: 5,
-	machine: 5,
-	kettlebell: 4,
-	band: 2.5,
-	bodyweight: 2.5,
-	other: 2.5,
-};
-export function getWeightStep(
-	equipment: keyof typeof EQUIPMENT_STEPS,
-	increment?: number,
-) {
-	return increment !== undefined && Number.isFinite(increment) && increment > 0
-		? increment
-		: EQUIPMENT_STEPS[equipment];
 }

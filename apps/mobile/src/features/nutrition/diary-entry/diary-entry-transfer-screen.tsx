@@ -5,8 +5,11 @@
  * single batch operation: it retains the entries' identities and lets the local
  * projection move it atomically between the two day/meal views.
  */
-import type { NutritionDiarySnapshot } from "@foundry/core";
-import { roundForDisplay, totalNutrients } from "@foundry/core/nutrition";
+import {
+	type NutritionDiarySnapshot,
+	roundForDisplay,
+	totalNutrients,
+} from "@foundry/core";
 import { Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
@@ -162,7 +165,7 @@ export function DiaryEntryTransferScreen({
 		if (!saving) onClose();
 	};
 
-	const energy = totalNutrients(selectedEntries.map((e) => e.nutrients)).energy;
+	const energy = totalNutrients(selectedEntries).energy;
 	const title = plural(locale, selectedEntries.length, copy.title);
 	return (
 		<>

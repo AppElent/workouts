@@ -5,7 +5,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 
 export type GoalDraft = Record<NutrientKey, { min: string; max: string }>;
 

@@ -27,10 +27,16 @@ describe("getConvexErrorMessage", () => {
 		);
 	});
 
-	it("falls back when the error is not recognisable", () => {
+	it("falls back when the error carries nothing to show", () => {
 		expect(getConvexErrorMessage("weird", "fallback")).toBe("fallback");
-		expect(getConvexErrorMessage(new Error("no marker here"), "fallback")).toBe(
-			"fallback",
-		);
+		expect(
+			getConvexErrorMessage(
+				new Error("[Request ID: abc] Server Error"),
+				"fallback",
+			),
+		).toBe("fallback");
+		expect(
+			getConvexErrorMessage(new ConvexError({ code: "limit" }), "fallback"),
+		).toBe("fallback");
 	});
 });

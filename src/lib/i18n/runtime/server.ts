@@ -1,6 +1,6 @@
+import { resolveLocale } from "@foundry/core";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie, getRequestHeader } from "@tanstack/react-start/server";
-import { resolveLocale } from "./core";
 
 /**
  * Build the SSR locale-resolution server fn for an app's own locale set.

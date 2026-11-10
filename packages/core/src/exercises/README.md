@@ -33,7 +33,7 @@ Clone the source, check out the pinned revision, then run from this app:
 ```sh
 git clone https://github.com/wrkout/exercises.json /tmp/wrkout-exercises
 git -C /tmp/wrkout-exercises checkout 5994bea047eee4d39a2c0872be3dd8fdd258ba31
-pnpm exec tsx scripts/import-exercises.ts /tmp/wrkout-exercises
+pnpm --filter @foundry/core import:exercises /tmp/wrkout-exercises
 ```
 
 Review metadata mappings and aliases when deliberately updating the pinned

@@ -1,10 +1,9 @@
 import {
-	forkHasLocalEdits,
-	forkSource,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { forkHasLocalEdits, forkSource } from "@foundry/core/shipped-foods";
 import { useMemo, useRef, useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import {
@@ -16,9 +15,9 @@ import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
 import { replaceProviderMetadata } from "../../../data/open-food-facts-sync";
 import {
 	type FoodVisual,
+	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodDraft,
-	validatePersonalFoodDraft,
 } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
@@ -251,7 +250,7 @@ export function usePersonalFoodDraft({
 		}
 		let draft: PersonalFoodDraft;
 		try {
-			draft = validatePersonalFoodDraft(buildDraft());
+			draft = normalizePersonalFoodDraft(buildDraft());
 		} catch {
 			toast.error(t.nutrition.personalFood.validation);
 			return false;

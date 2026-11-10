@@ -1,10 +1,9 @@
+import type { NUTRIENT_KEYS, NutrientValue } from "@foundry/core";
 import {
 	forkShippedFood,
 	forkSource,
 	getShippedFood,
-	type NUTRIENT_KEYS,
-	type NutrientValue,
-} from "@foundry/core/nutrition";
+} from "@foundry/core/shipped-foods";
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	type ComboDraft,
@@ -163,7 +162,7 @@ describe("PersonalFoodRepository public behavior", () => {
 					visual: { kind: "icon", preset: "pizza" } as never,
 				}) as PersonalFoodDraft,
 			),
-		).toThrow("invalid Food Visual icon");
+		).toThrow(expect.objectContaining({ field: "visual", code: "invalid" }));
 		expect(() =>
 			repository.create(
 				draft({
@@ -173,7 +172,7 @@ describe("PersonalFoodRepository public behavior", () => {
 					},
 				}) as PersonalFoodDraft,
 			),
-		).toThrow("managed local file");
+		).toThrow(expect.objectContaining({ field: "visual", code: "invalid" }));
 	});
 
 	it("backs up icons but restores photo-backed Foods with an unset visual", () => {
@@ -388,7 +387,7 @@ describe("PersonalFoodRepository public behavior", () => {
 			draft({
 				servings: [{ label: { en: "Scoop", nl: "Schep" }, amount: 0 }],
 			}),
-			"greater than zero",
+			"notPositive",
 		],
 		[
 			"a negative per-100 nutrient",
@@ -398,7 +397,7 @@ describe("PersonalFoodRepository public behavior", () => {
 					protein: { kind: "value", amount: -1 },
 				},
 			}),
-			"zero or greater",
+			"negative",
 		],
 	] as const)("rejects %s", (_case, invalid, message) => {
 		const repository = createPersonalFoodRepository(new SQLiteTestDatabase());

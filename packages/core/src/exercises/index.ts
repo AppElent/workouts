@@ -1,10 +1,8 @@
-import { DEFAULT_EXERCISES, type DefaultExercise } from "./exercises";
+import { DEFAULT_EXERCISES } from "./exercises";
+import type { DefaultExercise } from "./types";
 
-export {
-	CURATED_EXERCISES,
-	DEFAULT_EXERCISES,
-	type DefaultExercise,
-} from "./exercises";
+export { CURATED_EXERCISES, DEFAULT_EXERCISES } from "./exercises";
+export type { DefaultExercise } from "./types";
 export { WRKOUT_EXERCISES } from "./wrkoutExercises";
 
 // References can be a permanent shipped key or an existing Convex document ID.

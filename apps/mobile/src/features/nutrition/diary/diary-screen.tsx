@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
+import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core";
 import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -122,7 +122,7 @@ export function DiaryScreen({
 			: [];
 	const selectedEntries = entries.filter((e) => selected.has(e.id));
 	const totals = {
-		...totalNutrients(entries.map((e) => e.nutrients)),
+		...totalNutrients(entries),
 		...(state.status === "ready" ? state.day.totals : {}),
 	};
 	for (const n of NUTRIENT_KEYS) {

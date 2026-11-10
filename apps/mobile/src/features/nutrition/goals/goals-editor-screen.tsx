@@ -3,7 +3,7 @@ import {
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import {
 	Stack,
 	useLocalSearchParams,

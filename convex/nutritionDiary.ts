@@ -10,6 +10,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { withRuleErrors } from "./lib/ruleError";
 import {
 	diaryPartSnapshotFields,
 	diarySnapshotFields,
@@ -238,7 +239,7 @@ async function daySnapshot(
 				return { ...entry, visual: uri ? { ...entry.visual, uri } : undefined };
 			}),
 		),
-		totals: totalNutrients(entries.map((entry) => entry.nutrients)),
+		totals: totalNutrients(entries),
 		revision: await getRevision(ctx, userId, date),
 	};
 }
@@ -556,7 +557,8 @@ export const applyOperation = mutation({
 				patch.nutrients = next.nutrients;
 				patch.serving = next.serving;
 			}
-			if (operation.correction) {
+			const { correction } = operation;
+			if (correction) {
 				if (
 					operation.quantity !== undefined ||
 					operation.selection !== undefined
@@ -564,7 +566,7 @@ export const applyOperation = mutation({
 					throw new Error("Correct nutrition separately from quantity.");
 				Object.assign(
 					patch,
-					correctDiaryNutrients(entry, operation.correction),
+					withRuleErrors(() => correctDiaryNutrients(entry, correction)),
 				);
 			}
 			if (Object.keys(patch).length > 0) {

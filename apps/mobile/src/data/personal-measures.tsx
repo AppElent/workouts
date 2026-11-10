@@ -1,4 +1,4 @@
-import type { PersonalMeasure } from "@foundry/core/nutrition";
+import type { PersonalMeasure } from "@foundry/core";
 import {
 	createContext,
 	type ReactNode,

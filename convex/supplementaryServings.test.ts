@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { allShippedFoods } from "@foundry/core/nutrition";
+import { allShippedFoods } from "@foundry/core/shipped-foods";
 import { convexTest } from "convex-test";
 import { expect, it } from "vitest";
 import { api } from "./_generated/api";

@@ -1,5 +1,10 @@
-import { calculateOneRepMax } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	currentOneRepMax,
+	resolveStrengthReferences,
+} from "@foundry/core";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import {
@@ -8,6 +13,7 @@ import {
 	exerciseReference,
 	normalizeExerciseReferences,
 	requireExercise,
+	resolveExercise,
 } from "./lib/exerciseCatalog";
 import { readStrengthReferences } from "./lib/strengthReferences";
 import { assertRange } from "./lib/validate";
@@ -35,12 +41,9 @@ export const getCurrentForExercise = query({
 	handler: async (ctx, { exerciseId }) => {
 		const userId = await requireUser(ctx);
 		exerciseId = await canonicalExerciseId(ctx, exerciseId);
-		const references = await readStrengthReferences(ctx, userId, exerciseId);
-		if (references.manual) return references.manual;
 		return (
-			[references.measured, references.estimated]
-				.filter((record) => record !== null)
-				.sort((a, b) => b.date - a.date)[0] ?? null
+			currentOneRepMax(await readStrengthReferences(ctx, userId, exerciseId))
+				?.reference ?? null
 		);
 	},
 });
@@ -53,21 +56,21 @@ export const listCurrentForUser = query({
 			.query("oneRepMaxes")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
 			.collect();
-		// Keep only the most recent record per exercise.
-		const byExercise = new Map<string, (typeof all)[number]>();
-		for (const orm of await normalizeExerciseReferences(ctx, all)) {
-			if (orm.source !== "manual" && !orm.sourceSetId) continue;
-			const key = orm.exerciseId as string;
-			const existing = byExercise.get(key);
-			if (
-				!existing ||
-				(orm.source === "manual" && existing.source !== "manual") ||
-				(orm.source === existing.source && orm.date > existing.date) ||
-				(existing.source !== "manual" && orm.date > existing.date)
-			)
-				byExercise.set(key, orm);
+		const byExercise = new Map<string, Doc<"oneRepMaxes">[]>();
+		for (const record of await normalizeExerciseReferences(ctx, all)) {
+			const records = byExercise.get(record.exerciseId) ?? [];
+			records.push(record);
+			byExercise.set(record.exerciseId, records);
 		}
-		return Array.from(byExercise.values());
+		const current: Doc<"oneRepMaxes">[] = [];
+		for (const [exerciseId, records] of byExercise) {
+			const exercise = await resolveExercise(ctx, exerciseId, userId);
+			const chosen = currentOneRepMax(
+				resolveStrengthReferences(records, exercise),
+			);
+			if (chosen) current.push(chosen.reference);
+		}
+		return current;
 	},
 });
 

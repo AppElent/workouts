@@ -1,5 +1,9 @@
-import { validateEnduranceInput } from "@foundry/core";
-import { v } from "convex/values";
+import {
+	type EnduranceField,
+	type EnduranceInput,
+	validateEnduranceInput,
+} from "@foundry/core";
+import { ConvexError, v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 
@@ -49,6 +53,28 @@ const detailReturn = v.union(
 	}),
 );
 
+const ENDURANCE_MESSAGES: Record<EnduranceField, string> = {
+	occurredAt: "Invalid activity date.",
+	durationSeconds: "Duration must be positive.",
+	distanceMeters: "Distance must be positive.",
+	elevationGainMeters: "Elevation gain cannot be negative.",
+	averageHeartRate: "Average heart rate must be a positive whole number.",
+	effort: "Effort must be between 1 and 10.",
+	title: "Title is too long.",
+	notes: "Notes are too long.",
+};
+
+function assertEnduranceInput(input: EnduranceInput) {
+	const result = validateEnduranceInput(input);
+	if (result.ok) return;
+	const [{ field, code }] = result.errors;
+	throw new ConvexError(
+		code === "future"
+			? "Activity date cannot be in the future."
+			: ENDURANCE_MESSAGES[field],
+	);
+}
+
 async function requireUser(ctx: QueryCtx | MutationCtx) {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) throw new Error("Unauthenticated");
@@ -67,7 +93,7 @@ export const create = mutation({
 		const userId = await requireUser(ctx);
 		if (!args.clientEntryId.trim() || args.clientEntryId.length > 200)
 			throw new Error("Invalid client entry ID.");
-		validateEnduranceInput(args);
+		assertEnduranceInput(args);
 		const existing = await ctx.db
 			.query("activities")
 			.withIndex("by_user_client_entry", (q) =>
@@ -158,7 +184,7 @@ export const update = mutation({
 		const activity = await ctx.db.get(id);
 		if (!activity || activity.userId !== userId)
 			throw new Error("Activity not found.");
-		validateEnduranceInput(input);
+		assertEnduranceInput(input);
 		const detail = await ctx.db
 			.query("enduranceActivityDetails")
 			.withIndex("by_activity", (q) => q.eq("activityId", id))

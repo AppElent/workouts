@@ -1,4 +1,10 @@
-import { ABSENT, type NutrientValue, nutrientValue, TRACE } from "./nutrients";
+import {
+	ABSENT,
+	kcalFromKilojoules,
+	type NutrientValue,
+	nutrientValue,
+	TRACE,
+} from "./nutrients";
 
 /**
  * Normalise a remote provider's free-text nutrient field to a plain
@@ -26,7 +32,7 @@ export function parseProviderNumber(raw: unknown): number | undefined {
 	if (/mg/i.test(raw) || /milligram/i.test(raw)) {
 		return Math.round((value / 1000) * 100) / 100;
 	}
-	if (/kj/i.test(raw)) return Math.round((value / 4.184) * 10) / 10;
+	if (/kj/i.test(raw)) return kcalFromKilojoules(value);
 	return value;
 }
 

@@ -1,4 +1,4 @@
-import type { NutrientKey } from "@foundry/core/nutrition";
+import type { NutrientKey } from "@foundry/core";
 import {
 	emptyReviewTotals,
 	type WeeklyGoal,

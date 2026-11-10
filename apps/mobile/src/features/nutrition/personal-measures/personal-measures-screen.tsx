@@ -1,4 +1,4 @@
-import { formatQuantity, type PersonalMeasure } from "@foundry/core/nutrition";
+import { formatQuantity, type PersonalMeasure } from "@foundry/core";
 import { Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";

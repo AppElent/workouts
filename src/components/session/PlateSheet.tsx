@@ -2,14 +2,14 @@ import {
 	calcPlates,
 	DEFAULT_BAR,
 	generateWarmup,
-	type Unit,
+	type LoadUnit,
 } from "@foundry/core";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 
 interface Props {
 	weight: number;
-	unit: Unit;
+	unit: LoadUnit;
 	exerciseName: string;
 	onClose: () => void;
 }

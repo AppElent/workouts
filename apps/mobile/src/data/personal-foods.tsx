@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/expo";
 import { canonicalJson } from "@foundry/core";
-import { foodResults } from "@foundry/core/nutrition";
+import { foodResults } from "@foundry/core/shipped-foods";
 import { useConvex, useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -32,13 +32,13 @@ import { mintNutritionUuid } from "./nutrition-operation-service";
 import {
 	type Combo,
 	type ComboDraft,
+	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	type PersonalFoodFilter,
 	type PersonalFoodRepository,
 	portablePersonalFood,
 	validateComboDraft,
-	validatePersonalFoodDraft,
 } from "./personal-food-repository";
 import {
 	openPersonalFoodSession,
@@ -133,7 +133,7 @@ function PersonalFoodsScope({
 				const food = (createCandidates.current.get(candidateKey) as
 					| PersonalFood
 					| undefined) ?? {
-					...validatePersonalFoodDraft(draft),
+					...normalizePersonalFoodDraft(draft),
 					id: mintNutritionUuid(),
 					createdAt: timestamp,
 					updatedAt: timestamp,
@@ -172,7 +172,7 @@ function PersonalFoodsScope({
 				const current = repository.find(id);
 				if (!current) throw new Error("Personal Food not found.");
 				const food = {
-					...validatePersonalFoodDraft(draft),
+					...normalizePersonalFoodDraft(draft),
 					id,
 					createdAt: current.createdAt,
 					updatedAt: Date.now(),

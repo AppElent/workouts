@@ -2,7 +2,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { useRef, useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
 import type { MealSlot } from "../../../data/nutrition-day";

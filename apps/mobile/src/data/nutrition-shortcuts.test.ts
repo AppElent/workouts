@@ -1,4 +1,4 @@
-import type { ServingOption } from "@foundry/core/nutrition";
+import type { ServingOption } from "@foundry/core";
 import {
 	portionMemoryFor,
 	rememberedSelection,

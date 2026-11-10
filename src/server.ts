@@ -1,3 +1,4 @@
+import { sanitizeBreadcrumb, sanitizeEvent } from "@foundry/core";
 import * as Sentry from "@sentry/cloudflare";
 import handler from "@tanstack/react-start/server-entry";
 import {
@@ -5,7 +6,6 @@ import {
 	isLocalSentryUrl,
 	SENTRY_DATA_COLLECTION,
 } from "./lib/observability/config";
-import { sanitizeBreadcrumb, sanitizeEvent } from "./lib/observability/privacy";
 
 type SentryEnv = {
 	SENTRY_DSN?: string;

@@ -124,6 +124,6 @@ export function applyFixtureOperation(
 	const visible = entries.filter((entry) => entry.date === date);
 	return {
 		entries: visible,
-		totals: totalNutrients(visible.map((entry) => entry.nutrients)),
+		totals: totalNutrients(visible),
 	};
 }

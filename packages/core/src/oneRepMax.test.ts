@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { getWeightStep } from "./exercise";
 import {
 	calculateOneRepMax,
-	convertLoad,
 	estimatedMaxReps,
-	getWeightStep,
 	roundLoad,
 	weightForRepMax,
 } from "./oneRepMax";
+import { convertLoad } from "./units";
 
 // This used to be a parity test guarding against drift between a client copy
 // (src/lib/oneRepMax.ts) and a server copy (convex/lib/oneRepMax.ts) of the

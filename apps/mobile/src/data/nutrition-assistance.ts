@@ -1,13 +1,15 @@
-import type { NutritionProvenance } from "@foundry/core";
 import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
+	type NutritionProvenance,
 	personalFoodSnapshot,
 	type ShippedFood,
+} from "@foundry/core";
+import {
 	searchShippedFoods,
 	shippedFoodProvenance,
-} from "@foundry/core/nutrition";
+} from "@foundry/core/shipped-foods";
 import type { PersonalFood } from "./personal-food-repository";
 
 /**

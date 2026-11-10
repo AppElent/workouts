@@ -7,7 +7,8 @@
 //   pnpm prototype:ai-food "broodje pittige kip van de spar" --then "de kip was gegrild" --then "geen ui"
 //
 // Reads ANTHROPIC_API_KEY from the dev Convex deployment.
-import { type ShippedFood, searchShippedFoods } from "@foundry/core/nutrition";
+import type { ShippedFood } from "@foundry/core";
+import { searchShippedFoods } from "@foundry/core/shipped-foods";
 import {
 	type Described,
 	describe,

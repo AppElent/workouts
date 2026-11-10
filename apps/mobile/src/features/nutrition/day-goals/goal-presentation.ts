@@ -1,4 +1,4 @@
-import { type NutrientTotal, roundForDisplay } from "@foundry/core/nutrition";
+import { type NutrientTotal, roundForDisplay } from "@foundry/core";
 import {
 	type NutrientGoal,
 	type NutrientKey,

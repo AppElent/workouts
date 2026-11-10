@@ -1,4 +1,4 @@
-import { roundForDisplay } from "@foundry/core/nutrition";
+import { roundForDisplay } from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove } from "expo-router";
 import { SymbolView } from "expo-symbols";

@@ -288,7 +288,7 @@ describe("nutrition library account backup operations", () => {
 				api.nutritionLibrary.applyOperation,
 				upsert("bad", "food-1", 0, JSON.stringify({ id: "food-1" })),
 			),
-		).rejects.toThrow("Food name");
+		).rejects.toThrow('{"code":"required","field":"name.en"}');
 		await alice.mutation(
 			api.nutritionLibrary.applyOperation,
 			upsert("create", "food-1", 0),

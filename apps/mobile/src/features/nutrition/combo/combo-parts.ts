@@ -4,7 +4,7 @@ import {
 	type PersonalFood,
 	personalFoodSnapshotAtAmount,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import type { DiaryEntry } from "../../../data/nutrition-day";
 import type {
 	Combo,

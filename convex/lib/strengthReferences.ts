@@ -1,4 +1,9 @@
-import { calculateOneRepMax, convertLoad } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	convertLoad,
+	isReferenceEligible,
+	resolveStrengthReferences,
+} from "@foundry/core";
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -73,13 +78,7 @@ export async function performanceReference(
 	>,
 ) {
 	const exercise = await resolveExercise(ctx, set.exerciseId, userId);
-	if (
-		!set.performanceVerified ||
-		!exercise ||
-		exercise.equipment === "bodyweight" ||
-		set.weight <= 0 ||
-		set.reps < 1
-	) {
+	if (!isReferenceEligible(set, exercise)) {
 		return { referenceKind: undefined, referenceValueKg: undefined };
 	}
 	const result = calculateOneRepMax(set.weight, set.reps);
@@ -141,25 +140,8 @@ export async function readStrengthReferences(
 	userId: string,
 	exerciseId: string,
 ) {
-	const records = await exerciseOneRepMaxes(ctx, userId, exerciseId);
-	const exercise = await resolveExercise(ctx, exerciseId, userId);
-	const automatic =
-		exercise?.equipment === "bodyweight"
-			? []
-			: records.filter((record) => record.sourceSetId);
-	const best = (source: "actual" | "calculated") =>
-		automatic
-			.filter((record) => record.source === source)
-			.sort(
-				(a, b) =>
-					convertLoad(b.value, b.unit, "kg") -
-					convertLoad(a.value, a.unit, "kg"),
-			)[0] ?? null;
-	const manual =
-		records
-			.filter((record) => record.source === "manual")
-			.sort(
-				(a, b) => b.date - a.date || b._creationTime - a._creationTime,
-			)[0] ?? null;
-	return { measured: best("actual"), estimated: best("calculated"), manual };
+	return resolveStrengthReferences(
+		await exerciseOneRepMaxes(ctx, userId, exerciseId),
+		await resolveExercise(ctx, exerciseId, userId),
+	);
 }

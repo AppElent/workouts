@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { fmt, isLocale, plural, resolveLocale } from "../core";
+import {
+	fmt,
+	isLocale,
+	messageParityMismatches,
+	plural,
+	resolveLocale,
+	SUPPORTED_LOCALES,
+} from "./i18n";
 
-const LOCALES = ["en", "nl"] as const;
+const LOCALES = SUPPORTED_LOCALES;
 
 describe("isLocale", () => {
 	it("accepts supported locales", () => {
@@ -104,5 +111,72 @@ describe("plural", () => {
 		} finally {
 			intl.PluralRules = original;
 		}
+	});
+});
+
+describe("messageParityMismatches", () => {
+	const en = {
+		greeting: "Hello {name}",
+		nav: { home: "Home", log: "{count} sets" },
+	};
+
+	it("finds nothing when every locale says the same things", () => {
+		expect(
+			messageParityMismatches({
+				en,
+				nl: {
+					greeting: "Hallo {name}",
+					nav: { home: "Thuis", log: "{count} sets" },
+				},
+			}),
+		).toEqual([]);
+	});
+
+	it("reports missing and extra keys against the first locale", () => {
+		expect(
+			messageParityMismatches({
+				en,
+				nl: {
+					greeting: "Hallo {name}",
+					nav: { home: "Thuis", extra: "Extra" },
+				},
+			}),
+		).toEqual([
+			{ kind: "missingKey", locale: "nl", path: "nav.log" },
+			{ kind: "extraKey", locale: "nl", path: "nav.extra" },
+		]);
+	});
+
+	it("reports a dropped or invented placeholder", () => {
+		expect(
+			messageParityMismatches({
+				en,
+				nl: { greeting: "Hallo {naam}", nav: { home: "Thuis", log: "sets" } },
+			}),
+		).toEqual([
+			{
+				kind: "placeholders",
+				locale: "nl",
+				path: "greeting",
+				expected: ["name"],
+				actual: ["naam"],
+			},
+			{
+				kind: "placeholders",
+				locale: "nl",
+				path: "nav.log",
+				expected: ["count"],
+				actual: [],
+			},
+		]);
+	});
+
+	it("reports an empty message in any locale", () => {
+		expect(
+			messageParityMismatches({
+				en: { a: " " },
+				nl: { a: "Iets" },
+			}),
+		).toEqual([{ kind: "emptyMessage", locale: "en", path: "a" }]);
 	});
 });

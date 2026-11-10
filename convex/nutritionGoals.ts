@@ -1,14 +1,16 @@
+import {
+	type EffectiveGoalVersion,
+	type NutritionGoal,
+	resolveGoalHistory,
+} from "@foundry/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import {
 	assertCalendarDate,
-	type EffectiveGoalVersion,
-	type NutritionGoal,
-	resolveGoalHistory,
+	assertNutritionGoals,
 	utcTodayIsoDate,
-	validateNutritionGoals,
 } from "./nutritionGoalModel";
 import {
 	NUTRITION_NUTRIENTS,
@@ -203,7 +205,7 @@ export const replace = mutation({
 		const userId = await requireUser(ctx);
 		const date = effectiveFrom ?? utcTodayIsoDate();
 		assertCalendarDate(date);
-		validateNutritionGoals(goals);
+		assertNutritionGoals(goals);
 
 		const existing = await readExactEffectiveVersion(ctx, userId, date);
 		if (existing) {

@@ -1,16 +1,14 @@
 import { useAuth } from "@clerk/expo";
 import {
 	canonicalJson,
+	type DiaryNutrientCorrection,
+	type MealSlot,
+	type NutrientKey,
 	type NutritionDiaryOperation,
 	type NutritionDiarySnapshot,
-	type NutritionMealSlot,
 	type NutritionOperationEnvelope,
 	type NutritionOperationTarget,
 } from "@foundry/core";
-import type {
-	DiaryNutrientCorrection,
-	NutrientKey,
-} from "@foundry/core/nutrition";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import {
 	createContext,
@@ -23,7 +21,7 @@ import {
 } from "react";
 import { AppState } from "react-native";
 import { api } from "../convex/api";
-import type { DiaryEntry, MealSlot } from "./nutrition-day";
+import type { DiaryEntry } from "./nutrition-day";
 import {
 	type FoodPhotoUpload,
 	prepareDiaryPhotoOperation,
@@ -217,7 +215,7 @@ export class NutritionOperationService {
 	cacheSupplementaryServings(
 		subject: string,
 		foodId: string,
-		servings: readonly import("@foundry/core/nutrition").SupplementaryServing[],
+		servings: readonly import("@foundry/core").SupplementaryServing[],
 	) {
 		if (
 			canonicalJson(
@@ -234,7 +232,7 @@ export class NutritionOperationService {
 
 	cachePersonalMeasures(
 		subject: string,
-		measures: readonly import("@foundry/core/nutrition").PersonalMeasure[],
+		measures: readonly import("@foundry/core").PersonalMeasure[],
 	) {
 		if (
 			canonicalJson(this.repository.getPersonalMeasures(subject)) ===
@@ -300,7 +298,7 @@ export class NutritionOperationService {
 		return this.repository.listOperations(subject);
 	}
 
-	listRecent(subject: string, meal?: NutritionMealSlot) {
+	listRecent(subject: string, meal?: MealSlot) {
 		return this.repository.listRecent(subject, undefined, meal);
 	}
 
@@ -342,7 +340,7 @@ export class NutritionOperationService {
 	createBatch(
 		subject: string,
 		date: string,
-		meal: NutritionMealSlot,
+		meal: MealSlot,
 		entries: readonly (NutritionDiarySnapshot & { clientEntryId: string })[],
 		onError?: (error: unknown) => void,
 		onSuccess?: (clientEntryIds: readonly string[]) => void,
@@ -365,7 +363,7 @@ export class NutritionOperationService {
 	group(
 		subject: string,
 		date: string,
-		meal: NutritionMealSlot,
+		meal: MealSlot,
 		targets: readonly NutritionOperationTarget[],
 		comboGroup: { id: string; comboId: string; name: string },
 		onError?: (error: unknown) => void,
@@ -485,7 +483,7 @@ export class NutritionOperationService {
 		subject: string,
 		targets: readonly NutritionOperationTarget[],
 		date: string,
-		meal: NutritionMealSlot,
+		meal: MealSlot,
 		onError?: (error: unknown) => void,
 		onSuccess?: () => void,
 	) {

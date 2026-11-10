@@ -1,5 +1,8 @@
-import type { PersonalFood, ServingOption } from "@foundry/core/nutrition";
-import { withPersonalMeasures } from "@foundry/core/nutrition";
+import {
+	type PersonalFood,
+	type ServingOption,
+	withPersonalMeasures,
+} from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useConvexConnectionState, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";

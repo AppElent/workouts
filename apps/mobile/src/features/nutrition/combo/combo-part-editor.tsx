@@ -1,7 +1,4 @@
-import {
-	formatServingSelection,
-	rescaleToSelection,
-} from "@foundry/core/nutrition";
+import { formatServingSelection, rescaleToSelection } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import type {

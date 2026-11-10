@@ -1,9 +1,9 @@
 import {
-	type FoodResult,
 	type NutrientKey,
 	type NutrientValue,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import type { FoodResult } from "@foundry/core/shipped-foods";
 import type {
 	OffLookupOutcome,
 	OffSearchOutcome,

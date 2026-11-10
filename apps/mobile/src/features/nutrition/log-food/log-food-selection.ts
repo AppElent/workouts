@@ -1,5 +1,4 @@
 import {
-	type LibraryFood,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 	previewServing,
@@ -7,7 +6,8 @@ import {
 	servingOptions,
 	withPersonalMeasures,
 	withSupplementaryServings,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import type { LibraryFood } from "@foundry/core/shipped-foods";
 import { foodSourceKey } from "../../../data/nutrition-shortcuts";
 
 export type FoodSelection = LibraryFood;
@@ -32,8 +32,8 @@ export type FoodFilter = FoodBrowserTab;
 
 export function servingChoices(
 	selection: FoodSelection,
-	personalMeasures: readonly import("@foundry/core/nutrition").PersonalMeasure[],
-	supplementary: readonly import("@foundry/core/nutrition").SupplementaryServing[] = [],
+	personalMeasures: readonly import("@foundry/core").PersonalMeasure[],
+	supplementary: readonly import("@foundry/core").SupplementaryServing[] = [],
 ): ServingOption[] {
 	const foodOptions =
 		selection.kind === "shipped"

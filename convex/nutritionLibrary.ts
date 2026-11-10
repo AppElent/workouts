@@ -12,6 +12,7 @@ import {
 	query,
 } from "./_generated/server";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
+import { withRuleErrors } from "./lib/ruleError";
 import { requireFoodPhotoOwner } from "./nutritionFoodPhotos";
 import {
 	libraryRecordKind,
@@ -128,7 +129,9 @@ function assertNutrients(value: unknown) {
 
 function assertFoodPayload(payload: Record<string, unknown>, id: string) {
 	if (payload.id !== id) throw new Error("Food payload identity is invalid.");
-	const food = normalizePersonalFood(payload as PersonalFood);
+	const food = withRuleErrors(() =>
+		normalizePersonalFood(payload as PersonalFood),
+	);
 	if (food.visual?.kind === "photo" && !food.visual.storageId) {
 		throw new Error("Device-local Food photos cannot be backed up.");
 	}

@@ -1,10 +1,5 @@
 import type { NutrientValue, ShippedNutrientKey } from "./nutrients";
-
-/** The two languages the library ships in. */
-export type Locale = "en" | "nl";
-
-/** Any text that exists in both languages. */
-export type Bilingual = { readonly en: string; readonly nl: string };
+import type { Bilingual, MeasuredUnit, NutritionSource } from "./snapshot";
 
 /**
  * The ten category keys every shipped food is filed under (spec #68, D16).
@@ -38,7 +33,7 @@ export type ShippedFoodId = `shipped:${string}`;
  * space, its own lockfile namespace and its own entry in the artifact's
  * `sources` table.
  */
-export type ShippedSource = "nevo" | "lidl";
+export type ShippedSource = Extract<NutritionSource, "nevo" | "lidl">;
 
 export type ShippedSourceMeta = {
 	readonly name: string;
@@ -99,7 +94,7 @@ export type ShippedFood = {
 	readonly category: FoodCategory;
 	/** Key into the artifact's NEVO food-group table. */
 	readonly group: string;
-	readonly baseUnit: "g" | "ml";
+	readonly baseUnit: MeasuredUnit;
 	readonly promoted: boolean;
 	readonly emoji?: string;
 	/** Authored servings, in the order the picker should offer them. */
