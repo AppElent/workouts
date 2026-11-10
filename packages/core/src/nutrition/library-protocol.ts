@@ -1,7 +1,7 @@
 /**
- * The personal library sync protocol between the device and Convex. A device
- * writes the current versions; the server still accepts every version in
- * LIBRARY_SCHEMA_VERSIONS because older app builds keep syncing.
+ * The personal library sync protocol between the device and Convex. The server
+ * stamps every write with LIBRARY_SCHEMA_VERSION; stored rows written by older
+ * builds may still carry any version in LIBRARY_SCHEMA_VERSIONS.
  */
 export const LIBRARY_SCHEMA_VERSIONS = [1, 2, 3] as const;
 export type LibrarySchemaVersion = (typeof LIBRARY_SCHEMA_VERSIONS)[number];

@@ -53,7 +53,7 @@ export default defineSchema({
 		recordKind: libraryRecordKind,
 		// Opaque validated JSON, so device-minted ids survive unchanged.
 		payload: v.optional(v.string()),
-		// Kept on tombstones so an older client cannot restore a reduced shape.
+		// Rows written before schema versions have none; they read as version 1.
 		schemaVersion: v.optional(librarySchemaVersion),
 		revision: v.number(),
 		deleted: v.boolean(),

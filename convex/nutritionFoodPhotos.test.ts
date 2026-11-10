@@ -119,30 +119,28 @@ it("restores a manual food's uploaded photo from its storage identifier on a fre
 		updatedAt: 1,
 	});
 	await alice.mutation(api.nutritionLibrary.save, {
-		version: 1,
 		operationId: "save-photo",
 		expectedSubject: "alice",
 		operation: {
 			kind: "upsert",
-			record: { id: "manual", kind: "food", schemaVersion: 3, payload },
+			record: { id: "manual", kind: "food", payload },
 			expectedRevision: 0,
 		},
 	});
 	const fresh = await t
 		.withIdentity({ subject: "alice" })
-		.query(api.nutritionLibrary.getMany, { ids: ["manual"], photoVersion: 3 });
+		.query(api.nutritionLibrary.getMany, { ids: ["manual"] });
 	const visual = JSON.parse(fresh[0].payload!).visual;
 	expect(visual.storageId).toBe(storageId);
 	expect(visual.uri).toBe(await photoUrl(t, storageId));
 	expect(visual.uri).toBeTruthy();
 	await expect(
 		t.withIdentity({ subject: "bob" }).mutation(api.nutritionLibrary.save, {
-			version: 1,
 			operationId: "steal-photo",
 			expectedSubject: "bob",
 			operation: {
 				kind: "upsert",
-				record: { id: "manual", kind: "food", schemaVersion: 3, payload },
+				record: { id: "manual", kind: "food", payload },
 				expectedRevision: 0,
 			},
 		}),
@@ -152,7 +150,6 @@ it("restores a manual food's uploaded photo from its storage identifier on a fre
 			.withIdentity({ subject: "bob" })
 			.query(api.nutritionLibrary.getMany, {
 				ids: ["manual"],
-				photoVersion: 3,
 			}),
 	).toEqual([]);
 });

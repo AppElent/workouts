@@ -138,7 +138,6 @@ function PersonalFoodsScope({
 				const record = await saveRecord({
 					id: food.id,
 					kind: "food",
-					schemaVersion: 2,
 					payload: JSON.stringify(food),
 					revision: 0,
 					deleted: false,
@@ -176,7 +175,6 @@ function PersonalFoodsScope({
 				const record = await saveRecord({
 					id,
 					kind: "food",
-					schemaVersion: 2,
 					payload: JSON.stringify(food),
 					revision: 1,
 					deleted: false,
@@ -233,7 +231,6 @@ function PersonalFoodsScope({
 				const record = await saveRecord({
 					id: combo.id,
 					kind: "combo",
-					schemaVersion: 2,
 					payload: JSON.stringify(combo),
 					revision: 0,
 					deleted: false,
@@ -262,7 +259,6 @@ function PersonalFoodsScope({
 				const record = await saveRecord({
 					id,
 					kind: "combo",
-					schemaVersion: 2,
 					payload: JSON.stringify(combo),
 					revision: 1,
 					deleted: false,
@@ -391,7 +387,6 @@ function PersonalFoodsAccount({
 			if (!subject || !isWebSocketConnected)
 				throw new Error("A connection is required to look up your library.");
 			const records = await client.query(api.nutritionLibrary.getMany, {
-				photoVersion: 3,
 				ids: accountRepository
 					.list()
 					.filter((food) => food.provenance.barcode === barcode)
@@ -438,7 +433,6 @@ function PersonalFoodsAccount({
 			const operationId = retryOperations.current.get(retryKey) ?? mintUuid();
 			retryOperations.current.set(retryKey, operationId);
 			const result = await onlineMutation({
-				version: 1,
 				operationId,
 				expectedSubject: subject,
 				operation: remove
@@ -454,7 +448,6 @@ function PersonalFoodsAccount({
 								id: record.id,
 								kind: record.kind,
 								payload: portableRecord.payload ?? "",
-								schemaVersion: 3,
 							},
 							expectedRevision: record.revision,
 						},
@@ -501,7 +494,6 @@ function PersonalFoodsAccount({
 				for (let offset = 0; offset < localPhotos.length; offset += 100) {
 					const records = await client.query(api.nutritionLibrary.getMany, {
 						ids: localPhotos.slice(offset, offset + 100).map((food) => food.id),
-						photoVersion: 3,
 					});
 					if (owner.current !== subject)
 						throw new Error("The account changed while updating photos.");
@@ -517,7 +509,6 @@ function PersonalFoodsAccount({
 						kind: "food",
 						payload: JSON.stringify(food),
 						revision: revision ?? 0,
-						schemaVersion: 3,
 						deleted: false,
 					});
 				}
@@ -573,7 +564,6 @@ export function usePersonalFoods(options?: {
 		subscribed && options?.browse
 			? {
 					query: settledQuery.trim(),
-					photoVersion: 3,
 					...(options.browse.category
 						? { category: options.browse.category }
 						: {}),
@@ -605,7 +595,7 @@ export function usePersonalFoods(options?: {
 		string,
 		{
 			query: typeof api.nutritionLibrary.getMany;
-			args: { ids: string[]; forkIds: string[]; photoVersion: 3 };
+			args: { ids: string[]; forkIds: string[] };
 		}
 	> = {};
 	if (enabled)
@@ -614,7 +604,6 @@ export function usePersonalFoods(options?: {
 			extraForkQueries[String(offset)] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
-					photoVersion: 3,
 					forkIds: chunk,
 					ids: value
 						.forks()
@@ -640,7 +629,6 @@ export function usePersonalFoods(options?: {
 			extraForkQueries[`cached:${offset}`] = {
 				query: api.nutritionLibrary.getMany,
 				args: {
-					photoVersion: 3,
 					ids: requestedIds.slice(offset, offset + 100).sort(),
 					forkIds: [],
 				},
@@ -677,7 +665,6 @@ export function usePersonalFoods(options?: {
 		api.nutritionLibrary.getMany,
 		enabled && (ids.length || forkIds.length || options?.barcode)
 			? {
-					photoVersion: 3,
 					ids,
 					...(forkIds.length ? { forkIds } : {}),
 					...(options?.barcode ? { barcode: options.barcode } : {}),
