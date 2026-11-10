@@ -1,13 +1,13 @@
 ---
 type: runbook
 description: Read when upgrading dependencies.
-version: 1.1.0
+version: 1.1.1
 ---
 
 # Dependency upgrades
 
-Use the installed `upgrade-deps` skill; if it is unavailable, say so and apply
-its constraints by hand. Routine upgrades stay within current majors; report
+Use the installed `upgrade-dependencies` skill; if it is unavailable, say so and
+apply its constraints by hand. Routine upgrades stay within current majors; report
 major migrations for discussion.
 
 Find candidates with `pnpm outdated`. Root changes pass the root gates in
