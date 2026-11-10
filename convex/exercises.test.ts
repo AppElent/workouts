@@ -63,7 +63,7 @@ it("updates in place, clears optional fields, and preserves instructions and tra
 	});
 });
 
-it("rejects unauthenticated, other-owner, shipped and legacy-default edits", async () => {
+it("rejects unauthenticated, other-owner and shipped edits", async () => {
 	const t = convexTest(schema, modules);
 	const alice = t.withIdentity({ subject: "alice" });
 	const id = await alice.mutation(api.exercises.create, values);
@@ -80,12 +80,6 @@ it("rejects unauthenticated, other-owner, shipped and legacy-default edits", asy
 			id: SHIPPED_EXERCISES[0]._id,
 			...values,
 		}),
-	).rejects.toMatchObject({ data: { code: "readOnly" } });
-	const legacy = await t.run((ctx) =>
-		ctx.db.insert("exercises", { ...values, isDefault: true, userId: "alice" }),
-	);
-	await expect(
-		alice.mutation(api.exercises.update, { id: legacy, ...values }),
 	).rejects.toMatchObject({ data: { code: "readOnly" } });
 	expect(await alice.query(api.exercises.getById, { id })).toMatchObject(
 		values,

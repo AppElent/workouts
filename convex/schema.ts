@@ -9,6 +9,7 @@ import {
 	exerciseCategory,
 	exerciseReference,
 	hostedLevel,
+	libraryCategory,
 	libraryRecordKind,
 	librarySchemaVersion,
 	loadUnit,
@@ -18,6 +19,8 @@ import {
 	nutritionGoal,
 	oneRepMaxSource,
 	plannedSet,
+	rxScaled,
+	setReferenceSource,
 	setType,
 	strengthReferenceSnapshots,
 	wodMovement,
@@ -57,14 +60,11 @@ export default defineSchema({
 		updatedAt: v.number(),
 		name: v.optional(v.string()),
 		searchText: v.optional(v.string()),
-		category: v.optional(
-			v.union(v.literal("food"), v.literal("recipe"), v.literal("combo")),
-		),
+		category: v.optional(libraryCategory),
 		barcode: v.optional(v.string()),
 		forkedFrom: v.optional(v.string()),
 	})
 		.index("by_user_and_record", ["userId", "recordId"])
-		.index("by_user_and_updated_at", ["userId", "updatedAt"])
 		.index("by_user_deleted_name", ["userId", "deleted", "name"])
 		.index("by_user_deleted_category_name", [
 			"userId",
@@ -182,9 +182,7 @@ export default defineSchema({
 	nutritionGoals: defineTable({
 		userId: v.string(),
 		...nutritionGoal.fields,
-	})
-		.index("by_user", ["userId"])
-		.index("by_user_nutrient_direction", ["userId", "nutrient", "direction"]),
+	}).index("by_user", ["userId"]),
 
 	exercises: defineTable({
 		name: v.string(),
@@ -194,15 +192,13 @@ export default defineSchema({
 		notes: v.optional(v.string()),
 		instructions: v.optional(v.array(v.string())),
 		weightIncrement: v.optional(v.number()),
+		// New rows are personal. `isDefault` rows without a `userId` are retained
+		// copies of the catalog that used to be seeded; `shippedExerciseId` names
+		// their shipped exercise.
 		isDefault: v.boolean(),
 		shippedExerciseId: v.optional(v.string()),
 		userId: v.optional(v.string()),
-	})
-		.index("by_name", ["name"])
-		.index("by_default_name", ["isDefault", "name"])
-		.index("by_shipped", ["shippedExerciseId"])
-		.index("by_default", ["isDefault"])
-		.index("by_user", ["userId"]),
+	}).index("by_user", ["userId"]),
 
 	workoutSessions: defineTable({
 		userId: v.string(),
@@ -273,17 +269,13 @@ export default defineSchema({
 		// Compatibility with the earlier issue 89 development schema; no new writes.
 		estimatedMax: v.optional(v.number()),
 		performanceVerified: v.optional(v.boolean()),
-		referenceKind: v.optional(
-			v.union(v.literal("actual"), v.literal("calculated")),
-		),
+		referenceKind: v.optional(setReferenceSource),
 		referenceValueKg: v.optional(v.number()),
 	})
 		.index("by_session", ["sessionId"])
-		.index("by_exercise", ["exerciseId"])
 		.index("by_user", ["userId"])
 		.index("by_user_exercise", ["userId", "exerciseId"])
 		.index("by_user_exercise_logged_at", ["userId", "exerciseId", "loggedAt"])
-		.index("by_session_exercise", ["sessionId", "exerciseId"])
 		.index("by_strength_reference", [
 			"userId",
 			"exerciseId",
@@ -308,7 +300,6 @@ export default defineSchema({
 		formula: v.optional(v.string()),
 		sourceSetId: v.optional(v.id("sets")),
 	})
-		.index("by_exercise", ["exerciseId"])
 		.index("by_user", ["userId"])
 		.index("by_user_exercise", ["userId", "exerciseId"]),
 
@@ -365,11 +356,10 @@ export default defineSchema({
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
 		date: v.number(),
-		rxScaled: v.union(v.literal("rx"), v.literal("scaled")),
+		rxScaled,
 		...wodScoreFields,
 	})
 		.index("by_user", ["userId"])
-		.index("by_wod", ["wodId"])
 		.index("by_user_wod", ["userId", "wodId"])
 		.index("by_session", ["sessionId"]),
 
@@ -424,7 +414,6 @@ export default defineSchema({
 		}),
 	})
 		.index("by_host", ["hostUserId"])
-		.index("by_status", ["status"])
 		.index("by_join_token", ["joinToken"]),
 
 	hostedWorkoutParticipants: defineTable({
@@ -453,6 +442,5 @@ export default defineSchema({
 		submittedAt: v.number(),
 	})
 		.index("by_hosted_workout", ["hostedWorkoutId"])
-		.index("by_participant", ["participantId"])
 		.index("by_hosted_workout_wod", ["hostedWorkoutId", "wodBlockId"]),
 });

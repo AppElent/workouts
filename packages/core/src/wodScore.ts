@@ -10,6 +10,10 @@ export type WodType = (typeof WOD_TYPES)[number];
 export const HOSTED_LEVELS = ["rx", "l1", "l2", "l3"] as const;
 export type HostedLevel = (typeof HOSTED_LEVELS)[number];
 
+/** Whether a logged WOD result was done as prescribed. */
+export const RX_SCALED = ["rx", "scaled"] as const;
+export type RxScaled = (typeof RX_SCALED)[number];
+
 export type WodMovement = {
 	name: string;
 	reps?: number;

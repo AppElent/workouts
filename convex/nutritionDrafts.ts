@@ -110,7 +110,7 @@ export const summary = query({
 	handler: async (ctx, { date }) => {
 		const userId = await requireUserId(ctx);
 		assertIsoDate(date);
-		// Rows dated "" are the account total that earlier builds kept.
+		// Rows dated "" hold the account total an earlier server version kept.
 		const [counts, oldest] = await Promise.all([
 			ctx.db
 				.query("nutritionCaptureDraftCounts")

@@ -1,6 +1,10 @@
+/** How a logged set gives a One-rep Max: a performed single, or the Epley estimate. */
+export const SET_REFERENCE_SOURCES = ["actual", "calculated"] as const;
+export type SetReferenceSource = (typeof SET_REFERENCE_SOURCES)[number];
+
 export interface OneRepMaxResult {
 	value: number;
-	source: "actual" | "calculated";
+	source: SetReferenceSource;
 	formula?: "epley";
 }
 

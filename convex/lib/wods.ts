@@ -1,7 +1,7 @@
 import {
+	type RxScaled,
 	validateWodScore,
 	type WodScoreInput,
-	type WodType,
 } from "@foundry/core";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -21,11 +21,6 @@ type WodDefinition = Pick<
 
 type Score = WodScoreInput & { notes?: string };
 
-/** A score complete for its WOD type and within `SCORE_LIMITS`. */
-export function checkedWodScore<T extends Score>(type: WodType, score: T): T {
-	return checked(validateWodScore(type, score));
-}
-
 /**
  * Records a scored WOD in the athlete's own library: a personal copy of the
  * WOD and its result. Passing the ids of an earlier recording updates those
@@ -37,12 +32,12 @@ export async function recordWodResult(
 	input: {
 		wod: WodDefinition;
 		sessionId?: Id<"workoutSessions">;
-		rxScaled: "rx" | "scaled";
+		rxScaled: RxScaled;
 		score: Score;
 		previous?: { wodId?: Id<"wods">; wodResultId?: Id<"wodResults"> };
 	},
 ) {
-	const score = checkedWodScore(input.wod.type, input.score);
+	const score = checked(validateWodScore(input.wod.type, input.score));
 	const existingWod = input.previous?.wodId
 		? await getOwned(ctx, userId, input.previous.wodId)
 		: null;

@@ -11,61 +11,15 @@ import {
 	hostedPrescriptions,
 	validatePrescriptions,
 } from "./lib/strengthSession";
-import {
-	exerciseReference,
-	hostedLevel,
-	loadUnit,
-	wodMovement,
-	wodType,
-} from "./lib/validators";
+import schema from "./schema";
 
-const hostParticipation = v.union(
-	v.literal("hostOnly"),
-	v.literal("hostAndParticipate"),
-);
-
-const template = v.object({
-	strengthBlocks: v.array(
-		v.object({
-			blockId: v.string(),
-			exerciseId: v.optional(exerciseReference),
-			exerciseName: v.string(),
-			instructions: v.optional(v.string()),
-			defaultSets: v.optional(v.number()),
-			defaultReps: v.optional(v.number()),
-			defaultWeight: v.optional(v.number()),
-			unit: v.optional(loadUnit),
-			percentageOfOneRepMax: v.optional(v.number()),
-		}),
-	),
-	wodBlocks: v.array(
-		v.object({
-			blockId: v.string(),
-			wodId: v.optional(v.id("wods")),
-			name: v.string(),
-			type: wodType,
-			description: v.optional(v.string()),
-			repScheme: v.optional(v.string()),
-			timeCapSeconds: v.optional(v.number()),
-			durationSeconds: v.optional(v.number()),
-			levels: v.array(
-				v.object({
-					level: hostedLevel,
-					label: v.string(),
-					description: v.optional(v.string()),
-					movements: v.array(wodMovement),
-				}),
-			),
-		}),
-	),
-});
-
+const stored = schema.tables.hostedWorkouts.validator.fields;
 const draftFields = {
-	title: v.string(),
-	notes: v.optional(v.string()),
-	scheduledAt: v.optional(v.number()),
-	hostParticipation,
-	template,
+	title: stored.title,
+	notes: stored.notes,
+	scheduledAt: stored.scheduledAt,
+	hostParticipation: stored.hostParticipation,
+	template: stored.template,
 };
 
 type Draft = ObjectType<typeof draftFields>;

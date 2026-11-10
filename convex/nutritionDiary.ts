@@ -19,6 +19,8 @@ import { appError, checked, withRuleErrors } from "./lib/errors";
 import { requireFoodPhotoOwner } from "./lib/foodPhotos";
 import { withOperationReceipt } from "./lib/operationReceipt";
 import {
+	bilingual,
+	comboGroup,
 	diaryNutrientCorrection,
 	diaryPartSnapshotFields,
 	diarySnapshotFields,
@@ -39,12 +41,6 @@ const batchTarget = v.union(
 	v.object({ kind: v.literal("serverId"), id: v.string() }),
 	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
 );
-
-const comboGroup = v.object({
-	id: v.string(),
-	comboId: v.string(),
-	name: v.string(),
-});
 
 const operationArgs = {
 	version: v.literal(1),
@@ -73,7 +69,7 @@ const operationArgs = {
 			quantity: v.optional(v.number()),
 			selection: v.optional(
 				v.object({
-					serving: v.object({ en: v.string(), nl: v.string() }),
+					serving: bilingual,
 					quantity: v.number(),
 					amount: v.number(),
 					personalMeasureId: v.union(v.string(), v.null()),

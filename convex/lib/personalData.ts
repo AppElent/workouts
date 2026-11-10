@@ -179,7 +179,7 @@ type SharedTable =
 	| "hostedWorkoutParticipants"
 	| "hostedWorkoutSubmissions";
 /** A new table must be personal or shared, so deletion cannot miss it. */
-export type UnplacedTable = Exclude<TableNames, PersonalTable | SharedTable>;
+type UnplacedTable = Exclude<TableNames, PersonalTable | SharedTable>;
 true satisfies [UnplacedTable] extends [never] ? true : never;
 
 export type ExportTable = {

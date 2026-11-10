@@ -2,6 +2,7 @@ import {
 	isRuleError,
 	NUTRITION_AI_ERROR_CODES,
 	type RuleResult,
+	ruleValue,
 } from "@foundry/core";
 import { ConvexError } from "convex/values";
 
@@ -53,9 +54,7 @@ export function appError(code: AppErrorCode, field?: string) {
 
 /** The value of a passing rule result; a failing one throws its first issue. */
 export function checked<T>(result: RuleResult<T>): T {
-	if (result.ok) return result.value;
-	const [{ code, field }] = result.errors;
-	throw new ConvexError({ code, field });
+	return withRuleErrors(() => ruleValue(result));
 }
 
 /** Runs a core function that throws `RuleError` and rethrows it coded. */

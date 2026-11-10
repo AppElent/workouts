@@ -115,7 +115,7 @@ export function hostedPrescriptions(
 	);
 }
 
-export async function requireActiveSession(
+async function requireActiveSession(
 	ctx: MutationCtx,
 	userId: string,
 	sessionId: Id<"workoutSessions">,

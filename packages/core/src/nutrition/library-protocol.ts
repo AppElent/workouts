@@ -18,5 +18,12 @@ export const LIBRARY_FIELDS_SCHEMA_VERSION = 2 satisfies LibrarySchemaVersion;
  */
 export const PHOTO_VERSION = 3;
 
+export const LIBRARY_RECORD_KINDS = ["food", "combo"] as const;
+export type LibraryRecordKind = (typeof LIBRARY_RECORD_KINDS)[number];
+
+/** Library browse categories: a food record is a food or a recipe. */
+export const LIBRARY_CATEGORIES = ["food", "recipe", "combo"] as const;
+export type LibraryCategory = (typeof LIBRARY_CATEGORIES)[number];
+
 /** Most ids one `getMany` call accepts. */
 export const LIBRARY_GET_MANY_LIMIT = 100;
