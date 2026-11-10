@@ -3,7 +3,6 @@ import {
 	type Locale,
 	type MealSlot,
 	NUTRIENT_KEYS,
-	NUTRITION_AI_LIMITS,
 	type NutrientKey,
 	type NutrientValue,
 	type NutritionDiarySnapshot,
@@ -36,6 +35,8 @@ export type Choice = FunctionReturnType<typeof api.nutritionAi.choose>[number];
 export type LabelReading = FunctionReturnType<typeof api.nutritionAi.readLabel>;
 export type { ImageInput } from "./nutrition-ai-image";
 
+/** Candidates sent per item; the server accepts up to `NUTRITION_AI_LIMITS.maxCandidates`. */
+const CANDIDATES_PER_ITEM = 12;
 const COOKED = /\b(gekookte?|bereide?|cooked|boiled)\b/i;
 const DRIES =
 	/havermout|rijst|pasta|macaroni|spaghetti|noedel|couscous|quinoa|bulgur|gort|bonen|linzen|kikkererwten|oats|porridge|rice|noodle|beans|lentils|chickpeas/i;
@@ -212,7 +213,7 @@ export function groundItems(
 				: {}),
 			candidates: [...ranked.values()]
 				.sort((a, b) => a.rank - b.rank)
-				.slice(0, NUTRITION_AI_LIMITS.maxCandidates)
+				.slice(0, CANDIDATES_PER_ITEM)
 				.map((entry) => entry.food),
 		};
 		return withTypicalPortion(row, item, locale);
