@@ -1,15 +1,15 @@
-import type { NutrientKey, NutrientTotal } from "@foundry/core";
+import {
+	goalBounds,
+	type NutrientKey,
+	type NutrientTotal,
+} from "@foundry/core";
 import { Pressable, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import type { NutrientGoal } from "../../../../data/nutrition-day";
 import { fmt, useI18n } from "../../../../i18n";
 import { radius, spacing, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
-import {
-	displayAmount,
-	groupGoals,
-	outcome,
-} from "../../day-goals/goal-presentation";
+import { displayAmount, outcome } from "../../day-goals/goal-presentation";
 
 export function DiarySummary({
 	goals,
@@ -29,7 +29,7 @@ export function DiarySummary({
 		displayAmount(n, value).replace(/\d+(?:\.\d+)?/, (number) =>
 			new Intl.NumberFormat(locale).format(Number(number)),
 		);
-	const groups = groupGoals(goals, [
+	const groups = goalBounds(goals, [
 		"energy",
 		"protein",
 		"carbs",

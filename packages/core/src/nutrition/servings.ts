@@ -6,15 +6,8 @@ import {
 	scaleNutrient,
 } from "./nutrients";
 import type { BaseUnit, Bilingual, MeasuredUnit } from "./snapshot";
-import type { ShippedFood, ShippedServing } from "./types";
+import type { ShippedFood } from "./types";
 
-/**
- * What the serving picker offers for a food: the authored servings, then the
- * food's own base unit.
- *
- * The base-unit option is always present and always last — it is the escape
- * hatch for "I weighed it", and story 38 makes it non-optional.
- */
 export type SupplementaryServing = {
 	readonly id: string;
 	readonly foodId: string;
@@ -23,6 +16,13 @@ export type SupplementaryServing = {
 	readonly unit: MeasuredUnit;
 };
 
+/**
+ * What the serving picker offers for a food: the authored servings, then the
+ * food's own base unit.
+ *
+ * The base-unit option is always present and always last — it is the escape
+ * hatch for "I weighed it".
+ */
 export type ServingOption =
 	| {
 			readonly kind: "supplementary";
@@ -183,7 +183,7 @@ export function formatQuantity(quantity: number, locale: Locale): string {
 const MULTIPLIER = " × ";
 
 /**
- * The unambiguous rendering of a selection: `Glass (200 ml) × 1` (story 39).
+ * The unambiguous rendering of a selection: `Glass (200 ml) × 1`.
  * Always name × quantity, never a bare gram figure, and never quantity first.
  */
 export function formatServingSelection(
@@ -290,29 +290,5 @@ export function previewServing(
 		baseUnit: food.baseUnit,
 		label: formatServingSelection(option, quantity, locale),
 		nutrients: scaleNutrients(food, amount),
-	};
-}
-
-/**
- * The gram amount behind a volume-labelled serving on a mass-based food.
- *
- * Every NEVO beverage is per 100 g, so `Glass (250 ml)` of milk stores a mass.
- * Returns `undefined` when the serving is not volume-labelled.
- */
-export function servingVolumeMapping(serving: ShippedServing):
-	| {
-			volumeMl: number;
-			grams: number;
-			basis: NonNullable<ShippedServing["basis"]>;
-			note?: string;
-	  }
-	| undefined {
-	if (serving.volumeMl === undefined || serving.basis === undefined)
-		return undefined;
-	return {
-		volumeMl: serving.volumeMl,
-		grams: serving.amount,
-		basis: serving.basis,
-		...(serving.note === undefined ? {} : { note: serving.note }),
 	};
 }

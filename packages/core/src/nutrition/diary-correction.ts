@@ -11,12 +11,12 @@ import type {
 	NutritionDiarySnapshot,
 } from "./snapshot";
 
-export type DiaryCorrectionField =
+type DiaryCorrectionField =
 	| "baseUnit"
 	| "basisAmount"
 	| "nutrients"
 	| NutrientKey;
-export type DiaryCorrectionCode =
+type DiaryCorrectionCode =
 	| "unitMismatch"
 	| "notPositive"
 	| "required"

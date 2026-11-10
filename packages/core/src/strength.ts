@@ -12,13 +12,13 @@ import { type LoadUnit, toKg } from "./units";
 export const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
 export type SetType = (typeof SET_TYPES)[number];
 
+/** The rest between sets when the athlete has not chosen one. */
+export const DEFAULT_REST_SECONDS = 90;
+
 /**
  * Write limits for logged and planned strength work. Weights are checked in
  * the set's own unit, so 2000 lbs is as valid as 2000 kg.
  */
-/** The rest between sets when the athlete has not chosen one. */
-export const DEFAULT_REST_SECONDS = 90;
-
 export const SET_LIMITS = {
 	weight: { min: 0, max: 2000 },
 	reps: { min: 0, max: 1000, step: 1 },
@@ -33,8 +33,8 @@ export const SET_LIMITS = {
 	percentOfOneRepMax: { min: 0, max: 120 },
 } as const satisfies Record<string, NumberRange>;
 
-export type SetLimitField = keyof typeof SET_LIMITS;
-export type SetLimitCode = RangeCode;
+type SetLimitField = keyof typeof SET_LIMITS;
+type SetLimitCode = RangeCode;
 
 function checkLimits<T extends Partial<Record<SetLimitField, number | null>>>(
 	input: T,
@@ -50,7 +50,7 @@ function checkLimits<T extends Partial<Record<SetLimitField, number | null>>>(
 	return found.result(input);
 }
 
-export type SetInput = {
+type SetInput = {
 	weight?: number;
 	reps?: number;
 	/** `null` clears a saved RPE and is always valid. */
@@ -63,7 +63,7 @@ export function validateSetInput<T extends SetInput>(input: T) {
 	return checkLimits(input);
 }
 
-export type PlannedExerciseInput = {
+type PlannedExerciseInput = {
 	plannedSets?: number;
 	plannedReps?: number;
 	plannedWeight?: number;
@@ -119,8 +119,8 @@ export function workingVolume(
 	);
 }
 
-export type RecordedSet<T> = { set: T; valueKg: number };
-export type ExerciseRecords<T> = {
+type RecordedSet<T> = { set: T; valueKg: number };
+type ExerciseRecords<T> = {
 	/** Heaviest eligible load, ties to more reps. */
 	heaviest: RecordedSet<T> | null;
 	/** Highest Epley estimate from an eligible set. */
@@ -133,7 +133,7 @@ export type ExerciseRecords<T> = {
 	repMaxes: { reps: number; set: T; valueKg: number }[];
 };
 
-export const DEFAULT_REP_TARGETS = [1, 3, 5, 10] as const;
+const DEFAULT_REP_TARGETS = [1, 3, 5, 10] as const;
 
 /**
  * An exercise's records from its logged sets, with reference eligibility
@@ -213,7 +213,7 @@ export type StrengthReferenceRecord = {
 	sourceSetId?: unknown;
 	_creationTime?: number;
 };
-export type StrengthReferences<T> = {
+type StrengthReferences<T> = {
 	measured: T | null;
 	estimated: T | null;
 	manual: T | null;
@@ -247,7 +247,7 @@ export function resolveStrengthReferences<T extends StrengthReferenceRecord>(
 	return { measured: best("actual"), estimated: best("calculated"), manual };
 }
 
-export type SessionReferenceKind = "manual" | "measured";
+type SessionReferenceKind = "manual" | "measured";
 
 /**
  * The One-rep Max a session's percentages use: Measured, unless a Manual 1RM

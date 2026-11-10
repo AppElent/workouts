@@ -2,7 +2,6 @@ import type { ErrorBoundaryProps } from "expo-router";
 import { useI18n } from "../../../i18n";
 import { RouteError } from "../../../ui/route-error";
 
-/** Every training route's error boundary. */
 export function TrainingRouteError({ error, retry }: ErrorBoundaryProps) {
 	const { t } = useI18n();
 	return (

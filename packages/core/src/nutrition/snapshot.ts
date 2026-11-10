@@ -5,7 +5,6 @@
  */
 import type { NutrientKey, NutrientValue } from "./nutrients";
 
-/** Any text that exists in both languages. */
 export type Bilingual = { readonly en: string; readonly nl: string };
 
 /** The four diary slots. "Meal" means exactly these, never a Combo. */
@@ -16,7 +15,6 @@ export type MealSlot = (typeof MEAL_SLOTS)[number];
 export const BASE_UNITS = ["g", "ml", "serving"] as const;
 export type BaseUnit = (typeof BASE_UNITS)[number];
 
-/** The base units a weight or volume is measured in. */
 export const MEASURED_UNITS = ["g", "ml"] as const;
 export type MeasuredUnit = (typeof MEASURED_UNITS)[number];
 

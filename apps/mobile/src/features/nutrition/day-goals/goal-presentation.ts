@@ -1,34 +1,14 @@
 import {
+	evaluateGoal,
+	type GoalBounds,
 	type Locale,
 	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientTotal,
 	roundForDisplay,
 } from "@foundry/core";
-import type { NutrientGoal } from "../../../data/nutrition-day";
 import { fmt, type Messages } from "../../../i18n";
 import type { Tokens } from "../../../theme";
-export type GoalGroup = {
-	nutrient: NutrientKey;
-	min?: number;
-	max?: number;
-};
-
-export function groupGoals(
-	goals: readonly NutrientGoal[],
-	displayOrder: readonly NutrientKey[],
-): GoalGroup[] {
-	const grouped = new Map<NutrientKey, GoalGroup>();
-	for (const goal of goals) {
-		const group = grouped.get(goal.nutrient) ?? { nutrient: goal.nutrient };
-		group[goal.direction] = goal.target;
-		grouped.set(goal.nutrient, group);
-	}
-	return displayOrder.flatMap((nutrient) => {
-		const group = grouped.get(nutrient);
-		return group ? [group] : [];
-	});
-}
 
 export function displayAmount(
 	nutrient: NutrientKey,
@@ -43,7 +23,7 @@ export function displayAmount(
 	return String(amount);
 }
 
-export function targetLabel(group: GoalGroup, unit: string): string {
+export function targetLabel(group: GoalBounds, unit: string): string {
 	if (group.min !== undefined && group.max !== undefined)
 		return `${group.min}–${group.max} ${unit}`;
 	if (group.min !== undefined) return `≥${group.min} ${unit}`;
@@ -53,65 +33,58 @@ export function targetLabel(group: GoalGroup, unit: string): string {
 export function outcome(
 	colors: Tokens,
 	t: Messages,
-	group: GoalGroup,
+	group: GoalBounds,
 	total?: NutrientTotal,
 ): { label: string; color: string } {
-	if (!total || total.entryCount === 0)
-		return { label: t.nutrition.goals.state.neutral, color: colors.textMuted };
-	if (total.incomplete)
-		return { label: t.nutrition.goals.incomplete, color: colors.textMuted };
-	if (total.qualified)
-		return { label: t.nutrition.goals.approximate, color: colors.textMuted };
-	const amount = total.amount;
+	const evaluation = evaluateGoal(group, total);
 	const unit = t.nutrition.units[NUTRIENT_UNITS[group.nutrient]];
-	if (group.min !== undefined && group.max !== undefined) {
-		if (amount < group.min)
+	const amount = (value = 0) => roundForDisplay(group.nutrient, value);
+	switch (evaluation.status) {
+		case "noGoal":
+		case "empty":
 			return {
-				label: fmt(t.nutrition.goals.toRange, {
-					amount: roundForDisplay(group.nutrient, group.min - amount),
-					unit,
-				}),
-				color: colors.accent,
+				label: t.nutrition.goals.state.neutral,
+				color: colors.textMuted,
 			};
-		if (amount > group.max)
+		case "exceeded":
 			return {
 				label: fmt(t.nutrition.goals.over, {
-					amount: roundForDisplay(group.nutrient, amount - group.max),
+					amount: amount(evaluation.over),
 					unit,
 				}),
 				color: colors.danger,
 			};
-		return { label: t.nutrition.goals.withinRange, color: colors.success };
+		case "incomplete":
+			return { label: t.nutrition.goals.incomplete, color: colors.textMuted };
 	}
-	if (group.min !== undefined) {
-		return amount < group.min
-			? {
-					label: fmt(t.nutrition.goals.toMinimum, {
-						amount: roundForDisplay(group.nutrient, group.min - amount),
-						unit,
-					}),
-					color: colors.accent,
-				}
-			: { label: t.nutrition.goals.minimumMet, color: colors.success };
+	if (evaluation.approximate)
+		return { label: t.nutrition.goals.approximate, color: colors.textMuted };
+	switch (evaluation.status) {
+		case "below":
+			return {
+				label: fmt(
+					group.max === undefined
+						? t.nutrition.goals.toMinimum
+						: t.nutrition.goals.toRange,
+					{ amount: amount(evaluation.toMinimum), unit },
+				),
+				color: colors.accent,
+			};
+		case "met":
+			return { label: t.nutrition.goals.minimumMet, color: colors.success };
+		case "within":
+			if (group.min !== undefined)
+				return { label: t.nutrition.goals.withinRange, color: colors.success };
+			return evaluation.toMaximum
+				? {
+						label: fmt(t.nutrition.goals.remaining, {
+							amount: amount(evaluation.toMaximum),
+							unit,
+						}),
+						color: colors.accent,
+					}
+				: { label: t.nutrition.goals.atMaximum, color: colors.accent };
 	}
-	const max = group.max ?? 0;
-	if (amount < max)
-		return {
-			label: fmt(t.nutrition.goals.remaining, {
-				amount: roundForDisplay(group.nutrient, max - amount),
-				unit,
-			}),
-			color: colors.accent,
-		};
-	if (amount === max)
-		return { label: t.nutrition.goals.atMaximum, color: colors.accent };
-	return {
-		label: fmt(t.nutrition.goals.over, {
-			amount: roundForDisplay(group.nutrient, amount - max),
-			unit,
-		}),
-		color: colors.danger,
-	};
 }
 
 /** Keep translated status copy consistent with the user's decimal separator. */

@@ -4,6 +4,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type NutritionProvenance,
+	normaliseForSearch,
 	personalFoodSnapshot,
 	type ShippedFood,
 } from "@foundry/core";
@@ -18,7 +19,7 @@ import type { PersonalFood } from "./personal-food-repository";
  * used by Hulp bij invoeren to find candidates for each described item.
  */
 
-export type BaseUnit = "g" | "ml";
+type BaseUnit = "g" | "ml";
 
 export type AssistanceFood = {
 	readonly id: string;
@@ -34,15 +35,6 @@ export type AssistanceFood = {
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly provenance: NutritionProvenance;
 };
-
-function normalise(value: string): string {
-	return value
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, " ")
-		.trim();
-}
 
 function candidateFromShipped(food: ShippedFood): AssistanceFood {
 	const nutrients = Object.fromEntries(
@@ -88,9 +80,9 @@ function scoreCandidate(
 	food: AssistanceFood,
 	locale: Locale,
 ): number {
-	const wanted = normalise(query);
-	const name = normalise(food.name[locale]);
-	const other = normalise(food.name[locale === "en" ? "nl" : "en"]);
+	const wanted = normaliseForSearch(query);
+	const name = normaliseForSearch(food.name[locale]);
+	const other = normaliseForSearch(food.name[locale === "en" ? "nl" : "en"]);
 	if (name === wanted || other === wanted) return 0;
 	if (name.startsWith(wanted) || other.startsWith(wanted)) return 1;
 	const words = wanted.split(" ").filter(Boolean);
@@ -105,7 +97,7 @@ export function searchAssistanceFoods(
 	locale: Locale,
 	limit = 8,
 ): readonly AssistanceFood[] {
-	const wanted = normalise(query);
+	const wanted = normaliseForSearch(query);
 	if (!wanted) return [];
 	const shippedById = new Map(
 		catalog

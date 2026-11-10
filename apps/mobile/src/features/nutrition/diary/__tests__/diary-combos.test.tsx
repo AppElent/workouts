@@ -69,8 +69,6 @@ function showDiary(
 				effectiveFrom: (args as { date?: string } | undefined)?.date,
 			};
 		}
-		// Keep the legacy list query available for the goal editor's route tests.
-		if (name === "nutritionGoals:list") return [];
 		return [];
 	});
 }

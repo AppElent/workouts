@@ -9,10 +9,10 @@ import {
 import {
 	type Combo,
 	type ComboDraft,
+	normalizeComboDraft,
 	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodDraft,
-	validateComboDraft,
 } from "../data/personal-food-repository";
 
 /**
@@ -43,7 +43,7 @@ export function createLibraryFixture(): LibraryFixture {
 		return cache.findCombo(combo.id) as Combo;
 	};
 	const withPartIds = (draft: ComboDraft) => {
-		const valid = validateComboDraft(draft);
+		const valid = normalizeComboDraft(draft);
 		return {
 			...valid,
 			parts: valid.parts.map((part) => ({ ...part, id: part.id ?? nextId() })),

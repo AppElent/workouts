@@ -3,7 +3,7 @@ import { goalsAppliesFrom } from "./goals-applies-from";
 
 const base = {
 	today: "2026-10-06",
-	locale: "en-GB",
+	locale: "en" as const,
 	copy: goalEditorEn,
 	requestedDate: undefined,
 };

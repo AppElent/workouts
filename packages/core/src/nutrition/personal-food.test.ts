@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest";
+import { isRuleError } from "../rules";
 import {
 	normalizePersonalFood,
+	normalizePersonalFoodDraft,
 	type PersonalFoodDraft,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 	personalFoodSnapshotAtAmount,
-	validatePersonalFoodDraft,
 } from "./personal-food";
 
 function rejection(draft: PersonalFoodDraft) {
-	const result = validatePersonalFoodDraft(draft);
-	return result.ok ? undefined : result.errors;
+	try {
+		normalizePersonalFoodDraft(draft);
+		return undefined;
+	} catch (error) {
+		if (!isRuleError(error)) throw error;
+		return [{ field: error.field, code: error.code }];
+	}
 }
 
 const legacy: PersonalFoodDraft = {

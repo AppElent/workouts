@@ -26,7 +26,7 @@ import { useClockControls } from "./session-dock";
 import { SessionGroupItemRow } from "./session-set-row";
 
 const roundDone = (round: GroupRound) => round.items.every((row) => row.done);
-export function useScoreText(group: SetGroup) {
+function useScoreText(group: SetGroup) {
 	const { locale, t } = useI18n();
 	return formatScore(t.strength.plan.group, locale, amrapScore(group));
 }

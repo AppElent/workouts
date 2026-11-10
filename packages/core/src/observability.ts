@@ -2,13 +2,13 @@
  * Privacy passes for error reports. The Sentry shapes are structural so core
  * stays SDK-free; `@sentry/react` and `@sentry/react-native` events fit them.
  */
-export type ReportBreadcrumb = {
+type ReportBreadcrumb = {
 	category?: string;
 	message?: string;
 	data?: { [key: string]: unknown };
 };
 
-export type ReportEvent = {
+type ReportEvent = {
 	type?: string;
 	message?: string;
 	user?: { id?: string | number };

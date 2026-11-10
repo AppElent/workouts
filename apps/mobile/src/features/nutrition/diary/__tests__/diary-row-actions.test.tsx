@@ -1,5 +1,5 @@
 /**
- * The rules spec #68 puts on gestures, checked at the diary row.
+ * The rules on gestures, checked at the diary row.
  *
  * The whole point of these three is that a gesture is never load-bearing:
  *
@@ -47,7 +47,6 @@ beforeEach(() => {
 	jest.clearAllMocks();
 	remove.mockResolvedValue(undefined);
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [oatmeal], totals: {} };

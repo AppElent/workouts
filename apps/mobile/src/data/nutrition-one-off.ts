@@ -7,8 +7,6 @@ import {
 } from "@foundry/core";
 import type { FoodVisual } from "./personal-food-repository";
 
-export { servingAmountLabel };
-
 /** A reviewed one-off estimate is intake without creating a reusable Food. */
 export function oneOffLogSnapshot(input: {
 	date: string;

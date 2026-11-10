@@ -331,9 +331,10 @@ it("won't remove a set until its lost send is settled", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const row = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
-		(item) => item.attempt,
-	) as PlanSet;
+	const sets = () =>
+		screen.getAllByRole("checkbox", { name: /Barbell Back Squat 60 × 8/ })
+			.length;
+	const before = sets();
 	await fireEvent.press(
 		screen.getAllByRole("button", {
 			name: "Delete",
@@ -341,9 +342,7 @@ it("won't remove a set until its lost send is settled", async () => {
 		})[0],
 	);
 	expect(await screen.findByText(/may already be saved/)).toBeTruthy();
-	expect(
-		findRow(workspaceStore.plan(planKey()) as SessionPlan, row.id),
-	).toBeTruthy();
+	expect(sets()).toBe(before);
 });
 
 it("won't cancel the session until a lost send is settled", async () => {
@@ -403,9 +402,7 @@ it("won't take a Krachtprofiel value onto a set with an unresolved send", async 
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const before = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
-		(item) => item.attempt,
-	) as PlanSet;
+	const sent = add.mock.calls[0][0];
 	await fireEvent.press((await screen.findAllByLabelText(/set 1, /))[0]);
 	await fireEvent.press(
 		await screen.findByRole("button", { name: /Strength profile/ }),
@@ -414,12 +411,12 @@ it("won't take a Krachtprofiel value onto a set with an unresolved send", async 
 	await fireEvent.press(
 		screen.getByRole("button", { name: /Apply · 80 kg × / }),
 	);
-	const after = findRow(
-		workspaceStore.plan(planKey()) as SessionPlan,
-		before.id,
-	) as PlanSet;
-	expect(after.kg).toBe(before.kg);
-	expect(after.attempt?.operationId).toBe(before.attempt?.operationId);
+	expect(screen.queryByDisplayValue("80")).toBeNull();
+	await fireEvent.press(
+		await screen.findByRole("button", { name: /^Try again/ }),
+	);
+	expect(add).toHaveBeenCalledTimes(2);
+	expect(add.mock.calls[1][0]).toEqual(sent);
 });
 
 it("keeps other changes when undoing a log fails", async () => {
@@ -457,24 +454,22 @@ it("keeps a set logged until the server has let it go", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const row = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
-		(item) => item.done,
-	) as PlanSet;
-	const stored = () =>
-		findRow(workspaceStore.plan(planKey()) as SessionPlan, row.id) as PlanSet;
+	const logged = () =>
+		screen.queryAllByRole("checkbox", {
+			name: "Barbell Back Squat 60 × 8, logged",
+		});
 	const later = Date.now() + 60_000;
 	const clock = jest.spyOn(Date, "now").mockReturnValue(later);
-	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
-	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
+	await fireEvent.press(logged()[0]);
+	await fireEvent.press(logged()[0]);
 	expect(removeSet).toHaveBeenCalledTimes(1);
-	expect(stored().done).toBe(true);
+	expect(logged()).toHaveLength(1);
 	await act(async () => fail(new Error("Connection lost")));
-	expect(stored().done).toBe(true);
+	expect(logged()).toHaveLength(1);
 	removeSet.mockResolvedValue(undefined);
-	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
+	await fireEvent.press(logged()[0]);
 	clock.mockRestore();
-	expect(stored().done).toBe(false);
-	expect(stored().setId).toBeUndefined();
+	expect(logged()).toHaveLength(0);
 });
 
 it("won't close a group while one of its sets failed", async () => {

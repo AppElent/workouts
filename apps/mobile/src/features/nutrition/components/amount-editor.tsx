@@ -45,7 +45,7 @@ export type AmountTable = {
 };
 
 /**
- * The one amount editor (mobile-design "One amount editor"): quantity capsule,
+ * The one amount editor: quantity capsule,
  * serving menu, product card with its nutrient table, and a bottom toolbar.
  * Every amount task composes it; only the header, the table's columns and the
  * toolbar differ, and those belong to the wrapper.

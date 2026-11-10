@@ -1,8 +1,8 @@
 /**
- * The Open Food Facts client (spec #68).
+ * The Open Food Facts client.
  *
  * Called directly from the phone — Convex never proxies this, because pooled
- * backend traffic risks provider-wide rate limiting (spec #68). Every
+ * backend traffic risks provider-wide rate limiting. Every
  * outcome is a closed set rather than a thrown error, because every one of
  * them has to leave the caller able to fall back to local Search and Enter
  * manually: an unknown barcode, a timeout, a rate limit, and a product with
@@ -10,6 +10,7 @@
  * exceptions.
  */
 import {
+	kcalFromKilojoules,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -92,7 +93,7 @@ type OffSearchResponse = {
 	readonly timed_out?: boolean;
 };
 
-/** A fetch-shaped dependency, injected so tests exercise the real network boundary rather than an internal mock (spec #68 testing decisions). */
+/** A fetch-shaped dependency, injected so tests exercise the real network boundary rather than an internal mock. */
 export type FetchLike = (
 	input: string,
 	init?: {
@@ -226,7 +227,6 @@ function saltNutrient(
 	return saltFromSodium({ kind: "value", amount: sodiumGrams * 1000 });
 }
 
-const KJ_PER_KCAL = 4.184;
 /** How far Open Food Facts' kcal may stray from its own kJ before we distrust it. */
 const KCAL_KJ_TOLERANCE = 0.2;
 
@@ -249,7 +249,7 @@ function energyNutrient(
 		parseProviderNumber(nutriments?.["energy-kj_100g"]) ??
 		parseProviderNumber(nutriments?.energy_100g);
 	const fromKilojoules =
-		kilojoules === undefined ? undefined : roundTenth(kilojoules / KJ_PER_KCAL);
+		kilojoules === undefined ? undefined : kcalFromKilojoules(kilojoules);
 	if (kcal.kind === "value") {
 		if (
 			fromKilojoules !== undefined &&
@@ -284,7 +284,7 @@ const OFF_FIELD_BY_NUTRIENT: Readonly<
  * both are failure exits back to local Search and Enter manually, but they
  * are different, worth-logging-differently reasons.
  */
-export function mapOffProductToDraft(
+function mapOffProductToDraft(
 	product: OffRawProduct,
 ):
 	| { readonly draft: PersonalFoodDraft }
@@ -385,7 +385,7 @@ async function fetchJson(
 
 /**
  * Barcode lookup. Callers must check local Personal Foods before calling
- * this (spec #68) — this function only ever reaches the network or the
+ * this — this function only ever reaches the network or the
  * cache, never the on-device food list.
  */
 export async function lookupOffBarcode(
@@ -435,7 +435,7 @@ export async function completeOffSearchDraft(
 }
 
 /**
- * The explicit, user-invoked Open Food Facts text search (spec #68) — never
+ * The explicit, user-invoked Open Food Facts text search — never
  * called by ordinary local search.
  */
 export async function searchOffProducts(

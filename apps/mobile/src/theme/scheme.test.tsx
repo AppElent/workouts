@@ -5,7 +5,7 @@ import { renderThemed as render } from "../test-support/render-themed";
 import { SportIcon } from "../ui/coach";
 import { AppText } from "../ui/text";
 import { sportMeta, useScheme, useTokens } from "./index";
-import { darkColors, lightColors } from "./tokens";
+import { darkColors, lightColors, lightSportMeta } from "./tokens";
 
 function Probe() {
 	const tokens = useTokens();
@@ -55,12 +55,12 @@ describe("scheme plumbing follows the device by default", () => {
 		expect(flat("override").color).toBe("#123456");
 	});
 
-	it("SportIcon draws the light hue", async () => {
+	it("SportIcon draws the darkened hue on the light scheme", async () => {
 		scheme.mockReturnValue("light");
 		await render(<SportIcon sport="running" />);
 		const glyph = screen.getByText(sportMeta.running.glyph);
-		expect(ReactNative.StyleSheet.flatten(glyph.props.style).color).toBe(
-			"#9d430a",
-		);
+		const color = ReactNative.StyleSheet.flatten(glyph.props.style).color;
+		expect(color).toBe(lightSportMeta.running.color);
+		expect(color).not.toBe(sportMeta.running.color);
 	});
 });

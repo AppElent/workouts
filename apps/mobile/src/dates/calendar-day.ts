@@ -8,8 +8,7 @@
  * for anyone who logs breakfast in one zone and dinner in another, or eats at
  * 00:30. Keeping the string means the day never shifts underneath its entries.
  *
- * Everything here reads the *device's* local calendar, per the spec's "day
- * boundaries use the device's local calendar date".
+ * Day boundaries use the *device's* local calendar date.
  */
 import { type IsoDate, isoDateFrom, type Locale } from "@foundry/core";
 import { dateLocale } from "../i18n";

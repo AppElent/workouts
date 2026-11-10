@@ -57,7 +57,7 @@ export function DiaryScreen() {
 	}, [today]);
 	// A header toolbar mounted before the tab's first focus swallows the native
 	// tab selection: the tab shows, but navigation stays on the previous tab and
-	// this screen never receives focus or touches (#134).
+	// this screen never receives focus or touches.
 	const focused = useIsFocused();
 	const [toolbarReady, setToolbarReady] = useState(focused);
 	useEffect(() => {
@@ -144,7 +144,7 @@ export function DiaryScreen() {
 	};
 	// Leaving selection swaps the native bottom toolbar, header button and tab
 	// bar. Doing that while a push is starting crashed iOS release builds
-	// (NSRangeException in unmountChildComponentView, FOUNDRY-R), so the
+	// (NSRangeException in unmountChildComponentView), so the
 	// selection ends first and the push waits for the next frame.
 	const [pendingRoute, setPendingRoute] = useState<Href>();
 	useEffect(() => {

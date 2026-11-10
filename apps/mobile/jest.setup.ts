@@ -582,10 +582,9 @@ jest.mock("convex/react", () => {
 					? emptyGoalHistory
 					: emptyQueryResult,
 		),
-		// The training marker's own, non-throwing query form (see
+		// The training marker's non-throwing query form (see
 		// `src/data/training-marker.ts`). Defaults to "no completed Activity
-		// found" so every existing screen test keeps its current behaviour;
-		// marker-specific tests override this per case.
+		// found"; marker-specific tests override this per case.
 		useQuery_experimental: jest.fn(() => ({
 			status: "success" as const,
 			data: false,
@@ -599,10 +598,7 @@ jest.mock("convex/react", () => {
 			status: "Exhausted",
 			loadMore: jest.fn(),
 		})),
-		// Connected by default, so every existing test keeps the behaviour it
-		// was written against. The Nutrition day reads this to tell "still
-		// loading" apart from "will never load because the socket is down", and
-		// the offline tests override it per case.
+		// Connected by default; the offline tests override it per case.
 		useConvexConnectionState: jest.fn(() => ({
 			isWebSocketConnected: true,
 			hasInflightRequests: false,
@@ -619,9 +615,7 @@ jest.mock("convex/react", () => {
 /**
  * jest-expo has no native camera to mount, so `CameraView` becomes a tappable
  * stand-in a test can "scan" by pressing, and `useCameraPermissions` starts
- * already granted — the common case — with each test free to override both
- * the permission tuple and the scan trigger via `jest.mocked(...)`, exactly
- * like the `convex/react` mock above.
+ * already granted; tests override either via `jest.mocked(...)`.
  */
 jest.mock("expo-camera", () => {
 	const React = jest.requireActual("react");

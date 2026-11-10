@@ -242,11 +242,7 @@ function installLibraryTransport(repository: LibraryFixture) {
 	);
 	return save;
 }
-export function TestLayout({
-	overrides,
-}: {
-	overrides: AppDataOverrides;
-}): ReactNode {
+function TestLayout({ overrides }: { overrides: AppDataOverrides }): ReactNode {
 	return (
 		<GestureHandlerRootView>
 			<AppearanceProvider>

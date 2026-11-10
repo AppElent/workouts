@@ -9,7 +9,7 @@ import { StyleSheet } from "react-native";
 import { useAppearance, useTokens } from "../../../theme";
 import type { NutritionHeaderMenuProps } from "./nutrition-header-menu-props";
 
-/** A purpose-built SwiftUI toolbar menu; the feature still owns every handler. */
+/** A purpose-built SwiftUI toolbar menu; the feature owns every handler. */
 export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 	const colors = useTokens();
 	const { scheme } = useAppearance();

@@ -5,6 +5,7 @@
 import {
 	calcPlates,
 	DEFAULT_BAR,
+	estimatedMaxReps,
 	formatClock,
 	SET_LIMITS,
 	SET_TYPES,
@@ -447,7 +448,7 @@ export function SetEditorScreen() {
 			: 0,
 		estimatedRef: others.estimated ? Math.round(others.estimated) : "",
 	};
-	const theory = (value: number) => Math.floor(30 * (value / row.kg - 1));
+	const theory = (value: number) => estimatedMaxReps(value, row.kg) ?? 0;
 	const detail =
 		!valid || bodyweight
 			? ""

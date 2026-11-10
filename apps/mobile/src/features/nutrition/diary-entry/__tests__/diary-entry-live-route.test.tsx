@@ -2,8 +2,7 @@
  * Correcting a logged entry, driven the way somebody holding the phone would
  * drive it: tap the entry, change something, save — or delete through the
  * confirmation. Nothing here asserts which mutation ran internally beyond the
- * arguments it was actually given, which is the observable contract #73's
- * acceptance criteria are about.
+ * arguments it was actually given.
  */
 
 import { shiftIsoDate } from "@foundry/core";
@@ -41,7 +40,6 @@ const loggedEntry = {
 
 function mockDayWithLoggedEntry() {
 	mockUseQuery.mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [loggedEntry], totals: {} };
@@ -143,7 +141,6 @@ describe("editing a diary entry", () => {
 
 	it("keeps a deleted Personal Measure snapshot available as history", async () => {
 		mockUseQuery.mockImplementation((reference, _args?) => {
-			if (getFunctionName(reference) === "nutritionGoals:list") return [];
 			if (getFunctionName(reference) === "nutritionGoals:forDate")
 				return { goals: [], basis: "reference", effectiveFrom: null };
 			return {

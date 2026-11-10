@@ -1,19 +1,17 @@
 /**
  * NEVO licence obligations, expressed as constants so they cannot be forgotten.
  *
- * ------------------------------------------------------------------------
- *  READ THIS BEFORE PUTTING THE NUTRITION MODULE BEHIND A PAYWALL.
+ * READ THIS BEFORE PUTTING THE NUTRITION MODULE BEHIND A PAYWALL.
  *
- *  The NEVO-online 2025 conditions of use forbid charging end users for the
- *  data. If Foundry ever becomes a paid product — subscription, one-off
- *  purchase, paid tier that includes the diary — the bundled NEVO dataset
- *  must be REMOVED or SEPARATELY RELICENSED with RIVM first. Deleting the
- *  shipped artifact is a product decision, not a build detail: the food
- *  library is the module's whole starting point.
+ * The NEVO-online 2025 conditions of use forbid charging end users for the
+ * data. If Foundry ever becomes a paid product — subscription, one-off
+ * purchase, paid tier that includes the diary — the bundled NEVO dataset
+ * must be REMOVED or SEPARATELY RELICENSED with RIVM first. Deleting the
+ * shipped artifact is a product decision, not a build detail: the food
+ * library is the module's whole starting point.
  *
- *  See `NEVO_LICENCE_CONSTRAINTS` below, ADR 0006, and the licence PDF at
- *  `data/nevo/Conditions of use NEVO-online 2025 dataset.pdf`.
- * ------------------------------------------------------------------------
+ * See `NEVO_LICENCE_CONSTRAINTS` below, ADR 0006, and the licence PDF at
+ * `data/nevo/Conditions of use NEVO-online 2025 dataset.pdf`.
  */
 
 /**
@@ -71,7 +69,7 @@ export const NEVO_LICENCE_SOURCE =
 /**
  * Required wherever an Open Food Facts import's figures contribute to
  * calculation output — the import review, the resulting Personal Food's
- * detail, and any total that includes it (spec #68). Open Food Facts data is
+ * detail, and any total that includes it. Open Food Facts data is
  * published under the Open Database License (ODbL); unlike NEVO_ATTRIBUTION
  * this is not quoted from a licence PDF held in this repo, so re-confirm the
  * exact wording OFF's own terms ask for before this ships to production.

@@ -1,11 +1,13 @@
 import {
 	formatQuantity,
+	KJ_PER_KCAL,
 	type Locale,
 	type MealSlot,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 	type NutritionDiarySnapshot,
+	normaliseForSearch,
 	numericAmount,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
@@ -33,7 +35,6 @@ export type Described = FunctionReturnType<typeof api.nutritionAi.describe>;
 export type DescribedItem = Described["items"][number];
 export type Choice = FunctionReturnType<typeof api.nutritionAi.choose>[number];
 export type LabelReading = FunctionReturnType<typeof api.nutritionAi.readLabel>;
-export type { ImageInput } from "./nutrition-ai-image";
 
 /** Candidates sent per item; the server accepts up to `NUTRITION_AI_LIMITS.maxCandidates`. */
 const CANDIDATES_PER_ITEM = 12;
@@ -89,7 +90,7 @@ function cookedKcalPer100g(name: string) {
 	return 120;
 }
 
-export type ReviewComponent = {
+type ReviewComponent = {
 	readonly name: string;
 	readonly grams: number;
 	readonly energy: number;
@@ -333,12 +334,7 @@ export function countedPortion(item: ReviewItem): number | undefined {
 }
 
 function wordsOf(text: string): string[] {
-	return text
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.split(/[^\p{L}\p{N}]+/u)
-		.filter(Boolean);
+	return normaliseForSearch(text).split(" ").filter(Boolean);
 }
 
 /** Tomaat and tomaten, boon and bonen: Dutch spelling doubles the vowel. */
@@ -1048,7 +1044,7 @@ export function itemNutrients(
 }
 
 /** A total and whether any item lacked that figure (unknown is never zero). */
-export type ReviewTotal = {
+type ReviewTotal = {
 	readonly amount: number;
 	readonly known: number;
 	readonly missing: boolean;
@@ -1231,8 +1227,6 @@ export function combinedNutrients(
 	return totals;
 }
 
-// ───────────────────────────── label ─────────────────────────────
-
 const LABEL_KEYS: Record<NutrientKey, keyof LabelReading["per100"]> = {
 	energy: "energy",
 	protein: "protein",
@@ -1256,7 +1250,7 @@ export function labelNutrients(
 				amount === null &&
 				reading.per100.energyKj !== null
 			)
-				amount = Math.round(reading.per100.energyKj / 4.184);
+				amount = Math.round(reading.per100.energyKj / KJ_PER_KCAL);
 			return [
 				key,
 				amount === null ? { kind: "absent" } : { kind: "value", amount },
@@ -1295,7 +1289,11 @@ export function labelChecks(
 		if (p.energy > 0 && Math.abs(computed - p.energy) / p.energy > 0.08)
 			failures.push("energyMismatch");
 	}
-	if (p.energy && p.energyKj && Math.abs(p.energyKj / p.energy - 4.184) > 0.1)
+	if (
+		p.energy &&
+		p.energyKj &&
+		Math.abs(p.energyKj / p.energy - KJ_PER_KCAL) > 0.1
+	)
 		failures.push("kjMismatch");
 	if (p.saturatedFat !== null && p.fat !== null && p.saturatedFat > p.fat)
 		failures.push("saturatedAboveFat");

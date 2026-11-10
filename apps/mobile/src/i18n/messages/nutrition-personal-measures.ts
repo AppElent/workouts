@@ -15,8 +15,6 @@ export const nutritionPersonalMeasuresEn = {
 	add: "New measure",
 	addIn: "Add a measure in {unit}",
 	edit: "Change measure",
-	name: "Name",
-	amount: "Amount",
 	unitChangeTitle: "Change this measure's unit?",
 	unitChangeBody:
 		"It will stop appearing for foods that use the previous unit. Past diary entries will not change.",
@@ -34,8 +32,6 @@ export const nutritionPersonalMeasuresEn = {
 	deleteFailure: "This measure could not be deleted.",
 	saveFailure: "This measure could not be saved. What you typed is still here.",
 	reorderFailure: "The measures could not be reordered.",
-	validation:
-		"Enter a unique name and an amount from 0.1 to 10,000 with at most one decimal.",
 	offline: "Offline",
 	offlineBody:
 		"Your measures work while logging. Changing them needs a connection again.",
@@ -61,8 +57,6 @@ export const nutritionPersonalMeasuresNl: typeof nutritionPersonalMeasuresEn = {
 	add: "Nieuwe maat",
 	addIn: "Maat in {unit} toevoegen",
 	edit: "Maat wijzigen",
-	name: "Naam",
-	amount: "Hoeveelheid",
 	unitChangeTitle: "Eenheid van deze maat wijzigen?",
 	unitChangeBody:
 		"De maat verdwijnt bij voeding met de vorige eenheid. Eerdere dagboekitems veranderen niet.",
@@ -80,8 +74,6 @@ export const nutritionPersonalMeasuresNl: typeof nutritionPersonalMeasuresEn = {
 	deleteFailure: "Deze maat kon niet worden verwijderd.",
 	saveFailure: "Deze maat kon niet worden bewaard. Wat je typte staat er nog.",
 	reorderFailure: "De maten konden niet worden herschikt.",
-	validation:
-		"Vul een unieke naam en een hoeveelheid van 0,1 tot 10.000 met hooguit één decimaal in.",
 	offline: "Offline",
 	offlineBody:
 		"Je maten werken bij het loggen. Wijzigen kan weer met verbinding.",

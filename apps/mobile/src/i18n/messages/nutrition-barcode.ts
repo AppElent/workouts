@@ -1,7 +1,6 @@
 /**
- * Every message here is a failure exit, not just a status line — spec #68
- * requires local Search and Enter manually to stay reachable behind each
- * one, so none of these ever block the screen; they surface as a toast
+ * Every message here is a failure exit, not just a status line: local
+ * Search and Enter manually stay reachable behind each one, so none of these ever block the screen; they surface as a toast
  * and return to the ordinary Find Food view.
  */
 export const nutritionBarcodeEn = {

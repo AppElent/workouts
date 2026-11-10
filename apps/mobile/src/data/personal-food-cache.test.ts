@@ -121,7 +121,9 @@ describe("the account library this session", () => {
 				),
 			),
 		).toThrow(expect.objectContaining({ field: "visual", code: "invalid" }));
-		expect(() => cache.receive(combo("empty", []))).toThrow("at least one");
+		expect(() => cache.receive(combo("empty", []))).toThrow(
+			expect.objectContaining({ field: "parts", code: "required" }),
+		);
 	});
 
 	it("filters recipes and searches both languages, sorted by the shown name", () => {

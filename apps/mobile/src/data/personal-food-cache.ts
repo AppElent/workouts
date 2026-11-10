@@ -1,17 +1,16 @@
-import { type Locale, normalizePersonalFoodDraft } from "@foundry/core";
+import {
+	type Locale,
+	normalizeCombo,
+	normalizePersonalFood,
+	type Combo as StoredCombo,
+} from "@foundry/core";
 import { getShippedFood } from "@foundry/core/shipped-foods";
 import type { LibraryRecord } from "./nutrition-library-repository";
-import {
-	type Combo,
-	type ComboDraft,
-	type PersonalFood,
-	type PersonalFoodFilter,
-	validateComboDraft,
+import type {
+	Combo,
+	PersonalFood,
+	PersonalFoodFilter,
 } from "./personal-food-repository";
-
-type StoredCombo = Omit<Combo, "parts"> & {
-	readonly parts: ComboDraft["parts"];
-};
 
 /**
  * The account's library items received from Convex this session, with the
@@ -45,31 +44,6 @@ export type PersonalFoodCache = {
 	/** Foods whose photo is only on this device, until the server has them. */
 	keepDeviceFoods(foods: readonly PersonalFood[]): void;
 };
-
-function food(value: PersonalFood): PersonalFood {
-	if (!value.id.trim()) throw new Error("Food ID is required.");
-	if (!Number.isFinite(value.createdAt) || !Number.isFinite(value.updatedAt))
-		throw new Error("Food timestamps are invalid.");
-	return {
-		id: value.id,
-		...normalizePersonalFoodDraft(value),
-		createdAt: value.createdAt,
-		updatedAt: value.updatedAt,
-	};
-}
-
-function combo(value: Combo | StoredCombo): StoredCombo {
-	const valid = validateComboDraft({ name: value.name, parts: value.parts });
-	if (valid.parts.some((part) => !part.id))
-		throw new Error("A Combo part has no stable id.");
-	return {
-		id: value.id,
-		name: valid.name,
-		parts: valid.parts,
-		createdAt: value.createdAt,
-		updatedAt: value.updatedAt,
-	};
-}
 
 const newestFirst = (
 	left: { updatedAt: number; id: string },
@@ -146,9 +120,14 @@ export function createPersonalFoodCache(): PersonalFoodCache {
 				foods.delete(record.id);
 				combos.delete(record.id);
 			} else if (record.kind === "combo")
-				combos.set(record.id, combo(JSON.parse(record.payload ?? "null")));
+				combos.set(
+					record.id,
+					normalizeCombo(JSON.parse(record.payload ?? "null")),
+				);
 			else {
-				const incoming = food(JSON.parse(record.payload ?? "null"));
+				const incoming = normalizePersonalFood(
+					JSON.parse(record.payload ?? "null"),
+				);
 				// The server keeps no photo that is not uploaded yet; the file stays here.
 				const local = foods.get(record.id)?.visual;
 				foods.set(
@@ -163,7 +142,8 @@ export function createPersonalFoodCache(): PersonalFoodCache {
 		},
 		keepDeviceFoods(deviceFoods) {
 			for (const item of deviceFoods)
-				if (!records.has(item.id)) foods.set(item.id, food(item));
+				if (!records.has(item.id))
+					foods.set(item.id, normalizePersonalFood(item));
 		},
 	};
 }

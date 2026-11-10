@@ -44,7 +44,7 @@ export function openLocalDatabaseInspector(name: string) {
 	}
 }
 
-export function createLocalDatabaseInspector(
+function createLocalDatabaseInspector(
 	database: Pick<
 		SQLiteDatabase,
 		"execSync" | "getAllSync" | "getFirstSync" | "closeSync"

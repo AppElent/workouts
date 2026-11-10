@@ -33,7 +33,7 @@ import { workoutToolsEn } from "./workout-tools";
  * `pnpm --filter @foundry/mobile typecheck` instead of showing a blank label.
  *
  * Deliberately not shared with the web app's `src/lib/i18n/messages/`. There is
- * no web Nutrition UI (it is out of scope in the spec), so sharing would buy
+ * no web Nutrition UI, so sharing would buy
  * nothing and would couple the two clients' release cadence.
  *
  * No `as const`. The literal types it would produce are exactly what stops

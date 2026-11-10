@@ -1,5 +1,6 @@
 import {
 	combinedNutrients,
+	comboNutrients,
 	type NutrientKey,
 	type NutrientValue,
 	rescaleToQuantity,
@@ -42,7 +43,7 @@ export type ComboPartChoice = {
 	readonly once?: ComboPartSnapshot;
 };
 
-export type ComboLogPart = {
+type ComboLogPart = {
 	readonly part: ComboPart;
 	readonly included: boolean;
 	readonly once?: ComboPartSnapshot;
@@ -141,13 +142,8 @@ export function comboPlanEnergy(plan: ComboLogPlan): number | undefined {
  * rescaling by `quantity`.
  */
 export function comboEnergy(combo: Combo): number | undefined {
-	let total = 0;
-	let known = false;
-	for (const part of combo.parts) {
-		const energy = part.snapshot.nutrients.energy;
-		if (energy.kind !== "value") continue;
-		known = true;
-		total += energy.amount;
-	}
-	return known ? roundForDisplay("energy", total) : undefined;
+	const energy = comboNutrients(combo).energy;
+	return energy.kind === "value"
+		? roundForDisplay("energy", energy.amount)
+		: undefined;
 }

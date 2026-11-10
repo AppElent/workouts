@@ -1,5 +1,3 @@
-import type { AppErrorCode } from "../convex-error";
-
 /**
  * The contract between the nutrition assistant's Convex actions and the
  * clients that call them.
@@ -19,30 +17,12 @@ export const NUTRITION_AI_LIMITS = {
 	maxImageBase64: 2_800_000,
 } as const;
 
-/** The `ConvexError` data the nutrition assistant's actions throw. */
-export const NUTRITION_AI_ERROR_CODES = [
-	"unauthenticated",
-	"unavailable",
-	"failed",
-	"tooLarge",
-	"limit",
-	"empty",
-] as const satisfies readonly AppErrorCode[];
-export type NutritionAiErrorCode = (typeof NUTRITION_AI_ERROR_CODES)[number];
-
-export function isNutritionAiErrorCode(
-	value: unknown,
-): value is NutritionAiErrorCode {
-	return NUTRITION_AI_ERROR_CODES.some((code) => code === value);
-}
-
-export const COOKED_STARCHES = ["oats", "rice", "pasta", "other"] as const;
-export type CookedStarch = (typeof COOKED_STARCHES)[number];
+const COOKED_STARCHES = ["oats", "rice", "pasta", "other"] as const;
+type CookedStarch = (typeof COOKED_STARCHES)[number];
 
 /**
- * Plausibility bounds for a starch weighed cooked or dry. The cooked figures
- * are also written into the server's model prompt
- * (convex/lib/nutritionAi.ts), so change both together.
+ * Plausibility bounds for a starch weighed cooked or dry. The server's model
+ * prompt quotes the cooked figures.
  */
 export const NUTRITION_AI_PLAUSIBILITY = {
 	maxCookedKcalPer100g: 250,

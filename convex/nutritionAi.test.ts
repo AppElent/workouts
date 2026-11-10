@@ -337,9 +337,6 @@ describe("nutrition AI", () => {
 			"Gebakken ei",
 		]);
 		fake({
-			describe: { kind: "meal", seen: "ei", items: [item, oil] },
-		});
-		fake({
 			describe: {
 				kind: "meal",
 				seen: "ei",

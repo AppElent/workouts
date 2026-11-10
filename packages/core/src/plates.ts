@@ -8,12 +8,11 @@ const PLATES: Record<LoadUnit, number[]> = {
 
 export const DEFAULT_BAR: Record<LoadUnit, number> = { kg: 20, lbs: 45 };
 
-export interface PlateResult {
+interface PlateResult {
 	/** Plates to load on each side, heaviest first. */
 	perSide: number[];
 	/** Weight that couldn't be matched by available plates (each side total ×2). */
 	remainder: number;
-	/** True when the target is below the bar weight. */
 	belowBar: boolean;
 }
 
@@ -43,7 +42,7 @@ export function calcPlates(
 	return { perSide, remainder, belowBar: false };
 }
 
-export interface WarmupSet {
+interface WarmupSet {
 	weight: number;
 	reps: number;
 	pct: number | null; // null = empty bar

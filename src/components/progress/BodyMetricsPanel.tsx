@@ -93,7 +93,6 @@ export function BodyMetricsPanel() {
 
 	return (
 		<div className="flex flex-col gap-6">
-			{/* Latest snapshot */}
 			{latest && (
 				<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 					<StatCard
@@ -121,7 +120,6 @@ export function BodyMetricsPanel() {
 				</div>
 			)}
 
-			{/* Add form */}
 			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5">
 				<h2 className="text-sm font-semibold text-white mb-4">
 					Log measurement
@@ -216,7 +214,6 @@ export function BodyMetricsPanel() {
 				</button>
 			</div>
 
-			{/* Weight trend */}
 			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 				<h2 className="text-sm font-semibold text-white mb-4">Weight trend</h2>
 				{chartData.length > 1 ? (
@@ -265,7 +262,6 @@ export function BodyMetricsPanel() {
 				)}
 			</div>
 
-			{/* History */}
 			{entries.length > 0 && (
 				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 					<h2 className="text-sm font-semibold text-white mb-3">History</h2>

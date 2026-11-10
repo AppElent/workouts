@@ -4,17 +4,17 @@ import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 import { ConvexHttpClient } from "convex/browser";
 import { loadExercises } from "#/lib/exercises";
 
-export type ExerciseSummary = Pick<
+type ExerciseSummary = Pick<
 	Exercise,
 	"name" | "muscleGroups" | "category" | "equipment" | "isDefault" | "notes"
 > & { id: string };
 
-export type WorkoutSummary = Pick<
+type WorkoutSummary = Pick<
 	Doc<"workoutSessions">,
 	"name" | "date" | "status" | "startTime" | "endTime"
 > & { id: string };
 
-export type WorkoutSetSummary = Pick<
+type WorkoutSetSummary = Pick<
 	Doc<"sets">,
 	| "exerciseId"
 	| "setNumber"
@@ -26,12 +26,12 @@ export type WorkoutSetSummary = Pick<
 	| "loggedAt"
 > & { id: string };
 
-export type PersonalRecordSummary = Pick<
+type PersonalRecordSummary = Pick<
 	Doc<"oneRepMaxes">,
 	"exerciseId" | "value" | "unit" | "date" | "source" | "formula"
 > & { id: string };
 
-export type WeeklyVolumeSummary = {
+type WeeklyVolumeSummary = {
 	week: string;
 	volume: number;
 };

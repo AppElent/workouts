@@ -1,4 +1,5 @@
 import {
+	NAMED_AMOUNT_LIMITS,
 	type PersonalFood,
 	type ServingOption,
 	withPersonalMeasures,
@@ -106,8 +107,8 @@ export function AmountServingPopup({
 			if (lock.current) return;
 			const result = z
 				.object({
-					name: z.string().trim().min(1).max(40),
-					amount: z.number().positive().max(10000),
+					name: z.string().trim().min(1).max(NAMED_AMOUNT_LIMITS.maxName),
+					amount: z.number().positive().max(NAMED_AMOUNT_LIMITS.maxAmount),
 				})
 				.safeParse({
 					name: value.name.trim() || initial?.name || "",

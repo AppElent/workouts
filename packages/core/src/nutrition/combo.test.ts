@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-	comboNutrients,
-	normalizeCombo,
-	validateCombo,
-	validateComboDraft,
-} from "./combo";
+import { isRuleError } from "../rules";
+import { comboNutrients, normalizeCombo, normalizeComboDraft } from "./combo";
 import {
 	ABSENT,
 	NUTRIENT_KEYS,
@@ -57,18 +53,23 @@ const oneOffPart = {
 
 describe("Combo drafts", () => {
 	it("accepts shipped, personal and one-off parts and trims the name", () => {
-		const result = validateComboDraft({
+		const combo = normalizeComboDraft({
 			name: " Breakfast ",
 			parts: [shippedPart, oneOffPart],
 		});
-		expect(result.ok && result.value.name).toBe("Breakfast");
-		expect(result.ok && result.value.parts[1].snapshot.estimated).toBe(true);
+		expect(combo.name).toBe("Breakfast");
+		expect(combo.parts[1].snapshot.estimated).toBe(true);
 	});
 
 	it("reports the field of the first broken rule", () => {
 		const issue = (draft: unknown) => {
-			const result = validateComboDraft(draft);
-			return result.ok ? undefined : result.errors[0];
+			try {
+				normalizeComboDraft(draft);
+				return undefined;
+			} catch (error) {
+				if (!isRuleError(error)) throw error;
+				return { field: error.field, code: error.code };
+			}
 		};
 		expect(issue({ name: "x".repeat(501), parts: [shippedPart] })).toEqual({
 			field: "name",
@@ -134,11 +135,9 @@ describe("stored Combos", () => {
 
 	it("needs part ids and timestamps that a draft may omit", () => {
 		expect(normalizeCombo(stored).parts[0].id).toBe("part-1");
-		const result = validateCombo({ ...stored, parts: [shippedPart] });
-		expect(result.ok ? undefined : result.errors[0]).toEqual({
-			field: "parts.0.id",
-			code: "required",
-		});
+		expect(() => normalizeCombo({ ...stored, parts: [shippedPart] })).toThrow(
+			expect.objectContaining({ field: "parts.0.id", code: "required" }),
+		);
 		expect(() => normalizeCombo({ ...stored, updatedAt: Number.NaN })).toThrow(
 			expect.objectContaining({ field: "updatedAt", code: "invalid" }),
 		);

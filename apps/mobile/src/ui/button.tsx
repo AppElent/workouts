@@ -1,7 +1,7 @@
 /**
- * Two buttons, because V1 needs two: the accent-filled primary action and a
- * quiet bordered one. Both are capsules — the web's `--r-pill` on its primary
- * CTA, and the shape a thumb finds without looking.
+ * Two buttons: the accent-filled primary action and a quiet bordered one.
+ * Both are capsules — the web's `--r-pill` on its primary CTA, and the shape a
+ * thumb finds without looking.
  *
  * `Pressable`'s `pressed` state carries the feedback rather than an opacity
  * animation: on a phone held at arm's length mid-set, a colour change reads

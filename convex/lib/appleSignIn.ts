@@ -9,7 +9,7 @@
  */
 
 const APPLE = "https://appleid.apple.com";
-export const APPLE_CLIENT_IDS = [
+const APPLE_CLIENT_IDS = [
 	"com.appelent.foundry",
 	"com.appelent.foundry.preview",
 	"com.appelent.foundry.dev",

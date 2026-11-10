@@ -9,7 +9,6 @@ export const activityEn = {
 	session: "Strength session",
 	logRun: "Log run",
 	logRide: "Log ride",
-	logActivity: "Log activity",
 	startActivity: "Start activity",
 	recent: "Recent activities",
 	seeAll: "See all",
@@ -26,7 +25,6 @@ export const activityEn = {
 	loadMore: "Load more",
 	errorTitle: "This screen could not be loaded",
 	errorBody: "Check your connection and try again.",
-	retry: "Try again",
 	weeklyDistance: "Weekly distance (km)",
 	weeklyDuration: "Weekly duration (minutes)",
 	previousWeek: "Previous week",
@@ -39,7 +37,6 @@ export const activityEn = {
 	logBody: "Record a completed run or ride, or start a strength session.",
 	exercises: "Exercises",
 	body: "Body",
-	volume: "Every set type, warmups included.",
 };
 export const activityNl: typeof activityEn = {
 	history: "Activiteitengeschiedenis",
@@ -52,7 +49,6 @@ export const activityNl: typeof activityEn = {
 	session: "Krachtsessie",
 	logRun: "Hardloopsessie vastleggen",
 	logRide: "Fietsrit vastleggen",
-	logActivity: "Activiteit vastleggen",
 	startActivity: "Activiteit starten",
 	recent: "Recente activiteiten",
 	seeAll: "Alles bekijken",
@@ -70,7 +66,6 @@ export const activityNl: typeof activityEn = {
 	loadMore: "Meer laden",
 	errorTitle: "Dit scherm kon niet worden geladen",
 	errorBody: "Controleer je verbinding en probeer het opnieuw.",
-	retry: "Opnieuw proberen",
 	weeklyDistance: "Wekelijkse afstand (km)",
 	weeklyDuration: "Wekelijkse duur (minuten)",
 	previousWeek: "Vorige week",
@@ -84,5 +79,4 @@ export const activityNl: typeof activityEn = {
 		"Leg een afgeronde hardloopsessie of fietsrit vast, of start een krachtsessie.",
 	exercises: "Oefeningen",
 	body: "Lichaam",
-	volume: "Alle soorten sets, inclusief opwarming.",
 };

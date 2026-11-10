@@ -1,13 +1,9 @@
-import type { IsoDate } from "@foundry/core";
+import { type IsoDate, isRealIsoDate, weekStartMonday } from "@foundry/core";
 import { useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import {
-	isRealIsoDate,
-	type WeeklyReviewDay,
-	weekStartMonday,
-} from "../../../data/nutrition-weekly-review";
+import type { WeeklyReviewDay } from "../../../data/nutrition-weekly-review";
 import { todayIsoDate } from "../../../dates/calendar-day";
 
 /** The chosen week's acknowledged account data. */

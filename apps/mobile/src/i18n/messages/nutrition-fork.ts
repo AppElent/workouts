@@ -1,16 +1,13 @@
 /**
- * Correcting a shipped food (#75). A correction never edits the shipped
+ * Correcting a shipped food. A correction never edits the shipped
  * record: it creates the user's own food that stands in front of it. The
  * copy says "your correction", never "the fixed version", because nothing
  * here claims the user is right and NEVO is wrong.
  */
 export const nutritionForkEn = {
 	correct: "Correct this food",
-	title: "Correct a shipped food",
 	intro:
 		"This saves your own copy. The bundled food is left as published, and your copy replaces it in ordinary search.",
-	/** Caption under a fork, wherever it appears. */
-	resultLabel: "Your correction",
 	forkedFrom: "Your correction of {name}",
 	locallyEdited: "You changed this food.",
 	unchanged: "You have not changed this food yet.",
@@ -23,10 +20,8 @@ export const nutritionForkEn = {
 
 export const nutritionForkNl: typeof nutritionForkEn = {
 	correct: "Dit voedingsmiddel corrigeren",
-	title: "Meegeleverd voedingsmiddel corrigeren",
 	intro:
 		"Dit slaat je eigen kopie op. Het meegeleverde voedingsmiddel blijft zoals het is gepubliceerd en jouw kopie vervangt het in de gewone zoekresultaten.",
-	resultLabel: "Jouw correctie",
 	forkedFrom: "Jouw correctie van {name}",
 	locallyEdited: "Je hebt dit voedingsmiddel aangepast.",
 	unchanged: "Je hebt dit voedingsmiddel nog niet aangepast.",

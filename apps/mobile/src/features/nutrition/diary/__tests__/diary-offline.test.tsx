@@ -1,7 +1,7 @@
 /**
  * What still works with no connection.
  *
- * Spec #68 draws the line clearly: the shipped library, Personal Foods, Combos
+ * The line: the shipped library, Personal Foods, Combos
  * and existing diary data stay useful offline, and a provider failure never
  * blocks manual logging. Three things follow, and all three are checkable
  * here:
@@ -44,7 +44,6 @@ function noCachedDay() {
 /** A day that was already downloaded before the connection dropped. */
 function cachedDay() {
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return {

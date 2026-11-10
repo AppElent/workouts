@@ -11,7 +11,7 @@ export type FoodPhotoCropPosition =
 	| "left"
 	| "right";
 
-export type FoodPhotoChoice =
+type FoodPhotoChoice =
 	| {
 			readonly kind: "selected";
 			readonly visual: Extract<FoodVisual, { kind: "photo" }>;

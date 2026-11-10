@@ -1,10 +1,6 @@
 import { DEFAULT_EXERCISES } from "./exercises";
 import type { DefaultExercise } from "./types";
 
-export { CURATED_EXERCISES, DEFAULT_EXERCISES } from "./exercises";
-export type { DefaultExercise } from "./types";
-export { WRKOUT_EXERCISES } from "./wrkoutExercises";
-
 // References can be a permanent shipped key or an existing Convex document ID.
 export type ExerciseId = string;
 export type Exercise = Omit<DefaultExercise, "instructions"> & {
@@ -23,14 +19,8 @@ export const SHIPPED_EXERCISES: Exercise[] = DEFAULT_EXERCISES.map(
 const byId = new Map(
 	SHIPPED_EXERCISES.map((exercise) => [exercise._id, exercise]),
 );
-const byName = new Map(
-	SHIPPED_EXERCISES.map((exercise) => [exercise.name, exercise]),
-);
 export function getShippedExercise(id: string) {
 	return byId.get(id);
-}
-export function getShippedExerciseByName(name: string) {
-	return byName.get(name);
 }
 
 export function mergeExerciseCatalog(personal: Exercise[]): Exercise[] {

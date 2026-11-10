@@ -1,4 +1,4 @@
-import type { IsoDate } from "@foundry/core";
+import { type IsoDate, isoWeek, weekAverage } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
@@ -28,9 +28,8 @@ import {
 	weekUnit,
 } from "./week-format";
 import {
-	isoWeekNumber,
+	dayGoalBounds,
 	WEEK_NUTRIENTS,
-	weekAverage,
 	weekDayStatus,
 	weekGoalChanges,
 	weekStripWeeks,
@@ -49,7 +48,7 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 		startDate: week,
 		endDate: weekEndDate(week),
 	});
-	const number = isoWeekNumber(week);
+	const number = isoWeek(week).week;
 	const titleKind = weekTitleKind(week, today);
 	const title =
 		titleKind === "numbered"
@@ -244,21 +243,15 @@ function WeekContent({
 							})
 						}
 						bars={days.map((day, index) => {
-							const goals = day.goalBasis === "effective" ? day.goals : [];
+							const bounds = dayGoalBounds(day, "energy");
 							const status = weekDayStatus(day, "energy", today);
 							return {
 								date: day.date,
 								label: parts[index].short,
 								amount: day.totals.energy.amount,
 								status,
-								minimum: goals.find(
-									(goal) =>
-										goal.nutrient === "energy" && goal.direction === "min",
-								)?.target,
-								maximum: goals.find(
-									(goal) =>
-										goal.nutrient === "energy" && goal.direction === "max",
-								)?.target,
+								minimum: bounds?.min,
+								maximum: bounds?.max,
 								accessibilityLabel: `${parts[index].long}, ${weekNumber(day.totals.energy.amount, locale)} kcal, ${copy.status[status]}`,
 							};
 						})}

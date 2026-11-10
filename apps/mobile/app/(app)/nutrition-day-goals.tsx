@@ -1,5 +1,5 @@
+import { isRealIsoDate } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
-import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";
 import { todayIsoDate } from "../../src/dates/calendar-day";
 import { DayGoalsScreen } from "../../src/features/nutrition/day-goals/day-goals-screen";
 

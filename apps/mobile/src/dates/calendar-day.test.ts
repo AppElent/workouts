@@ -1,7 +1,3 @@
-/**
- * Dates, in the calendar the person lives in.
- */
-
 import {
 	formatLongDate,
 	isoDateToLocalDayRangeMs,

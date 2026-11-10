@@ -89,18 +89,18 @@ export type NutritionGoal = NutritionGoalValue & {
 	sourcePreset?: GoalPresetKey;
 };
 
-export const NUTRITION_GOAL_LIMITS = Object.freeze({
+const NUTRITION_GOAL_LIMITS = Object.freeze({
 	/** One min and one max for each of the eight nutrients. */
 	maxBounds: 16,
 	maxTarget: 100_000,
 });
 
 /** `${nutrient}.${direction}` for one bound, `${nutrient}.range` for a min/max pair. */
-export type NutritionGoalField =
+type NutritionGoalField =
 	| "goals"
 	| `${NutrientKey}.${GoalDirection}`
 	| `${NutrientKey}.range`;
-export type NutritionGoalCode =
+type NutritionGoalCode =
 	| "tooMany"
 	| "notPositive"
 	| "tooLarge"
@@ -139,15 +139,15 @@ export function validateNutritionGoals<G extends NutritionGoalValue>(
 	return issues.result(goals);
 }
 
-export type EffectiveGoalVersion = {
+type EffectiveGoalVersion = {
 	effectiveFrom: IsoDate;
 	goals: NutritionGoal[];
 	referenceGoals?: NutritionGoal[];
 };
 
-export type GoalHistoryBasis = "effective" | "reference";
+type GoalHistoryBasis = "effective" | "reference";
 
-export type ResolvedGoalHistory = {
+type ResolvedGoalHistory = {
 	goals: NutritionGoal[];
 	basis: GoalHistoryBasis;
 	effectiveFrom: IsoDate | null;
@@ -232,7 +232,7 @@ export function goalBounds(
  * - `below` a minimum, `met` a minimum-only goal, `within` the bounds,
  *   `exceeded` a maximum.
  */
-export type GoalStatus =
+type GoalStatus =
 	| "noGoal"
 	| "empty"
 	| "incomplete"
@@ -241,7 +241,7 @@ export type GoalStatus =
 	| "within"
 	| "exceeded";
 
-export type GoalEvaluation = {
+type GoalEvaluation = {
 	readonly status: GoalStatus;
 	/** The total has a trace or estimated figure in it. */
 	readonly approximate: boolean;

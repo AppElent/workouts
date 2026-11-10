@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	isRuleError,
-	RuleError,
-	ruleIssues,
-	ruleResult,
-	ruleValue,
-} from "./rules";
+import { isRuleError, ruleIssues, ruleValue } from "./rules";
 
 describe("rule results", () => {
 	it("passes only when no issue was added, and keeps every issue", () => {
@@ -23,17 +17,12 @@ describe("rule results", () => {
 		});
 	});
 
-	it("turns a thrown RuleError into a result and back", () => {
-		const failing = ruleResult(() => {
-			throw new RuleError("quantity", "notPositive");
-		});
-		expect(failing).toEqual({
-			ok: false,
-			errors: [{ field: "quantity", code: "notPositive" }],
-		});
+	it("throws the first issue of a failing result", () => {
+		const issues = ruleIssues<"quantity", "notPositive">();
+		issues.add("quantity", "notPositive");
 		let thrown: unknown;
 		try {
-			ruleValue(failing);
+			ruleValue(issues.result(1));
 		} catch (error) {
 			thrown = error;
 		}
@@ -43,14 +32,6 @@ describe("rule results", () => {
 			code: "notPositive",
 			message: "notPositive",
 		});
-		expect(ruleValue(ruleResult(() => 3))).toBe(3);
-	});
-
-	it("does not swallow an error that is not a broken rule", () => {
-		expect(() =>
-			ruleResult(() => {
-				throw new TypeError("bug");
-			}),
-		).toThrow(TypeError);
+		expect(ruleValue(ruleIssues().result(3))).toBe(3);
 	});
 });

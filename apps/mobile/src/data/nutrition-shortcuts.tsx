@@ -23,7 +23,7 @@ import {
 	type PortionMemory,
 } from "./food-shortcut-repository";
 
-export type { FoodShortcut, FoodUse, PortionMemory };
+export type { FoodUse, PortionMemory };
 
 export type RememberedSelection = {
 	readonly option: ServingOption;

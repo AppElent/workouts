@@ -3,7 +3,7 @@
  * Core rule failures reach the client the same way with the rule's own code
  * (`tooSmall`, `notStep`, `required`, …) and the field it concerns.
  */
-export const APP_ERROR_CODES = [
+const APP_ERROR_CODES = [
 	"unauthenticated",
 	"notFound",
 	"readOnly",
@@ -46,7 +46,7 @@ export function isAppErrorCode(value: unknown): value is AppErrorCode {
  */
 export type AppErrorMessages = Partial<Record<AppErrorCode, string>>;
 
-export type ParsedConvexError = {
+type ParsedConvexError = {
 	/** The `ConvexError` code, when the server sent one. */
 	readonly code?: string;
 	/** The human part of the error, or `""` when there is none to show. */

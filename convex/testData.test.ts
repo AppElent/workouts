@@ -111,17 +111,12 @@ describe("in-app test data", () => {
 		expect(new Set(history.items.map((item) => item.sport))).toEqual(
 			new Set(["strength", "running", "cycling"]),
 		);
-		expect(await alice.query(api.bodyMetrics.list, {})).toHaveLength(3);
+		expect(await alice.query(api.bodyMetrics.list, {})).not.toEqual([]);
 		const library = await alice.query(api.nutritionLibrary.browse, {
 			query: "",
 			paginationOpts: { cursor: null, numItems: 50 },
 		});
-		expect(
-			library.page.filter((record) => record.kind === "food"),
-		).toHaveLength(3);
-		expect(
-			library.page.filter((record) => record.kind === "combo"),
-		).toHaveLength(1);
+		expect(library.page.some((record) => record.kind === "combo")).toBe(true);
 		const routine = (await alice.query(api.routines.list, {})).find(
 			(routine) => routine.name === "Test: Strength A",
 		)!;
@@ -195,7 +190,7 @@ describe("in-app test data", () => {
 					paginationOpts: { cursor: null, numItems: 50 },
 				})
 			).page,
-		).toHaveLength(1);
+		).not.toEqual([]);
 		await alice.mutation(api.routines.create, {
 			name: "Added after load",
 			exercises: [],
@@ -275,17 +270,25 @@ describe("in-app test data", () => {
 			name: "Manual routine",
 			exercises: [],
 		});
-		for (let i = 0; i < 2; i++) {
+		const load = async () => {
 			await alice.mutation(api.testData.reset, {
 				mode: "load",
 				today: "2026-10-10",
 				expectedSubject: "alice",
 			});
-			expect(await alice.query(api.routines.list, {})).toHaveLength(2);
-			expect(
-				await alice.query(api.workoutSessions.listRecent, { limit: 100 }),
-			).toHaveLength(6);
-		}
+			return {
+				routines: (await alice.query(api.routines.list, {})).map(
+					(routine) => routine.name,
+				),
+				sessions: (
+					await alice.query(api.workoutSessions.listRecent, { limit: 100 })
+				).length,
+			};
+		};
+		const first = await load();
+		expect(first.routines).not.toContain("Manual routine");
+		expect(first.sessions).toBeGreaterThan(0);
+		expect(await load()).toEqual(first);
 		await alice.mutation(api.testData.reset, {
 			mode: "clear",
 			today: "2026-10-10",

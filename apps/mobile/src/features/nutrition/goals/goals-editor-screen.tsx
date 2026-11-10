@@ -31,7 +31,7 @@ import {
 } from "../../../data/nutrition-goal-history";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { fmt, plural, useI18n } from "../../../i18n";
+import { dateLocale, fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -302,7 +302,7 @@ function GoalsEditor() {
 	const dateValue =
 		editor.date === editor.today
 			? copy.today
-			: isoDateToLocalDate(editor.date).toLocaleDateString(locale, {
+			: isoDateToLocalDate(editor.date).toLocaleDateString(dateLocale(locale), {
 					weekday: "short",
 					day: "numeric",
 					month: "short",

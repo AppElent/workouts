@@ -6,11 +6,9 @@ export * from "./convex-error";
 export * from "./exercise";
 export * from "./format";
 export * from "./i18n";
-export * from "./ids";
 export * from "./json";
 export {
 	combinedNutrients,
-	type NutrientEntry,
 	type NutrientTotal,
 	totalNutrients,
 } from "./nutrition/aggregate";
@@ -33,16 +31,13 @@ export {
 } from "./nutrition/nutrient-sources";
 export {
 	ABSENT,
-	checkNutrientValue,
 	KJ_PER_KCAL,
 	kcalFromKilojoules,
 	NUTRIENT_DISPLAY_DECIMALS,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
-	type NutrientUnit,
 	type NutrientValue,
-	type NutrientValueCode,
 	numericAmount,
 	roundForDisplay,
 	scaleNutrient,
@@ -70,7 +65,6 @@ export {
 	type SupplementaryServing,
 	servingAmountLabel,
 	servingOptions,
-	servingSelectionLabel,
 	withPersonalMeasures,
 	withSupplementaryServings,
 } from "./nutrition/servings";

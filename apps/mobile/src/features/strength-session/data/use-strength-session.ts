@@ -6,12 +6,10 @@ import { api, type Id } from "../../../convex/api";
 import { useQueries } from "../../../convex/query-cache";
 import { useRetained } from "../../../data/session-data";
 
-export type SessionRecord = NonNullable<
+type SessionRecord = NonNullable<
 	FunctionReturnType<typeof api.workoutSessions.getById>
 >;
-export type SessionSet = FunctionReturnType<
-	typeof api.sets.listForSession
->[number];
+type SessionSet = FunctionReturnType<typeof api.sets.listForSession>[number];
 type Wods = FunctionReturnType<typeof api.wodResults.listForSession>;
 
 /** One session's record, sets and WOD results; a refresh keeps the last readable copy. */

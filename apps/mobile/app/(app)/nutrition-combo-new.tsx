@@ -1,12 +1,9 @@
 /**
- * Route for naming and saving the selected diary entries as a Combo.
+ * Route for saving selected diary entries (or library foods) as a Combo.
  *
- * The selection travels as a comma-joined list of entry ids and the entries
- * themselves are resolved from the day query by `ComboNewFromDiary`, for the same reason
- * `nutrition-entry.tsx` looks its entry up: ids survive a navigation, objects
- * carried through one go stale. Ids that no longer match anything are dropped
- * rather than faked, and an empty selection closes the route instead of
- * offering to save a Combo with nothing in it.
+ * The selection travels as comma-joined ids, resolved again on arrival: ids
+ * survive a navigation, objects carried through one go stale. Diary ids that no
+ * longer match anything are dropped, and an empty selection closes the route.
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/dates/calendar-day";

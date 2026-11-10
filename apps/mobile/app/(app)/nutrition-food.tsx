@@ -3,15 +3,13 @@ import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
  * Route for finding and logging food into one meal on one day.
  *
  * A sibling of `(coach)`, not a screen inside it, so it is *pushed over* the
- * tab bar the way `exercises.tsx` and `session.tsx` are. That placement is what
- * buys the three things spec #68 asks for and a conditional render inside the
- * tab could never give: the iOS edge-swipe back gesture, an Android hardware
- * back that closes the browser instead of leaving the app, and a real
- * navigation stack the diary sits underneath rather than being replaced by.
+ * tab bar the way `exercises.tsx` and `session.tsx` are. That placement gives
+ * what a conditional render inside the tab could not: the iOS edge-swipe back
+ * gesture, an Android hardware back that closes the browser instead of leaving
+ * the app, and a real navigation stack the diary sits underneath.
  *
- * The meal and the date arrive as params rather than props because a pushed
- * route has no parent to hand it either. `meal` is validated here rather than
- * trusted: a deep link is user input, and the four slots are a closed set.
+ * `meal` is validated rather than trusted: a deep link is user input, and the
+ * four slots are a closed set.
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { todayIsoDate } from "../../src/dates/calendar-day";

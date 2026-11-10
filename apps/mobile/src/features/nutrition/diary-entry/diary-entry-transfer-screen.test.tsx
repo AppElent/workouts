@@ -13,10 +13,7 @@ import { nl } from "../../../i18n/messages/nl";
 import { pressPending } from "../../../test-support/press-pending";
 import { AppearanceProvider } from "../../../theme";
 import { useToast } from "../../../ui/toast";
-import {
-	copiedEntrySnapshot,
-	DiaryEntryTransferScreen,
-} from "./diary-entry-transfer-screen";
+import { DiaryEntryTransferScreen } from "./diary-entry-transfer-screen";
 
 jest.mock("../../../data/nutrition-diary", () => ({
 	useNutritionDiary: jest.fn(),
@@ -160,6 +157,7 @@ describe("DiaryEntryTransferScreen", () => {
 			comboGroup?: unknown;
 		}[];
 		expect(copied?.comboGroup).toBeUndefined();
+		expect(copied).not.toHaveProperty("id");
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
@@ -232,20 +230,5 @@ describe("DiaryEntryTransferScreen", () => {
 
 		await pressPending(screen.getByLabelText("Copy entry"));
 		expect(logBatch).toHaveBeenCalledTimes(2);
-	});
-
-	it("strips any source combo group from a copy", () => {
-		const copied = copiedEntrySnapshot(entry, "2026-09-13", "dinner");
-		expect(copied).toEqual(
-			expect.objectContaining({
-				date: "2026-09-13",
-				meal: "dinner",
-				serving: entry.serving,
-				nutrients: entry.nutrients,
-				provenance: entry.provenance,
-			}),
-		);
-		expect(copied.comboGroup).toBeUndefined();
-		expect("id" in copied).toBe(false);
 	});
 });

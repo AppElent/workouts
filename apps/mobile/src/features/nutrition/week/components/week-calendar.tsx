@@ -1,10 +1,7 @@
-import type { IsoDate } from "@foundry/core";
+import { type IsoDate, weekStartMonday } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
-import {
-	weekDates,
-	weekStartMonday,
-} from "../../../../data/nutrition-weekly-review";
+import { weekDates } from "../../../../data/nutrition-weekly-review";
 import { isoDateToLocalDate, toIsoDate } from "../../../../dates/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
 import { AppText } from "../../../../ui/text";

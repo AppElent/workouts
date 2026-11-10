@@ -4,7 +4,7 @@ import { SymbolView } from "expo-symbols";
 /**
  * A row whose actions can be reached three ways, none of which is the only way.
  *
- * Spec #68 is unusually specific here, so this component is built around the
+ * The requirements are unusually specific here, so this component is built around the
  * constraint rather than decorated with it:
  *
  * - **Swipe reveals; a full swipe only runs what is safe to run.** By default
@@ -374,11 +374,7 @@ export function SwipeableRow({
 	);
 }
 
-/**
- * The long-press menu.
- *
- * Non-iOS fallback. iOS uses Link.Menu or the system action sheet.
- */
+/** The long-press menu off iOS; iOS uses Link.Menu or the system action sheet. */
 function ActionMenu({
 	visible,
 	title,

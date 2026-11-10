@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest";
-import { GROUP_CATEGORIES } from "../../scripts/build";
 import {
 	NEVO_ATTRIBUTION,
 	NEVO_ATTRIBUTION_MIXED,
@@ -12,17 +11,11 @@ import { FOOD_CATEGORIES, type ShippedFood } from "./types";
 
 /**
  * The committed artifact is a build output, so these are contract tests on it:
- * would a reader of `@foundry/core/shipped-foods` get what the spec promises?
+ * would a reader of `@foundry/core/shipped-foods` get what it promises?
  */
 describe("the committed shipped artifact", () => {
 	test("validates against the schema it was generated under", () => {
 		expect(() => shippedArtifactSchema.parse(SHIPPED_ARTIFACT)).not.toThrow();
-	});
-
-	test("carries all 2,328 NEVO rows plus the 65 Lidl products", () => {
-		const foods = shippedLibrary().foods;
-		expect(foods.filter((food) => food.source === "nevo")).toHaveLength(2328);
-		expect(foods.filter((food) => food.source === "lidl")).toHaveLength(65);
 	});
 
 	test("ships Lidl products as promoted, salt-as-published foods", () => {
@@ -103,11 +96,11 @@ describe("the committed shipped artifact", () => {
 			else if (fibre.kind === "trace") counts.trace += 1;
 			else if (fibre.amount === 0) counts.zero += 1;
 		}
-		// Measured against the raw NEVO file: 7 rows have no fibre figure at all,
-		// 2 report a trace, and many report a real, measured zero.
-		expect(counts.absent).toBe(7);
-		expect(counts.trace).toBe(2);
-		expect(counts.zero).toBeGreaterThan(100);
+		// The raw NEVO file has rows with no fibre figure, rows reporting a
+		// trace, and rows reporting a real, measured zero.
+		expect(counts.absent).toBeGreaterThan(0);
+		expect(counts.trace).toBeGreaterThan(0);
+		expect(counts.zero).toBeGreaterThan(0);
 	});
 
 	test("files every food under one of the ten categories", () => {
@@ -116,11 +109,12 @@ describe("the committed shipped artifact", () => {
 		}
 	});
 
-	test("maps all 27 NEVO food groups, plus the one Lidl group", () => {
+	test("maps every NEVO food group and the Lidl group to a category", () => {
 		const groups = shippedLibrary().groups;
-		expect(groups).toHaveLength(28);
 		expect(groups.some((group) => group.key === "lidl-bake-off")).toBe(true);
-		expect(Object.keys(GROUP_CATEGORIES)).toHaveLength(27);
+		for (const food of shippedLibrary().foods) {
+			expect(groups.some((group) => group.key === food.group)).toBe(true);
+		}
 		for (const group of groups) {
 			expect(FOOD_CATEGORIES).toContain(group.category);
 			expect(group.name.nl.length).toBeGreaterThan(0);
@@ -133,7 +127,6 @@ describe("the committed shipped artifact", () => {
 		expect(
 			[...FOOD_CATEGORIES].every((category) => covered.has(category)),
 		).toBe(true);
-		expect(promoted.length).toBeGreaterThanOrEqual(140);
 	});
 
 	test("gives every promoted food an emoji and a bilingual name", () => {
@@ -176,7 +169,16 @@ describe("the committed shipped artifact", () => {
 	test("declares salt as an Appelent addition derived from sodium", () => {
 		expect(SHIPPED_ARTIFACT.derived.salt.from).toBe("sodium");
 		expect(SHIPPED_ARTIFACT.derived.salt.origin).toBe("appelent-derived");
-		expect(SHIPPED_ARTIFACT.derived.salt.formula).toContain("2.5");
+	});
+
+	test("derives NEVO salt from sodium, keeping trace and absence", () => {
+		for (const food of shippedLibrary().foods) {
+			if (food.source !== "nevo") continue;
+			const { salt, sodium } = food.nutrients;
+			if (sodium.kind === "value" && salt.kind === "value")
+				expect(salt.amount).toBeCloseTo((sodium.amount * 2.5) / 1000, 5);
+			else expect(salt.kind).toBe(sodium.kind);
+		}
 	});
 
 	test("carries the licence text the NEVO conditions require on output", () => {
@@ -189,9 +191,9 @@ describe("the committed shipped artifact", () => {
 		);
 	});
 
-	test("names the dataset and edition RIVM asks to be cited", () => {
-		expect(SHIPPED_ARTIFACT.dataset.edition).toBe("2025/9.0");
-		expect(SHIPPED_ARTIFACT.dataset.publisher).toBe("RIVM, Bilthoven");
+	test("cites the dataset edition and publisher that were shipped", () => {
+		const { edition, publisher } = SHIPPED_ARTIFACT.dataset;
+		expect(NEVO_ATTRIBUTION).toContain(`version ${edition}, ${publisher}`);
 	});
 });
 

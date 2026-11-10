@@ -7,13 +7,11 @@
  * up (`preventAutoHideAsync`) until Clerk resolves, so the router never
  * mounts a route before it knows which one is right.
  *
- * Navigation, status bar and the native window resolve the same appearance.
- * Keep the splash visible until auth and the initial window color are ready.
+ * The splash also waits for the native window color, so navigation, status
+ * bar and window appear in the same appearance.
  *
- * Still deliberately missing (an honest gap, not an oversight): the escape
- * hatch for a Clerk that never resolves. On a dead network this holds the
- * splash indefinitely. That belongs with the offline/availability work, not
- * with the shell.
+ * Known gap: there is no escape hatch for a Clerk that never resolves; on a
+ * dead network this holds the splash indefinitely.
  */
 import "../src/observability/sentry";
 import { ClerkProvider, useAuth } from "@clerk/expo";
@@ -42,11 +40,6 @@ import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
 
-/**
- * react-navigation's dark theme, repainted in the app's own palette. Spread
- * first so the `fonts` block (which react-navigation requires and we have no
- * opinion about) survives.
- */
 function RootLayout() {
 	return (
 		<AppearanceProvider>
@@ -93,12 +86,8 @@ function ThemedRoot() {
 		// tree need a native root, and it has to be the outermost view to receive
 		// touches before React Native's own responder system does.
 		<GestureHandlerRootView style={styles.window}>
-			{/* Language sits outside Clerk and Convex on purpose. It is a property
-			    of this phone rather than of the account, so it has to apply to the
-			    sign-in screen, to the offline banner, and to whatever is on screen
-			    while the service cannot be reached at all. It also resolves
-			    synchronously (see `src/i18n/index.tsx`), so the first frame is
-			    already in the right language. */}
+			{/* Language sits outside Clerk and Convex: it belongs to the phone, not
+			    the account (see `src/i18n/index.tsx`). */}
 			<LocaleProvider>
 				<ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
 					{/* Convex sits above the router, not below it: the client holds one
@@ -142,8 +131,7 @@ function RootNavigator({ windowReady }: { windowReady: boolean }) {
 		}
 	}, [isLoaded, windowReady]);
 
-	// Still resolving the cached session. Rendering nothing is the point —
-	// the splash is still covering this.
+	// The splash still covers this.
 	if (!isLoaded || !windowReady) return null;
 
 	return (

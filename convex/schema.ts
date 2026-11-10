@@ -266,7 +266,7 @@ export default defineSchema({
 		rpe: v.optional(v.number()),
 		setType,
 		loggedAt: v.number(),
-		// Compatibility with the earlier issue 89 development schema; no new writes.
+		// Left by an earlier development schema; no new writes.
 		estimatedMax: v.optional(v.number()),
 		performanceVerified: v.optional(v.boolean()),
 		referenceKind: v.optional(setReferenceSource),

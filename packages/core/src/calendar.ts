@@ -84,7 +84,6 @@ export function isoWeekday(date: IsoDate): number {
 	return (new Date(toUtc(date)).getUTCDay() + 6) % 7;
 }
 
-/** The Monday that starts the week containing `date`. */
 export function weekStartMonday(date: IsoDate): IsoDate {
 	return shiftIsoDate(date, -isoWeekday(date));
 }

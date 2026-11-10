@@ -6,18 +6,18 @@ import type { ShippedFood } from "./types";
 /**
  * Search over the shipped library.
  *
- * Two tiers, as the spec requires. `promoted` — the ordinary path — returns
- * only the ~150 curated foods, so a search for "banaan" does not bury the
- * banana under twelve NEVO rows for banana bread. `all` reaches every shipped
+ * Two tiers. `promoted` — the ordinary path — returns only the ~150 curated
+ * foods, so a search for "banaan" does not bury the banana under twelve NEVO
+ * rows for banana bread. `all` reaches every shipped
  * row, still ranking promoted foods first.
  *
  * The public shape of this module is fixed even though the internal strategy is
  * not: today it is a lazily built in-memory index over normalised strings, and
- * it may become something else once device measurements say so (#71, D18).
+ * it may become something else once device measurements say so.
  */
 export type SearchScope = "promoted" | "all";
 
-export type SearchMatch = "name" | "alias" | "sourceName";
+type SearchMatch = "name" | "alias" | "sourceName";
 
 export type FoodSearchResult = {
 	readonly food: ShippedFood;
@@ -167,16 +167,6 @@ export function searchShippedFoods(
 	});
 
 	return results.slice(0, limit);
-}
-
-/** Promoted foods in one category, for browsing rather than searching. */
-export function browsePromotedByCategory(
-	category: string,
-	locale: Locale = "en",
-): ShippedFood[] {
-	return shippedLibrary()
-		.promoted.filter((food) => food.category === category)
-		.sort((a, b) => a.name[locale].localeCompare(b.name[locale]));
 }
 
 /** Drop the memoised index. Benchmarks and tests only. */

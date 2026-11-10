@@ -23,7 +23,6 @@ import type {
 } from "./snapshot";
 import type { ShippedFood } from "./types";
 
-/** A Food in the Food Library, by kind. */
 export type LibraryFood =
 	| { readonly kind: "shipped"; readonly food: ShippedFood }
 	| { readonly kind: "personal"; readonly food: PersonalFood };
@@ -33,7 +32,6 @@ export type ShippedFoodProvenance = Extract<
 	{ readonly source: "shipped" }
 >;
 
-/** Food Provenance for figures taken from a Shipped Food. */
 export function shippedFoodProvenance(
 	food: ShippedFood,
 ): ShippedFoodProvenance {

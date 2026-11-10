@@ -44,7 +44,7 @@ describe("Capture Drafts in the diary", () => {
 	it("saves the search text as a note and lands back on the diary", async () => {
 		const app = await renderApp();
 		await fireEvent.press(await screen.findByLabelText("Add food to Lunch"));
-		// Saving a note lives in the + menu now. With nothing typed there is
+		// Saving a note lives in the + menu. With nothing typed there is
 		// nothing to file, so the menu does not offer it.
 		await fireEvent.press(await screen.findByLabelText("More food actions"));
 		expect(screen.queryByText("Save as note")).toBeNull();
@@ -103,7 +103,7 @@ describe("Capture Drafts in the diary", () => {
 		await fireEvent.press(await screen.findByText("Apple"));
 		await fireEvent.press(await screen.findByLabelText("Add & continue"));
 		// The serving sheet closing is the signal the log landed; there is no
-		// confirmation line on the browser any more.
+		// confirmation line on the browser.
 		await waitFor(() =>
 			expect(screen.queryByLabelText("Add & continue")).toBeNull(),
 		);

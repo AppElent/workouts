@@ -1,7 +1,12 @@
-import type { IsoDate, NutrientKey } from "@foundry/core";
+import {
+	goalBounds,
+	type IsoDate,
+	type Locale,
+	type NutrientKey,
+} from "@foundry/core";
 import type { WeeklyGoal } from "../../../data/nutrition-weekly-review";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
-import { fmt } from "../../../i18n";
+import { dateLocale, fmt } from "../../../i18n";
 import type { weekReviewEn } from "../../../i18n/messages/week-review";
 
 export function weekUnit(nutrient: NutrientKey): string {
@@ -22,12 +27,7 @@ export function weekGoalLabel(
 	copy: typeof weekReviewEn,
 	withUnit = true,
 ): string | undefined {
-	const min = goals.find(
-		(goal) => goal.nutrient === nutrient && goal.direction === "min",
-	)?.target;
-	const max = goals.find(
-		(goal) => goal.nutrient === nutrient && goal.direction === "max",
-	)?.target;
+	const { min, max } = goalBounds(goals, [nutrient])[0] ?? {};
 	const unit = withUnit ? ` ${weekUnit(nutrient)}` : "";
 	if (min !== undefined && max !== undefined)
 		return `${weekNumber(min, locale)}–${weekNumber(max, locale)}${unit}`;
@@ -38,8 +38,9 @@ export function weekGoalLabel(
 	return undefined;
 }
 
-export function weekDayParts(date: IsoDate, locale: string) {
+export function weekDayParts(date: IsoDate, appLocale: Locale) {
 	const local = isoDateToLocalDate(date);
+	const locale = dateLocale(appLocale);
 	return {
 		short: local
 			.toLocaleDateString(locale, { weekday: "short" })

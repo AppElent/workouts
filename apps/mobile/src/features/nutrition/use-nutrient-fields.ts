@@ -54,7 +54,6 @@ export function useNutrientFields({
 	return {
 		focused,
 		focus,
-		/** Props for one row's value field. */
 		field: (key: NutrientKey) => ({
 			inputRef: (input: TextInputInstance | null) => {
 				if (input) inputs.current.set(key, input);

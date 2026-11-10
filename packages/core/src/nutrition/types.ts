@@ -2,9 +2,9 @@ import type { NutrientValue, ShippedNutrientKey } from "./nutrients";
 import type { Bilingual, MeasuredUnit, NutritionSource } from "./snapshot";
 
 /**
- * The ten category keys every shipped food is filed under (spec #68, D16).
- * NEVO's own 27 food groups are preserved separately; the 27 → 10 mapping
- * lives in `scripts/generate-shipped-foods.ts` beside the NEVO group names.
+ * The ten category keys every shipped food is filed under. NEVO's own 27 food
+ * groups are preserved separately; the 27 → 10 mapping lives in
+ * `scripts/build.ts`.
  */
 export const FOOD_CATEGORIES = [
 	"fruit",

@@ -1,9 +1,5 @@
 /**
- * Whether the person has asked the system to reduce motion.
- *
- * Spec #68 requires the interface to respect the setting, and the honest way
- * to do that is to ask the platform rather than to guess. Two rules follow
- * from having this hook:
+ * Whether the person has asked the system to reduce motion. Two rules:
  *
  * 1. **Prefer not animating at all.** `ui/skeleton.tsx` is the model: it has no
  *    shimmer, so there is nothing for this hook to switch off. Reach for this
@@ -13,11 +9,9 @@
  *    still present the same thing in the same place; only the transition
  *    between states changes. A sheet that does not slide is still a sheet.
  *
- * The setting can be turned on while the app is open — Control Centre, or a
- * Settings trip mid-task — so this subscribes rather than reading once. It
- * starts at `false` and corrects itself on the first resolved read; that
- * ordering matters, because the alternative (start at `true`) would make every
- * first paint jump-cut for everyone.
+ * The setting can change while the app is open, so this subscribes rather than
+ * reading once. It starts at `false` so first paint does not jump-cut for
+ * everyone, and corrects itself on the first resolved read.
  */
 import { useEffect, useState } from "react";
 import { AccessibilityInfo } from "react-native";
@@ -48,12 +42,7 @@ export function useReduceMotion(): boolean {
 	return reduceMotion;
 }
 
-/**
- * The `animationType` a React Native `Modal` should use.
- *
- * `"none"` is a cut, not a freeze: the modal still appears and still covers
- * what it covered. Callers pass the motion they would use otherwise.
- */
+/** The `animationType` a React Native `Modal` should use. */
 export function modalAnimation(
 	reduceMotion: boolean,
 	preferred: "slide" | "fade",

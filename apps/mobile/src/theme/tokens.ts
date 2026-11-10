@@ -216,5 +216,3 @@ export const chrome = {
 	textMuted: dynamic(darkColors.textMuted, lightColors.textMuted),
 	accentInk: dynamic(darkColors.accentInk, lightColors.accentInk),
 } as const;
-
-export type Scheme = "dark" | "light";

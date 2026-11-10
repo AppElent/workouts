@@ -1,5 +1,5 @@
 /**
- * Correcting a shipped food, driven the way a person does it (#75).
+ * Correcting a shipped food, driven the way a person does it.
  *
  * Every assertion here is about what the screen shows and what reaches the
  * diary. Nothing looks at how a fork is stored, which SQL runs, or which
@@ -229,8 +229,8 @@ describe("what a correction does to the diary", () => {
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		const before = structuredClone(log.mock.calls[0][0].operation.entry);
-		// There is no "Done" any more — the pushed route's back chevron closes the
-		// browser, and every row has already committed its own log.
+		// The pushed route's back chevron closes the browser, and every row has
+		// already committed its own log.
 		await testRouter.back();
 
 		await correctTheApple("Dinner");

@@ -42,7 +42,7 @@ type TransferMode = "copy" | "move";
  * Snapshots intentionally do not carry a Combo group. Copying a single part
  * must not join it to the original group's lifecycle or presentation.
  */
-export function copiedEntrySnapshot(
+function copiedEntrySnapshot(
 	entry: DiaryEntry,
 	date: string,
 	meal: MealSlot,

@@ -20,7 +20,6 @@ export interface NutritionDestinationMenuProps {
 	otherDayLabel: string;
 	options: readonly {
 		readonly slot: MealSlot;
-		/** The meal's name. */
 		readonly label: string;
 		/** What is in it, such as "2 items · 322 kcal", or "nog niets". */
 		readonly detail: string;

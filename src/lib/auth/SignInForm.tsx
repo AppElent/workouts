@@ -9,16 +9,16 @@ import { AUTH_PATHS } from "./paths";
 import { SocialButtons } from "./SocialButtons";
 import { TestLoginButton } from "./TestLoginButton";
 
-/**
- * Email + password, or passwordless: "Email me a sign-in code" sends a
- * one-time code to the typed address and swaps the form for a code field.
- */
 type SignIn = ReturnType<typeof useSignIn>["signIn"];
 
 function hasEmailCodeFactor(signIn: SignIn) {
 	return signIn.supportedFirstFactors.some((f) => f.strategy === "email_code");
 }
 
+/**
+ * Email + password, or passwordless: "Email me a sign-in code" sends a
+ * one-time code to the typed address and swaps the form for a code field.
+ */
 export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
 	const { signIn } = useSignIn();
 	const { auth } = useMessages();
