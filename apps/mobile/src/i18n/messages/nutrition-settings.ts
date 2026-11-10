@@ -1,6 +1,4 @@
 export const nutritionSettingsEn = {
-	eyebrow: "PERSONAL LIBRARY",
-	title: "Library settings",
 	manageMeasures: "Manage personal measures",
 	intro:
 		"Personal Foods and Combos are saved to your account. Saving requires a connection. Meals already logged keep their original nutrition values.",
@@ -13,8 +11,6 @@ export const nutritionSettingsEn = {
 	offPhotoFailure:
 		"Nutrition was refreshed, but one product photo could not be saved. It will be retried next time.",
 	offRefreshing: "Refreshing imported foods…",
-	offEmpty:
-		"Products you import from Open Food Facts can be refreshed here. None are saved yet.",
 	offConfirmTitle: "Refresh imported foods?",
 	offConfirm: "Refresh foods",
 	offProgress: "{completed} of {total} checked",
@@ -26,8 +22,6 @@ export const nutritionSettingsEn = {
 };
 
 export const nutritionSettingsNl: typeof nutritionSettingsEn = {
-	eyebrow: "PERSOONLIJKE BIBLIOTHEEK",
-	title: "Bibliotheekinstellingen",
 	manageMeasures: "Persoonlijke maten beheren",
 	intro:
 		"Persoonlijke Voedingsmiddelen en Combo's worden in je account opgeslagen. Opslaan vereist verbinding. Eerder gelogde maaltijden behouden hun oorspronkelijke voedingswaarden.",
@@ -40,8 +34,6 @@ export const nutritionSettingsNl: typeof nutritionSettingsEn = {
 	offPhotoFailure:
 		"De voedingswaarden zijn vernieuwd, maar één productfoto kon niet worden opgeslagen. Bij de volgende keer proberen we het opnieuw.",
 	offRefreshing: "Geïmporteerde voeding vernieuwen…",
-	offEmpty:
-		"Er is nog geen Open Food Facts-voeding met barcode in je account opgeslagen.",
 	offConfirmTitle: "Geïmporteerde voeding vernieuwen?",
 	offConfirm: "Voeding vernieuwen",
 	offProgress: "{completed} van {total} gecontroleerd",

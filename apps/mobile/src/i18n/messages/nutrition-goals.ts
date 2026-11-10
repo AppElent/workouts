@@ -29,14 +29,8 @@ export const nutritionGoalsEn = {
 		body: "Set a daily amount for the nutrients you care about, and the day fills in against them.",
 		action: "Set up goals",
 	},
-	/** "1,426 of 2,100 kcal" */
-	progress: "{total} of {target} {unit}",
 	state: {
 		neutral: "Nothing logged",
-		under: "Under",
-		met: "Met",
-		within: "Within",
-		exceeded: "Over",
 	},
 	dailyTitle: "Daily goals",
 	editShort: "Edit",
@@ -82,13 +76,8 @@ export const nutritionGoalsNl: typeof nutritionGoalsEn = {
 		body: "Stel een dagelijkse hoeveelheid in voor de voedingsstoffen die jij belangrijk vindt; de dag vult zich daarna vanzelf.",
 		action: "Doelen instellen",
 	},
-	progress: "{total} van {target} {unit}",
 	state: {
 		neutral: "Niets gelogd",
-		under: "Onder",
-		met: "Gehaald",
-		within: "Binnen",
-		exceeded: "Over",
 	},
 	dailyTitle: "Dagdoelen",
 	editShort: "Bewerk",

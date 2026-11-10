@@ -16,7 +16,6 @@ export const comboEditorEn = {
 	replace: "Replace…",
 	confirm: "Save",
 	logTitle: "Log combo",
-	wholeCombos: "{count} × combo",
 	wholeUnit: "× combo",
 	partsThisTime: "Parts for this time",
 	partsThisTimeFooter:
@@ -69,8 +68,6 @@ export const comboEditorEn = {
 	undo: "Undo",
 	newTitle: "New combo",
 	name: "Name",
-	backupOff:
-		"Combos are kept on this phone. Turn on backup in Nutrition settings to keep them across devices.",
 };
 
 export const comboEditorNl: typeof comboEditorEn = {
@@ -92,7 +89,6 @@ export const comboEditorNl: typeof comboEditorEn = {
 	replace: "Vervangen…",
 	confirm: "Bewaren",
 	logTitle: "Combo loggen",
-	wholeCombos: "{count} × combo",
 	wholeUnit: "× combo",
 	partsThisTime: "Onderdelen voor deze keer",
 	partsThisTimeFooter:
@@ -147,6 +143,4 @@ export const comboEditorNl: typeof comboEditorEn = {
 	undo: "Ongedaan maken",
 	newTitle: "Nieuwe combo",
 	name: "Naam",
-	backupOff:
-		"Combo's staan op deze telefoon. Zet back-up aan in Voedingsinstellingen om ze op andere toestellen te houden.",
 };

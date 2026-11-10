@@ -42,10 +42,6 @@ import {
 } from "./nutrition-nutrients";
 import { nutritionOfflineEn, nutritionOfflineNl } from "./nutrition-offline";
 import {
-	nutritionOtherNutrientsEn,
-	nutritionOtherNutrientsNl,
-} from "./nutrition-other-nutrients";
-import {
 	nutritionPersonalFoodEn,
 	nutritionPersonalFoodNl,
 } from "./nutrition-personal-food";
@@ -62,7 +58,6 @@ import { nutritionUnitsEn, nutritionUnitsNl } from "./nutrition-units";
 import { oneOffLogEn, oneOffLogNl } from "./one-off-log";
 import { weekReviewEn, weekReviewNl } from "./week-review";
 export const nutritionEn = {
-	title: "Nutrition",
 	personalMeasures: nutritionPersonalMeasuresEn,
 	day: nutritionDayEn,
 	trainingMarker: nutritionTrainingMarkerEn,
@@ -91,7 +86,6 @@ export const nutritionEn = {
 	offline: nutritionOfflineEn,
 	entryActions: nutritionEntryActionsEn,
 	entryEditor: nutritionEntryEditorEn,
-	otherNutrients: nutritionOtherNutrientsEn,
 	nutrients: nutritionNutrientsEn,
 	units: nutritionUnitsEn,
 	attribution: nutritionAttributionEn,
@@ -99,7 +93,6 @@ export const nutritionEn = {
 };
 
 export const nutritionNl: typeof nutritionEn = {
-	title: "Voeding",
 	personalMeasures: nutritionPersonalMeasuresNl,
 	day: nutritionDayNl,
 	trainingMarker: nutritionTrainingMarkerNl,
@@ -127,7 +120,6 @@ export const nutritionNl: typeof nutritionEn = {
 	offline: nutritionOfflineNl,
 	entryActions: nutritionEntryActionsNl,
 	entryEditor: nutritionEntryEditorNl,
-	otherNutrients: nutritionOtherNutrientsNl,
 	nutrients: nutritionNutrientsNl,
 	units: nutritionUnitsNl,
 	attribution: nutritionAttributionNl,

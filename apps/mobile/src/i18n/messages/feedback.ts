@@ -10,7 +10,6 @@ export const feedbackEn = {
 	error: "Could not send your report. Please try again.",
 	success: "Thank you for your report!",
 	message: "What happened?",
-	placeholder: "What happened, and what did you expect?",
 	trigger: "Could not open the feedback form. Please try again.",
 };
 
@@ -26,6 +25,5 @@ export const feedbackNl: typeof feedbackEn = {
 	error: "Je melding kon niet worden verstuurd. Probeer het opnieuw.",
 	success: "Bedankt voor je melding!",
 	message: "Wat gebeurde er?",
-	placeholder: "Wat gebeurde er en wat verwachtte je?",
 	trigger: "Het meldformulier kon niet worden geopend. Probeer het opnieuw.",
 };
