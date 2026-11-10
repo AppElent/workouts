@@ -1,84 +1,72 @@
 import { File } from "expo-file-system";
 import { defaultDatabaseDirectory } from "expo-sqlite";
 import { registerAccountStore } from "../local-store/local-store";
+import { nutritionLibraryDatabaseName } from "./nutrition-library-repository";
 import {
-	type LibraryRecord,
-	nutritionLibraryDatabaseName,
-} from "./nutrition-library-repository";
+	createPersonalFoodCache,
+	type PersonalFoodCache,
+} from "./personal-food-cache";
 import {
-	openPersonalFoodRepository,
+	hasUnuploadedPhoto,
+	type LegacyPersonalFoods,
+	openLegacyPersonalFoods,
 	type PersonalFood,
-	type PersonalFoodRepository,
 } from "./personal-food-repository";
 
 export type PersonalFoodSession = {
-	repository: PersonalFoodRepository;
-	acknowledged(record: LibraryRecord): void;
+	cache: PersonalFoodCache;
 	close(): void;
 };
 
-/** Account records use session memory. An old file survives only for unuploaded manual photos. */
+/**
+ * The account's library lives in memory. An account cache file from an
+ * earlier build survives only while it holds photos not uploaded yet; those
+ * foods join the session until the server has their photo.
+ */
 export function openPersonalFoodSession(subject?: string): PersonalFoodSession {
-	const repository = openPersonalFoodRepository(":memory:", {
-		partialCache: true,
-	});
+	const cache = createPersonalFoodCache();
 	const file = subject
 		? new File(defaultDatabaseDirectory, nutritionLibraryDatabaseName(subject))
 		: undefined;
-	let photoSources: PersonalFoodRepository | undefined;
+	let photoSources: LegacyPersonalFoods | undefined;
 	if (file?.exists && subject) {
-		photoSources = openPersonalFoodRepository(
+		photoSources = openLegacyPersonalFoods(
 			nutritionLibraryDatabaseName(subject),
-			{ partialCache: true },
 		);
-		const pending = photoSources
-			.list()
-			.filter(
-				(food) =>
-					food.visual?.kind === "photo" &&
-					!food.visual.storageId &&
-					food.provenance.nutritionSource !== "openfoodfacts",
-			);
-		if (pending.length)
-			repository.replaceFromBackup(
-				{ foods: pending, combos: [] },
-				{ merge: true, preserveLocalPhotos: true },
-			);
+		const pending = photoSources.list().filter(hasUnuploadedPhoto);
+		if (pending.length) cache.keepDeviceFoods(pending);
 		else {
-			photoSources.close?.();
+			photoSources.close();
 			photoSources = undefined;
 			file.delete();
 		}
 	}
+	const receive = cache.receive;
 	return {
-		repository,
-		acknowledged(record) {
-			if (!photoSources || record.kind !== "food" || !record.payload) return;
-			const food: PersonalFood = JSON.parse(record.payload);
-			if (
-				food.visual?.kind !== "remote" &&
-				!(food.visual?.kind === "photo" && food.visual.storageId)
-			)
-				return;
-			photoSources.remove(record.id);
-			if (
-				photoSources
-					.list()
-					.every(
-						(candidate) =>
-							candidate.visual?.kind !== "photo" ||
-							!!candidate.visual.storageId ||
-							candidate.provenance.nutritionSource === "openfoodfacts",
-					)
-			) {
-				photoSources.close?.();
-				photoSources = undefined;
-				if (file?.exists) file.delete();
-			}
+		cache: {
+			...cache,
+			receive(record) {
+				const kept = receive(record);
+				if (photoSources && kept.kind === "food" && kept.payload) {
+					const food: PersonalFood = JSON.parse(kept.payload);
+					if (
+						food.visual &&
+						food.visual.kind !== "icon" &&
+						!hasUnuploadedPhoto(food)
+					) {
+						photoSources.remove(kept.id);
+						if (!photoSources.list().some(hasUnuploadedPhoto)) {
+							photoSources.close();
+							photoSources = undefined;
+							if (file?.exists) file.delete();
+						}
+					}
+				}
+				return kept;
+			},
 		},
 		close() {
-			repository.close?.();
-			photoSources?.close?.();
+			photoSources?.close();
 		},
 	};
 }

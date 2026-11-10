@@ -32,6 +32,7 @@ import { FoodValueField } from "../components/food-value-field";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { useNutrientFields } from "../use-nutrient-fields";
@@ -53,7 +54,7 @@ export function OneOffLogScreen({
 	/** The Capture Draft this entry processes; removed once it is logged. */
 	draftId?: string;
 }) {
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 	const copy = t.nutrition.oneOff;
 	const browseCopy = t.nutrition.logFood;
 	const foodCopy = t.nutrition.foodEditor;
@@ -89,13 +90,8 @@ export function OneOffLogScreen({
 		meal,
 		seed,
 		onLogged: (loggedDate) => {
-			setExit(
-				() => () =>
-					router.dismissTo({
-						pathname: "/nutrition",
-						params: { date: loggedDate },
-					}),
-			);
+			requestDiaryDate(loggedDate);
+			setExit(() => () => router.dismissTo("/nutrition"));
 		},
 		onFailed: () => toast.error(copy.logFailure),
 	});
@@ -132,16 +128,14 @@ export function OneOffLogScreen({
 		});
 	});
 
+	// Opened with nothing beneath it (a deep link), ✕ lands on the diary.
+	const close = () => {
+		if (router.canGoBack()) return router.back();
+		requestDiaryDate(draft.destination.date);
+		router.replace("/nutrition");
+	};
 	// Latest handlers for header items that outlive a render; options only
 	// change with what they show (Stack.Screen sets them on every new object).
-	// Opened with nothing beneath it (a deep link), ✕ lands on the diary.
-	const close = () =>
-		router.canGoBack()
-			? router.back()
-			: router.replace({
-					pathname: "/nutrition",
-					params: { date: draft.destination.date },
-				});
 	const handlers = useRef({ log: draft.log, close });
 	handlers.current = { log: draft.log, close };
 	const menu = destination.menu;
@@ -232,7 +226,6 @@ export function OneOffLogScreen({
 				visible={choosingDay}
 				date={draft.destination.date}
 				today={today}
-				locale={locale}
 				title={browseCopy.chooseDate}
 				todayLabel={browseCopy.today}
 				doneLabel={browseCopy.doneChoosingDate}

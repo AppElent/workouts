@@ -38,8 +38,6 @@ import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
 import { useNutritionDay } from "../../../data/nutrition-day";
 import {
 	type LoggedEntries,
-	ReplaceFailedError,
-	StrandedReplaceError,
 	useNutritionDiary,
 } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
@@ -68,6 +66,7 @@ import { FoodPhotoCamera } from "../components/food-photo-camera";
 import { NutritionAiConsent } from "../components/nutrition-ai-consent";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { Notice } from "../personal-food/personal-food-label-scan";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
@@ -134,9 +133,6 @@ export function AssistanceScreen({
 			? replacedDay.day
 			: undefined;
 	const dayPending = Boolean(resumed) && !liveDay;
-	const createdForReplace = useRef<readonly string[] | null>(
-		resumed?.stranded ?? null,
-	);
 	const unsaved = session.touched || session.inputChanged || unsentCorrection;
 	const [destination, setDestination] = useState({
 		date: initialDate,
@@ -171,12 +167,9 @@ export function AssistanceScreen({
 	const leaving = useRef(false);
 	const close = () => {
 		leaving.current = true;
-		return router.canGoBack()
-			? router.back()
-			: router.replace({
-					pathname: "/nutrition",
-					params: { date: destination.date },
-				});
+		if (router.canGoBack()) return router.back();
+		requestDiaryDate(destination.date);
+		router.replace("/nutrition");
 	};
 	// What was corrected by hand is not thrown away by one stray tap.
 	const requestClose = () => {
@@ -316,11 +309,7 @@ export function AssistanceScreen({
 		id,
 	});
 
-	/**
-	 * Logs the review. A continued meal is replaced: all of it goes, or the new
-	 * entries do. An earlier attempt that could not be taken back goes with it,
-	 * so what is logged is always the review on screen now.
-	 */
+	/** Logs the review. A continued meal is replaced in the same write. */
 	async function logEntries(
 		entries: readonly NutritionDiarySnapshot[],
 		combo?: { readonly id: string; readonly name: string },
@@ -342,7 +331,7 @@ export function AssistanceScreen({
 		try {
 			saved = resumed
 				? await diary.replace(
-						[...resumed.entryIds, ...(createdForReplace.current ?? [])].map(
+						[...resumed.entryIds, ...(resumed.stranded ?? [])].map(
 							byClientEntryId,
 						),
 						date,
@@ -351,30 +340,22 @@ export function AssistanceScreen({
 						combo,
 					)
 				: await diary.logBatch(date, meal, entries, combo);
-		} catch (error) {
-			if (error instanceof StrandedReplaceError) {
-				createdForReplace.current = [
-					...(createdForReplace.current ?? []),
-					...error.stranded,
-				];
-				// Kept with the session, so reopening can still clean them up.
-				if (resumed)
-					saveAiSession(account, {
-						...resumed,
-						stranded: createdForReplace.current,
-					});
-				toast.error(copy.replaceBoth);
-			} else if (error instanceof ReplaceFailedError)
-				toast.error(copy.replaceFailure);
-			else toast.error(session.ai.online ? copy.logFailure : copy.logOffline);
+		} catch {
+			toast.error(
+				!session.ai.online
+					? copy.logOffline
+					: resumed
+						? copy.replaceFailure
+						: copy.logFailure,
+			);
 			return false;
 		} finally {
 			clearTimeout(slow);
 			lock.current = false;
 			setLogging(false);
 		}
-		createdForReplace.current = null;
 		if (resumed) forgetAiSession(account, resumed);
+		requestDiaryDate(date);
 		const forgetAnswer = session.rememberLogged();
 		const logged = context
 			? {
@@ -677,7 +658,6 @@ export function AssistanceScreen({
 				visible={choosingDay}
 				date={destination.date}
 				today={today}
-				locale={locale}
 				title={t.nutrition.logFood.chooseDate}
 				todayLabel={t.nutrition.logFood.today}
 				doneLabel={t.nutrition.logFood.doneChoosingDate}

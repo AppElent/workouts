@@ -17,12 +17,13 @@
  * and whether dynamic type actually clips at 310% — is in the verify skill's
  * mobile section, because none of it is answerable from a test renderer.
  */
+
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen } from "expo-router/testing-library";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
 } from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";

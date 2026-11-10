@@ -13,7 +13,6 @@ import {
 	View,
 } from "react-native";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
-import type { FoodPhotoManager } from "../../../data/food-photo-manager";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import { openFoodFactsImports } from "../../../data/open-food-facts-sync";
 import type {
@@ -57,7 +56,6 @@ export type PersonalFoodEditorProps = {
 		kind: "personal" | "recipe" | "oneOff",
 		seed?: FoodAuthoringSeed,
 	) => void;
-	photoManager?: FoodPhotoManager;
 	initialName?: string;
 	/**
 	 * `route`: the editor owns its navigation header (pushed or a sheet).
@@ -76,7 +74,6 @@ export function PersonalFoodEditor({
 	onSaved,
 	onCancel,
 	onCreateKindChange,
-	photoManager,
 	initialName,
 	chrome = "inline",
 	scanLabelOnOpen = false,
@@ -96,7 +93,6 @@ export function PersonalFoodEditor({
 		seed,
 		defaultClassification,
 		initialName,
-		photoManager,
 		onSaved: (saved) => {
 			setLeaving(true);
 			onSaved(saved);
@@ -177,8 +173,7 @@ export function PersonalFoodEditor({
 		});
 		if (!ok) return;
 		try {
-			if (await personalFoods.remove(food.id))
-				photoManager?.remove(food.visual);
+			await personalFoods.remove(food.id);
 			pendingLeave.current = onCancel;
 			setLeaving(true);
 		} catch {

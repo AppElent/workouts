@@ -1,8 +1,8 @@
 import type { EnduranceSport } from "@foundry/core";
-import { enduranceTotals } from "@foundry/core";
+import { enduranceTotals, shiftIsoDate } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
-import { isoDateToLocalDate, shiftIsoDate } from "../../../dates/calendar-day";
+import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { dateLocale, useI18n } from "../../../i18n";
 import { GhostButton } from "../../../ui/button";
 import { BucketChart } from "../../../ui/chart";

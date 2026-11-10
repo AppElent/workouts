@@ -6,9 +6,11 @@
  * So today is re-read at the next local midnight and whenever the app becomes
  * active again.
  */
+
+import type { IsoDate } from "@foundry/core";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
-import { type IsoDate, todayIsoDate } from "../dates/calendar-day";
+import { todayIsoDate } from "../dates/calendar-day";
 
 function msUntilNextMidnight(now: Date): number {
 	const next = new Date(now);

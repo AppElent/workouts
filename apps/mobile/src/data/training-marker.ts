@@ -11,14 +11,11 @@
  * offline lookup must make the markers quietly absent, never block or error
  * the food diary around it.
  */
+
+import { type IsoDate, isoDayOffset, shiftIsoDate } from "@foundry/core";
 import { useQuery_experimental as useQuery } from "convex/react";
 import { api } from "../convex/api";
-import {
-	type IsoDate,
-	isoDateToLocalDayRangeMs,
-	isoDayOffset,
-	shiftIsoDate,
-} from "../dates/calendar-day";
+import { isoDateToLocalDayRangeMs } from "../dates/calendar-day";
 
 const NONE: ReadonlySet<IsoDate> = new Set();
 

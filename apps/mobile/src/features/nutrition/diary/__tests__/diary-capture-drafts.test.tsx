@@ -2,6 +2,8 @@
  * Capture Drafts, driven the way they are used: a note is filed under a meal,
  * sits in the diary until it becomes food, and never pretends to be intake.
  */
+
+import { shiftIsoDate } from "@foundry/core";
 import { useMutation } from "convex/react";
 import {
 	fireEvent,
@@ -9,11 +11,7 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import {
-	formatLongDate,
-	shiftIsoDate,
-	todayIsoDate,
-} from "../../../../dates/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);

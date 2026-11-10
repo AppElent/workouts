@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS } from "@foundry/core";
+import { NUTRIENT_KEYS, shiftIsoDate } from "@foundry/core";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen } from "expo-router/testing-library";
@@ -8,7 +8,7 @@ import {
 	weekDates,
 	weekStartMonday,
 } from "../../../data/nutrition-weekly-review";
-import { shiftIsoDate, todayIsoDate } from "../../../dates/calendar-day";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import { renderApp } from "../../../test-support/render-app";
 
 const mockUseQuery = jest.mocked(useQuery);

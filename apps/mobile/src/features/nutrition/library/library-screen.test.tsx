@@ -5,10 +5,10 @@ import {
 	type PersonalFoodDraft,
 } from "@foundry/core";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
-import type { createPersonalFoodRepository } from "../../../data/personal-food-repository";
+import type { LibraryFixture } from "../../../test-support/library-fixture";
 import { renderApp } from "../../../test-support/render-app";
 
-type Repository = ReturnType<typeof createPersonalFoodRepository>;
+type Repository = LibraryFixture;
 
 function draft(
 	name: string,

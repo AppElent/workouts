@@ -4,14 +4,16 @@
  * single entry to another calendar date, so the stepping behaviour and its
  * accessible labels stay in one place instead of drifting apart.
  */
+
+import { shiftIsoDate } from "@foundry/core";
 import { Pressable, StyleSheet, View } from "react-native";
-import { formatLongDate, shiftIsoDate } from "../dates/calendar-day";
+import { formatLongDate } from "../dates/calendar-day";
+import { useI18n } from "../i18n";
 import { radius, spacing, useTokens } from "../theme";
 import { AppText } from "./text";
 
 export function DateStepper({
 	date,
-	locale,
 	previousLabel,
 	nextLabel,
 	onChange,
@@ -21,7 +23,6 @@ export function DateStepper({
 	secondaryLabel,
 }: {
 	date: string;
-	locale: string;
 	previousLabel: string;
 	nextLabel: string;
 	onChange: (next: string) => void;
@@ -30,6 +31,7 @@ export function DateStepper({
 	displayLabel?: string;
 	secondaryLabel?: string;
 }) {
+	const { locale } = useI18n();
 	return (
 		<View style={styles.stepper}>
 			<StepperButton

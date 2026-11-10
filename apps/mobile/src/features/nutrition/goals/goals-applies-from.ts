@@ -1,8 +1,5 @@
-import {
-	type IsoDate,
-	isoDateToLocalDate,
-	shiftIsoDate,
-} from "../../../dates/calendar-day";
+import { type IsoDate, shiftIsoDate } from "@foundry/core";
+import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { fmt } from "../../../i18n";
 import type { goalEditorEn } from "../../../i18n/messages/goal-editor";
 

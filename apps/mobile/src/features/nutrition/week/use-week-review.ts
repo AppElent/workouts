@@ -1,15 +1,14 @@
-import { useConvexConnectionState } from "convex/react";
+import type { IsoDate } from "@foundry/core";
 import { useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-
 import {
 	isRealIsoDate,
 	type WeeklyReviewDay,
 	weekStartMonday,
 } from "../../../data/nutrition-weekly-review";
-import { type IsoDate, todayIsoDate } from "../../../dates/calendar-day";
+import { todayIsoDate } from "../../../dates/calendar-day";
 
 /** The chosen week's acknowledged account data. */
 export function useWeekReview(startDate: string | undefined) {
@@ -26,11 +25,7 @@ export function useWeekReview(startDate: string | undefined) {
 		startDate: week,
 		today,
 	});
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalledOffline = useStalledOffline(
-		result === undefined,
-		isWebSocketConnected,
-	);
+	const stalledOffline = useStalledOffline(result === undefined);
 	const days: readonly WeeklyReviewDay[] | undefined = result?.days;
 	return {
 		today,

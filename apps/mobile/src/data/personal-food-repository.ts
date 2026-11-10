@@ -1,7 +1,6 @@
 import {
 	type FoodVisual,
 	type FoodVisualPresetId,
-	type Locale,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -9,15 +8,11 @@ import {
 	normalizePersonalFoodDraft,
 	type PersonalFood,
 	type PersonalFoodClassification,
-	type PersonalFoodDraft,
 	type ShippedFood,
 } from "@foundry/core";
-import { getShippedFood } from "@foundry/core/shipped-foods";
 import { registerLocalDatabase } from "../local-store/local-store";
 import { openNutritionDatabase } from "./nutrition-database";
 
-export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
-registerLocalDatabase(PERSONAL_FOOD_DATABASE_NAME);
 const DATABASE_VERSION = 6;
 
 const SHIPPED_EMOJI_VISUALS: Readonly<Record<string, FoodVisualPresetId>> = {
@@ -143,56 +138,6 @@ export type Combo = Omit<ComboDraft, "parts"> & {
 	readonly updatedAt: number;
 };
 
-/** A complete portable library snapshot. IDs intentionally belong to the data. */
-export type PersonalLibraryBackup = {
-	readonly foods: readonly PersonalFood[];
-	readonly combos: readonly Combo[];
-};
-
-export type PersonalFoodRepository = {
-	close?(): void;
-	list(filter?: PersonalFoodFilter): PersonalFood[];
-	find(id: string): PersonalFood | undefined;
-	/** The Personal Food whose provenance carries this barcode, if any. */
-	findByBarcode(barcode: string): PersonalFood | undefined;
-	search(
-		query: string,
-		locale: Locale,
-		filter?: PersonalFoodFilter,
-	): PersonalFood[];
-	/**
-	 * Every Personal Food that was forked from a shipped one, most recently
-	 * updated first — the order `forkShadows` reads to decide which of two
-	 * corrections of the same food stands in front of it.
-	 *
-	 * Search needs all of them, not just the ones matching the query: a fork
-	 * renamed away from its source still has to shadow that source.
-	 */
-	forks(): PersonalFood[];
-	/** The correction standing in front of a shipped food, if there is one. */
-	findForkOf(shippedId: string): PersonalFood | undefined;
-	create(draft: PersonalFoodDraft, id?: string): PersonalFood;
-	update(id: string, draft: PersonalFoodDraft): PersonalFood;
-	remove(id: string): boolean;
-	listCombos(): Combo[];
-	findCombo(id: string): Combo | undefined;
-	createCombo(draft: ComboDraft, id?: string): Combo;
-	updateCombo(id: string, draft: ComboDraft): Combo;
-	removeCombo(id: string): boolean;
-	/**
-	 * Used only by the account-library sync layer. It preserves every food,
-	 * Combo and Combo-part ID, and never touches diary snapshots.
-	 */
-	exportBackup(): PersonalLibraryBackup;
-	replaceFromBackup(
-		backup: PersonalLibraryBackup,
-		options?: {
-			readonly preserveLocalPhotos?: boolean;
-			readonly merge?: boolean;
-		},
-	): void;
-};
-
 type PersonalFoodRow = {
 	id: string;
 	name_en: string;
@@ -209,21 +154,6 @@ type PersonalFoodRow = {
 	visual_migration_pending: number;
 	created_at: number;
 	updated_at: number;
-};
-
-type ComboRow = {
-	id: string;
-	name: string;
-	parts_json: string;
-	created_at: number;
-	updated_at: number;
-};
-
-type RepositoryOptions = {
-	/** Account caches can contain a Combo before its source Foods arrive. */
-	readonly partialCache?: boolean;
-	readonly mintUuid?: () => string;
-	readonly now?: () => number;
 };
 
 function migrate(database: SyncSQLiteDatabase): void {
@@ -575,6 +505,11 @@ function rowToFood(row: PersonalFoodRow): PersonalFood {
 	};
 }
 
+/** A photo that so far exists only as a file on this device. */
+export function hasUnuploadedPhoto(food: Pick<PersonalFood, "visual">) {
+	return food.visual?.kind === "photo" && !food.visual.storageId;
+}
+
 /** A Personal Food safe to move to another device through account backup. */
 export function portablePersonalFood(food: PersonalFood): PersonalFood {
 	const { visualMigrationPending: _pending, visual, ...portable } = food;
@@ -588,351 +523,36 @@ export function portablePersonalFood(food: PersonalFood): PersonalFood {
 	};
 }
 
-function mintUuid(): string {
-	const bytes = new Uint8Array(16);
-	if (globalThis.crypto?.getRandomValues) {
-		globalThis.crypto.getRandomValues(bytes);
-	} else {
-		for (let index = 0; index < bytes.length; index += 1) {
-			bytes[index] = Math.floor(Math.random() * 256);
-		}
-	}
-	bytes[6] = (bytes[6] & 0x0f) | 0x40;
-	bytes[8] = (bytes[8] & 0x3f) | 0x80;
-	const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
-	return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
-}
+/** A per-account library file an earlier build kept, read for its device photos. */
+export type LegacyPersonalFoods = {
+	list(): PersonalFood[];
+	remove(id: string): void;
+	close(): void;
+};
 
-export function createPersonalFoodRepository(
+export function readLegacyPersonalFoods(
 	database: SyncSQLiteDatabase,
-	options: RepositoryOptions = {},
-): PersonalFoodRepository {
+): LegacyPersonalFoods {
 	migrate(database);
-	const nextUuid = options.mintUuid ?? mintUuid;
-	const now = options.now ?? Date.now;
-
-	function find(id: string): PersonalFood | undefined {
-		const row = database.getFirstSync<PersonalFoodRow>(
-			"SELECT * FROM personal_foods WHERE id = ?",
-			id,
-		);
-		return row ? rowToFood(row) : undefined;
-	}
-
-	function comboFromRow(row: ComboRow): Combo {
-		const valid = validateComboDraft({
-			name: row.name,
-			parts: JSON.parse(row.parts_json),
-		});
-		return {
-			id: row.id,
-			name: valid.name,
-			parts: valid.parts.map((part) => {
-				if (!part.id) throw new Error("A stored Combo part has no stable id.");
-				const status =
-					part.reference.kind === "oneOff" ||
-					(part.reference.kind === "shipped" &&
-						getShippedFood(part.reference.foodId) !== undefined) ||
-					(part.reference.kind === "personal" &&
-						find(part.reference.foodId) !== undefined)
-						? "available"
-						: options.partialCache && part.reference.kind === "personal"
-							? "unloaded"
-							: "missing";
-				return { ...part, id: part.id, status };
-			}),
-			createdAt: row.created_at,
-			updatedAt: row.updated_at,
-		};
-	}
-
-	function findCombo(id: string): Combo | undefined {
-		const row = database.getFirstSync<ComboRow>(
-			"SELECT * FROM nutrition_combos WHERE id = ?",
-			id,
-		);
-		return row ? comboFromRow(row) : undefined;
-	}
-
-	function storedComboParts(draft: ComboDraft): ComboPartDraft[] {
-		return validateComboDraft(draft).parts.map((part) => ({
-			...part,
-			id: part.id ?? nextUuid(),
-		}));
-	}
-
 	return {
-		list(filter) {
-			return database
+		list: () =>
+			database
 				.getAllSync<PersonalFoodRow>(
 					"SELECT * FROM personal_foods ORDER BY updated_at DESC, id ASC",
 				)
-				.map(rowToFood)
-				.filter(
-					(food) =>
-						!filter?.classification ||
-						food.classification === filter.classification,
-				);
-		},
-		find,
-		findByBarcode(barcode) {
-			// Barcodes live inside the JSON provenance blob rather than their own
-			// column, so this filters in JS like `search` does — consistent with
-			// the rest of the repository. A barcode lookup is one row against a
-			// small on-device table, not a hot path that needs its own index.
-			return this.list().find((food) => food.provenance.barcode === barcode);
-		},
-		search(query, locale, filter) {
-			const needle = query.trim().toLocaleLowerCase(locale);
-			if (needle.length === 0) return this.list(filter);
-			return this.list(filter)
-				.filter((food) =>
-					[food.name[locale], food.name[locale === "en" ? "nl" : "en"]].some(
-						(name) => name.toLocaleLowerCase(locale).includes(needle),
-					),
-				)
-				.sort((left, right) =>
-					left.name[locale].localeCompare(right.name[locale], locale),
-				);
-		},
-		forks() {
-			return this.list().filter(
-				(food) => food.provenance.forkedFrom !== undefined,
-			);
-		},
-		findForkOf(shippedId) {
-			return this.forks().find(
-				(food) => food.provenance.forkedFrom === shippedId,
-			);
-		},
-		create(draft, suppliedId) {
-			const valid = normalizePersonalFoodDraft(draft);
-			const id = suppliedId ? validateText(suppliedId, "Food ID") : nextUuid();
-			const timestamp = now();
-			database.runSync(
-				`INSERT INTO personal_foods
-					(id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, classification, nutrition_basis_json, estimated, description_json, visual_json, visual_migration_pending, created_at, updated_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-				id,
-				valid.name.en,
-				valid.name.nl,
-				valid.baseUnit,
-				JSON.stringify(valid.nutrients),
-				JSON.stringify(valid.servings),
-				JSON.stringify(valid.provenance),
-				valid.classification,
-				JSON.stringify(valid.nutritionBasis),
-				valid.estimated ? 1 : 0,
-				valid.description ? JSON.stringify(valid.description) : null,
-				valid.visual ? JSON.stringify(valid.visual) : null,
-				timestamp,
-				timestamp,
-			);
-			return {
-				id,
-				...valid,
-				createdAt: timestamp,
-				updatedAt: timestamp,
-			};
-		},
-		update(id, draft) {
-			const existing = find(id);
-			if (!existing) throw new Error("Personal Food not found.");
-			const valid = normalizePersonalFoodDraft(draft);
-			const timestamp = now();
-			database.runSync(
-				`UPDATE personal_foods
-				 SET name_en = ?, name_nl = ?, base_unit = ?, nutrients_json = ?,
-				     servings_json = ?, provenance_json = ?, classification = ?, nutrition_basis_json = ?, estimated = ?, description_json = ?, visual_json = ?, visual_migration_pending = ?, updated_at = ?
-				 WHERE id = ?`,
-				valid.name.en,
-				valid.name.nl,
-				valid.baseUnit,
-				JSON.stringify(valid.nutrients),
-				JSON.stringify(valid.servings),
-				JSON.stringify(valid.provenance),
-				valid.classification,
-				JSON.stringify(valid.nutritionBasis),
-				valid.estimated ? 1 : 0,
-				valid.description ? JSON.stringify(valid.description) : null,
-				valid.visual ? JSON.stringify(valid.visual) : null,
-				valid.visualMigrationPending ? 1 : 0,
-				timestamp,
-				id,
-			);
-			return {
-				id,
-				...valid,
-				createdAt: existing.createdAt,
-				updatedAt: timestamp,
-			};
-		},
+				.map(rowToFood),
 		remove(id) {
-			return (
-				database.runSync("DELETE FROM personal_foods WHERE id = ?", id)
-					.changes > 0
-			);
-		},
-		listCombos() {
-			return database
-				.getAllSync<ComboRow>(
-					"SELECT * FROM nutrition_combos ORDER BY updated_at DESC, id ASC",
-				)
-				.map(comboFromRow);
-		},
-		findCombo,
-		createCombo(draft, suppliedId) {
-			const name = validateText(draft.name, "Combo name");
-			const parts = storedComboParts(draft);
-			const id = suppliedId ? validateText(suppliedId, "Combo ID") : nextUuid();
-			const timestamp = now();
-			database.runSync(
-				`INSERT INTO nutrition_combos
-					(id, name, parts_json, created_at, updated_at)
-				 VALUES (?, ?, ?, ?, ?)`,
-				id,
-				name,
-				JSON.stringify(parts),
-				timestamp,
-				timestamp,
-			);
-			const created = findCombo(id);
-			if (!created) throw new Error("Combo could not be saved.");
-			return created;
-		},
-		updateCombo(id, draft) {
-			const existing = findCombo(id);
-			if (!existing) throw new Error("Combo not found.");
-			const name = validateText(draft.name, "Combo name");
-			const parts = storedComboParts(draft);
-			const timestamp = now();
-			database.runSync(
-				`UPDATE nutrition_combos
-				 SET name = ?, parts_json = ?, updated_at = ?
-				 WHERE id = ?`,
-				name,
-				JSON.stringify(parts),
-				timestamp,
-				id,
-			);
-			const updated = findCombo(id);
-			if (!updated) throw new Error("Combo could not be saved.");
-			return updated;
-		},
-		removeCombo(id) {
-			return (
-				database.runSync("DELETE FROM nutrition_combos WHERE id = ?", id)
-					.changes > 0
-			);
+			database.runSync("DELETE FROM personal_foods WHERE id = ?", id);
 		},
 		close() {
-			(
-				database as SyncSQLiteDatabase & { closeSync?: () => void }
-			).closeSync?.();
-		},
-		exportBackup() {
-			return {
-				foods: this.list().map(portablePersonalFood),
-				combos: this.listCombos(),
-			};
-		},
-		replaceFromBackup(backup, options) {
-			const foodIds = new Set<string>();
-			const comboIds = new Set<string>();
-			const foods = backup.foods.map((food) => {
-				if (foodIds.has(food.id))
-					throw new Error("Backup has duplicate food IDs.");
-				foodIds.add(food.id);
-				const normalized = {
-					id: validateText(food.id, "Food ID"),
-					...normalizePersonalFoodDraft(food),
-					createdAt: food.createdAt,
-					updatedAt: food.updatedAt,
-				};
-				return options?.preserveLocalPhotos
-					? normalized
-					: portablePersonalFood(normalized);
-			});
-			const combos = backup.combos.map((combo) => {
-				if (comboIds.has(combo.id))
-					throw new Error("Backup has duplicate Combo IDs.");
-				comboIds.add(combo.id);
-				const parts = validateComboDraft({
-					name: combo.name,
-					parts: combo.parts,
-				});
-				if (parts.parts.some((part) => !part.id))
-					throw new Error("Backup Combo part IDs are required.");
-				return {
-					id: validateText(combo.id, "Combo ID"),
-					name: parts.name,
-					parts: parts.parts,
-					createdAt: combo.createdAt,
-					updatedAt: combo.updatedAt,
-				};
-			});
-			for (const record of [...foods, ...combos]) {
-				if (
-					!Number.isFinite(record.createdAt) ||
-					!Number.isFinite(record.updatedAt)
-				) {
-					throw new Error("Backup timestamps are invalid.");
-				}
-			}
-			database.execSync("BEGIN IMMEDIATE");
-			try {
-				if (!options?.merge)
-					database.execSync(
-						"DELETE FROM nutrition_combos; DELETE FROM personal_foods;",
-					);
-				for (const food of foods) {
-					database.runSync(
-						`INSERT OR REPLACE INTO personal_foods (id, name_en, name_nl, base_unit, nutrients_json, servings_json, provenance_json, classification, nutrition_basis_json, estimated, description_json, visual_json, visual_migration_pending, created_at, updated_at)
-						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-						food.id,
-						food.name.en,
-						food.name.nl,
-						food.baseUnit,
-						JSON.stringify(food.nutrients),
-						JSON.stringify(food.servings),
-						JSON.stringify(food.provenance),
-						food.classification,
-						JSON.stringify(food.nutritionBasis),
-						food.estimated ? 1 : 0,
-						food.description ? JSON.stringify(food.description) : null,
-						food.visual ? JSON.stringify(food.visual) : null,
-						food.createdAt,
-						food.updatedAt,
-					);
-				}
-				for (const combo of combos) {
-					database.runSync(
-						`INSERT OR REPLACE INTO nutrition_combos (id, name, parts_json, created_at, updated_at)
-						 VALUES (?, ?, ?, ?, ?)`,
-						combo.id,
-						combo.name,
-						JSON.stringify(combo.parts),
-						combo.createdAt,
-						combo.updatedAt,
-					);
-				}
-				database.execSync("COMMIT");
-			} catch (error) {
-				database.execSync("ROLLBACK");
-				throw error;
-			}
+			database.closeSync?.();
 		},
 	};
 }
 
-/** Open the one device database shared by Personal Foods and later local Nutrition data. */
-export function openPersonalFoodRepository(
-	databaseName = PERSONAL_FOOD_DATABASE_NAME,
-	options: RepositoryOptions = {},
-): PersonalFoodRepository {
-	return createPersonalFoodRepository(
+export function openLegacyPersonalFoods(databaseName: string) {
+	return readLegacyPersonalFoods(
 		openNutritionDatabase(databaseName) as SyncSQLiteDatabase,
-		options,
 	);
 }
 
@@ -991,7 +611,7 @@ registerLocalDatabase(OFF_REQUEST_CACHE_DATABASE_NAME);
 
 export function createOpenFoodFactsCache(
 	database: SyncSQLiteDatabase,
-	options: RepositoryOptions = {},
+	options: { readonly now?: () => number } = {},
 ): OpenFoodFactsCache {
 	database.execSync(`CREATE TABLE IF NOT EXISTS off_cache (cache_key TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('barcode','search')), response_json TEXT NOT NULL, fetched_at INTEGER NOT NULL, expires_at INTEGER NOT NULL);
 		CREATE INDEX IF NOT EXISTS off_cache_by_expiry ON off_cache(expires_at ASC);`);

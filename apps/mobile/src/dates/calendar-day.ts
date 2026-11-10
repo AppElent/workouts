@@ -11,17 +11,12 @@
  * Everything here reads the *device's* local calendar, per the spec's "day
  * boundaries use the device's local calendar date".
  */
-
-/** `YYYY-MM-DD` in the device's local calendar. */
-export type IsoDate = string;
-
-function pad(value: number): string {
-	return String(value).padStart(2, "0");
-}
+import { type IsoDate, isoDateFrom, type Locale } from "@foundry/core";
+import { dateLocale } from "../i18n";
 
 /** The local calendar date of an instant — not its UTC date. */
 export function toIsoDate(date: Date): IsoDate {
-	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+	return isoDateFrom(date.getFullYear(), date.getMonth() + 1, date.getDate());
 }
 
 export function todayIsoDate(now: Date = new Date()): IsoDate {
@@ -36,20 +31,6 @@ export function todayIsoDate(now: Date = new Date()): IsoDate {
 export function isoDateToLocalDate(iso: IsoDate): Date {
 	const [year, month, day] = iso.split("-").map(Number);
 	return new Date(year, month - 1, day, 12, 0, 0, 0);
-}
-
-/** The day `days` away from `iso`, arithmetic done in the local calendar. */
-export function shiftIsoDate(iso: IsoDate, days: number): IsoDate {
-	const date = isoDateToLocalDate(iso);
-	date.setDate(date.getDate() + days);
-	return toIsoDate(date);
-}
-
-/** Whole days from `from` to `to`: -1 is yesterday, +1 is tomorrow. */
-export function isoDayOffset(from: IsoDate, to: IsoDate): number {
-	const ms =
-		isoDateToLocalDate(to).getTime() - isoDateToLocalDate(from).getTime();
-	return Math.round(ms / 86_400_000);
 }
 
 /**
@@ -72,23 +53,15 @@ export function isoDateToLocalDayRangeMs(iso: IsoDate): {
 }
 
 /**
- * The day written out for a human, in the active language.
- *
- * Wrapped because `Intl` is the one API that differs between JS engines: a
- * Hermes build without the locale data throws rather than degrading, and a
- * nutrition day that crashes over a date header would be an absurd way to lose
- * the screen. The fallback is the ISO string, which is at least unambiguous.
- */
-/**
  * "di 22 september" — the same date with an abbreviated weekday.
  *
  * A navigation title has one line and no room to truncate gracefully; the long
  * form ("dinsdag 22 september") loses its day number there, which is the part
  * that matters when you are logging into a past day.
  */
-export function formatShortDate(iso: IsoDate, locale: string): string {
+export function formatShortDate(iso: IsoDate, locale: Locale): string {
 	try {
-		return isoDateToLocalDate(iso).toLocaleDateString(locale, {
+		return isoDateToLocalDate(iso).toLocaleDateString(dateLocale(locale), {
 			weekday: "short",
 			day: "numeric",
 			month: "long",
@@ -98,9 +71,13 @@ export function formatShortDate(iso: IsoDate, locale: string): string {
 	}
 }
 
-export function formatLongDate(iso: IsoDate, locale: string): string {
+/**
+ * The day written out in the app language. A Hermes build without the locale
+ * data throws from `Intl`; the ISO string is the fallback.
+ */
+export function formatLongDate(iso: IsoDate, locale: Locale): string {
 	try {
-		return isoDateToLocalDate(iso).toLocaleDateString(locale, {
+		return isoDateToLocalDate(iso).toLocaleDateString(dateLocale(locale), {
 			weekday: "long",
 			day: "numeric",
 			month: "long",

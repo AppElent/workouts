@@ -565,6 +565,66 @@ describe("retry-safe nutrition diary operations", () => {
 				.entries,
 		).toHaveLength(0);
 	});
+
+	it("replaces a meal in one write, or leaves it as it was", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const part = (clientEntryId: string, overrides = {}) => {
+			const {
+				date: _date,
+				meal: _meal,
+				...entry
+			} = snapshot({ clientEntryId, ...overrides });
+			return entry;
+		};
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			...envelope("op-meal", {
+				kind: "createBatch",
+				date: "2026-09-05",
+				meal: "lunch",
+				entries: [part("old-a"), part("old-b")],
+			}),
+		});
+		const replaces = ["old-a", "old-b"].map((id) => ({
+			kind: "clientEntryId" as const,
+			id,
+		}));
+		await expect(
+			alice.mutation(api.nutritionDiary.applyOperation, {
+				...envelope("op-bad-replace", {
+					kind: "createBatch",
+					date: "2026-09-05",
+					meal: "lunch",
+					entries: [part("new-bad", { amount: 0 })],
+					replaces,
+				}),
+			}),
+		).rejects.toMatchObject({ data: { code: "notPositive" } });
+		const kept = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		});
+		expect(kept.entries.map((entry) => entry.clientEntryId).sort()).toEqual([
+			"old-a",
+			"old-b",
+		]);
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			...envelope("op-replace", {
+				kind: "createBatch",
+				date: "2026-09-05",
+				meal: "lunch",
+				entries: [part("new-a")],
+				replaces,
+			}),
+		});
+		const replaced = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		});
+		expect(replaced.entries.map((entry) => entry.clientEntryId)).toEqual([
+			"new-a",
+		]);
+		expect(replaced.revision).toBe(kept.revision + 1);
+	});
 });
 
 describe("explicit nutrient corrections", () => {

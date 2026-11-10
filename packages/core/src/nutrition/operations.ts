@@ -25,6 +25,8 @@ export type NutritionDiaryOperation =
 			readonly entries: readonly (NutritionDiaryPartSnapshot & {
 				readonly clientEntryId: string;
 			})[];
+			/** Entries removed in the same write: all of it happens, or none. */
+			readonly replaces?: readonly NutritionOperationTarget[];
 	  }
 	| {
 			readonly kind: "update";

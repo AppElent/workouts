@@ -1,7 +1,6 @@
 import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
 	createOpenFoodFactsCache,
-	createPersonalFoodRepository,
 	OFF_CACHE_MAX_ENTRIES,
 	OFF_CACHE_TTL_MS,
 } from "./personal-food-repository";
@@ -56,36 +55,5 @@ describe("OpenFoodFactsCache public behavior", () => {
 		// The oldest inserts are the ones pruned; the newest survives.
 		expect(cache.get(`entry-${OFF_CACHE_MAX_ENTRIES + 4}`)).toBeTruthy();
 		expect(cache.get("entry-0")).toBeUndefined();
-	});
-
-	it("shares its migration sequence and database with Personal Foods", () => {
-		const database = new SQLiteTestDatabase();
-		const personalFoods = createPersonalFoodRepository(database);
-		const cache = createOpenFoodFactsCache(database);
-
-		const created = personalFoods.create({
-			name: { en: "Oat milk", nl: "Havermelk" },
-			baseUnit: "ml",
-			nutrients: {
-				energy: { kind: "value", amount: 47 },
-				protein: { kind: "value", amount: 1 },
-				carbs: { kind: "value", amount: 6.6 },
-				fat: { kind: "value", amount: 1.5 },
-				saturatedFat: { kind: "value", amount: 0.2 },
-				fibre: { kind: "value", amount: 0.8 },
-				sugars: { kind: "value", amount: 4.1 },
-				salt: { kind: "value", amount: 0.1 },
-			},
-			servings: [],
-			provenance: {
-				recordOrigin: "personal",
-				nutritionSource: "manual",
-				locallyEdited: false,
-			},
-		});
-		cache.set("barcode:1234", "barcode", { code: "1234" });
-
-		expect(personalFoods.find(created.id)).toBeTruthy();
-		expect(cache.get("barcode:1234")).toBeTruthy();
 	});
 });

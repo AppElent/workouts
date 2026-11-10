@@ -1,6 +1,6 @@
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
 } from "../../../../dates/calendar-day";
 /**
@@ -19,7 +19,7 @@ import {
  * hardware button perform.
  */
 
-import { mealSlotAt, totalNutrients } from "@foundry/core";
+import { mealSlotAt, shiftIsoDate, totalNutrients } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import {
@@ -32,7 +32,7 @@ import {
 	weekDates,
 	weekStartMonday,
 } from "../../../../data/nutrition-weekly-review";
-import { shiftIsoDate, todayIsoDate } from "../../../../dates/calendar-day";
+import { todayIsoDate } from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 
@@ -127,7 +127,6 @@ describe("Nutrition navigation", () => {
 		expect(screen.getByDisplayValue("One-off soup")).toBeTruthy();
 		acknowledge();
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-		expect(app.getSearchParams()).toMatchObject({ date });
 		expect(await screen.findByText("One-off soup")).toBeTruthy();
 		expect(screen.getByLabelText("One-off soup visual")).toBeTruthy();
 	});
@@ -173,7 +172,9 @@ describe("Nutrition navigation", () => {
 		await fireEvent.press(await screen.findByText("Open Monday in diary"));
 
 		await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-		expect(app.getSearchParams()).toMatchObject({ date: monday });
+		expect(
+			await screen.findByLabelText(diaryDateLabel(monday, "en")),
+		).toBeSelected();
 	});
 
 	it("opens assisted logging from the diary tools and returns to the diary", async () => {

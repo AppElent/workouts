@@ -25,7 +25,12 @@
  * Profile → Preferences → Language, because a signed-out person has stated no
  * preference and the device decides for them.
  */
-import { type Locale, resolveLocale, SUPPORTED_LOCALES } from "@foundry/core";
+import {
+	DEFAULT_LOCALE,
+	type Locale,
+	resolveLocale,
+	SUPPORTED_LOCALES,
+} from "@foundry/core";
 import { getLocales } from "expo-localization";
 import {
 	createContext,
@@ -86,7 +91,7 @@ export function dateLocale(locale: Locale): string {
 function initialLocale(): Locale {
 	return resolveLocale(
 		SUPPORTED_LOCALES,
-		"en",
+		DEFAULT_LOCALE,
 		readLocal(PREFERENCE_KEYS.locale) ?? undefined,
 		getLocales()
 			.map(({ languageTag }) => languageTag)

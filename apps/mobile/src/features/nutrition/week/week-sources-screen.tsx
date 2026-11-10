@@ -1,5 +1,6 @@
 import {
 	groupFoodNutrientSources,
+	type IsoDate,
 	type NutrientKey,
 	roundForDisplay,
 } from "@foundry/core";
@@ -12,7 +13,6 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import type { IsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";

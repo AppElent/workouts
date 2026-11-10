@@ -9,7 +9,6 @@ import {
 	forkShippedFood,
 	shippedLibrary,
 } from "@foundry/core/shipped-foods";
-import { useConvexConnectionState } from "convex/react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +24,6 @@ import {
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
-import { foodPhotos } from "../../../data/food-photo-manager";
 import {
 	comboLogEntries,
 	comboLogPlan,
@@ -257,8 +255,7 @@ export function LogFoodScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const { deleteEntry } = useDeleteDiaryEntry();
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const offline = useStalledOffline(true, connected);
+	const offline = useStalledOffline(true);
 	const bottomToolbar = isIOS26OrLater();
 	const searchBarRef = useRef<SearchBarCommands>(null);
 	const searchInputRef = useRef<TextInputInstance>(null);
@@ -496,8 +493,7 @@ export function LogFoodScreen({
 		});
 		if (!approved) return;
 		try {
-			const removed = await personalFoods.remove(food.id);
-			if (removed) foodPhotos.remove(food.visual);
+			await personalFoods.remove(food.id);
 			setSelectedFood(undefined);
 		} catch {
 			toast.error(t.nutrition.personalFood.deleteFailure);
@@ -939,7 +935,6 @@ export function LogFoodScreen({
 				visible={showCalendar}
 				date={date}
 				today={today}
-				locale={locale}
 				title={copy.chooseDate}
 				todayLabel={copy.today}
 				doneLabel={copy.doneChoosingDate}

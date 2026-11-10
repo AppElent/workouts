@@ -81,6 +81,7 @@ export function applyFixtureOperation(
 			if (operation.entry.date === date) add(operation.entry);
 			break;
 		case "createBatch":
+			for (const target of operation.replaces ?? []) removeTarget(target);
 			if (operation.date === date)
 				for (const entry of operation.entries)
 					add({ ...entry, date: operation.date, meal: operation.meal });

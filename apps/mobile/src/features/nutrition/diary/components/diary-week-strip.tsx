@@ -1,3 +1,4 @@
+import { shiftIsoDate } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -11,7 +12,6 @@ import { useTrainedDates } from "../../../../data/training-marker";
 import {
 	formatLongDate,
 	isoDateToLocalDate,
-	shiftIsoDate,
 	toIsoDate,
 } from "../../../../dates/calendar-day";
 import { plural, useI18n } from "../../../../i18n";

@@ -1,12 +1,11 @@
 import { NUTRIENT_KEYS, personalFoodSnapshot } from "@foundry/core";
 import { allShippedFoods } from "@foundry/core/shipped-foods";
-import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
+import { createLibraryFixture } from "../test-support/library-fixture";
 import {
 	comboLogEntries,
 	comboLogPlan,
 	resolveComboPart,
 } from "./nutrition-combo";
-import { createPersonalFoodRepository } from "./personal-food-repository";
 
 const nutrients = {
 	energy: { kind: "value" as const, amount: 200 },
@@ -43,8 +42,7 @@ describe("Combo snapshots", () => {
 		expect(resolved.nutrients).not.toHaveProperty("sodium");
 	});
 	it("uses current Personal Food estimates for new logs and freezes existing entries", () => {
-		const database = new SQLiteTestDatabase();
-		const foods = createPersonalFoodRepository(database);
+		const foods = createLibraryFixture();
 		const food = foods.create({
 			name: { en: "Soup", nl: "Soep" },
 			baseUnit: "serving",
@@ -100,7 +98,6 @@ describe("Combo snapshots", () => {
 		expect(() => resolveComboPart(combo.parts[0], foods.find)).toThrow(
 			"basisChanged",
 		);
-		database.closeSync();
 	});
 	it("preserves a one-off estimate when scaling and rejects invalid multipliers", () => {
 		const combo = {
@@ -137,8 +134,7 @@ describe("Combo snapshots", () => {
 		expect(() => comboLogEntries(plan, 0)).toThrow("greater than zero");
 	});
 	it("previews and logs the same current figures, including only-this-time amounts", () => {
-		const database = new SQLiteTestDatabase();
-		const foods = createPersonalFoodRepository(database);
+		const foods = createLibraryFixture();
 		const yoghurt = foods.create({
 			name: { en: "Yoghurt", nl: "Yoghurt" },
 			baseUnit: "g",
@@ -190,7 +186,6 @@ describe("Combo snapshots", () => {
 			serving: { en: "Bowl × 2", nl: "Kom × 2" },
 			nutrients: { energy: { kind: "value", amount: 390 } },
 		});
-		database.closeSync();
 	});
 	it("keeps Unavailable Food parts off and refuses to log unresolved sources", () => {
 		const combo = {

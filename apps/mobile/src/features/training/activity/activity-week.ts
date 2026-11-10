@@ -1,8 +1,11 @@
-import { type ActivitySummary, enduranceTotals } from "@foundry/core";
+import {
+	type ActivitySummary,
+	enduranceTotals,
+	shiftIsoDate,
+} from "@foundry/core";
 import { weekStartMonday } from "../../../data/nutrition-weekly-review";
 import {
 	isoDateToLocalDayRangeMs,
-	shiftIsoDate,
 	todayIsoDate,
 } from "../../../dates/calendar-day";
 

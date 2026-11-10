@@ -292,49 +292,32 @@ describe("Hulp bij invoeren", () => {
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
 		});
 
-		it("replaces the logged entries in one step when continuing", async () => {
+		it("replaces the logged entries in the same write when continuing", async () => {
 			const { app, session } = await logOnce();
 			await testRouter.push(
 				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
 			);
 			await logWhenReady();
 			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			const removed = sent(app, "removeBatch");
-			expect(removed).toHaveLength(1);
-			expect(removed[0]?.targets).toEqual(
+			expect(sent(app, "createBatch")[1]?.replaces).toEqual(
 				session.entryIds.map((id) => ({ kind: "clientEntryId", id })),
 			);
+			expect(sent(app, "removeBatch")).toHaveLength(0);
 		});
 
-		it("takes the new entries back when the old ones cannot be removed", async () => {
+		it("says the meal is as it was when replacing it fails", async () => {
 			const { app, session } = await logOnce();
-			refuse(app, "removeBatch");
+			refuse(app, "createBatch");
 			await testRouter.push(
 				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
 			);
 			await logWhenReady();
-			await waitFor(() => expect(sent(app, "removeBatch")).toHaveLength(2));
-			const [first, second] = sent(app, "removeBatch");
-			expect(second?.targets).toHaveLength(1);
-			expect(second?.targets).not.toEqual(first?.targets);
-		});
-
-		it("logs the current review after neither version could be removed", async () => {
-			const { app, session } = await logOnce();
-			refuse(app, "removeBatch", 2);
-			await testRouter.push(
-				`/nutrition-assistance?meal=lunch&resume=${session.id}`,
-			);
-			await logWhenReady();
-			await waitFor(() => expect(sent(app, "removeBatch")).toHaveLength(2));
-			const firstTry = sent(app, "removeBatch")[1]?.targets ?? [];
-			await fireEvent.press(await screen.findByText("Log as one item"));
-			await waitFor(() => expect(app.getPathname()).toBe("/nutrition"));
-			expect(sent(app, "createBatch")).toHaveLength(3);
-			expect(sent(app, "removeBatch")[2]?.targets).toEqual([
-				...session.entryIds.map((id) => ({ kind: "clientEntryId", id })),
-				...firstTry,
-			]);
+			expect(
+				await screen.findByText(
+					"This meal could not be replaced. Your diary is as it was.",
+				),
+			).toBeTruthy();
+			expect(app.getPathname()).toBe("/nutrition-assistance");
 		});
 
 		it("offers undo again when it fails", async () => {

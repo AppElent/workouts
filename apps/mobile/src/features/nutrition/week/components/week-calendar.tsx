@@ -1,15 +1,11 @@
-import type { Locale } from "@foundry/core";
+import type { IsoDate } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import {
 	weekDates,
 	weekStartMonday,
 } from "../../../../data/nutrition-weekly-review";
-import {
-	type IsoDate,
-	isoDateToLocalDate,
-	toIsoDate,
-} from "../../../../dates/calendar-day";
+import { isoDateToLocalDate, toIsoDate } from "../../../../dates/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../../diary/use-logged-diary-dates";
@@ -18,14 +14,12 @@ import { useLoggedDiaryDates } from "../../diary/use-logged-diary-dates";
 export function WeekCalendar({
 	weekStart,
 	today,
-	locale,
 	hint,
 	todayLabel,
 	onSelect,
 }: {
 	weekStart: IsoDate;
 	today: IsoDate;
-	locale: Locale;
 	hint: string;
 	todayLabel: string;
 	onSelect: (weekStart: IsoDate) => void;
@@ -41,7 +35,6 @@ export function WeekCalendar({
 			<MonthCalendar
 				selectedDate={weekStart}
 				today={today}
-				locale={locale}
 				markedDates={logged}
 				highlightedDates={new Set(weekDates(weekStart))}
 				labels={{ today: todayLabel }}

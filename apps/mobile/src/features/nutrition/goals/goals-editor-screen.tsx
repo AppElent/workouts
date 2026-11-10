@@ -1,5 +1,6 @@
 import {
 	GOAL_PRESET_KEYS,
+	type IsoDate,
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
@@ -28,7 +29,7 @@ import {
 	goalKind,
 	referenceGoalTarget,
 } from "../../../data/nutrition-goal-history";
-import { type IsoDate, isoDateToLocalDate } from "../../../dates/calendar-day";
+import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
@@ -695,7 +696,6 @@ function GoalsEditor() {
 				visible={dateOpen}
 				date={editor.date}
 				today={editor.today}
-				locale={locale}
 				title={copy.appliesFrom}
 				todayLabel={copy.today}
 				doneLabel={copy.done}

@@ -2,12 +2,13 @@ import {
 	editedGoalCount,
 	type GoalDirection,
 	type GoalPresetKey,
+	type IsoDate,
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
 } from "@foundry/core";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
@@ -24,7 +25,7 @@ import {
 	withGoal,
 	withoutGoal,
 } from "../../../data/nutrition-goal-history";
-import { type IsoDate, todayIsoDate } from "../../../dates/calendar-day";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
 import type { GoalVersionSummary } from "./goals-applies-from";
@@ -91,11 +92,7 @@ export function useGoalsEditor({
 	const [date, setDate] = useState<IsoDate>(requestedDate ?? today);
 	const response = useQuery(api.nutritionGoals.forDate, { date });
 	const replace = useMutation(api.nutritionGoals.replace);
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalledOffline = useStalledOffline(
-		response === undefined,
-		isWebSocketConnected,
-	);
+	const stalledOffline = useStalledOffline(response === undefined);
 	const [draft, setDraft] = useState<Draft>(emptyDraft);
 	const [baseline, setBaseline] = useState<GoalDraft | null>(null);
 	const [started, setStarted] = useState(false);

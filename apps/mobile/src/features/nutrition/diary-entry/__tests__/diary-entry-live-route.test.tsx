@@ -5,14 +5,12 @@
  * arguments it was actually given, which is the observable contract #73's
  * acceptance criteria are about.
  */
+
+import { shiftIsoDate } from "@foundry/core";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
-import {
-	formatLongDate,
-	shiftIsoDate,
-	todayIsoDate,
-} from "../../../../dates/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 

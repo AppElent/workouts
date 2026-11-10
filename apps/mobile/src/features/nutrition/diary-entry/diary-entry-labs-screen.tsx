@@ -31,7 +31,6 @@ export function DiaryEntryLabsScreen() {
 			) : null}
 			<DateStepper
 				date={date}
-				locale={locale}
 				previousLabel={t.nutrition.day.previousDay}
 				nextLabel={t.nutrition.day.nextDay}
 				onChange={setDate}

@@ -4,7 +4,11 @@
  * and are reconciled in. Screens read through `useSessionWorkspace`, and the
  * strength session provider keeps every open session in sync.
  */
-import { convertLoad, getWeightStep } from "@foundry/core";
+import {
+	convertLoad,
+	DEFAULT_REST_SECONDS,
+	getWeightStep,
+} from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import type { RequestForQueries } from "convex/react";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
@@ -23,7 +27,6 @@ import {
 } from "../../../local-store/local-store";
 import {
 	allRows,
-	DEFAULT_REST_SECONDS,
 	type ExerciseFacts,
 	type PlanSet,
 	type SessionPlan,

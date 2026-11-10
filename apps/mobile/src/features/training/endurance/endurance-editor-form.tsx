@@ -220,7 +220,6 @@ export function EnduranceEditorForm({
 				visible={showDatePicker}
 				date={values.date}
 				today={today.current}
-				locale={locale}
 				title={copy.date}
 				todayLabel={copy.today}
 				doneLabel={copy.done}

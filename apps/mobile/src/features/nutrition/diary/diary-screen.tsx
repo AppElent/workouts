@@ -1,11 +1,11 @@
 import {
+	isoDayOffset,
 	MEAL_SLOTS,
 	type MealSlot,
 	mealSlotAt,
 	NUTRIENT_KEYS,
 	totalNutrients,
 } from "@foundry/core";
-import { useConvexConnectionState } from "convex/react";
 import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
@@ -18,9 +18,8 @@ import {
 } from "../../../data/nutrition-day";
 import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
 import { useToday } from "../../../data/use-today";
-import { formatLongDate, isoDayOffset } from "../../../dates/calendar-day";
+import { formatLongDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -39,13 +38,7 @@ import { DiarySummary } from "./components/diary-summary";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
 import { useDiaryDateRequest } from "./use-diary-date-request";
 
-export function DiaryScreen({
-	initialDate,
-	startSelecting,
-}: {
-	initialDate?: string;
-	startSelecting?: string;
-} = {}) {
+export function DiaryScreen() {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.diary;
 	const colors = useTokens();
@@ -53,9 +46,7 @@ export function DiaryScreen({
 	const confirm = useConfirm();
 	const toast = useToast();
 	const today = useToday();
-	const [date, setDate] = useState(
-		initialDate && isRealIsoDate(initialDate) ? initialDate : today,
-	);
+	const [date, setDate] = useState(today);
 	// Someone looking at "today" when midnight passes means the new today.
 	const previousToday = useRef(today);
 	useEffect(() => {
@@ -73,7 +64,7 @@ export function DiaryScreen({
 		if (focused) setToolbarReady(true);
 	}, [focused]);
 	const [showTools, setShowTools] = useState(false);
-	const [selecting, setSelecting] = useState(Boolean(startSelecting));
+	const [selecting, setSelecting] = useState(false);
 	const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 	const [deleting, setDeleting] = useState(false);
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
@@ -81,42 +72,25 @@ export function DiaryScreen({
 	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
 	const diary = useNutritionDiary();
 	const state = useNutritionDay(date);
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const stalled = useStalledOffline(state.status === "loading", connected);
+	const stalled = useStalledOffline(state.status === "loading");
 	const goalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsPending),
-		connected,
 	);
 	// Cached data stands in for a moment on every day switch; only say so once
 	// it is clearly not being replaced, or the notice flashes and shifts the list.
 	const incompleteStalled = useStalledOffline(
 		state.status === "ready" && !state.day.complete,
-		connected,
 	);
 	// Notes arrive quickly when connected; announcing the wait only shifts the list.
-	const notesStalled = useStalledOffline(drafts.loading, connected);
+	const notesStalled = useStalledOffline(drafts.loading);
 	const cachedGoalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsCached),
-		connected,
 	);
 	const { setHidden } = useTabBarVisibility();
 	useEffect(() => {
 		setHidden(selecting);
 		return () => setHidden(false);
 	}, [selecting, setHidden]);
-	useEffect(() => {
-		if (initialDate && isRealIsoDate(initialDate)) {
-			setDate(initialDate);
-			setSelected(new Set());
-			setSelecting(false);
-		}
-	}, [initialDate]);
-	useEffect(() => {
-		if (startSelecting) {
-			setSelecting(true);
-			setSelected(new Set());
-		}
-	}, [startSelecting]);
 	const entries: DiaryEntryWithMeal[] =
 		state.status === "ready"
 			? MEAL_SLOTS.flatMap((meal) =>
@@ -149,7 +123,6 @@ export function DiaryScreen({
 		setSelecting(false);
 		setSelected(new Set());
 	};
-	// The log food screen above may have moved to another day; follow it.
 	useDiaryDateRequest(changeDate);
 	const beginSelection = (items: readonly DiaryEntry[]) => {
 		setSelected(new Set(items.map((e) => e.id)));
@@ -445,7 +418,6 @@ export function DiaryScreen({
 								<DiaryDatePicker
 									date={date}
 									onSelect={changeDate}
-									locale={locale}
 									label={calendarLabel}
 								/>
 								{menu}
@@ -460,7 +432,6 @@ export function DiaryScreen({
 							<DiaryDatePicker
 								date={date}
 								onSelect={changeDate}
-								locale={locale}
 								label={calendarLabel}
 							/>
 						</GlassSurface>

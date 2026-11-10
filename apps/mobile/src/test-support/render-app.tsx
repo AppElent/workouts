@@ -34,11 +34,7 @@ import {
 	libraryRecordFromFood,
 } from "../data/nutrition-library-repository";
 import type { FetchLike } from "../data/open-food-facts";
-import {
-	createOpenFoodFactsCache,
-	createPersonalFoodRepository,
-	type PersonalFoodRepository,
-} from "../data/personal-food-repository";
+import { createOpenFoodFactsCache } from "../data/personal-food-repository";
 import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
 import { ConfirmProvider } from "../ui/confirm-dialog";
@@ -48,6 +44,7 @@ import {
 	type CaptureDraftFixture,
 	createCaptureDraftFixture,
 } from "./capture-draft-fixture";
+import { createLibraryFixture, type LibraryFixture } from "./library-fixture";
 import { startMockLayers, underlying, wrapping } from "./mock-layers";
 import { NativeAlertHost } from "./native-alert-host";
 import { SQLiteTestDatabase } from "./sqlite-test-database";
@@ -114,7 +111,7 @@ function routeModules(): Record<string, unknown> {
 }
 
 /** Screen tests acknowledge the library transport at its public Convex boundary. */
-function installLibraryTransport(repository: PersonalFoodRepository) {
+function installLibraryTransport(repository: LibraryFixture) {
 	const mutation = underlying(jest.mocked(useMutation).getMockImplementation());
 	const query = underlying(jest.mocked(useQuery).getMockImplementation());
 	const paginated = underlying(
@@ -135,25 +132,25 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 				? {
 						...args.operation.record,
 						payload: servePayload(args.operation.record.payload),
-						revision: 1,
+						revision: repository.revisionOf(args.operation.record.id) + 1,
 						deleted: false,
 					}
 				: {
 						id: args.operation.recordId,
 						kind: args.operation.recordKind,
 						payload: null,
-						revision: 2,
+						revision: repository.revisionOf(args.operation.recordId) + 1,
 						deleted: true,
 					},
 	}));
 	const records = () => [
 		...repository.list().map((food) => ({
-			...libraryRecordFromFood(food, 1),
-			payload: servePayload(libraryRecordFromFood(food, 1).payload ?? "{}"),
+			...libraryRecordFromFood(food, repository.revisionOf(food.id)),
+			payload: servePayload(libraryRecordFromFood(food).payload ?? "{}"),
 			subject: "test-user",
 		})),
 		...repository.listCombos().map((combo) => ({
-			...libraryRecordFromCombo(combo, 1),
+			...libraryRecordFromCombo(combo, repository.revisionOf(combo.id)),
 			subject: "test-user",
 		})),
 	];
@@ -243,6 +240,7 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 			paginated,
 		) as never,
 	);
+	return save;
 }
 export function TestLayout({
 	overrides,
@@ -277,16 +275,16 @@ export async function renderApp(
 	seed?: (stores: {
 		draftRepository: CaptureDraftFixture;
 		foodShortcuts: FoodShortcutRepository;
-		personalFoods: ReturnType<typeof createPersonalFoodRepository>;
+		personalFoods: LibraryFixture;
 	}) => void,
 ) {
-	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const repository = createLibraryFixture();
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 	const foodShortcuts = createFoodShortcutRepository(new SQLiteTestDatabase());
 	const draftRepository = createCaptureDraftFixture();
 	seed?.({ draftRepository, foodShortcuts, personalFoods: repository });
 	startMockLayers();
-	installLibraryTransport(repository);
+	const librarySave = installLibraryTransport(repository);
 	const accountTransport = installAccountTransport(draftRepository);
 	const data: AppDataOverrides = {
 		personalFoods: repository,
@@ -311,6 +309,7 @@ export async function renderApp(
 	);
 	return Object.assign(rendered, {
 		repository,
+		librarySave,
 		offCache,
 		foodShortcuts,
 		draftRepository,

@@ -144,7 +144,7 @@ describe("DiaryEntryTransferScreen", () => {
 		});
 
 		await fireEvent.press(screen.getByText("Dinner"));
-		await fireEvent.press(screen.getByLabelText("Sunday, September 13"));
+		await fireEvent.press(screen.getByLabelText("Sunday 13 September"));
 		await fireEvent.press(screen.getByLabelText("Copy entry"));
 
 		expect(logBatch).toHaveBeenCalledWith("2026-09-13", "dinner", [
@@ -172,7 +172,7 @@ describe("DiaryEntryTransferScreen", () => {
 		);
 
 		await fireEvent.press(screen.getByText("Dinner"));
-		await fireEvent.press(screen.getByLabelText("Sunday, September 13"));
+		await fireEvent.press(screen.getByLabelText("Sunday 13 September"));
 		await fireEvent.press(screen.getByLabelText("Move entry"));
 
 		expect(move).toHaveBeenCalledWith(
@@ -218,7 +218,7 @@ describe("DiaryEntryTransferScreen", () => {
 			move: jest.fn(),
 		});
 		await fireEvent.press(screen.getByText("Dinner"));
-		await fireEvent.press(screen.getByLabelText("Sunday, September 13"));
+		await fireEvent.press(screen.getByLabelText("Sunday 13 September"));
 		const copyButton = screen.getByLabelText("Copy entry");
 		await pressPending(copyButton);
 		await pressPending(copyButton);

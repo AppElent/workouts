@@ -6,10 +6,11 @@
  * hears one "loading the day", and that the meal slots have not yet been
  * claimed by content that does not exist.
  */
+
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import { screen } from "expo-router/testing-library";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
 } from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";

@@ -1,12 +1,10 @@
 import type { LibraryCategory } from "@foundry/core";
-import { useConvexConnectionState } from "convex/react";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
-import { foodPhotos } from "../../../data/food-photo-manager";
 import { useFoodShortcuts } from "../../../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { todayIsoDate } from "../../../dates/calendar-day";
@@ -95,8 +93,7 @@ export function LibraryScreen() {
 	const [scanning, setScanning] = useState(false);
 	const bottomToolbar = isIOS26OrLater();
 	const searchRef = useRef<SearchBarCommands>(null);
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const offline = useStalledOffline(true, connected);
+	const offline = useStalledOffline(true);
 	const visible = filterLibrary(items, {
 		chip,
 		query: chip === "favorite" ? query : "",
@@ -209,8 +206,7 @@ export function LibraryScreen() {
 		try {
 			for (const item of targets) {
 				if (item.kind === "combo") await library.removeCombo(item.id);
-				else if (await library.remove(item.id))
-					foodPhotos.remove(item.food.visual);
+				else await library.remove(item.id);
 			}
 			setSelection(null);
 			toast.success(

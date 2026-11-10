@@ -815,7 +815,7 @@ describe("browsing shipped foods", () => {
 			log as unknown as ReturnType<typeof useMutation>,
 		);
 		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu 20 August")).toBeTruthy();
 		await chooseMeal("Lunch");
 		await showAllFoods();
 
@@ -997,7 +997,7 @@ describe("the redesigned food browser", () => {
 
 		// "Dinner ⌄" over the day: the meal is chosen from the title menu, the
 		// calendar stays the direct route to the day.
-		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu 20 August")).toBeTruthy();
 		await chooseMeal("Dinner");
 		await fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
 		await fireEvent(
@@ -1021,7 +1021,7 @@ describe("the redesigned food browser", () => {
 
 	it("resets to today from inside the picker, where the date it resets is visible", async () => {
 		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu 20 August")).toBeTruthy();
 		// "Today" is not in the navigation bar: there it is disabled exactly when
 		// you are already on today, which is most of the time.
 		expect(screen.queryByLabelText("Today")).toBeNull();
