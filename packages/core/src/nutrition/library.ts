@@ -25,8 +25,15 @@ export type ShippedLibrary = {
 	readonly byNevoCode: ReadonlyMap<number, ShippedFood>;
 };
 
-/** The raw artifact, for tests and the generator's round-trip check. */
-export const SHIPPED_ARTIFACT: ShippedArtifact = rawArtifact;
+/**
+ * The raw artifact, for tests and the generator's round-trip check.
+ *
+ * `json-modules.d.ts` types the import when `resolveJsonModule` is off (this
+ * package). Expo's tsconfig turns it on and resolves `@foundry/core` to source,
+ * so there TypeScript infers the JSON and widens `nutrientOrder` to `string[]`.
+ * The generator's `check:foods` keeps the file in this shape.
+ */
+export const SHIPPED_ARTIFACT = rawArtifact as ShippedArtifact;
 
 /**
  * Decode the artifact into a working library.
@@ -35,7 +42,7 @@ export const SHIPPED_ARTIFACT: ShippedArtifact = rawArtifact;
  * should call {@link shippedLibrary}, which does this once.
  */
 export function loadShippedLibrary(
-	artifact: ShippedArtifact = rawArtifact,
+	artifact: ShippedArtifact = SHIPPED_ARTIFACT,
 ): ShippedLibrary {
 	const foods = decodeArtifact(artifact);
 	const byId = new Map<string, ShippedFood>();

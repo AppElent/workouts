@@ -18,6 +18,7 @@ jobs:
       - run: pnpm run check
       # Manifest and .env.example only; needs no credentials.
       - run: pnpm env:check
+      - run: node scripts/check-project.mjs --strict
       - run: pnpm run typecheck
       - run: pnpm test
       # apps/mobile is checked by nothing above: the root tsconfig excludes
