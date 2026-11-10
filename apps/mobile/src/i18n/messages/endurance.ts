@@ -1,3 +1,10 @@
+import { ENDURANCE_LIMITS } from "@foundry/core";
+
+const titleMaxEn = ENDURANCE_LIMITS.titleLength.toLocaleString("en-US");
+const notesMaxEn = ENDURANCE_LIMITS.notesLength.toLocaleString("en-US");
+const titleMaxNl = ENDURANCE_LIMITS.titleLength.toLocaleString("nl-NL");
+const notesMaxNl = ENDURANCE_LIMITS.notesLength.toLocaleString("nl-NL");
+
 export const enduranceEn = {
 	running: "Run",
 	cycling: "Ride",
@@ -44,8 +51,8 @@ export const enduranceEn = {
 	invalidElevation: "Elevation gain must be zero or greater.",
 	invalidHeartRate: "Enter a whole-number heart rate greater than zero.",
 	invalidEffort: "Effort must be a whole number from 1 to 10.",
-	invalidTitle: "Title must be 200 characters or fewer.",
-	invalidNotes: "Notes must be 10,000 characters or fewer.",
+	invalidTitle: `Title must be ${titleMaxEn} characters or fewer.`,
+	invalidNotes: `Notes must be ${notesMaxEn} characters or fewer.`,
 	saveError: "Could not save the activity.",
 	deleteError: "Could not delete the activity.",
 	missing: "Activity not found",
@@ -108,8 +115,8 @@ export const enduranceNl: typeof enduranceEn = {
 	invalidElevation: "Hoogtemeters moeten nul of hoger zijn.",
 	invalidHeartRate: "Vul een positieve hartslag in als geheel getal.",
 	invalidEffort: "Inspanning moet een geheel getal van 1 tot 10 zijn.",
-	invalidTitle: "De titel mag maximaal 200 tekens bevatten.",
-	invalidNotes: "Notities mogen maximaal 10.000 tekens bevatten.",
+	invalidTitle: `De titel mag maximaal ${titleMaxNl} tekens bevatten.`,
+	invalidNotes: `Notities mogen maximaal ${notesMaxNl} tekens bevatten.`,
 	saveError: "Activiteit opslaan is mislukt.",
 	deleteError: "Activiteit verwijderen is mislukt.",
 	missing: "Activiteit niet gevonden",

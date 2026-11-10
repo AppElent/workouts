@@ -28,7 +28,8 @@ type EnduranceInput = {
 	effort?: number | null;
 };
 
-const ENDURANCE_LIMITS = {
+/** Server limits for a logged endurance activity. */
+export const ENDURANCE_LIMITS = {
 	effort: { min: 1, max: 10 },
 	titleLength: 200,
 	notesLength: 10_000,

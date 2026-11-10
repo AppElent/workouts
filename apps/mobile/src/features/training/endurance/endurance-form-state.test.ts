@@ -1,3 +1,4 @@
+import { ENDURANCE_LIMITS } from "@foundry/core";
 import { en } from "../../../i18n/messages/en";
 import { nl } from "../../../i18n/messages/nl";
 import {
@@ -58,12 +59,16 @@ describe("endurance form values", () => {
 
 	it("rejects text beyond the backend limits before save", () => {
 		expect(
-			parseEnduranceValues({ ...base, title: "a".repeat(201) }, en.endurance)
-				.error,
+			parseEnduranceValues(
+				{ ...base, title: "a".repeat(ENDURANCE_LIMITS.titleLength + 1) },
+				en.endurance,
+			).error,
 		).toBe(en.endurance.invalidTitle);
 		expect(
-			parseEnduranceValues({ ...base, notes: "a".repeat(10_001) }, en.endurance)
-				.error,
+			parseEnduranceValues(
+				{ ...base, notes: "a".repeat(ENDURANCE_LIMITS.notesLength + 1) },
+				en.endurance,
+			).error,
 		).toBe(en.endurance.invalidNotes);
 	});
 });
