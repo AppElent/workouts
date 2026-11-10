@@ -4,6 +4,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	normalizePersonalFoodDraft,
+	PERSONAL_FOOD_TEXT_LIMIT,
 	type PersonalFood,
 	type PersonalFoodDraft,
 } from "@foundry/core";
@@ -238,8 +239,12 @@ export function usePersonalFoodDraft({
 	async function save(): Promise<boolean> {
 		if (saving) return true;
 		setNameError(undefined);
-		if (!name.trim() || name.trim().length > 500) {
-			setNameError(name.trim() ? copy.nameTooLong : copy.nameRequired);
+		if (!name.trim() || name.trim().length > PERSONAL_FOOD_TEXT_LIMIT) {
+			setNameError(
+				name.trim()
+					? fmt(copy.nameTooLong, { max: PERSONAL_FOOD_TEXT_LIMIT })
+					: copy.nameRequired,
+			);
 			return false;
 		}
 		let draft: PersonalFoodDraft;

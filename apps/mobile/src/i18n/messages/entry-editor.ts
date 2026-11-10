@@ -31,7 +31,7 @@ export const entryEditorEn = {
 	keepEditing: "Keep editing",
 	invalidQuantity: "Enter an amount greater than zero.",
 	invalidServing:
-		"Enter a name (1–40 characters) and an amount greater than zero, up to 10000.",
+		"Enter a name (1–{maxName} characters) and an amount greater than zero, up to {maxAmount}.",
 	invalidMeasure: "Personal Measures support at most one decimal place.",
 	offline:
 		"Connect to add a Serving or Personal Measure. Cached choices are still available offline.",
@@ -119,7 +119,7 @@ export const entryEditorNl: typeof entryEditorEn = {
 	keepEditing: "Verder bewerken",
 	invalidQuantity: "Voer een hoeveelheid groter dan nul in.",
 	invalidServing:
-		"Voer een naam (1–40 tekens) en een hoeveelheid groter dan nul, maximaal 10000 in.",
+		"Voer een naam (1–{maxName} tekens) en een hoeveelheid groter dan nul, maximaal {maxAmount} in.",
 	invalidMeasure: "Eigen maten ondersteunen maximaal één decimaal.",
 	offline:
 		"Maak verbinding om een portie of eigen maat toe te voegen. Opgeslagen keuzes blijven offline beschikbaar.",

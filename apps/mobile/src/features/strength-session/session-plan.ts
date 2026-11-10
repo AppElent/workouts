@@ -1782,6 +1782,9 @@ export function setGroupRounds(
 		},
 	};
 }
+/** One press of a rest − or + button. */
+export const REST_STEP_SECONDS = 15;
+
 export function setGroupRest(
 	plan: SessionPlan,
 	groupId: string,

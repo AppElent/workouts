@@ -1,4 +1,5 @@
 import {
+	NAMED_AMOUNT_LIMITS,
 	type PersonalFood,
 	type ServingOption,
 	validateNamedAmount,
@@ -119,7 +120,7 @@ export function AmountServingPopup({
 				setError(
 					result.errors.some((issue) => issue.code === "tooPrecise")
 						? copy.invalidMeasure
-						: copy.invalidServing,
+						: fmt(copy.invalidServing, NAMED_AMOUNT_LIMITS),
 				);
 				return;
 			}

@@ -1,4 +1,4 @@
-import { validateManualOneRepMax } from "@foundry/core";
+import { SET_LIMITS, validateManualOneRepMax } from "@foundry/core";
 /** Enter or change a manual 1RM for one exercise. It applies to this session at once. */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -69,7 +69,7 @@ export function SessionManualScreen() {
 	const label = !inRange
 		? value.trim() === ""
 			? text.manualSave
-			: text.manualMax
+			: fmt(text.manualMax, { max: SET_LIMITS.manualOneRepMax.max })
 		: odd && confirmed !== parsed
 			? fmt(text.manualConfirm, { value: formatNumber(parsed, locale) })
 			: text.manualSave;
