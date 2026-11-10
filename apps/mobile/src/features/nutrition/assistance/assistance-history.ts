@@ -32,7 +32,10 @@ export type SavedAiSession = {
 	})[];
 	/** A photo is not kept, so only a text-only meal can be repeated from its text. */
 	readonly repeatable: boolean;
-	/** Earlier attempts at replacing this meal that could not be taken back. */
+	/**
+	 * Saved by builds that replaced in two writes: entries of an earlier
+	 * attempt that could not be taken back. They are replaced with the meal.
+	 */
 	readonly stranded?: readonly string[];
 };
 

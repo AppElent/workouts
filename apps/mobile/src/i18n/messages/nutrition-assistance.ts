@@ -67,8 +67,6 @@ export const nutritionAssistanceEn = {
 	logFailure: "Logging failed. Your review is still here.",
 	logOffline:
 		"No connection, so this was not logged. Your review is still here.",
-	replaceBoth:
-		"The earlier version could not be removed, so both are in your diary. Log again to remove it.",
 	tryAgain: "Try again",
 	savingTitle: "Still saving",
 	savingBody:
@@ -259,8 +257,6 @@ export const nutritionAssistanceNl: typeof nutritionAssistanceEn = {
 	logged: "{count} gelogd bij {meal}",
 	logFailure: "Loggen is niet gelukt. Je controle staat er nog.",
 	logOffline: "Geen verbinding, dus niet gelogd. Je controle staat er nog.",
-	replaceBoth:
-		"De eerdere versie kon niet weg, dus beide staan in je dagboek. Log opnieuw om hem te verwijderen.",
 	tryAgain: "Opnieuw",
 	savingTitle: "Nog bezig met opslaan",
 	savingBody: "Dit gaat door als je weggaat. Opnieuw loggen logt het dubbel.",

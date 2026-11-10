@@ -62,6 +62,7 @@ const operationArgs = {
 					clientEntryId: v.string(),
 				}),
 			),
+			replaces: v.optional(v.array(batchTarget)),
 		}),
 		v.object({
 			kind: v.literal("update"),
@@ -321,6 +322,14 @@ async function apply(
 					throw appError("duplicate", "clientEntryId");
 				ids.add(entry.clientEntryId);
 				await assertClientEntryAvailable(ctx, userId, entry.clientEntryId);
+			}
+			const replaced = operation.replaces
+				? await batchEntries(ctx, userId, operation.replaces)
+				: [];
+			await assertWholeCombos(ctx, userId, replaced);
+			for (const entry of replaced) {
+				await ctx.db.delete(entry._id);
+				applied.dates.add(entry.date);
 			}
 			for (const entry of operation.entries)
 				await insert({ ...entry, date: operation.date, meal: operation.meal });

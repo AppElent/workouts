@@ -37,8 +37,6 @@ import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
 import { useNutritionDay } from "../../../data/nutrition-day";
 import {
 	type LoggedEntries,
-	ReplaceFailedError,
-	StrandedReplaceError,
 	useNutritionDiary,
 } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
@@ -133,9 +131,6 @@ export function AssistanceScreen({
 			? replacedDay.day
 			: undefined;
 	const dayPending = Boolean(resumed) && !liveDay;
-	const createdForReplace = useRef<readonly string[] | null>(
-		resumed?.stranded ?? null,
-	);
 	const unsaved = session.touched || session.inputChanged || unsentCorrection;
 	const [destination, setDestination] = useState({
 		date: initialDate,
@@ -315,11 +310,7 @@ export function AssistanceScreen({
 		id,
 	});
 
-	/**
-	 * Logs the review. A continued meal is replaced: all of it goes, or the new
-	 * entries do. An earlier attempt that could not be taken back goes with it,
-	 * so what is logged is always the review on screen now.
-	 */
+	/** Logs the review. A continued meal is replaced in the same write. */
 	async function logEntries(
 		entries: readonly NutritionDiarySnapshot[],
 		combo?: { readonly id: string; readonly name: string },
@@ -341,7 +332,7 @@ export function AssistanceScreen({
 		try {
 			saved = resumed
 				? await diary.replace(
-						[...resumed.entryIds, ...(createdForReplace.current ?? [])].map(
+						[...resumed.entryIds, ...(resumed.stranded ?? [])].map(
 							byClientEntryId,
 						),
 						date,
@@ -350,29 +341,20 @@ export function AssistanceScreen({
 						combo,
 					)
 				: await diary.logBatch(date, meal, entries, combo);
-		} catch (error) {
-			if (error instanceof StrandedReplaceError) {
-				createdForReplace.current = [
-					...(createdForReplace.current ?? []),
-					...error.stranded,
-				];
-				// Kept with the session, so reopening can still clean them up.
-				if (resumed)
-					saveAiSession(account, {
-						...resumed,
-						stranded: createdForReplace.current,
-					});
-				toast.error(copy.replaceBoth);
-			} else if (error instanceof ReplaceFailedError)
-				toast.error(copy.replaceFailure);
-			else toast.error(session.ai.online ? copy.logFailure : copy.logOffline);
+		} catch {
+			toast.error(
+				!session.ai.online
+					? copy.logOffline
+					: resumed
+						? copy.replaceFailure
+						: copy.logFailure,
+			);
 			return false;
 		} finally {
 			clearTimeout(slow);
 			lock.current = false;
 			setLogging(false);
 		}
-		createdForReplace.current = null;
 		if (resumed) forgetAiSession(account, resumed);
 		const forgetAnswer = session.rememberLogged();
 		const logged = context

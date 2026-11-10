@@ -42,27 +42,6 @@ export type LoggedEntries = {
 
 type ComboReference = { readonly id: string; readonly name: string };
 
-/** A replace that kept the old entries and took the new ones back. */
-export class ReplaceFailedError extends Error {
-	constructor(readonly cause: unknown) {
-		super("The replaced entries could not be removed.");
-		this.name = "ReplaceFailedError";
-	}
-}
-
-/** A replace whose new entries were saved but could not be taken back. */
-export class StrandedReplaceError extends Error {
-	constructor(
-		readonly stranded: readonly string[],
-		readonly cause: unknown,
-	) {
-		super(
-			"The replaced entries were kept and the new ones could not be removed.",
-		);
-		this.name = "StrandedReplaceError";
-	}
-}
-
 type AcknowledgedWrite = {
 	readonly operation: NutritionDiaryOperation;
 	readonly at: number;
@@ -98,11 +77,7 @@ export type NutritionDiary = {
 		meal: MealSlot,
 	): Promise<void>;
 	group(targets: readonly DiaryTarget[], combo: ComboReference): Promise<void>;
-	/**
-	 * Logs `entries`, then removes `replaced`. When the removal fails the new
-	 * entries are taken back (`ReplaceFailedError`); when that fails too, a
-	 * `StrandedReplaceError` names them.
-	 */
+	/** Logs `entries` and removes `replaced` in one write. */
 	replace(
 		replaced: readonly DiaryTarget[],
 		date: string,
@@ -200,6 +175,7 @@ export function useNutritionDiary(): NutritionDiary {
 			entries: readonly NutritionDiaryPartSnapshot[],
 			combo?: ComboReference,
 			use?: FoodUse,
+			replaces?: readonly DiaryTarget[],
 		) {
 			const comboGroup: Omit<ComboGroup, "id"> | undefined = combo && {
 				comboId: combo.id,
@@ -220,7 +196,7 @@ export function useNutritionDiary(): NutritionDiary {
 			);
 			return logged(
 				await send(
-					{ kind: "createBatch", date, meal, parts, comboGroup },
+					{ kind: "createBatch", date, meal, parts, comboGroup, replaces },
 					() => {
 						const group = comboGroup && { id: mintUuid(), ...comboGroup };
 						return {
@@ -232,6 +208,7 @@ export function useNutritionDiary(): NutritionDiary {
 								...(group ? { comboGroup: group } : {}),
 								clientEntryId: mintUuid(),
 							})),
+							...(replaces ? { replaces } : {}),
 						};
 					},
 					use,
@@ -289,20 +266,8 @@ export function useNutritionDiary(): NutritionDiary {
 					comboGroup: { id: mintUuid(), ...comboGroup },
 				}));
 			},
-			async replace(replaced, date, meal, entries, combo) {
-				const saved = await logBatch(date, meal, entries, combo);
-				try {
-					await removeBatch(replaced);
-				} catch (error) {
-					try {
-						await saved.undo();
-					} catch {
-						throw new StrandedReplaceError(saved.clientEntryIds, error);
-					}
-					throw new ReplaceFailedError(error);
-				}
-				return saved;
-			},
+			replace: (replaced, date, meal, entries, combo) =>
+				logBatch(date, meal, entries, combo, undefined, replaced),
 			loggedSince: (date, meal, since) =>
 				journal.some((write) => {
 					if (write.at < since) return false;
