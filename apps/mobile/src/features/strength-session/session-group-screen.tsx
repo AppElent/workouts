@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** How a set group repeats, its order, its exercises, and how to undo it. */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -5,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { Id } from "../../convex/api";
 import { plural, useI18n } from "../../i18n";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -16,7 +18,6 @@ import { AppText } from "../../ui/text";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
-import { formatClock } from "./session-format";
 import {
 	dissolveGroup,
 	type GroupMode,
@@ -334,5 +335,5 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.pill,
 		},
 		stepValue: { flex: 1, alignItems: "center" },
-		dimmed: { opacity: 0.4 },
+		dimmed: { opacity: opacity.disabled },
 	});

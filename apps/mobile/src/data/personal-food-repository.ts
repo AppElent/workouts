@@ -13,9 +13,11 @@ import {
 	type ShippedFood,
 } from "@foundry/core";
 import { getShippedFood } from "@foundry/core/shipped-foods";
+import { registerLocalDatabase } from "../local-store/local-store";
 import { openNutritionDatabase } from "./nutrition-database";
 
 export const PERSONAL_FOOD_DATABASE_NAME = "workouts-nutrition.db";
+registerLocalDatabase(PERSONAL_FOOD_DATABASE_NAME);
 const DATABASE_VERSION = 6;
 
 const SHIPPED_EMOJI_VISUALS: Readonly<Record<string, FoodVisualPresetId>> = {
@@ -985,6 +987,7 @@ function rowToCacheEntry(row: OffCacheRow): OffCacheEntry {
  * request cache, never an offline mirror of the provider's catalogue.
  */
 export const OFF_REQUEST_CACHE_DATABASE_NAME = "workouts-off-cache.db";
+registerLocalDatabase(OFF_REQUEST_CACHE_DATABASE_NAME);
 
 export function createOpenFoodFactsCache(
 	database: SyncSQLiteDatabase,

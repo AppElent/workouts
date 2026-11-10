@@ -12,7 +12,7 @@ import type {
 } from "./data/personal-food-repository";
 import { PersonalFoodsProvider } from "./data/personal-foods";
 import { PersonalMeasuresProvider } from "./data/personal-measures";
-import { SetDraftsProvider } from "./features/strength-session/data/set-drafts";
+import { StrengthSessionProvider } from "./features/strength-session/data/strength-session-provider";
 
 /** Stores the screen tests inject; the app leaves every one to its default. */
 export type AppDataOverrides = {
@@ -49,7 +49,7 @@ export function AppDataProviders({
 					>
 						<NutritionDraftsProvider>
 							<PersonalMeasuresProvider>
-								<SetDraftsProvider>{children}</SetDraftsProvider>
+								<StrengthSessionProvider>{children}</StrengthSessionProvider>
 							</PersonalMeasuresProvider>
 						</NutritionDraftsProvider>
 					</NutritionOperationsProvider>

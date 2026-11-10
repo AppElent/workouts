@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** What floats over the session: the toast, a group's clock, and rest. */
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
@@ -20,57 +21,22 @@ import {
 } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
-import {
-	cancelSessionAlert,
-	scheduleSessionAlert,
-} from "../data/session-notifications";
+import { useRestState, useRestTimer } from "../data/rest-timer";
 import { workspaceStore } from "../data/session-workspace";
-import { formatClock, formatScore } from "../session-format";
-import {
-	amrapScore,
-	closeGroup,
-	runningGroup,
-	type SessionPlan,
-	type SetGroup,
-	startClock,
-	stopClock,
-} from "../session-plan";
+import { formatScore } from "../session-format";
+import { amrapScore, runningGroup, type SetGroup } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
-import { useRestState, useRestTimer } from "./rest-timer";
 
-const alertId = (groupId: string) => `amrap:${groupId}`;
-/** Ending a session takes every clock's alert with it. */
-export function cancelClockAlerts(plan: SessionPlan) {
-	for (const id of Object.keys(plan.groups))
-		void cancelSessionAlert(alertId(id));
-}
-/** The one action a group's clock offers right now, with its alert kept in step. */
+/** The one action a group's clock offers right now. */
 export function useClockControls(group: SetGroup) {
 	const { actions } = useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan.group;
-	const rest = t.strength.plan.rest;
 	if (group.mode !== "amrap" || group.state === "closed") return [];
-	const start = () => {
-		const result = startClock(actions.plan(), group.id, Date.now());
-		if (!actions.apply(result, { undoable: false })) return;
-		const endsAt = result.plan.groups[group.id]?.endsAt;
-		if (endsAt)
-			void scheduleSessionAlert(
-				alertId(group.id),
-				(endsAt - Date.now()) / 1000,
-				rest.clockNotificationTitle,
-				rest.clockNotificationBody,
-			);
-	};
+	const start = () => actions.startGroupClock(group.id);
 	const close = {
 		label: closeLabel(group, copy, locale),
-		onPress: () => {
-			if (actions.refusePending(group.rounds.flatMap((round) => round.items)))
-				return;
-			actions.set(closeGroup(actions.plan(), group.id));
-			void cancelSessionAlert(alertId(group.id));
-		},
+		onPress: () => actions.closeGroupClock(group.id),
 	};
 	if (group.state === "timeup")
 		return group.stoppedRemaining
@@ -194,10 +160,7 @@ function ClockPill({ group }: { group: SetGroup }) {
 				<Pressable
 					accessibilityRole="button"
 					hitSlop={6}
-					onPress={() => {
-						actions.set(stopClock(actions.plan(), group.id, Date.now()));
-						void cancelSessionAlert(alertId(group.id));
-					}}
+					onPress={() => actions.stopGroupClock(group.id)}
 					style={styles.textButton}
 				>
 					<AppText variant="control">{copy.group.stop}</AppText>

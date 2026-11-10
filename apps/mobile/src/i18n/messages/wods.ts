@@ -46,8 +46,6 @@ export const wodsEn = {
 	load: "Load (kg)",
 	notes: "Notes (optional)",
 	editor: {
-		newTitle: "New WOD",
-		editTitle: "Edit WOD",
 		cancel: "Cancel",
 		name: "Name",
 		namePlaceholder: "Fran",
@@ -117,8 +115,6 @@ export const wodsNl: typeof wodsEn = {
 	load: "Gewicht (kg)",
 	notes: "Notities (optioneel)",
 	editor: {
-		newTitle: "Nieuwe WOD",
-		editTitle: "WOD bewerken",
 		cancel: "Annuleren",
 		name: "Naam",
 		namePlaceholder: "Fran",

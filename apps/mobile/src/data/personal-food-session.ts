@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
 import { defaultDatabaseDirectory } from "expo-sqlite";
+import { registerAccountStore } from "../local-store/local-store";
 import {
 	type LibraryRecord,
 	nutritionLibraryDatabaseName,
@@ -89,3 +90,7 @@ export function discardPersonalFoodSources(subject: string) {
 	);
 	if (file.exists) file.delete();
 }
+registerAccountStore({
+	name: "nutrition-library-sources",
+	clear: discardPersonalFoodSources,
+});

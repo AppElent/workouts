@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
 import { defaultDatabaseDirectory } from "expo-sqlite";
+import { registerLocalDatabase } from "../local-store/local-store";
 import { openNutritionDatabase } from "./nutrition-database";
 import type {
 	Combo,
@@ -173,6 +174,8 @@ export function nutritionLibraryDatabaseName(subject: string) {
 	).join("");
 	return `workouts-nutrition-library-${encoded.slice(0, 160)}.db`;
 }
+registerLocalDatabase(NUTRITION_LIBRARY_STATE_DATABASE_NAME);
+registerLocalDatabase(/^workouts-nutrition-library-[0-9a-f]+\.db$/);
 
 export function libraryRecordFromFood(
 	food: PersonalFood,

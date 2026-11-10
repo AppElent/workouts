@@ -8,7 +8,6 @@ import {
 import { getFunctionName } from "convex/server";
 import { router } from "expo-router";
 import { act, fireEvent, screen } from "expo-router/testing-library";
-import Storage from "expo-sqlite/kv-store";
 import * as SessionRoute from "../../../app/(app)/session";
 import * as GroupRoute from "../../../app/(app)/session-group";
 import * as ManualRoute from "../../../app/(app)/session-manual";
@@ -16,7 +15,7 @@ import * as EditorLayout from "../../../app/(app)/set-editor/_layout";
 import * as EditorRoute from "../../../app/(app)/set-editor/index";
 import * as ProfileRoute from "../../../app/(app)/set-editor/strength-profile";
 import { renderApp } from "../../test-support/render-app";
-import { workspaceStore } from "./data/session-workspace";
+import { workspaceKey, workspaceStore } from "./data/session-workspace";
 import {
 	allRows,
 	findRow,
@@ -32,8 +31,10 @@ import {
 	updateRow,
 } from "./session-plan";
 
+// Every test signs in as a new account, so nothing it leaves on the phone carries over.
+let mockSubject = "";
 jest.mock("@clerk/expo", () => ({
-	useAuth: () => ({ userId: "test-user", isLoaded: true, isSignedIn: true }),
+	useAuth: () => ({ userId: mockSubject, isLoaded: true, isSignedIn: true }),
 	useUser: () => ({ user: null }),
 }));
 jest.mock("expo-notifications", () => ({
@@ -51,7 +52,7 @@ jest.mock("../../ui/selection-menu", () =>
 	jest.requireActual("../../ui/selection-menu.tsx"),
 );
 
-const PLAN_KEY = "strength-session-plan:v1:test-user:session-1";
+const planKey = () => workspaceKey(mockSubject, "session-1");
 const exerciseId = "shipped:exercise:barbell-back-squat";
 const session = {
 	_id: "session-1",
@@ -111,9 +112,8 @@ const serverSet = (id: string, reps: number, setNumber: number) => ({
 });
 
 beforeEach(() => {
-	Storage.removeItemSync("strength-rest:v1");
-	workspaceStore.clear(PLAN_KEY);
-	currentSession = session;
+	mockSubject = `test-user-${Math.random().toString(36).slice(2)}`;
+	currentSession = { ...session, userId: mockSubject };
 	loggedSets = [];
 	receipt = null;
 	online = true;
@@ -247,41 +247,6 @@ it("recovers a committed log after losing its response, without a second write",
 	expect(add).toHaveBeenCalledTimes(1);
 });
 
-it("recovers an older build's unanswered log through its receipt, without a second write", async () => {
-	const fields = {
-		weight: "60",
-		reps: "8",
-		rpe: "",
-		unit: "kg",
-		setType: "working",
-	};
-	Storage.setItemSync(
-		"strength-set-drafts:v1:test-user",
-		JSON.stringify([
-			{
-				sessionId: "session-1",
-				exerciseId,
-				fields,
-				attempt: { operationId: "old-op", setNumber: 1, fields },
-			},
-		]),
-	);
-	receipt = undefined;
-	const app = await mount();
-	await screen.findAllByLabelText(/set 1, /);
-	expect(
-		allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
-			(row) => row.attempt,
-		)?.attempt?.operationId,
-	).toBe("old-op");
-	await app.unmount();
-	receipt = { setId: "set-1", status: "saved" };
-	loggedSets = [serverSet("set-1", 8, 1)];
-	await mount();
-	expect(await screen.findByText(/1 logged/)).toBeTruthy();
-	expect(add).not.toHaveBeenCalled();
-});
-
 it("does not send a set while offline and says it failed", async () => {
 	online = false;
 	await mount();
@@ -339,8 +304,9 @@ it("starts the next rest offline once the last one has run out", async () => {
 		await fireEvent.press(
 			(await screen.findAllByLabelText("Log Barbell Back Squat 60 × 8"))[1],
 		);
-		const stored = JSON.parse(Storage.getItemSync("strength-rest:v1") ?? "{}");
-		expect(stored.endsAt).toBeGreaterThan(realNow + 3_600_000);
+		const hidden = { includeHiddenElements: true };
+		expect(await screen.findByText(/^Rest \d/, hidden)).toBeTruthy();
+		expect(screen.queryByText("Rest over", hidden)).toBeNull();
 	} finally {
 		later.mockRestore();
 	}
@@ -365,7 +331,7 @@ it("won't remove a set until its lost send is settled", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const row = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+	const row = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
 		(item) => item.attempt,
 	) as PlanSet;
 	await fireEvent.press(
@@ -376,7 +342,7 @@ it("won't remove a set until its lost send is settled", async () => {
 	);
 	expect(await screen.findByText(/may already be saved/)).toBeTruthy();
 	expect(
-		findRow(workspaceStore.plan(PLAN_KEY) as SessionPlan, row.id),
+		findRow(workspaceStore.plan(planKey()) as SessionPlan, row.id),
 	).toBeTruthy();
 });
 
@@ -414,7 +380,7 @@ it("won't finish on a send left unresolved by a restart, and retries it", async 
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
 	await act(async () =>
-		workspaceStore.update(PLAN_KEY, (plan) => {
+		workspaceStore.update(planKey(), (plan) => {
 			const row = allRows(plan).find((item) => item.attempt) as PlanSet;
 			return updateRow(plan, row.id, { ...row, failed: undefined });
 		}),
@@ -437,7 +403,7 @@ it("won't take a Krachtprofiel value onto a set with an unresolved send", async 
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const before = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+	const before = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
 		(item) => item.attempt,
 	) as PlanSet;
 	await fireEvent.press((await screen.findAllByLabelText(/set 1, /))[0]);
@@ -449,7 +415,7 @@ it("won't take a Krachtprofiel value onto a set with an unresolved send", async 
 		screen.getByRole("button", { name: /Apply · 80 kg × / }),
 	);
 	const after = findRow(
-		workspaceStore.plan(PLAN_KEY) as SessionPlan,
+		workspaceStore.plan(planKey()) as SessionPlan,
 		before.id,
 	) as PlanSet;
 	expect(after.kg).toBe(before.kg);
@@ -462,18 +428,18 @@ it("keeps other changes when undoing a log fails", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const plan = workspaceStore.plan(PLAN_KEY) as SessionPlan;
+	const plan = workspaceStore.plan(planKey()) as SessionPlan;
 	const other = allRows(plan).find((row) => !row.done) as PlanSet;
 	const logged = allRows(plan).find((row) => row.done) as PlanSet;
 	await act(async () =>
-		workspaceStore.update(PLAN_KEY, (current) =>
+		workspaceStore.update(planKey(), (current) =>
 			updateRow(current, other.id, { ...other, reps: 9 }),
 		),
 	);
 	await act(async () => {
 		fireEvent.press(screen.getByTestId("session-toast-action"));
 	});
-	const after = workspaceStore.plan(PLAN_KEY) as SessionPlan;
+	const after = workspaceStore.plan(planKey()) as SessionPlan;
 	expect(removeSet).toHaveBeenCalledTimes(1);
 	expect(findRow(after, other.id)?.reps).toBe(9);
 	expect(findRow(after, logged.id)?.done).toBe(true);
@@ -491,11 +457,11 @@ it("keeps a set logged until the server has let it go", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
 	await screen.findByTestId("session-toast-action");
-	const row = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
+	const row = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
 		(item) => item.done,
 	) as PlanSet;
 	const stored = () =>
-		findRow(workspaceStore.plan(PLAN_KEY) as SessionPlan, row.id) as PlanSet;
+		findRow(workspaceStore.plan(planKey()) as SessionPlan, row.id) as PlanSet;
 	const later = Date.now() + 60_000;
 	const clock = jest.spyOn(Date, "now").mockReturnValue(later);
 	await fireEvent.press(screen.getByTestId(`session-check-${row.id}`));
@@ -527,7 +493,7 @@ it("won't close a group while one of its sets failed", async () => {
 		{ exerciseId, plannedSets },
 		{ exerciseId: second, plannedSets },
 	];
-	currentSession = { ...session, exercises };
+	currentSession = { ...currentSession, exercises };
 	const grouped = groupWith(
 		seedPlan(exercises, [], () => facts),
 		exerciseId,
@@ -538,13 +504,13 @@ it("won't close a group while one of its sets failed", async () => {
 	plan = startClock(plan, id, 0).plan;
 	plan = stopClock(plan, id, 1000);
 	const row = plan.groups[id]?.rounds[0]?.items[0] as PlanSet;
-	workspaceStore.setPlan(PLAN_KEY, markFailed(plan, row.id, false));
+	workspaceStore.setPlan(planKey(), markFailed(plan, row.id, false));
 	await mount();
 	await fireEvent.press(
 		await screen.findByRole("button", { name: /Reset clock|^Close/ }),
 	);
 	expect(await screen.findByText(/Retry or remove it first/)).toBeTruthy();
-	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.state).toBe("timeup");
+	expect(workspaceStore.plan(planKey())?.groups[id]?.state).toBe("timeup");
 });
 
 it("won't drop a failed set by shrinking its group or switching it to a clock", async () => {
@@ -563,7 +529,7 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 		{ exerciseId, plannedSets },
 		{ exerciseId: second, plannedSets },
 	];
-	currentSession = { ...session, exercises };
+	currentSession = { ...currentSession, exercises };
 	const grouped = groupWith(
 		seedPlan(exercises, [], () => facts),
 		exerciseId,
@@ -573,7 +539,7 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	const plan = setGroupRounds(grouped.plan, id, 1).plan;
 	const rounds = plan.groups[id]?.rounds ?? [];
 	const row = rounds.at(-1)?.items[0] as PlanSet;
-	workspaceStore.setPlan(PLAN_KEY, markFailed(plan, row.id, false));
+	workspaceStore.setPlan(planKey(), markFailed(plan, row.id, false));
 	await mount();
 	await act(() =>
 		router.push(`/session-group?sessionId=session-1&groupId=${id}`),
@@ -581,11 +547,11 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	await fireEvent.press(
 		await screen.findByRole("button", { name: "One round fewer" }),
 	);
-	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.rounds).toHaveLength(
+	expect(workspaceStore.plan(planKey())?.groups[id]?.rounds).toHaveLength(
 		rounds.length,
 	);
 	await fireEvent.press(await screen.findByLabelText("As many as possible"));
-	expect(workspaceStore.plan(PLAN_KEY)?.groups[id]?.mode).toBe("rounds");
+	expect(workspaceStore.plan(planKey())?.groups[id]?.mode).toBe("rounds");
 });
 
 it("undoes a removed set, unless the session changed since", async () => {
@@ -598,19 +564,19 @@ it("undoes a removed set, unless the session changed since", async () => {
 		);
 	await mount();
 	await firstRow();
-	const start = workspaceStore.plan(PLAN_KEY);
+	const start = workspaceStore.plan(planKey());
 	await removeFirst();
 	await fireEvent.press(await screen.findByTestId("session-toast-action"));
-	expect(workspaceStore.plan(PLAN_KEY)).toBe(start);
+	expect(workspaceStore.plan(planKey())).toBe(start);
 
 	await removeFirst();
 	await screen.findByTestId("session-toast-action");
 	await act(async () =>
-		workspaceStore.update(PLAN_KEY, (plan) => ({ ...plan, restDefault: 45 })),
+		workspaceStore.update(planKey(), (plan) => ({ ...plan, restDefault: 45 })),
 	);
 	await fireEvent.press(screen.getByTestId("session-toast-action"));
 	expect(await screen.findByText(/Can't undo/)).toBeTruthy();
-	expect(workspaceStore.plan(PLAN_KEY)?.restDefault).toBe(45);
+	expect(workspaceStore.plan(planKey())?.restDefault).toBe(45);
 });
 
 it("won't log the old value behind a cleared field", async () => {
@@ -623,20 +589,21 @@ it("won't log the old value behind a cleared field", async () => {
 	expect(add).not.toHaveBeenCalled();
 });
 
-it("keeps a correction to a logged set in storage until it is saved or dropped", async () => {
+it("keeps a correction to a logged set across a fresh app mount", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
-	await mount();
+	let app = await mount();
 	await fireEvent.press((await screen.findAllByLabelText(/set 1, Logged/))[0]);
 	await fireEvent.changeText(
 		await screen.findByTestId("session-editor-load"),
 		"75",
 	);
-	const stored = JSON.parse(Storage.getItemSync(`${PLAN_KEY}:drafts`) ?? "{}");
-	expect(Object.values(stored)).toEqual([
-		expect.objectContaining({ kg: 75, setId: "set-1" }),
-	]);
-	workspaceStore.clear(PLAN_KEY);
-	expect(Storage.getItemSync(`${PLAN_KEY}:drafts`)).toBeNull();
+	await act(() => router.back());
+	await app.unmount();
+	app = await mount();
+	await fireEvent.press((await screen.findAllByLabelText(/set 1, Logged/))[0]);
+	expect(await screen.findByDisplayValue("75")).toBeTruthy();
+	expect(update).not.toHaveBeenCalled();
+	await app.unmount();
 });
 
 it("freezes a correction while its save is on its way", async () => {
@@ -685,20 +652,19 @@ it("asks about a likely typo even when Log is tapped with the keyboard up", asyn
 
 it("says so at Finish when a correction to a logged set isn't saved", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
-	await mount();
-	await screen.findAllByLabelText(/set 1, Logged/);
-	const row = allRows(workspaceStore.plan(PLAN_KEY) as SessionPlan).find(
-		(item) => item.done,
-	) as PlanSet;
-	await act(() =>
-		workspaceStore.setDraft(PLAN_KEY, row.id, { ...row, kg: 75 }),
+	const app = await mount();
+	await fireEvent.press((await screen.findAllByLabelText(/set 1, Logged/))[0]);
+	await fireEvent.changeText(
+		await screen.findByTestId("session-editor-load"),
+		"75",
 	);
+	await app.unmount();
+	await mount();
 	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
 	expect(
 		await screen.findByText(/1 change to a logged set is not saved/),
 	).toBeTruthy();
 	expect(finish).not.toHaveBeenCalled();
-	workspaceStore.setDraft(PLAN_KEY, row.id, null);
 });
 
 it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {
@@ -745,7 +711,7 @@ it("finishes through the recap, saving only at Done", async () => {
 });
 
 it("starts empty and offers to delete a session with nothing in it", async () => {
-	currentSession = emptySession;
+	currentSession = { ...emptySession, userId: mockSubject };
 	await mount();
 	expect(await screen.findByTestId("session-add-exercise")).toBeTruthy();
 	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));

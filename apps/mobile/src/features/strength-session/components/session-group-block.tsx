@@ -1,3 +1,4 @@
+import { formatClock } from "@foundry/core";
 /** A repeating set group in the session: rounds, or as many as possible on a clock. */
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
@@ -11,7 +12,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { AppText } from "../../../ui/text";
-import { formatClock, formatScore, formatSetShort } from "../session-format";
+import { formatScore, formatSetShort } from "../session-format";
 import {
 	amrapScore,
 	type GroupRound,

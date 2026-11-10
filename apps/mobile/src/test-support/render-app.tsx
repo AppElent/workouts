@@ -39,7 +39,6 @@ import {
 	createPersonalFoodRepository,
 	type PersonalFoodRepository,
 } from "../data/personal-food-repository";
-import { RestTimerProvider } from "../features/strength-session/components/rest-timer";
 import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
 import { ConfirmProvider } from "../ui/confirm-dialog";
@@ -73,7 +72,6 @@ const APP_ROUTES = [
 	"appearance",
 	"labs",
 	"labs-entry",
-	"labs-food",
 	"language",
 	"nutrition-assistance",
 	"nutrition-combo-log",
@@ -239,11 +237,9 @@ export function TestLayout({
 					<NativeAlertHost>
 						<ToastProvider>
 							<ConfirmProvider>
-								<RestTimerProvider>
-									<AppDataProviders overrides={overrides}>
-										<Stack />
-									</AppDataProviders>
-								</RestTimerProvider>
+								<AppDataProviders overrides={overrides}>
+									<Stack />
+								</AppDataProviders>
 							</ConfirmProvider>
 						</ToastProvider>
 					</NativeAlertHost>

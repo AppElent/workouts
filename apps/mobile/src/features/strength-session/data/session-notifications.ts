@@ -4,6 +4,8 @@
  * haptic carry the same news, so the banner stays off.
  */
 import * as Notifications from "expo-notifications";
+import { reportError } from "../../../observability/errors";
+import type { SessionPlan, SetGroup } from "../session-plan";
 
 let asked = false;
 let allowed: boolean | null = null;
@@ -52,14 +54,37 @@ export async function scheduleSessionAlert(
 				seconds: Math.ceil(seconds),
 			},
 		});
-	} catch {
-		// A rest pill still runs without a notification.
+	} catch (error) {
+		// The pill and haptic still carry the news without a notification.
+		reportError(error, "session-alert.schedule");
 	}
 }
 export async function cancelSessionAlert(identifier: string) {
 	try {
 		await Notifications.cancelScheduledNotificationAsync(identifier);
-	} catch {
-		// Nothing was scheduled, or the module is unavailable.
+	} catch (error) {
+		reportError(error, "session-alert.cancel");
 	}
+}
+
+const clockAlertId = (groupId: string) => `amrap:${groupId}`;
+export function scheduleClockAlert(
+	group: Pick<SetGroup, "id" | "endsAt">,
+	title: string,
+	body: string,
+) {
+	if (group.endsAt)
+		void scheduleSessionAlert(
+			clockAlertId(group.id),
+			(group.endsAt - Date.now()) / 1000,
+			title,
+			body,
+		);
+}
+export function cancelClockAlert(groupId: string) {
+	void cancelSessionAlert(clockAlertId(groupId));
+}
+/** Ending a session takes every clock's alert with it. */
+export function cancelClockAlerts(plan: SessionPlan) {
+	for (const id of Object.keys(plan.groups)) cancelClockAlert(id);
 }

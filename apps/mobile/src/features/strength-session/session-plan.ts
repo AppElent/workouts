@@ -6,10 +6,15 @@
  * Canonical load is kilograms. `typedLbs` keeps a pound value exactly as typed,
  * so a unit switch can never change what was entered.
  */
-import { calculateOneRepMax, convertLoad, roundLoad } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	convertLoad,
+	type LoadUnit,
+	roundLoad,
+	type SetType,
+	validateSetInput,
+} from "@foundry/core";
 
-export type Unit = "kg" | "lbs";
-export type SetKind = "warmup" | "working" | "drop" | "failure";
 export type GroupMode = "rounds" | "amrap";
 export type GroupState = "idle" | "running" | "timeup" | "closed";
 
@@ -18,9 +23,9 @@ export interface LogPayload {
 	setNumber: number;
 	reps: number;
 	weight: number;
-	unit: Unit;
+	unit: LoadUnit;
 	rpe?: number;
-	setType: SetKind;
+	setType: SetType;
 }
 export interface LogAttempt {
 	operationId: string;
@@ -40,10 +45,10 @@ export interface PlanSet {
 	kg: number;
 	typedLbs?: number;
 	reps: number;
-	unit: Unit;
+	unit: LoadUnit;
 	/** The percentage this set is priced at, when it has one. */
 	percent: number | null;
-	kind: SetKind;
+	kind: SetType;
 	rpe: number | null;
 	done: boolean;
 	setId?: string;
@@ -123,8 +128,6 @@ export interface PlanResult {
 }
 
 const EPSILON = 0.01;
-export const MAX_LOAD_KG = 500;
-export const MAX_REPS = 1000;
 export const DEFAULT_REST_SECONDS = 90;
 let counter = 0;
 export function newRowId() {
@@ -137,7 +140,7 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
 // --- Load -------------------------------------------------------------------
 
 /** Lbs always land on a 5 lb step; kg on the exercise's own step. */
-export function snapLoad(kg: number, stepKg: number, unit: Unit = "kg") {
+export function snapLoad(kg: number, stepKg: number, unit: LoadUnit = "kg") {
 	if (unit === "lbs")
 		return convertLoad(
 			Math.round(convertLoad(kg, "kg", "lbs") / 5) * 5,
@@ -186,7 +189,7 @@ export function stepLoad(
 /** A unit switch only changes how a set reads. Its load stays what it was. */
 export function switchUnit(
 	row: PlanSet,
-	unit: Unit,
+	unit: LoadUnit,
 	facts: ExerciseFacts,
 ): PlanSet {
 	if (row.unit === unit || facts.bodyweight) return row;
@@ -205,9 +208,8 @@ export function isValidRow(row: PlanSet, facts: ExerciseFacts) {
 		Number.isFinite(row.kg) &&
 		Number.isInteger(row.reps) &&
 		(facts.bodyweight ? row.kg >= 0 : row.kg > 0) &&
-		row.kg <= MAX_LOAD_KG &&
 		row.reps >= (row.blank ? 1 : 0) &&
-		row.reps <= MAX_REPS
+		validateSetInput({ weight: shownLoad(row), reps: row.reps }).ok
 	);
 }
 export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
@@ -386,13 +388,13 @@ export interface ServerSet {
 	setNumber: number;
 	reps: number;
 	weight: number;
-	unit: Unit;
+	unit: LoadUnit;
 	rpe?: number;
-	setType: SetKind;
+	setType: SetType;
 }
 export interface ServerExercise {
 	exerciseId: string;
-	plannedSets: { reps: number; weight: number; unit: Unit }[];
+	plannedSets: { reps: number; weight: number; unit: LoadUnit }[];
 }
 export function rowFromServer(set: ServerSet): PlanSet {
 	return {
@@ -1243,7 +1245,7 @@ function swapWork(
 ): PlanSet {
 	const byPercent = Boolean(reference) && row.percent !== null;
 	const keepPlan = !facts.bodyweight && !reference && row.percent !== null;
-	const unit: Unit = facts.bodyweight ? "kg" : row.unit;
+	const unit: LoadUnit = facts.bodyweight ? "kg" : row.unit;
 	const kg = byPercent
 		? snapLoad(
 				((reference as { value: number }).value * (row.percent as number)) /
@@ -2125,92 +2127,6 @@ export function restoreRows(plan: SessionPlan, prior: PlanSet[]): SessionPlan {
 				normalizeGroup(group),
 			]),
 		),
-	};
-}
-/** An older build's unfinished Set Draft, as it was stored on the device. */
-interface OldDraftFields {
-	weight: string;
-	reps: string;
-	rpe: string;
-	unit: Unit;
-	setType: SetKind;
-}
-export interface OldDraft {
-	exerciseId: string;
-	fields: OldDraftFields;
-	attempt?: { operationId: string; setNumber: number; fields: OldDraftFields };
-}
-/** Becomes an open row; a send it never heard back on keeps its operation. */
-export function importOldDraft(
-	plan: SessionPlan,
-	draft: OldDraft,
-): SessionPlan {
-	const { attempt, exerciseId } = draft;
-	const rows = allRows(plan).filter((row) => row.exerciseId === exerciseId);
-	if (
-		attempt &&
-		rows.some((row) => row.done && row.setNumber === attempt.setNumber)
-	)
-		return plan;
-	const fields = attempt?.fields ?? draft.fields;
-	const weight = Number(fields.weight.replace(",", "."));
-	const reps = Number(fields.reps);
-	const rpe = Number(fields.rpe.replace(",", "."));
-	const hasLoad = fields.weight.trim() !== "" && Number.isFinite(weight);
-	const hasReps = fields.reps.trim() !== "" && Number.isInteger(reps);
-	if (!hasLoad && !hasReps) return plan;
-	const open = rows.find((row) => !row.done && !isUnsaved(row));
-	if (!open && groupOfExercise(plan, exerciseId)) return plan;
-	const base: PlanSet = open ?? {
-		id: newRowId(),
-		exerciseId,
-		kg: 0,
-		reps: 0,
-		unit: fields.unit,
-		percent: null,
-		kind: fields.setType,
-		rpe: null,
-		done: false,
-		free: true,
-		blank: true,
-	};
-	const row: PlanSet = {
-		...base,
-		kind: fields.setType,
-		...(hasLoad
-			? {
-					kg: convertLoad(weight, fields.unit, "kg"),
-					unit: fields.unit,
-					typedLbs: fields.unit === "lbs" ? weight : undefined,
-				}
-			: {}),
-		...(hasReps ? { reps } : {}),
-		...(fields.rpe.trim() !== "" && Number.isFinite(rpe) ? { rpe } : {}),
-		...(hasLoad && hasReps ? { blank: undefined } : {}),
-	};
-	const placed: PlanSet = attempt
-		? {
-				...row,
-				attempt: {
-					operationId: attempt.operationId,
-					setNumber: attempt.setNumber,
-					payload: payloadFor(row, attempt.setNumber),
-					sent: true,
-				},
-			}
-		: row;
-	if (open) return replaceRow(plan, open.id, placed);
-	return {
-		...plan,
-		sets: {
-			...plan.sets,
-			[exerciseId]: [...(plan.sets[exerciseId] ?? []), placed],
-		},
-		order: plan.order.some(
-			(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
-		)
-			? plan.order
-			: [...plan.order, { kind: "exercise", exerciseId }],
 	};
 }
 export function markFailed(
