@@ -18,8 +18,7 @@ The policy is `workspace` in [`appelent.json`](../../appelent.json): install
 dependencies, then write `.env.local` and `apps/mobile/.env.local` from Infisical
 `dev` (`env apply local --only file`). Worktrees share the dev deployment
 `colorless-sturgeon-704`: runtime writes are visible to every worktree, so use
-throwaway accounts for destructive checks. Run `pnpm build:packages` before checks
-that need `@foundry/core`'s build.
+throwaway accounts for destructive checks.
 
 ## Isolated backends
 

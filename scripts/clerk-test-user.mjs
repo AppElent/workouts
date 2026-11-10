@@ -5,7 +5,9 @@
 //
 //   node scripts/clerk-test-user.mjs create <name+clerk_test@example.com> <password>
 //   node scripts/clerk-test-user.mjs exists <email>
-import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { localLandings } from "./local-env.mjs";
 
 const [command, email, password] = process.argv.slice(2);
 if (!["create", "exists"].includes(command) || !email || (command === "create" && !password)) {
@@ -13,23 +15,15 @@ if (!["create", "exists"].includes(command) || !email || (command === "create" &
 	process.exit(2);
 }
 
-// The web app and the mobile-only setup name the same key differently.
-const sources = [
-	["../.env.local", "VITE_CLERK_PUBLISHABLE_KEY"],
-	["../apps/mobile/.env.local", "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY"],
-];
-function fromFile(path, name) {
-	try {
-		return readFileSync(new URL(path, import.meta.url), "utf8").match(
-			new RegExp(`^${name}=(\\S+)`, "m"),
-		)?.[1];
-	} catch {
-		return undefined;
-	}
-}
+// The web and mobile env files name the same key differently; a process
+// variable of either name wins over the files.
+const landings = await localLandings(
+	resolve(dirname(fileURLToPath(import.meta.url)), ".."),
+	"clerkPublishableKey",
+);
 const key =
-	sources.map(([, name]) => process.env[name]).find(Boolean) ??
-	sources.map(([path, name]) => fromFile(path, name)).find(Boolean);
+	landings.map(({ name }) => process.env[name]).find(Boolean) ??
+	landings.map(({ value }) => value).find(Boolean);
 if (!key?.startsWith("pk_test_")) {
 	console.error("A Clerk development publishable key (pk_test_) is required.");
 	process.exit(1);

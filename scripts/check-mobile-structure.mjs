@@ -1,3 +1,8 @@
+// Project copy of docs/standards/mobile-structure/examples/check-mobile-structure.mjs.
+// Keep it identical to that example (Biome formatting aside) except UNTRANSLATED, which adds Foundry's
+// words that read the same in English and Dutch. It enforces feature
+// filenames, the src/ui/ import boundary, and literal font sizes, and across
+// src/ and app/ reports UI text outside the message catalog.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -173,8 +178,12 @@ export function inspectMobileSource(filename, source, resolveImport) {
 				wordy(node.initializer)
 			);
 		if (jsx && ts.isCallExpression(node)) {
+			// `console.error(...)` logs for developers; it is not UI text.
 			const callee = ts.isPropertyAccessExpression(node.expression)
-				? node.expression.name.text
+				? ts.isIdentifier(node.expression.expression) &&
+					node.expression.expression.text === "console"
+					? ""
+					: node.expression.name.text
 				: ts.isIdentifier(node.expression)
 					? node.expression.text
 					: "";

@@ -68,5 +68,4 @@ it pins their shipped targets and clears its temporary mapping on completion.
 No normal catalog read depends on those documents. Removing them is deliberately
 outside this migration so old links remain valid.
 
-Fresh databases need no exercise seeding. `pnpm seed:exercises` remains a no-op
-for existing setup scripts; it is not this migration command.
+Fresh databases need no exercise seeding.
