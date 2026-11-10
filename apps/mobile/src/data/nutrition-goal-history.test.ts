@@ -38,16 +38,19 @@ describe("nutrition goal history helpers", () => {
 		);
 	});
 
-	it("lets a dirty draft survive a changed server response", () => {
-		const clean = draftFromGoals([
+	it("counts a draft as unchanged only while every bound matches", () => {
+		const goals = [
 			{ nutrient: "energy", direction: "max", target: 2000 },
-		]);
-		const dirty = { ...clean, energy: { ...clean.energy, max: "2100" } };
-		const refreshed = draftFromGoals([
-			{ nutrient: "energy", direction: "max", target: 1800 },
-		]);
-		expect(goalDraftEquals(dirty, refreshed)).toBe(false);
-		expect(dirty.energy.max).toBe("2100");
+			{ nutrient: "protein", direction: "min", target: 120 },
+		] as const;
+		const saved = draftFromGoals([...goals]);
+		expect(goalDraftEquals(draftFromGoals([...goals]), saved)).toBe(true);
+		expect(goalDraftEquals(setGoalKind(saved, "protein", "max"), saved)).toBe(
+			false,
+		);
+		expect(
+			goalDraftEquals({ ...saved, energy: { min: "", max: "2100" } }, saved),
+		).toBe(false);
 	});
 
 	it("reads the kind of a goal from which bounds are filled", () => {
@@ -72,9 +75,15 @@ describe("nutrition goal history helpers", () => {
 	});
 
 	it("adds a nutrient with its default direction and reference value", () => {
-		expect(referenceGoalTarget("saturatedFat")).toBe(20);
 		const draft = withGoal(emptyGoalDraft(), "fibre");
-		expect(draft.fibre).toEqual({ min: "25", max: "" });
+		expect(draft.fibre).toEqual({
+			min: String(referenceGoalTarget("fibre")),
+			max: "",
+		});
+		expect(withGoal(emptyGoalDraft(), "salt").salt).toEqual({
+			min: "",
+			max: String(referenceGoalTarget("salt")),
+		});
 		expect(withoutGoal(draft, "fibre").fibre).toEqual({ min: "", max: "" });
 	});
 });

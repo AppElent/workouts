@@ -1,4 +1,3 @@
-import { convertLoad } from "@foundry/core";
 import {
 	addExerciseToPlan,
 	addSet,
@@ -338,9 +337,8 @@ describe("logged percent", () => {
 		expect(row.kg).toBe(95);
 		const next = log(updateRow(plan, row.id, row), row);
 		expect(findRow(next, row.id)?.percent).toBe(80);
-		expect(findRow(next, row.id)?.loggedPercent).toBe(
-			Math.round((95 / 120) * 100),
-		);
+		// 95 kg of a 120 kg 1RM, not the 80% that was asked for.
+		expect(findRow(next, row.id)?.loggedPercent).toBe(79);
 	});
 	it("leaves a set whose send is unresolved at the load it sent", () => {
 		const plan = plannedPlan();
@@ -1376,7 +1374,6 @@ describe("randomised action sequences", () => {
 				const stable = nextSetNumber(plan, id);
 				expect(Number.isInteger(stable)).toBe(true);
 			}
-			expect(convertLoad(1, "kg", "kg")).toBe(1);
 			expect(Number.isFinite(recapOf(plan, lookup).volume)).toBe(true);
 		},
 	);

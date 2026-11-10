@@ -1,4 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react-native";
+import type { ReactElement } from "react";
+import { LocaleProvider } from "../../../i18n";
 import { renderThemed } from "../../../test-support/render-themed";
 import { EnduranceProgress } from "../endurance/endurance-progress";
 import { ActivityHistoryScreen } from "./activity-history-screen";
@@ -11,14 +13,9 @@ jest.mock("expo-router", () => ({
 	Stack: { Screen: () => null },
 }));
 jest.mock("./use-activity-pages", () => ({ useActivityPages: jest.fn() }));
-jest.mock("../../../i18n", () => ({
-	...jest.requireActual("../../../i18n"),
-	useI18n: () => ({
-		locale: "en",
-		t: jest.requireActual("../../../i18n/messages/en").en,
-	}),
-}));
-jest.mock("../../../ui/chart", () => ({ BucketChart: () => null }));
+
+const render = (ui: ReactElement) =>
+	renderThemed(ui, { wrapper: LocaleProvider });
 
 const mockPages = jest.mocked(useActivityPages);
 beforeEach(() => {
@@ -32,7 +29,7 @@ beforeEach(() => {
 });
 
 it("filters the history and opens the matching logger", async () => {
-	await renderThemed(<ActivityHistoryScreen />);
+	await render(<ActivityHistoryScreen />);
 	await fireEvent.press(screen.getByRole("radio", { name: "Cycling" }));
 	expect(mockPages).toHaveBeenLastCalledWith({ sport: "cycling" });
 	await fireEvent.press(screen.getByRole("button", { name: "Log ride" }));
@@ -65,7 +62,7 @@ it("opens endurance details and keeps strength summary navigation", async () => 
 		hasMore: false,
 		loadMore: jest.fn(),
 	});
-	await renderThemed(<ActivityHistoryScreen />);
+	await render(<ActivityHistoryScreen />);
 	await fireEvent.press(screen.getByText("Morning run"));
 	expect(mockPush).toHaveBeenLastCalledWith({
 		pathname: "/endurance/[id]",
@@ -101,7 +98,7 @@ it("derives running pace from totals rather than averaging individual paces", as
 		hasMore: false,
 		loadMore: jest.fn(),
 	});
-	await renderThemed(<EnduranceProgress sport="running" />);
+	await render(<EnduranceProgress sport="running" />);
 	expect(screen.getByText("6:00 /km")).toBeTruthy();
 	expect(screen.queryByText("6:30 /km")).toBeNull();
 });
