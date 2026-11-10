@@ -12,7 +12,6 @@
 			"**/cli/**/*",
 			"convex/**/*",
 			"!convex/_generated",
-			"scripts/setup-worktree*",
 			"scripts/check-mobile-structure*",
 			"**/.vscode/**/*",
 			"**/index.html",

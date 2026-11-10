@@ -1,18 +1,18 @@
 import { ConvexError, v } from "convex/values";
-import { destinationFor } from "../env.manifest";
+import { ENV_CONFIG } from "../env.manifest";
 import { type MutationCtx, mutation, query } from "./_generated/server";
 import { deletePersonalData, personalDataBlocker } from "./lib/personalData";
 import { loadTestDataBaseline } from "./lib/testDataBaseline";
 import { assertDiaryDate } from "./nutritionDiary";
 
 function enabled() {
-	const production = destinationFor("convex-functions", "production");
+	const production = ENV_CONFIG.convex.deployments.production;
 	const cloudUrl = process.env.CONVEX_CLOUD_URL;
 	const issuer = process.env.CLERK_JWT_ISSUER_DOMAIN;
-	if (!cloudUrl || !issuer || production?.kind !== "convex") return false;
+	if (!cloudUrl || !issuer || !production) return false;
 	try {
 		return (
-			new URL(cloudUrl).hostname.split(".")[0] !== production.deployment &&
+			new URL(cloudUrl).hostname.split(".")[0] !== production &&
 			new URL(issuer).hostname.endsWith(".clerk.accounts.dev")
 		);
 	} catch {

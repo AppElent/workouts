@@ -3,8 +3,8 @@
 	"defaultThreadEnvMode": "worktree",
 	"scripts": [
 		{
-			"name": "Copy .env.local into worktree",
-			"command": "node scripts/copy-worktree-env.mjs",
+			"name": "Prepare worktree",
+			"command": "node scripts/workspace.mjs prepare --editor t3",
 			"icon": "configure",
 			"runOnWorktreeCreate": true,
 			"async": false

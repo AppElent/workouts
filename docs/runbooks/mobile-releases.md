@@ -157,7 +157,7 @@ Remove the label to stop rebuilding. Forked PRs never build. The `.ipa` or
 `.apk` is a workflow artifact for 14 days, linked from the run summary. Nothing
 is submitted to a store; TestFlight stays on the cloud flow above.
 
-The `EXPO_TOKEN` repository secret authenticates with EAS. It is needed for the
+The `PREVIEW_EXPO_TOKEN` repository secret (written by `pnpm env:apply preview --only github`) authenticates with EAS. It is needed for the
 project, the profile's EAS environment variables and managed credentials. The
 runner cannot answer signing prompts, so the iOS ad hoc credentials for the
 profile's bundle ID must already exist on EAS, with your device registered

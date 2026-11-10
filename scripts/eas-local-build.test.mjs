@@ -1,5 +1,8 @@
-import * as manifest from "../env.manifest.ts";
+import * as loaded from "../env.manifest.ts";
+import { resolveEnvironmentManifest } from "./lib/env/index.mjs";
 import { easCommands, PROFILES, secretEasPlacements, secretEnv } from "./eas-local-build.mjs";
+
+const manifest = resolveEnvironmentManifest(loaded);
 
 describe("local EAS builds", () => {
 	it("injects only secret values routed to EAS", () => {
@@ -10,7 +13,7 @@ describe("local EAS builds", () => {
 	});
 
 	it("maps source keys to build variable names and reports gaps", () => {
-		const placements = secretEasPlacements(manifest, "preview");
+		const placements = secretEasPlacements(manifest, "staging");
 		expect(secretEnv(placements, { "sentry-auth-token": "token" })).toEqual({
 			env: { SENTRY_AUTH_TOKEN: "token" },
 			missing: [],

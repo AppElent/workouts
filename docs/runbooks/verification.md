@@ -71,7 +71,7 @@ EAS `development` values, and runs the `smoke` flows on an iOS simulator. The
 JUnit report and Maestro logs are uploaded as the `maestro-*` artifact; a failed
 run adds each failed flow's screenshot and view hierarchy, the simulator name and
 runtime (`simulator.txt`), the Metro log, and the final screen.
-It needs only the `EXPO_TOKEN` secret.
+It needs only the `PREVIEW_EXPO_TOKEN` repository secret.
 
 Exercise English/Dutch, supported themes, Dynamic Type XL, native navigation,
 keyboard/dismissal, safe areas, and affected gestures. For nutrition persistence
