@@ -31,7 +31,6 @@ export type ServingInput = {
 	nl: string;
 	amount: string;
 };
-export type { EditorVisual } from "../use-staged-food-visual";
 
 function toText(value: number) {
 	return String(value).replace(".", ",");

@@ -94,5 +94,3 @@ export function useLogFoodTarget(
 		pick,
 	};
 }
-
-export type LogFoodTarget = NonNullable<ReturnType<typeof useLogFoodTarget>>;

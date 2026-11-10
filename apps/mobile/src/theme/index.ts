@@ -1,5 +1,5 @@
 /** One theme entry point. Import from `src/theme`, never from `tokens.ts`. */
-export type { AppearancePreference, ColorScheme } from "./appearance";
+export type { AppearancePreference } from "./appearance";
 export {
 	AppearanceProvider,
 	useAppearance,
@@ -9,7 +9,7 @@ export {
 	useThemedStyles,
 	useTokens,
 } from "./appearance";
-export type { Scheme, SportKey, Tokens } from "./tokens";
+export type { SportKey, Tokens } from "./tokens";
 export {
 	chrome,
 	glyphSize,

@@ -38,7 +38,7 @@ import type { FoodCategory, ServingBasis } from "./types";
  * entry here, and run `pnpm --filter @foundry/core generate:foods`.
  */
 
-export type OverlayServing = {
+type OverlayServing = {
 	/** Serving label, English. Include the household measure — "Glass (200 ml)". */
 	en: string;
 	/** Serving label, Dutch. */

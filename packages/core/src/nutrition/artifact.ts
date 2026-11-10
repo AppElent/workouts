@@ -32,7 +32,7 @@ import type {
  *   "t"     → a trace
  *   null    → absent
  */
-export type WireNutrients = readonly (number | "t" | null)[];
+type WireNutrients = readonly (number | "t" | null)[];
 
 export type WireServing = {
 	readonly en: string;
@@ -43,7 +43,7 @@ export type WireServing = {
 	readonly note?: string;
 };
 
-export type WirePromotion = {
+type WirePromotion = {
 	readonly en: string;
 	readonly nl: string;
 	readonly emoji: string;

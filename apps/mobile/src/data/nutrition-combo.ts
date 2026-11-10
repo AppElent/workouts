@@ -43,7 +43,7 @@ export type ComboPartChoice = {
 	readonly once?: ComboPartSnapshot;
 };
 
-export type ComboLogPart = {
+type ComboLogPart = {
 	readonly part: ComboPart;
 	readonly included: boolean;
 	readonly once?: ComboPartSnapshot;

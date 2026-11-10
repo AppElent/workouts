@@ -18,7 +18,7 @@ import {
 } from "@foundry/core";
 
 export type GroupMode = "rounds" | "amrap";
-export type GroupState = "idle" | "running" | "timeup" | "closed";
+type GroupState = "idle" | "running" | "timeup" | "closed";
 
 export interface LogPayload {
 	exerciseId: string;
@@ -29,14 +29,14 @@ export interface LogPayload {
 	rpe?: number;
 	setType: SetType;
 }
-export interface LogAttempt {
+interface LogAttempt {
 	operationId: string;
 	setNumber: number;
 	payload: LogPayload;
 	/** True once a request left the device; its outcome may still be unknown. */
 	sent: boolean;
 }
-export interface PlanTarget {
+interface PlanTarget {
 	kg: number;
 	reps: number;
 	percent: number | null;
@@ -104,11 +104,6 @@ export interface SessionPlan {
 	restDefault: number;
 }
 
-export interface Reference {
-	value: number;
-	date?: number;
-	source?: string;
-}
 export interface ExerciseFacts {
 	bodyweight: boolean;
 	stepKg: number;
@@ -131,7 +126,7 @@ export interface PlanResult {
 
 const EPSILON = 0.01;
 let counter = 0;
-export function newRowId() {
+function newRowId() {
 	counter += 1;
 	return `r${Date.now().toString(36)}${counter.toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -397,7 +392,7 @@ export interface ServerExercise {
 	exerciseId: string;
 	plannedSets: { reps: number; weight: number; unit: LoadUnit }[];
 }
-export function rowFromServer(set: ServerSet): PlanSet {
+function rowFromServer(set: ServerSet): PlanSet {
 	return {
 		id: newRowId(),
 		exerciseId: set.exerciseId,
@@ -690,7 +685,7 @@ export function fillFromLast(
 
 // --- Open-set edits ---------------------------------------------------------
 
-export function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
+function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
 	const last = facts.last;
 	return {
 		id: newRowId(),
@@ -1399,7 +1394,7 @@ export function swapExercise(
 
 // --- Groups -----------------------------------------------------------------
 
-export const DEFAULT_GROUP_REST = 90;
+const DEFAULT_GROUP_REST = 90;
 const DEFAULT_CAP_MINUTES = 10;
 const isRoundComplete = (round: GroupRound) =>
 	round.items.every((row) => row.done);

@@ -19,7 +19,7 @@ import type { PersonalFood } from "./personal-food-repository";
  * used by Hulp bij invoeren to find candidates for each described item.
  */
 
-export type BaseUnit = "g" | "ml";
+type BaseUnit = "g" | "ml";
 
 export type AssistanceFood = {
 	readonly id: string;

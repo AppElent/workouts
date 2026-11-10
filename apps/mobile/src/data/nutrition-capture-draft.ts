@@ -1,5 +1,6 @@
 import type { MealSlot } from "@foundry/core";
-export type DraftMeal = MealSlot;
+
+type DraftMeal = MealSlot;
 export type CaptureDraft = {
 	readonly id: string;
 	readonly subject: string;

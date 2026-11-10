@@ -34,7 +34,7 @@ import { AppText } from "./text";
 type ToastKind = "error" | "success";
 
 /** One follow-up, such as undo, for a change the person may not have meant. */
-export type ToastAction = { label: string; onPress: () => void };
+type ToastAction = { label: string; onPress: () => void };
 type ToastOptions = { action?: ToastAction };
 type Toast = {
 	id: number;

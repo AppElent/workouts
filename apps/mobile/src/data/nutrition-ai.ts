@@ -35,7 +35,6 @@ export type Described = FunctionReturnType<typeof api.nutritionAi.describe>;
 export type DescribedItem = Described["items"][number];
 export type Choice = FunctionReturnType<typeof api.nutritionAi.choose>[number];
 export type LabelReading = FunctionReturnType<typeof api.nutritionAi.readLabel>;
-export type { ImageInput } from "./nutrition-ai-image";
 
 /** Candidates sent per item; the server accepts up to `NUTRITION_AI_LIMITS.maxCandidates`. */
 const CANDIDATES_PER_ITEM = 12;
@@ -91,7 +90,7 @@ function cookedKcalPer100g(name: string) {
 	return 120;
 }
 
-export type ReviewComponent = {
+type ReviewComponent = {
 	readonly name: string;
 	readonly grams: number;
 	readonly energy: number;
@@ -1045,7 +1044,7 @@ export function itemNutrients(
 }
 
 /** A total and whether any item lacked that figure (unknown is never zero). */
-export type ReviewTotal = {
+type ReviewTotal = {
 	readonly amount: number;
 	readonly known: number;
 	readonly missing: boolean;

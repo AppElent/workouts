@@ -26,5 +26,3 @@ export function useComboTarget(comboId?: string, replacePartId?: string) {
 		},
 	};
 }
-
-export type ComboTarget = NonNullable<ReturnType<typeof useComboTarget>>;

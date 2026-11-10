@@ -30,7 +30,7 @@ import { useSessionScreen } from "../session-screen-context";
 /** At accessibility text sizes a row takes two lines instead of dropping content. */
 export const useLargeText = () => useWindowDimensions().fontScale >= 1.35;
 
-export function oneRmText(
+function oneRmText(
 	row: PlanSet,
 	bodyweight: boolean,
 	locale: string,

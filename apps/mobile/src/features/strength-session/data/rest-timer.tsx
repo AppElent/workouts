@@ -53,7 +53,7 @@ export type RestTimerApi = {
 	restore: (endsAt: number | null) => void;
 	current: () => number | null;
 };
-export type RestState = {
+type RestState = {
 	running: boolean;
 	remaining: number;
 	over: boolean;

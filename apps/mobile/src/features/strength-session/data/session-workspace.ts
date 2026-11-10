@@ -40,7 +40,7 @@ const PLANS = "strength-session-plan:v1";
 const plans = accountKeyspace(PLANS);
 const restDefaults = accountKeyspace("strength-rest-default:v1");
 
-export type NoticeUndo = () => void | Promise<void>;
+type NoticeUndo = () => void | Promise<void>;
 export interface SessionNotice {
 	id: number;
 	text: string;

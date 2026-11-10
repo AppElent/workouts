@@ -22,16 +22,14 @@ import { useConfirm } from "../../ui/confirm-dialog";
 import { useToast } from "../../ui/toast";
 import { useWriteFailureMessage } from "./use-diary-write";
 
-export interface DeleteDiaryEntryRequest {
+interface DeleteDiaryEntryRequest {
 	entry: DiaryEntry;
 	meal: MealSlot;
 	date: string;
 }
 
 /** Resolves `true` only when an entry was actually removed. */
-export type DeleteDiaryEntry = (
-	request: DeleteDiaryEntryRequest,
-) => Promise<boolean>;
+type DeleteDiaryEntry = (request: DeleteDiaryEntryRequest) => Promise<boolean>;
 
 export interface DeleteDiaryEntryApi {
 	deleteEntry: DeleteDiaryEntry;

@@ -16,7 +16,7 @@ import {
 import { en, type Messages } from "./messages/en";
 import { nl } from "./messages/nl";
 
-export { fmt, plural } from "@foundry/core";
+export { fmt } from "@foundry/core";
 export type { Locale, Messages };
 
 /** Holds an explicit language choice; the server reads it for SSR. */

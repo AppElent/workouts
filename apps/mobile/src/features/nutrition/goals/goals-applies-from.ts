@@ -11,7 +11,7 @@ export type GoalVersionSummary = {
 	nextEffectiveFrom: IsoDate | null;
 };
 
-export function formatGoalDay(iso: IsoDate, locale: string): string {
+function formatGoalDay(iso: IsoDate, locale: string): string {
 	try {
 		return isoDateToLocalDate(iso).toLocaleDateString(locale, {
 			day: "numeric",

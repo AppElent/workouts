@@ -67,7 +67,7 @@ function rowToShortcut(row: ShortcutRow): FoodShortcut {
 	};
 }
 
-export class NewerShortcutDatabaseError extends Error {
+class NewerShortcutDatabaseError extends Error {
 	constructor(readonly version: number) {
 		super(
 			`This food shortcut database (${version}) is newer than this app (${DATABASE_VERSION}).`,

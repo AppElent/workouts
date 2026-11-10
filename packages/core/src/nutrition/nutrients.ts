@@ -72,12 +72,6 @@ export function nutrientValue(amount: number): NutrientValue {
 	return Object.freeze({ kind: "value" as const, amount });
 }
 
-export function isValue(
-	value: NutrientValue,
-): value is { kind: "value"; amount: number } {
-	return value.kind === "value";
-}
-
 /**
  * The number a `value` carries, or 0 for trace. Absent has no number at all and
  * returns `undefined` so callers cannot accidentally read it as zero.

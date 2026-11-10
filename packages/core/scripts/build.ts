@@ -51,8 +51,8 @@ import {
  * in a mutated extract; `generate-shipped-foods.ts` is the thin CLI around it.
  */
 
-export const ARTIFACT_SCHEMA_VERSION = 1;
-export const LOCK_SCHEMA_VERSION = 1;
+const ARTIFACT_SCHEMA_VERSION = 1;
+const LOCK_SCHEMA_VERSION = 1;
 
 /**
  * NEVO's 27 food groups mapped onto the ten category keys (spec #68, D16).
@@ -100,9 +100,9 @@ const BEVERAGE_GROUPS = new Set([
 
 // ---------------------------------------------------------------- identity --
 
-export type ReconcileProblemKind = "new" | "changed" | "returning" | "missing";
+type ReconcileProblemKind = "new" | "changed" | "returning" | "missing";
 
-export type ReconcileProblem = {
+type ReconcileProblem = {
 	readonly kind: ReconcileProblemKind;
 	readonly src: ShippedSource;
 	readonly code: number;
@@ -136,7 +136,7 @@ export type ReconcileResult = {
 	readonly retired: readonly string[];
 };
 
-export const LOCK_NOTE =
+const LOCK_NOTE =
 	'Append-only map from source code (NEVO code, or Lidl code under src: "lidl") to permanent shipped: id. Entries are never deleted and ids are never reused. Regenerate with `pnpm --filter @foundry/core generate:foods`.';
 
 export const EMPTY_LOCK: ShippedLock = {
@@ -165,7 +165,7 @@ const SOURCE_LABEL: Record<ShippedSource, string> = {
 };
 
 /** One row of any source, reduced to what identity reconciliation needs. */
-export type SourceRow = {
+type SourceRow = {
 	readonly src: ShippedSource;
 	readonly code: number;
 	readonly nameEn: string;
@@ -414,7 +414,7 @@ function compareBySourceThenCode(
 
 // ---------------------------------------------------------------- artifact --
 
-export type NutrientCell = number | "t" | null;
+type NutrientCell = number | "t" | null;
 
 /**
  * One nutrient cell, keeping NEVO's three states apart.
@@ -423,7 +423,7 @@ export type NutrientCell = number | "t" | null;
  * is a trace, which NEVO writes as zero "to allow calculations". Anything else
  * is a measured figure, including a genuine measured zero.
  */
-export function nutrientCell(row: NevoRow, key: NevoNutrient): NutrientCell {
+function nutrientCell(row: NevoRow, key: NevoNutrient): NutrientCell {
 	const raw = row.cells[key] ?? "";
 	const value = parseNevoNumber(raw);
 	if (value === undefined) return null;
@@ -432,7 +432,7 @@ export function nutrientCell(row: NevoRow, key: NevoNutrient): NutrientCell {
 }
 
 /** Salt from sodium, preserving absence and trace (spec #68, "Nutrients"). */
-export function saltCell(sodium: NutrientCell): NutrientCell {
+function saltCell(sodium: NutrientCell): NutrientCell {
 	if (sodium === null) return null;
 	if (sodium === "t") return "t";
 	// Fixed precision so a float artefact cannot make two identical runs differ.
@@ -441,7 +441,7 @@ export function saltCell(sodium: NutrientCell): NutrientCell {
 	);
 }
 
-export type OverlayProblem = { readonly code: number; readonly detail: string };
+type OverlayProblem = { readonly code: number; readonly detail: string };
 
 function overlayServing(
 	serving: OverlayEntry["servings"][number],
@@ -464,7 +464,7 @@ function overlayServing(
  * row as a top result, and a volume-labelled serving without a stated basis
  * would be a made-up number.
  */
-export function validateOverlay(
+function validateOverlay(
 	overlay: readonly OverlayEntry[],
 	rowsByCode: ReadonlyMap<number, NevoRow>,
 ): OverlayProblem[] {
@@ -529,7 +529,7 @@ export type BuildInput = {
 };
 
 /** The one group every Lidl bake-off product is filed under. */
-export const LIDL_GROUP = {
+const LIDL_GROUP = {
 	key: "lidl-bake-off",
 	en: "Lidl bake-off",
 	nl: "Lidl afbakproducten",

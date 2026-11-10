@@ -47,7 +47,7 @@ import type { ShippedFood, ShippedFoodId, ShippedSource } from "./types";
  * loses all three answers, so they stay separate (spec #68, "Provenance and
  * attribution").
  */
-export type ForkProvenance = Pick<PersonalFoodProvenance, "locallyEdited"> & {
+type ForkProvenance = Pick<PersonalFoodProvenance, "locallyEdited"> & {
 	readonly recordOrigin: "personal";
 	readonly nutritionSource: ShippedSource;
 	readonly forkedFrom: ShippedFoodId;

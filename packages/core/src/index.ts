@@ -70,7 +70,13 @@ export {
 } from "./nutrition/servings";
 export * from "./nutrition/snapshot";
 export * from "./nutrition/snapshot-rescale";
-export type { ShippedFood } from "./nutrition/types";
+export type {
+	ShippedFood,
+	ShippedFoodGroup,
+	ShippedFoodId,
+	ShippedLibraryMeta,
+	ShippedSource,
+} from "./nutrition/types";
 export * from "./nutrition/week";
 export * from "./observability";
 export * from "./oneRepMax";

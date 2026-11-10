@@ -17,7 +17,7 @@ import type { ShippedFood } from "./types";
  */
 export type SearchScope = "promoted" | "all";
 
-export type SearchMatch = "name" | "alias" | "sourceName";
+type SearchMatch = "name" | "alias" | "sourceName";
 
 export type FoodSearchResult = {
 	readonly food: ShippedFood;

@@ -27,21 +27,21 @@ export function mintUuid(): string {
 		.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 }
 
-export class OfflineWriteError extends Error {
+class OfflineWriteError extends Error {
 	constructor() {
 		super("A connection is required to save.");
 		this.name = "OfflineWriteError";
 	}
 }
 
-export class AccountChangedError extends Error {
+class AccountChangedError extends Error {
 	constructor() {
 		super("The account changed while saving.");
 		this.name = "AccountChangedError";
 	}
 }
 
-export type AccountWriteRequest<P, T> = {
+type AccountWriteRequest<P, T> = {
 	/**
 	 * What the write means, without ids it mints: a retry of the same identity
 	 * reuses the operation id and the payload of its first try, so a write the

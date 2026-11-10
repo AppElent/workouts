@@ -2,7 +2,7 @@ import { registerLocalDatabase } from "../local-store/local-store";
 import type { Combo, PersonalFood } from "./personal-food-repository";
 import { portablePersonalFood } from "./personal-food-repository";
 
-export type LibraryRecordKind = "food" | "combo";
+type LibraryRecordKind = "food" | "combo";
 export type LibraryRecord = {
 	readonly subject?: string;
 	readonly id: string;

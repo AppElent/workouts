@@ -60,7 +60,7 @@ export function foodVisualForShippedFood(
 	return preset ? { kind: "icon", preset } : undefined;
 }
 
-export type SQLiteValue = string | number | null | Uint8Array;
+type SQLiteValue = string | number | null | Uint8Array;
 
 /** The synchronous subset shared by expo-sqlite and the real SQLite test adapter. */
 export type SyncSQLiteDatabase = {
@@ -82,15 +82,12 @@ export type {
 	FoodVisual,
 	FoodVisualPresetId,
 	PersonalFood,
-	PersonalFoodClassification,
 	PersonalFoodDraft,
 	PersonalFoodProvenance,
-	PersonalServing,
 } from "@foundry/core";
 export {
 	FOOD_VISUAL_PRESET_IDS,
 	normalizeComboDraft,
-	normalizeFoodVisual,
 	normalizePersonalFoodDraft,
 } from "@foundry/core";
 
@@ -349,9 +346,9 @@ export function openLegacyPersonalFoods(databaseName: string) {
 	);
 }
 
-export type OffCacheKind = "barcode" | "search";
+type OffCacheKind = "barcode" | "search";
 
-export type OffCacheEntry = {
+type OffCacheEntry = {
 	readonly key: string;
 	readonly kind: OffCacheKind;
 	readonly response: unknown;
@@ -399,7 +396,7 @@ function rowToCacheEntry(row: OffCacheRow): OffCacheEntry {
  * `OFF_CACHE_MAX_ENTRIES`, the oldest survivors — so it stays a short-lived
  * request cache, never an offline mirror of the provider's catalogue.
  */
-export const OFF_REQUEST_CACHE_DATABASE_NAME = "workouts-off-cache.db";
+const OFF_REQUEST_CACHE_DATABASE_NAME = "workouts-off-cache.db";
 registerLocalDatabase(OFF_REQUEST_CACHE_DATABASE_NAME);
 
 export function createOpenFoodFactsCache(

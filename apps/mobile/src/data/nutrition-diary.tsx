@@ -27,9 +27,9 @@ import {
 	useRecordFoodUse,
 } from "./nutrition-shortcuts";
 
-export type DiaryTarget = NutritionOperationTarget;
+type DiaryTarget = NutritionOperationTarget;
 
-export type DiaryEntryPatch = Omit<
+type DiaryEntryPatch = Omit<
 	Extract<NutritionDiaryOperation, { kind: "update" }>,
 	"kind" | "target"
 >;

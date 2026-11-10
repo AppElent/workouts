@@ -3,7 +3,7 @@ import { Platform, TextInput, type TextInputInstance } from "react-native";
 import { parseGoalNumber } from "../../../../data/nutrition-goal-history";
 import { radius, type, useTokens } from "../../../../theme";
 
-export function formatGoalInput(value: string, locale: string): string {
+function formatGoalInput(value: string, locale: string): string {
 	const parsed = parseGoalNumber(value);
 	if (parsed === null || Number.isNaN(parsed)) return value;
 	return parsed.toLocaleString(locale, { maximumFractionDigits: 2 });

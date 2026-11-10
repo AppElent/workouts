@@ -17,13 +17,13 @@ const bilingualString = z.string().min(1);
  * spelled out rather than "just leave the slot empty" so a truncated array
  * cannot silently read as a row of absences.
  */
-export const nutrientCellSchema = z.union([
+const nutrientCellSchema = z.union([
 	z.number().finite().nonnegative(),
 	z.literal("t"),
 	z.null(),
 ]);
 
-export const servingSchema = z
+const servingSchema = z
 	.object({
 		en: bilingualString,
 		nl: bilingualString,
@@ -40,7 +40,7 @@ export const servingSchema = z
 		},
 	);
 
-export const promotionSchema = z.object({
+const promotionSchema = z.object({
 	en: bilingualString,
 	nl: bilingualString,
 	emoji: z.string().min(1).max(8),
@@ -62,7 +62,7 @@ function sourceRank(src: string | undefined): number {
 	return src === undefined ? 0 : 1;
 }
 
-export const wireFoodSchema = z.object({
+const wireFoodSchema = z.object({
 	id: z.string().regex(/^shipped:[a-z0-9-]+$/),
 	src: sourceSchema,
 	code: z.number().int().positive(),
@@ -187,7 +187,7 @@ export const shippedArtifactSchema = z
 		}
 	});
 
-export const lockEntrySchema = z.object({
+const lockEntrySchema = z.object({
 	src: sourceSchema,
 	code: z.number().int().positive(),
 	id: z.string().regex(/^shipped:[a-z0-9-]+$/),

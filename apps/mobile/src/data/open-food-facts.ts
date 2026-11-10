@@ -284,7 +284,7 @@ const OFF_FIELD_BY_NUTRIENT: Readonly<
  * both are failure exits back to local Search and Enter manually, but they
  * are different, worth-logging-differently reasons.
  */
-export function mapOffProductToDraft(
+function mapOffProductToDraft(
 	product: OffRawProduct,
 ):
 	| { readonly draft: PersonalFoodDraft }
