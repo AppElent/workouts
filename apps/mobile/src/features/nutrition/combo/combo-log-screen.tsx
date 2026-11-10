@@ -44,7 +44,6 @@ export function ComboLogScreen({
 			toast.success(fmt(copy.logged, { name: combo.name }));
 			onClose();
 		},
-		onFailed: () => toast.error(copy.logFailure),
 	});
 	const once = draft.parts.find(({ part }) => part.id === onceFor);
 	const thisTime = draft.included.reduce(

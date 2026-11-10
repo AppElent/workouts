@@ -73,6 +73,7 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { BarcodeScanner } from "../components/barcode-scanner";
 import type { FoodRowPosition } from "../components/food-row-layout";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
@@ -140,6 +141,7 @@ const SCOPE_CHIPS = [
 
 /** How long a row's + shows ✓ after a quick log. */
 const JUST_LOGGED_MS = 2000;
+const NOTE_WRITE = "note";
 
 /** A new Personal Food with nothing filled in but the name and the barcode. */
 function blankFoodDraft(
@@ -254,6 +256,7 @@ export function LogFoodScreen({
 	const openFoodFacts = useOpenFoodFacts();
 	const confirm = useConfirm();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const offline = useStalledOffline(true);
 	const bottomToolbar = isIOS26OrLater();
@@ -261,8 +264,6 @@ export function LogFoodScreen({
 	const searchInputRef = useRef<TextInputInstance>(null);
 	const seedQuery = initialQuery ?? browserTarget?.initialQuery;
 	const [query, setQuery] = useState(seedQuery ?? "");
-	const [savingNote, setSavingNote] = useState(false);
-	const noteSaveLock = useRef(false);
 	// Read once per mount: a browser whose "Vandaag" target moves under the
 	// person because midnight passed mid-session is worse than one that is
 	// right again on the next visit.
@@ -492,12 +493,10 @@ export function LogFoodScreen({
 			destructive: true,
 		});
 		if (!approved) return;
-		try {
+		await write.run(t.nutrition.personalFood.deleteFailure, async () => {
 			await personalFoods.remove(food.id);
 			setSelectedFood(undefined);
-		} catch {
-			toast.error(t.nutrition.personalFood.deleteFailure);
-		}
+		});
 	}
 
 	async function handleBarcodeScanned(barcode: string) {
@@ -526,9 +525,11 @@ export function LogFoodScreen({
 					? copy.offline
 					: offFailureMessage(outcome.kind, t.nutrition.foodImport, false),
 			);
-		} catch {
+		} catch (error) {
 			setScanning(false);
-			toast.error(t.nutrition.foodImport.unavailable);
+			toast.error(
+				writeFailureMessage(error, t.nutrition.foodImport.unavailable),
+			);
 		} finally {
 			setBarcodeStatus(undefined);
 		}
@@ -549,7 +550,7 @@ export function LogFoodScreen({
 			});
 			if (!approved) return false;
 		}
-		try {
+		const linked = await write.run(copy.barcodeLinkFailure, async () => {
 			const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = food;
 			await personalFoods.update(food.id, {
 				...draft,
@@ -558,10 +559,8 @@ export function LogFoodScreen({
 			setLinkingBarcode(undefined);
 			toast.success(fmt(copy.barcodeLinked, { food: food.name[locale] }));
 			return true;
-		} catch {
-			toast.error(copy.barcodeLinkFailure);
-			return false;
-		}
+		});
+		return linked ?? false;
 	}
 
 	async function openFood(selection: FoodSelection) {
@@ -576,17 +575,14 @@ export function LogFoodScreen({
 	}
 
 	async function saveAsNote() {
-		if (savingNote || noteSaveLock.current) return;
-		noteSaveLock.current = true;
-		setSavingNote(true);
-		try {
-			await drafts.create({ date, meal: selectedMeal, note: query });
-			onClose();
-		} catch {
-			toast.error(t.nutrition.drafts.saveFailure);
-			setSavingNote(false);
-			noteSaveLock.current = false;
-		}
+		await write.run(
+			t.nutrition.drafts.saveFailure,
+			async () => {
+				await drafts.create({ date, meal: selectedMeal, note: query });
+				onClose();
+			},
+			NOTE_WRITE,
+		);
 	}
 
 	function resolveQuickSelection(selection: FoodSelection) {
@@ -1074,7 +1070,7 @@ export function LogFoodScreen({
 						{bottomToolbar && hasQuery && !draftId && !browserTarget ? (
 							<Pressable
 								accessibilityRole="button"
-								disabled={savingNote}
+								disabled={write.isPending(NOTE_WRITE)}
 								onPress={saveAsNote}
 								style={{ minHeight: 44, justifyContent: "center" }}
 							>

@@ -16,7 +16,7 @@ import {
 	FormTextField,
 } from "../../../../ui/form";
 import { AppText } from "../../../../ui/text";
-import { useToast } from "../../../../ui/toast";
+import { useScreenWrite } from "../../../../ui/use-screen-write";
 
 /** Edit an account-owned Capture Draft's text or Meal Slot in a page sheet. */
 export function DiaryDraftEditor({
@@ -29,23 +29,19 @@ export function DiaryDraftEditor({
 	const { t } = useI18n();
 	const copy = t.nutrition.drafts;
 	const drafts = useNutritionDrafts();
-	const toast = useToast();
 	const reduceMotion = useReduceMotion();
 	const [note, setNote] = useState(draft.note);
 	const [meal, setMeal] = useState<MealSlot>(draft.meal);
-	const [saving, setSaving] = useState(false);
+	const screenWrite = useScreenWrite();
+	const saving = screenWrite.busy;
 	const unchanged = note === draft.note && meal === draft.meal;
 
 	async function save() {
 		if (saving || unchanged || !note.trim()) return;
-		setSaving(true);
-		try {
+		await screenWrite.run(copy.saveFailure, async () => {
 			await drafts.update(draft.id, { date: draft.date, meal, note });
 			onClose();
-		} catch {
-			toast.error(copy.saveFailure);
-			setSaving(false);
-		}
+		});
 	}
 
 	return (

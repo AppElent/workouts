@@ -1,6 +1,6 @@
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import {
 	comboSourceKey,
@@ -17,6 +17,7 @@ import { InsetList, InsetRow } from "../../../ui/inset-list";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import { FoodVisualView } from "../components/food-visual";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionEnergyValue } from "../components/nutrition-energy-value";
@@ -43,29 +44,21 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 	const library = usePersonalFoods({ ids: [comboId] });
 	const shortcuts = useFoodShortcuts();
 	const [renaming, setRenaming] = useState(false);
-	const writeLock = useRef(false);
-	const [saving, setSaving] = useState(false);
+	const screenWrite = useScreenWrite();
+	const saving = screenWrite.busy;
 	const combo = library.findCombo(comboId);
 
 	if (!combo) return null;
 	const favoriteKey = comboSourceKey(combo.id);
 	const favorite = Boolean(shortcuts.get(favoriteKey)?.favorite);
 
-	const write = async (next: Combo) => {
-		if (writeLock.current) return false;
-		writeLock.current = true;
-		setSaving(true);
-		try {
-			await library.updateCombo(combo.id, comboDraft(next));
-			return true;
-		} catch {
-			toast.error(copy.saveFailure);
-			return false;
-		} finally {
-			writeLock.current = false;
-			setSaving(false);
-		}
-	};
+	const write = async (next: Combo) =>
+		Boolean(
+			await screenWrite.run(copy.saveFailure, async () => {
+				await library.updateCombo(combo.id, comboDraft(next));
+				return true;
+			}),
+		);
 	const openPart = (partId: string) =>
 		router.push({
 			pathname: "/nutrition-combo-part",
@@ -93,11 +86,8 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 		name?.trim() ? write({ ...combo, name: name.trim() }) : false;
 	// Keep the edited name visible when the server cannot acknowledge it.
 	const rename = () => setRenaming(true);
-	const duplicate = async () => {
-		if (writeLock.current) return;
-		writeLock.current = true;
-		setSaving(true);
-		try {
+	const duplicate = () =>
+		screenWrite.run(copy.saveFailure, async () => {
 			const draft = comboDraft(combo);
 			const copyOf = await library.createCombo({
 				name: `${combo.name}${copy.copySuffix}`,
@@ -107,13 +97,7 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 				pathname: "/nutrition-combo/[id]",
 				params: { id: copyOf.id },
 			});
-		} catch {
-			toast.error(copy.saveFailure);
-		} finally {
-			writeLock.current = false;
-			setSaving(false);
-		}
-	};
+		});
 	const remove = async () => {
 		const ok = await confirm({
 			title: t.nutrition.combos.deleteTitle,
@@ -123,18 +107,10 @@ export function ComboEditorScreen({ comboId }: { comboId: string }) {
 			destructive: true,
 		});
 		if (!ok) return;
-		if (writeLock.current) return;
-		writeLock.current = true;
-		setSaving(true);
-		try {
+		await screenWrite.run(copy.saveFailure, async () => {
 			await library.removeCombo(combo.id);
 			router.back();
-		} catch {
-			toast.error(copy.saveFailure);
-		} finally {
-			writeLock.current = false;
-			setSaving(false);
-		}
+		});
 	};
 	const logCombo = () =>
 		router.push({

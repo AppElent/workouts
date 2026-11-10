@@ -4,11 +4,11 @@ import {
 	type NutrientKey,
 	roundForDisplay,
 } from "@foundry/core";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
-import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
 import { fmt, useI18n } from "../../../i18n";
+import { useDiaryWrite } from "../use-diary-write";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 import { type OneOffBasis, oneOffNutrients } from "./one-off-values";
@@ -27,20 +27,17 @@ export function useOneOffDraft({
 	meal,
 	seed,
 	onLogged,
-	onFailed,
 }: {
 	date: string;
 	meal: MealSlot;
 	/** Name and photo carried over from a Personal food or Recipe form. */
 	seed?: FoodAuthoringSeed;
 	onLogged: (date: string) => void;
-	/** Logging failed; the form stays open with its values. */
-	onFailed: () => void;
 }) {
 	const { locale, t } = useI18n();
 	const copy = t.nutrition.oneOff;
 	const photoCopy = t.nutrition.foodEditor.form;
-	const diary = useNutritionDiary();
+	const write = useDiaryWrite();
 	const [touched, setTouched] = useState(false);
 	const touch = () => setTouched(true);
 	const photo = useStagedFoodVisual({
@@ -83,8 +80,7 @@ export function useOneOffDraft({
 		amount?: string;
 		values?: string;
 	}>({});
-	const [logging, setLogging] = useState(false);
-	const lock = useRef(false);
+	const logging = write.busy;
 	const amountValue = parseFoodNumber(amount);
 	const amountValid = Number.isFinite(amountValue) && amountValue > 0;
 	const anyValue = NUTRIENT_KEYS.some((key) => values[key].kind !== "absent");
@@ -114,7 +110,7 @@ export function useOneOffDraft({
 			: undefined;
 
 	async function log() {
-		if (lock.current) return;
+		if (logging) return;
 		const next = {
 			name: name.trim() ? undefined : copy.nameRequired,
 			amount: amountValid ? undefined : copy.invalidAmount,
@@ -122,14 +118,10 @@ export function useOneOffDraft({
 		};
 		setErrors(next);
 		if (next.name || next.amount || next.values || !nutrients) return;
-		lock.current = true;
-		setLogging(true);
-		try {
-			const visual =
-				photo.visual && photo.visual.kind !== "remote"
-					? photo.visual
-					: undefined;
-			await diary.log(
+		const visual =
+			photo.visual && photo.visual.kind !== "remote" ? photo.visual : undefined;
+		const logged = await write.run(copy.logFailure, (diary) =>
+			diary.log(
 				oneOffLogSnapshot({
 					date: destination.date,
 					meal: destination.meal,
@@ -139,15 +131,11 @@ export function useOneOffDraft({
 					nutrients,
 					...(visual ? { visual } : {}),
 				}),
-			);
-			photo.keep();
-			onLogged(destination.date);
-		} catch {
-			onFailed();
-		} finally {
-			lock.current = false;
-			setLogging(false);
-		}
+			),
+		);
+		if (!logged) return;
+		photo.keep();
+		onLogged(destination.date);
 	}
 
 	return {

@@ -21,6 +21,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { LocalDataSettingsPanel } from "./local-data-settings-panel";
 
 export function NutritionSettingsScreen() {
@@ -31,6 +32,7 @@ export function NutritionSettingsScreen() {
 	const foods = usePersonalFoods();
 	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const confirm = useConfirm();
 	const [offRefreshing, setOffRefreshing] = useState(false);
 	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
@@ -57,8 +59,8 @@ export function NutritionSettingsScreen() {
 				onProgress: setOffProgress,
 				onPhotoFailure: () => toast.error(copy.offPhotoFailure),
 			});
-		} catch {
-			toast.error(copy.failure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, copy.failure));
 		} finally {
 			setOffRefreshing(false);
 		}

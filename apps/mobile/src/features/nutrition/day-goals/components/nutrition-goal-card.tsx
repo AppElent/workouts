@@ -38,6 +38,7 @@ import {
 import { GroupedSurface } from "../../../../ui/form";
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
+import { useWriteFailureMessage } from "../../../../ui/use-screen-write";
 
 import {
 	displayAmount,
@@ -318,6 +319,7 @@ export function NutritionGoalCard({
 	const reduceMotion = useReduceMotion();
 	const { fontScale } = useWindowDimensions();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const setDisplayOrder = useSetNutritionDisplayOrder();
 	const stackedRows = fontScale >= 1.6;
 	const activeOrder = reordering ? draftOrder : savedOrder;
@@ -431,8 +433,8 @@ export function NutritionGoalCard({
 			draftOrderRef.current = submittedOrder;
 			setExpanded(false);
 			setReordering(false);
-		} catch {
-			toast.error(t.nutrition.goals.reorderFailure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, t.nutrition.goals.reorderFailure));
 		} finally {
 			saveInFlight.current = false;
 			setPending(false);

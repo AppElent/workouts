@@ -12,6 +12,7 @@ import { useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 
 export type AcceptedCombo = { combo: Combo; input: string };
 
@@ -43,16 +44,14 @@ export function ComboNewScreen({
 	const toast = useToast();
 	const library = usePersonalFoods();
 	const [name, setName] = useState("");
-	const [saving, setSaving] = useState(false);
-	const saveLock = useRef(false);
+	const screenWrite = useScreenWrite();
+	const saving = screenWrite.busy;
 	const ownAccepted = useRef<AcceptedCombo | undefined>(undefined);
 	const accepted = acceptedRef ?? ownAccepted;
 	const canSave = name.trim().length > 0 && parts.length > 0 && !saving;
 	const save = async () => {
-		if (!canSave || saveLock.current) return;
-		saveLock.current = true;
-		setSaving(true);
-		try {
+		if (!canSave) return;
+		await screenWrite.run(t.nutrition.combos.saveFailure, async () => {
 			const input = { name: name.trim(), parts };
 			const inputKey = canonicalJson(input);
 			const previous = accepted.current;
@@ -62,11 +61,7 @@ export function ComboNewScreen({
 					: await library.updateCombo(previous.combo.id, input)
 				: await library.createCombo(input);
 			accepted.current = { combo, input: inputKey };
-			if ((await onCreated?.(combo)) === false) {
-				saveLock.current = false;
-				setSaving(false);
-				return;
-			}
+			if ((await onCreated?.(combo)) === false) return;
 			toast.success(t.nutrition.combos.saved);
 			if (onSaved) onSaved(combo);
 			else
@@ -74,11 +69,7 @@ export function ComboNewScreen({
 					pathname: "/nutrition-combo/[id]",
 					params: { id: combo.id },
 				});
-		} catch {
-			toast.error(t.nutrition.combos.saveFailure);
-			setSaving(false);
-			saveLock.current = false;
-		}
+		});
 	};
 	return (
 		<>

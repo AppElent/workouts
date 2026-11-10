@@ -19,11 +19,14 @@ import {
 } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
+import { useScreenWrite } from "../../ui/use-screen-write";
 import { useAccountDeletion } from "../local-data/account-data-maintenance-provider";
 import { exportAccountData } from "./account-export";
 import { revokeAppleSignIn } from "./apple-revocation";
 
 const PRIVACY_STATEMENT_URL = "https://foundry.appelent.nl/privacy";
+const ACCOUNT_TASKS = ["name", "photo", "export"] as const;
+type AccountTask = (typeof ACCOUNT_TASKS)[number];
 
 export function AccountScreen() {
 	const { user } = useUser();
@@ -38,8 +41,10 @@ export function AccountScreen() {
 	const blocker = useQuery(api.account.deletionBlocker, {});
 	const [firstName, setFirstName] = useState(user?.firstName ?? "");
 	const [lastName, setLastName] = useState(user?.lastName ?? "");
-	const [busy, setBusy] = useState<"name" | "photo" | "export" | null>(null);
-	const pending = useRef(false);
+	const screenWrite = useScreenWrite();
+	const busy =
+		ACCOUNT_TASKS.find((task) => screenWrite.isPending(task)) ?? null;
+	const deletionPending = useRef(false);
 
 	if (!user) return null;
 	const name = user.fullName || user.username || t.profile.account;
@@ -59,23 +64,11 @@ export function AccountScreen() {
 		),
 	];
 
-	async function run(
-		task: "name" | "photo" | "export",
+	const run = (
+		task: AccountTask,
 		work: () => Promise<unknown>,
 		failure: string,
-	) {
-		if (pending.current) return;
-		pending.current = true;
-		setBusy(task);
-		try {
-			await work();
-		} catch {
-			toast.error(failure);
-		} finally {
-			pending.current = false;
-			setBusy(null);
-		}
-	}
+	) => screenWrite.run(failure, work, { key: [task, "account"] });
 
 	const saveName = () =>
 		run(
@@ -125,8 +118,8 @@ export function AccountScreen() {
 		);
 
 	async function requestDeletion(mode: "deleteData" | "deleteAccount") {
-		if (pending.current) return;
-		pending.current = true;
+		if (deletionPending.current) return;
+		deletionPending.current = true;
 		try {
 			const confirmed = await confirm({
 				title: mode === "deleteData" ? c.deleteData : c.deleteAccount,
@@ -144,7 +137,7 @@ export function AccountScreen() {
 				return;
 			deleteAccountData(mode);
 		} finally {
-			pending.current = false;
+			deletionPending.current = false;
 		}
 	}
 

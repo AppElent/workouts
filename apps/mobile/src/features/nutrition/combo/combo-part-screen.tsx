@@ -4,6 +4,7 @@ import type { ComboPartDraft } from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { ComboPartEditor } from "./combo-part-editor";
 import { comboDraft, comboTotals, snapshotEnergy } from "./combo-parts";
 
@@ -23,6 +24,7 @@ export function ComboPartScreen({
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.comboEditor;
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const library = usePersonalFoods({ ids: [comboId] });
 	const combo = library.findCombo(comboId);
 	const part = combo?.parts.find((item) => item.id === partId);
@@ -53,8 +55,8 @@ export function ComboPartScreen({
 							item.id === part.id ? { ...item, snapshot } : item,
 						),
 					);
-				} catch {
-					toast.error(copy.saveFailure);
+				} catch (error) {
+					toast.error(writeFailureMessage(error, copy.saveFailure));
 				}
 			}}
 			onRemove={async () => {
@@ -73,8 +75,8 @@ export function ComboPartScreen({
 							},
 						},
 					);
-				} catch {
-					toast.error(copy.saveFailure);
+				} catch (error) {
+					toast.error(writeFailureMessage(error, copy.saveFailure));
 				}
 			}}
 			onReplace={() => {

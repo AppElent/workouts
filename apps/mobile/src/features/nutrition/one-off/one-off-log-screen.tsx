@@ -19,7 +19,6 @@ import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { AppText } from "../../../ui/text";
-import { useToast } from "../../../ui/toast";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import {
 	FoodFormCard,
@@ -63,7 +62,6 @@ export function OneOffLogScreen({
 	const router = useRouter();
 	const navigation = useNavigation();
 	const confirm = useConfirm();
-	const toast = useToast();
 	const authoring = useFoodAuthoringIntent();
 	const drafts = useNutritionDrafts({
 		startDate: date,
@@ -93,7 +91,6 @@ export function OneOffLogScreen({
 			requestDiaryDate(loggedDate);
 			setExit(() => () => router.dismissTo("/nutrition"));
 		},
-		onFailed: () => toast.error(copy.logFailure),
 	});
 	const [today] = useState(todayIsoDate);
 	const [choosingDay, setChoosingDay] = useState(false);

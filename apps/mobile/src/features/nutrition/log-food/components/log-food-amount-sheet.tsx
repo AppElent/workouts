@@ -22,6 +22,7 @@ import { spacing, useTokens } from "../../../../theme";
 import { GlassSurface } from "../../../../ui/glass-surface";
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
+import { useWriteFailureMessage } from "../../../../ui/use-screen-write";
 import { AmountDestination } from "../../components/amount-destination";
 import { AmountEditor } from "../../components/amount-editor";
 import { AmountEditorHeader } from "../../components/amount-editor-header";
@@ -78,6 +79,7 @@ export function LogFoodAmountSheet({
 	const { t, locale } = useI18n();
 	const colors = useTokens();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const diary = useNutritionDiary();
 	const shortcuts = useFoodShortcuts();
 	const measures = usePersonalMeasures();
@@ -152,8 +154,10 @@ export function LogFoodAmountSheet({
 			);
 			haptics.entryLogged();
 			onLogged(outcome);
-		} catch {
-			toast.error(t.nutrition.foodBrowser.logFailure);
+		} catch (error) {
+			toast.error(
+				writeFailureMessage(error, t.nutrition.foodBrowser.logFailure),
+			);
 		} finally {
 			lock.current = false;
 			setLogging(false);

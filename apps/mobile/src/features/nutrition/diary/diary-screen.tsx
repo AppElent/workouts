@@ -28,6 +28,10 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { useTabBarVisibility } from "../../../ui/tab-bar-visibility";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import {
+	useScreenWrite,
+	useWriteFailureMessage,
+} from "../../../ui/use-screen-write";
 import { NutritionHeaderMenu } from "../components/nutrition-header-menu";
 import { useDeleteDiaryEntry } from "../use-delete-diary-entry";
 import { DiaryDatePicker } from "./components/diary-date-picker";
@@ -45,6 +49,7 @@ export function DiaryScreen() {
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const today = useToday();
 	const [date, setDate] = useState(today);
 	// Someone looking at "today" when midnight passes means the new today.
@@ -66,7 +71,8 @@ export function DiaryScreen() {
 	const [showTools, setShowTools] = useState(false);
 	const [selecting, setSelecting] = useState(false);
 	const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-	const [deleting, setDeleting] = useState(false);
+	const screenWrite = useScreenWrite();
+	const deleting = screenWrite.busy;
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
@@ -184,17 +190,12 @@ export function DiaryScreen() {
 			}))
 		)
 			return;
-		setDeleting(true);
-		try {
+		await screenWrite.run(t.nutrition.error.body, async () => {
 			await diary.removeBatch(
 				selectedEntries.map((e) => ({ kind: "serverId", id: e.id })),
 			);
 			endSelection();
-		} catch {
-			toast.error(t.nutrition.error.body);
-		} finally {
-			setDeleting(false);
-		}
+		});
 	};
 	const add = (meal: MealSlot) =>
 		router.push({ pathname: "/nutrition-food", params: { meal, date } });
@@ -386,8 +387,13 @@ export function DiaryScreen() {
 											try {
 												if (!(await drafts.remove(draft.id)))
 													toast.error(t.nutrition.drafts.deleteFailure);
-											} catch {
-												toast.error(t.nutrition.drafts.deleteFailure);
+											} catch (error) {
+												toast.error(
+													writeFailureMessage(
+														error,
+														t.nutrition.drafts.deleteFailure,
+													),
+												);
 											}
 										}
 									});

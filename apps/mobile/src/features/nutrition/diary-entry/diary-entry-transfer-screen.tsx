@@ -34,7 +34,7 @@ import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { useWriteFailureMessage } from "../use-diary-write";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 type TransferMode = "copy" | "move";
 

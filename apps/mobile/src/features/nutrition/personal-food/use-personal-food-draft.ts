@@ -21,6 +21,7 @@ import {
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 
@@ -112,8 +113,8 @@ export function usePersonalFoodDraft({
 	const [nutrients, setNutrients] = useState(() => initialNutrients(initial));
 	const [servings, setServings] = useState(() => initialServings(initial));
 	const nextServingKey = useRef(servings.length);
-	const [saving, setSaving] = useState(false);
-	const saveLock = useRef(false);
+	const screenWrite = useScreenWrite();
+	const saving = screenWrite.busy;
 	const [touched, setTouched] = useState(false);
 	/**
 	 * Provider details from an Open Food Facts refresh, and whether the person
@@ -237,7 +238,7 @@ export function usePersonalFoodDraft({
 
 	/** Returns false when the draft is not valid; the caller scrolls to the name. */
 	async function save(): Promise<boolean> {
-		if (saving || saveLock.current) return true;
+		if (saving) return true;
 		setNameError(undefined);
 		if (!name.trim() || name.trim().length > 500) {
 			setNameError(name.trim() ? copy.nameTooLong : copy.nameRequired);
@@ -250,31 +251,33 @@ export function usePersonalFoodDraft({
 			toast.error(t.nutrition.personalFood.validation);
 			return false;
 		}
-		saveLock.current = true;
-		setSaving(true);
-		await Promise.resolve();
-		let importedPhoto: FoodVisual | undefined;
-		let saved: PersonalFood | undefined;
-		try {
-			if (visual?.kind === "remote" && remoteCrop !== "center") {
-				try {
-					importedPhoto = await foodPhotos.importRemote(visual.uri, remoteCrop);
-					draft = { ...draft, visual: importedPhoto };
-				} catch {
-					toast.error(copy.importPhotoFailure);
+		const saved = await screenWrite.run(
+			t.nutrition.personalFood.saveFailure,
+			async () => {
+				let importedPhoto: FoodVisual | undefined;
+				if (visual?.kind === "remote" && remoteCrop !== "center") {
+					try {
+						importedPhoto = await foodPhotos.importRemote(
+							visual.uri,
+							remoteCrop,
+						);
+						draft = { ...draft, visual: importedPhoto };
+					} catch {
+						toast.error(copy.importPhotoFailure);
+					}
 				}
-			}
-			saved = food
-				? await personalFoods.update(food.id, draft)
-				: await personalFoods.create(draft);
-			photo.keep();
-		} catch {
-			if (importedPhoto) foodPhotos.remove(importedPhoto);
-			toast.error(t.nutrition.personalFood.saveFailure);
-		} finally {
-			saveLock.current = false;
-			setSaving(false);
-		}
+				try {
+					const result = food
+						? await personalFoods.update(food.id, draft)
+						: await personalFoods.create(draft);
+					photo.keep();
+					return result;
+				} catch (error) {
+					if (importedPhoto) foodPhotos.remove(importedPhoto);
+					throw error;
+				}
+			},
+		);
 		if (saved) {
 			setTouched(false);
 			onSaved(saved);

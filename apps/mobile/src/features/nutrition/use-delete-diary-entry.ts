@@ -13,14 +13,13 @@
  */
 
 import type { MealSlot } from "@foundry/core";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { DiaryEntry } from "../../data/nutrition-day";
 import { useNutritionDiary } from "../../data/nutrition-diary";
 import { formatLongDate } from "../../dates/calendar-day";
 import { fmt, useI18n } from "../../i18n";
 import { useConfirm } from "../../ui/confirm-dialog";
-import { useToast } from "../../ui/toast";
-import { useWriteFailureMessage } from "./use-diary-write";
+import { useScreenWrite } from "../../ui/use-screen-write";
 
 interface DeleteDiaryEntryRequest {
 	entry: DiaryEntry;
@@ -43,11 +42,10 @@ export interface DeleteDiaryEntryApi {
 
 export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 	const { t, locale } = useI18n();
-	const toast = useToast();
 	const confirm = useConfirm();
 	const diary = useNutritionDiary();
-	const writeFailureMessage = useWriteFailureMessage();
-	const [deleting, setDeleting] = useState(false);
+	const screenWrite = useScreenWrite();
+	const { run } = screenWrite;
 
 	const deleteEntry = useCallback(
 		async ({ entry, meal, date }: DeleteDiaryEntryRequest) => {
@@ -65,21 +63,17 @@ export function useDeleteDiaryEntry(): DeleteDiaryEntryApi {
 				destructive: true,
 			});
 			if (!confirmed) return false;
-			setDeleting(true);
-			try {
-				await diary.remove({ kind: "serverId", id: entry.id });
-				return true;
-			} catch (error) {
-				toast.error(
-					writeFailureMessage(error, t.nutrition.entryEditor.deleteFailure),
-				);
-				return false;
-			} finally {
-				setDeleting(false);
-			}
+			const removed = await run(
+				t.nutrition.entryEditor.deleteFailure,
+				async () => {
+					await diary.remove({ kind: "serverId", id: entry.id });
+					return true;
+				},
+			);
+			return removed ?? false;
 		},
-		[confirm, diary, locale, t, toast, writeFailureMessage],
+		[confirm, diary, locale, run, t],
 	);
 
-	return { deleteEntry, deleting };
+	return { deleteEntry, deleting: screenWrite.busy };
 }

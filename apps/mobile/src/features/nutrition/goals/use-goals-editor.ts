@@ -9,7 +9,7 @@ import {
 	type NutrientKey,
 } from "@foundry/core";
 import { useMutation } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
@@ -28,6 +28,7 @@ import {
 import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import type { GoalVersionSummary } from "./goals-applies-from";
 
 /** `nutrient.direction` → the preset a bound was copied from, if unchanged since. */
@@ -97,8 +98,8 @@ export function useGoalsEditor({
 	const [baseline, setBaseline] = useState<GoalDraft | null>(null);
 	const [started, setStarted] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
-	const [pending, setPending] = useState(false);
-	const saving = useRef(false);
+	const screenWrite = useScreenWrite();
+	const pending = screenWrite.busy;
 	const dirty = baseline !== null && !goalDraftEquals(draft.values, baseline);
 
 	// Keyed on content: a refreshed but identical response must not reset anything.
@@ -181,7 +182,7 @@ export function useGoalsEditor({
 	};
 
 	const save = async () => {
-		if (saving.current) return;
+		if (pending) return;
 		const parsed = draftToGoals(draft.values);
 		if (parsed.errors.length > 0) {
 			const next: Record<string, string> = {};
@@ -195,25 +196,20 @@ export function useGoalsEditor({
 			toast.error(plural(locale, count, copy.invalidCount));
 			return order.find((nutrient) => next[nutrient]);
 		}
-		saving.current = true;
-		setPending(true);
-		try {
-			await replace({
-				goals: parsed.goals.map((goal) => ({
-					...goal,
-					sourcePreset: draft.sources[`${goal.nutrient}.${goal.direction}`],
-				})),
-				effectiveFrom: date,
-			});
-			onSaved();
-		} catch {
-			toast.error(copy.failure, {
-				action: { label: copy.retry, onPress: () => void save() },
-			});
-		} finally {
-			saving.current = false;
-			setPending(false);
-		}
+		await screenWrite.run(
+			copy.failure,
+			async () => {
+				await replace({
+					goals: parsed.goals.map((goal) => ({
+						...goal,
+						sourcePreset: draft.sources[`${goal.nutrient}.${goal.direction}`],
+					})),
+					effectiveFrom: date,
+				});
+				onSaved();
+			},
+			{ failureAction: { label: copy.retry, onPress: () => void save() } },
+		);
 		return undefined;
 	};
 
