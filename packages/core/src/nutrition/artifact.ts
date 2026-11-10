@@ -142,7 +142,7 @@ function decodeServings(
 	}));
 }
 
-export function decodeFood(
+function decodeFood(
 	wire: WireFood,
 	order: readonly ShippedNutrientKey[],
 ): ShippedFood {

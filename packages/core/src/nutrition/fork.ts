@@ -126,7 +126,7 @@ export function forkSource(food: ForkRef): ShippedFood | undefined {
  * repository's own order, which is most-recently-updated first, so the fork the
  * user touched last is the one their search surfaces.
  */
-export function forkShadows<L extends LocalFoodLike>(
+function forkShadows<L extends LocalFoodLike>(
 	localFoods: readonly L[],
 ): Map<string, L> {
 	const shadows = new Map<string, L>();

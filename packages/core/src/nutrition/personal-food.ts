@@ -195,7 +195,7 @@ function isFoodPhotoStorageId(value: unknown): value is FoodPhotoStorageId {
 }
 
 /** A Food Visual as stored, or `undefined` for none. Throws `RuleError` on field `visual`. */
-export function normalizeFoodVisual(value: unknown): FoodVisual | undefined {
+function normalizeFoodVisual(value: unknown): FoodVisual | undefined {
 	if (value === undefined || value === null) return undefined;
 	if (typeof value !== "object" || !("kind" in value))
 		fail("visual", "invalid");
