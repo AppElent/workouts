@@ -3,7 +3,6 @@ export type { AppearancePreference, ColorScheme } from "./appearance";
 export {
 	AppearanceProvider,
 	useAppearance,
-	useHostScheme,
 	useScheme,
 	useSportColors,
 	useSportMeta,
@@ -13,10 +12,7 @@ export {
 export type { Scheme, SportKey, Tokens } from "./tokens";
 export {
 	chrome,
-	colors,
-	colorsLight,
 	metrics,
-	motion,
 	opacity,
 	radius,
 	spacing,

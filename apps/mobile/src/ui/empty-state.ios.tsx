@@ -7,7 +7,7 @@
  */
 import { ContentUnavailableView, Host } from "@expo/ui/swift-ui";
 import { StyleSheet, View } from "react-native";
-import { spacing, useHostScheme, useTokens } from "../theme";
+import { spacing, useScheme, useTokens } from "../theme";
 import { GhostButton } from "./button";
 import {
 	type EmptyStateProps,
@@ -18,7 +18,7 @@ export type { EmptyStateProps };
 
 export function EmptyState(props: EmptyStateProps) {
 	const tokens = useTokens();
-	const scheme = useHostScheme();
+	const scheme = useScheme();
 	if (props.appearance !== "search") return <FallbackEmptyState {...props} />;
 	return (
 		<View style={styles.search}>

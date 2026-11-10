@@ -12,7 +12,7 @@ import {
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet, View } from "react-native";
-import { useHostScheme, useTokens } from "../theme";
+import { useScheme, useTokens } from "../theme";
 import type { ProgressRingProps } from "./progress-ring.types";
 import { AppText } from "./text";
 
@@ -29,7 +29,7 @@ export function ProgressRing({
 	size = 64,
 }: ProgressRingProps) {
 	const tokens = useTokens();
-	const scheme = useHostScheme();
+	const scheme = useScheme();
 	return (
 		<View style={{ width: size, alignItems: "center", gap: 2 }}>
 			<Host

@@ -4,17 +4,12 @@ import { PREFERENCE_KEYS, removeLocal } from "../local-store/local-store";
 import { renderThemed as render } from "../test-support/render-themed";
 import { SportIcon } from "../ui/coach";
 import { AppText } from "../ui/text";
-import {
-	colors,
-	colorsLight,
-	sportMeta,
-	useHostScheme,
-	useTokens,
-} from "./index";
+import { sportMeta, useScheme, useTokens } from "./index";
+import { darkColors, lightColors } from "./tokens";
 
 function Probe() {
 	const tokens = useTokens();
-	const host = useHostScheme();
+	const host = useScheme();
 	return (
 		<ReactNative.Text testID="probe">{`${tokens.bg}|${host}`}</ReactNative.Text>
 	);
@@ -33,11 +28,10 @@ describe("scheme plumbing follows the device by default", () => {
 		async (mode) => {
 			scheme.mockReturnValue(mode);
 			await render(<Probe />);
-			const tokens = mode === "dark" ? colors : colorsLight;
+			const tokens = mode === "dark" ? darkColors : lightColors;
 			expect(screen.getByTestId("probe").props.children).toBe(
 				`${tokens.bg}|${mode}`,
 			);
-			expect(colorsLight.bg).not.toBe(colors.bg);
 		},
 	);
 
@@ -56,8 +50,8 @@ describe("scheme plumbing follows the device by default", () => {
 		);
 		const flat = (id: string) =>
 			ReactNative.StyleSheet.flatten(screen.getByTestId(id).props.style);
-		expect(flat("body").color).toBe(colorsLight.text);
-		expect(flat("muted").color).toBe(colorsLight.textMuted);
+		expect(flat("body").color).toBe(lightColors.text);
+		expect(flat("muted").color).toBe(lightColors.textMuted);
 		expect(flat("override").color).toBe("#123456");
 	});
 

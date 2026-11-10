@@ -39,7 +39,6 @@ type AppearanceValue = {
 
 const AppearanceContext = createContext<AppearanceValue | null>(null);
 
-/** Phone-local preference, available before auth and before the first frame. */
 /** React Native Web has no native appearance to override. */
 function overrideNativeScheme(preference: AppearancePreference) {
 	if (Platform.OS === "web") return;
@@ -108,9 +107,6 @@ export function useThemedStyles<T>(createStyles: (colors: Tokens) => T): T {
 /** Native hosts and React content must use the same persisted appearance. */
 export function useScheme(): ColorScheme {
 	return useAppearance().scheme;
-}
-export function useHostScheme(): ColorScheme {
-	return useScheme();
 }
 export function useSportColors(sport: SportKey) {
 	const { color, dim } = useSportMeta()[sport];
