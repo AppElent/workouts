@@ -10,7 +10,7 @@
  *
  * **Best effort, reported.** A store that will not open is a phone that
  * forgets, which is a fallback rather than an error: reads come back empty
- * (`readLocal`) or `{ ok: false }` (`readLocalResult`), writes return `false`.
+ * (`readLocal`) or `{ ok: false }` (`readLocalJson`), writes return `false`.
  * Every failure is reported once per operation and launch, without the key
  * (account keys can hold food text).
  *
@@ -55,7 +55,7 @@ function failed(operation: string, error: unknown) {
 export type LocalRead<T> = { ok: true; value: T | null } | { ok: false };
 
 /** What is stored under `key`; `{ ok: false }` when the store failed. */
-export function readLocalResult(key: LocalKey): LocalRead<string> {
+function readLocalResult(key: LocalKey): LocalRead<string> {
 	try {
 		return { ok: true, value: Storage.getItemSync(key) };
 	} catch (error) {
@@ -114,7 +114,7 @@ export function removeLocal(key: LocalKey): boolean {
 }
 
 /** Something an account leaves on this phone, cleared when that account's data is reset. */
-export interface AccountStore {
+interface AccountStore {
 	readonly name: string;
 	/** Throws when the data could not be removed; the reset then reports a failure. */
 	clear(subject: string): void;
@@ -144,7 +144,7 @@ export function clearAccountStores(subject: string) {
 	if (first !== undefined) throw first;
 }
 
-export interface AccountKeyspace {
+interface AccountKeyspace {
 	/** `<prefix>:<subject>[:<part>…]` */
 	key(subject: string, ...parts: string[]): LocalKey;
 	/** Removes every key of this keyspace that belongs to `subject`. */
@@ -168,13 +168,6 @@ export function accountKeyspace(prefix: string): AccountKeyspace {
 	};
 	registerAccountStore({ name: prefix, clear: keyspace.clear });
 	return keyspace;
-}
-
-/** Keys that belong to this phone rather than to an account: `<prefix>[:<part>…]`. */
-export function deviceKeyspace(prefix: string) {
-	return {
-		key: (...parts: string[]) => asKey([prefix, ...parts].join(":")),
-	};
 }
 
 /** `expo-sqlite/kv-store`'s own database file. */
