@@ -29,7 +29,7 @@ the Apple revocation key below.
 | Clerk redirect URI, production (all providers, all apps) | `https://clerk.appelent.nl/v1/oauth_callback` |
 | Clerk redirect URI, development | `https://calm-cricket-82.clerk.accounts.dev/v1/oauth_callback` |
 | Consent-screen branding | `Appelent` |
-| Web provider list | `AUTH_CONFIG.socialProviders` in `src/routes/__root.tsx` |
+| Web provider list | `SOCIAL_PROVIDERS` in `src/lib/auth/SocialButtons.tsx` |
 | Web callback route | `/sso-callback` (`src/routes/sso-callback.tsx`) |
 | Mobile provider list | `SOCIAL_PROVIDERS` in `apps/mobile/src/auth/useSocialSignIn.ts` |
 | Foundry bundle IDs | `com.appelent.foundry`, `.preview`, `.dev` ([install variants](#install-variants)) |

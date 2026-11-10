@@ -1,4 +1,11 @@
 import { api } from "@convex/_generated/api";
+import {
+	EQUIPMENT,
+	type Equipment,
+	EXERCISE_CATEGORIES,
+	type ExerciseCategory,
+	isLoadedEquipment,
+} from "@foundry/core";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { z } from "zod";
@@ -6,42 +13,11 @@ import { z } from "zod";
 const schema = z.object({
 	name: z.string().min(1, "Name is required"),
 	muscleGroupsRaw: z.string().min(1, "At least one muscle group required"),
-	category: z.enum(["compound", "isolation"]),
-	equipment: z.enum([
-		"barbell",
-		"dumbbell",
-		"cable",
-		"bodyweight",
-		"machine",
-		"kettlebell",
-		"band",
-		"other",
-	]),
+	category: z.enum(EXERCISE_CATEGORIES),
+	equipment: z.enum(EQUIPMENT),
 	notes: z.string().optional(),
 	weightIncrement: z.number().positive().optional(),
 });
-
-type FormValues = z.infer<typeof schema>;
-
-const equipmentOptions = [
-	"barbell",
-	"dumbbell",
-	"cable",
-	"bodyweight",
-	"machine",
-	"kettlebell",
-	"band",
-	"other",
-] as const;
-
-const equipmentWithWeight = new Set([
-	"barbell",
-	"dumbbell",
-	"cable",
-	"machine",
-	"kettlebell",
-	"other",
-]);
 
 export function AddExerciseForm({
 	onSuccess,
@@ -54,8 +30,8 @@ export function AddExerciseForm({
 		defaultValues: {
 			name: "",
 			muscleGroupsRaw: "",
-			category: "compound" as "compound" | "isolation",
-			equipment: "barbell" as FormValues["equipment"],
+			category: "compound" as ExerciseCategory,
+			equipment: "barbell" as Equipment,
 			notes: "",
 			weightIncrement: undefined as number | undefined,
 		},
@@ -150,11 +126,14 @@ export function AddExerciseForm({
 								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
 								value={field.state.value}
 								onChange={(e) =>
-									field.handleChange(e.target.value as "compound" | "isolation")
+									field.handleChange(e.target.value as ExerciseCategory)
 								}
 							>
-								<option value="compound">Compound</option>
-								<option value="isolation">Isolation</option>
+								{EXERCISE_CATEGORIES.map((category) => (
+									<option key={category} value={category}>
+										{category.charAt(0).toUpperCase() + category.slice(1)}
+									</option>
+								))}
 							</select>
 						</div>
 					)}
@@ -174,10 +153,10 @@ export function AddExerciseForm({
 								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
 								value={field.state.value}
 								onChange={(e) =>
-									field.handleChange(e.target.value as FormValues["equipment"])
+									field.handleChange(e.target.value as Equipment)
 								}
 							>
-								{equipmentOptions.map((eq) => (
+								{EQUIPMENT.map((eq) => (
 									<option key={eq} value={eq} className="capitalize">
 										{eq.charAt(0).toUpperCase() + eq.slice(1)}
 									</option>
@@ -189,7 +168,7 @@ export function AddExerciseForm({
 
 				<form.Subscribe selector={(s) => s.values.equipment}>
 					{(equipment) =>
-						equipmentWithWeight.has(equipment) ? (
+						isLoadedEquipment(equipment) ? (
 							<form.Field name="weightIncrement">
 								{(field) => (
 									<div className="flex flex-col gap-1">

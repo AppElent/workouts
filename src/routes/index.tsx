@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Dumbbell, TrendingUp } from "lucide-react";
-import { HeaderUser } from "#/lib/auth";
+import { HeaderUser } from "#/lib/auth/HeaderUser";
 import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/")({
@@ -32,7 +32,7 @@ function IntroPage() {
 			className="relative min-h-screen flex flex-col overflow-hidden"
 			style={{ background: "#000" }}
 		>
-			{/* Green glow blobs — CSS only, no JS */}
+			{/* Decorative green glow. */}
 			<div
 				aria-hidden
 				style={{
@@ -60,7 +60,6 @@ function IntroPage() {
 				}}
 			/>
 
-			{/* Top navigation */}
 			<header className="relative z-10 flex items-center justify-between px-8 py-5">
 				<div className="flex items-center gap-2.5">
 					<div
@@ -91,7 +90,6 @@ function IntroPage() {
 				</nav>
 			</header>
 
-			{/* Hero — centered */}
 			<section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-8 py-20">
 				<div style={{ maxWidth: 880, width: "100%" }}>
 					<p
@@ -171,7 +169,6 @@ function IntroPage() {
 				</div>
 			</section>
 
-			{/* Feature cards */}
 			<section className="relative z-10 pb-16 px-8">
 				<div
 					className="mx-auto grid gap-4 sm:grid-cols-3"

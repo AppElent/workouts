@@ -1,34 +1,29 @@
-import { useState } from "react";
-import { Stepper } from "#/components/ui/Stepper";
-import { getConvexErrorMessage } from "#/lib/convexError";
 import {
 	formatMovement,
-	getHostedLevelLabel,
 	type HostedLevel,
-	type HostedMovement,
-	type HostedScore,
-	type HostedWodType,
+	type LoadUnit,
+	type WodScoreInput,
+} from "@foundry/core";
+import { useState } from "react";
+import {
+	type HostedWodBlock,
+	levelLabel,
 	movementKey,
-	validateHostedScore,
-} from "#/lib/hostedWorkouts";
+} from "#/components/hosted/wodBlock";
+import { Stepper } from "#/components/ui/Stepper";
+import { getConvexErrorMessage } from "#/lib/convexError";
+import { wodScoreFromForm } from "#/lib/wodScore";
 
-type WodBlock = {
-	blockId: string;
-	name: string;
-	type: HostedWodType;
-	levels: { level: HostedLevel; label: string; movements?: HostedMovement[] }[];
-};
-
-type SubmitPayload = {
+export type HostedScorePayload = {
 	wodBlockId: string;
 	level: HostedLevel;
 	notes?: string;
-} & HostedScore;
+} & WodScoreInput;
 
 type Props = {
-	wodBlocks: WodBlock[];
+	wodBlocks: Omit<HostedWodBlock, "wodId">[];
 	submitLabel?: string;
-	onSubmit: (payload: SubmitPayload) => Promise<unknown>;
+	onSubmit: (payload: HostedScorePayload) => Promise<unknown>;
 };
 
 export function HostedScoreForm({
@@ -48,7 +43,7 @@ export function HostedScoreForm({
 	const [rounds, setRounds] = useState(1);
 	const [reps, setReps] = useState(0);
 	const [load, setLoad] = useState(0);
-	const [loadUnit, setLoadUnit] = useState<"kg" | "lbs">("kg");
+	const [loadUnit, setLoadUnit] = useState<LoadUnit>("kg");
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
@@ -58,18 +53,16 @@ export function HostedScoreForm({
 		event.preventDefault();
 		if (!selectedWod || saving) return;
 
-		const score = buildScore(selectedWod.type, {
-			minutes,
-			seconds,
+		const built = wodScoreFromForm(selectedWod.type, {
+			timeSeconds: minutes * 60 + seconds,
 			timeCapped,
 			rounds,
 			reps,
 			load,
 			loadUnit,
 		});
-		const validation = validateHostedScore(selectedWod.type, score);
-		if (!validation.ok) {
-			setError(validation.message);
+		if (!built.ok) {
+			setError(built.message);
 			return;
 		}
 
@@ -81,7 +74,7 @@ export function HostedScoreForm({
 				wodBlockId: selectedWod.blockId,
 				level,
 				notes: notes.trim() || undefined,
-				...score,
+				...built.score,
 			});
 			setNotes("");
 			setMessage("Score submitted.");
@@ -135,7 +128,7 @@ export function HostedScoreForm({
 								: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]",
 						].join(" ")}
 					>
-						{entry.label || getHostedLevelLabel(entry.level)}
+						{levelLabel(selectedWod, entry.level)}
 					</button>
 				))}
 			</div>
@@ -206,9 +199,7 @@ export function HostedScoreForm({
 					/>
 					<select
 						value={loadUnit}
-						onChange={(event) =>
-							setLoadUnit(event.target.value as "kg" | "lbs")
-						}
+						onChange={(event) => setLoadUnit(event.target.value as LoadUnit)}
 						className="h-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 text-sm text-white"
 					>
 						<option value="kg">kg</option>
@@ -236,26 +227,4 @@ export function HostedScoreForm({
 			{error && <p className="text-sm text-red-400">{error}</p>}
 		</form>
 	);
-}
-
-function buildScore(
-	type: HostedWodType,
-	values: {
-		minutes: number;
-		seconds: number;
-		timeCapped: boolean;
-		rounds: number;
-		reps: number;
-		load: number;
-		loadUnit: "kg" | "lbs";
-	},
-): HostedScore {
-	if (type === "forTime") {
-		return values.timeCapped
-			? { timeCapped: true, reps: values.reps }
-			: { timeSeconds: values.minutes * 60 + values.seconds };
-	}
-	if (type === "amrap") return { rounds: values.rounds, reps: values.reps };
-	if (type === "emom") return { reps: values.reps };
-	return { load: values.load, loadUnit: values.loadUnit };
 }

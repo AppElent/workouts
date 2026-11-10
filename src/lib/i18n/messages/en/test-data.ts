@@ -26,7 +26,4 @@ export const testData = {
 	pending: "Updating test data…",
 	success: "Test data updated.",
 	error: "Test data could not be updated. Reconnect and try again.",
-	cleanupError:
-		"Account data was updated, but device cleanup failed. Retry cleanup before continuing.",
-	retryCleanup: "Retry device cleanup",
 };

@@ -44,7 +44,8 @@ names without printing credentials. Missing credentials limit acceptance.
 
 `pnpm dev:watch` runs Vite with continuous Convex sync. `pnpm dev` starts only
 Vite; `pnpm dev:all` pushes once. `pnpm preview` builds development mode and runs
-Wrangler. Routes are in `src/routes/`; navigation comes from
+Wrangler. Routes are in `src/routes/`: those under `_app/` get the app chrome and
+those under `_app/_authed/` need sign-in. Navigation comes from
 `src/components/navItems.ts` and backend ownership from the called Convex module.
 
 ## Mobile

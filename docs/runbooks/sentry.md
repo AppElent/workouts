@@ -19,7 +19,7 @@ owns Infisical/EAS/CI setup. Installed SDK versions live in package/lockfiles.
 
 | Surface | Selected behavior |
 | --- | --- |
-| Browser/Worker | Navigation/request traces; React/route and caught Convex failures; Worker SSR 5xx fallback. Git SHA or SENTRY_RELEASE aligns web/Worker/maps. |
+| Browser/Worker | Navigation/request traces; React/route and caught Convex failures; Worker SSR 5xx fallback. Git SHA or SENTRY_RELEASE aligns web/Worker/maps. Sentry environment is the built Wrangler environment's `environment_name` (CI overrides with `VITE_SENTRY_ENVIRONMENT`), shared by both bundles. |
 | Mobile | Navigation/app-start/network traces, frame/stall measurements, Hermes/native profiling, masked replay, shake-to-report. Sentry environment follows EAS Update channel, with development/production fallback. |
 | Convex | Free-plan log forwarder for failed executions, including scheduled functions; hosting is still outstanding. |
 

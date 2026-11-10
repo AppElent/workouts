@@ -1,0 +1,226 @@
+import { api } from "@convex/_generated/api";
+import type { ExerciseId } from "@foundry/core/exercises";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
+import { format } from "date-fns";
+import { useState } from "react";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Line,
+	LineChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
+import { BodyMetricsPanel } from "#/components/progress/BodyMetricsPanel";
+import { useExercises } from "#/lib/exercises";
+import { cn } from "#/lib/utils";
+
+export const Route = createFileRoute("/_app/_authed/progress/")({
+	component: ProgressPage,
+});
+
+type ProgressTab = "exercises" | "body";
+
+function ProgressPage() {
+	const exercises = useExercises();
+	const [selectedId, setSelectedId] = useState<ExerciseId | "">("");
+	const [tab, setTab] = useState<ProgressTab>("exercises");
+
+	const tabs: { id: ProgressTab; label: string }[] = [
+		{ id: "exercises", label: "Exercises" },
+		{ id: "body", label: "Body" },
+	];
+
+	return (
+		<div className="p-4 sm:p-6 max-w-4xl mx-auto">
+			<h1 className="text-2xl font-bold text-white mb-4">Progress</h1>
+
+			<div className="flex border-b border-[var(--border)] mb-6">
+				{tabs.map((t) => (
+					<button
+						key={t.id}
+						type="button"
+						onClick={() => setTab(t.id)}
+						className={cn(
+							"flex-1 sm:flex-none sm:px-6 py-2.5 text-sm font-semibold transition-colors",
+							tab === t.id
+								? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
+								: "text-[var(--text-muted)] hover:text-white",
+						)}
+					>
+						{t.label}
+					</button>
+				))}
+			</div>
+
+			{tab === "exercises" && (
+				<>
+					<div className="mb-6">
+						<select
+							value={selectedId}
+							onChange={(e) => setSelectedId(e.target.value as ExerciseId)}
+							className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-white min-w-[240px] w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						>
+							<option value="">Select an exercise…</option>
+							{exercises.map((ex) => (
+								<option key={ex._id} value={ex._id}>
+									{ex.name}
+								</option>
+							))}
+						</select>
+					</div>
+
+					{selectedId ? (
+						<ExerciseCharts exerciseId={selectedId as ExerciseId} />
+					) : (
+						<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-10 text-center">
+							<p className="text-[var(--text-muted)] text-sm">
+								Select an exercise to view your progress charts.
+							</p>
+						</div>
+					)}
+				</>
+			)}
+
+			{tab === "body" && <BodyMetricsPanel />}
+		</div>
+	);
+}
+
+function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
+	const ormRecords =
+		useQuery(api.oneRepMaxes.listForExercise, { exerciseId }) ?? [];
+	const volumeData = useQuery(api.progress.weeklyVolume, { exerciseId }) ?? [];
+
+	const ormChartData = [...ormRecords]
+		.sort((a, b) => a.date - b.date)
+		.map((r) => ({
+			date: format(new Date(r.date), "MMM d"),
+			value: r.value,
+			source: r.source,
+		}));
+
+	const tooltipStyle = {
+		contentStyle: {
+			background: "#1a1a1a",
+			border: "1px solid rgba(255,255,255,0.1)",
+			borderRadius: 8,
+			color: "#fff",
+			fontSize: 12,
+		},
+	};
+
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
+				<h2 className="text-sm font-semibold text-white mb-1">1RM Over Time</h2>
+				<p className="text-xs text-[var(--text-muted)] mb-4">
+					Actual + estimated (Epley) records
+				</p>
+				{ormChartData.length > 0 ? (
+					<ResponsiveContainer width="100%" height={240}>
+						<LineChart data={ormChartData}>
+							<CartesianGrid
+								strokeDasharray="3 3"
+								stroke="rgba(255,255,255,0.06)"
+							/>
+							<XAxis
+								dataKey="date"
+								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								axisLine={false}
+								tickLine={false}
+							/>
+							<YAxis
+								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								unit="kg"
+								axisLine={false}
+								tickLine={false}
+								width={48}
+							/>
+							<Tooltip
+								{...tooltipStyle}
+								formatter={
+									((
+										value: number | undefined,
+										_: string,
+										entry: { payload: { source: string } },
+									) => [
+										`${value ?? ""} kg (${entry.payload.source})`,
+										"1RM",
+										// biome-ignore lint/suspicious/noExplicitAny: Recharts formatter type mismatch
+									]) as any
+								}
+							/>
+							<Line
+								type="monotone"
+								dataKey="value"
+								stroke="#1DB954"
+								strokeWidth={2}
+								dot={{ fill: "#1DB954", r: 4, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "#1ed760" }}
+							/>
+						</LineChart>
+					</ResponsiveContainer>
+				) : (
+					<p className="text-sm text-[var(--text-muted)] py-8 text-center">
+						No 1RM data yet. Log some sets!
+					</p>
+				)}
+			</div>
+
+			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
+				<h2 className="text-sm font-semibold text-white mb-1">Weekly Volume</h2>
+				<p className="text-xs text-[var(--text-muted)] mb-4">
+					Total kg lifted per week (weight × reps)
+				</p>
+				{volumeData.length > 0 ? (
+					<ResponsiveContainer width="100%" height={200}>
+						<BarChart data={volumeData}>
+							<CartesianGrid
+								strokeDasharray="3 3"
+								stroke="rgba(255,255,255,0.06)"
+							/>
+							<XAxis
+								dataKey="week"
+								tick={{ fill: "#b3b3b3", fontSize: 10 }}
+								axisLine={false}
+								tickLine={false}
+							/>
+							<YAxis
+								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								unit="kg"
+								axisLine={false}
+								tickLine={false}
+								width={52}
+							/>
+							<Tooltip
+								{...tooltipStyle}
+								formatter={
+									((value: number | undefined) => [
+										`${value ?? ""} kg`,
+										"Volume",
+										// biome-ignore lint/suspicious/noExplicitAny: Recharts formatter type mismatch
+									]) as any
+								}
+							/>
+							<Bar
+								dataKey="volume"
+								fill="#1DB954"
+								radius={[4, 4, 0, 0]}
+								maxBarSize={40}
+							/>
+						</BarChart>
+					</ResponsiveContainer>
+				) : (
+					<p className="text-sm text-[var(--text-muted)] py-8 text-center">
+						No volume data yet.
+					</p>
+				)}
+			</div>
+		</div>
+	);
+}

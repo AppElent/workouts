@@ -1,20 +1,13 @@
 import { api } from "@convex/_generated/api";
-import type { Doc } from "@convex/_generated/dataModel";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
-import {
-	EditRoutineModal,
-	type SavePayload,
-} from "#/components/routines/EditRoutineModal";
-
-type RoutineExercise = Doc<"routines">["exercises"][number] & {
-	exerciseName: string;
-};
-type RoutineWithNames = Omit<Doc<"routines">, "exercises"> & {
-	exercises: RoutineExercise[];
-};
+import { EditRoutineModal } from "#/components/routines/EditRoutineModal";
+import type {
+	RoutinePayload,
+	RoutineWithNames,
+} from "#/components/routines/RoutineEditor";
 
 interface Props {
 	routine: RoutineWithNames;
@@ -28,7 +21,7 @@ export function RoutineCard({ routine }: Props) {
 	const [starting, setStarting] = useState(false);
 	const [editing, setEditing] = useState(false);
 
-	async function handleSave(payload: SavePayload) {
+	async function handleSave(payload: RoutinePayload) {
 		await updateRoutine({ id: routine._id, ...payload });
 		setEditing(false);
 	}
@@ -104,7 +97,7 @@ export function RoutineCard({ routine }: Props) {
 				routine={routine}
 				open={editing}
 				onClose={() => setEditing(false)}
-				onSave={(payload) => void handleSave(payload)}
+				onSave={handleSave}
 			/>
 		</div>
 	);

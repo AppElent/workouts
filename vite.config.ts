@@ -7,14 +7,26 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { unstable_readConfig } from "wrangler";
 
 const release =
 	process.env.SENTRY_RELEASE ||
 	execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 
+// The Wrangler environment being built (CLOUDFLARE_ENV) names the deployment;
+// CI overrides it for bundles that are never deployed.
+const sentryEnvironment =
+	process.env.VITE_SENTRY_ENVIRONMENT ||
+	unstable_readConfig(
+		{ config: "wrangler.jsonc", env: process.env.CLOUDFLARE_ENV },
+		{ hideWarnings: true },
+	).vars.environment_name;
+
 const config = defineConfig({
 	define: {
 		"import.meta.env.VITE_SENTRY_RELEASE": JSON.stringify(release),
+		"import.meta.env.VITE_SENTRY_ENVIRONMENT":
+			JSON.stringify(sentryEnvironment),
 	},
 	build: { sourcemap: "hidden" },
 	server: {

@@ -5,17 +5,14 @@ import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft, Dumbbell, Lock, Pencil, Play, Trash2 } from "lucide-react";
 import { useMemo } from "react";
-import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
-import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
+import {
+	HostedStrengthBlocks,
+	HostedWodBlockCard,
+} from "#/components/hosted/HostedBlocks";
 import { HostedWorkoutQr } from "#/components/hosted/HostedWorkoutQr";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { getConvexErrorMessage } from "#/lib/convexError";
-import {
-	formatWodTiming,
-	type HostedLeaderboardRow,
-	type HostedWodType,
-} from "#/lib/hostedWorkouts";
 
 export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	const data = useQuery(api.hostedWorkouts.getMine, { id });
@@ -193,108 +190,30 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 			</div>
 
 			<div className="grid gap-4">
-				{hosted.template.strengthBlocks.length > 0 && (
-					<section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-						<h2 className="text-sm font-semibold text-white">Strength</h2>
-						<div className="mt-3 grid gap-3 sm:grid-cols-2">
-							{hosted.template.strengthBlocks.map((block) => (
-								<div
-									key={block.blockId}
-									className="rounded-lg border border-[var(--border)] px-3 py-2"
-								>
-									<p className="font-medium text-white">{block.exerciseName}</p>
-									{block.instructions && (
-										<p className="mt-1 text-sm text-[var(--text-muted)]">
-											{block.instructions}
-										</p>
-									)}
-								</div>
-							))}
-						</div>
-					</section>
-				)}
-
-				{hosted.template.wodBlocks.map((block) => {
-					const rows: HostedLeaderboardRow[] = submissions
-						.filter((submission) => submission.wodBlockId === block.blockId)
-						.map((submission) => ({
-							id: submission._id,
-							name:
-								submission.guestName ||
-								(submission.participantId
-									? participantById.get(submission.participantId)?.displayName
-									: undefined) ||
-								"Signed-in athlete",
-							level: submission.level,
-							levelLabel: block.levels.find(
-								(entry) => entry.level === submission.level,
-							)?.label,
-							submittedAt: submission.submittedAt,
-							score: {
-								timeSeconds: submission.timeSeconds,
-								rounds: submission.rounds,
-								reps: submission.reps,
-								timeCapped: submission.timeCapped,
-								load: submission.load,
-								loadUnit: submission.loadUnit,
-							},
-						}));
-
-					return (
-						<section
-							key={block.blockId}
-							className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
-						>
-							<div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-								<div>
-									<h2 className="text-sm font-semibold text-white">
-										{block.name}
-									</h2>
-									{block.repScheme && (
-										<p className="text-xs text-[var(--accent)]">
-											{block.repScheme}
-										</p>
-									)}
-									{formatWodTiming(
-										block.type as HostedWodType,
-										block.timeCapSeconds,
-										block.durationSeconds,
-									) && (
-										<p className="text-xs text-[var(--text-muted)]">
-											{formatWodTiming(
-												block.type as HostedWodType,
-												block.timeCapSeconds,
-												block.durationSeconds,
-											)}
-										</p>
-									)}
-									{block.description && (
-										<p className="mt-1 text-sm text-[var(--text-muted)]">
-											{block.description}
-										</p>
-									)}
-								</div>
-								<span className="text-xs uppercase text-[var(--text-muted)]">
-									{block.type}
-								</span>
-							</div>
-
-							<HostedWodLevels levels={block.levels} />
-
-							<HostedLeaderboard
-								type={block.type as HostedWodType}
-								rows={rows}
-								onRemove={(submissionId) =>
-									runAction(() =>
-										removeSubmission({
-											id: submissionId as Id<"hostedWorkoutSubmissions">,
-										}),
-									)
-								}
-							/>
-						</section>
-					);
-				})}
+				<HostedStrengthBlocks blocks={hosted.template.strengthBlocks} />
+				{hosted.template.wodBlocks.map((block) => (
+					<HostedWodBlockCard
+						key={block.blockId}
+						block={block}
+						rows={submissions
+							.filter((submission) => submission.wodBlockId === block.blockId)
+							.map((submission) => ({
+								id: submission._id,
+								name:
+									submission.guestName ||
+									(submission.participantId
+										? participantById.get(submission.participantId)?.displayName
+										: undefined) ||
+									"Signed-in athlete",
+								level: submission.level,
+								submittedAt: submission.submittedAt,
+								score: submission,
+							}))}
+						onRemove={(submissionId) =>
+							runAction(() => removeSubmission({ id: submissionId }))
+						}
+					/>
+				))}
 			</div>
 		</div>
 	);

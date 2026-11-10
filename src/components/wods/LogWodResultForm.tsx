@@ -3,6 +3,8 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { getConvexErrorMessage } from "#/lib/convexError";
+import { wodScoreFromForm } from "#/lib/wodScore";
 
 interface Props {
 	wodId: Id<"wods">;
@@ -23,33 +25,35 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 	const [load, setLoad] = useState(0);
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
+		const built = wodScoreFromForm(type, {
+			timeSeconds: minutes * 60 + seconds,
+			timeCapped,
+			rounds,
+			reps,
+			load,
+		});
+		if (!built.ok) {
+			setError(built.message);
+			return;
+		}
 		setSaving(true);
+		setError(null);
 		try {
-			const base = {
+			await log({
 				wodId,
 				sessionId,
 				rxScaled,
 				notes: notes.trim() || undefined,
-			};
-			if (type === "forTime") {
-				await log({
-					...base,
-					timeCapped: timeCapped || undefined,
-					timeSeconds: timeCapped ? undefined : minutes * 60 + seconds,
-					reps: timeCapped ? reps : undefined,
-				});
-			} else if (type === "amrap") {
-				await log({ ...base, rounds, reps });
-			} else if (type === "emom") {
-				await log({ ...base, reps });
-			} else {
-				await log({ ...base, load, loadUnit: "kg" });
-			}
+				...built.score,
+			});
 			setNotes("");
 			onLogged?.();
+		} catch (err) {
+			setError(getConvexErrorMessage(err, "Failed to log result."));
 		} finally {
 			setSaving(false);
 		}
@@ -177,6 +181,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			>
 				Log Result
 			</button>
+			{error && <p className="text-sm text-red-400">{error}</p>}
 		</form>
 	);
 }

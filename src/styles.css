@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./lib/auth/tokens.css";
 
 :root {
   /* Spotify dark design tokens */
@@ -53,9 +52,7 @@
   --ring: 141 73% 42%;
   --radius: 0.5rem;
 
-  /* Auth UI brand overrides — map the shared auth UI onto the
-     Spotify dark palette so it always matches the app's dark-only theme,
-     regardless of the .light/.dark class the theme-init script applies. */
+  /* Auth components */
   --auth-bg: var(--bg);
   --auth-fg: var(--text);
   --auth-muted: var(--text-muted);

@@ -1,4 +1,5 @@
 import { ClerkProvider } from "@clerk/react";
+import { AUTH_PATHS } from "#/lib/auth/paths";
 import { SentryUser } from "#/lib/observability/user";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -19,8 +20,8 @@ export default function AppClerkProvider({
 		<ClerkProvider
 			publishableKey={PUBLISHABLE_KEY}
 			afterSignOutUrl="/"
-			signInUrl="/sign-in"
-			signUpUrl="/sign-up"
+			signInUrl={AUTH_PATHS.signIn}
+			signUpUrl={AUTH_PATHS.signUp}
 		>
 			<SentryUser />
 			{children}

@@ -1,6 +1,11 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { formatScore } from "@foundry/core";
+import {
+	formatDurationMinutes,
+	formatScore,
+	toKg,
+	workingVolume,
+} from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -24,14 +29,6 @@ interface Props {
 	exerciseMap: Map<string, Exercise>;
 }
 
-function formatDuration(ms: number): string {
-	const totalMinutes = Math.round(ms / 60000);
-	if (totalMinutes < 60) return `${totalMinutes}m`;
-	const hours = Math.floor(totalMinutes / 60);
-	const minutes = totalMinutes % 60;
-	return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
-
 export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const navigate = useNavigate();
 	const removeSession = useMutation(api.workoutSessions.remove);
@@ -47,11 +44,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 		? session.endTime - session.startTime
 		: null;
 
-	const workingSets = sets.filter((s) => s.setType === "working");
-	const totalVolume = workingSets.reduce(
-		(acc, s) => acc + s.weight * s.reps,
-		0,
-	);
+	const totalVolume = Math.round(workingVolume(sets));
 
 	const exerciseIds: string[] = [];
 	for (const s of sets) {
@@ -63,7 +56,8 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const exerciseBreakdown = exerciseIds.map((id) => {
 		const exerciseSets = sets.filter((s) => (s.exerciseId as string) === id);
 		const bestSet = exerciseSets.reduce(
-			(best, s) => (s.weight > best.weight ? s : best),
+			(best, s) =>
+				toKg(s.weight, s.unit) > toKg(best.weight, best.unit) ? s : best,
 			exerciseSets[0],
 		);
 		return {
@@ -125,7 +119,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 					{durationMs !== null && (
 						<span className="flex items-center gap-1">
 							<Clock size={11} />
-							{formatDuration(durationMs)}
+							{formatDurationMinutes(durationMs)}
 						</span>
 					)}
 				</div>
@@ -179,7 +173,8 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 							</div>
 							{ex.bestSet && ex.bestSet.weight > 0 && (
 								<p className="text-xs text-[var(--text-muted)] mt-2">
-									Best: {ex.bestSet.weight}kg × {ex.bestSet.reps} reps
+									Best: {ex.bestSet.weight}
+									{ex.bestSet.unit} × {ex.bestSet.reps} reps
 								</p>
 							)}
 						</div>

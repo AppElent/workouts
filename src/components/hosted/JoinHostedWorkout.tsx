@@ -4,16 +4,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { LogIn, Play } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
-import { HostedLeaderboard } from "#/components/hosted/HostedLeaderboard";
-import { HostedWodLevels } from "#/components/hosted/HostedWodLevels";
-import { getConvexErrorMessage } from "#/lib/convexError";
 import {
-	formatWodTiming,
-	type HostedLeaderboardRow,
-	type HostedWodType,
-} from "#/lib/hostedWorkouts";
+	HostedStrengthBlocks,
+	HostedWodBlockCard,
+} from "#/components/hosted/HostedBlocks";
+import { getConvexErrorMessage } from "#/lib/convexError";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
@@ -30,21 +27,6 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 	const defaultName = user?.fullName || user?.username || user?.firstName || "";
 	const [nameInput, setNameInput] = useState<string | null>(null);
 	const displayName = nameInput ?? defaultName;
-
-	const wodBlocks = useMemo(
-		() =>
-			data?.hosted.template.wodBlocks.map((block) => ({
-				blockId: block.blockId,
-				name: block.name,
-				type: block.type as HostedWodType,
-				levels: block.levels.map((level) => ({
-					level: level.level,
-					label: level.label,
-					movements: level.movements,
-				})),
-			})) ?? [],
-		[data?.hosted.template.wodBlocks],
-	);
 
 	async function handleJoin() {
 		if (!isSignedIn || joining) return;
@@ -136,31 +118,12 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				{joinError && <p className="mt-3 text-sm text-red-400">{joinError}</p>}
 			</header>
 
-			{hosted.template.strengthBlocks.length > 0 && (
-				<section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-					<h2 className="text-sm font-semibold text-white">Strength</h2>
-					<div className="mt-3 grid gap-3 sm:grid-cols-2">
-						{hosted.template.strengthBlocks.map((block) => (
-							<div
-								key={block.blockId}
-								className="rounded-lg border border-[var(--border)] px-3 py-2"
-							>
-								<p className="font-medium text-white">{block.exerciseName}</p>
-								{block.instructions && (
-									<p className="mt-1 text-sm text-[var(--text-muted)]">
-										{block.instructions}
-									</p>
-								)}
-							</div>
-						))}
-					</div>
-				</section>
-			)}
+			<HostedStrengthBlocks blocks={hosted.template.strengthBlocks} />
 
 			<section className="grid gap-4 lg:grid-cols-[320px_1fr]">
 				{isOpen ? (
 					<GuestSubmissionForm
-						wodBlocks={wodBlocks}
+						wodBlocks={hosted.template.wodBlocks}
 						onSubmit={({ guestName, ...payload }) =>
 							submitGuest({
 								token,
@@ -178,68 +141,21 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				)}
 
 				<div className="flex flex-col gap-4">
-					{hosted.template.wodBlocks.map((block) => {
-						const rows: HostedLeaderboardRow[] = submissions
-							.filter((submission) => submission.wodBlockId === block.blockId)
-							.map((submission, index) => ({
-								id: `${submission.athleteName}-${submission.submittedAt}-${index}`,
-								name: submission.athleteName,
-								level: submission.level,
-								levelLabel: block.levels.find(
-									(entry) => entry.level === submission.level,
-								)?.label,
-								submittedAt: submission.submittedAt,
-								score: {
-									timeSeconds: submission.timeSeconds,
-									rounds: submission.rounds,
-									reps: submission.reps,
-									timeCapped: submission.timeCapped,
-									load: submission.load,
-									loadUnit: submission.loadUnit,
-								},
-							}));
-
-						return (
-							<section
-								key={block.blockId}
-								className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
-							>
-								<div className="flex items-start justify-between gap-3">
-									<div>
-										<h2 className="text-sm font-semibold text-white">
-											{block.name}
-										</h2>
-										{block.repScheme && (
-											<p className="text-xs text-[var(--accent)]">
-												{block.repScheme}
-											</p>
-										)}
-										{formatWodTiming(
-											block.type as HostedWodType,
-											block.timeCapSeconds,
-											block.durationSeconds,
-										) && (
-											<p className="text-xs text-[var(--text-muted)]">
-												{formatWodTiming(
-													block.type as HostedWodType,
-													block.timeCapSeconds,
-													block.durationSeconds,
-												)}
-											</p>
-										)}
-									</div>
-									<span className="text-xs uppercase text-[var(--text-muted)]">
-										{block.type}
-									</span>
-								</div>
-								<HostedWodLevels levels={block.levels} />
-								<HostedLeaderboard
-									type={block.type as HostedWodType}
-									rows={rows}
-								/>
-							</section>
-						);
-					})}
+					{hosted.template.wodBlocks.map((block) => (
+						<HostedWodBlockCard
+							key={block.blockId}
+							block={block}
+							rows={submissions
+								.filter((submission) => submission.wodBlockId === block.blockId)
+								.map((submission, index) => ({
+									id: `${submission.athleteName}-${submission.submittedAt}-${index}`,
+									name: submission.athleteName,
+									level: submission.level,
+									submittedAt: submission.submittedAt,
+									score: submission,
+								}))}
+						/>
+					))}
 				</div>
 			</section>
 		</div>

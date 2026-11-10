@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import { EmptyState } from "#/components/ui/empty-state";
+import { getConvexErrorMessage } from "#/lib/convexError";
 import { reportError } from "#/lib/observability/errors";
 
 /**
@@ -25,11 +26,10 @@ export function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
 			<EmptyState
 				icon={AlertTriangle}
 				title="Something went wrong"
-				description={
-					error instanceof Error && error.message
-						? error.message
-						: "An unexpected error occurred."
-				}
+				description={getConvexErrorMessage(
+					error,
+					"An unexpected error occurred.",
+				)}
 				action={
 					<Button
 						variant="outline"

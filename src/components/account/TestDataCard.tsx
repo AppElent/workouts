@@ -1,13 +1,27 @@
 import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
+import { parseConvexError } from "@foundry/core";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { format } from "date-fns";
 import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { useMessages } from "#/lib/i18n";
+
+/** Convex error codes from testData.reset that have their own message. */
+const ERROR_CODES = [
+	"tooLarge",
+	"accountChanged",
+	"unauthenticated",
+	"unavailable",
+	"activeActivity",
+	"hostedWorkout",
+] as const;
+
+function isKnownError(code: string | undefined) {
+	return ERROR_CODES.find((known) => known === code);
+}
 
 export function TestDataCard() {
 	const { userId } = useAuth();
@@ -49,12 +63,8 @@ export function TestDataCard() {
 			// Web reads personal data reactively from Convex and has no durable food cache.
 			toast.success(c.success);
 		} catch (error) {
-			const reason = error instanceof ConvexError ? error.data : null;
-			toast.error(
-				typeof reason === "string" && Object.hasOwn(c, reason)
-					? c[reason as keyof typeof c]
-					: c.error,
-			);
+			const code = isKnownError(parseConvexError(error).code);
+			toast.error(code ? c[code] : c.error);
 		} finally {
 			pending.current = false;
 			setBusy(null);
