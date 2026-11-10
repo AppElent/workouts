@@ -9,6 +9,7 @@
 import {
 	calculateOneRepMax,
 	convertLoad,
+	DEFAULT_REST_SECONDS,
 	type LoadUnit,
 	roundLoad,
 	type SetType,
@@ -128,7 +129,6 @@ export interface PlanResult {
 }
 
 const EPSILON = 0.01;
-export const DEFAULT_REST_SECONDS = 90;
 let counter = 0;
 export function newRowId() {
 	counter += 1;

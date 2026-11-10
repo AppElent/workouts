@@ -22,7 +22,7 @@ import {
 } from "react-native";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
@@ -43,8 +43,8 @@ type Movement = { key: number; name: string; reps: string };
 
 /** Minutes in the form, seconds in the schema. */
 function minutesToSeconds(raw: string) {
-	const parsed = Number.parseFloat(raw.trim());
-	if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+	const parsed = parseLocalizedDecimal(raw);
+	if (parsed === undefined || parsed <= 0) return undefined;
 	return Math.round(parsed * 60);
 }
 

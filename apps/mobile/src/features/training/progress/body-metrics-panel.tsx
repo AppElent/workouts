@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
-import { dateLocale, useI18n } from "../../../i18n";
+import { dateLocale, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { convexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
@@ -25,14 +25,6 @@ import { Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-
-/** Parses a field, treating blank and nonsense alike as "not provided". */
-function optionalNumber(raw: string) {
-	const trimmed = raw.trim();
-	if (trimmed === "") return undefined;
-	const parsed = Number.parseFloat(trimmed);
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
 
 export function BodyMetricsPanel() {
 	const colors = useTokens();
@@ -69,16 +61,16 @@ export function BodyMetricsPanel() {
 	const latest = entries?.[0];
 	const canSave =
 		!busy &&
-		(optionalNumber(weight) !== undefined ||
-			optionalNumber(bodyFat) !== undefined);
+		(parseLocalizedDecimal(weight) !== undefined ||
+			parseLocalizedDecimal(bodyFat) !== undefined);
 
 	const save = async () => {
 		if (!canSave) return;
 		setBusy(true);
 		try {
 			await addEntry({
-				weight: optionalNumber(weight),
-				bodyFatPct: optionalNumber(bodyFat),
+				weight: parseLocalizedDecimal(weight),
+				bodyFatPct: parseLocalizedDecimal(bodyFat),
 				unit: "kg",
 				notes: notes.trim() === "" ? undefined : notes.trim(),
 			});
