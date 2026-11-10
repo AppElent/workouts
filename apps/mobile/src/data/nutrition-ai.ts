@@ -6,6 +6,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type NutritionDiarySnapshot,
+	normaliseForSearch,
 	numericAmount,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
@@ -333,12 +334,7 @@ export function countedPortion(item: ReviewItem): number | undefined {
 }
 
 function wordsOf(text: string): string[] {
-	return text
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.split(/[^\p{L}\p{N}]+/u)
-		.filter(Boolean);
+	return normaliseForSearch(text).split(" ").filter(Boolean);
 }
 
 /** Tomaat and tomaten, boon and bonen: Dutch spelling doubles the vowel. */

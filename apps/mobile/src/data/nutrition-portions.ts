@@ -1,3 +1,4 @@
+import { normaliseForSearch } from "@foundry/core";
 /**
  * What one of something weighs when nobody said, so the same words give the
  * same grams. `kcal` is for ready-made products the food database has no good
@@ -69,11 +70,7 @@ export function typicalPortion(
 	name: string,
 	amountLabel: string,
 ): TypicalPortion | undefined {
-	const plain = name
-		.normalize("NFD")
-		.replace(/\p{M}/gu, "")
-		.toLowerCase()
-		.trim();
+	const plain = normaliseForSearch(name);
 	// "Stamppot met gehaktbal" and "hamburger met friet" are more than that food.
 	if (/\b(?:met|with)\b/.test(plain)) return undefined;
 	return PORTIONS.find(

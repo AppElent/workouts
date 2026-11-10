@@ -1,5 +1,5 @@
 import {
-	combinedNutrients,
+	comboNutrients,
 	type Locale,
 	type NutrientValue,
 	type PersonalFood,
@@ -86,9 +86,7 @@ export function comboPartFromFood(food: PersonalFood): ComboPartDraft {
 
 /** kcal and the three macros, summed from the saved snapshots. */
 export function comboTotals(combo: Pick<Combo, "parts">) {
-	const sum = combinedNutrients(
-		combo.parts.map((part) => part.snapshot.nutrients),
-	);
+	const sum = comboNutrients(combo);
 	const pick = (key: "energy" | "protein" | "carbs" | "fat") => {
 		const value = sum[key];
 		return value.kind === "value"

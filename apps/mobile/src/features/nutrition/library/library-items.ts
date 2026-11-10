@@ -2,6 +2,7 @@ import {
 	LIBRARY_CATEGORIES,
 	type LibraryCategory,
 	type Locale,
+	normaliseForSearch,
 	type PersonalFood,
 } from "@foundry/core";
 import {
@@ -63,16 +64,9 @@ export function libraryItemName(item: LibraryItem, locale: Locale) {
 	return item.kind === "combo" ? item.combo.name : item.food.name[locale];
 }
 
-function normalize(text: string) {
-	return text
-		.normalize("NFD")
-		.replace(/\p{Diacritic}/gu, "")
-		.toLowerCase();
-}
-
 function haystack(item: LibraryItem): string {
 	if (item.kind === "combo")
-		return normalize(
+		return normaliseForSearch(
 			[
 				item.combo.name,
 				...item.combo.parts.flatMap((part) => [
@@ -82,7 +76,7 @@ function haystack(item: LibraryItem): string {
 			].join(" "),
 		);
 	const { food } = item;
-	return normalize(
+	return normaliseForSearch(
 		[
 			food.name.en,
 			food.name.nl,
@@ -97,7 +91,7 @@ export function filterLibrary(
 	items: readonly LibraryItem[],
 	{ chip, query, locale }: { chip: LibraryChip; query: string; locale: Locale },
 ): LibraryItem[] {
-	const term = normalize(query.trim());
+	const term = normaliseForSearch(query);
 	return items
 		.filter((item) =>
 			chip === "all"
