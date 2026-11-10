@@ -83,6 +83,22 @@ export const goalEditorEn = {
 	keepEditing: "Keep editing",
 	offlineTitle: "Your goals are not available offline yet.",
 	offlineBody: "Reconnect to load your saved goals. Your draft stays here.",
+	presets: {
+		reference: {
+			name: "Reference intake",
+			provenance: "EU Regulation 1169/2011 Annex XIII and EFSA fibre guidance.",
+		},
+		loseWeight: {
+			name: "Lose weight",
+			provenance:
+				"Fixed Reference intake variant: energy −300 kcal. Not personalised advice.",
+		},
+		buildMuscle: {
+			name: "Build muscle",
+			provenance:
+				"Fixed Reference intake variant: energy +300 kcal and protein +50 g. Not personalised advice.",
+		},
+	},
 };
 
 export const goalEditorNl: typeof goalEditorEn = {
@@ -173,4 +189,21 @@ export const goalEditorNl: typeof goalEditorEn = {
 	offlineTitle: "Je doelen zijn offline nog niet beschikbaar.",
 	offlineBody:
 		"Maak opnieuw verbinding om je opgeslagen doelen te laden. Je concept blijft bewaard.",
+	presets: {
+		reference: {
+			name: "Referentie-inname",
+			provenance:
+				"EU-verordening 1169/2011 bijlage XIII en EFSA-richtlijn voor vezels.",
+		},
+		loseWeight: {
+			name: "Afvallen",
+			provenance:
+				"Vaste variant van Referentie-inname: energie −300 kcal. Geen persoonlijk advies.",
+		},
+		buildMuscle: {
+			name: "Spiermassa opbouwen",
+			provenance:
+				"Vaste variant van Referentie-inname: energie +300 kcal en eiwit +50 g. Geen persoonlijk advies.",
+		},
+	},
 };
