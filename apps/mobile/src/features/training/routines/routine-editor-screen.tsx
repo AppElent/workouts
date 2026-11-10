@@ -1,17 +1,12 @@
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
- * Build or change a routine. Ported from the web's
- * `src/components/routines/CreateRoutineForm.tsx` and `EditRoutineModal.tsx`,
- * which are two components because the web renders create inline on the page
- * and edit in a dialog. The phone has no room to do both, so this is one sheet
- * that either starts empty or starts full.
+ * Build or change a routine: one screen that starts empty or starts full.
  *
  * `routines.update` replaces the whole `exercises` array rather than patching
  * it, so the editor holds the entire list in state and sends it back complete.
  * That also makes reordering and removal free.
  *
- * A weight of 0 is stored as "no default weight" (`undefined`), matching the
- * web — the distinction matters because 0 is a legitimate load for a bodyweight
+ * A weight of 0 is stored as "no default weight" (`undefined`) — the distinction matters because 0 is a legitimate load for a bodyweight
  * movement, while "unset" means the session should ask.
  */
 import { useMutation } from "convex/react";

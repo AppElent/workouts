@@ -1,15 +1,7 @@
 /**
- * Body metrics, ported from the web's
- * `src/components/progress/BodyMetricsPanel.tsx`.
- *
- * Every field is optional and the backend rejects an entry where all of them
- * are empty ("Enter at least one measurement."), so the form mirrors that: the
- * save button stays disabled until something is filled in, rather than letting
- * the user submit into a guaranteed error.
- *
- * Ranges are enforced server-side by `assertOptionalRange`. Nothing is
- * re-validated here — a second copy of the bounds is a second thing to keep in
- * step, and the toast surfaces the server's message verbatim.
+ * Body metrics. Every field is optional but the backend rejects an entry with
+ * none, so Save stays disabled until something is filled in. Ranges are left
+ * to the server.
  */
 import { useMutation } from "convex/react";
 import { useMemo, useState } from "react";

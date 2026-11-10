@@ -51,7 +51,8 @@ function CoachTabs() {
 	const segments = useSegments();
 	// The resume affordance belongs to training; other tabs keep their space.
 	const showSession =
-		Boolean(useActiveSession()) && segments.includes("train" as never);
+		Boolean(useActiveSession()) &&
+		segments.some((segment) => segment === "train");
 	const hasAccessory = isIOS26OrLater();
 
 	return (

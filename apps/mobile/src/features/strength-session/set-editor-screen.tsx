@@ -80,6 +80,7 @@ import {
 	updateRow,
 	withTypedLoad,
 } from "./session-plan";
+import { useKeyboardHeight } from "./use-keyboard-height";
 
 const PRESETS = [60, 65, 70, 75, 80, 85, 90];
 const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
@@ -209,24 +210,10 @@ export function SetEditorScreen() {
 	const [percentText, setPercentText] = useState("");
 	const [customOpen, setCustomOpen] = useState(false);
 	const [more, setMore] = useState(false);
-	const [keyboard, setKeyboard] = useState(0);
+	const keyboard = useKeyboardHeight();
 	const loadRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const repsRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const percentRef = useRef<ComponentRef<typeof TextInput>>(null);
-	useEffect(() => {
-		const show = Keyboard.addListener(
-			Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-			(event) => setKeyboard(event.endCoordinates.height),
-		);
-		const hide = Keyboard.addListener(
-			Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-			() => setKeyboard(0),
-		);
-		return () => {
-			show.remove();
-			hide.remove();
-		};
-	}, []);
 	const logged = Boolean(stored?.done);
 	const changed = Boolean(logged && stored && draft && !sameSet(draft, stored));
 	const [saving, setSaving] = useState(false);

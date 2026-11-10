@@ -1,10 +1,8 @@
 /**
  * The host's console for one hosted workout: the plan, the join code, the
- * lifecycle buttons, and the leaderboard. Ported from the web's
- * `src/routes/hosted-workouts/$id.tsx`, `HostedWorkoutDashboard.tsx` and
- * `HostedLeaderboard.tsx`.
+ * lifecycle buttons, and the leaderboard.
  *
- * Editing the template is web-only — see the note in `hosted-list.tsx`. This
+ * Editing the template is web-only — see `hosted-list-screen.tsx`. This
  * screen drives the states around it: draft → open → closed, plus delete.
  *
  * Leaderboard ranking uses `scoreRank` from `@foundry/core`, which is what

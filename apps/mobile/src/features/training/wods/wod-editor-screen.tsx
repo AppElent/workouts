@@ -1,6 +1,5 @@
 /**
- * Create or edit a WOD. Ported from the web's
- * `src/components/wods/CreateWodForm.tsx`.
+ * Create or edit a WOD.
  *
  * The type drives which fields matter: a time cap belongs to For Time, a
  * duration to AMRAP and EMOM, and neither to a Load workout. Rather than grey

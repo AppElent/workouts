@@ -1,7 +1,6 @@
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
- * The mid-session "add an exercise" picker, ported from the web's
- * `src/components/session/AddExerciseModal.tsx`.
+ * The mid-session "add an exercise" picker.
  *
  * Deliberately not the exercise library screen. Mid-set, one-handed, the only
  * questions are "which exercise" and "get out of my way" — so this is a search

@@ -1,6 +1,6 @@
 import { formatClock } from "@foundry/core";
 /** Resume control, laid out by the native tab accessory or its inline fallback. */
-import { useRouter, useSegments } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
@@ -23,19 +23,16 @@ export function ActiveSessionBar() {
 	const resume = t.strength.plan.resume;
 	const rest = useRestState();
 	const router = useRouter();
-	const segments = useSegments();
 	const active = useActiveSession();
-
-	const onSessionScreen = segments.includes("session" as never);
 
 	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
-		if (!active || onSessionScreen) return;
+		if (!active) return;
 		const id = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(id);
-	}, [active, onSessionScreen]);
+	}, [active]);
 
-	if (!active || onSessionScreen) return null;
+	if (!active) return null;
 
 	return (
 		<View style={styles.wrap} pointerEvents="box-none">

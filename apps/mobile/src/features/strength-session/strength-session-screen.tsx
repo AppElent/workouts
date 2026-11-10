@@ -113,8 +113,8 @@ export function StrengthSessionScreen() {
 		data,
 	} = workspace;
 	const { locale, t } = useI18n();
-	const legacy = t.strength;
-	const copy = legacy.plan;
+	const strength = t.strength;
+	const copy = strength.plan;
 	const router = useRouter();
 	const colors = useTokens();
 	const insets = useSafeAreaInsets();
@@ -230,7 +230,7 @@ export function StrengthSessionScreen() {
 	const logged = plan ? loggedCount(plan) : 0;
 	const open = plan ? openCount(plan) : 0;
 	const allDone = logged > 0 && open === 0;
-	const name = session?.name ?? legacy.freeSession;
+	const name = session?.name ?? strength.freeSession;
 	async function finish() {
 		if (!plan || actions.blocked()) return;
 		if (actions.refusePending(allRows(plan))) return;
@@ -459,16 +459,16 @@ export function StrengthSessionScreen() {
 						<AppText>
 							{!sessionId
 								? active === undefined
-									? legacy.checking
-									: legacy.noActive
+									? strength.checking
+									: strength.noActive
 								: data.session === undefined || (session && own)
-									? legacy.checking
-									: legacy.unavailable}
+									? strength.checking
+									: strength.unavailable}
 						</AppText>
 					</View>
 				) : !workspace.active ? (
 					<View style={[styles.message, { paddingTop: insets.top + 64 }]}>
-						<AppText>{legacy.ended}</AppText>
+						<AppText>{strength.ended}</AppText>
 					</View>
 				) : recapOpen ? (
 					<SessionRecap
@@ -507,7 +507,7 @@ export function StrengthSessionScreen() {
 							) : null}
 							{data.error ? (
 								<AppText accessibilityRole="alert">
-									{legacy.unavailableHint}
+									{strength.unavailableHint}
 								</AppText>
 							) : null}
 							{plan.order.length === 0 && workspace.sets && wods === 0 ? (

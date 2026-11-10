@@ -1,15 +1,13 @@
 /**
  * One WOD: what it is, what you have scored on it, and a form to add another.
- * Ported from the web's `src/routes/wods/$id.tsx`, `LogWodResultForm.tsx` and
- * `WodResultHistory.tsx`.
  *
  * Scoring shape follows the type — a time for For Time, rounds-plus-reps for
  * AMRAP, reps for EMOM, a load for Load. Showing all four sets of fields at
  * once would be four ways to enter a score wrongly, so only the relevant pair
  * renders.
  *
- * Ranking and formatting both come from `@foundry/core`, the same functions
- * Convex uses server-side in `wodResults.getBest`.
+ * Building, checking, ranking and formatting a score all come from
+ * `@foundry/core`, the same rules Convex applies.
  */
 import {
 	buildWodScore,
@@ -51,8 +49,8 @@ import { useToast } from "../../../ui/toast";
 export function WodDetailScreen({
 	onEdit,
 }: {
-	onEdit?: (id: Id<"wods">) => void;
-} = {}) {
+	onEdit: (id: Id<"wods">) => void;
+}) {
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
@@ -223,14 +221,7 @@ export function WodDetailScreen({
 				<View style={styles.actions}>
 					<Pressable
 						accessibilityRole="button"
-						onPress={() =>
-							onEdit
-								? onEdit(wod._id)
-								: router.push({
-										pathname: "/wod-editor",
-										params: { id: wod._id },
-									})
-						}
+						onPress={() => onEdit(wod._id)}
 						style={styles.ghostBtn}
 					>
 						<AppText style={styles.ghostText}>{copy.edit}</AppText>

@@ -1,9 +1,8 @@
 /**
- * One exercise: what you can lift, and everything you have lifted. Ported from
- * the web's `src/routes/exercises/$id.tsx`.
+ * One exercise: what you can lift, and everything you have lifted.
  *
- * All three of the web's tabs. Per-row 1RM in History is computed here rather
- * than read from `oneRepMaxes`, matching the web: the stored record is your
+ * Per-row 1RM in History is computed here rather than read from
+ * `oneRepMaxes`: the stored record is your
  * current best across all sets, whereas each row wants what *that* set was
  * worth on its own.
  *

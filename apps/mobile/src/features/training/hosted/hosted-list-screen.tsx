@@ -1,10 +1,7 @@
 /**
  * Hosted workouts — the list you host, and the box to join someone else's.
- * Ported from the web's `src/routes/hosted-workouts/index.tsx` and
- * `src/components/hosted/JoinHostedWorkout.tsx`.
  *
- * Two deliberate omissions from the web's version, both scoping rather than
- * oversight:
+ * Two deliberate omissions compared with the web:
  *
  * 1. **No builder.** Creating a hosted workout means naming strength blocks and
  *    giving every WOD four scaling levels (Rx/L1/L2/L3 — the backend rejects a

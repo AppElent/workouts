@@ -1,15 +1,8 @@
 import { validateManualOneRepMax } from "@foundry/core";
 /** Enter or change a manual 1RM for one exercise. It applies to this session at once. */
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-	Keyboard,
-	Platform,
-	Pressable,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { useState } from "react";
+import { Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
 import type { Id } from "../../convex/api";
 import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
 import {
@@ -30,6 +23,7 @@ import {
 	referenceFor,
 	setManual,
 } from "./session-plan";
+import { useKeyboardHeight } from "./use-keyboard-height";
 
 export function SessionManualScreen() {
 	const params = useLocalSearchParams<{
@@ -50,21 +44,7 @@ export function SessionManualScreen() {
 		current?.source === "manual" ? String(current.value) : "",
 	);
 	const [confirmed, setConfirmed] = useState<number | null>(null);
-	const [keyboard, setKeyboard] = useState(0);
-	useEffect(() => {
-		const show = Keyboard.addListener(
-			Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-			(event) => setKeyboard(event.endCoordinates.height),
-		);
-		const hide = Keyboard.addListener(
-			Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-			() => setKeyboard(0),
-		);
-		return () => {
-			show.remove();
-			hide.remove();
-		};
-	}, []);
+	const keyboard = useKeyboardHeight();
 	const parsed = parseLocalizedDecimal(value) ?? Number.NaN;
 	const inRange = value.trim() !== "" && validateManualOneRepMax(parsed).ok;
 	const odd = Boolean(

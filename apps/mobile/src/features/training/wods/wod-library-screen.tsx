@@ -1,5 +1,5 @@
 /**
- * The WOD library, ported from the web's `src/routes/wods/index.tsx`.
+ * The WOD library.
  *
  * Same shape as the exercise library: benchmark WODs (`isDefault`) are shared
  * and read-only, the user's own can be edited and deleted. The backend enforces
@@ -11,7 +11,7 @@
  * which is exactly why it is one shared function and not a comparison written
  * per screen.
  */
-import { formatScore } from "@foundry/core";
+import { formatScore, WOD_TYPES } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -38,15 +38,13 @@ import { Screen } from "../../../ui/screen";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
 
-const TYPES = ["forTime", "amrap", "emom", "load"] as const;
-
 export function WodLibraryScreen({
 	onOpen,
 	onCreate,
 }: {
-	onOpen?: (id: Id<"wods">) => void;
-	onCreate?: () => void;
-} = {}) {
+	onOpen: (id: Id<"wods">) => void;
+	onCreate: () => void;
+}) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const copy = useI18n().t.wods;
@@ -54,7 +52,7 @@ export function WodLibraryScreen({
 
 	const [search, setSearch] = useState("");
 	const [type, setType] = useState<Doc<"wods">["type"] | null>(null);
-	const router = useRouter();
+	const _router = useRouter();
 
 	const filtered = useMemo(() => {
 		const term = search.trim().toLowerCase();
@@ -71,7 +69,7 @@ export function WodLibraryScreen({
 				title={copy.title}
 				action={{
 					label: copy.add,
-					onPress: onCreate ?? (() => router.push("/wod-editor")),
+					onPress: onCreate,
 				}}
 			/>
 
@@ -86,7 +84,7 @@ export function WodLibraryScreen({
 				/>
 				<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 					<View style={styles.chipRow}>
-						{TYPES.map((kind) => (
+						{WOD_TYPES.map((kind) => (
 							<Chip
 								key={kind}
 								label={copy.types[kind]}
@@ -131,22 +129,18 @@ function WodRow({
 	onOpen,
 }: {
 	wod: Doc<"wods">;
-	onOpen?: (id: Id<"wods">) => void;
+	onOpen: (id: Id<"wods">) => void;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	const router = useRouter();
+	const _router = useRouter();
 	const copy = useI18n().t.wods;
 	const best = useQuery(api.wodResults.getBest, { wodId: wod._id });
 
 	return (
 		<Pressable
 			accessibilityRole="button"
-			onPress={() =>
-				onOpen
-					? onOpen(wod._id)
-					: router.push({ pathname: "/wod/[id]", params: { id: wod._id } })
-			}
+			onPress={() => onOpen(wod._id)}
 			style={({ pressed }) => [
 				styles.row,
 				pressed && { backgroundColor: colors.surface2 },

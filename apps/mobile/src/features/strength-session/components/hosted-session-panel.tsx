@@ -1,7 +1,6 @@
 /**
  * What a participant sees inside a hosted workout's session: the plan the host
- * set, and a score box per WOD block. Ported from the web's
- * `HostedSessionPlan.tsx` and `HostedScoreForm.tsx`.
+ * set, and a score box per WOD block.
  *
  * Renders nothing at all unless `hostedWorkoutParticipants.getBySession` says
  * this session belongs to a hosted workout, so the ordinary strength session
