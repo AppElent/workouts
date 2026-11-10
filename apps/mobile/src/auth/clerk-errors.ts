@@ -36,14 +36,9 @@ export function clerkErrorKey(error: unknown): ClerkErrorMessageKey {
 }
 
 /**
- * What to show after a failed Core 3 call.
- *
- * The `{ error }` a method resolves with is a **wrapper** — a wrong password
- * comes back as `api_response_error`, not `form_password_incorrect`. The
- * machine-stable code lives on the hook's `errors` signal instead
- * (`errors.fields.password.code`), which is why field errors are checked
- * first and the returned wrapper is only the fallback for failures that
- * never reach a field at all (no network, nothing to blame).
+ * What to show after a failed Core 3 call: the hook's field errors first,
+ * then its global errors, then the returned error for failures that never
+ * reach the signal (no network).
  */
 export function pickErrorKey<TFields extends object>(
 	errors: ErrorSignal<TFields>,

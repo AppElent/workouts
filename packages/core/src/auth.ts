@@ -68,17 +68,20 @@ function findCode(
 ): string | null {
 	if (!isRecord(error) || depth > 8 || seen.has(error)) return null;
 	seen.add(error);
-	if (typeof error.code === "string") return error.code;
 	if (Array.isArray(error.errors)) {
 		for (const nested of error.errors) {
 			const code = findCode(nested, seen, depth + 1);
 			if (code) return code;
 		}
 	}
-	return null;
+	return typeof error.code === "string" && error.code ? error.code : null;
 }
 
-/** The first machine-stable code in a Clerk error, including nested `errors[]`. */
+/**
+ * The first machine-stable code in a Clerk error. A nested `errors[]` code
+ * wins over the error's own: `ClerkAPIResponseError` carries the generic
+ * `api_response_error` and keeps the specific code in `errors[]`.
+ */
 export function clerkErrorCode(error: unknown): string | null {
 	return findCode(error, new Set(), 0);
 }

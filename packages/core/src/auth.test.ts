@@ -42,6 +42,32 @@ describe("clerkErrorMessageKey", () => {
 		);
 	});
 
+	it("reads the nested code of a Clerk API response error", () => {
+		// Shape of @clerk/shared's ClerkAPIResponseError: own wrapper code, the
+		// API's codes in `errors[]`.
+		const error = Object.assign(new Error("Password is incorrect."), {
+			code: "api_response_error",
+			status: 422,
+			errors: [
+				{
+					code: "form_password_incorrect",
+					message: "Password is incorrect. Try again.",
+					longMessage: "Password is incorrect. Try again.",
+					meta: { paramName: "password" },
+				},
+			],
+		});
+		expect(clerkErrorMessageKey(error)).toBe("passwordIncorrect");
+		expect(
+			clerkErrorMessageKey(
+				Object.assign(new Error("x"), {
+					code: "api_response_error",
+					errors: [],
+				}),
+			),
+		).toBe("generic");
+	});
+
 	it("falls back to the generic key for anything unmapped", () => {
 		expect(clerkErrorMessageKey({ code: "something_new" })).toBe("generic");
 		expect(clerkErrorMessageKey({ code: "toString" })).toBe("generic");

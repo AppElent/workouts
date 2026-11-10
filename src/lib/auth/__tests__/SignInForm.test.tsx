@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+
+import { ClerkAPIResponseError } from "@clerk/react/errors";
 import {
 	cleanup,
 	fireEvent,
@@ -96,6 +98,26 @@ describe("SignInForm", () => {
 		renderForm();
 		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 		expect(await screen.findByText("Invalid.")).toBeDefined();
+	});
+
+	it("translates a Clerk API error by its nested code", async () => {
+		password.mockResolvedValue({
+			error: new ClerkAPIResponseError("Unprocessable Entity", {
+				data: [
+					{
+						code: "form_password_incorrect",
+						message: "Password is incorrect. Try again.",
+						long_message: "Password is incorrect. Try again.",
+					},
+				],
+				status: 422,
+			}),
+		});
+		renderForm();
+		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+		expect(
+			await screen.findByText("That password is incorrect."),
+		).toBeDefined();
 	});
 
 	it("signs in with an emailed code", async () => {
