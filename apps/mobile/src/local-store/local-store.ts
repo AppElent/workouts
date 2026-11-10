@@ -130,6 +130,10 @@ export function registerAccountStore(store: AccountStore) {
 /**
  * Clears every registered store for `subject`. Every store is attempted; a
  * failure is reported and the first one rethrown afterwards.
+ *
+ * Stores register when their module is imported, so this reaches a store only
+ * once its module has loaded. That holds while expo-router loads every route
+ * eagerly; lazy routes would have to import the registrants here first.
  */
 export function clearAccountStores(subject: string) {
 	let first: unknown;

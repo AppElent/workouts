@@ -30,10 +30,6 @@ import {
 	createFoodShortcutRepository,
 	type FoodShortcutRepository,
 } from "../data/food-shortcut-repository";
-import {
-	libraryRecordFromCombo,
-	libraryRecordFromFood,
-} from "../data/nutrition-library-repository";
 import type { FetchLike } from "../data/open-food-facts";
 import { createOpenFoodFactsCache } from "../data/open-food-facts-cache";
 import { LocaleProvider } from "../i18n";
@@ -45,7 +41,12 @@ import {
 	type CaptureDraftFixture,
 	createCaptureDraftFixture,
 } from "./capture-draft-fixture";
-import { createLibraryFixture, type LibraryFixture } from "./library-fixture";
+import {
+	createLibraryFixture,
+	type LibraryFixture,
+	libraryRecordFromCombo,
+	libraryRecordFromFood,
+} from "./library-fixture";
 import { startMockLayers, underlying, wrapping } from "./mock-layers";
 import { NativeAlertHost } from "./native-alert-host";
 import { SQLiteTestDatabase } from "./sqlite-test-database";

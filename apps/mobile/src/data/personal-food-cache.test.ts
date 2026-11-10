@@ -8,10 +8,10 @@ import {
 } from "@foundry/core";
 import { forkShippedFood, getShippedFood } from "@foundry/core/shipped-foods";
 import {
-	type LibraryRecord,
 	libraryRecordFromCombo,
 	libraryRecordFromFood,
-} from "./nutrition-library-repository";
+} from "../test-support/library-fixture";
+import type { LibraryRecord } from "./nutrition-library-repository";
 import { createPersonalFoodCache } from "./personal-food-cache";
 import type { Combo } from "./personal-food-model";
 

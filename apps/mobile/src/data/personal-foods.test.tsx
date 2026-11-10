@@ -11,8 +11,10 @@ import {
 	useQuery,
 } from "convex/react";
 import { Text } from "react-native";
-import { createLibraryFixture } from "../test-support/library-fixture";
-import { libraryRecordFromFood } from "./nutrition-library-repository";
+import {
+	createLibraryFixture,
+	libraryRecordFromFood,
+} from "../test-support/library-fixture";
 
 type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
 	typeof import("../convex/api").api.nutritionLibrary.save
