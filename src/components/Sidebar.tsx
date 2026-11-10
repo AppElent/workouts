@@ -20,7 +20,6 @@ export function Sidebar() {
 				collapsed ? "w-16" : "w-56",
 			].join(" ")}
 		>
-			{/* Logo */}
 			<div className="flex items-center gap-2 px-4 py-5 border-b border-[var(--border)]">
 				<div
 					className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-black text-black text-sm"
@@ -35,7 +34,6 @@ export function Sidebar() {
 				)}
 			</div>
 
-			{/* Nav */}
 			<nav className="flex-1 py-4 flex flex-col gap-1 px-2">
 				{navItems.map(({ to, label, Icon, locked }) => {
 					const active = !locked && location.pathname.startsWith(to);
@@ -68,19 +66,16 @@ export function Sidebar() {
 				})}
 			</nav>
 
-			{/* User / Sign in */}
 			<div className="flex items-center justify-center p-3 border-t border-[var(--border)]">
 				<HeaderUser />
 			</div>
 
-			{/* Language toggle */}
 			{!collapsed && (
 				<div className="flex items-center justify-center border-t border-[var(--border)]">
 					<LanguageToggle />
 				</div>
 			)}
 
-			{/* Collapse toggle */}
 			<button
 				type="button"
 				onClick={() => setCollapsed((c) => !c)}
