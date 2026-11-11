@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # Foundry MCP
@@ -84,13 +84,16 @@ needs a Convex idempotency key (`operationId`, `clientEntryId`, or
 
 - OAuth applications → Scopes: `foundry:read` and `foundry:write`. Creating
   scopes is Dashboard-only.
-- OAuth settings, through the Backend API
-  `PATCH /v1/instance/oauth_application_settings`: `oauth_jwt_access_tokens`,
-  `dynamic_oauth_client_registration`, `pkce_required`, `aud_claim_enabled`,
-  and `default_scopes` = `openid profile email foundry:read foundry:write`.
-  Default scopes cover clients that register without a `scope`.
+- OAuth settings: JWT access tokens, PKCE required, audience claim on, and
+  `default_scopes` = `openid profile email foundry:read foundry:write`
+  (Backend API `PATCH /v1/instance/oauth_application_settings` when the
+  Dashboard lacks a field). Leave dynamic client registration off: Claude.ai and
+  Claude Code use CIMD.
 - MCP resource for the endpoint URL (Clerk MCP `configure_mcp_server`, or the
-  Dashboard).
+  Dashboard). This also turns on CIMD.
+- Production DNS: the `clerk`, `accounts`, `clkmail`, and DKIM CNAMEs on
+  `appelent.nl` are **DNS only** in Cloudflare. A proxied `accounts` record
+  breaks sign-in and consent with Cloudflare Error 1000.
 
 **Convex:** `MCP_RESOURCE_URLS` (Infisical `/foundry/mcp-resource-urls`) is a
 comma-separated list of endpoint URLs. Convex requires every variable
@@ -115,6 +118,8 @@ and staging would need its own Clerk resource and a staging value.
    equal to the endpoint and `scopes_supported` with both Foundry scopes.
 3. Connect Claude Code (above) and ask "Who am I in Foundry?". It should call
    `get_current_user` and show the granted scopes.
+4. Connect Claude.ai separately. It uses its own client and Anthropic's
+   servers, so Claude Code working does not prove it.
 
 ## Troubleshooting
 
@@ -122,5 +127,14 @@ and staging would need its own Clerk resource and a staging value.
   Clerk MCP resource and that the client sent `resource`.
 - **`403 insufficient_scope`:** the grant lacks Foundry scopes. Check the Clerk
   scopes and `default_scopes`, then reconnect.
+- **Claude.ai: "Authorization with Foundry failed":** tail the Worker
+  (`pnpm exec wrangler tail foundry`) while connecting. Only a `401` and a
+  metadata fetch from `160.79.x` means Clerk stopped the flow. Read the `error`
+  on the `claude.ai/api/mcp/auth_callback` URL in browser history.
+- **`invalid_scope` ("not allowed to request scope …"):** Clerk saved that CIMD
+  client before the scopes existed. Edit its scopes, or delete it under OAuth
+  applications so the next connect recreates it.
+- **Cloudflare Error 1000 on `accounts.appelent.nl`:** the record is proxied;
+  set it to DNS only.
 - **Tools fail with "Not authenticated":** Convex does not trust the token.
   Check `MCP_RESOURCE_URLS` on that deployment matches the endpoint exactly.
