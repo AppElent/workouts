@@ -43,7 +43,7 @@ type WriteOptions = {
  */
 export function useScreenWrite() {
 	const toast = useToast();
-	const writeFailureMessage = useWriteFailureMessage();
+	const failureMessage = useWriteFailureMessage();
 	const running = useRef(new Set<string>());
 	const [pending, setPending] = useState<ReadonlySet<string>>(() => new Set());
 	const mounted = useRef(true);
@@ -73,7 +73,7 @@ export function useScreenWrite() {
 				return mounted.current ? result : undefined;
 			} catch (error) {
 				toast.error(
-					writeFailureMessage(error, failure),
+					failureMessage(error, failure),
 					failureAction ? { action: failureAction } : undefined,
 				);
 				return undefined;
@@ -87,7 +87,7 @@ export function useScreenWrite() {
 					});
 			}
 		},
-		[toast, writeFailureMessage],
+		[toast, failureMessage],
 	);
 
 	return useMemo(
