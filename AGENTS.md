@@ -45,6 +45,8 @@ Issues on `AppElent/workouts`; engineering skills read [docs/agents/](docs/agent
 
 Linear (workspace `appelent`, team AppElent, key `APP`) is the source of truth. Work is a Linear issue with an app label and a blast radius.
 
+Work lives in Linear, not GitHub Issues.
+
 - `ready-for-agent`: the issue has sharp, testable acceptance criteria and a blast radius, so an agent can pick it up.
 - `ready-for-human`: Eric must do or decide something. Add a comment saying what, where, and roughly how long.
 - The moment you start a T3 thread for an issue, post a Linear comment `T3 thread: <title> (<thread id>), started by <bot or fallback>` and move the issue to In Progress. An issue with such a comment is taken; do not start a second thread for it.
