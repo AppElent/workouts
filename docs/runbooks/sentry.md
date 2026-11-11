@@ -21,7 +21,7 @@ owns Infisical/EAS/CI setup. Installed SDK versions live in package/lockfiles.
 | --- | --- |
 | Browser/Worker | Navigation/request traces; React/route and caught Convex failures; Worker SSR 5xx fallback. Git SHA or SENTRY_RELEASE aligns web/Worker/maps. Sentry environment is the built Wrangler environment's `environment_name` (CI overrides with `VITE_SENTRY_ENVIRONMENT`), shared by both bundles. |
 | Mobile | Navigation/app-start/network traces, frame/stall measurements, Hermes/native profiling, masked replay, shake-to-report. Sentry environment follows EAS Update channel, with development/production fallback. |
-| Convex | Free-plan log forwarder for failed executions, including scheduled functions; hosting is still outstanding. |
+| Convex | Free-plan log forwarder for failed executions, including scheduled functions; production runs on an always-on Mac (see [Convex forwarder](#convex-forwarder)). |
 
 | Signal | Foundry sampling |
 | --- | --- |
@@ -87,14 +87,52 @@ pnpm sentry:convex --deployment <verified-development-deployment>
 ```
 
 Select only one reader per deployment. `--prod` labels production; set
-`SENTRY_ENVIRONMENT=preview` for previews. This process needs an always-on host
-or supervisor, which has not been provisioned. It restarts the reader with
-backoff up to 60 s, replays 100 entries, and deduplicates stable event IDs. It
-exits non-zero after a Convex auth error or five failed starts in a row, so the
+`SENTRY_ENVIRONMENT=preview` for previews. The reader restarts with backoff up
+to 60 s, replays 100 entries, and deduplicates stable event IDs. It exits
+non-zero after a Convex auth error or five failed starts in a row, so the
 supervisor sees the failure. The DSN comes from `SENTRY_CONVEX_DSN`, else the
 `sentryDsn` value `pnpm env:apply local` wrote. Long downtime/high volume can
 exceed history; delivery has no durable queue. It supplies neither backend
 performance/distributed traces nor authenticated-user attribution.
+
+### Production host
+
+The production reader runs on Eric's always-on Mac Studio as the launchd user
+agent `com.appelent.convex-sentry.foundry`
+(`~/Library/LaunchAgents/com.appelent.convex-sentry.foundry.plist`). It has
+`RunAtLoad`, `KeepAlive`, and a 30 s `ThrottleInterval`, and survives a reboot
+while that user is logged in. The service files live outside this repository.
+
+- Checkout: `~/Developer/.services/workouts`, a dedicated clone reset to
+  `origin/main` on each start when the tree is clean. Do not run the production
+  reader from a T3 worktree or `~/Developer/workouts`.
+- Wrapper: `~/Developer/.services/bin/convex-sentry-run foundry`.
+- Log: `~/Library/Logs/convex-sentry-foundry.log`.
+- Secrets: the wrapper runs `pnpm env:exec production --only github`, which loads
+  Infisical `sentry-dsn` as `VITE_SENTRY_DSN`, and exports it as `SENTRY_DSN` and
+  `SENTRY_CONVEX_DSN` with `SENTRY_ENVIRONMENT=production`.
+- Convex access: the wrapper unsets `CONVEX_DEPLOY_KEY` and
+  `CONVEX_DEPLOYMENT_TOKEN`; the production deploy key can deploy but lacks
+  `deployment:logs:view`. Logs are read with the logged-in Convex CLI and
+  `--deployment eric-jansen:workout-tracker:prod`, the public selector from
+  `env.manifest.ts`.
+
+Restart and watch the log:
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/com.appelent.convex-sentry.foundry"
+tail -f ~/Library/Logs/convex-sentry-foundry.log
+```
+
+A healthy start logs `[Production] eric-jansen:workout-tracker:production (prod)`
+and a `Watching logs` line. Stop it with:
+
+```sh
+launchctl bootout "gui/$(id -u)/com.appelent.convex-sentry.foundry"
+```
+
+After a `bootout`, load it again with
+`launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.appelent.convex-sentry.foundry.plist`.
 
 If adopting managed Convex reporting, stop the corresponding reader to avoid
 duplicate ingestion. Verify plan support and per-deployment behavior using the
