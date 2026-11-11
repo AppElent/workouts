@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import * as Sentry from "@sentry/cloudflare";
 import { z } from "zod";
 import { McpAuthRequiredError, type WorkoutsMcpDataClient } from "./dataClient";
 import { errorText, jsonText } from "./toolResults";
@@ -94,6 +95,7 @@ async function withToolErrors(load: () => Promise<unknown>) {
 		if (error instanceof McpAuthRequiredError) {
 			return errorText("Authentication is required. Start at /mcp/auth.");
 		}
+		Sentry.captureException(error, { tags: { operation: "mcp.tool" } });
 		return errorText("The Foundry MCP tool failed.");
 	}
 }
