@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # Foundry MCP
@@ -24,11 +24,13 @@ log their own data. The design is in
 - **Claude Code:** `claude mcp add --transport http foundry https://foundry.appelent.nl/mcp`,
   then run `/mcp` and choose Authenticate.
 - **ChatGPT and others:** add the endpoint as a remote MCP server with OAuth.
+  The client must support CIMD, because DCR is off.
 
 Clients discover everything else: the endpoint answers `401` with
 `WWW-Authenticate: Bearer resource_metadata=…`, the metadata names Clerk as the
-authorization server, and the client registers itself (DCR or CIMD) and signs
-the user in with PKCE.
+authorization server, and the client identifies itself with a Client ID
+Metadata Document (CIMD) and signs the user in with PKCE. Dynamic client
+registration (DCR) is off.
 
 ## How a request is authorized
 
@@ -86,13 +88,24 @@ needs a Convex idempotency key (`operationId`, `clientEntryId`, or
 
 - OAuth applications → Scopes: `foundry:read` and `foundry:write`. Creating
   scopes is Dashboard-only.
-- OAuth settings, through the Backend API
-  `PATCH /v1/instance/oauth_application_settings`: `oauth_jwt_access_tokens`,
-  `dynamic_oauth_client_registration`, `pkce_required`, `aud_claim_enabled`,
-  and `default_scopes` = `openid profile email foundry:read foundry:write`.
-  Default scopes cover clients that register without a `scope`.
+- OAuth settings: JWT access tokens, PKCE required, audience claim on, and
+  `default_scopes` = `openid profile email foundry:read foundry:write`
+  (Backend API `PATCH /v1/instance/oauth_application_settings` when the
+  Dashboard lacks a field). Clerk uses them when a client omits `scope`. Leave
+  DCR off: Claude.ai and Claude Code use CIMD.
+- CIMD: turn on **Publish CIMD support** under OAuth applications → Settings.
+  Then check that `/.well-known/oauth-authorization-server` on the Clerk issuer
+  shows `client_id_metadata_document_supported: true` and lists `none` in
+  `token_endpoint_auth_methods_supported`. Claude uses CIMD only when both are
+  there. Clerk turns CIMD on by itself only for the first MCP server on an
+  instance: through `configure_mcp_server`, or in the Dashboard when you select
+  **Allow public clients to connect**. For any later server, check the setting
+  yourself.
 - MCP resource for the endpoint URL (Clerk MCP `configure_mcp_server`, or the
   Dashboard).
+- Production DNS: the `clerk`, `accounts`, `clkmail`, and DKIM CNAMEs on
+  `appelent.nl` are **DNS only** in Cloudflare. A proxied `accounts` record
+  breaks sign-in and consent with Cloudflare Error 1000.
 
 **Convex:** `MCP_RESOURCE_URLS` (Infisical `/foundry/mcp-resource-urls`) is a
 comma-separated list of endpoint URLs. Convex requires every variable
@@ -117,6 +130,9 @@ and staging would need its own Clerk resource and a staging value.
    equal to the endpoint and `scopes_supported` with both Foundry scopes.
 3. Connect Claude Code (above) and ask "Who am I in Foundry?". It should call
    `get_current_user` and show the granted scopes.
+4. Connect Claude.ai separately and ask the same question. Expect the same
+   result. Claude.ai uses its own client and Anthropic's servers, so Claude
+   Code working does not prove it.
 
 ## Troubleshooting
 
@@ -124,5 +140,22 @@ and staging would need its own Clerk resource and a staging value.
   Clerk MCP resource and that the client sent `resource`.
 - **`403 insufficient_scope`:** the grant lacks Foundry scopes. Check the Clerk
   scopes and `default_scopes`, then reconnect.
+- **Claude.ai: "Authorization with Foundry failed":** tail the Worker
+  (`pnpm exec wrangler tail foundry`) while connecting. Claude.ai calls from
+  Anthropic's range `160.79.104.0/21`. If the tail shows a `401` and a metadata
+  fetch, but no later request with a token, the OAuth flow did not complete.
+  Read the `error` on the `claude.ai/api/mcp/auth_callback` URL in browser
+  history.
+- **Claude.ai fails before sign-in, and Clerk's metadata lacks
+  `client_id_metadata_document_supported: true` or the `none` auth method:**
+  Claude cannot use CIMD and DCR is off, so it cannot register. Turn on Publish
+  CIMD support.
+- **`invalid_scope` ("not allowed to request scope …"):** Clerk saved that CIMD
+  client before the scopes existed. Delete it under OAuth applications so the
+  next connect recreates it, or set its scopes to `openid profile email
+  foundry:read foundry:write offline_access`. Claude also asks for
+  `offline_access`.
+- **Cloudflare Error 1000 on `accounts.appelent.nl`:** the record is proxied;
+  set it to DNS only.
 - **Tools fail with "Not authenticated":** Convex does not trust the token.
   Check `MCP_RESOURCE_URLS` on that deployment matches the endpoint exactly.
