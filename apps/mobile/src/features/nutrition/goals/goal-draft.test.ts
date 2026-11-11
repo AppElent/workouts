@@ -3,6 +3,7 @@ import {
 	draftToGoals,
 	emptyGoalDraft,
 	goalDraftEquals,
+	goalErrors,
 	goalKind,
 	parseGoalNumber,
 	referenceGoalTarget,
@@ -16,9 +17,9 @@ describe("nutrition goal history helpers", () => {
 		expect(parseGoalNumber("12,5")).toBe(12.5);
 		const draft = emptyGoalDraft();
 		draft.protein.min = "12,5";
-		const parsed = draftToGoals(draft);
-		expect(parsed.errors).toEqual([]);
-		expect(parsed.goals).toContainEqual({
+		const goals = draftToGoals(draft);
+		expect(goalErrors(goals)).toEqual([]);
+		expect(goals).toContainEqual({
 			nutrient: "protein",
 			direction: "min",
 			target: 12.5,
@@ -30,9 +31,11 @@ describe("nutrition goal history helpers", () => {
 		draft.protein.min = "150";
 		draft.protein.max = "100";
 		draft.energy.max = "wat";
-		expect(draftToGoals(draft).errors).toEqual(
+		draft.fat.max = "200000";
+		expect(goalErrors(draftToGoals(draft))).toEqual(
 			expect.arrayContaining([
 				{ key: "energy.max", message: "invalid" },
+				{ key: "fat.max", message: "invalid" },
 				{ key: "protein.range", message: "range" },
 			]),
 		);

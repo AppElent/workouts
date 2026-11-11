@@ -45,15 +45,11 @@ const referenceGoals: NutritionGoalValue[] = [
 export const NUTRITION_GOAL_PRESETS = {
 	reference: {
 		goals: referenceGoals,
-		provenance: "EU Regulation 1169/2011 Annex XIII; EFSA fibre guidance",
-		delta: undefined,
 	},
 	loseWeight: {
 		goals: referenceGoals.map((goal) =>
 			goal.nutrient === "energy" ? { ...goal, target: 1700 } : { ...goal },
 		),
-		provenance: "Fixed variant of Reference intake; not personalised advice",
-		delta: "Energy −300 kcal",
 	},
 	buildMuscle: {
 		goals: referenceGoals.map((goal) =>
@@ -63,8 +59,6 @@ export const NUTRITION_GOAL_PRESETS = {
 					? { ...goal, target: 100 }
 					: { ...goal },
 		),
-		provenance: "Fixed variant of Reference intake; not personalised advice",
-		delta: "Energy +300 kcal; protein +50 g",
 	},
 } as const;
 

@@ -6,6 +6,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
+	validateNutritionGoals,
 } from "@foundry/core";
 import { parseLocalizedDecimal } from "../../../i18n";
 
@@ -45,40 +46,25 @@ export function parseGoalNumber(input: string): number | null {
 	return value !== undefined && value > 0 ? value : Number.NaN;
 }
 
-export function draftToGoals(draft: GoalDraft): {
-	goals: GoalRow[];
-	errors: GoalDraftError[];
-} {
-	const goals: GoalRow[] = [];
-	const errors: GoalDraftError[] = [];
-	for (const nutrient of NUTRIENT_KEYS) {
-		const values = draft[nutrient];
-		const parsed = {
-			min: parseGoalNumber(values.min),
-			max: parseGoalNumber(values.max),
-		};
-		for (const direction of GOAL_DIRECTIONS) {
-			if (Number.isNaN(parsed[direction])) {
-				errors.push({ key: `${nutrient}.${direction}`, message: "invalid" });
-			}
-		}
-		if (
-			parsed.min !== null &&
-			parsed.max !== null &&
-			!Number.isNaN(parsed.min) &&
-			!Number.isNaN(parsed.max) &&
-			parsed.min > parsed.max
-		) {
-			errors.push({ key: `${nutrient}.range`, message: "range" });
-		}
-		for (const direction of GOAL_DIRECTIONS) {
-			const target = parsed[direction];
-			if (target !== null && !Number.isNaN(target)) {
-				goals.push({ nutrient, direction, target });
-			}
-		}
-	}
-	return { goals, errors };
+/** Every filled bound; unreadable text becomes a NaN target the rules reject. */
+export function draftToGoals(draft: GoalDraft): GoalRow[] {
+	return NUTRIENT_KEYS.flatMap((nutrient) =>
+		GOAL_DIRECTIONS.flatMap((direction) => {
+			const target = parseGoalNumber(draft[nutrient][direction]);
+			return target === null ? [] : [{ nutrient, direction, target }];
+		}),
+	);
+}
+
+/** The server's goal rules, keyed by `nutrient.direction` or `nutrient.range`. */
+export function goalErrors(goals: readonly GoalRow[]): GoalDraftError[] {
+	const result = validateNutritionGoals(goals);
+	return result.ok
+		? []
+		: result.errors.map(({ field, code }) => ({
+				key: field,
+				message: code === "minAboveMax" ? "range" : "invalid",
+			}));
 }
 
 export function goalKind(bounds: GoalDraft[NutrientKey]): GoalKind | null {

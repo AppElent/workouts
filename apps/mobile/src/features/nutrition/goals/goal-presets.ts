@@ -1,10 +1,13 @@
-import { type Locale, NUTRITION_GOAL_PRESETS } from "@foundry/core";
+import {
+	type GoalPresetKey,
+	type Locale,
+	NUTRITION_GOAL_PRESETS,
+} from "@foundry/core";
 import { dateLocale, fmt, type Messages } from "../../../i18n";
 
-type PresetKey = keyof typeof NUTRITION_GOAL_PRESETS;
 type GoalEditorCopy = Messages["nutrition"]["goalEditor"];
 
-function target(key: PresetKey, nutrient: "energy" | "protein") {
+function target(key: GoalPresetKey, nutrient: "energy" | "protein") {
 	return (
 		NUTRITION_GOAL_PRESETS[key].goals.find((goal) => goal.nutrient === nutrient)
 			?.target ?? 0
@@ -12,7 +15,7 @@ function target(key: PresetKey, nutrient: "energy" | "protein") {
 }
 
 /** The numbers a preset's summary and hint quote, read from the preset itself. */
-function presetValues(key: PresetKey, locale: Locale) {
+function presetValues(key: GoalPresetKey, locale: Locale) {
 	const number = (value: number) => value.toLocaleString(dateLocale(locale));
 	const signed = (value: number) =>
 		`${value < 0 ? "−" : "+"}${number(Math.abs(value))}`;
@@ -28,7 +31,7 @@ function presetValues(key: PresetKey, locale: Locale) {
 
 export function goalPresetSummary(
 	copy: GoalEditorCopy,
-	key: PresetKey,
+	key: GoalPresetKey,
 	locale: Locale,
 ) {
 	return fmt(copy.presetSummary[key], presetValues(key, locale));
@@ -36,7 +39,7 @@ export function goalPresetSummary(
 
 export function goalPresetMenuHint(
 	copy: GoalEditorCopy,
-	key: PresetKey,
+	key: GoalPresetKey,
 	locale: Locale,
 ) {
 	return fmt(copy.presetMenuHint[key], presetValues(key, locale));
