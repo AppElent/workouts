@@ -5,7 +5,7 @@ import {
 	lookupOffBarcode,
 	searchOffProducts,
 } from "./open-food-facts";
-import { createOpenFoodFactsCache } from "./personal-food-repository";
+import { createOpenFoodFactsCache } from "./open-food-facts-cache";
 
 function jsonResponse(status: number, body: unknown) {
 	return {
@@ -154,17 +154,16 @@ describe("lookupOffBarcode", () => {
 
 	it("bypasses and replaces a cached barcode when refreshing", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-		cache.set("barcode:details-v2:5000112637922", "barcode", bakedBeans);
+		let product = bakedBeans;
 		const fetchImpl = fakeFetch(() =>
-			jsonResponse(200, {
-				status: 1,
-				product: {
-					...bakedBeans,
-					product_name: "Updated Beans",
-					product_name_en: "Updated Beans",
-				},
-			}),
+			jsonResponse(200, { status: 1, product }),
 		);
+		await lookupOffBarcode("5000112637922", { cache, fetchImpl });
+		product = {
+			...bakedBeans,
+			product_name: "Updated Beans",
+			product_name_en: "Updated Beans",
+		};
 		const outcome = await lookupOffBarcode(
 			"5000112637922",
 			{ cache, fetchImpl },
@@ -175,18 +174,25 @@ describe("lookupOffBarcode", () => {
 			fromCache: false,
 			draft: { name: { en: "Updated Beans" } },
 		});
-		expect(fetchImpl).toHaveBeenCalledTimes(1);
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+		expect(
+			await lookupOffBarcode("5000112637922", { cache, fetchImpl }),
+		).toMatchObject({
+			kind: "found",
+			fromCache: true,
+			draft: { name: { en: "Updated Beans" } },
+		});
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
 	});
 
 	it("reports an unknown barcode as not-found without caching it", async () => {
 		const cache = createOpenFoodFactsCache(new SQLiteTestDatabase());
 		const fetchImpl = fakeFetch(() => jsonResponse(200, { status: 0 }));
-		const outcome = await lookupOffBarcode("0000000000000", {
-			cache,
-			fetchImpl,
-		});
-		expect(outcome).toEqual({ kind: "not-found" });
-		expect(cache.get("barcode:details-v2:0000000000000")).toBeUndefined();
+		for (let attempt = 0; attempt < 2; attempt++)
+			expect(
+				await lookupOffBarcode("0000000000000", { cache, fetchImpl }),
+			).toEqual({ kind: "not-found" });
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
 	});
 
 	it("reports a 429 as rate-limited", async () => {

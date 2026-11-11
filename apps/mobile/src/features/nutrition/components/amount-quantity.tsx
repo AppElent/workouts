@@ -1,4 +1,4 @@
-import { formatQuantity } from "@foundry/core/nutrition";
+import { formatQuantity } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import {
@@ -8,13 +8,13 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
 import { NutritionKeyboardOverlay } from "./nutrition-keyboard-overlay";
 
-/** Round 5 replacement entry: an empty editing buffer never erases the saved draft. */
+/** An empty editing buffer never erases the saved draft. */
 export function AmountQuantity({
 	value,
 	amount,
@@ -61,7 +61,7 @@ export function AmountQuantity({
 		choose(
 			Math.max(
 				baseUnitSelected ? 0.1 : small,
-				(valid ? Number(value.replace(",", ".")) : 0) + by,
+				(valid ? (parseLocalizedDecimal(value) ?? 0) : 0) + by,
 			),
 		);
 	const smallLabel = formatQuantity(small, locale);

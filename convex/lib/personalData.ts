@@ -1,6 +1,9 @@
+import type { AppErrorCode } from "@foundry/core";
 import type { GenericTableInfo, Query } from "convex/server";
-import type { Id } from "../_generated/dataModel";
+import { v } from "convex/values";
+import type { Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { literals } from "./validators";
 
 type Db = QueryCtx["db"];
 
@@ -68,14 +71,14 @@ const sources = {
 		read: (db: Db, u: string) =>
 			db
 				.query("strengthLogReceipts")
-				.withIndex("by_user_operation", (q) => q.eq("userId", u)),
+				.withIndex("by_user_and_operation", (q) => q.eq("userId", u)),
 	},
 	operationReceipts: {
 		export: false,
 		read: (db: Db, u: string) =>
 			db
 				.query("operationReceipts")
-				.withIndex("by_user_operation", (q) => q.eq("userId", u)),
+				.withIndex("by_user_and_operation", (q) => q.eq("userId", u)),
 	},
 	nutritionDiaryEntries: {
 		read: (db: Db, u: string) =>
@@ -88,7 +91,7 @@ const sources = {
 		read: (db: Db, u: string) =>
 			db
 				.query("nutritionDiaryOperationReceipts")
-				.withIndex("by_user_operation", (q) => q.eq("userId", u)),
+				.withIndex("by_user_and_operation", (q) => q.eq("userId", u)),
 	},
 	nutritionDiaryDayVersions: {
 		export: false,
@@ -173,33 +176,62 @@ type Source = {
 	preference?: true;
 	read: (db: Db, userId: string) => Query<GenericTableInfo>;
 };
-const all: Record<keyof typeof sources, Source> = sources;
+type PersonalTable = keyof typeof sources;
+const all: Record<PersonalTable, Source> = sources;
+
+/**
+ * Hosted events other accounts take part in; `personalDataBlocker` keeps them
+ * from being deleted with one account's data.
+ */
+type SharedTable =
+	| "hostedWorkouts"
+	| "hostedWorkoutParticipants"
+	| "hostedWorkoutSubmissions";
+/** Tables that hold no account data (finished migration runs). */
+type SystemTable = "exerciseMigrations";
+/** A new table must be personal or shared, so deletion cannot miss it. */
+type UnplacedTable = Exclude<
+	TableNames,
+	PersonalTable | SharedTable | SystemTable
+>;
+true satisfies [UnplacedTable] extends [never] ? true : never;
 
 export type ExportTable = {
-	[K in keyof typeof sources]: (typeof sources)[K] extends { export: false }
+	[K in PersonalTable]: (typeof sources)[K] extends { export: false }
 		? never
 		: K;
-}[keyof typeof sources];
-export const exportTables = (
-	Object.keys(all) as (keyof typeof sources)[]
-).filter((table): table is ExportTable => all[table].export !== false);
+}[PersonalTable];
+export const exportTables = (Object.keys(all) as PersonalTable[]).filter(
+	(table): table is ExportTable => all[table].export !== false,
+);
 
 export function readPersonalTable(db: Db, table: ExportTable, userId: string) {
 	return all[table].read(db, userId);
 }
 
+const PERSONAL_DATA_BLOCKERS = [
+	"activeActivity",
+	"hostedWorkout",
+] as const satisfies readonly AppErrorCode[];
+type PersonalDataBlocker = (typeof PERSONAL_DATA_BLOCKERS)[number];
+
+export const personalDataBlockerValidator = v.union(
+	literals(PERSONAL_DATA_BLOCKERS),
+	v.null(),
+);
+
 /** Running Activities and shared events make deleting personal records unsafe. */
 export async function personalDataBlocker(
 	ctx: QueryCtx | MutationCtx,
 	userId: string,
-) {
+): Promise<PersonalDataBlocker | null> {
 	const active = await ctx.db
 		.query("workoutSessions")
 		.withIndex("by_user_status", (q) =>
 			q.eq("userId", userId).eq("status", "active"),
 		)
 		.first();
-	if (active) return "activeActivity" as const;
+	if (active) return "activeActivity";
 	const host = await ctx.db
 		.query("hostedWorkouts")
 		.withIndex("by_host", (q) => q.eq("hostUserId", userId))
@@ -208,7 +240,7 @@ export async function personalDataBlocker(
 		.query("hostedWorkoutParticipants")
 		.withIndex("by_user", (q) => q.eq("userId", userId))
 		.first();
-	return host || participant ? ("hostedWorkout" as const) : null;
+	return host || participant ? "hostedWorkout" : null;
 }
 
 /**
@@ -227,10 +259,9 @@ export async function deletePersonalData(
 		const rows = await source.read(ctx.db, userId).take(remaining + 1);
 		const overflow = rows.length > remaining;
 		for (const row of overflow ? rows.slice(0, remaining) : rows) {
-			if ("isDefault" in row && row.isDefault) continue;
 			if ("storageId" in row)
 				await ctx.storage.delete(row.storageId as Id<"_storage">);
-			await ctx.db.delete(row._id as Id<keyof typeof sources>);
+			await ctx.db.delete(row._id as Id<PersonalTable>);
 		}
 		if (overflow) return false;
 		remaining -= rows.length;

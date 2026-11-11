@@ -54,7 +54,9 @@ references. Studies: [training](../../designs/app/training_final.html),
 - Keep set edit/delete, repeat (prepares a draft), set types, previous performance,
   equipment increments, plates, rest timer, elapsed time, resume, and hosted score
   routes. Clearing a saved RPE leaves other fields unchanged.
-- **Default rest** is per session and set from session options.
+- **Default rest** is per session and set from session options; a new session
+  starts from the account's last choice on this device. A running rest timer
+  belongs to the account and stops when the session ends anywhere.
 - **Set groups** repeat generically. Rounds rest between rounds; AMRAP runs a clock
   and scores rounds plus sets, with no rest. Group classes are out of scope.
 - Finish confirms leaving unfinished targets or drafts and counts only logged Sets;
@@ -84,7 +86,8 @@ references. Studies: [training](../../designs/app/training_final.html),
 - The session plan and each set's draft live on the device per account and session.
   They survive dismissal, restart, and sign-out while the session is active. Logging,
   discard, or session end clears a draft. Another account never sees them, and they
-  do not sync between devices.
+  do not sync between devices. Drafts from builds before account scoping are not
+  carried over.
 - Recording a Set needs a connection. Offline, the set is marked failed without being
   sent, rest still runs, and finishing is blocked until it is retried or removed. A
   stable operation identity prevents a duplicate after a lost acknowledgement; input

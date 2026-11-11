@@ -1,4 +1,10 @@
-import { nevoAttribution, roundForDisplay } from "@foundry/core/nutrition";
+import {
+	type MealSlot,
+	NUTRITION_AI_LIMITS,
+	type NutritionDiarySnapshot,
+	nevoAttribution,
+	roundForDisplay,
+} from "@foundry/core";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import type { NativeStackNavigationOptions } from "expo-router";
@@ -15,32 +21,14 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import { todayIsoDate } from "../../../data/calendar-day";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
+import { mintUuid, useAccountWrite } from "../../../data/account-write";
+import { useNutritionDay } from "../../../data/nutrition-day";
 import {
-	combinedNutrients,
-	diarySnapshots,
-	isUncertain,
-	itemNutrients,
-	oneEntrySnapshot,
-	preparationCaption,
-	type ReviewItem,
-	readyToLog,
-	reviewTotals,
-} from "../../../data/nutrition-ai";
-import {
-	forgetAiSession,
-	readAiSession,
-	saveAiSession,
-	sessionUnchanged,
-} from "../../../data/nutrition-ai-history";
-import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
-import { type MealSlot, useNutritionDay } from "../../../data/nutrition-day";
+	type LoggedEntries,
+	useNutritionDiary,
+} from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import {
-	mintNutritionUuid,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import {
 	modalAnimation,
 	useReduceMotion,
@@ -54,6 +42,7 @@ import type { SFSymbol } from "../../../ui/inset-list.types";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { type AcceptedCombo, ComboNewScreen } from "../combo/combo-new-screen";
 import { comboPartFromEntry } from "../combo/combo-parts";
 import {
@@ -65,9 +54,33 @@ import { FoodPhotoCamera } from "../components/food-photo-camera";
 import { NutritionAiConsent } from "../components/nutrition-ai-consent";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
+import { formatNutrientAmount } from "../nutrient-amount";
+import {
+	combinedNutrients,
+	diarySnapshots,
+	isUncertain,
+	itemNutrients,
+	oneEntrySnapshot,
+	preparationCaption,
+	type ReviewItem,
+	readyToLog,
+	reviewTotals,
+} from "../nutrition-ai";
 import { PersonalFoodEditor } from "../personal-food/personal-food-editor";
 import { Notice } from "../personal-food/personal-food-label-scan";
+import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
+import { aiLimitTitle } from "../use-nutrition-ai";
+import { buildAssistanceFoodCatalog } from "./assistance-foods";
+import {
+	forgetAiSession,
+	readAiSession,
+	saveAiSession,
+	sessionUnchanged,
+} from "./assistance-history";
 import { AssistanceItemSheet } from "./assistance-item-sheet";
 import {
 	ANSWER_MARK,
@@ -107,19 +120,24 @@ export function AssistanceScreen({
 	const colors = useTokens();
 	const router = useRouter();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const reduceMotion = useReduceMotion();
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
+	const account = useAccountWrite().subject;
 	const authoring = useFoodAuthoringIntent();
-	const [resumed] = useState(() => (resume ? readAiSession(resume) : null));
+	const [resumed] = useState(() =>
+		resume && account ? readAiSession(account, resume) : null,
+	);
 	const session = useAssistanceSession(initialText, resumed ?? undefined);
 	const replacedDay = useNutritionDay(resumed?.entries[0]?.date ?? initialDate);
 	// A correction typed but not sent counts as much as one that was.
 	const [unsentCorrection, setUnsentCorrection] = useState(false);
-	// Continuing must compare with the diary, so it waits for the diary.
-	const dayPending = Boolean(resumed) && replacedDay.status !== "ready";
-	const createdForReplace = useRef<readonly string[] | null>(
-		resumed?.stranded ?? null,
-	);
+	// Continuing must compare with the live diary, not this session's last copy.
+	const liveDay =
+		replacedDay.status === "ready" && replacedDay.day.complete
+			? replacedDay.day
+			: undefined;
+	const dayPending = Boolean(resumed) && !liveDay;
 	const unsaved = session.touched || session.inputChanged || unsentCorrection;
 	const [destination, setDestination] = useState({
 		date: initialDate,
@@ -130,6 +148,7 @@ export function AssistanceScreen({
 		endDate: destination.date,
 		recordId: draftId,
 	});
+	useCaptureDraftResolution(drafts, draftId);
 	const [today] = useState(todayIsoDate);
 	const [choosingDay, setChoosingDay] = useState(false);
 	const [camera, setCamera] = useState(false);
@@ -153,12 +172,9 @@ export function AssistanceScreen({
 	const leaving = useRef(false);
 	const close = () => {
 		leaving.current = true;
-		return router.canGoBack()
-			? router.back()
-			: router.replace({
-					pathname: "/nutrition",
-					params: { date: destination.date },
-				});
+		if (router.canGoBack()) return router.back();
+		requestDiaryDate(destination.date);
+		router.replace("/nutrition");
 	};
 	// What was corrected by hand is not thrown away by one stray tap.
 	const requestClose = () => {
@@ -285,224 +301,139 @@ export function AssistanceScreen({
 
 	function logItems(
 		items: readonly ReviewItem[],
-		comboGroup?: {
-			id: string;
-			comboId: string;
-			name: string;
-		},
+		combo?: { readonly id: string; readonly name: string },
 	) {
 		return logEntries(
-			diarySnapshots(
-				items,
-				destination.date,
-				destination.meal,
-				mintNutritionUuid,
-			).map((entry) => (comboGroup ? { ...entry, comboGroup } : entry)),
-			Boolean(comboGroup),
+			diarySnapshots(items, destination.date, destination.meal),
+			combo,
 		);
 	}
 
-	function logEntries(
-		entries: ReturnType<typeof diarySnapshots>,
-		stayOpen = false,
-	) {
-		const subject = operations.getSubject();
-		if (lock.current || !subject) return Promise.resolve(false);
+	const byClientEntryId = (id: string) => ({
+		kind: "clientEntryId" as const,
+		id,
+	});
+
+	/** Logs the review. A continued meal is replaced in the same write. */
+	async function logEntries(
+		entries: readonly NutritionDiarySnapshot[],
+		combo?: { readonly id: string; readonly name: string },
+	): Promise<boolean> {
+		if (lock.current || !account) return false;
 		// Replacing what was edited since would lose that edit.
-		if (resumed && replacedDay.status !== "ready")
-			return Promise.resolve(false);
-		if (
-			resumed &&
-			replacedDay.status === "ready" &&
-			!sessionUnchanged(resumed, replacedDay.day)
-		) {
+		if (resumed && !liveDay) return false;
+		if (resumed && liveDay && !sessionUnchanged(resumed, liveDay)) {
 			toast.error(copy.replaceStale);
-			return Promise.resolve(false);
+			return false;
 		}
 		const context = session.context();
+		const { date, meal } = destination;
 		lock.current = true;
 		setLogging(true);
 		// A save without a connection waits for one: say so rather than just spin.
 		const slow = setTimeout(() => toast.error(copy.logSlow), LOG_SLOW_MS);
-		const finish = () => {
+		let saved: LoggedEntries;
+		try {
+			saved = resumed
+				? await diary.replace(
+						[...resumed.entryIds, ...(resumed.stranded ?? [])].map(
+							byClientEntryId,
+						),
+						date,
+						meal,
+						entries,
+						combo,
+					)
+				: await diary.logBatch(date, meal, entries, combo);
+		} catch (error) {
+			toast.error(
+				!session.ai.online
+					? copy.logOffline
+					: writeFailureMessage(
+							error,
+							resumed ? copy.replaceFailure : copy.logFailure,
+						),
+			);
+			return false;
+		} finally {
 			clearTimeout(slow);
 			lock.current = false;
 			setLogging(false);
-		};
-		return new Promise<boolean>((resolve, reject) => {
-			const failed = (error: unknown) => {
-				finish();
-				toast.error(session.ai.online ? copy.logFailure : copy.logOffline);
-				reject(error);
-			};
-			const done = (saved: readonly string[]) => {
-				finish();
-				createdForReplace.current = null;
-				if (draftId) void drafts.remove(draftId).catch(() => undefined);
-				if (resumed) forgetAiSession(resumed);
-				const forgetAnswer = session.rememberLogged();
-				const logged = context
-					? {
-							id: mintNutritionUuid(),
-							...context,
-							entryIds: saved,
-							// A retry keeps the ids of its first try.
-							entries: entries.map((entry, index) => ({
-								...entry,
-								clientEntryId: saved[index] ?? entry.clientEntryId,
-							})),
-						}
-					: null;
-				if (logged) saveAiSession(logged, subject);
-				// A continued meal gets its entries back once these are gone.
-				const undo = () =>
-					removeAll(
-						subject,
-						saved,
-						() =>
-							toast.error(t.nutrition.logFood.undoFailure, {
-								action: { label: copy.tryAgain, onPress: undo },
-							}),
-						() => {
-							forgetAnswer();
-							if (logged) forgetAiSession(logged);
-							if (resumed) restoreReplaced(subject, resumed);
-						},
-					);
-				toast.success(
-					fmt(copy.logged, {
-						count: plural(locale, entries.length, copy.items),
-						meal: t.nutrition.meals[destination.meal],
-					}),
-					{
-						action: {
-							label: t.nutrition.logFood.undo,
-							onPress: undo,
-						},
-					},
-				);
-				resolve(true);
-				if (!stayOpen && !leaving.current) close();
-			};
-			// Continued meal: all of it goes, in one step, or the new entries do. An
-			// attempt that could not be taken back goes with it, so what is logged
-			// is always the review on screen now.
-			const replace = (saved: readonly string[], ids: readonly string[]) =>
-				removeAll(
-					subject,
-					[...ids, ...(createdForReplace.current ?? [])],
-					() =>
-						removeAll(
-							subject,
-							saved,
-							() => {
-								createdForReplace.current = [
-									...(createdForReplace.current ?? []),
-									...saved,
-								];
-								// Kept with the session, so reopening can still clean them up.
-								if (resumed)
-									saveAiSession(
-										{ ...resumed, stranded: createdForReplace.current },
-										subject,
-									);
-								finish();
-								toast.error(copy.replaceBoth);
-								resolve(false);
-							},
-							() => {
-								finish();
-								toast.error(copy.replaceFailure);
-								resolve(false);
-							},
-						),
-					() => done(saved),
-				);
-			try {
-				operations.createBatch(
-					subject,
-					destination.date,
-					destination.meal,
-					entries,
-					failed,
-					(saved) => {
-						if (resumed) replace(saved, resumed.entryIds);
-						else done(saved);
-					},
-				);
-			} catch (error) {
-				failed(error);
-			}
-		});
-	}
-
-	/** One operation, so it happens completely or not at all. */
-	function removeAll(
-		subject: string,
-		ids: readonly string[],
-		onError: () => void,
-		onSuccess: () => void,
-	) {
-		try {
-			operations.removeBatch(
-				subject,
-				ids.map((id) => ({ kind: "clientEntryId" as const, id })),
-				onError,
-				onSuccess,
-			);
-		} catch {
-			onError();
 		}
+		if (resumed) forgetAiSession(account, resumed);
+		requestDiaryDate(date);
+		const forgetAnswer = session.rememberLogged();
+		const logged = context
+			? {
+					id: mintUuid(),
+					...context,
+					entryIds: saved.clientEntryIds,
+					entries: entries.map((entry, index) => ({
+						...entry,
+						date,
+						meal,
+						clientEntryId: saved.clientEntryIds[index],
+					})),
+				}
+			: null;
+		if (logged) saveAiSession(account, logged);
+		// A continued meal gets its entries back once these are gone.
+		const undo = () =>
+			saved
+				.undo()
+				.then(() => {
+					forgetAnswer();
+					if (logged) forgetAiSession(account, logged);
+					if (resumed) restoreReplaced(account, resumed);
+				})
+				.catch(() =>
+					toast.error(t.nutrition.logFood.undoFailure, {
+						action: { label: copy.tryAgain, onPress: undo },
+					}),
+				);
+		toast.success(
+			fmt(copy.logged, {
+				count: plural(locale, entries.length, copy.items),
+				meal: t.nutrition.meals[meal],
+			}),
+			{ action: { label: t.nutrition.logFood.undo, onPress: undo } },
+		);
+		if (!combo && !leaving.current) close();
+		return true;
 	}
 
 	function restoreReplaced(
-		subject: string,
+		account: string,
 		replaced: NonNullable<typeof resumed>,
 	) {
 		const [first] = replaced.entries;
 		if (!first) return;
-		const entries = replaced.entries.map((entry) => ({
-			...entry,
-			clientEntryId: mintNutritionUuid(),
-		}));
-		try {
-			operations.createBatch(
-				subject,
-				first.date,
-				first.meal,
-				entries,
-				() => undoRestoreFailed(subject, replaced),
-				(saved) =>
-					saveAiSession(
-						{
-							...replaced,
-							id: mintNutritionUuid(),
-							// A retry keeps the ids of its first try.
-							entries: entries.map((entry, index) => ({
-								...entry,
-								clientEntryId: saved[index] ?? entry.clientEntryId,
-							})),
-							entryIds: saved,
-						},
-						subject,
-					),
+		const combo = first.comboGroup && {
+			id: first.comboGroup.comboId,
+			name: first.comboGroup.name,
+		};
+		diary
+			.logBatch(first.date, first.meal, replaced.entries, combo)
+			.then((saved) =>
+				saveAiSession(account, {
+					...replaced,
+					id: mintUuid(),
+					entries: replaced.entries.map((entry, index) => ({
+						...entry,
+						clientEntryId: saved.clientEntryIds[index],
+					})),
+					entryIds: saved.clientEntryIds,
+				}),
+			)
+			.catch(() =>
+				// The replaced meal lives only in this closure now: keep offering it.
+				toast.error(t.nutrition.logFood.undoFailure, {
+					action: {
+						label: copy.tryAgain,
+						onPress: () => restoreReplaced(account, replaced),
+					},
+				}),
 			);
-		} catch {
-			undoRestoreFailed(subject, replaced);
-		}
-	}
-
-	/** The replaced meal lives only in this closure now: keep offering it. */
-	function undoRestoreFailed(
-		subject: string,
-		replaced: NonNullable<typeof resumed>,
-	) {
-		toast.error(t.nutrition.logFood.undoFailure, {
-			action: {
-				label: copy.tryAgain,
-				onPress: () => restoreReplaced(subject, replaced),
-			},
-		});
 	}
 
 	/**
@@ -520,7 +451,7 @@ export function AssistanceScreen({
 	function confirmReview(items: readonly ReviewItem[]) {
 		// One matched food is one entry either way, and keeps its food reference.
 		if (saveAs === "items" || (items.length === 1 && items[0]?.food)) {
-			void logItems(items).catch(() => undefined);
+			void logItems(items);
 			return;
 		}
 		if (saveAs === "combo") {
@@ -533,9 +464,8 @@ export function AssistanceScreen({
 				oneItemName(items),
 				destination.date,
 				destination.meal,
-				mintNutritionUuid(),
 			),
-		]).catch(() => undefined);
+		]);
 	}
 
 	/** The form for one item: its values, a recipe, or keeping it as a Food. */
@@ -606,7 +536,6 @@ export function AssistanceScreen({
 			phase.items,
 			destination.date,
 			destination.meal,
-			mintNutritionUuid,
 		).map((entry) => comboPartFromEntry(entry));
 		return (
 			<>
@@ -622,13 +551,7 @@ export function AssistanceScreen({
 					acceptedRef={acceptedCombo}
 					// The combo form stays open when the meal was not logged; logging
 					// has said why.
-					onCreated={(combo) =>
-						logItems(phase.items, {
-							id: mintNutritionUuid(),
-							comboId: combo.id,
-							name: combo.name,
-						}).catch(() => false)
-					}
+					onCreated={(combo) => logItems(phase.items, combo)}
 					onSaved={() => close()}
 				/>
 			</>
@@ -702,8 +625,10 @@ export function AssistanceScreen({
 							note: session.text.trim(),
 						});
 						close();
-					} catch {
-						toast.error(t.nutrition.drafts.saveFailure);
+					} catch (error) {
+						toast.error(
+							writeFailureMessage(error, t.nutrition.drafts.saveFailure),
+						);
 					}
 				}}
 				onSearch={() => {
@@ -741,7 +666,6 @@ export function AssistanceScreen({
 				visible={choosingDay}
 				date={destination.date}
 				today={today}
-				locale={locale}
 				title={t.nutrition.logFood.chooseDate}
 				todayLabel={t.nutrition.logFood.today}
 				doneLabel={t.nutrition.logFood.doneChoosingDate}
@@ -1048,7 +972,7 @@ function InputCard({
 		) : problem === "limit" ? (
 			<Notice
 				tone="warn"
-				title={fmt(copy.limitTitle, { count: 50 })}
+				title={aiLimitTitle(copy.limitTitle)}
 				body={copy.limitBody}
 			/>
 		) : problem ? (
@@ -1104,7 +1028,7 @@ function InputCard({
 						placeholderTextColor={colors.textFaint}
 						multiline
 						autoFocus={!session.photo}
-						maxLength={2000}
+						maxLength={NUTRITION_AI_LIMITS.maxText}
 						submitBehavior="blurAndSubmit"
 						returnKeyType="go"
 						onSubmitEditing={() => {
@@ -1307,7 +1231,7 @@ function Review({
 							problem === "offline"
 								? copy.offlineHelpTitle
 								: problem === "limit"
-									? fmt(copy.limitTitle, { count: 50 })
+									? aiLimitTitle(copy.limitTitle)
 									: problem === "noFood"
 										? copy.noFoodTitle
 										: copy[problem]
@@ -1472,7 +1396,7 @@ function Review({
 			) : null}
 			<FoodFormSectionHeader title={copy.total} />
 			<FoodFormCard>
-				{(["energy", "protein", "carbs", "fat"] as const).map((key, index) => (
+				{HEADLINE_NUTRIENTS.map((key, index) => (
 					<View
 						key={key}
 						style={{
@@ -1503,7 +1427,7 @@ function Review({
 								// figure, and the known part marked incomplete otherwise.
 								totals[key].known === 0
 									? "—"
-									: `${approximate ? "~ " : ""}${roundForDisplay(key, totals[key].amount).toLocaleString(locale)} ${key === "energy" ? "kcal" : "g"}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
+									: `${approximate ? "~ " : ""}${formatNutrientAmount(key, totals[key].amount, locale, { unit: true })}${totals[key].missing ? ` · ${copy.incomplete}` : ""}`
 							}
 						</AppText>
 					</View>
@@ -1618,7 +1542,7 @@ function RefineField({
 						returnKeyType="send"
 						onSubmitEditing={send}
 						editable={!disabled}
-						maxLength={500}
+						maxLength={NUTRITION_AI_LIMITS.maxFollowUpText}
 						style={{ ...type.body, flex: 1, color: colors.text }}
 					/>
 					<Pressable

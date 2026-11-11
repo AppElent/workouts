@@ -1,11 +1,11 @@
 import { useAuth, useUser } from "@clerk/expo";
 import * as Sentry from "@sentry/react-native";
-import { useConvexConnectionState } from "convex/react";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import { useOnline } from "../../convex/online";
 import { useI18n } from "../../i18n";
 import { radius, spacing, useAppearance, useTokens } from "../../theme";
 import { useConfirm } from "../../ui/confirm-dialog";
@@ -24,7 +24,7 @@ export function ProfileScreen() {
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const [busy, setBusy] = useState(false);
 	const pending = useRef(false);
 	const name = user?.fullName || user?.username || c.account;
@@ -192,10 +192,12 @@ export function ProfileScreen() {
 						}
 					}}
 				/>
-				<DisclosureRow
-					label={t.diaryEntry.labs}
-					onPress={() => router.push("/labs")}
-				/>
+				{__DEV__ ? (
+					<DisclosureRow
+						label={t.diaryEntry.sqliteBrowser}
+						onPress={() => router.push("/local-database")}
+					/>
+				) : null}
 			</FormSection>
 			<TestDataSection />
 			<FormSection>

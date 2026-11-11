@@ -2,40 +2,39 @@
  * Copy or move selected diary entries without changing their snapshots.
  *
  * A copy is a fresh, immutable diary snapshot. A move is intentionally a
- * single batch operation: it retains the entries' identities and lets the local
- * projection move it atomically between the two day/meal views.
+ * single batch operation that keeps the entries' identities.
  */
-import type { NutritionDiarySnapshot } from "@foundry/core";
-import { roundForDisplay, totalNutrients } from "@foundry/core/nutrition";
+import {
+	MEAL_SLOTS,
+	type MealSlot,
+	type NutritionDiarySnapshot,
+	roundForDisplay,
+	shiftIsoDate,
+	totalNutrients,
+} from "@foundry/core";
 import { Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import {
+	type DiaryEntry,
+	type DiaryEntryWithMeal,
+	snapshotFromDiaryEntry,
+} from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
+import {
 	formatLongDate,
 	formatShortDate,
 	isoDateToLocalDate,
-	shiftIsoDate,
-} from "../../../data/calendar-day";
-import type {
-	DiaryEntry,
-	DiaryEntryWithMeal,
-	MealSlot,
-} from "../../../data/nutrition-day";
-import { MEAL_SLOTS } from "../../../data/nutrition-day";
-import {
-	mintNutritionUuid,
-	snapshotFromDiaryEntry,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
+} from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { plural, useI18n } from "../../../i18n";
+import { dateLocale, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
-import { convexErrorMessage } from "../../../ui/confirm-dialog";
 import { MonthCalendar } from "../../../ui/month-calendar";
 import { Segmented } from "../../../ui/segmented";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 type TransferMode = "copy" | "move";
 
@@ -43,18 +42,17 @@ type TransferMode = "copy" | "move";
  * Snapshots intentionally do not carry a Combo group. Copying a single part
  * must not join it to the original group's lifecycle or presentation.
  */
-export function copiedEntrySnapshot(
+function copiedEntrySnapshot(
 	entry: DiaryEntry,
 	date: string,
 	meal: MealSlot,
-	clientEntryId: string,
-): NutritionDiarySnapshot & { clientEntryId: string } {
-	const {
-		comboGroup: _comboGroup,
-		clientEntryId: _sourceClientEntryId,
-		...snapshot
-	} = snapshotFromDiaryEntry(entry, date, meal);
-	return { ...snapshot, date, meal, clientEntryId };
+): NutritionDiarySnapshot {
+	const { comboGroup: _comboGroup, ...snapshot } = snapshotFromDiaryEntry(
+		entry,
+		date,
+		meal,
+	);
+	return snapshot;
 }
 
 function updateTarget(entry: DiaryEntry) {
@@ -80,12 +78,9 @@ export function DiaryEntryTransferScreen({
 	const colors = useTokens();
 	const [mode, setMode] = useState(initialMode);
 	const toast = useToast();
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
+	const writeFailureMessage = useWriteFailureMessage();
 	const _reduceMotion = useReduceMotion();
-	// The sheet belongs to the account that opened it. The provider normally
-	// unmounts account-bound views on a switch, but this guard also prevents a
-	// stale native sheet from accepting a previous person's entry.
-	const [sourceSubject] = useState(() => operations.getSubject());
 	const copy = {
 		...t.diaryEntry.transfer,
 		...t.diaryEntry.transfer[mode],
@@ -106,55 +101,31 @@ export function DiaryEntryTransferScreen({
 			? entries.every((item) => item.meal === destinationMeal)
 			: destinationMeal === sourceMeal);
 
-	const releaseAfterFailure = (error: unknown) => {
-		submitLock.current = false;
-		setSaving(false);
-		toast.error(convexErrorMessage(error, copy.failure));
-	};
-
-	const accepted = () => {
-		setSaving(false);
-		onClose();
-	};
-
-	const submit = () => {
+	const submit = async () => {
 		if (saving || submitLock.current || unchanged) return;
 		submitLock.current = true;
 		setSaving(true);
 		try {
-			const subject = operations.getSubject();
-			if (!sourceSubject || subject !== sourceSubject)
-				throw new Error("Nutrition account changed.");
-
-			if (mode === "copy") {
-				operations.createBatch(
-					subject,
+			if (mode === "copy")
+				await diary.logBatch(
 					destinationDate,
 					destinationMeal,
 					selectedEntries.map((item) =>
-						copiedEntrySnapshot(
-							item,
-							destinationDate,
-							destinationMeal,
-							mintNutritionUuid(),
-						),
+						copiedEntrySnapshot(item, destinationDate, destinationMeal),
 					),
-					releaseAfterFailure,
-					accepted,
 				);
-				return;
-			}
-
-			operations.moveBatch(
-				subject,
-				selectedEntries.map(updateTarget),
-				destinationDate,
-				destinationMeal,
-				releaseAfterFailure,
-				accepted,
-			);
+			else
+				await diary.move(
+					selectedEntries.map(updateTarget),
+					destinationDate,
+					destinationMeal,
+				);
+			onClose();
 		} catch (error) {
-			releaseAfterFailure(error);
+			toast.error(writeFailureMessage(error, copy.failure));
+		} finally {
+			submitLock.current = false;
+			setSaving(false);
 		}
 	};
 
@@ -162,7 +133,7 @@ export function DiaryEntryTransferScreen({
 		if (!saving) onClose();
 	};
 
-	const energy = totalNutrients(selectedEntries.map((e) => e.nutrients)).energy;
+	const energy = totalNutrients(selectedEntries).energy;
 	const title = plural(locale, selectedEntries.length, copy.title);
 	return (
 		<>
@@ -265,9 +236,12 @@ export function DiaryEntryTransferScreen({
 												destinationDate === day ? colors.onAccent : colors.text,
 										}}
 									>
-										{isoDateToLocalDate(day).toLocaleDateString(locale, {
-											weekday: "short",
-										})}
+										{isoDateToLocalDate(day).toLocaleDateString(
+											dateLocale(locale),
+											{
+												weekday: "short",
+											},
+										)}
 									</AppText>
 									<AppText
 										style={{
@@ -299,7 +273,6 @@ export function DiaryEntryTransferScreen({
 					{showCalendar ? (
 						<MonthCalendar
 							selectedDate={destinationDate}
-							locale={locale}
 							onSelect={(next) => {
 								setDestinationDate(next);
 								setShowCalendar(false);

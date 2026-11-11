@@ -1,5 +1,6 @@
 import { useAuth } from "@clerk/expo";
-import { foodResults, type NutrientValue } from "@foundry/core/nutrition";
+import type { NutrientValue, PersonalFoodDraft } from "@foundry/core";
+import { foodResults } from "@foundry/core/shipped-foods";
 import { act, render, waitFor } from "@testing-library/react-native";
 import {
 	useConvex,
@@ -10,20 +11,16 @@ import {
 	useQuery,
 } from "convex/react";
 import { Text } from "react-native";
-import { SQLiteTestDatabase } from "../test-support/sqlite-test-database";
 import {
-	createNutritionLibraryStateRepository,
+	createLibraryFixture,
 	libraryRecordFromFood,
-} from "./nutrition-library-repository";
+} from "../test-support/library-fixture";
 
 type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
 	typeof import("../convex/api").api.nutritionLibrary.save
 >;
 
-import {
-	createPersonalFoodRepository,
-	type PersonalFoodDraft,
-} from "./personal-food-repository";
+import { AccountWriteProvider } from "./account-write";
 import { PersonalFoodsProvider, usePersonalFoods } from "./personal-foods";
 
 jest.mock("@clerk/expo", () => ({
@@ -69,7 +66,7 @@ describe("PersonalFoodsProvider library journal", () => {
 		const previousQuery = jest
 			.mocked(usePaginatedQuery)
 			.getMockImplementation();
-		const remoteFoods = createPersonalFoodRepository(new SQLiteTestDatabase());
+		const remoteFoods = createLibraryFixture();
 		const remoteFood = remoteFoods.create(draft);
 		const page = {
 			page: [libraryRecordFromFood(remoteFood, 1)],
@@ -82,10 +79,7 @@ describe("PersonalFoodsProvider library journal", () => {
 			loadMore: jest.fn(),
 			isLoading: false,
 		} as never);
-		const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const state = createNutritionLibraryStateRepository(
-			new SQLiteTestDatabase(),
-		);
+		const foods = createLibraryFixture();
 		function Reader() {
 			const personal = usePersonalFoods({ browse: {} });
 			return (
@@ -99,9 +93,11 @@ describe("PersonalFoodsProvider library journal", () => {
 		}
 		try {
 			const screen = await render(
-				<PersonalFoodsProvider repository={foods} libraryState={state}>
-					<Reader />
-				</PersonalFoodsProvider>,
+				<AccountWriteProvider>
+					<PersonalFoodsProvider cache={foods}>
+						<Reader />
+					</PersonalFoodsProvider>
+				</AccountWriteProvider>,
 			);
 			await waitFor(() =>
 				expect(screen.getByText("Prepared oats")).toBeTruthy(),
@@ -121,10 +117,7 @@ describe("PersonalFoodsProvider library journal", () => {
 		jest
 			.mocked(useConvexConnectionState)
 			.mockImplementation(() => ({ isWebSocketConnected: connected }) as never);
-		const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
-		const state = createNutritionLibraryStateRepository(
-			new SQLiteTestDatabase(),
-		);
+		const foods = createLibraryFixture();
 		let acknowledge!: (result: {
 			record: ReturnType<typeof libraryRecordFromFood>;
 		}) => void;
@@ -150,9 +143,11 @@ describe("PersonalFoodsProvider library journal", () => {
 			);
 		}
 		const screen = await render(
-			<PersonalFoodsProvider repository={foods} libraryState={state}>
-				<Reader />
-			</PersonalFoodsProvider>,
+			<AccountWriteProvider>
+				<PersonalFoodsProvider cache={foods}>
+					<Reader />
+				</PersonalFoodsProvider>
+			</AccountWriteProvider>,
 		);
 		let save!: Promise<unknown>;
 		await act(() => {
@@ -170,9 +165,11 @@ describe("PersonalFoodsProvider library journal", () => {
 		expect(screen.getByText("Prepared oats")).toBeTruthy();
 		connected = false;
 		await await screen.rerender(
-			<PersonalFoodsProvider repository={foods} libraryState={state}>
-				<Reader />
-			</PersonalFoodsProvider>,
+			<AccountWriteProvider>
+				<PersonalFoodsProvider cache={foods}>
+					<Reader />
+				</PersonalFoodsProvider>
+			</AccountWriteProvider>,
 		);
 		await expect(value.create(draft)).rejects.toThrow("connection");
 		expect(value.list()).toHaveLength(1);
@@ -180,10 +177,8 @@ describe("PersonalFoodsProvider library journal", () => {
 });
 
 it("keeps a newer subscription revision when an older save acknowledgement arrives", async () => {
-	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
-	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
+	const foods = createLibraryFixture();
 	const original = foods.create(draft);
-	state.commitServerRecord("account-a", libraryRecordFromFood(original, 1));
 	let acknowledge!: (result: {
 		record: ReturnType<typeof libraryRecordFromFood>;
 	}) => void;
@@ -195,16 +190,21 @@ it("keeps a newer subscription revision when an older save acknowledgement arriv
 				}),
 		) as never,
 	);
+	let subscription: unknown[] = [];
+	jest.mocked(useQuery).mockImplementation(() => subscription);
 	let value!: ReturnType<typeof usePersonalFoods>;
 	function Reader() {
-		value = usePersonalFoods();
+		value = usePersonalFoods({ ids: [original.id] });
 		return <Text>{value.find(original.id)?.name.en}</Text>;
 	}
-	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+	const tree = () => (
+		<AccountWriteProvider>
+			<PersonalFoodsProvider cache={foods}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>
 	);
+	const view = await render(tree());
 	let pending!: Promise<unknown>;
 	await act(() => {
 		pending = value.update(original.id, {
@@ -213,9 +213,10 @@ it("keeps a newer subscription revision when an older save acknowledgement arriv
 		});
 	});
 	const latest = { ...original, name: { en: "Newer edit", nl: "Newer edit" } };
-	await act(() =>
-		value.account.receiveServerPage([libraryRecordFromFood(latest, 3)]),
-	);
+	subscription = [
+		{ ...libraryRecordFromFood(latest, 3), subject: "account-a" },
+	];
+	await view.rerender(tree());
 	await act(async () => {
 		acknowledge({
 			record: libraryRecordFromFood(
@@ -226,17 +227,15 @@ it("keeps a newer subscription revision when an older save acknowledgement arriv
 		await pending;
 	});
 	expect(view.getByText("Newer edit")).toBeTruthy();
-	expect(state.getRecord("account-a", original.id)?.revision).toBe(3);
+	expect(foods.revisionOf(original.id)).toBe(3);
 	await view.unmount();
 });
 it("does not return a cached barcode after the server removes it", async () => {
-	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const foods = createLibraryFixture();
 	const food = foods.create({
 		...draft,
 		provenance: { ...draft.provenance, barcode: "12345678" },
 	});
-	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
-	state.commitServerRecord("account-a", libraryRecordFromFood(food, 1));
 	const current = { ...food, provenance: { ...draft.provenance } };
 	const query = jest.fn(async () => [
 		{ ...libraryRecordFromFood(current, 2), subject: "account-a" },
@@ -249,9 +248,11 @@ it("does not return a cached barcode after the server removes it", async () => {
 		return <Text>Ready</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider cache={foods}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	let found: unknown;
 	await act(async () => {
@@ -266,13 +267,11 @@ it("does not return a cached barcode after the server removes it", async () => {
 	await view.unmount();
 });
 it("resolves a cached correction identity so server deletion stops shadowing its source", async () => {
-	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const foods = createLibraryFixture();
 	const food = foods.create({
 		...draft,
 		provenance: { ...draft.provenance, forkedFrom: "shipped:apple" },
 	});
-	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
-	state.commitServerRecord("account-a", libraryRecordFromFood(food, 1));
 	const get = jest.fn((_ref, args) =>
 		args !== "skip" && args.ids.includes(food.id)
 			? [
@@ -295,9 +294,11 @@ it("resolves a cached correction identity so server deletion stops shadowing its
 		return <Text>{value.forks().length}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider cache={foods}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	await waitFor(() => expect(value.forks()).toEqual([]));
 	await view.unmount();
@@ -312,7 +313,7 @@ it("loads corrections beyond the first hundred shipped matches in bounded pages 
 		localFoods: [],
 		limit: 200,
 	}).flatMap((result) => (result.kind === "shipped" ? [result.food.id] : []));
-	const source = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const source = createLibraryFixture();
 	const correction = source.create({
 		...draft,
 		name: { en: "Renamed correction", nl: "Hersteld" },
@@ -347,14 +348,11 @@ it("loads corrections beyond the first hundred shipped matches in bounded pages 
 		return <Text>{value.forks().length}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider
-			repository={createPersonalFoodRepository(new SQLiteTestDatabase())}
-			libraryState={createNutritionLibraryStateRepository(
-				new SQLiteTestDatabase(),
-			)}
-		>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider cache={createLibraryFixture()}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	await waitFor(() =>
 		expect(value.findForkOf(correction.provenance.forkedFrom ?? "")?.id).toBe(
@@ -370,13 +368,11 @@ it("loads corrections beyond the first hundred shipped matches in bounded pages 
 });
 
 it("keeps the latest subscription value when a delayed barcode lookup resolves", async () => {
-	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const foods = createLibraryFixture();
 	const food = foods.create({
 		...draft,
 		provenance: { ...draft.provenance, barcode: "12345678" },
 	});
-	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
-	state.commitServerRecord("account-a", libraryRecordFromFood(food, 1));
 	let resolve!: (records: unknown[]) => void;
 	const query = jest.fn(
 		() =>
@@ -386,16 +382,21 @@ it("keeps the latest subscription value when a delayed barcode lookup resolves",
 	);
 	jest.mocked(useConvex).mockReturnValue({ query } as never);
 	jest.mocked(useMutation).mockReturnValue(jest.fn() as never);
+	let subscription: unknown[] = [];
+	jest.mocked(useQuery).mockImplementation(() => subscription);
 	let value!: ReturnType<typeof usePersonalFoods>;
 	function Reader() {
-		value = usePersonalFoods();
+		value = usePersonalFoods({ ids: [food.id] });
 		return <Text>{value.find(food.id)?.name.en}</Text>;
 	}
-	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+	const tree = () => (
+		<AccountWriteProvider>
+			<PersonalFoodsProvider cache={foods}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>
 	);
+	const view = await render(tree());
 	let lookup!: Promise<unknown>;
 	await act(() => {
 		lookup = value.lookupBarcode("12345678");
@@ -404,9 +405,10 @@ it("keeps the latest subscription value when a delayed barcode lookup resolves",
 		...food,
 		name: { en: "Latest barcode edit", nl: "Laatste" },
 	};
-	await act(() =>
-		value.account.receiveServerPage([libraryRecordFromFood(latest, 3)]),
-	);
+	subscription = [
+		{ ...libraryRecordFromFood(latest, 3), subject: "account-a" },
+	];
+	await view.rerender(tree());
 	let found: unknown;
 	await act(async () => {
 		resolve([{ ...libraryRecordFromFood(food, 2), subject: "account-a" }]);
@@ -414,18 +416,16 @@ it("keeps the latest subscription value when a delayed barcode lookup resolves",
 	});
 	expect(found).toEqual(latest);
 	expect(view.getByText("Latest barcode edit")).toBeTruthy();
-	expect(state.getRecord("account-a", food.id)?.revision).toBe(3);
+	expect(foods.revisionOf(food.id)).toBe(3);
 	await view.unmount();
 });
 
 it("checks cached fork deletions even when a hundred shortcut identities fill the first request", async () => {
-	const foods = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const foods = createLibraryFixture();
 	const correction = foods.create({
 		...draft,
 		provenance: { ...draft.provenance, forkedFrom: "shipped:apple" },
 	});
-	const state = createNutritionLibraryStateRepository(new SQLiteTestDatabase());
-	state.commitServerRecord("account-a", libraryRecordFromFood(correction, 1));
 	const tombstone = {
 		id: correction.id,
 		kind: "food",
@@ -461,11 +461,13 @@ it("checks cached fork deletions even when a hundred shortcut identities fill th
 		return <Text>{value.forks().length}</Text>;
 	}
 	const view = await render(
-		<PersonalFoodsProvider repository={foods} libraryState={state}>
-			<Reader />
-		</PersonalFoodsProvider>,
+		<AccountWriteProvider>
+			<PersonalFoodsProvider cache={foods}>
+				<Reader />
+			</PersonalFoodsProvider>
+		</AccountWriteProvider>,
 	);
 	await waitFor(() => expect(value.forks()).toEqual([]));
-	expect(state.getRecord("account-a", correction.id)?.deleted).toBe(true);
+	expect(foods.isDeleted(correction.id)).toBe(true);
 	await view.unmount();
 });

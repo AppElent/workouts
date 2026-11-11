@@ -9,11 +9,7 @@ interface EmptyStateProps {
 	className?: string;
 }
 
-/**
- * Designed empty state for list/dashboard views — an icon, an explanation,
- * and (usually) a call to action. Never leave a data view as an unexplained
- * blank region.
- */
+/** Every empty data view uses this; never leave one as an unexplained blank. */
 export function EmptyState({
 	icon: Icon,
 	title,

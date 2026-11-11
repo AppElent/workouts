@@ -1,7 +1,9 @@
-# `@foundry/core/nutrition`
+# Nutrition
 
-The shipped food library and the pure functions around it. Imported by `apps/mobile`; **not**
-imported by the web app or Convex, and not re-exported from the `@foundry/core` barrel.
+The shipped food library and the nutrition rules around it. Code that reads the shipped food
+artifact (`library.ts`, `search.ts`, `fork.ts`, `food-snapshot.ts`, `artifact.ts`) is exported from
+`@foundry/core/shipped-foods`; everything else is exported from the `@foundry/core` barrel. See
+`../../README.md`.
 
 ## Before you charge money for anything that includes this
 
@@ -29,8 +31,8 @@ Full text: `data/nevo/Conditions of use NEVO-online 2025 dataset.pdf`. Rationale
 | `shipped-foods.lock.json` | **Generated, append-only.** Source code → permanent `shipped:` id. Committed. Entries are never deleted and ids are never reused. |
 | `overlay.ts` | **Hand-authored.** The promoted NEVO foods: bilingual names, aliases, emoji, category, servings. This is the file to edit. |
 | `schema.ts` | Zod schema for both generated files. Generation and tests only — `zod` is a devDependency and must not reach the phone. |
-| `library.ts` `search.ts` `servings.ts` `aggregate.ts` `salt.ts` `nutrients.ts` `attribution.ts` | The public API. |
-| `food-snapshot.ts` `snapshot-rescale.ts` | Diary Entry and Combo part snapshots: building one from a Food, and rescaling one with its Serving label. `snapshot-rescale.ts` is artifact-free and also exported from the `@foundry/core` barrel for Convex. |
+| `library.ts` `search.ts` `fork.ts` `food-snapshot.ts` | Reading shipped foods, searching them, forking one into a Personal Food, and building a snapshot from one. `@foundry/core/shipped-foods`. |
+| `artifact.ts` | Decoding the compact artifact. Internal. |
 | `../../scripts/` | The generator, its NEVO and Lidl readers, and the benchmark. |
 
 ## Two sources, one artifact

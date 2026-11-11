@@ -58,10 +58,7 @@ jobs:
           exit 1
 
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: ">=22.18.0", cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       # An Environment without its own CONVEX_DEPLOY_KEY silently inherits a
       # repository secret of that name, so check the prefix first. `--ci` checks

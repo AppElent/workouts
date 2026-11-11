@@ -1,6 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
-import { calculateOneRepMax } from "@foundry/core";
 import { ChevronRight } from "lucide-react";
+import { setReference } from "#/lib/load";
 
 interface Props {
 	set: Doc<"sets">;
@@ -10,15 +10,12 @@ interface Props {
 const TYPE_DOT_COLOR: Record<Doc<"sets">["setType"], string> = {
 	warmup: "var(--text-faint)",
 	working: "var(--accent)",
-	drop: "#fbbf24",
-	failure: "#f87171",
+	drop: "var(--warn)",
+	failure: "var(--danger)",
 };
 
 export function SetCard({ set, onEdit }: Props) {
-	const orm =
-		set.performanceVerified && set.referenceKind
-			? calculateOneRepMax(set.weight, set.reps)
-			: null;
+	const orm = setReference(set);
 	const dotColor = TYPE_DOT_COLOR[set.setType];
 
 	return (
@@ -60,7 +57,7 @@ export function SetCard({ set, onEdit }: Props) {
 				{orm && (
 					<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto tabular-nums">
 						{orm.value}
-						{orm.source === "calculated" ? " est." : ""} 1RM
+						{orm.kind === "calculated" ? " est." : ""} 1RM
 					</span>
 				)}
 			</div>

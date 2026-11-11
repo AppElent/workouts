@@ -1,14 +1,12 @@
+import type { ActivitySummary, EnduranceSport } from "@foundry/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
+import { requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { activitySport } from "./lib/validators";
 
-const activitySport = v.union(
-	v.literal("strength"),
-	v.literal("running"),
-	v.literal("cycling"),
-);
 const summaryValidator = v.object({
 	id: v.string(),
 	sport: activitySport,
@@ -18,15 +16,7 @@ const summaryValidator = v.object({
 	distanceMeters: v.optional(v.number()),
 });
 
-type Entry = {
-	id: string;
-	sport: "strength" | "running" | "cycling";
-	occurredAt: number;
-	durationSeconds: number;
-	title?: string;
-	distanceMeters?: number;
-	creationTime: number;
-};
+type Entry = ActivitySummary & { creationTime: number };
 
 type SourceKey = { at: number; creationTime: number };
 type PageState = {
@@ -75,10 +65,10 @@ function decodeCursor(
 	try {
 		parsed = JSON.parse(cursor);
 	} catch {
-		throw new Error("Invalid history cursor.");
+		throw appError("invalid", "cursor");
 	}
 	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
-		throw new Error("Invalid history cursor.");
+		throw appError("invalid", "cursor");
 	const state = parsed as PageState;
 	if (
 		state.userId !== userId ||
@@ -94,7 +84,7 @@ function decodeCursor(
 			((from !== undefined && state.endurance.at < from) ||
 				(to !== undefined && state.endurance.at >= to)))
 	) {
-		throw new Error("History cursor does not match the filter.");
+		throw appError("invalid", "cursor");
 	}
 	return state;
 }
@@ -153,7 +143,7 @@ async function fetchStrength(
 async function fetchEndurance(
 	ctx: QueryCtx,
 	userId: string,
-	sport: "running" | "cycling" | undefined,
+	sport: EnduranceSport | undefined,
 	key: SourceKey | null,
 	from: number | undefined,
 	to: number | undefined,
@@ -212,7 +202,8 @@ async function fetchEndurance(
 				.query("enduranceActivityDetails")
 				.withIndex("by_activity", (q) => q.eq("activityId", activity._id))
 				.unique();
-			if (!details) throw new Error("Activity details are missing.");
+			if (!details)
+				throw new Error(`Activity ${activity._id} has no endurance details`);
 			return {
 				id: activity._id,
 				sport: activity.sport,
@@ -240,32 +231,23 @@ export const list = query({
 		isDone: v.boolean(),
 	}),
 	handler: async (ctx, { sport, from, to, cursor, limit = 20 }) => {
-		const identity = await getIdentity(ctx);
-		if (!identity) throw new Error("Unauthenticated");
+		const userId = await requireUserId(ctx);
 		if (
 			(from !== undefined && !Number.isSafeInteger(from)) ||
 			(to !== undefined && !Number.isSafeInteger(to)) ||
 			(from !== undefined && to !== undefined && from >= to)
 		)
-			throw new Error("Invalid history range.");
+			throw appError("invalid", "to");
 		if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
-			throw new Error("History page size must be between 1 and 100.");
-		const state = decodeCursor(cursor, identity.subject, sport, from, to);
+			throw appError("invalid", "limit");
+		const state = decodeCursor(cursor, userId, sport, from, to);
 		const [strength, endurance] = await Promise.all([
-			sport === "running" || sport === "cycling"
-				? Promise.resolve([])
-				: fetchStrength(ctx, identity.subject, state.strength, from, to, limit),
+			sport === undefined || sport === "strength"
+				? fetchStrength(ctx, userId, state.strength, from, to, limit)
+				: Promise.resolve([]),
 			sport === "strength"
 				? Promise.resolve([])
-				: fetchEndurance(
-						ctx,
-						identity.subject,
-						sport,
-						state.endurance,
-						from,
-						to,
-						limit,
-					),
+				: fetchEndurance(ctx, userId, sport, state.endurance, from, to, limit),
 		]);
 		const items: Entry[] = [];
 		let strengthIndex = 0;

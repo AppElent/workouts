@@ -2,17 +2,14 @@
  * Correcting a logged entry, driven the way somebody holding the phone would
  * drive it: tap the entry, change something, save — or delete through the
  * confirmation. Nothing here asserts which mutation ran internally beyond the
- * arguments it was actually given, which is the observable contract #73's
- * acceptance criteria are about.
+ * arguments it was actually given.
  */
+
+import { shiftIsoDate } from "@foundry/core";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
-import {
-	formatLongDate,
-	shiftIsoDate,
-	todayIsoDate,
-} from "../../../../data/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../../dates/calendar-day";
 import { pressPending } from "../../../../test-support/press-pending";
 import { renderApp } from "../../../../test-support/render-app";
 
@@ -43,7 +40,6 @@ const loggedEntry = {
 
 function mockDayWithLoggedEntry() {
 	mockUseQuery.mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [loggedEntry], totals: {} };
@@ -87,15 +83,16 @@ describe("editing a diary entry", () => {
 
 	it("rescales the stored snapshot on a quantity edit, not the source", async () => {
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({
-			id: "entry-1",
+		expect(update.mock.calls[0][0].operation).toMatchObject({
+			kind: "update",
+			target: { kind: "serverId", id: "entry-1" },
 			quantity: 2,
 			meal: "lunch",
 			date: todayIsoDate(),
@@ -119,7 +116,7 @@ describe("editing a diary entry", () => {
 			loadMore: jest.fn(),
 		} as never);
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.press(screen.getByLabelText("Choose serving"));
@@ -128,8 +125,9 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({
-			id: "entry-1",
+		expect(update.mock.calls[0][0].operation).toMatchObject({
+			kind: "update",
+			target: { kind: "serverId", id: "entry-1" },
 			selection: {
 				serving: {
 					en: "Large portion (450 g) × 2",
@@ -143,7 +141,6 @@ describe("editing a diary entry", () => {
 
 	it("keeps a deleted Personal Measure snapshot available as history", async () => {
 		mockUseQuery.mockImplementation((reference, _args?) => {
-			if (getFunctionName(reference) === "nutritionGoals:list") return [];
 			if (getFunctionName(reference) === "nutritionGoals:forDate")
 				return { goals: [], basis: "reference", effectiveFrom: null };
 			return {
@@ -168,7 +165,7 @@ describe("editing a diary entry", () => {
 
 	it("moves an entry to another meal", async () => {
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.press(screen.getByLabelText("Meal"));
@@ -176,12 +173,12 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({ meal: "dinner" });
+		expect(update.mock.calls[0][0].operation).toMatchObject({ meal: "dinner" });
 	});
 
 	it("moves an entry to another calendar date", async () => {
 		const update = jest.fn().mockResolvedValue(undefined);
-		mockMutations("update", update);
+		mockMutations("applyOperation", update);
 		await openEditor();
 
 		await fireEvent.press(screen.getByLabelText("Date"));
@@ -189,14 +186,14 @@ describe("editing a diary entry", () => {
 		await fireEvent.press(screen.getByLabelText("Save changes"));
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-		expect(update.mock.calls[0][0]).toMatchObject({
+		expect(update.mock.calls[0][0].operation).toMatchObject({
 			date: shiftIsoDate(todayIsoDate(), 1),
 		});
 	});
 
 	it("keeps the edited quantity open after a failed acknowledgement", async () => {
 		// A non-`Error` rejection, so the assertion is on the localized fallback
-		// text rather than convexErrorMessage's Convex-specific pass-through.
+		// text rather than the Convex error pass-through.
 		// The save stays in flight across the double tap, then fails.
 		let failUpdate: (reason: unknown) => void = () => {};
 		const update = jest.fn(
@@ -207,8 +204,8 @@ describe("editing a diary entry", () => {
 
 		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		const button = screen.getByLabelText("Save changes");
-		await fireEvent.press(button);
-		await fireEvent.press(button);
+		await pressPending(button);
+		await pressPending(button);
 
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		await act(async () => failUpdate("offline"));
@@ -221,7 +218,7 @@ describe("editing a diary entry", () => {
 
 	it("deletes only through a named, destructive confirmation", async () => {
 		const remove = jest.fn().mockResolvedValue(undefined);
-		mockMutations("remove", remove);
+		mockMutations("applyOperation", remove);
 		await openEditor();
 
 		const { settled: cancelling } = await pressPending(
@@ -254,7 +251,10 @@ describe("editing a diary entry", () => {
 		await deleting;
 
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
-		expect(remove.mock.calls[0][0]).toMatchObject({ id: "entry-1" });
+		expect(remove.mock.calls[0][0].operation).toMatchObject({
+			kind: "remove",
+			target: { kind: "serverId", id: "entry-1" },
+		});
 		expect(await screen.findByText("Today")).toBeTruthy();
 	});
 

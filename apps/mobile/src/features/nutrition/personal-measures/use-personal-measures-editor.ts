@@ -1,29 +1,27 @@
-import type { PersonalMeasure } from "@foundry/core/nutrition";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import type { MeasuredUnit, PersonalMeasure } from "@foundry/core";
+import { useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
+import { useOnline } from "../../../convex/online";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import { fmt, useI18n } from "../../../i18n";
-import { convexErrorMessage, useConfirm } from "../../../ui/confirm-dialog";
+import { useConfirm } from "../../../ui/confirm-dialog";
 import { useToast } from "../../../ui/toast";
-
-export type MeasureUnit = "g" | "ml";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 /**
  * My measures as two lists, one per unit, with what changes them: save
  * (create or update), remove after confirming, and move within a unit's
- * list. The device cache follows every change so logging sees it at once.
- * Changes need a connection; offline the lists stay readable.
+ * list. Changes need a connection; offline the lists stay readable.
  */
 export function usePersonalMeasuresEditor() {
+	const errorMessage = useWriteFailureMessage();
 	const { t } = useI18n();
 	const copy = t.nutrition.personalMeasures;
 	const confirm = useConfirm();
 	const toast = useToast();
-	const operations = useNutritionOperations();
 	const { measures, loading } = usePersonalMeasureActions();
-	const connected = useConvexConnectionState().isWebSocketConnected;
+	const connected = useOnline();
 	const createMeasure = useMutation(api.personalMeasures.create);
 	const updateMeasure = useMutation(api.personalMeasures.update);
 	const removeMeasure = useMutation(api.personalMeasures.remove);
@@ -33,21 +31,17 @@ export function usePersonalMeasuresEditor() {
 	useEffect(() => setLocal([...measures]), [measures]);
 
 	const sorted = [...local].sort((a, b) => a.order - b.order);
-	const byUnit: Record<MeasureUnit, PersonalMeasure[]> = {
+	const byUnit: Record<MeasuredUnit, PersonalMeasure[]> = {
 		g: sorted.filter((measure) => measure.unit === "g"),
 		ml: sorted.filter((measure) => measure.unit === "ml"),
 	};
 
-	function cache(next: PersonalMeasure[]) {
-		setLocal(next);
-		const subject = operations.getSubject();
-		if (subject) operations.cachePersonalMeasures(subject, next);
-	}
+	const cache = setLocal;
 
 	/** Creates or updates; rejects (after a toast) so the popup stays open. */
 	async function save(
 		existing: PersonalMeasure | undefined,
-		value: { name: string; amount: number; unit: MeasureUnit },
+		value: { name: string; amount: number; unit: MeasuredUnit },
 	) {
 		setPending(true);
 		try {
@@ -62,7 +56,7 @@ export function usePersonalMeasuresEditor() {
 				cache([...local, created]);
 			}
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.saveFailure));
+			toast.error(errorMessage(error, copy.saveFailure));
 			throw error;
 		} finally {
 			setPending(false);
@@ -84,7 +78,7 @@ export function usePersonalMeasuresEditor() {
 			await removeMeasure({ id: measure.id as never });
 			cache(local.filter((item) => item.id !== measure.id));
 		} catch (error) {
-			toast.error(convexErrorMessage(error, copy.deleteFailure));
+			toast.error(errorMessage(error, copy.deleteFailure));
 		} finally {
 			setPending(false);
 		}
@@ -111,7 +105,7 @@ export function usePersonalMeasuresEditor() {
 			await reorderMeasures({ ids: ordered.map((item) => item.id as never) });
 		} catch (error) {
 			cache(before);
-			toast.error(convexErrorMessage(error, copy.reorderFailure));
+			toast.error(errorMessage(error, copy.reorderFailure));
 		} finally {
 			setPending(false);
 		}

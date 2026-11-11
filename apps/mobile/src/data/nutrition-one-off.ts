@@ -1,13 +1,12 @@
-import type { NutritionDiarySnapshot } from "@foundry/core";
 import {
-	formatSnapshotAmount,
+	type BaseUnit,
+	type FoodVisual,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
-import type { FoodVisual } from "./personal-food-repository";
-
-export { formatSnapshotAmount };
+	type NutritionDiarySnapshot,
+	servingAmountLabel,
+} from "@foundry/core";
 
 /** A reviewed one-off estimate is intake without creating a reusable Food. */
 export function oneOffLogSnapshot(input: {
@@ -15,12 +14,11 @@ export function oneOffLogSnapshot(input: {
 	meal: NutritionDiarySnapshot["meal"];
 	name: { readonly en: string; readonly nl: string };
 	amount: number;
-	baseUnit?: "g" | "ml" | "serving";
+	baseUnit?: BaseUnit;
 	nutrients: Partial<Record<NutrientKey, NutrientValue>>;
-	clientEntryId: string;
 	visual?: FoodVisual;
 	note?: string;
-}): NutritionDiarySnapshot & { readonly clientEntryId: string } {
+}): NutritionDiarySnapshot {
 	if (!Number.isFinite(input.amount) || input.amount <= 0) {
 		throw new Error("Log once amount must be greater than zero.");
 	}
@@ -41,13 +39,12 @@ export function oneOffLogSnapshot(input: {
 		meal: input.meal,
 		name: input.name,
 		...(input.visual ? { visual: input.visual } : {}),
-		serving: formatSnapshotAmount(input.amount, baseUnit),
+		serving: servingAmountLabel(input.amount, baseUnit),
 		quantity: 1,
 		amount: input.amount,
 		baseUnit,
 		nutrients,
 		estimated: true,
 		provenance: { source: "oneOff" },
-		clientEntryId: input.clientEntryId,
 	};
 }

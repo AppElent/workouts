@@ -1,4 +1,5 @@
 import { getFunctionName } from "convex/server";
+import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
 import type { McpAccess } from "./auth";
 import { type FoundryMcpOptions, handleFoundryMcpRequest } from "./handler";
@@ -290,7 +291,12 @@ describe("Foundry MCP endpoint", () => {
 			"nutritionDiary:applyOperation": () => ({
 				entryIds: ["entry_1"],
 				clientEntryIds: ["mcp:food-key-1"],
-				days: [],
+			}),
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [],
+				totals: {},
+				revision: 1,
 			}),
 		});
 		const search = await callTool(backend, "search_foods", {
@@ -338,5 +344,57 @@ describe("Foundry MCP endpoint", () => {
 		const call = await callTool(failing, "list_body_metrics", {});
 		expect(call.isError).toBe(true);
 		expect(call.content[0]?.text).toBe("The Foundry tool failed.");
+	});
+
+	it("explains coded Convex refusals in English", async () => {
+		const refusing = (data: unknown) =>
+			fakeBackend({
+				"bodyMetrics:list": () => {
+					throw new ConvexError(data as never);
+				},
+			});
+		const text = async (data: unknown) =>
+			(await callTool(refusing(data), "list_body_metrics", {})).content[0]
+				?.text;
+		expect(await text({ code: "tooLarge", field: "weight" })).toBe(
+			"Foundry refused this: tooLarge (weight).",
+		);
+		expect(await text({ code: "sessionEnded" })).toBe(
+			"This activity has already ended.",
+		);
+		expect(
+			await text({
+				code: "readOnly",
+				message: "This connected app has read-only access to Foundry.",
+			}),
+		).toBe("This connected app has read-only access to Foundry.");
+	});
+
+	it("finishes a session with unlogged targets only once confirmed", async () => {
+		const backend = fakeBackend({
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				status: "active",
+				startTime: 0,
+				exercises: [{ exerciseId: "squat", plannedSets: [{}, {}] }],
+			}),
+			"sets:listForSession": () => [{ _id: "set_1", exerciseId: "squat" }],
+			"workoutSessions:finish": () => null,
+		});
+		const refused = await callTool(backend, "finish_strength_session", {
+			sessionId: "session_1",
+		});
+		expect(refused.isError).toBe(true);
+		expect(refused.content[0]?.text).toContain("discardUnfinished");
+		expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
+
+		const done = await callTool(backend, "finish_strength_session", {
+			sessionId: "session_1",
+			discardUnfinished: true,
+		});
+		expect(done.isError).toBeUndefined();
+		expect(
+			backend.calls.filter((c) => c.name === "workoutSessions:finish"),
+		).toHaveLength(1);
 	});
 });

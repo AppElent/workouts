@@ -19,7 +19,7 @@ import {
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import { StyleSheet } from "react-native";
-import { isoDateToLocalDate, toIsoDate } from "../data/calendar-day";
+import { isoDateToLocalDate, toIsoDate } from "../dates/calendar-day";
 import { useAppearance, useTokens } from "../theme";
 import type { DatePickerSheetProps } from "./date-picker-sheet.types";
 

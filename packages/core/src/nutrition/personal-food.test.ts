@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { isRuleError } from "../rules";
 import {
 	normalizePersonalFood,
+	normalizePersonalFoodDraft,
 	type PersonalFoodDraft,
 	personalFoodServingOptions,
 	personalFoodSnapshot,
 	personalFoodSnapshotAtAmount,
-	validatePersonalFoodDraft,
 } from "./personal-food";
+
+function rejection(draft: PersonalFoodDraft) {
+	try {
+		normalizePersonalFoodDraft(draft);
+		return undefined;
+	} catch (error) {
+		if (!isRuleError(error)) throw error;
+		return [{ field: error.field, code: error.code }];
+	}
+}
 
 const legacy: PersonalFoodDraft = {
 	name: { en: "Soup", nl: "Soep" },
@@ -148,54 +159,64 @@ describe("Personal Food normalization and diary selections", () => {
 				quantity: 2,
 				baseUnit: "g",
 			}),
-		).toThrow("nutrition basis changed");
+		).toThrow(
+			expect.objectContaining({ field: "baseUnit", code: "basisChanged" }),
+		);
 	});
 
 	it("rejects invalid basis, metadata, and figures at the library boundary", () => {
-		expect(() =>
-			validatePersonalFoodDraft({ ...legacy, baseUnit: "serving" }),
-		).toThrow("named nutrition basis");
-		expect(() =>
-			validatePersonalFoodDraft({
+		expect(rejection({ ...legacy, baseUnit: "serving" })).toEqual([
+			{ field: "nutritionBasis", code: "required" },
+		]);
+		expect(
+			rejection({
 				...legacy,
 				nutritionBasis: {
 					kind: "perServing",
 					label: { en: "Bowl", nl: "Kom" },
 				},
 			}),
-		).toThrow("base unit");
-		expect(() =>
-			validatePersonalFoodDraft({
+		).toEqual([{ field: "nutritionBasis", code: "unitMismatch" }]);
+		expect(
+			rejection({
 				...legacy,
 				nutritionBasis: { kind: "per100", unit: "g" },
 			}),
-		).toThrow("base unit");
-		expect(() =>
-			validatePersonalFoodDraft({
+		).toEqual([{ field: "nutritionBasis", code: "unitMismatch" }]);
+		expect(
+			rejection({
 				...legacy,
 				nutrients: {
 					...legacy.nutrients,
 					energy: { kind: "value", amount: -1 },
 				},
 			}),
-		).toThrow("zero or greater");
+		).toEqual([{ field: "nutrients.energy", code: "negative" }]);
+		expect(
+			rejection({ ...legacy, name: { en: "x".repeat(501), nl: "Soep" } }),
+		).toEqual([{ field: "name.en", code: "tooLong" }]);
 		expect(() => personalFoodSnapshot(food(), { quantity: Infinity })).toThrow(
-			"Quantity",
+			expect.objectContaining({ field: "quantity", code: "notPositive" }),
 		);
 	});
 
-	it.each([
-		["classification", "classification"],
-		["estimated", "estimate status"],
-		["nutritionBasis", "nutrition basis"],
-	] as const)(
+	it.each(["classification", "estimated", "nutritionBasis"] as const)(
 		"rejects explicit null %s instead of treating it as a legacy omission",
-		(key, message) => {
+		(key) => {
 			const malformed = {
 				...legacy,
 				[key]: null,
 			} as unknown as PersonalFoodDraft;
-			expect(() => validatePersonalFoodDraft(malformed)).toThrow(message);
+			expect(rejection(malformed)).toEqual([{ field: key, code: "invalid" }]);
 		},
 	);
+
+	it("labels a default Combo amount with the amount, not the bare unit", () => {
+		const selected = personalFoodSnapshotAtAmount(food(), {
+			amount: 150,
+			quantity: 2,
+			baseUnit: "ml",
+		});
+		expect(selected.serving).toEqual({ en: "75 ml × 2", nl: "75 ml × 2" });
+	});
 });

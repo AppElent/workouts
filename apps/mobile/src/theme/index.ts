@@ -1,22 +1,19 @@
 /** One theme entry point. Import from `src/theme`, never from `tokens.ts`. */
-export type { AppearancePreference, ColorScheme } from "./appearance";
+export type { AppearancePreference } from "./appearance";
 export {
 	AppearanceProvider,
 	useAppearance,
-	useHostScheme,
 	useScheme,
 	useSportColors,
 	useSportMeta,
 	useThemedStyles,
 	useTokens,
 } from "./appearance";
-export type { Scheme, SportKey, Tokens } from "./tokens";
+export type { SportKey, Tokens } from "./tokens";
 export {
 	chrome,
-	colors,
-	colorsLight,
+	glyphSize,
 	metrics,
-	motion,
 	opacity,
 	radius,
 	spacing,

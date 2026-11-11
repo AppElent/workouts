@@ -1,5 +1,5 @@
 /**
- * Correcting a shipped food, driven the way a person does it (#75).
+ * Correcting a shipped food, driven the way a person does it.
  *
  * Every assertion here is about what the screen shows and what reaches the
  * diary. Nothing looks at how a fork is stored, which SQL runs, or which
@@ -14,11 +14,11 @@ import {
 	testRouter,
 	waitFor,
 } from "expo-router/testing-library";
-import { todayIsoDate } from "../../../../data/calendar-day";
+import { todayIsoDate } from "../../../../dates/calendar-day";
 import {
 	PREFERENCE_KEYS,
-	writePreference,
-} from "../../../../prefs/local-preference";
+	writeLocal,
+} from "../../../../local-store/local-store";
 import { renderApp } from "../../../../test-support/render-app";
 
 const mockUseMutation = jest.mocked(useMutation);
@@ -198,7 +198,7 @@ describe("what a correction does to the diary", () => {
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			date: todayIsoDate(),
 			meal: "lunch",
 			provenance: {
@@ -228,9 +228,9 @@ describe("what a correction does to the diary", () => {
 		await fireEvent.press(await screen.findByText("Apple"));
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		const before = structuredClone(log.mock.calls[0][0]);
-		// There is no "Done" any more — the pushed route's back chevron closes the
-		// browser, and every row has already committed its own log.
+		const before = structuredClone(log.mock.calls[0][0].operation.entry);
+		// The pushed route's back chevron closes the browser, and every row has
+		// already committed its own log.
 		await testRouter.back();
 
 		await correctTheApple("Dinner");
@@ -240,7 +240,7 @@ describe("what a correction does to the diary", () => {
 
 		// The snapshot already written is untouched: same id, same figures. The
 		// correction changes what the next search returns, never what history says.
-		expect(log.mock.calls[0][0]).toEqual(before);
+		expect(log.mock.calls[0][0].operation.entry).toEqual(before);
 		expect(before.provenance).toMatchObject({
 			source: "shipped",
 			sourceId: "shipped:apple-w-skin-av",
@@ -322,7 +322,7 @@ describe("correcting a shipped food in Dutch", () => {
 });
 
 it("copies supplementary Servings into a correction once", async () => {
-	writePreference(PREFERENCE_KEYS.locale, "en");
+	writeLocal(PREFERENCE_KEYS.locale, "en");
 	jest.mocked(usePaginatedQuery).mockImplementation(
 		(ref, _args, _options) =>
 			({

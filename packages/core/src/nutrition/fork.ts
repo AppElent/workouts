@@ -1,10 +1,10 @@
 /**
  * Forking a shipped food, and shadowing its original in search.
  *
- * A shipped record is immutable at runtime (spec #68). Correcting one does not
- * edit it: it mints a *new* device-local food that remembers where it came
- * from, and that fork then stands in front of its source in ordinary results
- * so nobody logs the version they just corrected.
+ * A shipped record is immutable at runtime. Correcting one does not edit it:
+ * it mints a *new* device-local food that remembers where it came from, and
+ * that fork then stands in front of its source in ordinary results so nobody
+ * logs the version they just corrected.
  *
  * Three properties this module exists to keep true:
  *
@@ -20,26 +20,22 @@
  *     not be one: the fork's figures are the user's, permanently and silently.
  *     {@link forkShippedFood} copies values out once, at fork time.
  */
+
+import type { Locale } from "../i18n";
 import { getShippedFood, shippedLibrary } from "./library";
 import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 } from "./nutrients";
-import { type SearchScope, searchShippedFoods } from "./search";
 import type {
-	Bilingual,
-	Locale,
-	ShippedFood,
-	ShippedFoodId,
-	ShippedSource,
-} from "./types";
-
-export type ForkedServing = {
-	readonly label: Bilingual;
-	/** Amount in the fork's base unit. */
-	readonly amount: number;
-};
+	PersonalFoodDraft,
+	PersonalFoodProvenance,
+	PersonalServing,
+} from "./personal-food";
+import { type SearchScope, searchShippedFoods } from "./search";
+import type { MeasuredUnit } from "./snapshot";
+import type { ShippedFood, ShippedFoodId, ShippedSource } from "./types";
 
 /**
  * What a fork records about where it came from.
@@ -48,28 +44,18 @@ export type ForkedServing = {
  * shipped source the figures started as, which is why source attribution
  * follows a fork into its detail view and its diary snapshots; `locallyEdited`
  * says whether the user has actually changed anything yet. Conflating the three
- * loses all three answers, so they stay separate (spec #68, "Provenance and
- * attribution").
+ * loses all three answers, so they stay separate.
  */
-export type ForkProvenance = {
+type ForkProvenance = Pick<PersonalFoodProvenance, "locallyEdited"> & {
 	readonly recordOrigin: "personal";
 	readonly nutritionSource: ShippedSource;
-	readonly locallyEdited: boolean;
 	readonly forkedFrom: ShippedFoodId;
 };
 
-/**
- * The pre-populated Personal Food a correction starts from.
- *
- * Structurally a device `PersonalFoodDraft` — `@foundry/core` cannot import
- * the repository's types (it must stay dependency-free and platform-free), so
- * the two shapes meet structurally and the repository validates the result.
- */
-export type ForkedFoodValues = {
-	readonly name: Bilingual;
-	readonly baseUnit: "g" | "ml";
-	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
-	readonly servings: readonly ForkedServing[];
+/** The pre-populated Personal Food a correction starts from. */
+export type ForkedFoodValues = Pick<PersonalFoodDraft, "name" | "nutrients"> & {
+	readonly baseUnit: MeasuredUnit;
+	readonly servings: readonly PersonalServing[];
 };
 
 export type ForkedFoodDraft = ForkedFoodValues & {
@@ -120,11 +106,6 @@ export type ForkRef = {
 /** The least a local food has to expose for shadowing to work. */
 export type LocalFoodLike = ForkRef & { readonly id: string };
 
-/** Whether a local food was created by correcting a shipped one. */
-export function isFork(food: ForkRef): boolean {
-	return typeof food.provenance.forkedFrom === "string";
-}
-
 /**
  * The shipped record a fork came from, if it is still in the library.
  *
@@ -145,7 +126,7 @@ export function forkSource(food: ForkRef): ShippedFood | undefined {
  * repository's own order, which is most-recently-updated first, so the fork the
  * user touched last is the one their search surfaces.
  */
-export function forkShadows<L extends LocalFoodLike>(
+function forkShadows<L extends LocalFoodLike>(
 	localFoods: readonly L[],
 ): Map<string, L> {
 	const shadows = new Map<string, L>();
@@ -201,8 +182,8 @@ export type FoodResultsInput<L extends LocalFoodLike> = {
  * with forks standing in front of the records they correct.
  *
  * Local foods lead because a person's own foods and corrections are what they
- * meant (spec #68, "Find and log food"); shipped ranking inside the tail is
- * whatever `searchShippedFoods` decided.
+ * meant; shipped ranking inside the tail is whatever `searchShippedFoods`
+ * decided.
  */
 export function foodResults<L extends LocalFoodLike>(
 	input: FoodResultsInput<L>,

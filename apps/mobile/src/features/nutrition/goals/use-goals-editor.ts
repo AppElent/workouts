@@ -2,16 +2,21 @@ import {
 	editedGoalCount,
 	type GoalDirection,
 	type GoalPresetKey,
+	type IsoDate,
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
 	type NutrientKey,
-} from "@foundry/core/nutrition";
-import { useConvexConnectionState, useMutation } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+} from "@foundry/core";
+import { useMutation } from "convex/react";
+import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { type IsoDate, todayIsoDate } from "../../../data/calendar-day";
+import { useStalledOffline } from "../../../convex/stalled-offline";
+import { todayIsoDate } from "../../../dates/calendar-day";
+import { fmt, plural, useI18n } from "../../../i18n";
+import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import {
 	draftFromGoals,
 	draftToGoals,
@@ -19,14 +24,12 @@ import {
 	type GoalDraft,
 	type GoalKind,
 	goalDraftEquals,
+	goalErrors,
 	goalKind,
 	setGoalKind,
 	withGoal,
 	withoutGoal,
-} from "../../../data/nutrition-goal-history";
-import { useStalledOffline } from "../../../data/stalled-offline";
-import { fmt, useI18n } from "../../../i18n";
-import { useToast } from "../../../ui/toast";
+} from "./goal-draft";
 import type { GoalVersionSummary } from "./goals-applies-from";
 
 /** `nutrient.direction` → the preset a bound was copied from, if unchanged since. */
@@ -84,24 +87,20 @@ export function useGoalsEditor({
 	requestedDate: IsoDate | undefined;
 	onSaved: () => void;
 }) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const copy = t.nutrition.goalEditor;
 	const toast = useToast();
 	const [today] = useState(() => todayIsoDate());
 	const [date, setDate] = useState<IsoDate>(requestedDate ?? today);
 	const response = useQuery(api.nutritionGoals.forDate, { date });
 	const replace = useMutation(api.nutritionGoals.replace);
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalledOffline = useStalledOffline(
-		response === undefined,
-		isWebSocketConnected,
-	);
+	const stalledOffline = useStalledOffline(response === undefined);
 	const [draft, setDraft] = useState<Draft>(emptyDraft);
 	const [baseline, setBaseline] = useState<GoalDraft | null>(null);
 	const [started, setStarted] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
-	const [pending, setPending] = useState(false);
-	const saving = useRef(false);
+	const screenWrite = useScreenWrite();
+	const pending = screenWrite.busy;
 	const dirty = baseline !== null && !goalDraftEquals(draft.values, baseline);
 
 	// Keyed on content: a refreshed but identical response must not reset anything.
@@ -173,7 +172,7 @@ export function useGoalsEditor({
 	const applyPreset = (key: GoalPresetKey) => {
 		const values = emptyGoalDraft();
 		const sources: Sources = {};
-		for (const goal of NUTRITION_GOAL_PRESETS[key].goals) {
+		for (const goal of NUTRITION_GOAL_PRESETS[key]) {
 			values[goal.nutrient][goal.direction] = String(goal.target);
 			sources[`${goal.nutrient}.${goal.direction}`] = key;
 		}
@@ -184,41 +183,35 @@ export function useGoalsEditor({
 	};
 
 	const save = async () => {
-		if (saving.current) return;
-		const parsed = draftToGoals(draft.values);
-		if (parsed.errors.length > 0) {
+		if (pending) return;
+		const goals = draftToGoals(draft.values);
+		const errors = goalErrors(goals);
+		if (errors.length > 0) {
 			const next: Record<string, string> = {};
-			for (const error of parsed.errors) {
+			for (const error of errors) {
 				const nutrient = error.key.split(".")[0];
 				next[nutrient] ??=
 					error.message === "range" ? copy.range : copy.invalid;
 			}
 			setErrors(next);
 			const count = Object.keys(next).length;
-			toast.error(
-				count === 1 ? copy.invalidOne : fmt(copy.invalidCount, { count }),
-			);
+			toast.error(plural(locale, count, copy.invalidCount));
 			return order.find((nutrient) => next[nutrient]);
 		}
-		saving.current = true;
-		setPending(true);
-		try {
-			await replace({
-				goals: parsed.goals.map((goal) => ({
-					...goal,
-					sourcePreset: draft.sources[`${goal.nutrient}.${goal.direction}`],
-				})),
-				effectiveFrom: date,
-			});
-			onSaved();
-		} catch {
-			toast.error(copy.failure, {
-				action: { label: copy.retry, onPress: () => void save() },
-			});
-		} finally {
-			saving.current = false;
-			setPending(false);
-		}
+		await screenWrite.run(
+			copy.failure,
+			async () => {
+				await replace({
+					goals: goals.map((goal) => ({
+						...goal,
+						sourcePreset: draft.sources[`${goal.nutrient}.${goal.direction}`],
+					})),
+					effectiveFrom: date,
+				});
+				onSaved();
+			},
+			{ failureAction: { label: copy.retry, onPress: () => void save() } },
+		);
 		return undefined;
 	};
 

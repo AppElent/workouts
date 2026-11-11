@@ -1,4 +1,9 @@
-import { roundForDisplay } from "@foundry/core/nutrition";
+import {
+	type MeasuredUnit,
+	type PersonalFood,
+	type PersonalFoodDraft,
+	roundForDisplay,
+} from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -12,14 +17,8 @@ import {
 	TextInput,
 	View,
 } from "react-native";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
-import type { FoodPhotoManager } from "../../../data/food-photo-manager";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import { openFoodFactsImports } from "../../../data/open-food-facts-sync";
-import type {
-	PersonalFood,
-	PersonalFoodDraft,
-} from "../../../data/personal-food-repository";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, localizeDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
@@ -27,6 +26,7 @@ import { useConfirm } from "../../../ui/confirm-dialog";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import {
@@ -38,6 +38,7 @@ import { FoodKeyboardBar } from "../components/food-keyboard-bar";
 import { FoodNutrientRows } from "../components/food-nutrient-rows";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
 import { useNutrientFields } from "../use-nutrient-fields";
 import { PersonalFoodLabelScan } from "./personal-food-label-scan";
 import {
@@ -57,7 +58,6 @@ export type PersonalFoodEditorProps = {
 		kind: "personal" | "recipe" | "oneOff",
 		seed?: FoodAuthoringSeed,
 	) => void;
-	photoManager?: FoodPhotoManager;
 	initialName?: string;
 	/**
 	 * `route`: the editor owns its navigation header (pushed or a sheet).
@@ -76,7 +76,6 @@ export function PersonalFoodEditor({
 	onSaved,
 	onCancel,
 	onCreateKindChange,
-	photoManager,
 	initialName,
 	chrome = "inline",
 	scanLabelOnOpen = false,
@@ -96,7 +95,6 @@ export function PersonalFoodEditor({
 		seed,
 		defaultClassification,
 		initialName,
-		photoManager,
 		onSaved: (saved) => {
 			setLeaving(true);
 			onSaved(saved);
@@ -148,6 +146,7 @@ export function PersonalFoodEditor({
 	);
 	// A save or delete can only leave once `leaving` has disabled the guard.
 	const pendingLeave = useRef<(() => void) | null>(null);
+	const screenWrite = useScreenWrite();
 	useEffect(() => {
 		if (leaving && pendingLeave.current) {
 			const leave = pendingLeave.current;
@@ -176,14 +175,11 @@ export function PersonalFoodEditor({
 			destructive: true,
 		});
 		if (!ok) return;
-		try {
-			if (await personalFoods.remove(food.id))
-				photoManager?.remove(food.visual);
+		await screenWrite.run(t.nutrition.personalFood.saveFailure, async () => {
+			await personalFoods.remove(food.id);
 			pendingLeave.current = onCancel;
 			setLeaving(true);
-		} catch {
-			toast.error(t.nutrition.personalFood.saveFailure);
-		}
+		});
 	};
 
 	/** Imported from Open Food Facts with a barcode, so it can be fetched again. */
@@ -343,9 +339,9 @@ export function PersonalFoodEditor({
 		</Pressable>
 	);
 
-	// Native bar items, so UIKit draws the glass (mobile-design "Functional
-	// chrome"). Memoized with handlers in a ref: Stack.Screen sets options on
-	// every new object, and this screen re-renders when they are set.
+	// Native bar items, so UIKit draws the glass. Memoized with handlers in a
+	// ref: Stack.Screen sets options on every new object, and this screen
+	// re-renders when they are set.
 	actions.current = { save, remove, refresh, close };
 	const deleteLabel = food?.provenance.forkedFrom
 		? copy.deleteCorrection
@@ -594,7 +590,7 @@ export function PersonalFoodEditor({
 						) : (
 							<FoodFormCard>
 								{draft.servings.map((serving, index) => {
-									const label = locale === "en" ? serving.en : serving.nl;
+									const label = serving[locale];
 									const amount = parseFoodNumber(serving.amount);
 									return (
 										<View
@@ -723,7 +719,7 @@ export function PersonalFoodEditor({
 							onSelect={(id) =>
 								id === "serving"
 									? draft.setBasis("perServing")
-									: draft.setBasis("per100", id as "g" | "ml")
+									: draft.setBasis("per100", id as MeasuredUnit)
 							}
 						>
 							<FoodFormMenuValue
@@ -895,10 +891,7 @@ export function PersonalFoodEditor({
 						servingEditor === "new"
 							? undefined
 							: {
-									name:
-										locale === "en"
-											? draft.servings[servingEditor].en
-											: draft.servings[servingEditor].nl,
+									name: draft.servings[servingEditor][locale],
 									amount: draft.servings[servingEditor].amount,
 								}
 					}

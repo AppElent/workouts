@@ -1,7 +1,7 @@
 import type { NutritionHeaderMenuProps } from "./nutrition-header-menu-props";
 import { NutritionMenu } from "./nutrition-menu";
 
-/** Android keeps the existing accessible overflow presentation. */
+/** Android and web: the accessible overflow presentation. */
 export function NutritionHeaderMenu(props: NutritionHeaderMenuProps) {
 	return (
 		<NutritionMenu

@@ -1,20 +1,9 @@
-import { convertLoad, roundLoad } from "@foundry/core";
+import { convertLoad, type LoadUnit, roundLoad } from "@foundry/core";
 import { fmt, plural } from "../../i18n";
 import { type PlanSet, shownLoad } from "./session-plan";
 
 export function formatNumber(value: number, locale: string, digits = 2) {
 	return value.toLocaleString(locale, { maximumFractionDigits: digits });
-}
-/** "1:30", and "1:02:47" past an hour. */
-export function formatClock(seconds: number) {
-	const safe = Math.max(0, Math.floor(seconds));
-	const hours = Math.floor(safe / 3600);
-	const minutes = Math.floor((safe % 3600) / 60);
-	const rest = safe % 60;
-	const pad = (value: number) => value.toString().padStart(2, "0");
-	return hours > 0
-		? `${hours}:${pad(minutes)}:${pad(rest)}`
-		: `${minutes}:${pad(rest)}`;
 }
 /** "95 × 5" for kg, "209,4 lbs × 5" for pounds, "+10 × 12" on bodyweight. */
 export function formatSetShort(
@@ -48,11 +37,7 @@ export function formatLoadOnly(
 	return bodyweight ? `+${load} kg` : `${load} ${row.unit}`;
 }
 /** Reads a 1RM in the same unit as the set it came from. */
-export function formatOneRm(
-	valueKg: number,
-	unit: "kg" | "lbs",
-	locale: string,
-) {
+export function formatOneRm(valueKg: number, unit: LoadUnit, locale: string) {
 	const value = roundLoad(convertLoad(valueKg, "kg", unit), 1);
 	return `${formatNumber(value, locale, 0)} ${unit}`;
 }

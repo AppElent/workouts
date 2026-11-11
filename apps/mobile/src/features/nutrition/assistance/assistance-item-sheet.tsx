@@ -1,19 +1,13 @@
 import {
 	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
 	type NutrientKey,
 	type NutrientValue,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import {
-	countedPortion,
-	itemNutrients,
-	type ReviewItem,
-	replaceFood,
-	withAmount,
-} from "../../../data/nutrition-ai";
 import {
 	modalAnimation,
 	useReduceMotion,
@@ -26,9 +20,16 @@ import {
 	FoodFormCard,
 	FoodFormSectionHeader,
 } from "../components/food-form-section";
-import { parseFoodNumber } from "../use-nutrient-fields";
+import {
+	countedPortion,
+	itemNutrients,
+	type ReviewItem,
+	replaceFood,
+	withAmount,
+} from "../nutrition-ai";
+import { HEADLINE_NUTRIENTS, parseFoodNumber } from "../use-nutrient-fields";
 
-const VALUE_KEYS = ["energy", "protein", "carbs", "fat"] as const;
+const VALUE_KEYS = HEADLINE_NUTRIENTS;
 type ValueKey = (typeof VALUE_KEYS)[number] & NutrientKey;
 
 /** Typed values replace the estimate's; its parts no longer add up to it then. */
@@ -246,7 +247,7 @@ export function AssistanceItemSheet({
 										<InlineNumberFieldRow
 											key={key}
 											label={t.nutrition.nutrients[key]}
-											suffix={key === "energy" ? "kcal" : "g"}
+											suffix={NUTRIENT_UNITS[key]}
 											value={
 												typed[key] ??
 												(value?.kind === "value"

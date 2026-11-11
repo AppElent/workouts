@@ -28,25 +28,55 @@ describe("endurance calculations", () => {
 		expect(enduranceTotals([]).paceSecondsPerKilometer).toBeNull();
 	});
 
-	it("rejects invalid measurements", () => {
+	it("reports each broken field with a code", () => {
 		const valid = {
 			occurredAt: 1_000,
 			durationSeconds: 600,
 			distanceMeters: 2000,
 		};
-		expect(() => validateEnduranceInput(valid)).not.toThrow();
-		expect(() =>
-			validateEnduranceInput({ ...valid, occurredAt: 2000 }, 1000),
-		).toThrow("future");
-		expect(() =>
-			validateEnduranceInput({ ...valid, distanceMeters: 0 }),
-		).toThrow();
-		expect(() =>
-			validateEnduranceInput({ ...valid, averageHeartRate: 63.5 }),
-		).toThrow();
-		expect(() => validateEnduranceInput({ ...valid, effort: 11 })).toThrow();
-		expect(() =>
-			validateEnduranceInput({ ...valid, elevationGainMeters: -1 }),
-		).toThrow();
+		const errors = (input: Parameters<typeof validateEnduranceInput>[0]) => {
+			const result = validateEnduranceInput(input, 10_000);
+			return result.ok ? [] : result.errors;
+		};
+		expect(validateEnduranceInput(valid, 10_000)).toEqual({
+			ok: true,
+			value: valid,
+		});
+		expect(errors({ ...valid, occurredAt: 20_000 })).toEqual([
+			{ field: "occurredAt", code: "future" },
+		]);
+		expect(errors({ ...valid, occurredAt: 1.5 })).toEqual([
+			{ field: "occurredAt", code: "invalid" },
+		]);
+		expect(
+			errors({ ...valid, distanceMeters: 0, durationSeconds: -1 }),
+		).toEqual([
+			{ field: "durationSeconds", code: "notPositive" },
+			{ field: "distanceMeters", code: "notPositive" },
+		]);
+		expect(errors({ ...valid, averageHeartRate: 63.5 })).toEqual([
+			{ field: "averageHeartRate", code: "notWhole" },
+		]);
+		expect(errors({ ...valid, averageHeartRate: 0 })).toEqual([
+			{ field: "averageHeartRate", code: "notPositive" },
+		]);
+		expect(errors({ ...valid, effort: 10 })).toEqual([]);
+		expect(errors({ ...valid, effort: 11 })).toEqual([
+			{ field: "effort", code: "outOfRange" },
+		]);
+		expect(errors({ ...valid, effort: 0 })).toEqual([
+			{ field: "effort", code: "outOfRange" },
+		]);
+		expect(errors({ ...valid, elevationGainMeters: 0 })).toEqual([]);
+		expect(errors({ ...valid, elevationGainMeters: -1 })).toEqual([
+			{ field: "elevationGainMeters", code: "negative" },
+		]);
+		expect(errors({ ...valid, title: "x".repeat(200) })).toEqual([]);
+		expect(errors({ ...valid, title: "x".repeat(201) })).toEqual([
+			{ field: "title", code: "tooLong" },
+		]);
+		expect(errors({ ...valid, notes: "x".repeat(10_001) })).toEqual([
+			{ field: "notes", code: "tooLong" },
+		]);
 	});
 });

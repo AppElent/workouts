@@ -1,65 +1,17 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet } from "react-native";
 import type { Id } from "../../../src/convex/api";
+import { EnduranceDetailScreen } from "../../../src/features/training/endurance/endurance-detail-screen";
 import { useI18n } from "../../../src/i18n";
-import { EnduranceDetailScreen } from "../../../src/screens/endurance-detail";
-import {
-	metrics,
-	spacing,
-	type Tokens,
-	useThemedStyles,
-} from "../../../src/theme";
-import { EmptyState } from "../../../src/ui/empty-state";
-import { RouteError } from "../../../src/ui/route-error";
 
 export default function EnduranceDetailRoute() {
 	const { id } = useLocalSearchParams<{ id?: string }>();
-	const { t } = useI18n();
-	const copy = t.endurance;
-	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.endurance;
 	return (
 		<>
 			<Stack.Screen options={{ title: copy.details }} />
-			{id ? (
-				<EnduranceDetailScreen id={id as Id<"activities">} />
-			) : (
-				<ScrollView
-					style={styles.root}
-					contentInsetAdjustmentBehavior="automatic"
-					contentContainerStyle={styles.content}
-				>
-					<EmptyState title={copy.missing} body={copy.missingBody} />
-				</ScrollView>
-			)}
+			<EnduranceDetailScreen id={id as Id<"activities"> | undefined} />
 		</>
 	);
 }
 
-export function ErrorBoundary({
-	error,
-	retry,
-}: {
-	error: Error;
-	retry: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	const copy = t.endurance;
-	return (
-		<RouteError
-			title={copy.missing}
-			body={copy.missingBody}
-			retryLabel={t.common.retry}
-			onRetry={() => void retry()}
-			error={error}
-		/>
-	);
-}
-
-const createStyles = (colors: Tokens) =>
-	StyleSheet.create({
-		root: { flex: 1, backgroundColor: colors.bg },
-		content: {
-			paddingHorizontal: metrics.screenGutter,
-			paddingVertical: spacing.lg,
-		},
-	});
+export { TrainingRouteError as ErrorBoundary } from "../../../src/features/training/components/training-route-error";

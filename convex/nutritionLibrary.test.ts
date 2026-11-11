@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import { LIBRARY_GET_MANY_LIMIT } from "@foundry/core";
 import type { FunctionArgs } from "convex/server";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
@@ -7,7 +8,7 @@ import { api } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
-type Args = FunctionArgs<typeof api.nutritionLibrary.applyOperation>;
+type Args = FunctionArgs<typeof api.nutritionLibrary.save>;
 
 const nutrients = {
 	energy: { kind: "value" as const, amount: 12 },
@@ -68,12 +69,28 @@ function upsert(
 	payload = food(id),
 ): Args {
 	return {
-		version: 1,
 		operationId,
 		expectedSubject: "alice",
 		operation: {
 			kind: "upsert",
 			record: { id, kind: "food", payload },
+			expectedRevision,
+		},
+	};
+}
+
+function remove(
+	operationId: string,
+	recordId: string,
+	expectedRevision: number,
+): Args {
+	return {
+		operationId,
+		expectedSubject: "alice",
+		operation: {
+			kind: "remove",
+			recordId,
+			recordKind: "food",
 			expectedRevision,
 		},
 	};
@@ -88,6 +105,10 @@ describe("nutrition library account backup operations", () => {
 				api.nutritionLibrary.save,
 				upsert(`seed-${i}`, `food-${i}`, 0, food(`food-${i}`, `Oats ${i}`)),
 			);
+		await alice.mutation(
+			api.nutritionLibrary.save,
+			remove("drop", "food-0", 1),
+		);
 		const first = await alice.query(api.nutritionLibrary.browse, {
 			query: "",
 			paginationOpts: { cursor: null, numItems: 2 },
@@ -99,6 +120,18 @@ describe("nutrition library account backup operations", () => {
 			paginationOpts: { cursor: first.continueCursor, numItems: 2 },
 		});
 		expect(next.page.map((r) => r.id)).not.toEqual(first.page.map((r) => r.id));
+		const all = await alice.query(api.nutritionLibrary.browse, {
+			query: "",
+			paginationOpts: { cursor: null, numItems: 10 },
+		});
+		expect(all.page.map((r) => r.id).sort()).toEqual([
+			"food-1",
+			"food-2",
+			"food-3",
+			"food-4",
+			"food-5",
+		]);
+		expect(all.page[0]).toMatchObject({ subject: "alice", deleted: false });
 		expect(
 			(
 				await alice.query(api.nutritionLibrary.browse, {
@@ -116,94 +149,37 @@ describe("nutrition library account backup operations", () => {
 				.withIdentity({ subject: "bob" })
 				.query(api.nutritionLibrary.getMany, { ids: ["food-5"] }),
 		).toEqual([]);
+		await expect(
+			alice.query(api.nutritionLibrary.browse, {
+				query: "x".repeat(201),
+				paginationOpts: { cursor: null, numItems: 2 },
+			}),
+		).rejects.toMatchObject({ data: { code: "tooLong", field: "query" } });
+		await expect(
+			alice.query(api.nutritionLibrary.getMany, {
+				ids: Array.from(
+					{ length: LIBRARY_GET_MANY_LIMIT + 1 },
+					(_, i) => `food-${i}`,
+				),
+			}),
+		).rejects.toMatchObject({ data: { code: "tooLarge", field: "ids" } });
+		await expect(
+			alice.query(api.nutritionLibrary.getMany, {
+				ids: [],
+				forkIds: Array.from(
+					{ length: LIBRARY_GET_MANY_LIMIT + 1 },
+					(_, i) => `food-${i}`,
+				),
+			}),
+		).rejects.toMatchObject({ data: { code: "tooLarge", field: "forkIds" } });
+		await expect(
+			t.query(api.nutritionLibrary.browse, {
+				query: "",
+				paginationOpts: { cursor: null, numItems: 2 },
+			}),
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	});
 
-	it("migrates conflicting journals without losing either version and retries old receipts", async () => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		await alice.mutation(
-			api.nutritionLibrary.save,
-			upsert("server", "conflict", 0, food("conflict", "Server")),
-		);
-		const local = upsert(
-			"legacy-edit",
-			"conflict",
-			0,
-			food("conflict", "Device"),
-		);
-		const result = await alice.mutation(
-			api.nutritionLibrary.migrateOperation,
-			local,
-		);
-		expect(JSON.parse(result.record.payload!).name.en).toBe("Device");
-		expect(result.preservedRecords).toHaveLength(1);
-		expect(JSON.parse(result.preservedRecords![0].payload!).name.en).toContain(
-			"Server",
-		);
-		expect(
-			await alice.mutation(api.nutritionLibrary.migrateOperation, local),
-		).toEqual(result);
-		await alice.mutation(api.nutritionLibrary.save, {
-			version: 1,
-			expectedSubject: "alice",
-			operationId: "delete-conflict",
-			operation: {
-				kind: "remove",
-				recordId: "conflict",
-				recordKind: "food",
-				expectedRevision: 1,
-			},
-		});
-		const recovered = await alice.mutation(
-			api.nutritionLibrary.migrateOperation,
-			upsert("legacy-after-delete", "conflict", 1),
-		);
-		expect(recovered.record.deleted).toBe(true);
-		expect(recovered.preservedRecords?.[0].deleted).toBe(false);
-		const old = upsert("old-ack", "old", 0);
-		const ack = await alice.mutation(api.nutritionLibrary.applyOperation, old);
-		expect(
-			await alice.mutation(api.nutritionLibrary.migrateOperation, old),
-		).toEqual(ack);
-	});
-	it("preserves an older pending schema without downgrading the account record", async () => {
-		const alice = convexTest(schema, modules).withIdentity({
-			subject: "alice",
-		});
-		const current = upsert(
-			"current-v2",
-			"schema-conflict",
-			0,
-			food("schema-conflict", "Current"),
-		);
-		if (current.operation.kind !== "upsert")
-			throw new Error("Fixture needs upsert");
-		await alice.mutation(api.nutritionLibrary.save, {
-			...current,
-			operation: {
-				...current.operation,
-				record: { ...current.operation.record, schemaVersion: 2 },
-			},
-		});
-		const pending = upsert(
-			"pending-v1",
-			"schema-conflict",
-			1,
-			food("schema-conflict", "Pending"),
-		);
-		const result = await alice.mutation(
-			api.nutritionLibrary.migrateOperation,
-			pending,
-		);
-		expect(result.record.schemaVersion).toBe(2);
-		expect(JSON.parse(result.record.payload!).name.en).toBe("Current");
-		expect(JSON.parse(result.preservedRecords![0].payload!).name.en).toContain(
-			"Pending",
-		);
-		expect(
-			await alice.mutation(api.nutritionLibrary.migrateOperation, pending),
-		).toEqual(result);
-	});
 	it("online edits use server acceptance order and cannot resurrect deleted records", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
@@ -219,6 +195,7 @@ describe("nutrition library account backup operations", () => {
 			api.nutritionLibrary.save,
 			upsert("last-edit", "food-online", 1, food("food-online", "Last")),
 		);
+		expect(last.record.revision).toBe(3);
 		expect(JSON.parse(last.record.payload!).name.en).toBe("Last");
 		expect(
 			await alice.mutation(
@@ -226,88 +203,104 @@ describe("nutrition library account backup operations", () => {
 				upsert("last-edit", "food-online", 1, food("food-online", "Last")),
 			),
 		).toEqual(last);
-		await alice.mutation(api.nutritionLibrary.save, {
-			version: 1,
-			operationId: "remove-online",
-			expectedSubject: "alice",
-			operation: {
-				kind: "remove",
-				recordId: "food-online",
-				recordKind: "food",
-				expectedRevision: 1,
-			},
-		});
+		await alice.mutation(
+			api.nutritionLibrary.save,
+			remove("remove-online", "food-online", 1),
+		);
 		await expect(
 			alice.mutation(
 				api.nutritionLibrary.save,
 				upsert("stale-edit", "food-online", 1),
 			),
-		).rejects.toThrow("deleted");
+		).rejects.toMatchObject({ data: { code: "recordDeleted" } });
+		await expect(
+			alice.mutation(
+				api.nutritionLibrary.save,
+				upsert("never-created", "food-missing", 1),
+			),
+		).rejects.toMatchObject({ data: { code: "recordDeleted" } });
 		expect(
-			(
-				await alice.query(api.nutritionLibrary.list, {
-					paginationOpts: { cursor: null, numItems: 10 },
-				})
-			).page[0].deleted,
-		).toBe(true);
+			await alice.query(api.nutritionLibrary.getMany, {
+				ids: ["food-online", "food-missing"],
+			}),
+		).toEqual([
+			expect.objectContaining({
+				id: "food-online",
+				revision: 4,
+				deleted: true,
+			}),
+		]);
 	});
+
 	it("isolates accounts and deduplicates an identical canonical receipt", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const bob = t.withIdentity({ subject: "bob" });
 		const first = await alice.mutation(
-			api.nutritionLibrary.applyOperation,
+			api.nutritionLibrary.save,
 			upsert("op-1", "food-1", 0),
 		);
 		expect(
 			await alice.mutation(
-				api.nutritionLibrary.applyOperation,
+				api.nutritionLibrary.save,
 				upsert("op-1", "food-1", 0),
 			),
 		).toEqual(first);
+		await expect(
+			alice.mutation(
+				api.nutritionLibrary.save,
+				upsert("op-1", "food-1", 0, food("food-1", "Changed")),
+			),
+		).rejects.toMatchObject({ data: { code: "operationConflict" } });
 		expect(
 			(
-				await bob.query(api.nutritionLibrary.list, {
+				await bob.query(api.nutritionLibrary.browse, {
+					query: "",
 					paginationOpts: { cursor: null, numItems: 10 },
 				})
 			).page,
 		).toEqual([]);
 		await expect(
-			bob.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("op-1", "food-1", 0),
-			),
-		).rejects.toThrow("Subject mismatch");
+			bob.mutation(api.nutritionLibrary.save, upsert("op-1", "food-1", 0)),
+		).rejects.toMatchObject({ data: { code: "accountChanged" } });
+		await expect(
+			t.mutation(api.nutritionLibrary.save, upsert("op-1", "food-1", 0)),
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	});
 
 	it("validates full payloads, retains payload-free tombstones, and cannot change record kind", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
+		for (const [args, code, field] of [
+			[
 				upsert("bad", "food-1", 0, JSON.stringify({ id: "food-1" })),
-			),
-		).rejects.toThrow("Food name");
+				"required",
+				"name.en",
+			],
+			[upsert("json", "food-1", 0, "{"), "invalid", "payload"],
+			[upsert("empty", "food-1", 0, ""), "invalid", "payload"],
+			[upsert("other-id", "food-1", 0, food("food-2")), "invalid", "id"],
+			[upsert("blank-id", " ", 0), "invalid", "id"],
+			[upsert("negative", "food-1", -1), "invalid", "expectedRevision"],
+			[upsert("fraction", "food-1", 0.5), "invalid", "expectedRevision"],
+		] as const) {
+			await expect(
+				alice.mutation(api.nutritionLibrary.save, args),
+			).rejects.toMatchObject({ data: { code, field } });
+		}
 		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
+			api.nutritionLibrary.save,
 			upsert("create", "food-1", 0),
 		);
-		await alice.mutation(api.nutritionLibrary.applyOperation, {
-			version: 1,
-			operationId: "delete",
-			expectedSubject: "alice",
-			operation: {
-				kind: "remove",
-				recordId: "food-1",
-				recordKind: "food",
-				expectedRevision: 1,
-			},
-		});
-		const listed = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
-		});
-		expect(listed.page).toEqual([
+		await alice.mutation(
+			api.nutritionLibrary.save,
+			remove("delete", "food-1", 1),
+		);
+		expect(
+			await alice.query(api.nutritionLibrary.getMany, {
+				ids: ["food-1"],
+			}),
+		).toEqual([
 			expect.objectContaining({
 				id: "food-1",
 				revision: 2,
@@ -317,13 +310,12 @@ describe("nutrition library account backup operations", () => {
 		]);
 		await expect(
 			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("old-update", "food-1", 1),
+				api.nutritionLibrary.save,
+				upsert("old-update", "food-1", 2),
 			),
-		).rejects.toThrow("Conflict");
+		).rejects.toMatchObject({ data: { code: "recordDeleted" } });
 		await expect(
-			alice.mutation(api.nutritionLibrary.applyOperation, {
-				version: 1,
+			alice.mutation(api.nutritionLibrary.save, {
 				operationId: "kind-change",
 				expectedSubject: "alice",
 				operation: {
@@ -332,7 +324,7 @@ describe("nutrition library account backup operations", () => {
 					expectedRevision: 2,
 				},
 			}),
-		).rejects.toThrow("kind cannot change");
+		).rejects.toMatchObject({ data: { code: "invalid", field: "kind" } });
 	});
 
 	it("backs up semantic Food icons but rejects device-local photo paths", async () => {
@@ -343,19 +335,10 @@ describe("nutrition library account backup operations", () => {
 			visual: { kind: "icon", preset: "fruit" },
 		});
 		await expect(
-			alice.mutation(api.nutritionLibrary.applyOperation, {
-				...upsert("icon", "icon-food", 0, iconPayload),
-				operation: {
-					kind: "upsert",
-					expectedRevision: 0,
-					record: {
-						id: "icon-food",
-						kind: "food",
-						payload: iconPayload,
-						schemaVersion: 2,
-					},
-				},
-			}),
+			alice.mutation(
+				api.nutritionLibrary.save,
+				upsert("icon", "icon-food", 0, iconPayload),
+			),
 		).resolves.toBeDefined();
 
 		const photoPayload = JSON.stringify({
@@ -363,19 +346,25 @@ describe("nutrition library account backup operations", () => {
 			visual: { kind: "photo", uri: "file:///food-photos/private.jpg" },
 		});
 		await expect(
-			alice.mutation(api.nutritionLibrary.applyOperation, {
-				...upsert("photo", "photo-food", 0, photoPayload),
-				operation: {
-					kind: "upsert",
-					expectedRevision: 0,
-					record: {
-						id: "photo-food",
-						kind: "food",
-						payload: photoPayload,
-						schemaVersion: 2,
-					},
-				},
+			alice.mutation(
+				api.nutritionLibrary.save,
+				upsert("photo", "photo-food", 0, photoPayload),
+			),
+		).rejects.toMatchObject({ data: { code: "invalid", field: "visual" } });
+		const remotePayload = JSON.stringify({
+			...JSON.parse(food("remote-food")),
+			visual: { kind: "remote", uri: "https://example.com/oats.jpg" },
+		});
+		await expect(
+			alice.mutation(
+				api.nutritionLibrary.save,
+				upsert("remote", "remote-food", 0, remotePayload),
+			),
+		).rejects.toMatchObject({ data: { code: "invalid", field: "visual" } });
+		expect(
+			await alice.query(api.nutritionLibrary.getMany, {
+				ids: ["photo-food", "remote-food"],
 			}),
-		).rejects.toThrow("cannot be backed up");
+		).toEqual([]);
 	});
 });

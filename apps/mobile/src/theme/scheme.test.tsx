@@ -1,20 +1,15 @@
 import { screen } from "@testing-library/react-native";
 import * as ReactNative from "react-native";
-import { clearPreference, PREFERENCE_KEYS } from "../prefs/local-preference";
+import { PREFERENCE_KEYS, removeLocal } from "../local-store/local-store";
 import { renderThemed as render } from "../test-support/render-themed";
 import { SportIcon } from "../ui/coach";
 import { AppText } from "../ui/text";
-import {
-	colors,
-	colorsLight,
-	sportMeta,
-	useHostScheme,
-	useTokens,
-} from "./index";
+import { sportMeta, useScheme, useTokens } from "./index";
+import { darkColors, lightColors, lightSportMeta } from "./tokens";
 
 function Probe() {
 	const tokens = useTokens();
-	const host = useHostScheme();
+	const host = useScheme();
 	return (
 		<ReactNative.Text testID="probe">{`${tokens.bg}|${host}`}</ReactNative.Text>
 	);
@@ -23,7 +18,7 @@ function Probe() {
 describe("scheme plumbing follows the device by default", () => {
 	let scheme: jest.SpyInstance;
 	beforeEach(() => {
-		clearPreference(PREFERENCE_KEYS.appearance);
+		removeLocal(PREFERENCE_KEYS.appearance);
 		scheme = jest.spyOn(ReactNative, "useColorScheme");
 	});
 	afterEach(() => scheme.mockRestore());
@@ -33,11 +28,10 @@ describe("scheme plumbing follows the device by default", () => {
 		async (mode) => {
 			scheme.mockReturnValue(mode);
 			await render(<Probe />);
-			const tokens = mode === "dark" ? colors : colorsLight;
+			const tokens = mode === "dark" ? darkColors : lightColors;
 			expect(screen.getByTestId("probe").props.children).toBe(
 				`${tokens.bg}|${mode}`,
 			);
-			expect(colorsLight.bg).not.toBe(colors.bg);
 		},
 	);
 
@@ -56,17 +50,17 @@ describe("scheme plumbing follows the device by default", () => {
 		);
 		const flat = (id: string) =>
 			ReactNative.StyleSheet.flatten(screen.getByTestId(id).props.style);
-		expect(flat("body").color).toBe(colorsLight.text);
-		expect(flat("muted").color).toBe(colorsLight.textMuted);
+		expect(flat("body").color).toBe(lightColors.text);
+		expect(flat("muted").color).toBe(lightColors.textMuted);
 		expect(flat("override").color).toBe("#123456");
 	});
 
-	it("SportIcon draws the light hue", async () => {
+	it("SportIcon draws the darkened hue on the light scheme", async () => {
 		scheme.mockReturnValue("light");
 		await render(<SportIcon sport="running" />);
 		const glyph = screen.getByText(sportMeta.running.glyph);
-		expect(ReactNative.StyleSheet.flatten(glyph.props.style).color).toBe(
-			"#9d430a",
-		);
+		const color = ReactNative.StyleSheet.flatten(glyph.props.style).color;
+		expect(color).toBe(lightSportMeta.running.color);
+		expect(color).not.toBe(sportMeta.running.color);
 	});
 });

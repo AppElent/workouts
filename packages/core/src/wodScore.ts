@@ -1,4 +1,46 @@
-export type WodType = "forTime" | "amrap" | "emom" | "load";
+import { formatClock } from "./format";
+import { type NumberRange, type RangeCode, rangeCode } from "./range";
+import { type RuleResult, ruleIssues } from "./rules";
+import { type DistanceUnit, KG_PER_LB, type LoadUnit } from "./units";
+
+export const WOD_TYPES = ["forTime", "amrap", "emom", "load"] as const;
+export type WodType = (typeof WOD_TYPES)[number];
+
+/** Hosted Workout scaling levels, from the prescribed workout down. */
+export const HOSTED_LEVELS = ["rx", "l1", "l2", "l3"] as const;
+export type HostedLevel = (typeof HOSTED_LEVELS)[number];
+
+export const HOSTED_LEVEL_LABELS: Record<HostedLevel, string> = {
+	rx: "Rx",
+	l1: "L1",
+	l2: "L2",
+	l3: "L3",
+};
+
+/** The host's name for a level in this block, else its canonical name. */
+export function hostedLevelLabel(
+	levels: readonly { readonly level: HostedLevel; readonly label: string }[],
+	level: HostedLevel,
+): string {
+	return (
+		levels.find((entry) => entry.level === level)?.label ||
+		HOSTED_LEVEL_LABELS[level]
+	);
+}
+
+/** Whether a logged WOD result was done as prescribed. */
+export const RX_SCALED = ["rx", "scaled"] as const;
+export type RxScaled = (typeof RX_SCALED)[number];
+
+export type WodMovement = {
+	name: string;
+	reps?: number;
+	weight?: number;
+	unit?: LoadUnit;
+	distance?: number;
+	distanceUnit?: DistanceUnit;
+	notes?: string;
+};
 
 export interface WodScoreInput {
 	timeSeconds?: number;
@@ -6,27 +48,150 @@ export interface WodScoreInput {
 	reps?: number;
 	timeCapped?: boolean;
 	load?: number;
-	loadUnit?: "kg" | "lbs";
+	loadUnit?: LoadUnit;
 }
 
-const KG_PER_LB = 0.45359237;
+const SCORE_LIMITS = {
+	timeSeconds: { min: 0, max: 86_400 },
+	rounds: { min: 0, max: 10_000 },
+	reps: { min: 0, max: 100_000 },
+	load: { min: 0, max: 2000 },
+} as const satisfies Record<string, NumberRange>;
+
+export type WodScoreField = keyof typeof SCORE_LIMITS | "loadUnit";
+export type WodScoreCode = RangeCode | "required";
+
+const missing = (field: WodScoreField, value: unknown): WodScoreField[] =>
+	value === undefined ? [field] : [];
+
+/** The fields a score still needs for its WOD type; either of two names the first. */
+const MISSING_FOR_TYPE: Record<
+	WodType,
+	(score: WodScoreInput) => WodScoreField[]
+> = {
+	forTime: (score) =>
+		score.timeCapped === true
+			? missing("reps", score.reps)
+			: missing("timeSeconds", score.timeSeconds),
+	amrap: (score) => missing("rounds", score.rounds ?? score.reps),
+	emom: (score) => missing("reps", score.reps ?? score.rounds),
+	load: (score) => [
+		...missing("load", score.load),
+		...missing("loadUnit", score.loadUnit),
+	],
+};
+
+/**
+ * A score is complete for its WOD type: a finish time (or reps when capped),
+ * rounds or reps for AMRAP, reps or rounds for EMOM, a load with its unit.
+ * Every present number must be within `SCORE_LIMITS`.
+ */
+export function validateWodScore<T extends WodScoreInput>(
+	type: WodType,
+	score: T,
+): RuleResult<T, WodScoreField, WodScoreCode> {
+	const found = ruleIssues<WodScoreField, WodScoreCode>();
+	for (const field of Object.keys(
+		SCORE_LIMITS,
+	) as (keyof typeof SCORE_LIMITS)[]) {
+		const value = score[field];
+		if (value === undefined) continue;
+		const code = rangeCode(value, SCORE_LIMITS[field]);
+		if (code) found.add(field, code);
+	}
+	for (const field of MISSING_FOR_TYPE[type](score))
+		found.add(field, "required");
+	return found.result(score);
+}
+
+export type WodTiming = { timeCapSeconds?: number; durationSeconds?: number };
+export type WodTimingField = keyof WodTiming;
+
+/** For Time stores a time cap, AMRAP and EMOM a duration; Load has no timing. */
+export const WOD_TIMING_FIELD: Record<WodType, WodTimingField | null> = {
+	forTime: "timeCapSeconds",
+	amrap: "durationSeconds",
+	emom: "durationSeconds",
+	load: null,
+};
+
+/** The timing for `minutes` entered on a WOD of `type`; the other field clears. */
+export function wodTimingFromMinutes(
+	type: WodType,
+	minutes: number | undefined,
+): WodTiming {
+	const field = WOD_TIMING_FIELD[type];
+	const seconds =
+		minutes !== undefined && minutes > 0 ? Math.round(minutes * 60) : undefined;
+	return {
+		timeCapSeconds: field === "timeCapSeconds" ? seconds : undefined,
+		durationSeconds: field === "durationSeconds" ? seconds : undefined,
+	};
+}
+
+/** The stored timing of a WOD in minutes, or undefined when it has none. */
+export function wodTimingMinutes(
+	wod: { type: WodType } & WodTiming,
+): number | undefined {
+	const field = WOD_TIMING_FIELD[wod.type];
+	const seconds = field ? wod[field] : undefined;
+	return seconds ? seconds / 60 : undefined;
+}
+
+export type WodScoreFields = {
+	timeSeconds?: number;
+	timeCapped?: boolean;
+	rounds?: number;
+	reps?: number;
+	load?: number;
+	loadUnit?: LoadUnit;
+};
+
+/**
+ * The score a form submits: only the fields its WOD type ranks on, with
+ * missing values left out rather than defaulted.
+ */
+export function buildWodScore(
+	type: WodType,
+	fields: WodScoreFields,
+): WodScoreInput {
+	const defined = (score: WodScoreInput) =>
+		Object.fromEntries(
+			Object.entries(score).filter(([, value]) => value !== undefined),
+		) as WodScoreInput;
+	switch (type) {
+		case "forTime":
+			return fields.timeCapped
+				? defined({ timeCapped: true, reps: fields.reps })
+				: defined({ timeSeconds: fields.timeSeconds });
+		case "amrap":
+			return defined({ rounds: fields.rounds, reps: fields.reps });
+		case "emom":
+			return defined({ reps: fields.reps });
+		case "load":
+			return defined({ load: fields.load, loadUnit: fields.loadUnit ?? "kg" });
+	}
+}
+
+/** "12:30" or "750" both mean 750 seconds; anything else is undefined. */
+export function parseClockInput(raw: string): number | undefined {
+	const trimmed = raw.trim();
+	const match = /^(?:(\d+):)?(\d+)$/.exec(trimmed);
+	if (!match) return undefined;
+	const minutes = match[1] === undefined ? 0 : Number(match[1]);
+	return minutes * 60 + Number(match[2]);
+}
+
 // Capped For-Time results always rank below any finished result.
 const CAP_OFFSET = 1_000_000_000;
 // Assumes a single AMRAP round never exceeds this many reps.
 const AMRAP_ROUND_MULT = 100_000;
 
-export function formatSeconds(totalSeconds: number): string {
-	const safe = Math.max(0, Math.floor(totalSeconds));
-	const m = Math.floor(safe / 60);
-	const s = safe % 60;
-	return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 export function formatScore(type: WodType, score: WodScoreInput): string {
 	switch (type) {
 		case "forTime":
 			if (score.timeCapped) return `CAP+${score.reps ?? 0}`;
-			return formatSeconds(score.timeSeconds ?? 0);
+			return formatClock(score.timeSeconds ?? 0);
 		case "amrap":
 			return `${score.rounds ?? 0} + ${score.reps ?? 0}`;
 		case "emom":
@@ -36,15 +201,11 @@ export function formatScore(type: WodType, score: WodScoreInput): string {
 	}
 }
 
-/** Higher = better, for every type. */
+/** Higher is better for every type; loads compare in kg. */
 export function scoreRank(type: WodType, score: WodScoreInput): number {
 	switch (type) {
 		case "forTime":
-			if (score.timeCapped) {
-				// Below every finisher; more reps completed = better among capped.
-				return -CAP_OFFSET + (score.reps ?? 0);
-			}
-			// Faster = higher rank (less negative).
+			if (score.timeCapped) return -CAP_OFFSET + (score.reps ?? 0);
 			return -(score.timeSeconds ?? 0);
 		case "amrap":
 			return (score.rounds ?? 0) * AMRAP_ROUND_MULT + (score.reps ?? 0);
@@ -57,10 +218,46 @@ export function scoreRank(type: WodType, score: WodScoreInput): number {
 	}
 }
 
+export type LeaderboardEntry = {
+	readonly score: WodScoreInput;
+	readonly submittedAt: number;
+};
+
+/** Better score first; equal scores go to whoever submitted first. */
+function compareLeaderboardEntries(
+	type: WodType,
+	a: LeaderboardEntry,
+	b: LeaderboardEntry,
+): number {
+	return (
+		scoreRank(type, b.score) - scoreRank(type, a.score) ||
+		a.submittedAt - b.submittedAt
+	);
+}
+
+export function sortLeaderboard<T extends LeaderboardEntry>(
+	type: WodType,
+	entries: readonly T[],
+): T[] {
+	return [...entries].sort((a, b) => compareLeaderboardEntries(type, a, b));
+}
+
+/** "21 Thrusters @ 43 kg", "Run 400 m", or just "Pull-ups". */
+export function formatMovement(movement: WodMovement): string {
+	const parts: string[] = [];
+	if (movement.reps !== undefined) parts.push(String(movement.reps));
+	parts.push(movement.name);
+	if (movement.distance !== undefined)
+		parts.push(`${movement.distance} ${movement.distanceUnit ?? "m"}`);
+	const text = parts.join(" ").trim();
+	return movement.weight === undefined
+		? text
+		: `${text} @ ${movement.weight} ${movement.unit ?? "kg"}`;
+}
+
 /**
- * Human-readable improvement of `current` over the `previousBest` score, or
- * null when there's no meaningful scalar delta to show. Used to surface the
- * "beat your Fran time by 0:22" hook when a result is a new PR.
+ * Improvement of `current` over `previousBest`, or null when it is not better
+ * or the two are not comparable (a capped For-Time result).
  */
 export function prImprovement(
 	type: WodType,
@@ -69,22 +266,18 @@ export function prImprovement(
 ): string | null {
 	switch (type) {
 		case "forTime": {
-			// Only comparable when both finished (uncapped).
 			if (current.timeCapped || previousBest.timeCapped) return null;
 			const delta =
 				(previousBest.timeSeconds ?? 0) - (current.timeSeconds ?? 0);
-			return delta > 0 ? `−${formatSeconds(delta)}` : null;
+			return delta > 0 ? `−${formatClock(delta)}` : null;
 		}
 		case "emom": {
 			const delta = (current.reps ?? 0) - (previousBest.reps ?? 0);
 			return delta > 0 ? `+${delta} reps` : null;
 		}
 		case "load": {
-			const cur = scoreRank(type, current);
-			const prev = scoreRank(type, previousBest);
-			const delta = cur - prev;
+			const delta = scoreRank(type, current) - scoreRank(type, previousBest);
 			const unit = current.loadUnit ?? "kg";
-			// scoreRank normalizes load to kg; show delta in the result's own unit.
 			const shown = unit === "lbs" ? delta / KG_PER_LB : delta;
 			return delta > 0 ? `+${Math.round(shown * 10) / 10} ${unit}` : null;
 		}
@@ -100,10 +293,9 @@ export function prImprovement(
 	}
 }
 
-/** Returns the highest-ranked score, or null if the list is empty. */
 export function bestScore<T extends WodScoreInput>(
 	type: WodType,
-	scores: T[],
+	scores: readonly T[],
 ): T | null {
 	if (scores.length === 0) return null;
 	let best = scores[0];

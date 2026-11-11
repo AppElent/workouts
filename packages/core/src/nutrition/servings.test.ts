@@ -9,7 +9,6 @@ import {
 	scaleNutrients,
 	servingAmount,
 	servingOptions,
-	servingVolumeMapping,
 	withPersonalMeasures,
 } from "./servings";
 import type { ShippedFood } from "./types";
@@ -166,35 +165,6 @@ describe("previewing a serving", () => {
 });
 
 describe("beverages, which NEVO measures by mass", () => {
-	test("maps a volume-labelled glass to a defensible gram amount", () => {
-		const milk = food("shipped:milk-semi-skimmed");
-		const mapping = servingVolumeMapping(
-			milk.servings[0] ?? { label: { en: "", nl: "" }, amount: 0 },
-		);
-		expect(mapping).toMatchObject({
-			volumeMl: 200,
-			grams: 206,
-			basis: "density",
-		});
-		expect(mapping?.note).toMatch(/1\.03/);
-	});
-
-	test("allows the documented 1 ml is 1 g fallback only for water-like drinks", () => {
-		const water = food("shipped:water-av");
-		for (const serving of water.servings) {
-			expect(servingVolumeMapping(serving)).toMatchObject({
-				basis: "one-to-one",
-			});
-			expect(serving.amount).toBe(serving.volumeMl);
-		}
-	});
-
-	test("does not claim a volume mapping for a serving that is plainly a mass", () => {
-		const slice = food("shipped:wheat-bread-brown").servings[0];
-		if (!slice) throw new Error("expected an authored serving");
-		expect(servingVolumeMapping(slice)).toBeUndefined();
-	});
-
 	test("scales a beer glass off the mass it stores, not the millilitres it names", () => {
 		const beer = food("shipped:beer-pilsner");
 		const glass = servingOptions(beer)[0];

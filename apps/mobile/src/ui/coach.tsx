@@ -11,6 +11,7 @@ import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
 	type SportKey,
 	type Tokens,
+	type,
 	useSportColors,
 	useSportMeta,
 	useThemedStyles,
@@ -54,7 +55,7 @@ export function Chip({
 		>
 			<AppText
 				style={{
-					fontSize: 12,
+					...type.caption,
 					fontWeight: "700",
 					color: active ? colors.onAccent : (color ?? colors.textMuted),
 				}}
@@ -123,8 +124,7 @@ export function StatBox({
 		<View style={styles.statBox}>
 			<AppText
 				style={{
-					fontSize: 21,
-					fontWeight: "800",
+					...type.stat,
 					color: color ?? colors.text,
 				}}
 			>
@@ -132,7 +132,7 @@ export function StatBox({
 				{unit ? (
 					<AppText
 						style={{
-							fontSize: 12,
+							...type.caption,
 							fontWeight: "700",
 							color: colors.textMuted,
 						}}
@@ -144,7 +144,7 @@ export function StatBox({
 			</AppText>
 			<AppText
 				style={{
-					fontSize: 10,
+					...type.micro,
 					fontWeight: "800",
 					letterSpacing: 0.6,
 					textTransform: "uppercase",
@@ -162,10 +162,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 	return (
 		<AppText
 			style={{
-				fontSize: 11,
-				fontWeight: "800",
-				letterSpacing: 1,
-				textTransform: "uppercase",
+				...type.eyebrow,
 				color: colors.textMuted,
 			}}
 		>

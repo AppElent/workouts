@@ -1,23 +1,131 @@
-import { ConvexError } from "convex/values";
+import {
+	type LoadUnit,
+	SET_LIMITS,
+	validatePlannedExercise,
+} from "@foundry/core";
 import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { canonicalExerciseId, requireExercise } from "./exerciseCatalog";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { requireOwned } from "./auth";
+import { appError, checked } from "./errors";
+import { requireExercise } from "./exerciseCatalog";
 import { snapshotStrengthReferences } from "./strengthReferences";
-import { assertIntegerRange, assertRange } from "./validate";
 
-export async function requireActiveSession(
+/**
+ * One exercise a session starts with, by its canonical id; `sets: 0` adds it
+ * without targets.
+ */
+export type Prescription = {
+	exerciseId: string;
+	sets: number;
+	reps: number;
+	weight: number;
+	unit: LoadUnit;
+};
+
+export function validatePrescriptions(
+	prescriptions: readonly Prescription[],
+	{ setsRequired = false } = {},
+) {
+	if (prescriptions.length > SET_LIMITS.exercisesPerPrescription.max)
+		throw appError("tooLarge", "exercises");
+	for (const { sets, reps, weight } of prescriptions)
+		checked(
+			validatePlannedExercise({
+				...(sets === 0 && !setsRequired ? {} : { plannedSets: sets }),
+				plannedReps: reps,
+				plannedWeight: weight,
+			}),
+		);
+}
+
+export async function getActiveSession(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+) {
+	return ctx.db
+		.query("workoutSessions")
+		.withIndex("by_user_status", (q) =>
+			q.eq("userId", userId).eq("status", "active"),
+		)
+		.first();
+}
+
+/**
+ * Starts the user's one active session, with every prescribed exercise's
+ * One-rep Max references snapshotted at the start. The caller has resolved
+ * the exercise ids: a hosted workout may name the host's personal exercise.
+ */
+export async function startSession(
+	ctx: MutationCtx,
+	userId: string,
+	session: {
+		name?: string;
+		date?: number;
+		routineId?: Id<"routines">;
+		prescriptions: readonly Prescription[];
+	},
+) {
+	if (await getActiveSession(ctx, userId))
+		throw appError("activeSessionExists");
+	validatePrescriptions(session.prescriptions);
+	const exercises: NonNullable<Doc<"workoutSessions">["exercises"]> = [];
+	for (const prescription of session.prescriptions) {
+		const { exerciseId } = prescription;
+		let entry = exercises.find((item) => item.exerciseId === exerciseId);
+		if (!entry) {
+			entry = {
+				exerciseId,
+				references: await snapshotStrengthReferences(ctx, userId, exerciseId),
+				plannedSets: [],
+			};
+			exercises.push(entry);
+		}
+		const { reps, weight, unit } = prescription;
+		for (let set = 0; set < prescription.sets; set++)
+			entry.plannedSets.push({ reps, weight, unit });
+	}
+	const now = Date.now();
+	return ctx.db.insert("workoutSessions", {
+		userId,
+		date: session.date ?? now,
+		startTime: now,
+		name: session.name,
+		routineId: session.routineId,
+		exercises,
+		status: "active",
+	});
+}
+
+/** The prescriptions of a hosted workout's strength blocks that name an exercise. */
+export function hostedPrescriptions(
+	blocks: Doc<"hostedWorkouts">["template"]["strengthBlocks"],
+): Prescription[] {
+	return blocks.flatMap((block) =>
+		block.exerciseId
+			? [
+					{
+						exerciseId: block.exerciseId,
+						sets: block.defaultSets ?? 0,
+						reps: block.defaultReps ?? 0,
+						weight: block.defaultWeight ?? 0,
+						unit: block.unit ?? "kg",
+					},
+				]
+			: [],
+	);
+}
+
+async function requireActiveSession(
 	ctx: MutationCtx,
 	userId: string,
 	sessionId: Id<"workoutSessions">,
 ) {
-	const session = await ctx.db.get(sessionId);
-	if (!session || session.userId !== userId)
-		throw new ConvexError("Unauthorized");
-	if (session.status !== "active")
-		throw new ConvexError("This session has ended.");
+	const session = await requireOwned(ctx, userId, sessionId);
+	if (session.status !== "active") throw appError("sessionEnded");
 	return session;
 }
 
+/** Adds an exercise to an active session, snapshotting its references once. */
 export async function ensureSessionExercise(
 	ctx: MutationCtx,
 	userId: string,
@@ -45,36 +153,4 @@ export async function ensureSessionExercise(
 		});
 	}
 	return exerciseId;
-}
-
-export async function hostedSessionExercises(
-	ctx: MutationCtx,
-	userId: string,
-	blocks: Doc<"hostedWorkouts">["template"]["strengthBlocks"],
-) {
-	const exercises: NonNullable<Doc<"workoutSessions">["exercises"]> = [];
-	for (const block of blocks) {
-		if (!block.exerciseId) continue;
-		const exerciseId = await canonicalExerciseId(ctx, block.exerciseId);
-		const existing = exercises.find(
-			(exercise) => exercise.exerciseId === exerciseId,
-		);
-		const entry = existing ?? {
-			exerciseId,
-			plannedSets: [],
-			references: await snapshotStrengthReferences(ctx, userId, exerciseId),
-		};
-		assertIntegerRange(block.defaultSets ?? 0, 0, 100, "Planned sets");
-		assertIntegerRange(block.defaultReps ?? 0, 0, 1000, "Planned reps");
-		assertRange(block.defaultWeight ?? 0, 0, 2000, "Planned weight");
-		entry.plannedSets.push(
-			...Array.from({ length: block.defaultSets ?? 0 }, () => ({
-				reps: block.defaultReps ?? 0,
-				weight: block.defaultWeight ?? 0,
-				unit: block.unit ?? ("kg" as const),
-			})),
-		);
-		if (!existing) exercises.push(entry);
-	}
-	return exercises;
 }

@@ -1,13 +1,11 @@
 import {
+	type ComboPartSnapshot,
 	formatServingSelection,
 	rescaleToSelection,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
-import type {
-	ComboPart,
-	ComboPartSnapshot,
-} from "../../../data/personal-food-repository";
+import type { ComboPart } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";

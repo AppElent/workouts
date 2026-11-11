@@ -53,22 +53,21 @@ function envelope<T extends ApplyOperationArgs["operation"]>(
 	operation: T,
 	expectedSubject = "alice",
 ): Omit<ApplyOperationArgs, "operation"> & { operation: T } {
-	return { version: 1 as const, operationId, expectedSubject, operation };
+	return { operationId, expectedSubject, operation };
 }
 
 describe("retry-safe nutrition diary operations", () => {
-	it("acknowledges an online save without retransferring the entire day", async () => {
+	it("acknowledges a save once and replays its result", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
-		const request = {
-			...envelope("compact-save", { kind: "create", entry: snapshot() }),
-			includeDays: false,
-		};
+		const request = envelope("compact-save", {
+			kind: "create",
+			entry: snapshot(),
+		});
 		const result = await alice.mutation(
 			api.nutritionDiary.applyOperation,
 			request,
 		);
-		expect(result.days).toEqual([]);
 		expect(result.entryIds).toHaveLength(1);
 		expect(
 			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
@@ -95,9 +94,13 @@ describe("retry-safe nutrition diary operations", () => {
 					entry: snapshot({ clientEntryId: "surviving" }),
 				}),
 			);
-			await alice.mutation(api.nutritionDiary.remove, {
-				id: deleted.entryIds[0],
-			});
+			await alice.mutation(
+				api.nutritionDiary.applyOperation,
+				envelope("remove-deleted", {
+					kind: "remove",
+					target: { kind: "serverId", id: deleted.entryIds[0] },
+				}),
+			);
 			const missingTargets = [
 				{ kind: "serverId" as const, id: deleted.entryIds[0] },
 				{ kind: "clientEntryId" as const, id: "client-entry-1" },
@@ -140,11 +143,7 @@ describe("retry-safe nutrition diary operations", () => {
 				api.nutritionDiary.applyOperation,
 				emptyOperation,
 			);
-			expect(emptyResult).toEqual({
-				entryIds: [],
-				clientEntryIds: [],
-				days: [],
-			});
+			expect(emptyResult).toEqual({ entryIds: [], clientEntryIds: [] });
 			expect(
 				await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation),
 			).toEqual(emptyResult);
@@ -178,22 +177,28 @@ describe("retry-safe nutrition diary operations", () => {
 				kind === "moveBatch"
 					? { kind, targets, date: "2026-09-06", meal: "dinner" as const }
 					: { kind, targets };
-			await expect(
-				bob.mutation(
+			// Another account's entries resolve like stale targets: never touched.
+			expect(
+				await bob.mutation(
 					api.nutritionDiary.applyOperation,
 					envelope("foreign-batch", operation, "bob"),
 				),
-			).rejects.toThrow("Unauthorized");
+			).toEqual({ entryIds: [], clientEntryIds: [] });
 			await expect(
 				alice.mutation(
 					api.nutritionDiary.applyOperation,
 					envelope("partial-batch", operation),
 				),
-			).rejects.toThrow("selected as a whole");
+			).rejects.toMatchObject({
+				data: { code: "partialCombo", field: "targets" },
+			});
 			expect(
 				(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
 					.entries,
-			).toHaveLength(2);
+			).toMatchObject([
+				{ meal: "lunch", comboGroup },
+				{ meal: "lunch", comboGroup },
+			]);
 		},
 	);
 
@@ -219,7 +224,7 @@ describe("retry-safe nutrition diary operations", () => {
 					entry: snapshot({ quantity: 2 }),
 				}),
 			}),
-		).rejects.toThrow("different payload");
+		).rejects.toMatchObject({ data: { code: "operationConflict" } });
 	});
 
 	it("keeps two intentional operations distinct and protects client ids", async () => {
@@ -232,7 +237,9 @@ describe("retry-safe nutrition diary operations", () => {
 			alice.mutation(api.nutritionDiary.applyOperation, {
 				...envelope("op-two", { kind: "create", entry: snapshot() }),
 			}),
-		).rejects.toThrow("Client entry ID already exists");
+		).rejects.toMatchObject({
+			data: { code: "duplicate", field: "clientEntryId" },
+		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-three", {
 				kind: "create",
@@ -421,7 +428,9 @@ describe("retry-safe nutrition diary operations", () => {
 					].map(({ date: _date, meal: _meal, ...entry }) => entry),
 				}),
 			}),
-		).rejects.toThrow("Amount");
+		).rejects.toMatchObject({
+			data: { code: "notPositive", field: "amount" },
+		});
 		const empty = await alice.query(api.nutritionDiary.day, {
 			date: "2026-09-05",
 		});
@@ -446,7 +455,7 @@ describe("retry-safe nutrition diary operations", () => {
 					"bob",
 				),
 			}),
-		).rejects.toThrow("Unauthorized");
+		).rejects.toMatchObject({ data: { code: "notFound", field: "target" } });
 		await expect(
 			alice.mutation(api.nutritionDiary.applyOperation, {
 				...envelope(
@@ -458,7 +467,7 @@ describe("retry-safe nutrition diary operations", () => {
 					"bob",
 				),
 			}),
-		).rejects.toThrow("Subject mismatch");
+		).rejects.toMatchObject({ data: { code: "accountChanged" } });
 		expect(
 			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
 				.entries,
@@ -474,14 +483,20 @@ describe("retry-safe nutrition diary operations", () => {
 				entry: snapshot({ clientEntryId: "move-me" }),
 			}),
 		});
-		const moved = (await alice.mutation(api.nutritionDiary.applyOperation, {
+		await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-move", {
 				kind: "update",
 				target: { kind: "serverId", id: created.entryIds[0] },
 				date: "2026-09-06",
 			}),
-		})) as { days: Array<{ date: string; revision: number }> };
-		expect(moved.days.map((day) => [day.date, day.revision])).toEqual([
+		});
+		const revisions = await Promise.all(
+			["2026-09-05", "2026-09-06"].map(async (date) => [
+				date,
+				(await alice.query(api.nutritionDiary.day, { date })).revision,
+			]),
+		);
+		expect(revisions).toEqual([
 			["2026-09-05", 2],
 			["2026-09-06", 1],
 		]);
@@ -551,6 +566,66 @@ describe("retry-safe nutrition diary operations", () => {
 				.entries,
 		).toHaveLength(0);
 	});
+
+	it("replaces a meal in one write, or leaves it as it was", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		const part = (clientEntryId: string, overrides = {}) => {
+			const {
+				date: _date,
+				meal: _meal,
+				...entry
+			} = snapshot({ clientEntryId, ...overrides });
+			return entry;
+		};
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			...envelope("op-meal", {
+				kind: "createBatch",
+				date: "2026-09-05",
+				meal: "lunch",
+				entries: [part("old-a"), part("old-b")],
+			}),
+		});
+		const replaces = ["old-a", "old-b"].map((id) => ({
+			kind: "clientEntryId" as const,
+			id,
+		}));
+		await expect(
+			alice.mutation(api.nutritionDiary.applyOperation, {
+				...envelope("op-bad-replace", {
+					kind: "createBatch",
+					date: "2026-09-05",
+					meal: "lunch",
+					entries: [part("new-bad", { amount: 0 })],
+					replaces,
+				}),
+			}),
+		).rejects.toMatchObject({ data: { code: "notPositive" } });
+		const kept = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		});
+		expect(kept.entries.map((entry) => entry.clientEntryId).sort()).toEqual([
+			"old-a",
+			"old-b",
+		]);
+
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			...envelope("op-replace", {
+				kind: "createBatch",
+				date: "2026-09-05",
+				meal: "lunch",
+				entries: [part("new-a")],
+				replaces,
+			}),
+		});
+		const replaced = await alice.query(api.nutritionDiary.day, {
+			date: "2026-09-05",
+		});
+		expect(replaced.entries.map((entry) => entry.clientEntryId)).toEqual([
+			"new-a",
+		]);
+		expect(replaced.revision).toBe(kept.revision + 1);
+	});
 });
 
 describe("explicit nutrient corrections", () => {
@@ -612,7 +687,7 @@ describe("explicit nutrient corrections", () => {
 				operationId: "bob-correction",
 				expectedSubject: "bob",
 			}),
-		).rejects.toThrow("Unauthorized");
+		).rejects.toMatchObject({ data: { code: "notFound", field: "target" } });
 		await expect(
 			alice.mutation(
 				api.nutritionDiary.applyOperation,
@@ -625,7 +700,9 @@ describe("explicit nutrient corrections", () => {
 					},
 				}),
 			),
-		).rejects.toThrow();
+		).rejects.toMatchObject({
+			data: { code: "unitMismatch", field: "baseUnit" },
+		});
 	});
 	it("returns only the account's logged calendar days", async () => {
 		const t = convexTest(schema, modules);

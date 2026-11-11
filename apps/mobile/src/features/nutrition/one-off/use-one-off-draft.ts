@@ -1,18 +1,21 @@
 import {
+	type BaseUnit,
+	type MealSlot,
+	type MeasuredUnit,
 	NUTRIENT_KEYS,
 	type NutrientKey,
-	roundForDisplay,
-} from "@foundry/core/nutrition";
-import { useRef, useState } from "react";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
-import type { MealSlot } from "../../../data/nutrition-day";
+} from "@foundry/core";
+import { useState } from "react";
 import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
-import {
-	mintNutritionUuid,
-	useNutritionOperations,
-} from "../../../data/nutrition-operation-service";
 import { fmt, useI18n } from "../../../i18n";
-import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
+import { formatNutrientAmount } from "../nutrient-amount";
+import { useDiaryWrite } from "../use-diary-write";
+import {
+	HEADLINE_NUTRIENTS,
+	type NutrientInput,
+	parseFoodNumber,
+} from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 import { type OneOffBasis, oneOffNutrients } from "./one-off-values";
 
@@ -30,20 +33,17 @@ export function useOneOffDraft({
 	meal,
 	seed,
 	onLogged,
-	onFailed,
 }: {
 	date: string;
 	meal: MealSlot;
 	/** Name and photo carried over from a Personal food or Recipe form. */
 	seed?: FoodAuthoringSeed;
 	onLogged: (date: string) => void;
-	/** Logging failed; the form stays open with its values. */
-	onFailed: () => void;
 }) {
 	const { locale, t } = useI18n();
 	const copy = t.nutrition.oneOff;
 	const photoCopy = t.nutrition.foodEditor.form;
-	const operations = useNutritionOperations();
+	const write = useDiaryWrite();
 	const [touched, setTouched] = useState(false);
 	const touch = () => setTouched(true);
 	const photo = useStagedFoodVisual({
@@ -57,7 +57,7 @@ export function useOneOffDraft({
 	});
 	const [name, setName] = useState(seed?.name ?? "");
 	const [amount, setAmount] = useState("1");
-	const [unit, setUnit] = useState<"serving" | "g" | "ml">("serving");
+	const [unit, setUnit] = useState<BaseUnit>("serving");
 	const [basis, setBasis] = useState<OneOffBasis>("total");
 	// Seeded totals (AI entry, "Eén item") fill the values for one portion.
 	const [values, setValues] = useState(() =>
@@ -86,8 +86,7 @@ export function useOneOffDraft({
 		amount?: string;
 		values?: string;
 	}>({});
-	const [logging, setLogging] = useState(false);
-	const lock = useRef(false);
+	const logging = write.busy;
 	const amountValue = parseFoodNumber(amount);
 	const amountValid = Number.isFinite(amountValue) && amountValue > 0;
 	const anyValue = NUTRIENT_KEYS.some((key) => values[key].kind !== "absent");
@@ -103,21 +102,21 @@ export function useOneOffDraft({
 					amount,
 					unit: copy.units[unit],
 					...(Object.fromEntries(
-						(["energy", "protein", "carbs", "fat"] as const).map((key) => {
+						HEADLINE_NUTRIENTS.map((key) => {
 							const value = nutrients[key];
 							return [
 								key,
 								value.kind === "value"
-									? roundForDisplay(key, value.amount).toLocaleString(locale)
+									? formatNutrientAmount(key, value.amount, locale)
 									: "—",
 							];
 						}),
-					) as Record<"energy" | "protein" | "carbs" | "fat", string>),
+					) as Record<(typeof HEADLINE_NUTRIENTS)[number], string>),
 				})
 			: undefined;
 
-	function log() {
-		if (lock.current) return;
+	async function log() {
+		if (logging) return;
 		const next = {
 			name: name.trim() ? undefined : copy.nameRequired,
 			amount: amountValid ? undefined : copy.invalidAmount,
@@ -125,22 +124,10 @@ export function useOneOffDraft({
 		};
 		setErrors(next);
 		if (next.name || next.amount || next.values || !nutrients) return;
-		const subject = operations.getSubject();
-		if (!subject) return;
-		lock.current = true;
-		setLogging(true);
-		const fail = () => {
-			lock.current = false;
-			setLogging(false);
-			onFailed();
-		};
-		try {
-			const visual =
-				photo.visual && photo.visual.kind !== "remote"
-					? photo.visual
-					: undefined;
-			operations.create(
-				subject,
+		const visual =
+			photo.visual && photo.visual.kind !== "remote" ? photo.visual : undefined;
+		const logged = await write.run(copy.logFailure, (diary) =>
+			diary.log(
 				oneOffLogSnapshot({
 					date: destination.date,
 					meal: destination.meal,
@@ -148,21 +135,13 @@ export function useOneOffDraft({
 					amount: amountValue,
 					baseUnit: unit,
 					nutrients,
-					clientEntryId: mintNutritionUuid(),
 					...(visual ? { visual } : {}),
 				}),
-				undefined,
-				fail,
-				() => {
-					photo.keep();
-					lock.current = false;
-					setLogging(false);
-					onLogged(destination.date);
-				},
-			);
-		} catch {
-			fail();
-		}
+			),
+		);
+		if (!logged) return;
+		photo.keep();
+		onLogged(destination.date);
 	}
 
 	return {
@@ -178,7 +157,7 @@ export function useOneOffDraft({
 			setErrors((current) => ({ ...current, amount: undefined }));
 		},
 		unit,
-		setUnit: (next: "serving" | "g" | "ml") => {
+		setUnit: (next: BaseUnit) => {
 			setUnit(next);
 			// Per 100 only makes sense in grams or millilitres.
 			if (next === "serving") setBasis("total");
@@ -186,7 +165,7 @@ export function useOneOffDraft({
 		},
 		basis,
 		/** Whole amount, or per 100 of a unit, which then becomes the unit. */
-		setBasis: (next: OneOffBasis, per?: "g" | "ml") => {
+		setBasis: (next: OneOffBasis, per?: MeasuredUnit) => {
 			setBasis(next);
 			if (next === "per100" && per) setUnit(per);
 			touch();

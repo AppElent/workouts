@@ -1,68 +1,63 @@
+import { RuleError } from "../rules";
 import {
+	checkNutrientValue,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
 	rescaleNutrients,
 } from "./nutrients";
-import type {
-	NutritionBilingual,
-	NutritionDiaryPartSnapshot,
-	NutritionDiarySnapshot,
-} from "./operations";
 import {
 	baseUnitServingOption,
-	formatQuantity,
 	type ServingOption,
+	servingAmountLabel,
+	servingSelectionLabel,
 } from "./servings";
+import {
+	type BaseUnit,
+	type Bilingual,
+	FOOD_VISUAL_PRESET_IDS,
+	type FoodPhotoStorageId,
+	type FoodVisual,
+	type FoodVisualPresetId,
+	type MeasuredUnit,
+	NUTRITION_SOURCES,
+	type NutritionDiaryPartSnapshot,
+	type NutritionDiarySnapshot,
+	type NutritionSource,
+} from "./snapshot";
 import type { ShippedFoodId } from "./types";
+
+/** The longest name, label or description a Personal Food may carry. */
+export const PERSONAL_FOOD_TEXT_LIMIT = 500;
 
 export type PersonalFoodClassification = "ordinary" | "recipe";
 
-export const FOOD_VISUAL_PRESET_IDS = [
-	"fruit",
-	"vegetable",
-	"grains",
-	"dairy",
-	"egg",
-	"meat",
-	"fish",
-	"meal",
-	"snack",
-	"drink",
-	"supplement",
-	"condiment",
-] as const;
+/**
+ * Field paths are dotted (`name.en`, `servings.0.amount`,
+ * `provenance.imageUrl`, `nutrients.energy`).
+ */
+type PersonalFoodCode =
+	| "required"
+	| "tooLong"
+	| "notPositive"
+	| "negative"
+	| "invalid"
+	| "unitMismatch"
+	| "basisChanged";
 
-export type FoodVisualPresetId = (typeof FOOD_VISUAL_PRESET_IDS)[number];
-
-export type FoodPhotoStorageId = string & { readonly __tableName: "_storage" };
-
-function isFoodPhotoStorageId(value: unknown): value is FoodPhotoStorageId {
-	return typeof value === "string" && value.length > 0;
-}
-
-export type FoodVisual =
-	| { readonly kind: "icon"; readonly preset: FoodVisualPresetId }
-	| {
-			readonly kind: "photo";
-			readonly uri: string;
-			readonly storageId?: FoodPhotoStorageId;
-	  }
-	| { readonly kind: "remote"; readonly uri: string };
-
-export type PersonalFoodNutritionBasis =
-	| { readonly kind: "per100"; readonly unit: "g" | "ml" }
-	| { readonly kind: "perServing"; readonly label: NutritionBilingual };
+type PersonalFoodNutritionBasis =
+	| { readonly kind: "per100"; readonly unit: MeasuredUnit }
+	| { readonly kind: "perServing"; readonly label: Bilingual };
 
 export type PersonalServing = {
-	readonly label: NutritionBilingual;
+	readonly label: Bilingual;
 	/** Base units, or a multiple of the food's named serving. */
 	readonly amount: number;
 };
 
 export type PersonalFoodProvenance = {
 	readonly recordOrigin: "personal" | "import";
-	readonly nutritionSource: "manual" | "nevo" | "lidl" | "openfoodfacts";
+	readonly nutritionSource: NutritionSource;
 	readonly locallyEdited: boolean;
 	readonly forkedFrom?: ShippedFoodId;
 	readonly provider?: string;
@@ -74,27 +69,27 @@ export type PersonalFoodProvenance = {
 	readonly providerServing?: {
 		readonly label: string;
 		readonly amount: number;
-		readonly unit: "g" | "ml";
+		readonly unit: MeasuredUnit;
 	};
 };
 
 /** Existing callers and backups may omit fields introduced after per-100 foods. */
 export type PersonalFoodDraft = {
-	readonly name: NutritionBilingual;
-	readonly baseUnit: "g" | "ml" | "serving";
+	readonly name: Bilingual;
+	readonly baseUnit: BaseUnit;
 	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
 	readonly servings: readonly PersonalServing[];
 	readonly provenance: PersonalFoodProvenance;
 	readonly classification?: PersonalFoodClassification;
 	readonly nutritionBasis?: PersonalFoodNutritionBasis;
 	readonly estimated?: boolean;
-	readonly description?: NutritionBilingual;
+	readonly description?: Bilingual;
 	readonly visual?: FoodVisual;
 	/** Internal lazy-migration state; never serialized into account backup. */
 	readonly visualMigrationPending?: true;
 };
 
-export type NormalizedPersonalFoodDraft = PersonalFoodDraft & {
+type NormalizedPersonalFoodDraft = PersonalFoodDraft & {
 	readonly classification: PersonalFoodClassification;
 	readonly nutritionBasis: PersonalFoodNutritionBasis;
 	readonly estimated: boolean;
@@ -106,44 +101,31 @@ export type PersonalFood = NormalizedPersonalFoodDraft & {
 	readonly updatedAt: number;
 };
 
-function text(value: unknown, label: string): string {
-	if (typeof value !== "string" || !value.trim() || value.length > 500) {
-		throw new Error(`${label} is required and must be at most 500 characters.`);
-	}
+function fail(field: string, code: PersonalFoodCode): never {
+	throw new RuleError<string, PersonalFoodCode>(field, code);
+}
+
+function text(value: unknown, field: string): string {
+	if (typeof value !== "string" || !value.trim()) fail(field, "required");
+	if (value.length > PERSONAL_FOOD_TEXT_LIMIT) fail(field, "tooLong");
 	return value.trim();
 }
 
-function bilingual(
-	value: NutritionBilingual,
-	label: string,
-): NutritionBilingual {
+function bilingual(value: Bilingual | undefined, field: string): Bilingual {
 	return {
-		en: text(value?.en, `${label} English`),
-		nl: text(value?.nl, `${label} Dutch`),
+		en: text(value?.en, `${field}.en`),
+		nl: text(value?.nl, `${field}.nl`),
 	};
 }
 
-function positive(value: number, label: string): number {
-	if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-		throw new Error(`${label} must be greater than zero.`);
-	}
+function positive(value: unknown, field: string): number {
+	if (typeof value !== "number" || !Number.isFinite(value) || value <= 0)
+		fail(field, "notPositive");
 	return value;
 }
 
-function validateNutrient(value: NutrientValue, label: string): NutrientValue {
-	if (value?.kind === "absent") return { kind: "absent" };
-	if (value?.kind === "trace") return { kind: "trace" };
-	if (value?.kind !== "value") {
-		throw new Error(`${label} must have a nutrient state.`);
-	}
-	if (
-		typeof value.amount !== "number" ||
-		!Number.isFinite(value.amount) ||
-		value.amount < 0
-	) {
-		throw new Error(`${label} must be zero or greater.`);
-	}
-	return { kind: "value", amount: value.amount };
+function isMeasuredUnit(value: unknown): value is MeasuredUnit {
+	return value === "g" || value === "ml";
 }
 
 function validateProvenance(
@@ -152,19 +134,12 @@ function validateProvenance(
 	if (
 		candidate?.recordOrigin !== "personal" &&
 		candidate?.recordOrigin !== "import"
-	) {
-		throw new Error("Food provenance has an invalid record origin.");
-	}
-	if (
-		!["manual", "nevo", "lidl", "openfoodfacts"].includes(
-			candidate.nutritionSource,
-		)
-	) {
-		throw new Error("Food provenance has an invalid nutrition source.");
-	}
-	if (typeof candidate.locallyEdited !== "boolean") {
-		throw new Error("Food provenance must say whether it was edited locally.");
-	}
+	)
+		fail("provenance.recordOrigin", "invalid");
+	if (!NUTRITION_SOURCES.includes(candidate.nutritionSource))
+		fail("provenance.nutritionSource", "invalid");
+	if (typeof candidate.locallyEdited !== "boolean")
+		fail("provenance.locallyEdited", "invalid");
 	const optional: Partial<PersonalFoodProvenance> = {};
 	for (const key of [
 		"forkedFrom",
@@ -176,38 +151,33 @@ function validateProvenance(
 		"imageUrl",
 	] as const) {
 		const value = candidate[key];
-		if (value !== undefined) {
-			if (typeof value !== "string")
-				throw new Error(`Food provenance ${key} is invalid.`);
-			if (value.trim())
-				Object.assign(optional, {
-					[key]: text(value, `Food provenance ${key}`),
-				});
-		}
+		if (value === undefined) continue;
+		if (typeof value !== "string") fail(`provenance.${key}`, "invalid");
+		if (value.trim())
+			Object.assign(optional, { [key]: text(value, `provenance.${key}`) });
 	}
+	// Only Open Food Facts supplies remote product images today.
 	if (optional.imageUrl) {
-		let url: URL;
+		let url: URL | undefined;
 		try {
 			url = new URL(optional.imageUrl);
 		} catch {
-			throw new Error("Food provenance has an invalid image URL.");
+			url = undefined;
 		}
 		if (
-			url.protocol !== "https:" ||
+			url?.protocol !== "https:" ||
 			url.hostname !== "images.openfoodfacts.org"
-		) {
-			throw new Error("Food provenance has an invalid image URL.");
-		}
+		)
+			fail("provenance.imageUrl", "invalid");
 	}
 	let providerServing: PersonalFoodProvenance["providerServing"];
 	if (candidate.providerServing !== undefined) {
 		const serving = candidate.providerServing;
-		if (!serving || (serving.unit !== "g" && serving.unit !== "ml")) {
-			throw new Error("Food provenance has invalid provider serving data.");
-		}
+		if (!serving || !isMeasuredUnit(serving.unit))
+			fail("provenance.providerServing", "invalid");
 		providerServing = {
-			label: text(serving.label, "Provider serving label"),
-			amount: positive(serving.amount, "Provider serving amount"),
+			label: text(serving.label, "provenance.providerServing.label"),
+			amount: positive(serving.amount, "provenance.providerServing.amount"),
 			unit: serving.unit,
 		};
 	}
@@ -220,19 +190,22 @@ function validateProvenance(
 	};
 }
 
-export function validateFoodVisual(value: unknown): FoodVisual | undefined {
+function isFoodPhotoStorageId(value: unknown): value is FoodPhotoStorageId {
+	return typeof value === "string" && value.length > 0;
+}
+
+/** A Food Visual as stored, or `undefined` for none. Throws `RuleError` on field `visual`. */
+function normalizeFoodVisual(value: unknown): FoodVisual | undefined {
 	if (value === undefined || value === null) return undefined;
-	if (!value || typeof value !== "object" || !("kind" in value)) {
-		throw new Error("Food visual is invalid.");
-	}
+	if (typeof value !== "object" || !("kind" in value))
+		fail("visual", "invalid");
 	if (value.kind === "icon") {
 		if (
 			!("preset" in value) ||
 			typeof value.preset !== "string" ||
 			!FOOD_VISUAL_PRESET_IDS.includes(value.preset as FoodVisualPresetId)
-		) {
-			throw new Error("An invalid Food Visual icon was selected.");
-		}
+		)
+			fail("visual", "invalid");
 		return { kind: "icon", preset: value.preset as FoodVisualPresetId };
 	}
 	if (value.kind === "remote") {
@@ -241,7 +214,7 @@ export function validateFoodVisual(value: unknown): FoodVisual | undefined {
 			typeof value.uri !== "string" ||
 			!value.uri.startsWith("https://")
 		)
-			throw new Error("Food provider photos must use HTTPS.");
+			fail("visual", "invalid");
 		return { kind: "remote", uri: value.uri };
 	}
 	if (value.kind === "photo") {
@@ -253,65 +226,56 @@ export function validateFoodVisual(value: unknown): FoodVisual | undefined {
 				: undefined;
 		if (storageId) {
 			if (uri && !uri.startsWith("https://") && !uri.startsWith("file://"))
-				throw new Error("Food photo URI is invalid.");
+				fail("visual", "invalid");
 			return { kind: "photo", uri, storageId };
 		}
 		if (!uri.startsWith("file://") || uri.length <= "file://".length)
-			throw new Error("Food photos must use managed local files.");
+			fail("visual", "invalid");
 		return { kind: "photo", uri };
 	}
-
-	throw new Error("Food visual kind is invalid.");
+	return fail("visual", "invalid");
 }
 
-/** Normalize once at the library boundary, retaining absent and trace readings. */
-export function validatePersonalFoodDraft(
+/**
+ * Normalize once at the library boundary, keeping absent and trace readings.
+ * Throws `RuleError<string, PersonalFoodCode>`.
+ */
+export function normalizePersonalFoodDraft(
 	draft: PersonalFoodDraft,
 ): NormalizedPersonalFoodDraft {
-	const name = bilingual(draft?.name, "Food name");
+	const name = bilingual(draft?.name, "name");
 	const classification =
 		draft.classification === undefined ? "ordinary" : draft.classification;
-	if (classification !== "ordinary" && classification !== "recipe") {
-		throw new Error("Personal Food classification is invalid.");
-	}
-	if (draft.estimated !== undefined && typeof draft.estimated !== "boolean") {
-		throw new Error("Personal Food estimate status is invalid.");
-	}
+	if (classification !== "ordinary" && classification !== "recipe")
+		fail("classification", "invalid");
+	if (draft.estimated !== undefined && typeof draft.estimated !== "boolean")
+		fail("estimated", "invalid");
 	let nutritionBasis: PersonalFoodNutritionBasis;
 	if (draft.nutritionBasis === undefined) {
-		if (draft.baseUnit !== "g" && draft.baseUnit !== "ml") {
-			throw new Error(
-				"A per-serving Personal Food needs a named nutrition basis.",
-			);
-		}
+		if (!isMeasuredUnit(draft.baseUnit)) fail("nutritionBasis", "required");
 		nutritionBasis = { kind: "per100", unit: draft.baseUnit };
 	} else if (draft.nutritionBasis?.kind === "per100") {
 		const unit = draft.nutritionBasis.unit;
-		if ((unit !== "g" && unit !== "ml") || unit !== draft.baseUnit) {
-			throw new Error("Per-100 nutrition must match the food's base unit.");
-		}
+		if (!isMeasuredUnit(unit) || unit !== draft.baseUnit)
+			fail("nutritionBasis", "unitMismatch");
 		nutritionBasis = { kind: "per100", unit };
 	} else if (draft.nutritionBasis?.kind === "perServing") {
-		if (draft.baseUnit !== "serving") {
-			throw new Error(
-				"Per-serving nutrition must use servings as its base unit.",
-			);
-		}
+		if (draft.baseUnit !== "serving") fail("nutritionBasis", "unitMismatch");
 		nutritionBasis = {
 			kind: "perServing",
-			label: bilingual(draft.nutritionBasis.label, "Serving basis label"),
+			label: bilingual(draft.nutritionBasis.label, "nutritionBasis.label"),
 		};
 	} else {
-		throw new Error("Personal Food nutrition basis is invalid.");
+		return fail("nutritionBasis", "invalid");
 	}
-	if (!Array.isArray(draft.servings)) {
-		throw new Error("Personal Food Servings must be a list.");
-	}
+	if (!Array.isArray(draft.servings)) fail("servings", "invalid");
 	const nutrients = {} as Record<NutrientKey, NutrientValue>;
 	for (const key of NUTRIENT_KEYS) {
-		nutrients[key] = validateNutrient(draft.nutrients?.[key], key);
+		const checked = checkNutrientValue(draft.nutrients?.[key]);
+		if (!checked.ok) fail(`nutrients.${key}`, checked.code);
+		nutrients[key] = checked.value;
 	}
-	const visual = validateFoodVisual(draft.visual);
+	const visual = normalizeFoodVisual(draft.visual);
 	return {
 		name,
 		baseUnit: draft.baseUnit,
@@ -319,12 +283,12 @@ export function validatePersonalFoodDraft(
 		nutritionBasis,
 		estimated: draft.estimated ?? false,
 		...(draft.description !== undefined
-			? { description: bilingual(draft.description, "Food description") }
+			? { description: bilingual(draft.description, "description") }
 			: {}),
 		nutrients,
 		servings: draft.servings.map((serving, index) => ({
-			label: bilingual(serving?.label, `Serving ${index + 1} label`),
-			amount: positive(serving?.amount, `Serving ${index + 1} amount`),
+			label: bilingual(serving?.label, `servings.${index}.label`),
+			amount: positive(serving?.amount, `servings.${index}.amount`),
 		})),
 		provenance: validateProvenance(draft.provenance),
 		...(visual ? { visual } : {}),
@@ -332,6 +296,7 @@ export function validatePersonalFoodDraft(
 	};
 }
 
+/** A stored Personal Food. Throws `RuleError<string, PersonalFoodCode>`. */
 export function normalizePersonalFood(
 	food: PersonalFoodDraft & {
 		readonly id: string;
@@ -339,21 +304,20 @@ export function normalizePersonalFood(
 		readonly updatedAt: number;
 	},
 ): PersonalFood {
-	const draft = validatePersonalFoodDraft(food);
-	for (const timestamp of [food.createdAt, food.updatedAt]) {
-		if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) {
-			throw new Error("Personal Food timestamps are invalid.");
-		}
-	}
+	const draft = normalizePersonalFoodDraft(food);
+	if (typeof food.createdAt !== "number" || !Number.isFinite(food.createdAt))
+		fail("createdAt", "invalid");
+	if (typeof food.updatedAt !== "number" || !Number.isFinite(food.updatedAt))
+		fail("updatedAt", "invalid");
 	return {
 		...draft,
-		id: text(food.id, "Personal Food ID"),
+		id: text(food.id, "id"),
 		createdAt: food.createdAt,
 		updatedAt: food.updatedAt,
 	};
 }
 
-export type PersonalFoodSnapshotSelection = {
+type PersonalFoodSnapshotSelection = {
 	readonly quantity: number;
 	/** Omit to log one nutrition basis (100 g/ml or one named serving). */
 	readonly serving?: PersonalServing;
@@ -385,17 +349,13 @@ export function personalFoodSnapshotAtAmount(
 	selection: {
 		readonly amount: number;
 		readonly quantity: number;
-		readonly baseUnit: NutritionDiaryPartSnapshot["baseUnit"];
-		readonly serving?: NutritionBilingual;
+		readonly baseUnit: BaseUnit;
+		readonly serving?: Bilingual;
 	},
 ): NutritionDiaryPartSnapshot {
-	if (food.baseUnit !== selection.baseUnit) {
-		throw new Error(
-			"This Personal Food's nutrition basis changed. Choose its serving again.",
-		);
-	}
-	const amount = positive(selection.amount, "Amount");
-	const quantity = positive(selection.quantity, "Quantity");
+	if (food.baseUnit !== selection.baseUnit) fail("baseUnit", "basisChanged");
+	const amount = positive(selection.amount, "amount");
+	const quantity = positive(selection.quantity, "quantity");
 	const snapshot = personalFoodSnapshot(food, {
 		quantity,
 		serving: {
@@ -403,13 +363,13 @@ export function personalFoodSnapshotAtAmount(
 			label:
 				food.nutritionBasis.kind === "perServing"
 					? food.nutritionBasis.label
-					: { en: food.baseUnit, nl: food.baseUnit },
+					: servingAmountLabel(amount / quantity, food.baseUnit),
 		},
 	});
 	return {
 		...snapshot,
 		...(selection.serving
-			? { serving: bilingual(selection.serving, "Serving label") }
+			? { serving: bilingual(selection.serving, "serving") }
 			: {}),
 	};
 }
@@ -437,26 +397,23 @@ export function personalFoodSnapshot(
 		>,
 ): NutritionDiaryPartSnapshot | NutritionDiarySnapshot {
 	const valid = normalizePersonalFood(food);
-	const quantity = positive(selection.quantity, "Quantity");
+	const quantity = positive(selection.quantity, "quantity");
 	const perServing = valid.nutritionBasis.kind === "perServing";
 	const option = selection.serving ?? {
 		amount: perServing ? 1 : 100,
 		label:
 			valid.nutritionBasis.kind === "perServing"
 				? valid.nutritionBasis.label
-				: { en: `100 ${valid.baseUnit}`, nl: `100 ${valid.baseUnit}` },
+				: servingAmountLabel(100, valid.baseUnit),
 	};
-	const amount = positive(option.amount, "Serving amount") * quantity;
-	positive(amount, "Amount");
-	const label = bilingual(option.label, "Serving label");
+	const amount = positive(option.amount, "serving.amount") * quantity;
+	positive(amount, "amount");
+	const label = bilingual(option.label, "serving");
 	const origin = valid.provenance;
 	const part: NutritionDiaryPartSnapshot = {
 		name: valid.name,
 		...(valid.visual ? { visual: valid.visual } : {}),
-		serving: {
-			en: `${label.en} × ${formatQuantity(quantity, "en")}`,
-			nl: `${label.nl} × ${formatQuantity(quantity, "nl")}`,
-		},
+		serving: servingSelectionLabel(label, quantity),
 		quantity,
 		amount,
 		baseUnit: valid.baseUnit,

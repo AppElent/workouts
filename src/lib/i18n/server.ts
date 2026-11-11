@@ -1,12 +1,18 @@
+import {
+	DEFAULT_LOCALE,
+	resolveLocale,
+	SUPPORTED_LOCALES,
+} from "@foundry/core";
 import { createServerFn } from "@tanstack/react-start";
-import { type Locale, SUPPORTED_LOCALES } from "./index";
+import { getCookie, getRequestHeader } from "@tanstack/react-start/server";
+import { LOCALE_COOKIE } from "./index";
 
-// Start transforms app-local server functions, but cannot strip a factory's
-// handler inside a published dependency. Keep the shared helper behind this
-// seam so its server-only imports never execute in the browser bundle.
-export const getSsrLocale = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { createGetSsrLocale } = await import("./runtime/server");
-		return createGetSsrLocale(SUPPORTED_LOCALES, "en" satisfies Locale)();
-	},
+/** The request's locale: cookie, then Accept-Language, then the default. */
+export const getSsrLocale = createServerFn({ method: "GET" }).handler(() =>
+	resolveLocale(
+		SUPPORTED_LOCALES,
+		DEFAULT_LOCALE,
+		getCookie(LOCALE_COOKIE),
+		getRequestHeader("accept-language"),
+	),
 );

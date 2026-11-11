@@ -35,8 +35,3 @@ export function saltFromSodium(sodium: NutrientValue): NutrientValue {
 		(sodium.amount * SALT_FROM_SODIUM_FACTOR) / SALT_FROM_SODIUM_DIVISOR,
 	);
 }
-
-/** True for nutrients Foundry derives rather than reads from the source. */
-export function isDerivedNutrient(key: string): boolean {
-	return key === "salt";
-}

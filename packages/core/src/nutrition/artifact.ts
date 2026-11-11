@@ -2,6 +2,7 @@ import {
 	ABSENT,
 	type NutrientValue,
 	nutrientValue,
+	SHIPPED_NUTRIENT_KEYS,
 	type ShippedNutrientKey,
 	TRACE,
 } from "./nutrients";
@@ -27,12 +28,12 @@ import type {
  *
  * Nutrients are a fixed-order array whose order the artifact states in
  * `nutrientOrder`, so an artifact generated before a nutrient was added still
- * decodes correctly:
+ * decodes, with that nutrient absent:
  *   number  → a value
  *   "t"     → a trace
  *   null    → absent
  */
-export type WireNutrients = readonly (number | "t" | null)[];
+type WireNutrients = readonly (number | "t" | null)[];
 
 export type WireServing = {
 	readonly en: string;
@@ -43,7 +44,7 @@ export type WireServing = {
 	readonly note?: string;
 };
 
-export type WirePromotion = {
+type WirePromotion = {
 	readonly en: string;
 	readonly nl: string;
 	readonly emoji: string;
@@ -54,7 +55,7 @@ export type WirePromotion = {
 
 export type WireFood = {
 	readonly id: string;
-	/** Omitted for NEVO, which is every row the artifact started with. */
+	/** Omitted for NEVO. */
 	readonly src?: Exclude<ShippedSource, "nevo">;
 	/** Source-local code: NEVO code, or a Lidl EAN/article code. */
 	readonly code: number;
@@ -64,7 +65,7 @@ export type WireFood = {
 	readonly nl: string;
 	readonly cat: FoodCategory;
 	readonly grp: string;
-	/** Omitted when the base unit is grams, which is 2,275 of 2,328 rows. */
+	/** Omitted when the base unit is grams, as for almost every row. */
 	readonly unit?: "ml";
 	/** NEVO's own `Synoniem` column, split on "/". Dutch only. */
 	readonly syn?: readonly string[];
@@ -117,7 +118,9 @@ function decodeNutrients(
 	wire: WireNutrients,
 	order: readonly ShippedNutrientKey[],
 ): Record<ShippedNutrientKey, NutrientValue> {
-	const nutrients = {} as Record<ShippedNutrientKey, NutrientValue>;
+	const nutrients = Object.fromEntries(
+		SHIPPED_NUTRIENT_KEYS.map((key) => [key, ABSENT]),
+	) as Record<ShippedNutrientKey, NutrientValue>;
 	for (let index = 0; index < order.length; index += 1) {
 		const cell = wire[index];
 		const key = order[index];
@@ -142,7 +145,7 @@ function decodeServings(
 	}));
 }
 
-export function decodeFood(
+function decodeFood(
 	wire: WireFood,
 	order: readonly ShippedNutrientKey[],
 ): ShippedFood {

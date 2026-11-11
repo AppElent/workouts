@@ -1,39 +1,41 @@
-import type { QueryCtx } from "./_generated/server";
+import { isoDateAt, isoWeekKey, workingVolume } from "@foundry/core";
+import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
-import { exerciseReference, exerciseSets } from "./lib/exerciseCatalog";
+import { requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { exerciseSets } from "./lib/exerciseCatalog";
+import { exerciseReference } from "./lib/validators";
 
-async function requireUser(ctx: QueryCtx) {
-	const identity = await getIdentity(ctx);
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
+/** UTC offsets run from UTC−12:00 to UTC+14:00. */
+const MAX_UTC_OFFSET_MINUTES = 14 * 60;
 
+/**
+ * Work volume in kg per ISO week, oldest first. Weeks follow the caller's
+ * calendar: `utcOffsetMinutes` is minutes east of UTC.
+ */
 export const weeklyVolume = query({
-	args: { exerciseId: exerciseReference },
-	handler: async (ctx, { exerciseId }) => {
-		const userId = await requireUser(ctx);
-		const sets = await exerciseSets(ctx, userId, exerciseId);
-		const weekMap = new Map<string, number>();
-		for (const set of sets) {
-			const date = new Date(set.loggedAt);
-			const thursday = new Date(date);
-			thursday.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-			const yearStart = new Date(thursday.getFullYear(), 0, 4);
-			const week =
-				1 +
-				Math.round(
-					((thursday.getTime() - yearStart.getTime()) / 86400000 -
-						3 +
-						((yearStart.getDay() + 6) % 7)) /
-						7,
-				);
-			const year = thursday.getFullYear();
-			const key = `${year}-W${String(week).padStart(2, "0")}`;
-			weekMap.set(key, (weekMap.get(key) ?? 0) + set.weight * set.reps);
+	args: { exerciseId: exerciseReference, utcOffsetMinutes: v.number() },
+	returns: v.array(v.object({ week: v.string(), volume: v.number() })),
+	handler: async (ctx, { exerciseId, utcOffsetMinutes }) => {
+		const userId = await requireUserId(ctx);
+		if (
+			!Number.isInteger(utcOffsetMinutes) ||
+			Math.abs(utcOffsetMinutes) > MAX_UTC_OFFSET_MINUTES
+		)
+			throw appError("invalid", "utcOffsetMinutes");
+		const weeks = new Map<string, Doc<"sets">[]>();
+		for (const set of await exerciseSets(ctx, userId, exerciseId)) {
+			const week = isoWeekKey(isoDateAt(set.loggedAt, utcOffsetMinutes));
+			const sets = weeks.get(week);
+			if (sets) sets.push(set);
+			else weeks.set(week, [set]);
 		}
-		return Array.from(weekMap.entries())
+		return [...weeks]
 			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([week, volume]) => ({ week, volume: Math.round(volume) }));
+			.map(([week, sets]) => ({
+				week,
+				volume: Math.round(workingVolume(sets)),
+			}));
 	},
 });

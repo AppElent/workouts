@@ -4,7 +4,6 @@ import { LocaleProvider } from "../i18n";
 import { renderThemed } from "../test-support/render-themed";
 import { BucketChart, TrendChart } from "./chart";
 import { EmptyState } from "./empty-state";
-import { ProgressRing } from "./progress-ring";
 import { Segmented } from "./segmented";
 import { SkeletonCard, SkeletonList } from "./skeleton";
 
@@ -90,28 +89,6 @@ describe("Charts → Swift Charts", () => {
 		expect(screen.getByTestId("swiftui-chart-bar").props.data[0]).toMatchObject(
 			{ x: "Mon", y: 12 },
 		);
-	});
-});
-
-describe("ProgressRing → Gauge", () => {
-	it("is a bounded, spoken progress indicator with the count in the hole", async () => {
-		await render(
-			<ProgressRing
-				value={3}
-				max={5}
-				caption="this wk"
-				accessibilityLabel="3 of 5 sessions this week"
-			/>,
-		);
-		const gauge = screen.getByLabelText("3 of 5 sessions this week");
-		expect(gauge.props.accessibilityValue).toEqual({ now: 3, max: 5 });
-		expect(screen.getByText("3")).toBeTruthy();
-		expect(screen.getByText("this wk")).toBeTruthy();
-	});
-
-	it("never overflows the bound", async () => {
-		await render(<ProgressRing value={9} max={5} accessibilityLabel="over" />);
-		expect(screen.getByLabelText("over").props.accessibilityValue.now).toBe(5);
 	});
 });
 

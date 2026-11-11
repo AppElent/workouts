@@ -1,7 +1,7 @@
 /// <reference types="node" />
 
 import { DatabaseSync } from "node:sqlite";
-import type { SQLiteValue } from "../data/personal-food-repository";
+import type { SQLiteValue } from "../data/nutrition-database";
 
 /**
  * A real in-memory SQLite database with expo-sqlite's synchronous method names.
@@ -34,6 +34,17 @@ export class SQLiteTestDatabase {
 
 	getAllSync<T>(source: string, ...params: SQLiteValue[]): T[] {
 		return this.database.prepare(source).all(...params) as T[];
+	}
+
+	withTransactionSync(task: () => void): void {
+		this.database.exec("BEGIN");
+		try {
+			task();
+			this.database.exec("COMMIT");
+		} catch (error) {
+			this.database.exec("ROLLBACK");
+			throw error;
+		}
 	}
 
 	closeSync(): void {

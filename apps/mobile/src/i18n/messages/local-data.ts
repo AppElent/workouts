@@ -1,15 +1,4 @@
 export const localDataEn = {
-	maintenance: {
-		title: "Account cache",
-		pending: "Clearing cached account data…",
-		cleanupError:
-			"Cleanup could not finish. Pending data is preserved. Retry to finish safely.",
-		retryCleanup: "Retry cleanup",
-		back: "Back to the app",
-		success: "Account cache cleared.",
-		error: "Local data could not be cleaned.",
-		offline: "Connect to clear cached account data.",
-	},
 	database: {
 		title: "SQLite browser",
 		intro:
@@ -33,24 +22,11 @@ export const localDataEn = {
 			other: "{count} device photos still need uploading.",
 		},
 		uploadPhotos: "Upload device photos",
-		clearCache: "Clear cached account data",
-		clearCacheNote:
-			"Preferences, last-used portions and unfinished Set Drafts remain. Account data reloads from Convex.",
+		uploadFailure: "Device photos could not be uploaded. Try again.",
 	},
 };
 
 export const localDataNl: typeof localDataEn = {
-	maintenance: {
-		title: "Lokale gegevens opruimen",
-		pending: "Accountcache wissen…",
-		cleanupError:
-			"Het opruimen is niet voltooid. Wachtende gegevens blijven bewaard. Probeer opnieuw om veilig af te ronden.",
-		retryCleanup: "Opruimen opnieuw proberen",
-		back: "Terug naar de app",
-		success: "Accountcache gewist.",
-		error: "Lokale gegevens konden niet worden opgeruimd.",
-		offline: "Maak verbinding om accountcache te wissen.",
-	},
 	database: {
 		title: "SQLite-browser",
 		intro:
@@ -74,8 +50,7 @@ export const localDataNl: typeof localDataEn = {
 			other: "{count} apparaatfoto’s moeten nog worden geüpload.",
 		},
 		uploadPhotos: "Apparaatfoto’s uploaden",
-		clearCache: "Accountcache wissen",
-		clearCacheNote:
-			"Voorkeuren, laatst gebruikte porties en onafgemaakte Setconcepten blijven bewaard. Accountgegevens worden opnieuw geladen.",
+		uploadFailure:
+			"Apparaatfoto’s konden niet worden geüpload. Probeer het opnieuw.",
 	},
 };

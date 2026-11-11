@@ -1,11 +1,13 @@
+import { validateNamedAmount } from "@foundry/core";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
+import { requireOwned, requireUserId } from "./lib/auth";
+import { appError, checked } from "./lib/errors";
+import { measuredUnit as unitValidator } from "./lib/validators";
 
-const unitValidator = v.union(v.literal("g"), v.literal("ml"));
 const measureValidator = v.object({
 	id: v.id("personalMeasures"),
 	name: v.string(),
@@ -13,34 +15,6 @@ const measureValidator = v.object({
 	unit: unitValidator,
 	order: v.number(),
 });
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await getIdentity(ctx);
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
-
-function normalizeName(name: string) {
-	return name.trim().toLowerCase();
-}
-
-function validateInput(name: string, amount: number) {
-	const trimmedName = name.trim();
-	if (trimmedName.length < 1 || trimmedName.length > 40) {
-		throw new Error("Name must contain between 1 and 40 characters.");
-	}
-	if (
-		!Number.isFinite(amount) ||
-		amount <= 0 ||
-		amount > 10_000 ||
-		Math.abs(amount * 10 - Math.round(amount * 10)) > 1e-9
-	) {
-		throw new Error(
-			"Amount must be greater than zero, at most 10000, and use at most one decimal place.",
-		);
-	}
-	return { name: trimmedName, normalizedName: normalizeName(trimmedName) };
-}
 
 async function assertUniqueName(
 	ctx: MutationCtx,
@@ -54,9 +28,8 @@ async function assertUniqueName(
 			q.eq("userId", userId).eq("normalizedName", normalizedName),
 		)
 		.first();
-	if (existing && existing._id !== exceptId) {
-		throw new Error("A Personal Measure with this name already exists.");
-	}
+	if (existing && existing._id !== exceptId)
+		throw appError("duplicate", "name");
 }
 
 function asMeasure(row: Doc<"personalMeasures">) {
@@ -77,7 +50,7 @@ export const list = query({
 		continueCursor: v.string(),
 	}),
 	handler: async (ctx, { paginationOpts }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const page = await ctx.db
 			.query("personalMeasures")
 			.withIndex("by_user_and_order", (q) => q.eq("userId", userId))
@@ -95,8 +68,10 @@ export const create = mutation({
 	args: { name: v.string(), amount: v.number(), unit: unitValidator },
 	returns: measureValidator,
 	handler: async (ctx, { name: rawName, amount, unit }) => {
-		const userId = await requireUser(ctx);
-		const { name, normalizedName } = validateInput(rawName, amount);
+		const userId = await requireUserId(ctx);
+		const { name, normalizedName } = checked(
+			validateNamedAmount({ name: rawName, amount }, "measure"),
+		);
 		await assertUniqueName(ctx, userId, normalizedName);
 		const last = await ctx.db
 			.query("personalMeasures")
@@ -104,17 +79,9 @@ export const create = mutation({
 			.order("desc")
 			.first();
 		const order = (last?.order ?? -1) + 1;
-		const id = await ctx.db.insert("personalMeasures", {
-			userId,
-			name,
-			normalizedName,
-			amount,
-			unit,
-			order,
-		});
-		const created = await ctx.db.get(id);
-		if (!created) throw new Error("Personal Measure was not created.");
-		return asMeasure(created);
+		const row = { userId, name, normalizedName, amount, unit, order };
+		const id = await ctx.db.insert("personalMeasures", row);
+		return asMeasure({ ...row, _id: id, _creationTime: Date.now() });
 	},
 });
 
@@ -127,12 +94,11 @@ export const update = mutation({
 	},
 	returns: measureValidator,
 	handler: async (ctx, { id, name: rawName, amount, unit }) => {
-		const userId = await requireUser(ctx);
-		const current = await ctx.db.get(id);
-		if (!current || current.userId !== userId) {
-			throw new Error("Personal Measure not found.");
-		}
-		const { name, normalizedName } = validateInput(rawName, amount);
+		const userId = await requireUserId(ctx);
+		const current = await requireOwned(ctx, userId, id);
+		const { name, normalizedName } = checked(
+			validateNamedAmount({ name: rawName, amount }, "measure"),
+		);
 		await assertUniqueName(ctx, userId, normalizedName, id);
 		await ctx.db.patch(id, { name, normalizedName, amount, unit });
 		return asMeasure({ ...current, name, normalizedName, amount, unit });
@@ -143,10 +109,8 @@ export const reorder = mutation({
 	args: { ids: v.array(v.id("personalMeasures")) },
 	returns: v.null(),
 	handler: async (ctx, { ids }) => {
-		const userId = await requireUser(ctx);
-		if (new Set(ids).size !== ids.length) {
-			throw new Error("Personal Measure order contains duplicate IDs.");
-		}
+		const userId = await requireUserId(ctx);
+		if (new Set(ids).size !== ids.length) throw appError("invalid", "ids");
 		const owned = await ctx.db
 			.query("personalMeasures")
 			.withIndex("by_user_and_order", (q) => q.eq("userId", userId))
@@ -154,11 +118,8 @@ export const reorder = mutation({
 		if (
 			owned.length !== ids.length ||
 			owned.some((row) => !ids.includes(row._id))
-		) {
-			throw new Error(
-				"Personal Measure order must include every owned measure.",
-			);
-		}
+		)
+			throw appError("invalid", "ids");
 		await Promise.all(ids.map((id, order) => ctx.db.patch(id, { order })));
 		return null;
 	},
@@ -168,11 +129,8 @@ export const remove = mutation({
 	args: { id: v.id("personalMeasures") },
 	returns: v.null(),
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const current = await ctx.db.get(id);
-		if (!current || current.userId !== userId) {
-			throw new Error("Personal Measure not found.");
-		}
+		const userId = await requireUserId(ctx);
+		await requireOwned(ctx, userId, id);
 		await ctx.db.delete(id);
 		return null;
 	},

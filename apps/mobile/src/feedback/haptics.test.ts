@@ -1,18 +1,13 @@
 /**
- * The haptic vocabulary's contract, which is a two-part promise:
+ * The haptic vocabulary's contract:
  *
  * 1. Each named event plays the platform's own signal for that *meaning* —
  *    iOS's notification/impact types, Android's `AndroidHaptics` constants —
  *    so an Android user gets the equivalent outcome rather than an iOS feel
- *    replayed badly (spec #68, "Android delivers equivalent outcomes using its
- *    native conventions").
+ *    replayed badly.
  * 2. A haptic never takes its caller down. The device refuses these constantly
  *    — Low Power Mode, haptics off, camera open — and a rejected buzz must not
  *    turn a saved meal into a failed one.
- *
- * These are the module's observable behaviour, not its internals: "warning,
- * not error, when you are about to delete something" is a decision the rest of
- * the app relies on and would notice being changed.
  */
 
 const mockSelectionAsync = jest.fn(async () => undefined);

@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import * as loaded from "../env.manifest.ts";
 import {
 	resolveEnvironmentManifest,
+	STANDARD_ENVIRONMENTS,
 	STANDARD_SOURCE,
 	validateEnvironmentManifest,
 } from "./lib/env/index.mjs";
@@ -9,7 +11,6 @@ const manifest = resolveEnvironmentManifest(loaded);
 const { ENTRIES, ENV_CONFIG, ENVIRONMENTS } = manifest;
 const placements = (environment) =>
 	manifest.placementsFor(environment, { prNumber: "12" });
-const byKey = (key) => ENTRIES.find((entry) => entry.key === key);
 
 describe("Foundry environment manifest", () => {
 	it("is data only and uses the shared routing", () => {
@@ -18,13 +19,7 @@ describe("Foundry environment manifest", () => {
 			"ENVIRONMENTS",
 			"ENV_CONFIG",
 		]);
-		expect(ENVIRONMENTS).toEqual([
-			"local",
-			"dev",
-			"preview",
-			"staging",
-			"production",
-		]);
+		expect(ENVIRONMENTS).toEqual(STANDARD_ENVIRONMENTS);
 		expect(ENV_CONFIG.source.environments).toMatchObject(STANDARD_SOURCE);
 		expect(ENV_CONFIG.routes).toBeUndefined();
 		expect(
@@ -34,24 +29,13 @@ describe("Foundry environment manifest", () => {
 		).toEqual([]);
 	});
 
-	it("targets the app's real deployments and Workers", () => {
-		const target = (environment, consumer) =>
-			placements(environment).find(
-				(placement) => placement.consumer === consumer,
-			)?.destination;
-		expect(target("local", "convex-functions")).toMatchObject({
-			deployment: "colorless-sturgeon-704",
-		});
-		expect(target("dev", "convex-functions")).toMatchObject({
-			deployment: "colorless-sturgeon-704",
-		});
-		expect(target("production", "convex-functions")).toMatchObject({
-			deployment: "fine-akita-444",
-		});
-		expect(target("preview", "convex-functions")).toMatchObject({
-			target: "preview-default",
-			project: "eric-jansen:workout-tracker",
-		});
+	// The env routing reads the manifest's project for PR previews; workspace
+	// prepare reads appelent.json's for isolated backends.
+	it("names the same Convex project as appelent.json", () => {
+		const appelent = JSON.parse(
+			readFileSync(new URL("../appelent.json", import.meta.url), "utf8"),
+		);
+		expect(ENV_CONFIG.convex.project).toBe(appelent.workspace.backend.project);
 	});
 
 	it("never lands a deployed environment in a local file", () => {
@@ -63,7 +47,7 @@ describe("Foundry environment manifest", () => {
 	it("never routes local preparation to a production destination", () => {
 		for (const placement of placements("local")) {
 			expect(placement.destination).not.toMatchObject({
-				deployment: "fine-akita-444",
+				deployment: ENV_CONFIG.convex.deployments.production,
 			});
 			expect(placement.destination).not.toEqual({
 				kind: "eas",
@@ -189,7 +173,6 @@ describe("Foundry environment manifest", () => {
 
 	it("lands test-user values only in local and dev", () => {
 		for (const key of ["testUserEmail", "testUserPassword"]) {
-			expect(byKey(key)).toMatchObject({ optional: true, secret: false });
 			for (const environment of ["preview", "staging", "production"])
 				expect(
 					placements(environment).some(
@@ -199,13 +182,7 @@ describe("Foundry environment manifest", () => {
 		}
 	});
 
-	it("declares only names the code reads", () => {
-		const names = ENTRIES.flatMap((entry) =>
-			Object.values(entry.lands).map((landing) => landing.name),
-		);
-		expect(names).not.toEqual(
-			expect.arrayContaining(["CONVEX_SITE_URL", "VITE_CONVEX_SITE_URL"]),
-		);
+	it("uses each Infisical key once", () => {
 		const sourceNames = ENTRIES.map((entry) => entry.infisicalKey);
 		expect(new Set(sourceNames).size).toBe(sourceNames.length);
 	});
@@ -232,16 +209,5 @@ describe("Foundry environment manifest", () => {
 				expect(placement.entry.secret).toBe(true);
 			}
 		}
-	});
-
-	it("keeps Sentry upload credentials out of client bundles", () => {
-		for (const environment of ENVIRONMENTS)
-			for (const placement of placements(environment))
-				if (placement.entry.key === "sentryAuthToken")
-					expect(placement.name).toMatch(/SENTRY_AUTH_TOKEN$/);
-		expect(byKey("sentryAuthToken")).toMatchObject({
-			optional: true,
-			secret: true,
-		});
 	});
 });

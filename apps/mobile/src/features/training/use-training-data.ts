@@ -1,9 +1,10 @@
 import { useAuth } from "@clerk/expo";
-import { useConvexConnectionState } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
 import { useQueries } from "../../convex/query-cache";
+import { useRetained } from "../../data/session-data";
 
 export type Routine = FunctionReturnType<typeof api.routines.list>[number];
 type Active = FunctionReturnType<typeof api.workoutSessions.getActive>;
@@ -11,7 +12,7 @@ type Active = FunctionReturnType<typeof api.workoutSessions.getActive>;
 /** Keep readable rows during a refresh, scoped to the signed-in account. */
 export function useTrainingData() {
 	const { userId } = useAuth();
-	const online = useConvexConnectionState().isWebSocketConnected;
+	const online = useOnline();
 	const [revision, setRevision] = useState(0);
 	const queryScope = `${userId ?? "signed-out"}:${revision}`;
 	const queries = useMemo(
@@ -30,20 +31,12 @@ export function useTrainingData() {
 		| Error
 		| undefined;
 	const active = results[`active${queryScope}`] as Active | Error | undefined;
-	const [retained, setRetained] = useState<{
-		subject: typeof userId;
-		rows: Routine[];
-	}>();
-	useEffect(() => {
-		if (Array.isArray(routines))
-			setRetained({ subject: userId, rows: routines });
-	}, [routines, userId]);
+	const kept = useRetained(
+		userId ?? "signed-out",
+		Array.isArray(routines) ? routines : undefined,
+	);
 	return {
-		routines: Array.isArray(routines)
-			? routines
-			: retained?.subject === userId
-				? retained?.rows
-				: undefined,
+		routines: kept,
 		error: routines instanceof Error,
 		refreshing: !Array.isArray(routines),
 		active,

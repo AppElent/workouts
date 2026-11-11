@@ -1,229 +1,114 @@
-import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
 import {
-	assertCalendarDate,
-	type EffectiveGoalVersion,
-	type NutritionGoal,
-	resolveGoalHistory,
-	utcTodayIsoDate,
+	NUTRIENT_KEYS,
+	type NutrientKey,
 	validateNutritionGoals,
-} from "./nutritionGoalModel";
+} from "@foundry/core";
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { requireUserId } from "./lib/auth";
+import { assertIsoDate } from "./lib/diaryDays";
+import { appError, checked } from "./lib/errors";
 import {
-	NUTRITION_NUTRIENTS,
-	nutritionDisplayOrderValidator,
-	nutritionNutrientValidator,
-} from "./nutritionGoalTables";
+	firstGoalVersion,
+	readGoalHistory,
+	readLegacyGoals,
+} from "./lib/goalHistory";
+import { nutrientKey, nutritionGoal } from "./lib/validators";
 
-type NutritionNutrient = (typeof NUTRITION_NUTRIENTS)[number];
+const goals = v.array(nutritionGoal);
+const displayOrder = v.array(nutrientKey);
 
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await getIdentity(ctx);
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
+/** A saved order predates any nutrient added since; those follow it. */
+function withEveryNutrient(order: readonly NutrientKey[]): NutrientKey[] {
+	return [...order, ...NUTRIENT_KEYS.filter((key) => !order.includes(key))];
 }
-
-const goalValidator = v.object({
-	nutrient: nutritionNutrientValidator,
-	direction: v.union(v.literal("min"), v.literal("max")),
-	target: v.number(),
-	sourcePreset: v.optional(
-		v.union(
-			v.literal("reference"),
-			v.literal("loseWeight"),
-			v.literal("buildMuscle"),
-		),
-	),
-});
-
-const goalsValidator = v.array(goalValidator);
-
-async function readDisplayOrder(
-	ctx: QueryCtx | MutationCtx,
-	userId: string,
-): Promise<NutritionNutrient[]> {
-	const preference = await ctx.db
-		.query("nutritionGoalPreferences")
-		.withIndex("by_user", (q) => q.eq("userId", userId))
-		.unique();
-	return preference?.displayOrder ?? [...NUTRITION_NUTRIENTS];
-}
-
-function validateDisplayOrder(
-	displayOrder: readonly NutritionNutrient[],
-): void {
-	if (
-		displayOrder.length !== NUTRITION_NUTRIENTS.length ||
-		new Set(displayOrder).size !== NUTRITION_NUTRIENTS.length ||
-		NUTRITION_NUTRIENTS.some((nutrient) => !displayOrder.includes(nutrient))
-	)
-		throw new Error(
-			"Nutrition goal display order must contain every nutrient once.",
-		);
-}
-
-async function readLegacyGoals(
-	ctx: QueryCtx | MutationCtx,
-	userId: string,
-): Promise<NutritionGoal[]> {
-	const rows = await ctx.db
-		.query("nutritionGoals")
-		.withIndex("by_user", (q) => q.eq("userId", userId))
-		.take(16);
-	return rows.map(({ nutrient, direction, target, sourcePreset }) => ({
-		nutrient,
-		direction,
-		target,
-		...(sourcePreset ? { sourcePreset } : {}),
-	}));
-}
-
-async function readEffectiveVersion(
-	ctx: QueryCtx | MutationCtx,
-	userId: string,
-	date: string,
-): Promise<{
-	version: EffectiveGoalVersion | null;
-	firstVersion: EffectiveGoalVersion | null;
-}> {
-	const table = ctx.db.query("nutritionGoalVersions");
-	const [version, firstVersion] = await Promise.all([
-		table
-			.withIndex("by_user_effectiveFrom", (q) =>
-				q.eq("userId", userId).lte("effectiveFrom", date),
-			)
-			.order("desc")
-			.first(),
-		table
-			.withIndex("by_user_effectiveFrom", (q) => q.eq("userId", userId))
-			.order("asc")
-			.first(),
-	]);
-	return { version, firstVersion };
-}
-
-async function readExactEffectiveVersion(
-	ctx: MutationCtx,
-	userId: string,
-	date: string,
-): Promise<Doc<"nutritionGoalVersions"> | null> {
-	const version = await ctx.db
-		.query("nutritionGoalVersions")
-		.withIndex("by_user_effectiveFrom", (q) =>
-			q.eq("userId", userId).eq("effectiveFrom", date),
-		)
-		.order("asc")
-		.first();
-	return version;
-}
-
-export const list = query({
-	args: {},
-	returns: goalsValidator,
-	handler: async (ctx) => {
-		const userId = await requireUser(ctx);
-		const date = utcTodayIsoDate();
-		const [{ version, firstVersion }, legacyGoals] = await Promise.all([
-			readEffectiveVersion(ctx, userId, date),
-			readLegacyGoals(ctx, userId),
-		]);
-		return resolveGoalHistory({
-			date,
-			legacyGoals,
-			versions: version ? [version] : [],
-			referenceGoals: firstVersion?.referenceGoals,
-		}).goals;
-	},
-});
 
 export const forDate = query({
 	args: { date: v.string() },
 	returns: v.object({
-		goals: goalsValidator,
+		goals,
 		basis: v.union(v.literal("effective"), v.literal("reference")),
 		effectiveFrom: v.union(v.string(), v.null()),
 		/** Where the version in force on `date` stops applying, if anywhere. */
 		nextEffectiveFrom: v.union(v.string(), v.null()),
-		displayOrder: nutritionDisplayOrderValidator,
+		displayOrder,
 	}),
 	handler: async (ctx, { date }) => {
-		assertCalendarDate(date);
-		const userId = await requireUser(ctx);
-		const [{ version, firstVersion }, legacyGoals, displayOrder, next] =
-			await Promise.all([
-				readEffectiveVersion(ctx, userId, date),
-				readLegacyGoals(ctx, userId),
-				readDisplayOrder(ctx, userId),
-				ctx.db
-					.query("nutritionGoalVersions")
-					.withIndex("by_user_effectiveFrom", (q) =>
-						q.eq("userId", userId).gt("effectiveFrom", date),
-					)
-					.order("asc")
-					.first(),
-			]);
+		assertIsoDate(date);
+		const userId = await requireUserId(ctx);
+		const [goalsOn, preference, next] = await Promise.all([
+			readGoalHistory(ctx, userId, date, date),
+			ctx.db
+				.query("nutritionGoalPreferences")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.unique(),
+			ctx.db
+				.query("nutritionGoalVersions")
+				.withIndex("by_user_effectiveFrom", (q) =>
+					q.eq("userId", userId).gt("effectiveFrom", date),
+				)
+				.order("asc")
+				.first(),
+		]);
 		return {
 			nextEffectiveFrom: next?.effectiveFrom ?? null,
-			...resolveGoalHistory({
-				date,
-				legacyGoals,
-				versions: version ? [version] : [],
-				referenceGoals: firstVersion?.referenceGoals,
-			}),
-			displayOrder,
+			...goalsOn(date),
+			displayOrder: withEveryNutrient(preference?.displayOrder ?? []),
 		};
 	},
 });
 
 export const setDisplayOrder = mutation({
-	args: { displayOrder: nutritionDisplayOrderValidator },
+	args: { displayOrder },
 	returns: v.null(),
 	handler: async (ctx, { displayOrder }) => {
-		const userId = await requireUser(ctx);
-		validateDisplayOrder(displayOrder);
+		const userId = await requireUserId(ctx);
+		if (
+			displayOrder.length !== NUTRIENT_KEYS.length ||
+			new Set(displayOrder).size !== NUTRIENT_KEYS.length
+		)
+			throw appError("invalid", "displayOrder");
 		const existing = await ctx.db
 			.query("nutritionGoalPreferences")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
 			.unique();
 		if (existing) await ctx.db.patch(existing._id, { displayOrder });
 		else
-			await ctx.db.insert("nutritionGoalPreferences", {
-				userId,
-				displayOrder,
-			});
+			await ctx.db.insert("nutritionGoalPreferences", { userId, displayOrder });
 		return null;
 	},
 });
 
+/** Sets the goals in force from `effectiveFrom` until the next saved change. */
 export const replace = mutation({
-	args: { goals: goalsValidator, effectiveFrom: v.optional(v.string()) },
+	args: { goals, effectiveFrom: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { goals, effectiveFrom }) => {
-		const userId = await requireUser(ctx);
-		const date = effectiveFrom ?? utcTodayIsoDate();
-		assertCalendarDate(date);
-		validateNutritionGoals(goals);
-
-		const existing = await readExactEffectiveVersion(ctx, userId, date);
+		const userId = await requireUserId(ctx);
+		assertIsoDate(effectiveFrom, "effectiveFrom");
+		checked(validateNutritionGoals(goals));
+		const existing = await ctx.db
+			.query("nutritionGoalVersions")
+			.withIndex("by_user_effectiveFrom", (q) =>
+				q.eq("userId", userId).eq("effectiveFrom", effectiveFrom),
+			)
+			.first();
 		if (existing) {
 			await ctx.db.patch(existing._id, { goals });
-		} else {
-			const first = await ctx.db
-				.query("nutritionGoalVersions")
-				.withIndex("by_user_effectiveFrom", (q) => q.eq("userId", userId))
-				.order("asc")
-				.first();
-			const referenceGoals =
-				first?.referenceGoals ?? (await readLegacyGoals(ctx, userId));
-			await ctx.db.insert("nutritionGoalVersions", {
-				userId,
-				effectiveFrom: date,
-				goals,
-				...(first && first.effectiveFrom <= date ? {} : { referenceGoals }),
-			});
+			return null;
 		}
+		const first = await firstGoalVersion(ctx, userId);
+		// The earliest version carries the goals that applied before any version.
+		const referenceGoals =
+			first?.referenceGoals ?? (await readLegacyGoals(ctx, userId));
+		await ctx.db.insert("nutritionGoalVersions", {
+			userId,
+			effectiveFrom,
+			goals,
+			...(first && first.effectiveFrom <= effectiveFrom
+				? {}
+				: { referenceGoals }),
+		});
 		return null;
 	},
 });

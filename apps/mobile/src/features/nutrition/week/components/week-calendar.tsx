@@ -1,30 +1,22 @@
+import { type IsoDate, weekStartMonday } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
-import {
-	type IsoDate,
-	isoDateToLocalDate,
-	toIsoDate,
-} from "../../../../data/calendar-day";
-import {
-	weekDates,
-	weekStartMonday,
-} from "../../../../data/nutrition-weekly-review";
+import { isoDateToLocalDate, toIsoDate } from "../../../../dates/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../../diary/use-logged-diary-dates";
+import { weekDates } from "../weekly-review";
 
 /** The month calendar with the chosen week as one band; any day picks its week. */
 export function WeekCalendar({
 	weekStart,
 	today,
-	locale,
 	hint,
 	todayLabel,
 	onSelect,
 }: {
 	weekStart: IsoDate;
 	today: IsoDate;
-	locale: "en" | "nl";
 	hint: string;
 	todayLabel: string;
 	onSelect: (weekStart: IsoDate) => void;
@@ -40,7 +32,6 @@ export function WeekCalendar({
 			<MonthCalendar
 				selectedDate={weekStart}
 				today={today}
-				locale={locale}
 				markedDates={logged}
 				highlightedDates={new Set(weekDates(weekStart))}
 				labels={{ today: todayLabel }}

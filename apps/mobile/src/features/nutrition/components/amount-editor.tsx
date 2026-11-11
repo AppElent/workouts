@@ -1,15 +1,16 @@
 import type {
+	BaseUnit,
+	FoodVisual,
 	NutrientKey,
 	NutrientValue,
 	PersonalFood,
 	ServingOption,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useState } from "react";
 import { Keyboard, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { servingKey } from "../../../data/nutrition-shortcuts";
-import type { FoodVisual } from "../../../data/personal-food-repository";
 import type { useSupplementaryServings } from "../../../data/supplementary-servings";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
@@ -45,7 +46,7 @@ export type AmountTable = {
 };
 
 /**
- * The one amount editor (mobile-design "One amount editor"): quantity capsule,
+ * The one amount editor: quantity capsule,
  * serving menu, product card with its nutrient table, and a bottom toolbar.
  * Every amount task composes it; only the header, the table's columns and the
  * toolbar differ, and those belong to the wrapper.
@@ -70,7 +71,7 @@ export function AmountEditor({
 }: {
 	name: string;
 	visual?: FoodVisual;
-	unit: "g" | "ml" | "serving";
+	unit: BaseUnit;
 	selection: AmountSelection;
 	/** Absent when the amount has no servings to choose, such as whole combos. */
 	servings?: AmountServings;

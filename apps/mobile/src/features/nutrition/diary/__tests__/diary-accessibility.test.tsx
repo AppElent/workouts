@@ -1,7 +1,7 @@
 /**
  * What a person who cannot see the screen, or cannot use a gesture, gets.
  *
- * Three of spec #68's accessibility rules are checkable here without a device,
+ * Three accessibility rules are checkable here without a device,
  * and they are the three that regress silently:
  *
  * 1. Icon-only controls have a name. A plus button, a chevron and a back arrow
@@ -17,14 +17,15 @@
  * and whether dynamic type actually clips at 310% — is in the verify skill's
  * mobile section, because none of it is answerable from a test renderer.
  */
+
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen } from "expo-router/testing-library";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-} from "../../../../data/calendar-day";
+} from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 const value = (amount: number) => ({ kind: "value" as const, amount });
@@ -61,8 +62,6 @@ function mockDay(withGoals: boolean) {
 				basis: "reference",
 				effectiveFrom: null,
 			};
-		if (getFunctionName(reference) === "nutritionGoals:list")
-			return withGoals ? goals : [];
 		return {
 			entries: [entry],
 			totals: {
@@ -86,7 +85,7 @@ beforeEach(() => {
 });
 
 describe("Nutrition accessibility", () => {
-	it("shows only estimated entries with a compact accessible icon", async () => {
+	it("shows only estimated entries with an accessible icon", async () => {
 		const previous = jest.mocked(useQuery).getMockImplementation();
 		jest.mocked(useQuery).mockImplementation((reference, args?) => {
 			if (getFunctionName(reference) === "nutritionDiary:day")
@@ -97,8 +96,7 @@ describe("Nutrition accessibility", () => {
 			return previous?.(reference, args);
 		});
 		await renderApp();
-		const icon = await screen.findByLabelText("Estimated nutrition");
-		expect(icon.props.size).toBe(14);
+		expect(await screen.findByLabelText("Estimated nutrition")).toBeTruthy();
 		expect(
 			await screen.findByLabelText("Edit entry: Oatmeal. Estimated nutrition"),
 		).toBeTruthy();

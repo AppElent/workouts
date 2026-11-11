@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Confirms the running Metro bundle talks to the Convex deployment the env
- * files name. Metro can keep serving an old inlined `EXPO_PUBLIC_CONVEX_URL`
+ * Confirms the running Metro bundle talks to the Convex deployment the local
+ * env files name. Metro can keep serving an old inlined `EXPO_PUBLIC_CONVEX_URL`
  * after the env changes, so `.env.local` alone does not prove where writes go.
  *
  * Bundles also inline test credentials. Output is limited to Convex origins
@@ -9,10 +9,9 @@
  *
  * Usage: node scripts/check-mobile-backend.mjs [--port 8090]
  */
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseEnvText } from "./lib/env/files.mjs";
+import { localLandings } from "./local-env.mjs";
 
 /** `"EXPO_PUBLIC_CONVEX_URL": "<url>"` or `…: { enumerable: true, value: "<url>" }`. */
 const INLINED_URL =
@@ -59,15 +58,6 @@ export function compareBackends({ expected, bundle }) {
 	return { ok: problems.length === 0, target, bundle: inlined, problems };
 }
 
-async function readEnvFile(file) {
-	try {
-		return parseEnvText(await readFile(file, "utf8"));
-	} catch (error) {
-		if (error.code === "ENOENT") return {};
-		throw error;
-	}
-}
-
 async function fetchBundle(port) {
 	const url = `http://127.0.0.1:${port}/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true&lazy=false&minify=false`;
 	const response = await fetch(url);
@@ -79,10 +69,7 @@ async function main(argv) {
 	const index = argv.indexOf("--port");
 	const port = index === -1 ? "8090" : argv[index + 1];
 	const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-	const mobileEnv = await readEnvFile(
-		path.join(root, "apps/mobile/.env.local"),
-	);
-	const webEnv = await readEnvFile(path.join(root, ".env.local"));
+	const landings = await localLandings(root, "convexUrl");
 	let bundle;
 	try {
 		bundle = await fetchBundle(port);
@@ -91,11 +78,9 @@ async function main(argv) {
 		return 2;
 	}
 	const result = compareBackends({
-		expected: {
-			"apps/mobile/.env.local EXPO_PUBLIC_CONVEX_URL":
-				mobileEnv.EXPO_PUBLIC_CONVEX_URL,
-			".env.local VITE_CONVEX_URL": webEnv.VITE_CONVEX_URL,
-		},
+		expected: Object.fromEntries(
+			landings.map(({ path: file, name, value }) => [`${file} ${name}`, value]),
+		),
 		bundle,
 	});
 	console.log(`configured: ${result.target ?? "none"}`);

@@ -1,7 +1,7 @@
 /**
  * What still works with no connection.
  *
- * Spec #68 draws the line clearly: the shipped library, Personal Foods, Combos
+ * The line: the shipped library, Personal Foods, Combos
  * and existing diary data stay useful offline, and a provider failure never
  * blocks manual logging. Three things follow, and all three are checkable
  * here:
@@ -16,15 +16,16 @@
  * 3. Nothing claims the day is empty. "Nothing logged here" is a statement
  *    about the diary, and an offline screen is in no position to make it.
  */
+
+import { shiftIsoDate as diaryShift } from "@foundry/core";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { OFFLINE_GRACE_MS } from "../../../../convex/stalled-offline";
 import {
 	formatLongDate as diaryDateLabel,
-	shiftIsoDate as diaryShift,
 	todayIsoDate as diaryToday,
-} from "../../../../data/calendar-day";
-import { OFFLINE_GRACE_MS } from "../../../../data/stalled-offline";
+} from "../../../../dates/calendar-day";
 import { renderApp } from "../../../../test-support/render-app";
 
 function setConnected(isWebSocketConnected: boolean) {
@@ -43,7 +44,6 @@ function noCachedDay() {
 /** A day that was already downloaded before the connection dropped. */
 function cachedDay() {
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return {

@@ -1,14 +1,10 @@
 /**
  * The pieces every signed-out screen is built from: the brand header, a
- * field, the error line, the submit, and the "go to the other screen" link.
+ * field, the error line, and the "go to the other screen" link.
  *
  * Sign-in, sign-up and email verification share one look so that moving
  * between them reads as one flow. Third-party providers (Apple, Google, …)
- * slot in through `AuthScreen`'s `children` between the submit and the
- * footer — see `SocialButtons`.
- *
- * `AuthInput` takes `ref` as a plain prop (React 19), so a screen can move
- * focus from one field to the next on "return".
+ * slot in through `AuthScreen`'s `children` — see `SocialButtons`.
  */
 import type { ReactNode, Ref } from "react";
 import {
@@ -24,10 +20,10 @@ import {
 	radius,
 	spacing,
 	type Tokens,
+	type,
 	useThemedStyles,
 	useTokens,
 } from "../theme";
-import { PrimaryButton } from "../ui/button";
 import { Screen } from "../ui/screen";
 import { AppText } from "../ui/text";
 
@@ -97,32 +93,6 @@ export function AuthMessage({
 	);
 }
 
-export function AuthSubmit({
-	label,
-	busy,
-	disabled,
-	onPress,
-	testID,
-}: {
-	label: string;
-	busy: boolean;
-	disabled: boolean;
-	onPress: () => void;
-	testID?: string;
-}) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<PrimaryButton
-			label={label}
-			loading={busy}
-			disabled={disabled}
-			style={disabled && !busy && styles.disabled}
-			onPress={onPress}
-			testID={testID}
-		/>
-	);
-}
-
 /** "No account? Create one" — the prompt is plain, only the label is pressable. */
 export function AuthLink({
 	prompt,
@@ -181,10 +151,9 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.lg,
 			paddingHorizontal: spacing.md,
 			paddingVertical: 14,
-			fontSize: 16,
+			fontSize: type.control.fontSize,
 			color: colors.text,
 		},
-		disabled: { opacity: 0.5 },
 		footer: { marginTop: spacing.md, alignItems: "center", gap: spacing.sm },
 		linkRow: {
 			flexDirection: "row",

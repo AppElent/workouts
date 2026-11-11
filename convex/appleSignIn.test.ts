@@ -96,8 +96,11 @@ describe("account.revokeAppleSignIn", () => {
 		await configure();
 		const t = convexTest(schema, modules);
 		await expect(
-			t.action(api.account.revokeAppleSignIn, { authorizationCode: "code" }),
-		).rejects.toThrow("unauthenticated");
+			t.action(api.account.revokeAppleSignIn, {
+				authorizationCode: "code",
+				bundleId: "com.appelent.foundry",
+			}),
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	});
 
 	it("reports missing Apple credentials instead of calling Apple", async () => {
@@ -108,8 +111,9 @@ describe("account.revokeAppleSignIn", () => {
 		await expect(
 			alice.action(api.account.revokeAppleSignIn, {
 				authorizationCode: "code",
+				bundleId: "com.appelent.foundry",
 			}),
-		).rejects.toThrow("unavailable");
+		).rejects.toMatchObject({ data: { code: "unavailable" } });
 		expect(calls).toEqual([]);
 	});
 
@@ -124,7 +128,7 @@ describe("account.revokeAppleSignIn", () => {
 				authorizationCode: "code",
 				bundleId: "com.example.other",
 			}),
-		).rejects.toThrow("invalid");
+		).rejects.toMatchObject({ data: { code: "invalid", field: "bundleId" } });
 		expect(calls).toEqual([]);
 	});
 
@@ -161,6 +165,7 @@ describe("account.revokeAppleSignIn", () => {
 		});
 		await alice.action(api.account.revokeAppleSignIn, {
 			authorizationCode: "code",
+			bundleId: "com.appelent.foundry",
 		});
 		expect(calls.map(({ path }) => path)).toEqual([
 			"/auth/token",
@@ -194,8 +199,9 @@ describe("account.revokeAppleSignIn", () => {
 		await expect(
 			alice.action(api.account.revokeAppleSignIn, {
 				authorizationCode: "code",
+				bundleId: "com.appelent.foundry",
 			}),
-		).rejects.toThrow("failed");
+		).rejects.toMatchObject({ data: { code: "failed" } });
 		expect(calls.map(({ path }) => path)).toEqual(["/auth/token"]);
 	});
 });

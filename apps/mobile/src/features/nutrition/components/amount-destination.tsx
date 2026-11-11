@@ -1,10 +1,6 @@
+import { MEAL_SLOTS, type MealSlot, shiftIsoDate } from "@foundry/core";
 import { useState } from "react";
-import {
-	formatShortDate,
-	shiftIsoDate,
-	todayIsoDate,
-} from "../../../data/calendar-day";
-import { MEAL_SLOTS, type MealSlot } from "../../../data/nutrition-day";
+import { formatShortDate, todayIsoDate } from "../../../dates/calendar-day";
 import { useI18n } from "../../../i18n";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { GlassSurface } from "../../../ui/glass-surface";
@@ -79,7 +75,6 @@ export function AmountDestination({
 				visible={dateOpen}
 				date={date}
 				today={today}
-				locale={locale}
 				title={t.nutrition.entryEditor.date}
 				todayLabel={copy.today}
 				doneLabel={copy.done}

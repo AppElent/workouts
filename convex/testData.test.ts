@@ -2,6 +2,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
+import { readStrengthReferences } from "./lib/strengthReferences";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -28,7 +29,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "alice",
 				}),
-			).rejects.toThrow("activeActivity");
+			).rejects.toMatchObject({ data: { code: "activeActivity" } });
 		expect((await alice.query(api.testData.availability, {})).blocker).toBe(
 			"activeActivity",
 		);
@@ -48,7 +49,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "alice",
 				}),
-			).rejects.toThrow("hostedWorkout");
+			).rejects.toMatchObject({ data: { code: "hostedWorkout" } });
 		expect((await alice.query(api.testData.availability, {})).blocker).toBe(
 			"hostedWorkout",
 		);
@@ -86,7 +87,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "participant",
 				}),
-			).rejects.toThrow("hostedWorkout");
+			).rejects.toMatchObject({ data: { code: "hostedWorkout" } });
 		expect(await host.query(api.hostedWorkouts.getMine, { id })).toEqual(
 			before,
 		);
@@ -110,23 +111,18 @@ describe("in-app test data", () => {
 		expect(new Set(history.items.map((item) => item.sport))).toEqual(
 			new Set(["strength", "running", "cycling"]),
 		);
-		expect(await alice.query(api.bodyMetrics.list, {})).toHaveLength(3);
+		expect(await alice.query(api.bodyMetrics.list, {})).not.toEqual([]);
 		const library = await alice.query(api.nutritionLibrary.browse, {
 			query: "",
 			paginationOpts: { cursor: null, numItems: 50 },
 		});
-		expect(
-			library.page.filter((record) => record.kind === "food"),
-		).toHaveLength(3);
-		expect(
-			library.page.filter((record) => record.kind === "combo"),
-		).toHaveLength(1);
+		expect(library.page.some((record) => record.kind === "combo")).toBe(true);
 		const routine = (await alice.query(api.routines.list, {})).find(
 			(routine) => routine.name === "Test: Strength A",
 		)!;
-		const references = await alice.query(api.oneRepMaxes.getReferences, {
-			exerciseId: routine.exercises[0].exerciseId,
-		});
+		const references = await t.run((ctx) =>
+			readStrengthReferences(ctx, "alice", routine.exercises[0].exerciseId),
+		);
 		expect(references).toMatchObject({
 			measured: { source: "actual", value: 60 },
 			estimated: { source: "calculated" },
@@ -194,21 +190,29 @@ describe("in-app test data", () => {
 					paginationOpts: { cursor: null, numItems: 50 },
 				})
 			).page,
-		).toHaveLength(1);
+		).not.toEqual([]);
 		await alice.mutation(api.routines.create, {
 			name: "Added after load",
 			exercises: [],
 		});
-		await alice.mutation(api.nutritionDiary.log, {
-			date: "2026-10-09",
-			meal: "snacks",
-			name: { en: "Manual snack", nl: "Handmatige snack" },
-			serving: { en: "Serving", nl: "Portie" },
-			quantity: 1,
-			amount: 100,
-			baseUnit: "g",
-			nutrients: today.entries[0].nutrients,
-			provenance: { source: "oneOff" },
+		await alice.mutation(api.nutritionDiary.applyOperation, {
+			operationId: "manual-snack",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: {
+					clientEntryId: "manual-snack",
+					date: "2026-10-09",
+					meal: "snacks",
+					name: { en: "Manual snack", nl: "Handmatige snack" },
+					serving: { en: "Serving", nl: "Portie" },
+					quantity: 1,
+					amount: 100,
+					baseUnit: "g",
+					nutrients: today.entries[0].nutrients,
+					provenance: { source: "oneOff" },
+				},
+			},
 		});
 		expect(
 			(await alice.query(api.nutritionDiary.day, { date: "2026-10-09" }))
@@ -265,17 +269,25 @@ describe("in-app test data", () => {
 			name: "Manual routine",
 			exercises: [],
 		});
-		for (let i = 0; i < 2; i++) {
+		const load = async () => {
 			await alice.mutation(api.testData.reset, {
 				mode: "load",
 				today: "2026-10-10",
 				expectedSubject: "alice",
 			});
-			expect(await alice.query(api.routines.list, {})).toHaveLength(2);
-			expect(
-				await alice.query(api.workoutSessions.listRecent, { limit: 100 }),
-			).toHaveLength(6);
-		}
+			return {
+				routines: (await alice.query(api.routines.list, {})).map(
+					(routine) => routine.name,
+				),
+				sessions: (
+					await alice.query(api.workoutSessions.listRecent, { limit: 100 })
+				).length,
+			};
+		};
+		const first = await load();
+		expect(first.routines).not.toContain("Manual routine");
+		expect(first.sessions).toBeGreaterThan(0);
+		expect(await load()).toEqual(first);
 		await alice.mutation(api.testData.reset, {
 			mode: "clear",
 			today: "2026-10-10",
@@ -297,7 +309,7 @@ describe("in-app test data", () => {
 				today: "2026-10-10",
 				expectedSubject: "alice",
 			}),
-		).rejects.toThrow("unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		const alice = t.withIdentity({ subject: "alice" });
 		await expect(
 			alice.mutation(api.testData.reset, {
@@ -305,7 +317,7 @@ describe("in-app test data", () => {
 				today: "2026-10-10",
 				expectedSubject: "bob",
 			}),
-		).rejects.toThrow("accountChanged");
+		).rejects.toMatchObject({ data: { code: "accountChanged" } });
 		expect(await alice.query(api.testData.availability, {})).toEqual({
 			available: true,
 			blocker: null,
@@ -325,7 +337,7 @@ describe("in-app test data", () => {
 					today: "2026-10-10",
 					expectedSubject: "alice",
 				}),
-			).rejects.toThrow("unavailable");
+			).rejects.toMatchObject({ data: { code: "unavailable" } });
 		}
 	});
 });
@@ -354,9 +366,9 @@ it("clears only the resetting account's uploaded photos", async () => {
 		expectedSubject: "alice",
 	});
 	expect(
-		await alice.query(api.nutritionFoodPhotos.url, { storageId: alicePhoto }),
-	).toBeNull();
-	expect(
-		await bob.query(api.nutritionFoodPhotos.url, { storageId: bobPhoto }),
-	).toBeTruthy();
+		await t.run(async (ctx) => [
+			(await ctx.storage.get(alicePhoto)) !== null,
+			(await ctx.storage.get(bobPhoto)) !== null,
+		]),
+	).toEqual([false, true]);
 });

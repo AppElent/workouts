@@ -2,7 +2,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 
 /** What the typed values are for: the whole amount eaten, or 100 g or ml. */

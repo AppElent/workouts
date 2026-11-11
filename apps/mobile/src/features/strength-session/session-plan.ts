@@ -6,30 +6,38 @@
  * Canonical load is kilograms. `typedLbs` keeps a pound value exactly as typed,
  * so a unit switch can never change what was entered.
  */
-import { calculateOneRepMax, convertLoad, roundLoad } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	convertLoad,
+	DEFAULT_REST_SECONDS,
+	type Equipment,
+	isReferenceEligible,
+	type LoadUnit,
+	roundLoad,
+	type SetType,
+	sessionOneRepMax,
+	validateSetInput,
+	workingVolume,
+} from "@foundry/core";
+import type { FunctionArgs } from "convex/server";
+import type { api, Doc } from "../../convex/api";
 
-export type Unit = "kg" | "lbs";
-export type SetKind = "warmup" | "working" | "drop" | "failure";
 export type GroupMode = "rounds" | "amrap";
-export type GroupState = "idle" | "running" | "timeup" | "closed";
+type GroupState = "idle" | "running" | "timeup" | "closed";
 
-export interface LogPayload {
-	exerciseId: string;
-	setNumber: number;
-	reps: number;
-	weight: number;
-	unit: Unit;
-	rpe?: number;
-	setType: SetKind;
-}
-export interface LogAttempt {
+/** A set as `sets.add` takes it, less the ids the session and the attempt supply. */
+export type LogPayload = Omit<
+	FunctionArgs<typeof api.sets.add>,
+	"operationId" | "sessionId" | "exerciseId"
+> & { exerciseId: string };
+interface LogAttempt {
 	operationId: string;
 	setNumber: number;
 	payload: LogPayload;
 	/** True once a request left the device; its outcome may still be unknown. */
 	sent: boolean;
 }
-export interface PlanTarget {
+interface PlanTarget {
 	kg: number;
 	reps: number;
 	percent: number | null;
@@ -40,10 +48,10 @@ export interface PlanSet {
 	kg: number;
 	typedLbs?: number;
 	reps: number;
-	unit: Unit;
+	unit: LoadUnit;
 	/** The percentage this set is priced at, when it has one. */
 	percent: number | null;
-	kind: SetKind;
+	kind: SetType;
 	rpe: number | null;
 	done: boolean;
 	setId?: string;
@@ -97,12 +105,9 @@ export interface SessionPlan {
 	restDefault: number;
 }
 
-export interface Reference {
-	value: number;
-	date?: number;
-	source?: string;
-}
 export interface ExerciseFacts {
+	/** Unknown while the catalog loads or after the exercise was deleted. */
+	exercise: { readonly equipment: Equipment } | null;
 	bodyweight: boolean;
 	stepKg: number;
 	measured: number | null;
@@ -123,27 +128,23 @@ export interface PlanResult {
 }
 
 const EPSILON = 0.01;
-export const MAX_LOAD_KG = 500;
-export const MAX_REPS = 1000;
-export const DEFAULT_REST_SECONDS = 90;
 let counter = 0;
-export function newRowId() {
+function newRowId() {
 	counter += 1;
 	return `r${Date.now().toString(36)}${counter.toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 const near = (a: number, b: number) => Math.abs(a - b) < EPSILON;
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-// --- Load -------------------------------------------------------------------
-
-/** Lbs always land on a 5 lb step; kg on the exercise's own step. */
-export function snapLoad(kg: number, stepKg: number, unit: Unit = "kg") {
-	if (unit === "lbs")
-		return convertLoad(
-			Math.round(convertLoad(kg, "kg", "lbs") / 5) * 5,
-			"lbs",
-			"kg",
-		);
+const LB_STEP = 5;
+/** Lbs always step by 5 lb; kg by the exercise's own step. */
+export function loadStep(unit: LoadUnit, stepKg: number) {
+	return unit === "lbs" ? LB_STEP : stepKg;
+}
+const nearestLbStep = (kg: number) =>
+	Math.round(convertLoad(kg, "kg", "lbs") / LB_STEP) * LB_STEP;
+export function snapLoad(kg: number, stepKg: number, unit: LoadUnit = "kg") {
+	if (unit === "lbs") return convertLoad(nearestLbStep(kg), "lbs", "kg");
 	return roundLoad(kg, stepKg);
 }
 /** The number shown for a set, in the set's own unit. */
@@ -173,8 +174,7 @@ export function stepLoad(
 ): PlanSet {
 	const floor = facts.bodyweight ? 0 : facts.stepKg;
 	if (row.unit === "lbs") {
-		const pounds =
-			Math.round(convertLoad(row.kg, "kg", "lbs") / 5) * 5 + 5 * direction;
+		const pounds = nearestLbStep(row.kg) + LB_STEP * direction;
 		const kg = convertLoad(pounds, "lbs", "kg");
 		return kg < floor - EPSILON
 			? row
@@ -186,7 +186,7 @@ export function stepLoad(
 /** A unit switch only changes how a set reads. Its load stays what it was. */
 export function switchUnit(
 	row: PlanSet,
-	unit: Unit,
+	unit: LoadUnit,
 	facts: ExerciseFacts,
 ): PlanSet {
 	if (row.unit === unit || facts.bodyweight) return row;
@@ -205,9 +205,8 @@ export function isValidRow(row: PlanSet, facts: ExerciseFacts) {
 		Number.isFinite(row.kg) &&
 		Number.isInteger(row.reps) &&
 		(facts.bodyweight ? row.kg >= 0 : row.kg > 0) &&
-		row.kg <= MAX_LOAD_KG &&
 		row.reps >= (row.blank ? 1 : 0) &&
-		row.reps <= MAX_REPS
+		validateSetInput({ weight: shownLoad(row), reps: row.reps }).ok
 	);
 }
 export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
@@ -226,8 +225,6 @@ export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
 	};
 }
 
-// --- References -------------------------------------------------------------
-
 export function referenceFor(
 	plan: SessionPlan,
 	facts: ExerciseFacts,
@@ -236,15 +233,15 @@ export function referenceFor(
 	if (facts.bodyweight) return null;
 	const local = plan.manual[exerciseId];
 	if (typeof local === "number") return { value: local, source: "manual" };
-	if (
-		local === undefined &&
-		facts.savedManual &&
-		(facts.measuredDate === null || facts.savedManual.date > facts.measuredDate)
-	)
-		return { value: facts.savedManual.value, source: "manual" };
-	return facts.measured === null
-		? null
-		: { value: facts.measured, source: "measured" };
+	const chosen = sessionOneRepMax({
+		measured:
+			facts.measured === null
+				? null
+				: { value: facts.measured, date: facts.measuredDate ?? 0 },
+		estimated: null,
+		manual: local === undefined ? facts.savedManual : null,
+	});
+	return chosen && { value: chosen.reference.value, source: chosen.kind };
 }
 /** What a person did but the server hasn't confirmed: never rewrite it. */
 const isUnsaved = (row: PlanSet) => Boolean(row.failed || row.attempt);
@@ -273,17 +270,18 @@ export function shownPercent(
 		Math.round((row.kg / reference.value) * 100)
 	);
 }
-/** Warm-ups, misses and bodyweight sets never produce a 1RM. */
+/** A set being logged now is verified, so only the server's reference rule decides. */
 export function rowOneRepMax(
-	row: Pick<PlanSet, "kg" | "reps" | "kind">,
-	bodyweight: boolean,
+	row: Pick<PlanSet, "kg" | "reps">,
+	facts: Pick<ExerciseFacts, "exercise">,
 ) {
-	if (bodyweight || row.kind === "warmup" || row.reps < 1 || !(row.kg > 0))
-		return null;
-	return calculateOneRepMax(row.kg, row.reps);
+	return isReferenceEligible(
+		{ weight: row.kg, reps: row.reps, performanceVerified: true },
+		facts.exercise,
+	)
+		? calculateOneRepMax(row.kg, row.reps)
+		: null;
 }
-
-// --- Finding sets -----------------------------------------------------------
 
 const groupRows = (group: SetGroup) => group.rounds.flatMap((r) => r.items);
 export function allRows(plan: SessionPlan) {
@@ -378,23 +376,17 @@ function replaceRow(plan: SessionPlan, id: string, next: PlanSet): SessionPlan {
 	return mapRows(plan, (row) => (row.id === id ? next : row));
 }
 
-// --- Seeding and server reconciliation --------------------------------------
-
-export interface ServerSet {
-	_id: string;
+export type ServerSet = Pick<
+	Doc<"sets">,
+	"setNumber" | "reps" | "weight" | "unit" | "rpe" | "setType"
+> & { _id: string; exerciseId: string };
+export type ServerExercise = {
 	exerciseId: string;
-	setNumber: number;
-	reps: number;
-	weight: number;
-	unit: Unit;
-	rpe?: number;
-	setType: SetKind;
-}
-export interface ServerExercise {
-	exerciseId: string;
-	plannedSets: { reps: number; weight: number; unit: Unit }[];
-}
-export function rowFromServer(set: ServerSet): PlanSet {
+	plannedSets: NonNullable<
+		Doc<"workoutSessions">["exercises"]
+	>[number]["plannedSets"];
+};
+function rowFromServer(set: ServerSet): PlanSet {
 	return {
 		id: newRowId(),
 		exerciseId: set.exerciseId,
@@ -685,9 +677,7 @@ export function fillFromLast(
 	};
 }
 
-// --- Open-set edits ---------------------------------------------------------
-
-export function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
+function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
 	const last = facts.last;
 	return {
 		id: newRowId(),
@@ -959,8 +949,6 @@ export function removeExercise(
 	return { plan: next, setIds, note: { code: "exerciseRemoved" } };
 }
 
-// --- Typo guards ------------------------------------------------------------
-
 export interface TypoCheck {
 	kind: "reps" | "kg";
 	code: string;
@@ -993,7 +981,7 @@ export function bestToday(
 	let estimated: number | null = null;
 	for (const row of rowsOf(plan, exerciseId)) {
 		if (!row.done || row.id === exceptId) continue;
-		const rm = rowOneRepMax(row, facts.bodyweight);
+		const rm = rowOneRepMax(row, facts);
 		if (!rm) continue;
 		if (row.reps === 1) measured = Math.max(measured ?? 0, rm.value);
 		else estimated = Math.max(estimated ?? 0, rm.value);
@@ -1066,7 +1054,10 @@ export function typoCheck(
 			: null;
 	if (row.reps === 1 && known.measured !== null) return low;
 	const top = Math.max(known.estimated ?? 0, known.measured ?? 0, manualValue);
-	const implied = rowOneRepMax({ ...row, kind: "working" }, false)?.value ?? 0;
+	const implied =
+		row.reps >= 1 && row.kg > 0
+			? calculateOneRepMax(row.kg, row.reps).value
+			: 0;
 	if (top > 0 && implied > top * 1.25)
 		return {
 			kind: "kg",
@@ -1092,8 +1083,6 @@ export function manualIsOdd(
 	const top = Math.max(known.measured ?? 0, known.estimated ?? 0);
 	return top > 0 && (value > top * 1.25 || value < top * 0.5);
 }
-
-// --- Manual 1RM -------------------------------------------------------------
 
 function repriced(
 	plan: SessionPlan,
@@ -1173,7 +1162,7 @@ export function setManual(
 		plan: { ...next, manual: { ...next.manual, [exerciseId]: value } },
 		note: moved
 			? {
-					code: moved === 1 ? "repricedOne" : "repriced",
+					code: "repriced",
 					values: { count: moved, value },
 				}
 			: { code: "manualSaved", values: { value } },
@@ -1223,8 +1212,6 @@ export function pendingManuals(plan: SessionPlan) {
 	);
 }
 
-// --- Swap -------------------------------------------------------------------
-
 export function canSwap(plan: SessionPlan, from: string, to: string) {
 	if (from === to) return { ok: false, code: "swapSame" };
 	const present = sessionExercises(plan).includes(to);
@@ -1243,7 +1230,7 @@ function swapWork(
 ): PlanSet {
 	const byPercent = Boolean(reference) && row.percent !== null;
 	const keepPlan = !facts.bodyweight && !reference && row.percent !== null;
-	const unit: Unit = facts.bodyweight ? "kg" : row.unit;
+	const unit: LoadUnit = facts.bodyweight ? "kg" : row.unit;
 	const kg = byPercent
 		? snapLoad(
 				((reference as { value: number }).value * (row.percent as number)) /
@@ -1394,9 +1381,7 @@ export function swapExercise(
 	};
 }
 
-// --- Groups -----------------------------------------------------------------
-
-export const DEFAULT_GROUP_REST = 90;
+const DEFAULT_GROUP_REST = 90;
 const DEFAULT_CAP_MINUTES = 10;
 const isRoundComplete = (round: GroupRound) =>
 	round.items.every((row) => row.done);
@@ -1497,14 +1482,12 @@ export function groupWith(
 		groupId: id,
 		note: {
 			code:
-				after - before > 1
+				after > before
 					? "groupedAdded"
-					: after > before
-						? "groupedAddedOne"
-						: rounds.length === 1
-							? "groupedOneRound"
-							: "grouped",
-			values: { rounds: rounds.length, added: after - before },
+					: rounds.length === 1
+						? "groupedOneRound"
+						: "grouped",
+			values: { rounds: rounds.length, count: after - before },
 		},
 	};
 }
@@ -1789,7 +1772,7 @@ export function setGroupRounds(
 				locked === 0
 					? { code: "minimumRound" }
 					: {
-							code: locked === 1 ? "roundsLoggedOne" : "roundsLogged",
+							code: "roundsLogged",
 							values: { count: locked },
 						},
 		};
@@ -1804,6 +1787,9 @@ export function setGroupRounds(
 		},
 	};
 }
+/** One press of a rest − or + button. */
+export const REST_STEP_SECONDS = 15;
+
 export function setGroupRest(
 	plan: SessionPlan,
 	groupId: string,
@@ -1976,8 +1962,6 @@ export function unsavedEdits(
 	}).length;
 }
 
-// --- Logging ----------------------------------------------------------------
-
 export function beginAttempt(
 	plan: SessionPlan,
 	id: string,
@@ -2129,92 +2113,6 @@ export function restoreRows(plan: SessionPlan, prior: PlanSet[]): SessionPlan {
 		),
 	};
 }
-/** An older build's unfinished Set Draft, as it was stored on the device. */
-interface OldDraftFields {
-	weight: string;
-	reps: string;
-	rpe: string;
-	unit: Unit;
-	setType: SetKind;
-}
-export interface OldDraft {
-	exerciseId: string;
-	fields: OldDraftFields;
-	attempt?: { operationId: string; setNumber: number; fields: OldDraftFields };
-}
-/** Becomes an open row; a send it never heard back on keeps its operation. */
-export function importOldDraft(
-	plan: SessionPlan,
-	draft: OldDraft,
-): SessionPlan {
-	const { attempt, exerciseId } = draft;
-	const rows = allRows(plan).filter((row) => row.exerciseId === exerciseId);
-	if (
-		attempt &&
-		rows.some((row) => row.done && row.setNumber === attempt.setNumber)
-	)
-		return plan;
-	const fields = attempt?.fields ?? draft.fields;
-	const weight = Number(fields.weight.replace(",", "."));
-	const reps = Number(fields.reps);
-	const rpe = Number(fields.rpe.replace(",", "."));
-	const hasLoad = fields.weight.trim() !== "" && Number.isFinite(weight);
-	const hasReps = fields.reps.trim() !== "" && Number.isInteger(reps);
-	if (!hasLoad && !hasReps) return plan;
-	const open = rows.find((row) => !row.done && !isUnsaved(row));
-	if (!open && groupOfExercise(plan, exerciseId)) return plan;
-	const base: PlanSet = open ?? {
-		id: newRowId(),
-		exerciseId,
-		kg: 0,
-		reps: 0,
-		unit: fields.unit,
-		percent: null,
-		kind: fields.setType,
-		rpe: null,
-		done: false,
-		free: true,
-		blank: true,
-	};
-	const row: PlanSet = {
-		...base,
-		kind: fields.setType,
-		...(hasLoad
-			? {
-					kg: convertLoad(weight, fields.unit, "kg"),
-					unit: fields.unit,
-					typedLbs: fields.unit === "lbs" ? weight : undefined,
-				}
-			: {}),
-		...(hasReps ? { reps } : {}),
-		...(fields.rpe.trim() !== "" && Number.isFinite(rpe) ? { rpe } : {}),
-		...(hasLoad && hasReps ? { blank: undefined } : {}),
-	};
-	const placed: PlanSet = attempt
-		? {
-				...row,
-				attempt: {
-					operationId: attempt.operationId,
-					setNumber: attempt.setNumber,
-					payload: payloadFor(row, attempt.setNumber),
-					sent: true,
-				},
-			}
-		: row;
-	if (open) return replaceRow(plan, open.id, placed);
-	return {
-		...plan,
-		sets: {
-			...plan.sets,
-			[exerciseId]: [...(plan.sets[exerciseId] ?? []), placed],
-		},
-		order: plan.order.some(
-			(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
-		)
-			? plan.order
-			: [...plan.order, { kind: "exercise", exerciseId }],
-	};
-}
 export function markFailed(
 	plan: SessionPlan,
 	id: string,
@@ -2235,8 +2133,6 @@ export function markFailed(
 export const failedRows = (plan: SessionPlan) =>
 	allRows(plan).filter((row) => row.failed && !row.done);
 
-// --- Recap ------------------------------------------------------------------
-
 export interface RecapRow {
 	exerciseId: string;
 	sets: number;
@@ -2254,7 +2150,7 @@ export function newRecordFor(
 	value: number;
 	was: number | null;
 } | null {
-	const rm = rowOneRepMax(row, facts.bodyweight);
+	const rm = rowOneRepMax(row, facts);
 	if (!rm) return null;
 	const known = bestKnown(plan, row.exerciseId, facts, row.id);
 	if (row.reps === 1) {
@@ -2267,12 +2163,13 @@ export function newRecordFor(
 }
 export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 	const rows = allRows(plan).filter((row) => row.done);
-	const volume = rows.reduce(
-		(sum, row) =>
-			row.kind === "warmup" || getFacts(row.exerciseId).bodyweight
-				? sum
-				: sum + row.kg * row.reps,
-		0,
+	const volume = workingVolume(
+		rows.map((row) => ({
+			weight: row.kg,
+			unit: "kg" as const,
+			reps: row.reps,
+			setType: row.kind,
+		})),
 	);
 	const names = [...new Set(rows.map((row) => row.exerciseId))];
 	const orderIndex = (id: string) => {

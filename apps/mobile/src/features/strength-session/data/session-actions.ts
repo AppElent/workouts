@@ -2,13 +2,12 @@
 import type { ExerciseId } from "@foundry/core/exercises";
 import { useConvex, useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useCallback, useMemo } from "react";
-import { ActionSheetIOS, Platform } from "react-native";
+import { useMemo } from "react";
 import { api, type Id } from "../../../convex/api";
+import { mintUuid } from "../../../data/account-write";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
-import { convexErrorMessage, useConfirm } from "../../../ui/confirm-dialog";
-import { useRestTimer } from "../components/rest-timer";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
 import {
 	addExerciseToPlan,
@@ -16,6 +15,7 @@ import {
 	allRows,
 	beginAttempt,
 	canSwap,
+	closeGroup,
 	type ExerciseFacts,
 	failedRows,
 	findRow,
@@ -39,62 +39,27 @@ import {
 	runningGroup,
 	type SessionPlan,
 	sessionExercises,
+	startClock,
+	stopClock,
 	swapExercise,
 	typoCheck,
 	updateRow,
 } from "../session-plan";
+import { useRestTimer } from "./rest-timer";
+import { cancelClockAlert, scheduleClockAlert } from "./session-notifications";
 import {
+	endSession,
 	factsFrom,
-	type RawReferences,
 	type SessionWorkspace,
+	saveRestDefault,
 	workspaceStore,
 } from "./session-workspace";
-import { newLogOperationId } from "./set-drafts";
 
-const STUCK_MS = 8000;
 export type EditorRequest = (rowId: string) => void;
-export type ActionChoice = { label: string; destructive?: boolean };
-/** A native action sheet where there is one, a confirm dialog elsewhere. */
-export function useChoice() {
-	const confirm = useConfirm();
-	return useCallback(
-		async (input: {
-			title: string;
-			message?: string;
-			confirm: ActionChoice;
-			cancel: string;
-			/** On iOS, adds a way out that does neither; choosing it or tapping away gives null. */
-			dismiss?: string;
-		}): Promise<boolean | null> => {
-			if (Platform.OS !== "ios")
-				return confirm({
-					title: input.title,
-					message: input.message ?? "",
-					confirmLabel: input.confirm.label,
-					cancelLabel: input.cancel,
-					destructive: input.confirm.destructive,
-				});
-			return new Promise<boolean | null>((resolve) => {
-				ActionSheetIOS.showActionSheetWithOptions(
-					{
-						title: input.title,
-						message: input.message,
-						options: input.dismiss
-							? [input.confirm.label, input.cancel, input.dismiss]
-							: [input.confirm.label, input.cancel],
-						cancelButtonIndex: input.dismiss ? 2 : 1,
-						...(input.confirm.destructive ? { destructiveButtonIndex: 0 } : {}),
-					},
-					(index) => resolve(input.dismiss && index === 2 ? null : index === 0),
-				);
-			});
-		},
-		[confirm],
-	);
-}
 
 export function useSessionActions(workspace: SessionWorkspace) {
-	const { key, sessionId, getFacts, nameOf, online } = workspace;
+	const errorMessage = useWriteFailureMessage();
+	const { key, subject, sessionId, getFacts, nameOf, online } = workspace;
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
 	const saveError = t.strength.saveError;
@@ -117,8 +82,14 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			extra: Partial<Parameters<typeof notify>[0]> = {},
 		) => notify({ text, ...(extra as object) });
 		const noteText = (note: PlanNote, name?: string) => {
-			const template = (copy.notes as Record<string, string>)[note.code] ?? "";
-			return fmt(template, { name: name ?? "", ...(note.values ?? {}) });
+			const template: string | { one: string; other: string } | undefined = (
+				copy.notes as Record<string, string | { one: string; other: string }>
+			)[note.code];
+			const text =
+				typeof template === "object"
+					? plural(locale, Number(note.values?.count ?? 0), template)
+					: (template ?? "");
+			return fmt(text, { name: name ?? "", ...(note.values ?? {}) });
 		};
 		/** Call after the change: a snapshot can only undo what came last. */
 		const snapshotUndo = (before: SessionPlan, added?: string) => {
@@ -230,7 +201,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (seconds !== null) rest.start(seconds, restBody());
 			if (record) haptics.sessionSuccess();
 			else haptics.setLogged();
-			const rm = rowOneRepMax(row, facts.bodyweight);
+			const rm = rowOneRepMax(row, facts);
 			const load = shortLoad(row);
 			let text: string;
 			if (record?.kind === "measured")
@@ -284,7 +255,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 						await removeSetMutation({ id: setId as Id<"sets"> });
 						removed();
 					} catch (error) {
-						say(convexErrorMessage(error, saveError));
+						say(errorMessage(error, saveError));
 					}
 				});
 			} finally {
@@ -303,7 +274,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (row.attempt && inFlight.has(row.attempt.operationId)) return;
 			// A retry comes long after the set itself, so it never starts rest.
 			const fresh = !row.failed;
-			const attempted = beginAttempt(plan(), rowId, newLogOperationId());
+			const attempted = beginAttempt(plan(), rowId, mintUuid());
 			const attempt = attempted?.attempt;
 			if (!attempted || !attempt || !sessionId) return;
 			set(updateRow(plan(), rowId, attempted));
@@ -326,7 +297,6 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					? fmt(copy.toastFailedMany, { count })
 					: fmt(copy.toastFailedOne, { load: shortLoad(row) });
 			};
-			const stuck = setTimeout(() => failNow(true, offlineText()), STUCK_MS);
 			try {
 				const { exerciseId, ...payload } = attempt.payload;
 				const setId = await addSetMutation({
@@ -335,7 +305,6 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					...payload,
 					operationId: attempt.operationId,
 				});
-				clearTimeout(stuck);
 				const latest = findRow(plan(), rowId);
 				if (latest)
 					afterLogged(
@@ -345,11 +314,10 @@ export function useSessionActions(workspace: SessionWorkspace) {
 						fresh && !latest.failed,
 					);
 			} catch (error) {
-				clearTimeout(stuck);
 				if (error instanceof ConvexError)
 					failNow(
 						false,
-						convexErrorMessage(
+						errorMessage(
 							error,
 							fmt(copy.toastFailedServer, { load: shortLoad(row) }),
 						),
@@ -441,7 +409,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					});
 					set(updateRow(plan(), rowId, next));
 				});
-				const rm = rowOneRepMax(draft, facts.bodyweight);
+				const rm = rowOneRepMax(draft, facts);
 				say(
 					rm
 						? fmt(copy.toastEdited, {
@@ -451,7 +419,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				);
 				return true;
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -507,7 +475,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			return factsFrom(
 				exercise ?? undefined,
 				session?.exercises?.find((item) => item.exerciseId === exerciseId)
-					?.references as RawReferences | undefined,
+					?.references,
 				last,
 			);
 		}
@@ -538,7 +506,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					return true;
 				});
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -557,12 +525,12 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					muscleGroups: [],
 					category: "compound",
 					equipment: bodyweight ? "bodyweight" : "other",
-				} as never);
-				if (forSwap) return swap(forSwap, id as string, name);
-				if (groupId) return addExerciseToGroup(groupId, id as string, name);
-				return addExercise(id as string, openEditor, name);
+				});
+				if (forSwap) return swap(forSwap, id, name);
+				if (groupId) return addExerciseToGroup(groupId, id, name);
+				return addExercise(id, openEditor, name);
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -588,7 +556,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					});
 				});
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -625,7 +593,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					set(removeExercise(plan(), exerciseId).plan);
 					if (result.note) say(noteText(result.note, label));
 				} catch (error) {
-					say(convexErrorMessage(error, saveError));
+					say(errorMessage(error, saveError));
 				}
 			});
 		}
@@ -641,10 +609,11 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (blocked() || !sessionId) return false;
 			try {
 				await flushManuals();
-				await finishMutation({ id: sessionId, discardUnfinished: true });
+				await finishMutation({ id: sessionId });
+				endSession(key, rest);
 				return true;
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
 		}
@@ -655,11 +624,40 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			try {
 				if (flush) await flushManuals();
 				await cancelMutation({ id: sessionId });
+				endSession(key, rest);
 				return true;
 			} catch (error) {
-				say(convexErrorMessage(error, saveError));
+				say(errorMessage(error, saveError));
 				return false;
 			}
+		}
+		/** Starts or resumes an AMRAP clock, with an alert for when it runs out. */
+		function startGroupClock(groupId: string) {
+			const result = startClock(plan(), groupId, Date.now());
+			if (!apply(result, { undoable: false })) return;
+			const group = result.plan.groups[groupId];
+			if (group)
+				scheduleClockAlert(
+					group,
+					copy.rest.clockNotificationTitle,
+					copy.rest.clockNotificationBody,
+				);
+		}
+		function stopGroupClock(groupId: string) {
+			set(stopClock(plan(), groupId, Date.now()));
+			cancelClockAlert(groupId);
+		}
+		function closeGroupClock(groupId: string) {
+			const group = plan().groups[groupId];
+			if (!group || refusePending(group.rounds.flatMap((round) => round.items)))
+				return;
+			set(closeGroup(plan(), groupId));
+			cancelClockAlert(groupId);
+		}
+		/** This session's rest, and the one the next session starts with. */
+		function setRestDefault(seconds: number) {
+			set({ ...plan(), restDefault: seconds });
+			if (subject) saveRestDefault(subject, seconds);
 		}
 		return {
 			plan,
@@ -684,11 +682,16 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			dropExercise,
 			finishSession,
 			cancelSession,
+			startGroupClock,
+			stopGroupClock,
+			closeGroupClock,
+			setRestDefault,
 			stopRest: rest.stop,
 			runningGroup: () => runningGroup(plan()),
 		};
 	}, [
 		key,
+		subject,
 		sessionId,
 		getFacts,
 		nameOf,
@@ -707,6 +710,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		addManualMutation,
 		createExercise,
 		workspace.catalog,
+		errorMessage,
 	]);
 }
 export type SessionActions = ReturnType<typeof useSessionActions>;
