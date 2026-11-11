@@ -12,6 +12,7 @@ import {
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { Modal, ModalTitle } from "#/components/ui/Modal";
 import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 type Unit = Doc<"sets">["unit"];
 
@@ -79,6 +80,7 @@ export function SetEditSheet({
 	write,
 }: Props) {
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 	const confirm = useConfirm();
 	const updateSet = useMutation(api.sets.update);
 	const removeSet = useMutation(api.sets.remove);
@@ -145,10 +147,10 @@ export function SetEditSheet({
 				}),
 			);
 			if (saved) onClose();
-		} catch {
+		} catch (error) {
 			toast.error(
 				"Could not save set",
-				"Your changes are kept. Please try again.",
+				errorMessage(error, "Your changes are kept. Please try again."),
 			);
 		}
 	};
@@ -165,8 +167,11 @@ export function SetEditSheet({
 			return;
 		try {
 			if (await write(() => removeSet({ id: set._id }))) onClose();
-		} catch {
-			toast.error("Could not delete set", "Please try again.");
+		} catch (error) {
+			toast.error(
+				"Could not delete set",
+				errorMessage(error, "Please try again."),
+			);
 		}
 	};
 

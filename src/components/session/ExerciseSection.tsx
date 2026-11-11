@@ -18,6 +18,7 @@ import { ChevronUp, Plus, Weight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
 import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { PlateSheet } from "./PlateSheet";
 import { useRestTimer } from "./RestTimer";
 import { SetCard } from "./SetCard";
@@ -55,6 +56,7 @@ export function ExerciseSection({
 	write,
 }: Props) {
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 	const [attempt, setAttempt] = useState<FunctionArgs<
 		typeof api.sets.add
 	> | null>(null);
@@ -129,7 +131,10 @@ export function ExerciseSection({
 			if (payload.setType !== "warmup") startRest();
 		} catch (error) {
 			if (error instanceof ConvexError) setAttempt(null);
-			toast.error("Couldn't log set", "Your input is kept. Please try again.");
+			toast.error(
+				"Couldn't log set",
+				errorMessage(error, "Your input is kept. Please try again."),
+			);
 		}
 	}
 

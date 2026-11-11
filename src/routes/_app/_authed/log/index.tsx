@@ -1,8 +1,10 @@
 import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { Dumbbell, Play } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useStartRoutine } from "#/components/routines/useStartRoutine";
 import { useConvexErrorMessage } from "#/lib/convexError";
 
 export const Route = createFileRoute("/_app/_authed/log/")({
@@ -107,38 +109,20 @@ function LogPage() {
 	);
 }
 
-function StartFromRoutineButton({
-	routine,
-}: {
-	routine: { _id: string; name: string; exercises: unknown[] };
-}) {
-	const navigate = useNavigate();
-	const startSession = useMutation(api.routines.startSession);
-	const [loading, setLoading] = useState(false);
-
-	async function handleClick() {
-		if (loading) return;
-		setLoading(true);
-		try {
-			// biome-ignore lint/suspicious/noExplicitAny: Convex ID type narrowing
-			const sessionId = await startSession({ routineId: routine._id as any });
-			void navigate({ to: "/log/$sessionId", params: { sessionId } });
-		} finally {
-			setLoading(false);
-		}
-	}
+function StartFromRoutineButton({ routine }: { routine: Doc<"routines"> }) {
+	const { start, starting } = useStartRoutine();
 
 	return (
 		<button
 			type="button"
-			onClick={() => void handleClick()}
-			disabled={loading}
+			onClick={() => void start(routine._id)}
+			disabled={starting}
 			className="flex items-center justify-between gap-2 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)]/30 transition-colors text-left disabled:opacity-50"
 		>
 			<div>
 				<p className="text-sm font-medium text-white">{routine.name}</p>
 				<p className="text-xs text-[var(--text-muted)] mt-0.5">
-					{(routine.exercises as unknown[]).length} exercises
+					{routine.exercises.length} exercises
 				</p>
 			</div>
 			<Play size={16} className="text-[var(--accent)] shrink-0" />

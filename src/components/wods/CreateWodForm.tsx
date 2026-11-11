@@ -4,6 +4,8 @@ import { useMutation } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
+import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 interface MovementDraft {
 	id: string;
@@ -18,6 +20,9 @@ function newMovement(): MovementDraft {
 
 export function CreateWodForm() {
 	const createWod = useMutation(api.wods.create);
+	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
+	const [saving, setSaving] = useState(false);
 
 	const [name, setName] = useState("");
 	const [type, setType] = useState<WodType>("forTime");
@@ -48,15 +53,26 @@ export function CreateWodForm() {
 				weight: m.weight ? Number(m.weight) : undefined,
 				unit: m.weight ? ("kg" as const) : undefined,
 			}));
-		if (!name.trim() || cleanMovements.length === 0) return;
-		await createWod({
-			name: name.trim(),
-			type,
-			repScheme: repScheme.trim() || undefined,
-			description: description.trim() || undefined,
-			...wodTimingFromMinutes(type, minutes ? Number(minutes) : undefined),
-			movements: cleanMovements,
-		});
+		if (saving || !name.trim() || cleanMovements.length === 0) return;
+		setSaving(true);
+		try {
+			await createWod({
+				name: name.trim(),
+				type,
+				repScheme: repScheme.trim() || undefined,
+				description: description.trim() || undefined,
+				...wodTimingFromMinutes(type, minutes ? Number(minutes) : undefined),
+				movements: cleanMovements,
+			});
+		} catch (error) {
+			toast.error(
+				"Couldn't save WOD",
+				errorMessage(error, "Your input is kept. Please try again."),
+			);
+			return;
+		} finally {
+			setSaving(false);
+		}
 		setName("");
 		setType("forTime");
 		setRepScheme("");
@@ -178,7 +194,7 @@ export function CreateWodForm() {
 			<div className="flex justify-end">
 				<button
 					type="submit"
-					disabled={!name.trim()}
+					disabled={saving || !name.trim()}
 					className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold disabled:opacity-40 hover:bg-[var(--accent-hover)] transition-colors"
 				>
 					Save WOD
