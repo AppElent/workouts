@@ -40,6 +40,7 @@ describe("listRouteFiles", () => {
 			"_app/_authed/log.tsx",
 			"_app/_authed/log.lazy.tsx",
 			"_app/_x/route.lazy.tsx",
+			"_app/__root.tsx",
 			"[.]well-known/$.ts",
 			"-components/button.tsx",
 			"routeTree.gen.ts",
@@ -51,15 +52,17 @@ describe("listRouteFiles", () => {
 			"[.]well-known/$",
 			"__tests__/unlisted",
 			"_app._authed.unlisted",
+			"_app/__root",
 			"_app/_authed/dashboard/index",
 			"_app/_authed/log",
 			"routeTree.gen",
+			"types.d",
 			"unlisted.test",
 		]);
 	});
 
 	it("checks a mobile screen whose name starts with an underscore", () => {
-		const root = tree(["_layout.tsx", "(app)/_layout.tsx", "(app)/_foo.tsx", "+not-found.tsx"]);
+		const root = tree(["_layout.tsx", "(app)/_layout.ios.tsx", "(app)/_foo.tsx", "(app)/_foo.native.tsx", "+not-found.tsx"]);
 		expect(listRouteFiles(root, "mobile")).toEqual(["(app)/_foo"]);
 	});
 

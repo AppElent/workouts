@@ -36,9 +36,11 @@ const WEB_LAZY_SUFFIX = /\.lazy$/;
 const MOBILE_PLATFORM_SUFFIX = /\.(?:ios|android|native)$/;
 
 /**
- * Files the routers themselves skip. Tests are not in this list: neither router
- * ignores them, so a test file under a route root fails the check. A mobile
- * `.web` file is skipped because the app ships only iOS and Android.
+ * Files that are not a screen: the root route, files the router skips, and
+ * Expo layout and framework files. Tests and `.d.ts` files are not in this
+ * list: Expo loads them as routes and TanStack only warns, so one under a
+ * route root fails the check. A mobile `.web` file is skipped because the app
+ * ships only iOS and Android.
  */
 const IGNORED: Readonly<Record<Platform, readonly RegExp[]>> = {
 	web: [
@@ -58,7 +60,8 @@ function isWebPathlessLayout(route: string): boolean {
 		.replace(/\[[^\]]*\]/g, "x") // `[.]well-known` escapes a literal dot
 		.split(/[/.]/);
 	if (tokens.at(-1) === "route") tokens.pop();
-	return tokens.at(-1)?.startsWith("_") ?? false;
+	const last = tokens.at(-1) ?? "";
+	return last !== "__root" && last.startsWith("_"); // a nested `__root` is a route
 }
 
 export function listRouteFiles(
@@ -74,7 +77,7 @@ export function listRouteFiles(
 				walk(full);
 				continue;
 			}
-			if (!ROUTE_EXTENSION.test(entry.name) || entry.name.endsWith(".d.ts")) continue;
+			if (!ROUTE_EXTENSION.test(entry.name)) continue;
 			let route = path.relative(root, full).split(path.sep).join("/").replace(ROUTE_EXTENSION, "");
 			if (ignore.some((pattern) => pattern.test(route))) continue;
 			route = route.replace(platform === "web" ? WEB_LAZY_SUFFIX : MOBILE_PLATFORM_SUFFIX, "");
