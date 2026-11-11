@@ -44,12 +44,17 @@ describe("listRouteFiles", () => {
 			"-components/button.tsx",
 			"routeTree.gen.ts",
 			"types.d.ts",
+			"unlisted.test.tsx",
+			"__tests__/unlisted.tsx",
 		]);
 		expect(listRouteFiles(root, "web")).toEqual([
 			"[.]well-known/$",
+			"__tests__/unlisted",
 			"_app._authed.unlisted",
 			"_app/_authed/dashboard/index",
 			"_app/_authed/log",
+			"routeTree.gen",
+			"unlisted.test",
 		]);
 	});
 
@@ -58,9 +63,9 @@ describe("listRouteFiles", () => {
 		expect(listRouteFiles(root, "mobile")).toEqual(["(app)/_foo"]);
 	});
 
-	it("accepts every route extension and folds mobile platform variants", () => {
-		const root = tree(["a.ts", "b.tsx", "c.js", "d.jsx", "e.mjs", "f.css", "g.ios.tsx", "g.android.tsx", "g.tsx"]);
-		expect(listRouteFiles(root, "web")).toEqual(["a", "b", "c", "d", "g", "g.android", "g.ios"]);
+	it("accepts every route extension, folds native variants, and skips mobile .web files", () => {
+		const root = tree(["a.ts", "b.tsx", "c.js", "d.jsx", "e.mjs", "f.css", "g.ios.tsx", "g.android.tsx", "g.tsx", "h.web.tsx"]);
+		expect(listRouteFiles(root, "web")).toEqual(["a", "b", "c", "d", "g", "g.android", "g.ios", "h.web"]);
 		expect(listRouteFiles(root, "mobile")).toEqual(["a", "b", "c", "d", "g"]);
 	});
 });

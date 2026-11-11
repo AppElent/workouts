@@ -1,7 +1,7 @@
 // From the platform-parity standard (developer-tools), called by
 // scripts/feature-manifest.test.ts. listRouteFiles lists route files under a
 // route root for one platform, relative and without extension, skipping
-// tests, layouts, and framework files. Web pathless layouts (`_app`) are
+// layouts and framework files. Web pathless layouts (`_app`) are
 // skipped; a mobile `_foo` screen is not. checkFeatureManifest returns one
 // message per problem: an unmapped route, a stale pattern, a status that
 // contradicts the platforms, a missing reason, or an exclusive floor feature
@@ -32,21 +32,20 @@ const ROUTE_EXTENSION = /\.(?:ts|tsx|js|jsx)$/;
 /** A TanStack `foo.lazy.tsx` is the code-split half of the `foo` route. */
 const WEB_LAZY_SUFFIX = /\.lazy$/;
 
-/** Expo Router platform variants (`index.ios.tsx`) are the same screen as their base file. */
-const MOBILE_PLATFORM_SUFFIX = /\.(?:ios|android|native|web)$/;
+/** Expo Router native variants (`index.ios.tsx`) are the same screen as their base file. */
+const MOBILE_PLATFORM_SUFFIX = /\.(?:ios|android|native)$/;
 
-/** Files that are not screens on either platform. */
-const SHARED_IGNORED = [/(^|\/)__tests__\//, /\.(test|spec)$/];
-
-/** Per-platform files that are not screens: layouts, generated trees, framework hooks. */
+/**
+ * Files the routers themselves skip. Tests are not in this list: neither router
+ * ignores them, so a test file under a route root fails the check. A mobile
+ * `.web` file is skipped because the app ships only iOS and Android.
+ */
 const IGNORED: Readonly<Record<Platform, readonly RegExp[]>> = {
 	web: [
-		...SHARED_IGNORED,
 		/(^|\/)-/, // TanStack Router ignores files and folders that start with "-"
-		/(^|\/)__root$/,
-		/(^|\/)routeTree\.gen$/,
+		/^__root$/, // only the root-level `__root` is the root route
 	],
-	mobile: [...SHARED_IGNORED, /(^|\/)_layout$/, /(^|\/)\+(html|not-found|native-intent)$/],
+	mobile: [/\.web$/, /(^|\/)_layout$/, /(^|\/)\+(html|not-found|native-intent)$/],
 };
 
 /**
@@ -77,6 +76,7 @@ export function listRouteFiles(
 			}
 			if (!ROUTE_EXTENSION.test(entry.name) || entry.name.endsWith(".d.ts")) continue;
 			let route = path.relative(root, full).split(path.sep).join("/").replace(ROUTE_EXTENSION, "");
+			if (ignore.some((pattern) => pattern.test(route))) continue;
 			route = route.replace(platform === "web" ? WEB_LAZY_SUFFIX : MOBILE_PLATFORM_SUFFIX, "");
 			if (ignore.some((pattern) => pattern.test(route))) continue;
 			if (platform === "web" && isWebPathlessLayout(route)) continue;
