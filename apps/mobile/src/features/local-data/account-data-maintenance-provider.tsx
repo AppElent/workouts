@@ -1,5 +1,4 @@
 import { useAuth, useUser } from "@clerk/expo";
-import { convexErrorMessage } from "@foundry/core";
 import { useMutation } from "convex/react";
 import {
 	createContext,
@@ -21,6 +20,7 @@ import { PrimaryButton } from "../../ui/button";
 import { FormScreen } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
+import { writeFailureMessage } from "../../ui/use-screen-write";
 
 type Request = {
 	mode: "load" | "clear" | "deleteData" | "deleteAccount";
@@ -96,7 +96,7 @@ export function AccountDataMaintenanceProvider({
 			.catch((error) => {
 				const refusals = "refusals" in c ? c.refusals : {};
 				toast.error(
-					convexErrorMessage(error, { ...t.errors, ...refusals }, c.error),
+					writeFailureMessage(error, { ...t.errors, ...refusals }, c.error),
 				);
 				setRequest(null);
 			})

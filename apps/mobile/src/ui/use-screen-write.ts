@@ -1,18 +1,29 @@
+import { type AppErrorMessages, convexErrorMessage } from "@foundry/core";
 import { ConvexError } from "convex/values";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useConvexErrorMessage } from "../i18n/errors";
+import { useI18n } from "../i18n";
 import { useToast } from "./toast";
 
 /**
- * What a failed save shows: the catalog's or server's explanation of a Convex
+ * What a failed write shows: the catalog's or server's explanation of a Convex
  * error, else the screen's own message. Local errors carry English text.
  */
+export function writeFailureMessage(
+	error: unknown,
+	messages: AppErrorMessages,
+	fallback: string,
+) {
+	return error instanceof ConvexError
+		? convexErrorMessage(error, messages, fallback)
+		: fallback;
+}
+
 export function useWriteFailureMessage() {
-	const errorMessage = useConvexErrorMessage();
+	const { errors } = useI18n().t;
 	return useCallback(
 		(error: unknown, fallback: string) =>
-			error instanceof ConvexError ? errorMessage(error, fallback) : fallback,
-		[errorMessage],
+			writeFailureMessage(error, errors, fallback),
+		[errors],
 	);
 }
 

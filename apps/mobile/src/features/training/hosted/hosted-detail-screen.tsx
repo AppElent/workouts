@@ -8,7 +8,7 @@
 import { formatScore, hostedLevelLabel, sortLeaderboard } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
@@ -26,15 +26,13 @@ import { Card, Chip, Eyebrow } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
-import { useToast } from "../../../ui/toast";
-import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 import { formatHostedPrescription } from "./hosted-prescription";
 
 export function HostedDetailScreen() {
-	const errorMessage = useWriteFailureMessage();
+	const write = useScreenWrite();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
-	const toast = useToast();
 	const confirm = useConfirm();
 	const { locale, t } = useI18n();
 	const copy = t.hosted;
@@ -49,19 +47,7 @@ export function HostedDetailScreen() {
 	const openWorkout = useMutation(api.hostedWorkouts.open);
 	const closeWorkout = useMutation(api.hostedWorkouts.close);
 	const removeWorkout = useMutation(api.hostedWorkouts.remove);
-	const [busy, setBusy] = useState(false);
-
-	const run = async (action: () => Promise<unknown>, fallback: string) => {
-		if (busy) return;
-		setBusy(true);
-		try {
-			await action();
-		} catch (error) {
-			toast.error(errorMessage(error, fallback));
-		} finally {
-			setBusy(false);
-		}
-	};
+	const busy = write.busy;
 
 	const close = async () => {
 		const confirmed = await confirm({
@@ -71,7 +57,7 @@ export function HostedDetailScreen() {
 		});
 		if (!confirmed) return;
 		if (!hostedId) return;
-		await run(() => closeWorkout({ id: hostedId }), copy.closeError);
+		await write.run(copy.closeError, () => closeWorkout({ id: hostedId }));
 	};
 
 	const remove = async () => {
@@ -82,15 +68,11 @@ export function HostedDetailScreen() {
 			destructive: true,
 		});
 		if (!confirmed || !hostedId) return;
-		setBusy(true);
-		try {
+		const removed = await write.run(copy.deleteError, async () => {
 			await removeWorkout({ id: hostedId });
-			router.back();
-		} catch (error) {
-			toast.error(errorMessage(error, copy.deleteError));
-		} finally {
-			setBusy(false);
-		}
+			return true;
+		});
+		if (removed) router.back();
 	};
 
 	if (data === undefined) {
@@ -191,7 +173,7 @@ export function HostedDetailScreen() {
 						accessibilityState={{ disabled: busy }}
 						onPress={() =>
 							hostedId &&
-							run(() => openWorkout({ id: hostedId }), copy.openError)
+							write.run(copy.openError, () => openWorkout({ id: hostedId }))
 						}
 						disabled={busy}
 						style={[styles.primaryBtn, busy && styles.dimmed]}
@@ -367,11 +349,6 @@ const createStyles = (colors: Tokens) =>
 			borderColor: colors.borderStrong,
 			alignItems: "center",
 			justifyContent: "center",
-		},
-		ghostText: {
-			fontSize: type.footnote.fontSize,
-			fontWeight: "800",
-			color: colors.text,
 		},
 		deleteText: {
 			fontSize: type.footnote.fontSize,
