@@ -8,15 +8,17 @@ import {
 } from "@foundry/core";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
+import { useState } from "react";
 import { z } from "zod";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required"),
 	muscleGroupsRaw: z.string().min(1, "At least one muscle group required"),
 	category: z.enum(EXERCISE_CATEGORIES),
 	equipment: z.enum(EQUIPMENT),
-	notes: z.string().optional(),
-	weightIncrement: z.number().positive().optional(),
+	notes: z.string(),
+	weightIncrement: z.number().positive().or(z.undefined()),
 });
 
 export function AddExerciseForm({
@@ -25,6 +27,8 @@ export function AddExerciseForm({
 	onSuccess?: () => void;
 } = {}) {
 	const createExercise = useMutation(api.exercises.create);
+	const errorMessage = useConvexErrorMessage();
+	const [submitError, setSubmitError] = useState<string | null>(null);
 
 	const form = useForm({
 		defaultValues: {
@@ -35,20 +39,26 @@ export function AddExerciseForm({
 			notes: "",
 			weightIncrement: undefined as number | undefined,
 		},
+		validators: { onSubmit: schema },
 		onSubmit: async ({ value }) => {
-			const parsed = schema.parse(value);
-			const muscleGroups = parsed.muscleGroupsRaw
+			setSubmitError(null);
+			const muscleGroups = value.muscleGroupsRaw
 				.split(",")
 				.map((s) => s.trim().toLowerCase())
 				.filter(Boolean);
-			await createExercise({
-				name: parsed.name,
-				muscleGroups,
-				category: parsed.category,
-				equipment: parsed.equipment,
-				notes: parsed.notes || undefined,
-				weightIncrement: parsed.weightIncrement,
-			});
+			try {
+				await createExercise({
+					name: value.name,
+					muscleGroups,
+					category: value.category,
+					equipment: value.equipment,
+					notes: value.notes || undefined,
+					weightIncrement: value.weightIncrement,
+				});
+			} catch (error) {
+				setSubmitError(errorMessage(error, "Couldn't add exercise."));
+				return;
+			}
 			form.reset();
 			onSuccess?.();
 		},
@@ -82,11 +92,7 @@ export function AddExerciseForm({
 								placeholder="e.g. Cable Lateral Raise"
 								required
 							/>
-							{field.state.meta.errors.length > 0 && (
-								<p className="text-xs text-[var(--danger)]">
-									{String(field.state.meta.errors[0])}
-								</p>
-							)}
+							<FieldError message={field.state.meta.errors[0]?.message} />
 						</div>
 					)}
 				</form.Field>
@@ -108,6 +114,7 @@ export function AddExerciseForm({
 								placeholder="e.g. side delts, traps"
 								required
 							/>
+							<FieldError message={field.state.meta.errors[0]?.message} />
 						</div>
 					)}
 				</form.Field>
@@ -222,14 +229,29 @@ export function AddExerciseForm({
 				</form.Field>
 			</div>
 
-			<div className="flex justify-end">
-				<button
-					type="submit"
-					className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
-				>
-					Add Exercise
-				</button>
+			<div className="flex items-center justify-end gap-3">
+				{submitError && (
+					<p role="alert" className="text-xs text-[var(--danger)]">
+						{submitError}
+					</p>
+				)}
+				<form.Subscribe selector={(s) => s.isSubmitting}>
+					{(submitting) => (
+						<button
+							type="submit"
+							disabled={submitting}
+							className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
+						>
+							Add Exercise
+						</button>
+					)}
+				</form.Subscribe>
 			</div>
 		</form>
 	);
+}
+
+function FieldError({ message }: { message: string | undefined }) {
+	if (!message) return null;
+	return <p className="text-xs text-[var(--danger)]">{message}</p>;
 }
