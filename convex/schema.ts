@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { exerciseReference } from "./lib/exerciseCatalog";
 import { exerciseMigrationTable } from "./lib/exerciseMigrationModel";
+import { operationReceiptKind } from "./lib/operationReceipts";
 import { strengthReferenceSnapshots } from "./lib/strengthReferences";
 import { nutritionAiTables } from "./nutritionAiTables";
 import { diarySnapshotFields } from "./nutritionDiaryModel";
@@ -206,6 +207,15 @@ export default defineSchema({
 		operationId: v.string(),
 		payload: v.string(),
 		setId: v.id("sets"),
+	}).index("by_user_operation", ["userId", "operationId"]),
+
+	/** Retry receipts for create mutations that take an optional operationId. */
+	operationReceipts: defineTable({
+		userId: v.string(),
+		operationId: v.string(),
+		kind: operationReceiptKind,
+		payload: v.string(),
+		resultId: v.string(),
 	}).index("by_user_operation", ["userId", "operationId"]),
 
 	oneRepMaxes: defineTable({

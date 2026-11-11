@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }
@@ -38,7 +39,7 @@ const wodFields = {
 export const list = query({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		const defaults = await ctx.db
 			.query("wods")
 			.withIndex("by_default", (q) => q.eq("isDefault", true))
@@ -59,7 +60,7 @@ export const list = query({
 export const getById = query({
 	args: { id: v.id("wods") },
 	handler: async (ctx, { id }) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		const wod = await ctx.db.get(id);
 		if (!wod) return null;
 		if (wod.isDefault) return wod;

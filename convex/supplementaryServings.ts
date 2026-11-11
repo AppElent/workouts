@@ -3,6 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 
 const unit = v.union(v.literal("g"), v.literal("ml"));
 const serving = v.object({
@@ -19,7 +20,7 @@ const input = {
 	unit,
 };
 async function owner(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }

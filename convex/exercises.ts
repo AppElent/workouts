@@ -6,6 +6,7 @@ import {
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	exerciseDocument,
 	exerciseReference,
@@ -14,7 +15,7 @@ import {
 } from "./lib/exerciseCatalog";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }
@@ -26,7 +27,7 @@ export const list = query({
 		v.object({ ...exerciseDocument.fields, _id: exerciseReference }),
 	),
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		if (!identity) return mergeExerciseCatalog([]);
 		const userExercises = await ctx.db
 			.query("exercises")
@@ -41,7 +42,7 @@ export const listPersonal = query({
 	args: { paginationOpts: paginationOptsValidator },
 	returns: paginationResultValidator(exerciseDocument),
 	handler: async (ctx, { paginationOpts }) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		if (!identity) return { page: [], isDone: true, continueCursor: "" };
 		return ctx.db
 			.query("exercises")
@@ -57,7 +58,7 @@ export const getById = query({
 		v.object({ ...exerciseDocument.fields, _id: exerciseReference }),
 	),
 	handler: async (ctx, { id }) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		return resolveExercise(ctx, id, identity?.subject);
 	},
 });

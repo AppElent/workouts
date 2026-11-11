@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	exerciseReference,
 	normalizeExerciseTemplate,
@@ -11,7 +12,7 @@ import { toPublicHostedTemplate } from "./lib/hostedDto";
 import { hostedSessionExercises } from "./lib/strengthSession";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new ConvexError("Unauthenticated");
 	return identity.subject;
 }

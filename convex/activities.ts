@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 
 const activitySport = v.union(
 	v.literal("strength"),
@@ -239,7 +240,7 @@ export const list = query({
 		isDone: v.boolean(),
 	}),
 	handler: async (ctx, { sport, from, to, cursor, limit = 20 }) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity = await getIdentity(ctx);
 		if (!identity) throw new Error("Unauthenticated");
 		if (
 			(from !== undefined && !Number.isSafeInteger(from)) ||

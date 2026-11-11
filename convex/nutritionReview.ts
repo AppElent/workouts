@@ -5,6 +5,7 @@ import {
 } from "@foundry/core";
 import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
 import {
 	type EffectiveGoalVersion,
 	type NutritionGoal,
@@ -18,7 +19,7 @@ import {
 const MAX_ENTRIES_PER_DAY = 500;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 async function requireUser(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }

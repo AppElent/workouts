@@ -1,10 +1,12 @@
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getIdentity } from "./lib/connectedApps";
+import { withOperationReceipt } from "./lib/operationReceipts";
 import { assertOptionalRange } from "./lib/validate";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const identity = await getIdentity(ctx);
 	if (!identity) throw new Error("Unauthenticated");
 	return identity.subject;
 }
@@ -44,6 +46,7 @@ export const latest = query({
 
 export const add = mutation({
 	args: {
+		operationId: v.optional(v.string()),
 		date: v.optional(v.number()),
 		weight: v.optional(v.number()),
 		unit: v.union(v.literal("kg"), v.literal("lbs")),
@@ -51,7 +54,7 @@ export const add = mutation({
 		measurements: measurementsValidator,
 		notes: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, { operationId, ...args }) => {
 		const userId = await requireUser(ctx);
 		assertOptionalRange(args.weight, 1, 1000, "Weight");
 		assertOptionalRange(args.bodyFatPct, 1, 75, "Body fat %");
@@ -66,15 +69,21 @@ export const add = mutation({
 		) {
 			throw new Error("Enter at least one measurement.");
 		}
-		return ctx.db.insert("bodyMetrics", {
+		return withOperationReceipt(
+			ctx,
 			userId,
-			date: args.date ?? Date.now(),
-			weight: args.weight,
-			unit: args.unit,
-			bodyFatPct: args.bodyFatPct,
-			measurements: args.measurements,
-			notes: args.notes,
-		});
+			{ operationId, kind: "bodyMetric", payload: args },
+			() =>
+				ctx.db.insert("bodyMetrics", {
+					userId,
+					date: args.date ?? Date.now(),
+					weight: args.weight,
+					unit: args.unit,
+					bodyFatPct: args.bodyFatPct,
+					measurements: args.measurements,
+					notes: args.notes,
+				}),
+		);
 	},
 });
 
