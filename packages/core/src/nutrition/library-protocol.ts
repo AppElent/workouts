@@ -1,14 +1,4 @@
-/**
- * The personal library sync protocol between the device and Convex. The server
- * stamps every write with LIBRARY_SCHEMA_VERSION; stored rows written by older
- * builds may still carry any version in LIBRARY_SCHEMA_VERSIONS.
- */
-export const LIBRARY_SCHEMA_VERSIONS = [1, 2, 3] as const;
-type LibrarySchemaVersion = (typeof LIBRARY_SCHEMA_VERSIONS)[number];
-
-/** Version 3 payloads may carry account photos (stored or remote visuals). */
-export const LIBRARY_SCHEMA_VERSION = 3 satisfies LibrarySchemaVersion;
-
+/** The personal library sync protocol between the device and Convex. */
 export const LIBRARY_RECORD_KINDS = ["food", "combo"] as const;
 export type LibraryRecordKind = (typeof LIBRARY_RECORD_KINDS)[number];
 

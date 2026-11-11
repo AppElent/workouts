@@ -1,6 +1,5 @@
 import {
 	LIBRARY_GET_MANY_LIMIT,
-	LIBRARY_SCHEMA_VERSION,
 	normalizeCombo,
 	normalizePersonalFood,
 	type PersonalFood,
@@ -17,18 +16,13 @@ import { appError, withRuleErrors } from "./lib/errors";
 import { requireFoodPhotoOwner } from "./lib/foodPhotos";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { withOperationReceipt } from "./lib/operationReceipt";
-import {
-	libraryCategory,
-	libraryRecordKind,
-	librarySchemaVersion,
-} from "./lib/validators";
+import { libraryCategory, libraryRecordKind } from "./lib/validators";
 
 const MAX_PAYLOAD_LENGTH = 200_000;
 const MAX_RECORD_ID_LENGTH = 512;
 
 const libraryRecord = v.object({
 	subject: v.optional(v.string()),
-	schemaVersion: v.optional(librarySchemaVersion),
 	id: v.string(),
 	kind: libraryRecordKind,
 	payload: v.union(v.string(), v.null()),
@@ -39,12 +33,7 @@ const libraryRecord = v.object({
 type RecordKind = Doc<"nutritionLibraryRecords">["recordKind"];
 type StoredRecord = Pick<
 	Doc<"nutritionLibraryRecords">,
-	| "recordId"
-	| "recordKind"
-	| "payload"
-	| "schemaVersion"
-	| "revision"
-	| "deleted"
+	"recordId" | "recordKind" | "payload" | "revision" | "deleted"
 >;
 
 /**
@@ -101,7 +90,6 @@ async function serveRecord(
 ) {
 	const record = {
 		id: row.recordId,
-		schemaVersion: row.schemaVersion ?? 1,
 		kind: row.recordKind,
 		payload: row.payload ?? null,
 		revision: row.revision,
@@ -197,7 +185,6 @@ export const save = mutation({
 					userId,
 					recordId: target.id,
 					recordKind: target.kind,
-					schemaVersion: LIBRARY_SCHEMA_VERSION,
 					revision: (current?.revision ?? 0) + 1,
 					deleted: operation.kind === "remove",
 					...(payload === undefined ? {} : { payload }),
