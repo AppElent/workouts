@@ -1,4 +1,4 @@
-import type { ActivitySport } from "@foundry/core";
+import { ACTIVITY_SPORTS, type ActivitySport } from "@foundry/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -14,11 +14,7 @@ import { useActivityPages } from "./use-activity-pages";
 export function ActivityHistoryScreen() {
 	const params = useLocalSearchParams<{ sport?: string }>();
 	const [sport, setSport] = useState<ActivitySport | "all">(
-		params.sport === "running" ||
-			params.sport === "cycling" ||
-			params.sport === "strength"
-			? params.sport
-			: "all",
+		() => ACTIVITY_SPORTS.find((sport) => sport === params.sport) ?? "all",
 	);
 	const { t } = useI18n();
 	const copy = t.activity;

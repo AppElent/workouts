@@ -1,4 +1,4 @@
-import { enduranceTotals } from "@foundry/core";
+import { enduranceTotals, formatClock } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
@@ -13,7 +13,7 @@ import {
 	SkeletonList,
 } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
-import { ActivityRow, activityDuration } from "../activity/activity-row";
+import { ActivityRow } from "../activity/activity-row";
 import { activityWeek } from "../activity/activity-week";
 import { useActivityPages } from "../activity/use-activity-pages";
 
@@ -53,7 +53,7 @@ export function HomeScreen() {
 				<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
 					<StatBox value={String(totals.count)} label={copy.activities} />
 					<StatBox
-						value={activityDuration(totals.durationSeconds)}
+						value={formatClock(totals.durationSeconds)}
 						label={copy.duration}
 					/>
 				</View>
