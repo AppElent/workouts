@@ -158,7 +158,7 @@ export function StrengthProfileScreen() {
 		close();
 	}
 	const customValue = parseLocalizedDecimal(customText) ?? Number.NaN;
-	const estimate = row ? rowOneRepMax(row, facts.bodyweight) : null;
+	const estimate = row ? rowOneRepMax(row, facts) : null;
 	return (
 		<>
 			<Stack.Screen options={screenOptions} />

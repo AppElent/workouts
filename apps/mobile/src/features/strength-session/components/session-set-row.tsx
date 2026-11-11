@@ -16,6 +16,7 @@ import { AppText } from "../../../ui/text";
 import { workspaceStore } from "../data/session-workspace";
 import { formatNumber, formatSetShort } from "../session-format";
 import {
+	type ExerciseFacts,
 	groupOfRow,
 	type PlanSet,
 	referenceFor,
@@ -32,10 +33,10 @@ export const useLargeText = () => useWindowDimensions().fontScale >= 1.35;
 
 function oneRmText(
 	row: PlanSet,
-	bodyweight: boolean,
+	facts: ExerciseFacts,
 	locale: string,
 ): string | null {
-	const estimate = rowOneRepMax(row, bodyweight);
+	const estimate = rowOneRepMax(row, facts);
 	if (!estimate) return null;
 	return row.reps === 1
 		? formatNumber(shownLoad(row), locale)
@@ -73,7 +74,7 @@ export function useRowFacts(row: PlanSet) {
 				: `${formatNumber(percent, locale, 1)}%`,
 		pending,
 		loadText,
-		oneRm: oneRmText(row, facts.bodyweight, locale),
+		oneRm: oneRmText(row, facts, locale),
 	};
 }
 function useRowActions(row: PlanSet) {

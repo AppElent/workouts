@@ -201,7 +201,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (seconds !== null) rest.start(seconds, restBody());
 			if (record) haptics.sessionSuccess();
 			else haptics.setLogged();
-			const rm = rowOneRepMax(row, facts.bodyweight);
+			const rm = rowOneRepMax(row, facts);
 			const load = shortLoad(row);
 			let text: string;
 			if (record?.kind === "measured")
@@ -409,7 +409,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					});
 					set(updateRow(plan(), rowId, next));
 				});
-				const rm = rowOneRepMax(draft, facts.bodyweight);
+				const rm = rowOneRepMax(draft, facts);
 				say(
 					rm
 						? fmt(copy.toastEdited, {

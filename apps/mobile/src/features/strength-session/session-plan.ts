@@ -10,6 +10,8 @@ import {
 	calculateOneRepMax,
 	convertLoad,
 	DEFAULT_REST_SECONDS,
+	type Equipment,
+	isReferenceEligible,
 	type LoadUnit,
 	roundLoad,
 	type SetType,
@@ -104,6 +106,8 @@ export interface SessionPlan {
 }
 
 export interface ExerciseFacts {
+	/** Unknown while the catalog loads or after the exercise was deleted. */
+	exercise: { readonly equipment: Equipment } | null;
 	bodyweight: boolean;
 	stepKg: number;
 	measured: number | null;
@@ -132,14 +136,15 @@ function newRowId() {
 const near = (a: number, b: number) => Math.abs(a - b) < EPSILON;
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-/** Lbs always land on a 5 lb step; kg on the exercise's own step. */
+const LB_STEP = 5;
+/** Lbs always step by 5 lb; kg by the exercise's own step. */
+export function loadStep(unit: LoadUnit, stepKg: number) {
+	return unit === "lbs" ? LB_STEP : stepKg;
+}
+const nearestLbStep = (kg: number) =>
+	Math.round(convertLoad(kg, "kg", "lbs") / LB_STEP) * LB_STEP;
 export function snapLoad(kg: number, stepKg: number, unit: LoadUnit = "kg") {
-	if (unit === "lbs")
-		return convertLoad(
-			Math.round(convertLoad(kg, "kg", "lbs") / 5) * 5,
-			"lbs",
-			"kg",
-		);
+	if (unit === "lbs") return convertLoad(nearestLbStep(kg), "lbs", "kg");
 	return roundLoad(kg, stepKg);
 }
 /** The number shown for a set, in the set's own unit. */
@@ -169,8 +174,7 @@ export function stepLoad(
 ): PlanSet {
 	const floor = facts.bodyweight ? 0 : facts.stepKg;
 	if (row.unit === "lbs") {
-		const pounds =
-			Math.round(convertLoad(row.kg, "kg", "lbs") / 5) * 5 + 5 * direction;
+		const pounds = nearestLbStep(row.kg) + LB_STEP * direction;
 		const kg = convertLoad(pounds, "lbs", "kg");
 		return kg < floor - EPSILON
 			? row
@@ -266,13 +270,17 @@ export function shownPercent(
 		Math.round((row.kg / reference.value) * 100)
 	);
 }
-/** The server's reference rule: any set type, but no misses or bodyweight sets. */
+/** A set being logged now is verified, so only the server's reference rule decides. */
 export function rowOneRepMax(
 	row: Pick<PlanSet, "kg" | "reps">,
-	bodyweight: boolean,
+	facts: Pick<ExerciseFacts, "exercise">,
 ) {
-	if (bodyweight || row.reps < 1 || !(row.kg > 0)) return null;
-	return calculateOneRepMax(row.kg, row.reps);
+	return isReferenceEligible(
+		{ weight: row.kg, reps: row.reps, performanceVerified: true },
+		facts.exercise,
+	)
+		? calculateOneRepMax(row.kg, row.reps)
+		: null;
 }
 
 const groupRows = (group: SetGroup) => group.rounds.flatMap((r) => r.items);
@@ -973,7 +981,7 @@ export function bestToday(
 	let estimated: number | null = null;
 	for (const row of rowsOf(plan, exerciseId)) {
 		if (!row.done || row.id === exceptId) continue;
-		const rm = rowOneRepMax(row, facts.bodyweight);
+		const rm = rowOneRepMax(row, facts);
 		if (!rm) continue;
 		if (row.reps === 1) measured = Math.max(measured ?? 0, rm.value);
 		else estimated = Math.max(estimated ?? 0, rm.value);
@@ -1046,7 +1054,10 @@ export function typoCheck(
 			: null;
 	if (row.reps === 1 && known.measured !== null) return low;
 	const top = Math.max(known.estimated ?? 0, known.measured ?? 0, manualValue);
-	const implied = rowOneRepMax(row, false)?.value ?? 0;
+	const implied =
+		row.reps >= 1 && row.kg > 0
+			? calculateOneRepMax(row.kg, row.reps).value
+			: 0;
 	if (top > 0 && implied > top * 1.25)
 		return {
 			kind: "kg",
@@ -2139,7 +2150,7 @@ export function newRecordFor(
 	value: number;
 	was: number | null;
 } | null {
-	const rm = rowOneRepMax(row, facts.bodyweight);
+	const rm = rowOneRepMax(row, facts);
 	if (!rm) return null;
 	const known = bestKnown(plan, row.exerciseId, facts, row.id);
 	if (row.reps === 1) {

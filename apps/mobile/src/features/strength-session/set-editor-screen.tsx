@@ -66,6 +66,7 @@ import {
 	findRow,
 	groupOfRow,
 	isValidRow,
+	loadStep,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -314,7 +315,7 @@ export function SetEditorScreen() {
 				Number(repsText) < 0));
 	const check = valid && !midType ? typoCheck(plan, row, facts, stored) : null;
 	const others = bestKnown(plan, row.exerciseId, facts, row.id);
-	const estimate = rowOneRepMax(row, bodyweight);
+	const estimate = rowOneRepMax(row, facts);
 	const target = targetPercent(row, reference, facts.stepKg);
 	const custom = target !== null && !PRESETS.includes(target);
 	const clockIdle =
@@ -564,8 +565,7 @@ export function SetEditorScreen() {
 		actions.logReady(row.id);
 		close();
 	}
-	const loadStep = row.unit === "lbs" ? 5 : facts.stepKg;
-	const stepLabel = formatNumber(loadStep, locale);
+	const stepLabel = formatNumber(loadStep(row.unit, facts.stepKg), locale);
 	const onLoadText = (value: string) => {
 		setLoadText(value);
 		if (value.trim() === "") return;

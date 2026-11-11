@@ -232,6 +232,7 @@ export function factsFrom(
 ): ExerciseFacts {
 	const manual = toKg(references?.manual);
 	return {
+		exercise: exercise ?? null,
 		bodyweight: exercise ? !isLoadedEquipment(exercise.equipment) : false,
 		stepKg: getWeightStep(
 			exercise?.equipment ?? "barbell",
