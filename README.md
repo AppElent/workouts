@@ -33,14 +33,6 @@ Worktrees share the dev Convex deployment; create an isolated one with
 scripts are in [verification](docs/runbooks/verification.md); mobile builds,
 TestFlight, and OTA updates are in [mobile releases](docs/runbooks/mobile-releases.md).
 
-## CLI
-
-```bash
-pnpm foundry --help
-pnpm foundry config set api-url http://localhost:3000
-pnpm foundry auth login            # browser flow; --token <token> as fallback
-```
-
 ## Deployment
 
 Cloudflare Workers via Wrangler (`wrangler.jsonc` defines production, `staging`,

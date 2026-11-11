@@ -1,9 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
-	foodSnapshot,
-	getShippedFood,
-	type LibraryFood,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
@@ -13,9 +10,14 @@ import {
 	personalFoodServingOptions,
 	type ServingOption,
 	type ShippedFoodId,
-	searchShippedFoods,
 	servingOptions,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import {
+	foodSnapshot,
+	getShippedFood,
+	type LibraryFood,
+	searchShippedFoods,
+} from "@foundry/core/shipped-foods";
 import { z } from "zod";
 import {
 	defineTool,
@@ -155,21 +157,17 @@ async function createEntry(
 ) {
 	const clientEntryId = `mcp:${idempotencyKey}`;
 	const result = await backend.mutation(api.nutritionDiary.applyOperation, {
-		version: 1,
 		operationId: clientEntryId,
 		expectedSubject: userId,
 		operation: {
 			kind: "create",
 			entry: { ...entry, clientEntryId } as never,
 		},
-		includeDays: true,
 	});
-	const days = result.days as Parameters<typeof diaryDay>[0][];
-	const day = days.find((candidate) => candidate.date === entry.date);
-	return {
-		entryId: result.entryIds[0],
-		day: day ? diaryDay(day) : undefined,
-	};
+	const day = await backend.query(api.nutritionDiary.day, {
+		date: entry.date,
+	});
+	return { entryId: result.entryIds[0], day: diaryDay(day as never) };
 }
 
 export const nutritionTools = [
@@ -353,7 +351,6 @@ export const nutritionTools = [
 					"Change at least one of date, meal, quantity.",
 				);
 			await backend.mutation(api.nutritionDiary.applyOperation, {
-				version: 1,
 				operationId: `mcp:${idempotencyKey}`,
 				expectedSubject: access.userId,
 				operation: {

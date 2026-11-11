@@ -62,6 +62,21 @@ function sessionSummary(session: {
 	};
 }
 
+/** The app finishes regardless; an agent confirms leaving planned Sets first. */
+async function hasUnloggedTargets(
+	backend: FoundryBackend,
+	id: Id<"workoutSessions">,
+) {
+	const session = await backend.query(api.workoutSessions.getById, { id });
+	if (!session) throw new ToolInputError("Strength Session not found.");
+	const sets = await backend.query(api.sets.listForSession, { sessionId: id });
+	return (session.exercises ?? []).some(
+		(exercise) =>
+			sets.filter((set) => set.exerciseId === exercise.exerciseId).length <
+			exercise.plannedSets.length,
+	);
+}
+
 async function sessionWithSets(backend: FoundryBackend, id: string) {
 	const session = await backend.query(api.workoutSessions.getById, {
 		id: id as Id<"workoutSessions">,
@@ -141,13 +156,14 @@ export const strengthTools = [
 		name: "get_exercise_volume",
 		title: "Get exercise volume",
 		description:
-			"Return weekly training volume (reps × load) for one Exercise.",
+			"Return weekly work volume (reps × load in kg, warm-ups excluded, ISO weeks in UTC) for one Exercise.",
 		access: "read",
 		input: { exerciseId },
 		async run({ exerciseId }, { backend }) {
 			return {
 				weeks: await backend.query(api.progress.weeklyVolume, {
 					exerciseId,
+					utcOffsetMinutes: 0,
 				}),
 			};
 		},
@@ -315,7 +331,7 @@ export const strengthTools = [
 		name: "finish_strength_session",
 		title: "Finish strength session",
 		description:
-			"Finish an active Strength Session. Exercises without logged Sets are kept unless discardUnfinished is true.",
+			"Finish an active Strength Session. While planned Sets are still unlogged it refuses unless discardUnfinished is true.",
 		access: "write",
 		annotations: { idempotentHint: true },
 		input: {
@@ -323,10 +339,12 @@ export const strengthTools = [
 			discardUnfinished: z.boolean().optional(),
 		},
 		async run({ sessionId, discardUnfinished }, { backend }) {
-			await backend.mutation(api.workoutSessions.finish, {
-				id: sessionId as Id<"workoutSessions">,
-				discardUnfinished,
-			});
+			const id = sessionId as Id<"workoutSessions">;
+			if (!discardUnfinished && (await hasUnloggedTargets(backend, id)))
+				throw new ToolInputError(
+					"Some planned Sets are not logged yet. Confirm with the user, then finish with discardUnfinished: true.",
+				);
+			await backend.mutation(api.workoutSessions.finish, { id });
 			return { session: await sessionWithSets(backend, sessionId) };
 		},
 	}),

@@ -1,3 +1,5 @@
+export { NutritionRouteError as ErrorBoundary } from "../../../src/features/nutrition/components/nutrition-route-error";
+
 /**
  * A Personal Food or recipe opened from the Library: pushed, with its own
  * header and back gesture instead of a screen inside a screen.
@@ -6,8 +8,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { usePersonalFoods } from "../../../src/data/personal-foods";
 import { PersonalFoodEditor } from "../../../src/features/nutrition/personal-food/personal-food-editor";
-
-export { ErrorBoundary } from "../nutrition-library";
 
 /** Deep links can open the editor with nothing beneath it. */
 const leave = () =>

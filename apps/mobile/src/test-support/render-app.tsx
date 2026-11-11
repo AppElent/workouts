@@ -1,12 +1,55 @@
+/**
+ * How the screen tests mount the app.
+ *
+ * `renderRouter` can be pointed at the real `app/` directory, but it then loads
+ * every route in the tree, which drags the chart library, the Convex client
+ * and the whole session stack into a test about a meal slot. So the tests mount
+ * a subset: the route modules listed below, loaded from `app/` by name so a
+ * renamed or deleted route fails here, under the app's own data providers.
+ *
+ * The route *modules* are passed rather than their default exports, so a
+ * route's `ErrorBoundary` is registered here exactly as expo-router registers
+ * it in the app.
+ */
+
+import {
+	useConvex,
+	useMutation,
+	usePaginatedQuery,
+	useQuery,
+} from "convex/react";
+import { getFunctionName } from "convex/server";
+import { Stack } from "expo-router";
+import { renderRouter } from "expo-router/testing-library";
+import type { ReactNode } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { z } from "zod";
+import { type AppDataOverrides, AppDataProviders } from "../app-data-providers";
 import type { Id } from "../convex/api";
-
-const photoStorageId = z.custom<Id<"_storage">>(
-	(value) => typeof value === "string",
-);
-
-import { RestTimerProvider } from "../features/strength-session/components/rest-timer";
-import { SetDraftsProvider } from "../features/strength-session/data/set-drafts";
+import {
+	createFoodShortcutRepository,
+	type FoodShortcutRepository,
+} from "../data/food-shortcut-repository";
+import type { FetchLike } from "../data/open-food-facts";
+import { createOpenFoodFactsCache } from "../data/open-food-facts-cache";
+import { LocaleProvider } from "../i18n";
+import { AppearanceProvider } from "../theme";
+import { ConfirmProvider } from "../ui/confirm-dialog";
+import { ToastProvider } from "../ui/toast";
+import { installAccountTransport } from "./account-transport";
+import {
+	type CaptureDraftFixture,
+	createCaptureDraftFixture,
+} from "./capture-draft-fixture";
+import {
+	createLibraryFixture,
+	type LibraryFixture,
+	libraryRecordFromCombo,
+	libraryRecordFromFood,
+} from "./library-fixture";
+import { startMockLayers, underlying, wrapping } from "./mock-layers";
+import { NativeAlertHost } from "./native-alert-host";
+import { SQLiteTestDatabase } from "./sqlite-test-database";
 
 jest.mock("../features/nutrition/day-goals/components/goal-row-menu", () =>
 	jest.requireActual(
@@ -16,107 +59,67 @@ jest.mock("../features/nutrition/day-goals/components/goal-row-menu", () =>
 // Exercise the public RN row contract here; native adapter wiring has dedicated tests and simulator acceptance.
 jest.mock("../ui/inset-list", () => jest.requireActual("../ui/inset-list.tsx"));
 
-import {
-	useConvex,
-	useMutation,
-	usePaginatedQuery,
-	useQuery,
-} from "convex/react";
-import { getFunctionName } from "convex/server";
-/**
- * How the screen tests mount the app.
- *
- * `renderRouter` can be pointed at the real `app/` directory, and that is the
- * truest thing it can do — but it then loads every route in the tree, which
- * drags the chart library, the Convex client and the whole session stack into a
- * test about a meal slot. So the map below is the tree the Nutrition work
- * actually spans: the real route modules — the tab plus the four Nutrition
- * sub-screens now pushed over it — the real Profile route they are
- * reached from, and a layout carrying the three providers those screens need
- * — `ConfirmProvider` included, since #73's delete confirmation is real UI
- * under test here, not a mock.
- *
- * The route *modules* are passed rather than their default exports, so a
- * route's `ErrorBoundary` is registered here exactly as expo-router registers
- * it in the app. Nothing is stubbed in between: this is the real router, the
- * real screens, the real locale provider, driven through user-visible actions.
- */
-import { Stack } from "expo-router";
-import { renderRouter } from "expo-router/testing-library";
-import type { ReactNode } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import * as NutritionRoute from "../../app/(app)/(coach)/nutrition";
-import * as ProfileRoute from "../../app/(app)/(coach)/profile";
-import * as AppearanceRoute from "../../app/(app)/appearance";
-import * as LabsRoute from "../../app/(app)/labs";
-import * as LabsEntryRoute from "../../app/(app)/labs-entry";
-import * as LabsFoodRoute from "../../app/(app)/labs-food";
-import * as LanguageRoute from "../../app/(app)/language";
-import * as NutritionAssistanceRoute from "../../app/(app)/nutrition-assistance";
-import * as NutritionComboRoute from "../../app/(app)/nutrition-combo/[id]";
-import * as NutritionComboLogRoute from "../../app/(app)/nutrition-combo-log";
-import * as NutritionComboNewRoute from "../../app/(app)/nutrition-combo-new";
-import * as NutritionComboPartRoute from "../../app/(app)/nutrition-combo-part";
-import * as NutritionDayGoalsRoute from "../../app/(app)/nutrition-day-goals";
-import * as NutritionEntryRoute from "../../app/(app)/nutrition-entry";
-import * as NutritionEntryCorrectionRoute from "../../app/(app)/nutrition-entry-correction";
-import * as NutritionEntryTransferRoute from "../../app/(app)/nutrition-entry-transfer";
-import * as NutritionFoodRoute from "../../app/(app)/nutrition-food";
-import * as NutritionFoodDetailsRoute from "../../app/(app)/nutrition-food-details";
-import * as NutritionGoalsRoute from "../../app/(app)/nutrition-goals";
-import * as NutritionLibraryRoute from "../../app/(app)/nutrition-library";
-import * as NutritionLibraryAttentionRoute from "../../app/(app)/nutrition-library-attention";
-import * as NutritionNutrientSourcesRoute from "../../app/(app)/nutrition-nutrient-sources";
-import * as NutritionOneOffRoute from "../../app/(app)/nutrition-one-off";
-import * as NutritionWeekGoalsRoute from "../../app/(app)/nutrition-week-goals";
-import * as NutritionWeekSourcesRoute from "../../app/(app)/nutrition-week-sources";
-import * as NutritionWeeklyReviewRoute from "../../app/(app)/nutrition-weekly-review";
-import * as PersonalFoodRoute from "../../app/(app)/personal-food/[id]";
-import * as PersonalFoodNewRoute from "../../app/(app)/personal-food-new";
-import * as PersonalMeasuresRoute from "../../app/(app)/personal-measures";
-import { FoodAuthoringIntentProvider } from "../data/food-authoring-intent";
-import { NutritionDraftsProvider } from "../data/nutrition-drafts";
-import {
-	libraryRecordFromCombo,
-	libraryRecordFromFood,
-} from "../data/nutrition-library-repository";
-import {
-	type CaptureDraftFixture,
-	createCaptureDraftFixture,
-} from "./capture-draft-fixture";
-
 type NutritionLibraryOperationEnvelope = import("convex/server").FunctionArgs<
 	typeof import("../convex/api").api.nutritionLibrary.save
 >;
 
-import {
-	createNutritionLocalRepository,
-	type NutritionLocalRepository,
-} from "../data/nutrition-local-repository";
-import { NutritionOperationsProvider } from "../data/nutrition-operation-service";
-import type { FetchLike } from "../data/open-food-facts";
-import { OpenFoodFactsProvider } from "../data/open-food-facts-context";
-import {
-	createOpenFoodFactsCache,
-	createPersonalFoodRepository,
-	type OpenFoodFactsCache,
-	type PersonalFoodRepository,
-} from "../data/personal-food-repository";
-import { PersonalFoodsProvider } from "../data/personal-foods";
-import { PersonalMeasuresProvider } from "../data/personal-measures";
-import { LocaleProvider } from "../i18n";
-import { AppearanceProvider } from "../theme";
-import { ConfirmProvider } from "../ui/confirm-dialog";
-import { ToastProvider } from "../ui/toast";
-import { installAccountTransport } from "./account-transport";
-import { NativeAlertHost } from "./native-alert-host";
-import { SQLiteTestDatabase } from "./sqlite-test-database";
+const photoStorageId = z.custom<Id<"_storage">>(
+	(value) => typeof value === "string",
+);
+
+/** Routes of the `(app)` stack that screen tests can reach. */
+const APP_ROUTES = [
+	"appearance",
+	"language",
+	"nutrition-assistance",
+	"nutrition-combo-log",
+	"nutrition-combo-new",
+	"nutrition-combo-part",
+	"nutrition-combo/[id]",
+	"nutrition-day-goals",
+	"nutrition-entry",
+	"nutrition-entry-correction",
+	"nutrition-entry-transfer",
+	"nutrition-food",
+	"nutrition-food-details",
+	"nutrition-goals",
+	"nutrition-library",
+	"nutrition-library-attention",
+	"nutrition-nutrient-sources",
+	"nutrition-one-off",
+	"nutrition-week-goals",
+	"nutrition-week-sources",
+	"nutrition-weekly-review",
+	"personal-food-new",
+	"personal-food/[id]",
+	"personal-measures",
+] as const;
+/** Tabs of the `(coach)` group, mounted at the root like the app's tab URLs. */
+const TAB_ROUTES = ["nutrition", "profile"] as const;
+
+/**
+ * Loaded when a test file imports this module, not inside its first test: the
+ * route tree is hundreds of modules, and on a cold CI transform cache loading it
+ * mid-test overran Jest's 5 s per-test limit.
+ */
+const ROUTE_MODULES: Record<string, unknown> = Object.fromEntries([
+	...APP_ROUTES.map((name) => [
+		name,
+		jest.requireActual(`../../app/(app)/${name}`),
+	]),
+	...TAB_ROUTES.map((name) => [
+		name,
+		jest.requireActual(`../../app/(app)/(coach)/${name}`),
+	]),
+]);
 
 /** Screen tests acknowledge the library transport at its public Convex boundary. */
-function installLibraryTransport(repository: PersonalFoodRepository) {
-	const mutation = jest.mocked(useMutation).getMockImplementation();
-	const query = jest.mocked(useQuery).getMockImplementation();
-	const paginated = jest.mocked(usePaginatedQuery).getMockImplementation();
+function installLibraryTransport(repository: LibraryFixture) {
+	const mutation = underlying(jest.mocked(useMutation).getMockImplementation());
+	const query = underlying(jest.mocked(useQuery).getMockImplementation());
+	const paginated = underlying(
+		jest.mocked(usePaginatedQuery).getMockImplementation(),
+	);
 	const servePayload = (payload: string) => {
 		const food = JSON.parse(payload);
 		if (food.visual?.storageId)
@@ -132,25 +135,25 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 				? {
 						...args.operation.record,
 						payload: servePayload(args.operation.record.payload),
-						revision: 1,
+						revision: repository.revisionOf(args.operation.record.id) + 1,
 						deleted: false,
 					}
 				: {
 						id: args.operation.recordId,
 						kind: args.operation.recordKind,
 						payload: null,
-						revision: 2,
+						revision: repository.revisionOf(args.operation.recordId) + 1,
 						deleted: true,
 					},
 	}));
 	const records = () => [
 		...repository.list().map((food) => ({
-			...libraryRecordFromFood(food, 1),
-			payload: servePayload(libraryRecordFromFood(food, 1).payload ?? "{}"),
+			...libraryRecordFromFood(food, repository.revisionOf(food.id)),
+			payload: servePayload(libraryRecordFromFood(food).payload ?? "{}"),
 			subject: "test-user",
 		})),
 		...repository.listCombos().map((combo) => ({
-			...libraryRecordFromCombo(combo, 1),
+			...libraryRecordFromCombo(combo, repository.revisionOf(combo.id)),
 			subject: "test-user",
 		})),
 	];
@@ -169,74 +172,80 @@ function installLibraryTransport(repository: PersonalFoodRepository) {
 	} as never);
 	jest
 		.mocked(useMutation)
-		.mockImplementation(((reference: never) =>
-			getFunctionName(reference) === "nutritionLibrary:save"
-				? save
-				: mutation?.(reference)) as never);
-	jest.mocked(useQuery).mockImplementation(((
-		reference: never,
-		args: { ids?: string[]; barcode?: string } | "skip",
-	) => {
-		if (getFunctionName(reference) !== "nutritionLibrary:getMany")
-			return query?.(reference, args as never);
-		return args === "skip"
-			? undefined
-			: records().filter(
-					(record) =>
-						args.ids?.includes(record.id) ||
-						(args.barcode &&
-							record.kind === "food" &&
-							repository.find(record.id)?.provenance.barcode === args.barcode),
-				);
-	}) as never);
-	jest.mocked(usePaginatedQuery).mockImplementation(((
-		reference: never,
-		args: { query?: string; category?: string } | "skip",
-		options: never,
-	) => {
-		if (getFunctionName(reference) !== "nutritionLibrary:browse")
-			return paginated?.(reference, args as never, options);
-		const selected =
-			args === "skip"
-				? []
-				: records().filter((record) => {
-						const parsed = JSON.parse(record.payload ?? "null");
-						const name =
-							record.kind === "food"
-								? `${parsed.name.en} ${parsed.name.nl}`
-								: parsed.name;
-						const category =
-							record.kind === "combo"
-								? "combo"
-								: parsed.classification === "recipe"
-									? "recipe"
-									: "food";
-						return (
-							(!args.query ||
-								name.toLowerCase().includes(args.query.toLowerCase())) &&
-							(!args.category || category === args.category)
+		.mockImplementation(
+			wrapping(
+				(reference: never) =>
+					getFunctionName(reference) === "nutritionLibrary:save"
+						? save
+						: mutation?.(reference),
+				mutation,
+			) as never,
+		);
+	jest.mocked(useQuery).mockImplementation(
+		wrapping(
+			(
+				reference: never,
+				args: { ids?: string[]; barcode?: string } | "skip",
+			) => {
+				if (getFunctionName(reference) !== "nutritionLibrary:getMany")
+					return query?.(reference, args as never);
+				return args === "skip"
+					? undefined
+					: records().filter(
+							(record) =>
+								args.ids?.includes(record.id) ||
+								(args.barcode &&
+									record.kind === "food" &&
+									repository.find(record.id)?.provenance.barcode ===
+										args.barcode),
 						);
-					});
-		return {
-			results: selected,
-			status: "Exhausted",
-			loadMore: jest.fn(),
-			isLoading: false,
-		};
-	}) as never);
+			},
+			query,
+		) as never,
+	);
+	jest.mocked(usePaginatedQuery).mockImplementation(
+		wrapping(
+			(
+				reference: never,
+				args: { query?: string; category?: string } | "skip",
+				options: never,
+			) => {
+				if (getFunctionName(reference) !== "nutritionLibrary:browse")
+					return paginated?.(reference, args as never, options);
+				const selected =
+					args === "skip"
+						? []
+						: records().filter((record) => {
+								const parsed = JSON.parse(record.payload ?? "null");
+								const name =
+									record.kind === "food"
+										? `${parsed.name.en} ${parsed.name.nl}`
+										: parsed.name;
+								const category =
+									record.kind === "combo"
+										? "combo"
+										: parsed.classification === "recipe"
+											? "recipe"
+											: "food";
+								return (
+									(!args.query ||
+										name.toLowerCase().includes(args.query.toLowerCase())) &&
+									(!args.category || category === args.category)
+								);
+							});
+				return {
+					results: selected,
+					status: "Exhausted",
+					loadMore: jest.fn(),
+					isLoading: false,
+				};
+			},
+			paginated,
+		) as never,
+	);
+	return save;
 }
-export function TestLayout({
-	repository,
-	offCache,
-	nutritionRepository,
-	fetchImpl,
-}: {
-	repository: PersonalFoodRepository;
-	offCache: OpenFoodFactsCache;
-	nutritionRepository: NutritionLocalRepository;
-	draftRepository: CaptureDraftFixture;
-	fetchImpl?: FetchLike;
-}): ReactNode {
+function TestLayout({ overrides }: { overrides: AppDataOverrides }): ReactNode {
 	return (
 		<GestureHandlerRootView>
 			<AppearanceProvider>
@@ -244,37 +253,9 @@ export function TestLayout({
 					<NativeAlertHost>
 						<ToastProvider>
 							<ConfirmProvider>
-								<PersonalFoodsProvider
-									repository={repository}
-									uploadPhoto={async () => ({
-										storageId: photoStorageId.parse("fixture-photo"),
-									})}
-								>
-									<FoodAuthoringIntentProvider>
-										<OpenFoodFactsProvider
-											cache={offCache}
-											fetchImpl={fetchImpl}
-										>
-											<NutritionOperationsProvider
-												repository={nutritionRepository}
-												uploadPhoto={async () => ({
-													storageId: photoStorageId.parse("fixture-photo"),
-												})}
-												subject="test-user"
-											>
-												<NutritionDraftsProvider>
-													<PersonalMeasuresProvider>
-														<SetDraftsProvider>
-															<RestTimerProvider>
-																<Stack />
-															</RestTimerProvider>
-														</SetDraftsProvider>
-													</PersonalMeasuresProvider>
-												</NutritionDraftsProvider>
-											</NutritionOperationsProvider>
-										</OpenFoodFactsProvider>
-									</FoodAuthoringIntentProvider>
-								</PersonalFoodsProvider>
+								<AppDataProviders overrides={overrides}>
+									<Stack />
+								</AppDataProviders>
 							</ConfirmProvider>
 						</ToastProvider>
 					</NativeAlertHost>
@@ -292,70 +273,44 @@ export async function renderApp(
 	fetchImpl?: FetchLike,
 	seed?: (stores: {
 		draftRepository: CaptureDraftFixture;
-		nutritionRepository: NutritionLocalRepository;
-		personalFoods: ReturnType<typeof createPersonalFoodRepository>;
+		foodShortcuts: FoodShortcutRepository;
+		personalFoods: LibraryFixture;
 	}) => void,
 ) {
-	const repository = createPersonalFoodRepository(new SQLiteTestDatabase());
+	const repository = createLibraryFixture();
 	const offCache = createOpenFoodFactsCache(new SQLiteTestDatabase());
-	const nutritionRepository = createNutritionLocalRepository(
-		new SQLiteTestDatabase(),
-	);
+	const foodShortcuts = createFoodShortcutRepository(new SQLiteTestDatabase());
 	const draftRepository = createCaptureDraftFixture();
-	seed?.({ draftRepository, nutritionRepository, personalFoods: repository });
-	installLibraryTransport(repository);
+	seed?.({ draftRepository, foodShortcuts, personalFoods: repository });
+	startMockLayers();
+	const librarySave = installLibraryTransport(repository);
 	const accountTransport = installAccountTransport(draftRepository);
+	const data: AppDataOverrides = {
+		personalFoods: repository,
+		foodShortcuts,
+		openFoodFactsCache: offCache,
+		fetchImpl,
+		uploadPhoto: async () => ({
+			storageId: photoStorageId.parse("fixture-photo"),
+		}),
+		subject: "test-user",
+	};
 	function Layout() {
-		return (
-			<TestLayout
-				repository={repository}
-				offCache={offCache}
-				nutritionRepository={nutritionRepository}
-				draftRepository={draftRepository}
-				fetchImpl={fetchImpl}
-			/>
-		);
+		return <TestLayout overrides={data} />;
 	}
 	const rendered = await renderRouter(
 		{
 			_layout: Layout as never,
-			nutrition: NutritionRoute as never,
-			"nutrition-food": NutritionFoodRoute as never,
-			"nutrition-day-goals": NutritionDayGoalsRoute as never,
-			"nutrition-nutrient-sources": NutritionNutrientSourcesRoute as never,
-			"nutrition-entry-correction": NutritionEntryCorrectionRoute as never,
-			"nutrition-entry-transfer": NutritionEntryTransferRoute as never,
-			"nutrition-food-details": NutritionFoodDetailsRoute as never,
-			"nutrition-entry": NutritionEntryRoute as never,
-			"labs-entry": LabsEntryRoute as never,
-			labs: LabsRoute as never,
-			"labs-food": LabsFoodRoute as never,
-			"nutrition-combo-log": NutritionComboLogRoute as never,
-			"nutrition-combo-new": NutritionComboNewRoute as never,
-			"nutrition-goals": NutritionGoalsRoute as never,
-			"nutrition-one-off": NutritionOneOffRoute as never,
-			"nutrition-assistance": NutritionAssistanceRoute as never,
-			"nutrition-weekly-review": NutritionWeeklyReviewRoute as never,
-			"nutrition-week-goals": NutritionWeekGoalsRoute as never,
-			"nutrition-week-sources": NutritionWeekSourcesRoute as never,
-			"nutrition-library": NutritionLibraryRoute as never,
-			"nutrition-library-attention": NutritionLibraryAttentionRoute as never,
-			"personal-food/[id]": PersonalFoodRoute as never,
-			"nutrition-combo/[id]": NutritionComboRoute as never,
-			"nutrition-combo-part": NutritionComboPartRoute as never,
-			"personal-food-new": PersonalFoodNewRoute as never,
-			"personal-measures": PersonalMeasuresRoute as never,
-			language: LanguageRoute as never,
-			appearance: AppearanceRoute as never,
-			profile: ProfileRoute as never,
+			...(ROUTE_MODULES as Record<string, never>),
 			...(overrides as Record<string, never>),
 		},
 		{ initialUrl },
 	);
 	return Object.assign(rendered, {
 		repository,
+		librarySave,
 		offCache,
-		nutritionRepository,
+		foodShortcuts,
 		draftRepository,
 		accountTransport,
 	});

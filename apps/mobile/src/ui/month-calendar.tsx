@@ -1,14 +1,20 @@
+import type { IsoDate } from "@foundry/core";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import {
 	formatLongDate,
-	type IsoDate,
 	isoDateToLocalDate,
 	todayIsoDate,
 	toIsoDate,
-} from "../data/calendar-day";
-import { useI18n } from "../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
+} from "../dates/calendar-day";
+import { dateLocale, useI18n } from "../i18n";
+import {
+	glyphSize,
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+} from "../theme";
 import { AppText } from "./text";
 
 export type MonthCalendarLabels = {
@@ -17,8 +23,6 @@ export type MonthCalendarLabels = {
 	today: string;
 	selected: string;
 };
-
-const FALLBACK_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function monthAnchor(date: IsoDate): Date {
 	const selected = isoDateToLocalDate(date);
@@ -38,30 +42,21 @@ function dateForDay(year: number, month: number, day: number): IsoDate {
 }
 
 function monthTitle(date: Date, locale: string): string {
-	try {
-		return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
-	} catch {
-		return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-	}
+	return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
 function weekdays(locale: string): string[] {
-	try {
-		const monday = new Date(2024, 0, 1, 12);
-		return Array.from({ length: 7 }, (_, index) => {
-			const date = new Date(monday);
-			date.setDate(monday.getDate() + index);
-			return date.toLocaleDateString(locale, { weekday: "short" });
-		});
-	} catch {
-		return FALLBACK_WEEKDAYS;
-	}
+	const monday = new Date(2024, 0, 1, 12);
+	return Array.from({ length: 7 }, (_, index) => {
+		const date = new Date(monday);
+		date.setDate(monday.getDate() + index);
+		return date.toLocaleDateString(locale, { weekday: "short" });
+	});
 }
 
 export function MonthCalendar({
 	selectedDate,
 	onSelect,
-	locale = "en",
 	today = todayIsoDate(),
 	labels,
 	markedDates,
@@ -70,7 +65,6 @@ export function MonthCalendar({
 }: {
 	selectedDate: IsoDate;
 	onSelect: (date: IsoDate) => void;
-	locale?: string;
 	today?: IsoDate;
 	labels?: Partial<MonthCalendarLabels>;
 	markedDates?: ReadonlySet<string>;
@@ -79,7 +73,7 @@ export function MonthCalendar({
 	onMonthChange?: (date: string) => void;
 }) {
 	const styles = useThemedStyles(createStyles);
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const copy = { ...t.common.calendar, ...labels };
 	const [visibleMonth, setVisibleMonth] = useState(() =>
 		monthAnchor(selectedDate),
@@ -131,7 +125,7 @@ export function MonthCalendar({
 					accessibilityRole="header"
 					style={styles.title}
 				>
-					{monthTitle(visibleMonth, locale)}
+					{monthTitle(visibleMonth, dateLocale(locale))}
 				</AppText>
 				<Pressable
 					accessibilityRole="button"
@@ -145,7 +139,7 @@ export function MonthCalendar({
 				</Pressable>
 			</View>
 			<View style={styles.weekdays}>
-				{weekdays(locale).map((weekday) => (
+				{weekdays(dateLocale(locale)).map((weekday) => (
 					<AppText key={weekday} variant="caption" style={styles.weekday}>
 						{weekday}
 					</AppText>
@@ -215,7 +209,7 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 			borderRadius: radius.pill,
 		},
-		navGlyph: { color: colors.accent, fontSize: 28 },
+		navGlyph: { color: colors.accent, fontSize: glyphSize.xl },
 		weekdays: { flexDirection: "row" },
 		weekday: { flex: 1, textAlign: "center", fontWeight: "700" },
 		grid: { flexDirection: "row", flexWrap: "wrap" },

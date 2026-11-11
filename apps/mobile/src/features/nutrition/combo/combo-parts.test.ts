@@ -3,8 +3,8 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFood,
-} from "@foundry/core/nutrition";
-import type { Combo } from "../../../data/personal-food-repository";
+} from "@foundry/core";
+import type { Combo } from "../../../data/personal-food-model";
 import {
 	comboDraft,
 	comboPartFromEntry,

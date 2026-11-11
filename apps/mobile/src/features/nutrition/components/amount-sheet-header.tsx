@@ -6,10 +6,9 @@ import { useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
 
 /**
- * ✕ and ✓ of a routed amount sheet as native header items (mobile-design
- * "Draft editor sheet"): UIKit draws and tints the glass. ✓ fills once there
- * is something to confirm and turns into progress while it runs. Older
- * systems fall back to plain header buttons.
+ * ✕ and ✓ of a routed amount sheet as native header items: UIKit draws and
+ * tints the glass. ✓ fills once there is something to confirm and turns into
+ * progress while it runs. Older systems fall back to plain header buttons.
  *
  * The options only change with what they show; the handlers are read from a
  * ref. `Stack.Screen` sets options whenever their identity changes, and a

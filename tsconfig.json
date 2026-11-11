@@ -7,7 +7,6 @@
     "module": "ESNext",
     "paths": {
       "#/*": ["./src/*"],
-      "@/*": ["./src/*"],
       "@convex/*": ["./convex/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -23,6 +22,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "noUncheckedSideEffectImports": true
   }
 }

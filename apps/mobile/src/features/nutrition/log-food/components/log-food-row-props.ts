@@ -1,3 +1,4 @@
+import type { Locale } from "@foundry/core";
 import type { RowAction } from "../../../../ui/swipeable-row";
 import type { FoodRowPosition } from "../../components/food-row-layout";
 import type { FoodSelection } from "../log-food-selection";
@@ -7,7 +8,7 @@ export interface LogFoodRowProps {
 	selection: FoodSelection;
 	/** Source and per-100 figure, such as "NEVO · 151 kcal/100 g". */
 	caption: string;
-	locale: "en" | "nl";
+	locale: Locale;
 	position: FoodRowPosition;
 	quickLabel: string;
 	/** kcal of the remembered portion, such as "97 kcal". */

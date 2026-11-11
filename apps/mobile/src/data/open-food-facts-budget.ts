@@ -10,8 +10,8 @@
  */
 import type { FetchLike } from "./open-food-facts";
 
-export const OFF_REQUEST_LIMIT = 6;
-export const OFF_REQUEST_WINDOW_MS = 60_000;
+const OFF_REQUEST_LIMIT = 6;
+const OFF_REQUEST_WINDOW_MS = 60_000;
 export const OFF_COOL_DOWN_MS = 60_000;
 
 export type OffRequestBudget = {

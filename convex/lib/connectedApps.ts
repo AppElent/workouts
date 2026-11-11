@@ -19,7 +19,8 @@ function connectedAppScopes(identity: UserIdentity): Set<string> | null {
 /**
  * The signed-in identity. A connected app needs a Foundry scope; without
  * `foundry:write` it may only read: any context that can write (mutations,
- * actions) rejects it.
+ * actions) rejects it. Errors carry an app code plus English text, which the
+ * MCP endpoint shows to the agent.
  */
 export async function getIdentity(ctx: {
 	auth: Auth;
@@ -28,11 +29,15 @@ export async function getIdentity(ctx: {
 	const scopes = identity && connectedAppScopes(identity);
 	if (!scopes) return identity;
 	if (!scopes.has(READ_SCOPE) && !scopes.has(WRITE_SCOPE))
-		throw new ConvexError("This connected app has no access to Foundry.");
+		throw new ConvexError({
+			code: "unauthenticated",
+			message: "This connected app has no access to Foundry.",
+		});
 	if ("runMutation" in ctx && !scopes.has(WRITE_SCOPE))
-		throw new ConvexError(
-			"This connected app has read-only access to Foundry.",
-		);
+		throw new ConvexError({
+			code: "readOnly",
+			message: "This connected app has read-only access to Foundry.",
+		});
 	return identity;
 }
 
@@ -40,7 +45,8 @@ export async function getIdentity(ctx: {
 export async function rejectConnectedApps(ctx: { auth: Auth }) {
 	const identity = await ctx.auth.getUserIdentity();
 	if (identity && connectedAppScopes(identity))
-		throw new ConvexError(
-			"Connected apps cannot reset or delete a Foundry account.",
-		);
+		throw new ConvexError({
+			code: "readOnly",
+			message: "Connected apps cannot reset or delete a Foundry account.",
+		});
 }

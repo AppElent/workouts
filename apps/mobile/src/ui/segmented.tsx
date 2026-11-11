@@ -1,6 +1,5 @@
 /**
- * A row of mutually exclusive choices. The language switch is the first one; a
- * unit switch and a goal-direction switch are the obvious next.
+ * A row of mutually exclusive choices.
  *
  * Android uses themed Pressables; the iOS adapter delegates selection to a
  * native SwiftUI picker and accommodates long labels with a menu.

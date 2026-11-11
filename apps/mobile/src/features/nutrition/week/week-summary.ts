@@ -1,14 +1,14 @@
-import type { NutrientKey } from "@foundry/core/nutrition";
 import {
+	evaluateGoal,
+	type GoalBounds,
+	goalBounds,
 	type IsoDate,
-	isoDateToLocalDate,
+	type NutrientKey,
 	shiftIsoDate,
-} from "../../../data/calendar-day";
-import {
-	evaluateNutrientGoal,
-	type WeeklyReviewDay,
 	weekStartMonday,
-} from "../../../data/nutrition-weekly-review";
+} from "@foundry/core";
+import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
+import type { WeeklyReviewDay } from "./weekly-review";
 
 /**
  * How one day did against the goal that applied on that day. Shape and
@@ -25,12 +25,19 @@ export type WeekDayStatus =
 	| "future";
 
 /** The four goals the week view puts in front. */
-export const WEEK_NUTRIENTS = ["energy", "protein", "carbs", "fat"] as const;
+export const WEEK_NUTRIENTS = HEADLINE_NUTRIENTS;
 
 function goalsFor(day: WeeklyReviewDay, nutrient: NutrientKey) {
 	return day.goalBasis === "effective"
 		? day.goals.filter((goal) => goal.nutrient === nutrient)
 		: [];
+}
+
+export function dayGoalBounds(
+	day: WeeklyReviewDay,
+	nutrient: NutrientKey,
+): GoalBounds | undefined {
+	return goalBounds(goalsFor(day, nutrient), [nutrient])[0];
 }
 
 export function weekDayStatus(
@@ -41,47 +48,13 @@ export function weekDayStatus(
 	if (day.date > today) return "future";
 	if (day.date === today) return "today";
 	if (day.entryCount === 0) return "empty";
-	const goals = goalsFor(day, nutrient);
-	if (goals.length === 0) return "noGoal";
-	const total = day.totals[nutrient];
-	const { status } = evaluateNutrientGoal(
-		total.amount,
-		total.incomplete,
-		goals,
-	);
+	const bounds = dayGoalBounds(day, nutrient);
+	if (!bounds) return "noGoal";
+	const { status } = evaluateGoal(bounds, day.totals[nutrient]);
 	if (status === "exceeded") return "over";
 	if (status === "below") return "below";
 	if (status === "incomplete") return "incomplete";
 	return "ok";
-}
-
-/** Closed days with a complete value: the only days an average may use. */
-function countedDays(
-	days: readonly WeeklyReviewDay[],
-	nutrient: NutrientKey,
-	today: IsoDate,
-) {
-	return days.filter(
-		(day) =>
-			day.date < today &&
-			day.entryCount > 0 &&
-			!day.totals[nutrient].incomplete,
-	);
-}
-
-export function weekAverage(
-	days: readonly WeeklyReviewDay[],
-	nutrient: NutrientKey,
-	today: IsoDate,
-): { value: number; days: number } | undefined {
-	const counted = countedDays(days, nutrient, today);
-	if (counted.length === 0) return undefined;
-	return {
-		value:
-			counted.reduce((sum, day) => sum + day.totals[nutrient].amount, 0) /
-			counted.length,
-		days: counted.length,
-	};
 }
 
 export type WeekGoalCount = {
@@ -184,27 +157,6 @@ export function weekGoalChanges(
 	return changes;
 }
 
-/** ISO 8601 week number of the week containing `date`. */
-export function isoWeekNumber(date: IsoDate): number {
-	const local = isoDateToLocalDate(date);
-	const thursday = new Date(
-		local.getFullYear(),
-		local.getMonth(),
-		local.getDate() + 3 - ((local.getDay() + 6) % 7),
-		12,
-	);
-	const firstThursday = new Date(thursday.getFullYear(), 0, 4, 12);
-	return (
-		1 +
-		Math.round(
-			((thursday.getTime() - firstThursday.getTime()) / 86400000 -
-				3 +
-				((firstThursday.getDay() + 6) % 7)) /
-				7,
-		)
-	);
-}
-
 export function weekTitleKind(
 	weekStart: IsoDate,
 	today: IsoDate,
@@ -219,7 +171,7 @@ export function weekTitleKind(
 export function weekStripWeeks(weekStart: IsoDate, today: IsoDate): IsoDate[] {
 	const current = weekStartMonday(today);
 	const plusTwo = shiftIsoDate(weekStart, 14);
-	const last = plusTwo < current ? plusTwo : current;
+	const last = [plusTwo, current].sort()[0] ?? current;
 	return Array.from({ length: 5 }, (_, index) =>
 		shiftIsoDate(last, (index - 4) * 7),
 	);

@@ -1,6 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
-import { calculateOneRepMax } from "@foundry/core";
 import { Pencil } from "lucide-react";
+import { setReference } from "#/lib/load";
 
 interface Props {
 	set: Doc<"sets">;
@@ -8,10 +8,7 @@ interface Props {
 }
 
 export function SetRow({ set, onEdit }: Props) {
-	const orm =
-		set.performanceVerified && set.referenceKind
-			? calculateOneRepMax(set.weight, set.reps)
-			: null;
+	const orm = setReference(set);
 
 	return (
 		<tr className="border-b border-[var(--border)] last:border-0 text-sm">
@@ -44,7 +41,7 @@ export function SetRow({ set, onEdit }: Props) {
 			<td className="py-2 pr-3 w-24">
 				<span className="text-xs text-[var(--text-muted)]">
 					{orm
-						? `${orm.value} ${orm.source === "calculated" ? "est." : "actual"}`
+						? `${orm.value} ${orm.kind === "calculated" ? "est." : "actual"}`
 						: "—"}
 				</span>
 			</td>

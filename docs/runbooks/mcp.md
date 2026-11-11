@@ -71,12 +71,14 @@ Rules for every tool:
   result, and the same key with different input is rejected.
 - There are no delete tools. Users delete in the app.
 - Results are JSON in `structuredContent` and as text. Errors show validation
-  and Convex user messages only; internal errors become a generic message.
+  and Convex user messages only: a coded `ConvexError` reads as its English
+  catalog text (`src/lib/i18n/messages/en/errors.ts`) or its code and field.
+  Internal errors become a generic message and are reported to Sentry.
 
 To add a tool, add it to a file in `src/lib/mcp/tools/` with `defineTool`, set
 `access`, and add a case to `src/lib/mcp/handler.test.ts`. A new create tool
 needs a Convex idempotency key (`operationId`, `clientEntryId`, or
-`withOperationReceipt`).
+`withCreateReceipt` in `convex/lib/operationReceipt.ts`).
 
 ## Setup per environment
 

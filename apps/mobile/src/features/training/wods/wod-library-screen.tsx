@@ -1,0 +1,204 @@
+/**
+ * The WOD library.
+ *
+ * Same shape as the exercise library: benchmark WODs (`isDefault`) are shared
+ * and read-only, the user's own can be edited and deleted. The backend enforces
+ * both, so the rows simply do not offer what would fail.
+ *
+ * Each row shows your best score for that WOD, ranked by `bestScore` from
+ * `@foundry/core` — the same function Convex uses in `wodResults.getBest`.
+ * Ranking a For Time result is not "smaller is better" once time caps exist,
+ * which is exactly why it is one shared function and not a comparison written
+ * per screen.
+ */
+import { formatScore, WOD_TYPES } from "@foundry/core";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import {
+	FlatList,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	TextInput,
+	View,
+} from "react-native";
+import { api, type Doc, type Id } from "../../../convex/api";
+import { useQuery } from "../../../convex/query-cache";
+import { useI18n } from "../../../i18n";
+import {
+	radius,
+	spacing,
+	type Tokens,
+	type,
+	useThemedStyles,
+	useTokens,
+} from "../../../theme";
+import { Chip } from "../../../ui/coach";
+import { Screen } from "../../../ui/screen";
+import { ScreenHeader } from "../../../ui/screen-header";
+import { AppText } from "../../../ui/text";
+
+export function WodLibraryScreen({
+	onOpen,
+	onCreate,
+}: {
+	onOpen: (id: Id<"wods">) => void;
+	onCreate: () => void;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const copy = useI18n().t.wods;
+	const wods = useQuery(api.wods.list, {});
+
+	const [search, setSearch] = useState("");
+	const [type, setType] = useState<Doc<"wods">["type"] | null>(null);
+	const _router = useRouter();
+
+	const filtered = useMemo(() => {
+		const term = search.trim().toLowerCase();
+		return (wods ?? []).filter((w) => {
+			if (term && !w.name.toLowerCase().includes(term)) return false;
+			if (type && w.type !== type) return false;
+			return true;
+		});
+	}, [wods, search, type]);
+
+	return (
+		<Screen edges={["bottom"]}>
+			<ScreenHeader
+				title={copy.title}
+				action={{
+					label: copy.add,
+					onPress: onCreate,
+				}}
+			/>
+
+			<View style={styles.filters}>
+				<TextInput
+					value={search}
+					onChangeText={setSearch}
+					placeholder={copy.search}
+					placeholderTextColor={colors.textFaint}
+					style={styles.input}
+					autoCorrect={false}
+				/>
+				<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+					<View style={styles.chipRow}>
+						{WOD_TYPES.map((kind) => (
+							<Chip
+								key={kind}
+								label={copy.types[kind]}
+								active={type === kind}
+								onPress={() => setType(type === kind ? null : kind)}
+							/>
+						))}
+					</View>
+				</ScrollView>
+			</View>
+
+			{wods === undefined ? (
+				<AppText variant="caption" style={styles.status}>
+					{copy.loading}
+				</AppText>
+			) : (
+				<FlatList
+					data={filtered}
+					keyExtractor={(item) => item._id}
+					contentContainerStyle={styles.list}
+					showsVerticalScrollIndicator={false}
+					keyboardShouldPersistTaps="handled"
+					ListEmptyComponent={
+						<View style={styles.empty}>
+							<AppText variant="heading" style={{ color: colors.textMuted }}>
+								{copy.noMatches}
+							</AppText>
+							<AppText variant="caption" style={styles.centered}>
+								{wods.length === 0 ? copy.emptyLibrary : copy.clearFilter}
+							</AppText>
+						</View>
+					}
+					renderItem={({ item }) => <WodRow wod={item} onOpen={onOpen} />}
+				/>
+			)}
+		</Screen>
+	);
+}
+
+function WodRow({
+	wod,
+	onOpen,
+}: {
+	wod: Doc<"wods">;
+	onOpen: (id: Id<"wods">) => void;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const _router = useRouter();
+	const copy = useI18n().t.wods;
+	const best = useQuery(api.wodResults.getBest, { wodId: wod._id });
+
+	return (
+		<Pressable
+			accessibilityRole="button"
+			onPress={() => onOpen(wod._id)}
+			style={({ pressed }) => [
+				styles.row,
+				pressed && { backgroundColor: colors.surface2 },
+			]}
+		>
+			<View style={styles.flex}>
+				<AppText variant="body" style={styles.name}>
+					{wod.name}
+				</AppText>
+				<AppText variant="caption">
+					{copy.types[wod.type]}
+					{wod.isDefault ? ` · ${copy.benchmark}` : ""}
+				</AppText>
+			</View>
+			{best ? (
+				<AppText variant="body" style={styles.best}>
+					{formatScore(wod.type, best)}
+				</AppText>
+			) : null}
+			<AppText style={styles.chevron}>›</AppText>
+		</Pressable>
+	);
+}
+
+const createStyles = (colors: Tokens) =>
+	StyleSheet.create({
+		flex: { flex: 1, gap: 2 },
+		filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
+		input: {
+			minHeight: 44,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			backgroundColor: colors.surface,
+			borderWidth: 1,
+			borderColor: colors.border,
+			color: colors.text,
+			fontSize: type.body.fontSize,
+		},
+		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
+		status: { paddingHorizontal: spacing.md },
+		list: {
+			paddingHorizontal: spacing.md,
+			paddingTop: spacing.sm,
+			paddingBottom: spacing.xxl * 2,
+			gap: spacing.sm,
+		},
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			paddingHorizontal: spacing.md,
+			paddingVertical: spacing.md,
+		},
+		name: { fontWeight: "700" },
+		best: { fontWeight: "800", color: colors.accent },
+		chevron: { fontSize: type.heading.fontSize, color: colors.textFaint },
+		empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
+		centered: { textAlign: "center" },
+	});

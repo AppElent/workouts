@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
+import { NUTRITION_AI_LIMITS } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
-import { DAILY_ANALYSES } from "./nutritionAi";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -31,7 +31,7 @@ describe("nutrition AI", () => {
 		const t = convexTest(schema, modules);
 		await expect(
 			t.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
-		).rejects.toThrow("unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 	});
 
 	it("reports an unconfigured provider instead of failing silently", async () => {
@@ -41,7 +41,7 @@ describe("nutrition AI", () => {
 		});
 		await expect(
 			alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
-		).rejects.toThrow("unavailable");
+		).rejects.toMatchObject({ data: { code: "unavailable" } });
 	});
 
 	it("returns everything the model's schema asks of an item", async () => {
@@ -199,7 +199,7 @@ describe("nutrition AI", () => {
 			ctx.db.insert("nutritionAiUsage", {
 				userId: "alice",
 				day,
-				count: DAILY_ANALYSES - 1,
+				count: NUTRITION_AI_LIMITS.dailyAnalyses - 1,
 			}),
 		);
 		await alice.action(api.nutritionAi.describe, {
@@ -208,7 +208,7 @@ describe("nutrition AI", () => {
 		});
 		await expect(
 			alice.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
-		).rejects.toThrow("limit");
+		).rejects.toMatchObject({ data: { code: "limit" } });
 		const bob = t.withIdentity({ subject: "bob" });
 		await expect(
 			bob.action(api.nutritionAi.describe, { text: "brood", locale: "nl" }),
@@ -337,9 +337,6 @@ describe("nutrition AI", () => {
 			"Gebakken ei",
 		]);
 		fake({
-			describe: { kind: "meal", seen: "ei", items: [item, oil] },
-		});
-		fake({
 			describe: {
 				kind: "meal",
 				seen: "ei",
@@ -393,9 +390,9 @@ describe("nutrition AI", () => {
 				},
 			],
 		};
-		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
-			"limit",
-		);
+		await expect(
+			alice.action(api.nutritionAi.choose, choose),
+		).rejects.toMatchObject({ data: { code: "limit" } });
 		await alice.action(api.nutritionAi.describe, {
 			text: "brood",
 			locale: "nl",
@@ -403,8 +400,8 @@ describe("nutrition AI", () => {
 		// The second is the one retry the phone gets after a failed match.
 		await alice.action(api.nutritionAi.choose, choose);
 		await alice.action(api.nutritionAi.choose, choose);
-		await expect(alice.action(api.nutritionAi.choose, choose)).rejects.toThrow(
-			"limit",
-		);
+		await expect(
+			alice.action(api.nutritionAi.choose, choose),
+		).rejects.toMatchObject({ data: { code: "limit" } });
 	});
 });

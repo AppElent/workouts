@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { LOAD_UNITS, type LoadUnit } from "@foundry/core";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
@@ -13,16 +14,18 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-
-type Unit = "kg" | "lbs";
+import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 export function BodyMetricsPanel() {
 	const entries = useQuery(api.bodyMetrics.list) ?? [];
 	const latest = useQuery(api.bodyMetrics.latest);
 	const addEntry = useMutation(api.bodyMetrics.add);
 	const removeEntry = useMutation(api.bodyMetrics.remove);
+	const errorMessage = useConvexErrorMessage();
+	const toast = useToast();
 
-	const [unit, setUnit] = useState<Unit>("kg");
+	const [unit, setUnit] = useState<LoadUnit>("kg");
 	const [weight, setWeight] = useState("");
 	const [bodyFat, setBodyFat] = useState("");
 	const [showMore, setShowMore] = useState(false);
@@ -32,6 +35,17 @@ export function BodyMetricsPanel() {
 	const [thighs, setThighs] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+
+	async function handleRemove(id: Id<"bodyMetrics">) {
+		try {
+			await removeEntry({ id });
+		} catch (e) {
+			toast.error(
+				"Couldn't delete entry",
+				errorMessage(e, "Please try again."),
+			);
+		}
+	}
 
 	function num(s: string): number | undefined {
 		const n = Number.parseFloat(s);
@@ -71,7 +85,7 @@ export function BodyMetricsPanel() {
 			setThighs("");
 			setShowMore(false);
 		} catch (e) {
-			setError(e instanceof Error ? e.message : "Failed to save.");
+			setError(errorMessage(e, "Failed to save."));
 		} finally {
 			setSaving(false);
 		}
@@ -92,7 +106,6 @@ export function BodyMetricsPanel() {
 
 	return (
 		<div className="flex flex-col gap-6">
-			{/* Latest snapshot */}
 			{latest && (
 				<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 					<StatCard
@@ -120,7 +133,6 @@ export function BodyMetricsPanel() {
 				</div>
 			)}
 
-			{/* Add form */}
 			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5">
 				<h2 className="text-sm font-semibold text-white mb-4">
 					Log measurement
@@ -141,7 +153,14 @@ export function BodyMetricsPanel() {
 							/>
 							<button
 								type="button"
-								onClick={() => setUnit((u) => (u === "kg" ? "lbs" : "kg"))}
+								onClick={() =>
+									setUnit(
+										(u) =>
+											LOAD_UNITS[
+												(LOAD_UNITS.indexOf(u) + 1) % LOAD_UNITS.length
+											],
+									)
+								}
 								className="h-11 px-3 shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm font-semibold text-[var(--accent)]"
 							>
 								{unit}
@@ -215,7 +234,6 @@ export function BodyMetricsPanel() {
 				</button>
 			</div>
 
-			{/* Weight trend */}
 			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 				<h2 className="text-sm font-semibold text-white mb-4">Weight trend</h2>
 				{chartData.length > 1 ? (
@@ -227,12 +245,12 @@ export function BodyMetricsPanel() {
 							/>
 							<XAxis
 								dataKey="date"
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<YAxis
-								tick={{ fill: "#b3b3b3", fontSize: 11 }}
+								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
 								axisLine={false}
 								tickLine={false}
 								width={40}
@@ -250,10 +268,10 @@ export function BodyMetricsPanel() {
 							<Line
 								type="monotone"
 								dataKey="weight"
-								stroke="#1DB954"
+								stroke="var(--accent)"
 								strokeWidth={2}
-								dot={{ fill: "#1DB954", r: 3, strokeWidth: 0 }}
-								activeDot={{ r: 6, fill: "#1ed760" }}
+								dot={{ fill: "var(--accent)", r: 3, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "var(--accent-hover)" }}
 							/>
 						</LineChart>
 					</ResponsiveContainer>
@@ -264,7 +282,6 @@ export function BodyMetricsPanel() {
 				)}
 			</div>
 
-			{/* History */}
 			{entries.length > 0 && (
 				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
 					<h2 className="text-sm font-semibold text-white mb-3">History</h2>
@@ -299,9 +316,7 @@ export function BodyMetricsPanel() {
 								</div>
 								<button
 									type="button"
-									onClick={() =>
-										void removeEntry({ id: e._id as Id<"bodyMetrics"> })
-									}
+									onClick={() => void handleRemove(e._id)}
 									aria-label="Delete entry"
 									className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors shrink-0"
 								>

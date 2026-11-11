@@ -1,30 +1,11 @@
+import type { DefaultExercise } from "./types";
 import { WRKOUT_EXERCISES } from "./wrkoutExercises";
 
 // Curated exercise library shipped with the app.
 // Source for instruction text: paraphrased from the open Everkinetic dataset
 // (CC0). Keep instructions concise (3–5 short steps).
 
-export type DefaultExercise = {
-	_id: string;
-	name: string;
-	muscleGroups: string[];
-	category: "compound" | "isolation";
-	equipment:
-		| "barbell"
-		| "dumbbell"
-		| "cable"
-		| "bodyweight"
-		| "machine"
-		| "kettlebell"
-		| "band"
-		| "other";
-	weightIncrement?: number;
-	notes?: string;
-	instructions: string[];
-};
-
 export const CURATED_EXERCISES: DefaultExercise[] = [
-	// ─── Existing 15 (instructions backfilled) ─────────────────────────────────
 	{
 		name: "Barbell Back Squat",
 		_id: "shipped:exercise:barbell-back-squat",
@@ -235,7 +216,6 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Chest (5 new) ─────────────────────────────────────────────────────────
 	{
 		name: "Push-Up",
 		_id: "shipped:exercise:push-up",
@@ -306,7 +286,6 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Back (8 new) ──────────────────────────────────────────────────────────
 	{
 		name: "Lat Pulldown",
 		_id: "shipped:exercise:lat-pulldown",
@@ -418,7 +397,6 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Legs (11 new) ─────────────────────────────────────────────────────────
 	{
 		name: "Front Squat",
 		_id: "shipped:exercise:front-squat",
@@ -573,7 +551,6 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Shoulders (5 new) ─────────────────────────────────────────────────────
 	{
 		name: "Dumbbell Shoulder Press",
 		_id: "shipped:exercise:dumbbell-shoulder-press",
@@ -642,7 +619,6 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Arms (6 new) ──────────────────────────────────────────────────────────
 	{
 		name: "Hammer Curl",
 		_id: "shipped:exercise:hammer-curl",
@@ -722,7 +698,6 @@ export const CURATED_EXERCISES: DefaultExercise[] = [
 		],
 	},
 
-	// ─── Core (5 new) ──────────────────────────────────────────────────────────
 	{
 		name: "Plank",
 		_id: "shipped:exercise:plank",

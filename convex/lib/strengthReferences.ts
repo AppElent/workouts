@@ -1,38 +1,13 @@
-import { calculateOneRepMax, convertLoad } from "@foundry/core";
-import { v } from "convex/values";
+import {
+	calculateOneRepMax,
+	convertLoad,
+	isReferenceEligible,
+	resolveStrengthReferences,
+	SET_REFERENCE_SOURCES,
+} from "@foundry/core";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import {
-	canonicalExerciseId,
-	exerciseOneRepMaxes,
-	exerciseReferenceIds,
-	resolveExercise,
-} from "./exerciseCatalog";
-
-export const strengthReferenceSnapshot = v.object({
-	value: v.number(),
-	unit: v.union(v.literal("kg"), v.literal("lbs")),
-	date: v.number(),
-	source: v.union(
-		v.literal("actual"),
-		v.literal("calculated"),
-		v.literal("manual"),
-	),
-	sourceSetId: v.optional(v.id("sets")),
-	formula: v.optional(v.string()),
-	performance: v.optional(
-		v.object({
-			weight: v.number(),
-			reps: v.number(),
-			unit: v.union(v.literal("kg"), v.literal("lbs")),
-		}),
-	),
-});
-export const strengthReferenceSnapshots = v.object({
-	measured: v.union(v.null(), strengthReferenceSnapshot),
-	estimated: v.union(v.null(), strengthReferenceSnapshot),
-	manual: v.union(v.null(), strengthReferenceSnapshot),
-});
+import { exerciseOneRepMaxes, resolveExercise } from "./exerciseCatalog";
 
 export async function snapshotStrengthReferences(
 	ctx: MutationCtx,
@@ -73,13 +48,7 @@ export async function performanceReference(
 	>,
 ) {
 	const exercise = await resolveExercise(ctx, set.exerciseId, userId);
-	if (
-		!set.performanceVerified ||
-		!exercise ||
-		exercise.equipment === "bodyweight" ||
-		set.weight <= 0 ||
-		set.reps < 1
-	) {
+	if (!isReferenceEligible(set, exercise)) {
 		return { referenceKind: undefined, referenceValueKg: undefined };
 	}
 	const result = calculateOneRepMax(set.weight, set.reps);
@@ -89,46 +58,34 @@ export async function performanceReference(
 	};
 }
 
+/**
+ * Rebuilds the set-derived One-rep Max summaries of one exercise from its best
+ * actual and calculated sets. Manual entries and unsourced historical records
+ * stay.
+ */
 export async function recalcStrengthReferences(
 	ctx: MutationCtx,
 	userId: string,
-	id: string,
+	exerciseId: string,
 ) {
-	const exerciseId = await canonicalExerciseId(ctx, id);
-	const existing = await exerciseOneRepMaxes(ctx, userId, exerciseId);
-	// Keep manual and unverified historical records intact. Only this derivation's
-	// sourced summaries are replaceable, and its ranked index bounds history reads.
-	for (const reference of existing)
+	for (const reference of await exerciseOneRepMaxes(ctx, userId, exerciseId))
 		if (reference.sourceSetId) await ctx.db.delete(reference._id);
-	const ids = await exerciseReferenceIds(ctx, exerciseId);
-	for (const source of ["actual", "calculated"] as const) {
-		const candidates = (
-			await Promise.all(
-				ids.map((referenceId) =>
-					ctx.db
-						.query("sets")
-						.withIndex("by_strength_reference", (q) =>
-							q
-								.eq("userId", userId)
-								.eq("exerciseId", referenceId)
-								.eq("referenceKind", source),
-						)
-						.order("desc")
-						.first(),
-				),
+	for (const source of SET_REFERENCE_SOURCES) {
+		const best = await ctx.db
+			.query("sets")
+			.withIndex("by_strength_reference", (q) =>
+				q
+					.eq("userId", userId)
+					.eq("exerciseId", exerciseId)
+					.eq("referenceKind", source),
 			)
-		).filter((set): set is Doc<"sets"> => set !== null);
-		const best = candidates.sort(
-			(a, b) =>
-				(b.referenceValueKg ?? 0) - (a.referenceValueKg ?? 0) ||
-				b.loggedAt - a.loggedAt,
-		)[0];
+			.order("desc")
+			.first();
 		if (!best) continue;
-		const result = calculateOneRepMax(best.weight, best.reps);
 		await ctx.db.insert("oneRepMaxes", {
 			userId,
 			exerciseId,
-			...result,
+			...calculateOneRepMax(best.weight, best.reps),
 			unit: best.unit,
 			date: best.loggedAt,
 			sourceSetId: best._id,
@@ -141,25 +98,8 @@ export async function readStrengthReferences(
 	userId: string,
 	exerciseId: string,
 ) {
-	const records = await exerciseOneRepMaxes(ctx, userId, exerciseId);
-	const exercise = await resolveExercise(ctx, exerciseId, userId);
-	const automatic =
-		exercise?.equipment === "bodyweight"
-			? []
-			: records.filter((record) => record.sourceSetId);
-	const best = (source: "actual" | "calculated") =>
-		automatic
-			.filter((record) => record.source === source)
-			.sort(
-				(a, b) =>
-					convertLoad(b.value, b.unit, "kg") -
-					convertLoad(a.value, a.unit, "kg"),
-			)[0] ?? null;
-	const manual =
-		records
-			.filter((record) => record.source === "manual")
-			.sort(
-				(a, b) => b.date - a.date || b._creationTime - a._creationTime,
-			)[0] ?? null;
-	return { measured: best("actual"), estimated: best("calculated"), manual };
+	return resolveStrengthReferences(
+		await exerciseOneRepMaxes(ctx, userId, exerciseId),
+		await resolveExercise(ctx, exerciseId, userId),
+	);
 }

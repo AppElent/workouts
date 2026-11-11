@@ -1,3 +1,5 @@
+import { useAuth } from "@clerk/react";
+import { useRouter } from "@tanstack/react-router";
 import {
 	BookOpen,
 	ClipboardList,
@@ -10,55 +12,41 @@ import {
 	User,
 } from "lucide-react";
 import { useMessages } from "#/lib/i18n";
+import type { FileRouteTypes } from "#/routeTree.gen";
 
-type NavKey =
-	| "dashboard"
-	| "log"
-	| "exercises"
-	| "routines"
-	| "wods"
-	| "hostedWorkouts"
-	| "progress"
-	| "profile";
-
-export type NavItem = {
-	to: string;
-	key: NavKey;
+const NAV_ITEMS = [
+	{ to: "/dashboard", key: "dashboard", Icon: LayoutDashboard },
+	{ to: "/log", key: "log", Icon: Dumbbell },
+	{ to: "/exercises", key: "exercises", Icon: BookOpen },
+	{ to: "/routines", key: "routines", Icon: ClipboardList },
+	{ to: "/wods", key: "wods", Icon: Timer },
+	{ to: "/hosted-workouts", key: "hostedWorkouts", Icon: Radio },
+	{ to: "/progress", key: "progress", Icon: TrendingUp },
+	{ to: "/account", key: "profile", Icon: User },
+] as const satisfies readonly {
+	to: FileRouteTypes["to"];
+	key: string;
 	Icon: LucideIcon;
-	gated: boolean;
-};
+}[];
 
-export type LocalizedNavItem = NavItem & { label: string; shortLabel: string };
+const AUTHED_LAYOUT_ID = "/_app/_authed" satisfies FileRouteTypes["id"];
 
-export const NAV_ITEMS = [
-	{ to: "/dashboard", key: "dashboard", Icon: LayoutDashboard, gated: true },
-	{ to: "/log", key: "log", Icon: Dumbbell, gated: true },
-	{ to: "/exercises", key: "exercises", Icon: BookOpen, gated: false },
-	{ to: "/routines", key: "routines", Icon: ClipboardList, gated: true },
-	{ to: "/wods", key: "wods", Icon: Timer, gated: true },
-	{
-		to: "/hosted-workouts",
-		key: "hostedWorkouts",
-		Icon: Radio,
-		gated: true,
-	},
-	{ to: "/progress", key: "progress", Icon: TrendingUp, gated: true },
-	{ to: "/account", key: "profile", Icon: User, gated: true },
-] as const satisfies readonly NavItem[];
-
-export function isNavItemLocked(
-	item: { gated: boolean },
-	isSignedIn: boolean,
-): boolean {
-	return item.gated && !isSignedIn;
-}
-
-/** Attaches localized label/shortLabel to each nav item from the active locale's messages. */
-export function useNavItems(): readonly LocalizedNavItem[] {
+/**
+ * Nav items with localized labels. An item is `locked` while signed out when
+ * its route sits under the `_authed` layout.
+ */
+export function useNavItems() {
 	const { nav } = useMessages();
+	const { isSignedIn } = useAuth();
+	const router = useRouter();
 	return NAV_ITEMS.map((item) => ({
 		...item,
 		label: nav[item.key].label,
 		shortLabel: nav[item.key].shortLabel,
+		locked:
+			!isSignedIn &&
+			router
+				.getMatchedRoutes(item.to)[0]
+				.some((route) => route.id === AUTHED_LAYOUT_ID),
 	}));
 }

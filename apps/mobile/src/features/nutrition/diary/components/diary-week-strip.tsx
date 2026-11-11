@@ -1,3 +1,4 @@
+import { shiftIsoDate } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -6,18 +7,17 @@ import {
 	type ScrollViewInstance,
 	View,
 } from "react-native";
+import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
 import {
 	formatLongDate,
 	isoDateToLocalDate,
-	shiftIsoDate,
 	toIsoDate,
-} from "../../../../data/calendar-day";
-import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
-import { useTrainedDates } from "../../../../data/training-marker";
-import { plural, useI18n } from "../../../../i18n";
+} from "../../../../dates/calendar-day";
+import { dateLocale, plural, useI18n } from "../../../../i18n";
 import { radius, useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
+import { useTrainedDates } from "../use-trained-dates";
 
 export function DiaryWeekStrip({
 	date,
@@ -113,7 +113,9 @@ export function DiaryWeekStrip({
 										}}
 									>
 										{local
-											.toLocaleDateString(locale, { weekday: "short" })
+											.toLocaleDateString(dateLocale(locale), {
+												weekday: "short",
+											})
 											.slice(0, 2)}
 									</AppText>
 									<AppText

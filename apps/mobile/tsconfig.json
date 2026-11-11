@@ -5,7 +5,11 @@
 		// TypeScript 6 no longer picks every `@types/*` package up on its own, so
 		// the test runner's globals (`describe`, `expect`, `jest`) have to be named
 		// here or `jest.setup.ts` and every `*.test.ts` fail to typecheck.
-		"types": ["jest", "react"]
+		"types": ["jest", "react"],
+		// `app.config.ts` imports `src/theme/palette.ts` by its full name: Expo
+		// transpiles only the config file, and Node strips the types of a
+		// `.ts` file it is asked for by extension.
+		"allowImportingTsExtensions": true
 	},
 	"include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

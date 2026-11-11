@@ -1,29 +1,13 @@
-import path from "node:path";
 import viteReact from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
 	plugins: [viteReact()],
-	resolve: {
-		alias: {
-			"#": path.resolve(import.meta.dirname, "src"),
-			"@": path.resolve(import.meta.dirname, "src"),
-			"@convex": path.resolve(import.meta.dirname, "convex"),
-		},
-	},
+	resolve: { tsconfigPaths: true },
 	test: {
 		globals: true,
-		// Skip stale git worktrees under .claude/ and any leftover module-backup
-		// dirs (e.g. node_modules_OLD from a prior package-manager migration) —
-		// they carry their own sources/node_modules and pollute the run with
-		// thousands of phantom test files and failures.
-		exclude: [
-			...configDefaults.exclude,
-			"**/.worktrees/**",
-			"**/.claude/**",
-			"**/node_modules_OLD/**",
-			"**/node_modules.*/**",
-		],
+		// Nested worktrees carry their own sources and node_modules.
+		exclude: [...configDefaults.exclude, "**/.worktrees/**", "**/.claude/**"],
 		projects: [
 			{
 				extends: true,
@@ -55,20 +39,7 @@ export default defineConfig({
 			{
 				extends: true,
 				test: {
-					name: "cli",
-					include: ["cli/**/*.test.ts"],
-					environment: "node",
-					globals: true,
-				},
-			},
-			{
-				extends: true,
-				test: {
 					name: "core",
-					// `packages/core` is dependency-free logic shared by the web app,
-					// Convex and the phone. Without this project its tests match no
-					// pattern and are silently skipped — which is how `oneRepMax.test.ts`
-					// went unrun until the plate maths moved here beside it.
 					include: ["packages/core/src/**/*.test.ts"],
 					environment: "node",
 					globals: true,

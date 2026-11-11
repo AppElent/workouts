@@ -2,7 +2,14 @@
  * The set editor. Open sets change in place, so a closed sheet or a restart
  * keeps the input; a logged set's changes stay a draft until Save.
  */
-import { calcPlates, DEFAULT_BAR } from "@foundry/core";
+import {
+	calcPlates,
+	DEFAULT_BAR,
+	estimatedMaxReps,
+	formatClock,
+	SET_LIMITS,
+	SET_TYPES,
+} from "@foundry/core";
 import {
 	Stack,
 	useLocalSearchParams,
@@ -28,8 +35,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Id } from "../../convex/api";
-import { fmt, useI18n } from "../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -40,12 +48,12 @@ import {
 import { Segmented } from "../../ui/segmented";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
-import { useRestState } from "./components/rest-timer";
+import { useChoice } from "../../ui/use-choice";
 import { useLargeText } from "./components/session-set-row";
-import { useChoice, useSessionActions } from "./data/session-actions";
+import { useRestState } from "./data/rest-timer";
+import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace, workspaceStore } from "./data/session-workspace";
 import {
-	formatClock,
 	formatLoadOnly,
 	formatNumber,
 	formatSetFull,
@@ -58,15 +66,13 @@ import {
 	findRow,
 	groupOfRow,
 	isValidRow,
-	MAX_LOAD_KG,
-	MAX_REPS,
+	loadStep,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
 	resetToPlan,
 	rowOneRepMax,
 	rowsOf,
-	type SetKind,
 	sameSet,
 	shownLoad,
 	stepLoad,
@@ -76,12 +82,12 @@ import {
 	updateRow,
 	withTypedLoad,
 } from "./session-plan";
+import { useKeyboardHeight } from "./use-keyboard-height";
 
 const PRESETS = [60, 65, 70, 75, 80, 85, 90];
-const KINDS: SetKind[] = ["warmup", "working", "drop", "failure"];
 const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
 type FieldRef = RefObject<ComponentRef<typeof TextInput> | null>;
-const parseNumber = (text: string) => Number(text.replace(",", "."));
+const parseNumber = (text: string) => parseLocalizedDecimal(text) ?? Number.NaN;
 
 function NumberField({
 	label,
@@ -206,24 +212,10 @@ export function SetEditorScreen() {
 	const [percentText, setPercentText] = useState("");
 	const [customOpen, setCustomOpen] = useState(false);
 	const [more, setMore] = useState(false);
-	const [keyboard, setKeyboard] = useState(0);
+	const keyboard = useKeyboardHeight();
 	const loadRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const repsRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const percentRef = useRef<ComponentRef<typeof TextInput>>(null);
-	useEffect(() => {
-		const show = Keyboard.addListener(
-			Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-			(event) => setKeyboard(event.endCoordinates.height),
-		);
-		const hide = Keyboard.addListener(
-			Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-			() => setKeyboard(0),
-		);
-		return () => {
-			show.remove();
-			hide.remove();
-		};
-	}, []);
 	const logged = Boolean(stored?.done);
 	const changed = Boolean(logged && stored && draft && !sameSet(draft, stored));
 	const [saving, setSaving] = useState(false);
@@ -323,7 +315,7 @@ export function SetEditorScreen() {
 				Number(repsText) < 0));
 	const check = valid && !midType ? typoCheck(plan, row, facts, stored) : null;
 	const others = bestKnown(plan, row.exerciseId, facts, row.id);
-	const estimate = rowOneRepMax(row, bodyweight);
+	const estimate = rowOneRepMax(row, facts);
 	const target = targetPercent(row, reference, facts.stepKg);
 	const custom = target !== null && !PRESETS.includes(target);
 	const clockIdle =
@@ -457,7 +449,7 @@ export function SetEditorScreen() {
 			: 0,
 		estimatedRef: others.estimated ? Math.round(others.estimated) : "",
 	};
-	const theory = (value: number) => Math.floor(30 * (value / row.kg - 1));
+	const theory = (value: number) => estimatedMaxReps(value, row.kg) ?? 0;
 	const detail =
 		!valid || bodyweight
 			? ""
@@ -531,7 +523,7 @@ export function SetEditorScreen() {
 					? text.enterLoad
 					: noReps
 						? text.enterReps
-						: row.kg > MAX_LOAD_KG
+						: shownLoad(row) > SET_LIMITS.weight.max
 							? text.checkLoad
 							: text.checkReps;
 	} else if (check)
@@ -573,8 +565,7 @@ export function SetEditorScreen() {
 		actions.logReady(row.id);
 		close();
 	}
-	const loadStep = row.unit === "lbs" ? 5 : facts.stepKg;
-	const stepLabel = formatNumber(loadStep, locale);
+	const stepLabel = formatNumber(loadStep(row.unit, facts.stepKg), locale);
 	const onLoadText = (value: string) => {
 		setLoadText(value);
 		if (value.trim() === "") return;
@@ -589,7 +580,7 @@ export function SetEditorScreen() {
 		if (Number.isInteger(parsed) && parsed >= 0)
 			change({
 				...row,
-				reps: Math.min(parsed, MAX_REPS + 1),
+				reps: Math.min(parsed, SET_LIMITS.reps.max + 1),
 				blank: undefined,
 			});
 	};
@@ -645,7 +636,12 @@ export function SetEditorScreen() {
 	}
 	const applyCustom = () => {
 		const value = parseNumber(percentText);
-		if (reference && Number.isFinite(value) && value > 0 && value <= 120) {
+		if (
+			reference &&
+			Number.isFinite(value) &&
+			value > 0 &&
+			value <= SET_LIMITS.percentOfOneRepMax.max
+		) {
 			change(applyPercent(row, value, reference, facts));
 			setCustomOpen(false);
 			Keyboard.dismiss();
@@ -1017,7 +1013,7 @@ export function SetEditorScreen() {
 								/>
 							</View>
 							<View style={styles.kinds}>
-								{KINDS.map((kind) => (
+								{SET_TYPES.map((kind) => (
 									<Pressable
 										key={kind}
 										accessibilityRole="button"
@@ -1353,8 +1349,8 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.lg,
 			borderCurve: "continuous",
 		},
-		pressed: { opacity: 0.6 },
-		dimmed: { opacity: 0.4 },
+		pressed: { opacity: opacity.pressed },
+		dimmed: { opacity: opacity.disabled },
 		primary: {
 			minHeight: 56,
 			alignItems: "center",

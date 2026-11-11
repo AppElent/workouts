@@ -1,10 +1,9 @@
+import type { FoodVisual } from "@foundry/core";
 import { useEffect, useRef, useState } from "react";
 import {
-	type FoodPhotoManager,
 	type FoodPhotoSource,
 	foodPhotos,
 } from "../../data/food-photo-manager";
-import type { FoodVisual } from "../../data/personal-food-repository";
 
 /** A food's visual while editing: a saved one, or an imported photo not yet copied. */
 export type EditorVisual =
@@ -19,14 +18,12 @@ export type EditorVisual =
 export function useStagedFoodVisual({
 	initial,
 	adoptInitialPhoto = false,
-	photoManager = foodPhotos,
 	messages,
 	onChange,
 }: {
 	initial?: EditorVisual;
 	/** The initial photo is unsaved, so cancelling removes it like a new one. */
 	adoptInitialPhoto?: boolean;
-	photoManager?: FoodPhotoManager;
 	messages: { permissionDenied: string; failure: string };
 	/** After every change by the person, such as marking a draft dirty. */
 	onChange?: () => void;
@@ -42,9 +39,9 @@ export function useStagedFoodVisual({
 	useEffect(
 		() => () => {
 			if (!kept.current && staged.current)
-				photoManager.remove({ kind: "photo", uri: staged.current });
+				foodPhotos.remove({ kind: "photo", uri: staged.current });
 		},
-		[photoManager],
+		[],
 	);
 
 	function replace(next: EditorVisual | undefined) {
@@ -52,7 +49,7 @@ export function useStagedFoodVisual({
 			staged.current &&
 			(next?.kind !== "photo" || next.uri !== staged.current)
 		) {
-			photoManager.remove({ kind: "photo", uri: staged.current });
+			foodPhotos.remove({ kind: "photo", uri: staged.current });
 			staged.current = undefined;
 		}
 		setVisual(next);
@@ -65,7 +62,7 @@ export function useStagedFoodVisual({
 		setBusy(true);
 		setError(undefined);
 		try {
-			const choice = await photoManager.choose(from);
+			const choice = await foodPhotos.choose(from);
 			if (choice.kind === "denied") setError(messages.permissionDenied);
 			else if (choice.kind === "selected") {
 				replace(choice.visual);
@@ -91,7 +88,7 @@ export function useStagedFoodVisual({
 		/** Drop a staged photo now, such as when the form is discarded. */
 		discard: () => {
 			if (staged.current) {
-				photoManager.remove({ kind: "photo", uri: staged.current });
+				foodPhotos.remove({ kind: "photo", uri: staged.current });
 				staged.current = undefined;
 			}
 		},

@@ -1,19 +1,15 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
+import { MEAL_SLOTS, NUTRIENT_KEYS, totalNutrients } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, View } from "react-native";
-import {
-	MEAL_SLOTS,
-	nutrientUnit,
-	useNutritionDay,
-} from "../../../data/nutrition-day";
+import { useNutritionDay } from "../../../data/nutrition-day";
 import { useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
+import { formatNutrientTotal } from "../nutrient-amount";
 import { NutritionGoalCard } from "./components/nutrition-goal-card";
-import { displayAmount } from "./goal-presentation";
 export function DayGoalsScreen({ date }: { date: string }) {
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const state = useNutritionDay(date);
 	const colors = useTokens();
 	const entries =
@@ -21,7 +17,7 @@ export function DayGoalsScreen({ date }: { date: string }) {
 			? MEAL_SLOTS.flatMap((m) => state.day.entries[m])
 			: [];
 	const totals = {
-		...totalNutrients(entries.map((e) => e.nutrients)),
+		...totalNutrients(entries),
 		...(state.status === "ready" ? state.day.totals : {}),
 	};
 	for (const n of NUTRIENT_KEYS)
@@ -127,7 +123,10 @@ export function DayGoalsScreen({ date }: { date: string }) {
 										>
 											<AppText>{t.nutrition.nutrients[n]}</AppText>
 											<AppText>
-												{displayAmount(n, totals[n])} {nutrientUnit(n)} ›
+												{formatNutrientTotal(n, totals[n], locale, {
+													unit: true,
+												})}{" "}
+												›
 											</AppText>
 										</Pressable>
 									))}

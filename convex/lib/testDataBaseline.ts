@@ -1,13 +1,53 @@
-import { normalizePersonalFood, personalFoodSnapshot } from "@foundry/core";
+import {
+	ENDURANCE_SPORTS,
+	type EnduranceSport,
+	normalizePersonalFood,
+	personalFoodSnapshot,
+	SET_TYPES,
+	shiftIsoDate,
+} from "@foundry/core";
 import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
+import { type Infer, v } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
+import { assertIsoDate } from "./diaryDays";
+import { appError } from "./errors";
 import { libraryIndexFields } from "./nutritionLibraryIndex";
+import { deletePersonalData } from "./personalData";
 import {
 	performanceReference,
 	recalcStrengthReferences,
 } from "./strengthReferences";
 
 const DAY = 86_400_000;
+
+const ACTIVITY_TITLES: Record<EnduranceSport, string> = {
+	running: "Test: Easy run",
+	cycling: "Test: Weekend ride",
+};
+
+export const testDataMode = v.union(v.literal("load"), v.literal("clear"));
+
+/**
+ * Clears the account's personal data (keeping preferences) and, for `load`,
+ * writes the baseline. One transaction, so a rejected or oversized reset never
+ * leaves half an account; the delete budget leaves room for the baseline.
+ */
+export async function resetTestData(
+	ctx: MutationCtx,
+	userId: string,
+	mode: Infer<typeof testDataMode>,
+	today: string,
+) {
+	assertIsoDate(today, "today");
+	if (
+		!(await deletePersonalData(ctx, userId, {
+			budget: 6000,
+			keepPreferences: true,
+		}))
+	)
+		throw appError("tooLarge");
+	if (mode === "load") await loadTestDataBaseline(ctx, userId, today);
+}
 
 export async function loadTestDataBaseline(
 	ctx: MutationCtx,
@@ -16,8 +56,7 @@ export async function loadTestDataBaseline(
 ) {
 	const now = Date.now();
 	const at = (daysAgo: number) => now - daysAgo * DAY;
-	const date = (daysAgo: number) =>
-		new Date(Date.parse(today) - daysAgo * DAY).toISOString().slice(0, 10);
+	const date = (daysAgo: number) => shiftIsoDate(today, -daysAgo);
 	const exercise = SHIPPED_EXERCISES.find(
 		(item) => item.equipment === "barbell",
 	);
@@ -60,9 +99,7 @@ export async function loadTestDataBaseline(
 				plannedSets: [{ reps: 5, weight: 60, unit: "kg" }],
 			})),
 		});
-		for (const [index, setType] of (
-			["warmup", "working", "drop", "failure"] as const
-		).entries()) {
+		for (const [index, setType] of SET_TYPES.entries()) {
 			const set = {
 				userId,
 				sessionId,
@@ -90,14 +127,14 @@ export async function loadTestDataBaseline(
 		date: at(1),
 		source: "manual",
 	});
-	for (const [index, sport] of (["running", "cycling"] as const).entries()) {
+	for (const [index, sport] of ENDURANCE_SPORTS.entries()) {
 		const activityId = await ctx.db.insert("activities", {
 			userId,
 			clientEntryId: `test-${sport}`,
 			sport,
 			occurredAt: at(2 + index * 3),
 			durationSeconds: 1800 + index * 1800,
-			title: sport === "running" ? "Test: Easy run" : "Test: Weekend ride",
+			title: ACTIVITY_TITLES[sport],
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -202,7 +239,6 @@ export async function loadTestDataBaseline(
 			recordId: item.id,
 			recordKind,
 			payload,
-			schemaVersion: 2,
 			revision: 1,
 			deleted: false,
 			updatedAt: now,

@@ -14,3 +14,18 @@ describe("mealSlotAt", () => {
 		expect(mealSlotAt(at(2))).toBe("snacks");
 	});
 });
+
+describe("mealSlotAt boundaries", () => {
+	it.each([
+		[4, 59, "snacks"],
+		[5, 0, "breakfast"],
+		[10, 30, "snacks"],
+		[11, 30, "lunch"],
+		[14, 30, "snacks"],
+		[17, 0, "dinner"],
+		[20, 59, "dinner"],
+		[21, 0, "snacks"],
+	] as const)("%i:%i is %s", (hour, minute, slot) => {
+		expect(mealSlotAt(at(hour, minute))).toBe(slot);
+	});
+});

@@ -18,8 +18,7 @@ The policy is `workspace` in [`appelent.json`](../../appelent.json): install
 dependencies, then write `.env.local` and `apps/mobile/.env.local` from Infisical
 `dev` (`env apply local --only file`). Worktrees share the dev deployment
 `colorless-sturgeon-704`: runtime writes are visible to every worktree, so use
-throwaway accounts for destructive checks. Run `pnpm build:packages` before checks
-that need `@foundry/core`'s build.
+throwaway accounts for destructive checks.
 
 ## Isolated backends
 
@@ -28,7 +27,7 @@ Use your own Convex deployment for schema migrations, seeds, or destructive data
 ```sh
 node scripts/workspace.mjs clean   # the hook already prepared this worktree in none mode
 node scripts/workspace.mjs prepare --editor t3 --backend cloud --days 5
-pnpm seed:reset                    # optional, only on the isolated deployment
+pnpm seed:reset <clerk-user-id>    # optional, only on the isolated deployment
 ```
 
 Cloud mode needs `pnpm exec convex login`. It creates the deployment, applies its

@@ -11,7 +11,7 @@ import {
 } from "../../../theme";
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
-import { useChoice } from "../data/session-actions";
+import { useChoice } from "../../../ui/use-choice";
 import { formatNumber, formatSetShort } from "../session-format";
 import {
 	addSet,
@@ -32,7 +32,7 @@ import { useSessionScreen } from "../session-screen-context";
 import { SessionSetRow, useLargeText } from "./session-set-row";
 
 /** The line under an exercise: what its percentages come from. */
-export function useReferenceLine(exerciseId: string) {
+function useReferenceLine(exerciseId: string) {
 	const { plan, workspace } = useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
@@ -90,7 +90,7 @@ export function useReferenceLine(exerciseId: string) {
 		hasManual,
 	};
 }
-export function useExerciseMenu(exerciseId: string) {
+function useExerciseMenu(exerciseId: string) {
 	const {
 		actions,
 		openEditor,

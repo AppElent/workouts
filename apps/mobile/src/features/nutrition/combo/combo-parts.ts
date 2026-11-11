@@ -1,17 +1,16 @@
 import {
-	combinedNutrients,
+	type ComboDraft,
+	type ComboPartDraft,
+	type ComboPartReference,
+	comboNutrients,
+	type Locale,
 	type NutrientValue,
 	type PersonalFood,
 	personalFoodSnapshotAtAmount,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import type { DiaryEntry } from "../../../data/nutrition-day";
-import type {
-	Combo,
-	ComboDraft,
-	ComboPartDraft,
-	ComboPartReference,
-} from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 
 /** A diary entry as a combo part: its food by reference, or a one-off snapshot. */
 export function comboPartFromEntry(
@@ -85,9 +84,7 @@ export function comboPartFromFood(food: PersonalFood): ComboPartDraft {
 
 /** kcal and the three macros, summed from the saved snapshots. */
 export function comboTotals(combo: Pick<Combo, "parts">) {
-	const sum = combinedNutrients(
-		combo.parts.map((part) => part.snapshot.nutrients),
-	);
+	const sum = comboNutrients(combo);
 	const pick = (key: "energy" | "protein" | "carbs" | "fat") => {
 		const value = sum[key];
 		return value.kind === "value"
@@ -113,7 +110,7 @@ export function snapshotEnergy(snapshot: {
 /** "389 kcal" in the reader's digits; undefined while the value is unknown. */
 export function kcalText(
 	value: NutrientValue,
-	locale: "en" | "nl",
+	locale: Locale,
 ): string | undefined {
 	return value.kind === "value"
 		? `${roundForDisplay("energy", value.amount).toLocaleString(locale)} kcal`

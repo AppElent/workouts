@@ -1,12 +1,13 @@
-import type { NutrientKey, NutrientValue } from "@foundry/core/nutrition";
+import type {
+	NutrientKey,
+	NutrientValue,
+	PersonalFood,
+	PersonalFoodDraft,
+} from "@foundry/core";
 import {
 	OFF_REFRESH_INTERVAL_MS,
 	refreshOpenFoodFactsImports,
 } from "./open-food-facts-sync";
-import type {
-	PersonalFood,
-	PersonalFoodDraft,
-} from "./personal-food-repository";
 
 const nutrients = {
 	energy: { kind: "value", amount: 100 },

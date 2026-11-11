@@ -1,9 +1,7 @@
-import { useConvex, useConvexConnectionState } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { api } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { foodPhotos } from "../../../data/food-photo-manager";
 import { useOpenFoodFacts } from "../../../data/open-food-facts-context";
 import {
@@ -23,6 +21,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { LocalDataSettingsPanel } from "./local-data-settings-panel";
 
 export function NutritionSettingsScreen() {
@@ -31,15 +30,15 @@ export function NutritionSettingsScreen() {
 	const router = useRouter();
 	const copy = t.nutrition.settings;
 	const foods = usePersonalFoods();
-	const client = useConvex();
 	const openFoodFacts = useOpenFoodFacts();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const confirm = useConfirm();
 	const [offRefreshing, setOffRefreshing] = useState(false);
 	const [offProgress, setOffProgress] = useState<OffRefreshProgress>();
-	const { isWebSocketConnected } = useConvexConnectionState();
+	const online = useOnline();
 	const refreshImports = async () => {
-		if (offRefreshing || !isWebSocketConnected) return;
+		if (offRefreshing || !online) return;
 		if (
 			!(await confirm({
 				title: copy.offConfirmTitle,
@@ -51,20 +50,7 @@ export function NutritionSettingsScreen() {
 		setOffRefreshing(true);
 		setOffProgress(undefined);
 		try {
-			// This explicit management action may enumerate the library. Ordinary navigation
-			// never does. Apply bounded pages to the existing cache, then refresh each import.
-			let cursor: string | null = null;
-			for (;;) {
-				const page: FunctionReturnType<typeof api.nutritionLibrary.browse> =
-					await client.query(api.nutritionLibrary.browse, {
-						query: "",
-						photoVersion: 3,
-						paginationOpts: { cursor, numItems: 100 },
-					});
-				foods.account.receiveServerPage(page.page);
-				if (page.isDone) break;
-				cursor = page.continueCursor;
-			}
+			await foods.account.loadEntireLibrary();
 			await refreshOpenFoodFactsImports({
 				foods: openFoodFactsImports(foods.list()),
 				refreshBarcode: openFoodFacts.refreshBarcode,
@@ -73,8 +59,8 @@ export function NutritionSettingsScreen() {
 				onProgress: setOffProgress,
 				onPhotoFailure: () => toast.error(copy.offPhotoFailure),
 			});
-		} catch {
-			toast.error(copy.failure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, copy.failure));
 		} finally {
 			setOffRefreshing(false);
 		}
@@ -86,7 +72,7 @@ export function NutritionSettingsScreen() {
 			contentContainerStyle={styles.content}
 		>
 			<AppText variant="caption">{copy.intro}</AppText>
-			{!isWebSocketConnected ? (
+			{!online ? (
 				<GroupedSurface style={styles.card}>
 					<AppText>{copy.offline}</AppText>
 				</GroupedSurface>
@@ -106,7 +92,7 @@ export function NutritionSettingsScreen() {
 				<AppText variant="caption">{copy.offHelp}</AppText>
 				<TextAction
 					label={offRefreshing ? copy.offRefreshing : copy.offRefresh}
-					disabled={offRefreshing || !isWebSocketConnected}
+					disabled={offRefreshing || !online}
 					onPress={() => void refreshImports()}
 				/>
 				{offProgress ? (

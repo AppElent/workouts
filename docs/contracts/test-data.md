@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing in-app Load or Clear test data.
-version: 1.0.0
+version: 2.0.0
 status: current
 ---
 
@@ -49,8 +49,8 @@ alone does not reproduce them.
 
 - Preserve login, account identity, and preferences such as units and theme.
 - Reset retained query subscriptions when remounting account providers. Remove
-  claimed legacy sources and account Set Drafts so later migration cannot restore
-  deleted test data.
+  the account's Set Drafts and planned sessions so they cannot restore deleted
+  test data.
 - Remove personal training and nutrition records, including saved Capture
   Drafts. Clear related caches, remembered food selections, and Food photos on
   the current device. This does not promise removal of device-local files on

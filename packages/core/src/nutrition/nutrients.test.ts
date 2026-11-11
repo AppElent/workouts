@@ -1,41 +1,20 @@
 import { describe, expect, test } from "vitest";
-import {
-	type NutrientContribution,
-	totalNutrient,
-	totalNutrients,
-} from "./aggregate";
+import { type NutrientContribution, totalNutrients } from "./aggregate";
 import {
 	ABSENT,
+	KJ_PER_KCAL,
+	kcalFromKilojoules,
 	NUTRIENT_KEYS,
+	type NutrientValue,
 	numericAmount,
 	nutrientValue,
 	rescaleNutrients,
 	roundForDisplay,
-	SHIPPED_NUTRIENT_KEYS,
 	scaleNutrient,
 	TRACE,
+	validateNutrientValues,
 } from "./nutrients";
-import { isDerivedNutrient, saltFromSodium } from "./salt";
-
-describe("the nutrient vocabulary", () => {
-	test("is the eight the spec names, spelled the way the spec spells them", () => {
-		expect([...NUTRIENT_KEYS]).toEqual([
-			"energy",
-			"protein",
-			"carbs",
-			"fat",
-			"saturatedFat",
-			"fibre",
-			"sugars",
-			"salt",
-		]);
-	});
-
-	test("carries sodium on shipped foods without making it a ninth nutrient", () => {
-		expect(SHIPPED_NUTRIENT_KEYS).toContain("sodium");
-		expect(NUTRIENT_KEYS).not.toContain("sodium");
-	});
-});
+import { saltFromSodium } from "./salt";
 
 describe("reading a nutrient value", () => {
 	test("gives a trace the number zero so arithmetic still works", () => {
@@ -78,12 +57,6 @@ describe("deriving salt from sodium", () => {
 	test("gives trace salt for trace sodium", () => {
 		expect(saltFromSodium(TRACE)).toEqual({ kind: "trace" });
 	});
-
-	test("marks salt, and only salt, as something Foundry derived", () => {
-		expect(isDerivedNutrient("salt")).toBe(true);
-		expect(isDerivedNutrient("sodium")).toBe(false);
-		expect(isDerivedNutrient("protein")).toBe(false);
-	});
 });
 
 describe("rescaling a stored nutrient snapshot", () => {
@@ -116,16 +89,22 @@ describe("rescaling a stored nutrient snapshot", () => {
 	});
 });
 
+/** One nutrient's total across entries that each carry only energy. */
+function energyTotal(values: readonly NutrientValue[]) {
+	return totalNutrients(values.map((energy) => ({ nutrients: { energy } })))
+		.energy;
+}
+
 describe("totalling a nutrient across entries", () => {
 	test("adds the values", () => {
-		const total = totalNutrient([nutrientValue(10), nutrientValue(2.5)]);
+		const total = energyTotal([nutrientValue(10), nutrientValue(2.5)]);
 		expect(total.amount).toBe(12.5);
 		expect(total.qualified).toBe(false);
 		expect(total.incomplete).toBe(false);
 	});
 
 	test("lets a trace contribute zero while qualifying the total", () => {
-		const total = totalNutrient([nutrientValue(10), TRACE]);
+		const total = energyTotal([nutrientValue(10), TRACE]);
 		expect(total.amount).toBe(10);
 		expect(total.traceCount).toBe(1);
 		expect(total.qualified).toBe(true);
@@ -134,7 +113,7 @@ describe("totalling a nutrient across entries", () => {
 	});
 
 	test("still shows a total built from incomplete entries, but marks it", () => {
-		const total = totalNutrient([nutrientValue(10), ABSENT]);
+		const total = energyTotal([nutrientValue(10), ABSENT]);
 		expect(total.amount).toBe(10);
 		expect(total.absentCount).toBe(1);
 		expect(total.incomplete).toBe(true);
@@ -142,7 +121,7 @@ describe("totalling a nutrient across entries", () => {
 	});
 
 	test("treats a day with nothing logged as a neutral zero, not an incomplete one", () => {
-		const total = totalNutrient([]);
+		const total = energyTotal([]);
 		expect(total.amount).toBe(0);
 		expect(total.entryCount).toBe(0);
 		expect(total.incomplete).toBe(false);
@@ -157,18 +136,18 @@ describe("totalling a day", () => {
 	];
 
 	test("reports every one of the eight, whether or not an entry mentioned it", () => {
-		const totals = totalNutrients(day);
+		const totals = totalNutrients(day.map((nutrients) => ({ nutrients })));
 		expect(Object.keys(totals).sort()).toEqual([...NUTRIENT_KEYS].sort());
 	});
 
 	test("counts a nutrient an entry never mentioned as unknown, not as zero", () => {
-		const totals = totalNutrients(day);
+		const totals = totalNutrients(day.map((nutrients) => ({ nutrients })));
 		expect(totals.fibre.incomplete).toBe(true);
 		expect(totals.fibre.absentCount).toBe(2);
 	});
 
 	test("keeps trace and absence separate in the day total", () => {
-		const totals = totalNutrients(day);
+		const totals = totalNutrients(day.map((nutrients) => ({ nutrients })));
 		expect(totals.energy).toMatchObject({
 			amount: 350,
 			incomplete: false,
@@ -181,5 +160,57 @@ describe("totalling a day", () => {
 			incomplete: false,
 			qualified: true,
 		});
+	});
+});
+
+describe("totalling estimated entries", () => {
+	test("qualifies a total that a known estimated reading contributes to", () => {
+		const totals = totalNutrients([
+			{ nutrients: { energy: nutrientValue(200) } },
+			{ nutrients: { energy: nutrientValue(150) }, estimated: true },
+		]);
+		expect(totals.energy).toMatchObject({
+			amount: 350,
+			incomplete: false,
+			qualified: true,
+		});
+	});
+});
+
+describe("kilojoules", () => {
+	test("convert to kilocalories at a tenth", () => {
+		expect(kcalFromKilojoules(KJ_PER_KCAL * 100)).toBe(100);
+		expect(kcalFromKilojoules(1000)).toBe(239);
+		expect(kcalFromKilojoules(1)).toBe(0.2);
+	});
+});
+
+describe("validateNutrientValues", () => {
+	test("accepts all eight as values, traces or absences", () => {
+		const nutrients = Object.fromEntries(
+			NUTRIENT_KEYS.map((key) => [key, key === "salt" ? TRACE : ABSENT]),
+		);
+		const result = validateNutrientValues({
+			...nutrients,
+			energy: { kind: "value", amount: 0 },
+		});
+		expect(result.ok && result.value.energy).toEqual({
+			kind: "value",
+			amount: 0,
+		});
+	});
+
+	test("reports each missing, malformed or negative reading by key", () => {
+		const result = validateNutrientValues({
+			energy: { kind: "value", amount: -1 },
+			protein: { kind: "value", amount: Number.POSITIVE_INFINITY },
+			carbs: { kind: "lots" },
+		});
+		expect(result.ok ? [] : result.errors.slice(0, 4)).toEqual([
+			{ field: "energy", code: "negative" },
+			{ field: "protein", code: "invalid" },
+			{ field: "carbs", code: "invalid" },
+			{ field: "fat", code: "invalid" },
+		]);
 	});
 });

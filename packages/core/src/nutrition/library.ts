@@ -82,29 +82,10 @@ export function allShippedFoods(): readonly ShippedFood[] {
 	return shippedLibrary().foods;
 }
 
-export function promotedShippedFoods(): readonly ShippedFood[] {
-	return shippedLibrary().promoted;
-}
-
 export function getShippedFood(
 	id: ShippedFoodId | string,
 ): ShippedFood | undefined {
 	return shippedLibrary().byId.get(id);
-}
-
-/**
- * Look a food up by its NEVO code. For provenance and generation only — a
- * stored reference must always use the `shipped:` id, because NEVO codes can
- * retire and reappear.
- */
-export function getShippedFoodByNevoCode(
-	code: number,
-): ShippedFood | undefined {
-	return shippedLibrary().byNevoCode.get(code);
-}
-
-export function shippedLibraryMeta(): ShippedLibraryMeta {
-	return shippedLibrary().meta;
 }
 
 /** Dataset name, edition and salt provenance for the source a food came from. */
@@ -116,8 +97,4 @@ export function shippedSourceMeta(
 	if (!meta)
 		throw new Error(`Shipped artifact has no source table for ${food.source}`);
 	return meta;
-}
-
-export function shippedFoodGroups(): readonly ShippedFoodGroup[] {
-	return shippedLibrary().groups;
 }

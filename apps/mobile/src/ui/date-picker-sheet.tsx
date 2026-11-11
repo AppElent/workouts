@@ -19,7 +19,6 @@ export function DatePickerSheet({
 	visible,
 	date,
 	today,
-	locale,
 	title,
 	todayLabel,
 	doneLabel,
@@ -64,7 +63,6 @@ export function DatePickerSheet({
 					<MonthCalendar
 						selectedDate={date}
 						onSelect={onSelect}
-						locale={locale}
 						today={today}
 						labels={{ today: todayLabel }}
 					/>

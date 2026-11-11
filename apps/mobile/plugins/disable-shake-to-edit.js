@@ -1,5 +1,5 @@
 // Turns off iOS shake-to-undo (`applicationSupportsShakeToEdit`). Shake opens
-// Sentry's report form (`src/feedback/sentry.ts`); with a text field edited,
+// Sentry's report form (`src/observability/sentry.ts`); with a text field edited,
 // iOS also presented its "Undo Typing" alert, which blocked the form's modal
 // and left its dimmed backdrop over a frozen app (#95).
 const { withAppDelegate } = require("expo/config-plugins");

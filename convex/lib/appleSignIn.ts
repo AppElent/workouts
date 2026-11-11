@@ -9,12 +9,12 @@
  */
 
 const APPLE = "https://appleid.apple.com";
-export const APPLE_CLIENT_IDS = [
+const APPLE_CLIENT_IDS = [
 	"com.appelent.foundry",
 	"com.appelent.foundry.preview",
 	"com.appelent.foundry.dev",
 ] as const;
-export type AppleClientId = (typeof APPLE_CLIENT_IDS)[number];
+type AppleClientId = (typeof APPLE_CLIENT_IDS)[number];
 
 export function isAppleClientId(value: string): value is AppleClientId {
 	return (APPLE_CLIENT_IDS as readonly string[]).includes(value);
@@ -22,7 +22,7 @@ export function isAppleClientId(value: string): value is AppleClientId {
 /** Apple accepts client secrets valid for up to six months; one use needs minutes. */
 const SECRET_LIFETIME_SECONDS = 300;
 
-export type AppleCredentials = {
+type AppleCredentials = {
 	readonly teamId: string;
 	readonly keyId: string;
 	/** The `.p8` key, with or without PEM armour; escaped `\n` is accepted. */

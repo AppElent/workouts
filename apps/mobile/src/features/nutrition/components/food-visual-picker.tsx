@@ -1,3 +1,4 @@
+import { FOOD_VISUAL_PRESET_IDS, type FoodVisualPresetId } from "@foundry/core";
 import { Image } from "expo-image";
 import { SymbolView } from "expo-symbols";
 import { View } from "react-native";
@@ -5,10 +6,6 @@ import type {
 	FoodPhotoCropPosition,
 	FoodPhotoSource,
 } from "../../../data/food-photo-manager";
-import {
-	FOOD_VISUAL_PRESET_IDS,
-	type FoodVisualPresetId,
-} from "../../../data/personal-food-repository";
 import { useI18n } from "../../../i18n";
 import { radius, useTokens } from "../../../theme";
 import type { EditorVisual } from "../use-staged-food-visual";
@@ -19,7 +16,7 @@ const CROP_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
 
 /**
  * A food's photo or icon as the hero of its form, and the one popup that
- * changes it (mobile-design "Photo popup"): Take photo, Choose photo, Icon ›
+ * changes it: Take photo, Choose photo, Icon ›
  * with the current one beside it, and Remove photo only when there is one.
  * An imported photo not yet saved also offers where to crop it.
  */

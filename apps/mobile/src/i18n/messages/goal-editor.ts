@@ -56,28 +56,44 @@ export const goalEditorEn = {
 	chooseStartFooter:
 		"No choice means no goals; the diary then shows totals only.",
 	presetSummary: {
-		reference: "2,000 kcal · EU 1169/2011 Annex XIII",
-		loseWeight: "1,700 kcal · Reference −300 kcal",
-		buildMuscle: "2,300 kcal · protein 100 g",
+		reference: "{energy} kcal · EU 1169/2011 Annex XIII",
+		loseWeight: "{energy} kcal · Reference {energyDelta} kcal",
+		buildMuscle: "{energy} kcal · protein {protein} g",
 	},
 	presetMenuHint: {
 		reference: "EU 1169/2011 Annex XIII, EFSA fibre",
-		loseWeight: "Reference, energy −300 kcal",
-		buildMuscle: "Reference, energy +300 kcal, protein +50 g",
+		loseWeight: "Reference, energy {energyDelta} kcal",
+		buildMuscle:
+			"Reference, energy {energyDelta} kcal, protein {proteinDelta} g",
 	},
 	field: "{nutrient} {direction}",
 	previousField: "Previous field",
 	nextField: "Next field",
 	invalid: "Enter a number greater than zero.",
 	range: "Minimum is higher than maximum.",
-	invalidCount: "{count} goals need a fix",
-	invalidOne: "1 goal needs a fix",
-	discardMessage: "You changed {count} goals.",
-	discardMessageOne: "You changed 1 goal.",
+	invalidCount: {
+		one: "1 goal needs a fix",
+		other: "{count} goals need a fix",
+	},
+	discardMessage: {
+		one: "You changed 1 goal.",
+		other: "You changed {count} goals.",
+	},
 	discard: "Discard changes",
 	keepEditing: "Keep editing",
 	offlineTitle: "Your goals are not available offline yet.",
 	offlineBody: "Reconnect to load your saved goals. Your draft stays here.",
+	presets: {
+		reference: {
+			name: "Reference intake",
+		},
+		loseWeight: {
+			name: "Lose weight",
+		},
+		buildMuscle: {
+			name: "Build muscle",
+		},
+	},
 };
 
 export const goalEditorNl: typeof goalEditorEn = {
@@ -140,27 +156,43 @@ export const goalEditorNl: typeof goalEditorEn = {
 	chooseStartFooter:
 		"Geen keuze = geen doelen; het dagboek toont dan alleen totalen.",
 	presetSummary: {
-		reference: "2.000 kcal · EU 1169/2011 bijlage XIII",
-		loseWeight: "1.700 kcal · Referentie −300 kcal",
-		buildMuscle: "2.300 kcal · eiwit 100 g",
+		reference: "{energy} kcal · EU 1169/2011 bijlage XIII",
+		loseWeight: "{energy} kcal · Referentie {energyDelta} kcal",
+		buildMuscle: "{energy} kcal · eiwit {protein} g",
 	},
 	presetMenuHint: {
 		reference: "EU 1169/2011 bijlage XIII, EFSA vezels",
-		loseWeight: "Referentie, energie −300 kcal",
-		buildMuscle: "Referentie, energie +300 kcal, eiwit +50 g",
+		loseWeight: "Referentie, energie {energyDelta} kcal",
+		buildMuscle:
+			"Referentie, energie {energyDelta} kcal, eiwit {proteinDelta} g",
 	},
 	field: "{nutrient} {direction}",
 	previousField: "Vorig veld",
 	nextField: "Volgend veld",
 	invalid: "Vul een getal groter dan nul in.",
 	range: "Minimum is hoger dan maximum.",
-	invalidCount: "{count} doelen kloppen niet",
-	invalidOne: "1 doel klopt niet",
-	discardMessage: "Je hebt {count} doelen gewijzigd.",
-	discardMessageOne: "Je hebt 1 doel gewijzigd.",
+	invalidCount: {
+		one: "1 doel klopt niet",
+		other: "{count} doelen kloppen niet",
+	},
+	discardMessage: {
+		one: "Je hebt 1 doel gewijzigd.",
+		other: "Je hebt {count} doelen gewijzigd.",
+	},
 	discard: "Wijzigingen weggooien",
 	keepEditing: "Doorgaan met bewerken",
 	offlineTitle: "Je doelen zijn offline nog niet beschikbaar.",
 	offlineBody:
 		"Maak opnieuw verbinding om je opgeslagen doelen te laden. Je concept blijft bewaard.",
+	presets: {
+		reference: {
+			name: "Referentie-inname",
+		},
+		loseWeight: {
+			name: "Afvallen",
+		},
+		buildMuscle: {
+			name: "Spiermassa opbouwen",
+		},
+	},
 };

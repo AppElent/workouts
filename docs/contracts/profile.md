@@ -14,7 +14,8 @@ tap. Study: [profile](../../designs/app/profile_final.html).
 
 - **Settings one tap deep.** Preferences and Nutrition are `FormSection`s on
   Profile; no pushed screen with a single row. Appearance, language, nutrition
-  destinations, Feedback, Labs, and sign-out stay reachable.
+  destinations, Feedback, and sign-out stay reachable; development builds add
+  the SQLite browser.
 - **Icon tiles.** On iOS, a settings row may carry a 30-pt continuous-corner tile
   with a white SF Symbol on an iOS system tint, via `DisclosureRow`'s `icon`. Each
   tint uses the system colour for the current scheme (`tile*` tokens), so dark

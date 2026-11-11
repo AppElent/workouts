@@ -1,21 +1,23 @@
+import type { Locale } from "../i18n";
 import { shippedLibrary } from "./library";
-import type { Locale, ShippedFood } from "./types";
+import { normaliseForSearch } from "./search-text";
+import type { ShippedFood } from "./types";
 
 /**
  * Search over the shipped library.
  *
- * Two tiers, as the spec requires. `promoted` — the ordinary path — returns
- * only the ~150 curated foods, so a search for "banaan" does not bury the
- * banana under twelve NEVO rows for banana bread. `all` reaches every shipped
+ * Two tiers. `promoted` — the ordinary path — returns only the ~150 curated
+ * foods, so a search for "banaan" does not bury the banana under twelve NEVO
+ * rows for banana bread. `all` reaches every shipped
  * row, still ranking promoted foods first.
  *
  * The public shape of this module is fixed even though the internal strategy is
  * not: today it is a lazily built in-memory index over normalised strings, and
- * it may become something else once device measurements say so (#71, D18).
+ * it may become something else once device measurements say so.
  */
 export type SearchScope = "promoted" | "all";
 
-export type SearchMatch = "name" | "alias" | "sourceName";
+type SearchMatch = "name" | "alias" | "sourceName";
 
 export type FoodSearchResult = {
 	readonly food: ShippedFood;
@@ -32,62 +34,6 @@ export type SearchOptions = {
 	readonly scope?: SearchScope;
 	readonly limit?: number;
 };
-
-/**
- * Fold the accented letters that occur in Dutch and English food names.
- *
- * Deliberately a table rather than `normalize("NFD")`: this runs on Hermes,
- * whose Unicode surface varies by build, and the alternative is a silent
- * behaviour difference between the test run and the phone.
- */
-const FOLD: Record<string, string> = {
-	à: "a",
-	á: "a",
-	â: "a",
-	ã: "a",
-	ä: "a",
-	å: "a",
-	æ: "ae",
-	ç: "c",
-	è: "e",
-	é: "e",
-	ê: "e",
-	ë: "e",
-	ì: "i",
-	í: "i",
-	î: "i",
-	ï: "i",
-	ñ: "n",
-	ò: "o",
-	ó: "o",
-	ô: "o",
-	õ: "o",
-	ö: "o",
-	ø: "o",
-	ù: "u",
-	ú: "u",
-	û: "u",
-	ü: "u",
-	ý: "y",
-	ÿ: "y",
-	ß: "ss",
-};
-
-/** Lowercase, fold accents, and reduce punctuation to single spaces. */
-export function normaliseForSearch(text: string): string {
-	let out = "";
-	for (const character of text.toLowerCase()) {
-		const folded = FOLD[character];
-		if (folded !== undefined) out += folded;
-		else if (
-			(character >= "a" && character <= "z") ||
-			(character >= "0" && character <= "9")
-		)
-			out += character;
-		else out += " ";
-	}
-	return out.trim().replace(/\s+/g, " ");
-}
 
 type Field = {
 	readonly text: string;
@@ -221,16 +167,6 @@ export function searchShippedFoods(
 	});
 
 	return results.slice(0, limit);
-}
-
-/** Promoted foods in one category, for browsing rather than searching. */
-export function browsePromotedByCategory(
-	category: string,
-	locale: Locale = "en",
-): ShippedFood[] {
-	return shippedLibrary()
-		.promoted.filter((food) => food.category === category)
-		.sort((a, b) => a.name[locale].localeCompare(b.name[locale]));
 }
 
 /** Drop the memoised index. Benchmarks and tests only. */

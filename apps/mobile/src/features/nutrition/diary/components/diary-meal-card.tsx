@@ -1,9 +1,9 @@
-import { roundForDisplay, totalNutrients } from "@foundry/core/nutrition";
+import { type MealSlot, roundForDisplay, totalNutrients } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
-import type { DiaryEntry, MealSlot } from "../../../../data/nutrition-day";
+import type { DiaryEntry } from "../../../../data/nutrition-day";
 import { fmt, plural, useI18n } from "../../../../i18n";
 import { spacing, useTokens } from "../../../../theme";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
@@ -53,7 +53,7 @@ export function DiaryMealCard({
 	const copy = t.nutrition.diary;
 	const colors = useTokens();
 	const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-	const total = totalNutrients(entries.map((e) => e.nutrients)).energy;
+	const total = totalNutrients(entries).energy;
 	const kcal = (value: DiaryEntry["nutrients"]["energy"]) =>
 		value.kind === "value"
 			? `${roundForDisplay("energy", value.amount)} kcal`
@@ -211,11 +211,7 @@ export function DiaryMealCard({
 							{entries.length
 								? `${plural(locale, entries.length, copy.items)} · ${total?.incomplete ? "≥ " : ""}${roundForDisplay("energy", total?.amount ?? 0)} kcal`
 								: drafts.length
-									? drafts.length === 1
-										? t.nutrition.drafts.countOne
-										: fmt(t.nutrition.drafts.countMany, {
-												count: drafts.length,
-											})
+									? plural(locale, drafts.length, t.nutrition.drafts.count)
 									: complete
 										? copy.nothingYet
 										: t.nutrition.offline.uncachedMeal}
@@ -289,7 +285,7 @@ export function DiaryMealCard({
 							{ name: group.name },
 						)}
 						secondary={plural(locale, parts.length, copy.comboParts)}
-						value={`${roundForDisplay("energy", totalNutrients(parts.map((e) => e.nutrients)).energy?.amount ?? 0)} kcal`}
+						value={`${roundForDisplay("energy", totalNutrients(parts).energy?.amount ?? 0)} kcal`}
 						leading={{
 							symbol: selecting
 								? parts.every((p) => selected.has(p.id))

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AuthCard, ForgotPasswordForm } from "#/lib/auth";
+import { AuthCard } from "#/lib/auth/AuthCard";
+import { ForgotPasswordForm } from "#/lib/auth/ForgotPasswordForm";
 import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/forgot-password")({

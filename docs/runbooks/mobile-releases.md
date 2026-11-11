@@ -18,8 +18,7 @@ provide the same automatic update flow.
 The EAS profile name does not determine the backend environment. As verified
 on 2026-09-29, `preview` points to the live Convex deployment `fine-akita-444`,
 also used by the production web app. Check the target before deploying backend
-changes. This release requires the completed
-[exercise-history migration](exercise-migration.md) before client distribution.
+changes.
 
 ## Install variants
 
@@ -127,9 +126,10 @@ secret values that [`env.manifest.ts`](../../env.manifest.ts) routes to EAS
 (currently `SENTRY_AUTH_TOKEN`) from Infisical and passes them only to the
 build process, because EAS does not serve "Secret" variables to local builds.
 Add any new secret EAS variable to the manifest, or local builds will lack it.
-The script sets `EXPO_NO_DOTENV=1`, writes `dist/<profile>.ipa`, and uploads
-it with `eas submit`; `--profile preview-internal` or `development` only
-builds. Append `-- --no-submit` to skip the upload.
+The script takes its profiles from `apps/mobile/eas.json`, sets
+`EXPO_NO_DOTENV=1`, writes `dist/<profile>.ipa` (`.tar.gz` for a simulator
+profile), and uploads it with `eas submit` when `eas.json` has a submit profile
+of that name; other profiles only build. Append `-- --no-submit` to skip the upload.
 
 If the credentials phase fails with "Distribution certificate … hasn't been
 imported successfully", the Mac lacks Apple's current intermediate

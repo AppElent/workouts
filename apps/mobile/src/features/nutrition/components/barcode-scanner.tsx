@@ -1,6 +1,4 @@
 /**
- * The Scan barcode screen (spec #68).
- *
  * Camera permission is requested here, in this screen's own effect — never on
  * mount of the food browser it is pushed from — so the request only ever
  * fires after the user has actually invoked Scan. Every branch below (still

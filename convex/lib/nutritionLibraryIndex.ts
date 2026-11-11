@@ -1,33 +1,46 @@
-/** Derived fields only; validated payloads remain the portable record contract. */
-export function libraryIndexFields(kind: "food" | "combo", payload?: string) {
-	if (!payload)
+import type {
+	Combo,
+	LibraryCategory,
+	LibraryRecordKind,
+	PersonalFood,
+} from "@foundry/core";
+
+type IndexFields = {
+	name: string;
+	searchText: string;
+	category: LibraryCategory;
+	barcode?: string;
+	forkedFrom?: string;
+};
+
+/**
+ * Derived fields only; validated payloads remain the portable record contract.
+ * `payload` is a record the library already accepted; tombstones have none.
+ */
+export function libraryIndexFields(
+	kind: LibraryRecordKind,
+	payload?: string,
+): IndexFields {
+	if (!payload) return { name: "", searchText: "", category: kind };
+	if (kind === "combo") {
+		const combo: Combo = JSON.parse(payload);
+		const parts = combo.parts
+			.map(({ snapshot }) => `${snapshot.name.en} ${snapshot.name.nl}`)
+			.join(" ");
 		return {
-			name: "",
-			searchText: "",
-			category: kind === "combo" ? ("combo" as const) : ("food" as const),
+			name: combo.name.toLocaleLowerCase(),
+			searchText: `${combo.name} ${parts}  `,
+			category: kind,
 		};
-	const record = JSON.parse(payload);
-	const name =
-		kind === "combo" ? record.name : `${record.name.en} ${record.name.nl}`;
-	const parts =
-		kind === "combo"
-			? record.parts
-					.map(
-						(part: { snapshot: { name: { en: string; nl: string } } }) =>
-							`${part.snapshot.name.en} ${part.snapshot.name.nl}`,
-					)
-					.join(" ")
-			: "";
+	}
+	const food: PersonalFood = JSON.parse(payload);
+	const name = `${food.name.en} ${food.name.nl}`;
+	const { brand, barcode, forkedFrom } = food.provenance;
 	return {
 		name: name.toLocaleLowerCase(),
-		searchText: `${name} ${parts} ${record.provenance?.brand ?? ""} ${record.provenance?.barcode ?? ""}`,
-		category:
-			kind === "combo"
-				? ("combo" as const)
-				: record.classification === "recipe"
-					? ("recipe" as const)
-					: ("food" as const),
-		barcode: record.provenance?.barcode as string | undefined,
-		forkedFrom: record.provenance?.forkedFrom as string | undefined,
+		searchText: `${name}  ${brand ?? ""} ${barcode ?? ""}`,
+		category: food.classification === "recipe" ? "recipe" : kind,
+		barcode,
+		forkedFrom,
 	};
 }

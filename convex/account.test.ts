@@ -106,6 +106,7 @@ describe("first run", () => {
 		expect(await t.query(api.account.firstRun, {})).toEqual({ empty: false });
 
 		await alice.mutation(api.nutritionGoals.replace, {
+			effectiveFrom: "2026-01-01",
 			goals: [{ nutrient: "energy", direction: "max", target: 2400 }],
 		});
 		expect(await alice.query(api.account.firstRun, {})).toEqual({
@@ -141,25 +142,33 @@ describe("first run", () => {
 	it("is not offered after a Diary Entry or a WOD result", async () => {
 		const t = convexTest(schema, modules);
 		const dave = t.withIdentity({ subject: "dave" });
-		await dave.mutation(api.nutritionDiary.log, {
-			date: "2026-11-10",
-			meal: "snacks",
-			name: { en: "Apple", nl: "Appel" },
-			serving: { en: "Serving", nl: "Portie" },
-			quantity: 1,
-			amount: 100,
-			baseUnit: "g",
-			nutrients: {
-				energy: { kind: "value", amount: 52 },
-				protein: { kind: "value", amount: 0.3 },
-				carbs: { kind: "value", amount: 14 },
-				fat: { kind: "value", amount: 0.2 },
-				saturatedFat: { kind: "value", amount: 0 },
-				fibre: { kind: "value", amount: 2.4 },
-				sugars: { kind: "value", amount: 10 },
-				salt: { kind: "value", amount: 0 },
+		await dave.mutation(api.nutritionDiary.applyOperation, {
+			operationId: "first-run-diary",
+			expectedSubject: "dave",
+			operation: {
+				kind: "create",
+				entry: {
+					clientEntryId: "first-run-entry",
+					date: "2026-11-10",
+					meal: "snacks",
+					name: { en: "Apple", nl: "Appel" },
+					serving: { en: "Serving", nl: "Portie" },
+					quantity: 1,
+					amount: 100,
+					baseUnit: "g",
+					nutrients: {
+						energy: { kind: "value", amount: 52 },
+						protein: { kind: "value", amount: 0.3 },
+						carbs: { kind: "value", amount: 14 },
+						fat: { kind: "value", amount: 0.2 },
+						saturatedFat: { kind: "value", amount: 0 },
+						fibre: { kind: "value", amount: 2.4 },
+						sugars: { kind: "value", amount: 10 },
+						salt: { kind: "value", amount: 0 },
+					},
+					provenance: { source: "oneOff" },
+				},
 			},
-			provenance: { source: "oneOff" },
 		});
 		expect(await dave.query(api.account.firstRun, {})).toEqual({
 			empty: false,
@@ -190,6 +199,7 @@ describe("first run", () => {
 		const t = convexTest(schema, modules);
 		const bob = t.withIdentity({ subject: "bob" });
 		await bob.mutation(api.nutritionGoals.replace, {
+			effectiveFrom: "2026-01-01",
 			goals: [{ nutrient: "energy", direction: "max", target: 2400 }],
 		});
 		await bob.mutation(api.workoutSessions.create, {});

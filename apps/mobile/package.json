@@ -14,7 +14,7 @@
 		"devbuild:android:eas": "eas build --platform android --profile development",
 		"devbuild:ios": "expo run:ios",
 		"devbuild:ios:eas": "eas build --platform ios --profile development",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "pnpm --filter @foundry/core build && tsc --noEmit",
 		"test": "jest",
 		"test:e2e": "maestro test .maestro",
 		"preview:ios:build": "eas build --platform ios --profile preview --clear-cache --auto-submit",

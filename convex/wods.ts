@@ -1,57 +1,40 @@
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await getIdentity(ctx);
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
-
-const movement = v.object({
-	name: v.string(),
-	reps: v.optional(v.number()),
-	weight: v.optional(v.number()),
-	unit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-	distance: v.optional(v.number()),
-	distanceUnit: v.optional(
-		v.union(v.literal("m"), v.literal("km"), v.literal("mi"), v.literal("cal")),
-	),
-	notes: v.optional(v.string()),
-});
+import { getOptionalUserId, requireOwned, requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { wodDefinitionFields } from "./lib/validators";
+import schema from "./schema";
 
 const wodFields = {
-	name: v.string(),
-	type: v.union(
-		v.literal("forTime"),
-		v.literal("amrap"),
-		v.literal("emom"),
-		v.literal("load"),
-	),
-	description: v.optional(v.string()),
-	repScheme: v.optional(v.string()),
-	timeCapSeconds: v.optional(v.number()),
-	durationSeconds: v.optional(v.number()),
-	movements: v.array(movement),
+	...wodDefinitionFields,
+	movements: schema.tables.wods.validator.fields.movements,
 };
 
+async function requireOwnWod(ctx: MutationCtx, userId: string, id: Id<"wods">) {
+	if ((await ctx.db.get(id))?.isDefault) throw appError("readOnly");
+	return requireOwned(ctx, userId, id);
+}
+
+/** The benchmark catalog, plus the caller's own WODs when signed in. */
 export const list = query({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await getIdentity(ctx);
-		const defaults = await ctx.db
+		const userId = await getOptionalUserId(ctx);
+		const catalog = await ctx.db
 			.query("wods")
 			.withIndex("by_default", (q) => q.eq("isDefault", true))
 			.collect();
-		if (!identity) {
-			return defaults.sort((a, b) => a.name.localeCompare(b.name));
-		}
-		const userWods = await ctx.db
-			.query("wods")
-			.withIndex("by_user", (q) => q.eq("userId", identity.subject))
-			.collect();
-		return [...defaults, ...userWods].sort((a, b) =>
+		const own = userId
+			? await ctx.db
+					.query("wods")
+					.withIndex("by_user", (q) => q.eq("userId", userId))
+					.collect()
+			: [];
+		// A catalog row that still carries a userId is listed once, as catalog.
+		const personal = own.filter((wod) => !wod.isDefault);
+		return [...catalog, ...personal].sort((a, b) =>
 			a.name.localeCompare(b.name),
 		);
 	},
@@ -60,19 +43,17 @@ export const list = query({
 export const getById = query({
 	args: { id: v.id("wods") },
 	handler: async (ctx, { id }) => {
-		const identity = await getIdentity(ctx);
 		const wod = await ctx.db.get(id);
-		if (!wod) return null;
-		if (wod.isDefault) return wod;
-		if (!identity || wod.userId !== identity.subject) return null;
-		return wod;
+		if (wod?.isDefault) return wod;
+		const userId = await getOptionalUserId(ctx);
+		return wod && userId && wod.userId === userId ? wod : null;
 	},
 });
 
 export const create = mutation({
 	args: wodFields,
 	handler: async (ctx, args) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		return ctx.db.insert("wods", { ...args, isDefault: false, userId });
 	},
 });
@@ -80,11 +61,7 @@ export const create = mutation({
 export const update = mutation({
 	args: { id: v.id("wods"), ...wodFields },
 	handler: async (ctx, { id, ...fields }) => {
-		const userId = await requireUser(ctx);
-		const wod = await ctx.db.get(id);
-		if (!wod) throw new Error("WOD not found");
-		if (wod.isDefault) throw new Error("Cannot edit benchmark WODs");
-		if (wod.userId !== userId) throw new Error("Unauthorized");
+		await requireOwnWod(ctx, await requireUserId(ctx), id);
 		await ctx.db.patch(id, fields);
 	},
 });
@@ -92,18 +69,13 @@ export const update = mutation({
 export const remove = mutation({
 	args: { id: v.id("wods") },
 	handler: async (ctx, { id }) => {
-		const userId = await requireUser(ctx);
-		const wod = await ctx.db.get(id);
-		if (!wod) throw new Error("WOD not found");
-		if (wod.isDefault) throw new Error("Cannot delete benchmark WODs");
-		if (wod.userId !== userId) throw new Error("Unauthorized");
+		const userId = await requireUserId(ctx);
+		await requireOwnWod(ctx, userId, id);
 		const results = await ctx.db
 			.query("wodResults")
-			.withIndex("by_wod", (q) => q.eq("wodId", id))
+			.withIndex("by_user_wod", (q) => q.eq("userId", userId).eq("wodId", id))
 			.collect();
-		for (const r of results) {
-			if (r.userId === userId) await ctx.db.delete(r._id);
-		}
+		for (const result of results) await ctx.db.delete(result._id);
 		await ctx.db.delete(id);
 	},
 });

@@ -1,24 +1,24 @@
-import { NUTRIENT_KEYS, totalNutrients } from "@foundry/core/nutrition";
-import { useConvexConnectionState } from "convex/react";
+import {
+	isoDayOffset,
+	MEAL_SLOTS,
+	type MealSlot,
+	mealSlotAt,
+	NUTRIENT_KEYS,
+	totalNutrients,
+} from "@foundry/core";
 import { type Href, Stack, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import { formatLongDate, isoDayOffset } from "../../../data/calendar-day";
-import { useDeleteDiaryEntry } from "../../../data/delete-diary-entry";
+import { useStalledOffline } from "../../../convex/stalled-offline";
 import type { CaptureDraft } from "../../../data/nutrition-capture-draft";
 import {
 	type DiaryEntry,
 	type DiaryEntryWithMeal,
-	MEAL_SLOTS,
-	type MealSlot,
-	mealForTime,
 	useNutritionDay,
 } from "../../../data/nutrition-day";
+import { useNutritionDiary } from "../../../data/nutrition-diary";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
-import { isRealIsoDate } from "../../../data/nutrition-weekly-review";
-import { useStalledOffline } from "../../../data/stalled-offline";
-import { useToday } from "../../../data/use-today";
+import { formatLongDate } from "../../../dates/calendar-day";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -27,7 +27,12 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { useTabBarVisibility } from "../../../ui/tab-bar-visibility";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import {
+	useScreenWrite,
+	useWriteFailureMessage,
+} from "../../../ui/use-screen-write";
 import { NutritionHeaderMenu } from "../components/nutrition-header-menu";
+import { useDeleteDiaryEntry } from "../use-delete-diary-entry";
 import { DiaryDatePicker } from "./components/diary-date-picker";
 import { DiaryDraftEditor } from "./components/diary-draft-editor";
 import { DiaryMealCard } from "./components/diary-meal-card";
@@ -35,24 +40,18 @@ import { DiarySelectionActions } from "./components/diary-selection-actions";
 import { DiarySummary } from "./components/diary-summary";
 import { DiaryWeekStrip } from "./components/diary-week-strip";
 import { useDiaryDateRequest } from "./use-diary-date-request";
+import { useToday } from "./use-today";
 
-export function DiaryScreen({
-	initialDate,
-	startSelecting,
-}: {
-	initialDate?: string;
-	startSelecting?: string;
-} = {}) {
+export function DiaryScreen() {
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.diary;
 	const colors = useTokens();
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const today = useToday();
-	const [date, setDate] = useState(
-		initialDate && isRealIsoDate(initialDate) ? initialDate : today,
-	);
+	const [date, setDate] = useState(today);
 	// Someone looking at "today" when midnight passes means the new today.
 	const previousToday = useRef(today);
 	useEffect(() => {
@@ -63,57 +62,41 @@ export function DiaryScreen({
 	}, [today]);
 	// A header toolbar mounted before the tab's first focus swallows the native
 	// tab selection: the tab shows, but navigation stays on the previous tab and
-	// this screen never receives focus or touches (#134).
+	// this screen never receives focus or touches.
 	const focused = useIsFocused();
 	const [toolbarReady, setToolbarReady] = useState(focused);
 	useEffect(() => {
 		if (focused) setToolbarReady(true);
 	}, [focused]);
 	const [showTools, setShowTools] = useState(false);
-	const [selecting, setSelecting] = useState(Boolean(startSelecting));
+	const [selecting, setSelecting] = useState(false);
 	const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-	const [deleting, setDeleting] = useState(false);
+	const screenWrite = useScreenWrite();
+	const deleting = screenWrite.busy;
 	const [editingDraft, setEditingDraft] = useState<CaptureDraft>();
 	const { deleteEntry } = useDeleteDiaryEntry();
 	const drafts = useNutritionDrafts({ startDate: date, endDate: date });
-	const operations = useNutritionOperations();
+	const diary = useNutritionDiary();
 	const state = useNutritionDay(date);
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const stalled = useStalledOffline(state.status === "loading", connected);
+	const stalled = useStalledOffline(state.status === "loading");
 	const goalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsPending),
-		connected,
 	);
 	// Cached data stands in for a moment on every day switch; only say so once
 	// it is clearly not being replaced, or the notice flashes and shifts the list.
 	const incompleteStalled = useStalledOffline(
 		state.status === "ready" && !state.day.complete,
-		connected,
 	);
 	// Notes arrive quickly when connected; announcing the wait only shifts the list.
-	const notesStalled = useStalledOffline(drafts.loading, connected);
+	const notesStalled = useStalledOffline(drafts.loading);
 	const cachedGoalsStalled = useStalledOffline(
 		state.status === "ready" && Boolean(state.day.goalsCached),
-		connected,
 	);
 	const { setHidden } = useTabBarVisibility();
 	useEffect(() => {
 		setHidden(selecting);
 		return () => setHidden(false);
 	}, [selecting, setHidden]);
-	useEffect(() => {
-		if (initialDate && isRealIsoDate(initialDate)) {
-			setDate(initialDate);
-			setSelected(new Set());
-			setSelecting(false);
-		}
-	}, [initialDate]);
-	useEffect(() => {
-		if (startSelecting) {
-			setSelecting(true);
-			setSelected(new Set());
-		}
-	}, [startSelecting]);
 	const entries: DiaryEntryWithMeal[] =
 		state.status === "ready"
 			? MEAL_SLOTS.flatMap((meal) =>
@@ -122,7 +105,7 @@ export function DiaryScreen({
 			: [];
 	const selectedEntries = entries.filter((e) => selected.has(e.id));
 	const totals = {
-		...totalNutrients(entries.map((e) => e.nutrients)),
+		...totalNutrients(entries),
 		...(state.status === "ready" ? state.day.totals : {}),
 	};
 	for (const n of NUTRIENT_KEYS) {
@@ -146,7 +129,6 @@ export function DiaryScreen({
 		setSelecting(false);
 		setSelected(new Set());
 	};
-	// The log food screen above may have moved to another day; follow it.
 	useDiaryDateRequest(changeDate);
 	const beginSelection = (items: readonly DiaryEntry[]) => {
 		setSelected(new Set(items.map((e) => e.id)));
@@ -168,7 +150,7 @@ export function DiaryScreen({
 	};
 	// Leaving selection swaps the native bottom toolbar, header button and tab
 	// bar. Doing that while a push is starting crashed iOS release builds
-	// (NSRangeException in unmountChildComponentView, FOUNDRY-R), so the
+	// (NSRangeException in unmountChildComponentView), so the
 	// selection ends first and the push waits for the next frame.
 	const [pendingRoute, setPendingRoute] = useState<Href>();
 	useEffect(() => {
@@ -208,26 +190,12 @@ export function DiaryScreen({
 			}))
 		)
 			return;
-		const subject = operations.getSubject();
-		if (!subject) return;
-		setDeleting(true);
-		try {
-			operations.removeBatch(
-				subject,
+		await screenWrite.run(t.nutrition.error.body, async () => {
+			await diary.removeBatch(
 				selectedEntries.map((e) => ({ kind: "serverId", id: e.id })),
-				() => {
-					setDeleting(false);
-					toast.error(t.nutrition.error.body);
-				},
-				() => {
-					setDeleting(false);
-					endSelection();
-				},
 			);
-		} catch {
-			setDeleting(false);
-			toast.error(t.nutrition.error.body);
-		}
+			endSelection();
+		});
 	};
 	const add = (meal: MealSlot) =>
 		router.push({ pathname: "/nutrition-food", params: { meal, date } });
@@ -254,7 +222,7 @@ export function DiaryScreen({
 			onOpenAssistance={() =>
 				router.push({
 					pathname: "/nutrition-assistance",
-					params: { date, meal: mealForTime() },
+					params: { date, meal: mealSlotAt(new Date()) },
 				})
 			}
 			onOpenGoals={() =>
@@ -419,8 +387,13 @@ export function DiaryScreen({
 											try {
 												if (!(await drafts.remove(draft.id)))
 													toast.error(t.nutrition.drafts.deleteFailure);
-											} catch {
-												toast.error(t.nutrition.drafts.deleteFailure);
+											} catch (error) {
+												toast.error(
+													writeFailureMessage(
+														error,
+														t.nutrition.drafts.deleteFailure,
+													),
+												);
 											}
 										}
 									});
@@ -451,7 +424,6 @@ export function DiaryScreen({
 								<DiaryDatePicker
 									date={date}
 									onSelect={changeDate}
-									locale={locale}
 									label={calendarLabel}
 								/>
 								{menu}
@@ -466,7 +438,6 @@ export function DiaryScreen({
 							<DiaryDatePicker
 								date={date}
 								onSelect={changeDate}
-								locale={locale}
 								label={calendarLabel}
 							/>
 						</GlassSurface>

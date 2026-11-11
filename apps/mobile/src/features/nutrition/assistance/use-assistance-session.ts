@@ -1,5 +1,18 @@
-import { shippedLibrary } from "@foundry/core/nutrition";
+import { NUTRITION_AI_LIMITS, type PersonalFoodDraft } from "@foundry/core";
+import { shippedLibrary } from "@foundry/core/shipped-foods";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAccountWrite } from "../../../data/account-write";
+import {
+	type ImageInput,
+	prepareImage,
+} from "../../../data/nutrition-ai-image";
+import { usePersonalFoods } from "../../../data/personal-foods";
+import { useI18n } from "../../../i18n";
+import {
+	PREFERENCE_KEYS,
+	readLocal,
+	writeLocal,
+} from "../../../local-store/local-store";
 import {
 	applyChoices,
 	asksFor,
@@ -19,28 +32,7 @@ import {
 	reviewTotals,
 	sentenceWithoutRemoved,
 	withOmittedRows,
-} from "../../../data/nutrition-ai";
-import {
-	aiSessionForText,
-	cacheReview,
-	forgetReview,
-	readCachedReview,
-	type SavedAiSession,
-} from "../../../data/nutrition-ai-history";
-import {
-	type ImageInput,
-	prepareImage,
-} from "../../../data/nutrition-ai-image";
-import { buildAssistanceFoodCatalog } from "../../../data/nutrition-assistance";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
-import type { PersonalFoodDraft } from "../../../data/personal-food-repository";
-import { usePersonalFoods } from "../../../data/personal-foods";
-import { useI18n } from "../../../i18n";
-import {
-	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../../../prefs/local-preference";
+} from "../nutrition-ai";
 import {
 	AI_TIMEOUT_MS,
 	AI_WEB_TIMEOUT_MS,
@@ -48,16 +40,22 @@ import {
 	nutritionAiFailure,
 	useNutritionAi,
 	withAiTimeout,
+	worthRetrying,
 } from "../use-nutrition-ai";
+import { buildAssistanceFoodCatalog } from "./assistance-foods";
+import {
+	aiSessionForText,
+	cacheReview,
+	forgetReview,
+	readCachedReview,
+	type SavedAiSession,
+} from "./assistance-history";
 
 export type AssistanceProblem =
 	| "noFood"
 	| "matchFailed"
 	| "notApplied"
 	| NutritionAiFailure;
-
-/** Convex keeps this many; older ones are already in the previous result. */
-const MAX_FOLLOW_UPS_SENT = 10;
 
 /** A follow-up that answers the AI's question: what was asked, then the answer. */
 export const ANSWER_MARK = " → ";
@@ -111,7 +109,7 @@ export function useAssistanceSession(
 	const { locale } = useI18n();
 	const ai = useNutritionAi();
 	const personalFoods = usePersonalFoods();
-	const account = useNutritionOperations().getSubject();
+	const account = useAccountWrite().subject;
 	const [text, setText] = useState(resume?.text ?? initialText);
 	const [photo, setPhoto] = useState<string>();
 	const [phase, setPhase] = useState<AssistancePhase>({ kind: "input" });
@@ -146,11 +144,11 @@ export function useAssistanceSession(
 	} | null>(null);
 	// Opt-in: a web lookup costs ~1–3 cents against ~0.05 for a plain analysis.
 	const [webSearch, setWebSearchState] = useState(
-		() => readPreference(PREFERENCE_KEYS.nutritionAiWebSearch) === "1",
+		() => readLocal(PREFERENCE_KEYS.nutritionAiWebSearch) === "1",
 	);
 	function setWebSearch(on: boolean) {
 		setWebSearchState(on);
-		writePreference(PREFERENCE_KEYS.nutritionAiWebSearch, on ? "1" : "0");
+		writeLocal(PREFERENCE_KEYS.nutritionAiWebSearch, on ? "1" : "0");
 	}
 	const described = useRef<{ result: Described; image?: ImageInput }>(
 		resume ? { result: resume.result } : undefined,
@@ -231,7 +229,10 @@ export function useAssistanceSession(
 			);
 			try {
 				choices = await withAiTimeout(
-					ai.choose(input).catch(() => ai.choose(input)),
+					ai.choose(input).catch((error) => {
+						if (!worthRetrying(error)) throw error;
+						return ai.choose(input);
+					}),
 					timeLeft(),
 				);
 			} catch {
@@ -259,12 +260,12 @@ export function useAssistanceSession(
 				carried[index] ??
 				(failed ? { ...item, confidence: "low" as const } : item),
 		);
-		if (remember && !failed)
+		if (remember && !failed && account)
 			cacheReview(
+				account,
 				remember.text,
 				locale,
 				{ result, items },
-				account,
 				savedFoodsSignature(),
 			);
 		if (!prior) setLastReview(undefined);
@@ -329,9 +330,10 @@ export function useAssistanceSession(
 		}
 		// The same words give the same numbers, at once, also without a connection.
 		const cacheable = !photo && !webSearch;
-		const cached = cacheable
-			? readCachedReview(text, locale, account, savedFoodsSignature())
-			: null;
+		const cached =
+			cacheable && account
+				? readCachedReview(account, text, locale, savedFoodsSignature())
+				: null;
 		if (!cached && !ai.online) {
 			setPhase({ kind: "input", problem: "offline" });
 			return;
@@ -412,6 +414,14 @@ export function useAssistanceSession(
 		const current = ++run.current;
 		const live = () => run.current === current;
 		const next = [...followUps, followUp.trim()];
+		if (!ai.online) {
+			setPhase((p) =>
+				p.kind === "review"
+					? { ...p, problem: "offline", detail: undefined }
+					: p,
+			);
+			return;
+		}
 		const rows = phase.kind === "review" ? phase.items : [];
 		const deadline = Date.now() + AI_TIMEOUT_MS;
 		const timeLeft = () => Math.max(0, deadline - Date.now());
@@ -432,7 +442,6 @@ export function useAssistanceSession(
 			p.kind === "review" ? { ...p, problem: undefined, detail: undefined } : p,
 		);
 		try {
-			if (!ai.online) throw new Error("offline");
 			const result = await withAiTimeout(
 				ai.describe({
 					// A photo-only meal continued later has neither photo nor text.
@@ -446,7 +455,8 @@ export function useAssistanceSession(
 						items: currentDescription(rows, previous.result.items),
 						removedByPerson: gone.map((row) => row.name),
 					}),
-					followUps: next.slice(-MAX_FOLLOW_UPS_SENT),
+					// Older follow-ups are already in the previous result.
+					followUps: next.slice(-NUTRITION_AI_LIMITS.maxFollowUps),
 				}),
 				timeLeft(),
 			);
@@ -522,7 +532,7 @@ export function useAssistanceSession(
 					p.kind === "review"
 						? {
 								...p,
-								problem: ai.online ? nutritionAiFailure(error) : "offline",
+								problem: nutritionAiFailure(error),
 							}
 						: p,
 				);
@@ -568,7 +578,7 @@ export function useAssistanceSession(
 	}, []);
 
 	const repeat = useMemo(
-		() => (photo ? null : aiSessionForText(text, account)),
+		() => (photo || !account ? null : aiSessionForText(account, text)),
 		[photo, text, account],
 	);
 
@@ -607,16 +617,19 @@ export function useAssistanceSession(
 				!photo &&
 				!described.current?.image &&
 				(resume?.repeatable ?? true) &&
-				text.trim()
+				text.trim() &&
+				account
 			)
 				cacheReview(
+					account,
 					text,
 					locale,
 					{ result, items: phase.items },
-					account,
 					savedFoodsSignature(),
 				);
-			return () => forgetReview(words, locale, account);
+			return () => {
+				if (account) forgetReview(account, words, locale);
+			};
 		},
 		/** What a logged meal needs to be continued later. */
 		context: () =>

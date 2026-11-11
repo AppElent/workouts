@@ -1,9 +1,10 @@
+export { NutritionRouteError as ErrorBoundary } from "../../src/features/nutrition/components/nutrition-route-error";
+
+import { isRealIsoDate } from "@foundry/core";
 import { useLocalSearchParams } from "expo-router";
-import { todayIsoDate } from "../../src/data/calendar-day";
-import { isRealIsoDate } from "../../src/data/nutrition-weekly-review";
+import { todayIsoDate } from "../../src/dates/calendar-day";
 import { DayGoalsScreen } from "../../src/features/nutrition/day-goals/day-goals-screen";
 
-export { ErrorBoundary } from "./nutrition-entry";
 export default function NutritionDayGoalsRoute() {
 	const { date } = useLocalSearchParams<{ date?: string }>();
 	return (

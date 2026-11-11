@@ -1,18 +1,24 @@
+import {
+	type IsoDate,
+	isoWeek,
+	NUTRIENT_UNITS,
+	weekAverage,
+} from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import type { IsoDate } from "../../../data/calendar-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
-import { weekEndDate } from "../../../data/nutrition-weekly-review";
-import { fmt, useI18n } from "../../../i18n";
-
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { EmptyState } from "../../../ui/empty-state";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { formatNutrientAmount } from "../nutrient-amount";
+import { MACRO_NUTRIENTS } from "../use-nutrient-fields";
 import { WeekBars } from "./components/week-bars";
 import { WeekDatePicker } from "./components/week-date-picker";
 import { WeekMenu } from "./components/week-menu";
@@ -20,22 +26,17 @@ import { WeekStatusGrid } from "./components/week-status-grid";
 import { WeekStatusMark } from "./components/week-status-mark";
 import { WeekStrip } from "./components/week-strip";
 import { useWeekReview } from "./use-week-review";
+import { weekDayParts, weekGoalLabel } from "./week-format";
 import {
-	weekDayParts,
-	weekGoalLabel,
-	weekNumber,
-	weekUnit,
-} from "./week-format";
-import {
-	isoWeekNumber,
+	dayGoalBounds,
 	WEEK_NUTRIENTS,
-	weekAverage,
 	weekDayStatus,
 	weekGoalChanges,
 	weekStripWeeks,
 	weekTitleKind,
 	worstGoal,
 } from "./week-summary";
+import { weekEndDate } from "./weekly-review";
 
 export function WeekScreen({ startDate }: { startDate?: string }) {
 	const { t, locale } = useI18n();
@@ -48,7 +49,7 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 		startDate: week,
 		endDate: weekEndDate(week),
 	});
-	const number = isoWeekNumber(week);
+	const number = isoWeek(week).week;
 	const titleKind = weekTitleKind(week, today);
 	const title =
 		titleKind === "numbered"
@@ -59,8 +60,10 @@ export function WeekScreen({ startDate }: { startDate?: string }) {
 		to: weekDayParts(weekEndDate(week), locale).dayMonth,
 		number,
 	});
-	const openDay = (date: IsoDate) =>
-		router.dismissTo({ pathname: "/nutrition", params: { date } });
+	const openDay = (date: IsoDate) => {
+		requestDiaryDate(date);
+		router.dismissTo("/nutrition");
+	};
 	const picker = (
 		<WeekDatePicker
 			weekStart={week}
@@ -207,7 +210,7 @@ function WeekContent({
 	const averageText = (nutrient: (typeof WEEK_NUTRIENTS)[number]) => {
 		const average = weekAverage(days, nutrient, today);
 		return average
-			? `${copy.averageLabel} ${weekNumber(average.value, locale)} ${weekUnit(nutrient)}`
+			? `${copy.averageLabel} ${formatNutrientAmount(nutrient, average.value, locale)} ${NUTRIENT_UNITS[nutrient]}`
 			: undefined;
 	};
 	return (
@@ -225,7 +228,11 @@ function WeekContent({
 							<AppText variant="secondary" style={{ color: colors.text }}>
 								<AppText style={{ fontWeight: "800" }}>
 									{fmt(copy.average, {
-										value: weekNumber(energyAverage.value, locale),
+										value: formatNutrientAmount(
+											"energy",
+											energyAverage.value,
+											locale,
+										),
 									})}
 								</AppText>{" "}
 								<AppText variant="caption">kcal</AppText>
@@ -241,22 +248,16 @@ function WeekContent({
 							})
 						}
 						bars={days.map((day, index) => {
-							const goals = day.goalBasis === "effective" ? day.goals : [];
+							const bounds = dayGoalBounds(day, "energy");
 							const status = weekDayStatus(day, "energy", today);
 							return {
 								date: day.date,
 								label: parts[index].short,
 								amount: day.totals.energy.amount,
 								status,
-								minimum: goals.find(
-									(goal) =>
-										goal.nutrient === "energy" && goal.direction === "min",
-								)?.target,
-								maximum: goals.find(
-									(goal) =>
-										goal.nutrient === "energy" && goal.direction === "max",
-								)?.target,
-								accessibilityLabel: `${parts[index].long}, ${weekNumber(day.totals.energy.amount, locale)} kcal, ${copy.status[status]}`,
+								minimum: bounds?.min,
+								maximum: bounds?.max,
+								accessibilityLabel: `${parts[index].long}, ${formatNutrientAmount("energy", day.totals.energy.amount, locale)} kcal, ${copy.status[status]}`,
 							};
 						})}
 					/>
@@ -287,17 +288,15 @@ function WeekContent({
 						<View style={{ padding: spacing.md }}>
 							<WeekStatusGrid
 								weekdayInitials={parts.map((part) => part.short.slice(0, 1))}
-								rows={(["protein", "carbs", "fat"] as const).map(
-									(nutrient) => ({
-										key: nutrient,
-										label: t.nutrition.nutrients[nutrient],
-										average: averageText(nutrient),
-										statuses: days.map((day) =>
-											weekDayStatus(day, nutrient, today),
-										),
-										accessibilityLabel: `${t.nutrition.nutrients[nutrient]}, ${averageText(nutrient) ?? copy.noAverage}. ${statusText(nutrient)}`,
-									}),
-								)}
+								rows={MACRO_NUTRIENTS.map((nutrient) => ({
+									key: nutrient,
+									label: t.nutrition.nutrients[nutrient],
+									average: averageText(nutrient),
+									statuses: days.map((day) =>
+										weekDayStatus(day, nutrient, today),
+									),
+									accessibilityLabel: `${t.nutrition.nutrients[nutrient]}, ${averageText(nutrient) ?? copy.noAverage}. ${statusText(nutrient)}`,
+								}))}
 							/>
 						</View>
 						<Separator />
@@ -369,13 +368,12 @@ function WeekContent({
 				) : (
 					<AppText variant="caption" style={{ padding: spacing.md }}>
 						{fmt(copy.averages, {
-							values: (["protein", "carbs", "fat"] as const)
-								.map((nutrient) => {
-									const average = weekAverage(days, nutrient, today);
-									return average
-										? `${t.nutrition.nutrients[nutrient].toLowerCase()} ${weekNumber(average.value, locale)} g`
-										: undefined;
-								})
+							values: MACRO_NUTRIENTS.map((nutrient) => {
+								const average = weekAverage(days, nutrient, today);
+								return average
+									? `${t.nutrition.nutrients[nutrient].toLowerCase()} ${formatNutrientAmount(nutrient, average.value, locale, { unit: true })}`
+									: undefined;
+							})
 								.filter(Boolean)
 								.join(" · "),
 						})}
@@ -453,14 +451,11 @@ function WeekContent({
 					.map((day) => {
 						const part = weekDayParts(day.date, locale);
 						const notes = noteCount(day.date);
-						const items =
-							day.entryCount === 1
-								? copy.itemsOne
-								: fmt(copy.items, { count: day.entryCount });
+						const items = plural(locale, day.entryCount, copy.items);
 						const noteLabel =
 							notes === 0
 								? ""
-								: ` · ${notes === 1 ? t.nutrition.drafts.countOne : fmt(t.nutrition.drafts.countMany, { count: notes })}`;
+								: ` · ${plural(locale, notes, t.nutrition.drafts.count)}`;
 						const statuses = WEEK_NUTRIENTS.map((nutrient) =>
 							weekDayStatus(day, nutrient, today),
 						);
@@ -503,14 +498,18 @@ function WeekContent({
 										) : null}
 										<AppText variant="secondary" style={{ color: colors.text }}>
 											<AppText style={{ fontWeight: "700" }}>
-												{weekNumber(day.totals.energy.amount, locale)}
+												{formatNutrientAmount(
+													"energy",
+													day.totals.energy.amount,
+													locale,
+												)}
 											</AppText>{" "}
 											<AppText variant="caption">kcal</AppText>
 										</AppText>
 									</View>
 								}
 								chevron
-								accessibilityLabel={`${name} ${part.dayMonth}, ${items}${noteLabel}, ${weekNumber(day.totals.energy.amount, locale)} kcal. ${WEEK_NUTRIENTS.map((nutrient, index) => `${t.nutrition.nutrients[nutrient]} ${copy.status[statuses[index]]}`).join(", ")}`}
+								accessibilityLabel={`${name} ${part.dayMonth}, ${items}${noteLabel}, ${formatNutrientAmount("energy", day.totals.energy.amount, locale)} kcal. ${WEEK_NUTRIENTS.map((nutrient, index) => `${t.nutrition.nutrients[nutrient]} ${copy.status[statuses[index]]}`).join(", ")}`}
 								onPress={() => onOpenDay(day.date)}
 								actions={[
 									{

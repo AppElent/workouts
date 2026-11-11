@@ -1,14 +1,16 @@
 import {
-	type FoodResult,
+	type BaseUnit,
+	type Locale,
 	type NutrientKey,
 	type NutrientValue,
+	type PersonalFood,
 	roundForDisplay,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import type { FoodResult } from "@foundry/core/shipped-foods";
 import type {
 	OffLookupOutcome,
 	OffSearchOutcome,
 } from "../../../data/open-food-facts";
-import type { PersonalFood } from "../../../data/personal-food-repository";
 import { fmt, type Messages } from "../../../i18n";
 
 import type { servingPreview } from "./log-food-selection";
@@ -16,22 +18,17 @@ import type { servingPreview } from "./log-food-selection";
 /**
  * The line under a result's name.
  *
- * Two of the four cases exist for #75: a correction says so, and — in the
- * deliberate broader view, the only place it is still listed — so does the
- * shipped record it replaced. Neither ever hides the other.
+ * A correction says so, and — in the deliberate broader view, the only place
+ * it is still listed — so does the shipped record it replaced. Neither ever
+ * hides the other.
  *
- * #75 left a rule for whoever came next: if this reaches six cases it should
- * become a core function returning a caption *kind* that the screen
- * translates, rather than a screen-local function handed the whole message
- * tree. Checked at #79 — still four. #76's import captions went to the online
- * results list, which renders its provider line directly and never comes
- * through here, so the count did not move. Left as it is: at four one-line
- * branches the indirection would cost a hop through core and buy nothing.
+ * At six cases this should become a core function returning a caption *kind*
+ * that the screen translates; at four, the hop through core buys nothing.
  */
 export function resultCaption(
 	result: FoodResult<PersonalFood>,
 	messages: Messages["nutrition"],
-	locale: "en" | "nl",
+	locale: Locale,
 	sources: { readonly shipped: string; readonly own: string },
 ): string {
 	if (result.kind === "local") {
@@ -48,7 +45,7 @@ export function resultCaption(
 export function compactEnergyPer100(
 	food: {
 		nutrients: Record<NutrientKey, NutrientValue>;
-		baseUnit: "g" | "ml" | "serving";
+		baseUnit: BaseUnit;
 	},
 	servingWord: string,
 ): string {

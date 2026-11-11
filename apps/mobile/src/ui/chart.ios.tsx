@@ -10,7 +10,7 @@
  */
 import { Chart, Host } from "@expo/ui/swift-ui";
 import { StyleSheet } from "react-native";
-import { spacing, useHostScheme, useTokens } from "../theme";
+import { spacing, useScheme, useTokens } from "../theme";
 import {
 	CHART_HEIGHT,
 	ChartFrame,
@@ -26,7 +26,7 @@ function toData(points: Point[]) {
 
 export function TrendChart({ title, note, points, color }: ChartProps) {
 	const tokens = useTokens();
-	const scheme = useHostScheme();
+	const scheme = useScheme();
 	const ink = color ?? tokens.accentInk;
 	return (
 		<ChartFrame title={title} note={note} empty={points.length < 2}>
@@ -50,7 +50,7 @@ export function TrendChart({ title, note, points, color }: ChartProps) {
 
 export function BucketChart({ title, note, points, color }: ChartProps) {
 	const tokens = useTokens();
-	const scheme = useHostScheme();
+	const scheme = useScheme();
 	const ink = color ?? tokens.accentInk;
 	return (
 		<ChartFrame title={title} note={note} empty={points.length === 0}>

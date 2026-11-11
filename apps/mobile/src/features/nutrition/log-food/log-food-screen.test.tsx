@@ -7,7 +7,8 @@ import {
 	waitFor,
 	within,
 } from "expo-router/testing-library";
-import { formatLongDate, todayIsoDate } from "../../../data/calendar-day";
+import { formatLongDate, todayIsoDate } from "../../../dates/calendar-day";
+import { pressPending } from "../../../test-support/press-pending";
 import { renderApp } from "../../../test-support/render-app";
 import { armToastAction } from "../../../test-support/toast-action";
 
@@ -32,11 +33,6 @@ afterEach(async () => {
 	jest.mocked(useQuery).mockImplementation(emptyDay as never);
 });
 
-/**
- * The deliberate broader view (#75), which is now its own chip rather than the
- * last of five exclusive tabs. Tests that only need "search everything" no
- * longer come through here — the default pool already does that.
- */
 /** The serving sheet's preview, which repeats the row's portion label. */
 async function servingPreview() {
 	return within(await screen.findByTestId("amount-editor-card"));
@@ -242,7 +238,7 @@ describe("browsing shipped foods", () => {
 		await fireEvent.changeText(screen.getByLabelText("Quantity"), "2");
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			estimated: true,
 			amount: 2,
 			baseUnit: "serving",
@@ -299,7 +295,7 @@ describe("browsing shipped foods", () => {
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			amount: 100,
 			baseUnit: "ml",
 			quantity: 100,
@@ -330,8 +326,8 @@ describe("browsing shipped foods", () => {
 		expect(
 			screen.getByRole("tab", { name: "All" }).props.accessibilityState,
 		).toMatchObject({ selected: true });
-		await fireEvent.press(await screen.findByLabelText("Quick log Apple"));
-		await fireEvent.press(screen.getByLabelText("Quick log Apple"));
+		await pressPending(await screen.findByLabelText("Quick log Apple"));
+		await pressPending(screen.getByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
 		await act(async () => finishLog("entry-1"));
@@ -551,7 +547,7 @@ describe("browsing shipped foods", () => {
 		await fireEvent.press(screen.getByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			date: todayIsoDate(),
 			meal: "lunch",
 			name: { en: "Training oats", nl: "Trainingshavermout" },
@@ -772,7 +768,7 @@ describe("browsing shipped foods", () => {
 		await fireEvent.press(await screen.findByLabelText("Add & continue"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			date: todayIsoDate(),
 			meal: "lunch",
 			quantity: 1,
@@ -814,7 +810,7 @@ describe("browsing shipped foods", () => {
 			log as unknown as ReturnType<typeof useMutation>,
 		);
 		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu 20 August")).toBeTruthy();
 		await chooseMeal("Lunch");
 		await showAllFoods();
 
@@ -841,7 +837,7 @@ describe("browsing shipped foods", () => {
 			"hagelslag",
 		);
 		expect(log.mock.calls).toHaveLength(3);
-		expect(log.mock.calls.map(([snapshot]) => snapshot)).toEqual(
+		expect(log.mock.calls.map(([args]) => args.operation.entry)).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ date: "2026-08-20", meal: "lunch" }),
 			]),
@@ -876,7 +872,7 @@ describe("browsing shipped foods", () => {
 });
 
 /**
- * The redesign's own promises (design `Food logging.dc.html`, option 3a).
+ * The redesign's own promises.
  *
  * These are the five problems the screen was rebuilt to fix, asserted as
  * behaviour rather than layout: one list that always searches everything, a
@@ -996,7 +992,7 @@ describe("the redesigned food browser", () => {
 
 		// "Dinner ⌄" over the day: the meal is chosen from the title menu, the
 		// calendar stays the direct route to the day.
-		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu 20 August")).toBeTruthy();
 		await chooseMeal("Dinner");
 		await fireEvent.press(screen.getAllByLabelText("Choose date")[0]);
 		await fireEvent(
@@ -1012,7 +1008,7 @@ describe("the redesigned food browser", () => {
 		await fireEvent.press(await screen.findByLabelText("Quick log Apple"));
 
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(1));
-		expect(log.mock.calls[0][0]).toMatchObject({
+		expect(log.mock.calls[0][0].operation.entry).toMatchObject({
 			date: "2026-08-21",
 			meal: "dinner",
 		});
@@ -1020,7 +1016,7 @@ describe("the redesigned food browser", () => {
 
 	it("resets to today from inside the picker, where the date it resets is visible", async () => {
 		await renderApp("/nutrition-food?date=2026-08-20&meal=breakfast");
-		expect(await screen.findAllByText("Thu, August 20")).toBeTruthy();
+		expect(await screen.findAllByText("Thu 20 August")).toBeTruthy();
 		// "Today" is not in the navigation bar: there it is disabled exactly when
 		// you are already on today, which is most of the time.
 		expect(screen.queryByLabelText("Today")).toBeNull();
@@ -1104,8 +1100,14 @@ describe("the redesigned food browser", () => {
 		expect(screen.queryByText("Added Apple to Breakfast")).toBeNull();
 		// Undo removes exactly the entry this + created, by its client id.
 		await waitFor(() => expect(log).toHaveBeenCalledTimes(2));
-		expect(log.mock.calls[1][0]).toEqual({
-			id: log.mock.calls[0][0].clientEntryId,
+		expect(log.mock.calls[1][0].operation).toEqual({
+			kind: "removeBatch",
+			targets: [
+				{
+					kind: "clientEntryId",
+					id: log.mock.calls[0][0].operation.entry.clientEntryId,
+				},
+			],
 		});
 	});
 

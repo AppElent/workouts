@@ -22,8 +22,10 @@ pnpm --filter @foundry/mobile typecheck
 pnpm --filter @foundry/mobile test --runInBand
 ```
 
-Root types/Vitest exclude mobile; mobile uses Jest. Build `@foundry/core` first
-when its output is missing: `pnpm --filter @foundry/core build`.
+Root types/Vitest exclude mobile; mobile uses Jest. Each of these builds
+`@foundry/core` first where it needs the output. When core's scripts or the
+shipped-food data change, also run `pnpm --filter @foundry/core typecheck` and
+`pnpm --filter @foundry/core check:foods` (CI runs both).
 
 `pnpm install` installs a lefthook pre-commit hook that runs
 `biome check --staged`. Skip it with `git commit --no-verify` or `LEFTHOOK=0`;
@@ -42,7 +44,8 @@ names without printing credentials. Missing credentials limit acceptance.
 
 `pnpm dev:watch` runs Vite with continuous Convex sync. `pnpm dev` starts only
 Vite; `pnpm dev:all` pushes once. `pnpm preview` builds development mode and runs
-Wrangler. Routes are in `src/routes/`; navigation comes from
+Wrangler. Routes are in `src/routes/`: those under `_app/` get the app chrome and
+those under `_app/_authed/` need sign-in. Navigation comes from
 `src/components/navItems.ts` and backend ownership from the called Convex module.
 
 ## Mobile

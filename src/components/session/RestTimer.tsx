@@ -1,3 +1,4 @@
+import { DEFAULT_REST_SECONDS, formatClock } from "@foundry/core";
 import { Pause, Play, RotateCcw, Timer, X } from "lucide-react";
 import {
 	createContext,
@@ -11,14 +12,13 @@ import {
 } from "react";
 
 const STORAGE_KEY = "restTimer.defaultSeconds";
-const DEFAULT_SECONDS = 90;
 const PRESETS = [60, 90, 120, 180] as const;
 
 function loadDefault(): number {
-	if (typeof window === "undefined") return DEFAULT_SECONDS;
+	if (typeof window === "undefined") return DEFAULT_REST_SECONDS;
 	const raw = window.localStorage.getItem(STORAGE_KEY);
 	const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_SECONDS;
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_REST_SECONDS;
 }
 
 interface RestTimerContextValue {
@@ -123,7 +123,6 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 		});
 	}, []);
 
-	// Tick loop — drives the countdown while running.
 	useEffect(() => {
 		if (!running || endsAtRef.current === null) return;
 		const id = window.setInterval(() => {
@@ -148,8 +147,6 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 	);
 
 	const active = duration > 0;
-	const mins = Math.floor(remaining / 60);
-	const secs = remaining % 60;
 	const pct = duration > 0 ? (remaining / duration) * 100 : 0;
 	const finished = active && remaining <= 0;
 
@@ -159,7 +156,6 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 			{active && (
 				<div className="fixed inset-x-0 bottom-16 sm:bottom-4 z-50 px-3 sm:px-0 pointer-events-none">
 					<div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-[var(--shadow-overlay)] overflow-hidden">
-						{/* Progress bar */}
 						<div className="h-1 w-full bg-[var(--border)]">
 							<div
 								className={`h-full transition-[width] duration-300 ease-linear ${finished ? "bg-[var(--accent-hover)]" : "bg-[var(--accent)]"}`}
@@ -182,9 +178,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 									className="text-xl font-bold tabular-nums text-white tracking-tight"
 									aria-label="Rest remaining — tap to change default"
 								>
-									{finished
-										? "Rest done"
-										: `${mins}:${String(secs).padStart(2, "0")}`}
+									{finished ? "Rest done" : formatClock(remaining)}
 								</button>
 							</div>
 

@@ -4,7 +4,7 @@
  * They are a *menu*, not another band of page: the redesign's note was that a
  * panel which pushes the result list down costs more than four choices are
  * worth. iOS gets a real `UIMenu` anchored to the button; Android gets the
- * app's existing sheet presentation.
+ * app's sheet presentation.
  */
 export interface LogFoodMenuProps {
 	label: string;

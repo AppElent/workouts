@@ -1,48 +1,29 @@
-import { calculateOneRepMax } from "@foundry/core";
-import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
 import {
-	canonicalExerciseId,
+	currentOneRepMax,
+	resolveStrengthReferences,
+	validateManualOneRepMax,
+} from "@foundry/core";
+import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
+import { requireUserId } from "./lib/auth";
+import { checked } from "./lib/errors";
+import {
 	exerciseOneRepMaxes,
-	exerciseReference,
-	normalizeExerciseReferences,
 	requireExercise,
+	resolveExercise,
 } from "./lib/exerciseCatalog";
-import { withOperationReceipt } from "./lib/operationReceipts";
+import { withCreateReceipt } from "./lib/operationReceipt";
 import { readStrengthReferences } from "./lib/strengthReferences";
-import { assertRange } from "./lib/validate";
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await getIdentity(ctx);
-	if (!identity) throw new Error("Unauthenticated");
-	return identity.subject;
-}
-
-export const getReferences = query({
-	args: { exerciseId: exerciseReference },
-	handler: async (ctx, { exerciseId }) => {
-		const userId = await requireUser(ctx);
-		return readStrengthReferences(
-			ctx,
-			userId,
-			await canonicalExerciseId(ctx, exerciseId),
-		);
-	},
-});
+import { exerciseReference, loadUnit } from "./lib/validators";
 
 export const getCurrentForExercise = query({
 	args: { exerciseId: exerciseReference },
 	handler: async (ctx, { exerciseId }) => {
-		const userId = await requireUser(ctx);
-		exerciseId = await canonicalExerciseId(ctx, exerciseId);
-		const references = await readStrengthReferences(ctx, userId, exerciseId);
-		if (references.manual) return references.manual;
+		const userId = await requireUserId(ctx);
 		return (
-			[references.measured, references.estimated]
-				.filter((record) => record !== null)
-				.sort((a, b) => b.date - a.date)[0] ?? null
+			currentOneRepMax(await readStrengthReferences(ctx, userId, exerciseId))
+				?.reference ?? null
 		);
 	},
 });
@@ -50,34 +31,33 @@ export const getCurrentForExercise = query({
 export const listCurrentForUser = query({
 	args: {},
 	handler: async (ctx) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const all = await ctx.db
 			.query("oneRepMaxes")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
 			.collect();
-		// Keep only the most recent record per exercise.
-		const byExercise = new Map<string, (typeof all)[number]>();
-		for (const orm of await normalizeExerciseReferences(ctx, all)) {
-			if (orm.source !== "manual" && !orm.sourceSetId) continue;
-			const key = orm.exerciseId as string;
-			const existing = byExercise.get(key);
-			if (
-				!existing ||
-				(orm.source === "manual" && existing.source !== "manual") ||
-				(orm.source === existing.source && orm.date > existing.date) ||
-				(existing.source !== "manual" && orm.date > existing.date)
-			)
-				byExercise.set(key, orm);
+		const byExercise = new Map<string, Doc<"oneRepMaxes">[]>();
+		for (const record of all)
+			byExercise.set(record.exerciseId, [
+				...(byExercise.get(record.exerciseId) ?? []),
+				record,
+			]);
+		const current: Doc<"oneRepMaxes">[] = [];
+		for (const [exerciseId, records] of byExercise) {
+			const exercise = await resolveExercise(ctx, exerciseId, userId);
+			const chosen = currentOneRepMax(
+				resolveStrengthReferences(records, exercise),
+			);
+			if (chosen) current.push(chosen.reference);
 		}
-		return Array.from(byExercise.values());
+		return current;
 	},
 });
 
 export const listForExercise = query({
 	args: { exerciseId: exerciseReference },
 	handler: async (ctx, { exerciseId }) => {
-		const userId = await requireUser(ctx);
-		exerciseId = await canonicalExerciseId(ctx, exerciseId);
+		const userId = await requireUserId(ctx);
 		return (await exerciseOneRepMaxes(ctx, userId, exerciseId)).sort(
 			(a, b) => a._creationTime - b._creationTime,
 		);
@@ -89,13 +69,14 @@ export const addManual = mutation({
 		operationId: v.optional(v.string()),
 		exerciseId: exerciseReference,
 		value: v.number(),
-		unit: v.union(v.literal("kg"), v.literal("lbs")),
+		unit: loadUnit,
+		// Connected apps back-date a 1RM they were told about.
 		date: v.optional(v.number()),
 	},
 	handler: async (ctx, { operationId, ...input }) => {
-		const userId = await requireUser(ctx);
-		assertRange(input.value, 1, 2000, "1RM");
-		return withOperationReceipt(
+		const userId = await requireUserId(ctx);
+		checked(validateManualOneRepMax(input.value));
+		return withCreateReceipt(
 			ctx,
 			userId,
 			{ operationId, kind: "oneRepMax", payload: input },
@@ -109,37 +90,5 @@ export const addManual = mutation({
 					source: "manual",
 				}),
 		);
-	},
-});
-
-export const calculateAndStore = mutation({
-	args: {
-		exerciseId: exerciseReference,
-		weight: v.number(),
-		reps: v.number(),
-		unit: v.union(v.literal("kg"), v.literal("lbs")),
-	},
-	handler: async (ctx, { exerciseId, weight, reps, unit }) => {
-		const userId = await requireUser(ctx);
-		assertRange(weight, 0, 2000, "Weight");
-		assertRange(reps, 1, 1000, "Reps");
-		exerciseId = await requireExercise(ctx, exerciseId, userId);
-		const all = await exerciseOneRepMaxes(ctx, userId, exerciseId);
-		if (all.some((orm) => orm.source === "manual")) return;
-		const { value, source, formula } = calculateOneRepMax(weight, reps);
-		const current = all
-			.filter((orm) => orm.source !== "manual" && !orm.sourceSetId)
-			.sort((a, b) => b.value - a.value)[0];
-		if (current && value <= current.value) return;
-		if (current) await ctx.db.delete(current._id);
-		await ctx.db.insert("oneRepMaxes", {
-			userId,
-			exerciseId,
-			value,
-			unit,
-			date: Date.now(),
-			source,
-			formula,
-		});
 	},
 });

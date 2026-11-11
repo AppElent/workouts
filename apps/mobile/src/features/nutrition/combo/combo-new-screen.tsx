@@ -1,24 +1,22 @@
-import { canonicalJson } from "@foundry/core";
+import { type ComboPartDraft, canonicalJson } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { type RefObject, useRef, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import type {
-	Combo,
-	ComboPartDraft,
-} from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
+
+export type AcceptedCombo = { combo: Combo; input: string };
 
 /**
  * A new combo from library foods: a name and the parts, saved with ✓ once it
  * has a name. The storage note shows only while backup is off.
  */
-export type AcceptedCombo = { combo: Combo; input: string };
-
 export function ComboNewScreen({
 	acceptedRef,
 	parts,
@@ -29,9 +27,9 @@ export function ComboNewScreen({
 	/**
 	 * Runs right after the combo is saved, such as grouping the diary entries
 	 * it was made from. Failed follow-up work retries with the accepted Combo.
+	 * May answer false: the form stays open, and the caller has said why.
 	 */
-	/** May answer false: the form stays open, and the caller has said why. */
-	onCreated?: (combo: Combo) => void | boolean | Promise<void | boolean>;
+	onCreated?: (combo: Combo) => unknown;
 	/** Where to go once saved; by default the new combo's editor. */
 	onSaved?: (combo: Combo) => void;
 	/** Outlives this form, so reopening it does not create the combo twice. */
@@ -43,16 +41,14 @@ export function ComboNewScreen({
 	const toast = useToast();
 	const library = usePersonalFoods();
 	const [name, setName] = useState("");
-	const [saving, setSaving] = useState(false);
-	const saveLock = useRef(false);
+	const screenWrite = useScreenWrite();
+	const saving = screenWrite.busy;
 	const ownAccepted = useRef<AcceptedCombo | undefined>(undefined);
 	const accepted = acceptedRef ?? ownAccepted;
 	const canSave = name.trim().length > 0 && parts.length > 0 && !saving;
 	const save = async () => {
-		if (!canSave || saveLock.current) return;
-		saveLock.current = true;
-		setSaving(true);
-		try {
+		if (!canSave) return;
+		await screenWrite.run(t.nutrition.combos.saveFailure, async () => {
 			const input = { name: name.trim(), parts };
 			const inputKey = canonicalJson(input);
 			const previous = accepted.current;
@@ -62,11 +58,7 @@ export function ComboNewScreen({
 					: await library.updateCombo(previous.combo.id, input)
 				: await library.createCombo(input);
 			accepted.current = { combo, input: inputKey };
-			if ((await onCreated?.(combo)) === false) {
-				saveLock.current = false;
-				setSaving(false);
-				return;
-			}
+			if ((await onCreated?.(combo)) === false) return;
 			toast.success(t.nutrition.combos.saved);
 			if (onSaved) onSaved(combo);
 			else
@@ -74,11 +66,7 @@ export function ComboNewScreen({
 					pathname: "/nutrition-combo/[id]",
 					params: { id: combo.id },
 				});
-		} catch {
-			toast.error(t.nutrition.combos.saveFailure);
-			setSaving(false);
-			saveLock.current = false;
-		}
+		});
 	};
 	return (
 		<>

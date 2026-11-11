@@ -1,6 +1,11 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { formatScore } from "@foundry/core";
+import {
+	formatDurationMinutes,
+	formatScore,
+	toKg,
+	workingVolume,
+} from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -16,7 +21,7 @@ import {
 } from "lucide-react";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 interface Props {
 	session: Doc<"workoutSessions">;
@@ -24,19 +29,12 @@ interface Props {
 	exerciseMap: Map<string, Exercise>;
 }
 
-function formatDuration(ms: number): string {
-	const totalMinutes = Math.round(ms / 60000);
-	if (totalMinutes < 60) return `${totalMinutes}m`;
-	const hours = Math.floor(totalMinutes / 60);
-	const minutes = totalMinutes % 60;
-	return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
-
 export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const navigate = useNavigate();
 	const removeSession = useMutation(api.workoutSessions.remove);
 	const confirm = useConfirm();
 	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 	const wodResults =
 		useQuery(api.wodResults.listForSession, { sessionId: session._id }) ?? [];
 	const wods = useQuery(api.wods.list) ?? [];
@@ -47,11 +45,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 		? session.endTime - session.startTime
 		: null;
 
-	const workingSets = sets.filter((s) => s.setType === "working");
-	const totalVolume = workingSets.reduce(
-		(acc, s) => acc + s.weight * s.reps,
-		0,
-	);
+	const totalVolume = Math.round(workingVolume(sets));
 
 	const exerciseIds: string[] = [];
 	for (const s of sets) {
@@ -63,7 +57,8 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 	const exerciseBreakdown = exerciseIds.map((id) => {
 		const exerciseSets = sets.filter((s) => (s.exerciseId as string) === id);
 		const bestSet = exerciseSets.reduce(
-			(best, s) => (s.weight > best.weight ? s : best),
+			(best, s) =>
+				toKg(s.weight, s.unit) > toKg(best.weight, best.unit) ? s : best,
 			exerciseSets[0],
 		);
 		return {
@@ -87,7 +82,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 		} catch (err) {
 			toast.error(
 				"Couldn't delete workout",
-				getConvexErrorMessage(err, "Please try again."),
+				errorMessage(err, "Please try again."),
 			);
 			return;
 		}
@@ -96,7 +91,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 
 	return (
 		<div className="p-4 sm:p-6 max-w-3xl mx-auto">
-			{/* Header */}
 			<div className="mb-6">
 				<div className="flex items-center gap-2 mb-2">
 					{isCompleted ? (
@@ -125,13 +119,12 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 					{durationMs !== null && (
 						<span className="flex items-center gap-1">
 							<Clock size={11} />
-							{formatDuration(durationMs)}
+							{formatDurationMinutes(durationMs)}
 						</span>
 					)}
 				</div>
 			</div>
 
-			{/* Stats */}
 			<div className="grid grid-cols-2 gap-3 mb-6">
 				<div className="rounded-xl bg-white/5 p-4">
 					<p className="text-xs text-[var(--text-muted)] mb-1">Total Sets</p>
@@ -145,7 +138,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				</div>
 			</div>
 
-			{/* Exercise breakdown */}
 			<div className="flex flex-col gap-3 mb-8">
 				{exerciseBreakdown.length === 0 ? (
 					<div className="rounded-xl bg-white/5 p-4 text-sm text-[var(--text-muted)] flex items-center gap-2">
@@ -179,7 +171,8 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 							</div>
 							{ex.bestSet && ex.bestSet.weight > 0 && (
 								<p className="text-xs text-[var(--text-muted)] mt-2">
-									Best: {ex.bestSet.weight}kg × {ex.bestSet.reps} reps
+									Best: {ex.bestSet.weight}
+									{ex.bestSet.unit} × {ex.bestSet.reps} reps
 								</p>
 							)}
 						</div>
@@ -211,7 +204,6 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				</div>
 			)}
 
-			{/* Actions */}
 			<div className="flex flex-col sm:flex-row gap-3">
 				<Link
 					to="/dashboard"
@@ -230,7 +222,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				<button
 					type="button"
 					onClick={() => void handleDelete()}
-					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-red-400 hover:border-red-400/30 transition-colors"
+					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--danger)] hover:border-[var(--danger)]/30 transition-colors"
 				>
 					<Trash2 size={15} />
 					Delete

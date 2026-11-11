@@ -1,8 +1,11 @@
 import {
 	groupFoodNutrientSources,
+	type IsoDate,
+	isoWeek,
+	NUTRIENT_UNITS,
 	type NutrientKey,
-	roundForDisplay,
-} from "@foundry/core/nutrition";
+	weekAverage,
+} from "@foundry/core";
 import { router, Stack } from "expo-router";
 import {
 	ActionSheetIOS,
@@ -12,26 +15,20 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import type { IsoDate } from "../../../data/calendar-day";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { FoodVisualView } from "../components/food-visual";
+import { formatNutrientAmount } from "../nutrient-amount";
 import { NutrientSourceValue } from "../nutrient-sources/components/nutrient-source-value";
 import { WeekBars } from "./components/week-bars";
 import { useWeekEntries, type WeekEntry } from "./use-week-entries";
 import { useWeekReview } from "./use-week-review";
+import { weekDayParts, weekGoalLabel } from "./week-format";
 import {
-	weekDayParts,
-	weekGoalLabel,
-	weekNumber,
-	weekUnit,
-} from "./week-format";
-import {
-	isoWeekNumber,
-	weekAverage,
+	dayGoalBounds,
 	weekDayStatus,
 	weekGoalCount,
 	weekTitleKind,
@@ -50,7 +47,7 @@ export function WeekSourcesScreen({
 	const colors = useTokens();
 	const { days, today, week } = useWeekReview(startDate);
 	const entries = useWeekEntries(week);
-	const unit = weekUnit(nutrient);
+	const unit = NUTRIENT_UNITS[nutrient];
 	const name = t.nutrition.nutrients[nutrient];
 	const openEntry = (entry: WeekEntry) =>
 		router.push({
@@ -101,7 +98,7 @@ export function WeekSourcesScreen({
 							<AppText variant="navTitle">{name}</AppText>
 							<AppText variant="caption">
 								{weekTitleKind(week, today) === "numbered"
-									? fmt(copy.title.numbered, { number: isoWeekNumber(week) })
+									? fmt(copy.title.numbered, { number: isoWeek(week).week })
 									: copy.title[weekTitleKind(week, today) as "current"]}
 							</AppText>
 						</View>
@@ -173,7 +170,9 @@ export function WeekSourcesScreen({
 													count?.kind === "over" ? colors.danger : colors.text,
 											}}
 										>
-											{average ? weekNumber(average.value, locale) : "–"}
+											{average
+												? formatNutrientAmount(nutrient, average.value, locale)
+												: "–"}
 											<AppText variant="heading"> {unit}</AppText>
 										</AppText>
 										<AppText variant="footnote" style={{ textAlign: "center" }}>
@@ -205,25 +204,16 @@ export function WeekSourcesScreen({
 										}
 										bars={days.map((day) => {
 											const part = weekDayParts(day.date, locale);
-											const goals =
-												day.goalBasis === "effective" ? day.goals : [];
+											const bounds = dayGoalBounds(day, nutrient);
 											const status = weekDayStatus(day, nutrient, today);
 											return {
 												date: day.date,
 												label: part.short,
 												amount: day.totals[nutrient].amount,
 												status,
-												minimum: goals.find(
-													(item) =>
-														item.nutrient === nutrient &&
-														item.direction === "min",
-												)?.target,
-												maximum: goals.find(
-													(item) =>
-														item.nutrient === nutrient &&
-														item.direction === "max",
-												)?.target,
-												accessibilityLabel: `${part.long}, ${weekNumber(day.totals[nutrient].amount, locale)} ${unit}, ${copy.status[status]}`,
+												minimum: bounds?.min,
+												maximum: bounds?.max,
+												accessibilityLabel: `${part.long}, ${formatNutrientAmount(nutrient, day.totals[nutrient].amount, locale)} ${unit}, ${copy.status[status]}`,
 											};
 										})}
 									/>
@@ -263,11 +253,7 @@ export function WeekSourcesScreen({
 														{copy.notCounting}
 													</AppText>
 													<AppText variant="caption">
-														{missingCount === 1
-															? copy.missingValuesOne
-															: fmt(copy.missingValues, {
-																	count: missingCount,
-																})}
+														{plural(locale, missingCount, copy.missingValues)}
 													</AppText>
 												</View>
 												<Pressable
@@ -344,7 +330,14 @@ export function WeekSourcesScreen({
 													}
 													trailing={
 														<NutrientSourceValue
-															label={`${roundForDisplay(nutrient, source.amount)} ${unit}`}
+															label={formatNutrientAmount(
+																nutrient,
+																source.amount,
+																locale,
+																{
+																	unit: true,
+																},
+															)}
 															share={source.share}
 															relativeShare={
 																sources.ranked[0]?.amount

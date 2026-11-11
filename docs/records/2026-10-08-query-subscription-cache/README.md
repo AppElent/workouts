@@ -62,13 +62,8 @@ write queue was added.
 
 ## Read-only live navigation measurement
 
-Run from the repository root:
-
-```sh
-node apps/mobile/scripts/measure-query-cache.mjs /tmp/query-cache-measurement.json
-```
-
-The script refuses anything except a matching scoped, isolated cloud development
+Measured with `apps/mobile/scripts/measure-query-cache.mjs` (deleted after this
+run; see git history). The script refused anything except a matching scoped, isolated cloud development
 worktree. It uses an ephemeral empty-account identity and performs no mutations.
 It mounts/unmounts the real Convex/helper hooks ten times for the same four queries:
 Routines, active Strength Session, today's diary and effective-dated goals.

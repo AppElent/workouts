@@ -7,7 +7,7 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.*s");
 
 describe("account-owned Capture Drafts", () => {
-	it("preserves both legacy conflict versions and updates other-day counts on edits and deletion", async () => {
+	it("updates other-day counts on edits and deletion", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const request = {
@@ -22,22 +22,12 @@ describe("account-owned Capture Drafts", () => {
 			},
 		};
 		await alice.mutation(api.nutritionDrafts.save, request);
-		const legacy = {
+		await alice.mutation(api.nutritionDrafts.save, {
 			...request,
-			action: "migrate" as const,
-			operationId: "migration",
-			input: { ...request.input, date: "2026-10-06", note: "Legacy note" },
-			createdAt: 1,
-		};
-		const migrated = await alice.mutation(api.nutritionDrafts.save, legacy);
-		expect(migrated).toMatchObject({
-			id: "legacy:migration",
-			note: "Legacy note",
-			createdAt: 1,
+			operationId: "second",
+			id: "other",
+			input: { ...request.input, date: "2026-10-06", note: "Earlier note" },
 		});
-		expect(await alice.mutation(api.nutritionDrafts.save, legacy)).toEqual(
-			migrated,
-		);
 		expect(
 			await alice.query(api.nutritionDrafts.summary, { date: "2026-10-07" }),
 		).toEqual({ count: 1, oldestDate: "2026-10-06" });
@@ -52,13 +42,49 @@ describe("account-owned Capture Drafts", () => {
 		).toEqual({ count: 2, oldestDate: "2026-10-06" });
 		await alice.mutation(api.nutritionDrafts.save, {
 			expectedSubject: "alice",
-			operationId: "delete-copy",
-			id: migrated!.id,
+			operationId: "delete-other",
+			id: "other",
 			action: "remove",
 		});
 		expect(
-			await alice.query(api.nutritionDrafts.summary, { date: "2026-10-06" }),
+			await alice.query(api.nutritionDrafts.summary, { date: "2026-10-07" }),
+		).toEqual({ count: 1, oldestDate: "2026-10-06" });
+		await alice.mutation(api.nutritionDrafts.save, {
+			expectedSubject: "alice",
+			operationId: "delete-note",
+			id: "note",
+			action: "remove",
+		});
+		expect(
+			await alice.query(api.nutritionDrafts.summary, { date: "2026-10-07" }),
 		).toEqual({ count: 0, oldestDate: null });
+	});
+	it("ignores the legacy account-total count row", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		await t.run(async (ctx) => {
+			await ctx.db.insert("nutritionCaptureDraftCounts", {
+				userId: "alice",
+				date: "",
+				count: 7,
+			});
+		});
+		expect(
+			await alice.query(api.nutritionDrafts.summary, { date: "2026-10-07" }),
+		).toEqual({ count: 0, oldestDate: null });
+		await alice.mutation(api.nutritionDrafts.save, {
+			expectedSubject: "alice",
+			operationId: "create",
+			id: "note",
+			action: "create",
+			input: { date: "2026-10-05", meal: "dinner", note: "Pasta" },
+		});
+		expect(
+			await alice.query(api.nutritionDrafts.summary, { date: "2026-10-07" }),
+		).toEqual({ count: 1, oldestDate: "2026-10-05" });
+		await expect(
+			alice.query(api.nutritionDrafts.summary, { date: "10/07/2026" }),
+		).rejects.toMatchObject({ data: { code: "invalid", field: "date" } });
 	});
 	it("reloads saved notes in the owning account, deduplicates retries, and rejects updates after deletion", async () => {
 		const t = convexTest(schema, modules);
@@ -90,7 +116,7 @@ describe("account-owned Capture Drafts", () => {
 		expect((await bob.query(api.nutritionDrafts.list, args)).page).toEqual([]);
 		await expect(
 			bob.mutation(api.nutritionDrafts.save, request),
-		).rejects.toThrow("Subject mismatch");
+		).rejects.toMatchObject({ data: { code: "accountChanged" } });
 		await alice.mutation(api.nutritionDrafts.save, {
 			expectedSubject: "alice",
 			operationId: "remove-note",
@@ -103,7 +129,7 @@ describe("account-owned Capture Drafts", () => {
 				operationId: "update-note",
 				action: "update",
 			}),
-		).rejects.toThrow("deleted");
+		).rejects.toMatchObject({ data: { code: "recordDeleted" } });
 		expect((await alice.query(api.nutritionDrafts.list, args)).page).toEqual(
 			[],
 		);

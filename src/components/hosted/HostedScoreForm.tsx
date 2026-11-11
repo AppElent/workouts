@@ -1,34 +1,28 @@
-import { useState } from "react";
-import { Stepper } from "#/components/ui/Stepper";
-import { getConvexErrorMessage } from "#/lib/convexError";
 import {
 	formatMovement,
-	getHostedLevelLabel,
 	type HostedLevel,
-	type HostedMovement,
-	type HostedScore,
-	type HostedWodType,
-	movementKey,
-	validateHostedScore,
-} from "#/lib/hostedWorkouts";
+	hostedLevelLabel,
+	type WodScoreInput,
+} from "@foundry/core";
+import { useState } from "react";
+import { type HostedWodBlock, movementKey } from "#/components/hosted/wodBlock";
+import {
+	useWodScoreDraft,
+	WodScoreFields,
+} from "#/components/wods/WodScoreFields";
+import { useConvexErrorMessage } from "#/lib/convexError";
+import { wodScoreFromForm } from "#/lib/wodScore";
 
-type WodBlock = {
-	blockId: string;
-	name: string;
-	type: HostedWodType;
-	levels: { level: HostedLevel; label: string; movements?: HostedMovement[] }[];
-};
-
-type SubmitPayload = {
+export type HostedScorePayload = {
 	wodBlockId: string;
 	level: HostedLevel;
 	notes?: string;
-} & HostedScore;
+} & WodScoreInput;
 
 type Props = {
-	wodBlocks: WodBlock[];
+	wodBlocks: Omit<HostedWodBlock, "wodId">[];
 	submitLabel?: string;
-	onSubmit: (payload: SubmitPayload) => Promise<unknown>;
+	onSubmit: (payload: HostedScorePayload) => Promise<unknown>;
 };
 
 export function HostedScoreForm({
@@ -42,13 +36,8 @@ export function HostedScoreForm({
 	const [level, setLevel] = useState<HostedLevel>("rx");
 	const selectedLevelMovements =
 		selectedWod?.levels.find((entry) => entry.level === level)?.movements ?? [];
-	const [minutes, setMinutes] = useState(5);
-	const [seconds, setSeconds] = useState(0);
-	const [timeCapped, setTimeCapped] = useState(false);
-	const [rounds, setRounds] = useState(1);
-	const [reps, setReps] = useState(0);
-	const [load, setLoad] = useState(0);
-	const [loadUnit, setLoadUnit] = useState<"kg" | "lbs">("kg");
+	const score = useWodScoreDraft();
+	const errorMessage = useConvexErrorMessage();
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
@@ -58,18 +47,9 @@ export function HostedScoreForm({
 		event.preventDefault();
 		if (!selectedWod || saving) return;
 
-		const score = buildScore(selectedWod.type, {
-			minutes,
-			seconds,
-			timeCapped,
-			rounds,
-			reps,
-			load,
-			loadUnit,
-		});
-		const validation = validateHostedScore(selectedWod.type, score);
-		if (!validation.ok) {
-			setError(validation.message);
+		const built = wodScoreFromForm(selectedWod.type, score.fields);
+		if (!built.ok) {
+			setError(built.message);
 			return;
 		}
 
@@ -81,12 +61,12 @@ export function HostedScoreForm({
 				wodBlockId: selectedWod.blockId,
 				level,
 				notes: notes.trim() || undefined,
-				...score,
+				...built.score,
 			});
 			setNotes("");
 			setMessage("Score submitted.");
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to submit score."));
+			setError(errorMessage(err, "Failed to submit score."));
 		} finally {
 			setSaving(false);
 		}
@@ -135,7 +115,7 @@ export function HostedScoreForm({
 								: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]",
 						].join(" ")}
 					>
-						{entry.label || getHostedLevelLabel(entry.level)}
+						{hostedLevelLabel(selectedWod.levels, entry.level)}
 					</button>
 				))}
 			</div>
@@ -150,71 +130,12 @@ export function HostedScoreForm({
 				</ul>
 			)}
 
-			{selectedWod?.type === "forTime" && (
-				<>
-					<label className="flex items-center gap-2 text-sm text-white">
-						<input
-							type="checkbox"
-							checked={timeCapped}
-							onChange={(event) => setTimeCapped(event.target.checked)}
-						/>
-						Hit the time cap
-					</label>
-					{timeCapped ? (
-						<Stepper value={reps} onChange={setReps} min={0} label="Reps" />
-					) : (
-						<div className="grid grid-cols-2 gap-2">
-							<Stepper
-								value={minutes}
-								onChange={setMinutes}
-								min={0}
-								unit="min"
-								label="Min"
-							/>
-							<Stepper
-								value={seconds}
-								onChange={setSeconds}
-								min={0}
-								max={59}
-								unit="sec"
-								label="Sec"
-							/>
-						</div>
-					)}
-				</>
-			)}
-
-			{selectedWod?.type === "amrap" && (
-				<div className="grid grid-cols-2 gap-2">
-					<Stepper value={rounds} onChange={setRounds} min={0} label="Rounds" />
-					<Stepper value={reps} onChange={setReps} min={0} label="Reps" />
-				</div>
-			)}
-
-			{selectedWod?.type === "emom" && (
-				<Stepper value={reps} onChange={setReps} min={0} label="Reps" />
-			)}
-
-			{selectedWod?.type === "load" && (
-				<div className="grid grid-cols-[1fr_84px] gap-2">
-					<Stepper
-						value={load}
-						onChange={setLoad}
-						min={0}
-						step={2.5}
-						label="Load"
-					/>
-					<select
-						value={loadUnit}
-						onChange={(event) =>
-							setLoadUnit(event.target.value as "kg" | "lbs")
-						}
-						className="h-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 text-sm text-white"
-					>
-						<option value="kg">kg</option>
-						<option value="lbs">lbs</option>
-					</select>
-				</div>
+			{selectedWod && (
+				<WodScoreFields
+					type={selectedWod.type}
+					draft={score.draft}
+					onChange={score.update}
+				/>
 			)}
 
 			<textarea
@@ -233,29 +154,7 @@ export function HostedScoreForm({
 				{saving ? "Submitting..." : submitLabel}
 			</button>
 			{message && <p className="text-sm text-[var(--accent)]">{message}</p>}
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 		</form>
 	);
-}
-
-function buildScore(
-	type: HostedWodType,
-	values: {
-		minutes: number;
-		seconds: number;
-		timeCapped: boolean;
-		rounds: number;
-		reps: number;
-		load: number;
-		loadUnit: "kg" | "lbs";
-	},
-): HostedScore {
-	if (type === "forTime") {
-		return values.timeCapped
-			? { timeCapped: true, reps: values.reps }
-			: { timeSeconds: values.minutes * 60 + values.seconds };
-	}
-	if (type === "amrap") return { rounds: values.rounds, reps: values.reps };
-	if (type === "emom") return { reps: values.reps };
-	return { load: values.load, loadUnit: values.loadUnit };
 }

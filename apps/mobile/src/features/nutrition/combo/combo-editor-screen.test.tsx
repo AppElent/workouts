@@ -2,7 +2,7 @@ import {
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { renderApp } from "../../../test-support/render-app";
 import { armToastAction } from "../../../test-support/toast-action";

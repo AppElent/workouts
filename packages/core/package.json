@@ -14,10 +14,10 @@
 			"react-native": "./src/index.ts",
 			"import": "./dist/index.js"
 		},
-		"./nutrition": {
-			"types": "./dist/nutrition/index.d.ts",
-			"react-native": "./src/nutrition/index.ts",
-			"import": "./dist/nutrition/index.js"
+		"./shipped-foods": {
+			"types": "./dist/shipped-foods.d.ts",
+			"react-native": "./src/shipped-foods.ts",
+			"import": "./dist/shipped-foods.js"
 		},
 		"./exercises": {
 			"types": "./dist/exercises/index.d.ts",
@@ -29,10 +29,10 @@
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit",
-		"test": "vitest run",
 		"generate:foods": "tsx scripts/generate-shipped-foods.ts",
 		"bench:foods": "tsx scripts/benchmark-shipped-foods.ts",
-		"check:foods": "tsx scripts/generate-shipped-foods.ts --check"
+		"check:foods": "tsx scripts/generate-shipped-foods.ts --check",
+		"import:exercises": "tsx scripts/import-exercises.ts"
 	},
 	"devDependencies": {
 		"tsup": "^9.0.0",

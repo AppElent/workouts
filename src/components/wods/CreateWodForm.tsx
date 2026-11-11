@@ -1,10 +1,11 @@
 import { api } from "@convex/_generated/api";
-import type { Doc } from "@convex/_generated/dataModel";
+import { WOD_TYPES, type WodType, wodTimingFromMinutes } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
-
-type WodType = Doc<"wods">["type"];
+import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
+import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 interface MovementDraft {
 	id: string;
@@ -13,19 +14,15 @@ interface MovementDraft {
 	weight: string;
 }
 
-const TYPES: { value: WodType; label: string }[] = [
-	{ value: "forTime", label: "For Time" },
-	{ value: "amrap", label: "AMRAP" },
-	{ value: "emom", label: "EMOM" },
-	{ value: "load", label: "Load" },
-];
-
 function newMovement(): MovementDraft {
 	return { id: crypto.randomUUID(), name: "", reps: "", weight: "" };
 }
 
 export function CreateWodForm() {
 	const createWod = useMutation(api.wods.create);
+	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
+	const [saving, setSaving] = useState(false);
 
 	const [name, setName] = useState("");
 	const [type, setType] = useState<WodType>("forTime");
@@ -56,18 +53,26 @@ export function CreateWodForm() {
 				weight: m.weight ? Number(m.weight) : undefined,
 				unit: m.weight ? ("kg" as const) : undefined,
 			}));
-		if (!name.trim() || cleanMovements.length === 0) return;
-		const mins = minutes ? Number(minutes) : undefined;
-		await createWod({
-			name: name.trim(),
-			type,
-			repScheme: repScheme.trim() || undefined,
-			description: description.trim() || undefined,
-			timeCapSeconds: type === "forTime" && mins ? mins * 60 : undefined,
-			durationSeconds:
-				(type === "amrap" || type === "emom") && mins ? mins * 60 : undefined,
-			movements: cleanMovements,
-		});
+		if (saving || !name.trim() || cleanMovements.length === 0) return;
+		setSaving(true);
+		try {
+			await createWod({
+				name: name.trim(),
+				type,
+				repScheme: repScheme.trim() || undefined,
+				description: description.trim() || undefined,
+				...wodTimingFromMinutes(type, minutes ? Number(minutes) : undefined),
+				movements: cleanMovements,
+			});
+		} catch (error) {
+			toast.error(
+				"Couldn't save WOD",
+				errorMessage(error, "Your input is kept. Please try again."),
+			);
+			return;
+		} finally {
+			setSaving(false);
+		}
 		setName("");
 		setType("forTime");
 		setRepScheme("");
@@ -76,6 +81,7 @@ export function CreateWodForm() {
 		setMovements([newMovement()]);
 	}
 
+	const timingLabel = wodTimingLabel(type);
 	const inputCls =
 		"h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]";
 
@@ -96,19 +102,19 @@ export function CreateWodForm() {
 			/>
 
 			<div className="flex gap-2">
-				{TYPES.map((t) => (
+				{WOD_TYPES.map((t) => (
 					<button
-						key={t.value}
+						key={t}
 						type="button"
-						onClick={() => setType(t.value)}
+						onClick={() => setType(t)}
 						className={[
 							"flex-1 h-9 rounded-lg text-xs font-medium transition-all",
-							type === t.value
+							type === t
 								? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
 								: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
 						].join(" ")}
 					>
-						{t.label}
+						{WOD_TYPE_LABELS[t]}
 					</button>
 				))}
 			</div>
@@ -121,13 +127,11 @@ export function CreateWodForm() {
 					onChange={(e) => setRepScheme(e.target.value)}
 					className={`${inputCls} flex-1`}
 				/>
-				{type !== "load" && (
+				{timingLabel && (
 					<input
 						type="number"
 						min="0"
-						placeholder={
-							type === "forTime" ? "Time cap (min)" : "Duration (min)"
-						}
+						placeholder={`${timingLabel} (min)`}
 						value={minutes}
 						onChange={(e) => setMinutes(e.target.value)}
 						className={`${inputCls} w-36`}
@@ -170,7 +174,7 @@ export function CreateWodForm() {
 						<button
 							type="button"
 							onClick={() => removeMovement(m.id)}
-							className="p-1 text-[var(--text-muted)] hover:text-red-400 transition-colors"
+							className="p-1 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
 							aria-label="Remove movement"
 						>
 							<X size={14} />
@@ -190,7 +194,7 @@ export function CreateWodForm() {
 			<div className="flex justify-end">
 				<button
 					type="submit"
-					disabled={!name.trim()}
+					disabled={saving || !name.trim()}
 					className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold disabled:opacity-40 hover:bg-[var(--accent-hover)] transition-colors"
 				>
 					Save WOD

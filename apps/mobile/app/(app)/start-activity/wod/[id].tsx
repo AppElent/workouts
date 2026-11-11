@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { WodDetailScreen } from "../../../../src/screens/wod-detail";
+import { WodDetailScreen } from "../../../../src/features/training/wods/wod-detail-screen";
 export default function StartWodDetailRoute() {
 	const router = useRouter();
 	return (

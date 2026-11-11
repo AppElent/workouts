@@ -1,10 +1,12 @@
+import { formatClock } from "@foundry/core";
 /** How a set group repeats, its order, its exercises, and how to undo it. */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { Id } from "../../convex/api";
-import { useI18n } from "../../i18n";
+import { fmt, plural, useI18n } from "../../i18n";
 import {
+	opacity,
 	radius,
 	spacing,
 	type Tokens,
@@ -16,13 +18,13 @@ import { AppText } from "../../ui/text";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
-import { formatClock } from "./session-format";
 import {
 	dissolveGroup,
 	type GroupMode,
 	groupExercises,
 	modeLocked,
 	moveEntry,
+	REST_STEP_SECONDS,
 	sessionExercises,
 	setGroupCap,
 	setGroupMode,
@@ -86,7 +88,7 @@ export function SessionGroupScreen() {
 	const actions = useSessionActions(workspace);
 	const { plan, nameOf, catalog } = workspace;
 	const router = useRouter();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const root = t.strength.plan;
 	const copy = root.group;
 	const colors = useTokens();
@@ -142,7 +144,7 @@ export function SessionGroupScreen() {
 				{amrap ? (
 					<Stepper
 						value={String(group.capMinutes)}
-						label={group.capMinutes === 1 ? copy.minuteUnit : copy.minutesUnit}
+						label={plural(locale, group.capMinutes, copy.minutesUnit)}
 						lessLabel={copy.fewerMinutes}
 						moreLabel={copy.moreMinutes}
 						lessDisabled={group.capMinutes <= 1}
@@ -162,7 +164,7 @@ export function SessionGroupScreen() {
 				) : (
 					<Stepper
 						value={String(group.rounds.length)}
-						label={group.rounds.length === 1 ? copy.roundUnit : copy.roundsUnit}
+						label={plural(locale, group.rounds.length, copy.roundsUnit)}
 						lessLabel={copy.fewerRounds}
 						moreLabel={copy.moreRounds}
 						lessDisabled={group.rounds.length <= 1}
@@ -188,15 +190,15 @@ export function SessionGroupScreen() {
 						<Stepper
 							value={formatClock(group.restSeconds)}
 							label=""
-							lessLabel={copy.restLess}
-							moreLabel={copy.restMore}
+							lessLabel={fmt(copy.restLess, { seconds: REST_STEP_SECONDS })}
+							moreLabel={fmt(copy.restMore, { seconds: REST_STEP_SECONDS })}
 							lessDisabled={group.restSeconds <= 0}
 							onLess={() =>
 								actions.set(
 									setGroupRest(
 										actions.plan(),
 										group.id,
-										Math.max(0, group.restSeconds - 15),
+										Math.max(0, group.restSeconds - REST_STEP_SECONDS),
 									),
 								)
 							}
@@ -205,7 +207,7 @@ export function SessionGroupScreen() {
 									setGroupRest(
 										actions.plan(),
 										group.id,
-										group.restSeconds + 15,
+										group.restSeconds + REST_STEP_SECONDS,
 									),
 								)
 							}
@@ -334,5 +336,5 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.pill,
 		},
 		stepValue: { flex: 1, alignItems: "center" },
-		dimmed: { opacity: 0.4 },
+		dimmed: { opacity: opacity.disabled },
 	});

@@ -1,4 +1,9 @@
-import { formatQuantity, type PersonalMeasure } from "@foundry/core/nutrition";
+import {
+	formatQuantity,
+	MEASURED_UNITS,
+	type MeasuredUnit,
+	type PersonalMeasure,
+} from "@foundry/core";
 import { Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
@@ -9,12 +14,7 @@ import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { AmountServingPopup } from "../components/amount-serving-popup";
 import { PersonalMeasuresSection } from "./components/personal-measures-section";
-import {
-	type MeasureUnit,
-	usePersonalMeasuresEditor,
-} from "./use-personal-measures-editor";
-
-const UNITS: readonly MeasureUnit[] = ["g", "ml"];
+import { usePersonalMeasuresEditor } from "./use-personal-measures-editor";
 
 /**
  * My measures (my-measures design): a pushed screen with the native large
@@ -28,7 +28,7 @@ export function PersonalMeasuresScreen() {
 	const colors = useTokens();
 	const editor = usePersonalMeasuresEditor();
 	const [popup, setPopup] = useState<{
-		unit: MeasureUnit;
+		unit: MeasuredUnit;
 		measure?: PersonalMeasure;
 	}>();
 	const locked = !editor.connected || editor.pending;
@@ -90,7 +90,7 @@ export function PersonalMeasuresScreen() {
 				) : null}
 				{editor.loading ? (
 					<SkeletonGroup label={copy.loading}>
-						{UNITS.map((unit) => (
+						{MEASURED_UNITS.map((unit) => (
 							<View
 								key={unit}
 								style={{ gap: spacing.xs, marginTop: spacing.md }}
@@ -101,7 +101,7 @@ export function PersonalMeasuresScreen() {
 						))}
 					</SkeletonGroup>
 				) : (
-					UNITS.map((unit) => (
+					MEASURED_UNITS.map((unit) => (
 						<PersonalMeasuresSection
 							key={unit}
 							unit={unit}

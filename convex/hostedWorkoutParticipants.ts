@@ -1,29 +1,22 @@
-import { ConvexError, v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getIdentity } from "./lib/connectedApps";
-import { normalizeExerciseTemplate } from "./lib/exerciseCatalog";
-import { toHostedSessionDto } from "./lib/hostedDto";
-import { hostedSessionExercises } from "./lib/strengthSession";
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const identity = await getIdentity(ctx);
-	if (!identity) throw new ConvexError("Unauthenticated");
-	return identity.subject;
-}
+import { requireUserId } from "./lib/auth";
+import { appError } from "./lib/errors";
+import { joinHosted, toHostedSessionDto } from "./lib/hosted";
 
 export const join = mutation({
 	args: { token: v.string(), displayName: v.optional(v.string()) },
 	handler: async (ctx, { token, displayName }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const hosted = await ctx.db
 			.query("hostedWorkouts")
 			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
 			.first();
-		if (!hosted) throw new ConvexError("Hosted workout not found.");
+		if (!hosted) throw appError("notFound");
 		if (hosted.status !== "open")
-			throw new ConvexError("This hosted workout is not open.");
-
+			throw appError(
+				hosted.status === "closed" ? "hostedClosed" : "hostedNotOpen",
+			);
 		const existing = await ctx.db
 			.query("hostedWorkoutParticipants")
 			.withIndex("by_hosted_workout_user", (q) =>
@@ -31,46 +24,14 @@ export const join = mutation({
 			)
 			.first();
 		if (existing) return existing.sessionId;
-
-		const active = await ctx.db
-			.query("workoutSessions")
-			.withIndex("by_user_status", (q) =>
-				q.eq("userId", userId).eq("status", "active"),
-			)
-			.first();
-		if (active)
-			throw new ConvexError(
-				"Finish or cancel your active workout before joining.",
-			);
-
-		const now = Date.now();
-		const sessionId = await ctx.db.insert("workoutSessions", {
-			userId,
-			date: hosted.scheduledAt ?? now,
-			startTime: now,
-			name: hosted.title,
-			exercises: await hostedSessionExercises(
-				ctx,
-				userId,
-				hosted.template.strengthBlocks,
-			),
-			status: "active",
-		});
-		await ctx.db.insert("hostedWorkoutParticipants", {
-			hostedWorkoutId: hosted._id,
-			userId,
-			sessionId,
-			joinedAt: now,
-			displayName: displayName?.trim() || undefined,
-		});
-		return sessionId;
+		return joinHosted(ctx, hosted, userId, displayName?.trim() || undefined);
 	},
 });
 
 export const getMyParticipant = query({
 	args: { hostedWorkoutId: v.id("hostedWorkouts") },
 	handler: async (ctx, { hostedWorkoutId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		return ctx.db
 			.query("hostedWorkoutParticipants")
 			.withIndex("by_hosted_workout_user", (q) =>
@@ -83,35 +44,13 @@ export const getMyParticipant = query({
 export const getBySession = query({
 	args: { sessionId: v.id("workoutSessions") },
 	handler: async (ctx, { sessionId }) => {
-		const userId = await requireUser(ctx);
+		const userId = await requireUserId(ctx);
 		const participant = await ctx.db
 			.query("hostedWorkoutParticipants")
 			.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
 			.first();
 		if (!participant || participant.userId !== userId) return null;
 		const hosted = await ctx.db.get(participant.hostedWorkoutId);
-		if (!hosted) return null;
-		return {
-			hosted: toHostedSessionDto({
-				...hosted,
-				template: await normalizeExerciseTemplate(ctx, hosted.template),
-			}),
-		};
-	},
-});
-
-export const listForHost = query({
-	args: { hostedWorkoutId: v.id("hostedWorkouts") },
-	handler: async (ctx, { hostedWorkoutId }) => {
-		const hostUserId = await requireUser(ctx);
-		const hosted = await ctx.db.get(hostedWorkoutId);
-		if (!hosted || hosted.hostUserId !== hostUserId)
-			throw new ConvexError("Unauthorized");
-		return ctx.db
-			.query("hostedWorkoutParticipants")
-			.withIndex("by_hosted_workout", (q) =>
-				q.eq("hostedWorkoutId", hostedWorkoutId),
-			)
-			.collect();
+		return hosted ? { hosted: toHostedSessionDto(hosted) } : null;
 	},
 });

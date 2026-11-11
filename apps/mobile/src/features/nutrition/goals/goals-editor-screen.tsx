@@ -1,9 +1,10 @@
 import {
 	GOAL_PRESET_KEYS,
+	type IsoDate,
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import {
 	Stack,
 	useLocalSearchParams,
@@ -23,14 +24,9 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import { type IsoDate, isoDateToLocalDate } from "../../../data/calendar-day";
-import {
-	type GoalKind,
-	goalKind,
-	referenceGoalTarget,
-} from "../../../data/nutrition-goal-history";
+import { isoDateToLocalDate } from "../../../dates/calendar-day";
 import { useReduceMotion } from "../../../feedback/reduce-motion";
-import { fmt, useI18n } from "../../../i18n";
+import { dateLocale, fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -44,6 +40,8 @@ import { GoalNumberField } from "./components/goal-number-field";
 import { GoalKindLabel, GoalRow } from "./components/goal-row";
 import { GoalsKeyboardBar } from "./components/goals-keyboard-bar";
 import { GoalsStartPicker } from "./components/goals-start-picker";
+import { type GoalKind, goalKind, referenceGoalTarget } from "./goal-draft";
+import { goalPresetMenuHint } from "./goal-presets";
 import { goalsAppliesFrom } from "./goals-applies-from";
 import { type GoalFieldKey, useGoalsEditor } from "./use-goals-editor";
 
@@ -111,10 +109,7 @@ function GoalsEditor() {
 	usePreventRemove(editor.dirty && !leaving, ({ data }) => {
 		if (editor.pending) return;
 		void confirm({
-			title:
-				editor.changedCount === 1
-					? copy.discardMessageOne
-					: fmt(copy.discardMessage, { count: editor.changedCount }),
+			title: plural(locale, editor.changedCount, copy.discardMessage),
 			confirmLabel: copy.discard,
 			cancelLabel: copy.keepEditing,
 			destructive: true,
@@ -309,7 +304,7 @@ function GoalsEditor() {
 	const dateValue =
 		editor.date === editor.today
 			? copy.today
-			: isoDateToLocalDate(editor.date).toLocaleDateString(locale, {
+			: isoDateToLocalDate(editor.date).toLocaleDateString(dateLocale(locale), {
 					weekday: "short",
 					day: "numeric",
 					month: "short",
@@ -407,7 +402,7 @@ function GoalsEditor() {
 									GOAL_PRESET_KEYS.map((key) => ({
 										id: key,
 										label: copy.presets[key].name,
-										hint: copy.presetMenuHint[key],
+										hint: goalPresetMenuHint(copy, key, locale),
 										selected: key === editor.preset,
 									})),
 									...(editor.preset && editor.editedCount > 0
@@ -703,7 +698,6 @@ function GoalsEditor() {
 				visible={dateOpen}
 				date={editor.date}
 				today={editor.today}
-				locale={locale}
 				title={copy.appliesFrom}
 				todayLabel={copy.today}
 				doneLabel={copy.done}

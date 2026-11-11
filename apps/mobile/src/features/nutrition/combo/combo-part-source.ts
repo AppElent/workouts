@@ -1,5 +1,5 @@
+import type { ComboPartReference } from "@foundry/core";
 import { router } from "expo-router";
-import type { ComboPartReference } from "../../../data/personal-food-repository";
 
 /** A part's food in the food-details sheet, when it still has one. */
 export function openComboPartSource(reference: ComboPartReference) {

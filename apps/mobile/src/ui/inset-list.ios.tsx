@@ -14,8 +14,7 @@
  * `ScrollView` among RN content, so it is `scrollDisabled` and its height is
  * driven from the list's own scroll geometry (`contentHeight`, iOS 18+) with a
  * row-count estimate until the first measurement arrives. `.swipeActions`
- * only exists inside a `List`, which is why the group is one, and why the
- * earlier per-row `Host` + `SwipeActions` canary could never have swiped.
+ * only exists inside a `List`, which is why the group is one.
  *
  * The screen gutter is undone with a negative margin so the List's own
  * inset-grouped margins meet the screen edge at the system distance.
@@ -64,7 +63,7 @@ import { StyleSheet, useWindowDimensions, View } from "react-native";
 import {
 	metrics,
 	sportMeta,
-	useHostScheme,
+	useScheme,
 	useSportColors,
 	useTokens,
 } from "../theme";
@@ -99,7 +98,7 @@ export function InsetList({
 	return (
 		<View style={[styles.bleed, compact ? { marginHorizontal: -16 } : null]}>
 			<Host
-				colorScheme={useHostScheme()}
+				colorScheme={useScheme()}
 				seedColor={tokens.accent}
 				style={{ width: "100%", height }}
 			>

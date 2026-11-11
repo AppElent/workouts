@@ -1,36 +1,18 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform } from "react-native";
 import type { Id } from "../../src/convex/api";
-import { useRoutines, useShellData } from "../../src/data/session-data";
+import { RoutineEditorScreen } from "../../src/features/training/routines/routine-editor-screen";
 import { useI18n } from "../../src/i18n";
-import { RoutineEditor } from "../../src/screens/routine-editor";
-import { type Tokens, useThemedStyles } from "../../src/theme";
-import { AppText } from "../../src/ui/text";
 
 export default function RoutineEditorRoute() {
 	const router = useRouter();
 	const copy = useI18n().t.workoutTools.routineEditor;
 	const { id } = useLocalSearchParams<{ id?: string }>();
-	const routines = useRoutines();
-	const { exercises } = useShellData();
-	const routine = id
-		? routines?.find((candidate) => candidate._id === (id as Id<"routines">))
-		: null;
 	const close = () => router.back();
-
-	if (id && routines === undefined) {
-		return <Status label={copy.loading} />;
-	}
-	if (id && !routine) {
-		return <Status label={copy.notFound} />;
-	}
-
 	return (
 		<>
-			<RoutineEditor
-				presentation="screen"
-				routine={routine}
-				exercises={exercises}
+			<RoutineEditorScreen
+				routineId={id as Id<"routines"> | undefined}
 				onClose={close}
 			/>
 			{Platform.OS === "ios" ? (
@@ -43,22 +25,3 @@ export default function RoutineEditorRoute() {
 		</>
 	);
 }
-
-function Status({ label }: { label: string }) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View style={styles.status}>
-			<AppText variant="caption">{label}</AppText>
-		</View>
-	);
-}
-
-const createStyles = (colors: Tokens) =>
-	StyleSheet.create({
-		status: {
-			flex: 1,
-			alignItems: "center",
-			justifyContent: "center",
-			backgroundColor: colors.bg,
-		},
-	});

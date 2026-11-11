@@ -2,7 +2,7 @@ import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "#/lib/utils";
 
-export interface SelectOption {
+interface SelectOption {
 	value: string;
 	label: string;
 }
@@ -19,11 +19,7 @@ interface Props {
 	"aria-label"?: string;
 }
 
-/**
- * App-themed dropdown built on Base UI's Select primitive. Replaces native
- * <select> so filters match the rest of the dark UI. Empty string is treated
- * as "no selection" and renders the placeholder in the trigger.
- */
+/** Base UI's Select instead of a native <select>, so filters match the dark UI. */
 export function Select({
 	value,
 	onValueChange,

@@ -3,7 +3,7 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 	type PersonalFoodDraft,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import type { FetchLike } from "../../../data/open-food-facts";
 import { renderApp } from "../../../test-support/render-app";

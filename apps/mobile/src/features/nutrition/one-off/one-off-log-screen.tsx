@@ -1,3 +1,4 @@
+import type { BaseUnit, MealSlot, MeasuredUnit } from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -10,16 +11,13 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { todayIsoDate } from "../../../data/calendar-day";
-import { useFoodAuthoringIntent } from "../../../data/food-authoring-intent";
-import type { MealSlot } from "../../../data/nutrition-day";
 import { useNutritionDrafts } from "../../../data/nutrition-drafts";
+import { todayIsoDate } from "../../../dates/calendar-day";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, type, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { AppText } from "../../../ui/text";
-import { useToast } from "../../../ui/toast";
 import { FoodAuthoringTabs } from "../components/food-authoring-tabs";
 import {
 	FoodFormCard,
@@ -32,6 +30,9 @@ import { FoodValueField } from "../components/food-value-field";
 import { FoodVisualPicker } from "../components/food-visual-picker";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
 import { NutritionDestinationMenu } from "../components/nutrition-destination-menu";
+import { requestDiaryDate } from "../diary/use-diary-date-request";
+import { useFoodAuthoringIntent } from "../food-authoring-intent";
+import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { useNutrientFields } from "../use-nutrient-fields";
 import { useOneOffDraft } from "./use-one-off-draft";
@@ -52,7 +53,7 @@ export function OneOffLogScreen({
 	/** The Capture Draft this entry processes; removed once it is logged. */
 	draftId?: string;
 }) {
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 	const copy = t.nutrition.oneOff;
 	const browseCopy = t.nutrition.logFood;
 	const foodCopy = t.nutrition.foodEditor;
@@ -61,13 +62,13 @@ export function OneOffLogScreen({
 	const router = useRouter();
 	const navigation = useNavigation();
 	const confirm = useConfirm();
-	const toast = useToast();
 	const authoring = useFoodAuthoringIntent();
 	const drafts = useNutritionDrafts({
 		startDate: date,
 		endDate: date,
 		recordId: draftId,
 	});
+	useCaptureDraftResolution(drafts, draftId);
 	// Name and photo carried over from the Personal food or Recipe form.
 	const [seed] = useState(() =>
 		authoring.intent === "oneOff" ? authoring.seed : undefined,
@@ -87,16 +88,9 @@ export function OneOffLogScreen({
 		meal,
 		seed,
 		onLogged: (loggedDate) => {
-			if (draftId) void drafts.remove(draftId).catch(() => undefined);
-			setExit(
-				() => () =>
-					router.dismissTo({
-						pathname: "/nutrition",
-						params: { date: loggedDate },
-					}),
-			);
+			requestDiaryDate(loggedDate);
+			setExit(() => () => router.dismissTo("/nutrition"));
 		},
-		onFailed: () => toast.error(copy.logFailure),
 	});
 	const [today] = useState(todayIsoDate);
 	const [choosingDay, setChoosingDay] = useState(false);
@@ -131,16 +125,14 @@ export function OneOffLogScreen({
 		});
 	});
 
+	// Opened with nothing beneath it (a deep link), ✕ lands on the diary.
+	const close = () => {
+		if (router.canGoBack()) return router.back();
+		requestDiaryDate(draft.destination.date);
+		router.replace("/nutrition");
+	};
 	// Latest handlers for header items that outlive a render; options only
 	// change with what they show (Stack.Screen sets them on every new object).
-	// Opened with nothing beneath it (a deep link), ✕ lands on the diary.
-	const close = () =>
-		router.canGoBack()
-			? router.back()
-			: router.replace({
-					pathname: "/nutrition",
-					params: { date: draft.destination.date },
-				});
 	const handlers = useRef({ log: draft.log, close });
 	handlers.current = { log: draft.log, close };
 	const menu = destination.menu;
@@ -231,7 +223,6 @@ export function OneOffLogScreen({
 				visible={choosingDay}
 				date={draft.destination.date}
 				today={today}
-				locale={locale}
 				title={browseCopy.chooseDate}
 				todayLabel={browseCopy.today}
 				doneLabel={browseCopy.doneChoosingDate}
@@ -346,7 +337,7 @@ export function OneOffLogScreen({
 									selected: draft.unit === unit,
 								})),
 							]}
-							onSelect={(id) => draft.setUnit(id as "serving" | "g" | "ml")}
+							onSelect={(id) => draft.setUnit(id as BaseUnit)}
 						>
 							<FoodFormMenuValue label={unitLabel} />
 						</NutritionChoiceMenu>
@@ -389,7 +380,7 @@ export function OneOffLogScreen({
 							onSelect={(id) =>
 								id === "total"
 									? draft.setBasis("total")
-									: draft.setBasis("per100", id as "g" | "ml")
+									: draft.setBasis("per100", id as MeasuredUnit)
 							}
 						>
 							<FoodFormMenuValue label={basisLabel} />

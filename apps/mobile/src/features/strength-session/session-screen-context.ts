@@ -1,4 +1,3 @@
-/** What every part of the open session screen shares. */
 import { createContext, useContext } from "react";
 import type { SessionActions } from "./data/session-actions";
 import type { SessionWorkspace } from "./data/session-workspace";

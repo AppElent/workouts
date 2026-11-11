@@ -1,7 +1,7 @@
+import type { MealSlot } from "@foundry/core";
 import { useState } from "react";
 import { Modal, Switch, View } from "react-native";
-import type { MealSlot } from "../../../data/nutrition-day";
-import type { Combo } from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
@@ -44,7 +44,6 @@ export function ComboLogScreen({
 			toast.success(fmt(copy.logged, { name: combo.name }));
 			onClose();
 		},
-		onFailed: () => toast.error(copy.logFailure),
 	});
 	const once = draft.parts.find(({ part }) => part.id === onceFor);
 	const thisTime = draft.included.reduce(

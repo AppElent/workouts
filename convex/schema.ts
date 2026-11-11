@@ -1,36 +1,190 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { exerciseReference } from "./lib/exerciseCatalog";
-import { exerciseMigrationTable } from "./lib/exerciseMigrationModel";
-import { operationReceiptKind } from "./lib/operationReceipts";
-import { strengthReferenceSnapshots } from "./lib/strengthReferences";
-import { nutritionAiTables } from "./nutritionAiTables";
-import { diarySnapshotFields } from "./nutritionDiaryModel";
-import { nutritionDraftTables } from "./nutritionDraftTables";
-import { nutritionGoalTables } from "./nutritionGoalTables";
-import { nutritionLibraryTables } from "./nutritionLibraryTables";
-import { personalMeasureTables } from "./personalMeasureTables";
-import { supplementaryServingTables } from "./supplementaryServingTables";
+import {
+	captureDraft,
+	diarySnapshotFields,
+	enduranceEnvironment,
+	enduranceSport,
+	equipment,
+	exerciseCategory,
+	exerciseReference,
+	hostedLevel,
+	libraryCategory,
+	libraryRecordKind,
+	loadUnit,
+	mealSlot,
+	measuredUnit,
+	nutrientKey,
+	nutritionGoal,
+	oneRepMaxSource,
+	operationReceiptKind,
+	plannedSet,
+	rxScaled,
+	setReferenceSource,
+	setType,
+	strengthReferenceSnapshots,
+	wodDefinitionFields,
+	wodMovement,
+	wodScoreFields,
+} from "./lib/validators";
 
 export default defineSchema({
-	exerciseMigrations: exerciseMigrationTable,
-	...nutritionGoalTables,
-	...nutritionLibraryTables,
+	// Holds finished exercise-migration runs only; drop it once those rows are deleted.
+	exerciseMigrations: defineTable({
+		key: v.literal("shipped-v1"),
+		generation: v.number(),
+		dryRun: v.boolean(),
+		phase: v.union(
+			v.literal("defaults"),
+			v.literal("sets"),
+			v.literal("oneRepMaxes"),
+			v.literal("routines"),
+			v.literal("hostedWorkouts"),
+			v.literal("finalize"),
+			v.literal("complete"),
+			v.literal("blocked"),
+		),
+		verifying: v.boolean(),
+		cursor: v.union(v.string(), v.null()),
+		batchSize: v.number(),
+		mappings: v.record(v.string(), v.string()),
+		scanned: v.record(v.string(), v.number()),
+		changed: v.record(v.string(), v.number()),
+		mappedExercises: v.optional(v.number()),
+		error: v.optional(v.string()),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+	}).index("by_key", ["key"]),
+
+	nutritionGoalVersions: defineTable({
+		userId: v.string(),
+		effectiveFrom: v.string(),
+		// One complete goal set per version, an empty set included, so replacing
+		// one effective date is atomic and every other date stays as it was.
+		goals: v.array(nutritionGoal),
+		// Only on the first version: the legacy goals frozen so dates before it
+		// keep their goals.
+		referenceGoals: v.optional(v.array(nutritionGoal)),
+	})
+		.index("by_user_effectiveFrom", ["userId", "effectiveFrom"])
+		.index("by_user", ["userId"]),
+
+	nutritionGoalPreferences: defineTable({
+		userId: v.string(),
+		displayOrder: v.array(nutrientKey),
+	}).index("by_user", ["userId"]),
+
+	nutritionLibraryRecords: defineTable({
+		userId: v.string(),
+		recordId: v.string(),
+		recordKind: libraryRecordKind,
+		// Opaque validated JSON, so device-minted ids survive unchanged.
+		payload: v.optional(v.string()),
+		// Older builds stamped 1–3; kept optional until stored values are cleared.
+		schemaVersion: v.optional(v.number()),
+		revision: v.number(),
+		deleted: v.boolean(),
+		updatedAt: v.number(),
+		name: v.optional(v.string()),
+		searchText: v.optional(v.string()),
+		category: v.optional(libraryCategory),
+		barcode: v.optional(v.string()),
+		forkedFrom: v.optional(v.string()),
+	})
+		.index("by_user_and_record", ["userId", "recordId"])
+		.index("by_user_deleted_name", ["userId", "deleted", "name"])
+		.index("by_user_deleted_category_name", [
+			"userId",
+			"deleted",
+			"category",
+			"name",
+		])
+		.index("by_user_barcode", ["userId", "barcode", "deleted"])
+		.index("by_user_fork", ["userId", "forkedFrom", "deleted"])
+		.searchIndex("search_library", {
+			searchField: "searchText",
+			filterFields: ["userId", "deleted", "category"],
+		}),
+
+	nutritionLibraryOperationReceipts: defineTable({
+		userId: v.string(),
+		operationId: v.string(),
+		payload: v.string(),
+		result: v.string(),
+		createdAt: v.number(),
+	}).index("by_user_and_operation", ["userId", "operationId"]),
+
 	nutritionFoodPhotos: defineTable({
 		userId: v.string(),
 		storageId: v.id("_storage"),
 	})
 		.index("by_storage", ["storageId"])
 		.index("by_user", ["userId"]),
-	...nutritionDraftTables,
-	...nutritionAiTables,
-	...personalMeasureTables,
-	...supplementaryServingTables,
+
+	nutritionCaptureDrafts: defineTable({
+		userId: v.string(),
+		recordId: v.string(),
+		date: v.string(),
+		meal: mealSlot,
+		note: v.string(),
+		deleted: v.boolean(),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_user_and_record", ["userId", "recordId"])
+		.index("by_user_and_deleted_and_date", ["userId", "deleted", "date"]),
+
+	nutritionCaptureDraftCounts: defineTable({
+		userId: v.string(),
+		date: v.string(),
+		count: v.number(),
+	}).index("by_user_and_date", ["userId", "date"]),
+
+	nutritionCaptureDraftReceipts: defineTable({
+		userId: v.string(),
+		operationId: v.string(),
+		payload: v.string(),
+		result: v.union(captureDraft, v.null()),
+	}).index("by_user_and_operation", ["userId", "operationId"]),
+
+	// Analyses per account per UTC day; bookkeeping only, no personal content.
+	nutritionAiUsage: defineTable({
+		userId: v.string(),
+		day: v.string(),
+		count: v.number(),
+		// Candidate selections still allowed: one per analysis.
+		choices: v.optional(v.number()),
+	}).index("by_user_and_day", ["userId", "day"]),
+
+	personalMeasures: defineTable({
+		userId: v.string(),
+		name: v.string(),
+		normalizedName: v.string(),
+		amount: v.number(),
+		unit: measuredUnit,
+		order: v.number(),
+	})
+		.index("by_user_and_order", ["userId", "order"])
+		.index("by_user_and_normalized_name", ["userId", "normalizedName"]),
+
+	supplementaryServings: defineTable({
+		userId: v.string(),
+		foodId: v.string(),
+		name: v.string(),
+		normalizedName: v.string(),
+		amount: v.number(),
+		unit: measuredUnit,
+	})
+		.index("by_userId_and_foodId", ["userId", "foodId"])
+		.index("by_userId_and_foodId_and_normalizedName", [
+			"userId",
+			"foodId",
+			"normalizedName",
+		]),
+
 	nutritionDiaryEntries: defineTable({
 		userId: v.string(),
 		...diarySnapshotFields,
-		// A Combo is only provenance/rendering: every row remains an ordinary
-		// independently editable diary snapshot even if the local Combo vanishes.
 		loggedAt: v.number(),
 	})
 		.index("by_user", ["userId"])
@@ -44,7 +198,7 @@ export default defineSchema({
 		payload: v.string(),
 		result: v.string(),
 		createdAt: v.number(),
-	}).index("by_user_operation", ["userId", "operationId"]),
+	}).index("by_user_and_operation", ["userId", "operationId"]),
 
 	nutritionDiaryDayVersions: defineTable({
 		userId: v.string(),
@@ -54,55 +208,24 @@ export default defineSchema({
 
 	nutritionGoals: defineTable({
 		userId: v.string(),
-		nutrient: v.union(
-			v.literal("energy"),
-			v.literal("protein"),
-			v.literal("carbs"),
-			v.literal("fat"),
-			v.literal("saturatedFat"),
-			v.literal("fibre"),
-			v.literal("sugars"),
-			v.literal("salt"),
-		),
-		direction: v.union(v.literal("min"), v.literal("max")),
-		target: v.number(),
-		sourcePreset: v.optional(
-			v.union(
-				v.literal("reference"),
-				v.literal("loseWeight"),
-				v.literal("buildMuscle"),
-			),
-		),
-	})
-		.index("by_user", ["userId"])
-		.index("by_user_nutrient_direction", ["userId", "nutrient", "direction"]),
+		...nutritionGoal.fields,
+	}).index("by_user", ["userId"]),
 
 	exercises: defineTable({
 		name: v.string(),
 		muscleGroups: v.array(v.string()),
-		category: v.union(v.literal("compound"), v.literal("isolation")),
-		equipment: v.union(
-			v.literal("barbell"),
-			v.literal("dumbbell"),
-			v.literal("cable"),
-			v.literal("bodyweight"),
-			v.literal("machine"),
-			v.literal("kettlebell"),
-			v.literal("band"),
-			v.literal("other"),
-		),
+		category: exerciseCategory,
+		equipment,
 		notes: v.optional(v.string()),
 		instructions: v.optional(v.array(v.string())),
 		weightIncrement: v.optional(v.number()),
+		// New rows are personal. `isDefault` rows without a `userId` are retained
+		// copies of the catalog that used to be seeded; `shippedExerciseId` names
+		// their shipped exercise.
 		isDefault: v.boolean(),
 		shippedExerciseId: v.optional(v.string()),
 		userId: v.optional(v.string()),
-	})
-		.index("by_name", ["name"])
-		.index("by_default_name", ["isDefault", "name"])
-		.index("by_shipped", ["shippedExerciseId"])
-		.index("by_default", ["isDefault"])
-		.index("by_user", ["userId"]),
+	}).index("by_user", ["userId"]),
 
 	workoutSessions: defineTable({
 		userId: v.string(),
@@ -117,13 +240,7 @@ export default defineSchema({
 				v.object({
 					exerciseId: exerciseReference,
 					references: v.optional(strengthReferenceSnapshots),
-					plannedSets: v.array(
-						v.object({
-							reps: v.number(),
-							weight: v.number(),
-							unit: v.union(v.literal("kg"), v.literal("lbs")),
-						}),
-					),
+					plannedSets: v.array(plannedSet),
 				}),
 			),
 		),
@@ -141,7 +258,7 @@ export default defineSchema({
 	activities: defineTable({
 		userId: v.string(),
 		clientEntryId: v.string(),
-		sport: v.union(v.literal("running"), v.literal("cycling")),
+		sport: enduranceSport,
 		occurredAt: v.number(),
 		durationSeconds: v.number(),
 		title: v.optional(v.string()),
@@ -157,7 +274,7 @@ export default defineSchema({
 		activityId: v.id("activities"),
 		userId: v.string(),
 		distanceMeters: v.number(),
-		environment: v.optional(v.union(v.literal("indoor"), v.literal("outdoor"))),
+		environment: v.optional(enduranceEnvironment),
 		elevationGainMeters: v.optional(v.number()),
 		averageHeartRate: v.optional(v.number()),
 		effort: v.optional(v.number()),
@@ -172,29 +289,20 @@ export default defineSchema({
 		setNumber: v.number(),
 		reps: v.number(),
 		weight: v.number(),
-		unit: v.union(v.literal("kg"), v.literal("lbs")),
+		unit: loadUnit,
 		rpe: v.optional(v.number()),
-		setType: v.union(
-			v.literal("warmup"),
-			v.literal("working"),
-			v.literal("drop"),
-			v.literal("failure"),
-		),
+		setType,
 		loggedAt: v.number(),
-		// Compatibility with the earlier issue 89 development schema; no new writes.
+		// Left by an earlier development schema; no new writes.
 		estimatedMax: v.optional(v.number()),
 		performanceVerified: v.optional(v.boolean()),
-		referenceKind: v.optional(
-			v.union(v.literal("actual"), v.literal("calculated")),
-		),
+		referenceKind: v.optional(setReferenceSource),
 		referenceValueKg: v.optional(v.number()),
 	})
 		.index("by_session", ["sessionId"])
-		.index("by_exercise", ["exerciseId"])
 		.index("by_user", ["userId"])
 		.index("by_user_exercise", ["userId", "exerciseId"])
 		.index("by_user_exercise_logged_at", ["userId", "exerciseId", "loggedAt"])
-		.index("by_session_exercise", ["sessionId", "exerciseId"])
 		.index("by_strength_reference", [
 			"userId",
 			"exerciseId",
@@ -207,7 +315,7 @@ export default defineSchema({
 		operationId: v.string(),
 		payload: v.string(),
 		setId: v.id("sets"),
-	}).index("by_user_operation", ["userId", "operationId"]),
+	}).index("by_user_and_operation", ["userId", "operationId"]),
 
 	/** Retry receipts for create mutations that take an optional operationId. */
 	operationReceipts: defineTable({
@@ -216,23 +324,18 @@ export default defineSchema({
 		kind: operationReceiptKind,
 		payload: v.string(),
 		resultId: v.string(),
-	}).index("by_user_operation", ["userId", "operationId"]),
+	}).index("by_user_and_operation", ["userId", "operationId"]),
 
 	oneRepMaxes: defineTable({
 		userId: v.string(),
 		exerciseId: exerciseReference,
 		value: v.number(),
-		unit: v.union(v.literal("kg"), v.literal("lbs")),
+		unit: loadUnit,
 		date: v.number(),
-		source: v.union(
-			v.literal("manual"),
-			v.literal("calculated"),
-			v.literal("actual"),
-		),
+		source: oneRepMaxSource,
 		formula: v.optional(v.string()),
 		sourceSetId: v.optional(v.id("sets")),
 	})
-		.index("by_exercise", ["exerciseId"])
 		.index("by_user", ["userId"])
 		.index("by_user_exercise", ["userId", "exerciseId"]),
 
@@ -240,7 +343,7 @@ export default defineSchema({
 		userId: v.string(),
 		date: v.number(),
 		weight: v.optional(v.number()),
-		unit: v.union(v.literal("kg"), v.literal("lbs")),
+		unit: loadUnit,
 		bodyFatPct: v.optional(v.number()),
 		measurements: v.optional(
 			v.object({
@@ -269,36 +372,10 @@ export default defineSchema({
 	}).index("by_user", ["userId"]),
 
 	wods: defineTable({
-		userId: v.string(),
-		name: v.string(),
-		type: v.union(
-			v.literal("forTime"),
-			v.literal("amrap"),
-			v.literal("emom"),
-			v.literal("load"),
-		),
-		description: v.optional(v.string()),
-		repScheme: v.optional(v.string()),
-		timeCapSeconds: v.optional(v.number()),
-		durationSeconds: v.optional(v.number()),
-		movements: v.array(
-			v.object({
-				name: v.string(),
-				reps: v.optional(v.number()),
-				weight: v.optional(v.number()),
-				unit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-				distance: v.optional(v.number()),
-				distanceUnit: v.optional(
-					v.union(
-						v.literal("m"),
-						v.literal("km"),
-						v.literal("mi"),
-						v.literal("cal"),
-					),
-				),
-				notes: v.optional(v.string()),
-			}),
-		),
+		// Absent on the benchmark catalog (`isDefault`), which the seed owns.
+		userId: v.optional(v.string()),
+		...wodDefinitionFields,
+		movements: v.array(wodMovement),
 		isDefault: v.boolean(),
 	})
 		.index("by_user", ["userId"])
@@ -310,17 +387,10 @@ export default defineSchema({
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
 		date: v.number(),
-		rxScaled: v.union(v.literal("rx"), v.literal("scaled")),
-		timeSeconds: v.optional(v.number()),
-		rounds: v.optional(v.number()),
-		reps: v.optional(v.number()),
-		timeCapped: v.optional(v.boolean()),
-		load: v.optional(v.number()),
-		loadUnit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-		notes: v.optional(v.string()),
+		rxScaled,
+		...wodScoreFields,
 	})
 		.index("by_user", ["userId"])
-		.index("by_wod", ["wodId"])
 		.index("by_user_wod", ["userId", "wodId"])
 		.index("by_session", ["sessionId"]),
 
@@ -348,7 +418,7 @@ export default defineSchema({
 					defaultSets: v.optional(v.number()),
 					defaultReps: v.optional(v.number()),
 					defaultWeight: v.optional(v.number()),
-					unit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
+					unit: v.optional(loadUnit),
 					percentageOfOneRepMax: v.optional(v.number()),
 				}),
 			),
@@ -356,45 +426,13 @@ export default defineSchema({
 				v.object({
 					blockId: v.string(),
 					wodId: v.optional(v.id("wods")),
-					name: v.string(),
-					type: v.union(
-						v.literal("forTime"),
-						v.literal("amrap"),
-						v.literal("emom"),
-						v.literal("load"),
-					),
-					description: v.optional(v.string()),
-					repScheme: v.optional(v.string()),
-					timeCapSeconds: v.optional(v.number()),
-					durationSeconds: v.optional(v.number()),
+					...wodDefinitionFields,
 					levels: v.array(
 						v.object({
-							level: v.union(
-								v.literal("rx"),
-								v.literal("l1"),
-								v.literal("l2"),
-								v.literal("l3"),
-							),
+							level: hostedLevel,
 							label: v.string(),
 							description: v.optional(v.string()),
-							movements: v.array(
-								v.object({
-									name: v.string(),
-									reps: v.optional(v.number()),
-									weight: v.optional(v.number()),
-									unit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-									distance: v.optional(v.number()),
-									distanceUnit: v.optional(
-										v.union(
-											v.literal("m"),
-											v.literal("km"),
-											v.literal("mi"),
-											v.literal("cal"),
-										),
-									),
-									notes: v.optional(v.string()),
-								}),
-							),
+							movements: v.array(wodMovement),
 						}),
 					),
 				}),
@@ -402,7 +440,6 @@ export default defineSchema({
 		}),
 	})
 		.index("by_host", ["hostUserId"])
-		.index("by_status", ["status"])
 		.index("by_join_token", ["joinToken"]),
 
 	hostedWorkoutParticipants: defineTable({
@@ -421,28 +458,15 @@ export default defineSchema({
 		hostedWorkoutId: v.id("hostedWorkouts"),
 		participantId: v.optional(v.id("hostedWorkoutParticipants")),
 		guestName: v.optional(v.string()),
-		// Personal-library records created for a signed-in athlete's submission.
-		// Linked so re-submits reuse (never duplicate) them and removal can clean
-		// them up. Absent for guest submissions.
+		// Personal-library records created for a signed-in athlete's submission,
+		// linked so a re-submit reuses them. Absent for guest submissions.
 		wodId: v.optional(v.id("wods")),
 		wodResultId: v.optional(v.id("wodResults")),
 		wodBlockId: v.string(),
-		level: v.union(
-			v.literal("rx"),
-			v.literal("l1"),
-			v.literal("l2"),
-			v.literal("l3"),
-		),
-		timeSeconds: v.optional(v.number()),
-		rounds: v.optional(v.number()),
-		reps: v.optional(v.number()),
-		timeCapped: v.optional(v.boolean()),
-		load: v.optional(v.number()),
-		loadUnit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
-		notes: v.optional(v.string()),
+		level: hostedLevel,
+		...wodScoreFields,
 		submittedAt: v.number(),
 	})
 		.index("by_hosted_workout", ["hostedWorkoutId"])
-		.index("by_participant", ["participantId"])
 		.index("by_hosted_workout_wod", ["hostedWorkoutId", "wodBlockId"]),
 });

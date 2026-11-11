@@ -7,7 +7,6 @@ import { DiaryCalendar } from "./diary-calendar";
 export interface DiaryDatePickerProps {
 	date: string;
 	onSelect: (date: string) => void;
-	locale: "en" | "nl";
 	label: string;
 }
 export function DiaryDatePicker(props: DiaryDatePickerProps) {

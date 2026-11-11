@@ -1,86 +1,50 @@
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import type { ExerciseId } from "@foundry/core/exercises";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import {
+	HOSTED_LEVEL_LABELS,
+	HOSTED_LEVELS,
+	type HostedLevel,
+	LOAD_UNITS,
+	type LoadUnit,
+	WOD_TYPES,
+	type WodMovement,
+	wodTimingFromMinutes,
+	wodTimingMinutes,
+} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { getConvexErrorMessage } from "#/lib/convexError";
-import { useExercises } from "#/lib/useExercises";
+import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
+import { useConvexErrorMessage } from "#/lib/convexError";
+import { useExercises } from "#/lib/exercises";
 
-type StrengthBlock = {
-	blockId: string;
-	exerciseId?: ExerciseId;
-	exerciseName: string;
-	instructions?: string;
-	defaultSets?: number;
-	defaultReps?: number;
-	defaultWeight?: number;
-	unit?: "kg" | "lbs";
-	percentageOfOneRepMax?: number;
-};
+type HostedWorkout = Doc<"hostedWorkouts">;
+type StrengthBlock = HostedWorkout["template"]["strengthBlocks"][number];
+type PersistedWodBlock = HostedWorkout["template"]["wodBlocks"][number];
+type PersistedLevel = PersistedWodBlock["levels"][number];
 
-type Level = "rx" | "l1" | "l2" | "l3";
+// Movement rows carry a client-only id so editable rows keep focus and state
+// when siblings are added or removed; handleSubmit strips it.
+type Movement = WodMovement & { id: string };
+type Level = Omit<PersistedLevel, "movements"> & { movements: Movement[] };
+type WodBlock = Omit<PersistedWodBlock, "levels"> & { levels: Level[] };
 
-type Movement = {
-	// Client-only stable id so editable movement rows keep focus/state when
-	// siblings are added or removed. Stripped before persisting (see handleSubmit).
-	id: string;
-	name: string;
-	reps?: number;
-	weight?: number;
-	unit?: "kg" | "lbs";
-	notes?: string;
-};
-
-type WodBlock = {
-	blockId: string;
-	name: string;
-	type: "forTime" | "amrap" | "emom" | "load";
-	description?: string;
-	repScheme?: string;
-	timeCapSeconds?: number;
-	durationSeconds?: number;
-	levels: {
-		level: Level;
-		label: string;
-		description?: string;
-		movements: Movement[];
-	}[];
-};
+type HostedWorkoutBuilderInitial = Pick<
+	HostedWorkout,
+	"title" | "notes" | "scheduledAt" | "hostParticipation" | "template"
+>;
 
 function emptyMovement(): Movement {
 	return { id: crypto.randomUUID(), name: "" };
 }
 
-const defaultLevels: WodBlock["levels"] = [
-	{ level: "rx", label: "Rx", movements: [emptyMovement()] },
-	{ level: "l1", label: "L1", movements: [emptyMovement()] },
-	{ level: "l2", label: "L2", movements: [emptyMovement()] },
-	{ level: "l3", label: "L3", movements: [emptyMovement()] },
-];
-
-function newBlockId() {
-	return crypto.randomUUID();
+function defaultLevels(): Level[] {
+	return HOSTED_LEVELS.map((level) => ({
+		level,
+		label: HOSTED_LEVEL_LABELS[level],
+		movements: [emptyMovement()],
+	}));
 }
-
-// Persisted movements have no client id; add one when seeding edit state.
-type PersistedMovement = Omit<Movement, "id">;
-type PersistedWodBlock = Omit<WodBlock, "levels"> & {
-	levels: (Omit<WodBlock["levels"][number], "movements"> & {
-		movements: PersistedMovement[];
-	})[];
-};
-
-export type HostedWorkoutBuilderInitial = {
-	title: string;
-	notes?: string;
-	scheduledAt?: number;
-	hostParticipation: "hostOnly" | "hostAndParticipate";
-	template: {
-		strengthBlocks: StrengthBlock[];
-		wodBlocks: PersistedWodBlock[];
-	};
-};
 
 function withMovementIds(blocks: PersistedWodBlock[]): WodBlock[] {
 	return blocks.map((block) => ({
@@ -124,14 +88,15 @@ export function HostedWorkoutBuilder({
 }) {
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
-	const exercises = useExercises() ?? [];
+	const exercises = useExercises();
+	const errorMessage = useConvexErrorMessage();
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [notes, setNotes] = useState(initial?.notes ?? "");
 	const [scheduledAt, setScheduledAt] = useState(
 		initial?.scheduledAt ? toDateTimeLocal(initial.scheduledAt) : "",
 	);
 	const [hostParticipation, setHostParticipation] = useState<
-		"hostOnly" | "hostAndParticipate"
+		HostedWorkout["hostParticipation"]
 	>(initial?.hostParticipation ?? "hostOnly");
 	const [strengthBlocks, setStrengthBlocks] = useState<StrengthBlock[]>(
 		initial?.template.strengthBlocks ?? [],
@@ -163,11 +128,9 @@ export function HostedWorkoutBuilder({
 						description: level.description?.trim() || undefined,
 						movements: level.movements
 							.filter((movement) => movement.name.trim().length > 0)
-							.map((movement) => ({
+							.map(({ id: _id, ...movement }) => ({
+								...movement,
 								name: movement.name.trim(),
-								reps: movement.reps,
-								weight: movement.weight,
-								unit: movement.unit,
 								notes: movement.notes?.trim() || undefined,
 							})),
 					})),
@@ -197,7 +160,7 @@ export function HostedWorkoutBuilder({
 				onSaved(id);
 			}
 		} catch (err) {
-			setError(getConvexErrorMessage(err, "Failed to save workout"));
+			setError(errorMessage(err, "Failed to save workout"));
 		} finally {
 			setSaving(false);
 		}
@@ -213,7 +176,7 @@ export function HostedWorkoutBuilder({
 
 	function updateLevelDescription(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		description: string,
 	) {
 		setWodBlocks((prev) =>
@@ -232,7 +195,7 @@ export function HostedWorkoutBuilder({
 
 	function mutateLevel(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		mutator: (movements: Movement[]) => Movement[],
 	) {
 		setWodBlocks((prev) =>
@@ -253,7 +216,7 @@ export function HostedWorkoutBuilder({
 
 	function updateMovement(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		movementIndex: number,
 		patch: Partial<Movement>,
 	) {
@@ -264,7 +227,7 @@ export function HostedWorkoutBuilder({
 		);
 	}
 
-	function addMovement(blockIndex: number, levelKey: Level) {
+	function addMovement(blockIndex: number, levelKey: HostedLevel) {
 		mutateLevel(blockIndex, levelKey, (movements) => [
 			...movements,
 			emptyMovement(),
@@ -273,7 +236,7 @@ export function HostedWorkoutBuilder({
 
 	function removeMovement(
 		blockIndex: number,
-		levelKey: Level,
+		levelKey: HostedLevel,
 		movementIndex: number,
 	) {
 		mutateLevel(blockIndex, levelKey, (movements) =>
@@ -352,7 +315,7 @@ export function HostedWorkoutBuilder({
 						onClick={() =>
 							setStrengthBlocks((prev) => [
 								...prev,
-								{ blockId: newBlockId(), exerciseName: "" },
+								{ blockId: crypto.randomUUID(), exerciseName: "" },
 							])
 						}
 						className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-white"
@@ -435,7 +398,7 @@ export function HostedWorkoutBuilder({
 									prev.filter((item) => item.blockId !== block.blockId),
 								)
 							}
-							className="mt-2 flex items-center gap-1.5 text-xs text-red-400"
+							className="mt-2 flex items-center gap-1.5 text-xs text-[var(--danger)]"
 						>
 							<Trash2 size={13} /> Remove
 						</button>
@@ -452,10 +415,10 @@ export function HostedWorkoutBuilder({
 							setWodBlocks((prev) => [
 								...prev,
 								{
-									blockId: newBlockId(),
+									blockId: crypto.randomUUID(),
 									name: "",
 									type: "forTime",
-									levels: structuredClone(defaultLevels),
+									levels: defaultLevels(),
 								},
 							])
 						}
@@ -484,8 +447,8 @@ export function HostedWorkoutBuilder({
 							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
 							placeholder="WOD name"
 						/>
-						<div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-							{(["forTime", "amrap", "emom", "load"] as const).map((type) => (
+						<div className="mt-2 grid grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-fr">
+							{WOD_TYPES.map((type) => (
 								<button
 									key={type}
 									type="button"
@@ -502,7 +465,7 @@ export function HostedWorkoutBuilder({
 											: "border-[var(--border)] text-white"
 									}`}
 								>
-									{type}
+									{WOD_TYPE_LABELS[type]}
 								</button>
 							))}
 						</div>
@@ -520,41 +483,27 @@ export function HostedWorkoutBuilder({
 								className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
 								placeholder="Rep scheme (e.g. 21-15-9)"
 							/>
-							{block.type !== "load" && (
+							{wodTimingLabel(block.type) && (
 								<div className="flex items-center gap-2">
 									<input
 										type="number"
 										inputMode="numeric"
 										min={0}
-										value={
-											block.type === "forTime"
-												? block.timeCapSeconds
-													? block.timeCapSeconds / 60
-													: ""
-												: block.durationSeconds
-													? block.durationSeconds / 60
-													: ""
-										}
-										onChange={(event) => {
-											const minutes = parseOptionalNumber(event.target.value);
-											const seconds =
-												minutes === undefined ? undefined : minutes * 60;
+										value={wodTimingMinutes(block) ?? ""}
+										onChange={(event) =>
 											updateBlock(
 												index,
-												block.type === "forTime"
-													? { timeCapSeconds: seconds }
-													: { durationSeconds: seconds },
-											);
-										}}
-										aria-label={`WOD ${index + 1} ${
-											block.type === "forTime" ? "time cap" : "duration"
-										} in minutes`}
-										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
-										placeholder={
-											block.type === "forTime"
-												? "Time cap (min)"
-												: "Duration (min)"
+												wodTimingFromMinutes(
+													block.type,
+													parseOptionalNumber(event.target.value),
+												),
+											)
 										}
+										aria-label={`WOD ${index + 1} ${wodTimingLabel(
+											block.type,
+										)?.toLowerCase()} in minutes`}
+										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+										placeholder={`${wodTimingLabel(block.type)} (min)`}
 									/>
 									<span className="text-xs text-[var(--text-muted)]">min</span>
 								</div>
@@ -618,14 +567,17 @@ export function HostedWorkoutBuilder({
 												value={movement.unit ?? "kg"}
 												onChange={(event) =>
 													updateMovement(index, level.level, movementIndex, {
-														unit: event.target.value as "kg" | "lbs",
+														unit: event.target.value as LoadUnit,
 													})
 												}
 												aria-label={`${level.label} movement ${movementIndex + 1} unit`}
 												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-1 text-xs text-white"
 											>
-												<option value="kg">kg</option>
-												<option value="lbs">lbs</option>
+												{LOAD_UNITS.map((unit) => (
+													<option key={unit} value={unit}>
+														{unit}
+													</option>
+												))}
 											</select>
 											<button
 												type="button"
@@ -634,7 +586,7 @@ export function HostedWorkoutBuilder({
 												}
 												disabled={level.movements.length <= 1}
 												aria-label={`Remove ${level.label} movement ${movementIndex + 1}`}
-												className="flex h-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-red-400 disabled:opacity-30"
+												className="flex h-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] disabled:opacity-30"
 											>
 												<Trash2 size={13} />
 											</button>
@@ -670,7 +622,7 @@ export function HostedWorkoutBuilder({
 									prev.filter((item) => item.blockId !== block.blockId),
 								)
 							}
-							className="mt-3 flex items-center gap-1.5 text-xs text-red-400"
+							className="mt-3 flex items-center gap-1.5 text-xs text-[var(--danger)]"
 						>
 							<Trash2 size={13} /> Remove
 						</button>
@@ -678,7 +630,7 @@ export function HostedWorkoutBuilder({
 				))}
 			</div>
 
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 			<button
 				type="submit"
 				disabled={saving}

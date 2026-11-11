@@ -1,6 +1,6 @@
+import type { PersonalFoodDraft } from "@foundry/core";
 import { act, renderHook } from "@testing-library/react-native";
 import type { OffSearchOutcome } from "../../../data/open-food-facts";
-import type { PersonalFoodDraft } from "../../../data/personal-food-repository";
 import { OFF_IDLE_MS, useOffSearch } from "./use-off-search";
 
 function draft(name: string, barcode?: string): PersonalFoodDraft {

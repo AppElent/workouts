@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { isoDateToLocalDate, toIsoDate } from "../../../../data/calendar-day";
+import { isoDateToLocalDate, toIsoDate } from "../../../../dates/calendar-day";
 import { MonthCalendar } from "../../../../ui/month-calendar";
 import { useLoggedDiaryDates } from "../use-logged-diary-dates";
 export function DiaryCalendar({
 	date,
 	onSelect,
-	locale,
 }: {
 	date: string;
 	onSelect: (date: string) => void;
-	locale: "en" | "nl";
 }) {
 	const [month, setMonth] = useState(`${date.slice(0, 7)}-01`);
 	const d = isoDateToLocalDate(month);
@@ -19,7 +17,6 @@ export function DiaryCalendar({
 		<MonthCalendar
 			selectedDate={date}
 			onSelect={onSelect}
-			locale={locale}
 			markedDates={logged}
 			onMonthChange={setMonth}
 		/>

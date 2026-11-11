@@ -3,8 +3,7 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { instrumentConvexClient } from "#/lib/observability/convex";
 
-// biome-ignore lint/suspicious/noExplicitAny: import.meta.env not typed outside Vite context
-const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL;
+const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
 
 // Lazily instantiate so a missing build-time URL fails inside the component,
 // not at module load — see clerk/provider.tsx for the same reason.
