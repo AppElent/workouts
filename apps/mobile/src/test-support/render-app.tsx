@@ -97,18 +97,21 @@ const APP_ROUTES = [
 /** Tabs of the `(coach)` group, mounted at the root like the app's tab URLs. */
 const TAB_ROUTES = ["nutrition", "profile"] as const;
 
-function routeModules(): Record<string, unknown> {
-	return Object.fromEntries([
-		...APP_ROUTES.map((name) => [
-			name,
-			jest.requireActual(`../../app/(app)/${name}`),
-		]),
-		...TAB_ROUTES.map((name) => [
-			name,
-			jest.requireActual(`../../app/(app)/(coach)/${name}`),
-		]),
-	]);
-}
+/**
+ * Loaded when a test file imports this module, not inside its first test: the
+ * route tree is hundreds of modules, and on a cold CI transform cache loading it
+ * mid-test overran Jest's 5 s per-test limit.
+ */
+const ROUTE_MODULES: Record<string, unknown> = Object.fromEntries([
+	...APP_ROUTES.map((name) => [
+		name,
+		jest.requireActual(`../../app/(app)/${name}`),
+	]),
+	...TAB_ROUTES.map((name) => [
+		name,
+		jest.requireActual(`../../app/(app)/(coach)/${name}`),
+	]),
+]);
 
 /** Screen tests acknowledge the library transport at its public Convex boundary. */
 function installLibraryTransport(repository: LibraryFixture) {
@@ -298,7 +301,7 @@ export async function renderApp(
 	const rendered = await renderRouter(
 		{
 			_layout: Layout as never,
-			...(routeModules() as Record<string, never>),
+			...(ROUTE_MODULES as Record<string, never>),
 			...(overrides as Record<string, never>),
 		},
 		{ initialUrl },
