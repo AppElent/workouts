@@ -157,10 +157,7 @@ function ActiveSessionPage() {
 			return;
 		try {
 			await write(() =>
-				finishSession({
-					id: sessionId as Id<"workoutSessions">,
-					discardUnfinished: true,
-				}),
+				finishSession({ id: sessionId as Id<"workoutSessions"> }),
 			);
 		} catch (err) {
 			if (isEmptySessionError(err)) {

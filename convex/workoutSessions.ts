@@ -45,29 +45,20 @@ export const addExercise = mutation({
 });
 
 export const finish = mutation({
-	args: {
-		id: v.id("workoutSessions"),
-		discardUnfinished: v.optional(v.boolean()),
-	},
-	handler: async (ctx, { id, discardUnfinished }) => {
+	args: { id: v.id("workoutSessions") },
+	handler: async (ctx, { id }) => {
 		const session = await requireOwned(ctx, await requireUserId(ctx), id);
 		if (session.status === "completed") return;
 		if (session.status !== "active") throw appError("sessionEnded");
-		const sets = await ctx.db
+		const set = await ctx.db
 			.query("sets")
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
-			.collect();
+			.first();
 		const wod = await ctx.db
 			.query("wodResults")
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
 			.first();
-		if (sets.length === 0 && !wod) throw appError("emptySession");
-		const unfinished = session.exercises?.some(
-			(exercise) =>
-				sets.filter((set) => set.exerciseId === exercise.exerciseId).length <
-				exercise.plannedSets.length,
-		);
-		if (unfinished && !discardUnfinished) throw appError("unfinishedTargets");
+		if (!set && !wod) throw appError("emptySession");
 		await ctx.db.patch(id, { status: "completed", endTime: Date.now() });
 	},
 });

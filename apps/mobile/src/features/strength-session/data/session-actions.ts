@@ -609,7 +609,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (blocked() || !sessionId) return false;
 			try {
 				await flushManuals();
-				await finishMutation({ id: sessionId, discardUnfinished: true });
+				await finishMutation({ id: sessionId });
 				endSession(key, rest);
 				return true;
 			} catch (error) {

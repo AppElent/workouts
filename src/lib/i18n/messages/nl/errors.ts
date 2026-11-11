@@ -11,8 +11,6 @@ export const errors = {
 		"Er loopt al een activiteit. Rond deze eerst af of annuleer hem.",
 	sessionEnded: "Deze activiteit is al afgelopen.",
 	emptySession: "Log minstens één set of resultaat voordat je afrondt.",
-	unfinishedTargets:
-		"Nog niet alle geplande sets zijn gelogd. Log ze of rond af zonder ze.",
 	hostedNotDraft:
 		"Deze groepstraining is al geopend en kan niet meer worden bewerkt.",
 	hostedNotOpen: "Deze groepstraining is niet geopend.",
