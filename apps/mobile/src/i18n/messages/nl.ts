@@ -10,6 +10,7 @@ import { entryEditorNl } from "./entry-editor";
 import { errorsNl } from "./errors";
 import { exerciseLibraryNl } from "./exercise-library";
 import { feedbackNl } from "./feedback";
+import { firstRunNl } from "./first-run";
 import { hostedNl } from "./hosted";
 import { languageNl } from "./language";
 import { localDataNl } from "./local-data";
@@ -59,4 +60,5 @@ export const nl = {
 	appearance: appearanceNl,
 	language: languageNl,
 	nutrition: nutritionNl,
+	firstRun: firstRunNl,
 } satisfies typeof en;

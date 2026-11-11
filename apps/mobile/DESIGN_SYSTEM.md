@@ -53,6 +53,7 @@ Read the affected contract:
 - [Nutrition foods](../../docs/contracts/nutrition-foods.md): library, food editor, Combos, measures.
 - [Training](../../docs/contracts/training.md): routines, start activity, Strength Sessions.
 - [Profile](../../docs/contracts/profile.md): account, settings, and summaries.
+- [First Run](../../docs/contracts/first-run.md): the new-account start towards goals and a first log.
 
 ## Diary Entry exception
 

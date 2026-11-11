@@ -25,6 +25,49 @@ export const deletionBlocker = query({
 });
 
 /**
+ * Whether the signed-in account is new: never saved Nutrition Goals and no history
+ * (Diary Entries, Strength Sessions, Activities, or WOD results). Mobile
+ * offers its first-run only then. One indexed `first()` per table, so the cost
+ * stays constant as history grows.
+ */
+export const firstRun = query({
+	args: {},
+	returns: v.object({ empty: v.boolean() }),
+	handler: async (ctx) => {
+		const userId = await getOptionalUserId(ctx);
+		if (!userId) return { empty: false };
+		const found = await Promise.all([
+			ctx.db
+				.query("nutritionGoalVersions")
+				.withIndex("by_user_effectiveFrom", (q) => q.eq("userId", userId))
+				.first(),
+			// Legacy goals, read until every account has a goal version.
+			ctx.db
+				.query("nutritionGoals")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.first(),
+			ctx.db
+				.query("nutritionDiaryEntries")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.first(),
+			ctx.db
+				.query("workoutSessions")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.first(),
+			ctx.db
+				.query("activities")
+				.withIndex("by_user_occurred_at", (q) => q.eq("userId", userId))
+				.first(),
+			ctx.db
+				.query("wodResults")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.first(),
+		]);
+		return { empty: found.every((row) => row === null) };
+	},
+});
+
+/**
  * Deletes one bounded batch of the signed-in account's personal training and
  * nutrition data, including stored Food photos. Callers repeat until `done`;
  * an interrupted run resumes where it stopped. Shipped catalogs are untouched.

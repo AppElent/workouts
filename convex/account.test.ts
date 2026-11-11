@@ -95,3 +95,61 @@ describe("account data", () => {
 		expect((await exportAll(t, "alice")).sets.length).toBeGreaterThan(0);
 	});
 });
+
+describe("first run", () => {
+	it("is offered only to an account without goals and without history", async () => {
+		const t = convexTest(schema, modules);
+		const alice = t.withIdentity({ subject: "alice" });
+		expect(await alice.query(api.account.firstRun, {})).toEqual({
+			empty: true,
+		});
+		expect(await t.query(api.account.firstRun, {})).toEqual({ empty: false });
+
+		await alice.mutation(api.nutritionGoals.replace, {
+			effectiveFrom: "2026-01-01",
+			goals: [{ nutrient: "energy", direction: "max", target: 2400 }],
+		});
+		expect(await alice.query(api.account.firstRun, {})).toEqual({
+			empty: false,
+		});
+	});
+
+	it("is not offered to an account with history but no goals", async () => {
+		const t = convexTest(schema, modules);
+		const bob = t.withIdentity({ subject: "bob" });
+		await bob.mutation(api.workoutSessions.create, {});
+		expect(await bob.query(api.account.firstRun, {})).toEqual({
+			empty: false,
+		});
+
+		const carol = t.withIdentity({ subject: "carol" });
+		await t.run(async (ctx) => {
+			await ctx.db.insert("activities", {
+				userId: "carol",
+				clientEntryId: "run-1",
+				sport: "running",
+				occurredAt: 1,
+				durationSeconds: 1800,
+				createdAt: 1,
+				updatedAt: 1,
+			});
+		});
+		expect(await carol.query(api.account.firstRun, {})).toEqual({
+			empty: false,
+		});
+	});
+
+	it("is not offered after test data loads history", async () => {
+		const t = await seeded();
+		await t.run(async (ctx) => {
+			for (const row of await ctx.db.query("nutritionGoalVersions").collect())
+				await ctx.db.delete(row._id);
+			for (const row of await ctx.db.query("workoutSessions").collect())
+				await ctx.db.delete(row._id);
+		});
+		const alice = t.withIdentity({ subject: "alice" });
+		expect(await alice.query(api.account.firstRun, {})).toEqual({
+			empty: false,
+		});
+	});
+});

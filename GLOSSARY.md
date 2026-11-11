@@ -194,3 +194,9 @@ _Avoid_: Overriding, hiding, superseding
 **Retired Shipped Food**:
 A Shipped Food withdrawn from search while retaining its permanent identity and existing references.
 _Avoid_: Deleted food, archived food
+
+## Account
+
+**First Run**:
+The one-time, skippable start a new account sees on mobile: it leads to setting Nutrition Goals and from there to the Nutrition Diary for a first Diary Entry, or to Train for a first Activity. Offered only while the account has no Nutrition Goals and no history.
+_Avoid_: Onboarding wizard, tutorial, welcome flow

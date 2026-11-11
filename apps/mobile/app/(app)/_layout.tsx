@@ -273,6 +273,14 @@ export default function AppLayout() {
 										options={{ title: t.nutrition.combos.create }}
 									/>
 									<Stack.Screen
+										name="first-run"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.75, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
 										name="nutrition-goals"
 										options={{
 											title: t.nutrition.goalEditor.title,

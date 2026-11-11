@@ -9,6 +9,7 @@ import { entryEditorEn } from "./entry-editor";
 import { errorsEn } from "./errors";
 import { exerciseLibraryEn } from "./exercise-library";
 import { feedbackEn } from "./feedback";
+import { firstRunEn } from "./first-run";
 import { hostedEn } from "./hosted";
 import { languageEn } from "./language";
 import { localDataEn } from "./local-data";
@@ -69,6 +70,7 @@ export const en = {
 	appearance: appearanceEn,
 	language: languageEn,
 	nutrition: nutritionEn,
+	firstRun: firstRunEn,
 };
 
 /** The shape every locale has to provide. */
