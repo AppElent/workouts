@@ -9,11 +9,10 @@ export const log = mutation({
 	args: {
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
-		date: v.optional(v.number()),
 		rxScaled,
 		...wodScoreFields,
 	},
-	handler: async (ctx, { wodId, sessionId, date, rxScaled, ...input }) => {
+	handler: async (ctx, { wodId, sessionId, rxScaled, ...input }) => {
 		const userId = await requireUserId(ctx);
 		const wod = await ctx.db.get(wodId);
 		if (!wod || (!wod.isDefault && wod.userId !== userId))
@@ -24,7 +23,7 @@ export const log = mutation({
 			userId,
 			wodId,
 			sessionId,
-			date: date ?? Date.now(),
+			date: Date.now(),
 			rxScaled,
 			...score,
 		});

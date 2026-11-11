@@ -57,7 +57,6 @@ export const latest = query({
 
 export const add = mutation({
 	args: {
-		date: v.optional(v.number()),
 		weight: v.optional(v.number()),
 		unit: loadUnit,
 		bodyFatPct: v.optional(v.number()),
@@ -79,7 +78,7 @@ export const add = mutation({
 			throw appError("empty");
 		return ctx.db.insert("bodyMetrics", {
 			userId,
-			date: args.date ?? Date.now(),
+			date: Date.now(),
 			weight: args.weight,
 			unit: args.unit,
 			bodyFatPct: args.bodyFatPct,
