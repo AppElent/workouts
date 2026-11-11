@@ -23,14 +23,12 @@ import { TrendChart } from "../../../ui/chart";
 import { Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { AppText } from "../../../ui/text";
-import { useToast } from "../../../ui/toast";
-import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { useScreenWrite } from "../../../ui/use-screen-write";
 
 export function BodyMetricsPanel() {
-	const errorMessage = useWriteFailureMessage();
+	const write = useScreenWrite();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	const toast = useToast();
 	const confirm = useConfirm();
 	const { t, locale } = useI18n();
 	const copy = t.bodyMetrics;
@@ -41,7 +39,7 @@ export function BodyMetricsPanel() {
 	const [weight, setWeight] = useState("");
 	const [bodyFat, setBodyFat] = useState("");
 	const [notes, setNotes] = useState("");
-	const [busy, setBusy] = useState(false);
+	const busy = write.isPending("save");
 
 	// `list` comes back newest-first; a trend reads left-to-right in time.
 	const weightPoints = useMemo(
@@ -67,22 +65,23 @@ export function BodyMetricsPanel() {
 
 	const save = async () => {
 		if (!canSave) return;
-		setBusy(true);
-		try {
-			await addEntry({
-				weight: parseLocalizedDecimal(weight),
-				bodyFatPct: parseLocalizedDecimal(bodyFat),
-				unit: "kg",
-				notes: notes.trim() === "" ? undefined : notes.trim(),
-			});
-			setWeight("");
-			setBodyFat("");
-			setNotes("");
-		} catch (error) {
-			toast.error(errorMessage(error, copy.saveError));
-		} finally {
-			setBusy(false);
-		}
+		const saved = await write.run(
+			copy.saveError,
+			async () => {
+				await addEntry({
+					weight: parseLocalizedDecimal(weight),
+					bodyFatPct: parseLocalizedDecimal(bodyFat),
+					unit: "kg",
+					notes: notes.trim() === "" ? undefined : notes.trim(),
+				});
+				return true;
+			},
+			{ key: "save" },
+		);
+		if (!saved) return;
+		setWeight("");
+		setBodyFat("");
+		setNotes("");
 	};
 
 	const remove = async (id: Id<"bodyMetrics">, date: number) => {
@@ -93,11 +92,7 @@ export function BodyMetricsPanel() {
 			destructive: true,
 		});
 		if (!confirmed) return;
-		try {
-			await removeEntry({ id });
-		} catch (error) {
-			toast.error(errorMessage(error, copy.deleteError));
-		}
+		await write.run(copy.deleteError, () => removeEntry({ id }), { key: id });
 	};
 
 	return (

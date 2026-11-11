@@ -63,6 +63,7 @@ import {
 } from "./session-plan";
 
 const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
+	exercise: { equipment: "barbell" },
 	bodyweight: false,
 	stepKg: 2.5,
 	measured: null,
@@ -75,7 +76,10 @@ const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
 const SQUAT = facts({ measured: 120, estimated: 126, measuredDate: 100 });
 const CURL = facts({ measured: 60, stepKg: 1 });
 const PLAIN = facts();
-const PULLUP = facts({ bodyweight: true });
+const PULLUP = facts({
+	exercise: { equipment: "bodyweight" },
+	bodyweight: true,
+});
 const TABLE: Record<string, ExerciseFacts> = {
 	squat: SQUAT,
 	curl: CURL,
@@ -125,12 +129,16 @@ function log(plan: SessionPlan, row: PlanSet, serverId = `s-${row.id}`) {
 
 describe("1RM", () => {
 	it("uses Epley, and a single is its weight", () => {
-		expect(rowOneRepMax({ kg: 100, reps: 1 }, false)?.value).toBe(100);
-		expect(rowOneRepMax({ kg: 95, reps: 5 }, false)?.value).toBe(110.8);
+		expect(rowOneRepMax({ kg: 100, reps: 1 }, facts())?.value).toBe(100);
+		expect(rowOneRepMax({ kg: 95, reps: 5 }, facts())?.value).toBe(110.8);
 	});
-	it("never counts failed reps or a bodyweight set", () => {
-		expect(rowOneRepMax({ kg: 100, reps: 0 }, false)).toBeNull();
-		expect(rowOneRepMax({ kg: 100, reps: 3 }, true)).toBeNull();
+	it("never counts failed reps, a bodyweight set or an unknown exercise", () => {
+		expect(rowOneRepMax({ kg: 100, reps: 0 }, facts())).toBeNull();
+		const bodyweight = facts({ exercise: { equipment: "bodyweight" } });
+		expect(rowOneRepMax({ kg: 100, reps: 3 }, bodyweight)).toBeNull();
+		expect(
+			rowOneRepMax({ kg: 100, reps: 3 }, facts({ exercise: null })),
+		).toBeNull();
 	});
 	it("takes percentages from Measured, not Estimated", () => {
 		const plan = plannedPlan();

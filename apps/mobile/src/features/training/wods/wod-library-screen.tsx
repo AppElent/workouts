@@ -167,14 +167,6 @@ function WodRow({
 
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
-		header: {
-			flexDirection: "row",
-			alignItems: "center",
-			gap: spacing.sm,
-			paddingHorizontal: spacing.md,
-			paddingTop: spacing.md,
-			paddingBottom: spacing.sm,
-		},
 		flex: { flex: 1, gap: 2 },
 		filters: { paddingHorizontal: spacing.md, gap: spacing.sm },
 		input: {

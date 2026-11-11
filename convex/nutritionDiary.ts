@@ -32,12 +32,8 @@ import {
 const MAX_BATCH = 100;
 const MAX_CALENDAR_DAYS = 62;
 
-const operationTarget = v.union(
-	v.object({ kind: v.literal("serverId"), id: v.id("nutritionDiaryEntries") }),
-	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
-);
-
-const batchTarget = v.union(
+/** `findEntry` normalizes a server id, so a stale or foreign one is just not found. */
+const target = v.union(
 	v.object({ kind: v.literal("serverId"), id: v.string() }),
 	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
 );
@@ -61,11 +57,11 @@ const operationArgs = {
 					clientEntryId: v.string(),
 				}),
 			),
-			replaces: v.optional(v.array(batchTarget)),
+			replaces: v.optional(v.array(target)),
 		}),
 		v.object({
 			kind: v.literal("update"),
-			target: operationTarget,
+			target,
 			quantity: v.optional(v.number()),
 			selection: v.optional(
 				v.object({
@@ -81,14 +77,14 @@ const operationArgs = {
 		}),
 		v.object({
 			kind: v.literal("group"),
-			targets: v.array(batchTarget),
+			targets: v.array(target),
 			comboGroup,
 		}),
-		v.object({ kind: v.literal("remove"), target: operationTarget }),
-		v.object({ kind: v.literal("removeBatch"), targets: v.array(batchTarget) }),
+		v.object({ kind: v.literal("remove"), target }),
+		v.object({ kind: v.literal("removeBatch"), targets: v.array(target) }),
 		v.object({
 			kind: v.literal("moveBatch"),
-			targets: v.array(batchTarget),
+			targets: v.array(target),
 			date: v.string(),
 			meal: mealSlot,
 		}),

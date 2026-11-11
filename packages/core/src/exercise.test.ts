@@ -4,6 +4,7 @@ import {
 	filterExercises,
 	isLoadedEquipment,
 	primaryMuscleGroup,
+	validateExerciseInput,
 } from "./exercise";
 import { SHIPPED_EXERCISES } from "./exercises";
 
@@ -85,5 +86,53 @@ describe("filterExercises", () => {
 				(e) => e.name,
 			),
 		).toEqual(["Bench Press"]);
+	});
+});
+
+describe("validateExerciseInput", () => {
+	const input = {
+		name: "  Cable Fly ",
+		muscleGroups: [" Chest", "chest", "", "Front Delts "],
+		category: "isolation" as const,
+		equipment: "cable" as const,
+		notes: "  ",
+		weightIncrement: 2.5,
+	};
+
+	it("stores the exercise trimmed, with muscle groups lowercased once each", () => {
+		expect(validateExerciseInput(input)).toEqual({
+			ok: true,
+			value: {
+				...input,
+				name: "Cable Fly",
+				muscleGroups: ["chest", "front delts"],
+				notes: undefined,
+			},
+		});
+	});
+
+	it("accepts an exercise without muscle groups", () => {
+		expect(validateExerciseInput({ ...input, muscleGroups: [] }).ok).toBe(true);
+	});
+
+	it("drops the weight increment for unloaded equipment", () => {
+		const result = validateExerciseInput({
+			...input,
+			equipment: "bodyweight",
+			weightIncrement: -1,
+		});
+		expect(result.ok && result.value.weightIncrement).toBeUndefined();
+	});
+
+	it("reports a blank name and a non-positive increment", () => {
+		expect(
+			validateExerciseInput({ ...input, name: " ", weightIncrement: 0 }),
+		).toEqual({
+			ok: false,
+			errors: [
+				{ field: "name", code: "required" },
+				{ field: "weightIncrement", code: "invalid" },
+			],
+		});
 	});
 });

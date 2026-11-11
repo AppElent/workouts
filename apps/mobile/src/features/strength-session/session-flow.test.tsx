@@ -474,6 +474,7 @@ it("keeps a set logged until the server has let it go", async () => {
 
 it("won't close a group while one of its sets failed", async () => {
 	const facts = {
+		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
 		stepKg: 2.5,
 		measured: 100,
@@ -510,6 +511,7 @@ it("won't close a group while one of its sets failed", async () => {
 
 it("won't drop a failed set by shrinking its group or switching it to a clock", async () => {
 	const facts = {
+		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
 		stepKg: 2.5,
 		measured: 100,

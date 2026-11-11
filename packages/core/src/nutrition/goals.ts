@@ -42,25 +42,21 @@ const referenceGoals: NutritionGoalValue[] = [
 	{ nutrient: "salt", direction: "max", target: 6 },
 ];
 
-export const NUTRITION_GOAL_PRESETS = {
-	reference: {
-		goals: referenceGoals,
-	},
-	loseWeight: {
-		goals: referenceGoals.map((goal) =>
-			goal.nutrient === "energy" ? { ...goal, target: 1700 } : { ...goal },
-		),
-	},
-	buildMuscle: {
-		goals: referenceGoals.map((goal) =>
-			goal.nutrient === "energy"
-				? { ...goal, target: 2300 }
-				: goal.nutrient === "protein"
-					? { ...goal, target: 100 }
-					: { ...goal },
-		),
-	},
-} as const;
+export const NUTRITION_GOAL_PRESETS: Readonly<
+	Record<GoalPresetKey, readonly NutritionGoalValue[]>
+> = {
+	reference: referenceGoals,
+	loseWeight: referenceGoals.map((goal) =>
+		goal.nutrient === "energy" ? { ...goal, target: 1700 } : { ...goal },
+	),
+	buildMuscle: referenceGoals.map((goal) =>
+		goal.nutrient === "energy"
+			? { ...goal, target: 2300 }
+			: goal.nutrient === "protein"
+				? { ...goal, target: 100 }
+				: { ...goal },
+	),
+};
 
 export function editedGoalCount(
 	preset: GoalPresetKey,
@@ -68,7 +64,7 @@ export function editedGoalCount(
 		sourcePreset?: GoalPresetKey;
 	})[],
 ): number {
-	return NUTRITION_GOAL_PRESETS[preset].goals.filter((expected) => {
+	return NUTRITION_GOAL_PRESETS[preset].filter((expected) => {
 		const goal = goals.find(
 			(row) =>
 				row.nutrient === expected.nutrient &&

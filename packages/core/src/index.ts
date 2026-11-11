@@ -33,7 +33,6 @@ export {
 	ABSENT,
 	KJ_PER_KCAL,
 	kcalFromKilojoules,
-	NUTRIENT_DISPLAY_DECIMALS,
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
 	type NutrientKey,

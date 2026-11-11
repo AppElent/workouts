@@ -5,6 +5,7 @@ import {
 	isLoadedEquipment,
 	MUSCLE_GROUP_KEYS,
 	type MuscleGroup,
+	validateExerciseInput,
 } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
@@ -80,11 +81,21 @@ export function ExerciseEditorForm({
 	const [notes, setNotes] = useState(exercise?.notes ?? "");
 	const [busy, setBusy] = useState(false);
 	const loaded = isLoadedEquipment(equipment);
-	const parsed = parseLocalizedDecimal(increment) ?? Number.NaN;
+	const draft = validateExerciseInput({
+		name,
+		muscleGroups: [
+			...groups.map((g) => (g === "legs" ? "quads" : g)),
+			...additionalGroups.split(","),
+		],
+		category,
+		equipment,
+		notes,
+		weightIncrement: increment.trim()
+			? (parseLocalizedDecimal(increment) ?? Number.NaN)
+			: undefined,
+	});
 	const invalid =
-		loaded &&
-		increment.trim() !== "" &&
-		(!Number.isFinite(parsed) || parsed <= 0);
+		!draft.ok && draft.errors.some((e) => e.field === "weightIncrement");
 	const close = () => {
 		if (!busy) {
 			setName("");
@@ -99,35 +110,19 @@ export function ExerciseEditorForm({
 		}
 	};
 	const submit = async () => {
-		if (busy || !name.trim() || invalid) return;
+		if (busy || !draft.ok) return;
 		setBusy(true);
 		try {
-			const selectedMuscles = [
-				...new Set([
-					...groups.map((g) => (g === "legs" ? "quads" : g)),
-					...additionalGroups
-						.split(",")
-						.map((g) => g.trim().toLowerCase())
-						.filter(Boolean),
-				]),
-			];
+			const { muscleGroups } = draft.value;
 			const values = {
-				name: name.trim(),
+				...draft.value,
 				// Keep primary-muscle order when editing or copying an existing exercise.
 				muscleGroups: exercise
 					? [
-							...exercise.muscleGroups.filter((m) =>
-								selectedMuscles.includes(m),
-							),
-							...selectedMuscles.filter(
-								(m) => !exercise.muscleGroups.includes(m),
-							),
+							...exercise.muscleGroups.filter((m) => muscleGroups.includes(m)),
+							...muscleGroups.filter((m) => !exercise.muscleGroups.includes(m)),
 						]
-					: selectedMuscles,
-				category,
-				equipment,
-				notes: notes.trim() || undefined,
-				weightIncrement: loaded && increment.trim() ? parsed : undefined,
+					: muscleGroups,
 			};
 			if (mode === "edit") {
 				if (!exercise || exercise.isDefault) {
@@ -144,7 +139,7 @@ export function ExerciseEditorForm({
 			setAdditionalGroups("");
 			setNotes("");
 			setIncrement("");
-			onClose(name.trim());
+			onClose(values.name);
 		} catch (error) {
 			toast.error(
 				errorMessage(error, mode === "edit" ? c.updateError : c.createError),
@@ -167,7 +162,7 @@ export function ExerciseEditorForm({
 							label: busy ? c.saving : c.save,
 							onPress: () => void submit(),
 							loading: busy,
-							disabled: !name.trim() || invalid,
+							disabled: !draft.ok,
 						}
 			}
 		>
@@ -304,7 +299,7 @@ export function ExerciseEditorForm({
 						<Stack.Toolbar.Button
 							hidesSharedBackground
 							tintColor={colors.accent}
-							disabled={busy || !name.trim() || invalid}
+							disabled={busy || !draft.ok}
 							onPress={() => void submit()}
 						>
 							{busy ? c.saving : c.save}

@@ -473,11 +473,6 @@ const createStyles = (colors: Tokens) =>
 		flex: { flex: 1 },
 		meta: { textTransform: "capitalize" },
 		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
-		tabRow: {
-			flexDirection: "row",
-			gap: spacing.xs + 2,
-			marginTop: spacing.xs,
-		},
 		ormCard: { gap: spacing.xs },
 		ormValue: {
 			fontSize: type.display.fontSize,
@@ -523,20 +518,6 @@ const createStyles = (colors: Tokens) =>
 		td: {
 			fontSize: type.footnote.fontSize,
 			fontWeight: "700",
-			color: colors.text,
-		},
-		ghostBtn: {
-			minHeight: 44,
-			paddingHorizontal: spacing.lg,
-			borderRadius: radius.pill,
-			borderWidth: 1,
-			borderColor: colors.borderStrong,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		ghostText: {
-			fontSize: type.footnote.fontSize,
-			fontWeight: "800",
 			color: colors.text,
 		},
 	});

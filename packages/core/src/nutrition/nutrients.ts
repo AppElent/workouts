@@ -90,21 +90,20 @@ export function numericAmount(value: NutrientValue): number | undefined {
  * Decimal places for presentation only. Storage stays unrounded: rounding at
  * generation would compound across a day's worth of entries.
  */
-export const NUTRIENT_DISPLAY_DECIMALS: Readonly<
-	Record<ShippedNutrientKey, number>
-> = Object.freeze({
-	energy: 0,
-	protein: 1,
-	carbs: 1,
-	fat: 1,
-	saturatedFat: 1,
-	fibre: 1,
-	sugars: 1,
-	// Salt figures are small (a slice of bread is ~0.4 g) and one decimal hides
-	// the difference between foods, so salt gets two.
-	salt: 2,
-	sodium: 0,
-});
+const NUTRIENT_DISPLAY_DECIMALS: Readonly<Record<ShippedNutrientKey, number>> =
+	Object.freeze({
+		energy: 0,
+		protein: 1,
+		carbs: 1,
+		fat: 1,
+		saturatedFat: 1,
+		fibre: 1,
+		sugars: 1,
+		// Salt figures are small (a slice of bread is ~0.4 g) and one decimal hides
+		// the difference between foods, so salt gets two.
+		salt: 2,
+		sodium: 0,
+	});
 
 /** Round a stored amount for display. Returns a number, not a string. */
 export function roundForDisplay(

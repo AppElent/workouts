@@ -169,9 +169,6 @@ const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
 		content: { padding: 20, paddingTop: 12, gap: 14, paddingBottom: 24 },
-		tabRow: { flexDirection: "row", gap: 7 },
-		flex: { flex: 1 },
-		statRow: { flexDirection: "row", gap: 8 },
 		chipRow: { flexDirection: "row", gap: 7 },
 		muted: { fontSize: type.footnote.fontSize, color: colors.textMuted },
 		centered: { textAlign: "center" },

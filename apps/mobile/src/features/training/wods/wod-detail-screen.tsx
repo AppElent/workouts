@@ -21,7 +21,10 @@ import { useConfirm } from "../../../ui/confirm-dialog";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import {
+	useScreenWrite,
+	useWriteFailureMessage,
+} from "../../../ui/use-screen-write";
 import { useWodScoreDraft, WodScoreFields } from "./wod-score-fields";
 
 export function WodDetailScreen({
@@ -29,10 +32,9 @@ export function WodDetailScreen({
 }: {
 	onEdit: (id: Id<"wods">) => void;
 }) {
-	const errorMessage = useWriteFailureMessage();
+	const write = useScreenWrite();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
-	const toast = useToast();
 	const confirm = useConfirm();
 	const { locale, t } = useI18n();
 	const copy = t.wods;
@@ -58,12 +60,11 @@ export function WodDetailScreen({
 			destructive: true,
 		});
 		if (!confirmed) return;
-		try {
+		const removed = await write.run(copy.deleteWodError, async () => {
 			await removeWod({ id: wodId });
-			router.back();
-		} catch (error) {
-			toast.error(errorMessage(error, copy.deleteWodError));
-		}
+			return true;
+		});
+		if (removed) router.back();
 	};
 
 	const deleteResult = async (id: Id<"wodResults">) => {
@@ -73,11 +74,9 @@ export function WodDetailScreen({
 			destructive: true,
 		});
 		if (!confirmed) return;
-		try {
-			await removeResult({ id });
-		} catch (error) {
-			toast.error(errorMessage(error, copy.deleteResultError));
-		}
+		await write.run(copy.deleteResultError, () => removeResult({ id }), {
+			key: id,
+		});
 	};
 
 	if (wod === undefined) {

@@ -5,21 +5,33 @@ import {
 	EXERCISE_CATEGORIES,
 	type ExerciseCategory,
 	isLoadedEquipment,
+	validateExerciseInput,
 } from "@foundry/core";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { z } from "zod";
 import { useConvexErrorMessage } from "#/lib/convexError";
 
-const schema = z.object({
-	name: z.string().min(1, "Name is required"),
-	muscleGroupsRaw: z.string().min(1, "At least one muscle group required"),
-	category: z.enum(EXERCISE_CATEGORIES),
-	equipment: z.enum(EQUIPMENT),
-	notes: z.string(),
-	weightIncrement: z.number().positive().or(z.undefined()),
-});
+const FIELD_ERRORS = {
+	name: "Name is required",
+	weightIncrement: "Weight increment must be more than 0",
+};
+
+type Draft = {
+	name: string;
+	muscleGroupsRaw: string;
+	category: ExerciseCategory;
+	equipment: Equipment;
+	notes: string;
+	weightIncrement: number | undefined;
+};
+
+function checkDraft({ muscleGroupsRaw, ...draft }: Draft) {
+	return validateExerciseInput({
+		...draft,
+		muscleGroups: muscleGroupsRaw.split(","),
+	});
+}
 
 export function AddExerciseForm({
 	onSuccess,
@@ -34,27 +46,28 @@ export function AddExerciseForm({
 		defaultValues: {
 			name: "",
 			muscleGroupsRaw: "",
-			category: "compound" as ExerciseCategory,
-			equipment: "barbell" as Equipment,
+			category: "compound",
+			equipment: "barbell",
 			notes: "",
-			weightIncrement: undefined as number | undefined,
+			weightIncrement: undefined,
+		} as Draft,
+		validators: {
+			onSubmit: ({ value }) => {
+				const checked = checkDraft(value);
+				if (checked.ok) return undefined;
+				return {
+					fields: Object.fromEntries(
+						checked.errors.map(({ field }) => [field, FIELD_ERRORS[field]]),
+					),
+				};
+			},
 		},
-		validators: { onSubmit: schema },
 		onSubmit: async ({ value }) => {
 			setSubmitError(null);
-			const muscleGroups = value.muscleGroupsRaw
-				.split(",")
-				.map((s) => s.trim().toLowerCase())
-				.filter(Boolean);
+			const checked = checkDraft(value);
+			if (!checked.ok) return;
 			try {
-				await createExercise({
-					name: value.name,
-					muscleGroups,
-					category: value.category,
-					equipment: value.equipment,
-					notes: value.notes || undefined,
-					weightIncrement: value.weightIncrement,
-				});
+				await createExercise(checked.value);
 			} catch (error) {
 				setSubmitError(errorMessage(error, "Couldn't add exercise."));
 				return;
@@ -92,7 +105,7 @@ export function AddExerciseForm({
 								placeholder="e.g. Cable Lateral Raise"
 								required
 							/>
-							<FieldError message={field.state.meta.errors[0]?.message} />
+							<FieldError message={field.state.meta.errors[0]} />
 						</div>
 					)}
 				</form.Field>
@@ -112,9 +125,7 @@ export function AddExerciseForm({
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="e.g. side delts, traps"
-								required
 							/>
-							<FieldError message={field.state.meta.errors[0]?.message} />
 						</div>
 					)}
 				</form.Field>
@@ -201,6 +212,7 @@ export function AddExerciseForm({
 											}
 											placeholder="e.g. 2.5"
 										/>
+										<FieldError message={field.state.meta.errors[0]} />
 									</div>
 								)}
 							</form.Field>

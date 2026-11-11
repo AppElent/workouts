@@ -172,7 +172,7 @@ export function useGoalsEditor({
 	const applyPreset = (key: GoalPresetKey) => {
 		const values = emptyGoalDraft();
 		const sources: Sources = {};
-		for (const goal of NUTRITION_GOAL_PRESETS[key].goals) {
+		for (const goal of NUTRITION_GOAL_PRESETS[key]) {
 			values[goal.nutrient][goal.direction] = String(goal.target);
 			sources[`${goal.nutrient}.${goal.direction}`] = key;
 		}
