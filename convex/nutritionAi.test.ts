@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
+import { NUTRITION_AI_LIMITS } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
-import { DAILY_ANALYSES } from "./nutritionAi";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -199,7 +199,7 @@ describe("nutrition AI", () => {
 			ctx.db.insert("nutritionAiUsage", {
 				userId: "alice",
 				day,
-				count: DAILY_ANALYSES - 1,
+				count: NUTRITION_AI_LIMITS.dailyAnalyses - 1,
 			}),
 		);
 		await alice.action(api.nutritionAi.describe, {

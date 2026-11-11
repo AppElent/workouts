@@ -73,6 +73,7 @@ import { Notice } from "../personal-food/personal-food-label-scan";
 import { useCaptureDraftResolution } from "../use-capture-draft-resolution";
 import { useMealDestinationMenu } from "../use-meal-destination-menu";
 import { HEADLINE_NUTRIENTS } from "../use-nutrient-fields";
+import { aiLimitTitle } from "../use-nutrition-ai";
 import { buildAssistanceFoodCatalog } from "./assistance-foods";
 import {
 	forgetAiSession,
@@ -971,7 +972,7 @@ function InputCard({
 		) : problem === "limit" ? (
 			<Notice
 				tone="warn"
-				title={fmt(copy.limitTitle, { count: 50 })}
+				title={aiLimitTitle(copy.limitTitle)}
 				body={copy.limitBody}
 			/>
 		) : problem ? (
@@ -1230,7 +1231,7 @@ function Review({
 							problem === "offline"
 								? copy.offlineHelpTitle
 								: problem === "limit"
-									? fmt(copy.limitTitle, { count: 50 })
+									? aiLimitTitle(copy.limitTitle)
 									: problem === "noFood"
 										? copy.noFoodTitle
 										: copy[problem]

@@ -1,9 +1,11 @@
 import {
+	type CookedStarch,
 	formatQuantity,
 	KJ_PER_KCAL,
 	type Locale,
 	type MealSlot,
 	NUTRIENT_KEYS,
+	NUTRITION_AI_PLAUSIBILITY,
 	type NutrientKey,
 	type NutrientValue,
 	type NutritionDiarySnapshot,
@@ -81,13 +83,15 @@ const FILLER_WORDS = new Set(
 /** Said as a measure, so the person's number is already the amount. */
 const MEASURES = new Set(["g", "gr", "gram", "kg", "ml", "cl", "l", "liter"]);
 const FRIED = /gebakken|gefrituurd|\bfried\b/i;
-/** Cooked grains and legumes stay under this; their dry forms are near 350. */
-const MAX_COOKED_KCAL_PER_100G = 250;
+const { maxCookedKcalPer100g, minDryKcalPer100g } = NUTRITION_AI_PLAUSIBILITY;
+const STARCH_WORDS: readonly (readonly [CookedStarch, RegExp])[] = [
+	["oats", /haver|oats|porridge/i],
+	["rice", /rijst|rice|couscous|bulgur|quinoa|gort/i],
+	["pasta", /pasta|macaroni|spaghetti|noedel|noodle/i],
+];
 function cookedKcalPer100g(name: string) {
-	if (/haver|oats|porridge/i.test(name)) return 70;
-	if (/rijst|rice|couscous|bulgur|quinoa|gort/i.test(name)) return 130;
-	if (/pasta|macaroni|spaghetti|noedel|noodle/i.test(name)) return 150;
-	return 120;
+	const starch = STARCH_WORDS.find(([, words]) => words.test(name))?.[0];
+	return NUTRITION_AI_PLAUSIBILITY.cookedKcalPer100g[starch ?? "other"];
 }
 
 type ReviewComponent = {
@@ -178,14 +182,10 @@ export function groundItems(
 				if (
 					cooked &&
 					energy.kind === "value" &&
-					energy.amount > MAX_COOKED_KCAL_PER_100G
+					energy.amount > maxCookedKcalPer100g
 				)
 					return;
-				if (
-					dry &&
-					energy.kind === "value" &&
-					energy.amount < MIN_DRY_KCAL_PER_100G
-				)
+				if (dry && energy.kind === "value" && energy.amount < minDryKcalPer100g)
 					return;
 				if (food.baseUnit === "ml" && item.unit !== "ml") return;
 				const prior = ranked.get(food.id);
@@ -439,8 +439,6 @@ const SIZE_WORD =
 const PART_OF_FOOD =
 	/schijf|schijven|plak|part|lepel|snee|sneden|sneetje|fles|glas|glazen|beker|kop|blik|bakje|kom|stukje|doos|\bdozen\b|\b(?:hap|pak|zak)(?:je|jes)?\b|\b(?:happen|pakken|zakken)\b/i;
 const DRY = /\b(?:droog|droge|ongekookte?|dry|uncooked)\b/i;
-/** Dry grains and legumes stay above this; cooked ones stay below. */
-const MIN_DRY_KCAL_PER_100G = 200;
 
 const WHOLE_MEAL =
 	/\b(?:halve|dubbele|half|double)\s+(?:portie|maaltijd|bord|portion|meal|plate)\b|\bde helft\b(?!\s+van)|\bhalf of it\b/iu;
@@ -884,7 +882,7 @@ export function applyChoices(
 		if (
 			COOKED.test(item.described) &&
 			DRIES.test(item.described) &&
-			perHundred > MAX_COOKED_KCAL_PER_100G
+			perHundred > maxCookedKcalPer100g
 		)
 			return {
 				...item,
@@ -901,7 +899,7 @@ export function applyChoices(
 			DRY.test(item.described) &&
 			DRIES.test(item.described) &&
 			perHundred > 0 &&
-			perHundred < MIN_DRY_KCAL_PER_100G
+			perHundred < minDryKcalPer100g
 		)
 			return {
 				...item,
