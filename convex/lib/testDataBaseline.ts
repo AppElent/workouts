@@ -1,7 +1,6 @@
 import {
 	ENDURANCE_SPORTS,
 	type EnduranceSport,
-	LIBRARY_SCHEMA_VERSION,
 	normalizePersonalFood,
 	personalFoodSnapshot,
 	SET_TYPES,
@@ -240,7 +239,6 @@ export async function loadTestDataBaseline(
 			recordId: item.id,
 			recordKind,
 			payload,
-			schemaVersion: LIBRARY_SCHEMA_VERSION,
 			revision: 1,
 			deleted: false,
 			updatedAt: now,

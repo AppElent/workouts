@@ -190,7 +190,6 @@ it("keeps an uploaded photo readable in diary history and rejects another accoun
 		},
 	};
 	await alice.mutation(api.nutritionDiary.applyOperation, {
-		version: 1,
 		operationId: "save-diary-photo",
 		expectedSubject: "alice",
 		operation,
@@ -207,7 +206,6 @@ it("keeps an uploaded photo readable in diary history and rejects another accoun
 		t
 			.withIdentity({ subject: "bob" })
 			.mutation(api.nutritionDiary.applyOperation, {
-				version: 1,
 				operationId: "steal-diary-photo",
 				expectedSubject: "bob",
 				operation,

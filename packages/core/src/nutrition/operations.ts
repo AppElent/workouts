@@ -64,7 +64,6 @@ export type NutritionDiaryOperation =
 	  };
 
 export type NutritionOperationEnvelope = {
-	readonly version: 1;
 	readonly operationId: string;
 	readonly expectedSubject: string;
 	readonly operation: NutritionDiaryOperation;

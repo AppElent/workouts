@@ -14,8 +14,6 @@ export const errorsEn = {
 		"An activity is already running. Finish or cancel it first.",
 	sessionEnded: "This activity has already ended.",
 	emptySession: "Log at least one set or result before finishing.",
-	unfinishedTargets:
-		"Some planned sets are not logged yet. Log them or finish without them.",
 	hostedNotDraft: "This hosted workout is already open and can't be edited.",
 	hostedNotOpen: "This hosted workout is not open.",
 	hostedClosed: "This hosted workout has closed.",
@@ -38,8 +36,6 @@ export const errorsNl: typeof errorsEn = {
 		"Er loopt al een activiteit. Rond deze eerst af of annuleer hem.",
 	sessionEnded: "Deze activiteit is al afgelopen.",
 	emptySession: "Log minstens één set of resultaat voordat je afrondt.",
-	unfinishedTargets:
-		"Nog niet alle geplande sets zijn gelogd. Log ze of rond af zonder ze.",
 	hostedNotDraft:
 		"Deze groepstraining is al geopend en kan niet meer worden bewerkt.",
 	hostedNotOpen: "Deze groepstraining is niet geopend.",

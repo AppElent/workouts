@@ -14,6 +14,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { useToast } from "#/components/ui/toast";
 import { useConvexErrorMessage } from "#/lib/convexError";
 
 export function BodyMetricsPanel() {
@@ -22,6 +23,7 @@ export function BodyMetricsPanel() {
 	const addEntry = useMutation(api.bodyMetrics.add);
 	const removeEntry = useMutation(api.bodyMetrics.remove);
 	const errorMessage = useConvexErrorMessage();
+	const toast = useToast();
 
 	const [unit, setUnit] = useState<LoadUnit>("kg");
 	const [weight, setWeight] = useState("");
@@ -33,6 +35,17 @@ export function BodyMetricsPanel() {
 	const [thighs, setThighs] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+
+	async function handleRemove(id: Id<"bodyMetrics">) {
+		try {
+			await removeEntry({ id });
+		} catch (e) {
+			toast.error(
+				"Couldn't delete entry",
+				errorMessage(e, "Please try again."),
+			);
+		}
+	}
 
 	function num(s: string): number | undefined {
 		const n = Number.parseFloat(s);
@@ -303,9 +316,7 @@ export function BodyMetricsPanel() {
 								</div>
 								<button
 									type="button"
-									onClick={() =>
-										void removeEntry({ id: e._id as Id<"bodyMetrics"> })
-									}
+									onClick={() => void handleRemove(e._id)}
 									aria-label="Delete entry"
 									className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors shrink-0"
 								>

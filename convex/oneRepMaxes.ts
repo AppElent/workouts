@@ -68,9 +68,8 @@ export const addManual = mutation({
 		exerciseId: exerciseReference,
 		value: v.number(),
 		unit: loadUnit,
-		date: v.optional(v.number()),
 	},
-	handler: async (ctx, { exerciseId, value, unit, date }) => {
+	handler: async (ctx, { exerciseId, value, unit }) => {
 		const userId = await requireUserId(ctx);
 		checked(validateManualOneRepMax(value));
 		return ctx.db.insert("oneRepMaxes", {
@@ -78,7 +77,7 @@ export const addManual = mutation({
 			exerciseId: await requireExercise(ctx, exerciseId, userId),
 			value,
 			unit,
-			date: date ?? Date.now(),
+			date: Date.now(),
 			source: "manual",
 		});
 	},

@@ -15,6 +15,8 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CreateExerciseModal } from "#/components/exercises/CreateExerciseModal";
 import { Select } from "#/components/ui/Select";
+import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 import { cn } from "#/lib/utils";
 
@@ -37,6 +39,19 @@ export const Route = createFileRoute("/_app/exercises/")({
 function ExercisesPage() {
 	const exercises = useExercises();
 	const removeExercise = useMutation(api.exercises.remove);
+	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
+
+	async function handleRemove(id: string) {
+		try {
+			await removeExercise({ id });
+		} catch (error) {
+			toast.error(
+				"Couldn't delete exercise",
+				errorMessage(error, "Please try again."),
+			);
+		}
+	}
 
 	const [search, setSearch] = useState("");
 	const [group, setGroup] = useState<MuscleGroup | null>(null);
@@ -149,7 +164,7 @@ function ExercisesPage() {
 											type="button"
 											onClick={(e) => {
 												e.preventDefault();
-												void removeExercise({ id: ex._id });
+												void handleRemove(ex._id);
 											}}
 											className="p-0.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors shrink-0"
 											aria-label={`Delete ${ex.name}`}

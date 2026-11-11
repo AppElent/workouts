@@ -196,7 +196,6 @@ describe("in-app test data", () => {
 			exercises: [],
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "manual-snack",
 			expectedSubject: "alice",
 			operation: {

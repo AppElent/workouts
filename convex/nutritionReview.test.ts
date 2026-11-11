@@ -49,7 +49,6 @@ const snapshot = ({
 const create = (input: Parameters<typeof snapshot>[0]) => {
 	const entry = snapshot(input);
 	return {
-		version: 1 as const,
 		operationId: entry.clientEntryId,
 		expectedSubject: "alice",
 		operation: { kind: "create" as const, entry },

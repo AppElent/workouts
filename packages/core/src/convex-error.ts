@@ -20,7 +20,6 @@ const APP_ERROR_CODES = [
 	"activeSessionExists",
 	"sessionEnded",
 	"emptySession",
-	"unfinishedTargets",
 	"hostedNotDraft",
 	"hostedNotOpen",
 	"hostedClosed",

@@ -5,6 +5,8 @@ import { type ActionCtx, action, internalMutation } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
 import {
+	AI_CONFIDENCES,
+	AI_IMAGE_TYPES,
 	describe as describeMeal,
 	type NutritionAiProvider,
 	nutritionAiProvider,
@@ -13,6 +15,7 @@ import {
 } from "./lib/nutritionAi";
 import {
 	bilingual,
+	literals,
 	locale,
 	perNutrient,
 	measuredUnit as unit,
@@ -22,18 +25,10 @@ import {
 export const DAILY_ANALYSES = 50;
 
 const image = v.object({
-	mediaType: v.union(
-		v.literal("image/jpeg"),
-		v.literal("image/png"),
-		v.literal("image/webp"),
-	),
+	mediaType: literals(AI_IMAGE_TYPES),
 	base64: v.string(),
 });
-const confidence = v.union(
-	v.literal("high"),
-	v.literal("medium"),
-	v.literal("low"),
-);
+const confidence = literals(AI_CONFIDENCES);
 const nullableNumber = v.union(v.number(), v.null());
 const estimate = perNutrient(v.number());
 

@@ -11,7 +11,6 @@ import {
 	hostedLevel,
 	libraryCategory,
 	libraryRecordKind,
-	librarySchemaVersion,
 	loadUnit,
 	mealSlot,
 	measuredUnit,
@@ -53,8 +52,8 @@ export default defineSchema({
 		recordKind: libraryRecordKind,
 		// Opaque validated JSON, so device-minted ids survive unchanged.
 		payload: v.optional(v.string()),
-		// Rows written before schema versions have none; they read as version 1.
-		schemaVersion: v.optional(librarySchemaVersion),
+		// Older builds stamped 1–3; kept optional until stored values are cleared.
+		schemaVersion: v.optional(v.number()),
 		revision: v.number(),
 		deleted: v.boolean(),
 		updatedAt: v.number(),

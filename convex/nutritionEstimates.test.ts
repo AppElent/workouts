@@ -252,7 +252,6 @@ describe("Personal Food estimates", () => {
 			meal: "lunch",
 		});
 		const first = await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "create-first",
 			expectedSubject: "alice",
 			operation: {
@@ -261,7 +260,6 @@ describe("Personal Food estimates", () => {
 			},
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "edit-move-first",
 			expectedSubject: "alice",
 			operation: {
@@ -273,7 +271,6 @@ describe("Personal Food estimates", () => {
 			},
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "create",
 			expectedSubject: "alice",
 			operation: {
@@ -282,7 +279,6 @@ describe("Personal Food estimates", () => {
 			},
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "edit-move",
 			expectedSubject: "alice",
 			operation: {
@@ -303,7 +299,6 @@ describe("Personal Food estimates", () => {
 		).toBe(true);
 		const { _id, _creationTime, userId, loggedAt, ...copy } = day.entries[0];
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "copy",
 			expectedSubject: "alice",
 			operation: {
@@ -313,7 +308,6 @@ describe("Personal Food estimates", () => {
 		});
 		const comboPart = personalFoodSnapshot(estimated, { quantity: 1 });
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "combo",
 			expectedSubject: "alice",
 			operation: {

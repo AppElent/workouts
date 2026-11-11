@@ -12,7 +12,6 @@ import {
 	HOSTED_LEVELS,
 	LIBRARY_CATEGORIES,
 	LIBRARY_RECORD_KINDS,
-	LIBRARY_SCHEMA_VERSIONS,
 	LOAD_UNITS,
 	MEAL_SLOTS,
 	MEASURED_UNITS,
@@ -68,7 +67,6 @@ export const nutritionSource = literals(NUTRITION_SOURCES);
 export const nutrientKey = literals(NUTRIENT_KEYS);
 const goalDirection = literals(GOAL_DIRECTIONS);
 const goalPreset = literals(GOAL_PRESET_KEYS);
-export const librarySchemaVersion = literals(LIBRARY_SCHEMA_VERSIONS);
 export const locale = literals(SUPPORTED_LOCALES);
 export const libraryRecordKind = literals(LIBRARY_RECORD_KINDS);
 export const libraryCategory = literals(LIBRARY_CATEGORIES);

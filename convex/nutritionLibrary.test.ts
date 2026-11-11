@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { LIBRARY_GET_MANY_LIMIT, LIBRARY_SCHEMA_VERSION } from "@foundry/core";
+import { LIBRARY_GET_MANY_LIMIT } from "@foundry/core";
 import type { FunctionArgs } from "convex/server";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
@@ -178,33 +178,6 @@ describe("nutrition library account backup operations", () => {
 				paginationOpts: { cursor: null, numItems: 2 },
 			}),
 		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
-	});
-
-	it("serves a stored record written before schema versions and stamps the current version on its next write", async () => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		await t.run((ctx) =>
-			ctx.db.insert("nutritionLibraryRecords", {
-				userId: "alice",
-				recordId: "legacy",
-				recordKind: "food",
-				payload: food("legacy"),
-				revision: 1,
-				deleted: false,
-				updatedAt: 1,
-			}),
-		);
-		expect(
-			await alice.query(api.nutritionLibrary.getMany, { ids: ["legacy"] }),
-		).toEqual([expect.objectContaining({ schemaVersion: 1, revision: 1 })]);
-		const next = await alice.mutation(
-			api.nutritionLibrary.save,
-			upsert("edit-legacy", "legacy", 1, food("legacy", "Edited")),
-		);
-		expect(next.record).toMatchObject({
-			schemaVersion: LIBRARY_SCHEMA_VERSION,
-			revision: 2,
-		});
 	});
 
 	it("online edits use server acceptance order and cannot resurrect deleted records", async () => {

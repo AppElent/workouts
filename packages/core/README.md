@@ -42,7 +42,7 @@ imported by relative path from tests and `scripts/`, never from an entry.
 | `account-export.ts` | `collectExportTables` pages through the personal-data export; `accountExportJson` writes the file both apps share. |
 | `convex-error.ts` | `APP_ERROR_CODES` the server throws; `parseConvexError`: `{ code?, message }` from any failed Convex call; `convexErrorMessage`: a client's message for the code, else the server's text, else a fallback. |
 | `auth.ts` | The dev test-login gate and the Clerk error code → message key map. |
-| `json.ts` `ids.ts` | `canonicalJson` (operation fingerprints) and `isUuid`. |
+| `json.ts` | `canonicalJson` (operation fingerprints). |
 
 ## Nutrition modules
 
@@ -59,7 +59,7 @@ imported by relative path from tests and `scripts/`, never from an entry.
 | `nutrition/meal-time.ts` | `mealSlotAt`, the default Meal Slot for a moment. |
 | `nutrition/named-amount.ts` | Personal Measure and supplementary serving names and amounts. |
 | `nutrition/ai.ts` | The nutrition assistant's limits and plausibility figures. |
-| `nutrition/library-protocol.ts` | Personal library sync versions and batch size. |
+| `nutrition/library-protocol.ts` | Personal library record kinds, categories and batch size. |
 | `nutrition/diary-correction.ts` `nutrition/snapshot-rescale.ts` | Correcting and rescaling a Diary Entry snapshot. |
 
 The shipped food library itself is documented in `src/nutrition/README.md`.

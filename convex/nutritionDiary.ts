@@ -37,15 +37,12 @@ const operationTarget = v.union(
 	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
 );
 
-// A queued batch can outlive the deployment that issued a cached server id,
-// so batch targets accept any string and stale ones are skipped.
 const batchTarget = v.union(
 	v.object({ kind: v.literal("serverId"), id: v.string() }),
 	v.object({ kind: v.literal("clientEntryId"), id: v.string() }),
 );
 
 const operationArgs = {
-	version: v.literal(1),
 	operationId: v.string(),
 	expectedSubject: v.string(),
 	operation: v.union(
@@ -401,18 +398,16 @@ async function apply(
 }
 
 /**
- * The one writer of diary entries. Each operation runs once per operation id;
- * every day it touches gets a new revision, and the result carries those days
- * unless the caller asks for `includeDays: false`.
+ * The one writer of diary entries. Each operation runs once per operation id,
+ * and every day it touches gets a new revision.
  */
 export const applyOperation = mutation({
-	args: { ...operationArgs, includeDays: v.optional(v.boolean()) },
+	args: operationArgs,
 	returns: v.object({
 		entryIds: v.array(v.id("nutritionDiaryEntries")),
 		clientEntryIds: v.array(v.string()),
-		days: v.array(diaryDay),
 	}),
-	handler: async (ctx, { operationId, includeDays, ...envelope }) => {
+	handler: async (ctx, { operationId, ...envelope }) => {
 		const userId = await requireSubject(ctx, envelope.expectedSubject);
 		return withOperationReceipt(
 			ctx,
@@ -425,13 +420,7 @@ export const applyOperation = mutation({
 					envelope.operation as NutritionDiaryOperation,
 				);
 				for (const date of dates) await bumpDayRevision(ctx, userId, date);
-				const days =
-					includeDays === false
-						? []
-						: await Promise.all(
-								[...dates].sort().map((date) => daySnapshot(ctx, userId, date)),
-							);
-				return { ...entries, days };
+				return entries;
 			},
 		);
 	},

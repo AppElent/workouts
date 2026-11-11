@@ -22,8 +22,16 @@ import {
  * provider (OpenAI) is one more adapter.
  */
 
+export const AI_IMAGE_TYPES = [
+	"image/jpeg",
+	"image/png",
+	"image/webp",
+] as const;
+export const AI_CONFIDENCES = ["high", "medium", "low"] as const;
+type Confidence = (typeof AI_CONFIDENCES)[number];
+
 type ImageInput = {
-	readonly mediaType: "image/jpeg" | "image/png" | "image/webp";
+	readonly mediaType: (typeof AI_IMAGE_TYPES)[number];
 	readonly base64: string;
 };
 
@@ -192,7 +200,7 @@ function object(properties: Record<string, unknown>) {
 }
 
 const nullableNumber = { type: ["number", "null"] };
-const confidence = { enum: ["high", "medium", "low"] };
+const confidence = { enum: AI_CONFIDENCES };
 const unit = { enum: ["g", "ml"] };
 
 function perNutrient<T>(schema: T): Record<NutrientKey, T> {
@@ -355,7 +363,7 @@ type DescribedItem = {
 	amountLabel: string;
 	/** False when the portion is the AI's own choice. */
 	amountStated?: boolean;
-	confidence: "high" | "medium" | "low";
+	confidence: Confidence;
 	brand: string | null;
 	searchTerms: string[];
 	/** What a product is made of; empty for an ingredient. */

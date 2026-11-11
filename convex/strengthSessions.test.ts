@@ -209,13 +209,7 @@ describe("strength sessions", () => {
 			unit: "kg",
 			setType: "working",
 		});
-		await expect(
-			athlete.mutation(api.workoutSessions.finish, { id: sessionId }),
-		).rejects.toMatchObject({ data: { code: "unfinishedTargets" } });
-		await athlete.mutation(api.workoutSessions.finish, {
-			id: sessionId,
-			discardUnfinished: true,
-		});
+		await athlete.mutation(api.workoutSessions.finish, { id: sessionId });
 		const next = await athlete.mutation(api.workoutSessions.create, {});
 		await logSet(athlete, {
 			sessionId: next,
