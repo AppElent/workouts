@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.2.1
+version: 2.2.2
 ---
 
 # Social sign-in
@@ -187,8 +187,7 @@ fails with `unavailable`.
 
 Native codes are issued to the requesting build's bundle ID, so the app sends
 it and Convex uses it as `client_id` after checking it against
-`APPLE_CLIENT_IDS` in `convex/lib/appleSignIn.ts`. Builds that send none are
-treated as production.
+`APPLE_CLIENT_IDS` in `convex/lib/appleSignIn.ts`.
 Android has no native sheet, so an Apple-linked account deleted there is not
 revoked.
 
