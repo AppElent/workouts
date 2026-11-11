@@ -12,18 +12,23 @@ concurrency:
   cancel-in-progress: true
 jobs:
   label:
-    # The PR author, not the actor: a human pushing to a Dependabot PR still
-    # relabels it, no other PR is touched, and forks skip it.
+    # The PR author check limits the job to Dependabot PRs; it checks the
+    # author, not the actor, so a human pushing to a Dependabot PR still
+    # relabels it. The repository check only keeps copies of this repo from
+    # running it.
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'AppElent/workouts'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
+      # Fail open to med: if the metadata step fails, its outputs are empty
+      # and the next step still labels the PR.
       - id: metadata
         uses: dependabot/fetch-metadata@v3
-      # update-type is the highest change across a grouped PR. It is empty when
-      # Dependabot can't tell (some security updates), which counts as med.
+        continue-on-error: true
+      # update-type is the highest change across a grouped PR. An empty value
+      # (Dependabot couldn't tell, or the step above failed) counts as med.
       - name: Apply blast-radius label
         env:
           GH_TOKEN: ${{ github.token }}
