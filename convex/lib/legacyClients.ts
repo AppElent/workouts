@@ -7,8 +7,8 @@ import { v } from "convex/values";
  *
  * Every field here is accepted and then ignored; none is ever stored. Each
  * stays as narrow as the values old builds actually sent, so typos still
- * fail. Delete this module and its uses once no installed build predates #194
- * (`legacyClients.test.ts` lists each use).
+ * fail. Delete this module and its uses, and `sets.getPreviousForExercise`,
+ * once no installed build predates #194 (`legacyClients.test.ts` covers each).
  */
 
 /** Envelope version of nutrition diary and library operations. */

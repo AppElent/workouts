@@ -120,7 +120,12 @@ describe("nutrition library with legacy clients", () => {
 	it("replays a receipt the previous server wrote, schemaVersion included", async () => {
 		const { t, alice } = setup();
 		const request = legacySave("in-flight", 3);
-		const { operationId: _, ...envelope } = request;
+		// The literal the previous server hashed (d7310be7 `canonicalPayload`).
+		const oldPayload = canonicalJson({
+			version: 1,
+			expectedSubject: "alice",
+			operation: request.operation,
+		});
 		const oldResult = {
 			record: {
 				id: "oats",
@@ -135,7 +140,7 @@ describe("nutrition library with legacy clients", () => {
 			ctx.db.insert("nutritionLibraryOperationReceipts", {
 				userId: "alice",
 				operationId: "in-flight",
-				payload: canonicalJson(envelope),
+				payload: oldPayload,
 				result: JSON.stringify(oldResult),
 				createdAt: 1,
 			}),
@@ -235,7 +240,12 @@ describe("nutrition diary with legacy clients", () => {
 	it("replays a receipt the previous server wrote, days included", async () => {
 		const { t, alice } = setup();
 		const request = legacyApply("in-flight");
-		const { operationId: _, includeDays: __, ...envelope } = request;
+		// The literal the previous server hashed; it left out `includeDays`.
+		const oldPayload = canonicalJson({
+			version: 1,
+			expectedSubject: "alice",
+			operation: request.operation,
+		});
 		const oldResult = {
 			entryIds: [],
 			clientEntryIds: ["entry-1"],
@@ -245,7 +255,7 @@ describe("nutrition diary with legacy clients", () => {
 			ctx.db.insert("nutritionDiaryOperationReceipts", {
 				userId: "alice",
 				operationId: "in-flight",
-				payload: canonicalJson(envelope),
+				payload: oldPayload,
 				result: JSON.stringify(oldResult),
 				createdAt: 1,
 			}),
@@ -287,6 +297,34 @@ describe("training with legacy clients", () => {
 			expect(
 				await alice.query(api.workoutSessions.getById, { id }),
 			).toMatchObject({ status: "completed" });
+	});
+
+	it("serves the previous session's sets to builds that still ask for them", async () => {
+		const { t, alice } = setup();
+		const previous = await sessionWithSet(alice);
+		await alice.mutation(api.workoutSessions.finish, { id: previous });
+		const current = await alice.mutation(api.workoutSessions.create, {});
+		const sets = await alice.query(api.sets.getPreviousForExercise, {
+			exerciseId,
+			sessionId: current,
+		});
+		expect(sets).toMatchObject([
+			{ sessionId: previous, setNumber: 1, weight: 100, reps: 5, unit: "kg" },
+		]);
+		expect(
+			await alice.query(api.sets.getPreviousForExercise, {
+				exerciseId,
+				sessionId: previous,
+			}),
+		).toEqual([]);
+		expect(
+			await t
+				.withIdentity({ subject: "bob" })
+				.query(api.sets.getPreviousForExercise, {
+					exerciseId,
+					sessionId: current,
+				}),
+		).toEqual([]);
 	});
 
 	it("buckets weekly volume in UTC when no offset is sent, as the old server did", async () => {

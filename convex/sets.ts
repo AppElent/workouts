@@ -123,6 +123,31 @@ export const getLastForExercise = query({
 	},
 });
 
+/**
+ * Sets of the last other session that logged this exercise, by set number.
+ * Only builds older than #194 call this; delete it with `lib/legacyClients.ts`.
+ */
+export const getPreviousForExercise = query({
+	args: { exerciseId: exerciseReference, sessionId: v.id("workoutSessions") },
+	handler: async (ctx, { exerciseId, sessionId }) => {
+		const userId = await requireUserId(ctx);
+		const latest = await latestSetForExercise(
+			ctx,
+			userId,
+			exerciseId,
+			sessionId,
+		);
+		if (!latest) return [];
+		const sets = await ctx.db
+			.query("sets")
+			.withIndex("by_session", (q) => q.eq("sessionId", latest.sessionId))
+			.collect();
+		return sets
+			.filter((set) => set.userId === userId && set.exerciseId === exerciseId)
+			.sort((a, b) => a.setNumber - b.setNumber);
+	},
+});
+
 async function latestSetForExercise(
 	ctx: QueryCtx,
 	userId: string,
