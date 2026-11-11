@@ -57,7 +57,6 @@ function setup() {
 		const user = t.withIdentity({ subject });
 		const apply = (operation: Operation) =>
 			user.mutation(api.nutritionDiary.applyOperation, {
-				version: 1,
 				operationId: `${subject}-op-${++sequence}`,
 				expectedSubject: subject,
 				operation,
@@ -121,7 +120,6 @@ describe("public nutrition diary operations", () => {
 		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		await expect(
 			t.mutation(api.nutritionDiary.applyOperation, {
-				version: 1,
 				operationId: "anonymous",
 				expectedSubject: "alice",
 				operation: {
@@ -284,7 +282,6 @@ describe("public nutrition diary operations", () => {
 
 		await expect(
 			t.mutation(api.nutritionDiary.applyOperation, {
-				version: 1,
 				operationId: "anonymous-remove",
 				expectedSubject: "alice",
 				operation: { kind: "remove", target: { kind: "serverId", id } },
@@ -389,7 +386,6 @@ describe("public nutrition diary operations", () => {
 		const alice = setup().as("alice").user;
 		const { date: _date, meal: _meal, ...part } = snapshot;
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "create-parts",
 			expectedSubject: "alice",
 			operation: {
@@ -410,7 +406,6 @@ describe("public nutrition diary operations", () => {
 			date: snapshot.date,
 		});
 		const grouping = {
-			version: 1 as const,
 			operationId: "group-parts",
 			expectedSubject: "alice",
 			operation: {
@@ -449,7 +444,6 @@ describe("public nutrition diary operations", () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const created = await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "create-surviving-part",
 			expectedSubject: "alice",
 			operation: {
@@ -459,7 +453,6 @@ describe("public nutrition diary operations", () => {
 		});
 
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "group-with-stale-id",
 			expectedSubject: "alice",
 			operation: {

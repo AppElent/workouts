@@ -148,7 +148,6 @@ describe("the training marker's only connection to Activity", () => {
 			},
 		};
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "log-apple",
 			expectedSubject: "alice",
 			operation: { kind: "create", entry },

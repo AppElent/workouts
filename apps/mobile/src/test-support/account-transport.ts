@@ -80,7 +80,6 @@ export function installAccountTransport(drafts: CaptureDraftFixture) {
 		const result = {
 			entryIds: created.map((id) => `server:${id}`),
 			clientEntryIds: created,
-			days: changed,
 		};
 		for (const day of changed) days.set(day.date, day);
 		receipts.set(args.operationId, result);

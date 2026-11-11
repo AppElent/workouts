@@ -140,11 +140,9 @@ export function useNutritionDiary(): NutritionDiary {
 				prepare: () => prepareDiaryPhotoOperation(operation(), upload),
 				deliver: async (prepared, { subject, operationId }) => {
 					await applyOperation({
-						version: 1,
 						operationId,
 						expectedSubject: subject,
 						operation: toServerOperation(prepared),
-						includeDays: false,
 					});
 					return prepared;
 				},

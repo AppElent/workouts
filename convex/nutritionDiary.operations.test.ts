@@ -53,22 +53,21 @@ function envelope<T extends ApplyOperationArgs["operation"]>(
 	operation: T,
 	expectedSubject = "alice",
 ): Omit<ApplyOperationArgs, "operation"> & { operation: T } {
-	return { version: 1 as const, operationId, expectedSubject, operation };
+	return { operationId, expectedSubject, operation };
 }
 
 describe("retry-safe nutrition diary operations", () => {
-	it("acknowledges an online save without retransferring the entire day", async () => {
+	it("acknowledges a save once and replays its result", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
-		const request = {
-			...envelope("compact-save", { kind: "create", entry: snapshot() }),
-			includeDays: false,
-		};
+		const request = envelope("compact-save", {
+			kind: "create",
+			entry: snapshot(),
+		});
 		const result = await alice.mutation(
 			api.nutritionDiary.applyOperation,
 			request,
 		);
-		expect(result.days).toEqual([]);
 		expect(result.entryIds).toHaveLength(1);
 		expect(
 			(await alice.query(api.nutritionDiary.day, { date: "2026-09-05" }))
@@ -144,11 +143,7 @@ describe("retry-safe nutrition diary operations", () => {
 				api.nutritionDiary.applyOperation,
 				emptyOperation,
 			);
-			expect(emptyResult).toEqual({
-				entryIds: [],
-				clientEntryIds: [],
-				days: [],
-			});
+			expect(emptyResult).toEqual({ entryIds: [], clientEntryIds: [] });
 			expect(
 				await alice.mutation(api.nutritionDiary.applyOperation, emptyOperation),
 			).toEqual(emptyResult);
@@ -188,7 +183,7 @@ describe("retry-safe nutrition diary operations", () => {
 					api.nutritionDiary.applyOperation,
 					envelope("foreign-batch", operation, "bob"),
 				),
-			).toEqual({ entryIds: [], clientEntryIds: [], days: [] });
+			).toEqual({ entryIds: [], clientEntryIds: [] });
 			await expect(
 				alice.mutation(
 					api.nutritionDiary.applyOperation,
@@ -488,14 +483,20 @@ describe("retry-safe nutrition diary operations", () => {
 				entry: snapshot({ clientEntryId: "move-me" }),
 			}),
 		});
-		const moved = (await alice.mutation(api.nutritionDiary.applyOperation, {
+		await alice.mutation(api.nutritionDiary.applyOperation, {
 			...envelope("op-move", {
 				kind: "update",
 				target: { kind: "serverId", id: created.entryIds[0] },
 				date: "2026-09-06",
 			}),
-		})) as { days: Array<{ date: string; revision: number }> };
-		expect(moved.days.map((day) => [day.date, day.revision])).toEqual([
+		});
+		const revisions = await Promise.all(
+			["2026-09-05", "2026-09-06"].map(async (date) => [
+				date,
+				(await alice.query(api.nutritionDiary.day, { date })).revision,
+			]),
+		);
+		expect(revisions).toEqual([
 			["2026-09-05", 2],
 			["2026-09-06", 1],
 		]);
