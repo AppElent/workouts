@@ -347,6 +347,12 @@ describe("training with legacy clients", () => {
 				sessionId: latest,
 			}),
 		).toMatchObject([{ sessionId: older, setNumber: 1, weight: 100 }]);
+		await expect(
+			t.query(api.sets.getPreviousForExercise, {
+				exerciseId,
+				sessionId: current,
+			}),
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		expect(
 			await t
 				.withIdentity({ subject: "bob" })

@@ -12,6 +12,7 @@ import {
 } from "./lib/strengthReferences";
 import { ensureSessionExercise } from "./lib/strengthSession";
 import { exerciseReference, loadUnit, setType } from "./lib/validators";
+import schema from "./schema";
 
 export const listForSession = query({
 	args: { sessionId: v.id("workoutSessions") },
@@ -129,6 +130,13 @@ export const getLastForExercise = query({
  */
 export const getPreviousForExercise = query({
 	args: { exerciseId: exerciseReference, sessionId: v.id("workoutSessions") },
+	returns: v.array(
+		v.object({
+			_id: v.id("sets"),
+			_creationTime: v.number(),
+			...schema.tables.sets.validator.fields,
+		}),
+	),
 	handler: async (ctx, { exerciseId, sessionId }) => {
 		const userId = await requireUserId(ctx);
 		const latest = await latestSetForExercise(
