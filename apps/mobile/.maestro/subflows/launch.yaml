@@ -1,5 +1,7 @@
 # Opens this checkout's Metro bundle in the development client and signs in
 # with the pre-filled test account when the session is signed out.
+# An empty test account is offered the First Run once the tab shell opens;
+# the end of this flow skips it so every flow starts on Home.
 # `clearState` drops the app's saved preferences, including a language chosen
 # in Profile, so the device language below decides and English selectors match.
 # The Clerk session lives in the keychain and survives.
@@ -40,3 +42,18 @@ appId: com.appelent.foundry.dev
     visible:
       id: "home-screen"
     timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "first-run-screen"
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "first-run-screen"
+    commands:
+      - tapOn: "Skip"
+      - extendedWaitUntil:
+          notVisible:
+            id: "first-run-screen"
+          timeout: 10000

@@ -27,6 +27,7 @@ import { useSegments } from "expo-router";
 import { NativeTabs } from "expo-router/native-tabs";
 import { Platform, View } from "react-native";
 import { useActiveSession } from "../../../src/data/session-data";
+import { useFirstRunPrompt } from "../../../src/features/onboarding/first-run/use-first-run-prompt";
 import { ActiveSessionBar } from "../../../src/features/strength-session/components/active-session-bar";
 import { useI18n } from "../../../src/i18n";
 import { chrome, useTokens } from "../../../src/theme";
@@ -53,6 +54,7 @@ function CoachTabs() {
 	const showSession =
 		Boolean(useActiveSession()) && segments.includes("train" as never);
 	const hasAccessory = isIOS26OrLater();
+	useFirstRunPrompt();
 
 	return (
 		<View style={{ flex: 1 }}>

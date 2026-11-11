@@ -1,0 +1,60 @@
+# Walks the First Run as a new user sees it: goals, a workout instead, Skip.
+# The shared test account may already have goals or history, so the flow opens
+# the sheet by its link rather than waiting for the server to offer it; which
+# accounts are offered it is covered by the Convex and Jest tests. Goals are
+# not saved, so the shared account ends unchanged.
+appId: com.appelent.foundry.dev
+tags:
+  - smoke
+  - onboarding
+---
+- runFlow: subflows/launch.yaml
+- openLink: "foundry-dev://first-run"
+# iOS asks before an app opens its own link the first time.
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible:
+      id: "first-run-screen"
+    timeout: 15000
+- assertVisible: "Welcome to Foundry"
+- assertVisible: ".*Choose your daily goals.*"
+- tapOn: "Set nutrition goals"
+# The goal editor: a start picker for a new account, the saved goals otherwise.
+- extendedWaitUntil:
+    visible: "Save goals"
+    timeout: 15000
+- tapOn: "Close"
+- extendedWaitUntil:
+    visible:
+      id: "first-run-screen"
+    timeout: 10000
+- tapOn: "Start with a workout instead"
+- extendedWaitUntil:
+    visible:
+      id: "train-start-activity"
+    timeout: 10000
+- openLink: "foundry-dev://first-run"
+# iOS asks before an app opens its own link the first time.
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible:
+      id: "first-run-screen"
+    timeout: 15000
+- tapOn: "Skip"
+- extendedWaitUntil:
+    notVisible:
+      id: "first-run-screen"
+    timeout: 10000
+# Skip returns to the tab beneath, still usable.
+- extendedWaitUntil:
+    visible:
+      id: "train-start-activity"
+    timeout: 10000

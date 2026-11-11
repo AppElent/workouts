@@ -39,6 +39,8 @@ export const PREFERENCE_KEYS = {
 	nutritionAiConsent: "workouts:nutrition-ai-consent",
 	/** Look named store products up on the web during AI entry ("1"). */
 	nutritionAiWebSearch: "workouts:nutrition-ai-web-search",
+	/** Accounts this device already offered the first-run (JSON array of ids). */
+	firstRunOffered: "workouts:first-run-offered",
 } as const;
 
 export type PreferenceKey =
