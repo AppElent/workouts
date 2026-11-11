@@ -33,17 +33,17 @@ personal table on both platforms, including nutrition and Personal Measures,
 even though the web does not show them. Foundry does not reduce the floor. The
 gaps open today are `pending-port` entries with follow-up issues:
 
-- Web account deletion: #200.
-- Mobile password reset and password change: #201.
-- Web theme choice (the web is dark only): #205. Closing it as "dark only"
+- Web account deletion: [APP-34](https://linear.app/appelent/issue/APP-34).
+- Mobile password reset and password change: [APP-35](https://linear.app/appelent/issue/APP-35).
+- Web theme choice (the web is dark only): [APP-39](https://linear.app/appelent/issue/APP-39). Closing it as "dark only"
   means reducing the floor in this record first.
 
 **Share target.** The Hosted Workout join link `https://foundry.appelent.nl/join/<token>`
 is the share target. People who receive it often do not have the app and open it
 in their phone's browser. So the web join page must be fully usable at phone
 width, including joining and logging the workout, as a guest or after sign-in.
-Two web bugs break that today: the token is lost through sign-in (#203), and
-guests with the same name overwrite each other's scores (#204).
+Two web bugs break that today: the token is lost through sign-in ([APP-37](https://linear.app/appelent/issue/APP-37)), and
+guests with the same name overwrite each other's scores ([APP-38](https://linear.app/appelent/issue/APP-38)).
 
 **Exclusive by design.** The following stay on one platform:
 
@@ -69,7 +69,7 @@ a route. The Hosted screen's code box keeps the token in local state. A
 `+native-intent.tsx` rewrite would land on nothing, and a claimed path that opens
 the not-found screen is worse than the browser. So Foundry ships no
 `apple-app-site-association`, no `associatedDomains`, and no Android
-`intentFilters` for now. The plan is in #202: add a mobile join route, rewrite
+`intentFilters` for now. The plan is in [APP-36](https://linear.app/appelent/issue/APP-36): add a mobile join route, rewrite
 `/join/<token>` to it, then publish the AASA file (`/join/*` for
 `<TEAMID>.com.appelent.foundry`) and `assetlinks.json` on `foundry.appelent.nl`,
 and ship a new native build. Workers static assets are served before the
@@ -91,11 +91,11 @@ and ship a new native build. Workers static assets are served before the
 
 - **Web parity for every training screen:** doubles every training change for a
   platform that is not where people train.
-- **Claiming `/join/*` now:** the app cannot open it yet; see #202.
+- **Claiming `/join/*` now:** the app cannot open it yet; see [APP-36](https://linear.app/appelent/issue/APP-36).
 
 ## Reopen when
 
 - The web becomes a place where people train, for example a coach or class view.
-- Universal links ship (#202): update the scope above.
-- A floor gap is closed as "won't do" (for example #205): record the reduced floor
+- Universal links ship ([APP-36](https://linear.app/appelent/issue/APP-36)): update the scope above.
+- A floor gap is closed as "won't do" (for example [APP-39](https://linear.app/appelent/issue/APP-39)): record the reduced floor
   here.

@@ -64,7 +64,7 @@ export const FEATURES = defineFeatures([
 		kind: "floor",
 		status: "pending-port",
 		platforms: ["web"],
-		reason: "Mobile sign-in has no forgot-password flow (#201).",
+		reason: "Mobile sign-in has no forgot-password flow (APP-35).",
 		routes: { web: ["forgot-password"] },
 	},
 	{
@@ -72,7 +72,7 @@ export const FEATURES = defineFeatures([
 		kind: "floor",
 		status: "pending-port",
 		platforms: ["web"],
-		reason: "Only the web Account page can change a password (#201).",
+		reason: "Only the web Account page can change a password (APP-35).",
 		routes: {},
 	},
 	{
@@ -91,7 +91,7 @@ export const FEATURES = defineFeatures([
 		status: "pending-port",
 		platforms: ["mobile"],
 		reason:
-			"Only the mobile Account screen deletes data or the account (#200).",
+			"Only the mobile Account screen deletes data or the account (APP-34).",
 		routes: {},
 	},
 	{
@@ -114,7 +114,7 @@ export const FEATURES = defineFeatures([
 		kind: "floor",
 		status: "pending-port",
 		platforms: ["mobile"],
-		reason: "The web has one dark theme and no theme choice (#205).",
+		reason: "The web has one dark theme and no theme choice (APP-39).",
 		routes: { mobile: ["(app)/appearance"] },
 	},
 	{
@@ -133,7 +133,7 @@ export const FEATURES = defineFeatures([
 		status: "pending-port",
 		platforms: ["web"],
 		reason:
-			"The app cannot open /join/<token> links: no join route, and the Hosted code box takes a bare token only (#202). Web gaps: token lost through sign-in (#203), same-name guests overwrite scores (#204).",
+			"The app cannot open /join/<token> links: no join route, and the Hosted code box takes a bare token only (APP-36). Web gaps: token lost through sign-in (APP-37), same-name guests overwrite scores (APP-38).",
 		routes: { web: ["_app/join/$token"] },
 	},
 
