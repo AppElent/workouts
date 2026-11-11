@@ -24,6 +24,17 @@
         "environment_name": "development"
       }
     },
+    // What a merge to main deploys (.github/workflows/deploy.yml), built with
+    // CLOUDFLARE_ENV=staging. A custom domain, because the production Clerk
+    // instance it signs in through accepts only appelent.nl hosts.
+    "staging": {
+      "name": "foundry-staging",
+      "workers_dev": true,
+      "routes": [{ "pattern": "foundry-stg.appelent.nl", "custom_domain": true }],
+      "vars": {
+        "environment_name": "staging"
+      }
+    },
     // PR previews (preview.yml builds with CLOUDFLARE_ENV=pr and deploys as
     // foundry-pr-<n>). No routes, so a preview never claims the custom domain.
     "pr": {

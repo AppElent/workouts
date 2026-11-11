@@ -17,8 +17,8 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
+import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AppAuthedRouteImport } from './routes/_app/_authed'
-import { Route as McpAuthRouteImport } from './routes/mcp/auth'
 import { Route as AppExercisesIndexRouteImport } from './routes/_app/exercises/index'
 import { Route as AppExercisesIdRouteImport } from './routes/_app/exercises/$id'
 import { Route as AppJoinTokenRouteImport } from './routes/_app/join/$token'
@@ -74,14 +74,14 @@ const SsoCallbackRoute = SsoCallbackRouteImport.update({
   path: '/sso-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
+  id: '/.well-known/$',
+  path: '/.well-known/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAuthedRoute = AppAuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => AppRoute,
-} as any)
-const McpAuthRoute = McpAuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => McpRoute,
 } as any)
 const AppExercisesIndexRoute = AppExercisesIndexRouteImport.update({
   id: '/exercises/',
@@ -166,12 +166,12 @@ const AppAuthedHostedWorkoutsEditIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRouteWithChildren
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
-  '/mcp/auth': typeof McpAuthRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof AppExercisesIdRoute
   '/join/$token': typeof AppJoinTokenRoute
   '/exercises/': typeof AppExercisesIndexRoute
@@ -191,12 +191,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRouteWithChildren
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
-  '/mcp/auth': typeof McpAuthRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof AppExercisesIdRoute
   '/join/$token': typeof AppJoinTokenRoute
   '/exercises': typeof AppExercisesIndexRoute
@@ -218,13 +218,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRouteWithChildren
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/_app/_authed': typeof AppAuthedRouteWithChildren
-  '/mcp/auth': typeof McpAuthRoute
   '/_app/exercises/$id': typeof AppExercisesIdRoute
   '/_app/join/$token': typeof AppJoinTokenRoute
   '/_app/exercises/': typeof AppExercisesIndexRoute
@@ -251,7 +251,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
-    | '/mcp/auth'
+    | '/.well-known/$'
     | '/exercises/$id'
     | '/join/$token'
     | '/exercises/'
@@ -276,7 +276,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
-    | '/mcp/auth'
+    | '/.well-known/$'
     | '/exercises/$id'
     | '/join/$token'
     | '/exercises'
@@ -302,8 +302,8 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/.well-known/$'
     | '/_app/_authed'
-    | '/mcp/auth'
     | '/_app/exercises/$id'
     | '/_app/join/$token'
     | '/_app/exercises/'
@@ -325,11 +325,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  McpRoute: typeof McpRouteWithChildren
+  McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
+  DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -390,19 +391,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SsoCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/$': {
+      id: '/.well-known/$'
+      path: '/.well-known/$'
+      fullPath: '/.well-known/$'
+      preLoaderRoute: typeof DotwellKnownSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/_authed': {
       id: '/_app/_authed'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppAuthedRouteImport
       parentRoute: typeof AppRoute
-    }
-    '/mcp/auth': {
-      id: '/mcp/auth'
-      path: '/auth'
-      fullPath: '/mcp/auth'
-      preLoaderRoute: typeof McpAuthRouteImport
-      parentRoute: typeof McpRoute
     }
     '/_app/exercises/': {
       id: '/_app/exercises/'
@@ -562,25 +563,16 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface McpRouteChildren {
-  McpAuthRoute: typeof McpAuthRoute
-}
-
-const McpRouteChildren: McpRouteChildren = {
-  McpAuthRoute: McpAuthRoute,
-}
-
-const McpRouteWithChildren = McpRoute._addFileChildren(McpRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  McpRoute: McpRouteWithChildren,
+  McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   SsoCallbackRoute: SsoCallbackRoute,
+  DotwellKnownSplatRoute: DotwellKnownSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -3,30 +3,47 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireOwned, requireUserId } from "./lib/auth";
 import { appError, checked } from "./lib/errors";
+import { withCreateReceipt } from "./lib/operationReceipt";
 import { rxScaled, wodScoreFields } from "./lib/validators";
 
 export const log = mutation({
 	args: {
+		operationId: v.optional(v.string()),
 		wodId: v.id("wods"),
 		sessionId: v.optional(v.id("workoutSessions")),
+		// Connected apps back-date a result they were told about.
+		date: v.optional(v.number()),
 		rxScaled,
 		...wodScoreFields,
 	},
-	handler: async (ctx, { wodId, sessionId, rxScaled, ...input }) => {
+	handler: async (
+		ctx,
+		{ operationId, wodId, sessionId, date, rxScaled, ...input },
+	) => {
 		const userId = await requireUserId(ctx);
 		const wod = await ctx.db.get(wodId);
 		if (!wod || (!wod.isDefault && wod.userId !== userId))
 			throw appError("notFound", "wodId");
 		const score = checked(validateWodScore(wod.type, input));
 		if (sessionId) await requireOwned(ctx, userId, sessionId);
-		return ctx.db.insert("wodResults", {
+		return withCreateReceipt(
+			ctx,
 			userId,
-			wodId,
-			sessionId,
-			date: Date.now(),
-			rxScaled,
-			...score,
-		});
+			{
+				operationId,
+				kind: "wodResult",
+				payload: { wodId, sessionId, date, rxScaled, ...input },
+			},
+			() =>
+				ctx.db.insert("wodResults", {
+					userId,
+					wodId,
+					sessionId,
+					date: date ?? Date.now(),
+					rxScaled,
+					...score,
+				}),
+		);
 	},
 });
 

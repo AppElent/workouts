@@ -117,6 +117,13 @@ export const wodScoreFields = {
 
 export const oneRepMaxSource = literals(STRENGTH_REFERENCE_SOURCES);
 
+/** What a shared create receipt (`operationReceipts`) was written for. */
+export const operationReceiptKind = v.union(
+	v.literal("oneRepMax"),
+	v.literal("bodyMetric"),
+	v.literal("wodResult"),
+);
+
 const strengthReferenceSnapshot = v.object({
 	value: v.number(),
 	unit: loadUnit,

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireOwned, requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
+import { withCreateReceipt } from "./lib/operationReceipt";
 import { loadUnit } from "./lib/validators";
 
 const LIMITS = {
@@ -57,13 +58,16 @@ export const latest = query({
 
 export const add = mutation({
 	args: {
+		operationId: v.optional(v.string()),
+		// Connected apps back-date a measurement they were told about.
+		date: v.optional(v.number()),
 		weight: v.optional(v.number()),
 		unit: loadUnit,
 		bodyFatPct: v.optional(v.number()),
 		measurements: measurementsValidator,
 		notes: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, { operationId, ...args }) => {
 		const userId = await requireUserId(ctx);
 		checkLimits({
 			weight: args.weight,
@@ -76,15 +80,21 @@ export const add = mutation({
 			!args.measurements
 		)
 			throw appError("empty");
-		return ctx.db.insert("bodyMetrics", {
+		return withCreateReceipt(
+			ctx,
 			userId,
-			date: Date.now(),
-			weight: args.weight,
-			unit: args.unit,
-			bodyFatPct: args.bodyFatPct,
-			measurements: args.measurements,
-			notes: args.notes,
-		});
+			{ operationId, kind: "bodyMetric", payload: args },
+			() =>
+				ctx.db.insert("bodyMetrics", {
+					userId,
+					date: args.date ?? Date.now(),
+					weight: args.weight,
+					unit: args.unit,
+					bodyFatPct: args.bodyFatPct,
+					measurements: args.measurements,
+					notes: args.notes,
+				}),
+		);
 	},
 });
 

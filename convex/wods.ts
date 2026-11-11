@@ -32,7 +32,11 @@ export const list = query({
 					.withIndex("by_user", (q) => q.eq("userId", userId))
 					.collect()
 			: [];
-		return [...catalog, ...own].sort((a, b) => a.name.localeCompare(b.name));
+		// A catalog row that still carries a userId is listed once, as catalog.
+		const personal = own.filter((wod) => !wod.isDefault);
+		return [...catalog, ...personal].sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
 	},
 });
 

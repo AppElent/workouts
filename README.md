@@ -35,9 +35,12 @@ TestFlight, and OTA updates are in [mobile releases](docs/runbooks/mobile-releas
 
 ## Deployment
 
-Cloudflare Workers via Wrangler (`wrangler.jsonc` defines production, `dev`, and the
-route-free `pr` env). `pnpm deploy:dev` and `pnpm deploy:production` deploy from your
-machine with values from Infisical ([environment](docs/runbooks/environment.md)).
+Cloudflare Workers via Wrangler (`wrangler.jsonc` defines production, `staging`,
+`dev`, and the route-free `pr` env). A merge to `main` deploys staging
+(`foundry-stg.appelent.nl`); production deploys from **Actions → Deploy → Run
+workflow** on `main` ([deploy](docs/runbooks/deploy.md)). `pnpm deploy:staging` and
+`pnpm deploy:production` run the same steps from your machine with values from
+Infisical ([environment](docs/runbooks/environment.md)).
 Add the `preview:web` label to a pull request for an isolated preview (per-PR
 Convex backend and Worker) from `.github/workflows/preview.yml`, linked in a PR
 comment. Removing the label or closing the PR deletes the Worker. Native builds

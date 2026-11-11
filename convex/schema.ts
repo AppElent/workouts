@@ -17,6 +17,7 @@ import {
 	nutrientKey,
 	nutritionGoal,
 	oneRepMaxSource,
+	operationReceiptKind,
 	plannedSet,
 	rxScaled,
 	setReferenceSource,
@@ -28,6 +29,33 @@ import {
 } from "./lib/validators";
 
 export default defineSchema({
+	// Holds finished exercise-migration runs only; drop it once those rows are deleted.
+	exerciseMigrations: defineTable({
+		key: v.literal("shipped-v1"),
+		generation: v.number(),
+		dryRun: v.boolean(),
+		phase: v.union(
+			v.literal("defaults"),
+			v.literal("sets"),
+			v.literal("oneRepMaxes"),
+			v.literal("routines"),
+			v.literal("hostedWorkouts"),
+			v.literal("finalize"),
+			v.literal("complete"),
+			v.literal("blocked"),
+		),
+		verifying: v.boolean(),
+		cursor: v.union(v.string(), v.null()),
+		batchSize: v.number(),
+		mappings: v.record(v.string(), v.string()),
+		scanned: v.record(v.string(), v.number()),
+		changed: v.record(v.string(), v.number()),
+		mappedExercises: v.optional(v.number()),
+		error: v.optional(v.string()),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+	}).index("by_key", ["key"]),
+
 	nutritionGoalVersions: defineTable({
 		userId: v.string(),
 		effectiveFrom: v.string(),
@@ -287,6 +315,15 @@ export default defineSchema({
 		operationId: v.string(),
 		payload: v.string(),
 		setId: v.id("sets"),
+	}).index("by_user_and_operation", ["userId", "operationId"]),
+
+	/** Retry receipts for create mutations that take an optional operationId. */
+	operationReceipts: defineTable({
+		userId: v.string(),
+		operationId: v.string(),
+		kind: operationReceiptKind,
+		payload: v.string(),
+		resultId: v.string(),
 	}).index("by_user_and_operation", ["userId", "operationId"]),
 
 	oneRepMaxes: defineTable({

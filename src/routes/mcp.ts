@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { handleWorkoutsMcpRequest } from "#/lib/mcp/handler";
+import { handleFoundryMcpRequest } from "#/lib/mcp/handler";
 
 export const Route = createFileRoute("/mcp")({
 	server: {
 		handlers: {
-			GET: async ({ request }) => handleWorkoutsMcpRequest(request),
-			POST: async ({ request }) => handleWorkoutsMcpRequest(request),
-			DELETE: async ({ request }) => handleWorkoutsMcpRequest(request),
+			GET: async ({ request }) => handleFoundryMcpRequest(request),
+			POST: async ({ request }) => handleFoundryMcpRequest(request),
+			DELETE: async ({ request }) => handleFoundryMcpRequest(request),
+			OPTIONS: async ({ request }) => handleFoundryMcpRequest(request),
 		},
 	},
 });

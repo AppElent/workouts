@@ -24,6 +24,10 @@ const receiptCodecs = {
 			createdAt: Date.now(),
 		}),
 	},
+	operationReceipts: {
+		read: (receipt: Doc<"operationReceipts">) => receipt.resultId,
+		write: (resultId: string) => ({ resultId }),
+	},
 	nutritionCaptureDraftReceipts: {
 		read: (receipt: Doc<"nutritionCaptureDraftReceipts">) => receipt.result,
 		write: (result: Doc<"nutritionCaptureDraftReceipts">["result"]) => ({
@@ -63,7 +67,13 @@ export async function withOperationReceipt<
 >(
 	ctx: MutationCtx,
 	table: T,
-	operation: { userId: string; operationId: string; payload: unknown },
+	operation: {
+		userId: string;
+		operationId: string;
+		payload: unknown;
+		/** Extra columns the table stores beside the codec's result. */
+		fields?: object;
+	},
 	run: () => Promise<R>,
 ): Promise<R> {
 	const { userId, operationId } = operation;
@@ -81,7 +91,32 @@ export async function withOperationReceipt<
 		userId,
 		operationId,
 		payload,
+		...operation.fields,
 		...codec.write(result),
 	} as never);
 	return result;
+}
+
+/**
+ * A create mutation whose operation id is optional (connected apps send one
+ * so a retry returns the first row). Without an id the write runs as before.
+ */
+export async function withCreateReceipt<Id extends string>(
+	ctx: MutationCtx,
+	userId: string,
+	receipt: {
+		operationId: string | undefined;
+		kind: Doc<"operationReceipts">["kind"];
+		payload: unknown;
+	},
+	write: () => Promise<Id>,
+): Promise<Id> {
+	const { operationId, kind, payload } = receipt;
+	if (operationId === undefined) return write();
+	return (await withOperationReceipt(
+		ctx,
+		"operationReceipts",
+		{ userId, operationId, payload: { kind, payload }, fields: { kind } },
+		write,
+	)) as Id;
 }

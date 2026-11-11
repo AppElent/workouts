@@ -73,6 +73,13 @@ const sources = {
 				.query("strengthLogReceipts")
 				.withIndex("by_user_and_operation", (q) => q.eq("userId", u)),
 	},
+	operationReceipts: {
+		export: false,
+		read: (db: Db, u: string) =>
+			db
+				.query("operationReceipts")
+				.withIndex("by_user_and_operation", (q) => q.eq("userId", u)),
+	},
 	nutritionDiaryEntries: {
 		read: (db: Db, u: string) =>
 			db
@@ -180,8 +187,13 @@ type SharedTable =
 	| "hostedWorkouts"
 	| "hostedWorkoutParticipants"
 	| "hostedWorkoutSubmissions";
+/** Tables that hold no account data (finished migration runs). */
+type SystemTable = "exerciseMigrations";
 /** A new table must be personal or shared, so deletion cannot miss it. */
-type UnplacedTable = Exclude<TableNames, PersonalTable | SharedTable>;
+type UnplacedTable = Exclude<
+	TableNames,
+	PersonalTable | SharedTable | SystemTable
+>;
 true satisfies [UnplacedTable] extends [never] ? true : never;
 
 export type ExportTable = {

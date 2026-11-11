@@ -1,101 +1,33 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import * as Sentry from "@sentry/cloudflare";
-import { z } from "zod";
-import { McpAuthRequiredError, type WorkoutsMcpDataClient } from "./dataClient";
-import { errorText, jsonText } from "./toolResults";
+import { accountTools } from "./tools/account";
+import { activityTools } from "./tools/activities";
+import {
+	type AnyToolDefinition,
+	registerTools,
+	type ToolContext,
+} from "./tools/define";
+import { nutritionTools } from "./tools/nutrition";
+import { strengthTools } from "./tools/strength";
 
-export function createWorkoutsMcpServer({
-	dataClient,
-}: {
-	dataClient: WorkoutsMcpDataClient;
-}): McpServer {
-	const server = new McpServer({
-		name: "foundry",
-		version: "0.1.0",
-	});
+export const FOUNDRY_MCP_TOOLS: readonly AnyToolDefinition[] = [
+	...accountTools,
+	...activityTools,
+	...strengthTools,
+	...nutritionTools,
+];
 
-	registerReadOnlyTools(server, dataClient);
+const INSTRUCTIONS = `Foundry is the user's personal training and nutrition tracker.
+- Activities are Strength Sessions, Runs, and Rides; list_activities spans all of them.
+- IDs come from list and search tools; never invent them.
+- Dates for nutrition are the user's local calendar day (YYYY-MM-DD). Times are ISO 8601.
+- Every create tool takes an idempotencyKey: generate a fresh UUID per intended write and reuse it only to retry that same write.
+- Confirm with the user before logging anything they did not clearly ask for. Agents cannot delete data; deletions happen in the app.`;
 
+export function createFoundryMcpServer(context: ToolContext): McpServer {
+	const server = new McpServer(
+		{ name: "foundry", title: "Foundry", version: "1.0.0" },
+		{ instructions: INSTRUCTIONS },
+	);
+	registerTools(server, FOUNDRY_MCP_TOOLS, context);
 	return server;
-}
-
-function registerReadOnlyTools(
-	server: McpServer,
-	dataClient: WorkoutsMcpDataClient,
-) {
-	server.registerTool(
-		"list_exercises",
-		{
-			title: "List exercises",
-			description:
-				"List default exercises plus custom exercises visible to the authenticated Foundry user.",
-			inputSchema: {},
-		},
-		async () => withToolErrors(() => dataClient.listExercises()),
-	);
-
-	server.registerTool(
-		"list_recent_workouts",
-		{
-			title: "List recent workouts",
-			description:
-				"List recent workout sessions for the authenticated Foundry user. The limit is capped by Convex.",
-			inputSchema: {
-				limit: z.number().int().min(1).max(50).optional(),
-			},
-		},
-		async ({ limit }) =>
-			withToolErrors(() => dataClient.listRecentWorkouts({ limit })),
-	);
-
-	server.registerTool(
-		"get_workout_sets",
-		{
-			title: "Get workout sets",
-			description:
-				"Return sets for one workout session owned by the authenticated Foundry user.",
-			inputSchema: {
-				sessionId: z.string().min(1),
-			},
-		},
-		async ({ sessionId }) =>
-			withToolErrors(() => dataClient.getWorkoutSets({ sessionId })),
-	);
-
-	server.registerTool(
-		"list_personal_records",
-		{
-			title: "List personal records",
-			description:
-				"List current one-rep max records for the authenticated Foundry user.",
-			inputSchema: {},
-		},
-		async () => withToolErrors(() => dataClient.listPersonalRecords()),
-	);
-
-	server.registerTool(
-		"get_exercise_volume",
-		{
-			title: "Get exercise volume",
-			description:
-				"Return weekly work volume in kg (warm-ups excluded, ISO weeks in UTC) for one exercise visible to the authenticated Foundry user.",
-			inputSchema: {
-				exerciseId: z.string().min(1),
-			},
-		},
-		async ({ exerciseId }) =>
-			withToolErrors(() => dataClient.getExerciseVolume({ exerciseId })),
-	);
-}
-
-async function withToolErrors(load: () => Promise<unknown>) {
-	try {
-		return jsonText(await load());
-	} catch (error) {
-		if (error instanceof McpAuthRequiredError) {
-			return errorText("Authentication is required. Start at /mcp/auth.");
-		}
-		Sentry.captureException(error, { tags: { operation: "mcp.tool" } });
-		return errorText("The Foundry MCP tool failed.");
-	}
 }

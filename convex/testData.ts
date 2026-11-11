@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { ENV_CONFIG } from "../env.manifest";
 import { mutation, query } from "./_generated/server";
 import { getOptionalUserId, requireSubject } from "./lib/auth";
+import { rejectConnectedApps } from "./lib/connectedApps";
 import { appError } from "./lib/errors";
 import {
 	personalDataBlocker,
@@ -46,6 +47,7 @@ export const reset = mutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
+		await rejectConnectedApps(ctx);
 		const userId = await requireSubject(ctx, args.expectedSubject);
 		if (!enabled()) throw appError("unavailable");
 		const reason = await personalDataBlocker(ctx, userId);

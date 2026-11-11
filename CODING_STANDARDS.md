@@ -71,7 +71,7 @@ and EAS distribution. These bindings deviate from or narrow the shared guidance:
 | --- | --- |
 | Auth | Web: app-owned `src/lib/auth` + `@clerk/react`; mobile: `@clerk/expo` (both Clerk Core 3). Personal operations enforce server-side ownership; shipped catalogs and explicit guest flows stay public. |
 | Localization | The DOM-free runtime (`SUPPORTED_LOCALES`, `resolveLocale`, `fmt`, `plural`, `messageParityMismatches`) lives in `@foundry/core`; each app keeps its provider in `src/lib/i18n` or `apps/mobile/src/i18n`, and its messages. |
-| Environments | `pnpm env:*` runs `scripts/env.mjs` with the shared routing; environments are `local`, `dev`, `preview`, `staging`, and `production`; `staging` is only the installed preview app (EAS `preview`), with no staging web. See [environment](docs/runbooks/environment.md). |
+| Environments | `pnpm env:*` runs `scripts/env.mjs` with the shared routing; environments are `local`, `dev`, `preview`, `staging`, and `production`; `staging` is the staging web (deployed on merge, own Convex deployment) and the installed preview app (EAS `preview`, production backend). See [environment](docs/runbooks/environment.md) and [deploy](docs/runbooks/deploy.md). |
 | Worktrees | The editor hook runs `node scripts/workspace.mjs prepare --editor <host>` with `backend.mode: "none"` in `appelent.json`. See [worktree setup](docs/runbooks/worktree-setup.md). |
 | Test login | `local` and `dev` builds embed the public development-instance test-account variables; preview and production never receive them. |
 | Convex query caching | Mobile: `retention` flavor in `apps/mobile/src/convex/query-cache.tsx`, 5 min expiration, 20 idle entries; no disk cache (`last-known` not adopted). Web: not adopted. |

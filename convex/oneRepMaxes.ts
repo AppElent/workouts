@@ -13,6 +13,7 @@ import {
 	requireExercise,
 	resolveExercise,
 } from "./lib/exerciseCatalog";
+import { withCreateReceipt } from "./lib/operationReceipt";
 import { readStrengthReferences } from "./lib/strengthReferences";
 import { exerciseReference, loadUnit } from "./lib/validators";
 
@@ -65,20 +66,29 @@ export const listForExercise = query({
 
 export const addManual = mutation({
 	args: {
+		operationId: v.optional(v.string()),
 		exerciseId: exerciseReference,
 		value: v.number(),
 		unit: loadUnit,
+		// Connected apps back-date a 1RM they were told about.
+		date: v.optional(v.number()),
 	},
-	handler: async (ctx, { exerciseId, value, unit }) => {
+	handler: async (ctx, { operationId, ...input }) => {
 		const userId = await requireUserId(ctx);
-		checked(validateManualOneRepMax(value));
-		return ctx.db.insert("oneRepMaxes", {
+		checked(validateManualOneRepMax(input.value));
+		return withCreateReceipt(
+			ctx,
 			userId,
-			exerciseId: await requireExercise(ctx, exerciseId, userId),
-			value,
-			unit,
-			date: Date.now(),
-			source: "manual",
-		});
+			{ operationId, kind: "oneRepMax", payload: input },
+			async () =>
+				ctx.db.insert("oneRepMaxes", {
+					userId,
+					exerciseId: await requireExercise(ctx, input.exerciseId, userId),
+					value: input.value,
+					unit: input.unit,
+					date: input.date ?? Date.now(),
+					source: "manual",
+				}),
+		);
 	},
 });

@@ -19,6 +19,7 @@ import type * as hostedWorkoutSubmissions from "../hostedWorkoutSubmissions.js";
 import type * as hostedWorkouts from "../hostedWorkouts.js";
 import type * as lib_appleSignIn from "../lib/appleSignIn.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_diaryDays from "../lib/diaryDays.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_exerciseCatalog from "../lib/exerciseCatalog.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   hostedWorkouts: typeof hostedWorkouts;
   "lib/appleSignIn": typeof lib_appleSignIn;
   "lib/auth": typeof lib_auth;
+  "lib/connectedApps": typeof lib_connectedApps;
   "lib/diaryDays": typeof lib_diaryDays;
   "lib/errors": typeof lib_errors;
   "lib/exerciseCatalog": typeof lib_exerciseCatalog;

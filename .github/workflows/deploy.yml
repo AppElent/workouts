@@ -1,0 +1,96 @@
+name: Deploy
+
+# Adapted from docs/standards/deployments/templates/deploy.yml.
+# Merge to main -> staging (foundry-staging on foundry-stg.appelent.nl, with its
+# own Convex deployment). Manual "Run workflow" -> production, from main only.
+# The installed preview app stays on the production backend; see
+# docs/runbooks/deploy.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never cancel a deploy mid-flight; queue behind the previous one instead.
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  # The same suite as pull requests, because admins can bypass required checks.
+  # Called without `secrets: inherit`, so its build uploads no source maps.
+  checks:
+    uses: ./.github/workflows/ci.yml
+    permissions: { contents: read }
+
+  deploy:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
+    permissions: { contents: read }
+    env:
+      # Every value is scoped to the GitHub Environment, written by
+      # `pnpm env:apply <environment> --only github` from env.manifest.ts. This
+      # file names each once and never selects between environments.
+      ENVIRONMENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # Public values are GitHub variables: the build inlines them.
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      # The client tags Sentry events with this; the Worker reads its own
+      # `environment_name` var from wrangler.jsonc.
+      VITE_SENTRY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
+      # The Cloudflare Vite plugin picks the Wrangler env at build time and
+      # `wrangler deploy` follows dist/server/wrangler.json; --env is ignored.
+      # wrangler.jsonc: top-level = foundry (production), env.staging =
+      # foundry-staging. Written `!= … && 'staging' || ''` because the other
+      # polarity would make production's empty string fall through to staging.
+      CLOUDFLARE_ENV: ${{ github.event_name != 'workflow_dispatch' && 'staging' || '' }}
+      EXPECTED_WORKER: ${{ github.event_name == 'workflow_dispatch' && 'foundry' || 'foundry-staging' }}
+    steps:
+      # workflow_dispatch lets the operator pick any branch in the UI.
+      - name: Guard production ref
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Production deploys run from main only (got ${GITHUB_REF})."
+          exit 1
+
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # An Environment without its own CONVEX_DEPLOY_KEY silently inherits a
+      # repository secret of that name, so check the prefix first. `--ci` checks
+      # the job env: a workflow cannot list GitHub secrets and holds them anyway.
+      - name: Check environment
+        run: |
+          case "$CONVEX_DEPLOY_KEY" in
+            prod:*) ;;
+            *) echo "::error::CONVEX_DEPLOY_KEY in the $ENVIRONMENT_NAME Environment is missing or not a prod: key."; exit 1 ;;
+          esac
+          node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
+
+      # Core exports compiled files; a fresh runner has no dist yet.
+      - run: pnpm build:packages
+
+      # The deploy key alone picks the Convex deployment, which exposes its URL
+      # to --cmd as $CONVEX_URL; the build reads VITE_CONVEX_URL. Both targets
+      # run `pnpm build`, so staging exercises the bundle production ships.
+      - name: Convex deploy + build
+        run: |
+          pnpm exec convex deploy \
+            --cmd-url-env-var-name CONVEX_URL \
+            --cmd "VITE_CONVEX_URL=\$CONVEX_URL pnpm build"
+
+      # A build for the wrong env would replace another environment's Worker.
+      - name: Guard Worker name
+        run: |
+          built=$(jq -r .name dist/server/wrangler.json)
+          if [ "$built" != "$EXPECTED_WORKER" ]; then
+            echo "::error::Built Worker is $built, expected $EXPECTED_WORKER. Check CLOUDFLARE_ENV."
+            exit 1
+          fi
+
+      - name: Deploy Worker
+        run: pnpm exec wrangler deploy

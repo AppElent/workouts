@@ -1,6 +1,7 @@
 import type { Auth } from "convex/server";
 import type { Doc, Id, TableNames } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { getIdentity } from "./connectedApps";
 import { appError } from "./errors";
 
 type AuthCtx = { auth: Auth };
@@ -9,8 +10,9 @@ type OwnedTable = {
 	[T in TableNames]: "userId" extends keyof Doc<T> ? T : never;
 }[TableNames];
 
+/** Every Convex auth check goes through here, so connected-app scopes apply. */
 export async function getOptionalUserId(ctx: AuthCtx) {
-	return (await ctx.auth.getUserIdentity())?.subject ?? null;
+	return (await getIdentity(ctx))?.subject ?? null;
 }
 
 export async function requireUserId(ctx: AuthCtx) {

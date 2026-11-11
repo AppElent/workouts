@@ -6,6 +6,7 @@ import {
 	revokeAppleAuthorization,
 } from "./lib/appleSignIn";
 import { getOptionalUserId, requireSubject, requireUserId } from "./lib/auth";
+import { rejectConnectedApps } from "./lib/connectedApps";
 import { appError } from "./lib/errors";
 import {
 	personalDataBlockerValidator as blocker,
@@ -32,6 +33,7 @@ export const deleteData = mutation({
 	args: { expectedSubject: v.string() },
 	returns: v.object({ done: v.boolean() }),
 	handler: async (ctx, { expectedSubject }) => {
+		await rejectConnectedApps(ctx);
 		const userId = await requireSubject(ctx, expectedSubject);
 		const reason = await personalDataBlocker(ctx, userId);
 		if (reason) throw appError(reason);
