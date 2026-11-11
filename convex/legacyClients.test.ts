@@ -268,6 +268,7 @@ describe("nutrition diary with legacy clients", () => {
 
 describe("training with legacy clients", () => {
 	const exerciseId = "shipped:exercise:barbell-bench-press";
+	const squat = "shipped:exercise:barbell-back-squat";
 
 	async function sessionWithSet(alice: ReturnType<typeof setup>["alice"]) {
 		const sessionId = await alice.mutation(api.workoutSessions.create, {});
@@ -299,24 +300,53 @@ describe("training with legacy clients", () => {
 			).toMatchObject({ status: "completed" });
 	});
 
-	it("serves the previous session's sets to builds that still ask for them", async () => {
+	it("serves the latest other session's sets for that exercise, by set number", async () => {
 		const { t, alice } = setup();
-		const previous = await sessionWithSet(alice);
-		await alice.mutation(api.workoutSessions.finish, { id: previous });
-		const current = await alice.mutation(api.workoutSessions.create, {});
-		const sets = await alice.query(api.sets.getPreviousForExercise, {
-			exerciseId,
-			sessionId: current,
+		const log = async (
+			sessionId: Awaited<ReturnType<typeof sessionWithSet>>,
+			values: { setNumber: number; weight: number; exercise?: string },
+		) =>
+			alice.mutation(api.sets.add, {
+				operationId: crypto.randomUUID(),
+				sessionId,
+				exerciseId: values.exercise ?? exerciseId,
+				setNumber: values.setNumber,
+				reps: 5,
+				weight: values.weight,
+				unit: "kg",
+				setType: "working",
+			});
+		const older = await sessionWithSet(alice);
+		await alice.mutation(api.workoutSessions.finish, { id: older });
+		const latest = await alice.mutation(api.workoutSessions.create, {});
+		await log(latest, { setNumber: 2, weight: 110 });
+		await log(latest, { setNumber: 1, weight: 105 });
+		await log(latest, { setNumber: 1, weight: 60, exercise: squat });
+		await alice.mutation(api.workoutSessions.finish, { id: latest });
+		// Pin the order: the older session logged first.
+		await t.run(async (ctx) => {
+			for (const set of await ctx.db.query("sets").collect())
+				await ctx.db.patch(set._id, {
+					loggedAt: set.sessionId === older ? 1_000 : 2_000,
+				});
 		});
-		expect(sets).toMatchObject([
-			{ sessionId: previous, setNumber: 1, weight: 100, reps: 5, unit: "kg" },
-		]);
+		const current = await alice.mutation(api.workoutSessions.create, {});
 		expect(
 			await alice.query(api.sets.getPreviousForExercise, {
 				exerciseId,
-				sessionId: previous,
+				sessionId: current,
 			}),
-		).toEqual([]);
+		).toMatchObject([
+			{ sessionId: latest, setNumber: 1, weight: 105, exerciseId },
+			{ sessionId: latest, setNumber: 2, weight: 110, exerciseId },
+		]);
+		// The session being logged is skipped, so it gets the one before it.
+		expect(
+			await alice.query(api.sets.getPreviousForExercise, {
+				exerciseId,
+				sessionId: latest,
+			}),
+		).toMatchObject([{ sessionId: older, setNumber: 1, weight: 100 }]);
 		expect(
 			await t
 				.withIdentity({ subject: "bob" })
@@ -328,17 +358,24 @@ describe("training with legacy clients", () => {
 	});
 
 	it("buckets weekly volume in UTC when no offset is sent, as the old server did", async () => {
-		const { alice } = setup();
+		const { t, alice } = setup();
 		await sessionWithSet(alice);
-		const legacy = await alice.query(api.progress.weeklyVolume, {
-			exerciseId,
+		// Late Sunday of 2026-W45 in UTC, already Monday of W46 at UTC+1.
+		await t.run(async (ctx) => {
+			const set = await ctx.db.query("sets").unique();
+			if (set)
+				await ctx.db.patch(set._id, {
+					loggedAt: Date.UTC(2026, 10, 8, 23, 30),
+				});
 		});
-		expect(legacy).toEqual(
+		expect(
+			await alice.query(api.progress.weeklyVolume, { exerciseId }),
+		).toEqual([{ week: "2026-W45", volume: 500 }]);
+		expect(
 			await alice.query(api.progress.weeklyVolume, {
 				exerciseId,
-				utcOffsetMinutes: 0,
+				utcOffsetMinutes: 60,
 			}),
-		);
-		expect(legacy).toHaveLength(1);
+		).toEqual([{ week: "2026-W46", volume: 500 }]);
 	});
 });
