@@ -1,3 +1,5 @@
+import { type RuleResult, ruleIssues } from "./rules";
+
 export const EQUIPMENT = [
 	"barbell",
 	"dumbbell",
@@ -118,4 +120,65 @@ export function filterExercises<
 				(!filter.category || exercise.category === filter.category),
 		)
 		.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export type ExerciseInput = {
+	readonly name: string;
+	readonly muscleGroups: readonly string[];
+	readonly category: ExerciseCategory;
+	readonly equipment: Equipment;
+	readonly notes?: string;
+	readonly weightIncrement?: number;
+};
+
+type Normalized<T extends ExerciseInput> = Omit<
+	T,
+	"name" | "muscleGroups" | "notes" | "weightIncrement"
+> & {
+	name: string;
+	muscleGroups: string[];
+	notes: string | undefined;
+	weightIncrement: number | undefined;
+};
+
+/**
+ * A personal exercise as it is stored: trimmed name and notes, muscle groups
+ * trimmed, lowercased and without duplicates (none is fine), and a weight
+ * increment only for loaded equipment.
+ */
+export function validateExerciseInput<T extends ExerciseInput>(
+	input: T,
+): RuleResult<
+	Normalized<T>,
+	"name" | "weightIncrement",
+	"required" | "invalid"
+> {
+	const found = ruleIssues<
+		"name" | "weightIncrement",
+		"required" | "invalid"
+	>();
+	const name = input.name.trim();
+	if (!name) found.add("name", "required");
+	const weightIncrement = isLoadedEquipment(input.equipment)
+		? input.weightIncrement
+		: undefined;
+	if (
+		weightIncrement !== undefined &&
+		(!Number.isFinite(weightIncrement) || weightIncrement <= 0)
+	)
+		found.add("weightIncrement", "invalid");
+	const muscleGroups = [
+		...new Set(
+			input.muscleGroups
+				.map((muscle) => muscle.trim().toLowerCase())
+				.filter(Boolean),
+		),
+	];
+	return found.result({
+		...input,
+		name,
+		muscleGroups,
+		notes: input.notes?.trim() || undefined,
+		weightIncrement,
+	});
 }

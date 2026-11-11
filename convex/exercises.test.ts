@@ -121,3 +121,16 @@ it("creates an independent personal copy including instructions and validates ed
 		await alice.query(api.exercises.getById, { id: source._id }),
 	).toMatchObject({ name: source.name, isDefault: true });
 });
+
+it("stores muscle groups lowercased once each and no increment for bodyweight", async () => {
+	const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+	const id = await alice.mutation(api.exercises.create, {
+		...values,
+		muscleGroups: [" Chest", "chest"],
+		equipment: "bodyweight",
+		weightIncrement: 2.5,
+	});
+	const exercise = await alice.query(api.exercises.getById, { id });
+	expect(exercise?.muscleGroups).toEqual(["chest"]);
+	expect(exercise?.weightIncrement).toBeUndefined();
+});

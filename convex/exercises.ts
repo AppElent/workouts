@@ -1,3 +1,4 @@
+import { validateExerciseInput } from "@foundry/core";
 import {
 	paginationOptsValidator,
 	paginationResultValidator,
@@ -6,7 +7,7 @@ import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { getOptionalUserId, requireOwned, requireUserId } from "./lib/auth";
-import { appError } from "./lib/errors";
+import { appError, checked } from "./lib/errors";
 import {
 	exerciseDocument,
 	exerciseOneRepMaxes,
@@ -66,18 +67,6 @@ const exerciseInput = {
 	weightIncrement: exerciseDocument.fields.weightIncrement,
 };
 
-function validateExerciseInput(args: {
-	name: string;
-	weightIncrement?: number;
-}) {
-	if (!args.name.trim()) throw appError("required", "name");
-	if (
-		args.weightIncrement !== undefined &&
-		(!Number.isFinite(args.weightIncrement) || args.weightIncrement <= 0)
-	)
-		throw appError("invalid", "weightIncrement");
-}
-
 /** A personal exercise the caller owns; shipped ones are `readOnly`. */
 async function requirePersonalExercise(
 	ctx: MutationCtx,
@@ -97,10 +86,9 @@ export const create = mutation({
 	returns: v.id("exercises"),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
-		validateExerciseInput(args);
+		const exercise = checked(validateExerciseInput(args));
 		return ctx.db.insert("exercises", {
-			...args,
-			name: args.name.trim(),
+			...exercise,
 			isDefault: false,
 			userId,
 		});
@@ -112,16 +100,11 @@ export const update = mutation({
 	returns: v.null(),
 	handler: async (ctx, { id, ...args }) => {
 		const userId = await requireUserId(ctx);
-		validateExerciseInput(args);
+		const exercise = checked(validateExerciseInput(args));
 		const { _id: documentId } = await requirePersonalExercise(ctx, userId, id);
 		// Patch in place: sets, records, routines and instructions keep their identity.
-		// Explicit undefined clears optional fields omitted by the form.
-		await ctx.db.patch(documentId, {
-			...args,
-			name: args.name.trim(),
-			notes: args.notes,
-			weightIncrement: args.weightIncrement,
-		});
+		// An explicit undefined clears notes and weight increment.
+		await ctx.db.patch(documentId, exercise);
 		return null;
 	},
 });

@@ -37,7 +37,6 @@ describe("AddExerciseForm", () => {
 		renderForm();
 		submit();
 		expect(await screen.findByText("Name is required")).toBeTruthy();
-		expect(screen.getByText("At least one muscle group required")).toBeTruthy();
 		expect(createExercise).not.toHaveBeenCalled();
 	});
 
@@ -53,6 +52,21 @@ describe("AddExerciseForm", () => {
 				name: "Cable Row",
 				muscleGroups: ["lats", "traps"],
 			}),
+		);
+	});
+
+	it("saves an exercise without muscle groups and no increment for bodyweight", async () => {
+		createExercise.mockResolvedValue("exercise-id");
+		const onSuccess = renderForm();
+		fill(/^Name/, "Push-up");
+		fill(/^Weight increment/, "5");
+		fireEvent.change(screen.getByLabelText("Equipment"), {
+			target: { value: "bodyweight" },
+		});
+		submit();
+		await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+		expect(createExercise).toHaveBeenCalledWith(
+			expect.objectContaining({ muscleGroups: [], weightIncrement: undefined }),
 		);
 	});
 
