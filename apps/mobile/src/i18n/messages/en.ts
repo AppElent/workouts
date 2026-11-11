@@ -6,6 +6,7 @@ import { diaryEn } from "./diary";
 import { enduranceEn } from "./endurance";
 import { entryEditorEn } from "./entry-editor";
 import { exerciseLibraryEn } from "./exercise-library";
+import { firstRunEn } from "./first-run";
 import { foodEditorEn } from "./food-editor";
 import { foodLibraryEn } from "./food-library";
 import { goalEditorEn } from "./goal-editor";
@@ -43,6 +44,7 @@ import { workoutToolsEn } from "./workout-tools";
  */
 export const en = {
 	testData: testDataEn,
+	firstRun: firstRunEn,
 	wods: wodsEn,
 	workoutSummary: workoutSummaryEn,
 	progress: progressEn,

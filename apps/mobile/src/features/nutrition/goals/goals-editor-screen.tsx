@@ -68,7 +68,12 @@ function GoalsEditor() {
 	const navigation = useNavigation();
 	const confirm = useConfirm();
 	const reduceMotion = useReduceMotion();
-	const params = useLocalSearchParams<{ date?: string; nutrient?: string }>();
+	const params = useLocalSearchParams<{
+		date?: string;
+		nutrient?: string;
+		/** `diary`: the first-run opened the editor; saving lands on the diary. */
+		returnTo?: string;
+	}>();
 	const requestedDate =
 		typeof params.date === "string" && ISO_DATE.test(params.date)
 			? params.date
@@ -99,7 +104,8 @@ function GoalsEditor() {
 	useEffect(() => {
 		if (!leaving || closed.current) return;
 		closed.current = true;
-		close();
+		if (params.returnTo === "diary") router.dismissTo("/nutrition");
+		else close();
 	});
 
 	usePreventRemove(editor.dirty && !leaving, ({ data }) => {
