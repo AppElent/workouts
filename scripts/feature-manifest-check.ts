@@ -2,10 +2,12 @@
 // scripts/feature-manifest.test.ts. listRouteFiles lists route files under a
 // route root for one platform, relative and without extension, skipping
 // tests, layouts, and framework files. Web pathless layouts (`_app`) are
-// skipped; a mobile `_foo` screen is not. checkFeatureManifest returns one message per problem:
-// an unmapped route, a stale pattern, a status that contradicts the
-// platforms, a missing reason, or an exclusive floor feature or share target.
-// Adjust only the ignore list; the rules come from the standard.
+// skipped; a mobile `_foo` screen is not. checkFeatureManifest returns one
+// message per problem: an unmapped route, a stale pattern, a status that
+// contradicts the platforms, a missing reason, or an exclusive floor feature
+// or share target.
+// The per-platform route rules here are ahead of the standard; upstream them
+// to developer-tools#63 rather than diverging further.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -26,6 +28,9 @@ const PLATFORMS: readonly Platform[] = ["web", "mobile"];
 
 /** Extensions both routers load as routes (TanStack Router and Expo Router). */
 const ROUTE_EXTENSION = /\.(?:ts|tsx|js|jsx)$/;
+
+/** A TanStack `foo.lazy.tsx` is the code-split half of the `foo` route. */
+const WEB_LAZY_SUFFIX = /\.lazy$/;
 
 /** Expo Router platform variants (`index.ios.tsx`) are the same screen as their base file. */
 const MOBILE_PLATFORM_SUFFIX = /\.(?:ios|android|native|web)$/;
@@ -52,7 +57,6 @@ const IGNORED: Readonly<Record<Platform, readonly RegExp[]>> = {
 function isWebPathlessLayout(route: string): boolean {
 	const tokens = route
 		.replace(/\[[^\]]*\]/g, "x") // `[.]well-known` escapes a literal dot
-		.replace(/\.lazy$/, "")
 		.split(/[/.]/);
 	if (tokens.at(-1) === "route") tokens.pop();
 	return tokens.at(-1)?.startsWith("_") ?? false;
@@ -73,7 +77,7 @@ export function listRouteFiles(
 			}
 			if (!ROUTE_EXTENSION.test(entry.name) || entry.name.endsWith(".d.ts")) continue;
 			let route = path.relative(root, full).split(path.sep).join("/").replace(ROUTE_EXTENSION, "");
-			if (platform === "mobile") route = route.replace(MOBILE_PLATFORM_SUFFIX, "");
+			route = route.replace(platform === "web" ? WEB_LAZY_SUFFIX : MOBILE_PLATFORM_SUFFIX, "");
 			if (ignore.some((pattern) => pattern.test(route))) continue;
 			if (platform === "web" && isWebPathlessLayout(route)) continue;
 			out.add(route);

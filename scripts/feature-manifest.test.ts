@@ -37,6 +37,9 @@ describe("listRouteFiles", () => {
 			"_app._authed.tsx",
 			"_app._authed.unlisted.tsx",
 			"_app/_authed/dashboard/index.tsx",
+			"_app/_authed/log.tsx",
+			"_app/_authed/log.lazy.tsx",
+			"_app/_x/route.lazy.tsx",
 			"[.]well-known/$.ts",
 			"-components/button.tsx",
 			"routeTree.gen.ts",
@@ -46,6 +49,7 @@ describe("listRouteFiles", () => {
 			"[.]well-known/$",
 			"_app._authed.unlisted",
 			"_app/_authed/dashboard/index",
+			"_app/_authed/log",
 		]);
 	});
 
