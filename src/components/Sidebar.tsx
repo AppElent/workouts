@@ -1,16 +1,15 @@
-import { useAuth } from "@clerk/react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useState } from "react";
 import { LanguageToggle } from "#/components/LanguageToggle";
-import { HeaderUser } from "#/lib/auth";
+import { HeaderUser } from "#/lib/auth/HeaderUser";
+import { AUTH_PATHS } from "#/lib/auth/paths";
 import { useMessages } from "#/lib/i18n";
-import { isNavItemLocked, useNavItems } from "./navItems";
+import { useNavItems } from "./navItems";
 
 export function Sidebar() {
 	const [collapsed, setCollapsed] = useState(false);
 	const { location } = useRouterState();
-	const { isSignedIn } = useAuth();
 	const { nav } = useMessages();
 	const navItems = useNavItems();
 
@@ -21,7 +20,6 @@ export function Sidebar() {
 				collapsed ? "w-16" : "w-56",
 			].join(" ")}
 		>
-			{/* Logo */}
 			<div className="flex items-center gap-2 px-4 py-5 border-b border-[var(--border)]">
 				<div
 					className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-black text-black text-sm"
@@ -36,15 +34,13 @@ export function Sidebar() {
 				)}
 			</div>
 
-			{/* Nav */}
 			<nav className="flex-1 py-4 flex flex-col gap-1 px-2">
-				{navItems.map(({ to, label, Icon, gated }) => {
-					const locked = isNavItemLocked({ gated }, Boolean(isSignedIn));
+				{navItems.map(({ to, label, Icon, locked }) => {
 					const active = !locked && location.pathname.startsWith(to);
 					return (
 						<Link
 							key={to}
-							to={locked ? "/sign-in" : to}
+							to={locked ? AUTH_PATHS.signIn : to}
 							title={collapsed ? label : undefined}
 							className={[
 								"flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -70,19 +66,16 @@ export function Sidebar() {
 				})}
 			</nav>
 
-			{/* User / Sign in */}
 			<div className="flex items-center justify-center p-3 border-t border-[var(--border)]">
 				<HeaderUser />
 			</div>
 
-			{/* Language toggle */}
 			{!collapsed && (
 				<div className="flex items-center justify-center border-t border-[var(--border)]">
 					<LanguageToggle />
 				</div>
 			)}
 
-			{/* Collapse toggle */}
 			<button
 				type="button"
 				onClick={() => setCollapsed((c) => !c)}

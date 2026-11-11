@@ -16,7 +16,6 @@ export const comboEditorEn = {
 	replace: "Replace…",
 	confirm: "Save",
 	logTitle: "Log combo",
-	wholeCombos: "{count} × combo",
 	wholeUnit: "× combo",
 	partsThisTime: "Parts for this time",
 	partsThisTimeFooter:
@@ -40,8 +39,7 @@ export const comboEditorEn = {
 	replaced: "{name} replaced",
 	subtitle: "Combo",
 	parts: "Parts",
-	partCount: "{count} parts",
-	partCountOne: "1 part",
+	partCount: { one: "1 part", other: "{count} parts" },
 	macros: "Protein {protein} g · Carbs {carbs} g · Fat {fat} g",
 	missingTitle: "Source missing: {name}",
 	missingBody: "Replace it or remove it to log this combo",
@@ -70,8 +68,6 @@ export const comboEditorEn = {
 	undo: "Undo",
 	newTitle: "New combo",
 	name: "Name",
-	backupOff:
-		"Combos are kept on this phone. Turn on backup in Nutrition settings to keep them across devices.",
 };
 
 export const comboEditorNl: typeof comboEditorEn = {
@@ -93,7 +89,6 @@ export const comboEditorNl: typeof comboEditorEn = {
 	replace: "Vervangen…",
 	confirm: "Bewaren",
 	logTitle: "Combo loggen",
-	wholeCombos: "{count} × combo",
 	wholeUnit: "× combo",
 	partsThisTime: "Onderdelen voor deze keer",
 	partsThisTimeFooter:
@@ -119,8 +114,7 @@ export const comboEditorNl: typeof comboEditorEn = {
 	replaced: "{name} vervangen",
 	subtitle: "Combo",
 	parts: "Onderdelen",
-	partCount: "{count} onderdelen",
-	partCountOne: "1 onderdeel",
+	partCount: { one: "1 onderdeel", other: "{count} onderdelen" },
 	macros: "Eiwit {protein} g · Koolh. {carbs} g · Vet {fat} g",
 	missingTitle: "Bron ontbreekt: {name}",
 	missingBody: "Vervang of haal weg om te loggen",
@@ -149,6 +143,4 @@ export const comboEditorNl: typeof comboEditorEn = {
 	undo: "Ongedaan maken",
 	newTitle: "Nieuwe combo",
 	name: "Naam",
-	backupOff:
-		"Combo's staan op deze telefoon. Zet back-up aan in Voedingsinstellingen om ze op andere toestellen te houden.",
 };

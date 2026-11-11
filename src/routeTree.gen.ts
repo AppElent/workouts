@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -17,28 +18,30 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
-import { Route as AccountIndexRouteImport } from './routes/account/index'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as ExercisesIndexRouteImport } from './routes/exercises/index'
-import { Route as ExercisesIdRouteImport } from './routes/exercises/$id'
-import { Route as HostedWorkoutsIndexRouteImport } from './routes/hosted-workouts/index'
-import { Route as HostedWorkoutsIdRouteImport } from './routes/hosted-workouts/$id'
-import { Route as HostedWorkoutsNewRouteImport } from './routes/hosted-workouts/new'
-import { Route as JoinTokenRouteImport } from './routes/join/$token'
-import { Route as LogIndexRouteImport } from './routes/log/index'
-import { Route as LogSessionIdRouteImport } from './routes/log/$sessionId'
-import { Route as LoginIndexRouteImport } from './routes/login/index'
-import { Route as ProfileIndexRouteImport } from './routes/profile/index'
-import { Route as ProgressIndexRouteImport } from './routes/progress/index'
-import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
-import { Route as WodsIndexRouteImport } from './routes/wods/index'
-import { Route as WodsIdRouteImport } from './routes/wods/$id'
-import { Route as HostedWorkoutsEditIdRouteImport } from './routes/hosted-workouts/edit.$id'
-import { Route as ApiCliAuthLoginRouteImport } from './routes/api/cli/auth/login'
+import { Route as AppAuthedRouteImport } from './routes/_app/_authed'
+import { Route as AppExercisesIndexRouteImport } from './routes/_app/exercises/index'
+import { Route as AppExercisesIdRouteImport } from './routes/_app/exercises/$id'
+import { Route as AppJoinTokenRouteImport } from './routes/_app/join/$token'
+import { Route as AppAuthedAccountIndexRouteImport } from './routes/_app/_authed/account/index'
+import { Route as AppAuthedDashboardIndexRouteImport } from './routes/_app/_authed/dashboard/index'
+import { Route as AppAuthedHostedWorkoutsIndexRouteImport } from './routes/_app/_authed/hosted-workouts/index'
+import { Route as AppAuthedHostedWorkoutsIdRouteImport } from './routes/_app/_authed/hosted-workouts/$id'
+import { Route as AppAuthedHostedWorkoutsNewRouteImport } from './routes/_app/_authed/hosted-workouts/new'
+import { Route as AppAuthedLogIndexRouteImport } from './routes/_app/_authed/log/index'
+import { Route as AppAuthedLogSessionIdRouteImport } from './routes/_app/_authed/log/$sessionId'
+import { Route as AppAuthedProgressIndexRouteImport } from './routes/_app/_authed/progress/index'
+import { Route as AppAuthedRoutinesIndexRouteImport } from './routes/_app/_authed/routines/index'
+import { Route as AppAuthedWodsIndexRouteImport } from './routes/_app/_authed/wods/index'
+import { Route as AppAuthedWodsIdRouteImport } from './routes/_app/_authed/wods/$id'
+import { Route as AppAuthedHostedWorkoutsEditIdRouteImport } from './routes/_app/_authed/hosted-workouts/edit.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -76,96 +79,89 @@ const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
   path: '/.well-known/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AccountIndexRoute = AccountIndexRouteImport.update({
-  id: '/account/',
-  path: '/account/',
-  getParentRoute: () => rootRouteImport,
+const AppAuthedRoute = AppAuthedRouteImport.update({
+  id: '/_authed',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/dashboard/',
-  path: '/dashboard/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExercisesIndexRoute = ExercisesIndexRouteImport.update({
+const AppExercisesIndexRoute = AppExercisesIndexRouteImport.update({
   id: '/exercises/',
   path: '/exercises/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const ExercisesIdRoute = ExercisesIdRouteImport.update({
+const AppExercisesIdRoute = AppExercisesIdRouteImport.update({
   id: '/exercises/$id',
   path: '/exercises/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const HostedWorkoutsIndexRoute = HostedWorkoutsIndexRouteImport.update({
-  id: '/hosted-workouts/',
-  path: '/hosted-workouts/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HostedWorkoutsIdRoute = HostedWorkoutsIdRouteImport.update({
-  id: '/hosted-workouts/$id',
-  path: '/hosted-workouts/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HostedWorkoutsNewRoute = HostedWorkoutsNewRouteImport.update({
-  id: '/hosted-workouts/new',
-  path: '/hosted-workouts/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JoinTokenRoute = JoinTokenRouteImport.update({
+const AppJoinTokenRoute = AppJoinTokenRouteImport.update({
   id: '/join/$token',
   path: '/join/$token',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const LogIndexRoute = LogIndexRouteImport.update({
+const AppAuthedAccountIndexRoute = AppAuthedAccountIndexRouteImport.update({
+  id: '/account/',
+  path: '/account/',
+  getParentRoute: () => AppAuthedRoute,
+} as any)
+const AppAuthedDashboardIndexRoute = AppAuthedDashboardIndexRouteImport.update({
+  id: '/dashboard/',
+  path: '/dashboard/',
+  getParentRoute: () => AppAuthedRoute,
+} as any)
+const AppAuthedHostedWorkoutsIndexRoute =
+  AppAuthedHostedWorkoutsIndexRouteImport.update({
+    id: '/hosted-workouts/',
+    path: '/hosted-workouts/',
+    getParentRoute: () => AppAuthedRoute,
+  } as any)
+const AppAuthedHostedWorkoutsIdRoute =
+  AppAuthedHostedWorkoutsIdRouteImport.update({
+    id: '/hosted-workouts/$id',
+    path: '/hosted-workouts/$id',
+    getParentRoute: () => AppAuthedRoute,
+  } as any)
+const AppAuthedHostedWorkoutsNewRoute =
+  AppAuthedHostedWorkoutsNewRouteImport.update({
+    id: '/hosted-workouts/new',
+    path: '/hosted-workouts/new',
+    getParentRoute: () => AppAuthedRoute,
+  } as any)
+const AppAuthedLogIndexRoute = AppAuthedLogIndexRouteImport.update({
   id: '/log/',
   path: '/log/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppAuthedRoute,
 } as any)
-const LogSessionIdRoute = LogSessionIdRouteImport.update({
+const AppAuthedLogSessionIdRoute = AppAuthedLogSessionIdRouteImport.update({
   id: '/log/$sessionId',
   path: '/log/$sessionId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppAuthedRoute,
 } as any)
-const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: '/login/',
-  path: '/login/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileIndexRoute = ProfileIndexRouteImport.update({
-  id: '/profile/',
-  path: '/profile/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProgressIndexRoute = ProgressIndexRouteImport.update({
+const AppAuthedProgressIndexRoute = AppAuthedProgressIndexRouteImport.update({
   id: '/progress/',
   path: '/progress/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppAuthedRoute,
 } as any)
-const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
+const AppAuthedRoutinesIndexRoute = AppAuthedRoutinesIndexRouteImport.update({
   id: '/routines/',
   path: '/routines/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppAuthedRoute,
 } as any)
-const WodsIndexRoute = WodsIndexRouteImport.update({
+const AppAuthedWodsIndexRoute = AppAuthedWodsIndexRouteImport.update({
   id: '/wods/',
   path: '/wods/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppAuthedRoute,
 } as any)
-const WodsIdRoute = WodsIdRouteImport.update({
+const AppAuthedWodsIdRoute = AppAuthedWodsIdRouteImport.update({
   id: '/wods/$id',
   path: '/wods/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppAuthedRoute,
 } as any)
-const HostedWorkoutsEditIdRoute = HostedWorkoutsEditIdRouteImport.update({
-  id: '/hosted-workouts/edit/$id',
-  path: '/hosted-workouts/edit/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCliAuthLoginRoute = ApiCliAuthLoginRouteImport.update({
-  id: '/api/cli/auth/login',
-  path: '/api/cli/auth/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AppAuthedHostedWorkoutsEditIdRoute =
+  AppAuthedHostedWorkoutsEditIdRouteImport.update({
+    id: '/hosted-workouts/edit/$id',
+    path: '/hosted-workouts/edit/$id',
+    getParentRoute: () => AppAuthedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -176,24 +172,21 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
-  '/exercises/$id': typeof ExercisesIdRoute
-  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
-  '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
-  '/join/$token': typeof JoinTokenRoute
-  '/log/$sessionId': typeof LogSessionIdRoute
-  '/wods/$id': typeof WodsIdRoute
-  '/account/': typeof AccountIndexRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/exercises/': typeof ExercisesIndexRoute
-  '/hosted-workouts/': typeof HostedWorkoutsIndexRoute
-  '/log/': typeof LogIndexRoute
-  '/login/': typeof LoginIndexRoute
-  '/profile/': typeof ProfileIndexRoute
-  '/progress/': typeof ProgressIndexRoute
-  '/routines/': typeof RoutinesIndexRoute
-  '/wods/': typeof WodsIndexRoute
-  '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
-  '/api/cli/auth/login': typeof ApiCliAuthLoginRoute
+  '/exercises/$id': typeof AppExercisesIdRoute
+  '/join/$token': typeof AppJoinTokenRoute
+  '/exercises/': typeof AppExercisesIndexRoute
+  '/hosted-workouts/$id': typeof AppAuthedHostedWorkoutsIdRoute
+  '/hosted-workouts/new': typeof AppAuthedHostedWorkoutsNewRoute
+  '/log/$sessionId': typeof AppAuthedLogSessionIdRoute
+  '/wods/$id': typeof AppAuthedWodsIdRoute
+  '/account/': typeof AppAuthedAccountIndexRoute
+  '/dashboard/': typeof AppAuthedDashboardIndexRoute
+  '/hosted-workouts/': typeof AppAuthedHostedWorkoutsIndexRoute
+  '/log/': typeof AppAuthedLogIndexRoute
+  '/progress/': typeof AppAuthedProgressIndexRoute
+  '/routines/': typeof AppAuthedRoutinesIndexRoute
+  '/wods/': typeof AppAuthedWodsIndexRoute
+  '/hosted-workouts/edit/$id': typeof AppAuthedHostedWorkoutsEditIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -204,28 +197,26 @@ export interface FileRoutesByTo {
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
-  '/exercises/$id': typeof ExercisesIdRoute
-  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
-  '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
-  '/join/$token': typeof JoinTokenRoute
-  '/log/$sessionId': typeof LogSessionIdRoute
-  '/wods/$id': typeof WodsIdRoute
-  '/account': typeof AccountIndexRoute
-  '/dashboard': typeof DashboardIndexRoute
-  '/exercises': typeof ExercisesIndexRoute
-  '/hosted-workouts': typeof HostedWorkoutsIndexRoute
-  '/log': typeof LogIndexRoute
-  '/login': typeof LoginIndexRoute
-  '/profile': typeof ProfileIndexRoute
-  '/progress': typeof ProgressIndexRoute
-  '/routines': typeof RoutinesIndexRoute
-  '/wods': typeof WodsIndexRoute
-  '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
-  '/api/cli/auth/login': typeof ApiCliAuthLoginRoute
+  '/exercises/$id': typeof AppExercisesIdRoute
+  '/join/$token': typeof AppJoinTokenRoute
+  '/exercises': typeof AppExercisesIndexRoute
+  '/hosted-workouts/$id': typeof AppAuthedHostedWorkoutsIdRoute
+  '/hosted-workouts/new': typeof AppAuthedHostedWorkoutsNewRoute
+  '/log/$sessionId': typeof AppAuthedLogSessionIdRoute
+  '/wods/$id': typeof AppAuthedWodsIdRoute
+  '/account': typeof AppAuthedAccountIndexRoute
+  '/dashboard': typeof AppAuthedDashboardIndexRoute
+  '/hosted-workouts': typeof AppAuthedHostedWorkoutsIndexRoute
+  '/log': typeof AppAuthedLogIndexRoute
+  '/progress': typeof AppAuthedProgressIndexRoute
+  '/routines': typeof AppAuthedRoutinesIndexRoute
+  '/wods': typeof AppAuthedWodsIndexRoute
+  '/hosted-workouts/edit/$id': typeof AppAuthedHostedWorkoutsEditIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -233,24 +224,22 @@ export interface FileRoutesById {
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
-  '/exercises/$id': typeof ExercisesIdRoute
-  '/hosted-workouts/$id': typeof HostedWorkoutsIdRoute
-  '/hosted-workouts/new': typeof HostedWorkoutsNewRoute
-  '/join/$token': typeof JoinTokenRoute
-  '/log/$sessionId': typeof LogSessionIdRoute
-  '/wods/$id': typeof WodsIdRoute
-  '/account/': typeof AccountIndexRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/exercises/': typeof ExercisesIndexRoute
-  '/hosted-workouts/': typeof HostedWorkoutsIndexRoute
-  '/log/': typeof LogIndexRoute
-  '/login/': typeof LoginIndexRoute
-  '/profile/': typeof ProfileIndexRoute
-  '/progress/': typeof ProgressIndexRoute
-  '/routines/': typeof RoutinesIndexRoute
-  '/wods/': typeof WodsIndexRoute
-  '/hosted-workouts/edit/$id': typeof HostedWorkoutsEditIdRoute
-  '/api/cli/auth/login': typeof ApiCliAuthLoginRoute
+  '/_app/_authed': typeof AppAuthedRouteWithChildren
+  '/_app/exercises/$id': typeof AppExercisesIdRoute
+  '/_app/join/$token': typeof AppJoinTokenRoute
+  '/_app/exercises/': typeof AppExercisesIndexRoute
+  '/_app/_authed/hosted-workouts/$id': typeof AppAuthedHostedWorkoutsIdRoute
+  '/_app/_authed/hosted-workouts/new': typeof AppAuthedHostedWorkoutsNewRoute
+  '/_app/_authed/log/$sessionId': typeof AppAuthedLogSessionIdRoute
+  '/_app/_authed/wods/$id': typeof AppAuthedWodsIdRoute
+  '/_app/_authed/account/': typeof AppAuthedAccountIndexRoute
+  '/_app/_authed/dashboard/': typeof AppAuthedDashboardIndexRoute
+  '/_app/_authed/hosted-workouts/': typeof AppAuthedHostedWorkoutsIndexRoute
+  '/_app/_authed/log/': typeof AppAuthedLogIndexRoute
+  '/_app/_authed/progress/': typeof AppAuthedProgressIndexRoute
+  '/_app/_authed/routines/': typeof AppAuthedRoutinesIndexRoute
+  '/_app/_authed/wods/': typeof AppAuthedWodsIndexRoute
+  '/_app/_authed/hosted-workouts/edit/$id': typeof AppAuthedHostedWorkoutsEditIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -264,23 +253,20 @@ export interface FileRouteTypes {
     | '/sso-callback'
     | '/.well-known/$'
     | '/exercises/$id'
+    | '/join/$token'
+    | '/exercises/'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
-    | '/join/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account/'
     | '/dashboard/'
-    | '/exercises/'
     | '/hosted-workouts/'
     | '/log/'
-    | '/login/'
-    | '/profile/'
     | '/progress/'
     | '/routines/'
     | '/wods/'
     | '/hosted-workouts/edit/$id'
-    | '/api/cli/auth/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -292,26 +278,24 @@ export interface FileRouteTypes {
     | '/sso-callback'
     | '/.well-known/$'
     | '/exercises/$id'
+    | '/join/$token'
+    | '/exercises'
     | '/hosted-workouts/$id'
     | '/hosted-workouts/new'
-    | '/join/$token'
     | '/log/$sessionId'
     | '/wods/$id'
     | '/account'
     | '/dashboard'
-    | '/exercises'
     | '/hosted-workouts'
     | '/log'
-    | '/login'
-    | '/profile'
     | '/progress'
     | '/routines'
     | '/wods'
     | '/hosted-workouts/edit/$id'
-    | '/api/cli/auth/login'
   id:
     | '__root__'
     | '/'
+    | '/_app'
     | '/forgot-password'
     | '/mcp'
     | '/privacy'
@@ -319,28 +303,27 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/sso-callback'
     | '/.well-known/$'
-    | '/exercises/$id'
-    | '/hosted-workouts/$id'
-    | '/hosted-workouts/new'
-    | '/join/$token'
-    | '/log/$sessionId'
-    | '/wods/$id'
-    | '/account/'
-    | '/dashboard/'
-    | '/exercises/'
-    | '/hosted-workouts/'
-    | '/log/'
-    | '/login/'
-    | '/profile/'
-    | '/progress/'
-    | '/routines/'
-    | '/wods/'
-    | '/hosted-workouts/edit/$id'
-    | '/api/cli/auth/login'
+    | '/_app/_authed'
+    | '/_app/exercises/$id'
+    | '/_app/join/$token'
+    | '/_app/exercises/'
+    | '/_app/_authed/hosted-workouts/$id'
+    | '/_app/_authed/hosted-workouts/new'
+    | '/_app/_authed/log/$sessionId'
+    | '/_app/_authed/wods/$id'
+    | '/_app/_authed/account/'
+    | '/_app/_authed/dashboard/'
+    | '/_app/_authed/hosted-workouts/'
+    | '/_app/_authed/log/'
+    | '/_app/_authed/progress/'
+    | '/_app/_authed/routines/'
+    | '/_app/_authed/wods/'
+    | '/_app/_authed/hosted-workouts/edit/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -348,24 +331,6 @@ export interface RootRouteChildren {
   SignUpRoute: typeof SignUpRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
-  ExercisesIdRoute: typeof ExercisesIdRoute
-  HostedWorkoutsIdRoute: typeof HostedWorkoutsIdRoute
-  HostedWorkoutsNewRoute: typeof HostedWorkoutsNewRoute
-  JoinTokenRoute: typeof JoinTokenRoute
-  LogSessionIdRoute: typeof LogSessionIdRoute
-  WodsIdRoute: typeof WodsIdRoute
-  AccountIndexRoute: typeof AccountIndexRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-  ExercisesIndexRoute: typeof ExercisesIndexRoute
-  HostedWorkoutsIndexRoute: typeof HostedWorkoutsIndexRoute
-  LogIndexRoute: typeof LogIndexRoute
-  LoginIndexRoute: typeof LoginIndexRoute
-  ProfileIndexRoute: typeof ProfileIndexRoute
-  ProgressIndexRoute: typeof ProgressIndexRoute
-  RoutinesIndexRoute: typeof RoutinesIndexRoute
-  WodsIndexRoute: typeof WodsIndexRoute
-  HostedWorkoutsEditIdRoute: typeof HostedWorkoutsEditIdRoute
-  ApiCliAuthLoginRoute: typeof ApiCliAuthLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -375,6 +340,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -426,137 +398,174 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/account/': {
-      id: '/account/'
-      path: '/account'
-      fullPath: '/account/'
-      preLoaderRoute: typeof AccountIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_app/_authed': {
+      id: '/_app/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppAuthedRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/dashboard'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/exercises/': {
-      id: '/exercises/'
+    '/_app/exercises/': {
+      id: '/_app/exercises/'
       path: '/exercises'
       fullPath: '/exercises/'
-      preLoaderRoute: typeof ExercisesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppExercisesIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/exercises/$id': {
-      id: '/exercises/$id'
+    '/_app/exercises/$id': {
+      id: '/_app/exercises/$id'
       path: '/exercises/$id'
       fullPath: '/exercises/$id'
-      preLoaderRoute: typeof ExercisesIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppExercisesIdRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/hosted-workouts/': {
-      id: '/hosted-workouts/'
-      path: '/hosted-workouts'
-      fullPath: '/hosted-workouts/'
-      preLoaderRoute: typeof HostedWorkoutsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hosted-workouts/$id': {
-      id: '/hosted-workouts/$id'
-      path: '/hosted-workouts/$id'
-      fullPath: '/hosted-workouts/$id'
-      preLoaderRoute: typeof HostedWorkoutsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hosted-workouts/new': {
-      id: '/hosted-workouts/new'
-      path: '/hosted-workouts/new'
-      fullPath: '/hosted-workouts/new'
-      preLoaderRoute: typeof HostedWorkoutsNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/join/$token': {
-      id: '/join/$token'
+    '/_app/join/$token': {
+      id: '/_app/join/$token'
       path: '/join/$token'
       fullPath: '/join/$token'
-      preLoaderRoute: typeof JoinTokenRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppJoinTokenRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/log/': {
-      id: '/log/'
+    '/_app/_authed/account/': {
+      id: '/_app/_authed/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AppAuthedAccountIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/_app/_authed/dashboard/': {
+      id: '/_app/_authed/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AppAuthedDashboardIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/_app/_authed/hosted-workouts/': {
+      id: '/_app/_authed/hosted-workouts/'
+      path: '/hosted-workouts'
+      fullPath: '/hosted-workouts/'
+      preLoaderRoute: typeof AppAuthedHostedWorkoutsIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/_app/_authed/hosted-workouts/$id': {
+      id: '/_app/_authed/hosted-workouts/$id'
+      path: '/hosted-workouts/$id'
+      fullPath: '/hosted-workouts/$id'
+      preLoaderRoute: typeof AppAuthedHostedWorkoutsIdRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/_app/_authed/hosted-workouts/new': {
+      id: '/_app/_authed/hosted-workouts/new'
+      path: '/hosted-workouts/new'
+      fullPath: '/hosted-workouts/new'
+      preLoaderRoute: typeof AppAuthedHostedWorkoutsNewRouteImport
+      parentRoute: typeof AppAuthedRoute
+    }
+    '/_app/_authed/log/': {
+      id: '/_app/_authed/log/'
       path: '/log'
       fullPath: '/log/'
-      preLoaderRoute: typeof LogIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedLogIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
-    '/log/$sessionId': {
-      id: '/log/$sessionId'
+    '/_app/_authed/log/$sessionId': {
+      id: '/_app/_authed/log/$sessionId'
       path: '/log/$sessionId'
       fullPath: '/log/$sessionId'
-      preLoaderRoute: typeof LogSessionIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedLogSessionIdRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
-    '/login/': {
-      id: '/login/'
-      path: '/login'
-      fullPath: '/login/'
-      preLoaderRoute: typeof LoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile/': {
-      id: '/profile/'
-      path: '/profile'
-      fullPath: '/profile/'
-      preLoaderRoute: typeof ProfileIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/progress/': {
-      id: '/progress/'
+    '/_app/_authed/progress/': {
+      id: '/_app/_authed/progress/'
       path: '/progress'
       fullPath: '/progress/'
-      preLoaderRoute: typeof ProgressIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedProgressIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
-    '/routines/': {
-      id: '/routines/'
+    '/_app/_authed/routines/': {
+      id: '/_app/_authed/routines/'
       path: '/routines'
       fullPath: '/routines/'
-      preLoaderRoute: typeof RoutinesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedRoutinesIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
-    '/wods/': {
-      id: '/wods/'
+    '/_app/_authed/wods/': {
+      id: '/_app/_authed/wods/'
       path: '/wods'
       fullPath: '/wods/'
-      preLoaderRoute: typeof WodsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedWodsIndexRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
-    '/wods/$id': {
-      id: '/wods/$id'
+    '/_app/_authed/wods/$id': {
+      id: '/_app/_authed/wods/$id'
       path: '/wods/$id'
       fullPath: '/wods/$id'
-      preLoaderRoute: typeof WodsIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedWodsIdRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
-    '/hosted-workouts/edit/$id': {
-      id: '/hosted-workouts/edit/$id'
+    '/_app/_authed/hosted-workouts/edit/$id': {
+      id: '/_app/_authed/hosted-workouts/edit/$id'
       path: '/hosted-workouts/edit/$id'
       fullPath: '/hosted-workouts/edit/$id'
-      preLoaderRoute: typeof HostedWorkoutsEditIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cli/auth/login': {
-      id: '/api/cli/auth/login'
-      path: '/api/cli/auth/login'
-      fullPath: '/api/cli/auth/login'
-      preLoaderRoute: typeof ApiCliAuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAuthedHostedWorkoutsEditIdRouteImport
+      parentRoute: typeof AppAuthedRoute
     }
   }
 }
 
+interface AppAuthedRouteChildren {
+  AppAuthedHostedWorkoutsIdRoute: typeof AppAuthedHostedWorkoutsIdRoute
+  AppAuthedHostedWorkoutsNewRoute: typeof AppAuthedHostedWorkoutsNewRoute
+  AppAuthedLogSessionIdRoute: typeof AppAuthedLogSessionIdRoute
+  AppAuthedWodsIdRoute: typeof AppAuthedWodsIdRoute
+  AppAuthedAccountIndexRoute: typeof AppAuthedAccountIndexRoute
+  AppAuthedDashboardIndexRoute: typeof AppAuthedDashboardIndexRoute
+  AppAuthedHostedWorkoutsIndexRoute: typeof AppAuthedHostedWorkoutsIndexRoute
+  AppAuthedLogIndexRoute: typeof AppAuthedLogIndexRoute
+  AppAuthedProgressIndexRoute: typeof AppAuthedProgressIndexRoute
+  AppAuthedRoutinesIndexRoute: typeof AppAuthedRoutinesIndexRoute
+  AppAuthedWodsIndexRoute: typeof AppAuthedWodsIndexRoute
+  AppAuthedHostedWorkoutsEditIdRoute: typeof AppAuthedHostedWorkoutsEditIdRoute
+}
+
+const AppAuthedRouteChildren: AppAuthedRouteChildren = {
+  AppAuthedHostedWorkoutsIdRoute: AppAuthedHostedWorkoutsIdRoute,
+  AppAuthedHostedWorkoutsNewRoute: AppAuthedHostedWorkoutsNewRoute,
+  AppAuthedLogSessionIdRoute: AppAuthedLogSessionIdRoute,
+  AppAuthedWodsIdRoute: AppAuthedWodsIdRoute,
+  AppAuthedAccountIndexRoute: AppAuthedAccountIndexRoute,
+  AppAuthedDashboardIndexRoute: AppAuthedDashboardIndexRoute,
+  AppAuthedHostedWorkoutsIndexRoute: AppAuthedHostedWorkoutsIndexRoute,
+  AppAuthedLogIndexRoute: AppAuthedLogIndexRoute,
+  AppAuthedProgressIndexRoute: AppAuthedProgressIndexRoute,
+  AppAuthedRoutinesIndexRoute: AppAuthedRoutinesIndexRoute,
+  AppAuthedWodsIndexRoute: AppAuthedWodsIndexRoute,
+  AppAuthedHostedWorkoutsEditIdRoute: AppAuthedHostedWorkoutsEditIdRoute,
+}
+
+const AppAuthedRouteWithChildren = AppAuthedRoute._addFileChildren(
+  AppAuthedRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAuthedRoute: typeof AppAuthedRouteWithChildren
+  AppExercisesIdRoute: typeof AppExercisesIdRoute
+  AppJoinTokenRoute: typeof AppJoinTokenRoute
+  AppExercisesIndexRoute: typeof AppExercisesIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAuthedRoute: AppAuthedRouteWithChildren,
+  AppExercisesIdRoute: AppExercisesIdRoute,
+  AppJoinTokenRoute: AppJoinTokenRoute,
+  AppExercisesIndexRoute: AppExercisesIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
@@ -564,24 +573,6 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpRoute: SignUpRoute,
   SsoCallbackRoute: SsoCallbackRoute,
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
-  ExercisesIdRoute: ExercisesIdRoute,
-  HostedWorkoutsIdRoute: HostedWorkoutsIdRoute,
-  HostedWorkoutsNewRoute: HostedWorkoutsNewRoute,
-  JoinTokenRoute: JoinTokenRoute,
-  LogSessionIdRoute: LogSessionIdRoute,
-  WodsIdRoute: WodsIdRoute,
-  AccountIndexRoute: AccountIndexRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-  ExercisesIndexRoute: ExercisesIndexRoute,
-  HostedWorkoutsIndexRoute: HostedWorkoutsIndexRoute,
-  LogIndexRoute: LogIndexRoute,
-  LoginIndexRoute: LoginIndexRoute,
-  ProfileIndexRoute: ProfileIndexRoute,
-  ProgressIndexRoute: ProgressIndexRoute,
-  RoutinesIndexRoute: RoutinesIndexRoute,
-  WodsIndexRoute: WodsIndexRoute,
-  HostedWorkoutsEditIdRoute: HostedWorkoutsEditIdRoute,
-  ApiCliAuthLoginRoute: ApiCliAuthLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

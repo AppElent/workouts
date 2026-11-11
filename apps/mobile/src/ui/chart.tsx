@@ -10,15 +10,10 @@
 import { useState } from "react";
 import { type LayoutChangeEvent, StyleSheet } from "react-native";
 import { BarChart, LineChart } from "react-native-gifted-charts";
-import { spacing, useTokens } from "../theme";
-import {
-	CHART_HEIGHT,
-	ChartFrame,
-	type ChartProps,
-	type Point,
-} from "./chart-frame";
+import { spacing, type, useTokens } from "../theme";
+import { CHART_HEIGHT, ChartFrame, type ChartProps } from "./chart-frame";
 
-export type { ChartProps, Point };
+export type { ChartProps };
 
 /** Charts need a pixel width; the parent's is only known after layout. */
 function useMeasuredWidth() {
@@ -115,5 +110,5 @@ export function BucketChart({
 }
 
 const styles = StyleSheet.create({
-	axis: { fontSize: 9 },
+	axis: type.axis,
 });

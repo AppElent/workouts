@@ -1,9 +1,15 @@
+import { type RuleResult, ruleIssues } from "../rules";
+
 /**
  * The nutrient vocabulary for the Nutrition module.
  *
  * These keys are the single spelling used by `@foundry/core`, Convex, the
- * device SQLite schema and the message trees (spec #68, D7). British `fibre`
- * is deliberate; so is `carbs` over `carbohydrates`.
+ * device SQLite schema and the message trees. British `fibre` is deliberate;
+ * so is `carbs` over `carbohydrates`.
+ *
+ * Convex `perNutrient` requires every key on every stored diary, library and
+ * draft row: a new key ships optional there, or after a backfill, or the
+ * schema push fails.
  */
 
 /** The eight nutrients a person can see, total and set a goal for. */
@@ -29,7 +35,7 @@ export const SHIPPED_NUTRIENT_KEYS = [...NUTRIENT_KEYS, "sodium"] as const;
 
 export type ShippedNutrientKey = (typeof SHIPPED_NUTRIENT_KEYS)[number];
 
-export type NutrientUnit = "kcal" | "g" | "mg";
+type NutrientUnit = "kcal" | "g" | "mg";
 
 export const NUTRIENT_UNITS: Readonly<
 	Record<ShippedNutrientKey, NutrientUnit>
@@ -46,7 +52,7 @@ export const NUTRIENT_UNITS: Readonly<
 });
 
 /**
- * A nutrient figure, or the reason there isn't one (spec #68, D8).
+ * A nutrient figure, or the reason there isn't one.
  *
  * - `value` — a real figure, stored unrounded per 100 base units.
  * - `trace` — the source says "present in trace amounts". Contributes numeric
@@ -55,7 +61,7 @@ export const NUTRIENT_UNITS: Readonly<
  *
  * The three states stay distinct all the way from generation through
  * aggregation to the screen; collapsing trace or absent into 0 is the failure
- * mode the spec names in six user stories.
+ * mode to avoid.
  */
 export type NutrientValue =
 	| { readonly kind: "value"; readonly amount: number }
@@ -68,12 +74,6 @@ export const TRACE: NutrientValue = Object.freeze({ kind: "trace" as const });
 
 export function nutrientValue(amount: number): NutrientValue {
 	return Object.freeze({ kind: "value" as const, amount });
-}
-
-export function isValue(
-	value: NutrientValue,
-): value is { kind: "value"; amount: number } {
-	return value.kind === "value";
 }
 
 /**
@@ -90,21 +90,20 @@ export function numericAmount(value: NutrientValue): number | undefined {
  * Decimal places for presentation only. Storage stays unrounded: rounding at
  * generation would compound across a day's worth of entries.
  */
-export const NUTRIENT_DISPLAY_DECIMALS: Readonly<
-	Record<ShippedNutrientKey, number>
-> = Object.freeze({
-	energy: 0,
-	protein: 1,
-	carbs: 1,
-	fat: 1,
-	saturatedFat: 1,
-	fibre: 1,
-	sugars: 1,
-	// Salt figures are small (a slice of bread is ~0.4 g) and one decimal hides
-	// the difference between foods, so salt gets two.
-	salt: 2,
-	sodium: 0,
-});
+const NUTRIENT_DISPLAY_DECIMALS: Readonly<Record<ShippedNutrientKey, number>> =
+	Object.freeze({
+		energy: 0,
+		protein: 1,
+		carbs: 1,
+		fat: 1,
+		saturatedFat: 1,
+		fibre: 1,
+		sugars: 1,
+		// Salt figures are small (a slice of bread is ~0.4 g) and one decimal hides
+		// the difference between foods, so salt gets two.
+		salt: 2,
+		sodium: 0,
+	});
 
 /** Round a stored amount for display. Returns a number, not a string. */
 export function roundForDisplay(
@@ -121,8 +120,7 @@ export function roundForDisplay(
  * `trace` and `absent` are invariant under scaling: the source never gave a
  * number for either, so no ratio can produce one. Only `value` carries an
  * amount to rescale. This is what lets a diary entry's quantity change without
- * ever consulting the food it came from (spec #68, ticket #73) — the snapshot
- * scales itself.
+ * ever consulting the food it came from — the snapshot scales itself.
  */
 export function scaleNutrient(
 	value: NutrientValue,
@@ -142,4 +140,56 @@ export function rescaleNutrients<K extends string>(
 		scaled[key] = scaleNutrient(nutrients[key], factor);
 	}
 	return scaled;
+}
+
+/** Kilojoules in one kilocalorie (thermochemical calorie). */
+export const KJ_PER_KCAL = 4.184;
+
+/** Kilocalories from kilojoules, to a tenth: the precision energy is stored at. */
+export function kcalFromKilojoules(kilojoules: number): number {
+	return Math.round((kilojoules / KJ_PER_KCAL) * 10) / 10;
+}
+
+type NutrientValueCode = "invalid" | "negative";
+
+/** One stored nutrient reading, or why it is not one. */
+export function checkNutrientValue(
+	value: unknown,
+): { ok: true; value: NutrientValue } | { ok: false; code: NutrientValueCode } {
+	if (!value || typeof value !== "object" || !("kind" in value))
+		return { ok: false, code: "invalid" };
+	if (value.kind === "absent") return { ok: true, value: ABSENT };
+	if (value.kind === "trace") return { ok: true, value: TRACE };
+	if (value.kind !== "value" || !("amount" in value))
+		return { ok: false, code: "invalid" };
+	const { amount } = value;
+	if (typeof amount !== "number" || !Number.isFinite(amount))
+		return { ok: false, code: "invalid" };
+	if (amount < 0) return { ok: false, code: "negative" };
+	return { ok: true, value: { kind: "value", amount } };
+}
+
+/**
+ * All eight nutrients as stored readings: every key present, each a value
+ * (finite, not negative), trace or absent.
+ */
+export function validateNutrientValues(
+	nutrients: unknown,
+): RuleResult<
+	Record<NutrientKey, NutrientValue>,
+	NutrientKey,
+	NutrientValueCode
+> {
+	const issues = ruleIssues<NutrientKey, NutrientValueCode>();
+	const values = {} as Record<NutrientKey, NutrientValue>;
+	const source =
+		nutrients && typeof nutrients === "object"
+			? (nutrients as Record<string, unknown>)
+			: {};
+	for (const key of NUTRIENT_KEYS) {
+		const checked = checkNutrientValue(source[key]);
+		if (checked.ok) values[key] = checked.value;
+		else issues.add(key, checked.code);
+	}
+	return issues.result(values);
 }

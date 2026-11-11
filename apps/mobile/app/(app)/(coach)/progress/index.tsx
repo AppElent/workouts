@@ -1,4 +1,2 @@
-/** Route for the Progress tab. See `src/screens/progress.tsx`. */
-
-export { ActivityErrorBoundary as ErrorBoundary } from "../../../../src/screens/activity-components";
-export { ProgressScreen as default } from "../../../../src/screens/progress";
+export { TrainingRouteError as ErrorBoundary } from "../../../../src/features/training/components/training-route-error";
+export { ProgressScreen as default } from "../../../../src/features/training/progress/progress-screen";

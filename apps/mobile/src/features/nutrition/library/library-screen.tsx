@@ -1,18 +1,17 @@
-import { useConvexConnectionState } from "convex/react";
+import type { LibraryCategory } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
-import { todayIsoDate } from "../../../data/calendar-day";
-import { foodPhotos } from "../../../data/food-photo-manager";
+import { useStalledOffline } from "../../../convex/stalled-offline";
 import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "../../../data/nutrition-operation-service";
+	libraryIdsFromSourceKeys,
+	useFoodShortcuts,
+} from "../../../data/nutrition-shortcuts";
 import { usePersonalFoods } from "../../../data/personal-foods";
-import { useStalledOffline } from "../../../data/stalled-offline";
-import { fmt, useI18n } from "../../../i18n";
+import { todayIsoDate } from "../../../dates/calendar-day";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { radius, spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { EmptyState } from "../../../ui/empty-state";
@@ -23,6 +22,10 @@ import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import {
+	useScreenWrite,
+	useWriteFailureMessage,
+} from "../../../ui/use-screen-write";
 import { BarcodeScanner } from "../components/barcode-scanner";
 import { FoodVisualView } from "../components/food-visual";
 import { NutritionChoiceMenu } from "../components/nutrition-choice-menu";
@@ -39,7 +42,6 @@ import {
 	filterLibrary,
 	type LibraryChip,
 	type LibraryItem,
-	type LibraryKind,
 	libraryItemName,
 	libraryItems,
 	librarySections,
@@ -60,7 +62,8 @@ function itemKey(item: LibraryItem) {
 }
 
 export function LibraryScreen() {
-	const pendingItems = useRef(new Set<string>());
+	const screenWrite = useScreenWrite();
+	const writeFailureMessage = useWriteFailureMessage();
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.library;
 	const colors = useTokens();
@@ -68,23 +71,14 @@ export function LibraryScreen() {
 	const confirm = useConfirm();
 	const [chip, setChip] = useState<LibraryChip>("all");
 	const [query, setQuery] = useState("");
-	const operations = useNutritionOperations();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
+	const shortcuts = useFoodShortcuts();
 	const favoriteKeys = new Set(
-		(subject ? operations.listFavorites(subject) : []).map(
-			(shortcut) => shortcut.sourceKey,
-		),
+		shortcuts.favorites().map((shortcut) => shortcut.sourceKey),
 	);
 	const library = usePersonalFoods({
 		...(chip === "favorite"
 			? {
-					ids: [...favoriteKeys]
-						.filter(
-							(key) => key.startsWith("personal:") || key.startsWith("combo:"),
-						)
-						.slice(0, 100)
-						.map((key) => key.slice(key.indexOf(":") + 1)),
+					ids: libraryIdsFromSourceKeys([...favoriteKeys]),
 				}
 			: {
 					browse: {
@@ -102,8 +96,7 @@ export function LibraryScreen() {
 	const [scanning, setScanning] = useState(false);
 	const bottomToolbar = isIOS26OrLater();
 	const searchRef = useRef<SearchBarCommands>(null);
-	const connected = useConvexConnectionState().isWebSocketConnected;
-	const offline = useStalledOffline(true, connected);
+	const offline = useStalledOffline(true);
 	const visible = filterLibrary(items, {
 		chip,
 		query: chip === "favorite" ? query : "",
@@ -135,47 +128,49 @@ export function LibraryScreen() {
 			pathname: "/personal-food-new",
 			params: { classification, ...(name ? { name } : {}) },
 		});
-	const startSelection = (kind?: LibraryKind) => {
+	const startSelection = (kind?: LibraryCategory) => {
 		setSelection(new Set());
 		if (kind) setChip(kind === "combo" ? "all" : kind);
 	};
 	// Foods and recipes can both be parts, so the selection shows every kind.
 	const newCombo = () => startSelection("combo");
 
-	const toggleFavorite = (item: LibraryItem) => {
-		if (!subject) return;
-		operations.toggleFavorite(subject, favoriteKeyOf(item), !item.favorite);
-	};
-	const duplicate = async (item: LibraryItem) => {
-		if (pendingItems.current.has(item.id)) return;
-		pendingItems.current.add(item.id);
-		try {
-			if (item.kind === "combo") {
-				const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.combo;
-				await library.createCombo({
-					...draft,
-					name: `${draft.name}${copy.copySuffix}`,
-					parts: draft.parts.map(({ id: _part, status: _s, ...part }) => part),
-				});
-			} else {
-				const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.food;
-				await library.create({
-					...draft,
-					name: {
-						en: `${draft.name.en}${copy.copySuffix}`,
-						nl: `${draft.name.nl}${copy.copySuffix}`,
-					},
-				});
-			}
-			toast.success(
-				fmt(copy.duplicated, { name: libraryItemName(item, locale) }),
-			);
-		} catch {
-			toast.error(copy.actionFailure);
-		} finally {
-			pendingItems.current.delete(item.id);
-		}
-	};
+	const toggleFavorite = (item: LibraryItem) =>
+		shortcuts.setFavorite(favoriteKeyOf(item), !item.favorite);
+	const duplicate = (item: LibraryItem) =>
+		screenWrite.run(
+			copy.actionFailure,
+			async () => {
+				if (item.kind === "combo") {
+					const {
+						id: _id,
+						createdAt: _c,
+						updatedAt: _u,
+						...draft
+					} = item.combo;
+					await library.createCombo({
+						...draft,
+						name: `${draft.name}${copy.copySuffix}`,
+						parts: draft.parts.map(
+							({ id: _part, status: _s, ...part }) => part,
+						),
+					});
+				} else {
+					const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = item.food;
+					await library.create({
+						...draft,
+						name: {
+							en: `${draft.name.en}${copy.copySuffix}`,
+							nl: `${draft.name.nl}${copy.copySuffix}`,
+						},
+					});
+				}
+				toast.success(
+					fmt(copy.duplicated, { name: libraryItemName(item, locale) }),
+				);
+			},
+			{ key: item.id },
+		);
 	const remove = async (targets: readonly LibraryItem[]) => {
 		if (targets.length === 0) return;
 		const users = [
@@ -213,25 +208,22 @@ export function LibraryScreen() {
 			destructive: true,
 		});
 		if (!ok) return;
-		if (targets.some((item) => pendingItems.current.has(item.id))) return;
-		for (const item of targets) pendingItems.current.add(item.id);
-		try {
-			for (const item of targets) {
-				if (item.kind === "combo") await library.removeCombo(item.id);
-				else if (await library.remove(item.id))
-					foodPhotos.remove(item.food.visual);
-			}
-			setSelection(null);
-			toast.success(
-				targets.length === 1
-					? fmt(copy.deleted, { name: libraryItemName(targets[0], locale) })
-					: fmt(copy.deletedMany, { count: targets.length }),
-			);
-		} catch {
-			toast.error(copy.actionFailure);
-		} finally {
-			for (const item of targets) pendingItems.current.delete(item.id);
-		}
+		await screenWrite.run(
+			copy.actionFailure,
+			async () => {
+				for (const item of targets) {
+					if (item.kind === "combo") await library.removeCombo(item.id);
+					else await library.remove(item.id);
+				}
+				setSelection(null);
+				toast.success(
+					targets.length === 1
+						? fmt(copy.deleted, { name: libraryItemName(targets[0], locale) })
+						: fmt(copy.deletedMany, { count: targets.length }),
+				);
+			},
+			{ key: targets.map((item) => item.id) },
+		);
 	};
 	const actions = (item: LibraryItem): RowAction[] =>
 		item.kind === "combo"
@@ -379,7 +371,7 @@ export function LibraryScreen() {
 		);
 	};
 
-	const sectionMenu = (kind: LibraryKind) =>
+	const sectionMenu = (kind: LibraryCategory) =>
 		kind === "combo"
 			? [
 					{ id: "new", label: copy.newCombo },
@@ -479,10 +471,9 @@ export function LibraryScreen() {
 			icon: "star" as const,
 			disabled: selectedItems.length === 0,
 			onPress: () => {
-				if (!subject) return;
 				const allFavorite = selectedItems.every((item) => item.favorite);
 				for (const item of selectedItems)
-					operations.toggleFavorite(subject, favoriteKeyOf(item), !allFavorite);
+					shortcuts.setFavorite(favoriteKeyOf(item), !allFavorite);
 			},
 		},
 		{
@@ -529,8 +520,8 @@ export function LibraryScreen() {
 						let local: Awaited<ReturnType<typeof library.lookupBarcode>>;
 						try {
 							local = await library.lookupBarcode(barcode);
-						} catch {
-							toast.error(copy.actionFailure);
+						} catch (error) {
+							toast.error(writeFailureMessage(error, copy.actionFailure));
 							return;
 						}
 						if (local)
@@ -590,9 +581,7 @@ export function LibraryScreen() {
 				>
 					{selecting
 						? copy.title
-						: items.length === 1
-							? copy.itemCountOne
-							: fmt(copy.itemCount, { count: items.length })}
+						: plural(locale, items.length, copy.itemCount)}
 				</AppText>
 				{bottomToolbar || selecting ? null : (
 					<View

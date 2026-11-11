@@ -1,27 +1,19 @@
-import type { PersonalMeasure } from "@foundry/core/nutrition";
-import {
-	createContext,
-	type ReactNode,
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import type { PersonalMeasure } from "@foundry/core";
+import { createContext, type ReactNode, use, useMemo, useState } from "react";
 import { api } from "../convex/api";
 import { usePaginatedQuery } from "../convex/query-cache";
-import {
-	useNutritionOperations,
-	useNutritionOperationVersion,
-} from "./nutrition-operation-service";
+import { useAccountWrite } from "./account-write";
+import { useCachedAccountList } from "./cached-account-list";
 
 type PersonalMeasuresState = {
-	measures: readonly PersonalMeasure[];
-	loading: boolean;
-	lastCreatedId?: string;
-	markCreated: (measure: PersonalMeasure) => void;
-	consumeCreated: () => void;
+	readonly measures: readonly PersonalMeasure[];
+	readonly loading: boolean;
+	/** The measure just created from a serving popup, to select once. */
+	readonly lastCreatedId?: string;
+	readonly markCreated: (measure: PersonalMeasure) => void;
+	readonly consumeCreated: () => void;
 };
+
 const PersonalMeasuresContext = createContext<PersonalMeasuresState>({
 	measures: [],
 	loading: false,
@@ -34,79 +26,39 @@ export function PersonalMeasuresProvider({
 }: {
 	children: ReactNode;
 }) {
-	const operations = useNutritionOperations();
-	const [optimisticCreated, setOptimisticCreated] = useState<PersonalMeasure>();
-	const [lastCreatedId, setLastCreatedId] = useState<string>();
-	useNutritionOperationVersion();
-	const subject = operations.getSubject();
-	const { results, status, loadMore } = usePaginatedQuery(
+	const { subject } = useAccountWrite();
+	const page = usePaginatedQuery(
 		api.personalMeasures.list,
 		subject ? {} : "skip",
 		{ initialNumItems: 100 },
 	);
-
-	useEffect(() => {
-		if (status === "CanLoadMore") loadMore(100);
-	}, [loadMore, status]);
-	useEffect(() => {
-		if (
-			subject &&
-			status === "Exhausted" &&
-			(!optimisticCreated ||
-				results.some((measure) => measure.id === optimisticCreated.id))
-		) {
-			operations.cachePersonalMeasures(subject, results);
-		}
-	}, [operations, optimisticCreated, results, status, subject]);
-	useEffect(() => {
-		if (
-			optimisticCreated &&
-			results.some((measure) => measure.id === optimisticCreated.id)
-		) {
-			setOptimisticCreated(undefined);
-		}
-	}, [optimisticCreated, results]);
-
-	const measures = useMemo(() => {
-		const available = subject
-			? status === "Exhausted"
-				? results
-				: operations.getPersonalMeasures(subject)
-			: [];
-		return optimisticCreated &&
-			!available.some((item) => item.id === optimisticCreated.id)
-			? [...available, optimisticCreated]
-			: available;
-	}, [operations, optimisticCreated, results, status, subject]);
-	const markCreated = useCallback((measure: PersonalMeasure) => {
-		setOptimisticCreated(measure);
-		setLastCreatedId(measure.id);
-	}, []);
-	const consumeCreated = useCallback(() => setLastCreatedId(undefined), []);
+	const { items, loading, markCreated } = useCachedAccountList<PersonalMeasure>(
+		subject ? "personal-measures" : undefined,
+		page,
+	);
+	const [lastCreatedId, setLastCreatedId] = useState<string>();
 	const value = useMemo<PersonalMeasuresState>(
 		() => ({
-			measures,
-			loading:
-				Boolean(subject) &&
-				status === "LoadingFirstPage" &&
-				measures.length === 0,
+			measures: items,
+			loading: loading && items.length === 0,
 			lastCreatedId,
-			markCreated,
-			consumeCreated,
+			markCreated(measure) {
+				markCreated(measure);
+				setLastCreatedId(measure.id);
+			},
+			consumeCreated: () => setLastCreatedId(undefined),
 		}),
-		[consumeCreated, lastCreatedId, markCreated, measures, status, subject],
+		[items, lastCreatedId, loading, markCreated],
 	);
 	return (
-		<PersonalMeasuresContext.Provider value={value}>
-			{children}
-		</PersonalMeasuresContext.Provider>
+		<PersonalMeasuresContext value={value}>{children}</PersonalMeasuresContext>
 	);
 }
 
 export function usePersonalMeasures() {
-	return useContext(PersonalMeasuresContext).measures;
+	return use(PersonalMeasuresContext).measures;
 }
 
 export function usePersonalMeasureActions() {
-	return useContext(PersonalMeasuresContext);
+	return use(PersonalMeasuresContext);
 }

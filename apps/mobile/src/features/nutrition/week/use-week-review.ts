@@ -1,15 +1,10 @@
-import { useConvexConnectionState } from "convex/react";
+import { type IsoDate, isRealIsoDate, weekStartMonday } from "@foundry/core";
 import { useState } from "react";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { type IsoDate, todayIsoDate } from "../../../data/calendar-day";
-
-import {
-	isRealIsoDate,
-	type WeeklyReviewDay,
-	weekStartMonday,
-} from "../../../data/nutrition-weekly-review";
-import { useStalledOffline } from "../../../data/stalled-offline";
+import { useStalledOffline } from "../../../convex/stalled-offline";
+import { todayIsoDate } from "../../../dates/calendar-day";
+import type { WeeklyReviewDay } from "./weekly-review";
 
 /** The chosen week's acknowledged account data. */
 export function useWeekReview(startDate: string | undefined) {
@@ -20,17 +15,13 @@ export function useWeekReview(startDate: string | undefined) {
 			? weekStartMonday(startDate)
 			: current;
 	const [week, setWeek] = useState<IsoDate>(
-		requested > current ? current : requested,
+		[requested, current].sort()[0] ?? current,
 	);
 	const result = useQuery(api.nutritionReview.week, {
 		startDate: week,
 		today,
 	});
-	const { isWebSocketConnected } = useConvexConnectionState();
-	const stalledOffline = useStalledOffline(
-		result === undefined,
-		isWebSocketConnected,
-	);
+	const stalledOffline = useStalledOffline(result === undefined);
 	const days: readonly WeeklyReviewDay[] | undefined = result?.days;
 	return {
 		today,

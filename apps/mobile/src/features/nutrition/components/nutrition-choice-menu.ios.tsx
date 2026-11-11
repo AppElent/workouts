@@ -13,7 +13,7 @@ import {
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
-import { useHostScheme, useTokens } from "../../../theme";
+import { useScheme, useTokens } from "../../../theme";
 import type {
 	NutritionChoiceMenuItem,
 	NutritionChoiceMenuProps,
@@ -77,7 +77,7 @@ export function NutritionChoiceMenu({
 			</Button>
 		);
 	return (
-		<Host matchContents colorScheme={useHostScheme()} style={style}>
+		<Host matchContents colorScheme={useScheme()} style={style}>
 			<Menu
 				label={
 					<RNHostView matchContents>

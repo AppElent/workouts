@@ -1,4 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
+import {
+	type Bilingual,
+	type Locale,
+	NUTRIENT_KEYS,
+	NUTRITION_AI_LIMITS,
+	NUTRITION_AI_PLAUSIBILITY,
+	type NutrientKey,
+} from "@foundry/core";
 
 /**
  * Provider-neutral AI help for nutrition entry (design: designs/nutrition/ai-entry_final.html).
@@ -11,16 +19,23 @@ import Anthropic from "@anthropic-ai/sdk";
  * Labels are transcribed, never computed.
  *
  * Every provider implements `generate`; prompts and schemas stay here so a second
- * provider (OpenAI) is one more adapter. The prototype that chose this shape and
- * the model lives on branch t3code/nutrition-ai-prototype-capture.
+ * provider (OpenAI) is one more adapter.
  */
 
-export type ImageInput = {
-	readonly mediaType: "image/jpeg" | "image/png" | "image/webp";
+export const AI_IMAGE_TYPES = [
+	"image/jpeg",
+	"image/png",
+	"image/webp",
+] as const;
+export const AI_CONFIDENCES = ["high", "medium", "low"] as const;
+type Confidence = (typeof AI_CONFIDENCES)[number];
+
+type ImageInput = {
+	readonly mediaType: (typeof AI_IMAGE_TYPES)[number];
 	readonly base64: string;
 };
 
-export type Part =
+type Part =
 	| { readonly kind: "text"; readonly text: string }
 	| ({ readonly kind: "image" } & ImageInput);
 
@@ -31,12 +46,12 @@ type GenerateRequest = {
 	readonly schema: Record<string, unknown>;
 };
 
-export type Source = { readonly title: string; readonly url: string };
+type Source = { title: string; url: string };
 
-export type ResearchResult = {
+type ResearchResult = {
 	/** What was found, in plain text; empty when nothing useful turned up. */
-	readonly notes: string;
-	readonly sources: readonly Source[];
+	notes: string;
+	sources: Source[];
 };
 
 export interface NutritionAiProvider {
@@ -47,7 +62,7 @@ export interface NutritionAiProvider {
 
 /**
  * Haiku without thinking at low effort: p50 ~3 s for describe + select against
- * ~7 s with adaptive thinking, measured with scripts/nutrition-ai.eval.prototype.ts.
+ * ~7 s with adaptive thinking.
  */
 const ANTHROPIC_MODEL = "claude-haiku-5-5";
 /** One attempt and one retry stay inside what the phone waits for. */
@@ -175,8 +190,6 @@ export function nutritionAiProvider(): NutritionAiProvider | null {
 	return key ? new AnthropicProvider(key) : null;
 }
 
-// ───────────────────────────── schemas ─────────────────────────────
-
 function object(properties: Record<string, unknown>) {
 	return {
 		type: "object",
@@ -187,19 +200,16 @@ function object(properties: Record<string, unknown>) {
 }
 
 const nullableNumber = { type: ["number", "null"] };
-const confidence = { enum: ["high", "medium", "low"] };
+const confidence = { enum: AI_CONFIDENCES };
 const unit = { enum: ["g", "ml"] };
 
-const NUTRIENTS = {
-	energy: { type: "number" },
-	protein: { type: "number" },
-	carbs: { type: "number" },
-	fat: { type: "number" },
-	saturatedFat: { type: "number" },
-	sugars: { type: "number" },
-	fibre: { type: "number" },
-	salt: { type: "number" },
-};
+function perNutrient<T>(schema: T): Record<NutrientKey, T> {
+	return Object.fromEntries(
+		NUTRIENT_KEYS.map((key) => [key, schema]),
+	) as Record<NutrientKey, T>;
+}
+
+const NUTRIENTS = perNutrient({ type: "number" });
 
 const DESCRIBE_SCHEMA = object({
 	kind: { enum: ["meal", "label", "no_food"] },
@@ -258,17 +268,7 @@ const LABEL_SCHEMA = object({
 	barcode: { type: ["string", "null"] },
 	packAmount: nullableNumber,
 	basis: unit,
-	per100: object({
-		energyKj: nullableNumber,
-		energy: nullableNumber,
-		fat: nullableNumber,
-		saturatedFat: nullableNumber,
-		carbs: nullableNumber,
-		sugars: nullableNumber,
-		fibre: nullableNumber,
-		protein: nullableNumber,
-		salt: nullableNumber,
-	}),
+	per100: object({ energyKj: nullableNumber, ...perNutrient(nullableNumber) }),
 	servings: {
 		type: "array",
 		items: object({
@@ -279,10 +279,7 @@ const LABEL_SCHEMA = object({
 	notes: { type: "string" },
 });
 
-// ───────────────────────────── prompts ─────────────────────────────
-
-export type AiLocale = "en" | "nl";
-const LANGUAGE: Record<AiLocale, string> = { en: "English", nl: "Dutch" };
+const LANGUAGE: Record<Locale, string> = { en: "English", nl: "Dutch" };
 
 const ITEM_RULES = `- Every item is one of two kinds:
   - "ingredient": a single basic food a generic food database covers well (apple, semi-skimmed milk, Gouda, brown bread, boiled potatoes), or part of something made at home. A home-made sandwich or "boterham met kaas" is bread + cheese (+ butter only when mentioned) as separate ingredients.
@@ -305,7 +302,7 @@ If the text names a specific product from a store, brand, chain or restaurant (e
 Answer in a few short lines per product: its exact name, weight per piece, energy (kcal), protein, carbohydrates, fat, saturated fat, sugars, fibre and salt, per piece or per 100 g as published, and the main ingredients. Only report figures you found; never invent them.
 If the text names no specific store or brand product, or nothing usable is found, answer exactly NONE.`;
 
-function describeSystem(locale: AiLocale) {
+function describeSystem(locale: Locale) {
 	return `You help someone log food in a Dutch nutrition diary.
 First decide what the input is:
 - "label": a photo of a nutrition facts table on packaging. Return no items.
@@ -325,16 +322,19 @@ ${ITEM_RULES}
 When a previous result and corrections are given, return the complete updated result: apply every correction, keep everything the corrections do not touch (items, names, amounts, components) exactly as it was, and do not ask a question that was already answered. Every previous item has an id: return it on the item it became, also when renamed; a new item has id null, and on a first analysis every id is null. A correction naming a different dish replaces the items it is made of: "het was een tosti" after bread and cheese is one Tosti item with the weight of the whole dish (bread and filling together) and no bread or cheese row left, and seen never names a dish the items are not. Seen and title do not mention what was removed, also not to say it is gone: they describe only what is there. Something a correction replaces ("kip in plaats van shoarma") must be gone from the item's name, the seen sentence and the components, with the energy recalculated. Items in removedByPerson were deleted by the person: leave them out even though the description mentions them, unless a correction brings them back. After a correction, seen and title describe the result as it now is, and never mention what was removed or how it changed ("Bruin brood met kaas", not "... zonder melk" or "melk is weggelaten").`;
 }
 
+/** The same figures the phone checks a cooked estimate against. */
+const COOKED = NUTRITION_AI_PLAUSIBILITY.cookedKcalPer100g;
+
 const SELECT_SYSTEM = `You match diary items to foods in a nutrition database. Each item lists candidate foods as "ref — name".
 Pick the candidate whose nutrition best represents what was eaten: match preparation (cooked/raw/fried), fat level and variety. Prefer the plain everyday variant over speciality ones (Turkish, raisin, lactose-free, enriched) unless the item says so, and prefer a candidate from the named store or brand.
 A candidate marked "bereid" (prepared) covers the usual ways of cooking that food, baked, grilled or boiled alike: "Kipfilet gebakken" and "Kipfilet" pick "Kipfilet (bereid)", never an estimate. Estimate only when no candidate is that food.
 A composed food is never a pure ingredient: a sauce with meat is not plain mince. When a separate fat item (butter, oil) is listed, pick a boiled or plain variant of the food it was fried in, never a fried one, so the fat counts once. Never pick a prepared candidate that already contains another listed item (e.g. porridge "bereid m melk" when the milk is its own item); pick the plain food instead.
-An item whose amount is a cooked weight must not get a dry or raw candidate: "Havermout gekookt" is not dry oats, "Rijst gekookt" is not uncooked rice. Dried grains, pasta and legumes have 3–4 times the energy per gram. If only dry or raw candidates exist, ref is null and give an estimate for the cooked food (cooked oats about 70 kcal per 100 g, cooked rice about 130, cooked pasta about 150).
+An item whose amount is a cooked weight must not get a dry or raw candidate: "Havermout gekookt" is not dry oats, "Rijst gekookt" is not uncooked rice. Dried grains, pasta and legumes have 3–4 times the energy per gram. If only dry or raw candidates exist, ref is null and give an estimate for the cooked food (cooked oats about ${COOKED.oats} kcal per 100 g, cooked rice about ${COOKED.rice}, cooked pasta about ${COOKED.pasta}).
 Cheese without a stated fat level is the 48+ kind, not 20+ or 30+.
 An item marked "product" is a ready-made product: pick a candidate only when it is that same dish or product (the person's own saved food, or the same dish in the database such as "Appeltaart" for a slice of apple pie), never one of its ingredients; otherwise ref is null and estimate is null.
 ref must be one of the item's candidate refs, or null when none is a reasonable nutritional proxy. Only when ref is null, give estimate: your best estimate of energy (kcal) and grams of protein, available carbs, fat, saturatedFat, sugars, fibre and salt per 100 g (or per 100 ml for a drink) of the food as eaten, never for the whole portion. The figures must fit what the item's name says it is: protein powder ≈ 400 kcal per 100 g, a drink is a drink. Otherwise estimate is null.`;
 
-function labelSystem(locale: AiLocale) {
+function labelSystem(locale: Locale) {
 	return `You read photos of food packaging for a nutrition diary.
 Transcribe the nutrition table exactly as printed — never compute, round, or estimate a value.
 - Use the per 100 g / per 100 ml column (basis). Labels may use a decimal comma: "1,8" means 1.8.
@@ -346,70 +346,51 @@ Transcribe the nutrition table exactly as printed — never compute, round, or e
 - notes: anything uncertain (blur, glare, cut-off text) in ${LANGUAGE[locale]}; empty string if nothing.`;
 }
 
-// ───────────────────────────── tasks ─────────────────────────────
-
-export type Component = {
-	readonly name: string;
-	readonly grams: number;
+type Component = {
+	name: string;
+	grams: number;
 } & EstimateNutrients;
 
-export type DescribedItem = {
+type DescribedItem = {
 	/** On a correction: the id of the previous row this item is. */
-	readonly id?: string | null;
-	readonly kind: "ingredient" | "product";
-	readonly name: string;
-	readonly amount: number;
-	readonly unit: "g" | "ml";
+	id?: string | null;
+	kind: "ingredient" | "product";
+	name: string;
+	amount: number;
+	unit: "g" | "ml";
 	/** The amount as a weight, so a per-gram food can be used for a drink. */
-	readonly grams: number;
-	readonly amountLabel: string;
+	grams: number;
+	amountLabel: string;
 	/** False when the portion is the AI's own choice. */
-	readonly amountStated?: boolean;
-	readonly confidence: "high" | "medium" | "low";
-	readonly brand: string | null;
-	readonly searchTerms: readonly string[];
+	amountStated?: boolean;
+	confidence: Confidence;
+	brand: string | null;
+	searchTerms: string[];
 	/** What a product is made of; empty for an ingredient. */
-	readonly components: readonly Component[];
+	components: Component[];
 	/** A product's nutrition for `amount`: the sum of its components. */
-	readonly estimate: EstimateNutrients | null;
+	estimate: EstimateNutrients | null;
 };
 
-export type Question = {
-	readonly text: string;
-	readonly options: readonly string[];
+type Question = {
+	text: string;
+	options: string[];
 };
 
-export type Described = {
+type Described = {
 	/** Pages a web lookup used; empty without one. */
-	readonly sources: readonly Source[];
-	readonly kind: "meal" | "label" | "no_food";
-	readonly seen: string;
+	sources: Source[];
+	kind: "meal" | "label" | "no_food";
+	seen: string;
 	/** A name for everything together, for saving it as a Personal Food. */
-	readonly title: string;
-	readonly question: Question | null;
-	readonly items: readonly DescribedItem[];
+	title: string;
+	question: Question | null;
+	items: DescribedItem[];
 };
-
-export const MAX_ITEMS = 20;
-export const MAX_TEXT = 2000;
-export const MAX_FOLLOW_UPS = 10;
-/** Base64 of a ~2 MB image; the phone resizes to ~1600 px before sending. */
-export const MAX_IMAGE_BASE64 = 2_800_000;
-
-const NUTRIENT_NAMES = [
-	"energy",
-	"protein",
-	"carbs",
-	"fat",
-	"saturatedFat",
-	"sugars",
-	"fibre",
-	"salt",
-] as const;
 
 function sumComponents(components: readonly Component[]): EstimateNutrients {
 	return Object.fromEntries(
-		NUTRIENT_NAMES.map((key) => [
+		NUTRIENT_KEYS.map((key) => [
 			key,
 			components.reduce((total, part) => total + part[key], 0),
 		]),
@@ -440,7 +421,7 @@ function normaliseItem(raw: DescribedItem): DescribedItem {
 		? components.map((part) => ({
 				...part,
 				grams: part.grams * factor,
-				...Object.fromEntries(NUTRIENT_NAMES.map((k) => [k, part[k] * factor])),
+				...Object.fromEntries(NUTRIENT_KEYS.map((k) => [k, part[k] * factor])),
 			}))
 		: components;
 	return {
@@ -500,7 +481,7 @@ export async function describe(
 	input: {
 		text?: string;
 		image?: ImageInput;
-		locale: AiLocale;
+		locale: Locale;
 		/** The previous result as JSON, when refining it. */
 		previous?: string;
 		/** Corrections and answers, oldest first. */
@@ -519,7 +500,10 @@ export async function describe(
 			? // A failed lookup still gets an answer: an estimate, marked as one.
 				await provider
 					.research({ system: RESEARCH_SYSTEM, text: input.text })
-					.catch(() => ({ notes: "", sources: [] }))
+					.catch((error: unknown) => {
+						console.error("nutritionAi.research failed", error);
+						return { notes: "", sources: [] };
+					})
 			: { notes: "", sources: [] };
 	if (input.image) parts.push({ kind: "image", ...input.image });
 	parts.push({
@@ -573,7 +557,7 @@ export async function describe(
 				),
 		)
 		.filter((item) => item.amount > 0 && item.grams > 0 && item.name.trim())
-		.slice(0, MAX_ITEMS)
+		.slice(0, NUTRITION_AI_LIMITS.maxItems)
 		.map(normaliseItem);
 	const needless = needlessPreparationQuestion(
 		raw.question?.text ?? "",
@@ -598,7 +582,7 @@ export async function describe(
 	};
 }
 
-export type SelectInput = {
+type SelectInput = {
 	readonly name: string;
 	readonly product?: boolean;
 	readonly amount: number;
@@ -610,26 +594,14 @@ export type SelectInput = {
 	}[];
 };
 
-export type EstimateNutrients = Readonly<
-	Record<
-		| "energy"
-		| "protein"
-		| "carbs"
-		| "fat"
-		| "saturatedFat"
-		| "sugars"
-		| "fibre"
-		| "salt",
-		number
-	>
->;
+type EstimateNutrients = Record<NutrientKey, number>;
 
-export type Choice = {
-	readonly index: number;
-	readonly ref: string | null;
-	readonly estimate: EstimateNutrients | null;
+type Choice = {
+	index: number;
+	ref: string | null;
+	estimate: EstimateNutrients | null;
 	/** Nothing usable came back: the best-ranked candidate stands in. */
-	readonly guess?: boolean;
+	guess?: boolean;
 };
 
 export async function select(
@@ -669,7 +641,7 @@ export async function select(
 		const estimate =
 			ref === null && usable && choice?.estimate
 				? (Object.fromEntries(
-						NUTRIENT_NAMES.map((key) => [
+						NUTRIENT_KEYS.map((key) => [
 							key,
 							((choice.estimate as EstimateNutrients)[key] * item.amount) / 100,
 						]),
@@ -691,42 +663,33 @@ export async function select(
 }
 
 function validEstimate(estimate: EstimateNutrients): boolean {
-	return NUTRIENT_NAMES.map((key) => estimate[key]).every(
+	return NUTRIENT_KEYS.map((key) => estimate[key]).every(
 		(value) => Number.isFinite(value) && value >= 0,
 	);
 }
 
-export type LabelNutrient =
-	| "energyKj"
-	| "energy"
-	| "fat"
-	| "saturatedFat"
-	| "carbs"
-	| "sugars"
-	| "fibre"
-	| "protein"
-	| "salt";
+type LabelNutrient = NutrientKey | "energyKj";
 
-export type LabelReading = {
-	readonly isLabel: boolean;
-	readonly name: { readonly en: string; readonly nl: string };
-	readonly brand: string | null;
-	readonly barcode: string | null;
+type LabelReading = {
+	isLabel: boolean;
+	name: Bilingual;
+	brand: string | null;
+	barcode: string | null;
 	/** True when the label showed a barcode whose checksum failed: rescan. */
-	readonly barcodeInvalid: boolean;
-	readonly packAmount: number | null;
-	readonly basis: "g" | "ml";
-	readonly per100: Readonly<Record<LabelNutrient, number | null>>;
-	readonly servings: readonly {
-		readonly name: { readonly en: string; readonly nl: string };
-		readonly amount: number;
+	barcodeInvalid: boolean;
+	packAmount: number | null;
+	basis: "g" | "ml";
+	per100: Record<LabelNutrient, number | null>;
+	servings: {
+		name: Bilingual;
+		amount: number;
 	}[];
-	readonly notes: string;
+	notes: string;
 };
 
 export async function readLabel(
 	provider: NutritionAiProvider,
-	input: { image: ImageInput; locale: AiLocale },
+	input: { image: ImageInput; locale: Locale },
 ): Promise<LabelReading> {
 	const raw = (await provider.generate({
 		task: "label",
@@ -750,7 +713,7 @@ export async function readLabel(
 }
 
 /** EAN-8/13 checksum: a misread digit fails it, so a wrong barcode never lands. */
-export function validEan(digits: string): boolean {
+function validEan(digits: string): boolean {
 	if (digits.length !== 13 && digits.length !== 8) return false;
 	const body = digits.slice(0, -1).split("").map(Number).reverse();
 	const sum = body.reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 3 : 1), 0);

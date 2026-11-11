@@ -1,4 +1,4 @@
-import { NUTRIENT_KEYS, type NutrientKey } from "@foundry/core/nutrition";
+import { NUTRIENT_KEYS, type NutrientKey } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -8,7 +8,6 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import { type LabelCheck, labelChecks } from "../../../data/nutrition-ai";
 import { prepareImage } from "../../../data/nutrition-ai-image";
 import {
 	modalAnimation,
@@ -21,7 +20,12 @@ import { useToast } from "../../../ui/toast";
 import { FoodFormCard } from "../components/food-form-section";
 import { FoodPhotoCamera } from "../components/food-photo-camera";
 import { NutritionAiConsent } from "../components/nutrition-ai-consent";
-import { nutritionAiFailure, useNutritionAi } from "../use-nutrition-ai";
+import { type LabelCheck, labelChecks } from "../nutrition-ai";
+import {
+	aiLimitTitle,
+	nutritionAiFailure,
+	useNutritionAi,
+} from "../use-nutrition-ai";
 import type { PersonalFoodDraftState } from "./use-personal-food-draft";
 
 type Outcome = {
@@ -65,9 +69,12 @@ export function PersonalFoodLabelScan({
 	}, []);
 
 	async function read(uri: string) {
+		if (!ai.online) {
+			toast.error(copy.offlineHelpBody);
+			return;
+		}
 		setStage("reading");
 		try {
-			if (!ai.online) throw new Error("offline");
 			const image = await prepareImage(uri);
 			const reading = await ai.readLabel({ image, locale });
 			if (!reading.isLabel) {
@@ -80,16 +87,9 @@ export function PersonalFoodLabelScan({
 				checks: labelChecks(reading, draft.initial?.provenance.barcode),
 			});
 		} catch (error) {
-			const failure =
-				error instanceof Error && error.message === "offline"
-					? "offline"
-					: nutritionAiFailure(error);
+			const failure = nutritionAiFailure(error);
 			toast.error(
-				failure === "offline"
-					? copy.offlineHelpBody
-					: failure === "limit"
-						? fmt(copy.limitTitle, { count: 50 })
-						: copy[failure],
+				failure === "limit" ? aiLimitTitle(copy.limitTitle) : copy[failure],
 			);
 		} finally {
 			setStage("idle");

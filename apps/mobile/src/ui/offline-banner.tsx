@@ -1,6 +1,4 @@
 /**
- * Ported from the web's `src/components/OfflineBanner.tsx`.
- *
  * Convex queues mutations while the socket is down and replays them on
  * reconnect, so the app stays usable offline — but a set that hasn't reached
  * the server yet looks identical to one that has. This banner is the only thing
@@ -13,22 +11,20 @@
  *
  * The sentence comes from the message tree: this banner floats over every
  * screen including the Nutrition ones, and an English strip across a Dutch app
- * is exactly the kind of gap #79 exists to close.
+ * must not happen.
  */
-import { useConvexConnectionState } from "convex/react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useStalledOffline } from "../data/stalled-offline";
+import { useStalledOffline } from "../convex/stalled-offline";
 import { useI18n } from "../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../theme";
 import { AppText } from "./text";
 
 export function OfflineBanner() {
 	const styles = useThemedStyles(createStyles);
-	const { isWebSocketConnected } = useConvexConnectionState();
 	const insets = useSafeAreaInsets();
 	const { t } = useI18n();
-	const offline = useStalledOffline(true, isWebSocketConnected);
+	const offline = useStalledOffline(true);
 
 	if (!offline) return null;
 

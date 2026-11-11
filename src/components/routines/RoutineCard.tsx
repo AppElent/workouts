@@ -1,46 +1,41 @@
 import { api } from "@convex/_generated/api";
-import type { Doc } from "@convex/_generated/dataModel";
-import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
-import {
-	EditRoutineModal,
-	type SavePayload,
-} from "#/components/routines/EditRoutineModal";
-
-type RoutineExercise = Doc<"routines">["exercises"][number] & {
-	exerciseName: string;
-};
-type RoutineWithNames = Omit<Doc<"routines">, "exercises"> & {
-	exercises: RoutineExercise[];
-};
+import { EditRoutineModal } from "#/components/routines/EditRoutineModal";
+import type {
+	RoutinePayload,
+	RoutineWithNames,
+} from "#/components/routines/RoutineEditor";
+import { useStartRoutine } from "#/components/routines/useStartRoutine";
+import { useToast } from "#/components/ui/toast";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
 interface Props {
 	routine: RoutineWithNames;
 }
 
 export function RoutineCard({ routine }: Props) {
-	const navigate = useNavigate();
-	const startSession = useMutation(api.routines.startSession);
+	const { start, starting } = useStartRoutine();
+	const toast = useToast();
+	const errorMessage = useConvexErrorMessage();
 	const removeRoutine = useMutation(api.routines.remove);
 	const updateRoutine = useMutation(api.routines.update);
-	const [starting, setStarting] = useState(false);
 	const [editing, setEditing] = useState(false);
 
-	async function handleSave(payload: SavePayload) {
+	async function handleSave(payload: RoutinePayload) {
 		await updateRoutine({ id: routine._id, ...payload });
 		setEditing(false);
 	}
 
-	async function handleStart() {
-		if (starting) return;
-		setStarting(true);
+	async function handleRemove() {
 		try {
-			const sessionId = await startSession({ routineId: routine._id });
-			void navigate({ to: "/log/$sessionId", params: { sessionId } });
-		} finally {
-			setStarting(false);
+			await removeRoutine({ id: routine._id });
+		} catch (error) {
+			toast.error(
+				"Couldn't delete routine",
+				errorMessage(error, "Please try again."),
+			);
 		}
 	}
 
@@ -65,8 +60,8 @@ export function RoutineCard({ routine }: Props) {
 					</button>
 					<button
 						type="button"
-						onClick={() => void removeRoutine({ id: routine._id })}
-						className="p-1.5 text-[var(--text-muted)] hover:text-red-400 transition-colors"
+						onClick={() => void handleRemove()}
+						className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
 						aria-label="Delete routine"
 					>
 						<Trash2 size={14} />
@@ -92,7 +87,7 @@ export function RoutineCard({ routine }: Props) {
 
 			<button
 				type="button"
-				onClick={() => void handleStart()}
+				onClick={() => void start(routine._id)}
 				disabled={starting}
 				className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
 			>
@@ -104,7 +99,7 @@ export function RoutineCard({ routine }: Props) {
 				routine={routine}
 				open={editing}
 				onClose={() => setEditing(false)}
-				onSave={(payload) => void handleSave(payload)}
+				onSave={handleSave}
 			/>
 		</div>
 	);

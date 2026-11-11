@@ -11,10 +11,8 @@
  * render — the red box the user sees on a cold start or when a stale session
  * is being refreshed.
  *
- * `(app)/_layout` keeps guarding *navigation* on Clerk's `isSignedIn` (see the
- * comment there: guarding the redirect on Convex bounces forever). This gate
- * is the other half of that split — navigation follows Clerk, data follows
- * Convex — and it sits below the redirect so the two never fight.
+ * Navigation follows Clerk, data follows Convex: `(app)/_layout` guards the
+ * redirect on `isSignedIn`, and this gate sits below it.
  *
  * It renders a bare themed surface rather than a spinner: on the common path
  * the handshake is a few hundred milliseconds behind a splash screen that is

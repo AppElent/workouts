@@ -1,4 +1,3 @@
-import { convertLoad } from "@foundry/core";
 import {
 	addExerciseToPlan,
 	addSet,
@@ -23,7 +22,6 @@ import {
 	type GroupRound,
 	groupOfExercise,
 	groupWith,
-	importOldDraft,
 	isValidRow,
 	manualIsOdd,
 	markFailed,
@@ -65,6 +63,7 @@ import {
 } from "./session-plan";
 
 const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
+	exercise: { equipment: "barbell" },
 	bodyweight: false,
 	stepKg: 2.5,
 	measured: null,
@@ -77,7 +76,10 @@ const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
 const SQUAT = facts({ measured: 120, estimated: 126, measuredDate: 100 });
 const CURL = facts({ measured: 60, stepKg: 1 });
 const PLAIN = facts();
-const PULLUP = facts({ bodyweight: true });
+const PULLUP = facts({
+	exercise: { equipment: "bodyweight" },
+	bodyweight: true,
+});
 const TABLE: Record<string, ExerciseFacts> = {
 	squat: SQUAT,
 	curl: CURL,
@@ -127,22 +129,15 @@ function log(plan: SessionPlan, row: PlanSet, serverId = `s-${row.id}`) {
 
 describe("1RM", () => {
 	it("uses Epley, and a single is its weight", () => {
-		expect(
-			rowOneRepMax({ kg: 100, reps: 1, kind: "working" }, false)?.value,
-		).toBe(100);
-		expect(
-			rowOneRepMax({ kg: 95, reps: 5, kind: "working" }, false)?.value,
-		).toBe(110.8);
+		expect(rowOneRepMax({ kg: 100, reps: 1 }, facts())?.value).toBe(100);
+		expect(rowOneRepMax({ kg: 95, reps: 5 }, facts())?.value).toBe(110.8);
 	});
-	it("never counts a warm-up or failed reps", () => {
+	it("never counts failed reps, a bodyweight set or an unknown exercise", () => {
+		expect(rowOneRepMax({ kg: 100, reps: 0 }, facts())).toBeNull();
+		const bodyweight = facts({ exercise: { equipment: "bodyweight" } });
+		expect(rowOneRepMax({ kg: 100, reps: 3 }, bodyweight)).toBeNull();
 		expect(
-			rowOneRepMax({ kg: 100, reps: 1, kind: "warmup" }, false),
-		).toBeNull();
-		expect(
-			rowOneRepMax({ kg: 100, reps: 0, kind: "working" }, false),
-		).toBeNull();
-		expect(
-			rowOneRepMax({ kg: 100, reps: 3, kind: "working" }, true),
+			rowOneRepMax({ kg: 100, reps: 3 }, facts({ exercise: null })),
 		).toBeNull();
 	});
 	it("takes percentages from Measured, not Estimated", () => {
@@ -339,9 +334,8 @@ describe("logged percent", () => {
 		expect(row.kg).toBe(95);
 		const next = log(updateRow(plan, row.id, row), row);
 		expect(findRow(next, row.id)?.percent).toBe(80);
-		expect(findRow(next, row.id)?.loggedPercent).toBe(
-			Math.round((95 / 120) * 100),
-		);
+		// 95 kg of a 120 kg 1RM, not the 80% that was asked for.
+		expect(findRow(next, row.id)?.loggedPercent).toBe(79);
 	});
 	it("leaves a set whose send is unresolved at the load it sent", () => {
 		const plan = plannedPlan();
@@ -527,7 +521,7 @@ describe("groups", () => {
 		const result = groupWith(two(), "squat", "curl");
 		expect(result.note).toEqual({
 			code: "groupedAdded",
-			values: { rounds: 3, added: 2 },
+			values: { rounds: 3, count: 2 },
 		});
 	});
 	it("invents no sets for a fully logged exercise", () => {
@@ -998,52 +992,6 @@ describe("history prefill", () => {
 	});
 });
 
-describe("an older build's draft", () => {
-	const fields = {
-		weight: "72,5",
-		reps: "5",
-		rpe: "",
-		unit: "kg" as const,
-		setType: "working" as const,
-	};
-	it("fills the next open row", () => {
-		const plan = plannedPlan();
-		const next = importOldDraft(plan, { exerciseId: "squat", fields });
-		expect(firstOpen(next)).toMatchObject({ kg: 72.5, reps: 5 });
-	});
-	it("gets a row when nothing is open, and keeps partial input", () => {
-		const empty = plannedPlan({});
-		const next = importOldDraft(empty, {
-			exerciseId: "squat",
-			fields: { ...fields, reps: "" },
-		});
-		expect(rowsOf(next, "squat")[0]).toMatchObject({ kg: 72.5, blank: true });
-		expect(next.order).toEqual([{ kind: "exercise", exerciseId: "squat" }]);
-	});
-	it("keeps its unanswered send, frozen, on the row", () => {
-		const plan = plannedPlan();
-		const attempt = { operationId: "old-op", setNumber: 1, fields };
-		const row = firstOpen(
-			importOldDraft(plan, { exerciseId: "squat", fields, attempt }),
-		);
-		expect(row?.attempt).toMatchObject({
-			operationId: "old-op",
-			setNumber: 1,
-			sent: true,
-			payload: { weight: 72.5, reps: 5 },
-		});
-	});
-	it("adds nothing when that send is already a logged set", () => {
-		const seeded = plannedPlan();
-		const plan = log(seeded, firstOpen(seeded) as PlanSet);
-		const setNumber = rowsOf(plan, "squat")[0]?.setNumber as number;
-		const attempt = { operationId: "old-op", setNumber, fields };
-		expect(importOldDraft(plan, { exerciseId: "squat", fields, attempt })).toBe(
-			plan,
-		);
-	});
-});
-
 describe("undo and removal", () => {
 	it("restores a logged row", () => {
 		const plan = plannedPlan();
@@ -1185,7 +1133,7 @@ describe("recap", () => {
 		});
 		expect(recap.heroes).toHaveLength(1);
 	});
-	it("does not count a warm-up single as a new measured 1RM", () => {
+	it("counts a heavy warm-up single as a new measured 1RM, as the server does", () => {
 		let plan = plannedPlan();
 		const warm = addWarmup(plan, "squat", SQUAT);
 		plan = warm.plan;
@@ -1193,7 +1141,10 @@ describe("recap", () => {
 		const heavy = { ...row, kg: 200, reps: 1 };
 		plan = updateRow(plan, row.id, heavy);
 		plan = log(plan, heavy);
-		expect(recapOf(plan, lookup).heroes).toHaveLength(0);
+		expect(recapOf(plan, lookup).exercises[0]).toMatchObject({
+			tag: "newMeasured",
+			best: { value: 200, measured: true },
+		});
 	});
 });
 
@@ -1423,7 +1374,6 @@ describe("randomised action sequences", () => {
 				const stable = nextSetNumber(plan, id);
 				expect(Number.isInteger(stable)).toBe(true);
 			}
-			expect(convertLoad(1, "kg", "kg")).toBe(1);
 			expect(Number.isFinite(recapOf(plan, lookup).volume)).toBe(true);
 		},
 	);

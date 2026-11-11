@@ -1,17 +1,19 @@
 import { useAuth } from "@clerk/expo";
-import { type RequestForQueries, useConvexConnectionState } from "convex/react";
+import type { RequestForQueries } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { api, type Id } from "../../../convex/api";
+import { useOnline } from "../../../convex/online";
 import { useQueries } from "../../../convex/query-cache";
+import { useRetained } from "../../../data/session-data";
 
-export type SessionRecord = NonNullable<
+type SessionRecord = NonNullable<
 	FunctionReturnType<typeof api.workoutSessions.getById>
 >;
-export type SessionSet = FunctionReturnType<
-	typeof api.sets.listForSession
->[number];
+type SessionSet = FunctionReturnType<typeof api.sets.listForSession>[number];
 type Wods = FunctionReturnType<typeof api.wodResults.listForSession>;
+
+/** One session's record, sets and WOD results; a refresh keeps the last readable copy. */
 export function useStrengthSession(id?: Id<"workoutSessions">) {
 	const { userId } = useAuth();
 	const scope = `${userId ?? ""}:${id ?? ""}`;
@@ -37,40 +39,16 @@ export function useStrengthSession(id?: Id<"workoutSessions">) {
 		| undefined;
 	const sets = results[`sets${scope}`] as SessionSet[] | Error | undefined;
 	const wods = results[`wods${scope}`] as Wods | Error | undefined;
-	const [retained, setRetained] = useState<{
-		scope: string;
-		session?: SessionRecord | null;
-		sets?: SessionSet[];
-		wods?: Wods;
-	}>();
-	useEffect(() => {
-		setRetained((previous) => {
-			const old = previous?.scope === scope ? previous : undefined;
-			const next = {
-				scope,
-				session:
-					session instanceof Error || session === undefined
-						? old?.session
-						: session,
-				sets: Array.isArray(sets) ? sets : old?.sets,
-				wods: Array.isArray(wods) ? wods : old?.wods,
-			};
-			return old &&
-				old.session === next.session &&
-				old.sets === next.sets &&
-				old.wods === next.wods
-				? old
-				: next;
-		});
-	}, [scope, session, sets, wods]);
-	const previous = retained?.scope === scope ? retained : undefined;
+	const keptSession = useRetained(
+		scope,
+		session instanceof Error ? undefined : session,
+	);
+	const keptSets = useRetained(scope, Array.isArray(sets) ? sets : undefined);
+	const keptWods = useRetained(scope, Array.isArray(wods) ? wods : undefined);
 	return {
-		session:
-			session instanceof Error || session === undefined
-				? (previous?.session ?? session)
-				: session,
-		sets: Array.isArray(sets) ? sets : (previous?.sets ?? sets),
-		wods: Array.isArray(wods) ? wods : (previous?.wods ?? wods),
+		session: keptSession === undefined ? session : keptSession,
+		sets: keptSets ?? sets,
+		wods: keptWods ?? wods,
 		verified: Boolean(
 			session &&
 				!(session instanceof Error) &&
@@ -81,6 +59,6 @@ export function useStrengthSession(id?: Id<"workoutSessions">) {
 			session instanceof Error ||
 			sets instanceof Error ||
 			wods instanceof Error,
-		online: useConvexConnectionState().isWebSocketConnected,
+		online: useOnline(),
 	};
 }

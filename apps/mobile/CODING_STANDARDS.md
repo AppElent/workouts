@@ -3,15 +3,15 @@
 Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
 [mobile structure](../../docs/standards/mobile-structure.md) standards.
 
-## Bindings and migration scope
+## Bindings
 
-- Structure bindings: shared nutrition UI lives in `src/features/nutrition/components/`;
-  cross-subject nutrition hooks live at the nutrition root.
-- `src/data/` owns nutrition persistence; `@foundry/core` owns shared calculations
-  and catalogs. Preserve these owners when restructuring screens.
-- Feature ownership is adopted by live Nutrition Diary and Diary Entry. New work
-  follows it; migrate legacy screens when changing their behavior. Labs routes
-  may be compatibility aliases, not the exclusive redesigned destinations.
+- Every screen lives in `src/features/<feature>/`; a route in `app/` parses its
+  params and renders or re-exports the feature screen.
+- `src/data/` holds server reads and writes and device stores, for training and
+  nutrition alike; logic only one feature uses lives in that feature.
+  `@foundry/core` owns shared calculations and catalogs.
+- Shared nutrition UI lives in `src/features/nutrition/components/`; cross-subject
+  nutrition hooks live at the nutrition root.
 - Charts use Swift Charts through Expo UI on iOS and react-native-gifted-charts
   on Android behind `src/ui/chart`, preserving the tested platform bindings.
 - Sentry's dependency-validation exception is documented in [Sentry operations](../../docs/runbooks/sentry.md#mobile-compatibility).

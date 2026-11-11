@@ -4,18 +4,17 @@
  *
  * **Chosen beats detected.** A saved choice wins over the device's language
  * list, which wins over English. That order lives in `resolveLocale`, which
- * comes from `./core` — a copy of the DOM-free helpers the web app keeps in
- * `src/lib/i18n/runtime/core.ts`. The web runtime's provider reaches for
- * `document.cookie` and `navigator.language` and would throw on React Native.
- * `plural` already guards `Intl.PluralRules`, which Hermes has historically
- * lacked.
+ * comes from `@foundry/core`, the DOM-free runtime both apps share. The web
+ * runtime's provider reaches for `document.cookie` and `navigator.language`
+ * and would throw on React Native. `plural` already guards
+ * `Intl.PluralRules`, which Hermes has historically lacked.
  *
  * **Resolved before the first paint.** `useState(initialLocale)` takes the
  * *function*, so the store is read during the first render — synchronously,
  * once, before anything is drawn. An effect or an awaited read would paint one
- * frame in the wrong language, which is the specific defect #69 forbids. That
+ * frame in the wrong language, which must never happen. That
  * is also why persistence is `expo-sqlite/kv-store` and not `expo-secure-store`
- * (see `src/prefs/local-preference.ts`).
+ * (see `src/local-store/local-store.ts`).
  *
  * **Mounted outside Clerk and Convex** (`app/_layout.tsx`). Language is a
  * property of this phone, not of the signed-in account: it has to apply to the
@@ -26,6 +25,12 @@
  * Profile → Preferences → Language, because a signed-out person has stated no
  * preference and the device decides for them.
  */
+import {
+	DEFAULT_LOCALE,
+	type Locale,
+	resolveLocale,
+	SUPPORTED_LOCALES,
+} from "@foundry/core";
 import { getLocales } from "expo-localization";
 import {
 	createContext,
@@ -37,20 +42,15 @@ import {
 } from "react";
 import {
 	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../prefs/local-preference";
-import { resolveLocale } from "./core";
-import { en, type Messages } from "./messages/en";
-import { nl } from "./messages/nl";
+	readLocal,
+	writeLocal,
+} from "../local-store/local-store";
+import { DICTIONARIES, type Messages } from "./dictionaries";
 
-export { fmt, plural } from "./core";
+export { fmt, plural } from "@foundry/core";
 export type { Messages };
 
-export const SUPPORTED_LOCALES = ["en", "nl"] as const;
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
-
-const DICTIONARIES: Record<Locale, Messages> = { en, nl };
+export { type Locale, SUPPORTED_LOCALES };
 
 /**
  * Locale-specific formatting lives here so screens never branch on the locale.
@@ -63,6 +63,19 @@ const DATE_LOCALE: Record<Locale, string> = { en: "en-GB", nl: "nl-NL" };
 /** Writes a typed or stored decimal with the locale's separator. */
 export function localizeDecimal(text: string, locale: Locale): string {
 	return text.replace(".", DECIMAL_SEPARATOR[locale]);
+}
+
+const DECIMAL = /^[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/;
+
+/**
+ * Reads a typed decimal back. Either separator is accepted whatever the
+ * locale, because a keyboard or a paste may offer the other one; anything
+ * that is not a plain decimal (empty, thousands separators, exponents) is
+ * `undefined`.
+ */
+export function parseLocalizedDecimal(text: string): number | undefined {
+	const trimmed = text.trim();
+	return DECIMAL.test(trimmed) ? Number(trimmed.replace(",", ".")) : undefined;
 }
 
 /** The BCP 47 tag used for date formatting (day-month order for English). */
@@ -78,8 +91,8 @@ export function dateLocale(locale: Locale): string {
 function initialLocale(): Locale {
 	return resolveLocale(
 		SUPPORTED_LOCALES,
-		"en",
-		readPreference(PREFERENCE_KEYS.locale) ?? undefined,
+		DEFAULT_LOCALE,
+		readLocal(PREFERENCE_KEYS.locale) ?? undefined,
 		getLocales()
 			.map(({ languageTag }) => languageTag)
 			.join(","),
@@ -100,7 +113,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
 	const setLocale = useCallback((next: Locale) => {
 		setStoredLocale(next);
-		writePreference(PREFERENCE_KEYS.locale, next);
+		writeLocal(PREFERENCE_KEYS.locale, next);
 	}, []);
 
 	const value = useMemo(

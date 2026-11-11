@@ -38,7 +38,7 @@ import { readNevoExtract } from "./nevo";
  * Running it twice produces byte-identical files: records are ordered by
  * source then code, the serialisation is pinned, and derived figures are
  * rounded to a fixed precision. `--check` writes nothing and exits non-zero if
- * the committed files are out of date — that is what CI would run.
+ * the committed files are out of date.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));

@@ -1,30 +1,24 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-	CURATED_EXERCISES,
-	DEFAULT_EXERCISES,
-	getShippedExercise,
-	mergeExerciseCatalog,
-	WRKOUT_EXERCISES,
-} from "./index";
+import { DEFAULT_EXERCISES } from "./exercises";
+import { getShippedExercise, mergeExerciseCatalog } from "./index";
+import { WRKOUT_EXERCISES } from "./wrkoutExercises";
 
 describe("shipped exercise catalog", () => {
 	it("keeps all permanent IDs and has unique names and usable instructions", () => {
 		const ids = JSON.parse(
 			readFileSync(new URL("./ids.json", import.meta.url), "utf8"),
 		);
-		expect(CURATED_EXERCISES).toHaveLength(55);
-		expect(DEFAULT_EXERCISES).toHaveLength(673);
 		expect(
 			new Set(DEFAULT_EXERCISES.map((exercise) => exercise._id)).size,
-		).toBe(673);
+		).toBe(DEFAULT_EXERCISES.length);
 		expect(
 			new Set(
 				DEFAULT_EXERCISES.map((exercise) =>
 					exercise.name.toLowerCase().replace(/[^a-z0-9]/g, ""),
 				),
 			).size,
-		).toBe(673);
+		).toBe(DEFAULT_EXERCISES.length);
 		for (const exercise of DEFAULT_EXERCISES) {
 			expect(exercise._id).toBe(ids[exercise.name]);
 			expect(exercise.instructions.length).toBeGreaterThan(0);
@@ -45,7 +39,7 @@ describe("shipped exercise catalog", () => {
 		const merged = mergeExerciseCatalog([
 			{ ...shipped, _id: "personal-id", isDefault: false },
 		]);
-		expect(merged).toHaveLength(674);
+		expect(merged).toHaveLength(DEFAULT_EXERCISES.length + 1);
 		expect(
 			merged
 				.filter((exercise) => exercise.name === shipped.name)

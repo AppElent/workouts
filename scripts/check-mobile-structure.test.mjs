@@ -75,6 +75,7 @@ describe("mobile architecture", () => {
 			"const a = <Row accessibilityLabel={`$" + "{name}, $" + "{detail}`} />;",
 			'const a = <>{Platform.OS === "ios" && <Bar />}</>;',
 			'const a = <Input placeholder="—" />;',
+			'console.error("Could not sync the diary.");',
 		])
 			expect(inspect(source, screenFile)).toEqual([]);
 		expect(

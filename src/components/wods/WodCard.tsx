@@ -1,12 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
-
-const TYPE_LABELS: Record<Doc<"wods">["type"], string> = {
-	forTime: "For Time",
-	amrap: "AMRAP",
-	emom: "EMOM",
-	load: "Load",
-};
+import { WOD_TYPE_LABELS } from "#/components/hosted/wodBlock";
 
 export function WodCard({ wod }: { wod: Doc<"wods"> }) {
 	return (
@@ -20,7 +14,7 @@ export function WodCard({ wod }: { wod: Doc<"wods"> }) {
 					{wod.name}
 				</span>
 				<span className="shrink-0 text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--accent-dim)] text-[var(--accent)]">
-					{TYPE_LABELS[wod.type]}
+					{WOD_TYPE_LABELS[wod.type]}
 				</span>
 			</div>
 			{wod.repScheme && (

@@ -1,7 +1,7 @@
+import type { Locale, PersonalFoodDraft } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import type { PersonalFoodDraft } from "../../../../data/personal-food-repository";
 import { fmt, type Messages, plural } from "../../../../i18n";
 import {
 	radius,
@@ -44,7 +44,7 @@ export function LogFoodOffSection({
 	query: string;
 	copy: Messages["nutrition"]["logFood"];
 	messages: Messages["nutrition"];
-	locale: "en" | "nl";
+	locale: Locale;
 	/** Nothing can be asked: the manual row gives way to the offline notice. */
 	offline: boolean;
 	onCommit: () => void;

@@ -8,28 +8,21 @@ import {
 	rescaleToSelection,
 	totalNutrients,
 } from "@foundry/core";
-import type {
-	NutritionCachedDay,
-	NutritionServerEntry,
-} from "../data/nutrition-local-repository";
 
-function entryForSnapshot(
-	snapshot: NutritionDiarySnapshot,
-): NutritionServerEntry {
+export type FixtureEntry = NutritionDiarySnapshot & { _id: string };
+
+function entryForSnapshot(snapshot: NutritionDiarySnapshot): FixtureEntry {
 	return { _id: `server:${snapshot.clientEntryId ?? "local"}`, ...snapshot };
 }
 
-function entryMatches(
-	entry: NutritionServerEntry,
-	target: NutritionOperationTarget,
-) {
+function entryMatches(entry: FixtureEntry, target: NutritionOperationTarget) {
 	return target.kind === "serverId"
 		? entry._id === target.id
 		: entry.clientEntryId === target.id;
 }
 
 function applyUpdate(
-	entries: NutritionServerEntry[],
+	entries: FixtureEntry[],
 	operation: Extract<NutritionDiaryOperation, { kind: "update" }>,
 ) {
 	const entry = entries.find((candidate) =>
@@ -68,7 +61,7 @@ function applyUpdate(
 
 /** One acknowledged operation applied to a day the fixture server holds. */
 export function applyFixtureOperation(
-	base: NutritionCachedDay | undefined,
+	base: { readonly entries: readonly FixtureEntry[] } | undefined,
 	date: string,
 	operation: NutritionDiaryOperation,
 ) {
@@ -88,6 +81,7 @@ export function applyFixtureOperation(
 			if (operation.entry.date === date) add(operation.entry);
 			break;
 		case "createBatch":
+			for (const target of operation.replaces ?? []) removeTarget(target);
 			if (operation.date === date)
 				for (const entry of operation.entries)
 					add({ ...entry, date: operation.date, meal: operation.meal });
@@ -124,6 +118,6 @@ export function applyFixtureOperation(
 	const visible = entries.filter((entry) => entry.date === date);
 	return {
 		entries: visible,
-		totals: totalNutrients(visible.map((entry) => entry.nutrients)),
+		totals: totalNutrients(visible),
 	};
 }

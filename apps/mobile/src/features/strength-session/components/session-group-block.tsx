@@ -1,8 +1,9 @@
+import { formatClock } from "@foundry/core";
 /** A repeating set group in the session: rounds, or as many as possible on a clock. */
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
@@ -11,7 +12,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { AppText } from "../../../ui/text";
-import { formatClock, formatScore, formatSetShort } from "../session-format";
+import { formatScore, formatSetShort } from "../session-format";
 import {
 	amrapScore,
 	type GroupRound,
@@ -25,7 +26,7 @@ import { useClockControls } from "./session-dock";
 import { SessionGroupItemRow } from "./session-set-row";
 
 const roundDone = (round: GroupRound) => round.items.every((row) => row.done);
-export function useScoreText(group: SetGroup) {
+function useScoreText(group: SetGroup) {
 	const { locale, t } = useI18n();
 	return formatScore(t.strength.plan.group, locale, amrapScore(group));
 }
@@ -102,9 +103,7 @@ export function SessionGroupBlock({ group }: { group: SetGroup }) {
 					? copy.subAmrapStopped
 					: copy.subAmrapOver
 				: idle
-					? group.capMinutes === 1
-						? copy.subAmrapIdleOne
-						: fmt(copy.subAmrapIdle, { minutes: group.capMinutes })
+					? plural(locale, group.capMinutes, copy.subAmrapIdle)
 					: fmt(copy.subAmrapRunning, {
 							round: Math.max(current, 0) + 1,
 						})

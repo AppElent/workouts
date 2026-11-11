@@ -18,7 +18,7 @@ it("returns the first result when a body metric write is retried", async () => {
 	expect(await alice.query(api.bodyMetrics.list, {})).toHaveLength(1);
 	await expect(
 		alice.mutation(api.bodyMetrics.add, { ...input, weight: 81 }),
-	).rejects.toThrow("already submitted");
+	).rejects.toThrow("operationConflict");
 });
 
 it("scopes operation IDs to their owner", async () => {

@@ -19,8 +19,9 @@ explanation. Mobile only, like the Nutrition Diary. Issue:
   Accounts with goals or history never see it.
 - **Once per device.** The app offers it once per account on a device, when the
   tab shell opens. Offered counts as done, whatever the person chooses next, so
-  it never returns on that device. A new device offers it again only while the
-  account is still empty.
+  it never returns on that device. A new device, or this one after the
+  account's data is reset here, offers it again only while the account is
+  still empty. The mark is account-scoped local data (`first-run-offered:v1`).
 - **Presentation.** A sheet over Home: what Foundry does, two steps (set goals,
   log a first meal), one primary action, and Skip at the top right.
 - **Set nutrition goals** opens the existing [goals editor](nutrition-diary.md#goals-editor)

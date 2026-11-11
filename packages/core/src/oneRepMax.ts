@@ -1,17 +1,11 @@
-export interface OneRepMaxResult {
-	value: number;
-	source: "actual" | "calculated";
-	formula?: "epley";
-}
+/** How a logged set gives a One-rep Max: a performed single, or the Epley estimate. */
+export const SET_REFERENCE_SOURCES = ["actual", "calculated"] as const;
+export type SetReferenceSource = (typeof SET_REFERENCE_SOURCES)[number];
 
-/** International avoirdupois pound; preserve precision until display/rounding. */
-export function convertLoad(
-	value: number,
-	from: "kg" | "lbs",
-	to: "kg" | "lbs",
-) {
-	if (from === to) return value;
-	return from === "lbs" ? value * 0.45359237 : value / 0.45359237;
+interface OneRepMaxResult {
+	value: number;
+	source: SetReferenceSource;
+	formula?: "epley";
 }
 
 /**
@@ -55,23 +49,4 @@ export function weightForRepMax(reference: number, reps: number): number {
 export function roundLoad(load: number, step: number): number {
 	if (!Number.isFinite(load) || !Number.isFinite(step) || step <= 0) return 0;
 	return Math.max(0, Math.round(Math.round(load / step) * step * 1e6) / 1e6);
-}
-
-const EQUIPMENT_STEPS = {
-	barbell: 2.5,
-	dumbbell: 1,
-	cable: 5,
-	machine: 5,
-	kettlebell: 4,
-	band: 2.5,
-	bodyweight: 2.5,
-	other: 2.5,
-};
-export function getWeightStep(
-	equipment: keyof typeof EQUIPMENT_STEPS,
-	increment?: number,
-) {
-	return increment !== undefined && Number.isFinite(increment) && increment > 0
-		? increment
-		: EQUIPMENT_STEPS[equipment];
 }

@@ -1,4 +1,2 @@
-/** Production Train tab. */
-
-export { TrainingScreen as default } from "../../../../src/features/training/training-screen";
-export { ActivityErrorBoundary as ErrorBoundary } from "../../../../src/screens/activity-components";
+export { TrainingRouteError as ErrorBoundary } from "../../../../src/features/training/components/training-route-error";
+export { TrainingScreen as default } from "../../../../src/features/training/train/training-screen";

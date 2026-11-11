@@ -9,7 +9,7 @@ import {
 import { NutritionMenu } from "../../components/nutrition-menu";
 import type { LogFoodMenuProps } from "./log-food-menu-props";
 
-/** Android keeps the app's existing sheet presentation behind the same +. */
+/** Android and web: the app's sheet presentation behind the same +. */
 export function LogFoodMenu(props: LogFoodMenuProps) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);

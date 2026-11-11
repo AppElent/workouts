@@ -1,6 +1,8 @@
-import { foodSnapshot, type ServingOption } from "@foundry/core/nutrition";
+import type { ServingOption } from "@foundry/core";
+import { foodSnapshot } from "@foundry/core/shipped-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { comboPartFromEntry, kcalText } from "../combo/combo-parts";
 import { useComboTarget } from "../combo/use-combo-target";
 import { type FoodSelection, selectionSourceKey } from "./log-food-selection";
@@ -12,7 +14,7 @@ export type LogFoodTargetParams = {
 };
 
 /**
- * Log food in a browser target mode (mobile-design "Browser target modes"):
+ * Log food in a browser target mode:
  * everything that differs from logging, decided in one place. Adding keeps
  * the browser open and marks the row; replacing confirms a portion, puts the
  * pick in the old part's place and closes.
@@ -27,6 +29,7 @@ export function useLogFoodTarget(
 	const { t, locale } = useI18n();
 	const copy = t.nutrition.comboEditor;
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const target = useComboTarget(params?.comboId, params?.replacePartId);
 	if (!target) return undefined;
 	const { combo, replacing } = target;
@@ -53,8 +56,8 @@ export function useLogFoodTarget(
 					},
 				},
 			);
-		} catch {
-			toast.error(copy.saveFailure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, copy.saveFailure));
 			return false;
 		}
 		if (replacing) onClose();
@@ -93,5 +96,3 @@ export function useLogFoodTarget(
 		pick,
 	};
 }
-
-export type LogFoodTarget = NonNullable<ReturnType<typeof useLogFoodTarget>>;

@@ -1,29 +1,12 @@
 /// <reference types="vite/client" />
 
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { resolveGoalHistory } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
-import {
-	resolveGoalHistory,
-	utcTodayIsoDate,
-	validateNutritionGoals,
-} from "./nutritionGoalModel";
-import { nutritionGoalTables } from "./nutritionGoalTables";
+import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
-const legacyGoalsTable = defineTable({
-	userId: v.string(),
-	nutrient: v.string(),
-	direction: v.string(),
-	target: v.number(),
-	sourcePreset: v.optional(v.string()),
-}).index("by_user", ["userId"]);
-const testSchema = defineSchema({
-	nutritionGoals: legacyGoalsTable,
-	...nutritionGoalTables,
-});
 
 const energy = (target: number) => ({
 	nutrient: "energy" as const,
@@ -44,18 +27,32 @@ const defaultDisplayOrder = [
 
 describe("public nutrition goal operations", () => {
 	it("requires authentication and keeps each user's goals private", async () => {
-		const t = convexTest(testSchema, modules);
-		await expect(t.query(api.nutritionGoals.list, {})).rejects.toThrow(
-			"Unauthenticated",
-		);
+		const t = convexTest(schema, modules);
+		await expect(
+			t.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
+		await expect(
+			t.mutation(api.nutritionGoals.replace, {
+				goals: [energy(2000)],
+				effectiveFrom: "2026-01-01",
+			}),
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		const alice = t.withIdentity({ subject: "alice" });
 		const bob = t.withIdentity({ subject: "bob" });
-		await alice.mutation(api.nutritionGoals.replace, { goals: [energy(2000)] });
-		expect(await bob.query(api.nutritionGoals.list, {})).toEqual([]);
+		await alice.mutation(api.nutritionGoals.replace, {
+			goals: [energy(2000)],
+			effectiveFrom: "2026-01-01",
+		});
+		expect(
+			await alice.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({ goals: [energy(2000)], basis: "effective" });
+		expect(
+			await bob.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({ goals: [], basis: "reference", effectiveFrom: null });
 	});
 
 	it("stores one global display order without changing effective goal history", async () => {
-		const t = convexTest(testSchema, modules);
+		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		const bob = t.withIdentity({ subject: "bob" });
 		await alice.mutation(api.nutritionGoals.replace, {
@@ -90,7 +87,7 @@ describe("public nutrition goal operations", () => {
 			t.mutation(api.nutritionGoals.setDisplayOrder, {
 				displayOrder: [...defaultDisplayOrder],
 			}),
-		).rejects.toThrow("Unauthenticated");
+		).rejects.toMatchObject({ data: { code: "unauthenticated" } });
 		await expect(
 			alice.mutation(api.nutritionGoals.setDisplayOrder, {
 				displayOrder: [
@@ -104,22 +101,58 @@ describe("public nutrition goal operations", () => {
 					"salt",
 				],
 			}),
-		).rejects.toThrow("every nutrient once");
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "displayOrder" },
+		});
 	});
 
-	it("atomically replaces the current set and rejects duplicate bounds", async () => {
-		const t = convexTest(testSchema, modules).withIdentity({
+	it("appends nutrients a saved display order does not list yet", async () => {
+		const t = convexTest(schema, modules);
+		await t.run((ctx) =>
+			ctx.db.insert("nutritionGoalPreferences", {
+				userId: "alice",
+				displayOrder: ["salt", "protein"],
+			}),
+		);
+		expect(
+			await t
+				.withIdentity({ subject: "alice" })
+				.query(api.nutritionGoals.forDate, { date: "2026-01-01" }),
+		).toMatchObject({
+			displayOrder: [
+				"salt",
+				"protein",
+				"energy",
+				"carbs",
+				"fat",
+				"saturatedFat",
+				"fibre",
+				"sugars",
+			],
+		});
+	});
+
+	it("atomically replaces the set for one effective date and rejects duplicate bounds", async () => {
+		const t = convexTest(schema, modules).withIdentity({
 			subject: "alice",
 		});
+		const effectiveFrom = "2026-01-01";
 		await expect(
 			t.mutation(api.nutritionGoals.replace, {
+				effectiveFrom,
 				goals: [
 					{ nutrient: "protein", direction: "min", target: 50 },
 					{ nutrient: "protein", direction: "min", target: 60 },
 				],
 			}),
-		).rejects.toThrow("duplicate");
+		).rejects.toMatchObject({
+			data: { code: "duplicate", field: "protein.min" },
+		});
+		expect(
+			await t.query(api.nutritionGoals.forDate, { date: effectiveFrom }),
+		).toMatchObject({ goals: [], basis: "reference" });
 		await t.mutation(api.nutritionGoals.replace, {
+			effectiveFrom,
 			goals: [
 				{
 					nutrient: "protein",
@@ -130,12 +163,16 @@ describe("public nutrition goal operations", () => {
 			],
 		});
 		await t.mutation(api.nutritionGoals.replace, {
+			effectiveFrom,
 			goals: [
 				{ nutrient: "protein", direction: "min", target: 55 },
 				{ nutrient: "protein", direction: "max", target: 150 },
 			],
 		});
-		const [saved, upperBound] = await t.query(api.nutritionGoals.list, {});
+		const {
+			goals: [saved, upperBound, ...rest],
+		} = await t.query(api.nutritionGoals.forDate, { date: effectiveFrom });
+		expect(rest).toEqual([]);
 		expect(saved).toMatchObject({
 			nutrient: "protein",
 			direction: "min",
@@ -149,8 +186,8 @@ describe("public nutrition goal operations", () => {
 		});
 	});
 
-	it("resolves an effective version at boundaries and keeps future versions out of list", async () => {
-		const t = convexTest(testSchema, modules);
+	it("resolves an effective version at boundaries and keeps future versions in the future", async () => {
+		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await t.run(async (ctx) => {
 			await ctx.db.insert("nutritionGoals", {
@@ -187,12 +224,16 @@ describe("public nutrition goal operations", () => {
 		expect(
 			await alice.query(api.nutritionGoals.forDate, { date: "2026-02-01" }),
 		).toMatchObject({ goals: [energy(2100)] });
-		const listed = await alice.query(api.nutritionGoals.list, {});
-		expect(listed).not.toEqual([energy(2400)]);
+		expect(
+			await alice.query(api.nutritionGoals.forDate, { date: "2098-12-31" }),
+		).toMatchObject({
+			goals: [energy(2100)],
+			nextEffectiveFrom: "2099-01-01",
+		});
 	});
 
 	it("names the next dated version so an editor can say where a change ends", async () => {
-		const t = convexTest(testSchema, modules);
+		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(api.nutritionGoals.replace, {
 			goals: [energy(1800)],
@@ -215,7 +256,7 @@ describe("public nutrition goal operations", () => {
 	});
 
 	it("replaces only the same effective date and freezes the pre-version reference", async () => {
-		const t = convexTest(testSchema, modules);
+		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await t.run(async (ctx) => {
 			await ctx.db.insert("nutritionGoals", {
@@ -247,7 +288,7 @@ describe("public nutrition goal operations", () => {
 	});
 
 	it("carries the frozen reference when a new earliest version is backdated", async () => {
-		const t = convexTest(testSchema, modules);
+		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await t.run(async (ctx) => {
 			await ctx.db.insert("nutritionGoals", {
@@ -274,50 +315,63 @@ describe("public nutrition goal operations", () => {
 	});
 
 	it("rejects invalid dates, non-positive/non-finite targets, duplicates, and crossed bounds", async () => {
-		const t = convexTest(testSchema, modules).withIdentity({
+		const t = convexTest(schema, modules).withIdentity({
 			subject: "alice",
 		});
+		const effectiveFrom = "2026-01-01";
+		const rejects = async (
+			goals: Array<{
+				nutrient: "energy" | "protein";
+				direction: "min" | "max";
+				target: number;
+			}>,
+			code: string,
+			field: string,
+		) =>
+			expect(
+				t.mutation(api.nutritionGoals.replace, { goals, effectiveFrom }),
+			).rejects.toMatchObject({ data: { code, field } });
+		await rejects([energy(0)], "notPositive", "energy.max");
+		await rejects([energy(Number.NaN)], "notPositive", "energy.max");
+		await rejects(
+			[
+				{ nutrient: "protein", direction: "min", target: 150 },
+				{ nutrient: "protein", direction: "max", target: 100 },
+			],
+			"minAboveMax",
+			"protein.range",
+		);
+		await rejects([energy(2000), energy(2100)], "duplicate", "energy.max");
+		await rejects(
+			Array.from({ length: 17 }, (_, index) => ({
+				nutrient: "protein" as const,
+				direction: index % 2 === 0 ? ("min" as const) : ("max" as const),
+				target: index + 1,
+			})),
+			"tooMany",
+			"goals",
+		);
+		for (const date of ["2026-02-30", "2026-1-01", ""]) {
+			await expect(
+				t.mutation(api.nutritionGoals.replace, {
+					goals: [energy(2000)],
+					effectiveFrom: date,
+				}),
+			).rejects.toMatchObject({
+				data: { code: "invalid", field: "effectiveFrom" },
+			});
+		}
 		await expect(
-			t.mutation(api.nutritionGoals.replace, {
-				goals: [energy(0)],
-			}),
-		).rejects.toThrow("greater than zero");
-		await expect(
-			t.mutation(api.nutritionGoals.replace, {
-				goals: [
-					{ nutrient: "protein", direction: "min", target: 150 },
-					{ nutrient: "protein", direction: "max", target: 100 },
-				],
-			}),
-		).rejects.toThrow("minimum");
-		await expect(
-			t.mutation(api.nutritionGoals.replace, {
-				goals: [energy(2000), energy(2100)],
-			}),
-		).rejects.toThrow("duplicate");
-		await expect(
-			t.mutation(api.nutritionGoals.replace, {
-				goals: [energy(2000)],
-				effectiveFrom: "2026-02-30",
-			}),
-		).rejects.toThrow("effective date");
-		await expect(
-			t.mutation(api.nutritionGoals.replace, {
-				goals: Array.from({ length: 17 }, (_, index) => ({
-					nutrient: "protein" as const,
-					direction: index % 2 === 0 ? ("min" as const) : ("max" as const),
-					target: index + 1,
-				})),
-			}),
-		).rejects.toThrow("maximum of 16");
+			t.query(api.nutritionGoals.forDate, { date: "2026-02-30" }),
+		).rejects.toMatchObject({ data: { code: "invalid", field: "date" } });
+		expect(
+			await t.query(api.nutritionGoals.forDate, { date: effectiveFrom }),
+		).toMatchObject({ goals: [], basis: "reference" });
 	});
 });
 
 describe("pure goal history rules", () => {
-	it("validates the UTC fallback and never sorts dates as instants", () => {
-		expect(utcTodayIsoDate(new Date("2026-09-12T23:59:00-07:00"))).toBe(
-			"2026-09-13",
-		);
+	it("never sorts dates as instants", () => {
 		expect(
 			resolveGoalHistory({
 				date: "2028-02-29",
@@ -325,10 +379,5 @@ describe("pure goal history rules", () => {
 				versions: [{ effectiveFrom: "2028-03-01", goals: [energy(2100)] }],
 			}),
 		).toMatchObject({ basis: "reference", effectiveFrom: null });
-		expect(() =>
-			validateNutritionGoals([
-				{ nutrient: "energy", direction: "max", target: Number.NaN },
-			]),
-		).toThrow("greater than zero");
 	});
 });

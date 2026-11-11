@@ -1,5 +1,5 @@
 /**
- * The rules spec #68 puts on gestures, checked at the diary row.
+ * The rules on gestures, checked at the diary row.
  *
  * The whole point of these three is that a gesture is never load-bearing:
  *
@@ -47,7 +47,6 @@ beforeEach(() => {
 	jest.clearAllMocks();
 	remove.mockResolvedValue(undefined);
 	jest.mocked(useQuery).mockImplementation((reference, _args?) => {
-		if (getFunctionName(reference) === "nutritionGoals:list") return [];
 		if (getFunctionName(reference) === "nutritionGoals:forDate")
 			return { goals: [], basis: "reference", effectiveFrom: null };
 		return { entries: [oatmeal], totals: {} };
@@ -56,7 +55,7 @@ beforeEach(() => {
 		.mocked(useMutation)
 		.mockImplementation(
 			(reference) =>
-				(getFunctionName(reference) === "nutritionDiary:remove"
+				(getFunctionName(reference) === "nutritionDiary:applyOperation"
 					? remove
 					: jest.fn().mockResolvedValue(undefined)) as unknown as ReturnType<
 					typeof useMutation
@@ -104,7 +103,10 @@ describe("diary row accelerators", () => {
 
 		await pressConfirm("Delete entry");
 		await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
-		expect(remove.mock.calls[0][0]).toMatchObject({ id: "entry-1" });
+		expect(remove.mock.calls[0][0].operation).toMatchObject({
+			kind: "remove",
+			target: { kind: "serverId", id: "entry-1" },
+		});
 	});
 
 	it("removes nothing when the confirmation is declined", async () => {

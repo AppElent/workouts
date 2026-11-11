@@ -8,14 +8,14 @@ import { loadShippedLibrary } from "../src/nutrition/library";
 import { resetSearchIndex, searchShippedFoods } from "../src/nutrition/search";
 
 /**
- * Measure what the shipped library costs to open and to search (spec #68, D18).
+ * Measure what the shipped library costs to open and to search.
  *
  * This runs in Node on a developer machine, which is NOT the number that fixes
- * the search strategy — the ticket asks for representative supported phones,
- * and Hermes parses JSON and allocates differently from V8. Treat these as an
- * order-of-magnitude floor and a regression guard; the follow-up UI work
- * re-measures on device. The public search API is stable either way, so the
- * internal strategy can change without touching callers.
+ * the search strategy: that is representative supported phones, and Hermes
+ * parses JSON and allocates differently from V8. Treat these as an
+ * order-of-magnitude floor and a regression guard. The public search API is
+ * stable either way, so the internal strategy can change without touching
+ * callers.
  *
  *   pnpm --filter @foundry/core bench:foods
  *   node --expose-gc ./node_modules/.bin/tsx scripts/benchmark-shipped-foods.ts

@@ -1,21 +1,10 @@
 import { api } from "@convex/_generated/api";
+import { formatClock } from "@foundry/core";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Dumbbell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMessages } from "#/lib/i18n";
-
-function formatElapsed(startTime: number): string {
-	const ms = Date.now() - startTime;
-	const totalSeconds = Math.floor(ms / 1000);
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor((totalSeconds % 3600) / 60);
-	const seconds = totalSeconds % 60;
-	if (hours > 0) {
-		return `${hours}h ${String(minutes).padStart(2, "0")}m`;
-	}
-	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
 
 export function ActiveSessionBar() {
 	const activeSession = useQuery(api.workoutSessions.getActive);
@@ -25,7 +14,8 @@ export function ActiveSessionBar() {
 
 	useEffect(() => {
 		if (!activeSession) return;
-		const tick = () => setElapsed(formatElapsed(activeSession.startTime));
+		const tick = () =>
+			setElapsed(formatClock((Date.now() - activeSession.startTime) / 1000));
 		tick();
 		const id = setInterval(tick, 1000);
 		return () => clearInterval(id);

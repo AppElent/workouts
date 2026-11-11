@@ -13,10 +13,14 @@ describe("asking the diary to show a day", () => {
 		expect(onRequest.mock.calls).toEqual([["2026-10-02"], ["2026-10-03"]]);
 	});
 
-	it("ignores a request made before the diary mounted", async () => {
+	it("starts a diary mounted later on the requested day, once", async () => {
 		requestDiaryDate("2026-09-01");
-		const onRequest = jest.fn();
-		await renderHook(() => useDiaryDateRequest(onRequest));
-		expect(onRequest).not.toHaveBeenCalled();
+		const first = jest.fn();
+		const mounted = await renderHook(() => useDiaryDateRequest(first));
+		expect(first.mock.calls).toEqual([["2026-09-01"]]);
+		await mounted.unmount();
+		const second = jest.fn();
+		await renderHook(() => useDiaryDateRequest(second));
+		expect(second).not.toHaveBeenCalled();
 	});
 });

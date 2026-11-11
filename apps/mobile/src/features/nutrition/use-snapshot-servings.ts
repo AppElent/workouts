@@ -1,12 +1,13 @@
 import {
+	type BaseUnit,
 	baseUnitServingOption,
-	getShippedFood,
 	personalFoodServingOptions,
 	type ServingOption,
 	servingOptions,
 	withPersonalMeasures,
 	withSupplementaryServings,
-} from "@foundry/core/nutrition";
+} from "@foundry/core";
+import { getShippedFood } from "@foundry/core/shipped-foods";
 import { usePersonalFoods } from "../../data/personal-foods";
 import { usePersonalMeasures } from "../../data/personal-measures";
 import { useSupplementaryServings } from "../../data/supplementary-servings";
@@ -17,7 +18,7 @@ export type AmountSnapshot = {
 	readonly serving: { readonly en: string; readonly nl: string };
 	readonly quantity: number;
 	readonly amount: number;
-	readonly baseUnit: "g" | "ml" | "serving";
+	readonly baseUnit: BaseUnit;
 	readonly provenance:
 		| {
 				readonly source: "shipped" | "personal" | "import";

@@ -45,13 +45,12 @@ export const accountEn = {
 		retryCleanup: "Retry device cleanup",
 		accountError:
 			"Your data was deleted, but the account could not be deleted. Try Delete account again.",
-		accountChanged:
-			"Your signed-in account changed. Reopen Account and try again.",
-		unauthenticated: "Sign in again before deleting your data.",
-		activeActivity:
-			"Finish or cancel the running Activity before deleting your data.",
-		hostedWorkout:
-			"This account is involved in a Hosted Workout. Deleting is unavailable to protect shared records.",
+		refusals: {
+			activeActivity:
+				"Finish or cancel the running Activity before deleting your data.",
+			hostedWorkout:
+				"This account is involved in a Hosted Workout. Deleting is unavailable to protect shared records.",
+		},
 	},
 };
 
@@ -103,12 +102,11 @@ export const accountNl: typeof accountEn = {
 		retryCleanup: "Toestel opnieuw opschonen",
 		accountError:
 			"Je gegevens zijn verwijderd, maar het account kon niet worden verwijderd. Probeer Account verwijderen opnieuw.",
-		accountChanged:
-			"Je bent met een ander account ingelogd. Open Account opnieuw en probeer het nogmaals.",
-		unauthenticated: "Log opnieuw in voordat je je gegevens verwijdert.",
-		activeActivity:
-			"Rond de actieve activiteit af of annuleer deze voordat je je gegevens verwijdert.",
-		hostedWorkout:
-			"Dit account is betrokken bij een gezamenlijke training. Verwijderen is niet beschikbaar om gedeelde gegevens te beschermen.",
+		refusals: {
+			activeActivity:
+				"Rond de actieve activiteit af of annuleer deze voordat je je gegevens verwijdert.",
+			hostedWorkout:
+				"Dit account is betrokken bij een gezamenlijke training. Verwijderen is niet beschikbaar om gedeelde gegevens te beschermen.",
+		},
 	},
 };

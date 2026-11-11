@@ -12,7 +12,6 @@ describe("One-off estimates", () => {
 				protein: { kind: "trace" },
 			},
 			visual: { kind: "icon", preset: "meal" },
-			clientEntryId: "estimate",
 		});
 		expect(snapshot).toMatchObject({
 			estimated: true,

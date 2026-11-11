@@ -1,7 +1,7 @@
 export const workoutSummaryEn = {
 	loading: "Loading…",
 	notFound: "Session not found",
-	backHome: "Back to home",
+	back: "Back",
 	complete: "Workout complete",
 	cancelled: "Workout cancelled",
 	freeSession: "Free session",
@@ -26,7 +26,7 @@ export const workoutSummaryEn = {
 export const workoutSummaryNl: typeof workoutSummaryEn = {
 	loading: "Laden…",
 	notFound: "Sessie niet gevonden",
-	backHome: "Terug naar home",
+	back: "Terug",
 	complete: "Training afgerond",
 	cancelled: "Training geannuleerd",
 	freeSession: "Vrije sessie",

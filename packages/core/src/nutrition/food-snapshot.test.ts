@@ -7,12 +7,8 @@ import {
 import { getShippedFood, shippedSourceMeta } from "./library";
 import { NUTRIENT_KEYS } from "./nutrients";
 import { normalizePersonalFood } from "./personal-food";
-import { servingOptions } from "./servings";
-import {
-	relabelServing,
-	rescaleToQuantity,
-	rescaleToSelection,
-} from "./snapshot-rescale";
+import { requantifyServingLabel, servingOptions } from "./servings";
+import { rescaleToQuantity, rescaleToSelection } from "./snapshot-rescale";
 
 const apple = (() => {
 	const found = getShippedFood("shipped:apple-w-skin-av");
@@ -145,7 +141,7 @@ describe("Snapshot rescaling", () => {
 	};
 
 	it("changes only the trailing multiplier of a Serving label", () => {
-		expect(relabelServing(entry, 1.5, 300)).toEqual({
+		expect(requantifyServingLabel(entry, 1.5, 300)).toEqual({
 			en: "Glass (200 ml) × 1.5",
 			nl: "Glas (200 ml) × 1,5",
 		});
@@ -181,7 +177,7 @@ describe("Snapshot rescaling", () => {
 				salt: { kind: "trace" },
 			},
 		});
-		expect(() => rescaleToQuantity(entry, 0)).toThrow();
+		expect(() => rescaleToQuantity(entry, 0)).toThrow("notPositive");
 	});
 
 	it("rescales to a new selection by amount and takes its label", () => {

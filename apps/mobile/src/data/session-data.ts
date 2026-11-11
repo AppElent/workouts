@@ -1,47 +1,20 @@
 import type { ExerciseId } from "@foundry/core/exercises";
-import { api, type Doc, type Id } from "../convex/api";
 /**
- * The reads every screen shares: what is running now, what ran recently, and
- * the exercise catalog. Grouped into one hook because Home, Train and Progress
- * all want the same data. The shipped catalog is local; Convex supplies only
- * personal exercises. Legacy references are migrated on the backend.
- *
- * Reads only. Mutations live with the screen that fires them, so that a screen
- * reading this file is provably incapable of writing.
+ * Strength-session reads the screens share. Reads only: mutations live with
+ * the screen that fires them.
  */
+import { useEffect, useState } from "react";
+import { api, type Doc, type Id } from "../convex/api";
 import { useQuery } from "../convex/query-cache";
-import { useExercises } from "./exercises";
-
-export function useShellData() {
-	const active = useQuery(api.workoutSessions.getActive, {});
-	const recent = useQuery(api.workoutSessions.listRecent, { limit: 8 });
-	const exercises = useExercises();
-
-	return {
-		active,
-		recent,
-		exercises,
-		/** `undefined` while any of the three is still in flight. */
-		loading:
-			active === undefined || recent === undefined || exercises === undefined,
-	};
-}
+import { dateLocale, type Locale } from "../i18n";
 
 /** "Tue 12 Aug" — short enough for a row, unambiguous enough for a list. */
-export function formatSessionDate(ms: number) {
-	return new Date(ms).toLocaleDateString(undefined, {
+export function formatSessionDate(ms: number, locale: Locale) {
+	return new Date(ms).toLocaleDateString(dateLocale(locale), {
 		weekday: "short",
 		day: "numeric",
 		month: "short",
 	});
-}
-
-/** "48m" / "1h 12m". Returns null for a session that never ended. */
-export function formatDuration(startTime: number, endTime?: number) {
-	if (!endTime) return null;
-	const minutes = Math.max(1, Math.round((endTime - startTime) / 60000));
-	if (minutes < 60) return `${minutes}m`;
-	return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 /** The user's routine templates, each with its exercises' names resolved. */
@@ -49,10 +22,7 @@ export function useRoutines() {
 	return useQuery(api.routines.list, {});
 }
 
-/**
- * The running session, or null. Separate from `useShellData` so the chrome can
- * subscribe to just this one without pulling the exercise catalog with it.
- */
+/** The running session, or null. */
 export function useActiveSession() {
 	return useQuery(api.workoutSessions.getActive, {});
 }
@@ -68,10 +38,8 @@ export function useSessionSets(id: Id<"workoutSessions"> | undefined) {
 }
 
 /**
- * The exercises in a session, ordered by when each first appeared — the same
- * rule the web uses in `src/routes/log/$sessionId.tsx`. Not alphabetical: the
- * order you worked in is the order you want to read back, and it keeps the
- * exercise you are mid-way through from jumping around as sets land.
+ * The exercises in a session, ordered by when each first appeared. The order
+ * you worked in is the order you want to read back.
  */
 export function orderExercisesByFirstSet(sets: Doc<"sets">[]) {
 	const seen: ExerciseId[] = [];
@@ -82,13 +50,20 @@ export function orderExercisesByFirstSet(sets: Doc<"sets">[]) {
 }
 
 /**
- * Volume in the sense the web's `SessionSummary` means it: working sets only.
- * Warmups, drop sets and failures are real work but they are not the number
- * anyone compares week to week, and counting them makes a deload look like a
- * personal best.
+ * `fresh` while it is defined, otherwise the last defined value seen under the
+ * same `scope`. A refresh keeps readable rows; another account or session
+ * starts empty.
  */
-export function workingVolume(sets: Doc<"sets">[]) {
-	return sets
-		.filter((s) => s.setType === "working")
-		.reduce((total, s) => total + s.weight * s.reps, 0);
+export function useRetained<T>(scope: string, fresh: T | undefined) {
+	const [kept, setKept] = useState<{ scope: string; value: T }>();
+	useEffect(() => {
+		if (fresh === undefined) return;
+		setKept((previous) =>
+			previous?.scope === scope && previous.value === fresh
+				? previous
+				: { scope, value: fresh },
+		);
+	}, [scope, fresh]);
+	if (fresh !== undefined) return fresh;
+	return kept?.scope === scope ? kept.value : undefined;
 }

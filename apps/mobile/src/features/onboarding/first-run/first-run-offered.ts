@@ -1,37 +1,24 @@
 /**
- * Which accounts this device has already offered the first-run. Offered, not
- * completed: once shown it never returns on this device, whether the person
- * set goals, chose a workout, skipped, or swiped the sheet away. A new device
- * offers it again only while the account is still empty.
+ * Whether this device has already offered the first-run to an account.
+ * Offered, not completed: once shown it never returns on this device, whether
+ * the person set goals, chose a workout, skipped, or swiped the sheet away. A
+ * new device offers it again only while the account is still empty, and so
+ * does this one after the account's data is reset here.
  */
 import {
-	PREFERENCE_KEYS,
-	readPreference,
-	writePreference,
-} from "../../../prefs/local-preference";
+	accountKeyspace,
+	readLocalJson,
+	writeLocalJson,
+} from "../../../local-store/local-store";
 
-function offeredAccounts(): string[] {
-	const stored = readPreference(PREFERENCE_KEYS.firstRunOffered);
-	if (!stored) return [];
-	try {
-		const parsed: unknown = JSON.parse(stored);
-		return Array.isArray(parsed)
-			? parsed.filter((id): id is string => typeof id === "string")
-			: [];
-	} catch {
-		return [];
-	}
-}
+const offered = accountKeyspace("first-run-offered:v1");
 
+/** An unreadable store counts as offered: better missed once than shown each launch. */
 export function wasFirstRunOffered(userId: string) {
-	return offeredAccounts().includes(userId);
+	const read = readLocalJson(offered.key(userId), () => true);
+	return !read.ok || read.value !== null;
 }
 
 export function markFirstRunOffered(userId: string) {
-	const accounts = offeredAccounts();
-	if (accounts.includes(userId)) return;
-	writePreference(
-		PREFERENCE_KEYS.firstRunOffered,
-		JSON.stringify([...accounts, userId]),
-	);
+	writeLocalJson(offered.key(userId), true);
 }

@@ -1,9 +1,5 @@
 /// <reference types="vite/client" />
-import {
-	canonicalJson,
-	normalizePersonalFood,
-	personalFoodSnapshot,
-} from "@foundry/core";
+import { normalizePersonalFood, personalFoodSnapshot } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
@@ -20,7 +16,7 @@ const nutrients = {
 	sugars: { kind: "value" as const, amount: 2 },
 	salt: { kind: "value" as const, amount: 0.1 },
 };
-const legacy = {
+const soup = {
 	id: "soup",
 	name: { en: "Soup", nl: "Soep" },
 	baseUnit: "g" as const,
@@ -35,7 +31,7 @@ const legacy = {
 	updatedAt: 2,
 };
 const estimated = normalizePersonalFood({
-	...legacy,
+	...soup,
 	classification: "recipe",
 	baseUnit: "serving",
 	estimated: true,
@@ -43,14 +39,19 @@ const estimated = normalizePersonalFood({
 	description: { en: "Family soup", nl: "Familiesoep" },
 });
 
+function getMany(
+	user: { query: ReturnType<typeof convexTest>["query"] },
+	ids: string[],
+) {
+	return user.query(api.nutritionLibrary.getMany, { ids });
+}
+
 function upsert(
 	operationId: string,
 	expectedRevision: number,
 	payload: unknown,
-	schemaVersion?: 1 | 2,
 ) {
 	return {
-		version: 1 as const,
 		expectedSubject: "alice",
 		operationId,
 		operation: {
@@ -60,150 +61,37 @@ function upsert(
 				id: "soup",
 				kind: "food" as const,
 				payload: JSON.stringify(payload),
-				...(schemaVersion ? { schemaVersion } : {}),
 			},
 		},
 	};
 }
 
-describe("Personal Food estimate compatibility", () => {
-	it("reads pre-upgrade rows and replays pre-upgrade receipts without requiring a version backfill", async () => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		const oldOperation = upsert("pre-upgrade", 0, legacy);
-		const oldRecord = {
-			id: "soup",
-			kind: "food" as const,
-			payload: JSON.stringify(legacy),
-			revision: 1,
-			deleted: false,
-		};
-		await t.run(async (ctx) => {
-			await ctx.db.insert("nutritionLibraryRecords", {
-				userId: "alice",
-				recordId: "soup",
-				recordKind: "food",
-				payload: oldRecord.payload,
-				revision: 1,
-				deleted: false,
-				updatedAt: 1,
-			});
-			await ctx.db.insert("nutritionLibraryOperationReceipts", {
-				userId: "alice",
-				operationId: "pre-upgrade",
-				createdAt: 1,
-				payload: canonicalJson({
-					version: oldOperation.version,
-					expectedSubject: oldOperation.expectedSubject,
-					operation: oldOperation.operation,
-				}),
-				result: JSON.stringify({ record: oldRecord }),
-			});
-		});
-		const listed = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
-		});
-		expect(listed.page).toEqual([{ ...oldRecord, schemaVersion: 1 }]);
-		expect(
-			await alice.mutation(api.nutritionLibrary.applyOperation, oldOperation),
-		).toEqual({ record: oldRecord });
-		const next = await alice.mutation(
-			api.nutritionLibrary.applyOperation,
-			upsert("legacy-update", 1, legacy),
-		);
-		expect(next.record).toMatchObject({ revision: 2, schemaVersion: 1 });
-	});
-
-	it("accepts legacy records, upgrades them, and prevents older shapes from erasing fields", async () => {
+describe("Personal Food estimates", () => {
+	it("stores estimated Personal Food fields unchanged and validates basis consistently", async () => {
 		const t = convexTest(schema, modules);
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
-			upsert("old-create", 0, legacy),
+			api.nutritionLibrary.save,
+			upsert("create", 0, estimated),
 		);
-		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
-			upsert("new-update", 1, estimated, 2),
-		);
-		const page = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
-		});
-		expect(page.page[0].schemaVersion).toBe(2);
-		expect(JSON.parse(page.page[0].payload ?? "null")).toEqual(estimated);
+		const [stored] = await getMany(alice, ["soup"]);
+		expect(JSON.parse(stored.payload ?? "null")).toEqual(estimated);
 		await expect(
 			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("stale", 1, legacy),
+				api.nutritionLibrary.save,
+				upsert("bad-unit", 1, { ...estimated, baseUnit: "g" }),
 			),
-		).rejects.toThrow("Conflict");
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("downgrade", 2, legacy),
-			),
-		).rejects.toThrow("downgrade rejected");
-		await alice.mutation(api.nutritionLibrary.applyOperation, {
-			version: 1,
-			expectedSubject: "alice",
-			operationId: "remove",
-			operation: {
-				kind: "remove",
-				recordId: "soup",
-				recordKind: "food",
-				expectedRevision: 2,
-			},
-		});
-		const removed = await alice.query(api.nutritionLibrary.list, {
-			paginationOpts: { cursor: null, numItems: 10 },
-		});
-		expect(removed.page[0]).toMatchObject({
-			payload: null,
-			deleted: true,
-			schemaVersion: 2,
-			revision: 3,
+		).rejects.toMatchObject({
+			data: { code: "unitMismatch", field: "nutritionBasis" },
 		});
 		await expect(
 			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("old-restore", 3, legacy),
+				api.nutritionLibrary.save,
+				upsert("bad-estimate", 1, { ...estimated, estimated: "yes" }),
 			),
-		).rejects.toThrow("downgrade rejected");
-		await alice.mutation(
-			api.nutritionLibrary.applyOperation,
-			upsert("restore", 3, estimated, 2),
-		);
-		expect(
-			JSON.parse(
-				(
-					await alice.query(api.nutritionLibrary.list, {
-						paginationOpts: { cursor: null, numItems: 10 },
-					})
-				).page[0].payload ?? "null",
-			),
-		).toEqual(estimated);
-	});
-
-	it("requires the current payload schema for new fields and validates basis consistently", async () => {
-		const t = convexTest(schema, modules);
-		const alice = t.withIdentity({ subject: "alice" });
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("unversioned", 0, estimated),
-			),
-		).rejects.toThrow("schema version 2");
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("bad-unit", 0, { ...estimated, baseUnit: "g" }, 2),
-			),
-		).rejects.toThrow("base unit");
-		await expect(
-			alice.mutation(
-				api.nutritionLibrary.applyOperation,
-				upsert("bad-estimate", 0, { ...estimated, estimated: "yes" }, 2),
-			),
-		).rejects.toThrow("estimate status");
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "estimated" },
+		});
 	});
 
 	it("round-trips estimate snapshots in Combo backups without discarding unknown nutrient states", async () => {
@@ -222,8 +110,7 @@ describe("Personal Food estimate compatibility", () => {
 				},
 			],
 		};
-		const result = await alice.mutation(api.nutritionLibrary.applyOperation, {
-			version: 1,
+		const result = await alice.mutation(api.nutritionLibrary.save, {
 			expectedSubject: "alice",
 			operationId: "combo",
 			operation: {
@@ -232,7 +119,6 @@ describe("Personal Food estimate compatibility", () => {
 				record: {
 					id: "lunch",
 					kind: "combo",
-					schemaVersion: 2,
 					payload: JSON.stringify(combo),
 				},
 			},
@@ -264,8 +150,7 @@ describe("Personal Food estimate compatibility", () => {
 			],
 		};
 		await expect(
-			alice.mutation(api.nutritionLibrary.applyOperation, {
-				version: 1,
+			alice.mutation(api.nutritionLibrary.save, {
 				expectedSubject: "alice",
 				operationId: "invalid-combo",
 				operation: {
@@ -274,19 +159,17 @@ describe("Personal Food estimate compatibility", () => {
 					record: {
 						id: combo.id,
 						kind: "combo",
-						schemaVersion: 2,
 						payload: JSON.stringify(combo),
 					},
 				},
 			}),
-		).rejects.toThrow("zero or greater");
-		expect(
-			(
-				await alice.query(api.nutritionLibrary.list, {
-					paginationOpts: { cursor: null, numItems: 10 },
-				})
-			).page,
-		).toEqual([]);
+		).rejects.toMatchObject({
+			data: {
+				code: "negative",
+				field: "parts.0.snapshot.nutrients.energy",
+			},
+		});
+		expect(await getMany(alice, [combo.id])).toEqual([]);
 	});
 
 	it.each(["reference", "nutritionSource"])(
@@ -320,8 +203,7 @@ describe("Personal Food estimate compatibility", () => {
 				],
 			};
 			await expect(
-				alice.mutation(api.nutritionLibrary.applyOperation, {
-					version: 1,
+				alice.mutation(api.nutritionLibrary.save, {
 					expectedSubject: "alice",
 					operationId: `invalid-${field}`,
 					operation: {
@@ -330,33 +212,34 @@ describe("Personal Food estimate compatibility", () => {
 						record: {
 							id: combo.id,
 							kind: "combo",
-							schemaVersion: 2,
 							payload: JSON.stringify(combo),
 						},
 					},
 				}),
-			).rejects.toThrow("invalid");
-			expect(
-				(
-					await alice.query(api.nutritionLibrary.list, {
-						paginationOpts: { cursor: null, numItems: 10 },
-					})
-				).page,
-			).toEqual([]);
+			).rejects.toMatchObject({
+				data: {
+					code: "invalid",
+					field:
+						field === "reference"
+							? "parts.0.reference"
+							: "parts.0.snapshot.provenance.nutritionSource",
+				},
+			});
+			expect(await getMany(alice, [combo.id])).toEqual([]);
 		},
 	);
 
 	it.each(["classification", "estimated", "nutritionBasis"])(
-		"rejects explicit null %s in versioned backup payloads",
+		"rejects explicit null %s in backup payloads",
 		async (key) => {
 			const t = convexTest(schema, modules);
 			const alice = t.withIdentity({ subject: "alice" });
 			await expect(
 				alice.mutation(
-					api.nutritionLibrary.applyOperation,
-					upsert(`null-${key}`, 0, { ...estimated, [key]: null }, 2),
+					api.nutritionLibrary.save,
+					upsert(`null-${key}`, 0, { ...estimated, [key]: null }),
 				),
-			).rejects.toThrow("invalid");
+			).rejects.toMatchObject({ data: { code: "invalid", field: key } });
 		},
 	);
 
@@ -368,15 +251,26 @@ describe("Personal Food estimate compatibility", () => {
 			date: "2026-09-14",
 			meal: "lunch",
 		});
-		const legacyId = await alice.mutation(api.nutritionDiary.log, snapshot);
-		await alice.mutation(api.nutritionDiary.update, {
-			id: legacyId,
-			quantity: 2,
-			date: "2026-09-15",
-			meal: "dinner",
+		const first = await alice.mutation(api.nutritionDiary.applyOperation, {
+			operationId: "create-first",
+			expectedSubject: "alice",
+			operation: {
+				kind: "create",
+				entry: { ...snapshot, clientEntryId: "entry-0" },
+			},
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
+			operationId: "edit-move-first",
+			expectedSubject: "alice",
+			operation: {
+				kind: "update",
+				target: { kind: "serverId", id: first.entryIds[0] },
+				quantity: 2,
+				date: "2026-09-15",
+				meal: "dinner",
+			},
+		});
+		await alice.mutation(api.nutritionDiary.applyOperation, {
 			operationId: "create",
 			expectedSubject: "alice",
 			operation: {
@@ -385,7 +279,6 @@ describe("Personal Food estimate compatibility", () => {
 			},
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "edit-move",
 			expectedSubject: "alice",
 			operation: {
@@ -406,7 +299,6 @@ describe("Personal Food estimate compatibility", () => {
 		).toBe(true);
 		const { _id, _creationTime, userId, loggedAt, ...copy } = day.entries[0];
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "copy",
 			expectedSubject: "alice",
 			operation: {
@@ -416,7 +308,6 @@ describe("Personal Food estimate compatibility", () => {
 		});
 		const comboPart = personalFoodSnapshot(estimated, { quantity: 1 });
 		await alice.mutation(api.nutritionDiary.applyOperation, {
-			version: 1,
 			operationId: "combo",
 			expectedSubject: "alice",
 			operation: {
@@ -443,7 +334,8 @@ describe("Personal Food estimate compatibility", () => {
 			loggedDays.every(
 				(entry) =>
 					entry.totals.energy.incomplete === false &&
-					entry.totals.energy.qualified === false &&
+					// Every entry here is estimated, so every known total is approximate.
+					entry.totals.energy.qualified === true &&
 					entry.totals.protein.traceCount === entry.entryCount &&
 					entry.totals.protein.qualified === true &&
 					entry.totals.protein.incomplete === false &&

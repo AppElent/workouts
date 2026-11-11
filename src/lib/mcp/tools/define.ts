@@ -1,12 +1,14 @@
+import { isAppErrorCode, parseConvexError } from "@foundry/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import * as Sentry from "@sentry/cloudflare";
 import type {
 	FunctionArgs,
 	FunctionReference,
 	FunctionReturnType,
 } from "convex/server";
 import type { z } from "zod";
-import { getConvexErrorMessage } from "#/lib/convexError";
+import { errors } from "#/lib/i18n/messages/en/errors";
 import { MCP_SCOPES, type McpAccess } from "../auth";
 
 /** The Convex calls tools make, as the signed-in user. ConvexHttpClient fits. */
@@ -109,11 +111,33 @@ export function toolResult(value: unknown) {
 	};
 }
 
+/**
+ * What the agent reads about a failed Convex call: the server's own text, else
+ * the English words for its code, else the code and field themselves.
+ */
+function convexErrorText(error: unknown): string | undefined {
+	if (!(error instanceof Error)) return undefined;
+	// A plain error's text is internal unless Convex wrapped a thrown message.
+	if (error.name !== "ConvexError" && !error.message.includes("Uncaught "))
+		return undefined;
+	const { code, message } = parseConvexError(error);
+	if (message && message !== code) return message;
+	if (!code) return undefined;
+	const data = (error as { data?: { field?: unknown } }).data;
+	const field = typeof data?.field === "string" ? ` (${data.field})` : "";
+	const words = isAppErrorCode(code) ? errors[code as keyof typeof errors] : "";
+	return words ? `${words}${field}` : `Foundry refused this: ${code}${field}.`;
+}
+
 export function toolError(error: unknown) {
-	const message =
-		error instanceof ToolInputError
-			? error.message
-			: getConvexErrorMessage(error, "The Foundry tool failed.");
+	if (error instanceof ToolInputError) return errorResult(error.message);
+	// A ConvexError is the app refusing on purpose; anything else is a fault.
+	if (!(error instanceof Error && error.name === "ConvexError"))
+		Sentry.captureException(error, { tags: { operation: "mcp.tool" } });
+	return errorResult(convexErrorText(error) ?? "The Foundry tool failed.");
+}
+
+function errorResult(message: string) {
 	return {
 		isError: true,
 		content: [{ type: "text" as const, text: message }],

@@ -4,25 +4,25 @@ import {
 	type NutrientKey,
 	type NutrientValue,
 } from "./nutrients";
-import type {
-	NutritionBilingual,
-	NutritionDiaryPartSnapshot,
-	NutritionProvenance,
-} from "./operations";
 import {
 	type PersonalFood,
 	personalFoodSnapshot,
 	personalFoodSnapshotAtAmount,
 } from "./personal-food";
 import {
-	formatServingSelection,
 	type ServingOption,
 	scaleNutrients,
 	servingAmount,
+	servingSelectionLabel,
 } from "./servings";
+import type {
+	BaseUnit,
+	Bilingual,
+	NutritionDiaryPartSnapshot,
+	NutritionProvenance,
+} from "./snapshot";
 import type { ShippedFood } from "./types";
 
-/** A Food in the Food Library, by kind. */
 export type LibraryFood =
 	| { readonly kind: "shipped"; readonly food: ShippedFood }
 	| { readonly kind: "personal"; readonly food: PersonalFood };
@@ -32,7 +32,6 @@ export type ShippedFoodProvenance = Extract<
 	{ readonly source: "shipped" }
 >;
 
-/** Food Provenance for figures taken from a Shipped Food. */
 export function shippedFoodProvenance(
 	food: ShippedFood,
 ): ShippedFoodProvenance {
@@ -82,10 +81,7 @@ export function foodSnapshot(
 	const amount = servingAmount(serving, quantity);
 	return {
 		name: food.name,
-		serving: {
-			en: formatServingSelection(serving, quantity, "en"),
-			nl: formatServingSelection(serving, quantity, "nl"),
-		},
+		serving: servingSelectionLabel(serving.label, quantity),
 		quantity,
 		amount,
 		baseUnit: food.baseUnit,
@@ -104,8 +100,8 @@ export function foodSnapshotAtAmount(
 	saved: {
 		readonly amount: number;
 		readonly quantity: number;
-		readonly baseUnit: NutritionDiaryPartSnapshot["baseUnit"];
-		readonly serving: NutritionBilingual;
+		readonly baseUnit: BaseUnit;
+		readonly serving: Bilingual;
 	},
 ): NutritionDiaryPartSnapshot {
 	if (source.kind === "personal") {

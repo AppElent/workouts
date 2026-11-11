@@ -1,7 +1,8 @@
 import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
+import { convexErrorMessage } from "@foundry/core";
 import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
+import type { FunctionArgs } from "convex/server";
 import { format } from "date-fns";
 import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
@@ -9,17 +10,19 @@ import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { useMessages } from "#/lib/i18n";
 
+type Mode = FunctionArgs<typeof api.testData.reset>["mode"];
+
 export function TestDataCard() {
 	const { userId } = useAuth();
 	const status = useQuery(api.testData.availability, {});
 	const reset = useMutation(api.testData.reset);
 	const online = useConvexConnectionState().isWebSocketConnected;
-	const { testData: c } = useMessages();
+	const { testData: c, errors } = useMessages();
 	const confirm = useConfirm();
 	const toast = useToast();
 	const pending = useRef(false);
-	const [busy, setBusy] = useState<"load" | "clear" | null>(null);
-	async function run(mode: "load" | "clear") {
+	const [busy, setBusy] = useState<Mode | null>(null);
+	async function run(mode: Mode) {
 		if (
 			pending.current ||
 			!userId ||
@@ -49,11 +52,8 @@ export function TestDataCard() {
 			// Web reads personal data reactively from Convex and has no durable food cache.
 			toast.success(c.success);
 		} catch (error) {
-			const reason = error instanceof ConvexError ? error.data : null;
 			toast.error(
-				typeof reason === "string" && Object.hasOwn(c, reason)
-					? c[reason as keyof typeof c]
-					: c.error,
+				convexErrorMessage(error, { ...errors, ...c.refusals }, c.error),
 			);
 		} finally {
 			pending.current = false;
@@ -63,13 +63,13 @@ export function TestDataCard() {
 	if (!status?.available) return null;
 	return (
 		<section
-			className="rounded-xl border border-border bg-card p-4 space-y-3"
+			className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3"
 			aria-label={c.title}
 		>
 			<h2 className="text-lg font-semibold">{c.title}</h2>
-			<p className="text-sm text-muted-foreground">{c.description}</p>
+			<p className="text-sm text-[var(--text-muted)]">{c.description}</p>
 			{status.blocker ? (
-				<p role="status">{c[status.blocker]}</p>
+				<p role="status">{c.refusals[status.blocker]}</p>
 			) : !online ? (
 				<p role="status">{c.offline}</p>
 			) : null}

@@ -1,17 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { getWeightStep } from "./exercise";
 import {
 	calculateOneRepMax,
-	convertLoad,
 	estimatedMaxReps,
-	getWeightStep,
 	roundLoad,
 	weightForRepMax,
 } from "./oneRepMax";
+import { convertLoad } from "./units";
 
-// This used to be a parity test guarding against drift between a client copy
-// (src/lib/oneRepMax.ts) and a server copy (convex/lib/oneRepMax.ts) of the
-// same formula. Both copies were deleted in favor of this single package
-// (issue #43); the test now just pins the Epley formula's behavior directly.
 describe("calculateOneRepMax", () => {
 	it("treats a single rep as the actual 1RM, not a calculated one", () => {
 		expect(calculateOneRepMax(100, 1)).toEqual({

@@ -57,6 +57,7 @@ export function ReportProblem() {
 			setScreenshot(undefined);
 			toast.success(text.success);
 		} catch {
+			// Sentry is off or unreachable, so there is nowhere to report this.
 			toast.error(text.error);
 		} finally {
 			setPending(false);

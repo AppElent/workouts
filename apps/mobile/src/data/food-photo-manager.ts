@@ -1,7 +1,7 @@
+import type { FoodVisual } from "@foundry/core";
 import { Directory, File, Paths } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import type { FoodVisual } from "./personal-food-repository";
 
 export type FoodPhotoSource = "camera" | "library";
 export type FoodPhotoCropPosition =
@@ -11,7 +11,7 @@ export type FoodPhotoCropPosition =
 	| "left"
 	| "right";
 
-export type FoodPhotoChoice =
+type FoodPhotoChoice =
 	| {
 			readonly kind: "selected";
 			readonly visual: Extract<FoodVisual, { kind: "photo" }>;

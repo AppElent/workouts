@@ -1,9 +1,12 @@
 import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
+import { accountExportJson, collectExportTables } from "@foundry/core";
 import { useConvex } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { format } from "date-fns";
 import { Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
+import { useConvexErrorMessage } from "#/lib/convexError";
+import { useExercises } from "#/lib/exercises";
 
 function download(filename: string, content: string, type: string) {
 	const blob = new Blob([content], { type });
@@ -22,12 +25,15 @@ function csvCell(value: unknown): string {
 	return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-type ExportPayload = (typeof api.exportData.allData)["_returnType"];
-
-function setsToCsv(data: ExportPayload): string {
-	const exerciseName = new Map(data.exercises.map((e) => [e._id, e.name]));
+function setsToCsv(
+	tables: Record<string, unknown[]>,
+	exerciseName: Map<string, string>,
+): string {
+	// personalPage rows are untyped (`v.any()`); these tables hold these documents.
+	const sets = (tables.sets ?? []) as Doc<"sets">[];
+	const sessions = (tables.workoutSessions ?? []) as Doc<"workoutSessions">[];
 	const sessionName = new Map(
-		data.sessions.map((s) => [
+		sessions.map((s) => [
 			s._id as string,
 			s.name ?? format(new Date(s.date), "yyyy-MM-dd"),
 		]),
@@ -43,13 +49,13 @@ function setsToCsv(data: ExportPayload): string {
 		"reps",
 		"rpe",
 	];
-	const rows = [...data.sets]
+	const rows = [...sets]
 		.sort((a, b) => a.loggedAt - b.loggedAt)
 		.map((s) =>
 			[
 				format(new Date(s.loggedAt), "yyyy-MM-dd HH:mm"),
-				sessionName.get(s.sessionId as string) ?? "",
-				exerciseName.get(s.exerciseId as string) ?? "",
+				sessionName.get(s.sessionId) ?? "",
+				exerciseName.get(s.exerciseId) ?? "",
 				s.setNumber,
 				s.setType,
 				s.weight,
@@ -65,6 +71,8 @@ function setsToCsv(data: ExportPayload): string {
 
 export function ExportDataCard() {
 	const convex = useConvex();
+	const exercises = useExercises();
+	const errorMessage = useConvexErrorMessage();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -72,43 +80,28 @@ export function ExportDataCard() {
 		setBusy(true);
 		setError(null);
 		try {
-			const data = await convex.query(api.exportData.allData, {});
+			const tables = await collectExportTables((cursor) =>
+				convex.query(api.exportData.personalPage, { cursor }),
+			);
 			const stamp = format(new Date(), "yyyy-MM-dd");
 			if (kind === "json") {
-				const activities: FunctionReturnType<
-					typeof api.exportData.endurancePage
-				>["activities"] = [];
-				const enduranceActivityDetails: FunctionReturnType<
-					typeof api.exportData.endurancePage
-				>["enduranceActivityDetails"] = [];
-				let cursor: string | null = null;
-				for (;;) {
-					const page: FunctionReturnType<typeof api.exportData.endurancePage> =
-						await convex.query(api.exportData.endurancePage, { cursor });
-					activities.push(...page.activities);
-					enduranceActivityDetails.push(...page.enduranceActivityDetails);
-					if (page.isDone) break;
-					if (!page.cursor) throw new Error("Incomplete activity export.");
-					cursor = page.cursor;
-				}
 				download(
 					`foundry-export-${stamp}.json`,
-					JSON.stringify(
-						{ ...data, activities, enduranceActivityDetails },
-						null,
-						2,
-					),
+					accountExportJson(tables, new Date()),
 					"application/json",
 				);
 			} else {
 				download(
 					`foundry-sets-${stamp}.csv`,
-					setsToCsv(data),
+					setsToCsv(
+						tables,
+						new Map(exercises.map((e) => [e._id as string, e.name])),
+					),
 					"text/csv;charset=utf-8",
 				);
 			}
 		} catch (e) {
-			setError(e instanceof Error ? e.message : "Export failed.");
+			setError(errorMessage(e, "Export failed."));
 		} finally {
 			setBusy(false);
 		}

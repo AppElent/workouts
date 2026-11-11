@@ -1,24 +1,12 @@
-export interface SeedMovement {
-	name: string;
-	reps?: number;
-	weight?: number;
-	unit?: "kg" | "lbs";
-	distance?: number;
-	distanceUnit?: "m" | "km" | "mi" | "cal";
-	notes?: string;
-}
+import type { WithoutSystemFields } from "convex/server";
+import type { Doc } from "../_generated/dataModel";
 
-export interface SeedWod {
-	name: string;
-	type: "forTime" | "amrap" | "emom" | "load";
-	description?: string;
-	repScheme?: string;
-	timeCapSeconds?: number;
-	durationSeconds?: number;
-	movements: SeedMovement[];
-}
+type CatalogWod = Omit<
+	WithoutSystemFields<Doc<"wods">>,
+	"userId" | "isDefault"
+>;
 
-export const DEFAULT_WODS: SeedWod[] = [
+export const DEFAULT_WODS: CatalogWod[] = [
 	{
 		name: "Fran",
 		type: "forTime",

@@ -8,12 +8,12 @@
  * hook only turns "not now" into a countdown and retries when it ends, so a
  * rate limit never touches the local results above it.
  */
+import type { PersonalFoodDraft } from "@foundry/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OffSearchOutcome } from "../../../data/open-food-facts";
 import { OFF_COOL_DOWN_MS } from "../../../data/open-food-facts-budget";
-import type { PersonalFoodDraft } from "../../../data/personal-food-repository";
 
-export const OFF_MIN_CHARS = 3;
+const OFF_MIN_CHARS = 3;
 export const OFF_IDLE_MS = 1500;
 
 export type OffSearchState =

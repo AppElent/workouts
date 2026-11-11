@@ -1,28 +1,27 @@
 import {
-	forkHasLocalEdits,
-	forkSource,
+	type FoodVisual,
+	type MeasuredUnit,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
-} from "@foundry/core/nutrition";
-import { useMemo, useRef, useState } from "react";
-import type { FoodAuthoringSeed } from "../../../data/food-authoring-intent";
-import {
-	type FoodPhotoCropPosition,
-	type FoodPhotoManager,
-	foodPhotos,
-} from "../../../data/food-photo-manager";
-import { type LabelReading, labelNutrients } from "../../../data/nutrition-ai";
-import { replaceProviderMetadata } from "../../../data/open-food-facts-sync";
-import {
-	type FoodVisual,
+	normalizePersonalFoodDraft,
+	PERSONAL_FOOD_TEXT_LIMIT,
 	type PersonalFood,
 	type PersonalFoodDraft,
-	validatePersonalFoodDraft,
-} from "../../../data/personal-food-repository";
+} from "@foundry/core";
+import { forkHasLocalEdits, forkSource } from "@foundry/core/shipped-foods";
+import { useMemo, useRef, useState } from "react";
+import {
+	type FoodPhotoCropPosition,
+	foodPhotos,
+} from "../../../data/food-photo-manager";
+import { replaceProviderMetadata } from "../../../data/open-food-facts-sync";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { fmt, useI18n } from "../../../i18n";
 import { useToast } from "../../../ui/toast";
+import { useScreenWrite } from "../../../ui/use-screen-write";
+import type { FoodAuthoringSeed } from "../food-authoring-intent";
+import { type LabelReading, labelNutrients } from "../nutrition-ai";
 import { type NutrientInput, parseFoodNumber } from "../use-nutrient-fields";
 import { useStagedFoodVisual } from "../use-staged-food-visual";
 
@@ -33,7 +32,6 @@ export type ServingInput = {
 	nl: string;
 	amount: string;
 };
-export type { EditorVisual } from "../use-staged-food-visual";
 
 function toText(value: number) {
 	return String(value).replace(".", ",");
@@ -76,7 +74,6 @@ export function usePersonalFoodDraft({
 	seed,
 	defaultClassification,
 	initialName,
-	photoManager = foodPhotos,
 	onSaved,
 }: {
 	/** A new food's name, such as the search term it was created from. */
@@ -84,7 +81,6 @@ export function usePersonalFoodDraft({
 	food?: PersonalFood;
 	seed?: PersonalFoodDraft;
 	defaultClassification: "ordinary" | "recipe";
-	photoManager?: FoodPhotoManager;
 	onSaved: (saved: PersonalFood) => void;
 }) {
 	const { t, locale } = useI18n();
@@ -97,7 +93,7 @@ export function usePersonalFoodDraft({
 		initial?.name[locale] ?? initialName ?? "",
 	);
 	const [nameError, setNameError] = useState<string>();
-	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
+	const [baseUnit, setBaseUnit] = useState<MeasuredUnit>(
 		initial?.baseUnit === "ml" ? "ml" : "g",
 	);
 	const [classification, setClassification] = useState<"ordinary" | "recipe">(
@@ -117,8 +113,8 @@ export function usePersonalFoodDraft({
 	const [nutrients, setNutrients] = useState(() => initialNutrients(initial));
 	const [servings, setServings] = useState(() => initialServings(initial));
 	const nextServingKey = useRef(servings.length);
-	const [saving, setSaving] = useState(false);
-	const saveLock = useRef(false);
+	const screenWrite = useScreenWrite();
+	const saving = screenWrite.busy;
 	const [touched, setTouched] = useState(false);
 	/**
 	 * Provider details from an Open Food Facts refresh, and whether the person
@@ -142,7 +138,6 @@ export function usePersonalFoodDraft({
 			: initial?.provenance.imageUrl && (!food || food.visualMigrationPending)
 				? { kind: "remote", uri: initial.provenance.imageUrl }
 				: undefined,
-		photoManager,
 		// A new food seeded with a local photo (handed over from a one-off) has
 		// not saved it anywhere yet: it is this form's to clean up.
 		adoptInitialPhoto: !food && initial?.visual?.kind === "photo",
@@ -177,10 +172,14 @@ export function usePersonalFoodDraft({
 					? { kind: "value", amount: parseFoodNumber(input.amount) }
 					: { kind: input.kind };
 		}
-		const bilingual = (text: string, previous?: { en: string; nl: string }) =>
-			locale === "en"
-				? { en: text, nl: previous?.nl ?? text }
-				: { en: previous?.en ?? text, nl: text };
+		const bilingual = (
+			text: string,
+			previous?: { en: string; nl: string },
+		) => ({
+			en: previous?.en ?? text,
+			nl: previous?.nl ?? text,
+			[locale]: text,
+		});
 		const editable = {
 			// One name, used in both languages: the editor asks for it once.
 			name: { en: name, nl: name },
@@ -243,52 +242,50 @@ export function usePersonalFoodDraft({
 
 	/** Returns false when the draft is not valid; the caller scrolls to the name. */
 	async function save(): Promise<boolean> {
-		if (saving || saveLock.current) return true;
+		if (saving) return true;
 		setNameError(undefined);
-		if (!name.trim() || name.trim().length > 500) {
-			setNameError(name.trim() ? copy.nameTooLong : copy.nameRequired);
+		if (!name.trim() || name.trim().length > PERSONAL_FOOD_TEXT_LIMIT) {
+			setNameError(
+				name.trim()
+					? fmt(copy.nameTooLong, { max: PERSONAL_FOOD_TEXT_LIMIT })
+					: copy.nameRequired,
+			);
 			return false;
 		}
 		let draft: PersonalFoodDraft;
 		try {
-			draft = validatePersonalFoodDraft(buildDraft());
+			draft = normalizePersonalFoodDraft(buildDraft());
 		} catch {
 			toast.error(t.nutrition.personalFood.validation);
 			return false;
 		}
-		saveLock.current = true;
-		setSaving(true);
-		await Promise.resolve();
-		let importedPhoto: FoodVisual | undefined;
-		let saved: PersonalFood | undefined;
-		try {
-			if (visual?.kind === "remote" && remoteCrop !== "center") {
-				try {
-					importedPhoto = await photoManager.importRemote(
-						visual.uri,
-						remoteCrop,
-					);
-					draft = { ...draft, visual: importedPhoto };
-				} catch {
-					toast.error(copy.importPhotoFailure);
+		const saved = await screenWrite.run(
+			t.nutrition.personalFood.saveFailure,
+			async () => {
+				let importedPhoto: FoodVisual | undefined;
+				if (visual?.kind === "remote" && remoteCrop !== "center") {
+					try {
+						importedPhoto = await foodPhotos.importRemote(
+							visual.uri,
+							remoteCrop,
+						);
+						draft = { ...draft, visual: importedPhoto };
+					} catch {
+						toast.error(copy.importPhotoFailure);
+					}
 				}
-			}
-			saved = food
-				? await personalFoods.update(food.id, draft)
-				: await personalFoods.create(draft);
-			if (
-				food?.visual?.kind === "photo" &&
-				(saved.visual?.kind !== "photo" || food.visual.uri !== saved.visual.uri)
-			)
-				photoManager.remove(food.visual);
-			photo.keep();
-		} catch {
-			if (importedPhoto) photoManager.remove(importedPhoto);
-			toast.error(t.nutrition.personalFood.saveFailure);
-		} finally {
-			saveLock.current = false;
-			setSaving(false);
-		}
+				try {
+					const result = food
+						? await personalFoods.update(food.id, draft)
+						: await personalFoods.create(draft);
+					photo.keep();
+					return result;
+				} catch (error) {
+					if (importedPhoto) foodPhotos.remove(importedPhoto);
+					throw error;
+				}
+			},
+		);
 		if (saved) {
 			setTouched(false);
 			onSaved(saved);
@@ -328,7 +325,10 @@ export function usePersonalFoodDraft({
 		},
 		basisKind,
 		servingLabel,
-		setBasis: (kind: "per100" | "perServing", unit: "g" | "ml" = baseUnit) => {
+		setBasis: (
+			kind: "per100" | "perServing",
+			unit: MeasuredUnit = baseUnit,
+		) => {
 			setBasisKind(kind);
 			setBaseUnit(unit);
 			touch();
@@ -363,11 +363,7 @@ export function usePersonalFoodDraft({
 					];
 				}
 				return current.map((serving, at) =>
-					at === index
-						? locale === "en"
-							? { ...serving, en: label, amount }
-							: { ...serving, nl: label, amount }
-						: serving,
+					at === index ? { ...serving, [locale]: label, amount } : serving,
 				);
 			});
 			touch();

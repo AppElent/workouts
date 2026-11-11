@@ -1,7 +1,5 @@
 export const workoutToolsEn = {
 	routineEditor: {
-		newTitle: "New routine",
-		editTitle: "Edit routine",
 		loading: "Loading routine…",
 		notFound: "Routine not found",
 		cancel: "Cancel",
@@ -19,29 +17,8 @@ export const workoutToolsEn = {
 		addExercise: "Add exercise",
 		exercise: "Exercise",
 	},
-	plates: {
-		close: "Close",
-		done: "Done",
-		perSide: "Per side",
-		belowBar: "Below the {bar} kg bar — nothing to load.",
-		justBar: "Just the {bar} kg bar.",
-		summary: "{plates} per side, plus the {bar} kg bar.",
-		short: "{remainder} kg short — standard plates cannot make this exactly.",
-		warmup: "Warm-up",
-		emptyBar: "empty bar",
-	},
-	restTimer: {
-		subtract: "Subtract 15 seconds",
-		add: "Add 15 seconds",
-		dismiss: "Dismiss rest timer",
-		over: "Rest over",
-		paused: "paused",
-		pause: "Pause rest timer",
-		resume: "Resume rest timer",
-	},
 	activeSession: {
 		resume: "Resume",
-		resumeLabel: "Resume active workout",
 		inProgress: "In progress",
 		freeSession: "Free session",
 	},
@@ -49,8 +26,6 @@ export const workoutToolsEn = {
 
 export const workoutToolsNl: typeof workoutToolsEn = {
 	routineEditor: {
-		newTitle: "Nieuwe routine",
-		editTitle: "Routine bewerken",
 		loading: "Routine laden…",
 		notFound: "Routine niet gevonden",
 		cancel: "Annuleren",
@@ -68,30 +43,8 @@ export const workoutToolsNl: typeof workoutToolsEn = {
 		addExercise: "Oefening toevoegen",
 		exercise: "Oefening",
 	},
-	plates: {
-		close: "Sluiten",
-		done: "Klaar",
-		perSide: "Per kant",
-		belowBar: "Lichter dan de stang van {bar} kg — niets op te laden.",
-		justBar: "Alleen de stang van {bar} kg.",
-		summary: "{plates} per kant, plus de stang van {bar} kg.",
-		short:
-			"{remainder} kg tekort — met standaardschijven kan dit niet precies.",
-		warmup: "Warming-up",
-		emptyBar: "lege stang",
-	},
-	restTimer: {
-		subtract: "15 seconden eraf",
-		add: "15 seconden erbij",
-		dismiss: "Rusttimer sluiten",
-		over: "Rust voorbij",
-		paused: "gepauzeerd",
-		pause: "Rusttimer pauzeren",
-		resume: "Rusttimer hervatten",
-	},
 	activeSession: {
 		resume: "Hervat",
-		resumeLabel: "Actieve training hervatten",
 		inProgress: "Bezig",
 		freeSession: "Vrije sessie",
 	},

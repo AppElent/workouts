@@ -1,11 +1,5 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-	type LocalRow,
-	type LocalTable,
-	listLocalDatabases,
-	openLocalDatabaseInspector,
-} from "../../data/local-database-inspector";
 import { fmt, plural, useI18n } from "../../i18n";
 import { spacing } from "../../theme";
 import {
@@ -15,6 +9,12 @@ import {
 	TextAction,
 } from "../../ui/form";
 import { AppText } from "../../ui/text";
+import {
+	type LocalRow,
+	type LocalTable,
+	listLocalDatabases,
+	openLocalDatabaseInspector,
+} from "./local-database-inspector";
 
 type Inspector = ReturnType<typeof openLocalDatabaseInspector>;
 type Page = ReturnType<Inspector["readPage"]>;

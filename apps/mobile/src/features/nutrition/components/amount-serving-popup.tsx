@@ -1,7 +1,14 @@
-import type { PersonalFood, ServingOption } from "@foundry/core/nutrition";
-import { withPersonalMeasures } from "@foundry/core/nutrition";
+import {
+	type BaseUnit,
+	type MeasuredUnit,
+	NAMED_AMOUNT_LIMITS,
+	type PersonalFood,
+	type ServingOption,
+	validateNamedAmount,
+	withPersonalMeasures,
+} from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
-import { useConvexConnectionState, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import {
 	Keyboard,
@@ -10,13 +17,12 @@ import {
 	type TextInputInstance,
 	View,
 } from "react-native";
-import { z } from "zod";
 import { api } from "../../../convex/api";
-import { useNutritionOperations } from "../../../data/nutrition-operation-service";
+import { useOnline } from "../../../convex/online";
 import { usePersonalFoods } from "../../../data/personal-foods";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import type { useSupplementaryServings } from "../../../data/supplementary-servings";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { Segmented } from "../../../ui/segmented";
@@ -43,14 +49,14 @@ export function AmountServingPopup({
 		readonly title: string;
 		readonly confirmLabel: string;
 		/** The line under the segment, per unit. */
-		readonly help: Readonly<Record<"g" | "ml", string>>;
+		readonly help: Readonly<Record<MeasuredUnit, string>>;
 		/** Asked before an existing measure changes unit; false keeps it. */
 		readonly confirmUnitChange?: () => Promise<boolean>;
 		/** Saves; a rejection keeps the popup and what was typed. */
 		readonly onSubmit: (value: {
 			name: string;
 			amount: number;
-			unit: "g" | "ml";
+			unit: MeasuredUnit;
 		}) => Promise<void>;
 	};
 	/**
@@ -65,7 +71,7 @@ export function AmountServingPopup({
 	onFoodServing?: (name: string, amount: number) => void;
 	food?: PersonalFood | { id: string };
 	name: string;
-	unit: "g" | "ml" | "serving";
+	unit: BaseUnit;
 	/** Where a new serving of a shipped food is kept; absent for other foods. */
 	additions?: ReturnType<typeof useSupplementaryServings>;
 	onAdded?: (option: ServingOption) => void;
@@ -77,9 +83,8 @@ export function AmountServingPopup({
 	const colors = useTokens();
 	const foods = usePersonalFoods();
 	const measures = usePersonalMeasureActions();
-	const operations = useNutritionOperations();
 	const createMeasure = useMutation(api.personalMeasures.create);
-	const connected = useConvexConnectionState().isWebSocketConnected;
+	const connected = useOnline();
 	const nameRef = useRef<TextInputInstance>(null);
 	const amountRef = useRef<TextInputInstance>(null);
 	useEffect(() => {
@@ -103,29 +108,25 @@ export function AmountServingPopup({
 		},
 		onSubmit: async ({ value }) => {
 			if (lock.current) return;
-			const result = z
-				.object({
-					name: z.string().trim().min(1).max(40),
-					amount: z.number().positive().max(10000),
-				})
-				.safeParse({
+			const result = validateNamedAmount(
+				{
 					name: value.name.trim() || initial?.name || "",
-					amount: Number(
-						(value.amount.trim() || initial?.amount || "").replace(",", "."),
-					),
-				});
-			if (!result.success) {
-				setError(copy.invalidServing);
+					amount:
+						parseLocalizedDecimal(
+							value.amount.trim() || initial?.amount || "",
+						) ?? Number.NaN,
+				},
+				value.scope === "own" || measure ? "measure" : "serving",
+			);
+			if (!result.ok) {
+				setError(
+					result.errors.some((issue) => issue.code === "tooPrecise")
+						? copy.invalidMeasure
+						: fmt(copy.invalidServing, NAMED_AMOUNT_LIMITS),
+				);
 				return;
 			}
-			const { name: servingName, amount } = result.data;
-			if (
-				(value.scope === "own" || measure) &&
-				Math.abs(amount * 10 - Math.round(amount * 10)) > 1e-9
-			) {
-				setError(copy.invalidMeasure);
-				return;
-			}
+			const { name: servingName, amount } = result.value;
 			if (measure) {
 				lock.current = true;
 				setPending(true);
@@ -159,7 +160,6 @@ export function AmountServingPopup({
 			setPending(true);
 			onBusyChange?.(true);
 			setError(undefined);
-			const subject = operations.getSubject();
 			try {
 				let option: ServingOption;
 				if (value.scope === "own" && unit !== "serving") {
@@ -168,13 +168,7 @@ export function AmountServingPopup({
 						amount,
 						unit,
 					});
-					if (operations.getSubject() !== subject) return;
 					measures.markCreated(measure);
-					if (subject)
-						operations.cachePersonalMeasures(subject, [
-							...measures.measures.filter((item) => item.id !== measure.id),
-							measure,
-						]);
 					option = withPersonalMeasures([], unit, [measure])[0];
 				} else if (food && personal) {
 					const current = foods.find(food.id);
@@ -196,7 +190,6 @@ export function AmountServingPopup({
 						amount,
 						unit,
 					});
-					if (operations.getSubject() !== subject) return;
 					option = {
 						kind: "supplementary",
 						id: saved.id,
@@ -341,7 +334,7 @@ export function AmountServingPopup({
 						if (pending || next === values.unit) return;
 						void (measure.confirmUnitChange?.() ?? Promise.resolve(true)).then(
 							(ok) => {
-								if (ok) form.setFieldValue("unit", next as "g" | "ml");
+								if (ok) form.setFieldValue("unit", next as MeasuredUnit);
 							},
 						);
 					}}

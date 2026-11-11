@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before changing data ownership, offline behavior, or save semantics.
-version: 1.0.1
+version: 1.0.2
 status: accepted
 date: 2026-10-07
 # Photo exception superseded; online-first ownership and saves remain accepted.
@@ -51,5 +51,5 @@ deferred recovery investigation; they are not requirements of issue 89.
 
 Implementation evidence: [account data verification and usage](../records/2026-10-08-online-first-account-data/README.md).
 Food photos remain device-only visual conveniences; the account Food record is
-usable without them. Production adoption follows the
-[migration runbook](../runbooks/nutrition-account-migration.md).
+usable without them. The production migration has completed; its runbook and
+code are removed.

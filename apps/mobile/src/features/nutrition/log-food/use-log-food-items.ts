@@ -1,13 +1,11 @@
+import type { Locale, PersonalFood } from "@foundry/core";
 import {
 	type FoodResult,
 	foodResults,
 	getShippedFood,
-} from "@foundry/core/nutrition";
+} from "@foundry/core/shipped-foods";
 import { useMemo } from "react";
-import type {
-	Combo,
-	PersonalFood,
-} from "../../../data/personal-food-repository";
+import type { Combo } from "../../../data/personal-food-model";
 import type { usePersonalFoods } from "../../../data/personal-foods";
 import type { Messages } from "../../../i18n";
 import { resultCaption } from "./log-food-captions";
@@ -103,7 +101,7 @@ function useShortcutTargets(
  * `pool` is the default: one list holding recents, favorites, Combos, recipes
  * and ordinary search at once, so a food you own is never invisible because
  * you are standing on the wrong chip. The other chips narrow that same pool,
- * except `all` — the deliberate broader view (#75), the one place a shipped
+ * except `all` — the deliberate broader view, the one place a shipped
  * record someone has corrected is still listed. Open Food Facts is never part
  * of this list; it is its own section below it.
  */
@@ -121,7 +119,7 @@ export function useLogFoodItems({
 	catalogueLimit?: number;
 	query: string;
 	filter: FoodFilter;
-	locale: "en" | "nl";
+	locale: Locale;
 	personalFoods: ReturnType<typeof usePersonalFoods>;
 	recentShortcuts: readonly { readonly sourceKey: string }[];
 	favoriteShortcuts: readonly { readonly sourceKey: string }[];
@@ -133,7 +131,7 @@ export function useLogFoodItems({
 	 * which is exactly why a food you own could be invisible on the wrong tab.
 	 * Both the pool and the broader view therefore search `all`; what separates
 	 * them is that only the broader view keeps shipped records someone has
-	 * corrected. Ranking and shadowing both live in core (#75).
+	 * corrected. Ranking and shadowing both live in core.
 	 */
 	const broaderView = filter === "all";
 	const allResults = useMemo(

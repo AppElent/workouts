@@ -1,4 +1,11 @@
-import { NUTRIENT_KEYS, type NutrientTotal } from "@foundry/core/nutrition";
+import {
+	type GoalBounds,
+	goalBounds,
+	NUTRIENT_KEYS,
+	NUTRIENT_UNITS,
+	type NutrientKey,
+	type NutrientTotal,
+} from "@foundry/core";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,9 +21,8 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import type { NutrientGoal, NutrientKey } from "../../../../data/nutrition-day";
 import {
-	nutrientUnit,
+	type NutrientGoal,
 	useSetNutritionDisplayOrder,
 } from "../../../../data/nutrition-day";
 import { haptics } from "../../../../feedback/haptics";
@@ -32,15 +38,9 @@ import {
 import { GroupedSurface } from "../../../../ui/form";
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
-
-import {
-	displayAmount,
-	type GoalGroup,
-	groupGoals,
-	localizedGoalStatus,
-	outcome,
-	targetLabel,
-} from "../goal-presentation";
+import { useWriteFailureMessage } from "../../../../ui/use-screen-write";
+import { formatNutrientTotal } from "../../nutrient-amount";
+import { outcome, targetLabel } from "../goal-presentation";
 
 import { GoalRowMenu } from "./goal-row-menu";
 
@@ -50,14 +50,15 @@ function GoalProgressTrack({
 	total,
 }: {
 	t: Messages;
-	group: GoalGroup;
+	group: GoalBounds;
 	total?: NutrientTotal;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const denominator = group.max ?? group.min ?? 1;
 	const fraction = Math.max(0, Math.min(1, (total?.amount ?? 0) / denominator));
-	const status = outcome(colors, t, group, total);
+	const { locale } = useI18n();
+	const status = outcome(colors, { t, locale }, group, total);
 	const neutral = !total || total.incomplete || total.qualified;
 	return (
 		<View style={styles.track}>
@@ -95,7 +96,7 @@ function GoalProgressRow({
 	stacked,
 }: {
 	t: Messages;
-	group: GoalGroup;
+	group: GoalBounds;
 	total?: NutrientTotal;
 	onLongPress?: () => void;
 	onEdit?: () => void;
@@ -106,15 +107,16 @@ function GoalProgressRow({
 	const { locale } = useI18n();
 	const styles = useThemedStyles(createStyles);
 	const colors = useTokens();
-	const unit = t.nutrition.units[nutrientUnit(group.nutrient)];
-	const value = `${displayAmount(group.nutrient, total, locale)} / ${targetLabel(group, unit)}`;
-	const status = outcome(colors, t, group, total);
+	const unit = NUTRIENT_UNITS[group.nutrient];
+	const target = targetLabel(group, locale);
+	const value = `${formatNutrientTotal(group.nutrient, total, locale)} / ${target}`;
+	const status = outcome(colors, { t, locale }, group, total);
 	return (
 		<Pressable
 			accessible
 			disabled={!onPress && !onLongPress && !onEdit && !onReorder}
 			onPress={onPress}
-			accessibilityLabel={`${t.nutrition.nutrients[group.nutrient]}: ${value}. ${localizedGoalStatus(status.label, locale)}.`}
+			accessibilityLabel={`${t.nutrition.nutrients[group.nutrient]}: ${value}. ${status.label}.`}
 			accessibilityActions={
 				onEdit || onReorder
 					? [
@@ -149,7 +151,7 @@ function GoalProgressRow({
 					<AppText style={styles.goalName}>
 						{t.nutrition.nutrients[group.nutrient]}
 					</AppText>
-					<AppText variant="caption">{targetLabel(group, unit)}</AppText>
+					<AppText variant="caption">{target}</AppText>
 				</View>
 				<AppText
 					variant="control"
@@ -165,7 +167,7 @@ function GoalProgressRow({
 						},
 					]}
 				>
-					{displayAmount(group.nutrient, total, locale)}
+					{formatNutrientTotal(group.nutrient, total, locale)}
 					<AppText variant="footnote"> {unit}</AppText>
 				</AppText>
 				{onPress ? (
@@ -178,7 +180,7 @@ function GoalProgressRow({
 			</View>
 			<GoalProgressTrack t={t} group={group} total={total} />
 			<AppText variant="caption" style={{ color: status.color }}>
-				{localizedGoalStatus(status.label, locale)}
+				{status.label}
 			</AppText>
 		</Pressable>
 	);
@@ -314,11 +316,12 @@ export function NutritionGoalCard({
 	const reduceMotion = useReduceMotion();
 	const { fontScale } = useWindowDimensions();
 	const toast = useToast();
+	const writeFailureMessage = useWriteFailureMessage();
 	const setDisplayOrder = useSetNutritionDisplayOrder();
 	const stackedRows = fontScale >= 1.6;
 	const activeOrder = reordering ? draftOrder : savedOrder;
 	const groups = useMemo(
-		() => groupGoals(goals, activeOrder),
+		() => goalBounds(goals, activeOrder),
 		[activeOrder, goals],
 	);
 	const hiddenCount = showAll ? 0 : Math.max(0, groups.length - 2);
@@ -399,7 +402,7 @@ export function NutritionGoalCard({
 	function move(nutrient: NutrientKey, direction: -1 | 1): boolean {
 		if (saveInFlight.current) return false;
 		const current = draftOrderRef.current;
-		const visibleNutrients = groupGoals(goals, current).map(
+		const visibleNutrients = goalBounds(goals, current).map(
 			(group) => group.nutrient,
 		);
 		const visibleIndex = visibleNutrients.indexOf(nutrient);
@@ -427,8 +430,8 @@ export function NutritionGoalCard({
 			draftOrderRef.current = submittedOrder;
 			setExpanded(false);
 			setReordering(false);
-		} catch {
-			toast.error(t.nutrition.goals.reorderFailure);
+		} catch (error) {
+			toast.error(writeFailureMessage(error, t.nutrition.goals.reorderFailure));
 		} finally {
 			saveInFlight.current = false;
 			setPending(false);

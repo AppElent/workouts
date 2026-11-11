@@ -7,13 +7,12 @@ import {
 } from "expo-router/testing-library";
 import { Text } from "react-native";
 import * as FirstRunRoute from "../../../../app/(app)/first-run";
-import {
-	clearPreference,
-	PREFERENCE_KEYS,
-} from "../../../prefs/local-preference";
+import { accountKeyspace } from "../../../local-store/local-store";
 import { renderApp } from "../../../test-support/render-app";
 import { useFirstRunPrompt } from "./use-first-run-prompt";
 
+/** The keyspace `first-run-offered.ts` writes; re-registering it is harmless. */
+const offered = accountKeyspace("first-run-offered:v1");
 const mockAccountQuery = jest.mocked(useQuery_experimental);
 const defaultQuery = mockAccountQuery.getMockImplementation();
 
@@ -37,7 +36,7 @@ const usedAccount = { status: "success", data: { empty: false } } as never;
 
 describe("first run prompt", () => {
 	beforeEach(() => {
-		clearPreference(PREFERENCE_KEYS.firstRunOffered);
+		offered.clear("test-user");
 	});
 
 	afterEach(() => {

@@ -1,0 +1,132 @@
+import {
+	type BaseUnit,
+	type Locale,
+	NUTRIENT_KEYS,
+	type NutrientKey,
+	type NutrientValue,
+	type NutritionProvenance,
+	normaliseForSearch,
+	type PersonalFood,
+	personalFoodSnapshot,
+	type ShippedFood,
+} from "@foundry/core";
+import {
+	searchShippedFoods,
+	shippedFoodProvenance,
+} from "@foundry/core/shipped-foods";
+
+/**
+ * The phone's food library as one searchable catalog (shipped + personal),
+ * used by Hulp bij invoeren to find candidates for each described item.
+ */
+
+export type AssistanceFood = {
+	readonly id: string;
+	readonly kind: "shipped" | "personal";
+	readonly name: { readonly en: string; readonly nl: string };
+	readonly baseUnit: BaseUnit;
+	readonly personalFood?: PersonalFood;
+	/** Everyday portions from the library, in the base unit. */
+	readonly servings?: readonly {
+		readonly label: { readonly en: string; readonly nl: string };
+		readonly amount: number;
+	}[];
+	readonly nutrients: Readonly<Record<NutrientKey, NutrientValue>>;
+	readonly provenance: NutritionProvenance;
+};
+
+function candidateFromShipped(food: ShippedFood): AssistanceFood {
+	const nutrients = Object.fromEntries(
+		NUTRIENT_KEYS.map((key) => [key, food.nutrients[key]]),
+	) as Record<NutrientKey, NutrientValue>;
+	return {
+		id: food.id,
+		kind: "shipped",
+		name: food.name,
+		baseUnit: food.baseUnit,
+		servings: food.servings,
+		nutrients,
+		provenance: shippedFoodProvenance(food),
+	};
+}
+
+function candidateFromPersonal(food: PersonalFood): AssistanceFood {
+	const snapshot = personalFoodSnapshot(food, { quantity: 1 });
+	return {
+		id: food.id,
+		kind: "personal",
+		name: food.name,
+		baseUnit: food.baseUnit,
+		servings: food.servings,
+		nutrients: food.nutrients,
+		provenance: snapshot.provenance,
+		personalFood: food,
+	};
+}
+
+export function buildAssistanceFoodCatalog(
+	shipped: readonly ShippedFood[],
+	personal: readonly PersonalFood[],
+): readonly AssistanceFood[] {
+	return [
+		...shipped.map(candidateFromShipped),
+		...personal.map(candidateFromPersonal),
+	];
+}
+
+function scoreCandidate(
+	query: string,
+	food: AssistanceFood,
+	locale: Locale,
+): number {
+	const wanted = normaliseForSearch(query);
+	const name = normaliseForSearch(food.name[locale]);
+	const other = normaliseForSearch(food.name[locale === "en" ? "nl" : "en"]);
+	if (name === wanted || other === wanted) return 0;
+	if (name.startsWith(wanted) || other.startsWith(wanted)) return 1;
+	const words = wanted.split(" ").filter(Boolean);
+	if (words.length > 0 && words.every((word) => name.includes(word))) return 2;
+	if (name.includes(wanted) || other.includes(wanted)) return 3;
+	return Number.POSITIVE_INFINITY;
+}
+
+export function searchAssistanceFoods(
+	query: string,
+	catalog: readonly AssistanceFood[],
+	locale: Locale,
+	limit = 8,
+): readonly AssistanceFood[] {
+	const wanted = normaliseForSearch(query);
+	if (!wanted) return [];
+	const shippedById = new Map(
+		catalog
+			.filter((food) => food.kind === "shipped")
+			.map((food) => [food.id, food]),
+	);
+	const shippedMatches = searchShippedFoods(query, {
+		locale,
+		scope: "all",
+		limit,
+	}).flatMap((match) => {
+		const candidate = shippedById.get(match.food.id);
+		return candidate ? [candidate] : [];
+	});
+	const personalMatches = catalog
+		.filter((food) => food.kind === "personal")
+		.map((food) => ({ food, score: scoreCandidate(query, food, locale) }))
+		.filter(({ score }) => Number.isFinite(score))
+		.sort(
+			(a, b) =>
+				a.score - b.score ||
+				a.food.name[locale].localeCompare(b.food.name[locale], locale) ||
+				a.food.id.localeCompare(b.food.id),
+		)
+		.map(({ food }) => food);
+	// Their own foods first: the limit must not cut what they saved themselves.
+	return [...personalMatches, ...shippedMatches]
+		.filter(
+			(food, index, all) =>
+				all.findIndex((item) => item.id === food.id) === index,
+		)
+		.slice(0, limit);
+}

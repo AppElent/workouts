@@ -16,27 +16,23 @@ jobs:
     permissions: { contents: read }
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: ">=22.18.0", cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - run: pnpm run check
       # Manifest and .env.example only; needs no credentials.
       - run: pnpm env:check
       - run: node scripts/check-project.mjs --strict
       - run: pnpm run typecheck
-      - run: pnpm test
-      # apps/mobile is checked by nothing above: the root tsconfig excludes
-      # `apps`, and the root vitest projects match no file under it. Until #69
-      # these two commands existed but only ever ran on someone's laptop.
+      # Root typecheck excludes packages/, and tsup checks only what its
+      # entries reach, so core's scripts and tests are checked here.
+      - run: pnpm --filter @foundry/core typecheck
+      - run: pnpm --filter @foundry/core check:foods
       - run: pnpm --filter @foundry/mobile typecheck
+      - run: pnpm test
       - run: pnpm --filter @foundry/mobile test
-      # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
-      # miss. preview.yml only builds on pull_request, so without this a build-only
-      # failure could land green on a direct push to main.
+      # Catches bundling, plugin and SSR-compile failures that types and tests
+      # miss; preview.yml builds only labelled pull requests.
       # No SENTRY_AUTH_TOKEN: this artifact is never deployed, so uploading
-      # its source maps would only add a Sentry release per CI run. Deploying
-      # builds (preview.yml, deploy:production) upload instead.
+      # its source maps would only add a Sentry release per CI run.
       - run: pnpm build
         env:
           VITE_SENTRY_ENVIRONMENT: ci

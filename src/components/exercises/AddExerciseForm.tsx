@@ -1,47 +1,37 @@
 import { api } from "@convex/_generated/api";
+import {
+	EQUIPMENT,
+	type Equipment,
+	EXERCISE_CATEGORIES,
+	type ExerciseCategory,
+	isLoadedEquipment,
+	validateExerciseInput,
+} from "@foundry/core";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
-import { z } from "zod";
+import { useState } from "react";
+import { useConvexErrorMessage } from "#/lib/convexError";
 
-const schema = z.object({
-	name: z.string().min(1, "Name is required"),
-	muscleGroupsRaw: z.string().min(1, "At least one muscle group required"),
-	category: z.enum(["compound", "isolation"]),
-	equipment: z.enum([
-		"barbell",
-		"dumbbell",
-		"cable",
-		"bodyweight",
-		"machine",
-		"kettlebell",
-		"band",
-		"other",
-	]),
-	notes: z.string().optional(),
-	weightIncrement: z.number().positive().optional(),
-});
+const FIELD_ERRORS = {
+	name: "Name is required",
+	weightIncrement: "Weight increment must be more than 0",
+};
 
-type FormValues = z.infer<typeof schema>;
+type Draft = {
+	name: string;
+	muscleGroupsRaw: string;
+	category: ExerciseCategory;
+	equipment: Equipment;
+	notes: string;
+	weightIncrement: number | undefined;
+};
 
-const equipmentOptions = [
-	"barbell",
-	"dumbbell",
-	"cable",
-	"bodyweight",
-	"machine",
-	"kettlebell",
-	"band",
-	"other",
-] as const;
-
-const equipmentWithWeight = new Set([
-	"barbell",
-	"dumbbell",
-	"cable",
-	"machine",
-	"kettlebell",
-	"other",
-]);
+function checkDraft({ muscleGroupsRaw, ...draft }: Draft) {
+	return validateExerciseInput({
+		...draft,
+		muscleGroups: muscleGroupsRaw.split(","),
+	});
+}
 
 export function AddExerciseForm({
 	onSuccess,
@@ -49,30 +39,39 @@ export function AddExerciseForm({
 	onSuccess?: () => void;
 } = {}) {
 	const createExercise = useMutation(api.exercises.create);
+	const errorMessage = useConvexErrorMessage();
+	const [submitError, setSubmitError] = useState<string | null>(null);
 
 	const form = useForm({
 		defaultValues: {
 			name: "",
 			muscleGroupsRaw: "",
-			category: "compound" as "compound" | "isolation",
-			equipment: "barbell" as FormValues["equipment"],
+			category: "compound",
+			equipment: "barbell",
 			notes: "",
-			weightIncrement: undefined as number | undefined,
+			weightIncrement: undefined,
+		} as Draft,
+		validators: {
+			onSubmit: ({ value }) => {
+				const checked = checkDraft(value);
+				if (checked.ok) return undefined;
+				return {
+					fields: Object.fromEntries(
+						checked.errors.map(({ field }) => [field, FIELD_ERRORS[field]]),
+					),
+				};
+			},
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.parse(value);
-			const muscleGroups = parsed.muscleGroupsRaw
-				.split(",")
-				.map((s) => s.trim().toLowerCase())
-				.filter(Boolean);
-			await createExercise({
-				name: parsed.name,
-				muscleGroups,
-				category: parsed.category,
-				equipment: parsed.equipment,
-				notes: parsed.notes || undefined,
-				weightIncrement: parsed.weightIncrement,
-			});
+			setSubmitError(null);
+			const checked = checkDraft(value);
+			if (!checked.ok) return;
+			try {
+				await createExercise(checked.value);
+			} catch (error) {
+				setSubmitError(errorMessage(error, "Couldn't add exercise."));
+				return;
+			}
 			form.reset();
 			onSuccess?.();
 		},
@@ -106,11 +105,7 @@ export function AddExerciseForm({
 								placeholder="e.g. Cable Lateral Raise"
 								required
 							/>
-							{field.state.meta.errors.length > 0 && (
-								<p className="text-xs text-red-400">
-									{String(field.state.meta.errors[0])}
-								</p>
-							)}
+							<FieldError message={field.state.meta.errors[0]} />
 						</div>
 					)}
 				</form.Field>
@@ -130,7 +125,6 @@ export function AddExerciseForm({
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="e.g. side delts, traps"
-								required
 							/>
 						</div>
 					)}
@@ -150,11 +144,14 @@ export function AddExerciseForm({
 								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
 								value={field.state.value}
 								onChange={(e) =>
-									field.handleChange(e.target.value as "compound" | "isolation")
+									field.handleChange(e.target.value as ExerciseCategory)
 								}
 							>
-								<option value="compound">Compound</option>
-								<option value="isolation">Isolation</option>
+								{EXERCISE_CATEGORIES.map((category) => (
+									<option key={category} value={category}>
+										{category.charAt(0).toUpperCase() + category.slice(1)}
+									</option>
+								))}
 							</select>
 						</div>
 					)}
@@ -174,10 +171,10 @@ export function AddExerciseForm({
 								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
 								value={field.state.value}
 								onChange={(e) =>
-									field.handleChange(e.target.value as FormValues["equipment"])
+									field.handleChange(e.target.value as Equipment)
 								}
 							>
-								{equipmentOptions.map((eq) => (
+								{EQUIPMENT.map((eq) => (
 									<option key={eq} value={eq} className="capitalize">
 										{eq.charAt(0).toUpperCase() + eq.slice(1)}
 									</option>
@@ -189,7 +186,7 @@ export function AddExerciseForm({
 
 				<form.Subscribe selector={(s) => s.values.equipment}>
 					{(equipment) =>
-						equipmentWithWeight.has(equipment) ? (
+						isLoadedEquipment(equipment) ? (
 							<form.Field name="weightIncrement">
 								{(field) => (
 									<div className="flex flex-col gap-1">
@@ -215,6 +212,7 @@ export function AddExerciseForm({
 											}
 											placeholder="e.g. 2.5"
 										/>
+										<FieldError message={field.state.meta.errors[0]} />
 									</div>
 								)}
 							</form.Field>
@@ -243,14 +241,29 @@ export function AddExerciseForm({
 				</form.Field>
 			</div>
 
-			<div className="flex justify-end">
-				<button
-					type="submit"
-					className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
-				>
-					Add Exercise
-				</button>
+			<div className="flex items-center justify-end gap-3">
+				{submitError && (
+					<p role="alert" className="text-xs text-[var(--danger)]">
+						{submitError}
+					</p>
+				)}
+				<form.Subscribe selector={(s) => s.isSubmitting}>
+					{(submitting) => (
+						<button
+							type="submit"
+							disabled={submitting}
+							className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
+						>
+							Add Exercise
+						</button>
+					)}
+				</form.Subscribe>
 			</div>
 		</form>
 	);
+}
+
+function FieldError({ message }: { message: string | undefined }) {
+	if (!message) return null;
+	return <p className="text-xs text-[var(--danger)]">{message}</p>;
 }

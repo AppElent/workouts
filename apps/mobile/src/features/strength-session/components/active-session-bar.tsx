@@ -1,26 +1,20 @@
+import { formatClock } from "@foundry/core";
 /** Resume control, laid out by the native tab accessory or its inline fallback. */
-import { useRouter, useSegments } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
 import { fmt, useI18n } from "../../../i18n";
-import { radius, spacing, type Tokens, useThemedStyles } from "../../../theme";
+import {
+	opacity,
+	radius,
+	spacing,
+	type Tokens,
+	useThemedStyles,
+} from "../../../theme";
 import { isIOS26OrLater } from "../../../ui/platform";
 import { AppText } from "../../../ui/text";
-import { formatClock } from "../session-format";
-import { useRestState } from "./rest-timer";
-
-/** "0:42" under an hour, "1:02:47" over it. */
-function formatElapsed(ms: number) {
-	const total = Math.max(0, Math.floor(ms / 1000));
-	const hours = Math.floor(total / 3600);
-	const minutes = Math.floor((total % 3600) / 60);
-	const seconds = total % 60;
-	const pad = (n: number) => n.toString().padStart(2, "0");
-	return hours > 0
-		? `${hours}:${pad(minutes)}:${pad(seconds)}`
-		: `${minutes}:${pad(seconds)}`;
-}
+import { useRestState } from "../data/rest-timer";
 
 export function ActiveSessionBar() {
 	const styles = useThemedStyles(createStyles);
@@ -29,25 +23,25 @@ export function ActiveSessionBar() {
 	const resume = t.strength.plan.resume;
 	const rest = useRestState();
 	const router = useRouter();
-	const segments = useSegments();
 	const active = useActiveSession();
-
-	const onSessionScreen = segments.includes("session" as never);
 
 	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
-		if (!active || onSessionScreen) return;
+		if (!active) return;
 		const id = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(id);
-	}, [active, onSessionScreen]);
+	}, [active]);
 
-	if (!active || onSessionScreen) return null;
+	if (!active) return null;
 
 	return (
 		<View style={styles.wrap} pointerEvents="box-none">
 			<Pressable
 				onPress={() => router.push("/session")}
-				style={({ pressed }) => [styles.bar, pressed && { opacity: 0.9 }]}
+				style={({ pressed }) => [
+					styles.bar,
+					pressed && { opacity: opacity.pressed },
+				]}
 				accessibilityRole="button"
 				accessibilityLabel={fmt(resume.label, {
 					name: active.name ?? copy.freeSession,
@@ -65,10 +59,10 @@ export function ActiveSessionBar() {
 				<AppText variant="body" style={styles.elapsed}>
 					{rest.running
 						? fmt(rest.over ? resume.lineRestOver : resume.lineRest, {
-								time: formatElapsed(now - active.startTime),
+								time: formatClock((now - active.startTime) / 1000),
 								rest: formatClock(rest.remaining),
 							})
-						: formatElapsed(now - active.startTime)}
+						: formatClock((now - active.startTime) / 1000)}
 				</AppText>
 				<AppText variant="body" style={styles.resume}>
 					{copy.resume}

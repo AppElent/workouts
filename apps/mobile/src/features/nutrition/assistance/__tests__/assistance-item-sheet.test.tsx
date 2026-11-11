@@ -1,6 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react-native";
-import { itemNutrients, type ReviewItem } from "../../../../data/nutrition-ai";
 import { renderScreen } from "../../../../test-support/render-screen";
+import { itemNutrients, type ReviewItem } from "../../nutrition-ai";
 import { AssistanceItemSheet } from "../assistance-item-sheet";
 
 const value = (amount: number) => ({ kind: "value", amount }) as const;

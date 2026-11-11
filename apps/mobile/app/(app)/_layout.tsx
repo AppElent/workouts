@@ -15,22 +15,14 @@
  * group, which is a screen of this stack — expo-router keeps navigation state
  * per route and crashes if a route's navigator type changes underneath it, so
  * `NativeTabs` gets its own route rather than replacing this one.
- *
  */
 
 import { useAuth } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
 import { Platform, View } from "react-native";
+import { AppDataProviders } from "../../src/app-data-providers";
 import { ConvexSessionGate } from "../../src/auth/convex-session-gate";
-import { FoodAuthoringIntentProvider } from "../../src/data/food-authoring-intent";
-import { NutritionDraftsProvider } from "../../src/data/nutrition-drafts";
-import { NutritionOperationsProvider } from "../../src/data/nutrition-operation-service";
-import { OpenFoodFactsProvider } from "../../src/data/open-food-facts-context";
-import { PersonalFoodsProvider } from "../../src/data/personal-foods";
-import { PersonalMeasuresProvider } from "../../src/data/personal-measures";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
-import { RestTimerProvider } from "../../src/features/strength-session/components/rest-timer";
-import { SetDraftsProvider } from "../../src/features/strength-session/data/set-drafts";
 import { useI18n } from "../../src/i18n";
 import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
@@ -51,383 +43,336 @@ export default function AppLayout() {
 	return (
 		<ToastProvider>
 			<ConfirmProvider>
-				<RestTimerProvider>
-					<ConvexSessionGate>
-						<AccountDataMaintenanceProvider>
-							<PersonalFoodsProvider>
-								<FoodAuthoringIntentProvider>
-									<OpenFoodFactsProvider>
-										<NutritionOperationsProvider>
-											<NutritionDraftsProvider>
-												<PersonalMeasuresProvider>
-													<SetDraftsProvider>
-														<View
-															style={{ flex: 1, backgroundColor: colors.bg }}
-														>
-															<OfflineBanner />
-															<Stack
-																screenOptions={{
-																	headerShown: true,
-																	headerTintColor: colors.accent,
-																	gestureEnabled: true,
-																	contentStyle: { backgroundColor: colors.bg },
-																	headerBackButtonDisplayMode: "minimal",
-																	...(Platform.OS === "android"
-																		? {
-																				headerStyle: {
-																					backgroundColor: colors.bg,
-																				},
-																				headerTitleStyle: {
-																					color: colors.text,
-																				},
-																				headerShadowVisible: false,
-																			}
-																		: {}),
-																}}
-															>
-																<Stack.Screen
-																	name="labs"
-																	options={{ title: t.diaryEntry.labs }}
-																/>
-																<Stack.Screen
-																	name="labs-entry"
-																	options={{
-																		title: t.nutrition.entryEditor.title,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetInitialDetentIndex: 0,
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="labs-food"
-																	options={{ title: t.diaryEntry.details }}
-																/>
-																<Stack.Screen
-																	name="activity-history"
-																	options={{
-																		title: t.routes.activityHistory,
-																	}}
-																/>
-																<Stack.Screen
-																	name="endurance-editor"
-																	options={{
-																		title: t.routes.logActivity,
-																	}}
-																/>
-																<Stack.Screen
-																	name="endurance/[id]"
-																	options={{
-																		title: t.routes.activity,
-																	}}
-																/>
-																<Stack.Screen
-																	name="(coach)"
-																	options={{
-																		headerShown: false,
-																	}}
-																/>
-																<Stack.Screen
-																	name="exercises"
-																	options={{ title: t.routes.exercises }}
-																/>
-																<Stack.Screen
-																	name="exercise/[id]"
-																	options={{ title: t.routes.exercise }}
-																/>
-																<Stack.Screen
-																	name="exercise-new"
-																	options={{
-																		title: t.routes.newExercise,
-																		presentation: "formSheet",
-																	}}
-																/>
-																<Stack.Screen
-																	name="hosted"
-																	options={{ title: t.routes.hosted }}
-																/>
-																<Stack.Screen
-																	name="hosted/[id]"
-																	options={{ title: t.routes.hostedWorkout }}
-																/>
-																<Stack.Screen
-																	name="wods"
-																	options={{ title: t.wods.title }}
-																/>
-																<Stack.Screen
-																	name="wod/[id]"
-																	options={{ title: t.training.wod }}
-																/>
-																<Stack.Screen
-																	name="wod-editor"
-																	options={{
-																		title: t.training.wod,
-																		presentation: "formSheet",
-																	}}
-																/>
-																<Stack.Screen
-																	name="start-activity"
-																	options={{
-																		headerShown: false,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="set-editor"
-																	options={{
-																		headerShown: false,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="session-manual"
-																	options={{
-																		headerShown: false,
-																		title: t.strength.plan.profile.manual,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.6, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="session-group"
-																	options={{
-																		title: t.strength.plan.group.titleSheet,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.85, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="routine-editor"
-																	options={{
-																		title: t.routes.routine,
-																		presentation: "formSheet",
-																	}}
-																/>
-																<Stack.Screen
-																	name="session"
-																	options={{
-																		title: t.routes.workout,
-																		presentation: "modal",
-																	}}
-																/>
-																<Stack.Screen
-																	name="summary"
-																	options={{
-																		title: t.routes.summary,
-																		headerBackVisible: false,
-																		gestureEnabled: false,
-																	}}
-																/>
-																<Stack.Screen
-																	name="appearance"
-																	options={{ title: t.appearance.title }}
-																/>
-																<Stack.Screen
-																	name="language"
-																	options={{ title: t.language.title }}
-																/>
-																<Stack.Screen
-																	name="personal-measures"
-																	options={{
-																		title: t.nutrition.personalMeasures.title,
-																	}}
-																/>
-																<Stack.Screen
-																	name="settings"
-																	options={{
-																		title: t.routes.settings,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-settings"
-																	options={{
-																		title: t.routes.nutritionSettings,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-food"
-																	options={{
-																		title: t.nutrition.foodBrowser.addFood,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-entry"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetGrabberVisible: true,
-																		title: t.nutrition.entryEditor.title,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-food-details"
-																	options={{
-																		// Opened from amount sheets: a sheet over the sheet, not a page behind it.
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-entry-transfer"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: "fitToContents",
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-day-goals"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.65, 1],
-																		sheetInitialDetentIndex: 1,
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-nutrient-sources"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.65, 1],
-																		sheetInitialDetentIndex: 1,
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-entry-correction"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-combo-log"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-combo-new"
-																	options={{ title: t.nutrition.combos.create }}
-																/>
-																<Stack.Screen
-																	name="first-run"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.75, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-goals"
-																	options={{
-																		title: t.nutrition.goalEditor.title,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-one-off"
-																	options={{
-																		title: t.routes.oneOff,
-																		// Full height: the keyboard opens at once on the name.
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-assistance"
-																	options={{
-																		title: t.routes.assistance,
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-weekly-review"
-																	options={{
-																		title: t.routes.weekOverview,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-library-attention"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.6, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-combo-part"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.9, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-combo/[id]"
-																	options={{ title: "" }}
-																/>
-																<Stack.Screen
-																	name="personal-food/[id]"
-																	options={{ title: "" }}
-																/>
-																<Stack.Screen
-																	name="personal-food-new"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-week-goals"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.75, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-week-sources"
-																	options={{
-																		presentation: "formSheet",
-																		sheetAllowedDetents: [0.75, 1],
-																		sheetGrabberVisible: true,
-																	}}
-																/>
-																<Stack.Screen
-																	name="nutrition-library"
-																	options={{
-																		title: t.routes.foodLibrary,
-																	}}
-																/>
-															</Stack>
-														</View>
-													</SetDraftsProvider>
-												</PersonalMeasuresProvider>
-											</NutritionDraftsProvider>
-										</NutritionOperationsProvider>
-									</OpenFoodFactsProvider>
-								</FoodAuthoringIntentProvider>
-							</PersonalFoodsProvider>
-						</AccountDataMaintenanceProvider>
-					</ConvexSessionGate>
-				</RestTimerProvider>
+				<ConvexSessionGate>
+					<AccountDataMaintenanceProvider>
+						<AppDataProviders>
+							<View style={{ flex: 1, backgroundColor: colors.bg }}>
+								<OfflineBanner />
+								<Stack
+									screenOptions={{
+										headerShown: true,
+										headerTintColor: colors.accent,
+										gestureEnabled: true,
+										contentStyle: { backgroundColor: colors.bg },
+										headerBackButtonDisplayMode: "minimal",
+										...(Platform.OS === "android"
+											? {
+													headerStyle: {
+														backgroundColor: colors.bg,
+													},
+													headerTitleStyle: {
+														color: colors.text,
+													},
+													headerShadowVisible: false,
+												}
+											: {}),
+									}}
+								>
+									<Stack.Screen
+										name="activity-history"
+										options={{
+											title: t.routes.activityHistory,
+										}}
+									/>
+									<Stack.Screen
+										name="endurance-editor"
+										options={{
+											title: t.routes.logActivity,
+										}}
+									/>
+									<Stack.Screen
+										name="endurance/[id]"
+										options={{
+											title: t.routes.activity,
+										}}
+									/>
+									<Stack.Screen
+										name="(coach)"
+										options={{
+											headerShown: false,
+										}}
+									/>
+									<Stack.Screen
+										name="exercises"
+										options={{ title: t.routes.exercises }}
+									/>
+									<Stack.Screen
+										name="exercise/[id]"
+										options={{ title: t.routes.exercise }}
+									/>
+									<Stack.Screen
+										name="exercise-new"
+										options={{
+											title: t.routes.newExercise,
+											presentation: "formSheet",
+										}}
+									/>
+									<Stack.Screen
+										name="hosted"
+										options={{ title: t.routes.hosted }}
+									/>
+									<Stack.Screen
+										name="hosted/[id]"
+										options={{ title: t.routes.hostedWorkout }}
+									/>
+									<Stack.Screen name="wods" options={{ title: t.wods.title }} />
+									<Stack.Screen
+										name="wod/[id]"
+										options={{ title: t.training.wod }}
+									/>
+									<Stack.Screen
+										name="wod-editor"
+										options={{
+											title: t.training.wod,
+											presentation: "formSheet",
+										}}
+									/>
+									<Stack.Screen
+										name="start-activity"
+										options={{
+											headerShown: false,
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.9, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="set-editor"
+										options={{
+											headerShown: false,
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="session-manual"
+										options={{
+											headerShown: false,
+											title: t.strength.plan.profile.manual,
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.6, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="session-group"
+										options={{
+											title: t.strength.plan.group.titleSheet,
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.85, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="routine-editor"
+										options={{
+											title: t.routes.routine,
+											presentation: "formSheet",
+										}}
+									/>
+									<Stack.Screen
+										name="session"
+										options={{
+											title: t.routes.workout,
+											presentation: "modal",
+										}}
+									/>
+									<Stack.Screen
+										name="summary"
+										options={{ title: t.routes.summary }}
+									/>
+									<Stack.Screen
+										name="appearance"
+										options={{ title: t.appearance.title }}
+									/>
+									<Stack.Screen
+										name="language"
+										options={{ title: t.language.title }}
+									/>
+									<Stack.Screen
+										name="personal-measures"
+										options={{
+											title: t.nutrition.personalMeasures.title,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-settings"
+										options={{
+											title: t.routes.nutritionSettings,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-food"
+										options={{
+											title: t.nutrition.foodBrowser.addFood,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-entry"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.9, 1],
+											sheetGrabberVisible: true,
+											title: t.nutrition.entryEditor.title,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-food-details"
+										options={{
+											// Opened from amount sheets: a sheet over the sheet, not a page behind it.
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.9, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-entry-transfer"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: "fitToContents",
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-day-goals"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.65, 1],
+											sheetInitialDetentIndex: 1,
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-nutrient-sources"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.65, 1],
+											sheetInitialDetentIndex: 1,
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-entry-correction"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.9, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-combo-log"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.9, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-combo-new"
+										options={{ title: t.nutrition.combos.create }}
+									/>
+									<Stack.Screen
+										name="first-run"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.75, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-goals"
+										options={{
+											title: t.nutrition.goalEditor.title,
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-one-off"
+										options={{
+											title: t.routes.oneOff,
+											// Full height: the keyboard opens at once on the name.
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-assistance"
+										options={{
+											title: t.routes.assistance,
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-weekly-review"
+										options={{
+											title: t.routes.weekOverview,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-library-attention"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.6, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-combo-part"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.9, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-combo/[id]"
+										options={{ title: "" }}
+									/>
+									<Stack.Screen
+										name="personal-food/[id]"
+										options={{ title: "" }}
+									/>
+									<Stack.Screen
+										name="personal-food-new"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-week-goals"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.75, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-week-sources"
+										options={{
+											presentation: "formSheet",
+											sheetAllowedDetents: [0.75, 1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="nutrition-library"
+										options={{
+											title: t.routes.foodLibrary,
+										}}
+									/>
+								</Stack>
+							</View>
+						</AppDataProviders>
+					</AccountDataMaintenanceProvider>
+				</ConvexSessionGate>
 			</ConfirmProvider>
 		</ToastProvider>
 	);
