@@ -1,35 +1,13 @@
-/**
- * One WOD: what it is, what you have scored on it, and a form to add another.
- *
- * Scoring shape follows the type — a time for For Time, rounds-plus-reps for
- * AMRAP, reps for EMOM, a load for Load. Showing all four sets of fields at
- * once would be four ways to enter a score wrongly, so only the relevant pair
- * renders.
- *
- * Building, checking, ranking and formatting a score all come from
- * `@foundry/core`, the same rules Convex applies.
- */
-import {
-	buildWodScore,
-	formatScore,
-	parseClockInput,
-	prImprovement,
-	validateWodScore,
-} from "@foundry/core";
+/** One WOD: what it is, what you have scored on it, and a form to add another. */
+import { formatMovement, formatScore, prImprovement } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import {
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
-import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
+import { fmt, useI18n } from "../../../i18n";
 import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
@@ -38,13 +16,13 @@ import {
 	type Tokens,
 	type,
 	useThemedStyles,
-	useTokens,
 } from "../../../theme";
 import { Card, Chip, Eyebrow } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWodScoreDraft, WodScoreFields } from "./wod-score-fields";
 
 export function WodDetailScreen({
 	onEdit,
@@ -144,10 +122,14 @@ export function WodDetailScreen({
 						{wod.repScheme}
 					</AppText>
 				) : null}
-				{wod.movements.map((m) => (
-					<AppText key={m.name} variant="body" style={styles.movement}>
-						{m.reps ? `${m.reps} × ` : ""}
-						{m.name}
+				{wod.movements.map((movement, index) => (
+					<AppText
+						// biome-ignore lint/suspicious/noArrayIndexKey: movements may repeat and have no id
+						key={index}
+						variant="body"
+						style={styles.movement}
+					>
+						{formatMovement(movement)}
 					</AppText>
 				))}
 				{wod.timeCapSeconds ? (
@@ -248,52 +230,30 @@ function LogResultForm({
 	best: Doc<"wodResults"> | null;
 }) {
 	const errorMessage = useConvexErrorMessage();
-	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const copy = useI18n().t.wods;
 	const logResult = useMutation(api.wodResults.log);
-
-	const [time, setTime] = useState("");
-	const [rounds, setRounds] = useState("");
-	const [reps, setReps] = useState("");
-	const [load, setLoad] = useState("");
-	const [capped, setCapped] = useState(false);
+	const draft = useWodScoreDraft(wod.type);
 	const [rx, setRx] = useState(true);
-	const [notes, setNotes] = useState("");
 	const [busy, setBusy] = useState(false);
 
-	const score = buildWodScore(wod.type, {
-		timeSeconds: parseClockInput(time),
-		timeCapped: capped,
-		rounds: parseLocalizedDecimal(rounds),
-		reps: parseLocalizedDecimal(reps),
-		load: parseLocalizedDecimal(load),
-		loadUnit: "kg",
-	});
-	const complete = validateWodScore(wod.type, score).ok;
-
 	const submit = async () => {
-		if (busy || !complete) return;
+		if (busy || !draft.complete) return;
 
 		setBusy(true);
 		try {
 			await logResult({
 				wodId: wod._id,
 				rxScaled: rx ? "rx" : "scaled",
-				notes: notes.trim() === "" ? undefined : notes.trim(),
-				...score,
+				notes: draft.notes,
+				...draft.score,
 			});
-			// A new personal best is worth saying out loud — it is the one outcome
-			// the history list below does not make obvious at a glance.
-			const improvement = best ? prImprovement(wod.type, score, best) : null;
+			const improvement = best
+				? prImprovement(wod.type, draft.score, best)
+				: null;
 			if (improvement) toast.success(fmt(copy.newPr, { improvement }));
-			setTime("");
-			setRounds("");
-			setReps("");
-			setLoad("");
-			setNotes("");
-			setCapped(false);
+			draft.reset();
 		} catch (error) {
 			toast.error(errorMessage(error, copy.logError));
 		} finally {
@@ -310,92 +270,13 @@ function LogResultForm({
 				<Chip label={copy.scaled} active={!rx} onPress={() => setRx(false)} />
 			</View>
 
-			{wod.type === "forTime" ? (
-				<>
-					<View style={styles.chipRow}>
-						<Chip
-							label={copy.hitTimeCap}
-							active={capped}
-							onPress={() => setCapped(!capped)}
-						/>
-					</View>
-					{capped ? (
-						<TextInput
-							value={reps}
-							onChangeText={setReps}
-							placeholder={copy.repsAtCap}
-							placeholderTextColor={colors.textFaint}
-							style={styles.input}
-							keyboardType="number-pad"
-						/>
-					) : (
-						<TextInput
-							value={time}
-							onChangeText={setTime}
-							placeholder={copy.time}
-							placeholderTextColor={colors.textFaint}
-							style={styles.input}
-						/>
-					)}
-				</>
-			) : null}
-
-			{wod.type === "amrap" ? (
-				<View style={styles.formRow}>
-					<TextInput
-						value={rounds}
-						onChangeText={setRounds}
-						placeholder={copy.rounds}
-						placeholderTextColor={colors.textFaint}
-						style={[styles.input, styles.flex]}
-						keyboardType="number-pad"
-					/>
-					<TextInput
-						value={reps}
-						onChangeText={setReps}
-						placeholder={copy.plusReps}
-						placeholderTextColor={colors.textFaint}
-						style={[styles.input, styles.flex]}
-						keyboardType="number-pad"
-					/>
-				</View>
-			) : null}
-
-			{wod.type === "emom" ? (
-				<TextInput
-					value={reps}
-					onChangeText={setReps}
-					placeholder={copy.totalReps}
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					keyboardType="number-pad"
-				/>
-			) : null}
-
-			{wod.type === "load" ? (
-				<TextInput
-					value={load}
-					onChangeText={setLoad}
-					placeholder={copy.load}
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					keyboardType="decimal-pad"
-				/>
-			) : null}
-
-			<TextInput
-				value={notes}
-				onChangeText={setNotes}
-				placeholder={copy.notes}
-				placeholderTextColor={colors.textFaint}
-				style={styles.input}
-			/>
+			<WodScoreFields draft={draft} />
 
 			<Pressable
 				accessibilityRole="button"
 				accessibilityState={{ disabled: busy }}
 				onPress={() => void submit()}
-				disabled={busy || !complete}
+				disabled={busy || !draft.complete}
 				style={[styles.submit, busy && styles.dimmed]}
 			>
 				<AppText style={styles.submitText}>
@@ -431,17 +312,6 @@ const createStyles = (colors: Tokens) =>
 			color: colors.text,
 		},
 		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-		formRow: { flexDirection: "row", gap: spacing.sm },
-		input: {
-			minHeight: 48,
-			borderRadius: radius.lg,
-			paddingHorizontal: spacing.md,
-			backgroundColor: colors.surface,
-			borderWidth: 1,
-			borderColor: colors.border,
-			color: colors.text,
-			fontSize: type.body.fontSize,
-		},
 		submit: {
 			height: 48,
 			borderRadius: radius.pill,

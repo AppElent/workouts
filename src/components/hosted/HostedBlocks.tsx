@@ -3,6 +3,7 @@ import {
 	formatMovement,
 	formatScore,
 	type HostedLevel,
+	hostedLevelLabel,
 	type LeaderboardEntry,
 	sortLeaderboard,
 } from "@foundry/core";
@@ -10,7 +11,6 @@ import { Trash2 } from "lucide-react";
 import {
 	formatWodTiming,
 	type HostedWodBlock,
-	levelLabel,
 	movementKey,
 } from "#/components/hosted/wodBlock";
 
@@ -86,7 +86,7 @@ export function HostedWodBlockCard<RowId extends string>({
 						className="rounded-lg border border-[var(--border)] px-3 py-2"
 					>
 						<p className="text-xs font-semibold text-white">
-							{levelLabel(block, level.level)}
+							{hostedLevelLabel(block.levels, level.level)}
 						</p>
 						<ul className="mt-1 space-y-0.5">
 							{level.movements.length === 0 && (
@@ -149,7 +149,7 @@ function Leaderboard<RowId extends string>({
 					<span className="text-[var(--text-muted)]">{index + 1}</span>
 					<span className="font-medium text-white">{row.name}</span>
 					<span className="text-[var(--text-muted)]">
-						{levelLabel(block, row.level)}
+						{hostedLevelLabel(block.levels, row.level)}
 					</span>
 					<span className="text-white">
 						{formatScore(block.type, row.score)}

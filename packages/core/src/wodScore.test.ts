@@ -4,6 +4,7 @@ import {
 	buildWodScore,
 	formatMovement,
 	formatScore,
+	hostedLevelLabel,
 	parseClockInput,
 	scoreRank,
 	sortLeaderboard,
@@ -188,6 +189,18 @@ describe("sortLeaderboard", () => {
 			score: { load: 100, loadUnit: "kg" as const },
 		};
 		expect(sortLeaderboard("load", [kg, lbs])[0]).toBe(lbs);
+	});
+});
+
+describe("hostedLevelLabel", () => {
+	it("uses the host's name, falling back to the canonical one", () => {
+		const levels = [
+			{ level: "rx" as const, label: "Elite" },
+			{ level: "l1" as const, label: "" },
+		];
+		expect(hostedLevelLabel(levels, "rx")).toBe("Elite");
+		expect(hostedLevelLabel(levels, "l1")).toBe("L1");
+		expect(hostedLevelLabel(levels, "l3")).toBe("L3");
 	});
 });
 

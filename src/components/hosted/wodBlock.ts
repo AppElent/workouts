@@ -1,7 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import {
 	formatClock,
-	type HostedLevel,
 	WOD_TIMING_FIELD,
 	type WodMovement,
 	type WodTiming,
@@ -11,24 +10,6 @@ import {
 
 export type HostedWodBlock =
 	Doc<"hostedWorkouts">["template"]["wodBlocks"][number];
-
-export const HOSTED_LEVEL_LABELS: Record<HostedLevel, string> = {
-	rx: "Rx",
-	l1: "L1",
-	l2: "L2",
-	l3: "L3",
-};
-
-/** The host's label for a level, or the canonical Rx/L1/L2/L3 name. */
-export function levelLabel(
-	block: Pick<HostedWodBlock, "levels">,
-	level: HostedLevel,
-): string {
-	return (
-		block.levels.find((entry) => entry.level === level)?.label ||
-		HOSTED_LEVEL_LABELS[level]
-	);
-}
 
 export const WOD_TYPE_LABELS: Record<WodType, string> = {
 	forTime: "For Time",

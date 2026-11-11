@@ -1,14 +1,11 @@
 import {
 	formatMovement,
 	type HostedLevel,
+	hostedLevelLabel,
 	type WodScoreInput,
 } from "@foundry/core";
 import { useState } from "react";
-import {
-	type HostedWodBlock,
-	levelLabel,
-	movementKey,
-} from "#/components/hosted/wodBlock";
+import { type HostedWodBlock, movementKey } from "#/components/hosted/wodBlock";
 import {
 	useWodScoreDraft,
 	WodScoreFields,
@@ -118,7 +115,7 @@ export function HostedScoreForm({
 								: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]",
 						].join(" ")}
 					>
-						{levelLabel(selectedWod, entry.level)}
+						{hostedLevelLabel(selectedWod.levels, entry.level)}
 					</button>
 				))}
 			</div>
