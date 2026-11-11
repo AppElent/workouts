@@ -4,6 +4,7 @@ import {
 	KJ_PER_KCAL,
 	type Locale,
 	type MealSlot,
+	type MeasuredUnit,
 	NUTRIENT_KEYS,
 	NUTRITION_AI_PLAUSIBILITY,
 	type NutrientKey,
@@ -106,7 +107,7 @@ export type ReviewItem = {
 	readonly described: string;
 	/** In `unit`: the matched food's base unit, or the AI's unit for an estimate. */
 	readonly amount: number;
-	readonly unit: "g" | "ml";
+	readonly unit: MeasuredUnit;
 	/** The same amount as a weight; used for foods measured per gram. */
 	readonly grams: number;
 	/** The same amount as a volume, when the AI described it in ml. */
@@ -1081,7 +1082,7 @@ export function readyToLog(items: readonly ReviewItem[]): boolean {
 function servingLabel(
 	item: ReviewItem,
 	locale: Locale,
-	unit: "g" | "ml" = item.unit,
+	unit: MeasuredUnit = item.unit,
 ) {
 	const measured = `${formatQuantity(Math.round(item.amount), locale)} ${unit}`;
 	const words = item.amountLabel.trim();
@@ -1097,7 +1098,7 @@ function guessed(item: ReviewItem) {
 		: {};
 }
 
-function unitOf(food: AssistanceFood): "g" | "ml" {
+function unitOf(food: AssistanceFood): MeasuredUnit {
 	return food.baseUnit === "ml" ? "ml" : "g";
 }
 
@@ -1187,8 +1188,8 @@ export function oneEntrySnapshot(
 		return {
 			...entry,
 			serving: {
-				en: servingLabel(only, "en", entry.baseUnit as "g" | "ml"),
-				nl: servingLabel(only, "nl", entry.baseUnit as "g" | "ml"),
+				en: servingLabel(only, "en", entry.baseUnit as MeasuredUnit),
+				nl: servingLabel(only, "nl", entry.baseUnit as MeasuredUnit),
 			},
 		};
 	// Every part in the person's words, with the weight they add up to.

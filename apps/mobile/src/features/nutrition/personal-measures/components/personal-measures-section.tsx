@@ -1,4 +1,8 @@
-import { formatQuantity, type PersonalMeasure } from "@foundry/core";
+import {
+	formatQuantity,
+	type MeasuredUnit,
+	type PersonalMeasure,
+} from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { Pressable, View } from "react-native";
 import { fmt, useI18n } from "../../../../i18n";
@@ -6,7 +10,6 @@ import { radius, spacing, useTokens } from "../../../../theme";
 import { InsetList, InsetRow } from "../../../../ui/inset-list";
 import type { RowAction } from "../../../../ui/swipeable-row";
 import { AppText } from "../../../../ui/text";
-import type { MeasureUnit } from "../use-personal-measures-editor";
 
 /**
  * One unit's measures (my-measures design §1–2): the section title with its
@@ -23,7 +26,7 @@ export function PersonalMeasuresSection({
 	onMove,
 	onRemove,
 }: {
-	unit: MeasureUnit;
+	unit: MeasuredUnit;
 	measures: readonly PersonalMeasure[];
 	/** Offline or saving: the list stays readable, nothing changes it. */
 	disabled: boolean;

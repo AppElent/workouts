@@ -1,6 +1,7 @@
 import {
 	GOAL_DIRECTIONS,
 	type GoalDirection,
+	type GoalPresetKey,
 	NUTRIENT_DEFAULT_DIRECTIONS,
 	NUTRIENT_KEYS,
 	NUTRITION_GOAL_PRESETS,
@@ -14,7 +15,7 @@ export type GoalRow = {
 	nutrient: NutrientKey;
 	direction: GoalDirection;
 	target: number;
-	sourcePreset?: "reference" | "loseWeight" | "buildMuscle";
+	sourcePreset?: GoalPresetKey;
 };
 
 /** Which bounds a goal has: at least, at most, or both. */

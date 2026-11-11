@@ -1,4 +1,4 @@
-import type { MealSlot } from "@foundry/core";
+import type { BaseUnit, MealSlot, MeasuredUnit } from "@foundry/core";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -337,7 +337,7 @@ export function OneOffLogScreen({
 									selected: draft.unit === unit,
 								})),
 							]}
-							onSelect={(id) => draft.setUnit(id as "serving" | "g" | "ml")}
+							onSelect={(id) => draft.setUnit(id as BaseUnit)}
 						>
 							<FoodFormMenuValue label={unitLabel} />
 						</NutritionChoiceMenu>
@@ -380,7 +380,7 @@ export function OneOffLogScreen({
 							onSelect={(id) =>
 								id === "total"
 									? draft.setBasis("total")
-									: draft.setBasis("per100", id as "g" | "ml")
+									: draft.setBasis("per100", id as MeasuredUnit)
 							}
 						>
 							<FoodFormMenuValue label={basisLabel} />

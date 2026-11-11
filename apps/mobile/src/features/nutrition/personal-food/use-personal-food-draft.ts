@@ -1,5 +1,6 @@
 import {
 	type FoodVisual,
+	type MeasuredUnit,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -92,7 +93,7 @@ export function usePersonalFoodDraft({
 		initial?.name[locale] ?? initialName ?? "",
 	);
 	const [nameError, setNameError] = useState<string>();
-	const [baseUnit, setBaseUnit] = useState<"g" | "ml">(
+	const [baseUnit, setBaseUnit] = useState<MeasuredUnit>(
 		initial?.baseUnit === "ml" ? "ml" : "g",
 	);
 	const [classification, setClassification] = useState<"ordinary" | "recipe">(
@@ -171,10 +172,14 @@ export function usePersonalFoodDraft({
 					? { kind: "value", amount: parseFoodNumber(input.amount) }
 					: { kind: input.kind };
 		}
-		const bilingual = (text: string, previous?: { en: string; nl: string }) =>
-			locale === "en"
-				? { en: text, nl: previous?.nl ?? text }
-				: { en: previous?.en ?? text, nl: text };
+		const bilingual = (
+			text: string,
+			previous?: { en: string; nl: string },
+		) => ({
+			en: previous?.en ?? text,
+			nl: previous?.nl ?? text,
+			[locale]: text,
+		});
 		const editable = {
 			// One name, used in both languages: the editor asks for it once.
 			name: { en: name, nl: name },
@@ -320,7 +325,10 @@ export function usePersonalFoodDraft({
 		},
 		basisKind,
 		servingLabel,
-		setBasis: (kind: "per100" | "perServing", unit: "g" | "ml" = baseUnit) => {
+		setBasis: (
+			kind: "per100" | "perServing",
+			unit: MeasuredUnit = baseUnit,
+		) => {
 			setBasisKind(kind);
 			setBaseUnit(unit);
 			touch();
@@ -355,11 +363,7 @@ export function usePersonalFoodDraft({
 					];
 				}
 				return current.map((serving, at) =>
-					at === index
-						? locale === "en"
-							? { ...serving, en: label, amount }
-							: { ...serving, nl: label, amount }
-						: serving,
+					at === index ? { ...serving, [locale]: label, amount } : serving,
 				);
 			});
 			touch();

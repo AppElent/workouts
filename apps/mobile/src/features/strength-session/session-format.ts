@@ -1,4 +1,4 @@
-import { convertLoad, roundLoad } from "@foundry/core";
+import { convertLoad, type LoadUnit, roundLoad } from "@foundry/core";
 import { fmt, plural } from "../../i18n";
 import { type PlanSet, shownLoad } from "./session-plan";
 
@@ -37,11 +37,7 @@ export function formatLoadOnly(
 	return bodyweight ? `+${load} kg` : `${load} ${row.unit}`;
 }
 /** Reads a 1RM in the same unit as the set it came from. */
-export function formatOneRm(
-	valueKg: number,
-	unit: "kg" | "lbs",
-	locale: string,
-) {
+export function formatOneRm(valueKg: number, unit: LoadUnit, locale: string) {
 	const value = roundLoad(convertLoad(valueKg, "kg", unit), 1);
 	return `${formatNumber(value, locale, 0)} ${unit}`;
 }

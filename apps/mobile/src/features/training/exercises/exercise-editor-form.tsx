@@ -1,6 +1,7 @@
 import {
 	EQUIPMENT,
 	type Equipment,
+	type ExerciseCategory,
 	isLoadedEquipment,
 	MUSCLE_GROUP_KEYS,
 	type MuscleGroup,
@@ -67,7 +68,7 @@ export function ExerciseEditorForm({
 				)
 				.join(", ") ?? "",
 	);
-	const [category, setCategory] = useState<"compound" | "isolation">(
+	const [category, setCategory] = useState<ExerciseCategory>(
 		exercise?.category ?? "compound",
 	);
 	const [equipment, setEquipment] = useState<Equipment>(

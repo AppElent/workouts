@@ -5,7 +5,7 @@ export type EnduranceSport = (typeof ENDURANCE_SPORTS)[number];
 export const ACTIVITY_SPORTS = ["strength", ...ENDURANCE_SPORTS] as const;
 export type ActivitySport = (typeof ACTIVITY_SPORTS)[number];
 export const ENDURANCE_ENVIRONMENTS = ["indoor", "outdoor"] as const;
-type EnduranceEnvironment = (typeof ENDURANCE_ENVIRONMENTS)[number];
+export type EnduranceEnvironment = (typeof ENDURANCE_ENVIRONMENTS)[number];
 
 export type ActivitySummary = {
 	id: string;

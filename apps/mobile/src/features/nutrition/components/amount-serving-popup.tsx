@@ -1,4 +1,6 @@
 import {
+	type BaseUnit,
+	type MeasuredUnit,
 	NAMED_AMOUNT_LIMITS,
 	type PersonalFood,
 	type ServingOption,
@@ -47,14 +49,14 @@ export function AmountServingPopup({
 		readonly title: string;
 		readonly confirmLabel: string;
 		/** The line under the segment, per unit. */
-		readonly help: Readonly<Record<"g" | "ml", string>>;
+		readonly help: Readonly<Record<MeasuredUnit, string>>;
 		/** Asked before an existing measure changes unit; false keeps it. */
 		readonly confirmUnitChange?: () => Promise<boolean>;
 		/** Saves; a rejection keeps the popup and what was typed. */
 		readonly onSubmit: (value: {
 			name: string;
 			amount: number;
-			unit: "g" | "ml";
+			unit: MeasuredUnit;
 		}) => Promise<void>;
 	};
 	/**
@@ -69,7 +71,7 @@ export function AmountServingPopup({
 	onFoodServing?: (name: string, amount: number) => void;
 	food?: PersonalFood | { id: string };
 	name: string;
-	unit: "g" | "ml" | "serving";
+	unit: BaseUnit;
 	/** Where a new serving of a shipped food is kept; absent for other foods. */
 	additions?: ReturnType<typeof useSupplementaryServings>;
 	onAdded?: (option: ServingOption) => void;
@@ -332,7 +334,7 @@ export function AmountServingPopup({
 						if (pending || next === values.unit) return;
 						void (measure.confirmUnitChange?.() ?? Promise.resolve(true)).then(
 							(ok) => {
-								if (ok) form.setFieldValue("unit", next as "g" | "ml");
+								if (ok) form.setFieldValue("unit", next as MeasuredUnit);
 							},
 						);
 					}}

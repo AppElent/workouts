@@ -1,4 +1,5 @@
 import type {
+	BaseUnit,
 	FoodVisual,
 	NutrientKey,
 	NutrientValue,
@@ -70,7 +71,7 @@ export function AmountEditor({
 }: {
 	name: string;
 	visual?: FoodVisual;
-	unit: "g" | "ml" | "serving";
+	unit: BaseUnit;
 	selection: AmountSelection;
 	/** Absent when the amount has no servings to choose, such as whole combos. */
 	servings?: AmountServings;

@@ -1,4 +1,9 @@
-import { type EnduranceField, validateEnduranceInput } from "@foundry/core";
+import {
+	type EnduranceEnvironment,
+	type EnduranceField,
+	type EnduranceSport,
+	validateEnduranceInput,
+} from "@foundry/core";
 import { type Messages, parseLocalizedDecimal } from "../../../i18n";
 
 export type EnduranceValues = {
@@ -10,7 +15,7 @@ export type EnduranceValues = {
 	seconds: string;
 	title: string;
 	notes: string;
-	environment: "indoor" | "outdoor" | "";
+	environment: EnduranceEnvironment | "";
 	elevation: string;
 	heartRate: string;
 	effort: string;
@@ -18,13 +23,13 @@ export type EnduranceValues = {
 
 export type EnduranceDetail = {
 	id: string;
-	sport: "running" | "cycling";
+	sport: EnduranceSport;
 	occurredAt: number;
 	durationSeconds: number;
 	distanceMeters: number;
 	title?: string;
 	notes?: string;
-	environment?: "indoor" | "outdoor";
+	environment?: EnduranceEnvironment;
 	elevationGainMeters?: number;
 	averageHeartRate?: number;
 	effort?: number;
@@ -81,7 +86,7 @@ export type ParsedEnduranceValues = {
 	durationSeconds: number;
 	title: string | null;
 	notes: string | null;
-	environment: "indoor" | "outdoor" | null;
+	environment: EnduranceEnvironment | null;
 	elevationGainMeters: number | null;
 	averageHeartRate: number | null;
 	effort: number | null;

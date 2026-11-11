@@ -1,4 +1,5 @@
 import {
+	type BaseUnit,
 	type FoodVisual,
 	NUTRIENT_KEYS,
 	type NutrientKey,
@@ -13,7 +14,7 @@ export function oneOffLogSnapshot(input: {
 	meal: NutritionDiarySnapshot["meal"];
 	name: { readonly en: string; readonly nl: string };
 	amount: number;
-	baseUnit?: "g" | "ml" | "serving";
+	baseUnit?: BaseUnit;
 	nutrients: Partial<Record<NutrientKey, NutrientValue>>;
 	visual?: FoodVisual;
 	note?: string;

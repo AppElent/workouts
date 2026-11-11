@@ -1,4 +1,4 @@
-import type { PersonalMeasure } from "@foundry/core";
+import type { MeasuredUnit, PersonalMeasure } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/api";
@@ -8,8 +8,6 @@ import { fmt, useI18n } from "../../../i18n";
 import { useConvexErrorMessage } from "../../../i18n/errors";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { useToast } from "../../../ui/toast";
-
-export type MeasureUnit = "g" | "ml";
 
 /**
  * My measures as two lists, one per unit, with what changes them: save
@@ -33,7 +31,7 @@ export function usePersonalMeasuresEditor() {
 	useEffect(() => setLocal([...measures]), [measures]);
 
 	const sorted = [...local].sort((a, b) => a.order - b.order);
-	const byUnit: Record<MeasureUnit, PersonalMeasure[]> = {
+	const byUnit: Record<MeasuredUnit, PersonalMeasure[]> = {
 		g: sorted.filter((measure) => measure.unit === "g"),
 		ml: sorted.filter((measure) => measure.unit === "ml"),
 	};
@@ -43,7 +41,7 @@ export function usePersonalMeasuresEditor() {
 	/** Creates or updates; rejects (after a toast) so the popup stays open. */
 	async function save(
 		existing: PersonalMeasure | undefined,
-		value: { name: string; amount: number; unit: MeasureUnit },
+		value: { name: string; amount: number; unit: MeasuredUnit },
 	) {
 		setPending(true);
 		try {

@@ -1,4 +1,5 @@
 import {
+	type BaseUnit,
 	baseUnitServingOption,
 	personalFoodServingOptions,
 	type ServingOption,
@@ -17,7 +18,7 @@ export type AmountSnapshot = {
 	readonly serving: { readonly en: string; readonly nl: string };
 	readonly quantity: number;
 	readonly amount: number;
-	readonly baseUnit: "g" | "ml" | "serving";
+	readonly baseUnit: BaseUnit;
 	readonly provenance:
 		| {
 				readonly source: "shipped" | "personal" | "import";

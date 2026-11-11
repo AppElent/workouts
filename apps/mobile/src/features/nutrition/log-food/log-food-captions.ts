@@ -1,4 +1,5 @@
 import {
+	type BaseUnit,
 	type Locale,
 	type NutrientKey,
 	type NutrientValue,
@@ -44,7 +45,7 @@ export function resultCaption(
 export function compactEnergyPer100(
 	food: {
 		nutrients: Record<NutrientKey, NutrientValue>;
-		baseUnit: "g" | "ml" | "serving";
+		baseUnit: BaseUnit;
 	},
 	servingWord: string,
 ): string {

@@ -1,3 +1,4 @@
+import type { EnduranceSport } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
@@ -37,7 +38,7 @@ function activityId() {
 
 function createFields(
 	clientEntryId: string,
-	sport: "running" | "cycling",
+	sport: EnduranceSport,
 	fields: ParsedEnduranceValues,
 ) {
 	return {
@@ -65,7 +66,7 @@ export function EnduranceEditorForm({
 	onCreated,
 	nativeSheet = false,
 }: {
-	sport: "running" | "cycling";
+	sport: EnduranceSport;
 	activity?: EnduranceDetail | null;
 	onCreated?: (id: Id<"activities">) => void;
 	nativeSheet?: boolean;
