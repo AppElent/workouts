@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import {
 	appleCredentials,
@@ -28,13 +28,17 @@ export const deletionBlocker = query({
  * Whether the signed-in account is new: never saved Nutrition Goals and no history
  * (Diary Entries, Strength Sessions, Activities, or WOD results). Mobile
  * offers its first-run only then. One indexed `first()` per table, so the cost
- * stays constant as history grows.
+ * stays constant as history grows. Signed out, or a connected app without a
+ * Foundry scope, answers "not empty" instead of failing: nothing is offered.
  */
 export const firstRun = query({
 	args: {},
 	returns: v.object({ empty: v.boolean() }),
 	handler: async (ctx) => {
-		const userId = await getOptionalUserId(ctx);
+		const userId = await getOptionalUserId(ctx).catch((error: unknown) => {
+			if (error instanceof ConvexError) return null;
+			throw error;
+		});
 		if (!userId) return { empty: false };
 		const found = await Promise.all([
 			ctx.db

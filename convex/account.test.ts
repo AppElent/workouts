@@ -139,6 +139,89 @@ describe("first run", () => {
 		});
 	});
 
+	it("is not offered after a Diary Entry or a WOD result", async () => {
+		const t = convexTest(schema, modules);
+		const dave = t.withIdentity({ subject: "dave" });
+		await dave.mutation(api.nutritionDiary.applyOperation, {
+			operationId: "first-run-diary",
+			expectedSubject: "dave",
+			operation: {
+				kind: "create",
+				entry: {
+					clientEntryId: "first-run-entry",
+					date: "2026-11-10",
+					meal: "snacks",
+					name: { en: "Apple", nl: "Appel" },
+					serving: { en: "Serving", nl: "Portie" },
+					quantity: 1,
+					amount: 100,
+					baseUnit: "g",
+					nutrients: {
+						energy: { kind: "value", amount: 52 },
+						protein: { kind: "value", amount: 0.3 },
+						carbs: { kind: "value", amount: 14 },
+						fat: { kind: "value", amount: 0.2 },
+						saturatedFat: { kind: "value", amount: 0 },
+						fibre: { kind: "value", amount: 2.4 },
+						sugars: { kind: "value", amount: 10 },
+						salt: { kind: "value", amount: 0 },
+					},
+					provenance: { source: "oneOff" },
+				},
+			},
+		});
+		expect(await dave.query(api.account.firstRun, {})).toEqual({
+			empty: false,
+		});
+
+		const erin = t.withIdentity({ subject: "erin" });
+		const wodId = await t.run((ctx) =>
+			ctx.db.insert("wods", {
+				userId: "erin",
+				name: "Fran",
+				type: "forTime",
+				movements: [],
+				isDefault: false,
+			}),
+		);
+		await erin.mutation(api.wodResults.log, {
+			wodId,
+			rxScaled: "rx",
+			timeSeconds: 300,
+			date: 1,
+		});
+		expect(await erin.query(api.account.firstRun, {})).toEqual({
+			empty: false,
+		});
+	});
+
+	it("ignores another account's goals and history", async () => {
+		const t = convexTest(schema, modules);
+		const bob = t.withIdentity({ subject: "bob" });
+		await bob.mutation(api.nutritionGoals.replace, {
+			effectiveFrom: "2026-01-01",
+			goals: [{ nutrient: "energy", direction: "max", target: 2400 }],
+		});
+		await bob.mutation(api.workoutSessions.create, {});
+		expect(
+			await t
+				.withIdentity({ subject: "alice" })
+				.query(api.account.firstRun, {}),
+		).toEqual({ empty: true });
+	});
+
+	it("answers a connected app only with a Foundry scope", async () => {
+		const t = convexTest(schema, modules);
+		const app = (scope: string) =>
+			t.withIdentity({ subject: "alice", client_id: "mcp-client", scope });
+		expect(
+			await app("openid profile email").query(api.account.firstRun, {}),
+		).toEqual({ empty: false });
+		expect(
+			await app("openid foundry:read").query(api.account.firstRun, {}),
+		).toEqual({ empty: true });
+	});
+
 	it("is not offered after test data loads history", async () => {
 		const t = await seeded();
 		await t.run(async (ctx) => {
