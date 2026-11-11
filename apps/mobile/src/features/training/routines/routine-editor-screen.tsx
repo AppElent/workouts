@@ -16,7 +16,6 @@ import { api, type Id } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
 import { useRoutines } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing } from "../../../theme";
 import {
 	AddRow,
@@ -28,6 +27,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { EditorStatus } from "../components/editor-status";
 import { ExercisePicker } from "../exercises/exercise-picker";
 
@@ -77,7 +77,7 @@ function RoutineEditorForm({
 	exercises: Exercise[];
 	onClose: () => void;
 }) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const toast = useToast();
 	const copy = useI18n().t.workoutTools.routineEditor;
 	const createRoutine = useMutation(api.routines.create);

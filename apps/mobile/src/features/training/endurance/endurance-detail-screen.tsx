@@ -7,7 +7,6 @@ import { useOnline } from "../../../convex/online";
 import { useQuery } from "../../../convex/query-cache";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import { dateLocale, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { metrics, spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -20,10 +19,11 @@ import {
 } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { formatEnduranceRate, formatKilometers } from "./endurance-format";
 
 export function EnduranceDetailScreen({ id }: { id?: Id<"activities"> }) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const { locale, t } = useI18n();
 	const copy = t.endurance;
 	const styles = useThemedStyles(createStyles);

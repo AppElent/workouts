@@ -29,7 +29,6 @@ import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
 import { formatSessionDate } from "../../../data/session-data";
 import { dateLocale, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -46,6 +45,7 @@ import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { MuscleIcon } from "./muscle-icon";
 
 type Tab = "Overview" | "Progress" | "History";
@@ -54,7 +54,7 @@ type Tab = "Overview" | "Progress" | "History";
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export function ExerciseDetailScreen() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
 	const { t } = useI18n();
 	const router = useRouter();

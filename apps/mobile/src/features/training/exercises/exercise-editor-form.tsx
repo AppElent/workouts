@@ -13,7 +13,6 @@ import { useState } from "react";
 import { Platform } from "react-native";
 import { api } from "../../../convex/api";
 import { parseLocalizedDecimal, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { useTokens } from "../../../theme";
 import {
 	DisclosureRow,
@@ -26,6 +25,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { toggleChoice } from "./exercise-filters";
 import { MuscleIcon } from "./muscle-icon";
 
@@ -38,7 +38,7 @@ export function ExerciseEditorForm({
 	mode?: "new" | "edit" | "clone";
 	onClose: (createdName?: string) => void;
 }) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const { t } = useI18n();
 	const c = t.exercises;
 	const colors = useTokens();
@@ -130,7 +130,10 @@ export function ExerciseEditorForm({
 				weightIncrement: loaded && increment.trim() ? parsed : undefined,
 			};
 			if (mode === "edit") {
-				if (!exercise || exercise.isDefault) throw new Error(c.updateError);
+				if (!exercise || exercise.isDefault) {
+					toast.error(c.updateError);
+					return;
+				}
 				await update({ id: exercise._id, ...values });
 			} else {
 				await create({ ...values, instructions: exercise?.instructions });

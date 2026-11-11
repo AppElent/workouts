@@ -13,7 +13,6 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { fmt, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -25,6 +24,7 @@ import {
 import { Card, Chip, Eyebrow } from "../../../ui/coach";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { formatHostedPrescription } from "../../training/hosted/hosted-prescription";
 import {
 	useWodScoreDraft,
@@ -101,7 +101,7 @@ function ScoreBox({
 	writable: boolean;
 	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const copy = useI18n().t.hosted;

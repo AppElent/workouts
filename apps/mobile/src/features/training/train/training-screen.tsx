@@ -6,7 +6,6 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
 import { plural, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing, useTokens } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -16,11 +15,12 @@ import { SelectionMenu } from "../../../ui/selection-menu";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { useStartStrengthSession } from "../use-start-strength-session";
 import { type Routine, useTrainingData } from "../use-training-data";
 
 export function TrainingScreen() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
 	const router = useRouter();
 	const {

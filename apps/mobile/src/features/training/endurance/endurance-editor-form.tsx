@@ -8,7 +8,6 @@ import { api, type Id } from "../../../convex/api";
 import { useOnline } from "../../../convex/online";
 import { isoDateToLocalDate, todayIsoDate } from "../../../dates/calendar-day";
 import { dateLocale, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -23,6 +22,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import {
 	type EnduranceDetail,
 	type EnduranceValues,
@@ -71,7 +71,7 @@ export function EnduranceEditorForm({
 	onCreated?: (id: Id<"activities">) => void;
 	nativeSheet?: boolean;
 }) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const router = useRouter();
 	const colors = useTokens();
 	const navigation = useNavigation();

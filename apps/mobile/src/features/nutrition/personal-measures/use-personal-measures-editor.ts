@@ -5,9 +5,9 @@ import { api } from "../../../convex/api";
 import { useOnline } from "../../../convex/online";
 import { usePersonalMeasureActions } from "../../../data/personal-measures";
 import { fmt, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 /**
  * My measures as two lists, one per unit, with what changes them: save
@@ -15,7 +15,7 @@ import { useToast } from "../../../ui/toast";
  * list. Changes need a connection; offline the lists stay readable.
  */
 export function usePersonalMeasuresEditor() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const { t } = useI18n();
 	const copy = t.nutrition.personalMeasures;
 	const confirm = useConfirm();

@@ -83,7 +83,9 @@ it("blocks invalid weight steps and preserves the draft after a failed save", as
 			}),
 		),
 	);
-	expect(await screen.findByText("Save unavailable")).toBeTruthy();
+	expect(
+		await screen.findByText("Could not create the exercise."),
+	).toBeTruthy();
 	expect(screen.getByLabelText("Name").props.value).toBe(" My press ");
 	expect(screen.queryByText(/Library after/)).toBeNull();
 });

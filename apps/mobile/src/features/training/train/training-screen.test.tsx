@@ -56,6 +56,6 @@ it("gives the routine its own play target and keeps the row after failed deletio
 	await pressLastDelete();
 	expect(await screen.findByText("Delete Push day?")).toBeTruthy();
 	await pressLastDelete();
-	expect(await screen.findByText("Try again")).toBeTruthy();
+	expect(await screen.findByText("Could not delete the routine.")).toBeTruthy();
 	expect(screen.getByText("Push day")).toBeTruthy();
 });
