@@ -27,8 +27,9 @@ log their own data. The design is in
 
 Clients discover everything else: the endpoint answers `401` with
 `WWW-Authenticate: Bearer resource_metadata=…`, the metadata names Clerk as the
-authorization server, and the client registers itself (DCR or CIMD) and signs
-the user in with PKCE.
+authorization server, and the client identifies itself with a Client ID
+Metadata Document (CIMD) and signs the user in with PKCE. Dynamic client
+registration (DCR) is off.
 
 ## How a request is authorized
 
@@ -89,10 +90,14 @@ needs a Convex idempotency key (`operationId`, `clientEntryId`, or
 - OAuth settings: JWT access tokens, PKCE required, audience claim on, and
   `default_scopes` = `openid profile email foundry:read foundry:write`
   (Backend API `PATCH /v1/instance/oauth_application_settings` when the
-  Dashboard lacks a field). Leave dynamic client registration off: Claude.ai and
-  Claude Code use CIMD.
+  Dashboard lacks a field). Clerk gives each CIMD client these scopes when it
+  first connects. Leave DCR off: Claude.ai and Claude Code use CIMD.
+- CIMD: turn on **Publish CIMD support** under OAuth applications → Settings,
+  and check that `/.well-known/oauth-authorization-server` on the Clerk issuer
+  shows `client_id_metadata_document_supported: true`. Registering the first
+  MCP server on an instance turns this on automatically; later servers do not.
 - MCP resource for the endpoint URL (Clerk MCP `configure_mcp_server`, or the
-  Dashboard). This also turns on CIMD.
+  Dashboard).
 - Production DNS: the `clerk`, `accounts`, `clkmail`, and DKIM CNAMEs on
   `appelent.nl` are **DNS only** in Cloudflare. A proxied `accounts` record
   breaks sign-in and consent with Cloudflare Error 1000.
@@ -130,9 +135,13 @@ and staging would need its own Clerk resource and a staging value.
 - **`403 insufficient_scope`:** the grant lacks Foundry scopes. Check the Clerk
   scopes and `default_scopes`, then reconnect.
 - **Claude.ai: "Authorization with Foundry failed":** tail the Worker
-  (`pnpm exec wrangler tail foundry`) while connecting. Only a `401` and a
-  metadata fetch from `160.79.x` means Clerk stopped the flow. Read the `error`
-  on the `claude.ai/api/mcp/auth_callback` URL in browser history.
+  (`pnpm exec wrangler tail foundry`) while connecting. Claude.ai calls from
+  Anthropic's range `160.79.104.0/21`. If the tail shows a `401` and a metadata
+  fetch, but no later request with a token, Clerk stopped the flow. Read the
+  `error` on the `claude.ai/api/mcp/auth_callback` URL in browser history.
+- **Claude.ai fails before sign-in and Clerk's metadata lacks
+  `client_id_metadata_document_supported`:** CIMD is off and DCR is off, so
+  Claude cannot register. Turn on Publish CIMD support.
 - **`invalid_scope` ("not allowed to request scope …"):** Clerk saved that CIMD
   client before the scopes existed. Edit its scopes, or delete it under OAuth
   applications so the next connect recreates it.
