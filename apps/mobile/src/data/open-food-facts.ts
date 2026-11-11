@@ -12,6 +12,7 @@
 
 import {
 	kcalFromKilojoules,
+	type MeasuredUnit,
 	NUTRIENT_KEYS,
 	type NutrientKey,
 	type NutrientValue,
@@ -152,7 +153,7 @@ function imageOf(product: OffRawProduct): string | undefined {
 function normalizedAmount(
 	value: unknown,
 	unit: string | undefined,
-): { amount: number; unit: "g" | "ml" } | undefined {
+): { amount: number; unit: MeasuredUnit } | undefined {
 	const amount = parseProviderNumber(value);
 	if (amount === undefined || amount <= 0 || !unit) return undefined;
 	switch (unit.trim().toLowerCase()) {
@@ -186,7 +187,7 @@ function servingOf(product: OffRawProduct) {
 	};
 }
 
-function baseUnitOf(product: OffRawProduct): "g" | "ml" {
+function baseUnitOf(product: OffRawProduct): MeasuredUnit {
 	const unit = product.product_quantity_unit?.toLowerCase();
 	if (unit === "ml" || unit === "l" || unit === "cl") return "ml";
 	if (unit === "g" || unit === "kg") return "g";

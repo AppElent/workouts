@@ -1,27 +1,18 @@
 /**
  * What a participant sees inside a hosted workout's session: the plan the host
- * set, and a score box per WOD block.
+ * set, and a score box per WOD block. Renders nothing unless this session
+ * belongs to a hosted workout.
  *
- * Renders nothing at all unless `hostedWorkoutParticipants.getBySession` says
- * this session belongs to a hosted workout, so the ordinary strength session
- * screen is unchanged for everyone else.
- *
- * Submitting is an upsert server-side — sending a second score for the same
- * block replaces the first rather than stacking. That is what makes it safe to
- * correct a number without a delete step.
+ * Submitting is an upsert server-side: a second score for the same block
+ * replaces the first, so a number can be corrected without a delete step.
  */
-import {
-	buildWodScore,
-	parseClockInput,
-	validateWodScore,
-} from "@foundry/core";
+import { type HostedLevel, hostedLevelLabel } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { api, type Id } from "../../../convex/api";
+import { Pressable, StyleSheet, View } from "react-native";
+import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
-import { fmt, parseLocalizedDecimal, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
+import { fmt, useI18n } from "../../../i18n";
 import {
 	opacity,
 	radius,
@@ -29,21 +20,18 @@ import {
 	type Tokens,
 	type,
 	useThemedStyles,
-	useTokens,
 } from "../../../theme";
 import { Card, Chip, Eyebrow } from "../../../ui/coach";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { formatHostedPrescription } from "../../training/hosted/hosted-prescription";
+import {
+	useWodScoreDraft,
+	WodScoreFields,
+} from "../../training/wods/wod-score-fields";
 
-const LEVELS = ["rx", "l1", "l2", "l3"] as const;
-type Level = (typeof LEVELS)[number];
-
-const LEVEL_LABEL: Record<Level, string> = {
-	rx: "Rx",
-	l1: "L1",
-	l2: "L2",
-	l3: "L3",
-};
+type WodBlock = Doc<"hostedWorkouts">["template"]["wodBlocks"][number];
 
 export function HostedSessionPanel({
 	sessionId,
@@ -75,27 +63,22 @@ export function HostedSessionPanel({
 					<AppText variant="caption">{hosted.notes}</AppText>
 				) : null}
 
-				{hosted.template.strengthBlocks.map((block) => (
-					<AppText key={block.blockId} variant="body" style={styles.planLine}>
-						{block.exerciseName}
-						{block.defaultSets && block.defaultReps
-							? ` — ${block.defaultSets} × ${block.defaultReps}`
-							: ""}
-						{block.percentageOfOneRepMax
-							? ` @ ${block.percentageOfOneRepMax}% 1RM`
-							: ""}
-					</AppText>
-				))}
+				{hosted.template.strengthBlocks.map((block) => {
+					const prescription = formatHostedPrescription(block);
+					return (
+						<AppText key={block.blockId} variant="body" style={styles.planLine}>
+							{block.exerciseName}
+							{prescription ? ` — ${prescription}` : ""}
+						</AppText>
+					);
+				})}
 			</Card>
 
 			{hosted.template.wodBlocks.map((block) => (
 				<ScoreBox
 					key={block.blockId}
 					sessionId={sessionId}
-					blockId={block.blockId}
-					name={block.name}
-					type={block.type}
-					levels={block.levels}
+					block={block}
 					busy={busy}
 					writable={writable}
 					write={write}
@@ -107,49 +90,26 @@ export function HostedSessionPanel({
 
 function ScoreBox({
 	sessionId,
-	blockId,
-	name,
-	type,
-	levels,
+	block,
 	busy,
 	writable,
 	write,
 }: {
 	sessionId: Id<"workoutSessions">;
-	blockId: string;
-	name: string;
-	type: "forTime" | "amrap" | "emom" | "load";
-	levels: { level: string; label: string; description?: string }[];
+	block: WodBlock;
 	busy: boolean;
 	writable: boolean;
 	write: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
-	const errorMessage = useConvexErrorMessage();
-	const colors = useTokens();
+	const errorMessage = useWriteFailureMessage();
 	const styles = useThemedStyles(createStyles);
 	const toast = useToast();
 	const copy = useI18n().t.hosted;
 	const submit = useMutation(api.hostedWorkoutSubmissions.submitForSession);
-
-	const [level, setLevel] = useState<Level>("rx");
-	const [time, setTime] = useState("");
-	const [rounds, setRounds] = useState("");
-	const [reps, setReps] = useState("");
-	const [load, setLoad] = useState("");
-	const [capped, setCapped] = useState(false);
-	const [notes, setNotes] = useState("");
-
-	const chosen = levels.find((l) => l.level === level);
-
-	const score = buildWodScore(type, {
-		timeSeconds: parseClockInput(time),
-		timeCapped: capped,
-		rounds: parseLocalizedDecimal(rounds),
-		reps: parseLocalizedDecimal(reps),
-		load: parseLocalizedDecimal(load),
-		loadUnit: "kg",
-	});
-	const complete = validateWodScore(type, score).ok;
+	const draft = useWodScoreDraft(block.type);
+	const [level, setLevel] = useState<HostedLevel>("rx");
+	const chosen = block.levels.find((l) => l.level === level);
+	const complete = draft.complete;
 
 	const send = async () => {
 		if (busy || !writable || !complete) return;
@@ -157,16 +117,16 @@ function ScoreBox({
 			const saved = await write(() =>
 				submit({
 					sessionId,
-					wodBlockId: blockId,
+					wodBlockId: block.blockId,
 					level,
-					...score,
-					notes: notes.trim() === "" ? undefined : notes.trim(),
+					...draft.score,
+					notes: draft.notes,
 				}),
 			);
 			if (!saved) return;
 			// The leaderboard is on the host's screen, not this one, so there is
 			// nothing on-screen to confirm the submission landed.
-			toast.success(fmt(copy.submitted, { name }));
+			toast.success(fmt(copy.submitted, { name: block.name }));
 		} catch (error) {
 			toast.error(errorMessage(error, copy.submitError));
 		}
@@ -174,15 +134,15 @@ function ScoreBox({
 
 	return (
 		<Card style={styles.scoreCard}>
-			<AppText variant="heading">{name}</AppText>
+			<AppText variant="heading">{block.name}</AppText>
 
 			<View style={styles.chipRow}>
-				{LEVELS.map((l) => (
+				{block.levels.map((l) => (
 					<Chip
-						key={l}
-						label={LEVEL_LABEL[l]}
-						active={l === level}
-						onPress={() => setLevel(l)}
+						key={l.level}
+						label={hostedLevelLabel(block.levels, l.level)}
+						active={l.level === level}
+						onPress={() => setLevel(l.level)}
 					/>
 				))}
 			</View>
@@ -191,76 +151,7 @@ function ScoreBox({
 				<AppText variant="caption">{chosen.description}</AppText>
 			) : null}
 
-			{type === "forTime" ? (
-				<>
-					<View style={styles.selfStart}>
-						<Chip
-							label={copy.hitTimeCap}
-							active={capped}
-							onPress={() => setCapped(!capped)}
-						/>
-					</View>
-					<TextInput
-						value={capped ? reps : time}
-						onChangeText={capped ? setReps : setTime}
-						placeholder={capped ? copy.repsAtCap : copy.time}
-						placeholderTextColor={colors.textFaint}
-						style={styles.input}
-						keyboardType={capped ? "number-pad" : "default"}
-					/>
-				</>
-			) : null}
-
-			{type === "amrap" ? (
-				<View style={styles.formRow}>
-					<TextInput
-						value={rounds}
-						onChangeText={setRounds}
-						placeholder={copy.rounds}
-						placeholderTextColor={colors.textFaint}
-						style={[styles.input, styles.flex]}
-						keyboardType="number-pad"
-					/>
-					<TextInput
-						value={reps}
-						onChangeText={setReps}
-						placeholder={copy.plusReps}
-						placeholderTextColor={colors.textFaint}
-						style={[styles.input, styles.flex]}
-						keyboardType="number-pad"
-					/>
-				</View>
-			) : null}
-
-			{type === "emom" ? (
-				<TextInput
-					value={reps}
-					onChangeText={setReps}
-					placeholder={copy.totalReps}
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					keyboardType="number-pad"
-				/>
-			) : null}
-
-			{type === "load" ? (
-				<TextInput
-					value={load}
-					onChangeText={setLoad}
-					placeholder={copy.load}
-					placeholderTextColor={colors.textFaint}
-					style={styles.input}
-					keyboardType="decimal-pad"
-				/>
-			) : null}
-
-			<TextInput
-				value={notes}
-				onChangeText={setNotes}
-				placeholder={copy.notes}
-				placeholderTextColor={colors.textFaint}
-				style={styles.input}
-			/>
+			<WodScoreFields draft={draft} inCard />
 
 			<Pressable
 				accessibilityRole="button"
@@ -284,19 +175,6 @@ const createStyles = (colors: Tokens) =>
 		planLine: { color: colors.textMuted },
 		scoreCard: { gap: spacing.sm },
 		chipRow: { flexDirection: "row", gap: spacing.xs + 2 },
-		selfStart: { alignSelf: "flex-start" },
-		formRow: { flexDirection: "row", gap: spacing.sm },
-		flex: { flex: 1 },
-		input: {
-			minHeight: 48,
-			borderRadius: radius.lg,
-			paddingHorizontal: spacing.md,
-			backgroundColor: colors.surface2,
-			borderWidth: 1,
-			borderColor: colors.border,
-			color: colors.text,
-			fontSize: type.body.fontSize,
-		},
 		submit: {
 			height: 48,
 			borderRadius: radius.pill,

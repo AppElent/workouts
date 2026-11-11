@@ -7,7 +7,7 @@ import { api, type Id } from "../../../convex/api";
 import { mintUuid } from "../../../data/account-write";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
 import {
 	addExerciseToPlan,
@@ -58,7 +58,7 @@ import {
 export type EditorRequest = (rowId: string) => void;
 
 export function useSessionActions(workspace: SessionWorkspace) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const { key, subject, sessionId, getFacts, nameOf, online } = workspace;
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;

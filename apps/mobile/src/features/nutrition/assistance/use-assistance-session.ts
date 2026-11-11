@@ -40,6 +40,7 @@ import {
 	nutritionAiFailure,
 	useNutritionAi,
 	withAiTimeout,
+	worthRetrying,
 } from "../use-nutrition-ai";
 import { buildAssistanceFoodCatalog } from "./assistance-foods";
 import {
@@ -228,7 +229,10 @@ export function useAssistanceSession(
 			);
 			try {
 				choices = await withAiTimeout(
-					ai.choose(input).catch(() => ai.choose(input)),
+					ai.choose(input).catch((error) => {
+						if (!worthRetrying(error)) throw error;
+						return ai.choose(input);
+					}),
 					timeLeft(),
 				);
 			} catch {
@@ -410,6 +414,14 @@ export function useAssistanceSession(
 		const current = ++run.current;
 		const live = () => run.current === current;
 		const next = [...followUps, followUp.trim()];
+		if (!ai.online) {
+			setPhase((p) =>
+				p.kind === "review"
+					? { ...p, problem: "offline", detail: undefined }
+					: p,
+			);
+			return;
+		}
 		const rows = phase.kind === "review" ? phase.items : [];
 		const deadline = Date.now() + AI_TIMEOUT_MS;
 		const timeLeft = () => Math.max(0, deadline - Date.now());
@@ -430,7 +442,6 @@ export function useAssistanceSession(
 			p.kind === "review" ? { ...p, problem: undefined, detail: undefined } : p,
 		);
 		try {
-			if (!ai.online) throw new Error("offline");
 			const result = await withAiTimeout(
 				ai.describe({
 					// A photo-only meal continued later has neither photo nor text.
@@ -521,7 +532,7 @@ export function useAssistanceSession(
 					p.kind === "review"
 						? {
 								...p,
-								problem: ai.online ? nutritionAiFailure(error) : "offline",
+								problem: nutritionAiFailure(error),
 							}
 						: p,
 				);

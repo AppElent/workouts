@@ -1,4 +1,4 @@
-import type { ActivitySummary } from "@foundry/core";
+import { type ActivitySummary, formatClock } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { dateLocale, useI18n } from "../../../i18n";
@@ -9,13 +9,6 @@ import {
 	formatEnduranceRate,
 	formatKilometers,
 } from "../endurance/endurance-format";
-
-export function activityDuration(seconds: number) {
-	const total = Math.round(seconds);
-	return total >= 3600
-		? `${Math.floor(total / 3600)}:${String(Math.floor(total / 60) % 60).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`
-		: `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-}
 
 export function ActivityRow({ item }: { item: ActivitySummary }) {
 	const router = useRouter();
@@ -59,7 +52,7 @@ export function ActivityRow({ item }: { item: ActivitySummary }) {
 						month: "short",
 						year: "numeric",
 					})}{" "}
-					· {activityDuration(item.durationSeconds)}
+					· {formatClock(item.durationSeconds)}
 				</AppText>
 				{item.distanceMeters !== undefined ? (
 					<AppText variant="caption">

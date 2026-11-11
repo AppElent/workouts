@@ -14,7 +14,6 @@ import {
 import { api } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
 import { plural, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	PREFERENCE_KEYS,
 	readLocal,
@@ -35,6 +34,7 @@ import { SkeletonGroup, SkeletonList } from "../../../ui/skeleton";
 import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import {
 	emptyFilters,
 	type Filters,
@@ -46,7 +46,7 @@ import { ExerciseLayoutMenu } from "./exercise-layout-menu";
 import { MuscleIcon } from "./muscle-icon";
 
 export function ExerciseLibraryScreen() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();

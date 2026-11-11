@@ -77,7 +77,7 @@ it("retains the typed name after a rejected start", async () => {
 	);
 	mutation("workoutSessions:create").mockRejectedValue(new Error("Try again"));
 	await fireEvent.press(screen.getByRole("button", { name: "Start" }));
-	expect(await screen.findByText("Try again")).toBeTruthy();
+	expect(await screen.findByText("Could not start the session.")).toBeTruthy();
 	expect(screen.getByDisplayValue("Lunch training")).toBeTruthy();
 });
 

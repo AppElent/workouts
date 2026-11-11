@@ -1,5 +1,5 @@
 import type { EnduranceSport } from "@foundry/core";
-import { enduranceTotals, shiftIsoDate } from "@foundry/core";
+import { enduranceTotals, formatClock, shiftIsoDate } from "@foundry/core";
 import { useState } from "react";
 import { View } from "react-native";
 import { isoDateToLocalDate } from "../../../dates/calendar-day";
@@ -10,7 +10,6 @@ import { StatBox } from "../../../ui/coach";
 import { EmptyState } from "../../../ui/empty-state";
 import { SkeletonCard, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
-import { activityDuration } from "../activity/activity-row";
 import { activityWeek, activityWeeks } from "../activity/activity-week";
 import { useActivityPages } from "../activity/use-activity-pages";
 import { formatEnduranceRate, formatKilometers } from "./endurance-format";
@@ -91,7 +90,7 @@ export function EnduranceProgress({ sport }: { sport: EnduranceSport }) {
 					label={copy.distance}
 				/>
 				<StatBox
-					value={activityDuration(totals.durationSeconds)}
+					value={formatClock(totals.durationSeconds)}
 					label={copy.duration}
 				/>
 			</View>

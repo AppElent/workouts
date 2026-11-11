@@ -1,3 +1,4 @@
+import type { EnduranceSport } from "@foundry/core";
 import { Stack } from "expo-router";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -20,7 +21,7 @@ export function EnduranceEditorScreen({
 	sport,
 }: {
 	id?: Id<"activities">;
-	sport: "running" | "cycling";
+	sport: EnduranceSport;
 }) {
 	const copy = useI18n().t.endurance;
 	const activity = useQuery(api.enduranceActivities.get, id ? { id } : "skip");

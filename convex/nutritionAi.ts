@@ -21,9 +21,6 @@ import {
 	measuredUnit as unit,
 } from "./lib/validators";
 
-/** Analyses (describe + label) per account per UTC day. */
-export const DAILY_ANALYSES = 50;
-
 const image = v.object({
 	mediaType: literals(AI_IMAGE_TYPES),
 	base64: v.string(),
@@ -64,7 +61,8 @@ export const consumeAnalysis = internalMutation({
 				q.eq("userId", userId).eq("day", day),
 			)
 			.unique();
-		if ((row?.count ?? 0) >= DAILY_ANALYSES) throw appError("limit");
+		if ((row?.count ?? 0) >= NUTRITION_AI_LIMITS.dailyAnalyses)
+			throw appError("limit");
 		// Each analysis allows a candidate selection and one retry of it, so
 		// `choose` cannot be called on its own to reach the provider outside the
 		// daily limit.

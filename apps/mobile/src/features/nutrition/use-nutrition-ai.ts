@@ -1,4 +1,4 @@
-import { parseConvexError } from "@foundry/core";
+import { fmt, NUTRITION_AI_LIMITS, parseConvexError } from "@foundry/core";
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { api } from "../../convex/api";
@@ -35,12 +35,24 @@ export function withAiTimeout<T>(call: Promise<T>, ms = AI_TIMEOUT_MS) {
 	]).finally(() => clearTimeout(timer));
 }
 
-export function nutritionAiFailure(error: unknown): NutritionAiFailure {
+export function nutritionAiFailure(
+	error: unknown,
+): Exclude<NutritionAiFailure, "offline"> {
 	if (error instanceof Error && error.message === TIMED_OUT) return "timeout";
 	const { code } = parseConvexError(error);
 	return code === "limit" || code === "unavailable" || code === "tooLarge"
 		? code
 		: "failed";
+}
+
+/** The daily-quota notice, naming the server's quota. */
+export function aiLimitTitle(template: string): string {
+	return fmt(template, { count: NUTRITION_AI_LIMITS.dailyAnalyses });
+}
+
+/** Coded refusals (quota, too large, signed out) fail the same way again. */
+export function worthRetrying(error: unknown): boolean {
+	return parseConvexError(error).code === undefined;
 }
 
 /**

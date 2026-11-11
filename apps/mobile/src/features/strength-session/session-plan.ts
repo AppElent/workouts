@@ -15,6 +15,7 @@ import {
 	type SetType,
 	sessionOneRepMax,
 	validateSetInput,
+	workingVolume,
 } from "@foundry/core";
 import type { FunctionArgs } from "convex/server";
 import type { api, Doc } from "../../convex/api";
@@ -265,13 +266,12 @@ export function shownPercent(
 		Math.round((row.kg / reference.value) * 100)
 	);
 }
-/** Warm-ups, misses and bodyweight sets never produce a 1RM. */
+/** The server's reference rule: any set type, but no misses or bodyweight sets. */
 export function rowOneRepMax(
-	row: Pick<PlanSet, "kg" | "reps" | "kind">,
+	row: Pick<PlanSet, "kg" | "reps">,
 	bodyweight: boolean,
 ) {
-	if (bodyweight || row.kind === "warmup" || row.reps < 1 || !(row.kg > 0))
-		return null;
+	if (bodyweight || row.reps < 1 || !(row.kg > 0)) return null;
 	return calculateOneRepMax(row.kg, row.reps);
 }
 
@@ -1046,7 +1046,7 @@ export function typoCheck(
 			: null;
 	if (row.reps === 1 && known.measured !== null) return low;
 	const top = Math.max(known.estimated ?? 0, known.measured ?? 0, manualValue);
-	const implied = rowOneRepMax({ ...row, kind: "working" }, false)?.value ?? 0;
+	const implied = rowOneRepMax(row, false)?.value ?? 0;
 	if (top > 0 && implied > top * 1.25)
 		return {
 			kind: "kg",
@@ -2152,12 +2152,13 @@ export function newRecordFor(
 }
 export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 	const rows = allRows(plan).filter((row) => row.done);
-	const volume = rows.reduce(
-		(sum, row) =>
-			row.kind === "warmup" || getFacts(row.exerciseId).bodyweight
-				? sum
-				: sum + row.kg * row.reps,
-		0,
+	const volume = workingVolume(
+		rows.map((row) => ({
+			weight: row.kg,
+			unit: "kg" as const,
+			reps: row.reps,
+			setType: row.kind,
+		})),
 	);
 	const names = [...new Set(rows.map((row) => row.exerciseId))];
 	const orderIndex = (id: string) => {

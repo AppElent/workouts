@@ -24,6 +24,7 @@ import {
 	type GoalDraft,
 	type GoalKind,
 	goalDraftEquals,
+	goalErrors,
 	goalKind,
 	setGoalKind,
 	withGoal,
@@ -183,10 +184,11 @@ export function useGoalsEditor({
 
 	const save = async () => {
 		if (pending) return;
-		const parsed = draftToGoals(draft.values);
-		if (parsed.errors.length > 0) {
+		const goals = draftToGoals(draft.values);
+		const errors = goalErrors(goals);
+		if (errors.length > 0) {
 			const next: Record<string, string> = {};
-			for (const error of parsed.errors) {
+			for (const error of errors) {
 				const nutrient = error.key.split(".")[0];
 				next[nutrient] ??=
 					error.message === "range" ? copy.range : copy.invalid;
@@ -200,7 +202,7 @@ export function useGoalsEditor({
 			copy.failure,
 			async () => {
 				await replace({
-					goals: parsed.goals.map((goal) => ({
+					goals: goals.map((goal) => ({
 						...goal,
 						sourcePreset: draft.sources[`${goal.nutrient}.${goal.direction}`],
 					})),

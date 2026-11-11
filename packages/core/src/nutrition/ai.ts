@@ -15,10 +15,12 @@ export const NUTRITION_AI_LIMITS = {
 	maxCandidates: 15,
 	/** Base64 of a ~2 MB image; the phone resizes to ~1600 px before sending. */
 	maxImageBase64: 2_800_000,
+	/** Analyses (describe + label) per account per UTC day. */
+	dailyAnalyses: 50,
 } as const;
 
 const COOKED_STARCHES = ["oats", "rice", "pasta", "other"] as const;
-type CookedStarch = (typeof COOKED_STARCHES)[number];
+export type CookedStarch = (typeof COOKED_STARCHES)[number];
 
 /**
  * Plausibility bounds for a starch weighed cooked or dry. The server's model

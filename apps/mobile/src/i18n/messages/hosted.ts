@@ -38,14 +38,6 @@ export const hostedEn = {
 	submitError: "Could not submit your score.",
 	submit: "Submit score",
 	submitting: "Submitting…",
-	hitTimeCap: "Hit the time cap",
-	repsAtCap: "Reps at the cap",
-	time: "Time — 8:42",
-	rounds: "Rounds",
-	plusReps: "+ reps",
-	totalReps: "Total reps",
-	load: "Load (kg)",
-	notes: "Notes (optional)",
 };
 
 export const hostedNl: typeof hostedEn = {
@@ -87,12 +79,4 @@ export const hostedNl: typeof hostedEn = {
 	submitError: "Kon je score niet indienen.",
 	submit: "Score indienen",
 	submitting: "Indienen…",
-	hitTimeCap: "Tijdslimiet gehaald",
-	repsAtCap: "Herhalingen bij de limiet",
-	time: "Tijd — 8:42",
-	rounds: "Rondes",
-	plusReps: "+ herhalingen",
-	totalReps: "Totaal herhalingen",
-	load: "Gewicht (kg)",
-	notes: "Notities (optioneel)",
 };

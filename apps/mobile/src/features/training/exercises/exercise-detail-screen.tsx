@@ -29,7 +29,6 @@ import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
 import { formatSessionDate } from "../../../data/session-data";
 import { dateLocale, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	radius,
 	spacing,
@@ -46,6 +45,7 @@ import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import { MuscleIcon } from "./muscle-icon";
 
 type Tab = "Overview" | "Progress" | "History";
@@ -54,7 +54,7 @@ type Tab = "Overview" | "Progress" | "History";
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export function ExerciseDetailScreen() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
 	const { t } = useI18n();
 	const router = useRouter();
@@ -101,7 +101,8 @@ export function ExerciseDetailScreen() {
 	);
 
 	const records = useMemo(
-		() => (history?.length ? exerciseRecords(history, exercise) : null),
+		() =>
+			history?.length ? exerciseRecords(history, exercise, CURVE_REPS) : null,
 		[history, exercise],
 	);
 
@@ -287,7 +288,7 @@ export function ExerciseDetailScreen() {
 			) : tab === "Progress" ? (
 				<ProgressTab
 					exerciseId={exerciseId}
-					history={history}
+					repMaxes={records?.repMaxes ?? []}
 					currentOrm={currentOrm ?? null}
 				/>
 			) : (
@@ -299,11 +300,11 @@ export function ExerciseDetailScreen() {
 
 function ProgressTab({
 	exerciseId,
-	history,
+	repMaxes,
 	currentOrm,
 }: {
 	exerciseId: ExerciseId | undefined;
-	history: ReturnType<typeof useQuery<typeof api.exercises.getHistory>>;
+	repMaxes: readonly { reps: number; valueKg: number }[];
 	currentOrm: { value: number } | null;
 }) {
 	const colors = useTokens();
@@ -325,19 +326,17 @@ function ProgressTab({
 		[ormHistory, locale],
 	);
 
-	/** Heaviest weight actually logged at each rep count in `CURVE_REPS`. */
-	const actualCurve = useMemo(() => {
-		const best = new Map<number, number>();
-		for (const set of history ?? []) {
-			if (!set.performanceVerified || !set.referenceKind) continue;
-			const existing = best.get(set.reps) ?? 0;
-			if (set.weight > existing) best.set(set.reps, set.weight);
-		}
-		return CURVE_REPS.map((reps) => ({
-			value: best.get(reps) ?? 0,
-			label: `${reps}`,
-		}));
-	}, [history]);
+	const actualCurve = useMemo(
+		() =>
+			CURVE_REPS.map((reps) => ({
+				value: roundLoad(
+					repMaxes.find((best) => best.reps === reps)?.valueKg ?? 0,
+					0.1,
+				),
+				label: `${reps}`,
+			})),
+		[repMaxes],
+	);
 
 	const theoreticalCurve = useMemo(() => {
 		if (!currentOrm) return [];

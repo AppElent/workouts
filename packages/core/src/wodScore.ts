@@ -10,6 +10,24 @@ export type WodType = (typeof WOD_TYPES)[number];
 export const HOSTED_LEVELS = ["rx", "l1", "l2", "l3"] as const;
 export type HostedLevel = (typeof HOSTED_LEVELS)[number];
 
+export const HOSTED_LEVEL_LABELS: Record<HostedLevel, string> = {
+	rx: "Rx",
+	l1: "L1",
+	l2: "L2",
+	l3: "L3",
+};
+
+/** The host's name for a level in this block, else its canonical name. */
+export function hostedLevelLabel(
+	levels: readonly { readonly level: HostedLevel; readonly label: string }[],
+	level: HostedLevel,
+): string {
+	return (
+		levels.find((entry) => entry.level === level)?.label ||
+		HOSTED_LEVEL_LABELS[level]
+	);
+}
+
 /** Whether a logged WOD result was done as prescribed. */
 export const RX_SCALED = ["rx", "scaled"] as const;
 export type RxScaled = (typeof RX_SCALED)[number];

@@ -1,4 +1,5 @@
 import {
+	type MeasuredUnit,
 	type PersonalFood,
 	type PersonalFoodDraft,
 	roundForDisplay,
@@ -589,7 +590,7 @@ export function PersonalFoodEditor({
 						) : (
 							<FoodFormCard>
 								{draft.servings.map((serving, index) => {
-									const label = locale === "en" ? serving.en : serving.nl;
+									const label = serving[locale];
 									const amount = parseFoodNumber(serving.amount);
 									return (
 										<View
@@ -718,7 +719,7 @@ export function PersonalFoodEditor({
 							onSelect={(id) =>
 								id === "serving"
 									? draft.setBasis("perServing")
-									: draft.setBasis("per100", id as "g" | "ml")
+									: draft.setBasis("per100", id as MeasuredUnit)
 							}
 						>
 							<FoodFormMenuValue
@@ -890,10 +891,7 @@ export function PersonalFoodEditor({
 						servingEditor === "new"
 							? undefined
 							: {
-									name:
-										locale === "en"
-											? draft.servings[servingEditor].en
-											: draft.servings[servingEditor].nl,
+									name: draft.servings[servingEditor][locale],
 									amount: draft.servings[servingEditor].amount,
 								}
 					}

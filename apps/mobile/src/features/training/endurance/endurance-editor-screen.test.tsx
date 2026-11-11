@@ -118,7 +118,9 @@ describe("endurance editor", () => {
 		await fireEvent.changeText(screen.getByLabelText("Distance"), "5.2");
 		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
 		await fireEvent.press(screen.getByText("Save activity"));
-		expect(await screen.findByText("offline")).toBeTruthy();
+		expect(
+			await screen.findByText("Could not save the activity."),
+		).toBeTruthy();
 		expect(screen.getByLabelText("Distance").props.value).toBe("5.2");
 		await pressAndFlush("Save activity");
 		await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
@@ -206,7 +208,7 @@ describe("endurance editor", () => {
 		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
 		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
 		await fireEvent.press(screen.getByText("Save activity"));
-		await screen.findByText("offline");
+		await screen.findByText("Could not save the activity.");
 		await fireEvent.changeText(screen.getByLabelText("Distance"), "6");
 		await pressAndFlush("Save activity");
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
@@ -234,7 +236,7 @@ describe("endurance editor", () => {
 		await fireEvent.changeText(screen.getByLabelText("Distance"), "5");
 		await fireEvent.changeText(screen.getByLabelText("Minutes"), "30");
 		await fireEvent.press(screen.getByText("Save activity"));
-		await screen.findByText("offline");
+		await screen.findByText("Could not save the activity.");
 		await fireEvent.changeText(screen.getByLabelText("Distance"), "6");
 		await fireEvent.press(screen.getByText("Save activity"));
 		await waitFor(() => expect(update).toHaveBeenCalledTimes(1));

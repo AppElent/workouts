@@ -1,4 +1,5 @@
 import {
+	type BaseUnit,
 	type Locale,
 	NUTRIENT_KEYS,
 	type NutrientKey,
@@ -19,13 +20,11 @@ import {
  * used by Hulp bij invoeren to find candidates for each described item.
  */
 
-type BaseUnit = "g" | "ml";
-
 export type AssistanceFood = {
 	readonly id: string;
 	readonly kind: "shipped" | "personal";
 	readonly name: { readonly en: string; readonly nl: string };
-	readonly baseUnit: BaseUnit | "serving";
+	readonly baseUnit: BaseUnit;
 	readonly personalFood?: PersonalFood;
 	/** Everyday portions from the library, in the base unit. */
 	readonly servings?: readonly {

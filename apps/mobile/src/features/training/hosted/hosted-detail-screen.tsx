@@ -4,12 +4,8 @@
  *
  * Editing the template is web-only — see `hosted-list-screen.tsx`. This
  * screen drives the states around it: draft → open → closed, plus delete.
- *
- * Leaderboard ranking uses `scoreRank` from `@foundry/core`, which is what
- * makes a capped For Time result sort below every finisher instead of looking
- * like a fast time.
  */
-import { formatScore, scoreRank, type WodType } from "@foundry/core";
+import { formatScore, hostedLevelLabel, sortLeaderboard } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -18,7 +14,6 @@ import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { formatSessionDate } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	radius,
@@ -32,16 +27,11 @@ import { useConfirm } from "../../../ui/confirm-dialog";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
-
-const LEVEL_LABEL: Record<string, string> = {
-	rx: "Rx",
-	l1: "L1",
-	l2: "L2",
-	l3: "L3",
-};
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { formatHostedPrescription } from "./hosted-prescription";
 
 export function HostedDetailScreen() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const toast = useToast();
@@ -175,12 +165,7 @@ export function HostedDetailScreen() {
 										{block.exerciseName}
 									</AppText>
 									<AppText variant="caption">
-										{block.defaultSets ?? "—"} × {block.defaultReps ?? "—"}
-										{block.percentageOfOneRepMax
-											? ` · ${block.percentageOfOneRepMax}% 1RM`
-											: block.defaultWeight
-												? ` · ${block.defaultWeight} ${block.unit ?? "kg"}`
-												: ""}
+										{formatHostedPrescription(block)}
 									</AppText>
 								</View>
 							</View>
@@ -266,17 +251,24 @@ function WodBlockBoard({
 		return map;
 	}, [participants, hostUserId, copy.host, copy.athlete]);
 
-	const ranked = useMemo(() => {
-		return submissions
-			.filter((s) => s.wodBlockId === block.blockId)
-			.map((s) => ({
-				submission: s,
-				name:
-					s.guestName ?? nameOf.get(s.participantId as never) ?? copy.athlete,
-				rank: scoreRank(block.type as WodType, s),
-			}))
-			.sort((a, b) => b.rank - a.rank);
-	}, [submissions, block, nameOf, copy.athlete]);
+	const ranked = useMemo(
+		() =>
+			sortLeaderboard(
+				block.type,
+				submissions
+					.filter((s) => s.wodBlockId === block.blockId)
+					.map((s) => ({
+						submission: s,
+						score: s,
+						submittedAt: s.submittedAt,
+						name:
+							s.guestName ??
+							(s.participantId && nameOf.get(s.participantId)) ??
+							copy.athlete,
+					})),
+			),
+		[submissions, block, nameOf, copy.athlete],
+	);
 
 	return (
 		<>
@@ -293,13 +285,12 @@ function WodBlockBoard({
 									{entry.name}
 								</AppText>
 								<AppText variant="caption">
-									{LEVEL_LABEL[entry.submission.level] ??
-										entry.submission.level}
+									{hostedLevelLabel(block.levels, entry.submission.level)}
 									{entry.submission.notes ? ` · ${entry.submission.notes}` : ""}
 								</AppText>
 							</View>
 							<AppText style={styles.score}>
-								{formatScore(block.type as WodType, entry.submission)}
+								{formatScore(block.type, entry.submission)}
 							</AppText>
 						</View>
 					))}

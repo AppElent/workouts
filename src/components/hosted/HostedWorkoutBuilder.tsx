@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import {
+	HOSTED_LEVEL_LABELS,
 	HOSTED_LEVELS,
 	type HostedLevel,
 	LOAD_UNITS,
@@ -13,11 +14,7 @@ import {
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
-import {
-	HOSTED_LEVEL_LABELS,
-	WOD_TYPE_LABELS,
-	wodTimingLabel,
-} from "#/components/hosted/wodBlock";
+import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 

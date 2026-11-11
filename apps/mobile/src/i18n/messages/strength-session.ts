@@ -1,3 +1,7 @@
+import { SET_LIMITS } from "@foundry/core";
+
+const percentMax = SET_LIMITS.percentOfOneRepMax.max;
+
 export const strengthSessionEn = {
 	minimise: "Minimise session",
 	sessionMenu: "Session options",
@@ -199,7 +203,7 @@ export const strengthSessionEn = {
 			"This set may already be saved. You can change it once that's checked.",
 		customPercent: "Custom %",
 		customPercentTitle: "Percentage",
-		percentMax: "Up to 120%",
+		percentMax: `Up to ${percentMax}%`,
 		apply: "Apply",
 		oneRmFromSet: "1RM from this set",
 		lineTarget: "{percent}% of {source}{ref} = {exact} → {load}",
@@ -610,7 +614,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 			"Deze set is misschien al opgeslagen. Je kunt hem wijzigen zodra dat is gecheckt.",
 		customPercent: "Anders %",
 		customPercentTitle: "Percentage",
-		percentMax: "Maximaal 120%",
+		percentMax: `Maximaal ${percentMax}%`,
 		apply: "Toepassen",
 		oneRmFromSet: "1RM uit deze set",
 		lineTarget: "{percent}% van {source}{ref} = {exact} → {load}",

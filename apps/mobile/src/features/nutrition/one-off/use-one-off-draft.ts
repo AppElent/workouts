@@ -1,4 +1,10 @@
-import { type MealSlot, NUTRIENT_KEYS, type NutrientKey } from "@foundry/core";
+import {
+	type BaseUnit,
+	type MealSlot,
+	type MeasuredUnit,
+	NUTRIENT_KEYS,
+	type NutrientKey,
+} from "@foundry/core";
 import { useState } from "react";
 import { oneOffLogSnapshot } from "../../../data/nutrition-one-off";
 import { fmt, useI18n } from "../../../i18n";
@@ -51,7 +57,7 @@ export function useOneOffDraft({
 	});
 	const [name, setName] = useState(seed?.name ?? "");
 	const [amount, setAmount] = useState("1");
-	const [unit, setUnit] = useState<"serving" | "g" | "ml">("serving");
+	const [unit, setUnit] = useState<BaseUnit>("serving");
 	const [basis, setBasis] = useState<OneOffBasis>("total");
 	// Seeded totals (AI entry, "Eén item") fill the values for one portion.
 	const [values, setValues] = useState(() =>
@@ -151,7 +157,7 @@ export function useOneOffDraft({
 			setErrors((current) => ({ ...current, amount: undefined }));
 		},
 		unit,
-		setUnit: (next: "serving" | "g" | "ml") => {
+		setUnit: (next: BaseUnit) => {
 			setUnit(next);
 			// Per 100 only makes sense in grams or millilitres.
 			if (next === "serving") setBasis("total");
@@ -159,7 +165,7 @@ export function useOneOffDraft({
 		},
 		basis,
 		/** Whole amount, or per 100 of a unit, which then becomes the unit. */
-		setBasis: (next: OneOffBasis, per?: "g" | "ml") => {
+		setBasis: (next: OneOffBasis, per?: MeasuredUnit) => {
 			setBasis(next);
 			if (next === "per100" && per) setUnit(per);
 			touch();

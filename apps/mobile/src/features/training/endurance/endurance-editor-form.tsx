@@ -1,3 +1,4 @@
+import type { EnduranceSport } from "@foundry/core";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
@@ -7,7 +8,6 @@ import { api, type Id } from "../../../convex/api";
 import { useOnline } from "../../../convex/online";
 import { isoDateToLocalDate, todayIsoDate } from "../../../dates/calendar-day";
 import { dateLocale, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import { spacing, useTokens } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -22,6 +22,7 @@ import {
 } from "../../../ui/form";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import {
 	type EnduranceDetail,
 	type EnduranceValues,
@@ -37,7 +38,7 @@ function activityId() {
 
 function createFields(
 	clientEntryId: string,
-	sport: "running" | "cycling",
+	sport: EnduranceSport,
 	fields: ParsedEnduranceValues,
 ) {
 	return {
@@ -65,12 +66,12 @@ export function EnduranceEditorForm({
 	onCreated,
 	nativeSheet = false,
 }: {
-	sport: "running" | "cycling";
+	sport: EnduranceSport;
 	activity?: EnduranceDetail | null;
 	onCreated?: (id: Id<"activities">) => void;
 	nativeSheet?: boolean;
 }) {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const router = useRouter();
 	const colors = useTokens();
 	const navigation = useNavigation();

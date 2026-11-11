@@ -1,4 +1,4 @@
-import type { SupplementaryServing } from "@foundry/core";
+import type { MeasuredUnit, SupplementaryServing } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { api } from "../convex/api";
 import { usePaginatedQuery } from "../convex/query-cache";
@@ -33,7 +33,7 @@ export function useSupplementaryServings(foodId?: string) {
 		async add(input: {
 			name: string;
 			amount: number;
-			unit: "g" | "ml";
+			unit: MeasuredUnit;
 		}): Promise<SupplementaryServing> {
 			const serving = await account.send({
 				identity: { kind: "supplementaryServing", foodId, ...input },

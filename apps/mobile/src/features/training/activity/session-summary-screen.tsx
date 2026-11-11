@@ -22,7 +22,6 @@ import {
 	useSessionSets,
 } from "../../../data/session-data";
 import { fmt, useI18n } from "../../../i18n";
-import { useConvexErrorMessage } from "../../../i18n/errors";
 import {
 	opacity,
 	type Tokens,
@@ -34,9 +33,10 @@ import { Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 
 export function SessionSummaryScreen() {
-	const errorMessage = useConvexErrorMessage();
+	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
