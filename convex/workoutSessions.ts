@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getOwned, requireOwned, requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
+import { legacyDiscardUnfinished } from "./lib/legacyClients";
 import { recalcStrengthReferences } from "./lib/strengthReferences";
 import {
 	ensureSessionExercise,
@@ -45,7 +46,10 @@ export const addExercise = mutation({
 });
 
 export const finish = mutation({
-	args: { id: v.id("workoutSessions") },
+	args: {
+		id: v.id("workoutSessions"),
+		discardUnfinished: legacyDiscardUnfinished,
+	},
 	handler: async (ctx, { id }) => {
 		const session = await requireOwned(ctx, await requireUserId(ctx), id);
 		if (session.status === "completed") return;
