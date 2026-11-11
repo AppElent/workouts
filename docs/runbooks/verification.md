@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # Verify Foundry
@@ -11,7 +11,10 @@ to Foundry targets and credentials.
 
 ## Checks
 
-From the repository root, run the applicable gates:
+From the repository root, `pnpm verify` runs lint (`pnpm check`), types (root,
+`@foundry/core`, and mobile), and tests (root Vitest and mobile Jest) in that
+order, and stops at the first failure. It does not run `pnpm build`. To run the
+gates one at a time:
 
 ```sh
 pnpm check
