@@ -3,6 +3,7 @@ import { activityNl } from "./activity";
 import { bodyMetricsNl } from "./body-metrics";
 import { diaryNl } from "./diary";
 import { enduranceNl } from "./endurance";
+import { firstRunNl } from "./first-run";
 import { hostedNl } from "./hosted";
 import { localDataNl } from "./local-data";
 import { logFoodNl } from "./log-food";
@@ -36,6 +37,7 @@ import { weekReviewNl } from "./week-review";
 
 export const nl = {
 	testData: testDataNl,
+	firstRun: firstRunNl,
 	wods: wodsNl,
 	workoutSummary: workoutSummaryNl,
 	progress: progressNl,
