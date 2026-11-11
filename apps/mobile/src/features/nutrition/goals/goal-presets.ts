@@ -9,7 +9,7 @@ type GoalEditorCopy = Messages["nutrition"]["goalEditor"];
 
 function target(key: GoalPresetKey, nutrient: "energy" | "protein") {
 	return (
-		NUTRITION_GOAL_PRESETS[key].goals.find((goal) => goal.nutrient === nutrient)
+		NUTRITION_GOAL_PRESETS[key].find((goal) => goal.nutrient === nutrient)
 			?.target ?? 0
 	);
 }

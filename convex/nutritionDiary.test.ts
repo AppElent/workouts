@@ -459,7 +459,7 @@ describe("public nutrition diary operations", () => {
 				kind: "group",
 				targets: [
 					{ kind: "serverId", id: created.entryIds[0] },
-					{ kind: "serverId", id: "stale-deployment-entry-id" as never },
+					{ kind: "serverId", id: "stale-deployment-entry-id" },
 				],
 				comboGroup: {
 					id: "recovered-group",

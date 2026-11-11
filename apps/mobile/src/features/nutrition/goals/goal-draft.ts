@@ -93,7 +93,7 @@ export function setGoalKind(
 /** The Reference intake target in the nutrient's default direction. */
 export function referenceGoalTarget(nutrient: NutrientKey): number {
 	const direction = NUTRIENT_DEFAULT_DIRECTIONS[nutrient];
-	const goal = NUTRITION_GOAL_PRESETS.reference.goals.find(
+	const goal = NUTRITION_GOAL_PRESETS.reference.find(
 		(item) => item.nutrient === nutrient && item.direction === direction,
 	);
 	if (!goal) throw new Error(`No reference goal for ${nutrient}.`);
