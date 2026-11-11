@@ -125,23 +125,12 @@ function log(plan: SessionPlan, row: PlanSet, serverId = `s-${row.id}`) {
 
 describe("1RM", () => {
 	it("uses Epley, and a single is its weight", () => {
-		expect(
-			rowOneRepMax({ kg: 100, reps: 1, kind: "working" }, false)?.value,
-		).toBe(100);
-		expect(
-			rowOneRepMax({ kg: 95, reps: 5, kind: "working" }, false)?.value,
-		).toBe(110.8);
+		expect(rowOneRepMax({ kg: 100, reps: 1 }, false)?.value).toBe(100);
+		expect(rowOneRepMax({ kg: 95, reps: 5 }, false)?.value).toBe(110.8);
 	});
-	it("never counts a warm-up or failed reps", () => {
-		expect(
-			rowOneRepMax({ kg: 100, reps: 1, kind: "warmup" }, false),
-		).toBeNull();
-		expect(
-			rowOneRepMax({ kg: 100, reps: 0, kind: "working" }, false),
-		).toBeNull();
-		expect(
-			rowOneRepMax({ kg: 100, reps: 3, kind: "working" }, true),
-		).toBeNull();
+	it("never counts failed reps or a bodyweight set", () => {
+		expect(rowOneRepMax({ kg: 100, reps: 0 }, false)).toBeNull();
+		expect(rowOneRepMax({ kg: 100, reps: 3 }, true)).toBeNull();
 	});
 	it("takes percentages from Measured, not Estimated", () => {
 		const plan = plannedPlan();
@@ -1136,7 +1125,7 @@ describe("recap", () => {
 		});
 		expect(recap.heroes).toHaveLength(1);
 	});
-	it("does not count a warm-up single as a new measured 1RM", () => {
+	it("counts a heavy warm-up single as a new measured 1RM, as the server does", () => {
 		let plan = plannedPlan();
 		const warm = addWarmup(plan, "squat", SQUAT);
 		plan = warm.plan;
@@ -1144,7 +1133,10 @@ describe("recap", () => {
 		const heavy = { ...row, kg: 200, reps: 1 };
 		plan = updateRow(plan, row.id, heavy);
 		plan = log(plan, heavy);
-		expect(recapOf(plan, lookup).heroes).toHaveLength(0);
+		expect(recapOf(plan, lookup).exercises[0]).toMatchObject({
+			tag: "newMeasured",
+			best: { value: 200, measured: true },
+		});
 	});
 });
 
