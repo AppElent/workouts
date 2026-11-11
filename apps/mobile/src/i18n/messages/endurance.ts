@@ -4,6 +4,7 @@ const titleMaxEn = ENDURANCE_LIMITS.titleLength.toLocaleString("en-US");
 const notesMaxEn = ENDURANCE_LIMITS.notesLength.toLocaleString("en-US");
 const titleMaxNl = ENDURANCE_LIMITS.titleLength.toLocaleString("nl-NL");
 const notesMaxNl = ENDURANCE_LIMITS.notesLength.toLocaleString("nl-NL");
+const { min: effortMin, max: effortMax } = ENDURANCE_LIMITS.effort;
 
 export const enduranceEn = {
 	running: "Run",
@@ -50,7 +51,7 @@ export const enduranceEn = {
 	invalidDuration: "Enter a duration greater than zero.",
 	invalidElevation: "Elevation gain must be zero or greater.",
 	invalidHeartRate: "Enter a whole-number heart rate greater than zero.",
-	invalidEffort: "Effort must be a whole number from 1 to 10.",
+	invalidEffort: `Effort must be a whole number from ${effortMin} to ${effortMax}.`,
 	invalidTitle: `Title must be ${titleMaxEn} characters or fewer.`,
 	invalidNotes: `Notes must be ${notesMaxEn} characters or fewer.`,
 	saveError: "Could not save the activity.",
@@ -114,7 +115,7 @@ export const enduranceNl: typeof enduranceEn = {
 	invalidDuration: "Vul een duur groter dan nul in.",
 	invalidElevation: "Hoogtemeters moeten nul of hoger zijn.",
 	invalidHeartRate: "Vul een positieve hartslag in als geheel getal.",
-	invalidEffort: "Inspanning moet een geheel getal van 1 tot 10 zijn.",
+	invalidEffort: `Inspanning moet een geheel getal van ${effortMin} tot ${effortMax} zijn.`,
 	invalidTitle: `De titel mag maximaal ${titleMaxNl} tekens bevatten.`,
 	invalidNotes: `Notities mogen maximaal ${notesMaxNl} tekens bevatten.`,
 	saveError: "Activiteit opslaan is mislukt.",
