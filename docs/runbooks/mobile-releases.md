@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 1.2.0
+version: 1.2.1
 ---
 
 # iOS test builds and OTA updates
@@ -58,7 +58,9 @@ release configuration. EAS supplies `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and
 The first submission may ask for Apple credentials and the App Store Connect
 app. After Apple processes the build, install it through TestFlight.
 `eas submission:view` does not reliably report whether the upload arrived. Check
-App Store Connect instead with `asc builds list --app 6811609419 --limit 1`.
+App Store Connect instead with `asc builds list --app 6824221239 --limit 1` (the
+Foundry Preview app; production builds go to `6811609419`, see `submit` in
+`apps/mobile/eas.json`).
 Allow about 30 minutes before re-submitting. Apple rejects a second upload of
 the same build number, so an early retry fails as a duplicate. Native
 compilation, signing, and submission are verified by that cloud build; local

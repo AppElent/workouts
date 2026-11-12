@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when deploying Foundry's web app and backend, or changing deploy.yml or the deploy scripts.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # Deploy
@@ -26,8 +26,7 @@ previews are in `.github/workflows/preview.yml`.
 | Mobile | The installed preview app (EAS `preview`) stays on the production backend; staging web does not change what it sees |
 | By hand | `pnpm deploy:staging` / `pnpm deploy:production` run the same steps through `env.mjs exec <environment> --only github`, with the values read from Infisical |
 
-No seed runs on deploy: fresh databases need no exercise seeding
-([exercise migration](exercise-migration.md)).
+No seed runs on deploy: fresh databases need no exercise seeding.
 
 ## Verify
 
