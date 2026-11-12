@@ -13,7 +13,10 @@ export type DraftItem = ReviewItem & {
 	key: string;
 	removed: boolean;
 	status: DraftStatus;
-	/** A write was sent with this key, so it may have reached Foundry. */
+	/**
+	 * A write was sent with this key, so it may have reached Foundry. Never
+	 * reset: the key must outlive every later edit.
+	 */
 	attempted: boolean;
 	entryId?: string;
 };

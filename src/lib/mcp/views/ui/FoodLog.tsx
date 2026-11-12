@@ -186,7 +186,7 @@ export function FoodLog({
 								{item.removed && (
 									<span className="badge">{t.food.removed}</span>
 								)}
-								{result.canLog && !locked && (
+								{result.canLog && !locked && !logging && (
 									<button
 										type="button"
 										className="text-button"
