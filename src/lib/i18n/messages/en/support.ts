@@ -23,7 +23,7 @@ export const support = {
 			},
 			export: {
 				q: "How do I export or delete my data?",
-				a: "In the app, open Profile > Account. You can export all your data or delete your account there.",
+				a: "In the app, open Profile > Account. You can export all your data or delete your account there. On the web, you can also export from the Account page.",
 			},
 		},
 	},

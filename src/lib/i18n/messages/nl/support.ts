@@ -23,7 +23,7 @@ export const support: typeof supportEn = {
 			},
 			export: {
 				q: "Hoe exporteer of verwijder ik mijn gegevens?",
-				a: "Open in de app Profiel > Account. Daar kun je al je gegevens exporteren of je account verwijderen.",
+				a: "Open in de app Profiel > Account. Daar kun je al je gegevens exporteren of je account verwijderen. Op het web kun je ook exporteren vanaf de pagina Account.",
 			},
 		},
 	},
