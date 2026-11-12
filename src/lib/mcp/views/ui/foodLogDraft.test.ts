@@ -70,7 +70,7 @@ describe("food log draft", () => {
 		expect(sumMacros(draft.map(itemMacros))).toEqual(macros(360, 7.6));
 	});
 
-	it("keeps a key for retries and makes a new one when the input changes", async () => {
+	it("keeps a key for retries and makes a new one when unsent input changes", async () => {
 		const newKey = keys();
 		const draft = startDraft(ITEMS, newKey);
 		const first = await run(draft, new Set(["shipped:oats"]));
@@ -81,9 +81,20 @@ describe("food log draft", () => {
 		expect(retry.items.every((item) => item.status === "saved")).toBe(true);
 		expect(unsaved(retry.items)).toEqual([]);
 
-		const edited = changeItem(first.items[1], { quantity: 2 }, newKey);
+		const edited = changeItem(draft[1], { quantity: 2 }, newKey);
 		expect(edited.key).not.toBe(draft[1].key);
 		expect(changeItem(edited, { quantity: 2 }, newKey)).toBe(edited);
+
+		// A failed write may have landed, so its key survives an edit.
+		const editedAfterFailure = changeItem(
+			first.items[1],
+			{ quantity: 2 },
+			newKey,
+		);
+		expect(editedAfterFailure).toMatchObject({
+			key: draft[1].key,
+			status: "pending",
+		});
 	});
 
 	it("does not change or remove saved items, and skips removed ones", async () => {

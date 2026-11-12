@@ -29,7 +29,11 @@ export function startDraft(
 	}));
 }
 
-/** A changed serving or quantity is a different write, so it gets a new key. */
+/**
+ * A changed serving or quantity is a different write, so it gets a new key,
+ * unless an earlier attempt failed: that write may have reached Foundry, and
+ * the old key makes log_food reject the changed input instead of logging twice.
+ */
 export function changeItem(
 	item: DraftItem,
 	change: { servingIndex?: number; quantity?: number },
@@ -42,7 +46,8 @@ export function changeItem(
 		next.quantity === item.quantity
 	)
 		return item;
-	return { ...next, key: newKey(), status: "pending" };
+	const key = item.status === "failed" ? item.key : newKey();
+	return { ...next, key, status: "pending" };
 }
 
 export function setRemoved(item: DraftItem, removed: boolean): DraftItem {

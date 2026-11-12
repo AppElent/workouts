@@ -23,6 +23,7 @@ const VIEWS: Record<ViewName, { title: string; description: string }> = {
 	},
 };
 
+/** The placeholder's first occurrence is the body's data-view attribute. */
 export function viewHtml(view: ViewName) {
 	return VIEW_HTML.replace(VIEW_PLACEHOLDER, view);
 }

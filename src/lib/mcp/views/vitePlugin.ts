@@ -12,8 +12,14 @@ export const VIEW_PLACEHOLDER = "__FOUNDRY_VIEW__";
 
 type Bundle = { html: string; files: string[] };
 
-/** Keeps inlined code from closing the tag it sits in. */
+/**
+ * Keeps inlined code from closing the tag it sits in. `<!--` would change how
+ * the end tag is parsed and has no escape that is safe everywhere in JS, so the
+ * build refuses it.
+ */
 function inlineSafe(code: string, tag: "script" | "style") {
+	if (code.includes("<!--"))
+		throw new Error(`MCP views: inlined ${tag} contains "<!--"`);
 	return code.replace(new RegExp(`</(${tag})`, "gi"), "<\\/$1");
 }
 
