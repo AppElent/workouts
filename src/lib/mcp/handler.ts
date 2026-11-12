@@ -153,6 +153,7 @@ export async function handleFoundryMcpRequest(
 	const server = createFoundryMcpServer({
 		backend,
 		access,
+		endpointUrl: mcpResourceUrl(request),
 		now: options.now ?? (() => new Date()),
 		userInfo: () =>
 			(options.fetchUserInfo ?? ((a) => fetchUserInfo(issuer, a)))(access),

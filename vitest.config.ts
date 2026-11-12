@@ -1,8 +1,9 @@
 import viteReact from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
+import { foundryMcpViews } from "./src/lib/mcp/views/vitePlugin.ts";
 
 export default defineConfig({
-	plugins: [viteReact()],
+	plugins: [viteReact(), foundryMcpViews()],
 	resolve: { tsconfigPaths: true },
 	test: {
 		globals: true,

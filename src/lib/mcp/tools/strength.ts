@@ -29,7 +29,7 @@ const exerciseId = z
 	.min(1)
 	.describe("Exercise ID from list_exercises");
 
-async function allExercises(backend: FoundryBackend) {
+export async function allExercises(backend: FoundryBackend) {
 	const personal: Exercise[] = [];
 	let cursor: string | null = null;
 	for (let pages = 0; pages < 20; pages++) {
