@@ -12,6 +12,7 @@ import {
 } from "./lib/strengthReferences";
 import { ensureSessionExercise } from "./lib/strengthSession";
 import { exerciseReference, loadUnit, setType } from "./lib/validators";
+import schema from "./schema";
 
 export const listForSession = query({
 	args: { sessionId: v.id("workoutSessions") },
@@ -120,6 +121,38 @@ export const getLastForExercise = query({
 	handler: async (ctx, { exerciseId, excludeSessionId }) => {
 		const userId = await requireUserId(ctx);
 		return latestSetForExercise(ctx, userId, exerciseId, excludeSessionId);
+	},
+});
+
+/**
+ * Sets of the last other session that logged this exercise, by set number.
+ * Only builds older than #194 call this; delete it with `lib/legacyClients.ts`.
+ */
+export const getPreviousForExercise = query({
+	args: { exerciseId: exerciseReference, sessionId: v.id("workoutSessions") },
+	returns: v.array(
+		v.object({
+			_id: v.id("sets"),
+			_creationTime: v.number(),
+			...schema.tables.sets.validator.fields,
+		}),
+	),
+	handler: async (ctx, { exerciseId, sessionId }) => {
+		const userId = await requireUserId(ctx);
+		const latest = await latestSetForExercise(
+			ctx,
+			userId,
+			exerciseId,
+			sessionId,
+		);
+		if (!latest) return [];
+		const sets = await ctx.db
+			.query("sets")
+			.withIndex("by_session", (q) => q.eq("sessionId", latest.sessionId))
+			.collect();
+		return sets
+			.filter((set) => set.userId === userId && set.exerciseId === exerciseId)
+			.sort((a, b) => a.setNumber - b.setNumber);
 	},
 });
 

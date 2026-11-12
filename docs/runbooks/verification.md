@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.3.0
+version: 2.3.1
 ---
 
 # Verify Foundry
@@ -85,6 +85,6 @@ changes, verify readable cached history and an explicit unavailable-day state.
 Physical haptics remain a device check.
 
 Report results in the PR. Write a record under `docs/records/` only when a contract
-or ADR cites the evidence; pending acceptance becomes a GitHub issue.
+or ADR cites the evidence; pending acceptance becomes a Linear issue.
 The [iOS checklist](ios-acceptance.md) supplements affected
 flow checks; its unchecked rows remain pending.
