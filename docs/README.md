@@ -11,7 +11,7 @@ read it: `grep -r "^description:" docs/standards docs/contracts docs/runbooks do
 | `contracts/` | `contract`: intended behavior per area | Living, versioned |
 | `adr/` | `decision`: hard-to-reverse trade-offs; number after the highest (gaps are intentional) | Immutable; superseded |
 | `runbooks/` | `runbook`: project facts for a repeatable task, read by its standard or skill | Living, versioned |
-| `records/` | `record`: dated evidence cited by a contract or ADR; follow-ups are GitHub issues | Frozen |
+| `records/` | `record`: dated evidence cited by a contract or ADR; follow-ups are Linear issues | Frozen |
 | `agents/` | Pointers that engineering skills look up by path | — |
 
 Vocabulary: [GLOSSARY.md](../GLOSSARY.md). Design studies: [designs/](../designs/README.md).
