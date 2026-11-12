@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { readFile, realpath } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkConvexDrift, DriftError } from "./convex-drift.mjs";
 import {
 	EnvironmentSourceError,
 	loadEnvironmentManifest,
@@ -86,6 +87,14 @@ export function easCommands(profile, { simulator = false, submit = false } = {})
 	return commands;
 }
 
+/**
+ * Preview and production builds both talk to production Convex (see
+ * docs/runbooks/mobile-releases.md); only development builds use dev.
+ */
+export function usesProductionConvex(easEnvironment) {
+	return easEnvironment !== "development";
+}
+
 function fail(message) {
 	console.error(message);
 	return 1;
@@ -108,6 +117,22 @@ export async function main(args = process.argv.slice(2)) {
 	}
 
 	const { easEnvironment, simulator } = profiles[profile];
+	if (usesProductionConvex(easEnvironment) && !args.includes("--allow-convex-drift")) {
+		// The build ships this checkout's JavaScript; production must already
+		// run every Convex change it calls.
+		try {
+			const drift = checkConvexDrift({ target: "HEAD" });
+			if (drift.status !== "ok") {
+				return fail(`${drift.message}\nOr append -- --allow-convex-drift to build anyway.`);
+			}
+			console.log(drift.message);
+		} catch (error) {
+			if (!(error instanceof DriftError)) throw error;
+			return fail(
+				`Could not compare production Convex with this checkout: ${error.message}\nRun \`gh auth login\`, or append -- --allow-convex-drift.`,
+			);
+		}
+	}
 	const environment = manifestEnvironment(manifest, easEnvironment);
 	if (!environment) return fail(`No manifest environment builds the app for EAS ${easEnvironment}.`);
 	const placements = secretEasPlacements(manifest, environment);

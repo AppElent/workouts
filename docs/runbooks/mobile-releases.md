@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 1.2.1
+version: 1.3.0
 ---
 
 # iOS test builds and OTA updates
@@ -19,6 +19,22 @@ The EAS profile name does not determine the backend environment. As verified
 on 2026-09-29, `preview` points to the live Convex deployment `fine-akita-444`,
 also used by the production web app. Check the target before deploying backend
 changes.
+
+## Production Convex first
+
+Preview and production builds both call production Convex, so deploy any Convex
+change a release needs before the release ships. Every release path runs
+`node scripts/convex-drift.mjs --target HEAD` first and stops when this checkout has
+Convex commits that production lacks: `pnpm preview:ios:build`,
+`pnpm preview:ios:build:local`, `pnpm production:ios:build:local`, and
+`pnpm mobile:update:<channel>`. Development builds use the dev deployment and skip it.
+
+When it stops, run **Actions → Deploy → Run workflow** on `main`, wait for it to
+finish, and retry. Append `-- --allow-convex-drift` to a local build only when the
+missing commits are known not to matter to the app. The check needs `gh auth login`;
+see [deploy](deploy.md#production-convex-drift) for how it finds the deployed commit.
+A raw `eas build` skips it, so run `pnpm convex:drift --target HEAD` from the
+repository root before one.
 
 ## Install variants
 
@@ -48,6 +64,7 @@ the Apple grant against the bundle ID of the build that asks.
 From macOS (zsh), in `apps/mobile`:
 
 ```sh
+node ../../scripts/convex-drift.mjs --target HEAD   # see "Production Convex first"
 EXPO_NO_DOTENV=1 pnpm exec eas build --platform ios --profile preview --clear-cache --auto-submit
 ```
 
@@ -204,7 +221,8 @@ Expo's `balanced` preset and also ignores `package.json` scripts, so script edit
 do not need a new build. Before publishing, compare against the target build with
 `APP_VARIANT=preview pnpm exec eas fingerprint:compare --build-id <id>`. Publish from the same dependency lockfile
 and EAS environment as the target build. Backend changes must be deployed to
-the matching Convex environment separately.
+the matching Convex environment separately; the `mobile:update:*` scripts refuse to
+publish while production Convex lacks this checkout's Convex changes.
 
 Keep `virtualStoreDirMaxLength: 60` in the root `pnpm-workspace.yaml`. Expo's
 fingerprint includes dependency paths from native autolinking. pnpm otherwise
