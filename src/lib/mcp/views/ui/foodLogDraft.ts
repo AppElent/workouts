@@ -13,6 +13,8 @@ export type DraftItem = ReviewItem & {
 	key: string;
 	removed: boolean;
 	status: DraftStatus;
+	/** A write was sent with this key, so it may have reached Foundry. */
+	attempted: boolean;
 	entryId?: string;
 };
 
@@ -26,13 +28,15 @@ export function startDraft(
 		key: newKey(),
 		removed: false,
 		status: "pending",
+		attempted: false,
 	}));
 }
 
 /**
  * A changed serving or quantity is a different write, so it gets a new key,
- * unless an earlier attempt failed: that write may have reached Foundry, and
- * the old key makes log_food reject the changed input instead of logging twice.
+ * unless a write was already sent with it: that write may have reached
+ * Foundry, and the old key makes log_food reject the changed input instead of
+ * logging twice.
  */
 export function changeItem(
 	item: DraftItem,
@@ -46,7 +50,7 @@ export function changeItem(
 		next.quantity === item.quantity
 	)
 		return item;
-	const key = item.status === "failed" ? item.key : newKey();
+	const key = item.attempted ? item.key : newKey();
 	return { ...next, key, status: "pending" };
 }
 
@@ -105,7 +109,7 @@ export async function logUnsaved(
 	update: (row: number, change: Partial<DraftItem>) => void,
 ) {
 	for (const item of unsaved(items)) {
-		update(item.row, { status: "saving" });
+		update(item.row, { status: "saving", attempted: true });
 		try {
 			const { entryId } = await logFood(item);
 			update(item.row, { status: "saved", entryId });
