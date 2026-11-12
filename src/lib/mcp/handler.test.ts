@@ -31,11 +31,12 @@ function fakeBackend(
 function options(
 	backend: FoundryBackend,
 	scopes: string[] = READ_WRITE,
+	origin = ORIGIN,
 ): FoundryMcpOptions {
 	return {
 		issuer: "https://clerk.example",
 		verifyToken: async (token, resource): Promise<McpAccess | undefined> =>
-			token === "good" && resource === `${ORIGIN}/mcp`
+			token === "good" && resource === `${origin}/mcp`
 				? { userId: "user_1", scopes: new Set(scopes), token }
 				: undefined,
 		createBackend: () => backend,
@@ -50,7 +51,7 @@ function options(
 function rpc(
 	method: string,
 	params?: unknown,
-	init: { token?: string | null; origin?: string } = {},
+	init: { token?: string | null; origin?: string; url?: string } = {},
 ) {
 	const headers = new Headers({
 		accept: "application/json, text/event-stream",
@@ -59,7 +60,7 @@ function rpc(
 	const token = init.token === undefined ? "good" : init.token;
 	if (token) headers.set("authorization", `Bearer ${token}`);
 	if (init.origin) headers.set("origin", init.origin);
-	return new Request(`${ORIGIN}/mcp`, {
+	return new Request(init.url ?? `${ORIGIN}/mcp`, {
 		method: "POST",
 		headers,
 		body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
@@ -396,5 +397,491 @@ describe("Foundry MCP endpoint", () => {
 		expect(
 			backend.calls.filter((c) => c.name === "workoutSessions:finish"),
 		).toHaveLength(1);
+	});
+});
+
+const EXISTING_TOOLS = [
+	"get_current_user",
+	"list_activities",
+	"get_run_or_ride",
+	"log_run_or_ride",
+	"update_run_or_ride",
+	"list_body_metrics",
+	"log_body_metrics",
+	"list_wods",
+	"get_wod_results",
+	"log_wod_result",
+	"list_exercises",
+	"get_exercise_history",
+	"get_exercise_volume",
+	"list_one_rep_maxes",
+	"list_routines",
+	"get_active_strength_session",
+	"get_strength_session",
+	"start_strength_session",
+	"add_exercise_to_session",
+	"log_set",
+	"update_set",
+	"finish_strength_session",
+	"record_one_rep_max",
+	"get_nutrition_day",
+	"get_nutrition_week",
+	"get_nutrition_goals",
+	"search_foods",
+	"log_food",
+	"log_custom_food",
+	"update_diary_entry",
+];
+const VIEW_TOOLS = {
+	show_week_overview: "ui://foundry/week-overview",
+	review_food_log: "ui://foundry/food-log",
+	show_exercise_progress: "ui://foundry/exercise-progress",
+};
+const SQUAT = "shipped:exercise:barbell-back-squat";
+
+type ListedTool = {
+	name: string;
+	annotations: { readOnlyHint: boolean };
+	_meta?: { ui?: { resourceUri?: string }; "ui/resourceUri"?: string };
+};
+
+async function listTools(scopes: string[]) {
+	return (
+		await result<{ tools: ListedTool[] }>(
+			await handleFoundryMcpRequest(
+				rpc("tools/list"),
+				options(fakeBackend(), scopes),
+			),
+		)
+	).tools;
+}
+
+function total(amount: number) {
+	return {
+		amount,
+		entryCount: 1,
+		valueCount: 1,
+		traceCount: 0,
+		absentCount: 0,
+		incomplete: false,
+		qualified: false,
+	};
+}
+
+function macroTotals(energy: number, protein: number) {
+	return {
+		energy: total(energy),
+		protein: total(protein),
+		carbs: total(100),
+		fat: total(50),
+		saturatedFat: total(10),
+		fibre: total(20),
+		sugars: total(30),
+		salt: total(4),
+	};
+}
+
+const GOALS = {
+	goals: [
+		{ nutrient: "energy", direction: "max", target: 2200 },
+		{ nutrient: "protein", direction: "min", target: 150 },
+		{ nutrient: "salt", direction: "max", target: 6 },
+	],
+	basis: "effective",
+	effectiveFrom: "2026-01-01",
+	nextEffectiveFrom: null,
+	displayOrder: [],
+};
+
+describe("Foundry MCP views", () => {
+	it("keeps the existing tools and adds the three view tools", async () => {
+		const tools = await listTools(READ_WRITE);
+		expect(tools.map((tool) => tool.name).sort()).toEqual(
+			[...EXISTING_TOOLS, ...Object.keys(VIEW_TOOLS)].sort(),
+		);
+		for (const tool of tools) {
+			const view = VIEW_TOOLS[tool.name as keyof typeof VIEW_TOOLS];
+			if (view) {
+				expect(tool._meta?.ui?.resourceUri).toBe(view);
+				expect(tool._meta?.["ui/resourceUri"]).toBe(view);
+				expect(tool.annotations.readOnlyHint).toBe(true);
+			} else {
+				expect(tool._meta).toBeUndefined();
+			}
+		}
+	});
+
+	it("lists one HTML resource per view", async () => {
+		const list = await result<{
+			resources: { uri: string; mimeType: string }[];
+		}>(
+			await handleFoundryMcpRequest(
+				rpc("resources/list"),
+				options(fakeBackend()),
+			),
+		);
+		expect(list.resources).toEqual(
+			Object.values(VIEW_TOOLS).map((uri) =>
+				expect.objectContaining({ uri, mimeType: "text/html;profile=mcp-app" }),
+			),
+		);
+	});
+
+	it.each([
+		["https://foundry.appelent.nl", "cd102ab69774fc367e455454bd4eb467"],
+		[
+			"https://foundry-dev.appelent.workers.dev",
+			"4910b2fc43b2d6c7d812fb4c42e04de7",
+		],
+	])(
+		"serves a self-contained view with Claude's domain for %s",
+		async (origin, hash) => {
+			const read = await result<{
+				contents: {
+					uri: string;
+					mimeType: string;
+					text: string;
+					_meta: { ui: { domain: string; csp?: unknown } };
+				}[];
+			}>(
+				await handleFoundryMcpRequest(
+					rpc(
+						"resources/read",
+						{ uri: "ui://foundry/week-overview" },
+						{ url: `${origin}/mcp` },
+					),
+					options(fakeBackend(), READ_WRITE, origin),
+				),
+			);
+			const [content] = read.contents;
+			expect(content.mimeType).toBe("text/html;profile=mcp-app");
+			expect(content._meta.ui.domain).toBe(`${hash}.claudemcpcontent.com`);
+			expect(content._meta.ui.csp).toBeUndefined();
+			expect(content.text).toMatch(/^<!doctype html>/);
+			expect(content.text).toContain('data-view="week-overview"');
+			// Everything is inline: no scripts, styles, fonts, or images from elsewhere.
+			// The inline script is left out: React's dev warnings mention `<link>`.
+			const markup = content.text.replace(
+				/(<script type="module">)[\s\S]*?(<\/script>)/,
+				"$1$2",
+			);
+			expect(markup).toContain('<script type="module"></script>');
+			expect(markup).not.toMatch(
+				/<script[^>]+src=|<link\b|@import|url\(\s*["']?https?:/i,
+			);
+		},
+	);
+
+	it("gates views and logging by scope", async () => {
+		const readOnly = (await listTools(["foundry:read"])).map(
+			(tool) => tool.name,
+		);
+		expect(readOnly).toEqual(expect.arrayContaining(Object.keys(VIEW_TOOLS)));
+		expect(readOnly).not.toContain("log_food");
+
+		const writeOnly = (await listTools(["foundry:write"])).map(
+			(tool) => tool.name,
+		);
+		expect(writeOnly.some((name) => name in VIEW_TOOLS)).toBe(false);
+		const resources = await handleFoundryMcpRequest(
+			rpc("resources/list"),
+			options(fakeBackend(), ["foundry:write"]),
+		);
+		const body = (await resources.json()) as { error?: unknown };
+		expect(body.error).toBeDefined();
+	});
+
+	it("shows a week of training and nutrition", async () => {
+		const backend = fakeBackend({
+			"activities:list": () => ({
+				items: [
+					{
+						id: "run_1",
+						sport: "running",
+						occurredAt: Date.parse("2026-11-11T07:00:00Z"),
+						durationSeconds: 1800,
+						distanceMeters: 5000,
+					},
+					{
+						id: "session_1",
+						sport: "strength",
+						occurredAt: Date.parse("2026-11-09T18:00:00Z"),
+						durationSeconds: 3600,
+						title: "Push",
+					},
+				],
+				cursor: null,
+				isDone: true,
+			}),
+			"nutritionReview:week": (args: { startDate: string }) => ({
+				startDate: args.startDate,
+				endDate: "2026-11-15",
+				days: Array.from({ length: 7 }, (_, index) => ({
+					date: `2026-11-${String(9 + index).padStart(2, "0")}`,
+					entryCount: index < 2 ? 3 : 0,
+					totals: macroTotals(index < 2 ? 2000 : 0, index < 2 ? 140 : 0),
+					goals: GOALS.goals,
+					goalBasis: "effective",
+					effectiveFrom: "2026-01-01",
+				})),
+				averages: {
+					energy: 2000,
+					protein: 140,
+					energyDays: 2,
+					proteinDays: 2,
+					energyQualified: false,
+					proteinQualified: false,
+				},
+			}),
+		});
+		const call = await callTool(backend, "show_week_overview", {
+			weekStart: "2026-11-12",
+		});
+		expect(call.isError).toBeUndefined();
+		const week = call.structuredContent as Record<string, never>;
+		expect(week).toMatchObject({
+			view: "week-overview",
+			weekStart: "2026-11-09",
+			weekEnd: "2026-11-15",
+			previousWeekStart: "2026-11-02",
+			nextWeekStart: "2026-11-16",
+			isCurrentWeek: true,
+			training: {
+				strengthSessions: 1,
+				runs: 1,
+				rides: 0,
+				distanceMeters: 5000,
+				durationSeconds: 5400,
+			},
+			nutrition: {
+				loggedDays: 2,
+				energyAverageKcal: 2000,
+				proteinAverageG: 140,
+				goals: [
+					{ macro: "energyKcal", direction: "max", target: 2200 },
+					{ macro: "proteinG", direction: "min", target: 150 },
+				],
+			},
+		});
+		const days = week.days as {
+			date: string;
+			activities: { id: string }[];
+			nutrition: { energyKcal: number | null };
+		}[];
+		expect(days[0].activities.map((a) => a.id)).toEqual(["session_1"]);
+		expect(days[2].activities.map((a) => a.id)).toEqual(["run_1"]);
+		expect(days[0].nutrition.energyKcal).toBe(2000);
+		expect(days[3].nutrition.energyKcal).toBeNull();
+		expect(backend.calls[0].args).toMatchObject({
+			from: Date.parse("2026-11-09T00:00:00Z"),
+			to: Date.parse("2026-11-16T00:00:00Z"),
+		});
+	});
+
+	it("rejects an impossible week start", async () => {
+		const call = await callTool(fakeBackend(), "show_week_overview", {
+			weekStart: "2026-02-31",
+		});
+		expect(call.isError).toBe(true);
+	});
+
+	it("reviews proposed food without logging it", async () => {
+		const backend = fakeBackend({
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [{ _id: "entry_0" }],
+				totals: macroTotals(500, 30),
+				revision: 1,
+			}),
+			"nutritionGoals:forDate": () => GOALS,
+		});
+		const review = async (scopes: string[]) =>
+			(
+				await callTool(
+					backend,
+					"review_food_log",
+					{
+						date: "2026-11-10",
+						meal: "breakfast",
+						items: [{ foodId: "shipped:banana", servingIndex: 0, quantity: 2 }],
+					},
+					scopes,
+				)
+			).structuredContent as {
+				canLog: boolean;
+				items: {
+					name: string;
+					quantity: number;
+					servings: { perQuantity: { energyKcal: number | null } }[];
+				}[];
+				logged: { entryCount: number; energyKcal: number };
+				goals: unknown[];
+			};
+		const full = await review(READ_WRITE);
+		expect(full).toMatchObject({
+			view: "food-log",
+			date: "2026-11-10",
+			meal: "breakfast",
+			canLog: true,
+			logged: { entryCount: 1, energyKcal: 500, proteinG: 30 },
+		});
+		expect(full.goals).toHaveLength(2);
+		expect(full.items[0].name.toLowerCase()).toContain("banana");
+		expect(full.items[0].servings[0].perQuantity.energyKcal).toBeGreaterThan(0);
+		expect((await review(["foundry:read"])).canLog).toBe(false);
+		expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
+	});
+
+	it("refuses a review with an unknown serving", async () => {
+		const backend = fakeBackend({
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [],
+				totals: {},
+			}),
+			"nutritionGoals:forDate": () => GOALS,
+		});
+		const call = await callTool(backend, "review_food_log", {
+			date: "2026-11-10",
+			meal: "lunch",
+			items: [{ foodId: "shipped:banana", servingIndex: 99, quantity: 1 }],
+		});
+		expect(call.isError).toBe(true);
+		expect(call.content[0]?.text).toContain("servingIndex");
+	});
+
+	it("does not log a food twice when the view retries with the same key", async () => {
+		const receipts = new Map<string, { entryIds: string[] }>();
+		const entries: string[] = [];
+		const backend = fakeBackend({
+			"nutritionDiary:applyOperation": (args: { operationId: string }) => {
+				const seen = receipts.get(args.operationId);
+				if (seen) return seen;
+				entries.push(args.operationId);
+				const receipt = { entryIds: [`entry_${entries.length}`] };
+				receipts.set(args.operationId, receipt);
+				return receipt;
+			},
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [],
+				totals: {},
+				revision: 1,
+			}),
+		});
+		const log = () =>
+			callTool(backend, "log_food", {
+				idempotencyKey: "view-key-0001",
+				date: "2026-11-10",
+				meal: "breakfast",
+				foodId: "shipped:banana",
+				servingIndex: 0,
+				quantity: 1,
+			});
+		const first = await log();
+		const retry = await log();
+		expect(retry.structuredContent?.entryId).toBe(
+			first.structuredContent?.entryId,
+		);
+		expect(entries).toEqual(["mcp:view-key-0001"]);
+	});
+
+	it("shows exercise progress for a range and metric", async () => {
+		const day = (date: string) => Date.parse(`${date}T18:00:00Z`);
+		const set = (
+			sessionId: string,
+			date: string,
+			weight: number,
+			reps: number,
+			setType = "working",
+		) => ({
+			_id: `${sessionId}-${weight}-${reps}`,
+			sessionId,
+			exerciseId: SQUAT,
+			reps,
+			weight,
+			unit: "kg",
+			setType,
+			loggedAt: day(date),
+			sessionDate: day(date),
+		});
+		const backend = fakeBackend({
+			"exercises:listPersonal": () => ({
+				page: [],
+				isDone: true,
+				continueCursor: "",
+			}),
+			"exercises:getHistory": () => [
+				set("old", "2026-01-05", 200, 1),
+				set("s1", "2026-10-20", 60, 10, "warmup"),
+				set("s1", "2026-10-20", 100, 5),
+				set("s1", "2026-10-20", 110, 1),
+				set("s2", "2026-11-03", 105, 5),
+			],
+			"progress:weeklyVolume": () => [
+				{ week: "2026-W02", volume: 200 },
+				{ week: "2026-W43", volume: 610 },
+				{ week: "2026-W45", volume: 525 },
+			],
+			"oneRepMaxes:listForExercise": () => [
+				{
+					_id: "orm_1",
+					date: day("2026-11-01"),
+					value: 120,
+					unit: "kg",
+					source: "manual",
+				},
+			],
+		});
+		const call = await callTool(backend, "show_exercise_progress", {
+			exerciseId: SQUAT,
+			range: "4w",
+		});
+		expect(call.isError).toBeUndefined();
+		expect(call.structuredContent).toMatchObject({
+			view: "exercise-progress",
+			exercise: { id: SQUAT },
+			range: "4w",
+			metric: "e1rm",
+			unit: "kg",
+			points: [
+				{ date: "2026-10-20", value: 116.7, weight: 100, reps: 5 },
+				{ date: "2026-11-03", value: 122.5, weight: 105, reps: 5 },
+			],
+			weeklyVolume: [
+				{ week: "2026-W43", volume: 610 },
+				{ week: "2026-W45", volume: 525 },
+			],
+			oneRepMaxes: [{ date: "2026-11-01", value: 120, source: "manual" }],
+			summary: { sessions: 2, latest: 122.5, best: 122.5, change: 5.8 },
+		});
+
+		const topSet = await callTool(backend, "show_exercise_progress", {
+			exerciseId: SQUAT,
+			range: "1y",
+			metric: "topSet",
+		});
+		expect(
+			((topSet.structuredContent?.points ?? []) as { value: number }[]).map(
+				(p) => p.value,
+			),
+		).toEqual([200, 110, 105]);
+	});
+
+	it("refuses progress for an unknown exercise", async () => {
+		const backend = fakeBackend({
+			"exercises:listPersonal": () => ({
+				page: [],
+				isDone: true,
+				continueCursor: "",
+			}),
+			"exercises:getHistory": () => [],
+			"progress:weeklyVolume": () => [],
+			"oneRepMaxes:listForExercise": () => [],
+		});
+		const call = await callTool(backend, "show_exercise_progress", {
+			exerciseId: "nope",
+		});
+		expect(call.isError).toBe(true);
 	});
 });
