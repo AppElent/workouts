@@ -23,6 +23,11 @@
 			"types": "./dist/exercises/index.d.ts",
 			"react-native": "./src/exercises/index.ts",
 			"import": "./dist/exercises/index.js"
+		},
+		"./features": {
+			"types": "./dist/features.d.ts",
+			"react-native": "./src/features.ts",
+			"import": "./dist/features.js"
 		}
 	},
 	"scripts": {

@@ -10,7 +10,12 @@ import { defineConfig } from "tsup";
 // artifact to the web bundle and to every Convex function. The two entries
 // export disjoint names.
 export default defineConfig({
-	entry: ["src/index.ts", "src/shipped-foods.ts", "src/exercises/index.ts"],
+	entry: [
+		"src/index.ts",
+		"src/shipped-foods.ts",
+		"src/exercises/index.ts",
+		"src/features.ts",
+	],
 	format: ["esm"],
 	dts: true,
 	clean: true,

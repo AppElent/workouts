@@ -14,7 +14,7 @@ export default defineConfig({
 				extends: true,
 				test: {
 					name: "scripts",
-					include: ["scripts/**/*.test.mjs"],
+					include: ["scripts/**/*.test.mjs", "scripts/**/*.test.ts"],
 					environment: "node",
 					globals: true,
 				},
