@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.0.0
+version: 3.0.1
 ---
 
 # Foundry MCP
@@ -93,7 +93,8 @@ needs a Convex idempotency key (`operationId`, `clientEntryId`, or
   (Backend API `PATCH /v1/instance/oauth_application_settings` when the
   Dashboard lacks a field). Clerk uses them when a client omits `scope`. Leave
   DCR off: Claude.ai and Claude Code use CIMD.
-- CIMD: turn on **Publish CIMD support** under OAuth applications → Settings.
+- CIMD: turn on **Publish CIMD support** under OAuth applications → Settings →
+  Client onboarding.
   Then check that `/.well-known/oauth-authorization-server` on the Clerk issuer
   shows `client_id_metadata_document_supported: true` and lists `none` in
   `token_endpoint_auth_methods_supported`. Claude uses CIMD only when both are
@@ -138,8 +139,11 @@ and staging would need its own Clerk resource and a staging value.
 
 - **`401 invalid_token`:** the token's `aud` is not this endpoint. Check the
   Clerk MCP resource and that the client sent `resource`.
-- **`403 insufficient_scope`:** the grant lacks Foundry scopes. Check the Clerk
-  scopes and `default_scopes`, then reconnect.
+- **`403 insufficient_scope`:** the token has neither Foundry scope. Clerk
+  grants a CIMD client only the scopes saved on it, so check that client under
+  OAuth applications and give it both Foundry scopes, then reconnect.
+  `default_scopes` matter only for a client that omits `scope`, which this
+  endpoint's `401` always sends.
 - **Claude.ai: "Authorization with Foundry failed":** tail the Worker
   (`pnpm exec wrangler tail foundry`) while connecting. Claude.ai calls from
   Anthropic's range `160.79.104.0/21`. If the tail shows a `401` and a metadata
@@ -148,8 +152,9 @@ and staging would need its own Clerk resource and a staging value.
   history.
 - **Claude.ai fails before sign-in, and Clerk's metadata lacks
   `client_id_metadata_document_supported: true` or the `none` auth method:**
-  Claude cannot use CIMD and DCR is off, so it cannot register. Turn on Publish
-  CIMD support.
+  Claude cannot use CIMD and DCR is off, so it cannot register. A missing flag
+  means Publish CIMD support is off; turn it on. Clerk's docs name no setting
+  for `none` alone, so if only `none` is missing, ask Clerk support.
 - **`invalid_scope` ("not allowed to request scope …"):** Clerk saved that CIMD
   client before the scopes existed. Delete it under OAuth applications so the
   next connect recreates it, or set its scopes to `openid profile email
