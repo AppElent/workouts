@@ -85,16 +85,12 @@ describe("food log draft", () => {
 		expect(edited.key).not.toBe(draft[1].key);
 		expect(changeItem(edited, { quantity: 2 }, newKey)).toBe(edited);
 
-		// A failed write may have landed, so its key survives an edit.
-		const editedAfterFailure = changeItem(
-			first.items[1],
-			{ quantity: 2 },
-			newKey,
-		);
-		expect(editedAfterFailure).toMatchObject({
-			key: draft[1].key,
-			status: "pending",
-		});
+		// A failed write may have landed, so its key survives every later edit.
+		const once = changeItem(first.items[1], { quantity: 2 }, newKey);
+		const twice = changeItem(once, { quantity: 20 }, newKey);
+		const thrice = changeItem(twice, { quantity: 3 }, newKey);
+		for (const item of [once, twice, thrice])
+			expect(item).toMatchObject({ key: draft[1].key, status: "pending" });
 	});
 
 	it("does not change or remove saved items, and skips removed ones", async () => {
