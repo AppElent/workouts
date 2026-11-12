@@ -1,0 +1,45 @@
+name: Dependabot labels
+# Labels each Dependabot PR with its blast radius: patch updates get
+# blast-radius:low, minor and major updates get blast-radius:med. Runs again on
+# synchronize because a rebase or recreate can change the versions in the PR.
+# Plain pull_request, never pull_request_target (docs/standards/dependency-updates.md);
+# Dependabot's token is read-only unless the permissions below raise it.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+concurrency:
+  group: dependabot-labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  label:
+    # The PR author check limits the job to Dependabot PRs; it checks the
+    # author, not the actor, so a human pushing to a Dependabot PR still
+    # relabels it. The repository check only keeps copies of this repo from
+    # running it.
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'AppElent/workouts'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # Fail open to med: if the metadata step fails, its outputs are empty
+      # and the next step still labels the PR.
+      - id: metadata
+        uses: dependabot/fetch-metadata@v3
+        continue-on-error: true
+      # update-type is the highest change across a grouped PR. An empty value
+      # (Dependabot couldn't tell, or the step above failed) counts as med.
+      - name: Apply blast-radius label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+        run: |
+          if [ "$UPDATE_TYPE" = "version-update:semver-patch" ]; then
+            add=blast-radius:low remove=blast-radius:med
+          else
+            add=blast-radius:med remove=blast-radius:low
+          fi
+          echo "update-type=${UPDATE_TYPE:-unknown} -> $add"
+          gh pr edit "$PR" --add-label "$add" --remove-label "$remove"
