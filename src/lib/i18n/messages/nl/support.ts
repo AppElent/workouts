@@ -15,7 +15,7 @@ export const support: typeof supportEn = {
 			},
 			oneRm: {
 				q: "Hoe schat Foundry mijn 1RM?",
-				a: "Elke gelogde set geeft een geschatte one-rep max. Vul een geteste 1RM in om sets als percentage daarvan te plannen.",
+				a: "Foundry schat je one-rep max uit je gelogde sets. Je kunt ook een geteste 1RM invullen; Foundry gebruikt die als hij nieuwer is. Met allebei plan je sets als percentage.",
 			},
 			food: {
 				q: "Waar komt de voedingsdata vandaan?",

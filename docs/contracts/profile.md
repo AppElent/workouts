@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.2.0
+version: 1.3.0
 status: current
 ---
 
@@ -37,7 +37,8 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     Activity, and with Hosted Workout involvement, like test-data reset.
   - *Delete account.* The same deletion, then Clerk's self-deletion, which signs
     out. Unavailable when the Clerk instance disables self-deletion.
-- **Summary.** All-time totals, no period menu. Each figure links to its source view.
+- **Summary.** None until lifetime totals exist. Profile shows no placeholder
+  figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The
   confirmation states the real pending and device-local state, with a count and
   "Toch uitloggen" when changes are waiting. Set Drafts stay on the device for the
@@ -45,15 +46,15 @@ tap. Study: [profile](../../designs/app/profile_final.html).
 
 ## States
 
-Settings work in every state. Only the summary loads, fails, or is empty. Offline
-is one line above the account row.
+Settings work in every state. Offline is one line above the account row.
 
 ## Out of scope
 
 Until [#93](https://github.com/AppElent/workouts/issues/93): lifetime totals and
-distance breakdown. Deleting accounts with Hosted Workout involvement needs a
-separate shared-event cleanup design. They show dashes or a
-"coming soon" mark; never invented figures or simulated success.
+distance breakdown, which then become the Summary: all-time totals, no period
+menu, each figure linking to its source view. Deleting accounts with Hosted
+Workout involvement needs a separate shared-event cleanup design. Never show
+invented figures or simulated success.
 
 ## Acceptance
 
