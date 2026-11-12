@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.0.1
+version: 3.1.0
 ---
 
 # Foundry MCP
@@ -59,7 +59,8 @@ Read (`foundry:read`): `get_current_user`, `list_activities`, `get_run_or_ride`,
 `get_exercise_history`, `get_exercise_volume`, `list_one_rep_maxes`,
 `list_routines`, `get_active_strength_session`, `get_strength_session`,
 `get_nutrition_day`, `get_nutrition_week`, `get_nutrition_goals`,
-`search_foods`.
+`search_foods`, and the view tools `show_week_overview`, `review_food_log`, and
+`show_exercise_progress` (see [Views](#views)).
 
 Write (`foundry:write`): `log_run_or_ride`, `update_run_or_ride`,
 `log_body_metrics`, `log_wod_result`, `start_strength_session`,
@@ -81,6 +82,54 @@ To add a tool, add it to a file in `src/lib/mcp/tools/` with `defineTool`, set
 `access`, and add a case to `src/lib/mcp/handler.test.ts`. A new create tool
 needs a Convex idempotency key (`operationId`, `clientEntryId`, or
 `withCreateReceipt` in `convex/lib/operationReceipt.ts`).
+
+## Views
+
+Three read tools open an interactive view (an [MCP App](https://modelcontextprotocol.io/extensions/apps/overview))
+in hosts that support it, such as Claude.ai. Other clients get the same data as
+JSON and text.
+
+| Tool                     | View                         | What it does                                                                                              |
+| ------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `show_week_overview`     | `ui://foundry/week-overview`     | Activities and nutrition per day for one Monday-to-Sunday week. Previous/next week call the tool again. |
+| `review_food_log`        | `ui://foundry/food-log`          | Proposed diary entries to adjust, remove, and log. Log calls `log_food` per item.                        |
+| `show_exercise_progress` | `ui://foundry/exercise-progress` | e1RM or top set over 4w, 12w, or 1y as SVG charts, with weekly volume and 1RMs.                           |
+
+How it works:
+
+- The UI is React in `src/lib/mcp/views/ui/`. The Vite plugin in
+  `src/lib/mcp/views/vitePlugin.ts` builds it into one HTML file with inlined
+  JS and CSS and exposes it as `virtual:foundry-mcp-views`. The Worker bundle
+  carries it; there is no separate deploy. All three views share the file, and
+  the server sets `data-view` per resource.
+- The views make no network requests, so the resource declares no CSP domains.
+  They talk to the server only through the host (`callServerTool`).
+- `_meta.ui.domain` is Claude's sandbox origin for this endpoint: the first 32
+  hex characters of SHA-256 of the endpoint URL, then `.claudemcpcontent.com`.
+  The server computes it per request, so each environment gets its own.
+- Resources and view tools need `foundry:read`. `review_food_log` only proposes
+  entries; without `foundry:write` the view hides Log and says why. Each item
+  gets an `idempotencyKey` made in the view, and retries reuse it, so a retry
+  never logs twice. After logging, the view tells the model what was saved
+  (`updateModelContext`).
+- View text follows the host locale in English or Dutch
+  (`src/lib/i18n/messages/*/mcp-views.ts`).
+
+To change a view, edit `src/lib/mcp/views/ui/` and check it in a host:
+
+1. Run the ext-apps [`basic-host`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host)
+   example or MCP Inspector against an MCP endpoint, call the tool, and check
+   light, dark, and a narrow width. Use a local server with fixture data
+   rather than `pnpm dev:watch`, which pushes to the shared dev deployment.
+2. Then check the dev Worker in Claude.ai.
+
+`pnpm build` fails if the view bundle does not build. `handler.test.ts` checks
+the resource HTML, `_meta.ui`, and the view tools.
+
+If a view does not render in Claude, see Claude's
+[MCP Apps troubleshooting](https://claude.com/docs/connectors/building/mcp-apps/troubleshooting).
+A blank view usually means a script error: open the iframe's console in the
+browser developer tools.
 
 ## Setup per environment
 
