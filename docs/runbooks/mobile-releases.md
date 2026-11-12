@@ -23,18 +23,21 @@ changes.
 ## Production Convex first
 
 Preview and production builds both call production Convex, so deploy any Convex
-change a release needs before the release ships. Every release path runs
-`node scripts/convex-drift.mjs --target HEAD` first and stops when this checkout has
+change a release needs before the release ships. These scripts run
+`node scripts/convex-drift.mjs --target HEAD` first and stop when this checkout has
 Convex commits that production lacks: `pnpm preview:ios:build`,
 `pnpm preview:ios:build:local`, `pnpm production:ios:build:local`, and
-`pnpm mobile:update:<channel>`. Development builds use the dev deployment and skip it. It checks commits only, so
-commit Convex edits before building.
+`pnpm mobile:update:<channel>`. Development builds use the dev deployment and skip
+it. It checks commits only, so commit Convex edits before building. The CI
+`preview-internal` build in [CI builds](#ci-builds) does not run it yet; check by
+hand before dispatching one.
 
 When it stops, run **Actions → Deploy → Run workflow** on `main`, wait for it to
 finish, and retry. Append `-- --allow-convex-drift` to a local build only when the
-missing commits are known not to matter to the app. OTA updates have no override on purpose. The check needs `gh auth login`;
-see [deploy](deploy.md#production-convex-drift) for how it finds the deployed commit.
-A raw `eas build` skips it, so run `pnpm convex:drift --target HEAD` from the
+missing commits are known not to matter to the app. OTA updates have no override
+on purpose. The check needs `gh auth login`; see
+[deploy](deploy.md#production-convex-drift) for how it finds the deployed commit. A
+raw `eas build` skips it, so run `pnpm convex:drift --target HEAD` from the
 repository root before one.
 
 ## Install variants
@@ -65,8 +68,9 @@ the Apple grant against the bundle ID of the build that asks.
 From macOS (zsh), in `apps/mobile`:
 
 ```sh
-node ../../scripts/convex-drift.mjs --target HEAD   # see "Production Convex first"
-EXPO_NO_DOTENV=1 pnpm exec eas build --platform ios --profile preview --clear-cache --auto-submit
+# Stops before building when production Convex lags; see "Production Convex first".
+node ../../scripts/convex-drift.mjs --target HEAD &&
+  EXPO_NO_DOTENV=1 pnpm exec eas build --platform ios --profile preview --clear-cache --auto-submit
 ```
 
 The environment setting prevents local `.env.local` values from entering the

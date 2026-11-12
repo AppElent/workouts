@@ -36,7 +36,8 @@ build 27 failed against a production deployment 11 commits behind `main`).
 [`scripts/convex-drift.mjs`](../../scripts/convex-drift.mjs) finds the commit of the
 last successful GitHub deployment to the `production` Environment and lists the
 commits after it that change `convex/` or `packages/core/` (tests excluded;
-lockfile-only dependency bumps are not counted). It reads deployment records only, never production secrets.
+lockfile-only dependency bumps are not counted). It reads deployment records only,
+never production secrets.
 
 | Where | What happens |
 | --- | --- |
