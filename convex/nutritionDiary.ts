@@ -18,6 +18,7 @@ import { requireSubject, requireUserId } from "./lib/auth";
 import { assertIsoDate, bumpDayRevision, daySnapshot } from "./lib/diaryDays";
 import { appError, checked, withRuleErrors } from "./lib/errors";
 import { requireFoodPhotoOwner } from "./lib/foodPhotos";
+import { legacyEnvelopeVersion, legacyIncludeDays } from "./lib/legacyClients";
 import { withOperationReceipt } from "./lib/operationReceipt";
 import {
 	bilingual,
@@ -398,14 +399,23 @@ async function apply(
  * and every day it touches gets a new revision.
  */
 export const applyOperation = mutation({
-	args: operationArgs,
+	args: {
+		...operationArgs,
+		version: legacyEnvelopeVersion,
+		includeDays: legacyIncludeDays,
+	},
 	returns: v.object({
 		entryIds: v.array(v.id("nutritionDiaryEntries")),
 		clientEntryIds: v.array(v.string()),
+		// Legacy builds loop over `days`; receipts the previous server wrote
+		// still hold its day snapshots. Current results never carry it.
+		days: v.optional(v.array(v.any())),
 	}),
-	handler: async (ctx, { operationId, ...envelope }) => {
+	handler: async (ctx, { operationId, includeDays, ...envelope }) => {
 		const userId = await requireSubject(ctx, envelope.expectedSubject);
-		return withOperationReceipt(
+		// The receipt keeps a legacy `version`, as the previous server did, so a
+		// retry that spans the deploy still matches its first attempt.
+		const result = await withOperationReceipt(
 			ctx,
 			"nutritionDiaryOperationReceipts",
 			{ userId, operationId, payload: envelope },
@@ -419,6 +429,8 @@ export const applyOperation = mutation({
 				return entries;
 			},
 		);
+		const legacy = envelope.version !== undefined || includeDays !== undefined;
+		return legacy && !("days" in result) ? { ...result, days: [] } : result;
 	},
 });
 
