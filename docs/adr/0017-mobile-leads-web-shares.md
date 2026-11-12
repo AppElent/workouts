@@ -54,8 +54,9 @@ guests with the same name overwrite each other's scores ([APP-38](https://linear
   which is desk work before a class. Also the MCP server, which follows from the
   integration goal, and the public landing page.
 
-Editing and deleting WODs, WOD Results, and exercises is mobile-only today. The
-web keeps the create forms it already has.
+Editing WODs, WOD Results, and exercises, and deleting WODs and WOD Results, is
+mobile-only today. The web keeps the create forms it already has, and can delete
+exercises.
 
 **Web layout.** Every web page is `responsive`. No page is declared
 `large-screen`.
