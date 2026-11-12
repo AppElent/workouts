@@ -5,6 +5,7 @@ import { mcpViews } from "./mcp-views";
 import { nav } from "./nav";
 import { privacy } from "./privacy";
 import { shell } from "./shell";
+import { support } from "./support";
 import { testData } from "./test-data";
 
 export const en = {
@@ -15,6 +16,7 @@ export const en = {
 	nav,
 	privacy,
 	shell,
+	support,
 	testData,
 };
 export type Messages = typeof en;

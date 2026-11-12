@@ -26,7 +26,7 @@ const features = [
 ];
 
 function IntroPage() {
-	const { privacy } = useMessages();
+	const { privacy, support } = useMessages();
 	return (
 		<div
 			className="relative min-h-screen flex flex-col overflow-hidden"
@@ -182,6 +182,13 @@ function IntroPage() {
 					className="text-[var(--text-muted)] hover:text-white"
 				>
 					{privacy.title}
+				</Link>
+				<span className="mx-2 text-[var(--text-muted)]">·</span>
+				<Link
+					to="/support"
+					className="text-[var(--text-muted)] hover:text-white"
+				>
+					{support.title}
 				</Link>
 			</footer>
 		</div>

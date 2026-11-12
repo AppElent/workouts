@@ -6,6 +6,7 @@ import { mcpViews } from "./mcp-views";
 import { nav } from "./nav";
 import { privacy } from "./privacy";
 import { shell } from "./shell";
+import { support } from "./support";
 import { testData } from "./test-data";
 
 export const nl = {
@@ -16,5 +17,6 @@ export const nl = {
 	nav,
 	privacy,
 	shell,
+	support,
 	testData,
 } satisfies Messages;

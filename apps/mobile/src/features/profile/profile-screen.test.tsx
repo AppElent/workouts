@@ -18,12 +18,12 @@ jest.mock("@clerk/expo", () => ({
 	}),
 }));
 
-it("shows the signed-in identity and unavailable totals, and always confirms sign-out", async () => {
+it("shows the signed-in identity without placeholder totals, and always confirms sign-out", async () => {
 	await renderApp("/profile");
 	expect(await screen.findByText("Alex Athlete")).toBeTruthy();
 	expect(screen.getByText("alex@example.test")).toBeTruthy();
 	expect(screen.queryByText("142")).toBeNull();
-	expect(screen.getAllByText("—")).toHaveLength(3);
+	expect(screen.queryByText("—")).toBeNull();
 	await fireEvent.press(screen.getByRole("button", { name: "Sign out" }));
 	expect(await screen.findByText("Sign out?")).toBeTruthy();
 	expect(mockSignOut).not.toHaveBeenCalled();

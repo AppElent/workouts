@@ -262,6 +262,14 @@ export const FEATURES = defineFeatures([
 		reason: `The public entry for visitors and shared links; the app opens on the signed-in home (${ADR}).`,
 		routes: { web: ["index"] },
 	},
+	{
+		id: "support",
+		kind: "product",
+		status: "exclusive",
+		platforms: ["web"],
+		reason: `The App Store support URL: a public page anyone can open without the app or an account (${ADR}).`,
+		routes: { web: ["support"] },
+	},
 
 	// Product: mobile by design (phone goal).
 	{
