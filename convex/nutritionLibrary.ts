@@ -14,6 +14,11 @@ import { mutation, type QueryCtx, query } from "./_generated/server";
 import { requireSubject, requireUserId } from "./lib/auth";
 import { appError, withRuleErrors } from "./lib/errors";
 import { requireFoodPhotoOwner } from "./lib/foodPhotos";
+import {
+	legacyEnvelopeVersion,
+	legacyPhotoVersion,
+	legacySchemaVersion,
+} from "./lib/legacyClients";
 import { libraryIndexFields } from "./lib/nutritionLibraryIndex";
 import { withOperationReceipt } from "./lib/operationReceipt";
 import { libraryCategory, libraryRecordKind } from "./lib/validators";
@@ -23,6 +28,8 @@ const MAX_RECORD_ID_LENGTH = 512;
 
 const libraryRecord = v.object({
 	subject: v.optional(v.string()),
+	// Only in results of receipts the previous server wrote; never served now.
+	schemaVersion: legacySchemaVersion,
 	id: v.string(),
 	kind: libraryRecordKind,
 	payload: v.union(v.string(), v.null()),
@@ -118,6 +125,7 @@ async function serveRecord(
  */
 export const save = mutation({
 	args: {
+		version: legacyEnvelopeVersion,
 		operationId: v.string(),
 		expectedSubject: v.string(),
 		operation: v.union(
@@ -127,6 +135,8 @@ export const save = mutation({
 					id: v.string(),
 					kind: libraryRecordKind,
 					payload: v.string(),
+					// Read by no one and never stored: `next` lists every stored field.
+					schemaVersion: legacySchemaVersion,
 				}),
 				expectedRevision: v.number(),
 			}),
@@ -142,6 +152,8 @@ export const save = mutation({
 	handler: async (ctx, { operationId, ...envelope }) => {
 		const userId = await requireSubject(ctx, envelope.expectedSubject);
 		const { operation } = envelope;
+		// The receipt keeps legacy fields, as the previous server did, so a retry
+		// that spans the deploy still matches its first attempt.
 		return withOperationReceipt(
 			ctx,
 			"nutritionLibraryOperationReceipts",
@@ -204,6 +216,7 @@ export const browse = query({
 		query: v.string(),
 		category: v.optional(libraryCategory),
 		paginationOpts: paginationOptsValidator,
+		photoVersion: legacyPhotoVersion,
 	},
 	returns: v.object({
 		page: v.array(libraryRecord),
@@ -256,6 +269,7 @@ export const getMany = query({
 		ids: v.array(v.string()),
 		forkIds: v.optional(v.array(v.string())),
 		barcode: v.optional(v.string()),
+		photoVersion: legacyPhotoVersion,
 	},
 	returns: v.array(libraryRecord),
 	handler: async (ctx, args) => {

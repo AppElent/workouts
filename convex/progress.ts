@@ -12,12 +12,16 @@ const MAX_UTC_OFFSET_MINUTES = 14 * 60;
 
 /**
  * Work volume in kg per ISO week, oldest first. Weeks follow the caller's
- * calendar: `utcOffsetMinutes` is minutes east of UTC.
+ * calendar: `utcOffsetMinutes` is minutes east of UTC. Builds older than
+ * #194 omit it and get UTC weeks, as the previous server gave them.
  */
 export const weeklyVolume = query({
-	args: { exerciseId: exerciseReference, utcOffsetMinutes: v.number() },
+	args: {
+		exerciseId: exerciseReference,
+		utcOffsetMinutes: v.optional(v.number()),
+	},
 	returns: v.array(v.object({ week: v.string(), volume: v.number() })),
-	handler: async (ctx, { exerciseId, utcOffsetMinutes }) => {
+	handler: async (ctx, { exerciseId, utcOffsetMinutes = 0 }) => {
 		const userId = await requireUserId(ctx);
 		if (
 			!Number.isInteger(utcOffsetMinutes) ||
