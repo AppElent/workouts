@@ -15,7 +15,7 @@ export const support = {
 			},
 			oneRm: {
 				q: "How does Foundry estimate my 1RM?",
-				a: "Foundry estimates your one-rep max from your logged sets. You can also enter a tested 1RM; Foundry uses it when it is newer. Either one lets you plan sets as a percentage.",
+				a: "Foundry estimates your one-rep max from your logged sets. To plan sets as a percentage, it uses a logged single or a tested 1RM you enter, whichever is newer.",
 			},
 			food: {
 				q: "Where does the food data come from?",
