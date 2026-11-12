@@ -17,6 +17,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AppAuthedRouteImport } from './routes/_app/_authed'
 import { Route as AppExercisesIndexRouteImport } from './routes/_app/exercises/index'
@@ -72,6 +73,11 @@ const SignUpRoute = SignUpRouteImport.update({
 const SsoCallbackRoute = SsoCallbackRouteImport.update({
   id: '/sso-callback',
   path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/support': typeof SupportRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof AppExercisesIdRoute
   '/join/$token': typeof AppJoinTokenRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/support': typeof SupportRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/exercises/$id': typeof AppExercisesIdRoute
   '/join/$token': typeof AppJoinTokenRoute
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/support': typeof SupportRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/_app/_authed': typeof AppAuthedRouteWithChildren
   '/_app/exercises/$id': typeof AppExercisesIdRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/support'
     | '/.well-known/$'
     | '/exercises/$id'
     | '/join/$token'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/support'
     | '/.well-known/$'
     | '/exercises/$id'
     | '/join/$token'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sso-callback'
+    | '/support'
     | '/.well-known/$'
     | '/_app/_authed'
     | '/_app/exercises/$id'
@@ -330,6 +342,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
+  SupportRoute: typeof SupportRoute
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
 }
 
@@ -389,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/sso-callback'
       fullPath: '/sso-callback'
       preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/$': {
@@ -572,6 +592,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   SsoCallbackRoute: SsoCallbackRoute,
+  SupportRoute: SupportRoute,
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
 }
 export const routeTree = rootRouteImport

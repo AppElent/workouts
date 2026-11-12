@@ -249,7 +249,7 @@ export function TrainingScreen() {
 						secondary={
 							exercises === undefined
 								? undefined
-								: `${exercises.length} ${copy.exerciseCount}`
+								: `${exercises.length} ${plural(locale, exercises.length, copy.exerciseCount)}`
 						}
 						chevron
 						onPress={() => router.push("/exercises")}
