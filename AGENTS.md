@@ -31,15 +31,14 @@ Before the task, read the matching project doc:
 | Changing error reporting, source maps, or the `*_SENTRY_*` variables | [Sentry](docs/runbooks/sentry.md) |
 | Configuring Apple, Google, or Microsoft sign-in | [Social sign-in](docs/runbooks/social-sign-in.md) |
 | Using or changing the Foundry MCP server | [MCP](docs/runbooks/mcp.md) |
-| Running a data migration | [Exercise IDs](docs/runbooks/exercise-migration.md), [nutrition account storage](docs/runbooks/nutrition-account-migration.md) |
 | Creating or adopting a design study | [Design studies](docs/runbooks/design-studies.md) |
 | Upgrading dependencies | The `upgrade-dependencies` skill, with [Foundry's upgrade facts](docs/runbooks/dependency-upgrades.md); never weaken or skip a test to make an upgrade pass — stop and report |
 | Taking a pull request through review and CI | The `babysit-pr` skill |
 | Reviewing the app, or capturing a review the user leads | The `review-app` skill |
 
 Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [`docs/adr/`](docs/adr/).
-Adding, moving, or finding docs: [docs map](docs/README.md). Issues are GitHub
-Issues on `AppElent/workouts`; engineering skills read [docs/agents/](docs/agents/issue-tracker.md).
+Adding, moving, or finding docs: [docs map](docs/README.md). Issues live in
+Linear (see Factory workflow below); engineering skills read [docs/agents/](docs/agents/issue-tracker.md).
 
 ## Factory workflow
 
