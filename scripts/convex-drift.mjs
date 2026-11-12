@@ -24,13 +24,14 @@ const REPOSITORY = "AppElent/workouts";
 const ENVIRONMENT = "production";
 
 /**
- * What `convex deploy` bundles: the functions, the core package they import,
- * and the Convex config. Tests never reach the deployment.
+ * What `convex deploy` bundles: the functions and the core package they
+ * import, including its build config. Tests never reach the deployment.
+ * Dependency bumps in the root lockfile are left out: they are frequent and
+ * rarely change what the app can call.
  */
 export const CONVEX_PATHS = [
 	"convex/",
-	"packages/core/src/",
-	"convex.json",
+	"packages/core/",
 	":(exclude,glob)**/*.test.ts",
 	":(exclude,glob)**/*.test.mjs",
 ];
@@ -78,9 +79,13 @@ export function report({ status, deployment, target, commits }) {
 	const deployed = `production Convex runs ${short(deployment.sha)} (deployed ${deployment.created_at})`;
 	if (status === "ok") return `${deployed}; ${target} has no Convex changes it lacks.`;
 	const lines = commits.map((commit) => `- ${short(commit.sha)} ${commit.subject}`);
+	const deploy =
+		target === "origin/main"
+			? "Run Actions → Deploy → Run workflow on main"
+			: "Merge any of these not yet on main, run Actions → Deploy → Run workflow on main";
 	const next =
 		status === "drift"
-			? "Run Actions → Deploy → Run workflow on main, then retry."
+			? `${deploy}, then retry.`
 			: "Still inside the grace period; deploy production before it ends.";
 	return [
 		`${deployed}; ${target} has ${commits.length} Convex commit(s) it lacks:`,
@@ -133,6 +138,9 @@ export function checkConvexDrift({ target = "origin/main", graceHours = 0, deplo
 	const commits = parseCommits(
 		run("git", [
 			"log",
+			// A merge counts once, at its merge time, so a branch's older
+			// commits do not skip the grace period.
+			"--first-parent",
 			"--format=%H%x09%cI%x09%s",
 			`${deployment.sha}..${target}`,
 			"--",

@@ -35,8 +35,8 @@ while installed apps already call it (on 12 Nov 2026 food logging in TestFlight
 build 27 failed against a production deployment 11 commits behind `main`).
 [`scripts/convex-drift.mjs`](../../scripts/convex-drift.mjs) finds the commit of the
 last successful GitHub deployment to the `production` Environment and lists the
-commits after it that change `convex/`, `packages/core/src/`, or `convex.json`
-(tests excluded). It reads deployment records only, never production secrets.
+commits after it that change `convex/` or `packages/core/` (tests excluded;
+lockfile-only dependency bumps are not counted). It reads deployment records only, never production secrets.
 
 | Where | What happens |
 | --- | --- |
@@ -60,7 +60,7 @@ The person who merges a pull request that touches Convex (Eric) pushes `main` to
 afterwards, from an up-to-date `main` checkout:
 
 ```sh
-pnpm exec convex dev --once   # or pnpm deploy:dev to refresh foundry-dev too
+pnpm build:packages && pnpm exec convex dev --once   # or pnpm deploy:dev to refresh foundry-dev too
 ```
 
 Work that pushes a branch's functions to shared dev puts `main` back when it is done,
@@ -78,7 +78,8 @@ or uses an [isolated backend](worktree-setup.md#isolated-backends) instead.
 
 - `Production Convex lacks … Convex commit(s)`: run the production Deploy on `main`.
   `Could not compare production Convex`: `gh` is not signed in, or has no
-  `deployments: read` on the repository.
+  `deployments: read` on the repository. A production run whose Worker step failed
+  counts as not deployed even if its Convex step succeeded; the next green run clears it.
 - `CONVEX_DEPLOY_KEY … is missing or not a prod: key`: the Environment has no key of
   its own, or inherited a repository-level one. Run `pnpm env:apply <environment> --only github`.
 - `Built Worker is foundry, expected foundry-staging`: the build ran without

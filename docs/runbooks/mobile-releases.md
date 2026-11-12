@@ -27,11 +27,12 @@ change a release needs before the release ships. Every release path runs
 `node scripts/convex-drift.mjs --target HEAD` first and stops when this checkout has
 Convex commits that production lacks: `pnpm preview:ios:build`,
 `pnpm preview:ios:build:local`, `pnpm production:ios:build:local`, and
-`pnpm mobile:update:<channel>`. Development builds use the dev deployment and skip it.
+`pnpm mobile:update:<channel>`. Development builds use the dev deployment and skip it. It checks commits only, so
+commit Convex edits before building.
 
 When it stops, run **Actions → Deploy → Run workflow** on `main`, wait for it to
 finish, and retry. Append `-- --allow-convex-drift` to a local build only when the
-missing commits are known not to matter to the app. The check needs `gh auth login`;
+missing commits are known not to matter to the app. OTA updates have no override on purpose. The check needs `gh auth login`;
 see [deploy](deploy.md#production-convex-drift) for how it finds the deployed commit.
 A raw `eas build` skips it, so run `pnpm convex:drift --target HEAD` from the
 repository root before one.
