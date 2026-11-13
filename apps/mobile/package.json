@@ -8,7 +8,6 @@
 		"start:dev-client": "expo start --dev-client",
 		"android": "expo run:android",
 		"ios": "expo run:ios",
-		"web": "expo start --web",
 		"devbuild:android": "expo run:android",
 		"devbuild:android:clean": "expo prebuild --platform android --clean && expo run:android",
 		"devbuild:android:eas": "eas build --platform android --profile development",
@@ -67,7 +66,6 @@
 		"react-native-safe-area-context": "~5.10.1",
 		"react-native-screens": "~4.30.0",
 		"react-native-svg": "15.16.0",
-		"react-native-web": "~0.21.4",
 		"react-native-worklets": "0.13.0",
 		"zod": "^4.6.7"
 	},

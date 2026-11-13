@@ -59,3 +59,10 @@ it("gives the routine its own play target and keeps the row after failed deletio
 	expect(await screen.findByText("Could not delete the routine.")).toBeTruthy();
 	expect(screen.getByText("Push day")).toBeTruthy();
 });
+
+it("counts the exercise library in words, not as an object", async () => {
+	jest.mocked(useQueries).mockImplementation(() => ({}));
+	await renderApp("/train", { train: TrainRoute });
+	expect(await screen.findByText(/^\d+ exercises$/)).toBeTruthy();
+	expect(screen.queryByText(/\[object Object\]/)).toBeNull();
+});

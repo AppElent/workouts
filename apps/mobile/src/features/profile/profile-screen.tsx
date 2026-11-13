@@ -98,18 +98,7 @@ export function ProfileScreen() {
 				</View>
 				<AppText variant="body">›</AppText>
 			</Pressable>
-			<FormSection footer={c.totalsUnavailable}>
-				<View style={{ flexDirection: "row", padding: spacing.md }}>
-					{[c.sessions, c.distance, c.records].map((label) => (
-						<View
-							key={label}
-							style={{ flex: 1, alignItems: "center", gap: spacing.xs }}
-						>
-							<AppText variant="metric">—</AppText>
-							<AppText variant="caption">{label}</AppText>
-						</View>
-					))}
-				</View>
+			<FormSection>
 				<DisclosureRow
 					label={c.allActivity}
 					onPress={() => router.push("/activity-history")}

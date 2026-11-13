@@ -6,6 +6,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { unstable_readConfig } from "wrangler";
+import { foundryMcpViews } from "./src/lib/mcp/views/vitePlugin.ts";
 
 const release =
 	process.env.SENTRY_RELEASE ||
@@ -33,6 +34,7 @@ const config = defineConfig({
 	},
 	resolve: { tsconfigPaths: true },
 	plugins: [
+		foundryMcpViews(),
 		tailwindcss(),
 		tanstackStart(),
 		viteReact(),

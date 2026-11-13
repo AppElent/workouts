@@ -26,11 +26,11 @@ import {
 	today,
 } from "./define";
 
-const date = z
+export const date = z
 	.string()
 	.regex(/^\d{4}-\d{2}-\d{2}$/)
 	.describe("Calendar day as YYYY-MM-DD in the user's own time zone");
-const meal = z.enum(["breakfast", "lunch", "dinner", "snacks"]);
+export const meal = z.enum(["breakfast", "lunch", "dinner", "snacks"]);
 const idempotencyKey = z
 	.string()
 	.min(8)
@@ -44,7 +44,7 @@ const SHIPPED = "shipped:";
 const PERSONAL = "personal:";
 
 /** Nutrient figures as plain numbers; null when the source has no figure. */
-function flatNutrients(
+export function flatNutrients(
 	nutrients: Partial<Record<NutrientKey, NutrientValue>>,
 ): Record<string, number | "trace" | null> {
 	const out: Record<string, number | "trace" | null> = {};
@@ -120,7 +120,7 @@ async function personalFoods(backend: FoundryBackend, query: string) {
 	return foods;
 }
 
-async function libraryFood(
+export async function libraryFood(
 	backend: FoundryBackend,
 	foodId: string,
 ): Promise<LibraryFood> {
@@ -143,7 +143,7 @@ async function libraryFood(
 	throw new ToolInputError("Food not found. Use an ID from search_foods.");
 }
 
-function libraryServings(source: LibraryFood): ServingOption[] {
+export function libraryServings(source: LibraryFood): ServingOption[] {
 	return source.kind === "shipped"
 		? servingOptions(source.food)
 		: personalFoodServingOptions(source.food);

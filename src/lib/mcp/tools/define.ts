@@ -1,4 +1,5 @@
 import { isAppErrorCode, parseConvexError } from "@foundry/core";
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import * as Sentry from "@sentry/cloudflare";
@@ -10,6 +11,7 @@ import type {
 import type { z } from "zod";
 import { errors } from "#/lib/i18n/messages/en/errors";
 import { MCP_SCOPES, type McpAccess } from "../auth";
+import { type ViewName, viewUri } from "../views/types";
 
 /** The Convex calls tools make, as the signed-in user. ConvexHttpClient fits. */
 export type FoundryBackend = {
@@ -26,6 +28,8 @@ export type FoundryBackend = {
 export type ToolContext = {
 	backend: FoundryBackend;
 	access: McpAccess;
+	/** This endpoint's URL as the client sees it (the OAuth resource). */
+	endpointUrl: string;
 	/** Fetches the OAuth userinfo document for the caller's token. */
 	userInfo: () => Promise<Record<string, unknown> | undefined>;
 	now: () => Date;
@@ -41,6 +45,8 @@ type ToolDefinition<Input extends Shape> = {
 	/** Read tools need foundry:read; write tools need foundry:write. */
 	access: "read" | "write";
 	annotations?: Omit<ToolAnnotations, "title" | "readOnlyHint">;
+	/** Hosts with MCP Apps render this view with the result. */
+	view?: ViewName;
 	run: (
 		args: z.infer<z.ZodObject<Input>>,
 		context: ToolContext,
@@ -64,31 +70,38 @@ export function registerTools(
 	for (const tool of tools) {
 		const scope = tool.access === "read" ? MCP_SCOPES.read : MCP_SCOPES.write;
 		if (!context.access.scopes.has(scope)) continue;
-		server.registerTool(
-			tool.name,
-			{
+		const config = {
+			title: tool.title,
+			description: tool.description,
+			inputSchema: tool.input,
+			annotations: {
 				title: tool.title,
-				description: tool.description,
-				inputSchema: tool.input,
-				annotations: {
-					title: tool.title,
-					readOnlyHint: tool.access === "read",
-					openWorldHint: false,
-					...(tool.access === "write"
-						? { destructiveHint: false, idempotentHint: false }
-						: {}),
-					...tool.annotations,
-				},
+				readOnlyHint: tool.access === "read",
+				openWorldHint: false,
+				...(tool.access === "write"
+					? { destructiveHint: false, idempotentHint: false }
+					: {}),
+				...tool.annotations,
 			},
-			async (args: unknown) => {
-				try {
-					const value = await tool.run(args as never, context);
-					return toolResult(value);
-				} catch (error) {
-					return toolError(error);
-				}
-			},
-		);
+		};
+		const callback = async (args: unknown) => {
+			try {
+				const value = await tool.run(args as never, context);
+				return toolResult(value);
+			} catch (error) {
+				return toolError(error);
+			}
+		};
+		if (tool.view) {
+			registerAppTool(
+				server,
+				tool.name,
+				{ ...config, _meta: { ui: { resourceUri: viewUri(tool.view) } } },
+				callback,
+			);
+		} else {
+			server.registerTool(tool.name, config, callback);
+		}
 	}
 }
 
